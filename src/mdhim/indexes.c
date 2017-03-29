@@ -58,8 +58,8 @@ int open_manifest(struct mdhim_t *md, struct index_t *index, int flags) {
 		index->id, md->mdhim_rank);
 	fd = open(path, flags, 00600);
 	if (fd < 0) {
-		mlog(MDHIM_SERVER_DBG, "Rank: %d - Error opening manifest file", 
-		     md->mdhim_rank);
+		mlog(MDHIM_SERVER_DBG, "Rank: %d - Error opening manifest file: %s", 
+		   md->mdhim_rank,path);
 	}
 	
 	return fd;

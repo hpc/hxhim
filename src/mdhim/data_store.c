@@ -8,16 +8,16 @@
 #include <stdio.h>
 #include "mdhim_options.h"
 #include "data_store.h"
-#ifdef      LEVELDB_SUPPORT
+#ifdef      HXHIM_USE_LEVELDB
 #include "ds_leveldb.h"
 #endif
-#ifdef      ROCKSDB_SUPPORT
+#ifdef      HXHIM_USE_ROCKSDB
 #include "ds_leveldb.h"
 #endif
 #ifdef      SOPHIADB_SUPPORT
 #include "ds_sophia.h"
 #endif
-#ifdef      MYSQLDB_SUPPORT
+#ifdef      HXHIM_USE_MYSQL
 #include "ds_mysql.h"
 #endif
 
@@ -46,7 +46,7 @@ struct mdhim_store_t *mdhim_db_init(int type) {
 
 	switch(type) {
 
-#ifdef      LEVELDB_SUPPORT
+#ifdef      HXHIM_USE_LEVELDB
 	case LEVELDB:
 		store->open = mdhim_leveldb_open;
 		store->put = mdhim_leveldb_put;
@@ -61,7 +61,7 @@ struct mdhim_store_t *mdhim_db_init(int type) {
 
 #endif
 
-#ifdef      ROCKSDB_SUPPORT
+#ifdef      HXHIM_USE_ROCKSDB
 	case ROCKSDB:
 		store->open = mdhim_leveldb_open;
 		store->put = mdhim_leveldb_put;
@@ -75,7 +75,7 @@ struct mdhim_store_t *mdhim_db_init(int type) {
 		break;
 #endif
 
-#ifdef      MYSQLDB_SUPPORT
+#ifdef      HXHIM_USE_MYSQL
 	case	MYSQLDB:
 		store->open = mdhim_mysql_open;
 		store->put = mdhim_mysql_put;
