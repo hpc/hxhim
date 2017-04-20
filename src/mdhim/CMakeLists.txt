@@ -44,7 +44,7 @@ endif()
 #
 # MySQL Support
 #
-find_package(MYSQL)
+find_package(MYSQL QUIET)
 if(${MYSQL_FOUND})
   message(STATUS "MySQL Data Storage Module Enabled")
   add_definitions(-DHXHIM_USE_MYSQL)

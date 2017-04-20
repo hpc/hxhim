@@ -1,8 +1,15 @@
 # CMakeLists files in this project can
-# refer to the root source directory of the project as ${HELLO_SOURCE_DIR} and
-# to the root binary directory of the project as ${HELLO_BINARY_DIR}.
+# refer to the root source directory of the project as ${HXHIM_SOURCE_DIR} and
+# to the root binary directory of the project as ${HXHIM_BINARY_DIR}.
 cmake_minimum_required (VERSION 2.8.11)
 project (HXHIM)
+
+#
+# Add additional cmake files
+#
+set(HXHIM_CMAKE_MODULE_DIR ./CMake)
+set(CMAKE_MODULE_PATH $PCMAKE_MODULE_PATH} ${HXHIM_CMAKE_MODULE_DIR})
+
 
 #
 # Add source locations
