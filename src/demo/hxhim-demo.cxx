@@ -5,6 +5,10 @@
 using namespace std;
 
 struct mesh {
+
+    double x, y;
+    double temp;
+    double pressure;
 };
 
 mesh* create_mesh() {

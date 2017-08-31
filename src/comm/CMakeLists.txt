@@ -1,0 +1,3 @@
+#
+# Create the comm directory
+#

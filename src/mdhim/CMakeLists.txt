@@ -59,5 +59,5 @@ include_directories(AFTER ../utils)
 # Create the mdhim library
 #
 file(GLOB LIBMDHIM_SOURCES *.c)
-add_library(mdhim STATIC ${LIBMDHIM_SOURCES})
+add_library(mdhim STATIC ${LIBMDHIM_SOURCES} ../comm/comm.h ../comm/comm_mpi.h)
 #add_library(mdhim DYNAMIC ${LIBMDHIM_SOURCES})
