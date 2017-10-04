@@ -41,21 +41,30 @@ inline CommAddress::~CommAddress() {}
 
 /**
  * @ An abstract communication endpoint
+ *
+ * This is based upon the progress principle. You initiate a Put or Get and receive an operation id. You then
+ * keep calling the function until the operation is completed.
  */
 class CommEndpoint {
 public:
     /** @brief Destructor */
     virtual ~CommEndpoint() {}
 
-    /** @description Send a message to another endpoint */
-    int PutMessage(const CommEndpoint& dest) { return this->PutMessageImpl(dest); }
+    /** @description Ensure queued messages are sent to remote endpoint */
+    int Flush() { return this->FlushImpl(); }
 
-    /** @description Send a message to this endpoint */
-    int GetMessage(const CommEndpoint& src) { return this->GetMessageImpl(src); }
+    /** @description Enqueue a Put request for the endpoint */
+    int PutMessage(void* buf, std::size_t nbytes) { return this->PutMessageImpl(buf, nbytes); }
 
-    int PollForMessage(std::size_t timeoutSecs) { return this->PollForMessageImpl(timeoutSecs); }
+    /** @description Enqueue a Get request for the endpoint */
+    int GetMessage(void* buf, std::size_t& nbytes) { return this->GetMessageImpl(buf, nbytes); }
 
-    int WaitForMessage(std::size_t timeoutSecs) { return this->WaitForMessageImpl(timeoutSecs); }
+    /** @description Immediately receive a PUT or GET request for the endpoint */
+    int ReceiveMessage(void* buf, std::size_t nbytes) { return this->ReceiveMessageImpl(buf, nbytes); }
+
+    std::size_t PollForMessage(std::size_t timeoutSecs) { return this->PollForMessageImpl(timeoutSecs); }
+
+    std::size_t WaitForMessage(std::size_t timeoutSecs) { return this->WaitForMessageImpl(timeoutSecs); }
 
 protected:
     /** Constructor */
@@ -64,13 +73,18 @@ protected:
     /** @brief Copy Constructor */
     CommEndpoint(const CommEndpoint& other) {};
 
-    virtual int PutMessageImpl(const CommEndpoint& dest) = 0;
 
-    virtual int GetMessageImpl(const CommEndpoint& src) = 0;
+    virtual int PutMessageImpl(void* buf, std::size_t nbytes) = 0;
 
-    virtual int PollForMessageImpl(std::size_t timeoutSecs) = 0;
+    virtual int GetMessageImpl(void* buf, std::size_t& nbytes) = 0;
 
-    virtual int WaitForMessageImpl(std::size_t timeoutSecs) = 0;
+    virtual int ReceiveMessageImpl(void* buf, std::size_t nbytes) = 0;
+
+    virtual std::size_t PollForMessageImpl(std::size_t timeoutSecs) = 0;
+
+    virtual std::size_t WaitForMessageImpl(std::size_t timeoutSecs) = 0;
+
+    virtual int FlushImpl() = 0;
 
 private:
 };
