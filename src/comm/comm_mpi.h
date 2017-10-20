@@ -89,11 +89,15 @@ public:
     ~MPIEndpoint() {}
 
 protected:
-    virtual int PutMessageImpl(void* buf, std::size_t nbytes);
+    virtual int AddPutRequestImpl(void* kbuf, std::size_t kbytes, void* vbuf, std::size_t vbytes);
 
-    virtual int GetMessageImpl(void* buf, std::size_t& nbytes);
+    virtual int AddGetRequestImpl(void* kbuf, std::size_t kbytes, void* vbuf, std::size_t vbytes);
 
-    virtual int ReceiveMessageImpl(void* buf, std::size_t nbytes);
+    virtual int AddPutReplyImpl(void* buf, std::size_t nbytes);
+
+    virtual int AddGetReplyImpl(void* buf, std::size_t nbytes);
+
+    virtual int ReceiveRequestImpl(std::size_t rbytes, CommMessage::Type* requestType, void** kbuf, std::size_t* kbytes, void** vbuf, std::size_t* vbytes);
 
     virtual std::size_t PollForMessageImpl(std::size_t timeoutSecs);
 
@@ -102,6 +106,13 @@ protected:
     virtual int FlushImpl();
 
 private:
+    /**
+     * @return the number of bytes in the packed buffer
+     */
+    std::size_t PackRequest(void** pbuf, CommMessage::Type request, void* kbuf, std::size_t kbytes, void* vbuf, std::size_t vbytes);
+
+    void UnpackRequest(void* pbuf, std::size_t pbytes, CommMessage::Type* request, void** kbuf, std::size_t* kbytes, void** vbuf, std::size_t* vbytes);
+
     const MPIInstance& mpi_;
 
     int rank_;

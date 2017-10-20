@@ -57,29 +57,56 @@ TEST(MPIEndpointTest, DefaultConstructorTest) {
 
 TEST(MPIEndpointTest, PutMessageTest) {
     MPIEndpoint server(0);
+    char sbuf[256] = {0};
+    for (int i = 0; i < 256; i++) {
+        sbuf[i] = (char) rand();
+    }
+
+    // Send a PUT message to this process
+    server.AddPutRequest(sbuf, 128, sbuf + 128, 128);
+    server.Flush();
+
+    // Receive the message to this process
+    MPIEndpoint localServer;
+    size_t nbytes = localServer.PollForMessage(1);
+    EXPECT_GT(nbytes, 256);
+    // Receive the actual buffer and validate contents
+    CommMessage::Type request = CommMessage::INVALID;
+    size_t ksize = 0;
+    size_t vsize = 0;
+    void *kbytes = malloc(128);
+    void *vbytes = malloc(128);
+    int rc = server.ReceiveRequest(nbytes, &request, &kbytes, &ksize, &vbytes, &vsize);
+    EXPECT_EQ(request, CommMessage::PUT);
+    EXPECT_EQ(ksize, 128);
+    EXPECT_EQ(vsize, 128);
+    EXPECT_EQ(0, memcmp(sbuf, kbytes, 128));
+    EXPECT_EQ(0, memcmp(sbuf + 128, vbytes, 128));
+}
+
+TEST(MPIEndpointTest, GetMessageTest) {
+    // Send a GET message to this process
+    MPIEndpoint server(0);
     char sbytes[256], rbytes[256] = {0};
     for (int i = 0; i < 256; i++) {
         sbytes[i] = (char) rand();
     }
 
-    // Send a PUT message to this process
-    server.PutMessage(sbytes, 256);
+    // Send a Get message to this process
+    server.AddGetRequest(sbytes, 128, sbytes + 128, 128);
     server.Flush();
 
     // Receive the message to this process
     MPIEndpoint localServer;
     size_t nbytes = localServer.PollForMessage(1);
 
-    // Ensure the received buffer is the same as the sent buffer
-    EXPECT_EQ(256, nbytes);
+    // Fill the requested buffer and reply
+    EXPECT_GT(nbytes, 256);
 
     // Receive the actual buffer and validate contents
-    int rc = server.ReceiveMessage(rbytes, nbytes);
-    EXPECT_EQ(0, memcmp(sbytes, rbytes, 256));
-}
-
-TEST(MPIEndpointTest, GetMessageTest) {
-    // Send a GET message to this process
+    //int rc = server.ReceiveMessage(rbytes, nbytes);
+    //rc = server.ReplyToMessage();
+    //EXPECT_EQ(0, memcmp(sbytes, rbytes, 256));
 }
 
 TEST(MPIEndpointTest, PollForMessageTest) {
