@@ -36,7 +36,7 @@ protected:
     MPIInstance();
 
     /** Disable the copy constructor */
-    MPIInstance(const MPIInstance& other);
+    MPIInstance(const MPIInstance& other) = default;
 
     /** Destructor called as part of atexit() */
     ~MPIInstance();
@@ -52,9 +52,6 @@ private:
 
 class MPIAddress : public CommAddress {
 public:
-    /** */
-    MPIAddress();
-
     /** */
     MPIAddress(int rank) : CommAddress(), rank_(rank) {}
 
@@ -120,10 +117,10 @@ private:
 
 class MPIEndpointGroup : public CommEndpointGroup {
 public:
-    MPIEndpointGroup(int mpiComm);
-    ~MPIEndpointGroup();
-    int scatterImpl();
-    int receiveImpl();
+    MPIEndpointGroup(int mpiComm) : mpi_(MPIInstance::instance()) {};
+    ~MPIEndpointGroup() {};
+    int scatterImpl() { return -1; };
+    int receiveImpl() { return -1; };
 private:
     const MPIInstance& mpi_;
     int rank_;

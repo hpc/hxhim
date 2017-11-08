@@ -19,17 +19,20 @@ const MPIInstance& MPIInstance::instance() {
 MPIInstance::MPIInstance() {
     int mpiIsInitialized = 0;
     int rc = MPI_Initialized(&mpiIsInitialized);
-    if (!mpiIsInitialized) {
+    if (rc == 0 && !mpiIsInitialized) {
         int argc = 0;
-        char** argv = 0;
+        char** argv = nullptr;
         MPI_Init(&argc, &argv);
         wasInitializedHere_ = 1;
     }
 
     // Retrieve world rank and size
-    rc = MPI_Comm_rank(MPI_COMM_WORLD, &worldRank_);
+    worldRank_ = worldSize_ = -1;
+    rc += MPI_Comm_rank(MPI_COMM_WORLD, &worldRank_);
     assert(0 == rc);
-    rc = MPI_Comm_size(MPI_COMM_WORLD, &worldSize_);
+    rc += MPI_Comm_size(MPI_COMM_WORLD, &worldSize_);
+    if (rc != 0)
+        cerr << __FILE__ << ":" << __LINE__ << ":Failed getting rank and size" << endl;
 
     // Create a communicator so that all address spaces join it
     instanceComm_ = MPI_COMM_WORLD;
@@ -39,13 +42,15 @@ MPIInstance::MPIInstance() {
 
 /** Destructor */
 MPIInstance::~MPIInstance() {
-    MPI_Finalize();
+    if (wasInitializedHere_)
+        MPI_Finalize();
 }
 
 /** Constructor */
 MPIEndpoint::MPIEndpoint() :
         CommEndpoint(),
-        mpi_(MPIInstance::instance()) {
+        mpi_(MPIInstance::instance()),
+        rank_(-1) {
     int rc = MPI_Comm_rank(MPI_COMM_WORLD, &rank_);
     if (rc != 0) {
         MPI_Abort(MPI_COMM_WORLD, rc);
@@ -61,17 +66,17 @@ MPIEndpoint::MPIEndpoint(int rank) :
 
 int MPIEndpoint::AddPutRequestImpl(void* kbuf, std::size_t kbytes, void* vbuf, std::size_t vbytes) {
     MPI_Request req;
-    void* pbuf = 0;
-    int pbytes = PackRequest(&pbuf, CommMessage::PUT, kbuf, kbytes, vbuf, vbytes);
-    int rc = MPI_Isend(pbuf, pbytes, MPI_PACKED, rank_, HXHIM_MPI_REQUEST_TAG, mpi_.Comm(), &req);
+    void* pbuf = nullptr;
+    size_t pbytes = PackRequest(&pbuf, CommMessage::PUT, kbuf, kbytes, vbuf, vbytes);
+    int rc = MPI_Isend(pbuf, (int)pbytes, MPI_PACKED, rank_, HXHIM_MPI_REQUEST_TAG, mpi_.Comm(), &req);
     return rc;
 }
 
 int MPIEndpoint::AddGetRequestImpl(void *kbuf, std::size_t kbytes, void *vbuf, std::size_t vbytes) {
     MPI_Request req;
-    void* pbuf = 0;
-    int pbytes = PackRequest(&pbuf, CommMessage::GET, kbuf, kbytes, 0, 0);
-    int rc = MPI_Isend(pbuf, pbytes, MPI_PACKED, rank_, HXHIM_MPI_REQUEST_TAG, mpi_.Comm(), &req);
+    void* pbuf = nullptr;
+    size_t pbytes = PackRequest(&pbuf, CommMessage::GET, kbuf, kbytes, nullptr, 0);
+    int rc = MPI_Isend(pbuf, (int)pbytes, MPI_PACKED, rank_, HXHIM_MPI_REQUEST_TAG, mpi_.Comm(), &req);
     return rc;
 }
 
@@ -84,7 +89,7 @@ int MPIEndpoint::AddPutReplyImpl(void *buf, std::size_t bytes) {
 }
 
 int MPIEndpoint::ReceiveRequestImpl(size_t rbytes, CommMessage::Type* requestType, void** kbuf, std::size_t* kbytes, void** vbuf, std::size_t* vbytes) {
-    MPI_Status status;
+    MPI_Status status = {};
     void* rbuf = malloc(rbytes);
     int rc = MPI_Recv(rbuf, (int)rbytes, MPI_PACKED, MPI_ANY_SOURCE, HXHIM_MPI_REQUEST_TAG, mpi_.Comm(), &status);
     UnpackRequest(rbuf, rbytes, requestType, kbuf, kbytes, vbuf, vbytes);
@@ -96,14 +101,14 @@ size_t MPIEndpoint::PollForMessageImpl(size_t timeoutSecs) {
 
     // Poll to see if a message is waiting
     int msgWaiting = 0;
-    MPI_Status status;
+    MPI_Status status = {};
     int rc = MPI_Iprobe(MPI_ANY_SOURCE, HXHIM_MPI_REQUEST_TAG, mpi_.Comm(), &msgWaiting, &status);
     if (rc == 0 && msgWaiting == 1) {
         // Get the message size
         int bytecount;
         rc = MPI_Get_count(&status, MPI_BYTE, &bytecount);
         if (rc == 0) {
-            nbytes = bytecount;
+            nbytes = (size_t) bytecount;
         } else {
             cerr << __FILE__ << ":" << __LINE__ << ":Failed determing message size\n";
         }
@@ -115,11 +120,11 @@ size_t MPIEndpoint::PollForMessageImpl(size_t timeoutSecs) {
 }
 
 size_t MPIEndpoint::WaitForMessageImpl(size_t timeoutSecs) {
-    return -1;
+    return 0;
 }
 
 int MPIEndpoint::FlushImpl() {
-    return -1;
+    return 0;
 }
 
 size_t MPIEndpoint::PackRequest(void** pbuf, CommMessage::Type request, void* kbuf, size_t kbytes, void* vbuf, size_t vbytes) {
@@ -127,20 +132,26 @@ size_t MPIEndpoint::PackRequest(void** pbuf, CommMessage::Type request, void* kb
     *pbuf = malloc(pbytes);
     int ppos = 0;
     int rc = 0;
-    rc = MPI_Pack(&request, 1, MPI_BYTE, *pbuf, pbytes, &ppos, mpi_.Comm());
-    rc = MPI_Pack(&kbytes, 1, MPI_UNSIGNED_LONG, *pbuf, pbytes, &ppos, mpi_.Comm());
-    rc = MPI_Pack(&vbytes, 1, MPI_UNSIGNED_LONG, *pbuf, pbytes, &ppos, mpi_.Comm());
-    rc = MPI_Pack(kbuf, kbytes, MPI_BYTE, *pbuf, pbytes, &ppos, mpi_.Comm());
-    rc = MPI_Pack(vbuf, vbytes, MPI_BYTE, *pbuf, pbytes, &ppos, mpi_.Comm());
-    return ppos;
+    rc += MPI_Pack(&request, 1, MPI_BYTE, *pbuf, (int)pbytes, &ppos, mpi_.Comm());
+    rc += MPI_Pack(&kbytes, 1, MPI_UNSIGNED_LONG, *pbuf, (int)pbytes, &ppos, mpi_.Comm());
+    rc += MPI_Pack(&vbytes, 1, MPI_UNSIGNED_LONG, *pbuf, (int)pbytes, &ppos, mpi_.Comm());
+    rc += MPI_Pack(kbuf, (int)kbytes, MPI_BYTE, *pbuf, (int)pbytes, &ppos, mpi_.Comm());
+    rc += MPI_Pack(vbuf, (int)vbytes, MPI_BYTE, *pbuf, (int)pbytes, &ppos, mpi_.Comm());
+    if (rc != 0) {
+        cerr << __FILE__ << ":" << __LINE__ << "Message packing failed" << endl;
+    }
+    return (size_t)ppos;
 }
 
 void MPIEndpoint::UnpackRequest(void* buf, size_t bytes, CommMessage::Type* request, void** kbuf, size_t* kbytes, void** vbuf, size_t* vbytes) {
     int rc = 0;
     int bpos = 0;
-    rc = MPI_Unpack(buf, bytes, &bpos, request, 1, MPI_BYTE, mpi_.Comm());
-    rc = MPI_Unpack(buf, bytes, &bpos, kbytes, 1, MPI_UNSIGNED_LONG, mpi_.Comm());
-    rc = MPI_Unpack(buf, bytes, &bpos, vbytes, 1, MPI_UNSIGNED_LONG, mpi_.Comm());
-    rc = MPI_Unpack(buf, bytes, &bpos, *kbuf, *kbytes, MPI_BYTE, mpi_.Comm());
-    rc = MPI_Unpack(buf, bytes, &bpos, *vbuf, *vbytes, MPI_BYTE, mpi_.Comm());
+    rc += MPI_Unpack(buf, (int)bytes, &bpos, request, 1, MPI_BYTE, mpi_.Comm());
+    rc += MPI_Unpack(buf, (int)bytes, &bpos, kbytes, 1, MPI_UNSIGNED_LONG, mpi_.Comm());
+    rc += MPI_Unpack(buf, (int)bytes, &bpos, vbytes, 1, MPI_UNSIGNED_LONG, mpi_.Comm());
+    rc += MPI_Unpack(buf, (int)bytes, &bpos, *kbuf, (int)*kbytes, MPI_BYTE, mpi_.Comm());
+    rc += MPI_Unpack(buf, (int)bytes, &bpos, *vbuf, (int)*vbytes, MPI_BYTE, mpi_.Comm());
+    if (rc != 0) {
+        cerr << __FILE__ << ":" << __LINE__ << "Message unpacking failed" << endl;
+    }
 }
