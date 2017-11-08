@@ -7,7 +7,7 @@
 #ifndef      __MDHIM_H
 #define      __MDHIM_H
 
-#include <mpi.h>
+//#include <mpi.h>
 #include <stdint.h>
 #include <pthread.h>
 #include "data_store.h"

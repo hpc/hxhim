@@ -7,28 +7,36 @@ find_package(PkgConfig REQUIRED)
 # MPI Support
 #
 if(APPLE)
-  pkg_search_module(MPICH REQUIRED mpich)
+    pkg_search_module(MPICH REQUIRED mpich)
 endif()
 find_package(MPI REQUIRED)
 
-if(${MPI_FOUND})
-  message(STATUS "MPI Communications Module Enabled")
-  add_definitions(-DHXHIM_USE_MPI=1)
-  set(CMAKE_CXX_COMPILER mpicxx)
-  set(CMAKE_C_COMPILER mpicc)
-  set(CMAKE_CXX_COMPILE_FLAGS ${CMAKE_CXX_COMPILE_FLAGS} ${MPI_COMPILE_FLAGS})
-  set(CMAKE_CXX_LINK_FLAGS ${CMAKE_CXX_LINK_FLAGS} ${MPI_LINK_FLAGS})
-  include_directories(AFTER ${MPI_C_INCLUDE_PATH})
+MESSAGE( STATUS "MPI Found: " ${MPI_FOUND})
+if (MPI_FOUND)
+    MESSAGE( STATUS "MPI_C_LIBRARIES=" ${MPI_C_LIBRARIES})
+    MESSAGE( STATUS "MPI_C_LINK_FLAGS=" ${MPI_C_LINK_FLAGS})
+    MESSAGE( STATUS "MPI_C_COMPILE_FLAGS=" ${MPI_C_COMPILE_FLAGS})
+    MESSAGE( STATUS "MPI_CXX_LINK_FLAGS=" ${MPI_CXX_LINK_FLAGS})
+    MESSAGE( STATUS "MPI_CXX_COMPILE_FLAGS=" ${MPI_CXX_COMPILE_FLAGS})
+    message(STATUS "MPI Communications Module Enabled")
+    add_definitions(-DHXHIM_USE_MPI=1)
+    #include_directories(AFTER ${MPI_C_INCLUDE_PATH})
 endif()
 
 #
 # LevelDB Support
 #
 pkg_search_module(LEVELDB REQUIRED leveldb)
-include_directories(AFTER ${LEVELDB_INCLUDE_DIRS})
 if(${LEVELDB_FOUND})
-  message(STATUS "LevelDB Data Storage Module Enabled")
-  add_definitions(-DHXHIM_USE_LEVELDB=1)
+    message(STATUS "LevelDB Data Storage Module Enabled")
+    message(STATUS "LEVELDB_LIBRARY_DIRS=" ${LEVELDB_LIBRARY_DIRS})
+    message(STATUS "LEVELDB_LIBRARIES=" ${LEVELDB_LIBRARIES})
+    link_directories(${LEVELDB_LIBRARY_DIRS})
+    set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${LEVELDB_LIBRARY_DIRS})
+    #link_libraries(${LEVELDB_LIBRARIES})
+    include_directories(AFTER ${LEVELDB_INCLUDE_DIRS})
+    find_library(LEVELDB_LIBRARY NAMES leveldb HINTS ${LEVELDB_LIBRARY_DIRS})
+    add_definitions(-DHXHIM_USE_LEVELDB=1)
 endif()
 
 #
@@ -51,13 +59,10 @@ if(${MYSQL_FOUND})
 endif()
 
 #
-# Include utils files for MDHIM
-#
-include_directories(AFTER ../utils)
-
-#
 # Create the mdhim library
 #
 file(GLOB LIBMDHIM_SOURCES *.c)
-add_library(mdhim STATIC ${LIBMDHIM_SOURCES} ../comm/comm.h ../comm/comm_mpi.h)
-#add_library(mdhim DYNAMIC ${LIBMDHIM_SOURCES})
+MESSAGE( STATUS "LIBMDHIM_SOURCES: " ${LIBMDHIM_SOURCES})
+MESSAGE( STATUS "INCLUDE_DIRECTORIES: " ${INCLUDE_DIRECTORIES})
+add_library(mdhim STATIC ${LIBMDHIM_SOURCES})
+#add_library(mdhim.dylib DYNAMIC ${LIBMDHIM_SOURCES})

@@ -17,7 +17,7 @@ public:
     static const MPIInstance& instance();
 
     /** @return communicator for the HXHIM instance */
-    int Comm() const { return instanceComm_; }
+    MPI_Comm Comm() const { return instanceComm_; }
 
     /** @return processes rank in HXHIM instance */
     int Rank() const { return instanceRank_; }
@@ -42,7 +42,7 @@ protected:
     ~MPIInstance();
 
 private:
-    int instanceComm_;
+    MPI_Comm instanceComm_;
     int instanceRank_;
     int instanceSize_;
     int wasInitializedHere_;
@@ -127,7 +127,7 @@ public:
 private:
     const MPIInstance& mpi_;
     int rank_;
-    int comm_;
+    MPI_Comm comm_;
 };
 
 /**

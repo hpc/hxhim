@@ -11,20 +11,13 @@ set(HXHIM_CMAKE_MODULE_DIR ./CMake)
 set(CMAKE_MODULE_PATH $PCMAKE_MODULE_PATH} ${HXHIM_CMAKE_MODULE_DIR})
 
 #
-# Add source locations
-#
-add_subdirectory (src/base)
-add_subdirectory (src/comm)
-add_subdirectory (src/mdhim)
-add_subdirectory (src/demo)
-add_subdirectory (src/utils)
-
-#
 # Project wide include stuff
 #
 include_directories(BEFORE include)
 set(HEADER_FILES include/hxhim.h)
 include_directories(src/comm)
+include_directories(src/mdhim)
+include_directories(src/utils)
 
 
 #
@@ -66,10 +59,18 @@ if (CMAKE_VERSION VERSION_LESS 2.8.11)
     include_directories("${gtest_SOURCE_DIR}/include")
 endif()
 
-# Add unit test directories
-add_subdirectory(test/comm)
+#
+# Add subdirectories
+#
+add_subdirectory (src/base)
+add_subdirectory (src/comm)
+add_subdirectory (src/mdhim)
+add_subdirectory (src/demo)
+add_subdirectory (src/utils)
 
-# Now simply link against gtest or gtest_main as needed. Eg
-#add_executable(example example.cpp)
-#target_link_libraries(example gtest_main)
-#add_test(NAME example_test COMMAND example)
+#
+# Add unit test subdirectories
+#
+add_subdirectory(test/comm)
+add_subdirectory(test/mdhim)
+

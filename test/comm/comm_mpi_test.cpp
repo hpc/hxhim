@@ -57,56 +57,74 @@ TEST(MPIEndpointTest, DefaultConstructorTest) {
 
 TEST(MPIEndpointTest, PutMessageTest) {
     MPIEndpoint server(0);
+
+    // Initialize some data into a k-v pair
     char sbuf[256] = {0};
     for (int i = 0; i < 256; i++) {
         sbuf[i] = (char) rand();
     }
+    char* key = sbuf;
+    char* value = sbuf + 128;
 
     // Send a PUT message to this process
-    server.AddPutRequest(sbuf, 128, sbuf + 128, 128);
+    server.AddPutRequest(key, 128, value, 128);
     server.Flush();
 
     // Receive the message to this process
     MPIEndpoint localServer;
     size_t nbytes = localServer.PollForMessage(1);
     EXPECT_GT(nbytes, 256);
-    // Receive the actual buffer and validate contents
+
+    // Parse the actual buffer and validate contents
     CommMessage::Type request = CommMessage::INVALID;
     size_t ksize = 0;
     size_t vsize = 0;
-    void *kbytes = malloc(128);
-    void *vbytes = malloc(128);
-    int rc = server.ReceiveRequest(nbytes, &request, &kbytes, &ksize, &vbytes, &vsize);
+    void *kbuf = malloc(128);
+    void *vbuf = malloc(128);
+    int rc = server.ReceiveRequest(nbytes, &request, &kbuf, &ksize, &vbuf, &vsize);
     EXPECT_EQ(request, CommMessage::PUT);
     EXPECT_EQ(ksize, 128);
     EXPECT_EQ(vsize, 128);
-    EXPECT_EQ(0, memcmp(sbuf, kbytes, 128));
-    EXPECT_EQ(0, memcmp(sbuf + 128, vbytes, 128));
+    EXPECT_EQ(0, memcmp(sbuf, kbuf, 128));
+    EXPECT_EQ(0, memcmp(sbuf + 128, vbuf, 128));
+    free(kbuf);
+    free(vbuf);
 }
 
 TEST(MPIEndpointTest, GetMessageTest) {
-    // Send a GET message to this process
     MPIEndpoint server(0);
-    char sbytes[256], rbytes[256] = {0};
-    for (int i = 0; i < 256; i++) {
-        sbytes[i] = (char) rand();
-    }
 
-    // Send a Get message to this process
-    server.AddGetRequest(sbytes, 128, sbytes + 128, 128);
+    // Initialize some data into a k-v pair Key
+    char sbuf[128] = {0};
+    for (int i = 0; i < 128; i++) {
+        sbuf[i] = (char) rand();
+    }
+    char* key = sbuf;
+    char value[128] = {0};
+
+    // Send a PUT message to this process
+    server.AddGetRequest(key, 128, value, 128);
     server.Flush();
 
     // Receive the message to this process
     MPIEndpoint localServer;
     size_t nbytes = localServer.PollForMessage(1);
+    EXPECT_GT(nbytes, 128);
 
-    // Fill the requested buffer and reply
-    EXPECT_GT(nbytes, 256);
-
-    // Receive the actual buffer and validate contents
-    //int rc = server.ReceiveMessage(rbytes, nbytes);
-    //rc = server.ReplyToMessage();
-    //EXPECT_EQ(0, memcmp(sbytes, rbytes, 256));
+    // Parse the actual buffer and validate contents
+    CommMessage::Type request = CommMessage::INVALID;
+    size_t ksize = 0;
+    size_t vsize = 0;
+    void *kbuf = malloc(128);
+    void *vbuf = malloc(128);
+    int rc = server.ReceiveRequest(nbytes, &request, &kbuf, &ksize, &vbuf, &vsize);
+    EXPECT_EQ(request, CommMessage::GET);
+    EXPECT_EQ(ksize, 128);
+    EXPECT_EQ(vsize, 0);
+    EXPECT_EQ(0, memcmp(sbuf, kbuf, 128));
+    EXPECT_EQ(0, memcmp(sbuf + 128, vbuf, vsize));
+    free(kbuf);
+    free(vbuf);
 }
 
 TEST(MPIEndpointTest, PollForMessageTest) {

@@ -70,7 +70,7 @@ int MPIEndpoint::AddPutRequestImpl(void* kbuf, std::size_t kbytes, void* vbuf, s
 int MPIEndpoint::AddGetRequestImpl(void *kbuf, std::size_t kbytes, void *vbuf, std::size_t vbytes) {
     MPI_Request req;
     void* pbuf = 0;
-    int pbytes = PackRequest(&pbuf, CommMessage::GET, kbuf, kbytes, vbuf, vbytes);
+    int pbytes = PackRequest(&pbuf, CommMessage::GET, kbuf, kbytes, 0, 0);
     int rc = MPI_Isend(pbuf, pbytes, MPI_PACKED, rank_, HXHIM_MPI_REQUEST_TAG, mpi_.Comm(), &req);
     return rc;
 }
