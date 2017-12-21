@@ -2,6 +2,7 @@
  * DB usage options. 
  * Location and name of DB, type of DataSotre primary key type,
  */
+#include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -13,11 +14,9 @@
 
 #define MANIFEST_FILE_NAME "/mdhim_manifest_"
 
-struct mdhim_options_t *mdhim_options_init()
+void mdhim_options_init(mdhim_options_t* opts)
 {
-	struct mdhim_options_t* opts;
-	opts = (mdhim_options_t*)malloc(sizeof(struct mdhim_options_t));
-    
+    assert(opts != 0);
 	opts->db_path = "./";
 	opts->db_name = "mdhimTstDB-";
 	opts->manifest_path = NULL;
@@ -42,7 +41,6 @@ struct mdhim_options_t *mdhim_options_init()
 	opts->num_wthreads = 1;
 
 	set_manifest_path(opts, "./");
-	return opts;
 }
 
 static void set_default_options(mdhim_options_t* opts) {

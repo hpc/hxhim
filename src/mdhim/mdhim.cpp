@@ -41,12 +41,9 @@ struct mdhim_t *mdhimInit(void *appComm, struct mdhim_options_t *opts) {
 
     if (!opts) {
         opts = (mdhim_options_t*)malloc(sizeof(mdhim_options_t));
-        mdhim_options_init();
-    }
+        mdhim_options_init(opts);
 
-	if (!opts) {
-		//Set default options if no options were passed
-        opts = mdhim_options_init();
+        // Hugh's settings for his test configuration
         mdhim_options_set_db_path(opts, "/tmp/mdhim/");
         mdhim_options_set_db_name(opts, "mdhimDb");
         mdhim_options_set_db_type(opts, LEVELDB);
@@ -54,9 +51,9 @@ struct mdhim_t *mdhimInit(void *appComm, struct mdhim_options_t *opts) {
         mdhim_options_set_max_recs_per_slice(opts, 1000);
         mdhim_options_set_key_type(opts, MDHIM_BYTE_KEY);
         mdhim_options_set_debug_level(opts, MLOG_CRIT);
-		mdhim_options_set_num_worker_threads(opts, 30);
-	}
-	
+        mdhim_options_set_num_worker_threads(opts, 30);
+    }
+
 	//Open mlog - stolen from plfs
 	ret = mlog_open((char *)"mdhim", 0,
 	        opts->debug_level, opts->debug_level, NULL, 0, MLOG_LOGPID, 0);

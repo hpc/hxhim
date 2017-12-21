@@ -75,7 +75,7 @@ typedef struct mdhim_options_t {
 
 } mdhim_options_t;
 
-struct mdhim_options_t* mdhim_options_init();
+void mdhim_options_init(mdhim_options_t* opts);
 void mdhim_options_set_defaults(mdhim_options_t* opts);
 void mdhim_options_set_db_path(struct mdhim_options_t* opts, char *path);
 void mdhim_options_set_db_paths(struct mdhim_options_t* opts, char **paths, int num_paths);

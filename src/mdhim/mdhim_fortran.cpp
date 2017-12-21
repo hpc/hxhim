@@ -47,7 +47,7 @@ void mdhimftinit(int *appComm) {
 }
 
 void mdhimftopts_init() {
-  opts = mdhim_options_init();
+  //opts = mdhim_options_init();
 }
 
 void mdhimftput(void *key, int *key_size, void *val, int *val_size) {
