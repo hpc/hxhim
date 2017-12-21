@@ -49,7 +49,7 @@ struct mdhim_rm_t *local_client_put(struct mdhim_t *md, struct mdhim_putm_t *pm)
 	struct mdhim_rm_t *rm;
 	work_item *item;
 
-	if ((item = malloc(sizeof(work_item))) == NULL) {
+	if ((item = (work_item*)malloc(sizeof(work_item))) == NULL) {
 		mlog(MDHIM_CLIENT_CRIT, "Error while allocating memory for client");
 		return NULL;
 	}
@@ -80,7 +80,7 @@ struct mdhim_rm_t *local_client_bput(struct mdhim_t *md, struct mdhim_bputm_t *b
 	struct mdhim_rm_t *brm;
 	work_item *item;
         
-	if ((item = malloc(sizeof(work_item))) == NULL) {
+	if ((item = (work_item*)malloc(sizeof(work_item))) == NULL) {
 		mlog(MDHIM_CLIENT_CRIT, "Error while allocating memory for client");
 		return NULL;
 	}
@@ -110,7 +110,7 @@ struct mdhim_bgetrm_t *local_client_bget(struct mdhim_t *md, struct mdhim_bgetm_
 	struct mdhim_bgetrm_t *rm;
 	work_item *item;
 
-	if ((item = malloc(sizeof(work_item))) == NULL) {
+	if ((item = (work_item*)malloc(sizeof(work_item))) == NULL) {
 		mlog(MDHIM_CLIENT_CRIT, "Error while allocating memory for client");
 		return NULL;
 	}
@@ -140,7 +140,7 @@ struct mdhim_bgetrm_t *local_client_bget_op(struct mdhim_t *md, struct mdhim_get
 	struct mdhim_bgetrm_t *rm;
 	work_item *item;
 
-	if ((item = malloc(sizeof(work_item))) == NULL) {
+	if ((item = (work_item*)malloc(sizeof(work_item))) == NULL) {
 		mlog(MDHIM_CLIENT_CRIT, "Error while allocating memory for client");
 		return NULL;
 	}
@@ -170,7 +170,7 @@ struct mdhim_rm_t *local_client_commit(struct mdhim_t *md, struct mdhim_basem_t 
 	struct mdhim_rm_t *rm;
 	work_item *item;
 
-	if ((item = malloc(sizeof(work_item))) == NULL) {
+	if ((item = (work_item*)malloc(sizeof(work_item))) == NULL) {
 		mlog(MDHIM_CLIENT_CRIT, "Error while allocating memory for client");
 		return NULL;
 	}
@@ -200,7 +200,7 @@ struct mdhim_rm_t *local_client_delete(struct mdhim_t *md, struct mdhim_delm_t *
 	struct mdhim_rm_t *rm;
 	work_item *item;
 
-	if ((item = malloc(sizeof(work_item))) == NULL) {
+	if ((item = (work_item*)malloc(sizeof(work_item))) == NULL) {
 		mlog(MDHIM_CLIENT_CRIT, "Error while allocating memory for client");
 		return NULL;
 	}
@@ -231,7 +231,7 @@ struct mdhim_rm_t *local_client_bdelete(struct mdhim_t *md, struct mdhim_bdelm_t
 	struct mdhim_rm_t *brm;
 	work_item *item;
 
-	if ((item = malloc(sizeof(work_item))) == NULL) {
+	if ((item = (work_item*)malloc(sizeof(work_item))) == NULL) {
 		mlog(MDHIM_CLIENT_CRIT, "Error while allocating memory for client");
 		return NULL;
 	}
@@ -259,7 +259,7 @@ void local_client_close(struct mdhim_t *md, struct mdhim_basem_t *cm) {
 	int ret;
 	work_item *item;
 
-	if ((item = malloc(sizeof(work_item))) == NULL) {
+	if ((item = (work_item*)malloc(sizeof(work_item))) == NULL) {
 		mlog(MDHIM_CLIENT_CRIT, "Error while allocating memory for client");
 		return;
 	}

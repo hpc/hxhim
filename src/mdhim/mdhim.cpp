@@ -24,7 +24,6 @@
  *
  */
 
-
 /**
  * mdhimInit
  * Initializes MDHIM - Collective call
@@ -40,16 +39,21 @@ struct mdhim_t *mdhimInit(void *appComm, struct mdhim_options_t *opts) {
 	struct index_t *primary_index;
 	MPI_Comm comm;
 
+    if (!opts) {
+        opts = (mdhim_options_t*)malloc(sizeof(mdhim_options_t));
+        mdhim_options_init();
+    }
+
 	if (!opts) {
 		//Set default options if no options were passed
-	        opts = mdhim_options_init();
-                mdhim_options_set_db_path(opts, "/tmp/hng/");
-                mdhim_options_set_db_name(opts, "mdhimDb");
-                mdhim_options_set_db_type(opts, LEVELDB);
-                mdhim_options_set_server_factor(opts, 1);
-                mdhim_options_set_max_recs_per_slice(opts, 1000);
-                mdhim_options_set_key_type(opts, MDHIM_BYTE_KEY);
-                mdhim_options_set_debug_level(opts, MLOG_CRIT);
+        opts = mdhim_options_init();
+        mdhim_options_set_db_path(opts, "/tmp/mdhim/");
+        mdhim_options_set_db_name(opts, "mdhimDb");
+        mdhim_options_set_db_type(opts, LEVELDB);
+        mdhim_options_set_server_factor(opts, 1);
+        mdhim_options_set_max_recs_per_slice(opts, 1000);
+        mdhim_options_set_key_type(opts, MDHIM_BYTE_KEY);
+        mdhim_options_set_debug_level(opts, MLOG_CRIT);
 		mdhim_options_set_num_worker_threads(opts, 30);
 	}
 	
@@ -58,10 +62,11 @@ struct mdhim_t *mdhimInit(void *appComm, struct mdhim_options_t *opts) {
 	        opts->debug_level, opts->debug_level, NULL, 0, MLOG_LOGPID, 0);
 
 	//Check if MPI has been initialized
-	if ((ret = MPI_Initialized(&flag)) != MPI_SUCCESS) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM - Error while calling MPI_Initialized");
-		exit(1);
-	}      
+	//if ((ret = MPI_Initialized(&flag)) != MPI_SUCCESS) {
+	//	mlog(MDHIM_CLIENT_CRIT, "MDHIM - Error while calling MPI_Initialized");
+	//	exit(1);
+	//}
+
 	if (!flag) {
 		//Initialize MPI with multiple thread support since MPI hasn't been initialized
 		ret = MPI_Init_thread(NULL, NULL, MPI_THREAD_MULTIPLE, &provided);
@@ -83,7 +88,7 @@ struct mdhim_t *mdhimInit(void *appComm, struct mdhim_options_t *opts) {
 	}
 	
 	//Allocate memory for the main MDHIM structure
-	md = malloc(sizeof(struct mdhim_t));
+	md = (mdhim_t*)malloc(sizeof(struct mdhim_t));
 	memset(md, 0, sizeof(struct mdhim_t));
 	if (!md) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM - Error while allocating memory while initializing");
@@ -105,7 +110,7 @@ struct mdhim_t *mdhimInit(void *appComm, struct mdhim_options_t *opts) {
 	}
 
 	//Initialize mdhim_comm mutex
-	md->mdhim_comm_lock = malloc(sizeof(pthread_mutex_t));
+	md->mdhim_comm_lock = (pthread_mutex_t*)malloc(sizeof(pthread_mutex_t));
 	if (!md->mdhim_comm_lock) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
 		     "Error while allocating memory for client", 
@@ -134,7 +139,7 @@ struct mdhim_t *mdhimInit(void *appComm, struct mdhim_options_t *opts) {
 	}
 
 	//Initialize receive msg mutex - used for receiving a message from myself
-	md->receive_msg_mutex = malloc(sizeof(pthread_mutex_t));
+	md->receive_msg_mutex = (pthread_mutex_t*)malloc(sizeof(pthread_mutex_t));
 	if (!md->receive_msg_mutex) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
 		     "Error while allocating memory for client", 
@@ -147,7 +152,7 @@ struct mdhim_t *mdhimInit(void *appComm, struct mdhim_options_t *opts) {
 		return NULL;
 	}
 	//Initialize the receive condition variable - used for receiving a message from myself
-	md->receive_msg_ready_cv = malloc(sizeof(pthread_cond_t));
+	md->receive_msg_ready_cv = (pthread_cond_t*)malloc(sizeof(pthread_cond_t));
 	if (!md->receive_msg_ready_cv) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
 		     "Error while allocating memory for client", 
@@ -167,7 +172,7 @@ struct mdhim_t *mdhimInit(void *appComm, struct mdhim_options_t *opts) {
 	//Initialize the indexes and create the primary index
 	md->indexes = NULL;
 	md->indexes_by_name = NULL;
-	md->indexes_lock = malloc(sizeof(pthread_rwlock_t));
+	md->indexes_lock = (pthread_rwlock_t*)malloc(sizeof(pthread_rwlock_t));
 	if (pthread_rwlock_init(md->indexes_lock, NULL) != 0) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
 		     "Error while initializing remote_indexes_lock", 
@@ -276,7 +281,7 @@ int mdhimCommit(struct mdhim_t *md, struct index_t *index) {
 	MPI_Barrier(md->mdhim_client_comm);      
 	//If I'm a range server, send a commit message to myself
 	if (im_range_server(index)) {       
-		cm = malloc(sizeof(struct mdhim_basem_t));
+		cm = (mdhim_basem_t*) malloc(sizeof(struct mdhim_basem_t));
 		cm->mtype = MDHIM_COMMIT;
 		cm->index = index->id;
 		cm->index_type = index->type;
@@ -347,8 +352,8 @@ struct mdhim_brm_t *mdhimPut(struct mdhim_t *md,
 	    secondary_local_info->secondary_keys && 
 	    secondary_local_info->secondary_key_lens && 
 	    secondary_local_info->num_keys) {
-		primary_keys = malloc(sizeof(void *) * secondary_local_info->num_keys);
-		primary_key_lens = malloc(sizeof(int) * secondary_local_info->num_keys);
+		primary_keys = (void**)malloc(sizeof(void *) * secondary_local_info->num_keys);
+		primary_key_lens = (int*)malloc(sizeof(int) * secondary_local_info->num_keys);
 		for (i = 0; i < secondary_local_info->num_keys; i++) {
 			primary_keys[i] = primary_key;
 			primary_key_lens[i] = primary_key_len;
@@ -374,8 +379,8 @@ struct mdhim_brm_t *mdhimPut(struct mdhim_t *md,
 	    secondary_global_info->secondary_keys && 
 	    secondary_global_info->secondary_key_lens &&
 	    secondary_global_info->num_keys) {
-		primary_keys = malloc(sizeof(void *) * secondary_global_info->num_keys);
-		primary_key_lens = malloc(sizeof(int) * secondary_global_info->num_keys);
+		primary_keys = (void**)malloc(sizeof(void *) * secondary_global_info->num_keys);
+		primary_key_lens = (int*)malloc(sizeof(int) * secondary_global_info->num_keys);
 		for (i = 0; i < secondary_global_info->num_keys; i++) {
 			primary_keys[i] = primary_key;
 			primary_key_lens[i] = primary_key_len;
@@ -447,29 +452,29 @@ struct mdhim_brm_t *_bput_secondary_keys_from_info(struct mdhim_t *md,
 	int i, j;
 	void **primary_keys_to_send;
 	int *primary_key_lens_to_send;
-	struct mdhim_brm_t *head, *new;
+	struct mdhim_brm_t *head, *newone;
 
-	head = new = NULL;
+	head = newone = NULL;
 	for (i = 0; i < num_records; i++) {
 		primary_keys_to_send = 
-			malloc(secondary_info->num_keys[i] * sizeof(void *));
+                (void**)malloc(secondary_info->num_keys[i] * sizeof(void *));
 		primary_key_lens_to_send = 
-			malloc(secondary_info->num_keys[i] * sizeof(int));
+                (int*)malloc(secondary_info->num_keys[i] * sizeof(int));
 			
 		for (j = 0; j < secondary_info->num_keys[i]; j++) {
 			primary_keys_to_send[j] = primary_keys[i];
 			primary_key_lens_to_send[j] = primary_key_lens[i];
 		}
 		
-		new = _bput_records(md, secondary_info->secondary_index, 
+		newone = _bput_records(md, secondary_info->secondary_index,
 				    secondary_info->secondary_keys[i], 
 				    secondary_info->secondary_key_lens[i], 
 				    primary_keys_to_send, primary_key_lens_to_send, 
 				    secondary_info->num_keys[i]);
 		if (!head) {
-			head = new;
-		} else if (new) {
-			_concat_brm(head, new);
+			head = newone;
+		} else if (newone) {
+			_concat_brm(head, newone);
 		}
 
 		free(primary_keys_to_send);
@@ -496,9 +501,9 @@ struct mdhim_brm_t *mdhimBPut(struct mdhim_t *md,
 			      int num_records,
 			      struct secondary_bulk_info *secondary_global_info,
 			      struct secondary_bulk_info *secondary_local_info) {
-	struct mdhim_brm_t *head, *new;
+	struct mdhim_brm_t *head, *newone;
 
-	head = new = NULL;
+	head = newone = NULL;
 	if (!primary_keys || !primary_key_lens ||
 	    !primary_values || !primary_value_lens) {
 		return NULL;
@@ -514,10 +519,10 @@ struct mdhim_brm_t *mdhimBPut(struct mdhim_t *md,
 	if (secondary_local_info && secondary_local_info->secondary_index && 
 	    secondary_local_info->secondary_keys && 
 	    secondary_local_info->secondary_key_lens) {
-		new = _bput_secondary_keys_from_info(md, secondary_local_info, primary_keys, 
+		newone = _bput_secondary_keys_from_info(md, secondary_local_info, primary_keys,
 						     primary_key_lens, num_records);
-		if (new) {
-			_concat_brm(head, new);
+		if (newone) {
+			_concat_brm(head, newone);
 		}	       
 	}
 	
@@ -525,10 +530,10 @@ struct mdhim_brm_t *mdhimBPut(struct mdhim_t *md,
 	if (secondary_global_info && secondary_global_info->secondary_index && 
 	    secondary_global_info->secondary_keys && 
 	    secondary_global_info->secondary_key_lens) {
-		new = _bput_secondary_keys_from_info(md, secondary_global_info, primary_keys, 
+		newone = _bput_secondary_keys_from_info(md, secondary_global_info, primary_keys,
 						     primary_key_lens, num_records);
-		if (new) {
-			_concat_brm(head, new);
+		if (newone) {
+			_concat_brm(head, newone);
 		}	     
 	}	
 
@@ -551,9 +556,9 @@ struct mdhim_brm_t *mdhimBPutSecondary(struct mdhim_t *md, struct index_t *secon
 				       void **secondary_keys, int *secondary_key_lens, 
 				       void **primary_keys, int *primary_key_lens, 
 				       int num_records) {
-	struct mdhim_brm_t *head, *new;
+	struct mdhim_brm_t *head, *newone;
 
-	head = new = NULL;
+	head = newone = NULL;
 	if (!secondary_keys || !secondary_key_lens || 
 	    !primary_keys || !primary_key_lens) {
 		return NULL;
@@ -598,8 +603,8 @@ struct mdhim_bgetrm_t *mdhimGet(struct mdhim_t *md, struct index_t *index,
 	}
 
 	//Create an a array with the single key and key len passed in
-	keys = malloc(sizeof(void *));
-	key_lens = malloc(sizeof(int));
+	keys = (void**)malloc(sizeof(void *));
+	key_lens = (int*)malloc(sizeof(int));
 	keys[0] = key;
 	key_lens[0] = key_len;
 
@@ -678,8 +683,8 @@ struct mdhim_bgetrm_t *mdhimBGet(struct mdhim_t *md, struct index_t *index,
 			plen = MAX_BULK_OPS - 1;
 		}
 
-		primary_keys = malloc(sizeof(void *) * plen);
-		primary_key_lens = malloc(sizeof(int) * plen);
+		primary_keys = (void**)malloc(sizeof(void *) * plen);
+		primary_key_lens = (int*)malloc(sizeof(int) * plen);
 		//Initialize the primary keys array and key lens array
 		memset(primary_keys, 0, sizeof(void *) * plen);
 		memset(primary_key_lens, 0, sizeof(int) * plen);
@@ -762,8 +767,8 @@ struct mdhim_bgetrm_t *mdhimBGetOp(struct mdhim_t *md, struct index_t *index,
 	}
 
 	//Create an a array with the single key and key len passed in
-	keys = malloc(sizeof(void *));
-	key_lens = malloc(sizeof(int));
+	keys = (void**)malloc(sizeof(void *));
+	key_lens = (int*)malloc(sizeof(int));
 	keys[0] = key;
 	key_lens[0] = key_len;
 
@@ -791,8 +796,8 @@ struct mdhim_brm_t *mdhimDelete(struct mdhim_t *md, struct index_t *index,
 	void **keys;
 	int *key_lens;
 	
-	keys = malloc(sizeof(void *));
-	key_lens = malloc(sizeof(int));
+	keys = (void**)malloc(sizeof(void *));
+	key_lens = (int*)malloc(sizeof(int));
 	keys[0] = key;
 	key_lens[0] = key_len;
 
@@ -873,7 +878,7 @@ struct secondary_info *mdhimCreateSecondaryInfo(struct index_t *secondary_index,
 	}
 
 	//Initialize the struct
-	sinfo = malloc(sizeof(struct secondary_info));
+	sinfo = (struct secondary_info*)malloc(sizeof(struct secondary_info));
 	memset(sinfo, 0, sizeof(struct secondary_info));
 	
 	//Set the index fields 
@@ -914,7 +919,7 @@ struct secondary_bulk_info *mdhimCreateSecondaryBulkInfo(struct index_t *seconda
 	}
 
 	//Initialize the struct
-	sinfo = malloc(sizeof(struct secondary_bulk_info));
+	sinfo = (struct secondary_bulk_info*)malloc(sizeof(struct secondary_bulk_info));
 	memset(sinfo, 0, sizeof(struct secondary_bulk_info));
 	
 	//Set the index fields 

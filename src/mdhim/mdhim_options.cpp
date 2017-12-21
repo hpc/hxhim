@@ -16,7 +16,7 @@
 struct mdhim_options_t *mdhim_options_init()
 {
 	struct mdhim_options_t* opts;
-	opts = malloc(sizeof(struct mdhim_options_t));
+	opts = (mdhim_options_t*)malloc(sizeof(struct mdhim_options_t));
     
 	opts->db_path = "./";
 	opts->db_name = "mdhimTstDB-";
@@ -45,6 +45,10 @@ struct mdhim_options_t *mdhim_options_init()
 	return opts;
 }
 
+static void set_default_options(mdhim_options_t* opts) {
+
+}
+
 int check_path_length(mdhim_options_t* opts, char *path) {
 	int path_len;
 	int ret = 0;
@@ -71,7 +75,7 @@ void set_manifest_path(mdhim_options_t* opts, char *path) {
 	}
 
 	path_len = strlen(path) + strlen(MANIFEST_FILE_NAME) + 1;
-	manifest_path = malloc(path_len);
+	manifest_path = (char*)malloc(path_len);
 	sprintf(manifest_path, "%s%s", path, MANIFEST_FILE_NAME);
 	opts->manifest_path = manifest_path;
 }
@@ -110,7 +114,7 @@ void mdhim_options_set_db_paths(struct mdhim_options_t* opts, char **paths, int 
 		return;
 	}
 
-	opts->db_paths = malloc(sizeof(char *) * num_paths);
+	opts->db_paths = (char**)malloc(sizeof(char *) * num_paths);
 	for (i = 0; i < num_paths; i++) {
 		if (!paths[i]) {
 			continue;
@@ -125,7 +129,7 @@ void mdhim_options_set_db_paths(struct mdhim_options_t* opts, char **paths, int 
 		}
 
 		verified_paths++;		
-		opts->db_paths[verified_paths] = malloc(strlen(paths[i]) + 1);
+		opts->db_paths[verified_paths] = (char*)malloc(strlen(paths[i]) + 1);
 		sprintf(opts->db_paths[verified_paths], "%s", paths[i]);
 	}
 

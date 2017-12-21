@@ -132,7 +132,7 @@ int read_manifest(struct mdhim_t *md, struct index_t *index) {
 	mlog(MDHIM_SERVER_DBG, "Rank: %d - Manifest contents - \nnum_rangesrvs: %d, key_type: %d, " 
 	     "db_type: %d, rs_factor: %u, slice_size: %lu, num_nodes: %d", 
 	     md->mdhim_rank, manifest.num_rangesrvs, manifest.key_type, manifest.db_type, 
-	     manifest.rangesrv_factor, manifest.slice_size, manifest.num_nodes);
+	     manifest.rangesrv_factor, (unsigned long)manifest.slice_size, manifest.num_nodes);
 	
 	//Check that the manifest and the current config match
 	if (manifest.key_type != index->key_type) {
@@ -223,7 +223,7 @@ int update_stat(struct mdhim_t *md, struct index_t *index, void *key, uint32_t k
 
 	HASH_FIND_INT(index->mdhim_store->mdhim_store_stats, &slice_num, os);
 
-	stat = malloc(sizeof(struct mdhim_stat));
+	stat = (mdhim_stat*)malloc(sizeof(struct mdhim_stat));
 	stat->min = val1;
 	stat->max = val2;
 	stat->num = 1;
@@ -297,12 +297,13 @@ int load_stats(struct mdhim_t *md, struct index_t *index) {
 	int done = 0;
 
 	float_type = is_float_key(index->key_type);
-	slice = malloc(sizeof(int *));
+	slice = (int**)malloc(sizeof(int *));
 	*slice = NULL;
-	key_len = malloc(sizeof(int));
+	key_len = (int*)malloc(sizeof(int));
 	*key_len = sizeof(int);
-	val = malloc(sizeof(struct mdhim_db_stat *));	
-	val_len = malloc(sizeof(int));
+	// BWS This line looks like it was bugged, fixing it without a test
+	val = (void**)malloc(sizeof(struct mdhim_db_stat*));
+	val_len = (int*)malloc(sizeof(int));
 	old_slice = NULL;
 	index->mdhim_store->mdhim_store_stats = NULL;
 	while (!done) {
@@ -330,7 +331,7 @@ int load_stats(struct mdhim_t *md, struct index_t *index) {
 		     (*(struct mdhim_db_stat **)val)->imax, (*(struct mdhim_db_stat **)val)->dmin, 
 		     (*(struct mdhim_db_stat **)val)->dmax, (*(struct mdhim_db_stat **)val)->num);
 	
-		stat = malloc(sizeof(struct mdhim_stat));
+		stat = (mdhim_stat*)malloc(sizeof(struct mdhim_stat));
 		if (float_type) {
 			min = (void *) malloc(sizeof(long double));
 			max = (void *) malloc(sizeof(long double));
@@ -389,7 +390,7 @@ int write_stats(struct mdhim_t *md, struct index_t *bi) {
 			goto free_stat;
 		}
 
-		dbstat = malloc(sizeof(struct mdhim_db_stat));
+		dbstat = (struct mdhim_db_stat*)malloc(sizeof(struct mdhim_db_stat));
 		if (float_type) {
 			dbstat->dmax = *(long double *)stat->max;
 			dbstat->dmin = *(long double *)stat->min;
@@ -548,7 +549,7 @@ struct index_t *create_local_index(struct mdhim_t *md, int db_type, int key_type
 	}		
 
 	//Create a new global_index to hold our index entry
-	li = malloc(sizeof(struct index_t));
+	li = (struct index_t*)malloc(sizeof(struct index_t));
 	if (!li) {
 		goto done;
 	}
@@ -568,7 +569,7 @@ struct index_t *create_local_index(struct mdhim_t *md, int db_type, int key_type
 
     if (index_name != NULL) {
         size_t name_len = strlen(index_name)+1;
-        char *lower_name = malloc(name_len);
+        char *lower_name = (char*)malloc(name_len);
 
         to_lower(name_len, index_name, lower_name);
 
@@ -578,13 +579,13 @@ struct index_t *create_local_index(struct mdhim_t *md, int db_type, int key_type
             goto done;
         }
 
-        li->name = malloc(name_len);
+        li->name = (char*)malloc(name_len);
         memcpy(li->name, lower_name, name_len);
 
     } else {
         char buf[50];
         sprintf(buf, "local_%d", li->id);
-        li->name = malloc(sizeof(char)*strlen(buf));
+        li->name = (char*)malloc(sizeof(char)*strlen(buf));
         strcpy(li->name, buf);
     }
 
@@ -697,7 +698,7 @@ struct index_t *create_global_index(struct mdhim_t *md, int server_factor,
 	}		
 
 	//Create a new global_index to hold our index entry
-	gi = malloc(sizeof(struct index_t));
+	gi = (struct index_t*)malloc(sizeof(struct index_t));
 	if (!gi) {
 		goto done;
 	}
@@ -720,7 +721,7 @@ struct index_t *create_global_index(struct mdhim_t *md, int server_factor,
         if (index_name != NULL) {
 
             size_t name_len = strlen(index_name)+1;
-            char *lower_name = malloc(name_len);
+            char *lower_name = (char*)malloc(name_len);
 
             to_lower(name_len, index_name, lower_name);
 
@@ -730,18 +731,18 @@ struct index_t *create_global_index(struct mdhim_t *md, int server_factor,
                 goto done;
             }
 
-            gi->name = malloc(name_len);
+            gi->name = (char*)malloc(name_len);
             memcpy(gi->name, lower_name, name_len);
 
         } else {
             char buf[50];
             sprintf(buf, "global_%d", gi->id);
-            gi->name = malloc(sizeof(char)*strlen(buf));
+            gi->name = (char*)malloc(sizeof(char)*strlen(buf));
             strcpy(gi->name, buf);
         }
 
     } else {
-        gi->name = malloc(sizeof(char)*10);
+        gi->name = (char*)malloc(sizeof(char)*10);
         strcpy(gi->name, "primary");
     }
 
@@ -852,8 +853,8 @@ int get_rangesrvs(struct mdhim_t *md, struct index_t *index) {
 			index->rangesrv_master = i;
 		}
 
-		rs_entry_num = malloc(sizeof(struct rangesrv_info));
-		rs_entry_rank = malloc(sizeof(struct rangesrv_info));
+		rs_entry_num = (struct rangesrv_info*)malloc(sizeof(struct rangesrv_info));
+		rs_entry_rank = (struct rangesrv_info*)malloc(sizeof(struct rangesrv_info));
 		rs_entry_num->rank = rs_entry_rank->rank = i;
 		rs_entry_rank->rangesrv_num = rs_entry_num->rangesrv_num = rangesrv_num;
 		
@@ -943,7 +944,7 @@ int index_init_comm(struct mdhim_t *md, struct index_t *bi) {
 	size = 0;
 	//Populate the ranks array that will be in our new comm
 	if ((ret = im_range_server(bi)) == 1) {
-		ranks = malloc(sizeof(int) * bi->num_rangesrvs);
+		ranks = (int*)malloc(sizeof(int) * bi->num_rangesrvs);
 		//Iterate through the stat hash entries
 		HASH_ITER(hh, bi->rangesrvs_by_rank, rangesrv, tmp) {	
 			if (!rangesrv) {
@@ -955,7 +956,7 @@ int index_init_comm(struct mdhim_t *md, struct index_t *bi) {
 		}
 	} else {
 		MPI_Comm_size(md->mdhim_comm, &comm_size);
-		ranks = malloc(sizeof(int) * comm_size);
+		ranks = (int*)malloc(sizeof(int) * comm_size);
 		for (i = 0; i < comm_size; i++) {
 			HASH_FIND_INT(bi->rangesrvs_by_rank, &i, rangesrv);
 			if (rangesrv) {
@@ -1035,7 +1036,7 @@ get_index_by_name ( struct mdhim_t *md, char *index_name )
 {
     struct index_t *index = NULL;
     size_t name_len = strlen(index_name)+1;
-    char *lower_name = malloc(name_len);
+    char *lower_name = (char*)malloc(name_len);
 
     // Acquire the lock to update indexes
     while ( pthread_rwlock_wrlock(md->indexes_lock) == EBUSY ) {
@@ -1137,14 +1138,14 @@ int pack_stats(struct index_t *index, void *buf, int size,
 	HASH_ITER(hh, index->mdhim_store->mdhim_store_stats, stat, tmp) {
 		//Get the appropriate struct to send
 		if (float_type) {
-			fstat = malloc(sizeof(struct mdhim_db_fstat));
+			fstat = (struct mdhim_db_fstat*)malloc(sizeof(struct mdhim_db_fstat));
 			fstat->slice = stat->key;
 			fstat->num = stat->num;
 			fstat->dmin = *(long double *) stat->min;
 			fstat->dmax = *(long double *) stat->max;
 			tstat = fstat;
 		} else {
-			istat = malloc(sizeof(struct mdhim_db_istat));
+			istat = (struct mdhim_db_istat*)malloc(sizeof(struct mdhim_db_istat));
 			istat->slice = stat->key;
 			istat->num = stat->num;
 			istat->imin = *(uint64_t *) stat->min;
@@ -1222,7 +1223,7 @@ int get_stat_flush_global(struct mdhim_t *md, struct index_t *index) {
 		//First we send the number of items that we are going to send
 		//Allocate the receive buffer size
 		recvsize = index->num_rangesrvs * sizeof(int);
-		recvbuf = malloc(recvsize);
+		recvbuf = (char*)malloc(recvsize);
 		memset(recvbuf, 0, recvsize);
 		MPI_Barrier(index->rs_comm);
 		//The master server will receive the number of stats each server has
@@ -1236,8 +1237,8 @@ int get_stat_flush_global(struct mdhim_t *md, struct index_t *index) {
 		}
 		
 		num_items = 0;
-		displs = malloc(sizeof(int) * index->num_rangesrvs);
-		recvcounts = malloc(sizeof(int) * index->num_rangesrvs);
+		displs = (int*)malloc(sizeof(int) * index->num_rangesrvs);
+		recvcounts = (int*)malloc(sizeof(int) * index->num_rangesrvs);
 		for (i = 0; i < index->num_rangesrvs; i++) {
 			displs[i] = num_items * stat_size;
 			num_items += ((int *)recvbuf)[i];
@@ -1248,7 +1249,7 @@ int get_stat_flush_global(struct mdhim_t *md, struct index_t *index) {
 		recvbuf = NULL;
 
 		//Allocate send buffer
-		sendbuf = malloc(sendsize);		  
+		sendbuf = (char*)malloc(sendsize);
 
 		//Pack the stat data I have by iterating through the stats hash table
 		ret =  pack_stats(index, sendbuf, sendsize,
@@ -1261,7 +1262,7 @@ int get_stat_flush_global(struct mdhim_t *md, struct index_t *index) {
 		//Allocate the recv buffer for the master range server
 		if (md->mdhim_rank == index->rangesrv_master) {
 			recvsize = num_items * stat_size;
-			recvbuf = malloc(recvsize);
+			recvbuf = (char*)malloc(recvsize);
 			memset(recvbuf, 0, recvsize);		
 		} else {
 			recvbuf = NULL;
@@ -1298,7 +1299,7 @@ int get_stat_flush_global(struct mdhim_t *md, struct index_t *index) {
 	recvsize = num_items * stat_size;
 	//Allocate the receive buffer size for clients
 	if (md->mdhim_rank != index->rangesrv_master) {
-		recvbuf = malloc(recvsize);
+		recvbuf = (char*)malloc(recvsize);
 		memset(recvbuf, 0, recvsize);
 	}
 	
@@ -1325,7 +1326,7 @@ int get_stat_flush_global(struct mdhim_t *md, struct index_t *index) {
 			goto error;
 		}	
 
-		stat = malloc(sizeof(struct mdhim_stat));
+		stat = (mdhim_stat*)malloc(sizeof(struct mdhim_stat));
 		stat->dirty = 0;
 		if (float_type) {
 			stat->min = (void *) malloc(sizeof(long double));
@@ -1409,7 +1410,7 @@ int get_stat_flush_local(struct mdhim_t *md, struct index_t *index) {
 	//First we send the number of items that we are going to send
 	//Allocate the receive buffer size
 	recvsize = md->mdhim_comm_size * sizeof(int);
-	recvbuf = malloc(recvsize);
+	recvbuf = (char*)malloc(recvsize);
 	memset(recvbuf, 0, recvsize);
 	MPI_Barrier(md->mdhim_client_comm);
 	//All gather the number of items to send
@@ -1423,8 +1424,8 @@ int get_stat_flush_local(struct mdhim_t *md, struct index_t *index) {
 	}
 		
 	num_items = 0;
-	displs = malloc(sizeof(int) * md->mdhim_comm_size);
-	recvcounts = malloc(sizeof(int) * md->mdhim_comm_size);
+	displs = (int*)malloc(sizeof(int) * md->mdhim_comm_size);
+	recvcounts = (int*)malloc(sizeof(int) * md->mdhim_comm_size);
 	for (i = 0; i < md->mdhim_comm_size; i++) {
 		displs[i] = num_items * stat_size;
 		num_items += ((int *)recvbuf)[i];
@@ -1436,7 +1437,7 @@ int get_stat_flush_local(struct mdhim_t *md, struct index_t *index) {
 
 	if (sendsize) {
 		//Allocate send buffer
-		sendbuf = malloc(sendsize);		  
+		sendbuf = (char*)malloc(sendsize);
 	
 		//Pack the stat data I have by iterating through the stats hash table
 		ret =  pack_stats(index, sendbuf, sendsize,
@@ -1450,7 +1451,7 @@ int get_stat_flush_local(struct mdhim_t *md, struct index_t *index) {
 	}
 
 	recvsize = num_items * stat_size;
-	recvbuf = malloc(recvsize);
+	recvbuf = (char*)malloc(recvsize);
 	memset(recvbuf, 0, recvsize);		
 
 	MPI_Barrier(md->mdhim_client_comm);
@@ -1482,7 +1483,7 @@ int get_stat_flush_local(struct mdhim_t *md, struct index_t *index) {
 			mlog(MPI_CRIT, "Rank: %d - " 
 			     "Adding rank: %d to local index stat data", 
 			     md->mdhim_rank, i);
-			rank_stat = malloc(sizeof(struct mdhim_stat));
+			rank_stat = (struct mdhim_stat*)malloc(sizeof(struct mdhim_stat));
 			memset(rank_stat, 0, sizeof(struct mdhim_stat));
 			rank_stat->key = i;
 			rank_stat->stats = NULL;
@@ -1492,7 +1493,7 @@ int get_stat_flush_local(struct mdhim_t *md, struct index_t *index) {
 		}
 
 		for (j = 0; j < num_items_to_recv[i]; j++) {
-			tstat = malloc(stat_size);
+			tstat = (char*)malloc(stat_size);
 			memset(tstat, 0, stat_size);
 			if ((ret = MPI_Unpack(recvbuf, recvsize, &recvidx, tstat, stat_size, 
 					      MPI_CHAR, md->mdhim_comm)) != MPI_SUCCESS) {
@@ -1503,7 +1504,7 @@ int get_stat_flush_local(struct mdhim_t *md, struct index_t *index) {
 				goto error;
 			}	
 
-			stat = malloc(sizeof(struct mdhim_stat));
+			stat = (struct mdhim_stat*)malloc(sizeof(struct mdhim_stat));
 			stat->dirty = 0;
 			if (float_type) {
 				stat->min = (void *) malloc(sizeof(long double));

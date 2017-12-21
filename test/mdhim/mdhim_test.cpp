@@ -10,5 +10,7 @@ TEST(mdhimTest, InitTest) {
 
     mdhim_options_t opts;
     MPI_Comm appComm = MPI_COMM_WORLD;
-    mdhimInit(&appComm, &opts);
+    struct mdhim_t* mdh = mdhimInit(&appComm, 0);
+    EXPECT_NE(mdh, nullptr);
 }
+

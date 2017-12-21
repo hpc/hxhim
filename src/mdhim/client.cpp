@@ -58,7 +58,7 @@ struct mdhim_brm_t *client_bput(struct mdhim_t *md, struct index_t *index,
 	int num_srvs;
 
 	num_srvs = 0;
-	srvs = malloc(sizeof(int) * index->num_rangesrvs);
+	srvs = (int*)malloc(sizeof(int) * index->num_rangesrvs);
 	for (i = 0; i < index->num_rangesrvs; i++) {
 		if (!bpm_list[i]) {
 			continue;
@@ -82,7 +82,7 @@ struct mdhim_brm_t *client_bput(struct mdhim_t *md, struct index_t *index,
 		return NULL;
 	}
 	
-	rm_list = malloc(sizeof(struct mdhim_rm_t *) * num_srvs);
+	rm_list = (mdhim_rm_t**)malloc(sizeof(struct mdhim_rm_t *) * num_srvs);
 	memset(rm_list, 0, sizeof(struct mdhim_rm_t *) * num_srvs);
 	return_code = receive_all_client_responses(md, srvs, num_srvs, (void ***) &rm_list);
 	// If the receives did not succeed then log the error code and return MDHIM_ERROR
@@ -102,7 +102,7 @@ struct mdhim_brm_t *client_bput(struct mdhim_t *md, struct index_t *index,
 		  continue;
 		}
 
-		brm = malloc(sizeof(struct mdhim_brm_t));
+		brm = (mdhim_brm_t*)malloc(sizeof(struct mdhim_brm_t));
 		brm->error = rm->error;
 		brm->basem.mtype = rm->basem.mtype;
 		brm->basem.server_rank = rm->basem.server_rank;
@@ -142,7 +142,7 @@ struct mdhim_bgetrm_t *client_bget(struct mdhim_t *md, struct index_t *index,
 	int num_srvs;
 
 	num_srvs = 0;
-	srvs = malloc(sizeof(int) * index->num_rangesrvs);
+	srvs = (int*)malloc(sizeof(int) * index->num_rangesrvs);
 	for (i = 0; i < index->num_rangesrvs; i++) {
 		if (!bgm_list[i]) {
 			continue;
@@ -166,7 +166,7 @@ struct mdhim_bgetrm_t *client_bget(struct mdhim_t *md, struct index_t *index,
 		return NULL;
 	}
 	
-	bgrm_list = malloc(sizeof(struct mdhim_bgetrm_t *) * num_srvs);
+	bgrm_list = (mdhim_bgetrm_t**)malloc(sizeof(struct mdhim_bgetrm_t *) * num_srvs);
 	memset(bgrm_list, 0, sizeof(struct mdhim_bgetrm_t *) * num_srvs);
 	return_code = receive_all_client_responses(md, srvs, num_srvs, (void ***) &bgrm_list);
 	// If the receives did not succeed then log the error code and return MDHIM_ERROR
@@ -283,7 +283,7 @@ struct mdhim_brm_t *client_bdelete(struct mdhim_t *md, struct index_t *index,
 	int num_srvs;
 
 	num_srvs = 0;
-	srvs = malloc(sizeof(int) * index->num_rangesrvs);
+	srvs = (int*)malloc(sizeof(int) * index->num_rangesrvs);
 	for (i = 0; i < index->num_rangesrvs; i++) {
 		if (!bdm_list[i]) {
 			continue;
@@ -302,7 +302,7 @@ struct mdhim_brm_t *client_bdelete(struct mdhim_t *md, struct index_t *index,
 		return NULL;
 	}
 	
-	rm_list = malloc(sizeof(struct mdhim_rm_t *) * num_srvs);
+	rm_list = (mdhim_rm_t**)malloc(sizeof(struct mdhim_rm_t *) * num_srvs);
 	memset(rm_list, 0, sizeof(struct mdhim_rm_t *) * num_srvs);
 	return_code = receive_all_client_responses(md, srvs, num_srvs, (void ***) &rm_list);
 	// If the receives did not succeed then log the error code and return MDHIM_ERROR
@@ -322,7 +322,7 @@ struct mdhim_brm_t *client_bdelete(struct mdhim_t *md, struct index_t *index,
 		  continue;
 		}
 
-		brm = malloc(sizeof(struct mdhim_brm_t));
+		brm = (mdhim_brm_t*)malloc(sizeof(struct mdhim_brm_t));
 		brm->error = rm->error;
 		brm->basem.mtype = rm->basem.mtype;
 		brm->basem.server_rank = rm->basem.server_rank;

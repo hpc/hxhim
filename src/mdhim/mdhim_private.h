@@ -1,4 +1,16 @@
+
 #include "mdhim.h"
+#include "comm.h"
+#include "comm_mpi.h"
+
+/**
+ * Struct that contains the private details about MDHim's implementation
+ */
+//extern "C" struct mdhim_private {
+//	CommTransport* comm;
+//
+//};
+//typedef struct mdhim_private mdhim_private_t;
 
 struct mdhim_rm_t *_put_record(struct mdhim_t *md, struct index_t *index, 
 			       void *key, int key_len, 

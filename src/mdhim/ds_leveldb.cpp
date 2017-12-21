@@ -177,9 +177,9 @@ int mdhim_leveldb_open(void **dbh, void **dbs, char *path, int flags, int key_ty
 	char *err = NULL;
 	char stats_path[PATH_MAX];
 
-	mdhimdb = malloc(sizeof(struct mdhim_leveldb_t));
+	mdhimdb = (mdhim_leveldb_t*)malloc(sizeof(struct mdhim_leveldb_t));
 	memset(mdhimdb, 0, sizeof(struct mdhim_leveldb_t));
-	statsdb = malloc(sizeof(struct mdhim_leveldb_t));
+	statsdb = (mdhim_leveldb_t*)malloc(sizeof(struct mdhim_leveldb_t));
 	memset(statsdb, 0, sizeof(struct mdhim_leveldb_t));
 
 	//Create the options for the main database
@@ -295,7 +295,7 @@ int mdhim_leveldb_put(void *dbh, void *key, int key_len, void *data, int32_t dat
     
     gettimeofday(&start, NULL);
     options = mdhimdb->write_options;    	    
-    leveldb_put(mdhimdb->db, options, key, key_len, data, data_len, &err);
+    leveldb_put(mdhimdb->db, options, (char*)key, key_len, (char*)data, data_len, &err);
     if (err != NULL) {
 	    mlog(MDHIM_SERVER_CRIT, "Error putting key/value in leveldb");
 	    return MDHIM_DB_ERROR;
@@ -335,8 +335,8 @@ int mdhim_leveldb_batch_put(void *dbh, void **keys, int32_t *key_lens,
 	write_batch = leveldb_writebatch_create();
 	options = mdhimdb->write_options;   
 	for (i = 0; i < num_records; i++) {
-		leveldb_writebatch_put(write_batch, keys[i], key_lens[i], 
-				       data[i], data_lens[i]);
+		leveldb_writebatch_put(write_batch, (char*)keys[i], key_lens[i],
+							   (char*)data[i], data_lens[i]);
 	}
 
 	leveldb_write(mdhimdb->db, options, write_batch, &err);
@@ -376,7 +376,7 @@ int mdhim_leveldb_get(void *dbh, void *key, int key_len, void **data, int32_t *d
 
 	options = mdhimdb->read_options;
 	*data = NULL;
-	ldb_data = leveldb_get(mdhimdb->db, options, key, key_len, &ldb_data_len, &err);
+	ldb_data = leveldb_get(mdhimdb->db, options, (char*)key, key_len, &ldb_data_len, &err);
 	if (err != NULL) {
 		mlog(MDHIM_SERVER_CRIT, "Error getting value in leveldb");
 		return MDHIM_DB_ERROR;
@@ -439,12 +439,12 @@ int mdhim_leveldb_get_next(void *dbh, void **key, int *key_len,
 	} else {
 		/* Seek to the passed in key.  If that doesn't exist, iterate until we find one greater
 		   or until we exhaust the keys.*/
-		leveldb_iter_seek(iter, old_key, old_key_len);
+		leveldb_iter_seek(iter, (char*)old_key, old_key_len);
 		if (!leveldb_iter_valid(iter)) { 
 			leveldb_iter_seek_to_first(iter);
 			while(leveldb_iter_valid(iter)) {
 				res = leveldb_iter_key(iter, (size_t *) &len);
-				if (mdhimdb->compare(NULL, res, len, old_key, old_key_len) > 0) {
+				if (mdhimdb->compare(NULL, res, len, (char*)old_key, old_key_len) > 0) {
 					break;
 				}
 				
@@ -543,12 +543,12 @@ int mdhim_leveldb_get_prev(void *dbh, void **key, int *key_len,
 	if (!old_key || old_key_len == 0) {
 		leveldb_iter_seek_to_last(iter);
 	} else {
-		leveldb_iter_seek(iter, old_key, old_key_len);
+		leveldb_iter_seek(iter, (char*)old_key, old_key_len);
 		if (!leveldb_iter_valid(iter)) { 
 			leveldb_iter_seek_to_last(iter);
 			while(leveldb_iter_valid(iter)) {
 				res = leveldb_iter_key(iter, (size_t *) &len);
-				if (mdhimdb->compare(NULL, res, len, old_key, old_key_len) < 0) {
+				if (mdhimdb->compare(NULL, res, len, (char*)old_key, old_key_len) < 0) {
 					break;
 				}
 				
@@ -656,7 +656,7 @@ int mdhim_leveldb_del(void *dbh, void *key, int key_len) {
 	struct mdhim_leveldb_t *mdhimdb = (struct mdhim_leveldb_t *) dbh;
 	
 	options = mdhimdb->write_options;
-	leveldb_delete(mdhimdb->db, options, key, key_len, &err);
+	leveldb_delete(mdhimdb->db, options, (char*)key, key_len, &err);
 	if (err != NULL) {
 		mlog(MDHIM_SERVER_CRIT, "Error deleting key in leveldb");
 		return MDHIM_DB_ERROR;

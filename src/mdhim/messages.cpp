@@ -1,5 +1,4 @@
 #include <unistd.h>
-#include <math.h>
 #include "mdhim.h"
 #include "partitioner.h"
 #include "messages.h"
@@ -81,7 +80,7 @@ int send_rangesrv_work(struct mdhim_t *md, int dest, void *message) {
 		return MDHIM_ERROR;
 	}
 
-	req = malloc(sizeof(MPI_Request));
+	req = (MPI_Request*)malloc(sizeof(MPI_Request));
 	//Send the size of the message
 	pthread_mutex_lock(md->mdhim_comm_lock);
 	return_code = MPI_Isend(&sendsize, 1, MPI_INT, dest, RANGESRV_WORK_SIZE_MSG, 
@@ -141,13 +140,13 @@ int send_all_rangesrv_work(struct mdhim_t *md, void **messages, int num_srvs) {
 
 	ret = MDHIM_SUCCESS;
 	num_msgs = 0;
-	reqs = malloc(sizeof(MPI_Request *) * num_srvs);
-	size_reqs = malloc(sizeof(MPI_Request *) * num_srvs);
+	reqs = (MPI_Request**)malloc(sizeof(MPI_Request *) * num_srvs);
+	size_reqs = (MPI_Request**)malloc(sizeof(MPI_Request *) * num_srvs);
 	memset(reqs, 0, sizeof(MPI_Request *) * num_srvs);
 	memset(size_reqs, 0, sizeof(MPI_Request *) * num_srvs);
-	sendbufs = malloc(sizeof(void *) * num_srvs);
+	sendbufs = (void**)malloc(sizeof(void *) * num_srvs);
 	memset(sendbufs, 0, sizeof(void *) * num_srvs);
-	sizes = malloc(sizeof(int) * num_srvs);
+	sizes = (int*)malloc(sizeof(int) * num_srvs);
 	memset(sizes, 0, sizeof(int) * num_srvs);
 	done = 0;
 
@@ -187,7 +186,7 @@ int send_all_rangesrv_work(struct mdhim_t *md, void **messages, int num_srvs) {
 				
 		sendbufs[num_msgs] = sendbuf;
 		sizes[num_msgs] = sendsize;
-		req = malloc(sizeof(MPI_Request));
+		req = (MPI_Request*)malloc(sizeof(MPI_Request));
 		size_reqs[num_msgs] = req;
 
 		pthread_mutex_lock(md->mdhim_comm_lock);
@@ -202,7 +201,7 @@ int send_all_rangesrv_work(struct mdhim_t *md, void **messages, int num_srvs) {
 			ret = MDHIM_ERROR;
 		} 
 
-		req = malloc(sizeof(MPI_Request));
+		req = (MPI_Request*)malloc(sizeof(MPI_Request));
 		reqs[num_msgs] = req;
 
 		pthread_mutex_lock(md->mdhim_comm_lock);
@@ -303,7 +302,7 @@ int receive_rangesrv_work(struct mdhim_t *md, int *src, void **message) {
 	// Receive a message from any client
 	flag = 0;
 
-	req = malloc(sizeof(MPI_Request));
+	req = (MPI_Request*)malloc(sizeof(MPI_Request));
 	pthread_mutex_lock(md->mdhim_comm_lock);	
 	return_code = MPI_Irecv(&recvsize,1, MPI_INT, MPI_ANY_SOURCE, RANGESRV_WORK_SIZE_MSG, 
 			       md->mdhim_comm, req);
@@ -374,7 +373,7 @@ int receive_rangesrv_work(struct mdhim_t *md, int *src, void **message) {
 	*src = msg_source;
 	*message = NULL;
 	//Unpack buffer to get the message type
-	bm = malloc(sizeof(struct mdhim_basem_t));
+	bm = (mdhim_basem_t*)malloc(sizeof(struct mdhim_basem_t));
 	return_code = MPI_Unpack(recvbuf, recvsize, &mesg_idx, bm, 
 				 sizeof(struct mdhim_basem_t), MPI_CHAR, 
 				 md->mdhim_comm);
@@ -469,7 +468,7 @@ int send_client_response(struct mdhim_t *md, int dest, void *message, int *sizeb
 	}
 
 	//Send the size message
-	*size_req = malloc(sizeof(MPI_Request));
+	*size_req = (MPI_Request*)malloc(sizeof(MPI_Request));
 
 	pthread_mutex_lock(md->mdhim_comm_lock);
 	return_code = MPI_Isend(sizebuf, 1, MPI_INT, dest, CLIENT_RESPONSE_SIZE_MSG, 
@@ -485,7 +484,7 @@ int send_client_response(struct mdhim_t *md, int dest, void *message, int *sizeb
 		*size_req = NULL;
 	}
 
-	*msg_req = malloc(sizeof(MPI_Request));
+	*msg_req = (MPI_Request*)malloc(sizeof(MPI_Request));
 	//Send the actual message
 
 	pthread_mutex_lock(md->mdhim_comm_lock);
@@ -524,7 +523,7 @@ int receive_client_response(struct mdhim_t *md, int src, void **message) {
 	struct mdhim_basem_t *bm;
 	MPI_Request *req;
 
-	req = malloc(sizeof(MPI_Request));
+	req = (MPI_Request*)malloc(sizeof(MPI_Request));
 	pthread_mutex_lock(md->mdhim_comm_lock);
 	return_code = MPI_Irecv(&msg_size, 1, MPI_INT, src, CLIENT_RESPONSE_SIZE_MSG, 
 			       md->mdhim_comm, req);
@@ -560,7 +559,7 @@ int receive_client_response(struct mdhim_t *md, int src, void **message) {
 
 	//Received the message
 	*message = NULL;
-	bm = malloc(sizeof(struct mdhim_basem_t));
+	bm = (mdhim_basem_t*)malloc(sizeof(struct mdhim_basem_t));
 	//Unpack buffer to get the message type
 	return_code = MPI_Unpack(recvbuf, msg_size, &mesg_idx, bm, 
 				 sizeof(struct mdhim_basem_t), MPI_CHAR, 
@@ -616,16 +615,16 @@ int receive_all_client_responses(struct mdhim_t *md, int *srcs, int nsrcs,
 	int flag = 0;
 	int msg_size;
 
-	sizebuf = malloc(sizeof(int) * nsrcs);
+	sizebuf = (int*)malloc(sizeof(int) * nsrcs);
 	memset(sizebuf, 0, sizeof(int) * nsrcs);
-	reqs = malloc(nsrcs * sizeof(MPI_Request *));
+	reqs = (MPI_Request**)malloc(nsrcs * sizeof(MPI_Request *));
 	memset(reqs, 0, nsrcs * sizeof(MPI_Request *));
-	recvbufs = malloc(nsrcs * sizeof(void *));
+	recvbufs = (void**)malloc(nsrcs * sizeof(void *));
 	memset(recvbufs, 0, nsrcs * sizeof(void *));
 	done =  0;
 	for (i = 0; i < nsrcs; i++) {
 	// Receive a size message from the servers in the list	
-		req = malloc(sizeof(MPI_Request));
+		req = (MPI_Request*)malloc(sizeof(MPI_Request));
 		reqs[i] = req;
 
 		pthread_mutex_lock(md->mdhim_comm_lock);
@@ -678,7 +677,7 @@ int receive_all_client_responses(struct mdhim_t *md, int *srcs, int nsrcs,
 		// Receive a message from the servers in the list			
 		recvbuf = malloc(sizebuf[i]);
 		recvbufs[i] = recvbuf;
-		req = malloc(sizeof(MPI_Request));
+		req = (MPI_Request*)malloc(sizeof(MPI_Request));
 		reqs[i] = req;
 
 		pthread_mutex_lock(md->mdhim_comm_lock);
@@ -730,7 +729,7 @@ int receive_all_client_responses(struct mdhim_t *md, int *srcs, int nsrcs,
 		recvbuf = recvbufs[i];
 		//Received the message
 		*(*messages + i) = NULL;
-		bm = malloc(sizeof(struct mdhim_basem_t));
+		bm = (mdhim_basem_t*)malloc(sizeof(struct mdhim_basem_t));
 		//Unpack buffer to get the message type
 		mesg_idx = 0;
 		return_code = MPI_Unpack(recvbuf, sizebuf[i], &mesg_idx, bm, 
@@ -935,7 +934,7 @@ int unpack_put_message(struct mdhim_t *md, void *message, int mesg_size,  void *
     	int mesg_idx = 0;  // Variable for incremental unpack
         struct mdhim_putm_t *pm;
 
-        if ((*((struct mdhim_putm_t **) putm) = malloc(sizeof(struct mdhim_putm_t))) == NULL) {
+        if ((*((struct mdhim_putm_t **) putm) = (mdhim_putm_t*)malloc(sizeof(struct mdhim_putm_t))) == NULL) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
                      "memory to unpack put message.", md->mdhim_rank);
 		return MDHIM_ERROR; 
@@ -1002,7 +1001,7 @@ int unpack_bput_message(struct mdhim_t *md, void *message, int mesg_size, void *
         int i;
 	int num_records;
 
-        if ((*((struct mdhim_bputm_t **) bput) = malloc(sizeof(struct mdhim_bputm_t))) == NULL) {
+        if ((*((struct mdhim_bputm_t **) bput) = (struct mdhim_bputm_t *)malloc(sizeof(struct mdhim_bputm_t))) == NULL) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
                      "memory to unpack bput message.", md->mdhim_rank);
 		return MDHIM_ERROR; 
@@ -1016,7 +1015,7 @@ int unpack_bput_message(struct mdhim_t *md, void *message, int mesg_size, void *
 	num_records = (*((struct mdhim_bputm_t **) bput))->num_keys;
 	// Allocate memory for key pointers, to be populated later.
         if (((*((struct mdhim_bputm_t **) bput))->keys = 
-	     malloc(num_records * sizeof(void *))) == NULL) {
+					 (void**)malloc(num_records * sizeof(void *))) == NULL) {
 		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
 		     "memory to unpack bput message.", md->mdhim_rank);
 		return MDHIM_ERROR; 
@@ -1024,7 +1023,7 @@ int unpack_bput_message(struct mdhim_t *md, void *message, int mesg_size, void *
 
 	// Allocate memory for value pointers, to be populated later.
         if (((*((struct mdhim_bputm_t **) bput))->values = 
-	     malloc(num_records * sizeof(void *))) == NULL) {
+					 (void**)malloc(num_records * sizeof(void *))) == NULL) {
 		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
 		     "memory to unpack bput message.", md->mdhim_rank);
 		return MDHIM_ERROR; 
@@ -1259,7 +1258,7 @@ int unpack_get_message(struct mdhim_t *md, void *message, int mesg_size, void **
 	int return_code = MPI_SUCCESS;  // MPI_SUCCESS = 0
     	int mesg_idx = 0;  // Variable for incremental unpack
 
-        if ((*((struct mdhim_getm_t **) getm) = malloc(sizeof(struct mdhim_getm_t))) == NULL) {
+        if ((*((struct mdhim_getm_t **) getm) = (struct mdhim_getm_t *)malloc(sizeof(struct mdhim_getm_t))) == NULL) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
                      "memory to unpack get message.", md->mdhim_rank);
 		return MDHIM_ERROR; 
@@ -1316,7 +1315,7 @@ int unpack_bget_message(struct mdhim_t *md, void *message, int mesg_size, void *
         int i;
 	int num_records;
 
-        if ((*((struct mdhim_bgetm_t **) bgetm) = malloc(sizeof(struct mdhim_bgetm_t))) == NULL) {
+        if ((*((struct mdhim_bgetm_t **) bgetm) = (struct mdhim_bgetm_t *)malloc(sizeof(struct mdhim_bgetm_t))) == NULL) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
                      "memory to unpack bget message.", md->mdhim_rank);
 		return MDHIM_ERROR; 
@@ -1329,8 +1328,8 @@ int unpack_bget_message(struct mdhim_t *md, void *message, int mesg_size, void *
         
 	num_records = (*((struct mdhim_bgetm_t **) bgetm))->num_keys;			 
 	// Allocate memory for key pointers, to be populated later.
-        if (((*((struct mdhim_bgetm_t **) bgetm))->keys = 
-	     malloc(num_records * sizeof(void *))) == NULL) {
+        if (((*((struct mdhim_bgetm_t **) bgetm))->keys =
+                (void**)malloc(num_records * sizeof(void *))) == NULL) {
 		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
 		     "memory to unpack bget message.", md->mdhim_rank);
 		return MDHIM_ERROR; 
@@ -1351,8 +1350,8 @@ int unpack_bget_message(struct mdhim_t *md, void *message, int mesg_size, void *
 					  &(*((struct mdhim_bgetm_t **) bgetm))->key_lens[i], 
 					  1, MPI_INT, md->mdhim_comm);
 		// Unpack key by first allocating memory and then extracting the values from message
-		if (((*((struct mdhim_bgetm_t **) bgetm))->keys[i] = 
-		     malloc((*((struct mdhim_bgetm_t **) bgetm))->key_lens[i] * 
+		if (((*((struct mdhim_bgetm_t **) bgetm))->keys[i] =
+                (struct mdhim_bgetm_t *)malloc((*((struct mdhim_bgetm_t **) bgetm))->key_lens[i] *
 			    sizeof(char))) == NULL) {
 			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
 			     "memory to unpack bget message.", md->mdhim_rank);
@@ -1490,7 +1489,7 @@ int unpack_bgetrm_message(struct mdhim_t *md, void *message, int mesg_size, void
         int i;
         struct mdhim_bgetrm_t *bgrm;
 
-        if ((*((struct mdhim_bgetrm_t **) bgetrm) = malloc(sizeof(struct mdhim_bgetrm_t))) == NULL) {
+        if ((*((struct mdhim_bgetrm_t **) bgetrm) = (struct mdhim_bgetrm_t *)malloc(sizeof(struct mdhim_bgetrm_t))) == NULL) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
                      "memory to unpack bget return message.", md->mdhim_rank);
 		return MDHIM_ERROR; 
@@ -1502,7 +1501,7 @@ int unpack_bgetrm_message(struct mdhim_t *md, void *message, int mesg_size, void
 				 MPI_CHAR, md->mdhim_comm);
         
 	// Allocate memory for key pointers, to be populated later.
-        if ((bgrm->keys = malloc(bgrm->num_keys * sizeof(void *))) == NULL) {
+        if ((bgrm->keys = (void**)malloc(bgrm->num_keys * sizeof(void *))) == NULL) {
 		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
 		     "memory to unpack bgetrm message.", md->mdhim_rank);
 		return MDHIM_ERROR; 
@@ -1510,7 +1509,7 @@ int unpack_bgetrm_message(struct mdhim_t *md, void *message, int mesg_size, void
 	memset(bgrm->keys, 0, sizeof(void *) * bgrm->num_keys);
 
         // Allocate memory for key_lens, to be populated later.
-        if ((bgrm->key_lens = malloc(bgrm->num_keys * sizeof(int))) == NULL) {
+        if ((bgrm->key_lens = (int*)malloc(bgrm->num_keys * sizeof(int))) == NULL) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
                      "memory to unpack bget return message.", md->mdhim_rank);
 		return MDHIM_ERROR; 
@@ -1518,7 +1517,7 @@ int unpack_bgetrm_message(struct mdhim_t *md, void *message, int mesg_size, void
 	memset(bgrm->key_lens, 0, sizeof(int) * bgrm->num_keys);
 
 	// Allocate memory for value pointers, to be populated later.
-        if ((bgrm->values = malloc(bgrm->num_keys * sizeof(void *))) == NULL) {
+        if ((bgrm->values = (void**)malloc(bgrm->num_keys * sizeof(void *))) == NULL) {
 		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
 		     "memory to unpack bgetrm message.", md->mdhim_rank);
 		return MDHIM_ERROR; 
@@ -1794,7 +1793,7 @@ int unpack_del_message(struct mdhim_t *md, void *message, int mesg_size, void **
     	int mesg_idx = 0;  // Variable for incremental unpack
         struct mdhim_delm_t *dm;
 
-        if ((*((struct mdhim_delm_t **) delm) = malloc(sizeof(struct mdhim_delm_t))) == NULL) {
+        if ((*((struct mdhim_delm_t **) delm) = (mdhim_delm_t*)malloc(sizeof(struct mdhim_delm_t))) == NULL) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
                      "memory to unpack del message.", md->mdhim_rank);
 		return MDHIM_ERROR; 
@@ -1849,7 +1848,7 @@ int unpack_bdel_message(struct mdhim_t *md, void *message, int mesg_size, void *
         int i;
 	int num_records;
 
-        if ((*((struct mdhim_bdelm_t **) bdelm) = malloc(sizeof(struct mdhim_bdelm_t))) == NULL) {
+        if ((*((struct mdhim_bdelm_t **) bdelm) = (mdhim_bdelm_t*)malloc(sizeof(struct mdhim_bdelm_t))) == NULL) {
 		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
 		     "memory to unpack bdel message.", md->mdhim_rank);
 		return MDHIM_ERROR; 
@@ -1863,7 +1862,7 @@ int unpack_bdel_message(struct mdhim_t *md, void *message, int mesg_size, void *
 	num_records = (*((struct mdhim_bdelm_t **) bdelm))->num_keys;
 	// Allocate memory for keys, to be populated later.
         if (((*((struct mdhim_bdelm_t **) bdelm))->keys = 
-	     malloc(num_records * sizeof(void *))) == NULL) {
+                     (void**)malloc(num_records * sizeof(void *))) == NULL) {
 		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
                      "memory to unpack bdel message.", md->mdhim_rank);
 		return MDHIM_ERROR; 
@@ -1977,7 +1976,7 @@ int unpack_return_message(struct mdhim_t *md, void *message, void **retm) {
         int mesg_idx = 0;
         struct mdhim_rm_t *rm;
 
-        if (((*(struct mdhim_rm_t **) retm) = malloc(sizeof(struct mdhim_rm_t))) == NULL) {
+        if (((*(struct mdhim_rm_t **) retm) = (mdhim_rm_t*)malloc(sizeof(struct mdhim_rm_t))) == NULL) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
                      "memory to unpack return message.", md->mdhim_rank);
 		return MDHIM_ERROR; 

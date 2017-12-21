@@ -82,7 +82,7 @@ void add_char(int id, int pos) {
 	struct mdhim_char *mc;
 
 	//Create a new mdhim_char to hold our entry
-	mc = malloc(sizeof(struct mdhim_char));
+	mc = (struct mdhim_char*)malloc(sizeof(struct mdhim_char));
 
 	//Set the mdhim_char
 	mc->id = id;
@@ -139,7 +139,7 @@ void build_alphabet() {
 void _add_to_rangesrv_list(rangesrv_list **list, rangesrv_info *ri) {
 	rangesrv_list *list_p, *entry;
 
-	entry = malloc(sizeof(rangesrv_list));
+	entry = (rangesrv_list*)malloc(sizeof(rangesrv_list));
 	entry->ri = ri;
 	entry->next = NULL;
 	if (!*list) {
@@ -682,7 +682,7 @@ rangesrv_list *get_rangesrvs_from_istat(struct mdhim_t *md, struct index_t *inde
 				continue;
 			}
 
-			entry = malloc(sizeof(rangesrv_list));
+			entry = (rangesrv_list*)malloc(sizeof(rangesrv_list));
 			memset(entry, 0, sizeof(rangesrv_list));
 			HASH_FIND_INT(index->rangesrvs_by_rank, &cur_rank->key, entry->ri);
 			if (!entry->ri) {
@@ -769,7 +769,7 @@ rangesrv_list *get_rangesrvs_from_fstat(struct mdhim_t *md, struct index_t *inde
 				continue;
 			}
 
-			entry = malloc(sizeof(rangesrv_list));
+			entry = (rangesrv_list*)malloc(sizeof(rangesrv_list));
 			HASH_FIND_INT(index->rangesrvs_by_rank, &cur_rank->key, entry->ri);
 			if (!entry->ri) {
 				free(entry);

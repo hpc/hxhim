@@ -51,10 +51,10 @@ int send_locally_or_remote(struct mdhim_t *md, int dest, void *message) {
 
 	if (md->mdhim_rank != dest) {
 		//Sends the message remotely
-		size_req = malloc(sizeof(MPI_Request *));
-		msg_req = malloc(sizeof(MPI_Request *));
-		sendbuf = malloc(sizeof(void *));
-		sizebuf = malloc(sizeof(int));
+		size_req = (MPI_Request**)malloc(sizeof(MPI_Request *));
+		msg_req = (MPI_Request**)malloc(sizeof(MPI_Request *));
+		sendbuf = (void**)malloc(sizeof(void *));
+		sizebuf = (int*)malloc(sizeof(int));
 		ret = send_client_response(md, dest, message, sizebuf, 
 					   sendbuf, size_req, msg_req);
 		if (*size_req) {
@@ -258,9 +258,9 @@ int range_server_put(struct mdhim_t *md, struct mdhim_putm_t *im, int source) {
 	int inserted = 0;
 	struct index_t *index;
 
-	value = malloc(sizeof(void *));
+	value = (void**)malloc(sizeof(void *));
 	*value = NULL;
-	value_len = malloc(sizeof(int32_t));
+	value_len = (int32_t*)malloc(sizeof(int32_t));
 	*value_len = 0;
 
 	//Get the index referenced the message
@@ -290,7 +290,7 @@ int range_server_put(struct mdhim_t *md, struct mdhim_putm_t *im, int source) {
 		new_value_len = old_value_len + im->value_len;
 		new_value = malloc(new_value_len);
 		memcpy(new_value, old_value, old_value_len);
-		memcpy(new_value + old_value_len, im->value, im->value_len);
+		memcpy((char*)new_value + old_value_len, im->value, im->value_len);
 	} else {
 		new_value = im->value;
 		new_value_len = im->value_len;
@@ -322,7 +322,7 @@ int range_server_put(struct mdhim_t *md, struct mdhim_putm_t *im, int source) {
 
 done:
 	//Create the response message
-	rm = malloc(sizeof(struct mdhim_rm_t));
+	rm = (mdhim_rm_t*)malloc(sizeof(struct mdhim_rm_t));
 	//Set the type
 	rm->basem.mtype = MDHIM_RECV;
 	//Set the operation return code as the error
@@ -375,11 +375,11 @@ int range_server_bput(struct mdhim_t *md, struct mdhim_bputm_t *bim, int source)
 	struct index_t *index;
 
 	gettimeofday(&start, NULL);
-	exists = malloc(bim->num_keys * sizeof(int));
-	new_values = malloc(bim->num_keys * sizeof(void *));
-	new_value_lens = malloc(bim->num_keys * sizeof(int));
-	value = malloc(sizeof(void *));
-	value_len = malloc(sizeof(int32_t));
+	exists = (int*)malloc(bim->num_keys * sizeof(int));
+	new_values = (void**)malloc(bim->num_keys * sizeof(void *));
+	new_value_lens = (int*)malloc(bim->num_keys * sizeof(int));
+	value = (void**)malloc(sizeof(void *));
+	value_len = (int32_t*)malloc(sizeof(int32_t));
 
 	//Get the index referenced the message
 	index = find_index(md, (struct mdhim_basem_t *) bim);
@@ -413,7 +413,7 @@ int range_server_bput(struct mdhim_t *md, struct mdhim_bputm_t *bim, int source)
 			new_value_len = old_value_len + bim->value_lens[i];
 			new_value = malloc(new_value_len);
 			memcpy(new_value, old_value, old_value_len);
-			memcpy(new_value + old_value_len, bim->values[i], bim->value_lens[i]);		
+			memcpy((char*)new_value + old_value_len, bim->values[i], bim->value_lens[i]);
 			if (exists[i] && source != md->mdhim_rank) {
 				free(bim->values[i]);
 			}
@@ -470,7 +470,7 @@ int range_server_bput(struct mdhim_t *md, struct mdhim_bputm_t *bim, int source)
 
  done:
 	//Create the response message
-	brm = malloc(sizeof(struct mdhim_rm_t));
+	brm = (mdhim_rm_t*)malloc(sizeof(struct mdhim_rm_t));
 	//Set the type
 	brm->basem.mtype = MDHIM_RECV;
 	//Set the operation return code as the error
@@ -524,7 +524,7 @@ int range_server_del(struct mdhim_t *md, struct mdhim_delm_t *dm, int source) {
 
  done:
 	//Create the response message
-	rm = malloc(sizeof(struct mdhim_rm_t));
+	rm = (mdhim_rm_t*)malloc(sizeof(struct mdhim_rm_t));
 	//Set the type
 	rm->basem.mtype = MDHIM_RECV;
 	//Set the operation return code as the error
@@ -579,7 +579,7 @@ int range_server_bdel(struct mdhim_t *md, struct mdhim_bdelm_t *bdm, int source)
 
 done:
 	//Create the response message
-	brm = malloc(sizeof(struct mdhim_rm_t));
+	brm = (mdhim_rm_t*)malloc(sizeof(struct mdhim_rm_t));
 	//Set the type
 	brm->basem.mtype = MDHIM_RECV;
 	//Set the operation return code as the error
@@ -629,7 +629,7 @@ int range_server_commit(struct mdhim_t *md, struct mdhim_basem_t *im, int source
 
  done:	
 	//Create the response message
-	rm = malloc(sizeof(struct mdhim_rm_t));
+	rm = (mdhim_rm_t*)malloc(sizeof(struct mdhim_rm_t));
 	//Set the type
 	rm->basem.mtype = MDHIM_RECV;
 	//Set the operation return code as the error
@@ -665,8 +665,8 @@ int range_server_bget(struct mdhim_t *md, struct mdhim_bgetm_t *bgm, int source)
 	struct index_t *index;
 
 	gettimeofday(&start, NULL);
-	values = malloc(sizeof(void *) * bgm->num_keys);
-	value_lens = malloc(sizeof(int32_t) * bgm->num_keys);
+	values = (void**)malloc(sizeof(void *) * bgm->num_keys);
+	value_lens = (int*)malloc(sizeof(int32_t) * bgm->num_keys);
 	memset(value_lens, 0, sizeof(int32_t) * bgm->num_keys);
 
 	//Get the index referenced the message
@@ -766,7 +766,7 @@ int range_server_bget(struct mdhim_t *md, struct mdhim_bgetm_t *bgm, int source)
 
 done:
 	//Create the response message
-	bgrm = malloc(sizeof(struct mdhim_bgetrm_t));
+	bgrm = (mdhim_bgetrm_t*)malloc(sizeof(struct mdhim_bgetrm_t));
 	//Set the type
 	bgrm->basem.mtype = MDHIM_RECV_BULK_GET;
 	//Set the operation return code as the error
@@ -776,8 +776,8 @@ done:
 	//Set the key and value
 	if (source == md->mdhim_rank) {
 		//If this message is coming from myself, copy the keys
-		bgrm->key_lens = malloc(bgm->num_keys * sizeof(int));		
-		bgrm->keys = malloc(bgm->num_keys * sizeof(void *));
+		bgrm->key_lens = (int*)malloc(bgm->num_keys * sizeof(int));
+		bgrm->keys = (void**)malloc(bgm->num_keys * sizeof(void *));
 		for (i = 0; i < bgm->num_keys; i++) {
 			bgrm->key_lens[i] = bgm->key_lens[i];
 			bgrm->keys[i] = malloc(bgrm->key_lens[i]);
@@ -834,19 +834,19 @@ int range_server_bget_op(struct mdhim_t *md, struct mdhim_bgetm_t *bgm, int sour
 	struct index_t *index;
 
 	//Initialize pointers and lengths
-	values = malloc(sizeof(void *) * bgm->num_keys * bgm->num_recs);
-	value_lens = malloc(sizeof(int32_t) * bgm->num_keys * bgm->num_recs);
+	values = (void**)malloc(sizeof(void *) * bgm->num_keys * bgm->num_recs);
+	value_lens = (int*)malloc(sizeof(int32_t) * bgm->num_keys * bgm->num_recs);
 	memset(value_lens, 0, sizeof(int32_t) *bgm->num_keys * bgm->num_recs);
-	keys = malloc(sizeof(void *) * bgm->num_keys * bgm->num_recs);
+	keys = (void**)malloc(sizeof(void *) * bgm->num_keys * bgm->num_recs);
 	memset(keys, 0, sizeof(void *) * bgm->num_keys * bgm->num_recs);
-	key_lens = malloc(sizeof(int32_t) * bgm->num_keys * bgm->num_recs);
+	key_lens = (int*)malloc(sizeof(int32_t) * bgm->num_keys * bgm->num_recs);
 	memset(key_lens, 0, sizeof(int32_t) * bgm->num_keys * bgm->num_recs);
-	get_key = malloc(sizeof(void *));
+	get_key = (void**)malloc(sizeof(void *));
 	*get_key = NULL;
-	get_key_len = malloc(sizeof(int32_t));
+	get_key_len = (int*)malloc(sizeof(int32_t));
 	*get_key_len = 0;
-	get_value = malloc(sizeof(void *));
-	get_value_len = malloc(sizeof(int32_t));
+	get_value = (void**)malloc(sizeof(void *));
+	get_value_len = (int*)malloc(sizeof(int32_t));
 	num_records = 0;
 
 	//Get the index referenced the message
@@ -970,7 +970,7 @@ respond:
 	add_timing(start, end, num_records, md, MDHIM_BULK_GET);
 
 	//Create the response message
-	bgrm = malloc(sizeof(struct mdhim_bgetrm_t));
+	bgrm = (mdhim_bgetrm_t*)malloc(sizeof(struct mdhim_bgetrm_t));
 	//Set the type
 	bgrm->basem.mtype = MDHIM_RECV_BULK_GET;
 	//Set the operation return code as the error
@@ -1039,7 +1039,7 @@ void *listener_thread(void *data) {
 		//     md->mdhim_rank, source, mtype);
 
         //Create a new work item
-		item = malloc(sizeof(work_item));
+		item = (work_item*)malloc(sizeof(work_item));
 		memset(item, 0, sizeof(work_item));
 		             
 		//Set the new buffer to the new item's message
@@ -1101,14 +1101,14 @@ void *worker_thread(void *data) {
 			switch(mtype) {
 			case MDHIM_PUT:
 				//Pack the put message and pass to range_server_put
-				range_server_put(md, 
-						 item->message, 
+				range_server_put(md,
+								 (struct mdhim_putm_t *)item->message,
 						 item->source);
 				break;
 			case MDHIM_BULK_PUT:
 				//Pack the bulk put message and pass to range_server_put
-				range_server_bput(md, 
-						  item->message, 
+				range_server_bput(md,
+                                  (struct mdhim_bputm_t *)item->message,
 						  item->source);
 				break;
 			case MDHIM_BULK_GET:
@@ -1118,23 +1118,23 @@ void *worker_thread(void *data) {
 				//The client is sending one key, but requesting the retrieval of more than one
 				if (num_records > 1 && num_keys == 1) {
 					range_server_bget_op(md, 
-							     item->message, 
+                                         (struct mdhim_bgetm_t *)item->message,
 							     item->source, op);
 				} else {
-					range_server_bget(md, 
-							  item->message, 
-							  item->source);
+					range_server_bget(md,
+                                      (struct mdhim_bgetm_t *)item->message,
+							          item->source);
 				}
 
 				break;
 			case MDHIM_DEL:
-				range_server_del(md, item->message, item->source);
+				range_server_del(md, (mdhim_delm_t*)item->message, item->source);
 				break;
 			case MDHIM_BULK_DEL:
-				range_server_bdel(md, item->message, item->source);
+				range_server_bdel(md, (mdhim_bdelm_t*)item->message, item->source);
 				break;
 			case MDHIM_COMMIT:
-				range_server_commit(md, item->message, item->source);
+				range_server_commit(md, (mdhim_basem_t*)item->message, item->source);
 				break;		
 			default:
 				printf("Rank: %d - Got unknown work type: %d" 
@@ -1160,10 +1160,10 @@ int range_server_add_oreq(struct mdhim_t *md, MPI_Request *req, void *msg) {
 
 	pthread_mutex_lock(md->mdhim_rs->out_req_mutex);
 	item = md->mdhim_rs->out_req_list;
-	oreq = malloc(sizeof(out_req));
+	oreq = (out_req*)malloc(sizeof(out_req));
 	oreq->next = NULL;
 	oreq->prev = NULL;
-	oreq->message = msg;
+	oreq->message = (MPI_Request*)msg;
 	oreq->req = req;
 
 	if (!item) {
@@ -1245,7 +1245,7 @@ int range_server_init(struct mdhim_t *md) {
 	int i;
 
 	//Allocate memory for the mdhim_rs_t struct
-	md->mdhim_rs = malloc(sizeof(struct mdhim_rs_t));
+	md->mdhim_rs = (mdhim_rs_t*)malloc(sizeof(struct mdhim_rs_t));
 	if (!md->mdhim_rs) {
 		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - " 
 		     "Error while allocating memory for range server", 
@@ -1259,7 +1259,7 @@ int range_server_init(struct mdhim_t *md) {
 	md->mdhim_rs->num_put = 0;
 	md->mdhim_rs->num_get = 0;
 	//Initialize work queue
-	md->mdhim_rs->work_queue = malloc(sizeof(work_queue_t));
+	md->mdhim_rs->work_queue = (work_queue_t*)malloc(sizeof(work_queue_t));
 	md->mdhim_rs->work_queue->head = NULL;
 	md->mdhim_rs->work_queue->tail = NULL;
 
@@ -1267,7 +1267,7 @@ int range_server_init(struct mdhim_t *md) {
 	md->mdhim_rs->out_req_list = NULL;
 
 	//Initialize work queue mutex
-	md->mdhim_rs->work_queue_mutex = malloc(sizeof(pthread_mutex_t));
+	md->mdhim_rs->work_queue_mutex = (pthread_mutex_t*)malloc(sizeof(pthread_mutex_t));
 	if (!md->mdhim_rs->work_queue_mutex) {
 		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - " 
 		     "Error while allocating memory for range server", 
@@ -1281,7 +1281,7 @@ int range_server_init(struct mdhim_t *md) {
 	}
 
 	//Initialize out req mutex
-	md->mdhim_rs->out_req_mutex = malloc(sizeof(pthread_mutex_t));
+	md->mdhim_rs->out_req_mutex = (pthread_mutex_t*)malloc(sizeof(pthread_mutex_t));
 	if (!md->mdhim_rs->out_req_mutex) {
 		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - " 
 		     "Error while allocating memory for range server", 
@@ -1295,7 +1295,7 @@ int range_server_init(struct mdhim_t *md) {
 	}
 
 	//Initialize the condition variables
-	md->mdhim_rs->work_ready_cv = malloc(sizeof(pthread_cond_t));
+	md->mdhim_rs->work_ready_cv = (pthread_cond_t*)malloc(sizeof(pthread_cond_t));
 	if (!md->mdhim_rs->work_ready_cv) {
 		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - " 
 		     "Error while allocating memory for range server", 
@@ -1310,9 +1310,9 @@ int range_server_init(struct mdhim_t *md) {
 	}
 	
 	//Initialize worker threads
-	md->mdhim_rs->workers = malloc(sizeof(pthread_t *) * md->db_opts->num_wthreads);
+	md->mdhim_rs->workers = (pthread_t**)malloc(sizeof(pthread_t *) * md->db_opts->num_wthreads);
 	for (i = 0; i < md->db_opts->num_wthreads; i++) {
-		md->mdhim_rs->workers[i] = malloc(sizeof(pthread_t));
+		md->mdhim_rs->workers[i] = (pthread_t*)malloc(sizeof(pthread_t));
 		if ((ret = pthread_create(md->mdhim_rs->workers[i], NULL, 
 					  worker_thread, (void *) md)) != 0) {    
 			mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - " 

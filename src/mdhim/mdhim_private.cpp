@@ -44,7 +44,7 @@ struct mdhim_rm_t *_put_record(struct mdhim_t *md, struct index_t *index,
 	}
 	
 	while (rl) {
-		pm = malloc(sizeof(struct mdhim_putm_t));
+		pm = (mdhim_putm_t*)malloc(sizeof(struct mdhim_putm_t));
 		if (!pm) {
 			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
 			     "Error while allocating memory in _put_record", 
@@ -90,7 +90,7 @@ struct mdhim_brm_t *_create_brm(struct mdhim_rm_t *rm) {
 		return NULL;
 	}
 
-	brm = malloc(sizeof(struct mdhim_brm_t));
+	brm = (mdhim_brm_t*)malloc(sizeof(struct mdhim_brm_t));
 	memset(brm, 0, sizeof(struct mdhim_brm_t));
 	brm->error = rm->error;
 	brm->basem.mtype = rm->basem.mtype;
@@ -148,7 +148,7 @@ struct mdhim_brm_t *_bput_records(struct mdhim_t *md, struct index_t *index,
 	//The message to be sent to ourselves if necessary
 	lbpm = NULL;
 	//Create an array of bulk put messages that holds one bulk message per range server
-	bpm_list = malloc(sizeof(struct mdhim_bputm_t *) * lookup_index->num_rangesrvs);
+	bpm_list = (mdhim_bputm_t**)malloc(sizeof(struct mdhim_bputm_t *) * lookup_index->num_rangesrvs);
 
 	//Initialize the pointers of the list to null
 	for (i = 0; i < lookup_index->num_rangesrvs; i++) {
@@ -190,11 +190,11 @@ struct mdhim_brm_t *_bput_records(struct mdhim_t *md, struct index_t *index,
 
 			//If the message doesn't exist, create one
 			if (!bpm) {
-				bpm = malloc(sizeof(struct mdhim_bputm_t));			       
-				bpm->keys = malloc(sizeof(void *) * MAX_BULK_OPS);
-				bpm->key_lens = malloc(sizeof(int) * MAX_BULK_OPS);
-				bpm->values = malloc(sizeof(void *) * MAX_BULK_OPS);
-				bpm->value_lens = malloc(sizeof(int) * MAX_BULK_OPS);
+				bpm = (mdhim_bputm_t*)malloc(sizeof(struct mdhim_bputm_t));
+				bpm->keys = (void**)malloc(sizeof(void *) * MAX_BULK_OPS);
+				bpm->key_lens = (int*)malloc(sizeof(int) * MAX_BULK_OPS);
+				bpm->values = (void**)malloc(sizeof(void *) * MAX_BULK_OPS);
+				bpm->value_lens = (int*)malloc(sizeof(int) * MAX_BULK_OPS);
 				bpm->num_keys = 0;
 				bpm->basem.server_rank = rl->ri->rank;
 				bpm->basem.mtype = MDHIM_BULK_PUT;
@@ -262,7 +262,7 @@ struct mdhim_bgetrm_t *_bget_records(struct mdhim_t *md, struct index_t *index,
 	//The message to be sent to ourselves if necessary
 	lbgm = NULL;
 	//Create an array of bulk get messages that holds one bulk message per range server
-	bgm_list = malloc(sizeof(struct mdhim_bgetm_t *) * index->num_rangesrvs);
+	bgm_list = (mdhim_bgetm_t**)malloc(sizeof(struct mdhim_bgetm_t *) * index->num_rangesrvs);
 	//Initialize the pointers of the list to null
 	for (i = 0; i < index->num_rangesrvs; i++) {
 		bgm_list[i] = NULL;
@@ -304,11 +304,11 @@ struct mdhim_bgetrm_t *_bget_records(struct mdhim_t *md, struct index_t *index,
 
 			//If the message doesn't exist, create one
 			if (!bgm) {
-				bgm = malloc(sizeof(struct mdhim_bgetm_t));			       
+				bgm = (mdhim_bgetm_t*)malloc(sizeof(struct mdhim_bgetm_t));
 				//bgm->keys = malloc(sizeof(void *) * MAX_BULK_OPS);
 				//bgm->key_lens = malloc(sizeof(int) * MAX_BULK_OPS);
-				bgm->keys = malloc(sizeof(void *) * num_keys);
-				bgm->key_lens = malloc(sizeof(int) * num_keys);
+				bgm->keys = (void**)malloc(sizeof(void *) * num_keys);
+				bgm->key_lens = (int*)malloc(sizeof(int) * num_keys);
 				bgm->num_keys = 0;
 				bgm->num_recs = num_records;
 				bgm->basem.server_rank = rl->ri->rank;
@@ -378,7 +378,7 @@ struct mdhim_brm_t *_bdel_records(struct mdhim_t *md, struct index_t *index,
 	//The message to be sent to ourselves if necessary
 	lbdm = NULL;
 	//Create an array of bulk del messages that holds one bulk message per range server
-	bdm_list = malloc(sizeof(struct mdhim_bdelm_t *) * index->num_rangesrvs);
+	bdm_list = (mdhim_bdelm_t**)malloc(sizeof(struct mdhim_bdelm_t *) * index->num_rangesrvs);
 	//Initialize the pointers of the list to null
 	for (i = 0; i < index->num_rangesrvs; i++) {
 		bdm_list[i] = NULL;
@@ -416,9 +416,9 @@ struct mdhim_brm_t *_bdel_records(struct mdhim_t *md, struct index_t *index,
 
 		//If the message doesn't exist, create one
 		if (!bdm) {
-			bdm = malloc(sizeof(struct mdhim_bdelm_t));			       
-			bdm->keys = malloc(sizeof(void *) * MAX_BULK_OPS);
-			bdm->key_lens = malloc(sizeof(int) * MAX_BULK_OPS);
+			bdm = (mdhim_bdelm_t*)malloc(sizeof(struct mdhim_bdelm_t));
+			bdm->keys = (void**)malloc(sizeof(void *) * MAX_BULK_OPS);
+			bdm->key_lens = (int*)malloc(sizeof(int) * MAX_BULK_OPS);
 			bdm->num_keys = 0;
 			bdm->basem.server_rank = rl->ri->rank;
 			bdm->basem.mtype = MDHIM_BULK_DEL;
@@ -441,7 +441,7 @@ struct mdhim_brm_t *_bdel_records(struct mdhim_t *md, struct index_t *index,
 	brm_head = client_bdelete(md, index, bdm_list);
 	if (lbdm) {
 		rm = local_client_bdelete(md, lbdm);
-		brm = malloc(sizeof(struct mdhim_brm_t));
+		brm = (mdhim_brm_t*)malloc(sizeof(struct mdhim_brm_t));
 		brm->error = rm->error;
 		brm->basem.mtype = rm->basem.mtype;
 		brm->basem.index = rm->basem.index;

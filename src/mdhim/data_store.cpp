@@ -33,12 +33,12 @@ struct mdhim_store_t *mdhim_db_init(int type) {
 	struct mdhim_store_t *store;
 	
 	//Initialize the store structure
-	store = malloc(sizeof(struct mdhim_store_t));
+	store = (mdhim_store_t*)malloc(sizeof(struct mdhim_store_t));
 	store->type = type;
 	store->db_handle = NULL;
 	store->db_stats = NULL;
 	store->mdhim_store_stats = NULL;
-	store->mdhim_store_stats_lock = malloc(sizeof(pthread_rwlock_t));
+	store->mdhim_store_stats_lock = (pthread_rwlock_t*)malloc(sizeof(pthread_rwlock_t));
 	if (pthread_rwlock_init(store->mdhim_store_stats_lock, NULL) != 0) {	
 		free(store->mdhim_store_stats_lock);
 		return NULL;
