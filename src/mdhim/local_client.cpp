@@ -17,7 +17,7 @@
  * @param md the main mdhim struct
  * @return a pointer to the message received or NULL
  */
-static void *get_msg_self(struct mdhim_t *md) {
+static void *get_msg_self(struct mdhim *md) {
 	void *msg;
 	
 	//Lock the receive msg mutex
@@ -44,7 +44,7 @@ static void *get_msg_self(struct mdhim_t *md) {
  * @param pm pointer to put message to be sent or inserted into the range server's work queue
  * @return return_message structure with ->error = MDHIM_SUCCESS or MDHIM_ERROR
  */
-struct mdhim_rm_t *local_client_put(struct mdhim_t *md, struct mdhim_putm_t *pm) {
+struct mdhim_rm_t *local_client_put(struct mdhim *md, struct mdhim_putm_t *pm) {
 	int ret;
 	struct mdhim_rm_t *rm;
 	work_item *item;
@@ -75,7 +75,7 @@ struct mdhim_rm_t *local_client_put(struct mdhim_t *md, struct mdhim_putm_t *pm)
  * @param bpm pointer to bulk put message to be sent or inserted into the range server's work queue
  * @return return_message structure with ->error = MDHIM_SUCCESS or MDHIM_ERROR
 */
-struct mdhim_rm_t *local_client_bput(struct mdhim_t *md, struct mdhim_bputm_t *bpm) {
+struct mdhim_rm_t *local_client_bput(struct mdhim *md, struct mdhim_bputm_t *bpm) {
 	int ret;
 	struct mdhim_rm_t *brm;
 	work_item *item;
@@ -105,7 +105,7 @@ struct mdhim_rm_t *local_client_bput(struct mdhim_t *md, struct mdhim_bputm_t *b
  * @param bgm pointer to get message to be sent or inserted into the range server's work queue
  * @return return_message structure with ->error = MDHIM_SUCCESS or MDHIM_ERROR
  */
-struct mdhim_bgetrm_t *local_client_bget(struct mdhim_t *md, struct mdhim_bgetm_t *bgm) {
+struct mdhim_bgetrm_t *local_client_bget(struct mdhim *md, struct mdhim_bgetm_t *bgm) {
 	int ret;
 	struct mdhim_bgetrm_t *rm;
 	work_item *item;
@@ -135,7 +135,7 @@ struct mdhim_bgetrm_t *local_client_bget(struct mdhim_t *md, struct mdhim_bgetm_
  * @param gm pointer to get message to be inserted into the range server's work queue
  * @return return_message structure with ->error = MDHIM_SUCCESS or MDHIM_ERROR
  */
-struct mdhim_bgetrm_t *local_client_bget_op(struct mdhim_t *md, struct mdhim_getm_t *gm) {
+struct mdhim_bgetrm_t *local_client_bget_op(struct mdhim *md, struct mdhim_getm_t *gm) {
 	int ret;
 	struct mdhim_bgetrm_t *rm;
 	work_item *item;
@@ -165,7 +165,7 @@ struct mdhim_bgetrm_t *local_client_bget_op(struct mdhim_t *md, struct mdhim_get
  * @param cm pointer to put message to be inserted into the range server's work queue
  * @return return_message structure with ->error = MDHIM_SUCCESS or MDHIM_ERROR
  */
-struct mdhim_rm_t *local_client_commit(struct mdhim_t *md, struct mdhim_basem_t *cm) {
+struct mdhim_rm_t *local_client_commit(struct mdhim *md, struct mdhim_basem_t *cm) {
 	int ret;
 	struct mdhim_rm_t *rm;
 	work_item *item;
@@ -195,7 +195,7 @@ struct mdhim_rm_t *local_client_commit(struct mdhim_t *md, struct mdhim_basem_t 
  * @param dm pointer to delete message to be inserted into the range server's work queue
  * @return return_message structure with ->error = MDHIM_SUCCESS or MDHIM_ERROR
  */
-struct mdhim_rm_t *local_client_delete(struct mdhim_t *md, struct mdhim_delm_t *dm) {
+struct mdhim_rm_t *local_client_delete(struct mdhim *md, struct mdhim_delm_t *dm) {
 	int ret;
 	struct mdhim_rm_t *rm;
 	work_item *item;
@@ -226,7 +226,7 @@ struct mdhim_rm_t *local_client_delete(struct mdhim_t *md, struct mdhim_delm_t *
  * @param bdm pointer to bulk delete message to be inserted into the range server's work queue
  * @return return_message structure with ->error = MDHIM_SUCCESS or MDHIM_ERROR
  */
-struct mdhim_rm_t *local_client_bdelete(struct mdhim_t *md, struct mdhim_bdelm_t *bdm) {
+struct mdhim_rm_t *local_client_bdelete(struct mdhim *md, struct mdhim_bdelm_t *bdm) {
 	int ret;
 	struct mdhim_rm_t *brm;
 	work_item *item;
@@ -255,7 +255,7 @@ struct mdhim_rm_t *local_client_bdelete(struct mdhim_t *md, struct mdhim_bdelm_t
  * @param md main MDHIM struct
  * @param cm pointer to close message to be inserted into the range server's work queue
  */
-void local_client_close(struct mdhim_t *md, struct mdhim_basem_t *cm) {
+void local_client_close(struct mdhim *md, struct mdhim_basem_t *cm) {
 	int ret;
 	work_item *item;
 

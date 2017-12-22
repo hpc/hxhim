@@ -247,7 +247,7 @@ int is_float_key(int type) {
  * @param key_len   length of the key
  * @return the slice number or 0 on error
  */
-int get_slice_num(struct mdhim_t *md, struct index_t *index, void *key, int key_len) {
+int get_slice_num(struct mdhim *md, struct index_t *index, void *key, int key_len) {
 	//The number that maps a key to range server (dependent on key type)
 	int slice_num;
 	uint64_t key_num;
@@ -359,7 +359,7 @@ int get_slice_num(struct mdhim_t *md, struct index_t *index, void *key, int key_
  * @param slice     the slice number
  * @return the rank of the range server or NULL on error
  */
-rangesrv_info *get_range_server_by_slice(struct mdhim_t *md, struct index_t *index, int slice) {
+rangesrv_info *get_range_server_by_slice(struct mdhim *md, struct index_t *index, int slice) {
 	//The number that maps a key to range server (dependent on key type)
 	uint32_t rangesrv_num;
 	//The range server number that we return
@@ -389,7 +389,7 @@ rangesrv_info *get_range_server_by_slice(struct mdhim_t *md, struct index_t *ind
  * @param key_len   length of the key
  * @return the rank of the range server or NULL on error
  */
-rangesrv_list *get_range_servers(struct mdhim_t *md, struct index_t *index, 
+rangesrv_list *get_range_servers(struct mdhim *md, struct index_t *index,
 				 void *key, int key_len) {
 	//The number that maps a key to range server (dependent on key type)
 	int slice_num;
@@ -409,7 +409,7 @@ rangesrv_list *get_range_servers(struct mdhim_t *md, struct index_t *index,
 	return rl;
 }
 
-struct mdhim_stat *get_next_slice_stat(struct mdhim_t *md, struct index_t *index, 
+struct mdhim_stat *get_next_slice_stat(struct mdhim *md, struct index_t *index,
 				       int slice_num) {
 	struct mdhim_stat *stat, *tmp, *next_slice;
 
@@ -432,7 +432,7 @@ struct mdhim_stat *get_next_slice_stat(struct mdhim_t *md, struct index_t *index
 	return next_slice;
 }
 
-struct mdhim_stat *get_prev_slice_stat(struct mdhim_t *md, struct index_t *index, 
+struct mdhim_stat *get_prev_slice_stat(struct mdhim *md, struct index_t *index,
 				       int slice_num) {
 	struct mdhim_stat *stat, *tmp, *prev_slice;
 
@@ -455,7 +455,7 @@ struct mdhim_stat *get_prev_slice_stat(struct mdhim_t *md, struct index_t *index
 	return prev_slice;
 }
 
-struct mdhim_stat *get_last_slice_stat(struct mdhim_t *md, struct index_t *index) {
+struct mdhim_stat *get_last_slice_stat(struct mdhim *md, struct index_t *index) {
 	struct mdhim_stat *stat, *tmp, *last_slice;
 
 	last_slice = NULL;
@@ -477,7 +477,7 @@ struct mdhim_stat *get_last_slice_stat(struct mdhim_t *md, struct index_t *index
 	return last_slice;
 }
 
-struct mdhim_stat *get_first_slice_stat(struct mdhim_t *md, struct index_t *index) {
+struct mdhim_stat *get_first_slice_stat(struct mdhim *md, struct index_t *index) {
 	struct mdhim_stat *stat, *tmp, *first_slice;
 
 	first_slice = NULL;
@@ -499,7 +499,7 @@ struct mdhim_stat *get_first_slice_stat(struct mdhim_t *md, struct index_t *inde
 	return first_slice;
 }
 
-int get_slice_from_fstat(struct mdhim_t *md, struct index_t *index, 
+int get_slice_from_fstat(struct mdhim *md, struct index_t *index,
 			 int cur_slice, long double fstat, int op) {
 	int slice_num = 0;
 	struct mdhim_stat *cur_stat, *new_stat;
@@ -556,7 +556,7 @@ new_stat:
 	}
 }
 
-int get_slice_from_istat(struct mdhim_t *md, struct index_t *index, 
+int get_slice_from_istat(struct mdhim *md, struct index_t *index,
 			 int cur_slice, uint64_t istat, int op) {
 	int slice_num = 0;
 	struct mdhim_stat *cur_stat, *new_stat;
@@ -618,7 +618,7 @@ new_stat:
 
 /* Iterate through the multi-level hash table in index->stats to find the range servers
    that could have the key */
-rangesrv_list *get_rangesrvs_from_istat(struct mdhim_t *md, struct index_t *index, 
+rangesrv_list *get_rangesrvs_from_istat(struct mdhim *md, struct index_t *index,
 					uint64_t istat, int op) {
 	struct mdhim_stat *cur_rank, *cur_stat, *tmp, *tmp2;
 	rangesrv_list *head, *lp, *entry;
@@ -706,7 +706,7 @@ rangesrv_list *get_rangesrvs_from_istat(struct mdhim_t *md, struct index_t *inde
 
 /* Iterate through the multi-level hash table in index->stats to find the range servers 
    that could have the key */
-rangesrv_list *get_rangesrvs_from_fstat(struct mdhim_t *md, struct index_t *index, 
+rangesrv_list *get_rangesrvs_from_fstat(struct mdhim *md, struct index_t *index,
 					long double fstat, int op) {
 	struct mdhim_stat *cur_rank, *cur_stat, *tmp, *tmp2;
 	rangesrv_list *head, *lp, *entry;
@@ -800,7 +800,7 @@ rangesrv_list *get_rangesrvs_from_fstat(struct mdhim_t *md, struct index_t *inde
  * @param op        operation type (
  * @return the rank of the range server or NULL on error
  */
-rangesrv_list *get_range_servers_from_stats(struct mdhim_t *md, struct index_t *index,
+rangesrv_list *get_range_servers_from_stats(struct mdhim *md, struct index_t *index,
 					    void *key, int key_len, int op) {
 	//The number that maps a key to range server (dependent on key type)
 	int slice_num, cur_slice;

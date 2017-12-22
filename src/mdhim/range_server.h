@@ -6,10 +6,11 @@
 #include "data_store.h"
 #include "messages.h"
 #include "indexes.h"
+#include "mdhim.h"
 
-struct mdhim_t;
 
-typedef struct work_item work_item;
+typedef struct work_item work_item_t;
+
 struct work_item {
 	work_item *next;
 	work_item *prev;
@@ -50,11 +51,11 @@ typedef struct mdhim_rs_t {
 	pthread_mutex_t *out_req_mutex;
 } mdhim_rs_t;
 
-int range_server_add_work(struct mdhim_t *md, work_item *item);
-int range_server_init(struct mdhim_t *md);
-int range_server_init_comm(struct mdhim_t *md);
-int range_server_stop(struct mdhim_t *md);
-int range_server_add_oreq(struct mdhim_t *md, MPI_Request *req, void *msg); //Add an outstanding request
-int range_server_clean_oreqs(struct mdhim_t *md); //Clean outstanding reqs
+int range_server_add_work(struct mdhim *md, work_item *item);
+int range_server_init(struct mdhim *md);
+int range_server_init_comm(struct mdhim *md);
+int range_server_stop(struct mdhim *md);
+int range_server_add_oreq(struct mdhim *md, MPI_Request *req, void *msg); //Add an outstanding request
+int range_server_clean_oreqs(struct mdhim *md); //Clean outstanding reqs
 
 #endif

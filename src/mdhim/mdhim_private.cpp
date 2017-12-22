@@ -5,7 +5,29 @@
 #include "partitioner.h"
 #include "indexes.h"
 
-struct mdhim_rm_t *_put_record(struct mdhim_t *md, struct index_t *index, 
+int mdhim_private_init(mdhim_private* mdp, int dstype, int commtype) {
+
+    int rc = 0;
+    if (dstype != MDHIM_DS_LEVELDB) {
+        mlog(MDHIM_CLIENT_CRIT, "Invaliud data store type specified");
+        rc = -1;
+        goto err_out;
+    }
+
+    if (commtype == MDHIM_COMM_MPI) {
+
+    }
+    else {
+        mlog(MDHIM_CLIENT_CRIT, "Invaliud data store type specified");
+        rc = -2;
+        goto err_out;
+    }
+err_out:
+    return rc;
+
+}
+
+struct mdhim_rm_t *_put_record(struct mdhim *md, struct index_t *index,
 			       void *key, int key_len, 
 			       void *value, int value_len) {
 	struct mdhim_rm_t *rm = NULL;
@@ -115,7 +137,7 @@ void _concat_brm(struct mdhim_brm_t *head, struct mdhim_brm_t *addition) {
 	return;
 }
 
-struct mdhim_brm_t *_bput_records(struct mdhim_t *md, struct index_t *index, 
+struct mdhim_brm_t *_bput_records(struct mdhim *md, struct index_t *index,
 				  void **keys, int *key_lens, 
 				  void **values, int *value_lens, 
 				  int num_keys) {
@@ -250,7 +272,7 @@ struct mdhim_brm_t *_bput_records(struct mdhim_t *md, struct index_t *index,
 	return brm_head;
 }
 
-struct mdhim_bgetrm_t *_bget_records(struct mdhim_t *md, struct index_t *index,
+struct mdhim_bgetrm_t *_bget_records(struct mdhim *md, struct index_t *index,
 				     void **keys, int *key_lens, 
 				     int num_keys, int num_records, int op) {
 	struct mdhim_bgetm_t **bgm_list;
@@ -365,7 +387,7 @@ struct mdhim_bgetrm_t *_bget_records(struct mdhim_t *md, struct index_t *index,
  * @param num_keys  the number of keys to delete (i.e., the number of keys in keys array)
  * @return mdhim_brm_t * or NULL on error
  */
-struct mdhim_brm_t *_bdel_records(struct mdhim_t *md, struct index_t *index,
+struct mdhim_brm_t *_bdel_records(struct mdhim *md, struct index_t *index,
 				  void **keys, int *key_lens,
 				  int num_keys) {
 	struct mdhim_bdelm_t **bdm_list;

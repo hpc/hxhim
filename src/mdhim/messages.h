@@ -1,11 +1,13 @@
 #ifndef      __MESSAGES_H
 #define      __MESSAGES_H
 
+#include "range_server.h"
+#include "mdhim.h"
+
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-#include "range_server.h"
 
 /* Message Types */
 
@@ -58,7 +60,6 @@ extern "C"
 
 //Maximum size of messages allowed
 #define MDHIM_MAX_MSG_SIZE 2147483647
-struct mdhim_t;
 
 /* Base message */
 struct mdhim_basem_t {
@@ -165,36 +166,36 @@ struct mdhim_brm_t {
 };
 
 
-int send_rangesrv_work(struct mdhim_t *md, int dest, void *message);
-int send_all_rangesrv_work(struct mdhim_t *md, void **messages, int num_srvs);
-int receive_rangesrv_work(struct mdhim_t *md, int *src, void **message);
-int send_client_response(struct mdhim_t *md, int dest, void *message, int *sizebuf,
+int send_rangesrv_work(struct mdhim *md, int dest, void *message);
+int send_all_rangesrv_work(struct mdhim *md, void **messages, int num_srvs);
+int receive_rangesrv_work(struct mdhim *md, int *src, void **message);
+int send_client_response(struct mdhim *md, int dest, void *message, int *sizebuf,
 			 void **sendbuf, MPI_Request **size_req, MPI_Request **msg_req);
-int receive_client_response(struct mdhim_t *md, int src, void **message);
-int receive_all_client_responses(struct mdhim_t *md, int *srcs, int nsrcs, 
+int receive_client_response(struct mdhim *md, int src, void **message);
+int receive_all_client_responses(struct mdhim *md, int *srcs, int nsrcs,
 				 void ***messages);
-int pack_put_message(struct mdhim_t *md, struct mdhim_putm_t *pm, void **sendbuf, int *sendsize);
-int pack_bput_message(struct mdhim_t *md, struct mdhim_bputm_t *bpm, void **sendbuf, int *sendsize);
-int unpack_put_message(struct mdhim_t *md, void *message, int mesg_size, void **pm);
-int unpack_bput_message(struct mdhim_t *md, void *message, int mesg_size, void **bpm);
+int pack_put_message(struct mdhim *md, struct mdhim_putm_t *pm, void **sendbuf, int *sendsize);
+int pack_bput_message(struct mdhim *md, struct mdhim_bputm_t *bpm, void **sendbuf, int *sendsize);
+int unpack_put_message(struct mdhim *md, void *message, int mesg_size, void **pm);
+int unpack_bput_message(struct mdhim *md, void *message, int mesg_size, void **bpm);
 
-int pack_get_message(struct mdhim_t *md, struct mdhim_getm_t *gm, void **sendbuf, int *sendsize);
-int pack_bget_message(struct mdhim_t *md, struct mdhim_bgetm_t *bgm, void **sendbuf, int *sendsize);
-int unpack_get_message(struct mdhim_t *md, void *message, int mesg_size, void **gm);
-int unpack_bget_message(struct mdhim_t *md, void *message, int mesg_size, void **bgm);
+int pack_get_message(struct mdhim *md, struct mdhim_getm_t *gm, void **sendbuf, int *sendsize);
+int pack_bget_message(struct mdhim *md, struct mdhim_bgetm_t *bgm, void **sendbuf, int *sendsize);
+int unpack_get_message(struct mdhim *md, void *message, int mesg_size, void **gm);
+int unpack_bget_message(struct mdhim *md, void *message, int mesg_size, void **bgm);
 
-int pack_bgetrm_message(struct mdhim_t *md, struct mdhim_bgetrm_t *bgrm, void **sendbuf, int *sendsize);
-int unpack_bgetrm_message(struct mdhim_t *md, void *message, int mesg_size, void **bgrm);
+int pack_bgetrm_message(struct mdhim *md, struct mdhim_bgetrm_t *bgrm, void **sendbuf, int *sendsize);
+int unpack_bgetrm_message(struct mdhim *md, void *message, int mesg_size, void **bgrm);
 
-int pack_del_message(struct mdhim_t *md, struct mdhim_delm_t *dm, void **sendbuf, int *sendsize);
-int pack_bdel_message(struct mdhim_t *md, struct mdhim_bdelm_t *bdm, void **sendbuf, int *sendsize);
-int unpack_del_message(struct mdhim_t *md, void *message, int mesg_size, void **dm);
-int unpack_bdel_message(struct mdhim_t *md, void *message, int mesg_size, void **bdm);
+int pack_del_message(struct mdhim *md, struct mdhim_delm_t *dm, void **sendbuf, int *sendsize);
+int pack_bdel_message(struct mdhim *md, struct mdhim_bdelm_t *bdm, void **sendbuf, int *sendsize);
+int unpack_del_message(struct mdhim *md, void *message, int mesg_size, void **dm);
+int unpack_bdel_message(struct mdhim *md, void *message, int mesg_size, void **bdm);
 
-int pack_return_message(struct mdhim_t *md, struct mdhim_rm_t *rm, void **sendbuf, int *sendsize);
-int unpack_return_message(struct mdhim_t *md, void *message, void **rm);
+int pack_return_message(struct mdhim *md, struct mdhim_rm_t *rm, void **sendbuf, int *sendsize);
+int unpack_return_message(struct mdhim *md, void *message, void **rm);
 
-int pack_base_message(struct mdhim_t *md, struct mdhim_basem_t *cm, void **sendbuf, int *sendsize);
+int pack_base_message(struct mdhim *md, struct mdhim_basem_t *cm, void **sendbuf, int *sendsize);
 
 void mdhim_full_release_msg(void *message);
 void mdhim_partial_release_msg(void *message);

@@ -26,8 +26,8 @@
  */
 
 
-struct mdhim_t *md;
-struct mdhim_options_t *opts = NULL;
+mdhim_t *md;
+mdhim_options_t *opts = NULL;
 
 /**
  * mdhimInit
@@ -41,7 +41,7 @@ void mdhimftinit(int *appComm) {
   MPI_Comm comm;
 
   comm = MPI_Comm_f2c(*((int *) appComm));
-  md = mdhimInit((void *) &comm, opts);
+  mdhimInit(md, opts);
 
   return;
 }

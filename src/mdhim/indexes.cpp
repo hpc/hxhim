@@ -50,7 +50,7 @@ int im_range_server(struct index_t *index) {
  * @param md       Pointer to the main MDHIM structure
  * @param flags    Flags to open the file with
  */
-int open_manifest(struct mdhim_t *md, struct index_t *index, int flags) {
+int open_manifest(struct mdhim *md, struct index_t *index, int flags) {
 	int fd;	
 	char path[PATH_MAX];
 
@@ -71,7 +71,7 @@ int open_manifest(struct mdhim_t *md, struct index_t *index, int flags) {
  *
  * @param md       Pointer to the main MDHIM structure
  */
-void write_manifest(struct mdhim_t *md, struct index_t *index) {
+void write_manifest(struct mdhim *md, struct index_t *index) {
 	index_manifest_t manifest;
 	int fd;
 	int ret;
@@ -111,7 +111,7 @@ void write_manifest(struct mdhim_t *md, struct index_t *index) {
  * @param md       Pointer to the main MDHIM structure
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int read_manifest(struct mdhim_t *md, struct index_t *index) {
+int read_manifest(struct mdhim *md, struct index_t *index) {
 	int fd;
 	int ret;
 	index_manifest_t manifest;
@@ -180,7 +180,7 @@ int read_manifest(struct mdhim_t *md, struct index_t *index) {
  * @param key_len  the key's length
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int update_stat(struct mdhim_t *md, struct index_t *index, void *key, uint32_t key_len) {
+int update_stat(struct mdhim *md, struct index_t *index, void *key, uint32_t key_len) {
 	int slice_num;
 	void *val1, *val2;
 	int float_type = 0;
@@ -286,7 +286,7 @@ int update_stat(struct mdhim_t *md, struct index_t *index, void *key, uint32_t k
  * @param md  Pointer to the main MDHIM structure
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int load_stats(struct mdhim_t *md, struct index_t *index) {
+int load_stats(struct mdhim *md, struct index_t *index) {
 	void **val;
 	int *val_len, *key_len;
 	int **slice;
@@ -373,7 +373,7 @@ int load_stats(struct mdhim_t *md, struct index_t *index) {
  * @param md  Pointer to the main MDHIM structure
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int write_stats(struct mdhim_t *md, struct index_t *bi) {
+int write_stats(struct mdhim *md, struct index_t *bi) {
 	struct mdhim_stat *stat, *tmp;
 	struct mdhim_db_stat *dbstat;
 	int float_type = 0;
@@ -431,7 +431,7 @@ int write_stats(struct mdhim_t *md, struct index_t *bi) {
  * @return the initialized data store or NULL on error
  */
 
-int open_db_store(struct mdhim_t *md, struct index_t *index) {
+int open_db_store(struct mdhim *md, struct index_t *index) {
 	char filename[PATH_MAX] = {'\0'};
 	int flags = MDHIM_CREATE;
 	int path_num;
@@ -492,7 +492,7 @@ int open_db_store(struct mdhim_t *md, struct index_t *index) {
  * @param rindex   pointer to a index_t struct
  * @return         MDHIM_ERROR on error, otherwise the number of range servers
  */
-uint32_t get_num_range_servers(struct mdhim_t *md, struct index_t *rindex) {
+uint32_t get_num_range_servers(struct mdhim *md, struct index_t *rindex) {
 	int size;
 	uint32_t num_servers = 0;
 	int i = 0;
@@ -529,7 +529,7 @@ uint32_t get_num_range_servers(struct mdhim_t *md, struct index_t *rindex) {
  * @param  md  main MDHIM struct
  * @return     MDHIM_ERROR on error, otherwise the index identifier
  */
-struct index_t *create_local_index(struct mdhim_t *md, int db_type, int key_type, char *index_name) {
+struct index_t *create_local_index(struct mdhim *md, int db_type, int key_type, char *index_name) {
 	struct index_t *li;
 	struct index_t *check = NULL;
 	uint32_t rangesrv_num;
@@ -676,7 +676,7 @@ done:
  * @return                   MDHIM_ERROR on error, otherwise the index identifier
  */
 
-struct index_t *create_global_index(struct mdhim_t *md, int server_factor, 
+struct index_t *create_global_index(struct mdhim *md, int server_factor,
 				    uint64_t max_recs_per_slice, 
 				    int db_type, int key_type, char *index_name) {
 	struct index_t *gi;
@@ -832,7 +832,7 @@ done:
  * @param md      in   main MDHIM struct
  * @return a list of range servers
  */
-int get_rangesrvs(struct mdhim_t *md, struct index_t *index) {
+int get_rangesrvs(struct mdhim *md, struct index_t *index) {
 	struct rangesrv_info *rs_entry_num, *rs_entry_rank;
 	uint32_t rangesrv_num;
 	int i;
@@ -874,7 +874,7 @@ int get_rangesrvs(struct mdhim_t *md, struct index_t *index) {
  * @param rank    rank to find out if it is a range server
  * @return        MDHIM_ERROR on error, 0 on false, 1 or greater to represent the range server number otherwise
  */
-uint32_t is_range_server(struct mdhim_t *md, int rank, struct index_t *index) {
+uint32_t is_range_server(struct mdhim *md, int rank, struct index_t *index) {
 	int size;
 	int ret;
 	uint64_t rangesrv_num = 0;
@@ -931,7 +931,7 @@ uint32_t is_range_server(struct mdhim_t *md, int rank, struct index_t *index) {
  * @param md  Pointer to the main MDHIM structure
  * @return    MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int index_init_comm(struct mdhim_t *md, struct index_t *bi) {
+int index_init_comm(struct mdhim *md, struct index_t *bi) {
 	MPI_Group orig, new_group;
 	int *ranks;
 	int i = 0;
@@ -1002,7 +1002,7 @@ int index_init_comm(struct mdhim_t *md, struct index_t *bi) {
 	return MDHIM_SUCCESS;
 }
 
-struct index_t *get_index(struct mdhim_t *md, int index_id) {
+struct index_t *get_index(struct mdhim *md, int index_id) {
 	struct index_t *index;
 
 	//Acquire the lock to update indexes	
@@ -1032,7 +1032,7 @@ struct index_t *get_index(struct mdhim_t *md, int index_id) {
  * =====================================================================================
  */
 struct index_t*
-get_index_by_name ( struct mdhim_t *md, char *index_name )
+get_index_by_name ( struct mdhim *md, char *index_name )
 {
     struct index_t *index = NULL;
     size_t name_len = strlen(index_name)+1;
@@ -1058,7 +1058,7 @@ get_index_by_name ( struct mdhim_t *md, char *index_name )
 return index;
 }		/* -----  end of function get_index_by_name  ----- */
 
-void indexes_release(struct mdhim_t *md) {
+void indexes_release(struct mdhim *md) {
 	struct index_t *cur_indx, *tmp_indx;
 	struct rangesrv_info *cur_rs, *tmp_rs;
 	int ret;
@@ -1169,7 +1169,7 @@ int pack_stats(struct index_t *index, void *buf, int size,
 	return ret;
 }
 
-int get_stat_flush_global(struct mdhim_t *md, struct index_t *index) {
+int get_stat_flush_global(struct mdhim *md, struct index_t *index) {
 	char *sendbuf;
 	int sendsize = 0;
 	int recvidx = 0;
@@ -1366,7 +1366,7 @@ error:
 	return MDHIM_ERROR;
 }
 
-int get_stat_flush_local(struct mdhim_t *md, struct index_t *index) {
+int get_stat_flush_local(struct mdhim *md, struct index_t *index) {
 	char *sendbuf;
 	int sendsize = 0;
 	int recvidx = 0;
@@ -1560,7 +1560,7 @@ error:
  * @param md      in   main MDHIM struct
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int get_stat_flush(struct mdhim_t *md, struct index_t *index) {
+int get_stat_flush(struct mdhim *md, struct index_t *index) {
 	int ret;
 
 	pthread_mutex_lock(md->mdhim_comm_lock);

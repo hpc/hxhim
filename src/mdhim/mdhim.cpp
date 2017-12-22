@@ -32,31 +32,27 @@
  * @param opts Options structure for DB creation, such as name, and primary key type
  * @return mdhim_t* that contains info about this instance or NULL if there was an error
  */
-struct mdhim_t *mdhimInit(void *appComm, struct mdhim_options_t *opts) {
-	int ret = 0;
+int mdhimInit(mdhim_t* mdh, mdhim_options_t *opts) {
+    int ret = 0;
+	int rc = 0;
 	int flag, provided;
-	struct mdhim_t *md;
+	struct mdhim *md;
 	struct index_t *primary_index;
 	MPI_Comm comm;
 
     if (!opts) {
         opts = (mdhim_options_t*)malloc(sizeof(mdhim_options_t));
         mdhim_options_init(opts);
-
-        // Hugh's settings for his test configuration
-        mdhim_options_set_db_path(opts, "/tmp/mdhim/");
-        mdhim_options_set_db_name(opts, "mdhimDb");
-        mdhim_options_set_db_type(opts, LEVELDB);
-        mdhim_options_set_server_factor(opts, 1);
-        mdhim_options_set_max_recs_per_slice(opts, 1000);
-        mdhim_options_set_key_type(opts, MDHIM_BYTE_KEY);
-        mdhim_options_set_debug_level(opts, MLOG_CRIT);
-        mdhim_options_set_num_worker_threads(opts, 30);
     }
 
 	//Open mlog - stolen from plfs
-	ret = mlog_open((char *)"mdhim", 0,
-	        opts->debug_level, opts->debug_level, NULL, 0, MLOG_LOGPID, 0);
+	rc = mlog_open((char *)"mdhim", 0, opts->debug_level, opts->debug_level, NULL, 0, MLOG_LOGPID, 0);
+
+    // Allocate private portions of MDHIM's data stack
+    mdh->p = new mdhim_private;
+
+    // Initialize the private struct with LevelDB and MPI enabled
+    int private_rc = mdhim_private_init(mdh->p, MDHIM_DS_LEVELDB, MDHIM_COMM_MPI);
 
 	//Check if MPI has been initialized
 	//if ((ret = MPI_Initialized(&flag)) != MPI_SUCCESS) {
@@ -64,47 +60,47 @@ struct mdhim_t *mdhimInit(void *appComm, struct mdhim_options_t *opts) {
 	//	exit(1);
 	//}
 
-	if (!flag) {
+	//if (!flag) {
 		//Initialize MPI with multiple thread support since MPI hasn't been initialized
-		ret = MPI_Init_thread(NULL, NULL, MPI_THREAD_MULTIPLE, &provided);
-		if (ret != MPI_SUCCESS) {
-			mlog(MDHIM_CLIENT_CRIT, "MDHIM - Error while calling MPI_Init_thread");
-			exit(1);
-		}
+	//	ret = MPI_Init_thread(NULL, NULL, MPI_THREAD_MULTIPLE, &provided);
+	//	if (ret != MPI_SUCCESS) {
+	//		mlog(MDHIM_CLIENT_CRIT, "MDHIM - Error while calling MPI_Init_thread");
+	//		exit(1);
+	//	}
 		//Quit if MPI didn't initialize with multiple threads
-		if (provided != MPI_THREAD_MULTIPLE) {
-			mlog(MDHIM_CLIENT_CRIT, "MDHIM - Error while initializing MPI with threads");
-			exit(1);
-		}
-	}
+	//	if (provided != MPI_THREAD_MULTIPLE) {
+	//		mlog(MDHIM_CLIENT_CRIT, "MDHIM - Error while initializing MPI with threads");
+	//		exit(1);
+	//	}
+	//}
 
-	if (appComm) {
-		comm = *((MPI_Comm *) appComm);
-	} else {
-		comm = MPI_COMM_WORLD;
-	}
+	//if (appComm) {
+	//	comm = *((MPI_Comm *) appComm);
+	//} else {
+	//	comm = MPI_COMM_WORLD;
+	//}
 	
 	//Allocate memory for the main MDHIM structure
-	md = (mdhim_t*)malloc(sizeof(struct mdhim_t));
-	memset(md, 0, sizeof(struct mdhim_t));
-	if (!md) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM - Error while allocating memory while initializing");
-		return NULL;
-	}
+	//md = (mdhim_t*)malloc(sizeof(struct mdhim));
+	//memset(md, 0, sizeof(struct mdhim));
+	//if (!md) {
+	//	mlog(MDHIM_CLIENT_CRIT, "MDHIM - Error while allocating memory while initializing");
+	//	return NULL;
+	//}
 
 	//Set the options passed or the defaults created
 	md->db_opts = opts;
 
-	if ((ret = MPI_Comm_dup(comm, &md->mdhim_comm)) != MPI_SUCCESS) {
-		mlog(MDHIM_CLIENT_CRIT, "Error while initializing the MDHIM communicator");
-		return NULL;
-	}
+	//if ((ret = MPI_Comm_dup(comm, &md->mdhim_comm)) != MPI_SUCCESS) {
+	//	mlog(MDHIM_CLIENT_CRIT, "Error while initializing the MDHIM communicator");
+	//	return NULL;
+	//}
 
 	//Get our rank in the main MDHIM communicator
-	if ((ret = MPI_Comm_rank(md->mdhim_comm, &md->mdhim_rank)) != MPI_SUCCESS) {
-		mlog(MDHIM_CLIENT_CRIT, "Error getting our rank while initializing MDHIM");
-		return NULL;
-	}
+	//if ((ret = MPI_Comm_rank(md->mdhim_comm, &md->mdhim_rank)) != MPI_SUCCESS) {
+	//	mlog(MDHIM_CLIENT_CRIT, "Error getting our rank while initializing MDHIM");
+	//	return NULL;
+	//}
 
 	//Initialize mdhim_comm mutex
 	md->mdhim_comm_lock = (pthread_mutex_t*)malloc(sizeof(pthread_mutex_t));
@@ -115,25 +111,25 @@ struct mdhim_t *mdhimInit(void *appComm, struct mdhim_options_t *opts) {
 		return NULL;
 	}
 
-	if ((ret = pthread_mutex_init(md->mdhim_comm_lock, NULL)) != 0) {    
+	if ((rc = pthread_mutex_init(md->mdhim_comm_lock, NULL)) != 0) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
 		     "Error while initializing mdhim_comm_lock", md->mdhim_rank);
 		return NULL;
 	}
 
 	//Dup the communicator passed in for barriers between clients
-	if ((ret = MPI_Comm_dup(comm, &md->mdhim_client_comm)) != MPI_SUCCESS) {
-		mlog(MDHIM_CLIENT_CRIT, "Error while initializing the MDHIM communicator");
-		return NULL;
-	}
+	//if ((ret = MPI_Comm_dup(comm, &md->mdhim_client_comm)) != MPI_SUCCESS) {
+	//	mlog(MDHIM_CLIENT_CRIT, "Error while initializing the MDHIM communicator");
+	//	return NULL;
+	//}
 
 	//Get the size of the main MDHIM communicator
-	if ((ret = MPI_Comm_size(md->mdhim_comm, &md->mdhim_comm_size)) != MPI_SUCCESS) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error getting the size of the " 
-		     "comm while initializing", 
-		     md->mdhim_rank);
-		return NULL;
-	}
+	//if ((ret = MPI_Comm_size(md->mdhim_comm, &md->mdhim_comm_size)) != MPI_SUCCESS) {
+	//	mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error getting the size of the "
+	//	     "comm while initializing",
+	//	     md->mdhim_rank);
+	//	return NULL;
+	//}
 
 	//Initialize receive msg mutex - used for receiving a message from myself
 	md->receive_msg_mutex = (pthread_mutex_t*)malloc(sizeof(pthread_mutex_t));
@@ -178,21 +174,21 @@ struct mdhim_t *mdhimInit(void *appComm, struct mdhim_options_t *opts) {
 	}
 
 	//Create the default remote primary index
-	primary_index = create_global_index(md, opts->rserver_factor, opts->max_recs_per_slice, 
-					    opts->db_type, opts->db_key_type, NULL);
-	if (!primary_index) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
-		     "Couldn't create the default index", 
-		     md->mdhim_rank);
-		return NULL;
-	}
-	md->primary_index = primary_index;
+	//primary_index = create_global_index(md, opts->rserver_factor, opts->max_recs_per_slice,
+	//				    opts->db_type, opts->db_key_type, NULL);
+	//if (!primary_index) {
+	//	mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+	//	     "Couldn't create the default index",
+	//	     md->mdhim_rank);
+	//	return NULL;
+	//}
+	//md->primary_index = primary_index;
 	
 	//Set the local receive queue to NULL - used for sending and receiving to/from ourselves
 	md->receive_msg = NULL;
-	MPI_Barrier(md->mdhim_client_comm);
+	//MPI_Barrier(md->mdhim_client_comm);
 
-	return md;
+	return rc;
 }
 
 /**
@@ -201,7 +197,7 @@ struct mdhim_t *mdhimInit(void *appComm, struct mdhim_options_t *opts) {
  * @param md main MDHIM struct
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int mdhimClose(struct mdhim_t *md) {
+int mdhimClose(struct mdhim *md) {
 	int ret;
 	struct timeval start, end;
 
@@ -270,7 +266,7 @@ int mdhimClose(struct mdhim_t *md) {
  * @param md main MDHIM struct
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int mdhimCommit(struct mdhim_t *md, struct index_t *index) {
+int mdhimCommit(struct mdhim *md, struct index_t *index) {
 	int ret = MDHIM_SUCCESS;
 	struct mdhim_basem_t *cm;
 	struct mdhim_rm_t *rm = NULL;
@@ -312,7 +308,7 @@ int mdhimCommit(struct mdhim_t *md, struct index_t *index) {
                              inserting secondary global and local keys
  * @return                   mdhim_brm_t * or NULL on error
  */
-struct mdhim_brm_t *mdhimPut(struct mdhim_t *md,
+struct mdhim_brm_t *mdhimPut(struct mdhim *md,
 			     /*Primary key */
 			     void *primary_key, int primary_key_len,  
 			     void *value, int value_len,
@@ -410,7 +406,7 @@ struct mdhim_brm_t *mdhimPut(struct mdhim_t *md,
  * @param primary_key_len the length of the value
  * @return mdhim_brm_t * or NULL on error
  */
-struct mdhim_brm_t *mdhimPutSecondary(struct mdhim_t *md, 
+struct mdhim_brm_t *mdhimPutSecondary(struct mdhim *md,
 				      struct index_t *secondary_index,
 				      /*Secondary key */
 				      void *secondary_key, int secondary_key_len,  
@@ -442,7 +438,7 @@ struct mdhim_brm_t *mdhimPutSecondary(struct mdhim_t *md,
 	return head;
 }
 
-struct mdhim_brm_t *_bput_secondary_keys_from_info(struct mdhim_t *md, 
+struct mdhim_brm_t *_bput_secondary_keys_from_info(struct mdhim *md,
 						   struct secondary_bulk_info *secondary_info, 
 						   void **primary_keys, int *primary_key_lens, 
 						   int num_records) {
@@ -492,7 +488,7 @@ struct mdhim_brm_t *_bput_secondary_keys_from_info(struct mdhim_t *md,
  * @param num_records  the number of records to store (i.e., the number of keys in keys array)
  * @return mdhim_brm_t * or NULL on error
  */
-struct mdhim_brm_t *mdhimBPut(struct mdhim_t *md, 
+struct mdhim_brm_t *mdhimBPut(struct mdhim *md,
 			      void **primary_keys, int *primary_key_lens, 
 			      void **primary_values, int *primary_value_lens, 
 			      int num_records,
@@ -549,7 +545,7 @@ struct mdhim_brm_t *mdhimBPut(struct mdhim_t *md,
  * @param num_records  the number of records to store (i.e., the number of keys in keys array)
  * @return mdhim_brm_t * or NULL on error
  */
-struct mdhim_brm_t *mdhimBPutSecondary(struct mdhim_t *md, struct index_t *secondary_index,
+struct mdhim_brm_t *mdhimBPutSecondary(struct mdhim *md, struct index_t *secondary_index,
 				       void **secondary_keys, int *secondary_key_lens, 
 				       void **primary_keys, int *primary_key_lens, 
 				       int num_records) {
@@ -580,7 +576,7 @@ struct mdhim_brm_t *mdhimBPutSecondary(struct mdhim_t *md, struct index_t *secon
  * @param op        the operation type
  * @return mdhim_getrm_t * or NULL on error
  */
-struct mdhim_bgetrm_t *mdhimGet(struct mdhim_t *md, struct index_t *index,
+struct mdhim_bgetrm_t *mdhimGet(mdhim_t *md, struct index_t *index,
 				void *key, int key_len, 
 				int op) {
 
@@ -624,7 +620,7 @@ struct mdhim_bgetrm_t *mdhimGet(struct mdhim_t *md, struct index_t *index,
  * @param num_records  the number of keys to get (i.e., the number of keys in keys array)
  * @return mdhim_bgetrm_t * or NULL on error
  */
-struct mdhim_bgetrm_t *mdhimBGet(struct mdhim_t *md, struct index_t *index,
+struct mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, struct index_t *index,
 				 void **keys, int *key_lens, 
 				 int num_keys, int op) {
 	struct mdhim_bgetrm_t *bgrm_head, *lbgrm;
@@ -742,7 +738,7 @@ struct mdhim_bgetrm_t *mdhimBGet(struct mdhim_t *md, struct index_t *index,
  * @param op           the operation to perform (i.e., MDHIM_GET_NEXT or MDHIM_GET_PREV)
  * @return mdhim_bgetrm_t * or NULL on error
  */
-struct mdhim_bgetrm_t *mdhimBGetOp(struct mdhim_t *md, struct index_t *index, 
+struct mdhim_bgetrm_t *mdhimBGetOp(mdhim_t *md, struct index_t *index,
 				   void *key, int key_len, 
 				   int num_records, int op) {
 	void **keys;
@@ -787,7 +783,7 @@ struct mdhim_bgetrm_t *mdhimBGetOp(struct mdhim_t *md, struct index_t *index,
  * @param key_len   the length of the key
  * @return mdhim_rm_t * or NULL on error
  */
-struct mdhim_brm_t *mdhimDelete(struct mdhim_t *md, struct index_t *index, 
+struct mdhim_brm_t *mdhimDelete(mdhim_t *md, struct index_t *index,
 				void *key, int key_len) {
 	struct mdhim_brm_t *brm_head;
 	void **keys;
@@ -815,7 +811,7 @@ struct mdhim_brm_t *mdhimDelete(struct mdhim_t *md, struct index_t *index,
  * @param num_records  the number of keys to delete (i.e., the number of keys in keys array)
  * @return mdhim_brm_t * or NULL on error
  */
-struct mdhim_brm_t *mdhimBDelete(struct mdhim_t *md, struct index_t *index,
+struct mdhim_brm_t *mdhimBDelete(mdhim_t *md, struct index_t *index,
 				 void **keys, int *key_lens,
 				 int num_records) {
 	struct mdhim_brm_t *brm_head;
@@ -840,7 +836,7 @@ struct mdhim_brm_t *mdhimBDelete(struct mdhim_t *md, struct index_t *index,
  * @param md main MDHIM struct
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int mdhimStatFlush(struct mdhim_t *md, struct index_t *index) {
+int mdhimStatFlush(mdhim_t *md, struct index_t *index) {
 	int ret;
 
 	MPI_Barrier(md->mdhim_client_comm);	

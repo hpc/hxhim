@@ -3,7 +3,7 @@
 #include "partitioner.h"
 #include "messages.h"
 
-void test_req_and_wait(struct mdhim_t *md, MPI_Request *req) {
+void test_req_and_wait(struct mdhim *md, MPI_Request *req) {
 	int flag;
 	MPI_Status status;
 	int done = 0;
@@ -32,7 +32,7 @@ void test_req_and_wait(struct mdhim_t *md, MPI_Request *req) {
  * @param message pointer to message struct to send
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int send_rangesrv_work(struct mdhim_t *md, int dest, void *message) {
+int send_rangesrv_work(struct mdhim *md, int dest, void *message) {
 	int return_code = MDHIM_ERROR;
 	void *sendbuf = NULL;
 	int sendsize = 0;
@@ -123,7 +123,7 @@ int send_rangesrv_work(struct mdhim_t *md, int dest, void *message) {
  * @param messages double pointer to array of messages to send
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int send_all_rangesrv_work(struct mdhim_t *md, void **messages, int num_srvs) {
+int send_all_rangesrv_work(struct mdhim *md, void **messages, int num_srvs) {
 	int return_code = MDHIM_ERROR;
 	void *sendbuf = NULL;
 	void **sendbufs;
@@ -285,7 +285,7 @@ int send_all_rangesrv_work(struct mdhim_t *md, void **messages, int num_srvs) {
  * @param src     out  pointer to source of message received
  * @return MDHIM_SUCCESS, MDHIM_CLOSE, MDHIM_COMMIT, or MDHIM_ERROR on error
  */
-int receive_rangesrv_work(struct mdhim_t *md, int *src, void **message) {
+int receive_rangesrv_work(struct mdhim *md, int *src, void **message) {
 	MPI_Status status;
 	int return_code;
 	int msg_size;
@@ -437,7 +437,7 @@ int receive_rangesrv_work(struct mdhim_t *md, int *src, void **message) {
  * @param sendbuf double pointer to packed message
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int send_client_response(struct mdhim_t *md, int dest, void *message, int *sizebuf, 
+int send_client_response(struct mdhim *md, int dest, void *message, int *sizebuf,
 			 void **sendbuf, MPI_Request **size_req, MPI_Request **msg_req) {
 	int return_code = 0;
 	int mtype;
@@ -514,7 +514,7 @@ int send_client_response(struct mdhim_t *md, int dest, void *message, int *sizeb
  * @param message out  double pointer for message received
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int receive_client_response(struct mdhim_t *md, int src, void **message) {
+int receive_client_response(struct mdhim *md, int src, void **message) {
 	int return_code;
 	int msg_size;
 	int mtype;
@@ -599,7 +599,7 @@ int receive_client_response(struct mdhim_t *md, int src, void **message) {
  * @param messages out  array of messages to receive
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int receive_all_client_responses(struct mdhim_t *md, int *srcs, int nsrcs, 
+int receive_all_client_responses(struct mdhim *md, int *srcs, int nsrcs,
 				 void ***messages) {
 	MPI_Status status;
 	int return_code;
@@ -787,7 +787,7 @@ int receive_all_client_responses(struct mdhim_t *md, int *srcs, int nsrcs,
  int server_rank;
  };
 */
-int pack_put_message(struct mdhim_t *md, struct mdhim_putm_t *pm, void **sendbuf, int *sendsize) {
+int pack_put_message(struct mdhim *md, struct mdhim_putm_t *pm, void **sendbuf, int *sendsize) {
 	int return_code = MPI_SUCCESS;  // MPI_SUCCESS = 0
         int64_t m_size = sizeof(struct mdhim_putm_t); // Generous variable for size calculation
         int mesg_size;  // Variable to be used as parameter for MPI_pack of safe size
@@ -853,7 +853,7 @@ int pack_put_message(struct mdhim_t *md, struct mdhim_putm_t *pm, void **sendbuf
  int server_rank;
  };
 */
-int pack_bput_message(struct mdhim_t *md, struct mdhim_bputm_t *bpm, void **sendbuf, int *sendsize) {
+int pack_bput_message(struct mdhim *md, struct mdhim_bputm_t *bpm, void **sendbuf, int *sendsize) {
 	int return_code = MPI_SUCCESS; // MPI_SUCCESS = 0
         int64_t m_size = sizeof(struct mdhim_bputm_t);  // Generous variable for size calc
         int mesg_size;   // Variable to be used as parameter for MPI_pack of safe size
@@ -928,7 +928,7 @@ int pack_bput_message(struct mdhim_t *md, struct mdhim_bputm_t *bpm, void **send
  int server_rank;
  };
 */
-int unpack_put_message(struct mdhim_t *md, void *message, int mesg_size,  void **putm) {
+int unpack_put_message(struct mdhim *md, void *message, int mesg_size,  void **putm) {
 
 	int return_code = MPI_SUCCESS;  // MPI_SUCCESS = 0
     	int mesg_idx = 0;  // Variable for incremental unpack
@@ -994,7 +994,7 @@ int unpack_put_message(struct mdhim_t *md, void *message, int mesg_size,  void *
  int server_rank;
  };
 */
-int unpack_bput_message(struct mdhim_t *md, void *message, int mesg_size, void **bput) {
+int unpack_bput_message(struct mdhim *md, void *message, int mesg_size, void **bput) {
 
 	int return_code = MPI_SUCCESS;  // MPI_SUCCESS = 0
     	int mesg_idx = 0;  // Variable for incremental unpack
@@ -1116,7 +1116,7 @@ int unpack_bput_message(struct mdhim_t *md, void *message, int mesg_size, void *
  int server_rank;
  };
 */
-int pack_get_message(struct mdhim_t *md, struct mdhim_getm_t *gm, void **sendbuf, int *sendsize) {
+int pack_get_message(struct mdhim *md, struct mdhim_getm_t *gm, void **sendbuf, int *sendsize) {
 
 	int return_code = MPI_SUCCESS;  // MPI_SUCCESS = 0
         int64_t m_size = sizeof(struct mdhim_getm_t); // Generous variable for size calculation
@@ -1179,7 +1179,7 @@ int pack_get_message(struct mdhim_t *md, struct mdhim_getm_t *gm, void **sendbuf
  int server_rank;
  };
 */
-int pack_bget_message(struct mdhim_t *md, struct mdhim_bgetm_t *bgm, void **sendbuf, int *sendsize) {
+int pack_bget_message(struct mdhim *md, struct mdhim_bgetm_t *bgm, void **sendbuf, int *sendsize) {
 	int return_code = MPI_SUCCESS; // MPI_SUCCESS = 0
         int64_t m_size = sizeof(struct mdhim_bgetm_t);  // Generous variable for size calc
         int mesg_size;   // Variable to be used as parameter for MPI_pack of safe size
@@ -1254,7 +1254,7 @@ int pack_bget_message(struct mdhim_t *md, struct mdhim_bgetm_t *bgm, void **send
  int server_rank;
  };
 */
-int unpack_get_message(struct mdhim_t *md, void *message, int mesg_size, void **getm) {
+int unpack_get_message(struct mdhim *md, void *message, int mesg_size, void **getm) {
 	int return_code = MPI_SUCCESS;  // MPI_SUCCESS = 0
     	int mesg_idx = 0;  // Variable for incremental unpack
 
@@ -1309,7 +1309,7 @@ int unpack_get_message(struct mdhim_t *md, void *message, int mesg_size, void **
  int server_rank;
  };
 */
-int unpack_bget_message(struct mdhim_t *md, void *message, int mesg_size, void **bgetm) {
+int unpack_bget_message(struct mdhim *md, void *message, int mesg_size, void **bgetm) {
 	int return_code = MPI_SUCCESS;  // MPI_SUCCESS = 0
     	int mesg_idx = 0;  // Variable for incremental unpack
         int i;
@@ -1394,7 +1394,7 @@ int unpack_bget_message(struct mdhim_t *md, void *message, int mesg_size, void *
  int num_records;
  };
 */
-int pack_bgetrm_message(struct mdhim_t *md, struct mdhim_bgetrm_t *bgrm, void **sendbuf, int *sendsize) {
+int pack_bgetrm_message(struct mdhim *md, struct mdhim_bgetrm_t *bgrm, void **sendbuf, int *sendsize) {
 	int return_code = MPI_SUCCESS; // MPI_SUCCESS = 0
         int64_t m_size = sizeof(struct mdhim_bgetrm_t);  // Generous variable for size calc
         int mesg_size;   // Variable to be used as parameter for MPI_pack of safe size
@@ -1482,7 +1482,7 @@ int pack_bgetrm_message(struct mdhim_t *md, struct mdhim_bgetrm_t *bgrm, void **
  int num_records;
  };
 */
-int unpack_bgetrm_message(struct mdhim_t *md, void *message, int mesg_size, void **bgetrm) {
+int unpack_bgetrm_message(struct mdhim *md, void *message, int mesg_size, void **bgetrm) {
 
 	int return_code = MPI_SUCCESS;  // MPI_SUCCESS = 0
     	int mesg_idx = 0;  // Variable for incremental unpack
@@ -1603,7 +1603,7 @@ int unpack_bgetrm_message(struct mdhim_t *md, void *message, int mesg_size, void
  int mtype;
  };
 */
-int pack_base_message(struct mdhim_t *md, struct mdhim_basem_t *cm, void **sendbuf, int *sendsize) {
+int pack_base_message(struct mdhim *md, struct mdhim_basem_t *cm, void **sendbuf, int *sendsize) {
 
 	int return_code = MPI_SUCCESS;  // MPI_SUCCESS = 0
         int64_t m_size = sizeof(struct mdhim_basem_t); // Generous variable for size calculation
@@ -1655,7 +1655,7 @@ int pack_base_message(struct mdhim_t *md, struct mdhim_basem_t *cm, void **sendb
  int server_rank;
  };
 */
-int pack_del_message(struct mdhim_t *md, struct mdhim_delm_t *dm, void **sendbuf, int *sendsize) {
+int pack_del_message(struct mdhim *md, struct mdhim_delm_t *dm, void **sendbuf, int *sendsize) {
 
 	int return_code = MPI_SUCCESS;  // MPI_SUCCESS = 0
         int64_t m_size = sizeof(struct mdhim_delm_t); // Generous variable for size calculation
@@ -1715,7 +1715,7 @@ int pack_del_message(struct mdhim_t *md, struct mdhim_delm_t *dm, void **sendbuf
  int server_rank;
  };
 */
-int pack_bdel_message(struct mdhim_t *md, struct mdhim_bdelm_t *bdm, void **sendbuf, 
+int pack_bdel_message(struct mdhim *md, struct mdhim_bdelm_t *bdm, void **sendbuf,
 		      int *sendsize) {
 
 	int return_code = MPI_SUCCESS; // MPI_SUCCESS = 0
@@ -1787,7 +1787,7 @@ int pack_bdel_message(struct mdhim_t *md, struct mdhim_bdelm_t *bdm, void **send
  int server_rank;
  };
 */
-int unpack_del_message(struct mdhim_t *md, void *message, int mesg_size, void **delm) {
+int unpack_del_message(struct mdhim *md, void *message, int mesg_size, void **delm) {
 
 	int return_code = MPI_SUCCESS;  // MPI_SUCCESS = 0
     	int mesg_idx = 0;  // Variable for incremental unpack
@@ -1841,7 +1841,7 @@ int unpack_del_message(struct mdhim_t *md, void *message, int mesg_size, void **
  int server_rank;
  };
 */
-int unpack_bdel_message(struct mdhim_t *md, void *message, int mesg_size, void **bdelm) {
+int unpack_bdel_message(struct mdhim *md, void *message, int mesg_size, void **bdelm) {
 
 	int return_code = MPI_SUCCESS;  // MPI_SUCCESS = 0
     	int mesg_idx = 0;  // Variable for incremental unpack
@@ -1924,7 +1924,7 @@ int unpack_bdel_message(struct mdhim_t *md, void *message, int mesg_size, void *
  int error;
  };
 */
-int pack_return_message(struct mdhim_t *md, struct mdhim_rm_t *rm, void **sendbuf, int *sendsize) {
+int pack_return_message(struct mdhim *md, struct mdhim_rm_t *rm, void **sendbuf, int *sendsize) {
 
 	int return_code = MPI_SUCCESS;  // MPI_SUCCESS = 0
         int mesg_size = sizeof(struct mdhim_rm_t); 
@@ -1969,7 +1969,7 @@ int pack_return_message(struct mdhim_t *md, struct mdhim_rm_t *rm, void **sendbu
  int error;
  };
 */
-int unpack_return_message(struct mdhim_t *md, void *message, void **retm) {
+int unpack_return_message(struct mdhim *md, void *message, void **retm) {
 
 	int return_code = MPI_SUCCESS;  // MPI_SUCCESS = 0
         int mesg_size = sizeof(struct mdhim_rm_t); 

@@ -7,18 +7,30 @@
 #define      __OPTIONS_H
 
 #include <stdint.h>
-
 #ifdef __cplusplus
 extern "C"
 {
 #endif
+
+#define MDHIM_DS_NONE 0
+#define MDHIM_DS_LEVELDB 1
+
+#define MDHIM_COMM_NONE 0
+#define MDHIM_COMM_MPI 1
+
 /* Append option */
 #define MDHIM_DB_OVERWRITE 0
 #define MDHIM_DB_APPEND 1
 
 // Options for the database (used when opening a MDHIM dataStore)
-typedef struct mdhim_options_t {
-	// -------------------
+/**
+ * @brief Structure used to set MDHIM options before initialization
+ */
+struct mdhim_options {
+
+    int dstype;
+    int commtype;
+
 	//Directory location of DBs
 	char *db_path;
    
@@ -53,13 +65,13 @@ typedef struct mdhim_options_t {
 	//DEBUG level
 	int debug_level;
         
-        //Used to determine the number of range servers which is based in  
-        //if myrank % rserver_factor == 0, then myrank is a server.
-        // This option is used to set range_server_factor previously a defined var.
-        int rserver_factor;
+    //Used to determine the number of range servers which is based in
+    //if myrank % rserver_factor == 0, then myrank is a server.
+    // This option is used to set range_server_factor previously a defined var.
+    int rserver_factor;
         
-        //Maximum size of a slice. A ranger server may server several slices.
-        uint64_t max_recs_per_slice; 
+    //Maximum size of a slice. A ranger server may server several slices.
+    uint64_t max_recs_per_slice;
 
 	//Number of worker threads per range server
 	int num_wthreads;
@@ -73,24 +85,25 @@ typedef struct mdhim_options_t {
 	char *dbs_upswd;
 
 
-} mdhim_options_t;
+};
+typedef struct mdhim_options mdhim_options_t;
 
-void mdhim_options_init(mdhim_options_t* opts);
+int mdhim_options_init(mdhim_options_t* opts);
 void mdhim_options_set_defaults(mdhim_options_t* opts);
-void mdhim_options_set_db_path(struct mdhim_options_t* opts, char *path);
-void mdhim_options_set_db_paths(struct mdhim_options_t* opts, char **paths, int num_paths);
-void mdhim_options_set_db_name(struct mdhim_options_t* opts, char *name);
-void mdhim_options_set_db_type(struct mdhim_options_t* opts, int type);
-void mdhim_options_set_key_type(struct mdhim_options_t* opts, int key_type);
-void mdhim_options_set_create_new_db(struct mdhim_options_t* opts, int create_new);
-void mdhim_options_set_login_c(struct mdhim_options_t* opts, char* db_hl, char *db_ln, char *db_pw, char *dbs_hl, char *dbs_ln, char *dbs_pw);
-void mdhim_options_set_debug_level(struct mdhim_options_t* opts, int dbug);
-void mdhim_options_set_value_append(struct mdhim_options_t* opts, int append);
-void mdhim_options_set_server_factor(struct mdhim_options_t* opts, int server_factor);
-void mdhim_options_set_max_recs_per_slice(struct mdhim_options_t* opts, uint64_t max_recs_per_slice);
-void mdhim_options_set_num_worker_threads(struct mdhim_options_t* opts, int num_wthreads);
+void mdhim_options_set_db_path(mdhim_options_t* opts, char *path);
+void mdhim_options_set_db_paths(mdhim_options_t* opts, char **paths, int num_paths);
+void mdhim_options_set_db_name(mdhim_options_t* opts, char *name);
+void mdhim_options_set_db_type(mdhim_options_t* opts, int type);
+void mdhim_options_set_key_type(mdhim_options_t* opts, int key_type);
+void mdhim_options_set_create_new_db(mdhim_options_t* opts, int create_new);
+void mdhim_options_set_login_c(mdhim_options_t* opts, char* db_hl, char *db_ln, char *db_pw, char *dbs_hl, char *dbs_ln, char *dbs_pw);
+void mdhim_options_set_debug_level(mdhim_options_t* opts, int dbug);
+void mdhim_options_set_value_append(mdhim_options_t* opts, int append);
+void mdhim_options_set_server_factor(mdhim_options_t* opts, int server_factor);
+void mdhim_options_set_max_recs_per_slice(mdhim_options_t* opts, uint64_t max_recs_per_slice);
+void mdhim_options_set_num_worker_threads(mdhim_options_t* opts, int num_wthreads);
 void set_manifest_path(mdhim_options_t* opts, char *path);
-void mdhim_options_destroy(struct mdhim_options_t *opts);
+//void mdhim_options_destroy(mdhim_options_t *opts);
 #ifdef __cplusplus
 }
 #endif

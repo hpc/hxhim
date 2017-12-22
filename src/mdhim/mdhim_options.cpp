@@ -14,9 +14,14 @@
 
 #define MANIFEST_FILE_NAME "/mdhim_manifest_"
 
-void mdhim_options_init(mdhim_options_t* opts)
+int mdhim_options_init(mdhim_options_t* opts)
 {
     assert(opts != 0);
+
+    // Set default options
+    opts->dstype = MDHIM_DS_LEVELDB;
+    opts->commtype = MDHIM_COMM_MPI;
+
 	opts->db_path = "./";
 	opts->db_name = "mdhimTstDB-";
 	opts->manifest_path = NULL;
@@ -34,13 +39,24 @@ void mdhim_options_init(mdhim_options_t* opts)
 	
         
 	opts->debug_level = 1;
-        opts->rserver_factor = 4;
-        opts->max_recs_per_slice = 100000;
+    opts->rserver_factor = 4;
+    opts->max_recs_per_slice = 100000;
 	opts->db_paths = NULL;
 	opts->num_paths = 0;
 	opts->num_wthreads = 1;
 
 	set_manifest_path(opts, "./");
+
+    // Hugh's settings for his test configuration
+    //mdhim_options_set_db_path(opts, "/tmp/mdhim/");
+    //mdhim_options_set_db_name(opts, "mdhimDb");
+    //mdhim_options_set_db_type(opts, LEVELDB);
+    //mdhim_options_set_server_factor(opts, 1);
+    //mdhim_options_set_max_recs_per_slice(opts, 1000);
+    //mdhim_options_set_key_type(opts, MDHIM_BYTE_KEY);
+    //mdhim_options_set_debug_level(opts, MLOG_CRIT);
+    //mdhim_options_set_num_worker_threads(opts, 30);
+    return 0;
 }
 
 static void set_default_options(mdhim_options_t* opts) {
@@ -102,7 +118,7 @@ void mdhim_options_set_db_path(mdhim_options_t* opts, char *path)
 	}
 };
 
-void mdhim_options_set_db_paths(struct mdhim_options_t* opts, char **paths, int num_paths)
+void mdhim_options_set_db_paths(struct mdhim_options* opts, char **paths, int num_paths)
 {
 	int i = 0;
 	int ret;

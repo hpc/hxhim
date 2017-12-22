@@ -20,7 +20,7 @@
 #include "mdhim_options.h"
 
 void add_timing(struct timeval start, struct timeval end, int num, 
-		struct mdhim_t *md, int mtype) {
+		struct mdhim *md, int mtype) {
 	long double elapsed;
 
 	elapsed = (long double) (end.tv_sec - start.tv_sec) + 
@@ -43,7 +43,7 @@ void add_timing(struct timeval start, struct timeval end, int num,
  * @param message  pointer to message to send
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int send_locally_or_remote(struct mdhim_t *md, int dest, void *message) {
+int send_locally_or_remote(struct mdhim *md, int dest, void *message) {
 	int ret = MDHIM_SUCCESS;
 	MPI_Request **size_req, **msg_req;
 	int *sizebuf;
@@ -84,7 +84,7 @@ int send_locally_or_remote(struct mdhim_t *md, int dest, void *message) {
 	return ret;
 }
 
-struct index_t *find_index(struct mdhim_t *md, struct mdhim_basem_t *msg) {
+struct index_t *find_index(struct mdhim *md, struct mdhim_basem_t *msg) {
 	struct index_t *ret;
        
 	ret = get_index(md, msg->index);
@@ -103,7 +103,7 @@ struct index_t *find_index(struct mdhim_t *md, struct mdhim_basem_t *msg) {
  *                                            the name of the index
  * =====================================================================================
  */
-struct index_t * find_index_by_name(struct mdhim_t *md, struct mdhim_basem_t *msg) {
+struct index_t * find_index_by_name(struct mdhim *md, struct mdhim_basem_t *msg) {
     struct index_t *ret;
 
     ret = get_index_by_name(md, msg->index_name);
@@ -119,7 +119,7 @@ struct index_t * find_index_by_name(struct mdhim_t *md, struct mdhim_basem_t *ms
  * @param item    pointer to new work item that contains a message to handle
  * @return MDHIM_SUCCESS
  */
-int range_server_add_work(struct mdhim_t *md, work_item *item) {
+int range_server_add_work(struct mdhim *md, work_item *item) {
 	//Lock the work queue mutex
 	pthread_mutex_lock(md->mdhim_rs->work_queue_mutex);
 	item->next = NULL;
@@ -150,7 +150,7 @@ int range_server_add_work(struct mdhim_t *md, work_item *item) {
  * @return  the next work_item to process
  */
 
-work_item *get_work(struct mdhim_t *md) {
+work_item *get_work(struct mdhim *md) {
 	work_item *item;
 
 	item = md->mdhim_rs->work_queue->head;
@@ -173,7 +173,7 @@ work_item *get_work(struct mdhim_t *md) {
  * @param md  Pointer to the main MDHIM structure
  * @return    MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int range_server_stop(struct mdhim_t *md) {
+int range_server_stop(struct mdhim *md) {
 	int i, ret;
 	work_item *head, *temp_item;
 
@@ -243,7 +243,7 @@ int range_server_stop(struct mdhim_t *md) {
  * @param source    source of the message
  * @return          MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int range_server_put(struct mdhim_t *md, struct mdhim_putm_t *im, int source) {
+int range_server_put(struct mdhim *md, struct mdhim_putm_t *im, int source) {
 	int ret;
 	struct mdhim_rm_t *rm;
 	int error = 0;
@@ -356,7 +356,7 @@ done:
  * @param source    source of the message
  * @return    MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int range_server_bput(struct mdhim_t *md, struct mdhim_bputm_t *bim, int source) {
+int range_server_bput(struct mdhim *md, struct mdhim_bputm_t *bim, int source) {
 	int i;
 	int ret;
 	int error = MDHIM_SUCCESS;
@@ -500,7 +500,7 @@ int range_server_bput(struct mdhim_t *md, struct mdhim_bputm_t *bim, int source)
  * @param source   source of the message
  * @return    MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int range_server_del(struct mdhim_t *md, struct mdhim_delm_t *dm, int source) {
+int range_server_del(struct mdhim *md, struct mdhim_delm_t *dm, int source) {
 	int ret = MDHIM_ERROR;
 	struct mdhim_rm_t *rm;
 	struct index_t *index;
@@ -548,7 +548,7 @@ int range_server_del(struct mdhim_t *md, struct mdhim_delm_t *dm, int source) {
  * @param source    source of the message
  * @return    MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int range_server_bdel(struct mdhim_t *md, struct mdhim_bdelm_t *bdm, int source) {
+int range_server_bdel(struct mdhim *md, struct mdhim_bdelm_t *bdm, int source) {
  	int i;
 	int ret;
 	int error = 0;
@@ -605,7 +605,7 @@ done:
  * @param source    source of the message
  * @return          MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int range_server_commit(struct mdhim_t *md, struct mdhim_basem_t *im, int source) {
+int range_server_commit(struct mdhim *md, struct mdhim_basem_t *im, int source) {
 	int ret;
 	struct mdhim_rm_t *rm;
 	struct index_t *index;
@@ -653,7 +653,7 @@ int range_server_commit(struct mdhim_t *md, struct mdhim_basem_t *im, int source
  * @param source    source of the message
  * @return    MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int range_server_bget(struct mdhim_t *md, struct mdhim_bgetm_t *bgm, int source) {
+int range_server_bget(struct mdhim *md, struct mdhim_bgetm_t *bgm, int source) {
 	int ret;
 	void **values;
 	int32_t *value_lens;
@@ -816,7 +816,7 @@ done:
  * @param op        operation to perform
  * @return    MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int range_server_bget_op(struct mdhim_t *md, struct mdhim_bgetm_t *bgm, int source, int op) {
+int range_server_bget_op(struct mdhim *md, struct mdhim_bgetm_t *bgm, int source, int op) {
 	int error = 0;
 	void **values;
 	void **keys;
@@ -1012,7 +1012,7 @@ void *listener_thread(void *data) {
 	//Mlog statements could cause a deadlock on range_server_stop due to canceling of threads
 	
 
-	struct mdhim_t *md = (struct mdhim_t *) data;
+	struct mdhim *md = (struct mdhim *) data;
 	void *message;
 	int source; //The source of the message
 	int ret;
@@ -1060,7 +1060,7 @@ void *listener_thread(void *data) {
 void *worker_thread(void *data) {
 	//Mlog statements could cause a deadlock on range_server_stop due to canceling of threads
 
-	struct mdhim_t *md = (struct mdhim_t *) data;
+	struct mdhim *md = (struct mdhim *) data;
 	work_item *item, *item_tmp;
 	int mtype;
 	int op, num_records, num_keys;
@@ -1154,7 +1154,7 @@ void *worker_thread(void *data) {
 	return NULL;
 }
 
-int range_server_add_oreq(struct mdhim_t *md, MPI_Request *req, void *msg) {
+int range_server_add_oreq(struct mdhim *md, MPI_Request *req, void *msg) {
 	out_req *oreq;
 	out_req *item;
 
@@ -1180,7 +1180,7 @@ int range_server_add_oreq(struct mdhim_t *md, MPI_Request *req, void *msg) {
 	return MDHIM_SUCCESS;	
 }
 
-int range_server_clean_oreqs(struct mdhim_t *md) {
+int range_server_clean_oreqs(struct mdhim *md) {
 	out_req *item;
 	out_req *t;
 	int ret;
@@ -1240,7 +1240,7 @@ int range_server_clean_oreqs(struct mdhim_t *md) {
  * @param md  Pointer to the main MDHIM structure
  * @return    MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int range_server_init(struct mdhim_t *md) {
+int range_server_init(struct mdhim *md) {
 	int ret;
 	int i;
 

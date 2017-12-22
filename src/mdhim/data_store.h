@@ -28,7 +28,7 @@
 struct mdhim_store_t;
 /* Function pointers for abstracting data stores */
 typedef int (*mdhim_store_open_fn_t)(void **db_handle, void **db_stats, char *path, int flags, 
-				     int key_type, struct mdhim_options_t *opts);
+				     int key_type, struct mdhim_options *opts);
 typedef int (*mdhim_store_put_fn_t)(void *db_handle, void *key, int32_t key_len, 
 				    void *data, int32_t data_len);
 typedef int (*mdhim_store_batch_put_fn_t)(void *db_handle, void **keys, int32_t *key_lens, 
