@@ -24,6 +24,10 @@
  *
  */
 
+static int mdhint_mpi_init() {
+
+}
+
 /**
  * mdhimInit
  * Initializes MDHIM - Collective call
@@ -52,7 +56,7 @@ int mdhimInit(mdhim_t* mdh, mdhim_options_t *opts) {
     mdh->p = new mdhim_private;
 
     // Initialize the private struct with LevelDB and MPI enabled
-    int private_rc = mdhim_private_init(mdh->p, MDHIM_DS_LEVELDB, MDHIM_COMM_MPI);
+    int private_rc = mdhim_private_init(mdh->p, MDHIM_DS_LEVELDB, MDHIM_COMM_MPI, opts);
 
 	//Check if MPI has been initialized
 	//if ((ret = MPI_Initialized(&flag)) != MPI_SUCCESS) {
@@ -89,7 +93,7 @@ int mdhimInit(mdhim_t* mdh, mdhim_options_t *opts) {
 	//}
 
 	//Set the options passed or the defaults created
-	md->db_opts = opts;
+	md->db_opts = &(mdh->p->opts);
 
 	//if ((ret = MPI_Comm_dup(comm, &md->mdhim_comm)) != MPI_SUCCESS) {
 	//	mlog(MDHIM_CLIENT_CRIT, "Error while initializing the MDHIM communicator");
@@ -103,19 +107,19 @@ int mdhimInit(mdhim_t* mdh, mdhim_options_t *opts) {
 	//}
 
 	//Initialize mdhim_comm mutex
-	md->mdhim_comm_lock = (pthread_mutex_t*)malloc(sizeof(pthread_mutex_t));
-	if (!md->mdhim_comm_lock) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
-		     "Error while allocating memory for client", 
-		     md->mdhim_rank);
-		return NULL;
-	}
+	//md->mdhim_comm_lock = (pthread_mutex_t*)malloc(sizeof(pthread_mutex_t));
+	//if (!md->mdhim_comm_lock) {
+	//	mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+	//	     "Error while allocating memory for client",
+	//	     md->mdhim_rank);
+	//	return NULL;
+	//}
 
-	if ((rc = pthread_mutex_init(md->mdhim_comm_lock, NULL)) != 0) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
-		     "Error while initializing mdhim_comm_lock", md->mdhim_rank);
-		return NULL;
-	}
+	//if ((rc = pthread_mutex_init(md->mdhim_comm_lock, NULL)) != 0) {
+	//	mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+	//	     "Error while initializing mdhim_comm_lock", md->p->uid);
+	//	return NULL;
+	//}
 
 	//Dup the communicator passed in for barriers between clients
 	//if ((ret = MPI_Comm_dup(comm, &md->mdhim_client_comm)) != MPI_SUCCESS) {
@@ -134,29 +138,29 @@ int mdhimInit(mdhim_t* mdh, mdhim_options_t *opts) {
 	//Initialize receive msg mutex - used for receiving a message from myself
 	md->receive_msg_mutex = (pthread_mutex_t*)malloc(sizeof(pthread_mutex_t));
 	if (!md->receive_msg_mutex) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
+		mlog(MDHIM_CLIENT_CRIT, "MDHIM UID: %d - "
 		     "Error while allocating memory for client", 
-		     md->mdhim_rank);
-		return NULL;
+		     md->p->uid);
+		return -1;
 	}
 	if ((ret = pthread_mutex_init(md->receive_msg_mutex, NULL)) != 0) {    
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
-		     "Error while initializing receive queue mutex", md->mdhim_rank);
-		return NULL;
+		mlog(MDHIM_CLIENT_CRIT, "MDHIM UID: %d - "
+		     "Error while initializing receive queue mutex", md->p->uid);
+		return -2;
 	}
 	//Initialize the receive condition variable - used for receiving a message from myself
 	md->receive_msg_ready_cv = (pthread_cond_t*)malloc(sizeof(pthread_cond_t));
 	if (!md->receive_msg_ready_cv) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
 		     "Error while allocating memory for client", 
-		     md->mdhim_rank);
-		return NULL;
+		     md->p->uid);
+		return -3;
 	}
 	if ((ret = pthread_cond_init(md->receive_msg_ready_cv, NULL)) != 0) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
 		     "Error while initializing client receive condition variable", 
-		     md->mdhim_rank);
-		return NULL;
+		     md->p->uid);
+		return -4;
 	}
 
 	//Initialize the partitioner
@@ -169,8 +173,8 @@ int mdhimInit(mdhim_t* mdh, mdhim_options_t *opts) {
 	if (pthread_rwlock_init(md->indexes_lock, NULL) != 0) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
 		     "Error while initializing remote_indexes_lock", 
-		     md->mdhim_rank);
-		return NULL;
+		     md->p->uid);
+		return -5;
 	}
 
 	//Create the default remote primary index
@@ -201,9 +205,9 @@ int mdhimClose(struct mdhim *md) {
 	int ret;
 	struct timeval start, end;
 
-	mlog(MDHIM_CLIENT_DBG, "MDHIM Rank %d: Called close", md->mdhim_rank);
+	mlog(MDHIM_CLIENT_DBG, "MDHIM Rank %d: Called close", md->p->uid);
 	gettimeofday(&start, NULL);
-	MPI_Barrier(md->mdhim_client_comm);
+	//TODO MPI_Barrier(md->mdhim_client_comm);
 	gettimeofday(&end, NULL);
 	printf("Took: %lu seconds to complete first close barrier\n", end.tv_sec - start.tv_sec);
 
@@ -240,19 +244,19 @@ int mdhimClose(struct mdhim *md) {
 	free(md->indexes_lock);
 
 	gettimeofday(&start, NULL);
-	MPI_Barrier(md->mdhim_client_comm);
+	//TODO MPI_Barrier(md->mdhim_client_comm);
 	//Destroy the client_comm_lock
-	if ((ret = pthread_mutex_destroy(md->mdhim_comm_lock)) != 0) {
-		return MDHIM_ERROR;
-	}
+	//f ((ret = pthread_mutex_destroy(md->mdhim_comm_lock)) != 0) {
+	//	return MDHIM_ERROR;
+	//}
 	gettimeofday(&end, NULL);
-	free(md->mdhim_comm_lock);    
+	//TODO free(md->mdhim_comm_lock);
 	printf("Took: %lu seconds to complete the second close barrier\n", end.tv_sec - start.tv_sec);
-	mlog(MDHIM_CLIENT_DBG, "MDHIM Rank %d: Finished close", md->mdhim_rank);
+	mlog(MDHIM_CLIENT_DBG, "MDHIM UID %d: Finished close", md->p->uid);
 
-	MPI_Comm_free(&md->mdhim_client_comm);
-	MPI_Comm_free(&md->mdhim_comm);
-        free(md);
+	//TODO MPI_Comm_free(&md->mdhim_client_comm);
+	//TODO MPI_Comm_free(&md->mdhim_comm);
+    free(md);
 
 	//Close MLog
 	mlog_close();
@@ -271,7 +275,7 @@ int mdhimCommit(struct mdhim *md, struct index_t *index) {
 	struct mdhim_basem_t *cm;
 	struct mdhim_rm_t *rm = NULL;
 
-	MPI_Barrier(md->mdhim_client_comm);      
+	//TODO MPI_Barrier(md->mdhim_client_comm);
 	//If I'm a range server, send a commit message to myself
 	if (im_range_server(index)) {       
 		cm = (mdhim_basem_t*) malloc(sizeof(struct mdhim_basem_t));
@@ -281,9 +285,9 @@ int mdhimCommit(struct mdhim *md, struct index_t *index) {
 		rm = local_client_commit(md, cm);
 		if (!rm || rm->error) {
 			ret = MDHIM_ERROR;
-			mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - " 
+			mlog(MDHIM_SERVER_CRIT, "MDHIM UID: %d - "
 			     "Error while committing database in mdhimCommit",
-			     md->mdhim_rank);
+			     md->p->uid);
 		}
 
 		if (rm) {
@@ -291,7 +295,7 @@ int mdhimCommit(struct mdhim *md, struct index_t *index) {
 		}
 	}
 
-	MPI_Barrier(md->mdhim_client_comm);      
+	//TODO MPI_Barrier(md->mdhim_client_comm);
 
 	return ret;
 }
@@ -585,9 +589,9 @@ struct mdhim_bgetrm_t *mdhimGet(mdhim_t *md, struct index_t *index,
 	struct mdhim_bgetrm_t *bgrm_head;
 
 	if (op != MDHIM_GET_EQ && op != MDHIM_GET_PRIMARY_EQ) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
+		mlog(MDHIM_CLIENT_CRIT, "MDHIM UID: %d - "
 		     "Invalid op specified for mdhimGet", 
-		     md->mdhim_rank);
+		     md->p->uid);
 		return NULL;
 	}
 
@@ -630,9 +634,9 @@ struct mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, struct index_t *index,
 	int i;
 
 	if (op != MDHIM_GET_EQ && op != MDHIM_GET_PRIMARY_EQ) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
+		mlog(MDHIM_CLIENT_CRIT, "MDHIM UID: %d - "
 		     "Invalid operation for mdhimBGet", 
-		     md->mdhim_rank);
+		     md->p->uid);
 		return NULL;
 	}
 
@@ -640,14 +644,14 @@ struct mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, struct index_t *index,
 	if (num_keys > MAX_BULK_OPS) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
 		     "Too many bulk operations requested in mdhimBGet", 
-		     md->mdhim_rank);
+		     md->p->uid);
 		return NULL;
 	}
 
 	if (!index) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
 		     "Invalid index specified", 
-		     md->mdhim_rank);
+		     md->p->uid);
 		return NULL;
 	}
 
@@ -672,7 +676,7 @@ struct mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, struct index_t *index,
 			     "Too many bulk operations would be performed " 
 			     "with the MDHIM_GET_PRIMARY_EQ operation.  Limiting "
 			     "request to : %u key/values", 
-			     md->mdhim_rank, MAX_BULK_OPS);
+			     md->p->uid, MAX_BULK_OPS);
 			plen = MAX_BULK_OPS - 1;
 		}
 
@@ -748,14 +752,14 @@ struct mdhim_bgetrm_t *mdhimBGetOp(mdhim_t *md, struct index_t *index,
 	if (num_records > MAX_BULK_OPS) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
 		     "To many bulk operations requested in mdhimBGetOp", 
-		     md->mdhim_rank);
+		     md->p->uid);
 		return NULL;
 	}
 
 	if (op == MDHIM_GET_EQ || op == MDHIM_GET_PRIMARY_EQ) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
 		     "Invalid op specified for mdhimGet", 
-		     md->mdhim_rank);
+		     md->p->uid);
 		return NULL;
 	}
 
@@ -818,9 +822,9 @@ struct mdhim_brm_t *mdhimBDelete(mdhim_t *md, struct index_t *index,
 
 	//Check to see that we were given a sane amount of records
 	if (num_records > MAX_BULK_OPS) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
+		mlog(MDHIM_CLIENT_CRIT, "MDHIM UID: %d - "
 		     "To many bulk operations requested in mdhimBGetOp", 
-		     md->mdhim_rank);
+		     md->p->uid);
 		return NULL;
 	}
 
@@ -839,13 +843,13 @@ struct mdhim_brm_t *mdhimBDelete(mdhim_t *md, struct index_t *index,
 int mdhimStatFlush(mdhim_t *md, struct index_t *index) {
 	int ret;
 
-	MPI_Barrier(md->mdhim_client_comm);	
+	//TODO MPI_Barrier(md->mdhim_client_comm);
 	if ((ret = get_stat_flush(md, index)) != MDHIM_SUCCESS) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
+		mlog(MDHIM_CLIENT_CRIT, "MDHIM UID: %d - "
 		     "Error while getting MDHIM stat data in mdhimStatFlush", 
-		     md->mdhim_rank);
+		     md->p->uid);
 	}
-	MPI_Barrier(md->mdhim_client_comm);	
+	//TODO MPI_Barrier(md->mdhim_client_comm);
 
 	return ret;
 }

@@ -15,7 +15,7 @@ TEST(mdhimTest, InitTest) {
     EXPECT_EQ(rc, 0);
 
     //MPI_Comm appComm = MPI_COMM_WORLD;
-    rc = mdhimInit(&mdh, &opts);
-    EXPECT_EQ(rc, 0);
+    //rc = mdhimInit(&mdh, &opts);
+    //EXPECT_EQ(rc, 0);
 }
 

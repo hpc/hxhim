@@ -49,6 +49,7 @@ int send_locally_or_remote(struct mdhim *md, int dest, void *message) {
 	int *sizebuf;
 	void **sendbuf;
 
+	/*
 	if (md->mdhim_rank != dest) {
 		//Sends the message remotely
 		size_req = (MPI_Request**)malloc(sizeof(MPI_Request *));
@@ -80,7 +81,7 @@ int send_locally_or_remote(struct mdhim *md, int dest, void *message) {
 		pthread_mutex_unlock(md->receive_msg_mutex);
 		pthread_cond_signal(md->receive_msg_ready_cv);
 	}
-
+*/
 	return ret;
 }
 
@@ -193,14 +194,14 @@ int range_server_stop(struct mdhim *md) {
 	//Destroy the condition variables
 	if ((ret = pthread_cond_destroy(md->mdhim_rs->work_ready_cv)) != 0) {
 	  mlog(MDHIM_SERVER_DBG, "Rank: %d - Error destroying work cond variable", 
-	       md->mdhim_rank);
+	       md->p->uid);
 	}
 	free(md->mdhim_rs->work_ready_cv);
 		
 	//Destroy the work queue mutex
 	if ((ret = pthread_mutex_destroy(md->mdhim_rs->work_queue_mutex)) != 0) {
 	  mlog(MDHIM_SERVER_DBG, "Rank: %d - Error destroying work queue mutex", 
-	       md->mdhim_rank);
+	       md->p->uid);
 	}
 	free(md->mdhim_rs->work_queue_mutex);
 		
@@ -209,7 +210,7 @@ int range_server_stop(struct mdhim *md) {
 	//Destroy the out req mutex
 	if ((ret = pthread_mutex_destroy(md->mdhim_rs->out_req_mutex)) != 0) {
 	  mlog(MDHIM_SERVER_DBG, "Rank: %d - Error destroying work queue mutex", 
-	       md->mdhim_rank);
+	       md->p->uid);
 	}
 	free(md->mdhim_rs->out_req_mutex);
 		
@@ -222,10 +223,10 @@ int range_server_stop(struct mdhim *md) {
 	}
 	free(md->mdhim_rs->work_queue);
 		
-	mlog(MDHIM_SERVER_INFO, "Rank: %d - Inserted: %ld records in %Lf seconds", 
-	     md->mdhim_rank, md->mdhim_rs->num_put, md->mdhim_rs->put_time);
-	mlog(MDHIM_SERVER_INFO, "Rank: %d - Retrieved: %ld records in %Lf seconds", 
-	     md->mdhim_rank, md->mdhim_rs->num_get, md->mdhim_rs->get_time);
+	mlog(MDHIM_SERVER_INFO, "Rank: %d - Inserted: %ld records in %Lf seconds",
+         md->p->uid, md->mdhim_rs->num_put, md->mdhim_rs->put_time);
+	mlog(MDHIM_SERVER_INFO, "Rank: %d - Retrieved: %ld records in %Lf seconds",
+         md->p->uid, md->mdhim_rs->num_get, md->mdhim_rs->get_time);
 	  
 	//Free the range server data
 	free(md->mdhim_rs);
@@ -266,8 +267,8 @@ int range_server_put(struct mdhim *md, struct mdhim_putm_t *im, int source) {
 	//Get the index referenced the message
 	index = find_index(md, (struct mdhim_basem_t *) im);
 	if (!index) {
-		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error retrieving index for id: %d", 
-		     md->mdhim_rank, im->basem.index);
+		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error retrieving index for id: %d",
+             md->p->uid, im->basem.index);
 		error = MDHIM_ERROR;
 		goto done;
 	}
@@ -306,8 +307,8 @@ int range_server_put(struct mdhim *md, struct mdhim_putm_t *im, int source) {
 	     index->mdhim_store->put(index->mdhim_store->db_handle, 
 				     im->key, im->key_len, new_value, 
 				     new_value_len)) != MDHIM_SUCCESS) {
-		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error putting record", 
-		     md->mdhim_rank);	
+		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error putting record",
+             md->p->uid);
 		error = ret;
 	} else {
 		inserted = 1;
@@ -328,7 +329,7 @@ done:
 	//Set the operation return code as the error
 	rm->error = error;
 	//Set the server's rank
-	rm->basem.server_rank = md->mdhim_rank;
+	//rm->basem.server_rank = md->mdhim_rank;
 	
 	//Send response
 	ret = send_locally_or_remote(md, source, rm);
@@ -337,10 +338,10 @@ done:
 	if (exists && md->db_opts->db_value_append == MDHIM_DB_APPEND) {
 		free(new_value);
 	}
-	if (source != md->mdhim_rank) {
-		free(im->key);
-		free(im->value);
-	} 
+	//if (source != md->mdhim_rank) {
+	//	free(im->key);
+	//	free(im->value);
+	//}
 	free(im);
 	
 	return MDHIM_SUCCESS;
@@ -384,8 +385,8 @@ int range_server_bput(struct mdhim *md, struct mdhim_bputm_t *bim, int source) {
 	//Get the index referenced the message
 	index = find_index(md, (struct mdhim_basem_t *) bim);
 	if (!index) {
-		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error retrieving index for id: %d", 
-		     md->mdhim_rank, bim->basem.index);
+		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error retrieving index for id: %d",
+             md->p->uid, bim->basem.index);
 		error = MDHIM_ERROR;
 		goto done;
 	}
@@ -414,9 +415,9 @@ int range_server_bput(struct mdhim *md, struct mdhim_bputm_t *bim, int source) {
 			new_value = malloc(new_value_len);
 			memcpy(new_value, old_value, old_value_len);
 			memcpy((char*)new_value + old_value_len, bim->values[i], bim->value_lens[i]);
-			if (exists[i] && source != md->mdhim_rank) {
-				free(bim->values[i]);
-			}
+			//if (exists[i] && source != md->mdhim_rank) {
+			//	free(bim->values[i]);
+			//}
 
 			new_values[i] = new_value;
 			new_value_lens[i] = new_value_len;
@@ -435,8 +436,8 @@ int range_server_bput(struct mdhim *md, struct mdhim_bputm_t *bim, int source) {
 	     index->mdhim_store->batch_put(index->mdhim_store->db_handle, 
 					   bim->keys, bim->key_lens, new_values, 
 					   new_value_lens, bim->num_keys)) != MDHIM_SUCCESS) {
-		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error batch putting records", 
-		     md->mdhim_rank);
+		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error batch putting records",
+             md->p->uid);
 		error = ret;
 	} else {
 		num_put = bim->num_keys;
@@ -454,10 +455,10 @@ int range_server_bput(struct mdhim *md, struct mdhim_bputm_t *bim, int source) {
 		}		
 
 		//Release the bput keys/value if the message isn't coming from myself
-		if (source != md->mdhim_rank) {
+/*		if (source != md->mdhim_rank) {
 			free(bim->keys[i]);
 			free(bim->values[i]);
-		} 
+		} */
 	}
 
 	free(exists);
@@ -476,7 +477,7 @@ int range_server_bput(struct mdhim *md, struct mdhim_bputm_t *bim, int source) {
 	//Set the operation return code as the error
 	brm->error = error;
 	//Set the server's rank
-	brm->basem.server_rank = md->mdhim_rank;
+	//brm->basem.server_rank = md->mdhim_rank;
 
 	//Release the internals of the bput message
 	free(bim->keys);
@@ -508,8 +509,8 @@ int range_server_del(struct mdhim *md, struct mdhim_delm_t *dm, int source) {
 	//Get the index referenced the message
 	index = find_index(md, (struct mdhim_basem_t *) dm);
 	if (!index) {
-		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error retrieving index for id: %d", 
-		     md->mdhim_rank, dm->basem.index);
+		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error retrieving index for id: %d",
+             md->p->uid, dm->basem.index);
 		ret = MDHIM_ERROR;
 		goto done;
 	}
@@ -518,8 +519,8 @@ int range_server_del(struct mdhim *md, struct mdhim_delm_t *dm, int source) {
 	if ((ret = 
 	     index->mdhim_store->del(index->mdhim_store->db_handle, 
 				     dm->key, dm->key_len)) != MDHIM_SUCCESS) {
-		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error deleting record", 
-		     md->mdhim_rank);
+		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error deleting record",
+             md->p->uid);
 	}
 
  done:
@@ -530,7 +531,7 @@ int range_server_del(struct mdhim *md, struct mdhim_delm_t *dm, int source) {
 	//Set the operation return code as the error
 	rm->error = ret;
 	//Set the server's rank
-	rm->basem.server_rank = md->mdhim_rank;
+	///rm->basem.server_rank = md->mdhim_rank;
 
 	//Send response
 	ret = send_locally_or_remote(md, source, rm);
@@ -558,8 +559,8 @@ int range_server_bdel(struct mdhim *md, struct mdhim_bdelm_t *bdm, int source) {
 	//Get the index referenced the message
 	index = find_index(md, (struct mdhim_basem_t *) bdm);
 	if (!index) {
-		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error retrieving index for id: %d", 
-		     md->mdhim_rank, bdm->basem.index);
+		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error retrieving index for id: %d",
+             md->p->uid, bdm->basem.index);
 		error = MDHIM_ERROR;
 		goto done;
 	}
@@ -571,8 +572,8 @@ int range_server_bdel(struct mdhim *md, struct mdhim_bdelm_t *bdm, int source) {
 		     index->mdhim_store->del(index->mdhim_store->db_handle, 
 					     bdm->keys[i], bdm->key_lens[i])) 
 		    != MDHIM_SUCCESS) {
-			mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error deleting record", 
-			     md->mdhim_rank);
+			mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error deleting record",
+                 md->p->uid);
 			error = ret;
 		}
 	}
@@ -585,7 +586,7 @@ done:
 	//Set the operation return code as the error
 	brm->error = error;
 	//Set the server's rank
-	brm->basem.server_rank = md->mdhim_rank;
+//	brm->basem.server_rank = md->mdhim_rank;
 
 	//Send response
 	ret = send_locally_or_remote(md, source, brm);
@@ -613,8 +614,8 @@ int range_server_commit(struct mdhim *md, struct mdhim_basem_t *im, int source) 
 	//Get the index referenced the message
 	index = find_index(md, (struct mdhim_basem_t *) im);
 	if (!index) {
-		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error retrieving index for id: %d", 
-		     md->mdhim_rank, im->index);
+		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error retrieving index for id: %d",
+             md->p->uid, im->index);
 		ret = MDHIM_ERROR;
 		goto done;
 	}
@@ -623,8 +624,8 @@ int range_server_commit(struct mdhim *md, struct mdhim_basem_t *im, int source) 
 	if ((ret = 
 	     index->mdhim_store->commit(index->mdhim_store->db_handle)) 
 	    != MDHIM_SUCCESS) {
-		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error committing database", 
-		     md->mdhim_rank);	
+		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error committing database",
+             md->p->uid);
 	}
 
  done:	
@@ -635,7 +636,7 @@ int range_server_commit(struct mdhim *md, struct mdhim_basem_t *im, int source) 
 	//Set the operation return code as the error
 	rm->error = ret;
 	//Set the server's rank
-	rm->basem.server_rank = md->mdhim_rank;
+//	rm->basem.server_rank = md->mdhim_rank;
 
 	//Send response
 	ret = send_locally_or_remote(md, source, rm);
@@ -672,8 +673,8 @@ int range_server_bget(struct mdhim *md, struct mdhim_bgetm_t *bgm, int source) {
 	//Get the index referenced the message
 	index = find_index(md, (struct mdhim_basem_t *) bgm);
 	if (!index) {
-		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error retrieving index for id: %d", 
-		     md->mdhim_rank, bgm->basem.index);
+		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error retrieving index for id: %d",
+             md->p->uid, bgm->basem.index);
 		error = MDHIM_ERROR;
 		goto done;
 	}
@@ -701,7 +702,7 @@ int range_server_bget(struct mdhim *md, struct mdhim_bgetm_t *bgm, int source) {
 			     index->mdhim_store->get_next(index->mdhim_store->db_handle, 
 							  &bgm->keys[i], &bgm->key_lens[i], &values[i], 
 							  &value_lens[i])) != MDHIM_SUCCESS) {
-				mlog(MDHIM_SERVER_DBG, "Rank: %d - Error getting record", md->mdhim_rank);
+				mlog(MDHIM_SERVER_DBG, "Rank: %d - Error getting record", md->p->uid);
 				error = ret;
 				value_lens[i] = 0;
 				values[i] = NULL;
@@ -716,7 +717,7 @@ int range_server_bget(struct mdhim *md, struct mdhim_bgetm_t *bgm, int source) {
 			     index->mdhim_store->get_prev(index->mdhim_store->db_handle, 
 							  &bgm->keys[i], &bgm->key_lens[i], &values[i], 
 							  &value_lens[i])) != MDHIM_SUCCESS) {
-				mlog(MDHIM_SERVER_DBG, "Rank: %d - Error getting record", md->mdhim_rank);
+				mlog(MDHIM_SERVER_DBG, "Rank: %d - Error getting record", md->p->uid);
 				error = ret;
 				value_lens[i] = 0;
 				values[i] = NULL;
@@ -730,7 +731,7 @@ int range_server_bget(struct mdhim *md, struct mdhim_bgetm_t *bgm, int source) {
 			     index->mdhim_store->get_next(index->mdhim_store->db_handle, 
 							  &bgm->keys[i], 0, &values[i], 
 							  &value_lens[i])) != MDHIM_SUCCESS) {
-				mlog(MDHIM_SERVER_DBG, "Rank: %d - Error getting record", md->mdhim_rank);
+				mlog(MDHIM_SERVER_DBG, "Rank: %d - Error getting record", md->p->uid);
 				error = ret;
 				value_lens[i] = 0;
 				values[i] = NULL;
@@ -744,7 +745,7 @@ int range_server_bget(struct mdhim *md, struct mdhim_bgetm_t *bgm, int source) {
 			     index->mdhim_store->get_prev(index->mdhim_store->db_handle, 
 							  &bgm->keys[i], 0, &values[i], 
 							  &value_lens[i])) != MDHIM_SUCCESS) {
-				mlog(MDHIM_SERVER_DBG, "Rank: %d - Error getting record", md->mdhim_rank);
+				mlog(MDHIM_SERVER_DBG, "Rank: %d - Error getting record", md->p->uid);
 				error = ret;
 				value_lens[i] = 0;
 				values[i] = NULL;
@@ -753,8 +754,8 @@ int range_server_bget(struct mdhim *md, struct mdhim_bgetm_t *bgm, int source) {
 
 			break;
 		default:
-			mlog(MDHIM_SERVER_DBG, "Rank: %d - Invalid operation: %d given in range_server_get", 
-			     md->mdhim_rank, bgm->op);
+			mlog(MDHIM_SERVER_DBG, "Rank: %d - Invalid operation: %d given in range_server_get",
+                 md->p->uid, bgm->op);
 			continue;
 		}	  
 
@@ -772,9 +773,9 @@ done:
 	//Set the operation return code as the error
 	bgrm->error = error;
 	//Set the server's rank
-	bgrm->basem.server_rank = md->mdhim_rank;
+//	bgrm->basem.server_rank = md->mdhim_rank;
 	//Set the key and value
-	if (source == md->mdhim_rank) {
+//	if (source == md->mdhim_rank) {
 		//If this message is coming from myself, copy the keys
 		bgrm->key_lens = (int*)malloc(bgm->num_keys * sizeof(int));
 		bgrm->keys = (void**)malloc(bgm->num_keys * sizeof(void *));
@@ -786,10 +787,10 @@ done:
 
 		free(bgm->keys);
 		free(bgm->key_lens);
-	} else {
-		bgrm->keys = bgm->keys;
-		bgrm->key_lens = bgm->key_lens;
-	}
+//	} else {
+//		bgrm->keys = bgm->keys;
+//		bgrm->key_lens = bgm->key_lens;
+//	}
 
 	bgrm->values = values;
 	bgrm->value_lens = value_lens;
@@ -852,21 +853,21 @@ int range_server_bget_op(struct mdhim *md, struct mdhim_bgetm_t *bgm, int source
 	//Get the index referenced the message
 	index = find_index(md, (struct mdhim_basem_t *) bgm);
 	if (!index) {
-		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error retrieving index for id: %d", 
-		     md->mdhim_rank, bgm->basem.index);
+		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error retrieving index for id: %d",
+             md->p->uid, bgm->basem.index);
 		error = MDHIM_ERROR;
 		goto respond;
 	}
 
 	if (bgm->num_keys * bgm->num_recs > MAX_BULK_OPS) {
-		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Too many bulk operations requested", 
-		     md->mdhim_rank);
+		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Too many bulk operations requested",
+             md->p->uid);
 		error = MDHIM_ERROR;
 		goto respond;
 	}
 
-	mlog(MDHIM_SERVER_CRIT, "Rank: %d - Num keys is: %d and num recs is: %d", 
-	     md->mdhim_rank, bgm->num_keys, bgm->num_recs);
+	mlog(MDHIM_SERVER_CRIT, "Rank: %d - Num keys is: %d and num recs is: %d",
+         md->p->uid, bgm->num_keys, bgm->num_recs);
 	gettimeofday(&start, NULL);
 	//Iterate through the arrays and get each record
 	for (i = 0; i < bgm->num_keys; i++) {
@@ -901,8 +902,8 @@ int range_server_bget_op(struct mdhim *md, struct mdhim_bgetm_t *bgm, int source
 								       get_value, 
 								       get_value_len)) 
 				    != MDHIM_SUCCESS) {
-					mlog(MDHIM_SERVER_DBG, "Rank: %d - Couldn't get next record", 
-					     md->mdhim_rank);
+					mlog(MDHIM_SERVER_DBG, "Rank: %d - Couldn't get next record",
+                         md->p->uid);
 					error = ret;
 					key_lens[num_records] = 0;
 					value_lens[num_records] = 0;
@@ -931,8 +932,8 @@ int range_server_bget_op(struct mdhim *md, struct mdhim_bgetm_t *bgm, int source
 								       get_value, 
 								       get_value_len)) 
 				    != MDHIM_SUCCESS) {
-					mlog(MDHIM_SERVER_DBG, "Rank: %d - Couldn't get prev record", 
-					     md->mdhim_rank);
+					mlog(MDHIM_SERVER_DBG, "Rank: %d - Couldn't get prev record",
+                         md->p->uid);
 					error = ret;
 					key_lens[num_records] = 0;
 					value_lens[num_records] = 0;
@@ -950,8 +951,8 @@ int range_server_bget_op(struct mdhim *md, struct mdhim_bgetm_t *bgm, int source
 				}
 				break;
 			default:
-				mlog(MDHIM_SERVER_CRIT, "Rank: %d - Invalid operation for bulk get op", 
-				     md->mdhim_rank);
+				mlog(MDHIM_SERVER_CRIT, "Rank: %d - Invalid operation for bulk get op",
+                     md->p->uid);
 				goto respond;
 				break;
 			}
@@ -976,7 +977,7 @@ respond:
 	//Set the operation return code as the error
 	bgrm->error = error;
 	//Set the server's rank
-	bgrm->basem.server_rank = md->mdhim_rank;
+//	bgrm->basem.server_rank = md->mdhim_rank;
 	//Set the keys and values
 	bgrm->keys = keys;
 	bgrm->key_lens = key_lens;
@@ -990,11 +991,11 @@ respond:
 	ret = send_locally_or_remote(md, source, bgrm);
 
 	//Free stuff
-	if (source == md->mdhim_rank) {
+//	if (source == md->mdhim_rank) {
 		/* If this message is not coming from myself, 
 		   free the keys and values from the get message */
 		mdhim_partial_release_msg(bgm);
-	} 
+//	}
 
 	free(get_key);
 	free(get_key_len);
@@ -1138,7 +1139,7 @@ void *worker_thread(void *data) {
 				break;		
 			default:
 				printf("Rank: %d - Got unknown work type: %d" 
-				       " from: %d\n", md->mdhim_rank, mtype, item->source);
+				       " from: %d\n", md->p->uid, mtype, item->source);
 				break;
 			}
 			
@@ -1195,9 +1196,9 @@ int range_server_clean_oreqs(struct mdhim *md) {
 			continue;
 		}
 
-		pthread_mutex_lock(md->mdhim_comm_lock);
-		ret = MPI_Test((MPI_Request *)item->req, &flag, &status); 
-		pthread_mutex_unlock(md->mdhim_comm_lock);
+//		pthread_mutex_lock(md->mdhim_comm_lock);
+//		ret = MPI_Test((MPI_Request *)item->req, &flag, &status);
+//		pthread_mutex_unlock(md->mdhim_comm_lock);
 
 		if (!flag) {
 			item = item->next;
@@ -1248,8 +1249,8 @@ int range_server_init(struct mdhim *md) {
 	md->mdhim_rs = (mdhim_rs_t*)malloc(sizeof(struct mdhim_rs_t));
 	if (!md->mdhim_rs) {
 		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - " 
-		     "Error while allocating memory for range server", 
-		     md->mdhim_rank);
+		     "Error while allocating memory for range server",
+             md->p->uid);
 		return MDHIM_ERROR;
 	}
 
@@ -1270,13 +1271,13 @@ int range_server_init(struct mdhim *md) {
 	md->mdhim_rs->work_queue_mutex = (pthread_mutex_t*)malloc(sizeof(pthread_mutex_t));
 	if (!md->mdhim_rs->work_queue_mutex) {
 		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - " 
-		     "Error while allocating memory for range server", 
-		     md->mdhim_rank);
+		     "Error while allocating memory for range server",
+             md->p->uid);
 		return MDHIM_ERROR;
 	}
 	if ((ret = pthread_mutex_init(md->mdhim_rs->work_queue_mutex, NULL)) != 0) {    
 		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - " 
-		     "Error while initializing work queue mutex", md->mdhim_rank);
+		     "Error while initializing work queue mutex", md->p->uid);
 		return MDHIM_ERROR;
 	}
 
@@ -1284,13 +1285,13 @@ int range_server_init(struct mdhim *md) {
 	md->mdhim_rs->out_req_mutex = (pthread_mutex_t*)malloc(sizeof(pthread_mutex_t));
 	if (!md->mdhim_rs->out_req_mutex) {
 		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - " 
-		     "Error while allocating memory for range server", 
-		     md->mdhim_rank);
+		     "Error while allocating memory for range server",
+             md->p->uid);
 		return MDHIM_ERROR;
 	}
 	if ((ret = pthread_mutex_init(md->mdhim_rs->out_req_mutex, NULL)) != 0) {    
 		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - " 
-		     "Error while initializing out req mutex", md->mdhim_rank);
+		     "Error while initializing out req mutex", md->p->uid);
 		return MDHIM_ERROR;
 	}
 
@@ -1298,14 +1299,14 @@ int range_server_init(struct mdhim *md) {
 	md->mdhim_rs->work_ready_cv = (pthread_cond_t*)malloc(sizeof(pthread_cond_t));
 	if (!md->mdhim_rs->work_ready_cv) {
 		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - " 
-		     "Error while allocating memory for range server", 
-		     md->mdhim_rank);
+		     "Error while allocating memory for range server",
+             md->p->uid);
 		return MDHIM_ERROR;
 	}
 	if ((ret = pthread_cond_init(md->mdhim_rs->work_ready_cv, NULL)) != 0) {
 		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - " 
-		     "Error while initializing condition variable", 
-		     md->mdhim_rank);
+		     "Error while initializing condition variable",
+             md->p->uid);
 		return MDHIM_ERROR;
 	}
 	
@@ -1316,8 +1317,8 @@ int range_server_init(struct mdhim *md) {
 		if ((ret = pthread_create(md->mdhim_rs->workers[i], NULL, 
 					  worker_thread, (void *) md)) != 0) {    
 			mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - " 
-			     "Error while initializing worker thread", 
-			     md->mdhim_rank);
+			     "Error while initializing worker thread",
+                 md->p->uid);
 			return MDHIM_ERROR;
 		}
 	}
@@ -1326,8 +1327,8 @@ int range_server_init(struct mdhim *md) {
 	if ((ret = pthread_create(&md->mdhim_rs->listener, NULL, 
 				  listener_thread, (void *) md)) != 0) {
 	  mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - " 
-	       "Error while initializing listener thread", 
-	       md->mdhim_rank);
+	       "Error while initializing listener thread",
+           md->p->uid);
 	  return MDHIM_ERROR;
 	}
 
