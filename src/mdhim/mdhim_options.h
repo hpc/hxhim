@@ -27,8 +27,10 @@ extern "C"
  * @brief Structure used to set MDHIM options before initialization
  */
 struct mdhim_options {
-
+    /// Datastore type
     int dstype;
+
+    /// Communication library
     int commtype;
 
 	//Directory location of DBs
