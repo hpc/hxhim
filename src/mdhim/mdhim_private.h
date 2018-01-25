@@ -3,29 +3,12 @@
 #include "mdhim.h"
 #include "comm.h"
 #include "comm_mpi.h"
-#include "mdhim_options.h"
 
 /**
  * Struct that contains the private details about MDHim's implementation
  */
 struct mdhim_private {
-    int uid;
-	struct mdhim_options opts;
     CommTransport *comm;
-
-    //This communicator will include every process in the application, but is separate from main the app
-    //It is used for sending and receiving to and from the range servers
-    MPI_Comm mdhim_comm;
-    pthread_mutex_t *mdhim_comm_lock;
-
-    //This communicator will include every process in the application, but is separate from the app
-    //It is used for barriers for clients
-    MPI_Comm mdhim_client_comm;
-
-    //The rank in the mdhim_comm
-    int mdhim_rank;
-    //The size of mdhim_comm
-    int mdhim_comm_size;
 };
 typedef struct mdhim_private mdhim_private_t;
 
@@ -36,7 +19,7 @@ typedef struct mdhim_private mdhim_private_t;
  * @param commtype The communication type to instantiate
  * @return 0 on success, non-zero on failre
  */
-int mdhim_private_init(struct mdhim_private* mdp, int dstype, int commtype, struct mdhim_options* lopts);
+int mdhim_private_init(struct mdhim_private* mdp, int dstype, int commtype);
 
 struct mdhim_rm_t *_put_record(struct mdhim *md, struct index_t *index,
 			       void *key, int key_len, 

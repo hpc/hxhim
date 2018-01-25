@@ -43,33 +43,45 @@ struct mdhim_private;
  * Contains a pointer to mdhim_rs_t if rank is a range server
  */
 typedef struct mdhim {
-	// Opaque pointer to the private struct data
-	struct mdhim_private *p;
+	//This communicator will include every process in the application, but is separate from main the app
+    //It is used for sending and receiving to and from the range servers
+	MPI_Comm mdhim_comm;   
+	pthread_mutex_t *mdhim_comm_lock;
 
-    //Flag to indicate mdhimClose was called
-    volatile int shutdown;
-    //A pointer to the primary index
-    struct index_t *primary_index;
-    //A linked list of range servers
-    struct index_t *indexes;
-    // The hash to hold the indexes by name
-    struct index_t *indexes_by_name;
+	//This communicator will include every process in the application, but is separate from the app
+    //It is used for barriers for clients
+	MPI_Comm mdhim_client_comm;
 
-    //Lock to allow concurrent readers and a single writer to the remote_indexes hash table
-    pthread_rwlock_t *indexes_lock;
+	//The rank in the mdhim_comm
+	int mdhim_rank;
+	//The size of mdhim_comm
+	int mdhim_comm_size;
+	//Flag to indicate mdhimClose was called
+	volatile int shutdown;
+	//A pointer to the primary index
+	struct index_t *primary_index;
+	//A linked list of range servers
+	struct index_t *indexes;
+	// The hash to hold the indexes by name
+	struct index_t *indexes_by_name;
 
-    //The range server structure which is used only if we are a range server
-    mdhim_rs_t *mdhim_rs;
-    //The mutex used if receiving from ourselves
-    pthread_mutex_t *receive_msg_mutex;
-    //The condition variable used if receiving from ourselves
-    pthread_cond_t *receive_msg_ready_cv;
-    /* The receive msg, which is sent to the client by the
-       range server running in the same process */
-    void *receive_msg;
+	//Lock to allow concurrent readers and a single writer to the remote_indexes hash table
+	pthread_rwlock_t *indexes_lock;
+
+	//The range server structure which is used only if we are a range server
+	mdhim_rs_t *mdhim_rs; 
+	//The mutex used if receiving from ourselves
+	pthread_mutex_t *receive_msg_mutex;
+	//The condition variable used if receiving from ourselves
+	pthread_cond_t *receive_msg_ready_cv;
+	/* The receive msg, which is sent to the client by the 
+	   range server running in the same process */
+	void *receive_msg;
     //Options for DB creation
-    mdhim_options_t *db_opts;
+	mdhim_options_t *db_opts;
 
+	// Opaque pointer to the private portions of this struct
+	struct mdhim_private *p;
 } mdhim_t;
 
 struct secondary_info {

@@ -19,6 +19,7 @@ include_directories(src/comm)
 include_directories(src/mdhim)
 include_directories(src/utils)
 
+
 #
 # External projects
 #
@@ -56,13 +57,6 @@ add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
 # later. Otherwise we have to add them here ourselves.
 if (CMAKE_VERSION VERSION_LESS 2.8.11)
     include_directories("${gtest_SOURCE_DIR}/include")
-endif()
-
-#
-# Enable CLANG options
-#
-if (CMAKE_CXX_COMPLIER_ID EQUAL "Clang")
-    add_compile_options("-Wc++11-extensions")
 endif()
 
 #
