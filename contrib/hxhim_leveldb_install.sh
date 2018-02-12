@@ -25,9 +25,21 @@ function emit_pkgconfig {
   echo "INFO: Current PKG_CONFIG_PATH="$PKG_CONFIG_PATH
 }
 
+# Clone and build LevelDB 
+function download_and_build {
+  git clone https://github.com/google/leveldb.git
+  cd leveldb
+  make
+}
+
 function install_leveldb {
   ldbsrc="$1"
   prefix="$2"
+
+  # Clone and build LevelDB if current directory is not LevelDB source
+  if [ "$(basename $1)" != "leveldb" ]; then
+    download_and_build
+  fi
 
   # Copy binaries
   mkdir -p $prefix/bin
