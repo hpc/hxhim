@@ -25,10 +25,13 @@ function emit_pkgconfig {
   echo "INFO: Current PKG_CONFIG_PATH="$PKG_CONFIG_PATH
 }
 
-# Clone and build LevelDB 
+# Clone and build LevelDB
 function download_and_build {
-  git clone https://github.com/google/leveldb.git
+  if [ ! -d "leveldb" ]; then
+    git clone https://github.com/google/leveldb.git
+  fi
   cd leveldb
+  git checkout 47cb9e2a211e1d7157078ba7bab536beb29e56dc
   make
 }
 
@@ -43,7 +46,7 @@ function install_leveldb {
 
   # Copy binaries
   mkdir -p $prefix/bin
-  cp $ldbsrc/leveldbutil $prefix/bin
+  cp $ldbsrc/out-static/leveldbutil $prefix/bin
 
   # Install include files
   mkdir -p $prefix/include
@@ -51,8 +54,7 @@ function install_leveldb {
 
   # Install library files
   mkdir -p $prefix/lib
-  cp $ldbsrc/libleveldb* $prefix/lib
-  cp $ldbsrc/libmemenv* $prefix/lib
+  find . -name "lib*" -type f -exec cp {} $prefix/lib \;
 
   # Emit a PkgConfig
   emit_pkgconfig $prefix
