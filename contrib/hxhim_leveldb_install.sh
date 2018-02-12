@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 function print_usage {
   echo "Usage: $(basename $0) install_path"
