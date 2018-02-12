@@ -37,7 +37,7 @@ function install_leveldb {
   prefix="$2"
 
   # Clone and build LevelDB if current directory is not LevelDB source
-  if [ "$(basename $1)" != "leveldb" ]; then
+  if [ "$(basename $(realpath $1))" != "leveldb" ]; then
     download_and_build
   fi
 
