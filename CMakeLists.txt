@@ -5,6 +5,11 @@ cmake_minimum_required (VERSION 3.6.3)
 project (HXHIM)
 
 #
+# Enable C++11
+#
+set (CMAKE_CXX_STANDARD 11)
+
+#
 # Add additional cmake files
 #
 set(HXHIM_CMAKE_MODULE_DIR ./CMake)
@@ -18,7 +23,6 @@ set(HEADER_FILES include/hxhim.h)
 include_directories(src/comm)
 include_directories(src/mdhim)
 include_directories(src/utils)
-
 
 #
 # External projects
