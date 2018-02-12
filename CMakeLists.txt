@@ -1,7 +1,7 @@
 # CMakeLists files in this project can
 # refer to the root source directory of the project as ${HXHIM_SOURCE_DIR} and
 # to the root binary directory of the project as ${HXHIM_BINARY_DIR}.
-cmake_minimum_required (VERSION 2.8.11)
+cmake_minimum_required (VERSION 3.6.3)
 project (HXHIM)
 
 #
@@ -73,4 +73,3 @@ add_subdirectory (src/utils)
 #
 add_subdirectory(test/comm)
 add_subdirectory(test/mdhim)
-
