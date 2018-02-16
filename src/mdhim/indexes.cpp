@@ -17,7 +17,7 @@
  * convert strings to all lower case
  *
  */
-void to_lower(size_t in_length, char *in, char *out) {
+void to_lower(size_t in_length, const char *in, char *out) {
     memset(out, 0, in_length);
 
     // Make sure that the name passed is lowercase
@@ -529,7 +529,7 @@ uint32_t get_num_range_servers(struct mdhim *md, struct index_t *rindex) {
  * @param  md  main MDHIM struct
  * @return     MDHIM_ERROR on error, otherwise the index identifier
  */
-struct index_t *create_local_index(struct mdhim *md, int db_type, int key_type, char *index_name) {
+struct index_t *create_local_index(struct mdhim *md, int db_type, int key_type, const char *index_name) {
 	struct index_t *li;
 	struct index_t *check = NULL;
 	uint32_t rangesrv_num;

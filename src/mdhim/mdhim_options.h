@@ -35,19 +35,19 @@ struct mdhim_options {
     int commtype;
 
 	//Directory location of DBs
-	char *db_path;
-
+	const char *db_path;
+   
 	//Multiple paths of DBs
 	char **db_paths;
 	//Number of paths in db_paths
 	int num_paths;
 
-	char *manifest_path;
+	const char *manifest_path;
 
 	//Name of each DB (will be modified by adding "_<RANK>" to create multiple
 	// unique DB for each rank server.
-	char *db_name;
-
+	const char *db_name;
+    
 	//Different types of dataStores
 	//LEVELDB=1 (from data_store.h)
 	int db_type;
@@ -80,12 +80,12 @@ struct mdhim_options {
 	int num_wthreads;
 
 	//Login Credentials
-	char *db_host;
-	char *dbs_host;
-	char *db_user;
-	char *db_upswd;
-	char *dbs_user;
-	char *dbs_upswd;
+	const char *db_host;
+	const char *dbs_host;
+	const char *db_user;
+	const char *db_upswd;
+	const char *dbs_user;
+	const char *dbs_upswd;
 
 
 };
@@ -93,9 +93,9 @@ typedef struct mdhim_options mdhim_options_t;
 
 int mdhim_options_init(mdhim_options_t* opts);
 void mdhim_options_set_defaults(mdhim_options_t* opts);
-void mdhim_options_set_db_path(mdhim_options_t* opts, char *path);
+void mdhim_options_set_db_path(mdhim_options_t* opts, const char *path);
 void mdhim_options_set_db_paths(mdhim_options_t* opts, char **paths, int num_paths);
-void mdhim_options_set_db_name(mdhim_options_t* opts, char *name);
+void mdhim_options_set_db_name(mdhim_options_t* opts, const char *name);
 void mdhim_options_set_db_type(mdhim_options_t* opts, int type);
 void mdhim_options_set_key_type(mdhim_options_t* opts, int key_type);
 void mdhim_options_set_create_new_db(mdhim_options_t* opts, int create_new);
@@ -105,7 +105,7 @@ void mdhim_options_set_value_append(mdhim_options_t* opts, int append);
 void mdhim_options_set_server_factor(mdhim_options_t* opts, int server_factor);
 void mdhim_options_set_max_recs_per_slice(mdhim_options_t* opts, uint64_t max_recs_per_slice);
 void mdhim_options_set_num_worker_threads(mdhim_options_t* opts, int num_wthreads);
-void set_manifest_path(mdhim_options_t* opts, char *path);
+void set_manifest_path(mdhim_options_t* opts, const char *path);
 //void mdhim_options_destroy(mdhim_options_t *opts);
 #ifdef __cplusplus
 }

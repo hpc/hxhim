@@ -63,7 +63,7 @@ static void set_default_options(mdhim_options_t* opts) {
 
 }
 
-int check_path_length(mdhim_options_t* opts, char *path) {
+int check_path_length(mdhim_options_t* opts, const char *path) {
 	int path_len;
 	int ret = 0;
 
@@ -79,12 +79,12 @@ int check_path_length(mdhim_options_t* opts, char *path) {
 	return ret;
 }
 
-void set_manifest_path(mdhim_options_t* opts, char *path) {
+void set_manifest_path(mdhim_options_t* opts, const char *path) {
 	char *manifest_path;
 	int path_len = 0;
 
 	if (opts->manifest_path) {
-	  free(opts->manifest_path);
+	  free((void *)opts->manifest_path);
 	  opts->manifest_path = NULL;
 	}
 
@@ -103,7 +103,7 @@ void mdhim_options_set_login_c(mdhim_options_t* opts, char* db_hl, char *db_ln, 
 	opts->dbs_upswd = dbs_pw;
 
 }
-void mdhim_options_set_db_path(mdhim_options_t* opts, char *path)
+void mdhim_options_set_db_path(mdhim_options_t* opts, const char *path)
 {
 	int ret;
 
@@ -150,7 +150,7 @@ void mdhim_options_set_db_paths(struct mdhim_options* opts, char **paths, int nu
 	opts->num_paths = ++verified_paths;
 };
 
-void mdhim_options_set_db_name(mdhim_options_t* opts, char *name)
+void mdhim_options_set_db_name(mdhim_options_t* opts, const char *name)
 {
 	opts->db_name = name;
 };
@@ -204,6 +204,6 @@ void mdhim_options_destroy(mdhim_options_t *opts) {
 		free(opts->db_paths[i]);
 	}
 
-	free(opts->manifest_path);
+	free((void *)opts->manifest_path);
 	free(opts);
 };
