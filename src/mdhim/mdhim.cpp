@@ -28,9 +28,9 @@
  * mdhimInit
  * Initializes MDHIM - Collective call
  *
- * @param appComm  the communicator that was passed in from the application (e.g., MPI_COMM_WORLD)
- * @param opts Options structure for DB creation, such as name, and primary key type
- * @return mdhim_t* that contains info about this instance or NULL if there was an error
+ * @param mdh [out] initialized mdhim handle
+ * @param opts [in] an `mdhim_options_t` struct populated with desired configuration
+ * @return 0 on success, nonzeron on error
  */
 int mdhimInit(mdhim_t* mdh, mdhim_options_t *opts) {
     int ret = 0;
@@ -108,13 +108,13 @@ int mdhimInit(mdhim_t* mdh, mdhim_options_t *opts) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
 		     "Error while allocating memory for client", 
 		     md->mdhim_rank);
-		return NULL;
+		return -1;
 	}
 
 	if ((rc = pthread_mutex_init(md->mdhim_comm_lock, NULL)) != 0) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
 		     "Error while initializing mdhim_comm_lock", md->mdhim_rank);
-		return NULL;
+		return -1;
 	}
 
 	//Dup the communicator passed in for barriers between clients
@@ -137,12 +137,12 @@ int mdhimInit(mdhim_t* mdh, mdhim_options_t *opts) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
 		     "Error while allocating memory for client", 
 		     md->mdhim_rank);
-		return NULL;
+		return -1;
 	}
 	if ((ret = pthread_mutex_init(md->receive_msg_mutex, NULL)) != 0) {    
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
 		     "Error while initializing receive queue mutex", md->mdhim_rank);
-		return NULL;
+		return -1;
 	}
 	//Initialize the receive condition variable - used for receiving a message from myself
 	md->receive_msg_ready_cv = (pthread_cond_t*)malloc(sizeof(pthread_cond_t));
@@ -150,13 +150,13 @@ int mdhimInit(mdhim_t* mdh, mdhim_options_t *opts) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
 		     "Error while allocating memory for client", 
 		     md->mdhim_rank);
-		return NULL;
+		return -1;
 	}
 	if ((ret = pthread_cond_init(md->receive_msg_ready_cv, NULL)) != 0) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
 		     "Error while initializing client receive condition variable", 
 		     md->mdhim_rank);
-		return NULL;
+		return -1;
 	}
 
 	//Initialize the partitioner
@@ -170,7 +170,7 @@ int mdhimInit(mdhim_t* mdh, mdhim_options_t *opts) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
 		     "Error while initializing remote_indexes_lock", 
 		     md->mdhim_rank);
-		return NULL;
+		return -1;
 	}
 
 	//Create the default remote primary index
