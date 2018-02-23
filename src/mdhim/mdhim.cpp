@@ -15,6 +15,7 @@
 #include "mdhim_options.h"
 #include "indexes.h"
 #include "mdhim_private.h"
+#include <iostream>
 
 /*! \mainpage MDHIM TNG
  *
@@ -122,8 +123,7 @@ static int indexDestruction(mdhim_t *md) {
         return MDHIM_ERROR;
     }
 
-    //TODO: Fix cur_indx->mdhim_store
-	//indexes_release(md);
+	indexes_release(md);
 
     return MDHIM_SUCCESS;
 }
@@ -184,6 +184,7 @@ int mdhimInit(mdhim_t* md, mdhim_options_t *opts) {
     md->mdhim_comm_lock = PTHREAD_MUTEX_INITIALIZER;
 
     //Required for index initialization
+    md->mdhim_rs = NULL;
     md->db_opts = opts;
 
     //Initialize group members of context
@@ -191,6 +192,9 @@ int mdhimInit(mdhim_t* md, mdhim_options_t *opts) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM - Error Group Initialization Failed");
         return MDHIM_ERROR;
     }
+
+	//Initialize the partitioner
+	partitioner_init();
 
     //Initialize index members of context
     if (indexInitialization(md) != MDHIM_SUCCESS){
@@ -200,13 +204,6 @@ int mdhimInit(mdhim_t* md, mdhim_options_t *opts) {
 
     //Flag that won't be used until shutdown
     md->shutdown = 0;
-
-	//Initialize the partitioner
-	partitioner_init();
-
-    // initialize range server
-    // TODO: find other initialization of these variables
-    md->mdhim_rs = NULL;
 
     md->receive_msg_mutex = PTHREAD_MUTEX_INITIALIZER;
     md->receive_msg_ready_cv = PTHREAD_COND_INITIALIZER;
@@ -313,9 +310,8 @@ struct mdhim_brm_t *mdhimPut(struct mdhim *md,
 	void **primary_keys;
 	int *primary_key_lens;
 	//Return message from each _put_record casll
-	struct mdhim_brm_t *brm;
+	struct mdhim_brm_t *brm = NULL;
 
-	brm = NULL;
 	if (!primary_key || !primary_key_len ||
 	    !value || !value_len) {
 		return NULL;

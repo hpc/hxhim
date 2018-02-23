@@ -1,5 +1,6 @@
 #ifndef MDHIM_PRIVATE_H
 #define MDHIM_PRIVATE_H
+
 #include "mdhim.h"
 #include "comm.h"
 #include "comm_mpi.h"
@@ -12,6 +13,10 @@ struct mdhim_private {
 };
 typedef struct mdhim_private mdhim_private_t;
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 typedef struct mdhim {
 	//This communicator will include every process in the application, but is separate from main the app
     //It is used for sending and receiving to and from the range servers
@@ -53,6 +58,9 @@ typedef struct mdhim {
 	/* // Opaque pointer to the private portions of this struct */
 	/* struct mdhim_private *p; */
 } mdhim_t;
+#ifdef __cplusplus
+}
+#endif
 
 /**
  *
