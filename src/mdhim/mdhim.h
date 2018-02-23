@@ -1,6 +1,6 @@
 /*
  * MDHIM TNG
- * 
+ *
  * External API and data structures
  */
 
@@ -8,6 +8,7 @@
 #define      __MDHIM_H
 
 #include <stdint.h>
+#include <mpi.h>
 #include <pthread.h>
 #include "data_store.h"
 #include "range_server.h"
@@ -18,7 +19,6 @@
 #include "mdhim_options.h"
 #include "indexes.h"
 #include "mdhim_private.h"
-
 
 #ifdef __cplusplus
 extern "C"
@@ -36,53 +36,13 @@ extern "C"
  */
 struct mdhim_private;
 
-/* 
- * mdhim data 
+/*
+ * mdhim data
  * Contains client communicator
  * Contains a list of range servers
  * Contains a pointer to mdhim_rs_t if rank is a range server
  */
-typedef struct mdhim {
-	//This communicator will include every process in the application, but is separate from main the app
-    //It is used for sending and receiving to and from the range servers
-	MPI_Comm mdhim_comm;   
-	pthread_mutex_t *mdhim_comm_lock;
-
-	//This communicator will include every process in the application, but is separate from the app
-    //It is used for barriers for clients
-	MPI_Comm mdhim_client_comm;
-
-	//The rank in the mdhim_comm
-	int mdhim_rank;
-	//The size of mdhim_comm
-	int mdhim_comm_size;
-	//Flag to indicate mdhimClose was called
-	volatile int shutdown;
-	//A pointer to the primary index
-	struct index_t *primary_index;
-	//A linked list of range servers
-	struct index_t *indexes;
-	// The hash to hold the indexes by name
-	struct index_t *indexes_by_name;
-
-	//Lock to allow concurrent readers and a single writer to the remote_indexes hash table
-	pthread_rwlock_t *indexes_lock;
-
-	//The range server structure which is used only if we are a range server
-	mdhim_rs_t *mdhim_rs; 
-	//The mutex used if receiving from ourselves
-	pthread_mutex_t *receive_msg_mutex;
-	//The condition variable used if receiving from ourselves
-	pthread_cond_t *receive_msg_ready_cv;
-	/* The receive msg, which is sent to the client by the 
-	   range server running in the same process */
-	void *receive_msg;
-    //Options for DB creation
-	mdhim_options_t *db_opts;
-
-	// Opaque pointer to the private portions of this struct
-	struct mdhim_private *p;
-} mdhim_t;
+typedef struct mdhim mdhim_t;
 
 struct secondary_info {
 	struct index_t *secondary_index;
@@ -100,35 +60,43 @@ struct secondary_bulk_info {
 	int info_type;
 };
 
-int mdhimInit(mdhim_t *mdh, mdhim_options_t *opts);
+static int groupInitialization(mdhim_t *md);
+static int groupDestruction(mdhim_t *md);
+static int indexInitialization(mdhim_t *md);
+static int indexDestruction(mdhim_t *md);
+
+mdhim_t *mdhimAllocate();
+void mdhimDestroy(mdhim_t **md);
+
+int mdhimInit(mdhim_t *md, mdhim_options_t *opts);
 int mdhimClose(mdhim_t *md);
 int mdhimCommit(mdhim_t *md, struct index_t *index);
 int mdhimStatFlush(mdhim_t *md, struct index_t *index);
 struct mdhim_brm_t *mdhimPut(mdhim_t *md,
-			     void *key, int key_len,  
-			     void *value, int value_len,  
+			     void *key, int key_len,
+			     void *value, int value_len,
 			     struct secondary_info *secondary_global_info,
 			     struct secondary_info *secondary_local_info);
 struct mdhim_brm_t *mdhimPutSecondary(mdhim_t *md,
 				      struct index_t *secondary_index,
 				      /*Secondary key */
-				      void *secondary_key, int secondary_key_len,  
+				      void *secondary_key, int secondary_key_len,
 				      /* Primary key */
 				      void *primary_key, int primary_key_len);
 struct mdhim_brm_t *mdhimBPut(mdhim_t *md,
-			      void **primary_keys, int *primary_key_lens, 
-			      void **primary_values, int *primary_value_lens, 
+			      void **primary_keys, int *primary_key_lens,
+			      void **primary_values, int *primary_value_lens,
 			      int num_records,
 			      struct secondary_bulk_info *secondary_global_info,
 			      struct secondary_bulk_info *secondary_local_info);
 struct mdhim_bgetrm_t *mdhimGet(mdhim_t *md, struct index_t *index,
-			       void *key, int key_len, 
+			       void *key, int key_len,
 			       int op);
 struct mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, struct index_t *index,
-				 void **keys, int *key_lens, 
+				 void **keys, int *key_lens,
 				 int num_records, int op);
 struct mdhim_bgetrm_t *mdhimBGetOp(mdhim_t *md, struct index_t *index,
-				   void *key, int key_len, 
+				   void *key, int key_len,
 				   int num_records, int op);
 struct mdhim_brm_t *mdhimDelete(mdhim_t *md, struct index_t *index,
 			       void *key, int key_len);
@@ -142,7 +110,7 @@ struct secondary_info *mdhimCreateSecondaryInfo(struct index_t *secondary_index,
 
 void mdhimReleaseSecondaryInfo(struct secondary_info *si);
 struct secondary_bulk_info *mdhimCreateSecondaryBulkInfo(struct index_t *secondary_index,
-							 void ***secondary_keys, 
+							 void ***secondary_keys,
 							 int **secondary_key_lens,
 							 int *num_keys, int info_type);
 void mdhimReleaseSecondaryBulkInfo(struct secondary_bulk_info *si);
@@ -151,4 +119,3 @@ void mdhimReleaseSecondaryBulkInfo(struct secondary_bulk_info *si);
 }
 #endif
 #endif
-

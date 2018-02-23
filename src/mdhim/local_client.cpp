@@ -1,7 +1,7 @@
 /*
  * MDHIM TNG
- * 
- * Client code for sending to and receiving from yourself 
+ *
+ * Client code for sending to and receiving from yourself
  */
 
 #include <stdlib.h>
@@ -10,30 +10,30 @@
 
 /**
  * get_msg_self
- * Gets a message from the range server if we are waiting to hear back from ourselves 
- * This means that the range server is running in the same process as the caller, 
- * but on a different thread  
+ * Gets a message from the range server if we are waiting to hear back from ourselves
+ * This means that the range server is running in the same process as the caller,
+ * but on a different thread
  *
  * @param md the main mdhim struct
  * @return a pointer to the message received or NULL
  */
 static void *get_msg_self(struct mdhim *md) {
 	void *msg;
-	
+
 	//Lock the receive msg mutex
-	pthread_mutex_lock(md->receive_msg_mutex);
+	pthread_mutex_lock(&md->receive_msg_mutex);
 	//Wait until there is a message to receive
 	if (!md->receive_msg) {
-		pthread_cond_wait(md->receive_msg_ready_cv, md->receive_msg_mutex);
+		pthread_cond_wait(&md->receive_msg_ready_cv, &md->receive_msg_mutex);
 	}
-	
+
 	//Get the message
 	msg = md->receive_msg;
 	//Set the message queue to null
 	md->receive_msg = NULL;
 	//unlock the mutex
-	pthread_mutex_unlock(md->receive_msg_mutex);
-	
+	pthread_mutex_unlock(&md->receive_msg_mutex);
+
 	return msg;
 }
 
@@ -61,7 +61,7 @@ struct mdhim_rm_t *local_client_put(struct mdhim *md, struct mdhim_putm_t *pm) {
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
 		return NULL;
 	}
-	
+
 	rm = (struct mdhim_rm_t *) get_msg_self(md);
 	// Return response
 
@@ -70,7 +70,7 @@ struct mdhim_rm_t *local_client_put(struct mdhim *md, struct mdhim_putm_t *pm) {
 
 /**
  * Send bulk put to range server
- * 
+ *
  * @param md main MDHIM struct
  * @param bpm pointer to bulk put message to be sent or inserted into the range server's work queue
  * @return return_message structure with ->error = MDHIM_SUCCESS or MDHIM_ERROR
@@ -79,7 +79,7 @@ struct mdhim_rm_t *local_client_bput(struct mdhim *md, struct mdhim_bputm_t *bpm
 	int ret;
 	struct mdhim_rm_t *brm;
 	work_item *item;
-        
+
 	if ((item = (work_item*)malloc(sizeof(work_item))) == NULL) {
 		mlog(MDHIM_CLIENT_CRIT, "Error while allocating memory for client");
 		return NULL;
@@ -91,7 +91,7 @@ struct mdhim_rm_t *local_client_bput(struct mdhim *md, struct mdhim_bputm_t *bpm
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
 		return NULL;
 	}
-	
+
 	brm = (struct mdhim_rm_t *) get_msg_self(md);
 
 	// Return response
@@ -121,7 +121,7 @@ struct mdhim_bgetrm_t *local_client_bget(struct mdhim *md, struct mdhim_bgetm_t 
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
 		return NULL;
 	}
-	
+
 	rm = (struct mdhim_bgetrm_t *) get_msg_self(md);
 
 	// Return response
@@ -151,7 +151,7 @@ struct mdhim_bgetrm_t *local_client_bget_op(struct mdhim *md, struct mdhim_getm_
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
 		return NULL;
 	}
-	
+
 	rm = (struct mdhim_bgetrm_t *) get_msg_self(md);
 
 	// Return response
@@ -181,7 +181,7 @@ struct mdhim_rm_t *local_client_commit(struct mdhim *md, struct mdhim_basem_t *c
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
 		return NULL;
 	}
-	
+
 	rm = (struct mdhim_rm_t *) get_msg_self(md);
 	// Return response
 
@@ -211,7 +211,7 @@ struct mdhim_rm_t *local_client_delete(struct mdhim *md, struct mdhim_delm_t *dm
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
 		return NULL;
 	}
-	
+
 	rm = (struct mdhim_rm_t *) get_msg_self(md);
 
 	// Return response
@@ -242,7 +242,7 @@ struct mdhim_rm_t *local_client_bdelete(struct mdhim *md, struct mdhim_bdelm_t *
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
 		return NULL;
 	}
-	
+
 	brm = (struct mdhim_rm_t *) get_msg_self(md);
 
 	// Return response
@@ -270,6 +270,6 @@ void local_client_close(struct mdhim *md, struct mdhim_basem_t *cm) {
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
 		return;
 	}
-	
+
 	return;
 }

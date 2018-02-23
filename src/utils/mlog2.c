@@ -516,7 +516,7 @@ static void vmlog(int flags, const char *fmt, va_list ap)
     int resid;
     char *m1, *m2;
     int m1len, m2len, ncpy;
-    //since we ignore any potential errors in MLOG let's always re-set 
+    //since we ignore any potential errors in MLOG let's always re-set
     //errno to its orginal value
     int save_errno = errno;
     struct mlog_mbhead *mb;
@@ -819,7 +819,7 @@ int mlog_open(char *tag, int maxfac_hint, int default_mask, int stderr_mask,
     }
 #endif
     /* it is now safe to use mlog_cleanout() for error handling */
-    
+
     mlog_lock();     /* now locked */
     if (flags & MLOG_LOGPID) {
         snprintf(newtag, tagblen, "%s[%d]", tag, getpid());
@@ -1638,4 +1638,3 @@ done:
     mlog_unlock();
     return(rv);
 }
-

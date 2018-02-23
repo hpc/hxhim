@@ -1,5 +1,5 @@
 /*
- * DB usage options. 
+ * DB usage options.
  * Location and name of DB, type of DataSotre primary key type,
  */
 
@@ -7,6 +7,7 @@
 #define      __OPTIONS_H
 
 #include <stdint.h>
+#include <mpi.h>
 #ifdef __cplusplus
 extern "C"
 {
@@ -28,12 +29,14 @@ extern "C"
  */
 struct mdhim_options {
 
+    MPI_Comm comm;
+
     int dstype;
     int commtype;
 
 	//Directory location of DBs
 	char *db_path;
-   
+
 	//Multiple paths of DBs
 	char **db_paths;
 	//Number of paths in db_paths
@@ -44,11 +47,11 @@ struct mdhim_options {
 	//Name of each DB (will be modified by adding "_<RANK>" to create multiple
 	// unique DB for each rank server.
 	char *db_name;
-    
+
 	//Different types of dataStores
 	//LEVELDB=1 (from data_store.h)
 	int db_type;
-    
+
 	//Primary key type
 	//MDHIM_INT_KEY, MDHIM_LONG_INT_KEY, MDHIM_FLOAT_KEY, MDHIM_DOUBLE_KEY
 	//MDHIM_STRING_KEY, MDHIM_BYTE_KEY
@@ -61,22 +64,22 @@ struct mdhim_options {
 	//Whether to append a value to an existing key or overwrite the value
 	//MDHIM_DB_APPEND to append or MDHIM_DB_OVERWRITE (default)
 	int db_value_append;
-        
+
 	//DEBUG level
 	int debug_level;
-        
+
     //Used to determine the number of range servers which is based in
     //if myrank % rserver_factor == 0, then myrank is a server.
     // This option is used to set range_server_factor previously a defined var.
     int rserver_factor;
-        
+
     //Maximum size of a slice. A ranger server may server several slices.
     uint64_t max_recs_per_slice;
 
 	//Number of worker threads per range server
 	int num_wthreads;
 
-	//Login Credentials 
+	//Login Credentials
 	char *db_host;
 	char *dbs_host;
 	char *db_user;

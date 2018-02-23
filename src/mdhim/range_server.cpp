@@ -1,6 +1,6 @@
 /*
  * MDHIM TNG
- * 
+ *
  * Client specific implementation
  */
 
@@ -19,11 +19,11 @@
 #include "partitioner.h"
 #include "mdhim_options.h"
 
-void add_timing(struct timeval start, struct timeval end, int num, 
+void add_timing(struct timeval start, struct timeval end, int num,
 		struct mdhim *md, int mtype) {
 	long double elapsed;
 
-	elapsed = (long double) (end.tv_sec - start.tv_sec) + 
+	elapsed = (long double) (end.tv_sec - start.tv_sec) +
 		((long double) (end.tv_usec - start.tv_usec)/1000000.0);
 	if (mtype == MDHIM_PUT || mtype == MDHIM_BULK_PUT) {
 		md->mdhim_rs->put_time += elapsed;
@@ -55,7 +55,7 @@ int send_locally_or_remote(struct mdhim *md, int dest, void *message) {
 		msg_req = (MPI_Request**)malloc(sizeof(MPI_Request *));
 		sendbuf = (void**)malloc(sizeof(void *));
 		sizebuf = (int*)malloc(sizeof(int));
-		ret = send_client_response(md, dest, message, sizebuf, 
+		ret = send_client_response(md, dest, message, sizebuf,
 					   sendbuf, size_req, msg_req);
 		if (*size_req) {
 			range_server_add_oreq(md, *size_req, sizebuf);
@@ -68,17 +68,17 @@ int send_locally_or_remote(struct mdhim *md, int dest, void *message) {
 		} else if (*sendbuf) {
 			free(*sendbuf);
 		}
-		
+
 		free(sendbuf);
 		mdhim_full_release_msg(message);
 		free(size_req);
 		free(msg_req);
 	} else {
 		//Sends the message locally
-		pthread_mutex_lock(md->receive_msg_mutex);
+		pthread_mutex_lock(&md->receive_msg_mutex);
 		md->receive_msg = message;
-		pthread_mutex_unlock(md->receive_msg_mutex);
-		pthread_cond_signal(md->receive_msg_ready_cv);
+		pthread_mutex_unlock(&md->receive_msg_mutex);
+		pthread_cond_signal(&md->receive_msg_ready_cv);
 	}
 
 	return ret;
@@ -86,7 +86,7 @@ int send_locally_or_remote(struct mdhim *md, int dest, void *message) {
 
 struct index_t *find_index(struct mdhim *md, struct mdhim_basem_t *msg) {
 	struct index_t *ret;
-       
+
 	ret = get_index(md, msg->index);
 
 	return ret;
@@ -94,7 +94,7 @@ struct index_t *find_index(struct mdhim *md, struct mdhim_basem_t *msg) {
 }
 
 
-/* 
+/*
  * ===  FUNCTION  ======================================================================
  *         Name:  find_index_by_name
  *  Description:  Search for index by name
@@ -123,8 +123,8 @@ int range_server_add_work(struct mdhim *md, work_item *item) {
 	//Lock the work queue mutex
 	pthread_mutex_lock(md->mdhim_rs->work_queue_mutex);
 	item->next = NULL;
-	item->prev = NULL;       
-	
+	item->prev = NULL;
+
 	//Add work to the tail of the work queue
 	if (md->mdhim_rs->work_queue->tail) {
 		md->mdhim_rs->work_queue->tail->next = item;
@@ -189,30 +189,30 @@ int range_server_stop(struct mdhim *md) {
 		free(md->mdhim_rs->workers[i]);
 	}
 	free(md->mdhim_rs->workers);
-		
+
 	//Destroy the condition variables
 	if ((ret = pthread_cond_destroy(md->mdhim_rs->work_ready_cv)) != 0) {
-	  mlog(MDHIM_SERVER_DBG, "Rank: %d - Error destroying work cond variable", 
+	  mlog(MDHIM_SERVER_DBG, "Rank: %d - Error destroying work cond variable",
 	       md->mdhim_rank);
 	}
 	free(md->mdhim_rs->work_ready_cv);
-		
+
 	//Destroy the work queue mutex
 	if ((ret = pthread_mutex_destroy(md->mdhim_rs->work_queue_mutex)) != 0) {
-	  mlog(MDHIM_SERVER_DBG, "Rank: %d - Error destroying work queue mutex", 
+	  mlog(MDHIM_SERVER_DBG, "Rank: %d - Error destroying work queue mutex",
 	       md->mdhim_rank);
 	}
 	free(md->mdhim_rs->work_queue_mutex);
-		
+
 	//Clean outstanding sends
 	range_server_clean_oreqs(md);
 	//Destroy the out req mutex
 	if ((ret = pthread_mutex_destroy(md->mdhim_rs->out_req_mutex)) != 0) {
-	  mlog(MDHIM_SERVER_DBG, "Rank: %d - Error destroying work queue mutex", 
+	  mlog(MDHIM_SERVER_DBG, "Rank: %d - Error destroying work queue mutex",
 	       md->mdhim_rank);
 	}
 	free(md->mdhim_rs->out_req_mutex);
-		
+
 	//Free the work queue
 	head = md->mdhim_rs->work_queue->head;
 	while (head) {
@@ -221,12 +221,12 @@ int range_server_stop(struct mdhim *md) {
 	  head = temp_item;
 	}
 	free(md->mdhim_rs->work_queue);
-		
-	mlog(MDHIM_SERVER_INFO, "Rank: %d - Inserted: %ld records in %Lf seconds", 
+
+	mlog(MDHIM_SERVER_INFO, "Rank: %d - Inserted: %ld records in %Lf seconds",
 	     md->mdhim_rank, md->mdhim_rs->num_put, md->mdhim_rs->put_time);
-	mlog(MDHIM_SERVER_INFO, "Rank: %d - Retrieved: %ld records in %Lf seconds", 
+	mlog(MDHIM_SERVER_INFO, "Rank: %d - Retrieved: %ld records in %Lf seconds",
 	     md->mdhim_rank, md->mdhim_rs->num_get, md->mdhim_rs->get_time);
-	  
+
 	//Free the range server data
 	free(md->mdhim_rs);
 	md->mdhim_rs = NULL;
@@ -266,7 +266,7 @@ int range_server_put(struct mdhim *md, struct mdhim_putm_t *im, int source) {
 	//Get the index referenced the message
 	index = find_index(md, (struct mdhim_basem_t *) im);
 	if (!index) {
-		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error retrieving index for id: %d", 
+		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error retrieving index for id: %d",
 		     md->mdhim_rank, im->basem.index);
 		error = MDHIM_ERROR;
 		goto done;
@@ -274,8 +274,8 @@ int range_server_put(struct mdhim *md, struct mdhim_putm_t *im, int source) {
 
 	gettimeofday(&start, NULL);
        //Check for the key's existence
-/*	index->mdhim_store->get(index->mdhim_store->db_handle, 
-				       im->key, im->key_len, value, 
+/*	index->mdhim_store->get(index->mdhim_store->db_handle,
+				       im->key, im->key_len, value,
 				       value_len);
 */
 	//The key already exists
@@ -295,19 +295,19 @@ int range_server_put(struct mdhim *md, struct mdhim_putm_t *im, int source) {
 		new_value = im->value;
 		new_value_len = im->value_len;
 	}
-    
+
 	if (*value && *value_len) {
 		free(*value);
 	}
 	free(value);
 	free(value_len);
         //Put the record in the database
-	if ((ret = 
-	     index->mdhim_store->put(index->mdhim_store->db_handle, 
-				     im->key, im->key_len, new_value, 
+	if ((ret =
+	     index->mdhim_store->put(index->mdhim_store->db_handle,
+				     im->key, im->key_len, new_value,
 				     new_value_len)) != MDHIM_SUCCESS) {
-		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error putting record", 
-		     md->mdhim_rank);	
+		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error putting record",
+		     md->mdhim_rank);
 		error = ret;
 	} else {
 		inserted = 1;
@@ -329,7 +329,7 @@ done:
 	rm->error = error;
 	//Set the server's rank
 	rm->basem.server_rank = md->mdhim_rank;
-	
+
 	//Send response
 	ret = send_locally_or_remote(md, source, rm);
 
@@ -340,9 +340,9 @@ done:
 	if (source != md->mdhim_rank) {
 		free(im->key);
 		free(im->value);
-	} 
+	}
 	free(im);
-	
+
 	return MDHIM_SUCCESS;
 }
 
@@ -384,20 +384,20 @@ int range_server_bput(struct mdhim *md, struct mdhim_bputm_t *bim, int source) {
 	//Get the index referenced the message
 	index = find_index(md, (struct mdhim_basem_t *) bim);
 	if (!index) {
-		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error retrieving index for id: %d", 
+		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error retrieving index for id: %d",
 		     md->mdhim_rank, bim->basem.index);
 		error = MDHIM_ERROR;
 		goto done;
 	}
 
 	//Iterate through the arrays and insert each record
-	for (i = 0; i < bim->num_keys && i < MAX_BULK_OPS; i++) {	
+	for (i = 0; i < bim->num_keys && i < MAX_BULK_OPS; i++) {
 		*value = NULL;
 		*value_len = 0;
 
                 //Check for the key's existence
-		index->mdhim_store->get(index->mdhim_store->db_handle, 
-					       bim->keys[i], bim->key_lens[i], value, 
+		index->mdhim_store->get(index->mdhim_store->db_handle,
+					       bim->keys[i], bim->key_lens[i], value,
 					       value_len);
 		//The key already exists
 		if (*value && *value_len) {
@@ -424,18 +424,18 @@ int range_server_bput(struct mdhim *md, struct mdhim_bputm_t *bim, int source) {
 			new_values[i] = bim->values[i];
 			new_value_lens[i] = bim->value_lens[i];
 		}
-		
+
 		if (*value) {
 			free(*value);
-		}	
+		}
 	}
 
 	//Put the record in the database
-	if ((ret = 
-	     index->mdhim_store->batch_put(index->mdhim_store->db_handle, 
-					   bim->keys, bim->key_lens, new_values, 
+	if ((ret =
+	     index->mdhim_store->batch_put(index->mdhim_store->db_handle,
+					   bim->keys, bim->key_lens, new_values,
 					   new_value_lens, bim->num_keys)) != MDHIM_SUCCESS) {
-		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error batch putting records", 
+		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error batch putting records",
 		     md->mdhim_rank);
 		error = ret;
 	} else {
@@ -447,17 +447,17 @@ int range_server_bput(struct mdhim *md, struct mdhim_bputm_t *bim, int source) {
 		if (!exists[i] && error == MDHIM_SUCCESS) {
 			update_stat(md, index, bim->keys[i], bim->key_lens[i]);
 		}
-	       
+
 		if (exists[i] && md->db_opts->db_value_append == MDHIM_DB_APPEND) {
 			//Release the value created for appending the new and old value
 			free(new_values[i]);
-		}		
+		}
 
 		//Release the bput keys/value if the message isn't coming from myself
 		if (source != md->mdhim_rank) {
 			free(bim->keys[i]);
 			free(bim->values[i]);
-		} 
+		}
 	}
 
 	free(exists);
@@ -508,17 +508,17 @@ int range_server_del(struct mdhim *md, struct mdhim_delm_t *dm, int source) {
 	//Get the index referenced the message
 	index = find_index(md, (struct mdhim_basem_t *) dm);
 	if (!index) {
-		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error retrieving index for id: %d", 
+		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error retrieving index for id: %d",
 		     md->mdhim_rank, dm->basem.index);
 		ret = MDHIM_ERROR;
 		goto done;
 	}
 
 	//Put the record in the database
-	if ((ret = 
-	     index->mdhim_store->del(index->mdhim_store->db_handle, 
+	if ((ret =
+	     index->mdhim_store->del(index->mdhim_store->db_handle,
 				     dm->key, dm->key_len)) != MDHIM_SUCCESS) {
-		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error deleting record", 
+		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error deleting record",
 		     md->mdhim_rank);
 	}
 
@@ -558,7 +558,7 @@ int range_server_bdel(struct mdhim *md, struct mdhim_bdelm_t *bdm, int source) {
 	//Get the index referenced the message
 	index = find_index(md, (struct mdhim_basem_t *) bdm);
 	if (!index) {
-		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error retrieving index for id: %d", 
+		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error retrieving index for id: %d",
 		     md->mdhim_rank, bdm->basem.index);
 		error = MDHIM_ERROR;
 		goto done;
@@ -567,11 +567,11 @@ int range_server_bdel(struct mdhim *md, struct mdhim_bdelm_t *bdm, int source) {
 	//Iterate through the arrays and delete each record
 	for (i = 0; i < bdm->num_keys && i < MAX_BULK_OPS; i++) {
 		//Put the record in the database
-		if ((ret = 
-		     index->mdhim_store->del(index->mdhim_store->db_handle, 
-					     bdm->keys[i], bdm->key_lens[i])) 
+		if ((ret =
+		     index->mdhim_store->del(index->mdhim_store->db_handle,
+					     bdm->keys[i], bdm->key_lens[i]))
 		    != MDHIM_SUCCESS) {
-			mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error deleting record", 
+			mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error deleting record",
 			     md->mdhim_rank);
 			error = ret;
 		}
@@ -613,21 +613,21 @@ int range_server_commit(struct mdhim *md, struct mdhim_basem_t *im, int source) 
 	//Get the index referenced the message
 	index = find_index(md, (struct mdhim_basem_t *) im);
 	if (!index) {
-		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error retrieving index for id: %d", 
+		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error retrieving index for id: %d",
 		     md->mdhim_rank, im->index);
 		ret = MDHIM_ERROR;
 		goto done;
 	}
 
         //Put the record in the database
-	if ((ret = 
-	     index->mdhim_store->commit(index->mdhim_store->db_handle)) 
+	if ((ret =
+	     index->mdhim_store->commit(index->mdhim_store->db_handle))
 	    != MDHIM_SUCCESS) {
-		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error committing database", 
-		     md->mdhim_rank);	
+		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error committing database",
+		     md->mdhim_rank);
 	}
 
- done:	
+ done:
 	//Create the response message
 	rm = (mdhim_rm_t*)malloc(sizeof(struct mdhim_rm_t));
 	//Set the type
@@ -647,7 +647,7 @@ int range_server_commit(struct mdhim *md, struct mdhim_basem_t *im, int source) 
 /**
  * range_server_bget
  * Handles the bulk get message, retrieves the data from the database, and sends the results back
- * 
+ *
  * @param md        Pointer to the main MDHIM struct
  * @param bgm       pointer to the bulk get message to handle
  * @param source    source of the message
@@ -672,7 +672,7 @@ int range_server_bget(struct mdhim *md, struct mdhim_bgetm_t *bgm, int source) {
 	//Get the index referenced the message
 	index = find_index(md, (struct mdhim_basem_t *) bgm);
 	if (!index) {
-		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error retrieving index for id: %d", 
+		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error retrieving index for id: %d",
 		     md->mdhim_rank, bgm->basem.index);
 		error = MDHIM_ERROR;
 		goto done;
@@ -684,22 +684,22 @@ int range_server_bget(struct mdhim *md, struct mdhim_bgetm_t *bgm, int source) {
 			// Gets the value for the given key
 		case MDHIM_GET_EQ:
 			//Get records from the database
-			if ((ret = 
-			     index->mdhim_store->get(index->mdhim_store->db_handle, 
-						     bgm->keys[i], bgm->key_lens[i], &values[i], 
-						     &value_lens[i])) != MDHIM_SUCCESS) {			
+			if ((ret =
+			     index->mdhim_store->get(index->mdhim_store->db_handle,
+						     bgm->keys[i], bgm->key_lens[i], &values[i],
+						     &value_lens[i])) != MDHIM_SUCCESS) {
 				error = ret;
 				value_lens[i] = 0;
 				values[i] = NULL;
 				continue;
 			}
-			
+
 			break;
 			/* Gets the next key and value that is in order after the passed in key */
-		case MDHIM_GET_NEXT:	
-			if ((ret = 
-			     index->mdhim_store->get_next(index->mdhim_store->db_handle, 
-							  &bgm->keys[i], &bgm->key_lens[i], &values[i], 
+		case MDHIM_GET_NEXT:
+			if ((ret =
+			     index->mdhim_store->get_next(index->mdhim_store->db_handle,
+							  &bgm->keys[i], &bgm->key_lens[i], &values[i],
 							  &value_lens[i])) != MDHIM_SUCCESS) {
 				mlog(MDHIM_SERVER_DBG, "Rank: %d - Error getting record", md->mdhim_rank);
 				error = ret;
@@ -707,14 +707,14 @@ int range_server_bget(struct mdhim *md, struct mdhim_bgetm_t *bgm, int source) {
 				values[i] = NULL;
 				continue;
 			}
-			
+
 			break;
 			/* Gets the previous key and value that is in order before the passed in key
 			   or the last key if no key was passed in */
 		case MDHIM_GET_PREV:
-			if ((ret = 
-			     index->mdhim_store->get_prev(index->mdhim_store->db_handle, 
-							  &bgm->keys[i], &bgm->key_lens[i], &values[i], 
+			if ((ret =
+			     index->mdhim_store->get_prev(index->mdhim_store->db_handle,
+							  &bgm->keys[i], &bgm->key_lens[i], &values[i],
 							  &value_lens[i])) != MDHIM_SUCCESS) {
 				mlog(MDHIM_SERVER_DBG, "Rank: %d - Error getting record", md->mdhim_rank);
 				error = ret;
@@ -726,9 +726,9 @@ int range_server_bget(struct mdhim *md, struct mdhim_bgetm_t *bgm, int source) {
 			break;
 			/* Gets the first key/value */
 		case MDHIM_GET_FIRST:
-			if ((ret = 
-			     index->mdhim_store->get_next(index->mdhim_store->db_handle, 
-							  &bgm->keys[i], 0, &values[i], 
+			if ((ret =
+			     index->mdhim_store->get_next(index->mdhim_store->db_handle,
+							  &bgm->keys[i], 0, &values[i],
 							  &value_lens[i])) != MDHIM_SUCCESS) {
 				mlog(MDHIM_SERVER_DBG, "Rank: %d - Error getting record", md->mdhim_rank);
 				error = ret;
@@ -740,9 +740,9 @@ int range_server_bget(struct mdhim *md, struct mdhim_bgetm_t *bgm, int source) {
 			break;
 			/* Gets the last key/value */
 		case MDHIM_GET_LAST:
-			if ((ret = 
-			     index->mdhim_store->get_prev(index->mdhim_store->db_handle, 
-							  &bgm->keys[i], 0, &values[i], 
+			if ((ret =
+			     index->mdhim_store->get_prev(index->mdhim_store->db_handle,
+							  &bgm->keys[i], 0, &values[i],
 							  &value_lens[i])) != MDHIM_SUCCESS) {
 				mlog(MDHIM_SERVER_DBG, "Rank: %d - Error getting record", md->mdhim_rank);
 				error = ret;
@@ -753,12 +753,12 @@ int range_server_bget(struct mdhim *md, struct mdhim_bgetm_t *bgm, int source) {
 
 			break;
 		default:
-			mlog(MDHIM_SERVER_DBG, "Rank: %d - Invalid operation: %d given in range_server_get", 
+			mlog(MDHIM_SERVER_DBG, "Rank: %d - Invalid operation: %d given in range_server_get",
 			     md->mdhim_rank, bgm->op);
 			continue;
-		}	  
+		}
 
-		num_retrieved++;			
+		num_retrieved++;
 	}
 
 	gettimeofday(&end, NULL);
@@ -809,7 +809,7 @@ done:
 /**
  * range_server_bget_op
  * Handles the get message given an op and number of records greater than 1
- * 
+ *
  * @param md        Pointer to the main MDHIM struct
  * @param gm        pointer to the get message to handle
  * @param source    source of the message
@@ -852,20 +852,20 @@ int range_server_bget_op(struct mdhim *md, struct mdhim_bgetm_t *bgm, int source
 	//Get the index referenced the message
 	index = find_index(md, (struct mdhim_basem_t *) bgm);
 	if (!index) {
-		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error retrieving index for id: %d", 
+		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Error retrieving index for id: %d",
 		     md->mdhim_rank, bgm->basem.index);
 		error = MDHIM_ERROR;
 		goto respond;
 	}
 
 	if (bgm->num_keys * bgm->num_recs > MAX_BULK_OPS) {
-		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Too many bulk operations requested", 
+		mlog(MDHIM_SERVER_CRIT, "Rank: %d - Too many bulk operations requested",
 		     md->mdhim_rank);
 		error = MDHIM_ERROR;
 		goto respond;
 	}
 
-	mlog(MDHIM_SERVER_CRIT, "Rank: %d - Num keys is: %d and num recs is: %d", 
+	mlog(MDHIM_SERVER_CRIT, "Rank: %d - Num keys is: %d and num recs is: %d",
 	     md->mdhim_rank, bgm->num_keys, bgm->num_recs);
 	gettimeofday(&start, NULL);
 	//Iterate through the arrays and get each record
@@ -881,7 +881,7 @@ int range_server_bget_op(struct mdhim *md, struct mdhim_bgetm_t *bgm, int source
 				*get_key_len = bgm->key_lens[i];
 				//If we were not passed a key and this is a next/prev, then return an error
 			} else if (!j && (!bgm->key_lens[i] || !bgm->keys[i])
-				   && (op ==  MDHIM_GET_NEXT || 
+				   && (op ==  MDHIM_GET_NEXT ||
 				       op == MDHIM_GET_PREV)) {
 				error = MDHIM_ERROR;
 				goto respond;
@@ -889,28 +889,28 @@ int range_server_bget_op(struct mdhim *md, struct mdhim_bgetm_t *bgm, int source
 
 			switch(op) {
 				//Get a record from the database
-			case MDHIM_GET_FIRST:	
+			case MDHIM_GET_FIRST:
 				if (j == 0) {
 					keys[num_records] = NULL;
 					key_lens[num_records] = sizeof(int32_t);
 				}
-			case MDHIM_GET_NEXT:	
-				if (j && (ret = 
-					  index->mdhim_store->get_next(index->mdhim_store->db_handle, 
-								       get_key, get_key_len, 
-								       get_value, 
-								       get_value_len)) 
+			case MDHIM_GET_NEXT:
+				if (j && (ret =
+					  index->mdhim_store->get_next(index->mdhim_store->db_handle,
+								       get_key, get_key_len,
+								       get_value,
+								       get_value_len))
 				    != MDHIM_SUCCESS) {
-					mlog(MDHIM_SERVER_DBG, "Rank: %d - Couldn't get next record", 
+					mlog(MDHIM_SERVER_DBG, "Rank: %d - Couldn't get next record",
 					     md->mdhim_rank);
 					error = ret;
 					key_lens[num_records] = 0;
 					value_lens[num_records] = 0;
 					goto respond;
-				} else if (!j && (ret = 
-						  index->mdhim_store->get(index->mdhim_store->db_handle, 
-									  *get_key, *get_key_len, 
-									  get_value, 
+				} else if (!j && (ret =
+						  index->mdhim_store->get(index->mdhim_store->db_handle,
+									  *get_key, *get_key_len,
+									  get_value,
 									  get_value_len))
 					   != MDHIM_SUCCESS) {
 					error = ret;
@@ -919,28 +919,28 @@ int range_server_bget_op(struct mdhim *md, struct mdhim_bgetm_t *bgm, int source
 					goto respond;
 				}
 				break;
-			case MDHIM_GET_LAST:	
+			case MDHIM_GET_LAST:
 				if (j == 0) {
 					keys[num_records] = NULL;
 					key_lens[num_records] = sizeof(int32_t);
 				}
 			case MDHIM_GET_PREV:
-				if (j && (ret = 
-					  index->mdhim_store->get_prev(index->mdhim_store->db_handle, 
-								       get_key, get_key_len, 
-								       get_value, 
-								       get_value_len)) 
+				if (j && (ret =
+					  index->mdhim_store->get_prev(index->mdhim_store->db_handle,
+								       get_key, get_key_len,
+								       get_value,
+								       get_value_len))
 				    != MDHIM_SUCCESS) {
-					mlog(MDHIM_SERVER_DBG, "Rank: %d - Couldn't get prev record", 
+					mlog(MDHIM_SERVER_DBG, "Rank: %d - Couldn't get prev record",
 					     md->mdhim_rank);
 					error = ret;
 					key_lens[num_records] = 0;
 					value_lens[num_records] = 0;
 					goto respond;
-				} else if (!j && (ret = 
-						  index->mdhim_store->get(index->mdhim_store->db_handle, 
-									  *get_key, *get_key_len, 
-									  get_value, 
+				} else if (!j && (ret =
+						  index->mdhim_store->get(index->mdhim_store->db_handle,
+									  *get_key, *get_key_len,
+									  get_value,
 									  get_value_len))
 					   != MDHIM_SUCCESS) {
 					error = ret;
@@ -950,7 +950,7 @@ int range_server_bget_op(struct mdhim *md, struct mdhim_bgetm_t *bgm, int source
 				}
 				break;
 			default:
-				mlog(MDHIM_SERVER_CRIT, "Rank: %d - Invalid operation for bulk get op", 
+				mlog(MDHIM_SERVER_CRIT, "Rank: %d - Invalid operation for bulk get op",
 				     md->mdhim_rank);
 				goto respond;
 				break;
@@ -985,16 +985,16 @@ respond:
 	bgrm->num_keys = num_records;
 	bgrm->basem.index = index->id;
 	bgrm->basem.index_type = index->type;
-       
+
 	//Send response
 	ret = send_locally_or_remote(md, source, bgrm);
 
 	//Free stuff
 	if (source == md->mdhim_rank) {
-		/* If this message is not coming from myself, 
+		/* If this message is not coming from myself,
 		   free the keys and values from the get message */
 		mdhim_partial_release_msg(bgm);
-	} 
+	}
 
 	free(get_key);
 	free(get_key_len);
@@ -1008,9 +1008,9 @@ respond:
  * listener_thread
  * Function for the thread that listens for new messages
  */
-void *listener_thread(void *data) {	
+void *listener_thread(void *data) {
 	//Mlog statements could cause a deadlock on range_server_stop due to canceling of threads
-	
+
 
 	struct mdhim *md = (struct mdhim *) data;
 	void *message;
@@ -1024,24 +1024,24 @@ void *listener_thread(void *data) {
 	while (1) {
 		if (md->shutdown) {
 			break;
-		}	
+		}
 
 		//Clean outstanding sends
 		range_server_clean_oreqs(md);
 
 		//Receive messages sent to this server
 		ret = receive_rangesrv_work(md, &source, &message);
-		if (ret < MDHIM_SUCCESS) {		
+		if (ret < MDHIM_SUCCESS) {
 			continue;
 		}
 
-		//printf("Rank: %d - Received message from rank: %d of type: %d", 
+		//printf("Rank: %d - Received message from rank: %d of type: %d",
 		//     md->mdhim_rank, source, mtype);
 
         //Create a new work item
 		item = (work_item*)malloc(sizeof(work_item));
 		memset(item, 0, sizeof(work_item));
-		             
+
 		//Set the new buffer to the new item's message
 		item->message = message;
 		//Set the source in the work item
@@ -1079,10 +1079,10 @@ void *worker_thread(void *data) {
 			pthread_cond_wait(md->mdhim_rs->work_ready_cv, md->mdhim_rs->work_queue_mutex);
 			item = get_work(md);
 		}
-	       
+
 		pthread_cleanup_pop(0);
 		if (!item) {
-			pthread_mutex_unlock(md->mdhim_rs->work_queue_mutex);			
+			pthread_mutex_unlock(md->mdhim_rs->work_queue_mutex);
 			continue;
 		}
 		pthread_mutex_unlock(md->mdhim_rs->work_queue_mutex);
@@ -1091,11 +1091,11 @@ void *worker_thread(void *data) {
 		range_server_clean_oreqs(md);
 
 		while (item) {
-			//Call the appropriate function depending on the message type			
+			//Call the appropriate function depending on the message type
 			//Get the message type
 			mtype = ((struct mdhim_basem_t *) item->message)->mtype;
 
-//			printf("Rank: %d - Got work item from queue with type: %d" 
+//			printf("Rank: %d - Got work item from queue with type: %d"
 //			     " from: %d\n", md->mdhim_rank, mtype, item->source);
 
 			switch(mtype) {
@@ -1117,7 +1117,7 @@ void *worker_thread(void *data) {
 				num_keys = ((struct mdhim_bgetm_t *) item->message)->num_keys;
 				//The client is sending one key, but requesting the retrieval of more than one
 				if (num_records > 1 && num_keys == 1) {
-					range_server_bget_op(md, 
+					range_server_bget_op(md,
                                          (struct mdhim_bgetm_t *)item->message,
 							     item->source, op);
 				} else {
@@ -1135,20 +1135,20 @@ void *worker_thread(void *data) {
 				break;
 			case MDHIM_COMMIT:
 				range_server_commit(md, (mdhim_basem_t*)item->message, item->source);
-				break;		
+				break;
 			default:
-				printf("Rank: %d - Got unknown work type: %d" 
+				printf("Rank: %d - Got unknown work type: %d"
 				       " from: %d\n", md->mdhim_rank, mtype, item->source);
 				break;
 			}
-			
+
 			item_tmp = item;
 			item = item->next;
 			free(item_tmp);
 		}
 
 		//Clean outstanding sends
-		range_server_clean_oreqs(md);				
+		range_server_clean_oreqs(md);
 	}
 
 	return NULL;
@@ -1177,7 +1177,7 @@ int range_server_add_oreq(struct mdhim *md, MPI_Request *req, void *msg) {
 	md->mdhim_rs->out_req_list = oreq;
 	pthread_mutex_unlock(md->mdhim_rs->out_req_mutex);
 
-	return MDHIM_SUCCESS;	
+	return MDHIM_SUCCESS;
 }
 
 int range_server_clean_oreqs(struct mdhim *md) {
@@ -1195,15 +1195,15 @@ int range_server_clean_oreqs(struct mdhim *md) {
 			continue;
 		}
 
-		pthread_mutex_lock(md->mdhim_comm_lock);
-		ret = MPI_Test((MPI_Request *)item->req, &flag, &status); 
-		pthread_mutex_unlock(md->mdhim_comm_lock);
+		pthread_mutex_lock(&md->mdhim_comm_lock);
+		ret = MPI_Test((MPI_Request *)item->req, &flag, &status);
+		pthread_mutex_unlock(&md->mdhim_comm_lock);
 
 		if (!flag) {
 			item = item->next;
 			continue;
 		}
-		
+
 		if (item == md->mdhim_rs->out_req_list) {
 			md->mdhim_rs->out_req_list = item->next;
 			if (item->next) {
@@ -1247,8 +1247,8 @@ int range_server_init(struct mdhim *md) {
 	//Allocate memory for the mdhim_rs_t struct
 	md->mdhim_rs = (mdhim_rs_t*)malloc(sizeof(struct mdhim_rs_t));
 	if (!md->mdhim_rs) {
-		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - " 
-		     "Error while allocating memory for range server", 
+		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - "
+		     "Error while allocating memory for range server",
 		     md->mdhim_rank);
 		return MDHIM_ERROR;
 	}
@@ -1269,13 +1269,13 @@ int range_server_init(struct mdhim *md) {
 	//Initialize work queue mutex
 	md->mdhim_rs->work_queue_mutex = (pthread_mutex_t*)malloc(sizeof(pthread_mutex_t));
 	if (!md->mdhim_rs->work_queue_mutex) {
-		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - " 
-		     "Error while allocating memory for range server", 
+		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - "
+		     "Error while allocating memory for range server",
 		     md->mdhim_rank);
 		return MDHIM_ERROR;
 	}
-	if ((ret = pthread_mutex_init(md->mdhim_rs->work_queue_mutex, NULL)) != 0) {    
-		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - " 
+	if ((ret = pthread_mutex_init(md->mdhim_rs->work_queue_mutex, NULL)) != 0) {
+		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - "
 		     "Error while initializing work queue mutex", md->mdhim_rank);
 		return MDHIM_ERROR;
 	}
@@ -1283,13 +1283,13 @@ int range_server_init(struct mdhim *md) {
 	//Initialize out req mutex
 	md->mdhim_rs->out_req_mutex = (pthread_mutex_t*)malloc(sizeof(pthread_mutex_t));
 	if (!md->mdhim_rs->out_req_mutex) {
-		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - " 
-		     "Error while allocating memory for range server", 
+		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - "
+		     "Error while allocating memory for range server",
 		     md->mdhim_rank);
 		return MDHIM_ERROR;
 	}
-	if ((ret = pthread_mutex_init(md->mdhim_rs->out_req_mutex, NULL)) != 0) {    
-		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - " 
+	if ((ret = pthread_mutex_init(md->mdhim_rs->out_req_mutex, NULL)) != 0) {
+		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - "
 		     "Error while initializing out req mutex", md->mdhim_rank);
 		return MDHIM_ERROR;
 	}
@@ -1297,40 +1297,39 @@ int range_server_init(struct mdhim *md) {
 	//Initialize the condition variables
 	md->mdhim_rs->work_ready_cv = (pthread_cond_t*)malloc(sizeof(pthread_cond_t));
 	if (!md->mdhim_rs->work_ready_cv) {
-		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - " 
-		     "Error while allocating memory for range server", 
+		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - "
+		     "Error while allocating memory for range server",
 		     md->mdhim_rank);
 		return MDHIM_ERROR;
 	}
 	if ((ret = pthread_cond_init(md->mdhim_rs->work_ready_cv, NULL)) != 0) {
-		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - " 
-		     "Error while initializing condition variable", 
+		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - "
+		     "Error while initializing condition variable",
 		     md->mdhim_rank);
 		return MDHIM_ERROR;
 	}
-	
+
 	//Initialize worker threads
 	md->mdhim_rs->workers = (pthread_t**)malloc(sizeof(pthread_t *) * md->db_opts->num_wthreads);
 	for (i = 0; i < md->db_opts->num_wthreads; i++) {
 		md->mdhim_rs->workers[i] = (pthread_t*)malloc(sizeof(pthread_t));
-		if ((ret = pthread_create(md->mdhim_rs->workers[i], NULL, 
-					  worker_thread, (void *) md)) != 0) {    
-			mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - " 
-			     "Error while initializing worker thread", 
+		if ((ret = pthread_create(md->mdhim_rs->workers[i], NULL,
+					  worker_thread, (void *) md)) != 0) {
+			mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - "
+			     "Error while initializing worker thread",
 			     md->mdhim_rank);
 			return MDHIM_ERROR;
 		}
 	}
 
 	//Initialize listener threads
-	if ((ret = pthread_create(&md->mdhim_rs->listener, NULL, 
+	if ((ret = pthread_create(&md->mdhim_rs->listener, NULL,
 				  listener_thread, (void *) md)) != 0) {
-	  mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - " 
-	       "Error while initializing listener thread", 
+	  mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - "
+	       "Error while initializing listener thread",
 	       md->mdhim_rank);
 	  return MDHIM_ERROR;
 	}
 
 	return MDHIM_SUCCESS;
 }
-
