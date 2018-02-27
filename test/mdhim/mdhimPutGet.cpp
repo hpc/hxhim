@@ -72,7 +72,7 @@ TEST(mdhimPutGet, secondary_global) {
     ASSERT_NE(sg_info, nullptr);
 
     //Put the key-value pair
-    struct mdhim_brm_t *brm = mdhimPut(&md, (void *)&MDHIM_PUT_GET_PRIMARY_KEY,  sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
+    struct mdhim_brm_t *brm = mdhimPut(&md, (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
                                        (void *)&MDHIM_PUT_GET_VALUE, sizeof(MDHIM_PUT_GET_VALUE), sg_info, NULL);
 
     ASSERT_NE(brm, nullptr);
@@ -87,29 +87,29 @@ TEST(mdhimPutGet, secondary_global) {
     {
         sg_ret = mdhimGet(&md, sg_index, (void *)sgk_ptr,
                           sgk_len, MDHIM_GET_EQ);
+
         ASSERT_NE(sg_ret, nullptr);
         EXPECT_EQ(sg_ret->error, MDHIM_SUCCESS);
 
-        EXPECT_EQ(*sg_ret->key_lens, *sg_ret->value_lens);
         EXPECT_EQ(sg_ret->num_keys, 1);
         EXPECT_EQ(*(Key_t *) *sg_ret->keys, sgk);
         EXPECT_EQ(*(Value_t *) *sg_ret->values, MDHIM_PUT_GET_PRIMARY_KEY);
     }
 
-    // //Get value back using the returned key
-    // {
-    //     struct mdhim_bgetrm_t *bgrm = mdhimGet(&md, md.primary_index, (void *)sg_ret->values,
-    //                                            *sg_ret->value_lens, MDHIM_GET_EQ);
-    //     ASSERT_NE(bgrm, nullptr);
-    //     EXPECT_EQ(bgrm->error, MDHIM_SUCCESS);
+    //Get value back using the returned key
+    {
+        struct mdhim_bgetrm_t *bgrm = mdhimGet(&md, md.primary_index, (void *) *sg_ret->values,
+                                               *sg_ret->value_lens, MDHIM_GET_EQ);
+        ASSERT_NE(bgrm, nullptr);
+        EXPECT_EQ(bgrm->error, MDHIM_SUCCESS);
 
-    //     //Make sure value gotten back is correct
-    //     EXPECT_EQ(bgrm->num_keys, 1);
-    //     EXPECT_EQ(*(Key_t *) *bgrm->keys, MDHIM_PUT_GET_PRIMARY_KEY);
-    //     EXPECT_EQ(*(Value_t *) *bgrm->values, MDHIM_PUT_GET_VALUE);
+        //Make sure value gotten back is correct
+        EXPECT_EQ(bgrm->num_keys, 1);
+        EXPECT_EQ(*(Key_t *) *bgrm->keys, MDHIM_PUT_GET_PRIMARY_KEY);
+        EXPECT_EQ(*(Value_t *) *bgrm->values, MDHIM_PUT_GET_VALUE);
 
-    //     mdhim_full_release_msg(bgrm);
-    // }
+        mdhim_full_release_msg(bgrm);
+    }
 
     mdhim_full_release_msg(sg_ret);
     free(sg_info);
@@ -140,7 +140,7 @@ TEST(mdhimPutGet, secondary_local) {
                                                               1, SECONDARY_GLOBAL_INFO);
     ASSERT_NE(sl_info, nullptr);
 
-    struct mdhim_brm_t *brm = mdhimPut(&md, (void *)&MDHIM_PUT_GET_PRIMARY_KEY,  sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
+    struct mdhim_brm_t *brm = mdhimPut(&md, (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
                                        (void *)&MDHIM_PUT_GET_VALUE, sizeof(MDHIM_PUT_GET_VALUE), NULL, sl_info);
 
     ASSERT_NE(brm, nullptr);
@@ -167,20 +167,20 @@ TEST(mdhimPutGet, secondary_local) {
         EXPECT_EQ(*(Value_t *) *sl_ret->values, MDHIM_PUT_GET_PRIMARY_KEY);
     }
 
-    // //Get value back using the returned key
-    // {
-    //     struct mdhim_bgetrm_t *bgrm = mdhimGet(&md, md.primary_index, (void *)sl_ret->values,
-    //                                            *sl_ret->value_lens, MDHIM_GET_EQ);
-    //     ASSERT_NE(bgrm, nullptr);
-    //     EXPECT_EQ(bgrm->error, MDHIM_SUCCESS);
+    //Get value back using the returned key
+    {
+        struct mdhim_bgetrm_t *bgrm = mdhimGet(&md, md.primary_index, (void *) *sl_ret->values,
+                                               *sl_ret->value_lens, MDHIM_GET_EQ);
+        ASSERT_NE(bgrm, nullptr);
+        EXPECT_EQ(bgrm->error, MDHIM_SUCCESS);
 
-    //     //Make sure value gotten back is correct
-    //     EXPECT_EQ(bgrm->num_keys, 1);
-    //     EXPECT_EQ(*(Key_t *) *bgrm->keys, MDHIM_PUT_GET_PRIMARY_KEY);
-    //     EXPECT_EQ(*(Value_t *) *bgrm->values, MDHIM_PUT_GET_VALUE);
+        //Make sure value gotten back is correct
+        EXPECT_EQ(bgrm->num_keys, 1);
+        EXPECT_EQ(*(Key_t *) *bgrm->keys, MDHIM_PUT_GET_PRIMARY_KEY);
+        EXPECT_EQ(*(Value_t *) *bgrm->values, MDHIM_PUT_GET_VALUE);
 
-    //     mdhim_full_release_msg(bgrm);
-    // }
+        mdhim_full_release_msg(bgrm);
+    }
 
     mdhim_full_release_msg(sl_ret);
     free(sl_info);
@@ -261,26 +261,25 @@ TEST(mdhimPutGet, secondary_global_and_local) {
             ASSERT_NE(sg_ret, nullptr);
             EXPECT_EQ(sg_ret->error, MDHIM_SUCCESS);
 
-            EXPECT_EQ(*sg_ret->key_lens, *sg_ret->value_lens);
             EXPECT_EQ(sg_ret->num_keys, 1);
             EXPECT_EQ(*(Key_t *) *sg_ret->keys, sgk);
             EXPECT_EQ(*(Value_t *) *sg_ret->values, MDHIM_PUT_GET_PRIMARY_KEY);
         }
 
-        // //Get value back using the returned key
-        // {
-        //     struct mdhim_bgetrm_t *bgrm = mdhimGet(&md, md.primary_index, (void *)sg_ret->values,
-        //                                            *sg_ret->value_lens, MDHIM_GET_EQ);
-        //     ASSERT_NE(bgrm, nullptr);
-        //     EXPECT_EQ(bgrm->error, MDHIM_SUCCESS);
+        //Get value back using the returned key
+        {
+            struct mdhim_bgetrm_t *bgrm = mdhimGet(&md, md.primary_index, (void *) *sg_ret->values,
+                                                   *sg_ret->value_lens, MDHIM_GET_EQ);
+            ASSERT_NE(bgrm, nullptr);
+            EXPECT_EQ(bgrm->error, MDHIM_SUCCESS);
 
-        //     //Make sure value gotten back is correct
-        //     EXPECT_EQ(bgrm->num_keys, 1);
-        //     EXPECT_EQ(*(Key_t *) *bgrm->keys, MDHIM_PUT_GET_PRIMARY_KEY);
-        //     EXPECT_EQ(*(Value_t *) *bgrm->values, MDHIM_PUT_GET_VALUE);
+            //Make sure value gotten back is correct
+            EXPECT_EQ(bgrm->num_keys, 1);
+            EXPECT_EQ(*(Key_t *) *bgrm->keys, MDHIM_PUT_GET_PRIMARY_KEY);
+            EXPECT_EQ(*(Value_t *) *bgrm->values, MDHIM_PUT_GET_VALUE);
 
-        //     mdhim_full_release_msg(bgrm);
-        // }
+            mdhim_full_release_msg(bgrm);
+        }
 
         mdhim_full_release_msg(sg_ret);
         free(sg_info);
@@ -305,20 +304,20 @@ TEST(mdhimPutGet, secondary_global_and_local) {
             EXPECT_EQ(*(Value_t *) *sl_ret->values, MDHIM_PUT_GET_PRIMARY_KEY);
         }
 
-        // //Get value back using the returned key
-        // {
-        //     struct mdhim_bgetrm_t *bgrm = mdhimGet(&md, md.primary_index, (void *)sl_ret->values,
-        //                                            *sl_ret->value_lens, MDHIM_GET_EQ);
-        //     ASSERT_NE(bgrm, nullptr);
-        //     EXPECT_EQ(bgrm->error, MDHIM_SUCCESS);
+        //Get value back using the returned key
+        {
+            struct mdhim_bgetrm_t *bgrm = mdhimGet(&md, md.primary_index, (void *) *sl_ret->values,
+                                                   *sl_ret->value_lens, MDHIM_GET_EQ);
+            ASSERT_NE(bgrm, nullptr);
+            EXPECT_EQ(bgrm->error, MDHIM_SUCCESS);
 
-        //     //Make sure value gotten back is correct
-        //     EXPECT_EQ(bgrm->num_keys, 1);
-        //     EXPECT_EQ(*(Key_t *) *bgrm->keys, MDHIM_PUT_GET_PRIMARY_KEY);
-        //     EXPECT_EQ(*(Value_t *) *bgrm->values, MDHIM_PUT_GET_VALUE);
+            //Make sure value gotten back is correct
+            EXPECT_EQ(bgrm->num_keys, 1);
+            EXPECT_EQ(*(Key_t *) *bgrm->keys, MDHIM_PUT_GET_PRIMARY_KEY);
+            EXPECT_EQ(*(Value_t *) *bgrm->values, MDHIM_PUT_GET_VALUE);
 
-        //     mdhim_full_release_msg(bgrm);
-        // }
+            mdhim_full_release_msg(bgrm);
+        }
 
         mdhim_full_release_msg(sl_ret);
         free(sl_info);
