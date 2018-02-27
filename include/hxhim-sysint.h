@@ -2,6 +2,7 @@
 #define HXHIM_SYSINT_H
 
 #include <hxhim-types.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -14,13 +15,13 @@ extern "C"
      * @param opts the options for this session
      * @return 0 on success, non-zero on failure
      */
-    int hxhim_sess_create(hxhim_session* sess, int opts);
+    int hxhim_sess_create(hxhim_session_t* sess, int opts);
 
     /**
      * @description Ensure the session is stored to stable storage.
      * @param sess the session to persist
      */
-    int hxhim_sess_sync(hxhim_session* sess);
+    int hxhim_sess_sync(hxhim_session_t* sess);
     
     /**
      * @description Commit an HXHIM session. Data is not persistent until
@@ -28,20 +29,20 @@ extern "C"
      * @param sess a pointer to to a session
      * @return 0 if the RDF triples are successfully stored
      */
-    int hxhim_sess_wait(hxhim_session* sess);
+    int hxhim_sess_wait(hxhim_session_t* sess);
 
     /**
      * @description Change the active HXHIM session
      * @param Set the active session
      * @return 0
      */
-    int hxhim_sess(hxhim_session* sess);
+    int hxhim_sess(hxhim_session_t* sess);
 
     /**
      * @description Retrieve the currect HXHIM session
      * @return the active session
      */
-    hxhim_session* hxhim_get_session();
+    hxhim_session_t* hxhim_get_session();
 
     /**
      * @description Register an RDF triple with the session
