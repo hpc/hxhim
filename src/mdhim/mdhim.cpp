@@ -15,7 +15,6 @@
 #include "mdhim_options.h"
 #include "indexes.h"
 #include "mdhim_private.h"
-#include <iostream>
 
 /*! \mainpage MDHIM TNG
  *

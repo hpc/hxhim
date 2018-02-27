@@ -4,11 +4,14 @@
 #include "mdhim.h"
 #include "fill_db_opts.h"
 
-//Constants used across all mdhimPUT tests
+//Constants used across all mdhimPutGet tests
 typedef int Key_t;
 typedef int Value_t;
 const Key_t   MDHIM_PUT_GET_PRIMARY_KEY = 13579;
 const Value_t MDHIM_PUT_GET_VALUE       = 24680;
+
+typedef uint32_t sgk_t; // secondary global key type
+typedef uint32_t slk_t; // secondary local key type
 
 //Put and Get a key-value pair without secondary indexes
 TEST(mdhimPutGet, no_secondary) {
@@ -58,8 +61,8 @@ TEST(mdhimPutGet, secondary_global) {
     EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
 
     // secondary global key
-    uint32_t sgk = md.mdhim_rank + 1;
-    uint32_t *sgk_ptr = &sgk;
+    sgk_t sgk = md.mdhim_rank + 1;
+    sgk_t *sgk_ptr = &sgk;
     int sgk_len = sizeof(sgk);
 
     //Create the secondary remote index
@@ -92,8 +95,8 @@ TEST(mdhimPutGet, secondary_global) {
         EXPECT_EQ(sg_ret->error, MDHIM_SUCCESS);
 
         EXPECT_EQ(sg_ret->num_keys, 1);
-        EXPECT_EQ(*(Key_t *) *sg_ret->keys, sgk);
-        EXPECT_EQ(*(Value_t *) *sg_ret->values, MDHIM_PUT_GET_PRIMARY_KEY);
+        EXPECT_EQ(*(sgk_t *) *sg_ret->keys, sgk);
+        EXPECT_EQ(*(Key_t *) *sg_ret->values, MDHIM_PUT_GET_PRIMARY_KEY);
     }
 
     //Get value back using the returned key
@@ -127,8 +130,8 @@ TEST(mdhimPutGet, secondary_local) {
     EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
 
     // secondary local key
-    uint32_t slk = md.mdhim_rank + 1;
-    uint32_t *slk_ptr = &slk;
+    slk_t slk = md.mdhim_rank + 1;
+    slk_t *slk_ptr = &slk;
     int slk_len = sizeof(slk);
 
     //Create the secondary local index
@@ -176,8 +179,8 @@ TEST(mdhimPutGet, secondary_local) {
 
         //Make sure value gotten back is correct
         EXPECT_EQ(bgrm->num_keys, 1);
-        EXPECT_EQ(*(Key_t *) *bgrm->keys, MDHIM_PUT_GET_PRIMARY_KEY);
-        EXPECT_EQ(*(Value_t *) *bgrm->values, MDHIM_PUT_GET_VALUE);
+        EXPECT_EQ(*(slk_t *) *bgrm->keys, MDHIM_PUT_GET_PRIMARY_KEY);
+        EXPECT_EQ(*(Key_t *) *bgrm->values, MDHIM_PUT_GET_VALUE);
 
         mdhim_full_release_msg(bgrm);
     }
@@ -198,8 +201,8 @@ TEST(mdhimPutGet, secondary_global_and_local) {
     EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
 
     // secondary global key
-    uint32_t sgk = md.mdhim_rank + 1;
-    uint32_t *sgk_ptr = &sgk;
+    sgk_t sgk = md.mdhim_rank + 1;
+    sgk_t *sgk_ptr = &sgk;
     int sgk_len = sizeof(sgk);
 
     //Create the secondary remote index
@@ -212,8 +215,8 @@ TEST(mdhimPutGet, secondary_global_and_local) {
     ASSERT_NE(sg_info, nullptr);
 
     // secondary local key
-    uint32_t slk = md.mdhim_rank + 1;
-    uint32_t *slk_ptr = &slk;
+    slk_t slk = md.mdhim_rank + 1;
+    slk_t *slk_ptr = &slk;
     int slk_len = sizeof(slk);
 
     //Create the secondary local index
@@ -262,8 +265,8 @@ TEST(mdhimPutGet, secondary_global_and_local) {
             EXPECT_EQ(sg_ret->error, MDHIM_SUCCESS);
 
             EXPECT_EQ(sg_ret->num_keys, 1);
-            EXPECT_EQ(*(Key_t *) *sg_ret->keys, sgk);
-            EXPECT_EQ(*(Value_t *) *sg_ret->values, MDHIM_PUT_GET_PRIMARY_KEY);
+            EXPECT_EQ(*(sgk_t *) *sg_ret->keys, sgk);
+            EXPECT_EQ(*(Key_t *) *sg_ret->values, MDHIM_PUT_GET_PRIMARY_KEY);
         }
 
         //Get value back using the returned key
@@ -300,8 +303,8 @@ TEST(mdhimPutGet, secondary_global_and_local) {
 
             //Make sure value gotten back is correct
             EXPECT_EQ(sl_ret->num_keys, 1);
-            EXPECT_EQ(*(Key_t *) *sl_ret->keys, slk);
-            EXPECT_EQ(*(Value_t *) *sl_ret->values, MDHIM_PUT_GET_PRIMARY_KEY);
+            EXPECT_EQ(*(slk_t *) *sl_ret->keys, slk);
+            EXPECT_EQ(*(Key_t *) *sl_ret->values, MDHIM_PUT_GET_PRIMARY_KEY);
         }
 
         //Get value back using the returned key
