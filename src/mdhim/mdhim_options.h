@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <mpi.h>
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -110,4 +111,5 @@ void set_manifest_path(mdhim_options_t* opts, char *path);
 #ifdef __cplusplus
 }
 #endif
+
 #endif

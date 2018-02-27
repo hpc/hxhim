@@ -15,7 +15,6 @@
 #include "mdhim_options.h"
 #include "indexes.h"
 #include "mdhim_private.h"
-#include <iostream>
 
 /*! \mainpage MDHIM TNG
  *
@@ -38,22 +37,22 @@ static int groupInitialization(mdhim_t *md) {
     }
 
     //Don't allow MPI_COMM_NULL to be the communicator
-    if (md->mdhim_comm == MPI_COMM_NULL) {
+    if (md->p->mdhim_comm == MPI_COMM_NULL) {
         return MDHIM_ERROR;
     }
 
 	//Dup the communicator passed in for barriers between clients
-	if (MPI_Comm_dup(md->mdhim_comm, &md->mdhim_client_comm) != MPI_SUCCESS) {
+	if (MPI_Comm_dup(md->p->mdhim_comm, &md->p->mdhim_client_comm) != MPI_SUCCESS) {
         return MDHIM_ERROR;
 	}
 
     //Get our rank in the main MDHIM communicator
-	if (MPI_Comm_rank(md->mdhim_comm, &md->mdhim_rank) != MPI_SUCCESS) {
+	if (MPI_Comm_rank(md->p->mdhim_comm, &md->p->mdhim_rank) != MPI_SUCCESS) {
         return MDHIM_ERROR;
 	}
 
 	//Get the size of the main MDHIM communicator
-	if (MPI_Comm_size(md->mdhim_comm, &md->mdhim_comm_size) != MPI_SUCCESS) {
+	if (MPI_Comm_size(md->p->mdhim_comm, &md->p->mdhim_comm_size) != MPI_SUCCESS) {
         return MDHIM_ERROR;
 	}
 
@@ -73,7 +72,7 @@ static int groupDestruction(mdhim_t *md) {
     }
 
     //Destroy the client communicator
-	MPI_Comm_free(&md->mdhim_client_comm);
+	MPI_Comm_free(&md->p->mdhim_client_comm);
 
     return MDHIM_SUCCESS;
 }
@@ -91,16 +90,16 @@ static int indexInitialization(mdhim_t *md) {
     }
 
 	//Initialize the indexes and create the primary index
-	md->indexes = NULL;
-	md->indexes_by_name = NULL;
-	if (pthread_rwlock_init(&md->indexes_lock, NULL) != 0) {
+	md->p->indexes = NULL;
+	md->p->indexes_by_name = NULL;
+	if (pthread_rwlock_init(&md->p->indexes_lock, NULL) != 0) {
 		return MDHIM_ERROR;
 	}
 
 	//Create the default remote primary index
-	md->primary_index = create_global_index(md, md->db_opts->rserver_factor, md->db_opts->max_recs_per_slice,
-                                            md->db_opts->db_type, md->db_opts->db_key_type, NULL);
-	if (!md->primary_index) {
+	md->p->primary_index = create_global_index(md, md->p->db_opts->rserver_factor, md->p->db_opts->max_recs_per_slice,
+                                            md->p->db_opts->db_type, md->p->db_opts->db_key_type, NULL);
+	if (!md->p->primary_index) {
 		return MDHIM_ERROR;
 	}
 
@@ -119,35 +118,13 @@ static int indexDestruction(mdhim_t *md) {
         return MDHIM_ERROR;
     }
 
-    if (pthread_rwlock_destroy(&md->indexes_lock) != 0) {
+    if (pthread_rwlock_destroy(&md->p->indexes_lock) != 0) {
         return MDHIM_ERROR;
     }
 
 	indexes_release(md);
 
     return MDHIM_SUCCESS;
-}
-
-/**
- * mdhimAllocate
- *
- * @return uninitialized pointer to a mdhim_t
- */
-mdhim_t *mdhimAllocate() {
-    return new mdhim_t;
-}
-
-/**
- * mdhimDestroy
- * frees a pointer to a mdhim_t, and sets it to null
- *
- * @param md the address of a mdhim_t pointer
- */
-void mdhimDestroy(mdhim_t **md) {
-    if (md) {
-        delete *md;
-        *md = nullptr;
-    }
 }
 
 /**
@@ -167,6 +144,8 @@ int mdhimInit(mdhim_t* md, mdhim_options_t *opts) {
       return MDHIM_ERROR;
     }
 
+    md->p = new mdhim_private;
+
 	//Open mlog - stolen from plfs
     //Assume opts has been initialized
 	mlog_open((char *)"mdhim", 0, opts->debug_level, opts->debug_level, NULL, 0, MLOG_LOGPID, 0);
@@ -180,12 +159,12 @@ int mdhimInit(mdhim_t* md, mdhim_options_t *opts) {
 
     //Initialize context variables based on options
 
-    md->mdhim_comm = opts->comm;
-    md->mdhim_comm_lock = PTHREAD_MUTEX_INITIALIZER;
+    md->p->mdhim_comm = opts->comm;
+    md->p->mdhim_comm_lock = PTHREAD_MUTEX_INITIALIZER;
 
     //Required for index initialization
-    md->mdhim_rs = NULL;
-    md->db_opts = opts;
+    md->p->mdhim_rs = NULL;
+    md->p->db_opts = opts;
 
     //Initialize group members of context
     if (groupInitialization(md) != MDHIM_SUCCESS){
@@ -203,11 +182,11 @@ int mdhimInit(mdhim_t* md, mdhim_options_t *opts) {
     }
 
     //Flag that won't be used until shutdown
-    md->shutdown = 0;
+    md->p->shutdown = 0;
 
-    md->receive_msg_mutex = PTHREAD_MUTEX_INITIALIZER;
-    md->receive_msg_ready_cv = PTHREAD_COND_INITIALIZER;
-    md->receive_msg = NULL;
+    md->p->receive_msg_mutex = PTHREAD_MUTEX_INITIALIZER;
+    md->p->receive_msg_ready_cv = PTHREAD_COND_INITIALIZER;
+    md->p->receive_msg = NULL;
 
 	return MDHIM_SUCCESS;
 }
@@ -219,15 +198,15 @@ int mdhimInit(mdhim_t* md, mdhim_options_t *opts) {
  * @return MDHIM status value
  */
 int mdhimClose(struct mdhim *md) {
-    if (!md) {
+    if (!md || !md->p) {
         return MDHIM_ERROR;
     }
 
     //Force shutdown if not already started
-    md->shutdown = 1;
+    md->p->shutdown = 1;
 
 	//Stop range server if I'm a range server
-	if (md->mdhim_rs && (range_server_stop(md) != MDHIM_SUCCESS)) {
+	if (md->p->mdhim_rs && (range_server_stop(md) != MDHIM_SUCCESS)) {
 		return MDHIM_ERROR;
 	}
 
@@ -240,12 +219,15 @@ int mdhimClose(struct mdhim *md) {
     }
 
 	//Free up memory used by message buffer
-    free(md->receive_msg);
+    free(md->p->receive_msg);
 
     //Clean up group members
     if (groupDestruction(md) != MDHIM_SUCCESS) {
         return MDHIM_ERROR;
     }
+
+    delete(md->p);
+    md->p = NULL;
 
 	//Close MLog
 	mlog_close();
@@ -264,7 +246,11 @@ int mdhimCommit(struct mdhim *md, struct index_t *index) {
 	struct mdhim_basem_t *cm;
 	struct mdhim_rm_t *rm = NULL;
 
-	MPI_Barrier(md->mdhim_client_comm);
+    if (!index) {
+      index = md->p->primary_index;
+    }
+
+	MPI_Barrier(md->p->mdhim_client_comm);
 	//If I'm a range server, send a commit message to myself
 	if (im_range_server(index)) {
 		cm = (mdhim_basem_t*) malloc(sizeof(struct mdhim_basem_t));
@@ -276,7 +262,7 @@ int mdhimCommit(struct mdhim *md, struct index_t *index) {
 			ret = MDHIM_ERROR;
 			mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - "
 			     "Error while committing database in mdhimCommit",
-			     md->mdhim_rank);
+			     md->p->mdhim_rank);
 		}
 
 		if (rm) {
@@ -284,7 +270,7 @@ int mdhimCommit(struct mdhim *md, struct index_t *index) {
 		}
 	}
 
-	MPI_Barrier(md->mdhim_client_comm);
+	MPI_Barrier(md->p->mdhim_client_comm);
 
 	return ret;
 }
@@ -317,7 +303,7 @@ struct mdhim_brm_t *mdhimPut(struct mdhim *md,
 		return NULL;
 	}
 
-	struct mdhim_rm_t *rm = _put_record(md, md->primary_index, primary_key, primary_key_len, value, value_len);
+	struct mdhim_rm_t *rm = _put_record(md, md->p->primary_index, primary_key, primary_key_len, value, value_len);
 	if (!rm || rm->error) {
 		return NULL;
 	}
@@ -487,7 +473,7 @@ struct mdhim_brm_t *mdhimBPut(struct mdhim *md,
 		return NULL;
 	}
 
-	head = _bput_records(md, md->primary_index, primary_keys, primary_key_lens,
+	head = _bput_records(md, md->p->primary_index, primary_keys, primary_key_lens,
 			     primary_values, primary_value_lens, num_records);
 	if (!head || head->error) {
 		return head;
@@ -572,12 +558,12 @@ struct mdhim_bgetrm_t *mdhimGet(mdhim_t *md, struct index_t *index,
 	if (op != MDHIM_GET_EQ && op != MDHIM_GET_PRIMARY_EQ) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
 		     "Invalid op specified for mdhimGet",
-		     md->mdhim_rank);
+		     md->p->mdhim_rank);
 		return NULL;
 	}
 
 	if (!index) {
-		index = md->primary_index;
+		index = md->p->primary_index;
 	}
 
 	//Create an a array with the single key and key len passed in
@@ -617,7 +603,7 @@ struct mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, struct index_t *index,
 	if (op != MDHIM_GET_EQ && op != MDHIM_GET_PRIMARY_EQ) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
 		     "Invalid operation for mdhimBGet",
-		     md->mdhim_rank);
+		     md->p->mdhim_rank);
 		return NULL;
 	}
 
@@ -625,14 +611,14 @@ struct mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, struct index_t *index,
 	if (num_keys > MAX_BULK_OPS) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
 		     "Too many bulk operations requested in mdhimBGet",
-		     md->mdhim_rank);
+		     md->p->mdhim_rank);
 		return NULL;
 	}
 
 	if (!index) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
 		     "Invalid index specified",
-		     md->mdhim_rank);
+		     md->p->mdhim_rank);
 		return NULL;
 	}
 
@@ -657,7 +643,7 @@ struct mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, struct index_t *index,
 			     "Too many bulk operations would be performed "
 			     "with the MDHIM_GET_PRIMARY_EQ operation.  Limiting "
 			     "request to : %u key/values",
-			     md->mdhim_rank, MAX_BULK_OPS);
+			     md->p->mdhim_rank, MAX_BULK_OPS);
 			plen = MAX_BULK_OPS - 1;
 		}
 
@@ -733,14 +719,14 @@ struct mdhim_bgetrm_t *mdhimBGetOp(mdhim_t *md, struct index_t *index,
 	if (num_records > MAX_BULK_OPS) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
 		     "To many bulk operations requested in mdhimBGetOp",
-		     md->mdhim_rank);
+		     md->p->mdhim_rank);
 		return NULL;
 	}
 
 	if (op == MDHIM_GET_EQ || op == MDHIM_GET_PRIMARY_EQ) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
 		     "Invalid op specified for mdhimGet",
-		     md->mdhim_rank);
+		     md->p->mdhim_rank);
 		return NULL;
 	}
 
@@ -805,7 +791,7 @@ struct mdhim_brm_t *mdhimBDelete(mdhim_t *md, struct index_t *index,
 	if (num_records > MAX_BULK_OPS) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
 		     "To many bulk operations requested in mdhimBGetOp",
-		     md->mdhim_rank);
+		     md->p->mdhim_rank);
 		return NULL;
 	}
 
@@ -824,13 +810,13 @@ struct mdhim_brm_t *mdhimBDelete(mdhim_t *md, struct index_t *index,
 int mdhimStatFlush(mdhim_t *md, struct index_t *index) {
 	int ret;
 
-	MPI_Barrier(md->mdhim_client_comm);
+	MPI_Barrier(md->p->mdhim_client_comm);
 	if ((ret = get_stat_flush(md, index)) != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
 		     "Error while getting MDHIM stat data in mdhimStatFlush",
-		     md->mdhim_rank);
+		     md->p->mdhim_rank);
 	}
-	MPI_Barrier(md->mdhim_client_comm);
+	MPI_Barrier(md->p->mdhim_client_comm);
 
 	return ret;
 }

@@ -12,23 +12,12 @@
 TEST(mdhimInitClose, Good) {
     mdhim_options_t opts;
     mdhim_t md;
-
     EXPECT_EQ(mdhim_options_init(&opts), MDHIM_SUCCESS);
     fill_db_opts(opts);
 
     EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
     EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
 }
-
-// Communicator has not been initialized
-// This is undefined behavior and MPI is likely to just crash
-// TEST(mdhimInit, No_Comm) {
-//     mdhim_options_t opts;
-//     mdhim_t md;
-
-//     EXPECT_EQ(mdhim_options_init(&opts), MDHIM_SUCCESS);
-//     EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_ERROR);
-// }
 
 // The communicator provided is MPI_COMM_NULL
 TEST(mdhimInit, NULL_Comm) {

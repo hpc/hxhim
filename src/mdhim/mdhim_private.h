@@ -2,22 +2,19 @@
 #define MDHIM_PRIVATE_H
 
 #include "mdhim.h"
+#include "range_server.h"
 #include "comm.h"
 #include "comm_mpi.h"
-
-/**
- * Struct that contains the private details about MDHim's implementation
- */
-struct mdhim_private {
-    CommTransport *comm;
-};
-typedef struct mdhim_private mdhim_private_t;
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-typedef struct mdhim {
+/**
+ * Struct that contains the private details about MDHim's implementation
+ */
+
+typedef struct mdhim_private {
 	//This communicator will include every process in the application, but is separate from main the app
     //It is used for sending and receiving to and from the range servers
 	MPI_Comm mdhim_comm;
@@ -55,9 +52,9 @@ typedef struct mdhim {
     //Options for DB creation
 	mdhim_options_t *db_opts;
 
-	/* // Opaque pointer to the private portions of this struct */
-	/* struct mdhim_private *p; */
-} mdhim_t;
+    CommTransport *comm;
+
+} mdhim_private_t;
 #ifdef __cplusplus
 }
 #endif

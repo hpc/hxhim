@@ -5,7 +5,7 @@
  */
 
 #include <stdlib.h>
-#include "mdhim.h"
+#include "mdhim_private.h"
 #include "local_client.h"
 
 /**
@@ -21,18 +21,18 @@ static void *get_msg_self(struct mdhim *md) {
 	void *msg;
 
 	//Lock the receive msg mutex
-	pthread_mutex_lock(&md->receive_msg_mutex);
+	pthread_mutex_lock(&md->p->receive_msg_mutex);
 	//Wait until there is a message to receive
-	if (!md->receive_msg) {
-		pthread_cond_wait(&md->receive_msg_ready_cv, &md->receive_msg_mutex);
+	if (!md->p->receive_msg) {
+		pthread_cond_wait(&md->p->receive_msg_ready_cv, &md->p->receive_msg_mutex);
 	}
 
 	//Get the message
-	msg = md->receive_msg;
+	msg = md->p->receive_msg;
 	//Set the message queue to null
-	md->receive_msg = NULL;
+	md->p->receive_msg = NULL;
 	//unlock the mutex
-	pthread_mutex_unlock(&md->receive_msg_mutex);
+	pthread_mutex_unlock(&md->p->receive_msg_mutex);
 
 	return msg;
 }
@@ -56,7 +56,7 @@ struct mdhim_rm_t *local_client_put(struct mdhim *md, struct mdhim_putm_t *pm) {
 
 	memset(item, 0, sizeof(work_item));
 	item->message = (void *)pm;
-	item->source = md->mdhim_rank;
+	item->source = md->p->mdhim_rank;
 	if ((ret = range_server_add_work(md, item)) != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
 		return NULL;
@@ -86,7 +86,7 @@ struct mdhim_rm_t *local_client_bput(struct mdhim *md, struct mdhim_bputm_t *bpm
 	}
 
 	item->message = (void *)bpm;
-	item->source = md->mdhim_rank;
+	item->source = md->p->mdhim_rank;
 	if ((ret = range_server_add_work(md, item)) != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
 		return NULL;
@@ -116,7 +116,7 @@ struct mdhim_bgetrm_t *local_client_bget(struct mdhim *md, struct mdhim_bgetm_t 
 	}
 
 	item->message = (void *)bgm;
-	item->source = md->mdhim_rank;
+	item->source = md->p->mdhim_rank;
 	if ((ret = range_server_add_work(md, item)) != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
 		return NULL;
@@ -146,7 +146,7 @@ struct mdhim_bgetrm_t *local_client_bget_op(struct mdhim *md, struct mdhim_getm_
 	}
 
 	item->message = (void *)gm;
-	item->source = md->mdhim_rank;
+	item->source = md->p->mdhim_rank;
 	if ((ret = range_server_add_work(md, item)) != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
 		return NULL;
@@ -176,7 +176,7 @@ struct mdhim_rm_t *local_client_commit(struct mdhim *md, struct mdhim_basem_t *c
 	}
 
 	item->message = (void *)cm;
-	item->source = md->mdhim_rank;
+	item->source = md->p->mdhim_rank;
 	if ((ret = range_server_add_work(md, item)) != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
 		return NULL;
@@ -206,7 +206,7 @@ struct mdhim_rm_t *local_client_delete(struct mdhim *md, struct mdhim_delm_t *dm
 	}
 
 	item->message = (void *)dm;
-	item->source = md->mdhim_rank;
+	item->source = md->p->mdhim_rank;
 	if ((ret = range_server_add_work(md, item)) != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
 		return NULL;
@@ -237,7 +237,7 @@ struct mdhim_rm_t *local_client_bdelete(struct mdhim *md, struct mdhim_bdelm_t *
 	}
 
 	item->message = (void *)bdm;
-	item->source = md->mdhim_rank;
+	item->source = md->p->mdhim_rank;
 	if ((ret = range_server_add_work(md, item)) != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
 		return NULL;
@@ -265,7 +265,7 @@ void local_client_close(struct mdhim *md, struct mdhim_basem_t *cm) {
 	}
 
 	item->message = (void *)cm;
-	item->source = md->mdhim_rank;
+	item->source = md->p->mdhim_rank;
 	if ((ret = range_server_add_work(md, item)) != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
 		return;
