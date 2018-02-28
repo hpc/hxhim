@@ -4,6 +4,16 @@
 #include "local_client.h"
 #include "partitioner.h"
 #include "indexes.h"
+#include "comm.h"
+#include "comm_mpi.h"
+#include "mdhim_private.h"
+
+/**
+ * Struct that contains the private details about MDHim's implementation
+ */
+struct mdhim_private {
+    CommTransport *comm;
+};
 
 int mdhim_private_init(mdhim_private* mdp, int dstype, int commtype) {
 
@@ -28,7 +38,7 @@ err_out:
 }
 
 struct mdhim_rm_t *_put_record(struct mdhim *md, struct index_t *index,
-			       void *key, int key_len, 
+			       void *key, int key_len,
 			       void *value, int value_len) {
 	struct mdhim_rm_t *rm = NULL;
 	rangesrv_list *rl, *rlp;
@@ -48,28 +58,28 @@ struct mdhim_rm_t *_put_record(struct mdhim *md, struct index_t *index,
 
 	//Get the range server this key will be sent to
 	if (put_index->type == LOCAL_INDEX) {
-		if ((rl = get_range_servers(md, lookup_index, value, value_len)) == 
+		if ((rl = get_range_servers(md, lookup_index, value, value_len)) ==
 		    NULL) {
-			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
-			     "Error while determining range server in mdhimBPut", 
+			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+			     "Error while determining range server in mdhimBPut",
 			     md->mdhim_rank);
 			return NULL;
 		}
 	} else {
 		//Get the range server this key will be sent to
 		if ((rl = get_range_servers(md, lookup_index, key, key_len)) == NULL) {
-			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
-			     "Error while determining range server in _put_record", 
+			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+			     "Error while determining range server in _put_record",
 			     md->mdhim_rank);
 			return NULL;
 		}
 	}
-	
+
 	while (rl) {
 		pm = (mdhim_putm_t*)malloc(sizeof(struct mdhim_putm_t));
 		if (!pm) {
-			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
-			     "Error while allocating memory in _put_record", 
+			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+			     "Error while allocating memory in _put_record",
 			     md->mdhim_rank);
 			return NULL;
 		}
@@ -138,8 +148,8 @@ void _concat_brm(struct mdhim_brm_t *head, struct mdhim_brm_t *addition) {
 }
 
 struct mdhim_brm_t *_bput_records(struct mdhim *md, struct index_t *index,
-				  void **keys, int *key_lens, 
-				  void **values, int *value_lens, 
+				  void **keys, int *key_lens,
+				  void **values, int *value_lens,
 				  int num_keys) {
 	struct mdhim_bputm_t **bpm_list, *lbpm;
 	struct mdhim_bputm_t *bpm;
@@ -161,8 +171,8 @@ struct mdhim_brm_t *_bput_records(struct mdhim *md, struct index_t *index,
 
 	//Check to see that we were given a sane amount of records
 	if (num_keys > MAX_BULK_OPS) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
-		     "To many bulk operations requested in mdhimBGetOp", 
+		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+		     "To many bulk operations requested in mdhimBGetOp",
 		     md->mdhim_rank);
 		return NULL;
 	}
@@ -178,28 +188,28 @@ struct mdhim_brm_t *_bput_records(struct mdhim *md, struct index_t *index,
 	}
 
 	/* Go through each of the records to find the range server(s) the record belongs to.
-	   If there is not a bulk message in the array for the range server the key belongs to, 
+	   If there is not a bulk message in the array for the range server the key belongs to,
 	   then it is created.  Otherwise, the data is added to the existing message in the array.*/
 	for (i = 0; i < num_keys && i < MAX_BULK_OPS; i++) {
 		//Get the range server this key will be sent to
 		if (put_index->type == LOCAL_INDEX) {
-			if ((rl = get_range_servers(md, lookup_index, values[i], value_lens[i])) == 
+			if ((rl = get_range_servers(md, lookup_index, values[i], value_lens[i])) ==
 			    NULL) {
-				mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
-				     "Error while determining range server in mdhimBPut", 
+				mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+				     "Error while determining range server in mdhimBPut",
 				     md->mdhim_rank);
 				continue;
 			}
 		} else {
-			if ((rl = get_range_servers(md, lookup_index, keys[i], key_lens[i])) == 
+			if ((rl = get_range_servers(md, lookup_index, keys[i], key_lens[i])) ==
 			    NULL) {
-				mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
-				     "Error while determining range server in mdhimBPut", 
+				mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+				     "Error while determining range server in mdhimBPut",
 				     md->mdhim_rank);
 				continue;
 			}
 		}
-       
+
 		//There could be more than one range server returned in the case of the local index
 		while (rl) {
 			if (rl->ri->rank != md->mdhim_rank) {
@@ -228,7 +238,7 @@ struct mdhim_brm_t *_bput_records(struct mdhim *md, struct index_t *index,
 					lbpm = bpm;
 				}
 			}
-		
+
 			//Add the key, lengths, and data to the message
 			bpm->keys[bpm->num_keys] = keys[i];
 			bpm->key_lens[bpm->num_keys] = key_lens[i];
@@ -238,7 +248,7 @@ struct mdhim_brm_t *_bput_records(struct mdhim *md, struct index_t *index,
 			rlp = rl;
 			rl = rl->next;
 			free(rlp);
-		}	
+		}
 	}
 
 	//Make a list out of the received messages to return
@@ -252,13 +262,13 @@ struct mdhim_brm_t *_bput_records(struct mdhim *md, struct index_t *index,
                         free(rm);
                 }
 	}
-	
+
 	//Free up messages sent
 	for (i = 0; i < lookup_index->num_rangesrvs; i++) {
 		if (!bpm_list[i]) {
 			continue;
 		}
-			
+
 		free(bpm_list[i]->keys);
 		free(bpm_list[i]->values);
 		free(bpm_list[i]->key_lens);
@@ -273,7 +283,7 @@ struct mdhim_brm_t *_bput_records(struct mdhim *md, struct index_t *index,
 }
 
 struct mdhim_bgetrm_t *_bget_records(struct mdhim *md, struct index_t *index,
-				     void **keys, int *key_lens, 
+				     void **keys, int *key_lens,
 				     int num_keys, int num_records, int op) {
 	struct mdhim_bgetm_t **bgm_list;
 	struct mdhim_bgetm_t *bgm, *lbgm;
@@ -291,29 +301,29 @@ struct mdhim_bgetrm_t *_bget_records(struct mdhim *md, struct index_t *index,
 	}
 
 	/* Go through each of the records to find the range server the record belongs to.
-	   If there is not a bulk message in the array for the range server the key belongs to, 
+	   If there is not a bulk message in the array for the range server the key belongs to,
 	   then it is created.  Otherwise, the data is added to the existing message in the array.*/
 	for (i = 0; i < num_keys && i < MAX_BULK_OPS; i++) {
 		//Get the range server this key will be sent to
-		if ((op == MDHIM_GET_EQ || op == MDHIM_GET_PRIMARY_EQ) && 
+		if ((op == MDHIM_GET_EQ || op == MDHIM_GET_PRIMARY_EQ) &&
 		    index->type != LOCAL_INDEX &&
-		    (rl = get_range_servers(md, index, keys[i], key_lens[i])) == 
+		    (rl = get_range_servers(md, index, keys[i], key_lens[i])) ==
 		    NULL) {
-			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
-			     "Error while determining range server in mdhimBget", 
+			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+			     "Error while determining range server in mdhimBget",
 			     md->mdhim_rank);
 			free(bgm_list);
 			return NULL;
-		} else if ((index->type == LOCAL_INDEX || 
+		} else if ((index->type == LOCAL_INDEX ||
 			   (op != MDHIM_GET_EQ && op != MDHIM_GET_PRIMARY_EQ)) &&
-			   (rl = get_range_servers_from_stats(md, index, keys[i], key_lens[i], op)) == 
+			   (rl = get_range_servers_from_stats(md, index, keys[i], key_lens[i], op)) ==
 			   NULL) {
-			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
-			     "Error while determining range server in mdhimBget", 
+			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+			     "Error while determining range server in mdhimBget",
 			     md->mdhim_rank);
 			free(bgm_list);
 			return NULL;
-		}	   	
+		}
 
 		while (rl) {
 			if (rl->ri->rank != md->mdhim_rank) {
@@ -344,11 +354,11 @@ struct mdhim_bgetrm_t *_bget_records(struct mdhim *md, struct index_t *index,
 					lbgm = bgm;
 				}
 			}
-		
+
 			//Add the key, lengths, and data to the message
 			bgm->keys[bgm->num_keys] = keys[i];
 			bgm->key_lens[bgm->num_keys] = key_lens[i];
-			bgm->num_keys++;	
+			bgm->num_keys++;
 			rlp = rl;
 			rl = rl->next;
 			free(rlp);
@@ -362,7 +372,7 @@ struct mdhim_bgetrm_t *_bget_records(struct mdhim *md, struct index_t *index,
 		lbgrm->next = bgrm_head;
 		bgrm_head = lbgrm;
 	}
-	
+
 	for (i = 0; i < index->num_rangesrvs; i++) {
 		if (!bgm_list[i]) {
 			continue;
@@ -407,27 +417,27 @@ struct mdhim_brm_t *_bdel_records(struct mdhim *md, struct index_t *index,
 	}
 
 	/* Go through each of the records to find the range server the record belongs to.
-	   If there is not a bulk message in the array for the range server the key belongs to, 
+	   If there is not a bulk message in the array for the range server the key belongs to,
 	   then it is created.  Otherwise, the data is added to the existing message in the array.*/
 	for (i = 0; i < num_keys && i < MAX_BULK_OPS; i++) {
 		//Get the range server this key will be sent to
-		if (index->type != LOCAL_INDEX && 
-		    (rl = get_range_servers(md, index, keys[i], key_lens[i])) == 
+		if (index->type != LOCAL_INDEX &&
+		    (rl = get_range_servers(md, index, keys[i], key_lens[i])) ==
 		    NULL) {
-			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
-			     "Error while determining range server in mdhimBdel", 
+			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+			     "Error while determining range server in mdhimBdel",
 			     md->mdhim_rank);
 			continue;
-		} else if (index->type == LOCAL_INDEX && 
-			   (rl = get_range_servers_from_stats(md, index, keys[i], 
-							      key_lens[i], MDHIM_GET_EQ)) == 
+		} else if (index->type == LOCAL_INDEX &&
+			   (rl = get_range_servers_from_stats(md, index, keys[i],
+							      key_lens[i], MDHIM_GET_EQ)) ==
 			   NULL) {
-			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
-			     "Error while determining range server in mdhimBdel", 
+			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+			     "Error while determining range server in mdhimBdel",
 			     md->mdhim_rank);
 			continue;
 		}
-       
+
 		if (rl->ri->rank != md->mdhim_rank) {
 			//Set the message in the list for this range server
 			bdm = bdm_list[rl->ri->rangesrv_num - 1];
@@ -456,7 +466,7 @@ struct mdhim_brm_t *_bdel_records(struct mdhim *md, struct index_t *index,
 		//Add the key, lengths, and data to the message
 		bdm->keys[bdm->num_keys] = keys[i];
 		bdm->key_lens[bdm->num_keys] = key_lens[i];
-		bdm->num_keys++;		
+		bdm->num_keys++;
 	}
 
 	//Make a list out of the received messages to return
@@ -471,9 +481,9 @@ struct mdhim_brm_t *_bdel_records(struct mdhim *md, struct index_t *index,
 		brm->basem.server_rank = rm->basem.server_rank;
 		brm->next = brm_head;
 		brm_head = brm;
-		free(rm);	
+		free(rm);
 	}
-	
+
 	for (i = 0; i < index->num_rangesrvs; i++) {
 		if (!bdm_list[i]) {
 			continue;

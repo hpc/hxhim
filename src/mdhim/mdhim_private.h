@@ -2,15 +2,11 @@
 #define MDHIM_PRIVATE_H
 
 #include "mdhim.h"
-#include "comm.h"
-#include "comm_mpi.h"
+#include "range_server.h"
 
 /**
  * Struct that contains the private details about MDHim's implementation
  */
-struct mdhim_private {
-    CommTransport *comm;
-};
 typedef struct mdhim_private mdhim_private_t;
 
 #ifdef __cplusplus
@@ -58,6 +54,7 @@ typedef struct mdhim {
 	/* // Opaque pointer to the private portions of this struct */
 	/* struct mdhim_private *p; */
 } mdhim_t;
+
 #ifdef __cplusplus
 }
 #endif

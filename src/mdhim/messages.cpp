@@ -1,6 +1,6 @@
 #include <unistd.h>
-#include "mdhim.h"
 #include "partitioner.h"
+#include "mdhim_private.h"
 #include "messages.h"
 
 void test_req_and_wait(struct mdhim *md, MPI_Request *req) {

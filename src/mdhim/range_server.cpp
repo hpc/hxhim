@@ -14,10 +14,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include "mdhim.h"
 #include "range_server.h"
 #include "partitioner.h"
 #include "mdhim_options.h"
+#include "mdhim_private.h"
 
 void add_timing(struct timeval start, struct timeval end, int num,
 		struct mdhim *md, int mtype) {
@@ -119,7 +119,7 @@ struct index_t * find_index_by_name(struct mdhim *md, struct mdhim_basem_t *msg)
  * @param item    pointer to new work item that contains a message to handle
  * @return MDHIM_SUCCESS
  */
-int range_server_add_work(struct mdhim *md, work_item *item) {
+int range_server_add_work(struct mdhim *md, work_item_t *item) {
 	//Lock the work queue mutex
 	pthread_mutex_lock(md->mdhim_rs->work_queue_mutex);
 	item->next = NULL;
@@ -150,8 +150,8 @@ int range_server_add_work(struct mdhim *md, work_item *item) {
  * @return  the next work_item to process
  */
 
-work_item *get_work(struct mdhim *md) {
-	work_item *item;
+work_item_t *get_work(struct mdhim *md) {
+	work_item_t *item;
 
 	item = md->mdhim_rs->work_queue->head;
 	if (!item) {

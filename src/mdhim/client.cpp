@@ -1,11 +1,12 @@
 /*
  * MDHIM TNG
- * 
+ *
  * Client specific implementation for sending to range server that is not yourself
  */
 
 #include <stdlib.h>
 #include "mdhim.h"
+#include "mdhim_private.h"
 #include "client.h"
 #include "partitioner.h"
 
@@ -19,7 +20,7 @@
 struct mdhim_rm_t *client_put(struct mdhim *md, struct mdhim_putm_t *pm) {
 
 	int return_code;
-	struct mdhim_rm_t *rm;       
+	struct mdhim_rm_t *rm;
 
 	return_code = send_rangesrv_work(md, pm->basem.server_rank, pm);
 	// If the send did not succeed then log the error code and return MDHIM_ERROR
@@ -34,16 +35,16 @@ struct mdhim_rm_t *client_put(struct mdhim *md, struct mdhim_putm_t *pm) {
 	if (return_code != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: %d from server while receiving "
 		     "put record request",  md->mdhim_rank, return_code);
-		rm->error = MDHIM_ERROR;	
+		rm->error = MDHIM_ERROR;
 	}
-        
+
 	// Return response message
 	return rm;
 }
 
 /**
  * Send bulk put to range server
- * 
+ *
  * @param md main MDHIM struct
  * @param bpm_list double pointer to an array of bulk put messages
  * @return return_message structure with ->error = MDHIM_SUCCESS or MDHIM_ERROR
@@ -81,7 +82,7 @@ struct mdhim_brm_t *client_bput(struct mdhim *md, struct index_t *index,
 
 		return NULL;
 	}
-	
+
 	rm_list = (mdhim_rm_t**)malloc(sizeof(struct mdhim_rm_t *) * num_srvs);
 	memset(rm_list, 0, sizeof(struct mdhim_rm_t *) * num_srvs);
 	return_code = receive_all_client_responses(md, srvs, num_srvs, (void ***) &rm_list);
@@ -95,8 +96,8 @@ struct mdhim_brm_t *client_bput(struct mdhim *md, struct index_t *index,
 	for (i = 0; i < num_srvs; i++) {
 		rm = rm_list[i];
 		if (!rm) {
-		  mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
-		       "Error: did not receive a response message in client_bput",  
+		  mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+		       "Error: did not receive a response message in client_bput",
 		       md->mdhim_rank);
 		  //Skip this as the message doesn't exist
 		  continue;
@@ -165,7 +166,7 @@ struct mdhim_bgetrm_t *client_bget(struct mdhim *md, struct index_t *index,
 
 		return NULL;
 	}
-	
+
 	bgrm_list = (mdhim_bgetrm_t**)malloc(sizeof(struct mdhim_bgetrm_t *) * num_srvs);
 	memset(bgrm_list, 0, sizeof(struct mdhim_bgetrm_t *) * num_srvs);
 	return_code = receive_all_client_responses(md, srvs, num_srvs, (void ***) &bgrm_list);
@@ -179,8 +180,8 @@ struct mdhim_bgetrm_t *client_bget(struct mdhim *md, struct index_t *index,
 	for (i = 0; i < num_srvs; i++) {
 		bgrm = bgrm_list[i];
 		if (!bgrm) {
-		  mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
-		       "Error: did not receive a response message in client_bget",  
+		  mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+		       "Error: did not receive a response message in client_bget",
 		       md->mdhim_rank);
 		  //Skip this as the message doesn't exist
 		  continue;
@@ -213,7 +214,7 @@ struct mdhim_bgetrm_t *client_bget_op(struct mdhim *md, struct mdhim_getm_t *gm)
 
 	int return_code;
 	struct mdhim_bgetrm_t *brm;
-	
+
 	return_code = send_rangesrv_work(md, gm->basem.server_rank, gm);
 	// If the send did not succeed then log the error code and return MDHIM_ERROR
 	if (return_code != MDHIM_SUCCESS) {
@@ -244,7 +245,7 @@ struct mdhim_bgetrm_t *client_bget_op(struct mdhim *md, struct mdhim_getm_t *gm)
 struct mdhim_rm_t *client_delete(struct mdhim *md, struct mdhim_delm_t *dm) {
 
 	int return_code;
-	struct mdhim_rm_t *rm;       
+	struct mdhim_rm_t *rm;
 
 	return_code = send_rangesrv_work(md, dm->basem.server_rank, dm);
 	// If the send did not succeed then log the error code and return MDHIM_ERROR
@@ -301,7 +302,7 @@ struct mdhim_brm_t *client_bdelete(struct mdhim *md, struct index_t *index,
 
 		return NULL;
 	}
-	
+
 	rm_list = (mdhim_rm_t**)malloc(sizeof(struct mdhim_rm_t *) * num_srvs);
 	memset(rm_list, 0, sizeof(struct mdhim_rm_t *) * num_srvs);
 	return_code = receive_all_client_responses(md, srvs, num_srvs, (void ***) &rm_list);
@@ -315,8 +316,8 @@ struct mdhim_brm_t *client_bdelete(struct mdhim *md, struct index_t *index,
 	for (i = 0; i < num_srvs; i++) {
 		rm = rm_list[i];
 		if (!rm) {
-		  mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - " 
-		       "Error: did not receive a response message in client_bdel",  
+		  mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+		       "Error: did not receive a response message in client_bdel",
 		       md->mdhim_rank);
 		  //Skip this as the message doesn't exist
 		  continue;

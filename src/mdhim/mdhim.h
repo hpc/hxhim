@@ -18,7 +18,6 @@
 #include "mlogfacs2.h"
 #include "mdhim_options.h"
 #include "indexes.h"
-#include "mdhim_private.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -30,11 +29,6 @@ extern "C"
 
 #define SECONDARY_GLOBAL_INFO 1
 #define SECONDARY_LOCAL_INFO 2
-
-/**
- * Forward declare the private portions of the MDHIM data structure
- */
-struct mdhim_private;
 
 /*
  * mdhim data

@@ -5,7 +5,7 @@
  */
 
 #include <stdlib.h>
-#include "mdhim.h"
+#include "mdhim_private.h"
 #include "local_client.h"
 
 /**

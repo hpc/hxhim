@@ -263,6 +263,10 @@ int mdhimCommit(struct mdhim *md, struct index_t *index) {
 	struct mdhim_basem_t *cm;
 	struct mdhim_rm_t *rm = NULL;
 
+    if (!index) {
+      index = md->primary_index;
+    }
+
 	MPI_Barrier(md->mdhim_client_comm);
 	//If I'm a range server, send a commit message to myself
 	if (im_range_server(index)) {

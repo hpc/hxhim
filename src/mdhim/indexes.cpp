@@ -9,8 +9,9 @@
 #include <unistd.h>
 #include <errno.h>
 #include <ctype.h>
-#include "mdhim.h"
+#include "mdhim_private.h"
 #include "indexes.h"
+#include "partitioner.h"
 
 /**
  * to_lower

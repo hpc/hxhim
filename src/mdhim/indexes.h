@@ -1,6 +1,6 @@
 /*
  * MDHIM TNG
- * 
+ *
  * Index abstraction
  */
 
@@ -8,6 +8,7 @@
 #define      __INDEX_H
 
 #include "uthash.h"
+#include "mdhim.h"
 #include "mdhim_options.h"
 
 #define PRIMARY_INDEX 1
@@ -15,9 +16,21 @@
 #define LOCAL_INDEX 3
 #define REMOTE_INDEX 4
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+typedef struct mdhim mdhim_t;
+
+#ifdef __cplusplus
+}
+#endif
+
 typedef struct rangesrv_info rangesrv_info;
-/* 
- * Range server info  
+
+/*
+ * Range server info
  * Contains information about each range server
  */
 struct rangesrv_info {
@@ -28,8 +41,8 @@ struct rangesrv_info {
 	UT_hash_handle hh;         /* makes this structure hashable */
 };
 
-/* 
- * Remote Index info  
+/*
+ * Remote Index info
  * Contains information about a remote index
  *
  * A remote index means that an index can be served by one or more range servers
@@ -43,22 +56,22 @@ struct index_t {
 	//Options for the mdhim data store
 	int key_type;             //The key type used in the db
 	int db_type;              //The database type
-	int type;                 /* The type of index 
+	int type;                 /* The type of index
 				     (PRIMARY_INDEX, SECONDARY_INDEX, LOCAL_INDEX) */
 	int primary_id;           /* The primary index id if this is a secondary index */
-	rangesrv_info *rangesrvs_by_num; /* Hash table of the range servers 
+	rangesrv_info *rangesrvs_by_num; /* Hash table of the range servers
 					    serving this index.  Key is range server number */
-	rangesrv_info *rangesrvs_by_rank; /* Hash table of the range servers 
+	rangesrv_info *rangesrvs_by_rank; /* Hash table of the range servers
 					     serving this index.  Key is the rank */
-        //Used to determine the number of range servers which is based in  
+        //Used to determine the number of range servers which is based in
         //if myrank % RANGE_SERVER_FACTOR == 0, then myrank is a server
 	int range_server_factor;
-	
+
         //Maximum size of a slice. A range server may serve several slices.
-	uint64_t mdhim_max_recs_per_slice; 
+	uint64_t mdhim_max_recs_per_slice;
 
 	//This communicator is for range servers only to talk to each other
-	MPI_Comm rs_comm;   
+	MPI_Comm rs_comm;
 	/* The rank of the range server master that will broadcast stat data to all clients
 	   This rank is the rank in mdhim_comm not in the range server communicator */
 	int rangesrv_master;
@@ -77,8 +90,8 @@ struct index_t {
 };
 
 typedef struct index_manifest_t {
-	int key_type;   //The type of key 
-	int index_type; /* The type of index 
+	int key_type;   //The type of key
+	int index_type; /* The type of index
 			   (PRIMARY_INDEX, SECONDARY_INDEX) */
 	int index_id; /* The id of the index in the hash table */
 	int primary_id;
@@ -86,7 +99,7 @@ typedef struct index_manifest_t {
 	int db_type;
 	uint32_t num_rangesrvs;
 	int rangesrv_factor;
-	uint64_t slice_size; 
+	uint64_t slice_size;
 	int num_nodes;
 	int local_server_rank;
 } index_manifest_t;
@@ -98,7 +111,7 @@ int open_db_store(struct mdhim *md, struct index_t *index);
 uint32_t get_num_range_servers(struct mdhim *md, struct index_t *index);
 struct index_t *create_local_index(struct mdhim *md, int db_type, int key_type, char *index_name);
 struct index_t *create_global_index(struct mdhim *md, int server_factor,
-				    uint64_t max_recs_per_slice, int db_type, 
+				    uint64_t max_recs_per_slice, int db_type,
 				    int key_type, char *index_name);
 int get_rangesrvs(struct mdhim *md, struct index_t *index);
 uint32_t is_range_server(struct mdhim *md, int rank, struct index_t *index);
