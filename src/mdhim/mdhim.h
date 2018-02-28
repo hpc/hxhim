@@ -59,11 +59,6 @@ struct secondary_bulk_info {
 	int info_type;
 };
 
-static int groupInitialization(mdhim_t *md);
-static int groupDestruction(mdhim_t *md);
-static int indexInitialization(mdhim_t *md);
-static int indexDestruction(mdhim_t *md);
-
 int mdhimInit(mdhim_t *md, mdhim_options_t *opts);
 int mdhimClose(mdhim_t *md);
 int mdhimCommit(mdhim_t *md, struct index_t *index);
