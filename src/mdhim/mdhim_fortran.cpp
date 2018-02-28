@@ -58,7 +58,7 @@ void mdhimftget(void *key, int *key_size, void *val, int val_size) {
    struct mdhim_bgetrm_t *bgrm;
 
    printf("Key: %s\n", (char *)key);
-   bgrm = mdhimGet(md, md->primary_index, key, *key_size, MDHIM_GET_EQ);
+   bgrm = mdhimGet(md, md->p->primary_index, key, *key_size, MDHIM_GET_EQ);
    if (!bgrm || bgrm->error) {
      printf("Error getting value for key: %p from MDHIM\n", key);
    } else {

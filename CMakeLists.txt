@@ -77,3 +77,8 @@ add_subdirectory (src/utils)
 #
 add_subdirectory(test/comm)
 add_subdirectory(test/mdhim)
+
+#
+# Add examples subdirectory
+#
+add_subdirectory(examples)

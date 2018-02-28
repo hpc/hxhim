@@ -18,7 +18,6 @@
 #include "mlogfacs2.h"
 #include "mdhim_options.h"
 #include "indexes.h"
-#include "mdhim_private.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -32,17 +31,17 @@ extern "C"
 #define SECONDARY_LOCAL_INFO 2
 
 /**
- * Forward declare the private portions of the MDHIM data structure
+ * Struct that contains the private details about MDHim's implementation
  */
-struct mdhim_private;
+typedef struct mdhim_private mdhim_private_t;
 
 /*
  * mdhim data
- * Contains client communicator
- * Contains a list of range servers
- * Contains a pointer to mdhim_rs_t if rank is a range server
+ * Contains an opaque pointer to the actual implementation
  */
-typedef struct mdhim mdhim_t;
+typedef struct mdhim {
+    mdhim_private_t *p;
+} mdhim_t;
 
 struct secondary_info {
 	struct index_t *secondary_index;
@@ -59,14 +58,6 @@ struct secondary_bulk_info {
 	int *num_keys;
 	int info_type;
 };
-
-static int groupInitialization(mdhim_t *md);
-static int groupDestruction(mdhim_t *md);
-static int indexInitialization(mdhim_t *md);
-static int indexDestruction(mdhim_t *md);
-
-mdhim_t *mdhimAllocate();
-void mdhimDestroy(mdhim_t **md);
 
 int mdhimInit(mdhim_t *md, mdhim_options_t *opts);
 int mdhimClose(mdhim_t *md);

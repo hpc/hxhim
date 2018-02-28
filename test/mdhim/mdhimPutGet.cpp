@@ -2,6 +2,7 @@
 #include <mpi.h>
 
 #include "mdhim.h"
+#include "mdhim_private.h" // needed to access private members for testing
 #include "fill_db_opts.h"
 
 //Constants used across all mdhimPutGet tests
@@ -24,19 +25,23 @@ TEST(mdhimPutGet, no_secondary) {
     EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
 
     //Put the key-value pair
-    struct mdhim_brm_t *brm = mdhimPut(&md, (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
-                                       (void *)&MDHIM_PUT_GET_VALUE, sizeof(MDHIM_PUT_GET_VALUE), NULL, NULL);
+    struct mdhim_brm_t *brm = mdhimPut(&md,
+                                       (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
+                                       (void *)&MDHIM_PUT_GET_VALUE, sizeof(MDHIM_PUT_GET_VALUE),
+                                       NULL, NULL);
     ASSERT_NE(brm, nullptr);
 
     EXPECT_EQ(brm->error, MDHIM_SUCCESS);
     mdhim_full_release_msg(brm);
 
     //Commit changes
-    EXPECT_EQ(mdhimCommit(&md, md.primary_index), MDHIM_SUCCESS);
+    EXPECT_EQ(mdhimCommit(&md, md.p->primary_index), MDHIM_SUCCESS);
 
     //Get value back
     {
-        struct mdhim_bgetrm_t *bgrm = mdhimGet(&md, md.primary_index, (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY), MDHIM_GET_EQ);
+        struct mdhim_bgetrm_t *bgrm = mdhimGet(&md, md.p->primary_index,
+                                               (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
+                                               MDHIM_GET_EQ);
         ASSERT_NE(bgrm, nullptr);
         EXPECT_EQ(bgrm->error, MDHIM_SUCCESS);
 
@@ -61,7 +66,7 @@ TEST(mdhimPutGet, secondary_global) {
     EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
 
     // secondary global key
-    sgk_t sgk = md.mdhim_rank + 1;
+    sgk_t sgk = md.p->mdhim_rank + 1;
     sgk_t *sgk_ptr = &sgk;
     int sgk_len = sizeof(sgk);
 
@@ -70,20 +75,23 @@ TEST(mdhimPutGet, secondary_global) {
     ASSERT_NE(sg_index, nullptr);
 
     //Create the secondary info struct
-    struct secondary_info *sg_info = mdhimCreateSecondaryInfo(sg_index, (void **) &sgk_ptr, &sgk_len,
+    struct secondary_info *sg_info = mdhimCreateSecondaryInfo(sg_index,
+                                                              (void **) &sgk_ptr, &sgk_len,
                                                               1, SECONDARY_GLOBAL_INFO);
     ASSERT_NE(sg_info, nullptr);
 
     //Put the key-value pair
-    struct mdhim_brm_t *brm = mdhimPut(&md, (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
-                                       (void *)&MDHIM_PUT_GET_VALUE, sizeof(MDHIM_PUT_GET_VALUE), sg_info, NULL);
+    struct mdhim_brm_t *brm = mdhimPut(&md,
+                                       (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
+                                       (void *)&MDHIM_PUT_GET_VALUE, sizeof(MDHIM_PUT_GET_VALUE),
+                                       sg_info, NULL);
 
     ASSERT_NE(brm, nullptr);
     EXPECT_EQ(brm->error, MDHIM_SUCCESS);
     mdhim_full_release_msg(brm);
 
     //Commit changes
-    EXPECT_EQ(mdhimCommit(&md, md.primary_index), MDHIM_SUCCESS);
+    EXPECT_EQ(mdhimCommit(&md, md.p->primary_index), MDHIM_SUCCESS);
 
     //Get key back using the secondary global index
     struct mdhim_bgetrm_t *sg_ret = nullptr;
@@ -101,8 +109,9 @@ TEST(mdhimPutGet, secondary_global) {
 
     //Get value back using the returned key
     {
-        struct mdhim_bgetrm_t *bgrm = mdhimGet(&md, md.primary_index, (void *) *sg_ret->values,
-                                               *sg_ret->value_lens, MDHIM_GET_EQ);
+        struct mdhim_bgetrm_t *bgrm = mdhimGet(&md, md.p->primary_index,
+                                               (void *) *sg_ret->values, *sg_ret->value_lens,
+                                               MDHIM_GET_EQ);
         ASSERT_NE(bgrm, nullptr);
         EXPECT_EQ(bgrm->error, MDHIM_SUCCESS);
 
@@ -130,7 +139,7 @@ TEST(mdhimPutGet, secondary_local) {
     EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
 
     // secondary local key
-    slk_t slk = md.mdhim_rank + 1;
+    slk_t slk = md.p->mdhim_rank + 1;
     slk_t *slk_ptr = &slk;
     int slk_len = sizeof(slk);
 
@@ -139,19 +148,22 @@ TEST(mdhimPutGet, secondary_local) {
     ASSERT_NE(sl_index, nullptr);
 
     //Create the secondary info struct
-    struct secondary_info *sl_info = mdhimCreateSecondaryInfo(sl_index, (void **) &slk_ptr, &slk_len,
+    struct secondary_info *sl_info = mdhimCreateSecondaryInfo(sl_index,
+                                                              (void **) &slk_ptr, &slk_len,
                                                               1, SECONDARY_GLOBAL_INFO);
     ASSERT_NE(sl_info, nullptr);
 
-    struct mdhim_brm_t *brm = mdhimPut(&md, (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
-                                       (void *)&MDHIM_PUT_GET_VALUE, sizeof(MDHIM_PUT_GET_VALUE), NULL, sl_info);
+    struct mdhim_brm_t *brm = mdhimPut(&md,
+                                       (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
+                                       (void *)&MDHIM_PUT_GET_VALUE, sizeof(MDHIM_PUT_GET_VALUE),
+                                       NULL, sl_info);
 
     ASSERT_NE(brm, nullptr);
     EXPECT_EQ(brm->error, MDHIM_SUCCESS);
     mdhim_full_release_msg(brm);
 
     //Commit changes
-    EXPECT_EQ(mdhimCommit(&md, md.primary_index), MDHIM_SUCCESS);
+    EXPECT_EQ(mdhimCommit(&md, md.p->primary_index), MDHIM_SUCCESS);
 
     //Get the primary key from the secondary local index
     struct mdhim_bgetrm_t *sl_ret = nullptr;
@@ -172,8 +184,9 @@ TEST(mdhimPutGet, secondary_local) {
 
     //Get value back using the returned key
     {
-        struct mdhim_bgetrm_t *bgrm = mdhimGet(&md, md.primary_index, (void *) *sl_ret->values,
-                                               *sl_ret->value_lens, MDHIM_GET_EQ);
+        struct mdhim_bgetrm_t *bgrm = mdhimGet(&md, md.p->primary_index,
+                                               (void *) *sl_ret->values, *sl_ret->value_lens,
+                                               MDHIM_GET_EQ);
         ASSERT_NE(bgrm, nullptr);
         EXPECT_EQ(bgrm->error, MDHIM_SUCCESS);
 
@@ -201,7 +214,7 @@ TEST(mdhimPutGet, secondary_global_and_local) {
     EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
 
     // secondary global key
-    sgk_t sgk = md.mdhim_rank + 1;
+    sgk_t sgk = md.p->mdhim_rank + 1;
     sgk_t *sgk_ptr = &sgk;
     int sgk_len = sizeof(sgk);
 
@@ -210,12 +223,13 @@ TEST(mdhimPutGet, secondary_global_and_local) {
     ASSERT_NE(sg_index, nullptr);
 
     //Create the secondary info struct
-    struct secondary_info *sg_info = mdhimCreateSecondaryInfo(sg_index, (void **) &sgk_ptr, &sgk_len,
+    struct secondary_info *sg_info = mdhimCreateSecondaryInfo(sg_index,
+                                                              (void **) &sgk_ptr, &sgk_len,
                                                               1, SECONDARY_GLOBAL_INFO);
     ASSERT_NE(sg_info, nullptr);
 
     // secondary local key
-    slk_t slk = md.mdhim_rank + 1;
+    slk_t slk = md.p->mdhim_rank + 1;
     slk_t *slk_ptr = &slk;
     int slk_len = sizeof(slk);
 
@@ -224,25 +238,29 @@ TEST(mdhimPutGet, secondary_global_and_local) {
     ASSERT_NE(sl_index, nullptr);
 
     //Create the secondary info struct
-    struct secondary_info *sl_info = mdhimCreateSecondaryInfo(sl_index, (void **) &slk_ptr, &slk_len,
+    struct secondary_info *sl_info = mdhimCreateSecondaryInfo(sl_index,
+                                                              (void **) &slk_ptr, &slk_len,
                                                               1, SECONDARY_GLOBAL_INFO);
     ASSERT_NE(sl_info, nullptr);
 
     //Put the key-value pair
-    struct mdhim_brm_t *brm = mdhimPut(&md, (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
-                                       (void *)&MDHIM_PUT_GET_VALUE, sizeof(MDHIM_PUT_GET_VALUE), sg_info, sl_info);
+    struct mdhim_brm_t *brm = mdhimPut(&md,
+                                       (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
+                                       (void *)&MDHIM_PUT_GET_VALUE, sizeof(MDHIM_PUT_GET_VALUE),
+                                       sg_info, sl_info);
     ASSERT_NE(brm, nullptr);
 
     EXPECT_EQ(brm->error, MDHIM_SUCCESS);
     mdhim_full_release_msg(brm);
 
     //Commit changes
-    EXPECT_EQ(mdhimCommit(&md, md.primary_index), MDHIM_SUCCESS);
+    EXPECT_EQ(mdhimCommit(&md, md.p->primary_index), MDHIM_SUCCESS);
 
     //Get value back using primary key
     {
-        struct mdhim_bgetrm_t *bgrm = mdhimGet(&md, md.primary_index, (void *)&MDHIM_PUT_GET_PRIMARY_KEY,
-                                               sizeof(MDHIM_PUT_GET_PRIMARY_KEY), MDHIM_GET_EQ);
+        struct mdhim_bgetrm_t *bgrm = mdhimGet(&md, md.p->primary_index,
+                                               (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
+                                               MDHIM_GET_EQ);
         ASSERT_NE(bgrm, nullptr);
         EXPECT_EQ(bgrm->error, MDHIM_SUCCESS);
 
@@ -271,8 +289,9 @@ TEST(mdhimPutGet, secondary_global_and_local) {
 
         //Get value back using the returned key
         {
-            struct mdhim_bgetrm_t *bgrm = mdhimGet(&md, md.primary_index, (void *) *sg_ret->values,
-                                                   *sg_ret->value_lens, MDHIM_GET_EQ);
+            struct mdhim_bgetrm_t *bgrm = mdhimGet(&md, md.p->primary_index,
+                                                   (void *) *sg_ret->values, *sg_ret->value_lens,
+                                                   MDHIM_GET_EQ);
             ASSERT_NE(bgrm, nullptr);
             EXPECT_EQ(bgrm->error, MDHIM_SUCCESS);
 
@@ -309,8 +328,9 @@ TEST(mdhimPutGet, secondary_global_and_local) {
 
         //Get value back using the returned key
         {
-            struct mdhim_bgetrm_t *bgrm = mdhimGet(&md, md.primary_index, (void *) *sl_ret->values,
-                                                   *sl_ret->value_lens, MDHIM_GET_EQ);
+            struct mdhim_bgetrm_t *bgrm = mdhimGet(&md, md.p->primary_index,
+                                                   (void *) *sl_ret->values, *sl_ret->value_lens,
+                                                   MDHIM_GET_EQ);
             ASSERT_NE(bgrm, nullptr);
             EXPECT_EQ(bgrm->error, MDHIM_SUCCESS);
 
