@@ -64,7 +64,7 @@ extern "C"
 /* Base message */
 struct mdhim_basem_t {
 	//Message type
-	int mtype; 
+	int mtype;
 	int server_rank;
 	int size;
 	int index;
@@ -96,7 +96,7 @@ struct mdhim_bputm_t {
 struct mdhim_getm_t {
 	mdhim_basem_t basem;
 	//Operation type e.g., MDHIM_GET_EQ, MDHIM_GET_NEXT, MDHIM_GET_PREV
-	int op;  
+	int op;
 	/* The key to get if op is MDHIM_GET_EQ
 	   If op is MDHIM_GET_NEXT or MDHIM_GET_PREV the key is the last key to start from
 	 */
@@ -123,7 +123,7 @@ struct mdhim_bgetm_t {
 struct mdhim_delm_t {
 	mdhim_basem_t basem;
 	void *key;
-	int key_len; 
+	int key_len;
 };
 
 /* Bulk delete record message */
@@ -165,15 +165,29 @@ struct mdhim_brm_t {
 	struct mdhim_brm_t *next;
 };
 
+int encode(struct mdhim *md, struct mdhim_basem_t *message, char **buf, int *size);
+int decode(struct mdhim *md, const int mtype, char *buf, int size, struct mdhim_basem_t **message);
 
+int only_send_rangesrv_work(struct mdhim *md, int dest, const char *buf, const int size);
 int send_rangesrv_work(struct mdhim *md, int dest, void *message);
+int only_send_all_rangesrv_work(struct mdhim *md, char **messages, int num_srvs);
 int send_all_rangesrv_work(struct mdhim *md, void **messages, int num_srvs);
+int only_receive_rangesrv_work(struct mdhim *md, int *src, char **recvbuf, int *recvsize);
 int receive_rangesrv_work(struct mdhim *md, int *src, void **message);
+
+int only_send_client_response(struct mdhim *md, int dest, int *sizebuf,
+                              char **sendbuf, MPI_Request **size_req, MPI_Request **msg_req);
 int send_client_response(struct mdhim *md, int dest, void *message, int *sizebuf,
-			 void **sendbuf, MPI_Request **size_req, MPI_Request **msg_req);
+                         void **sendbuf, MPI_Request **size_req, MPI_Request **msg_req);
+
+int only_receive_client_response(struct mdhim *md, int src, char **recvbuf, int *recvsize);
 int receive_client_response(struct mdhim *md, int src, void **message);
+
+int only_receive_all_client_responses(struct mdhim *md, int *srcs, int nsrcs,
+                                      char ***recvbufs, int **sizebuf);
 int receive_all_client_responses(struct mdhim *md, int *srcs, int nsrcs,
-				 void ***messages);
+                                 void ***messages);
+
 int pack_put_message(struct mdhim *md, struct mdhim_putm_t *pm, void **sendbuf, int *sendsize);
 int pack_bput_message(struct mdhim *md, struct mdhim_bputm_t *bpm, void **sendbuf, int *sendsize);
 int unpack_put_message(struct mdhim *md, void *message, int mesg_size, void **pm);
