@@ -1,40 +1,39 @@
-#include <stdlib.h>
-#include "mdhim.h"
+#include <cstdlib>
+
 #include "client.h"
-#include "local_client.h"
-#include "partitioner.h"
 #include "indexes.h"
+#include "local_client.h"
 #include "mdhim_private.h"
+#include "partitioner.h"
 
 int mdhim_private_init(mdhim_private* mdp, int dstype, int commtype) {
-
     int rc = 0;
-    if (dstype != MDHIM_DS_LEVELDB) {
-        mlog(MDHIM_CLIENT_CRIT, "Invaliud data store type specified");
-        rc = -1;
+    if (dstype == MDHIM_DS_LEVELDB) {
+        rc = MDHIM_SUCCESS;
+    }
+    else {
+        mlog(MDHIM_CLIENT_CRIT, "Invalid data store type specified");
+        rc = MDHIM_DB_ERROR;
         goto err_out;
     }
 
     if (commtype == MDHIM_COMM_MPI) {
-
-    }
-    else {
-        mlog(MDHIM_CLIENT_CRIT, "Invaliud data store type specified");
-        rc = -2;
+        MPIEndpoint *ep = new MPIEndpoint(MPIInstance::instance().Comm());
+        MPIEndpointGroup *eg = new MPIEndpointGroup(MPIInstance::instance().Comm());
+        mdp->comm = new CommTransport(ep, eg);
+        rc = MDHIM_SUCCESS;
         goto err_out;
     }
+
 err_out:
     return rc;
-
 }
 
 struct mdhim_rm_t *_put_record(struct mdhim *md, struct index_t *index,
-			       void *key, int key_len,
-			       void *value, int value_len) {
+                               void *key, int key_len,
+                               void *value, int value_len) {
 	struct mdhim_rm_t *rm = NULL;
 	rangesrv_list *rl, *rlp;
-	int ret;
-	struct mdhim_putm_t *pm;
 	struct index_t *lookup_index, *put_index;
 
 	put_index = index;
@@ -51,27 +50,27 @@ struct mdhim_rm_t *_put_record(struct mdhim *md, struct index_t *index,
 	if (put_index->type == LOCAL_INDEX) {
 		if ((rl = get_range_servers(md, lookup_index, value, value_len)) ==
 		    NULL) {
-			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
 			     "Error while determining range server in mdhimBPut",
-			     md->p->mdhim_rank);
+			     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
 			return NULL;
 		}
 	} else {
 		//Get the range server this key will be sent to
 		if ((rl = get_range_servers(md, lookup_index, key, key_len)) == NULL) {
-			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
 			     "Error while determining range server in _put_record",
-			     md->p->mdhim_rank);
+			     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
 			return NULL;
 		}
 	}
 
 	while (rl) {
-		pm = (mdhim_putm_t*)malloc(sizeof(struct mdhim_putm_t));
+        struct mdhim_putm_t *pm = (mdhim_putm_t*)malloc(sizeof(struct mdhim_putm_t));
 		if (!pm) {
-			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
 			     "Error while allocating memory in _put_record",
-			     md->p->mdhim_rank);
+			     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
 			return NULL;
 		}
 
@@ -81,15 +80,12 @@ struct mdhim_rm_t *_put_record(struct mdhim *md, struct index_t *index,
 		pm->key_len = key_len;
 		pm->value = value;
 		pm->value_len = value_len;
-		pm->basem.server_rank = rl->ri->rank;
+		pm->basem.server_rank = (int) *rl->ri->transport->Endpoint()->Address(); // TODO: change this to from server_rank to server_address
 		pm->basem.index = put_index->id;
 		pm->basem.index_type = put_index->type;
 
-		//Test if I'm a range server
-		ret = im_range_server(put_index);
-
 		//If I'm a range server and I'm the one this key goes to, send the message locally
-		if (ret && md->p->mdhim_rank == pm->basem.server_rank) {
+		if (im_range_server(put_index) && (int) *md->p->comm->Endpoint()->Address() == pm->basem.server_rank) {
 			rm = local_client_put(md, pm);
 		} else {
 			//Send the message through the network as this message is for another rank
@@ -97,8 +93,8 @@ struct mdhim_rm_t *_put_record(struct mdhim *md, struct index_t *index,
 			free(pm);
 		}
 
-		rl = rl->next;
 		rlp = rl;
+		rl = rl->next;
 		free(rlp);
 	}
 
@@ -162,9 +158,9 @@ struct mdhim_brm_t *_bput_records(struct mdhim *md, struct index_t *index,
 
 	//Check to see that we were given a sane amount of records
 	if (num_keys > MAX_BULK_OPS) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
 		     "To many bulk operations requested in mdhimBGetOp",
-		     md->p->mdhim_rank);
+		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
 		return NULL;
 	}
 
@@ -186,24 +182,24 @@ struct mdhim_brm_t *_bput_records(struct mdhim *md, struct index_t *index,
 		if (put_index->type == LOCAL_INDEX) {
 			if ((rl = get_range_servers(md, lookup_index, values[i], value_lens[i])) ==
 			    NULL) {
-				mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+				mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
 				     "Error while determining range server in mdhimBPut",
-				     md->p->mdhim_rank);
+				     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
 				continue;
 			}
 		} else {
 			if ((rl = get_range_servers(md, lookup_index, keys[i], key_lens[i])) ==
 			    NULL) {
-				mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+				mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
 				     "Error while determining range server in mdhimBPut",
-				     md->p->mdhim_rank);
+				     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
 				continue;
 			}
 		}
 
 		//There could be more than one range server returned in the case of the local index
 		while (rl) {
-			if (rl->ri->rank != md->p->mdhim_rank) {
+			if (rl->ri->rank != (int) *md->p->comm->Endpoint()->Address()) {
 				//Set the message in the list for this range server
 				bpm = bpm_list[rl->ri->rangesrv_num - 1];
 			} else {
@@ -223,7 +219,7 @@ struct mdhim_brm_t *_bput_records(struct mdhim *md, struct index_t *index,
 				bpm->basem.mtype = MDHIM_BULK_PUT;
 				bpm->basem.index = put_index->id;
 				bpm->basem.index_type = put_index->type;
-				if (rl->ri->rank != md->p->mdhim_rank) {
+				if (rl->ri->rank != (int) *md->p->comm->Endpoint()->Address()) {
 					bpm_list[rl->ri->rangesrv_num - 1] = bpm;
 				} else {
 					lbpm = bpm;
@@ -300,24 +296,24 @@ struct mdhim_bgetrm_t *_bget_records(struct mdhim *md, struct index_t *index,
 		    index->type != LOCAL_INDEX &&
 		    (rl = get_range_servers(md, index, keys[i], key_lens[i])) ==
 		    NULL) {
-			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
 			     "Error while determining range server in mdhimBget",
-			     md->p->mdhim_rank);
+			     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
 			free(bgm_list);
 			return NULL;
 		} else if ((index->type == LOCAL_INDEX ||
 			   (op != MDHIM_GET_EQ && op != MDHIM_GET_PRIMARY_EQ)) &&
 			   (rl = get_range_servers_from_stats(md, index, keys[i], key_lens[i], op)) ==
 			   NULL) {
-			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
 			     "Error while determining range server in mdhimBget",
-			     md->p->mdhim_rank);
+			     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
 			free(bgm_list);
 			return NULL;
 		}
 
 		while (rl) {
-			if (rl->ri->rank != md->p->mdhim_rank) {
+			if (rl->ri->rank != (int) *md->p->comm->Endpoint()->Address()) {
 				//Set the message in the list for this range server
 				bgm = bgm_list[rl->ri->rangesrv_num - 1];
 			} else {
@@ -339,7 +335,7 @@ struct mdhim_bgetrm_t *_bget_records(struct mdhim *md, struct index_t *index,
 				bgm->op = (op == MDHIM_GET_PRIMARY_EQ) ? MDHIM_GET_EQ : op;
 				bgm->basem.index = index->id;
 				bgm->basem.index_type = index->type;
-				if (rl->ri->rank != md->p->mdhim_rank) {
+				if (rl->ri->rank != (int) *md->p->comm->Endpoint()->Address()) {
 					bgm_list[rl->ri->rangesrv_num - 1] = bgm;
 				} else {
 					lbgm = bgm;
@@ -415,21 +411,21 @@ struct mdhim_brm_t *_bdel_records(struct mdhim *md, struct index_t *index,
 		if (index->type != LOCAL_INDEX &&
 		    (rl = get_range_servers(md, index, keys[i], key_lens[i])) ==
 		    NULL) {
-			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
 			     "Error while determining range server in mdhimBdel",
-			     md->p->mdhim_rank);
+			     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
 			continue;
 		} else if (index->type == LOCAL_INDEX &&
 			   (rl = get_range_servers_from_stats(md, index, keys[i],
 							      key_lens[i], MDHIM_GET_EQ)) ==
 			   NULL) {
-			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
 			     "Error while determining range server in mdhimBdel",
-			     md->p->mdhim_rank);
+			     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
 			continue;
 		}
 
-		if (rl->ri->rank != md->p->mdhim_rank) {
+		if (rl->ri->rank != (int) *md->p->comm->Endpoint()->Address()) {
 			//Set the message in the list for this range server
 			bdm = bdm_list[rl->ri->rangesrv_num - 1];
 		} else {
@@ -447,7 +443,7 @@ struct mdhim_brm_t *_bdel_records(struct mdhim *md, struct index_t *index,
 			bdm->basem.mtype = MDHIM_BULK_DEL;
 			bdm->basem.index = index->id;
 			bdm->basem.index_type = index->type;
-			if (rl->ri->rank != md->p->mdhim_rank) {
+			if (rl->ri->rank != (int) *md->p->comm->Endpoint()->Address()) {
 				bdm_list[rl->ri->rangesrv_num - 1] = bdm;
 			} else {
 				lbdm = bdm;

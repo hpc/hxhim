@@ -4,6 +4,7 @@
  * MDHIM API implementation
  */
 
+#include <memory>
 #include <stdlib.h>
 #include <sys/time.h>
 #include <stdio.h>
@@ -36,6 +37,7 @@ static int groupInitialization(mdhim_t *md) {
         return MDHIM_ERROR;
     }
 
+    // TODO: remove this block//////////////////////
     //Don't allow MPI_COMM_NULL to be the communicator
     if (md->p->mdhim_comm == MPI_COMM_NULL) {
         return MDHIM_ERROR;
@@ -46,15 +48,11 @@ static int groupInitialization(mdhim_t *md) {
         return MDHIM_ERROR;
 	}
 
-    //Get our rank in the main MDHIM communicator
-	if (MPI_Comm_rank(md->p->mdhim_comm, &md->p->mdhim_rank) != MPI_SUCCESS) {
-        return MDHIM_ERROR;
-	}
-
 	//Get the size of the main MDHIM communicator
 	if (MPI_Comm_size(md->p->mdhim_comm, &md->p->mdhim_comm_size) != MPI_SUCCESS) {
         return MDHIM_ERROR;
 	}
+    // /////////////////////////////////////////////
 
     return MDHIM_SUCCESS;
 }
@@ -98,7 +96,8 @@ static int indexInitialization(mdhim_t *md) {
 
 	//Create the default remote primary index
 	md->p->primary_index = create_global_index(md, md->p->db_opts->rserver_factor, md->p->db_opts->max_recs_per_slice,
-                                            md->p->db_opts->db_type, md->p->db_opts->db_key_type, NULL);
+                                               md->p->db_opts->db_type, md->p->db_opts->db_key_type, NULL);
+
 	if (!md->p->primary_index) {
 		return MDHIM_ERROR;
 	}
@@ -144,20 +143,14 @@ int mdhimInit(mdhim_t* md, mdhim_options_t *opts) {
       return MDHIM_ERROR;
     }
 
-    md->p = new mdhim_private;
-
 	//Open mlog - stolen from plfs
     //Assume opts has been initialized
 	mlog_open((char *)"mdhim", 0, opts->debug_level, opts->debug_level, NULL, 0, MLOG_LOGPID, 0);
 
-	//Check if MPI has been initialized
-    int mpi_init_state;
-	if ((MPI_Initialized(&mpi_init_state) != MPI_SUCCESS) || !mpi_init_state) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM - Error MPI not Initialized");
-        return MDHIM_ERROR;
-	}
-
     //Initialize context variables based on options
+
+    md->p = new mdhim_private;
+    mdhim_private_init(md->p, MDHIM_DS_LEVELDB, MDHIM_COMM_MPI);
 
     md->p->mdhim_comm = opts->comm;
     md->p->mdhim_comm_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -226,7 +219,8 @@ int mdhimClose(struct mdhim *md) {
         return MDHIM_ERROR;
     }
 
-    delete(md->p);
+    delete md->p->comm;
+    delete md->p;
     md->p = NULL;
 
 	//Close MLog
@@ -260,9 +254,9 @@ int mdhimCommit(struct mdhim *md, struct index_t *index) {
 		rm = local_client_commit(md, cm);
 		if (!rm || rm->error) {
 			ret = MDHIM_ERROR;
-			mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - "
+			mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - "
 			     "Error while committing database in mdhimCommit",
-			     md->p->mdhim_rank);
+			     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
 		}
 
 		if (rm) {
@@ -292,9 +286,6 @@ struct mdhim_brm_t *mdhimPut(struct mdhim *md,
 			     void *value, int value_len,
 			     struct secondary_info *secondary_global_info,
 			     struct secondary_info *secondary_local_info) {
-	//Return message list
-	void **primary_keys;
-	int *primary_key_lens;
 	//Return message from each _put_record casll
 	struct mdhim_brm_t *brm = NULL;
 
@@ -316,8 +307,8 @@ struct mdhim_brm_t *mdhimPut(struct mdhim *md,
 	    secondary_local_info->secondary_keys &&
 	    secondary_local_info->secondary_key_lens &&
 	    secondary_local_info->num_keys) {
-		primary_keys = (void**)malloc(sizeof(void *) * secondary_local_info->num_keys);
-		primary_key_lens = (int*)malloc(sizeof(int) * secondary_local_info->num_keys);
+		void **primary_keys = (void**)malloc(sizeof(void *) * secondary_local_info->num_keys);
+		int *primary_key_lens = (int*)malloc(sizeof(int) * secondary_local_info->num_keys);
 		for (int i = 0; i < secondary_local_info->num_keys; i++) {
 			primary_keys[i] = primary_key;
 			primary_key_lens[i] = primary_key_len;
@@ -343,8 +334,8 @@ struct mdhim_brm_t *mdhimPut(struct mdhim *md,
 	    secondary_global_info->secondary_keys &&
 	    secondary_global_info->secondary_key_lens &&
 	    secondary_global_info->num_keys) {
-		primary_keys = (void**)malloc(sizeof(void *) * secondary_global_info->num_keys);
-		primary_key_lens = (int*)malloc(sizeof(int) * secondary_global_info->num_keys);
+		void **primary_keys = (void**)malloc(sizeof(void *) * secondary_global_info->num_keys);
+		int *primary_key_lens = (int*)malloc(sizeof(int) * secondary_global_info->num_keys);
 		for (int i = 0; i < secondary_global_info->num_keys; i++) {
 			primary_keys[i] = primary_key;
 			primary_key_lens[i] = primary_key_len;
@@ -556,9 +547,9 @@ struct mdhim_bgetrm_t *mdhimGet(mdhim_t *md, struct index_t *index,
 	struct mdhim_bgetrm_t *bgrm_head;
 
 	if (op != MDHIM_GET_EQ && op != MDHIM_GET_PRIMARY_EQ) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
 		     "Invalid op specified for mdhimGet",
-		     md->p->mdhim_rank);
+		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
 		return NULL;
 	}
 
@@ -601,24 +592,24 @@ struct mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, struct index_t *index,
 	int i;
 
 	if (op != MDHIM_GET_EQ && op != MDHIM_GET_PRIMARY_EQ) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
 		     "Invalid operation for mdhimBGet",
-		     md->p->mdhim_rank);
+		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
 		return NULL;
 	}
 
 	//Check to see that we were given a sane amount of records
 	if (num_keys > MAX_BULK_OPS) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
 		     "Too many bulk operations requested in mdhimBGet",
-		     md->p->mdhim_rank);
+		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
 		return NULL;
 	}
 
 	if (!index) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
 		     "Invalid index specified",
-		     md->p->mdhim_rank);
+		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
 		return NULL;
 	}
 
@@ -639,11 +630,11 @@ struct mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, struct index_t *index,
 		}
 
 		if (plen > MAX_BULK_OPS) {
-			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
 			     "Too many bulk operations would be performed "
 			     "with the MDHIM_GET_PRIMARY_EQ operation.  Limiting "
 			     "request to : %u key/values",
-			     md->p->mdhim_rank, MAX_BULK_OPS);
+			     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), MAX_BULK_OPS);
 			plen = MAX_BULK_OPS - 1;
 		}
 
@@ -717,16 +708,16 @@ struct mdhim_bgetrm_t *mdhimBGetOp(mdhim_t *md, struct index_t *index,
 	struct mdhim_bgetrm_t *bgrm_head;
 
 	if (num_records > MAX_BULK_OPS) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
 		     "To many bulk operations requested in mdhimBGetOp",
-		     md->p->mdhim_rank);
+		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
 		return NULL;
 	}
 
 	if (op == MDHIM_GET_EQ || op == MDHIM_GET_PRIMARY_EQ) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
 		     "Invalid op specified for mdhimGet",
-		     md->p->mdhim_rank);
+		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
 		return NULL;
 	}
 
@@ -789,9 +780,9 @@ struct mdhim_brm_t *mdhimBDelete(mdhim_t *md, struct index_t *index,
 
 	//Check to see that we were given a sane amount of records
 	if (num_records > MAX_BULK_OPS) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
 		     "To many bulk operations requested in mdhimBGetOp",
-		     md->p->mdhim_rank);
+		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
 		return NULL;
 	}
 
@@ -812,9 +803,9 @@ int mdhimStatFlush(mdhim_t *md, struct index_t *index) {
 
 	MPI_Barrier(md->p->mdhim_client_comm);
 	if ((ret = get_stat_flush(md, index)) != MDHIM_SUCCESS) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
 		     "Error while getting MDHIM stat data in mdhimStatFlush",
-		     md->p->mdhim_rank);
+		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
 	}
 	MPI_Barrier(md->p->mdhim_client_comm);
 

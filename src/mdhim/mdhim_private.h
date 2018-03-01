@@ -17,6 +17,7 @@ extern "C"
 typedef struct mdhim_private {
 	//This communicator will include every process in the application, but is separate from main the app
     //It is used for sending and receiving to and from the range servers
+    CommTransport *comm;
 	MPI_Comm mdhim_comm;
 	pthread_mutex_t mdhim_comm_lock;
 
@@ -24,8 +25,8 @@ typedef struct mdhim_private {
     //It is used for barriers for clients
 	MPI_Comm mdhim_client_comm;
 
-	//The rank in the mdhim_comm
-	int mdhim_rank;
+	/* //The rank in the mdhim_comm */
+	/* int mdhim_rank; */
 	//The size of mdhim_comm
 	int mdhim_comm_size;
 	//Flag to indicate mdhimClose was called
@@ -51,9 +52,6 @@ typedef struct mdhim_private {
 	void *receive_msg;
     //Options for DB creation
 	mdhim_options_t *db_opts;
-
-    CommTransport *comm;
-
 } mdhim_private_t;
 #ifdef __cplusplus
 }

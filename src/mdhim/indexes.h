@@ -9,7 +9,6 @@
 
 #include "uthash.h"
 #include "mdhim.h"
-#include "mdhim_options.h"
 
 #define PRIMARY_INDEX 1
 #define SECONDARY_INDEX 2
@@ -17,6 +16,9 @@
 #define REMOTE_INDEX 4
 
 #ifdef __cplusplus
+
+#include "comm.h"
+
 extern "C"
 {
 #endif
@@ -39,6 +41,10 @@ struct rangesrv_info {
 	//The range server's identifier based on rank and number of servers
 	uint32_t rangesrv_num;
 	UT_hash_handle hh;         /* makes this structure hashable */
+
+    #ifdef __cplusplus
+    CommTransport *transport = nullptr;
+    #endif
 };
 
 /*

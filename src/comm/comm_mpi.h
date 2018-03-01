@@ -5,8 +5,12 @@
 #ifndef HXHIM_COMM_MPI_H
 #define HXHIM_COMM_MPI_H
 
+#include <stdexcept>
+#include <pthread.h>
+
 #include "comm.h"
 #include "mpi.h"
+#include "mdhim.h"
 
 /**
  * Singleton helper class that initializes MPI exactly once if it is not initialized
@@ -50,57 +54,80 @@ private:
     int worldSize_;
 };
 
-class MPIAddress : public CommAddress {
-public:
-    /** */
-    MPIAddress(int rank) : CommAddress(), rank_(rank) {}
+/*
+ * MPIAddress
+ * Class for extracting a MPI rank
+*/
+class MPIAddress: public CommAddress {
+    public:
+        MPIAddress(const int rank);
 
-    /** */
-    MPIAddress(const MPIAddress& other) : CommAddress(other), rank_(other.rank_) {}
+        operator std::string() const;
+        operator int() const;
 
-    /** */
-    ~MPIAddress() {}
+        int Rank() const;
 
-    /** */
-    virtual int Native(void* buf, std::size_t nbytes) const { return -1; }
-
-    /** */
-    int Rank() const { return rank_; }
-
-    /** */
-    void Rank(const int& rank ) { rank_ = rank; }
-
-private:
-    int rank_;
+    private:
+        int rank_;
 };
 
-class MPIEndpoint : public CommEndpoint {
+/*
+ * MPIBase
+ * Simple base class containing common values for MPI Comm related classes
+ */
+class MPIBase {
+    public:
+        MPIBase(MPI_Comm comm, const bool should_clean = false);
+        ~MPIBase();
+        int Comm() const;
+        int Rank() const;
+        int Size() const;
+
+        int encode(struct mdhim_basem_t *message, char **buf, int *size);
+        int decode(const int mtype, char *buf, int size, struct mdhim_basem_t **message);
+
+    protected:
+        MPI_Comm comm_;
+        pthread_mutex_t mutex_;
+
+        bool should_clean_; // whether or not this communicator should be freed in the destructor
+        int rank_;
+        int size_;
+
+    private:
+        int pack_put_message(struct mdhim_putm_t *pm, void **sendbuf, int *sendsize);
+        int unpack_put_message(void *message, int mesg_size, void **putm);
+};
+
+class MPIEndpoint : public CommEndpoint, protected MPIBase {
 public:
-    /** Create the CommEndpoint for this process */
-    MPIEndpoint();
+    MPIEndpoint() = delete;
 
     /** Create a CommEndpoint for a specified process rank */
-    MPIEndpoint(int rank);
+    MPIEndpoint(MPI_Comm comm, const bool should_clean = false);
 
     /** Destructor */
     ~MPIEndpoint() {}
 
-protected:
-    virtual int AddPutRequestImpl(void* kbuf, std::size_t kbytes, void* vbuf, std::size_t vbytes);
+    virtual int AddPutRequest(struct mdhim_putm_t *pm);
 
-    virtual int AddGetRequestImpl(void* kbuf, std::size_t kbytes, void* vbuf, std::size_t vbytes);
+    virtual int AddGetRequest(void* kbuf, std::size_t kbytes, void* vbuf, std::size_t vbytes);
 
-    virtual int AddPutReplyImpl(void* buf, std::size_t nbytes);
+    virtual int AddPutReply(const CommAddress *src, void **message);
 
-    virtual int AddGetReplyImpl(void* buf, std::size_t nbytes);
+    virtual int AddGetReply(void* buf, std::size_t nbytes);
 
-    virtual int ReceiveRequestImpl(std::size_t rbytes, CommMessage::Type* requestType, void** kbuf, std::size_t* kbytes, void** vbuf, std::size_t* vbytes);
+    virtual int ReceiveRequest(std::size_t rbytes, CommMessage::Type* requestType, void** kbuf, std::size_t* kbytes, void** vbuf, std::size_t* vbytes);
 
-    virtual std::size_t PollForMessageImpl(std::size_t timeoutSecs);
+    virtual std::size_t PollForMessage(std::size_t timeoutSecs);
 
-    virtual std::size_t WaitForMessageImpl(std::size_t timeoutSecs);
+    virtual std::size_t WaitForMessage(std::size_t timeoutSecs);
 
-    virtual int FlushImpl();
+    virtual int Flush(); // no-op
+
+    CommEndpoint *Dup() const;
+
+    const CommAddress *Address() const;
 
 private:
     /**
@@ -110,27 +137,30 @@ private:
 
     void UnpackRequest(void* pbuf, std::size_t pbytes, CommMessage::Type* request, void** kbuf, std::size_t* kbytes, void** vbuf, std::size_t* vbytes);
 
-    const MPIInstance& mpi_;
+    const MPIAddress address_;
 
-    int rank_;
+    void Flush(MPI_Request *req);
 };
 
-class MPIEndpointGroup : public CommEndpointGroup {
+class MPIEndpointGroup : public CommEndpointGroup, protected MPIBase {
 public:
-    MPIEndpointGroup(int mpiComm) : mpi_(MPIInstance::instance()) {};
-    ~MPIEndpointGroup() {};
-    int scatterImpl() { return -1; };
-    int receiveImpl() { return -1; };
-private:
-    const MPIInstance& mpi_;
-    int rank_;
-    MPI_Comm comm_;
-};
+    MPIEndpointGroup(MPI_Comm comm, const bool should_clean = false)
+      : CommEndpointGroup(),
+        MPIBase(comm, should_clean),
+        address_(rank_)
+    {}
 
-/**
- * @description An HXHIM communication transport implemented via MPI
- *
- */
-typedef CommTransportSpecialization<MPIAddress, MPIEndpoint, MPIEndpointGroup> MPITransport;
+    ~MPIEndpointGroup() {};
+
+    int BulkPutMessage() { return -1; };
+    int BulkGetMessage() { return -1; };
+
+    CommEndpointGroup *Dup() const;
+
+    const CommAddress *Address() const;
+
+private:
+    const MPIAddress address_;
+};
 
 #endif //HXHIM_COMM_MPI_H

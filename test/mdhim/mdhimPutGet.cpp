@@ -66,7 +66,7 @@ TEST(mdhimPutGet, secondary_global) {
     EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
 
     // secondary global key
-    sgk_t sgk = md.p->mdhim_rank + 1;
+    sgk_t sgk = 1;
     sgk_t *sgk_ptr = &sgk;
     int sgk_len = sizeof(sgk);
 
@@ -139,7 +139,7 @@ TEST(mdhimPutGet, secondary_local) {
     EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
 
     // secondary local key
-    slk_t slk = md.p->mdhim_rank + 1;
+    slk_t slk = 2;
     slk_t *slk_ptr = &slk;
     int slk_len = sizeof(slk);
 
@@ -214,7 +214,7 @@ TEST(mdhimPutGet, secondary_global_and_local) {
     EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
 
     // secondary global key
-    sgk_t sgk = md.p->mdhim_rank + 1;
+    sgk_t sgk = 1;
     sgk_t *sgk_ptr = &sgk;
     int sgk_len = sizeof(sgk);
 
@@ -229,7 +229,7 @@ TEST(mdhimPutGet, secondary_global_and_local) {
     ASSERT_NE(sg_info, nullptr);
 
     // secondary local key
-    slk_t slk = md.p->mdhim_rank + 1;
+    slk_t slk = 2;
     slk_t *slk_ptr = &slk;
     int slk_len = sizeof(slk);
 

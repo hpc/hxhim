@@ -265,8 +265,8 @@ int get_slice_num(struct mdhim *md, struct index_t *index, void *key, int key_le
 
 	//Make sure this key is valid
 	if ((ret = verify_key(index, key, key_len, key_type)) != MDHIM_SUCCESS) {
-		mlog(MDHIM_CLIENT_INFO, "Rank: %d - Invalid key given",
-		     md->p->mdhim_rank);
+		mlog(MDHIM_CLIENT_INFO, "Rank %s - Invalid key given",
+		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
 		return MDHIM_ERROR;
 	}
 
@@ -831,9 +831,9 @@ rangesrv_list *get_range_servers_from_stats(struct mdhim *md, struct index_t *in
 
 	//If we don't have any stats info, then return null
 	if (!index->stats) {
-		mlog(MDHIM_CLIENT_CRIT, "Rank: %d - No statistics data available."
+		mlog(MDHIM_CLIENT_CRIT, "Rank %s - No statistics data available."
 		     " Perform a mdhimStatFlush first.",
-		     md->p->mdhim_rank);
+		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
 		return NULL;
 	}
 
@@ -845,9 +845,9 @@ rangesrv_list *get_range_servers_from_stats(struct mdhim *md, struct index_t *in
 		if (key && key_len) {
 			cur_slice = get_slice_num(md, index, key, key_len);
 			if (cur_slice == MDHIM_ERROR) {
-				mlog(MDHIM_CLIENT_CRIT, "Rank: %d - Error: could not determine a"
+				mlog(MDHIM_CLIENT_CRIT, "Rank %s - Error: could not determine a"
 				     " valid a slice number",
-				     md->p->mdhim_rank);
+				     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
 				return NULL;
 			}
 		} else if (op != MDHIM_GET_FIRST && op != MDHIM_GET_LAST) {
@@ -867,9 +867,9 @@ rangesrv_list *get_range_servers_from_stats(struct mdhim *md, struct index_t *in
 
 		ret_rp = get_range_server_by_slice(md, index, slice_num);
 		if (!ret_rp) {
-			mlog(MDHIM_CLIENT_INFO, "Rank: %d - Did not get a valid range server from"
+			mlog(MDHIM_CLIENT_INFO, "Rank %s - Did not get a valid range server from"
 			     " get_range_server_by_size",
-			     md->p->mdhim_rank);
+			     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
 			return NULL;
 		}
 

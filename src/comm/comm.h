@@ -7,6 +7,7 @@
 #define HXHIM_COMM_H
 
 #include <cstdlib>
+#include <string>
 
 /**
  * @description Message types
@@ -22,36 +23,35 @@ public:
     };
 };
 
+
 /**
  * @description An abstract communication address
  */
 class CommAddress {
 public:
     /** @brief Destructor */
-    virtual ~CommAddress() = 0;
+    virtual ~CommAddress() {};
 
-protected:
     /** */
     CommAddress() {}
 
     /** */
     CommAddress(const CommAddress& other) {}
 
-    /** @return an array of bytes that can be cast into the native transport address format */
-    std::size_t Native(void** buf) const;
+    /*
+       Function for typecasting CommAddresses
+       into octet buffers
+     */
+    virtual operator std::string() const = 0;
 
-    /**
-     * @brief Set the native address representation
-     * @return 0 for success, non-zero on error
-     * */
-    virtual int Native(void* buf, std::size_t nbytes) const = 0;
+    /*
+      Function for typecasting CommAddresses
+      into ints
 
-private:
-
-
+      TODO: Remove this function once MPI is properly abstracted
+     */
+    virtual operator int() const = 0;
 };
-
-inline CommAddress::~CommAddress() {}
 
 /**
  * @ An abstract communication endpoint
@@ -61,59 +61,44 @@ inline CommAddress::~CommAddress() {}
  * keep calling the function until the operation is completed.
  */
 class CommEndpoint {
-public:
-    /** @brief Destructor */
-    virtual ~CommEndpoint() {}
+    public:
+        /** @brief Destructor */
+        virtual ~CommEndpoint() {}
 
-    /** @description Ensure queued messages are sent to destination and serviced */
-    int Flush() { return this->FlushImpl(); }
+        /** @description Ensure queued messages are sent to destination and serviced */
+        virtual int Flush() = 0;
 
-    /** @description Enqueue a Put request for this endpoint */
-    int AddPutRequest(void* kbuf, std::size_t kbytes, void* vbuf, std::size_t vbytes) { return this->AddPutRequestImpl(kbuf, kbytes, vbuf, vbytes); }
+        /** @description Enqueue a Put request for this endpoint */
+        virtual int AddPutRequest(struct mdhim_putm_t *pm) = 0;
 
-    /** @description Enqueue a Get request for this endpoint */
-    int AddGetRequest(void* kbuf, std::size_t kbytes, void* vbuf, std::size_t vbytes) { return this->AddGetRequestImpl(kbuf, kbytes, vbuf, vbytes); }
+        /** @description Enqueue a Get request for this endpoint */
+        virtual int AddGetRequest(void* kbuf, std::size_t kbytes, void* vbuf, std::size_t vbytes) = 0;
 
-    /** @description Enqueue a Put reply for the request originator */
-    int AddPutReply(void* buf, std::size_t nbytes) { return this->AddPutReplyImpl(buf, nbytes); }
+        /** @description Enqueue a Put reply for the request originator */
+        virtual int AddPutReply(const CommAddress *src, void **message) = 0;
 
-    /** @description Enqueue a Get reply for the request originator */
-    int AddGetReply(void* vbuf, std::size_t vbytes) { return this->AddGetReplyImpl(vbuf, vbytes); }
+        /** @description Enqueue a Get reply for the request originator */
+        virtual int AddGetReply(void* vbuf, std::size_t vbytes) = 0;
 
-    /** @description Immediately receive a PUT or GET request sent to this endpoint */
-    int ReceiveRequest(std::size_t rbytes, CommMessage::Type* requestType, void** kbuf, std::size_t* kbytes, void** vbuf, std::size_t* vbytes) { return this->ReceiveRequestImpl(rbytes, requestType, kbuf, kbytes, vbuf, vbytes); }
+        /** @description Immediately receive a PUT or GET request sent to this endpoint */
+        virtual int ReceiveRequest(std::size_t rbytes, CommMessage::Type* requestType, void** kbuf, std::size_t* kbytes, void** vbuf, std::size_t* vbytes) = 0;
 
-    /** @description Poll for number of seconds to determine if a message is present */
-    std::size_t PollForMessage(std::size_t timeoutSecs) { return this->PollForMessageImpl(timeoutSecs); }
+        /** @description Poll for number of seconds to determine if a message is present */
+        virtual std::size_t PollForMessage(std::size_t timeoutSecs) = 0;
 
-    /** @description Wait for number of seconds for an interupt to indicate a message is present*/
-    std::size_t WaitForMessage(std::size_t timeoutSecs) { return this->WaitForMessageImpl(timeoutSecs); }
+        /** @description Wait for number of seconds for an interrupt to indicate a message is present*/
+        virtual std::size_t WaitForMessage(std::size_t timeoutSecs) = 0;
 
-protected:
-    /** Constructor */
-    CommEndpoint() {}
+        virtual CommEndpoint *Dup() const = 0;
 
-    /** @brief Copy Constructor */
-    CommEndpoint(const CommEndpoint& other) {};
+        virtual const CommAddress *Address() const = 0;
 
+    protected:
+        /** Constructor */
+        CommEndpoint() {}
 
-    virtual int AddPutRequestImpl(void* kbuf, std::size_t kbytes, void* vbuf, std::size_t vbytes) = 0;
-
-    virtual int AddGetRequestImpl(void* kbuf, std::size_t kbytes, void* vbuf, std::size_t vbytes) = 0;
-
-    virtual int AddPutReplyImpl(void* buf, std::size_t nbytes) = 0;
-
-    virtual int AddGetReplyImpl(void* buf, std::size_t nbytes) = 0;
-
-    virtual int ReceiveRequestImpl(std::size_t rbytes, CommMessage::Type* requestType, void** kbuf, std::size_t* kbytes, void** vbuf, std::size_t* vbytes) = 0;
-
-    virtual std::size_t PollForMessageImpl(std::size_t timeoutSecs) = 0;
-
-    virtual std::size_t WaitForMessageImpl(std::size_t timeoutSecs) = 0;
-
-    virtual int FlushImpl() = 0;
-
-private:
+        /** @brief Copy Constructor */
+        CommEndpoint(const CommEndpoint& other) {};
 };
 
 /**
@@ -121,48 +106,57 @@ private:
  * @tparam Transport
  */
 class CommEndpointGroup {
-public:
-    /** @description Send messages to multiple endpoints */
-    int BulkPutMessage() { return this->ScatterImpl(); }
+    public:
+        virtual ~CommEndpointGroup() {}
 
-    /** @description Recv messages from multiple endpoint */
-    int BulkGetMessage() { return this->GatherImpl(); }
+        /** @description Send messages to multiple endpoints */
+        virtual int BulkPutMessage() = 0;
 
-protected:
-    /** Constructor */
-    CommEndpointGroup() {};
+        /** @description Recv messages from multiple endpoint */
+        virtual int BulkGetMessage() = 0;
 
-    /** Copy Constructor */
-    CommEndpointGroup(const CommEndpointGroup& other) {};
+        virtual CommEndpointGroup *Dup() const = 0;
 
-    virtual int GatherImpl() = 0;
+        virtual const CommAddress *Address() const = 0;
 
-    virtual int ScatterImpl() = 0;
+   protected:
+        /** Constructor */
+        CommEndpointGroup() {};
+
+        /** Copy Constructor */
+        CommEndpointGroup(const CommEndpointGroup& other) {};
 };
 
 /**
  * Abstract base for all Comm Implementations (MPI, Sockets, Mercury, etc.)
+ * CommTransport takes ownership of the EP and EG pointers
  */
 class CommTransport {
-public:
-    //int CreateAddress(A* addr) const { return this->createAddressImpl(A* addr); }
-    //int CreateEndpoint(EP* ep) const { return this->createEndpointImpl(EP* endpoint); }
-    //int CreateEndpointGroup(EG* epGroup) const {};
-protected:
-    CommTransport() {}
-    ~CommTransport() {}
-};
+    public:
+        CommTransport(CommEndpoint *ep, CommEndpointGroup *eg)
+          : endpoint_(ep), endpointgroup_(eg)
+        {}
 
-/**
- * Specialization class for creating a CommTransport implementation
- * @tparam A A concrete CommAddress type
- * @tparam EP A concrete Endpoint type
- * @tparam EG A concrete EndpointGroup type
- */
-template <class A, class EP, class EG>
-class CommTransportSpecialization : public CommTransport {
-public:
+        ~CommTransport() {
+            delete endpoint_;
+            delete endpointgroup_;
+        }
 
+        CommEndpoint *Endpoint() {
+            return endpoint_;
+        }
+
+        CommEndpointGroup *EndpointGroup() {
+            return endpointgroup_;
+        }
+
+        CommTransport *Dup() const {
+            return new CommTransport(endpoint_->Dup(), endpointgroup_->Dup());
+        }
+
+    private:
+        CommEndpoint *endpoint_;
+        CommEndpointGroup *endpointgroup_;
 };
 
 #endif //HXHIM_COMM_H

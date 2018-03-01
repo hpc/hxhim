@@ -29,7 +29,6 @@ extern "C"
  * @brief Structure used to set MDHIM options before initialization
  */
 struct mdhim_options {
-
     MPI_Comm comm;
 
     int dstype;
@@ -37,7 +36,7 @@ struct mdhim_options {
 
 	//Directory location of DBs
 	const char *db_path;
-   
+
 	//Multiple paths of DBs
 	char **db_paths;
 	//Number of paths in db_paths
@@ -48,7 +47,7 @@ struct mdhim_options {
 	//Name of each DB (will be modified by adding "_<RANK>" to create multiple
 	// unique DB for each rank server.
 	const char *db_name;
-    
+
 	//Different types of dataStores
 	//LEVELDB=1 (from data_store.h)
 	int db_type;

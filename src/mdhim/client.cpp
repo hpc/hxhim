@@ -18,25 +18,13 @@
  * @return return_message structure with ->error = MDHIM_SUCCESS or MDHIM_ERROR
  */
 struct mdhim_rm_t *client_put(struct mdhim *md, struct mdhim_putm_t *pm) {
+    // do put
+    md->p->comm->Endpoint()->AddPutRequest(pm);
 
-	int return_code;
-	struct mdhim_rm_t *rm;
-
-	return_code = send_rangesrv_work(md, pm->basem.server_rank, pm);
-	// If the send did not succeed then log the error code and return MDHIM_ERROR
-	if (return_code != MDHIM_SUCCESS) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: %d from server while sending "
-		     "put record request",  md->p->mdhim_rank, return_code);
-		return NULL;
-	}
-
-	return_code = receive_client_response(md, pm->basem.server_rank, (void **) &rm);
-	// If the receive did not succeed then log the error code and return MDHIM_ERROR
-	if (return_code != MDHIM_SUCCESS) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: %d from server while receiving "
-		     "put record request",  md->p->mdhim_rank, return_code);
-		rm->error = MDHIM_ERROR;
-	}
+    // wait for acknowledgement
+	struct mdhim_rm_t *rm = nullptr;
+    MPIAddress address(pm->basem.server_rank);// this will eventually change to something like pm->basem.server_address
+    md->p->comm->Endpoint()->AddPutReply((CommAddress*) &address, (void **) &rm);
 
 	// Return response message
 	return rm;
@@ -77,8 +65,8 @@ struct mdhim_brm_t *client_bput(struct mdhim *md, struct index_t *index,
 	return_code = send_all_rangesrv_work(md, (void **) bpm_list, index->num_rangesrvs);
 	// If the send did not succeed then log the error code and return MDHIM_ERROR
 	if (return_code != MDHIM_SUCCESS) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: %d from server while sending "
-		     "bput record request",  md->p->mdhim_rank, return_code);
+		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: %d from server while sending "
+		     "bput record request",  ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), return_code);
 
 		return NULL;
 	}
@@ -88,17 +76,17 @@ struct mdhim_brm_t *client_bput(struct mdhim *md, struct index_t *index,
 	return_code = receive_all_client_responses(md, srvs, num_srvs, (void ***) &rm_list);
 	// If the receives did not succeed then log the error code and return MDHIM_ERROR
 	if (return_code != MDHIM_SUCCESS) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: %d from server while receiving "
-		     "bput record requests",  md->p->mdhim_rank, return_code);
+		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: %d from server while receiving "
+		     "bput record requests",  ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), return_code);
 	}
 
 	brm_head = brm_tail = NULL;
 	for (i = 0; i < num_srvs; i++) {
 		rm = rm_list[i];
 		if (!rm) {
-		  mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+		  mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
 		       "Error: did not receive a response message in client_bput",
-		       md->p->mdhim_rank);
+		       ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
 		  //Skip this as the message doesn't exist
 		  continue;
 		}
@@ -161,8 +149,8 @@ struct mdhim_bgetrm_t *client_bget(struct mdhim *md, struct index_t *index,
 	return_code = send_all_rangesrv_work(md, (void **) bgm_list, index->num_rangesrvs);
 	// If the send did not succeed then log the error code and return MDHIM_ERROR
 	if (return_code != MDHIM_SUCCESS) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: %d from server while sending "
-		     "bget record request",  md->p->mdhim_rank, return_code);
+		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: %d from server while sending "
+		     "bget record request",  ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), return_code);
 
 		return NULL;
 	}
@@ -172,17 +160,17 @@ struct mdhim_bgetrm_t *client_bget(struct mdhim *md, struct index_t *index,
 	return_code = receive_all_client_responses(md, srvs, num_srvs, (void ***) &bgrm_list);
 	// If the receives did not succeed then log the error code and return MDHIM_ERROR
 	if (return_code != MDHIM_SUCCESS) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: %d from server while receiving "
-		     "bget record requests",  md->p->mdhim_rank, return_code);
+		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: %d from server while receiving "
+		     "bget record requests",  ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), return_code);
 	}
 
 	bgrm_head = bgrm_tail = NULL;
 	for (i = 0; i < num_srvs; i++) {
 		bgrm = bgrm_list[i];
 		if (!bgrm) {
-		  mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+		  mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
 		       "Error: did not receive a response message in client_bget",
-		       md->p->mdhim_rank);
+		       ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
 		  //Skip this as the message doesn't exist
 		  continue;
 		}
@@ -218,16 +206,16 @@ struct mdhim_bgetrm_t *client_bget_op(struct mdhim *md, struct mdhim_getm_t *gm)
 	return_code = send_rangesrv_work(md, gm->basem.server_rank, gm);
 	// If the send did not succeed then log the error code and return MDHIM_ERROR
 	if (return_code != MDHIM_SUCCESS) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: %d from server while sending "
-		     "get record request",  md->p->mdhim_rank, return_code);
+		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: %d from server while sending "
+		     "get record request",  ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), return_code);
 		return NULL;
 	}
 
 	return_code = receive_client_response(md, gm->basem.server_rank, (void **) &brm);
 	// If the receive did not succeed then log the error code and return MDHIM_ERROR
 	if (return_code != MDHIM_SUCCESS) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: %d from server while receiving "
-		     "get record request",  md->p->mdhim_rank, return_code);
+		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: %d from server while receiving "
+		     "get record request",  ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), return_code);
 		brm->error = MDHIM_ERROR;
 	}
 
@@ -250,16 +238,16 @@ struct mdhim_rm_t *client_delete(struct mdhim *md, struct mdhim_delm_t *dm) {
 	return_code = send_rangesrv_work(md, dm->basem.server_rank, dm);
 	// If the send did not succeed then log the error code and return MDHIM_ERROR
 	if (return_code != MDHIM_SUCCESS) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: %d from server while sending "
-		     "delete record request",  md->p->mdhim_rank, return_code);
+		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: %d from server while sending "
+		     "delete record request",  ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), return_code);
 		return NULL;
 	}
 
 	return_code = receive_client_response(md, dm->basem.server_rank, (void **) &rm);
 	// If the receive did not succeed then log the error code and return MDHIM_ERROR
 	if (return_code != MDHIM_SUCCESS) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: %d from server while receiving "
-		     "delete record request",  md->p->mdhim_rank, return_code);
+		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: %d from server while receiving "
+		     "delete record request",  ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), return_code);
 		rm->error = MDHIM_ERROR;
 	}
 
@@ -297,8 +285,8 @@ struct mdhim_brm_t *client_bdelete(struct mdhim *md, struct index_t *index,
 	return_code = send_all_rangesrv_work(md, (void **) bdm_list, index->num_rangesrvs);
 	// If the send did not succeed then log the error code and return MDHIM_ERROR
 	if (return_code != MDHIM_SUCCESS) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: %d from server while sending "
-		     "bdel record request",  md->p->mdhim_rank, return_code);
+		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: %d from server while sending "
+		     "bdel record request",  ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), return_code);
 
 		return NULL;
 	}
@@ -308,17 +296,17 @@ struct mdhim_brm_t *client_bdelete(struct mdhim *md, struct index_t *index,
 	return_code = receive_all_client_responses(md, srvs, num_srvs, (void ***) &rm_list);
 	// If the receives did not succeed then log the error code and return MDHIM_ERROR
 	if (return_code != MDHIM_SUCCESS) {
-		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: %d from server while receiving "
-		     "bdel record requests",  md->p->mdhim_rank, return_code);
+		mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: %d from server while receiving "
+		     "bdel record requests",  ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), return_code);
 	}
 
 	brm_head = brm_tail = NULL;
 	for (i = 0; i < num_srvs; i++) {
 		rm = rm_list[i];
 		if (!rm) {
-		  mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+		  mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
 		       "Error: did not receive a response message in client_bdel",
-		       md->p->mdhim_rank);
+		       ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
 		  //Skip this as the message doesn't exist
 		  continue;
 		}

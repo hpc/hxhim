@@ -69,7 +69,7 @@ int encode(struct mdhim *md, struct mdhim_basem_t *message, char **buf, int *siz
     }
 
     if (ret != MDHIM_SUCCESS) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: Packing message failed.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: Packing message failed.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
     }
 
     return ret;
@@ -88,7 +88,7 @@ int encode(struct mdhim *md, struct mdhim_basem_t *message, char **buf, int *siz
 int decode(struct mdhim *md, const int mtype, char *buf, int size, struct mdhim_basem_t **message) {
     // Checks for valid message, if error inform and ignore message
     if (size==0 || mtype<MDHIM_PUT || mtype>MDHIM_COMMIT) {
-      mlog(MDHIM_SERVER_CRIT, "Rank: %d - Got empty/invalid message in receive_rangesrv_work.",  md->p->mdhim_rank);
+      mlog(MDHIM_SERVER_CRIT, "Rank %s - Got empty/invalid message in receive_rangesrv_work.",  ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
       return MDHIM_ERROR;
     }
 
@@ -127,9 +127,9 @@ int decode(struct mdhim *md, const int mtype, char *buf, int size, struct mdhim_
     }
 
     if (return_code != MPI_SUCCESS) {
-        mlog(MPI_CRIT, "Rank: %d - "
+        mlog(MPI_CRIT, "Rank %s - "
              "Error unpacking message in receive_rangesrv_work",
-             md->p->mdhim_rank);
+             ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         ret = MDHIM_ERROR;
     }
 
@@ -158,9 +158,9 @@ int only_send_rangesrv_work(struct mdhim *md, int dest, const char *buf, const i
     test_req_and_wait(md, &req);
 
     if (return_code != MPI_SUCCESS) {
-        mlog(MPI_CRIT, "Rank: %d - "
+        mlog(MPI_CRIT, "Rank %s - "
              "Error sending work size message in send_rangesrv_work",
-             md->p->mdhim_rank);
+             ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
     }
 
@@ -172,9 +172,9 @@ int only_send_rangesrv_work(struct mdhim *md, int dest, const char *buf, const i
     test_req_and_wait(md, &req);
 
     if (return_code != MPI_SUCCESS) {
-        mlog(MPI_CRIT, "Rank: %d - "
+        mlog(MPI_CRIT, "Rank %s - "
              "Error sending work message in send_rangesrv_work",
-             md->p->mdhim_rank);
+             ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
     }
 
@@ -238,9 +238,9 @@ int only_send_all_rangesrv_work(struct mdhim *md, char **messages, int *sizes, i
         pthread_mutex_unlock(&md->p->mdhim_comm_lock);
 
         if (return_code != MPI_SUCCESS) {
-            mlog(MPI_CRIT, "Rank: %d - "
+            mlog(MPI_CRIT, "Rank %s - "
                  "Error sending work message in send_rangesrv_work",
-                 md->p->mdhim_rank);
+                 ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
             ret = MDHIM_ERROR;
         }
 
@@ -253,9 +253,9 @@ int only_send_all_rangesrv_work(struct mdhim *md, char **messages, int *sizes, i
         pthread_mutex_unlock(&md->p->mdhim_comm_lock);
 
         if (return_code != MPI_SUCCESS) {
-            mlog(MPI_CRIT, "Rank: %d - "
+            mlog(MPI_CRIT, "Rank %s - "
                  "Error sending work message in send_rangesrv_work",
-                 md->p->mdhim_rank);
+                 ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
             ret = MDHIM_ERROR;
         }
 
@@ -335,8 +335,8 @@ int send_all_rangesrv_work(struct mdhim *md, void **messages, int num_srvs) {
         }
 
         if (encode(md, (struct mdhim_basem_t *)mesg, sendbufs + i, sizes + i) != MDHIM_SUCCESS) {
-            mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: Packing message "
-               "failed before sending.", md->p->mdhim_rank);
+            mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: Packing message "
+               "failed before sending.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
             ret = MDHIM_ERROR;
             free(*(sendbufs + i));
             *(sendbufs + i) = 0;
@@ -384,8 +384,8 @@ int only_receive_rangesrv_work(struct mdhim *md, int *src, char **recvbuf, int *
 
     // If the receive did not succeed then return the error code back
     if ( return_code != MPI_SUCCESS ) {
-                 mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - Error: %d "
-                     "receive size message failed.", md->p->mdhim_rank, return_code);
+                 mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - Error: %d "
+                     "receive size message failed.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), return_code);
         return MDHIM_ERROR;
     }
 
@@ -400,8 +400,8 @@ int only_receive_rangesrv_work(struct mdhim *md, int *src, char **recvbuf, int *
         usleep(100);
     }
     if (return_code == MPI_ERR_IN_STATUS) {
-        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - Received an error status: %d "
-                     " while receiving work message size", md->p->mdhim_rank, status.MPI_ERROR);
+        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - Received an error status: %d "
+                     " while receiving work message size", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), status.MPI_ERROR);
     }
 
     *recvbuf = (char *)malloc(*recvsize);
@@ -414,8 +414,8 @@ int only_receive_rangesrv_work(struct mdhim *md, int *src, char **recvbuf, int *
     pthread_mutex_unlock(&md->p->mdhim_comm_lock);
     // If the receive did not succeed then return the error code back
     if ( return_code != MPI_SUCCESS ) {
-                 mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - Error: %d "
-                     "receive message failed.", md->p->mdhim_rank, return_code);
+                 mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - Error: %d "
+                     "receive message failed.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), return_code);
         return MDHIM_ERROR;
     }
     while (!flag) {
@@ -431,8 +431,8 @@ int only_receive_rangesrv_work(struct mdhim *md, int *src, char **recvbuf, int *
     }
 
     if (return_code == MPI_ERR_IN_STATUS) {
-        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - Received an error status: %d "
-                     " while receiving work message size", md->p->mdhim_rank, status.MPI_ERROR);
+        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - Received an error status: %d "
+                     " while receiving work message size", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), status.MPI_ERROR);
     }
     if (!*recvbuf) {
         return MDHIM_ERROR;
@@ -497,9 +497,9 @@ int only_send_client_response(struct mdhim *md, int dest, int *sizebuf,
     pthread_mutex_unlock(&md->p->mdhim_comm_lock);
 
     if (return_code != MPI_SUCCESS) {
-        mlog(MPI_CRIT, "Rank: %d - "
+        mlog(MPI_CRIT, "Rank %s - "
              "Error sending client response message size in send_client_response",
-             md->p->mdhim_rank);
+             ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         ret = MDHIM_ERROR;
         free(*size_req);
         *size_req = NULL;
@@ -514,9 +514,9 @@ int only_send_client_response(struct mdhim *md, int dest, int *sizebuf,
     pthread_mutex_unlock(&md->p->mdhim_comm_lock);
 
     if (return_code != MPI_SUCCESS) {
-        mlog(MPI_CRIT, "Rank: %d - "
+        mlog(MPI_CRIT, "Rank %s - "
              "Error sending client response message in send_client_response",
-             md->p->mdhim_rank);
+             ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         ret = MDHIM_ERROR;
         free(*msg_req);
         *msg_req = NULL;
@@ -567,9 +567,9 @@ int only_receive_client_response(struct mdhim *md, int src, char **recvbuf, int 
 
     // If the receive did not succeed then return the error code back
     if ( return_code != MPI_SUCCESS ) {
-        mlog(MPI_CRIT, "Rank: %d - "
+        mlog(MPI_CRIT, "Rank %s - "
              "Error receiving message in receive_client_response",
-             md->p->mdhim_rank);
+             ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
     }
 
@@ -584,9 +584,9 @@ int only_receive_client_response(struct mdhim *md, int src, char **recvbuf, int 
 
     // If the receive did not succeed then return the error code back
     if ( return_code != MPI_SUCCESS ) {
-        mlog(MPI_CRIT, "Rank: %d - "
+        mlog(MPI_CRIT, "Rank %s - "
              "Error receiving message in receive_client_response",
-             md->p->mdhim_rank);
+             ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
     }
 
@@ -658,9 +658,9 @@ int only_receive_all_client_responses(struct mdhim *md, int *srcs, int nsrcs,
 
         // If the receive did not succeed then return the error code back
         if ( return_code != MPI_SUCCESS ) {
-            mlog(MPI_CRIT, "Rank: %d - "
+            mlog(MPI_CRIT, "Rank %s - "
                  "Error receiving message in receive_client_response",
-                 md->p->mdhim_rank);
+                 ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
             ret = MDHIM_ERROR;
         }
     }
@@ -679,9 +679,9 @@ int only_receive_all_client_responses(struct mdhim *md, int *srcs, int nsrcs,
             pthread_mutex_unlock(&md->p->mdhim_comm_lock);
 
             if (return_code == MPI_ERR_REQUEST) {
-                mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - Received an error status: %d "
+                mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - Received an error status: %d "
                      " while receiving client response message size",
-                     md->p->mdhim_rank, status.MPI_ERROR);
+                     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), status.MPI_ERROR);
             }
             if (!flag) {
               continue;
@@ -710,9 +710,9 @@ int only_receive_all_client_responses(struct mdhim *md, int *srcs, int nsrcs,
 
         // If the receive did not succeed then return the error code back
         if ( return_code != MPI_SUCCESS ) {
-            mlog(MPI_CRIT, "Rank: %d - "
+            mlog(MPI_CRIT, "Rank %s - "
                  "Error receiving message in receive_client_response",
-                 md->p->mdhim_rank);
+                 ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
             ret = MDHIM_ERROR;
         }
     }
@@ -731,8 +731,8 @@ int only_receive_all_client_responses(struct mdhim *md, int *srcs, int nsrcs,
             pthread_mutex_unlock(&md->p->mdhim_comm_lock);
 
             if (return_code == MPI_ERR_REQUEST) {
-                mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - Received an error status: %d "
-                     " while receiving work message size", md->p->mdhim_rank, status.MPI_ERROR);
+                mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - Received an error status: %d "
+                     " while receiving work message size", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), status.MPI_ERROR);
             }
             if (!flag) {
               continue;
@@ -814,46 +814,46 @@ int receive_all_client_responses(struct mdhim *md, int *srcs, int nsrcs,
 */
 int pack_put_message(struct mdhim *md, struct mdhim_putm_t *pm, void **sendbuf, int *sendsize) {
     int return_code = MPI_SUCCESS;  // MPI_SUCCESS = 0
-        int64_t m_size = sizeof(struct mdhim_putm_t); // Generous variable for size calculation
-        int mesg_size;  // Variable to be used as parameter for MPI_pack of safe size
-        int mesg_idx = 0;  // Variable for incremental pack
-        void *outbuf;
+    int64_t m_size = sizeof(struct mdhim_putm_t); // Generous variable for size calculation
+    int mesg_size;  // Variable to be used as parameter for MPI_pack of safe size
+    int mesg_idx = 0;  // Variable for incremental pack
+    void *outbuf;
 
-        // Add to size the length of the key and data fields
-        m_size += pm->key_len + pm->value_len;
-        if (m_size > MDHIM_MAX_MSG_SIZE) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: put message too large."
-                     " Put is over Maximum size allowed of %d.", md->p->mdhim_rank, MDHIM_MAX_MSG_SIZE);
+    // Add to size the length of the key and data fields
+    m_size += pm->key_len + pm->value_len;
+    if (m_size > MDHIM_MAX_MSG_SIZE) {
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: put message too large."
+             " Put is over Maximum size allowed of %d.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), MDHIM_MAX_MSG_SIZE);
         return MDHIM_ERROR;
-        }
+    }
 
     //Set output variable for the size to send
     mesg_size = (int) m_size;
-        *sendsize = mesg_size;
+    *sendsize = mesg_size;
     pm->basem.size = mesg_size;
 
         // Is the computed message size of a safe value? (less than a max message size?)
-        if ((*sendbuf = malloc(mesg_size * sizeof(char))) == NULL) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-                     "memory to pack put message.", md->p->mdhim_rank);
+    if ((*sendbuf = malloc(mesg_size * sizeof(char))) == NULL) {
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+             "memory to pack put message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
-        }
+    }
 
     outbuf = *sendbuf;
-        // pack the message first with the structure and then followed by key and data values.
+    // pack the message first with the structure and then followed by key and data values.
     return_code = MPI_Pack(pm, sizeof(struct mdhim_putm_t), MPI_CHAR, outbuf, mesg_size,
-                   &mesg_idx, md->p->mdhim_comm);
-        return_code += MPI_Pack(pm->key, pm->key_len, MPI_CHAR, outbuf, mesg_size, &mesg_idx,
-                md->p->mdhim_comm);
-        return_code += MPI_Pack(pm->value, pm->value_len, MPI_CHAR, outbuf, mesg_size, &mesg_idx,
-                md->p->mdhim_comm);
+                           &mesg_idx, md->p->mdhim_comm);
+    return_code += MPI_Pack(pm->key, pm->key_len, MPI_CHAR, outbuf, mesg_size, &mesg_idx,
+                            md->p->mdhim_comm);
+    return_code += MPI_Pack(pm->value, pm->value_len, MPI_CHAR, outbuf, mesg_size, &mesg_idx,
+                            md->p->mdhim_comm);
 
     // If the pack did not succeed then log the error and return the error code
     if ( return_code != MPI_SUCCESS ) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to pack "
-                     "the put message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to pack "
+                     "the put message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
-        }
+    }
 
     return MDHIM_SUCCESS;
 }
@@ -894,8 +894,8 @@ int pack_bput_message(struct mdhim *md, struct mdhim_bputm_t *bpm, void **sendbu
 
         // Is the computed message size of a safe value? (less than a max message size?)
         if (m_size > MDHIM_MAX_MSG_SIZE) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: bulk put message too large."
-                     " Bput is over Maximum size allowed of %d.", md->p->mdhim_rank, MDHIM_MAX_MSG_SIZE);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: bulk put message too large."
+                     " Bput is over Maximum size allowed of %d.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), MDHIM_MAX_MSG_SIZE);
         return MDHIM_ERROR;
         }
         mesg_size = m_size;  // Safe size to use in MPI_pack
@@ -903,8 +903,8 @@ int pack_bput_message(struct mdhim *md, struct mdhim_bputm_t *bpm, void **sendbu
     bpm->basem.size = mesg_size;
 
         if ((*sendbuf = malloc(mesg_size * sizeof(char))) == NULL) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-                     "memory to pack bulk put message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+                     "memory to pack bulk put message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
         }
 
@@ -926,8 +926,8 @@ int pack_bput_message(struct mdhim *md, struct mdhim_bputm_t *bpm, void **sendbu
 
     // If the pack did not succeed then log the error and return the error code
     if ( return_code != MPI_SUCCESS ) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to pack "
-                     "the bulk put message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to pack "
+                     "the bulk put message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
         }
 
@@ -954,47 +954,46 @@ int pack_bput_message(struct mdhim *md, struct mdhim_bputm_t *bpm, void **sendbu
  };
 */
 int unpack_put_message(struct mdhim *md, void *message, int mesg_size,  void **putm) {
-
     int return_code = MPI_SUCCESS;  // MPI_SUCCESS = 0
-        int mesg_idx = 0;  // Variable for incremental unpack
-        struct mdhim_putm_t *pm;
+    int mesg_idx = 0;  // Variable for incremental unpack
+    struct mdhim_putm_t *pm;
 
-        if ((*((struct mdhim_putm_t **) putm) = (mdhim_putm_t*)malloc(sizeof(struct mdhim_putm_t))) == NULL) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-                     "memory to unpack put message.", md->p->mdhim_rank);
+    if ((*((struct mdhim_putm_t **) putm) = (mdhim_putm_t*)malloc(sizeof(struct mdhim_putm_t))) == NULL) {
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+             "memory to unpack put message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
-        }
+    }
 
     pm = *((struct mdhim_putm_t **) putm);
-        // Unpack the message first with the structure and then followed by key and data values.
-        return_code = MPI_Unpack(message, mesg_size, &mesg_idx, pm,
-                 sizeof(struct mdhim_putm_t), MPI_CHAR,
-                 md->p->mdhim_comm);
+    // Unpack the message first with the structure and then followed by key and data values.
+    return_code = MPI_Unpack(message, mesg_size, &mesg_idx, pm,
+                             sizeof(struct mdhim_putm_t), MPI_CHAR,
+                             md->p->mdhim_comm);
 
-        // Unpack key by first allocating memory and then extracting the values from message
-        if ((pm->key = malloc(pm->key_len * sizeof(char))) == NULL) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-                     "memory to unpack put message.", md->p->mdhim_rank);
+    // Unpack key by first allocating memory and then extracting the values from message
+    if ((pm->key = malloc(pm->key_len * sizeof(char))) == NULL) {
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+             "memory to unpack put message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
-        }
-        return_code += MPI_Unpack(message, mesg_size, &mesg_idx, pm->key, pm->key_len,
-                  MPI_CHAR, md->p->mdhim_comm);
+    }
+    return_code += MPI_Unpack(message, mesg_size, &mesg_idx, pm->key, pm->key_len,
+                              MPI_CHAR, md->p->mdhim_comm);
 
-        // Unpack data by first allocating memory and then extracting the values from message
-        if ((pm->value = malloc(pm->value_len * sizeof(char))) == NULL) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-                     "memory to unpack put message.", md->p->mdhim_rank);
+    // Unpack data by first allocating memory and then extracting the values from message
+    if ((pm->value = malloc(pm->value_len * sizeof(char))) == NULL) {
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+             "memory to unpack put message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
-        }
-        return_code += MPI_Unpack(message, mesg_size, &mesg_idx, pm->value, pm->value_len,
-                  MPI_CHAR, md->p->mdhim_comm);
+    }
+    return_code += MPI_Unpack(message, mesg_size, &mesg_idx, pm->value, pm->value_len,
+                              MPI_CHAR, md->p->mdhim_comm);
 
     // If the unpack did not succeed then log the error and return the error code
     if ( return_code != MPI_SUCCESS ) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to unpack "
-                     "the put message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to unpack "
+             "the put message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
-        }
+    }
 
     return MDHIM_SUCCESS;
 }
@@ -1027,8 +1026,8 @@ int unpack_bput_message(struct mdhim *md, void *message, int mesg_size, void **b
     int num_records;
 
         if ((*((struct mdhim_bputm_t **) bput) = (struct mdhim_bputm_t *)malloc(sizeof(struct mdhim_bputm_t))) == NULL) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-                     "memory to unpack bput message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+                     "memory to unpack bput message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
         }
 
@@ -1041,32 +1040,32 @@ int unpack_bput_message(struct mdhim *md, void *message, int mesg_size, void **b
     // Allocate memory for key pointers, to be populated later.
         if (((*((struct mdhim_bputm_t **) bput))->keys =
                      (void**)malloc(num_records * sizeof(void *))) == NULL) {
-        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-             "memory to unpack bput message.", md->p->mdhim_rank);
+        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+             "memory to unpack bput message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
         }
 
     // Allocate memory for value pointers, to be populated later.
         if (((*((struct mdhim_bputm_t **) bput))->values =
                      (void**)malloc(num_records * sizeof(void *))) == NULL) {
-        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-             "memory to unpack bput message.", md->p->mdhim_rank);
+        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+             "memory to unpack bput message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
         }
 
         // Allocate memory for key_lens, to be populated later.
         if (((*((struct mdhim_bputm_t **) bput))->key_lens =
          (int *)malloc(num_records * sizeof(int))) == NULL) {
-        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-                     "memory to unpack bput message.", md->p->mdhim_rank);
+        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+                     "memory to unpack bput message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
         }
 
         // Allocate memory for value_lens, to be populated later.
         if (((*((struct mdhim_bputm_t **) bput))->value_lens =
          (int *)malloc(num_records * sizeof(int))) == NULL) {
-        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-                     "memory to unpack bput message.", md->p->mdhim_rank);
+        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+                     "memory to unpack bput message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
         }
 
@@ -1081,8 +1080,8 @@ int unpack_bput_message(struct mdhim *md, void *message, int mesg_size, void **b
         if (((*((struct mdhim_bputm_t **) bput))->keys[i] =
              malloc((*((struct mdhim_bputm_t **) bput))->key_lens[i] *
                 sizeof(char))) == NULL) {
-            mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-                 "memory to unpack bput message.", md->p->mdhim_rank);
+            mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+                 "memory to unpack bput message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
             return MDHIM_ERROR;
         }
         return_code += MPI_Unpack(message, mesg_size, &mesg_idx,
@@ -1100,8 +1099,8 @@ int unpack_bput_message(struct mdhim *md, void *message, int mesg_size, void **b
         if (((*((struct mdhim_bputm_t **) bput))->values[i] =
              malloc((*((struct mdhim_bputm_t **) bput))->value_lens[i] *
                 sizeof(char))) == NULL) {
-            mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-                 "memory to unpack bput message.", md->p->mdhim_rank);
+            mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+                 "memory to unpack bput message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
             return MDHIM_ERROR;
         }
 
@@ -1113,8 +1112,8 @@ int unpack_bput_message(struct mdhim *md, void *message, int mesg_size, void **b
 
     // If the unpack did not succeed then log the error and return the error code
     if ( return_code != MPI_SUCCESS ) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to unpack "
-                     "the bput message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to unpack "
+                     "the bput message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
         }
 
@@ -1153,8 +1152,8 @@ int pack_get_message(struct mdhim *md, struct mdhim_getm_t *gm, void **sendbuf, 
         m_size += gm->key_len;
 
         if (m_size > MDHIM_MAX_MSG_SIZE) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: get message too large."
-                     " Get is over Maximum size allowed of %d.", md->p->mdhim_rank, MDHIM_MAX_MSG_SIZE);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: get message too large."
+                     " Get is over Maximum size allowed of %d.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), MDHIM_MAX_MSG_SIZE);
         return MDHIM_ERROR;
         }
         mesg_size = m_size;
@@ -1163,8 +1162,8 @@ int pack_get_message(struct mdhim *md, struct mdhim_getm_t *gm, void **sendbuf, 
 
         // Is the computed message size of a safe value? (less than a max message size?)
         if ((*sendbuf = malloc(mesg_size * sizeof(char))) == NULL) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-                     "memory to pack get message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+                     "memory to pack get message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
         }
 
@@ -1177,8 +1176,8 @@ int pack_get_message(struct mdhim *md, struct mdhim_getm_t *gm, void **sendbuf, 
 
     // If the pack did not succeed then log the error and return the error code
     if ( return_code != MPI_SUCCESS ) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to pack "
-                     "the get message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to pack "
+                     "the get message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
         }
 
@@ -1220,8 +1219,8 @@ int pack_bget_message(struct mdhim *md, struct mdhim_bgetm_t *bgm, void **sendbu
 
         // Is the computed message size of a safe value? (less than a max message size?)
         if (m_size > MDHIM_MAX_MSG_SIZE) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: bulk get message too large."
-                     " Bget is over Maximum size allowed of %d.", md->p->mdhim_rank, MDHIM_MAX_MSG_SIZE);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: bulk get message too large."
+                     " Bget is over Maximum size allowed of %d.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), MDHIM_MAX_MSG_SIZE);
         return MDHIM_ERROR;
         }
         mesg_size = m_size;  // Safe size to use in MPI_pack
@@ -1229,8 +1228,8 @@ int pack_bget_message(struct mdhim *md, struct mdhim_bgetm_t *bgm, void **sendbu
     bgm->basem.size = mesg_size;
 
         if ((*sendbuf = malloc(mesg_size * sizeof(char))) == NULL) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-                     "memory to pack bulk get message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+                     "memory to pack bulk get message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
         }
 
@@ -1252,8 +1251,8 @@ int pack_bget_message(struct mdhim *md, struct mdhim_bgetm_t *bgm, void **sendbu
 
     // If the pack did not succeed then log the error and return the error code
     if ( return_code != MPI_SUCCESS ) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to pack "
-                     "the bulk get message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to pack "
+                     "the bulk get message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
         }
 
@@ -1284,8 +1283,8 @@ int unpack_get_message(struct mdhim *md, void *message, int mesg_size, void **ge
         int mesg_idx = 0;  // Variable for incremental unpack
 
         if ((*((struct mdhim_getm_t **) getm) = (struct mdhim_getm_t *)malloc(sizeof(struct mdhim_getm_t))) == NULL) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-                     "memory to unpack get message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+                     "memory to unpack get message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
         }
 
@@ -1296,8 +1295,8 @@ int unpack_get_message(struct mdhim *md, void *message, int mesg_size, void **ge
         // Unpack key by first allocating memory and then extracting the values from message
         if (((*((struct mdhim_getm_t **) getm))->key =
          malloc((*((struct mdhim_getm_t **) getm))->key_len * sizeof(char))) == NULL) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-                     "memory to unpack get message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+                     "memory to unpack get message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
         }
         return_code += MPI_Unpack(message, mesg_size, &mesg_idx,
@@ -1307,8 +1306,8 @@ int unpack_get_message(struct mdhim *md, void *message, int mesg_size, void **ge
 
     // If the unpack did not succeed then log the error and return the error code
     if ( return_code != MPI_SUCCESS ) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to unpack "
-                     "the get message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to unpack "
+                     "the get message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
         }
 
@@ -1341,8 +1340,8 @@ int unpack_bget_message(struct mdhim *md, void *message, int mesg_size, void **b
     int num_records;
 
     if ((*((struct mdhim_bgetm_t **) bgetm) = (struct mdhim_bgetm_t *)malloc(sizeof(struct mdhim_bgetm_t))) == NULL) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-                     "memory to unpack bget message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+                     "memory to unpack bget message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
     }
 
@@ -1355,15 +1354,15 @@ int unpack_bget_message(struct mdhim *md, void *message, int mesg_size, void **b
     // Allocate memory for key pointers, to be populated later.
     if (((*((struct mdhim_bgetm_t **) bgetm))->keys =
          (void**)malloc(num_records * sizeof(void *))) == NULL) {
-        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-               "memory to unpack bget message.", md->p->mdhim_rank);
+        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+               "memory to unpack bget message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
     }
     // Allocate memory for key_lens, to be populated later.
     if (((*((struct mdhim_bgetm_t **) bgetm))->key_lens =
          (int *)malloc(num_records * sizeof(int))) == NULL) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-             "memory to unpack bget message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+             "memory to unpack bget message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
     }
 
@@ -1378,8 +1377,8 @@ int unpack_bget_message(struct mdhim *md, void *message, int mesg_size, void **b
         if (((*((struct mdhim_bgetm_t **) bgetm))->keys[i] =
              (struct mdhim_bgetm_t *)malloc((*((struct mdhim_bgetm_t **) bgetm))->key_lens[i] *
                                             sizeof(char))) == NULL) {
-            mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-                 "memory to unpack bget message.", md->p->mdhim_rank);
+            mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+                 "memory to unpack bget message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
             return MDHIM_ERROR;
         }
 
@@ -1391,8 +1390,8 @@ int unpack_bget_message(struct mdhim *md, void *message, int mesg_size, void **b
 
     // If the unpack did not succeed then log the error and return the error code
     if ( return_code != MPI_SUCCESS ) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to unpack "
-                     "the bget message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to unpack "
+                     "the bget message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
     }
 
@@ -1437,8 +1436,8 @@ int pack_bgetrm_message(struct mdhim *md, struct mdhim_bgetrm_t *bgrm, void **se
 
         // Is the computed message size of a safe value? (less than a max message size?)
         if (m_size > MDHIM_MAX_MSG_SIZE) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: bulk get return message too large."
-             " Bget return message is over Maximum size allowed of %d.", md->p->mdhim_rank,
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: bulk get return message too large."
+             " Bget return message is over Maximum size allowed of %d.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(),
              MDHIM_MAX_MSG_SIZE);
         return MDHIM_ERROR;
         }
@@ -1447,8 +1446,8 @@ int pack_bgetrm_message(struct mdhim *md, struct mdhim_bgetrm_t *bgrm, void **se
         bgrm->basem.size = mesg_size;
 
         if ((*sendbuf = malloc(mesg_size * sizeof(char))) == NULL) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-                     "memory to pack bulk get return message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+                     "memory to pack bulk get return message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
         }
 
@@ -1479,8 +1478,8 @@ int pack_bgetrm_message(struct mdhim *md, struct mdhim_bgetrm_t *bgrm, void **se
 
     // If the pack did not succeed then log the error and return the error code
     if ( return_code != MPI_SUCCESS ) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to pack "
-                     "the bulk get return message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to pack "
+                     "the bulk get return message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
     }
 
@@ -1515,8 +1514,8 @@ int unpack_bgetrm_message(struct mdhim *md, void *message, int mesg_size, void *
     struct mdhim_bgetrm_t *bgrm;
 
     if ((*((struct mdhim_bgetrm_t **) bgetrm) = (struct mdhim_bgetrm_t *)malloc(sizeof(struct mdhim_bgetrm_t))) == NULL) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-             "memory to unpack bget return message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+             "memory to unpack bget return message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
     }
 
@@ -1527,32 +1526,32 @@ int unpack_bgetrm_message(struct mdhim *md, void *message, int mesg_size, void *
 
     // Allocate memory for key pointers, to be populated later.
     if ((bgrm->keys = (void**)malloc(bgrm->num_keys * sizeof(void *))) == NULL) {
-        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-             "memory to unpack bgetrm message.", md->p->mdhim_rank);
+        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+             "memory to unpack bgetrm message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
     }
     memset(bgrm->keys, 0, sizeof(void *) * bgrm->num_keys);
 
     // Allocate memory for key_lens, to be populated later.
     if ((bgrm->key_lens = (int*)malloc(bgrm->num_keys * sizeof(int))) == NULL) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-             "memory to unpack bget return message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+             "memory to unpack bget return message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
     }
     memset(bgrm->key_lens, 0, sizeof(int) * bgrm->num_keys);
 
     // Allocate memory for value pointers, to be populated later.
     if ((bgrm->values = (void**)malloc(bgrm->num_keys * sizeof(void *))) == NULL) {
-        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-             "memory to unpack bgetrm message.", md->p->mdhim_rank);
+        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+             "memory to unpack bgetrm message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
     }
     memset(bgrm->values, 0, sizeof(void *) * bgrm->num_keys);
 
     // Allocate memory for value_lens, to be populated later.
     if ((bgrm->value_lens = (int *)malloc(bgrm->num_keys * sizeof(int))) == NULL) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-             "memory to unpack bget return message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+             "memory to unpack bget return message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
     }
     memset(bgrm->value_lens, 0, sizeof(int) * bgrm->num_keys);
@@ -1567,8 +1566,8 @@ int unpack_bgetrm_message(struct mdhim *md, void *message, int mesg_size, void *
         bgrm->keys[i] = NULL;
         if (bgrm->key_lens[i] &&
             (bgrm->keys[i] = (char *)malloc(bgrm->key_lens[i] * sizeof(char))) == NULL) {
-            mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-                 "memory to unpack bget return message.", md->p->mdhim_rank);
+            mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+                 "memory to unpack bget return message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
             return MDHIM_ERROR;
         }
         if (bgrm->keys[i]) {
@@ -1590,8 +1589,8 @@ int unpack_bgetrm_message(struct mdhim *md, void *message, int mesg_size, void *
         bgrm->values[i] = NULL;
         if (bgrm->value_lens[i] &&
             (bgrm->values[i] = (char *)malloc(bgrm->value_lens[i] * sizeof(char))) == NULL) {
-            mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-               "memory to unpack bget return message.", md->p->mdhim_rank);
+            mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+               "memory to unpack bget return message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
             return MDHIM_ERROR;
         }
         if (bgrm->values[i]) {
@@ -1603,8 +1602,8 @@ int unpack_bgetrm_message(struct mdhim *md, void *message, int mesg_size, void *
 
     // If the unpack did not succeed then log the error and return the error code
     if ( return_code != MPI_SUCCESS ) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to unpack "
-             "the bget return message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to unpack "
+             "the bget return message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
     }
 
@@ -1639,8 +1638,8 @@ int pack_base_message(struct mdhim *md, struct mdhim_basem_t *cm, void **sendbuf
         cm->size = mesg_size;
 
         if ((*sendbuf = malloc(mesg_size * sizeof(char))) == NULL) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-                     "memory to pack del message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+                     "memory to pack del message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
         }
 
@@ -1651,8 +1650,8 @@ int pack_base_message(struct mdhim *md, struct mdhim_basem_t *cm, void **sendbuf
 
     // If the pack did not succeed then log the error and return the error code
     if ( return_code != MPI_SUCCESS ) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to pack "
-                     "the del message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to pack "
+                     "the del message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
         }
 
@@ -1690,8 +1689,8 @@ int pack_del_message(struct mdhim *md, struct mdhim_delm_t *dm, void **sendbuf, 
 
         // Is the computed message size of a safe value? (less than a max message size?)
         if (m_size > MDHIM_MAX_MSG_SIZE) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: del message too large."
-                     " Del is over Maximum size allowed of %d.", md->p->mdhim_rank, MDHIM_MAX_MSG_SIZE);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: del message too large."
+                     " Del is over Maximum size allowed of %d.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), MDHIM_MAX_MSG_SIZE);
         return MDHIM_ERROR;
         }
         mesg_size = m_size;
@@ -1699,8 +1698,8 @@ int pack_del_message(struct mdhim *md, struct mdhim_delm_t *dm, void **sendbuf, 
     dm->basem.size = mesg_size;
 
         if ((*sendbuf = malloc(mesg_size * sizeof(char))) == NULL) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-                     "memory to pack del message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+                     "memory to pack del message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
         }
 
@@ -1712,8 +1711,8 @@ int pack_del_message(struct mdhim *md, struct mdhim_delm_t *dm, void **sendbuf, 
 
     // If the pack did not succeed then log the error and return the error code
     if ( return_code != MPI_SUCCESS ) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to pack "
-                     "the del message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to pack "
+                     "the del message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
         }
 
@@ -1756,8 +1755,8 @@ int pack_bdel_message(struct mdhim *md, struct mdhim_bdelm_t *bdm, void **sendbu
 
         // Is the computed message size of a safe value? (less than a max message size?)
         if (m_size > MDHIM_MAX_MSG_SIZE) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: bulk del message too large."
-                     " Bdel is over Maximum size allowed of %d.", md->p->mdhim_rank, MDHIM_MAX_MSG_SIZE);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: bulk del message too large."
+                     " Bdel is over Maximum size allowed of %d.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), MDHIM_MAX_MSG_SIZE);
         return MDHIM_ERROR;
         }
         mesg_size = m_size;  // Safe size to use in MPI_pack
@@ -1765,8 +1764,8 @@ int pack_bdel_message(struct mdhim *md, struct mdhim_bdelm_t *bdm, void **sendbu
     bdm->basem.size = mesg_size;
 
         if ((*sendbuf = malloc(mesg_size * sizeof(char))) == NULL) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-                     "memory to pack bulk del message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+                     "memory to pack bulk del message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
         }
 
@@ -1785,8 +1784,8 @@ int pack_bdel_message(struct mdhim *md, struct mdhim_bdelm_t *bdm, void **sendbu
 
     // If the pack did not succeed then log the error and return the error code
     if ( return_code != MPI_SUCCESS ) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to pack "
-                     "the bulk del message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to pack "
+                     "the bulk del message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
         }
 
@@ -1816,8 +1815,8 @@ int unpack_del_message(struct mdhim *md, void *message, int mesg_size, void **de
     struct mdhim_delm_t *dm;
 
     if ((*((struct mdhim_delm_t **) delm) = (mdhim_delm_t*)malloc(sizeof(struct mdhim_delm_t))) == NULL) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-                     "memory to unpack del message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+                     "memory to unpack del message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
     }
 
@@ -1828,8 +1827,8 @@ int unpack_del_message(struct mdhim *md, void *message, int mesg_size, void **de
 
     // Unpack key by first allocating memory and then extracting the values from message
     if ((dm->key = (char *)malloc(dm->key_len * sizeof(char))) == NULL) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-                     "memory to unpack del message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+                     "memory to unpack del message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
     }
     return_code += MPI_Unpack(message, mesg_size, &mesg_idx, dm->key, dm->key_len,
@@ -1837,8 +1836,8 @@ int unpack_del_message(struct mdhim *md, void *message, int mesg_size, void **de
 
     // If the unpack did not succeed then log the error and return the error code
     if ( return_code != MPI_SUCCESS ) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to unpack "
-                     "the del message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to unpack "
+                     "the del message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
     }
 
@@ -1871,8 +1870,8 @@ int unpack_bdel_message(struct mdhim *md, void *message, int mesg_size, void **b
     int num_records;
 
     if ((*((struct mdhim_bdelm_t **) bdelm) = (mdhim_bdelm_t*)malloc(sizeof(struct mdhim_bdelm_t))) == NULL) {
-        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-             "memory to unpack bdel message.", md->p->mdhim_rank);
+        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+             "memory to unpack bdel message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
     }
 
@@ -1885,15 +1884,15 @@ int unpack_bdel_message(struct mdhim *md, void *message, int mesg_size, void **b
     // Allocate memory for keys, to be populated later.
     if (((*((struct mdhim_bdelm_t **) bdelm))->keys =
          (void**)malloc(num_records * sizeof(void *))) == NULL) {
-        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-                     "memory to unpack bdel message.", md->p->mdhim_rank);
+        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+                     "memory to unpack bdel message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
     }
     // Allocate memory for key_lens, to be populated later.
     if (((*((struct mdhim_bdelm_t **) bdelm))->key_lens =
          (int *)malloc(num_records * sizeof(int))) == NULL) {
-        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-                     "memory to unpack bdel message.", md->p->mdhim_rank);
+        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+                     "memory to unpack bdel message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
     }
 
@@ -1908,8 +1907,8 @@ int unpack_bdel_message(struct mdhim *md, void *message, int mesg_size, void **b
         if (((*((struct mdhim_bdelm_t **) bdelm))->keys[i] =
              (char *)malloc((*((struct mdhim_bdelm_t **) bdelm))->key_lens[i] *
                     sizeof(char))) == NULL) {
-            mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-                 "memory to unpack bdel message.", md->p->mdhim_rank);
+            mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+                 "memory to unpack bdel message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
             return MDHIM_ERROR;
         }
         return_code += MPI_Unpack(message, mesg_size, &mesg_idx,
@@ -1920,8 +1919,8 @@ int unpack_bdel_message(struct mdhim *md, void *message, int mesg_size, void **b
 
     // If the unpack did not succeed then log the error and return the error code
     if ( return_code != MPI_SUCCESS ) {
-        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank: %d - Error: unable to unpack "
-                     "the bdel message.", md->p->mdhim_rank);
+        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - Error: unable to unpack "
+                     "the bdel message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
     }
 
@@ -1956,8 +1955,8 @@ int pack_return_message(struct mdhim *md, struct mdhim_rm_t *rm, void **sendbuf,
     rm->basem.size = mesg_size;
 
     if ((*sendbuf = malloc(mesg_size * sizeof(char))) == NULL) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-                     "memory to pack return message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+                     "memory to pack return message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
     }
 
@@ -1968,8 +1967,8 @@ int pack_return_message(struct mdhim *md, struct mdhim_rm_t *rm, void **sendbuf,
 
     // If the pack did not succeed then log the error and return the error code
     if ( return_code != MPI_SUCCESS ) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to pack "
-                     "the return message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to pack "
+                     "the return message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
     }
 
@@ -1997,8 +1996,8 @@ int unpack_return_message(struct mdhim *md, void *message, void **retm) {
     struct mdhim_rm_t *rm;
 
     if (((*(struct mdhim_rm_t **) retm) = (mdhim_rm_t*)malloc(sizeof(struct mdhim_rm_t))) == NULL) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to allocate "
-                     "memory to unpack return message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to allocate "
+                     "memory to unpack return message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
     }
 
@@ -2010,8 +2009,8 @@ int unpack_return_message(struct mdhim *md, void *message, void **retm) {
 
     // If the pack did not succeed then log the error and return the error code
     if ( return_code != MPI_SUCCESS ) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: unable to unpack "
-                     "the return message.", md->p->mdhim_rank);
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: unable to unpack "
+                     "the return message.", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
         return MDHIM_ERROR;
     }
 
