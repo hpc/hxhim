@@ -270,27 +270,17 @@ struct mdhim_brm_t *_bput_records(struct mdhim *md, struct index_t *index,
 }
 
 struct mdhim_bgetrm_t *_bget_records(struct mdhim *md, struct index_t *index,
-				     void **keys, int *key_lens,
-				     int num_keys, int num_records, int op) {
-	struct mdhim_bgetm_t **bgm_list;
-	struct mdhim_bgetm_t *bgm, *lbgm;
-	struct mdhim_bgetrm_t *bgrm_head, *lbgrm;
-	int i;
-	rangesrv_list *rl = NULL, *rlp;
-
-	//The message to be sent to ourselves if necessary
-	lbgm = NULL;
+                                     void **keys, int *key_lens,
+                                     int num_keys, int num_records, int op) {
 	//Create an array of bulk get messages that holds one bulk message per range server
-	bgm_list = (mdhim_bgetm_t**)malloc(sizeof(struct mdhim_bgetm_t *) * index->num_rangesrvs);
-	//Initialize the pointers of the list to null
-	for (i = 0; i < index->num_rangesrvs; i++) {
-		bgm_list[i] = NULL;
-	}
+	struct mdhim_bgetm_t **bgm_list = (mdhim_bgetm_t**)calloc(index->num_rangesrvs, sizeof(struct mdhim_bgetm_t *));
+	struct mdhim_bgetm_t *lbgm = nullptr;	//The message to be sent to ourselves if necessary
+	rangesrv_list *rl = NULL;
 
 	/* Go through each of the records to find the range server the record belongs to.
 	   If there is not a bulk message in the array for the range server the key belongs to,
 	   then it is created.  Otherwise, the data is added to the existing message in the array.*/
-	for (i = 0; i < num_keys && i < MAX_BULK_OPS; i++) {
+	for (int i = 0; i < num_keys && i < MAX_BULK_OPS; i++) {
 		//Get the range server this key will be sent to
 		if ((op == MDHIM_GET_EQ || op == MDHIM_GET_PRIMARY_EQ) &&
 		    index->type != LOCAL_INDEX &&
@@ -313,6 +303,7 @@ struct mdhim_bgetrm_t *_bget_records(struct mdhim *md, struct index_t *index,
 		}
 
 		while (rl) {
+            struct mdhim_bgetm_t *bgm = nullptr;
 			if (rl->ri->rank != (int) *md->p->comm->Endpoint()->Address()) {
 				//Set the message in the list for this range server
 				bgm = bgm_list[rl->ri->rangesrv_num - 1];
@@ -346,21 +337,22 @@ struct mdhim_bgetrm_t *_bget_records(struct mdhim *md, struct index_t *index,
 			bgm->keys[bgm->num_keys] = keys[i];
 			bgm->key_lens[bgm->num_keys] = key_lens[i];
 			bgm->num_keys++;
-			rlp = rl;
+
+			rangesrv_list *rlp = rl;
 			rl = rl->next;
 			free(rlp);
 		}
 	}
 
 	//Make a list out of the received messages to return
-	bgrm_head = client_bget(md, index, bgm_list);
+	struct mdhim_bgetrm_t *bgrm_head = client_bget(md, index, bgm_list);
 	if (lbgm) {
-		lbgrm = local_client_bget(md, lbgm);
+        struct mdhim_bgetrm_t *lbgrm = local_client_bget(md, lbgm);
 		lbgrm->next = bgrm_head;
 		bgrm_head = lbgrm;
 	}
 
-	for (i = 0; i < index->num_rangesrvs; i++) {
+	for (int i = 0; i < index->num_rangesrvs; i++) {
 		if (!bgm_list[i]) {
 			continue;
 		}

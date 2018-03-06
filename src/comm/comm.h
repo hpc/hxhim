@@ -3,7 +3,6 @@
 //
 
 #ifndef HXHIM_COMM_H
-
 #define HXHIM_COMM_H
 
 #include <cstdlib>
@@ -13,44 +12,43 @@
  * @description Message types
  */
 class CommMessage {
-public:
-    enum Type {
-        INVALID = 0,
-        GET,
-        PUT,
-        BGET,
-        BPUT
-    };
+    public:
+        enum Type {
+            INVALID = 0,
+            GET,
+            PUT,
+            BGET,
+            BPUT
+        };
 };
-
 
 /**
  * @description An abstract communication address
  */
 class CommAddress {
-public:
-    /** @brief Destructor */
-    virtual ~CommAddress() {};
+    public:
+        /** @brief Destructor */
+        virtual ~CommAddress() {};
 
-    /** */
-    CommAddress() {}
+        /** */
+        CommAddress() {}
 
-    /** */
-    CommAddress(const CommAddress& other) {}
+        /** */
+        CommAddress(const CommAddress& other) {}
 
-    /*
-       Function for typecasting CommAddresses
-       into octet buffers
-     */
-    virtual operator std::string() const = 0;
+        /*
+           Function for typecasting CommAddresses
+           into octet buffers
+         */
+        virtual operator std::string() const = 0;
 
-    /*
-      Function for typecasting CommAddresses
-      into ints
+        /*
+          Function for typecasting CommAddresses
+          into ints
 
-      TODO: Remove this function once MPI is properly abstracted
-     */
-    virtual operator int() const = 0;
+          TODO: Remove this function once MPI is properly abstracted
+         */
+        virtual operator int() const = 0;
 };
 
 /**
@@ -59,6 +57,8 @@ public:
  * This is a stateful API that allows the user to enqueue PUT and GET operations,
  * and use the flush call to complete progress. You initiate a Put or Get and receive an operation id. You then
  * keep calling the function until the operation is completed.
+ *
+ * TODO: replace all message structs with pointer to base message type
  */
 class CommEndpoint {
     public:
@@ -72,13 +72,13 @@ class CommEndpoint {
         virtual int AddPutRequest(struct mdhim_putm_t *pm) = 0;
 
         /** @description Enqueue a Get request for this endpoint */
-        virtual int AddGetRequest(void* kbuf, std::size_t kbytes, void* vbuf, std::size_t vbytes) = 0;
+        virtual int AddGetRequest(struct mdhim_bgetm_t **messages, int num_srvs) = 0;
 
         /** @description Enqueue a Put reply for the request originator */
-        virtual int AddPutReply(const CommAddress *src, void **message) = 0;
+        virtual int AddPutReply(const CommAddress *src, struct mdhim_rm_t **message) = 0;
 
         /** @description Enqueue a Get reply for the request originator */
-        virtual int AddGetReply(void* vbuf, std::size_t vbytes) = 0;
+        virtual int AddGetReply(int *srcs, int nsrcs, struct mdhim_bgetrm_t ***messages) = 0;
 
         /** @description Immediately receive a PUT or GET request sent to this endpoint */
         virtual int ReceiveRequest(std::size_t rbytes, CommMessage::Type* requestType, void** kbuf, std::size_t* kbytes, void** vbuf, std::size_t* vbytes) = 0;

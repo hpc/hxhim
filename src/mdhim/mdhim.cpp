@@ -539,8 +539,8 @@ struct mdhim_brm_t *mdhimBPutSecondary(struct mdhim *md, struct index_t *seconda
  * @return mdhim_getrm_t * or NULL on error
  */
 struct mdhim_bgetrm_t *mdhimGet(mdhim_t *md, struct index_t *index,
-				void *key, int key_len,
-				int op) {
+                                void *key, int key_len,
+                                int op) {
 
 	void **keys;
 	int *key_lens;
