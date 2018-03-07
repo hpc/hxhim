@@ -1,4 +1,4 @@
-void mdhimftinit(int *appComm);
+void mdhimftinit(int *appTransport);
 void mdhimftopts_init();
 void mdhimftclose();
 void mdhimftput(void *key, int *key_size, void *val, int *val_size);

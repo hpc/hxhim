@@ -1,9 +1,11 @@
 #ifndef      __HASH_H
 #define      __HASH_H
 
-#include "mdhim.h"
 #include "uthash.h"
+
 #include "indexes.h"
+#include "mdhim_constants.h"
+#include "transport.hpp"
 
 /* Used to determine if a rank is a range server
    Works like this:
@@ -18,26 +20,9 @@
 extern "C"
 {
 #endif
-//#define RANGE_SERVER_FACTOR 4 // NOW a global variable in partitioner.h
-#define MDHIM_MAX_SLICES 2147483647
-//32 bit unsigned integer
-#define MDHIM_INT_KEY 1
-#define MDHIM_LONG_INT_KEY 2
-#define MDHIM_FLOAT_KEY 3
-#define MDHIM_DOUBLE_KEY 4
-#define MDHIM_STRING_KEY 5
-//An arbitrary sized key
-#define MDHIM_BYTE_KEY 6
 
-//Maximum length of a key
-#define MAX_KEY_LEN 1048576
-
-/* The exponent used for the algorithm that determines the range server
-
-   This exponent, should cover the number of characters in our alphabet
-   if 2 is raised to that power. If the exponent is 6, then, 64 characters are covered
-*/
-#define MDHIM_ALPHABET_EXPONENT 6
+//Forward declare mdhim_t so mdhim.h is not needed
+typedef struct mdhim mdhim_t;
 
 //Used for hashing strings to the appropriate range server
 struct mdhim_char {
@@ -46,28 +31,27 @@ struct mdhim_char {
     UT_hash_handle hh; /* makes this structure hashable */
 };
 
-typedef struct rangesrv_info rangesrv_info;
-typedef struct rangesrv_list rangesrv_list;
-struct rangesrv_list {
-    rangesrv_info *ri;
-    rangesrv_list *next;
-};
+typedef struct rangesrv_info rangesrv_info_t;
+typedef struct rangesrv_list {
+    struct rangesrv_info *ri;
+    struct rangesrv_list *next;
+} rangesrv_list_t;
 
 void partitioner_init();
 void partitioner_release();
-rangesrv_list *get_range_servers(struct mdhim *md, struct index_t *index,
-				 void *key, int key_len);
-rangesrv_info *get_range_server_by_slice(struct mdhim *md,
-					 struct index_t *index, int slice);
+rangesrv_list_t *get_range_servers(mdhim_t *md, struct index *index,
+                                   void *key, int key_len);
+rangesrv_info_t *get_range_server_by_slice(mdhim_t *md,
+                                           struct index *index, int slice);
 void build_alphabet();
-int verify_key(struct index_t *index, void *key, int key_len, int key_type);
+int verify_key(struct index *index, void *key, int key_len, int key_type);
 long double get_str_num(void *key, uint32_t key_len);
   //long double get_byte_num(void *key, uint32_t key_len);
 uint64_t get_byte_num(void *key, uint32_t key_len);
-int get_slice_num(struct mdhim *md, struct index_t *index, void *key, int key_len);
+int get_slice_num(mdhim_t *md, struct index *index, void *key, int key_len);
 int is_float_key(int type);
-rangesrv_list *get_range_servers_from_stats(struct mdhim *md, struct index_t *index,
-					    void *key, int key_len, int op);
+rangesrv_list_t *get_range_servers_from_stats(mdhim_t *md, struct index *index,
+                                              void *key, int key_len, TransportGetMessageOp op);
 
 #ifdef __cplusplus
 }

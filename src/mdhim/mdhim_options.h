@@ -28,7 +28,7 @@ extern "C"
 /**
  * @brief Structure used to set MDHIM options before initialization
  */
-struct mdhim_options {
+typedef struct mdhim_options {
     MPI_Comm comm;
 
     int dstype;
@@ -86,10 +86,7 @@ struct mdhim_options {
 	const char *db_upswd;
 	const char *dbs_user;
 	const char *dbs_upswd;
-
-
-};
-typedef struct mdhim_options mdhim_options_t;
+} mdhim_options_t;
 
 int mdhim_options_init(mdhim_options_t* opts);
 void mdhim_options_set_defaults(mdhim_options_t* opts);

@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <mpi.h>
 
+#include "transport.h"
 #include "indexes.h"
 #include "mdhim.h"
 #include "messages.h"
@@ -39,7 +40,7 @@ typedef struct mdhim_rs_t {
 	pthread_cond_t *work_ready_cv;
 	pthread_t listener;
 	pthread_t **workers;
-	struct index *indexes; /* A linked list of remote indexes that is served
+	index_t *indexes; /* A linked list of remote indexes that is served
 				  (partially for fully) by this range server */
 	//Records seconds spent on putting records
 	long double put_time;

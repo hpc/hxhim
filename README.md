@@ -1,5 +1,5 @@
 # HXHIM
-## The Hexadimensional Hashing Indexing Middleware.
+## The Hexadimensional Hashing Indexing Middleware
 ----
 
 ### Contact

@@ -20,7 +20,7 @@ set(CMAKE_MODULE_PATH $PCMAKE_MODULE_PATH} ${HXHIM_CMAKE_MODULE_DIR})
 #
 include_directories(BEFORE include)
 set(HEADER_FILES include/hxhim.h)
-include_directories(src/comm)
+include_directories(src/transport)
 include_directories(src/mdhim)
 include_directories(src/utils)
 
@@ -67,7 +67,7 @@ endif()
 # Add subdirectories
 #
 add_subdirectory (src/base)
-add_subdirectory (src/comm)
+add_subdirectory (src/transport)
 add_subdirectory (src/mdhim)
 add_subdirectory (src/demo)
 add_subdirectory (src/utils)
@@ -75,7 +75,7 @@ add_subdirectory (src/utils)
 #
 # Add unit test subdirectories
 #
-add_subdirectory(test/comm)
+add_subdirectory(test/transport)
 add_subdirectory(test/mdhim)
 
 #

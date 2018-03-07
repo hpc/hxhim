@@ -3,8 +3,7 @@
 
 #include "mdhim.h"
 #include "range_server.h"
-#include "comm.h"
-#include "comm_mpi.h"
+#include "transport.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -17,7 +16,7 @@ extern "C"
 typedef struct mdhim_private {
 	//This communicator will include every process in the application, but is separate from main the app
     //It is used for sending and receiving to and from the range servers
-    CommTransport *comm;
+    Transport *transport;
 	MPI_Comm mdhim_comm;
 	pthread_mutex_t mdhim_comm_lock;
 
@@ -32,11 +31,11 @@ typedef struct mdhim_private {
 	//Flag to indicate mdhimClose was called
 	volatile int shutdown;
 	//A pointer to the primary index
-	struct index_t *primary_index;
+	index_t *primary_index;
 	//A linked list of range servers
-	struct index_t *indexes;
+	index_t *indexes;
 	// The hash to hold the indexes by name
-	struct index_t *indexes_by_name;
+	index_t *indexes_by_name;
 
 	//Lock to allow concurrent readers and a single writer to the remote_indexes hash table
 	pthread_rwlock_t indexes_lock;
@@ -66,19 +65,21 @@ typedef struct mdhim_private {
  */
 int mdhim_private_init(struct mdhim_private* mdp, int dstype, int commtype);
 
-struct mdhim_rm_t *_put_record(struct mdhim *md, struct index_t *index,
-			       void *key, int key_len,
-			       void *value, int value_len);
-struct mdhim_brm_t *_create_brm(struct mdhim_rm_t *rm);
-void _concat_brm(struct mdhim_brm_t *head, struct mdhim_brm_t *addition);
-struct mdhim_brm_t *_bput_records(struct mdhim *md, struct index_t *index,
-				  void **keys, int *key_lens,
-				  void **values, int *value_lens, int num_records);
-struct mdhim_bgetrm_t *_bget_records(struct mdhim *md, struct index_t *index,
-				     void **keys, int *key_lens,
-				     int num_keys, int num_records, int op);
-struct mdhim_brm_t *_bdel_records(struct mdhim *md, struct index_t *index,
-				  void **keys, int *key_lens,
-				  int num_records);
+TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
+                                   void *key, int key_len,
+                                   void *value, int value_len);
+TransportBRecvMessage *_create_brm(TransportRecvMessage *rm);
+void _concat_brm(TransportBRecvMessage *head, TransportBRecvMessage *addition);
+TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
+                                     void **keys, int *key_lens,
+                                     void **values, int *value_lens,
+                                     int num_records);
+TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
+                                        void **keys, int *key_lens,
+                                        int num_keys, int num_records,
+                                        TransportGetMessageOp op);
+// mdhim_brm_t *_bdel_records(mdhim_t *md, index_t *index,
+//                            void **keys, int *key_lens,
+//                            int num_records);
 
 #endif

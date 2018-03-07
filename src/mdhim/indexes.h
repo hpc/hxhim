@@ -8,7 +8,7 @@
 #define      __INDEX_H
 
 #include "uthash.h"
-#include "mdhim.h"
+#include <mpi.h>
 
 #define PRIMARY_INDEX 1
 #define SECONDARY_INDEX 2
@@ -17,7 +17,7 @@
 
 #ifdef __cplusplus
 
-#include "comm.h"
+#include "transport.hpp"
 
 extern "C"
 {
@@ -29,13 +29,11 @@ typedef struct mdhim mdhim_t;
 }
 #endif
 
-typedef struct rangesrv_info rangesrv_info;
-
 /*
  * Range server info
  * Contains information about each range server
  */
-struct rangesrv_info {
+typedef struct rangesrv_info {
 	//The range server's rank in the mdhim_comm
 	uint32_t rank;
 	//The range server's identifier based on rank and number of servers
@@ -43,9 +41,9 @@ struct rangesrv_info {
 	UT_hash_handle hh;         /* makes this structure hashable */
 
     #ifdef __cplusplus
-    CommTransport *transport = nullptr;
+    Transport *transport = nullptr;
     #endif
-};
+} rangesrv_info_t;
 
 /*
  * Remote Index info
@@ -53,7 +51,7 @@ struct rangesrv_info {
  *
  * A remote index means that an index can be served by one or more range servers
  */
-struct index_t {
+typedef struct index {
 	int id;         // Hash key
 	char *name;     // Secondary Hash key
 
@@ -65,9 +63,9 @@ struct index_t {
 	int type;                 /* The type of index
 				     (PRIMARY_INDEX, SECONDARY_INDEX, LOCAL_INDEX) */
 	int primary_id;           /* The primary index id if this is a secondary index */
-	rangesrv_info *rangesrvs_by_num; /* Hash table of the range servers
+	rangesrv_info_t *rangesrvs_by_num; /* Hash table of the range servers
 					    serving this index.  Key is range server number */
-	rangesrv_info *rangesrvs_by_rank; /* Hash table of the range servers
+	rangesrv_info_t *rangesrvs_by_rank; /* Hash table of the range servers
 					     serving this index.  Key is the rank */
         //Used to determine the number of range servers which is based in
         //if myrank % RANGE_SERVER_FACTOR == 0, then myrank is a server
@@ -86,16 +84,16 @@ struct index_t {
 	uint32_t num_rangesrvs;
 
 	//The rank's range server information, if it is a range server for this index
-	rangesrv_info myinfo;
+	rangesrv_info_t myinfo;
 
 	//Statistics retrieved from the mdhimStatFlush operation
 	struct mdhim_stat *stats;
 
 	UT_hash_handle hh;         /* makes this structure hashable */
 	UT_hash_handle hh_name;    /* makes this structure hashable by name */
-};
+} index_t;
 
-typedef struct index_manifest_t {
+typedef struct index_manifest {
 	int key_type;   //The type of key
 	int index_type; /* The type of index
 			   (PRIMARY_INDEX, SECONDARY_INDEX) */
@@ -110,22 +108,22 @@ typedef struct index_manifest_t {
 	int local_server_rank;
 } index_manifest_t;
 
-int update_stat(struct mdhim *md, struct index_t *bi, void *key, uint32_t key_len);
-int load_stats(struct mdhim *md, struct index_t *bi);
-int write_stats(struct mdhim *md, struct index_t *bi);
-int open_db_store(struct mdhim *md, struct index_t *index);
-uint32_t get_num_range_servers(struct mdhim *md, struct index_t *index);
-struct index_t *create_local_index(struct mdhim *md, int db_type, int key_type, const char *index_name);
-struct index_t *create_global_index(struct mdhim *md, int server_factor,
+int update_stat(struct mdhim *md, index_t *bi, void *key, uint32_t key_len);
+int load_stats(struct mdhim *md, index_t *bi);
+int write_stats(struct mdhim *md, index_t *bi);
+int open_db_store(struct mdhim *md, index_t *index);
+uint32_t get_num_range_servers(struct mdhim *md, index_t *index);
+index_t *create_local_index(struct mdhim *md, int db_type, int key_type, const char *index_name);
+index_t *create_global_index(struct mdhim *md, int server_factor,
 				    uint64_t max_recs_per_slice, int db_type,
 				    int key_type, char *index_name);
-int get_rangesrvs(struct mdhim *md, struct index_t *index);
-uint32_t is_range_server(struct mdhim *md, int rank, struct index_t *index);
-int index_init_comm(struct mdhim *md, struct index_t *bi);
-int get_stat_flush(struct mdhim *md, struct index_t *index);
-struct index_t *get_index(struct mdhim *md, int index_id);
-struct index_t *get_index_by_name(struct mdhim *md, char *index_name);
+int get_rangesrvs(struct mdhim *md, index_t *index);
+uint32_t is_range_server(struct mdhim *md, int rank, index_t *index);
+int index_init_comm(struct mdhim *md, index_t *bi);
+int get_stat_flush(struct mdhim *md, index_t *index);
+index_t *get_index(struct mdhim *md, int index_id);
+index_t *get_index_by_name(struct mdhim *md, char *index_name);
 void indexes_release(struct mdhim *md);
-int im_range_server(struct index_t *index);
+int im_range_server(index_t *index);
 
 #endif

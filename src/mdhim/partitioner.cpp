@@ -1,4 +1,4 @@
-#include <math.h>
+#include <cmath>
 #include <stdlib.h>
 #include <stdio.h>
 #include "partitioner.h"
@@ -137,8 +137,8 @@ void build_alphabet() {
 	return;
 }
 
-void _add_to_rangesrv_list(rangesrv_list **list, rangesrv_info *ri) {
-	rangesrv_list *list_p, *entry;
+void _add_to_rangesrv_list(rangesrv_list_t **list, rangesrv_info_t *ri) {
+	rangesrv_list_t *list_p, *entry;
 
 	entry = (rangesrv_list*)malloc(sizeof(rangesrv_list));
 	entry->ri = ri;
@@ -167,7 +167,7 @@ void _add_to_rangesrv_list(rangesrv_list **list, rangesrv_info *ri) {
  *
  * @return        MDHIM_ERROR if the key is not valid, otherwise the MDHIM_SUCCESS
  */
-int verify_key(struct index_t *index, void *key,
+int verify_key(struct index *index, void *key,
 	       int key_len, int key_type) {
 	int i;
 	int id;
@@ -248,7 +248,7 @@ int is_float_key(int type) {
  * @param key_len   length of the key
  * @return the slice number or 0 on error
  */
-int get_slice_num(struct mdhim *md, struct index_t *index, void *key, int key_len) {
+int get_slice_num(mdhim_t *md, struct index *index, void *key, int key_len) {
 	//The number that maps a key to range server (dependent on key type)
 	int slice_num;
 	uint64_t key_num;
@@ -266,7 +266,7 @@ int get_slice_num(struct mdhim *md, struct index_t *index, void *key, int key_le
 	//Make sure this key is valid
 	if ((ret = verify_key(index, key, key_len, key_type)) != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_INFO, "Rank %s - Invalid key given",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 		return MDHIM_ERROR;
 	}
 
@@ -360,11 +360,11 @@ int get_slice_num(struct mdhim *md, struct index_t *index, void *key, int key_le
  * @param slice     the slice number
  * @return the rank of the range server or NULL on error
  */
-rangesrv_info *get_range_server_by_slice(struct mdhim *md, struct index_t *index, int slice) {
+rangesrv_info_t *get_range_server_by_slice(mdhim_t *md, struct index *index, int slice) {
 	//The number that maps a key to range server (dependent on key type)
 	uint32_t rangesrv_num;
 	//The range server number that we return
-	rangesrv_info *ret_rp;
+	rangesrv_info_t *ret_rp;
 
 	if (index->num_rangesrvs == 1) {
 		rangesrv_num = 1;
@@ -390,27 +390,26 @@ rangesrv_info *get_range_server_by_slice(struct mdhim *md, struct index_t *index
  * @param key_len   length of the key
  * @return the rank of the range server or NULL on error
  */
-rangesrv_list *get_range_servers(struct mdhim *md, struct index_t *index,
+rangesrv_list_t *get_range_servers(mdhim_t *md, struct index *index,
 				 void *key, int key_len) {
 	//The number that maps a key to range server (dependent on key type)
 	int slice_num;
 	//The range server number that we return
-	rangesrv_info *ret_rp;
-	rangesrv_list *rl;
+	rangesrv_info_t *ret_rp;
+	rangesrv_list_t *rl = nullptr;
 
 	if ((slice_num = get_slice_num(md, index, key, key_len)) == MDHIM_ERROR) {
 		return NULL;
 	}
 
 	ret_rp = get_range_server_by_slice(md, index, slice_num);
-	rl = NULL;
 	_add_to_rangesrv_list(&rl, ret_rp);
 
 	//Return the range server list
 	return rl;
 }
 
-struct mdhim_stat *get_next_slice_stat(struct mdhim *md, struct index_t *index,
+struct mdhim_stat *get_next_slice_stat(mdhim_t *md, struct index *index,
 				       int slice_num) {
 	struct mdhim_stat *stat, *tmp, *next_slice;
 
@@ -433,7 +432,7 @@ struct mdhim_stat *get_next_slice_stat(struct mdhim *md, struct index_t *index,
 	return next_slice;
 }
 
-struct mdhim_stat *get_prev_slice_stat(struct mdhim *md, struct index_t *index,
+struct mdhim_stat *get_prev_slice_stat(mdhim_t *md, struct index *index,
 				       int slice_num) {
 	struct mdhim_stat *stat, *tmp, *prev_slice;
 
@@ -456,7 +455,7 @@ struct mdhim_stat *get_prev_slice_stat(struct mdhim *md, struct index_t *index,
 	return prev_slice;
 }
 
-struct mdhim_stat *get_last_slice_stat(struct mdhim *md, struct index_t *index) {
+struct mdhim_stat *get_last_slice_stat(mdhim_t *md, struct index *index) {
 	struct mdhim_stat *stat, *tmp, *last_slice;
 
 	last_slice = NULL;
@@ -478,7 +477,7 @@ struct mdhim_stat *get_last_slice_stat(struct mdhim *md, struct index_t *index) 
 	return last_slice;
 }
 
-struct mdhim_stat *get_first_slice_stat(struct mdhim *md, struct index_t *index) {
+struct mdhim_stat *get_first_slice_stat(mdhim_t *md, struct index *index) {
 	struct mdhim_stat *stat, *tmp, *first_slice;
 
 	first_slice = NULL;
@@ -500,8 +499,8 @@ struct mdhim_stat *get_first_slice_stat(struct mdhim *md, struct index_t *index)
 	return first_slice;
 }
 
-int get_slice_from_fstat(struct mdhim *md, struct index_t *index,
-			 int cur_slice, long double fstat, int op) {
+int get_slice_from_fstat(mdhim_t *md, struct index *index,
+                         int cur_slice, long double fstat, TransportGetMessageOp op) {
 	int slice_num = 0;
 	struct mdhim_stat *cur_stat, *new_stat;
 
@@ -513,7 +512,7 @@ int get_slice_from_fstat(struct mdhim *md, struct index_t *index,
 	HASH_FIND_INT(index->stats, &cur_slice, cur_stat);
 
 	switch(op) {
-	case MDHIM_GET_NEXT:
+	case TransportGetMessageOp::GET_NEXT:
 		if (cur_stat && *(long double *)cur_stat->max > fstat) {
 			slice_num = cur_slice;
 			goto done;
@@ -523,7 +522,7 @@ int get_slice_from_fstat(struct mdhim *md, struct index_t *index,
 		}
 
 		break;
-	case MDHIM_GET_PREV:
+	case TransportGetMessageOp::GET_PREV:
 		if (cur_stat && *(long double *)cur_stat->min < fstat) {
 			slice_num = cur_slice;
 			goto done;
@@ -533,11 +532,11 @@ int get_slice_from_fstat(struct mdhim *md, struct index_t *index,
 		}
 
 		break;
-	case MDHIM_GET_FIRST:
+	case TransportGetMessageOp::GET_FIRST:
 		new_stat = get_first_slice_stat(md, index);
 		goto new_stat;
 		break;
-	case MDHIM_GET_LAST:
+	case TransportGetMessageOp::GET_LAST:
 		new_stat = get_last_slice_stat(md, index);
 		goto new_stat;
 		break;
@@ -557,8 +556,8 @@ new_stat:
 	}
 }
 
-int get_slice_from_istat(struct mdhim *md, struct index_t *index,
-			 int cur_slice, uint64_t istat, int op) {
+int get_slice_from_istat(mdhim_t *md, struct index *index,
+			 int cur_slice, uint64_t istat, TransportGetMessageOp op) {
 	int slice_num = 0;
 	struct mdhim_stat *cur_stat, *new_stat;
 
@@ -571,7 +570,7 @@ int get_slice_from_istat(struct mdhim *md, struct index_t *index,
 	HASH_FIND_INT(index->stats, &cur_slice, cur_stat);
 
 	switch(op) {
-	case MDHIM_GET_NEXT:
+	case TransportGetMessageOp::GET_NEXT:
 		if (cur_stat && *(uint64_t *)cur_stat->max > istat &&
 		    *(uint64_t *)cur_stat->min <= istat) {
 			slice_num = cur_slice;
@@ -582,7 +581,7 @@ int get_slice_from_istat(struct mdhim *md, struct index_t *index,
 		}
 
 		break;
-	case MDHIM_GET_PREV:
+	case TransportGetMessageOp::GET_PREV:
 		if (cur_stat && *(uint64_t *)cur_stat->min < istat &&
 		    *(uint64_t *)cur_stat->max >= istat ) {
 			slice_num = cur_slice;
@@ -593,11 +592,11 @@ int get_slice_from_istat(struct mdhim *md, struct index_t *index,
 		}
 
 		break;
-	case MDHIM_GET_FIRST:
+	case TransportGetMessageOp::GET_FIRST:
 		new_stat = get_first_slice_stat(md, index);
 		goto new_stat;
 		break;
-	case MDHIM_GET_LAST:
+	case TransportGetMessageOp::GET_LAST:
 		new_stat = get_last_slice_stat(md, index);
 		goto new_stat;
 		break;
@@ -619,10 +618,10 @@ new_stat:
 
 /* Iterate through the multi-level hash table in index->stats to find the range servers
    that could have the key */
-rangesrv_list *get_rangesrvs_from_istat(struct mdhim *md, struct index_t *index,
-					uint64_t istat, int op) {
+rangesrv_list_t *get_rangesrvs_from_istat(mdhim_t *md, struct index *index,
+                                          uint64_t istat, TransportGetMessageOp op) {
 	struct mdhim_stat *cur_rank, *cur_stat, *tmp, *tmp2;
-	rangesrv_list *head, *lp, *entry;
+	rangesrv_list_t *head, *lp, *entry;
 	int slice_num = 0;
 	unsigned int num_slices;
 	unsigned int i;
@@ -643,31 +642,31 @@ rangesrv_list *get_rangesrvs_from_istat(struct mdhim *md, struct index_t *index,
 
 			slice_num = -1;
 			switch(op) {
-			case MDHIM_GET_NEXT:
+			case TransportGetMessageOp::GET_NEXT:
 				if (cur_stat && *(uint64_t *)cur_stat->max > istat &&
 				    *(uint64_t *)cur_stat->min - 1 <= istat) {
 					slice_num = cur_stat->key;
 				}
 
 				break;
-			case MDHIM_GET_PREV:
+			case TransportGetMessageOp::GET_PREV:
 				if (cur_stat && *(uint64_t *)cur_stat->min < istat &&
 				    *(uint64_t *)cur_stat->max + 1 >= istat ) {
 					slice_num = cur_stat->key;
 				}
 
 				break;
-			case MDHIM_GET_FIRST:
+			case TransportGetMessageOp::GET_FIRST:
 				if (!i) {
 					slice_num = cur_stat->key;
 				}
 				break;
-			case MDHIM_GET_LAST:
+			case TransportGetMessageOp::GET_LAST:
 				if (i == num_slices - 1) {
 					slice_num = cur_stat->key;
 				}
 				break;
-			case MDHIM_GET_EQ:
+			case TransportGetMessageOp::GET_EQ:
 				if (cur_stat && *(uint64_t *)cur_stat->max >= istat &&
 				    *(uint64_t *)cur_stat->min <= istat) {
 					slice_num = cur_stat->key;
@@ -707,10 +706,10 @@ rangesrv_list *get_rangesrvs_from_istat(struct mdhim *md, struct index_t *index,
 
 /* Iterate through the multi-level hash table in index->stats to find the range servers
    that could have the key */
-rangesrv_list *get_rangesrvs_from_fstat(struct mdhim *md, struct index_t *index,
-					long double fstat, int op) {
+rangesrv_list_t *get_rangesrvs_from_fstat(mdhim_t *md, struct index *index,
+                                          long double fstat, TransportGetMessageOp op) {
 	struct mdhim_stat *cur_rank, *cur_stat, *tmp, *tmp2;
-	rangesrv_list *head, *lp, *entry;
+	rangesrv_list_t *head, *lp, *entry;
 	int slice_num = 0;
 	unsigned int num_slices;
 	unsigned int i;
@@ -731,30 +730,30 @@ rangesrv_list *get_rangesrvs_from_fstat(struct mdhim *md, struct index_t *index,
 
 			slice_num = -1;
 			switch(op) {
-			case MDHIM_GET_NEXT:
+			case TransportGetMessageOp::GET_NEXT:
 				if (cur_stat && *(long double *)cur_stat->max > fstat &&
 				    *(long double *)cur_stat->min - 1.0L <= fstat) {
 					slice_num = cur_stat->key;
 				}
 				break;
-			case MDHIM_GET_PREV:
+			case TransportGetMessageOp::GET_PREV:
 				if (cur_stat && *(long double *)cur_stat->min < fstat &&
 				    *(long double *)cur_stat->max + 1.0L >= fstat ) {
 					slice_num = cur_stat->key;
 				}
 
 				break;
-			case MDHIM_GET_FIRST:
+			case TransportGetMessageOp::GET_FIRST:
 				if (!i) {
 					slice_num = cur_stat->key;
 				}
 				break;
-			case MDHIM_GET_LAST:
+			case TransportGetMessageOp::GET_LAST:
 				if (i == num_slices - 1) {
 					slice_num = cur_stat->key;
 				}
 				break;
-			case MDHIM_GET_EQ:
+			case TransportGetMessageOp::GET_EQ:
 				if (cur_stat && *(long double *)cur_stat->max >= fstat &&
 				    *(long double *)cur_stat->min <= fstat) {
 					slice_num = cur_stat->key;
@@ -801,13 +800,13 @@ rangesrv_list *get_rangesrvs_from_fstat(struct mdhim *md, struct index_t *index,
  * @param op        operation type (
  * @return the rank of the range server or NULL on error
  */
-rangesrv_list *get_range_servers_from_stats(struct mdhim *md, struct index_t *index,
-					    void *key, int key_len, int op) {
+rangesrv_list_t *get_range_servers_from_stats(mdhim_t *md, struct index *index,
+					    void *key, int key_len, TransportGetMessageOp op) {
 	//The number that maps a key to range server (dependent on key type)
 	int slice_num, cur_slice;
 	//The range server number that we return
-	rangesrv_info *ret_rp;
-	rangesrv_list *rl;
+	rangesrv_info_t *ret_rp;
+	rangesrv_list_t *rl;
 	int float_type = 0;
 	long double fstat = 0;
 	uint64_t istat = 0;
@@ -833,7 +832,7 @@ rangesrv_list *get_range_servers_from_stats(struct mdhim *md, struct index_t *in
 	if (!index->stats) {
 		mlog(MDHIM_CLIENT_CRIT, "Rank %s - No statistics data available."
 		     " Perform a mdhimStatFlush first.",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 		return NULL;
 	}
 
@@ -847,10 +846,10 @@ rangesrv_list *get_range_servers_from_stats(struct mdhim *md, struct index_t *in
 			if (cur_slice == MDHIM_ERROR) {
 				mlog(MDHIM_CLIENT_CRIT, "Rank %s - Error: could not determine a"
 				     " valid a slice number",
-				     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+				     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 				return NULL;
 			}
-		} else if (op != MDHIM_GET_FIRST && op != MDHIM_GET_LAST) {
+		} else if (op != TransportGetMessageOp::GET_FIRST && op != TransportGetMessageOp::GET_LAST) {
 			//If the op is not first or last, then we expect a key
 			return NULL;
 		}
@@ -869,7 +868,7 @@ rangesrv_list *get_range_servers_from_stats(struct mdhim *md, struct index_t *in
 		if (!ret_rp) {
 			mlog(MDHIM_CLIENT_INFO, "Rank %s - Did not get a valid range server from"
 			     " get_range_server_by_size",
-			     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+			     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 			return NULL;
 		}
 

@@ -2,11 +2,12 @@
  * DB usage options.
  * Location and name of DB, type of DataSotre primary key type,
  */
-#include <assert.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <limits.h>
+#include <cassert>
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
+#include <climits>
+
 #include "mdhim_options.h"
 
 // Default path to a local path and name, levelDB=2, int_key_type=1, yes_create_new=1

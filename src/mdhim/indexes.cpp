@@ -36,7 +36,7 @@ void to_lower(size_t in_length, const char *in, char *out) {
  * @return 0 if false, 1 if true
  */
 
-int im_range_server(struct index_t *index) {
+int im_range_server(index_t *index) {
 	if (index->myinfo.rangesrv_num > 0) {
 		return 1;
 	}
@@ -51,16 +51,16 @@ int im_range_server(struct index_t *index) {
  * @param md       Pointer to the main MDHIM structure
  * @param flags    Flags to open the file with
  */
-int open_manifest(struct mdhim *md, struct index_t *index, int flags) {
+int open_manifest(struct mdhim *md, index_t *index, int flags) {
 	int fd;
 	char path[PATH_MAX];
 
 	sprintf(path, "%s%d_%d_%s", md->p->db_opts->manifest_path, index->type,
-		index->id, ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+		index->id, ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 	fd = open(path, flags, 00600);
 	if (fd < 0) {
 		mlog(MDHIM_SERVER_DBG, "Rank %s - Error opening manifest file",
-		   ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+		   ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 	}
 
 	return fd;
@@ -72,7 +72,7 @@ int open_manifest(struct mdhim *md, struct index_t *index, int flags) {
  *
  * @param md       Pointer to the main MDHIM structure
  */
-void write_manifest(struct mdhim *md, struct index_t *index) {
+void write_manifest(struct mdhim *md, index_t *index) {
 	index_manifest_t manifest;
 	int fd;
 	int ret;
@@ -85,7 +85,7 @@ void write_manifest(struct mdhim *md, struct index_t *index) {
 
 	if ((fd = open_manifest(md, index, O_RDWR | O_CREAT | O_TRUNC)) < 0) {
 		mlog(MDHIM_SERVER_CRIT, "Rank %s - Error opening manifest file",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 		return;
 	}
 
@@ -99,7 +99,7 @@ void write_manifest(struct mdhim *md, struct index_t *index) {
 
 	if ((ret = write(fd, &manifest, sizeof(manifest))) < 0) {
 		mlog(MDHIM_SERVER_CRIT, "Rank %s - Error writing manifest file",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 	}
 
 	close(fd);
@@ -112,59 +112,59 @@ void write_manifest(struct mdhim *md, struct index_t *index) {
  * @param md       Pointer to the main MDHIM structure
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int read_manifest(struct mdhim *md, struct index_t *index) {
+int read_manifest(struct mdhim *md, index_t *index) {
 	int fd;
 	int ret;
 	index_manifest_t manifest;
 
 	if ((fd = open_manifest(md, index, O_RDWR)) < 0) {
 		mlog(MDHIM_SERVER_DBG, "Rank %s - Couldn't open manifest file",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 		return MDHIM_SUCCESS;
 	}
 
 	if ((ret = read(fd, &manifest, sizeof(manifest))) < 0) {
 		mlog(MDHIM_SERVER_CRIT, "Rank %s - Couldn't read manifest file",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 		return MDHIM_ERROR;
 	}
 
 	ret = MDHIM_SUCCESS;
 	mlog(MDHIM_SERVER_DBG, "Rank %s - Manifest contents - \nnum_rangesrvs: %d, key_type: %d, "
 	     "db_type: %d, rs_factor: %u, slice_size: %lu, num_nodes: %d",
-	     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), manifest.num_rangesrvs, manifest.key_type, manifest.db_type,
+	     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str(), manifest.num_rangesrvs, manifest.key_type, manifest.db_type,
 	     manifest.rangesrv_factor, (unsigned long)manifest.slice_size, manifest.num_nodes);
 
 	//Check that the manifest and the current config match
 	if (manifest.key_type != index->key_type) {
 		mlog(MDHIM_SERVER_CRIT, "Rank %s - The key type in the manifest file"
 		     " doesn't match the current key type",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 		ret = MDHIM_ERROR;
 	}
 	if (manifest.db_type != index->db_type) {
 		mlog(MDHIM_SERVER_CRIT, "Rank %s - The database type in the manifest file"
 		     " doesn't match the current database type",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 		ret = MDHIM_ERROR;
 	}
 
 	if (manifest.rangesrv_factor != index->range_server_factor) {
 		mlog(MDHIM_SERVER_CRIT, "Rank %s - The range server factor in the manifest file"
 		     " doesn't match the current range server factor",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 		ret = MDHIM_ERROR;
 	}
 	if (manifest.slice_size != index->mdhim_max_recs_per_slice) {
 		mlog(MDHIM_SERVER_CRIT, "Rank %s - The slice size in the manifest file"
 		     " doesn't match the current slice size",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 		ret = MDHIM_ERROR;
 	}
 	if (manifest.num_nodes != md->p->mdhim_comm_size) {
 		mlog(MDHIM_SERVER_CRIT, "Rank %s - The number of nodes in this MDHIM instance"
 		     " doesn't match the number used previously",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 		ret = MDHIM_ERROR;
 	}
 
@@ -181,7 +181,7 @@ int read_manifest(struct mdhim *md, struct index_t *index) {
  * @param key_len  the key's length
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int update_stat(struct mdhim *md, struct index_t *index, void *key, uint32_t key_len) {
+int update_stat(struct mdhim *md, index_t *index, void *key, uint32_t key_len) {
 	int slice_num;
 	void *val1, *val2;
 	int float_type = 0;
@@ -287,7 +287,7 @@ int update_stat(struct mdhim *md, struct index_t *index, void *key, uint32_t key
  * @param md  Pointer to the main MDHIM structure
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int load_stats(struct mdhim *md, struct index_t *index) {
+int load_stats(struct mdhim *md, index_t *index) {
 	void **val;
 	int *val_len, *key_len;
 	int **slice;
@@ -328,7 +328,7 @@ int load_stats(struct mdhim *md, struct index_t *index) {
 
 		mlog(MDHIM_SERVER_DBG, "Rank %s - Loaded stat for slice: %d with "
 		     "imin: %lu and imax: %lu, dmin: %Lf, dmax: %Lf, and num: %lu",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), **slice, (*(struct mdhim_db_stat **)val)->imin,
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str(), **slice, (*(struct mdhim_db_stat **)val)->imin,
 		     (*(struct mdhim_db_stat **)val)->imax, (*(struct mdhim_db_stat **)val)->dmin,
 		     (*(struct mdhim_db_stat **)val)->dmax, (*(struct mdhim_db_stat **)val)->num);
 
@@ -374,7 +374,7 @@ int load_stats(struct mdhim *md, struct index_t *index) {
  * @param md  Pointer to the main MDHIM structure
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int write_stats(struct mdhim *md, struct index_t *bi) {
+int write_stats(struct mdhim *md, index_t *bi) {
 	struct mdhim_stat *stat, *tmp;
 	struct mdhim_db_stat *dbstat;
 	int float_type = 0;
@@ -432,7 +432,7 @@ int write_stats(struct mdhim *md, struct index_t *bi) {
  * @return the initialized data store or NULL on error
  */
 
-int open_db_store(struct mdhim *md, struct index_t *index) {
+int open_db_store(struct mdhim *md, index_t *index) {
 	char filename[PATH_MAX] = {'\0'};
 	int flags = MDHIM_CREATE;
 	int path_num;
@@ -441,16 +441,16 @@ int open_db_store(struct mdhim *md, struct index_t *index) {
 	//Database filename is dependent on ranges.  This needs to be configurable and take a prefix
 	if (!md->p->db_opts->db_paths) {
 		sprintf(filename, "%s%s-%d-%s", md->p->db_opts->db_path, md->p->db_opts->db_name,
-			index->id, ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+			index->id, ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 	} else {
 		path_num = index->myinfo.rangesrv_num/((double) index->num_rangesrvs/(double) md->p->db_opts->num_paths);
 		path_num = path_num >= md->p->db_opts->num_paths ? md->p->db_opts->num_paths - 1 : path_num;
 		if (path_num < 0) {
 			sprintf(filename, "%s%s-%d-%s", md->p->db_opts->db_path, md->p->db_opts->db_name, index->id,
-				((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+				((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 		} else {
 			sprintf(filename, "%s%s-%d-%s", md->p->db_opts->db_paths[path_num],
-				md->p->db_opts->db_name, index->id, ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+				md->p->db_opts->db_name, index->id, ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 		}
 	}
 
@@ -459,7 +459,7 @@ int open_db_store(struct mdhim *md, struct index_t *index) {
 	if (!index->mdhim_store) {
 		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - "
 		     "Error while initializing data store with file: %s",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(),
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str(),
 		     filename);
 		return MDHIM_ERROR;
 	}
@@ -470,7 +470,7 @@ int open_db_store(struct mdhim *md, struct index_t *index) {
 					    filename, flags, index->key_type, md->p->db_opts)) != MDHIM_SUCCESS){
 		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - "
 		     "Error while opening database",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 		return MDHIM_ERROR;
 	}
 
@@ -478,7 +478,7 @@ int open_db_store(struct mdhim *md, struct index_t *index) {
 	if ((ret = load_stats(md, index)) != MDHIM_SUCCESS) {
 		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - "
 		     "Error while loading stats",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 		return MDHIM_ERROR;
 	}
 
@@ -493,7 +493,7 @@ int open_db_store(struct mdhim *md, struct index_t *index) {
  * @param rindex   pointer to a index_t struct
  * @return         MDHIM_ERROR on error, otherwise the number of range servers
  */
-uint32_t get_num_range_servers(struct mdhim *md, struct index_t *rindex) {
+uint32_t get_num_range_servers(struct mdhim *md, index_t *rindex) {
 	int size = md->p->mdhim_comm_size;
 	uint32_t num_servers = 0;
 	int i = 0;
@@ -501,7 +501,7 @@ uint32_t get_num_range_servers(struct mdhim *md, struct index_t *rindex) {
 
 	// if ((ret = MPI_Comm_size(md->p->mdhim_comm, &size)) != MPI_SUCCESS) {
 	// 	mlog(MPI_EMERG, "Rank %s - Couldn't get the size of the comm in get_num_range_servers",
-	// 	     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+	// 	     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 	// 	return MDHIM_ERROR;
 	// }
 
@@ -530,9 +530,9 @@ uint32_t get_num_range_servers(struct mdhim *md, struct index_t *rindex) {
  * @param  md  main MDHIM struct
  * @return     MDHIM_ERROR on error, otherwise the index identifier
  */
-struct index_t *create_local_index(struct mdhim *md, int db_type, int key_type, const char *index_name) {
-	struct index_t *li;
-	struct index_t *check = NULL;
+index_t *create_local_index(struct mdhim *md, int db_type, int key_type, const char *index_name) {
+	index_t *li;
+	index_t *check = NULL;
 	uint32_t rangesrv_num;
 	int ret;
 
@@ -550,13 +550,13 @@ struct index_t *create_local_index(struct mdhim *md, int db_type, int key_type, 
 	}
 
 	//Create a new global_index to hold our index entry
-	li = (struct index_t*)malloc(sizeof(struct index_t));
+	li = (index_t*)malloc(sizeof(index_t));
 	if (!li) {
 		goto done;
 	}
 
 	//Initialize the new index struct
-	memset(li, 0, sizeof(struct index_t));
+	memset(li, 0, sizeof(index_t));
 	li->id = HASH_COUNT(md->p->indexes);
 	li->range_server_factor = md->p->primary_index->range_server_factor;
 	li->mdhim_max_recs_per_slice = MDHIM_MAX_SLICES;
@@ -564,7 +564,7 @@ struct index_t *create_local_index(struct mdhim *md, int db_type, int key_type, 
 	li->key_type = key_type;
 	li->db_type = db_type;
 	li->myinfo.rangesrv_num = 0;
-	li->myinfo.rank = (int) *md->p->comm->Endpoint()->Address();
+	li->myinfo.rank = (int) *md->p->transport->Endpoint()->Address();
 	li->primary_id = md->p->primary_index->id;
 	li->stats = NULL;
 
@@ -598,7 +598,7 @@ struct index_t *create_local_index(struct mdhim *md, int db_type, int key_type, 
 	ret = get_rangesrvs(md, li);
 	if (ret != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Rank %s - Couldn't get the range server list",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 	}
 
 	//Add it to the hash table
@@ -606,13 +606,13 @@ struct index_t *create_local_index(struct mdhim *md, int db_type, int key_type, 
 	HASH_ADD_KEYPTR( hh_name, md->p->indexes_by_name, li->name, strlen(li->name), li );
 
 	//Test if I'm a range server and get the range server number
-	if ((rangesrv_num = is_range_server(md, (int) *md->p->comm->Endpoint()->Address(), li)) == MDHIM_ERROR) {
+	if ((rangesrv_num = is_range_server(md, (int) *md->p->transport->Endpoint()->Address(), li)) == MDHIM_ERROR) {
 		goto done;
 	}
 
 	if (rangesrv_num > 0) {
 		//Populate my range server info for this index
-		li->myinfo.rank = (int) *md->p->comm->Endpoint()->Address();
+		li->myinfo.rank = (int) *md->p->transport->Endpoint()->Address();
 		li->myinfo.rangesrv_num = rangesrv_num;
 	}
 
@@ -626,15 +626,15 @@ struct index_t *create_local_index(struct mdhim *md, int db_type, int key_type, 
 	    (ret = read_manifest(md, li)) != MDHIM_SUCCESS) {
 		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - "
 		     "Error: There was a problem reading or validating the manifest file",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 		MPI_Abort(md->p->mdhim_comm, 0);
 	}
 
 	//Open the data store
-	ret = open_db_store(md, (struct index_t *) li);
+	ret = open_db_store(md, (index_t *) li);
 	if (ret != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Rank %s - Error opening data store for index: %d",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), li->id);
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str(), li->id);
 		MPI_Abort(md->p->mdhim_comm, 0);
 	}
 
@@ -647,7 +647,7 @@ done:
 	//Release the indexes lock
 	if (pthread_rwlock_unlock(&md->p->indexes_lock) != 0) {
 		mlog(MDHIM_CLIENT_CRIT, "Rank %s - Error unlocking the indexes_lock",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 		return NULL;
 	}
 
@@ -657,7 +657,7 @@ done:
 
 	// The index name has already been taken
 	if(check) {
-        mlog(MDHIM_CLIENT_CRIT, "Rank %s - Error creating index: Name %s, already exists", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), index_name);
+        mlog(MDHIM_CLIENT_CRIT, "Rank %s - Error creating index: Name %s, already exists", ((std::string) (*md->p->transport->Endpoint()->Address())).c_str(), index_name);
         return NULL;
     }
 
@@ -677,11 +677,11 @@ done:
  * @return                   MDHIM_ERROR on error, otherwise the index identifier
  */
 
-struct index_t *create_global_index(struct mdhim *md, int server_factor,
+index_t *create_global_index(struct mdhim *md, int server_factor,
 				    uint64_t max_recs_per_slice,
 				    int db_type, int key_type, char *index_name) {
-	struct index_t *gi;
-	struct index_t *check = NULL;
+	index_t *gi;
+	index_t *check = NULL;
 	uint32_t rangesrv_num;
 	int ret;
 
@@ -699,13 +699,13 @@ struct index_t *create_global_index(struct mdhim *md, int server_factor,
 	}
 
 	//Create a new global_index to hold our index entry
-	gi = (struct index_t*)malloc(sizeof(struct index_t));
+	gi = (index_t*)malloc(sizeof(index_t));
 	if (!gi) {
 		goto done;
 	}
 
 	//Initialize the new index struct
-	memset(gi, 0, sizeof(struct index_t));
+	memset(gi, 0, sizeof(index_t));
 	gi->id = HASH_COUNT(md->p->indexes);
 	gi->range_server_factor = server_factor;
 	gi->mdhim_max_recs_per_slice = max_recs_per_slice;
@@ -713,7 +713,7 @@ struct index_t *create_global_index(struct mdhim *md, int server_factor,
 	gi->key_type = key_type;
 	gi->db_type = db_type;
 	gi->myinfo.rangesrv_num = 0;
-	gi->myinfo.rank = (int) *md->p->comm->Endpoint()->Address();
+	gi->myinfo.rank = (int) *md->p->transport->Endpoint()->Address();
 	gi->primary_id = gi->type == SECONDARY_INDEX ? md->p->primary_index->id : -1;
 	gi->stats = NULL;
 
@@ -754,7 +754,7 @@ struct index_t *create_global_index(struct mdhim *md, int server_factor,
 	ret = get_rangesrvs(md, gi);
 	if (ret != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Rank %s - Couldn't get the range server list",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 	}
 
 	//Add it to the hash table
@@ -762,20 +762,20 @@ struct index_t *create_global_index(struct mdhim *md, int server_factor,
 	HASH_ADD_KEYPTR( hh_name, md->p->indexes_by_name, gi->name, strlen(gi->name), gi );
 
 	//Test if I'm a range server and get the range server number
-	if ((rangesrv_num = is_range_server(md, (int) *md->p->comm->Endpoint()->Address(), gi)) == MDHIM_ERROR) {
+	if ((rangesrv_num = is_range_server(md, (int) *md->p->transport->Endpoint()->Address(), gi)) == MDHIM_ERROR) {
 		goto done;
 	}
 
 	if (rangesrv_num > 0) {
 		//Populate my range server info for this index
-		gi->myinfo.rank = (int) *md->p->comm->Endpoint()->Address();
+		gi->myinfo.rank = (int) *md->p->transport->Endpoint()->Address();
 		gi->myinfo.rangesrv_num = rangesrv_num;
 	}
 
 	//Initialize the communicator for this index
 	if ((ret = index_init_comm(md, gi)) != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Rank %s - Error creating the index communicator",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 		goto done;
 	}
 
@@ -789,15 +789,15 @@ struct index_t *create_global_index(struct mdhim *md, int server_factor,
 	    (ret = read_manifest(md, gi)) != MDHIM_SUCCESS) {
 		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - "
 		     "Error: There was a problem reading or validating the manifest file",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 		MPI_Abort(md->p->mdhim_comm, 0);
 	}
 
 	//Open the data store
-	ret = open_db_store(md, (struct index_t *) gi);
+	ret = open_db_store(md, (index_t *) gi);
 	if (ret != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Rank %s - Error opening data store for index: %d",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), gi->id);
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str(), gi->id);
 	}
 
 	//Initialize the range server threads if they haven't been already
@@ -809,7 +809,7 @@ done:
 	//Release the indexes lock
 	if (pthread_rwlock_unlock(&md->p->indexes_lock) != 0) {
 		mlog(MDHIM_CLIENT_CRIT, "Rank %s - Error unlocking the indexes_lock",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 		return NULL;
 	}
 
@@ -819,7 +819,7 @@ done:
 
 	// The index name has already been taken
 	if(check) {
-        mlog(MDHIM_CLIENT_CRIT, "Rank %s - Error creating index: Name %s, already exists", ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), index_name);
+        mlog(MDHIM_CLIENT_CRIT, "Rank %s - Error creating index: Name %s, already exists", ((std::string) (*md->p->transport->Endpoint()->Address())).c_str(), index_name);
         return NULL;
     }
 
@@ -833,7 +833,7 @@ done:
  * @param md      in   main MDHIM struct
  * @return a list of range servers
  */
-int get_rangesrvs(struct mdhim *md, struct index_t *index) {
+int get_rangesrvs(struct mdhim *md, index_t *index) {
 	struct rangesrv_info *rs_entry_num, *rs_entry_rank;
 	uint32_t rangesrv_num;
 
@@ -857,8 +857,8 @@ int get_rangesrvs(struct mdhim *md, struct index_t *index) {
 		rs_entry_rank = (struct rangesrv_info*)malloc(sizeof(struct rangesrv_info));
 		rs_entry_num->rank = rs_entry_rank->rank = i;
 		rs_entry_rank->rangesrv_num = rs_entry_num->rangesrv_num = rangesrv_num;
-        rs_entry_num->transport = md->p->comm;
-        rs_entry_rank->transport = md->p->comm;
+        rs_entry_num->transport = md->p->transport;
+        rs_entry_rank->transport = md->p->transport;
 
 		//Add it to the hash tables
 		HASH_ADD_INT(index->rangesrvs_by_num, rangesrv_num, rs_entry_num);
@@ -876,7 +876,7 @@ int get_rangesrvs(struct mdhim *md, struct index_t *index) {
  * @param rank    rank to find out if it is a range server
  * @return        MDHIM_ERROR on error, 0 on false, 1 or greater to represent the range server number otherwise
  */
-uint32_t is_range_server(struct mdhim *md, int rank, struct index_t *index) {
+uint32_t is_range_server(struct mdhim *md, int rank, index_t *index) {
 	int size;
 	int ret;
 	uint64_t rangesrv_num = 0;
@@ -890,7 +890,7 @@ uint32_t is_range_server(struct mdhim *md, int rank, struct index_t *index) {
 
 	if ((ret = MPI_Comm_size(md->p->mdhim_comm, &size)) != MPI_SUCCESS) {
 		mlog(MPI_EMERG, "Rank %s - Couldn't get the size of the comm in is_range_server",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 		return MDHIM_ERROR;
 	}
 
@@ -933,7 +933,7 @@ uint32_t is_range_server(struct mdhim *md, int rank, struct index_t *index) {
  * @param md  Pointer to the main MDHIM structure
  * @return    MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int index_init_comm(struct mdhim *md, struct index_t *bi) {
+int index_init_comm(struct mdhim *md, index_t *bi) {
 	MPI_Group orig, new_group;
 	int *ranks;
 	int i = 0;
@@ -974,14 +974,14 @@ int index_init_comm(struct mdhim *md, struct index_t *bi) {
 	if ((ret = MPI_Comm_group(md->p->mdhim_comm, &orig)) != MPI_SUCCESS) {
 		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - "
 		     "Error while creating a new group in range_server_init_comm",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 		return MDHIM_ERROR;
 	}
 
 	if ((ret = MPI_Group_incl(orig, size, ranks, &new_group)) != MPI_SUCCESS) {
 		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - "
 		     "Error while creating adding ranks to the new group in range_server_init_comm",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 		return MDHIM_ERROR;
 	}
 
@@ -989,7 +989,7 @@ int index_init_comm(struct mdhim *md, struct index_t *bi) {
 	    != MPI_SUCCESS) {
 		mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - "
 		     "Error while creating the new communicator in range_server_init_comm",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 		return MDHIM_ERROR;
 	}
 	if ((ret = im_range_server(bi)) == 1) {
@@ -1004,23 +1004,22 @@ int index_init_comm(struct mdhim *md, struct index_t *bi) {
 	return MDHIM_SUCCESS;
 }
 
-struct index_t *get_index(struct mdhim *md, int index_id) {
-	struct index_t *index;
+index_t *get_index(struct mdhim *md, int index_id) {
+	index_t *index = nullptr;
 
 	//Acquire the lock to update indexes
 	while (pthread_rwlock_wrlock(&md->p->indexes_lock) == EBUSY) {
 		usleep(10);
 	}
 
-	index = NULL;
 	if (index_id >= 0) {
 		HASH_FIND(hh, md->p->indexes, &index_id, sizeof(int), index);
 	}
 
 	if (pthread_rwlock_unlock(&md->p->indexes_lock) != 0) {
 		mlog(MDHIM_CLIENT_CRIT, "Rank %s - Error unlocking the indexes_lock",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
-		return NULL;
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
+		return nullptr;
 	}
 
 	return index;
@@ -1033,10 +1032,10 @@ struct index_t *get_index(struct mdhim *md, int index_id) {
  *  Description:  Retrieve the index by name
  * =====================================================================================
  */
-struct index_t*
+index_t*
 get_index_by_name ( struct mdhim *md, char *index_name )
 {
-    struct index_t *index = NULL;
+    index_t *index = NULL;
     size_t name_len = strlen(index_name)+1;
     char *lower_name = (char*)malloc(name_len);
 
@@ -1053,7 +1052,7 @@ get_index_by_name ( struct mdhim *md, char *index_name )
 
     if ( pthread_rwlock_unlock(&md->p->indexes_lock) !=0 ) {
         mlog(MDHIM_CLIENT_CRIT, "Rank %s - Error unlocking the indexes_lock",
-                ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+                ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
         return NULL;
     }
 
@@ -1061,7 +1060,7 @@ return index;
 }		/* -----  end of function get_index_by_name  ----- */
 
 void indexes_release(struct mdhim *md) {
-	struct index_t *cur_indx, *tmp_indx;
+	index_t *cur_indx, *tmp_indx;
 	struct rangesrv_info *cur_rs, *tmp_rs;
 	int ret;
 	struct mdhim_stat *stat, *tmp;
@@ -1085,7 +1084,7 @@ void indexes_release(struct mdhim *md) {
 			if ((ret = write_stats(md, cur_indx)) != MDHIM_SUCCESS) {
 				mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - "
 				     "Error while loading stats",
-				     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+				     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 			}
 
 			if (cur_indx->myinfo.rangesrv_num == 1) {
@@ -1098,7 +1097,7 @@ void indexes_release(struct mdhim *md) {
                                                     cur_indx->mdhim_store->db_stats))
 			    != MDHIM_SUCCESS) {
 				mlog(MDHIM_SERVER_CRIT, "Rank %s - Error closing database",
-				     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+				     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 			}
 
 			pthread_rwlock_destroy(cur_indx->mdhim_store->mdhim_store_stats_lock);
@@ -1126,7 +1125,7 @@ void indexes_release(struct mdhim *md) {
 	}
 }
 
-int pack_stats(struct index_t *index, void *buf, int size,
+int pack_stats(index_t *index, void *buf, int size,
 	       int float_type, int stat_size, MPI_Comm comm) {
 
 	struct mdhim_stat *stat, *tmp;
@@ -1171,7 +1170,7 @@ int pack_stats(struct index_t *index, void *buf, int size,
 	return ret;
 }
 
-int get_stat_flush_global(struct mdhim *md, struct index_t *index) {
+int get_stat_flush_global(struct mdhim *md, index_t *index) {
 	char *sendbuf;
 	int sendsize = 0;
 	int recvidx = 0;
@@ -1217,7 +1216,7 @@ int get_stat_flush_global(struct mdhim *md, struct index_t *index) {
 		if ((ret = MPI_Comm_size(index->rs_comm, &master)) != MPI_SUCCESS) {
 			mlog(MPI_CRIT, "Rank %s - "
 			     "Error getting size of comm",
-			     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+			     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 		}
 		//The master rank is the last rank in range server comm
 		master--;
@@ -1233,7 +1232,7 @@ int get_stat_flush_global(struct mdhim *md, struct index_t *index) {
 				      MPI_INT, master, index->rs_comm)) != MPI_SUCCESS) {
 			mlog(MDHIM_SERVER_CRIT, "Rank %s - "
 			     "Error while receiving the number of statistics from each range server",
-			     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+			     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 			free(recvbuf);
 			goto error;
 		}
@@ -1262,7 +1261,7 @@ int get_stat_flush_global(struct mdhim *md, struct index_t *index) {
 		}
 
 		//Allocate the recv buffer for the master range server
-		if ((int) *md->p->comm->Endpoint()->Address() == index->rangesrv_master) {
+		if ((int) *md->p->transport->Endpoint()->Address() == index->rangesrv_master) {
 			recvsize = num_items * stat_size;
 			recvbuf = (char*)malloc(recvsize);
 			memset(recvbuf, 0, recvsize);
@@ -1277,7 +1276,7 @@ int get_stat_flush_global(struct mdhim *md, struct index_t *index) {
 				       MPI_PACKED, master, index->rs_comm)) != MPI_SUCCESS) {
 			mlog(MDHIM_SERVER_CRIT, "Rank %s - "
 			     "Error while receiving range server info",
-			     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+			     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 			goto error;
 		}
 
@@ -1292,7 +1291,7 @@ int get_stat_flush_global(struct mdhim *md, struct index_t *index) {
 			     md->p->mdhim_comm)) != MPI_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Rank %s - "
 		     "Error while receiving the number of stats to receive",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 		goto error;
 	}
 
@@ -1300,7 +1299,7 @@ int get_stat_flush_global(struct mdhim *md, struct index_t *index) {
 
 	recvsize = num_items * stat_size;
 	//Allocate the receive buffer size for clients
-	if ((int) *md->p->comm->Endpoint()->Address() != index->rangesrv_master) {
+	if ((int) *md->p->transport->Endpoint()->Address() != index->rangesrv_master) {
 		recvbuf = (char*)malloc(recvsize);
 		memset(recvbuf, 0, recvsize);
 	}
@@ -1310,7 +1309,7 @@ int get_stat_flush_global(struct mdhim *md, struct index_t *index) {
 			     md->p->mdhim_comm)) != MPI_SUCCESS) {
 		mlog(MPI_CRIT, "Rank %s - "
 		     "Error while receiving range server info",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 		goto error;
 	}
 
@@ -1323,7 +1322,7 @@ int get_stat_flush_global(struct mdhim *md, struct index_t *index) {
 				      MPI_CHAR, md->p->mdhim_comm)) != MPI_SUCCESS) {
 			mlog(MPI_CRIT, "Rank %s - "
 			     "Error while unpacking stat data",
-			     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+			     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 			free(tstat);
 			goto error;
 		}
@@ -1368,7 +1367,7 @@ error:
 	return MDHIM_ERROR;
 }
 
-int get_stat_flush_local(struct mdhim *md, struct index_t *index) {
+int get_stat_flush_local(struct mdhim *md, index_t *index) {
 	char *sendbuf;
 	int sendsize = 0;
 	int recvidx = 0;
@@ -1420,7 +1419,7 @@ int get_stat_flush_local(struct mdhim *md, struct index_t *index) {
 				 MPI_INT, md->p->mdhim_comm)) != MPI_SUCCESS) {
 		mlog(MDHIM_SERVER_CRIT, "Rank %s - "
 		     "Error while receiving the number of statistics from each range server",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 		free(recvbuf);
 		goto error;
 	}
@@ -1462,7 +1461,7 @@ int get_stat_flush_local(struct mdhim *md, struct index_t *index) {
 				   MPI_PACKED, md->p->mdhim_comm)) != MPI_SUCCESS) {
 		mlog(MDHIM_SERVER_CRIT, "Rank %s - "
 		     "Error while receiving range server info",
-		     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+		     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 		goto error;
 	}
 
@@ -1484,7 +1483,7 @@ int get_stat_flush_local(struct mdhim *md, struct index_t *index) {
 		if (!tmp) {
 			mlog(MPI_CRIT, "Rank %s - "
 			     "Adding rank: %d to local index stat data",
-			     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), i);
+			     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str(), i);
 			rank_stat = (struct mdhim_stat*)malloc(sizeof(struct mdhim_stat));
 			memset(rank_stat, 0, sizeof(struct mdhim_stat));
 			rank_stat->key = i;
@@ -1501,7 +1500,7 @@ int get_stat_flush_local(struct mdhim *md, struct index_t *index) {
 					      MPI_CHAR, md->p->mdhim_comm)) != MPI_SUCCESS) {
 				mlog(MPI_CRIT, "Rank %s - "
 				     "Error while unpacking stat data",
-				     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str());
+				     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
 				free(tstat);
 				goto error;
 			}
@@ -1527,7 +1526,7 @@ int get_stat_flush_local(struct mdhim *md, struct index_t *index) {
 			mlog(MPI_CRIT, "Rank %s - "
 			     "Adding rank: %d with stat min: %lu, stat max: %lu, stat key: %u num: %lu"
 			     "to local index stat data",
-			     ((std::string) (*md->p->comm->Endpoint()->Address())).c_str(), i, *(uint64_t *)stat->min, *(uint64_t *)stat->max,
+			     ((std::string) (*md->p->transport->Endpoint()->Address())).c_str(), i, *(uint64_t *)stat->min, *(uint64_t *)stat->max,
 			     stat->key, stat->num);
 			HASH_FIND_INT(rank_stat->stats, &stat->key, tmp);
 			if (!tmp) {
@@ -1562,7 +1561,7 @@ error:
  * @param md      in   main MDHIM struct
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int get_stat_flush(struct mdhim *md, struct index_t *index) {
+int get_stat_flush(struct mdhim *md, index_t *index) {
 	int ret;
 
 	pthread_mutex_lock(&md->p->mdhim_comm_lock);

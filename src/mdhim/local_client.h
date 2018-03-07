@@ -1,21 +1,22 @@
 /*
  * MDHIM TNG
- * 
+ *
  * Local client implementation
  */
 
 #ifndef      __LOCAL_CLIENT_H
 #define      __LOCAL_CLIENT_H
 
-#include "messages.h"
+#include "transport.hpp"
 
-struct mdhim_rm_t *local_client_put(struct mdhim *md, struct mdhim_putm_t *pm);
-struct mdhim_rm_t *local_client_bput(struct mdhim *md, struct mdhim_bputm_t *bpm);
-struct mdhim_bgetrm_t *local_client_bget(struct mdhim *md, struct mdhim_bgetm_t *bgm);
-struct mdhim_bgetrm_t *local_client_bget_op(struct mdhim *md, struct mdhim_getm_t *gm);
-struct mdhim_rm_t *local_client_commit(struct mdhim *md, struct mdhim_basem_t *cm);
-struct mdhim_rm_t *local_client_delete(struct mdhim *md, struct mdhim_delm_t *dm);
-struct mdhim_rm_t *local_client_bdelete(struct mdhim *md, struct mdhim_bdelm_t *dm);
-void local_client_close(struct mdhim *md, struct mdhim_basem_t *cm);
+TransportRecvMessage *local_client_put(mdhim_t *md, TransportPutMessage *pm);
+TransportRecvMessage *local_client_bput(mdhim_t *md, TransportBPutMessage *bpm);
+TransportBGetRecvMessage *local_client_bget(mdhim_t *md, TransportBGetMessage *bgm);
+// TransportBGetRecvMessage *local_client_bget_op(mdhim_t *md, TransportGetMessage *gm);
+TransportRecvMessage *local_client_commit(mdhim_t *md, TransportMessage *cm);
+
+// mdhim_t_rm_t *local_client_delete(mdhim_t *md, mdhim_t_delm_t *dm);
+// mdhim_t_rm_t *local_client_bdelete(mdhim_t *md, mdhim_t_bdelm_t *dm);
+// void local_client_close(mdhim_t *md, mdhim_t_basem_t *cm);
 
 #endif

@@ -1,6 +1,6 @@
 /*
  * MDHIM TNG
- * 
+ *
  * MDHIM Fortran90 API implementation
  */
 
@@ -33,14 +33,14 @@ mdhim_options_t *opts = NULL;
  * mdhimInit
  * Initializes MDHIM - Collective call
  *
- * @param appComm  the communicator that was passed in from the application (e.g., MPI_COMM_WORLD)
+ * @param appTransport  the communicator that was passed in from the application (e.g., MPI_COMM_WORLD)
  * @param opts Options structure for DB creation, such as name, and primary key type
  * @return mdhim_t* that contains info about this instance or NULL if there was an error
  */
-void mdhimftinit(int *appComm) {
+void mdhimftinit(int *appTransport) {
   MPI_Comm comm;
 
-  comm = MPI_Comm_f2c(*((int *) appComm));
+  comm = MPI_Comm_f2c(*((int *) appTransport));
   mdhimInit(md, opts);
 
   return;
@@ -55,16 +55,16 @@ void mdhimftput(void *key, int *key_size, void *val, int *val_size) {
 }
 
 void mdhimftget(void *key, int *key_size, void *val, int val_size) {
-   struct mdhim_bgetrm_t *bgrm;
+   // struct mdhim_bgetrm_t *bgrm;
 
-   printf("Key: %s\n", (char *)key);
-   bgrm = mdhimGet(md, md->p->primary_index, key, *key_size, MDHIM_GET_EQ);
-   if (!bgrm || bgrm->error) {
-     printf("Error getting value for key: %p from MDHIM\n", key);
-   } else {
-     printf("Successfully got value from MDHIM\n");
-     memcpy(val, bgrm->values[0], bgrm->value_lens[0]);
-   }
+   // printf("Key: %s\n", (char *)key);
+   // bgrm = mdhimGet(md, md->p->primary_index, key, *key_size, MDHIM_GET_EQ);
+   // if (!bgrm || bgrm->error) {
+   //   printf("Error getting value for key: %p from MDHIM\n", key);
+   // } else {
+   //   printf("Successfully got value from MDHIM\n");
+   //   memcpy(val, bgrm->values[0], bgrm->value_lens[0]);
+   // }
 }
 
 void mdhimftoptions_dbpath (char *path) {
@@ -95,13 +95,13 @@ void mdhimftoptions_debug_level (int level) {
  * mdhimClose
  * Closes MDHIM - Collective call
  *
- * @param appComm  the communicator that was passed in from the application (e.g., MPI_COMM_WORLD)
+ * @param appTransport  the communicator that was passed in from the application (e.g., MPI_COMM_WORLD)
  * @param opts Options structure for DB creation, such as name, and primary key type
  * @return mdhim_t* that contains info about this instance or NULL if there was an error
  */
 void mdhimftclose() {
   int ret;
-  
+
   ret = mdhimClose(md);
   return;
 }

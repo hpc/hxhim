@@ -20,7 +20,7 @@ TEST(mdhimInitClose, Good) {
 }
 
 // The communicator provided is MPI_COMM_NULL
-TEST(mdhimInit, NULL_Comm) {
+TEST(mdhimInit, NULL_Transport) {
     mdhim_options_t opts;
     mdhim_t md;
 

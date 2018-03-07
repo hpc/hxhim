@@ -667,7 +667,7 @@ int mdhim_leveldb_del(void *dbh, void *key, int key_len) {
 
 /**
  * mdhim_leveldb_commit
- * Commits outstanding writes the data store
+ * Transportits outstanding writes the data store
  *
  * @param dbh         in   pointer to the leveldb handle 
  * 
