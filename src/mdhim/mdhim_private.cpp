@@ -478,3 +478,11 @@ struct mdhim_brm_t *_bdel_records(struct mdhim *md, struct index_t *index,
 	//Return the head of the list
 	return brm_head;
 }
+
+int _which_server(struct mdhim *md, void *key, int key_len)
+{
+    rangesrv_list *rl;
+    rl = get_range_servers(md, md->p->primary_index, key, key_len);
+    /* what is the difference between 'rank' and 'rangeserv_num' ? */
+    return (rl->ri->rank);
+}

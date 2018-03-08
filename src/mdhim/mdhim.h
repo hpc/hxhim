@@ -106,6 +106,8 @@ struct secondary_bulk_info *mdhimCreateSecondaryBulkInfo(struct index_t *seconda
 							 int *num_keys, int info_type);
 void mdhimReleaseSecondaryBulkInfo(struct secondary_bulk_info *si);
 
+int mdhimWhichServer(mdhim_t *md, void *key, int key_len);
+
 #ifdef __cplusplus
 }
 #endif

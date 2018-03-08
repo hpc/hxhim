@@ -892,3 +892,9 @@ void mdhimReleaseSecondaryBulkInfo(struct secondary_bulk_info *si) {
 
 	return;
 }
+
+/* what server would respond to this key? */
+int mdhimWhichServer(mdhim_t *md, void *key, int key_len)
+{
+    return(_which_server(md, key, key_len));
+}

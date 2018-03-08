@@ -81,4 +81,5 @@ struct mdhim_brm_t *_bdel_records(struct mdhim *md, struct index_t *index,
 				  void **keys, int *key_lens,
 				  int num_records);
 
+int _which_server(struct mdhim *md, void *key, int key_len);
 #endif
