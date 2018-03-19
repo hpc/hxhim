@@ -1,6 +1,6 @@
 #include "transport_private.hpp"
 
-mdhim_putm_t *mdhim_putm_init(TransportPutMessage *pm) {
+mdhim_putm_t *mdhim_pm_init(TransportPutMessage *pm) {
     mdhim_putm_t *ret = new mdhim_putm_t();
     if (!ret || !(ret->p = new mdhim_putm_private_t())) {
         return nullptr;
@@ -10,7 +10,7 @@ mdhim_putm_t *mdhim_putm_init(TransportPutMessage *pm) {
     return ret;
 }
 
-mdhim_bputm_t *mdhim_bputm_init(TransportBPutMessage *bpm) {
+mdhim_bputm_t *mdhim_bpm_init(TransportBPutMessage *bpm) {
     mdhim_bputm_t *ret = new mdhim_bputm_t();
     if (!ret || !(ret->p = new mdhim_bputm_private_t())) {
         return nullptr;
@@ -20,7 +20,7 @@ mdhim_bputm_t *mdhim_bputm_init(TransportBPutMessage *bpm) {
     return ret;
 }
 
-mdhim_getm_t *mdhim_getm_init(TransportGetMessage *gm) {
+mdhim_getm_t *mdhim_gm_init(TransportGetMessage *gm) {
     mdhim_getm_t *ret = new mdhim_getm_t();
     if (!ret || !(ret->p = new mdhim_getm_private_t())) {
         return nullptr;
@@ -30,7 +30,7 @@ mdhim_getm_t *mdhim_getm_init(TransportGetMessage *gm) {
     return ret;
 }
 
-mdhim_bgetm_t *mdhim_bgetm_init(TransportBGetMessage *bgm) {
+mdhim_bgetm_t *mdhim_bgm_init(TransportBGetMessage *bgm) {
     mdhim_bgetm_t *ret = new mdhim_bgetm_t();
     if (!ret || !(ret->p = new mdhim_bgetm_private_t())) {
         return nullptr;
@@ -70,7 +70,7 @@ mdhim_rm_t *mdhim_rm_init(TransportRecvMessage *rm) {
     return ret;
 }
 
-mdhim_bgetrm_t *mdhim_bgetrm_init(TransportBGetRecvMessage *bgrm) {
+mdhim_bgetrm_t *mdhim_bgrm_init(TransportBGetRecvMessage *bgrm) {
     mdhim_bgetrm_t *ret = new mdhim_bgetrm_t();
     if (!ret || !(ret->p = new mdhim_bgetrm_private_t())) {
         return nullptr;
@@ -168,6 +168,7 @@ void mdhim_bdelm_destroy(mdhim_bdelm_t *bdm) {
             }
 
             delete bdm->p;
+            bdm->p = nullptr;
         }
 
         delete bdm;
@@ -188,7 +189,7 @@ void mdhim_rm_destroy(mdhim_rm_t *rm) {
     }
 }
 
-void mdhim_bgetrm_destroy(mdhim_bgetrm_t *bgrm) {
+void mdhim_bgrm_destroy(mdhim_bgetrm_t *bgrm) {
     if (bgrm) {
         if (bgrm->p) {
             if (bgrm->p->bgrm) {

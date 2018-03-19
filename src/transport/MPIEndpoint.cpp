@@ -1,10 +1,12 @@
+#include <iostream>
+
 #include "MPIEndpoint.hpp"
 
 #define HXHIM_MPI_REQUEST_TAG 0x311
 
 MPIEndpoint::MPIEndpoint(const MPI_Comm comm, volatile int &shutdown)
     : TransportEndpoint(),
-      MPITransportBase(comm, shutdown),
+      MPIEndpointBase(comm, shutdown),
       address_(rank_)
 {}
 

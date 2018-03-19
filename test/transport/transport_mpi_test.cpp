@@ -35,7 +35,7 @@ TEST(MPIInstance, WorldSize) {
 TEST(mpi_pack_unpack, TransportPutMessage) {
     volatile int shutdown = 0;
     const MPIInstance &instance = MPIInstance::instance();
-    MPITransportBase commbase(instance.Comm(), shutdown);
+    MPIEndpointBase commbase(instance.Comm(), shutdown);
     TransportPutMessage src;
     {
         src.mtype = TransportMessageType::PUT;
@@ -77,7 +77,7 @@ TEST(mpi_pack_unpack, TransportPutMessage) {
 TEST(mpi_pack_unpack, TransportBPutMessage) {
     volatile int shutdown = 0;
     const MPIInstance &instance = MPIInstance::instance();
-    MPITransportBase commbase(instance.Comm(), shutdown);
+    MPIEndpointBase commbase(instance.Comm(), shutdown);
     TransportBPutMessage src;
     {
         src.mtype = TransportMessageType::BPUT;
@@ -131,7 +131,7 @@ TEST(mpi_pack_unpack, TransportBPutMessage) {
 TEST(mpi_pack_unpack, TransportGetMessage) {
     volatile int shutdown = 0;
     const MPIInstance &instance = MPIInstance::instance();
-    MPITransportBase commbase(instance.Comm(), shutdown);
+    MPIEndpointBase commbase(instance.Comm(), shutdown);
     TransportGetMessage src;
     {
         src.mtype = TransportMessageType::BGET;
@@ -171,7 +171,7 @@ TEST(mpi_pack_unpack, TransportGetMessage) {
 TEST(mpi_pack_unpack, TransportBGetMessage) {
     volatile int shutdown = 0;
     const MPIInstance &instance = MPIInstance::instance();
-    MPITransportBase commbase(instance.Comm(), shutdown);
+    MPIEndpointBase commbase(instance.Comm(), shutdown);
     TransportBGetMessage src;
     {
         src.mtype = TransportMessageType::BGET;
@@ -220,7 +220,7 @@ TEST(mpi_pack_unpack, TransportBGetMessage) {
 TEST(mpi_pack_unpack, TransportBGetRecvMessage) {
     volatile int shutdown = 0;
     const MPIInstance &instance = MPIInstance::instance();
-    MPITransportBase commbase(instance.Comm(), shutdown);
+    MPIEndpointBase commbase(instance.Comm(), shutdown);
     TransportBGetRecvMessage src;
     {
         src.mtype = TransportMessageType::RECV_BGET;
@@ -277,7 +277,7 @@ TEST(mpi_pack_unpack, TransportBGetRecvMessage) {
 TEST(mpi_pack_unpack, TransportDeleteMessage) {
     volatile int shutdown = 0;
     const MPIInstance &instance = MPIInstance::instance();
-    MPITransportBase commbase(instance.Comm(), shutdown);
+    MPIEndpointBase commbase(instance.Comm(), shutdown);
     TransportDeleteMessage src;
     {
         src.mtype = TransportMessageType::BGET;
@@ -313,7 +313,7 @@ TEST(mpi_pack_unpack, TransportDeleteMessage) {
 TEST(mpi_pack_unpack, TransportBDeleteMessage) {
     volatile int shutdown = 0;
     const MPIInstance &instance = MPIInstance::instance();
-    MPITransportBase commbase(instance.Comm(), shutdown);
+    MPIEndpointBase commbase(instance.Comm(), shutdown);
     TransportBDeleteMessage src;
     {
         src.mtype = TransportMessageType::BGET;
@@ -357,7 +357,7 @@ TEST(mpi_pack_unpack, TransportBDeleteMessage) {
 TEST(mpi_pack_unpack, TransportRecvMessage) {
     volatile int shutdown = 0;
     const MPIInstance &instance = MPIInstance::instance();
-    MPITransportBase commbase(instance.Comm(), shutdown);
+    MPIEndpointBase commbase(instance.Comm(), shutdown);
     TransportRecvMessage src;
     {
         src.mtype = TransportMessageType::PUT;
@@ -389,7 +389,7 @@ TEST(mpi_pack_unpack, TransportRecvMessage) {
 TEST(mpi_pack_unpack, TransportBRecvMessage) {
     volatile int shutdown = 0;
     const MPIInstance &instance = MPIInstance::instance();
-    MPITransportBase commbase(instance.Comm(), shutdown);
+    MPIEndpointBase commbase(instance.Comm(), shutdown);
     TransportBRecvMessage src;
     {
         src.mtype = TransportMessageType::PUT;

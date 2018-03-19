@@ -10,24 +10,16 @@
 #include "uthash.h"
 #include <mpi.h>
 
+#include "mdhim_struct.h"
+
+#ifdef __cplusplus
+#include "transport.hpp"
+#endif
+
 #define PRIMARY_INDEX 1
 #define SECONDARY_INDEX 2
 #define LOCAL_INDEX 3
 #define REMOTE_INDEX 4
-
-#ifdef __cplusplus
-
-#include "transport.hpp"
-
-extern "C"
-{
-#endif
-
-typedef struct mdhim mdhim_t;
-
-#ifdef __cplusplus
-}
-#endif
 
 /*
  * Range server info
@@ -108,22 +100,22 @@ typedef struct index_manifest {
 	int local_server_rank;
 } index_manifest_t;
 
-int update_stat(struct mdhim *md, index_t *bi, void *key, uint32_t key_len);
-int load_stats(struct mdhim *md, index_t *bi);
-int write_stats(struct mdhim *md, index_t *bi);
-int open_db_store(struct mdhim *md, index_t *index);
-uint32_t get_num_range_servers(struct mdhim *md, index_t *index);
-index_t *create_local_index(struct mdhim *md, int db_type, int key_type, const char *index_name);
-index_t *create_global_index(struct mdhim *md, int server_factor,
+int update_stat(mdhim_t*md, index_t *bi, void *key, uint32_t key_len);
+int load_stats(mdhim_t*md, index_t *bi);
+int write_stats(mdhim_t*md, index_t *bi);
+int open_db_store(mdhim_t*md, index_t *index);
+uint32_t get_num_range_servers(mdhim_t*md, index_t *index);
+index_t *create_local_index(mdhim_t*md, int db_type, int key_type, const char *index_name);
+index_t *create_global_index(mdhim_t*md, int server_factor,
 				    uint64_t max_recs_per_slice, int db_type,
 				    int key_type, char *index_name);
-int get_rangesrvs(struct mdhim *md, index_t *index);
-uint32_t is_range_server(struct mdhim *md, int rank, index_t *index);
-int index_init_comm(struct mdhim *md, index_t *bi);
-int get_stat_flush(struct mdhim *md, index_t *index);
-index_t *get_index(struct mdhim *md, int index_id);
-index_t *get_index_by_name(struct mdhim *md, char *index_name);
-void indexes_release(struct mdhim *md);
+int get_rangesrvs(mdhim_t*md, index_t *index);
+uint32_t is_range_server(mdhim_t*md, int rank, index_t *index);
+int index_init_comm(mdhim_t*md, index_t *bi);
+int get_stat_flush(mdhim_t*md, index_t *index);
+index_t *get_index(mdhim_t*md, int index_id);
+index_t *get_index_by_name(mdhim_t*md, char *index_name);
+void indexes_release(mdhim_t*md);
 int im_range_server(index_t *index);
 
 #endif

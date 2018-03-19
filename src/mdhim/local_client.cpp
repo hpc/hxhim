@@ -4,8 +4,8 @@
  * Client code for sending to and receiving from yourself
  */
 
-#include <iostream>
-#include <stdlib.h>
+#include <cstdlib>
+
 #include "mdhim_private.h"
 #include "local_client.h"
 #include "transport_private.hpp"
@@ -51,17 +51,17 @@ TransportRecvMessage *local_client_put(mdhim_t *md, TransportPutMessage *pm) {
 
 	if (!item) {
 		mlog(MDHIM_CLIENT_CRIT, "Error while allocating memory for client");
-		return NULL;
+		return nullptr;
 	}
 
     // This needs the double static_cast in order for it to work properly
-    // This is probably a clang++ 3.91 bug
+    // This is probably a clang++ 3.9.1 bug
     item->message = static_cast<void *>(static_cast<TransportMessage *>(pm));
-	item->source = (int) *md->p->transport->Endpoint()->Address();
+    item->address = md->p->transport->Endpoint()->Address();
 
 	if (range_server_add_work(md, item) != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
-		return NULL;
+		return nullptr;
 	}
 
     return dynamic_cast<TransportRecvMessage *>(static_cast<TransportMessage *>(get_msg_self(md)));
@@ -75,15 +75,16 @@ TransportRecvMessage *local_client_put(mdhim_t *md, TransportPutMessage *pm) {
  * @return return_message structure with ->error = MDHIM_SUCCESS or MDHIM_ERROR
 */
 TransportRecvMessage *local_client_bput(struct mdhim *md, TransportBPutMessage *bpm) {
-	work_item *item;
+	work_item *item = new work_item();
 
-	if ((item = (work_item*)malloc(sizeof(work_item))) == NULL) {
+	if (!item) {
 		mlog(MDHIM_CLIENT_CRIT, "Error while allocating memory for client");
 		return NULL;
 	}
 
     item->message = static_cast<void *>(static_cast<TransportMessage *>(bpm));
-	item->source = (int) *md->p->transport->Endpoint()->Address();
+    item->address = md->p->transport->Endpoint()->Address();
+
 	if (range_server_add_work(md, item) != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
 		return NULL;
@@ -100,17 +101,17 @@ TransportRecvMessage *local_client_bput(struct mdhim *md, TransportBPutMessage *
  * @return return_message structure with ->error = MDHIM_SUCCESS or MDHIM_ERROR
  */
 TransportBGetRecvMessage *local_client_bget(struct mdhim *md, TransportBGetMessage *bgm) {
-	int ret;
-	work_item *item;
+	work_item *item = new work_item();
 
-	if ((item = (work_item*)malloc(sizeof(work_item))) == NULL) {
+	if (!item) {
 		mlog(MDHIM_CLIENT_CRIT, "Error while allocating memory for client");
 		return NULL;
 	}
 
 	item->message = static_cast<void *>(static_cast<TransportMessage *>(bgm));
-	item->source = (int) *md->p->transport->Endpoint()->Address();
-	if ((ret = range_server_add_work(md, item)) != MDHIM_SUCCESS) {
+    item->address = md->p->transport->Endpoint()->Address();
+
+	if (range_server_add_work(md, item) != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
 		return NULL;
 	}
@@ -134,7 +135,7 @@ TransportBGetRecvMessage *local_client_bget(struct mdhim *md, TransportBGetMessa
 // 	}
 
 // 	item->message = static_cast<void *>(static_cast<TransportMessage *>(gm));
-// 	item->source = (int) *md->p->transport->Endpoint()->Address();
+//  item->address = md->p->transport->Endpoint()->Address();
 // 	if (range_server_add_work(md, item) != MDHIM_SUCCESS) {
 // 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_bput");
 // 		return NULL;
@@ -151,20 +152,22 @@ TransportBGetRecvMessage *local_client_bget(struct mdhim *md, TransportBGetMessa
  * @return return_message structure with ->error = MDHIM_SUCCESS or MDHIM_ERROR
  */
 TransportRecvMessage *local_client_commit(mdhim_t *md, TransportMessage *cm) {
-	work_item *item;
-	if ((item = (work_item*)malloc(sizeof(work_item))) == NULL) {
+ 	work_item *item = new work_item();
+
+	if (!item) {
 		mlog(MDHIM_CLIENT_CRIT, "Error while allocating memory for client");
-		return NULL;
+		return nullptr;
 	}
 
 	item->message = static_cast<void *>(cm);
-	item->source = (int) *md->p->transport->Endpoint()->Address();
+    item->address = md->p->transport->Endpoint()->Address();
+
 	if (range_server_add_work(md, item) != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
-		return NULL;
+		return nullptr;
 	}
 
-    return static_cast<TransportRecvMessage *>(get_msg_self(md));
+    return dynamic_cast<TransportRecvMessage *>(static_cast<TransportMessage *>(get_msg_self(md)));
 }
 
 // /**
@@ -185,7 +188,8 @@ TransportRecvMessage *local_client_commit(mdhim_t *md, TransportMessage *cm) {
 // 	}
 
 // 	item->message = (void *)dm;
-// 	item->source = (int) *md->p->transport->Endpoint()->Address();
+//  item->address = md->p->transport->Endpoint()->Address();
+
 // 	if ((ret = range_server_add_work(md, item)) != MDHIM_SUCCESS) {
 // 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
 // 		return NULL;
@@ -216,7 +220,8 @@ TransportRecvMessage *local_client_commit(mdhim_t *md, TransportMessage *cm) {
 // 	}
 
 // 	item->message = (void *)bdm;
-// 	item->source = (int) *md->p->transport->Endpoint()->Address();
+//  item->address = md->p->transport->Endpoint()->Address();
+
 // 	if ((ret = range_server_add_work(md, item)) != MDHIM_SUCCESS) {
 // 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
 // 		return NULL;
@@ -244,7 +249,8 @@ TransportRecvMessage *local_client_commit(mdhim_t *md, TransportMessage *cm) {
 // 	}
 
 // 	item->message = (void *)cm;
-// 	item->source = (int) *md->p->transport->Endpoint()->Address();
+//  item->address = md->p->transport->Endpoint()->Address();
+
 // 	if ((ret = range_server_add_work(md, item)) != MDHIM_SUCCESS) {
 // 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
 // 		return;

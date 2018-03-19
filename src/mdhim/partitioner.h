@@ -5,6 +5,7 @@
 
 #include "indexes.h"
 #include "mdhim_constants.h"
+#include "mdhim_struct.h"
 #include "transport.hpp"
 
 /* Used to determine if a rank is a range server
@@ -20,9 +21,6 @@
 extern "C"
 {
 #endif
-
-//Forward declare mdhim_t so mdhim.h is not needed
-typedef struct mdhim mdhim_t;
 
 //Used for hashing strings to the appropriate range server
 struct mdhim_char {

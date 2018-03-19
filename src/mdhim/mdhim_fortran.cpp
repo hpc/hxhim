@@ -16,6 +16,7 @@
 #include "mdhim_options.h"
 #include "indexes.h"
 #include "mdhim_private.h"
+#include "transport_private.hpp"
 
 /*! \mainpage MDHIM TNG
  *
@@ -55,16 +56,14 @@ void mdhimftput(void *key, int *key_size, void *val, int *val_size) {
 }
 
 void mdhimftget(void *key, int *key_size, void *val, int val_size) {
-   // struct mdhim_bgetrm_t *bgrm;
-
-   // printf("Key: %s\n", (char *)key);
-   // bgrm = mdhimGet(md, md->p->primary_index, key, *key_size, MDHIM_GET_EQ);
-   // if (!bgrm || bgrm->error) {
-   //   printf("Error getting value for key: %p from MDHIM\n", key);
-   // } else {
-   //   printf("Successfully got value from MDHIM\n");
-   //   memcpy(val, bgrm->values[0], bgrm->value_lens[0]);
-   // }
+   printf("Key: %s\n", (char *)key);
+   mdhim_bgetrm_t *bgrm = mdhimGet(md, md->p->primary_index, key, *key_size, TransportGetMessageOp::GET_EQ);
+   if (!bgrm || !bgrm->p || !bgrm->p->bgrm || bgrm->p->bgrm->error) {
+     printf("Error getting value for key: %p from MDHIM\n", key);
+   } else {
+     printf("Successfully got value from MDHIM\n");
+     memcpy(val, bgrm->p->bgrm->values[0], bgrm->p->bgrm->value_lens[0]);
+   }
 }
 
 void mdhimftoptions_dbpath (char *path) {

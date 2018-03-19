@@ -6,7 +6,7 @@
 #include <mpi.h>
 
 #include "transport.hpp"
-#include "MPITransportBase.hpp"
+#include "MPIEndpointBase.hpp"
 
 /**
  * MPIPack
@@ -20,17 +20,17 @@
 */
 class MPIUnpacker {
     public:
-        static int any   (const MPITransportBase *transportbase, TransportMessage         **msg,  const void *buf, const int bufsize);
+        static int any   (const MPIEndpointBase *endpointbase, TransportMessage         **msg,  const void *buf, const int bufsize);
 
-        static int unpack(const MPITransportBase *transportbase, TransportPutMessage      **pm,   const void *buf, const int bufsize);
-        static int unpack(const MPITransportBase *transportbase, TransportBPutMessage     **bpm,  const void *buf, const int bufsize);
-        static int unpack(const MPITransportBase *transportbase, TransportGetMessage      **gm,   const void *buf, const int bufsize);
-        static int unpack(const MPITransportBase *transportbase, TransportBGetMessage     **bgm,  const void *buf, const int bufsize);
-        static int unpack(const MPITransportBase *transportbase, TransportDeleteMessage   **dm,   const void *buf, const int bufsize);
-        static int unpack(const MPITransportBase *transportbase, TransportBDeleteMessage  **bdm,  const void *buf, const int bufsize);
-        static int unpack(const MPITransportBase *transportbase, TransportRecvMessage     **rm,   const void *buf, const int bufsize);
-        static int unpack(const MPITransportBase *transportbase, TransportBGetRecvMessage **bgrm, const void *buf, const int bufsize);
-        static int unpack(const MPITransportBase *transportbase, TransportBRecvMessage    **brm,  const void *buf, const int bufsize);
+        static int unpack(const MPIEndpointBase *endpointbase, TransportPutMessage      **pm,   const void *buf, const int bufsize);
+        static int unpack(const MPIEndpointBase *endpointbase, TransportBPutMessage     **bpm,  const void *buf, const int bufsize);
+        static int unpack(const MPIEndpointBase *endpointbase, TransportGetMessage      **gm,   const void *buf, const int bufsize);
+        static int unpack(const MPIEndpointBase *endpointbase, TransportBGetMessage     **bgm,  const void *buf, const int bufsize);
+        static int unpack(const MPIEndpointBase *endpointbase, TransportDeleteMessage   **dm,   const void *buf, const int bufsize);
+        static int unpack(const MPIEndpointBase *endpointbase, TransportBDeleteMessage  **bdm,  const void *buf, const int bufsize);
+        static int unpack(const MPIEndpointBase *endpointbase, TransportRecvMessage     **rm,   const void *buf, const int bufsize);
+        static int unpack(const MPIEndpointBase *endpointbase, TransportBGetRecvMessage **bgrm, const void *buf, const int bufsize);
+        static int unpack(const MPIEndpointBase *endpointbase, TransportBRecvMessage    **brm,  const void *buf, const int bufsize);
 
     private:
         /**
@@ -39,7 +39,7 @@ class MPIUnpacker {
          * This function is only called by MPIUnpacker::any
          * to extract the mtype from the packed buffer.
          */
-        static int unpack(const MPITransportBase *transportbase, TransportMessage         **msg,  const void *buf, const int bufsize);
+        static int unpack(const MPIEndpointBase *endpointbase, TransportMessage         **msg,  const void *buf, const int bufsize);
 
         /**
          * unpack TransportMessage *
@@ -47,7 +47,7 @@ class MPIUnpacker {
          * This function can only be called by the other functions.
          * It assumes that the message pointer is valid.
          */
-        static int unpack(const MPITransportBase *transportbase, TransportMessage         *msg,   const void *buf, const int bufsize, int *position);
+        static int unpack(const MPIEndpointBase *endpointbase, TransportMessage         *msg,   const void *buf, const int bufsize, int *position);
 };
 
 #endif

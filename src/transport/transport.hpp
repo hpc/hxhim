@@ -6,9 +6,11 @@
 #define HXHIM_TRANSPORT
 
 #include <cstdlib>
+#include <functional>
 #include <string>
 
 #include "mdhim_constants.h"
+#include "mdhim_struct.h"
 #include "transport_constants.h"
 
 /**
@@ -17,8 +19,12 @@
 class TransportAddress {
     public:
         TransportAddress() {}
-        TransportAddress(const TransportAddress& other) {}
+        TransportAddress(const TransportAddress& rhs) {}
         virtual ~TransportAddress() {};
+
+        bool operator==(const TransportAddress &rhs) {
+            return equals(rhs);
+        }
 
         /*
            Function for typecasting TransportAddresses
@@ -33,6 +39,9 @@ class TransportAddress {
           TODO: Remove this function once MPI is properly abstracted
          */
         virtual operator int() const = 0;
+
+    protected:
+        virtual bool equals(const TransportAddress &rhs) const = 0;
 };
 
 /**
@@ -267,7 +276,7 @@ class TransportEndpoint {
     protected:
         TransportEndpoint() {}
 
-        TransportEndpoint(const TransportEndpoint& other) {}
+        TransportEndpoint(const TransportEndpoint& rhs) {}
 };
 
 /**
@@ -295,7 +304,7 @@ class TransportEndpointGroup {
    protected:
         TransportEndpointGroup() {}
 
-        TransportEndpointGroup(const TransportEndpointGroup& other){}
+        TransportEndpointGroup(const TransportEndpointGroup& rhs){}
 };
 
 /**
@@ -325,5 +334,17 @@ class Transport {
         TransportEndpoint *endpoint_;
         TransportEndpointGroup *endpointgroup_;
 };
+
+/**
+ * function signature that will be used for
+ * acknowledging mdhim operations
+ */
+typedef std::function<int(Transport *, const TransportAddress *, TransportMessage *)> TransportResponseSender;
+
+/**
+ * function signature that will be used for
+ * receiving initial mdhim operation
+ */
+typedef std::function<int(Transport *, TransportAddress**, TransportMessage **)> TransportWorkReceiver;
 
 #endif //HXHIM_TRANSPORT

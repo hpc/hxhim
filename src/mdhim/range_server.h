@@ -7,7 +7,6 @@
 #include "transport.h"
 #include "indexes.h"
 #include "mdhim.h"
-#include "messages.h"
 #include "data_store.h"
 
 typedef struct work_item work_item_t;
@@ -16,7 +15,8 @@ struct work_item {
 	work_item_t *next;
 	work_item_t *prev;
 	void *message;
-	int source;
+
+    const TransportAddress *address;
 };
 
 typedef struct work_queue_t {
@@ -52,11 +52,11 @@ typedef struct mdhim_rs_t {
 	pthread_mutex_t *out_req_mutex;
 } mdhim_rs_t;
 
-int range_server_add_work(struct mdhim *md, work_item_t *item);
-int range_server_init(struct mdhim *md);
-int range_server_init_comm(struct mdhim *md);
-int range_server_stop(struct mdhim *md);
-int range_server_add_oreq(struct mdhim *md, MPI_Request *req, void *msg); //Add an outstanding request
-int range_server_clean_oreqs(struct mdhim *md); //Clean outstanding reqs
+int range_server_add_work(mdhim_t *md, work_item_t *item);
+int range_server_init(mdhim_t *md);
+int range_server_init_comm(mdhim_t *md);
+int range_server_stop(mdhim_t *md);
+int range_server_add_oreq(mdhim_t *md, MPI_Request *req, void *msg); //Add an outstanding request
+int range_server_clean_oreqs(mdhim_t *md); //Clean outstanding reqs
 
 #endif

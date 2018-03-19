@@ -87,7 +87,7 @@ int main(int argc, char *argv[]){
                                         (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
                                         GET_EQ);
         if (mdhim_bgrm_error(bgrm) != MDHIM_SUCCESS) {
-            mdhim_bgetrm_destroy(bgrm);
+            mdhim_bgrm_destroy(bgrm);
             cleanup(&md);
             return MDHIM_ERROR;
         }
@@ -95,7 +95,7 @@ int main(int argc, char *argv[]){
         // Extract the keys from the returned value (do not free)
         Key_t **keys = NULL;
         if (mdhim_bgrm_keys(bgrm, (void ***) &keys, NULL) != MDHIM_SUCCESS) {
-            mdhim_bgetrm_destroy(bgrm);
+            mdhim_bgrm_destroy(bgrm);
             cleanup(&md);
             return MDHIM_ERROR;
         }
@@ -103,7 +103,7 @@ int main(int argc, char *argv[]){
         // Extract the values from the returned value (do not free)
         Value_t **values = NULL;
         if (mdhim_bgrm_values(bgrm, (void ***) &values, NULL) != MDHIM_SUCCESS) {
-            mdhim_bgetrm_destroy(bgrm);
+            mdhim_bgrm_destroy(bgrm);
             cleanup(&md);
             return MDHIM_ERROR;
         }
@@ -111,7 +111,7 @@ int main(int argc, char *argv[]){
         //Print value gotten back
         printf("Rank %d got: %d -> %d\n", rank, **keys, **values);
 
-        mdhim_bgetrm_destroy(bgrm);
+        mdhim_bgrm_destroy(bgrm);
     }
 
     MPI_Barrier(MPI_COMM_WORLD);

@@ -18,8 +18,8 @@ int TransportMessage::size() const {
 }
 
 void TransportMessage::cleanup() {
-    // free(index_name);
-    // index_name = nullptr;
+    free(index_name);
+    index_name = nullptr;
 }
 
 TransportPutMessage::TransportPutMessage()
@@ -36,16 +36,16 @@ int TransportPutMessage::size() const {
 }
 
 void TransportPutMessage::cleanup() {
-    // TransportMessage::cleanup();
+    TransportMessage::cleanup();
 
-    // free(key);
-    // key = nullptr;
+    free(key);
+    key = nullptr;
 
-    // free(value);
-    // value = nullptr;
+    free(value);
+    value = nullptr;
 
-    // key_len = 0;
-    // value_len = 0;
+    key_len = 0;
+    value_len = 0;
 }
 
 TransportBPutMessage::TransportBPutMessage()
@@ -68,26 +68,26 @@ int TransportBPutMessage::size() const {
 }
 
 void TransportBPutMessage::cleanup() {
-    // TransportMessage::cleanup();
+    TransportMessage::cleanup();
 
-    // for(int i = 0; i < num_keys; i++) {
-    //     free(keys[i]);
-    //     free(values[i]);
-    // }
+    for(int i = 0; i < num_keys; i++) {
+        free(keys[i]);
+        free(values[i]);
+    }
 
-    // free(keys);
-    // keys = nullptr;
+    free(keys);
+    keys = nullptr;
 
-    // free(key_lens);
-    // key_lens = nullptr;
+    free(key_lens);
+    key_lens = nullptr;
 
-    // free(values);
-    // values = nullptr;
+    free(values);
+    values = nullptr;
 
-    // free(value_lens);
-    // value_lens = nullptr;
+    free(value_lens);
+    value_lens = nullptr;
 
-    // num_keys = 0;
+    num_keys = 0;
 }
 
 TransportGet::TransportGet()
@@ -111,12 +111,12 @@ int TransportGetMessage::size() const {
 }
 
 void TransportGetMessage::cleanup() {
-    // TransportMessage::cleanup();
+    TransportMessage::cleanup();
 
-    // free(key);
-    // key_len = 0;
+    free(key);
+    key_len = 0;
 
-    // num_keys = 0;
+    num_keys = 0;
 }
 
 TransportBGetMessage::TransportBGetMessage()
@@ -139,19 +139,19 @@ int TransportBGetMessage::size() const {
 }
 
 void TransportBGetMessage::cleanup() {
-    // TransportMessage::cleanup();
+    TransportMessage::cleanup();
 
-    // for(int i = 0; i < num_keys; i++) {
-    //     free(keys[i]);
-    // }
+    for(int i = 0; i < num_keys; i++) {
+        free(keys[i]);
+    }
 
-    // free(keys);
-    // keys = nullptr;
+    free(keys);
+    keys = nullptr;
 
-    // free(key_lens);
-    // key_lens = nullptr;
+    free(key_lens);
+    key_lens = nullptr;
 
-    // num_keys = 0;
+    num_keys = 0;
 }
 
 TransportDeleteMessage::TransportDeleteMessage()
@@ -167,11 +167,11 @@ int TransportDeleteMessage::size() const {
 }
 
 void TransportDeleteMessage::cleanup() {
-    // TransportMessage::cleanup();
-    // free(key);
-    // key = nullptr;
+    TransportMessage::cleanup();
+    free(key);
+    key = nullptr;
 
-    // key_len = 0;
+    key_len = 0;
 }
 
 TransportBDeleteMessage::TransportBDeleteMessage()
@@ -192,18 +192,18 @@ int TransportBDeleteMessage::size() const {
 }
 
 void TransportBDeleteMessage::cleanup() {
-    // TransportMessage::cleanup();
-    // for(int i = 0; i < num_keys; i++) {
-    //     free(keys[i]);
-    // }
+    TransportMessage::cleanup();
+    for(int i = 0; i < num_keys; i++) {
+        free(keys[i]);
+    }
 
-    // free(keys);
-    // keys = nullptr;
+    free(keys);
+    keys = nullptr;
 
-    // free(key_lens);
-    // key_lens = nullptr;
+    free(key_lens);
+    key_lens = nullptr;
 
-    // num_keys = 0;
+    num_keys = 0;
 }
 
 TransportRecvMessage::TransportRecvMessage()
@@ -220,7 +220,7 @@ int TransportRecvMessage::size() const {
 }
 
 void TransportRecvMessage::cleanup() {
-    // TransportMessage::cleanup();
+    TransportMessage::cleanup();
 }
 
 TransportBGetRecvMessage::TransportBGetRecvMessage()
@@ -244,34 +244,34 @@ int TransportBGetRecvMessage::size() const {
 }
 
 void TransportBGetRecvMessage::cleanup() {
-    // TransportMessage::cleanup();
+    TransportMessage::cleanup();
 
-    // for(int i = 0; i < num_keys; i++) {
-    //     if (keys) {
-    //         free(keys[i]);
-    //     }
+    for(int i = 0; i < num_keys; i++) {
+        if (keys) {
+            free(keys[i]);
+        }
 
-    //     if (values) {
-    //         free(values[i]);
-    //     }
-    // }
+        if (values) {
+            free(values[i]);
+        }
+    }
 
-    // free(keys);
-    // keys = nullptr;
+    free(keys);
+    keys = nullptr;
 
-    // free(values);
-    // values = nullptr;
+    free(values);
+    values = nullptr;
 
-    // free(key_lens);
-    // key_lens = nullptr;
+    free(key_lens);
+    key_lens = nullptr;
 
-    // free(value_lens);
-    // value_lens = nullptr;
+    free(value_lens);
+    value_lens = nullptr;
 
-    // delete next;
-    // next = nullptr;
+    delete next;
+    next = nullptr;
 
-    // num_keys = 0;
+    num_keys = 0;
 }
 
 TransportBRecvMessage::TransportBRecvMessage()
@@ -288,8 +288,8 @@ int TransportBRecvMessage::size() const {
 }
 
 void TransportBRecvMessage::cleanup() {
-    // TransportMessage::cleanup();
+    TransportMessage::cleanup();
 
-    // delete next;
-    // next = nullptr;
+    delete next;
+    next = nullptr;
 }

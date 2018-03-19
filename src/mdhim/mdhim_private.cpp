@@ -1,5 +1,4 @@
 #include <cstdlib>
-#include <iostream>
 
 #include "client.h"
 #include "indexes.h"
@@ -9,7 +8,11 @@
 #include "transport_mpi.hpp"
 
 int mdhim_private_init(mdhim_private* mdp, int dstype, int commtype) {
-    int rc = 0;
+    int rc = MDHIM_ERROR;
+    if (!mdp) {
+        goto err_out;
+    }
+
     if (dstype == MDHIM_DS_LEVELDB) {
         rc = MDHIM_SUCCESS;
     }
@@ -23,6 +26,8 @@ int mdhim_private_init(mdhim_private* mdp, int dstype, int commtype) {
         MPIEndpoint *ep = new MPIEndpoint(MPIInstance::instance().Comm(), mdp->shutdown);
         MPIEndpointGroup *eg = new MPIEndpointGroup(MPIInstance::instance().Comm(), mdp->shutdown);
         mdp->transport = new Transport(ep, eg);
+        mdp->work_receiver = MPIEndpointBase::listen_for_client;
+        mdp->response_sender = MPIEndpointBase::respond_to_client;
         rc = MDHIM_SUCCESS;
         goto err_out;
     }
@@ -242,7 +247,6 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
         delete bpm_list[i];
     }
 
-    // free(bpm_list);
     delete [] bpm_list;
 
     //Return the head of the list

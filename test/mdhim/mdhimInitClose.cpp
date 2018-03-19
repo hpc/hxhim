@@ -5,8 +5,10 @@
 #include <gtest/gtest.h>
 #include <mpi.h>
 
-#include "mdhim.h"
+#include "MPIEndpoint.hpp"
 #include "fill_db_opts.h"
+#include "mdhim.h"
+#include "mdhim_private.h"       // needed for access to the endpoint
 
 // Normal usage
 TEST(mdhimInitClose, Good) {
@@ -16,6 +18,7 @@ TEST(mdhimInitClose, Good) {
     fill_db_opts(opts);
 
     EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
+    EXPECT_EQ(MPI_Barrier(dynamic_cast<MPIEndpoint *>(md.p->transport->Endpoint())->Comm()), MPI_SUCCESS);
     EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
 }
 

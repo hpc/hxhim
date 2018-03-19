@@ -17,24 +17,13 @@
 #include "indexes.h"
 #include "mdhim_constants.h"
 #include "mdhim_options.h"
+#include "mdhim_struct.h"
 #include "transport.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-/**
- * Struct that contains the private details about MDHim's implementation
- */
-typedef struct mdhim_private mdhim_private_t;
-
-/*
- * mdhim data
- * Contains an opaque pointer to the actual implementation
- */
-typedef struct mdhim {
-    mdhim_private_t *p;
-} mdhim_t;
 
 typedef struct secondary_info {
     struct index *secondary_index;

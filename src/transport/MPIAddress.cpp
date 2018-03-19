@@ -1,7 +1,7 @@
 #include "MPIAddress.hpp"
 
 MPIAddress::MPIAddress(const int rank)
-    : rank_(rank)
+  : rank_(rank)
 {}
 
 MPIAddress::operator std::string() const {
@@ -20,4 +20,9 @@ int MPIAddress::SetRank(const int rank) {
 
 int MPIAddress::Rank() const {
     return rank_;
+}
+
+bool MPIAddress::equals(const TransportAddress &rhs) const {
+    const MPIAddress *mpirhs = dynamic_cast<const MPIAddress *>(&rhs);
+    return mpirhs?(rank_ == mpirhs->rank_):false;
 }

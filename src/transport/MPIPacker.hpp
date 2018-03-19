@@ -6,7 +6,7 @@
 #include <mpi.h>
 
 #include "transport.hpp"
-#include "MPITransportBase.hpp"
+#include "MPIEndpointBase.hpp"
 
 /**
  * MPIPacker
@@ -20,17 +20,17 @@
 */
 class MPIPacker {
     public:
-        static int any (const MPITransportBase *transportbase, const TransportMessage         *msg,  void **buf, int *bufsize);
+        static int any (const MPIEndpointBase *endpointbase, const TransportMessage         *msg,  void **buf, int *bufsize);
 
-        static int pack(const MPITransportBase *transportbase, const TransportPutMessage      *pm,   void **buf, int *bufsize);
-        static int pack(const MPITransportBase *transportbase, const TransportBPutMessage     *bpm,  void **buf, int *bufsize);
-        static int pack(const MPITransportBase *transportbase, const TransportGetMessage      *gm,   void **buf, int *bufsize);
-        static int pack(const MPITransportBase *transportbase, const TransportBGetMessage     *bgm,  void **buf, int *bufsize);
-        static int pack(const MPITransportBase *transportbase, const TransportDeleteMessage   *dm,   void **buf, int *bufsize);
-        static int pack(const MPITransportBase *transportbase, const TransportBDeleteMessage  *bdm,  void **buf, int *bufsize);
-        static int pack(const MPITransportBase *transportbase, const TransportRecvMessage     *rm,   void **buf, int *bufsize);
-        static int pack(const MPITransportBase *transportbase, const TransportBGetRecvMessage *bgrm, void **buf, int *bufsize);
-        static int pack(const MPITransportBase *transportbase, const TransportBRecvMessage    *brm,  void **buf, int *bufsize);
+        static int pack(const MPIEndpointBase *endpointbase, const TransportPutMessage      *pm,   void **buf, int *bufsize);
+        static int pack(const MPIEndpointBase *endpointbase, const TransportBPutMessage     *bpm,  void **buf, int *bufsize);
+        static int pack(const MPIEndpointBase *endpointbase, const TransportGetMessage      *gm,   void **buf, int *bufsize);
+        static int pack(const MPIEndpointBase *endpointbase, const TransportBGetMessage     *bgm,  void **buf, int *bufsize);
+        static int pack(const MPIEndpointBase *endpointbase, const TransportDeleteMessage   *dm,   void **buf, int *bufsize);
+        static int pack(const MPIEndpointBase *endpointbase, const TransportBDeleteMessage  *bdm,  void **buf, int *bufsize);
+        static int pack(const MPIEndpointBase *endpointbase, const TransportRecvMessage     *rm,   void **buf, int *bufsize);
+        static int pack(const MPIEndpointBase *endpointbase, const TransportBGetRecvMessage *bgrm, void **buf, int *bufsize);
+        static int pack(const MPIEndpointBase *endpointbase, const TransportBRecvMessage    *brm,  void **buf, int *bufsize);
 
     private:
         /**
@@ -38,7 +38,7 @@ class MPIPacker {
          * Common to all public functions
          * *bufsize should already have been determined when calling this function
          */
-        static int pack(const MPITransportBase *transportbase, const TransportMessage         *msg,  void **buf, int *bufsize, int *position);
+        static int pack(const MPIEndpointBase *endpointbase, const TransportMessage         *msg,  void **buf, int *bufsize, int *position);
         static void cleanup(void **buf, int *bufsize);
 };
 

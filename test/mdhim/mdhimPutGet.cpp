@@ -1,10 +1,11 @@
 #include <gtest/gtest.h>
 #include <mpi.h>
 
+#include "MPIEndpoint.hpp"
+#include "fill_db_opts.h"
 #include "mdhim.h"
 #include "mdhim_private.h"       // needed to access private mdhim members for testing
 #include "transport_private.hpp" // needed to access private return values for testing
-#include "fill_db_opts.h"
 
 //Constants used across all mdhimPutGet tests
 typedef int Key_t;
@@ -52,8 +53,10 @@ TEST(mdhimPutGet, no_secondary) {
         EXPECT_EQ(*(Key_t *) *bgrm->p->bgrm->keys, MDHIM_PUT_GET_PRIMARY_KEY);
         EXPECT_EQ(*(Value_t *) *bgrm->p->bgrm->values, MDHIM_PUT_GET_VALUE);
 
-        mdhim_brm_destroy(brm);
+        mdhim_bgrm_destroy(bgrm);
     }
+
+    EXPECT_EQ(MPI_Barrier(dynamic_cast<MPIEndpoint *>(md.p->transport->Endpoint())->Comm()), MPI_SUCCESS);
 
     EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
 }
@@ -127,11 +130,13 @@ TEST(mdhimPutGet, secondary_global) {
         EXPECT_EQ(*(Key_t *) *bgrm->p->bgrm->keys, MDHIM_PUT_GET_PRIMARY_KEY);
         EXPECT_EQ(*(Value_t *) *bgrm->p->bgrm->values, MDHIM_PUT_GET_VALUE);
 
-        mdhim_bgetrm_destroy(bgrm);
+        mdhim_bgrm_destroy(bgrm);
     }
 
-    mdhim_bgetrm_destroy(sg_ret);
+    mdhim_bgrm_destroy(sg_ret);
     free(sg_info);
+
+    EXPECT_EQ(MPI_Barrier(dynamic_cast<MPIEndpoint *>(md.p->transport->Endpoint())->Comm()), MPI_SUCCESS);
 
     EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
 }
@@ -208,11 +213,13 @@ TEST(mdhimPutGet, secondary_local) {
         EXPECT_EQ(*(slk_t *) *bgrm->p->bgrm->keys, MDHIM_PUT_GET_PRIMARY_KEY);
         EXPECT_EQ(*(Key_t *) *bgrm->p->bgrm->values, MDHIM_PUT_GET_VALUE);
 
-        mdhim_bgetrm_destroy(bgrm);
+        mdhim_bgrm_destroy(bgrm);
     }
 
-    mdhim_bgetrm_destroy(sl_ret);
+    mdhim_bgrm_destroy(sl_ret);
     free(sl_info);
+
+    EXPECT_EQ(MPI_Barrier(dynamic_cast<MPIEndpoint *>(md.p->transport->Endpoint())->Comm()), MPI_SUCCESS);
 
     EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
 }
@@ -285,7 +292,7 @@ TEST(mdhimPutGet, secondary_global_and_local) {
         EXPECT_EQ(*(Key_t *) *bgrm->p->bgrm->keys, MDHIM_PUT_GET_PRIMARY_KEY);
         EXPECT_EQ(*(Value_t *) *bgrm->p->bgrm->values, MDHIM_PUT_GET_VALUE);
 
-        mdhim_bgetrm_destroy(bgrm);
+        mdhim_bgrm_destroy(bgrm);
     }
 
     // secondary global index
@@ -320,10 +327,10 @@ TEST(mdhimPutGet, secondary_global_and_local) {
             EXPECT_EQ(*(Key_t *) *bgrm->p->bgrm->keys, MDHIM_PUT_GET_PRIMARY_KEY);
             EXPECT_EQ(*(Value_t *) *bgrm->p->bgrm->values, MDHIM_PUT_GET_VALUE);
 
-            mdhim_bgetrm_destroy(bgrm);
+            mdhim_bgrm_destroy(bgrm);
         }
 
-        mdhim_bgetrm_destroy(sg_ret);
+        mdhim_bgrm_destroy(sg_ret);
         free(sg_info);
     }
 
@@ -363,12 +370,14 @@ TEST(mdhimPutGet, secondary_global_and_local) {
             EXPECT_EQ(*(Key_t *) *bgrm->p->bgrm->keys, MDHIM_PUT_GET_PRIMARY_KEY);
             EXPECT_EQ(*(Value_t *) *bgrm->p->bgrm->values, MDHIM_PUT_GET_VALUE);
 
-            mdhim_bgetrm_destroy(bgrm);
+            mdhim_bgrm_destroy(bgrm);
         }
 
-        mdhim_bgetrm_destroy(sl_ret);
+        mdhim_bgrm_destroy(sl_ret);
         free(sl_info);
     }
+
+    EXPECT_EQ(MPI_Barrier(dynamic_cast<MPIEndpoint *>(md.p->transport->Endpoint())->Comm()), MPI_SUCCESS);
 
     EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
 }

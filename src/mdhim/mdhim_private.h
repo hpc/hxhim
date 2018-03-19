@@ -1,24 +1,32 @@
 #ifndef MDHIM_PRIVATE_H
 #define MDHIM_PRIVATE_H
 
+#include <functional>
+
 #include "mdhim.h"
 #include "range_server.h"
-#include "transport.h"
+#include "transport.hpp"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
+
 /**
  * Struct that contains the private details about MDHim's implementation
  */
-
 typedef struct mdhim_private {
 	//This communicator will include every process in the application, but is separate from main the app
     //It is used for sending and receiving to and from the range servers
     Transport *transport;
 	MPI_Comm mdhim_comm;
 	pthread_mutex_t mdhim_comm_lock;
+
+    // function called in the listener thread to receive data
+    TransportWorkReceiver work_receiver;
+
+    // function called by the worker thread after processing the received data
+    TransportResponseSender response_sender;
 
 	//This communicator will include every process in the application, but is separate from the app
     //It is used for barriers for clients

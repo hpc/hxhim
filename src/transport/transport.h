@@ -77,16 +77,15 @@ typedef struct mdhim_brm {
  * they do not have access to the initialization
  * functions.
 */
-void mdhim_putm_destroy(mdhim_putm_t *pm);
-void mdhim_bputm_destroy(mdhim_bputm_t *bpm);
-void mdhim_getm_destroy(mdhim_getm_t *gm);
-void mdhim_bgetm_destroy(mdhim_bgetm_t *bgm);
+void mdhim_pm_destroy(mdhim_putm_t *pm);
+void mdhim_bpm_destroy(mdhim_bputm_t *bpm);
+void mdhim_gm_destroy(mdhim_getm_t *gm);
+void mdhim_bgm_destroy(mdhim_bgetm_t *bgm);
 void mdhim_delm_destroy(mdhim_delm_t *dm);
 void mdhim_bdelm_destroy(mdhim_bdelm_t *bdm);
 void mdhim_rm_destroy(mdhim_rm_t *rm);
-void mdhim_bgetrm_destroy(mdhim_bgetrm_t *bgrm);
+void mdhim_bgrm_destroy(mdhim_bgetrm_t *bgrm);
 void mdhim_brm_destroy(mdhim_brm_t *brm);
-
 
 /**
  * Accessor functions for the structs

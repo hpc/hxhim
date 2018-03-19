@@ -8,7 +8,7 @@
 #include "mdhim_constants.h"
 #include "transport.hpp"
 #include "MPIAddress.hpp"
-#include "MPITransportBase.hpp"
+#include "MPIEndpointBase.hpp"
 #include "MPIPacker.hpp"
 #include "MPIUnpacker.hpp"
 
@@ -16,7 +16,7 @@
  * MPIEndpointGroup
  * Collective communication endpoint implemented with MPI
 */
-class MPIEndpointGroup : virtual public TransportEndpointGroup, virtual public MPITransportBase {
+class MPIEndpointGroup : virtual public TransportEndpointGroup, virtual public MPIEndpointBase {
     public:
         MPIEndpointGroup(MPI_Comm comm, volatile int &shutdown);
         ~MPIEndpointGroup();

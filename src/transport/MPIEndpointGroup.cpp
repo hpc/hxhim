@@ -2,7 +2,7 @@
 
 MPIEndpointGroup::MPIEndpointGroup(MPI_Comm comm, volatile int &shutdown)
   : TransportEndpointGroup(),
-    MPITransportBase(comm, shutdown),
+    MPIEndpointBase(comm, shutdown),
     address_(rank_)
 {}
 

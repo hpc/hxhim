@@ -24,6 +24,7 @@ class MPIAddress: virtual public TransportAddress {
         int Rank() const;
 
     private:
+        bool equals(const TransportAddress &rhs) const;
         int rank_;
 };
 

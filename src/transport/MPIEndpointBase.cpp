@@ -1,8 +1,11 @@
-#include "MPITransportBase.hpp"
+#include "MPIEndpointBase.hpp"
+#include "MPIPacker.hpp"
+#include "MPIUnpacker.hpp"
+#include "MPIEndpoint.hpp"
 
-pthread_mutex_t MPITransportBase::mutex_ = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t MPIEndpointBase::mutex_ = PTHREAD_MUTEX_INITIALIZER;
 
-MPITransportBase::MPITransportBase(const MPI_Comm comm, volatile int &shutdown)
+MPIEndpointBase::MPIEndpointBase(const MPI_Comm comm, volatile int &shutdown)
     : comm_(comm),
       shutdown_(shutdown)
 {
@@ -19,17 +22,17 @@ MPITransportBase::MPITransportBase(const MPI_Comm comm, volatile int &shutdown)
     }
 }
 
-MPITransportBase::~MPITransportBase() {}
+MPIEndpointBase::~MPIEndpointBase() {}
 
-MPI_Comm MPITransportBase::Comm() const {
+MPI_Comm MPIEndpointBase::Comm() const {
     return comm_;
 }
 
-int MPITransportBase::Rank() const {
+int MPIEndpointBase::Rank() const {
     return rank_;
 }
 
-int MPITransportBase::Size() const {
+int MPIEndpointBase::Size() const {
     return size_;
 }
 
@@ -42,7 +45,7 @@ int MPITransportBase::Size() const {
  * @param size    size of data to be sent to dest
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int MPITransportBase::send_rangesrv_work(int dest, const void *buf, const int size) {
+int MPIEndpointBase::send_rangesrv_work(int dest, const void *buf, const int size) {
     int return_code = MDHIM_ERROR;
     MPI_Request req;
 
@@ -84,7 +87,7 @@ int MPITransportBase::send_rangesrv_work(int dest, const void *buf, const int si
  * @param num_srvs number of different servers
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int MPITransportBase::send_all_rangesrv_work(void **messages, int *sizes, int *dests, int num_srvs) {
+int MPIEndpointBase::send_all_rangesrv_work(void **messages, int *sizes, int *dests, int num_srvs) {
     int return_code = MDHIM_ERROR;
     MPI_Request **size_reqs = new MPI_Request*[num_srvs]();
     MPI_Request **reqs = new MPI_Request*[num_srvs]();
@@ -177,54 +180,6 @@ int MPITransportBase::send_all_rangesrv_work(void **messages, int *sizes, int *d
 }
 
 /**
- * send_client_response
- * Sends a buffer to a client
- *
- * @param dest    destination to send to
- * @param sendbuf double pointer to packed message
- * @return MDHIM_SUCCESS or MDHIM_ERROR on error
- */
-int MPITransportBase::send_client_response(int dest, int *sizebuf, void **sendbuf, MPI_Request **size_req, MPI_Request **msg_req) {
-    int return_code = 0;
-    int mtype;
-    int ret = MDHIM_SUCCESS;
-
-    //Send the size message
-    *size_req = (MPI_Request*)malloc(sizeof(MPI_Request));
-
-    pthread_mutex_lock(&mutex_);
-    return_code = MPI_Isend(sizebuf, sizeof(*sizebuf), MPI_CHAR, dest, CLIENT_RESPONSE_SIZE_MSG, comm_, *size_req);
-    pthread_mutex_unlock(&mutex_);
-
-    if (return_code != MPI_SUCCESS) {
-        mlog(MPI_CRIT, "Rank %d - "
-             "Error sending client response message size in send_client_response",
-             rank_);
-        ret = MDHIM_ERROR;
-        free(*size_req);
-        *size_req = nullptr;
-    }
-
-    *msg_req = (MPI_Request*)malloc(sizeof(MPI_Request));
-    //Send the actual message
-
-    pthread_mutex_lock(&mutex_);
-    return_code = MPI_Isend(*sendbuf, *sizebuf, MPI_PACKED, dest, CLIENT_RESPONSE_MSG, comm_, *msg_req);
-    pthread_mutex_unlock(&mutex_);
-
-    if (return_code != MPI_SUCCESS) {
-        mlog(MPI_CRIT, "Rank %d - "
-             "Error sending client response message in send_client_response",
-             rank_);
-        ret = MDHIM_ERROR;
-        free(*msg_req);
-        *msg_req = nullptr;
-    }
-
-    return ret;
-}
-
-/**
  * receive_client_response message
  * Receives a message from the given source
  *
@@ -233,7 +188,7 @@ int MPITransportBase::send_client_response(int dest, int *sizebuf, void **sendbu
  * @param message out  double pointer for message received
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int MPITransportBase::receive_client_response(int src, void **recvbuf, int *recvsize) {
+int MPIEndpointBase::receive_client_response(int src, void **recvbuf, int *recvsize) {
     int return_code;
     MPI_Request req;
 
@@ -286,7 +241,7 @@ int MPITransportBase::receive_client_response(int src, void **recvbuf, int *recv
  * @param messages out  array of messages to receive
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int MPITransportBase::receive_all_client_responses(int *srcs, int nsrcs, void ***recvbufs, int **sizebuf) {
+int MPIEndpointBase::receive_all_client_responses(int *srcs, int nsrcs, void ***recvbufs, int **sizebuf) {
     MPI_Status status;
     int return_code;
     int mtype;
@@ -333,7 +288,7 @@ int MPITransportBase::receive_all_client_responses(int *srcs, int nsrcs, void **
                      " while receiving client response message size", rank_, status.MPI_ERROR);
             }
             if (!flag) {
-              continue;
+                continue;
             }
             delete reqs[i];
             reqs[i] = nullptr;
@@ -383,7 +338,7 @@ int MPITransportBase::receive_all_client_responses(int *srcs, int nsrcs, void **
                      " while receiving work message size", rank_, status.MPI_ERROR);
             }
             if (!flag) {
-              continue;
+                continue;
             }
             delete reqs[i];
             reqs[i] = nullptr;
@@ -400,21 +355,250 @@ int MPITransportBase::receive_all_client_responses(int *srcs, int nsrcs, void **
     return ret;
 }
 
-void MPITransportBase::Flush(MPI_Request *req) {
-    if (!req) {
+/**
+ * respond_to_client
+ * Function called by the range server to send responses to clients
+ *
+ * @param transport the underlying networking functionality
+ * @param dest      the destination of the message within the transport
+ * @param message   the data to send to the destination
+ * @return MDHIM_SUCCESS or MDHIM_ERROR on error
+ */
+int MPIEndpointBase::respond_to_client(Transport *transport, const TransportAddress *dest, TransportMessage *message) {
+    if (!transport || !dest || !message) {
+        return MDHIM_ERROR;
+    }
+
+    MPIEndpointBase *mpiepb = dynamic_cast<MPIEndpointBase *>(dynamic_cast<MPIEndpoint *>(transport->Endpoint()));
+    if (!mpiepb) {
+        return MDHIM_ERROR;
+    }
+
+    const MPIAddress *mpidest = dynamic_cast<const MPIAddress *>(dest);
+    if (!mpidest) {
+        return MDHIM_ERROR;
+    }
+
+    return send_client_response(mpiepb, mpidest->Rank(), message);
+}
+
+/**
+ * listen_for_client
+ * Function called by the range server listener to receive messages for processing
+ *
+ * @param transport the underlying networking functionality
+ * @param src       where the message originated from
+ * @param message   the data received
+ * @return MDHIM_SUCCESS or MDHIM_ERROR on error
+ */
+int MPIEndpointBase::listen_for_client(Transport *transport, TransportAddress **src, TransportMessage **message) {
+    if (!transport || !src || !message) {
+        return MDHIM_ERROR;
+    }
+
+    MPIEndpointBase *mpiepb = dynamic_cast<MPIEndpointBase *>(dynamic_cast<MPIEndpoint *>(transport->Endpoint()));
+    if (!mpiepb) {
+        return MDHIM_ERROR;
+    }
+
+    int mpisrc;
+    if ((receive_rangesrv_work(mpiepb, &mpisrc, message) != MDHIM_SUCCESS) ||
+        !(*src = new MPIAddress(mpisrc))) {
+        delete *message;
+        *message = nullptr;
+        return MDHIM_ERROR;
+    }
+
+    return MDHIM_SUCCESS;
+}
+
+void MPIEndpointBase::Flush(MPIEndpointBase *epb, MPI_Request *req, int *flag, MPI_Status *status) {
+    if (!epb || !req || !flag || !status) {
         return;
     }
 
+    while (!*flag && !epb->shutdown_) {
+        usleep(100);
+
+        pthread_mutex_lock(&epb->mutex_);
+        MPI_Test(req, flag, status);
+        pthread_mutex_unlock(&epb->mutex_);
+    }
+}
+
+void MPIEndpointBase::Flush(MPI_Request *req) {
     int flag = 0;
     MPI_Status status;
 
-    while (!flag) {
-        pthread_mutex_lock(&mutex_);
-        MPI_Test(req, &flag, &status);
-        pthread_mutex_unlock(&mutex_);
+    Flush(this, req, &flag, &status);
+}
 
-        if (!flag) {
-            usleep(100);
-        }
+/**
+ * only_send_client_response
+ * Sends a buffer to a client
+ *
+ * @param md      main MDHIM struct
+ * @param dest    destination to send to
+ * @param sendbuf double pointer to packed message
+ * @return MDHIM_SUCCESS or MDHIM_ERROR on error
+ */
+int MPIEndpointBase::only_send_client_response(MPIEndpointBase *epb, int dest, void *sendbuf, int sizebuf) {
+    if (!epb || !sendbuf) {
+        return MDHIM_ERROR;
     }
+
+    int return_code = 0;
+    int mtype;
+    int ret = MDHIM_SUCCESS;
+
+    MPI_Status status;
+    int flag = 0;
+    MPI_Request size_req;
+    MPI_Request msg_req;
+
+    //Send the size message
+    pthread_mutex_lock(&epb->mutex_);
+    return_code = MPI_Isend(&sizebuf, sizeof(sizebuf), MPI_CHAR, dest, CLIENT_RESPONSE_SIZE_MSG, epb->comm_, &size_req);
+    pthread_mutex_unlock(&epb->mutex_);
+
+    if (return_code != MPI_SUCCESS) {
+        mlog(MPI_CRIT, "Rank %d - "
+             "Error sending client response message size in send_client_response",
+             epb->rank_);
+        ret = MDHIM_ERROR;
+    }
+    Flush(epb, &size_req, &flag, &status);
+
+    //Send the actual message
+    pthread_mutex_lock(&epb->mutex_);
+    return_code = MPI_Isend(sendbuf, sizebuf, MPI_PACKED, dest, CLIENT_RESPONSE_MSG, epb->comm_, &msg_req);
+    pthread_mutex_unlock(&epb->mutex_);
+
+    if (return_code != MPI_SUCCESS) {
+        mlog(MPI_CRIT, "Rank %d - "
+             "Error sending client response message in send_client_response",
+             epb->rank_);
+        ret = MDHIM_ERROR;
+    }
+
+    Flush(epb, &msg_req, &flag, &status);
+
+    return ret;
+}
+
+/**
+ * send_client_response
+ * Sends a message to a client
+ *
+ * @param md      main MDHIM struct
+ * @param dest    destination to send to
+ * @param message pointer to message to send
+ * @param sendbuf double pointer to packed message
+ * @return MDHIM_SUCCESS or MDHIM_ERROR on error
+ */
+int MPIEndpointBase::send_client_response(MPIEndpointBase *epb, int dest, TransportMessage *message) {
+    int ret = MDHIM_ERROR;
+    void *sendbuf = nullptr;
+    int sizebuf = 0;
+
+    if ((ret = MPIPacker::any(epb, message, &sendbuf, &sizebuf)) == MDHIM_SUCCESS) {
+        ret = only_send_client_response(epb, dest, sendbuf, sizebuf);
+    }
+
+    ::operator delete(sendbuf);
+
+    return ret;
+}
+
+/**
+ * only_receive_rangesrv_work message
+ * Receives a message (octet buf) from the given source
+ *
+ * @param md       in   main MDHIM struct
+ * @param src      out  pointer to source of message received
+ * @param recvbuf  out  double pointer for message received
+ * @param recvsize out  pointer for the size of the message received
+ * @return MDHIM_SUCCESS, MDHIM_CLOSE, MDHIM_COMMIT, or MDHIM_ERROR on error
+ */
+int MPIEndpointBase::only_receive_rangesrv_work(MPIEndpointBase *epb, int *src, void **recvbuf, int *recvsize) {
+    if (!epb || !src || !recvbuf || !recvsize) {
+        return MDHIM_ERROR;
+    }
+
+    int return_code;
+    MPI_Status status;
+    MPI_Request req;
+    int flag = 0;
+    int ret = MDHIM_SUCCESS;
+
+    // force the srouce rank to be bad
+    status.MPI_SOURCE = -1;
+
+    // Receive a message size from any client
+    pthread_mutex_lock(&epb->mutex_);
+    return_code = MPI_Irecv(recvsize, sizeof(*recvsize), MPI_CHAR, MPI_ANY_SOURCE, RANGESRV_WORK_SIZE_MSG, epb->comm_, &req);
+    pthread_mutex_unlock(&epb->mutex_);
+
+    // If the receive did not succeed then return the error code back
+    if ( return_code != MPI_SUCCESS ) {
+        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - Error: %d "
+             "receive size message failed.", epb->rank_, return_code);
+        return MDHIM_ERROR;
+    }
+    Flush(epb, &req, &flag, &status);
+
+    if (return_code == MPI_ERR_IN_STATUS) {
+        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - Received an error status: %d "
+             " while receiving work message size", epb->rank_, status.MPI_ERROR);
+    }
+
+    *recvbuf = (char *)calloc(*recvsize, sizeof(char));
+    flag = 0;
+
+    // Receive the message from the client
+    pthread_mutex_lock(&epb->mutex_);
+    return_code = MPI_Irecv((void *)*recvbuf, *recvsize, MPI_PACKED, status.MPI_SOURCE, RANGESRV_WORK_MSG, epb->comm_, &req);
+    pthread_mutex_unlock(&epb->mutex_);
+
+    // If the receive did not succeed then return the error code back
+    if ( return_code != MPI_SUCCESS ) {
+        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - Error: %d "
+             "receive message failed.", epb->rank_, return_code);
+        return MDHIM_ERROR;
+    }
+    Flush(epb, &req, &flag, &status);
+
+    if (return_code == MPI_ERR_IN_STATUS) {
+        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - Received an error status: %d "
+             " while receiving work message", epb->rank_, status.MPI_ERROR);
+    }
+    if (!*recvbuf) {
+        return MDHIM_ERROR;
+    }
+
+    *src = status.MPI_SOURCE;
+
+    return ret;
+}
+
+/**
+ * receive_rangesrv_work message
+ * Receives a message from the given source
+ *
+ * @param md      in   main MDHIM struct
+ * @param src     out  pointer to source of message received
+ * @param message out  double pointer for message received
+ * @return MDHIM_SUCCESS, MDHIM_CLOSE, MDHIM_COMMIT, or MDHIM_ERROR on error
+ */
+int MPIEndpointBase::receive_rangesrv_work(MPIEndpointBase *epb, int *src, TransportMessage **message) {
+    void *recvbuf = nullptr;
+    int recvsize = 0;
+
+    int ret = MDHIM_ERROR;
+    if ((ret = only_receive_rangesrv_work(epb, src, &recvbuf, &recvsize)) == MDHIM_SUCCESS) {
+        ret = MPIUnpacker::any(epb, message, recvbuf, recvsize);
+    }
+
+    free(recvbuf);
+    return ret;
 }

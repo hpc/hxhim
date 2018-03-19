@@ -1,8 +1,6 @@
 #ifndef HXHIM_TRANSPORT_MPI_ENDPOINT
 #define HXHIM_TRANSPORT_MPI_ENDPOINT
 
-#include <iostream>
-
 #include "mlog2.h"
 #include "mlogfacs2.h"
 #include <mpi.h>
@@ -10,7 +8,7 @@
 #include "mdhim_constants.h"
 #include "transport.hpp"
 #include "MPIAddress.hpp"
-#include "MPITransportBase.hpp"
+#include "MPIEndpointBase.hpp"
 #include "MPIPacker.hpp"
 #include "MPIUnpacker.hpp"
 
@@ -18,7 +16,7 @@
  * MPIEndpoint
  * Point-to-Point communication endpoint implemented with MPI
  */
-class MPIEndpoint : virtual public TransportEndpoint, virtual public MPITransportBase {
+class MPIEndpoint : virtual public TransportEndpoint, virtual public MPIEndpointBase {
     public:
         /** Create a TransportEndpoint for a specified process rank */
         MPIEndpoint(MPI_Comm comm, volatile int &shutdown);

@@ -5,7 +5,6 @@
  */
 
 #include <memory>
-#include <iostream>
 #include <stdlib.h>
 #include <sys/time.h>
 #include <stdio.h>
@@ -246,7 +245,6 @@ int mdhimCommit(struct mdhim *md, struct index *index) {
         index = md->p->primary_index;
     }
 
-    // MPI_Barrier(md->p->mdhim_client_comm);
     //If I'm a range server, send a commit message to myself
     if (im_range_server(index)) {
         TransportRecvMessage *cm = new TransportRecvMessage();
@@ -261,12 +259,8 @@ int mdhimCommit(struct mdhim *md, struct index *index) {
                  ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
         }
 
-        if (rm) {
-            delete rm;
-        }
+        delete rm;
     }
-
-    // MPI_Barrier(md->p->mdhim_client_comm);
 
     return ret;
 }
@@ -284,19 +278,30 @@ int mdhimCommit(struct mdhim *md, struct index *index) {
  * @return                   mdhim_brm_t * or NULL on error
  */
 mdhim_brm_t *mdhimPut(struct mdhim *md,
-                                void *primary_key, int primary_key_len,
-                                void *value, int value_len,
-                                secondary_info_t *secondary_global_info,
-                                secondary_info_t *secondary_local_info) {
-
+                      void *primary_key, int primary_key_len,
+                      void *value, int value_len,
+                      secondary_info_t *secondary_global_info,
+                      secondary_info_t *secondary_local_info) {
     if (!md ||
         !primary_key || !primary_key_len ||
         !value || !value_len) {
         return nullptr;
     }
 
+    // Clone primary key and value
+    void *pk = malloc(primary_key_len);
+    void *val = malloc(value_len);
+    if (!pk || !val) {
+        free(pk);
+        free(val);
+        return nullptr;
+    }
+
+    memcpy(pk, primary_key, primary_key_len);
+    memcpy(val, value, value_len);
+
     //Send the primary key and value
-    TransportRecvMessage *rm = _put_record(md, md->p->primary_index, primary_key, primary_key_len, value, value_len);
+    TransportRecvMessage *rm = _put_record(md, md->p->primary_index, pk, primary_key_len, val, value_len);
     if (!rm || rm->error) {
         return nullptr;
     }
@@ -315,7 +320,8 @@ mdhim_brm_t *mdhimPut(struct mdhim *md,
         void **primary_keys = (void**)malloc(sizeof(void *) * secondary_local_info->num_keys);
         int *primary_key_lens = (int *)malloc(sizeof(int) * secondary_global_info->num_keys);
         for (int i = 0; i < secondary_local_info->num_keys; i++) {
-            primary_keys[i] = primary_key;
+            primary_keys[i] = malloc(primary_key_len);
+            memcpy(primary_keys[i], primary_key, primary_key_len);
             primary_key_lens[i] = primary_key_len;
         }
 
@@ -343,7 +349,8 @@ mdhim_brm_t *mdhimPut(struct mdhim *md,
         void **primary_keys = (void**)malloc(sizeof(void *) * secondary_global_info->num_keys);
         int *primary_key_lens = (int *)malloc(sizeof(int) * secondary_global_info->num_keys);
         for (int i = 0; i < secondary_global_info->num_keys; i++) {
-            primary_keys[i] = primary_key;
+            primary_keys[i] = malloc(primary_key_len);
+            memcpy(primary_keys[i], primary_key, primary_key_len);
             primary_key_lens[i] = primary_key_len;
         }
         brm = _bput_records(md,
@@ -555,11 +562,19 @@ mdhim_bgetrm_t *mdhimGet(mdhim_t *md, struct index *index,
         return NULL;
     }
 
+    // Clone primary key and value
+    void *k = malloc(key_len);
+    if (!k) {
+        return nullptr;
+    }
+
+    memcpy(k, key, key_len);
+
     if (!index) {
         index = md->p->primary_index;
     }
 
-    return mdhim_bgetrm_init(_bget_records(md, index, &key, &key_len, 1, 1, op));
+    return mdhim_bgrm_init(_bget_records(md, index, &k, &key_len, 1, 1, op));
 }
 
 // /**

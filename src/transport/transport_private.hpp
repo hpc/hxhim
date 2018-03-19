@@ -59,14 +59,14 @@ typedef struct mdhim_brm_private {
  * These functsios are private because users never
  * allocate the mdhim structures.
 */
-mdhim_putm_t   *mdhim_putm_init(TransportPutMessage *pm = nullptr);
-mdhim_bputm_t  *mdhim_bputm_init(TransportBPutMessage *bpm = nullptr);
-mdhim_getm_t   *mdhim_getm_init(TransportGetMessage *gm = nullptr);
-mdhim_bgetm_t  *mdhim_bgetm_init(TransportBGetMessage *bgm = nullptr);
+mdhim_putm_t   *mdhim_pm_init(TransportPutMessage *pm = nullptr);
+mdhim_bputm_t  *mdhim_bpm_init(TransportBPutMessage *bpm = nullptr);
+mdhim_getm_t   *mdhim_gm_init(TransportGetMessage *gm = nullptr);
+mdhim_bgetm_t  *mdhim_bgm_init(TransportBGetMessage *bgm = nullptr);
 mdhim_delm_t   *mdhim_delm_init(TransportDeleteMessage *dm = nullptr);
 mdhim_bdelm_t  *mdhim_bdelm_init(TransportBDeleteMessage *bdm = nullptr);
 mdhim_rm_t     *mdhim_rm_init(TransportRecvMessage *rm = nullptr);
-mdhim_bgetrm_t *mdhim_bgetrm_init(TransportBGetRecvMessage *bgrm = nullptr);
+mdhim_bgetrm_t *mdhim_bgrm_init(TransportBGetRecvMessage *bgrm = nullptr);
 mdhim_brm_t    *mdhim_brm_init(TransportBRecvMessage *brm = nullptr);
 
 #endif

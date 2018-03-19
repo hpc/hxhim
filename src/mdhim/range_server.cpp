@@ -21,15 +21,15 @@
 #include "mdhim_private.h"
 
 static void add_timing(struct timeval start, struct timeval end, int num,
-        struct mdhim *md, int mtype) {
+                       mdhim_t *md, TransportMessageType mtype) {
     long double elapsed;
 
     elapsed = (long double) (end.tv_sec - start.tv_sec) +
         ((long double) (end.tv_usec - start.tv_usec)/1000000.0);
-    if (mtype == MDHIM_PUT || mtype == MDHIM_BULK_PUT) {
+    if (mtype == TransportMessageType::PUT || mtype == TransportMessageType::BPUT) {
         md->p->mdhim_rs->put_time += elapsed;
         md->p->mdhim_rs->num_put += num;
-    } else if (mtype == MDHIM_BULK_GET) {
+    } else if (mtype == TransportMessageType::BGET) {
         md->p->mdhim_rs->get_time += elapsed;
         md->p->mdhim_rs->num_get += num;
     }
@@ -44,31 +44,18 @@ static void add_timing(struct timeval start, struct timeval end, int num,
  * @param message  pointer to message to send
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-static int send_locally_or_remote(struct mdhim *md, int dest, TransportMessage *message) {
+static int send_locally_or_remote(mdhim_t *md, const TransportAddress *dest, TransportMessage *message) {
     int ret = MDHIM_SUCCESS;
-    if ((int) *md->p->transport->Endpoint()->Address() != dest) {
+    if (*md->p->transport->Endpoint()->Address() != *dest) {
         //Sends the message remotely
-        MPI_Request **size_req = new MPI_Request*();
-        MPI_Request **msg_req = new MPI_Request*();
-        void **sendbuf = new void *();
-        int *sizebuf = new int();
+        ret = md->p->response_sender(md->p->transport, dest, message);
+        // if (*size_req) {
+        //     range_server_add_oreq(md, *size_req, sizebuf);
+        // }
 
-        ret = send_client_response(md, dest, message, sizebuf,
-                                   sendbuf, size_req, msg_req);
-        if (*size_req) {
-            range_server_add_oreq(md, *size_req, sizebuf);
-        }
-
-        if (*msg_req) {
-            range_server_add_oreq(md, *msg_req, *sendbuf);
-        } else if (*sendbuf) {
-            free(*sendbuf);
-        }
-
-        delete sendbuf;
-        delete message;
-        delete size_req;
-        delete msg_req;
+        // if (*msg_req) {
+        //     range_server_add_oreq(md, *msg_req, *sendbuf);
+        // }
     } else {
         //Sends the message locally
         pthread_mutex_lock(&md->p->receive_msg_mutex);
@@ -80,7 +67,7 @@ static int send_locally_or_remote(struct mdhim *md, int dest, TransportMessage *
     return ret;
 }
 
-static index_t *find_index(struct mdhim *md, TransportMessage *msg) {
+static index_t *find_index(mdhim_t *md, TransportMessage *msg) {
     return get_index(md, msg->index);
 }
 
@@ -93,7 +80,7 @@ static index_t *find_index(struct mdhim *md, TransportMessage *msg) {
  *                                            the name of the index
  * =====================================================================================
  */
-static index_t * find_index_by_name(struct mdhim *md, TransportMessage *msg) {
+static index_t * find_index_by_name(mdhim_t *md, TransportMessage *msg) {
     return get_index_by_name(md, msg->index_name);
 }
 
@@ -105,7 +92,7 @@ static index_t * find_index_by_name(struct mdhim *md, TransportMessage *msg) {
  * @param item    pointer to new work item that contains a message to handle
  * @return MDHIM_SUCCESS
  */
-int range_server_add_work(struct mdhim *md, work_item_t *item) {
+int range_server_add_work(mdhim_t *md, work_item_t *item) {
     //Lock the work queue mutex
     pthread_mutex_lock(md->p->mdhim_rs->work_queue_mutex);
     item->next = NULL;
@@ -136,7 +123,7 @@ int range_server_add_work(struct mdhim *md, work_item_t *item) {
  * @return  the next work_item to process
  */
 
-static work_item_t *get_work(struct mdhim *md) {
+static work_item_t *get_work(mdhim_t *md) {
     work_item_t *item = md->p->mdhim_rs->work_queue->head;
     if (!item) {
         return NULL;
@@ -157,7 +144,7 @@ static work_item_t *get_work(struct mdhim *md) {
  * @param md  Pointer to the main MDHIM structure
  * @return    MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int range_server_stop(struct mdhim *md) {
+int range_server_stop(mdhim_t *md) {
     int ret;
     work_item *head, *temp_item;
 
@@ -230,7 +217,7 @@ int range_server_stop(struct mdhim *md) {
  * @param source    source of the message
  * @return          MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-static int range_server_put(struct mdhim *md, TransportPutMessage *im, int source) {
+static int range_server_put(mdhim_t *md, TransportPutMessage *im, const TransportAddress *address) {
     int ret;
     int error = 0;
     void **value;
@@ -269,7 +256,7 @@ static int range_server_put(struct mdhim *md, TransportPutMessage *im, int sourc
         exists = 1;
     }
 
-        //If the option to append was specified and there is old data, concat the old and new
+    //If the option to append was specified and there is old data, concat the old and new
     if (exists &&  md->p->db_opts->db_value_append == MDHIM_DB_APPEND) {
         old_value = *value;
         old_value_len = *value_len;
@@ -304,7 +291,7 @@ static int range_server_put(struct mdhim *md, TransportPutMessage *im, int sourc
     }
 
     gettimeofday(&end, NULL);
-    add_timing(start, end, inserted, md, MDHIM_PUT);
+    add_timing(start, end, inserted, md, TransportMessageType::PUT);
 
 done:
     //Create the response message
@@ -317,18 +304,17 @@ done:
     rm->server_rank = (int) *md->p->transport->Endpoint()->Address();
 
     //Send response
-    ret = send_locally_or_remote(md, source, static_cast<TransportMessage *>(rm));
+    ret = send_locally_or_remote(md, address, static_cast<TransportMessage *>(rm));
 
     //Free memory
     if (exists && md->p->db_opts->db_value_append == MDHIM_DB_APPEND) {
         free(new_value);
     }
-    if (source != (int) *md->p->transport->Endpoint()->Address()) {
+    // if (source != (int) *md->p->transport->Endpoint()->Address()) {
         // free(im->key);
         // free(im->value);
-    }
-    // TODO: put this back in - it is currently freeing something it shouldnt be freeing
-    // free(im);
+    // }
+    delete im;
 
     return MDHIM_SUCCESS;
 }
@@ -342,7 +328,7 @@ done:
  * @param source    source of the message
  * @return    MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-static int range_server_bput(struct mdhim *md, TransportBPutMessage *bim, int source) {
+static int range_server_bput(mdhim_t *md, TransportBPutMessage *bim, const TransportAddress *address) {
     int ret;
     int error = MDHIM_SUCCESS;
     void **value;
@@ -395,7 +381,7 @@ static int range_server_bput(struct mdhim *md, TransportBPutMessage *bim, int so
             new_value = malloc(new_value_len);
             memcpy(new_value, old_value, old_value_len);
             memcpy((char*)new_value + old_value_len, bim->values[i], bim->value_lens[i]);
-            if (exists[i] && source != (int) *md->p->transport->Endpoint()->Address()) {
+            if (exists[i] && *address != *md->p->transport->Endpoint()->Address()) {
                 free(bim->values[i]);
             }
 
@@ -435,9 +421,11 @@ static int range_server_bput(struct mdhim *md, TransportBPutMessage *bim, int so
         }
 
         //Release the bput keys/value if the message isn't coming from myself
-        if (source != (int) *md->p->transport->Endpoint()->Address()) {
+        if (*address != *md->p->transport->Endpoint()->Address()) {
             free(bim->keys[i]);
+            bim->keys[i] = nullptr;
             free(bim->values[i]);
+            bim->values = nullptr;
         }
     }
 
@@ -446,7 +434,7 @@ static int range_server_bput(struct mdhim *md, TransportBPutMessage *bim, int so
     free(new_value_lens);
     free(value);
     gettimeofday(&end, NULL);
-    add_timing(start, end, num_put, md, MDHIM_BULK_PUT);
+    add_timing(start, end, num_put, md, TransportMessageType::BPUT);
 
  done:
     //Create the response message
@@ -463,7 +451,7 @@ static int range_server_bput(struct mdhim *md, TransportBPutMessage *bim, int so
     // delete bim;
 
     //Send response
-    ret = send_locally_or_remote(md, source, brm);
+    ret = send_locally_or_remote(md, address, brm);
 
     return MDHIM_SUCCESS;
 }
@@ -477,7 +465,7 @@ static int range_server_bput(struct mdhim *md, TransportBPutMessage *bim, int so
 //  * @param source   source of the message
 //  * @return    MDHIM_SUCCESS or MDHIM_ERROR on error
 //  */
-// static int range_server_del(struct mdhim *md, struct mdhim_delm_t *dm, int source) {
+// static int range_server_del(mdhim_t *md, struct mdhim_delm_t *dm, const TransportAddress *address) {
 //     int ret = MDHIM_ERROR;
 //     struct mdhim_rm_t *rm;
 //     index_t *index;
@@ -525,7 +513,7 @@ static int range_server_bput(struct mdhim *md, TransportBPutMessage *bim, int so
 //  * @param source    source of the message
 //  * @return    MDHIM_SUCCESS or MDHIM_ERROR on error
 //  */
-// int range_server_bdel(struct mdhim *md, struct mdhim_bdelm_t *bdm, int source) {
+// int range_server_bdel(mdhim_t *md, struct mdhim_bdelm_t *bdm, const TransportAddress *address) {
 //      int i;
 //     int ret;
 //     int error = 0;
@@ -582,7 +570,7 @@ static int range_server_bput(struct mdhim *md, TransportBPutMessage *bim, int so
  * @param source    source of the message
  * @return          MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-static int range_server_commit(struct mdhim *md, TransportMessage *im, int source) {
+static int range_server_commit(mdhim_t *md, TransportMessage *im, const TransportAddress *address) {
     int ret;
     index_t *index;
 
@@ -614,8 +602,7 @@ static int range_server_commit(struct mdhim *md, TransportMessage *im, int sourc
     rm->server_rank = (int) *md->p->transport->Endpoint()->Address();
 
     //Send response
-    ret = send_locally_or_remote(md, source, rm);
-    // free(im);
+    ret = send_locally_or_remote(md, address, rm);
     delete im;
 
     return MDHIM_SUCCESS;
@@ -630,7 +617,7 @@ static int range_server_commit(struct mdhim *md, TransportMessage *im, int sourc
  * @param source    source of the message
  * @return    MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-static int range_server_bget(struct mdhim *md, TransportBGetMessage *bgm, int source) {
+static int range_server_bget(mdhim_t *md, TransportBGetMessage *bgm, const TransportAddress *address) {
     int ret;
     void **values;
     int32_t *value_lens = (int32_t *)calloc(bgm->num_keys, sizeof(int32_t));
@@ -735,7 +722,7 @@ static int range_server_bget(struct mdhim *md, TransportBGetMessage *bgm, int so
     }
 
     gettimeofday(&end, NULL);
-    add_timing(start, end, num_retrieved, md, MDHIM_BULK_GET);
+    add_timing(start, end, num_retrieved, md, TransportMessageType::BGET);
 
 done:
     //Create the response message
@@ -747,7 +734,7 @@ done:
     //Set the server's rank
     bgrm->server_rank = (int) *md->p->transport->Endpoint()->Address();
     //Set the key and value
-    if (source == (int) *md->p->transport->Endpoint()->Address()) {
+    if (*address == *md->p->transport->Endpoint()->Address()) {
         //If this message is coming from myself, copy the keys
         bgrm->key_lens = (int*)malloc(bgm->num_keys * sizeof(int));
         bgrm->keys = (void**)malloc(bgm->num_keys * sizeof(void *));
@@ -771,7 +758,7 @@ done:
     bgrm->index_type = index->type;
 
     //Send response
-    ret = send_locally_or_remote(md, source, bgrm);
+    ret = send_locally_or_remote(md, address, bgrm);
 
     //Release the bget message
     // delete bgm;
@@ -789,7 +776,7 @@ done:
  * @param op        operation to perform
  * @return    MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-static int range_server_bget_op(struct mdhim *md, TransportBGetMessage *bgm, int source, TransportGetMessageOp op) {
+static int range_server_bget_op(mdhim_t *md, TransportBGetMessage *bgm, const TransportAddress *address, TransportGetMessageOp op) {
     int error = 0;
     void **values;
     void **keys;
@@ -940,7 +927,7 @@ static int range_server_bget_op(struct mdhim *md, TransportBGetMessage *bgm, int
 respond:
 
     gettimeofday(&end, NULL);
-    add_timing(start, end, num_records, md, MDHIM_BULK_GET);
+    add_timing(start, end, num_records, md, TransportMessageType::BGET);
 
     //Create the response message
     bgrm = new TransportBGetRecvMessage();
@@ -960,10 +947,10 @@ respond:
     bgrm->index_type = index->type;
 
     //Send response
-    ret = send_locally_or_remote(md, source, bgrm);
+    ret = send_locally_or_remote(md, address, bgrm);
 
     //Free stuff
-    if (source == (int) *md->p->transport->Endpoint()->Address()) {
+    if (*address == *md->p->transport->Endpoint()->Address()) {
         /* If this message is not coming from myself,
            free the keys and values from the get message */
         // mdhim_partial_release_msg(bgm);
@@ -985,9 +972,10 @@ respond:
 static void *listener_thread(void *data) {
     //Mlog statements could cause a deadlock on range_server_stop due to canceling of threads
 
-    struct mdhim *md = (struct mdhim *) data;
+    mdhim_t *md = (mdhim_t *) data;
     TransportMessage *message = nullptr;
     int source; //The source of the message
+    TransportAddress *address;
     int ret;
     work_item *item;
 
@@ -1006,9 +994,9 @@ static void *listener_thread(void *data) {
         range_server_clean_oreqs(md);
 
         //Receive messages sent to this server
-        ret = receive_rangesrv_work(md, &source, &message);
-        if (ret < MDHIM_SUCCESS) {
-            // printf("Rank %s - Listener thread failed to receive\n",
+        // if (md->p->transport->Endpoint()->receive_rangesrv_work(&address, &message) != MDHIM_SUCCESS) {
+        if (md->p->work_receiver(md->p->transport, &address, &message) != MDHIM_SUCCESS) {
+            // printf("Rank %s -e Listener thread failed to receive\n",
             //        ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
             continue;
         }
@@ -1023,7 +1011,7 @@ static void *listener_thread(void *data) {
         //Set the new buffer to the new item's message
         item->message = message;
         //Set the source in the work item
-        item->source = source;
+        item->address = address;
         //Add the new item to the work queue
         range_server_add_work(md, item);
     }
@@ -1033,7 +1021,7 @@ static void *listener_thread(void *data) {
 
 /*
  * worker_thread
- * Function for the thread that processes work in work queue
+ * Function for the thread that processes work in the work queue
  */
 static void *worker_thread(void *data) {
     //Mlog statements could cause a deadlock on range_server_stop due to canceling of threads
@@ -1051,7 +1039,7 @@ static void *worker_thread(void *data) {
 
         //Wait until there is work to be performed
         //Do not loop
-        if ((item = get_work(md)) == nullptr) {
+        if (!(item = get_work(md))) {
             pthread_cond_wait(md->p->mdhim_rs->work_ready_cv, md->p->mdhim_rs->work_queue_mutex);
             item = get_work(md);
         }
@@ -1075,42 +1063,43 @@ static void *worker_thread(void *data) {
                 //Pack the put message and pass to range_server_put
                 range_server_put(md,
                                  dynamic_cast<TransportPutMessage *>(message),
-                                 item->source);
+                                 item->address);
                 break;
             case TransportMessageType::BPUT:
                 //Pack the bulk put message and pass to range_server_put
                 range_server_bput(md,
                                   dynamic_cast<TransportBPutMessage *>(message),
-                                  item->source);
+                                  item->address);
                 break;
             case TransportMessageType::BGET:
                 {
                     TransportBGetMessage *bgm = dynamic_cast<TransportBGetMessage *>(message);
                     //The client is sending one key, but requesting the retrieval of more than one
                     if (bgm->num_recs > 1 && bgm->num_keys == 1) {
-                        range_server_bget_op(md, bgm, item->source, bgm->op);
+                        range_server_bget_op(md, bgm, item->address, bgm->op);
                     }
                     else {
-                        range_server_bget(md, bgm, item->source);
+                        range_server_bget(md, bgm, item->address);
                     }
                 }
                 break;
             case TransportMessageType::DELETE:
-                // range_server_del(md, dynamic_cast<TransportDeleteMessage *>(item->message), item->source);
+                // range_server_del(md, dynamic_cast<TransportDeleteMessage *>(item->message), item->address);
                 break;
             case TransportMessageType::BDELETE:
-                // range_server_del(md, dynamic_cast<TransportBDeleteMessage *>(item->message), item->source);
+                // range_server_del(md, dynamic_cast<TransportBDeleteMessage *>(item->message), item->address);
                 break;
             case TransportMessageType::COMMIT:
-                range_server_commit(md, static_cast<TransportMessage *>(item->message), item->source);
+                range_server_commit(md, static_cast<TransportMessage *>(item->message), item->address);
                 break;
             default:
                 break;
             }
 
+            item->message = nullptr;
             work_item *item_tmp = item;
             item = item->next;
-            delete item_tmp;
+            free(item_tmp);
         }
 
         //Clean outstanding sends
@@ -1120,7 +1109,7 @@ static void *worker_thread(void *data) {
     return NULL;
 }
 
-int range_server_add_oreq(struct mdhim *md, MPI_Request *req, void *msg) {
+int range_server_add_oreq(mdhim_t *md, MPI_Request *req, void *msg) {
     out_req *oreq;
     out_req *item;
 
@@ -1146,7 +1135,7 @@ int range_server_add_oreq(struct mdhim *md, MPI_Request *req, void *msg) {
     return MDHIM_SUCCESS;
 }
 
-int range_server_clean_oreqs(struct mdhim *md) {
+int range_server_clean_oreqs(mdhim_t *md) {
     pthread_mutex_lock(md->p->mdhim_rs->out_req_mutex);
     out_req *item = md->p->mdhim_rs->out_req_list;
     while (item) {
@@ -1202,9 +1191,8 @@ int range_server_clean_oreqs(struct mdhim *md) {
  * @param md  Pointer to the main MDHIM structure
  * @return    MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int range_server_init(struct mdhim *md) {
+int range_server_init(mdhim_t *md) {
     int ret;
-    int i;
 
     //Allocate memory for the mdhim_rs_t struct
     md->p->mdhim_rs = (mdhim_rs_t*)malloc(sizeof(struct mdhim_rs_t));
@@ -1273,7 +1261,7 @@ int range_server_init(struct mdhim *md) {
 
     //Initialize worker threads
     md->p->mdhim_rs->workers = (pthread_t**)malloc(sizeof(pthread_t *) * md->p->db_opts->num_wthreads);
-    for (i = 0; i < md->p->db_opts->num_wthreads; i++) {
+    for (int i = 0; i < md->p->db_opts->num_wthreads; i++) {
         md->p->mdhim_rs->workers[i] = (pthread_t*)malloc(sizeof(pthread_t));
         if ((ret = pthread_create(md->p->mdhim_rs->workers[i], NULL,
                       worker_thread, (void *) md)) != 0) {
