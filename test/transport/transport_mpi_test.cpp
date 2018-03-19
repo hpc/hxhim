@@ -32,7 +32,7 @@ TEST(MPIInstance, WorldSize) {
     EXPECT_EQ(instance.WorldSize(), 1);
 }
 
-TEST(TransportPutMessage, pack_unpack) {
+TEST(mpi_pack_unpack, TransportPutMessage) {
     volatile int shutdown = 0;
     const MPIInstance &instance = MPIInstance::instance();
     MPITransportBase commbase(instance.Comm(), shutdown);
@@ -74,7 +74,7 @@ TEST(TransportPutMessage, pack_unpack) {
     EXPECT_EQ(memcmp(src.value, dst->value, dst->value_len), 0);
 }
 
-TEST(TransportBPutMessage, DISABLED_mpi_pack_unpack) {
+TEST(mpi_pack_unpack, TransportBPutMessage) {
     volatile int shutdown = 0;
     const MPIInstance &instance = MPIInstance::instance();
     MPITransportBase commbase(instance.Comm(), shutdown);
@@ -128,7 +128,7 @@ TEST(TransportBPutMessage, DISABLED_mpi_pack_unpack) {
     }
 }
 
-TEST(TransportGetMessage, DISABLED_mpi_pack_unpack) {
+TEST(mpi_pack_unpack, TransportGetMessage) {
     volatile int shutdown = 0;
     const MPIInstance &instance = MPIInstance::instance();
     MPITransportBase commbase(instance.Comm(), shutdown);
@@ -168,7 +168,7 @@ TEST(TransportGetMessage, DISABLED_mpi_pack_unpack) {
     EXPECT_EQ(memcmp(src.key, dst->key, dst->key_len), 0);
 }
 
-TEST(TransportBGetMessage, pack_unpack) {
+TEST(mpi_pack_unpack, TransportBGetMessage) {
     volatile int shutdown = 0;
     const MPIInstance &instance = MPIInstance::instance();
     MPITransportBase commbase(instance.Comm(), shutdown);
@@ -217,7 +217,7 @@ TEST(TransportBGetMessage, pack_unpack) {
     EXPECT_EQ(src.num_recs, dst->num_recs);
 }
 
-TEST(TransportBGetRecvMessage, pack_unpack) {
+TEST(mpi_pack_unpack, TransportBGetRecvMessage) {
     volatile int shutdown = 0;
     const MPIInstance &instance = MPIInstance::instance();
     MPITransportBase commbase(instance.Comm(), shutdown);
@@ -274,7 +274,7 @@ TEST(TransportBGetRecvMessage, pack_unpack) {
     }
 }
 
-TEST(TransportDeleteMessage, DISABLED_mpi_pack_unpack) {
+TEST(mpi_pack_unpack, TransportDeleteMessage) {
     volatile int shutdown = 0;
     const MPIInstance &instance = MPIInstance::instance();
     MPITransportBase commbase(instance.Comm(), shutdown);
@@ -310,7 +310,7 @@ TEST(TransportDeleteMessage, DISABLED_mpi_pack_unpack) {
     EXPECT_EQ(memcmp(src.key, dst->key, dst->key_len), 0);
 }
 
-TEST(TransportBDeleteMessage, DISABLED_mpi_pack_unpack) {
+TEST(mpi_pack_unpack, TransportBDeleteMessage) {
     volatile int shutdown = 0;
     const MPIInstance &instance = MPIInstance::instance();
     MPITransportBase commbase(instance.Comm(), shutdown);
@@ -354,7 +354,7 @@ TEST(TransportBDeleteMessage, DISABLED_mpi_pack_unpack) {
     }
 }
 
-TEST(TransportRecvMessage, DISABLED_mpi_pack_unpack) {
+TEST(mpi_pack_unpack, TransportRecvMessage) {
     volatile int shutdown = 0;
     const MPIInstance &instance = MPIInstance::instance();
     MPITransportBase commbase(instance.Comm(), shutdown);
@@ -386,7 +386,7 @@ TEST(TransportRecvMessage, DISABLED_mpi_pack_unpack) {
     EXPECT_EQ(src.error, dst->error);
 }
 
-TEST(TransportBRecvMessage, DISABLED_mpi_pack_unpack) {
+TEST(mpi_pack_unpack, TransportBRecvMessage) {
     volatile int shutdown = 0;
     const MPIInstance &instance = MPIInstance::instance();
     MPITransportBase commbase(instance.Comm(), shutdown);

@@ -12,10 +12,13 @@ int MPIPacker::any (const MPITransportBase *transportbase, const TransportMessag
         case TransportMessageType::BGET:
             ret = pack(transportbase, dynamic_cast<const TransportBGetMessage *>(msg), buf, bufsize);
             break;
-        // case TransportMessageType::DELETE:
-        //     break;
-        // case TransportMessageType::BDELETE:
-        //     break;
+        case TransportMessageType::DELETE:
+            ret = pack(transportbase, dynamic_cast<const TransportDeleteMessage *>(msg), buf, bufsize);
+            break;
+        case TransportMessageType::BDELETE:
+            ret = pack(transportbase, dynamic_cast<const TransportBDeleteMessage *>(msg), buf, bufsize);
+            break;
+        // close meesages are not sent across the network
         // case TransportMessageType::CLOSE:
         //     break;
         case TransportMessageType::RECV:
@@ -26,6 +29,7 @@ int MPIPacker::any (const MPITransportBase *transportbase, const TransportMessag
         case TransportMessageType::RECV_BGET:
             ret = pack(transportbase, dynamic_cast<const TransportBGetRecvMessage *>(msg), buf, bufsize);
             break;
+        // commit messages are not sent across the network
         // case TransportMessageType::COMMIT:
         //     break;
         default:
@@ -54,13 +58,46 @@ int MPIPacker::pack(const MPITransportBase *transportbase, const TransportPutMes
 }
 
 int MPIPacker::pack(const MPITransportBase *transportbase, const TransportBPutMessage *bpm, void **buf, int *bufsize) {
-    throw;
-    return MDHIM_ERROR;
+    *bufsize = bpm->size() + sizeof(*bufsize);
+    int position = 0;
+    if (pack(transportbase, static_cast<const TransportMessage*>(bpm), buf, bufsize, &position) != MDHIM_SUCCESS) {
+        return MDHIM_ERROR;
+    }
+
+    if ((MPI_Pack(&bpm->num_keys, sizeof(bpm->num_keys), MPI_CHAR, *buf, *bufsize, &position, transportbase->Comm()) != MPI_SUCCESS) ||
+        (MPI_Pack(bpm->key_lens, bpm->num_keys, MPI_INT, *buf, *bufsize, &position, transportbase->Comm())           != MPI_SUCCESS) ||
+        (MPI_Pack(bpm->value_lens,bpm->num_keys, MPI_INT, *buf, *bufsize, &position, transportbase->Comm())          != MPI_SUCCESS)) {
+        cleanup(buf, bufsize);
+        return MDHIM_ERROR;
+    }
+
+    for(int i = 0; i < bpm->num_keys; i++) {
+        if ((MPI_Pack(bpm->keys[i], bpm->key_lens[i], MPI_CHAR, *buf, *bufsize, &position, transportbase->Comm())     != MPI_SUCCESS) ||
+            (MPI_Pack(bpm->values[i], bpm->value_lens[i], MPI_CHAR, *buf, *bufsize, &position, transportbase->Comm()) != MPI_SUCCESS)) {
+            cleanup(buf, bufsize);
+            return MDHIM_ERROR;
+        }
+    }
+
+    return MDHIM_SUCCESS;
 }
 
 int MPIPacker::pack(const MPITransportBase *transportbase, const TransportGetMessage *gm, void **buf, int *bufsize) {
-    throw;
-    return MDHIM_ERROR;
+    *bufsize = gm->size() + sizeof(*bufsize);
+    int position = 0;
+    if (pack(transportbase, static_cast<const TransportMessage*>(gm), buf, bufsize, &position) != MDHIM_SUCCESS) {
+        return MDHIM_ERROR;
+    }
+
+    if ((MPI_Pack(&gm->op, sizeof(gm->op), MPI_CHAR, *buf, *bufsize, &position, transportbase->Comm())               != MPI_SUCCESS) ||
+        (MPI_Pack(&gm->num_keys, sizeof(gm->num_keys), MPI_CHAR, *buf, *bufsize, &position, transportbase->Comm())   != MPI_SUCCESS) ||
+        (MPI_Pack(&gm->key_len, sizeof(gm->key_len), MPI_CHAR, *buf, *bufsize, &position, transportbase->Comm())     != MPI_SUCCESS) ||
+        (MPI_Pack(gm->key, gm->key_len, MPI_CHAR, *buf, *bufsize, &position, transportbase->Comm())                  != MPI_SUCCESS)) {
+        cleanup(buf, bufsize);
+        return MDHIM_ERROR;
+    }
+
+    return MDHIM_SUCCESS;
 }
 
 int MPIPacker::pack(const MPITransportBase *transportbase, const TransportBGetMessage *bgm, void **buf, int *bufsize) {
@@ -79,7 +116,7 @@ int MPIPacker::pack(const MPITransportBase *transportbase, const TransportBGetMe
     }
 
     for(int i = 0; i < bgm->num_keys; i++) {
-        if (MPI_Pack(bgm->keys[i], bgm->key_lens[i], MPI_CHAR, *buf, *bufsize, &position, transportbase->Comm()) != MPI_SUCCESS) {
+        if (MPI_Pack(bgm->keys[i], bgm->key_lens[i], MPI_CHAR, *buf, *bufsize, &position, transportbase->Comm())     != MPI_SUCCESS) {
             cleanup(buf, bufsize);
             return MDHIM_ERROR;
         }
@@ -89,13 +126,42 @@ int MPIPacker::pack(const MPITransportBase *transportbase, const TransportBGetMe
 }
 
 int MPIPacker::pack(const MPITransportBase *transportbase, const TransportDeleteMessage *dm, void **buf, int *bufsize) {
-    throw;
-    return MDHIM_ERROR;
+    *bufsize = dm->size() + sizeof(*bufsize);
+    int position = 0;
+    if (pack(transportbase, static_cast<const TransportMessage*>(dm), buf, bufsize, &position) != MDHIM_SUCCESS) {
+        return MDHIM_ERROR;
+    }
+
+    if ((MPI_Pack(&dm->key_len, sizeof(dm->key_len), MPI_CHAR, *buf, *bufsize, &position, transportbase->Comm()) != MPI_SUCCESS) ||
+        (MPI_Pack(dm->key, dm->key_len, MPI_CHAR, *buf, *bufsize, &position, transportbase->Comm())              != MPI_SUCCESS)) {
+        cleanup(buf, bufsize);
+        return MDHIM_ERROR;
+    }
+
+    return MDHIM_SUCCESS;
 }
 
 int MPIPacker::pack(const MPITransportBase *transportbase, const TransportBDeleteMessage *bdm, void **buf, int *bufsize) {
-    throw;
-    return MDHIM_ERROR;
+    *bufsize = bdm->size() + sizeof(*bufsize);
+    int position = 0;
+    if (pack(transportbase, static_cast<const TransportMessage*>(bdm), buf, bufsize, &position) != MDHIM_SUCCESS) {
+        return MDHIM_ERROR;
+    }
+
+    if ((MPI_Pack(&bdm->num_keys, sizeof(bdm->num_keys), MPI_CHAR, *buf, *bufsize, &position, transportbase->Comm()) != MPI_SUCCESS) ||
+        (MPI_Pack(bdm->key_lens, bdm->num_keys, MPI_INT, *buf, *bufsize, &position, transportbase->Comm())           != MPI_SUCCESS)) {
+        cleanup(buf, bufsize);
+        return MDHIM_ERROR;
+    }
+
+    for(int i = 0; i < bdm->num_keys; i++) {
+        if (MPI_Pack(bdm->keys[i], bdm->key_lens[i], MPI_CHAR, *buf, *bufsize, &position, transportbase->Comm())     != MPI_SUCCESS) {
+            cleanup(buf, bufsize);
+            return MDHIM_ERROR;
+        }
+    }
+
+    return MDHIM_SUCCESS;
 }
 
 int MPIPacker::pack(const MPITransportBase *transportbase, const TransportRecvMessage *rm, void **buf, int *bufsize) {
@@ -140,8 +206,18 @@ int MPIPacker::pack(const MPITransportBase *transportbase, const TransportBGetRe
 }
 
 int MPIPacker::pack(const MPITransportBase *transportbase, const TransportBRecvMessage *brm, void **buf, int *bufsize) {
-    throw;
-    return MDHIM_ERROR;
+    *bufsize = brm->size() + sizeof(*bufsize);
+    int position = 0;
+    if (pack(transportbase, static_cast<const TransportMessage*>(brm), buf, bufsize, &position) != MDHIM_SUCCESS) {
+        return MDHIM_ERROR;
+    }
+
+    if (MPI_Pack(&brm->error, sizeof(brm->error), MPI_CHAR, *buf, *bufsize, &position, transportbase->Comm()) != MPI_SUCCESS) {
+        cleanup(buf, bufsize);
+        return MDHIM_ERROR;
+    }
+
+    return MDHIM_SUCCESS;
 }
 
 int MPIPacker::pack(const MPITransportBase *transportbase, const TransportMessage *msg, void **buf, int *bufsize, int *position) {
