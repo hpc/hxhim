@@ -16,7 +16,7 @@ struct work_item {
 	work_item_t *prev;
 	void *message;
 
-    const TransportAddress *address;
+    int address;
 };
 
 typedef struct work_queue_t {

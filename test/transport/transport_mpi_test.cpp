@@ -35,11 +35,11 @@ TEST(MPIInstance, WorldSize) {
 TEST(mpi_pack_unpack, TransportPutMessage) {
     volatile int shutdown = 0;
     const MPIInstance &instance = MPIInstance::instance();
-    MPIEndpointBase commbase(instance.Comm(), shutdown);
     TransportPutMessage src;
     {
         src.mtype = TransportMessageType::PUT;
-        src.server_rank = instance.Rank();
+        src.src = instance.Rank();
+        src.dst = instance.Rank();
         src.index = 1;
         src.index_type = PRIMARY_INDEX;
         src.index_name = nullptr;
@@ -55,15 +55,16 @@ TEST(mpi_pack_unpack, TransportPutMessage) {
 
     void *buf = nullptr;
     int bufsize;
-    EXPECT_EQ(MPIPacker::pack(&commbase, &src, &buf, &bufsize), MDHIM_SUCCESS);
+    EXPECT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize), MDHIM_SUCCESS);
 
     TransportPutMessage *dst = nullptr;
-    EXPECT_EQ(MPIUnpacker::unpack(&commbase, &dst, buf, bufsize), MDHIM_SUCCESS);
+    EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
-    free(buf);
+    ::operator delete(buf);
 
     EXPECT_EQ(src.mtype, dst->mtype);
-    EXPECT_EQ(src.server_rank, dst->server_rank);
+    EXPECT_EQ(src.src, dst->src);
+    EXPECT_EQ(src.dst, dst->dst);
     EXPECT_EQ(src.index, dst->index);
     EXPECT_EQ(src.index_type, dst->index_type);
 
@@ -77,11 +78,11 @@ TEST(mpi_pack_unpack, TransportPutMessage) {
 TEST(mpi_pack_unpack, TransportBPutMessage) {
     volatile int shutdown = 0;
     const MPIInstance &instance = MPIInstance::instance();
-    MPIEndpointBase commbase(instance.Comm(), shutdown);
     TransportBPutMessage src;
     {
         src.mtype = TransportMessageType::BPUT;
-        src.server_rank = instance.Rank();
+        src.src = instance.Rank();
+        src.dst = instance.Rank();
         src.index = 1;
         src.index_type = PRIMARY_INDEX;
         src.index_name = nullptr;
@@ -105,15 +106,16 @@ TEST(mpi_pack_unpack, TransportBPutMessage) {
 
     void *buf = nullptr;
     int bufsize;
-    EXPECT_EQ(MPIPacker::pack(&commbase, &src, &buf, &bufsize), MDHIM_SUCCESS);
+    EXPECT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize), MDHIM_SUCCESS);
 
     TransportBPutMessage *dst = nullptr;
-    EXPECT_EQ(MPIUnpacker::unpack(&commbase, &dst, buf, bufsize), MDHIM_SUCCESS);
+    EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
-    free(buf);
+    ::operator delete(buf);
 
     EXPECT_EQ(src.mtype, dst->mtype);
-    EXPECT_EQ(src.server_rank, dst->server_rank);
+    EXPECT_EQ(src.src, dst->src);
+    EXPECT_EQ(src.dst, dst->dst);
     EXPECT_EQ(src.index, dst->index);
     EXPECT_EQ(src.index_type, dst->index_type);
 
@@ -131,11 +133,11 @@ TEST(mpi_pack_unpack, TransportBPutMessage) {
 TEST(mpi_pack_unpack, TransportGetMessage) {
     volatile int shutdown = 0;
     const MPIInstance &instance = MPIInstance::instance();
-    MPIEndpointBase commbase(instance.Comm(), shutdown);
     TransportGetMessage src;
     {
         src.mtype = TransportMessageType::BGET;
-        src.server_rank = instance.Rank();
+        src.src = instance.Rank();
+        src.dst = instance.Rank();
         src.index = 1;
         src.index_type = PRIMARY_INDEX;
         src.index_name = nullptr;
@@ -151,15 +153,16 @@ TEST(mpi_pack_unpack, TransportGetMessage) {
 
     void *buf = nullptr;
     int bufsize;
-    EXPECT_EQ(MPIPacker::pack(&commbase, &src, &buf, &bufsize), MDHIM_SUCCESS);
+    EXPECT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize), MDHIM_SUCCESS);
 
     TransportGetMessage *dst = nullptr;
-    EXPECT_EQ(MPIUnpacker::unpack(&commbase, &dst, buf, bufsize), MDHIM_SUCCESS);
+    EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
-    free(buf);
+    ::operator delete(buf);
 
     EXPECT_EQ(src.mtype, dst->mtype);
-    EXPECT_EQ(src.server_rank, dst->server_rank);
+    EXPECT_EQ(src.src, dst->src);
+    EXPECT_EQ(src.dst, dst->dst);
     EXPECT_EQ(src.index, dst->index);
     EXPECT_EQ(src.index_type, dst->index_type);
 
@@ -171,11 +174,11 @@ TEST(mpi_pack_unpack, TransportGetMessage) {
 TEST(mpi_pack_unpack, TransportBGetMessage) {
     volatile int shutdown = 0;
     const MPIInstance &instance = MPIInstance::instance();
-    MPIEndpointBase commbase(instance.Comm(), shutdown);
     TransportBGetMessage src;
     {
         src.mtype = TransportMessageType::BGET;
-        src.server_rank = instance.Rank();
+        src.src = instance.Rank();
+        src.dst = instance.Rank();
         src.index = 1;
         src.index_type = PRIMARY_INDEX;
         src.index_name = nullptr;
@@ -195,15 +198,16 @@ TEST(mpi_pack_unpack, TransportBGetMessage) {
 
     void *buf = nullptr;
     int bufsize;
-    EXPECT_EQ(MPIPacker::pack(&commbase, &src, &buf, &bufsize), MDHIM_SUCCESS);
+    EXPECT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize), MDHIM_SUCCESS);
 
     TransportBGetMessage *dst = nullptr;
-    EXPECT_EQ(MPIUnpacker::unpack(&commbase, &dst, buf, bufsize), MDHIM_SUCCESS);
+    EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
-    free(buf);
+    ::operator delete(buf);
 
     EXPECT_EQ(src.mtype, dst->mtype);
-    EXPECT_EQ(src.server_rank, dst->server_rank);
+    EXPECT_EQ(src.src, dst->src);
+    EXPECT_EQ(src.dst, dst->dst);
     EXPECT_EQ(src.index, dst->index);
     EXPECT_EQ(src.index_type, dst->index_type);
 
@@ -220,11 +224,11 @@ TEST(mpi_pack_unpack, TransportBGetMessage) {
 TEST(mpi_pack_unpack, TransportBGetRecvMessage) {
     volatile int shutdown = 0;
     const MPIInstance &instance = MPIInstance::instance();
-    MPIEndpointBase commbase(instance.Comm(), shutdown);
     TransportBGetRecvMessage src;
     {
         src.mtype = TransportMessageType::RECV_BGET;
-        src.server_rank = instance.Rank();
+        src.src = instance.Rank();
+        src.dst = instance.Rank();
         src.index = 1;
         src.index_type = PRIMARY_INDEX;
         src.index_name = nullptr;
@@ -251,15 +255,16 @@ TEST(mpi_pack_unpack, TransportBGetRecvMessage) {
 
     void *buf = nullptr;
     int bufsize;
-    EXPECT_EQ(MPIPacker::pack(&commbase, &src, &buf, &bufsize), MDHIM_SUCCESS);
+    EXPECT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize), MDHIM_SUCCESS);
 
     TransportBGetRecvMessage *dst = nullptr;
-    EXPECT_EQ(MPIUnpacker::unpack(&commbase, &dst, buf, bufsize), MDHIM_SUCCESS);
+    EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
-    free(buf);
+    ::operator delete(buf);
 
     EXPECT_EQ(src.mtype, dst->mtype);
-    EXPECT_EQ(src.server_rank, dst->server_rank);
+    EXPECT_EQ(src.src, dst->src);
+    EXPECT_EQ(src.dst, dst->dst);
     EXPECT_EQ(src.index, dst->index);
     EXPECT_EQ(src.index_type, dst->index_type);
 
@@ -277,11 +282,11 @@ TEST(mpi_pack_unpack, TransportBGetRecvMessage) {
 TEST(mpi_pack_unpack, TransportDeleteMessage) {
     volatile int shutdown = 0;
     const MPIInstance &instance = MPIInstance::instance();
-    MPIEndpointBase commbase(instance.Comm(), shutdown);
     TransportDeleteMessage src;
     {
         src.mtype = TransportMessageType::BGET;
-        src.server_rank = instance.Rank();
+        src.src = instance.Rank();
+        src.dst = instance.Rank();
         src.index = 1;
         src.index_type = PRIMARY_INDEX;
         src.index_name = nullptr;
@@ -294,15 +299,16 @@ TEST(mpi_pack_unpack, TransportDeleteMessage) {
 
     void *buf = nullptr;
     int bufsize;
-    EXPECT_EQ(MPIPacker::pack(&commbase, &src, &buf, &bufsize), MDHIM_SUCCESS);
+    EXPECT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize), MDHIM_SUCCESS);
 
     TransportDeleteMessage *dst = nullptr;
-    EXPECT_EQ(MPIUnpacker::unpack(&commbase, &dst, buf, bufsize), MDHIM_SUCCESS);
+    EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
-    free(buf);
+    ::operator delete(buf);
 
     EXPECT_EQ(src.mtype, dst->mtype);
-    EXPECT_EQ(src.server_rank, dst->server_rank);
+    EXPECT_EQ(src.src, dst->src);
+    EXPECT_EQ(src.dst, dst->dst);
     EXPECT_EQ(src.index, dst->index);
     EXPECT_EQ(src.index_type, dst->index_type);
 
@@ -313,11 +319,11 @@ TEST(mpi_pack_unpack, TransportDeleteMessage) {
 TEST(mpi_pack_unpack, TransportBDeleteMessage) {
     volatile int shutdown = 0;
     const MPIInstance &instance = MPIInstance::instance();
-    MPIEndpointBase commbase(instance.Comm(), shutdown);
     TransportBDeleteMessage src;
     {
         src.mtype = TransportMessageType::BGET;
-        src.server_rank = instance.Rank();
+        src.src = instance.Rank();
+        src.dst = instance.Rank();
         src.index = 1;
         src.index_type = PRIMARY_INDEX;
         src.index_name = nullptr;
@@ -334,15 +340,16 @@ TEST(mpi_pack_unpack, TransportBDeleteMessage) {
 
     void *buf = nullptr;
     int bufsize;
-    EXPECT_EQ(MPIPacker::pack(&commbase, &src, &buf, &bufsize), MDHIM_SUCCESS);
+    EXPECT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize), MDHIM_SUCCESS);
 
     TransportBDeleteMessage *dst = nullptr;
-    EXPECT_EQ(MPIUnpacker::unpack(&commbase, &dst, buf, bufsize), MDHIM_SUCCESS);
+    EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
-    free(buf);
+    ::operator delete(buf);
 
     EXPECT_EQ(src.mtype, dst->mtype);
-    EXPECT_EQ(src.server_rank, dst->server_rank);
+    EXPECT_EQ(src.src, dst->src);
+    EXPECT_EQ(src.dst, dst->dst);
     EXPECT_EQ(src.index, dst->index);
     EXPECT_EQ(src.index_type, dst->index_type);
 
@@ -357,11 +364,11 @@ TEST(mpi_pack_unpack, TransportBDeleteMessage) {
 TEST(mpi_pack_unpack, TransportRecvMessage) {
     volatile int shutdown = 0;
     const MPIInstance &instance = MPIInstance::instance();
-    MPIEndpointBase commbase(instance.Comm(), shutdown);
     TransportRecvMessage src;
     {
         src.mtype = TransportMessageType::PUT;
-        src.server_rank = instance.Rank();
+        src.src = instance.Rank();
+        src.dst = instance.Rank();
         src.index = 1;
         src.index_type = PRIMARY_INDEX;
         src.index_name = nullptr;
@@ -371,15 +378,16 @@ TEST(mpi_pack_unpack, TransportRecvMessage) {
 
     void *buf = nullptr;
     int bufsize;
-    EXPECT_EQ(MPIPacker::pack(&commbase, &src, &buf, &bufsize), MDHIM_SUCCESS);
+    EXPECT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize), MDHIM_SUCCESS);
 
     TransportRecvMessage *dst = nullptr;
-    EXPECT_EQ(MPIUnpacker::unpack(&commbase, &dst, buf, bufsize), MDHIM_SUCCESS);
+    EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
-    free(buf);
+    ::operator delete(buf);
 
     EXPECT_EQ(src.mtype, dst->mtype);
-    EXPECT_EQ(src.server_rank, dst->server_rank);
+    EXPECT_EQ(src.src, dst->src);
+    EXPECT_EQ(src.dst, dst->dst);
     EXPECT_EQ(src.index, dst->index);
     EXPECT_EQ(src.index_type, dst->index_type);
 
@@ -389,11 +397,11 @@ TEST(mpi_pack_unpack, TransportRecvMessage) {
 TEST(mpi_pack_unpack, TransportBRecvMessage) {
     volatile int shutdown = 0;
     const MPIInstance &instance = MPIInstance::instance();
-    MPIEndpointBase commbase(instance.Comm(), shutdown);
     TransportBRecvMessage src;
     {
         src.mtype = TransportMessageType::PUT;
-        src.server_rank = instance.Rank();
+        src.src = instance.Rank();
+        src.dst = instance.Rank();
         src.index = 1;
         src.index_type = PRIMARY_INDEX;
         src.index_name = nullptr;
@@ -403,15 +411,16 @@ TEST(mpi_pack_unpack, TransportBRecvMessage) {
 
     void *buf = nullptr;
     int bufsize;
-    EXPECT_EQ(MPIPacker::pack(&commbase, &src, &buf, &bufsize), MDHIM_SUCCESS);
+    EXPECT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize), MDHIM_SUCCESS);
 
     TransportBRecvMessage *dst = nullptr;
-    EXPECT_EQ(MPIUnpacker::unpack(&commbase, &dst, buf, bufsize), MDHIM_SUCCESS);
+    EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
-    free(buf);
+    ::operator delete(buf);
 
     EXPECT_EQ(src.mtype, dst->mtype);
-    EXPECT_EQ(src.server_rank, dst->server_rank);
+    EXPECT_EQ(src.src, dst->src);
+    EXPECT_EQ(src.dst, dst->dst);
     EXPECT_EQ(src.index, dst->index);
     EXPECT_EQ(src.index_type, dst->index_type);
 

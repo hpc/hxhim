@@ -70,6 +70,16 @@ mdhim_rm_t *mdhim_rm_init(TransportRecvMessage *rm) {
     return ret;
 }
 
+mdhim_getrm_t *mdhim_grm_init(TransportGetRecvMessage *grm) {
+    mdhim_getrm_t *ret = new mdhim_getrm_t();
+    if (!ret || !(ret->p = new mdhim_getrm_private_t())) {
+        return nullptr;
+    }
+
+    ret->p->grm = grm;
+    return ret;
+}
+
 mdhim_bgetrm_t *mdhim_bgrm_init(TransportBGetRecvMessage *bgrm) {
     mdhim_bgetrm_t *ret = new mdhim_bgetrm_t();
     if (!ret || !(ret->p = new mdhim_bgetrm_private_t())) {
@@ -189,6 +199,20 @@ void mdhim_rm_destroy(mdhim_rm_t *rm) {
     }
 }
 
+void mdhim_grm_destroy(mdhim_getrm_t *grm) {
+    if (grm) {
+        if (grm->p) {
+            if (grm->p->grm) {
+                delete grm->p->grm;
+            }
+
+            delete grm->p;
+        }
+
+        delete grm;
+    }
+}
+
 void mdhim_bgrm_destroy(mdhim_bgetrm_t *bgrm) {
     if (bgrm) {
         if (bgrm->p) {
@@ -217,24 +241,67 @@ void mdhim_brm_destroy(mdhim_brm_t *brm) {
     }
 }
 
-int mdhim_brm_error(const mdhim_brm_t *brm) {
-    if (!brm || !brm->p || !brm->p->brm) {
+int mdhim_brm_error(const mdhim_brm_t *brm, int *error) {
+    if (!brm || !brm->p || !brm->p->brm || !error) {
         return MDHIM_ERROR;
     }
 
-    return brm->p->brm->error;
+    *error = brm->p->brm->error;
+    return MDHIM_SUCCESS;
 }
 
-int mdhim_bgrm_error(const mdhim_bgetrm_t *bgrm) {
-    if (!bgrm || !bgrm->p || !bgrm->p->bgrm) {
+int mdhim_grm_error(const mdhim_getrm_t *grm, int *error) {
+    if (!grm || !grm->p || !grm->p->grm || !error) {
         return MDHIM_ERROR;
     }
 
-    return bgrm->p->bgrm->error;
+    *error = grm->p->grm->error;
+    return MDHIM_SUCCESS;
+}
+
+int  mdhim_grm_key(const mdhim_getrm_t *grm, void **key, int *key_len) {
+    if (!grm || !grm->p || !grm->p->grm || !key || key_len) {
+        return MDHIM_ERROR;
+    }
+
+    if (key) {
+        *key = grm->p->grm->key;
+    }
+
+    if (key_len) {
+        *key_len = grm->p->grm->key_len;
+    }
+
+    return MDHIM_SUCCESS;
+}
+
+int mdhim_grm_value(const mdhim_getrm_t *grm, void **value, int *value_len) {
+    if (!grm || !grm->p || !grm->p->grm || !value || value_len) {
+        return MDHIM_ERROR;
+    }
+
+    if (value) {
+        *value = grm->p->grm->value;
+    }
+
+    if (value_len) {
+        *value_len = grm->p->grm->value_len;
+    }
+
+    return MDHIM_SUCCESS;
+}
+
+int mdhim_bgrm_error(const mdhim_bgetrm_t *bgrm, int *error) {
+    if (!bgrm || !bgrm->p || !bgrm->p->bgrm || !error) {
+        return MDHIM_ERROR;
+    }
+
+    *error = bgrm->p->bgrm->error;
+    return MDHIM_SUCCESS;
 }
 
 int  mdhim_bgrm_keys(const mdhim_bgetrm_t *bgrm, void ***keys, int **key_lens) {
-    if (!bgrm || !bgrm->p || !bgrm->p->bgrm) {
+    if (!bgrm || !bgrm->p || !bgrm->p->bgrm || !keys || key_lens) {
         return MDHIM_ERROR;
     }
 
@@ -250,7 +317,7 @@ int  mdhim_bgrm_keys(const mdhim_bgetrm_t *bgrm, void ***keys, int **key_lens) {
 }
 
 int mdhim_bgrm_values(const mdhim_bgetrm_t *bgrm, void ***values, int **value_lens) {
-    if (!bgrm || !bgrm->p || !bgrm->p->bgrm) {
+    if (!bgrm || !bgrm->p || !bgrm->p->bgrm || !values || value_lens) {
         return MDHIM_ERROR;
     }
 

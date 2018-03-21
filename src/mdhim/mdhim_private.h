@@ -22,19 +22,17 @@ typedef struct mdhim_private {
 	MPI_Comm mdhim_comm;
 	pthread_mutex_t mdhim_comm_lock;
 
-    // function called in the listener thread to receive data
-    TransportWorkReceiver work_receiver;
+    // the function that runs as the transport listener thread
+    void *(*listener_thread)(void *);
 
-    // function called by the worker thread after processing the received data
-    TransportResponseSender response_sender;
+    // the function called once data has been processed by the range server
+    int (*send_locally_or_remote)(mdhim_t *, const int, TransportMessage *);
 
 	//This communicator will include every process in the application, but is separate from the app
     //It is used for barriers for clients
 	MPI_Comm mdhim_client_comm;
 
-	/* //The rank in the mdhim_comm */
-	/* int mdhim_rank; */
-	//The size of mdhim_comm
+    //The size of mdhim_comm
 	int mdhim_comm_size;
 	//Flag to indicate mdhimClose was called
 	volatile int shutdown;
@@ -71,23 +69,15 @@ typedef struct mdhim_private {
  * @param commtype The communication type to instantiate
  * @return 0 on success, non-zero on failre
  */
-int mdhim_private_init(struct mdhim_private* mdp, int dstype, int commtype);
+int mdhim_private_init(struct mdhim_private* mdp, int dstype, int transporttype);
 
 TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
-                                   void *key, int key_len,
-                                   void *value, int value_len);
+                                  void *key, int key_len,
+                                  void *value, int value_len);
+TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
+                                     void *key, int key_len,
+                                     enum TransportGetMessageOp op);
 TransportBRecvMessage *_create_brm(TransportRecvMessage *rm);
 void _concat_brm(TransportBRecvMessage *head, TransportBRecvMessage *addition);
-TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
-                                     void **keys, int *key_lens,
-                                     void **values, int *value_lens,
-                                     int num_records);
-TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
-                                        void **keys, int *key_lens,
-                                        int num_keys, int num_records,
-                                        TransportGetMessageOp op);
-// mdhim_brm_t *_bdel_records(mdhim_t *md, index_t *index,
-//                            void **keys, int *key_lens,
-//                            int num_records);
 
 #endif

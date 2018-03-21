@@ -153,7 +153,7 @@ int mdhimInit(mdhim_t* md, mdhim_options_t *opts) {
     //Initialize context variables based on options
 
     md->p = new mdhim_private;
-    mdhim_private_init(md->p, MDHIM_DS_LEVELDB, MDHIM_COMM_MPI);
+    mdhim_private_init(md->p, MDHIM_DS_LEVELDB, MDHIM_TRANSPORT_MPI);
 
     md->p->mdhim_comm = opts->comm;
     md->p->mdhim_comm_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -251,12 +251,14 @@ int mdhimCommit(struct mdhim *md, struct index *index) {
         cm->mtype = TransportMessageType::COMMIT;
         cm->index = index->id;
         cm->index_type = index->type;
+        cm->dst = md->p->transport->ID();
         TransportRecvMessage *rm = local_client_commit(md, static_cast<TransportMessage *>(cm));
+
         if (!rm || rm->error) {
             ret = MDHIM_ERROR;
-            mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %s - "
+            mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
                  "Error while committing database in mdhimTransportit",
-                 ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
+                 md->p->transport->ID());
         }
 
         delete rm;
@@ -309,65 +311,65 @@ mdhim_brm_t *mdhimPut(struct mdhim *md,
     TransportBRecvMessage *head = _create_brm(rm);
     delete rm;
 
-    //Return message from each _put_record call
-    TransportBRecvMessage *brm = nullptr;
+    // //Return message from each _put_record call
+    // TransportBRecvMessage *brm = nullptr;
 
-    //Insert the secondary local key if it was given
-    if (secondary_local_info && secondary_local_info->secondary_index &&
-        secondary_local_info->secondary_keys &&
-        secondary_local_info->secondary_key_lens &&
-        secondary_local_info->num_keys) {
-        void **primary_keys = (void**)malloc(sizeof(void *) * secondary_local_info->num_keys);
-        int *primary_key_lens = (int *)malloc(sizeof(int) * secondary_global_info->num_keys);
-        for (int i = 0; i < secondary_local_info->num_keys; i++) {
-            primary_keys[i] = malloc(primary_key_len);
-            memcpy(primary_keys[i], primary_key, primary_key_len);
-            primary_key_lens[i] = primary_key_len;
-        }
+    // //Insert the secondary local key if it was given
+    // if (secondary_local_info && secondary_local_info->secondary_index &&
+    //     secondary_local_info->secondary_keys &&
+    //     secondary_local_info->secondary_key_lens &&
+    //     secondary_local_info->num_keys) {
+    //     void **primary_keys = (void**)malloc(sizeof(void *) * secondary_local_info->num_keys);
+    //     int *primary_key_lens = (int *)malloc(sizeof(int) * secondary_global_info->num_keys);
+    //     for (int i = 0; i < secondary_local_info->num_keys; i++) {
+    //         primary_keys[i] = malloc(primary_key_len);
+    //         memcpy(primary_keys[i], primary_key, primary_key_len);
+    //         primary_key_lens[i] = primary_key_len;
+    //     }
 
-        brm = _bput_records(md,
-                            secondary_local_info->secondary_index,
-                            secondary_local_info->secondary_keys,
-                            secondary_local_info->secondary_key_lens,
-                            primary_keys, primary_key_lens,
-                            secondary_local_info->num_keys);
+    //     brm = _bput_records(md,
+    //                         secondary_local_info->secondary_index,
+    //                         secondary_local_info->secondary_keys,
+    //                         secondary_local_info->secondary_key_lens,
+    //                         primary_keys, primary_key_lens,
+    //                         secondary_local_info->num_keys);
 
-        free(primary_keys);
-        free(primary_key_lens);
-        if (!brm) {
-            return mdhim_brm_init(head);
-        }
+    //     free(primary_keys);
+    //     free(primary_key_lens);
+    //     if (!brm) {
+    //         return mdhim_brm_init(head);
+    //     }
 
-        _concat_brm(head, brm);
-    }
+    //     _concat_brm(head, brm);
+    // }
 
-    //Insert the secondary global key if it was given
-    if (secondary_global_info && secondary_global_info->secondary_index &&
-        secondary_global_info->secondary_keys &&
-        secondary_global_info->secondary_key_lens &&
-        secondary_global_info->num_keys) {
-        void **primary_keys = (void**)malloc(sizeof(void *) * secondary_global_info->num_keys);
-        int *primary_key_lens = (int *)malloc(sizeof(int) * secondary_global_info->num_keys);
-        for (int i = 0; i < secondary_global_info->num_keys; i++) {
-            primary_keys[i] = malloc(primary_key_len);
-            memcpy(primary_keys[i], primary_key, primary_key_len);
-            primary_key_lens[i] = primary_key_len;
-        }
-        brm = _bput_records(md,
-                            secondary_global_info->secondary_index,
-                            secondary_global_info->secondary_keys,
-                            secondary_global_info->secondary_key_lens,
-                            primary_keys, primary_key_lens,
-                            secondary_global_info->num_keys);
+    // //Insert the secondary global key if it was given
+    // if (secondary_global_info && secondary_global_info->secondary_index &&
+    //     secondary_global_info->secondary_keys &&
+    //     secondary_global_info->secondary_key_lens &&
+    //     secondary_global_info->num_keys) {
+    //     void **primary_keys = (void**)malloc(sizeof(void *) * secondary_global_info->num_keys);
+    //     int *primary_key_lens = (int *)malloc(sizeof(int) * secondary_global_info->num_keys);
+    //     for (int i = 0; i < secondary_global_info->num_keys; i++) {
+    //         primary_keys[i] = malloc(primary_key_len);
+    //         memcpy(primary_keys[i], primary_key, primary_key_len);
+    //         primary_key_lens[i] = primary_key_len;
+    //     }
+    //     brm = _bput_records(md,
+    //                         secondary_global_info->secondary_index,
+    //                         secondary_global_info->secondary_keys,
+    //                         secondary_global_info->secondary_key_lens,
+    //                         primary_keys, primary_key_lens,
+    //                         secondary_global_info->num_keys);
 
-        free(primary_keys);
-        free(primary_key_lens);
-        if (!brm) {
-            return mdhim_brm_init(head);
-        }
+    //     free(primary_keys);
+    //     free(primary_key_lens);
+    //     if (!brm) {
+    //         return mdhim_brm_init(head);
+    //     }
 
-        _concat_brm(head, brm);
-    }
+    //     _concat_brm(head, brm);
+    // }
 
     return mdhim_brm_init(head);
 }
@@ -552,14 +554,11 @@ mdhim_brm_t *mdhimPut(struct mdhim *md,
  * @param op        the operation type
  * @return mdhim_getrm_t * or NULL on error
  */
-mdhim_bgetrm_t *mdhimGet(mdhim_t *md, struct index *index,
+mdhim_getrm_t *mdhimGet(mdhim_t *md, struct index *index,
                          void *key, int key_len,
                          enum TransportGetMessageOp op) {
     if (op != TransportGetMessageOp::GET_EQ && op != TransportGetMessageOp::GET_PRIMARY_EQ) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
-             "Invalid op specified for mdhimGet",
-             ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
-        return NULL;
+        return nullptr;
     }
 
     // Clone primary key and value
@@ -567,14 +566,13 @@ mdhim_bgetrm_t *mdhimGet(mdhim_t *md, struct index *index,
     if (!k) {
         return nullptr;
     }
-
     memcpy(k, key, key_len);
 
     if (!index) {
         index = md->p->primary_index;
     }
 
-    return mdhim_bgrm_init(_bget_records(md, index, &k, &key_len, 1, 1, op));
+    return mdhim_grm_init(_get_record(md, index, k, key_len, op));
 }
 
 // /**
@@ -596,24 +594,24 @@ mdhim_bgetrm_t *mdhimGet(mdhim_t *md, struct index *index,
 //     int i;
 
 //     if (op != MDHIM_GET_EQ && op != MDHIM_GET_PRIMARY_EQ) {
-//         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
+//         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
 //              "Invalid operation for mdhimBGet",
-//              ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
+//              md->p->transport->ID());
 //         return NULL;
 //     }
 
 //     //Check to see that we were given a sane amount of records
 //     if (num_keys > MAX_BULK_OPS) {
-//         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
+//         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
 //              "Too many bulk operations requested in mdhimBGet",
-//              ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
+//              md->p->transport->ID());
 //         return NULL;
 //     }
 
 //     if (!index) {
-//         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
+//         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
 //              "Invalid index specified",
-//              ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
+//              md->p->transport->ID());
 //         return NULL;
 //     }
 
@@ -634,11 +632,11 @@ mdhim_bgetrm_t *mdhimGet(mdhim_t *md, struct index *index,
 //         }
 
 //         if (plen > MAX_BULK_OPS) {
-//             mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
+//             mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
 //                  "Too many bulk operations would be performed "
 //                  "with the MDHIM_GET_PRIMARY_EQ operation.  Limiting "
 //                  "request to : %u key/values",
-//                  ((std::string) (*md->p->transport->Endpoint()->Address())).c_str(), MAX_BULK_OPS);
+//                  md->p->transport->ID(), MAX_BULK_OPS);
 //             plen = MAX_BULK_OPS - 1;
 //         }
 
@@ -712,16 +710,16 @@ mdhim_bgetrm_t *mdhimGet(mdhim_t *md, struct index *index,
 //     struct mdhim_bgetrm_t *bgrm_head;
 
 //     if (num_records > MAX_BULK_OPS) {
-//         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
+//         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
 //              "To many bulk operations requested in mdhimBGetOp",
-//              ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
+//              md->p->transport->ID());
 //         return NULL;
 //     }
 
 //     if (op == MDHIM_GET_EQ || op == MDHIM_GET_PRIMARY_EQ) {
-//         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
+//         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
 //              "Invalid op specified for mdhimGet",
-//              ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
+//              md->p->transport->ID());
 //         return NULL;
 //     }
 
@@ -784,9 +782,9 @@ mdhim_bgetrm_t *mdhimGet(mdhim_t *md, struct index *index,
 
 //     //Check to see that we were given a sane amount of records
 //     if (num_records > MAX_BULK_OPS) {
-//         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
+//         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
 //              "To many bulk operations requested in mdhimBGetOp",
-//              ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
+//              md->p->transport->ID());
 //         return NULL;
 //     }
 
@@ -807,9 +805,9 @@ int mdhimStatFlush(mdhim_t *md, struct index *index) {
 
     MPI_Barrier(md->p->mdhim_client_comm);
     if ((ret = get_stat_flush(md, index)) != MDHIM_SUCCESS) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
              "Error while getting MDHIM stat data in mdhimStatFlush",
-             ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
+             md->p->transport->ID());
     }
     MPI_Barrier(md->p->mdhim_client_comm);
 
