@@ -97,7 +97,7 @@ TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
 		} else {
 			//Send the message through the network as this message is for another rank
 			rm = client_put(md, pm);
-			free(pm);
+			delete pm;
 		}
 
 		rangesrv_list *rlp = rl;

@@ -25,7 +25,7 @@ int MPIEndpoint::AddPutRequest(const TransportPutMessage *message) {
     const int ret = send_rangesrv_work(message->server_rank, buf, bufsize);
 
     // cleanup
-    free(buf);
+    delete (buf);
 
     if (ret != MDHIM_SUCCESS) {
         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - Error: %d from server while sending "
