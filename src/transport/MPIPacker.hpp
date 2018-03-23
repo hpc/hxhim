@@ -6,19 +6,19 @@
 #include <mpi.h>
 
 #include "transport.hpp"
-#include "MPIEndpointBase.hpp"
+#include "Packer.hpp"
 
 /**
  * MPIPacker
  * A collection of functions that pack TransportMessages
  * into MPI formatted buffers for transport
  *
- * @param endpointbase a pointer containing a valid MPI communicator
- * @param message      pointer to the mesage that will be packed
- * @param buf          address of the new memory location where the message will be packed into
- * @param bufsize      size of the new memory location
+ * @param comm    a valid MPI communicator
+ * @param message pointer to the mesage that will be packed
+ * @param buf     address of the new memory location where the message will be packed into
+ * @param bufsize size of the new memory location
 */
-class MPIPacker {
+class MPIPacker : private Packer {
     public:
         static int any (const MPI_Comm comm, const TransportMessage         *msg,  void **buf, int *bufsize);
 
@@ -40,8 +40,6 @@ class MPIPacker {
          * *bufsize should already have been determined when calling this function
          */
         static int pack(const MPI_Comm comm, const TransportMessage         *msg,  void **buf, int *bufsize, int *position);
-
-        static void cleanup(void **buf, int *bufsize);
 };
 
 #endif

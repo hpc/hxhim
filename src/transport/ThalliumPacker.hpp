@@ -1,41 +1,36 @@
 #ifndef HXHIM_TRANSPORT_THALLIUM_PACKER
 #define HXHIM_TRANSPORT_THALLIUM_PACKER
 
-#include <string>
+#include <sstream>
 
 #include <thallium.hpp>
 
 #include "transport.hpp"
+#include "Packer.hpp"
 
 /**
  * ThalliumPacker
  * A collection of functions that pack TransportMessages
  * using thallium
  *
- * @param *message  povoider to the mesage that will be packed
+ * @param message pointer to the mesage that will be packed
+ * @param buf     address of the new memory location where the message will be packed into
+ * @param bufsize size of the new memory location
  */
-template <typename A>
-void save(A &ar, TransportPutMessage &msg) {
-    save(ar, &msg);
-    // ar & std::string(msg.key, msg.key_len);
-    // ar & msg.key_len;
-    // ar & std::string(msg.value, msg.value_len);
-    // ar & msg.value_len;
-}
+class ThalliumPacker : private Packer {
+    public:
+        static int any (const TransportMessage         *msg, std::string &buf);
 
-template <typename A>
-void save(A &ar,  TransportGetMessage &msg) {
-    save(ar, &msg);
-    // ar & std::string(msg.key, msg.key_len);
-    // ar & msg.key_len;
-}
+        static int pack(const TransportPutMessage      *pm,  std::string &buf);
+        static int pack(const TransportGetMessage      *gm,  std::string &buf);
+        static int pack(const TransportRecvMessage     *rm,  std::string &buf);
+        static int pack(const TransportGetRecvMessage  *grm, std::string &buf);
 
-template <typename A>
-void save(A &ar, TransportMessage *msg) {
-    ar & msg->mtype;
-    ar & msg->dst;
-    ar & msg->index;
-    ar & msg->index_type;
-}
+    private:
+        /**
+         * Common to all public functions
+         */
+        static int pack(const TransportMessage         *msg, std::stringstream &s);
+};
 
 #endif

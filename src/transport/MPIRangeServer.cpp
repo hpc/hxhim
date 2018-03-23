@@ -13,11 +13,7 @@ void *MPIRangeServer::listener_thread(void *data) {
     pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
 
-    while (1) {
-        if (md->p->shutdown) {
-            break;
-        }
-
+    while (!md->p->shutdown) {
         //Clean outstanding sends
         range_server_clean_oreqs(md);
 
@@ -52,7 +48,7 @@ void *MPIRangeServer::listener_thread(void *data) {
  */
 int MPIRangeServer::send_locally_or_remote(mdhim_t *md, const int dest, TransportMessage *message) {
     int ret = MDHIM_SUCCESS;
-    if (md->p->transport->ID() != dest) {
+    if (md->p->transport->EndpointID() != dest) {
         //Sends the message remotely
         ret = send_client_response(dest, message, md->p->shutdown);
         // if (*size_req) {

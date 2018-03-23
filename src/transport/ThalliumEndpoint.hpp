@@ -16,11 +16,10 @@
  */
 class ThalliumEndpoint : virtual public TransportEndpoint {
     public:
-        /** Create a TransportEndpoint for a specified process */
-        ThalliumEndpoint(const std::string &sender_protocol,
-                         const std::string &receiver_protocol);
+        ThalliumEndpoint(const std::string &local_sender_protocol,
+                         const std::string &client_receiver_protocol,
+                         const std::string &local_receiver_protocol);
 
-        /** Destructor */
         ~ThalliumEndpoint();
 
         int AddPutRequest(const TransportPutMessage *message);
@@ -30,8 +29,16 @@ class ThalliumEndpoint : virtual public TransportEndpoint {
         int AddGetReply(TransportGetRecvMessage **message);
 
     private:
+        /**
+         * Used for sending to the range server
+         */
         thallium::engine *sender_;
-        const std::string &receiver_protocol_;
+        const std::string &client_protocol_;
+
+        /**
+         * Used for receiving from the range server
+         */
+        thallium::engine *receiver_;
 };
 
 #endif

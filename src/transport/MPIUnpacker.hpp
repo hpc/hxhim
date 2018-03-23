@@ -9,14 +9,14 @@
 #include "MPIEndpointBase.hpp"
 
 /**
- * MPIPack
+ * MPIUnpacker
  * A collection of functions that unpack
  * MPI formatted buffers into TransportMessages
  *
- * @param endpointbase a pointer containing a valid MPI communicator
- * @param message      address to the pointer that will be created and unpacked into
- * @param buf          the data to convert into the message
- * @param bufsize      size of the given data
+ * @param comm    a valid MPI communicator
+ * @param message address of the pointer that will be created and unpacked into
+ * @param buf     the data to convert into the message
+ * @param bufsize size of the given data
 */
 class MPIUnpacker {
     public:

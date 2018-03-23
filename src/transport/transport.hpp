@@ -80,7 +80,7 @@ class TransportBPutMessage final : virtual public TransportMessage {
  */
 class TransportGet : virtual public TransportMessage {
     public:
-        TransportGet();
+        TransportGet(const TransportMessageType type);
         ~TransportGet();
 
         TransportGetMessageOp op;
@@ -233,7 +233,6 @@ class TransportBRecvMessage final : virtual public TransportMessage {
  * and use the flush call to complete progress. You initiate a Put or Get and receive an operation id. You then
  * keep calling the function until the operation is completed.
  *
- * TODO: replace all message structs with pointer to base message type
  */
 class TransportEndpoint {
     public:
@@ -289,9 +288,9 @@ class TransportEndpoint {
  */
 class Transport {
     public:
-        Transport(const int &id)
+        Transport(const int &endpoint_id)
             : endpoints_(),
-              id_(id)
+              endpoint_id_(endpoint_id)
         {}
 
         ~Transport() {
@@ -323,8 +322,8 @@ class Transport {
             return endpoints_.at(id)->AddGetReply(message);
         }
 
-        int ID() const {
-            return id_;
+        int EndpointID() const {
+            return endpoint_id_;
         }
 
         // virtual TransportEndpointGroup *EndpointGroup() {
@@ -332,7 +331,7 @@ class Transport {
         // }
 
     private:
-        const int id_;
+        const int endpoint_id_; // the endpoint id that other processes know this process as
 
         std::map<int, TransportEndpoint *> endpoints_;
         // TransportEndpointGroup *endpointgroup_;

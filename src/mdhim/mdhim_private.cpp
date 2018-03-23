@@ -41,12 +41,14 @@ int mdhim_private_init(mdhim_private* mdp, int dstype, int transporttype) {
         mdp->transport = new Transport(MPIInstance::instance().Rank());
 
         // give the thallium range server access to the mdhim data
-        ThalliumRangeServer::init(mdp);
+        ThalliumRangeServer::init(mdp, "na+sm://127.0.0.1");
 
         // create mapping between unique IDs and thallium addresses
         // use MPI ranks as unique IDs
         for(int i = 0; i < MPIInstance::instance().Size(); i++) {
-            mdp->transport->AddEndpoint(i, new ThalliumEndpoint("bmi+tcp", "bmi+tcp://127.0.0.1:1234"));
+            mdp->transport->AddEndpoint(i, new ThalliumEndpoint("na+sm",
+                                                                "na+sm://127.0.0.1:1234",
+                                                                "na+sm://127.0.0.1:4321"));
         }
 
         rc = MDHIM_SUCCESS;
@@ -84,7 +86,7 @@ TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
 		    NULL) {
 			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
 			     "Error while determining range server in mdhimBPut",
-			     md->p->transport->ID());
+			     md->p->transport->EndpointID());
 			return NULL;
 		}
 	} else {
@@ -92,7 +94,7 @@ TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
 		if ((rl = get_range_servers(md, lookup_index, key, key_len)) == NULL) {
 			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
 			     "Error while determining range server in _put_record",
-			     md->p->transport->ID());
+			     md->p->transport->EndpointID());
 			return NULL;
 		}
 	}
@@ -103,7 +105,7 @@ TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
 		if (!pm) {
 			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
 			     "Error while allocating memory in _put_record",
-			     md->p->transport->ID());
+			     md->p->transport->EndpointID());
 			return NULL;
 		}
 
@@ -113,13 +115,13 @@ TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
 		pm->key_len = key_len;
 		pm->value = value;
 		pm->value_len = value_len;
-        pm->src = md->p->transport->ID();
+        pm->src = md->p->transport->EndpointID();
 		pm->dst = rl->ri->rank;
 		pm->index = put_index->id;
 		pm->index_type = put_index->type;
 
 		//If I'm a range server and I'm the one this key goes to, send the message locally
-		if (im_range_server(put_index) && md->p->transport->ID() == pm->dst) {
+		if (im_range_server(put_index) && md->p->transport->EndpointID() == pm->dst) {
 			rm = local_client_put(md, pm);
 		} else {
 			//Send the message through the network as this message is for another rank
@@ -163,7 +165,7 @@ TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
         gm->key = key;
         gm->key_len = key_len;
         gm->num_keys = 1;
-        gm->src = md->p->transport->ID();
+        gm->src = md->p->transport->EndpointID();
         gm->dst = rl->ri->rank;
         gm->mtype = TransportMessageType::GET;
         gm->op = (op == TransportGetMessageOp::GET_PRIMARY_EQ)?TransportGetMessageOp::GET_EQ:op;
@@ -171,7 +173,7 @@ TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
         gm->index_type = index->type;
 
 		//If I'm a range server and I'm the one this key goes to, send the message locally
-		if (im_range_server(index) && md->p->transport->ID() == gm->dst) {
+		if (im_range_server(index) && md->p->transport->EndpointID() == gm->dst) {
 			grm = local_client_get(md, gm);
 		} else {
 			//Send the message through the network as this message is for another rank

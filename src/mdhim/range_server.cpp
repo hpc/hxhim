@@ -135,14 +135,14 @@ int range_server_stop(mdhim_t *md) {
     //Destroy the condition variables
     if ((ret = pthread_cond_destroy(md->p->mdhim_rs->work_ready_cv)) != 0) {
       mlog(MDHIM_SERVER_DBG, "Rank %d - Error destroying work cond variable",
-           md->p->transport->ID());
+           md->p->transport->EndpointID());
     }
     free(md->p->mdhim_rs->work_ready_cv);
 
     //Destroy the work queue mutex
     if ((ret = pthread_mutex_destroy(md->p->mdhim_rs->work_queue_mutex)) != 0) {
       mlog(MDHIM_SERVER_DBG, "Rank %d - Error destroying work queue mutex",
-           md->p->transport->ID());
+           md->p->transport->EndpointID());
     }
     free(md->p->mdhim_rs->work_queue_mutex);
 
@@ -151,7 +151,7 @@ int range_server_stop(mdhim_t *md) {
     //Destroy the out req mutex
     if ((ret = pthread_mutex_destroy(md->p->mdhim_rs->out_req_mutex)) != 0) {
       mlog(MDHIM_SERVER_DBG, "Rank %d - Error destroying work queue mutex",
-           md->p->transport->ID());
+           md->p->transport->EndpointID());
     }
     free(md->p->mdhim_rs->out_req_mutex);
 
@@ -165,9 +165,9 @@ int range_server_stop(mdhim_t *md) {
     free(md->p->mdhim_rs->work_queue);
 
     mlog(MDHIM_SERVER_INFO, "Rank %d - Inserted: %ld records in %Lf seconds",
-         md->p->transport->ID(), md->p->mdhim_rs->num_put, md->p->mdhim_rs->put_time);
+         md->p->transport->EndpointID(), md->p->mdhim_rs->num_put, md->p->mdhim_rs->put_time);
     mlog(MDHIM_SERVER_INFO, "Rank %d - Retrieved: %ld records in %Lf seconds",
-         md->p->transport->ID(), md->p->mdhim_rs->num_get, md->p->mdhim_rs->get_time);
+         md->p->transport->EndpointID(), md->p->mdhim_rs->num_get, md->p->mdhim_rs->get_time);
 
     //Free the range server data
     free(md->p->mdhim_rs);
@@ -208,7 +208,7 @@ static int range_server_put(mdhim_t *md, TransportPutMessage *im, const int addr
     index = find_index(md, (TransportMessage *) im);
     if (!index) {
         mlog(MDHIM_SERVER_CRIT, "Rank %d - Error retrieving index for id: %d",
-             md->p->transport->ID(), im->index);
+             md->p->transport->EndpointID(), im->index);
         error = MDHIM_ERROR;
         goto done;
     }
@@ -248,7 +248,7 @@ static int range_server_put(mdhim_t *md, TransportPutMessage *im, const int addr
                      im->key, im->key_len, new_value,
                      new_value_len)) != MDHIM_SUCCESS) {
         mlog(MDHIM_SERVER_CRIT, "Rank %d - Error putting record",
-             md->p->transport->ID());
+             md->p->transport->EndpointID());
         error = ret;
     } else {
         inserted = 1;
@@ -269,7 +269,7 @@ done:
     //Set the operation return code as the error
     rm->error = error;
     //Set the server's rank
-    rm->dst = md->p->transport->ID();
+    rm->dst = md->p->transport->EndpointID();
 
     //Send response
     ret = md->p->send_locally_or_remote(md, address, static_cast<TransportMessage *>(rm));
@@ -278,7 +278,7 @@ done:
     if (exists && md->p->db_opts->db_value_append == MDHIM_DB_APPEND) {
         free(new_value);
     }
-    // if (source != (int) md->p->transport->ID()) {
+    // if (source != (int) md->p->transport->EndpointID()) {
         // free(im->key);
         // free(im->value);
     // }
@@ -320,7 +320,7 @@ static int range_server_bput(mdhim_t *md, TransportBPutMessage *bim, const int a
     index = find_index(md, static_cast<TransportMessage *>(bim));
     if (!index) {
         mlog(MDHIM_SERVER_CRIT, "Rank %d - Error retrieving index for id: %d",
-             md->p->transport->ID(), bim->index);
+             md->p->transport->EndpointID(), bim->index);
         error = MDHIM_ERROR;
         goto done;
     }
@@ -349,7 +349,7 @@ static int range_server_bput(mdhim_t *md, TransportBPutMessage *bim, const int a
             new_value = malloc(new_value_len);
             memcpy(new_value, old_value, old_value_len);
             memcpy((char*)new_value + old_value_len, bim->values[i], bim->value_lens[i]);
-            if (exists[i] && address != md->p->transport->ID()) {
+            if (exists[i] && address != md->p->transport->EndpointID()) {
                 free(bim->values[i]);
             }
 
@@ -371,7 +371,7 @@ static int range_server_bput(mdhim_t *md, TransportBPutMessage *bim, const int a
                        bim->keys, bim->key_lens, new_values,
                        new_value_lens, bim->num_keys)) != MDHIM_SUCCESS) {
         mlog(MDHIM_SERVER_CRIT, "Rank %d - Error batch putting records",
-             md->p->transport->ID());
+             md->p->transport->EndpointID());
         error = ret;
     } else {
         num_put = bim->num_keys;
@@ -389,7 +389,7 @@ static int range_server_bput(mdhim_t *md, TransportBPutMessage *bim, const int a
         }
 
         //Release the bput keys/value if the message isn't coming from myself
-        if (address != md->p->transport->ID()) {
+        if (address != md->p->transport->EndpointID()) {
             free(bim->keys[i]);
             bim->keys[i] = nullptr;
             free(bim->values[i]);
@@ -412,11 +412,10 @@ static int range_server_bput(mdhim_t *md, TransportBPutMessage *bim, const int a
     //Set the operation return code as the error
     brm->error = error;
     //Set the server's rank
-    brm->dst = md->p->transport->ID();
+    brm->dst = md->p->transport->EndpointID();
 
     //Release the internals of the bput message
-    // TODO: put this back in
-    // delete bim;
+    delete bim;
 
     //Send response
     ret = md->p->send_locally_or_remote(md, address, brm);
@@ -442,7 +441,7 @@ static int range_server_bput(mdhim_t *md, TransportBPutMessage *bim, const int a
 //     index = find_index(md, (struct mdhim_basem_t *) dm);
 //     if (!index) {
 //         mlog(MDHIM_SERVER_CRIT, "Rank %d - Error retrieving index for id: %d",
-//              md->p->transport->ID(), dm->basem.index);
+//              md->p->transport->EndpointID(), dm->basem.index);
 //         ret = MDHIM_ERROR;
 //         goto done;
 //     }
@@ -452,7 +451,7 @@ static int range_server_bput(mdhim_t *md, TransportBPutMessage *bim, const int a
 //          index->mdhim_store->del(index->mdhim_store->db_handle,
 //                      dm->key, dm->key_len)) != MDHIM_SUCCESS) {
 //         mlog(MDHIM_SERVER_CRIT, "Rank %d - Error deleting record",
-//              md->p->transport->ID());
+//              md->p->transport->EndpointID());
 //     }
 
 //  done:
@@ -463,7 +462,7 @@ static int range_server_bput(mdhim_t *md, TransportBPutMessage *bim, const int a
 //     //Set the operation return code as the error
 //     rm->error = ret;
 //     //Set the server's rank
-//     rm->basem.dst = (int) md->p->transport->ID();
+//     rm->basem.dst = (int) md->p->transport->EndpointID();
 
 //     //Send response
 //     ret = md->p->send_locally_or_remote(md, source, rm);
@@ -492,7 +491,7 @@ static int range_server_bput(mdhim_t *md, TransportBPutMessage *bim, const int a
 //     index = find_index(md, (struct mdhim_basem_t *) bdm);
 //     if (!index) {
 //         mlog(MDHIM_SERVER_CRIT, "Rank %d - Error retrieving index for id: %d",
-//              md->p->transport->ID(), bdm->basem.index);
+//              md->p->transport->EndpointID(), bdm->basem.index);
 //         error = MDHIM_ERROR;
 //         goto done;
 //     }
@@ -505,7 +504,7 @@ static int range_server_bput(mdhim_t *md, TransportBPutMessage *bim, const int a
 //                          bdm->keys[i], bdm->key_lens[i]))
 //             != MDHIM_SUCCESS) {
 //             mlog(MDHIM_SERVER_CRIT, "Rank %d - Error deleting record",
-//                  md->p->transport->ID());
+//                  md->p->transport->EndpointID());
 //             error = ret;
 //         }
 //     }
@@ -518,7 +517,7 @@ static int range_server_bput(mdhim_t *md, TransportBPutMessage *bim, const int a
 //     //Set the operation return code as the error
 //     brm->error = error;
 //     //Set the server's rank
-//     brm->basem.dst = (int) md->p->transport->ID();
+//     brm->basem.dst = (int) md->p->transport->EndpointID();
 
 //     //Send response
 //     ret = md->p->send_locally_or_remote(md, source, brm);
@@ -546,7 +545,7 @@ static int range_server_commit(mdhim_t *md, TransportMessage *im, const int addr
     index = find_index(md, im);
     if (!index) {
         mlog(MDHIM_SERVER_CRIT, "Rank %d - Error retrieving index for id: %d",
-             md->p->transport->ID(), im->index);
+             md->p->transport->EndpointID(), im->index);
         ret = MDHIM_ERROR;
         goto done;
     }
@@ -556,7 +555,7 @@ static int range_server_commit(mdhim_t *md, TransportMessage *im, const int addr
          index->mdhim_store->commit(index->mdhim_store->db_handle))
         != MDHIM_SUCCESS) {
         mlog(MDHIM_SERVER_CRIT, "Rank %d - Error committing database",
-             md->p->transport->ID());
+             md->p->transport->EndpointID());
     }
 
  done:
@@ -567,7 +566,7 @@ static int range_server_commit(mdhim_t *md, TransportMessage *im, const int addr
     //Set the operation return code as the error
     rm->error = ret;
     //Set the server's rank
-    rm->dst = md->p->transport->ID();
+    rm->dst = md->p->transport->EndpointID();
 
     //Send response
     ret = md->p->send_locally_or_remote(md, address, rm);
@@ -682,9 +681,9 @@ done:
     //Set the operation return code as the error
     grm->error = error;
     //Set the server's rank
-    grm->dst = md->p->transport->ID();
+    grm->dst = md->p->transport->EndpointID();
     //Set the key and value
-    if (address == md->p->transport->ID()) {
+    if (address == md->p->transport->EndpointID()) {
         //If this message is coming from myself, copy the keys
         grm->key = (void*)malloc(gm->key_len);
         memcpy(grm->key, gm->key, gm->key_len);
@@ -734,7 +733,7 @@ static int range_server_bget(mdhim_t *md, TransportBGetMessage *bgm, const int a
     index = find_index(md, (TransportMessage *) bgm);
     if (!index) {
         mlog(MDHIM_SERVER_CRIT, "Rank %d - Error retrieving index for id: %d",
-             md->p->transport->ID(), bgm->index);
+             md->p->transport->EndpointID(), bgm->index);
         error = MDHIM_ERROR;
         goto done;
     }
@@ -761,7 +760,7 @@ static int range_server_bget(mdhim_t *md, TransportBGetMessage *bgm, const int a
                      index->mdhim_store->get_next(index->mdhim_store->db_handle,
                                                   &bgm->keys[i], &bgm->key_lens[i], &values[i],
                                                   &value_lens[i])) != MDHIM_SUCCESS) {
-                    mlog(MDHIM_SERVER_DBG, "Rank %d - Error getting record", md->p->transport->ID());
+                    mlog(MDHIM_SERVER_DBG, "Rank %d - Error getting record", md->p->transport->EndpointID());
                     error = ret;
                     value_lens[i] = 0;
                     values[i] = NULL;
@@ -776,7 +775,7 @@ static int range_server_bget(mdhim_t *md, TransportBGetMessage *bgm, const int a
                      index->mdhim_store->get_prev(index->mdhim_store->db_handle,
                                                   &bgm->keys[i], &bgm->key_lens[i], &values[i],
                                                   &value_lens[i])) != MDHIM_SUCCESS) {
-                    mlog(MDHIM_SERVER_DBG, "Rank %d - Error getting record", md->p->transport->ID());
+                    mlog(MDHIM_SERVER_DBG, "Rank %d - Error getting record", md->p->transport->EndpointID());
                     error = ret;
                     value_lens[i] = 0;
                     values[i] = NULL;
@@ -790,7 +789,7 @@ static int range_server_bget(mdhim_t *md, TransportBGetMessage *bgm, const int a
                      index->mdhim_store->get_next(index->mdhim_store->db_handle,
                                                   &bgm->keys[i], 0, &values[i],
                                                   &value_lens[i])) != MDHIM_SUCCESS) {
-                    mlog(MDHIM_SERVER_DBG, "Rank %d - Error getting record", md->p->transport->ID());
+                    mlog(MDHIM_SERVER_DBG, "Rank %d - Error getting record", md->p->transport->EndpointID());
                     error = ret;
                     value_lens[i] = 0;
                     values[i] = NULL;
@@ -804,7 +803,7 @@ static int range_server_bget(mdhim_t *md, TransportBGetMessage *bgm, const int a
                      index->mdhim_store->get_prev(index->mdhim_store->db_handle,
                                                   &bgm->keys[i], 0, &values[i],
                                                   &value_lens[i])) != MDHIM_SUCCESS) {
-                    mlog(MDHIM_SERVER_DBG, "Rank %d - Error getting record", md->p->transport->ID());
+                    mlog(MDHIM_SERVER_DBG, "Rank %d - Error getting record", md->p->transport->EndpointID());
                     error = ret;
                     value_lens[i] = 0;
                     values[i] = NULL;
@@ -814,7 +813,7 @@ static int range_server_bget(mdhim_t *md, TransportBGetMessage *bgm, const int a
                 break;
             default:
                 mlog(MDHIM_SERVER_DBG, "Rank %d - Invalid operation: %d given in range_server_get",
-                     md->p->transport->ID(), (int) bgm->op);
+                     md->p->transport->EndpointID(), (int) bgm->op);
                 continue;
         }
 
@@ -832,9 +831,9 @@ done:
     //Set the operation return code as the error
     bgrm->error = error;
     //Set the server's rank
-    bgrm->dst = md->p->transport->ID();
+    bgrm->dst = md->p->transport->EndpointID();
     //Set the key and value
-    if (address == md->p->transport->ID()) {
+    if (address == md->p->transport->EndpointID()) {
         //If this message is coming from myself, copy the keys
         bgrm->key_lens = (int*)malloc(bgm->num_keys * sizeof(int));
         bgrm->keys = (void**)malloc(bgm->num_keys * sizeof(void *));
@@ -913,20 +912,20 @@ static int range_server_bget_op(mdhim_t *md, TransportBGetMessage *bgm, const in
     index = find_index(md, (TransportMessage *) bgm);
     if (!index) {
         mlog(MDHIM_SERVER_CRIT, "Rank %d - Error retrieving index for id: %d",
-             md->p->transport->ID(), bgm->index);
+             md->p->transport->EndpointID(), bgm->index);
         error = MDHIM_ERROR;
         goto respond;
     }
 
     if (bgm->num_keys * bgm->num_recs > MAX_BULK_OPS) {
         mlog(MDHIM_SERVER_CRIT, "Rank %d - Too many bulk operations requested",
-             md->p->transport->ID());
+             md->p->transport->EndpointID());
         error = MDHIM_ERROR;
         goto respond;
     }
 
     mlog(MDHIM_SERVER_CRIT, "Rank %d - Num keys is: %d and num recs is: %d",
-         md->p->transport->ID(), bgm->num_keys, bgm->num_recs);
+         md->p->transport->EndpointID(), bgm->num_keys, bgm->num_recs);
     gettimeofday(&start, NULL);
     //Iterate through the arrays and get each record
     for (i = 0; i < bgm->num_keys; i++) {
@@ -962,7 +961,7 @@ static int range_server_bget_op(mdhim_t *md, TransportBGetMessage *bgm, const in
                                        get_value_len))
                     != MDHIM_SUCCESS) {
                     mlog(MDHIM_SERVER_DBG, "Rank %d - Couldn't get next record",
-                         md->p->transport->ID());
+                         md->p->transport->EndpointID());
                     error = ret;
                     key_lens[num_records] = 0;
                     value_lens[num_records] = 0;
@@ -992,7 +991,7 @@ static int range_server_bget_op(mdhim_t *md, TransportBGetMessage *bgm, const in
                                        get_value_len))
                     != MDHIM_SUCCESS) {
                     mlog(MDHIM_SERVER_DBG, "Rank %d - Couldn't get prev record",
-                         md->p->transport->ID());
+                         md->p->transport->EndpointID());
                     error = ret;
                     key_lens[num_records] = 0;
                     value_lens[num_records] = 0;
@@ -1011,7 +1010,7 @@ static int range_server_bget_op(mdhim_t *md, TransportBGetMessage *bgm, const in
                 break;
             default:
                 mlog(MDHIM_SERVER_CRIT, "Rank %d - Invalid operation for bulk get op",
-                     md->p->transport->ID());
+                     md->p->transport->EndpointID());
                 goto respond;
                 break;
             }
@@ -1036,7 +1035,7 @@ respond:
     //Set the operation return code as the error
     bgrm->error = error;
     //Set the server's rank
-    bgrm->dst = md->p->transport->ID();
+    bgrm->dst = md->p->transport->EndpointID();
     //Set the keys and values
     bgrm->keys = keys;
     bgrm->key_lens = key_lens;
@@ -1050,7 +1049,7 @@ respond:
     ret = md->p->send_locally_or_remote(md, address, bgrm);
 
     //Free stuff
-    if (address == md->p->transport->ID()) {
+    if (address == md->p->transport->EndpointID()) {
         /* If this message is not coming from myself,
            free the keys and values from the get message */
         // mdhim_partial_release_msg(bgm);
@@ -1250,7 +1249,7 @@ int range_server_init(mdhim_t *md) {
     if (!md->p->mdhim_rs) {
         mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
              "Error while allocating memory for range server",
-             md->p->transport->ID());
+             md->p->transport->EndpointID());
         return MDHIM_ERROR;
     }
 
@@ -1272,12 +1271,12 @@ int range_server_init(mdhim_t *md) {
     if (!md->p->mdhim_rs->work_queue_mutex) {
         mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
              "Error while allocating memory for range server",
-             md->p->transport->ID());
+             md->p->transport->EndpointID());
         return MDHIM_ERROR;
     }
     if ((ret = pthread_mutex_init(md->p->mdhim_rs->work_queue_mutex, NULL)) != 0) {
         mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
-             "Error while initializing work queue mutex", md->p->transport->ID());
+             "Error while initializing work queue mutex", md->p->transport->EndpointID());
         return MDHIM_ERROR;
     }
 
@@ -1286,12 +1285,12 @@ int range_server_init(mdhim_t *md) {
     if (!md->p->mdhim_rs->out_req_mutex) {
         mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
              "Error while allocating memory for range server",
-             md->p->transport->ID());
+             md->p->transport->EndpointID());
         return MDHIM_ERROR;
     }
     if ((ret = pthread_mutex_init(md->p->mdhim_rs->out_req_mutex, NULL)) != 0) {
         mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
-             "Error while initializing out req mutex", md->p->transport->ID());
+             "Error while initializing out req mutex", md->p->transport->EndpointID());
         return MDHIM_ERROR;
     }
 
@@ -1300,13 +1299,13 @@ int range_server_init(mdhim_t *md) {
     if (!md->p->mdhim_rs->work_ready_cv) {
         mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
              "Error while allocating memory for range server",
-             md->p->transport->ID());
+             md->p->transport->EndpointID());
         return MDHIM_ERROR;
     }
     if ((ret = pthread_cond_init(md->p->mdhim_rs->work_ready_cv, NULL)) != 0) {
         mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
              "Error while initializing condition variable",
-             md->p->transport->ID());
+             md->p->transport->EndpointID());
         return MDHIM_ERROR;
     }
 
@@ -1318,7 +1317,7 @@ int range_server_init(mdhim_t *md) {
                       worker_thread, (void *) md)) != 0) {
             mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
                  "Error while initializing worker thread",
-                 md->p->transport->ID());
+                 md->p->transport->EndpointID());
             return MDHIM_ERROR;
         }
     }
@@ -1328,7 +1327,7 @@ int range_server_init(mdhim_t *md) {
                   md->p->listener_thread, (void *) md)) != 0) {
       mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
            "Error while initializing listener thread",
-           md->p->transport->ID());
+           md->p->transport->EndpointID());
       return MDHIM_ERROR;
     }
 

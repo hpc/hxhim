@@ -9,6 +9,9 @@ int MPIPacker::any (const MPI_Comm comm, const TransportMessage *msg, void **buf
         case TransportMessageType::BPUT:
             ret = pack(comm, dynamic_cast<const TransportBPutMessage *>(msg), buf, bufsize);
             break;
+        case TransportMessageType::GET:
+            ret = pack(comm, dynamic_cast<const TransportGetMessage *>(msg), buf, bufsize);
+            break;
         case TransportMessageType::BGET:
             ret = pack(comm, dynamic_cast<const TransportBGetMessage *>(msg), buf, bufsize);
             break;
@@ -270,15 +273,4 @@ int MPIPacker::pack(const MPI_Comm comm, const TransportMessage *msg, void **buf
     }
 
     return MDHIM_SUCCESS;
-}
-
-void MPIPacker::cleanup(void **buf, int *bufsize) {
-    if (buf) {
-        ::operator delete (*buf);
-        *buf = nullptr;
-    }
-
-    if (bufsize) {
-        *bufsize = 0;
-    }
 }

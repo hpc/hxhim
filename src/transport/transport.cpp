@@ -90,16 +90,16 @@ void TransportBPutMessage::cleanup() {
     num_keys = 0;
 }
 
-TransportGet::TransportGet()
-    : TransportMessage(TransportMessageType::BGET),
-      op(TransportGetMessageOp::GET_OP_MAX),
-      num_keys(0)
+TransportGet::TransportGet(const TransportMessageType type)
+  : TransportMessage(type),
+    op(TransportGetMessageOp::GET_OP_MAX),
+    num_keys(0)
 {}
 
 TransportGet::~TransportGet() {}
 
 TransportGetMessage::TransportGetMessage()
-  : TransportGet()
+  : TransportGet(TransportMessageType::GET)
 {}
 
 TransportGetMessage::~TransportGetMessage() {
@@ -120,9 +120,9 @@ void TransportGetMessage::cleanup() {
 }
 
 TransportBGetMessage::TransportBGetMessage()
-    : TransportGet(),
-      keys(nullptr), key_lens(nullptr),
-      num_recs(0)
+  : TransportGet(TransportMessageType::BGET),
+    keys(nullptr), key_lens(nullptr),
+    num_recs(0)
 {}
 
 TransportBGetMessage::~TransportBGetMessage() {

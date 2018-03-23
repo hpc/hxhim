@@ -144,11 +144,9 @@ TransportGetRecvMessage *client_get(mdhim_t *md, TransportGetMessage *gm) {
 //     int return_code;
 //     int num_srvs = 0;
 
-//     //TODO: get rid of bgm_list
 //     TransportAddress *srvs = new MPIAddress[index->num_rangesrvs]();
 //     for (int i = 0; i < index->num_rangesrvs; i++) {
 //         if (bgm_list[i]) {
-//             // TODO: use TransportAddress directly
 //             dynamic_cast<MPIAddress *>(srvs)[num_srvs].SetRank(bgm_list[i]->dst);
 //             num_srvs++;
 //         }

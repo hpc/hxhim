@@ -15,18 +15,18 @@ int MPIUnpacker::any(const MPI_Comm comm, TransportMessage **msg, const void *bu
                 *msg = put;
             }
             break;
-        case TransportMessageType::GET:
-            {
-                TransportGetMessage *get = nullptr;
-                ret = unpack(comm, &get, buf, bufsize);
-                *msg = get;
-            }
-            break;
         case TransportMessageType::BPUT:
             {
                 TransportBPutMessage *bput = nullptr;
                 ret = unpack(comm, &bput, buf, bufsize);
                 *msg = bput;
+            }
+            break;
+        case TransportMessageType::GET:
+            {
+                TransportGetMessage *get = nullptr;
+                ret = unpack(comm, &get, buf, bufsize);
+                *msg = get;
             }
             break;
         case TransportMessageType::BGET:

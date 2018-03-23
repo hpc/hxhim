@@ -251,14 +251,14 @@ int mdhimCommit(struct mdhim *md, struct index *index) {
         cm->mtype = TransportMessageType::COMMIT;
         cm->index = index->id;
         cm->index_type = index->type;
-        cm->dst = md->p->transport->ID();
+        cm->dst = md->p->transport->EndpointID();
         TransportRecvMessage *rm = local_client_commit(md, static_cast<TransportMessage *>(cm));
 
         if (!rm || rm->error) {
             ret = MDHIM_ERROR;
             mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
                  "Error while committing database in mdhimTransportit",
-                 md->p->transport->ID());
+                 md->p->transport->EndpointID());
         }
 
         delete rm;
@@ -596,7 +596,7 @@ mdhim_getrm_t *mdhimGet(mdhim_t *md, struct index *index,
 //     if (op != MDHIM_GET_EQ && op != MDHIM_GET_PRIMARY_EQ) {
 //         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
 //              "Invalid operation for mdhimBGet",
-//              md->p->transport->ID());
+//              md->p->transport->EndpointID());
 //         return NULL;
 //     }
 
@@ -604,14 +604,14 @@ mdhim_getrm_t *mdhimGet(mdhim_t *md, struct index *index,
 //     if (num_keys > MAX_BULK_OPS) {
 //         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
 //              "Too many bulk operations requested in mdhimBGet",
-//              md->p->transport->ID());
+//              md->p->transport->EndpointID());
 //         return NULL;
 //     }
 
 //     if (!index) {
 //         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
 //              "Invalid index specified",
-//              md->p->transport->ID());
+//              md->p->transport->EndpointID());
 //         return NULL;
 //     }
 
@@ -636,7 +636,7 @@ mdhim_getrm_t *mdhimGet(mdhim_t *md, struct index *index,
 //                  "Too many bulk operations would be performed "
 //                  "with the MDHIM_GET_PRIMARY_EQ operation.  Limiting "
 //                  "request to : %u key/values",
-//                  md->p->transport->ID(), MAX_BULK_OPS);
+//                  md->p->transport->EndpointID(), MAX_BULK_OPS);
 //             plen = MAX_BULK_OPS - 1;
 //         }
 
@@ -712,14 +712,14 @@ mdhim_getrm_t *mdhimGet(mdhim_t *md, struct index *index,
 //     if (num_records > MAX_BULK_OPS) {
 //         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
 //              "To many bulk operations requested in mdhimBGetOp",
-//              md->p->transport->ID());
+//              md->p->transport->EndpointID());
 //         return NULL;
 //     }
 
 //     if (op == MDHIM_GET_EQ || op == MDHIM_GET_PRIMARY_EQ) {
 //         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
 //              "Invalid op specified for mdhimGet",
-//              md->p->transport->ID());
+//              md->p->transport->EndpointID());
 //         return NULL;
 //     }
 
@@ -784,7 +784,7 @@ mdhim_getrm_t *mdhimGet(mdhim_t *md, struct index *index,
 //     if (num_records > MAX_BULK_OPS) {
 //         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
 //              "To many bulk operations requested in mdhimBGetOp",
-//              md->p->transport->ID());
+//              md->p->transport->EndpointID());
 //         return NULL;
 //     }
 
@@ -807,7 +807,7 @@ int mdhimStatFlush(mdhim_t *md, struct index *index) {
     if ((ret = get_stat_flush(md, index)) != MDHIM_SUCCESS) {
         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
              "Error while getting MDHIM stat data in mdhimStatFlush",
-             md->p->transport->ID());
+             md->p->transport->EndpointID());
     }
     MPI_Barrier(md->p->mdhim_client_comm);
 
