@@ -4,6 +4,7 @@
 #ifdef __cplusplus
 extern "C"
 {
+#endif
 /** Success constant */
 #define HXHIM_OK = 0
 
@@ -35,6 +36,7 @@ typedef struct hxhim_session {
     const hxhim_cfg_store *store;
 } hxhim_session_t;
     
+#ifdef __cplusplus
 }
 #endif // __cplusplus
 
