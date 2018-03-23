@@ -72,7 +72,7 @@ int MPIEndpointGroup::AddBGetRequest(TransportBGetMessage **messages, int num_sr
 
     // cleanup
     for (int i = 0; i < num_srvs; i++) {
-        free(sendbufs[i]);
+        delete sendbufs[i];
     }
 
     free(sendbufs);
