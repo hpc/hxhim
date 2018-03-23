@@ -80,4 +80,5 @@ TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
 TransportBRecvMessage *_create_brm(TransportRecvMessage *rm);
 void _concat_brm(TransportBRecvMessage *head, TransportBRecvMessage *addition);
 
+int _which_server(struct mdhim *md, void *key, int key_len);
 #endif
