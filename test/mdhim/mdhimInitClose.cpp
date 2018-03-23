@@ -18,7 +18,7 @@ TEST(mdhimInitClose, Good) {
     fill_db_opts(opts);
 
     EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
-    EXPECT_EQ(MPI_Barrier(dynamic_cast<MPIEndpoint *>(md.p->transport->Endpoint())->Comm()), MPI_SUCCESS);
+    EXPECT_EQ(MPI_Barrier(MPI_COMM_WORLD), MPI_SUCCESS);
     EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
 }
 

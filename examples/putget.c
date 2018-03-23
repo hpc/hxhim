@@ -60,7 +60,9 @@ int main(int argc, char *argv[]){
                                     (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
                                     (void *)&MDHIM_PUT_GET_VALUE, sizeof(MDHIM_PUT_GET_VALUE),
                                     NULL, NULL);
-        if (mdhim_brm_error(brm) != MDHIM_SUCCESS) {
+        int error = MDHIM_ERROR;
+        if ((mdhim_brm_error(brm, &error) != MDHIM_SUCCESS) ||
+            (error != MDHIM_SUCCESS)) {
             mdhim_brm_destroy(brm);
             cleanup(&md);
             return MDHIM_ERROR;
@@ -83,35 +85,40 @@ int main(int argc, char *argv[]){
     //Every rank gets the value back
     {
         //Pass NULL here to use md->p->primary_index
-        mdhim_bgetrm_t *bgrm = mdhimGet(&md, NULL,
-                                        (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
-                                        GET_EQ);
-        if (mdhim_bgrm_error(bgrm) != MDHIM_SUCCESS) {
-            mdhim_bgrm_destroy(bgrm);
+        mdhim_getrm_t *grm = mdhimGet(&md, NULL,
+                                      (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
+                                      GET_EQ);
+        int error = MDHIM_ERROR;
+        if ((mdhim_grm_error(grm, &error) != MDHIM_SUCCESS) ||
+            (error != MDHIM_SUCCESS)) {
+            printf("Rank %d got: Bad return value\n", rank);
+            mdhim_grm_destroy(grm);
             cleanup(&md);
             return MDHIM_ERROR;
         }
 
         // Extract the keys from the returned value (do not free)
-        Key_t **keys = NULL;
-        if (mdhim_bgrm_keys(bgrm, (void ***) &keys, NULL) != MDHIM_SUCCESS) {
-            mdhim_bgrm_destroy(bgrm);
+        Key_t *key = NULL;
+        if (mdhim_grm_key(grm, (void **) &key, NULL) != MDHIM_SUCCESS) {
+            printf("Rank %d got: Could not extract key\n", rank);
+            mdhim_grm_destroy(grm);
             cleanup(&md);
             return MDHIM_ERROR;
         }
 
         // Extract the values from the returned value (do not free)
-        Value_t **values = NULL;
-        if (mdhim_bgrm_values(bgrm, (void ***) &values, NULL) != MDHIM_SUCCESS) {
-            mdhim_bgrm_destroy(bgrm);
+        Value_t *value = NULL;
+        if (mdhim_grm_value(grm, (void **) &value, NULL) != MDHIM_SUCCESS) {
+            printf("Rank %d got: Could not extract value\n", rank);
+            mdhim_grm_destroy(grm);
             cleanup(&md);
             return MDHIM_ERROR;
         }
 
         //Print value gotten back
-        printf("Rank %d got: %d -> %d\n", rank, **keys, **values);
+        printf("Rank %d got: %d -> %d\n", rank, *key, *value);
 
-        mdhim_bgrm_destroy(bgrm);
+        mdhim_grm_destroy(grm);
     }
 
     MPI_Barrier(MPI_COMM_WORLD);

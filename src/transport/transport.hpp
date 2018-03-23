@@ -6,43 +6,10 @@
 #define HXHIM_TRANSPORT
 
 #include <cstdlib>
-#include <functional>
-#include <string>
+#include <map>
 
 #include "mdhim_constants.h"
-#include "mdhim_struct.h"
 #include "transport_constants.h"
-
-/**
- * @description An abstract communication address
- */
-class TransportAddress {
-    public:
-        TransportAddress() {}
-        TransportAddress(const TransportAddress& rhs) {}
-        virtual ~TransportAddress() {};
-
-        bool operator==(const TransportAddress &rhs) {
-            return equals(rhs);
-        }
-
-        /*
-           Function for typecasting TransportAddresses
-           into octet buffers
-         */
-        virtual operator std::string() const = 0;
-
-        /*
-          Function for typecasting TransportAddresses
-          into ints
-
-          TODO: Remove this function once MPI is properly abstracted
-         */
-        virtual operator int() const = 0;
-
-    protected:
-        virtual bool equals(const TransportAddress &rhs) const = 0;
-};
 
 /**
  * Base Message Type
@@ -61,17 +28,20 @@ class TransportMessage {
         void cleanup();
 
         TransportMessageType mtype;
-        int server_rank; // this should eventually become TransportAddress
+        int src;
+        int dst;
         int index;
         int index_type;
         char *index_name;
+
+    protected:
 };
 
 /**
  * TransportPutMessage
  * Put message implementation
  */
-class TransportPutMessage final : public TransportMessage {
+class TransportPutMessage final : virtual public TransportMessage {
     public:
         TransportPutMessage();
         ~TransportPutMessage();
@@ -89,7 +59,7 @@ class TransportPutMessage final : public TransportMessage {
  * TransportBPutMessage
  * Bulk put message imeplementation
  */
-class TransportBPutMessage final : public TransportMessage {
+class TransportBPutMessage final : virtual public TransportMessage {
     public:
         TransportBPutMessage();
         ~TransportBPutMessage();
@@ -108,9 +78,9 @@ class TransportBPutMessage final : public TransportMessage {
  * TransportGet
  * Base type for get messages
  */
-class TransportGet : public TransportMessage {
+class TransportGet : virtual public TransportMessage {
     public:
-        TransportGet();
+        TransportGet(const TransportMessageType type);
         ~TransportGet();
 
         TransportGetMessageOp op;
@@ -121,7 +91,7 @@ class TransportGet : public TransportMessage {
  * TransportGetMessage
  * Get message implementation
  */
-class TransportGetMessage final : public TransportGet {
+class TransportGetMessage final : virtual public TransportGet {
     public:
         TransportGetMessage();
         ~TransportGetMessage();
@@ -137,7 +107,7 @@ class TransportGetMessage final : public TransportGet {
  * TransportBGetMessage
  * Bulk get message implementation
  */
-class TransportBGetMessage final : public TransportGet {
+class TransportBGetMessage final : virtual public TransportGet {
     public:
         TransportBGetMessage();
         ~TransportBGetMessage();
@@ -156,7 +126,7 @@ class TransportBGetMessage final : public TransportGet {
  * TransportDeleteMessage
  * Delete message implementation
  */
-class TransportDeleteMessage final : public TransportMessage {
+class TransportDeleteMessage final : virtual public TransportMessage {
     public:
         TransportDeleteMessage();
         ~TransportDeleteMessage();
@@ -172,7 +142,7 @@ class TransportDeleteMessage final : public TransportMessage {
  * TransportBDeleteMessage
  * Bulk delete message implementation
  */
-class TransportBDeleteMessage final : public TransportMessage {
+class TransportBDeleteMessage final : virtual public TransportMessage {
     public:
         TransportBDeleteMessage();
         ~TransportBDeleteMessage();
@@ -189,7 +159,7 @@ class TransportBDeleteMessage final : public TransportMessage {
  * TransportRecvMessage
  * Generic receive message implemenetation
  */
-class TransportRecvMessage final : public TransportMessage {
+class TransportRecvMessage final : virtual public TransportMessage {
     public:
         TransportRecvMessage();
         ~TransportRecvMessage();
@@ -201,10 +171,29 @@ class TransportRecvMessage final : public TransportMessage {
 };
 
 /**
+ * TransportGetRecvMessage
+ * Generic receive get message implemenetation
+ */
+class TransportGetRecvMessage final : virtual public TransportMessage {
+    public:
+        TransportGetRecvMessage();
+        ~TransportGetRecvMessage();
+
+        int size() const;
+        void cleanup();
+
+        int error;
+        void *key;
+        int key_len;
+        void *value;
+        int value_len;
+};
+
+/**
  * TransportBGetRecvMessage
  * Bulk get receive message implementation
  */
-class TransportBGetRecvMessage final : public TransportMessage {
+class TransportBGetRecvMessage final : virtual public TransportMessage {
     public:
         TransportBGetRecvMessage();
         ~TransportBGetRecvMessage();
@@ -225,7 +214,7 @@ class TransportBGetRecvMessage final : public TransportMessage {
  * TransportBRecvMessage
  * Bulk receive message implementation
  */
-class TransportBRecvMessage final : public TransportMessage {
+class TransportBRecvMessage final : virtual public TransportMessage {
     public:
         TransportBRecvMessage();
         ~TransportBRecvMessage();
@@ -244,34 +233,22 @@ class TransportBRecvMessage final : public TransportMessage {
  * and use the flush call to complete progress. You initiate a Put or Get and receive an operation id. You then
  * keep calling the function until the operation is completed.
  *
- * TODO: replace all message structs with pointer to base message type
  */
 class TransportEndpoint {
     public:
         virtual ~TransportEndpoint() {}
 
-        /** @description Ensure queued messages are sent to destination and serviced */
-        virtual int Flush() = 0;
-
         /** @description Enqueue a Put request for this endpoint */
         virtual int AddPutRequest(const TransportPutMessage *message) = 0;
 
         /** @description Enqueue a Get request for this endpoint */
-        virtual int AddGetRequest(const TransportBGetMessage *message) = 0;
+        virtual int AddGetRequest(const TransportGetMessage *message) = 0;
 
         /** @description Enqueue a Put reply for the request originator */
-        virtual int AddPutReply(const TransportAddress *src, TransportRecvMessage **message) = 0;
+        virtual int AddPutReply(TransportRecvMessage **message) = 0;
 
         /** @description Enqueue a Get reply for the request originator */
-        virtual int AddGetReply(const TransportAddress *src, TransportBGetRecvMessage ***messages) = 0;
-
-        /** @description Poll for number of seconds to determine if a message is present */
-        virtual std::size_t PollForMessage(std::size_t timeoutSecs) = 0;
-
-        /** @description Wait for number of seconds for an interrupt to indicate a message is present*/
-        virtual std::size_t WaitForMessage(std::size_t timeoutSecs) = 0;
-
-        virtual const TransportAddress *Address() const = 0;
+        virtual int AddGetReply(TransportGetRecvMessage **message) = 0;
 
     protected:
         TransportEndpoint() {}
@@ -279,33 +256,31 @@ class TransportEndpoint {
         TransportEndpoint(const TransportEndpoint& rhs) {}
 };
 
-/**
- * An abstract group of communication endpoints
- * @param Transport
- */
-class TransportEndpointGroup {
-    public:
-        virtual ~TransportEndpointGroup() {}
+// /**
+//  * An abstract group of communication endpoints
+//  * @param Transport
+//  */
+// class TransportEndpointGroup {
+//     public:
+//         virtual ~TransportEndpointGroup() {}
 
-        /** @description Enqueue a BPut requests to multiple endpoints  */
-        virtual int AddBPutRequest(TransportBPutMessage **messages, int num_srvs) = 0;
+//         /** @description Enqueue a BPut requests to multiple endpoints  */
+//         virtual int AddBPutRequest(TransportBPutMessage **messages, int num_srvs) = 0;
 
-        /** @description Enqueue a BGet request to multiple endpoints  */
-        virtual int AddBGetRequest(TransportBGetMessage **messages, int num_srvs) = 0;
+//         /** @description Enqueue a BGet request to multiple endpoints  */
+//         virtual int AddBGetRequest(TransportBGetMessage **messages, int num_srvs) = 0;
 
-        /** @description Enqueue a BPut reply for the request originator */
-        virtual int AddBPutReply(const TransportAddress *srcs, int nsrcs, TransportRecvMessage **message) = 0;
+//         /** @description Enqueue a BPut reply for the request originator */
+//         virtual int AddBPutReply(TransportRecvMessage **message) = 0;
 
-        /** @description Enqueue a BGet reply for the request originator */
-        virtual int AddBGetReply(const TransportAddress *srcs, int nsrcs, TransportBGetRecvMessage **messages) = 0;
+//         /** @description Enqueue a BGet reply for the request originator */
+//         virtual int AddBGetReply(TransportBGetRecvMessage **messages) = 0;
 
-        virtual const TransportAddress *Address() const = 0;
+//    protected:
+//         TransportEndpointGroup() {}
 
-   protected:
-        TransportEndpointGroup() {}
-
-        TransportEndpointGroup(const TransportEndpointGroup& rhs){}
-};
+//         TransportEndpointGroup(const TransportEndpointGroup& rhs){}
+// };
 
 /**
  * Abstract base for all Transport Implementations (MPI, Sockets, Mercury, etc.)
@@ -313,38 +288,53 @@ class TransportEndpointGroup {
  */
 class Transport {
     public:
-        Transport(TransportEndpoint *ep, TransportEndpointGroup *eg)
-          : endpoint_(ep), endpointgroup_(eg)
+        Transport(const int &endpoint_id)
+            : endpoints_(),
+              endpoint_id_(endpoint_id)
         {}
 
-        virtual ~Transport() {
-            delete endpoint_;
-            delete endpointgroup_;
+        ~Transport() {
+            for(std::pair<const int, TransportEndpoint *> const & ep : endpoints_) {
+                delete ep.second;
+            }
         }
 
-        virtual TransportEndpoint *Endpoint() {
-            return endpoint_;
+        /**
+         * Associate each endpoint with a unique id
+         */
+        void AddEndpoint(const int id, TransportEndpoint *ep) {
+            endpoints_[id] = ep;
         }
 
-        virtual TransportEndpointGroup *EndpointGroup() {
-            return endpointgroup_;
+        int AddPutRequest(const TransportPutMessage *message) {
+            return endpoints_.at(message->dst)->AddPutRequest(message);
         }
+
+        int AddGetRequest(const TransportGetMessage *message) {
+            return endpoints_.at(message->dst)->AddGetRequest(message);
+        }
+
+        int AddPutReply(const int id, TransportRecvMessage **message) {
+            return endpoints_.at(id)->AddPutReply(message);
+        }
+
+        int AddGetReply(const int id, TransportGetRecvMessage **message) {
+            return endpoints_.at(id)->AddGetReply(message);
+        }
+
+        int EndpointID() const {
+            return endpoint_id_;
+        }
+
+        // virtual TransportEndpointGroup *EndpointGroup() {
+        //     return endpointgroup_;
+        // }
 
     private:
-        TransportEndpoint *endpoint_;
-        TransportEndpointGroup *endpointgroup_;
+        const int endpoint_id_; // the endpoint id that other processes know this process as
+
+        std::map<int, TransportEndpoint *> endpoints_;
+        // TransportEndpointGroup *endpointgroup_;
 };
-
-/**
- * function signature that will be used for
- * acknowledging mdhim operations
- */
-typedef std::function<int(Transport *, const TransportAddress *, TransportMessage *)> TransportResponseSender;
-
-/**
- * function signature that will be used for
- * receiving initial mdhim operation
- */
-typedef std::function<int(Transport *, TransportAddress**, TransportMessage **)> TransportWorkReceiver;
 
 #endif //HXHIM_TRANSPORT

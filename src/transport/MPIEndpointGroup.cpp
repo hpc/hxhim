@@ -1,3 +1,4 @@
+#if 0
 #include "MPIEndpointGroup.hpp"
 
 MPIEndpointGroup::MPIEndpointGroup(MPI_Comm comm, volatile int &shutdown)
@@ -24,7 +25,7 @@ int MPIEndpointGroup::AddBPutRequest(TransportBPutMessage **messages, int num_sr
             sizes[i] = 0;
         }
 
-        dests[i] = messages[i]->server_rank;
+        dests[i] = messages[i]->dst;
     }
 
     // send all of the messages at once
@@ -63,7 +64,7 @@ int MPIEndpointGroup::AddBGetRequest(TransportBGetMessage **messages, int num_sr
             sizes[i] = 0;
         }
 
-        dests[i] = messages[i]->server_rank;
+        dests[i] = messages[i]->dst;
     }
 
     // send all of the messages at once
@@ -86,7 +87,7 @@ int MPIEndpointGroup::AddBGetRequest(TransportBGetMessage **messages, int num_sr
     return ret;
 }
 
-int MPIEndpointGroup::AddBPutReply(const TransportAddress *srcs, int nsrcs, TransportRecvMessage **messages) {
+int MPIEndpointGroup::AddBPutReply(TransportRecvMessage **messages) {
     if (!srcs || !messages) {
         return MDHIM_ERROR;
     }
@@ -124,7 +125,7 @@ int MPIEndpointGroup::AddBPutReply(const TransportAddress *srcs, int nsrcs, Tran
     return ret;
 }
 
-int MPIEndpointGroup::AddBGetReply(const TransportAddress *srcs, int nsrcs, TransportBGetRecvMessage **messages) {
+int MPIEndpointGroup::AddBGetReply(TransportBGetRecvMessage **messages) {
     if (!srcs || !messages) {
         return MDHIM_ERROR;
     }
@@ -162,6 +163,4 @@ int MPIEndpointGroup::AddBGetReply(const TransportAddress *srcs, int nsrcs, Tran
     return ret;
 }
 
-const TransportAddress *MPIEndpointGroup::Address() const {
-    return &address_;
-}
+#endif

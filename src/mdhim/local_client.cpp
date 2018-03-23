@@ -50,74 +50,91 @@ TransportRecvMessage *local_client_put(mdhim_t *md, TransportPutMessage *pm) {
 	work_item *item = new work_item();
 
 	if (!item) {
-		mlog(MDHIM_CLIENT_CRIT, "Error while allocating memory for client");
 		return nullptr;
 	}
 
     // This needs the double static_cast in order for it to work properly
     // This is probably a clang++ 3.9.1 bug
     item->message = static_cast<void *>(static_cast<TransportMessage *>(pm));
-    item->address = md->p->transport->Endpoint()->Address();
+    item->address = pm->dst;
 
 	if (range_server_add_work(md, item) != MDHIM_SUCCESS) {
-		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
 		return nullptr;
 	}
 
     return dynamic_cast<TransportRecvMessage *>(static_cast<TransportMessage *>(get_msg_self(md)));
 }
 
-/**
- * Send bulk put to range server
- *
- * @param md main MDHIM struct
- * @param bpm pointer to bulk put message to be sent or inserted into the range server's work queue
- * @return return_message structure with ->error = MDHIM_SUCCESS or MDHIM_ERROR
-*/
-TransportRecvMessage *local_client_bput(struct mdhim *md, TransportBPutMessage *bpm) {
+TransportGetRecvMessage *local_client_get(mdhim_t *md, TransportGetMessage *gm) {
 	work_item *item = new work_item();
 
 	if (!item) {
-		mlog(MDHIM_CLIENT_CRIT, "Error while allocating memory for client");
-		return NULL;
+		return nullptr;
 	}
 
-    item->message = static_cast<void *>(static_cast<TransportMessage *>(bpm));
-    item->address = md->p->transport->Endpoint()->Address();
+    // This needs the double static_cast in order for it to work properly
+    // This is probably a clang++ 3.9.1 bug
+    item->message = static_cast<void *>(static_cast<TransportMessage *>(gm));
+    item->address = gm->dst;
 
 	if (range_server_add_work(md, item) != MDHIM_SUCCESS) {
-		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
-		return NULL;
+		return nullptr;
 	}
 
-    return dynamic_cast<TransportRecvMessage *>(static_cast<TransportMessage *>(get_msg_self(md)));
+    return dynamic_cast<TransportGetRecvMessage *>(static_cast<TransportMessage *>(get_msg_self(md)));
 }
 
-/**
- * Send bulk get to range server
- *
- * @param md main MDHIM struct
- * @param bgm pointer to get message to be sent or inserted into the range server's work queue
- * @return return_message structure with ->error = MDHIM_SUCCESS or MDHIM_ERROR
- */
-TransportBGetRecvMessage *local_client_bget(struct mdhim *md, TransportBGetMessage *bgm) {
-	work_item *item = new work_item();
+// /**
+//  * Send bulk put to range server
+//  *
+//  * @param md main MDHIM struct
+//  * @param bpm pointer to bulk put message to be sent or inserted into the range server's work queue
+//  * @return return_message structure with ->error = MDHIM_SUCCESS or MDHIM_ERROR
+// */
+// TransportRecvMessage *local_client_bput(struct mdhim *md, TransportBPutMessage *bpm) {
+// 	work_item *item = new work_item();
 
-	if (!item) {
-		mlog(MDHIM_CLIENT_CRIT, "Error while allocating memory for client");
-		return NULL;
-	}
+// 	if (!item) {
+// 		mlog(MDHIM_CLIENT_CRIT, "Error while allocating memory for client");
+// 		return NULL;
+// 	}
 
-	item->message = static_cast<void *>(static_cast<TransportMessage *>(bgm));
-    item->address = md->p->transport->Endpoint()->Address();
+//     item->message = static_cast<void *>(static_cast<TransportMessage *>(bpm));
+//     item->address = md->p->transport->Endpoint()->Address();
 
-	if (range_server_add_work(md, item) != MDHIM_SUCCESS) {
-		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
-		return NULL;
-	}
+// 	if (range_server_add_work(md, item) != MDHIM_SUCCESS) {
+// 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
+// 		return NULL;
+// 	}
 
-    return static_cast<TransportBGetRecvMessage *>(get_msg_self(md));
-}
+//     return dynamic_cast<TransportRecvMessage *>(static_cast<TransportMessage *>(get_msg_self(md)));
+// }
+
+// /**
+//  * Send bulk get to range server
+//  *
+//  * @param md main MDHIM struct
+//  * @param bgm pointer to get message to be sent or inserted into the range server's work queue
+//  * @return return_message structure with ->error = MDHIM_SUCCESS or MDHIM_ERROR
+//  */
+// TransportBGetRecvMessage *local_client_bget(struct mdhim *md, TransportBGetMessage *bgm) {
+// 	work_item *item = new work_item();
+
+// 	if (!item) {
+// 		mlog(MDHIM_CLIENT_CRIT, "Error while allocating memory for client");
+// 		return NULL;
+// 	}
+
+// 	item->message = static_cast<void *>(static_cast<TransportMessage *>(bgm));
+//     item->address = md->p->transport->Endpoint()->Address();
+
+// 	if (range_server_add_work(md, item) != MDHIM_SUCCESS) {
+// 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
+// 		return NULL;
+// 	}
+
+//     return static_cast<TransportBGetRecvMessage *>(get_msg_self(md));
+// }
 
 // /**
 //  * Send get with an op and number of records greater than 1 to range server
@@ -127,9 +144,9 @@ TransportBGetRecvMessage *local_client_bget(struct mdhim *md, TransportBGetMessa
 //  * @return return_message structure with ->error = MDHIM_SUCCESS or MDHIM_ERROR
 //  */
 // TransportBGetRecvMessage *local_client_bget_op(struct mdhim *md, TransportGetMessage *gm) {
-// 	work_item *item;
+// 	work_item *item = new work_item();
 
-// 	if ((item = (work_item*)malloc(sizeof(work_item))) == NULL) {
+// 	if (!item) {
 // 		mlog(MDHIM_CLIENT_CRIT, "Error while allocating memory for client");
 // 		return NULL;
 // 	}
@@ -160,7 +177,7 @@ TransportRecvMessage *local_client_commit(mdhim_t *md, TransportMessage *cm) {
 	}
 
 	item->message = static_cast<void *>(cm);
-    item->address = md->p->transport->Endpoint()->Address();
+    item->address = cm->dst;
 
 	if (range_server_add_work(md, item) != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
@@ -180,9 +197,9 @@ TransportRecvMessage *local_client_commit(mdhim_t *md, TransportMessage *cm) {
 // struct mdhim_rm_t *local_client_delete(struct mdhim *md, struct mdhim_delm_t *dm) {
 // 	int ret;
 // 	struct mdhim_rm_t *rm;
-// 	work_item *item;
+// 	work_item *item = new work_item();
 
-// 	if ((item = (work_item*)malloc(sizeof(work_item))) == NULL) {
+// 	if (!item) {
 // 		mlog(MDHIM_CLIENT_CRIT, "Error while allocating memory for client");
 // 		return NULL;
 // 	}
@@ -212,9 +229,9 @@ TransportRecvMessage *local_client_commit(mdhim_t *md, TransportMessage *cm) {
 // struct mdhim_rm_t *local_client_bdelete(struct mdhim *md, struct mdhim_bdelm_t *bdm) {
 // 	int ret;
 // 	struct mdhim_rm_t *brm;
-// 	work_item *item;
+// 	work_item *item = new work_item();
 
-// 	if ((item = (work_item*)malloc(sizeof(work_item))) == NULL) {
+// 	if (!item) {
 // 		mlog(MDHIM_CLIENT_CRIT, "Error while allocating memory for client");
 // 		return NULL;
 // 	}
@@ -241,9 +258,9 @@ TransportRecvMessage *local_client_commit(mdhim_t *md, TransportMessage *cm) {
 //  */
 // void local_client_close(struct mdhim *md, struct mdhim_basem_t *cm) {
 // 	int ret;
-// 	work_item *item;
+// 	work_item *item = new work_item();
 
-// 	if ((item = (work_item*)malloc(sizeof(work_item))) == NULL) {
+// 	if (!item) {
 // 		mlog(MDHIM_CLIENT_CRIT, "Error while allocating memory for client");
 // 		return;
 // 	}

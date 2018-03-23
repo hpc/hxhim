@@ -21,7 +21,7 @@ int mdhim_options_init(mdhim_options_t* opts)
 
     // Set default options
     opts->dstype = MDHIM_DS_LEVELDB;
-    opts->commtype = MDHIM_COMM_MPI;
+    opts->transporttype = MDHIM_TRANSPORT_MPI;
 
 	opts->db_path = "./";
 	opts->db_name = "mdhimTstDB-";

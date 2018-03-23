@@ -24,165 +24,186 @@ TransportRecvMessage *client_put(mdhim_t *md, TransportPutMessage *pm) {
     }
 
     // do put
-    if (md->p->transport->Endpoint()->AddPutRequest(pm) != MDHIM_SUCCESS) {
+    if (md->p->transport->AddPutRequest(pm) != MDHIM_SUCCESS) {
         return nullptr;
     }
 
-    // wait for acknowledgement
+    // wait for result
     TransportRecvMessage *rm = nullptr;
-    MPIAddress address(pm->server_rank);// this will eventually change to something like pm->server_address
-    md->p->transport->Endpoint()->AddPutReply((TransportAddress*) &address, &rm);
+    md->p->transport->AddPutReply(pm->dst, &rm);
 
     return rm;
 }
 
 /**
- * Send bulk put to range server
+ * Send get to range server
  *
  * @param md main MDHIM struct
- * @param bpm_list double pointer to an array of bulk put messages
- * @return return_message structure with ->error = MDHIM_SUCCESS or MDHIM_ERROR
+ * @param gm pointer to get message to be sent or inserted into the range server's work queue
+ * @return return_message structure with error = MDHIM_SUCCESS or MDHIM_ERROR
  */
-TransportBRecvMessage *client_bput(mdhim_t *md, index_t *index, TransportBPutMessage **bpm_list) {
-    int num_srvs = 0;
-    TransportAddress *srvs = new MPIAddress[index->num_rangesrvs]();
-    for (int i = 0; i < index->num_rangesrvs; i++) {
-        if (!bpm_list[i]) {
-            continue;
-        }
-
-        ((MPIAddress)srvs[num_srvs]).SetRank(bpm_list[i]->server_rank);
-        num_srvs++;
-    }
-
-    if (!num_srvs) {
-        delete [] srvs;
+TransportGetRecvMessage *client_get(mdhim_t *md, TransportGetMessage *gm) {
+    if (!md || !gm) {
         return nullptr;
     }
 
-    // send all puts out
-    if (md->p->transport->EndpointGroup()->AddBPutRequest(bpm_list, num_srvs) != MDHIM_SUCCESS) {
-        // TODO: probably should not return here
-        delete [] srvs;
-        return nullptr;
-    }
-    // wait for all responses
-    TransportRecvMessage **rm_list = new TransportRecvMessage *[num_srvs]();
-    if (md->p->transport->EndpointGroup()->AddBPutReply(srvs, num_srvs, rm_list) != MDHIM_SUCCESS) {
-        // TODO: probably should not return here
-        delete [] srvs;
+    // do get
+    if (md->p->transport->AddGetRequest(gm) != MDHIM_SUCCESS) {
         return nullptr;
     }
 
-    TransportBRecvMessage *brm_head = nullptr;
-    TransportBRecvMessage *brm_tail = nullptr;
-    for (int i = 0; i < num_srvs; i++) {
-        TransportRecvMessage *rm = rm_list[i];
-        if (!rm) {
-            mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
-                 "Error: did not receive a response message in client_bput",
-                 ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
-            //Skip this as the message doesn't exist
-            continue;
-        }
+    // wait for result
+    TransportGetRecvMessage *grm = nullptr;
+    md->p->transport->AddGetReply(gm->dst, &grm);
 
-        TransportBRecvMessage *brm = new TransportBRecvMessage();
-        brm->error = rm->error;
-        brm->mtype = rm->mtype;
-        brm->server_rank = rm->server_rank;
-        free(rm);
-
-        //Build the linked list to return
-        brm->next = nullptr;
-        if (!brm_head) {
-            brm_head = brm;
-            brm_tail = brm;
-        } else {
-            brm_tail->next = brm;
-            brm_tail = brm;
-        }
-    }
-
-    delete [] rm_list;
-    delete [] srvs;
-
-    // Return response message
-    return brm_head;
+    return grm;
 }
 
-/** Send bulk get to range server
- *
- * @param md main MDHIM struct
- * @param bgm_list double pointer to an array or bulk get messages
- * @return return_message structure with ->error = MDHIM_SUCCESS or MDHIM_ERROR
- */
-TransportBGetRecvMessage *client_bget(mdhim_t *md, index_t *index,
-                                      TransportBGetMessage **bgm_list) {
-    int return_code;
-    int num_srvs = 0;
+// /**
+//  * Send bulk put to range server
+//  *
+//  * @param md main MDHIM struct
+//  * @param bpm_list double pointer to an array of bulk put messages
+//  * @return return_message structure with ->error = MDHIM_SUCCESS or MDHIM_ERROR
+//  */
+// TransportBRecvMessage *client_bput(mdhim_t *md, index_t *index, TransportBPutMessage **bpm_list) {
+//     int num_srvs = 0;
+//     TransportAddress *srvs = new MPIAddress[index->num_rangesrvs]();
+//     for (int i = 0; i < index->num_rangesrvs; i++) {
+//         if (!bpm_list[i]) {
+//             continue;
+//         }
 
-    //TODO: get rid of bgm_list
-    TransportAddress *srvs = new MPIAddress[index->num_rangesrvs]();
-    for (int i = 0; i < index->num_rangesrvs; i++) {
-        if (bgm_list[i]) {
-            // TODO: use TransportAddress directly
-            dynamic_cast<MPIAddress *>(srvs)[num_srvs].SetRank(bgm_list[i]->server_rank);
-            num_srvs++;
-        }
-    }
+//         ((MPIAddress)srvs[num_srvs]).SetRank(bpm_list[i]->dst);
+//         num_srvs++;
+//     }
 
-    if (!num_srvs) {
-        delete [] srvs;
-        return nullptr;
-    }
+//     if (!num_srvs) {
+//         delete [] srvs;
+//         return nullptr;
+//     }
 
-    // Request data from a range server
-    if (md->p->transport->EndpointGroup()->AddBGetRequest(bgm_list, num_srvs) != MDHIM_SUCCESS) {
-        delete [] srvs;
-        return nullptr;
-    }
+//     // send all puts out
+//     if (md->p->transport->EndpointGroup()->AddBPutRequest(bpm_list, num_srvs) != MDHIM_SUCCESS) {
+//         // TODO: probably should not return here
+//         delete [] srvs;
+//         return nullptr;
+//     }
+//     // wait for all responses
+//     TransportRecvMessage **rm_list = new TransportRecvMessage *[num_srvs]();
+//     if (md->p->transport->EndpointGroup()->AddBPutReply(srvs, num_srvs, rm_list) != MDHIM_SUCCESS) {
+//         // TODO: probably should not return here
+//         delete [] srvs;
+//         return nullptr;
+//     }
 
-    // Wait for data from the range server
-    TransportBGetRecvMessage **bgrm_list = new TransportBGetRecvMessage*[num_srvs]();
-    if (md->p->transport->EndpointGroup()->AddBGetReply(srvs, num_srvs, bgrm_list) != MDHIM_SUCCESS) {
-        delete [] srvs;
-        for(int i = 0; i < num_srvs; i++) {
-            delete bgrm_list[i];
-        }
+//     TransportBRecvMessage *brm_head = nullptr;
+//     TransportBRecvMessage *brm_tail = nullptr;
+//     for (int i = 0; i < num_srvs; i++) {
+//         TransportRecvMessage *rm = rm_list[i];
+//         if (!rm) {
+//             mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
+//                  "Error: did not receive a response message in client_bput",
+//                  ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
+//             //Skip this as the message doesn't exist
+//             continue;
+//         }
 
-        delete [] bgrm_list;
-        return nullptr;
-    }
+//         TransportBRecvMessage *brm = new TransportBRecvMessage();
+//         brm->error = rm->error;
+//         brm->mtype = rm->mtype;
+//         brm->dst = rm->dst;
+//         free(rm);
 
-    // create a linked list of all responses received for returning
-    TransportBGetRecvMessage *bgrm_head = nullptr;
-    TransportBGetRecvMessage *bgrm_tail = nullptr;
-    for (int i = 0; i < num_srvs; i++) {
-        TransportBGetRecvMessage *bgrm = bgrm_list[i];
-        if (!bgrm) {
-            mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
-                 "Error: did not receive a response message in client_bget",
-                 ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
-            //Skip this as the message doesn't exist
-            continue;
-        }
-         //Build the linked list to return
-        bgrm->next = nullptr;
-        if (!bgrm_head) {
-            bgrm_head = bgrm;
-            bgrm_tail = bgrm;
-        } else {
-            bgrm_tail->next = bgrm;
-            bgrm_tail = bgrm;
-        }
-    }
+//         //Build the linked list to return
+//         brm->next = nullptr;
+//         if (!brm_head) {
+//             brm_head = brm;
+//             brm_tail = brm;
+//         } else {
+//             brm_tail->next = brm;
+//             brm_tail = brm;
+//         }
+//     }
 
-    delete [] bgrm_list;
-    delete [] srvs;
+//     delete [] rm_list;
+//     delete [] srvs;
 
-    // Return response message
-    return bgrm_head;
-}
+//     // Return response message
+//     return brm_head;
+// }
+
+// /** Send bulk get to range server
+//  *
+//  * @param md main MDHIM struct
+//  * @param bgm_list double pointer to an array or bulk get messages
+//  * @return return_message structure with ->error = MDHIM_SUCCESS or MDHIM_ERROR
+//  */
+// TransportBGetRecvMessage *client_bget(mdhim_t *md, index_t *index,
+//                                       TransportBGetMessage **bgm_list) {
+//     int return_code;
+//     int num_srvs = 0;
+
+//     TransportAddress *srvs = new MPIAddress[index->num_rangesrvs]();
+//     for (int i = 0; i < index->num_rangesrvs; i++) {
+//         if (bgm_list[i]) {
+//             dynamic_cast<MPIAddress *>(srvs)[num_srvs].SetRank(bgm_list[i]->dst);
+//             num_srvs++;
+//         }
+//     }
+
+//     if (!num_srvs) {
+//         delete [] srvs;
+//         return nullptr;
+//     }
+
+//     // Request data from a range server
+//     if (md->p->transport->EndpointGroup()->AddBGetRequest(bgm_list, num_srvs) != MDHIM_SUCCESS) {
+//         delete [] srvs;
+//         return nullptr;
+//     }
+
+//     // Wait for data from the range server
+//     TransportBGetRecvMessage **bgrm_list = new TransportBGetRecvMessage*[num_srvs]();
+//     if (md->p->transport->EndpointGroup()->AddBGetReply(srvs, num_srvs, bgrm_list) != MDHIM_SUCCESS) {
+//         delete [] srvs;
+//         for(int i = 0; i < num_srvs; i++) {
+//             delete bgrm_list[i];
+//         }
+
+//         delete [] bgrm_list;
+//         return nullptr;
+//     }
+
+//     // create a linked list of all responses received for returning
+//     TransportBGetRecvMessage *bgrm_head = nullptr;
+//     TransportBGetRecvMessage *bgrm_tail = nullptr;
+//     for (int i = 0; i < num_srvs; i++) {
+//         TransportBGetRecvMessage *bgrm = bgrm_list[i];
+//         if (!bgrm) {
+//             mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - "
+//                  "Error: did not receive a response message in client_bget",
+//                  ((std::string) (*md->p->transport->Endpoint()->Address())).c_str());
+//             //Skip this as the message doesn't exist
+//             continue;
+//         }
+//          //Build the linked list to return
+//         bgrm->next = nullptr;
+//         if (!bgrm_head) {
+//             bgrm_head = bgrm;
+//             bgrm_tail = bgrm;
+//         } else {
+//             bgrm_tail->next = bgrm;
+//             bgrm_tail = bgrm;
+//         }
+//     }
+
+//     delete [] bgrm_list;
+//     delete [] srvs;
+
+//     // Return response message
+//     return bgrm_head;
+// }
 
 // /** Send get to range server with an op and number of records greater than one
 //  *
@@ -195,7 +216,7 @@ TransportBGetRecvMessage *client_bget(mdhim_t *md, index_t *index,
 //     int return_code;
 //     struct mdhim_bgetrm_t *brm;
 
-//     return_code = send_rangesrv_work(md, gm->basem.server_rank, gm);
+//     return_code = send_rangesrv_work(md, gm->basem.dst, gm);
 //     // If the send did not succeed then log the error code and return MDHIM_ERROR
 //     if (return_code != MDHIM_SUCCESS) {
 //         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: %d from server while sending "
@@ -203,7 +224,7 @@ TransportBGetRecvMessage *client_bget(mdhim_t *md, index_t *index,
 //         return nullptr;
 //     }
 
-//     return_code = receive_client_response(md, gm->basem.server_rank, (void **) &brm);
+//     return_code = receive_client_response(md, gm->basem.dst, (void **) &brm);
 //     // If the receive did not succeed then log the error code and return MDHIM_ERROR
 //     if (return_code != MDHIM_SUCCESS) {
 //         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: %d from server while receiving "
@@ -227,7 +248,7 @@ TransportBGetRecvMessage *client_bget(mdhim_t *md, index_t *index,
 //     int return_code;
 //     struct mdhim_rm_t *rm;
 
-//     return_code = send_rangesrv_work(md, dm->basem.server_rank, dm);
+//     return_code = send_rangesrv_work(md, dm->basem.dst, dm);
 //     // If the send did not succeed then log the error code and return MDHIM_ERROR
 //     if (return_code != MDHIM_SUCCESS) {
 //         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: %d from server while sending "
@@ -235,7 +256,7 @@ TransportBGetRecvMessage *client_bget(mdhim_t *md, index_t *index,
 //         return nullptr;
 //     }
 
-//     return_code = receive_client_response(md, dm->basem.server_rank, (void **) &rm);
+//     return_code = receive_client_response(md, dm->basem.dst, (void **) &rm);
 //     // If the receive did not succeed then log the error code and return MDHIM_ERROR
 //     if (return_code != MDHIM_SUCCESS) {
 //         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %s - Error: %d from server while receiving "
@@ -270,7 +291,7 @@ TransportBGetRecvMessage *client_bget(mdhim_t *md, index_t *index,
 //             continue;
 //         }
 
-//         srvs[num_srvs] = bdm_list[i]->basem.server_rank;
+//         srvs[num_srvs] = bdm_list[i]->basem.dst;
 //         num_srvs++;
 //     }
 
@@ -306,7 +327,7 @@ TransportBGetRecvMessage *client_bget(mdhim_t *md, index_t *index,
 //         brm = (mdhim_brm_t*)malloc(sizeof(struct mdhim_brm_t));
 //         brm->error = rm->error;
 //         brm->basem.mtype = rm->basem.mtype;
-//         brm->basem.server_rank = rm->basem.server_rank;
+//         brm->basem.dst = rm->basem.dst;
 //         free(rm);
 
 //         //Build the linked list to return

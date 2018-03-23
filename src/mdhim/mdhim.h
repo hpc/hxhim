@@ -54,15 +54,15 @@ mdhim_brm_t *mdhimPut(mdhim_t *md,
 //                                struct index *secondary_index,
 //                                void *secondary_key, int secondary_key_len,
 //                                void *primary_key, int primary_key_len);
-mdhim_brm_t *mdhimBPut(mdhim_t *md,
-                       void **primary_keys, int *primary_key_lens,
-                       void **primary_values, int *primary_value_lens,
-                       int num_records,
-                       secondary_bulk_info_t *secondary_global_info,
-                       secondary_bulk_info_t *secondary_local_info);
-mdhim_bgetrm_t *mdhimGet(mdhim_t *md, struct index *index,
-                         void *key, int key_len,
-                         enum TransportGetMessageOp op);
+// mdhim_brm_t *mdhimBPut(mdhim_t *md,
+//                        void **primary_keys, int *primary_key_lens,
+//                        void **primary_values, int *primary_value_lens,
+//                        int num_records,
+//                        secondary_bulk_info_t *secondary_global_info,
+//                        secondary_bulk_info_t *secondary_local_info);
+mdhim_getrm_t *mdhimGet(mdhim_t *md, struct index *index,
+                        void *key, int key_len,
+                        enum TransportGetMessageOp op);
 // mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, struct index *index,
 //                           void **keys, int *key_lens,
 //                           int num_records, int op);

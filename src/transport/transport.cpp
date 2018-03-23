@@ -2,7 +2,7 @@
 
 TransportMessage::TransportMessage(const TransportMessageType type)
   : mtype(type),
-    server_rank(-1),
+    dst(-1),
     index(-1),
     index_type(-1),
     index_name(nullptr)
@@ -14,7 +14,7 @@ TransportMessage::~TransportMessage() {
 
 int TransportMessage::size() const {
     // intentional error with sizeof(char *)
-    return sizeof(mtype) + sizeof(server_rank) + sizeof(index) + sizeof(index_type) + sizeof(char *);
+    return sizeof(mtype) + sizeof(src) + sizeof(dst) + sizeof(index) + sizeof(index_type) + sizeof(char *);
 }
 
 void TransportMessage::cleanup() {
@@ -90,16 +90,16 @@ void TransportBPutMessage::cleanup() {
     num_keys = 0;
 }
 
-TransportGet::TransportGet()
-    : TransportMessage(TransportMessageType::BGET),
-      op(TransportGetMessageOp::GET_OP_MAX),
-      num_keys(0)
+TransportGet::TransportGet(const TransportMessageType type)
+  : TransportMessage(type),
+    op(TransportGetMessageOp::GET_OP_MAX),
+    num_keys(0)
 {}
 
 TransportGet::~TransportGet() {}
 
 TransportGetMessage::TransportGetMessage()
-  : TransportGet()
+  : TransportGet(TransportMessageType::GET)
 {}
 
 TransportGetMessage::~TransportGetMessage() {
@@ -120,9 +120,9 @@ void TransportGetMessage::cleanup() {
 }
 
 TransportBGetMessage::TransportBGetMessage()
-    : TransportGet(),
-      keys(nullptr), key_lens(nullptr),
-      num_recs(0)
+  : TransportGet(TransportMessageType::BGET),
+    keys(nullptr), key_lens(nullptr),
+    num_recs(0)
 {}
 
 TransportBGetMessage::~TransportBGetMessage() {
@@ -221,6 +221,35 @@ int TransportRecvMessage::size() const {
 
 void TransportRecvMessage::cleanup() {
     TransportMessage::cleanup();
+}
+
+TransportGetRecvMessage::TransportGetRecvMessage()
+  : TransportMessage(TransportMessageType::GET),
+    error(MDHIM_SUCCESS),
+    key(nullptr), key_len(0),
+    value(nullptr), value_len(0)
+{}
+
+TransportGetRecvMessage::~TransportGetRecvMessage() {
+    cleanup();
+}
+
+int TransportGetRecvMessage::size() const {
+    return TransportMessage::size() + sizeof(error) + key_len + sizeof(key_len) + value_len + sizeof(value_len);
+}
+
+void TransportGetRecvMessage::cleanup() {
+    TransportMessage::cleanup();
+
+    free(key);
+    key = nullptr;
+
+    free(value);
+    value = nullptr;
+
+    key_len = 0;
+
+    value_len = 0;
 }
 
 TransportBGetRecvMessage::TransportBGetRecvMessage()

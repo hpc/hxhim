@@ -17,8 +17,9 @@ extern "C"
 #define MDHIM_DS_NONE 0
 #define MDHIM_DS_LEVELDB 1
 
-#define MDHIM_COMM_NONE 0
-#define MDHIM_COMM_MPI 1
+#define MDHIM_TRANSPORT_NONE     0
+#define MDHIM_TRANSPORT_MPI      1
+#define MDHIM_TRANSPORT_THALLIUM 2
 
 /* Append option */
 #define MDHIM_DB_OVERWRITE 0
@@ -32,7 +33,7 @@ typedef struct mdhim_options {
     MPI_Comm comm;
 
     int dstype;
-    int commtype;
+    int transporttype;
 
 	//Directory location of DBs
 	const char *db_path;

@@ -44,6 +44,11 @@ typedef struct mdhim_rm_private {
 } mdhim_rm_private_t;
 
 /* Bulk get receive message */
+typedef struct mdhim_getrm_private {
+    TransportGetRecvMessage *grm;
+} mdhim_getrm_private_t;
+
+/* Bulk get receive message */
 typedef struct mdhim_bgetrm_private {
     TransportBGetRecvMessage *bgrm;
 } mdhim_bgetrm_private_t;
@@ -66,6 +71,7 @@ mdhim_bgetm_t  *mdhim_bgm_init(TransportBGetMessage *bgm = nullptr);
 mdhim_delm_t   *mdhim_delm_init(TransportDeleteMessage *dm = nullptr);
 mdhim_bdelm_t  *mdhim_bdelm_init(TransportBDeleteMessage *bdm = nullptr);
 mdhim_rm_t     *mdhim_rm_init(TransportRecvMessage *rm = nullptr);
+mdhim_getrm_t  *mdhim_grm_init(TransportGetRecvMessage *grm = nullptr);
 mdhim_bgetrm_t *mdhim_bgrm_init(TransportBGetRecvMessage *bgrm = nullptr);
 mdhim_brm_t    *mdhim_brm_init(TransportBRecvMessage *brm = nullptr);
 

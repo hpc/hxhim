@@ -10,9 +10,11 @@
 #include "transport.hpp"
 
 TransportRecvMessage *local_client_put(mdhim_t *md, TransportPutMessage *pm);
-TransportRecvMessage *local_client_bput(mdhim_t *md, TransportBPutMessage *bpm);
-TransportBGetRecvMessage *local_client_bget(mdhim_t *md, TransportBGetMessage *bgm);
+TransportGetRecvMessage *local_client_get(mdhim_t *md, TransportGetMessage *gm);
+// TransportRecvMessage *local_client_bput(mdhim_t *md, TransportBPutMessage *bpm);
+// TransportBGetRecvMessage *local_client_bget(mdhim_t *md, TransportBGetMessage *bgm);
 // TransportBGetRecvMessage *local_client_bget_op(mdhim_t *md, TransportGetMessage *gm);
+
 TransportRecvMessage *local_client_commit(mdhim_t *md, TransportMessage *cm);
 
 // mdhim_t_rm_t *local_client_delete(mdhim_t *md, mdhim_t_delm_t *dm);

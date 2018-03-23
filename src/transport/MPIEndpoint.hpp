@@ -7,7 +7,6 @@
 
 #include "mdhim_constants.h"
 #include "transport.hpp"
-#include "MPIAddress.hpp"
 #include "MPIEndpointBase.hpp"
 #include "MPIPacker.hpp"
 #include "MPIUnpacker.hpp"
@@ -19,27 +18,25 @@
 class MPIEndpoint : virtual public TransportEndpoint, virtual public MPIEndpointBase {
     public:
         /** Create a TransportEndpoint for a specified process rank */
-        MPIEndpoint(MPI_Comm comm, volatile int &shutdown);
+        MPIEndpoint(const MPI_Comm comm, const int remote_rank, volatile int &shutdown);
 
         /** Destructor */
         ~MPIEndpoint() {}
 
         int AddPutRequest(const TransportPutMessage *message);
-        int AddGetRequest(const TransportBGetMessage *message); // no-op
+        int AddGetRequest(const TransportGetMessage *message);
 
-        int AddPutReply(const TransportAddress *src, TransportRecvMessage **message);
-        int AddGetReply(const TransportAddress *src, TransportBGetRecvMessage ***messages); // no-op
-
-        std::size_t PollForMessage(std::size_t timeoutSecs);
-
-        std::size_t WaitForMessage(std::size_t timeoutSecs);
-
-        int Flush(); // no-op
-
-        const TransportAddress *Address() const;
+        int AddPutReply(TransportRecvMessage **message);
+        int AddGetReply(TransportGetRecvMessage **message);
 
     private:
-        const MPIAddress address_;
+        /**
+         * Functions that perform the actual MPI calls
+         */
+        int send_rangesrv_work(const void *buf, const int size);
+        int receive_client_response(void **buf, int *size);
+
+        const int remote_rank_;
 };
 
 #endif

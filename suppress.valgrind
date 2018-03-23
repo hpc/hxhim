@@ -1,0 +1,53 @@
+# Run valgrind with  --suppressions=<this file's name> to supress some warnings
+{
+   Memcheck:Leak
+   obj:*/lib*/lib*.so
+}
+
+{
+   LevelDB Reading Uninitialized Value
+   Memcheck:Value8
+   fun:_ZN7leveldb6crc32c6ExtendEjPKcm
+   fun:_ZN7leveldb3log6Writer18EmitPhysicalRecordENS0_10RecordTypeEPKcm
+   fun:_ZN7leveldb3log6Writer9AddRecordERKNS_5SliceE
+   fun:_ZN7leveldb6DBImpl5WriteERKNS_12WriteOptionsEPNS_10WriteBatchE
+   fun:_ZN7leveldb2DB3PutERKNS_12WriteOptionsERKNS_5SliceES6_
+   fun:_ZN7leveldb6DBImpl3PutERKNS_12WriteOptionsERKNS_5SliceES6_
+   fun:leveldb_put
+   fun:_Z17mdhim_leveldb_putPvS_iS_i
+   fun:_Z11write_statsP5mdhimP5index
+   fun:_Z15indexes_releaseP5mdhim
+   fun:_ZL16indexDestructionP5mdhim
+   fun:mdhimClose
+}
+
+{
+   LevelDB Unitialized Write Parameter
+   Memcheck:Param
+   write(buf)
+   obj:/usr/lib64/libpthread-2.24.so
+   fun:_ZN7leveldb12_GLOBAL__N_117PosixWritableFile5FlushEv
+   fun:_ZN7leveldb3log6Writer18EmitPhysicalRecordENS0_10RecordTypeEPKcm
+   fun:_ZN7leveldb3log6Writer9AddRecordERKNS_5SliceE
+   fun:_ZN7leveldb6DBImpl5WriteERKNS_12WriteOptionsEPNS_10WriteBatchE
+   fun:_ZN7leveldb2DB3PutERKNS_12WriteOptionsERKNS_5SliceES6_
+   fun:_ZN7leveldb6DBImpl3PutERKNS_12WriteOptionsERKNS_5SliceES6_
+   fun:leveldb_put
+   fun:_Z17mdhim_leveldb_putPvS_iS_i
+   fun:_Z11write_statsP5mdhimP5index
+   fun:_Z15indexes_releaseP5mdhim
+   fun:_ZL16indexDestructionP5mdhim
+}
+
+{
+   Writing Manifest Unitialized Parameter
+   Memcheck:Param
+   write(buf)
+   obj:/usr/lib64/libpthread-2.24.so
+   fun:_Z14write_manifestP5mdhimP5index
+   fun:_Z15indexes_releaseP5mdhim
+   fun:_ZL16indexDestructionP5mdhim
+   fun:mdhimClose
+   fun:cleanup
+   fun:main
+}
