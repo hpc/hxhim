@@ -108,7 +108,7 @@ static int cmp_float_compare(void* arg, const char* a, size_t alen,
 // up to a null character or the given lengths.
 static int cmp_string_compare(void* arg, const char* a, size_t alen,
 			   const char* b, size_t blen) {
-    int idx;
+    unsigned int idx;
 
     if (a && !b) {
             return 1;

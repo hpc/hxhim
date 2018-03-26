@@ -331,9 +331,9 @@ class Transport {
         // }
 
     private:
-        const int endpoint_id_; // the endpoint id that other processes know this process as
 
         std::map<int, TransportEndpoint *> endpoints_;
+        const int endpoint_id_; // the endpoint id that other processes know this process as
         // TransportEndpointGroup *endpointgroup_;
 };
 

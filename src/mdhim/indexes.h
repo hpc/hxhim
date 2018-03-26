@@ -110,7 +110,7 @@ index_t *create_global_index(mdhim_t*md, int server_factor,
 				    uint64_t max_recs_per_slice, int db_type,
 				    int key_type, char *index_name);
 int get_rangesrvs(mdhim_t*md, index_t *index);
-uint32_t is_range_server(mdhim_t*md, int rank, index_t *index);
+int32_t is_range_server(mdhim_t*md, int rank, index_t *index);
 int index_init_comm(mdhim_t*md, index_t *bi);
 int get_stat_flush(mdhim_t*md, index_t *index);
 index_t *get_index(mdhim_t*md, int index_id);
