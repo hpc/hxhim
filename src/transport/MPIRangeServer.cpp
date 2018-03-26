@@ -98,7 +98,6 @@ int MPIRangeServer::only_send_client_response(int dest, void *sendbuf, int sizeb
     }
 
     int return_code = 0;
-    int mtype;
     int ret = MDHIM_SUCCESS;
 
     MPI_Status status;

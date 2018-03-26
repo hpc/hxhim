@@ -22,7 +22,7 @@ void to_lower(size_t in_length, const char *in, char *out) {
     memset(out, 0, in_length);
 
     // Make sure that the name passed is lowercase
-    int i=0;
+    unsigned int i=0;
     for(i=0; i < in_length; i++) {
         out[i] = tolower(in[i]);
     }
@@ -497,7 +497,6 @@ uint32_t get_num_range_servers(struct mdhim *md, index_t *rindex) {
 	int size = md->p->mdhim_comm_size;
 	uint32_t num_servers = 0;
 	int i = 0;
-	int ret;
 
 	// if ((ret = MPI_Comm_size(md->p->mdhim_comm, &size)) != MPI_SUCCESS) {
 	// 	mlog(MPI_EMERG, "Rank %d - Couldn't get the size of the comm in get_num_range_servers",
@@ -533,7 +532,7 @@ uint32_t get_num_range_servers(struct mdhim *md, index_t *rindex) {
 index_t *create_local_index(struct mdhim *md, int db_type, int key_type, const char *index_name) {
 	index_t *li;
 	index_t *check = NULL;
-	uint32_t rangesrv_num;
+	int32_t rangesrv_num;
 	int ret;
 
 	MPI_Barrier(md->p->mdhim_client_comm);
@@ -876,7 +875,7 @@ int get_rangesrvs(struct mdhim *md, index_t *index) {
  * @param rank    rank to find out if it is a range server
  * @return        MDHIM_ERROR on error, 0 on false, 1 or greater to represent the range server number otherwise
  */
-uint32_t is_range_server(struct mdhim *md, int rank, index_t *index) {
+int32_t is_range_server(struct mdhim *md, int rank, index_t *index) {
 	int size;
 	int ret;
 	uint64_t rangesrv_num = 0;
@@ -1179,7 +1178,7 @@ int get_stat_flush_global(struct mdhim *md, index_t *index) {
 	int *displs;
 	int recvsize;
 	int ret = 0;
-	int i = 0;
+	unsigned int i = 0;
 	int float_type = 0;
 	struct mdhim_stat *stat, *tmp;
 	void *tstat;

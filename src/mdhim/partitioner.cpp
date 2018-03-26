@@ -22,7 +22,8 @@ void delete_alphabet() {
 }
 
 long double get_str_num(void *key, uint32_t key_len) {
-  int id, i;
+  int id;
+  unsigned int i;
   struct mdhim_char *mc;
   long double str_num;
 
@@ -43,7 +44,7 @@ long double get_str_num(void *key, uint32_t key_len) {
 }
 
 uint64_t get_byte_num(void *key, uint32_t key_len) {
-	int i;
+	unsigned int i;
 	unsigned char val;
 	uint64_t byte_num;
 
