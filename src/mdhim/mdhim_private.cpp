@@ -1,12 +1,10 @@
 #include <cstdlib>
 
-#include "client.h"
 #include "indexes.h"
 #include "local_client.h"
 #include "mdhim_private.h"
 #include "partitioner.h"
 #include "transport_mpi.hpp"
-#include "transport_thallium.hpp"
 
 int mdhim_private_init(mdhim_private* mdp, int dstype, int transporttype) {
     int rc = MDHIM_ERROR;
@@ -33,23 +31,6 @@ int mdhim_private_init(mdhim_private* mdp, int dstype, int transporttype) {
 
         mdp->listener_thread = MPIRangeServer::listener_thread;
         mdp->send_locally_or_remote = MPIRangeServer::send_locally_or_remote;
-
-        rc = MDHIM_SUCCESS;
-        goto err_out;
-    }
-    else if (transporttype == MDHIM_TRANSPORT_THALLIUM) {
-        mdp->transport = new Transport(MPIInstance::instance().Rank());
-
-        // give the thallium range server access to the mdhim data
-        ThalliumRangeServer::init(mdp, "na+sm://127.0.0.1");
-
-        // create mapping between unique IDs and thallium addresses
-        // use MPI ranks as unique IDs
-        for(int i = 0; i < MPIInstance::instance().Size(); i++) {
-            mdp->transport->AddEndpoint(i, new ThalliumEndpoint("na+sm",
-                                                                "na+sm://127.0.0.1:1234",
-                                                                "na+sm://127.0.0.1:4321"));
-        }
 
         rc = MDHIM_SUCCESS;
         goto err_out;
@@ -125,7 +106,7 @@ TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
 			rm = local_client_put(md, pm);
 		} else {
 			//Send the message through the network as this message is for another rank
-			rm = client_put(md, pm);
+            rm = md->p->transport->Put(pm);
 			delete pm;
 		}
 
@@ -177,7 +158,7 @@ TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
 			grm = local_client_get(md, gm);
 		} else {
 			//Send the message through the network as this message is for another rank
-			grm = client_get(md, gm);
+            grm = md->p->transport->Get(gm);
 			delete gm;
 		}
 

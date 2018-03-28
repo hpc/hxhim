@@ -23,13 +23,16 @@ class MPIEndpoint : virtual public TransportEndpoint, virtual public MPIEndpoint
         /** Destructor */
         ~MPIEndpoint() {}
 
-        int AddPutRequest(const TransportPutMessage *message);
-        int AddGetRequest(const TransportGetMessage *message);
-
-        int AddPutReply(TransportRecvMessage **message);
-        int AddGetReply(TransportGetRecvMessage **message);
+        TransportRecvMessage *Put(const TransportPutMessage *message);
+        TransportGetRecvMessage *Get(const TransportGetMessage *message);
 
     private:
+        int PutRequest(const TransportPutMessage *message);
+        int PutReply(TransportRecvMessage **message);
+
+        int GetRequest(const TransportGetMessage *message);
+        int GetReply(TransportGetRecvMessage **message);
+
         /**
          * Functions that perform the actual MPI calls
          */

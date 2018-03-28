@@ -24,37 +24,15 @@ include_directories(src/transport)
 include_directories(src/mdhim)
 include_directories(src/utils)
 
+# Include CMake modules
+include(FindPkgConfig REQUIRED)
+
 #
 # External projects
 #
 find_package(MPI)
 if (MPI_FOUND)
     include_directories(${MPI_INCLUDE_PATH})
-endif()
-
-find_package(THALLIUM)
-if (THALLIUM_FOUND)
-    include_directories(${THALLIUM_INCLUDE_PATH})
-
-    pkg_search_module(MERCURY REQUIRED mercury)
-    if (MERCURY_FOUND)
-      include_directories(${MERCURY_INCLUDEDIR})
-    endif()
-
-    pkg_search_module(ARGOBOTS REQUIRED argobots)
-    if (ARGOBOTS_FOUND)
-      include_directories(${ARGOBOTS_INCLUDEDIR})
-    endif()
-
-    pkg_search_module(ABT_SNOOZER abt-snoozer)
-    if (ABT_SNOOZER_FOUND)
-      include_directories(${ABT_SNOOZER_INCLUDEDIR})
-    endif()
-
-    pkg_search_module(MARGO REQUIRED margo)
-    if (MARGO_FOUND)
-      include_directories(${MARGO_INCLUDEDIR})
-    endif()
 endif()
 
 # GoogleTest

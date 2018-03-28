@@ -10,7 +10,6 @@
 #include "mdhim.h"
 #include "mdhim_fortran.h"
 #include "range_server.h"
-#include "client.h"
 #include "local_client.h"
 #include "partitioner.h"
 #include "mdhim_options.h"

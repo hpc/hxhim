@@ -9,7 +9,6 @@
 #include <sys/time.h>
 #include <stdio.h>
 
-#include "client.h"
 #include "data_store.h"
 #include "indexes.h"
 #include "local_client.h"

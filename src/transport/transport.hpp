@@ -228,27 +228,16 @@ class TransportBRecvMessage final : virtual public TransportMessage {
 
 /**
  * @ An abstract communication endpoint
- *
- * This is a stateful API that allows the user to enqueue PUT and GET operations,
- * and use the flush call to complete progress. You initiate a Put or Get and receive an operation id. You then
- * keep calling the function until the operation is completed.
- *
  */
 class TransportEndpoint {
     public:
         virtual ~TransportEndpoint() {}
 
-        /** @description Enqueue a Put request for this endpoint */
-        virtual int AddPutRequest(const TransportPutMessage *message) = 0;
+        /** @description Send a Put to this endpoint */
+        virtual TransportRecvMessage *Put(const TransportPutMessage *message) = 0;
 
-        /** @description Enqueue a Get request for this endpoint */
-        virtual int AddGetRequest(const TransportGetMessage *message) = 0;
-
-        /** @description Enqueue a Put reply for the request originator */
-        virtual int AddPutReply(TransportRecvMessage **message) = 0;
-
-        /** @description Enqueue a Get reply for the request originator */
-        virtual int AddGetReply(TransportGetRecvMessage **message) = 0;
+        /** @description Send a Get to this endpoint */
+        virtual TransportGetRecvMessage *Get(const TransportGetMessage *message) = 0;
 
     protected:
         TransportEndpoint() {}
@@ -306,20 +295,12 @@ class Transport {
             endpoints_[id] = ep;
         }
 
-        int AddPutRequest(const TransportPutMessage *message) {
-            return endpoints_.at(message->dst)->AddPutRequest(message);
+        TransportRecvMessage *Put(const TransportPutMessage *request) {
+            return endpoints_.at(request->dst)->Put(request);
         }
 
-        int AddGetRequest(const TransportGetMessage *message) {
-            return endpoints_.at(message->dst)->AddGetRequest(message);
-        }
-
-        int AddPutReply(const int id, TransportRecvMessage **message) {
-            return endpoints_.at(id)->AddPutReply(message);
-        }
-
-        int AddGetReply(const int id, TransportGetRecvMessage **message) {
-            return endpoints_.at(id)->AddGetReply(message);
+        TransportGetRecvMessage *Get(const TransportGetMessage *request) {
+            return endpoints_.at(request->dst)->Get(request);
         }
 
         int EndpointID() const {
