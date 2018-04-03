@@ -1,8 +1,9 @@
 #include "transport_private.hpp"
+#include "MemoryManagers.hpp"
 
 mdhim_putm_t *mdhim_pm_init(TransportPutMessage *pm) {
-    mdhim_putm_t *ret = new mdhim_putm_t();
-    if (!ret || !(ret->p = new mdhim_putm_private_t())) {
+    mdhim_putm_t *ret = Memory::FBP_MEDIUM::Instance().acquire<mdhim_putm_t>();
+    if (!ret || !(ret->p = Memory::FBP_MEDIUM::Instance().acquire<mdhim_putm_private_t>())) {
         return nullptr;
     }
 
@@ -11,8 +12,8 @@ mdhim_putm_t *mdhim_pm_init(TransportPutMessage *pm) {
 }
 
 mdhim_bputm_t *mdhim_bpm_init(TransportBPutMessage *bpm) {
-    mdhim_bputm_t *ret = new mdhim_bputm_t();
-    if (!ret || !(ret->p = new mdhim_bputm_private_t())) {
+    mdhim_bputm_t *ret = Memory::FBP_MEDIUM::Instance().acquire<mdhim_bputm_t>();
+    if (!ret || !(ret->p = Memory::FBP_MEDIUM::Instance().acquire<mdhim_bputm_private_t>())) {
         return nullptr;
     }
 
@@ -21,8 +22,8 @@ mdhim_bputm_t *mdhim_bpm_init(TransportBPutMessage *bpm) {
 }
 
 mdhim_getm_t *mdhim_gm_init(TransportGetMessage *gm) {
-    mdhim_getm_t *ret = new mdhim_getm_t();
-    if (!ret || !(ret->p = new mdhim_getm_private_t())) {
+    mdhim_getm_t *ret = Memory::FBP_MEDIUM::Instance().acquire<mdhim_getm_t>();
+    if (!ret || !(ret->p = Memory::FBP_MEDIUM::Instance().acquire<mdhim_getm_private_t>())) {
         return nullptr;
     }
 
@@ -31,8 +32,8 @@ mdhim_getm_t *mdhim_gm_init(TransportGetMessage *gm) {
 }
 
 mdhim_bgetm_t *mdhim_bgm_init(TransportBGetMessage *bgm) {
-    mdhim_bgetm_t *ret = new mdhim_bgetm_t();
-    if (!ret || !(ret->p = new mdhim_bgetm_private_t())) {
+    mdhim_bgetm_t *ret = Memory::FBP_MEDIUM::Instance().acquire<mdhim_bgetm_t>();
+    if (!ret || !(ret->p = Memory::FBP_MEDIUM::Instance().acquire<mdhim_bgetm_private_t>())) {
         return nullptr;
     }
 
@@ -41,8 +42,8 @@ mdhim_bgetm_t *mdhim_bgm_init(TransportBGetMessage *bgm) {
 }
 
 mdhim_delm_t *mdhim_delm_init(TransportDeleteMessage *dm) {
-    mdhim_delm_t *ret = new mdhim_delm_t();
-    if (!ret || !(ret->p = new mdhim_delm_private_t())) {
+    mdhim_delm_t *ret = Memory::FBP_MEDIUM::Instance().acquire<mdhim_delm_t>();
+    if (!ret || !(ret->p = Memory::FBP_MEDIUM::Instance().acquire<mdhim_delm_private_t>())) {
         return nullptr;
     }
 
@@ -51,8 +52,8 @@ mdhim_delm_t *mdhim_delm_init(TransportDeleteMessage *dm) {
 }
 
 mdhim_bdelm_t *mdhim_bdelm_init(TransportBDeleteMessage *bdm) {
-    mdhim_bdelm_t *ret = new mdhim_bdelm_t();
-    if (!ret || !(ret->p = new mdhim_bdelm_private_t())) {
+    mdhim_bdelm_t *ret = Memory::FBP_MEDIUM::Instance().acquire<mdhim_bdelm_t>();
+    if (!ret || !(ret->p = Memory::FBP_MEDIUM::Instance().acquire<mdhim_bdelm_private_t>())) {
         return nullptr;
     }
 
@@ -61,8 +62,8 @@ mdhim_bdelm_t *mdhim_bdelm_init(TransportBDeleteMessage *bdm) {
 }
 
 mdhim_rm_t *mdhim_rm_init(TransportRecvMessage *rm) {
-    mdhim_rm_t *ret = new mdhim_rm_t();
-    if (!ret || !(ret->p = new mdhim_rm_private_t())) {
+    mdhim_rm_t *ret = Memory::FBP_MEDIUM::Instance().acquire<mdhim_rm_t>();
+    if (!ret || !(ret->p = Memory::FBP_MEDIUM::Instance().acquire<mdhim_rm_private_t>())) {
         return nullptr;
     }
 
@@ -71,8 +72,8 @@ mdhim_rm_t *mdhim_rm_init(TransportRecvMessage *rm) {
 }
 
 mdhim_getrm_t *mdhim_grm_init(TransportGetRecvMessage *grm) {
-    mdhim_getrm_t *ret = new mdhim_getrm_t();
-    if (!ret || !(ret->p = new mdhim_getrm_private_t())) {
+    mdhim_getrm_t *ret = Memory::FBP_MEDIUM::Instance().acquire<mdhim_getrm_t>();
+    if (!ret || !(ret->p = Memory::FBP_MEDIUM::Instance().acquire<mdhim_getrm_private_t>())) {
         return nullptr;
     }
 
@@ -81,8 +82,8 @@ mdhim_getrm_t *mdhim_grm_init(TransportGetRecvMessage *grm) {
 }
 
 mdhim_bgetrm_t *mdhim_bgrm_init(TransportBGetRecvMessage *bgrm) {
-    mdhim_bgetrm_t *ret = new mdhim_bgetrm_t();
-    if (!ret || !(ret->p = new mdhim_bgetrm_private_t())) {
+    mdhim_bgetrm_t *ret = Memory::FBP_MEDIUM::Instance().acquire<mdhim_bgetrm_t>();
+    if (!ret || !(ret->p = Memory::FBP_MEDIUM::Instance().acquire<mdhim_bgetrm_private_t>())) {
         return nullptr;
     }
 
@@ -91,8 +92,8 @@ mdhim_bgetrm_t *mdhim_bgrm_init(TransportBGetRecvMessage *bgrm) {
 }
 
 mdhim_brm_t *mdhim_brm_init(TransportBRecvMessage *brm) {
-    mdhim_brm_t *ret = new mdhim_brm_t();
-    if (!ret || !(ret->p = new mdhim_brm_private_t())) {
+    mdhim_brm_t *ret = Memory::FBP_MEDIUM::Instance().acquire<mdhim_brm_t>();
+    if (!ret || !(ret->p = Memory::FBP_MEDIUM::Instance().acquire<mdhim_brm_private_t>())) {
         return nullptr;
     }
 
@@ -103,141 +104,120 @@ mdhim_brm_t *mdhim_brm_init(TransportBRecvMessage *brm) {
 void mdhim_putm_destroy(mdhim_putm_t *pm) {
     if (pm) {
         if (pm->p) {
-            if (pm->p->pm) {
-                delete pm->p->pm;
-            }
-
-            delete pm->p;
+            Memory::FBP_MEDIUM::Instance().release(pm->p->pm);
+            Memory::FBP_MEDIUM::Instance().release(pm->p);
+            pm->p = nullptr;
         }
 
-        delete pm;
+        Memory::FBP_MEDIUM::Instance().release(pm);
     }
 }
 
 void mdhim_bputm_destroy(mdhim_bputm_t *bpm) {
     if (bpm) {
         if (bpm->p) {
-            if (bpm->p->bpm) {
-                delete bpm->p->bpm;
-            }
-
-            delete bpm->p;
+            Memory::FBP_MEDIUM::Instance().release(bpm->p->bpm);
+            Memory::FBP_MEDIUM::Instance().release(bpm->p);
+            bpm->p = nullptr;
         }
 
-        delete bpm;
+        Memory::FBP_MEDIUM::Instance().release(bpm);
     }
 }
 
 void mdhim_getm_destroy(mdhim_getm_t *gm) {
     if (gm) {
         if (gm->p) {
-            if (gm->p->gm) {
-                delete gm->p->gm;
-            }
-
-            delete gm->p;
+            Memory::FBP_MEDIUM::Instance().release(gm->p->gm);
+            Memory::FBP_MEDIUM::Instance().release(gm->p);
+            gm->p = nullptr;
         }
 
-        delete gm;
+        Memory::FBP_MEDIUM::Instance().release(gm);
     }
 }
 
 void mdhim_bgetm_destroy(mdhim_bgetm_t *bgm) {
     if (bgm) {
         if (bgm->p) {
-            if (bgm->p->bgm) {
-                delete bgm->p->bgm;
-            }
-
-            delete bgm->p;
+            Memory::FBP_MEDIUM::Instance().release(bgm->p->bgm);
+            Memory::FBP_MEDIUM::Instance().release(bgm->p);
+            bgm->p = nullptr;
         }
 
-        delete bgm;
+        Memory::FBP_MEDIUM::Instance().release(bgm);
     }
 }
 
 void mdhim_delm_destroy(mdhim_delm_t *dm) {
     if (dm) {
         if (dm->p) {
-            if (dm->p->dm) {
-                delete dm->p->dm;
-            }
-
-            delete dm->p;
+            Memory::FBP_MEDIUM::Instance().release(dm->p->dm);
+            Memory::FBP_MEDIUM::Instance().release(dm->p);
+            dm->p = nullptr;
         }
 
-        delete dm;
+        Memory::FBP_MEDIUM::Instance().release(dm);
     }
 }
 
 void mdhim_bdelm_destroy(mdhim_bdelm_t *bdm) {
     if (bdm) {
         if (bdm->p) {
-            if (bdm->p->bdm) {
-                delete bdm->p->bdm;
-            }
-
-            delete bdm->p;
+            Memory::FBP_MEDIUM::Instance().release(bdm->p->bdm);
+            Memory::FBP_MEDIUM::Instance().release(bdm->p);
             bdm->p = nullptr;
         }
 
-        delete bdm;
+        Memory::FBP_MEDIUM::Instance().release(bdm);
     }
 }
 
 void mdhim_rm_destroy(mdhim_rm_t *rm) {
     if (rm) {
         if (rm->p) {
-            if (rm->p->rm) {
-                delete rm->p->rm;
-            }
-
-            delete rm->p;
+            Memory::FBP_MEDIUM::Instance().release(rm->p->rm);
+            Memory::FBP_MEDIUM::Instance().release(rm->p);
+            rm->p = nullptr;
         }
 
-        delete rm;
+        Memory::FBP_MEDIUM::Instance().release(rm);
     }
 }
 
 void mdhim_grm_destroy(mdhim_getrm_t *grm) {
     if (grm) {
         if (grm->p) {
-            if (grm->p->grm) {
-                delete grm->p->grm;
-            }
-
-            delete grm->p;
+            Memory::FBP_MEDIUM::Instance().release(grm->p->grm);
+            Memory::FBP_MEDIUM::Instance().release(grm->p);
+            grm->p = nullptr;
         }
 
-        delete grm;
+        Memory::FBP_MEDIUM::Instance().release(grm);
     }
 }
 
 void mdhim_bgrm_destroy(mdhim_bgetrm_t *bgrm) {
     if (bgrm) {
         if (bgrm->p) {
-            if (bgrm->p->bgrm) {
-                delete bgrm->p->bgrm;
-            }
-
-            delete bgrm->p;
+            Memory::FBP_MEDIUM::Instance().release(bgrm->p->bgrm);
+            Memory::FBP_MEDIUM::Instance().release(bgrm->p);
+            bgrm->p = nullptr;
         }
 
-        delete bgrm;
+        Memory::FBP_MEDIUM::Instance().release(bgrm);
     }
 }
 
 void mdhim_brm_destroy(mdhim_brm_t *brm) {
     if (brm) {
         if (brm->p) {
-            if (brm->p->brm) {
-                delete brm->p->brm;
-            }
-
-            delete brm->p;
+            Memory::FBP_MEDIUM::Instance().release(brm->p->brm);
+            Memory::FBP_MEDIUM::Instance().release(brm->p);
+            brm->p = nullptr;
         }
 
-        delete brm;
+        Memory::FBP_MEDIUM::Instance().release(brm);
     }
 }
 

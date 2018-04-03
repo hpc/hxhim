@@ -6,14 +6,15 @@
 #include "mdhim_private.h"
 #include "partitioner.h"
 #include "transport_mpi.hpp"
+#include "MemoryManagers.hpp"
 
-int mdhim_private_init(mdhim_private* mdp, int dstype, int transporttype) {
+int mdhim_private_init(mdhim_private* mdp, int dbtype, int transporttype) {
     int rc = MDHIM_ERROR;
     if (!mdp) {
         goto err_out;
     }
 
-    if (dstype == MDHIM_DS_LEVELDB) {
+    if (dbtype == LEVELDB) {
         rc = MDHIM_SUCCESS;
     }
     else {
@@ -22,9 +23,9 @@ int mdhim_private_init(mdhim_private* mdp, int dstype, int transporttype) {
         goto err_out;
     }
 
-    if (transporttype == MDHIM_TRANSPORT_MPI) {
-        mdp->transport = new Transport(MPIInstance::instance().Rank());
+    mdp->transport = new ((Transport *)Memory::FBP_MEDIUM::Instance().acquire(sizeof(Transport))) Transport(MPIInstance::instance().Rank());
 
+    if (transporttype == MDHIM_TRANSPORT_MPI) {
         // create mapping between unique IDs and ranks
         for(int i = 0; i < MPIInstance::instance().Size(); i++) {
             mdp->transport->AddEndpoint(i, new MPIEndpoint(MPIInstance::instance().Comm(), i, mdp->shutdown));
@@ -49,72 +50,76 @@ err_out:
 TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
                                   void *key, int key_len,
                                   void *value, int value_len) {
-	rangesrv_list *rl;
-	index_t *lookup_index, *put_index;
+    if (!md || !md->p || !index || !key || !key_len || !value || !value_len) {
+        return nullptr;
+    }
 
-	put_index = index;
-	if (index->type == LOCAL_INDEX) {
-		lookup_index = get_index(md, index->primary_id);
-		if (!lookup_index) {
-			return NULL;
-		}
-	} else {
-		lookup_index = index;
-	}
+    rangesrv_list *rl;
+    index_t *lookup_index, *put_index;
 
-	//Get the range server this key will be sent to
-	if (put_index->type == LOCAL_INDEX) {
-		if ((rl = get_range_servers(md, lookup_index, value, value_len)) ==
-		    NULL) {
-			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
-			     "Error while determining range server in mdhimBPut",
-			     md->p->transport->EndpointID());
-			return NULL;
-		}
-	} else {
-		//Get the range server this key will be sent to
-		if ((rl = get_range_servers(md, lookup_index, key, key_len)) == NULL) {
-			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
-			     "Error while determining range server in _put_record",
-			     md->p->transport->EndpointID());
-			return NULL;
-		}
-	}
+    put_index = index;
+    if (index->type == LOCAL_INDEX) {
+        lookup_index = get_index(md, index->primary_id);
+        if (!lookup_index) {
+            return NULL;
+        }
+    } else {
+        lookup_index = index;
+    }
+
+    //Get the range server this key will be sent to
+    if (put_index->type == LOCAL_INDEX) {
+        if ((rl = get_range_servers(md, lookup_index, value, value_len)) ==
+            NULL) {
+            mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+                 "Error while determining range server in mdhimBPut",
+                 md->p->transport->EndpointID());
+            return NULL;
+        }
+    } else {
+        //Get the range server this key will be sent to
+        if ((rl = get_range_servers(md, lookup_index, key, key_len)) == NULL) {
+            mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+                 "Error while determining range server in _put_record",
+                 md->p->transport->EndpointID());
+            return NULL;
+        }
+    }
 
     TransportRecvMessage *rm = nullptr;
-	while (rl) {
-        TransportPutMessage *pm = new TransportPutMessage();
-		if (!pm) {
-			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
-			     "Error while allocating memory in _put_record",
-			     md->p->transport->EndpointID());
-			return NULL;
-		}
+    while (rl) {
+        TransportPutMessage *pm = Memory::FBP_MEDIUM::Instance().acquire<TransportPutMessage>();
+        if (!pm) {
+            mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
+                 "Error while allocating memory in _put_record",
+                 md->p->transport->EndpointID());
+            return NULL;
+        }
 
-		//Initialize the put message
-		pm->mtype = TransportMessageType::PUT;
-		pm->key = key;
-		pm->key_len = key_len;
-		pm->value = value;
-		pm->value_len = value_len;
+        //Initialize the put message
+        pm->mtype = TransportMessageType::PUT;
+        pm->key = key;
+        pm->key_len = key_len;
+        pm->value = value;
+        pm->value_len = value_len;
         pm->src = md->p->transport->EndpointID();
-		pm->dst = rl->ri->rank;
-		pm->index = put_index->id;
-		pm->index_type = put_index->type;
+        pm->dst = rl->ri->rank;
+        pm->index = put_index->id;
+        pm->index_type = put_index->type;
 
-		//If I'm a range server and I'm the one this key goes to, send the message locally
-		if (im_range_server(put_index) && md->p->transport->EndpointID() == pm->dst) {
-			rm = local_client_put(md, pm);
-		} else {
-			//Send the message through the network as this message is for another rank
+        //If I'm a range server and I'm the one this key goes to, send the message locally
+        if (im_range_server(put_index) && md->p->transport->EndpointID() == pm->dst) {
+            rm = local_client_put(md, pm);
+        } else {
+            //Send the message through the network as this message is for another rank
             rm = md->p->transport->Put(pm);
-			delete pm;
-		}
+            Memory::FBP_MEDIUM::Instance().release(pm);
+        }
 
-		rangesrv_list *rlp = rl;
-		rl = rl->next;
-		free(rlp);
-	}
+        rangesrv_list *rlp = rl;
+        rl = rl->next;
+        free(rlp);
+    }
 
     return rm;
 }
@@ -122,12 +127,12 @@ TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
 TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
                                      void *key, int key_len,
                                      enum TransportGetMessageOp op) {
-    if (!md || !index || !key || !key_len) {
+    if (!md || !md->p || !index || !key || !key_len) {
         return nullptr;
     }
 
     //Create an array of bulk get messages that holds one bulk message per range server
-	rangesrv_list *rl = nullptr;
+    rangesrv_list *rl = nullptr;
     //Get the range server this key will be sent to
     if ((op == TransportGetMessageOp::GET_EQ || op == TransportGetMessageOp::GET_PRIMARY_EQ) &&
         index->type != LOCAL_INDEX &&
@@ -143,7 +148,7 @@ TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
 
     TransportGetRecvMessage *grm = nullptr;
     while (rl) {
-        TransportGetMessage *gm = new TransportGetMessage();
+        TransportGetMessage *gm = Memory::FBP_MEDIUM::Instance().acquire<TransportGetMessage>();
         gm->key = key;
         gm->key_len = key_len;
         gm->num_keys = 1;
@@ -154,14 +159,14 @@ TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
         gm->index = index->id;
         gm->index_type = index->type;
 
-		//If I'm a range server and I'm the one this key goes to, send the message locally
-		if (im_range_server(index) && md->p->transport->EndpointID() == gm->dst) {
-			grm = local_client_get(md, gm);
-		} else {
-			//Send the message through the network as this message is for another rank
+        //If I'm a range server and I'm the one this key goes to, send the message locally
+        if (im_range_server(index) && md->p->transport->EndpointID() == gm->dst) {
+            grm = local_client_get(md, gm);
+        } else {
+            //Send the message through the network as this message is for another rank
             grm = md->p->transport->Get(gm);
-			delete gm;
-		}
+            Memory::FBP_MEDIUM::Instance().release(gm);
+        }
 
         rangesrv_list *rlp = rl;
         rl = rl->next;
@@ -177,7 +182,7 @@ TransportBRecvMessage *_create_brm(TransportRecvMessage *rm) {
         return nullptr;
     }
 
-    TransportBRecvMessage *brm = new TransportBRecvMessage();
+    TransportBRecvMessage *brm = Memory::FBP_MEDIUM::Instance().acquire<TransportBRecvMessage>();
     brm->error = rm->error;
     brm->mtype = rm->mtype;
     brm->index = rm->index;

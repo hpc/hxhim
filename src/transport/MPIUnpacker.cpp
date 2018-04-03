@@ -1,4 +1,5 @@
 #include "MPIUnpacker.hpp"
+#include "MemoryManagers.hpp"
 
 int MPIUnpacker::any(const MPI_Comm comm, TransportMessage **msg, const void *buf, const int bufsize) {
     TransportMessage *basemsg = nullptr;
@@ -81,7 +82,7 @@ int MPIUnpacker::any(const MPI_Comm comm, TransportMessage **msg, const void *bu
             break;
     }
 
-    delete basemsg;
+    Memory::FBP_MEDIUM::Instance().release(basemsg);
 
     return ret;
 }
@@ -91,43 +92,43 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportPutMessage **pm, const voi
         return MDHIM_ERROR;
     }
 
-    TransportPutMessage *out = new TransportPutMessage();
+    TransportPutMessage *out = Memory::FBP_MEDIUM::Instance().acquire<TransportPutMessage>();
     if (!out) {
         return MDHIM_ERROR;
     }
 
     int position = 0;
     if (unpack(comm, static_cast<TransportMessage *>(out), buf, bufsize, &position) != MDHIM_SUCCESS) {
-        delete out;
+        Memory::FBP_MEDIUM::Instance().release(out);
         return MDHIM_ERROR;
     }
 
     if ((MPI_Unpack(buf, bufsize, &position, &out->key_len, sizeof(out->key_len), MPI_CHAR, comm)     != MPI_SUCCESS) ||
         (MPI_Unpack(buf, bufsize, &position, &out->value_len, sizeof(out->value_len), MPI_CHAR, comm) != MPI_SUCCESS)) {
-        delete out;
+        Memory::FBP_MEDIUM::Instance().release(out);
         return MDHIM_ERROR;
     }
 
     if (out->key_len) {
-        if (!(out->key = malloc(out->key_len))) {
-            delete out;
+        if (!(out->key = Memory::FBP_MEDIUM::Instance().acquire(out->key_len))) {
+            Memory::FBP_MEDIUM::Instance().release(out);
             return MDHIM_ERROR;
         }
 
         if (MPI_Unpack(buf, bufsize, &position, out->key, out->key_len, MPI_CHAR, comm) != MPI_SUCCESS) {
-            delete out;
+            Memory::FBP_MEDIUM::Instance().release(out);
             return MDHIM_ERROR;
         }
     }
 
     if (out->value_len) {
-        if (!(out->value = malloc(out->value_len))) {
-            delete out;
+        if (!(out->value = Memory::FBP_MEDIUM::Instance().acquire(out->value_len))) {
+            Memory::FBP_MEDIUM::Instance().release(out);
             return MDHIM_ERROR;
         }
 
         if (MPI_Unpack(buf, bufsize, &position, out->value, out->value_len, MPI_CHAR, comm) != MPI_SUCCESS) {
-            delete out;
+            Memory::FBP_MEDIUM::Instance().release(out);
             return MDHIM_ERROR;
         }
     }
@@ -142,56 +143,56 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportBPutMessage **bpm, const v
         return MDHIM_ERROR;
     }
 
-    TransportBPutMessage *out = new TransportBPutMessage();
+    TransportBPutMessage *out = Memory::FBP_MEDIUM::Instance().acquire<TransportBPutMessage>();
     if (!out) {
         return MDHIM_ERROR;
     }
 
     int position = 0;
     if (unpack(comm, static_cast<TransportMessage *>(out), buf, bufsize, &position) != MDHIM_SUCCESS) {
-        delete out;
+        Memory::FBP_MEDIUM::Instance().release(out);
         return MDHIM_ERROR;
     }
 
     if (MPI_Unpack(buf, bufsize, &position, &out->num_keys, sizeof(out->num_keys), MPI_CHAR, comm) != MPI_SUCCESS) {
-        delete out;
+        Memory::FBP_MEDIUM::Instance().release(out);
         return MDHIM_ERROR;
     }
 
     // If there are keys/values, allocate space for them and unpack
     if (out->num_keys) {
-        if (!(out->key_lens = (int *)malloc(out->num_keys * sizeof(int)))) {
-            delete out;
+        if (!(out->key_lens = Memory::FBP_MEDIUM::Instance().acquire<int>(out->num_keys))) {
+            Memory::FBP_MEDIUM::Instance().release(out);
             return MDHIM_ERROR;
         }
 
-        if (!(out->value_lens = (int *)malloc(out->num_keys * sizeof(int)))) {
-            delete out;
+        if (!(out->value_lens = Memory::FBP_MEDIUM::Instance().acquire<int>(out->num_keys))) {
+            Memory::FBP_MEDIUM::Instance().release(out);
             return MDHIM_ERROR;
         }
 
         if ((MPI_Unpack(buf, bufsize, &position, out->key_lens, out->num_keys, MPI_INT, comm)   != MPI_SUCCESS) ||
             (MPI_Unpack(buf, bufsize, &position, out->value_lens, out->num_keys, MPI_INT, comm) != MPI_SUCCESS)) {
-            delete out;
+            Memory::FBP_MEDIUM::Instance().release(out);
             return MDHIM_ERROR;
         }
 
-        if (!(out->keys = (void **)malloc(out->num_keys * sizeof(void *)))) {
-            delete out;
+        if (!(out->keys = Memory::FBP_MEDIUM::Instance().acquire<void *>(out->num_keys))) {
+            Memory::FBP_MEDIUM::Instance().release(out);
             return MDHIM_ERROR;
         }
 
-        if (!(out->values = (void **)malloc(out->num_keys * sizeof(void *)))) {
-            delete out;
+        if (!(out->values = Memory::FBP_MEDIUM::Instance().acquire<void *>(out->num_keys))) {
+            Memory::FBP_MEDIUM::Instance().release(out);
             return MDHIM_ERROR;
         }
 
         for(int i = 0; i < out->num_keys; i++) {
-            if (!(out->keys[i] = malloc(out->key_lens[i]))     ||
-                !(out->values[i] = malloc(out->value_lens[i])) ||
+            if (!(out->keys[i] = Memory::FBP_MEDIUM::Instance().acquire(out->key_lens[i]))     ||
+                !(out->values[i] = Memory::FBP_MEDIUM::Instance().acquire(out->value_lens[i])) ||
                 (MPI_Unpack(buf, bufsize, &position, out->keys[i], out->key_lens[i], MPI_CHAR, comm)     != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, out->values[i], out->value_lens[i], MPI_CHAR, comm) != MPI_SUCCESS)) {
-                delete out;
+                Memory::FBP_MEDIUM::Instance().release(out);
                 return MDHIM_ERROR;
             }
         }
@@ -207,14 +208,14 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportGetMessage **gm, const voi
         return MDHIM_ERROR;
     }
 
-    TransportGetMessage *out = new TransportGetMessage();
+    TransportGetMessage *out = Memory::FBP_MEDIUM::Instance().acquire<TransportGetMessage>();
     if (!out) {
         return MDHIM_ERROR;
     }
 
     int position = 0;
     if (unpack(comm, static_cast<TransportMessage *>(out), buf, bufsize, &position) != MDHIM_SUCCESS) {
-        delete out;
+        Memory::FBP_MEDIUM::Instance().release(out);
         return MDHIM_ERROR;
     }
 
@@ -222,19 +223,19 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportGetMessage **gm, const voi
         // not sure if out->num_keys is used/set
         (MPI_Unpack(buf, bufsize, &position, &out->num_keys, sizeof(out->num_keys), MPI_CHAR, comm) != MPI_SUCCESS) ||
         (MPI_Unpack(buf, bufsize, &position, &out->key_len, sizeof(out->key_len), MPI_CHAR, comm)   != MPI_SUCCESS)) {
-        delete out;
+        Memory::FBP_MEDIUM::Instance().release(out);
         return MDHIM_ERROR;
     }
 
     // If there is a key, allocate space for it and unpack
     if (out->key_len) {
-        if (!(out->key = malloc(out->key_len))) {
-            delete out;
+        if (!(out->key = Memory::FBP_MEDIUM::Instance().acquire(out->key_len))) {
+            Memory::FBP_MEDIUM::Instance().release(out);
             return MDHIM_ERROR;
         }
 
         if (MPI_Unpack(buf, bufsize, &position, out->key, out->key_len, MPI_CHAR, comm) != MPI_SUCCESS) {
-            delete out;
+            Memory::FBP_MEDIUM::Instance().release(out);
             return MDHIM_ERROR;
         }
     }
@@ -249,43 +250,43 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportBGetMessage **bgm, const v
         return MDHIM_ERROR;
     }
 
-    TransportBGetMessage *out = new TransportBGetMessage();
+    TransportBGetMessage *out = Memory::FBP_MEDIUM::Instance().acquire<TransportBGetMessage>();
     if (!out) {
         return MDHIM_ERROR;
     }
 
     int position = 0;
     if (unpack(comm, static_cast<TransportMessage *>(out), buf, bufsize, &position) != MDHIM_SUCCESS) {
-        delete out;
+        Memory::FBP_MEDIUM::Instance().release(out);
         return MDHIM_ERROR;
     }
 
     if ((MPI_Unpack(buf, bufsize, &position, &out->op, sizeof(out->op), MPI_CHAR, comm)             != MPI_SUCCESS) ||
         (MPI_Unpack(buf, bufsize, &position, &out->num_keys, sizeof(out->num_keys), MPI_CHAR, comm) != MPI_SUCCESS) ||
         (MPI_Unpack(buf, bufsize, &position, &out->num_recs, sizeof(out->num_recs), MPI_CHAR, comm) != MPI_SUCCESS)) {
-        delete out;
+        Memory::FBP_MEDIUM::Instance().release(out);
         return MDHIM_ERROR;
     }
 
     // If there are keys/values, allocate space for them and unpack
     if (out->num_keys) {
-        if (!(out->key_lens = (int *)malloc(out->num_keys * sizeof(int)))) {
-            delete out;
+        if (!(out->key_lens = Memory::FBP_MEDIUM::Instance().acquire<int>(out->num_keys))) {
+            Memory::FBP_MEDIUM::Instance().release(out);
             return MDHIM_ERROR;
         }
 
-        if (!(out->keys = (void **)malloc(out->num_keys * sizeof(void *)))) {
-            delete out;
+        if (!(out->keys = Memory::FBP_MEDIUM::Instance().acquire<void *>(out->num_keys))) {
+            Memory::FBP_MEDIUM::Instance().release(out);
             return MDHIM_ERROR;
         }
 
         if (MPI_Unpack(buf, bufsize, &position, out->key_lens, out->num_keys, MPI_INT, comm) != MPI_SUCCESS) {
-            delete out;
+            Memory::FBP_MEDIUM::Instance().release(out);
             return MDHIM_ERROR;
         }
 
         for(int i = 0; i < out->num_keys; i++) {
-            if (!(out->keys[i] = malloc(out->key_lens[i])) ||
+            if (!(out->keys[i] = Memory::FBP_MEDIUM::Instance().acquire(out->key_lens[i])) ||
                 (MPI_Unpack(buf, bufsize, &position, out->keys[i], out->key_lens[i], MPI_CHAR, comm) != MPI_SUCCESS)) {
                 return MDHIM_ERROR;
             }
@@ -301,31 +302,31 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportDeleteMessage **dm, const 
         return MDHIM_ERROR;
     }
 
-    TransportDeleteMessage *out = new TransportDeleteMessage();
+    TransportDeleteMessage *out = Memory::FBP_MEDIUM::Instance().acquire<TransportDeleteMessage>();
     if (!out) {
         return MDHIM_ERROR;
     }
 
     int position = 0;
     if (unpack(comm, static_cast<TransportMessage *>(out), buf, bufsize, &position) != MDHIM_SUCCESS) {
-        delete out;
+        Memory::FBP_MEDIUM::Instance().release(out);
         return MDHIM_ERROR;
     }
 
     if (MPI_Unpack(buf, bufsize, &position, &out->key_len, sizeof(out->key_len), MPI_CHAR, comm) != MPI_SUCCESS) {
-        delete out;
+        Memory::FBP_MEDIUM::Instance().release(out);
         return MDHIM_ERROR;
     }
 
     // If there is a key, allocate space for it and unpack
     if (out->key_len) {
-        if (!(out->key = malloc(out->key_len))) {
-            delete out;
+        if (!(out->key = Memory::FBP_MEDIUM::Instance().acquire(out->key_len))) {
+            Memory::FBP_MEDIUM::Instance().release(out);
             return MDHIM_ERROR;
         }
 
         if (MPI_Unpack(buf, bufsize, &position, out->key, out->key_len, MPI_CHAR, comm) != MPI_SUCCESS) {
-            delete out;
+            Memory::FBP_MEDIUM::Instance().release(out);
             return MDHIM_ERROR;
         }
     }
@@ -340,43 +341,43 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportBDeleteMessage **bdm, cons
         return MDHIM_ERROR;
     }
 
-    TransportBDeleteMessage *out = new TransportBDeleteMessage();
+    TransportBDeleteMessage *out = Memory::FBP_MEDIUM::Instance().acquire<TransportBDeleteMessage>();
     if (!out) {
         return MDHIM_ERROR;
     }
 
     int position = 0;
     if (unpack(comm, static_cast<TransportMessage *>(out), buf, bufsize, &position) != MDHIM_SUCCESS) {
-        delete out;
+        Memory::FBP_MEDIUM::Instance().release(out);
         return MDHIM_ERROR;
     }
 
     if (MPI_Unpack(buf, bufsize, &position, &out->num_keys, sizeof(out->num_keys), MPI_CHAR, comm) != MPI_SUCCESS) {
-        delete out;
+        Memory::FBP_MEDIUM::Instance().release(out);
         return MDHIM_ERROR;
     }
 
     // If there are keys, allocate space for them and unpack
     if (out->num_keys) {
-        if (!(out->key_lens = (int *)malloc(out->num_keys * sizeof(int)))) {
-            delete out;
+        if (!(out->key_lens = Memory::FBP_MEDIUM::Instance().acquire<int>(out->num_keys))) {
+            Memory::FBP_MEDIUM::Instance().release(out);
             return MDHIM_ERROR;
         }
 
         if (MPI_Unpack(buf, bufsize, &position, out->key_lens, out->num_keys, MPI_INT, comm) != MPI_SUCCESS) {
-            delete out;
+            Memory::FBP_MEDIUM::Instance().release(out);
             return MDHIM_ERROR;
         }
 
-        if (!(out->keys = (void **)malloc(out->num_keys * sizeof(void *)))) {
-            delete out;
+        if (!(out->keys = Memory::FBP_MEDIUM::Instance().acquire<void *>(out->num_keys))) {
+            Memory::FBP_MEDIUM::Instance().release(out);
             return MDHIM_ERROR;
         }
 
         for(int i = 0; i < out->num_keys; i++) {
-            if (!(out->keys[i] = malloc(out->key_lens[i]))     ||
+            if (!(out->keys[i] = Memory::FBP_MEDIUM::Instance().acquire(out->key_lens[i]))     ||
                 (MPI_Unpack(buf, bufsize, &position, out->keys[i], out->key_lens[i], MPI_CHAR, comm) != MPI_SUCCESS)) {
-                delete out;
+                Memory::FBP_MEDIUM::Instance().release(out);
                 return MDHIM_ERROR;
             }
         }
@@ -392,19 +393,19 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportRecvMessage **rm, const vo
         return MDHIM_ERROR;
     }
 
-    TransportRecvMessage *out = new TransportRecvMessage();
+    TransportRecvMessage *out = Memory::FBP_MEDIUM::Instance().acquire<TransportRecvMessage>();
     if (!out) {
         return MDHIM_ERROR;
     }
 
     int position = 0;
     if (unpack(comm, static_cast<TransportMessage *>(out), buf, bufsize, &position) != MDHIM_SUCCESS) {
-        delete out;
+        Memory::FBP_MEDIUM::Instance().release(out);
         return MDHIM_ERROR;
     }
 
     if (MPI_Unpack(buf, bufsize, &position, &out->error, sizeof(out->error), MPI_CHAR, comm) != MPI_SUCCESS) {
-        delete out;
+        Memory::FBP_MEDIUM::Instance().release(out);
         return MDHIM_ERROR;
     }
 
@@ -417,36 +418,36 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportGetRecvMessage **grm, cons
         return MDHIM_ERROR;
     }
 
-    TransportGetRecvMessage *out = new TransportGetRecvMessage();
+    TransportGetRecvMessage *out = Memory::FBP_MEDIUM::Instance().acquire<TransportGetRecvMessage>();
     if (!out) {
         return MDHIM_ERROR;
     }
 
     int position = 0;
     if (unpack(comm, static_cast<TransportMessage *>(out), buf, bufsize, &position) != MDHIM_SUCCESS) {
-        delete out;
+        Memory::FBP_MEDIUM::Instance().release(out);
         return MDHIM_ERROR;
     }
 
     if ((MPI_Unpack(buf, bufsize, &position, &out->error, sizeof(out->error), MPI_CHAR, comm)         != MPI_SUCCESS) ||
         (MPI_Unpack(buf, bufsize, &position, &out->key_len, sizeof(out->key_len), MPI_CHAR, comm)     != MPI_SUCCESS) ||
         (MPI_Unpack(buf, bufsize, &position, &out->value_len, sizeof(out->value_len), MPI_CHAR, comm) != MPI_SUCCESS)) {
-        delete out;
+        Memory::FBP_MEDIUM::Instance().release(out);
         return MDHIM_ERROR;
     }
 
     if (out->key_len) {
-        if (!(out->key = (void *)malloc(out->key_len)) ||
+        if (!(out->key = (void *)Memory::FBP_MEDIUM::Instance().acquire(out->key_len)) ||
             (MPI_Unpack(buf, bufsize, &position, out->key, out->key_len, MPI_CHAR, comm) != MPI_SUCCESS)) {
-            delete out;
+            Memory::FBP_MEDIUM::Instance().release(out);
             return MDHIM_ERROR;
         }
     }
 
     if (out->value_len) {
-        if (!(out->value = (void *)malloc(out->value_len)) ||
+        if (!(out->value = (void *)Memory::FBP_MEDIUM::Instance().acquire(out->value_len)) ||
             (MPI_Unpack(buf, bufsize, &position, out->value, out->value_len, MPI_CHAR, comm) != MPI_SUCCESS)) {
-            delete out;
+            Memory::FBP_MEDIUM::Instance().release(out);
             return MDHIM_ERROR;
         }
 
@@ -462,57 +463,57 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportBGetRecvMessage **bgrm, co
         return MDHIM_ERROR;
     }
 
-    TransportBGetRecvMessage *out = new TransportBGetRecvMessage();
+    TransportBGetRecvMessage *out = Memory::FBP_MEDIUM::Instance().acquire<TransportBGetRecvMessage>();
     if (!out) {
         return MDHIM_ERROR;
     }
 
     int position = 0;
     if (unpack(comm, static_cast<TransportMessage *>(out), buf, bufsize, &position) != MDHIM_SUCCESS) {
-        delete out;
+        Memory::FBP_MEDIUM::Instance().release(out);
         return MDHIM_ERROR;
     }
 
     if ((MPI_Unpack(buf, bufsize, &position, &out->error, sizeof(out->error), MPI_CHAR, comm)       != MPI_SUCCESS) ||
         (MPI_Unpack(buf, bufsize, &position, &out->num_keys, sizeof(out->num_keys), MPI_CHAR, comm) != MPI_SUCCESS)) {
-        delete out;
+        Memory::FBP_MEDIUM::Instance().release(out);
         return MDHIM_ERROR;
     }
 
     // If there are keys/values, allocate space for them and unpack
     if (out->num_keys) {
-        if (!(out->key_lens = (int *)malloc(out->num_keys * sizeof(int)))) {
-            delete out;
+        if (!(out->key_lens = Memory::FBP_MEDIUM::Instance().acquire<int>(out->num_keys))) {
+            Memory::FBP_MEDIUM::Instance().release(out);
             return MDHIM_ERROR;
         }
 
-        if (!(out->value_lens = (int *)malloc(out->num_keys * sizeof(int)))) {
-            delete out;
+        if (!(out->value_lens = Memory::FBP_MEDIUM::Instance().acquire<int>(out->num_keys))) {
+            Memory::FBP_MEDIUM::Instance().release(out);
             return MDHIM_ERROR;
         }
 
         if ((MPI_Unpack(buf, bufsize, &position, out->key_lens, out->num_keys, MPI_INT, comm)   != MPI_SUCCESS) ||
             (MPI_Unpack(buf, bufsize, &position, out->value_lens, out->num_keys, MPI_INT, comm) != MPI_SUCCESS)) {
-            delete out;
+            Memory::FBP_MEDIUM::Instance().release(out);
             return MDHIM_ERROR;
         }
 
-        if (!(out->keys = (void **)malloc(out->num_keys * sizeof(void *)))) {
-            delete out;
+        if (!(out->keys = Memory::FBP_MEDIUM::Instance().acquire<void *>(out->num_keys))) {
+            Memory::FBP_MEDIUM::Instance().release(out);
             return MDHIM_ERROR;
         }
 
-        if (!(out->values = (void **)malloc(out->num_keys * sizeof(void *)))) {
-            delete out;
+        if (!(out->values = Memory::FBP_MEDIUM::Instance().acquire<void *>(out->num_keys))) {
+            Memory::FBP_MEDIUM::Instance().release(out);
             return MDHIM_ERROR;
         }
 
         for(int i = 0; i < out->num_keys; i++) {
-            if (!(out->keys[i] = malloc(out->key_lens[i])) ||
-                !(out->values[i] = malloc(out->value_lens[i])) ||
+            if (!(out->keys[i] = Memory::FBP_MEDIUM::Instance().acquire(out->key_lens[i])) ||
+                !(out->values[i] = Memory::FBP_MEDIUM::Instance().acquire(out->value_lens[i])) ||
                 (MPI_Unpack(buf, bufsize, &position, out->keys[i], out->key_lens[i], MPI_CHAR, comm)     != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, out->values[i], out->value_lens[i], MPI_CHAR, comm) != MPI_SUCCESS)) {
-                delete out;
+                Memory::FBP_MEDIUM::Instance().release(out);
                 return MDHIM_ERROR;
             }
         }
@@ -528,19 +529,19 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportBRecvMessage **brm, const 
         return MDHIM_ERROR;
     }
 
-    TransportBRecvMessage *out = new TransportBRecvMessage();
+    TransportBRecvMessage *out = Memory::FBP_MEDIUM::Instance().acquire<TransportBRecvMessage>();
     if (!out) {
         return MDHIM_ERROR;
     }
 
     int position = 0;
     if (unpack(comm, static_cast<TransportMessage *>(out), buf, bufsize, &position) != MDHIM_SUCCESS) {
-        delete out;
+        Memory::FBP_MEDIUM::Instance().release(out);
         return MDHIM_ERROR;
     }
 
     if (MPI_Unpack(buf, bufsize, &position, &out->error, sizeof(out->error), MPI_CHAR, comm) != MPI_SUCCESS) {
-        delete out;
+        Memory::FBP_MEDIUM::Instance().release(out);
         return MDHIM_ERROR;
     }
 
@@ -554,14 +555,14 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportMessage **msg, const void 
         return MDHIM_ERROR;
     }
 
-    TransportMessage *out = new TransportMessage();
+    TransportMessage *out = Memory::FBP_MEDIUM::Instance().acquire<TransportMessage>();
     if (!out) {
         return MDHIM_ERROR;
     }
 
     int position = 0;
     if (unpack(comm, out, buf, bufsize, &position) != MDHIM_SUCCESS) {
-        delete out;
+        Memory::FBP_MEDIUM::Instance().release(out);
         return MDHIM_ERROR;
     }
 

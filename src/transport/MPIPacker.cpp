@@ -1,4 +1,5 @@
 #include "MPIPacker.hpp"
+#include "MemoryManagers.hpp"
 
 int MPIPacker::any (const MPI_Comm comm, const TransportMessage *msg, void **buf, int *bufsize) {
     int ret = MDHIM_ERROR;
@@ -255,7 +256,7 @@ int MPIPacker::pack(const MPI_Comm comm, const TransportMessage *msg, void **buf
     }
 
     // Allocate the buffer
-    if (!(*buf = ::operator new (*bufsize))) {
+    if (!(*buf = Memory::FBP_MEDIUM::Instance().acquire(*bufsize))) {
         return MDHIM_ERROR;
     }
 

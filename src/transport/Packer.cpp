@@ -1,8 +1,9 @@
 #include "Packer.hpp"
+#include "MemoryManagers.hpp"
 
 void Packer::cleanup(void **buf, int *bufsize) {
     if (buf) {
-        ::operator delete (*buf);
+        Memory::FBP_MEDIUM::Instance().release(*buf);
         *buf = nullptr;
     }
 

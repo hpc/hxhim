@@ -69,7 +69,7 @@ typedef struct mdhim_private {
  * @param commtype The communication type to instantiate
  * @return 0 on success, non-zero on failre
  */
-int mdhim_private_init(struct mdhim_private* mdp, int dstype, int transporttype);
+int mdhim_private_init(struct mdhim_private* mdp, int dbtype, int transporttype);
 
 TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
                                   void *key, int key_len,

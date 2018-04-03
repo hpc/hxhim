@@ -1,6 +1,5 @@
-#include <iostream>
-
 #include "MPIEndpoint.hpp"
+#include "MemoryManagers.hpp"
 
 #define HXHIM_MPI_REQUEST_TAG 0x311
 
@@ -65,7 +64,7 @@ int MPIEndpoint::PutRequest(const TransportPutMessage *message) {
     // send the message
     const int ret = send_rangesrv_work(buf, size);
 
-    ::operator delete(buf);
+    Memory::FBP_MEDIUM::Instance().release(buf);
 
     return ret;
 }
@@ -91,7 +90,7 @@ int MPIEndpoint::PutReply(TransportRecvMessage **message) {
         ret = MPIUnpacker::unpack(comm_, message, buf, size);
     }
 
-    ::operator delete(buf);
+    Memory::FBP_MEDIUM::Instance().release(buf);
 
     return ret;
 }
@@ -119,7 +118,7 @@ int MPIEndpoint::GetRequest(const TransportGetMessage *message) {
     // send the message
     const int ret = send_rangesrv_work(buf, size);
 
-    ::operator delete(buf);
+    Memory::FBP_MEDIUM::Instance().release(buf);
 
     return ret;
 }
@@ -145,7 +144,7 @@ int MPIEndpoint::GetReply(TransportGetRecvMessage **message) {
         ret = MPIUnpacker::unpack(comm_, message, buf, size);
     }
 
-    ::operator delete(buf);
+    Memory::FBP_MEDIUM::Instance().release(buf);
 
     return ret;
 }
@@ -211,7 +210,7 @@ int MPIEndpoint::receive_client_response(void **buf, int *size) {
     }
 
     // allocate space for the message
-    if (!(*buf = ::operator new(*size))) {
+    if (!(*buf = Memory::FBP_MEDIUM::Instance().acquire(*size))) {
         return MDHIM_ERROR;
     }
 

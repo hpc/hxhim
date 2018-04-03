@@ -4,6 +4,7 @@
 #include "mdhim.h"
 #include "mdhim_private.h"       // needed to access private mdhim members for testing
 #include "transport_private.hpp" // needed to access private return values for testing
+#include "MemoryManagers.hpp"
 
 //Constants used across all mdhimPutGet tests
 typedef int Key_t;
@@ -54,6 +55,8 @@ TEST(mdhimPutGet, no_secondary) {
     EXPECT_EQ(MPI_Barrier(MPI_COMM_WORLD), MPI_SUCCESS);
 
     EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
+    EXPECT_EQ(mdhim_options_destroy(&opts), MDHIM_SUCCESS);
+    EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
 }
 
 // TEST(mdhimPutGet, secondary_global) {

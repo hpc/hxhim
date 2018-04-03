@@ -22,3 +22,6 @@ cmake3 ..
 make
 make install
 ```
+
+### Usage Notes
+Always remember to clear out old manifest files if there are overlapping names between runs

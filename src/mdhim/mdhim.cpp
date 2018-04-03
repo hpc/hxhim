@@ -19,6 +19,7 @@
 #include "partitioner.h"
 #include "range_server.h"
 #include "transport_private.hpp"
+#include "MemoryManagers.hpp"
 
 /*! \mainpage MDHIM TNG
  *
@@ -42,6 +43,7 @@ static int groupInitialization(mdhim_t *md) {
 
     // TODO: remove this block//////////////////////
     //Don't allow MPI_COMM_NULL to be the communicator
+    md->p->mdhim_client_comm = MPI_COMM_NULL;
     if (md->p->mdhim_comm == MPI_COMM_NULL) {
         return MDHIM_ERROR;
     }
@@ -73,7 +75,9 @@ static int groupDestruction(mdhim_t *md) {
     }
 
     //Destroy the client communicator
-    MPI_Comm_free(&md->p->mdhim_client_comm);
+    if (md->p->mdhim_client_comm != MPI_COMM_NULL) {
+        MPI_Comm_free(&md->p->mdhim_client_comm);
+    }
 
     return MDHIM_SUCCESS;
 }
@@ -152,8 +156,8 @@ int mdhimInit(mdhim_t* md, mdhim_options_t *opts) {
 
     //Initialize context variables based on options
 
-    md->p = new mdhim_private;
-    mdhim_private_init(md->p, MDHIM_DS_LEVELDB, MDHIM_TRANSPORT_MPI);
+    md->p = Memory::FBP_MEDIUM::Instance().acquire<mdhim_private>();
+    mdhim_private_init(md->p, opts->p->db_type, opts->p->transporttype);
 
     md->p->mdhim_comm = opts->p->comm;
     md->p->mdhim_comm_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -202,28 +206,24 @@ int mdhimClose(struct mdhim *md) {
     md->p->shutdown = 1;
 
     //Stop range server if I'm a range server
-    if (md->p->mdhim_rs && (range_server_stop(md) != MDHIM_SUCCESS)) {
-        return MDHIM_ERROR;
+    if (md->p->mdhim_rs) {
+        range_server_stop(md);
     }
 
     //Free up memory used by the partitioner
     partitioner_release();
 
     //Free up memory used by indexes
-    if (indexDestruction(md) != MDHIM_SUCCESS) {
-        return MDHIM_ERROR;
-    }
+    indexDestruction(md);
 
     //Free up memory used by message buffer
     free(md->p->receive_msg);
 
     //Clean up group members
-    if (groupDestruction(md) != MDHIM_SUCCESS) {
-        return MDHIM_ERROR;
-    }
+    groupDestruction(md);
 
-    delete md->p->transport;
-    delete md->p;
+    Memory::FBP_MEDIUM::Instance().release(md->p->transport);
+    Memory::FBP_MEDIUM::Instance().release(md->p);
     md->p = nullptr;
 
     //Close MLog
@@ -247,7 +247,7 @@ int mdhimCommit(struct mdhim *md, struct index *index) {
 
     //If I'm a range server, send a commit message to myself
     if (im_range_server(index)) {
-        TransportRecvMessage *cm = new TransportRecvMessage();
+        TransportRecvMessage *cm = Memory::FBP_MEDIUM::Instance().acquire<TransportRecvMessage>();
         cm->mtype = TransportMessageType::COMMIT;
         cm->index = index->id;
         cm->index_type = index->type;
@@ -261,7 +261,7 @@ int mdhimCommit(struct mdhim *md, struct index *index) {
                  md->p->transport->EndpointID());
         }
 
-        delete rm;
+        Memory::FBP_MEDIUM::Instance().release(rm);
     }
 
     return ret;
@@ -291,11 +291,11 @@ mdhim_brm_t *mdhimPut(struct mdhim *md,
     }
 
     // Clone primary key and value
-    void *pk = malloc(primary_key_len);
-    void *val = malloc(value_len);
+    void *pk = Memory::FBP_MEDIUM::Instance().acquire(primary_key_len);
+    void *val = Memory::FBP_MEDIUM::Instance().acquire(value_len);
     if (!pk || !val) {
-        free(pk);
-        free(val);
+        Memory::FBP_MEDIUM::Instance().release(pk);
+        Memory::FBP_MEDIUM::Instance().release(val);
         return nullptr;
     }
 
@@ -309,7 +309,7 @@ mdhim_brm_t *mdhimPut(struct mdhim *md,
     }
 
     TransportBRecvMessage *head = _create_brm(rm);
-    delete rm;
+    Memory::FBP_MEDIUM::Instance().release(rm);
 
     // //Return message from each _put_record call
     // TransportBRecvMessage *brm = nullptr;
@@ -562,7 +562,7 @@ mdhim_getrm_t *mdhimGet(mdhim_t *md, struct index *index,
     }
 
     // Clone primary key and value
-    void *k = malloc(key_len);
+    void *k = Memory::FBP_MEDIUM::Instance().acquire(key_len);
     if (!k) {
         return nullptr;
     }
@@ -821,9 +821,6 @@ int mdhimStatFlush(mdhim_t *md, struct index *index) {
 secondary_info_t *mdhimCreateSecondaryInfo(struct index *secondary_index,
                                            void **secondary_keys, int *secondary_key_lens,
                                            int num_keys, int info_type) {
-    secondary_info_t *sinfo;
-
-
     if (!secondary_index || !secondary_keys ||
         !secondary_key_lens || !num_keys) {
         return NULL;
@@ -835,7 +832,7 @@ secondary_info_t *mdhimCreateSecondaryInfo(struct index *secondary_index,
     }
 
     //Initialize the struct
-    sinfo = (secondary_info_t*)malloc(sizeof(secondary_info_t));
+    secondary_info_t *sinfo = Memory::FBP_MEDIUM::Instance().acquire<secondary_info_t>();
     memset(sinfo, 0, sizeof(secondary_info_t));
 
     //Set the index fields
@@ -849,9 +846,7 @@ secondary_info_t *mdhimCreateSecondaryInfo(struct index *secondary_index,
 }
 
 void mdhimReleaseSecondaryInfo(secondary_info_t *si) {
-    free(si);
-
-    return;
+    Memory::FBP_MEDIUM::Instance().release(si);
 }
 
 /**
@@ -862,9 +857,6 @@ secondary_bulk_info_t *mdhimCreateSecondaryBulkInfo(struct index *secondary_inde
                                                     void ***secondary_keys,
                                                     int **secondary_key_lens,
                                                     int *num_keys, int info_type) {
-
-    secondary_bulk_info_t *sinfo;
-
     if (!secondary_index || !secondary_keys ||
         !secondary_key_lens || !num_keys) {
         return NULL;
@@ -876,7 +868,7 @@ secondary_bulk_info_t *mdhimCreateSecondaryBulkInfo(struct index *secondary_inde
     }
 
     //Initialize the struct
-    sinfo = (secondary_bulk_info_t*)malloc(sizeof(secondary_bulk_info_t));
+    secondary_bulk_info_t *sinfo = Memory::FBP_MEDIUM::Instance().acquire<secondary_bulk_info_t>();
     memset(sinfo, 0, sizeof(secondary_bulk_info_t));
 
     //Set the index fields
@@ -890,9 +882,7 @@ secondary_bulk_info_t *mdhimCreateSecondaryBulkInfo(struct index *secondary_inde
 }
 
 void mdhimReleaseSecondaryBulkInfo(secondary_bulk_info_t *si) {
-    free(si);
-
-    return;
+    Memory::FBP_MEDIUM::Instance().release(si);
 }
 
 /* what server would respond to this key? */

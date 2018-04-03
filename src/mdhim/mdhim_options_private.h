@@ -22,7 +22,6 @@
 typedef struct mdhim_options_private {
     MPI_Comm comm;
 
-    int dstype;
     int transporttype;
 
 	//Directory location of DBs
@@ -30,6 +29,7 @@ typedef struct mdhim_options_private {
 
 	//Multiple paths of DBs
 	char **db_paths;
+
 	//Number of paths in db_paths
 	int num_paths;
 

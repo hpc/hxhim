@@ -1,4 +1,5 @@
 #include "transport.hpp"
+#include "MemoryManagers.hpp"
 
 TransportMessage::TransportMessage(const TransportMessageType type)
   : mtype(type),
@@ -18,7 +19,7 @@ int TransportMessage::size() const {
 }
 
 void TransportMessage::cleanup() {
-    free(index_name);
+    Memory::FBP_MEDIUM::Instance().release(index_name);
     index_name = nullptr;
 }
 
@@ -38,10 +39,10 @@ int TransportPutMessage::size() const {
 void TransportPutMessage::cleanup() {
     TransportMessage::cleanup();
 
-    free(key);
+    Memory::FBP_MEDIUM::Instance().release(key);
     key = nullptr;
 
-    free(value);
+    Memory::FBP_MEDIUM::Instance().release(value);
     value = nullptr;
 
     key_len = 0;
@@ -71,20 +72,20 @@ void TransportBPutMessage::cleanup() {
     TransportMessage::cleanup();
 
     for(int i = 0; i < num_keys; i++) {
-        free(keys[i]);
-        free(values[i]);
+        Memory::FBP_MEDIUM::Instance().release(keys[i]);
+        Memory::FBP_MEDIUM::Instance().release(values[i]);
     }
 
-    free(keys);
+    Memory::FBP_MEDIUM::Instance().release(keys);
     keys = nullptr;
 
-    free(key_lens);
+    Memory::FBP_MEDIUM::Instance().release(key_lens);
     key_lens = nullptr;
 
-    free(values);
+    Memory::FBP_MEDIUM::Instance().release(values);
     values = nullptr;
 
-    free(value_lens);
+    Memory::FBP_MEDIUM::Instance().release(value_lens);
     value_lens = nullptr;
 
     num_keys = 0;
@@ -113,7 +114,9 @@ int TransportGetMessage::size() const {
 void TransportGetMessage::cleanup() {
     TransportMessage::cleanup();
 
-    free(key);
+    Memory::FBP_MEDIUM::Instance().release(key);
+    key = nullptr;
+
     key_len = 0;
 
     num_keys = 0;
@@ -142,13 +145,13 @@ void TransportBGetMessage::cleanup() {
     TransportMessage::cleanup();
 
     for(int i = 0; i < num_keys; i++) {
-        free(keys[i]);
+        Memory::FBP_MEDIUM::Instance().release(keys[i]);
     }
 
-    free(keys);
+    Memory::FBP_MEDIUM::Instance().release(keys);
     keys = nullptr;
 
-    free(key_lens);
+    Memory::FBP_MEDIUM::Instance().release(key_lens);
     key_lens = nullptr;
 
     num_keys = 0;
@@ -168,7 +171,7 @@ int TransportDeleteMessage::size() const {
 
 void TransportDeleteMessage::cleanup() {
     TransportMessage::cleanup();
-    free(key);
+    Memory::FBP_MEDIUM::Instance().release(key);
     key = nullptr;
 
     key_len = 0;
@@ -194,13 +197,13 @@ int TransportBDeleteMessage::size() const {
 void TransportBDeleteMessage::cleanup() {
     TransportMessage::cleanup();
     for(int i = 0; i < num_keys; i++) {
-        free(keys[i]);
+        Memory::FBP_MEDIUM::Instance().release(keys[i]);
     }
 
-    free(keys);
+    Memory::FBP_MEDIUM::Instance().release(keys);
     keys = nullptr;
 
-    free(key_lens);
+    Memory::FBP_MEDIUM::Instance().release(key_lens);
     key_lens = nullptr;
 
     num_keys = 0;
@@ -241,10 +244,11 @@ int TransportGetRecvMessage::size() const {
 void TransportGetRecvMessage::cleanup() {
     TransportMessage::cleanup();
 
-    free(key);
+    Memory::FBP_MEDIUM::Instance().release(key);
     key = nullptr;
 
-    free(value);
+    // use Memory::FBP_MEDIUM::Instance().release - this value comes from leveldb
+    Memory::FBP_MEDIUM::Instance().release(value);
     value = nullptr;
 
     key_len = 0;
@@ -277,27 +281,27 @@ void TransportBGetRecvMessage::cleanup() {
 
     for(int i = 0; i < num_keys; i++) {
         if (keys) {
-            free(keys[i]);
+            Memory::FBP_MEDIUM::Instance().release(keys[i]);
         }
 
         if (values) {
-            free(values[i]);
+            Memory::FBP_MEDIUM::Instance().release(values[i]);
         }
     }
 
-    free(keys);
+    Memory::FBP_MEDIUM::Instance().release(keys);
     keys = nullptr;
 
-    free(values);
+    Memory::FBP_MEDIUM::Instance().release(values);
     values = nullptr;
 
-    free(key_lens);
+    Memory::FBP_MEDIUM::Instance().release(key_lens);
     key_lens = nullptr;
 
-    free(value_lens);
+    Memory::FBP_MEDIUM::Instance().release(value_lens);
     value_lens = nullptr;
 
-    delete next;
+    Memory::FBP_MEDIUM::Instance().release(next);
     next = nullptr;
 
     num_keys = 0;
@@ -319,6 +323,6 @@ int TransportBRecvMessage::size() const {
 void TransportBRecvMessage::cleanup() {
     TransportMessage::cleanup();
 
-    delete next;
+    Memory::FBP_MEDIUM::Instance().release(next);
     next = nullptr;
 }

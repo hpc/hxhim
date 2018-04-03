@@ -9,29 +9,26 @@
 #include "mdhim.h"
 #include "data_store.h"
 
-typedef struct work_item work_item_t;
-
-struct work_item {
-	work_item_t *next;
-	work_item_t *prev;
+typedef struct work_item {
+	work_item *next;
+	work_item *prev;
 	void *message;
 
     int address;
-};
+} work_item_t;
 
-typedef struct work_queue_t {
+typedef struct work_queue {
 	work_item_t *head;
 	work_item_t *tail;
 } work_queue_t;
 
 /* Outstanding requests (i.e., MPI_Req) that need to be freed later */
-typedef struct out_req out_req;
-struct out_req {
+typedef struct out_req {
 	out_req *next;
 	out_req *prev;
 	void *req;
 	MPI_Request *message;
-};
+} out_req_t;
 
 /* Range server specific data */
 typedef struct mdhim_rs_t {

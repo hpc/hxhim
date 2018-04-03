@@ -3,14 +3,15 @@
  * Location and name of DB, type of DataSotre primary key type,
  */
 #include <cassert>
-#include <cstdlib>
-#include <cstdio>
-#include <cstring>
 #include <climits>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include "mdhim_constants.h"
 #include "mdhim_options.h"
 #include "mdhim_options_private.h"
+#include "MemoryManagers.hpp"
 
 // Default path to a local path and name, levelDB=2, int_key_type=1, yes_create_new=1
 // and debug=1 (mlog_CRIT)
@@ -27,37 +28,26 @@ int mdhim_options_init(mdhim_options_t* opts)
         return MDHIM_ERROR;
     }
 
-    opts->p = (mdhim_options_private_t *)malloc(sizeof(mdhim_options_private_t));
+    opts->p = Memory::FBP_MEDIUM::Instance().acquire<mdhim_options_private_t>();
 
     // Set default options
-    opts->p->comm = MPI_COMM_WORLD;
-    opts->p->dstype = MDHIM_DS_LEVELDB;
-    opts->p->transporttype = MDHIM_TRANSPORT_MPI;
+    mdhim_options_set_comm(opts, MPI_COMM_WORLD);
+    mdhim_options_set_transporttype(opts, MDHIM_TRANSPORT_MPI);
 
-    opts->p->db_path = "./";
-    opts->p->db_name = "mdhimTstDB-";
-    opts->p->manifest_path = NULL;
-    opts->p->db_type = LEVELDB;
-    opts->p->db_key_type = MDHIM_INT_KEY;
-    opts->p->db_create_new = 1;
-    opts->p->db_value_append = MDHIM_DB_OVERWRITE;
+    mdhim_options_set_db_path(opts, "./");
+    mdhim_options_set_db_name(opts, "mdhimTstDB-");
+    mdhim_options_set_manifest_path(opts, "./");
+    mdhim_options_set_db_type(opts, LEVELDB);
+    mdhim_options_set_key_type(opts, MDHIM_INT_KEY);
+    mdhim_options_set_create_new_db(opts, 1);
+    mdhim_options_set_value_append(opts, MDHIM_DB_OVERWRITE);
+    mdhim_options_set_login_c(opts, "localhost", "test", "pass", "localhost", "test", "pass");
 
-    opts->p->db_host = "localhost";
-    opts->p->dbs_host = "localhost";
-    opts->p->db_user = "test";
-    opts->p->db_upswd = "pass";
-    opts->p->dbs_user = "test";
-    opts->p->dbs_upswd = "pass";
-
-
-    opts->p->debug_level = 1;
-    opts->p->rserver_factor = 1;
-    opts->p->max_recs_per_slice = 100000;
-    opts->p->db_paths = NULL;
-    opts->p->num_paths = 0;
-    opts->p->num_wthreads = 1;
-
-    set_manifest_path(opts, "./");
+    mdhim_options_set_debug_level(opts, 1);
+    mdhim_options_set_server_factor(opts, 1);
+    mdhim_options_set_max_recs_per_slice(opts, 100000);
+    mdhim_options_set_db_paths(opts, nullptr, 0);
+    mdhim_options_set_num_worker_threads(opts, 1);
 
     // Hugh's settings for his test configuration
     //mdhim_options_set_db_path(opts, "/tmp/mdhim/");
@@ -77,6 +67,14 @@ void mdhim_options_set_comm(mdhim_options_t* opts, const MPI_Comm comm) {
     }
 
     opts->p->comm = comm;
+}
+
+void mdhim_options_set_transporttype(mdhim_options_t *opts, const int transporttype) {
+    if (!valid_opts(opts)) {
+        return;
+    }
+
+    opts->p->transporttype = transporttype;
 }
 
 int check_path_length(mdhim_options_t* opts, const char *path) {
@@ -99,26 +97,23 @@ int check_path_length(mdhim_options_t* opts, const char *path) {
     return ret;
 }
 
-void set_manifest_path(mdhim_options_t* opts, const char *path) {
+void mdhim_options_set_manifest_path(mdhim_options_t* opts, const char *path) {
     if (!valid_opts(opts)) {
         return;
     }
 
-    char *manifest_path;
-    int path_len = 0;
-
     if (opts->p->manifest_path) {
-      free((void *)opts->p->manifest_path);
-      opts->p->manifest_path = NULL;
+      Memory::FBP_MEDIUM::Instance().release(opts->p->manifest_path);
+      opts->p->manifest_path = nullptr;
     }
 
-    path_len = strlen(path) + strlen(MANIFEST_FILE_NAME) + 1;
-    manifest_path = (char*)malloc(path_len);
+    const int path_len = strlen(path) + strlen(MANIFEST_FILE_NAME) + 1;
+    char *manifest_path = Memory::FBP_MEDIUM::Instance().acquire<char>(path_len);
     sprintf(manifest_path, "%s%s", path, MANIFEST_FILE_NAME);
     opts->p->manifest_path = manifest_path;
 }
 
-void mdhim_options_set_login_c(mdhim_options_t* opts, char* db_hl, char *db_ln, char *db_pw, char *dbs_hl, char *dbs_ln, char *dbs_pw){
+void mdhim_options_set_login_c(mdhim_options_t* opts, const char* db_hl, const char *db_ln, const char *db_pw, const char *dbs_hl, const char *dbs_ln, const char *dbs_pw){
     if (!valid_opts(opts)) {
         return;
     }
@@ -131,6 +126,7 @@ void mdhim_options_set_login_c(mdhim_options_t* opts, char* db_hl, char *db_ln, 
     opts->p->dbs_upswd = dbs_pw;
 
 }
+
 void mdhim_options_set_db_path(mdhim_options_t* opts, const char *path)
 {
     if (!valid_opts(opts)) {
@@ -146,7 +142,7 @@ void mdhim_options_set_db_path(mdhim_options_t* opts, const char *path)
     ret = check_path_length(opts, path);
     if (ret) {
         opts->p->db_path = path;
-        set_manifest_path(opts, path);
+        mdhim_options_set_manifest_path(opts, path);
     }
 }
 
@@ -164,7 +160,7 @@ void mdhim_options_set_db_paths(struct mdhim_options* opts, char **paths, int nu
         return;
     }
 
-    opts->p->db_paths = (char**)malloc(sizeof(char *) * num_paths);
+    opts->p->db_paths = Memory::FBP_MEDIUM::Instance().acquire<char *>(num_paths);
     for (i = 0; i < num_paths; i++) {
         if (!paths[i]) {
             continue;
@@ -175,11 +171,11 @@ void mdhim_options_set_db_paths(struct mdhim_options* opts, char **paths, int nu
             continue;
         }
         if (!i) {
-            set_manifest_path(opts, paths[i]);
+            mdhim_options_set_manifest_path(opts, paths[i]);
         }
 
         verified_paths++;
-        opts->p->db_paths[verified_paths] = (char*)malloc(strlen(paths[i]) + 1);
+        opts->p->db_paths[verified_paths] = Memory::FBP_MEDIUM::Instance().acquire<char>(strlen(paths[i]) + 1);
         sprintf(opts->p->db_paths[verified_paths], "%s", paths[i]);
     }
 
@@ -275,10 +271,11 @@ int mdhim_options_destroy(mdhim_options_t *opts) {
     }
 
     for (int i = 0; i < opts->p->num_paths; i++) {
-        free(opts->p->db_paths[i]);
+        Memory::FBP_MEDIUM::Instance().release(opts->p->db_paths[i]);
     }
-    free(opts->p->db_paths);
+    Memory::FBP_MEDIUM::Instance().release(opts->p->db_paths);
 
-    free((void *)opts->p->manifest_path);
+    Memory::FBP_MEDIUM::Instance().release(opts->p->manifest_path);
+    Memory::FBP_MEDIUM::Instance().release(opts->p);
     return MDHIM_SUCCESS;
 }

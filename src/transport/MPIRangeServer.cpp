@@ -1,4 +1,5 @@
 #include "MPIRangeServer.hpp"
+#include "MemoryManagers.hpp"
 
 pthread_mutex_t MPIRangeServer::mutex_ = PTHREAD_MUTEX_INITIALIZER;
 
@@ -24,7 +25,7 @@ void *MPIRangeServer::listener_thread(void *data) {
         }
 
         //Create a new work item
-        work_item *item = new work_item();
+        work_item *item = Memory::FBP_MEDIUM::Instance().acquire<work_item>();
 
         //Set the new buffer to the new item's message
         item->message = message;
@@ -148,7 +149,7 @@ int MPIRangeServer::send_client_response(int dest, TransportMessage *message, vo
         ret = only_send_client_response(dest, sendbuf, sizebuf, shutdown);
     }
 
-    ::operator delete(sendbuf);
+    Memory::FBP_MEDIUM::Instance().release(sendbuf);
 
     return ret;
 }
@@ -188,7 +189,7 @@ int MPIRangeServer::only_receive_rangesrv_work(void **recvbuf, int *recvsize, vo
     }
     Flush(&req, &flag, &status, shutdown);
 
-    *recvbuf = (char *)calloc(*recvsize, sizeof(char));
+    *recvbuf = Memory::FBP_MEDIUM::Instance().acquire(*recvsize);
     flag = 0;
 
     // Receive the message from the client
@@ -227,6 +228,6 @@ int MPIRangeServer::receive_rangesrv_work(TransportMessage **message, volatile i
         ret = MPIUnpacker::any(MPI_COMM_WORLD, message, recvbuf, recvsize);
     }
 
-    free(recvbuf);
+    Memory::FBP_MEDIUM::Instance().release(recvbuf);
     return ret;
 }

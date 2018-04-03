@@ -70,16 +70,17 @@ endif()
 # Add subdirectories
 #
 add_subdirectory (src/base)
-add_subdirectory (src/transport)
-add_subdirectory (src/mdhim)
 add_subdirectory (src/demo)
+add_subdirectory (src/mdhim)
+add_subdirectory (src/transport)
 add_subdirectory (src/utils)
 
 #
 # Add unit test subdirectories
 #
-add_subdirectory(test/transport)
 add_subdirectory(test/mdhim)
+add_subdirectory(test/transport)
+add_subdirectory(test/utils)
 
 #
 # Add examples subdirectory
