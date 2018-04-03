@@ -10,6 +10,19 @@ extern "C"
 #define MDHIM_ERROR -1
 #define MDHIM_DB_ERROR -2
 
+/* mdhim_options_t configuration values*/
+#define MDHIM_DS_NONE 0
+#define MDHIM_DS_LEVELDB 1
+
+#define MDHIM_TRANSPORT_NONE     0
+#define MDHIM_TRANSPORT_MPI      1
+#define MDHIM_TRANSPORT_THALLIUM 2
+
+/* Append option */
+#define MDHIM_DB_OVERWRITE 0
+#define MDHIM_DB_APPEND 1
+
+
 #define SECONDARY_GLOBAL_INFO 1
 #define SECONDARY_LOCAL_INFO 2
 

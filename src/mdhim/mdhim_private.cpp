@@ -2,6 +2,7 @@
 
 #include "indexes.h"
 #include "local_client.h"
+#include "mdhim_options_private.h"
 #include "mdhim_private.h"
 #include "partitioner.h"
 #include "transport_mpi.hpp"

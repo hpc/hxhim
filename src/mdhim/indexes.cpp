@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <ctype.h>
+#include "mdhim_options_private.h"
 #include "mdhim_private.h"
 #include "indexes.h"
 #include "partitioner.h"
@@ -55,7 +56,7 @@ int open_manifest(struct mdhim *md, index_t *index, int flags) {
 	int fd;
 	char path[PATH_MAX];
 
-	sprintf(path, "%s%d_%d_%d", md->p->db_opts->manifest_path, index->type,
+	sprintf(path, "%s%d_%d_%d", md->p->db_opts->p->manifest_path, index->type,
 		index->id, md->p->transport->EndpointID());
 	fd = open(path, flags, 00600);
 	if (fd < 0) {
@@ -439,18 +440,18 @@ int open_db_store(struct mdhim *md, index_t *index) {
 	int ret;
 
 	//Database filename is dependent on ranges.  This needs to be configurable and take a prefix
-	if (!md->p->db_opts->db_paths) {
-		sprintf(filename, "%s%s-%d-%d", md->p->db_opts->db_path, md->p->db_opts->db_name,
+	if (!md->p->db_opts->p->db_paths) {
+		sprintf(filename, "%s%s-%d-%d", md->p->db_opts->p->db_path, md->p->db_opts->p->db_name,
 			index->id, md->p->transport->EndpointID());
 	} else {
-		path_num = index->myinfo.rangesrv_num/((double) index->num_rangesrvs/(double) md->p->db_opts->num_paths);
-		path_num = path_num >= md->p->db_opts->num_paths ? md->p->db_opts->num_paths - 1 : path_num;
+		path_num = index->myinfo.rangesrv_num/((double) index->num_rangesrvs/(double) md->p->db_opts->p->num_paths);
+		path_num = path_num >= md->p->db_opts->p->num_paths ? md->p->db_opts->p->num_paths - 1 : path_num;
 		if (path_num < 0) {
-			sprintf(filename, "%s%s-%d-%d", md->p->db_opts->db_path, md->p->db_opts->db_name, index->id,
+			sprintf(filename, "%s%s-%d-%d", md->p->db_opts->p->db_path, md->p->db_opts->p->db_name, index->id,
 				md->p->transport->EndpointID());
 		} else {
-			sprintf(filename, "%s%s-%d-%d", md->p->db_opts->db_paths[path_num],
-				md->p->db_opts->db_name, index->id, md->p->transport->EndpointID());
+			sprintf(filename, "%s%s-%d-%d", md->p->db_opts->p->db_paths[path_num],
+				md->p->db_opts->p->db_name, index->id, md->p->transport->EndpointID());
 		}
 	}
 

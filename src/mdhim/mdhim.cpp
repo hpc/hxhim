@@ -14,6 +14,7 @@
 #include "local_client.h"
 #include "mdhim.h"
 #include "mdhim_options.h"
+#include "mdhim_options_private.h"
 #include "mdhim_private.h"
 #include "partitioner.h"
 #include "range_server.h"
@@ -97,8 +98,8 @@ static int indexInitialization(mdhim_t *md) {
     }
 
     //Create the default remote primary index
-    md->p->primary_index = create_global_index(md, md->p->db_opts->rserver_factor, md->p->db_opts->max_recs_per_slice,
-                                               md->p->db_opts->db_type, md->p->db_opts->db_key_type, NULL);
+    md->p->primary_index = create_global_index(md, md->p->db_opts->p->rserver_factor, md->p->db_opts->p->max_recs_per_slice,
+                                               md->p->db_opts->p->db_type, md->p->db_opts->p->db_key_type, NULL);
 
     if (!md->p->primary_index) {
         return MDHIM_ERROR;
@@ -141,20 +142,20 @@ int mdhimInit(mdhim_t* md, mdhim_options_t *opts) {
       return MDHIM_ERROR;
     }
 
-    if (!opts){
+    if (!opts || !opts->p){
       return MDHIM_ERROR;
     }
 
     //Open mlog - stolen from plfs
     //Assume opts has been initialized
-    mlog_open((char *)"mdhim", 0, opts->debug_level, opts->debug_level, NULL, 0, MLOG_LOGPID, 0);
+    mlog_open((char *)"mdhim", 0, opts->p->debug_level, opts->p->debug_level, NULL, 0, MLOG_LOGPID, 0);
 
     //Initialize context variables based on options
 
     md->p = new mdhim_private;
     mdhim_private_init(md->p, MDHIM_DS_LEVELDB, MDHIM_TRANSPORT_MPI);
 
-    md->p->mdhim_comm = opts->comm;
+    md->p->mdhim_comm = opts->p->comm;
     md->p->mdhim_comm_lock = PTHREAD_MUTEX_INITIALIZER;
 
     //Required for index initialization

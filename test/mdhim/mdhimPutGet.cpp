@@ -1,8 +1,6 @@
 #include <gtest/gtest.h>
 #include <mpi.h>
 
-#include "MPIEndpoint.hpp"
-#include "fill_db_opts.h"
 #include "mdhim.h"
 #include "mdhim_private.h"       // needed to access private mdhim members for testing
 #include "transport_private.hpp" // needed to access private return values for testing
@@ -22,8 +20,6 @@ TEST(mdhimPutGet, no_secondary) {
     mdhim_t md;
 
     EXPECT_EQ(mdhim_options_init(&opts), MDHIM_SUCCESS);
-    fill_db_opts(opts);
-
     EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
 
     //Put the key-value pair
@@ -65,7 +61,6 @@ TEST(mdhimPutGet, no_secondary) {
 //     mdhim_t md;
 
 //     EXPECT_EQ(mdhim_options_init(&opts), MDHIM_SUCCESS);
-//     fill_db_opts(opts);
 
 //     EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
 
@@ -145,7 +140,6 @@ TEST(mdhimPutGet, no_secondary) {
 //     mdhim_t md;
 
 //     EXPECT_EQ(mdhim_options_init(&opts), MDHIM_SUCCESS);
-//     fill_db_opts(opts);
 
 //     EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
 
@@ -228,7 +222,6 @@ TEST(mdhimPutGet, no_secondary) {
 //     mdhim_t md;
 
 //     EXPECT_EQ(mdhim_options_init(&opts), MDHIM_SUCCESS);
-//     fill_db_opts(opts);
 
 //     EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
 

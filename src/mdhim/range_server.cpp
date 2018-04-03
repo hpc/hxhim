@@ -18,6 +18,7 @@
 #include "range_server.h"
 #include "partitioner.h"
 #include "mdhim_options.h"
+#include "mdhim_options_private.h"
 #include "mdhim_private.h"
 
 static void add_timing(struct timeval start, struct timeval end, int num,
@@ -126,7 +127,7 @@ int range_server_stop(mdhim_t *md) {
 
     pthread_join(md->p->mdhim_rs->listener, NULL);
     /* Wait for the threads to finish */
-    for (int i = 0; i < md->p->db_opts->num_wthreads; i++) {
+    for (int i = 0; i < md->p->db_opts->p->num_wthreads; i++) {
         pthread_join(*md->p->mdhim_rs->workers[i], NULL);
         free(md->p->mdhim_rs->workers[i]);
     }
@@ -225,7 +226,7 @@ static int range_server_put(mdhim_t *md, TransportPutMessage *im, const int addr
     }
 
     //If the option to append was specified and there is old data, concat the old and new
-    if (exists &&  md->p->db_opts->db_value_append == MDHIM_DB_APPEND) {
+    if (exists &&  md->p->db_opts->p->db_value_append == MDHIM_DB_APPEND) {
         old_value = *value;
         old_value_len = *value_len;
         new_value_len = old_value_len + im->value_len;
@@ -275,7 +276,7 @@ done:
     ret = md->p->send_locally_or_remote(md, address, static_cast<TransportMessage *>(rm));
 
     //Free memory
-    if (exists && md->p->db_opts->db_value_append == MDHIM_DB_APPEND) {
+    if (exists && md->p->db_opts->p->db_value_append == MDHIM_DB_APPEND) {
         free(new_value);
     }
     // if (source != (int) md->p->transport->EndpointID()) {
@@ -342,7 +343,7 @@ static int range_server_bput(mdhim_t *md, TransportBPutMessage *bim, const int a
         }
 
         //If the option to append was specified and there is old data, concat the old and new
-        if (exists[i] && md->p->db_opts->db_value_append == MDHIM_DB_APPEND) {
+        if (exists[i] && md->p->db_opts->p->db_value_append == MDHIM_DB_APPEND) {
             old_value = *value;
             old_value_len = value_len;
             new_value_len = old_value_len + bim->value_lens[i];
@@ -383,7 +384,7 @@ static int range_server_bput(mdhim_t *md, TransportBPutMessage *bim, const int a
             update_stat(md, index, bim->keys[i], bim->key_lens[i]);
         }
 
-        if (exists[i] && md->p->db_opts->db_value_append == MDHIM_DB_APPEND) {
+        if (exists[i] && md->p->db_opts->p->db_value_append == MDHIM_DB_APPEND) {
             //Release the value created for appending the new and old value
             free(new_values[i]);
         }
@@ -1310,8 +1311,8 @@ int range_server_init(mdhim_t *md) {
     }
 
     //Initialize worker threads
-    md->p->mdhim_rs->workers = (pthread_t**)malloc(sizeof(pthread_t *) * md->p->db_opts->num_wthreads);
-    for (int i = 0; i < md->p->db_opts->num_wthreads; i++) {
+    md->p->mdhim_rs->workers = (pthread_t**)malloc(sizeof(pthread_t *) * md->p->db_opts->p->num_wthreads);
+    for (int i = 0; i < md->p->db_opts->p->num_wthreads; i++) {
         md->p->mdhim_rs->workers[i] = (pthread_t*)malloc(sizeof(pthread_t));
         if ((ret = pthread_create(md->p->mdhim_rs->workers[i], NULL,
                       worker_thread, (void *) md)) != 0) {

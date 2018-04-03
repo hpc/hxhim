@@ -5,18 +5,13 @@
 #include <gtest/gtest.h>
 #include <mpi.h>
 
-#include "MPIEndpoint.hpp"
-#include "fill_db_opts.h"
 #include "mdhim.h"
-#include "mdhim_private.h"       // needed for access to the endpoint
 
 // Normal usage
 TEST(mdhimInitClose, Good) {
     mdhim_options_t opts;
     mdhim_t md;
     EXPECT_EQ(mdhim_options_init(&opts), MDHIM_SUCCESS);
-    fill_db_opts(opts);
-
     EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
     EXPECT_EQ(MPI_Barrier(MPI_COMM_WORLD), MPI_SUCCESS);
     EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
@@ -28,8 +23,7 @@ TEST(mdhimInit, NULL_Transport) {
     mdhim_t md;
 
     EXPECT_EQ(mdhim_options_init(&opts), MDHIM_SUCCESS);
-    fill_db_opts(opts);
-    opts.comm = MPI_COMM_NULL;
+    mdhim_options_set_comm(&opts, MPI_COMM_NULL);
 
     EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_ERROR);
 }
@@ -39,7 +33,6 @@ TEST(mdhimInit, NULL_mdh) {
     mdhim_options_t opts;
 
     EXPECT_EQ(mdhim_options_init(&opts), MDHIM_SUCCESS);
-    fill_db_opts(opts);
 
     EXPECT_EQ(mdhimInit(NULL, &opts), MDHIM_ERROR);
 }
