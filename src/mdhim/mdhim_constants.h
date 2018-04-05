@@ -13,6 +13,7 @@ extern "C"
 /* mdhim_options_t configuration values*/
 #define MDHIM_TRANSPORT_NONE     0
 #define MDHIM_TRANSPORT_MPI      1
+#define MDHIM_TRANSPORT_THALLIUM 2
 
 /* Append option */
 #define MDHIM_DB_OVERWRITE 0

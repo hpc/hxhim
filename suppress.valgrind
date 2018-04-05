@@ -163,3 +163,225 @@
    fun:_ZN7testing8TestCase3RunEv
    fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
 }
+
+{
+   ABT-Snoozer Pool Init
+   Memcheck:Addr8
+   fun:abt_snoozer_pool_init
+   fun:ABT_pool_create
+   fun:abt_snoozer_make_pool_and_scheds
+   fun:ABT_snoozer_xstream_self_set
+   fun:margo_init
+   fun:_ZN8thallium6engineC2ERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEibi
+   fun:_Z18mdhim_private_initP13mdhim_privateii
+   fun:mdhimInit
+   fun:main
+}
+
+{
+   ABT-Snoozer Pool Init
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:ABT_pool_create
+   fun:abt_snoozer_make_pool_and_scheds
+   fun:ABT_snoozer_xstream_self_set
+   fun:margo_init
+   fun:_ZN8thallium6engineC2ERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEibi
+   fun:_Z18mdhim_private_initP13mdhim_privateii
+   fun:mdhimInit
+   fun:main
+}
+
+{
+   ABT-Snoozer Pool Init
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:malloc
+   fun:abt_snoozer_pool_init
+   fun:ABT_pool_create
+   fun:abt_snoozer_make_pool_and_scheds
+   fun:ABT_snoozer_xstream_self_set
+   fun:margo_init
+   fun:_ZN8thallium6engineC2ERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEibi
+   fun:_Z18mdhim_private_initP13mdhim_privateii
+   fun:mdhimInit
+   fun:main
+}
+
+{
+   ABT-Snoozer Work Queue Allocation
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:malloc
+   fun:abt_snoozer_wq_alloc
+   fun:abt_snoozer_pool_init
+   fun:ABT_pool_create
+   fun:abt_snoozer_make_pool_and_scheds
+   fun:ABT_snoozer_xstream_self_set
+   fun:margo_init
+   fun:_ZN8thallium6engineC2ERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEibi
+   fun:_Z18mdhim_private_initP13mdhim_privateii
+   fun:mdhimInit
+   fun:main
+}
+
+{
+   ABT-Snoozer Work Queue Allocation
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:calloc
+   fun:ABT_mutex_create
+   fun:abt_snoozer_wq_alloc
+   fun:abt_snoozer_pool_init
+   fun:ABT_pool_create
+   fun:abt_snoozer_make_pool_and_scheds
+   fun:ABT_snoozer_xstream_self_set
+   fun:margo_init
+   fun:_ZN8thallium6engineC2ERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEibi
+   fun:_Z18mdhim_private_initP13mdhim_privateii
+   fun:mdhimInit
+   fun:main
+}
+
+{
+   ABT-Snoozer Create Hash Table
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:malloc
+   fun:ABTI_thread_htable_create
+   fun:ABT_mutex_create
+   fun:abt_snoozer_wq_alloc
+   fun:abt_snoozer_pool_init
+   fun:ABT_pool_create
+   fun:abt_snoozer_make_pool_and_scheds
+   fun:ABT_snoozer_xstream_self_set
+   fun:margo_init
+   fun:_ZN8thallium6engineC2ERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEibi
+   fun:_Z18mdhim_private_initP13mdhim_privateii
+   fun:mdhimInit
+}
+
+{
+   ABT-Snoozer Create Hash Table
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:memalign
+   fun:posix_memalign
+   fun:ABTI_thread_htable_create
+   fun:ABT_mutex_create
+   fun:abt_snoozer_wq_alloc
+   fun:abt_snoozer_pool_init
+   fun:ABT_pool_create
+   fun:abt_snoozer_make_pool_and_scheds
+   fun:ABT_snoozer_xstream_self_set
+   fun:margo_init
+   fun:_ZN8thallium6engineC2ERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEibi
+   fun:_Z18mdhim_private_initP13mdhim_privateii
+}
+
+{
+   Argobots Init
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:ABTI_elem_create_from_xstream
+   fun:ABTI_xstream_create
+   fun:ABTI_xstream_create_primary
+   fun:ABT_init
+   fun:margo_init
+   fun:_ZN8thallium6engineC2ERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEibi
+   fun:_Z18mdhim_private_initP13mdhim_privateii
+   fun:mdhimInit
+   fun:main
+}
+
+{
+   CCI Init
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:calloc
+   fun:_dlerror_run
+   fun:dlopen@@GLIBC_2.2.5
+   obj:/usr/lib64/libltdl.so.7.3.1
+   obj:/usr/lib64/libltdl.so.7.3.1
+   obj:/usr/lib64/libltdl.so.7.3.1
+   obj:/usr/lib64/libltdl.so.7.3.1
+   fun:lt_dlopenadvise
+   fun:open_plugin
+   fun:cci_plugins_open_all
+   fun:cci_init
+   fun:na_cci_check_protocol
+   fun:NA_Initialize_opt
+}
+
+{
+   NA_Progress
+   Memcheck:Cond
+   fun:NA_Progress
+   fun:hg_core_progress_na_cb
+   fun:hg_poll_wait
+   fun:hg_core_progress_poll
+   fun:hg_core_addr_lookup
+   fun:HG_Core_addr_lookup
+   fun:margo_addr_lookup
+   fun:_ZNK8thallium6engine6lookupERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+   fun:_Z18mdhim_private_initP13mdhim_privateii
+   fun:mdhimInit
+   fun:main
+}
+
+{
+   NA_Progress
+   Memcheck:Cond
+   fun:NA_Progress
+   fun:hg_core_progress_na_cb
+   fun:hg_poll_wait
+   fun:hg_core_progress_poll
+   fun:HG_Core_progress
+   fun:hg_progress_fn
+   fun:ABTD_thread_func_wrapper
+   fun:make_fcontext
+}
+
+{
+   NA_Poll_try_wait
+   Memcheck:Cond
+   fun:NA_Poll_try_wait
+   fun:hg_poll_wait
+   fun:hg_core_progress_poll
+   fun:HG_Core_progress
+   fun:hg_progress_fn
+   fun:ABTD_thread_func_wrapper
+   fun:make_fcontext
+}
+
+{
+   NA_Trigger
+   Memcheck:Cond
+   fun:NA_Trigger
+   fun:HG_Core_context_destroy
+   fun:margo_cleanup
+   fun:_ZN8thallium6engine8finalizeEv
+   fun:_ZN16ThalliumEndpointD2Ev
+   fun:_ZN16ThalliumEndpointD1Ev
+   fun:_ZN15FixedBufferPoolILm512ELm1024EvE7releaseI17TransportEndpointEEvPT_
+   fun:_ZN9TransportD2Ev
+   fun:_ZN15FixedBufferPoolILm512ELm1024EvE7releaseI9TransportEEvPT_
+   fun:mdhimClose
+   fun:cleanup
+   fun:main
+}
+
+{
+   NA_Trigger
+   Memcheck:Cond
+   fun:NA_Trigger
+   fun:hg_core_progress_na_cb
+   fun:hg_poll_wait
+   fun:hg_core_progress_poll
+   fun:HG_Core_progress
+   fun:hg_progress_fn
+   fun:ABTD_thread_func_wrapper
+   fun:make_fcontext
+}

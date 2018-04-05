@@ -38,6 +38,8 @@ int main(int argc, char *argv[]){
         return MDHIM_ERROR;
     }
 
+    /* mdhim_options_set_transporttype(&opts, MDHIM_TRANSPORT_THALLIUM); */
+
     // initialize mdhim context
     if (mdhimInit(&md, &opts) != MDHIM_SUCCESS) {
         cleanup(&md, &opts);
@@ -45,7 +47,8 @@ int main(int argc, char *argv[]){
     }
 
     // Use arbitrary rank to do put
-    if (rank == rand() % size) {
+    /* if (rank == rand() % size) { */
+    if (rank == 1) {
         // Put the key-value pair
         mdhim_brm_t *brm = mdhimPut(&md,
                                     (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
@@ -77,6 +80,7 @@ int main(int argc, char *argv[]){
     MPI_Barrier(MPI_COMM_WORLD);
 
     // Every rank gets the value back
+    if (rank == 0)
     {
         // Pass NULL here to use md->p->primary_index
         mdhim_getrm_t *grm = mdhimGet(&md, NULL,

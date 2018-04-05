@@ -4,14 +4,64 @@
 #include <unistd.h>
 #include <sys/types.h>
 
+#include <thallium.hpp>
+#include <thallium/serialization/stl/string.hpp>
+
 #include "indexes.h"
 #include "local_client.h"
 #include "mdhim_options_private.h"
 #include "mdhim_private.h"
 #include "partitioner.h"
 #include "transport_mpi.hpp"
+#include "transport_thallium.hpp"
 #include "MemoryManagers.hpp"
 #include "MPIInstance.hpp"
+
+// get all thallium lookup addresses
+int get_addrs(thallium::engine *engine, const MPI_Comm comm, std::map<int, std::string> &addrs) {
+    if (!engine) {
+        return MDHIM_ERROR;
+    }
+
+    int rank;
+    if (MPI_Comm_rank(comm, &rank) != MPI_SUCCESS) {
+        return MDHIM_ERROR;
+    }
+
+    int size;
+    if (MPI_Comm_size(comm, &size) != MPI_SUCCESS) {
+        return MDHIM_ERROR;
+    }
+
+    // get local engine's address
+    const std::string self = (std::string) engine->self();
+
+    // get maximum size of all addresses
+    const int self_len = self.size();
+    int max_len = 0;
+    if (MPI_Allreduce(&self_len, &max_len, 1, MPI_INT, MPI_MAX, comm) != MPI_SUCCESS) {
+        return MDHIM_ERROR;
+    }
+    max_len++; // NULL terminate
+
+    // get addresses
+    char *buf = Memory::FBP_MEDIUM::Instance().acquire<char>(max_len * size);
+    if (MPI_Allgather(self.c_str(), self.size(), MPI_CHAR, buf, max_len, MPI_CHAR, MPI_COMM_WORLD) != MPI_SUCCESS) {
+        delete [] buf;
+        return MDHIM_ERROR;
+    }
+
+    // copy the addresses into strings
+    // and map the strings to unique IDs
+    for(int i = 0; i < size; i++) {
+        const char *remote = &buf[max_len * i];
+        addrs[i].assign(remote, strlen(remote));
+    }
+
+    Memory::FBP_MEDIUM::Instance().release(buf);
+
+    return MDHIM_SUCCESS;
+}
 
 int mdhim_private_init(mdhim_private* mdp, int dbtype, int transporttype) {
     int rc = MDHIM_ERROR;
@@ -43,6 +93,48 @@ int mdhim_private_init(mdhim_private* mdp, int dbtype, int transporttype) {
 
         mdp->listener_thread = MPIRangeServer::listener_thread;
         mdp->send_client_response = MPIRangeServer::send_client_response;
+
+        rc = MDHIM_SUCCESS;
+        goto err_out;
+    }
+    else if (transporttype == MDHIM_TRANSPORT_THALLIUM) {
+        // create the engine (only 1 instance per process)
+        thallium::engine *engine = new ((thallium::engine *)Memory::FBP_MEDIUM::Instance().acquire())
+            thallium::engine("tcp", THALLIUM_SERVER_MODE);
+
+        // create client to range server RPC
+        thallium::remote_procedure *rpc = new ((thallium::remote_procedure *)Memory::FBP_MEDIUM::Instance().acquire())
+            thallium::remote_procedure(engine->define(ThalliumRangeServer::CLIENT_TO_RANGE_SERVER_NAME,
+                                                      ThalliumRangeServer::receive_rangesrv_work));
+
+        // give the range server access to the mdhim_t data
+        ThalliumRangeServer::init(mdp);
+
+        // wait for every engine to start up
+        MPI_Barrier(mdp->mdhim_comm);
+
+        // get a mapping of unique IDs to thallium addresses
+        std::map<int, std::string> addrs;
+        if (get_addrs(engine, mdp->mdhim_comm, addrs) != MDHIM_SUCCESS) {
+            rc = MDHIM_ERROR;
+            goto err_out;
+        }
+
+        // do not remove loopback endpoint - need to keep a reference to engine somewhere
+
+        // add the remote thallium endpoints to the tranport
+        for(std::pair<const int, std::string> const &addr : addrs) {
+            thallium::endpoint *server = new ((thallium::endpoint *) Memory::FBP_MEDIUM::Instance().acquire())
+                thallium::endpoint(engine->lookup(addr.second));
+            // ThalliumEndpoint* ep = new ((ThalliumEndpoint *) Memory::FBP_MEDIUM::Instance().acquire())
+            //     ThalliumEndpoint(engine, rpc, server);
+            // mdp->transport->AddEndpoint(addr.first, ep);
+            std::cout << addr.first << " " << addrs.size() <<  std::endl;
+            rpc->on(*server)(std::string("abcdef"));
+        }
+
+        mdp->listener_thread = nullptr;
+        mdp->send_client_response = ThalliumRangeServer::send_client_response;
 
         rc = MDHIM_SUCCESS;
         goto err_out;
