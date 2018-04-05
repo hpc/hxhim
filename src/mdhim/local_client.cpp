@@ -54,7 +54,7 @@ TransportRecvMessage *local_client_put(mdhim_t *md, TransportPutMessage *pm) {
 
     // This needs the double static_cast in order for it to work properly
     // This is probably a clang++ 3.9.1 bug
-    item->message = static_cast<void *>(static_cast<TransportMessage *>(pm));
+    item->message = static_cast<TransportMessage *>(pm);
     item->address = pm->dst;
 
 	if (range_server_add_work(md, item) != MDHIM_SUCCESS) {
@@ -73,7 +73,7 @@ TransportGetRecvMessage *local_client_get(mdhim_t *md, TransportGetMessage *gm) 
 
     // This needs the double static_cast in order for it to work properly
     // This is probably a clang++ 3.9.1 bug
-    item->message = static_cast<void *>(static_cast<TransportMessage *>(gm));
+    item->message = static_cast<TransportMessage *>(gm);
     item->address = gm->dst;
 
 	if (range_server_add_work(md, item) != MDHIM_SUCCESS) {
@@ -98,7 +98,7 @@ TransportGetRecvMessage *local_client_get(mdhim_t *md, TransportGetMessage *gm) 
 // 		return NULL;
 // 	}
 
-//     item->message = static_cast<void *>(static_cast<TransportMessage *>(bpm));
+//     item->message = static_cast<TransportMessage *>(bpm);
 //     item->address = md->p->transport->Endpoint()->Address();
 
 // 	if (range_server_add_work(md, item) != MDHIM_SUCCESS) {
@@ -124,7 +124,7 @@ TransportGetRecvMessage *local_client_get(mdhim_t *md, TransportGetMessage *gm) 
 // 		return NULL;
 // 	}
 
-// 	item->message = static_cast<void *>(static_cast<TransportMessage *>(bgm));
+// 	item->message = static_cast<TransportMessage *>(bgm);
 //     item->address = md->p->transport->Endpoint()->Address();
 
 // 	if (range_server_add_work(md, item) != MDHIM_SUCCESS) {
@@ -150,7 +150,7 @@ TransportGetRecvMessage *local_client_get(mdhim_t *md, TransportGetMessage *gm) 
 // 		return NULL;
 // 	}
 
-// 	item->message = static_cast<void *>(static_cast<TransportMessage *>(gm));
+// 	item->message = static_cast<TransportMessage *>(gm);
 //  item->address = md->p->transport->Endpoint()->Address();
 // 	if (range_server_add_work(md, item) != MDHIM_SUCCESS) {
 // 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_bput");
@@ -175,7 +175,7 @@ TransportRecvMessage *local_client_commit(mdhim_t *md, TransportMessage *cm) {
 		return nullptr;
 	}
 
-	item->message = static_cast<void *>(cm);
+	item->message = cm;
     item->address = cm->dst;
 
 	if (range_server_add_work(md, item) != MDHIM_SUCCESS) {

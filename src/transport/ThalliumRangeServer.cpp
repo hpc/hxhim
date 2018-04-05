@@ -1,5 +1,14 @@
 #include "ThalliumRangeServer.hpp"
 
+struct thallium_work_item_t : public work_item_t {
+    thallium_work_item_t(const thallium::request &req)
+        : work_item_t(),
+          request(req)
+    {}
+
+    const thallium::request &request;
+};
+
 const std::string ThalliumRangeServer::CLIENT_TO_RANGE_SERVER_NAME = "receive_rangesrv_work";
 const std::string ThalliumRangeServer::RANGE_SERVER_TO_CLIENT_NAME = "receive_response";
 mdhim_private_t *ThalliumRangeServer::mdp_= nullptr;
@@ -9,14 +18,13 @@ void ThalliumRangeServer::init(mdhim_private_t *mdp) {
 }
 
 void ThalliumRangeServer::receive_rangesrv_work(const thallium::request &req, const std::string &data) {
-    std::cout << "Got " << data.size() << std::endl;
     TransportMessage *message = nullptr;
     if (ThalliumUnpacker::any(&message, data) != MDHIM_SUCCESS) {
         req.respond(MDHIM_ERROR);
     }
 
     //Create a new work item
-    work_item_t *item = Memory::FBP_MEDIUM::Instance().acquire<work_item>();
+    thallium_work_item_t *item = new ((thallium_work_item_t *) Memory::FBP_MEDIUM::Instance().acquire(sizeof(thallium_work_item_t))) thallium_work_item_t(req);
 
     //Set the new buffer to the new item's message
     item->message = message;
@@ -28,10 +36,17 @@ void ThalliumRangeServer::receive_rangesrv_work(const thallium::request &req, co
 
     // Add the new item to the work queue
     range_server_add_work(&md, item);
-
-    req.respond((int) MDHIM_SUCCESS);
 }
 
-int ThalliumRangeServer::send_client_response(int dest, TransportMessage *message, volatile int &shutdown) {
-    return MDHIM_ERROR;
+int ThalliumRangeServer::send_client_response(work_item *item, TransportMessage *message, volatile int &shutdown) {
+    std::string buf;
+
+    if (ThalliumPacker::any(message, buf) != MDHIM_SUCCESS) {
+        return MDHIM_ERROR;
+    }
+
+    // complete the RPC
+    dynamic_cast<thallium_work_item_t *>(item)->request.respond(buf);
+
+    return MDHIM_SUCCESS;
 }

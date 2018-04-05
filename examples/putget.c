@@ -38,7 +38,7 @@ int main(int argc, char *argv[]){
         return MDHIM_ERROR;
     }
 
-    /* mdhim_options_set_transporttype(&opts, MDHIM_TRANSPORT_THALLIUM); */
+    mdhim_options_set_transporttype(&opts, MDHIM_TRANSPORT_THALLIUM);
 
     // initialize mdhim context
     if (mdhimInit(&md, &opts) != MDHIM_SUCCESS) {
@@ -47,18 +47,16 @@ int main(int argc, char *argv[]){
     }
 
     // Use arbitrary rank to do put
-    /* if (rank == rand() % size) { */
-    if (rank == 1) {
+    if (rank == rand() % size) {
         // Put the key-value pair
         mdhim_brm_t *brm = mdhimPut(&md,
                                     (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
                                     (void *)&MDHIM_PUT_GET_VALUE, sizeof(MDHIM_PUT_GET_VALUE),
                                     NULL, NULL);
-
         int error = MDHIM_ERROR;
         if ((mdhim_brm_error(brm, &error) != MDHIM_SUCCESS) ||
             (error != MDHIM_SUCCESS)) {
-            printf("Rank %d got: Could not put\n", rank);
+            printf("Rank %d: Could not put\n", rank);
             mdhim_brm_destroy(brm);
             cleanup(&md, &opts);
             return MDHIM_ERROR;
@@ -69,7 +67,7 @@ int main(int argc, char *argv[]){
         // Commit changes
         // Pass NULL here to use md->p->primary_index
         if (mdhimCommit(&md, NULL) != MDHIM_SUCCESS) {
-            printf("Rank %d got: Could not commit\n", rank);
+            printf("Rank %d: Could not commit\n", rank);
             cleanup(&md, &opts);
             return MDHIM_ERROR;
         }
@@ -80,7 +78,6 @@ int main(int argc, char *argv[]){
     MPI_Barrier(MPI_COMM_WORLD);
 
     // Every rank gets the value back
-    if (rank == 0)
     {
         // Pass NULL here to use md->p->primary_index
         mdhim_getrm_t *grm = mdhimGet(&md, NULL,
@@ -89,7 +86,7 @@ int main(int argc, char *argv[]){
         int error = MDHIM_ERROR;
         if ((mdhim_grm_error(grm, &error) != MDHIM_SUCCESS) ||
             (error != MDHIM_SUCCESS)) {
-            printf("Rank %d got: Bad return value\n", rank);
+            printf("Rank %d: Bad return value\n", rank);
             mdhim_grm_destroy(grm);
             cleanup(&md, &opts);
             return MDHIM_ERROR;
@@ -98,7 +95,7 @@ int main(int argc, char *argv[]){
         // Extract the keys from the returned value (do not free)
         Key_t *key = NULL;
         if (mdhim_grm_key(grm, (void **) &key, NULL) != MDHIM_SUCCESS) {
-            printf("Rank %d got: Could not extract key\n", rank);
+            printf("Rank %d: Could not extract key\n", rank);
             mdhim_grm_destroy(grm);
             cleanup(&md, &opts);
             return MDHIM_ERROR;
@@ -107,7 +104,7 @@ int main(int argc, char *argv[]){
         // Extract the values from the returned value (do not free)
         Value_t *value = NULL;
         if (mdhim_grm_value(grm, (void **) &value, NULL) != MDHIM_SUCCESS) {
-            printf("Rank %d got: Could not extract value\n", rank);
+            printf("Rank %d: Could not extract value\n", rank);
             mdhim_grm_destroy(grm);
             cleanup(&md, &opts);
             return MDHIM_ERROR;

@@ -107,13 +107,13 @@ int MPIRangeServer::only_send_client_response(int dest, void *sendbuf, int sizeb
  * @param sendbuf double pointer to packed message
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int MPIRangeServer::send_client_response(int dest, TransportMessage *message, volatile int &shutdown) {
+int MPIRangeServer::send_client_response(work_item_t *item, TransportMessage *message, volatile int &shutdown) {
     int ret = MDHIM_ERROR;
     void *sendbuf = nullptr;
     int sizebuf = 0;
 
     if ((ret = MPIPacker::any(MPI_COMM_WORLD, message, &sendbuf, &sizebuf)) == MDHIM_SUCCESS) {
-        ret = only_send_client_response(dest, sendbuf, sizebuf, shutdown);
+        ret = only_send_client_response(item->address, sendbuf, sizebuf, shutdown);
     }
 
     Memory::FBP_MEDIUM::Instance().release(sendbuf);

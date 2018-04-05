@@ -1,6 +1,6 @@
 #include "ThalliumPacker.hpp"
 
-int ThalliumPacker::any (const TransportMessage *msg, std::string &buf) {
+int ThalliumPacker::any(const TransportMessage *msg, std::string &buf) {
     int ret = MDHIM_ERROR;
     switch (msg->mtype) {
         case TransportMessageType::PUT:

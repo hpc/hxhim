@@ -25,7 +25,7 @@ typedef struct mdhim_private {
     void *(*listener_thread)(void *);
 
     // the function called once data has been processed by the range server
-    int (*send_client_response)(int, TransportMessage *, volatile int &);
+    int (*send_client_response)(work_item_t *, TransportMessage *, volatile int &);
 
     //This communicator will include every process in the application, but is separate from the app
     //It is used for barriers for clients

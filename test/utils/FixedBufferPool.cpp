@@ -16,7 +16,7 @@ TEST(FixedBufferPool, usage) {
     for(std::size_t release = 0; release < TEST_REGIONS; release++) {
         // acquire memory
         for(int i = 0; i < TEST_REGIONS; i++) {
-            alloc[i] = TEST_FBP::Instance().acquire();
+            alloc[i] = TEST_FBP::Instance().acquire(TEST_ALLOC_SIZE);
         }
 
         // all used

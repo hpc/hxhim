@@ -306,7 +306,7 @@ mdhim_brm_t *mdhimPut(struct mdhim *md,
 
     //Send the primary key and value
     TransportRecvMessage *rm = _put_record(md, md->p->primary_index, pk, primary_key_len, val, value_len);
-    if (!rm || rm->error) {
+    if (!rm) {
         return nullptr;
     }
 

@@ -46,11 +46,11 @@ static void add_timing(struct timeval start, struct timeval end, int num,
  * @param message  pointer to message to send
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-static int send_locally_or_remote(mdhim_t *md, const int dest, TransportMessage *message) {
+static int send_locally_or_remote(mdhim_t *md, work_item_t * item, TransportMessage *message) {
     int ret = MDHIM_SUCCESS;
-    if (md->p->transport->EndpointID() != dest) {
+    if (md->p->transport->EndpointID() != item->address) {
         //Sends the message remotely
-        ret = md->p->send_client_response(dest, message, md->p->shutdown);
+        ret = md->p->send_client_response(item, message, md->p->shutdown);
     } else {
         //Sends the message locally
         pthread_mutex_lock(&md->p->receive_msg_mutex);
@@ -217,10 +217,10 @@ int range_server_stop(mdhim_t *md) {
  *
  * @param md        pointer to the main MDHIM struct
  * @param im        pointer to the put message to handle
- * @param source    source of the message
+ * @param item      the source work load, which includes the message and originator of the message
  * @return          MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-static int range_server_put(mdhim_t *md, TransportPutMessage *im, const int address) {
+static int range_server_put(mdhim_t *md, work_item_t *item) {
     int ret;
     int error = 0;
     int exists = 0;
@@ -230,6 +230,9 @@ static int range_server_put(mdhim_t *md, TransportPutMessage *im, const int addr
     int32_t old_value_len;
     struct timeval start, end;
     int inserted = 0;
+
+    TransportPutMessage *im = dynamic_cast<TransportPutMessage *>(item->message);
+    item->message = nullptr;
 
     void **value = Memory::FBP_MEDIUM::Instance().acquire<void *>();
     *value = nullptr;
@@ -296,6 +299,7 @@ static int range_server_put(mdhim_t *md, TransportPutMessage *im, const int addr
     add_timing(start, end, inserted, md, TransportMessageType::PUT);
 
 done:
+
     //Create the response message
     TransportRecvMessage *rm = Memory::FBP_MEDIUM::Instance().acquire<TransportRecvMessage>();
     //Set the type
@@ -306,7 +310,7 @@ done:
     rm->dst = md->p->transport->EndpointID();
 
     //Send response
-    ret = send_locally_or_remote(md, address, static_cast<TransportMessage *>(rm));
+    ret = send_locally_or_remote(md, item, rm);
 
     //Free memory
     if (exists && md->p->db_opts->p->db_value_append == MDHIM_DB_APPEND) {
@@ -330,7 +334,7 @@ done:
  * @param source    source of the message
  * @return    MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-static int range_server_bput(mdhim_t *md, TransportBPutMessage *bim, const int address) {
+static int range_server_bput(mdhim_t *md, work_item_t *item) {
     int ret;
     int error = MDHIM_SUCCESS;
     int32_t value_len;
@@ -342,6 +346,9 @@ static int range_server_bput(mdhim_t *md, TransportBPutMessage *bim, const int a
     int num_put = 0;
 
     gettimeofday(&start, NULL);
+
+    TransportBPutMessage *bim = dynamic_cast<TransportBPutMessage *>(item->message);
+    item->message = nullptr;
 
     int *exists = Memory::FBP_MEDIUM::Instance().acquire<int>(bim->num_keys);
     void **new_values = Memory::FBP_MEDIUM::Instance().acquire<void *>(bim->num_keys);
@@ -381,7 +388,7 @@ static int range_server_bput(mdhim_t *md, TransportBPutMessage *bim, const int a
             new_value = Memory::FBP_MEDIUM::Instance().acquire(new_value_len);
             memcpy(new_value, old_value, old_value_len);
             memcpy((char*)new_value + old_value_len, bim->values[i], bim->value_lens[i]);
-            if (exists[i] && address != md->p->transport->EndpointID()) {
+            if (exists[i] && item->address != md->p->transport->EndpointID()) {
                 Memory::FBP_MEDIUM::Instance().release(bim->values[i]);
                 bim->values[i] = nullptr;
             }
@@ -423,7 +430,7 @@ static int range_server_bput(mdhim_t *md, TransportBPutMessage *bim, const int a
         }
 
         //Release the bput keys/value if the message isn't coming from myself
-        if (address != md->p->transport->EndpointID()) {
+        if (item->address != md->p->transport->EndpointID()) {
             Memory::FBP_MEDIUM::Instance().release(bim->keys[i]);
             bim->keys[i] = nullptr;
             Memory::FBP_MEDIUM::Instance().release(bim->values[i]);
@@ -452,7 +459,7 @@ static int range_server_bput(mdhim_t *md, TransportBPutMessage *bim, const int a
     Memory::FBP_MEDIUM::Instance().release(bim);
 
     //Send response
-    ret = send_locally_or_remote(md, address, brm);
+    ret = send_locally_or_remote(md, item, brm);
 
     return MDHIM_SUCCESS;
 }
@@ -466,7 +473,7 @@ static int range_server_bput(mdhim_t *md, TransportBPutMessage *bim, const int a
 //  * @param source   source of the message
 //  * @return    MDHIM_SUCCESS or MDHIM_ERROR on error
 //  */
-// static int range_server_del(mdhim_t *md, struct mdhim_delm_t *dm, const int address) {
+// static int range_server_del(mdhim_t *md, work_item_t *item) {
 //     int ret = MDHIM_ERROR;
 //     struct mdhim_rm_t *rm;
 //     index_t *index;
@@ -499,7 +506,7 @@ static int range_server_bput(mdhim_t *md, TransportBPutMessage *bim, const int a
 //     rm->basem.dst = (int) md->p->transport->EndpointID();
 
 //     //Send response
-//     ret = send_locally_or_remote(md, source, rm);
+//     ret = send_locally_or_remote(md, item, rm);
 //     Memory::FBP_MEDIUM::Instance().release(dm);
 
 //     return MDHIM_SUCCESS;
@@ -571,9 +578,12 @@ static int range_server_bput(mdhim_t *md, TransportBPutMessage *bim, const int a
  * @param source    source of the message
  * @return          MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-static int range_server_commit(mdhim_t *md, TransportMessage *im, const int address) {
+static int range_server_commit(mdhim_t *md, work_item_t *item) {
     int ret;
     index_t *index;
+
+    TransportMessage *im = item->message;
+    item->message = nullptr;
 
     //Get the index referenced the message
     index = find_index(md, im);
@@ -603,7 +613,8 @@ static int range_server_commit(mdhim_t *md, TransportMessage *im, const int addr
     rm->dst = md->p->transport->EndpointID();
 
     //Send response
-    ret = send_locally_or_remote(md, address, rm);
+    ret = send_locally_or_remote(md, item, rm);
+
     Memory::FBP_MEDIUM::Instance().release(im);
 
     return MDHIM_SUCCESS;
@@ -618,7 +629,7 @@ static int range_server_commit(mdhim_t *md, TransportMessage *im, const int addr
  * @param source    source of the message
  * @return    MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-static int range_server_get(mdhim_t *md, TransportGetMessage *gm, const int address) {
+static int range_server_get(mdhim_t *md, work_item_t *item) {
     int ret;
     void *value = nullptr;
     int32_t value_len = 0;
@@ -627,6 +638,9 @@ static int range_server_get(mdhim_t *md, TransportGetMessage *gm, const int addr
     int num_retrieved = 0;
 
     gettimeofday(&start, NULL);
+
+    TransportGetMessage *gm = dynamic_cast<TransportGetMessage *>(item->message);
+    item->message = nullptr;
 
     //Get the index referenced the message
     index_t *index = find_index(md, (TransportMessage *) gm);
@@ -716,7 +730,7 @@ done:
     //Set the server's rank
     grm->dst = md->p->transport->EndpointID();
     //Set the key and value
-    if (address == md->p->transport->EndpointID()) {
+    if (item->address == md->p->transport->EndpointID()) {
         //If this message is coming from myself, copy the keys
         grm->key = Memory::FBP_MEDIUM::Instance().acquire(gm->key_len);
         memcpy(grm->key, gm->key, gm->key_len);
@@ -733,7 +747,7 @@ done:
     grm->index_type = index->type;
 
     //Send response
-    ret = send_locally_or_remote(md, address, grm);
+    ret = send_locally_or_remote(md, item, grm);
 
     //Release the bget message
     Memory::FBP_MEDIUM::Instance().release(gm);
@@ -750,7 +764,7 @@ done:
  * @param source    source of the message
  * @return    MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-static int range_server_bget(mdhim_t *md, TransportBGetMessage *bgm, const int address) {
+static int range_server_bget(mdhim_t *md, work_item_t *item) {
     int ret;
     TransportBGetRecvMessage *bgrm;
     int error = 0;
@@ -758,6 +772,9 @@ static int range_server_bget(mdhim_t *md, TransportBGetMessage *bgm, const int a
     int num_retrieved = 0;
 
     gettimeofday(&start, NULL);
+
+    TransportBGetMessage *bgm = dynamic_cast<TransportBGetMessage *>(item->message);
+    item->message = nullptr;
 
     void **values = Memory::FBP_MEDIUM::Instance().acquire<void *>(bgm->num_keys);
     int32_t *value_lens = Memory::FBP_MEDIUM::Instance().acquire<int32_t>(bgm->num_keys);
@@ -866,7 +883,7 @@ done:
     //Set the server's rank
     bgrm->dst = md->p->transport->EndpointID();
     //Set the key and value
-    if (address == md->p->transport->EndpointID()) {
+    if (item->address == md->p->transport->EndpointID()) {
         //If this message is coming from myself, copy the keys
         bgrm->key_lens = Memory::FBP_MEDIUM::Instance().acquire<int>(bgm->num_keys);
         bgrm->keys = Memory::FBP_MEDIUM::Instance().acquire<void *>(bgm->num_keys);
@@ -890,7 +907,7 @@ done:
     bgrm->index_type = index->type;
 
     //Send response
-    ret = send_locally_or_remote(md, address, bgrm);
+    ret = send_locally_or_remote(md, item, bgrm);
 
     //Release the bget message
     Memory::FBP_MEDIUM::Instance().release(bgm);
@@ -908,10 +925,13 @@ done:
  * @param op        operation to perform
  * @return    MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-static int range_server_bget_op(mdhim_t *md, TransportBGetMessage *bgm, const int address, TransportGetMessageOp op) {
+static int range_server_bget_op(mdhim_t *md, work_item_t *item, TransportGetMessageOp op) {
     int error = 0;
     int ret;
     struct timeval start, end;
+
+    TransportBGetMessage *bgm = dynamic_cast<TransportBGetMessage *>(item->message);
+    item->message = nullptr;
 
     //Initialize pointers and lengths
     const int count = bgm->num_keys * bgm->num_recs;
@@ -1068,10 +1088,10 @@ respond:
     bgrm->index_type = index->type;
 
     //Send response
-    ret = send_locally_or_remote(md, address, bgrm);
+    // ret = send_locally_or_remote(md, address, bgrm);
 
     //Free stuff
-    if (address == md->p->transport->EndpointID()) {
+    if (item->address == md->p->transport->EndpointID()) {
         /* If this message is not coming from myself,
            free the keys and values from the get message */
         // mdhim_partial_release_msg(bgm);
@@ -1122,36 +1142,29 @@ static void *worker_thread(void *data) {
         range_server_clean_oreqs(md);
 
         while (item) {
-            TransportMessage *message = static_cast<TransportMessage *>(item->message);
             //Call the appropriate function depending on the message type
-            switch(message->mtype) {
+            switch(item->message->mtype) {
             case TransportMessageType::PUT:
                 //Pack the put message and pass to range_server_put
-                range_server_put(md,
-                                 dynamic_cast<TransportPutMessage *>(message),
-                                 item->address);
+                range_server_put(md, item);
                 break;
             case TransportMessageType::GET:
                 //Pack the put message and pass to range_server_put
-                range_server_get(md,
-                                 dynamic_cast<TransportGetMessage *>(message),
-                                 item->address);
+                range_server_get(md, item);
                 break;
             case TransportMessageType::BPUT:
                 //Pack the bulk put message and pass to range_server_put
-                range_server_bput(md,
-                                  dynamic_cast<TransportBPutMessage *>(message),
-                                  item->address);
+                range_server_bput(md, item);
                 break;
             case TransportMessageType::BGET:
                 {
-                    TransportBGetMessage *bgm = dynamic_cast<TransportBGetMessage *>(message);
+                    TransportBGetMessage *bgm = dynamic_cast<TransportBGetMessage *>(item->message);
                     //The client is sending one key, but requesting the retrieval of more than one
                     if (bgm->num_recs > 1 && bgm->num_keys == 1) {
-                        range_server_bget_op(md, bgm, item->address, bgm->op);
+                        range_server_bget_op(md, item, bgm->op);
                     }
                     else {
-                        range_server_bget(md, bgm, item->address);
+                        range_server_bget(md, item);
                     }
                 }
                 break;
@@ -1162,13 +1175,12 @@ static void *worker_thread(void *data) {
                 // range_server_del(md, dynamic_cast<TransportBDeleteMessage *>(item->message), item->address);
                 break;
             case TransportMessageType::COMMIT:
-                range_server_commit(md, static_cast<TransportMessage *>(item->message), item->address);
+                range_server_commit(md, item);
                 break;
             default:
                 break;
             }
 
-            item->message = nullptr;
             work_item_t *item_tmp = item;
             item = item->next;
             Memory::FBP_MEDIUM::Instance().release(item_tmp);

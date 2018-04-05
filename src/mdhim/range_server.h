@@ -8,14 +8,7 @@
 #include "indexes.h"
 #include "mdhim.h"
 #include "data_store.h"
-
-typedef struct work_item {
-	work_item *next;
-	work_item *prev;
-	void *message;
-
-    int address;
-} work_item_t;
+#include "work_item.h"
 
 typedef struct work_queue {
 	work_item_t *head;
@@ -38,7 +31,7 @@ typedef struct mdhim_rs_t {
 	pthread_t *listener;
 	pthread_t **workers;
 	index_t *indexes; /* A linked list of remote indexes that is served
-				  (partially for fully) by this range server */
+                         (partially for fully) by this range server */
 	//Records seconds spent on putting records
 	long double put_time;
 	//Records seconds spend on getting records

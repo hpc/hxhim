@@ -9,8 +9,3 @@ add_executable(putget putget.c)
 target_link_libraries(putget mdhim mdhimutils transport ${LEVELDB_LIBRARY} ${MPI_CXX_LIBRARIES} ${THALLIUM_LDFLAGS} pthread m)
 set_target_properties(putget PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
 set_target_properties(putget PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
-
-add_executable(enginetest enginetest.cpp)
-target_link_libraries(enginetest mdhim mdhimutils transport ${LEVELDB_LIBRARY} ${MPI_CXX_LIBRARIES} ${THALLIUM_LDFLAGS} pthread m)
-set_target_properties(enginetest PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
-set_target_properties(enginetest PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")

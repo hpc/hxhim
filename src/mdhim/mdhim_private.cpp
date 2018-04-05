@@ -18,7 +18,7 @@
 #include "MPIInstance.hpp"
 
 // get all thallium lookup addresses
-int get_addrs(thallium::engine *engine, const MPI_Comm comm, std::map<int, std::string> &addrs) {
+static int get_addrs(thallium::engine *engine, const MPI_Comm comm, std::map<int, std::string> &addrs) {
     if (!engine) {
         return MDHIM_ERROR;
     }
@@ -47,7 +47,7 @@ int get_addrs(thallium::engine *engine, const MPI_Comm comm, std::map<int, std::
     // get addresses
     char *buf = Memory::FBP_MEDIUM::Instance().acquire<char>(max_len * size);
     if (MPI_Allgather(self.c_str(), self.size(), MPI_CHAR, buf, max_len, MPI_CHAR, MPI_COMM_WORLD) != MPI_SUCCESS) {
-        delete [] buf;
+        Memory::FBP_MEDIUM::Instance().release(buf);
         return MDHIM_ERROR;
     }
 
@@ -76,8 +76,7 @@ int mdhim_private_init(mdhim_private* mdp, int dbtype, int transporttype) {
     else {
         mlog(MDHIM_CLIENT_CRIT, "Invalid data store type specified");
         rc = MDHIM_DB_ERROR;
-        return MDHIM_ERROR;
-        // goto err_out;
+        goto err_out;
     }
 
     mdp->transport = new ((Transport *)Memory::FBP_MEDIUM::Instance().acquire(sizeof(Transport))) Transport(MPIInstance::instance().Rank());
@@ -85,7 +84,8 @@ int mdhim_private_init(mdhim_private* mdp, int dbtype, int transporttype) {
     if (transporttype == MDHIM_TRANSPORT_MPI) {
         // create mapping between unique IDs and ranks
         for(int i = 0; i < MPIInstance::instance().Size(); i++) {
-            mdp->transport->AddEndpoint(i, new ((MPIEndpoint *)Memory::FBP_MEDIUM::Instance().acquire()) MPIEndpoint(MPIInstance::instance().Comm(), i, mdp->shutdown));
+            mdp->transport->AddEndpoint(i, new ((MPIEndpoint *)Memory::FBP_MEDIUM::Instance().acquire(sizeof(MPIEndpoint)))
+                                        MPIEndpoint(MPIInstance::instance().Comm(), i, mdp->shutdown));
         }
 
         // remove loopback endpoint
@@ -95,15 +95,14 @@ int mdhim_private_init(mdhim_private* mdp, int dbtype, int transporttype) {
         mdp->send_client_response = MPIRangeServer::send_client_response;
 
         rc = MDHIM_SUCCESS;
-        goto err_out;
     }
     else if (transporttype == MDHIM_TRANSPORT_THALLIUM) {
         // create the engine (only 1 instance per process)
-        thallium::engine *engine = new ((thallium::engine *)Memory::FBP_MEDIUM::Instance().acquire())
-            thallium::engine("tcp", THALLIUM_SERVER_MODE);
+        thallium::engine *engine = new ((thallium::engine *)Memory::FBP_MEDIUM::Instance().acquire(sizeof(thallium::engine)))
+            thallium::engine("na+sm", THALLIUM_SERVER_MODE, true, -1);
 
         // create client to range server RPC
-        thallium::remote_procedure *rpc = new ((thallium::remote_procedure *)Memory::FBP_MEDIUM::Instance().acquire())
+        thallium::remote_procedure *rpc = new ((thallium::remote_procedure *)Memory::FBP_MEDIUM::Instance().acquire(sizeof(thallium::remote_procedure)))
             thallium::remote_procedure(engine->define(ThalliumRangeServer::CLIENT_TO_RANGE_SERVER_NAME,
                                                       ThalliumRangeServer::receive_rangesrv_work));
 
@@ -124,25 +123,21 @@ int mdhim_private_init(mdhim_private* mdp, int dbtype, int transporttype) {
 
         // add the remote thallium endpoints to the tranport
         for(std::pair<const int, std::string> const &addr : addrs) {
-            thallium::endpoint *server = new ((thallium::endpoint *) Memory::FBP_MEDIUM::Instance().acquire())
+            thallium::endpoint *server = new ((thallium::endpoint *) Memory::FBP_MEDIUM::Instance().acquire(sizeof(thallium::endpoint)))
                 thallium::endpoint(engine->lookup(addr.second));
-            // ThalliumEndpoint* ep = new ((ThalliumEndpoint *) Memory::FBP_MEDIUM::Instance().acquire())
-            //     ThalliumEndpoint(engine, rpc, server);
-            // mdp->transport->AddEndpoint(addr.first, ep);
-            std::cout << addr.first << " " << addrs.size() <<  std::endl;
-            rpc->on(*server)(std::string("abcdef"));
+            ThalliumEndpoint* ep = new ((ThalliumEndpoint *) Memory::FBP_MEDIUM::Instance().acquire(sizeof(ThalliumEndpoint)))
+                ThalliumEndpoint(engine, rpc, server);
+            mdp->transport->AddEndpoint(addr.first, ep);
         }
 
         mdp->listener_thread = nullptr;
         mdp->send_client_response = ThalliumRangeServer::send_client_response;
 
         rc = MDHIM_SUCCESS;
-        goto err_out;
     }
     else {
         mlog(MDHIM_CLIENT_CRIT, "Invalid transport type specified");
         rc = MDHIM_ERROR;
-        goto err_out;
     }
 
 err_out:

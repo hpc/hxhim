@@ -25,7 +25,7 @@ ThalliumEndpoint::~ThalliumEndpoint() {
     if (!--count_) {
         Memory::FBP_MEDIUM::Instance().release(rpc_);
 
-        // engine_->finalize();
+        engine_->finalize();
         Memory::FBP_MEDIUM::Instance().release(engine_);
     }
 }
@@ -38,22 +38,30 @@ TransportRecvMessage *ThalliumEndpoint::Put(const TransportPutMessage *message) 
         return nullptr;
     }
 
-    std::cout << (std::string) engine_->self() << " sending put to " << (std::string) *ep_ << std::endl;
-    int response = rpc_->on(*ep_)(buf);
-    std::cout << "put response " << response << std::endl;
-    return nullptr;
+    std::string response = rpc_->on(*ep_)(buf);
+
+    TransportRecvMessage *rm = nullptr;
+    if (ThalliumUnpacker::unpack(&rm, response) != MDHIM_SUCCESS) {
+        return nullptr;
+    }
+
+    return rm;
 }
 
 TransportGetRecvMessage *ThalliumEndpoint::Get(const TransportGetMessage *message) {
     std::lock_guard<std::mutex> lock(mutex_);
 
-    std::cout << (std::string) engine_->self() << " sending get to " << (std::string) *ep_ << std::endl;
     std::string buf;
     if (ThalliumPacker::pack(message, buf) != MDHIM_SUCCESS) {
         return nullptr;
     }
 
-    int response = rpc_->on(*ep_)(buf);
-    std::cout << "get response " << response << std::endl;
-    return nullptr;
+    std::string response = rpc_->on(*ep_)(buf);
+
+    TransportGetRecvMessage *rm = nullptr;
+    if (ThalliumUnpacker::unpack(&rm, response) != MDHIM_SUCCESS) {
+        return nullptr;
+    }
+
+    return rm;
 }
