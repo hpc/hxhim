@@ -5,7 +5,7 @@
 #include "transport.hpp"
 
 /**
- * Implementation of private transport struct variables
+ * Implementation of private transport structs
 */
 
 /* Put message */

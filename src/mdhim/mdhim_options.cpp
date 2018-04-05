@@ -7,6 +7,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
+#include <iomanip>
+#include <unistd.h>
 
 #include "mdhim_constants.h"
 #include "mdhim_options.h"
@@ -22,14 +25,12 @@ static bool valid_opts(mdhim_options_t* opts) {
     return (opts && opts->p);
 }
 
-int mdhim_options_init(mdhim_options_t* opts)
-{
+int mdhim_options_init(mdhim_options_t* opts) {
     if (!opts) {
         return MDHIM_ERROR;
     }
 
     opts->p = Memory::FBP_MEDIUM::Instance().acquire<mdhim_options_private_t>();
-
     // Set default options
     mdhim_options_set_comm(opts, MPI_COMM_WORLD);
     mdhim_options_set_transporttype(opts, MDHIM_TRANSPORT_MPI);
@@ -58,7 +59,7 @@ int mdhim_options_init(mdhim_options_t* opts)
     //mdhim_options_set_key_type(opts, MDHIM_BYTE_KEY);
     //mdhim_options_set_debug_level(opts, MLOG_CRIT);
     //mdhim_options_set_num_worker_threads(opts, 30);
-    return 0;
+    return MDHIM_SUCCESS;
 }
 
 void mdhim_options_set_comm(mdhim_options_t* opts, const MPI_Comm comm) {
@@ -103,8 +104,8 @@ void mdhim_options_set_manifest_path(mdhim_options_t* opts, const char *path) {
     }
 
     if (opts->p->manifest_path) {
-      Memory::FBP_MEDIUM::Instance().release(opts->p->manifest_path);
-      opts->p->manifest_path = nullptr;
+        Memory::FBP_MEDIUM::Instance().release(opts->p->manifest_path);
+        opts->p->manifest_path = nullptr;
     }
 
     const int path_len = strlen(path) + strlen(MANIFEST_FILE_NAME) + 1;
@@ -113,7 +114,7 @@ void mdhim_options_set_manifest_path(mdhim_options_t* opts, const char *path) {
     opts->p->manifest_path = manifest_path;
 }
 
-void mdhim_options_set_login_c(mdhim_options_t* opts, const char* db_hl, const char *db_ln, const char *db_pw, const char *dbs_hl, const char *dbs_ln, const char *dbs_pw){
+void mdhim_options_set_login_c(mdhim_options_t* opts, const char* db_hl, const char *db_ln, const char *db_pw, const char *dbs_hl, const char *dbs_ln, const char *dbs_pw) {
     if (!valid_opts(opts)) {
         return;
     }
@@ -277,5 +278,6 @@ int mdhim_options_destroy(mdhim_options_t *opts) {
 
     Memory::FBP_MEDIUM::Instance().release(opts->p->manifest_path);
     Memory::FBP_MEDIUM::Instance().release(opts->p);
+    opts->p = nullptr;
     return MDHIM_SUCCESS;
 }

@@ -247,7 +247,6 @@ void TransportGetRecvMessage::cleanup() {
     Memory::FBP_MEDIUM::Instance().release(key);
     key = nullptr;
 
-    // use Memory::FBP_MEDIUM::Instance().release - this value comes from leveldb
     Memory::FBP_MEDIUM::Instance().release(value);
     value = nullptr;
 

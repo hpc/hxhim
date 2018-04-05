@@ -11,6 +11,7 @@
 #include <ctype.h>
 #include "mdhim_options_private.h"
 #include "mdhim_private.h"
+#include "mdhim_options_private.h"
 #include "indexes.h"
 #include "partitioner.h"
 
@@ -1121,6 +1122,7 @@ void indexes_release(struct mdhim *md) {
 			free(stat);
 		}
 
+        free(cur_indx->name);
 		free(cur_indx);
 	}
 }

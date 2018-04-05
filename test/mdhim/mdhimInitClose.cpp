@@ -3,7 +3,6 @@
 //
 
 #include <gtest/gtest.h>
-#include <mpi.h>
 
 #include "mdhim.h"
 #include "MemoryManagers.hpp"
@@ -12,16 +11,19 @@
 TEST(mdhimInitClose, Good) {
     mdhim_options_t opts;
     mdhim_t md;
+
     EXPECT_EQ(mdhim_options_init(&opts), MDHIM_SUCCESS);
     EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
+
     EXPECT_EQ(MPI_Barrier(MPI_COMM_WORLD), MPI_SUCCESS);
+
     EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
     EXPECT_EQ(mdhim_options_destroy(&opts), MDHIM_SUCCESS);
     EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
 }
 
 // The communicator provided is MPI_COMM_NULL
-TEST(mdhimInit, NULL_Transport) {
+TEST(mdhimInit, COMM_NULL) {
     mdhim_options_t opts;
     mdhim_t md;
 
@@ -39,7 +41,6 @@ TEST(mdhimInit, NULL_md) {
     mdhim_options_t opts;
 
     EXPECT_EQ(mdhim_options_init(&opts), MDHIM_SUCCESS);
-
     EXPECT_EQ(mdhimInit(NULL, &opts), MDHIM_ERROR);
 
     EXPECT_EQ(mdhim_options_destroy(&opts), MDHIM_SUCCESS);
@@ -47,12 +48,14 @@ TEST(mdhimInit, NULL_md) {
 }
 
 // No options provided
-TEST(mdhimInit, NULL_opts) {
+TEST(mdhimInit, no_opts) {
     mdhim_t md;
-    EXPECT_EQ(mdhimInit(&md, NULL), MDHIM_ERROR);
+    EXPECT_EQ(mdhimInit(&md, nullptr), MDHIM_ERROR);
+    EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
 }
 
 // No md variable
-TEST(mdhimClose, NULL_md) {
-    EXPECT_EQ(mdhimClose(NULL), MDHIM_ERROR);
+TEST(mdhimClose, no_md) {
+    EXPECT_EQ(mdhimClose(nullptr), MDHIM_ERROR);
+    EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
 }

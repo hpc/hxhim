@@ -1,4 +1,8 @@
 #include <cstdlib>
+#include <map>
+#include <memory>
+#include <unistd.h>
+#include <sys/types.h>
 
 #include "indexes.h"
 #include "local_client.h"
@@ -7,11 +11,13 @@
 #include "partitioner.h"
 #include "transport_mpi.hpp"
 #include "MemoryManagers.hpp"
+#include "MPIInstance.hpp"
 
 int mdhim_private_init(mdhim_private* mdp, int dbtype, int transporttype) {
     int rc = MDHIM_ERROR;
     if (!mdp) {
-        goto err_out;
+        // goto err_out;
+        return MDHIM_ERROR;
     }
 
     if (dbtype == LEVELDB) {
@@ -20,7 +26,8 @@ int mdhim_private_init(mdhim_private* mdp, int dbtype, int transporttype) {
     else {
         mlog(MDHIM_CLIENT_CRIT, "Invalid data store type specified");
         rc = MDHIM_DB_ERROR;
-        goto err_out;
+        return MDHIM_ERROR;
+        // goto err_out;
     }
 
     mdp->transport = new ((Transport *)Memory::FBP_MEDIUM::Instance().acquire(sizeof(Transport))) Transport(MPIInstance::instance().Rank());
@@ -28,11 +35,14 @@ int mdhim_private_init(mdhim_private* mdp, int dbtype, int transporttype) {
     if (transporttype == MDHIM_TRANSPORT_MPI) {
         // create mapping between unique IDs and ranks
         for(int i = 0; i < MPIInstance::instance().Size(); i++) {
-            mdp->transport->AddEndpoint(i, new MPIEndpoint(MPIInstance::instance().Comm(), i, mdp->shutdown));
+            mdp->transport->AddEndpoint(i, new ((MPIEndpoint *)Memory::FBP_MEDIUM::Instance().acquire()) MPIEndpoint(MPIInstance::instance().Comm(), i, mdp->shutdown));
         }
 
+        // remove loopback endpoint
+        mdp->transport->RemoveEndpoint(mdp->transport->EndpointID());
+
         mdp->listener_thread = MPIRangeServer::listener_thread;
-        mdp->send_locally_or_remote = MPIRangeServer::send_locally_or_remote;
+        mdp->send_client_response = MPIRangeServer::send_client_response;
 
         rc = MDHIM_SUCCESS;
         goto err_out;
@@ -50,7 +60,10 @@ err_out:
 TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
                                   void *key, int key_len,
                                   void *value, int value_len) {
-    if (!md || !md->p || !index || !key || !key_len || !value || !value_len) {
+    if (!md || !md->p ||
+        !index ||
+        !key || !key_len ||
+        !value || !value_len) {
         return nullptr;
     }
 

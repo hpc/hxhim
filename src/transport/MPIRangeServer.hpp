@@ -8,6 +8,7 @@
 
 #include "mdhim_private.h"
 #include "transport.hpp"
+#include "MemoryManagers.hpp"
 #include "MPIPacker.hpp"
 #include "MPIUnpacker.hpp"
 
@@ -18,12 +19,6 @@ class MPIRangeServer {
          */
         static void *listener_thread(void *data);
 
-        /**
-         * Fnction that will be used to send responses back to the client
-         */
-        static int send_locally_or_remote(mdhim_t *md, const int dest, TransportMessage *message);
-
-    private:
         static void Flush(MPI_Request *req, int *flag, MPI_Status *status, volatile int &shutdown);
 
         static int only_send_client_response(int dest, void *sendbuf, int sizebuf, volatile int &shutdown);

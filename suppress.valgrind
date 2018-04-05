@@ -1,4 +1,4 @@
-# Run valgrind with  --suppressions=<this file's name> to supress some warnings
+# Run valgrind with --suppressions=<this file's name> to supress warnings
 {
    Memcheck:Leak
    obj:*/lib*/lib*.so
@@ -40,6 +40,100 @@
 }
 
 {
+   LevelDB Create Default Environment
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:_Znwm
+   fun:leveldb_create_default_env
+   fun:_Z18mdhim_leveldb_openPPvS0_PciiP13mdhim_options
+   fun:_Z13open_db_storeP5mdhimP5index
+   fun:_Z19create_global_indexP5mdhimimiiPc
+   fun:_ZL19indexInitializationP5mdhim
+   fun:mdhimInit
+   fun:main
+}
+
+{
+   LevelDB Init Default Environment
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:_Znwm
+   fun:_ZN7leveldbL14InitDefaultEnvEv
+   fun:__pthread_once_slow
+   fun:_ZN7leveldb3Env7DefaultEv
+   fun:_ZN7leveldb7OptionsC1Ev
+   fun:leveldb_options_create
+   fun:_Z18mdhim_leveldb_openPPvS0_PciiP13mdhim_options
+   fun:_Z13open_db_storeP5mdhimP5index
+   fun:_Z19create_global_indexP5mdhimimiiPc
+   fun:_ZL19indexInitializationP5mdhim
+   fun:mdhimInit
+   fun:main
+}
+
+{
+   LevelDB LRU cache
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:_Znwm
+   fun:leveldb_cache_create_lru
+   fun:_Z18mdhim_leveldb_openPPvS0_PciiP13mdhim_options
+   fun:_Z13open_db_storeP5mdhimP5index
+   fun:_Z19create_global_indexP5mdhimimiiPc
+   fun:_ZL19indexInitializationP5mdhim
+   fun:mdhimInit
+   fun:main
+}
+
+{
+   LevelDB LRU cache
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:_Znwm
+   fun:_ZN7leveldb11NewLRUCacheEm
+   fun:leveldb_cache_create_lru
+   fun:_Z18mdhim_leveldb_openPPvS0_PciiP13mdhim_options
+   fun:_Z13open_db_storeP5mdhimP5index
+   fun:_Z19create_global_indexP5mdhimimiiPc
+   fun:_ZL19indexInitializationP5mdhim
+   fun:mdhimInit
+   fun:main
+}
+
+{
+   LevelDB LRU cache
+   Memcheck:Leak
+   match-leak-kinds: indirect
+   fun:_Znam
+   fun:_ZN7leveldb11NewLRUCacheEm
+   fun:leveldb_cache_create_lru
+   fun:_Z18mdhim_leveldb_openPPvS0_PciiP13mdhim_options
+   fun:_Z13open_db_storeP5mdhimP5index
+   fun:_Z19create_global_indexP5mdhimimiiPc
+   fun:_ZL19indexInitializationP5mdhim
+   fun:mdhimInit
+   fun:main
+}
+
+{
+   LevelDB Init Module
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:_Znwm
+   fun:_ZN7leveldbL10InitModuleEv
+   fun:__pthread_once_slow
+   fun:_ZN7leveldb4port8InitOnceEPiPFvvE
+   fun:_ZN7leveldb18BytewiseComparatorEv
+   fun:_ZN7leveldb7OptionsC1Ev
+   fun:leveldb_options_create
+   fun:_Z18mdhim_leveldb_openPPvS0_PciiP13mdhim_options
+   fun:_Z13open_db_storeP5mdhimP5index
+   fun:_Z19create_global_indexP5mdhimimiiPc
+   fun:_ZL19indexInitializationP5mdhim
+   fun:mdhimInit
+}
+
+{
    Writing Manifest Unitialized Parameter
    Memcheck:Param
    write(buf)
@@ -50,4 +144,22 @@
    fun:mdhimClose
    fun:cleanup
    fun:main
+}
+
+{
+   Writing Manifest Unitialized Parameter
+   Memcheck:Param
+   write(buf)
+   obj:/usr/lib64/libpthread-2.24.so
+   fun:_Z14write_manifestP5mdhimP5index
+   fun:_Z15indexes_releaseP5mdhim
+   fun:_ZL16indexDestructionP5mdhim
+   fun:mdhimClose
+   fun:_ZN24mdhimInitClose_Good_Test8TestBodyEv
+   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
+   fun:_ZN7testing4Test3RunEv
+   fun:_ZN7testing8TestInfo3RunEv
+   fun:_ZN7testing8TestCase3RunEv
+   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
 }

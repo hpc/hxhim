@@ -10,6 +10,12 @@ project (HXHIM)
 set (CMAKE_CXX_STANDARD 14)
 
 #
+# Enable extra compiler flags
+#
+#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -g3")
+#set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall")
+
+#
 # Add additional cmake files
 #
 set(HXHIM_CMAKE_MODULE_DIR ./CMake)
@@ -30,9 +36,15 @@ include(FindPkgConfig REQUIRED)
 #
 # External projects
 #
-find_package(MPI)
+find_package(MPI REQUIRED)
 if (MPI_FOUND)
-    include_directories(${MPI_INCLUDE_PATH})
+    message(STATUS "MPI_C_LIBRARIES=" ${MPI_C_LIBRARIES})
+    message(STATUS "MPI_C_LINK_FLAGS=" ${MPI_C_LINK_FLAGS})
+    message(STATUS "MPI_C_COMPILE_FLAGS=" ${MPI_C_COMPILE_FLAGS})
+    message(STATUS "MPI_CXX_LINK_FLAGS=" ${MPI_CXX_LINK_FLAGS})
+    message(STATUS "MPI_CXX_COMPILE_FLAGS=" ${MPI_CXX_COMPILE_FLAGS})
+    include_directories(SYSTEM ${MPI_INCLUDE_PATH})
+    add_definitions(-DHXHIM_USE_MPI)
 endif()
 
 # GoogleTest
@@ -65,6 +77,8 @@ add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
 if (CMAKE_VERSION VERSION_LESS 2.8.11)
     include_directories("${gtest_SOURCE_DIR}/include")
 endif()
+
+message( STATUS "GTest source dir: " ${gtest_SOURCE_DIR})
 
 #
 # Add subdirectories

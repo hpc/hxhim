@@ -7,6 +7,7 @@
 
 #include "mdhim_constants.h"
 #include "transport.hpp"
+#include "MemoryManagers.hpp"
 #include "MPIEndpointBase.hpp"
 #include "MPIPacker.hpp"
 #include "MPIUnpacker.hpp"

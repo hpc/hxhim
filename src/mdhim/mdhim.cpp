@@ -4,10 +4,11 @@
  * MDHIM API implementation
  */
 
+#include <cstdio>
+#include <cstdlib>
+#include <iostream>
 #include <memory>
-#include <stdlib.h>
 #include <sys/time.h>
-#include <stdio.h>
 
 #include "data_store.h"
 #include "indexes.h"
@@ -21,13 +22,10 @@
 #include "transport_private.hpp"
 #include "MemoryManagers.hpp"
 
-/*! \mainpage MDHIM TNG
- *
- * \section intro_sec Introduction
- *
- * MDHIM TNG is a key/value store for HPC
- *
- */
+#include "MPIInstance.cpp"
+void leaks() {
+    std::cout << "Rank " << MPIInstance::instance().Rank() << ": " << Memory::FBP_MEDIUM::Instance().used() << " leak(s)" << std::endl;
+}
 
 /**
  * groupInitialization
@@ -37,7 +35,7 @@
  * @return MDHIM status value
  */
 static int groupInitialization(mdhim_t *md) {
-    if (!md){
+    if (!md || !md->p){
         return MDHIM_ERROR;
     }
 
@@ -45,6 +43,7 @@ static int groupInitialization(mdhim_t *md) {
     //Don't allow MPI_COMM_NULL to be the communicator
     md->p->mdhim_client_comm = MPI_COMM_NULL;
     if (md->p->mdhim_comm == MPI_COMM_NULL) {
+        md->p->mdhim_client_comm = MPI_COMM_NULL;
         return MDHIM_ERROR;
     }
 
@@ -70,7 +69,7 @@ static int groupInitialization(mdhim_t *md) {
  * @return MDHIM status value
  */
 static int groupDestruction(mdhim_t *md) {
-    if (!md){
+    if (!md || !md->p){
         return MDHIM_ERROR;
     }
 
@@ -90,20 +89,20 @@ static int groupDestruction(mdhim_t *md) {
  * @return MDHIM status value
  */
 static int indexInitialization(mdhim_t *md) {
-    if (!md){
+    if (!md || !md->p){
         return MDHIM_ERROR;
     }
 
     //Initialize the indexes and create the primary index
-    md->p->indexes = NULL;
-    md->p->indexes_by_name = NULL;
-    if (pthread_rwlock_init(&md->p->indexes_lock, NULL) != 0) {
+    md->p->indexes = nullptr;
+    md->p->indexes_by_name = nullptr;
+    if (pthread_rwlock_init(&md->p->indexes_lock, nullptr) != 0) {
         return MDHIM_ERROR;
     }
 
     //Create the default remote primary index
     md->p->primary_index = create_global_index(md, md->p->db_opts->p->rserver_factor, md->p->db_opts->p->max_recs_per_slice,
-                                               md->p->db_opts->p->db_type, md->p->db_opts->p->db_key_type, NULL);
+                                               md->p->db_opts->p->db_type, md->p->db_opts->p->db_key_type, nullptr);
 
     if (!md->p->primary_index) {
         return MDHIM_ERROR;
@@ -120,7 +119,7 @@ static int indexInitialization(mdhim_t *md) {
  * @return MDHIM status value
  */
 static int indexDestruction(mdhim_t *md) {
-    if (!md){
+    if (!md || !md->p){
         return MDHIM_ERROR;
     }
 
@@ -151,19 +150,23 @@ int mdhimInit(mdhim_t* md, mdhim_options_t *opts) {
     }
 
     //Open mlog - stolen from plfs
-    //Assume opts has been initialized
-    mlog_open((char *)"mdhim", 0, opts->p->debug_level, opts->p->debug_level, NULL, 0, MLOG_LOGPID, 0);
+    mlog_open((char *)"mdhim", 0, opts->p->debug_level, opts->p->debug_level, nullptr, 0, MLOG_LOGPID, 0);
 
     //Initialize context variables based on options
-
-    md->p = Memory::FBP_MEDIUM::Instance().acquire<mdhim_private>();
-    mdhim_private_init(md->p, opts->p->db_type, opts->p->transporttype);
+    if (!(md->p = Memory::FBP_MEDIUM::Instance().acquire<mdhim_private_t>())) {
+        return MDHIM_ERROR;
+    }
 
     md->p->mdhim_comm = opts->p->comm;
     md->p->mdhim_comm_lock = PTHREAD_MUTEX_INITIALIZER;
 
+    // initialize the transport
+    if (mdhim_private_init(md->p, opts->p->db_type, opts->p->transporttype) != MDHIM_SUCCESS) {
+        return MDHIM_ERROR;
+    }
+
     //Required for index initialization
-    md->p->mdhim_rs = NULL;
+    md->p->mdhim_rs = nullptr;
     md->p->db_opts = opts;
 
     //Initialize group members of context
@@ -186,7 +189,7 @@ int mdhimInit(mdhim_t* md, mdhim_options_t *opts) {
 
     md->p->receive_msg_mutex = PTHREAD_MUTEX_INITIALIZER;
     md->p->receive_msg_ready_cv = PTHREAD_COND_INITIALIZER;
-    md->p->receive_msg = NULL;
+    md->p->receive_msg = nullptr;
 
     return MDHIM_SUCCESS;
 }
@@ -217,7 +220,7 @@ int mdhimClose(struct mdhim *md) {
     indexDestruction(md);
 
     //Free up memory used by message buffer
-    free(md->p->receive_msg);
+    Memory::FBP_MEDIUM::Instance().release(md->p->receive_msg);
 
     //Clean up group members
     groupDestruction(md);
@@ -253,7 +256,6 @@ int mdhimCommit(struct mdhim *md, struct index *index) {
         cm->index_type = index->type;
         cm->dst = md->p->transport->EndpointID();
         TransportRecvMessage *rm = local_client_commit(md, static_cast<TransportMessage *>(cm));
-
         if (!rm || rm->error) {
             ret = MDHIM_ERROR;
             mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
@@ -277,14 +279,14 @@ int mdhimCommit(struct mdhim *md, struct index *index) {
  * @param value_len          the length of the value
  * @param secondary_info     secondary global and local information for
                              inserting secondary global and local keys
- * @return                   mdhim_brm_t * or NULL on error
+ * @return                   mdhim_brm_t * or nullptr on error
  */
 mdhim_brm_t *mdhimPut(struct mdhim *md,
                       void *primary_key, int primary_key_len,
                       void *value, int value_len,
                       secondary_info_t *secondary_global_info,
                       secondary_info_t *secondary_local_info) {
-    if (!md ||
+    if (!md || !md->p ||
         !primary_key || !primary_key_len ||
         !value || !value_len) {
         return nullptr;
@@ -382,7 +384,7 @@ mdhim_brm_t *mdhimPut(struct mdhim *md,
 //  * @param secondary_key_len   the length of the key
 //  * @param primary_key     pointer to the primary_key
 //  * @param primary_key_len the length of the value
-//  * @return mdhim_brm_t * or NULL on error
+//  * @return mdhim_brm_t * or nullptr on error
 //  */
 // struct mdhim_brm_t *mdhimPutSecondary(struct mdhim *md,
 //                       struct index *secondary_index,
@@ -397,11 +399,11 @@ mdhim_brm_t *mdhimPut(struct mdhim *md,
 //     //Return message from each _put_record casll
 //     struct mdhim_rm_t *rm;
 
-//     rm = NULL;
-//     head = NULL;
+//     rm = nullptr;
+//     head = nullptr;
 //     if (!secondary_key || !secondary_key_len ||
 //         !primary_key || !primary_key_len) {
-//         return NULL;
+//         return nullptr;
 //     }
 
 //     rm = _put_record(md, secondary_index, secondary_key, secondary_key_len,
@@ -425,7 +427,7 @@ mdhim_brm_t *mdhimPut(struct mdhim *md,
 //     int *primary_key_lens_to_send;
 //     struct mdhim_brm_t *head, *newone;
 
-//     head = newone = NULL;
+//     head = newone = nullptr;
 //     for (i = 0; i < num_records; i++) {
 //         primary_keys_to_send =
 //                 (void**)malloc(secondary_info->num_keys[i] * sizeof(void *));
@@ -464,7 +466,7 @@ mdhim_brm_t *mdhimPut(struct mdhim *md,
 //  * @param values       pointer to array of values to store
 //  * @param value_lens   array with lengths of each value
 //  * @param num_records  the number of records to store (i.e., the number of keys in keys array)
-//  * @return mdhim_brm_t * or NULL on error
+//  * @return mdhim_brm_t * or nullptr on error
 //  */
 // mdhim_brm_t *mdhimBPut(struct mdhim *md,
 //                        void **primary_keys, int *primary_key_lens,
@@ -474,7 +476,7 @@ mdhim_brm_t *mdhimPut(struct mdhim *md,
 //                        secondary_bulk_info_t *secondary_local_info) {
 //     if (!primary_keys || !primary_key_lens ||
 //         !primary_values || !primary_value_lens) {
-//         return NULL;
+//         return nullptr;
 //     }
 
 //     TransportBRecvMessage *head = _bput_records(md, md->p->primary_index, primary_keys, primary_key_lens,
@@ -521,7 +523,7 @@ mdhim_brm_t *mdhimPut(struct mdhim *md,
 //  * @param values       pointer to array of values to store
 //  * @param value_lens   array with lengths of each value
 //  * @param num_records  the number of records to store (i.e., the number of keys in keys array)
-//  * @return mdhim_brm_t * or NULL on error
+//  * @return mdhim_brm_t * or nullptr on error
 //  */
 // struct mdhim_brm_t *mdhimBPutSecondary(struct mdhim *md, struct index *secondary_index,
 //                        void **secondary_keys, int *secondary_key_lens,
@@ -529,10 +531,10 @@ mdhim_brm_t *mdhimPut(struct mdhim *md,
 //                        int num_records) {
 //     struct mdhim_brm_t *head, *newone;
 
-//     head = newone = NULL;
+//     head = newone = nullptr;
 //     if (!secondary_keys || !secondary_key_lens ||
 //         !primary_keys || !primary_key_lens) {
-//         return NULL;
+//         return nullptr;
 //     }
 
 //     head = _bput_records(md, secondary_index, secondary_keys, secondary_key_lens,
@@ -552,11 +554,17 @@ mdhim_brm_t *mdhimPut(struct mdhim *md,
  (MDHIM_GET_NEXT or MDHIM_GET_PREV)
  * @param key_len   the length of the key
  * @param op        the operation type
- * @return mdhim_getrm_t * or NULL on error
+ * @return mdhim_getrm_t * or nullptr on error
  */
 mdhim_getrm_t *mdhimGet(mdhim_t *md, struct index *index,
                          void *key, int key_len,
                          enum TransportGetMessageOp op) {
+    if (!md || !md->p ||
+        index ||
+        !key || !key_len) {
+        return nullptr;
+    }
+
     if (op != TransportGetMessageOp::GET_EQ && op != TransportGetMessageOp::GET_PRIMARY_EQ) {
         return nullptr;
     }
@@ -582,7 +590,7 @@ mdhim_getrm_t *mdhimGet(mdhim_t *md, struct index *index,
 //  * @param keys         pointer to array of keys to get values for
 //  * @param key_lens     array with lengths of each key in keys
 //  * @param num_records  the number of keys to get (i.e., the number of keys in keys array)
-//  * @return mdhim_bgetrm_t * or NULL on error
+//  * @return mdhim_bgetrm_t * or nullptr on error
 //  */
 // struct mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, struct index *index,
 //                  void **keys, int *key_lens,
@@ -597,7 +605,7 @@ mdhim_getrm_t *mdhimGet(mdhim_t *md, struct index *index,
 //         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
 //              "Invalid operation for mdhimBGet",
 //              md->p->transport->EndpointID());
-//         return NULL;
+//         return nullptr;
 //     }
 
 //     //Check to see that we were given a sane amount of records
@@ -605,19 +613,19 @@ mdhim_getrm_t *mdhimGet(mdhim_t *md, struct index *index,
 //         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
 //              "Too many bulk operations requested in mdhimBGet",
 //              md->p->transport->EndpointID());
-//         return NULL;
+//         return nullptr;
 //     }
 
 //     if (!index) {
 //         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
 //              "Invalid index specified",
 //              md->p->transport->EndpointID());
-//         return NULL;
+//         return nullptr;
 //     }
 
 //     bgrm_head = _bget_records(md, index, keys, key_lens, num_keys, 1, op);
 //     if (!bgrm_head) {
-//         return NULL;
+//         return nullptr;
 //     }
 
 //     if (op == MDHIM_GET_PRIMARY_EQ) {
@@ -688,10 +696,10 @@ mdhim_getrm_t *mdhimGet(mdhim_t *md, struct index *index,
 //  * If the operation passed in is MDHIM_GET_NEXT or MDHIM_GET_PREV, this return all the records
 //  * starting from the key passed in in the direction specified
 //  *
-//  * If the operation passed in is MDHIM_GET_FIRST and MDHIM_GET_LAST and the key is NULL,
+//  * If the operation passed in is MDHIM_GET_FIRST and MDHIM_GET_LAST and the key is nullptr,
 //  * then this operation will return the keys starting from the first or last key
 //  *
-//  * If the operation passed in is MDHIM_GET_FIRST and MDHIM_GET_LAST and the key is not NULL,
+//  * If the operation passed in is MDHIM_GET_FIRST and MDHIM_GET_LAST and the key is not nullptr,
 //  * then this operation will return the keys starting the first key on
 //  * the range server that the key resolves to
 //  *
@@ -700,7 +708,7 @@ mdhim_getrm_t *mdhimGet(mdhim_t *md, struct index *index,
 //  * @param key_len      the length of the key
 //  * @param num_records  the number of successive keys to get
 //  * @param op           the operation to perform (i.e., MDHIM_GET_NEXT or MDHIM_GET_PREV)
-//  * @return mdhim_bgetrm_t * or NULL on error
+//  * @return mdhim_bgetrm_t * or nullptr on error
 //  */
 // struct mdhim_bgetrm_t *mdhimBGetOp(mdhim_t *md, struct index *index,
 //                    void *key, int key_len,
@@ -713,14 +721,14 @@ mdhim_getrm_t *mdhimGet(mdhim_t *md, struct index *index,
 //         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
 //              "To many bulk operations requested in mdhimBGetOp",
 //              md->p->transport->EndpointID());
-//         return NULL;
+//         return nullptr;
 //     }
 
 //     if (op == MDHIM_GET_EQ || op == MDHIM_GET_PRIMARY_EQ) {
 //         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
 //              "Invalid op specified for mdhimGet",
 //              md->p->transport->EndpointID());
-//         return NULL;
+//         return nullptr;
 //     }
 
 //     //Create an a array with the single key and key len passed in
@@ -745,7 +753,7 @@ mdhim_getrm_t *mdhimGet(mdhim_t *md, struct index *index,
 //  * @param md main MDHIM struct
 //  * @param key       pointer to key to delete
 //  * @param key_len   the length of the key
-//  * @return mdhim_rm_t * or NULL on error
+//  * @return mdhim_rm_t * or nullptr on error
 //  */
 // struct mdhim_brm_t *mdhimDelete(mdhim_t *md, struct index *index,
 //                 void *key, int key_len) {
@@ -773,7 +781,7 @@ mdhim_getrm_t *mdhimGet(mdhim_t *md, struct index *index,
 //  * @param keys         pointer to array of keys to delete
 //  * @param key_lens     array with lengths of each key in keys
 //  * @param num_records  the number of keys to delete (i.e., the number of keys in keys array)
-//  * @return mdhim_brm_t * or NULL on error
+//  * @return mdhim_brm_t * or nullptr on error
 //  */
 // struct mdhim_brm_t *mdhimBDelete(mdhim_t *md, struct index *index,
 //                  void **keys, int *key_lens,
@@ -785,7 +793,7 @@ mdhim_getrm_t *mdhimGet(mdhim_t *md, struct index *index,
 //         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
 //              "To many bulk operations requested in mdhimBGetOp",
 //              md->p->transport->EndpointID());
-//         return NULL;
+//         return nullptr;
 //     }
 
 //     brm_head = _bdel_records(md, index, keys, key_lens, num_records);
@@ -823,17 +831,16 @@ secondary_info_t *mdhimCreateSecondaryInfo(struct index *secondary_index,
                                            int num_keys, int info_type) {
     if (!secondary_index || !secondary_keys ||
         !secondary_key_lens || !num_keys) {
-        return NULL;
+        return nullptr;
     }
 
     if (info_type != SECONDARY_GLOBAL_INFO &&
         info_type != SECONDARY_LOCAL_INFO) {
-        return NULL;
+        return nullptr;
     }
 
     //Initialize the struct
     secondary_info_t *sinfo = Memory::FBP_MEDIUM::Instance().acquire<secondary_info_t>();
-    memset(sinfo, 0, sizeof(secondary_info_t));
 
     //Set the index fields
     sinfo->secondary_index = secondary_index;
@@ -859,17 +866,16 @@ secondary_bulk_info_t *mdhimCreateSecondaryBulkInfo(struct index *secondary_inde
                                                     int *num_keys, int info_type) {
     if (!secondary_index || !secondary_keys ||
         !secondary_key_lens || !num_keys) {
-        return NULL;
+        return nullptr;
     }
 
     if (info_type != SECONDARY_GLOBAL_INFO &&
         info_type != SECONDARY_LOCAL_INFO) {
-        return NULL;
+        return nullptr;
     }
 
     //Initialize the struct
     secondary_bulk_info_t *sinfo = Memory::FBP_MEDIUM::Instance().acquire<secondary_bulk_info_t>();
-    memset(sinfo, 0, sizeof(secondary_bulk_info_t));
 
     //Set the index fields
     sinfo->secondary_index = secondary_index;

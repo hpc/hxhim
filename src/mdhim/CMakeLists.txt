@@ -4,26 +4,6 @@
 find_package(PkgConfig REQUIRED)
 
 #
-# MPI Support
-#
-if(APPLE)
-    pkg_search_module(MPICH REQUIRED mpich)
-endif()
-find_package(MPI REQUIRED)
-
-MESSAGE( STATUS "MPI Found: " ${MPI_FOUND})
-if (MPI_FOUND)
-    MESSAGE(STATUS "MPI_C_LIBRARIES=" ${MPI_C_LIBRARIES})
-    MESSAGE(STATUS "MPI_C_LINK_FLAGS=" ${MPI_C_LINK_FLAGS})
-    MESSAGE(STATUS "MPI_C_COMPILE_FLAGS=" ${MPI_C_COMPILE_FLAGS})
-    MESSAGE(STATUS "MPI_CXX_LINK_FLAGS=" ${MPI_CXX_LINK_FLAGS})
-    MESSAGE(STATUS "MPI_CXX_COMPILE_FLAGS=" ${MPI_CXX_COMPILE_FLAGS})
-    message(STATUS "MPI Transportunications Module Enabled")
-    add_definitions(-DHXHIM_USE_MPI=1)
-    #include_directories(AFTER ${MPI_C_INCLUDE_PATH})
-endif()
-
-#
 # LevelDB Support
 #
 pkg_search_module(LEVELDB REQUIRED leveldb)
@@ -36,7 +16,7 @@ if(${LEVELDB_FOUND})
     #link_libraries(${LEVELDB_LIBRARIES})
     include_directories(AFTER ${LEVELDB_INCLUDE_DIRS})
     find_library(LEVELDB_LIBRARY NAMES leveldb HINTS ${LEVELDB_LIBRARY_DIRS})
-    add_definitions(-DHXHIM_USE_LEVELDB=1)
+    add_definitions(-DHXHIM_USE_LEVELDB)
 endif()
 
 #
@@ -46,7 +26,7 @@ pkg_search_module(ROCKSDB rocksdb)
 include_directories(AFTER ${ROCKSDB_INCLUDE_DIRS})
 if(${ROCKSDB_FOUND})
   message(STATUS "RocksDB Data Storage Module Enabled")
-  add_definitions(-DHXHIM_USE_ROCKSDB=1)
+  add_definitions(-DHXHIM_USE_ROCKSDB)
 endif()
 
 #

@@ -35,7 +35,7 @@ typedef struct mdhim_rs_t {
 	work_queue_t *work_queue;
 	pthread_mutex_t *work_queue_mutex;
 	pthread_cond_t *work_ready_cv;
-	pthread_t listener;
+	pthread_t *listener;
 	pthread_t **workers;
 	index_t *indexes; /* A linked list of remote indexes that is served
 				  (partially for fully) by this range server */
@@ -45,7 +45,7 @@ typedef struct mdhim_rs_t {
 	long double get_time;
 	long num_put;
 	long num_get;
-	out_req *out_req_list;
+	out_req_t *out_req_list;
 	pthread_mutex_t *out_req_mutex;
 } mdhim_rs_t;
 

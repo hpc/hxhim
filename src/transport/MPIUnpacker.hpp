@@ -6,6 +6,7 @@
 #include <mpi.h>
 
 #include "transport.hpp"
+#include "MemoryManagers.hpp"
 #include "MPIEndpointBase.hpp"
 
 /**

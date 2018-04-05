@@ -4,8 +4,8 @@
 
 #include "gtest/gtest.h"
 
-#include "indexes.h"
 #include "transport_mpi.hpp"
+#include "MemoryManagers.hpp"
 
 static const char *KEY = "key";
 static const int KEY_LEN = strlen(KEY);
@@ -44,11 +44,11 @@ TEST(mpi_pack_unpack, TransportPutMessage) {
         src.index_type = PRIMARY_INDEX;
         src.index_name = nullptr;
 
-        src.key = malloc(KEY_LEN * sizeof(char));
+        src.key = Memory::FBP_MEDIUM::Instance().acquire(KEY_LEN);
         memcpy(src.key, KEY, KEY_LEN * sizeof(char));
         src.key_len = KEY_LEN;
 
-        src.value = malloc(VALUE_LEN * sizeof(char));
+        src.value = Memory::FBP_MEDIUM::Instance().acquire(VALUE_LEN);
         memcpy(src.value, VALUE, VALUE_LEN * sizeof(char));
         src.value_len = VALUE_LEN;
     }
@@ -60,7 +60,7 @@ TEST(mpi_pack_unpack, TransportPutMessage) {
     TransportPutMessage *dst = nullptr;
     EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
-    ::operator delete(buf);
+    Memory::FBP_MEDIUM::Instance().release(buf);
 
     EXPECT_EQ(src.mtype, dst->mtype);
     EXPECT_EQ(src.src, dst->src);
@@ -73,6 +73,11 @@ TEST(mpi_pack_unpack, TransportPutMessage) {
 
     EXPECT_EQ(src.value_len, dst->value_len);
     EXPECT_EQ(memcmp(src.value, dst->value, dst->value_len), 0);
+
+    Memory::FBP_MEDIUM::Instance().release(src.key);
+    Memory::FBP_MEDIUM::Instance().release(src.value);
+    Memory::FBP_MEDIUM::Instance().release(dst);
+    EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
 }
 
 TEST(mpi_pack_unpack, TransportBPutMessage) {
@@ -87,18 +92,18 @@ TEST(mpi_pack_unpack, TransportBPutMessage) {
         src.index_type = PRIMARY_INDEX;
         src.index_name = nullptr;
 
-        src.keys = (void **)malloc(sizeof(void *));
-        src.keys[0] = (void *)malloc(KEY_LEN * sizeof(char));
+        src.keys = Memory::FBP_MEDIUM::Instance().acquire<void *>();
+        src.keys[0] = Memory::FBP_MEDIUM::Instance().acquire(KEY_LEN);
         memcpy(src.keys[0], KEY, KEY_LEN * sizeof(char));
 
-        src.key_lens = (int *)malloc(sizeof(int));
+        src.key_lens = Memory::FBP_MEDIUM::Instance().acquire<int>();
         src.key_lens[0] = KEY_LEN;
 
-        src.values = (void **)malloc(sizeof(void *));
-        src.values[0] = (void *)malloc(VALUE_LEN * sizeof(char));
+        src.values = Memory::FBP_MEDIUM::Instance().acquire<void *>();
+        src.values[0] = (void *)Memory::FBP_MEDIUM::Instance().acquire(VALUE_LEN);
         memcpy(src.values[0], VALUE, VALUE_LEN * sizeof(char));
 
-        src.value_lens = (int *)malloc(sizeof(int));
+        src.value_lens = Memory::FBP_MEDIUM::Instance().acquire<int>();
         src.value_lens[0] = VALUE_LEN;
 
         src.num_keys = 1;
@@ -111,7 +116,7 @@ TEST(mpi_pack_unpack, TransportBPutMessage) {
     TransportBPutMessage *dst = nullptr;
     EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
-    ::operator delete(buf);
+    Memory::FBP_MEDIUM::Instance().release(buf);
 
     EXPECT_EQ(src.mtype, dst->mtype);
     EXPECT_EQ(src.src, dst->src);
@@ -124,10 +129,19 @@ TEST(mpi_pack_unpack, TransportBPutMessage) {
     for(int i = 0; i < dst->num_keys; i++) {
         EXPECT_EQ(src.key_lens[i], dst->key_lens[i]);
         EXPECT_EQ(memcmp(src.keys[i], dst->keys[i], dst->key_lens[i]), 0);
+        Memory::FBP_MEDIUM::Instance().release(src.keys[i]);
 
         EXPECT_EQ(src.value_lens[i], dst->value_lens[i]);
         EXPECT_EQ(memcmp(src.values[i], dst->values[i], dst->value_lens[i]), 0);
+        Memory::FBP_MEDIUM::Instance().release(src.values[i]);
     }
+
+    Memory::FBP_MEDIUM::Instance().release(src.keys);
+    Memory::FBP_MEDIUM::Instance().release(src.key_lens);
+    Memory::FBP_MEDIUM::Instance().release(src.values);
+    Memory::FBP_MEDIUM::Instance().release(src.value_lens);
+    Memory::FBP_MEDIUM::Instance().release(dst);
+    EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
 }
 
 TEST(mpi_pack_unpack, TransportGetMessage) {
@@ -145,7 +159,7 @@ TEST(mpi_pack_unpack, TransportGetMessage) {
         src.op = TransportGetMessageOp::GET_EQ;
         src.num_keys = 1;
 
-        src.key = (void *)malloc(KEY_LEN * sizeof(char));
+        src.key = Memory::FBP_MEDIUM::Instance().acquire(KEY_LEN);
         memcpy(src.key, KEY, KEY_LEN * sizeof(char));
 
         src.key_len = KEY_LEN;
@@ -158,7 +172,7 @@ TEST(mpi_pack_unpack, TransportGetMessage) {
     TransportGetMessage *dst = nullptr;
     EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
-    ::operator delete(buf);
+    Memory::FBP_MEDIUM::Instance().release(buf);
 
     EXPECT_EQ(src.mtype, dst->mtype);
     EXPECT_EQ(src.src, dst->src);
@@ -169,6 +183,10 @@ TEST(mpi_pack_unpack, TransportGetMessage) {
     EXPECT_EQ(src.num_keys, dst->num_keys);
     EXPECT_EQ(src.key_len, dst->key_len);
     EXPECT_EQ(memcmp(src.key, dst->key, dst->key_len), 0);
+
+    Memory::FBP_MEDIUM::Instance().release(src.key);
+    Memory::FBP_MEDIUM::Instance().release(dst);
+    EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
 }
 
 TEST(mpi_pack_unpack, TransportBGetMessage) {
@@ -186,11 +204,11 @@ TEST(mpi_pack_unpack, TransportBGetMessage) {
         src.op = TransportGetMessageOp::GET_EQ;
         src.num_keys = 1;
 
-        src.keys = (void **)malloc(sizeof(void *));
-        src.keys[0] = (void *)malloc(KEY_LEN * sizeof(char));
+        src.keys = Memory::FBP_MEDIUM::Instance().acquire<void *>();
+        src.keys[0] = Memory::FBP_MEDIUM::Instance().acquire(KEY_LEN);
         memcpy(src.keys[0], KEY, KEY_LEN * sizeof(char));
 
-        src.key_lens = (int *)malloc(sizeof(int));
+        src.key_lens = Memory::FBP_MEDIUM::Instance().acquire<int>();
         src.key_lens[0] = KEY_LEN;
 
         src.num_recs = 1;
@@ -203,7 +221,7 @@ TEST(mpi_pack_unpack, TransportBGetMessage) {
     TransportBGetMessage *dst = nullptr;
     EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
-    ::operator delete(buf);
+    Memory::FBP_MEDIUM::Instance().release(buf);
 
     EXPECT_EQ(src.mtype, dst->mtype);
     EXPECT_EQ(src.src, dst->src);
@@ -216,67 +234,16 @@ TEST(mpi_pack_unpack, TransportBGetMessage) {
     for(int i = 0; i < dst->num_keys; i++) {
         EXPECT_EQ(src.key_lens[i], dst->key_lens[i]);
         EXPECT_EQ(memcmp(src.keys[i], dst->keys[i], dst->key_lens[i]), 0);
+
+        Memory::FBP_MEDIUM::Instance().release(src.keys[i]);
     }
 
     EXPECT_EQ(src.num_recs, dst->num_recs);
-}
 
-TEST(mpi_pack_unpack, TransportBGetRecvMessage) {
-    volatile int shutdown = 0;
-    const MPIInstance &instance = MPIInstance::instance();
-    TransportBGetRecvMessage src;
-    {
-        src.mtype = TransportMessageType::RECV_BGET;
-        src.src = instance.Rank();
-        src.dst = instance.Rank();
-        src.index = 1;
-        src.index_type = PRIMARY_INDEX;
-        src.index_name = nullptr;
-
-        src.error = MDHIM_SUCCESS;
-
-        src.keys = (void **)malloc(sizeof(void *));
-        src.keys[0] = (void *)malloc(KEY_LEN * sizeof(char));
-        memcpy(src.keys[0], KEY, KEY_LEN * sizeof(char));
-
-        src.key_lens = (int *)malloc(sizeof(int));
-        src.key_lens[0] = KEY_LEN;
-
-        src.values = (void **)malloc(sizeof(void *));
-        src.values[0] = (void *)malloc(VALUE_LEN * sizeof(char));
-        memcpy(src.values[0], VALUE, VALUE_LEN * sizeof(char));
-
-        src.value_lens = (int *)malloc(sizeof(int));
-        src.value_lens[0] = VALUE_LEN;
-
-        src.num_keys = 1;
-        src.next = nullptr;
-    }
-
-    void *buf = nullptr;
-    int bufsize;
-    EXPECT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize), MDHIM_SUCCESS);
-
-    TransportBGetRecvMessage *dst = nullptr;
-    EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
-
-    ::operator delete(buf);
-
-    EXPECT_EQ(src.mtype, dst->mtype);
-    EXPECT_EQ(src.src, dst->src);
-    EXPECT_EQ(src.dst, dst->dst);
-    EXPECT_EQ(src.index, dst->index);
-    EXPECT_EQ(src.index_type, dst->index_type);
-
-    EXPECT_EQ(src.num_keys, dst->num_keys);
-
-    for(int i = 0; i < dst->num_keys; i++) {
-        EXPECT_EQ(src.key_lens[i], dst->key_lens[i]);
-        EXPECT_EQ(memcmp(src.keys[i], dst->keys[i], dst->key_lens[i]), 0);
-
-        EXPECT_EQ(src.value_lens[i], dst->value_lens[i]);
-        EXPECT_EQ(memcmp(src.values[i], dst->values[i], dst->value_lens[i]), 0);
-    }
+    Memory::FBP_MEDIUM::Instance().release(src.keys);
+    Memory::FBP_MEDIUM::Instance().release(src.key_lens);
+    Memory::FBP_MEDIUM::Instance().release(dst);
+    EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
 }
 
 TEST(mpi_pack_unpack, TransportDeleteMessage) {
@@ -291,7 +258,7 @@ TEST(mpi_pack_unpack, TransportDeleteMessage) {
         src.index_type = PRIMARY_INDEX;
         src.index_name = nullptr;
 
-        src.key = (void *)malloc(KEY_LEN * sizeof(char));
+        src.key = Memory::FBP_MEDIUM::Instance().acquire(KEY_LEN);
         memcpy(src.key, KEY, KEY_LEN * sizeof(char));
 
         src.key_len = KEY_LEN;
@@ -304,7 +271,7 @@ TEST(mpi_pack_unpack, TransportDeleteMessage) {
     TransportDeleteMessage *dst = nullptr;
     EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
-    ::operator delete(buf);
+    Memory::FBP_MEDIUM::Instance().release(buf);
 
     EXPECT_EQ(src.mtype, dst->mtype);
     EXPECT_EQ(src.src, dst->src);
@@ -314,6 +281,10 @@ TEST(mpi_pack_unpack, TransportDeleteMessage) {
 
     EXPECT_EQ(src.key_len, dst->key_len);
     EXPECT_EQ(memcmp(src.key, dst->key, dst->key_len), 0);
+
+    Memory::FBP_MEDIUM::Instance().release(src.key);
+    Memory::FBP_MEDIUM::Instance().release(dst);
+    EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
 }
 
 TEST(mpi_pack_unpack, TransportBDeleteMessage) {
@@ -330,11 +301,11 @@ TEST(mpi_pack_unpack, TransportBDeleteMessage) {
 
         src.num_keys = 1;
 
-        src.keys = (void **)malloc(sizeof(void *));
-        src.keys[0] = (void *)malloc(KEY_LEN * sizeof(char));
+        src.keys = Memory::FBP_MEDIUM::Instance().acquire<void *>();
+        src.keys[0] = Memory::FBP_MEDIUM::Instance().acquire(KEY_LEN);
         memcpy(src.keys[0], KEY, KEY_LEN * sizeof(char));
 
-        src.key_lens = (int *)malloc(sizeof(int));
+        src.key_lens = Memory::FBP_MEDIUM::Instance().acquire<int>();
         src.key_lens[0] = KEY_LEN;
     }
 
@@ -345,7 +316,7 @@ TEST(mpi_pack_unpack, TransportBDeleteMessage) {
     TransportBDeleteMessage *dst = nullptr;
     EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
-    ::operator delete(buf);
+    Memory::FBP_MEDIUM::Instance().release(buf);
 
     EXPECT_EQ(src.mtype, dst->mtype);
     EXPECT_EQ(src.src, dst->src);
@@ -358,7 +329,13 @@ TEST(mpi_pack_unpack, TransportBDeleteMessage) {
     for(int i = 0; i < dst->num_keys; i++) {
         EXPECT_EQ(src.key_lens[i], dst->key_lens[i]);
         EXPECT_EQ(memcmp(src.keys[i], dst->keys[i], dst->key_lens[i]), 0);
+        Memory::FBP_MEDIUM::Instance().release(src.keys[i]);
     }
+
+    Memory::FBP_MEDIUM::Instance().release(src.keys);
+    Memory::FBP_MEDIUM::Instance().release(src.key_lens);
+    Memory::FBP_MEDIUM::Instance().release(dst);
+    EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
 }
 
 TEST(mpi_pack_unpack, TransportRecvMessage) {
@@ -383,7 +360,7 @@ TEST(mpi_pack_unpack, TransportRecvMessage) {
     TransportRecvMessage *dst = nullptr;
     EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
-    ::operator delete(buf);
+    Memory::FBP_MEDIUM::Instance().release(buf);
 
     EXPECT_EQ(src.mtype, dst->mtype);
     EXPECT_EQ(src.src, dst->src);
@@ -392,6 +369,76 @@ TEST(mpi_pack_unpack, TransportRecvMessage) {
     EXPECT_EQ(src.index_type, dst->index_type);
 
     EXPECT_EQ(src.error, dst->error);
+
+    Memory::FBP_MEDIUM::Instance().release(dst);
+    EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
+}
+
+TEST(mpi_pack_unpack, TransportBGetRecvMessage) {
+    volatile int shutdown = 0;
+    const MPIInstance &instance = MPIInstance::instance();
+    TransportBGetRecvMessage src;
+    {
+        src.mtype = TransportMessageType::RECV_BGET;
+        src.src = instance.Rank();
+        src.dst = instance.Rank();
+        src.index = 1;
+        src.index_type = PRIMARY_INDEX;
+        src.index_name = nullptr;
+
+        src.error = MDHIM_SUCCESS;
+
+        src.keys = Memory::FBP_MEDIUM::Instance().acquire<void *>();
+        src.keys[0] = Memory::FBP_MEDIUM::Instance().acquire(KEY_LEN);
+        memcpy(src.keys[0], KEY, KEY_LEN * sizeof(char));
+
+        src.key_lens = Memory::FBP_MEDIUM::Instance().acquire<int>();
+        src.key_lens[0] = KEY_LEN;
+
+        src.values = Memory::FBP_MEDIUM::Instance().acquire<void *>();
+        src.values[0] = (void *)Memory::FBP_MEDIUM::Instance().acquire(VALUE_LEN);
+        memcpy(src.values[0], VALUE, VALUE_LEN * sizeof(char));
+
+        src.value_lens = Memory::FBP_MEDIUM::Instance().acquire<int>();
+        src.value_lens[0] = VALUE_LEN;
+
+        src.num_keys = 1;
+        src.next = nullptr;
+    }
+
+    void *buf = nullptr;
+    int bufsize;
+    EXPECT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize), MDHIM_SUCCESS);
+
+    TransportBGetRecvMessage *dst = nullptr;
+    EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
+
+    Memory::FBP_MEDIUM::Instance().release(buf);
+
+    EXPECT_EQ(src.mtype, dst->mtype);
+    EXPECT_EQ(src.src, dst->src);
+    EXPECT_EQ(src.dst, dst->dst);
+    EXPECT_EQ(src.index, dst->index);
+    EXPECT_EQ(src.index_type, dst->index_type);
+
+    EXPECT_EQ(src.num_keys, dst->num_keys);
+
+    for(int i = 0; i < dst->num_keys; i++) {
+        EXPECT_EQ(src.key_lens[i], dst->key_lens[i]);
+        EXPECT_EQ(memcmp(src.keys[i], dst->keys[i], dst->key_lens[i]), 0);
+        Memory::FBP_MEDIUM::Instance().release(src.keys[i]);
+
+        EXPECT_EQ(src.value_lens[i], dst->value_lens[i]);
+        EXPECT_EQ(memcmp(src.values[i], dst->values[i], dst->value_lens[i]), 0);
+        Memory::FBP_MEDIUM::Instance().release(src.values[i]);
+    }
+
+    Memory::FBP_MEDIUM::Instance().release(src.keys);
+    Memory::FBP_MEDIUM::Instance().release(src.key_lens);
+    Memory::FBP_MEDIUM::Instance().release(src.values);
+    Memory::FBP_MEDIUM::Instance().release(src.value_lens);
+    Memory::FBP_MEDIUM::Instance().release(dst);
+    EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
 }
 
 TEST(mpi_pack_unpack, TransportBRecvMessage) {
@@ -416,7 +463,7 @@ TEST(mpi_pack_unpack, TransportBRecvMessage) {
     TransportBRecvMessage *dst = nullptr;
     EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
-    ::operator delete(buf);
+    Memory::FBP_MEDIUM::Instance().release(buf);
 
     EXPECT_EQ(src.mtype, dst->mtype);
     EXPECT_EQ(src.src, dst->src);
@@ -425,91 +472,7 @@ TEST(mpi_pack_unpack, TransportBRecvMessage) {
     EXPECT_EQ(src.index_type, dst->index_type);
 
     EXPECT_EQ(src.error, dst->error);
+
+    Memory::FBP_MEDIUM::Instance().release(dst);
+    EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
 }
-
-// // Test MPIEndpoint()
-// TEST(MPIEndpointTest, DefaultConstructorTest) {
-//     MPIEndpoint ep1(MPI_COMM_WORLD), ep2(MPI_COMM_WORLD);
-// }
-
-// TEST(MPIEndpointTest, PutMessageTest) {
-//     const int rank = 0;
-//     MPIEndpoint server(MPI_COMM_WORLD);
-
-//     // Initialize some data into a k-v pair
-//     char sbuf[256] = {0};
-//     for (int i = 0; i < 256; i++) {
-//         sbuf[i] = (char) rand();
-//     }
-//     char* key = sbuf;
-//     char* value = sbuf + 128;
-
-//     // Send a PUT message to this process
-//     server.AddPutRequest(rank, key, 128, value, 128);
-//     server.Flush();
-
-//     // Receive the message to this process
-//     MPIEndpoint localServer(MPI_COMM_WORLD);
-//     size_t nbytes = localServer.PollForMessage(1);
-//     EXPECT_GT(nbytes, 256);
-
-//     // Parse the actual buffer and validate contents
-//     TransportMessageType request = TransportMessage::INVALID;
-//     size_t ksize = 0;
-//     size_t vsize = 0;
-//     void *kbuf = malloc(128);
-//     void *vbuf = malloc(128);
-//     int rc = server.ReceiveRequest(nbytes, &request, &kbuf, &ksize, &vbuf, &vsize);
-//     EXPECT_EQ(request, TransportMessage::PUT);
-//     EXPECT_EQ(ksize, 128);
-//     EXPECT_EQ(vsize, 128);
-//     EXPECT_EQ(0, memcmp(sbuf, kbuf, 128));
-//     EXPECT_EQ(0, memcmp(sbuf + 128, vbuf, 128));
-//     free(kbuf);
-//     free(vbuf);
-// }
-
-// TEST(MPIEndpointTest, GetMessageTest) {
-//     const int rank = 0;
-//     MPIEndpoint server(MPI_COMM_WORLD);
-
-//     // Initialize some data into a k-v pair Key
-//     char sbuf[128] = {0};
-//     for (int i = 0; i < 128; i++) {
-//         sbuf[i] = (char) rand();
-//     }
-//     char* key = sbuf;
-//     char value[128] = {0};
-
-//     // Send a PUT message to this process
-//     server.AddGetRequest(rank, key, 128, value, 128);
-//     server.Flush();
-
-//     // Receive the message to this process
-//     MPIEndpoint localServer(MPI_COMM_WORLD);
-//     size_t nbytes = localServer.PollForMessage(1);
-//     EXPECT_GT(nbytes, 128);
-
-//     // Parse the actual buffer and validate contents
-//     TransportMessageType request = TransportMessage::INVALID;
-//     size_t ksize = 0;
-//     size_t vsize = 0;
-//     void *kbuf = malloc(128);
-//     void *vbuf = malloc(128);
-//     int rc = server.ReceiveRequest(nbytes, &request, &kbuf, &ksize, &vbuf, &vsize);
-//     EXPECT_EQ(request, TransportMessage::GET);
-//     EXPECT_EQ(ksize, 128);
-//     EXPECT_EQ(vsize, 0);
-//     EXPECT_EQ(0, memcmp(sbuf, kbuf, 128));
-//     EXPECT_EQ(0, memcmp(sbuf + 128, vbuf, vsize));
-//     free(kbuf);
-//     free(vbuf);
-// }
-
-// TEST(MPIEndpointTest, PollForMessageTest) {
-//     // Poll until a message arrives
-// }
-
-// TEST(MPIEndpointTest, WaitForMessageTest) {
-//     // Wait for a message
-// }

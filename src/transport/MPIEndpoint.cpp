@@ -1,5 +1,4 @@
 #include "MPIEndpoint.hpp"
-#include "MemoryManagers.hpp"
 
 #define HXHIM_MPI_REQUEST_TAG 0x311
 

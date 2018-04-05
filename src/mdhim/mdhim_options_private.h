@@ -20,6 +20,7 @@
  * @brief Structure used to set MDHIM options before initialization
  */
 typedef struct mdhim_options_private {
+    // The MPI Communicator used for bootstrapping
     MPI_Comm comm;
 
     int transporttype;

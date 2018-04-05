@@ -3,16 +3,16 @@
 
 #include "mdhim.h"
 
-// Some common values
+// Some common values used across this code
 typedef int Key_t;
 typedef int Value_t;
 const Key_t   MDHIM_PUT_GET_PRIMARY_KEY = 13579;
 const Value_t MDHIM_PUT_GET_VALUE       = 24680;
 
 // A quick and dirty cleanup function
-void cleanup(mdhim_options_t *opts, mdhim_t *md) {
-    mdhim_options_destroy(opts);
+void cleanup(mdhim_t *md, mdhim_options_t *opts) {
     mdhimClose(md);
+    mdhim_options_destroy(opts);
     MPI_Finalize();
 }
 
@@ -28,18 +28,19 @@ int main(int argc, char *argv[]){
 
     srand(time(NULL));
 
+    // Initialize options
     mdhim_options_t opts;
     mdhim_t md;
 
     // initialize options with default values
     if (mdhim_options_init(&opts) != MDHIM_SUCCESS) {
-        cleanup(&opts, &md);
+        cleanup(&md, &opts);
         return MDHIM_ERROR;
     }
 
     // initialize mdhim context
     if (mdhimInit(&md, &opts) != MDHIM_SUCCESS) {
-        cleanup(&opts, &md);
+        cleanup(&md, &opts);
         return MDHIM_ERROR;
     }
 
@@ -50,11 +51,13 @@ int main(int argc, char *argv[]){
                                     (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
                                     (void *)&MDHIM_PUT_GET_VALUE, sizeof(MDHIM_PUT_GET_VALUE),
                                     NULL, NULL);
+
         int error = MDHIM_ERROR;
         if ((mdhim_brm_error(brm, &error) != MDHIM_SUCCESS) ||
             (error != MDHIM_SUCCESS)) {
+            printf("Rank %d got: Could not put\n", rank);
             mdhim_brm_destroy(brm);
-            cleanup(&opts, &md);
+            cleanup(&md, &opts);
             return MDHIM_ERROR;
         }
 
@@ -63,7 +66,8 @@ int main(int argc, char *argv[]){
         // Commit changes
         // Pass NULL here to use md->p->primary_index
         if (mdhimCommit(&md, NULL) != MDHIM_SUCCESS) {
-            cleanup(&opts, &md);
+            printf("Rank %d got: Could not commit\n", rank);
+            cleanup(&md, &opts);
             return MDHIM_ERROR;
         }
 
@@ -83,7 +87,7 @@ int main(int argc, char *argv[]){
             (error != MDHIM_SUCCESS)) {
             printf("Rank %d got: Bad return value\n", rank);
             mdhim_grm_destroy(grm);
-            cleanup(&opts, &md);
+            cleanup(&md, &opts);
             return MDHIM_ERROR;
         }
 
@@ -92,7 +96,7 @@ int main(int argc, char *argv[]){
         if (mdhim_grm_key(grm, (void **) &key, NULL) != MDHIM_SUCCESS) {
             printf("Rank %d got: Could not extract key\n", rank);
             mdhim_grm_destroy(grm);
-            cleanup(&opts, &md);
+            cleanup(&md, &opts);
             return MDHIM_ERROR;
         }
 
@@ -101,7 +105,7 @@ int main(int argc, char *argv[]){
         if (mdhim_grm_value(grm, (void **) &value, NULL) != MDHIM_SUCCESS) {
             printf("Rank %d got: Could not extract value\n", rank);
             mdhim_grm_destroy(grm);
-            cleanup(&opts, &md);
+            cleanup(&md, &opts);
             return MDHIM_ERROR;
         }
 
@@ -113,7 +117,8 @@ int main(int argc, char *argv[]){
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    cleanup(&opts, &md);
+    cleanup(&md, &opts);
 
+    leaks();
     return MDHIM_SUCCESS;
 }

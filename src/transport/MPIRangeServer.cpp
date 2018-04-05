@@ -1,5 +1,4 @@
 #include "MPIRangeServer.hpp"
-#include "MemoryManagers.hpp"
 
 pthread_mutex_t MPIRangeServer::mutex_ = PTHREAD_MUTEX_INITIALIZER;
 
@@ -25,7 +24,7 @@ void *MPIRangeServer::listener_thread(void *data) {
         }
 
         //Create a new work item
-        work_item *item = Memory::FBP_MEDIUM::Instance().acquire<work_item>();
+        work_item_t *item = Memory::FBP_MEDIUM::Instance().acquire<work_item_t>();
 
         //Set the new buffer to the new item's message
         item->message = message;
@@ -36,38 +35,6 @@ void *MPIRangeServer::listener_thread(void *data) {
     }
 
     return NULL;
-}
-
-/**
- * send_locally_or_remote
- * Sends the message remotely or locally
- *
- * @param md       Pointer to the main MDHIM structure
- * @param dest     Destination rank
- * @param message  pointer to message to send
- * @return MDHIM_SUCCESS or MDHIM_ERROR on error
- */
-int MPIRangeServer::send_locally_or_remote(mdhim_t *md, const int dest, TransportMessage *message) {
-    int ret = MDHIM_SUCCESS;
-    if (md->p->transport->EndpointID() != dest) {
-        //Sends the message remotely
-        ret = send_client_response(dest, message, md->p->shutdown);
-        // if (*size_req) {
-        //     range_server_add_oreq(md, *size_req, sizebuf);
-        // }
-
-        // if (*msg_req) {
-        //     range_server_add_oreq(md, *msg_req, *sendbuf);
-        // }
-    } else {
-        //Sends the message locally
-        pthread_mutex_lock(&md->p->receive_msg_mutex);
-        md->p->receive_msg = message;
-        pthread_cond_signal(&md->p->receive_msg_ready_cv);
-        pthread_mutex_unlock(&md->p->receive_msg_mutex);
-    }
-
-    return ret;
 }
 
 void MPIRangeServer::Flush(MPI_Request *req, int *flag, MPI_Status *status, volatile int &shutdown) {
@@ -194,7 +161,7 @@ int MPIRangeServer::only_receive_rangesrv_work(void **recvbuf, int *recvsize, vo
 
     // Receive the message from the client
     pthread_mutex_lock(&mutex_);
-    return_code = MPI_Irecv((void *)*recvbuf, *recvsize, MPI_PACKED, status.MPI_SOURCE, RANGESRV_WORK_MSG, MPI_COMM_WORLD, &req);
+    return_code = MPI_Irecv(*recvbuf, *recvsize, MPI_PACKED, status.MPI_SOURCE, RANGESRV_WORK_MSG, MPI_COMM_WORLD, &req);
     pthread_mutex_unlock(&mutex_);
 
     // If the receive did not succeed then return the error code back
@@ -229,5 +196,6 @@ int MPIRangeServer::receive_rangesrv_work(TransportMessage **message, volatile i
     }
 
     Memory::FBP_MEDIUM::Instance().release(recvbuf);
+
     return ret;
 }

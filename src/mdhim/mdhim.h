@@ -12,34 +12,18 @@
 
 #include "mlog2.h"
 #include "mlogfacs2.h"
-#include <mpi.h>
 
 #include "indexes.h"
 #include "mdhim_constants.h"
 #include "mdhim_options.h"
 #include "mdhim_struct.h"
+#include "secondary_info.h"
 #include "transport.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-typedef struct secondary_info {
-    struct index *secondary_index;
-    void **secondary_keys;
-    int *secondary_key_lens;
-    int num_keys;
-    int info_type;
-} secondary_info_t;
-
-typedef struct secondary_bulk_info {
-    struct index *secondary_index;
-    void ***secondary_keys;
-    int **secondary_key_lens;
-    int *num_keys;
-    int info_type;
-} secondary_bulk_info_t;
 
 int mdhimInit(mdhim_t *md, mdhim_options_t *opts);
 int mdhimClose(mdhim_t *md);
@@ -86,6 +70,8 @@ secondary_bulk_info_t *mdhimCreateSecondaryBulkInfo(struct index *secondary_inde
 void mdhimReleaseSecondaryBulkInfo(secondary_bulk_info_t *si);
 
 int mdhimWhichServer(mdhim_t *md, void *key, int key_len);
+
+void leaks();
 
 #ifdef __cplusplus
 }

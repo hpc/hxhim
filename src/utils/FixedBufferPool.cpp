@@ -1,4 +1,3 @@
-#include <iostream>
 /**
  * Instance
  *
@@ -15,10 +14,12 @@ FixedBufferPool<alloc_size_, regions_, Allowed> &FixedBufferPool<alloc_size_, re
 /**
  * acquire
  * Acquires a memory region from the pool for use.
- * If there is no region available, the function blocks
- * until one is available. The default constructor of
- * type T is called once the memory location has been
- * acquired.
+ *   - If there is no region available, the function blocks
+ *     until one is available.
+ *   - If the provided count results in too many bytes
+ *     being requested, nullptr will be returned.
+ * The default constructor of type T is called once
+ * the memory location has been acquired.
  *
  * Note that void * pointers should not be allocated
  * using the templated version of acquire.
@@ -30,14 +31,22 @@ template <const std::size_t alloc_size_,
           typename Allowed>
 template <typename T, typename IsNotVoid>
 T *FixedBufferPool<alloc_size_, regions_, Allowed>::acquire(const std::size_t count) {
-    return new ((T *) acquire(sizeof(T) * count)) T();
+    void *addr = acquire(sizeof(T) * count);
+    if (addr) {
+        return new ((T *) addr) T();
+    }
+    return nullptr;
 }
 
 /**
  * acquire
  * Acquires a memory region from the pool for use.
- * If there is no region available, the function blocks
- * until one is available.
+ *   - If there is no region available, the function blocks
+ *     until one is available.
+ *   - If the too many bytes ar erequested, nullptr
+ *     will be returned.
+ * The default constructor of type T is called once
+ * the memory location has been acquired.
  *
  * @return A pointer to a memory region of size pool_size_
  */
@@ -45,16 +54,12 @@ template <const std::size_t alloc_size_,
           const std::size_t regions_,
           typename Allowed>
 void *FixedBufferPool<alloc_size_, regions_, Allowed>::acquire(const std::size_t size) {
-    // bad size
-    if (!size || (size > alloc_size_)) {
+    // too big
+    if (size > alloc_size_) {
         return nullptr;
     }
 
     std::unique_lock<std::mutex> lock(mutex_);
-
-    if (!pool_) {
-        return nullptr;
-    }
 
     // wait until a slot opens up
     while (!unused_) {
@@ -64,13 +69,14 @@ void *FixedBufferPool<alloc_size_, regions_, Allowed>::acquire(const std::size_t
     // set the return address to the head of the unused list
     // and clear the memory region
     void *ret = unused_->addr;
-    unused_->used = true;
     memset(ret, 0, alloc_size_);
 
     // move list of unused regions_ to the next region
     Node *next = unused_->next;
     unused_->next = nullptr;
     unused_ = next;
+
+    used_++;
 
     return ret;
 }
@@ -85,7 +91,7 @@ void *FixedBufferPool<alloc_size_, regions_, Allowed>::acquire(const std::size_t
 template <const std::size_t alloc_size_,
           const std::size_t regions_,
           typename Allowed>
-template <typename T>
+template <typename T, typename IsNotVoid>
 void FixedBufferPool<alloc_size_, regions_, Allowed>::release(T *ptr) {
     if (ptr) {
         // release underlying memory first
@@ -131,16 +137,16 @@ void FixedBufferPool<alloc_size_, regions_, Allowed>::release(void *ptr) {
     const std::size_t index = offset / alloc_size_;
 
     // check for double frees (to prevent loops)
-    if (!nodes_[index].used) {
-        std::cout << "double free" << std::endl;
+    if (nodes_[index].next) {
         return;
     }
 
     // add the address to the front of available spots
     Node *front = &nodes_[index];
     front->next = unused_;
-    front->used = false;
     unused_ = front;
+
+    used_--;
 
     cv_.notify_all();
 }
@@ -191,16 +197,7 @@ template <const std::size_t alloc_size_,
           typename Allowed>
 std::size_t FixedBufferPool<alloc_size_, regions_, Allowed>::unused() const {
     std::unique_lock<std::mutex> lock(mutex_);
-
-    // get number of unused slots
-    std::size_t count = 0;
-    Node *u = unused_;
-    while (u) {
-        u = u->next;
-        count++;
-    }
-
-    return count;
+    return regions_ - used_;
 }
 
 /**
@@ -212,7 +209,8 @@ template <const std::size_t alloc_size_,
           const std::size_t regions_,
           typename Allowed>
 std::size_t FixedBufferPool<alloc_size_, regions_, Allowed>::used() const {
-    return pool_?regions_ - unused():0;
+    std::unique_lock<std::mutex> lock(mutex_);
+    return used_;
 }
 
 /**
@@ -224,7 +222,46 @@ template <const std::size_t alloc_size_,
           const std::size_t regions_,
           typename Allowed>
 const void * const FixedBufferPool<alloc_size_, regions_, Allowed>::pool() const {
+    std::unique_lock<std::mutex> lock(mutex_);
     return pool_;
+}
+
+/**
+ * dump
+ *
+ * @param region which region to view
+ * @param stream stream to place human readable version of region into
+ * @return a reference to the input stream
+*/
+template <const std::size_t alloc_size_,
+          const std::size_t regions_,
+          typename Allowed>
+std::ostream &FixedBufferPool<alloc_size_, regions_, Allowed>::dump(const std::size_t region, std::ostream &stream) const {
+    if (region >= regions_) {
+        return stream;
+    }
+
+    std::unique_lock<std::mutex> lock(mutex_);
+    return dump_region(region, stream);
+}
+
+/**
+ * dump
+ *
+ * @param stream stream to place human readable version of the memory pool into
+ * @return a reference to the input stream
+*/
+template <const std::size_t alloc_size_,
+          const std::size_t regions_,
+          typename Allowed>
+std::ostream &FixedBufferPool<alloc_size_, regions_, Allowed>::dump(std::ostream &stream) const {
+    std::unique_lock<std::mutex> lock(mutex_);
+
+    for(std::size_t i = 0; i < regions_; i++) {
+        dump_region(i, stream);
+    }
+
+    return stream;
 }
 
 /**
@@ -234,18 +271,17 @@ template <const std::size_t alloc_size_,
           const std::size_t regions_,
           typename Allowed>
 FixedBufferPool<alloc_size_, regions_, Allowed>::FixedBufferPool()
-    : pool_(nullptr),
+    : pool_size_(alloc_size_ * regions_),
+      pool_(nullptr),
       mutex_(),
       cv_(),
-      pool_size_(alloc_size_ * regions_),
       nodes_(nullptr),
-      unused_(nullptr)
+      unused_(nullptr),
+      used_(0)
 {
+    pool_ = ::operator new(pool_size_);     // allocate memory at runtime
+
     std::unique_lock<std::mutex> lock(mutex_);
-
-    // allocate memory at runtime
-    pool_ = ::operator new(pool_size_);
-
     try {
         // allocate the array of nodes
         nodes_ = new Node[regions_]();
@@ -254,6 +290,9 @@ FixedBufferPool<alloc_size_, regions_, Allowed>::FixedBufferPool()
         ::operator delete(pool_);
         throw;
     }
+
+    // clear the pool
+    memset(pool_, 0, pool_size_);
 
     // slot selection starts off in order
     std::size_t offset = 0;
@@ -279,7 +318,6 @@ template <const std::size_t alloc_size_,
 FixedBufferPool<alloc_size_, regions_, Allowed>::~FixedBufferPool() {
     std::unique_lock<std::mutex> lock(mutex_);
 
-    // reset
     for(std::size_t i = 1; i < regions_; i++) {
         nodes_[i - i].addr = nullptr;
         nodes_[i - 1].next = &nodes_[i];
@@ -294,4 +332,27 @@ FixedBufferPool<alloc_size_, regions_, Allowed>::~FixedBufferPool() {
 
     ::operator delete(pool_);
     pool_ = nullptr;
+}
+
+/**
+ * dump_region
+ *
+ * @param region which region to view
+ * @param stream stream to place human readable version of region into
+ * @return a reference to the input stream
+*/
+template <const std::size_t alloc_size_,
+          const std::size_t regions_,
+          typename Allowed>
+std::ostream &FixedBufferPool<alloc_size_, regions_, Allowed>::dump_region(const std::size_t region, std::ostream &stream) const {
+    // region check is done in the public function
+    // locking is done in the public functions
+
+    std::ios::fmtflags orig(stream.flags());
+    for(std::size_t i = 0; i < alloc_size_; i++) {
+        stream << std::setw(2) << std::setfill('0') << (uint16_t) (uint8_t) ((char *)nodes_[region].addr)[i] << " ";
+    }
+
+    stream.flags(orig);
+    return stream;
 }

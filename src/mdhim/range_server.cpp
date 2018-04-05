@@ -4,16 +4,16 @@
  * Client specific implementation
  */
 
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <errno.h>
-#include <limits.h>
+#include <cerrno>
+#include <climits>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <fcntl.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
+#include <unistd.h>
 
 #include "range_server.h"
 #include "partitioner.h"
@@ -35,6 +35,31 @@ static void add_timing(struct timeval start, struct timeval end, int num,
         md->p->mdhim_rs->get_time += elapsed;
         md->p->mdhim_rs->num_get += num;
     }
+}
+
+/**
+ * send_locally_or_remote
+ * Sends the message remotely or locally
+ *
+ * @param md       Pointer to the main MDHIM structure
+ * @param dest     Destination rank
+ * @param message  pointer to message to send
+ * @return MDHIM_SUCCESS or MDHIM_ERROR on error
+ */
+static int send_locally_or_remote(mdhim_t *md, const int dest, TransportMessage *message) {
+    int ret = MDHIM_SUCCESS;
+    if (md->p->transport->EndpointID() != dest) {
+        //Sends the message remotely
+        ret = md->p->send_client_response(dest, message, md->p->shutdown);
+    } else {
+        //Sends the message locally
+        pthread_mutex_lock(&md->p->receive_msg_mutex);
+        md->p->receive_msg = message;
+        pthread_cond_signal(&md->p->receive_msg_ready_cv);
+        pthread_mutex_unlock(&md->p->receive_msg_mutex);
+    }
+
+    return ret;
 }
 
 static index_t *find_index(mdhim_t *md, TransportMessage *msg) {
@@ -115,6 +140,10 @@ static work_item_t *get_work(mdhim_t *md) {
  * @return    MDHIM_SUCCESS or MDHIM_ERROR on error
  */
 int range_server_stop(mdhim_t *md) {
+    if (!md || !md->p) {
+        return MDHIM_ERROR;
+    }
+
     int ret;
 
     //Signal to the listener thread that it needs to shutdown
@@ -125,7 +154,12 @@ int range_server_stop(mdhim_t *md) {
     pthread_cond_broadcast(md->p->mdhim_rs->work_ready_cv);
     pthread_mutex_unlock(md->p->mdhim_rs->work_queue_mutex);
 
-    pthread_join(md->p->mdhim_rs->listener, NULL);
+    if (md->p->mdhim_rs->listener) {
+        pthread_join(*md->p->mdhim_rs->listener, NULL);
+        Memory::FBP_MEDIUM::Instance().release(md->p->mdhim_rs->listener);
+        md->p->mdhim_rs->listener = nullptr;
+    }
+
     /* Wait for the threads to finish */
     for (int i = 0; i < md->p->db_opts->p->num_wthreads; i++) {
         pthread_join(*md->p->mdhim_rs->workers[i], NULL);
@@ -198,7 +232,7 @@ static int range_server_put(mdhim_t *md, TransportPutMessage *im, const int addr
     int inserted = 0;
 
     void **value = Memory::FBP_MEDIUM::Instance().acquire<void *>();
-    *value = NULL;
+    *value = nullptr;
 
     int32_t *value_len = Memory::FBP_MEDIUM::Instance().acquire<int32_t>();
     *value_len = 0;
@@ -237,10 +271,11 @@ static int range_server_put(mdhim_t *md, TransportPutMessage *im, const int addr
     }
 
     if (*value && *value_len) {
-        free(*value);
+        Memory::FBP_MEDIUM::Instance().release(*value);
     }
     Memory::FBP_MEDIUM::Instance().release(value);
     Memory::FBP_MEDIUM::Instance().release(value_len);
+
     //Put the record in the database
     if ((ret =
          index->mdhim_store->put(index->mdhim_store->db_handle,
@@ -271,16 +306,16 @@ done:
     rm->dst = md->p->transport->EndpointID();
 
     //Send response
-    ret = md->p->send_locally_or_remote(md, address, static_cast<TransportMessage *>(rm));
+    ret = send_locally_or_remote(md, address, static_cast<TransportMessage *>(rm));
 
     //Free memory
     if (exists && md->p->db_opts->p->db_value_append == MDHIM_DB_APPEND) {
         Memory::FBP_MEDIUM::Instance().release(new_value);
     }
-    // if (source != (int) md->p->transport->EndpointID()) {
-        // free(im->key);
-        // free(im->value);
-    // }
+    if (im->src != md->p->transport->EndpointID()) {
+        Memory::FBP_MEDIUM::Instance().release(im->key);
+        Memory::FBP_MEDIUM::Instance().release(im->value);
+    }
     Memory::FBP_MEDIUM::Instance().release(im);
 
     return MDHIM_SUCCESS;
@@ -360,6 +395,7 @@ static int range_server_bput(mdhim_t *md, TransportBPutMessage *bim, const int a
 
         if (*value) {
             Memory::FBP_MEDIUM::Instance().release(*value);
+            *value = nullptr;
         }
     }
 
@@ -416,7 +452,7 @@ static int range_server_bput(mdhim_t *md, TransportBPutMessage *bim, const int a
     Memory::FBP_MEDIUM::Instance().release(bim);
 
     //Send response
-    ret = md->p->send_locally_or_remote(md, address, brm);
+    ret = send_locally_or_remote(md, address, brm);
 
     return MDHIM_SUCCESS;
 }
@@ -463,8 +499,8 @@ static int range_server_bput(mdhim_t *md, TransportBPutMessage *bim, const int a
 //     rm->basem.dst = (int) md->p->transport->EndpointID();
 
 //     //Send response
-//     ret = md->p->send_locally_or_remote(md, source, rm);
-//     free(dm);
+//     ret = send_locally_or_remote(md, source, rm);
+//     Memory::FBP_MEDIUM::Instance().release(dm);
 
 //     return MDHIM_SUCCESS;
 // }
@@ -518,10 +554,10 @@ static int range_server_bput(mdhim_t *md, TransportBPutMessage *bim, const int a
 //     brm->basem.dst = (int) md->p->transport->EndpointID();
 
 //     //Send response
-//     ret = md->p->send_locally_or_remote(md, source, brm);
-//     free(bdm->keys);
-//     free(bdm->key_lens);
-//     free(bdm);
+//     ret = send_locally_or_remote(md, source, brm);
+//     Memory::FBP_MEDIUM::Instance().release(bdm->keys);
+//     Memory::FBP_MEDIUM::Instance().release(bdm->key_lens);
+//     Memory::FBP_MEDIUM::Instance().release(bdm);
 
 //     return MDHIM_SUCCESS;
 // }
@@ -567,7 +603,7 @@ static int range_server_commit(mdhim_t *md, TransportMessage *im, const int addr
     rm->dst = md->p->transport->EndpointID();
 
     //Send response
-    ret = md->p->send_locally_or_remote(md, address, rm);
+    ret = send_locally_or_remote(md, address, rm);
     Memory::FBP_MEDIUM::Instance().release(im);
 
     return MDHIM_SUCCESS;
@@ -697,7 +733,7 @@ done:
     grm->index_type = index->type;
 
     //Send response
-    ret = md->p->send_locally_or_remote(md, address, grm);
+    ret = send_locally_or_remote(md, address, grm);
 
     //Release the bget message
     Memory::FBP_MEDIUM::Instance().release(gm);
@@ -722,6 +758,7 @@ static int range_server_bget(mdhim_t *md, TransportBGetMessage *bgm, const int a
     int num_retrieved = 0;
 
     gettimeofday(&start, NULL);
+
     void **values = Memory::FBP_MEDIUM::Instance().acquire<void *>(bgm->num_keys);
     int32_t *value_lens = Memory::FBP_MEDIUM::Instance().acquire<int32_t>(bgm->num_keys);
 
@@ -853,7 +890,7 @@ done:
     bgrm->index_type = index->type;
 
     //Send response
-    ret = md->p->send_locally_or_remote(md, address, bgrm);
+    ret = send_locally_or_remote(md, address, bgrm);
 
     //Release the bget message
     Memory::FBP_MEDIUM::Instance().release(bgm);
@@ -1031,7 +1068,7 @@ respond:
     bgrm->index_type = index->type;
 
     //Send response
-    ret = md->p->send_locally_or_remote(md, address, bgrm);
+    ret = send_locally_or_remote(md, address, bgrm);
 
     //Free stuff
     if (address == md->p->transport->EndpointID()) {
@@ -1205,9 +1242,9 @@ int range_server_clean_oreqs(mdhim_t *md) {
         }
 
         out_req_t *t = item->next;
-        free(item->req);
+        Memory::FBP_MEDIUM::Instance().release(item->req);
         if (item->message) {
-            free(item->message);
+            Memory::FBP_MEDIUM::Instance().release(item->message);
         }
 
         Memory::FBP_MEDIUM::Instance().release(item);
@@ -1295,7 +1332,7 @@ int range_server_init(mdhim_t *md) {
     }
 
     //Initialize worker threads
-    md->p->mdhim_rs->workers = Memory::FBP_MEDIUM::Instance().acquire<pthread_t*>(md->p->db_opts->p->num_wthreads);
+    md->p->mdhim_rs->workers = Memory::FBP_MEDIUM::Instance().acquire<pthread_t *>(md->p->db_opts->p->num_wthreads);
     for (int i = 0; i < md->p->db_opts->p->num_wthreads; i++) {
         md->p->mdhim_rs->workers[i] = Memory::FBP_MEDIUM::Instance().acquire<pthread_t>();
         if ((ret = pthread_create(md->p->mdhim_rs->workers[i], NULL,
@@ -1308,12 +1345,15 @@ int range_server_init(mdhim_t *md) {
     }
 
     //Initialize listener threads
-    if ((ret = pthread_create(&md->p->mdhim_rs->listener, NULL,
-                  md->p->listener_thread, (void *) md)) != 0) {
-      mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
-           "Error while initializing listener thread",
-           md->p->transport->EndpointID());
-      return MDHIM_ERROR;
+    if (md->p->listener_thread) {
+        md->p->mdhim_rs->listener = Memory::FBP_MEDIUM::Instance().acquire<pthread_t>();
+        if ((ret = pthread_create(md->p->mdhim_rs->listener, NULL,
+                                  md->p->listener_thread, (void *) md)) != 0) {
+            mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
+                 "Error while initializing listener thread",
+                 md->p->transport->EndpointID());
+            return MDHIM_ERROR;
+        }
     }
 
     return MDHIM_SUCCESS;
