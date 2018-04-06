@@ -20,12 +20,6 @@
 #include "partitioner.h"
 #include "range_server.h"
 #include "transport_private.hpp"
-#include "MemoryManagers.hpp"
-
-#include "MPIInstance.cpp"
-void leaks() {
-    std::cout << "Rank " << MPIInstance::instance().Rank() << ": " << Memory::FBP_MEDIUM::Instance().used() << " leak(s)" << std::endl;
-}
 
 /**
  * groupInitialization
@@ -153,7 +147,7 @@ int mdhimInit(mdhim_t* md, mdhim_options_t *opts) {
     mlog_open((char *)"mdhim", 0, opts->p->debug_level, opts->p->debug_level, nullptr, 0, MLOG_LOGPID, 0);
 
     //Initialize context variables based on options
-    if (!(md->p = Memory::FBP_MEDIUM::Instance().acquire<mdhim_private_t>())) {
+    if (!(md->p = new mdhim_private_t())) {
         return MDHIM_ERROR;
     }
 
@@ -220,13 +214,16 @@ int mdhimClose(struct mdhim *md) {
     indexDestruction(md);
 
     //Free up memory used by message buffer
-    Memory::FBP_MEDIUM::Instance().release(md->p->receive_msg);
+    ::operator delete(md->p->receive_msg);
+    md->p->receive_msg = nullptr;
 
     //Clean up group members
     groupDestruction(md);
 
-    Memory::FBP_MEDIUM::Instance().release(md->p->transport);
-    Memory::FBP_MEDIUM::Instance().release(md->p);
+    delete md->p->transport;
+    md->p->transport = nullptr;
+
+    delete md->p;
     md->p = nullptr;
 
     //Close MLog
@@ -250,7 +247,7 @@ int mdhimCommit(struct mdhim *md, struct index *index) {
 
     //If I'm a range server, send a commit message to myself
     if (im_range_server(index)) {
-        TransportRecvMessage *cm = Memory::FBP_MEDIUM::Instance().acquire<TransportRecvMessage>();
+        TransportRecvMessage *cm = new TransportRecvMessage();
         cm->mtype = TransportMessageType::COMMIT;
         cm->index = index->id;
         cm->index_type = index->type;
@@ -263,7 +260,7 @@ int mdhimCommit(struct mdhim *md, struct index *index) {
                  md->p->transport->EndpointID());
         }
 
-        Memory::FBP_MEDIUM::Instance().release(rm);
+        delete rm;
     }
 
     return ret;
@@ -293,11 +290,11 @@ mdhim_brm_t *mdhimPut(struct mdhim *md,
     }
 
     // Clone primary key and value
-    void *pk = Memory::FBP_MEDIUM::Instance().acquire(primary_key_len);
-    void *val = Memory::FBP_MEDIUM::Instance().acquire(value_len);
+    void *pk = ::operator new(primary_key_len);
+    void *val = ::operator new(value_len);
     if (!pk || !val) {
-        Memory::FBP_MEDIUM::Instance().release(pk);
-        Memory::FBP_MEDIUM::Instance().release(val);
+        ::operator delete(pk);
+        ::operator delete(val);
         return nullptr;
     }
 
@@ -311,7 +308,7 @@ mdhim_brm_t *mdhimPut(struct mdhim *md,
     }
 
     TransportBRecvMessage *head = _create_brm(rm);
-    Memory::FBP_MEDIUM::Instance().release(rm);
+    ::operator delete(rm);
 
     // //Return message from each _put_record call
     // TransportBRecvMessage *brm = nullptr;
@@ -570,7 +567,7 @@ mdhim_getrm_t *mdhimGet(mdhim_t *md, struct index *index,
     }
 
     // Clone primary key and value
-    void *k = Memory::FBP_MEDIUM::Instance().acquire(key_len);
+    void *k = ::operator new(key_len);
     if (!k) {
         return nullptr;
     }
@@ -840,7 +837,7 @@ secondary_info_t *mdhimCreateSecondaryInfo(struct index *secondary_index,
     }
 
     //Initialize the struct
-    secondary_info_t *sinfo = Memory::FBP_MEDIUM::Instance().acquire<secondary_info_t>();
+    secondary_info_t *sinfo = new secondary_info_t();
 
     //Set the index fields
     sinfo->secondary_index = secondary_index;
@@ -853,7 +850,7 @@ secondary_info_t *mdhimCreateSecondaryInfo(struct index *secondary_index,
 }
 
 void mdhimReleaseSecondaryInfo(secondary_info_t *si) {
-    Memory::FBP_MEDIUM::Instance().release(si);
+    delete si;
 }
 
 /**
@@ -875,7 +872,7 @@ secondary_bulk_info_t *mdhimCreateSecondaryBulkInfo(struct index *secondary_inde
     }
 
     //Initialize the struct
-    secondary_bulk_info_t *sinfo = Memory::FBP_MEDIUM::Instance().acquire<secondary_bulk_info_t>();
+    secondary_bulk_info_t *sinfo = new secondary_bulk_info_t();
 
     //Set the index fields
     sinfo->secondary_index = secondary_index;
@@ -888,7 +885,7 @@ secondary_bulk_info_t *mdhimCreateSecondaryBulkInfo(struct index *secondary_inde
 }
 
 void mdhimReleaseSecondaryBulkInfo(secondary_bulk_info_t *si) {
-    Memory::FBP_MEDIUM::Instance().release(si);
+    delete si;
 }
 
 /* what server would respond to this key? */

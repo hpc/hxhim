@@ -9,7 +9,6 @@
 #include "mdhim_private.h"
 #include "local_client.h"
 #include "transport_private.hpp"
-#include "MemoryManagers.hpp"
 
 /**
  * get_msg_self
@@ -31,7 +30,7 @@ static void *get_msg_self(struct mdhim *md) {
 	//Get the message
 	void *msg = md->p->receive_msg;
 	//Set the message queue to null
-	md->p->receive_msg = NULL;
+	md->p->receive_msg = nullptr;
 	//unlock the mutex
 	pthread_mutex_unlock(&md->p->receive_msg_mutex);
 
@@ -46,7 +45,7 @@ static void *get_msg_self(struct mdhim *md) {
  * @return return_message structure with ->error = MDHIM_SUCCESS or MDHIM_ERROR
  */
 TransportRecvMessage *local_client_put(mdhim_t *md, TransportPutMessage *pm) {
-	work_item_t *item = Memory::FBP_MEDIUM::Instance().acquire<work_item_t>();
+	work_item_t *item = new work_item_t();
 
 	if (!item) {
 		return nullptr;
@@ -65,7 +64,7 @@ TransportRecvMessage *local_client_put(mdhim_t *md, TransportPutMessage *pm) {
 }
 
 TransportGetRecvMessage *local_client_get(mdhim_t *md, TransportGetMessage *gm) {
-	work_item_t *item = Memory::FBP_MEDIUM::Instance().acquire<work_item_t>();
+	work_item_t *item = new work_item_t();
 
 	if (!item) {
 		return nullptr;
@@ -91,7 +90,7 @@ TransportGetRecvMessage *local_client_get(mdhim_t *md, TransportGetMessage *gm) 
 //  * @return return_message structure with ->error = MDHIM_SUCCESS or MDHIM_ERROR
 // */
 // TransportRecvMessage *local_client_bput(struct mdhim *md, TransportBPutMessage *bpm) {
-// 	work_item_t *item = Memory::FBP_MEDIUM::Instance().acquire<work_item_t>();
+// 	work_item_t *item = new work_item_t();
 
 // 	if (!item) {
 // 		mlog(MDHIM_CLIENT_CRIT, "Error while allocating memory for client");
@@ -117,7 +116,7 @@ TransportGetRecvMessage *local_client_get(mdhim_t *md, TransportGetMessage *gm) 
 //  * @return return_message structure with ->error = MDHIM_SUCCESS or MDHIM_ERROR
 //  */
 // TransportBGetRecvMessage *local_client_bget(struct mdhim *md, TransportBGetMessage *bgm) {
-// 	work_item_t *item = Memory::FBP_MEDIUM::Instance().acquire<work_item_t>();
+// 	work_item_t *item = new work_item_t();
 
 // 	if (!item) {
 // 		mlog(MDHIM_CLIENT_CRIT, "Error while allocating memory for client");
@@ -143,7 +142,7 @@ TransportGetRecvMessage *local_client_get(mdhim_t *md, TransportGetMessage *gm) 
 //  * @return return_message structure with ->error = MDHIM_SUCCESS or MDHIM_ERROR
 //  */
 // TransportBGetRecvMessage *local_client_bget_op(struct mdhim *md, TransportGetMessage *gm) {
-// 	work_item_t *item = Memory::FBP_MEDIUM::Instance().acquire<work_item_t>();
+// 	work_item_t *item = new work_item_t();
 
 // 	if (!item) {
 // 		mlog(MDHIM_CLIENT_CRIT, "Error while allocating memory for client");
@@ -168,7 +167,7 @@ TransportGetRecvMessage *local_client_get(mdhim_t *md, TransportGetMessage *gm) 
  * @return return_message structure with ->error = MDHIM_SUCCESS or MDHIM_ERROR
  */
 TransportRecvMessage *local_client_commit(mdhim_t *md, TransportMessage *cm) {
- 	work_item_t *item = Memory::FBP_MEDIUM::Instance().acquire<work_item_t>();
+ 	work_item_t *item = new work_item_t();
 
 	if (!item) {
 		mlog(MDHIM_CLIENT_CRIT, "Error while allocating memory for client");
@@ -196,7 +195,7 @@ TransportRecvMessage *local_client_commit(mdhim_t *md, TransportMessage *cm) {
 // struct mdhim_rm_t *local_client_delete(struct mdhim *md, struct mdhim_delm_t *dm) {
 // 	int ret;
 // 	struct mdhim_rm_t *rm;
-// 	work_item_t *item = Memory::FBP_MEDIUM::Instance().acquire<work_item_t>();
+// 	work_item_t *item = new work_item_t();
 
 // 	if (!item) {
 // 		mlog(MDHIM_CLIENT_CRIT, "Error while allocating memory for client");
@@ -228,7 +227,7 @@ TransportRecvMessage *local_client_commit(mdhim_t *md, TransportMessage *cm) {
 // struct mdhim_rm_t *local_client_bdelete(struct mdhim *md, struct mdhim_bdelm_t *bdm) {
 // 	int ret;
 // 	struct mdhim_rm_t *brm;
-// 	work_item_t *item = Memory::FBP_MEDIUM::Instance().acquire<work_item_t>();
+// 	work_item_t *item = new work_item_t();
 
 // 	if (!item) {
 // 		mlog(MDHIM_CLIENT_CRIT, "Error while allocating memory for client");
@@ -257,7 +256,7 @@ TransportRecvMessage *local_client_commit(mdhim_t *md, TransportMessage *cm) {
 //  */
 // void local_client_close(struct mdhim *md, struct mdhim_basem_t *cm) {
 // 	int ret;
-// 	work_item_t *item = Memory::FBP_MEDIUM::Instance().acquire<work_item_t>();
+// 	work_item_t *item = new work_item_t();
 
 // 	if (!item) {
 // 		mlog(MDHIM_CLIENT_CRIT, "Error while allocating memory for client");

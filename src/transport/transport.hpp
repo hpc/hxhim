@@ -10,7 +10,6 @@
 
 #include "mdhim_constants.h"
 #include "transport_constants.h"
-#include "MemoryManagers.hpp"
 
 /**
  * Base Message Type
@@ -282,7 +281,7 @@ class Transport {
 
         ~Transport() {
             for(std::pair<const int, TransportEndpoint *> const & ep : endpoints_) {
-                Memory::FBP_MEDIUM::Instance().release(ep.second);
+                delete ep.second;
             }
         }
 
@@ -306,7 +305,7 @@ class Transport {
         void RemoveEndpoint(const int id) {
             std::map<int, TransportEndpoint *>::iterator it = endpoints_.find(id);
             if (it != endpoints_.end()) {
-                Memory::FBP_MEDIUM::Instance().release(it->second);
+                delete it->second;
                 endpoints_.erase(id);
             }
         }

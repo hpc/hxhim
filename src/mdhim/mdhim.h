@@ -71,8 +71,6 @@ void mdhimReleaseSecondaryBulkInfo(secondary_bulk_info_t *si);
 
 int mdhimWhichServer(mdhim_t *md, void *key, int key_len);
 
-void leaks();
-
 #ifdef __cplusplus
 }
 #endif

@@ -156,30 +156,30 @@ int range_server_stop(mdhim_t *md) {
 
     if (md->p->mdhim_rs->listener) {
         pthread_join(*md->p->mdhim_rs->listener, NULL);
-        Memory::FBP_MEDIUM::Instance().release(md->p->mdhim_rs->listener);
+        delete md->p->mdhim_rs->listener;
         md->p->mdhim_rs->listener = nullptr;
     }
 
     /* Wait for the threads to finish */
     for (int i = 0; i < md->p->db_opts->p->num_wthreads; i++) {
         pthread_join(*md->p->mdhim_rs->workers[i], NULL);
-        Memory::FBP_MEDIUM::Instance().release(md->p->mdhim_rs->workers[i]);
+        delete md->p->mdhim_rs->workers[i];
     }
-    Memory::FBP_MEDIUM::Instance().release(md->p->mdhim_rs->workers);
+    delete [] md->p->mdhim_rs->workers;
 
     //Destroy the condition variables
     if ((ret = pthread_cond_destroy(md->p->mdhim_rs->work_ready_cv)) != 0) {
       mlog(MDHIM_SERVER_DBG, "Rank %d - Error destroying work cond variable",
            md->p->transport->EndpointID());
     }
-    Memory::FBP_MEDIUM::Instance().release(md->p->mdhim_rs->work_ready_cv);
+    delete md->p->mdhim_rs->work_ready_cv;
 
     //Destroy the work queue mutex
     if ((ret = pthread_mutex_destroy(md->p->mdhim_rs->work_queue_mutex)) != 0) {
       mlog(MDHIM_SERVER_DBG, "Rank %d - Error destroying work queue mutex",
            md->p->transport->EndpointID());
     }
-    Memory::FBP_MEDIUM::Instance().release(md->p->mdhim_rs->work_queue_mutex);
+    delete md->p->mdhim_rs->work_queue_mutex;
 
     //Clean outstanding sends
     range_server_clean_oreqs(md);
@@ -188,16 +188,16 @@ int range_server_stop(mdhim_t *md) {
       mlog(MDHIM_SERVER_DBG, "Rank %d - Error destroying work queue mutex",
            md->p->transport->EndpointID());
     }
-    Memory::FBP_MEDIUM::Instance().release(md->p->mdhim_rs->out_req_mutex);
+    delete md->p->mdhim_rs->out_req_mutex;
 
     //Free the work queue
     work_item_t *head = md->p->mdhim_rs->work_queue->head;
     while (head) {
       work_item_t *temp_item = head->next;
-      Memory::FBP_MEDIUM::Instance().release(head);
+      delete head;
       head = temp_item;
     }
-    Memory::FBP_MEDIUM::Instance().release(md->p->mdhim_rs->work_queue);
+    delete md->p->mdhim_rs->work_queue;
 
     mlog(MDHIM_SERVER_INFO, "Rank %d - Inserted: %ld records in %Lf seconds",
          md->p->transport->EndpointID(), md->p->mdhim_rs->num_put, md->p->mdhim_rs->put_time);
@@ -205,7 +205,7 @@ int range_server_stop(mdhim_t *md) {
          md->p->transport->EndpointID(), md->p->mdhim_rs->num_get, md->p->mdhim_rs->get_time);
 
     //Free the range server data
-    Memory::FBP_MEDIUM::Instance().release(md->p->mdhim_rs);
+    delete md->p->mdhim_rs;
     md->p->mdhim_rs = nullptr;
 
     return MDHIM_SUCCESS;
@@ -234,10 +234,10 @@ static int range_server_put(mdhim_t *md, work_item_t *item) {
     TransportPutMessage *im = dynamic_cast<TransportPutMessage *>(item->message);
     item->message = nullptr;
 
-    void **value = Memory::FBP_MEDIUM::Instance().acquire<void *>();
+    void **value = new void *();
     *value = nullptr;
 
-    int32_t *value_len = Memory::FBP_MEDIUM::Instance().acquire<int32_t>();
+    int32_t *value_len = new int32_t();
     *value_len = 0;
 
     //Get the index referenced the message
@@ -265,7 +265,7 @@ static int range_server_put(mdhim_t *md, work_item_t *item) {
         old_value = *value;
         old_value_len = *value_len;
         new_value_len = old_value_len + im->value_len;
-        new_value = Memory::FBP_MEDIUM::Instance().acquire(new_value_len);
+        new_value = ::operator new(new_value_len);
         memcpy(new_value, old_value, old_value_len);
         memcpy((char*)new_value + old_value_len, im->value, im->value_len);
     } else {
@@ -274,10 +274,10 @@ static int range_server_put(mdhim_t *md, work_item_t *item) {
     }
 
     if (*value && *value_len) {
-        Memory::FBP_MEDIUM::Instance().release(*value);
+        ::operator delete(*value);
     }
-    Memory::FBP_MEDIUM::Instance().release(value);
-    Memory::FBP_MEDIUM::Instance().release(value_len);
+    delete value;
+    delete value_len;
 
     //Put the record in the database
     if ((ret =
@@ -301,7 +301,7 @@ static int range_server_put(mdhim_t *md, work_item_t *item) {
 done:
 
     //Create the response message
-    TransportRecvMessage *rm = Memory::FBP_MEDIUM::Instance().acquire<TransportRecvMessage>();
+    TransportRecvMessage *rm = new TransportRecvMessage();
     //Set the type
     rm->mtype = TransportMessageType::RECV;
     //Set the operation return code as the error
@@ -314,13 +314,16 @@ done:
 
     //Free memory
     if (exists && md->p->db_opts->p->db_value_append == MDHIM_DB_APPEND) {
-        Memory::FBP_MEDIUM::Instance().release(new_value);
+        ::operator delete(new_value);
     }
     if (im->src != md->p->transport->EndpointID()) {
-        Memory::FBP_MEDIUM::Instance().release(im->key);
-        Memory::FBP_MEDIUM::Instance().release(im->value);
+        ::operator delete(im->key);
+        im->key = nullptr;
+
+        ::operator delete(im->value);
+        im->value = nullptr;
     }
-    Memory::FBP_MEDIUM::Instance().release(im);
+    delete im;
 
     return MDHIM_SUCCESS;
 }
@@ -350,10 +353,10 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
     TransportBPutMessage *bim = dynamic_cast<TransportBPutMessage *>(item->message);
     item->message = nullptr;
 
-    int *exists = Memory::FBP_MEDIUM::Instance().acquire<int>(bim->num_keys);
-    void **new_values = Memory::FBP_MEDIUM::Instance().acquire<void *>(bim->num_keys);
-    int32_t *new_value_lens = Memory::FBP_MEDIUM::Instance().acquire<int32_t>(bim->num_keys);
-    void **value = Memory::FBP_MEDIUM::Instance().acquire<void *>();
+    int *exists = new int[bim->num_keys]();
+    void **new_values = new void *[bim->num_keys]();
+    int32_t *new_value_lens = new int32_t[bim->num_keys]();
+    void **value = new void *();
 
     //Get the index referenced the message
     index_t *index = find_index(md, static_cast<TransportMessage *>(bim));
@@ -385,11 +388,11 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
             old_value = *value;
             old_value_len = value_len;
             new_value_len = old_value_len + bim->value_lens[i];
-            new_value = Memory::FBP_MEDIUM::Instance().acquire(new_value_len);
+            new_value = ::operator new(new_value_len);
             memcpy(new_value, old_value, old_value_len);
             memcpy((char*)new_value + old_value_len, bim->values[i], bim->value_lens[i]);
             if (exists[i] && item->address != md->p->transport->EndpointID()) {
-                Memory::FBP_MEDIUM::Instance().release(bim->values[i]);
+                ::operator delete(bim->values[i]);
                 bim->values[i] = nullptr;
             }
 
@@ -401,7 +404,7 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
         }
 
         if (*value) {
-            Memory::FBP_MEDIUM::Instance().release(*value);
+            ::operator delete(*value);
             *value = nullptr;
         }
     }
@@ -426,28 +429,28 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
 
         if (exists[i] && md->p->db_opts->p->db_value_append == MDHIM_DB_APPEND) {
             //Release the value created for appending the new and old value
-            Memory::FBP_MEDIUM::Instance().release(new_values[i]);
+            ::operator delete(new_values[i]);
         }
 
         //Release the bput keys/value if the message isn't coming from myself
         if (item->address != md->p->transport->EndpointID()) {
-            Memory::FBP_MEDIUM::Instance().release(bim->keys[i]);
+            ::operator delete(bim->keys[i]);
             bim->keys[i] = nullptr;
-            Memory::FBP_MEDIUM::Instance().release(bim->values[i]);
+            ::operator delete(bim->values[i]);
             bim->values = nullptr;
         }
     }
 
-    Memory::FBP_MEDIUM::Instance().release(exists);
-    Memory::FBP_MEDIUM::Instance().release(new_values);
-    Memory::FBP_MEDIUM::Instance().release(new_value_lens);
-    Memory::FBP_MEDIUM::Instance().release(value);
+    delete [] exists;
+    delete [] new_values;
+    delete [] new_value_lens;
+    delete value;
     gettimeofday(&end, NULL);
     add_timing(start, end, num_put, md, TransportMessageType::BPUT);
 
  done:
     //Create the response message
-    TransportBRecvMessage *brm = Memory::FBP_MEDIUM::Instance().acquire<TransportBRecvMessage>();
+    TransportBRecvMessage *brm = new TransportBRecvMessage();
     //Set the type
     brm->mtype = TransportMessageType::RECV;
     //Set the operation return code as the error
@@ -456,7 +459,7 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
     brm->dst = md->p->transport->EndpointID();
 
     //Release the internals of the bput message
-    Memory::FBP_MEDIUM::Instance().release(bim);
+    delete bim;
 
     //Send response
     ret = send_locally_or_remote(md, item, brm);
@@ -507,7 +510,7 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
 
 //     //Send response
 //     ret = send_locally_or_remote(md, item, rm);
-//     Memory::FBP_MEDIUM::Instance().release(dm);
+//     delete dm;
 
 //     return MDHIM_SUCCESS;
 // }
@@ -562,9 +565,9 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
 
 //     //Send response
 //     ret = send_locally_or_remote(md, source, brm);
-//     Memory::FBP_MEDIUM::Instance().release(bdm->keys);
-//     Memory::FBP_MEDIUM::Instance().release(bdm->key_lens);
-//     Memory::FBP_MEDIUM::Instance().release(bdm);
+//     delete bdm->keys;
+//     delete bdm->key_lens;
+//     delete bdm;
 
 //     return MDHIM_SUCCESS;
 // }
@@ -604,7 +607,7 @@ static int range_server_commit(mdhim_t *md, work_item_t *item) {
 
  done:
     //Create the response message
-    TransportRecvMessage *rm = Memory::FBP_MEDIUM::Instance().acquire<TransportRecvMessage>();
+    TransportRecvMessage *rm = new TransportRecvMessage();
     //Set the type
     rm->mtype = TransportMessageType::RECV;
     //Set the operation return code as the error
@@ -615,7 +618,7 @@ static int range_server_commit(mdhim_t *md, work_item_t *item) {
     //Send response
     ret = send_locally_or_remote(md, item, rm);
 
-    Memory::FBP_MEDIUM::Instance().release(im);
+    delete im;
 
     return MDHIM_SUCCESS;
 }
@@ -722,7 +725,7 @@ static int range_server_get(mdhim_t *md, work_item_t *item) {
 
 done:
     //Create the response message
-    TransportGetRecvMessage *grm = Memory::FBP_MEDIUM::Instance().acquire<TransportGetRecvMessage>();
+    TransportGetRecvMessage *grm = new TransportGetRecvMessage();
     //Set the type
     grm->mtype = TransportMessageType::RECV_GET;
     //Set the operation return code as the error
@@ -732,9 +735,9 @@ done:
     //Set the key and value
     if (item->address == md->p->transport->EndpointID()) {
         //If this message is coming from myself, copy the keys
-        grm->key = Memory::FBP_MEDIUM::Instance().acquire(gm->key_len);
+        grm->key = ::operator new(gm->key_len);
         memcpy(grm->key, gm->key, gm->key_len);
-        Memory::FBP_MEDIUM::Instance().release(gm->key);
+        ::operator delete(gm->key);
         gm->key = nullptr;
     } else {
         grm->key = gm->key;
@@ -750,7 +753,7 @@ done:
     ret = send_locally_or_remote(md, item, grm);
 
     //Release the bget message
-    Memory::FBP_MEDIUM::Instance().release(gm);
+    delete gm;
 
     return MDHIM_SUCCESS;
 }
@@ -766,7 +769,6 @@ done:
  */
 static int range_server_bget(mdhim_t *md, work_item_t *item) {
     int ret;
-    TransportBGetRecvMessage *bgrm;
     int error = 0;
     struct timeval start, end;
     int num_retrieved = 0;
@@ -776,8 +778,8 @@ static int range_server_bget(mdhim_t *md, work_item_t *item) {
     TransportBGetMessage *bgm = dynamic_cast<TransportBGetMessage *>(item->message);
     item->message = nullptr;
 
-    void **values = Memory::FBP_MEDIUM::Instance().acquire<void *>(bgm->num_keys);
-    int32_t *value_lens = Memory::FBP_MEDIUM::Instance().acquire<int32_t>(bgm->num_keys);
+    void **values = new void *[bgm->num_keys]();
+    int32_t *value_lens = new int32_t[bgm->num_keys]();
 
     //Get the index referenced the message
     index_t *index = find_index(md, (TransportMessage *) bgm);
@@ -875,7 +877,7 @@ static int range_server_bget(mdhim_t *md, work_item_t *item) {
 
 done:
     //Create the response message
-    bgrm = Memory::FBP_MEDIUM::Instance().acquire<TransportBGetRecvMessage>();
+    TransportBGetRecvMessage *bgrm = new TransportBGetRecvMessage();
     //Set the type
     bgrm->mtype = TransportMessageType::RECV_BGET;
     //Set the operation return code as the error
@@ -885,16 +887,16 @@ done:
     //Set the key and value
     if (item->address == md->p->transport->EndpointID()) {
         //If this message is coming from myself, copy the keys
-        bgrm->key_lens = Memory::FBP_MEDIUM::Instance().acquire<int>(bgm->num_keys);
-        bgrm->keys = Memory::FBP_MEDIUM::Instance().acquire<void *>(bgm->num_keys);
+        bgrm->key_lens = new int[bgm->num_keys]();
+        bgrm->keys = new void *[bgm->num_keys]();
         for (int i = 0; i < bgm->num_keys; i++) {
             bgrm->key_lens[i] = bgm->key_lens[i];
-            bgrm->keys[i] = Memory::FBP_MEDIUM::Instance().acquire(bgrm->key_lens[i]);
+            bgrm->keys[i] = ::operator new(bgrm->key_lens[i]);
             memcpy(bgrm->keys[i], bgm->keys[i], bgrm->key_lens[i]);
         }
 
-        Memory::FBP_MEDIUM::Instance().release(bgm->keys);
-        Memory::FBP_MEDIUM::Instance().release(bgm->key_lens);
+        ::operator delete(bgm->keys);
+        ::operator delete(bgm->key_lens);
     } else {
         bgrm->keys = bgm->keys;
         bgrm->key_lens = bgm->key_lens;
@@ -910,7 +912,7 @@ done:
     ret = send_locally_or_remote(md, item, bgrm);
 
     //Release the bget message
-    Memory::FBP_MEDIUM::Instance().release(bgm);
+    delete bgm;
 
     return MDHIM_SUCCESS;
 }
@@ -935,19 +937,19 @@ static int range_server_bget_op(mdhim_t *md, work_item_t *item, TransportGetMess
 
     //Initialize pointers and lengths
     const int count = bgm->num_keys * bgm->num_recs;
-    void **values = Memory::FBP_MEDIUM::Instance().acquire<void *>(count);
-    int32_t *value_lens = Memory::FBP_MEDIUM::Instance().acquire<int32_t>(count);
+    void **values = new void *[count]();
+    int32_t *value_lens = new int32_t[count]();
 
-    void **keys = Memory::FBP_MEDIUM::Instance().acquire<void *>(count);
-    int32_t *key_lens = Memory::FBP_MEDIUM::Instance().acquire<int32_t>(count);
+    void **keys = new void *[count];
+    int32_t *key_lens = new int32_t[count];
 
     //Used for passing the key and key len to the db
-    void **get_key = Memory::FBP_MEDIUM::Instance().acquire<void *>();
-    int32_t *get_key_len = Memory::FBP_MEDIUM::Instance().acquire<int32_t>();
+    void **get_key = new void *();
+    int32_t *get_key_len = new int32_t();
 
     //Used for passing the value and value len to the db
-    void **get_value = Memory::FBP_MEDIUM::Instance().acquire<void *>();
-    int32_t *get_value_len = Memory::FBP_MEDIUM::Instance().acquire<int32_t>();
+    void **get_value = new void *();
+    int32_t *get_value_len = new int32_t();
 
     int num_records = 0;
 
@@ -978,7 +980,7 @@ static int range_server_bget_op(mdhim_t *md, work_item_t *item, TransportGetMess
 
             //If we were passed in a key, copy it
             if (!j && bgm->key_lens[i] && bgm->keys[i]) {
-                *get_key = Memory::FBP_MEDIUM::Instance().acquire(bgm->key_lens[i]);
+                *get_key = ::operator new(bgm->key_lens[i]);
                 memcpy(*get_key, bgm->keys[i], bgm->key_lens[i]);
                 *get_key_len = bgm->key_lens[i];
                 //If we were not passed a key and this is a next/prev, then return an error
@@ -1071,7 +1073,7 @@ respond:
     add_timing(start, end, num_records, md, TransportMessageType::BGET);
 
     //Create the response message
-    TransportBGetRecvMessage *bgrm = Memory::FBP_MEDIUM::Instance().acquire<TransportBGetRecvMessage>();
+    TransportBGetRecvMessage *bgrm = new TransportBGetRecvMessage();
     //Set the type
     bgrm->mtype = TransportMessageType::RECV_BGET;
     //Set the operation return code as the error
@@ -1095,13 +1097,13 @@ respond:
         /* If this message is not coming from myself,
            free the keys and values from the get message */
         // mdhim_partial_release_msg(bgm);
-        Memory::FBP_MEDIUM::Instance().release(bgm);
+        delete bgm;
     }
 
-    Memory::FBP_MEDIUM::Instance().release(get_key);
-    Memory::FBP_MEDIUM::Instance().release(get_key_len);
-    Memory::FBP_MEDIUM::Instance().release(get_value);
-    Memory::FBP_MEDIUM::Instance().release(get_value_len);
+    delete get_key;
+    delete get_key_len;
+    delete get_value;
+    delete get_value_len;
 
     return MDHIM_SUCCESS;
 }
@@ -1183,7 +1185,7 @@ static void *worker_thread(void *data) {
 
             work_item_t *item_tmp = item;
             item = item->next;
-            Memory::FBP_MEDIUM::Instance().release(item_tmp);
+            delete item_tmp;
         }
 
         //Clean outstanding sends
@@ -1199,7 +1201,7 @@ int range_server_add_oreq(mdhim_t *md, MPI_Request *req, void *msg) {
 
     pthread_mutex_lock(md->p->mdhim_rs->out_req_mutex);
     item = md->p->mdhim_rs->out_req_list;
-    oreq = Memory::FBP_MEDIUM::Instance().acquire<out_req_t>();
+    oreq = new out_req_t();
     oreq->next = NULL;
     oreq->prev = NULL;
     oreq->message = (MPI_Request*)msg;
@@ -1254,12 +1256,12 @@ int range_server_clean_oreqs(mdhim_t *md) {
         }
 
         out_req_t *t = item->next;
-        Memory::FBP_MEDIUM::Instance().release(item->req);
+        ::operator delete(item->req);
         if (item->message) {
-            Memory::FBP_MEDIUM::Instance().release(item->message);
+            delete item->message;
         }
 
-        Memory::FBP_MEDIUM::Instance().release(item);
+        delete item;
         item = t;
     }
 
@@ -1279,7 +1281,7 @@ int range_server_init(mdhim_t *md) {
     int ret;
 
     //Allocate memory for the mdhim_rs_t struct
-    md->p->mdhim_rs = Memory::FBP_MEDIUM::Instance().acquire<mdhim_rs_t>();
+    md->p->mdhim_rs = new mdhim_rs_t();
     if (!md->p->mdhim_rs) {
         mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
              "Error while allocating memory for range server",
@@ -1293,7 +1295,7 @@ int range_server_init(mdhim_t *md) {
     md->p->mdhim_rs->num_put = 0;
     md->p->mdhim_rs->num_get = 0;
     //Initialize work queue
-    md->p->mdhim_rs->work_queue = Memory::FBP_MEDIUM::Instance().acquire<work_queue_t>();
+    md->p->mdhim_rs->work_queue = new work_queue_t();
     md->p->mdhim_rs->work_queue->head = NULL;
     md->p->mdhim_rs->work_queue->tail = NULL;
 
@@ -1301,7 +1303,7 @@ int range_server_init(mdhim_t *md) {
     md->p->mdhim_rs->out_req_list = NULL;
 
     //Initialize work queue mutex
-    md->p->mdhim_rs->work_queue_mutex = Memory::FBP_MEDIUM::Instance().acquire<pthread_mutex_t>();
+    md->p->mdhim_rs->work_queue_mutex = new pthread_mutex_t();
     if (!md->p->mdhim_rs->work_queue_mutex) {
         mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
              "Error while allocating memory for range server",
@@ -1315,7 +1317,7 @@ int range_server_init(mdhim_t *md) {
     }
 
     //Initialize out req mutex
-    md->p->mdhim_rs->out_req_mutex = Memory::FBP_MEDIUM::Instance().acquire<pthread_mutex_t>();
+    md->p->mdhim_rs->out_req_mutex = new pthread_mutex_t();
     if (!md->p->mdhim_rs->out_req_mutex) {
         mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
              "Error while allocating memory for range server",
@@ -1329,7 +1331,7 @@ int range_server_init(mdhim_t *md) {
     }
 
     //Initialize the condition variables
-    md->p->mdhim_rs->work_ready_cv = Memory::FBP_MEDIUM::Instance().acquire<pthread_cond_t>();
+    md->p->mdhim_rs->work_ready_cv = new pthread_cond_t();
     if (!md->p->mdhim_rs->work_ready_cv) {
         mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
              "Error while allocating memory for range server",
@@ -1344,9 +1346,9 @@ int range_server_init(mdhim_t *md) {
     }
 
     //Initialize worker threads
-    md->p->mdhim_rs->workers = Memory::FBP_MEDIUM::Instance().acquire<pthread_t *>(md->p->db_opts->p->num_wthreads);
+    md->p->mdhim_rs->workers = new pthread_t *[md->p->db_opts->p->num_wthreads]();
     for (int i = 0; i < md->p->db_opts->p->num_wthreads; i++) {
-        md->p->mdhim_rs->workers[i] = Memory::FBP_MEDIUM::Instance().acquire<pthread_t>();
+        md->p->mdhim_rs->workers[i] = new pthread_t();
         if ((ret = pthread_create(md->p->mdhim_rs->workers[i], NULL,
                       worker_thread, (void *) md)) != 0) {
             mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
@@ -1358,7 +1360,7 @@ int range_server_init(mdhim_t *md) {
 
     //Initialize listener threads
     if (md->p->listener_thread) {
-        md->p->mdhim_rs->listener = Memory::FBP_MEDIUM::Instance().acquire<pthread_t>();
+        md->p->mdhim_rs->listener = new pthread_t();
         if ((ret = pthread_create(md->p->mdhim_rs->listener, NULL,
                                   md->p->listener_thread, (void *) md)) != 0) {
             mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "

@@ -30,7 +30,7 @@ int mdhim_options_init(mdhim_options_t* opts) {
         return MDHIM_ERROR;
     }
 
-    opts->p = Memory::FBP_MEDIUM::Instance().acquire<mdhim_options_private_t>();
+    opts->p = new mdhim_options_private_t();
     // Set default options
     mdhim_options_set_comm(opts, MPI_COMM_WORLD);
     mdhim_options_set_transporttype(opts, MDHIM_TRANSPORT_MPI);
@@ -104,12 +104,12 @@ void mdhim_options_set_manifest_path(mdhim_options_t* opts, const char *path) {
     }
 
     if (opts->p->manifest_path) {
-        Memory::FBP_MEDIUM::Instance().release(opts->p->manifest_path);
+        delete [] opts->p->manifest_path;
         opts->p->manifest_path = nullptr;
     }
 
     const int path_len = strlen(path) + strlen(MANIFEST_FILE_NAME) + 1;
-    char *manifest_path = Memory::FBP_MEDIUM::Instance().acquire<char>(path_len);
+    char *manifest_path = new char[path_len]();
     sprintf(manifest_path, "%s%s", path, MANIFEST_FILE_NAME);
     opts->p->manifest_path = manifest_path;
 }
@@ -161,7 +161,7 @@ void mdhim_options_set_db_paths(struct mdhim_options* opts, char **paths, int nu
         return;
     }
 
-    opts->p->db_paths = Memory::FBP_MEDIUM::Instance().acquire<char *>(num_paths);
+    opts->p->db_paths = new char *[num_paths]();
     for (i = 0; i < num_paths; i++) {
         if (!paths[i]) {
             continue;
@@ -176,7 +176,7 @@ void mdhim_options_set_db_paths(struct mdhim_options* opts, char **paths, int nu
         }
 
         verified_paths++;
-        opts->p->db_paths[verified_paths] = Memory::FBP_MEDIUM::Instance().acquire<char>(strlen(paths[i]) + 1);
+        opts->p->db_paths[verified_paths] = new char[strlen(paths[i]) + 1]();
         sprintf(opts->p->db_paths[verified_paths], "%s", paths[i]);
     }
 
@@ -272,12 +272,12 @@ int mdhim_options_destroy(mdhim_options_t *opts) {
     }
 
     for (int i = 0; i < opts->p->num_paths; i++) {
-        Memory::FBP_MEDIUM::Instance().release(opts->p->db_paths[i]);
+        delete [] opts->p->db_paths[i];
     }
-    Memory::FBP_MEDIUM::Instance().release(opts->p->db_paths);
+    delete [] opts->p->db_paths;
 
-    Memory::FBP_MEDIUM::Instance().release(opts->p->manifest_path);
-    Memory::FBP_MEDIUM::Instance().release(opts->p);
+    delete [] opts->p->manifest_path;
+    delete opts->p;
     opts->p = nullptr;
     return MDHIM_SUCCESS;
 }

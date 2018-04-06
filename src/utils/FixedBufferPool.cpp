@@ -77,7 +77,6 @@ void *FixedBufferPool<alloc_size_, regions_, Allowed>::acquire(const std::size_t
     unused_ = next;
 
     used_++;
-
     return ret;
 }
 

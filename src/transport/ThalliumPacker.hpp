@@ -6,7 +6,6 @@
 #include <thallium.hpp>
 
 #include "transport.hpp"
-#include "Packer.hpp"
 
 /**
  * ThalliumPacker
@@ -17,7 +16,7 @@
  * @param buf     address of the new memory location where the message will be packed into
  * @param bufsize size of the new memory location
  */
-class ThalliumPacker : private Packer {
+class ThalliumPacker {
     public:
         static int any (const TransportMessage         *msg, std::string &buf);
 

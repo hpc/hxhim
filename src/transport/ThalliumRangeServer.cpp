@@ -24,7 +24,7 @@ void ThalliumRangeServer::receive_rangesrv_work(const thallium::request &req, co
     }
 
     //Create a new work item
-    thallium_work_item_t *item = new ((thallium_work_item_t *) Memory::FBP_MEDIUM::Instance().acquire(sizeof(thallium_work_item_t))) thallium_work_item_t(req);
+    thallium_work_item_t *item = new thallium_work_item_t(req);
 
     //Set the new buffer to the new item's message
     item->message = message;
@@ -39,7 +39,7 @@ void ThalliumRangeServer::receive_rangesrv_work(const thallium::request &req, co
 }
 
 int ThalliumRangeServer::send_client_response(work_item *item, TransportMessage *message, volatile int &shutdown) {
-    std::string buf;
+    std::string buf = "";
 
     if (ThalliumPacker::any(message, buf) != MDHIM_SUCCESS) {
         return MDHIM_ERROR;

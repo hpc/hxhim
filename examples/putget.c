@@ -38,7 +38,11 @@ int main(int argc, char *argv[]){
         return MDHIM_ERROR;
     }
 
-    mdhim_options_set_transporttype(&opts, MDHIM_TRANSPORT_THALLIUM);
+
+    // if there are more arguments after argv[0], use thallium
+    if (argc != 1) {
+      mdhim_options_set_transporttype(&opts, MDHIM_TRANSPORT_THALLIUM);
+    }
 
     // initialize mdhim context
     if (mdhimInit(&md, &opts) != MDHIM_SUCCESS) {
@@ -120,6 +124,5 @@ int main(int argc, char *argv[]){
 
     cleanup(&md, &opts);
 
-    leaks();
     return MDHIM_SUCCESS;
 }

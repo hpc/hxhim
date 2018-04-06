@@ -1,12 +1,10 @@
 #ifndef HXHIM_TRANSPORT_MPI_PACKER
 #define HXHIM_TRANSPORT_MPI_PACKER
 
-#include "mlog2.h"
-#include "mlogfacs2.h"
 #include <mpi.h>
 
 #include "transport.hpp"
-#include "Packer.hpp"
+#include "MemoryManagers.hpp"
 
 /**
  * MPIPacker
@@ -18,7 +16,7 @@
  * @param buf     address of the new memory location where the message will be packed into
  * @param bufsize size of the new memory location
 */
-class MPIPacker : private Packer {
+class MPIPacker {
     public:
         static int any (const MPI_Comm comm, const TransportMessage         *msg,  void **buf, int *bufsize);
 
@@ -40,6 +38,8 @@ class MPIPacker : private Packer {
          * *bufsize should already have been determined when calling this function
          */
         static int pack(const MPI_Comm comm, const TransportMessage         *msg,  void **buf, int *bufsize, int *position);
+
+        static void cleanup(void **buf, int *bufsize);
 };
 
 #endif

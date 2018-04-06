@@ -87,26 +87,26 @@ int ThalliumUnpacker::any (TransportMessage **msg, const std::string &buf) {
 }
 
 int ThalliumUnpacker::unpack(TransportPutMessage **pm, const std::string &buf) {
-    TransportPutMessage *out = Memory::FBP_MEDIUM::Instance().acquire<TransportPutMessage>();
+    TransportPutMessage *out = new TransportPutMessage();
     std::stringstream s(buf);
     if (unpack(static_cast<TransportMessage *>(out), s) != MDHIM_SUCCESS) {
-        Memory::FBP_MEDIUM::Instance().release(out);
+        delete out;
         return MDHIM_ERROR;
     }
 
     if (!s
         .read((char *) &out->key_len, sizeof(out->key_len))
         .read((char *) &out->value_len, sizeof(out->value_len))) {
-        Memory::FBP_MEDIUM::Instance().release(out);
+        delete out;
         return MDHIM_ERROR;
     }
 
-    if (!(out->key = Memory::FBP_MEDIUM::Instance().acquire(out->key_len))         ||
-        !(out->value = Memory::FBP_MEDIUM::Instance().acquire(out->value_len))     ||
+    if (!(out->key = ::operator new(out->key_len))         ||
+        !(out->value = ::operator new(out->value_len))     ||
         !s
         .read((char *) out->key, out->key_len)
         .read((char *) out->value, out->value_len)) {
-        Memory::FBP_MEDIUM::Instance().release(out);
+        delete out;
         return MDHIM_ERROR;
     }
 
@@ -116,10 +116,10 @@ int ThalliumUnpacker::unpack(TransportPutMessage **pm, const std::string &buf) {
 }
 
 int ThalliumUnpacker::unpack(TransportGetMessage **gm, const std::string &buf) {
-    TransportGetMessage *out = Memory::FBP_MEDIUM::Instance().acquire<TransportGetMessage>();
+    TransportGetMessage *out = new TransportGetMessage();
     std::stringstream s(buf);
     if (unpack(static_cast<TransportMessage *>(out), s) != MDHIM_SUCCESS) {
-        Memory::FBP_MEDIUM::Instance().release(out);
+        delete out;
         return MDHIM_ERROR;
     }
 
@@ -127,14 +127,14 @@ int ThalliumUnpacker::unpack(TransportGetMessage **gm, const std::string &buf) {
         .read((char *) &out->op, sizeof(out->op))
         .read((char *) &out->num_keys, sizeof(out->num_keys))
         .read((char *) &out->key_len, sizeof(out->key_len)) ) {
-        Memory::FBP_MEDIUM::Instance().release(out);
+        delete out;
         return MDHIM_ERROR;
     }
 
-    if (!(out->key = Memory::FBP_MEDIUM::Instance().acquire(out->key_len))     ||
+    if (!(out->key = ::operator new(out->key_len))     ||
         !s
         .read((char *) out->key, out->key_len)) {
-        Memory::FBP_MEDIUM::Instance().release(out);
+        delete out;
         return MDHIM_ERROR;
     }
 
@@ -144,15 +144,15 @@ int ThalliumUnpacker::unpack(TransportGetMessage **gm, const std::string &buf) {
 }
 
 int ThalliumUnpacker::unpack(TransportRecvMessage **rm, const std::string &buf) {
-    TransportRecvMessage *out = Memory::FBP_MEDIUM::Instance().acquire<TransportRecvMessage>();
+    TransportRecvMessage *out = new TransportRecvMessage();
     std::stringstream s(buf);
     if (unpack(static_cast<TransportMessage *>(out), s) != MDHIM_SUCCESS) {
-        Memory::FBP_MEDIUM::Instance().release(out);
+        delete out;
         return MDHIM_ERROR;
     }
 
     if (!s.read((char *) &out->error, sizeof(out->error))) {
-        Memory::FBP_MEDIUM::Instance().release(out);
+        delete out;
         return MDHIM_ERROR;
     }
 
@@ -162,10 +162,10 @@ int ThalliumUnpacker::unpack(TransportRecvMessage **rm, const std::string &buf) 
 }
 
 int ThalliumUnpacker::unpack(TransportGetRecvMessage **grm, const std::string &buf) {
-    TransportGetRecvMessage *out = Memory::FBP_MEDIUM::Instance().acquire<TransportGetRecvMessage>();
+    TransportGetRecvMessage *out = new TransportGetRecvMessage();
     std::stringstream s(buf);
     if (unpack(static_cast<TransportMessage *>(out), s) != MDHIM_SUCCESS) {
-        Memory::FBP_MEDIUM::Instance().release(out);
+        delete out;
         return MDHIM_ERROR;
     }
 
@@ -173,16 +173,16 @@ int ThalliumUnpacker::unpack(TransportGetRecvMessage **grm, const std::string &b
         .read((char *) &out->error, sizeof(out->error))
         .read((char *) &out->key_len, sizeof(out->key_len))
         .read((char *) &out->value_len, sizeof(out->value_len))) {
-        Memory::FBP_MEDIUM::Instance().release(out);
+        delete out;
         return MDHIM_ERROR;
     }
 
-    if (!(out->key = Memory::FBP_MEDIUM::Instance().acquire(out->key_len))         ||
-        !(out->value = Memory::FBP_MEDIUM::Instance().acquire(out->value_len))     ||
+    if (!(out->key = ::operator new(out->key_len))         ||
+        !(out->value = ::operator new(out->value_len))     ||
         !s
         .read((char *) out->key, out->key_len)
         .read((char *) out->value, out->value_len)) {
-        Memory::FBP_MEDIUM::Instance().release(out);
+        delete out;
         return MDHIM_ERROR;
     }
 
@@ -192,7 +192,7 @@ int ThalliumUnpacker::unpack(TransportGetRecvMessage **grm, const std::string &b
 }
 
 int ThalliumUnpacker::unpack(TransportMessage **msg, const std::string &buf) {
-    TransportMessage *out = Memory::FBP_MEDIUM::Instance().acquire<TransportMessage>();
+    TransportMessage *out = new TransportMessage();
     std::stringstream s(buf);
     if (unpack(out, s) != MDHIM_SUCCESS) {
         return MDHIM_ERROR;

@@ -8,8 +8,6 @@
 #include "range_server.h"
 #include "transport.hpp"
 #include "work_item.h"
-#include "MPIInstance.hpp"
-#include "MemoryManagers.hpp"
 #include "ThalliumPacker.hpp"
 #include "ThalliumUnpacker.hpp"
 

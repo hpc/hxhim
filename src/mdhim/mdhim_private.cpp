@@ -14,7 +14,6 @@
 #include "partitioner.h"
 #include "transport_mpi.hpp"
 #include "transport_thallium.hpp"
-#include "MemoryManagers.hpp"
 #include "MPIInstance.hpp"
 
 // get all thallium lookup addresses
@@ -45,9 +44,9 @@ static int get_addrs(thallium::engine *engine, const MPI_Comm comm, std::map<int
     max_len++; // NULL terminate
 
     // get addresses
-    char *buf = Memory::FBP_MEDIUM::Instance().acquire<char>(max_len * size);
+    char *buf = new char[max_len * size]();
     if (MPI_Allgather(self.c_str(), self.size(), MPI_CHAR, buf, max_len, MPI_CHAR, MPI_COMM_WORLD) != MPI_SUCCESS) {
-        Memory::FBP_MEDIUM::Instance().release(buf);
+        delete [] buf;
         return MDHIM_ERROR;
     }
 
@@ -58,7 +57,7 @@ static int get_addrs(thallium::engine *engine, const MPI_Comm comm, std::map<int
         addrs[i].assign(remote, strlen(remote));
     }
 
-    Memory::FBP_MEDIUM::Instance().release(buf);
+    delete [] buf;
 
     return MDHIM_SUCCESS;
 }
@@ -79,13 +78,12 @@ int mdhim_private_init(mdhim_private* mdp, int dbtype, int transporttype) {
         goto err_out;
     }
 
-    mdp->transport = new ((Transport *)Memory::FBP_MEDIUM::Instance().acquire(sizeof(Transport))) Transport(MPIInstance::instance().Rank());
+    mdp->transport = new Transport(MPIInstance::instance().Rank());
 
     if (transporttype == MDHIM_TRANSPORT_MPI) {
         // create mapping between unique IDs and ranks
         for(int i = 0; i < MPIInstance::instance().Size(); i++) {
-            mdp->transport->AddEndpoint(i, new ((MPIEndpoint *)Memory::FBP_MEDIUM::Instance().acquire(sizeof(MPIEndpoint)))
-                                        MPIEndpoint(MPIInstance::instance().Comm(), i, mdp->shutdown));
+            mdp->transport->AddEndpoint(i, new MPIEndpoint(MPIInstance::instance().Comm(), i, mdp->shutdown));
         }
 
         // remove loopback endpoint
@@ -98,13 +96,11 @@ int mdhim_private_init(mdhim_private* mdp, int dbtype, int transporttype) {
     }
     else if (transporttype == MDHIM_TRANSPORT_THALLIUM) {
         // create the engine (only 1 instance per process)
-        thallium::engine *engine = new ((thallium::engine *)Memory::FBP_MEDIUM::Instance().acquire(sizeof(thallium::engine)))
-            thallium::engine("na+sm", THALLIUM_SERVER_MODE, true, -1);
+        thallium::engine *engine = new thallium::engine("na+sm", THALLIUM_SERVER_MODE, true, -1);
 
         // create client to range server RPC
-        thallium::remote_procedure *rpc = new ((thallium::remote_procedure *)Memory::FBP_MEDIUM::Instance().acquire(sizeof(thallium::remote_procedure)))
-            thallium::remote_procedure(engine->define(ThalliumRangeServer::CLIENT_TO_RANGE_SERVER_NAME,
-                                                      ThalliumRangeServer::receive_rangesrv_work));
+        thallium::remote_procedure *rpc = new thallium::remote_procedure(engine->define(ThalliumRangeServer::CLIENT_TO_RANGE_SERVER_NAME,
+                                                                                        ThalliumRangeServer::receive_rangesrv_work));
 
         // give the range server access to the mdhim_t data
         ThalliumRangeServer::init(mdp);
@@ -123,10 +119,8 @@ int mdhim_private_init(mdhim_private* mdp, int dbtype, int transporttype) {
 
         // add the remote thallium endpoints to the tranport
         for(std::pair<const int, std::string> const &addr : addrs) {
-            thallium::endpoint *server = new ((thallium::endpoint *) Memory::FBP_MEDIUM::Instance().acquire(sizeof(thallium::endpoint)))
-                thallium::endpoint(engine->lookup(addr.second));
-            ThalliumEndpoint* ep = new ((ThalliumEndpoint *) Memory::FBP_MEDIUM::Instance().acquire(sizeof(ThalliumEndpoint)))
-                ThalliumEndpoint(engine, rpc, server);
+            thallium::endpoint *server = new thallium::endpoint(engine->lookup(addr.second));
+            ThalliumEndpoint* ep = new ThalliumEndpoint(engine, rpc, server);
             mdp->transport->AddEndpoint(addr.first, ep);
         }
 
@@ -188,7 +182,7 @@ TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
 
     TransportRecvMessage *rm = nullptr;
     while (rl) {
-        TransportPutMessage *pm = Memory::FBP_MEDIUM::Instance().acquire<TransportPutMessage>();
+        TransportPutMessage *pm = new TransportPutMessage();
         if (!pm) {
             mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
                  "Error while allocating memory in _put_record",
@@ -213,7 +207,7 @@ TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
         } else {
             //Send the message through the network as this message is for another rank
             rm = md->p->transport->Put(pm);
-            Memory::FBP_MEDIUM::Instance().release(pm);
+            delete pm;
         }
 
         rangesrv_list *rlp = rl;
@@ -248,7 +242,7 @@ TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
 
     TransportGetRecvMessage *grm = nullptr;
     while (rl) {
-        TransportGetMessage *gm = Memory::FBP_MEDIUM::Instance().acquire<TransportGetMessage>();
+        TransportGetMessage *gm = new TransportGetMessage();
         gm->key = key;
         gm->key_len = key_len;
         gm->num_keys = 1;
@@ -265,7 +259,7 @@ TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
         } else {
             //Send the message through the network as this message is for another rank
             grm = md->p->transport->Get(gm);
-            Memory::FBP_MEDIUM::Instance().release(gm);
+            delete gm;
         }
 
         rangesrv_list *rlp = rl;
@@ -282,7 +276,7 @@ TransportBRecvMessage *_create_brm(TransportRecvMessage *rm) {
         return nullptr;
     }
 
-    TransportBRecvMessage *brm = Memory::FBP_MEDIUM::Instance().acquire<TransportBRecvMessage>();
+    TransportBRecvMessage *brm = new TransportBRecvMessage();
     brm->error = rm->error;
     brm->mtype = rm->mtype;
     brm->index = rm->index;

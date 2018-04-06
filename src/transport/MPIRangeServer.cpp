@@ -24,7 +24,7 @@ void *MPIRangeServer::listener_thread(void *data) {
         }
 
         //Create a new work item
-        work_item_t *item = Memory::FBP_MEDIUM::Instance().acquire<work_item_t>();
+        work_item_t *item = new work_item_t();
 
         //Set the new buffer to the new item's message
         item->message = message;

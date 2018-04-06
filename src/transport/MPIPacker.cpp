@@ -1,5 +1,4 @@
 #include "MPIPacker.hpp"
-#include "MemoryManagers.hpp"
 
 int MPIPacker::any (const MPI_Comm comm, const TransportMessage *msg, void **buf, int *bufsize) {
     int ret = MDHIM_ERROR;
@@ -274,4 +273,15 @@ int MPIPacker::pack(const MPI_Comm comm, const TransportMessage *msg, void **buf
     }
 
     return MDHIM_SUCCESS;
+}
+
+void MPIPacker::cleanup(void **buf, int *bufsize) {
+    if (buf) {
+        Memory::FBP_MEDIUM::Instance().release(*buf);
+        *buf = nullptr;
+    }
+
+    if (bufsize) {
+        *bufsize = 0;
+    }
 }
