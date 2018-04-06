@@ -267,7 +267,7 @@ int get_slice_num(mdhim_t *md, struct index *index, void *key, int key_len) {
 	//Make sure this key is valid
 	if ((ret = verify_key(index, key, key_len, key_type)) != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_INFO, "Rank %d - Invalid key given",
-		     md->p->transport->EndpointID());
+		     md->p->mdhim_rank);
 		return MDHIM_ERROR;
 	}
 
@@ -833,7 +833,7 @@ rangesrv_list_t *get_range_servers_from_stats(mdhim_t *md, struct index *index,
 	if (!index->stats) {
 		mlog(MDHIM_CLIENT_CRIT, "Rank %d - No statistics data available."
 		     " Perform a mdhimStatFlush first.",
-		     md->p->transport->EndpointID());
+		     md->p->mdhim_rank);
 		return NULL;
 	}
 
@@ -847,7 +847,7 @@ rangesrv_list_t *get_range_servers_from_stats(mdhim_t *md, struct index *index,
 			if (cur_slice == MDHIM_ERROR) {
 				mlog(MDHIM_CLIENT_CRIT, "Rank %d - Error: could not determine a"
 				     " valid a slice number",
-				     md->p->transport->EndpointID());
+				     md->p->mdhim_rank);
 				return NULL;
 			}
 		} else if (op != TransportGetMessageOp::GET_FIRST && op != TransportGetMessageOp::GET_LAST) {
@@ -869,7 +869,7 @@ rangesrv_list_t *get_range_servers_from_stats(mdhim_t *md, struct index *index,
 		if (!ret_rp) {
 			mlog(MDHIM_CLIENT_INFO, "Rank %d - Did not get a valid range server from"
 			     " get_range_server_by_size",
-			     md->p->transport->EndpointID());
+			     md->p->mdhim_rank);
 			return NULL;
 		}
 

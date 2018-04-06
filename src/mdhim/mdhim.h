@@ -27,43 +27,48 @@ extern "C"
 
 int mdhimInit(mdhim_t *md, mdhim_options_t *opts);
 int mdhimClose(mdhim_t *md);
-int mdhimCommit(mdhim_t *md, struct index *index);
-int mdhimStatFlush(mdhim_t *md, struct index *index);
+int mdhimCommit(mdhim_t *md, index_t *index);
+int mdhimStatFlush(mdhim_t *md, index_t *index);
 mdhim_brm_t *mdhimPut(mdhim_t *md,
                       void *primary_key, int primary_key_len,
                       void *value, int value_len,
                       secondary_info_t *secondary_global_info,
                       secondary_info_t *secondary_local_info);
-// mdhim_brm_t *mdhimPutSecondary(mdhim_t *md,
-//                                struct index *secondary_index,
-//                                void *secondary_key, int secondary_key_len,
-//                                void *primary_key, int primary_key_len);
-// mdhim_brm_t *mdhimBPut(mdhim_t *md,
-//                        void **primary_keys, int *primary_key_lens,
-//                        void **primary_values, int *primary_value_lens,
-//                        int num_records,
-//                        secondary_bulk_info_t *secondary_global_info,
-//                        secondary_bulk_info_t *secondary_local_info);
-mdhim_getrm_t *mdhimGet(mdhim_t *md, struct index *index,
+mdhim_brm_t *mdhimPutSecondary(mdhim_t *md,
+                               index_t *secondary_index,
+                               void *secondary_key, int secondary_key_len,
+                               void *primary_key, int primary_key_len);
+mdhim_brm_t *mdhimBPut(mdhim_t *md,
+                       void **primary_keys, int *primary_key_lens,
+                       void **primary_values, int *primary_value_lens,
+                       int num_records,
+                       secondary_bulk_info_t *secondary_global_info,
+                       secondary_bulk_info_t *secondary_local_info);
+
+mdhim_brm_t *mdhimBPutSecondary(mdhim_t *md, index_t *secondary_index,
+                                void **secondary_keys, int *secondary_key_lens,
+                                void **primary_keys, int *primary_key_lens,
+                                int num_records);
+mdhim_getrm_t *mdhimGet(mdhim_t *md, index_t *index,
                         void *key, int key_len,
                         enum TransportGetMessageOp op);
-// mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, struct index *index,
-//                           void **keys, int *key_lens,
-//                           int num_records, int op);
-// mdhim_bgetrm_t *mdhimBGetOp(mdhim_t *md, struct index *index,
-//                             void *key, int key_len,
-//                             int num_records, int op);
-// mdhim_brm_t *mdhimDelete(mdhim_t *md, struct index *index,
-//                          void *key, int key_len);
-// mdhim_brm_t *mdhimBDelete(mdhim_t *md, struct index *index,
-//                           void **keys, int *key_lens,
-//                           int num_keys);
-secondary_info_t *mdhimCreateSecondaryInfo(struct index *secondary_index,
+mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, struct index *index,
+                          void **keys, int *key_lens,
+                          int num_records, enum TransportGetMessageOp op);
+mdhim_bgetrm_t *mdhimBGetOp(mdhim_t *md, struct index *index,
+                            void *key, int key_len,
+                            int num_records, enum TransportGetMessageOp op);
+mdhim_brm_t *mdhimDelete(mdhim_t *md, index_t *index,
+                         void *key, int key_len);
+mdhim_brm_t *mdhimBDelete(mdhim_t *md, index_t *index,
+                          void **keys, int *key_lens,
+                          int num_keys);
+secondary_info_t *mdhimCreateSecondaryInfo(index_t *secondary_index,
                                            void **secondary_keys, int *secondary_key_lens,
                                            int num_keys, int info_type);
 
 void mdhimReleaseSecondaryInfo(secondary_info_t *si);
-secondary_bulk_info_t *mdhimCreateSecondaryBulkInfo(struct index *secondary_index,
+secondary_bulk_info_t *mdhimCreateSecondaryBulkInfo(index_t *secondary_index,
                                                     void ***secondary_keys,
                                                     int **secondary_key_lens,
                                                     int *num_keys, int info_type);

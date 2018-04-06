@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <map>
 
+#include "index_struct.h"
 #include "mdhim_constants.h"
 #include "transport_constants.h"
 
@@ -243,126 +244,77 @@ class TransportEndpoint {
         TransportEndpoint(const TransportEndpoint& rhs) {}
 };
 
-// /**
-//  * An abstract group of communication endpoints
-//  */
-// class TransportEndpointGroup {
-//     public:
-//         virtual ~TransportEndpointGroup() {}
-
-//         /** @description Enqueue a BPut requests to multiple endpoints  */
-//         virtual int AddBPutRequest(TransportBPutMessage **messages, int num_srvs) = 0;
-
-//         /** @description Enqueue a BGet request to multiple endpoints  */
-//         virtual int AddBGetRequest(TransportBGetMessage **messages, int num_srvs) = 0;
-
-//         /** @description Enqueue a BPut reply for the request originator */
-//         virtual int AddBPutReply(TransportRecvMessage **message) = 0;
-
-//         /** @description Enqueue a BGet reply for the request originator */
-//         virtual int AddBGetReply(TransportBGetRecvMessage **messages) = 0;
-
-//    protected:
-//         TransportEndpointGroup() {}
-
-//         TransportEndpointGroup(const TransportEndpointGroup& rhs){}
-// };
+typedef std::map<int, TransportEndpoint *> TransportEndpointMapping_t;
 
 /**
- * Abstract base for all Transport Implementations (MPI, Sockets, Mercury, etc.)
+ * An abstract group of communication endpoints
+ */
+class TransportEndpointGroup {
+    public:
+        TransportEndpointGroup();
+        virtual ~TransportEndpointGroup();
+
+        /** @description Takes ownership of an endpoint and associates it with a unique id */
+        void AddEndpoint(const int id, TransportEndpoint *ep);
+
+        /** @description Deallocates and removes the endpoint from the transport */
+        void RemoveEndpoint(const int id);
+
+        /** @description Bulk Put to multiple endpoints   */
+        virtual TransportBRecvMessage *BPut(const int num_rangesrvs, TransportBPutMessage **bpm_list) = 0;
+
+        /** @description Bulk Get from multiple endpoints */
+        virtual TransportBGetRecvMessage *BGet(const int num_rangesrvs, TransportBGetMessage **bgm_list) = 0;
+
+        /** @description Bulk Delete to multiple endpoints   */
+        virtual TransportBRecvMessage *BDelete(const int num_rangesrvs, TransportBDeleteMessage **bpm_list) = 0;
+
+   protected:
+        TransportEndpointGroup(const TransportEndpointGroup&  rhs) = delete;
+        TransportEndpointGroup(const TransportEndpointGroup&& rhs) = delete;
+
+        TransportEndpointMapping_t endpoints_;
+};
+
+/**
+ * Transport interface for endpoints
+ * The endpoints and endpoint group do not have to
+ * use the same underlying transport protocols.
+ *
  * Transport takes ownership of the EP and EG pointers
  */
 class Transport {
     public:
-        Transport(const int endpoint_id)
-            : endpoints_(),
-              endpoint_id_(endpoint_id)
-        {}
+        Transport();
+        ~Transport();
 
-        ~Transport() {
-            for(std::pair<const int, TransportEndpoint *> const & ep : endpoints_) {
-                delete ep.second;
-            }
-        }
+        /** @description Takes ownership of an endpoint and associates it with a unique id */
+        void AddEndpoint(const int id, TransportEndpoint *ep);
 
-        /**
-         * AddEndpoint
-         * Associate each endpoint with a unique id
-         *
-         * @param id the ID that the given endpoint is associated with
-         * @param ep the endpoint containing the transport functionality to send and receive data
-         */
-        void AddEndpoint(const int id, TransportEndpoint *ep) {
-            endpoints_[id] = ep;
-        }
+        /** @description Deallocates and removes the endpoint from the transport */
+        void RemoveEndpoint(const int id);
 
-        /**
-         * RemoveEndpoint
-         * Deallocates and removes the endpoint from the transport
-         *
-         * @param id the ID of the endpoint
-         */
-        void RemoveEndpoint(const int id) {
-            std::map<int, TransportEndpoint *>::iterator it = endpoints_.find(id);
-            if (it != endpoints_.end()) {
-                delete it->second;
-                endpoints_.erase(id);
-            }
-        }
+        /** @description Takes ownership of an endpoint group, deallocating the previous one */
+        void SetEndpointGroup(TransportEndpointGroup *eg);
 
-        /**
-         * Put
-         * PUTs a message onto the the underlying transport
-         *
-         * @param put the message to PUT
-         * @return the response from the range server
-         */
-        TransportRecvMessage *Put(const TransportPutMessage *put) {
-            std::map<int, TransportEndpoint *>::iterator it = endpoints_.find(put->dst);
-            return (it == endpoints_.end())?nullptr:it->second->Put(put);
-        }
+        /**  @description PUTs a message onto the the underlying transport */
+        TransportRecvMessage *Put(const TransportPutMessage *put);
 
-        /**
-         * Get
-         * GETs a message onto the the underlying transport
-         *
-         * @param get the message to GET
-         * @return the response from the range server
-         */
-        TransportGetRecvMessage *Get(const TransportGetMessage *get) {
-            std::map<int, TransportEndpoint *>::iterator it = endpoints_.find(get->dst);
-            return (it == endpoints_.end())?nullptr:it->second->Get(get);
-        }
+        /**  @description GETs a message onto the the underlying transport */
+        TransportGetRecvMessage *Get(const TransportGetMessage *get);
 
-        /**
-         * operator[]
-         * Utility function used to get endpoints associated with the given ID
-         *
-         * @param id an endpoint ID
-         * @return pointer to the endpoint associated with the ID, or nullptr
-         */
-        TransportEndpoint *operator[](const int id) {
-            std::map<int, TransportEndpoint *>::iterator it = endpoints_.find(id);
-            return (it == endpoints_.end())?nullptr:it->second;
-        }
+        /** @description Bulk Put to multiple endpoints  */
+        TransportBRecvMessage *BPut(const int num_rangesrvs, TransportBPutMessage **bpm_list);
 
-        /**
-         * EndpointID
-         *
-         * @return the ID that this Transport would have if it were an ID
-         */
-        int EndpointID() const {
-            return endpoint_id_;
-        }
+        /** @description Bulk Get from multiple endpoints  */
+        TransportBGetRecvMessage *BGet(const int num_rangesrvs, TransportBGetMessage **bgm_list);
 
-        // virtual TransportEndpointGroup *EndpointGroup() {
-        //     return endpointgroup_;
-        // }
+        /** @description Bulk Delete to multiple endpoints  */
+        TransportBRecvMessage *BDelete(const int num_rangesrvs, TransportBDeleteMessage **bdm_list);
 
     private:
-        std::map<int, TransportEndpoint *> endpoints_;
-        const int endpoint_id_; // the endpoint id that other processes know this process as
-        // TransportEndpointGroup *endpointgroup_;
+        TransportEndpointMapping_t endpoints_;
+        TransportEndpointGroup *endpointgroup_;
 };
 
 #endif //HXHIM_TRANSPORT

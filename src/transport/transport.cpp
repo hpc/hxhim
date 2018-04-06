@@ -157,7 +157,8 @@ void TransportBGetMessage::cleanup() {
 }
 
 TransportDeleteMessage::TransportDeleteMessage()
-  : key(nullptr), key_len(0)
+  : TransportMessage(TransportMessageType::DELETE),
+    key(nullptr), key_len(0)
 {}
 
 TransportDeleteMessage::~TransportDeleteMessage() {
@@ -177,7 +178,8 @@ void TransportDeleteMessage::cleanup() {
 }
 
 TransportBDeleteMessage::TransportBDeleteMessage()
-  : keys(nullptr), key_lens(nullptr),
+  : TransportMessage(TransportMessageType::BDELETE),
+    keys(nullptr), key_lens(nullptr),
     num_keys(0)
 {}
 
@@ -296,7 +298,8 @@ void TransportBGetRecvMessage::cleanup() {
     delete [] value_lens;
     value_lens = nullptr;
 
-    delete next;
+    // do not delete next
+    // delete next;
     next = nullptr;
 
     num_keys = 0;
@@ -320,4 +323,148 @@ void TransportBRecvMessage::cleanup() {
 
     ::operator delete(next);
     next = nullptr;
+}
+
+TransportEndpointGroup::TransportEndpointGroup()
+  : endpoints_()
+{}
+
+TransportEndpointGroup::~TransportEndpointGroup() {
+    for(std::pair<const int, TransportEndpoint *> const & ep : endpoints_) {
+        delete ep.second;
+    }
+}
+
+/**
+ * AddEndpoint
+ * Takes ownership of an endpoint and associates it with a unique id
+ *
+ * @param id the ID that the given endpoint is associated with
+ * @param ep the endpoint containing the transport functionality to send and receive data
+ */
+void TransportEndpointGroup::AddEndpoint(const int id, TransportEndpoint *ep) {
+    delete endpoints_[id];
+    endpoints_[id] = ep;
+}
+
+/**
+ * RemoveEndpoint
+ * Deallocates and removes the endpoint from the transport
+ *
+ * @param id the ID of the endpoint
+ */
+void TransportEndpointGroup::RemoveEndpoint(const int id) {
+    TransportEndpointMapping_t::iterator it = endpoints_.find(id);
+    if (it != endpoints_.end()) {
+        delete it->second;
+        endpoints_.erase(id);
+    }
+}
+
+Transport::Transport()
+  : endpoints_(),
+    endpointgroup_(nullptr)
+{}
+
+Transport::~Transport() {
+    delete endpointgroup_;
+
+    for(std::pair<const int, TransportEndpoint *> const & ep : endpoints_) {
+        delete ep.second;
+    }
+}
+
+/**
+ * AddEndpoint
+ * Takes ownership of an endpoint and associates it with a unique id
+ *
+ * @param id the ID that the given endpoint is associated with
+ * @param ep the endpoint containing the transport functionality to send and receive data
+ */
+void Transport::AddEndpoint(const int id, TransportEndpoint *ep) {
+    endpoints_[id] = ep;
+}
+
+/**
+ * RemoveEndpoint
+ * Deallocates and removes the endpoint from the transport
+ *
+ * @param id the ID of the endpoint
+ */
+void Transport::RemoveEndpoint(const int id) {
+    TransportEndpointMapping_t::iterator it = endpoints_.find(id);
+    if (it != endpoints_.end()) {
+        delete it->second;
+        endpoints_.erase(id);
+    }
+}
+
+/**
+ * SetEndpointGroup
+ * Takes ownership of an endpoint group, deallocating the previous one
+ *
+ * @param eg the endpoint group to take ownership of
+*/
+void Transport::SetEndpointGroup(TransportEndpointGroup *eg) {
+    if (endpointgroup_) {
+        delete endpointgroup_;
+    }
+    endpointgroup_ = eg;
+}
+
+/**
+ * Put
+ * PUTs a message onto the the underlying transport
+ *
+ * @param put the message to PUT
+ * @return the response from the range server
+ */
+TransportRecvMessage *Transport::Put(const TransportPutMessage *put) {
+    TransportEndpointMapping_t::iterator it = endpoints_.find(put->dst);
+    return (it == endpoints_.end())?nullptr:it->second->Put(put);
+}
+
+/**
+ * Get
+ * GETs a message onto the the underlying transport
+ *
+ * @param get the message to GET
+ * @return the response from the range server
+ */
+TransportGetRecvMessage *Transport::Get(const TransportGetMessage *get) {
+    TransportEndpointMapping_t::iterator it = endpoints_.find(get->dst);
+    return (it == endpoints_.end())?nullptr:it->second->Get(get);
+}
+
+/**
+ * BPut
+ * Bulk Put to multiple endpoints
+ *
+ * @param messages a list of PUT messages going to different servers
+ * @param num_srvs the number of servers
+ */
+TransportBRecvMessage *Transport::BPut(const int num_rangesrvs, TransportBPutMessage **bpm_list) {
+    return endpointgroup_->BPut(num_rangesrvs, bpm_list);
+}
+
+/**
+ * BGet
+ * Bulk Get to multiple endpoints
+ *
+ * @param messages a list of GET messages going to different servers
+ * @param num_srvs the number of servers
+ */
+TransportBGetRecvMessage *Transport::BGet(const int num_rangesrvs, TransportBGetMessage **bgm_list) {
+    return endpointgroup_->BGet(num_rangesrvs, bgm_list);
+}
+
+/**
+ * BDelete
+ * Bulk Delete to multiple endpoints
+ *
+ * @param messages a list of DELETE messages going to different servers
+ * @param num_srvs the number of servers
+ */
+TransportBRecvMessage *Transport::BDelete(const int num_rangesrvs, TransportBDeleteMessage **bpm_list) {
+    return endpointgroup_->BDelete(num_rangesrvs, bpm_list);
 }

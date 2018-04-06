@@ -18,6 +18,13 @@ typedef struct mdhim_private {
     MPI_Comm mdhim_comm;
     pthread_mutex_t mdhim_comm_lock;
 
+    //The size of mdhim_comm
+    int mdhim_comm_size;
+
+    //Rank within mdhim_comm
+    //Used as this instance's unique ID
+    int mdhim_rank;
+
     // Actual transport layer
     Transport *transport;
 
@@ -31,8 +38,6 @@ typedef struct mdhim_private {
     //It is used for barriers for clients
     MPI_Comm mdhim_client_comm;
 
-    //The size of mdhim_comm
-    int mdhim_comm_size;
     //Flag to indicate mdhimClose was called
     volatile int shutdown;
     //A pointer to the primary index
@@ -68,7 +73,7 @@ typedef struct mdhim_private {
  * @param commtype The communication type to instantiate
  * @return 0 on success, non-zero on failre
  */
-int mdhim_private_init(struct mdhim_private* mdp, int dbtype, int transporttype);
+int mdhim_private_init(mdhim_private_t* mdp, int dbtype, int transporttype);
 
 TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
                                   void *key, int key_len,
@@ -78,6 +83,16 @@ TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
                                      enum TransportGetMessageOp op);
 TransportBRecvMessage *_create_brm(TransportRecvMessage *rm);
 void _concat_brm(TransportBRecvMessage *head, TransportBRecvMessage *addition);
-
+TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
+                                     void **keys, int *key_lens,
+                                     void **values, int *value_lens,
+                                     int num_records);
+TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
+                                        void **keys, int *key_lens,
+                                        int num_keys, int num_records,
+                                        enum TransportGetMessageOp op);
+TransportBRecvMessage *_bdel_records(mdhim_t *md, index_t *index,
+                                     void **keys, int *key_lens,
+                                     int num_records);
 int _which_server(struct mdhim *md, void *key, int key_len);
 #endif
