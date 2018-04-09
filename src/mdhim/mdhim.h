@@ -44,7 +44,6 @@ mdhim_brm_t *mdhimBPut(mdhim_t *md,
                        int num_records,
                        secondary_bulk_info_t *secondary_global_info,
                        secondary_bulk_info_t *secondary_local_info);
-
 mdhim_brm_t *mdhimBPutSecondary(mdhim_t *md, index_t *secondary_index,
                                 void **secondary_keys, int *secondary_key_lens,
                                 void **primary_keys, int *primary_key_lens,
@@ -52,7 +51,7 @@ mdhim_brm_t *mdhimBPutSecondary(mdhim_t *md, index_t *secondary_index,
 mdhim_getrm_t *mdhimGet(mdhim_t *md, index_t *index,
                         void *key, int key_len,
                         enum TransportGetMessageOp op);
-mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, struct index *index,
+mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, index_t *index,
                           void **keys, int *key_lens,
                           int num_records, enum TransportGetMessageOp op);
 mdhim_bgetrm_t *mdhimBGetOp(mdhim_t *md, struct index *index,

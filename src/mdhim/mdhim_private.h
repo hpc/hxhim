@@ -58,7 +58,7 @@ typedef struct mdhim_private {
     pthread_cond_t receive_msg_ready_cv;
     /* The receive msg, which is sent to the client by the
        range server running in the same process */
-    void *receive_msg;
+    TransportMessage *receive_msg;
     //Options for DB creation
     mdhim_options_t *db_opts;
 } mdhim_private_t;

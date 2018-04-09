@@ -6,7 +6,6 @@
 
 #include <cstdio>
 #include <cstdlib>
-#include <iostream>
 #include <memory>
 #include <sys/time.h>
 
@@ -474,8 +473,26 @@ mdhim_brm_t *mdhimBPut(mdhim_t *md,
         return nullptr;
     }
 
-    TransportBRecvMessage *head = _bput_records(md, md->p->primary_index, primary_keys, primary_key_lens,
-                                                primary_values, primary_value_lens, num_records);
+    //Copy the keys and values
+    void **pks = new void *[num_records]();
+    int *pk_lens = new int[num_records]();
+    void **pvs = new void *[num_records]();
+    int *pv_lens = new int[num_records]();
+
+    for(int i = 0; i < num_records; i++) {
+        pks[i] = ::operator new(primary_key_lens[i]);
+        memcpy(pks[i], primary_keys[i], primary_key_lens[i]);
+        pk_lens[i] = primary_key_lens[i];
+
+        pvs[i] = ::operator new(primary_value_lens[i]);
+        memcpy(pvs[i], primary_values[i], primary_value_lens[i]);
+        pv_lens[i] = primary_value_lens[i];
+    }
+
+    TransportBRecvMessage *head = _bput_records(md, md->p->primary_index,
+                                                pks, pk_lens,
+                                                pvs, pv_lens,
+                                                num_records);
 
     if (!head || head->error) {
         return mdhim_brm_init(head);
@@ -485,8 +502,10 @@ mdhim_brm_t *mdhimBPut(mdhim_t *md,
     if (secondary_local_info && secondary_local_info->secondary_index &&
         secondary_local_info->secondary_keys &&
         secondary_local_info->secondary_key_lens) {
-        TransportBRecvMessage *newone = _bput_secondary_keys_from_info(md, secondary_local_info, primary_keys,
-                                                                       primary_key_lens, num_records);
+
+        TransportBRecvMessage *newone = _bput_secondary_keys_from_info(md, secondary_local_info,
+                                                                       primary_keys, primary_key_lens,
+                                                                       num_records);
         if (newone) {
             _concat_brm(head, newone);
         }
@@ -496,8 +515,10 @@ mdhim_brm_t *mdhimBPut(mdhim_t *md,
     if (secondary_global_info && secondary_global_info->secondary_index &&
         secondary_global_info->secondary_keys &&
         secondary_global_info->secondary_key_lens) {
-        TransportBRecvMessage *newone = _bput_secondary_keys_from_info(md, secondary_global_info, primary_keys,
-                                                                       primary_key_lens, num_records);
+
+        TransportBRecvMessage *newone = _bput_secondary_keys_from_info(md, secondary_global_info,
+                                                                       primary_keys, primary_key_lens,
+                                                                       num_records);
         if (newone) {
             _concat_brm(head, newone);
         }
@@ -528,11 +549,10 @@ mdhim_brm_t *mdhimBPutSecondary(mdhim_t *md, index_t *secondary_index,
         return nullptr;
     }
 
-    TransportBRecvMessage *brm = _bput_records(md, secondary_index,
-                                               secondary_keys, secondary_key_lens,
-                                               primary_keys, primary_key_lens,
-                                               num_records);
-    return mdhim_brm_init(brm);
+    return mdhim_brm_init(_bput_records(md, secondary_index,
+                                        secondary_keys, secondary_key_lens,
+                                        primary_keys, primary_key_lens,
+                                        num_records));
 }
 
 /**
@@ -583,6 +603,15 @@ mdhim_getrm_t *mdhimGet(mdhim_t *md, index_t *index,
 mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, index_t *index,
                           void **keys, int *key_lens,
                           int num_keys, enum TransportGetMessageOp op) {
+    if (!md || !md->p ||
+        !keys || !key_lens) {
+        return nullptr;
+    }
+
+    if (!index) {
+        index = md->p->primary_index;
+    }
+
     if (op != TransportGetMessageOp::GET_EQ && op != TransportGetMessageOp::GET_PRIMARY_EQ) {
         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
              "Invalid operation for mdhimBGet",
@@ -598,14 +627,16 @@ mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, index_t *index,
         return nullptr;
     }
 
-    if (!index) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
-             "Invalid index specified",
-              md->p->mdhim_rank);
-        return nullptr;
+    // copy the keys
+    void **ks = new void *[num_keys]();
+    int *k_lens = new int[num_keys]();
+    for(int i = 0; i < num_keys; i++) {
+        ks[i] = ::operator new(key_lens[i]);
+        memcpy(ks[i], keys[i], key_lens[i]);
+        k_lens[i] = key_lens[i];
     }
 
-    TransportBGetRecvMessage *bgrm_head = _bget_records(md, index, keys, key_lens, num_keys, 1, op);
+    TransportBGetRecvMessage *bgrm_head = _bget_records(md, index, ks, k_lens, num_keys, 1, op);
     if (!bgrm_head) {
         return nullptr;
     }

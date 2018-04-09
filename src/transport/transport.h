@@ -99,6 +99,7 @@ void mdhim_brm_destroy(mdhim_brm_t *brm);
  * These will need to be organized later on.
 */
 int mdhim_brm_error(const mdhim_brm_t *brm, int *error);
+int mdhim_brm_next(const mdhim_brm_t *brm, mdhim_brm_t **next);
 
 int mdhim_grm_error(const mdhim_getrm_t *grm, int *error);
 int mdhim_grm_key(const mdhim_getrm_t *grm, void **key, int *key_len);
@@ -108,7 +109,7 @@ int mdhim_bgrm_error(const mdhim_bgetrm_t *bgrm, int *error);
 int mdhim_bgrm_keys(const mdhim_bgetrm_t *bgrm, void ***keys, int **key_lens);
 int mdhim_bgrm_values(const mdhim_bgetrm_t *bgrm, void ***values, int **value_lens);
 int mdhim_bgrm_num_keys(const mdhim_bgetrm_t *bgrm, int *num_keys);
-
+int mdhim_bgrm_next(const mdhim_bgetrm_t *bgrm, mdhim_bgetrm_t **next);
 
 #ifdef __cplusplus
 }

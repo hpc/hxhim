@@ -4,7 +4,7 @@
 cmake_minimum_required(VERSION 2.8)
 include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
-file(GLOB TRANSPORT_TEST_SOURCES *.c*)
+file(GLOB TRANSPORT_TEST_SOURCES *.c* ../main.cpp)
 add_executable(mdhim-transport-tests ${TRANSPORT_TEST_SOURCES})
 set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${LEVELDB_LIBRARY_DIRS})
 target_link_libraries(mdhim-transport-tests mdhim transport mdhimutils ${LEVELDB_LIBRARY} gtest gtest_main ${MPI_CXX_LIBRARIES} ${THALLIUM_LIBRARIES})

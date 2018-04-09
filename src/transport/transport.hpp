@@ -25,8 +25,8 @@ class TransportMessage {
 
         virtual ~TransportMessage();
 
-        int size() const;
-        void cleanup();
+        virtual int size() const;
+        virtual void cleanup();
 
         TransportMessageType mtype;
         int src;
@@ -80,7 +80,7 @@ class TransportBPutMessage final : virtual public TransportMessage {
 class TransportGet : virtual public TransportMessage {
     public:
         TransportGet(const TransportMessageType type);
-        ~TransportGet();
+        virtual ~TransportGet();
 
         TransportGetMessageOp op;
         int num_keys;

@@ -229,6 +229,20 @@ int mdhim_brm_error(const mdhim_brm_t *brm, int *error) {
     return MDHIM_SUCCESS;
 }
 
+int mdhim_brm_next(const mdhim_brm_t *brm, mdhim_brm_t **next) {
+    if (!brm || !brm->p || !brm->p->brm || !next) {
+        return MDHIM_ERROR;
+    }
+
+    *next = nullptr;
+
+    if (brm->p->brm->next) {
+        *next = mdhim_brm_init(brm->p->brm->next);
+    }
+
+    return MDHIM_SUCCESS;
+}
+
 int mdhim_grm_error(const mdhim_getrm_t *grm, int *error) {
     if (!grm || !grm->p || !grm->p->grm || !error) {
         return MDHIM_ERROR;
@@ -238,8 +252,8 @@ int mdhim_grm_error(const mdhim_getrm_t *grm, int *error) {
     return MDHIM_SUCCESS;
 }
 
-int  mdhim_grm_key(const mdhim_getrm_t *grm, void **key, int *key_len) {
-    if (!grm || !grm->p || !grm->p->grm || !key || key_len) {
+int mdhim_grm_key(const mdhim_getrm_t *grm, void **key, int *key_len) {
+    if (!grm || !grm->p || !grm->p->grm) {
         return MDHIM_ERROR;
     }
 
@@ -255,7 +269,7 @@ int  mdhim_grm_key(const mdhim_getrm_t *grm, void **key, int *key_len) {
 }
 
 int mdhim_grm_value(const mdhim_getrm_t *grm, void **value, int *value_len) {
-    if (!grm || !grm->p || !grm->p->grm || !value || value_len) {
+    if (!grm || !grm->p || !grm->p->grm) {
         return MDHIM_ERROR;
     }
 
@@ -280,7 +294,7 @@ int mdhim_bgrm_error(const mdhim_bgetrm_t *bgrm, int *error) {
 }
 
 int  mdhim_bgrm_keys(const mdhim_bgetrm_t *bgrm, void ***keys, int **key_lens) {
-    if (!bgrm || !bgrm->p || !bgrm->p->bgrm || !keys || key_lens) {
+    if (!bgrm || !bgrm->p || !bgrm->p->bgrm) {
         return MDHIM_ERROR;
     }
 
@@ -296,7 +310,7 @@ int  mdhim_bgrm_keys(const mdhim_bgetrm_t *bgrm, void ***keys, int **key_lens) {
 }
 
 int mdhim_bgrm_values(const mdhim_bgetrm_t *bgrm, void ***values, int **value_lens) {
-    if (!bgrm || !bgrm->p || !bgrm->p->bgrm || !values || value_lens) {
+    if (!bgrm || !bgrm->p || !bgrm->p->bgrm) {
         return MDHIM_ERROR;
     }
 
@@ -317,5 +331,17 @@ int mdhim_bgrm_num_keys(const mdhim_bgetrm_t *bgrm, int *num_keys) {
     }
 
     *num_keys = bgrm->p->bgrm->num_keys;
+    return MDHIM_SUCCESS;
+}
+
+int mdhim_bgrm_next(const mdhim_bgetrm_t *bgrm, mdhim_bgetrm_t **next) {
+    if (!bgrm || !bgrm->p || !bgrm->p->bgrm || !next) {
+        return MDHIM_ERROR;
+    }
+
+    *next = nullptr;
+    if (bgrm->p->bgrm->next) {
+        *next = mdhim_bgrm_init(bgrm->p->bgrm->next);
+    }
     return MDHIM_SUCCESS;
 }

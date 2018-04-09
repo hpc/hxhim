@@ -21,11 +21,11 @@ TEST(thallium_pack_unpack, TransportPutMessage) {
         src.index_type = PRIMARY_INDEX;
         src.index_name = nullptr;
 
-        src.key = Memory::FBP_MEDIUM::Instance().acquire(KEY_LEN);
+        src.key = ::operator new(KEY_LEN);
         memcpy(src.key, KEY, KEY_LEN * sizeof(char));
         src.key_len = KEY_LEN;
 
-        src.value = Memory::FBP_MEDIUM::Instance().acquire(VALUE_LEN);
+        src.value = ::operator new(VALUE_LEN);
         memcpy(src.value, VALUE, VALUE_LEN * sizeof(char));
         src.value_len = VALUE_LEN;
     }
@@ -36,6 +36,7 @@ TEST(thallium_pack_unpack, TransportPutMessage) {
     TransportPutMessage *dst = nullptr;
     EXPECT_EQ(ThalliumUnpacker::unpack(&dst, buf), MDHIM_SUCCESS);
 
+    ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.mtype, dst->mtype);
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
@@ -48,9 +49,7 @@ TEST(thallium_pack_unpack, TransportPutMessage) {
     EXPECT_EQ(src.value_len, dst->value_len);
     EXPECT_EQ(memcmp(src.value, dst->value, dst->value_len), 0);
 
-    Memory::FBP_MEDIUM::Instance().release(src.key);
-    Memory::FBP_MEDIUM::Instance().release(src.value);
-    Memory::FBP_MEDIUM::Instance().release(dst);
+    delete dst;
     EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
 }
 
@@ -64,18 +63,18 @@ TEST(thallium_pack_unpack, TransportPutMessage) {
 //         src.index_type = PRIMARY_INDEX;
 //         src.index_name = nullptr;
 
-//         src.keys = (void **)malloc(sizeof(void *));
-//         src.keys[0] = (void *)Memory::FBP_MEDIUM::Instance().acquire(KEY_LEN);
+//         src.keys = new void*[1]();;
+//         src.keys[0] = ::operator new(KEY_LEN);
 //         memcpy(src.keys[0], KEY, KEY_LEN * sizeof(char));
 
-//         src.key_lens = (int *)malloc(sizeof(int));
+//         src.key_lens = new int[1]();
 //         src.key_lens[0] = KEY_LEN;
 
-//         src.values = (void **)malloc(sizeof(void *));
-//         src.values[0] = (void *)Memory::FBP_MEDIUM::Instance().acquire(VALUE_LEN);
+//         src.values = new void*[1]();;
+//         src.values[0] = ::operator new(VALUE_LEN);
 //         memcpy(src.values[0], VALUE, VALUE_LEN * sizeof(char));
 
-//         src.value_lens = (int *)malloc(sizeof(int));
+//         src.value_lens = new int[1]();
 //         src.value_lens[0] = VALUE_LEN;
 
 //         src.num_keys = 1;
@@ -88,7 +87,8 @@ TEST(thallium_pack_unpack, TransportPutMessage) {
 //     TransportBPutMessage *dst = nullptr;
 //     EXPECT_EQ(ThalliumUnpacker::unpack(&dst, buf), MDHIM_SUCCESS);
 
-// //     EXPECT_EQ(src.mtype, dst->mtype);
+//     ASSERT_NE(dst, nullptr);
+//     EXPECT_EQ(src.mtype, dst->mtype);
 //     EXPECT_EQ(src.src, dst->src);
 //     EXPECT_EQ(src.dst, dst->dst);
 //     EXPECT_EQ(src.index, dst->index);
@@ -118,7 +118,7 @@ TEST(thallium_pack_unpack, TransportGetMessage) {
         src.op = TransportGetMessageOp::GET_EQ;
         src.num_keys = 1;
 
-        src.key = (void *)Memory::FBP_MEDIUM::Instance().acquire(KEY_LEN);
+        src.key = ::operator new(KEY_LEN);
         memcpy(src.key, KEY, KEY_LEN * sizeof(char));
 
         src.key_len = KEY_LEN;
@@ -130,6 +130,7 @@ TEST(thallium_pack_unpack, TransportGetMessage) {
     TransportGetMessage *dst = nullptr;
     EXPECT_EQ(ThalliumUnpacker::unpack(&dst, buf), MDHIM_SUCCESS);
 
+    ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.mtype, dst->mtype);
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
@@ -140,8 +141,7 @@ TEST(thallium_pack_unpack, TransportGetMessage) {
     EXPECT_EQ(src.key_len, dst->key_len);
     EXPECT_EQ(memcmp(src.key, dst->key, dst->key_len), 0);
 
-    Memory::FBP_MEDIUM::Instance().release(src.key);
-    Memory::FBP_MEDIUM::Instance().release(dst);
+    delete dst;
     EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
 }
 
@@ -158,11 +158,11 @@ TEST(thallium_pack_unpack, TransportGetMessage) {
 //         src.op = TransportGetMessageOp::GET_EQ;
 //         src.num_keys = 1;
 
-//         src.keys = (void **)malloc(sizeof(void *));
-//         src.keys[0] = (void *)Memory::FBP_MEDIUM::Instance().acquire(KEY_LEN);
+//         src.keys = new void*[1]();;
+//         src.keys[0] = ::operator new(KEY_LEN);
 //         memcpy(src.keys[0], KEY, KEY_LEN * sizeof(char));
 
-//         src.key_lens = (int *)malloc(sizeof(int));
+//         src.key_lens = new int[1]();
 //         src.key_lens[0] = KEY_LEN;
 
 //         src.num_recs = 1;
@@ -175,7 +175,8 @@ TEST(thallium_pack_unpack, TransportGetMessage) {
 //     TransportBGetMessage *dst = nullptr;
 //     EXPECT_EQ(ThalliumUnpacker::unpack(&dst, buf), MDHIM_SUCCESS);
 
-// //     EXPECT_EQ(src.mtype, dst->mtype);
+//     ASSERT_NE(dst, nullptr);
+//     EXPECT_EQ(src.mtype, dst->mtype);
 //     EXPECT_EQ(src.src, dst->src);
 //     EXPECT_EQ(src.dst, dst->dst);
 //     EXPECT_EQ(src.index, dst->index);
@@ -201,7 +202,7 @@ TEST(thallium_pack_unpack, TransportGetMessage) {
 //         src.index_type = PRIMARY_INDEX;
 //         src.index_name = nullptr;
 
-//         src.key = (void *)Memory::FBP_MEDIUM::Instance().acquire(KEY_LEN);
+//         src.key = ::operator new(KEY_LEN);
 //         memcpy(src.key, KEY, KEY_LEN * sizeof(char));
 
 //         src.key_len = KEY_LEN;
@@ -236,11 +237,11 @@ TEST(thallium_pack_unpack, TransportGetMessage) {
 
 //         src.num_keys = 1;
 
-//         src.keys = (void **)malloc(sizeof(void *));
-//         src.keys[0] = (void *)Memory::FBP_MEDIUM::Instance().acquire(KEY_LEN);
+//         src.keys = new void*[1]();;
+//         src.keys[0] = ::operator new(KEY_LEN);
 //         memcpy(src.keys[0], KEY, KEY_LEN * sizeof(char));
 
-//         src.key_lens = (int *)malloc(sizeof(int));
+//         src.key_lens = new int[1]();
 //         src.key_lens[0] = KEY_LEN;
 //     }
 
@@ -251,7 +252,8 @@ TEST(thallium_pack_unpack, TransportGetMessage) {
 //     TransportBDeleteMessage *dst = nullptr;
 //     EXPECT_EQ(ThalliumUnpacker::unpack(&dst, buf), MDHIM_SUCCESS);
 
-// //     EXPECT_EQ(src.mtype, dst->mtype);
+//     ASSERT_NE(dst, nullptr);
+//     EXPECT_EQ(src.mtype, dst->mtype);
 //     EXPECT_EQ(src.src, dst->src);
 //     EXPECT_EQ(src.dst, dst->dst);
 //     EXPECT_EQ(src.index, dst->index);
@@ -284,6 +286,7 @@ TEST(thallium_pack_unpack, TransportRecvMessage) {
     TransportRecvMessage *dst = nullptr;
     EXPECT_EQ(ThalliumUnpacker::unpack(&dst, buf), MDHIM_SUCCESS);
 
+    ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.mtype, dst->mtype);
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
@@ -292,7 +295,7 @@ TEST(thallium_pack_unpack, TransportRecvMessage) {
 
     EXPECT_EQ(src.error, dst->error);
 
-    Memory::FBP_MEDIUM::Instance().release(dst);
+    delete dst;
     EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
 }
 
@@ -308,18 +311,18 @@ TEST(thallium_pack_unpack, TransportRecvMessage) {
 
 //         src.error = MDHIM_SUCCESS;
 
-//         src.keys = (void **)malloc(sizeof(void *));
-//         src.keys[0] = (void *)Memory::FBP_MEDIUM::Instance().acquire(KEY_LEN);
+//         src.keys = new void*[1]();;
+//         src.keys[0] = ::operator new(KEY_LEN);
 //         memcpy(src.keys[0], KEY, KEY_LEN * sizeof(char));
 
-//         src.key_lens = (int *)malloc(sizeof(int));
+//         src.key_lens = new int[1]();
 //         src.key_lens[0] = KEY_LEN;
 
-//         src.values = (void **)malloc(sizeof(void *));
-//         src.values[0] = (void *)Memory::FBP_MEDIUM::Instance().acquire(VALUE_LEN);
+//         src.values = new void*[1]();;
+//         src.values[0] = ::operator new(VALUE_LEN);
 //         memcpy(src.values[0], VALUE, VALUE_LEN * sizeof(char));
 
-//         src.value_lens = (int *)malloc(sizeof(int));
+//         src.value_lens = new int[1]();
 //         src.value_lens[0] = VALUE_LEN;
 
 //         src.num_keys = 1;
@@ -333,7 +336,8 @@ TEST(thallium_pack_unpack, TransportRecvMessage) {
 //     TransportBGetRecvMessage *dst = nullptr;
 //     EXPECT_EQ(ThalliumUnpacker::unpack(&dst, buf), MDHIM_SUCCESS);
 
-// //     EXPECT_EQ(src.mtype, dst->mtype);
+//     ASSERT_NE(dst, nullptr);
+//     EXPECT_EQ(src.mtype, dst->mtype);
 //     EXPECT_EQ(src.src, dst->src);
 //     EXPECT_EQ(src.dst, dst->dst);
 //     EXPECT_EQ(src.index, dst->index);
@@ -370,7 +374,8 @@ TEST(thallium_pack_unpack, TransportRecvMessage) {
 //     TransportBRecvMessage *dst = nullptr;
 //     EXPECT_EQ(ThalliumUnpacker::unpack(&dst, buf), MDHIM_SUCCESS);
 
-// //     EXPECT_EQ(src.mtype, dst->mtype);
+//     ASSERT_NE(dst, nullptr);
+//     EXPECT_EQ(src.mtype, dst->mtype);
 //     EXPECT_EQ(src.src, dst->src);
 //     EXPECT_EQ(src.dst, dst->dst);
 //     EXPECT_EQ(src.index, dst->index);

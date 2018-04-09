@@ -212,7 +212,7 @@ void TransportBDeleteMessage::cleanup() {
 
 TransportRecvMessage::TransportRecvMessage()
   : TransportMessage(TransportMessageType::RECV),
-    error(0)
+    error(MDHIM_SUCCESS)
 {}
 
 TransportRecvMessage::~TransportRecvMessage() {
@@ -283,6 +283,7 @@ void TransportBGetRecvMessage::cleanup() {
 
     for(int i = 0; i < num_keys; i++) {
         ::operator delete(keys[i]);
+        // free(values[i]);
         ::operator delete(values[i]);
     }
 
@@ -305,8 +306,8 @@ void TransportBGetRecvMessage::cleanup() {
 }
 
 TransportBRecvMessage::TransportBRecvMessage()
-  : TransportMessage(TransportMessageType::RECV_BGET),
-    error(0), next(nullptr)
+  : TransportMessage(TransportMessageType::RECV_BULK),
+    error(MDHIM_SUCCESS), next(nullptr)
 {}
 
 TransportBRecvMessage::~TransportBRecvMessage() {
@@ -320,7 +321,7 @@ int TransportBRecvMessage::size() const {
 void TransportBRecvMessage::cleanup() {
     TransportMessage::cleanup();
 
-    ::operator delete(next);
+    // do not delete next
     next = nullptr;
 }
 

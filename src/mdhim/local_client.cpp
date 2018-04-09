@@ -28,7 +28,7 @@ static void *get_msg_self(mdhim_t *md) {
 	}
 
 	//Get the message
-	void *msg = md->p->receive_msg;
+	TransportMessage *msg = md->p->receive_msg;
 	//Set the message queue to null
 	md->p->receive_msg = nullptr;
 	//unlock the mutex
@@ -102,7 +102,7 @@ TransportRecvMessage *local_client_bput(mdhim_t *md, TransportBPutMessage *bpm) 
 	}
 
     item->message = static_cast<TransportMessage *>(bpm);
-    item->address = md->p->mdhim_rank;
+    item->address = bpm->dst;
 
 	if (range_server_add_work(md, item) != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_bput");
@@ -128,14 +128,14 @@ TransportBGetRecvMessage *local_client_bget(mdhim_t *md, TransportBGetMessage *b
 	}
 
 	item->message = static_cast<TransportMessage *>(bgm);
-    item->address = md->p->mdhim_rank;
+    item->address = bgm->dst;
 
 	if (range_server_add_work(md, item) != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_bget");
 		return NULL;
 	}
 
-    return static_cast<TransportBGetRecvMessage *>(get_msg_self(md));
+    return dynamic_cast<TransportBGetRecvMessage *>(static_cast<TransportMessage *>(get_msg_self(md)));
 }
 
 /**
@@ -154,7 +154,8 @@ TransportBGetRecvMessage *local_client_bget_op(mdhim_t *md, TransportGetMessage 
 	}
 
 	item->message = static_cast<TransportMessage *>(gm);
-    item->address = md->p->mdhim_rank;
+    item->address = gm->dst;
+
 	if (range_server_add_work(md, item) != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_bput");
 		return NULL;
@@ -231,7 +232,7 @@ TransportRecvMessage *local_client_bdelete(mdhim_t *md, TransportBDeleteMessage 
 	}
 
 	item->message = static_cast<TransportMessage *>(bdm);
-    item->address = md->p->mdhim_rank;
+    item->address = bdm->dst;
 
 	if (range_server_add_work(md, item) != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_bdelete");

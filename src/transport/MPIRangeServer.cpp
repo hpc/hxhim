@@ -113,7 +113,7 @@ int MPIRangeServer::send_client_response(work_item_t *item, TransportMessage *me
     int sizebuf = 0;
 
     if ((ret = MPIPacker::any(MPI_COMM_WORLD, message, &sendbuf, &sizebuf)) == MDHIM_SUCCESS) {
-        ret = only_send_client_response(item->address, sendbuf, sizebuf, shutdown);
+        ret = only_send_client_response(message->dst, sendbuf, sizebuf, shutdown);
     }
 
     Memory::FBP_MEDIUM::Instance().release(sendbuf);

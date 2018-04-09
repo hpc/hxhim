@@ -1,6 +1,10 @@
 #include "MPIUnpacker.hpp"
 
 int MPIUnpacker::any(const MPI_Comm comm, TransportMessage **msg, const void *buf, const int bufsize) {
+    if (!msg) {
+        return MDHIM_ERROR;
+    }
+
     TransportMessage *basemsg = nullptr;
     if (unpack(comm, &basemsg, buf, bufsize) != MDHIM_SUCCESS) {
         return MDHIM_ERROR;
@@ -15,18 +19,18 @@ int MPIUnpacker::any(const MPI_Comm comm, TransportMessage **msg, const void *bu
                 *msg = put;
             }
             break;
-        case TransportMessageType::BPUT:
-            {
-                TransportBPutMessage *bput = nullptr;
-                ret = unpack(comm, &bput, buf, bufsize);
-                *msg = bput;
-            }
-            break;
         case TransportMessageType::GET:
             {
                 TransportGetMessage *get = nullptr;
                 ret = unpack(comm, &get, buf, bufsize);
                 *msg = get;
+            }
+            break;
+        case TransportMessageType::BPUT:
+            {
+                TransportBPutMessage *bput = nullptr;
+                ret = unpack(comm, &bput, buf, bufsize);
+                *msg = bput;
             }
             break;
         case TransportMessageType::BGET:
@@ -137,71 +141,6 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportPutMessage **pm, const voi
     return MDHIM_SUCCESS;
 }
 
-int MPIUnpacker::unpack(const MPI_Comm comm, TransportBPutMessage **bpm, const void *buf, const int bufsize) {
-    if (!bpm || !buf) {
-        return MDHIM_ERROR;
-    }
-
-    TransportBPutMessage *out = new TransportBPutMessage();
-    if (!out) {
-        return MDHIM_ERROR;
-    }
-
-    int position = 0;
-    if (unpack(comm, static_cast<TransportMessage *>(out), buf, bufsize, &position) != MDHIM_SUCCESS) {
-        delete out;
-        return MDHIM_ERROR;
-    }
-
-    if (MPI_Unpack(buf, bufsize, &position, &out->num_keys, sizeof(out->num_keys), MPI_CHAR, comm) != MPI_SUCCESS) {
-        delete out;
-        return MDHIM_ERROR;
-    }
-
-    // If there are keys/values, allocate space for them and unpack
-    if (out->num_keys) {
-        if (!(out->key_lens = new int(out->num_keys))) {
-            delete out;
-            return MDHIM_ERROR;
-        }
-
-        if (!(out->value_lens = new int(out->num_keys))) {
-            delete out;
-            return MDHIM_ERROR;
-        }
-
-        if ((MPI_Unpack(buf, bufsize, &position, out->key_lens, out->num_keys, MPI_INT, comm)   != MPI_SUCCESS) ||
-            (MPI_Unpack(buf, bufsize, &position, out->value_lens, out->num_keys, MPI_INT, comm) != MPI_SUCCESS)) {
-            delete out;
-            return MDHIM_ERROR;
-        }
-
-        if (!(out->keys = new void *[out->num_keys]())) {
-            delete out;
-            return MDHIM_ERROR;
-        }
-
-        if (!(out->values = new void *[out->num_keys]())) {
-            delete out;
-            return MDHIM_ERROR;
-        }
-
-        for(int i = 0; i < out->num_keys; i++) {
-            if (!(out->keys[i] = ::operator new(out->key_lens[i]))     ||
-                !(out->values[i] = ::operator new(out->value_lens[i])) ||
-                (MPI_Unpack(buf, bufsize, &position, out->keys[i], out->key_lens[i], MPI_CHAR, comm)     != MPI_SUCCESS) ||
-                (MPI_Unpack(buf, bufsize, &position, out->values[i], out->value_lens[i], MPI_CHAR, comm) != MPI_SUCCESS)) {
-                delete out;
-                return MDHIM_ERROR;
-            }
-        }
-    }
-
-    *bpm = out;
-
-    return MDHIM_SUCCESS;
-}
-
 int MPIUnpacker::unpack(const MPI_Comm comm, TransportGetMessage **gm, const void *buf, const int bufsize) {
     if (!gm || !buf) {
         return MDHIM_ERROR;
@@ -244,6 +183,71 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportGetMessage **gm, const voi
     return MDHIM_SUCCESS;
 }
 
+int MPIUnpacker::unpack(const MPI_Comm comm, TransportBPutMessage **bpm, const void *buf, const int bufsize) {
+    if (!bpm || !buf) {
+        return MDHIM_ERROR;
+    }
+
+    TransportBPutMessage *out = new TransportBPutMessage();
+    if (!out) {
+        return MDHIM_ERROR;
+    }
+
+    int position = 0;
+    if (unpack(comm, static_cast<TransportMessage *>(out), buf, bufsize, &position) != MDHIM_SUCCESS) {
+        delete out;
+        return MDHIM_ERROR;
+    }
+
+    if (MPI_Unpack(buf, bufsize, &position, &out->num_keys, sizeof(out->num_keys), MPI_CHAR, comm) != MPI_SUCCESS) {
+        delete out;
+        return MDHIM_ERROR;
+    }
+
+    // If there are keys/values, allocate space for them and unpack
+    if (out->num_keys) {
+        if (!(out->key_lens = new int(out->num_keys))) {
+            delete out;
+            return MDHIM_ERROR;
+        }
+
+        if (!(out->value_lens = new int(out->num_keys))) {
+            delete out;
+            return MDHIM_ERROR;
+        }
+
+        if ((MPI_Unpack(buf, bufsize, &position, out->key_lens, out->num_keys * sizeof(int), MPI_CHAR, comm)   != MPI_SUCCESS) ||
+            (MPI_Unpack(buf, bufsize, &position, out->value_lens, out->num_keys * sizeof(int), MPI_CHAR, comm) != MPI_SUCCESS)) {
+            delete out;
+            return MDHIM_ERROR;
+        }
+
+        if (!(out->keys = new void *[out->num_keys]())) {
+            delete out;
+            return MDHIM_ERROR;
+        }
+
+        if (!(out->values = new void *[out->num_keys]())) {
+            delete out;
+            return MDHIM_ERROR;
+        }
+
+        for(int i = 0; i < out->num_keys; i++) {
+            if (!(out->keys[i] = ::operator new(out->key_lens[i]))     ||
+                !(out->values[i] = ::operator new(out->value_lens[i])) ||
+                (MPI_Unpack(buf, bufsize, &position, out->keys[i], out->key_lens[i], MPI_CHAR, comm)     != MPI_SUCCESS) ||
+                (MPI_Unpack(buf, bufsize, &position, out->values[i], out->value_lens[i], MPI_CHAR, comm) != MPI_SUCCESS)) {
+                delete out;
+                return MDHIM_ERROR;
+            }
+        }
+    }
+
+    *bpm = out;
+
+    return MDHIM_SUCCESS;
+}
+
 int MPIUnpacker::unpack(const MPI_Comm comm, TransportBGetMessage **bgm, const void *buf, const int bufsize) {
     if (!bgm || !buf) {
         return MDHIM_ERROR;
@@ -279,7 +283,7 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportBGetMessage **bgm, const v
             return MDHIM_ERROR;
         }
 
-        if (MPI_Unpack(buf, bufsize, &position, out->key_lens, out->num_keys, MPI_INT, comm) != MPI_SUCCESS) {
+        if (MPI_Unpack(buf, bufsize, &position, out->key_lens, out->num_keys * sizeof(int), MPI_CHAR, comm) != MPI_SUCCESS) {
             delete out;
             return MDHIM_ERROR;
         }
@@ -363,7 +367,7 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportBDeleteMessage **bdm, cons
             return MDHIM_ERROR;
         }
 
-        if (MPI_Unpack(buf, bufsize, &position, out->key_lens, out->num_keys, MPI_INT, comm) != MPI_SUCCESS) {
+        if (MPI_Unpack(buf, bufsize, &position, out->key_lens, out->num_keys * sizeof(int), MPI_CHAR, comm) != MPI_SUCCESS) {
             delete out;
             return MDHIM_ERROR;
         }
@@ -492,8 +496,8 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportBGetRecvMessage **bgrm, co
             return MDHIM_ERROR;
         }
 
-        if ((MPI_Unpack(buf, bufsize, &position, out->key_lens, out->num_keys, MPI_INT, comm)   != MPI_SUCCESS) ||
-            (MPI_Unpack(buf, bufsize, &position, out->value_lens, out->num_keys, MPI_INT, comm) != MPI_SUCCESS)) {
+        if ((MPI_Unpack(buf, bufsize, &position, out->key_lens, out->num_keys * sizeof(int), MPI_CHAR, comm)   != MPI_SUCCESS) ||
+            (MPI_Unpack(buf, bufsize, &position, out->value_lens, out->num_keys * sizeof(int), MPI_CHAR, comm) != MPI_SUCCESS)) {
             delete out;
             return MDHIM_ERROR;
         }
@@ -520,32 +524,6 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportBGetRecvMessage **bgrm, co
     }
 
     *bgrm = out;
-
-    return MDHIM_SUCCESS;
-}
-
-int MPIUnpacker::unpack(const MPI_Comm comm, TransportBRecvMessage **brm, const void *buf, const int bufsize) {
-    if (!brm || !buf) {
-        return MDHIM_ERROR;
-    }
-
-    TransportBRecvMessage *out = new TransportBRecvMessage();
-    if (!out) {
-        return MDHIM_ERROR;
-    }
-
-    int position = 0;
-    if (unpack(comm, static_cast<TransportMessage *>(out), buf, bufsize, &position) != MDHIM_SUCCESS) {
-        delete out;
-        return MDHIM_ERROR;
-    }
-
-    if (MPI_Unpack(buf, bufsize, &position, &out->error, sizeof(out->error), MPI_CHAR, comm) != MPI_SUCCESS) {
-        delete out;
-        return MDHIM_ERROR;
-    }
-
-    *brm = out;
 
     return MDHIM_SUCCESS;
 }

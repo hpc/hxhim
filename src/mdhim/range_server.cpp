@@ -46,15 +46,16 @@ static void add_timing(struct timeval start, struct timeval end, int num,
  * @param message  pointer to message to send
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-static int send_locally_or_remote(mdhim_t *md, work_item_t * item, TransportMessage *message) {
+static int send_locally_or_remote(mdhim_t *md, work_item_t *item, TransportMessage *message) {
     int ret = MDHIM_SUCCESS;
     if (md->p->mdhim_rank != item->address) {
-        //Sends the message remotely
+        //Send the message remotely
         ret = md->p->send_client_response(item, message, md->p->shutdown);
     } else {
-        //Sends the message locally
+        //Send the message locally
         pthread_mutex_lock(&md->p->receive_msg_mutex);
         md->p->receive_msg = message;
+
         pthread_cond_signal(&md->p->receive_msg_ready_cv);
         pthread_mutex_unlock(&md->p->receive_msg_mutex);
     }
@@ -299,7 +300,6 @@ static int range_server_put(mdhim_t *md, work_item_t *item) {
     add_timing(start, end, inserted, md, TransportMessageType::PUT);
 
 done:
-
     //Create the response message
     TransportRecvMessage *rm = new TransportRecvMessage();
     //Set the type
@@ -307,10 +307,8 @@ done:
     //Set the operation return code as the error
     rm->error = error;
     //Set the server's rank
-    rm->dst = md->p->mdhim_rank;
-
-    //Send response
-    ret = send_locally_or_remote(md, item, rm);
+    rm->src = md->p->mdhim_rank;
+    rm->dst = im->src;
 
     //Free memory
     if (exists && md->p->db_opts->p->db_value_append == MDHIM_DB_APPEND) {
@@ -323,9 +321,11 @@ done:
         ::operator delete(im->value);
         im->value = nullptr;
     }
+
     delete im;
 
-    return MDHIM_SUCCESS;
+    //Send response
+    return send_locally_or_remote(md, item, rm);
 }
 
 /**
@@ -412,8 +412,8 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
     //Put the record in the database
     if ((ret =
          index->mdhim_store->batch_put(index->mdhim_store->db_handle,
-                       bim->keys, bim->key_lens, new_values,
-                       new_value_lens, bim->num_keys)) != MDHIM_SUCCESS) {
+                                       bim->keys, bim->key_lens, new_values,
+                                       new_value_lens, bim->num_keys)) != MDHIM_SUCCESS) {
         mlog(MDHIM_SERVER_CRIT, "Rank %d - Error batch putting records",
              md->p->mdhim_rank);
         error = ret;
@@ -437,7 +437,7 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
             ::operator delete(bim->keys[i]);
             bim->keys[i] = nullptr;
             ::operator delete(bim->values[i]);
-            bim->values = nullptr;
+            bim->values[i] = nullptr;
         }
     }
 
@@ -449,22 +449,25 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
     add_timing(start, end, num_put, md, TransportMessageType::BPUT);
 
  done:
+
     //Create the response message
-    TransportBRecvMessage *brm = new TransportBRecvMessage();
+    TransportRecvMessage *brm = new TransportRecvMessage();
+
     //Set the type
     brm->mtype = TransportMessageType::RECV;
     //Set the operation return code as the error
     brm->error = error;
     //Set the server's rank
-    brm->dst = md->p->mdhim_rank;
-
-    //Release the internals of the bput message
-    delete bim;
+    brm->src = md->p->mdhim_rank;
+    brm->dst = bim->src;
 
     //Send response
     ret = send_locally_or_remote(md, item, brm);
 
-    return MDHIM_SUCCESS;
+    //Release the internals of the bput message
+    delete bim;
+
+    return ret;
 }
 
 // /**
@@ -508,11 +511,9 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
 //     //Set the server's rank
 //     rm->basem.dst = (int) md->p->mdhim_rank;
 
-//     //Send response
-//     ret = send_locally_or_remote(md, item, rm);
 //     delete dm;
-
-//     return MDHIM_SUCCESS;
+//     //Send response
+//     return send_locally_or_remote(md, item, rm);
 // }
 
 // /**
@@ -563,13 +564,12 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
 //     //Set the server's rank
 //     brm->basem.dst = (int) md->p->mdhim_rank;
 
-//     //Send response
-//     ret = send_locally_or_remote(md, source, brm);
 //     delete bdm->keys;
 //     delete bdm->key_lens;
 //     delete bdm;
 
-//     return MDHIM_SUCCESS;
+//     //Send response
+//     return send_locally_or_remote(md, source, brm);
 // }
 
 /**
@@ -615,12 +615,10 @@ static int range_server_commit(mdhim_t *md, work_item_t *item) {
     //Set the server's rank
     rm->dst = md->p->mdhim_rank;
 
-    //Send response
-    ret = send_locally_or_remote(md, item, rm);
-
     delete im;
 
-    return MDHIM_SUCCESS;
+    //Send response
+    return send_locally_or_remote(md, item, rm);
 }
 
 /**
@@ -719,7 +717,6 @@ static int range_server_get(mdhim_t *md, work_item_t *item) {
             break;
     }
 
-
     gettimeofday(&end, NULL);
     add_timing(start, end, num_retrieved, md, TransportMessageType::BGET);
 
@@ -731,7 +728,8 @@ done:
     //Set the operation return code as the error
     grm->error = error;
     //Set the server's rank
-    grm->dst = md->p->mdhim_rank;
+    grm->src = md->p->mdhim_rank;
+    grm->dst = gm->src;
     //Set the key and value
     if (item->address == md->p->mdhim_rank) {
         //If this message is coming from myself, copy the keys
@@ -741,8 +739,9 @@ done:
         gm->key = nullptr;
     } else {
         grm->key = gm->key;
-        grm->key_len = gm->key_len;
     }
+
+    grm->key_len = gm->key_len;
 
     grm->value = value;
     grm->value_len = value_len;
@@ -755,7 +754,7 @@ done:
     //Release the bget message
     delete gm;
 
-    return MDHIM_SUCCESS;
+    return ret;
 }
 
 /**
@@ -800,6 +799,7 @@ static int range_server_bget(mdhim_t *md, work_item_t *item) {
                      index->mdhim_store->get(index->mdhim_store->db_handle,
                                              bgm->keys[i], bgm->key_lens[i], &values[i],
                                              &value_lens[i])) != MDHIM_SUCCESS) {
+
                     error = ret;
                     value_lens[i] = 0;
                     values[i] = NULL;
@@ -883,7 +883,8 @@ done:
     //Set the operation return code as the error
     bgrm->error = error;
     //Set the server's rank
-    bgrm->dst = md->p->mdhim_rank;
+    bgrm->src = md->p->mdhim_rank;
+    bgrm->dst = bgm->src;
     //Set the key and value
     if (item->address == md->p->mdhim_rank) {
         //If this message is coming from myself, copy the keys
@@ -894,16 +895,23 @@ done:
             bgrm->keys[i] = ::operator new(bgrm->key_lens[i]);
             memcpy(bgrm->keys[i], bgm->keys[i], bgrm->key_lens[i]);
         }
-
-        ::operator delete(bgm->keys);
-        ::operator delete(bgm->key_lens);
     } else {
         bgrm->keys = bgm->keys;
         bgrm->key_lens = bgm->key_lens;
     }
 
-    bgrm->values = values;
-    bgrm->value_lens = value_lens;
+    // copy the values
+    bgrm->value_lens = new int[bgm->num_keys]();
+    bgrm->values = new void *[bgm->num_keys]();
+    for (int i = 0; i < bgm->num_keys; i++) {
+        bgrm->value_lens[i] = value_lens[i];
+        bgrm->values[i] = ::operator new(bgrm->value_lens[i]);
+        memcpy(bgrm->values[i], values[i], bgrm->value_lens[i]);
+
+        // cleanup leveldb
+        free(values[i]);
+    }
+
     bgrm->num_keys = bgm->num_keys;
     bgrm->index = index->id;
     bgrm->index_type = index->type;
@@ -914,7 +922,7 @@ done:
     //Release the bget message
     delete bgm;
 
-    return MDHIM_SUCCESS;
+    return ret;
 }
 
 /**
@@ -1079,7 +1087,8 @@ respond:
     //Set the operation return code as the error
     bgrm->error = error;
     //Set the server's rank
-    bgrm->dst = md->p->mdhim_rank;
+    bgrm->src = md->p->mdhim_rank;
+    bgrm->dst = bgm->src;
     //Set the keys and values
     bgrm->keys = keys;
     bgrm->key_lens = key_lens;
@@ -1089,9 +1098,6 @@ respond:
     bgrm->index = index->id;
     bgrm->index_type = index->type;
 
-    //Send response
-    // ret = send_locally_or_remote(md, address, bgrm);
-
     //Free stuff
     if (item->address == md->p->mdhim_rank) {
         /* If this message is not coming from myself,
@@ -1100,12 +1106,15 @@ respond:
         delete bgm;
     }
 
+    // // Send response
+    // ret = send_locally_or_remote(md, address, bgrm);
+
     delete get_key;
     delete get_key_len;
     delete get_value;
     delete get_value_len;
 
-    return MDHIM_SUCCESS;
+    return MDHIM_ERROR;
 }
 
 /*
@@ -1143,19 +1152,16 @@ static void *worker_thread(void *data) {
         //Clean outstanding sends
         range_server_clean_oreqs(md);
 
+        //Call the appropriate function depending on the message type
         while (item) {
-            //Call the appropriate function depending on the message type
             switch(item->message->mtype) {
             case TransportMessageType::PUT:
-                //Pack the put message and pass to range_server_put
                 range_server_put(md, item);
                 break;
             case TransportMessageType::GET:
-                //Pack the put message and pass to range_server_put
                 range_server_get(md, item);
                 break;
             case TransportMessageType::BPUT:
-                //Pack the bulk put message and pass to range_server_put
                 range_server_bput(md, item);
                 break;
             case TransportMessageType::BGET:
@@ -1171,10 +1177,8 @@ static void *worker_thread(void *data) {
                 }
                 break;
             case TransportMessageType::DELETE:
-                // range_server_del(md, dynamic_cast<TransportDeleteMessage *>(item->message), item->address);
                 break;
             case TransportMessageType::BDELETE:
-                // range_server_del(md, dynamic_cast<TransportBDeleteMessage *>(item->message), item->address);
                 break;
             case TransportMessageType::COMMIT:
                 range_server_commit(md, item);

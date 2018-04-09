@@ -22,7 +22,8 @@ enum TransportMessageType {
     RECV      = 8,
     RECV_GET  = 9,
     RECV_BGET = 10,
-    COMMIT    = 11
+    RECV_BULK = 11,
+    COMMIT    = 12
 };
 
 /**

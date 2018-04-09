@@ -80,14 +80,18 @@ int mdhim_private_init(mdhim_private_t* mdp, int dbtype, int transporttype) {
     mdp->transport = new Transport();
 
     if (transporttype == MDHIM_TRANSPORT_MPI) {
+        TransportEndpointGroup *eg = new MPIEndpointGroup(mdp, mdp->shutdown);
+
         // create mapping between unique IDs and ranks
         for(int i = 0; i < mdp->mdhim_comm_size; i++) {
             mdp->transport->AddEndpoint(i, new MPIEndpoint(mdp->mdhim_comm, i, mdp->shutdown));
+            eg->AddEndpoint(i, new MPIEndpoint(mdp->mdhim_comm, i, mdp->shutdown));
         }
 
         // remove loopback endpoint
         mdp->transport->RemoveEndpoint(mdp->mdhim_rank);
 
+        mdp->transport->SetEndpointGroup(eg);
         mdp->listener_thread = MPIRangeServer::listener_thread;
         mdp->send_client_response = MPIRangeServer::send_client_response;
 
@@ -247,7 +251,7 @@ TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
         gm->key = key;
         gm->key_len = key_len;
         gm->num_keys = 1;
-        gm->src =  md->p->mdhim_rank;
+        gm->src = md->p->mdhim_rank;
         gm->dst = rl->ri->rank;
         gm->mtype = TransportMessageType::GET;
         gm->op = (op == TransportGetMessageOp::GET_PRIMARY_EQ)?TransportGetMessageOp::GET_EQ:op;
@@ -303,13 +307,13 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
                                      int num_keys) {
     rangesrv_list *rl, *rlp;
     index_t *lookup_index = nullptr;
-
     index_t *put_index = index;
     if (index->type == LOCAL_INDEX) {
         lookup_index = get_index(md, index->primary_id);
         if (!lookup_index) {
             return nullptr;
         }
+
     } else {
         lookup_index = index;
     }
@@ -354,7 +358,7 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
         //There could be more than one range server returned in the case of the local index
         while (rl) {
             TransportBPutMessage *bpm = nullptr;
-            if (rl->ri->rank !=  md->p->mdhim_rank) {
+            if (rl->ri->rank != md->p->mdhim_rank) {
                 //Set the message in the list for this range server
                 bpm = bpm_list[rl->ri->rangesrv_num - 1];
             } else {
@@ -617,8 +621,9 @@ TransportBRecvMessage *_bdel_records(mdhim_t *md, index_t *index,
 
 int _which_server(struct mdhim *md, void *key, int key_len)
 {
-    rangesrv_list *rl;
-    rl = get_range_servers(md, md->p->primary_index, key, key_len);
+    rangesrv_list *rl = get_range_servers(md, md->p->primary_index, key, key_len);
+    int server = rl?rl->ri->rank:MDHIM_ERROR;
+    free(rl);
     /* what is the difference between 'rank' and 'rangeserv_num' ? */
-    return (rl->ri->rank);
+    return server;
 }

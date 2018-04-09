@@ -28,12 +28,6 @@ class MPIEndpoint : virtual public TransportEndpoint, virtual public MPIEndpoint
         TransportGetRecvMessage *Get(const TransportGetMessage *message);
 
     private:
-        int PutRequest(const TransportPutMessage *message);
-        int PutReply(TransportRecvMessage **message);
-
-        int GetRequest(const TransportGetMessage *message);
-        int GetReply(TransportGetRecvMessage **message);
-
         /**
          * Functions that perform the actual MPI calls
          */

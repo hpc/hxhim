@@ -16,12 +16,23 @@ MPIEndpoint::MPIEndpoint(const MPI_Comm comm, const int remote_rank, volatile in
  * @return a pointer to the response of the PUT operation
  */
 TransportRecvMessage *MPIEndpoint::Put(const TransportPutMessage *message) {
-    TransportRecvMessage *reply = nullptr;
-    if (PutRequest(message) == MDHIM_SUCCESS) {
-        PutReply(&reply);
-    }
+    void *sendbuf = nullptr;
+    int sendsize = 0;
+    void *recvbuf = nullptr;
+    int recvsize = 0;
+    TransportRecvMessage *response = nullptr;
 
-    return reply;
+    // the result of this series of function calls does not matter
+    (void)
+    ((MPIPacker::pack(comm_, message, &sendbuf, &sendsize)     == MDHIM_SUCCESS) &&  // pack the message
+     (send_rangesrv_work(sendbuf, sendsize)                    == MDHIM_SUCCESS) &&  // send the message
+     (receive_client_response(&recvbuf, &recvsize)             == MDHIM_SUCCESS) &&  // receive the response
+     (MPIUnpacker::unpack(comm_, &response, recvbuf, recvsize) == MDHIM_SUCCESS));   // unpack the response
+
+    Memory::FBP_MEDIUM::Instance().release(sendbuf);
+    Memory::FBP_MEDIUM::Instance().release(recvbuf);
+
+    return response;
 }
 
 /**
@@ -32,120 +43,23 @@ TransportRecvMessage *MPIEndpoint::Put(const TransportPutMessage *message) {
  * @return a pointer to the response of the GET operation
  */
 TransportGetRecvMessage *MPIEndpoint::Get(const TransportGetMessage *message) {
-    TransportGetRecvMessage *reply = nullptr;
-    if (GetRequest(message) == MDHIM_SUCCESS) {
-        GetReply(&reply);
-    }
+    void *sendbuf = nullptr;
+    int sendsize = 0;
+    void *recvbuf = nullptr;
+    int recvsize = 0;
+    TransportGetRecvMessage *response = nullptr;
 
-    return reply;
-}
+    // the result of this series of function calls does not matter
+    (void)
+    ((MPIPacker::pack(comm_, message, &sendbuf, &sendsize)     == MDHIM_SUCCESS) &&  // pack the message
+     (send_rangesrv_work(sendbuf, sendsize)                    == MDHIM_SUCCESS) &&  // send the message
+     (receive_client_response(&recvbuf, &recvsize)             == MDHIM_SUCCESS) &&  // receive the response
+     (MPIUnpacker::unpack(comm_, &response, recvbuf, recvsize) == MDHIM_SUCCESS));   // unpack the response
 
-/**
- * PutRequest
- * Sends a TransportPutMessage to the other end of the endpoint
- * without waiting for an acknowledgment
- *
- * @param message the initiating PUT message
- * @return MDHIM_SUCCESS or MDHIM_ERROR
- */
-int MPIEndpoint::PutRequest(const TransportPutMessage *message) {
-    if (!message) {
-        return MDHIM_ERROR;
-    }
+    Memory::FBP_MEDIUM::Instance().release(sendbuf);
+    Memory::FBP_MEDIUM::Instance().release(recvbuf);
 
-    // pack the message
-    void *buf = nullptr;
-    int size = 0;
-    if (MPIPacker::pack(comm_, message, &buf, &size) != MDHIM_SUCCESS) {
-        return MDHIM_ERROR;
-    }
-
-    // send the message
-    const int ret = send_rangesrv_work(buf, size);
-
-    Memory::FBP_MEDIUM::Instance().release(buf);
-
-    return ret;
-}
-
-/**
- * PutReply
- * Waits for a PUT acknowledgment from the range server
- *
- * @param message the buffer that will be used to store the reply
- * @return MDHIM_SUCCESS or MDHIM_ERROR
- */
-int MPIEndpoint::PutReply(TransportRecvMessage **message) {
-    if (!message) {
-        return MDHIM_ERROR;
-    }
-
-    // receive the message
-    void *buf = nullptr;
-    int size = 0;
-    int ret = MDHIM_ERROR;
-    if ((ret = receive_client_response(&buf, &size)) == MDHIM_SUCCESS) {
-        // unpack the message
-        ret = MPIUnpacker::unpack(comm_, message, buf, size);
-    }
-
-    Memory::FBP_MEDIUM::Instance().release(buf);
-
-    return ret;
-}
-
-/**
- * GetRequest
- * Sends a TransportGetMessage to the other end of the endpoint
- * without waiting for an acknowledgment
- *
- * @param message the initiating GET message
- * @return MDHIM_SUCCESS or MDHIM_ERROR
- */
-int MPIEndpoint::GetRequest(const TransportGetMessage *message) {
-    if (!message) {
-        return MDHIM_ERROR;
-    }
-
-    // pack the message
-    void *buf = nullptr;
-    int size = 0;
-    if (MPIPacker::pack(comm_, message, &buf, &size) != MDHIM_SUCCESS) {
-        return MDHIM_ERROR;
-    }
-
-    // send the message
-    const int ret = send_rangesrv_work(buf, size);
-
-    Memory::FBP_MEDIUM::Instance().release(buf);
-
-    return ret;
-}
-
-/**
- * GetReply
- * Waits for a GET acknowledgment from the range server
- *
- * @param message the buffer that will be used to store the reply
- * @return MDHIM_SUCCESS or MDHIM_ERROR
- */
-int MPIEndpoint::GetReply(TransportGetRecvMessage **message) {
-    if (!message) {
-        return MDHIM_ERROR;
-    }
-
-    // receive the message
-    void *buf = nullptr;
-    int size = 0;
-    int ret = MDHIM_ERROR;
-    if ((ret = receive_client_response(&buf, &size)) == MDHIM_SUCCESS) {
-        // unpack the message
-        ret = MPIUnpacker::unpack(comm_, message, buf, size);
-    }
-
-    Memory::FBP_MEDIUM::Instance().release(buf);
-
-    return ret;
+    return response;
 }
 
 /**
