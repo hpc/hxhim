@@ -9,8 +9,8 @@
 //Constants used across all mdhimPutGet tests
 typedef int Key_t;
 typedef int Value_t;
-const Key_t   MDHIM_PUT_GET_PRIMARY_KEY = 13579;
-const Value_t MDHIM_PUT_GET_VALUE       = 24680;
+static const Key_t   MDHIM_PUT_GET_PRIMARY_KEY = 13579;
+static const Value_t MDHIM_PUT_GET_VALUE       = 24680;
 
 typedef uint32_t sgk_t; // secondary global key type
 typedef uint32_t slk_t; // secondary local key type
@@ -34,7 +34,7 @@ TEST(mdhimPutGet, no_secondary) {
     EXPECT_EQ(brm->p->brm->error, MDHIM_SUCCESS);
     mdhim_brm_destroy(brm);
 
-    //Transportit changes
+    //Commit changes
     EXPECT_EQ(mdhimCommit(&md, md.p->primary_index), MDHIM_SUCCESS);
 
     //Get value back
@@ -46,8 +46,8 @@ TEST(mdhimPutGet, no_secondary) {
         EXPECT_EQ(grm->p->grm->error, MDHIM_SUCCESS);
 
         //Make sure value gotten back is correct
-        EXPECT_EQ(*(Key_t *) grm->p->grm->key, MDHIM_PUT_GET_PRIMARY_KEY);
-        EXPECT_EQ(*(Value_t *) grm->p->grm->value, MDHIM_PUT_GET_VALUE);
+        EXPECT_EQ(*(Key_t *)grm->p->grm->key, MDHIM_PUT_GET_PRIMARY_KEY);
+        EXPECT_EQ(*(Value_t *)grm->p->grm->value, MDHIM_PUT_GET_VALUE);
 
         mdhim_grm_destroy(grm);
     }
@@ -59,320 +59,320 @@ TEST(mdhimPutGet, no_secondary) {
     EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
 }
 
-// TEST(mdhimPutGet, secondary_global) {
-//     mdhim_options_t opts;
-//     mdhim_t md;
+TEST(mdhimPutGet, secondary_global) {
+    mdhim_options_t opts;
+    mdhim_t md;
 
-//     EXPECT_EQ(mdhim_options_init(&opts), MDHIM_SUCCESS);
+    EXPECT_EQ(mdhim_options_init(&opts), MDHIM_SUCCESS);
+    EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
 
-//     EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
+    // secondary global key
+    sgk_t sgk = 1;
+    sgk_t *sgk_ptr = &sgk;
+    int sgk_len = sizeof(sgk);
 
-//     // secondary global key
-//     sgk_t sgk = 1;
-//     sgk_t *sgk_ptr = &sgk;
-//     int sgk_len = sizeof(sgk);
+    //Create the secondary remote index
+    struct index *sg_index = create_global_index(&md, 2, 5, LEVELDB, MDHIM_INT_KEY, NULL);
+    ASSERT_NE(sg_index, nullptr);
 
-//     //Create the secondary remote index
-//     struct index *sg_index = create_global_index(&md, 2, 5, LEVELDB, MDHIM_INT_KEY, NULL);
-//     ASSERT_NE(sg_index, nullptr);
+    //Create the secondary info struct
+    struct secondary_info *sg_info = mdhimCreateSecondaryInfo(sg_index,
+                                                              (void **)&sgk_ptr, &sgk_len,
+                                                              1, SECONDARY_GLOBAL_INFO);
+    ASSERT_NE(sg_info, nullptr);
 
-//     //Create the secondary info struct
-//     struct secondary_info *sg_info = mdhimCreateSecondaryInfo(sg_index,
-//                                                               (void **) &sgk_ptr, &sgk_len,
-//                                                               1, SECONDARY_GLOBAL_INFO);
-//     ASSERT_NE(sg_info, nullptr);
+    //Put the key-value pair
+    mdhim_brm_t *brm = mdhimPut(&md,
+                                (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
+                                (void *)&MDHIM_PUT_GET_VALUE, sizeof(MDHIM_PUT_GET_VALUE),
+                                sg_info, NULL);
 
-//     //Put the key-value pair
-//     mdhim_brm_t *brm = mdhimPut(&md,
-//                                 (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
-//                                 (void *)&MDHIM_PUT_GET_VALUE, sizeof(MDHIM_PUT_GET_VALUE),
-//                                 sg_info, NULL);
+    ASSERT_NE(brm, nullptr);
+    ASSERT_NE(brm->p, nullptr);
+    ASSERT_NE(brm->p->brm, nullptr);
+    EXPECT_EQ(brm->p->brm->error, MDHIM_SUCCESS);
+    mdhim_brm_destroy(brm);
 
-//     ASSERT_NE(brm, nullptr);
-//     ASSERT_NE(brm->p, nullptr);
-//     ASSERT_NE(brm->p->brm, nullptr);
-//     EXPECT_EQ(brm->p->brm->error, MDHIM_SUCCESS);
-//     mdhim_brm_destroy(brm);
+    //Commit changes
+    EXPECT_EQ(mdhimCommit(&md, md.p->primary_index), MDHIM_SUCCESS);
 
-//     //Transportit changes
-//     EXPECT_EQ(mdhimCommit(&md, md.p->primary_index), MDHIM_SUCCESS);
+    //Get key back using the secondary global index
+    mdhim_getrm_t *sg_ret = nullptr;
+    {
+        sg_ret = mdhimGet(&md, sg_index, (void *)sgk_ptr,
+                          sgk_len, TransportGetMessageOp::GET_EQ);
+        ASSERT_NE(sg_ret, nullptr);
+        ASSERT_NE(sg_ret->p, nullptr);
+        ASSERT_NE(sg_ret->p->grm, nullptr);
+        EXPECT_EQ(sg_ret->p->grm->error, MDHIM_SUCCESS);
 
-//     //Get key back using the secondary global index
-//     mdhim_bgetrm_t *sg_ret = nullptr;
-//     {
-//         sg_ret = mdhimGet(&md, sg_index, (void *)sgk_ptr,
-//                           sgk_len, TransportGetMessageOp::GET_EQ);
-//         ASSERT_NE(sg_ret, nullptr);
-//         ASSERT_NE(sg_ret->p, nullptr);
-//         ASSERT_NE(sg_ret->p->bgrm, nullptr);
-//         EXPECT_EQ(sg_ret->p->bgrm->error, MDHIM_SUCCESS);
+        // EXPECT_EQ(sg_ret->p->grm->num_keys, 1);
+        EXPECT_EQ(*(sgk_t *)sg_ret->p->grm->key, sgk);
+        EXPECT_EQ(*(Key_t *)sg_ret->p->grm->value, MDHIM_PUT_GET_PRIMARY_KEY);
+    }
 
-//         EXPECT_EQ(sg_ret->p->bgrm->num_keys, 1);
-//         EXPECT_EQ(*(sgk_t *) *sg_ret->p->bgrm->keys, sgk);
-//         EXPECT_EQ(*(Key_t *) *sg_ret->p->bgrm->values, MDHIM_PUT_GET_PRIMARY_KEY);
-//     }
+    //Get value back using the returned key
+    {
+        mdhim_getrm_t *grm = mdhimGet(&md, md.p->primary_index,
+                                      sg_ret->p->grm->value, sg_ret->p->grm->value_len,
+                                      TransportGetMessageOp::GET_EQ);
+        ASSERT_NE(grm, nullptr);
+        ASSERT_NE(grm->p, nullptr);
+        ASSERT_NE(grm->p->grm, nullptr);
+        EXPECT_EQ(grm->p->grm->error, MDHIM_SUCCESS);
 
-//     //Get value back using the returned key
-//     {
-//         mdhim_bgetrm_t *bgrm = mdhimGet(&md, md.p->primary_index,
-//                                         (void *) *sg_ret->p->bgrm->values, *sg_ret->p->bgrm->value_lens,
-//                                         TransportGetMessageOp::GET_EQ);
-//         ASSERT_NE(bgrm, nullptr);
-//         ASSERT_NE(bgrm->p, nullptr);
-//         ASSERT_NE(bgrm->p->bgrm, nullptr);
-//         EXPECT_EQ(bgrm->p->bgrm->error, MDHIM_SUCCESS);
+        //Make sure value gotten back is correct
+        // EXPECT_EQ(grm->p->grm->num_keys, 1);
+        EXPECT_EQ(*(Key_t *)grm->p->grm->key, MDHIM_PUT_GET_PRIMARY_KEY);
+        EXPECT_EQ(*(Value_t *)grm->p->grm->value, MDHIM_PUT_GET_VALUE);
 
-//         //Make sure value gotten back is correct
-//         EXPECT_EQ(bgrm->p->bgrm->num_keys, 1);
-//         EXPECT_EQ(*(Key_t *) *bgrm->p->bgrm->keys, MDHIM_PUT_GET_PRIMARY_KEY);
-//         EXPECT_EQ(*(Value_t *) *bgrm->p->bgrm->values, MDHIM_PUT_GET_VALUE);
+        mdhim_grm_destroy(grm);
+    }
 
-//         mdhim_bgrm_destroy(bgrm);
-//     }
+    mdhim_grm_destroy(sg_ret);
+    mdhimReleaseSecondaryInfo(sg_info);
 
-//     mdhim_bgrm_destroy(sg_ret);
-//     free(sg_info);
+    EXPECT_EQ(MPI_Barrier(md.p->mdhim_comm), MPI_SUCCESS);
+    EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
+    EXPECT_EQ(mdhim_options_destroy(&opts), MDHIM_SUCCESS);
+    EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
+}
 
-//     EXPECT_EQ(MPI_Barrier(dynamic_cast<MPIEndpoint *>(md.p->transport->Endpoint())->Comm()), MPI_SUCCESS);
+TEST(mdhimPutGet, secondary_local) {
+    mdhim_options_t opts;
+    mdhim_t md;
 
-//     EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
-// }
+    EXPECT_EQ(mdhim_options_init(&opts), MDHIM_SUCCESS);
 
-// TEST(mdhimPutGet, secondary_local) {
-//     mdhim_options_t opts;
-//     mdhim_t md;
+    EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
 
-//     EXPECT_EQ(mdhim_options_init(&opts), MDHIM_SUCCESS);
+    // secondary local key
+    slk_t slk = 2;
+    slk_t *slk_ptr = &slk;
+    int slk_len = sizeof(slk);
 
-//     EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
+    //Create the secondary local index
+    struct index *sl_index = create_local_index(&md, LEVELDB, MDHIM_INT_KEY, "local");
+    ASSERT_NE(sl_index, nullptr);
 
-//     // secondary local key
-//     slk_t slk = 2;
-//     slk_t *slk_ptr = &slk;
-//     int slk_len = sizeof(slk);
+    //Create the secondary info struct
+    struct secondary_info *sl_info = mdhimCreateSecondaryInfo(sl_index,
+                                                              (void **)&slk_ptr, &slk_len,
+                                                              1, SECONDARY_GLOBAL_INFO);
+    ASSERT_NE(sl_info, nullptr);
 
-//     //Create the secondary local index
-//     struct index *sl_index = create_local_index(&md, LEVELDB, MDHIM_INT_KEY, "local");
-//     ASSERT_NE(sl_index, nullptr);
+    mdhim_brm_t *brm = mdhimPut(&md,
+                                (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
+                                (void *)&MDHIM_PUT_GET_VALUE, sizeof(MDHIM_PUT_GET_VALUE),
+                                nullptr, sl_info);
 
-//     //Create the secondary info struct
-//     struct secondary_info *sl_info = mdhimCreateSecondaryInfo(sl_index,
-//                                                               (void **) &slk_ptr, &slk_len,
-//                                                               1, SECONDARY_GLOBAL_INFO);
-//     ASSERT_NE(sl_info, nullptr);
+    ASSERT_NE(brm, nullptr);
+    ASSERT_NE(brm->p, nullptr);
+    ASSERT_NE(brm->p->brm, nullptr);
+    EXPECT_EQ(brm->p->brm->error, MDHIM_SUCCESS);
+    mdhim_brm_destroy(brm);
 
-//     mdhim_brm_t *brm = mdhimPut(&md,
-//                                 (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
-//                                 (void *)&MDHIM_PUT_GET_VALUE, sizeof(MDHIM_PUT_GET_VALUE),
-//                                 NULL, sl_info);
+    //Commit changes
+    EXPECT_EQ(mdhimCommit(&md, md.p->primary_index), MDHIM_SUCCESS);
 
-//     ASSERT_NE(brm, nullptr);
-//     ASSERT_NE(brm->p, nullptr);
-//     ASSERT_NE(brm->p->brm, nullptr);
-//     EXPECT_EQ(brm->p->brm->error, MDHIM_SUCCESS);
-//     mdhim_brm_destroy(brm);
+    //Get the primary key from the secondary local index
+    mdhim_getrm_t *sl_ret = nullptr;
+    {
+        //Get the stats for the secondary index so the client figures out who to query
+        EXPECT_EQ(mdhimStatFlush(&md, sl_index), MDHIM_SUCCESS);
 
-//     //Transportit changes
-//     EXPECT_EQ(mdhimCommit(&md, md.p->primary_index), MDHIM_SUCCESS);
+        sl_ret = mdhimGet(&md, sl_index, slk_ptr,
+                          slk_len, TransportGetMessageOp::GET_PRIMARY_EQ);
+        ASSERT_NE(sl_ret, nullptr);
+        ASSERT_NE(sl_ret->p, nullptr);
+        ASSERT_NE(sl_ret->p->grm, nullptr);
+        EXPECT_EQ(sl_ret->p->grm->error, MDHIM_SUCCESS);
 
-//     //Get the primary key from the secondary local index
-//     mdhim_bgetrm_t *sl_ret = nullptr;
-//     {
-//         //Get the stats for the secondary index so the client figures out who to query
-//         EXPECT_EQ(mdhimStatFlush(&md, sl_index), MDHIM_SUCCESS);
+        //Make sure value gotten back is correct
+        // EXPECT_EQ(sl_ret->p->grm->num_keys, 1);
+        EXPECT_EQ(*(Key_t *)sl_ret->p->grm->key, slk);
+        EXPECT_EQ(*(Value_t *)sl_ret->p->grm->value, MDHIM_PUT_GET_PRIMARY_KEY);
+    }
 
-//         sl_ret = mdhimGet(&md, sl_index, slk_ptr,
-//                           slk_len, TransportGetMessageOp::GET_PRIMARY_EQ);
-//         ASSERT_NE(sl_ret, nullptr);
-//         ASSERT_NE(sl_ret->p, nullptr);
-//         ASSERT_NE(sl_ret->p->bgrm, nullptr);
-//         EXPECT_EQ(sl_ret->p->bgrm->error, MDHIM_SUCCESS);
+    //Get value back using the returned key
+    {
+        mdhim_getrm_t *grm = mdhimGet(&md, md.p->primary_index,
+                                      sl_ret->p->grm->value, sl_ret->p->grm->value_len,
+                                      TransportGetMessageOp::GET_EQ);
+        ASSERT_NE(grm, nullptr);
+        ASSERT_NE(grm->p, nullptr);
+        ASSERT_NE(grm->p->grm, nullptr);
+        EXPECT_EQ(grm->p->grm->error, MDHIM_SUCCESS);
 
-//         //Make sure value gotten back is correct
-//         EXPECT_EQ(sl_ret->p->bgrm->num_keys, 1);
-//         EXPECT_EQ(*(Key_t *) *sl_ret->p->bgrm->keys, slk);
-//         EXPECT_EQ(*(Value_t *) *sl_ret->p->bgrm->values, MDHIM_PUT_GET_PRIMARY_KEY);
-//     }
+        //Make sure value gotten back is correct
+        // EXPECT_EQ(grm->p->grm->num_keys, 1);
+        EXPECT_EQ(*(slk_t *)grm->p->grm->key, MDHIM_PUT_GET_PRIMARY_KEY);
+        EXPECT_EQ(*(Key_t *)grm->p->grm->value, MDHIM_PUT_GET_VALUE);
 
-//     //Get value back using the returned key
-//     {
-//         mdhim_bgetrm_t *bgrm = mdhimGet(&md, md.p->primary_index,
-//                                         (void *) *sl_ret->p->bgrm->values, *sl_ret->p->bgrm->value_lens,
-//                                         TransportGetMessageOp::GET_EQ);
-//         ASSERT_NE(bgrm, nullptr);
-//         ASSERT_NE(bgrm->p, nullptr);
-//         ASSERT_NE(bgrm->p->bgrm, nullptr);
-//         EXPECT_EQ(bgrm->p->bgrm->error, MDHIM_SUCCESS);
+        mdhim_grm_destroy(grm);
+    }
+    mdhim_grm_destroy(sl_ret);
+    mdhimReleaseSecondaryInfo(sl_info);
 
-//         //Make sure value gotten back is correct
-//         EXPECT_EQ(bgrm->p->bgrm->num_keys, 1);
-//         EXPECT_EQ(*(slk_t *) *bgrm->p->bgrm->keys, MDHIM_PUT_GET_PRIMARY_KEY);
-//         EXPECT_EQ(*(Key_t *) *bgrm->p->bgrm->values, MDHIM_PUT_GET_VALUE);
+    EXPECT_EQ(MPI_Barrier(md.p->mdhim_comm), MPI_SUCCESS);
+    EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
+    EXPECT_EQ(mdhim_options_destroy(&opts), MDHIM_SUCCESS);
+    EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
+}
 
-//         mdhim_bgrm_destroy(bgrm);
-//     }
+TEST(mdhimPutGet, secondary_global_and_local) {
+    mdhim_options_t opts;
+    mdhim_t md;
 
-//     mdhim_bgrm_destroy(sl_ret);
-//     free(sl_info);
+    EXPECT_EQ(mdhim_options_init(&opts), MDHIM_SUCCESS);
+    EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
 
-//     EXPECT_EQ(MPI_Barrier(dynamic_cast<MPIEndpoint *>(md.p->transport->Endpoint())->Comm()), MPI_SUCCESS);
+    // secondary global key
+    sgk_t sgk = 1;
+    sgk_t *sgk_ptr = &sgk;
+    int sgk_len = sizeof(sgk);
 
-//     EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
-// }
+    //Create the secondary remote index
+    struct index *sg_index = create_global_index(&md, 2, 5, LEVELDB, MDHIM_INT_KEY, NULL);
+    ASSERT_NE(sg_index, nullptr);
 
-// TEST(mdhimPutGet, secondary_global_and_local) {
-//     mdhim_options_t opts;
-//     mdhim_t md;
+    //Create the secondary info struct
+    struct secondary_info *sg_info = mdhimCreateSecondaryInfo(sg_index,
+                                                              (void **)&sgk_ptr, &sgk_len,
+                                                              1, SECONDARY_GLOBAL_INFO);
+    ASSERT_NE(sg_info, nullptr);
 
-//     EXPECT_EQ(mdhim_options_init(&opts), MDHIM_SUCCESS);
+    // secondary local key
+    slk_t slk = 2;
+    slk_t *slk_ptr = &slk;
+    int slk_len = sizeof(slk);
 
-//     EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
+    //Create the secondary local index
+    struct index *sl_index = create_local_index(&md, LEVELDB, MDHIM_INT_KEY, "local");
+    ASSERT_NE(sl_index, nullptr);
 
-//     // secondary global key
-//     sgk_t sgk = 1;
-//     sgk_t *sgk_ptr = &sgk;
-//     int sgk_len = sizeof(sgk);
+    //Create the secondary info struct
+    struct secondary_info *sl_info = mdhimCreateSecondaryInfo(sl_index,
+                                                              (void **)&slk_ptr, &slk_len,
+                                                              1, SECONDARY_GLOBAL_INFO);
+    ASSERT_NE(sl_info, nullptr);
 
-//     //Create the secondary remote index
-//     struct index *sg_index = create_global_index(&md, 2, 5, LEVELDB, MDHIM_INT_KEY, NULL);
-//     ASSERT_NE(sg_index, nullptr);
+    //Put the key-value pair
+    mdhim_brm_t *brm = mdhimPut(&md,
+                                (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
+                                (void *)&MDHIM_PUT_GET_VALUE, sizeof(MDHIM_PUT_GET_VALUE),
+                                sg_info, sl_info);
+    ASSERT_NE(brm, nullptr);
+    ASSERT_NE(brm->p, nullptr);
+    ASSERT_NE(brm->p->brm, nullptr);
+    EXPECT_EQ(brm->p->brm->error, MDHIM_SUCCESS);
+    mdhim_brm_destroy(brm);
 
-//     //Create the secondary info struct
-//     struct secondary_info *sg_info = mdhimCreateSecondaryInfo(sg_index,
-//                                                               (void **) &sgk_ptr, &sgk_len,
-//                                                               1, SECONDARY_GLOBAL_INFO);
-//     ASSERT_NE(sg_info, nullptr);
+    //Commit changes
+    EXPECT_EQ(mdhimCommit(&md, md.p->primary_index), MDHIM_SUCCESS);
 
-//     // secondary local key
-//     slk_t slk = 2;
-//     slk_t *slk_ptr = &slk;
-//     int slk_len = sizeof(slk);
+    //Get value back using primary key
+    {
+        mdhim_getrm_t *grm = mdhimGet(&md, md.p->primary_index,
+                                      (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
+                                      TransportGetMessageOp::GET_EQ);
+        ASSERT_NE(grm, nullptr);
+        ASSERT_NE(grm->p, nullptr);
+        ASSERT_NE(grm->p->grm, nullptr);
+        EXPECT_EQ(grm->p->grm->error, MDHIM_SUCCESS);
 
-//     //Create the secondary local index
-//     struct index *sl_index = create_local_index(&md, LEVELDB, MDHIM_INT_KEY, "local");
-//     ASSERT_NE(sl_index, nullptr);
+        //Make sure value gotten back is correct
+        // EXPECT_EQ(grm->p->grm->num_keys, 1);
+        EXPECT_EQ(*(Key_t *)grm->p->grm->key, MDHIM_PUT_GET_PRIMARY_KEY);
+        EXPECT_EQ(*(Value_t *)grm->p->grm->value, MDHIM_PUT_GET_VALUE);
 
-//     //Create the secondary info struct
-//     struct secondary_info *sl_info = mdhimCreateSecondaryInfo(sl_index,
-//                                                               (void **) &slk_ptr, &slk_len,
-//                                                               1, SECONDARY_GLOBAL_INFO);
-//     ASSERT_NE(sl_info, nullptr);
+        mdhim_grm_destroy(grm);
+    }
 
-//     //Put the key-value pair
-//     mdhim_brm_t *brm = mdhimPut(&md,
-//                                 (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
-//                                 (void *)&MDHIM_PUT_GET_VALUE, sizeof(MDHIM_PUT_GET_VALUE),
-//                                 sg_info, sl_info);
-//     ASSERT_NE(brm, nullptr);
-//     ASSERT_NE(brm->p, nullptr);
-//     ASSERT_NE(brm->p->brm, nullptr);
-//     EXPECT_EQ(brm->p->brm->error, MDHIM_SUCCESS);
-//     mdhim_brm_destroy(brm);
+    // secondary global index
+    {
+        //Get the primary key
+        mdhim_getrm_t *sg_ret = nullptr;
+        {
+            sg_ret = mdhimGet(&md, sg_index, (void *)sgk_ptr,
+                              sgk_len, TransportGetMessageOp::GET_EQ);
+            ASSERT_NE(sg_ret, nullptr);
+            ASSERT_NE(sg_ret->p, nullptr);
+            ASSERT_NE(sg_ret->p->grm, nullptr);
+            EXPECT_EQ(sg_ret->p->grm->error, MDHIM_SUCCESS);
 
-//     //Transportit changes
-//     EXPECT_EQ(mdhimCommit(&md, md.p->primary_index), MDHIM_SUCCESS);
+            // EXPECT_EQ(sg_ret->p->grm->num_keys, 1);
+            EXPECT_EQ(*(sgk_t *)sg_ret->p->grm->key, sgk);
+            EXPECT_EQ(*(Key_t *)sg_ret->p->grm->value, MDHIM_PUT_GET_PRIMARY_KEY);
+        }
 
-//     //Get value back using primary key
-//     {
-//         mdhim_bgetrm_t *bgrm = mdhimGet(&md, md.p->primary_index,
-//                                         (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
-//                                         TransportGetMessageOp::GET_EQ);
-//         ASSERT_NE(bgrm, nullptr);
-//         ASSERT_NE(bgrm->p, nullptr);
-//         ASSERT_NE(bgrm->p->bgrm, nullptr);
-//         EXPECT_EQ(bgrm->p->bgrm->error, MDHIM_SUCCESS);
+        //Get value back using the returned key
+        {
+            mdhim_getrm_t *grm = mdhimGet(&md, md.p->primary_index,
+                                          sg_ret->p->grm->value, sg_ret->p->grm->value_len,
+                                          TransportGetMessageOp::GET_EQ);
+            ASSERT_NE(grm, nullptr);
+            ASSERT_NE(grm->p, nullptr);
+            ASSERT_NE(grm->p->grm, nullptr);
+            EXPECT_EQ(grm->p->grm->error, MDHIM_SUCCESS);
 
-//         //Make sure value gotten back is correct
-//         EXPECT_EQ(bgrm->p->bgrm->num_keys, 1);
-//         EXPECT_EQ(*(Key_t *) *bgrm->p->bgrm->keys, MDHIM_PUT_GET_PRIMARY_KEY);
-//         EXPECT_EQ(*(Value_t *) *bgrm->p->bgrm->values, MDHIM_PUT_GET_VALUE);
+            //Make sure value gotten back is correct
+            // EXPECT_EQ(grm->p->grm->num_keys, 1);
+            EXPECT_EQ(*(Key_t *)grm->p->grm->key, MDHIM_PUT_GET_PRIMARY_KEY);
+            EXPECT_EQ(*(Value_t *)grm->p->grm->value, MDHIM_PUT_GET_VALUE);
 
-//         mdhim_bgrm_destroy(bgrm);
-//     }
+            mdhim_grm_destroy(grm);
+        }
 
-//     // secondary global index
-//     {
-//         //Get the primary key
-//         mdhim_bgetrm_t *sg_ret = nullptr;
-//         {
-//             sg_ret = mdhimGet(&md, sg_index, (void *)sgk_ptr,
-//                               sgk_len, TransportGetMessageOp::GET_EQ);
-//             ASSERT_NE(sg_ret, nullptr);
-//             ASSERT_NE(sg_ret->p, nullptr);
-//             ASSERT_NE(sg_ret->p->bgrm, nullptr);
-//             EXPECT_EQ(sg_ret->p->bgrm->error, MDHIM_SUCCESS);
+        mdhim_grm_destroy(sg_ret);
+        mdhimReleaseSecondaryInfo(sg_info);
+    }
 
-//             EXPECT_EQ(sg_ret->p->bgrm->num_keys, 1);
-//             EXPECT_EQ(*(sgk_t *) *sg_ret->p->bgrm->keys, sgk);
-//             EXPECT_EQ(*(Key_t *) *sg_ret->p->bgrm->values, MDHIM_PUT_GET_PRIMARY_KEY);
-//         }
+    // secondary local index
+    {
+        //Get the primary key
+        mdhim_getrm_t *sl_ret = nullptr;
+        {
+            //Get the stats for the secondary index so the client figures out who to query
+            EXPECT_EQ(mdhimStatFlush(&md, sl_index), MDHIM_SUCCESS);
 
-//         //Get value back using the returned key
-//         {
-//             mdhim_bgetrm_t *bgrm = mdhimGet(&md, md.p->primary_index,
-//                                             (void *) *sg_ret->p->bgrm->values, *sg_ret->p->bgrm->value_lens,
-//                                             TransportGetMessageOp::GET_EQ);
-//             ASSERT_NE(bgrm, nullptr);
-//             ASSERT_NE(bgrm->p, nullptr);
-//             ASSERT_NE(bgrm->p->bgrm, nullptr);
-//             EXPECT_EQ(bgrm->p->bgrm->error, MDHIM_SUCCESS);
+            sl_ret = mdhimGet(&md, sl_index, slk_ptr,
+                              slk_len, TransportGetMessageOp::GET_PRIMARY_EQ);
+            ASSERT_NE(sl_ret, nullptr);
+            ASSERT_NE(sl_ret->p, nullptr);
+            ASSERT_NE(sl_ret->p->grm, nullptr);
+            EXPECT_EQ(sl_ret->p->grm->error, MDHIM_SUCCESS);
 
-//             //Make sure value gotten back is correct
-//             EXPECT_EQ(bgrm->p->bgrm->num_keys, 1);
-//             EXPECT_EQ(*(Key_t *) *bgrm->p->bgrm->keys, MDHIM_PUT_GET_PRIMARY_KEY);
-//             EXPECT_EQ(*(Value_t *) *bgrm->p->bgrm->values, MDHIM_PUT_GET_VALUE);
+            //Make sure value gotten back is correct
+            // EXPECT_EQ(sl_ret->p->grm->num_keys, 1);
+            EXPECT_EQ(*(slk_t *)sl_ret->p->grm->key, slk);
+            EXPECT_EQ(*(Key_t *)sl_ret->p->grm->value, MDHIM_PUT_GET_PRIMARY_KEY);
+        }
 
-//             mdhim_bgrm_destroy(bgrm);
-//         }
+        //Get value back using the returned key
+        {
+            mdhim_getrm_t *grm = mdhimGet(&md, md.p->primary_index,
+                                          sl_ret->p->grm->value, sl_ret->p->grm->value_len,
+                                          TransportGetMessageOp::GET_EQ);
+            ASSERT_NE(grm, nullptr);
+            ASSERT_NE(grm->p, nullptr);
+            ASSERT_NE(grm->p->grm, nullptr);
+            EXPECT_EQ(grm->p->grm->error, MDHIM_SUCCESS);
 
-//         mdhim_bgrm_destroy(sg_ret);
-//         free(sg_info);
-//     }
+            //Make sure value gotten back is correct
+            // EXPECT_EQ(grm->p->grm->num_keys, 1);
+            EXPECT_EQ(*(Key_t *)grm->p->grm->key, MDHIM_PUT_GET_PRIMARY_KEY);
+            EXPECT_EQ(*(Value_t *)grm->p->grm->value, MDHIM_PUT_GET_VALUE);
 
-//     // secondary local index
-//     {
-//         //Get the primary key
-//         mdhim_bgetrm_t *sl_ret = nullptr;
-//         {
-//             //Get the stats for the secondary index so the client figures out who to query
-//             EXPECT_EQ(mdhimStatFlush(&md, sl_index), MDHIM_SUCCESS);
+            mdhim_grm_destroy(grm);
+        }
 
-//             sl_ret = mdhimGet(&md, sl_index, slk_ptr,
-//                               slk_len, TransportGetMessageOp::GET_PRIMARY_EQ);
-//             ASSERT_NE(sl_ret, nullptr);
-//             ASSERT_NE(sl_ret->p, nullptr);
-//             ASSERT_NE(sl_ret->p->bgrm, nullptr);
-//             EXPECT_EQ(sl_ret->p->bgrm->error, MDHIM_SUCCESS);
+        mdhim_grm_destroy(sl_ret);
+        mdhimReleaseSecondaryInfo(sl_info);
+    }
 
-//             //Make sure value gotten back is correct
-//             EXPECT_EQ(sl_ret->p->bgrm->num_keys, 1);
-//             EXPECT_EQ(*(slk_t *) *sl_ret->p->bgrm->keys, slk);
-//             EXPECT_EQ(*(Key_t *) *sl_ret->p->bgrm->values, MDHIM_PUT_GET_PRIMARY_KEY);
-//         }
-
-//         //Get value back using the returned key
-//         {
-//             mdhim_bgetrm_t *bgrm = mdhimGet(&md, md.p->primary_index,
-//                                             (void *) *sl_ret->p->bgrm->values, *sl_ret->p->bgrm->value_lens,
-//                                             TransportGetMessageOp::GET_EQ);
-//             ASSERT_NE(bgrm, nullptr);
-//             ASSERT_NE(bgrm->p, nullptr);
-//             ASSERT_NE(bgrm->p->bgrm, nullptr);
-//             EXPECT_EQ(bgrm->p->bgrm->error, MDHIM_SUCCESS);
-
-//             //Make sure value gotten back is correct
-//             EXPECT_EQ(bgrm->p->bgrm->num_keys, 1);
-//             EXPECT_EQ(*(Key_t *) *bgrm->p->bgrm->keys, MDHIM_PUT_GET_PRIMARY_KEY);
-//             EXPECT_EQ(*(Value_t *) *bgrm->p->bgrm->values, MDHIM_PUT_GET_VALUE);
-
-//             mdhim_bgrm_destroy(bgrm);
-//         }
-
-//         mdhim_bgrm_destroy(sl_ret);
-//         free(sl_info);
-//     }
-
-//     EXPECT_EQ(MPI_Barrier(dynamic_cast<MPIEndpoint *>(md.p->transport->Endpoint())->Comm()), MPI_SUCCESS);
-
-//     EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
-// }
+    EXPECT_EQ(MPI_Barrier(md.p->mdhim_comm), MPI_SUCCESS);
+    EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
+    EXPECT_EQ(mdhim_options_destroy(&opts), MDHIM_SUCCESS);
+    EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
+}

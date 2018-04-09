@@ -156,7 +156,7 @@ class TransportBDeleteMessage final : virtual public TransportMessage {
 
 /**
  * TransportRecvMessage
- * Generic receive message implemenetation
+ * Generic receive message implementation
  */
 class TransportRecvMessage final : virtual public TransportMessage {
     public:
@@ -171,7 +171,7 @@ class TransportRecvMessage final : virtual public TransportMessage {
 
 /**
  * TransportGetRecvMessage
- * Generic receive get message implemenetation
+ * Generic receive get message implementation
  */
 class TransportGetRecvMessage final : virtual public TransportMessage {
     public:

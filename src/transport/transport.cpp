@@ -299,7 +299,6 @@ void TransportBGetRecvMessage::cleanup() {
     value_lens = nullptr;
 
     // do not delete next
-    // delete next;
     next = nullptr;
 
     num_keys = 0;
@@ -444,7 +443,7 @@ TransportGetRecvMessage *Transport::Get(const TransportGetMessage *get) {
  * @param num_srvs the number of servers
  */
 TransportBRecvMessage *Transport::BPut(const int num_rangesrvs, TransportBPutMessage **bpm_list) {
-    return endpointgroup_->BPut(num_rangesrvs, bpm_list);
+    return endpointgroup_?endpointgroup_->BPut(num_rangesrvs, bpm_list):nullptr;
 }
 
 /**
@@ -455,7 +454,7 @@ TransportBRecvMessage *Transport::BPut(const int num_rangesrvs, TransportBPutMes
  * @param num_srvs the number of servers
  */
 TransportBGetRecvMessage *Transport::BGet(const int num_rangesrvs, TransportBGetMessage **bgm_list) {
-    return endpointgroup_->BGet(num_rangesrvs, bgm_list);
+    return endpointgroup_?endpointgroup_->BGet(num_rangesrvs, bgm_list):nullptr;
 }
 
 /**
@@ -466,5 +465,5 @@ TransportBGetRecvMessage *Transport::BGet(const int num_rangesrvs, TransportBGet
  * @param num_srvs the number of servers
  */
 TransportBRecvMessage *Transport::BDelete(const int num_rangesrvs, TransportBDeleteMessage **bpm_list) {
-    return endpointgroup_->BDelete(num_rangesrvs, bpm_list);
+    return endpointgroup_?endpointgroup_->BDelete(num_rangesrvs, bpm_list):nullptr;
 }

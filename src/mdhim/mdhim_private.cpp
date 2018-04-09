@@ -40,7 +40,7 @@ static int get_addrs(thallium::engine *engine, const MPI_Comm comm, std::map<int
     if (MPI_Allreduce(&self_len, &max_len, 1, MPI_INT, MPI_MAX, comm) != MPI_SUCCESS) {
         return MDHIM_ERROR;
     }
-    max_len++; // NULL terminate
+    max_len++; // nullptr terminate
 
     // get addresses
     char *buf = new char[max_len * size]();
@@ -154,7 +154,7 @@ TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
     if (index->type == LOCAL_INDEX) {
         lookup_index = get_index(md, index->primary_id);
         if (!lookup_index) {
-            return NULL;
+            return nullptr;
         }
     } else {
         lookup_index = index;
@@ -163,19 +163,19 @@ TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
     //Get the range server this key will be sent to
     if (put_index->type == LOCAL_INDEX) {
         if ((rl = get_range_servers(md, lookup_index, value, value_len)) ==
-            NULL) {
+            nullptr) {
             mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
                  "Error while determining range server in mdhimBPut",
                   md->p->mdhim_rank);
-            return NULL;
+            return nullptr;
         }
     } else {
         //Get the range server this key will be sent to
-        if ((rl = get_range_servers(md, lookup_index, key, key_len)) == NULL) {
+        if ((rl = get_range_servers(md, lookup_index, key, key_len)) == nullptr) {
             mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
                  "Error while determining range server in _put_record",
                   md->p->mdhim_rank);
-            return NULL;
+            return nullptr;
         }
     }
 
@@ -186,7 +186,7 @@ TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
             mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
                  "Error while allocating memory in _put_record",
                   md->p->mdhim_rank);
-            return NULL;
+            return nullptr;
         }
 
         //Initialize the put message
@@ -220,7 +220,9 @@ TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
 TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
                                      void *key, int key_len,
                                      enum TransportGetMessageOp op) {
-    if (!md || !md->p || !index || !key || !key_len) {
+    if (!md || !md->p ||
+        !index ||
+        !key || !key_len) {
         return nullptr;
     }
 
@@ -516,7 +518,7 @@ TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
  * @param keys         pointer to array of keys to delete
  * @param key_lens     array with lengths of each key in keys
  * @param num_keys  the number of keys to delete (i.e., the number of keys in keys array)
- * @return mdhim_brm_t * or NULL on error
+ * @return mdhim_brm_t * or nullptr on error
  */
 TransportBRecvMessage *_bdel_records(mdhim_t *md, index_t *index,
                                      void **keys, int *key_lens,

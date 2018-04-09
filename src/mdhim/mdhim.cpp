@@ -324,7 +324,7 @@ mdhim_brm_t *mdhimPut(struct mdhim *md,
         secondary_local_info->secondary_key_lens &&
         secondary_local_info->num_keys) {
         void **primary_keys = new void *[secondary_local_info->num_keys]();
-        int *primary_key_lens = new int[secondary_global_info->num_keys]();
+        int *primary_key_lens = new int[secondary_local_info->num_keys]();
         for (int i = 0; i < secondary_local_info->num_keys; i++) {
             primary_keys[i] = ::operator new(primary_key_len);
             memcpy(primary_keys[i], primary_key, primary_key_len);
@@ -549,9 +549,12 @@ mdhim_getrm_t *mdhimGet(mdhim_t *md, index_t *index,
                          void *key, int key_len,
                          enum TransportGetMessageOp op) {
     if (!md || !md->p ||
-        index ||
         !key || !key_len) {
         return nullptr;
+    }
+
+    if (!index) {
+        index = md->p->primary_index;
     }
 
     if (op != TransportGetMessageOp::GET_EQ && op != TransportGetMessageOp::GET_PRIMARY_EQ) {
@@ -564,10 +567,6 @@ mdhim_getrm_t *mdhimGet(mdhim_t *md, index_t *index,
         return nullptr;
     }
     memcpy(k, key, key_len);
-
-    if (!index) {
-        index = md->p->primary_index;
-    }
 
     return mdhim_grm_init(_get_record(md, index, k, key_len, op));
 }
@@ -788,8 +787,16 @@ secondary_info_t *mdhimCreateSecondaryInfo(index_t *secondary_index,
 
     //Set the index fields
     sinfo->secondary_index = secondary_index;
-    sinfo->secondary_keys = secondary_keys;
-    sinfo->secondary_key_lens = secondary_key_lens;
+
+    //Duplicate the input values
+    sinfo->secondary_keys = new void *[num_keys]();
+    sinfo->secondary_key_lens = new int[num_keys]();
+    for(int i = 0; i < num_keys; i++) {
+        sinfo->secondary_keys[i] = ::operator new(secondary_key_lens[i]);
+        memcpy(sinfo->secondary_keys[i], secondary_keys[i], secondary_key_lens[i]);
+        sinfo->secondary_key_lens[i] = secondary_key_lens[i];
+    }
+
     sinfo->num_keys = num_keys;
     sinfo->info_type = info_type;
 
