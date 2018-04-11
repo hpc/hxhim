@@ -24,6 +24,11 @@ void bput(mdhim_t *md,
                                  nullptr,
                                  nullptr);
 
+    if (!brm) {
+        err << "mdhimBPut error" << std::endl;
+        return;
+    }
+
     // Get and print results
     while (brm) {
         // Get error value
@@ -39,7 +44,7 @@ void bput(mdhim_t *md,
             err << "BPUT error " << error << std::endl;
         }
 
-        // Go to next result
+        // Get next result
         mdhim_brm_t *next = nullptr;
         if (mdhim_brm_next(brm, &next) != MDHIM_SUCCESS) {
             mdhim_brm_destroy(brm);
@@ -51,8 +56,10 @@ void bput(mdhim_t *md,
         brm = next;
     }
 
-    for(int i = 0; i < num_keys; i++) {
-        out << "BPUT " << std::string((char *)primary_keys[i], primary_key_lens[i]) << " -> " << std::string((char *)values[i], value_lens[i]) << " to range server on rank " << mdhimWhichServer(md, primary_keys[i], primary_key_lens[i]) << std::endl;
+    if (!brm) {
+        for(int i = 0; i < num_keys; i++) {
+            out << "BPUT " << std::string((char *)primary_keys[i], primary_key_lens[i]) << " -> " << std::string((char *)values[i], value_lens[i]) << " to range server on rank " << mdhimWhichServer(md, primary_keys[i], primary_key_lens[i]) << std::endl;
+        }
     }
 
     mdhim_brm_destroy(brm);

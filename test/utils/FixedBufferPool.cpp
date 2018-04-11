@@ -17,6 +17,7 @@ TEST(FixedBufferPool, usage) {
         // acquire memory
         for(int i = 0; i < TEST_REGIONS; i++) {
             alloc[i] = TEST_FBP::Instance().acquire(TEST_ALLOC_SIZE);
+            ASSERT_NE(alloc[i], nullptr);
         }
 
         // all used
@@ -63,6 +64,7 @@ TEST(FixedBufferPool, dump) {
     for(std::size_t i = 0; i < TEST_REGIONS; i++) {
         // place src into the memory region
         ptrs[i] = TEST_FBP::Instance().acquire<char>(4);
+        ASSERT_NE(ptrs[i], nullptr);
         memcpy(ptrs[i], src.c_str() + (i * TEST_ALLOC_SIZE), TEST_ALLOC_SIZE);
 
         // check region dump against expected dump

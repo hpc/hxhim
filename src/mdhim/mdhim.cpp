@@ -494,8 +494,8 @@ mdhim_brm_t *mdhimBPut(mdhim_t *md,
                                                 pvs, pv_lens,
                                                 num_records);
 
-    if (!head || head->error) {
-        return mdhim_brm_init(head);
+    if (!head) {
+        return nullptr;
     }
 
     //Insert the secondary local keys if they were given

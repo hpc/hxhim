@@ -652,7 +652,6 @@ static int range_server_get(mdhim_t *md, work_item_t *item) {
     switch(gm->op) {
         // Gets the value for the given key
         case TransportGetMessageOp::GET_EQ:
-            //Get records from the database
             if ((ret =
                  index->mdhim_store->get(index->mdhim_store->db_handle,
                                          gm->key, gm->key_len, &value,
@@ -793,15 +792,13 @@ static int range_server_bget(mdhim_t *md, work_item_t *item) {
         switch(bgm->op) {
             // Gets the value for the given key
             case TransportGetMessageOp::GET_EQ:
-                //Get records from the database
                 if ((ret =
                      index->mdhim_store->get(index->mdhim_store->db_handle,
                                              bgm->keys[i], bgm->key_lens[i], &values[i],
                                              &value_lens[i])) != MDHIM_SUCCESS) {
-
                     error = ret;
                     value_lens[i] = 0;
-                    values[i] = NULL;
+                    values[i] = nullptr;
                     continue;
                 }
                 break;
@@ -814,7 +811,7 @@ static int range_server_bget(mdhim_t *md, work_item_t *item) {
                     mlog(MDHIM_SERVER_DBG, "Rank %d - Error getting record", md->p->mdhim_rank);
                     error = ret;
                     value_lens[i] = 0;
-                    values[i] = NULL;
+                    values[i] = nullptr;
                     continue;
                 }
 
@@ -829,7 +826,7 @@ static int range_server_bget(mdhim_t *md, work_item_t *item) {
                     mlog(MDHIM_SERVER_DBG, "Rank %d - Error getting record", md->p->mdhim_rank);
                     error = ret;
                     value_lens[i] = 0;
-                    values[i] = NULL;
+                    values[i] = nullptr;
                     continue;
                 }
 
@@ -843,7 +840,7 @@ static int range_server_bget(mdhim_t *md, work_item_t *item) {
                     mlog(MDHIM_SERVER_DBG, "Rank %d - Error getting record", md->p->mdhim_rank);
                     error = ret;
                     value_lens[i] = 0;
-                    values[i] = NULL;
+                    values[i] = nullptr;
                     continue;
                 }
 
@@ -857,7 +854,7 @@ static int range_server_bget(mdhim_t *md, work_item_t *item) {
                     mlog(MDHIM_SERVER_DBG, "Rank %d - Error getting record", md->p->mdhim_rank);
                     error = ret;
                     value_lens[i] = 0;
-                    values[i] = NULL;
+                    values[i] = nullptr;
                     continue;
                 }
 
@@ -892,7 +889,7 @@ done:
         for (int i = 0; i < bgm->num_keys; i++) {
             bgrm->key_lens[i] = bgm->key_lens[i];
             bgrm->keys[i] = ::operator new(bgrm->key_lens[i]);
-            memcpy(bgrm->keys[i], bgm->keys[i], bgrm->key_lens[i]);
+            memcpy(bgrm->keys[i], bgm->keys[i], bgm->key_lens[i]);
         }
     } else {
         bgrm->keys = bgm->keys;
@@ -905,11 +902,14 @@ done:
     for (int i = 0; i < bgm->num_keys; i++) {
         bgrm->value_lens[i] = value_lens[i];
         bgrm->values[i] = ::operator new(bgrm->value_lens[i]);
-        memcpy(bgrm->values[i], values[i], bgrm->value_lens[i]);
+        memcpy(bgrm->values[i], values[i], value_lens[i]);
 
         // cleanup leveldb
         free(values[i]);
     }
+
+    delete [] values;
+    delete [] value_lens;
 
     bgrm->num_keys = bgm->num_keys;
     bgrm->index = index->id;

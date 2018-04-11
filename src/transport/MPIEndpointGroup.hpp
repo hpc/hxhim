@@ -41,10 +41,10 @@ class MPIEndpointGroup : virtual public TransportEndpointGroup, virtual public M
         TransportBRecvMessage *BDelete(const int num_rangesrvs, TransportBDeleteMessage **bpm_list);
 
     private:
-        /** @description Function used by BPUT and BDELETE for sending and receiving messages */
+        /** @description Sends messages that result in TransportBRecvMessage responses */
         TransportBRecvMessage *return_brm(const int num_rangesrvs, TransportMessage **messages);
 
-        /** @description Function used by BGET for sending and receiving messages             */
+        /** @description Sends messages that result in TransportBGetRecvMessage responses */
         TransportBGetRecvMessage *return_bgrm(const int num_rangesrvs, TransportMessage **messages);
 
         /**
@@ -58,12 +58,9 @@ class MPIEndpointGroup : virtual public TransportEndpointGroup, virtual public M
 
         mdhim_private_t *mdp_;
 
-        /** @description mutex used to lock the ranks_ map*/
-        std::mutex ranks_mutex_;
-
         /** @description Mapping from unique ids to MPI ranks */
+        std::mutex mutex_;
         std::map<int, int> ranks_;
 };
-
 
 #endif

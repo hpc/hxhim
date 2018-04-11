@@ -15,13 +15,13 @@ int ThalliumUnpacker::any (TransportMessage **msg, const std::string &buf) {
                 *msg = put;
             }
             break;
-        // case TransportMessageType::BPUT:
-        //     {
-        //         TransportBPutMessage *bput = nullptr;
-        //         ret = unpack(&bput, buf);
-        //         *msg = bput;
-        //     }
-        //     break;
+        case TransportMessageType::BPUT:
+            {
+                TransportBPutMessage *bput = nullptr;
+                ret = unpack(&bput, buf);
+                *msg = bput;
+            }
+            break;
         case TransportMessageType::GET:
             {
                 TransportGetMessage *get = nullptr;
@@ -29,13 +29,13 @@ int ThalliumUnpacker::any (TransportMessage **msg, const std::string &buf) {
                 *msg = get;
             }
             break;
-        // case TransportMessageType::BGET:
-        //     {
-        //         TransportBGetMessage *bget = nullptr;
-        //         ret = unpack(&bget, buf);
-        //         *msg = bget;
-        //     }
-        //     break;
+        case TransportMessageType::BGET:
+            {
+                TransportBGetMessage *bget = nullptr;
+                ret = unpack(&bget, buf);
+                *msg = bget;
+            }
+            break;
         // case TransportMessageType::DELETE:
         //     {
         //         TransportDeleteMessage *dm = nullptr;
@@ -67,13 +67,13 @@ int ThalliumUnpacker::any (TransportMessage **msg, const std::string &buf) {
                 *msg = grm;
             }
             break;
-        // case TransportMessageType::RECV_BGET:
-        //     {
-        //         TransportBGetRecvMessage *bgrm = nullptr;
-        //         ret = unpack(&bgrm, buf);
-        //         *msg = bgrm;
-        //     }
-        //     break;
+        case TransportMessageType::RECV_BGET:
+            {
+                TransportBGetRecvMessage *bgrm = nullptr;
+                ret = unpack(&bgrm, buf);
+                *msg = bgrm;
+            }
+            break;
         // commit messages are not sent across the network
         // case TransportMessageType::COMMIT:
         //     break;
@@ -115,6 +115,54 @@ int ThalliumUnpacker::unpack(TransportPutMessage **pm, const std::string &buf) {
     return MDHIM_SUCCESS;
 }
 
+int ThalliumUnpacker::unpack(TransportBPutMessage **bpm, const std::string &buf) {
+    TransportBPutMessage *out = new TransportBPutMessage();
+    std::stringstream s(buf);
+    if (unpack(static_cast<TransportMessage *>(out), s) != MDHIM_SUCCESS) {
+        delete out;
+        return MDHIM_ERROR;
+    }
+
+    if (!s.read((char *) &out->num_keys, sizeof(out->num_keys))) {
+        delete out;
+        return MDHIM_ERROR;
+    }
+
+    if (!(out->keys = new void *[out->num_keys]())    ||
+        !(out->key_lens = new int[out->num_keys]())   ||
+        !(out->values = new void *[out->num_keys]())  ||
+        !(out->value_lens = new int[out->num_keys]())) {
+        delete out;
+        return MDHIM_ERROR;
+    }
+
+    if (!s
+        .read((char *) out->key_lens, sizeof(*out->key_lens) * out->num_keys)
+        .read((char *) out->value_lens, sizeof(*out->value_lens) * out->num_keys)) {
+        delete out;
+        return MDHIM_ERROR;
+    }
+
+    for(int i = 0; i < out->num_keys; i++) {
+        if (!(out->keys[i] = ::operator new(out->key_lens[i]))     ||
+            !(out->values[i] = ::operator new(out->value_lens[i]))) {
+            delete out;
+            return MDHIM_ERROR;
+        }
+
+        if (!s
+            .read((char *) out->keys[i], out->key_lens[i])
+            .read((char *) out->values[i], out->value_lens[i])) {
+            delete out;
+            return MDHIM_ERROR;
+        }
+    }
+
+    *bpm = out;
+
+    return MDHIM_SUCCESS;
+}
+
 int ThalliumUnpacker::unpack(TransportGetMessage **gm, const std::string &buf) {
     TransportGetMessage *out = new TransportGetMessage();
     std::stringstream s(buf);
@@ -139,6 +187,49 @@ int ThalliumUnpacker::unpack(TransportGetMessage **gm, const std::string &buf) {
     }
 
     *gm = out;
+
+    return MDHIM_SUCCESS;
+}
+
+int ThalliumUnpacker::unpack(TransportBGetMessage **bgm, const std::string &buf) {
+    TransportBGetMessage *out = new TransportBGetMessage();
+    std::stringstream s(buf);
+    if (unpack(static_cast<TransportMessage *>(out), s) != MDHIM_SUCCESS) {
+        delete out;
+        return MDHIM_ERROR;
+    }
+
+    if (!s
+        .read((char *) &out->op, sizeof(out->op))
+        .read((char *) &out->num_keys, sizeof(out->num_keys))) {
+        delete out;
+        return MDHIM_ERROR;
+    }
+
+    if (!(out->keys = new void *[out->num_keys]())  ||
+        !(out->key_lens = new int[out->num_keys]())) {
+        delete out;
+        return MDHIM_ERROR;
+    }
+
+    if (!s.read((char *) out->key_lens, sizeof(*out->key_lens) * out->num_keys)) {
+        delete out;
+        return MDHIM_ERROR;
+    }
+
+    for(int i = 0; i < out->num_keys; i++) {
+        if (!(out->keys[i] = ::operator new(out->key_lens[i]))) {
+            delete out;
+            return MDHIM_ERROR;
+        }
+
+        if (!s.read((char *) out->keys[i], out->key_lens[i])) {
+            delete out;
+            return MDHIM_ERROR;
+        }
+    }
+
+    *bgm = out;
 
     return MDHIM_SUCCESS;
 }
@@ -187,6 +278,56 @@ int ThalliumUnpacker::unpack(TransportGetRecvMessage **grm, const std::string &b
     }
 
     *grm = out;
+
+    return MDHIM_SUCCESS;
+}
+
+int ThalliumUnpacker::unpack(TransportBGetRecvMessage **bgrm, const std::string &buf) {
+    TransportBGetRecvMessage *out = new TransportBGetRecvMessage();
+    std::stringstream s(buf);
+    if (unpack(static_cast<TransportMessage *>(out), s) != MDHIM_SUCCESS) {
+        delete out;
+        return MDHIM_ERROR;
+    }
+
+    if (!s
+        .read((char *) &out->error, sizeof(out->error))
+        .read((char *) &out->num_keys, sizeof(out->num_keys))) {
+        delete out;
+        return MDHIM_ERROR;
+    }
+
+    if (!(out->keys = new void *[out->num_keys]())    ||
+        !(out->key_lens = new int[out->num_keys]())   ||
+        !(out->values = new void *[out->num_keys]())  ||
+        !(out->value_lens = new int[out->num_keys]())) {
+        delete out;
+        return MDHIM_ERROR;
+    }
+
+    if (!s
+        .read((char *) out->key_lens, sizeof(*out->key_lens) * out->num_keys)
+        .read((char *) out->value_lens, sizeof(*out->value_lens) * out->num_keys)) {
+        delete out;
+        return MDHIM_ERROR;
+    }
+
+    for(int i = 0; i < out->num_keys; i++) {
+        if (!(out->keys[i] = ::operator new(out->key_lens[i]))      |
+            !(out->values[i] = ::operator new(out->value_lens[i]))) {
+            delete out;
+            return MDHIM_ERROR;
+        }
+
+        if (!s
+            .read((char *) out->keys[i], out->key_lens[i])
+            .read((char *) out->values[i], out->value_lens[i])) {
+            delete out;
+            return MDHIM_ERROR;
+        }
+    }
+
+    *bgrm = out;
 
     return MDHIM_SUCCESS;
 }

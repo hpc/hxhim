@@ -21,6 +21,12 @@ void put(mdhim_t *md,
                                 primary_key, primary_key_len,
                                 value, value_len,
                                 nullptr, nullptr);
+
+    if (!brm) {
+        err << "mdhimPut error" << std::endl;
+        return;
+    }
+
     // Get error value
     int error = MDHIM_ERROR;
     if (mdhim_brm_error(brm, &error) != MDHIM_SUCCESS) {
@@ -33,8 +39,9 @@ void put(mdhim_t *md,
     if (error != MDHIM_SUCCESS) {
         err << "PUT error " << error << std::endl;
     }
-
-    out << "PUT " << std::string((char *)primary_key, primary_key_len) << " -> " << std::string((char *)value, value_len) << " to range server on rank " << mdhimWhichServer(md, primary_key, primary_key_len) << std::endl;
+    else {
+        out << "PUT " << std::string((char *)primary_key, primary_key_len) << " -> " << std::string((char *)value, value_len) << " to range server on rank " << mdhimWhichServer(md, primary_key, primary_key_len) << std::endl;
+    }
 
     // destroying the return value must occur
     // after the private values are accessed

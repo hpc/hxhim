@@ -82,7 +82,7 @@ int mdhim_private_init(mdhim_private_t* mdp, int dbtype, int transporttype) {
         // remove the loopback endpoint
         addrs.erase(mdp->mdhim_rank);
 
-        ThalliumEndpointGroup *eg = new ThalliumEndpointGroup(mdp);
+        ThalliumEndpointGroup *eg = new ThalliumEndpointGroup(mdp, rpc);
 
         // create mapping between unique IDs and ranks
         for(std::pair<const int, std::string> const &addr : addrs) {

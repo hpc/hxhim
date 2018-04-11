@@ -17,6 +17,12 @@ void get(mdhim_t *md,
     mdhim_getrm_t *grm = mdhimGet(md, nullptr,
                                   primary_key, primary_key_len,
                                   GET_EQ);
+
+    if (!grm) {
+        err << "mdhimGet error" << std::endl;
+        return;
+    }
+
     // Get error value
     int error = MDHIM_ERROR;
     if (mdhim_grm_error(grm, &error) != MDHIM_SUCCESS) {

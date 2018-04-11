@@ -61,10 +61,10 @@ TransportGetRecvMessage *ThalliumEndpoint::Get(const TransportGetMessage *messag
 
     const std::string response = rpc_->on(*ep_)(buf);
 
-    TransportGetRecvMessage *rm = nullptr;
-    if (ThalliumUnpacker::unpack(&rm, response) != MDHIM_SUCCESS) {
+    TransportGetRecvMessage *grm = nullptr;
+    if (ThalliumUnpacker::unpack(&grm, response) != MDHIM_SUCCESS) {
         return nullptr;
     }
 
-    return rm;
+    return grm;
 }

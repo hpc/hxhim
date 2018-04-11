@@ -26,7 +26,7 @@ int get_addrs(const MPI_Comm comm, const std::shared_ptr<thallium::engine> &engi
     }
 
     // get local engine's address
-    const std::string self = (std::string) engine->self();
+    const std::string self = static_cast<std::string>(engine->self());
 
     // get maximum size of all addresses
     const int self_len = self.size();

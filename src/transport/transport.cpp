@@ -423,6 +423,9 @@ void Transport::SetEndpointGroup(TransportEndpointGroup *eg) {
  * @return the response from the range server
  */
 TransportRecvMessage *Transport::Put(const TransportPutMessage *put) {
+    if (!put) {
+        return nullptr;
+    }
     TransportEndpointMapping_t::iterator it = endpoints_.find(put->dst);
     return (it == endpoints_.end())?nullptr:it->second->Put(put);
 }
@@ -435,6 +438,9 @@ TransportRecvMessage *Transport::Put(const TransportPutMessage *put) {
  * @return the response from the range server
  */
 TransportGetRecvMessage *Transport::Get(const TransportGetMessage *get) {
+    if (!get) {
+        return nullptr;
+    }
     TransportEndpointMapping_t::iterator it = endpoints_.find(get->dst);
     return (it == endpoints_.end())?nullptr:it->second->Get(get);
 }
@@ -468,6 +474,6 @@ TransportBGetRecvMessage *Transport::BGet(const int num_rangesrvs, TransportBGet
  * @param messages a list of DELETE messages going to different servers
  * @param num_srvs the number of servers
  */
-TransportBRecvMessage *Transport::BDelete(const int num_rangesrvs, TransportBDeleteMessage **bpm_list) {
-    return endpointgroup_?endpointgroup_->BDelete(num_rangesrvs, bpm_list):nullptr;
+TransportBRecvMessage *Transport::BDelete(const int num_rangesrvs, TransportBDeleteMessage **bgm_list) {
+    return endpointgroup_?endpointgroup_->BDelete(num_rangesrvs, bgm_list):nullptr;
 }

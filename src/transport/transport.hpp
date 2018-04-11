@@ -277,7 +277,7 @@ class TransportEndpointGroup {
             return messages;
         }
 
-        /** @description counts and returns the servers that will be sent work */
+        /** @description Counts and returns the servers that will be sent work */
         int get_num_srvs(TransportMessage **messages, const int num_rangesrvs, int **srvs);
 };
 

@@ -4,12 +4,12 @@ MPIEndpointGroup::MPIEndpointGroup(mdhim_private_t *mdp)
   : TransportEndpointGroup(),
     MPIEndpointBase(mdp->mdhim_comm, mdp->shutdown),
     mdp_(mdp),
-    ranks_mutex_(),
+    mutex_(),
     ranks_()
 {}
 
 MPIEndpointGroup::~MPIEndpointGroup() {
-    std::lock_guard<std::mutex> lock(ranks_mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
 }
 
 /**
@@ -20,7 +20,7 @@ MPIEndpointGroup::~MPIEndpointGroup() {
  * @param rank the rank associated with the unique ID
  */
 void MPIEndpointGroup::AddID(const int id, const int rank) {
-    std::lock_guard<std::mutex> lock(ranks_mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
     ranks_[id] = rank;
 }
 
@@ -32,7 +32,7 @@ void MPIEndpointGroup::AddID(const int id, const int rank) {
  * @param id the unique ID to remove
  */
 void MPIEndpointGroup::RemoveID(const int id) {
-    std::lock_guard<std::mutex> lock(ranks_mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
     ranks_.erase(id);
 }
 
@@ -141,7 +141,7 @@ TransportBRecvMessage *MPIEndpointGroup::return_brm(const int num_rangesrvs, Tra
 
 /**
  * return_bgrm
- * This function is very similar to return bgrm
+ * This function is very similar to return_brm
  *
  * @param num_rangesrvs the number of range servers there are
  * @param messages      an array of messages to send
@@ -199,9 +199,9 @@ TransportBGetRecvMessage *MPIEndpointGroup::return_bgrm(const int num_rangesrvs,
  * only_send_all_rangesrv_work
  * Sends multiple messages (char buffers)  simultaneously and waits for them to all complete
  *
- * @param md       main MDHIM struct
  * @param messages double pointer to array of packed messages to send
  * @param sizes    size of each message
+ * @param dsts     which range server each message is going to
  * @param num_srvs number of different servers
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
@@ -212,7 +212,7 @@ int MPIEndpointGroup::only_send_all_rangesrv_work(void **messages, int *sizes, i
     int num_msgs = 0;
     int ret = MDHIM_SUCCESS;
 
-    std::lock_guard<std::mutex> lock(ranks_mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
 
     //Send all messages at once
     for (int i = 0; i < num_srvs; i++) {
@@ -301,24 +301,22 @@ int MPIEndpointGroup::only_send_all_rangesrv_work(void **messages, int *sizes, i
  * send_all_rangesrv_work
  * Sends multiple messages simultaneously and waits for them to all complete
  *
- * @param md       main MDHIM struct
  * @param messages double pointer to array of messages to send
- * @param sizes    size of each message
  * @param num_srvs number of different servers
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
 int MPIEndpointGroup::send_all_rangesrv_work(TransportMessage **messages, const int num_srvs) {
     int return_code = MDHIM_SUCCESS;
     void **sendbufs = new void *[num_srvs]();
-    int *sizes = new int[num_srvs]();
+    int *sizebufs = new int[num_srvs]();
     int *dsts = new int[num_srvs]();
 
     // encode each mesage
     for(int i = 0; i < num_srvs; i++) {
-        if (MPIPacker::any(comm_, messages[i], sendbufs + i, sizes + i) != MDHIM_SUCCESS) {
+        if (MPIPacker::any(comm_, messages[i], sendbufs + i, sizebufs + i) != MDHIM_SUCCESS) {
             Memory::MESSAGE_BUFFER::Instance().release(sendbufs[i]);
             sendbufs[i] = nullptr;
-            sizes[i] = 0;
+            sizebufs[i] = 0;
             continue;
         }
 
@@ -326,16 +324,16 @@ int MPIEndpointGroup::send_all_rangesrv_work(TransportMessage **messages, const 
     }
 
     // send all of the messages at once
-    int ret = only_send_all_rangesrv_work(sendbufs, sizes, dsts, num_srvs);
+    int ret = only_send_all_rangesrv_work(sendbufs, sizebufs, dsts, num_srvs);
 
     // cleanup
     for (int i = 0; i < num_srvs; i++) {
         Memory::MESSAGE_BUFFER::Instance().release(sendbufs[i]);
     }
 
-    delete [] sendbufs;
     delete [] dsts;
-    delete [] sizes;
+    delete [] sendbufs;
+    delete [] sizebufs;
 
     return ret;
 }
@@ -349,7 +347,7 @@ int MPIEndpointGroup::only_receive_all_client_responses(int *srcs, int nsrcs, vo
     *recvbufs = new void *[nsrcs]();
     *sizebufs = new int[nsrcs]();
 
-    std::lock_guard<std::mutex> lock(ranks_mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
 
     // Receive a size message from the servers in the list
     for (int i = 0; i < nsrcs; i++) {

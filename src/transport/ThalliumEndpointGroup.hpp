@@ -2,11 +2,11 @@
 #define HXHIM_TRANSPORT_THALLIUM_ENDPOINT_GROUP
 
 #include <map>
-#include <mutex>
 
 #include "mlog2.h"
 #include "mlogfacs2.h"
 #include <thallium.hpp>
+#include <thallium/serialization/stl/string.hpp>
 
 #include "mdhim_constants.h"
 #include "mdhim_private.h"
@@ -21,7 +21,7 @@
  */
 class ThalliumEndpointGroup : virtual public TransportEndpointGroup {
     public:
-        ThalliumEndpointGroup(mdhim_private_t *mdp);
+        ThalliumEndpointGroup(mdhim_private_t *mdp, const Thallium::RPC_t &rpc);
         ~ThalliumEndpointGroup();
 
         /** @description Converts a string into an endpoint and adds it to the map_*/
@@ -50,8 +50,9 @@ class ThalliumEndpointGroup : virtual public TransportEndpointGroup {
         TransportBGetRecvMessage *return_bgrm(const int num_rangesrvs, TransportMessage **messages);
 
         mdhim_private_t *mdp_;
+        Thallium::RPC_t rpc_;
+
         std::map<int, Thallium::Endpoint_t> endpoints_;
 };
-
 
 #endif

@@ -45,6 +45,7 @@ int main(int argc, char *argv[]) {
 
     // if there are more arguments after argv[0], use thallium
     if (argc != 1) {
+        std::cout << "Using thallium" << std::endl;
         mdhim_options_set_transporttype(&opts, MDHIM_TRANSPORT_THALLIUM);
     }
 

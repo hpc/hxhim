@@ -19,6 +19,11 @@ void bget(mdhim_t *md,
                                      num_keys,
                                      TransportGetMessageOp::GET_EQ);
 
+    if (!bgrm) {
+        err << "mdhimBGet error" << std::endl;
+        return;
+    }
+
     // Get and print results
     while (bgrm) {
         // Get number of num_keys
