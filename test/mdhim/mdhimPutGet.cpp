@@ -56,7 +56,7 @@ TEST(mdhimPutGet, no_secondary) {
 
     EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
     EXPECT_EQ(mdhim_options_destroy(&opts), MDHIM_SUCCESS);
-    EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
+    EXPECT_EQ(Memory::MESSAGE_BUFFER::Instance().used(), 0);
 }
 
 TEST(mdhimPutGet, secondary_global) {
@@ -135,7 +135,7 @@ TEST(mdhimPutGet, secondary_global) {
     EXPECT_EQ(MPI_Barrier(md.p->mdhim_comm), MPI_SUCCESS);
     EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
     EXPECT_EQ(mdhim_options_destroy(&opts), MDHIM_SUCCESS);
-    EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
+    EXPECT_EQ(Memory::MESSAGE_BUFFER::Instance().used(), 0);
 }
 
 TEST(mdhimPutGet, secondary_local) {
@@ -217,7 +217,7 @@ TEST(mdhimPutGet, secondary_local) {
     EXPECT_EQ(MPI_Barrier(md.p->mdhim_comm), MPI_SUCCESS);
     EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
     EXPECT_EQ(mdhim_options_destroy(&opts), MDHIM_SUCCESS);
-    EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
+    EXPECT_EQ(Memory::MESSAGE_BUFFER::Instance().used(), 0);
 }
 
 TEST(mdhimPutGet, secondary_global_and_local) {
@@ -374,5 +374,5 @@ TEST(mdhimPutGet, secondary_global_and_local) {
     EXPECT_EQ(MPI_Barrier(md.p->mdhim_comm), MPI_SUCCESS);
     EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
     EXPECT_EQ(mdhim_options_destroy(&opts), MDHIM_SUCCESS);
-    EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
+    EXPECT_EQ(Memory::MESSAGE_BUFFER::Instance().used(), 0);
 }

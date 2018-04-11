@@ -20,13 +20,13 @@ ThalliumEndpoint::ThalliumEndpoint(thallium::engine *engine,
 ThalliumEndpoint::~ThalliumEndpoint() {
     std::lock_guard<std::mutex> lock(mutex_);
 
-    Memory::FBP_MEDIUM::Instance().release(ep_);
+    Memory::MESSAGE_BUFFER::Instance().release(ep_);
 
     if (!--count_) {
-        Memory::FBP_MEDIUM::Instance().release(rpc_);
+        Memory::MESSAGE_BUFFER::Instance().release(rpc_);
 
         engine_->finalize();
-        Memory::FBP_MEDIUM::Instance().release(engine_);
+        Memory::MESSAGE_BUFFER::Instance().release(engine_);
     }
 }
 

@@ -12,6 +12,8 @@
 /**
  * FixedBufferPool
  * This class distributes memory addresses from a fixed size pool of memory.
+ *     - If there are no available regions, acquire will block.
+ *     - If too many bytes are requested, acquire will return nullptr
  *
  * @tparam alloc_size_  fixed size of each region given to the user.
  * @tparam regions_     how many slots of size alloc_size_ there are for use
@@ -25,8 +27,8 @@ class FixedBufferPool {
         /* @description Gets an instance of FixedBufferPool for use                     */
         static FixedBufferPool &Instance();
 
-        /* @description Locates and returns the address of a fixed size memory region   */
-        template <typename T, typename = std::enable_if_t<!std::is_same<T, void>::value>>
+        /* @description Returns the address of a unused fixed size memory region        */
+        template <typename T, typename = std::enable_if_t<!std::is_same<T, void>::value> >
         T *acquire(const std::size_t count = 1);
         void *acquire(const std::size_t size = alloc_size_);
 

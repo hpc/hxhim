@@ -1,5 +1,4 @@
 #include "input.hpp"
-#include <iostream>
 
 /**
  * bulk_read
@@ -17,7 +16,7 @@
  * @param rows         how many rows of data there are
  * @param read_rows    whether or not to read the number of rows from s; if false, sets rows to 1
  * @return MDHIM_SUCCESS or MDHIM_ERROR;
-*/
+ */
 int bulk_read(std::istream &s, int columns, void ****data, int ***lens, int &rows, bool read_rows) {
     // get number of rows
     if (read_rows) {
@@ -70,7 +69,7 @@ int bulk_read(std::istream &s, int columns, void ****data, int ***lens, int &row
  * @param lens    corresponding lengths of the data
  * @param rows    how many rows of data there are
  * @return MDHIM_SUCCESS or MDHIM_ERROR;
-*/
+ */
 int bulk_clean(int columns, void ***data, int **lens, int rows) {
     if (data) {
         // delete each value

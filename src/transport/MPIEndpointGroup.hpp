@@ -16,7 +16,7 @@
 /**
  * MPIEndpointGroup
  * Collective communication endpoint implemented with MPI
-*/
+ */
 class MPIEndpointGroup : virtual public TransportEndpointGroup, virtual public MPIEndpointBase {
     public:
         MPIEndpointGroup(mdhim_private_t *mdp, volatile int &shutdown);
@@ -32,11 +32,10 @@ class MPIEndpointGroup : virtual public TransportEndpointGroup, virtual public M
         TransportBRecvMessage *BDelete(const int num_rangesrvs, TransportBDeleteMessage **bpm_list);
 
     private:
-        /**
-         * Function used by BPUT and BDELETE for sending and receiving bulk operation message
-         * These functions differ by only a little
-         */
+        /** @description Function used by BPUT and BDELETE for sending and receiving messages */
         TransportBRecvMessage *return_brm(const int num_rangesrvs, TransportMessage **messages);
+
+        /** @description Function used by BGET for sending and receiving messages             */
         TransportBGetRecvMessage *return_bgrm(const int num_rangesrvs, TransportMessage **messages);
 
         /**

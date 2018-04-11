@@ -7,6 +7,7 @@
 
 #include <cstdlib>
 #include <map>
+#include <type_traits>
 
 #include "index_struct.h"
 #include "mdhim_constants.h"
@@ -260,18 +261,29 @@ class TransportEndpointGroup {
         /** @description Deallocates and removes the endpoint from the transport */
         void RemoveEndpoint(const int id);
 
-        /** @description Bulk Put to multiple endpoints   */
+        /** @description Bulk Put to multiple endpoints    */
         virtual TransportBRecvMessage *BPut(const int num_rangesrvs, TransportBPutMessage **bpm_list) = 0;
 
-        /** @description Bulk Get from multiple endpoints */
+        /** @description Bulk Get from multiple endpoints  */
         virtual TransportBGetRecvMessage *BGet(const int num_rangesrvs, TransportBGetMessage **bgm_list) = 0;
 
-        /** @description Bulk Delete to multiple endpoints   */
+        /** @description Bulk Delete to multiple endpoints */
         virtual TransportBRecvMessage *BDelete(const int num_rangesrvs, TransportBDeleteMessage **bpm_list) = 0;
 
    protected:
         TransportEndpointGroup(const TransportEndpointGroup&  rhs) = delete;
         TransportEndpointGroup(const TransportEndpointGroup&& rhs) = delete;
+
+        /** @description Converts Transport*Message ** to TransportMessage ** to prevent pointer weirdness */
+        template <typename T, typename = std::enable_if_t<std::is_convertible<T, TransportMessage>::value> >
+        static TransportMessage **convert_to_base(const int num_rangesrvs, T **list) {
+            TransportMessage **messages = new TransportMessage *[num_rangesrvs]();
+            for(int i = 0; i < num_rangesrvs; i++) {
+                messages[i] = list[i];
+            }
+
+            return messages;
+        }
 
         TransportEndpointMapping_t endpoints_;
 };

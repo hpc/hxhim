@@ -60,7 +60,7 @@ TEST(mpi_pack_unpack, TransportPutMessage) {
     TransportPutMessage *dst = nullptr;
     EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
-    Memory::FBP_MEDIUM::Instance().release(buf);
+    Memory::MESSAGE_BUFFER::Instance().release(buf);
 
     EXPECT_EQ(src.mtype, dst->mtype);
     EXPECT_EQ(src.src, dst->src);
@@ -75,7 +75,7 @@ TEST(mpi_pack_unpack, TransportPutMessage) {
     EXPECT_EQ(memcmp(src.value, dst->value, dst->value_len), 0);
 
     delete dst;
-    EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
+    EXPECT_EQ(Memory::MESSAGE_BUFFER::Instance().used(), 0);
 }
 
 TEST(mpi_pack_unpack, TransportBPutMessage) {
@@ -114,7 +114,7 @@ TEST(mpi_pack_unpack, TransportBPutMessage) {
     TransportBPutMessage *dst = nullptr;
     EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
-    Memory::FBP_MEDIUM::Instance().release(buf);
+    Memory::MESSAGE_BUFFER::Instance().release(buf);
 
     EXPECT_EQ(src.mtype, dst->mtype);
     EXPECT_EQ(src.src, dst->src);
@@ -133,7 +133,7 @@ TEST(mpi_pack_unpack, TransportBPutMessage) {
     }
 
     delete dst;
-    EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
+    EXPECT_EQ(Memory::MESSAGE_BUFFER::Instance().used(), 0);
 }
 
 TEST(mpi_pack_unpack, TransportGetMessage) {
@@ -164,7 +164,7 @@ TEST(mpi_pack_unpack, TransportGetMessage) {
     TransportGetMessage *dst = nullptr;
     EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
-    Memory::FBP_MEDIUM::Instance().release(buf);
+    Memory::MESSAGE_BUFFER::Instance().release(buf);
 
     EXPECT_EQ(src.mtype, dst->mtype);
     EXPECT_EQ(src.src, dst->src);
@@ -177,7 +177,7 @@ TEST(mpi_pack_unpack, TransportGetMessage) {
     EXPECT_EQ(memcmp(src.key, dst->key, dst->key_len), 0);
 
     delete dst;
-    EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
+    EXPECT_EQ(Memory::MESSAGE_BUFFER::Instance().used(), 0);
 }
 
 TEST(mpi_pack_unpack, TransportBGetMessage) {
@@ -212,7 +212,7 @@ TEST(mpi_pack_unpack, TransportBGetMessage) {
     TransportBGetMessage *dst = nullptr;
     EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
-    Memory::FBP_MEDIUM::Instance().release(buf);
+    Memory::MESSAGE_BUFFER::Instance().release(buf);
 
     EXPECT_EQ(src.mtype, dst->mtype);
     EXPECT_EQ(src.src, dst->src);
@@ -229,7 +229,7 @@ TEST(mpi_pack_unpack, TransportBGetMessage) {
     EXPECT_EQ(src.num_recs, dst->num_recs);
 
     delete dst;
-    EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
+    EXPECT_EQ(Memory::MESSAGE_BUFFER::Instance().used(), 0);
 }
 
 TEST(mpi_pack_unpack, TransportDeleteMessage) {
@@ -257,7 +257,7 @@ TEST(mpi_pack_unpack, TransportDeleteMessage) {
     TransportDeleteMessage *dst = nullptr;
     EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
-    Memory::FBP_MEDIUM::Instance().release(buf);
+    Memory::MESSAGE_BUFFER::Instance().release(buf);
 
     EXPECT_EQ(src.mtype, dst->mtype);
     EXPECT_EQ(src.src, dst->src);
@@ -269,7 +269,7 @@ TEST(mpi_pack_unpack, TransportDeleteMessage) {
     EXPECT_EQ(memcmp(src.key, dst->key, dst->key_len), 0);
 
     delete dst;
-    EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
+    EXPECT_EQ(Memory::MESSAGE_BUFFER::Instance().used(), 0);
 }
 
 TEST(mpi_pack_unpack, TransportBDeleteMessage) {
@@ -301,7 +301,7 @@ TEST(mpi_pack_unpack, TransportBDeleteMessage) {
     TransportBDeleteMessage *dst = nullptr;
     EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
-    Memory::FBP_MEDIUM::Instance().release(buf);
+    Memory::MESSAGE_BUFFER::Instance().release(buf);
 
     EXPECT_EQ(src.mtype, dst->mtype);
     EXPECT_EQ(src.src, dst->src);
@@ -317,7 +317,7 @@ TEST(mpi_pack_unpack, TransportBDeleteMessage) {
     }
 
     delete dst;
-    EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
+    EXPECT_EQ(Memory::MESSAGE_BUFFER::Instance().used(), 0);
 }
 
 TEST(mpi_pack_unpack, TransportRecvMessage) {
@@ -342,7 +342,7 @@ TEST(mpi_pack_unpack, TransportRecvMessage) {
     TransportRecvMessage *dst = nullptr;
     EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
-    Memory::FBP_MEDIUM::Instance().release(buf);
+    Memory::MESSAGE_BUFFER::Instance().release(buf);
 
     EXPECT_EQ(src.mtype, dst->mtype);
     EXPECT_EQ(src.src, dst->src);
@@ -353,7 +353,7 @@ TEST(mpi_pack_unpack, TransportRecvMessage) {
     EXPECT_EQ(src.error, dst->error);
 
     delete dst;
-    EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
+    EXPECT_EQ(Memory::MESSAGE_BUFFER::Instance().used(), 0);
 }
 
 TEST(mpi_pack_unpack, TransportBGetRecvMessage) {
@@ -395,7 +395,7 @@ TEST(mpi_pack_unpack, TransportBGetRecvMessage) {
     TransportBGetRecvMessage *dst = nullptr;
     EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
-    Memory::FBP_MEDIUM::Instance().release(buf);
+    Memory::MESSAGE_BUFFER::Instance().release(buf);
 
     EXPECT_EQ(src.mtype, dst->mtype);
     EXPECT_EQ(src.src, dst->src);
@@ -416,5 +416,5 @@ TEST(mpi_pack_unpack, TransportBGetRecvMessage) {
     }
 
     delete dst;
-    EXPECT_EQ(Memory::FBP_MEDIUM::Instance().used(), 0);
+    EXPECT_EQ(Memory::MESSAGE_BUFFER::Instance().used(), 0);
 }

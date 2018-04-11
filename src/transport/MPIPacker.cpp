@@ -240,7 +240,7 @@ int MPIPacker::pack(const MPI_Comm comm, const TransportMessage *msg, void **buf
     }
 
     // Allocate the buffer
-    if (!(*buf = Memory::FBP_MEDIUM::Instance().acquire(*bufsize))) {
+    if (!(*buf = Memory::MESSAGE_BUFFER::Instance().acquire(*bufsize))) {
         return MDHIM_ERROR;
     }
 
@@ -262,7 +262,7 @@ int MPIPacker::pack(const MPI_Comm comm, const TransportMessage *msg, void **buf
 
 void MPIPacker::cleanup(void **buf, int *bufsize) {
     if (buf) {
-        Memory::FBP_MEDIUM::Instance().release(*buf);
+        Memory::MESSAGE_BUFFER::Instance().release(*buf);
         *buf = nullptr;
     }
 

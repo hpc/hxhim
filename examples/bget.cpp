@@ -9,7 +9,7 @@
  * @param keys_len the length of each key
  * @param out      normal message stream
  * @param err      error message stream
-*/
+ */
 void bget(mdhim_t *md,
           void **keys, int *key_lens,
           int num_keys,

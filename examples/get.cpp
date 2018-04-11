@@ -9,7 +9,7 @@
  * @param primary_key_len the length of the key
  * @param out             normal message stream
  * @param err             error message stream
-*/
+ */
 void get(mdhim_t *md,
          void *primary_key, int primary_key_len,
          std::ostream &out, std::ostream &err) {

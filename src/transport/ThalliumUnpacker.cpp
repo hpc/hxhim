@@ -81,7 +81,7 @@ int ThalliumUnpacker::any (TransportMessage **msg, const std::string &buf) {
             break;
     }
 
-    Memory::FBP_MEDIUM::Instance().release(basemsg);
+    Memory::MESSAGE_BUFFER::Instance().release(basemsg);
 
     return ret;
 }

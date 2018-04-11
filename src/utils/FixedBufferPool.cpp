@@ -24,6 +24,7 @@ FixedBufferPool<alloc_size_, regions_, Allowed> &FixedBufferPool<alloc_size_, re
  * Note that void * pointers should not be allocated
  * using the templated version of acquire.
  *
+ * @param count the number of T objects that will be placed into the region
  * @return A pointer to a memory region of size pool_size_
  */
 template <const std::size_t alloc_size_,
@@ -43,11 +44,12 @@ T *FixedBufferPool<alloc_size_, regions_, Allowed>::acquire(const std::size_t co
  * Acquires a memory region from the pool for use.
  *   - If there is no region available, the function blocks
  *     until one is available.
- *   - If the too many bytes ar erequested, nullptr
+ *   - If the too many bytes are requested, nullptr
  *     will be returned.
  * The default constructor of type T is called once
  * the memory location has been acquired.
  *
+ * @param size the total number of bytes requested
  * @return A pointer to a memory region of size pool_size_
  */
 template <const std::size_t alloc_size_,

@@ -29,8 +29,8 @@ TransportRecvMessage *MPIEndpoint::Put(const TransportPutMessage *message) {
      (receive_client_response(&recvbuf, &recvsize)             == MDHIM_SUCCESS) &&  // receive the response
      (MPIUnpacker::unpack(comm_, &response, recvbuf, recvsize) == MDHIM_SUCCESS));   // unpack the response
 
-    Memory::FBP_MEDIUM::Instance().release(sendbuf);
-    Memory::FBP_MEDIUM::Instance().release(recvbuf);
+    Memory::MESSAGE_BUFFER::Instance().release(sendbuf);
+    Memory::MESSAGE_BUFFER::Instance().release(recvbuf);
 
     return response;
 }
@@ -56,8 +56,8 @@ TransportGetRecvMessage *MPIEndpoint::Get(const TransportGetMessage *message) {
      (receive_client_response(&recvbuf, &recvsize)             == MDHIM_SUCCESS) &&  // receive the response
      (MPIUnpacker::unpack(comm_, &response, recvbuf, recvsize) == MDHIM_SUCCESS));   // unpack the response
 
-    Memory::FBP_MEDIUM::Instance().release(sendbuf);
-    Memory::FBP_MEDIUM::Instance().release(recvbuf);
+    Memory::MESSAGE_BUFFER::Instance().release(sendbuf);
+    Memory::MESSAGE_BUFFER::Instance().release(recvbuf);
 
     return response;
 }
@@ -123,7 +123,7 @@ int MPIEndpoint::receive_client_response(void **buf, int *size) {
     }
 
     // allocate space for the message
-    if (!(*buf = Memory::FBP_MEDIUM::Instance().acquire(*size))) {
+    if (!(*buf = Memory::MESSAGE_BUFFER::Instance().acquire(*size))) {
         return MDHIM_ERROR;
     }
 

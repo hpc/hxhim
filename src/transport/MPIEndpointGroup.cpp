@@ -8,31 +8,46 @@ MPIEndpointGroup::MPIEndpointGroup(mdhim_private_t *mdp, volatile int &shutdown)
 
 MPIEndpointGroup::~MPIEndpointGroup() {}
 
+/**
+ * BPut
+ *
+ * @param num_rangesrvs the total number of range servers
+ * @param bpm_list the list of BPUT messages to send
+ * @return a linked list of response messages, or nullptr
+ */
 TransportBRecvMessage *MPIEndpointGroup::BPut(const int num_rangesrvs, TransportBPutMessage **bpm_list) {
-    TransportMessage **messages = new TransportMessage *[num_rangesrvs]();
-    for(int i = 0; i < num_rangesrvs; i++) {
-        messages[i] = bpm_list[i];
-    }
-
-    return return_brm(num_rangesrvs, messages);
+    TransportMessage **messages = convert_to_base(num_rangesrvs, bpm_list);
+    TransportBRecvMessage *ret = return_brm(num_rangesrvs, messages);
+    delete [] messages;
+    return ret;
 }
 
+/**
+ * BGet
+ *
+ * @param num_rangesrvs the total number of range servers
+ * @param bgm_list the list of BGET messages to send
+ * @return a linked list of response messages, or nullptr
+ */
 TransportBGetRecvMessage *MPIEndpointGroup::BGet(const int num_rangesrvs, TransportBGetMessage **bgm_list) {
-    TransportMessage **messages = new TransportMessage *[num_rangesrvs]();
-    for(int i = 0; i < num_rangesrvs; i++) {
-        messages[i] = bgm_list[i];
-    }
-
-    return return_bgrm(num_rangesrvs, messages);
+    TransportMessage **messages = convert_to_base(num_rangesrvs, bgm_list);
+    TransportBGetRecvMessage *ret = return_bgrm(num_rangesrvs, messages);
+    delete [] messages;
+    return ret;
 }
 
+/**
+ * BDelete
+ *
+ * @param num_rangesrvs the total number of range servers
+ * @param bdm_list the list of BDELETE messages to send
+ * @return a linked list of response messages, or nullptr
+ */
 TransportBRecvMessage *MPIEndpointGroup::BDelete(const int num_rangesrvs, TransportBDeleteMessage **bdm_list) {
-    TransportMessage **messages = new TransportMessage *[num_rangesrvs]();
-    for(int i = 0; i < num_rangesrvs; i++) {
-        messages[i] = bdm_list[i];
-    }
-
-    return return_brm(num_rangesrvs, messages);
+    TransportMessage **messages = convert_to_base(num_rangesrvs, bdm_list);
+    TransportBRecvMessage *ret = return_brm(num_rangesrvs, messages);
+    delete [] messages;
+    return ret;
 }
 
 /**
@@ -109,7 +124,8 @@ TransportBRecvMessage *MPIEndpointGroup::return_brm(const int num_rangesrvs, Tra
 }
 
 /**
- * return_brm
+ * return_bgrm
+ * This function is very similar to return bgrm
  *
  * @param num_rangesrvs the number of range servers there are
  * @param messages      an array of messages to send
@@ -287,14 +303,14 @@ int MPIEndpointGroup::only_send_all_rangesrv_work(void **messages, int *sizes, i
  */
 int MPIEndpointGroup::send_all_rangesrv_work(TransportMessage **messages, const int num_srvs) {
     int return_code = MDHIM_SUCCESS;
-    void **sendbufs = Memory::FBP_MEDIUM::Instance().acquire<void *>(num_srvs);
-    int *sizes = new int[num_srvs]();             // size of each sendbuf
+    void **sendbufs = new void *[num_srvs]();
+    int *sizes = new int[num_srvs]();
     int *dsts = new int[num_srvs]();
 
     // encode each mesage
     for(int i = 0; i < num_srvs; i++) {
         if (MPIPacker::any(comm_, messages[i], sendbufs + i, sizes + i) != MDHIM_SUCCESS) {
-            Memory::FBP_MEDIUM::Instance().release(sendbufs[i]);
+            Memory::MESSAGE_BUFFER::Instance().release(sendbufs[i]);
             sendbufs[i] = nullptr;
             sizes[i] = 0;
             continue;
@@ -308,10 +324,10 @@ int MPIEndpointGroup::send_all_rangesrv_work(TransportMessage **messages, const 
 
     // cleanup
     for (int i = 0; i < num_srvs; i++) {
-        Memory::FBP_MEDIUM::Instance().release(sendbufs[i]);
+        Memory::MESSAGE_BUFFER::Instance().release(sendbufs[i]);
     }
 
-    Memory::FBP_MEDIUM::Instance().release(sendbufs);
+    delete [] sendbufs;
     delete [] dsts;
     delete [] sizes;
 
@@ -324,7 +340,7 @@ int MPIEndpointGroup::only_receive_all_client_responses(int *srcs, int nsrcs, vo
     int ret = MDHIM_SUCCESS;
     MPI_Request **reqs = new MPI_Request*[nsrcs]();
 
-    *recvbufs = Memory::FBP_MEDIUM::Instance().acquire<void *>(nsrcs);
+    *recvbufs = new void *[nsrcs]();
     *sizebufs = new int[nsrcs]();
 
     // Receive a size message from the servers in the list
@@ -373,7 +389,7 @@ int MPIEndpointGroup::only_receive_all_client_responses(int *srcs, int nsrcs, vo
     done = 0;
     for (int i = 0; i < nsrcs; i++) {
         // Receive a message from the servers in the list
-        (*recvbufs)[i] = Memory::FBP_MEDIUM::Instance().acquire((*sizebufs)[i]);
+        (*recvbufs)[i] = Memory::MESSAGE_BUFFER::Instance().acquire((*sizebufs)[i]);
         reqs[i] = new MPI_Request();
 
         pthread_mutex_lock(&mdp_->mdhim_comm_lock);
@@ -427,11 +443,11 @@ int MPIEndpointGroup::receive_all_client_responses(int *srcs, int nsrcs, Transpo
     if ((ret = only_receive_all_client_responses(srcs, nsrcs, &recvbufs, &sizebufs)) == MDHIM_SUCCESS) {
         for (int i = 0; i < nsrcs; i++) {
             ret = MPIUnpacker::any(mdp_->mdhim_comm, (*messages) + i, recvbufs[i], sizebufs[i]);
-            Memory::FBP_MEDIUM::Instance().release(recvbufs[i]);
+            Memory::MESSAGE_BUFFER::Instance().release(recvbufs[i]);
         }
     }
 
-    Memory::FBP_MEDIUM::Instance().release(recvbufs);
+    delete [] recvbufs;
     delete [] sizebufs;
 
     return ret;

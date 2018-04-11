@@ -116,7 +116,7 @@ int MPIRangeServer::send_client_response(work_item_t *item, TransportMessage *me
         ret = only_send_client_response(message->dst, sendbuf, sizebuf, shutdown);
     }
 
-    Memory::FBP_MEDIUM::Instance().release(sendbuf);
+    Memory::MESSAGE_BUFFER::Instance().release(sendbuf);
 
     return ret;
 }
@@ -156,7 +156,7 @@ int MPIRangeServer::only_receive_rangesrv_work(void **recvbuf, int *recvsize, vo
     }
     Flush(&req, &flag, &status, shutdown);
 
-    *recvbuf = Memory::FBP_MEDIUM::Instance().acquire(*recvsize);
+    *recvbuf = Memory::MESSAGE_BUFFER::Instance().acquire(*recvsize);
     flag = 0;
 
     // Receive the message from the client
@@ -195,7 +195,7 @@ int MPIRangeServer::receive_rangesrv_work(TransportMessage **message, volatile i
         ret = MPIUnpacker::any(MPI_COMM_WORLD, message, recvbuf, recvsize);
     }
 
-    Memory::FBP_MEDIUM::Instance().release(recvbuf);
+    Memory::MESSAGE_BUFFER::Instance().release(recvbuf);
 
     return ret;
 }
