@@ -24,7 +24,7 @@ class ThalliumRangeServer {
         /**
          * Function that will be defined by the client and called by the range server
          */
-    static int send_client_response(work_item_t *item, TransportMessage *message, volatile int &shutdown);
+        static int send_client_response(work_item_t *item, TransportMessage *message, volatile int &shutdown);
 
     // private:
         static void receive_rangesrv_work(const thallium::request &req, const std::string &data);

@@ -325,40 +325,43 @@ void TransportBRecvMessage::cleanup() {
     next = nullptr;
 }
 
-TransportEndpointGroup::TransportEndpointGroup()
-  : endpoints_()
-{}
+TransportEndpointGroup::TransportEndpointGroup() {}
 
-TransportEndpointGroup::~TransportEndpointGroup() {
-    for(std::pair<const int, TransportEndpoint *> const & ep : endpoints_) {
-        delete ep.second;
-    }
-}
+TransportEndpointGroup::~TransportEndpointGroup() {}
 
 /**
- * AddEndpoint
- * Takes ownership of an endpoint and associates it with a unique id
+ * get_num_srvs
+ * get the number of servers that will be sent work, and need to be waited on
  *
- * @param id the ID that the given endpoint is associated with
- * @param ep the endpoint containing the transport functionality to send and receive data
+ * @param messages      the messages that are to be sent
+ * @param num_rangesrvs the total number of range servers
+ * @param srvs          address of an array that will be created and filled with unique range server IDs
+ * @return the          number of unique IDs in *srvs
  */
-void TransportEndpointGroup::AddEndpoint(const int id, TransportEndpoint *ep) {
-    delete endpoints_[id];
-    endpoints_[id] = ep;
-}
-
-/**
- * RemoveEndpoint
- * Deallocates and removes the endpoint from the transport
- *
- * @param id the ID of the endpoint
- */
-void TransportEndpointGroup::RemoveEndpoint(const int id) {
-    TransportEndpointMapping_t::iterator it = endpoints_.find(id);
-    if (it != endpoints_.end()) {
-        delete it->second;
-        endpoints_.erase(id);
+int TransportEndpointGroup::get_num_srvs(TransportMessage **messages, const int num_rangesrvs, int **srvs) {
+    *srvs = nullptr;
+    if (!messages || !srvs) {
+        return 0;
     }
+
+    // get the actual number of servers
+    int num_srvs = 0;
+    *srvs = new int[num_rangesrvs]();
+    for (int i = 0; i < num_rangesrvs; i++) {
+        if (!messages[i]) {
+            continue;
+        }
+
+        // store server IDs to receive frome
+        (*srvs)[num_srvs] = messages[i]->dst;
+        num_srvs++;
+    }
+
+    if (!num_srvs) {
+        delete [] *srvs;
+    }
+
+    return num_srvs;
 }
 
 Transport::Transport()

@@ -20,7 +20,6 @@
 #include "mdhim_options.h"
 #include "mdhim_options_private.h"
 #include "mdhim_private.h"
-#include "MemoryManagers.hpp"
 
 static void add_timing(struct timeval start, struct timeval end, int num,
                        mdhim_t *md, TransportMessageType mtype) {

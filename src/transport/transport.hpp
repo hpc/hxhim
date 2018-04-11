@@ -245,8 +245,6 @@ class TransportEndpoint {
         TransportEndpoint(const TransportEndpoint& rhs) {}
 };
 
-typedef std::map<int, TransportEndpoint *> TransportEndpointMapping_t;
-
 /**
  * An abstract group of communication endpoints
  */
@@ -255,12 +253,6 @@ class TransportEndpointGroup {
         TransportEndpointGroup();
         virtual ~TransportEndpointGroup();
 
-        /** @description Takes ownership of an endpoint and associates it with a unique id */
-        void AddEndpoint(const int id, TransportEndpoint *ep);
-
-        /** @description Deallocates and removes the endpoint from the transport */
-        void RemoveEndpoint(const int id);
-
         /** @description Bulk Put to multiple endpoints    */
         virtual TransportBRecvMessage *BPut(const int num_rangesrvs, TransportBPutMessage **bpm_list) = 0;
 
@@ -268,7 +260,7 @@ class TransportEndpointGroup {
         virtual TransportBGetRecvMessage *BGet(const int num_rangesrvs, TransportBGetMessage **bgm_list) = 0;
 
         /** @description Bulk Delete to multiple endpoints */
-        virtual TransportBRecvMessage *BDelete(const int num_rangesrvs, TransportBDeleteMessage **bpm_list) = 0;
+        virtual TransportBRecvMessage *BDelete(const int num_rangesrvs, TransportBDeleteMessage **bdm_list) = 0;
 
    protected:
         TransportEndpointGroup(const TransportEndpointGroup&  rhs) = delete;
@@ -285,7 +277,8 @@ class TransportEndpointGroup {
             return messages;
         }
 
-        TransportEndpointMapping_t endpoints_;
+        /** @description counts and returns the servers that will be sent work */
+        int get_num_srvs(TransportMessage **messages, const int num_rangesrvs, int **srvs);
 };
 
 /**
@@ -325,6 +318,8 @@ class Transport {
         TransportBRecvMessage *BDelete(const int num_rangesrvs, TransportBDeleteMessage **bdm_list);
 
     private:
+        typedef std::map<int, TransportEndpoint *> TransportEndpointMapping_t;
+
         TransportEndpointMapping_t endpoints_;
         TransportEndpointGroup *endpointgroup_;
 };

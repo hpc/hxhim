@@ -12,7 +12,6 @@
 #include "mdhim_constants.h"
 #include "mdhim_options.h"
 #include "mdhim_options_private.h"
-#include "MemoryManagers.hpp"
 
 // Default path to a local path and name, levelDB=2, int_key_type=1, yes_create_new=1
 // and debug=1 (mlog_CRIT)

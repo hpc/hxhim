@@ -1,12 +1,40 @@
 #include "MPIEndpointGroup.hpp"
 
-MPIEndpointGroup::MPIEndpointGroup(mdhim_private_t *mdp, volatile int &shutdown)
+MPIEndpointGroup::MPIEndpointGroup(mdhim_private_t *mdp)
   : TransportEndpointGroup(),
-    MPIEndpointBase(mdp->mdhim_comm, shutdown),
-    mdp_(mdp)
+    MPIEndpointBase(mdp->mdhim_comm, mdp->shutdown),
+    mdp_(mdp),
+    ranks_mutex_(),
+    ranks_()
 {}
 
-MPIEndpointGroup::~MPIEndpointGroup() {}
+MPIEndpointGroup::~MPIEndpointGroup() {
+    std::lock_guard<std::mutex> lock(ranks_mutex_);
+}
+
+/**
+ * AddID
+ * Add a mapping from a unique ID to a MPI rank
+ *
+ * @param id the unique ID associated with the rank
+ * @param rank the rank associated with the unique ID
+ */
+void MPIEndpointGroup::AddID(const int id, const int rank) {
+    std::lock_guard<std::mutex> lock(ranks_mutex_);
+    ranks_[id] = rank;
+}
+
+/**
+ * RemoveID
+ * Remove a mapping from a unique ID to a rank
+ * If the unique ID is not found, nothing is done
+ *
+ * @param id the unique ID to remove
+ */
+void MPIEndpointGroup::RemoveID(const int id) {
+    std::lock_guard<std::mutex> lock(ranks_mutex_);
+    ranks_.erase(id);
+}
 
 /**
  * BPut
@@ -56,23 +84,11 @@ TransportBRecvMessage *MPIEndpointGroup::BDelete(const int num_rangesrvs, Transp
  * @param num_rangesrvs the number of range servers there are
  * @param messages      an array of messages to send
  * @return a linked list of return messages
-*/
+ */
 TransportBRecvMessage *MPIEndpointGroup::return_brm(const int num_rangesrvs, TransportMessage **messages) {
-    // get the actual number of servers
+    int *srvs = nullptr;
     int num_srvs = 0;
-    int *srvs = new int[num_rangesrvs]();
-    for (int i = 0; i < num_rangesrvs; i++) {
-        if (!messages[i]) {
-            continue;
-        }
-
-        // store server IDs to receive frome
-        srvs[num_srvs] = messages[i]->dst;
-        num_srvs++;
-    }
-
-    if (!num_srvs) {
-        delete [] srvs;
+    if (!(num_srvs = get_num_srvs(messages, num_rangesrvs, &srvs))) {
         return nullptr;
     }
 
@@ -130,23 +146,11 @@ TransportBRecvMessage *MPIEndpointGroup::return_brm(const int num_rangesrvs, Tra
  * @param num_rangesrvs the number of range servers there are
  * @param messages      an array of messages to send
  * @return a linked list of return messages
-*/
+ */
 TransportBGetRecvMessage *MPIEndpointGroup::return_bgrm(const int num_rangesrvs, TransportMessage **messages) {
-    // get the actual number of servers
+    int *srvs = nullptr;
     int num_srvs = 0;
-    int *srvs = new int[num_rangesrvs]();
-    for (int i = 0; i < num_rangesrvs; i++) {
-        if (!messages[i]) {
-            continue;
-        }
-
-        // store server IDs to receive frome
-        srvs[num_srvs] = messages[i]->dst;
-        num_srvs++;
-    }
-
-    if (!num_srvs) {
-        delete [] srvs;
+    if (!(num_srvs = get_num_srvs(messages, num_rangesrvs, &srvs))) {
         return nullptr;
     }
 
@@ -208,6 +212,8 @@ int MPIEndpointGroup::only_send_all_rangesrv_work(void **messages, int *sizes, i
     int num_msgs = 0;
     int ret = MDHIM_SUCCESS;
 
+    std::lock_guard<std::mutex> lock(ranks_mutex_);
+
     //Send all messages at once
     for (int i = 0; i < num_srvs; i++) {
         void *mesg = messages[i];
@@ -219,7 +225,7 @@ int MPIEndpointGroup::only_send_all_rangesrv_work(void **messages, int *sizes, i
 
         // send size
         pthread_mutex_lock(&mdp_->mdhim_comm_lock);
-        return_code = MPI_Isend(&sizes[i], 1, MPI_INT, dsts[i], RANGESRV_WORK_SIZE_MSG,
+        return_code = MPI_Isend(&sizes[i], 1, MPI_INT, ranks_.at(dsts[i]), RANGESRV_WORK_SIZE_MSG,
                                 mdp_->mdhim_comm, size_reqs[i]);
         pthread_mutex_unlock(&mdp_->mdhim_comm_lock);
 
@@ -231,7 +237,7 @@ int MPIEndpointGroup::only_send_all_rangesrv_work(void **messages, int *sizes, i
 
         // send data
         pthread_mutex_lock(&mdp_->mdhim_comm_lock);
-        return_code = MPI_Isend(messages[i], sizes[i], MPI_PACKED, dsts[i], RANGESRV_WORK_MSG,
+        return_code = MPI_Isend(messages[i], sizes[i], MPI_PACKED, ranks_.at(dsts[i]), RANGESRV_WORK_MSG,
                                 mdp_->mdhim_comm, reqs[i]);
         pthread_mutex_unlock(&mdp_->mdhim_comm_lock);
 
@@ -343,13 +349,15 @@ int MPIEndpointGroup::only_receive_all_client_responses(int *srcs, int nsrcs, vo
     *recvbufs = new void *[nsrcs]();
     *sizebufs = new int[nsrcs]();
 
+    std::lock_guard<std::mutex> lock(ranks_mutex_);
+
     // Receive a size message from the servers in the list
     for (int i = 0; i < nsrcs; i++) {
         reqs[i] = new MPI_Request();
 
         pthread_mutex_lock(&mdp_->mdhim_comm_lock);
         return_code = MPI_Irecv((*sizebufs) + i, 1, MPI_INT,
-                                srcs[i], CLIENT_RESPONSE_SIZE_MSG,
+                                ranks_.at(srcs[i]), CLIENT_RESPONSE_SIZE_MSG,
                                 mdp_->mdhim_comm, reqs[i]);
         pthread_mutex_unlock(&mdp_->mdhim_comm_lock);
 
@@ -394,7 +402,7 @@ int MPIEndpointGroup::only_receive_all_client_responses(int *srcs, int nsrcs, vo
 
         pthread_mutex_lock(&mdp_->mdhim_comm_lock);
         return_code = MPI_Irecv((*recvbufs)[i], (*sizebufs)[i], MPI_PACKED,
-                                srcs[i], CLIENT_RESPONSE_MSG,
+                                ranks_.at(srcs[i]), CLIENT_RESPONSE_MSG,
                                 mdp_->mdhim_comm, reqs[i]);
         pthread_mutex_unlock(&mdp_->mdhim_comm_lock);
 
@@ -418,7 +426,7 @@ int MPIEndpointGroup::only_receive_all_client_responses(int *srcs, int nsrcs, vo
             pthread_mutex_unlock(&mdp_->mdhim_comm_lock);
 
             if (!flag) {
-              continue;
+                continue;
             }
             delete reqs[i];
             reqs[i] = nullptr;

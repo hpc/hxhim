@@ -1,6 +1,9 @@
 #ifndef HXHIM_TRANSPORT_ENDPOINT_GROUP
 #define HXHIM_TRANSPORT_ENDPOINT_GROUP
 
+#include <map>
+#include <mutex>
+
 #include "mlog2.h"
 #include "mlogfacs2.h"
 #include <mpi.h>
@@ -19,8 +22,14 @@
  */
 class MPIEndpointGroup : virtual public TransportEndpointGroup, virtual public MPIEndpointBase {
     public:
-        MPIEndpointGroup(mdhim_private_t *mdp, volatile int &shutdown);
+        MPIEndpointGroup(mdhim_private_t *mdp);
         ~MPIEndpointGroup();
+
+        /** @description Add a mapping from a unique ID to a MPI rank */
+        void AddID(const int id, const int rank);
+
+        /** @ description Remove a unique ID from the map */
+        void RemoveID(const int id);
 
         /** @description Enqueue a BPut requests to multiple endpoints  */
         TransportBRecvMessage *BPut(const int num_rangesrvs, TransportBPutMessage **bpm_list);
@@ -48,6 +57,12 @@ class MPIEndpointGroup : virtual public TransportEndpointGroup, virtual public M
         int receive_all_client_responses(int *srcs, int nsrcs, TransportMessage ***messages);
 
         mdhim_private_t *mdp_;
+
+        /** @description mutex used to lock the ranks_ map*/
+        std::mutex ranks_mutex_;
+
+        /** @description Mapping from unique ids to MPI ranks */
+        std::map<int, int> ranks_;
 };
 
 
