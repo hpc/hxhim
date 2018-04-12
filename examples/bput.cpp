@@ -9,6 +9,7 @@
  * @param primary_key_lens the length of each key
  * @param value            the values indexed by the keys
  * @param value_len        the length of each value
+ * @param num_keys         the number of key value pairs
  * @param out              normal message stream
  * @param err              error message stream
  */

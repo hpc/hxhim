@@ -36,20 +36,20 @@ int ThalliumUnpacker::any (TransportMessage **msg, const std::string &buf) {
                 *msg = bget;
             }
             break;
-        // case TransportMessageType::DELETE:
-        //     {
-        //         TransportDeleteMessage *dm = nullptr;
-        //         ret = unpack(&dm, buf);
-        //         *msg = dm;
-        //     }
-        //     break;
-        // case TransportMessageType::BDELETE:
-        //     {
-        //         TransportBDeleteMessage *bdm = nullptr;
-        //         ret = unpack(&bdm, buf);
-        //         *msg = bdm;
-        //     }
-        //     break;
+        case TransportMessageType::DELETE:
+            {
+                TransportDeleteMessage *dm = nullptr;
+                ret = unpack(&dm, buf);
+                *msg = dm;
+            }
+            break;
+        case TransportMessageType::BDELETE:
+            {
+                TransportBDeleteMessage *bdm = nullptr;
+                ret = unpack(&bdm, buf);
+                *msg = bdm;
+            }
+            break;
         // close meesages are not sent across the network
         // case TransportMessageType::CLOSE:
         //     break;
@@ -174,12 +174,12 @@ int ThalliumUnpacker::unpack(TransportGetMessage **gm, const std::string &buf) {
     if (!s
         .read((char *) &out->op, sizeof(out->op))
         .read((char *) &out->num_keys, sizeof(out->num_keys))
-        .read((char *) &out->key_len, sizeof(out->key_len)) ) {
+        .read((char *) &out->key_len, sizeof(out->key_len))) {
         delete out;
         return MDHIM_ERROR;
     }
 
-    if (!(out->key = ::operator new(out->key_len))     ||
+    if (!(out->key = ::operator new(out->key_len)) ||
         !s
         .read((char *) out->key, out->key_len)) {
         delete out;
@@ -231,6 +231,72 @@ int ThalliumUnpacker::unpack(TransportBGetMessage **bgm, const std::string &buf)
     }
 
     *bgm = out;
+
+    return MDHIM_SUCCESS;
+}
+
+int ThalliumUnpacker::unpack(TransportDeleteMessage **dm, const std::string &buf) {
+    TransportDeleteMessage *out = new TransportDeleteMessage();
+    std::stringstream s(buf);
+    if (unpack(static_cast<TransportMessage *>(out), s) != MDHIM_SUCCESS) {
+        delete out;
+        return MDHIM_ERROR;
+    }
+
+    if (!s.read((char *) &out->key_len, sizeof(out->key_len))) {
+        delete out;
+        return MDHIM_ERROR;
+    }
+
+    if (!(out->key = ::operator new(out->key_len)) ||
+        !s
+        .read((char *) out->key, out->key_len)) {
+        delete out;
+        return MDHIM_ERROR;
+    }
+
+    *dm = out;
+
+    return MDHIM_SUCCESS;
+}
+
+int ThalliumUnpacker::unpack(TransportBDeleteMessage **bdm, const std::string &buf) {
+    TransportBDeleteMessage *out = new TransportBDeleteMessage();
+    std::stringstream s(buf);
+    if (unpack(static_cast<TransportMessage *>(out), s) != MDHIM_SUCCESS) {
+        delete out;
+        return MDHIM_ERROR;
+    }
+
+    if (!s.read((char *) &out->num_keys, sizeof(out->num_keys))) {
+        delete out;
+        return MDHIM_ERROR;
+    }
+
+    if (!(out->keys = new void *[out->num_keys]())  ||
+        !(out->key_lens = new int[out->num_keys]())) {
+        delete out;
+        return MDHIM_ERROR;
+    }
+
+    if (!s.read((char *) out->key_lens, sizeof(*out->key_lens) * out->num_keys)) {
+        delete out;
+        return MDHIM_ERROR;
+    }
+
+    for(int i = 0; i < out->num_keys; i++) {
+        if (!(out->keys[i] = ::operator new(out->key_lens[i]))) {
+            delete out;
+            return MDHIM_ERROR;
+        }
+
+        if (!s.read((char *) out->keys[i], out->key_lens[i])) {
+            delete out;
+            return MDHIM_ERROR;
+        }
+    }
+
+    *bdm = out;
 
     return MDHIM_SUCCESS;
 }

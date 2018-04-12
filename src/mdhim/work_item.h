@@ -21,7 +21,6 @@ typedef struct work_item {
 	work_item *prev;
 	TransportMessage *message;
 
-    int address;
 } work_item_t;
 
 #endif

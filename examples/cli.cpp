@@ -9,8 +9,8 @@
 #include "get.hpp"
 #include "bput.hpp"
 #include "bget.hpp"
-// #include "del.hpp"
-// #include "bdel.hpp"
+#include "del.hpp"
+#include "bdel.hpp"
 
 // A quick and dirty cleanup function
 void cleanup(mdhim_t *md, mdhim_options_t *opts) {
@@ -108,12 +108,18 @@ int main(int argc, char *argv[]) {
                     bget(&md, data[0], lens[0], num_keys);
                 }
                 else if (cmd == "DELETE") {
-                    std::cerr << "DELETE not implemented yet" << std::endl;
-                    // del(&md, data[0][0], lens[0][0]);
+                    del(&md, data[0][0], lens[0][0]);
                 }
                 else if (cmd == "BDELETE") {
-                    std::cerr << "BDELETE not implemented yet" << std::endl;
-                    // bdel(&md, data[0], lens[0], num_keys);
+                    bdel(&md, data[0], lens[0], num_keys);
+                }
+                else if (cmd == "WHICH") {
+                    std::cout << std::string((char *)data[0][0], lens[0][0]) << " belongs on range server " <<  mdhimWhichServer(&md, data[0][0], lens[0][0]) << std::endl;
+                }
+                else if (cmd == "BWHICH") {
+                    for(int i = 0; i < num_keys; i++) {
+                        std::cout << std::string((char *)data[0][i], lens[0][i]) << " belongs on range server " <<  mdhimWhichServer(&md, data[0][i], lens[0][i]) << std::endl;
+                    }
                 }
                 else {
                     std::cerr << "Error: Unknown command " << cmd << std::endl;

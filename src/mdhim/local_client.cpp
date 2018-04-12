@@ -22,6 +22,7 @@
 static void *get_msg_self(mdhim_t *md) {
 	//Lock the receive msg mutex
 	pthread_mutex_lock(&md->p->receive_msg_mutex);
+
 	//Wait until there is a message to receive
 	if (!md->p->receive_msg) {
 		pthread_cond_wait(&md->p->receive_msg_ready_cv, &md->p->receive_msg_mutex);
@@ -29,8 +30,10 @@ static void *get_msg_self(mdhim_t *md) {
 
 	//Get the message
 	TransportMessage *msg = md->p->receive_msg;
+
 	//Set the message queue to null
 	md->p->receive_msg = nullptr;
+
 	//unlock the mutex
 	pthread_mutex_unlock(&md->p->receive_msg_mutex);
 
@@ -52,10 +55,7 @@ TransportRecvMessage *local_client_put(mdhim_t *md, TransportPutMessage *pm) {
 		return nullptr;
 	}
 
-    // This needs the double static_cast in order for it to work properly
-    // This is probably a clang++ 3.9.1 bug
-    item->message = static_cast<TransportMessage *>(pm);
-    item->address = pm->dst;
+    item->message = pm;
 
 	if (range_server_add_work(md, item) != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
@@ -73,10 +73,7 @@ TransportGetRecvMessage *local_client_get(mdhim_t *md, TransportGetMessage *gm) 
 		return nullptr;
 	}
 
-    // This needs the double static_cast in order for it to work properly
-    // This is probably a clang++ 3.9.1 bug
-    item->message = static_cast<TransportMessage *>(gm);
-    item->address = gm->dst;
+    item->message = gm;
 
 	if (range_server_add_work(md, item) != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_get");
@@ -101,8 +98,7 @@ TransportRecvMessage *local_client_bput(mdhim_t *md, TransportBPutMessage *bpm) 
 		return NULL;
 	}
 
-    item->message = static_cast<TransportMessage *>(bpm);
-    item->address = bpm->dst;
+    item->message = bpm;
 
 	if (range_server_add_work(md, item) != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_bput");
@@ -127,8 +123,7 @@ TransportBGetRecvMessage *local_client_bget(mdhim_t *md, TransportBGetMessage *b
 		return NULL;
 	}
 
-	item->message = static_cast<TransportMessage *>(bgm);
-    item->address = bgm->dst;
+	item->message = bgm;
 
 	if (range_server_add_work(md, item) != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_bget");
@@ -153,8 +148,7 @@ TransportBGetRecvMessage *local_client_bget_op(mdhim_t *md, TransportGetMessage 
 		return NULL;
 	}
 
-	item->message = static_cast<TransportMessage *>(gm);
-    item->address = gm->dst;
+	item->message = gm;
 
 	if (range_server_add_work(md, item) != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_bput");
@@ -180,7 +174,6 @@ TransportRecvMessage *local_client_commit(mdhim_t *md, TransportMessage *cm) {
 	}
 
 	item->message = cm;
-    item->address = cm->dst;
 
 	if (range_server_add_work(md, item) != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_commit");
@@ -205,8 +198,7 @@ TransportRecvMessage *local_client_delete(mdhim_t *md, TransportBDeleteMessage *
 		return NULL;
 	}
 
-	item->message = static_cast<TransportMessage *>(dm);
-    item->address = md->p->mdhim_rank;
+	item->message = dm;
 
 	if (range_server_add_work(md, item) != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_delete");
@@ -231,8 +223,7 @@ TransportRecvMessage *local_client_bdelete(mdhim_t *md, TransportBDeleteMessage 
 		return NULL;
 	}
 
-	item->message = static_cast<TransportMessage *>(bdm);
-    item->address = bdm->dst;
+	item->message = bdm;
 
 	if (range_server_add_work(md, item) != MDHIM_SUCCESS) {
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_bdelete");
@@ -258,7 +249,6 @@ TransportRecvMessage *local_client_bdelete(mdhim_t *md, TransportBDeleteMessage 
 // 	}
 
 // 	item->message = (void *)cm;
-//  item->address = md->p->transport->Endpoint()->Address();
 
 // 	if ((ret = range_server_add_work(md, item)) != MDHIM_SUCCESS) {
 // 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");

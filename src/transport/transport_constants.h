@@ -13,8 +13,8 @@ extern "C"
 enum TransportMessageType {
     INVALID   = 0,
     PUT       = 1,
-    GET       = 2,
-    BPUT      = 3,
+    BPUT      = 2,
+    GET       = 3,
     BGET      = 4,
     DELETE    = 5,
     BDELETE   = 6,

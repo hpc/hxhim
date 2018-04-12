@@ -239,6 +239,9 @@ class TransportEndpoint {
         /** @description Send a Get to this endpoint */
         virtual TransportGetRecvMessage *Get(const TransportGetMessage *message) = 0;
 
+        /** @description Send a Put to this endpoint */
+        virtual TransportRecvMessage *Delete(const TransportDeleteMessage *message) = 0;
+
     protected:
         TransportEndpoint() {}
 
@@ -302,11 +305,14 @@ class Transport {
         /** @description Takes ownership of an endpoint group, deallocating the previous one */
         void SetEndpointGroup(TransportEndpointGroup *eg);
 
-        /**  @description PUTs a message onto the the underlying transport */
-        TransportRecvMessage *Put(const TransportPutMessage *put);
+        /**  @description Puts a message onto the the underlying transport */
+        TransportRecvMessage *Put(const TransportPutMessage *pm);
 
-        /**  @description GETs a message onto the the underlying transport */
-        TransportGetRecvMessage *Get(const TransportGetMessage *get);
+        /**  @description Gets a message onto the the underlying transport */
+        TransportGetRecvMessage *Get(const TransportGetMessage *gm);
+
+        /**  @description Deletes a message onto the the underlying transport */
+        TransportRecvMessage *Delete(const TransportDeleteMessage *dm);
 
         /** @description Bulk Put to multiple endpoints  */
         TransportBRecvMessage *BPut(const int num_rangesrvs, TransportBPutMessage **bpm_list);

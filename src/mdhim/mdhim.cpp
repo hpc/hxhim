@@ -21,13 +21,13 @@
 #include "transport_private.hpp"
 
 /**
- * groupInitialization
+ * groupInit
  * Initializes MPI values in mdhim_t
  *
  * @param md MDHIM context
  * @return MDHIM status value
  */
-static int groupInitialization(mdhim_t *md) {
+static int groupInit(mdhim_t *md) {
     if (!md || !md->p){
         return MDHIM_ERROR;
     }
@@ -60,13 +60,13 @@ static int groupInitialization(mdhim_t *md) {
 }
 
 /**
- * groupDestruction
+ * groupDestroy
  * Cleans up MPI values in mdhim_t
  *
  * @param md MDHIM context
  * @return MDHIM status value
  */
-static int groupDestruction(mdhim_t *md) {
+static int groupDestroy(mdhim_t *md) {
     if (!md || !md->p){
         return MDHIM_ERROR;
     }
@@ -86,7 +86,7 @@ static int groupDestruction(mdhim_t *md) {
  * @param md MDHIM context
  * @return MDHIM status value
  */
-static int indexInitialization(mdhim_t *md) {
+static int indexInit(mdhim_t *md) {
     if (!md || !md->p){
         return MDHIM_ERROR;
     }
@@ -110,13 +110,13 @@ static int indexInitialization(mdhim_t *md) {
 }
 
 /**
- * indexDestruction
+ * indexDestroy
  * Cleans up index values in mdhim_t
  *
  * @param md MDHIM context
  * @return MDHIM status value
  */
-static int indexDestruction(mdhim_t *md) {
+static int indexDestroy(mdhim_t *md) {
     if (!md || !md->p){
         return MDHIM_ERROR;
     }
@@ -159,7 +159,7 @@ int mdhimInit(mdhim_t* md, mdhim_options_t *opts) {
     md->p->mdhim_comm_lock = PTHREAD_MUTEX_INITIALIZER;
 
     //Initialize group members of context
-    if (groupInitialization(md) != MDHIM_SUCCESS){
+    if (groupInit(md) != MDHIM_SUCCESS){
         mlog(MDHIM_CLIENT_CRIT, "MDHIM - Error Group Initialization Failed");
         return MDHIM_ERROR;
     }
@@ -177,7 +177,7 @@ int mdhimInit(mdhim_t* md, mdhim_options_t *opts) {
     partitioner_init();
 
     //Initialize index members of context
-    if (indexInitialization(md) != MDHIM_SUCCESS){
+    if (indexInit(md) != MDHIM_SUCCESS){
         mlog(MDHIM_CLIENT_CRIT, "MDHIM - Error Index Initialization Failed");
         return MDHIM_ERROR;
     }
@@ -215,14 +215,14 @@ int mdhimClose(struct mdhim *md) {
     partitioner_release();
 
     //Free up memory used by indexes
-    indexDestruction(md);
+    indexDestroy(md);
 
     //Free up memory used by message buffer
     ::operator delete(md->p->receive_msg);
     md->p->receive_msg = nullptr;
 
     //Clean up group members
-    groupDestruction(md);
+    groupDestroy(md);
 
     delete md->p->transport;
     md->p->transport = nullptr;
@@ -479,12 +479,33 @@ mdhim_brm_t *mdhimBPut(mdhim_t *md,
     void **pvs = new void *[num_records]();
     int *pv_lens = new int[num_records]();
 
+    if (!pks || !pk_lens ||
+        !pvs || !pv_lens) {
+        delete [] pks;
+        delete [] pk_lens;
+        delete [] pvs;
+        delete [] pv_lens;
+        return nullptr;
+    }
+
     for(int i = 0; i < num_records; i++) {
-        pks[i] = ::operator new(primary_key_lens[i]);
+        if (!(pks[i] = ::operator new(primary_key_lens[i])) ||
+            !(pvs[i] = ::operator new(primary_value_lens[i]))) {
+            for(int j = 0; j < i; j++) {
+                ::operator delete(pks[j]);
+                ::operator delete(pvs[j]);
+            }
+
+            delete [] pks;
+            delete [] pk_lens;
+            delete [] pvs;
+            delete [] pv_lens;
+            return nullptr;
+        }
+
         memcpy(pks[i], primary_keys[i], primary_key_lens[i]);
         pk_lens[i] = primary_key_lens[i];
 
-        pvs[i] = ::operator new(primary_value_lens[i]);
         memcpy(pvs[i], primary_values[i], primary_value_lens[i]);
         pv_lens[i] = primary_value_lens[i];
     }
@@ -544,14 +565,52 @@ mdhim_brm_t *mdhimBPutSecondary(mdhim_t *md, index_t *secondary_index,
                                 void **primary_keys, int *primary_key_lens,
                                 int num_records) {
     if (!md || !md->p ||
+        !secondary_index ||
         !secondary_keys || !secondary_key_lens ||
         !primary_keys || !primary_key_lens) {
         return nullptr;
     }
 
+    //Copy the secondary and primary keys
+    void **sks = new void *[num_records]();
+    int *sk_lens = new int[num_records]();
+    void **pks = new void *[num_records]();
+    int *pk_lens = new int[num_records]();
+
+    if (!sks || !sk_lens ||
+        !pks || !pk_lens) {
+        delete [] sks;
+        delete [] sk_lens;
+        delete [] pks;
+        delete [] pk_lens;
+        return nullptr;
+    }
+
+    for(int i = 0; i < num_records; i++) {
+        if (!(sks[i] = ::operator new(secondary_key_lens[i])) ||
+            !(pks[i] = ::operator new(primary_key_lens[i]))) {
+            for(int j = 0; j < i; j++) {
+                ::operator delete(sks[j]);
+                ::operator delete(pks[j]);
+            }
+
+            delete [] sks;
+            delete [] sk_lens;
+            delete [] pks;
+            delete [] pk_lens;
+            return nullptr;
+        }
+
+        memcpy(sks[i], secondary_keys[i], secondary_key_lens[i]);
+        sk_lens[i] = secondary_key_lens[i];
+
+        memcpy(pks[i], primary_keys[i], primary_key_lens[i]);
+        pk_lens[i] = primary_key_lens[i];
+    }
+
     return mdhim_brm_init(_bput_records(md, secondary_index,
-                                        secondary_keys, secondary_key_lens,
-                                        primary_keys, primary_key_lens,
+                                        sks, sk_lens,
+                                        pks, pk_lens,
                                         num_records));
 }
 
@@ -581,7 +640,7 @@ mdhim_getrm_t *mdhimGet(mdhim_t *md, index_t *index,
         return nullptr;
     }
 
-    // Clone primary key and value
+    // Clone primary key
     void *k = ::operator new(key_len);
     if (!k) {
         return nullptr;
@@ -630,8 +689,22 @@ mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, index_t *index,
     // copy the keys
     void **ks = new void *[num_keys]();
     int *k_lens = new int[num_keys]();
+    if (!ks || !k_lens) {
+        delete [] ks;
+        delete [] k_lens;
+        return nullptr;
+    }
+
     for(int i = 0; i < num_keys; i++) {
-        ks[i] = ::operator new(key_lens[i]);
+        if (!(ks[i] = ::operator new(key_lens[i]))) {
+            for(int j = 0; j < i; j++) {
+                ::operator delete(ks[j]);
+            }
+
+            delete [] ks;
+            delete [] k_lens;
+            return nullptr;
+        }
         memcpy(ks[i], keys[i], key_lens[i]);
         k_lens[i] = key_lens[i];
     }
@@ -722,9 +795,18 @@ mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, index_t *index,
 mdhim_bgetrm_t *mdhimBGetOp(mdhim_t *md, index_t *index,
                             void *key, int key_len,
                             int num_records, enum TransportGetMessageOp op) {
+    if (!md || !md->p ||
+        !key || !key_len) {
+        return nullptr;
+    }
+
+    if (!index) {
+        index = md->p->primary_index;
+    }
+
     if (num_records > MAX_BULK_OPS) {
         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
-             "To many bulk operations requested in mdhimBGetOp",
+             "Too many bulk operations requested in mdhimBGetOp",
               md->p->mdhim_rank);
         return nullptr;
     }
@@ -736,8 +818,26 @@ mdhim_bgetrm_t *mdhimBGetOp(mdhim_t *md, index_t *index,
         return nullptr;
     }
 
+    // copy the key
+    void **k = new void *[1]();
+    int *k_len = new int[1]();
+    if (!k || !k_len) {
+        delete [] k;
+        delete [] k_len;
+        return nullptr;
+    }
+
+    if (!(k[0] = ::operator new(key_len))) {
+        delete [] k;
+        delete [] k_len;
+        return nullptr;
+    }
+
+    memcpy(k[0], key, key_len);
+    k_len[0] = key_len;
+
     //Get the linked list of return messages from mdhimBGet
-    return mdhim_bgrm_init( _bget_records(md, index, &key, &key_len, 1, num_records, op));
+    return mdhim_bgrm_init(_bget_records(md, index, k, k_len, 1, num_records, op));
 }
 
 /**
@@ -749,8 +849,35 @@ mdhim_bgetrm_t *mdhimBGetOp(mdhim_t *md, index_t *index,
  * @return mdhim_rm_t * or nullptr on error
  */
 mdhim_brm_t *mdhimDelete(mdhim_t *md, index_t *index,
-                void *key, int key_len) {
-    return mdhim_brm_init(_bdel_records(md, index, &key, &key_len, 1));
+                         void *key, int key_len) {
+    if (!md || !md->p ||
+        !key || !key_len) {
+        return nullptr;
+    }
+
+    if (!index) {
+        index = md->p->primary_index;
+    }
+
+    // Copy the key
+    void **k = new void *[1]();
+    int *k_len = new int[1]();
+    if (!k || !k_len) {
+        delete [] k;
+        delete [] k_len;
+        return nullptr;
+    }
+
+    if (!(k[0] = ::operator new(key_len))) {
+        delete [] k;
+        delete [] k_len;
+        return nullptr;
+    }
+
+    memcpy(k[0], key, key_len);
+    k_len[0] = key_len;
+
+    return mdhim_brm_init(_bdel_records(md, index, k, k_len, 1));
 }
 
 /**
@@ -765,15 +892,45 @@ mdhim_brm_t *mdhimDelete(mdhim_t *md, index_t *index,
 mdhim_brm_t *mdhimBDelete(mdhim_t *md, index_t *index,
                           void **keys, int *key_lens,
                           int num_records) {
+    if (!md || !md->p ||
+        !keys || !key_lens) {
+        return nullptr;
+    }
+
+    if (!index) {
+        index = md->p->primary_index;
+    }
+
+    // copy the keys
+    void **ks = new void *[num_records]();
+    int *k_lens = new int[num_records]();
+
+    if (!ks || !k_lens) {
+        delete [] ks;
+        delete [] k_lens;
+        return nullptr;
+    }
+
+    for(int i = 0; i < num_records; i++) {
+        if (!(ks[i] = ::operator new(key_lens[i]))) {
+            for(int j = 0; j < i; j++) {
+                ::operator delete(ks[j]);
+            }
+            return nullptr;
+        }
+        memcpy(ks[i], keys[i], key_lens[i]);
+        k_lens[i] = key_lens[i];
+    }
+
     //Check to see that we were given a sane amount of records
     if (num_records > MAX_BULK_OPS) {
         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
-             "To many bulk operations requested in mdhimBGetOp",
+             "Too many bulk operations requested in mdhimBDelete",
               md->p->mdhim_rank);
         return nullptr;
     }
 
-    return mdhim_brm_init(_bdel_records(md, index, keys, key_lens, num_records));
+    return mdhim_brm_init(_bdel_records(md, index, ks, k_lens, num_records));
 }
 
 /**
@@ -798,7 +955,6 @@ int mdhimStatFlush(mdhim_t *md, index_t *index) {
 
 /**
  * Sets the secondary_info structure used in mdhimPut
- *
  */
 secondary_info_t *mdhimCreateSecondaryInfo(index_t *secondary_index,
                                            void **secondary_keys, int *secondary_key_lens,

@@ -14,6 +14,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <iostream>
 
 #include "range_server.h"
 #include "partitioner.h"
@@ -47,7 +48,7 @@ static void add_timing(struct timeval start, struct timeval end, int num,
  */
 static int send_locally_or_remote(mdhim_t *md, work_item_t *item, TransportMessage *message) {
     int ret = MDHIM_SUCCESS;
-    if (md->p->mdhim_rank != item->address) {
+    if (md->p->mdhim_rank != message->dst) {
         //Send the message remotely
         ret = md->p->send_client_response(item, message, md->p->shutdown);
     } else {
@@ -358,7 +359,7 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
     void **value = new void *();
 
     //Get the index referenced the message
-    index_t *index = find_index(md, static_cast<TransportMessage *>(bim));
+    index_t *index = find_index(md, (TransportMessage *)bim);
     if (!index) {
         mlog(MDHIM_SERVER_CRIT, "Rank %d - Error retrieving index for id: %d",
              md->p->mdhim_rank, bim->index);
@@ -390,7 +391,7 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
             new_value = ::operator new(new_value_len);
             memcpy(new_value, old_value, old_value_len);
             memcpy((char*)new_value + old_value_len, bim->values[i], bim->value_lens[i]);
-            if (exists[i] && item->address != md->p->mdhim_rank) {
+            if (exists[i] && bim->src != md->p->mdhim_rank) {
                 ::operator delete(bim->values[i]);
                 bim->values[i] = nullptr;
             }
@@ -432,7 +433,7 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
         }
 
         //Release the bput keys/value if the message isn't coming from myself
-        if (item->address != md->p->mdhim_rank) {
+        if (bim->src != md->p->mdhim_rank) {
             ::operator delete(bim->keys[i]);
             bim->keys[i] = nullptr;
             ::operator delete(bim->values[i]);
@@ -460,116 +461,116 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
     brm->src = md->p->mdhim_rank;
     brm->dst = bim->src;
 
-    //Send response
-    ret = send_locally_or_remote(md, item, brm);
-
     //Release the internals of the bput message
     delete bim;
 
-    return ret;
+    //Send response
+    return send_locally_or_remote(md, item, brm);
 }
 
-// /**
-//  * range_server_del
-//  * Handles the delete message and deletes the data from the database
-//  *
-//  * @param md       Pointer to the main MDHIM struct
-//  * @param dm       pointer to the delete message to handle
-//  * @param source   source of the message
-//  * @return    MDHIM_SUCCESS or MDHIM_ERROR on error
-//  */
-// static int range_server_del(mdhim_t *md, work_item_t *item) {
-//     int ret = MDHIM_ERROR;
-//     struct mdhim_rm_t *rm;
-//     index_t *index;
+/**
+ * range_server_del
+ * Handles the delete message and deletes the data from the database
+ *
+ * @param md       Pointer to the main MDHIM struct
+ * @param dm       pointer to the delete message to handle
+ * @param source   source of the message
+ * @return    MDHIM_SUCCESS or MDHIM_ERROR on error
+ */
+static int range_server_del(mdhim_t *md, work_item_t *item) {
+    int ret = MDHIM_ERROR;
 
-//     //Get the index referenced the message
-//     index = find_index(md, (struct mdhim_basem_t *) dm);
-//     if (!index) {
-//         mlog(MDHIM_SERVER_CRIT, "Rank %d - Error retrieving index for id: %d",
-//              md->p->mdhim_rank, dm->basem.index);
-//         ret = MDHIM_ERROR;
-//         goto done;
-//     }
+    TransportDeleteMessage *dm = dynamic_cast<TransportDeleteMessage *>(item->message);
+    item->message = nullptr;
 
-//     //Put the record in the database
-//     if ((ret =
-//          index->mdhim_store->del(index->mdhim_store->db_handle,
-//                      dm->key, dm->key_len)) != MDHIM_SUCCESS) {
-//         mlog(MDHIM_SERVER_CRIT, "Rank %d - Error deleting record",
-//              md->p->mdhim_rank);
-//     }
+    //Get the index referenced the message
+    index_t *index = find_index(md, (TransportMessage *)dm);
+    if (!index) {
+        mlog(MDHIM_SERVER_CRIT, "Rank %d - Error retrieving index for id: %d",
+             md->p->mdhim_rank, dm->index);
+        ret = MDHIM_ERROR;
+        goto done;
+    }
 
-//  done:
-//     //Create the response message
-//     rm = (mdhim_rm_t*)malloc(sizeof(struct mdhim_rm_t));
-//     //Set the type
-//     rm->basem.mtype = MDHIM_RECV;
-//     //Set the operation return code as the error
-//     rm->error = ret;
-//     //Set the server's rank
-//     rm->basem.dst = (int) md->p->mdhim_rank;
+    //Put the record in the database
+    if ((ret =
+         index->mdhim_store->del(index->mdhim_store->db_handle,
+                                 dm->key, dm->key_len)) != MDHIM_SUCCESS) {
+        mlog(MDHIM_SERVER_CRIT, "Rank %d - Error deleting record",
+             md->p->mdhim_rank);
+    }
 
-//     delete dm;
-//     //Send response
-//     return send_locally_or_remote(md, item, rm);
-// }
+ done:
+    //Create the response message
+    TransportRecvMessage *rm = new TransportRecvMessage();
+    //Set the type
+    rm->mtype = TransportMessageType::RECV;
+    //Set the operation return code as the error
+    rm->error = ret;
+    //Set the server's rank
+    rm->src = md->p->mdhim_rank;
+    rm->dst = dm->src;
 
-// /**
-//  * range_server_bdel
-//  * Handles the bulk delete message and deletes the data from the database
-//  *
-//  * @param md        Pointer to the main MDHIM struct
-//  * @param bdm       pointer to the bulk delete message to handle
-//  * @param source    source of the message
-//  * @return    MDHIM_SUCCESS or MDHIM_ERROR on error
-//  */
-// int range_server_bdel(mdhim_t *md, struct mdhim_bdelm_t *bdm, const int address) {
-//      int i;
-//     int ret;
-//     int error = 0;
-//     struct mdhim_rm_t *brm;
-//     index_t *index;
+    delete dm;
 
-//     //Get the index referenced the message
-//     index = find_index(md, (struct mdhim_basem_t *) bdm);
-//     if (!index) {
-//         mlog(MDHIM_SERVER_CRIT, "Rank %d - Error retrieving index for id: %d",
-//              md->p->mdhim_rank, bdm->basem.index);
-//         error = MDHIM_ERROR;
-//         goto done;
-//     }
+    //Send response
+    return send_locally_or_remote(md, item, rm);
+}
 
-//     //Iterate through the arrays and delete each record
-//     for (i = 0; i < bdm->num_keys && i < MAX_BULK_OPS; i++) {
-//         //Put the record in the database
-//         if ((ret =
-//              index->mdhim_store->del(index->mdhim_store->db_handle,
-//                          bdm->keys[i], bdm->key_lens[i]))
-//             != MDHIM_SUCCESS) {
-//             mlog(MDHIM_SERVER_CRIT, "Rank %d - Error deleting record",
-//                  md->p->mdhim_rank);
-//             error = ret;
-//         }
-//     }
+/**
+ * range_server_bdel
+ * Handles the bulk delete message and deletes the data from the database
+ *
+ * @param md        Pointer to the main MDHIM struct
+ * @param bdm       pointer to the bulk delete message to handle
+ * @param source    source of the message
+ * @return    MDHIM_SUCCESS or MDHIM_ERROR on error
+ */
+int range_server_bdel(mdhim_t *md, work_item_t *item) {
+    int ret;
+    int error = 0;
 
-// done:
-//     //Create the response message
-//     brm = (mdhim_rm_t*)malloc(sizeof(struct mdhim_rm_t));
-//     //Set the type
-//     brm->basem.mtype = MDHIM_RECV;
-//     //Set the operation return code as the error
-//     brm->error = error;
-//     //Set the server's rank
-//     brm->basem.dst = (int) md->p->mdhim_rank;
+    TransportBDeleteMessage *bdm = dynamic_cast<TransportBDeleteMessage *>(item->message);
+    item->message = nullptr;
 
-//     delete bdm->keys;
-//     delete bdm->key_lens;
-//     delete bdm;
+    //Get the index referenced the message
+    index_t *index = find_index(md, (TransportMessage *)bdm);
+    if (!index) {
+        mlog(MDHIM_SERVER_CRIT, "Rank %d - Error retrieving index for id: %d",
+             md->p->mdhim_rank, bdm->index);
+        error = MDHIM_ERROR;
+        goto done;
+    }
 
-//     //Send response
-//     return send_locally_or_remote(md, source, brm);
-// }
+    //Iterate through the arrays and delete each record
+    for (int i = 0; i < bdm->num_keys && i < MAX_BULK_OPS; i++) {
+        //Put the record in the database
+        if ((ret =
+             index->mdhim_store->del(index->mdhim_store->db_handle,
+                         bdm->keys[i], bdm->key_lens[i]))
+            != MDHIM_SUCCESS) {
+            mlog(MDHIM_SERVER_CRIT, "Rank %d - Error deleting record",
+                 md->p->mdhim_rank);
+            error = ret;
+        }
+    }
+
+done:
+    //Create the response message
+    TransportRecvMessage *brm = new TransportRecvMessage();
+    //Set the type
+    brm->mtype = TransportMessageType::RECV;
+    //Set the operation return code as the error
+    brm->error = error;
+    //Set the server's rank
+    brm->src = md->p->mdhim_rank;
+    brm->dst = bdm->src;
+
+    delete bdm;
+
+    //Send response
+    return send_locally_or_remote(md, item, brm);
+}
 
 /**
  * range_server_commit
@@ -729,16 +730,17 @@ done:
     grm->src = md->p->mdhim_rank;
     grm->dst = gm->src;
     //Set the key and value
-    if (item->address == md->p->mdhim_rank) {
+
+    if (gm->src == md->p->mdhim_rank) {
         //If this message is coming from myself, copy the keys
         grm->key = ::operator new(gm->key_len);
         memcpy(grm->key, gm->key, gm->key_len);
         ::operator delete(gm->key);
-        gm->key = nullptr;
     } else {
         grm->key = gm->key;
     }
 
+    gm->key = nullptr;
     grm->key_len = gm->key_len;
 
     grm->value = value;
@@ -746,13 +748,11 @@ done:
     grm->index = index->id;
     grm->index_type = index->type;
 
-    //Send response
-    ret = send_locally_or_remote(md, item, grm);
-
     //Release the bget message
     delete gm;
 
-    return ret;
+    //Send response
+    return send_locally_or_remote(md, item, grm);
 }
 
 /**
@@ -882,7 +882,7 @@ done:
     bgrm->src = md->p->mdhim_rank;
     bgrm->dst = bgm->src;
     //Set the key and value
-    if (item->address == md->p->mdhim_rank) {
+    if (bgm->src == md->p->mdhim_rank) {
         //If this message is coming from myself, copy the keys
         bgrm->key_lens = new int[bgm->num_keys]();
         bgrm->keys = new void *[bgm->num_keys]();
@@ -915,13 +915,11 @@ done:
     bgrm->index = index->id;
     bgrm->index_type = index->type;
 
-    //Send response
-    ret = send_locally_or_remote(md, item, bgrm);
-
     //Release the bget message
     delete bgm;
 
-    return ret;
+    //Send response
+    return send_locally_or_remote(md, item, bgrm);
 }
 
 /**
@@ -1098,22 +1096,20 @@ respond:
     bgrm->index_type = index->type;
 
     //Free stuff
-    if (item->address == md->p->mdhim_rank) {
+    if (bgm->src == md->p->mdhim_rank) {
         /* If this message is not coming from myself,
            free the keys and values from the get message */
         // mdhim_partial_release_msg(bgm);
         delete bgm;
     }
 
-    // // Send response
-    // ret = send_locally_or_remote(md, address, bgrm);
-
     delete get_key;
     delete get_key_len;
     delete get_value;
     delete get_value_len;
 
-    return MDHIM_ERROR;
+    // Send response
+    return send_locally_or_remote(md, item, bgrm);
 }
 
 /*
@@ -1176,8 +1172,10 @@ static void *worker_thread(void *data) {
                 }
                 break;
             case TransportMessageType::DELETE:
+                range_server_del(md, item);
                 break;
             case TransportMessageType::BDELETE:
+                range_server_bdel(md, item);
                 break;
             case TransportMessageType::COMMIT:
                 range_server_commit(md, item);

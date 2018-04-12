@@ -417,24 +417,24 @@ void Transport::SetEndpointGroup(TransportEndpointGroup *eg) {
 
 /**
  * Put
- * PUTs a message onto the the underlying transport
+ * Puts a message onto the the underlying transport
  *
- * @param put the message to PUT
+ * @param pm the message to PUT
  * @return the response from the range server
  */
-TransportRecvMessage *Transport::Put(const TransportPutMessage *put) {
-    if (!put) {
+TransportRecvMessage *Transport::Put(const TransportPutMessage *pm) {
+    if (!pm) {
         return nullptr;
     }
-    TransportEndpointMapping_t::iterator it = endpoints_.find(put->dst);
-    return (it == endpoints_.end())?nullptr:it->second->Put(put);
+    TransportEndpointMapping_t::iterator it = endpoints_.find(pm->dst);
+    return (it == endpoints_.end())?nullptr:it->second->Put(pm);
 }
 
 /**
  * Get
- * GETs a message onto the the underlying transport
+ * Gets a message onto the the underlying transport
  *
- * @param get the message to GET
+ * @param gm the message to GET
  * @return the response from the range server
  */
 TransportGetRecvMessage *Transport::Get(const TransportGetMessage *get) {
@@ -446,11 +446,27 @@ TransportGetRecvMessage *Transport::Get(const TransportGetMessage *get) {
 }
 
 /**
+ * Delete
+ * Deletes a message onto the the underlying transport
+ *
+ * @param dm the message to DELETE
+ * @return the response from the range server
+ */
+TransportRecvMessage *Transport::Delete(const TransportDeleteMessage *dm) {
+    if (!dm) {
+        return nullptr;
+    }
+    TransportEndpointMapping_t::iterator it = endpoints_.find(dm->dst);
+    return (it == endpoints_.end())?nullptr:it->second->Delete(dm);
+}
+
+/**
  * BPut
  * Bulk Put to multiple endpoints
  *
- * @param messages a list of PUT messages going to different servers
- * @param num_srvs the number of servers
+ * @param num_rangesrvs the total number of range servers
+ * @param bpm_list a list of PUT messages going to different servers
+ * @return the response from the range server
  */
 TransportBRecvMessage *Transport::BPut(const int num_rangesrvs, TransportBPutMessage **bpm_list) {
     return endpointgroup_?endpointgroup_->BPut(num_rangesrvs, bpm_list):nullptr;
@@ -460,8 +476,9 @@ TransportBRecvMessage *Transport::BPut(const int num_rangesrvs, TransportBPutMes
  * BGet
  * Bulk Get to multiple endpoints
  *
- * @param messages a list of GET messages going to different servers
- * @param num_srvs the number of servers
+ * @param num_rangesrvs the total number of range servers
+ * @param bgm_list a list of GET messages going to different servers
+ * @return the response from the range server
  */
 TransportBGetRecvMessage *Transport::BGet(const int num_rangesrvs, TransportBGetMessage **bgm_list) {
     return endpointgroup_?endpointgroup_->BGet(num_rangesrvs, bgm_list):nullptr;
@@ -471,9 +488,10 @@ TransportBGetRecvMessage *Transport::BGet(const int num_rangesrvs, TransportBGet
  * BDelete
  * Bulk Delete to multiple endpoints
  *
- * @param messages a list of DELETE messages going to different servers
- * @param num_srvs the number of servers
+ * @param num_rangesrvs the total number of range servers
+ * @param bdm_list a list of DELETE messages going to different servers
+ * @return the response from the range server
  */
-TransportBRecvMessage *Transport::BDelete(const int num_rangesrvs, TransportBDeleteMessage **bgm_list) {
-    return endpointgroup_?endpointgroup_->BDelete(num_rangesrvs, bgm_list):nullptr;
+TransportBRecvMessage *Transport::BDelete(const int num_rangesrvs, TransportBDeleteMessage **bdm_list) {
+    return endpointgroup_?endpointgroup_->BDelete(num_rangesrvs, bdm_list):nullptr;
 }

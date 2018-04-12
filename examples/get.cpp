@@ -1,8 +1,8 @@
 #include "get.hpp"
 
 /**
- * put
- * Example usage and cleanup of mdhimput
+ * get
+ * Example usage and cleanup of mdhimGet
  *
  * @param md              the mdhim context
  * @param primary_key     the key

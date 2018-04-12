@@ -28,8 +28,6 @@ void ThalliumRangeServer::receive_rangesrv_work(const thallium::request &req, co
 
     //Set the new buffer to the new item's message
     item->message = message;
-    //Set the source in the work item
-    item->address = message->src;
 
     mdhim_t md;
     md.p = mdp_;

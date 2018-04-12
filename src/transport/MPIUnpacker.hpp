@@ -24,13 +24,13 @@ class MPIUnpacker {
         static int any   (const MPI_Comm comm, TransportMessage         **msg,  const void *buf, const int bufsize);
 
         static int unpack(const MPI_Comm comm, TransportPutMessage      **pm,   const void *buf, const int bufsize);
-        static int unpack(const MPI_Comm comm, TransportGetMessage      **gm,   const void *buf, const int bufsize);
         static int unpack(const MPI_Comm comm, TransportBPutMessage     **bpm,  const void *buf, const int bufsize);
+        static int unpack(const MPI_Comm comm, TransportGetMessage      **gm,   const void *buf, const int bufsize);
         static int unpack(const MPI_Comm comm, TransportBGetMessage     **bgm,  const void *buf, const int bufsize);
         static int unpack(const MPI_Comm comm, TransportDeleteMessage   **dm,   const void *buf, const int bufsize);
         static int unpack(const MPI_Comm comm, TransportBDeleteMessage  **bdm,  const void *buf, const int bufsize);
         static int unpack(const MPI_Comm comm, TransportRecvMessage     **rm,   const void *buf, const int bufsize);
-        static int unpack(const MPI_Comm comm, TransportGetRecvMessage  **bgrm, const void *buf, const int bufsize);
+        static int unpack(const MPI_Comm comm, TransportGetRecvMessage  **grm,  const void *buf, const int bufsize);
         static int unpack(const MPI_Comm comm, TransportBGetRecvMessage **bgrm, const void *buf, const int bufsize);
 
     private:

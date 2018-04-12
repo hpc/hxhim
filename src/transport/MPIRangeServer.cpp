@@ -28,8 +28,7 @@ void *MPIRangeServer::listener_thread(void *data) {
 
         //Set the new buffer to the new item's message
         item->message = message;
-        //Set the source in the work item
-        item->address = message->src;
+
         //Add the new item to the work queue
         range_server_add_work(md, item);
     }

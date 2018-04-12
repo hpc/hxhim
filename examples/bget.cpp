@@ -2,11 +2,12 @@
 
 /**
  * bget
- * Example usage and cleanup of mdhimbget
+ * Example usage and cleanup of mdhimBGet
  *
  * @param md       the mdhim context
  * @param keys     the keys
  * @param keys_len the length of each key
+ * @param num_keys the number of keys
  * @param out      normal message stream
  * @param err      error message stream
  */

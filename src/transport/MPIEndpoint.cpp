@@ -16,23 +16,7 @@ MPIEndpoint::MPIEndpoint(const MPI_Comm comm, const int remote_rank, volatile in
  * @return a pointer to the response of the PUT operation
  */
 TransportRecvMessage *MPIEndpoint::Put(const TransportPutMessage *message) {
-    void *sendbuf = nullptr;
-    int sendsize = 0;
-    void *recvbuf = nullptr;
-    int recvsize = 0;
-    TransportRecvMessage *response = nullptr;
-
-    // the result of this series of function calls does not matter
-    (void)
-    ((MPIPacker::pack(comm_, message, &sendbuf, &sendsize)     == MDHIM_SUCCESS) &&  // pack the message
-     (send_rangesrv_work(sendbuf, sendsize)                    == MDHIM_SUCCESS) &&  // send the message
-     (receive_client_response(&recvbuf, &recvsize)             == MDHIM_SUCCESS) &&  // receive the response
-     (MPIUnpacker::unpack(comm_, &response, recvbuf, recvsize) == MDHIM_SUCCESS));   // unpack the response
-
-    Memory::MESSAGE_BUFFER::Instance().release(sendbuf);
-    Memory::MESSAGE_BUFFER::Instance().release(recvbuf);
-
-    return response;
+    return do_operation<TransportPutMessage, TransportRecvMessage>(message);
 }
 
 /**
@@ -43,23 +27,19 @@ TransportRecvMessage *MPIEndpoint::Put(const TransportPutMessage *message) {
  * @return a pointer to the response of the GET operation
  */
 TransportGetRecvMessage *MPIEndpoint::Get(const TransportGetMessage *message) {
-    void *sendbuf = nullptr;
-    int sendsize = 0;
-    void *recvbuf = nullptr;
-    int recvsize = 0;
-    TransportGetRecvMessage *response = nullptr;
+    TransportGetRecvMessage *grm = do_operation<TransportGetMessage, TransportGetRecvMessage>(message);
+   return grm;
+}
 
-    // the result of this series of function calls does not matter
-    (void)
-    ((MPIPacker::pack(comm_, message, &sendbuf, &sendsize)     == MDHIM_SUCCESS) &&  // pack the message
-     (send_rangesrv_work(sendbuf, sendsize)                    == MDHIM_SUCCESS) &&  // send the message
-     (receive_client_response(&recvbuf, &recvsize)             == MDHIM_SUCCESS) &&  // receive the response
-     (MPIUnpacker::unpack(comm_, &response, recvbuf, recvsize) == MDHIM_SUCCESS));   // unpack the response
-
-    Memory::MESSAGE_BUFFER::Instance().release(sendbuf);
-    Memory::MESSAGE_BUFFER::Instance().release(recvbuf);
-
-    return response;
+/**
+ * Delete
+ * Sends a TransportDeleteMessage to the other end of the endpoint
+ *
+ * @param request the initiating DELETE message
+ * @return a pointer to the response of the DELETE operation
+ */
+TransportRecvMessage *MPIEndpoint::Delete(const TransportDeleteMessage *message) {
+    return do_operation<TransportDeleteMessage, TransportRecvMessage>(message);
 }
 
 /**

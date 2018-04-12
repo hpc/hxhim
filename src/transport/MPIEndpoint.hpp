@@ -26,6 +26,7 @@ class MPIEndpoint : virtual public TransportEndpoint, virtual public MPIEndpoint
 
         TransportRecvMessage *Put(const TransportPutMessage *message);
         TransportGetRecvMessage *Get(const TransportGetMessage *message);
+        TransportRecvMessage *Delete(const TransportDeleteMessage *message);
 
     private:
         /**
@@ -33,6 +34,34 @@ class MPIEndpoint : virtual public TransportEndpoint, virtual public MPIEndpoint
          */
         int send_rangesrv_work(const void *buf, const int size);
         int receive_client_response(void **buf, int *size);
+
+        /**
+         * do_operation
+         * A function containing the common calls used by Put, Get, and Delete
+         *
+         * @tparam message the message being sent
+         * @treturn the response from the range server
+         */
+        template <typename Send_t, typename Recv_t>
+        Recv_t *do_operation(const Send_t *message) {
+            void *sendbuf = nullptr;
+            int sendsize = 0;
+            void *recvbuf = nullptr;
+            int recvsize = 0;
+            Recv_t *response = nullptr;
+
+            // the result of this series of function calls does not matter
+            (void)
+                ((MPIPacker::pack(comm_, message, &sendbuf, &sendsize)     == MDHIM_SUCCESS) &&  // pack the message
+                 (send_rangesrv_work(sendbuf, sendsize)                    == MDHIM_SUCCESS) &&  // send the message
+                 (receive_client_response(&recvbuf, &recvsize)             == MDHIM_SUCCESS) &&  // receive the response
+                 (MPIUnpacker::unpack(comm_, &response, recvbuf, recvsize) == MDHIM_SUCCESS));   // unpack the response
+
+            Memory::MESSAGE_BUFFER::Instance().release(sendbuf);
+            Memory::MESSAGE_BUFFER::Instance().release(recvbuf);
+
+            return dynamic_cast<Recv_t *>(response);
+        }
 
         const int remote_rank_;
 };

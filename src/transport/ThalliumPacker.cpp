@@ -19,12 +19,12 @@ int ThalliumPacker::any(const TransportMessage *msg, std::string &buf) {
         case TransportMessageType::BGET:
             ret = pack(dynamic_cast<const TransportBGetMessage *>(msg), buf);
             break;
-        // case TransportMessageType::DELETE:
-        //     ret = pack(dynamic_cast<const TransportDeleteMessage *>(msg), buf);
-        //     break;
-        // case TransportMessageType::BDELETE:
-        //     ret = pack(dynamic_cast<const TransportBDeleteMessage *>(msg), buf);
-        //     break;
+        case TransportMessageType::DELETE:
+            ret = pack(dynamic_cast<const TransportDeleteMessage *>(msg), buf);
+            break;
+        case TransportMessageType::BDELETE:
+            ret = pack(dynamic_cast<const TransportBDeleteMessage *>(msg), buf);
+            break;
         // close meesages are not sent across the network
         // case TransportMessageType::CLOSE:
         //     break;
@@ -128,6 +128,47 @@ int ThalliumPacker::pack(const TransportBGetMessage *bgm, std::string &buf) {
     for(int i = 0; i < bgm->num_keys; i++) {
         if (!s
             .write((char *) bgm->keys[i], bgm->key_lens[i])) {
+            return MDHIM_ERROR;
+        }
+    }
+
+    buf = s.str();
+
+    return MDHIM_SUCCESS;
+}
+
+int ThalliumPacker::pack(const TransportDeleteMessage *dm, std::string &buf) {
+    std::stringstream s;
+    if (pack(static_cast<const TransportMessage *>(dm), s) != MDHIM_SUCCESS) {
+        return MDHIM_ERROR;
+    }
+
+    if (!s
+        .write((char *) &dm->key_len, sizeof(dm->key_len))
+        .write((char *) dm->key, dm->key_len)) {
+        return MDHIM_ERROR;
+    }
+
+    buf = s.str();
+
+    return MDHIM_SUCCESS;
+}
+
+int ThalliumPacker::pack(const TransportBDeleteMessage *bdm, std::string &buf) {
+    std::stringstream s;
+    if (pack(static_cast<const TransportMessage *>(bdm), s) != MDHIM_SUCCESS) {
+        return MDHIM_ERROR;
+    }
+
+    if (!s
+        .write((char *) &bdm->num_keys, sizeof(bdm->num_keys))
+        .write((char *) bdm->key_lens, sizeof(*bdm->key_lens) * bdm->num_keys)) {
+        return MDHIM_ERROR;
+    }
+
+    for(int i = 0; i < bdm->num_keys; i++) {
+        if (!s
+            .write((char *) bdm->keys[i], bdm->key_lens[i])) {
             return MDHIM_ERROR;
         }
     }

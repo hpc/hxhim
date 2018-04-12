@@ -19,18 +19,18 @@ int MPIUnpacker::any(const MPI_Comm comm, TransportMessage **msg, const void *bu
                 *msg = put;
             }
             break;
-        case TransportMessageType::GET:
-            {
-                TransportGetMessage *get = nullptr;
-                ret = unpack(comm, &get, buf, bufsize);
-                *msg = get;
-            }
-            break;
         case TransportMessageType::BPUT:
             {
                 TransportBPutMessage *bput = nullptr;
                 ret = unpack(comm, &bput, buf, bufsize);
                 *msg = bput;
+            }
+            break;
+        case TransportMessageType::GET:
+            {
+                TransportGetMessage *get = nullptr;
+                ret = unpack(comm, &get, buf, bufsize);
+                *msg = get;
             }
             break;
         case TransportMessageType::BGET:
@@ -141,48 +141,6 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportPutMessage **pm, const voi
     return MDHIM_SUCCESS;
 }
 
-int MPIUnpacker::unpack(const MPI_Comm comm, TransportGetMessage **gm, const void *buf, const int bufsize) {
-    if (!gm || !buf) {
-        return MDHIM_ERROR;
-    }
-
-    TransportGetMessage *out = new TransportGetMessage();
-    if (!out) {
-        return MDHIM_ERROR;
-    }
-
-    int position = 0;
-    if (unpack(comm, static_cast<TransportMessage *>(out), buf, bufsize, &position) != MDHIM_SUCCESS) {
-        delete out;
-        return MDHIM_ERROR;
-    }
-
-    if ((MPI_Unpack(buf, bufsize, &position, &out->op, sizeof(out->op), MPI_CHAR, comm)             != MPI_SUCCESS) ||
-        // not sure if out->num_keys is used/set
-        (MPI_Unpack(buf, bufsize, &position, &out->num_keys, sizeof(out->num_keys), MPI_CHAR, comm) != MPI_SUCCESS) ||
-        (MPI_Unpack(buf, bufsize, &position, &out->key_len, sizeof(out->key_len), MPI_CHAR, comm)   != MPI_SUCCESS)) {
-        delete out;
-        return MDHIM_ERROR;
-    }
-
-    // If there is a key, allocate space for it and unpack
-    if (out->key_len) {
-        if (!(out->key = ::operator new(out->key_len))) {
-            delete out;
-            return MDHIM_ERROR;
-        }
-
-        if (MPI_Unpack(buf, bufsize, &position, out->key, out->key_len, MPI_CHAR, comm) != MPI_SUCCESS) {
-            delete out;
-            return MDHIM_ERROR;
-        }
-    }
-
-    *gm = out;
-
-    return MDHIM_SUCCESS;
-}
-
 int MPIUnpacker::unpack(const MPI_Comm comm, TransportBPutMessage **bpm, const void *buf, const int bufsize) {
     if (!bpm || !buf) {
         return MDHIM_ERROR;
@@ -244,6 +202,48 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportBPutMessage **bpm, const v
     }
 
     *bpm = out;
+
+    return MDHIM_SUCCESS;
+}
+
+int MPIUnpacker::unpack(const MPI_Comm comm, TransportGetMessage **gm, const void *buf, const int bufsize) {
+    if (!gm || !buf) {
+        return MDHIM_ERROR;
+    }
+
+    TransportGetMessage *out = new TransportGetMessage();
+    if (!out) {
+        return MDHIM_ERROR;
+    }
+
+    int position = 0;
+    if (unpack(comm, static_cast<TransportMessage *>(out), buf, bufsize, &position) != MDHIM_SUCCESS) {
+        delete out;
+        return MDHIM_ERROR;
+    }
+
+    if ((MPI_Unpack(buf, bufsize, &position, &out->op, sizeof(out->op), MPI_CHAR, comm)             != MPI_SUCCESS) ||
+        // not sure if out->num_keys is used/set
+        (MPI_Unpack(buf, bufsize, &position, &out->num_keys, sizeof(out->num_keys), MPI_CHAR, comm) != MPI_SUCCESS) ||
+        (MPI_Unpack(buf, bufsize, &position, &out->key_len, sizeof(out->key_len), MPI_CHAR, comm)   != MPI_SUCCESS)) {
+        delete out;
+        return MDHIM_ERROR;
+    }
+
+    // If there is a key, allocate space for it and unpack
+    if (out->key_len) {
+        if (!(out->key = ::operator new(out->key_len))) {
+            delete out;
+            return MDHIM_ERROR;
+        }
+
+        if (MPI_Unpack(buf, bufsize, &position, out->key, out->key_len, MPI_CHAR, comm) != MPI_SUCCESS) {
+            delete out;
+            return MDHIM_ERROR;
+        }
+    }
+
+    *gm = out;
 
     return MDHIM_SUCCESS;
 }

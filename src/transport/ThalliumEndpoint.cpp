@@ -26,45 +26,13 @@ ThalliumEndpoint::~ThalliumEndpoint() {
 }
 
 TransportRecvMessage *ThalliumEndpoint::Put(const TransportPutMessage *message) {
-    std::lock_guard<std::mutex> lock(mutex_);
-
-    if (!rpc_ || !ep_) {
-        return nullptr;
-    }
-
-    std::string buf;
-    if (ThalliumPacker::pack(message, buf) != MDHIM_SUCCESS) {
-        return nullptr;
-    }
-
-    const std::string response = rpc_->on(*ep_)(buf);
-
-    TransportRecvMessage *rm = nullptr;
-    if (ThalliumUnpacker::unpack(&rm, response) != MDHIM_SUCCESS) {
-        return nullptr;
-    }
-
-    return rm;
+    return do_operation<TransportPutMessage, TransportRecvMessage>(message);
 }
 
 TransportGetRecvMessage *ThalliumEndpoint::Get(const TransportGetMessage *message) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    return do_operation<TransportGetMessage, TransportGetRecvMessage>(message);
+}
 
-    if (!rpc_ || !ep_) {
-        return nullptr;
-    }
-
-    std::string buf;
-    if (ThalliumPacker::pack(message, buf) != MDHIM_SUCCESS) {
-        return nullptr;
-    }
-
-    const std::string response = rpc_->on(*ep_)(buf);
-
-    TransportGetRecvMessage *grm = nullptr;
-    if (ThalliumUnpacker::unpack(&grm, response) != MDHIM_SUCCESS) {
-        return nullptr;
-    }
-
-    return grm;
+TransportRecvMessage *ThalliumEndpoint::Delete(const TransportDeleteMessage *message) {
+    return do_operation<TransportDeleteMessage, TransportRecvMessage>(message);
 }

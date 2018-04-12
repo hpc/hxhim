@@ -23,6 +23,8 @@ class ThalliumUnpacker {
         static int unpack(TransportBPutMessage     **bpm,  const std::string &buf);
         static int unpack(TransportGetMessage      **gm,   const std::string &buf);
         static int unpack(TransportBGetMessage     **bgm,  const std::string &buf);
+        static int unpack(TransportDeleteMessage   **dm,   const std::string &buf);
+        static int unpack(TransportBDeleteMessage  **bdm,  const std::string &buf);
         static int unpack(TransportRecvMessage     **rm,   const std::string &buf);
         static int unpack(TransportGetRecvMessage  **grm,  const std::string &buf);
         static int unpack(TransportBGetRecvMessage **bgrm, const std::string &buf);
