@@ -201,7 +201,8 @@ int ThalliumUnpacker::unpack(TransportBGetMessage **bgm, const std::string &buf)
 
     if (!s
         .read((char *) &out->op, sizeof(out->op))
-        .read((char *) &out->num_keys, sizeof(out->num_keys))) {
+        .read((char *) &out->num_keys, sizeof(out->num_keys))
+        .read((char *) &out->num_recs, sizeof(out->num_recs))) {
         delete out;
         return MDHIM_ERROR;
     }

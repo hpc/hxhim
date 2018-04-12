@@ -120,6 +120,7 @@ int ThalliumPacker::pack(const TransportBGetMessage *bgm, std::string &buf) {
     if (!s
         .write((char *) &bgm->op, sizeof(bgm->op))
         .write((char *) &bgm->num_keys, sizeof(bgm->num_keys))
+        .write((char *) &bgm->num_recs, sizeof(bgm->num_recs))
         .write((char *) bgm->key_lens, sizeof(*bgm->key_lens) * bgm->num_keys)) {
         return MDHIM_ERROR;
     }
