@@ -29,27 +29,19 @@ int main(int argc, char *argv[]) {
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    // Initialize options
+    // initialize options through config
     mdhim_options_t opts;
-    mdhim_t md;
-
-    // initialize options with default values
-    if (mdhim_options_init(&opts) != MDHIM_SUCCESS) {
+    if (mdhim_default_config_reader(&opts) != MDHIM_SUCCESS) {
         std::cerr << "Failed to initialize mdhim options" << std::endl;
-        cleanup(&md, &opts);
+        cleanup(NULL, &opts);
         return MDHIM_ERROR;
     }
 
     // use arbitrary bytes for keys
     mdhim_options_set_key_type(&opts, MDHIM_BYTE_KEY);
 
-    // if there are more arguments after argv[0], use thallium
-    if (argc != 1) {
-        std::cout << "Using thallium" << std::endl;
-        mdhim_options_set_transporttype(&opts, MDHIM_TRANSPORT_THALLIUM);
-    }
-
     // initialize mdhim context
+    mdhim_t md;
     if (mdhimInit(&md, &opts) != MDHIM_SUCCESS) {
         std::cerr << "Failed to initialize mdhim" << std::endl;
         cleanup(&md, &opts);
@@ -60,6 +52,9 @@ int main(int argc, char *argv[]) {
 
     if (rank == 0) {
         std::cout << "World Size: " << size << std::endl;
+        if (argc != 1) {
+            std::cout << "Using thallium" << std::endl;
+        }
 
         std::string line;
         while (std::cout << ">> ", std::getline(std::cin, line)) {

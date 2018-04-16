@@ -10,6 +10,11 @@ extern "C"
 #define MDHIM_ERROR -1
 #define MDHIM_DB_ERROR -2
 
+/* mdhim configuration constants */
+#define MDHIM_CONFIG_FILE "mdhim.conf"
+#define MDHIM_CONFIG_DIR  "./"
+#define MDHIM_CONFIG_ENV  "MDHIM_CONFIG"
+
 /* mdhim_options_t configuration values*/
 #define MDHIM_TRANSPORT_NONE     0
 #define MDHIM_TRANSPORT_MPI      1

@@ -31,6 +31,7 @@ int mdhim_options_init(mdhim_options_t* opts) {
     // Set default options
     mdhim_options_set_comm(opts, MPI_COMM_WORLD);
     mdhim_options_set_transporttype(opts, MDHIM_TRANSPORT_MPI);
+    opts->p->thallium_module = nullptr;
 
     mdhim_options_set_db_path(opts, "./");
     mdhim_options_set_db_name(opts, "mdhimTstDB-");
@@ -274,6 +275,7 @@ int mdhim_options_destroy(mdhim_options_t *opts) {
     delete [] opts->p->db_paths;
 
     delete [] opts->p->manifest_path;
+    delete [] opts->p->thallium_module;
     delete opts->p;
     opts->p = nullptr;
     return MDHIM_SUCCESS;

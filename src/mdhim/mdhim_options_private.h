@@ -15,15 +15,20 @@
 #include "mdhim_constants.h"
 #include "mdhim_options.h"
 
+
+
 // Options for the database (used when opening a MDHIM dataStore)
 /**
  * @brief Structure used to set MDHIM options before initialization
  */
 typedef struct mdhim_options_private {
-    // The MPI Communicator used for bootstrapping
+    int transporttype;
+
+    // The MPI Communicator used during runtime
+    // This should be placed in a struct or something
     MPI_Comm comm;
 
-    int transporttype;
+    char *thallium_module;
 
 	//Directory location of DBs
 	const char *db_path;

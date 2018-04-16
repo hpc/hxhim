@@ -14,6 +14,7 @@
 #include "mlogfacs2.h"
 
 #include "indexes.h"
+#include "mdhim_config.h"
 #include "mdhim_constants.h"
 #include "mdhim_options.h"
 #include "mdhim_struct.h"

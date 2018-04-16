@@ -28,22 +28,15 @@ int main(int argc, char *argv[]){
 
     srand(time(NULL));
 
-    // Initialize options
+    // initialize options through config
     mdhim_options_t opts;
-    mdhim_t md;
-
-    // initialize options with default values
-    if (mdhim_options_init(&opts) != MDHIM_SUCCESS) {
-        cleanup(&md, &opts);
+    if (mdhim_default_config_reader(&opts) != MDHIM_SUCCESS) {
+        cleanup(NULL, &opts);
         return MDHIM_ERROR;
     }
 
-    // if there are more arguments after argv[0], use thallium
-    if (argc != 1) {
-        mdhim_options_set_transporttype(&opts, MDHIM_TRANSPORT_THALLIUM);
-    }
-
     // initialize mdhim context
+    mdhim_t md;
     if (mdhimInit(&md, &opts) != MDHIM_SUCCESS) {
         cleanup(&md, &opts);
         return MDHIM_ERROR;

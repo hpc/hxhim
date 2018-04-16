@@ -56,7 +56,7 @@ int mdhim_private_init(mdhim_private_t* mdp, int dbtype, int transporttype) {
     }
     else if (transporttype == MDHIM_TRANSPORT_THALLIUM) {
         // create the engine (only 1 instance per process)
-        Thallium::Engine_t engine(new thallium::engine("na+sm", THALLIUM_SERVER_MODE, true, -1),
+        Thallium::Engine_t engine(new thallium::engine(mdp->db_opts->p->thallium_module, THALLIUM_SERVER_MODE, true, -1),
                                   [=](thallium::engine *engine) {
                                       engine->finalize();
                                       delete engine;

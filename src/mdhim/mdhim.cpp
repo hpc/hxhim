@@ -27,21 +27,20 @@
  * @param md MDHIM context
  * @return MDHIM status value
  */
-static int groupInit(mdhim_t *md) {
+static int groupInit(mdhim_t *md, MPI_Comm comm) {
     if (!md || !md->p){
         return MDHIM_ERROR;
     }
 
     // TODO: remove this block//////////////////////
     //Don't allow MPI_COMM_NULL to be the communicator
-    md->p->mdhim_client_comm = MPI_COMM_NULL;
-    if (md->p->mdhim_comm == MPI_COMM_NULL) {
+    if (comm == MPI_COMM_NULL) {
         md->p->mdhim_client_comm = MPI_COMM_NULL;
         return MDHIM_ERROR;
     }
 
     //Dup the communicator passed in for barriers between clients
-    if (MPI_Comm_dup(md->p->mdhim_comm, &md->p->mdhim_client_comm) != MPI_SUCCESS) {
+    if (MPI_Comm_dup(comm, &md->p->mdhim_client_comm) != MPI_SUCCESS) {
         return MDHIM_ERROR;
     }
 
@@ -150,28 +149,29 @@ int mdhimInit(mdhim_t* md, mdhim_options_t *opts) {
     //Open mlog - stolen from plfs
     mlog_open((char *)"mdhim", 0, opts->p->debug_level, opts->p->debug_level, nullptr, 0, MLOG_LOGPID, 0);
 
-    //Initialize context variables based on options
     if (!(md->p = new mdhim_private_t())) {
         return MDHIM_ERROR;
     }
 
-    md->p->mdhim_comm = opts->p->comm;
+    // boostrapping MPI
+    md->p->mdhim_comm = MPI_COMM_WORLD;
     md->p->mdhim_comm_lock = PTHREAD_MUTEX_INITIALIZER;
 
+    md->p->db_opts = opts;
+
     //Initialize group members of context
-    if (groupInit(md) != MDHIM_SUCCESS){
+    if (groupInit(md, opts->p->comm) != MDHIM_SUCCESS){
         mlog(MDHIM_CLIENT_CRIT, "MDHIM - Error Group Initialization Failed");
         return MDHIM_ERROR;
     }
 
-    // initialize the transport
+    //Initialize context variables based on options
     if (mdhim_private_init(md->p, opts->p->db_type, opts->p->transporttype) != MDHIM_SUCCESS) {
         return MDHIM_ERROR;
     }
 
     //Required for index initialization
     md->p->mdhim_rs = nullptr;
-    md->p->db_opts = opts;
 
     //Initialize the partitioner
     partitioner_init();

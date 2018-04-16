@@ -39,6 +39,11 @@ if(${MYSQL_FOUND})
 endif()
 
 #
+# Copy the default configuration file to the build directory
+#
+configure_file(mdhim.conf ${CMAKE_BINARY_DIR} COPYONLY)
+
+#
 # Create the mdhim library
 #
 file(GLOB LIBMDHIM_SOURCES *.c*)
