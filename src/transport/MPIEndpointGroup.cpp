@@ -1,16 +1,13 @@
 #include "MPIEndpointGroup.hpp"
 
-MPIEndpointGroup::MPIEndpointGroup(mdhim_private_t *mdp)
+MPIEndpointGroup::MPIEndpointGroup(const MPI_Comm comm, pthread_mutex_t mutex, volatile int &shutdown)
   : TransportEndpointGroup(),
-    MPIEndpointBase(mdp->mdhim_comm, mdp->shutdown),
-    mdp_(mdp),
-    mutex_(),
+    MPIEndpointBase(comm, shutdown),
+    mutex_(mutex),
     ranks_()
 {}
 
-MPIEndpointGroup::~MPIEndpointGroup() {
-    std::lock_guard<std::mutex> lock(mutex_);
-}
+MPIEndpointGroup::~MPIEndpointGroup() {}
 
 /**
  * AddID
@@ -20,7 +17,6 @@ MPIEndpointGroup::~MPIEndpointGroup() {
  * @param rank the rank associated with the unique ID
  */
 void MPIEndpointGroup::AddID(const int id, const int rank) {
-    std::lock_guard<std::mutex> lock(mutex_);
     ranks_[id] = rank;
 }
 
@@ -32,7 +28,6 @@ void MPIEndpointGroup::AddID(const int id, const int rank) {
  * @param id the unique ID to remove
  */
 void MPIEndpointGroup::RemoveID(const int id) {
-    std::lock_guard<std::mutex> lock(mutex_);
     ranks_.erase(id);
 }
 
@@ -212,8 +207,6 @@ int MPIEndpointGroup::only_send_all_rangesrv_work(void **messages, int *sizes, i
     int num_msgs = 0;
     int ret = MDHIM_SUCCESS;
 
-    std::lock_guard<std::mutex> lock(mutex_);
-
     //Send all messages at once
     for (int i = 0; i < num_srvs; i++) {
         void *mesg = messages[i];
@@ -224,10 +217,10 @@ int MPIEndpointGroup::only_send_all_rangesrv_work(void **messages, int *sizes, i
         size_reqs[i] = new MPI_Request();
 
         // send size
-        pthread_mutex_lock(&mdp_->mdhim_comm_lock);
+        pthread_mutex_lock(&mutex_);
         return_code = MPI_Isend(&sizes[i], 1, MPI_INT, ranks_.at(dsts[i]), RANGESRV_WORK_SIZE_MSG,
-                                mdp_->mdhim_comm, size_reqs[i]);
-        pthread_mutex_unlock(&mdp_->mdhim_comm_lock);
+                                comm_, size_reqs[i]);
+        pthread_mutex_unlock(&mutex_);
 
         if (return_code != MPI_SUCCESS) {
             ret = MDHIM_ERROR;
@@ -236,10 +229,10 @@ int MPIEndpointGroup::only_send_all_rangesrv_work(void **messages, int *sizes, i
         reqs[i] = new MPI_Request();
 
         // send data
-        pthread_mutex_lock(&mdp_->mdhim_comm_lock);
+        pthread_mutex_lock(&mutex_);
         return_code = MPI_Isend(messages[i], sizes[i], MPI_PACKED, ranks_.at(dsts[i]), RANGESRV_WORK_MSG,
-                                mdp_->mdhim_comm, reqs[i]);
-        pthread_mutex_unlock(&mdp_->mdhim_comm_lock);
+                                comm_, reqs[i]);
+        pthread_mutex_unlock(&mutex_);
 
         if (return_code != MPI_SUCCESS) {
             ret = MDHIM_ERROR;
@@ -260,9 +253,9 @@ int MPIEndpointGroup::only_send_all_rangesrv_work(void **messages, int *sizes, i
                 continue;
             }
 
-            pthread_mutex_lock(&mdp_->mdhim_comm_lock);
+            pthread_mutex_lock(&mutex_);
             ret = MPI_Test(size_reqs[i], &flag, &status);
-            pthread_mutex_unlock(&mdp_->mdhim_comm_lock);
+            pthread_mutex_unlock(&mutex_);
 
             if (flag) {
                 delete size_reqs[i];
@@ -275,9 +268,9 @@ int MPIEndpointGroup::only_send_all_rangesrv_work(void **messages, int *sizes, i
                 continue;
             }
 
-            pthread_mutex_lock(&mdp_->mdhim_comm_lock);
+            pthread_mutex_lock(&mutex_);
             ret = MPI_Test(reqs[i], &flag, &status);
-            pthread_mutex_unlock(&mdp_->mdhim_comm_lock);
+            pthread_mutex_unlock(&mutex_);
 
             if (flag) {
                 delete reqs[i];
@@ -347,17 +340,15 @@ int MPIEndpointGroup::only_receive_all_client_responses(int *srcs, int nsrcs, vo
     *recvbufs = new void *[nsrcs]();
     *sizebufs = new int[nsrcs]();
 
-    std::lock_guard<std::mutex> lock(mutex_);
-
     // Receive a size message from the servers in the list
     for (int i = 0; i < nsrcs; i++) {
         reqs[i] = new MPI_Request();
 
-        pthread_mutex_lock(&mdp_->mdhim_comm_lock);
+        pthread_mutex_lock(&mutex_);
         return_code = MPI_Irecv((*sizebufs) + i, 1, MPI_INT,
                                 ranks_.at(srcs[i]), CLIENT_RESPONSE_SIZE_MSG,
-                                mdp_->mdhim_comm, reqs[i]);
-        pthread_mutex_unlock(&mdp_->mdhim_comm_lock);
+                                comm_, reqs[i]);
+        pthread_mutex_unlock(&mutex_);
 
         // If the receive did not succeed then return the error code back
         if ( return_code != MPI_SUCCESS ) {
@@ -374,9 +365,9 @@ int MPIEndpointGroup::only_receive_all_client_responses(int *srcs, int nsrcs, vo
                 int flag = 0;
 
                 // test the request
-                pthread_mutex_lock(&mdp_->mdhim_comm_lock);
+                pthread_mutex_lock(&mutex_);
                 return_code = MPI_Test(reqs[i], &flag, &status);
-                pthread_mutex_unlock(&mdp_->mdhim_comm_lock);
+                pthread_mutex_unlock(&mutex_);
 
                 // if the request completed, add 1
                 if (flag) {
@@ -398,11 +389,11 @@ int MPIEndpointGroup::only_receive_all_client_responses(int *srcs, int nsrcs, vo
         (*recvbufs)[i] = Memory::MESSAGE_BUFFER::Instance().acquire((*sizebufs)[i]);
         reqs[i] = new MPI_Request();
 
-        pthread_mutex_lock(&mdp_->mdhim_comm_lock);
+        pthread_mutex_lock(&mutex_);
         return_code = MPI_Irecv((*recvbufs)[i], (*sizebufs)[i], MPI_PACKED,
                                 ranks_.at(srcs[i]), CLIENT_RESPONSE_MSG,
-                                mdp_->mdhim_comm, reqs[i]);
-        pthread_mutex_unlock(&mdp_->mdhim_comm_lock);
+                                comm_, reqs[i]);
+        pthread_mutex_unlock(&mutex_);
 
         // If the receive did not succeed then return the error code back
         if ( return_code != MPI_SUCCESS ) {
@@ -419,9 +410,9 @@ int MPIEndpointGroup::only_receive_all_client_responses(int *srcs, int nsrcs, vo
 
             int flag = 0;
 
-            pthread_mutex_lock(&mdp_->mdhim_comm_lock);
+            pthread_mutex_lock(&mutex_);
             return_code = MPI_Test(reqs[i], &flag, &status);
-            pthread_mutex_unlock(&mdp_->mdhim_comm_lock);
+            pthread_mutex_unlock(&mutex_);
 
             if (!flag) {
                 continue;
@@ -448,7 +439,7 @@ int MPIEndpointGroup::receive_all_client_responses(int *srcs, int nsrcs, Transpo
 
     if ((ret = only_receive_all_client_responses(srcs, nsrcs, &recvbufs, &sizebufs)) == MDHIM_SUCCESS) {
         for (int i = 0; i < nsrcs; i++) {
-            ret = MPIUnpacker::any(mdp_->mdhim_comm, (*messages) + i, recvbufs[i], sizebufs[i]);
+            ret = MPIUnpacker::any(comm_, (*messages) + i, recvbufs[i], sizebufs[i]);
             Memory::MESSAGE_BUFFER::Instance().release(recvbufs[i]);
         }
     }

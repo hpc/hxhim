@@ -2,7 +2,7 @@
 #define HXHIM_TRANSPORT_ENDPOINT_GROUP
 
 #include <map>
-#include <mutex>
+#include <pthread.h>
 
 #include "mlog2.h"
 #include "mlogfacs2.h"
@@ -22,7 +22,7 @@
  */
 class MPIEndpointGroup : virtual public TransportEndpointGroup, virtual public MPIEndpointBase {
     public:
-        MPIEndpointGroup(mdhim_private_t *mdp);
+    MPIEndpointGroup(const MPI_Comm comm, pthread_mutex_t mutex, volatile int &shutdown);
         ~MPIEndpointGroup();
 
         /** @description Add a mapping from a unique ID to a MPI rank */
@@ -56,10 +56,9 @@ class MPIEndpointGroup : virtual public TransportEndpointGroup, virtual public M
         int only_receive_all_client_responses(int *srcs, int nsrcs, void ***recvbufs, int **sizebufs);
         int receive_all_client_responses(int *srcs, int nsrcs, TransportMessage ***messages);
 
-        mdhim_private_t *mdp_;
+        pthread_mutex_t mutex_;
 
         /** @description Mapping from unique ids to MPI ranks */
-        std::mutex mutex_;
         std::map<int, int> ranks_;
 };
 

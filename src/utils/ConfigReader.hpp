@@ -56,11 +56,6 @@ class ConfigReader {
                 src(source)
             {}
 
-            FunctionSource(const FunctionSource &copy)
-              : func(copy.func),
-                src(copy.src)
-            {}
-
             ParserFunc_t func;
             std::string src;
         } FunctionSource_t;

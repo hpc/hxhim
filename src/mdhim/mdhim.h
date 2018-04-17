@@ -7,13 +7,10 @@
 #ifndef      __MDHIM_H
 #define      __MDHIM_H
 
-#include <pthread.h>
-#include <stdint.h>
-
 #include "mlog2.h"
 #include "mlogfacs2.h"
 
-#include "indexes.h"
+#include "index_struct.h"
 #include "mdhim_config.h"
 #include "mdhim_constants.h"
 #include "mdhim_options.h"

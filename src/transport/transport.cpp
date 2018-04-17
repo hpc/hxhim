@@ -248,9 +248,7 @@ void TransportGetRecvMessage::cleanup() {
     ::operator delete(key);
     key = nullptr;
 
-    // free here because the value comes from leveldb
-    // ::operator delete(value);
-    free(value);
+    ::operator delete(value);
     value = nullptr;
 
     key_len = 0;
@@ -283,7 +281,6 @@ void TransportBGetRecvMessage::cleanup() {
 
     for(int i = 0; i < num_keys; i++) {
         ::operator delete(keys[i]);
-        // free(values[i]);
         ::operator delete(values[i]);
     }
 

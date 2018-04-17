@@ -10,60 +10,49 @@
 
 #include "mlog2.h"
 #include "mlogfacs2.h"
-#include <mpi.h>
 
-#include "mdhim_constants.h"
-#include "mdhim_options.h"
-
-
+// Options for the underlying transport
+typedef struct mdhim_transport_options {
+    int type;
+    void *data;
+} mdhim_transport_options_t;
 
 // Options for the database (used when opening a MDHIM dataStore)
-/**
- * @brief Structure used to set MDHIM options before initialization
- */
-typedef struct mdhim_options_private {
-    int transporttype;
+typedef struct mdhim_db_options {
+    //Directory location of DBs
+    const char *path;
 
-    // The MPI Communicator used during runtime
-    // This should be placed in a struct or something
-    MPI_Comm comm;
+    //Multiple paths of DBs
+    char **paths;
 
-    char *thallium_module;
+    //Number of paths in db_paths
+    int num_paths;
 
-	//Directory location of DBs
-	const char *db_path;
+    const char *manifest_path;
 
-	//Multiple paths of DBs
-	char **db_paths;
+    //Name of each DB (will be modified by adding "_<RANK>" to create multiple
+    // unique DB for each rank server.
+    const char *name;
 
-	//Number of paths in db_paths
-	int num_paths;
+    //Different types of dataStores
+    //LEVELDB=1 (from data_store.h)
+    int type;
 
-	const char *manifest_path;
+    //Primary key type
+    //MDHIM_INT_KEY, MDHIM_LONG_INT_KEY, MDHIM_FLOAT_KEY, MDHIM_DOUBLE_KEY
+    //MDHIM_STRING_KEY, MDHIM_BYTE_KEY
+    //(from partitioner.h)
+    int key_type;
 
-	//Name of each DB (will be modified by adding "_<RANK>" to create multiple
-	// unique DB for each rank server.
-	const char *db_name;
+    //Force the creation of a new DB (deleting any previous versions if present)
+    int create_new;
 
-	//Different types of dataStores
-	//LEVELDB=1 (from data_store.h)
-	int db_type;
+    //Whether to append a value to an existing key or overwrite the value
+    //MDHIM_DB_APPEND to append or MDHIM_DB_OVERWRITE (default)
+    int value_append;
 
-	//Primary key type
-	//MDHIM_INT_KEY, MDHIM_LONG_INT_KEY, MDHIM_FLOAT_KEY, MDHIM_DOUBLE_KEY
-	//MDHIM_STRING_KEY, MDHIM_BYTE_KEY
-	//(from partitioner.h)
-	int db_key_type;
-
-	//Force the creation of a new DB (deleting any previous versions if present)
-	int db_create_new;
-
-	//Whether to append a value to an existing key or overwrite the value
-	//MDHIM_DB_APPEND to append or MDHIM_DB_OVERWRITE (default)
-	int db_value_append;
-
-	//DEBUG level
-	int debug_level;
+    //DEBUG level
+    int debug_level;
 
     //Used to determine the number of range servers which is based in
     //if myrank % rserver_factor == 0, then myrank is a server.
@@ -73,16 +62,24 @@ typedef struct mdhim_options_private {
     //Maximum size of a slice. A ranger server may server several slices.
     uint64_t max_recs_per_slice;
 
-	//Number of worker threads per range server
-	int num_wthreads;
+    //Number of worker threads per range server
+    int num_wthreads;
 
-	//Login Credentials
-	const char *db_host;
-	const char *dbs_host;
-	const char *db_user;
-	const char *db_upswd;
-	const char *dbs_user;
-	const char *dbs_upswd;
+    //Login Credentials
+    const char *db_host;
+    const char *dbs_host;
+    const char *db_user;
+    const char *db_upswd;
+    const char *dbs_user;
+    const char *dbs_upswd;
+} mdhim_db_options_t;
+
+/**
+ * @brief Structure used to set MDHIM options before initialization
+ */
+typedef struct mdhim_options_private {
+    mdhim_transport_options_t *transport;
+    mdhim_db_options_t *db;
 } mdhim_options_private_t;
 
 #endif

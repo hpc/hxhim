@@ -20,18 +20,18 @@ TEST(mdhimInitClose, Good) {
     EXPECT_EQ(mdhim_options_destroy(&opts), MDHIM_SUCCESS);
 }
 
-// The communicator provided is MPI_COMM_NULL
-TEST(mdhimInit, COMM_NULL) {
-    mdhim_options_t opts;
-    mdhim_t md;
+// // The communicator provided is MPI_COMM_NULL
+// TEST(mdhimInit, COMM_NULL) {
+//     mdhim_options_t opts;
+//     mdhim_t md;
 
-    EXPECT_EQ(mdhim_options_init(&opts), MDHIM_SUCCESS);
-    mdhim_options_set_comm(&opts, MPI_COMM_NULL);
-    EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_ERROR);
+//     EXPECT_EQ(mdhim_options_init(&opts), MDHIM_SUCCESS);
+//     mdhim_options_set_comm(&opts, MPI_COMM_NULL);
+//     EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_ERROR);
 
-    EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
-    EXPECT_EQ(mdhim_options_destroy(&opts), MDHIM_SUCCESS);
-}
+//     EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
+//     EXPECT_EQ(mdhim_options_destroy(&opts), MDHIM_SUCCESS);
+// }
 
 // No md variable
 TEST(mdhimInit, NULL_md) {

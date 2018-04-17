@@ -2,6 +2,7 @@
 #define MDHIM_PRIVATE_H
 
 #include "mdhim.h"
+#include "mdhim_options_private.h"
 #include "range_server.h"
 #include "transport.hpp"
 
@@ -14,17 +15,6 @@ extern "C"
  * Struct that contains the private details about MDHim's implementation
  */
 typedef struct mdhim_private {
-    // MPI communicator used to boostrap initialization
-    MPI_Comm mdhim_comm;
-    pthread_mutex_t mdhim_comm_lock;
-
-    //The size of mdhim_comm
-    int mdhim_comm_size;
-
-    //Rank within mdhim_comm
-    //Used as this instance's unique ID
-    int mdhim_rank;
-
     // Actual transport layer
     Transport *transport;
 
@@ -33,10 +23,6 @@ typedef struct mdhim_private {
 
     // the function called once data has been processed by the range server
     int (*send_client_response)(work_item_t *, TransportMessage *, volatile int &);
-
-    //This communicator will include every process in the application, but is separate from the app
-    //It is used for barriers for clients
-    MPI_Comm mdhim_client_comm;
 
     //Flag to indicate mdhimClose was called
     volatile int shutdown;
@@ -59,40 +45,55 @@ typedef struct mdhim_private {
     /* The receive msg, which is sent to the client by the
        range server running in the same process */
     TransportMessage *receive_msg;
+
     //Options for DB creation
-    mdhim_options_t *db_opts;
+    mdhim_db_options_t *db_opts;
 } mdhim_private_t;
-#ifdef __cplusplus
-}
-#endif
 
-/**
- *
- * @param mdp An allocated MDHim private data structure
- * @param dstype The data store type to instantiate
- * @param commtype The communication type to instantiate
- * @return 0 on success, non-zero on failre
- */
-int mdhim_private_init(mdhim_private_t* mdp, int dbtype, int transporttype);
+/** @description The actual initializer function for mdhim_t */
+int mdhim_private_init(mdhim_t *md, mdhim_db_options_t *db, mdhim_transport_options_t *transport);
 
+/** @description The actual destructor for mdhim_t */
+int mdhim_private_destroy(mdhim_t *md);
+
+/** @description Internal PUT function */
 TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
                                   void *key, int key_len,
                                   void *value, int value_len);
+
+/** @description Internal GET function */
 TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
                                      void *key, int key_len,
                                      enum TransportGetMessageOp op);
+
+/** @description Creates Bulk Receive Messages from Receive Messages to be used as a list */
 TransportBRecvMessage *_create_brm(TransportRecvMessage *rm);
+
+/** @description Adds a Bulk Recieve Message to the end of a Bulk Receive Message list*/
 void _concat_brm(TransportBRecvMessage *head, TransportBRecvMessage *addition);
+
+/** @description Internal BPUT function */
 TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
                                      void **keys, int *key_lens,
                                      void **values, int *value_lens,
                                      int num_records);
+
+/** @description Internal BGET function */
 TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
                                         void **keys, int *key_lens,
                                         int num_keys, int num_records,
                                         enum TransportGetMessageOp op);
+
+/** @description Internal BDELETE function */
 TransportBRecvMessage *_bdel_records(mdhim_t *md, index_t *index,
                                      void **keys, int *key_lens,
                                      int num_records);
-int _which_server(struct mdhim *md, void *key, int key_len);
+
+/** @description Internal function for getting the destination range server of a key */
+int _which_server(mdhim_t *md, void *key, int key_len);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

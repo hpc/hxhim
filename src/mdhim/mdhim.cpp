@@ -4,9 +4,11 @@
  * MDHIM API implementation
  */
 
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <memory>
+#include <pthread.h>
 #include <sys/time.h>
 
 #include "data_store.h"
@@ -21,110 +23,48 @@
 #include "transport_private.hpp"
 
 /**
- * groupInit
- * Initializes MPI values in mdhim_t
+ * bootstrapInit
+ * Initializes bootstrapping values in mdhim_t
  *
  * @param md MDHIM context
  * @return MDHIM status value
  */
-static int groupInit(mdhim_t *md, MPI_Comm comm) {
+static int bootstrapInit(mdhim_t *md) {
     if (!md || !md->p){
         return MDHIM_ERROR;
     }
 
-    // TODO: remove this block//////////////////////
-    //Don't allow MPI_COMM_NULL to be the communicator
-    if (comm == MPI_COMM_NULL) {
-        md->p->mdhim_client_comm = MPI_COMM_NULL;
-        return MDHIM_ERROR;
-    }
-
-    //Dup the communicator passed in for barriers between clients
-    if (MPI_Comm_dup(comm, &md->p->mdhim_client_comm) != MPI_SUCCESS) {
-        return MDHIM_ERROR;
-    }
+    md->mdhim_comm = MPI_COMM_WORLD;
+    md->mdhim_comm_lock = PTHREAD_MUTEX_INITIALIZER;
 
     //Get the size of the main MDHIM communicator
-    if (MPI_Comm_size(md->p->mdhim_comm, &md->p->mdhim_comm_size) != MPI_SUCCESS) {
+    if (MPI_Comm_size(md->mdhim_comm, &md->mdhim_comm_size) != MPI_SUCCESS) {
         return MDHIM_ERROR;
     }
 
     //Get the rank of the main MDHIM communicator
-    if (MPI_Comm_rank(md->p->mdhim_comm, &md->p->mdhim_rank) != MPI_SUCCESS) {
+    if (MPI_Comm_rank(md->mdhim_comm, &md->mdhim_rank) != MPI_SUCCESS) {
         return MDHIM_ERROR;
     }
-    // /////////////////////////////////////////////
 
     return MDHIM_SUCCESS;
 }
 
 /**
- * groupDestroy
+ * bootstrapDestroy
  * Cleans up MPI values in mdhim_t
  *
  * @param md MDHIM context
  * @return MDHIM status value
  */
-static int groupDestroy(mdhim_t *md) {
+static int bootstrapDestroy(mdhim_t *md) {
     if (!md || !md->p){
         return MDHIM_ERROR;
     }
 
-    //Destroy the client communicator
-    if (md->p->mdhim_client_comm != MPI_COMM_NULL) {
-        MPI_Comm_free(&md->p->mdhim_client_comm);
-    }
-
-    return MDHIM_SUCCESS;
-}
-
-/**
- * indexnitialization
- * Initializes index values in mdhim_t
- *
- * @param md MDHIM context
- * @return MDHIM status value
- */
-static int indexInit(mdhim_t *md) {
-    if (!md || !md->p){
-        return MDHIM_ERROR;
-    }
-
-    //Initialize the indexes and create the primary index
-    md->p->indexes = nullptr;
-    md->p->indexes_by_name = nullptr;
-    if (pthread_rwlock_init(&md->p->indexes_lock, nullptr) != 0) {
-        return MDHIM_ERROR;
-    }
-
-    //Create the default remote primary index
-    md->p->primary_index = create_global_index(md, md->p->db_opts->p->rserver_factor, md->p->db_opts->p->max_recs_per_slice,
-                                               md->p->db_opts->p->db_type, md->p->db_opts->p->db_key_type, nullptr);
-
-    if (!md->p->primary_index) {
-        return MDHIM_ERROR;
-    }
-
-    return MDHIM_SUCCESS;
-}
-
-/**
- * indexDestroy
- * Cleans up index values in mdhim_t
- *
- * @param md MDHIM context
- * @return MDHIM status value
- */
-static int indexDestroy(mdhim_t *md) {
-    if (!md || !md->p){
-        return MDHIM_ERROR;
-    }
-
-    if (pthread_rwlock_destroy(&md->p->indexes_lock) != 0) {
-        return MDHIM_ERROR;
-    }
-
-    indexes_release(md);
+    md->mdhim_comm = MPI_COMM_NULL;
+    md->mdhim_comm_size = 0;
+    md->mdhim_rank = 0;
 
     return MDHIM_SUCCESS;
 }
@@ -138,56 +78,28 @@ static int indexDestroy(mdhim_t *md) {
  * @return MDHIM status value
  */
 int mdhimInit(mdhim_t* md, mdhim_options_t *opts) {
-    if (!md){
-      return MDHIM_ERROR;
-    }
-
-    if (!opts || !opts->p){
-      return MDHIM_ERROR;
+    if (!md ||
+        !opts || !opts->p || !opts->p->transport || !opts->p->db){
+        return MDHIM_ERROR;
     }
 
     //Open mlog - stolen from plfs
-    mlog_open((char *)"mdhim", 0, opts->p->debug_level, opts->p->debug_level, nullptr, 0, MLOG_LOGPID, 0);
+    mlog_open((char *)"mdhim", 0, opts->p->db->debug_level, opts->p->db->debug_level, nullptr, 0, MLOG_LOGPID, 0);
 
     if (!(md->p = new mdhim_private_t())) {
         return MDHIM_ERROR;
     }
 
-    // boostrapping MPI
-    md->p->mdhim_comm = MPI_COMM_WORLD;
-    md->p->mdhim_comm_lock = PTHREAD_MUTEX_INITIALIZER;
-
-    md->p->db_opts = opts;
-
-    //Initialize group members of context
-    if (groupInit(md, opts->p->comm) != MDHIM_SUCCESS){
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM - Error Group Initialization Failed");
+    //Initialize bootstrapping variables
+    if (bootstrapInit(md) != MDHIM_SUCCESS){
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM - Error Bootstrap Initialization Failed");
         return MDHIM_ERROR;
     }
 
     //Initialize context variables based on options
-    if (mdhim_private_init(md->p, opts->p->db_type, opts->p->transporttype) != MDHIM_SUCCESS) {
+    if (mdhim_private_init(md, opts->p->db, opts->p->transport) != MDHIM_SUCCESS) {
         return MDHIM_ERROR;
     }
-
-    //Required for index initialization
-    md->p->mdhim_rs = nullptr;
-
-    //Initialize the partitioner
-    partitioner_init();
-
-    //Initialize index members of context
-    if (indexInit(md) != MDHIM_SUCCESS){
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM - Error Index Initialization Failed");
-        return MDHIM_ERROR;
-    }
-
-    //Flag that won't be used until shutdown
-    md->p->shutdown = 0;
-
-    md->p->receive_msg_mutex = PTHREAD_MUTEX_INITIALIZER;
-    md->p->receive_msg_ready_cv = PTHREAD_COND_INITIALIZER;
-    md->p->receive_msg = nullptr;
 
     return MDHIM_SUCCESS;
 }
@@ -198,37 +110,11 @@ int mdhimInit(mdhim_t* md, mdhim_options_t *opts) {
  * @param md MDHIM context to be closed
  * @return MDHIM status value
  */
-int mdhimClose(struct mdhim *md) {
-    if (!md || !md->p) {
-        return MDHIM_ERROR;
-    }
+int mdhimClose(mdhim_t *md) {
+    mdhim_private_destroy(md);
 
-    //Force shutdown if not already started
-    md->p->shutdown = 1;
-
-    //Stop range server if I'm a range server
-    if (md->p->mdhim_rs) {
-        range_server_stop(md);
-    }
-
-    //Free up memory used by the partitioner
-    partitioner_release();
-
-    //Free up memory used by indexes
-    indexDestroy(md);
-
-    //Free up memory used by message buffer
-    ::operator delete(md->p->receive_msg);
-    md->p->receive_msg = nullptr;
-
-    //Clean up group members
-    groupDestroy(md);
-
-    delete md->p->transport;
-    md->p->transport = nullptr;
-
-    delete md->p;
-    md->p = nullptr;
+    //Clean up bootstrapping variables
+    bootstrapDestroy(md);
 
     //Close MLog
     mlog_close();
@@ -242,7 +128,7 @@ int mdhimClose(struct mdhim *md) {
  * @param md main MDHIM struct
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int mdhimCommit(struct mdhim *md, index_t *index) {
+int mdhimCommit(mdhim_t *md, index_t *index) {
     int ret = MDHIM_SUCCESS;
 
     if (!index) {
@@ -255,13 +141,14 @@ int mdhimCommit(struct mdhim *md, index_t *index) {
         cm->mtype = TransportMessageType::COMMIT;
         cm->index = index->id;
         cm->index_type = index->type;
-        cm->dst =  md->p->mdhim_rank;
+        cm->src = md->mdhim_rank;
+        cm->dst = md->mdhim_rank;
         TransportRecvMessage *rm = local_client_commit(md, static_cast<TransportMessage *>(cm));
         if (!rm || rm->error) {
             ret = MDHIM_ERROR;
             mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
                  "Error while committing database in mdhimTransportit",
-                  md->p->mdhim_rank);
+                  md->mdhim_rank);
         }
 
         delete rm;
@@ -282,7 +169,7 @@ int mdhimCommit(struct mdhim *md, index_t *index) {
                              inserting secondary global and local keys
  * @return                   mdhim_brm_t * or nullptr on error
  */
-mdhim_brm_t *mdhimPut(struct mdhim *md,
+mdhim_brm_t *mdhimPut(mdhim_t *md,
                       void *primary_key, int primary_key_len,
                       void *value, int value_len,
                       secondary_info_t *secondary_global_info,
@@ -674,7 +561,7 @@ mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, index_t *index,
     if (op != TransportGetMessageOp::GET_EQ && op != TransportGetMessageOp::GET_PRIMARY_EQ) {
         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
              "Invalid operation for mdhimBGet",
-              md->p->mdhim_rank);
+              md->mdhim_rank);
         return nullptr;
     }
 
@@ -682,7 +569,7 @@ mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, index_t *index,
     if (num_keys > MAX_BULK_OPS) {
         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
              "Too many bulk operations requested in mdhimBGet",
-              md->p->mdhim_rank);
+              md->mdhim_rank);
         return nullptr;
     }
 
@@ -730,7 +617,7 @@ mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, index_t *index,
                  "Too many bulk operations would be performed "
                  "with the MDHIM_GET_PRIMARY_EQ operation.  Limiting "
                  "request to : %u key/values",
-                  md->p->mdhim_rank, MAX_BULK_OPS);
+                  md->mdhim_rank, MAX_BULK_OPS);
             plen = MAX_BULK_OPS - 1;
         }
 
@@ -807,14 +694,14 @@ mdhim_bgetrm_t *mdhimBGetOp(mdhim_t *md, index_t *index,
     if (num_records > MAX_BULK_OPS) {
         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
              "Too many bulk operations requested in mdhimBGetOp",
-              md->p->mdhim_rank);
+              md->mdhim_rank);
         return nullptr;
     }
 
     if (op == TransportGetMessageOp::GET_EQ || op == TransportGetMessageOp::GET_PRIMARY_EQ) {
         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
              "Invalid op specified for mdhimGet",
-              md->p->mdhim_rank);
+              md->mdhim_rank);
         return nullptr;
     }
 
@@ -926,7 +813,7 @@ mdhim_brm_t *mdhimBDelete(mdhim_t *md, index_t *index,
     if (num_records > MAX_BULK_OPS) {
         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
              "Too many bulk operations requested in mdhimBDelete",
-              md->p->mdhim_rank);
+              md->mdhim_rank);
         return nullptr;
     }
 
@@ -942,13 +829,13 @@ mdhim_brm_t *mdhimBDelete(mdhim_t *md, index_t *index,
 int mdhimStatFlush(mdhim_t *md, index_t *index) {
     int ret;
 
-    MPI_Barrier(md->p->mdhim_client_comm);
+    MPI_Barrier(md->mdhim_comm);
     if ((ret = get_stat_flush(md, index)) != MDHIM_SUCCESS) {
         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
              "Error while getting MDHIM stat data in mdhimStatFlush",
-              md->p->mdhim_rank);
+              md->mdhim_rank);
     }
-    MPI_Barrier(md->p->mdhim_client_comm);
+    MPI_Barrier(md->mdhim_comm);
 
     return ret;
 }

@@ -22,8 +22,7 @@ typedef struct mdhim_options {
 } mdhim_options_t;
 
 int mdhim_options_init(mdhim_options_t* opts);
-void mdhim_options_set_comm(mdhim_options_t* opts, const MPI_Comm comm);
-void mdhim_options_set_transporttype(mdhim_options_t *opts, const int transporttype);
+void mdhim_options_set_transport(mdhim_options_t *opts, const int type, void *data);
 void mdhim_options_set_db_path(mdhim_options_t* opts, const char *path);
 void mdhim_options_set_db_paths(mdhim_options_t* opts, char **paths, int num_paths);
 void mdhim_options_set_db_name(mdhim_options_t* opts, const char *name);

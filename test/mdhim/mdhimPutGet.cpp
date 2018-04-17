@@ -132,7 +132,7 @@ TEST(mdhimPutGet, secondary_global) {
     mdhim_grm_destroy(sg_ret);
     mdhimReleaseSecondaryInfo(sg_info);
 
-    EXPECT_EQ(MPI_Barrier(md.p->mdhim_comm), MPI_SUCCESS);
+    EXPECT_EQ(MPI_Barrier(md.mdhim_comm), MPI_SUCCESS);
     EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
     EXPECT_EQ(mdhim_options_destroy(&opts), MDHIM_SUCCESS);
     EXPECT_EQ(Memory::MESSAGE_BUFFER::Instance().used(), 0);
@@ -214,7 +214,7 @@ TEST(mdhimPutGet, secondary_local) {
     mdhim_grm_destroy(sl_ret);
     mdhimReleaseSecondaryInfo(sl_info);
 
-    EXPECT_EQ(MPI_Barrier(md.p->mdhim_comm), MPI_SUCCESS);
+    EXPECT_EQ(MPI_Barrier(md.mdhim_comm), MPI_SUCCESS);
     EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
     EXPECT_EQ(mdhim_options_destroy(&opts), MDHIM_SUCCESS);
     EXPECT_EQ(Memory::MESSAGE_BUFFER::Instance().used(), 0);
@@ -371,7 +371,7 @@ TEST(mdhimPutGet, secondary_global_and_local) {
         mdhimReleaseSecondaryInfo(sl_info);
     }
 
-    EXPECT_EQ(MPI_Barrier(md.p->mdhim_comm), MPI_SUCCESS);
+    EXPECT_EQ(MPI_Barrier(md.mdhim_comm), MPI_SUCCESS);
     EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
     EXPECT_EQ(mdhim_options_destroy(&opts), MDHIM_SUCCESS);
     EXPECT_EQ(Memory::MESSAGE_BUFFER::Instance().used(), 0);

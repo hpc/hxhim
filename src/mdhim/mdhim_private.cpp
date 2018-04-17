@@ -15,48 +15,73 @@
 #include "transport_mpi.hpp"
 #include "transport_thallium.hpp"
 
-int mdhim_private_init(mdhim_private_t* mdp, int dbtype, int transporttype) {
-    int rc = MDHIM_ERROR;
-    if (!mdp) {
-        // goto err_out;
+/**
+ * mdhim_private_init_db
+ *
+ * @param md        the mdhim context to initialize
+ * @param db        the database options to initialize with
+ * @param MDHIM_SUCCESS or MDHIM_ERROR
+ */
+static int mdhim_private_init_db(mdhim_t *md, mdhim_db_options_t *db) {
+    if (!md || !md->p) {
         return MDHIM_ERROR;
     }
 
-    if (dbtype == LEVELDB) {
-        rc = MDHIM_SUCCESS;
-    }
-    else {
-        mlog(MDHIM_CLIENT_CRIT, "Invalid data store type specified");
-        rc = MDHIM_DB_ERROR;
-        goto err_out;
+    if (db->type == LEVELDB) {
+        return MDHIM_SUCCESS;
     }
 
-    mdp->transport = new Transport();
+    mlog(MDHIM_CLIENT_CRIT, "Invalid data store type specified");
+    return MDHIM_DB_ERROR;
+}
 
-    if (transporttype == MDHIM_TRANSPORT_MPI) {
-        MPIEndpointGroup *eg = new MPIEndpointGroup(mdp);
+/**
+ * mdhim_private_init_transport
+ *
+ * @param md        the mdhim context to initialize
+ * @param transport the transrpot options to initialize with
+ * @param MDHIM_SUCCESS or MDHIM_ERROR
+ */
+static int mdhim_private_init_transport(mdhim_t *md, mdhim_transport_options_t *transport) {
+    if (!md || !md->p) {
+        return MDHIM_ERROR;
+    }
+
+    md->p->transport = new Transport();
+
+    if (transport->type == MDHIM_TRANSPORT_MPI) {
+        MPI_Comm *comm = static_cast<MPI_Comm *>(transport->data);
+
+        // Do not allow MPI_COMM_NULL
+        if (*comm == MPI_COMM_NULL) {
+            return MDHIM_ERROR;
+        }
+
+        MPIEndpointGroup *eg = new MPIEndpointGroup(*comm, md->mdhim_comm_lock, md->p->shutdown);
 
         // create mapping between unique IDs and ranks
-        for(int i = 0; i < mdp->mdhim_comm_size; i++) {
+        for(int i = 0; i < md->mdhim_comm_size; i++) {
             // MPI ranks map 1:1 with the boostrap MPI rank
-            mdp->transport->AddEndpoint(i, new MPIEndpoint(mdp->mdhim_comm, i, mdp->shutdown));
+            md->p->transport->AddEndpoint(i, new MPIEndpoint(*comm, i, md->p->shutdown));
 
             // add the MPI ranks to the endpoint group
             eg->AddID(i, i);
         }
 
         // remove loopback endpoint
-        mdp->transport->RemoveEndpoint(mdp->mdhim_rank);
+        md->p->transport->RemoveEndpoint(md->mdhim_rank);
 
-        mdp->transport->SetEndpointGroup(eg);
-        mdp->listener_thread = MPIRangeServer::listener_thread;
-        mdp->send_client_response = MPIRangeServer::send_client_response;
+        md->p->transport->SetEndpointGroup(eg);
+        md->p->listener_thread = MPIRangeServer::listener_thread;
+        md->p->send_client_response = MPIRangeServer::send_client_response;
 
-        rc = MDHIM_SUCCESS;
+        return MDHIM_SUCCESS;
     }
-    else if (transporttype == MDHIM_TRANSPORT_THALLIUM) {
+    else if (transport->type == MDHIM_TRANSPORT_THALLIUM) {
+        std::string *protocol = static_cast<std::string *>(transport->data);
+
         // create the engine (only 1 instance per process)
-        Thallium::Engine_t engine(new thallium::engine(mdp->db_opts->p->thallium_module, THALLIUM_SERVER_MODE, true, -1),
+        Thallium::Engine_t engine(new thallium::engine(*protocol, THALLIUM_SERVER_MODE, true, -1),
                                   [=](thallium::engine *engine) {
                                       engine->finalize();
                                       delete engine;
@@ -67,47 +92,209 @@ int mdhim_private_init(mdhim_private_t* mdp, int dbtype, int transporttype) {
                                                                           ThalliumRangeServer::receive_rangesrv_work)));
 
         // give the range server access to the mdhim_t data
-        ThalliumRangeServer::init(mdp);
+        ThalliumRangeServer::init(md->p);
 
         // wait for every engine to start up
-        MPI_Barrier(mdp->mdhim_comm);
+        MPI_Barrier(md->mdhim_comm);
 
         // get a mapping of unique IDs to thallium addresses
         std::map<int, std::string> addrs;
-        if (Thallium::get_addrs(mdp->mdhim_comm, engine, addrs) != MDHIM_SUCCESS) {
-            rc = MDHIM_ERROR;
-            goto err_out;
+        if (Thallium::get_addrs(md->mdhim_comm, engine, addrs) != MDHIM_SUCCESS) {
+            return MDHIM_ERROR;
         }
 
         // remove the loopback endpoint
-        addrs.erase(mdp->mdhim_rank);
+        addrs.erase(md->mdhim_rank);
 
-        ThalliumEndpointGroup *eg = new ThalliumEndpointGroup(mdp, rpc);
+        ThalliumEndpointGroup *eg = new ThalliumEndpointGroup(md->p, rpc);
 
         // create mapping between unique IDs and ranks
         for(std::pair<const int, std::string> const &addr : addrs) {
             // add the remote thallium endpoint to the tranport
             Thallium::Endpoint_t server(new thallium::endpoint(engine->lookup(addr.second)));
             ThalliumEndpoint* ep = new ThalliumEndpoint(engine, rpc, server);
-            mdp->transport->AddEndpoint(addr.first, ep);
+            md->p->transport->AddEndpoint(addr.first, ep);
 
             // add the remote thallium endpoint to the endpoint group
             eg->AddID(addr.first, server);
         }
 
-        mdp->transport->SetEndpointGroup(eg);
-        mdp->listener_thread = nullptr;
-        mdp->send_client_response = ThalliumRangeServer::send_client_response;
+        md->p->transport->SetEndpointGroup(eg);
+        md->p->listener_thread = nullptr;
+        md->p->send_client_response = ThalliumRangeServer::send_client_response;
 
-        rc = MDHIM_SUCCESS;
-    }
-    else {
-        mlog(MDHIM_CLIENT_CRIT, "Invalid transport type specified");
-        rc = MDHIM_ERROR;
+        return MDHIM_SUCCESS;
     }
 
-err_out:
-    return rc;
+    mlog(MDHIM_CLIENT_CRIT, "Invalid transport type specified");
+    return MDHIM_ERROR;
+}
+
+/**
+ * mdhim_private_init_index
+ * Initializes index values in mdhim_t
+ *
+ * @param md MDHIM context
+ * @return MDHIM status value
+ */
+static int mdhim_private_init_index(mdhim_t *md) {
+    if (!md || !md->p){
+        return MDHIM_ERROR;
+    }
+
+    //Initialize the indexes and create the primary index
+    md->p->indexes = nullptr;
+    md->p->indexes_by_name = nullptr;
+    if (pthread_rwlock_init(&md->p->indexes_lock, nullptr) != 0) {
+        return MDHIM_ERROR;
+    }
+
+    //Create the default remote primary index
+    md->p->primary_index = create_global_index(md, md->p->db_opts->rserver_factor, md->p->db_opts->max_recs_per_slice,
+                                               md->p->db_opts->type, md->p->db_opts->key_type, nullptr);
+
+    if (!md->p->primary_index) {
+        return MDHIM_ERROR;
+    }
+
+    return MDHIM_SUCCESS;
+}
+
+/**
+ * mdhim_private_init
+ * A simple wrapper function to call other functions to initialize mdhim_t variables
+ *
+ * @param md        the mdhim context to initialize
+ * @param db        the database options to initialize with
+ * @param transport the transrpot options to initialize with
+ * @param MDHIM_SUCCESS or MDHIM_ERROR
+ */
+int mdhim_private_init(mdhim_t* md, mdhim_db_options_t *db, mdhim_transport_options_t *transport) {
+    if ((mdhim_private_init_db(md, db)               != MDHIM_SUCCESS) ||
+        (mdhim_private_init_transport(md, transport) != MDHIM_SUCCESS)) {
+        return MDHIM_ERROR;
+    }
+
+    //Required for index initialization
+    md->p->mdhim_rs = nullptr;
+    md->p->db_opts = db;
+
+    //Initialize the partitioner
+    partitioner_init();
+
+    //Initialize index members of context
+    if (mdhim_private_init_index(md) != MDHIM_SUCCESS){
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM - Error Index Initialization Failed");
+        return MDHIM_ERROR;
+    }
+
+    //Flag that won't be used until shutdown
+    md->p->shutdown = 0;
+
+    md->p->receive_msg_mutex = PTHREAD_MUTEX_INITIALIZER;
+    md->p->receive_msg_ready_cv = PTHREAD_COND_INITIALIZER;
+    md->p->receive_msg = nullptr;
+
+    return MDHIM_SUCCESS;
+}
+
+/**
+ * mdhim_private_destroy_index
+ * Cleans up index values in mdhim_t
+ *
+ * @param md MDHIM context
+ * @return MDHIM status value
+ */
+static int mdhim_private_destroy_index(mdhim_t *md) {
+    if (!md || !md->p){
+        return MDHIM_ERROR;
+    }
+
+    if (pthread_rwlock_destroy(&md->p->indexes_lock) != 0) {
+        return MDHIM_ERROR;
+    }
+
+    indexes_release(md);
+
+    return MDHIM_SUCCESS;
+}
+
+/**
+ * mdhim_private_destroy_transport
+ * Cleans up the transport in mdhim_t
+ *
+ * @param md MDHIM context
+ * @return MDHIM status value
+ */
+static int mdhim_private_destroy_transport(mdhim_t *md) {
+    if (!md || !md->p){
+        return MDHIM_ERROR;
+    }
+
+    delete md->p->transport;
+    md->p->transport = nullptr;
+    return MDHIM_SUCCESS;
+}
+
+/**
+ * mdhim_private_destroy_db_options
+ * Cleans up the db options in mdhim_t
+ *
+ * @param md MDHIM context
+ * @return MDHIM status value
+ */
+static int mdhim_private_destroy_db_options(mdhim_t *md) {
+    if (!md || !md->p){
+        return MDHIM_ERROR;
+    }
+
+    // do not delete db_opts - it is not owned by mdhim_t
+    md->p->db_opts = nullptr;
+    return MDHIM_SUCCESS;
+}
+
+/**
+ * mdhim_private_destroy
+ * Cleans up the private mdhim_t variables.
+ * Only md->p is cleaned up. md itself is not deleted.
+ *
+ * @param md        the mdhim context to destroy
+ * @param MDHIM_SUCCESS or MDHIM_ERROR
+ */
+int mdhim_private_destroy(mdhim_t *md) {
+    if (!md || !md->p) {
+        return MDHIM_ERROR;
+    }
+
+    //Force shutdown if not already started
+    md->p->shutdown = 1;
+
+    //Stop range server if I'm a range server
+    if (md->p->mdhim_rs) {
+        range_server_stop(md);
+    }
+
+    //Free up memory used by message buffer
+    ::operator delete(md->p->receive_msg);
+    md->p->receive_msg = nullptr;
+
+    //Free up memory used by the partitioner
+    partitioner_release();
+
+    //Free up memory used by indexes
+    mdhim_private_destroy_index(md);
+
+    //Free up memory used by the transport
+    mdhim_private_destroy_transport(md);
+
+    //Free up memory used by the db options
+    mdhim_private_destroy_db_options(md);
+
+    // delete the private variable
+    delete md->p;
+    md->p = nullptr;
+
+    return MDHIM_SUCCESS;
 }
 
 TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
@@ -139,7 +326,7 @@ TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
             nullptr) {
             mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
                  "Error while determining range server in mdhimBPut",
-                  md->p->mdhim_rank);
+                  md->mdhim_rank);
             return nullptr;
         }
     } else {
@@ -147,7 +334,7 @@ TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
         if ((rl = get_range_servers(md, lookup_index, key, key_len)) == nullptr) {
             mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
                  "Error while determining range server in _put_record",
-                  md->p->mdhim_rank);
+                  md->mdhim_rank);
             return nullptr;
         }
     }
@@ -158,7 +345,7 @@ TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
         if (!pm) {
             mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
                  "Error while allocating memory in _put_record",
-                  md->p->mdhim_rank);
+                  md->mdhim_rank);
             return nullptr;
         }
 
@@ -168,13 +355,13 @@ TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
         pm->key_len = key_len;
         pm->value = value;
         pm->value_len = value_len;
-        pm->src =  md->p->mdhim_rank;
+        pm->src =  md->mdhim_rank;
         pm->dst = rl->ri->rank;
         pm->index = put_index->id;
         pm->index_type = put_index->type;
 
         //If I'm a range server and I'm the one this key goes to, send the message locally
-        if (im_range_server(put_index) &&  md->p->mdhim_rank == pm->dst) {
+        if (im_range_server(put_index) &&  md->mdhim_rank == pm->dst) {
             rm = local_client_put(md, pm);
         } else {
             //Send the message through the network as this message is for another rank
@@ -220,7 +407,7 @@ TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
         gm->key = key;
         gm->key_len = key_len;
         gm->num_keys = 1;
-        gm->src = md->p->mdhim_rank;
+        gm->src = md->mdhim_rank;
         gm->dst = rl->ri->rank;
         gm->mtype = TransportMessageType::GET;
         gm->op = (op == TransportGetMessageOp::GET_PRIMARY_EQ)?TransportGetMessageOp::GET_EQ:op;
@@ -228,7 +415,7 @@ TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
         gm->index_type = index->type;
 
         //If I'm a range server and I'm the one this key goes to, send the message locally
-        if (im_range_server(index) &&  md->p->mdhim_rank == gm->dst) {
+        if (im_range_server(index) &&  md->mdhim_rank == gm->dst) {
             grm = local_client_get(md, gm);
         } else {
             //Send the message through the network as this message is for another rank
@@ -291,7 +478,7 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
     if (num_keys > MAX_BULK_OPS) {
         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
              "To many bulk operations requested in mdhimBGetOp",
-              md->p->mdhim_rank);
+              md->mdhim_rank);
         return nullptr;
     }
 
@@ -311,7 +498,7 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
                 nullptr) {
                 mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
                      "Error while determining range server in mdhimBPut",
-                      md->p->mdhim_rank);
+                      md->mdhim_rank);
                 continue;
             }
         } else {
@@ -319,7 +506,7 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
                 nullptr) {
                 mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
                      "Error while determining range server in mdhimBPut",
-                      md->p->mdhim_rank);
+                      md->mdhim_rank);
                 continue;
             }
         }
@@ -327,7 +514,7 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
         //There could be more than one range server returned in the case of the local index
         while (rl) {
             TransportBPutMessage *bpm = nullptr;
-            if (rl->ri->rank != md->p->mdhim_rank) {
+            if (rl->ri->rank != md->mdhim_rank) {
                 //Set the message in the list for this range server
                 bpm = bpm_list[rl->ri->rangesrv_num - 1];
             } else {
@@ -343,12 +530,12 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
                 bpm->values = new void *[MAX_BULK_OPS]();
                 bpm->value_lens = new int[MAX_BULK_OPS]();
                 bpm->num_keys = 0;
-                bpm->src =  md->p->mdhim_rank;
+                bpm->src =  md->mdhim_rank;
                 bpm->dst = rl->ri->rank;
                 bpm->mtype = TransportMessageType::BPUT;
                 bpm->index = put_index->id;
                 bpm->index_type = put_index->type;
-                if (rl->ri->rank !=  md->p->mdhim_rank) {
+                if (rl->ri->rank !=  md->mdhim_rank) {
                     bpm_list[rl->ri->rangesrv_num - 1] = bpm;
                 } else {
                     lbpm = bpm;
@@ -417,7 +604,7 @@ TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
             nullptr) {
             mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
                  "Error while determining range server in mdhimBget",
-                 md->p->mdhim_rank);
+                 md->mdhim_rank);
             delete [] bgm_list;
             return nullptr;
         } else if ((index->type == LOCAL_INDEX ||
@@ -426,14 +613,14 @@ TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
                    nullptr) {
             mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
                  "Error while determining range server in mdhimBget",
-                 md->p->mdhim_rank);
+                 md->mdhim_rank);
             delete [] bgm_list;
             return nullptr;
         }
 
         while (rl) {
             TransportBGetMessage *bgm = nullptr;
-            if (rl->ri->rank != md->p->mdhim_rank) {
+            if (rl->ri->rank != md->mdhim_rank) {
                 //Set the message in the list for this range server
                 bgm = bgm_list[rl->ri->rangesrv_num - 1];
             } else {
@@ -447,13 +634,13 @@ TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
                 bgm->key_lens = new int[num_keys]();
                 bgm->num_keys = 0;
                 bgm->num_recs = num_records;
-                bgm->src = md->p->mdhim_rank;
+                bgm->src = md->mdhim_rank;
                 bgm->dst = rl->ri->rank;
                 bgm->mtype = TransportMessageType::BGET;
                 bgm->op = (op == TransportGetMessageOp::GET_PRIMARY_EQ)?TransportGetMessageOp::GET_EQ:op;
                 bgm->index = index->id;
                 bgm->index_type = index->type;
-                if (rl->ri->rank != md->p->mdhim_rank) {
+                if (rl->ri->rank != md->mdhim_rank) {
                     bgm_list[rl->ri->rangesrv_num - 1] = bgm;
                 } else {
                     lbgm = bgm;
@@ -519,18 +706,18 @@ TransportBRecvMessage *_bdel_records(mdhim_t *md, index_t *index,
 		    !(rl = get_range_servers(md, index, keys[i], key_lens[i]))) {
 			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
 			     "Error while determining range server in mdhimBdel",
-			     md->p->mdhim_rank);
+			     md->mdhim_rank);
 			continue;
 		} else if (index->type == LOCAL_INDEX &&
                    !(rl = get_range_servers_from_stats(md, index, keys[i], key_lens[i], TransportGetMessageOp::GET_EQ))) {
 			mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
 			     "Error while determining range server in mdhimBdel",
-			     md->p->mdhim_rank);
+			     md->mdhim_rank);
 			continue;
 		}
 
         TransportBDeleteMessage *bdm = nullptr;
-		if (rl->ri->rank != md->p->mdhim_rank) {
+		if (rl->ri->rank != md->mdhim_rank) {
 			//Set the message in the list for this range server
 			bdm = bdm_list[rl->ri->rangesrv_num - 1];
 		} else {
@@ -544,12 +731,12 @@ TransportBRecvMessage *_bdel_records(mdhim_t *md, index_t *index,
             bdm->keys = new void *[MAX_BULK_OPS]();
             bdm->key_lens = new int[MAX_BULK_OPS]();
 			bdm->num_keys = 0;
-            bdm->src = md->p->mdhim_rank;
+            bdm->src = md->mdhim_rank;
 			bdm->dst = rl->ri->rank;
 			bdm->mtype = TransportMessageType::BDELETE;
 			bdm->index = index->id;
 			bdm->index_type = index->type;
-			if (rl->ri->rank != md->p->mdhim_rank) {
+			if (rl->ri->rank != md->mdhim_rank) {
 				bdm_list[rl->ri->rangesrv_num - 1] = bdm;
 			} else {
 				lbdm = bdm;
@@ -588,7 +775,7 @@ TransportBRecvMessage *_bdel_records(mdhim_t *md, index_t *index,
 	return brm_head;
 }
 
-int _which_server(struct mdhim *md, void *key, int key_len)
+int _which_server(mdhim_t *md, void *key, int key_len)
 {
     rangesrv_list *rl = get_range_servers(md, md->p->primary_index, key, key_len);
     int server = rl?rl->ri->rank:MDHIM_ERROR;

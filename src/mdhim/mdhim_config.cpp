@@ -8,6 +8,8 @@
 #include "mdhim_config.h"
 #include "mdhim_constants.h"
 #include "mdhim_options_private.h"
+#include "transport_mpi.hpp"
+#include "transport_thallium.hpp"
 
 /**
  * parse_file
@@ -34,7 +36,7 @@ static bool parse_file(ConfigReader::Config_t &config, std::istream& stream) {
  * @param filename the name of the file
  * @return whether or not the parse succeeded
  */
-static bool config_file(ConfigReader::Config_t &config, const std::string &filename) {
+bool config_file(ConfigReader::Config_t &config, const std::string &filename) {
     std::ifstream f(filename);
     return parse_file(config, f);
 }
@@ -47,7 +49,7 @@ static bool config_file(ConfigReader::Config_t &config, const std::string &filen
  * @param directory the name of the directory
  * @return whether or not the parse succeeded
  */
-static bool config_directory(ConfigReader::Config_t &config, const std::string &directory) {
+bool config_directory(ConfigReader::Config_t &config, const std::string &directory) {
     DIR *dirp = opendir(directory.c_str());
     struct dirent *entry = nullptr;
     while ((entry = readdir(dirp))) {
@@ -65,7 +67,7 @@ static bool config_directory(ConfigReader::Config_t &config, const std::string &
  * @param var     the environment variable to look up
  * @return whether or not the parse succeeded
  */
-static bool config_environment(ConfigReader::Config_t &config, const std::string &var) {
+bool config_environment(ConfigReader::Config_t &config, const std::string &var) {
     char *env = getenv(var.c_str());
     if (env) {
         std::ifstream f(env);
@@ -99,17 +101,12 @@ static int fill_options(ConfigReader::Config_t &config, mdhim_options_t *opts) {
 
     ConfigReader::Config_t::const_iterator use_mpi = config.find("USE_MPI");
     if ((use_mpi != config.end()) && (use_mpi->second == "true")) {
-        opts->p->transporttype = MDHIM_TRANSPORT_MPI;
-        opts->p->comm = MPI_COMM_WORLD;
+        mdhim_options_set_transport(opts, MDHIM_TRANSPORT_MPI, new MPI_Comm(MPI_COMM_WORLD));
     }
 
     ConfigReader::Config_t::const_iterator use_thallium = config.find("USE_THALLIUM");
     if ((use_thallium != config.end()) && (use_thallium->second == "true")) {
-        mdhim_options_set_transporttype(opts, MDHIM_TRANSPORT_THALLIUM);
-
-        const std::string thallium_module = config.at("THALLIUM_MODULE");
-        opts->p->thallium_module = new char[thallium_module.size() + 1]();
-        memcpy(opts->p->thallium_module, thallium_module.c_str(), thallium_module.size());
+        mdhim_options_set_transport(opts, MDHIM_TRANSPORT_THALLIUM, new std::string(config.at("THALLIUM_MODULE")));
     }
 
     return MDHIM_SUCCESS;
@@ -151,10 +148,10 @@ static int read_config_and_fill_options(ConfigReader &config_reader, mdhim_optio
 int mdhim_default_config_reader(mdhim_options_t *opts) {
     ConfigReader config_reader;
 
-    // add default search locations: file, directory, and environmental variable
+    // add default search locations in order of preference: environmental variable, file, and directory
+    config_reader.add(config_environment, MDHIM_CONFIG_ENV);
     config_reader.add(config_file, MDHIM_CONFIG_FILE);
     config_reader.add(config_directory, MDHIM_CONFIG_DIR);
-    config_reader.add(config_environment, MDHIM_CONFIG_ENV);
 
     return read_config_and_fill_options(config_reader, opts);
 }
