@@ -154,12 +154,6 @@ int range_server_stop(mdhim_t *md) {
     pthread_cond_broadcast(md->p->mdhim_rs->work_ready_cv);
     pthread_mutex_unlock(md->p->mdhim_rs->work_queue_mutex);
 
-    if (md->p->mdhim_rs->listener) {
-        pthread_join(*md->p->mdhim_rs->listener, NULL);
-        delete md->p->mdhim_rs->listener;
-        md->p->mdhim_rs->listener = nullptr;
-    }
-
     /* Wait for the threads to finish */
     for (int i = 0; i < md->p->db_opts->num_wthreads; i++) {
         pthread_join(*md->p->mdhim_rs->workers[i], NULL);
@@ -1355,18 +1349,6 @@ int range_server_init(mdhim_t *md) {
                       worker_thread, (void *) md)) != 0) {
             mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
                  "Error while initializing worker thread",
-                 md->mdhim_rank);
-            return MDHIM_ERROR;
-        }
-    }
-
-    //Initialize listener threads
-    if (md->p->listener_thread) {
-        md->p->mdhim_rs->listener = new pthread_t();
-        if ((ret = pthread_create(md->p->mdhim_rs->listener, NULL,
-                                  md->p->listener_thread, (void *) md)) != 0) {
-            mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
-                 "Error while initializing listener thread",
                  md->mdhim_rank);
             return MDHIM_ERROR;
         }

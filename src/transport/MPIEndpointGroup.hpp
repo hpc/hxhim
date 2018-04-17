@@ -9,7 +9,6 @@
 #include <mpi.h>
 
 #include "mdhim_constants.h"
-#include "mdhim_private.h"
 #include "transport.hpp"
 #include "MemoryManagers.hpp"
 #include "MPIEndpointBase.hpp"
@@ -22,7 +21,10 @@
  */
 class MPIEndpointGroup : virtual public TransportEndpointGroup, virtual public MPIEndpointBase {
     public:
-    MPIEndpointGroup(const MPI_Comm comm, pthread_mutex_t mutex, volatile int &shutdown);
+        MPIEndpointGroup(const MPI_Comm comm, pthread_mutex_t mutex,
+                         FixedBufferPool *fbp,
+                         volatile int &shutdown);
+
         ~MPIEndpointGroup();
 
         /** @description Add a mapping from a unique ID to a MPI rank */

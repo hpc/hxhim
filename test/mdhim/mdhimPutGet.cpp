@@ -2,8 +2,9 @@
 #include <mpi.h>
 
 #include "mdhim.h"
-#include "mdhim_private.h"       // needed to access private mdhim members for testing
-#include "transport_private.hpp" // needed to access private return values for testing
+#include "mdhim_private.h"         // needed to access private mdhim members for testing
+#include "mdhim_options_private.h" // needed to access private mdhim options members
+#include "transport_private.hpp"   // needed to access private return values for testing
 #include "MemoryManagers.hpp"
 
 //Constants used across all mdhimPutGet tests
@@ -15,12 +16,20 @@ static const Value_t MDHIM_PUT_GET_VALUE       = 24680;
 typedef uint32_t sgk_t; // secondary global key type
 typedef uint32_t slk_t; // secondary local key type
 
+static const std::size_t ALLOC_SIZE = 128;
+static const std::size_t REGIONS = 256;
+
 //Put and Get a key-value pair without secondary indexes
 TEST(mdhimPutGet, no_secondary) {
     mdhim_options_t opts;
     mdhim_t md;
 
     EXPECT_EQ(mdhim_options_init(&opts), MDHIM_SUCCESS);
+    MPIOptions_t *mpi_opts = new MPIOptions_t();
+    mpi_opts->comm = MPI_COMM_WORLD;
+    mpi_opts->alloc_size = ALLOC_SIZE;
+    mpi_opts->regions = REGIONS;
+    mdhim_options_set_transport(&opts, MDHIM_TRANSPORT_MPI, mpi_opts);
     EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
 
     //Put the key-value pair
@@ -56,7 +65,7 @@ TEST(mdhimPutGet, no_secondary) {
 
     EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
     EXPECT_EQ(mdhim_options_destroy(&opts), MDHIM_SUCCESS);
-    EXPECT_EQ(Memory::MESSAGE_BUFFER::Instance().used(), 0);
+    EXPECT_EQ(Memory::Pool(ALLOC_SIZE, REGIONS)->used(), 0);
 }
 
 TEST(mdhimPutGet, secondary_global) {
@@ -64,6 +73,11 @@ TEST(mdhimPutGet, secondary_global) {
     mdhim_t md;
 
     EXPECT_EQ(mdhim_options_init(&opts), MDHIM_SUCCESS);
+    MPIOptions_t *mpi_opts = new MPIOptions_t();
+    mpi_opts->comm = MPI_COMM_WORLD;
+    mpi_opts->alloc_size = ALLOC_SIZE;
+    mpi_opts->regions = REGIONS;
+    mdhim_options_set_transport(&opts, MDHIM_TRANSPORT_MPI, mpi_opts);
     EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
 
     // secondary global key
@@ -135,7 +149,7 @@ TEST(mdhimPutGet, secondary_global) {
     EXPECT_EQ(MPI_Barrier(md.mdhim_comm), MPI_SUCCESS);
     EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
     EXPECT_EQ(mdhim_options_destroy(&opts), MDHIM_SUCCESS);
-    EXPECT_EQ(Memory::MESSAGE_BUFFER::Instance().used(), 0);
+    EXPECT_EQ(Memory::Pool(ALLOC_SIZE, REGIONS)->used(), 0);
 }
 
 TEST(mdhimPutGet, secondary_local) {
@@ -143,7 +157,11 @@ TEST(mdhimPutGet, secondary_local) {
     mdhim_t md;
 
     EXPECT_EQ(mdhim_options_init(&opts), MDHIM_SUCCESS);
-
+    MPIOptions_t *mpi_opts = new MPIOptions_t();
+    mpi_opts->comm = MPI_COMM_WORLD;
+    mpi_opts->alloc_size = ALLOC_SIZE;
+    mpi_opts->regions = REGIONS;
+    mdhim_options_set_transport(&opts, MDHIM_TRANSPORT_MPI, mpi_opts);
     EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
 
     // secondary local key
@@ -217,7 +235,7 @@ TEST(mdhimPutGet, secondary_local) {
     EXPECT_EQ(MPI_Barrier(md.mdhim_comm), MPI_SUCCESS);
     EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
     EXPECT_EQ(mdhim_options_destroy(&opts), MDHIM_SUCCESS);
-    EXPECT_EQ(Memory::MESSAGE_BUFFER::Instance().used(), 0);
+    EXPECT_EQ(Memory::Pool(ALLOC_SIZE, REGIONS)->used(), 0);
 }
 
 TEST(mdhimPutGet, secondary_global_and_local) {
@@ -225,6 +243,11 @@ TEST(mdhimPutGet, secondary_global_and_local) {
     mdhim_t md;
 
     EXPECT_EQ(mdhim_options_init(&opts), MDHIM_SUCCESS);
+    MPIOptions_t *mpi_opts = new MPIOptions_t();
+    mpi_opts->comm = MPI_COMM_WORLD;
+    mpi_opts->alloc_size = ALLOC_SIZE;
+    mpi_opts->regions = REGIONS;
+    mdhim_options_set_transport(&opts, MDHIM_TRANSPORT_MPI, mpi_opts);
     EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
 
     // secondary global key
@@ -374,5 +397,5 @@ TEST(mdhimPutGet, secondary_global_and_local) {
     EXPECT_EQ(MPI_Barrier(md.mdhim_comm), MPI_SUCCESS);
     EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
     EXPECT_EQ(mdhim_options_destroy(&opts), MDHIM_SUCCESS);
-    EXPECT_EQ(Memory::MESSAGE_BUFFER::Instance().used(), 0);
+    EXPECT_EQ(Memory::Pool(ALLOC_SIZE, REGIONS)->used(), 0);
 }

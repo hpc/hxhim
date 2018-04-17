@@ -9,6 +9,7 @@
 #include <mpi.h>
 
 #include "mdhim_constants.h"
+#include "MPIOptions.h"
 
 #ifdef __cplusplus
 extern "C"

@@ -6,6 +6,7 @@
 
 #include "ConfigReader.hpp"
 #include "mdhim_config.h"
+#include "mdhim_config.hpp"
 #include "mdhim_constants.h"
 #include "mdhim_options_private.h"
 #include "transport_mpi.hpp"
@@ -99,14 +100,27 @@ static int fill_options(ConfigReader::Config_t &config, mdhim_options_t *opts) {
 
     // use the config to set options
 
-    ConfigReader::Config_t::const_iterator use_mpi = config.find("USE_MPI");
+    ConfigReader::Config_t::const_iterator use_mpi = config.find(USE_MPI);
     if ((use_mpi != config.end()) && (use_mpi->second == "true")) {
-        mdhim_options_set_transport(opts, MDHIM_TRANSPORT_MPI, new MPI_Comm(MPI_COMM_WORLD));
+        std::stringstream s;
+        s << config.at(MEMORY_ALLOC_SIZE) << " " << config.at(MEMORY_REGIONS);
+
+        std::size_t alloc_size, regions;
+        if (!(s >> alloc_size >> regions)) {
+            mdhim_options_destroy(opts);
+            return MDHIM_ERROR;
+        }
+
+        MPIOptions_t *mpi_opts = new MPIOptions_t();
+        mpi_opts->comm = MPI_COMM_WORLD;
+        mpi_opts->alloc_size = alloc_size;
+        mpi_opts->regions = regions;
+        mdhim_options_set_transport(opts, MDHIM_TRANSPORT_MPI, mpi_opts);
     }
 
-    ConfigReader::Config_t::const_iterator use_thallium = config.find("USE_THALLIUM");
+    ConfigReader::Config_t::const_iterator use_thallium = config.find(USE_THALLIUM);
     if ((use_thallium != config.end()) && (use_thallium->second == "true")) {
-        mdhim_options_set_transport(opts, MDHIM_TRANSPORT_THALLIUM, new std::string(config.at("THALLIUM_MODULE")));
+        mdhim_options_set_transport(opts, MDHIM_TRANSPORT_THALLIUM, new std::string(config.at(THALLIUM_MODULE)));
     }
 
     return MDHIM_SUCCESS;
@@ -125,7 +139,7 @@ static int fill_options(ConfigReader::Config_t &config, mdhim_options_t *opts) {
  * @param opts          the options to fill
  * @return whether or not opts was successfully filled
  */
-static int read_config_and_fill_options(ConfigReader &config_reader, mdhim_options_t *opts) {
+int read_config_and_fill_options(ConfigReader &config_reader, mdhim_options_t *opts) {
     ConfigReader::Config_t config;
     if (!config_reader.read(config)) {
         mdhim_options_destroy(opts);

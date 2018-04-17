@@ -6,6 +6,7 @@
 
 #include <mpi.h>
 
+#include "mdhim_struct.h"
 #include "mdhim_private.h"
 #include "transport.hpp"
 #include "work_item.h"
@@ -15,6 +16,9 @@
 
 class MPIRangeServer {
     public:
+        static int init(mdhim_t *md, FixedBufferPool *fbp);
+        static void destroy();
+
         /**
          * Function that will be used to listen for MPI messages
          */
@@ -28,7 +32,9 @@ class MPIRangeServer {
         static int only_receive_rangesrv_work(void **recvbuf, int *recvsize, volatile int &shutdown);
         static int receive_rangesrv_work(TransportMessage **message, volatile int &shutdown);
 
+        static pthread_t listener_;
         static pthread_mutex_t mutex_;
+        static FixedBufferPool *fbp_;
 };
 
 #endif

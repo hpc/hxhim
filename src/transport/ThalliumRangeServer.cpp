@@ -10,11 +10,14 @@ struct thallium_work_item_t : public work_item_t {
 };
 
 const std::string ThalliumRangeServer::CLIENT_TO_RANGE_SERVER_NAME = "receive_rangesrv_work";
-const std::string ThalliumRangeServer::RANGE_SERVER_TO_CLIENT_NAME = "receive_response";
 mdhim_private_t *ThalliumRangeServer::mdp_= nullptr;
 
 void ThalliumRangeServer::init(mdhim_private_t *mdp) {
     mdp_ = mdp;
+}
+
+void ThalliumRangeServer::destroy() {
+    mdp_ = nullptr;
 }
 
 void ThalliumRangeServer::receive_rangesrv_work(const thallium::request &req, const std::string &data) {

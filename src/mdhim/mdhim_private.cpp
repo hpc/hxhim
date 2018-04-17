@@ -3,6 +3,7 @@
 #include <memory>
 #include <unistd.h>
 #include <sys/types.h>
+#include <thread>
 
 #include <thallium.hpp>
 #include <thallium/serialization/stl/string.hpp>
@@ -50,19 +51,31 @@ static int mdhim_private_init_transport(mdhim_t *md, mdhim_transport_options_t *
     md->p->transport = new Transport();
 
     if (transport->type == MDHIM_TRANSPORT_MPI) {
-        MPI_Comm *comm = static_cast<MPI_Comm *>(transport->data);
-
-        // Do not allow MPI_COMM_NULL
-        if (*comm == MPI_COMM_NULL) {
+        MPIOptions_t *mpi_opts = static_cast<MPIOptions_t *>(transport->data);
+        if (!mpi_opts) {
             return MDHIM_ERROR;
         }
 
-        MPIEndpointGroup *eg = new MPIEndpointGroup(*comm, md->mdhim_comm_lock, md->p->shutdown);
+        // Do not allow MPI_COMM_NULL
+        if (mpi_opts->comm == MPI_COMM_NULL) {
+            return MDHIM_ERROR;
+        }
+
+        // Get the memory pool used for storing messages
+        FixedBufferPool *fbp = Memory::Pool(mpi_opts->alloc_size, mpi_opts->regions);
+        if (!fbp) {
+            return MDHIM_ERROR;
+        }
+
+        // give the range server access to the memory buffer sizes
+        MPIRangeServer::init(md, fbp);
+
+        MPIEndpointGroup *eg = new MPIEndpointGroup(mpi_opts->comm, md->mdhim_comm_lock, fbp, md->p->shutdown);
 
         // create mapping between unique IDs and ranks
         for(int i = 0; i < md->mdhim_comm_size; i++) {
             // MPI ranks map 1:1 with the boostrap MPI rank
-            md->p->transport->AddEndpoint(i, new MPIEndpoint(*comm, i, md->p->shutdown));
+            md->p->transport->AddEndpoint(i, new MPIEndpoint(mpi_opts->comm, i, fbp, md->p->shutdown));
 
             // add the MPI ranks to the endpoint group
             eg->AddID(i, i);
@@ -72,8 +85,8 @@ static int mdhim_private_init_transport(mdhim_t *md, mdhim_transport_options_t *
         md->p->transport->RemoveEndpoint(md->mdhim_rank);
 
         md->p->transport->SetEndpointGroup(eg);
-        md->p->listener_thread = MPIRangeServer::listener_thread;
         md->p->send_client_response = MPIRangeServer::send_client_response;
+        md->p->range_server_destroy = MPIRangeServer::destroy;
 
         return MDHIM_SUCCESS;
     }
@@ -120,8 +133,8 @@ static int mdhim_private_init_transport(mdhim_t *md, mdhim_transport_options_t *
         }
 
         md->p->transport->SetEndpointGroup(eg);
-        md->p->listener_thread = nullptr;
         md->p->send_client_response = ThalliumRangeServer::send_client_response;
+        md->p->range_server_destroy = ThalliumRangeServer::destroy;
 
         return MDHIM_SUCCESS;
     }
@@ -170,11 +183,6 @@ static int mdhim_private_init_index(mdhim_t *md) {
  * @param MDHIM_SUCCESS or MDHIM_ERROR
  */
 int mdhim_private_init(mdhim_t* md, mdhim_db_options_t *db, mdhim_transport_options_t *transport) {
-    if ((mdhim_private_init_db(md, db)               != MDHIM_SUCCESS) ||
-        (mdhim_private_init_transport(md, transport) != MDHIM_SUCCESS)) {
-        return MDHIM_ERROR;
-    }
-
     //Required for index initialization
     md->p->mdhim_rs = nullptr;
     md->p->db_opts = db;
@@ -185,6 +193,12 @@ int mdhim_private_init(mdhim_t* md, mdhim_db_options_t *db, mdhim_transport_opti
     //Initialize index members of context
     if (mdhim_private_init_index(md) != MDHIM_SUCCESS){
         mlog(MDHIM_CLIENT_CRIT, "MDHIM - Error Index Initialization Failed");
+        return MDHIM_ERROR;
+    }
+
+    // initialize the database and transport
+    if ((mdhim_private_init_db(md, db)               != MDHIM_SUCCESS) ||
+        (mdhim_private_init_transport(md, transport) != MDHIM_SUCCESS)) {
         return MDHIM_ERROR;
     }
 
@@ -272,6 +286,11 @@ int mdhim_private_destroy(mdhim_t *md) {
     //Stop range server if I'm a range server
     if (md->p->mdhim_rs) {
         range_server_stop(md);
+    }
+
+    // Clean up transport specific range server data
+    if (md->p->range_server_destroy) {
+        md->p->range_server_destroy();
     }
 
     //Free up memory used by message buffer

@@ -4,7 +4,6 @@
 #include "gtest/gtest.h"
 
 #include "transport_thallium.hpp"
-#include "MemoryManagers.hpp"
 
 static const char *KEY = "key";
 static const int KEY_LEN = strlen(KEY);
@@ -50,7 +49,6 @@ TEST(thallium_pack_unpack, TransportPutMessage) {
     EXPECT_EQ(memcmp(src.value, dst->value, dst->value_len), 0);
 
     delete dst;
-    EXPECT_EQ(Memory::MESSAGE_BUFFER::Instance().used(), 0);
 }
 
 TEST(thallium_pack_unpack, TransportBPutMessage) {
@@ -141,7 +139,6 @@ TEST(thallium_pack_unpack, TransportGetMessage) {
     EXPECT_EQ(memcmp(src.key, dst->key, dst->key_len), 0);
 
     delete dst;
-    EXPECT_EQ(Memory::MESSAGE_BUFFER::Instance().used(), 0);
 }
 
 TEST(thallium_pack_unpack, TransportBGetMessage) {
@@ -294,7 +291,6 @@ TEST(thallium_pack_unpack, TransportRecvMessage) {
     EXPECT_EQ(src.error, dst->error);
 
     delete dst;
-    EXPECT_EQ(Memory::MESSAGE_BUFFER::Instance().used(), 0);
 }
 
 TEST(thallium_pack_unpack, TransportBGetRecvMessage) {

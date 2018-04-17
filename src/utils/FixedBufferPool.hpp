@@ -12,25 +12,19 @@
 /**
  * FixedBufferPool
  * This class distributes memory addresses from a fixed size pool of memory.
- *     - If there are no available regions, acquire will block.
+ *     - If zero bytes are requested, acquire will return nullptr
  *     - If too many bytes are requested, acquire will return nullptr
- *
- * @tparam alloc_size_  fixed size of each region given to the user.
- * @tparam regions_     how many slots of size alloc_size_ there are for use
+ *     - If there are no available regions, acquire will block.
 */
-template <const std::size_t alloc_size_,
-          const std::size_t regions_,
-          typename = std::enable_if_t<alloc_size_ &&  // alloc_size_ must be at least 1 byte
-                                      regions_> >     // there must be at least 1 region that can be used
 class FixedBufferPool {
     public:
-        /* @description Gets an instance of FixedBufferPool for use                     */
-        static FixedBufferPool &Instance();
+        FixedBufferPool(const std::size_t alloc_size, const std::size_t regions);
+        ~FixedBufferPool();
 
         /* @description Returns the address of a unused fixed size memory region        */
         template <typename T, typename = std::enable_if_t<!std::is_same<T, void>::value> >
         T *acquire(const std::size_t count = 1);
-        void *acquire(const std::size_t size = alloc_size_);
+        void *acquire(const std::size_t size);
 
         /* @description Releases the given address back into the pool                   */
         template <typename T, typename = std::enable_if_t<!std::is_same<T, void>::value> >
@@ -53,7 +47,7 @@ class FixedBufferPool {
         std::size_t used() const;
 
         /* @description Utility function to get starting address of memory pool         */
-        const void * const pool() const;
+        const void *const pool() const;
 
         /* @description Utility function to dump the contents of a region               */
         std::ostream &dump(const std::size_t region, std::ostream &stream = std::cout) const;
@@ -62,10 +56,8 @@ class FixedBufferPool {
         std::ostream &dump(std::ostream &stream = std::cout) const;
 
     private:
-        FixedBufferPool();
         FixedBufferPool(const FixedBufferPool& copy)            = delete;
         FixedBufferPool(const FixedBufferPool&& copy)           = delete;
-        ~FixedBufferPool();
 
         FixedBufferPool& operator=(const FixedBufferPool& rhs)  = delete;
         FixedBufferPool& operator=(const FixedBufferPool&& rhs) = delete;
@@ -73,7 +65,13 @@ class FixedBufferPool {
         /* @description Private utility function to dump the contents of a region          */
         std::ostream &dump_region(const std::size_t region, std::ostream &stream = std::cout) const;
 
+        /* @description A fixed count of how much memory is in a region of memory          */
+        const std::size_t alloc_size_;
+
         /* @description A fixed count of how many memory regions are available in the pool */
+        const std::size_t regions_;
+
+        /* @description The totoal amount of memory available in the memory pool           */
         const std::size_t pool_size_;
 
         /* Memory pool where pointers returned from acquire will come from                 */
@@ -83,7 +81,7 @@ class FixedBufferPool {
         mutable std::mutex mutex_;
         mutable std::condition_variable cv_;
 
-         /*
+        /*
          * Node
          *
          * This structure is stored in both an array and a linked list.
@@ -123,6 +121,48 @@ class FixedBufferPool {
         std::size_t used_;
 };
 
-#include "FixedBufferPool.cpp"
+/**
+ * acquire
+ * Acquires a memory region from the pool for use.
+ *   - If zero bytes are request, nullptr will be returned.
+ *   - If the provided count results in too many bytes
+ *     being requested, nullptr will be returned.
+ *   - If there is no region available, the function blocks
+ *     until one is available.
+ * The default constructor of type T is called once
+ * the memory location has been acquired.
+ *
+ * Note that void * pointers should not be allocated
+ * using the templated version of acquire.
+ *
+ * @param count the number of T objects that will be placed into the region
+ * @return A pointer to a memory region of size pool_size_
+ */
+template <typename T, typename IsNotVoid>
+T *FixedBufferPool::acquire(const std::size_t count) {
+    void *addr = acquire(sizeof(T) * count);
+    if (addr) {
+        return new ((T *) addr) T();
+    }
+    return nullptr;
+}
+
+/**
+ * release
+ * Releases the memory region pointed to back into the pool. If
+ * the pointer does not belong to the pool, nothing will happen.
+ *
+ * @tparam ptr T * acquired through FixedBufferPool::acquire
+ */
+template <typename T, typename IsNotVoid>
+void FixedBufferPool::release(T *ptr) {
+    if (ptr) {
+        // release underlying memory first
+        ptr->~T();
+
+        // release ptr
+        release((void *)ptr);
+    }
+}
 
 #endif

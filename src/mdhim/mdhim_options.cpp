@@ -33,7 +33,7 @@ int mdhim_options_init(mdhim_options_t* opts) {
     opts->p->db = new mdhim_db_options();
 
     // Set default options
-    mdhim_options_set_transport(opts, MDHIM_TRANSPORT_MPI, new MPI_Comm(MPI_COMM_WORLD));
+    mdhim_options_set_transport(opts, MDHIM_TRANSPORT_NONE, nullptr);
 
     mdhim_options_set_db_path(opts, "./");
     mdhim_options_set_db_name(opts, "mdhimTstDB-");
@@ -70,7 +70,7 @@ void mdhim_options_set_transport(mdhim_options_t *opts, const int type, void *da
     if (opts->p->transport->data) {
         switch (opts->p->transport->type) {
             case MDHIM_TRANSPORT_MPI:
-                delete static_cast<MPI_Comm *>(opts->p->transport->data);
+                delete static_cast<MPIOptions_t *>(opts->p->transport->data);
                 break;
             case MDHIM_TRANSPORT_THALLIUM:
                 delete static_cast<std::string *>(opts->p->transport->data);

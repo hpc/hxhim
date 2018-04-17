@@ -1,8 +1,10 @@
 #include "MPIEndpointGroup.hpp"
 
-MPIEndpointGroup::MPIEndpointGroup(const MPI_Comm comm, pthread_mutex_t mutex, volatile int &shutdown)
+MPIEndpointGroup::MPIEndpointGroup(const MPI_Comm comm, pthread_mutex_t mutex,
+                                   FixedBufferPool *fbp,
+                                   volatile int &shutdown)
   : TransportEndpointGroup(),
-    MPIEndpointBase(comm, shutdown),
+    MPIEndpointBase(comm, fbp, shutdown),
     mutex_(mutex),
     ranks_()
 {}
@@ -306,8 +308,8 @@ int MPIEndpointGroup::send_all_rangesrv_work(TransportMessage **messages, const 
 
     // encode each mesage
     for(int i = 0; i < num_srvs; i++) {
-        if (MPIPacker::any(comm_, messages[i], sendbufs + i, sizebufs + i) != MDHIM_SUCCESS) {
-            Memory::MESSAGE_BUFFER::Instance().release(sendbufs[i]);
+        if (MPIPacker::any(comm_, messages[i], sendbufs + i, sizebufs + i, fbp_) != MDHIM_SUCCESS) {
+            fbp_->release(sendbufs[i]);
             sendbufs[i] = nullptr;
             sizebufs[i] = 0;
             continue;
@@ -321,7 +323,7 @@ int MPIEndpointGroup::send_all_rangesrv_work(TransportMessage **messages, const 
 
     // cleanup
     for (int i = 0; i < num_srvs; i++) {
-        Memory::MESSAGE_BUFFER::Instance().release(sendbufs[i]);
+        fbp_->release(sendbufs[i]);
     }
 
     delete [] dsts;
@@ -386,7 +388,7 @@ int MPIEndpointGroup::only_receive_all_client_responses(int *srcs, int nsrcs, vo
     done = 0;
     for (int i = 0; i < nsrcs; i++) {
         // Receive a message from the servers in the list
-        (*recvbufs)[i] = Memory::MESSAGE_BUFFER::Instance().acquire((*sizebufs)[i]);
+        (*recvbufs)[i] = fbp_->acquire((*sizebufs)[i]);
         reqs[i] = new MPI_Request();
 
         pthread_mutex_lock(&mutex_);
@@ -440,7 +442,7 @@ int MPIEndpointGroup::receive_all_client_responses(int *srcs, int nsrcs, Transpo
     if ((ret = only_receive_all_client_responses(srcs, nsrcs, &recvbufs, &sizebufs)) == MDHIM_SUCCESS) {
         for (int i = 0; i < nsrcs; i++) {
             ret = MPIUnpacker::any(comm_, (*messages) + i, recvbufs[i], sizebufs[i]);
-            Memory::MESSAGE_BUFFER::Instance().release(recvbufs[i]);
+            fbp_->release(recvbufs[i]);
         }
     }
 

@@ -1,6 +1,33 @@
 #include "MPIRangeServer.hpp"
 
+pthread_t MPIRangeServer::listener_ = 0;
 pthread_mutex_t MPIRangeServer::mutex_ = PTHREAD_MUTEX_INITIALIZER;
+FixedBufferPool *MPIRangeServer::fbp_ = nullptr;
+
+int MPIRangeServer::init(mdhim_t *md, FixedBufferPool *fbp) {
+    if (!fbp) {
+        return MDHIM_ERROR;
+    }
+
+    fbp_ = fbp;
+
+    //Initialize listener threads
+    if (pthread_create(&listener_, nullptr,
+                       listener_thread, (void *)md) != 0) {
+        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
+             "Error while initializing listener thread",
+             md->mdhim_rank);
+        return MDHIM_ERROR;
+    }
+
+    return MDHIM_SUCCESS;
+}
+
+void MPIRangeServer::destroy() {
+    if (listener_) {
+        pthread_join(listener_, nullptr);
+    }
+}
 
 /*
  * listener_thread
@@ -10,8 +37,8 @@ void *MPIRangeServer::listener_thread(void *data) {
     //Mlog statements could cause a deadlock on range_server_stop due to canceling of threads
     mdhim_t *md = (mdhim_t *) data;
 
-    pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
-    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+    pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, nullptr);
+    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, nullptr);
 
     while (!md->p->shutdown) {
         //Clean outstanding sends
@@ -33,7 +60,7 @@ void *MPIRangeServer::listener_thread(void *data) {
         range_server_add_work(md, item);
     }
 
-    return NULL;
+    return nullptr;
 }
 
 void MPIRangeServer::Flush(MPI_Request *req, int *flag, MPI_Status *status, volatile int &shutdown) {
@@ -111,11 +138,11 @@ int MPIRangeServer::send_client_response(work_item_t *item, TransportMessage *me
     void *sendbuf = nullptr;
     int sizebuf = 0;
 
-    if ((ret = MPIPacker::any(MPI_COMM_WORLD, message, &sendbuf, &sizebuf)) == MDHIM_SUCCESS) {
+    if ((ret = MPIPacker::any(MPI_COMM_WORLD, message, &sendbuf, &sizebuf, fbp_)) == MDHIM_SUCCESS) {
         ret = only_send_client_response(message->dst, sendbuf, sizebuf, shutdown);
     }
 
-    Memory::MESSAGE_BUFFER::Instance().release(sendbuf);
+    fbp_->release(sendbuf);
 
     return ret;
 }
@@ -155,7 +182,7 @@ int MPIRangeServer::only_receive_rangesrv_work(void **recvbuf, int *recvsize, vo
     }
     Flush(&req, &flag, &status, shutdown);
 
-    *recvbuf = Memory::MESSAGE_BUFFER::Instance().acquire(*recvsize);
+    *recvbuf = fbp_->acquire(*recvsize);
     flag = 0;
 
     // Receive the message from the client
@@ -194,7 +221,7 @@ int MPIRangeServer::receive_rangesrv_work(TransportMessage **message, volatile i
         ret = MPIUnpacker::any(MPI_COMM_WORLD, message, recvbuf, recvsize);
     }
 
-    Memory::MESSAGE_BUFFER::Instance().release(recvbuf);
+    fbp_->release(recvbuf);
 
     return ret;
 }

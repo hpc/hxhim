@@ -17,9 +17,9 @@ class ThalliumRangeServer {
          * RPC name called by the client to send and receive data
          */
         static const std::string CLIENT_TO_RANGE_SERVER_NAME;
-        static const std::string RANGE_SERVER_TO_CLIENT_NAME;
 
         static void init(mdhim_private_t *mdp);
+        static void destroy();
 
         /**
          * Function that will be defined by the client and called by the range server

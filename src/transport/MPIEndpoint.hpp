@@ -19,7 +19,9 @@
 class MPIEndpoint : virtual public TransportEndpoint, virtual public MPIEndpointBase {
     public:
         /** Create a TransportEndpoint for a specified process rank */
-        MPIEndpoint(const MPI_Comm comm, const int remote_rank, volatile int &shutdown);
+        MPIEndpoint(const MPI_Comm comm, const int remote_rank,
+                    FixedBufferPool *fbp,
+                    volatile int &shutdown);
 
         /** Destructor */
         ~MPIEndpoint() {}
@@ -52,13 +54,13 @@ class MPIEndpoint : virtual public TransportEndpoint, virtual public MPIEndpoint
 
             // the result of this series of function calls does not matter
             (void)
-                ((MPIPacker::pack(comm_, message, &sendbuf, &sendsize)     == MDHIM_SUCCESS) &&  // pack the message
-                 (send_rangesrv_work(sendbuf, sendsize)                    == MDHIM_SUCCESS) &&  // send the message
-                 (receive_client_response(&recvbuf, &recvsize)             == MDHIM_SUCCESS) &&  // receive the response
-                 (MPIUnpacker::unpack(comm_, &response, recvbuf, recvsize) == MDHIM_SUCCESS));   // unpack the response
+                ((MPIPacker::pack(comm_, message, &sendbuf, &sendsize, fbp_) == MDHIM_SUCCESS) &&  // pack the message
+                 (send_rangesrv_work(sendbuf, sendsize)                      == MDHIM_SUCCESS) &&  // send the message
+                 (receive_client_response(&recvbuf, &recvsize)               == MDHIM_SUCCESS) &&  // receive the response
+                 (MPIUnpacker::unpack(comm_, &response, recvbuf, recvsize)   == MDHIM_SUCCESS));   // unpack the response
 
-            Memory::MESSAGE_BUFFER::Instance().release(sendbuf);
-            Memory::MESSAGE_BUFFER::Instance().release(recvbuf);
+            fbp_->release(sendbuf);
+            fbp_->release(recvbuf);
 
             return dynamic_cast<Recv_t *>(response);
         }

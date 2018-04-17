@@ -64,6 +64,11 @@ int main(int argc, char *argv[]) {
                 continue;
             }
 
+            if (cmd.size() < 3) {
+                std::cerr << "Error: Unknown command " << cmd << std::endl;
+                continue;
+            }
+
             // capitalize the command
             for(char &c : cmd) {
                 c = std::toupper(c);

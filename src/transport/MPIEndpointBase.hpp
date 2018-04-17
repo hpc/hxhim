@@ -10,7 +10,7 @@
 #include <mpi.h>
 
 #include "mdhim_constants.h"
-#include "transport.hpp"
+#include "MemoryManagers.hpp"
 
 /**
  * MPIEndpointBase
@@ -18,7 +18,7 @@
  */
 class MPIEndpointBase {
     public:
-        MPIEndpointBase(const MPI_Comm comm, volatile int &shutdown);
+        MPIEndpointBase(const MPI_Comm comm, FixedBufferPool *fbp, volatile int &shutdown);
         virtual ~MPIEndpointBase();
 
         MPI_Comm Comm() const;
@@ -33,6 +33,8 @@ class MPIEndpointBase {
 
         int rank_;
         int size_;
+
+        FixedBufferPool *fbp_;
 
         volatile int &shutdown_;
 };

@@ -18,11 +18,11 @@ typedef struct mdhim_private {
     // Actual transport layer
     Transport *transport;
 
-    // the function that runs as the transport listener thread
-    void *(*listener_thread)(void *);
-
     // the function called once data has been processed by the range server
     int (*send_client_response)(work_item_t *, TransportMessage *, volatile int &);
+
+    // Range server static variable cleanup
+    void (*range_server_destroy)();
 
     //Flag to indicate mdhimClose was called
     volatile int shutdown;

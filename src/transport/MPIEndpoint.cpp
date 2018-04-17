@@ -2,10 +2,12 @@
 
 #define HXHIM_MPI_REQUEST_TAG 0x311
 
-MPIEndpoint::MPIEndpoint(const MPI_Comm comm, const int remote_rank, volatile int &shutdown)
-    : TransportEndpoint(),
-      MPIEndpointBase(comm, shutdown),
-      remote_rank_(remote_rank)
+MPIEndpoint::MPIEndpoint(const MPI_Comm comm, const int remote_rank,
+                         FixedBufferPool *fbp,
+                         volatile int &shutdown)
+  : TransportEndpoint(),
+    MPIEndpointBase(comm, fbp, shutdown),
+    remote_rank_(remote_rank)
 {}
 
 /**
@@ -28,7 +30,7 @@ TransportRecvMessage *MPIEndpoint::Put(const TransportPutMessage *message) {
  */
 TransportGetRecvMessage *MPIEndpoint::Get(const TransportGetMessage *message) {
     TransportGetRecvMessage *grm = do_operation<TransportGetMessage, TransportGetRecvMessage>(message);
-   return grm;
+    return grm;
 }
 
 /**
@@ -103,7 +105,7 @@ int MPIEndpoint::receive_client_response(void **buf, int *size) {
     }
 
     // allocate space for the message
-    if (!(*buf = Memory::MESSAGE_BUFFER::Instance().acquire(*size))) {
+    if (!(*buf = fbp_->acquire(*size))) {
         return MDHIM_ERROR;
     }
 

@@ -6,6 +6,7 @@
 #define HXHIM_TRANSPORT_MPI
 
 #include "MPIInstance.hpp"
+#include "MPIOptions.h"
 #include "MPIPacker.hpp"
 #include "MPIUnpacker.hpp"
 #include "MPIEndpoint.hpp"
