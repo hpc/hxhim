@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cctype>
 #include <iostream>
 #include <sstream>
@@ -37,9 +38,6 @@ int main(int argc, char *argv[]) {
         return MDHIM_ERROR;
     }
 
-    // use arbitrary bytes for keys
-    mdhim_options_set_key_type(&opts, MDHIM_BYTE_KEY);
-
     // initialize mdhim context
     mdhim_t md;
     if (mdhimInit(&md, &opts) != MDHIM_SUCCESS) {
@@ -70,9 +68,7 @@ int main(int argc, char *argv[]) {
             }
 
             // capitalize the command
-            for(char &c : cmd) {
-                c = std::toupper(c);
-            }
+            std::transform(cmd.begin(), cmd.end(), cmd.begin(), ::toupper);
 
             if (cmd == "QUIT") {
                 break;

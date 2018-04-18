@@ -24,7 +24,7 @@
  * @param MDHIM_SUCCESS or MDHIM_ERROR
  */
 static int mdhim_private_init_db(mdhim_t *md, mdhim_db_options_t *db) {
-    if (!md || !md->p) {
+    if (!md || !md->p || !db) {
         return MDHIM_ERROR;
     }
 
@@ -44,7 +44,7 @@ static int mdhim_private_init_db(mdhim_t *md, mdhim_db_options_t *db) {
  * @param MDHIM_SUCCESS or MDHIM_ERROR
  */
 static int mdhim_private_init_transport(mdhim_t *md, mdhim_transport_options_t *transport) {
-    if (!md || !md->p) {
+    if (!md || !md->p || !transport) {
         return MDHIM_ERROR;
     }
 
@@ -183,12 +183,10 @@ static int mdhim_private_init_index(mdhim_t *md) {
  * @param MDHIM_SUCCESS or MDHIM_ERROR
  */
 int mdhim_private_init(mdhim_t* md, mdhim_db_options_t *db, mdhim_transport_options_t *transport) {
-    //Required for index initialization
-    md->p->mdhim_rs = nullptr;
     md->p->db_opts = db;
 
-    //Initialize the partitioner
-    partitioner_init();
+    //Required for index initialization
+    md->p->mdhim_rs = nullptr;
 
     //Initialize index members of context
     if (mdhim_private_init_index(md) != MDHIM_SUCCESS){
@@ -196,11 +194,20 @@ int mdhim_private_init(mdhim_t* md, mdhim_db_options_t *db, mdhim_transport_opti
         return MDHIM_ERROR;
     }
 
-    // initialize the database and transport
-    if ((mdhim_private_init_db(md, db)               != MDHIM_SUCCESS) ||
-        (mdhim_private_init_transport(md, transport) != MDHIM_SUCCESS)) {
+    // initialize the database
+    if (mdhim_private_init_db(md, db) != MDHIM_SUCCESS) {
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM - Error Database Initialization Failed");
         return MDHIM_ERROR;
     }
+
+    // initialize the transport
+    if (mdhim_private_init_transport(md, transport) != MDHIM_SUCCESS) {
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM - Error Transport Initialization Failed");
+        return MDHIM_ERROR;
+    }
+
+    //Initialize the partitioner
+    partitioner_init();
 
     //Flag that won't be used until shutdown
     md->p->shutdown = 0;

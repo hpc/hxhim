@@ -2,7 +2,6 @@
  * DB usage options.
  * Location and name of DB, type of DataSotre primary key type,
  */
-#include <cassert>
 #include <climits>
 #include <cstdio>
 #include <cstdlib>
@@ -13,9 +12,7 @@
 #include "mdhim_constants.h"
 #include "mdhim_options.h"
 #include "mdhim_options_private.h"
-
-// Default path to a local path and name, levelDB=2, int_key_type=1, yes_create_new=1
-// and debug=1 (mlog_CRIT)
+#include "mdhim_config.hpp"
 
 #define MANIFEST_FILE_NAME "/mdhim_manifest_"
 
@@ -28,27 +25,28 @@ int mdhim_options_init(mdhim_options_t* opts) {
         return MDHIM_ERROR;
     }
 
+    // Initialize opts->p
     opts->p = new mdhim_options_private_t();
     opts->p->transport = new mdhim_transport_options();
     opts->p->db = new mdhim_db_options();
 
-    // Set default options
-    mdhim_options_set_transport(opts, MDHIM_TRANSPORT_NONE, nullptr);
+    // // Set default options
+    // mdhim_options_set_transport(opts, MDHIM_TRANSPORT_NONE, nullptr);
 
-    mdhim_options_set_db_path(opts, "./");
-    mdhim_options_set_db_name(opts, "mdhimTstDB-");
-    mdhim_options_set_manifest_path(opts, "./");
-    mdhim_options_set_db_type(opts, LEVELDB);
-    mdhim_options_set_key_type(opts, MDHIM_INT_KEY);
-    mdhim_options_set_create_new_db(opts, 1);
-    mdhim_options_set_value_append(opts, MDHIM_DB_OVERWRITE);
-    mdhim_options_set_login_c(opts, "localhost", "test", "pass", "localhost", "test", "pass");
+    // mdhim_options_set_db_path(opts, "./");
+    // mdhim_options_set_db_name(opts, "mdhimTstDB-");
+    // mdhim_options_set_manifest_path(opts, "./");
+    // mdhim_options_set_db_type(opts, LEVELDB);
+    // mdhim_options_set_key_type(opts, MDHIM_INT_KEY);
+    // mdhim_options_set_create_new_db(opts, 1);
+    // mdhim_options_set_value_append(opts, MDHIM_DB_OVERWRITE);
+    // mdhim_options_set_login_c(opts, "localhost", "test", "pass", "localhost", "test", "pass");
 
-    mdhim_options_set_debug_level(opts, 1);
-    mdhim_options_set_server_factor(opts, 1);
-    mdhim_options_set_max_recs_per_slice(opts, 100000);
-    mdhim_options_set_db_paths(opts, nullptr, 0);
-    mdhim_options_set_num_worker_threads(opts, 1);
+    // mdhim_options_set_debug_level(opts, 1);
+    // mdhim_options_set_server_factor(opts, 1);
+    // mdhim_options_set_max_recs_per_slice(opts, 100000);
+    // mdhim_options_set_db_paths(opts, nullptr, 0);
+    // mdhim_options_set_num_worker_threads(opts, 1);
 
     // Hugh's settings for his test configuration
     //mdhim_options_set_db_path(opts, "/tmp/mdhim/");
@@ -62,9 +60,9 @@ int mdhim_options_init(mdhim_options_t* opts) {
     return MDHIM_SUCCESS;
 }
 
-void mdhim_options_set_transport(mdhim_options_t *opts, const int type, void *data) {
+int mdhim_options_set_transport(mdhim_options_t *opts, const int type, void *data) {
     if (!valid_opts(opts)) {
-        return;
+        return MDHIM_ERROR;
     }
 
     if (opts->p->transport->data) {
@@ -82,6 +80,8 @@ void mdhim_options_set_transport(mdhim_options_t *opts, const int type, void *da
 
     opts->p->transport->type = type;
     opts->p->transport->data = data;
+
+    return MDHIM_SUCCESS;
 }
 
 int check_path_length(mdhim_options_t* opts, const char *path) {
@@ -104,9 +104,9 @@ int check_path_length(mdhim_options_t* opts, const char *path) {
     return ret;
 }
 
-void mdhim_options_set_manifest_path(mdhim_options_t* opts, const char *path) {
+int mdhim_options_set_manifest_path(mdhim_options_t* opts, const char *path) {
     if (!valid_opts(opts)) {
-        return;
+        return MDHIM_ERROR;
     }
 
     if (opts->p->db->manifest_path) {
@@ -118,62 +118,124 @@ void mdhim_options_set_manifest_path(mdhim_options_t* opts, const char *path) {
     char *manifest_path = new char[path_len]();
     sprintf(manifest_path, "%s%s", path, MANIFEST_FILE_NAME);
     opts->p->db->manifest_path = manifest_path;
+
+    return MDHIM_SUCCESS;
 }
 
-void mdhim_options_set_login_c(mdhim_options_t* opts, const char* db_hl, const char *db_ln, const char *db_pw, const char *dbs_hl, const char *dbs_ln, const char *dbs_pw) {
+int mdhim_options_set_db_host(mdhim_options_t* opts, const char* db_hl) {
     if (!valid_opts(opts)) {
-        return;
+        return MDHIM_ERROR;
     }
 
     opts->p->db->db_host = db_hl;
-    opts->p->db->db_user = db_ln;
-    opts->p->db->db_upswd = db_pw;
-    opts->p->db->dbs_host = dbs_hl;
-    opts->p->db->dbs_user = dbs_ln;
-    opts->p->db->dbs_upswd = dbs_pw;
+
+    return MDHIM_SUCCESS;
 }
 
-void mdhim_options_set_db_path(mdhim_options_t* opts, const char *path) {
+int mdhim_options_set_db_login(mdhim_options_t* opts, const char *db_ln) {
     if (!valid_opts(opts)) {
-        return;
+        return MDHIM_ERROR;
     }
 
-    int ret;
+    opts->p->db->db_user = db_ln;
+
+    return MDHIM_SUCCESS;
+}
+
+int mdhim_options_set_db_password(mdhim_options_t* opts, const char *db_pw) {
+    if (!valid_opts(opts)) {
+        return MDHIM_ERROR;
+    }
+
+    opts->p->db->db_upswd = db_pw;
+
+    return MDHIM_SUCCESS;
+}
+
+int mdhim_options_set_dbs_host(mdhim_options_t* opts, const char* dbs_hl) {
+    if (!valid_opts(opts)) {
+        return MDHIM_ERROR;
+    }
+
+    opts->p->db->dbs_host = dbs_hl;
+
+    return MDHIM_SUCCESS;
+}
+
+int mdhim_options_set_dbs_login(mdhim_options_t* opts, const char *dbs_ln) {
+    if (!valid_opts(opts)) {
+        return MDHIM_ERROR;
+    }
+
+    opts->p->db->dbs_user = dbs_ln;
+
+    return MDHIM_SUCCESS;
+}
+
+int mdhim_options_set_dbs_password(mdhim_options_t* opts, const char *dbs_pw) {
+    if (!valid_opts(opts)) {
+        return MDHIM_ERROR;
+    }
+
+    opts->p->db->dbs_upswd = dbs_pw;
+
+    return MDHIM_SUCCESS;
+}
+
+int mdhim_options_set_login_c(mdhim_options_t* opts, const char* db_hl, const char *db_ln, const char *db_pw, const char *dbs_hl, const char *dbs_ln, const char *dbs_pw) {
+    if (!valid_opts(opts)) {
+        return MDHIM_ERROR;
+    }
+
+    mdhim_options_set_db_host(opts, db_hl);
+    mdhim_options_set_db_login(opts, db_ln);
+    mdhim_options_set_db_password(opts, db_pw);
+    mdhim_options_set_db_host(opts, dbs_hl);
+    mdhim_options_set_db_login(opts, dbs_ln);
+    mdhim_options_set_db_password(opts, dbs_pw);
+
+    return MDHIM_SUCCESS;
+}
+
+int mdhim_options_set_db_path(mdhim_options_t* opts, const char *path) {
+    if (!valid_opts(opts)) {
+        return MDHIM_ERROR;
+    }
 
     if (!path) {
-        return;
+        return MDHIM_ERROR;
     }
 
-    ret = check_path_length(opts, path);
-    if (ret) {
+    if (check_path_length(opts, path)) {
         opts->p->db->path = path;
         mdhim_options_set_manifest_path(opts, path);
     }
+
+    return MDHIM_SUCCESS;
 }
 
-void mdhim_options_set_db_paths(struct mdhim_options* opts, char **paths, int num_paths) {
+int mdhim_options_set_db_paths(struct mdhim_options* opts, char **paths, int num_paths) {
     if (!valid_opts(opts)) {
-        return;
+        return MDHIM_ERROR;
     }
 
-    int i = 0;
     int ret;
     int verified_paths = -1;
 
     if (num_paths <= 0) {
-        return;
+        return MDHIM_SUCCESS;
     }
 
     opts->p->db->paths = new char *[num_paths]();
-    for (i = 0; i < num_paths; i++) {
+    for (int i = 0; i < num_paths; i++) {
         if (!paths[i]) {
             continue;
         }
 
-        ret = check_path_length(opts, paths[i]);
-        if (!ret) {
+        if (!check_path_length(opts, paths[i])) {
             continue;
         }
+
         if (!i) {
             mdhim_options_set_manifest_path(opts, paths[i]);
         }
@@ -184,98 +246,126 @@ void mdhim_options_set_db_paths(struct mdhim_options* opts, char **paths, int nu
     }
 
     opts->p->db->num_paths = ++verified_paths;
+
+    return MDHIM_SUCCESS;
 }
 
-void mdhim_options_set_db_name(mdhim_options_t* opts, const char *name) {
+int mdhim_options_set_db_name(mdhim_options_t* opts, const char *name) {
     if (!valid_opts(opts)) {
-        return;
+        return MDHIM_ERROR;
     }
 
     opts->p->db->name = name;
+
+    return MDHIM_SUCCESS;
 }
 
-void mdhim_options_set_db_type(mdhim_options_t* opts, int type) {
+int mdhim_options_set_db_type(mdhim_options_t* opts, int type) {
     if (!valid_opts(opts)) {
-        return;
+        return MDHIM_ERROR;
     }
 
     opts->p->db->type = type;
+
+    return MDHIM_SUCCESS;
 }
 
-void mdhim_options_set_key_type(mdhim_options_t* opts, int key_type) {
+int mdhim_options_set_key_type(mdhim_options_t* opts, int key_type) {
     if (!valid_opts(opts)) {
-        return;
+        return MDHIM_ERROR;
     }
 
     opts->p->db->key_type = key_type;
+
+    return MDHIM_SUCCESS;
 }
 
-void mdhim_options_set_create_new_db(mdhim_options_t* opts, int create_new) {
+int mdhim_options_set_create_new_db(mdhim_options_t* opts, int create_new) {
     if (!valid_opts(opts)) {
-        return;
+        return MDHIM_ERROR;
     }
 
     opts->p->db->create_new = create_new;
+
+    return MDHIM_SUCCESS;
 }
 
-void mdhim_options_set_debug_level(mdhim_options_t* opts, int dbug) {
+int mdhim_options_set_debug_level(mdhim_options_t* opts, int dbug) {
     if (!valid_opts(opts)) {
-        return;
+        return MDHIM_ERROR;
     }
 
     opts->p->db->debug_level = dbug;
+
+    return MDHIM_SUCCESS;
 }
 
-void mdhim_options_set_value_append(mdhim_options_t* opts, int append) {
+int mdhim_options_set_value_append(mdhim_options_t* opts, int append) {
     if (!valid_opts(opts)) {
-        return;
+        return MDHIM_ERROR;
     }
 
     opts->p->db->value_append = append;
+
+    return MDHIM_SUCCESS;
 }
 
-void mdhim_options_set_server_factor(mdhim_options_t* opts, int server_factor) {
+int mdhim_options_set_server_factor(mdhim_options_t* opts, int server_factor) {
     if (!valid_opts(opts)) {
-        return;
+        return MDHIM_ERROR;
     }
 
     opts->p->db->rserver_factor = server_factor;
+
+    return MDHIM_SUCCESS;
 }
 
-void mdhim_options_set_max_recs_per_slice(mdhim_options_t* opts, uint64_t max_recs_per_slice) {
+int mdhim_options_set_max_recs_per_slice(mdhim_options_t* opts, uint64_t max_recs_per_slice) {
     if (!valid_opts(opts)) {
-        return;
+        return MDHIM_ERROR;
     }
 
     opts->p->db->max_recs_per_slice = max_recs_per_slice;
+
+    return MDHIM_SUCCESS;
 }
 
-void mdhim_options_set_num_worker_threads(mdhim_options_t* opts, int num_wthreads) {
+int mdhim_options_set_num_worker_threads(mdhim_options_t* opts, int num_wthreads) {
     if (!valid_opts(opts)) {
-        return;
+        return MDHIM_ERROR;
     }
 
     if (num_wthreads > 0) {
         opts->p->db->num_wthreads = num_wthreads;
     }
+
+    return MDHIM_SUCCESS;
 }
 
 int mdhim_options_destroy(mdhim_options_t *opts) {
-    if (!valid_opts(opts)) {
+    if (!opts) {
         return MDHIM_ERROR;
     }
 
-    for (int i = 0; i < opts->p->db->num_paths; i++) {
-        delete [] opts->p->db->paths[i];
+    if (opts->p) {
+        if (opts->p->db) {
+            for (int i = 0; i < opts->p->db->num_paths; i++) {
+                delete [] opts->p->db->paths[i];
+            }
+            delete [] opts->p->db->paths;
+
+            delete [] opts->p->db->manifest_path;
+            delete opts->p->db;
+        }
+
+        if (opts->p->transport) {
+            mdhim_options_set_transport(opts, MDHIM_TRANSPORT_NONE, nullptr);
+            delete opts->p->transport;
+        }
+
+        delete opts->p;
+        opts->p = nullptr;
     }
-    delete [] opts->p->db->paths;
 
-    delete [] opts->p->db->manifest_path;
-
-    mdhim_options_set_transport(opts, MDHIM_TRANSPORT_NONE, nullptr);
-    delete opts->p->transport;
-    delete opts->p->db;
-    delete opts->p;
-    opts->p = nullptr;
     return MDHIM_SUCCESS;
 }
