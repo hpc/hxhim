@@ -18,6 +18,6 @@ TransportBGetRecvMessage *local_client_bget_op(mdhim_t *md, TransportGetMessage 
 TransportRecvMessage *local_client_commit(mdhim_t *md, TransportMessage *cm);
 TransportRecvMessage *local_client_delete(mdhim_t *md, TransportDeleteMessage *dm);
 TransportRecvMessage *local_client_bdelete(mdhim_t *md, TransportBDeleteMessage *bdm);
-// void local_client_close(mdhim_t *md, mdhim_t_basem_t *cm);
+// void local_client_close(mdhim_t *md, TransportMessage *cm);
 
 #endif

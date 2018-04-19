@@ -29,24 +29,14 @@ void bdel(mdhim_t *md,
         // Get error value
         int error = MDHIM_ERROR;
         if (mdhim_brm_error(brm, &error) != MDHIM_SUCCESS) {
-            err << "Could not BDELETE";
-            for(int i = 0; i < num_keys; i++) {
-                err << " " << std::string((char *)keys[i], key_lens[i]);
-            }
-            err << std::endl;
+            err << "Could not BDELETE" << std::endl;
             mdhim_brm_destroy(brm);
             return;
         }
 
         // Check error value
-        if (error == MDHIM_SUCCESS) {
-            // Print key value pairs
-            for(int i = 0; i < num_keys; i++) {
-                out << "BDELETE " << std::string((char *)keys[i], key_lens[i]) << " from range server on rank " << mdhimWhichServer(md, keys[i], key_lens[i]) << std::endl;
-            }
-        }
-        else {
-            err << "BDELETE error" << std::endl;
+        if (error != MDHIM_SUCCESS) {
+            err << "BDELETE error " << error << std::endl;
         }
 
         // Go to next result
@@ -57,5 +47,11 @@ void bdel(mdhim_t *md,
 
         mdhim_brm_destroy(brm);
         brm = next;
+    }
+
+    if (!brm) {
+        for(int i = 0; i < num_keys; i++) {
+            out << "BDELETE " << std::string((char *)keys[i], key_lens[i]) << " from range server on rank " << mdhimWhichServer(md, keys[i], key_lens[i]) << std::endl;
+        }
     }
 }

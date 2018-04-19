@@ -6,18 +6,20 @@
 
 #include "mdhim.h"
 
+static const std::size_t ALLOC_SIZE = 128;
+static const std::size_t REGIONS = 256;
+
 // Normal usage
 TEST(mdhimInitClose, Good) {
     mdhim_options_t opts;
     mdhim_t md;
 
-    EXPECT_EQ(mdhim_options_init(&opts), MDHIM_SUCCESS);
-    MPIOptions_t *mpi_opts = new MPIOptions_t();
-    mpi_opts->comm = MPI_COMM_WORLD;
-    mpi_opts->alloc_size = 16;
-    mpi_opts->regions = 16;
-    mdhim_options_set_transport(&opts, MDHIM_TRANSPORT_MPI, mpi_opts);
-    EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
+    MPIOptions_t mpi_opts;
+    mpi_opts.comm = MPI_COMM_WORLD;
+    mpi_opts.alloc_size = ALLOC_SIZE;
+    mpi_opts.regions = REGIONS;
+    ASSERT_EQ(mdhim_options_init_with_defaults(&opts, MDHIM_TRANSPORT_MPI, &mpi_opts), MDHIM_SUCCESS);
+    ASSERT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
 
     EXPECT_EQ(MPI_Barrier(MPI_COMM_WORLD), MPI_SUCCESS);
 
@@ -30,13 +32,12 @@ TEST(mdhimInit, COMM_NULL) {
     mdhim_options_t opts;
     mdhim_t md;
 
-    EXPECT_EQ(mdhim_options_init(&opts), MDHIM_SUCCESS);
-    MPIOptions_t *mpi_opts = new MPIOptions_t();
-    mpi_opts->comm = MPI_COMM_NULL;
-    mpi_opts->alloc_size = 16;
-    mpi_opts->regions = 16;
-    mdhim_options_set_transport(&opts, MDHIM_TRANSPORT_MPI, mpi_opts);
-    EXPECT_EQ(mdhimInit(&md, &opts), MDHIM_ERROR);
+    MPIOptions_t mpi_opts;
+    mpi_opts.comm = MPI_COMM_NULL;
+    mpi_opts.alloc_size = ALLOC_SIZE;
+    mpi_opts.regions = REGIONS;
+    ASSERT_EQ(mdhim_options_init_with_defaults(&opts, MDHIM_TRANSPORT_MPI, &mpi_opts), MDHIM_SUCCESS);
+    ASSERT_EQ(mdhimInit(&md, &opts), MDHIM_ERROR);
 
     EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
     EXPECT_EQ(mdhim_options_destroy(&opts), MDHIM_SUCCESS);
@@ -46,8 +47,9 @@ TEST(mdhimInit, COMM_NULL) {
 TEST(mdhimInit, NULL_md) {
     mdhim_options_t opts;
 
-    EXPECT_EQ(mdhim_options_init(&opts), MDHIM_SUCCESS);
-    EXPECT_EQ(mdhimInit(NULL, &opts), MDHIM_ERROR);
+    // options is irrelevant here
+    ASSERT_EQ(mdhim_options_init_with_defaults(&opts, MDHIM_TRANSPORT_NONE, nullptr), MDHIM_SUCCESS);
+    ASSERT_EQ(mdhimInit(NULL, &opts), MDHIM_ERROR);
 
     EXPECT_EQ(mdhim_options_destroy(&opts), MDHIM_SUCCESS);
 }

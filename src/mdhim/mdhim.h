@@ -66,9 +66,9 @@ secondary_info_t *mdhimCreateSecondaryInfo(index_t *secondary_index,
 
 void mdhimReleaseSecondaryInfo(secondary_info_t *si);
 secondary_bulk_info_t *mdhimCreateSecondaryBulkInfo(index_t *secondary_index,
-                                                    void ***secondary_keys,
-                                                    int **secondary_key_lens,
-                                                    int *num_keys, int info_type);
+                                                    void ***secondary_keys, int **secondary_key_lens,
+                                                    int *num_keys, int num_records,
+                                                    int info_type);
 void mdhimReleaseSecondaryBulkInfo(secondary_bulk_info_t *si);
 
 int mdhimWhichServer(mdhim_t *md, void *key, int key_len);

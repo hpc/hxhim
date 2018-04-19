@@ -107,10 +107,9 @@ OPS["BDEL"]=$(printf "BDELETE $COUNT";
                   printf " $key"
               done)
 
-# run the CLI
-export MDHIM_CONFIF=$MDHIM_CONFIG
+# Pass the commands to the CLI
 (
     for op in "${POSITIONAL[@]}"; do
         printf "${OPS[$op]}\n"
     done
-) | mpirun -np $RANKS examples/cli
+) | MDHIM_CONFIF=$MDHIM_CONFIG mpirun -np $RANKS examples/cli

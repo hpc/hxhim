@@ -174,6 +174,9 @@ int get_from_map(const Config &config, const std::string &config_key,
  * This function should not be modified if the configuration
  * is not being modified.
  *
+ * opts is not cleaned up here. It should be cleaned up by
+ * the top-level calling function.
+ *
  * @param config the configuration to use
  * @param opts   the option struct to fill
  * @return whether or not opts was successfully filled
@@ -187,7 +190,6 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
     Config_it db_path = config.find(DB_PATH);
     if (db_path != config.end()) {
         if (mdhim_options_set_db_path(opts, db_path->second.c_str()) != MDHIM_SUCCESS) {
-            mdhim_options_destroy(opts);
             return MDHIM_ERROR;
         }
     }
@@ -196,7 +198,6 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
     Config_it db_name = config.find(DB_NAME);
     if (db_name != config.end()) {
         if (mdhim_options_set_db_name(opts, db_name->second.c_str()) != MDHIM_SUCCESS) {
-            mdhim_options_destroy(opts);
             return MDHIM_ERROR;
         }
     }
@@ -206,7 +207,6 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
     ret = get_from_map(config, DB_TYPE, DB_TYPES, db_type);
     if ((ret == MDHIM_ERROR)                                                                    ||
         ((ret == MDHIM_SUCCESS) && (mdhim_options_set_db_type(opts, db_type) != MDHIM_SUCCESS))) {
-        mdhim_options_destroy(opts);
         return MDHIM_ERROR;
     }
 
@@ -215,7 +215,6 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
     ret = get_integral(config, SERVER_FACTOR, server_factor);
     if ((ret == MDHIM_ERROR)                                                                                ||
         ((ret == MDHIM_SUCCESS) && (mdhim_options_set_server_factor(opts, server_factor) != MDHIM_SUCCESS))) {
-        mdhim_options_destroy(opts);
         return MDHIM_ERROR;
     }
 
@@ -224,7 +223,6 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
     ret = get_integral(config, MAX_RECS_PER_SLICE, max_recs_per_slice);
     if ((ret == MDHIM_ERROR)                                                                                          ||
         ((ret == MDHIM_SUCCESS) && (mdhim_options_set_max_recs_per_slice(opts, max_recs_per_slice) != MDHIM_SUCCESS))) {
-        mdhim_options_destroy(opts);
         return MDHIM_ERROR;
     }
 
@@ -233,7 +231,6 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
     ret = get_from_map(config, KEY_TYPE, KEY_TYPES, key_type);
     if ((ret == MDHIM_ERROR)                                                                      ||
         ((ret == MDHIM_SUCCESS) && (mdhim_options_set_key_type(opts, key_type) != MDHIM_SUCCESS))) {
-        mdhim_options_destroy(opts);
         return MDHIM_ERROR;
     }
 
@@ -242,7 +239,6 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
     ret = get_from_map(config, DEBUG_LEVEL, DEBUG_LEVELS, debug_level);
     if ((ret == MDHIM_ERROR)                                                                            ||
         ((ret == MDHIM_SUCCESS) && (mdhim_options_set_debug_level(opts, debug_level) != MDHIM_SUCCESS))) {
-        mdhim_options_destroy(opts);
         return MDHIM_ERROR;
     }
 
@@ -251,7 +247,6 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
     ret = get_integral(config, NUM_WORKER_THREADS, num_worker_threads);
     if ((ret == MDHIM_ERROR)                                                                                          ||
         ((ret == MDHIM_SUCCESS) && (mdhim_options_set_num_worker_threads(opts, num_worker_threads) != MDHIM_SUCCESS))) {
-        mdhim_options_destroy(opts);
         return MDHIM_ERROR;
     }
 
@@ -259,7 +254,6 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
     Config_it manifest_path = config.find(MANIFEST_PATH);
     if (manifest_path != config.end()) {
         if (mdhim_options_set_manifest_path(opts, manifest_path->second.c_str()) != MDHIM_SUCCESS) {
-            mdhim_options_destroy(opts);
             return MDHIM_ERROR;
         }
     }
@@ -269,7 +263,6 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
     ret = get_bool(config, CREATE_NEW_DB, create_new_db);
     if ((ret == MDHIM_ERROR)                                                                                ||
         ((ret == MDHIM_SUCCESS) && (mdhim_options_set_create_new_db(opts, create_new_db) != MDHIM_SUCCESS))) {
-        mdhim_options_destroy(opts);
         return MDHIM_ERROR;
     }
 
@@ -278,7 +271,6 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
     ret = get_from_map(config, DB_WRITE, DB_WRITES, db_write);
     if ((ret == MDHIM_ERROR)                                                                          ||
         ((ret == MDHIM_SUCCESS) && (mdhim_options_set_value_append(opts, db_write) != MDHIM_SUCCESS))) {
-        mdhim_options_destroy(opts);
         return MDHIM_ERROR;
     }
 
@@ -286,7 +278,6 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
     Config_it db_host = config.find(DB_HOST);
     if (db_host != config.end()) {
         if (mdhim_options_set_db_host(opts, db_host->second.c_str()) != MDHIM_SUCCESS) {
-            mdhim_options_destroy(opts);
             return MDHIM_ERROR;
         }
     }
@@ -295,7 +286,6 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
     Config_it db_login = config.find(DB_LOGIN);
     if (db_login != config.end()) {
         if (mdhim_options_set_db_login(opts, db_login->second.c_str()) != MDHIM_SUCCESS) {
-            mdhim_options_destroy(opts);
             return MDHIM_ERROR;
         }
     }
@@ -304,7 +294,6 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
     Config_it db_password = config.find(DB_PASSWORD);
     if (db_password != config.end()) {
         if (mdhim_options_set_db_password(opts, db_password->second.c_str()) != MDHIM_SUCCESS) {
-            mdhim_options_destroy(opts);
             return MDHIM_ERROR;
         }
     }
@@ -313,7 +302,6 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
     Config_it dbs_host = config.find(DBS_HOST);
     if (dbs_host != config.end()) {
         if (mdhim_options_set_dbs_host(opts, dbs_host->second.c_str()) != MDHIM_SUCCESS) {
-            mdhim_options_destroy(opts);
             return MDHIM_ERROR;
         }
     }
@@ -322,7 +310,6 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
     Config_it dbs_login = config.find(DBS_LOGIN);
     if (dbs_login != config.end()) {
         if (mdhim_options_set_dbs_login(opts, dbs_login->second.c_str()) != MDHIM_SUCCESS) {
-            mdhim_options_destroy(opts);
             return MDHIM_ERROR;
         }
     }
@@ -331,7 +318,6 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
     Config_it dbs_password = config.find(DBS_PASSWORD);
     if (dbs_password != config.end()) {
         if (mdhim_options_set_dbs_password(opts, dbs_password->second.c_str()) != MDHIM_SUCCESS) {
-            mdhim_options_destroy(opts);
             return MDHIM_ERROR;
         }
     }
@@ -343,7 +329,6 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
         int memory_alloc_size, memory_regions;
         if ((get_integral(config, MEMORY_ALLOC_SIZE, memory_alloc_size) != MDHIM_SUCCESS) ||
             (get_integral(config, MEMORY_REGIONS, memory_regions)       != MDHIM_SUCCESS)) {
-            mdhim_options_destroy(opts);
             return MDHIM_ERROR;
         }
 
@@ -352,7 +337,6 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
         mpi_opts->alloc_size = memory_alloc_size;
         mpi_opts->regions = memory_regions;
         if (mdhim_options_set_transport(opts, MDHIM_TRANSPORT_MPI, mpi_opts) != MDHIM_SUCCESS) {
-            mdhim_options_destroy(opts);
             return MDHIM_ERROR;
         }
     }
@@ -363,7 +347,6 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
         if ((get_bool(config, USE_THALLIUM, use_thallium) == MDHIM_SUCCESS) &&
             use_thallium) {
             if (mdhim_options_set_transport(opts, MDHIM_TRANSPORT_THALLIUM, new std::string(config.at(THALLIUM_MODULE))) != MDHIM_SUCCESS) {
-                mdhim_options_destroy(opts);
                 return MDHIM_ERROR;
             }
         }
@@ -383,6 +366,8 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
  * This function should not be modified unless the
  * ConfigReader interface changes.
  *
+ * opts should be cleand up by the calling function.
+ *
  * @param config_reader the configuration reader that has been set up
  * @param opts          the options to fill
  * @return whether or not opts was successfully filled
@@ -391,7 +376,6 @@ int process_config_and_fill_options(ConfigSequence &config_sequence, mdhim_optio
     // Parse the configuration data
     Config config;
     if (!config_sequence.process(config)) {
-        mdhim_options_destroy(opts);
         return MDHIM_ERROR;
     }
 
@@ -422,16 +406,12 @@ int mdhim_default_config_reader(mdhim_options_t *opts) {
     ConfigDirectory dir(MDHIM_CONFIG_DIR);
     config_sequence.add(&dir);
 
-    // initialize opts->p
-    if (mdhim_options_init(opts) != MDHIM_SUCCESS) {
+    if ((mdhim_options_init(opts)                               != MDHIM_SUCCESS) || // initialize opts->p
+        (fill_options(MDHIM_DEFAULT_CONFIG, opts)               != MDHIM_SUCCESS) || // fill in the configuration with default values
+        (process_config_and_fill_options(config_sequence, opts) != MDHIM_SUCCESS)) { // read the configuration and overwrite default values
+        mdhim_options_destroy(opts);
         return MDHIM_ERROR;
     }
 
-    // fill in the configuration with default values
-    if (fill_options(MDHIM_DEFAULT_CONFIG, opts) != MDHIM_SUCCESS) {
-        return MDHIM_ERROR;
-    }
-
-    // read the configuration and overwrite default values
-    return process_config_and_fill_options(config_sequence, opts);
+    return MDHIM_SUCCESS;
 }

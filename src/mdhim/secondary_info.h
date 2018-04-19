@@ -21,6 +21,7 @@ typedef struct secondary_bulk_info {
     void ***secondary_keys;
     int **secondary_key_lens;
     int *num_keys;
+    int num_records;
     int info_type;
 } secondary_bulk_info_t;
 

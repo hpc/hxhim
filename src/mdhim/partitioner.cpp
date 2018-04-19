@@ -801,6 +801,7 @@ rangesrv_list_t *get_rangesrvs_from_fstat(mdhim_t *md, index_t *index,
  * @param op        operation type (
  * @return the rank of the range server or NULL on error
  */
+#include <iostream>
 rangesrv_list_t *get_range_servers_from_stats(mdhim_t *md, index_t *index,
 					    void *key, int key_len, TransportGetMessageOp op) {
 	//The number that maps a key to range server (dependent on key type)

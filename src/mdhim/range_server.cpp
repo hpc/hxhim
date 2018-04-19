@@ -396,7 +396,8 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
         }
 
         if (*value) {
-            ::operator delete(*value);
+            // value comes from leveldb
+            free(*value);
             *value = nullptr;
         }
     }
@@ -483,7 +484,7 @@ static int range_server_del(mdhim_t *md, work_item_t *item) {
         goto done;
     }
 
-    //Put the record in the database
+    //Delete the record from the database
     if ((ret =
          index->mdhim_store->del(index->mdhim_store->db_handle,
                                  dm->key, dm->key_len)) != MDHIM_SUCCESS) {
@@ -537,7 +538,7 @@ int range_server_bdel(mdhim_t *md, work_item_t *item) {
         //Put the record in the database
         if ((ret =
              index->mdhim_store->del(index->mdhim_store->db_handle,
-                         bdm->keys[i], bdm->key_lens[i]))
+                                     bdm->keys[i], bdm->key_lens[i]))
             != MDHIM_SUCCESS) {
             mlog(MDHIM_SERVER_CRIT, "Rank %d - Error deleting record",
                  md->mdhim_rank);

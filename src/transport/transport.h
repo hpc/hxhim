@@ -11,83 +11,27 @@ extern "C"
 
 /*
  * Forward declarations of opaque types that
- * actually implement the data structures
+ * actually implement the data structures.
+ *
+ * Only TransportMessages that are returned
+ * by operations have structs wrappers.
+ *
+ * Users should not (and cannot) declare
+ * static variables of these types. Every
+ * instance will come from mdhim.
 */
-typedef struct mdhim_basem_private  mdhim_basem_private_t;
-typedef struct mdhim_putm_private   mdhim_putm_private_t;
-typedef struct mdhim_bputm_private  mdhim_bputm_private_t;
-typedef struct mdhim_getm_private   mdhim_getm_private_t;
-typedef struct mdhim_bgetm_private  mdhim_bgetm_private_t;
-typedef struct mdhim_delm_private   mdhim_delm_private_t;
-typedef struct mdhim_bdelm_private  mdhim_bdelm_private_t;
-typedef struct mdhim_rm_private     mdhim_rm_private_t;
-typedef struct mdhim_getrm_private  mdhim_getrm_private_t;
-typedef struct mdhim_bgetrm_private mdhim_bgetrm_private_t;
-typedef struct mdhim_brm_private    mdhim_brm_private_t;
-
-/* Put message */
-typedef struct mdhim_putm {
-    mdhim_putm_private_t *p;
-} mdhim_putm_t;
-
-/* Bulk put message */
-typedef struct mdhim_bputm {
-    mdhim_bputm_private_t *p;
-} mdhim_bputm_t;
-
-/* Get record message */
-typedef struct mdhim_getm {
-    mdhim_getm_private_t *p;
-} mdhim_getm_t;
-
-/* Bulk get record message */
-typedef struct mdhim_bgetm {
-    mdhim_bgetm_private_t *p;
-} mdhim_bgetm_t;
-
-/* Delete message */
-typedef struct mdhim_delm {
-    mdhim_delm_private_t *p;
-} mdhim_delm_t;
-
-/* Bulk delete record message */
-typedef struct mdhim_bdelm {
-    mdhim_bdelm_private_t *p;
-} mdhim_bdelm_t;
-
-/* Generic receive message */
-typedef struct mdhim_rm {
-    mdhim_rm_private_t *p;
-} mdhim_rm_t;
-
-/* get receive message */
-typedef struct mdhim_getrm {
-    mdhim_getrm_private_t *p;
-} mdhim_getrm_t;
-
-/* Bulk get receive message */
-typedef struct mdhim_bgetrm {
-    mdhim_bgetrm_private_t *p;
-} mdhim_bgetrm_t;
-
-/* Bulk generic receive message */
-typedef struct mdhim_brm {
-    mdhim_brm_private_t *p;
-} mdhim_brm_t;
+typedef struct mdhim_rm     mdhim_rm_t;     // Generic Receive message
+typedef struct mdhim_getrm  mdhim_getrm_t;  // Get Receive message
+typedef struct mdhim_bgetrm mdhim_bgetrm_t; // Bulk Get Receive message
+typedef struct mdhim_brm    mdhim_brm_t;    // Bulk Generic Receive message
 
 /**
  * Destruction functions for the mdhim structures
  *
- * Users do never create mdhim structures, so
+ * Users never create mdhim structures, so
  * they do not have access to the initialization
  * functions.
 */
-void mdhim_pm_destroy(mdhim_putm_t *pm);
-void mdhim_bpm_destroy(mdhim_bputm_t *bpm);
-void mdhim_gm_destroy(mdhim_getm_t *gm);
-void mdhim_bgm_destroy(mdhim_bgetm_t *bgm);
-void mdhim_delm_destroy(mdhim_delm_t *dm);
-void mdhim_bdelm_destroy(mdhim_bdelm_t *bdm);
 void mdhim_rm_destroy(mdhim_rm_t *rm);
 void mdhim_grm_destroy(mdhim_getrm_t *bgrm);
 void mdhim_bgrm_destroy(mdhim_bgetrm_t *bgrm);

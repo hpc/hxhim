@@ -602,8 +602,8 @@ index_t *create_local_index(struct mdhim *md, int db_type, int key_type, const c
     } else {
         char buf[50];
         sprintf(buf, "local_%d", li->id);
-        li->name = (char*)malloc(sizeof(char)*strlen(buf));
-        strcpy(li->name, buf);
+        li->name = (char*)malloc(sizeof(char)*(strlen(buf) + 1));
+        strncpy(li->name, buf, strlen(buf));
     }
 
 
@@ -738,7 +738,7 @@ index_t *create_global_index(struct mdhim *md, int server_factor,
         if (index_name != NULL) {
 
             size_t name_len = strlen(index_name)+1;
-            char *lower_name = (char*)malloc(name_len);
+            char *lower_name = (char*)calloc(name_len + 1, sizeof(char));
 
             to_lower(name_len, index_name, lower_name);
 
@@ -748,19 +748,19 @@ index_t *create_global_index(struct mdhim *md, int server_factor,
                 goto done;
             }
 
-            gi->name = (char*)malloc(name_len);
-            memcpy(gi->name, lower_name, name_len);
+            gi->name = (char*)calloc(name_len + 1, sizeof(char));
+            snprintf(gi->name, name_len + 1, "%s", lower_name);
 
         } else {
             char buf[50];
             sprintf(buf, "global_%d", gi->id);
-            gi->name = (char*)malloc(sizeof(char)*strlen(buf));
-            strcpy(gi->name, buf);
+            gi->name = (char*)malloc(sizeof(char)*(strlen(buf) + 1));
+            sprintf(gi->name, "global_%d", gi->id);
         }
 
     } else {
-        gi->name = (char*)malloc(sizeof(char)*10);
-        strcpy(gi->name, "primary");
+        gi->name = (char*)malloc(sizeof(char)*11);
+        strncpy(gi->name, "primary", 7);
     }
 
 	//Figure out how many range servers we could have based on the range server factor

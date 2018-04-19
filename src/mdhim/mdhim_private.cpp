@@ -307,11 +307,11 @@ int mdhim_private_destroy(mdhim_t *md) {
     //Free up memory used by the partitioner
     partitioner_release();
 
-    //Free up memory used by indexes
-    mdhim_private_destroy_index(md);
-
     //Free up memory used by the transport
     mdhim_private_destroy_transport(md);
+
+    //Free up memory used by indexes
+    mdhim_private_destroy_index(md);
 
     //Free up memory used by the db options
     mdhim_private_destroy_db_options(md);
@@ -487,7 +487,6 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
                                      void **keys, int *key_lens,
                                      void **values, int *value_lens,
                                      int num_keys) {
-    rangesrv_list *rl, *rlp;
     index_t *lookup_index = nullptr;
     index_t *put_index = index;
     if (index->type == LOCAL_INDEX) {
@@ -519,6 +518,7 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
        then it is created.  Otherwise, the data is added to the existing message in the array.*/
     for (int i = 0; i < num_keys && i < MAX_BULK_OPS; i++) {
         //Get the range server this key will be sent to
+        rangesrv_list *rl = nullptr;
         if (put_index->type == LOCAL_INDEX) {
             if ((rl = get_range_servers(md, lookup_index, values[i], value_lens[i])) ==
                 nullptr) {
@@ -574,7 +574,7 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
             bpm->values[bpm->num_keys] = values[i];
             bpm->value_lens[bpm->num_keys] = value_lens[i];
             bpm->num_keys++;
-            rlp = rl;
+            rangesrv_list *rlp = rl;
             rl = rl->next;
             free(rlp);
         }
@@ -637,6 +637,7 @@ TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
                     (op != TransportGetMessageOp::GET_EQ && op != TransportGetMessageOp::GET_PRIMARY_EQ)) &&
                    (rl = get_range_servers_from_stats(md, index, keys[i], key_lens[i], op)) ==
                    nullptr) {
+
             mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
                  "Error while determining range server in mdhimBget",
                  md->mdhim_rank);

@@ -97,11 +97,7 @@ int mdhimInit(mdhim_t* md, mdhim_options_t *opts) {
     }
 
     //Initialize context variables based on options
-    if (mdhim_private_init(md, opts->p->db, opts->p->transport) != MDHIM_SUCCESS) {
-        return MDHIM_ERROR;
-    }
-
-    return MDHIM_SUCCESS;
+    return mdhim_private_init(md, opts->p->db, opts->p->transport);
 }
 
 /**
@@ -198,6 +194,7 @@ mdhim_brm_t *mdhimPut(mdhim_t *md,
         return nullptr;
     }
 
+    //Conver the return value into a list
     TransportBRecvMessage *head = _create_brm(rm);
     delete(rm);
 
@@ -209,9 +206,16 @@ mdhim_brm_t *mdhimPut(mdhim_t *md,
         secondary_local_info->secondary_keys &&
         secondary_local_info->secondary_key_lens &&
         secondary_local_info->num_keys) {
+        //Duplicate keys
+        void **secondary_keys = new void *[secondary_local_info->num_keys]();
+        int *secondary_key_lens = new int[secondary_local_info->num_keys]();
         void **primary_keys = new void *[secondary_local_info->num_keys]();
         int *primary_key_lens = new int[secondary_local_info->num_keys]();
         for (int i = 0; i < secondary_local_info->num_keys; i++) {
+            secondary_keys[i] = ::operator new(secondary_local_info->secondary_key_lens[i]);
+            memcpy(secondary_keys[i], secondary_local_info->secondary_keys[i], secondary_local_info->secondary_key_lens[i]);
+            secondary_key_lens[i] = secondary_local_info->secondary_key_lens[i];
+
             primary_keys[i] = ::operator new(primary_key_len);
             memcpy(primary_keys[i], primary_key, primary_key_len);
             primary_key_lens[i] = primary_key_len;
@@ -219,8 +223,7 @@ mdhim_brm_t *mdhimPut(mdhim_t *md,
 
         brm = _bput_records(md,
                             secondary_local_info->secondary_index,
-                            secondary_local_info->secondary_keys,
-                            secondary_local_info->secondary_key_lens,
+                            secondary_keys, secondary_key_lens,
                             primary_keys, primary_key_lens,
                             secondary_local_info->num_keys);
         delete [] primary_keys;
@@ -237,17 +240,24 @@ mdhim_brm_t *mdhimPut(mdhim_t *md,
         secondary_global_info->secondary_keys &&
         secondary_global_info->secondary_key_lens &&
         secondary_global_info->num_keys) {
+        //Duplicate keys
+        void **secondary_keys = new void *[secondary_global_info->num_keys]();
+        int *secondary_key_lens = new int[secondary_global_info->num_keys]();
         void **primary_keys = new void *[secondary_global_info->num_keys]();
         int *primary_key_lens = new int[secondary_global_info->num_keys]();
         for (int i = 0; i < secondary_global_info->num_keys; i++) {
+            secondary_keys[i] = ::operator new(secondary_global_info->secondary_key_lens[i]);
+            memcpy(secondary_keys[i], secondary_global_info->secondary_keys[i], secondary_global_info->secondary_key_lens[i]);
+            secondary_key_lens[i] = secondary_global_info->secondary_key_lens[i];
+
             primary_keys[i] = ::operator new(primary_key_len);
             memcpy(primary_keys[i], primary_key, primary_key_len);
             primary_key_lens[i] = primary_key_len;
         }
+
         brm = _bput_records(md,
                             secondary_global_info->secondary_index,
-                            secondary_global_info->secondary_keys,
-                            secondary_global_info->secondary_key_lens,
+                            secondary_keys, secondary_key_lens,
                             primary_keys, primary_key_lens,
                             secondary_global_info->num_keys);
 
@@ -297,10 +307,10 @@ mdhim_brm_t *mdhimPutSecondary(mdhim_t *md,
     return mdhim_brm_init(head);
 }
 
-TransportBRecvMessage *_bput_secondary_keys_from_info(mdhim_t *md,
-                                                      secondary_bulk_info_t *secondary_info,
-                                                      void **primary_keys, int *primary_key_lens,
-                                                      int num_records) {
+static TransportBRecvMessage *_bput_secondary_keys_from_info(mdhim_t *md,
+                                                             secondary_bulk_info_t *secondary_info,
+                                                             void **primary_keys, int *primary_key_lens,
+                                                             int num_records) {
     if (!md || !md->p ||
         !secondary_info ||
         !primary_keys || !primary_key_lens) {
@@ -309,19 +319,25 @@ TransportBRecvMessage *_bput_secondary_keys_from_info(mdhim_t *md,
 
     TransportBRecvMessage *head =  nullptr;
     for (int i = 0; i < num_records; i++) {
+        void **secondary_keys = new void *[secondary_info->num_keys[i]]();
+        int *secondary_key_lens = new int[secondary_info->num_keys[i]]();
+
         void **primary_keys_to_send = new void *[secondary_info->num_keys[i]]();
         int *primary_key_lens_to_send = new int[secondary_info->num_keys[i]]();
 
-        // copy the given keys
+        // Copy the keys
         for (int j = 0; j < secondary_info->num_keys[i]; j++) {
+            secondary_keys[j] = ::operator new(secondary_info->secondary_key_lens[i][j]);
+            memcpy(secondary_keys[j], secondary_info->secondary_keys[i][j], secondary_info->secondary_key_lens[i][j]);
+            secondary_key_lens[j] = secondary_info->secondary_key_lens[i][j];
+
             primary_keys_to_send[j] = ::operator new(primary_key_lens[i]);
             memcpy(primary_keys_to_send[j], primary_keys[i], primary_key_lens[i]);
             primary_key_lens_to_send[j] = primary_key_lens[i];
         }
 
         TransportBRecvMessage *newone = _bput_records(md, secondary_info->secondary_index,
-                                                      secondary_info->secondary_keys[i],
-                                                      secondary_info->secondary_key_lens[i],
+                                                      secondary_keys, secondary_key_lens,
                                                       primary_keys_to_send, primary_key_lens_to_send,
                                                       secondary_info->num_keys[i]);
         if (!head) {
@@ -409,7 +425,8 @@ mdhim_brm_t *mdhimBPut(mdhim_t *md,
     //Insert the secondary local keys if they were given
     if (secondary_local_info && secondary_local_info->secondary_index &&
         secondary_local_info->secondary_keys &&
-        secondary_local_info->secondary_key_lens) {
+        secondary_local_info->secondary_key_lens &&
+        (secondary_local_info->num_records == num_records)) {
 
         TransportBRecvMessage *newone = _bput_secondary_keys_from_info(md, secondary_local_info,
                                                                        primary_keys, primary_key_lens,
@@ -422,7 +439,8 @@ mdhim_brm_t *mdhimBPut(mdhim_t *md,
     //Insert the secondary global keys if they were given
     if (secondary_global_info && secondary_global_info->secondary_index &&
         secondary_global_info->secondary_keys &&
-        secondary_global_info->secondary_key_lens) {
+        secondary_global_info->secondary_key_lens &&
+        (secondary_global_info->num_records == num_records)) {
 
         TransportBRecvMessage *newone = _bput_secondary_keys_from_info(md, secondary_global_info,
                                                                        primary_keys, primary_key_lens,
@@ -861,16 +879,8 @@ secondary_info_t *mdhimCreateSecondaryInfo(index_t *secondary_index,
 
     //Set the index fields
     sinfo->secondary_index = secondary_index;
-
-    //Duplicate the input values
-    sinfo->secondary_keys = new void *[num_keys]();
-    sinfo->secondary_key_lens = new int[num_keys]();
-    for(int i = 0; i < num_keys; i++) {
-        sinfo->secondary_keys[i] = ::operator new(secondary_key_lens[i]);
-        memcpy(sinfo->secondary_keys[i], secondary_keys[i], secondary_key_lens[i]);
-        sinfo->secondary_key_lens[i] = secondary_key_lens[i];
-    }
-
+    sinfo->secondary_keys = secondary_keys;
+    sinfo->secondary_key_lens = secondary_key_lens;
     sinfo->num_keys = num_keys;
     sinfo->info_type = info_type;
 
@@ -878,17 +888,18 @@ secondary_info_t *mdhimCreateSecondaryInfo(index_t *secondary_index,
 }
 
 void mdhimReleaseSecondaryInfo(secondary_info_t *si) {
+    // none of the pointers belong to si
     delete si;
 }
 
 /**
- * Sets the secondary_info structure used in mdhimBPut
- *
+ * Sets the secondary_bulk_info structure used in mdhimBPut
  */
 secondary_bulk_info_t *mdhimCreateSecondaryBulkInfo(index_t *secondary_index,
                                                     void ***secondary_keys,
                                                     int **secondary_key_lens,
-                                                    int *num_keys, int info_type) {
+                                                    int *num_keys,int num_records,
+                                                    int info_type) {
     if (!secondary_index || !secondary_keys ||
         !secondary_key_lens || !num_keys) {
         return nullptr;
@@ -907,6 +918,7 @@ secondary_bulk_info_t *mdhimCreateSecondaryBulkInfo(index_t *secondary_index,
     sinfo->secondary_keys = secondary_keys;
     sinfo->secondary_key_lens = secondary_key_lens;
     sinfo->num_keys = num_keys;
+    sinfo->num_records = num_records;
     sinfo->info_type = info_type;
 
     return sinfo;

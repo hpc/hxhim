@@ -57,11 +57,11 @@ void mdhimftput(void *key, int *key_size, void *val, int *val_size) {
 void mdhimftget(void *key, int *key_size, void *val, int val_size) {
    printf("Key: %s\n", (char *)key);
    mdhim_getrm_t *grm = mdhimGet(md, md->p->primary_index, key, *key_size, TransportGetMessageOp::GET_EQ);
-   if (!grm || !grm->p || !grm->p->grm || grm->p->grm->error) {
+   if (!grm || !grm->grm || grm->grm->error) {
      printf("Error getting value for key: %p from MDHIM\n", key);
    } else {
      printf("Successfully got value from MDHIM\n");
-     memcpy(val, grm->p->grm->value, grm->p->grm->value_len);
+     memcpy(val, grm->grm->value, grm->grm->value_len);
    }
 }
 

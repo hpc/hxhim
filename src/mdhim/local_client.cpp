@@ -19,7 +19,7 @@
  * @param md the main mdhim struct
  * @return a pointer to the message received or NULL
  */
-static void *get_msg_self(mdhim_t *md) {
+static TransportMessage *get_msg_self(mdhim_t *md) {
 	//Lock the receive msg mutex
 	pthread_mutex_lock(&md->p->receive_msg_mutex);
 
@@ -155,7 +155,7 @@ TransportBGetRecvMessage *local_client_bget_op(mdhim_t *md, TransportGetMessage 
 		return NULL;
 	}
 
-    return static_cast<TransportBGetRecvMessage *>(get_msg_self(md));
+    return dynamic_cast<TransportBGetRecvMessage *>(get_msg_self(md));
 }
 
 /**
@@ -205,7 +205,7 @@ TransportRecvMessage *local_client_delete(mdhim_t *md, TransportBDeleteMessage *
 		return NULL;
 	}
 
-    return static_cast<TransportRecvMessage *>(get_msg_self(md));
+    return dynamic_cast<TransportRecvMessage *>(get_msg_self(md));
 }
 
 /**
@@ -230,7 +230,7 @@ TransportRecvMessage *local_client_bdelete(mdhim_t *md, TransportBDeleteMessage 
 		return NULL;
 	}
 
-    return static_cast<TransportRecvMessage *>(get_msg_self(md));
+    return dynamic_cast<TransportRecvMessage *>(get_msg_self(md));
 }
 
 // /**
@@ -239,7 +239,7 @@ TransportRecvMessage *local_client_bdelete(mdhim_t *md, TransportBDeleteMessage 
 //  * @param md main MDHIM struct
 //  * @param cm pointer to close message to be inserted into the range server's work queue
 //  */
-// void local_client_close(mdhim_t *md, struct mdhim_basem_t *cm) {
+// void local_client_close(mdhim_t *md, TransportMessage *cm) {
 // 	int ret;
 // 	work_item_t *item = new work_item_t();
 
@@ -248,7 +248,7 @@ TransportRecvMessage *local_client_bdelete(mdhim_t *md, TransportBDeleteMessage 
 // 		return;
 // 	}
 
-// 	item->message = (void *)cm;
+// 	item->message = cm;
 
 // 	if ((ret = range_server_add_work(md, item)) != MDHIM_SUCCESS) {
 // 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_put");
