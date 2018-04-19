@@ -86,30 +86,39 @@ done
 # Generate commands using the key value pairs
 declare -A OPS
 OPS["PUT"]=$(for key in ${!KEYPAIRS[@]}; do
-                 printf "PUT $key ${KEYPAIRS[$key]}\n"
+                 echo "PUT $key ${KEYPAIRS[$key]}"
              done)
 OPS["GET"]=$(for key in ${!KEYPAIRS[@]}; do
-                 printf "GET $key\n"
+                 echo "GET $key"
              done)
 OPS["DEL"]=$(for key in ${!KEYPAIRS[@]}; do
-                 printf "DELETE $key\n"
+                 echo "DEL $key"
              done)
-OPS["BPUT"]=$(printf "BPUT $COUNT";
+OPS["BPUT"]=$(echo -n "BPUT $COUNT";
               for key in ${!KEYPAIRS[@]}; do
-                  printf " $key ${KEYPAIRS[$key]}"
+                  echo -n " $key ${KEYPAIRS[$key]}"
               done)
-OPS["BGET"]=$(printf "BGET $COUNT";
+OPS["BGET"]=$(echo -n "BGET $COUNT";
               for key in ${!KEYPAIRS[@]}; do
-                  printf " $key"
+                  echo -n " $key"
               done)
-OPS["BDEL"]=$(printf "BDELETE $COUNT";
+OPS["BDEL"]=$(echo -n "BDEL $COUNT";
               for key in ${!KEYPAIRS[@]}; do
-                  printf " $key"
+                  echo -n " $key"
               done)
+
+# Print configuration
+echo "Min Key Length:      $MIN_KEY_LEN"
+echo "Max Key Length:      $MAX_KEY_LEN"
+echo "Min Value Length:    $MIN_VALUE_LEN"
+echo "Max Value Length:    $MAX_VALUE_LEN"
+echo "Number of KV Pairs:  $COUNT"
+echo "Number of MPI ranks: $RANKS"
+echo "Reading config from: $(realpath $MDHIM_CONFIG)"
 
 # Pass the commands to the CLI
 (
     for op in "${POSITIONAL[@]}"; do
-        printf "${OPS[$op]}\n"
+        echo "${OPS[$op]}"
     done
 ) | MDHIM_CONFIF=$MDHIM_CONFIG mpirun -np $RANKS examples/cli

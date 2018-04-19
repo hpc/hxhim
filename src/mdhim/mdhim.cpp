@@ -806,6 +806,14 @@ mdhim_brm_t *mdhimBDelete(mdhim_t *md, index_t *index,
         index = md->p->primary_index;
     }
 
+    //Check to see that we were given a sane amount of records
+    if (num_records > MAX_BULK_OPS) {
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
+             "Too many bulk operations requested in mdhimBDelete",
+              md->mdhim_rank);
+        return nullptr;
+    }
+
     // copy the keys
     void **ks = new void *[num_records]();
     int *k_lens = new int[num_records]();
@@ -821,18 +829,12 @@ mdhim_brm_t *mdhimBDelete(mdhim_t *md, index_t *index,
             for(int j = 0; j < i; j++) {
                 ::operator delete(ks[j]);
             }
+            delete [] ks;
+            delete [] k_lens;
             return nullptr;
         }
         memcpy(ks[i], keys[i], key_lens[i]);
         k_lens[i] = key_lens[i];
-    }
-
-    //Check to see that we were given a sane amount of records
-    if (num_records > MAX_BULK_OPS) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
-             "Too many bulk operations requested in mdhimBDelete",
-              md->mdhim_rank);
-        return nullptr;
     }
 
     return mdhim_brm_init(_bdel_records(md, index, ks, k_lens, num_records));

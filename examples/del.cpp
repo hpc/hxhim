@@ -32,10 +32,10 @@ void del(mdhim_t *md,
 
     // Check error value
     if (error != MDHIM_SUCCESS) {
-        err << "DELETE error " << error << std::endl;
+        err << "DEL error " << error << std::endl;
     }
     else {
-        out << "DELETE " << std::string((char *)primary_key, primary_key_len) << " from range server on rank " << mdhimWhichServer(md, primary_key, primary_key_len) << std::endl;
+        out << "DEL " << std::string((char *)primary_key, primary_key_len) << " from range server on rank " << mdhimWhichServer(md, primary_key, primary_key_len) << std::endl;
     }
 
     // destroying the return value must occur

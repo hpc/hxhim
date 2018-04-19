@@ -5,7 +5,7 @@
 
 #include "mdhim.h"
 
-#include "input.hpp"
+#include "util.hpp"
 #include "put.hpp"
 #include "get.hpp"
 #include "bput.hpp"
@@ -103,10 +103,10 @@ int main(int argc, char *argv[]) {
                 else if (cmd == "BGET") {
                     bget(&md, data[0], lens[0], num_keys);
                 }
-                else if (cmd == "DELETE") {
+                else if (cmd == "DEL") {
                     del(&md, data[0][0], lens[0][0]);
                 }
-                else if (cmd == "BDELETE") {
+                else if (cmd == "BDEL") {
                     bdel(&md, data[0], lens[0], num_keys);
                 }
                 else if (cmd == "WHICH") {

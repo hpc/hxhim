@@ -31,13 +31,12 @@ void bput(mdhim_t *md,
     }
 
     // Get and print results
-    while (brm) {
+    for(int ret = MDHIM_SUCCESS; (ret == MDHIM_SUCCESS) && brm; ret = next(&brm)) {
         // Get error value
         int error = MDHIM_ERROR;
         if (mdhim_brm_error(brm, &error) != MDHIM_SUCCESS) {
             err << "Could not BPUT" << std::endl;
-            mdhim_brm_destroy(brm);
-            return;
+            break;
         }
 
         // Check error value
@@ -52,15 +51,16 @@ void bput(mdhim_t *md,
             break;
         }
 
-        // destroy the current node
-        mdhim_brm_destroy(brm);
-        brm = next;
     }
 
     if (!brm) {
         for(int i = 0; i < num_keys; i++) {
             out << "BPUT " << std::string((char *)primary_keys[i], primary_key_lens[i]) << " -> " << std::string((char *)values[i], value_lens[i]) << " to range server on rank " << mdhimWhichServer(md, primary_keys[i], primary_key_lens[i]) << std::endl;
         }
+    }
+
+    while (brm) {
+        next(&brm);
     }
 
     mdhim_brm_destroy(brm);

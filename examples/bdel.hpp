@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include "mdhim.h"
+#include "util.hpp"
 
 /** @description Example usage and cleanup of mdhimBDelete */
 void bdel(mdhim_t *md,

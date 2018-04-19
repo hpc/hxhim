@@ -1,4 +1,4 @@
-#include "input.hpp"
+#include "util.hpp"
 
 /**
  * bulk_read
@@ -15,7 +15,7 @@
  * @param lens         corresponding lengths of the data
  * @param rows         how many rows of data there are
  * @param read_rows    whether or not to read the number of rows from s; if false, sets rows to 1
- * @return MDHIM_SUCCESS or MDHIM_ERROR;
+ * @return MDHIM_SUCCESS or MDHIM_ERROR
  */
 int bulk_read(std::istream &s, int columns, void ****data, int ***lens, int &rows, bool read_rows) {
     // get number of rows
@@ -68,7 +68,7 @@ int bulk_read(std::istream &s, int columns, void ****data, int ***lens, int &row
  * @param data    an array of columns of data; each value in a column is a pointer
  * @param lens    corresponding lengths of the data
  * @param rows    how many rows of data there are
- * @return MDHIM_SUCCESS or MDHIM_ERROR;
+ * @return MDHIM_SUCCESS or MDHIM_ERROR
  */
 int bulk_clean(int columns, void ***data, int **lens, int rows) {
     if (data) {
@@ -99,5 +99,51 @@ int bulk_clean(int columns, void ***data, int **lens, int rows) {
         delete [] lens;
     }
 
+    return MDHIM_SUCCESS;
+}
+
+/**
+ * next
+ * Increment a mdhim_brm_t to the next message
+ *
+ * @param brm the current message
+ * @return MDHIM_SUCCESS or MDHIM_ERROR
+ */
+int next(mdhim_brm_t **brm) {
+    if (!brm) {
+        return MDHIM_ERROR;
+    }
+
+    // Go to next result
+    mdhim_brm_t *next = nullptr;
+    if (mdhim_brm_next(*brm, &next) != MDHIM_SUCCESS) {
+        return MDHIM_ERROR;
+    }
+
+    mdhim_brm_destroy(*brm);
+    *brm = next;
+    return MDHIM_SUCCESS;
+}
+
+/**
+ * next
+ * Increment a mdhim_bgetrm_t to the next message
+ *
+ * @param bgrm the current message
+ * @return MDHIM_SUCCESS or MDHIM_ERROR
+ */
+int next(mdhim_bgetrm_t **bgrm) {
+    if (!bgrm) {
+        return MDHIM_ERROR;
+    }
+
+    // Go to next result
+    mdhim_bgetrm_t *next = nullptr;
+    if (mdhim_bgrm_next(*bgrm, &next) != MDHIM_SUCCESS) {
+        return MDHIM_ERROR;
+    }
+
+    mdhim_bgrm_destroy(*bgrm);
+    *bgrm = next;
     return MDHIM_SUCCESS;
 }

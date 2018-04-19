@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include "mdhim.h"
+#include "util.hpp"
 
 /** @description Example usage and cleanup of mdhimBGet */
 void bget(mdhim_t *md,
