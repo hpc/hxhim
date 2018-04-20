@@ -50,7 +50,7 @@ typedef struct index {
 	int rangesrv_master;
 
 	//The number of range servers for this index
-	uint32_t num_rangesrvs;
+	int32_t num_rangesrvs;
 
 	//The rank's range server information, if it is a range server for this index
 	rangesrv_info_t myinfo;
