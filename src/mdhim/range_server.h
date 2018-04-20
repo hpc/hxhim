@@ -19,12 +19,12 @@ typedef struct work_queue {
 typedef struct out_req {
 	out_req *next;
 	out_req *prev;
-	void *req;
-	MPI_Request *message;
+	MPI_Request *req;
+	void *message;
 } out_req_t;
 
 /* Range server specific data */
-typedef struct mdhim_rs_t {
+typedef struct mdhim_rs {
 	work_queue_t *work_queue;
 	pthread_mutex_t *work_queue_mutex;
 	pthread_cond_t *work_ready_cv;

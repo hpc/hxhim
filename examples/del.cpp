@@ -35,7 +35,8 @@ void del(mdhim_t *md,
         err << "DEL error " << error << std::endl;
     }
     else {
-        out << "DEL " << std::string((char *)primary_key, primary_key_len) << " from range server on rank " << mdhimWhichServer(md, primary_key, primary_key_len) << std::endl;
+        int src;
+        out << "DEL " << std::string((char *)primary_key, primary_key_len) << " from range server on rank " << ((mdhim_brm_src(brm, &src) == MDHIM_SUCCESS)?src:-1) << std::endl;
     }
 
     // destroying the return value must occur

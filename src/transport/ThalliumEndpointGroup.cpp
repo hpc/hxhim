@@ -1,8 +1,7 @@
 #include "ThalliumEndpointGroup.hpp"
 
-ThalliumEndpointGroup::ThalliumEndpointGroup(mdhim_private_t *mdp, const Thallium::RPC_t &rpc)
+ThalliumEndpointGroup::ThalliumEndpointGroup(const Thallium::RPC_t &rpc)
     : TransportEndpointGroup(),
-      mdp_(mdp),
       rpc_(rpc),
       endpoints_()
 {}

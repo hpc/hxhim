@@ -5,10 +5,9 @@
 
 pthread_mutex_t MPIEndpointBase::mutex_ = PTHREAD_MUTEX_INITIALIZER;
 
-MPIEndpointBase::MPIEndpointBase(const MPI_Comm comm, FixedBufferPool *fbp, volatile int &shutdown)
+MPIEndpointBase::MPIEndpointBase(const MPI_Comm comm, FixedBufferPool *fbp)
     : comm_(comm),
-      fbp_(fbp),
-      shutdown_(shutdown)
+      fbp_(fbp)
 {
     if (comm_ == MPI_COMM_NULL) {
         throw std::runtime_error("Received MPI_COMM_NULL as communicator");
@@ -39,21 +38,4 @@ int MPIEndpointBase::Rank() const {
 
 int MPIEndpointBase::Size() const {
     return size_;
-}
-
-void MPIEndpointBase::Flush(MPI_Request *req) {
-    int flag = 0;
-    MPI_Status status;
-
-    if (!req) {
-        return;
-    }
-
-    while (!flag && !shutdown_) {
-        usleep(100);
-
-        pthread_mutex_lock(&mutex_);
-        MPI_Test(req, &flag, &status);
-        pthread_mutex_unlock(&mutex_);
-    }
 }

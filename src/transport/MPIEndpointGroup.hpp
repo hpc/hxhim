@@ -22,8 +22,7 @@
 class MPIEndpointGroup : virtual public TransportEndpointGroup, virtual public MPIEndpointBase {
     public:
         MPIEndpointGroup(const MPI_Comm comm, pthread_mutex_t mutex,
-                         FixedBufferPool *fbp,
-                         volatile int &shutdown);
+                         FixedBufferPool *fbp);
 
         ~MPIEndpointGroup();
 

@@ -18,15 +18,15 @@ typedef struct mdhim_private mdhim_private_t;
 typedef struct mdhim {
     // ///////////////////////////////////////
     // MPI boostrap
-    MPI_Comm mdhim_comm;
-    pthread_mutex_t mdhim_comm_lock;
+    MPI_Comm comm;
+    pthread_mutex_t lock;
 
-    //The size of mdhim_comm
-    int mdhim_comm_size;
+    //The size of comm
+    int size;
 
-    //Rank within mdhim_comm
+    //Rank within comm
     //Used as this instance's unique ID
-    int mdhim_rank;
+    int rank;
     // ///////////////////////////////////////
 
     mdhim_private_t *p;

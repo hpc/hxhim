@@ -28,16 +28,16 @@ void bget(mdhim_t *md,
     // Get and print results
     for(int ret = MDHIM_SUCCESS; (ret == MDHIM_SUCCESS) && bgrm; ret = next(&bgrm)) {
         // Get number of num_keys
-        int num_keys = 0;
-        if (mdhim_bgrm_num_keys(bgrm, &num_keys) != MDHIM_SUCCESS) {
+        int get_num_keys = 0;
+        if (mdhim_bgrm_num_keys(bgrm, &get_num_keys) != MDHIM_SUCCESS) {
             err << "Could not get number of num_keys" << std::endl;
             continue;
         }
 
         // Get keys
-        void **bgrm_keys = nullptr;
-        int *bgrm_key_lens = nullptr;
-        if (mdhim_bgrm_keys(bgrm, &bgrm_keys, &bgrm_key_lens) != MDHIM_SUCCESS) {
+        void **get_keys = nullptr;
+        int *get_key_lens = nullptr;
+        if (mdhim_bgrm_keys(bgrm, &get_keys, &get_key_lens) != MDHIM_SUCCESS) {
             err << "Could not get keys" << std::endl;
             continue;
         }
@@ -53,23 +53,26 @@ void bget(mdhim_t *md,
             continue;
         }
 
-        void **values = nullptr;
-        int *value_lens = nullptr;
-
-        // Check error value and get values
-        if ((error == MDHIM_SUCCESS) &&
-            (mdhim_bgrm_values(bgrm, &values, &value_lens) == MDHIM_SUCCESS)) {
-            // Print key value pairs
-            for(int i = 0; i < num_keys; i++) {
-                out << "BGET " << std::string((char *)bgrm_keys[i], bgrm_key_lens[i]) << " -> " << std::string((char *)values[i], value_lens[i]) << " from range server on rank " << mdhimWhichServer(md, keys[i], key_lens[i]) << std::endl;
+        // Check error value
+        if (error == MDHIM_SUCCESS) {
+            // Get values
+            void **get_values = nullptr;
+            int *get_value_lens = nullptr;
+            if (mdhim_bgrm_values(bgrm, &get_values, &get_value_lens) != MDHIM_SUCCESS) {
+                err << "BGET error " << error << std::endl;
+            }
+            else {
+                for(int i = 0; i < get_num_keys; i++) {
+                    int src;
+                    out << "BGET " << std::string((char *)get_keys[i], get_key_lens[i]) << " -> " << std::string((char *)get_values[i], get_value_lens[i]) << " from range server on rank " << ((mdhim_bgrm_src(bgrm, &src) == MDHIM_SUCCESS)?src:-1) << std::endl;
+                }
             }
         }
         else {
-            // Print keys
-            for(int i = 0; i < num_keys; i++) {
-                out << "Could not BGET " << std::string((char *)bgrm_keys[i], bgrm_key_lens[i]) << " from range server on rank " << mdhimWhichServer(md, bgrm_keys[i], bgrm_key_lens[i]) << std::endl;
+            for(int i = 0; i < get_num_keys; i++) {
+                int src;
+                out << "Could not BGET " << std::string((char *)get_keys[i], get_key_lens[i]) << " from range server on rank " << ((mdhim_bgrm_src(bgrm, &src) == MDHIM_SUCCESS)?src:-1) << std::endl;
             }
-            continue;
         }
     }
 

@@ -16,7 +16,7 @@ int MPIRangeServer::init(mdhim_t *md, FixedBufferPool *fbp) {
                        listener_thread, (void *)md) != 0) {
         mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
              "Error while initializing listener thread",
-             md->mdhim_rank);
+             md->rank);
         return MDHIM_ERROR;
     }
 
@@ -166,7 +166,6 @@ int MPIRangeServer::only_receive_rangesrv_work(void **recvbuf, int *recvsize, vo
     MPI_Status status;
     MPI_Request req;
     int flag = 0;
-    int ret = MDHIM_SUCCESS;
 
     // force the srouce rank to be bad
     status.MPI_SOURCE = -1;
@@ -200,7 +199,7 @@ int MPIRangeServer::only_receive_rangesrv_work(void **recvbuf, int *recvsize, vo
         return MDHIM_ERROR;
     }
 
-    return ret;
+    return MDHIM_SUCCESS;
 }
 
 /**

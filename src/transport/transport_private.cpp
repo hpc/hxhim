@@ -1,16 +1,10 @@
 #include "transport_private.hpp"
 
-mdhim_rm_t *mdhim_rm_init(TransportRecvMessage *rm) {
-    mdhim_rm_t *ret = new mdhim_rm_t();
-    if (!ret) {
+mdhim_getrm_t *mdhim_grm_init(TransportGetRecvMessage *grm) {
+    if (!grm) {
         return nullptr;
     }
 
-    ret->rm = rm;
-    return ret;
-}
-
-mdhim_getrm_t *mdhim_grm_init(TransportGetRecvMessage *grm) {
     mdhim_getrm_t *ret = new mdhim_getrm_t();
     if (!ret) {
         return nullptr;
@@ -21,6 +15,10 @@ mdhim_getrm_t *mdhim_grm_init(TransportGetRecvMessage *grm) {
 }
 
 mdhim_bgetrm_t *mdhim_bgrm_init(TransportBGetRecvMessage *bgrm) {
+    if (!bgrm) {
+        return nullptr;
+    }
+
     mdhim_bgetrm_t *ret = new mdhim_bgetrm_t();
     if (!ret) {
         return nullptr;
@@ -31,6 +29,10 @@ mdhim_bgetrm_t *mdhim_bgrm_init(TransportBGetRecvMessage *bgrm) {
 }
 
 mdhim_brm_t *mdhim_brm_init(TransportBRecvMessage *brm) {
+    if (!brm) {
+        return nullptr;
+    }
+
     mdhim_brm_t *ret = new mdhim_brm_t();
     if (!ret) {
         return nullptr;
@@ -38,14 +40,6 @@ mdhim_brm_t *mdhim_brm_init(TransportBRecvMessage *brm) {
 
     ret->brm = brm;
     return ret;
-}
-
-void mdhim_rm_destroy(mdhim_rm_t *rm) {
-    if (rm) {
-        delete rm->rm;
-    }
-
-    delete rm;
 }
 
 void mdhim_grm_destroy(mdhim_getrm_t *grm) {
@@ -72,6 +66,15 @@ void mdhim_brm_destroy(mdhim_brm_t *brm) {
     delete brm;
 }
 
+int mdhim_brm_src(const mdhim_brm_t *brm, int *src) {
+    if (!brm || !brm->brm || !src) {
+        return MDHIM_ERROR;
+    }
+
+    *src = brm->brm->src;
+    return MDHIM_SUCCESS;
+}
+
 int mdhim_brm_error(const mdhim_brm_t *brm, int *error) {
     if (!brm || !brm->brm || !error) {
         return MDHIM_ERROR;
@@ -92,6 +95,15 @@ int mdhim_brm_next(const mdhim_brm_t *brm, mdhim_brm_t **next) {
         *next = mdhim_brm_init(brm->brm->next);
     }
 
+    return MDHIM_SUCCESS;
+}
+
+int mdhim_grm_src(const mdhim_getrm_t *grm, int *src) {
+    if (!grm || !grm->grm || !src) {
+        return MDHIM_ERROR;
+    }
+
+    *src = grm->grm->src;
     return MDHIM_SUCCESS;
 }
 
@@ -133,6 +145,15 @@ int mdhim_grm_value(const mdhim_getrm_t *grm, void **value, int *value_len) {
         *value_len = grm->grm->value_len;
     }
 
+    return MDHIM_SUCCESS;
+}
+
+int mdhim_bgrm_src(const mdhim_bgetrm_t *bgrm, int *src) {
+    if (!bgrm || !bgrm->bgrm || !src) {
+        return MDHIM_ERROR;
+    }
+
+    *src = bgrm->bgrm->src;
     return MDHIM_SUCCESS;
 }
 

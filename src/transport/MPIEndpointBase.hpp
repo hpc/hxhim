@@ -18,14 +18,12 @@
  */
 class MPIEndpointBase {
     public:
-        MPIEndpointBase(const MPI_Comm comm, FixedBufferPool *fbp, volatile int &shutdown);
+        MPIEndpointBase(const MPI_Comm comm, FixedBufferPool *fbp);
         virtual ~MPIEndpointBase();
 
         MPI_Comm Comm() const;
         int Rank() const;
         int Size() const;
-
-        void Flush(MPI_Request *req);
 
     protected:
         MPI_Comm comm_;
@@ -35,8 +33,6 @@ class MPIEndpointBase {
         int size_;
 
         FixedBufferPool *fbp_;
-
-        volatile int &shutdown_;
 };
 
 #endif

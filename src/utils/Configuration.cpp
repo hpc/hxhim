@@ -1,5 +1,7 @@
 #include "Configuration.hpp"
 
+ConfigReader::~ConfigReader() {}
+
 ConfigSequence::ConfigSequence()
   : sequence_(),
     next_index_(0)

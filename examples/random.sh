@@ -9,16 +9,16 @@ RANKS=10
 MDHIM_CONFIG=${MDHIM_CONFIG:-"mdhim.conf"}
 
 function help() {
-    echo "Usage: $(basename $0) [Options] PUT|GET|DEL|BPUT|BGET|BDEL ..."
+    echo "Usage: $(basename $0) [Options] PUT|GET|DEL|BPUT|BGET|BDEL|COMMIT ..."
     echo
     echo "    Options:"
     echo "        -h, --help       show help"
-    echo "        -n, --count      number of key value pairs"
-    echo "        -np, --ranks     the number of MPI ranks"
-    echo "        --min_key_len    the minimum length of a key"
-    echo "        --max_key_len    the maximum length of a key"
-    echo "        --min_value_len  the minimum length of a value"
-    echo "        --max_value_len  the maximum length of a value"
+    echo "        -n, --count      number of key value pairs     ($COUNT)"
+    echo "        -np, --ranks     the number of MPI ranks       ($RANKS)"
+    echo "        --min_key_len    the minimum length of a key   ($MIN_KEY_LEN)"
+    echo "        --max_key_len    the maximum length of a key   ($MAX_KEY_LEN)"
+    echo "        --min_value_len  the minimum length of a value ($MIN_VALUE_LEN)"
+    echo "        --max_value_len  the maximum length of a value ($MAX_VALUE_LEN)"
 }
 
 # Parse command line arguments
@@ -49,7 +49,7 @@ case $key in
     shift # past value
     ;;
     --max_key_len)
-    Max_KEY_LEN=$2
+    MAX_KEY_LEN=$2
     shift # past argument
     shift # past value
     ;;
@@ -59,7 +59,7 @@ case $key in
     shift # past value
     ;;
     --max_value_len)
-    Max_VALUE_LEN=$2
+    MAX_VALUE_LEN=$2
     shift # past argument
     shift # past value
     ;;
@@ -71,16 +71,52 @@ esac
 done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
-# Check for arguments
+#Make sure optional arguments make sense
+if [[ "$MIN_KEY_LEN" -lt 1 ]] ; then
+    echo "Minimum Key Length ($MIN_KEY_LEN) is too small"
+    exit -1
+fi
+
+if [[ "$MAX_KEY_LEN" -lt 1 ]] ; then
+    echo "Maximum Key Length ($MAX_KEY_LEN) is too small"
+    exit -1
+fi
+
+if [[ "$MIN_KEY_LEN" -gt "$MAX_KEY_LEN" ]] ; then
+    echo "Minimum Key Length ($MIN_KEY_LEN) is larger than Maximum Key Length ($MAX_KEY_LEN)"
+    exit -1
+fi
+
+if [[ "$MIN_VALUE_LEN" -lt 1 ]] ; then
+    echo "Minimum Value Length ($MIN_VALUE_LEN) is too small"
+    exit -1
+fi
+
+if [[ "$MAX_VALUE_LEN" -lt 1 ]] ; then
+    echo "Maximum Value Length ($MAX_VALUE_LEN) is too small"
+    exit -1
+fi
+
+if [[ "$MIN_VALUE_LEN" -gt "$MAX_VALUE_LEN" ]] ; then
+    echo "Minimum Value Length ($MIN_VALUE_LEN) is larger than Maximum Value Length ($MAX_VALUE_LEN)"
+    exit -1
+fi
+
+if [[ "$COUNT" -lt "0" ]] ; then
+    echo "Too few key value pairs: $COUNT"
+    exit -1
+fi
+
+# Check for positional parameters
 if [[ "$#" -eq "0" ]] ; then
     help
     exit 0
 fi
 
-# Generate key valuepairs
+# Generate key value pairs
 declare -A KEYPAIRS
 for i in $(seq 1 $COUNT); do
-    KEYPAIRS[$(pwgen $((MIN_KEY_LEN+RANDOM%MAX_KEY_LEN)) 1)]=$(pwgen $((MIN_VALUE_LEN+RANDOM%MAX_VALUE_LEN)) 1)
+    KEYPAIRS[$(pwgen $(shuf -i $MIN_KEY_LEN-$MAX_KEY_LEN -n 1) 1)]=$(pwgen $(shuf -i $MIN_VALUE_LEN-$MAX_VALUE_LEN -n 1) 1)
 done
 
 # Generate commands using the key value pairs
@@ -106,12 +142,11 @@ OPS["BDEL"]=$(echo -n "BDEL $COUNT";
               for key in ${!KEYPAIRS[@]}; do
                   echo -n " $key"
               done)
+OPS["COMMIT"]=$(echo -n "COMMIT")
 
 # Print configuration
-echo "Min Key Length:      $MIN_KEY_LEN"
-echo "Max Key Length:      $MAX_KEY_LEN"
-echo "Min Value Length:    $MIN_VALUE_LEN"
-echo "Max Value Length:    $MAX_VALUE_LEN"
+echo "Key Length:          [$MIN_KEY_LEN, $MAX_KEY_LEN]"
+echo "Value Length:        [$MIN_VALUE_LEN, $MAX_VALUE_LEN]"
 echo "Number of KV Pairs:  $COUNT"
 echo "Number of MPI ranks: $RANKS"
 echo "Reading config from: $(realpath $MDHIM_CONFIG)"

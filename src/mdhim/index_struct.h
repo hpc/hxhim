@@ -8,6 +8,12 @@
 
 #include "range_server_info_struct.h"
 
+#define BAD_INDEX       0
+#define PRIMARY_INDEX   1
+#define SECONDARY_INDEX 2
+#define LOCAL_INDEX     3
+#define REMOTE_INDEX    4
+
 /*
  * Remote Index info
  * Contains information about a remote index
@@ -40,7 +46,7 @@ typedef struct index {
 	//This communicator is for range servers only to talk to each other
 	MPI_Comm rs_comm;
 	/* The rank of the range server master that will broadcast stat data to all clients
-	   This rank is the rank in mdhim_comm not in the range server communicator */
+	   This rank is the rank in comm not in the range server communicator */
 	int rangesrv_master;
 
 	//The number of range servers for this index

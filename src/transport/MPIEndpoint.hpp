@@ -19,7 +19,8 @@
 class MPIEndpoint : virtual public TransportEndpoint, virtual public MPIEndpointBase {
     public:
         /** Create a TransportEndpoint for a specified process rank */
-        MPIEndpoint(const MPI_Comm comm, const int remote_rank,
+        MPIEndpoint(const MPI_Comm comm,
+                    const int remote_rank,
                     FixedBufferPool *fbp,
                     volatile int &shutdown);
 
@@ -65,7 +66,10 @@ class MPIEndpoint : virtual public TransportEndpoint, virtual public MPIEndpoint
             return dynamic_cast<Recv_t *>(response);
         }
 
+        void Flush(MPI_Request *req);
+
         const int remote_rank_;
+        volatile int &shutdown_;
 };
 
 #endif

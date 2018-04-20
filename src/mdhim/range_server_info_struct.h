@@ -10,7 +10,7 @@
  * Contains information about each range server
  */
 typedef struct rangesrv_info {
-	//The range server's rank in the mdhim_comm
+	//The range server's rank in the comm
 	uint32_t rank;
 	//The range server's identifier based on rank and number of servers
 	uint32_t rangesrv_num;

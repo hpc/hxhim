@@ -17,6 +17,8 @@ typedef std::map<std::string, std::string> Config;
  */
 class ConfigReader {
     public:
+        virtual ~ConfigReader() = 0;
+
         /** @description This function should be implemented in order to fill in a configuration */
         virtual bool process(Config &config) const = 0;
 };

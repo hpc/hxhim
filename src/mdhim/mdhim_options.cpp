@@ -227,7 +227,6 @@ int mdhim_options_set_db_paths(struct mdhim_options* opts, char **paths, const i
         return MDHIM_ERROR;
     }
 
-    int ret;
     int verified_paths = -1;
 
     if (num_paths <= 0) {

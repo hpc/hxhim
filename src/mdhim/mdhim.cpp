@@ -30,20 +30,20 @@
  * @return MDHIM status value
  */
 static int bootstrapInit(mdhim_t *md) {
-    if (!md || !md->p){
+    if (!md){
         return MDHIM_ERROR;
     }
 
-    md->mdhim_comm = MPI_COMM_WORLD;
-    md->mdhim_comm_lock = PTHREAD_MUTEX_INITIALIZER;
+    md->comm = MPI_COMM_WORLD;
+    md->lock = PTHREAD_MUTEX_INITIALIZER;
 
     //Get the size of the main MDHIM communicator
-    if (MPI_Comm_size(md->mdhim_comm, &md->mdhim_comm_size) != MPI_SUCCESS) {
+    if (MPI_Comm_size(md->comm, &md->size) != MPI_SUCCESS) {
         return MDHIM_ERROR;
     }
 
     //Get the rank of the main MDHIM communicator
-    if (MPI_Comm_rank(md->mdhim_comm, &md->mdhim_rank) != MPI_SUCCESS) {
+    if (MPI_Comm_rank(md->comm, &md->rank) != MPI_SUCCESS) {
         return MDHIM_ERROR;
     }
 
@@ -62,9 +62,9 @@ static int bootstrapDestroy(mdhim_t *md) {
         return MDHIM_ERROR;
     }
 
-    md->mdhim_comm = MPI_COMM_NULL;
-    md->mdhim_comm_size = 0;
-    md->mdhim_rank = 0;
+    md->comm = MPI_COMM_NULL;
+    md->size = 0;
+    md->rank = 0;
 
     return MDHIM_SUCCESS;
 }
@@ -86,18 +86,25 @@ int mdhimInit(mdhim_t* md, mdhim_options_t *opts) {
     //Open mlog - stolen from plfs
     mlog_open((char *)"mdhim", 0, opts->p->db->debug_level, opts->p->db->debug_level, nullptr, 0, MLOG_LOGPID, 0);
 
-    if (!(md->p = new mdhim_private_t())) {
-        return MDHIM_ERROR;
-    }
-
     //Initialize bootstrapping variables
     if (bootstrapInit(md) != MDHIM_SUCCESS){
         mlog(MDHIM_CLIENT_CRIT, "MDHIM - Error Bootstrap Initialization Failed");
         return MDHIM_ERROR;
     }
 
+    if (!(md->p = new mdhim_private_t())) {
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d midhimInit - Memory Allocation For Private Variables Failed", md->rank);
+        return MDHIM_ERROR;
+    }
+
     //Initialize context variables based on options
-    return mdhim_private_init(md, opts->p->db, opts->p->transport);
+    if (mdhim_private_init(md, opts->p->db, opts->p->transport) != MDHIM_SUCCESS) {
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d mdhimInit - Private Variable Initialization Failed", md->rank);
+        return MDHIM_ERROR;
+    }
+
+    mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d mdhimInit - Completed Successfully", md->rank);
+    return MDHIM_SUCCESS;
 }
 
 /**
@@ -107,6 +114,8 @@ int mdhimInit(mdhim_t* md, mdhim_options_t *opts) {
  * @return MDHIM status value
  */
 int mdhimClose(mdhim_t *md) {
+    mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d mdhimClose - Started", md->rank);
+
     mdhim_private_destroy(md);
 
     //Clean up bootstrapping variables
@@ -137,19 +146,20 @@ int mdhimCommit(mdhim_t *md, index_t *index) {
         cm->mtype = TransportMessageType::COMMIT;
         cm->index = index->id;
         cm->index_type = index->type;
-        cm->src = md->mdhim_rank;
-        cm->dst = md->mdhim_rank;
+        cm->src = md->rank;
+        cm->dst = md->rank;
         TransportRecvMessage *rm = local_client_commit(md, static_cast<TransportMessage *>(cm));
         if (!rm || rm->error) {
             ret = MDHIM_ERROR;
-            mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
-                 "Error while committing database in mdhimTransportit",
-                  md->mdhim_rank);
+            mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d mdhimCommit - "
+                 "Error while committing to database",
+                  md->rank);
         }
 
         delete rm;
     }
 
+    mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d mdhimCommit - Completed Successfully", md->rank);
     return ret;
 }
 
@@ -170,9 +180,12 @@ mdhim_brm_t *mdhimPut(mdhim_t *md,
                       void *value, int value_len,
                       secondary_info_t *secondary_global_info,
                       secondary_info_t *secondary_local_info) {
+    mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d mdhimPut - Started", md->rank);
+
     if (!md || !md->p ||
         !primary_key || !primary_key_len ||
         !value || !value_len) {
+        mlog(MDHIM_CLIENT_ERR, "MDHIM Rank %d mdhimPut - Bad Arguments", md->rank);
         return nullptr;
     }
 
@@ -182,6 +195,7 @@ mdhim_brm_t *mdhimPut(mdhim_t *md,
     if (!pk || !val) {
         ::operator delete(pk);
         ::operator delete(val);
+        mlog(MDHIM_CLIENT_ERR, "MDHIM Rank %d mdhimPut - Could not allocate memory", md->rank);
         return nullptr;
     }
 
@@ -191,6 +205,7 @@ mdhim_brm_t *mdhimPut(mdhim_t *md,
     //Send the primary key and value
     TransportRecvMessage *rm = _put_record(md, md->p->primary_index, pk, primary_key_len, val, value_len);
     if (!rm) {
+        mlog(MDHIM_CLIENT_ERR, "MDHIM Rank %d mdhimPut - _put_record returned nullptr", md->rank);
         return nullptr;
     }
 
@@ -206,6 +221,8 @@ mdhim_brm_t *mdhimPut(mdhim_t *md,
         secondary_local_info->secondary_keys &&
         secondary_local_info->secondary_key_lens &&
         secondary_local_info->num_keys) {
+        mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d mdhimPut - Inserting Secondary Local Key", md->rank);
+
         //Duplicate keys
         void **secondary_keys = new void *[secondary_local_info->num_keys]();
         int *secondary_key_lens = new int[secondary_local_info->num_keys]();
@@ -226,13 +243,17 @@ mdhim_brm_t *mdhimPut(mdhim_t *md,
                             secondary_keys, secondary_key_lens,
                             primary_keys, primary_key_lens,
                             secondary_local_info->num_keys);
-        delete [] primary_keys;
-        delete [] primary_key_lens;
-        if (!brm) {
-            return mdhim_brm_init(head);
-        }
 
-        _concat_brm(head, brm);
+        if (brm) {
+            delete [] primary_keys;
+            delete [] primary_key_lens;
+            _concat_brm(&head, brm);
+
+            mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d mdhimPut - Inserted Secondary Local Key", md->rank);
+        }
+        else {
+            mlog(MDHIM_CLIENT_ERR, "MDHIM Rank %d mdhimPut - Failed to insert Secondary Local Key", md->rank);
+        }
     }
 
     //Insert the secondary global key if it was given
@@ -240,6 +261,8 @@ mdhim_brm_t *mdhimPut(mdhim_t *md,
         secondary_global_info->secondary_keys &&
         secondary_global_info->secondary_key_lens &&
         secondary_global_info->num_keys) {
+        mlog(MDHIM_CLIENT_ERR, "MDHIM Rank %d mdhimPut - Inserting Secondary Global Key", md->rank);
+
         //Duplicate keys
         void **secondary_keys = new void *[secondary_global_info->num_keys]();
         int *secondary_key_lens = new int[secondary_global_info->num_keys]();
@@ -260,16 +283,19 @@ mdhim_brm_t *mdhimPut(mdhim_t *md,
                             secondary_keys, secondary_key_lens,
                             primary_keys, primary_key_lens,
                             secondary_global_info->num_keys);
+        if (brm) {
+            delete [] primary_keys;
+            delete [] primary_key_lens;
+            _concat_brm(&head, brm);
 
-        delete [] primary_keys;
-        delete [] primary_key_lens;
-        if (!brm) {
-            return mdhim_brm_init(head);
+            mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d mdhimPut - Inserted Secondary Global Key", md->rank);
         }
-
-        _concat_brm(head, brm);
+        else {
+            mlog(MDHIM_CLIENT_ERR, "MDHIM Rank %d mdhimPut - Failed to insert Secondary Global Key", md->rank);
+        }
     }
 
+    mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d mdhimPut - Completed Successfully", md->rank);
     return mdhim_brm_init(head);
 }
 
@@ -343,7 +369,7 @@ static TransportBRecvMessage *_bput_secondary_keys_from_info(mdhim_t *md,
         if (!head) {
             head = newone;
         } else if (newone) {
-            _concat_brm(head, newone);
+            _concat_brm(&head, newone);
         }
 
         delete [] primary_keys_to_send;
@@ -432,7 +458,7 @@ mdhim_brm_t *mdhimBPut(mdhim_t *md,
                                                                        primary_keys, primary_key_lens,
                                                                        num_records);
         if (newone) {
-            _concat_brm(head, newone);
+            _concat_brm(&head, newone);
         }
     }
 
@@ -446,10 +472,11 @@ mdhim_brm_t *mdhimBPut(mdhim_t *md,
                                                                        primary_keys, primary_key_lens,
                                                                        num_records);
         if (newone) {
-            _concat_brm(head, newone);
+            _concat_brm(&head, newone);
         }
     }
 
+    mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d mdhimBPut - Completed Successfully", md->rank);
     return mdhim_brm_init(head);
 }
 
@@ -552,7 +579,13 @@ mdhim_getrm_t *mdhimGet(mdhim_t *md, index_t *index,
     }
     memcpy(k, key, key_len);
 
-    return mdhim_grm_init(_get_record(md, index, k, key_len, op));
+    TransportGetRecvMessage *head = _get_record(md, index, k, key_len, op);
+    if (!head) {
+        return nullptr;
+    }
+
+    mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d mdhimGet - Completed Successfully", md->rank);
+    return mdhim_grm_init(head);
 }
 
 /**
@@ -579,7 +612,7 @@ mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, index_t *index,
     if (op != TransportGetMessageOp::GET_EQ && op != TransportGetMessageOp::GET_PRIMARY_EQ) {
         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
              "Invalid operation for mdhimBGet",
-              md->mdhim_rank);
+              md->rank);
         return nullptr;
     }
 
@@ -587,7 +620,7 @@ mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, index_t *index,
     if (num_keys > MAX_BULK_OPS) {
         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
              "Too many bulk operations requested in mdhimBGet",
-              md->mdhim_rank);
+              md->rank);
         return nullptr;
     }
 
@@ -635,7 +668,7 @@ mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, index_t *index,
                  "Too many bulk operations would be performed "
                  "with the MDHIM_GET_PRIMARY_EQ operation.  Limiting "
                  "request to : %u key/values",
-                  md->mdhim_rank, MAX_BULK_OPS);
+                  md->rank, MAX_BULK_OPS);
             plen = MAX_BULK_OPS - 1;
         }
 
@@ -672,6 +705,8 @@ mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, index_t *index,
         delete [] primary_keys;
         delete [] primary_key_lens;
     }
+
+    mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d mdhimBGet - Completed Successfully", md->rank);
 
     //Return the head of the list
     return mdhim_bgrm_init(bgrm_head);
@@ -712,14 +747,14 @@ mdhim_bgetrm_t *mdhimBGetOp(mdhim_t *md, index_t *index,
     if (num_records > MAX_BULK_OPS) {
         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
              "Too many bulk operations requested in mdhimBGetOp",
-              md->mdhim_rank);
+              md->rank);
         return nullptr;
     }
 
     if (op == TransportGetMessageOp::GET_EQ || op == TransportGetMessageOp::GET_PRIMARY_EQ) {
         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
              "Invalid op specified for mdhimGet",
-              md->mdhim_rank);
+              md->rank);
         return nullptr;
     }
 
@@ -782,7 +817,13 @@ mdhim_brm_t *mdhimDelete(mdhim_t *md, index_t *index,
     memcpy(k[0], key, key_len);
     k_len[0] = key_len;
 
-    return mdhim_brm_init(_bdel_records(md, index, k, k_len, 1));
+    TransportBRecvMessage *head = _bdel_records(md, index, k, k_len, 1);
+    if (!head) {
+        return nullptr;
+    }
+
+    mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d mdhimDelete - Completed Successfully", md->rank);
+    return mdhim_brm_init(head);
 }
 
 /**
@@ -810,7 +851,7 @@ mdhim_brm_t *mdhimBDelete(mdhim_t *md, index_t *index,
     if (num_records > MAX_BULK_OPS) {
         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
              "Too many bulk operations requested in mdhimBDelete",
-              md->mdhim_rank);
+              md->rank);
         return nullptr;
     }
 
@@ -837,7 +878,13 @@ mdhim_brm_t *mdhimBDelete(mdhim_t *md, index_t *index,
         k_lens[i] = key_lens[i];
     }
 
-    return mdhim_brm_init(_bdel_records(md, index, ks, k_lens, num_records));
+    TransportBRecvMessage *head = _bdel_records(md, index, ks, k_lens, num_records);
+    if (!head) {
+        return nullptr;
+    }
+
+    mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d mdhimDelete - Completed Successfully", md->rank);
+    return mdhim_brm_init(head);
 }
 
 /**
@@ -849,13 +896,13 @@ mdhim_brm_t *mdhimBDelete(mdhim_t *md, index_t *index,
 int mdhimStatFlush(mdhim_t *md, index_t *index) {
     int ret;
 
-    MPI_Barrier(md->mdhim_comm);
+    MPI_Barrier(md->comm);
     if ((ret = get_stat_flush(md, index)) != MDHIM_SUCCESS) {
         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
              "Error while getting MDHIM stat data in mdhimStatFlush",
-              md->mdhim_rank);
+              md->rank);
     }
-    MPI_Barrier(md->mdhim_comm);
+    MPI_Barrier(md->comm);
 
     return ret;
 }

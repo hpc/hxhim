@@ -50,18 +50,16 @@ void bput(mdhim_t *md,
             mdhim_brm_destroy(brm);
             break;
         }
-
     }
 
     if (!brm) {
         for(int i = 0; i < num_keys; i++) {
-            out << "BPUT " << std::string((char *)primary_keys[i], primary_key_lens[i]) << " -> " << std::string((char *)values[i], value_lens[i]) << " to range server on rank " << mdhimWhichServer(md, primary_keys[i], primary_key_lens[i]) << std::endl;
+            int src;
+            out << "BPUT " << std::string((char *)primary_keys[i], primary_key_lens[i]) << " -> " << std::string((char *)values[i], value_lens[i]) << " to range server on rank " << ((mdhim_brm_src(brm, &src) == MDHIM_SUCCESS)?src:-1) << std::endl;;
         }
     }
 
     while (brm) {
         next(&brm);
     }
-
-    mdhim_brm_destroy(brm);
 }

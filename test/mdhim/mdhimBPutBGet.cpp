@@ -178,7 +178,7 @@ TEST(mdhimBPutBGet, secondary_global) {
     mdhim_bgrm_destroy(sg_ret);
     mdhimReleaseSecondaryBulkInfo(sg_info);
 
-    EXPECT_EQ(MPI_Barrier(md.mdhim_comm), MPI_SUCCESS);
+    EXPECT_EQ(MPI_Barrier(md.comm), MPI_SUCCESS);
     EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
     EXPECT_EQ(mdhim_options_destroy(&opts), MDHIM_SUCCESS);
     EXPECT_EQ(Memory::Pool(ALLOC_SIZE, REGIONS)->used(), 0);
@@ -285,7 +285,7 @@ TEST(mdhimBPutBGet, secondary_local) {
     mdhim_bgrm_destroy(sl_ret);
     mdhimReleaseSecondaryBulkInfo(sl_info);
 
-    EXPECT_EQ(MPI_Barrier(md.mdhim_comm), MPI_SUCCESS);
+    EXPECT_EQ(MPI_Barrier(md.comm), MPI_SUCCESS);
     EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
     EXPECT_EQ(mdhim_options_destroy(&opts), MDHIM_SUCCESS);
     EXPECT_EQ(Memory::Pool(ALLOC_SIZE, REGIONS)->used(), 0);

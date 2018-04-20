@@ -2,12 +2,14 @@
 
 #define HXHIM_MPI_REQUEST_TAG 0x311
 
-MPIEndpoint::MPIEndpoint(const MPI_Comm comm, const int remote_rank,
+MPIEndpoint::MPIEndpoint(const MPI_Comm comm,
+                         const int remote_rank,
                          FixedBufferPool *fbp,
                          volatile int &shutdown)
   : TransportEndpoint(),
-    MPIEndpointBase(comm, fbp, shutdown),
-    remote_rank_(remote_rank)
+    MPIEndpointBase(comm, fbp),
+    remote_rank_(remote_rank),
+    shutdown_(shutdown)
 {}
 
 /**
@@ -121,4 +123,21 @@ int MPIEndpoint::receive_client_response(void **buf, int *size) {
     }
 
     return MDHIM_SUCCESS;
+}
+
+void MPIEndpoint::Flush(MPI_Request *req) {
+    int flag = 0;
+    MPI_Status status;
+
+    if (!req) {
+        return;
+    }
+
+    while (!flag && !shutdown_) {
+        usleep(100);
+
+        pthread_mutex_lock(&mutex_);
+        MPI_Test(req, &flag, &status);
+        pthread_mutex_unlock(&mutex_);
+    }
 }

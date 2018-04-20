@@ -21,7 +21,7 @@
  */
 class ThalliumEndpointGroup : virtual public TransportEndpointGroup {
     public:
-        ThalliumEndpointGroup(mdhim_private_t *mdp, const Thallium::RPC_t &rpc);
+        ThalliumEndpointGroup(const Thallium::RPC_t &rpc);
         ~ThalliumEndpointGroup();
 
         /** @description Converts a string into an endpoint and adds it to the map_*/
@@ -49,7 +49,6 @@ class ThalliumEndpointGroup : virtual public TransportEndpointGroup {
         /** @description Function used by BGET for sending and receiving messages             */
         TransportBGetRecvMessage *return_bgrm(const int num_rangesrvs, TransportMessage **messages);
 
-        mdhim_private_t *mdp_;
         Thallium::RPC_t rpc_;
 
         std::map<int, Thallium::Endpoint_t> endpoints_;

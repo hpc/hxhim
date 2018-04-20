@@ -1,10 +1,9 @@
 #include "MPIEndpointGroup.hpp"
 
 MPIEndpointGroup::MPIEndpointGroup(const MPI_Comm comm, pthread_mutex_t mutex,
-                                   FixedBufferPool *fbp,
-                                   volatile int &shutdown)
+                                   FixedBufferPool *fbp)
   : TransportEndpointGroup(),
-    MPIEndpointBase(comm, fbp, shutdown),
+    MPIEndpointBase(comm, fbp),
     mutex_(mutex),
     ranks_()
 {}
@@ -301,7 +300,6 @@ int MPIEndpointGroup::only_send_all_rangesrv_work(void **messages, int *sizes, i
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
 int MPIEndpointGroup::send_all_rangesrv_work(TransportMessage **messages, const int num_srvs) {
-    int return_code = MDHIM_SUCCESS;
     void **sendbufs = new void *[num_srvs]();
     int *sizebufs = new int[num_srvs]();
     int *dsts = new int[num_srvs]();
@@ -368,7 +366,7 @@ int MPIEndpointGroup::only_receive_all_client_responses(int *srcs, int nsrcs, vo
 
                 // test the request
                 pthread_mutex_lock(&mutex_);
-                return_code = MPI_Test(reqs[i], &flag, &status);
+                MPI_Test(reqs[i], &flag, &status);
                 pthread_mutex_unlock(&mutex_);
 
                 // if the request completed, add 1
@@ -413,12 +411,13 @@ int MPIEndpointGroup::only_receive_all_client_responses(int *srcs, int nsrcs, vo
             int flag = 0;
 
             pthread_mutex_lock(&mutex_);
-            return_code = MPI_Test(reqs[i], &flag, &status);
+            MPI_Test(reqs[i], &flag, &status);
             pthread_mutex_unlock(&mutex_);
 
             if (!flag) {
                 continue;
             }
+
             delete reqs[i];
             reqs[i] = nullptr;
             done++;

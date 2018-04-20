@@ -13,11 +13,6 @@
 #include "mdhim_struct.h"
 #include "range_server_info_struct.h"
 
-#define PRIMARY_INDEX 1
-#define SECONDARY_INDEX 2
-#define LOCAL_INDEX 3
-#define REMOTE_INDEX 4
-
 int update_stat(mdhim_t*md, index_t *bi, void *key, uint32_t key_len);
 int load_stats(mdhim_t*md, index_t *bi);
 int write_stats(mdhim_t*md, index_t *bi);

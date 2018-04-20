@@ -57,7 +57,8 @@ void get(mdhim_t *md,
     }
 
     // Print value gotten back
-    out << "GET " << std::string(key, key_len) << " -> " << std::string(value, value_len) << " from range server on rank " << mdhimWhichServer(md, primary_key, primary_key_len) << std::endl;
+    int src;
+    out << "GET " << std::string(key, key_len) << " -> " << std::string(value, value_len) << " from range server on rank " << ((mdhim_grm_src(grm, &src) == MDHIM_SUCCESS)?src:-1) << std::endl;
 
     // destroying the return value must occur
     // after the private values are accessed
