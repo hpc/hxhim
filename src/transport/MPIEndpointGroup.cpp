@@ -301,7 +301,6 @@ int MPIEndpointGroup::only_send_all_rangesrv_work(void **messages, int *sizes, i
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
 int MPIEndpointGroup::send_all_rangesrv_work(TransportMessage **messages, const int num_srvs) {
-    int return_code = MDHIM_SUCCESS;
     void **sendbufs = new void *[num_srvs]();
     int *sizebufs = new int[num_srvs]();
     int *dsts = new int[num_srvs]();

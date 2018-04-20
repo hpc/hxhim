@@ -698,7 +698,7 @@ index_t *create_global_index(struct mdhim *md, int server_factor,
 				    int db_type, int key_type, char *index_name) {
 	index_t *gi;
 	index_t *check = NULL;
-	uint32_t rangesrv_num;
+	int32_t rangesrv_num;
 	int ret;
 
 	MPI_Barrier(md->mdhim_comm);
@@ -851,7 +851,7 @@ done:
  */
 int get_rangesrvs(struct mdhim *md, index_t *index) {
 	struct rangesrv_info *rs_entry_num, *rs_entry_rank;
-	uint32_t rangesrv_num;
+	int32_t rangesrv_num;
 
 	//Iterate through the ranks to determine which ones are range servers
 	for (int i = 0; i < md->mdhim_comm_size; i++) {
@@ -893,7 +893,7 @@ int get_rangesrvs(struct mdhim *md, index_t *index) {
 int32_t is_range_server(struct mdhim *md, int rank, index_t *index) {
 	int size;
 	int ret;
-	uint64_t rangesrv_num = 0;
+	int32_t rangesrv_num = 0;
 
 	//If a local index, check to see if the rank is a range server for the primary index
 	if (index->type == LOCAL_INDEX) {
@@ -1194,7 +1194,6 @@ int get_stat_flush_global(struct mdhim *md, index_t *index) {
 	int *displs;
 	int recvsize;
 	int ret = 0;
-	unsigned int i = 0;
 	int float_type = 0;
 	struct mdhim_stat *stat, *tmp;
 	void *tstat;
@@ -1255,7 +1254,7 @@ int get_stat_flush_global(struct mdhim *md, index_t *index) {
 		num_items = 0;
 		displs = (int*)malloc(sizeof(int) * index->num_rangesrvs);
 		recvcounts = (int*)malloc(sizeof(int) * index->num_rangesrvs);
-		for (i = 0; i < index->num_rangesrvs; i++) {
+		for (int i = 0; i < index->num_rangesrvs; i++) {
 			displs[i] = num_items * stat_size;
 			num_items += ((int *)recvbuf)[i];
 			recvcounts[i] = ((int *)recvbuf)[i] * stat_size;
@@ -1330,7 +1329,7 @@ int get_stat_flush_global(struct mdhim *md, index_t *index) {
 
 	//Unpack the receive buffer and populate our index->stats hash table
 	recvidx = 0;
-	for (i = 0; i < recvsize; i+=stat_size) {
+	for (int i = 0; i < recvsize; i+=stat_size) {
 		tstat = malloc(stat_size);
 		memset(tstat, 0, stat_size);
 		if ((ret = MPI_Unpack(recvbuf, recvsize, &recvidx, tstat, stat_size,
@@ -1392,7 +1391,6 @@ int get_stat_flush_local(struct mdhim *md, index_t *index) {
 	int *displs;
 	int recvsize;
 	int ret = 0;
-	int i = 0, j;
 	int float_type = 0;
 	struct mdhim_stat *stat, *tmp, *rank_stat;
 	void *tstat;
@@ -1442,7 +1440,7 @@ int get_stat_flush_local(struct mdhim *md, index_t *index) {
 	num_items = 0;
 	displs = (int*)malloc(sizeof(int) * md->mdhim_comm_size);
 	recvcounts = (int*)malloc(sizeof(int) * md->mdhim_comm_size);
-	for (i = 0; i < md->mdhim_comm_size; i++) {
+	for (int i = 0; i < md->mdhim_comm_size; i++) {
 		displs[i] = num_items * stat_size;
 		num_items += ((int *)recvbuf)[i];
 		recvcounts[i] = ((int *)recvbuf)[i] * stat_size;
@@ -1489,7 +1487,7 @@ int get_stat_flush_local(struct mdhim *md, index_t *index) {
 
 	//Unpack the receive buffer and populate our index->stats hash table
 	recvidx = 0;
-	for (i = 0; i < md->mdhim_comm_size; i++) {
+	for (int i = 0; i < md->mdhim_comm_size; i++) {
 		if ((ret = is_range_server(md, i, index)) < 1) {
 			continue;
 		}
@@ -1508,7 +1506,7 @@ int get_stat_flush_local(struct mdhim *md, index_t *index) {
 			rank_stat = tmp;
 		}
 
-		for (j = 0; j < num_items_to_recv[i]; j++) {
+		for (int j = 0; j < num_items_to_recv[i]; j++) {
 			tstat = (char*)malloc(stat_size);
 			memset(tstat, 0, stat_size);
 			if ((ret = MPI_Unpack(recvbuf, recvsize, &recvidx, tstat, stat_size,

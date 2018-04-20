@@ -11,9 +11,9 @@
  */
 typedef struct rangesrv_info {
 	//The range server's rank in the mdhim_comm
-	uint32_t rank;
+	int32_t rank;
 	//The range server's identifier based on rank and number of servers
-	uint32_t rangesrv_num;
+	int32_t rangesrv_num;
 	UT_hash_handle hh;         /* makes this structure hashable */
 } rangesrv_info_t;
 
