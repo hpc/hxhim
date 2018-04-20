@@ -15,7 +15,7 @@ TEST(FixedBufferPool, usage) {
     // release more memory locations each time
     for(std::size_t release = 0; release < TEST_REGIONS; release++) {
         // acquire memory
-        for(int i = 0; i < TEST_REGIONS; i++) {
+        for(std::size_t i = 0; i < TEST_REGIONS; i++) {
             alloc[i] = TEST_FBP.acquire(TEST_ALLOC_SIZE);
             ASSERT_NE(alloc[i], nullptr);
         }
@@ -25,7 +25,7 @@ TEST(FixedBufferPool, usage) {
         EXPECT_EQ(TEST_FBP.unused(), 0);
 
         // release some regions
-        for(int i = 0; i < release; i++) {
+        for(std::size_t i = 0; i < release; i++) {
             TEST_FBP.release(alloc[i]);
         }
 
@@ -34,7 +34,7 @@ TEST(FixedBufferPool, usage) {
         EXPECT_EQ(TEST_FBP.unused(), release);
 
         // cleanup
-        for(int i = release; i < TEST_REGIONS; i++) {
+        for(std::size_t i = release; i < TEST_REGIONS; i++) {
             TEST_FBP.release(alloc[i]);
         }
 

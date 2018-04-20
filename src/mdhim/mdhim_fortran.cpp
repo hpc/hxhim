@@ -98,8 +98,7 @@ void mdhimftoptions_debug_level (int level) {
  * @return mdhim_t* that contains info about this instance or NULL if there was an error
  */
 void mdhimftclose() {
-  int ret;
 
-  ret = mdhimClose(md);
+  mdhimClose(md);
   return;
 }
