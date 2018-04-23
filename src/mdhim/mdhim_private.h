@@ -66,11 +66,15 @@ TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
                                      void *key, int key_len,
                                      enum TransportGetMessageOp op);
 
+/** @description Internal DELETE function */
+TransportRecvMessage *_del_record(mdhim_t *md, index_t *index,
+                                  void *key, int key_len);
+
 /** @description Creates Bulk Receive Messages from Receive Messages to be used as a list */
 TransportBRecvMessage *_create_brm(TransportRecvMessage *rm);
 
-/** @description Adds a Bulk Recieve Message to the end of a Bulk Receive Message list*/
-void _concat_brm(TransportBRecvMessage **head, TransportBRecvMessage *addition);
+// /** @description Adds a Bulk Recieve Message to the end of a Bulk Receive Message list*/
+// void _concat_brm(TransportBRecvMessage **head, TransportBRecvMessage *addition);
 
 /** @description Internal BPUT function */
 TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,

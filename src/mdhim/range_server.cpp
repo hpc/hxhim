@@ -4,7 +4,6 @@
  * Client specific implementation
  */
 
-#include <cerrno>
 #include <climits>
 #include <cstdio>
 #include <cstdlib>
@@ -495,9 +494,7 @@ static int range_server_del(mdhim_t *md, work_item_t *item) {
  done:
     //Create the response message
     TransportRecvMessage *rm = new TransportRecvMessage();
-    //Set the type
     rm->mtype = TransportMessageType::RECV;
-    //Set the operation return code as the error
     rm->error = ret;
     rm->src = md->rank;
     rm->dst = dm->src;
@@ -515,10 +512,9 @@ static int range_server_del(mdhim_t *md, work_item_t *item) {
  * @param md        Pointer to the main MDHIM struct
  * @param bdm       pointer to the bulk delete message to handle
  * @param source    source of the message
- * @return    MDHIM_SUCCESS or MDHIM_ERROR on error
+ * @return          MDHIM_SUCCESS or MDHIM_ERROR on error
  */
 int range_server_bdel(mdhim_t *md, work_item_t *item) {
-    int ret;
     int error = 0;
 
     TransportBDeleteMessage *bdm = dynamic_cast<TransportBDeleteMessage *>(item->message);
@@ -536,6 +532,7 @@ int range_server_bdel(mdhim_t *md, work_item_t *item) {
     //Iterate through the arrays and delete each record
     for (int i = 0; i < bdm->num_keys && i < MAX_BULK_OPS; i++) {
         //Put the record in the database
+        int ret;
         if ((ret =
              index->mdhim_store->del(index->mdhim_store->db_handle,
                                      bdm->keys[i], bdm->key_lens[i]))
@@ -549,9 +546,7 @@ int range_server_bdel(mdhim_t *md, work_item_t *item) {
 done:
     //Create the response message
     TransportRecvMessage *brm = new TransportRecvMessage();
-    //Set the type
     brm->mtype = TransportMessageType::RECV;
-    //Set the operation return code as the error
     brm->error = error;
     brm->src = md->rank;
     brm->dst = bdm->src;

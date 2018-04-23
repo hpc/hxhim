@@ -42,8 +42,7 @@ void bdel(mdhim_t *md,
 
     if (!brm) {
         for(int i = 0; i < num_keys; i++) {
-            int src;
-            out << "BDEL " << std::string((char *)keys[i], key_lens[i]) << " from range server on rank " << ((mdhim_brm_src(brm, &src) == MDHIM_SUCCESS)?src:-1) << std::endl;;
+            out << "BDEL " << std::string((char *)keys[i], key_lens[i]) << " from range server on rank " << mdhimWhichServer(md, keys[i], key_lens[i]) << std::endl;;
         }
     }
 

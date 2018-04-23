@@ -205,7 +205,7 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
     // Set DB Type
     int db_type;
     ret = get_from_map(config, DB_TYPE, DB_TYPES, db_type);
-    if ((ret == MDHIM_ERROR)                                                                    ||
+    if ((ret != MDHIM_SUCCESS)                                                                  ||
         ((ret == MDHIM_SUCCESS) && (mdhim_options_set_db_type(opts, db_type) != MDHIM_SUCCESS))) {
         return MDHIM_ERROR;
     }
@@ -229,7 +229,7 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
     // Set Key Type
     int key_type;
     ret = get_from_map(config, KEY_TYPE, KEY_TYPES, key_type);
-    if ((ret == MDHIM_ERROR)                                                                      ||
+    if ((ret != MDHIM_SUCCESS)                                                                    ||
         ((ret == MDHIM_SUCCESS) && (mdhim_options_set_key_type(opts, key_type) != MDHIM_SUCCESS))) {
         return MDHIM_ERROR;
     }
@@ -237,7 +237,7 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
     // Set Debug Level
     int debug_level;
     ret = get_from_map(config, DEBUG_LEVEL, DEBUG_LEVELS, debug_level);
-    if ((ret == MDHIM_ERROR)                                                                            ||
+    if ((ret != MDHIM_SUCCESS)                                                                          ||
         ((ret == MDHIM_SUCCESS) && (mdhim_options_set_debug_level(opts, debug_level) != MDHIM_SUCCESS))) {
         return MDHIM_ERROR;
     }
@@ -269,7 +269,7 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
     // Set DB Write Mode
     int db_write;
     ret = get_from_map(config, DB_WRITE, DB_WRITES, db_write);
-    if ((ret == MDHIM_ERROR)                                                                          ||
+    if ((ret != MDHIM_SUCCESS)                                                                        ||
         ((ret == MDHIM_SUCCESS) && (mdhim_options_set_value_append(opts, db_write) != MDHIM_SUCCESS))) {
         return MDHIM_ERROR;
     }

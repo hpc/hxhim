@@ -190,7 +190,7 @@ TransportRecvMessage *local_client_commit(mdhim_t *md, TransportMessage *cm) {
  * @param dm pointer to delete message to be inserted into the range server's work queue
  * @return return_message structure with ->error = MDHIM_SUCCESS or MDHIM_ERROR
  */
-TransportRecvMessage *local_client_delete(mdhim_t *md, TransportBDeleteMessage *dm) {
+TransportRecvMessage *local_client_delete(mdhim_t *md, TransportDeleteMessage *dm) {
 	work_item_t *item = new work_item_t();
 
 	if (!item) {
@@ -204,7 +204,6 @@ TransportRecvMessage *local_client_delete(mdhim_t *md, TransportBDeleteMessage *
 		mlog(MDHIM_CLIENT_CRIT, "Error adding work to range server in local_client_delete");
 		return NULL;
 	}
-
     return dynamic_cast<TransportRecvMessage *>(get_msg_self(md));
 }
 
@@ -215,7 +214,7 @@ TransportRecvMessage *local_client_delete(mdhim_t *md, TransportBDeleteMessage *
  * @param bdm pointer to bulk delete message to be inserted into the range server's work queue
  * @return return_message structure with ->error = MDHIM_SUCCESS or MDHIM_ERROR
  */
-TransportRecvMessage *local_client_bdelete(mdhim_t *md, TransportBDeleteMessage *bdm) {
+TransportBRecvMessage *local_client_bdelete(mdhim_t *md, TransportBDeleteMessage *bdm) {
 	work_item_t *item = new work_item_t();
 
 	if (!item) {
@@ -230,7 +229,7 @@ TransportRecvMessage *local_client_bdelete(mdhim_t *md, TransportBDeleteMessage 
 		return NULL;
 	}
 
-    return dynamic_cast<TransportRecvMessage *>(get_msg_self(md));
+    return dynamic_cast<TransportBRecvMessage *>(get_msg_self(md));
 }
 
 // /**

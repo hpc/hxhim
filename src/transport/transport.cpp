@@ -322,10 +322,6 @@ void TransportBRecvMessage::cleanup() {
     next = nullptr;
 }
 
-TransportEndpointGroup::TransportEndpointGroup() {}
-
-TransportEndpointGroup::~TransportEndpointGroup() {}
-
 /**
  * get_num_srvs
  * get the number of servers that will be sent work, and need to be waited on

@@ -23,6 +23,7 @@ int main(int argc, char *argv[]){
     // initialize options through config
     mdhim_options_t opts;
     if (mdhim_default_config_reader(&opts) != MDHIM_SUCCESS) {
+        printf("Error Reading Configuration\n");
         cleanup(NULL, &opts);
         return MDHIM_ERROR;
     }
@@ -30,6 +31,7 @@ int main(int argc, char *argv[]){
     // initialize mdhim context
     mdhim_t md;
     if (mdhimInit(&md, &opts) != MDHIM_SUCCESS) {
+        printf("Error Initializng MDHIM\n");
         cleanup(&md, &opts);
         return MDHIM_ERROR;
     }
@@ -43,28 +45,27 @@ int main(int argc, char *argv[]){
     // Use arbitrary rank to do put
     if (md.rank == rand() % md.size) {
         // Put the key-value pair
-        mdhim_brm_t *brm = mdhimPut(&md,
-                                    (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
-                                    (void *)&MDHIM_PUT_GET_VALUE, sizeof(MDHIM_PUT_GET_VALUE),
-                                    NULL, NULL);
+        mdhim_rm_t *rm = mdhimPut(&md, NULL,
+                                  (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
+                                  (void *)&MDHIM_PUT_GET_VALUE, sizeof(MDHIM_PUT_GET_VALUE));
         int error = MDHIM_ERROR;
-        if ((mdhim_brm_error(brm, &error) != MDHIM_SUCCESS) ||
+        if ((mdhim_rm_error(rm, &error) != MDHIM_SUCCESS) ||
             (error != MDHIM_SUCCESS)) {
             printf("Rank %d: Could not put\n", md.rank);
-            mdhim_brm_destroy(brm);
+            mdhim_rm_destroy(rm);
             cleanup(&md, &opts);
             return MDHIM_ERROR;
         }
 
         int src = -1;
-        if (mdhim_brm_src(brm, &src) != MDHIM_SUCCESS) {
+        if (mdhim_rm_src(rm, &src) != MDHIM_SUCCESS) {
             printf("Rank %d: Could not get source of put response\n", md.rank);
-            mdhim_brm_destroy(brm);
+            mdhim_rm_destroy(rm);
             cleanup(&md, &opts);
             return MDHIM_ERROR;
         }
 
-        mdhim_brm_destroy(brm);
+        mdhim_rm_destroy(rm);
 
         // Commit changes
         // Pass NULL here to use md->p->primary_index

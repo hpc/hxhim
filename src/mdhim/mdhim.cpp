@@ -12,7 +12,7 @@
 #include <sys/time.h>
 
 #include "data_store.h"
-#include "indexes.h"
+#include "index_struct.h"
 #include "local_client.h"
 #include "mdhim.h"
 #include "mdhim_options.h"
@@ -164,6 +164,108 @@ int mdhimCommit(mdhim_t *md, index_t *index) {
 }
 
 /**
+ * _clone
+ * Allocate space for, and copy the contents of src into *dst
+ *
+ * @param src     the source address
+ * @param src_len the length of the source
+ * @param dst     address of the destination pointer
+ * @return MDHIM_SUCCESS or MDHIM_ERROR on error
+ */
+static int _clone(void *src, int src_len, void **dst) {
+    if (!src || !src_len ||
+        !dst) {
+        return MDHIM_ERROR;
+    }
+
+    if (!(*dst = ::operator new(src_len))) {
+        *dst = nullptr;
+    }
+
+    memcpy(*dst, src, src_len);
+    return MDHIM_SUCCESS;
+}
+
+/**
+ * _clone
+ * Allocate space for, and copy the contents of srcs and src_lens into *dsts and *dst_lens
+ *
+ * @param srcs     the source addresses
+ * @param src_lens the lengths of the source
+ * @param dsts     addresses of the destination pointers
+ * @param dst_lens address of the destination lengths
+ * @return MDHIM_SUCCESS or MDHIM_ERROR on error
+ */
+static int _clone(int count, void **srcs, int *src_lens, void ***dsts, int **dst_lens) {
+    if (!count) {
+        return MDHIM_SUCCESS;
+    }
+
+    if (!srcs || !src_lens ||
+        !dsts || !dst_lens) {
+        return MDHIM_ERROR;
+    }
+
+    *dsts = new void *[count]();
+    *dst_lens = new int[count]();
+    if (!*dsts || !*dst_lens) {
+        delete [] *dsts;
+        delete [] *dst_lens;
+        return MDHIM_ERROR;
+    }
+
+    for(int i = 0; i < count; i++) {
+        if (!((*dsts)[i] = ::operator new(src_lens[i]))) {
+            for(int j = 0; j < i; j++) {
+                ::operator delete((*dsts)[j]);
+            }
+
+            delete [] *dsts;
+            *dsts = nullptr;
+
+            delete [] *dst_lens;
+            *dst_lens = nullptr;
+        }
+
+        memcpy((*dsts)[i], srcs[i], src_lens[i]);
+        (*dst_lens)[i] = src_lens[i];
+    }
+
+    return MDHIM_SUCCESS;
+}
+
+/**
+ * _cleanup
+ * Deallocate space allocated by _clone
+ *
+ * @param data address of the data
+ * @return MDHIM_SUCCESS or MDHIM_ERROR on error
+ */
+static int _cleanup(void *data) {
+    ::operator delete(data);
+    return MDHIM_SUCCESS;
+}
+
+/**
+ * _cleanup
+ * Deallocate space allocated by _clone
+ *
+ * @param count how many data-len pairs there are
+ * @param data  address of the data
+ * @param len   the lengths of the data
+ * @return MDHIM_SUCCESS or MDHIM_ERROR on error
+ */
+static int _cleanup(int count, void **data, int *len) {
+    for(int i = 0; i < count; i++) {
+        ::operator delete(data[i]);
+    }
+
+    delete [] data;
+    delete [] len;
+    return MDHIM_SUCCESS;
+}
+
+/**
  * Inserts a single record into MDHIM
  *
  * @param md main MDHIM context
@@ -175,11 +277,9 @@ int mdhimCommit(mdhim_t *md, index_t *index) {
                              inserting secondary global and local keys
  * @return                   mdhim_brm_t * or nullptr on error
  */
-mdhim_brm_t *mdhimPut(mdhim_t *md,
+mdhim_rm_t *mdhimPut(mdhim_t *md, index_t *index,
                       void *primary_key, int primary_key_len,
-                      void *value, int value_len,
-                      secondary_info_t *secondary_global_info,
-                      secondary_info_t *secondary_local_info) {
+                      void *value, int value_len) {
     mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d mdhimPut - Started", md->rank);
 
     if (!md || !md->p ||
@@ -189,194 +289,22 @@ mdhim_brm_t *mdhimPut(mdhim_t *md,
         return nullptr;
     }
 
+    if (!index) {
+        index = md->p->primary_index;
+    }
+
     // Clone primary key and value
-    void *pk = ::operator new(primary_key_len);
-    void *val = ::operator new(value_len);
-    if (!pk || !val) {
-        ::operator delete(pk);
-        ::operator delete(val);
+    void *pk = nullptr;
+    void *val = nullptr;
+    if ((_clone(primary_key, primary_key_len, &pk) != MDHIM_SUCCESS) ||
+        (_clone(value, value_len, &val)            != MDHIM_SUCCESS)) {
+        _cleanup(pk);
+        _cleanup(val);
         mlog(MDHIM_CLIENT_ERR, "MDHIM Rank %d mdhimPut - Could not allocate memory", md->rank);
         return nullptr;
     }
 
-    memcpy(pk, primary_key, primary_key_len);
-    memcpy(val, value, value_len);
-
-    //Send the primary key and value
-    TransportRecvMessage *rm = _put_record(md, md->p->primary_index, pk, primary_key_len, val, value_len);
-    if (!rm) {
-        mlog(MDHIM_CLIENT_ERR, "MDHIM Rank %d mdhimPut - _put_record returned nullptr", md->rank);
-        return nullptr;
-    }
-
-    //Conver the return value into a list
-    TransportBRecvMessage *head = _create_brm(rm);
-    delete(rm);
-
-    //Return message from each _put_record call
-    TransportBRecvMessage *brm = nullptr;
-
-    //Insert the secondary local key if it was given
-    if (secondary_local_info && secondary_local_info->secondary_index &&
-        secondary_local_info->secondary_keys &&
-        secondary_local_info->secondary_key_lens &&
-        secondary_local_info->num_keys) {
-        mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d mdhimPut - Inserting Secondary Local Key", md->rank);
-
-        //Duplicate keys
-        void **secondary_keys = new void *[secondary_local_info->num_keys]();
-        int *secondary_key_lens = new int[secondary_local_info->num_keys]();
-        void **primary_keys = new void *[secondary_local_info->num_keys]();
-        int *primary_key_lens = new int[secondary_local_info->num_keys]();
-        for (int i = 0; i < secondary_local_info->num_keys; i++) {
-            secondary_keys[i] = ::operator new(secondary_local_info->secondary_key_lens[i]);
-            memcpy(secondary_keys[i], secondary_local_info->secondary_keys[i], secondary_local_info->secondary_key_lens[i]);
-            secondary_key_lens[i] = secondary_local_info->secondary_key_lens[i];
-
-            primary_keys[i] = ::operator new(primary_key_len);
-            memcpy(primary_keys[i], primary_key, primary_key_len);
-            primary_key_lens[i] = primary_key_len;
-        }
-
-        brm = _bput_records(md,
-                            secondary_local_info->secondary_index,
-                            secondary_keys, secondary_key_lens,
-                            primary_keys, primary_key_lens,
-                            secondary_local_info->num_keys);
-
-        if (brm) {
-            delete [] primary_keys;
-            delete [] primary_key_lens;
-            _concat_brm(&head, brm);
-
-            mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d mdhimPut - Inserted Secondary Local Key", md->rank);
-        }
-        else {
-            mlog(MDHIM_CLIENT_ERR, "MDHIM Rank %d mdhimPut - Failed to insert Secondary Local Key", md->rank);
-        }
-    }
-
-    //Insert the secondary global key if it was given
-    if (secondary_global_info && secondary_global_info->secondary_index &&
-        secondary_global_info->secondary_keys &&
-        secondary_global_info->secondary_key_lens &&
-        secondary_global_info->num_keys) {
-        mlog(MDHIM_CLIENT_ERR, "MDHIM Rank %d mdhimPut - Inserting Secondary Global Key", md->rank);
-
-        //Duplicate keys
-        void **secondary_keys = new void *[secondary_global_info->num_keys]();
-        int *secondary_key_lens = new int[secondary_global_info->num_keys]();
-        void **primary_keys = new void *[secondary_global_info->num_keys]();
-        int *primary_key_lens = new int[secondary_global_info->num_keys]();
-        for (int i = 0; i < secondary_global_info->num_keys; i++) {
-            secondary_keys[i] = ::operator new(secondary_global_info->secondary_key_lens[i]);
-            memcpy(secondary_keys[i], secondary_global_info->secondary_keys[i], secondary_global_info->secondary_key_lens[i]);
-            secondary_key_lens[i] = secondary_global_info->secondary_key_lens[i];
-
-            primary_keys[i] = ::operator new(primary_key_len);
-            memcpy(primary_keys[i], primary_key, primary_key_len);
-            primary_key_lens[i] = primary_key_len;
-        }
-
-        brm = _bput_records(md,
-                            secondary_global_info->secondary_index,
-                            secondary_keys, secondary_key_lens,
-                            primary_keys, primary_key_lens,
-                            secondary_global_info->num_keys);
-        if (brm) {
-            delete [] primary_keys;
-            delete [] primary_key_lens;
-            _concat_brm(&head, brm);
-
-            mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d mdhimPut - Inserted Secondary Global Key", md->rank);
-        }
-        else {
-            mlog(MDHIM_CLIENT_ERR, "MDHIM Rank %d mdhimPut - Failed to insert Secondary Global Key", md->rank);
-        }
-    }
-
-    mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d mdhimPut - Completed Successfully", md->rank);
-    return mdhim_brm_init(head);
-}
-
-/**
- * Inserts a single record into an MDHIM secondary index
- *
- * @param md                  main MDHIM struct
- * @param secondary_index     where to store the secondary_key
- * @param secondary_key       pointer to key to store
- * @param secondary_key_len   the length of the key
- * @param primary_key         pointer to the primary_key
- * @param primary_key_len     the length of the value
- * @return mdhim_brm_t * or nullptr on error
- */
-mdhim_brm_t *mdhimPutSecondary(mdhim_t *md,
-                               index_t *secondary_index,
-                               void *secondary_key, int secondary_key_len,
-                               void *primary_key, int primary_key_len) {
-    if (!md || !md->p ||
-        !secondary_key || !secondary_key_len ||
-        !primary_key || !primary_key_len) {
-        return nullptr;
-    }
-
-    TransportRecvMessage *rm = _put_record(md, secondary_index,
-                                           secondary_key, secondary_key_len,
-                                           primary_key, primary_key_len);
-    if (!rm) {
-        return nullptr;
-    }
-
-    TransportBRecvMessage *head = _create_brm(rm);
-    ::operator delete(rm);
-
-    return mdhim_brm_init(head);
-}
-
-static TransportBRecvMessage *_bput_secondary_keys_from_info(mdhim_t *md,
-                                                             secondary_bulk_info_t *secondary_info,
-                                                             void **primary_keys, int *primary_key_lens,
-                                                             int num_records) {
-    if (!md || !md->p ||
-        !secondary_info ||
-        !primary_keys || !primary_key_lens) {
-        return nullptr;
-    }
-
-    TransportBRecvMessage *head =  nullptr;
-    for (int i = 0; i < num_records; i++) {
-        void **secondary_keys = new void *[secondary_info->num_keys[i]]();
-        int *secondary_key_lens = new int[secondary_info->num_keys[i]]();
-
-        void **primary_keys_to_send = new void *[secondary_info->num_keys[i]]();
-        int *primary_key_lens_to_send = new int[secondary_info->num_keys[i]]();
-
-        // Copy the keys
-        for (int j = 0; j < secondary_info->num_keys[i]; j++) {
-            secondary_keys[j] = ::operator new(secondary_info->secondary_key_lens[i][j]);
-            memcpy(secondary_keys[j], secondary_info->secondary_keys[i][j], secondary_info->secondary_key_lens[i][j]);
-            secondary_key_lens[j] = secondary_info->secondary_key_lens[i][j];
-
-            primary_keys_to_send[j] = ::operator new(primary_key_lens[i]);
-            memcpy(primary_keys_to_send[j], primary_keys[i], primary_key_lens[i]);
-            primary_key_lens_to_send[j] = primary_key_lens[i];
-        }
-
-        TransportBRecvMessage *newone = _bput_records(md, secondary_info->secondary_index,
-                                                      secondary_keys, secondary_key_lens,
-                                                      primary_keys_to_send, primary_key_lens_to_send,
-                                                      secondary_info->num_keys[i]);
-        if (!head) {
-            head = newone;
-        } else if (newone) {
-            _concat_brm(&head, newone);
-        }
-
-        delete [] primary_keys_to_send;
-        delete [] primary_key_lens_to_send;
-    }
-
-    return head;
+    return mdhim_rm_init(_put_record(md, md->p->primary_index, pk, primary_key_len, val, value_len));
 }
 
 /**
@@ -390,160 +318,34 @@ static TransportBRecvMessage *_bput_secondary_keys_from_info(mdhim_t *md,
  * @param num_records  the number of records to store (i.e., the number of keys in keys array)
  * @return mdhim_brm_t * or nullptr on error
  */
-mdhim_brm_t *mdhimBPut(mdhim_t *md,
+mdhim_brm_t *mdhimBPut(mdhim_t *md, index_t *index,
                        void **primary_keys, int *primary_key_lens,
                        void **primary_values, int *primary_value_lens,
-                       int num_records,
-                       secondary_bulk_info_t *secondary_global_info,
-                       secondary_bulk_info_t *secondary_local_info) {
+                       int num_records) {
     if (!md || !md->p ||
         !primary_keys || !primary_key_lens ||
         !primary_values || !primary_value_lens) {
         return nullptr;
     }
 
-    //Copy the keys and values
-    void **pks = new void *[num_records]();
-    int *pk_lens = new int[num_records]();
-    void **pvs = new void *[num_records]();
-    int *pv_lens = new int[num_records]();
+    if (!index) {
+        index = md->p->primary_index;
+    }
 
-    if (!pks || !pk_lens ||
-        !pvs || !pv_lens) {
-        delete [] pks;
-        delete [] pk_lens;
-        delete [] pvs;
-        delete [] pv_lens;
+    //Copy the keys and values
+    void **pks = nullptr, **pvs = nullptr;
+    int *pk_lens = nullptr, *pv_lens = nullptr;
+    if ((_clone(num_records, primary_keys, primary_key_lens, &pks, &pk_lens)     != MDHIM_SUCCESS) ||
+        (_clone(num_records, primary_values, primary_value_lens, &pvs, &pv_lens) != MDHIM_SUCCESS)) {
+        _cleanup(num_records, pks, pk_lens);
+        _cleanup(num_records, pvs, pv_lens);
         return nullptr;
     }
 
-    for(int i = 0; i < num_records; i++) {
-        if (!(pks[i] = ::operator new(primary_key_lens[i])) ||
-            !(pvs[i] = ::operator new(primary_value_lens[i]))) {
-            for(int j = 0; j < i; j++) {
-                ::operator delete(pks[j]);
-                ::operator delete(pvs[j]);
-            }
-
-            delete [] pks;
-            delete [] pk_lens;
-            delete [] pvs;
-            delete [] pv_lens;
-            return nullptr;
-        }
-
-        memcpy(pks[i], primary_keys[i], primary_key_lens[i]);
-        pk_lens[i] = primary_key_lens[i];
-
-        memcpy(pvs[i], primary_values[i], primary_value_lens[i]);
-        pv_lens[i] = primary_value_lens[i];
-    }
-
-    TransportBRecvMessage *head = _bput_records(md, md->p->primary_index,
+    return mdhim_brm_init(_bput_records(md, md->p->primary_index,
                                                 pks, pk_lens,
                                                 pvs, pv_lens,
-                                                num_records);
-
-    if (!head) {
-        return nullptr;
-    }
-
-    //Insert the secondary local keys if they were given
-    if (secondary_local_info && secondary_local_info->secondary_index &&
-        secondary_local_info->secondary_keys &&
-        secondary_local_info->secondary_key_lens &&
-        (secondary_local_info->num_records == num_records)) {
-
-        TransportBRecvMessage *newone = _bput_secondary_keys_from_info(md, secondary_local_info,
-                                                                       primary_keys, primary_key_lens,
-                                                                       num_records);
-        if (newone) {
-            _concat_brm(&head, newone);
-        }
-    }
-
-    //Insert the secondary global keys if they were given
-    if (secondary_global_info && secondary_global_info->secondary_index &&
-        secondary_global_info->secondary_keys &&
-        secondary_global_info->secondary_key_lens &&
-        (secondary_global_info->num_records == num_records)) {
-
-        TransportBRecvMessage *newone = _bput_secondary_keys_from_info(md, secondary_global_info,
-                                                                       primary_keys, primary_key_lens,
-                                                                       num_records);
-        if (newone) {
-            _concat_brm(&head, newone);
-        }
-    }
-
-    mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d mdhimBPut - Completed Successfully", md->rank);
-    return mdhim_brm_init(head);
-}
-
-/**
- * Inserts multiple records into an MDHIM secondary index
- *
- * @param md           main MDHIM struct
- * @param index        the secondary index to use
- * @param keys         pointer to array of keys to store
- * @param key_lens     array with lengths of each key in keys
- * @param values       pointer to array of values to store
- * @param value_lens   array with lengths of each value
- * @param num_records  the number of records to store (i.e., the number of keys in keys array)
- * @return mdhim_brm_t * or nullptr on error
- */
-mdhim_brm_t *mdhimBPutSecondary(mdhim_t *md, index_t *secondary_index,
-                                void **secondary_keys, int *secondary_key_lens,
-                                void **primary_keys, int *primary_key_lens,
-                                int num_records) {
-    if (!md || !md->p ||
-        !secondary_index ||
-        !secondary_keys || !secondary_key_lens ||
-        !primary_keys || !primary_key_lens) {
-        return nullptr;
-    }
-
-    //Copy the secondary and primary keys
-    void **sks = new void *[num_records]();
-    int *sk_lens = new int[num_records]();
-    void **pks = new void *[num_records]();
-    int *pk_lens = new int[num_records]();
-
-    if (!sks || !sk_lens ||
-        !pks || !pk_lens) {
-        delete [] sks;
-        delete [] sk_lens;
-        delete [] pks;
-        delete [] pk_lens;
-        return nullptr;
-    }
-
-    for(int i = 0; i < num_records; i++) {
-        if (!(sks[i] = ::operator new(secondary_key_lens[i])) ||
-            !(pks[i] = ::operator new(primary_key_lens[i]))) {
-            for(int j = 0; j < i; j++) {
-                ::operator delete(sks[j]);
-                ::operator delete(pks[j]);
-            }
-
-            delete [] sks;
-            delete [] sk_lens;
-            delete [] pks;
-            delete [] pk_lens;
-            return nullptr;
-        }
-
-        memcpy(sks[i], secondary_keys[i], secondary_key_lens[i]);
-        sk_lens[i] = secondary_key_lens[i];
-
-        memcpy(pks[i], primary_keys[i], primary_key_lens[i]);
-        pk_lens[i] = primary_key_lens[i];
-    }
-
-    return mdhim_brm_init(_bput_records(md, secondary_index,
-                                        sks, sk_lens,
-                                        pks, pk_lens,
-                                        num_records));
+                                                num_records));
 }
 
 /**
@@ -573,19 +375,14 @@ mdhim_getrm_t *mdhimGet(mdhim_t *md, index_t *index,
     }
 
     // Clone primary key
-    void *k = ::operator new(key_len);
-    if (!k) {
-        return nullptr;
-    }
-    memcpy(k, key, key_len);
-
-    TransportGetRecvMessage *head = _get_record(md, index, k, key_len, op);
-    if (!head) {
+    void *k = nullptr;
+    if (_clone(key, key_len, &k) != MDHIM_SUCCESS) {
+        _cleanup(k);
+        mlog(MDHIM_CLIENT_ERR, "MDHIM Rank %d mdhimGet - Could not allocate memory", md->rank);
         return nullptr;
     }
 
-    mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d mdhimGet - Completed Successfully", md->rank);
-    return mdhim_grm_init(head);
+    return mdhim_grm_init(_get_record(md, index, k, key_len, op));
 }
 
 /**
@@ -625,26 +422,11 @@ mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, index_t *index,
     }
 
     // copy the keys
-    void **ks = new void *[num_keys]();
-    int *k_lens = new int[num_keys]();
-    if (!ks || !k_lens) {
-        delete [] ks;
-        delete [] k_lens;
+    void **ks = nullptr;
+    int *k_lens = nullptr;
+    if (_clone(num_keys, keys, key_lens, &ks, &k_lens) != MDHIM_SUCCESS) {
+        _cleanup(num_keys, ks, k_lens);
         return nullptr;
-    }
-
-    for(int i = 0; i < num_keys; i++) {
-        if (!(ks[i] = ::operator new(key_lens[i]))) {
-            for(int j = 0; j < i; j++) {
-                ::operator delete(ks[j]);
-            }
-
-            delete [] ks;
-            delete [] k_lens;
-            return nullptr;
-        }
-        memcpy(ks[i], keys[i], key_lens[i]);
-        k_lens[i] = key_lens[i];
     }
 
     TransportBGetRecvMessage *bgrm_head = _bget_records(md, index, ks, k_lens, num_keys, 1, op);
@@ -698,15 +480,8 @@ mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, index_t *index,
                                   plen, 1, TransportGetMessageOp::GET_EQ);
 
         //Free up the primary keys and lens arrays
-        for (int i = 0; i < plen; i++) {
-            ::operator delete(primary_keys[i]);
-        }
-
-        delete [] primary_keys;
-        delete [] primary_key_lens;
+        _cleanup(plen, primary_keys, primary_key_lens);
     }
-
-    mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d mdhimBGet - Completed Successfully", md->rank);
 
     //Return the head of the list
     return mdhim_bgrm_init(bgrm_head);
@@ -759,22 +534,12 @@ mdhim_bgetrm_t *mdhimBGetOp(mdhim_t *md, index_t *index,
     }
 
     // copy the key
-    void **k = new void *[1]();
-    int *k_len = new int[1]();
-    if (!k || !k_len) {
-        delete [] k;
-        delete [] k_len;
+    void **k = nullptr;
+    int *k_len = nullptr;
+    if (_clone(1, &key, &key_len, &k, &k_len) != MDHIM_SUCCESS) {
+        _cleanup(1, k, k_len);
         return nullptr;
     }
-
-    if (!(k[0] = ::operator new(key_len))) {
-        delete [] k;
-        delete [] k_len;
-        return nullptr;
-    }
-
-    memcpy(k[0], key, key_len);
-    k_len[0] = key_len;
 
     //Get the linked list of return messages from mdhimBGet
     return mdhim_bgrm_init(_bget_records(md, index, k, k_len, 1, num_records, op));
@@ -788,7 +553,7 @@ mdhim_bgetrm_t *mdhimBGetOp(mdhim_t *md, index_t *index,
  * @param key_len   the length of the key
  * @return mdhim_rm_t * or nullptr on error
  */
-mdhim_brm_t *mdhimDelete(mdhim_t *md, index_t *index,
+mdhim_rm_t *mdhimDelete(mdhim_t *md, index_t *index,
                          void *key, int key_len) {
     if (!md || !md->p ||
         !key || !key_len) {
@@ -800,30 +565,13 @@ mdhim_brm_t *mdhimDelete(mdhim_t *md, index_t *index,
     }
 
     // Copy the key
-    void **k = new void *[1]();
-    int *k_len = new int[1]();
-    if (!k || !k_len) {
-        delete [] k;
-        delete [] k_len;
+    void *k = nullptr;
+    if (_clone(key, key_len, &k) != MDHIM_SUCCESS) {
+        _cleanup(k);
         return nullptr;
     }
 
-    if (!(k[0] = ::operator new(key_len))) {
-        delete [] k;
-        delete [] k_len;
-        return nullptr;
-    }
-
-    memcpy(k[0], key, key_len);
-    k_len[0] = key_len;
-
-    TransportBRecvMessage *head = _bdel_records(md, index, k, k_len, 1);
-    if (!head) {
-        return nullptr;
-    }
-
-    mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d mdhimDelete - Completed Successfully", md->rank);
-    return mdhim_brm_init(head);
+    return mdhim_rm_init(_del_record(md, index, k, key_len));
 }
 
 /**
@@ -856,35 +604,14 @@ mdhim_brm_t *mdhimBDelete(mdhim_t *md, index_t *index,
     }
 
     // copy the keys
-    void **ks = new void *[num_records]();
-    int *k_lens = new int[num_records]();
-
-    if (!ks || !k_lens) {
-        delete [] ks;
-        delete [] k_lens;
+    void **ks = nullptr;
+    int *k_lens = nullptr;
+    if (_clone(num_records, keys, key_lens, &ks, &k_lens) != MDHIM_SUCCESS) {
+        _cleanup(1, ks, k_lens);
         return nullptr;
     }
 
-    for(int i = 0; i < num_records; i++) {
-        if (!(ks[i] = ::operator new(key_lens[i]))) {
-            for(int j = 0; j < i; j++) {
-                ::operator delete(ks[j]);
-            }
-            delete [] ks;
-            delete [] k_lens;
-            return nullptr;
-        }
-        memcpy(ks[i], keys[i], key_lens[i]);
-        k_lens[i] = key_lens[i];
-    }
-
-    TransportBRecvMessage *head = _bdel_records(md, index, ks, k_lens, num_records);
-    if (!head) {
-        return nullptr;
-    }
-
-    mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d mdhimDelete - Completed Successfully", md->rank);
-    return mdhim_brm_init(head);
+    return mdhim_brm_init(_bdel_records(md, index, ks, k_lens, num_records));
 }
 
 /**
@@ -905,76 +632,6 @@ int mdhimStatFlush(mdhim_t *md, index_t *index) {
     MPI_Barrier(md->comm);
 
     return ret;
-}
-
-/**
- * Sets the secondary_info structure used in mdhimPut
- */
-secondary_info_t *mdhimCreateSecondaryInfo(index_t *secondary_index,
-                                           void **secondary_keys, int *secondary_key_lens,
-                                           int num_keys, int info_type) {
-    if (!secondary_index || !secondary_keys ||
-        !secondary_key_lens || !num_keys) {
-        return nullptr;
-    }
-
-    if (info_type != SECONDARY_GLOBAL_INFO &&
-        info_type != SECONDARY_LOCAL_INFO) {
-        return nullptr;
-    }
-
-    //Initialize the struct
-    secondary_info_t *sinfo = new secondary_info_t();
-
-    //Set the index fields
-    sinfo->secondary_index = secondary_index;
-    sinfo->secondary_keys = secondary_keys;
-    sinfo->secondary_key_lens = secondary_key_lens;
-    sinfo->num_keys = num_keys;
-    sinfo->info_type = info_type;
-
-    return sinfo;
-}
-
-void mdhimReleaseSecondaryInfo(secondary_info_t *si) {
-    // none of the pointers belong to si
-    delete si;
-}
-
-/**
- * Sets the secondary_bulk_info structure used in mdhimBPut
- */
-secondary_bulk_info_t *mdhimCreateSecondaryBulkInfo(index_t *secondary_index,
-                                                    void ***secondary_keys,
-                                                    int **secondary_key_lens,
-                                                    int *num_keys,int num_records,
-                                                    int info_type) {
-    if (!secondary_index || !secondary_keys ||
-        !secondary_key_lens || !num_keys) {
-        return nullptr;
-    }
-
-    if (info_type != SECONDARY_GLOBAL_INFO &&
-        info_type != SECONDARY_LOCAL_INFO) {
-        return nullptr;
-    }
-
-    //Initialize the struct
-    secondary_bulk_info_t *sinfo = new secondary_bulk_info_t();
-
-    //Set the index fields
-    sinfo->secondary_index = secondary_index;
-    sinfo->secondary_keys = secondary_keys;
-    sinfo->secondary_key_lens = secondary_key_lens;
-    sinfo->num_keys = num_keys;
-    sinfo->num_records = num_records;
-    sinfo->info_type = info_type;
-
-    return sinfo;
-}
-
-void mdhimReleaseSecondaryBulkInfo(secondary_bulk_info_t *si) {
-    delete si;
 }
 
 /* what server would respond to this key? */

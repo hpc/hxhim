@@ -9,7 +9,6 @@
 #include <map>
 #include <type_traits>
 
-#include "index_struct.h"
 #include "mdhim_constants.h"
 #include "transport_constants.h"
 
@@ -244,8 +243,8 @@ class TransportEndpoint {
 
     protected:
         TransportEndpoint() {}
-
-        TransportEndpoint(const TransportEndpoint& rhs) {}
+        TransportEndpoint(const TransportEndpoint&  rhs) = delete;
+        TransportEndpoint(const TransportEndpoint&& rhs) = delete;
 };
 
 /**
@@ -253,8 +252,7 @@ class TransportEndpoint {
  */
 class TransportEndpointGroup {
     public:
-        TransportEndpointGroup();
-        virtual ~TransportEndpointGroup();
+        virtual ~TransportEndpointGroup() {}
 
         /** @description Bulk Put to multiple endpoints    */
         virtual TransportBRecvMessage *BPut(const int num_rangesrvs, TransportBPutMessage **bpm_list) = 0;
@@ -266,6 +264,7 @@ class TransportEndpointGroup {
         virtual TransportBRecvMessage *BDelete(const int num_rangesrvs, TransportBDeleteMessage **bdm_list) = 0;
 
    protected:
+        TransportEndpointGroup() {}
         TransportEndpointGroup(const TransportEndpointGroup&  rhs) = delete;
         TransportEndpointGroup(const TransportEndpointGroup&& rhs) = delete;
 

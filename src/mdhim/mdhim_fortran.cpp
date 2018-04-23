@@ -51,7 +51,7 @@ void mdhimftopts_init() {
 }
 
 void mdhimftput(void *key, int *key_size, void *val, int *val_size) {
-  mdhimPut(md, key, *key_size, val, *val_size, NULL, NULL);
+    mdhimPut(md, nullptr, key, *key_size, val, *val_size);
 }
 
 void mdhimftget(void *key, int *key_size, void *val, int val_size) {

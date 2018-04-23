@@ -1,5 +1,33 @@
 #include "transport_private.hpp"
 
+mdhim_rm_t *mdhim_rm_init(TransportRecvMessage *rm) {
+    if (!rm) {
+        return nullptr;
+    }
+
+    mdhim_rm_t *ret = new mdhim_rm_t();
+    if (!ret) {
+        return nullptr;
+    }
+
+    ret->rm = rm;
+    return ret;
+}
+
+mdhim_brm_t *mdhim_brm_init(TransportBRecvMessage *brm) {
+    if (!brm) {
+        return nullptr;
+    }
+
+    mdhim_brm_t *ret = new mdhim_brm_t();
+    if (!ret) {
+        return nullptr;
+    }
+
+    ret->brm = brm;
+    return ret;
+}
+
 mdhim_getrm_t *mdhim_grm_init(TransportGetRecvMessage *grm) {
     if (!grm) {
         return nullptr;
@@ -28,18 +56,20 @@ mdhim_bgetrm_t *mdhim_bgrm_init(TransportBGetRecvMessage *bgrm) {
     return ret;
 }
 
-mdhim_brm_t *mdhim_brm_init(TransportBRecvMessage *brm) {
-    if (!brm) {
-        return nullptr;
+void mdhim_rm_destroy(mdhim_rm_t *rm) {
+    if (rm) {
+        delete rm->rm;
     }
 
-    mdhim_brm_t *ret = new mdhim_brm_t();
-    if (!ret) {
-        return nullptr;
+    delete rm;
+}
+
+void mdhim_brm_destroy(mdhim_brm_t *brm) {
+    if (brm) {
+        delete brm->brm;
     }
 
-    ret->brm = brm;
-    return ret;
+    delete brm;
 }
 
 void mdhim_grm_destroy(mdhim_getrm_t *grm) {
@@ -58,12 +88,22 @@ void mdhim_bgrm_destroy(mdhim_bgetrm_t *bgrm) {
     delete bgrm;
 }
 
-void mdhim_brm_destroy(mdhim_brm_t *brm) {
-    if (brm) {
-        delete brm->brm;
+int mdhim_rm_src(const mdhim_rm_t *rm, int *src) {
+    if (!rm || !rm->rm || !src) {
+        return MDHIM_ERROR;
     }
 
-    delete brm;
+    *src = rm->rm->src;
+    return MDHIM_SUCCESS;
+}
+
+int mdhim_rm_error(const mdhim_rm_t *rm, int *error) {
+    if (!rm || !rm->rm || !error) {
+        return MDHIM_ERROR;
+    }
+
+    *error = rm->rm->error;
+    return MDHIM_SUCCESS;
 }
 
 int mdhim_brm_src(const mdhim_brm_t *brm, int *src) {
