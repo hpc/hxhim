@@ -21,11 +21,9 @@ TEST(mdhim, BPutBGet) {
     mdhim_options_t opts;
     mdhim_t md;
 
-    MPIOptions_t mpi_opts;
-    mpi_opts.comm = MPI_COMM_WORLD;
-    mpi_opts.alloc_size = ALLOC_SIZE;
-    mpi_opts.regions = REGIONS;
-    ASSERT_EQ(mdhim_options_init_with_defaults(&opts, MDHIM_TRANSPORT_MPI, &mpi_opts), MDHIM_SUCCESS);
+    ASSERT_EQ(mdhim_options_init(&opts), MDHIM_SUCCESS);
+    ASSERT_EQ(mdhim_options_init_mpi_transport(&opts, MPI_COMM_WORLD, ALLOC_SIZE, REGIONS), MDHIM_SUCCESS);
+    ASSERT_EQ(mdhim_options_init_db(&opts, true), MDHIM_SUCCESS);
     ASSERT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
 
     //Place the key and value into arrays

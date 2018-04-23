@@ -92,11 +92,6 @@ int mdhimInit(mdhim_t* md, mdhim_options_t *opts) {
         return MDHIM_ERROR;
     }
 
-    if (!(md->p = new mdhim_private_t())) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d midhimInit - Memory Allocation For Private Variables Failed", md->rank);
-        return MDHIM_ERROR;
-    }
-
     //Initialize context variables based on options
     if (mdhim_private_init(md, opts->p->db, opts->p->transport) != MDHIM_SUCCESS) {
         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d mdhimInit - Private Variable Initialization Failed", md->rank);
@@ -210,7 +205,11 @@ static int _clone(int count, void **srcs, int *src_lens, void ***dsts, int **dst
     *dst_lens = new int[count]();
     if (!*dsts || !*dst_lens) {
         delete [] *dsts;
+        *dsts = nullptr;
+
         delete [] *dst_lens;
+        *dst_lens = nullptr;
+
         return MDHIM_ERROR;
     }
 
@@ -236,7 +235,7 @@ static int _clone(int count, void **srcs, int *src_lens, void ***dsts, int **dst
 
 /**
  * _cleanup
- * Deallocate space allocated by _clone
+ * Deallocate arrays
  *
  * @param data address of the data
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
@@ -248,7 +247,7 @@ static int _cleanup(void *data) {
 
 /**
  * _cleanup
- * Deallocate space allocated by _clone
+ * Deallocate arrays of arrays and their lengths
  *
  * @param count how many data-len pairs there are
  * @param data  address of the data
@@ -342,10 +341,18 @@ mdhim_brm_t *mdhimBPut(mdhim_t *md, index_t *index,
         return nullptr;
     }
 
-    return mdhim_brm_init(_bput_records(md, md->p->primary_index,
-                                                pks, pk_lens,
-                                                pvs, pv_lens,
-                                                num_records));
+    TransportBRecvMessage *brm = _bput_records(md, md->p->primary_index,
+                                               pks, pk_lens,
+                                               pvs, pv_lens,
+                                               num_records);
+
+    // pk, pk_lens, pvs, pv_lens are created in _bput_records
+    delete [] pks;
+    delete [] pk_lens;
+    delete [] pvs;
+    delete [] pv_lens;
+
+    return mdhim_brm_init(brm);
 }
 
 /**
@@ -430,6 +437,11 @@ mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, index_t *index,
     }
 
     TransportBGetRecvMessage *bgrm_head = _bget_records(md, index, ks, k_lens, num_keys, 1, op);
+
+    // ks and k_lens are created in _bget_records
+    delete [] ks;
+    delete [] k_lens;
+
     if (!bgrm_head) {
         return nullptr;
     }
@@ -542,7 +554,13 @@ mdhim_bgetrm_t *mdhimBGetOp(mdhim_t *md, index_t *index,
     }
 
     //Get the linked list of return messages from mdhimBGet
-    return mdhim_bgrm_init(_bget_records(md, index, k, k_len, 1, num_records, op));
+    TransportBGetRecvMessage *bgrm = _bget_records(md, index, k, k_len, 1, num_records, op);
+
+    // ks and k_lens are created in _bget_records
+    delete [] k;
+    delete [] k_len;
+
+    return mdhim_bgrm_init(bgrm);
 }
 
 /**
@@ -611,7 +629,13 @@ mdhim_brm_t *mdhimBDelete(mdhim_t *md, index_t *index,
         return nullptr;
     }
 
-    return mdhim_brm_init(_bdel_records(md, index, ks, k_lens, num_records));
+    TransportBRecvMessage *brm = _bdel_records(md, index, ks, k_lens, num_records);
+
+    // ks and k_lens are created in _bget_records
+    delete [] ks;
+    delete [] k_lens;
+
+    return mdhim_brm_init(brm);
 }
 
 /**

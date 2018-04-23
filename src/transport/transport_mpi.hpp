@@ -7,6 +7,7 @@
 
 #include "MPIInstance.hpp"
 #include "MPIOptions.h"
+#include "MPIOptions.hpp"
 #include "MPIPacker.hpp"
 #include "MPIUnpacker.hpp"
 #include "MPIEndpoint.hpp"

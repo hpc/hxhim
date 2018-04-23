@@ -17,9 +17,9 @@ FixedBufferPool::FixedBufferPool(const std::size_t alloc_size, const std::size_t
     unused_(nullptr),
     used_(0)
 {
+    std::unique_lock<std::mutex> lock(mutex_);
     pool_ = ::operator new(pool_size_);     // allocate memory at runtime
 
-    std::unique_lock<std::mutex> lock(mutex_);
     try {
         // allocate the array of nodes
         nodes_ = new Node[regions_]();

@@ -1,14 +1,10 @@
-/*
- * DB usage options.
- * Location and name of DB, type of DataSotre primary key type,
- */
-
 #ifndef      __OPTIONS_H
 #define      __OPTIONS_H
 
 #include <mpi.h>
 
 #include "mdhim_constants.h"
+#include "mdhim_options_struct.h"
 #include "MPIOptions.h"
 
 #ifdef __cplusplus
@@ -16,15 +12,8 @@ extern "C"
 {
 #endif
 
-typedef struct mdhim_options_private mdhim_options_private_t;
-
-typedef struct mdhim_options {
-    mdhim_options_private_t *p;
-} mdhim_options_t;
-
 int mdhim_options_init(mdhim_options_t* opts);
-int mdhim_options_init_with_defaults(mdhim_options_t* opts, const int transport_type, void *transport_data);
-int mdhim_options_set_transport(mdhim_options_t *opts, const int type, void *data);
+int mdhim_options_init_db(mdhim_options_t* opts, int set_defaults);
 int mdhim_options_set_db_path(mdhim_options_t* opts, const char *path);
 int mdhim_options_set_db_paths(mdhim_options_t* opts, char **paths, const int num_paths);
 int mdhim_options_set_db_name(mdhim_options_t* opts, const char *name);

@@ -4,7 +4,7 @@
 #include "mdhim.h"
 #include "mdhim_options_private.h"
 #include "range_server.h"
-#include "transport.hpp"
+#include "transport_options.hpp"
 
 #ifdef __cplusplus
 extern "C"
@@ -51,7 +51,7 @@ typedef struct mdhim_private {
 } mdhim_private_t;
 
 /** @description The actual initializer function for mdhim_t */
-int mdhim_private_init(mdhim_t *md, mdhim_db_options_t *db, mdhim_transport_options_t *transport);
+int mdhim_private_init(mdhim_t *md, mdhim_db_options_t *db, TransportOptions *transport);
 
 /** @description The actual destructor for mdhim_t */
 int mdhim_private_destroy(mdhim_t *md);
@@ -69,12 +69,6 @@ TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
 /** @description Internal DELETE function */
 TransportRecvMessage *_del_record(mdhim_t *md, index_t *index,
                                   void *key, int key_len);
-
-/** @description Creates Bulk Receive Messages from Receive Messages to be used as a list */
-TransportBRecvMessage *_create_brm(TransportRecvMessage *rm);
-
-// /** @description Adds a Bulk Recieve Message to the end of a Bulk Receive Message list*/
-// void _concat_brm(TransportBRecvMessage **head, TransportBRecvMessage *addition);
 
 /** @description Internal BPUT function */
 TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,

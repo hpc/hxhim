@@ -447,7 +447,6 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
 
     //Set the type
     brm->mtype = TransportMessageType::RECV;
-    //Set the operation return code as the error
     brm->error = error;
     brm->src = md->rank;
     brm->dst = bim->src;

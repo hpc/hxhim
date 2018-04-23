@@ -1,8 +1,3 @@
-/*
- * DB usage options.
- * Location and name of DB, type of DataSotre primary key type,
- */
-
 #ifndef MDHIM_OPTIONS_PRIVATE_H
 #define MDHIM_OPTIONS_PRIVATE_H
 
@@ -11,16 +6,12 @@
 #include "mlog2.h"
 #include "mlogfacs2.h"
 
-// Options for the underlying transport
-typedef struct mdhim_transport_options {
-    int type;
-    void *data;
-} mdhim_transport_options_t;
+#include "transport_options.hpp"
 
 // Options for the database (used when opening a MDHIM dataStore)
 typedef struct mdhim_db_options {
     //Directory location of DBs
-    const char *path;
+    char *path;
 
     //Multiple paths of DBs
     char **paths;
@@ -28,11 +19,11 @@ typedef struct mdhim_db_options {
     //Number of paths in db_paths
     int num_paths;
 
-    const char *manifest_path;
+    char *manifest_path;
 
     //Name of each DB (will be modified by adding "_<RANK>" to create multiple
     // unique DB for each rank server.
-    const char *name;
+    char *name;
 
     //Different types of dataStores
     //LEVELDB=1 (from data_store.h)
@@ -66,19 +57,19 @@ typedef struct mdhim_db_options {
     int num_wthreads;
 
     //Login Credentials
-    const char *db_host;
-    const char *dbs_host;
-    const char *db_user;
-    const char *db_upswd;
-    const char *dbs_user;
-    const char *dbs_upswd;
+    char *db_host;
+    char *dbs_host;
+    char *db_user;
+    char *db_upswd;
+    char *dbs_user;
+    char *dbs_upswd;
 } mdhim_db_options_t;
 
 /**
  * @brief Structure used to set MDHIM options before initialization
  */
 typedef struct mdhim_options_private {
-    mdhim_transport_options_t *transport;
+    TransportOptions *transport;
     mdhim_db_options_t *db;
 } mdhim_options_private_t;
 

@@ -1,15 +1,15 @@
 #include "MemoryManagers.hpp"
 
-std::map<std::size_t, std::map<std::size_t, FixedBufferPool *> > Memory::pools;
-
 FixedBufferPool *Memory::Pool(const std::size_t alloc_size, const std::size_t regions) {
     if (!alloc_size || !regions) {
         return nullptr;
     }
 
-    std::map<std::size_t, std::map<std::size_t, FixedBufferPool *> >::iterator alloc_it = pools.find(alloc_size);
-    if (alloc_it == pools.end()) {
-        std::pair<std::map<std::size_t, std::map<std::size_t, FixedBufferPool *> >::iterator, bool> insert = pools.insert(std::make_pair(alloc_size, std::map<std::size_t, FixedBufferPool *>()));
+    static Memory manager;
+
+    std::map<std::size_t, std::map<std::size_t, FixedBufferPool *> >::iterator alloc_it = manager.pools.find(alloc_size);
+    if (alloc_it == manager.pools.end()) {
+        std::pair<std::map<std::size_t, std::map<std::size_t, FixedBufferPool *> >::iterator, bool> insert = manager.pools.insert(std::make_pair(alloc_size, std::map<std::size_t, FixedBufferPool *>()));
         alloc_it = insert.first;
     }
 
@@ -22,7 +22,9 @@ FixedBufferPool *Memory::Pool(const std::size_t alloc_size, const std::size_t re
     return regions_it->second;
 }
 
-Memory::Memory() {}
+Memory::Memory()
+  : pools()
+{}
 
 Memory::~Memory() {
     for(std::pair<const std::size_t, std::map<std::size_t, FixedBufferPool *> > const &alloc_size : pools) {

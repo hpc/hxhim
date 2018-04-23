@@ -13,7 +13,7 @@ class Memory {
         Memory();
         ~Memory();
 
-        static std::map<std::size_t, std::map<std::size_t, FixedBufferPool *> > pools;
+        std::map<std::size_t, std::map<std::size_t, FixedBufferPool *> > pools;
 };
 
 #endif

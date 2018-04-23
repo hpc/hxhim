@@ -182,7 +182,7 @@ int get_from_map(const Config &config, const std::string &config_key,
  * @return whether or not opts was successfully filled
  */
 static int fill_options(const Config &config, mdhim_options_t *opts) {
-    // no need to check for nulls in opts
+    // no need to check for null opts
 
     int ret = MDHIM_SUCCESS;
 
@@ -332,11 +332,7 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
             return MDHIM_ERROR;
         }
 
-        MPIOptions_t *mpi_opts = new MPIOptions_t();
-        mpi_opts->comm = MPI_COMM_WORLD;
-        mpi_opts->alloc_size = memory_alloc_size;
-        mpi_opts->regions = memory_regions;
-        if (mdhim_options_set_transport(opts, MDHIM_TRANSPORT_MPI, mpi_opts) != MDHIM_SUCCESS) {
+        if (mdhim_options_init_mpi_transport(opts, MPI_COMM_WORLD, memory_alloc_size, memory_regions) != MDHIM_SUCCESS) {
             return MDHIM_ERROR;
         }
     }
@@ -346,7 +342,7 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
         bool use_thallium;
         if ((get_bool(config, USE_THALLIUM, use_thallium) == MDHIM_SUCCESS) &&
             use_thallium) {
-            if (mdhim_options_set_transport(opts, MDHIM_TRANSPORT_THALLIUM, new std::string(config.at(THALLIUM_MODULE))) != MDHIM_SUCCESS) {
+            if (mdhim_options_init_thallium_transport(opts, config.at(THALLIUM_MODULE).c_str()) != MDHIM_SUCCESS) {
                 return MDHIM_ERROR;
             }
         }
@@ -407,6 +403,7 @@ int mdhim_default_config_reader(mdhim_options_t *opts) {
     config_sequence.add(&dir);
 
     if ((mdhim_options_init(opts)                               != MDHIM_SUCCESS) || // initialize opts->p
+        (mdhim_options_init_db(opts, false)                     != MDHIM_SUCCESS) || // initialize opts->p->db
         (fill_options(MDHIM_DEFAULT_CONFIG, opts)               != MDHIM_SUCCESS) || // fill in the configuration with default values
         (process_config_and_fill_options(config_sequence, opts) != MDHIM_SUCCESS)) { // read the configuration and overwrite default values
         mdhim_options_destroy(opts);

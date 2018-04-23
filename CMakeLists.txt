@@ -30,7 +30,7 @@ include_directories(src/mdhim)
 include_directories(src/utils)
 
 # Include CMake modules
-include(FindPkgConfig REQUIRED)
+find_package(PkgConfig REQUIRED)
 
 #
 # External projects
@@ -87,6 +87,41 @@ if (THALLIUM_FOUND)
       include_directories(AFTER SYSTEM ${MARGO_INCLUDEDIR})
       SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath -Wl,${MARGO_LIBDIR}")
     endif()
+endif()
+
+#
+# LevelDB Support
+#
+pkg_search_module(LEVELDB REQUIRED leveldb)
+if(${LEVELDB_FOUND})
+    message(STATUS "LevelDB Data Storage Module Enabled")
+    message(STATUS "LEVELDB_LIBRARY_DIRS=" ${LEVELDB_LIBRARY_DIRS})
+    message(STATUS "LEVELDB_LIBRARIES=" ${LEVELDB_LIBRARIES})
+    link_directories(${LEVELDB_LIBRARY_DIRS})
+    set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${LEVELDB_LIBRARY_DIRS})
+    #link_libraries(${LEVELDB_LIBRARIES})
+    include_directories(AFTER SYSTEM ${LEVELDB_INCLUDE_DIRS})
+    find_library(LEVELDB_LIBRARY NAMES leveldb HINTS ${LEVELDB_LIBRARY_DIRS})
+    add_definitions(-DHXHIM_USE_LEVELDB)
+endif()
+
+#
+# RocksDB Support
+#
+pkg_search_module(ROCKSDB rocksdb)
+if(${ROCKSDB_FOUND})
+  message(STATUS "RocksDB Data Storage Module Enabled")
+  include_directories(AFTER SYSTEM ${ROCKSDB_INCLUDE_DIRS})
+  add_definitions(-DHXHIM_USE_ROCKSDB)
+endif()
+
+#
+# MySQL Support
+#
+find_package(MYSQL QUIET)
+if(${MYSQL_FOUND})
+  message(STATUS "MySQL Data Storage Module Enabled")
+  add_definitions(-DHXHIM_USE_MYSQL)
 endif()
 
 # GoogleTest

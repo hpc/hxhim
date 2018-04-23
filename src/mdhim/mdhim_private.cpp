@@ -1,9 +1,7 @@
 #include <cstdlib>
 #include <map>
-#include <memory>
 #include <unistd.h>
 #include <sys/types.h>
-#include <thread>
 
 #include <thallium.hpp>
 #include <thallium/serialization/stl/string.hpp>
@@ -43,39 +41,47 @@ static int mdhim_private_init_db(mdhim_t *md, mdhim_db_options_t *db) {
  * @param transport the transrpot options to initialize with
  * @param MDHIM_SUCCESS or MDHIM_ERROR
  */
-static int mdhim_private_init_transport(mdhim_t *md, mdhim_transport_options_t *transport) {
+static int mdhim_private_init_transport(mdhim_t *md, TransportOptions *transport) {
     if (!md || !md->p || !transport) {
         return MDHIM_ERROR;
     }
 
-    md->p->transport = new Transport();
+    if (!(md->p->transport = new Transport())) {
+        return MDHIM_ERROR;
+    }
 
-    if (transport->type == MDHIM_TRANSPORT_MPI) {
-        MPIOptions_t *mpi_opts = static_cast<MPIOptions_t *>(transport->data);
+    if (transport->type_ == MDHIM_TRANSPORT_MPI) {
+        MPIOptions *mpi_opts = dynamic_cast<MPIOptions *>(transport);
         if (!mpi_opts) {
+            delete md->p->transport;
+            md->p->transport = nullptr;
             return MDHIM_ERROR;
         }
 
         // Do not allow MPI_COMM_NULL
-        if (mpi_opts->comm == MPI_COMM_NULL) {
+        if (mpi_opts->comm_ == MPI_COMM_NULL) {
+            delete md->p->transport;
+            md->p->transport = nullptr;
             return MDHIM_ERROR;
         }
 
         // Get the memory pool used for storing messages
-        FixedBufferPool *fbp = Memory::Pool(mpi_opts->alloc_size, mpi_opts->regions);
+        FixedBufferPool *fbp = Memory::Pool(mpi_opts->alloc_size_, mpi_opts->regions_);
         if (!fbp) {
+            delete md->p->transport;
+            md->p->transport = nullptr;
             return MDHIM_ERROR;
         }
 
         // give the range server access to the memory buffer sizes
         MPIRangeServer::init(md, fbp);
 
-        MPIEndpointGroup *eg = new MPIEndpointGroup(mpi_opts->comm, md->lock, fbp);
+        MPIEndpointGroup *eg = new MPIEndpointGroup(mpi_opts->comm_, md->lock, fbp);
 
         // create mapping between unique IDs and ranks
         for(int i = 0; i < md->size; i++) {
             // MPI ranks map 1:1 with the boostrap MPI rank
-            md->p->transport->AddEndpoint(i, new MPIEndpoint(mpi_opts->comm, i, fbp, md->p->shutdown));
+            md->p->transport->AddEndpoint(i, new MPIEndpoint(mpi_opts->comm_, i, fbp, md->p->shutdown));
 
             // add the MPI ranks to the endpoint group
             eg->AddID(i, i);
@@ -90,11 +96,16 @@ static int mdhim_private_init_transport(mdhim_t *md, mdhim_transport_options_t *
 
         return MDHIM_SUCCESS;
     }
-    else if (transport->type == MDHIM_TRANSPORT_THALLIUM) {
-        std::string *protocol = static_cast<std::string *>(transport->data);
+    else if (transport->type_ == MDHIM_TRANSPORT_THALLIUM) {
+        ThalliumOptions *thallium_opts = dynamic_cast<ThalliumOptions *>(transport);
+        if (!thallium_opts) {
+            delete md->p->transport;
+            md->p->transport = nullptr;
+            return MDHIM_ERROR;
+        }
 
         // create the engine (only 1 instance per process)
-        Thallium::Engine_t engine(new thallium::engine(*protocol, THALLIUM_SERVER_MODE, true, -1),
+        Thallium::Engine_t engine(new thallium::engine(thallium_opts->protocol_, THALLIUM_SERVER_MODE, true, -1),
                                   [=](thallium::engine *engine) {
                                       engine->finalize();
                                       delete engine;
@@ -182,10 +193,18 @@ static int mdhim_private_init_index(mdhim_t *md) {
  * @param transport the transrpot options to initialize with
  * @param MDHIM_SUCCESS or MDHIM_ERROR
  */
-int mdhim_private_init(mdhim_t* md, mdhim_db_options_t *db, mdhim_transport_options_t *transport) {
-    if (!md || !md->p) {
+int mdhim_private_init(mdhim_t* md, mdhim_db_options_t *db, TransportOptions *transport) {
+    if (!md || !db || !transport) {
         return MDHIM_ERROR;
     }
+
+    if (!(md->p = new mdhim_private_t())) {
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM - Error Private Initialization Failed");
+        return MDHIM_ERROR;
+    }
+
+    //Flag that won't be used until shutdown
+    md->p->shutdown = 0;
 
     //Required for index initialization
     md->p->db_opts = db;
@@ -211,9 +230,6 @@ int mdhim_private_init(mdhim_t* md, mdhim_db_options_t *db, mdhim_transport_opti
 
     //Initialize the partitioner
     partitioner_init();
-
-    //Flag that won't be used until shutdown
-    md->p->shutdown = 0;
 
     md->p->receive_msg_mutex = PTHREAD_MUTEX_INITIALIZER;
     md->p->receive_msg_ready_cv = PTHREAD_COND_INITIALIZER;
@@ -326,6 +342,18 @@ int mdhim_private_destroy(mdhim_t *md) {
     return MDHIM_SUCCESS;
 }
 
+/**
+ * _put_record
+ * Puts a record into MDHIM
+ *
+ * @param md          main MDHIM struct
+ * @param index       the index to put the key to
+ * @param key         pointer to key to put
+ * @param key_len     the length of the key
+ * @param value       pointer to value to put
+ * @param value_len   the length of the value
+ * @return TransportRecvMessage * or nullptr on error
+ */
 TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
                                   void *key, int key_len,
                                   void *value, int value_len) {
@@ -405,6 +433,16 @@ TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
     return rm;
 }
 
+/**
+ * _get_record
+ * Gets a record into MDHIM
+ *
+ * @param md          main MDHIM struct
+ * @param index       the index to get the key from
+ * @param key         pointer to key to get
+ * @param key_len     the length of the key
+ * @return TransportGetRecvMessage * or nullptr on error
+ */
 TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
                                      void *key, int key_len,
                                      enum TransportGetMessageOp op) {
@@ -460,7 +498,7 @@ TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
 }
 
 /* Creates a linked list of mdhim_rm_t messages */
-TransportBRecvMessage *_create_brm(TransportRecvMessage *rm) {
+static TransportBRecvMessage *_create_brm(TransportRecvMessage *rm) {
     if (!rm) {
         return nullptr;
     }
@@ -477,7 +515,7 @@ TransportBRecvMessage *_create_brm(TransportRecvMessage *rm) {
 }
 
 /* adds new to the list pointed to by head */
-void _concat_brm(TransportBRecvMessage **head, TransportBRecvMessage *addition) {
+static void _concat_brm(TransportBRecvMessage **head, TransportBRecvMessage *addition) {
     if (!head || !addition) {
         return;
     }
@@ -494,6 +532,19 @@ void _concat_brm(TransportBRecvMessage **head, TransportBRecvMessage *addition) 
     brmp->next = addition;
 }
 
+/**
+ * _bput_records
+ * BPuts records into MDHIM
+ *
+ * @param md          main MDHIM struct
+ * @param index       the index to put the key to
+ * @param keys        array of pointers to keys to put
+ * @param key_lens    array of the key lengths
+ * @param values      array of pointers to values to put
+ * @param value_lens  array of value lengths
+ * @param num_keys    the number of key value pairs
+ * @return TransportRecvMessage * or nullptr on error
+ */
 TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
                                      void **keys, int *key_lens,
                                      void **values, int *value_lens,
@@ -597,7 +648,7 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
         TransportRecvMessage *rm = local_client_bput(md, lbpm);
         if (rm) {
             TransportBRecvMessage *brm = _create_brm(rm);
-            brm->next = brm_head;
+            _concat_brm(&brm, brm_head);
             brm_head = brm;
             delete rm;
         }
@@ -615,6 +666,19 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
     return brm_head;
 }
 
+/**
+ * _bget_records
+ * BGets records from MDHIM
+ *
+ * @param md          main MDHIM struct
+ * @param index       the index to get the key from
+ * @param keys        array of pointers to keys to put
+ * @param key_lens    array of the key lengths
+ * @param num_keys    the number of key value pairs
+ * @param num_records ??
+ * @param op          the comparison to use for key matching
+ * @return TransportBGetRecvMessage * or nullptr on error
+ */
 TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
                                         void **keys, int *key_lens,
                                         int num_keys, int num_records,
@@ -710,12 +774,14 @@ TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
 }
 
 /**
+ * _del_record
  * Deletes a record from MDHIM
  *
  * @param md main MDHIM struct
+ * @param index       the index to delete the key from
  * @param key         pointer to array of keys to delete
  * @param key_len     array with lengths of each key in keys
- * @return mdhim_rm_t * or nullptr on error
+ * @return TransportRecvMessage * or nullptr on error
  */
 TransportRecvMessage *_del_record(mdhim_t *md, index_t *index,
                                   void *key, int key_len) {
@@ -794,13 +860,15 @@ TransportRecvMessage *_del_record(mdhim_t *md, index_t *index,
 }
 
 /**
+ * _bdel_records
  * Deletes multiple records from MDHIM
  *
- * @param md main MDHIM struct
+ * @param md           main MDHIM struct
+ * @param index        the index to delete the key from
  * @param keys         pointer to array of keys to delete
  * @param key_lens     array with lengths of each key in keys
- * @param num_keys  the number of keys to delete (i.e., the number of keys in keys array)
- * @return mdhim_brm_t * or nullptr on error
+ * @param num_keys     the number of keys to delete (i.e., the number of keys in keys array)
+ * @return TransportBRecvMessage * or nullptr on error
  */
 TransportBRecvMessage *_bdel_records(mdhim_t *md, index_t *index,
                                      void **keys, int *key_lens,
