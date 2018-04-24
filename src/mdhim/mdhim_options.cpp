@@ -86,6 +86,8 @@ int mdhim_options_init(mdhim_options_t *opts, const MPI_Comm comm, const int set
         return MDHIM_ERROR;
     }
 
+    memset(opts, 0, sizeof(*opts));
+
     if ((opts->comm = comm) == MPI_COMM_NULL) {
         return MDHIM_ERROR;
     }

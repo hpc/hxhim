@@ -184,7 +184,7 @@ int get_from_map(const Config &config, const std::string &config_key,
  * @return whether or not opts was successfully filled
  */
 static int fill_options(const Config &config, mdhim_options_t *opts, const MPI_Comm comm) {
-    if (!opts) {
+    if (!opts || !opts->p || !opts->p->transport || !opts->p->db) {
         return MDHIM_ERROR;
     }
 

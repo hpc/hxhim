@@ -11,7 +11,7 @@ TEST(mdhimInitClose, Good) {
     mdhim_options_t opts;
     mdhim_t md;
 
-    ASSERT_EQ(mdhim_options_init(&opts, MPI_COMM_WORLD, false, false), MDHIM_SUCCESS);
+    ASSERT_EQ(mdhim_options_init(&opts, MPI_COMM_WORLD, true, true), MDHIM_SUCCESS);
     ASSERT_EQ(mdhimInit(&md, &opts), MDHIM_SUCCESS);
 
     EXPECT_EQ(MPI_Barrier(MPI_COMM_WORLD), MPI_SUCCESS);
@@ -25,7 +25,7 @@ TEST(mdhimInit, COMM_NULL) {
     mdhim_options_t opts;
     mdhim_t md;
 
-    ASSERT_EQ(mdhim_options_init(&opts, MPI_COMM_NULL, false, false), MDHIM_ERROR);
+    ASSERT_EQ(mdhim_options_init(&opts, MPI_COMM_NULL, true, true), MDHIM_ERROR);
     ASSERT_EQ(mdhimInit(&md, &opts), MDHIM_ERROR);
 
     EXPECT_EQ(mdhimClose(&md), MDHIM_SUCCESS);
@@ -37,7 +37,7 @@ TEST(mdhimInit, NULL_md) {
     mdhim_options_t opts;
 
     // options is irrelevant here
-    ASSERT_EQ(mdhim_options_init(&opts, MPI_COMM_WORLD, false, false), MDHIM_SUCCESS);
+    ASSERT_EQ(mdhim_options_init(&opts, MPI_COMM_WORLD, true, true), MDHIM_SUCCESS);
     ASSERT_EQ(mdhimInit(NULL, &opts), MDHIM_ERROR);
 
     EXPECT_EQ(mdhim_options_destroy(&opts), MDHIM_SUCCESS);

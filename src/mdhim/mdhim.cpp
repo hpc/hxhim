@@ -75,8 +75,13 @@ static int bootstrapDestroy(mdhim_t *md) {
  * @return MDHIM status value
  */
 int mdhimInit(mdhim_t* md, mdhim_options_t *opts) {
-    if (!md ||
-        !opts || !opts->p || !opts->p->transport || !opts->p->db){
+    if (!md) {
+        return MDHIM_ERROR;
+    }
+
+    memset(md, 0, sizeof(*md));
+
+    if (!opts || !opts->p || !opts->p->transport || !opts->p->db) {
         return MDHIM_ERROR;
     }
 
