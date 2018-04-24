@@ -1,12 +1,18 @@
 #ifndef MDHIM_OPTIONS_PRIVATE_H
 #define MDHIM_OPTIONS_PRIVATE_H
 
-#include <stdint.h>
+#include <cstdint>
+#include <set>
 
 #include "mlog2.h"
 #include "mlogfacs2.h"
 
 #include "transport_options.hpp"
+
+typedef struct mdhim_transport_options {
+    TransportOptions *transport_specific;
+    std::set<int> endpointgroup;
+} mdhim_transport_options_t;
 
 // Options for the database (used when opening a MDHIM dataStore)
 typedef struct mdhim_db_options {
@@ -69,7 +75,7 @@ typedef struct mdhim_db_options {
  * @brief Structure used to set MDHIM options before initialization
  */
 typedef struct mdhim_options_private {
-    TransportOptions *transport;
+    mdhim_transport_options_t *transport;
     mdhim_db_options_t *db;
 } mdhim_options_private_t;
 

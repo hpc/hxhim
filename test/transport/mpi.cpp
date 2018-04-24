@@ -36,6 +36,7 @@ TEST(MPIInstance, WorldSize) {
 
 TEST(mpi_pack_unpack, TransportPutMessage) {
     volatile int shutdown = 0;
+    (void)shutdown;
     const MPIInstance& instance = MPIInstance::instance();
     TransportPutMessage src;
     {
@@ -83,6 +84,7 @@ TEST(mpi_pack_unpack, TransportPutMessage) {
 
 TEST(mpi_pack_unpack, TransportBPutMessage) {
     volatile int shutdown = 0;
+    (void)shutdown;
     const MPIInstance &instance = MPIInstance::instance();
     TransportBPutMessage src;
     {
@@ -142,6 +144,7 @@ TEST(mpi_pack_unpack, TransportBPutMessage) {
 
 TEST(mpi_pack_unpack, TransportGetMessage) {
     volatile int shutdown = 0;
+    (void)shutdown;
     const MPIInstance &instance = MPIInstance::instance();
     TransportGetMessage src;
     {
@@ -187,6 +190,7 @@ TEST(mpi_pack_unpack, TransportGetMessage) {
 
 TEST(mpi_pack_unpack, TransportBGetMessage) {
     volatile int shutdown = 0;
+    (void)shutdown;
     const MPIInstance &instance = MPIInstance::instance();
     TransportBGetMessage src;
     {
@@ -240,6 +244,7 @@ TEST(mpi_pack_unpack, TransportBGetMessage) {
 
 TEST(mpi_pack_unpack, TransportDeleteMessage) {
     volatile int shutdown = 0;
+    (void)shutdown;
     const MPIInstance &instance = MPIInstance::instance();
     TransportDeleteMessage src;
     {
@@ -281,6 +286,7 @@ TEST(mpi_pack_unpack, TransportDeleteMessage) {
 
 TEST(mpi_pack_unpack, TransportBDeleteMessage) {
     volatile int shutdown = 0;
+    (void)shutdown;
     const MPIInstance &instance = MPIInstance::instance();
     TransportBDeleteMessage src;
     {
@@ -330,6 +336,7 @@ TEST(mpi_pack_unpack, TransportBDeleteMessage) {
 
 TEST(mpi_pack_unpack, TransportRecvMessage) {
     volatile int shutdown = 0;
+    (void)shutdown;
     const MPIInstance &instance = MPIInstance::instance();
     TransportRecvMessage src;
     {
@@ -367,6 +374,7 @@ TEST(mpi_pack_unpack, TransportRecvMessage) {
 
 TEST(mpi_pack_unpack, TransportBGetRecvMessage) {
     volatile int shutdown = 0;
+    (void)shutdown;
     const MPIInstance &instance = MPIInstance::instance();
     TransportBGetRecvMessage src;
     {

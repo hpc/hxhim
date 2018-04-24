@@ -352,6 +352,7 @@ int TransportEndpointGroup::get_num_srvs(TransportMessage **messages, const int 
 
     if (!num_srvs) {
         delete [] *srvs;
+        *srvs = nullptr;
     }
 
     return num_srvs;

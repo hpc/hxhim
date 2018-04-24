@@ -29,23 +29,20 @@
  * @param md MDHIM context
  * @return MDHIM status value
  */
-static int bootstrapInit(mdhim_t *md) {
-    if (!md){
+static int bootstrapInit(mdhim_t *md, mdhim_options_t *opts) {
+    if (!md || !opts){
         return MDHIM_ERROR;
     }
 
-    md->comm = MPI_COMM_WORLD;
+    // do not allow MDHIM_COMM_NULL to be used
+    if (opts->comm == MPI_COMM_NULL) {
+        return MDHIM_ERROR;
+    }
+
+    md->comm = opts->comm;
     md->lock = PTHREAD_MUTEX_INITIALIZER;
-
-    //Get the size of the main MDHIM communicator
-    if (MPI_Comm_size(md->comm, &md->size) != MPI_SUCCESS) {
-        return MDHIM_ERROR;
-    }
-
-    //Get the rank of the main MDHIM communicator
-    if (MPI_Comm_rank(md->comm, &md->rank) != MPI_SUCCESS) {
-        return MDHIM_ERROR;
-    }
+    md->size = opts->size;
+    md->rank = opts->rank;
 
     return MDHIM_SUCCESS;
 }
@@ -87,7 +84,7 @@ int mdhimInit(mdhim_t* md, mdhim_options_t *opts) {
     mlog_open((char *)"mdhim", 0, opts->p->db->debug_level, opts->p->db->debug_level, nullptr, 0, MLOG_LOGPID, 0);
 
     //Initialize bootstrapping variables
-    if (bootstrapInit(md) != MDHIM_SUCCESS){
+    if (bootstrapInit(md, opts) != MDHIM_SUCCESS){
         mlog(MDHIM_CLIENT_CRIT, "MDHIM - Error Bootstrap Initialization Failed");
         return MDHIM_ERROR;
     }
@@ -154,7 +151,6 @@ int mdhimCommit(mdhim_t *md, index_t *index) {
         delete rm;
     }
 
-    mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d mdhimCommit - Completed Successfully", md->rank);
     return ret;
 }
 
@@ -174,7 +170,7 @@ static int _clone(void *src, int src_len, void **dst) {
     }
 
     if (!(*dst = ::operator new(src_len))) {
-        *dst = nullptr;
+        return MDHIM_ERROR;
     }
 
     memcpy(*dst, src, src_len);
@@ -224,6 +220,8 @@ static int _clone(int count, void **srcs, int *src_lens, void ***dsts, int **dst
 
             delete [] *dst_lens;
             *dst_lens = nullptr;
+
+            return MDHIM_ERROR;
         }
 
         memcpy((*dsts)[i], srcs[i], src_lens[i]);
@@ -255,8 +253,10 @@ static int _cleanup(void *data) {
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
 static int _cleanup(int count, void **data, int *len) {
-    for(int i = 0; i < count; i++) {
-        ::operator delete(data[i]);
+    if (data) {
+        for(int i = 0; i < count; i++) {
+            ::operator delete(data[i]);
+        }
     }
 
     delete [] data;
@@ -279,12 +279,9 @@ static int _cleanup(int count, void **data, int *len) {
 mdhim_rm_t *mdhimPut(mdhim_t *md, index_t *index,
                       void *primary_key, int primary_key_len,
                       void *value, int value_len) {
-    mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d mdhimPut - Started", md->rank);
-
     if (!md || !md->p ||
         !primary_key || !primary_key_len ||
         !value || !value_len) {
-        mlog(MDHIM_CLIENT_ERR, "MDHIM Rank %d mdhimPut - Bad Arguments", md->rank);
         return nullptr;
     }
 

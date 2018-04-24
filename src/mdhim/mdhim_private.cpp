@@ -35,13 +35,123 @@ static int mdhim_private_init_db(mdhim_t *md, mdhim_db_options_t *db) {
 }
 
 /**
+ * mdhim_private_init_transport_mpi
+ *
+ * @param md        the mdhim context to initialize
+ * @param opts      the data needed to set up MPI as the underlying transport
+ * @param MDHIM_SUCCESS or MDHIM_ERROR
+ */
+static int mdhim_private_init_transport_mpi(mdhim_t *md, MPIOptions *opts, const std::set<int> &endpointgroup) {
+    if (!opts) {
+        return MDHIM_ERROR;
+    }
+
+    // Do not allow MPI_COMM_NULL
+    if (opts->comm_ == MPI_COMM_NULL) {
+        return MDHIM_ERROR;
+    }
+
+    // Get the memory pool used for storing messages
+    FixedBufferPool *fbp = Memory::Pool(opts->alloc_size_, opts->regions_);
+    if (!fbp) {
+        return MDHIM_ERROR;
+    }
+
+    // give the range server access to the memory buffer sizes
+    MPIRangeServer::init(md, fbp);
+
+    MPIEndpointGroup *eg = new MPIEndpointGroup(opts->comm_, md->lock, fbp);
+
+    // create mapping between unique IDs and ranks
+    for(int i = 0; i < md->size; i++) {
+        // MPI ranks map 1:1 with the boostrap MPI rank
+        md->p->transport->AddEndpoint(i, new MPIEndpoint(opts->comm_, i, fbp, md->p->shutdown));
+
+        // if the rank was specified as part of the endpoint group, add the rank to the endpoint group
+        if (endpointgroup.find(i) != endpointgroup.end()) {
+            eg->AddID(i, i);
+        }
+    }
+
+    // remove loopback endpoint
+    md->p->transport->RemoveEndpoint(md->rank);
+
+    md->p->transport->SetEndpointGroup(eg);
+    md->p->send_client_response = MPIRangeServer::send_client_response;
+    md->p->range_server_destroy = MPIRangeServer::destroy;
+
+    return MDHIM_SUCCESS;
+}
+
+/**
+ * mdhim_private_init_transport_thallium
+ *
+ * @param md        the mdhim context to initialize
+ * @param opts      the data needed to set up thallium as the underlying transport
+ * @param MDHIM_SUCCESS or MDHIM_ERROR
+ */
+static int mdhim_private_init_transport_thallium(mdhim_t *md, ThalliumOptions *opts, const std::set<int> &endpointgroup) {
+    if (!opts) {
+        return MDHIM_ERROR;
+    }
+
+    // create the engine (only 1 instance per process)
+    Thallium::Engine_t engine(new thallium::engine(opts->protocol_, THALLIUM_SERVER_MODE, true, -1),
+                              [=](thallium::engine *engine) {
+                                  engine->finalize();
+                                  delete engine;
+                              });
+
+    // create client to range server RPC
+    Thallium::RPC_t rpc(new thallium::remote_procedure(engine->define(ThalliumRangeServer::CLIENT_TO_RANGE_SERVER_NAME,
+                                                                      ThalliumRangeServer::receive_rangesrv_work)));
+
+    // give the range server access to the mdhim_t data
+    ThalliumRangeServer::init(md->p);
+
+    // wait for every engine to start up
+    MPI_Barrier(md->comm);
+
+    // get a mapping of unique IDs to thallium addresses
+    std::map<int, std::string> addrs;
+    if (Thallium::get_addrs(md->comm, engine, addrs) != MDHIM_SUCCESS) {
+        return MDHIM_ERROR;
+    }
+
+    // remove the loopback endpoint
+    addrs.erase(md->rank);
+
+    ThalliumEndpointGroup *eg = new ThalliumEndpointGroup(rpc);
+
+    // create mapping between unique IDs and ranks
+    for(std::pair<const int, std::string> const &addr : addrs) {
+        Thallium::Endpoint_t server(new thallium::endpoint(engine->lookup(addr.second)));
+
+        // add the remote thallium endpoint to the tranport
+        ThalliumEndpoint* ep = new ThalliumEndpoint(engine, rpc, server);
+        md->p->transport->AddEndpoint(addr.first, ep);
+
+        // if the rank was specified as part of the endpoint group, add the thallium endpoint to the endpoint group
+        if (endpointgroup.find(addr.first) != endpointgroup.end()) {
+            eg->AddID(addr.first, server);
+        }
+    }
+
+    md->p->transport->SetEndpointGroup(eg);
+    md->p->send_client_response = ThalliumRangeServer::send_client_response;
+    md->p->range_server_destroy = ThalliumRangeServer::destroy;
+
+    return MDHIM_SUCCESS;
+}
+
+/**
  * mdhim_private_init_transport
  *
  * @param md        the mdhim context to initialize
- * @param transport the transrpot options to initialize with
+ * @param transport the transport options to initialize with
  * @param MDHIM_SUCCESS or MDHIM_ERROR
  */
-static int mdhim_private_init_transport(mdhim_t *md, TransportOptions *transport) {
+static int mdhim_private_init_transport(mdhim_t *md, mdhim_transport_options_t *transport) {
     if (!md || !md->p || !transport) {
         return MDHIM_ERROR;
     }
@@ -50,108 +160,23 @@ static int mdhim_private_init_transport(mdhim_t *md, TransportOptions *transport
         return MDHIM_ERROR;
     }
 
-    if (transport->type_ == MDHIM_TRANSPORT_MPI) {
-        MPIOptions *mpi_opts = dynamic_cast<MPIOptions *>(transport);
-        if (!mpi_opts) {
-            delete md->p->transport;
-            md->p->transport = nullptr;
-            return MDHIM_ERROR;
-        }
-
-        // Do not allow MPI_COMM_NULL
-        if (mpi_opts->comm_ == MPI_COMM_NULL) {
-            delete md->p->transport;
-            md->p->transport = nullptr;
-            return MDHIM_ERROR;
-        }
-
-        // Get the memory pool used for storing messages
-        FixedBufferPool *fbp = Memory::Pool(mpi_opts->alloc_size_, mpi_opts->regions_);
-        if (!fbp) {
-            delete md->p->transport;
-            md->p->transport = nullptr;
-            return MDHIM_ERROR;
-        }
-
-        // give the range server access to the memory buffer sizes
-        MPIRangeServer::init(md, fbp);
-
-        MPIEndpointGroup *eg = new MPIEndpointGroup(mpi_opts->comm_, md->lock, fbp);
-
-        // create mapping between unique IDs and ranks
-        for(int i = 0; i < md->size; i++) {
-            // MPI ranks map 1:1 with the boostrap MPI rank
-            md->p->transport->AddEndpoint(i, new MPIEndpoint(mpi_opts->comm_, i, fbp, md->p->shutdown));
-
-            // add the MPI ranks to the endpoint group
-            eg->AddID(i, i);
-        }
-
-        // remove loopback endpoint
-        md->p->transport->RemoveEndpoint(md->rank);
-
-        md->p->transport->SetEndpointGroup(eg);
-        md->p->send_client_response = MPIRangeServer::send_client_response;
-        md->p->range_server_destroy = MPIRangeServer::destroy;
-
-        return MDHIM_SUCCESS;
+    int ret = MDHIM_ERROR;
+    if (transport->transport_specific->type_ == MDHIM_TRANSPORT_MPI) {
+        ret = mdhim_private_init_transport_mpi(md, dynamic_cast<MPIOptions *>(transport->transport_specific), transport->endpointgroup);
     }
-    else if (transport->type_ == MDHIM_TRANSPORT_THALLIUM) {
-        ThalliumOptions *thallium_opts = dynamic_cast<ThalliumOptions *>(transport);
-        if (!thallium_opts) {
-            delete md->p->transport;
-            md->p->transport = nullptr;
-            return MDHIM_ERROR;
-        }
-
-        // create the engine (only 1 instance per process)
-        Thallium::Engine_t engine(new thallium::engine(thallium_opts->protocol_, THALLIUM_SERVER_MODE, true, -1),
-                                  [=](thallium::engine *engine) {
-                                      engine->finalize();
-                                      delete engine;
-                                  });
-
-        // create client to range server RPC
-        Thallium::RPC_t rpc(new thallium::remote_procedure(engine->define(ThalliumRangeServer::CLIENT_TO_RANGE_SERVER_NAME,
-                                                                          ThalliumRangeServer::receive_rangesrv_work)));
-
-        // give the range server access to the mdhim_t data
-        ThalliumRangeServer::init(md->p);
-
-        // wait for every engine to start up
-        MPI_Barrier(md->comm);
-
-        // get a mapping of unique IDs to thallium addresses
-        std::map<int, std::string> addrs;
-        if (Thallium::get_addrs(md->comm, engine, addrs) != MDHIM_SUCCESS) {
-            return MDHIM_ERROR;
-        }
-
-        // remove the loopback endpoint
-        addrs.erase(md->rank);
-
-        ThalliumEndpointGroup *eg = new ThalliumEndpointGroup(rpc);
-
-        // create mapping between unique IDs and ranks
-        for(std::pair<const int, std::string> const &addr : addrs) {
-            // add the remote thallium endpoint to the tranport
-            Thallium::Endpoint_t server(new thallium::endpoint(engine->lookup(addr.second)));
-            ThalliumEndpoint* ep = new ThalliumEndpoint(engine, rpc, server);
-            md->p->transport->AddEndpoint(addr.first, ep);
-
-            // add the remote thallium endpoint to the endpoint group
-            eg->AddID(addr.first, server);
-        }
-
-        md->p->transport->SetEndpointGroup(eg);
-        md->p->send_client_response = ThalliumRangeServer::send_client_response;
-        md->p->range_server_destroy = ThalliumRangeServer::destroy;
-
-        return MDHIM_SUCCESS;
+    else if (transport->transport_specific->type_ == MDHIM_TRANSPORT_THALLIUM) {
+        ret = mdhim_private_init_transport_thallium(md, dynamic_cast<ThalliumOptions *>(transport->transport_specific), transport->endpointgroup);
+    }
+    else {
+        mlog(MDHIM_CLIENT_CRIT, "Invalid transport type specified");
     }
 
-    mlog(MDHIM_CLIENT_CRIT, "Invalid transport type specified");
-    return MDHIM_ERROR;
+    if (ret == MDHIM_ERROR) {
+        delete md->p->transport;
+        md->p->transport = nullptr;
+    }
+
+    return ret;
 }
 
 /**
@@ -193,7 +218,7 @@ static int mdhim_private_init_index(mdhim_t *md) {
  * @param transport the transrpot options to initialize with
  * @param MDHIM_SUCCESS or MDHIM_ERROR
  */
-int mdhim_private_init(mdhim_t* md, mdhim_db_options_t *db, TransportOptions *transport) {
+int mdhim_private_init(mdhim_t* md, mdhim_db_options_t *db, mdhim_transport_options_t *transport) {
     if (!md || !db || !transport) {
         return MDHIM_ERROR;
     }

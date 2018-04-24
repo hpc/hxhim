@@ -164,12 +164,12 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportBPutMessage **bpm, const v
 
     // If there are keys/values, allocate space for them and unpack
     if (out->num_keys) {
-        if (!(out->key_lens = new int(out->num_keys))) {
+        if (!(out->key_lens = new int[out->num_keys]())) {
             delete out;
             return MDHIM_ERROR;
         }
 
-        if (!(out->value_lens = new int(out->num_keys))) {
+        if (!(out->value_lens = new int[out->num_keys]())) {
             delete out;
             return MDHIM_ERROR;
         }
@@ -273,7 +273,7 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportBGetMessage **bgm, const v
 
     // If there are keys/values, allocate space for them and unpack
     if (out->num_keys) {
-        if (!(out->key_lens = new int(out->num_keys))) {
+        if (!(out->key_lens = new int[out->num_keys]())) {
             delete out;
             return MDHIM_ERROR;
         }
@@ -362,7 +362,7 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportBDeleteMessage **bdm, cons
 
     // If there are keys, allocate space for them and unpack
     if (out->num_keys) {
-        if (!(out->key_lens = new int(out->num_keys))) {
+        if (!(out->key_lens = new int[out->num_keys]())) {
             delete out;
             return MDHIM_ERROR;
         }
@@ -440,8 +440,7 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportGetRecvMessage **grm, cons
     }
 
     if (out->key_len) {
-        // use malloc here because the key comes from leveldb, which uses malloc
-        if (!(out->key = malloc(out->key_len)) ||
+        if (!(out->key = ::operator new(out->key_len)) ||
             (MPI_Unpack(buf, bufsize, &position, out->key, out->key_len, MPI_CHAR, comm) != MPI_SUCCESS)) {
             delete out;
             return MDHIM_ERROR;
@@ -486,12 +485,12 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportBGetRecvMessage **bgrm, co
 
     // If there are keys/values, allocate space for them and unpack
     if (out->num_keys) {
-        if (!(out->key_lens = new int(out->num_keys))) {
+        if (!(out->key_lens = new int[out->num_keys]())) {
             delete out;
             return MDHIM_ERROR;
         }
 
-        if (!(out->value_lens = new int(out->num_keys))) {
+        if (!(out->value_lens = new int[out->num_keys]())) {
             delete out;
             return MDHIM_ERROR;
         }
@@ -513,8 +512,8 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportBGetRecvMessage **bgrm, co
         }
 
         for(int i = 0; i < out->num_keys; i++) {
-            if (!(out->keys[i] = new void *[out->key_lens[i]]()) ||
-                !(out->values[i] = new void *[out->value_lens[i]]()) ||
+            if (!(out->keys[i] = ::operator new(out->key_lens[i])) ||
+                !(out->values[i] = ::operator new(out->value_lens[i])) ||
                 (MPI_Unpack(buf, bufsize, &position, out->keys[i], out->key_lens[i], MPI_CHAR, comm)     != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, out->values[i], out->value_lens[i], MPI_CHAR, comm) != MPI_SUCCESS)) {
                 delete out;

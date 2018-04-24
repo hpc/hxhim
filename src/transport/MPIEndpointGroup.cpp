@@ -215,31 +215,34 @@ int MPIEndpointGroup::only_send_all_rangesrv_work(void **messages, int *sizes, i
             continue;
         }
 
-        size_reqs[i] = new MPI_Request();
+        std::map<int, int>::const_iterator dst_it = ranks_.find(dsts[i]);
+        if (dst_it != ranks_.end()) {
+            size_reqs[i] = new MPI_Request();
 
-        // send size
-        pthread_mutex_lock(&mutex_);
-        return_code = MPI_Isend(&sizes[i], 1, MPI_INT, ranks_.at(dsts[i]), RANGESRV_WORK_SIZE_MSG,
-                                comm_, size_reqs[i]);
-        pthread_mutex_unlock(&mutex_);
+            // send size
+            pthread_mutex_lock(&mutex_);
+            return_code = MPI_Isend(&sizes[i], 1, MPI_INT, dst_it->second, RANGESRV_WORK_SIZE_MSG,
+                                    comm_, size_reqs[i]);
+            pthread_mutex_unlock(&mutex_);
 
-        if (return_code != MPI_SUCCESS) {
-            ret = MDHIM_ERROR;
+            if (return_code != MPI_SUCCESS) {
+                ret = MDHIM_ERROR;
+            }
+
+            reqs[i] = new MPI_Request();
+
+            // send data
+            pthread_mutex_lock(&mutex_);
+            return_code = MPI_Isend(messages[i], sizes[i], MPI_PACKED, dst_it->second, RANGESRV_WORK_MSG,
+                                    comm_, reqs[i]);
+            pthread_mutex_unlock(&mutex_);
+
+            if (return_code != MPI_SUCCESS) {
+                ret = MDHIM_ERROR;
+            }
+
+            num_msgs++;
         }
-
-        reqs[i] = new MPI_Request();
-
-        // send data
-        pthread_mutex_lock(&mutex_);
-        return_code = MPI_Isend(messages[i], sizes[i], MPI_PACKED, ranks_.at(dsts[i]), RANGESRV_WORK_MSG,
-                                comm_, reqs[i]);
-        pthread_mutex_unlock(&mutex_);
-
-        if (return_code != MPI_SUCCESS) {
-            ret = MDHIM_ERROR;
-        }
-
-        num_msgs++;
     }
 
     //Wait for messages to complete
@@ -336,29 +339,36 @@ int MPIEndpointGroup::only_receive_all_client_responses(int *srcs, int nsrcs, vo
     int return_code;
     int ret = MDHIM_SUCCESS;
     MPI_Request **reqs = new MPI_Request*[nsrcs]();
+    int num_endpoints = 0;
 
     *recvbufs = new void *[nsrcs]();
     *sizebufs = new int[nsrcs]();
 
     // Receive a size message from the servers in the list
     for (int i = 0; i < nsrcs; i++) {
-        reqs[i] = new MPI_Request();
+        std::map<int, int>::const_iterator src_it = ranks_.find(srcs[i]);
+        if (src_it != ranks_.end()) {
+            reqs[i] = new MPI_Request();
 
-        pthread_mutex_lock(&mutex_);
-        return_code = MPI_Irecv((*sizebufs) + i, 1, MPI_INT,
-                                ranks_.at(srcs[i]), CLIENT_RESPONSE_SIZE_MSG,
-                                comm_, reqs[i]);
-        pthread_mutex_unlock(&mutex_);
+            pthread_mutex_lock(&mutex_);
+            return_code = MPI_Irecv((*sizebufs) + i, 1, MPI_INT,
+                                    src_it->second, CLIENT_RESPONSE_SIZE_MSG,
+                                    comm_, reqs[i]);
+            pthread_mutex_unlock(&mutex_);
 
-        // If the receive did not succeed then return the error code back
-        if ( return_code != MPI_SUCCESS ) {
-            ret = MDHIM_ERROR;
+            // If the receive did not succeed then return the error code back
+            if ( return_code != MPI_SUCCESS ) {
+               ret = MDHIM_ERROR;
+            }
+            else {
+                num_endpoints++;
+            }
         }
     }
 
     // Wait for size messages to complete
     int done = 0;
-    while (done != nsrcs) {
+    while (done != num_endpoints) {
         for (int i = 0; i < nsrcs; i++) {
             // if there is a request
             if (reqs[i]) {
@@ -385,24 +395,27 @@ int MPIEndpointGroup::only_receive_all_client_responses(int *srcs, int nsrcs, vo
 
     done = 0;
     for (int i = 0; i < nsrcs; i++) {
-        // Receive a message from the servers in the list
-        (*recvbufs)[i] = fbp_->acquire((*sizebufs)[i]);
-        reqs[i] = new MPI_Request();
+        std::map<int, int>::const_iterator src_it = ranks_.find(srcs[i]);
+        if (src_it != ranks_.end()) {
+            // Receive a message from the servers in the list
+            (*recvbufs)[i] = fbp_->acquire((*sizebufs)[i]);
+            reqs[i] = new MPI_Request();
 
-        pthread_mutex_lock(&mutex_);
-        return_code = MPI_Irecv((*recvbufs)[i], (*sizebufs)[i], MPI_PACKED,
-                                ranks_.at(srcs[i]), CLIENT_RESPONSE_MSG,
-                                comm_, reqs[i]);
-        pthread_mutex_unlock(&mutex_);
+            pthread_mutex_lock(&mutex_);
+            return_code = MPI_Irecv((*recvbufs)[i], (*sizebufs)[i], MPI_PACKED,
+                                    src_it->second, CLIENT_RESPONSE_MSG,
+                                    comm_, reqs[i]);
+            pthread_mutex_unlock(&mutex_);
 
-        // If the receive did not succeed then return the error code back
-        if ( return_code != MPI_SUCCESS ) {
-            ret = MDHIM_ERROR;
+            // If the receive did not succeed then return the error code back
+            if ( return_code != MPI_SUCCESS ) {
+                ret = MDHIM_ERROR;
+            }
         }
     }
 
     //Wait for messages to complete
-    while (done != nsrcs) {
+    while (done != num_endpoints) {
         for (int i = 0; i < nsrcs; i++) {
             if (!reqs[i]) {
                 continue;
@@ -436,12 +449,14 @@ int MPIEndpointGroup::only_receive_all_client_responses(int *srcs, int nsrcs, vo
 int MPIEndpointGroup::receive_all_client_responses(int *srcs, int nsrcs, TransportMessage ***messages) {
     void **recvbufs = nullptr;
     int *sizebufs = nullptr;
-    int ret = MDHIM_ERROR;
+    int ret = MDHIM_SUCCESS;
 
     if ((ret = only_receive_all_client_responses(srcs, nsrcs, &recvbufs, &sizebufs)) == MDHIM_SUCCESS) {
         for (int i = 0; i < nsrcs; i++) {
-            ret = MPIUnpacker::any(comm_, (*messages) + i, recvbufs[i], sizebufs[i]);
-            fbp_->release(recvbufs[i]);
+            if (recvbufs[i]) {
+                ret = MPIUnpacker::any(comm_, (*messages) + i, recvbufs[i], sizebufs[i]);
+                fbp_->release(recvbufs[i]);
+            }
         }
     }
 

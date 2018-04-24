@@ -51,7 +51,7 @@ typedef struct mdhim_private {
 } mdhim_private_t;
 
 /** @description The actual initializer function for mdhim_t */
-int mdhim_private_init(mdhim_t *md, mdhim_db_options_t *db, TransportOptions *transport);
+int mdhim_private_init(mdhim_t *md, mdhim_db_options_t *db, mdhim_transport_options_t *transport);
 
 /** @description The actual destructor for mdhim_t */
 int mdhim_private_destroy(mdhim_t *md);

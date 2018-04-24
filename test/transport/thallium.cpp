@@ -100,6 +100,8 @@ TEST(thallium_pack_unpack, TransportBPutMessage) {
         EXPECT_EQ(src.value_lens[i], dst->value_lens[i]);
         EXPECT_EQ(memcmp(src.values[i], dst->values[i], dst->value_lens[i]), 0);
     }
+
+    delete dst;
 }
 
 TEST(thallium_pack_unpack, TransportGetMessage) {
@@ -185,6 +187,8 @@ TEST(thallium_pack_unpack, TransportBGetMessage) {
     }
 
     EXPECT_EQ(src.num_recs, dst->num_recs);
+
+    delete dst;
 }
 
 // TEST(thallium_pack_unpack, TransportDeleteMessage) {
@@ -345,4 +349,6 @@ TEST(thallium_pack_unpack, TransportBGetRecvMessage) {
         EXPECT_EQ(src.value_lens[i], dst->value_lens[i]);
         EXPECT_EQ(memcmp(src.values[i], dst->values[i], dst->value_lens[i]), 0);
     }
+
+    delete dst;
 }

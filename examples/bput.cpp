@@ -30,33 +30,35 @@ void bput(mdhim_t *md,
 
     // Get and print results
     for(int ret = MDHIM_SUCCESS; (ret == MDHIM_SUCCESS) && brm; ret = next(&brm)) {
+        int src;
+        if (mdhim_brm_src(brm, &src) != MDHIM_SUCCESS) {
+            err << "Could not get source from BPUT response message" << std::endl;
+            continue;
+        }
+
         // Get error value
         int error = MDHIM_ERROR;
         if (mdhim_brm_error(brm, &error) != MDHIM_SUCCESS) {
-            err << "Could not BPUT" << std::endl;
-            break;
+            err << "Could not BPUT to " << src << brm << std::endl;
+            continue;
         }
 
         // Check error value
         if (error != MDHIM_SUCCESS) {
-            err << "BPUT error " << error << std::endl;
+            err << "BPUT to " << src  << " returned error " << error << std::endl;
+            continue;
         }
 
-        // Get next result
-        mdhim_brm_t *next = nullptr;
-        if (mdhim_brm_next(brm, &next) != MDHIM_SUCCESS) {
-            mdhim_brm_destroy(brm);
-            break;
-        }
+        out << "BPUT to " << src  << " succeeded" << std::endl;
     }
 
-    if (!brm) {
-        for(int i = 0; i < num_keys; i++) {
-            out << "BPUT " << std::string((char *)primary_keys[i], primary_key_lens[i]) << " -> " << std::string((char *)values[i], value_lens[i]) << " to range server on rank " << mdhimWhichServer(md, primary_keys[i], primary_key_lens[i]) << std::endl;;
-        }
-    }
+    // if (!brm) {
+    //     for(int i = 0; i < num_keys; i++) {
+    //         out << "BPUT " << std::string((char *)primary_keys[i], primary_key_lens[i]) << " -> " << std::string((char *)values[i], value_lens[i]) << " to range server on rank " << mdhimWhichServer(md, primary_keys[i], primary_key_lens[i]) << std::endl;;
+    //     }
+    // }
 
-    while (brm) {
-        next(&brm);
-    }
+    // while (brm) {
+    //     next(&brm);
+    // }
 }

@@ -14,6 +14,8 @@ typedef struct mdhim_private mdhim_private_t;
 /*
  * mdhim data
  * Contains an opaque pointer to the actual implementation
+ * The public variables are public because they are used
+ * to bootstrap mdhim, and should be known by everyone.
  */
 typedef struct mdhim {
     // ///////////////////////////////////////

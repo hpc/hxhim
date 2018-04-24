@@ -6,6 +6,7 @@
 
 #include "Configuration.hpp"
 #include "mdhim_constants.h"
+#include "mdhim_options_struct.h"
 
 /**
  * Constant locations where the configuration reader searches
@@ -39,6 +40,7 @@ const std::string MEMORY_ALLOC_SIZE  = "MEMORY_ALLOC_SIZE";     // positive inte
 const std::string MEMORY_REGIONS     = "MEMORY_REGIONS";        // positive integer
 const std::string USE_THALLIUM       = "USE_THALLIUM";          // true/false
 const std::string THALLIUM_MODULE    = "THALLIUM_MODULE";       // See mercury documentation
+const std::string ENDPOINT_GROUP     = "ENDPOINT_GROUP";        // list of globally unique rank ids or "ALL"
 
 /**
  * Mapping from configuration value to database type
@@ -108,6 +110,7 @@ const Config MDHIM_DEFAULT_CONFIG = {
     std::make_pair(MEMORY_REGIONS,     "256"),
     std::make_pair(USE_THALLIUM,       "false"),
     std::make_pair(THALLIUM_MODULE,    "na+sm"),
+    std::make_pair(ENDPOINT_GROUP,     "ALL"),
 };
 
 /**
@@ -162,7 +165,6 @@ class ConfigEnvironment : public ConfigReader {
  * This function should only be called at
  * the end of a custom configuration reader.
  */
-typedef struct mdhim_options mdhim_options_t;
-int process_config_and_fill_options(ConfigSequence &config_sequence, mdhim_options_t *opts);
+int process_config_and_fill_options(ConfigSequence &config_sequence, mdhim_options_t *opts, const MPI_Comm comm);
 
 #endif

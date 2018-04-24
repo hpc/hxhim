@@ -1,44 +1,4 @@
 # Run valgrind with --suppressions=<this file's name> to supress warnings
-{
-   <insert_a_suppression_name_here>
-   Memcheck:Cond
-   fun:strlen
-   fun:_Z19create_global_indexP5mdhimimiiPc
-   fun:_ZL24mdhim_private_init_indexP5mdhim
-   fun:mdhim_private_init
-   fun:mdhimInit
-   fun:main
-}
-
-{
-   <insert_a_suppression_name_here>
-   Memcheck:Addr1
-   fun:strlen
-   fun:vfprintf
-   fun:vsprintf
-   fun:sprintf
-   fun:_Z13open_db_storeP5mdhimP5index
-   fun:_Z19create_global_indexP5mdhimimiiPc
-   fun:_ZL24mdhim_private_init_indexP5mdhim
-   fun:mdhim_private_init
-   fun:mdhimInit
-   fun:main
-}
-
-{
-   <insert_a_suppression_name_here>
-   Memcheck:Addr1
-   fun:_IO_default_xsputn
-   fun:vfprintf
-   fun:vsprintf
-   fun:sprintf
-   fun:_Z13open_db_storeP5mdhimP5index
-   fun:_Z19create_global_indexP5mdhimimiiPc
-   fun:_ZL24mdhim_private_init_indexP5mdhim
-   fun:mdhim_private_init
-   fun:mdhimInit
-   fun:main
-}
 
 {
    <insert_a_suppression_name_here>
@@ -56,20 +16,6 @@
    fun:leveldb_put
    fun:_Z17mdhim_leveldb_putPvS_iS_i
    fun:_Z11write_statsP5mdhimP5index
-}
-
-{
-   <insert_a_suppression_name_here>
-   Memcheck:Param
-   write(buf)
-   obj:/usr/lib64/libpthread-2.24.so
-   fun:_Z14write_manifestP5mdhimP5index
-   fun:_Z15indexes_releaseP5mdhim
-   fun:_ZL27mdhim_private_destroy_indexP5mdhim
-   fun:mdhim_private_destroy
-   fun:mdhimClose
-   fun:cleanup
-   fun:main
 }
 
 {
@@ -235,57 +181,8 @@
    <insert_a_suppression_name_here>
    Memcheck:Leak
    match-leak-kinds: indirect
-   fun:_Znam
-   fun:_ZN7leveldb12_GLOBAL__N_111HandleTable6ResizeEv
-   fun:_ZN7leveldb12_GLOBAL__N_111HandleTableC1Ev
-   fun:_ZN7leveldb12_GLOBAL__N_18LRUCacheC1Ev
-   fun:_ZN7leveldb12_GLOBAL__N_115ShardedLRUCacheC1Em
-   fun:_ZN7leveldb11NewLRUCacheEm
-   fun:leveldb_cache_create_lru
-   fun:_Z18mdhim_leveldb_openPPvS0_PciiP16mdhim_db_options
-   fun:_Z13open_db_storeP5mdhimP5index
-   fun:_Z19create_global_indexP5mdhimimiiPc
-   fun:_ZL24mdhim_private_init_indexP5mdhim
-   fun:mdhim_private_init
-}
-
-{
-   <insert_a_suppression_name_here>
-   Memcheck:Leak
-   match-leak-kinds: indirect
    fun:_Znwm
    fun:_ZN7leveldb11NewLRUCacheEm
-   fun:leveldb_cache_create_lru
-   fun:_Z18mdhim_leveldb_openPPvS0_PciiP16mdhim_db_options
-   fun:_Z13open_db_storeP5mdhimP5index
-   fun:_Z19create_global_indexP5mdhimimiiPc
-   fun:_ZL24mdhim_private_init_indexP5mdhim
-   fun:mdhim_private_init
-   fun:mdhimInit
-   fun:main
-}
-
-{
-   <insert_a_suppression_name_here>
-   Memcheck:Leak
-   match-leak-kinds: indirect
-   fun:_Znwm
-   fun:_ZN7leveldb11NewLRUCacheEm
-   fun:leveldb_cache_create_lru
-   fun:_Z18mdhim_leveldb_openPPvS0_PciiP16mdhim_db_options
-   fun:_Z13open_db_storeP5mdhimP5index
-   fun:_Z19create_global_indexP5mdhimimiiPc
-   fun:_ZL24mdhim_private_init_indexP5mdhim
-   fun:mdhim_private_init
-   fun:mdhimInit
-   fun:main
-}
-
-{
-   <insert_a_suppression_name_here>
-   Memcheck:Leak
-   match-leak-kinds: definite
-   fun:_Znwm
    fun:leveldb_cache_create_lru
    fun:_Z18mdhim_leveldb_openPPvS0_PciiP16mdhim_db_options
    fun:_Z13open_db_storeP5mdhimP5index
@@ -330,8 +227,13 @@
 
 {
    <insert_a_suppression_name_here>
-   Memcheck:Cond
-   fun:strlen
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   fun:malloc
+   fun:MPIR_Group_create
+   fun:MPIR_Comm_group_impl
+   fun:PMPI_Comm_group
+   fun:_Z15index_init_commP5mdhimP5index
    fun:_Z19create_global_indexP5mdhimimiiPc
    fun:_ZL24mdhim_private_init_indexP5mdhim
    fun:mdhim_private_init
@@ -339,28 +241,6 @@
    fun:_ZN19mdhim_BPutBGet_Test8TestBodyEv
    fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
    fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
-   fun:_ZN7testing4Test3RunEv
-   fun:_ZN7testing8TestInfo3RunEv
-   fun:_ZN7testing8TestCase3RunEv
-   fun:_ZN7testing8internal12UnitTestImpl11RunAllTestsEv
-}
-
-{
-   <insert_a_suppression_name_here>
-   Memcheck:Param
-   write(buf)
-   obj:/usr/lib64/libpthread-2.24.so
-   fun:_Z14write_manifestP5mdhimP5index
-   fun:_Z15indexes_releaseP5mdhim
-   fun:_ZL27mdhim_private_destroy_indexP5mdhim
-   fun:mdhim_private_destroy
-   fun:mdhimClose
-   fun:_ZN19mdhim_BPutBGet_Test8TestBodyEv
-   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
-   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
-   fun:_ZN7testing4Test3RunEv
-   fun:_ZN7testing8TestInfo3RunEv
-   fun:_ZN7testing8TestCase3RunEv
 }
 
 {
@@ -540,24 +420,6 @@
    fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
    fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
    fun:_ZN7testing4Test3RunEv
-}
-
-{
-   <insert_a_suppression_name_here>
-   Memcheck:Leak
-   match-leak-kinds: reachable
-   fun:malloc
-   fun:MPIR_Group_create
-   fun:MPIR_Comm_group_impl
-   fun:PMPI_Comm_group
-   fun:_Z15index_init_commP5mdhimP5index
-   fun:_Z19create_global_indexP5mdhimimiiPc
-   fun:_ZL24mdhim_private_init_indexP5mdhim
-   fun:mdhim_private_init
-   fun:mdhimInit
-   fun:_ZN19mdhim_BPutBGet_Test8TestBodyEv
-   fun:_ZN7testing8internal38HandleSehExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
-   fun:_ZN7testing8internal35HandleExceptionsInMethodIfSupportedINS_4TestEvEET0_PT_MS4_FS3_vEPKc
 }
 
 {
@@ -1087,16 +949,6 @@
    fun:MPIR_T_cvar_init
    fun:MPIR_T_env_init
    fun:PMPI_Init_thread
-   fun:main
-}
-
-{
-   <insert_a_suppression_name_here>
-   Memcheck:Leak
-   match-leak-kinds: reachable
-   fun:calloc
-   fun:mlog_open
-   fun:mdhimInit
    fun:main
 }
 

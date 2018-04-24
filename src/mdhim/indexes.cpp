@@ -107,6 +107,7 @@ void write_manifest(mdhim_t *md, index_t *index) {
 	}
 
 	//Populate the manifest structure
+    memset(&manifest, 0, sizeof(manifest));
 	manifest.num_rangesrvs = index->num_rangesrvs;
 	manifest.key_type = index->key_type;
 	manifest.db_type = index->db_type;
@@ -758,7 +759,7 @@ index_t *create_global_index(mdhim_t *md, int server_factor,
         }
 
     } else {
-        gi->name = (char*)malloc(sizeof(char)*11);
+        gi->name = (char *)calloc(11, sizeof(char));
         strncpy(gi->name, "primary", 7);
     }
 

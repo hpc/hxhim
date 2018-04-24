@@ -716,8 +716,9 @@ done:
 
     if (gm->src == md->rank) {
         //If this message is coming from myself, copy the keys
-        grm->key = ::operator new(gm->key_len);
-        memcpy(grm->key, gm->key, gm->key_len);
+        if ((grm->key = ::operator new(gm->key_len))) {
+            memcpy(grm->key, gm->key, gm->key_len);
+        }
         ::operator delete(gm->key);
     } else {
         grm->key = gm->key;
@@ -727,8 +728,9 @@ done:
     grm->key_len = gm->key_len;
 
     // clone the value
-    grm->value = ::operator new(value_len);
-    memcpy(grm->value, value, value_len);
+    if ((grm->value = ::operator new(value_len))) {
+        memcpy(grm->value, value, value_len);
+    }
     free(value); // cleanup leveldb
 
     grm->value_len = value_len;

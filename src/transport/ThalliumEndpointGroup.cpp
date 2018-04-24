@@ -128,35 +128,38 @@ TransportBRecvMessage *ThalliumEndpointGroup::return_brm(const int num_rangesrvs
             continue;
         }
 
-        // send message and receive response
-        const std::string response = rpc_->on(*endpoints_.at(messages[i]->dst))(sendbuf);
+        std::map<int, Thallium::Endpoint_t>::const_iterator dst_it = endpoints_.find(messages[i]->dst);
+        if (dst_it != endpoints_.end()) {
+            // send message and receive response
+            const std::string response = rpc_->on(*dst_it->second)(sendbuf);
 
-        // unpack response
-        TransportRecvMessage *rm = nullptr;
-        if (ThalliumUnpacker::unpack(&rm, response) != MDHIM_SUCCESS) {
-            continue;
-        }
+            // unpack response
+            TransportRecvMessage *rm = nullptr;
+            if (ThalliumUnpacker::unpack(&rm, response) != MDHIM_SUCCESS) {
+                continue;
+            }
 
-        if (!rm) {
-            //Skip this as the message doesn't exist
-            continue;
-        }
+            if (!rm) {
+                //Skip this as the message doesn't exist
+                continue;
+            }
 
-        // convert response into a TransportBRecvMessage
-        TransportBRecvMessage *brm = new TransportBRecvMessage();
-        brm->error = rm->error;
-        brm->src = rm->src;
-        brm->dst = rm->dst;
-        brm->next = nullptr;
-        delete rm;
+            // convert response into a TransportBRecvMessage
+            TransportBRecvMessage *brm = new TransportBRecvMessage();
+            brm->error = rm->error;
+            brm->src = rm->src;
+            brm->dst = rm->dst;
+            brm->next = nullptr;
+            delete rm;
 
-        //Build the linked list to return
-        if (!head) {
-            head = brm;
-            tail = brm;
-        } else {
-            tail->next = brm;
-            tail = brm;
+            //Build the linked list to return
+            if (!head) {
+                head = brm;
+                tail = brm;
+            } else {
+                tail->next = brm;
+                tail = brm;
+            }
         }
     }
 
@@ -177,34 +180,37 @@ TransportBGetRecvMessage *ThalliumEndpointGroup::return_bgrm(const int num_range
     TransportBGetRecvMessage *tail = nullptr;
 
     for(int i = 0; i < num_rangesrvs; i++) {
-        // pack message
-        std::string sendbuf;
-        if (ThalliumPacker::any(messages[i], sendbuf) != MDHIM_SUCCESS) {
-            continue;
-        }
+        std::map<int, Thallium::Endpoint_t>::const_iterator dst_it = endpoints_.find(messages[i]->dst);
+        if (dst_it != endpoints_.end()) {
+            // pack message
+            std::string sendbuf;
+            if (ThalliumPacker::any(messages[i], sendbuf) != MDHIM_SUCCESS) {
+                continue;
+            }
 
-        // send message and receive response
-        const std::string response = rpc_->on(*endpoints_.at(messages[i]->dst))(sendbuf);
+            // send message and receive response
+            const std::string response = rpc_->on(*dst_it->second)(sendbuf);
 
-        // unpack response
-        TransportBGetRecvMessage *bgrm = nullptr;
-        if (ThalliumUnpacker::unpack(&bgrm, response) != MDHIM_SUCCESS) {
-            continue;
-        }
+            // unpack response
+            TransportBGetRecvMessage *bgrm = nullptr;
+            if (ThalliumUnpacker::unpack(&bgrm, response) != MDHIM_SUCCESS) {
+                continue;
+            }
 
-        if (!bgrm) {
-            //Skip this as the message doesn't exist
-            continue;
-        }
+            if (!bgrm) {
+                //Skip this as the message doesn't exist
+                continue;
+            }
 
-        //Build the linked list to return
-        bgrm->next = nullptr;
-        if (!head) {
-            head = bgrm;
-            tail = bgrm;
-        } else {
-            tail->next = bgrm;
-            tail = bgrm;
+            //Build the linked list to return
+            bgrm->next = nullptr;
+            if (!head) {
+                head = bgrm;
+                tail = bgrm;
+            } else {
+                tail->next = bgrm;
+                tail = bgrm;
+            }
         }
     }
 

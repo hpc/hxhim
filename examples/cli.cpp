@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
 
     // initialize options through config
     mdhim_options_t opts;
-    if (mdhim_default_config_reader(&opts) != MDHIM_SUCCESS) {
+    if (mdhim_default_config_reader(&opts, MPI_COMM_WORLD) != MDHIM_SUCCESS) {
         std::cerr << "Failed to initialize mdhim options" << std::endl;
         cleanup(NULL, &opts);
         return MDHIM_ERROR;

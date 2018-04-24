@@ -4,6 +4,8 @@
 #include <dirent.h>
 #include <fstream>
 #include <iomanip>
+#include <sstream>
+#include <vector>
 #include <sys/types.h>
 
 #include "mdhim_config.h"
@@ -181,8 +183,10 @@ int get_from_map(const Config &config, const std::string &config_key,
  * @param opts   the option struct to fill
  * @return whether or not opts was successfully filled
  */
-static int fill_options(const Config &config, mdhim_options_t *opts) {
-    // no need to check for null opts
+static int fill_options(const Config &config, mdhim_options_t *opts, const MPI_Comm comm) {
+    if (!opts) {
+        return MDHIM_ERROR;
+    }
 
     int ret = MDHIM_SUCCESS;
 
@@ -332,7 +336,7 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
             return MDHIM_ERROR;
         }
 
-        if (mdhim_options_init_mpi_transport(opts, MPI_COMM_WORLD, memory_alloc_size, memory_regions) != MDHIM_SUCCESS) {
+        if (mdhim_options_set_mpi(opts, MPI_COMM_WORLD, memory_alloc_size, memory_regions) != MDHIM_SUCCESS) {
             return MDHIM_ERROR;
         }
     }
@@ -342,8 +346,30 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
         bool use_thallium;
         if ((get_bool(config, USE_THALLIUM, use_thallium) == MDHIM_SUCCESS) &&
             use_thallium) {
-            if (mdhim_options_init_thallium_transport(opts, config.at(THALLIUM_MODULE).c_str()) != MDHIM_SUCCESS) {
+            if (mdhim_options_set_thallium(opts, config.at(THALLIUM_MODULE).c_str()) != MDHIM_SUCCESS) {
                 return MDHIM_ERROR;
+            }
+        }
+    }
+
+    // Add ranks to the endpoint group
+    Config_it endpointgroup = config.find(ENDPOINT_GROUP);
+    if (endpointgroup != config.end()) {
+        mdhim_options_clear_endpoint_group(opts);
+
+        if (endpointgroup->second == "ALL") {
+            for(int rank = 0; rank < opts->size; rank++) {
+                mdhim_options_add_endpoint_to_group(opts, rank);
+            }
+        }
+        else {
+            std::stringstream s(endpointgroup->second);
+            int rank;
+
+            while (s >> rank) {
+                if (mdhim_options_add_endpoint_to_group(opts, rank) != MDHIM_SUCCESS) {
+                    return MDHIM_ERROR;
+                }
             }
         }
     }
@@ -368,7 +394,7 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
  * @param opts          the options to fill
  * @return whether or not opts was successfully filled
  */
-int process_config_and_fill_options(ConfigSequence &config_sequence, mdhim_options_t *opts) {
+int process_config_and_fill_options(ConfigSequence &config_sequence, mdhim_options_t *opts, const MPI_Comm comm) {
     // Parse the configuration data
     Config config;
     if (!config_sequence.process(config)) {
@@ -376,7 +402,7 @@ int process_config_and_fill_options(ConfigSequence &config_sequence, mdhim_optio
     }
 
     // fill opts with values from configuration
-    return fill_options(config, opts);
+    return fill_options(config, opts, comm);
 }
 
 /**
@@ -387,9 +413,10 @@ int process_config_and_fill_options(ConfigSequence &config_sequence, mdhim_optio
  * be implmented.
  *
  * @param opts the options to fill
+ * @param comm the bootstrapping communicator
  * @return whether or not configuration was completed
  */
-int mdhim_default_config_reader(mdhim_options_t *opts) {
+int mdhim_default_config_reader(mdhim_options_t *opts, const MPI_Comm comm) {
     ConfigSequence config_sequence;
 
     // add default search locations in order of preference: environmental variable, file, and directory
@@ -402,10 +429,9 @@ int mdhim_default_config_reader(mdhim_options_t *opts) {
     ConfigDirectory dir(MDHIM_CONFIG_DIR);
     config_sequence.add(&dir);
 
-    if ((mdhim_options_init(opts)                               != MDHIM_SUCCESS) || // initialize opts->p
-        (mdhim_options_init_db(opts, false)                     != MDHIM_SUCCESS) || // initialize opts->p->db
-        (fill_options(MDHIM_DEFAULT_CONFIG, opts)               != MDHIM_SUCCESS) || // fill in the configuration with default values
-        (process_config_and_fill_options(config_sequence, opts) != MDHIM_SUCCESS)) { // read the configuration and overwrite default values
+    if ((mdhim_options_init(opts, comm, false, false)                 != MDHIM_SUCCESS) || // initialize opts->p, opts->p->transport, and opts->p->db
+        (fill_options(MDHIM_DEFAULT_CONFIG, opts, comm)               != MDHIM_SUCCESS) || // fill in the configuration with default values
+        (process_config_and_fill_options(config_sequence, opts, comm) != MDHIM_SUCCESS)) { // read the configuration and overwrite default values
         mdhim_options_destroy(opts);
         return MDHIM_ERROR;
     }

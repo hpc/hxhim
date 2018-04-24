@@ -26,14 +26,14 @@ void get(mdhim_t *md,
     // Get error value
     int error = MDHIM_ERROR;
     if (mdhim_grm_error(grm, &error) != MDHIM_SUCCESS) {
-        err << "Could not GET " << std::string((char *)primary_key, primary_key_len) << std::endl;
+        err << "Could not GET " << std::string((char *)primary_key, primary_key_len) << " from range server " << mdhimWhichServer(md, primary_key, primary_key_len) << std::endl;
         mdhim_grm_destroy(grm);
         return;
     }
 
     // Check error value
     if (error != MDHIM_SUCCESS) {
-        err << "GET " << std::string((char *)primary_key, primary_key_len) << " error " << error << std::endl;
+        err << "GET " << std::string((char *)primary_key, primary_key_len) << " from range server " << mdhimWhichServer(md, primary_key, primary_key_len) << " returned error " << error << std::endl;
         mdhim_grm_destroy(grm);
         return;
     }
