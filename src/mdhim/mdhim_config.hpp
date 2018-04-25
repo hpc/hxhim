@@ -21,7 +21,7 @@ const std::string MDHIM_CONFIG_ENV  = "MDHIM_CONFIG";
 const std::string DB_PATH            = "DB_PATH";               // directory
 const std::string DB_NAME            = "DB_NAME";               // string
 const std::string DB_TYPE            = "DB_TYPE";               // See DB_TYPES
-const std::string SERVER_FACTOR      = "SERVER_FACTOR";         // positive integer
+const std::string RSERVER_FACTOR     = "RSERVER_FACTOR";         // positive integer
 const std::string MAX_RECS_PER_SLICE = "MAX_RECS_PER_SLICE";    // positive integer
 const std::string KEY_TYPE           = "KEY_TYPE";              // See KEY_TYPES
 const std::string DEBUG_LEVEL        = "DEBUG_LEVEL";           // See DEBUG_LEVELS
@@ -91,7 +91,7 @@ const Config MDHIM_DEFAULT_CONFIG = {
     std::make_pair(DB_PATH,            "./"),
     std::make_pair(DB_NAME,            "mdhimTstDB-"),
     std::make_pair(DB_TYPE,            "LEVELDB"),
-    std::make_pair(SERVER_FACTOR,      "1"),
+    std::make_pair(RSERVER_FACTOR,     "1"),
     std::make_pair(MAX_RECS_PER_SLICE, "1000"),
     std::make_pair(KEY_TYPE,           "BYTE"),
     std::make_pair(DEBUG_LEVEL,        "CRITICAL"),
@@ -165,6 +165,6 @@ class ConfigEnvironment : public ConfigReader {
  * This function should only be called at
  * the end of a custom configuration reader.
  */
-int process_config_and_fill_options(ConfigSequence &config_sequence, mdhim_options_t *opts, const MPI_Comm comm);
+int process_config_and_fill_options(ConfigSequence &config_sequence, mdhim_options_t *opts);
 
 #endif

@@ -81,24 +81,6 @@ bool ConfigEnvironment::process(Config &config) const {
     return false;
 }
 
-
-/**
- * config_environment
- * Try opening a configuration file specified by an environment variable
- *
- * @param config  the configuration to fill
- * @param var     the environment variable to look up
- * @return whether or not the parse succeeded
- */
-bool config_environment(Config &config, const std::string &var) {
-    char *env = getenv(var.c_str());
-    if (env) {
-        std::ifstream f(env);
-        return parse_file(config, f);
-    }
-    return false;
-}
-
 /**
  * get_bool
  * Helper function for reading booleans from the configuration
@@ -108,7 +90,7 @@ bool config_environment(Config &config, const std::string &var) {
  * @param b          the value of the configuration
  * @return MDHIM_SUCCESS if the configuration value was good, MDHIM_CONFIG_NOT_FOUND if the configuration key was not found, or MDHIM_ERROR if the configuration value was bad
  */
-int get_bool(const Config &config, const std::string &config_key, bool &b) {
+static int get_bool(const Config &config, const std::string &config_key, bool &b) {
     // find the key
     Config_it in_config = config.find(config_key);
     if (in_config != config.end()) {
@@ -130,7 +112,7 @@ int get_bool(const Config &config, const std::string &config_key, bool &b) {
  * @return MDHIM_SUCCESS if the configuration value was good, MDHIM_CONFIG_NOT_FOUND if the configuration key was not found, or MDHIM_ERROR if the configuration value was bad
  */
 template<typename T, typename = std::enable_if_t<std::is_integral<T>::value> >
-int get_integral(const Config &config, const std::string &config_key, T &i) {
+static int get_integral(const Config &config, const std::string &config_key, T &i) {
     // find the key
     Config_it in_config = config.find(config_key);
     if (in_config != config.end()) {
@@ -151,7 +133,7 @@ int get_integral(const Config &config, const std::string &config_key, T &i) {
  * @return MDHIM_SUCCESS if the configuration value was good, MDHIM_CONFIG_NOT_FOUND if the configuration key was not found, or MDHIM_ERROR if the configuration value was bad
  */
 template<typename T>
-int get_from_map(const Config &config, const std::string &config_key,
+static int get_from_map(const Config &config, const std::string &config_key,
                  const std::map<std::string, T> &map, T &value) {
     // find key in configuration
     Config_it in_config = config.find(config_key);
@@ -171,19 +153,24 @@ int get_from_map(const Config &config, const std::string &config_key,
 
 /**
  * fill_options
- * Fill in a mdhim_options_t with a given configuration
+ * Fill in a mdhim_options_t with a given configuration.
+ * This function should only overwrite values in opts,
+ * not reset opts before setting values.
  *
  * This function should not be modified if the configuration
  * is not being modified.
  *
- * opts is not cleaned up here. It should be cleaned up by
+ * opts should neither be allocated or deallocated here.
+ * When opts is passed in, its main pointers should be
+ * ready for filling in. If there is an error, this function
+ * simply returns MDHIM_ERROR. opts should be cleaned up by
  * the top-level calling function.
  *
  * @param config the configuration to use
  * @param opts   the option struct to fill
  * @return whether or not opts was successfully filled
  */
-static int fill_options(const Config &config, mdhim_options_t *opts, const MPI_Comm comm) {
+static int fill_options(const Config &config, mdhim_options_t *opts) {
     if (!opts || !opts->p || !opts->p->transport || !opts->p->db) {
         return MDHIM_ERROR;
     }
@@ -209,16 +196,16 @@ static int fill_options(const Config &config, mdhim_options_t *opts, const MPI_C
     // Set DB Type
     int db_type;
     ret = get_from_map(config, DB_TYPE, DB_TYPES, db_type);
-    if ((ret != MDHIM_SUCCESS)                                                                  ||
+    if ((ret == MDHIM_ERROR)                                                                    ||
         ((ret == MDHIM_SUCCESS) && (mdhim_options_set_db_type(opts, db_type) != MDHIM_SUCCESS))) {
         return MDHIM_ERROR;
     }
 
     // Set Server Factor
-    int server_factor;
-    ret = get_integral(config, SERVER_FACTOR, server_factor);
-    if ((ret == MDHIM_ERROR)                                                                                ||
-        ((ret == MDHIM_SUCCESS) && (mdhim_options_set_server_factor(opts, server_factor) != MDHIM_SUCCESS))) {
+    int rserver_factor;
+    ret = get_integral(config, RSERVER_FACTOR, rserver_factor);
+    if ((ret == MDHIM_ERROR)                                                                                 ||
+        ((ret == MDHIM_SUCCESS) && (mdhim_options_set_server_factor(opts, rserver_factor) != MDHIM_SUCCESS))) {
         return MDHIM_ERROR;
     }
 
@@ -233,7 +220,7 @@ static int fill_options(const Config &config, mdhim_options_t *opts, const MPI_C
     // Set Key Type
     int key_type;
     ret = get_from_map(config, KEY_TYPE, KEY_TYPES, key_type);
-    if ((ret != MDHIM_SUCCESS)                                                                    ||
+    if ((ret == MDHIM_ERROR)                                                                      ||
         ((ret == MDHIM_SUCCESS) && (mdhim_options_set_key_type(opts, key_type) != MDHIM_SUCCESS))) {
         return MDHIM_ERROR;
     }
@@ -241,7 +228,7 @@ static int fill_options(const Config &config, mdhim_options_t *opts, const MPI_C
     // Set Debug Level
     int debug_level;
     ret = get_from_map(config, DEBUG_LEVEL, DEBUG_LEVELS, debug_level);
-    if ((ret != MDHIM_SUCCESS)                                                                          ||
+    if ((ret == MDHIM_ERROR)                                                                            ||
         ((ret == MDHIM_SUCCESS) && (mdhim_options_set_debug_level(opts, debug_level) != MDHIM_SUCCESS))) {
         return MDHIM_ERROR;
     }
@@ -273,7 +260,7 @@ static int fill_options(const Config &config, mdhim_options_t *opts, const MPI_C
     // Set DB Write Mode
     int db_write;
     ret = get_from_map(config, DB_WRITE, DB_WRITES, db_write);
-    if ((ret != MDHIM_SUCCESS)                                                                        ||
+    if ((ret == MDHIM_ERROR)                                                                          ||
         ((ret == MDHIM_SUCCESS) && (mdhim_options_set_value_append(opts, db_write) != MDHIM_SUCCESS))) {
         return MDHIM_ERROR;
     }
@@ -346,7 +333,10 @@ static int fill_options(const Config &config, mdhim_options_t *opts, const MPI_C
         bool use_thallium;
         if ((get_bool(config, USE_THALLIUM, use_thallium) == MDHIM_SUCCESS) &&
             use_thallium) {
-            if (mdhim_options_set_thallium(opts, config.at(THALLIUM_MODULE).c_str()) != MDHIM_SUCCESS) {
+
+            Config_it thallium_module = config.find(THALLIUM_MODULE);
+            if ((thallium_module == config.end())                                                    ||
+                (mdhim_options_set_thallium(opts, thallium_module->second.c_str()) != MDHIM_SUCCESS)) {
                 return MDHIM_ERROR;
             }
         }
@@ -394,7 +384,7 @@ static int fill_options(const Config &config, mdhim_options_t *opts, const MPI_C
  * @param opts          the options to fill
  * @return whether or not opts was successfully filled
  */
-int process_config_and_fill_options(ConfigSequence &config_sequence, mdhim_options_t *opts, const MPI_Comm comm) {
+int process_config_and_fill_options(ConfigSequence &config_sequence, mdhim_options_t *opts) {
     // Parse the configuration data
     Config config;
     if (!config_sequence.process(config)) {
@@ -402,7 +392,7 @@ int process_config_and_fill_options(ConfigSequence &config_sequence, mdhim_optio
     }
 
     // fill opts with values from configuration
-    return fill_options(config, opts, comm);
+    return fill_options(config, opts);
 }
 
 /**
@@ -429,9 +419,9 @@ int mdhim_default_config_reader(mdhim_options_t *opts, const MPI_Comm comm) {
     ConfigDirectory dir(MDHIM_CONFIG_DIR);
     config_sequence.add(&dir);
 
-    if ((mdhim_options_init(opts, comm, false, false)                 != MDHIM_SUCCESS) || // initialize opts->p, opts->p->transport, and opts->p->db
-        (fill_options(MDHIM_DEFAULT_CONFIG, opts, comm)               != MDHIM_SUCCESS) || // fill in the configuration with default values
-        (process_config_and_fill_options(config_sequence, opts, comm) != MDHIM_SUCCESS)) { // read the configuration and overwrite default values
+    if ((mdhim_options_init(opts, comm, false, false)           != MDHIM_SUCCESS) || // initialize opts->p, opts->p->transport, and opts->p->db
+        (fill_options(MDHIM_DEFAULT_CONFIG, opts)               != MDHIM_SUCCESS) || // fill in the configuration with default values
+        (process_config_and_fill_options(config_sequence, opts) != MDHIM_SUCCESS)) { // read the configuration and overwrite default values
         mdhim_options_destroy(opts);
         return MDHIM_ERROR;
     }

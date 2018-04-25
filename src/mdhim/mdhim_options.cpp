@@ -557,10 +557,16 @@ int mdhim_options_destroy(mdhim_options_t *opts) {
             delete [] opts->p->db->db_upswd;
             delete [] opts->p->db->dbs_user;
             delete [] opts->p->db->dbs_upswd;
+
+            delete opts->p->db;
         }
 
-        delete opts->p->db;
-        delete opts->p->transport;
+        if (opts->p->transport) {
+            delete opts->p->transport->transport_specific;
+
+            delete opts->p->transport;
+        }
+
         delete opts->p;
         opts->p = nullptr;
     }
