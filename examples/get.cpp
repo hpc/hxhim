@@ -11,7 +11,7 @@
  * @param err             error message stream
  */
 void get(mdhim_t *md,
-         void *primary_key, int primary_key_len,
+         void *primary_key, std::size_t primary_key_len,
          std::ostream &out, std::ostream &err) {
     // Get the value
     mdhim_getrm_t *grm = mdhimGet(md, nullptr,
@@ -40,7 +40,7 @@ void get(mdhim_t *md,
 
     // Extract the keys from the returned value (do not free)
     char *key = nullptr;
-    int key_len = 0;
+    std::size_t key_len = 0;
     if (mdhim_grm_key(grm, (void **) &key, &key_len) != MDHIM_SUCCESS) {
         err << "Could not extract key" << std::endl;
         mdhim_grm_destroy(grm);
@@ -49,7 +49,7 @@ void get(mdhim_t *md,
 
     // Extract the values from the returned value (do not free)
     char *value = nullptr;
-    int value_len = 0;
+    std::size_t value_len = 0;
     if (mdhim_grm_value(grm, (void **) &value, &value_len) != MDHIM_SUCCESS) {
         err << "Could not extract value" << std::endl;
         mdhim_grm_destroy(grm);

@@ -12,8 +12,8 @@
  * @param err      error message stream
  */
 void bdel(mdhim_t *md,
-          void **keys, int *key_lens,
-          int num_keys,
+          void **keys, std::size_t *key_lens,
+          std::size_t num_keys,
           std::ostream &out, std::ostream &err) {
     mdhim_brm_t *brm = mdhimBDelete(md, nullptr,
                                      keys, key_lens,

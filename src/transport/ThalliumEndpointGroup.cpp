@@ -73,7 +73,7 @@ void ThalliumEndpointGroup::RemoveID(const int id) {
  * @param bpm_list the list of BPUT messages to send
  * @return a linked list of response messages, or nullptr
  */
-TransportBRecvMessage *ThalliumEndpointGroup::BPut(const int num_rangesrvs, TransportBPutMessage **bpm_list) {
+TransportBRecvMessage *ThalliumEndpointGroup::BPut(const std::size_t num_rangesrvs, TransportBPutMessage **bpm_list) {
     TransportMessage **messages = convert_to_base(num_rangesrvs, bpm_list);
     TransportBRecvMessage *ret = return_brm(num_rangesrvs, messages);
     delete [] messages;
@@ -87,7 +87,7 @@ TransportBRecvMessage *ThalliumEndpointGroup::BPut(const int num_rangesrvs, Tran
  * @param bgm_list the list of BGET messages to send
  * @return a linked list of response messages, or nullptr
  */
-TransportBGetRecvMessage *ThalliumEndpointGroup::BGet(const int num_rangesrvs, TransportBGetMessage **bgm_list) {
+TransportBGetRecvMessage *ThalliumEndpointGroup::BGet(const std::size_t num_rangesrvs, TransportBGetMessage **bgm_list) {
     TransportMessage **messages = convert_to_base(num_rangesrvs, bgm_list);
     TransportBGetRecvMessage *ret = return_bgrm(num_rangesrvs, messages);
     delete [] messages;
@@ -101,7 +101,7 @@ TransportBGetRecvMessage *ThalliumEndpointGroup::BGet(const int num_rangesrvs, T
  * @param bdm_list the list of BDELETE messages to send
  * @return a linked list of response messages, or nullptr
  */
-TransportBRecvMessage *ThalliumEndpointGroup::BDelete(const int num_rangesrvs, TransportBDeleteMessage **bdm_list) {
+TransportBRecvMessage *ThalliumEndpointGroup::BDelete(const std::size_t num_rangesrvs, TransportBDeleteMessage **bdm_list) {
     TransportMessage **messages = convert_to_base(num_rangesrvs, bdm_list);
     TransportBRecvMessage *ret = return_brm(num_rangesrvs, messages);
     delete [] messages;
@@ -115,13 +115,17 @@ TransportBRecvMessage *ThalliumEndpointGroup::BDelete(const int num_rangesrvs, T
  * @param messages      an array of messages to send
  * @return a linked list of return messages
  */
-TransportBRecvMessage *ThalliumEndpointGroup::return_brm(const int num_rangesrvs, TransportMessage **messages) {
+TransportBRecvMessage *ThalliumEndpointGroup::return_brm(const std::size_t num_rangesrvs, TransportMessage **messages) {
     // convert the responses into a list
     TransportBRecvMessage *head = nullptr;
     TransportBRecvMessage *tail = nullptr;
 
     // encode each mesage
-    for(int i = 0; i < num_rangesrvs; i++) {
+    for(std::size_t i = 0; i < num_rangesrvs; i++) {
+        if (!messages[i]) {
+            continue;
+        }
+
         // pack message
         std::string sendbuf;
         if (ThalliumPacker::any(messages[i], sendbuf) != MDHIM_SUCCESS) {
@@ -174,12 +178,16 @@ TransportBRecvMessage *ThalliumEndpointGroup::return_brm(const int num_rangesrvs
  * @param messages      an array of messages to send
  * @return a linked list of return messages
  */
-TransportBGetRecvMessage *ThalliumEndpointGroup::return_bgrm(const int num_rangesrvs, TransportMessage **messages) {
+TransportBGetRecvMessage *ThalliumEndpointGroup::return_bgrm(const std::size_t num_rangesrvs, TransportMessage **messages) {
     // convert the responses into a list
     TransportBGetRecvMessage *head = nullptr;
     TransportBGetRecvMessage *tail = nullptr;
 
-    for(int i = 0; i < num_rangesrvs; i++) {
+    for(std::size_t i = 0; i < num_rangesrvs; i++) {
+        if (!messages[i]) {
+            continue;
+        }
+
         std::map<int, Thallium::Endpoint_t>::const_iterator dst_it = endpoints_.find(messages[i]->dst);
         if (dst_it != endpoints_.end()) {
             // pack message

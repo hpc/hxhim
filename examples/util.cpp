@@ -17,7 +17,7 @@
  * @param read_rows    whether or not to read the number of rows from s; if false, sets rows to 1
  * @return MDHIM_SUCCESS or MDHIM_ERROR
  */
-int bulk_read(std::istream &s, int columns, void ****data, int ***lens, int &rows, bool read_rows) {
+int bulk_read(std::istream &s, std::size_t columns, void ****data, std::size_t ***lens, std::size_t &rows, bool read_rows) {
     // get number of rows
     if (read_rows) {
         if (!(s >> rows)) {
@@ -30,16 +30,16 @@ int bulk_read(std::istream &s, int columns, void ****data, int ***lens, int &row
 
     // allocate space
     *data = new void **[columns]();
-    *lens = new int *[columns]();
-    for(int f = 0; f < columns; f++) {
+    *lens = new std::size_t *[columns]();
+    for(std::size_t f = 0; f < columns; f++) {
         (*data)[f] = new void *[rows]();
-        (*lens)[f] = new int[rows]();
+        (*lens)[f] = new std::size_t[rows]();
     }
 
     // read from the stream
     bool error = false;
-    for(int r = 0; (r < rows) && !error; r++) {
-        for(int c = 0; (c < columns) && !error; c++) {
+    for(std::size_t r = 0; (r < rows) && !error; r++) {
+        for(std::size_t c = 0; (c < columns) && !error; c++) {
             // read the value
             std::string value;
             if (!(s >> value)) {
@@ -70,11 +70,11 @@ int bulk_read(std::istream &s, int columns, void ****data, int ***lens, int &row
  * @param rows    how many rows of data there are
  * @return MDHIM_SUCCESS or MDHIM_ERROR
  */
-int bulk_clean(int columns, void ***data, int **lens, int rows) {
+int bulk_clean(std::size_t columns, void ***data, std::size_t **lens, std::size_t rows) {
     if (data) {
         // delete each value
-        for(int r = 0; r < rows; r++) {
-            for(int c = 0; c < columns; c++) {
+        for(std::size_t r = 0; r < rows; r++) {
+            for(std::size_t c = 0; c < columns; c++) {
                 if (data[c]) {
                     ::operator delete(data[c][r]);
                 }
@@ -82,7 +82,7 @@ int bulk_clean(int columns, void ***data, int **lens, int rows) {
         }
 
         // delete each column
-        for(int c = 0; c < columns; c++) {
+        for(std::size_t c = 0; c < columns; c++) {
             delete [] data[c];
         }
 
@@ -91,7 +91,7 @@ int bulk_clean(int columns, void ***data, int **lens, int rows) {
     }
 
     if (lens) {
-        for(int c = 0; c < columns; c++) {
+        for(std::size_t c = 0; c < columns; c++) {
             delete [] lens[c];
         }
 

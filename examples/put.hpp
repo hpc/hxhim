@@ -7,8 +7,8 @@
 
 /** @description Example usage and cleanup of mdhimPut */
 void put(mdhim_t *md,
-         void *primary_key, int primary_key_len,
-         void *value, int value_len,
+         void *primary_key, std::size_t primary_key_len,
+         void *value, std::size_t value_len,
          std::ostream &out = std::cout, std::ostream &err = std::cerr);
 
 #endif

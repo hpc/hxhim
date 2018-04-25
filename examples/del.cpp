@@ -11,7 +11,7 @@
  * @param err             error message stream
  */
 void del(mdhim_t *md,
-         void *primary_key, int primary_key_len,
+         void *primary_key, std::size_t primary_key_len,
          std::ostream &out, std::ostream &err) {
     // Del the value
     mdhim_rm_t *rm = mdhimDelete(md, nullptr,

@@ -1,6 +1,7 @@
 #ifndef INDEX_STRUCT_H
 #define INDEX_STRUCT_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 #include "uthash.h"
@@ -14,6 +15,9 @@
 #define LOCAL_INDEX     3
 #define REMOTE_INDEX    4
 
+typedef struct mdhim_store mdhim_store_t;
+typedef struct mdhim_stat mdhim_stat_t;
+
 /*
  * Remote Index info
  * Contains information about a remote index
@@ -25,7 +29,7 @@ typedef struct index {
 	char *name;     // Secondary Hash key
 
 	//The abstracted data store layer that mdhim uses to store and retrieve records
-	struct mdhim_store_t *mdhim_store;
+	mdhim_store_t *mdhim_store;
 	//Options for the mdhim data store
 	int key_type;             //The key type used in the db
 	int db_type;              //The database type
@@ -50,13 +54,13 @@ typedef struct index {
 	int rangesrv_master;
 
 	//The number of range servers for this index
-	int32_t num_rangesrvs;
+	size_t num_rangesrvs;
 
 	//The rank's range server information, if it is a range server for this index
 	rangesrv_info_t myinfo;
 
 	//Statistics retrieved from the mdhimStatFlush operation
-	struct mdhim_stat *stats;
+    mdhim_stat_t *stats;
 
 	UT_hash_handle hh;         /* makes this structure hashable */
 	UT_hash_handle hh_name;    /* makes this structure hashable by name */

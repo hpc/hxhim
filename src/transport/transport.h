@@ -1,6 +1,8 @@
 #ifndef HXHIM_TRANSPORT_TYPES
 #define HXHIM_TRANSPORT_TYPES
 
+#include <stddef.h>
+
 #include "mdhim_constants.h"
 #include "transport_constants.h"
 
@@ -51,14 +53,14 @@ int mdhim_brm_next(const mdhim_brm_t *brm, mdhim_brm_t **next);
 
 int mdhim_grm_src(const mdhim_getrm_t *grm, int *src);
 int mdhim_grm_error(const mdhim_getrm_t *grm, int *error);
-int mdhim_grm_key(const mdhim_getrm_t *grm, void **key, int *key_len);
-int mdhim_grm_value(const mdhim_getrm_t *grm, void **value, int *value_len);
+int mdhim_grm_key(const mdhim_getrm_t *grm, void **key, size_t *key_len);
+int mdhim_grm_value(const mdhim_getrm_t *grm, void **value, size_t *value_len);
 
 int mdhim_bgrm_src(const mdhim_bgetrm_t *bgrm, int *src);
 int mdhim_bgrm_error(const mdhim_bgetrm_t *bgrm, int *error);
-int mdhim_bgrm_keys(const mdhim_bgetrm_t *bgrm, void ***keys, int **key_lens);
-int mdhim_bgrm_values(const mdhim_bgetrm_t *bgrm, void ***values, int **value_lens);
-int mdhim_bgrm_num_keys(const mdhim_bgetrm_t *bgrm, int *num_keys);
+int mdhim_bgrm_keys(const mdhim_bgetrm_t *bgrm, void ***keys, size_t **key_lens);
+int mdhim_bgrm_values(const mdhim_bgetrm_t *bgrm, void ***values, size_t **value_lens);
+int mdhim_bgrm_num_keys(const mdhim_bgetrm_t *bgrm, size_t *num_keys);
 int mdhim_bgrm_next(const mdhim_bgetrm_t *bgrm, mdhim_bgetrm_t **next);
 
 #ifdef __cplusplus

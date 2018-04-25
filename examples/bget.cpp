@@ -12,8 +12,8 @@
  * @param err      error message stream
  */
 void bget(mdhim_t *md,
-          void **keys, int *key_lens,
-          int num_keys,
+          void **keys, std::size_t *key_lens,
+          std::size_t num_keys,
           std::ostream &out, std::ostream &err) {
     mdhim_bgetrm_t *bgrm = mdhimBGet(md, nullptr,
                                      keys, key_lens,
@@ -28,7 +28,7 @@ void bget(mdhim_t *md,
     // Get and print results
     for(int ret = MDHIM_SUCCESS; (ret == MDHIM_SUCCESS) && bgrm; ret = next(&bgrm)) {
         // Get number of num_keys
-        int get_num_keys = 0;
+        std::size_t get_num_keys = 0;
         if (mdhim_bgrm_num_keys(bgrm, &get_num_keys) != MDHIM_SUCCESS) {
             err << "Could not get number of num_keys" << std::endl;
             continue;
@@ -36,7 +36,7 @@ void bget(mdhim_t *md,
 
         // Get keys
         void **get_keys = nullptr;
-        int *get_key_lens = nullptr;
+        std::size_t *get_key_lens = nullptr;
         if (mdhim_bgrm_keys(bgrm, &get_keys, &get_key_lens) != MDHIM_SUCCESS) {
             err << "Could not get keys" << std::endl;
             continue;
@@ -46,7 +46,7 @@ void bget(mdhim_t *md,
         int error = MDHIM_ERROR;
         if (mdhim_bgrm_error(bgrm, &error) != MDHIM_SUCCESS) {
             err << "Could not BGET";
-            for(int i = 0; i < num_keys; i++) {
+            for(std::size_t i = 0; i < num_keys; i++) {
                 err << " " << std::string((char *)keys[i], key_lens[i]);
             }
             err << std::endl;
@@ -57,19 +57,19 @@ void bget(mdhim_t *md,
         if (error == MDHIM_SUCCESS) {
             // Get values
             void **get_values = nullptr;
-            int *get_value_lens = nullptr;
+            std::size_t *get_value_lens = nullptr;
             if (mdhim_bgrm_values(bgrm, &get_values, &get_value_lens) != MDHIM_SUCCESS) {
                 err << "BGET error " << error << std::endl;
             }
             else {
-                for(int i = 0; i < get_num_keys; i++) {
+                for(std::size_t i = 0; i < get_num_keys; i++) {
                     int src;
                     out << "BGET " << std::string((char *)get_keys[i], get_key_lens[i]) << " -> " << std::string((char *)get_values[i], get_value_lens[i]) << " from range server on rank " << ((mdhim_bgrm_src(bgrm, &src) == MDHIM_SUCCESS)?src:-1) << std::endl;
                 }
             }
         }
         else {
-            for(int i = 0; i < get_num_keys; i++) {
+            for(std::size_t i = 0; i < get_num_keys; i++) {
                 int src;
                 out << "Could not BGET " << std::string((char *)get_keys[i], get_key_lens[i]) << " from range server on rank " << ((mdhim_bgrm_src(bgrm, &src) == MDHIM_SUCCESS)?src:-1) << std::endl;
             }

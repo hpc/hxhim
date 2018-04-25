@@ -380,8 +380,8 @@ int mdhim_private_destroy(mdhim_t *md) {
  * @return TransportRecvMessage * or nullptr on error
  */
 TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
-                                  void *key, int key_len,
-                                  void *value, int value_len) {
+                                  void *key, std::size_t key_len,
+                                  void *value, std::size_t value_len) {
     if (!md || !md->p ||
         !index ||
         !key || !key_len ||
@@ -469,7 +469,7 @@ TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
  * @return TransportGetRecvMessage * or nullptr on error
  */
 TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
-                                     void *key, int key_len,
+                                     void *key, std::size_t key_len,
                                      enum TransportGetMessageOp op) {
     if (!md || !md->p ||
         !index ||
@@ -571,9 +571,9 @@ static void _concat_brm(TransportBRecvMessage **head, TransportBRecvMessage *add
  * @return TransportRecvMessage * or nullptr on error
  */
 TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
-                                     void **keys, int *key_lens,
-                                     void **values, int *value_lens,
-                                     int num_keys) {
+                                     void **keys, std::size_t *key_lens,
+                                     void **values, std::size_t *value_lens,
+                                     std::size_t num_keys) {
     index_t *lookup_index = nullptr;
     index_t *put_index = index;
     if (index->type == LOCAL_INDEX) {
@@ -603,7 +603,7 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
     /* Go through each of the records to find the range server(s) the record belongs to.
        If there is not a bulk message in the array for the range server the key belongs to,
        then it is created.  Otherwise, the data is added to the existing message in the array.*/
-    for (int i = 0; i < num_keys && i < MAX_BULK_OPS; i++) {
+    for (std::size_t i = 0; i < num_keys && i < MAX_BULK_OPS; i++) {
         //Get the range server this key will be sent to
         rangesrv_list *rl = nullptr;
         if (put_index->type == LOCAL_INDEX) {
@@ -639,9 +639,9 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
             if (!bpm) {
                 bpm = new TransportBPutMessage();
                 bpm->keys = new void *[MAX_BULK_OPS]();
-                bpm->key_lens = new int[MAX_BULK_OPS]();
+                bpm->key_lens = new std::size_t[MAX_BULK_OPS]();
                 bpm->values = new void *[MAX_BULK_OPS]();
-                bpm->value_lens = new int[MAX_BULK_OPS]();
+                bpm->value_lens = new std::size_t[MAX_BULK_OPS]();
                 bpm->num_keys = 0;
                 bpm->src = md->rank;
                 bpm->dst = rl->ri->rank;
@@ -680,7 +680,7 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
     }
 
     //Free up messages sent
-    for (int i = 0; i < lookup_index->num_rangesrvs; i++) {
+    for (std::size_t i = 0; i < lookup_index->num_rangesrvs; i++) {
         delete bpm_list[i];
     }
 
@@ -705,8 +705,8 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
  * @return TransportBGetRecvMessage * or nullptr on error
  */
 TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
-                                        void **keys, int *key_lens,
-                                        int num_keys, int num_records,
+                                        void **keys, std::size_t *key_lens,
+                                        std::size_t num_keys, std::size_t num_records,
                                         enum TransportGetMessageOp op) {
     if (!md || !md->p ||
         !index ||
@@ -722,7 +722,7 @@ TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
     /* Go through each of the records to find the range server the record belongs to.
        If there is not a bulk message in the array for the range server the key belongs to,
        then it is created.  Otherwise, the data is added to the existing message in the array.*/
-    for (int i = 0; i < num_keys && i < MAX_BULK_OPS; i++) {
+    for (std::size_t i = 0; i < num_keys && i < MAX_BULK_OPS; i++) {
         //Get the range server this key will be sent to
         if ((op == TransportGetMessageOp::GET_EQ || op == TransportGetMessageOp::GET_PRIMARY_EQ) &&
             index->type != LOCAL_INDEX &&
@@ -758,7 +758,7 @@ TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
             if (!bgm) {
                 bgm = new TransportBGetMessage();
                 bgm->keys = new void *[num_keys]();
-                bgm->key_lens = new int[num_keys]();
+                bgm->key_lens = new std::size_t[num_keys]();
                 bgm->num_keys = 0;
                 bgm->num_recs = num_records;
                 bgm->src = md->rank;
@@ -809,7 +809,7 @@ TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
  * @return TransportRecvMessage * or nullptr on error
  */
 TransportRecvMessage *_del_record(mdhim_t *md, index_t *index,
-                                  void *key, int key_len) {
+                                  void *key, std::size_t key_len) {
 
     if (!md || !md->p ||
         !index ||
@@ -896,8 +896,8 @@ TransportRecvMessage *_del_record(mdhim_t *md, index_t *index,
  * @return TransportBRecvMessage * or nullptr on error
  */
 TransportBRecvMessage *_bdel_records(mdhim_t *md, index_t *index,
-                                     void **keys, int *key_lens,
-                                     int num_keys) {
+                                     void **keys, std::size_t *key_lens,
+                                     std::size_t num_keys) {
     if (!md || !md->p ||
         !index ||
         !keys || !key_lens) {
@@ -915,7 +915,7 @@ TransportBRecvMessage *_bdel_records(mdhim_t *md, index_t *index,
     /* Go through each of the records to find the range server the record belongs to.
        If there is not a bulk message in the array for the range server the key belongs to,
        then it is created.  Otherwise, the data is added to the existing message in the array.*/
-    for (int i = 0; i < num_keys && i < MAX_BULK_OPS; i++) {
+    for (std::size_t i = 0; i < num_keys && i < MAX_BULK_OPS; i++) {
         //Get the range server this key will be sent to
         if (index->type != LOCAL_INDEX &&
             !(rl = get_range_servers(md, index, keys[i], key_lens[i]))) {
@@ -944,7 +944,7 @@ TransportBRecvMessage *_bdel_records(mdhim_t *md, index_t *index,
         if (!bdm) {
             bdm = new TransportBDeleteMessage();
             bdm->keys = new void *[MAX_BULK_OPS]();
-            bdm->key_lens = new int[MAX_BULK_OPS]();
+            bdm->key_lens = new std::size_t[MAX_BULK_OPS]();
             bdm->num_keys = 0;
             bdm->src = md->rank;
             bdm->dst = rl->ri->rank;
@@ -974,7 +974,7 @@ TransportBRecvMessage *_bdel_records(mdhim_t *md, index_t *index,
         }
     }
 
-    for (int i = 0; i < index->num_rangesrvs; i++) {
+    for (std::size_t i = 0; i < index->num_rangesrvs; i++) {
         delete bdm_list[i];
     }
 
@@ -984,7 +984,7 @@ TransportBRecvMessage *_bdel_records(mdhim_t *md, index_t *index,
     return brm_head;
 }
 
-int _which_server(mdhim_t *md, void *key, int key_len)
+int _which_server(mdhim_t *md, void *key, std::size_t key_len)
 {
     rangesrv_list *rl = get_range_servers(md, md->p->primary_index, key, key_len);
     int server = rl?rl->ri->rank:MDHIM_ERROR;

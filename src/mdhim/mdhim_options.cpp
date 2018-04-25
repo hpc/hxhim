@@ -59,7 +59,7 @@ static int update_c_str(const char *src, char **dst) {
 
     delete [] *dst;
 
-    const size_t len = strlen(src);
+    const std::size_t len = strlen(src);
     if (!(*dst = new char[len + 1]())) {
         return MDHIM_ERROR;
     }
@@ -146,7 +146,7 @@ int mdhim_options_init_transport(mdhim_options_t *opts, const int set_defaults) 
  * @param set_defaults whether or not to set default values for the private data
  * @return MDHIM_SUCCESS or MDHIM_ERROR
  */
-int mdhim_options_set_mpi(mdhim_options_t *opts, const MPI_Comm comm, const size_t alloc_size, const size_t regions) {
+int mdhim_options_set_mpi(mdhim_options_t *opts, const MPI_Comm comm, const std::size_t alloc_size, const std::size_t regions) {
     if (!valid_transport(opts)) {
         return MDHIM_ERROR;
     }

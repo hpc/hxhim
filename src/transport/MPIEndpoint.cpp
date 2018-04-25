@@ -55,7 +55,7 @@ TransportRecvMessage *MPIEndpoint::Delete(const TransportDeleteMessage *message)
  * @param size    size of data to be sent to dest
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int MPIEndpoint::send_rangesrv_work(const void *buf, const int size) {
+int MPIEndpoint::send_rangesrv_work(const void *buf, const std::size_t size) {
     int return_code = MDHIM_ERROR;
     MPI_Request req;
 
@@ -71,7 +71,7 @@ int MPIEndpoint::send_rangesrv_work(const void *buf, const int size) {
 
     //Send the message
     pthread_mutex_lock(&mutex_);
-    return_code = MPI_Isend(buf, size, MPI_PACKED, remote_rank_, RANGESRV_WORK_MSG, comm_, &req);
+    return_code = MPI_Isend(buf, size, MPI_CHAR, remote_rank_, RANGESRV_WORK_MSG, comm_, &req);
     pthread_mutex_unlock(&mutex_);
     Flush(&req);
 
@@ -91,7 +91,7 @@ int MPIEndpoint::send_rangesrv_work(const void *buf, const int size) {
  * @param message out  double pointer for message received
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int MPIEndpoint::receive_client_response(void **buf, int *size) {
+int MPIEndpoint::receive_client_response(void **buf, std::size_t *size) {
     int return_code;
     MPI_Request req;
 
@@ -113,7 +113,7 @@ int MPIEndpoint::receive_client_response(void **buf, int *size) {
 
     // Receive the message
     pthread_mutex_lock(&mutex_);
-    return_code = MPI_Irecv(*buf, *size, MPI_PACKED, remote_rank_, CLIENT_RESPONSE_MSG, comm_, &req);
+    return_code = MPI_Irecv(*buf, *size, MPI_CHAR, remote_rank_, CLIENT_RESPONSE_MSG, comm_, &req);
     pthread_mutex_unlock(&mutex_);
     Flush(&req);
 

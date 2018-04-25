@@ -14,9 +14,9 @@
  * @param err              error message stream
  */
 void bput(mdhim_t *md,
-          void **primary_keys, int *primary_key_lens,
-          void **values, int *value_lens,
-          int num_keys,
+          void **primary_keys, std::size_t *primary_key_lens,
+          void **values, std::size_t *value_lens,
+          std::size_t num_keys,
           std::ostream &out, std::ostream &err) {
     mdhim_brm_t *brm = mdhimBPut(md, nullptr,
                                  primary_keys, primary_key_lens,
@@ -51,14 +51,4 @@ void bput(mdhim_t *md,
 
         out << "BPUT to " << src  << " succeeded" << std::endl;
     }
-
-    // if (!brm) {
-    //     for(int i = 0; i < num_keys; i++) {
-    //         out << "BPUT " << std::string((char *)primary_keys[i], primary_key_lens[i]) << " -> " << std::string((char *)values[i], value_lens[i]) << " to range server on rank " << mdhimWhichServer(md, primary_keys[i], primary_key_lens[i]) << std::endl;;
-    //     }
-    // }
-
-    // while (brm) {
-    //     next(&brm);
-    // }
 }

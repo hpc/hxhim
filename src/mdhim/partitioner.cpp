@@ -6,14 +6,14 @@
 #include "mdhim_private.h"
 
 //Global hashtable for alphabet used in partitioner algorithm
-struct mdhim_char *mdhim_alphabet = NULL;
+mdhim_char_t *mdhim_alphabet = NULL;
 
 /**
  * delete_alphabet
  * Deletes the alphabet hash table
  */
 void delete_alphabet() {
-	struct mdhim_char *cur_char, *tmp;
+	mdhim_char_t *cur_char, *tmp;
 	HASH_ITER(hh, mdhim_alphabet, cur_char, tmp) {
 		HASH_DEL(mdhim_alphabet, cur_char);  /*delete it (mdhim_alphabet advances to next)*/
 		free(cur_char);            /* free it */
@@ -25,7 +25,7 @@ void delete_alphabet() {
 long double get_str_num(void *key, uint32_t key_len) {
   int id;
   unsigned int i;
-  struct mdhim_char *mc;
+  mdhim_char_t *mc;
   long double str_num;
 
   str_num = 0;
@@ -82,10 +82,10 @@ void partitioner_release() {
  * @param pos     The value of our entry (the position of the character in our alphabet)
  */
 void add_char(int id, int pos) {
-	struct mdhim_char *mc;
+	mdhim_char_t *mc;
 
 	//Create a new mdhim_char to hold our entry
-	mc = (struct mdhim_char*)malloc(sizeof(struct mdhim_char));
+	mc = (mdhim_char_t*)malloc(sizeof(mdhim_char_t));
 
 	//Set the mdhim_char
 	mc->id = id;
@@ -173,7 +173,7 @@ int verify_key(index_t *index, void *key,
 	       int key_len, int key_type) {
 	int i;
 	int id;
-	struct mdhim_char *mc;
+	mdhim_char_t *mc;
 	uint64_t ikey = 0;
 	uint64_t size_check;
 
@@ -410,9 +410,9 @@ rangesrv_list_t *get_range_servers(mdhim_t *md, index_t *index,
 	return rl;
 }
 
-struct mdhim_stat *get_next_slice_stat(mdhim_t *md, index_t *index,
+mdhim_stat_t *get_next_slice_stat(mdhim_t *md, index_t *index,
 				       int slice_num) {
-	struct mdhim_stat *stat, *tmp, *next_slice;
+	mdhim_stat_t *stat, *tmp, *next_slice;
 
 	next_slice = nullptr;
 
@@ -433,9 +433,9 @@ struct mdhim_stat *get_next_slice_stat(mdhim_t *md, index_t *index,
 	return next_slice;
 }
 
-struct mdhim_stat *get_prev_slice_stat(mdhim_t *md, index_t *index,
+mdhim_stat_t *get_prev_slice_stat(mdhim_t *md, index_t *index,
 				       int slice_num) {
-	struct mdhim_stat *stat, *tmp, *prev_slice;
+	mdhim_stat_t *stat, *tmp, *prev_slice;
 
 	prev_slice = NULL;
 
@@ -456,8 +456,8 @@ struct mdhim_stat *get_prev_slice_stat(mdhim_t *md, index_t *index,
 	return prev_slice;
 }
 
-struct mdhim_stat *get_last_slice_stat(mdhim_t *md, index_t *index) {
-	struct mdhim_stat *stat, *tmp, *last_slice;
+mdhim_stat_t *get_last_slice_stat(mdhim_t *md, index_t *index) {
+	mdhim_stat_t *stat, *tmp, *last_slice;
 
 	last_slice = NULL;
 
@@ -478,8 +478,8 @@ struct mdhim_stat *get_last_slice_stat(mdhim_t *md, index_t *index) {
 	return last_slice;
 }
 
-struct mdhim_stat *get_first_slice_stat(mdhim_t *md, index_t *index) {
-	struct mdhim_stat *stat, *tmp, *first_slice;
+mdhim_stat_t *get_first_slice_stat(mdhim_t *md, index_t *index) {
+	mdhim_stat_t *stat, *tmp, *first_slice;
 
 	first_slice = NULL;
 
@@ -503,7 +503,7 @@ struct mdhim_stat *get_first_slice_stat(mdhim_t *md, index_t *index) {
 int get_slice_from_fstat(mdhim_t *md, index_t *index,
                          int cur_slice, long double fstat, TransportGetMessageOp op) {
 	int slice_num = 0;
-	struct mdhim_stat *cur_stat, *new_stat;
+	mdhim_stat_t *cur_stat, *new_stat;
 
 	if (!index->stats) {
 		return 0;
@@ -560,7 +560,7 @@ new_stat:
 int get_slice_from_istat(mdhim_t *md, index_t *index,
 			 int cur_slice, uint64_t istat, TransportGetMessageOp op) {
 	int slice_num = 0;
-	struct mdhim_stat *cur_stat, *new_stat;
+	mdhim_stat_t *cur_stat, *new_stat;
 
 	if (!index->stats) {
 		return 0;
@@ -621,7 +621,7 @@ new_stat:
    that could have the key */
 rangesrv_list_t *get_rangesrvs_from_istat(mdhim_t *md, index_t *index,
                                           uint64_t istat, TransportGetMessageOp op) {
-	struct mdhim_stat *cur_rank, *cur_stat, *tmp, *tmp2;
+	mdhim_stat_t *cur_rank, *cur_stat, *tmp, *tmp2;
 	rangesrv_list_t *head, *lp, *entry;
 	int slice_num = 0;
 	unsigned int num_slices;
@@ -709,7 +709,7 @@ rangesrv_list_t *get_rangesrvs_from_istat(mdhim_t *md, index_t *index,
    that could have the key */
 rangesrv_list_t *get_rangesrvs_from_fstat(mdhim_t *md, index_t *index,
                                           long double fstat, TransportGetMessageOp op) {
-	struct mdhim_stat *cur_rank, *cur_stat, *tmp, *tmp2;
+	mdhim_stat_t *cur_rank, *cur_stat, *tmp, *tmp2;
 	rangesrv_list_t *head, *lp, *entry;
 	int slice_num = 0;
 	unsigned int num_slices;

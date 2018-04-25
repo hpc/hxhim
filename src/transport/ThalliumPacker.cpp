@@ -79,7 +79,7 @@ int ThalliumPacker::pack(const TransportBPutMessage *bpm, std::string &buf) {
         return MDHIM_ERROR;
     }
 
-    for(int i = 0; i < bpm->num_keys; i++) {
+    for(std::size_t i = 0; i < bpm->num_keys; i++) {
         if (!s
             .write((char *) bpm->keys[i], bpm->key_lens[i])
             .write((char *) bpm->values[i], bpm->value_lens[i])) {
@@ -125,7 +125,7 @@ int ThalliumPacker::pack(const TransportBGetMessage *bgm, std::string &buf) {
         return MDHIM_ERROR;
     }
 
-    for(int i = 0; i < bgm->num_keys; i++) {
+    for(std::size_t i = 0; i < bgm->num_keys; i++) {
         if (!s
             .write((char *) bgm->keys[i], bgm->key_lens[i])) {
             return MDHIM_ERROR;
@@ -166,7 +166,7 @@ int ThalliumPacker::pack(const TransportBDeleteMessage *bdm, std::string &buf) {
         return MDHIM_ERROR;
     }
 
-    for(int i = 0; i < bdm->num_keys; i++) {
+    for(std::size_t i = 0; i < bdm->num_keys; i++) {
         if (!s
             .write((char *) bdm->keys[i], bdm->key_lens[i])) {
             return MDHIM_ERROR;
@@ -227,7 +227,7 @@ int ThalliumPacker::pack(const TransportBGetRecvMessage *bgrm, std::string &buf)
         return MDHIM_ERROR;
     }
 
-    for(int i = 0; i < bgrm->num_keys; i++) {
+    for(std::size_t i = 0; i < bgrm->num_keys; i++) {
         if (!s
             .write((char *) bgrm->keys[i], bgrm->key_lens[i])
             .write((char *) bgrm->values[i], bgrm->value_lens[i])) {

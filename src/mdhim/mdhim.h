@@ -27,28 +27,28 @@ int mdhimClose(mdhim_t *md);
 int mdhimCommit(mdhim_t *md, index_t *index);
 int mdhimStatFlush(mdhim_t *md, index_t *index);
 mdhim_rm_t *mdhimPut(mdhim_t *md, index_t *index,
-                      void *primary_key, int primary_key_len,
-                      void *value, int value_len);
+                      void *primary_key, size_t primary_key_len,
+                      void *value, size_t value_len);
 mdhim_brm_t *mdhimBPut(mdhim_t *md, index_t *index,
-                       void **primary_keys, int *primary_key_lens,
-                       void **primary_values, int *primary_value_lens,
-                       int num_records);
+                       void **primary_keys, size_t *primary_key_lens,
+                       void **primary_values, size_t *primary_value_lens,
+                       size_t num_records);
 mdhim_getrm_t *mdhimGet(mdhim_t *md, index_t *index,
-                        void *key, int key_len,
+                        void *key, size_t key_len,
                         enum TransportGetMessageOp op);
 mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, index_t *index,
-                          void **keys, int *key_lens,
-                          int num_records, enum TransportGetMessageOp op);
+                          void **keys, size_t *key_lens,
+                          size_t num_records, enum TransportGetMessageOp op);
 mdhim_bgetrm_t *mdhimBGetOp(mdhim_t *md, index_t *index,
-                            void *key, int key_len,
-                            int num_records, enum TransportGetMessageOp op);
+                            void *key, size_t key_len,
+                            size_t num_records, enum TransportGetMessageOp op);
 mdhim_rm_t *mdhimDelete(mdhim_t *md, index_t *index,
-                         void *key, int key_len);
+                         void *key, size_t key_len);
 mdhim_brm_t *mdhimBDelete(mdhim_t *md, index_t *index,
-                          void **keys, int *key_lens,
-                          int num_keys);
+                          void **keys, size_t *key_lens,
+                          size_t num_keys);
 
-int mdhimWhichServer(mdhim_t *md, void *key, int key_len);
+int mdhimWhichServer(mdhim_t *md, void *key, size_t key_len);
 
 #ifdef __cplusplus
 }

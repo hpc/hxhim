@@ -26,9 +26,9 @@ TEST(mdhim, BPutBGet) {
 
     //Place the key and value into arrays
     void **keys = new void *[1]();
-    int *key_lens = new int[1]();
+    std::size_t *key_lens = new std::size_t[1]();
     void **values = new void *[1]();
-    int *value_lens = new int[1]();
+    std::size_t *value_lens = new std::size_t[1]();
 
     keys[0] = (void *)&MDHIM_BPUT_BGET_PRIMARY_KEY;
     key_lens[0] = sizeof(MDHIM_BPUT_BGET_PRIMARY_KEY);

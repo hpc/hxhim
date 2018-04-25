@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cctype>
+#include <cstddef>
 #include <iostream>
 #include <sstream>
 
@@ -50,9 +51,6 @@ int main(int argc, char *argv[]) {
 
     if (rank == 0) {
         std::cout << "World Size: " << size << std::endl;
-        if (argc != 1) {
-            std::cout << "Using thallium" << std::endl;
-        }
 
         std::string line;
         while (std::cout << ">> ", std::getline(std::cin, line)) {
@@ -84,11 +82,11 @@ int main(int argc, char *argv[]) {
                 continue;
             }
 
-            int fields = 1 + (cmd.substr(cmd.size() - 3, 3) == "PUT"); // only PUT and BPUT have values in addition to keys
+            std::size_t fields = 1 + (cmd.substr(cmd.size() - 3, 3) == "PUT"); // only PUT and BPUT have values in addition to keys
             void ***data = nullptr;
-            int **lens = nullptr;
-            int num_keys = 0;
-            bool read_rows = (cmd[0] == 'B');                          // bulk operations take in a number before the data to indicate how many key-pair values there are
+            std::size_t **lens = nullptr;
+            std::size_t num_keys = 0;
+            bool read_rows = (cmd[0] == 'B');                             // bulk operations take in a number before the data to indicate how many key-pair values there are
 
             if (bulk_read(s, fields, &data, &lens, num_keys, read_rows) == MDHIM_SUCCESS) {
                 if (cmd == "PUT") {

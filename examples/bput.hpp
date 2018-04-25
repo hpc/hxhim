@@ -8,9 +8,9 @@
 
 /** @description Example usage and cleanup of mdhimPut */
 void bput(mdhim_t *md,
-          void **primary_keys, int *primary_key_lens,
-          void **values, int *value_lens,
-          int num_keys,
+          void **primary_keys, std::size_t *primary_key_lens,
+          void **values, std::size_t *value_lens,
+          std::size_t num_keys,
           std::ostream &out = std::cout, std::ostream &err = std::cerr);
 
 #endif

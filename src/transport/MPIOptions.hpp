@@ -10,8 +10,8 @@
 class MPIOptions : virtual public TransportOptions {
     public:
         MPIOptions(MPI_Comm comm,
-                   size_t alloc_size,
-                   size_t regions)
+                   std::size_t alloc_size,
+                   std::size_t regions)
             : TransportOptions(MDHIM_TRANSPORT_MPI),
               comm_(comm),
               alloc_size_(alloc_size),
@@ -19,8 +19,8 @@ class MPIOptions : virtual public TransportOptions {
         {}
 
         MPI_Comm comm_;
-        size_t alloc_size_;
-        size_t regions_;
+        std::size_t alloc_size_;
+        std::size_t regions_;
 };
 
 #endif

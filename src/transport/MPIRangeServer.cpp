@@ -86,7 +86,7 @@ void MPIRangeServer::Flush(MPI_Request *req, int *flag, MPI_Status *status, vola
  * @param sendbuf double pointer to packed message
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int MPIRangeServer::only_send_client_response(int dest, void *sendbuf, int sizebuf, volatile int &shutdown) {
+int MPIRangeServer::only_send_client_response(int dest, void *sendbuf, std::size_t sizebuf, volatile int &shutdown) {
     if (!sendbuf) {
         return MDHIM_ERROR;
     }
@@ -136,7 +136,7 @@ int MPIRangeServer::only_send_client_response(int dest, void *sendbuf, int sizeb
 int MPIRangeServer::send_client_response(work_item_t *item, TransportMessage *message, volatile int &shutdown) {
     int ret = MDHIM_ERROR;
     void *sendbuf = nullptr;
-    int sizebuf = 0;
+    std::size_t sizebuf = 0;
 
     if ((ret = MPIPacker::any(MPI_COMM_WORLD, message, &sendbuf, &sizebuf, fbp_)) == MDHIM_SUCCESS) {
         ret = only_send_client_response(message->dst, sendbuf, sizebuf, shutdown);
@@ -157,7 +157,7 @@ int MPIRangeServer::send_client_response(work_item_t *item, TransportMessage *me
  * @param recvsize out  pointer for the size of the message received
  * @return MDHIM_SUCCESS, MDHIM_CLOSE, MDHIM_COMMIT, or MDHIM_ERROR on error
  */
-int MPIRangeServer::only_receive_rangesrv_work(void **recvbuf, int *recvsize, volatile int &shutdown) {
+int MPIRangeServer::only_receive_rangesrv_work(void **recvbuf, std::size_t *recvsize, volatile int &shutdown) {
     if (!recvbuf || !recvsize) {
         return MDHIM_ERROR;
     }
@@ -186,7 +186,7 @@ int MPIRangeServer::only_receive_rangesrv_work(void **recvbuf, int *recvsize, vo
 
     // Receive the message from the client
     pthread_mutex_lock(&mutex_);
-    return_code = MPI_Irecv(*recvbuf, *recvsize, MPI_PACKED, status.MPI_SOURCE, RANGESRV_WORK_MSG, MPI_COMM_WORLD, &req);
+    return_code = MPI_Irecv(*recvbuf, *recvsize, MPI_CHAR, status.MPI_SOURCE, RANGESRV_WORK_MSG, MPI_COMM_WORLD, &req);
     pthread_mutex_unlock(&mutex_);
 
     // If the receive did not succeed then return the error code back
@@ -213,7 +213,7 @@ int MPIRangeServer::only_receive_rangesrv_work(void **recvbuf, int *recvsize, vo
  */
 int MPIRangeServer::receive_rangesrv_work(TransportMessage **message, volatile int &shutdown) {
     void *recvbuf = nullptr;
-    int recvsize = 0;
+    std::size_t recvsize = 0;
 
     int ret = MDHIM_ERROR;
     if ((ret = only_receive_rangesrv_work(&recvbuf, &recvsize, shutdown)) == MDHIM_SUCCESS) {

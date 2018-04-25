@@ -34,20 +34,20 @@ class ThalliumEndpointGroup : virtual public TransportEndpointGroup {
         void RemoveID(const int id);
 
         /** @description Enqueue a BPut requests to multiple endpoints  */
-        TransportBRecvMessage *BPut(const int num_rangesrvs, TransportBPutMessage **bpm_list);
+        TransportBRecvMessage *BPut(const std::size_t num_rangesrvs, TransportBPutMessage **bpm_list);
 
         /** @description Enqueue a BGet request to multiple endpoints  */
-        TransportBGetRecvMessage *BGet(const int num_rangesrvs, TransportBGetMessage **bgm_list);
+        TransportBGetRecvMessage *BGet(const std::size_t num_rangesrvs, TransportBGetMessage **bgm_list);
 
         /** @description Bulk Delete to multiple endpoints   */
-        TransportBRecvMessage *BDelete(const int num_rangesrvs, TransportBDeleteMessage **bdm_list);
+        TransportBRecvMessage *BDelete(const std::size_t num_rangesrvs, TransportBDeleteMessage **bdm_list);
 
     private:
         /** @description Function used by BPUT and BDELETE for sending and receiving messages */
-        TransportBRecvMessage *return_brm(const int num_rangesrvs, TransportMessage **messages);
+        TransportBRecvMessage *return_brm(const std::size_t num_rangesrvs, TransportMessage **messages);
 
         /** @description Function used by BGET for sending and receiving messages             */
-        TransportBGetRecvMessage *return_bgrm(const int num_rangesrvs, TransportMessage **messages);
+        TransportBGetRecvMessage *return_bgrm(const std::size_t num_rangesrvs, TransportMessage **messages);
 
         Thallium::RPC_t rpc_;
 

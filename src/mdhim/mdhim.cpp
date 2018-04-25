@@ -168,7 +168,7 @@ int mdhimCommit(mdhim_t *md, index_t *index) {
  * @param dst     address of the destination pointer
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-static int _clone(void *src, int src_len, void **dst) {
+static int _clone(void *src, std::size_t src_len, void **dst) {
     if (!src || !src_len ||
         !dst) {
         return MDHIM_ERROR;
@@ -192,7 +192,7 @@ static int _clone(void *src, int src_len, void **dst) {
  * @param dst_lens address of the destination lengths
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-static int _clone(int count, void **srcs, int *src_lens, void ***dsts, int **dst_lens) {
+static int _clone(std::size_t count, void **srcs, std::size_t *src_lens, void ***dsts, std::size_t **dst_lens) {
     if (!count) {
         return MDHIM_SUCCESS;
     }
@@ -203,7 +203,7 @@ static int _clone(int count, void **srcs, int *src_lens, void ***dsts, int **dst
     }
 
     *dsts = new void *[count]();
-    *dst_lens = new int[count]();
+    *dst_lens = new std::size_t[count]();
     if (!*dsts || !*dst_lens) {
         delete [] *dsts;
         *dsts = nullptr;
@@ -214,9 +214,9 @@ static int _clone(int count, void **srcs, int *src_lens, void ***dsts, int **dst
         return MDHIM_ERROR;
     }
 
-    for(int i = 0; i < count; i++) {
+    for(std::size_t i = 0; i < count; i++) {
         if (!((*dsts)[i] = ::operator new(src_lens[i]))) {
-            for(int j = 0; j < i; j++) {
+            for(std::size_t j = 0; j < i; j++) {
                 ::operator delete((*dsts)[j]);
             }
 
@@ -257,9 +257,9 @@ static int _cleanup(void *data) {
  * @param len   the lengths of the data
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-static int _cleanup(int count, void **data, int *len) {
+static int _cleanup(std::size_t count, void **data, std::size_t *len) {
     if (data) {
-        for(int i = 0; i < count; i++) {
+        for(std::size_t i = 0; i < count; i++) {
             ::operator delete(data[i]);
         }
     }
@@ -282,8 +282,8 @@ static int _cleanup(int count, void **data, int *len) {
  * @return                   mdhim_brm_t * or nullptr on error
  */
 mdhim_rm_t *mdhimPut(mdhim_t *md, index_t *index,
-                      void *primary_key, int primary_key_len,
-                      void *value, int value_len) {
+                      void *primary_key, std::size_t primary_key_len,
+                      void *value, std::size_t value_len) {
     if (!md || !md->p ||
         !primary_key || !primary_key_len ||
         !value || !value_len) {
@@ -320,9 +320,9 @@ mdhim_rm_t *mdhimPut(mdhim_t *md, index_t *index,
  * @return mdhim_brm_t * or nullptr on error
  */
 mdhim_brm_t *mdhimBPut(mdhim_t *md, index_t *index,
-                       void **primary_keys, int *primary_key_lens,
-                       void **primary_values, int *primary_value_lens,
-                       int num_records) {
+                       void **primary_keys, std::size_t *primary_key_lens,
+                       void **primary_values, std::size_t *primary_value_lens,
+                       std::size_t num_records) {
     if (!md || !md->p ||
         !primary_keys || !primary_key_lens ||
         !primary_values || !primary_value_lens) {
@@ -335,7 +335,7 @@ mdhim_brm_t *mdhimBPut(mdhim_t *md, index_t *index,
 
     //Copy the keys and values
     void **pks = nullptr, **pvs = nullptr;
-    int *pk_lens = nullptr, *pv_lens = nullptr;
+    std::size_t *pk_lens = nullptr, *pv_lens = nullptr;
     if ((_clone(num_records, primary_keys, primary_key_lens, &pks, &pk_lens)     != MDHIM_SUCCESS) ||
         (_clone(num_records, primary_values, primary_value_lens, &pvs, &pv_lens) != MDHIM_SUCCESS)) {
         _cleanup(num_records, pks, pk_lens);
@@ -368,7 +368,7 @@ mdhim_brm_t *mdhimBPut(mdhim_t *md, index_t *index,
  * @return mdhim_getrm_t * or nullptr on error
  */
 mdhim_getrm_t *mdhimGet(mdhim_t *md, index_t *index,
-                         void *key, int key_len,
+                         void *key, std::size_t key_len,
                          enum TransportGetMessageOp op) {
     if (!md || !md->p ||
         !key || !key_len) {
@@ -404,8 +404,8 @@ mdhim_getrm_t *mdhimGet(mdhim_t *md, index_t *index,
  * @return mdhim_bgetrm_t * or nullptr on error
  */
 mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, index_t *index,
-                          void **keys, int *key_lens,
-                          int num_keys, enum TransportGetMessageOp op) {
+                          void **keys, std::size_t *key_lens,
+                          std::size_t num_keys, enum TransportGetMessageOp op) {
     if (!md || !md->p ||
         !keys || !key_lens) {
         return nullptr;
@@ -432,7 +432,7 @@ mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, index_t *index,
 
     // copy the keys
     void **ks = nullptr;
-    int *k_lens = nullptr;
+    std::size_t *k_lens = nullptr;
     if (_clone(num_keys, keys, key_lens, &ks, &k_lens) != MDHIM_SUCCESS) {
         _cleanup(num_keys, ks, k_lens);
         return nullptr;
@@ -452,7 +452,7 @@ mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, index_t *index,
         //Get the number of keys/values we received
         int plen = 0;
         while (bgrm_head) {
-            for(int i = 0; i < bgrm_head->num_keys; i++) {
+            for(std::size_t i = 0; i < bgrm_head->num_keys; i++) {
                 plen++;
             }
 
@@ -469,12 +469,12 @@ mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, index_t *index,
         }
 
         void **primary_keys = new void *[plen]();
-        int *primary_key_lens = new int[plen]();
+        std::size_t *primary_key_lens = new std::size_t[plen]();
 
         //Get the primary keys from the previously received messages' values
         plen = 0;
         while (bgrm_head) {
-            for(int i = 0; i < bgrm_head->num_keys && plen < MAX_BULK_OPS; i++) {
+            for(std::size_t i = 0; i < bgrm_head->num_keys && plen < MAX_BULK_OPS; i++) {
                 primary_keys[plen] = ::operator new(bgrm_head->value_lens[i]);
                 memcpy(primary_keys[plen], bgrm_head->values[i], bgrm_head->value_lens[i]);
                 primary_key_lens[plen] = bgrm_head->value_lens[i];
@@ -522,8 +522,8 @@ mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, index_t *index,
  * @return mdhim_bgetrm_t * or nullptr on error
  */
 mdhim_bgetrm_t *mdhimBGetOp(mdhim_t *md, index_t *index,
-                            void *key, int key_len,
-                            int num_records, enum TransportGetMessageOp op) {
+                            void *key, std::size_t key_len,
+                            std::size_t num_records, enum TransportGetMessageOp op) {
     if (!md || !md->p ||
         !key || !key_len) {
         return nullptr;
@@ -549,7 +549,7 @@ mdhim_bgetrm_t *mdhimBGetOp(mdhim_t *md, index_t *index,
 
     // copy the key
     void **k = nullptr;
-    int *k_len = nullptr;
+    std::size_t *k_len = nullptr;
     if (_clone(1, &key, &key_len, &k, &k_len) != MDHIM_SUCCESS) {
         _cleanup(1, k, k_len);
         return nullptr;
@@ -574,7 +574,7 @@ mdhim_bgetrm_t *mdhimBGetOp(mdhim_t *md, index_t *index,
  * @return mdhim_rm_t * or nullptr on error
  */
 mdhim_rm_t *mdhimDelete(mdhim_t *md, index_t *index,
-                         void *key, int key_len) {
+                         void *key, std::size_t key_len) {
     if (!md || !md->p ||
         !key || !key_len) {
         return nullptr;
@@ -604,8 +604,8 @@ mdhim_rm_t *mdhimDelete(mdhim_t *md, index_t *index,
  * @return mdhim_brm_t * or nullptr on error
  */
 mdhim_brm_t *mdhimBDelete(mdhim_t *md, index_t *index,
-                          void **keys, int *key_lens,
-                          int num_records) {
+                          void **keys, std::size_t *key_lens,
+                          std::size_t num_records) {
     if (!md || !md->p ||
         !keys || !key_lens) {
         return nullptr;
@@ -625,7 +625,7 @@ mdhim_brm_t *mdhimBDelete(mdhim_t *md, index_t *index,
 
     // copy the keys
     void **ks = nullptr;
-    int *k_lens = nullptr;
+    std::size_t *k_lens = nullptr;
     if (_clone(num_records, keys, key_lens, &ks, &k_lens) != MDHIM_SUCCESS) {
         _cleanup(1, ks, k_lens);
         return nullptr;
@@ -661,7 +661,7 @@ int mdhimStatFlush(mdhim_t *md, index_t *index) {
 }
 
 /* what server would respond to this key? */
-int mdhimWhichServer(mdhim_t *md, void *key, int key_len)
+int mdhimWhichServer(mdhim_t *md, void *key, std::size_t key_len)
 {
     return(_which_server(md, key, key_len));
 }

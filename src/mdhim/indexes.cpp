@@ -1,5 +1,4 @@
 #include <cctype>
-#include <cerrno>
 #include <climits>
 #include <cstdio>
 #include <cstdlib>
@@ -20,7 +19,7 @@
  * convert strings to all lower case
  *
  */
-void to_lower(size_t in_length, const char *in, char *out) {
+void to_lower(std::size_t in_length, const char *in, char *out) {
     memset(out, 0, in_length);
 
     // Make sure that the name passed is lowercase
@@ -203,7 +202,7 @@ int update_stat(mdhim_t *md, index_t *index, void *key, uint32_t key_len) {
 	int slice_num;
 	void *val1, *val2;
 	int float_type = 0;
-	struct mdhim_stat *os, *stat;
+	mdhim_stat_t *os, *stat;
 
 	//Acquire the lock to update the stats
 	while (pthread_rwlock_wrlock(index->mdhim_store->mdhim_store_stats_lock) == EBUSY) {
@@ -242,7 +241,7 @@ int update_stat(mdhim_t *md, index_t *index, void *key, uint32_t key_len) {
 
 	HASH_FIND_INT(index->mdhim_store->mdhim_store_stats, &slice_num, os);
 
-	stat = (mdhim_stat*)malloc(sizeof(struct mdhim_stat));
+	stat = (mdhim_stat*)malloc(sizeof(mdhim_stat_t));
 	stat->min = val1;
 	stat->max = val2;
 	stat->num = 1;
@@ -307,10 +306,10 @@ int update_stat(mdhim_t *md, index_t *index, void *key, uint32_t key_len) {
  */
 int load_stats(mdhim_t *md, index_t *index) {
 	void **val;
-	int *val_len, *key_len;
+	std::size_t *val_len, *key_len;
 	int **slice;
 	int *old_slice;
-	struct mdhim_stat *stat;
+	mdhim_stat_t *stat;
 	int float_type = 0;
 	void *min, *max;
 	int done = 0;
@@ -318,11 +317,11 @@ int load_stats(mdhim_t *md, index_t *index) {
 	float_type = is_float_key(index->key_type);
 	slice = (int**)malloc(sizeof(int *));
 	*slice = NULL;
-	key_len = (int*)malloc(sizeof(int));
-	*key_len = sizeof(int);
+	key_len = (std::size_t*)malloc(sizeof(std::size_t));
+	*key_len = sizeof(std::size_t);
 	// BWS This line looks like it was bugged, fixing it without a test
-	val = (void**)malloc(sizeof(struct mdhim_db_stat*));
-	val_len = (int*)malloc(sizeof(int));
+	val = (void**)malloc(sizeof(mdhim_db_stat_t*));
+	val_len = (std::size_t*)malloc(sizeof(std::size_t));
 	old_slice = NULL;
 	index->mdhim_store->mdhim_store_stats = NULL;
 	while (!done) {
@@ -346,26 +345,26 @@ int load_stats(mdhim_t *md, index_t *index) {
 
 		mlog(MDHIM_SERVER_DBG, "Rank %d - Loaded stat for slice: %d with "
 		     "imin: %lu and imax: %lu, dmin: %Lf, dmax: %Lf, and num: %lu",
-		     md->rank, **slice, (*(struct mdhim_db_stat **)val)->imin,
-		     (*(struct mdhim_db_stat **)val)->imax, (*(struct mdhim_db_stat **)val)->dmin,
-		     (*(struct mdhim_db_stat **)val)->dmax, (*(struct mdhim_db_stat **)val)->num);
+		     md->rank, **slice, (*(mdhim_db_stat_t **)val)->imin,
+		     (*(mdhim_db_stat_t **)val)->imax, (*(mdhim_db_stat_t **)val)->dmin,
+		     (*(mdhim_db_stat_t **)val)->dmax, (*(mdhim_db_stat_t **)val)->num);
 
-		stat = (mdhim_stat*)malloc(sizeof(struct mdhim_stat));
+		stat = (mdhim_stat*)malloc(sizeof(mdhim_stat_t));
 		if (float_type) {
 			min = (void *) malloc(sizeof(long double));
 			max = (void *) malloc(sizeof(long double));
-			*(long double *)min = (*(struct mdhim_db_stat **)val)->dmin;
-			*(long double *)max = (*(struct mdhim_db_stat **)val)->dmax;
+			*(long double *)min = (*(mdhim_db_stat_t **)val)->dmin;
+			*(long double *)max = (*(mdhim_db_stat_t **)val)->dmax;
 		} else {
 			min = (void *) malloc(sizeof(uint64_t));
 			max = (void *) malloc(sizeof(uint64_t));
-			*(uint64_t *)min = (*(struct mdhim_db_stat **)val)->imin;
-			*(uint64_t *)max = (*(struct mdhim_db_stat **)val)->imax;
+			*(uint64_t *)min = (*(mdhim_db_stat_t **)val)->imin;
+			*(uint64_t *)max = (*(mdhim_db_stat_t **)val)->imax;
 		}
 
 		stat->min = min;
 		stat->max = max;
-		stat->num = (*(struct mdhim_db_stat **)val)->num;
+		stat->num = (*(mdhim_db_stat_t **)val)->num;
 		stat->key = **slice;
 		stat->dirty = 0;
 		old_slice = *slice;
@@ -393,8 +392,8 @@ int load_stats(mdhim_t *md, index_t *index) {
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
 int write_stats(mdhim_t *md, index_t *bi) {
-	struct mdhim_stat *stat, *tmp;
-	struct mdhim_db_stat *dbstat;
+	mdhim_stat_t *stat, *tmp;
+	mdhim_db_stat_t *dbstat;
 	int float_type = 0;
 
   	float_type = is_float_key(bi->key_type);
@@ -409,7 +408,7 @@ int write_stats(mdhim_t *md, index_t *bi) {
 			goto free_stat;
 		}
 
-		dbstat = (struct mdhim_db_stat*)malloc(sizeof(struct mdhim_db_stat));
+		dbstat = (mdhim_db_stat_t*)malloc(sizeof(mdhim_db_stat_t));
 		if (float_type) {
 			dbstat->dmax = *(long double *)stat->max;
 			dbstat->dmin = *(long double *)stat->min;
@@ -427,7 +426,7 @@ int write_stats(mdhim_t *md, index_t *bi) {
 		//Write the key to the database
 		bi->mdhim_store->put(bi->mdhim_store->db_stats,
 				     &dbstat->slice, sizeof(int), dbstat,
-				     sizeof(struct mdhim_db_stat));
+				     sizeof(mdhim_db_stat_t));
 		//Delete and free hash entry
 		free(dbstat);
 
@@ -586,7 +585,7 @@ index_t *create_local_index(mdhim_t *md, int db_type, int key_type, const char *
 	li->stats = NULL;
 
     if (index_name != NULL) {
-        size_t name_len = strlen(index_name)+1;
+        std::size_t name_len = strlen(index_name)+1;
         char *lower_name = (char*)malloc(name_len);
 
         to_lower(name_len, index_name, lower_name);
@@ -737,7 +736,7 @@ index_t *create_global_index(mdhim_t *md, int server_factor,
 
         if (index_name != NULL) {
 
-            size_t name_len = strlen(index_name)+1;
+            std::size_t name_len = strlen(index_name)+1;
             char *lower_name = (char*)calloc(name_len + 1, sizeof(char));
 
             to_lower(name_len, index_name, lower_name);
@@ -850,7 +849,7 @@ done:
  * @return a list of range servers
  */
 int get_rangesrvs(mdhim_t *md, index_t *index) {
-	struct rangesrv_info *rs_entry_num, *rs_entry_rank;
+	rangesrv_info_t *rs_entry_num, *rs_entry_rank;
 	int32_t rangesrv_num;
 
 	//Iterate through the ranks to determine which ones are range servers
@@ -869,8 +868,8 @@ int get_rangesrvs(mdhim_t *md, index_t *index) {
 			index->rangesrv_master = i;
 		}
 
-		rs_entry_num = (struct rangesrv_info*)malloc(sizeof(struct rangesrv_info));
-		rs_entry_rank = (struct rangesrv_info*)malloc(sizeof(struct rangesrv_info));
+		rs_entry_num = (rangesrv_info_t*)malloc(sizeof(rangesrv_info_t));
+		rs_entry_rank = (rangesrv_info_t*)malloc(sizeof(rangesrv_info_t));
 		rs_entry_num->rank = rs_entry_rank->rank = i;
 		rs_entry_rank->rangesrv_num = rs_entry_num->rangesrv_num = rangesrv_num;
 
@@ -1047,7 +1046,7 @@ index_t*
 get_index_by_name ( mdhim_t *md, char *index_name )
 {
     index_t *index = NULL;
-    size_t name_len = strlen(index_name)+1;
+    std::size_t name_len = strlen(index_name)+1;
     char *lower_name = (char*)malloc(name_len);
 
     // Acquire the lock to update indexes
@@ -1072,9 +1071,9 @@ return index;
 
 void indexes_release(mdhim_t *md) {
 	index_t *cur_indx, *tmp_indx;
-	struct rangesrv_info *cur_rs, *tmp_rs;
+	rangesrv_info_t *cur_rs, *tmp_rs;
 	int ret;
-	struct mdhim_stat *stat, *tmp;
+	mdhim_stat_t *stat, *tmp;
 
 	HASH_ITER(hh, md->p->indexes, cur_indx, tmp_indx) {
 		HASH_DELETE(hh, md->p->indexes, cur_indx);
@@ -1139,10 +1138,10 @@ void indexes_release(mdhim_t *md) {
 int pack_stats(index_t *index, void *buf, int size,
 	       int float_type, int stat_size, MPI_Comm comm) {
 
-	struct mdhim_stat *stat, *tmp;
+	mdhim_stat_t *stat, *tmp;
 	void *tstat;
-	struct mdhim_db_istat *istat;
-	struct mdhim_db_fstat *fstat;
+	mdhim_db_istat_t *istat;
+	mdhim_db_fstat_t *fstat;
 	int ret = MPI_SUCCESS;
 	int sendidx = 0;
 
@@ -1150,14 +1149,14 @@ int pack_stats(index_t *index, void *buf, int size,
 	HASH_ITER(hh, index->mdhim_store->mdhim_store_stats, stat, tmp) {
 		//Get the appropriate struct to send
 		if (float_type) {
-			fstat = (struct mdhim_db_fstat*)malloc(sizeof(struct mdhim_db_fstat));
+			fstat = (mdhim_db_fstat_t*)malloc(sizeof(mdhim_db_fstat_t));
 			fstat->slice = stat->key;
 			fstat->num = stat->num;
 			fstat->dmin = *(long double *) stat->min;
 			fstat->dmax = *(long double *) stat->max;
 			tstat = fstat;
 		} else {
-			istat = (struct mdhim_db_istat*)malloc(sizeof(struct mdhim_db_istat));
+			istat = (mdhim_db_istat_t*)malloc(sizeof(mdhim_db_istat_t));
 			istat->slice = stat->key;
 			istat->num = stat->num;
 			istat->imin = *(uint64_t *) stat->min;
@@ -1191,7 +1190,7 @@ int get_stat_flush_global(mdhim_t *md, index_t *index) {
 	int recvsize;
 	int ret = 0;
 	int float_type = 0;
-	struct mdhim_stat *stat, *tmp;
+	mdhim_stat_t *stat, *tmp;
 	void *tstat;
 	int stat_size = 0;
 	int master;
@@ -1200,10 +1199,10 @@ int get_stat_flush_global(mdhim_t *md, index_t *index) {
 	//Determine the size of the buffers to send based on the number and type of stats
 	if ((ret = is_float_key(index->key_type)) == 1) {
 		float_type = 1;
-		stat_size = sizeof(struct mdhim_db_fstat);
+		stat_size = sizeof(mdhim_db_fstat_t);
 	} else {
 		float_type = 0;
-		stat_size = sizeof(struct mdhim_db_istat);
+		stat_size = sizeof(mdhim_db_istat_t);
 	}
 
 	recvbuf = NULL;
@@ -1215,9 +1214,9 @@ int get_stat_flush_global(mdhim_t *md, index_t *index) {
 			num_items = 0;
 		}
 		if ((ret = is_float_key(index->key_type)) == 1) {
-			sendsize = num_items * sizeof(struct mdhim_db_fstat);
+			sendsize = num_items * sizeof(mdhim_db_fstat_t);
 		} else {
-			sendsize = num_items * sizeof(struct mdhim_db_istat);
+			sendsize = num_items * sizeof(mdhim_db_istat_t);
 		}
 	}
 
@@ -1250,7 +1249,7 @@ int get_stat_flush_global(mdhim_t *md, index_t *index) {
 		num_items = 0;
 		displs = (int*)malloc(sizeof(int) * index->num_rangesrvs);
 		recvcounts = (int*)malloc(sizeof(int) * index->num_rangesrvs);
-		for (int i = 0; i < index->num_rangesrvs; i++) {
+		for (std::size_t i = 0; i < index->num_rangesrvs; i++) {
 			displs[i] = num_items * stat_size;
 			num_items += ((int *)recvbuf)[i];
 			recvcounts[i] = ((int *)recvbuf)[i] * stat_size;
@@ -1337,22 +1336,22 @@ int get_stat_flush_global(mdhim_t *md, index_t *index) {
 			goto error;
 		}
 
-		stat = (mdhim_stat*)malloc(sizeof(struct mdhim_stat));
+		stat = (mdhim_stat*)malloc(sizeof(mdhim_stat_t));
 		stat->dirty = 0;
 		if (float_type) {
 			stat->min = (void *) malloc(sizeof(long double));
 			stat->max = (void *) malloc(sizeof(long double));
-			*(long double *)stat->min = ((struct mdhim_db_fstat *)tstat)->dmin;
-			*(long double *)stat->max = ((struct mdhim_db_fstat *)tstat)->dmax;
-			stat->key = ((struct mdhim_db_fstat *)tstat)->slice;
-			stat->num = ((struct mdhim_db_fstat *)tstat)->num;
+			*(long double *)stat->min = ((mdhim_db_fstat_t *)tstat)->dmin;
+			*(long double *)stat->max = ((mdhim_db_fstat_t *)tstat)->dmax;
+			stat->key = ((mdhim_db_fstat_t *)tstat)->slice;
+			stat->num = ((mdhim_db_fstat_t *)tstat)->num;
 		} else {
 			stat->min = (void *) malloc(sizeof(uint64_t));
 			stat->max = (void *) malloc(sizeof(uint64_t));
-			*(uint64_t *)stat->min = ((struct mdhim_db_istat *)tstat)->imin;
-			*(uint64_t *)stat->max = ((struct mdhim_db_istat *)tstat)->imax;
-			stat->key = ((struct mdhim_db_istat *)tstat)->slice;
-			stat->num = ((struct mdhim_db_istat *)tstat)->num;
+			*(uint64_t *)stat->min = ((mdhim_db_istat_t *)tstat)->imin;
+			*(uint64_t *)stat->max = ((mdhim_db_istat_t *)tstat)->imax;
+			stat->key = ((mdhim_db_istat_t *)tstat)->slice;
+			stat->num = ((mdhim_db_istat_t *)tstat)->num;
 		}
 
 		HASH_FIND_INT(index->stats, &stat->key, tmp);
@@ -1388,7 +1387,7 @@ int get_stat_flush_local(mdhim_t *md, index_t *index) {
 	int recvsize;
 	int ret = 0;
 	int float_type = 0;
-	struct mdhim_stat *stat, *tmp, *rank_stat;
+	mdhim_stat_t *stat, *tmp, *rank_stat;
 	void *tstat;
 	int stat_size = 0;
 	int num_items = 0;
@@ -1396,10 +1395,10 @@ int get_stat_flush_local(mdhim_t *md, index_t *index) {
 	//Determine the size of the buffers to send based on the number and type of stats
 	if ((ret = is_float_key(index->key_type)) == 1) {
 		float_type = 1;
-		stat_size = sizeof(struct mdhim_db_fstat);
+		stat_size = sizeof(mdhim_db_fstat_t);
 	} else {
 		float_type = 0;
-		stat_size = sizeof(struct mdhim_db_istat);
+		stat_size = sizeof(mdhim_db_istat_t);
 	}
 
 	recvbuf = NULL;
@@ -1411,9 +1410,9 @@ int get_stat_flush_local(mdhim_t *md, index_t *index) {
 			num_items = 0;
 		}
 		if ((ret = is_float_key(index->key_type)) == 1) {
-			sendsize = num_items * sizeof(struct mdhim_db_fstat);
+			sendsize = num_items * sizeof(mdhim_db_fstat_t);
 		} else {
-			sendsize = num_items * sizeof(struct mdhim_db_istat);
+			sendsize = num_items * sizeof(mdhim_db_istat_t);
 		}
 	}
 
@@ -1493,8 +1492,8 @@ int get_stat_flush_local(mdhim_t *md, index_t *index) {
 			mlog(MPI_CRIT, "Rank %d - "
 			     "Adding rank: %d to local index stat data",
 			     md->rank, i);
-			rank_stat = (struct mdhim_stat*)malloc(sizeof(struct mdhim_stat));
-			memset(rank_stat, 0, sizeof(struct mdhim_stat));
+			rank_stat = (mdhim_stat_t*)malloc(sizeof(mdhim_stat_t));
+			memset(rank_stat, 0, sizeof(mdhim_stat_t));
 			rank_stat->key = i;
 			rank_stat->stats = NULL;
 			HASH_ADD_INT(index->stats, key, rank_stat);
@@ -1514,22 +1513,22 @@ int get_stat_flush_local(mdhim_t *md, index_t *index) {
 				goto error;
 			}
 
-			stat = (struct mdhim_stat*)malloc(sizeof(struct mdhim_stat));
+			stat = (mdhim_stat_t*)malloc(sizeof(mdhim_stat_t));
 			stat->dirty = 0;
 			if (float_type) {
 				stat->min = (void *) malloc(sizeof(long double));
 				stat->max = (void *) malloc(sizeof(long double));
-				*(long double *)stat->min = ((struct mdhim_db_fstat *)tstat)->dmin;
-				*(long double *)stat->max = ((struct mdhim_db_fstat *)tstat)->dmax;
-				stat->key = ((struct mdhim_db_fstat *)tstat)->slice;
-				stat->num = ((struct mdhim_db_fstat *)tstat)->num;
+				*(long double *)stat->min = ((mdhim_db_fstat_t *)tstat)->dmin;
+				*(long double *)stat->max = ((mdhim_db_fstat_t *)tstat)->dmax;
+				stat->key = ((mdhim_db_fstat_t *)tstat)->slice;
+				stat->num = ((mdhim_db_fstat_t *)tstat)->num;
 			} else {
 				stat->min = (void *) malloc(sizeof(uint64_t));
 				stat->max = (void *) malloc(sizeof(uint64_t));
-				*(uint64_t *)stat->min = ((struct mdhim_db_istat *)tstat)->imin;
-				*(uint64_t *)stat->max = ((struct mdhim_db_istat *)tstat)->imax;
-				stat->key = ((struct mdhim_db_istat *)tstat)->slice;
-				stat->num = ((struct mdhim_db_istat *)tstat)->num;
+				*(uint64_t *)stat->min = ((mdhim_db_istat_t *)tstat)->imin;
+				*(uint64_t *)stat->max = ((mdhim_db_istat_t *)tstat)->imax;
+				stat->key = ((mdhim_db_istat_t *)tstat)->slice;
+				stat->num = ((mdhim_db_istat_t *)tstat)->num;
 			}
 
 			mlog(MPI_CRIT, "Rank %d - "

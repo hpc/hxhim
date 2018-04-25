@@ -25,7 +25,7 @@ class TransportMessage {
 
         virtual ~TransportMessage();
 
-        virtual int size() const;
+        virtual std::size_t size() const;
         virtual void cleanup();
 
         TransportMessageType mtype;
@@ -45,13 +45,13 @@ class TransportPutMessage final : virtual public TransportMessage {
         TransportPutMessage();
         ~TransportPutMessage();
 
-        int size() const;
+        std::size_t size() const;
         void cleanup();
 
         void *key;
-        int key_len;
+        std::size_t key_len;
         void *value;
-        int value_len;
+        std::size_t value_len;
 };
 
 /**
@@ -63,14 +63,14 @@ class TransportBPutMessage final : virtual public TransportMessage {
         TransportBPutMessage();
         ~TransportBPutMessage();
 
-        int size() const;
+        std::size_t size() const;
         void cleanup();
 
         void **keys;
-        int *key_lens;
+        std::size_t *key_lens;
         void **values;
-        int *value_lens;
-        int num_keys;
+        std::size_t *value_lens;
+        std::size_t num_keys;
 };
 
 /**
@@ -83,7 +83,7 @@ class TransportGet : virtual public TransportMessage {
         virtual ~TransportGet();
 
         TransportGetMessageOp op;
-        int num_keys;
+        std::size_t num_keys;
 };
 
 /**
@@ -95,11 +95,11 @@ class TransportGetMessage final : virtual public TransportGet {
         TransportGetMessage();
         ~TransportGetMessage();
 
-        int size() const;
+        std::size_t size() const;
         void cleanup();
 
         void *key;
-        int key_len;
+        std::size_t key_len;
 };
 
 /**
@@ -111,14 +111,14 @@ class TransportBGetMessage final : virtual public TransportGet {
         TransportBGetMessage();
         ~TransportBGetMessage();
 
-        int size() const;
+        std::size_t size() const;
         void cleanup();
 
         void **keys;
-        int *key_lens;
+        std::size_t *key_lens;
 
         //Number of records to retrieve per key given
-        int num_recs;
+        std::size_t num_recs;
 };
 
 /**
@@ -130,11 +130,11 @@ class TransportDeleteMessage final : virtual public TransportMessage {
         TransportDeleteMessage();
         ~TransportDeleteMessage();
 
-        int size() const;
+        std::size_t size() const;
         void cleanup();
 
         void *key;
-        int key_len;
+        std::size_t key_len;
 };
 
 /**
@@ -146,12 +146,12 @@ class TransportBDeleteMessage final : virtual public TransportMessage {
         TransportBDeleteMessage();
         ~TransportBDeleteMessage();
 
-        int size() const;
+        std::size_t size() const;
         void cleanup();
 
         void **keys;
-        int *key_lens;
-        int num_keys;
+        std::size_t *key_lens;
+        std::size_t num_keys;
 };
 
 /**
@@ -163,7 +163,7 @@ class TransportRecvMessage final : virtual public TransportMessage {
         TransportRecvMessage();
         ~TransportRecvMessage();
 
-        int size() const;
+        std::size_t size() const;
         void cleanup();
 
         int error;
@@ -178,14 +178,14 @@ class TransportGetRecvMessage final : virtual public TransportMessage {
         TransportGetRecvMessage();
         ~TransportGetRecvMessage();
 
-        int size() const;
+        std::size_t size() const;
         void cleanup();
 
         int error;
         void *key;
-        int key_len;
+        std::size_t key_len;
         void *value;
-        int value_len;
+        std::size_t value_len;
 };
 
 /**
@@ -197,15 +197,15 @@ class TransportBGetRecvMessage final : virtual public TransportMessage {
         TransportBGetRecvMessage();
         ~TransportBGetRecvMessage();
 
-        int size() const;
+        std::size_t size() const;
         void cleanup();
 
         int error;
         void **keys;
-        int *key_lens;
+        std::size_t *key_lens;
         void **values;
-        int *value_lens;
-        int num_keys;
+        std::size_t *value_lens;
+        std::size_t num_keys;
         TransportBGetRecvMessage *next;
 };
 
@@ -218,7 +218,7 @@ class TransportBRecvMessage final : virtual public TransportMessage {
         TransportBRecvMessage();
         ~TransportBRecvMessage();
 
-        int size() const;
+        std::size_t size() const;
         void cleanup();
 
         int error;
@@ -255,13 +255,13 @@ class TransportEndpointGroup {
         virtual ~TransportEndpointGroup() {}
 
         /** @description Bulk Put to multiple endpoints    */
-        virtual TransportBRecvMessage *BPut(const int num_rangesrvs, TransportBPutMessage **bpm_list) = 0;
+        virtual TransportBRecvMessage *BPut(const std::size_t num_rangesrvs, TransportBPutMessage **bpm_list) = 0;
 
         /** @description Bulk Get from multiple endpoints  */
-        virtual TransportBGetRecvMessage *BGet(const int num_rangesrvs, TransportBGetMessage **bgm_list) = 0;
+        virtual TransportBGetRecvMessage *BGet(const std::size_t num_rangesrvs, TransportBGetMessage **bgm_list) = 0;
 
         /** @description Bulk Delete to multiple endpoints */
-        virtual TransportBRecvMessage *BDelete(const int num_rangesrvs, TransportBDeleteMessage **bdm_list) = 0;
+        virtual TransportBRecvMessage *BDelete(const std::size_t num_rangesrvs, TransportBDeleteMessage **bdm_list) = 0;
 
    protected:
         TransportEndpointGroup() {}
@@ -270,9 +270,9 @@ class TransportEndpointGroup {
 
         /** @description Converts Transport*Message ** to TransportMessage ** to prevent pointer weirdness */
         template <typename T, typename = std::enable_if_t<std::is_convertible<T, TransportMessage>::value> >
-        static TransportMessage **convert_to_base(const int num_rangesrvs, T **list) {
+        static TransportMessage **convert_to_base(const std::size_t num_rangesrvs, T **list) {
             TransportMessage **messages = new TransportMessage *[num_rangesrvs]();
-            for(int i = 0; i < num_rangesrvs; i++) {
+            for(std::size_t i = 0; i < num_rangesrvs; i++) {
                 messages[i] = list[i];
             }
 
@@ -280,7 +280,7 @@ class TransportEndpointGroup {
         }
 
         /** @description Counts and returns the servers that will be sent work */
-        int get_num_srvs(TransportMessage **messages, const int num_rangesrvs, int **srvs);
+        std::size_t get_num_srvs(TransportMessage **messages, const std::size_t num_rangesrvs, int **srvs);
 };
 
 /**
@@ -314,13 +314,13 @@ class Transport {
         TransportRecvMessage *Delete(const TransportDeleteMessage *dm);
 
         /** @description Bulk Put to multiple endpoints  */
-        TransportBRecvMessage *BPut(const int num_rangesrvs, TransportBPutMessage **bpm_list);
+        TransportBRecvMessage *BPut(const std::size_t num_rangesrvs, TransportBPutMessage **bpm_list);
 
         /** @description Bulk Get from multiple endpoints  */
-        TransportBGetRecvMessage *BGet(const int num_rangesrvs, TransportBGetMessage **bgm_list);
+        TransportBGetRecvMessage *BGet(const std::size_t num_rangesrvs, TransportBGetMessage **bgm_list);
 
         /** @description Bulk Delete to multiple endpoints  */
-        TransportBRecvMessage *BDelete(const int num_rangesrvs, TransportBDeleteMessage **bdm_list);
+        TransportBRecvMessage *BDelete(const std::size_t num_rangesrvs, TransportBDeleteMessage **bdm_list);
 
     private:
         typedef std::map<int, TransportEndpoint *> TransportEndpointMapping_t;

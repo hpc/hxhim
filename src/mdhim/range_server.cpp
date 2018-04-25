@@ -218,9 +218,9 @@ static int range_server_put(mdhim_t *md, work_item_t *item) {
     int error = 0;
     int exists = 0;
     void *new_value;
-    int32_t new_value_len;
+    std::size_t new_value_len;
     void *old_value;
-    int32_t old_value_len;
+    std::size_t old_value_len;
     struct timeval start, end;
     int inserted = 0;
 
@@ -331,11 +331,11 @@ done:
 static int range_server_bput(mdhim_t *md, work_item_t *item) {
     int ret;
     int error = MDHIM_SUCCESS;
-    int32_t value_len;
+    std::size_t value_len;
     void *new_value;
-    int32_t new_value_len;
+    std::size_t new_value_len;
     void *old_value;
-    int32_t old_value_len;
+    std::size_t old_value_len;
     struct timeval start, end;
     int num_put = 0;
 
@@ -346,7 +346,7 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
 
     int *exists = new int[bim->num_keys]();
     void **new_values = new void *[bim->num_keys]();
-    int32_t *new_value_lens = new int32_t[bim->num_keys]();
+    std::size_t *new_value_lens = new std::size_t[bim->num_keys]();
     void **value = new void *();
 
     //Get the index referenced the message
@@ -359,8 +359,8 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
     }
 
     //Iterate through the arrays and insert each record
-    for (int i = 0; i < bim->num_keys && i < MAX_BULK_OPS; i++) {
-        *value = NULL;
+    for (std::size_t i = 0; i < bim->num_keys && i < MAX_BULK_OPS; i++) {
+        *value = nullptr;
         value_len = 0;
 
         //Check for the key's existence
@@ -413,7 +413,7 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
         num_put = bim->num_keys;
     }
 
-    for (int i = 0; i < bim->num_keys && i < MAX_BULK_OPS; i++) {
+    for (std::size_t i = 0; i < bim->num_keys && i < MAX_BULK_OPS; i++) {
         //Update the stats if this key didn't exist before
         if (!exists[i] && error == MDHIM_SUCCESS) {
             update_stat(md, index, bim->keys[i], bim->key_lens[i]);
@@ -453,6 +453,7 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
 
     //Release the internals of the bput message
     delete bim;
+
 
     //Send response
     return send_locally_or_remote(md, item, brm);
@@ -529,7 +530,7 @@ int range_server_bdel(mdhim_t *md, work_item_t *item) {
     }
 
     //Iterate through the arrays and delete each record
-    for (int i = 0; i < bdm->num_keys && i < MAX_BULK_OPS; i++) {
+    for (std::size_t i = 0; i < bdm->num_keys && i < MAX_BULK_OPS; i++) {
         //Put the record in the database
         int ret;
         if ((ret =
@@ -617,7 +618,7 @@ static int range_server_commit(mdhim_t *md, work_item_t *item) {
 static int range_server_get(mdhim_t *md, work_item_t *item) {
     int ret;
     void *value = nullptr;
-    int32_t value_len = 0;
+    std::size_t value_len = 0;
     int error = 0;
     struct timeval start, end;
     int num_retrieved = 0;
@@ -766,7 +767,7 @@ static int range_server_bget(mdhim_t *md, work_item_t *item) {
     item->message = nullptr;
 
     void **values = new void *[bgm->num_keys]();
-    int32_t *value_lens = new int32_t[bgm->num_keys]();
+    std::size_t *value_lens = new std::size_t[bgm->num_keys]();
 
     //Get the index referenced the message
     index_t *index = find_index(md, (TransportMessage *) bgm);
@@ -778,7 +779,7 @@ static int range_server_bget(mdhim_t *md, work_item_t *item) {
     }
 
     //Iterate through the arrays and get each record
-    for (int i = 0; i < bgm->num_keys && i < MAX_BULK_OPS; i++) {
+    for (std::size_t i = 0; i < bgm->num_keys && i < MAX_BULK_OPS; i++) {
         switch(bgm->op) {
             // Gets the value for the given key
             case TransportGetMessageOp::GET_EQ:
@@ -877,8 +878,8 @@ done:
 
     // copy the values
     bgrm->values = new void *[bgm->num_keys]();
-    bgrm->value_lens = new int[bgm->num_keys]();
-    for (int i = 0; i < bgm->num_keys; i++) {
+    bgrm->value_lens = new std::size_t[bgm->num_keys]();
+    for (std::size_t i = 0; i < bgm->num_keys; i++) {
         if (values[i]) {
             bgrm->values[i] = ::operator new(value_lens[i]);
             memcpy(bgrm->values[i], values[i], value_lens[i]);
@@ -895,9 +896,9 @@ done:
     //Set the keys into bgrm
     if (bgm->src == md->rank) {
         //If this message is coming from myself, copy the keys
-        bgrm->key_lens = new int[bgm->num_keys]();
+        bgrm->key_lens = new std::size_t[bgm->num_keys]();
         bgrm->keys = new void *[bgm->num_keys]();
-        for (int i = 0; i < bgm->num_keys; i++) {
+        for (std::size_t i = 0; i < bgm->num_keys; i++) {
             bgrm->key_lens[i] = bgm->key_lens[i];
             bgrm->keys[i] = ::operator new(bgrm->key_lens[i]);
             memcpy(bgrm->keys[i], bgm->keys[i], bgm->key_lens[i]);
@@ -936,22 +937,22 @@ static int range_server_bget_op(mdhim_t *md, work_item_t *item, TransportGetMess
     item->message = nullptr;
 
     //Initialize pointers and lengths
-    const int count = bgm->num_keys * bgm->num_recs;
+    const std::size_t count = bgm->num_keys * bgm->num_recs;
     void **values = new void *[count]();
-    int32_t *value_lens = new int32_t[count]();
+    std::size_t *value_lens = new std::size_t[count]();
 
     void **keys = new void *[count];
-    int32_t *key_lens = new int32_t[count];
+    std::size_t *key_lens = new std::size_t[count];
 
     //Used for passing the key and key len to the db
     void **get_key = new void *();
-    int32_t *get_key_len = new int32_t();
+    std::size_t *get_key_len = new std::size_t();
 
     //Used for passing the value and value len to the db
     void **get_value = new void *();
-    int32_t *get_value_len = new int32_t();
+    std::size_t *get_value_len = new std::size_t();
 
-    int num_records = 0;
+    std::size_t num_records = 0;
 
     //Get the index referenced the message
     index_t *index = find_index(md, (TransportMessage *) bgm);
@@ -969,11 +970,11 @@ static int range_server_bget_op(mdhim_t *md, work_item_t *item, TransportGetMess
         goto respond;
     }
 
-    mlog(MDHIM_SERVER_CRIT, "Rank %d - Num keys is: %d and num recs is: %d",
+    mlog(MDHIM_SERVER_CRIT, "Rank %d - Num keys is: %zu and num recs is: %zu",
          md->rank, bgm->num_keys, bgm->num_recs);
     gettimeofday(&start, NULL);
     //Iterate through the arrays and get each record
-    for (int i = 0; i < bgm->num_keys; i++) {
+    for (std::size_t i = 0; i < bgm->num_keys; i++) {
         for (int j = 0; j < bgm->num_recs; j++) {
             keys[num_records] = NULL;
             key_lens[num_records] = 0;
@@ -1026,7 +1027,7 @@ static int range_server_bget_op(mdhim_t *md, work_item_t *item, TransportGetMess
             case TransportGetMessageOp::GET_LAST:
                 if (j == 0) {
                     keys[num_records] = NULL;
-                    key_lens[num_records] = sizeof(int32_t);
+                    key_lens[num_records] = sizeof(std::size_t);
                 }
             case TransportGetMessageOp::GET_PREV:
                 if (j && (ret =
@@ -1342,7 +1343,7 @@ int range_server_init(mdhim_t *md) {
 
     //Initialize worker threads
     md->p->mdhim_rs->workers = new pthread_t *[md->p->db_opts->num_wthreads]();
-    for (int i = 0; i < md->p->db_opts->num_wthreads; i++) {
+    for (std::size_t i = 0; i < md->p->db_opts->num_wthreads; i++) {
         md->p->mdhim_rs->workers[i] = new pthread_t();
         if ((ret = pthread_create(md->p->mdhim_rs->workers[i], NULL,
                       worker_thread, (void *) md)) != 0) {

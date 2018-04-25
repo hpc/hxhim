@@ -12,7 +12,7 @@ TransportMessage::~TransportMessage() {
     cleanup();
 }
 
-int TransportMessage::size() const {
+std::size_t TransportMessage::size() const {
     // intentional error with sizeof(char *)
     return sizeof(mtype) + sizeof(src) + sizeof(dst) + sizeof(index) + sizeof(index_type) + sizeof(char *);
 }
@@ -31,7 +31,7 @@ TransportPutMessage::~TransportPutMessage() {
     cleanup();
 }
 
-int TransportPutMessage::size() const {
+std::size_t TransportPutMessage::size() const {
     return TransportMessage::size() + key_len + sizeof(key_len) + value_len + sizeof(value_len);
 }
 
@@ -59,9 +59,9 @@ TransportBPutMessage::~TransportBPutMessage() {
     cleanup();
 }
 
-int TransportBPutMessage::size() const {
+std::size_t TransportBPutMessage::size() const {
     int ret = TransportMessage::size() + sizeof(num_keys) + (num_keys * sizeof(*key_lens)) + (num_keys * sizeof(*value_lens));
-    for(int i = 0; i < num_keys; i++) {
+    for(std::size_t i = 0; i < num_keys; i++) {
         ret += key_lens[i] + value_lens[i];
     }
     return ret;
@@ -70,7 +70,7 @@ int TransportBPutMessage::size() const {
 void TransportBPutMessage::cleanup() {
     TransportMessage::cleanup();
 
-    for(int i = 0; i < num_keys; i++) {
+    for(std::size_t i = 0; i < num_keys; i++) {
         ::operator delete(keys[i]);
         ::operator delete(values[i]);
     }
@@ -106,7 +106,7 @@ TransportGetMessage::~TransportGetMessage() {
     cleanup();
 }
 
-int TransportGetMessage::size() const {
+std::size_t TransportGetMessage::size() const {
     return TransportMessage::size() + sizeof(op) + key_len + sizeof(key_len) + sizeof(num_keys);
 }
 
@@ -131,9 +131,9 @@ TransportBGetMessage::~TransportBGetMessage() {
     cleanup();
 }
 
-int TransportBGetMessage::size() const {
+std::size_t TransportBGetMessage::size() const {
     int ret = TransportMessage::size() + sizeof(op) + sizeof(num_keys) + sizeof(num_recs) + (num_keys * sizeof(*key_lens));
-    for(int i = 0; i < num_keys; i++) {
+    for(std::size_t i = 0; i < num_keys; i++) {
         ret += key_lens[i];
     }
 
@@ -143,7 +143,7 @@ int TransportBGetMessage::size() const {
 void TransportBGetMessage::cleanup() {
     TransportMessage::cleanup();
 
-    for(int i = 0; i < num_keys; i++) {
+    for(std::size_t i = 0; i < num_keys; i++) {
         ::operator delete(keys[i]);
     }
 
@@ -165,7 +165,7 @@ TransportDeleteMessage::~TransportDeleteMessage() {
     cleanup();
 }
 
-int TransportDeleteMessage::size() const {
+std::size_t TransportDeleteMessage::size() const {
     return TransportMessage::size() + sizeof(key_len) + key_len;
 }
 
@@ -187,9 +187,9 @@ TransportBDeleteMessage::~TransportBDeleteMessage() {
     cleanup();
 }
 
-int TransportBDeleteMessage::size() const {
+std::size_t TransportBDeleteMessage::size() const {
     int ret = TransportMessage::size() + sizeof(num_keys) + (num_keys * sizeof(*key_lens));
-    for(int i = 0; i < num_keys; i++) {
+    for(std::size_t i = 0; i < num_keys; i++) {
         ret += key_lens[i];
     }
     return ret;
@@ -197,7 +197,7 @@ int TransportBDeleteMessage::size() const {
 
 void TransportBDeleteMessage::cleanup() {
     TransportMessage::cleanup();
-    for(int i = 0; i < num_keys; i++) {
+    for(std::size_t i = 0; i < num_keys; i++) {
         ::operator delete(keys[i]);
     }
 
@@ -219,7 +219,7 @@ TransportRecvMessage::~TransportRecvMessage() {
     cleanup();
 }
 
-int TransportRecvMessage::size() const {
+std::size_t TransportRecvMessage::size() const {
     return TransportMessage::size() + sizeof(error);
 }
 
@@ -238,7 +238,7 @@ TransportGetRecvMessage::~TransportGetRecvMessage() {
     cleanup();
 }
 
-int TransportGetRecvMessage::size() const {
+std::size_t TransportGetRecvMessage::size() const {
     return TransportMessage::size() + sizeof(error) + key_len + sizeof(key_len) + value_len + sizeof(value_len);
 }
 
@@ -268,9 +268,9 @@ TransportBGetRecvMessage::~TransportBGetRecvMessage() {
     cleanup();
 }
 
-int TransportBGetRecvMessage::size() const {
+std::size_t TransportBGetRecvMessage::size() const {
     int ret = TransportMessage::size() + sizeof(error) + sizeof(num_keys) + (num_keys * sizeof(*key_lens)) + (num_keys * sizeof(*value_lens));
-    for(int i = 0; i < num_keys; i++) {
+    for(std::size_t i = 0; i < num_keys; i++) {
         ret += key_lens[i] + value_lens[i];
     }
     return ret;
@@ -279,7 +279,7 @@ int TransportBGetRecvMessage::size() const {
 void TransportBGetRecvMessage::cleanup() {
     TransportMessage::cleanup();
 
-    for(int i = 0; i < num_keys; i++) {
+    for(std::size_t i = 0; i < num_keys; i++) {
         ::operator delete(keys[i]);
         ::operator delete(values[i]);
     }
@@ -311,7 +311,7 @@ TransportBRecvMessage::~TransportBRecvMessage() {
     cleanup();
 }
 
-int TransportBRecvMessage::size() const {
+std::size_t TransportBRecvMessage::size() const {
     return TransportMessage::size() + sizeof(error);
 }
 
@@ -331,7 +331,7 @@ void TransportBRecvMessage::cleanup() {
  * @param srvs          address of an array that will be created and filled with unique range server IDs
  * @return the          number of unique IDs in *srvs
  */
-int TransportEndpointGroup::get_num_srvs(TransportMessage **messages, const int num_rangesrvs, int **srvs) {
+std::size_t TransportEndpointGroup::get_num_srvs(TransportMessage **messages, const std::size_t num_rangesrvs, int **srvs) {
     *srvs = nullptr;
     if (!messages || !srvs) {
         return 0;
@@ -340,7 +340,7 @@ int TransportEndpointGroup::get_num_srvs(TransportMessage **messages, const int 
     // get the actual number of servers
     int num_srvs = 0;
     *srvs = new int[num_rangesrvs]();
-    for (int i = 0; i < num_rangesrvs; i++) {
+    for (std::size_t i = 0; i < num_rangesrvs; i++) {
         if (!messages[i]) {
             continue;
         }
@@ -462,7 +462,7 @@ TransportRecvMessage *Transport::Delete(const TransportDeleteMessage *dm) {
  * @param bpm_list a list of PUT messages going to different servers
  * @return the response from the range server
  */
-TransportBRecvMessage *Transport::BPut(const int num_rangesrvs, TransportBPutMessage **bpm_list) {
+TransportBRecvMessage *Transport::BPut(const std::size_t num_rangesrvs, TransportBPutMessage **bpm_list) {
     return endpointgroup_?endpointgroup_->BPut(num_rangesrvs, bpm_list):nullptr;
 }
 
@@ -474,7 +474,7 @@ TransportBRecvMessage *Transport::BPut(const int num_rangesrvs, TransportBPutMes
  * @param bgm_list a list of GET messages going to different servers
  * @return the response from the range server
  */
-TransportBGetRecvMessage *Transport::BGet(const int num_rangesrvs, TransportBGetMessage **bgm_list) {
+TransportBGetRecvMessage *Transport::BGet(const std::size_t num_rangesrvs, TransportBGetMessage **bgm_list) {
     return endpointgroup_?endpointgroup_->BGet(num_rangesrvs, bgm_list):nullptr;
 }
 
@@ -486,6 +486,6 @@ TransportBGetRecvMessage *Transport::BGet(const int num_rangesrvs, TransportBGet
  * @param bdm_list a list of DELETE messages going to different servers
  * @return the response from the range server
  */
-TransportBRecvMessage *Transport::BDelete(const int num_rangesrvs, TransportBDeleteMessage **bdm_list) {
+TransportBRecvMessage *Transport::BDelete(const std::size_t num_rangesrvs, TransportBDeleteMessage **bdm_list) {
     return endpointgroup_?endpointgroup_->BDelete(num_rangesrvs, bdm_list):nullptr;
 }

@@ -26,10 +26,10 @@ class MPIRangeServer {
 
         static void Flush(MPI_Request *req, int *flag, MPI_Status *status, volatile int &shutdown);
 
-        static int only_send_client_response(int dest, void *sendbuf, int sizebuf, volatile int &shutdown);
+        static int only_send_client_response(int dest, void *sendbuf, std::size_t sizebuf, volatile int &shutdown);
         static int send_client_response(work_item_t *item, TransportMessage *message, volatile int &shutdown);
 
-        static int only_receive_rangesrv_work(void **recvbuf, int *recvsize, volatile int &shutdown);
+        static int only_receive_rangesrv_work(void **recvbuf, std::size_t *recvsize, volatile int &shutdown);
         static int receive_rangesrv_work(TransportMessage **message, volatile int &shutdown);
 
         static pthread_t listener_;

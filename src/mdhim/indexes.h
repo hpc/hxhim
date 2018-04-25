@@ -7,6 +7,8 @@
 #ifndef      __INDEX_H
 #define      __INDEX_H
 
+#include "mlog2.h"
+#include "mlogfacs2.h"
 #include <mpi.h>
 
 #include "index_struct.h"

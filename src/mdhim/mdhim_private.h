@@ -58,37 +58,37 @@ int mdhim_private_destroy(mdhim_t *md);
 
 /** @description Internal PUT function */
 TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
-                                  void *key, int key_len,
-                                  void *value, int value_len);
+                                  void *key, std::size_t key_len,
+                                  void *value, std::size_t value_len);
 
 /** @description Internal GET function */
 TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
-                                     void *key, int key_len,
+                                     void *key, std::size_t key_len,
                                      enum TransportGetMessageOp op);
 
 /** @description Internal DELETE function */
 TransportRecvMessage *_del_record(mdhim_t *md, index_t *index,
-                                  void *key, int key_len);
+                                  void *key, std::size_t key_len);
 
 /** @description Internal BPUT function */
 TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
-                                     void **keys, int *key_lens,
-                                     void **values, int *value_lens,
-                                     int num_records);
+                                     void **keys, std::size_t *key_lens,
+                                     void **values, std::size_t *value_lens,
+                                     std::size_t num_records);
 
 /** @description Internal BGET function */
 TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
-                                        void **keys, int *key_lens,
-                                        int num_keys, int num_records,
+                                        void **keys, std::size_t *key_lens,
+                                        std::size_t num_keys, std::size_t num_records,
                                         enum TransportGetMessageOp op);
 
 /** @description Internal BDELETE function */
 TransportBRecvMessage *_bdel_records(mdhim_t *md, index_t *index,
-                                     void **keys, int *key_lens,
-                                     int num_records);
+                                     void **keys, std::size_t *key_lens,
+                                     std::size_t num_records);
 
 /** @description Internal function for getting the destination range server of a key */
-int _which_server(mdhim_t *md, void *key, int key_len);
+int _which_server(mdhim_t *md, void *key, std::size_t key_len);
 
 #ifdef __cplusplus
 }

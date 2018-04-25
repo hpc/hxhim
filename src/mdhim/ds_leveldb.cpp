@@ -7,8 +7,8 @@
 
 static void cmp_destroy(void* arg) { }
 
-static int cmp_empty(const char* a, size_t alen,
-		     const char* b, size_t blen) {
+static int cmp_empty(const char* a, std::size_t alen,
+		     const char* b, std::size_t blen) {
 	int ret = 2;
 	if (a && !b) {
 		return 1;
@@ -27,8 +27,8 @@ static int cmp_empty(const char* a, size_t alen,
 	return ret;
 }
 
-static int cmp_int_compare(void* arg, const char* a, size_t alen,
-			   const char* b, size_t blen) {
+static int cmp_int_compare(void* arg, const char* a, std::size_t alen,
+			   const char* b, std::size_t blen) {
 	int ret;
 
 	ret = cmp_empty(a, alen, b, blen);
@@ -46,8 +46,8 @@ static int cmp_int_compare(void* arg, const char* a, size_t alen,
 	return ret;
 }
 
-static int cmp_lint_compare(void* arg, const char* a, size_t alen,
-			   const char* b, size_t blen) {
+static int cmp_lint_compare(void* arg, const char* a, std::size_t alen,
+			   const char* b, std::size_t blen) {
 	int ret;
 
 	ret = cmp_empty(a, alen, b, blen);
@@ -65,8 +65,8 @@ static int cmp_lint_compare(void* arg, const char* a, size_t alen,
 	return ret;
 }
 
-static int cmp_double_compare(void* arg, const char* a, size_t alen,
-			      const char* b, size_t blen) {
+static int cmp_double_compare(void* arg, const char* a, std::size_t alen,
+			      const char* b, std::size_t blen) {
 	int ret;
 
 	ret = cmp_empty(a, alen, b, blen);
@@ -84,8 +84,8 @@ static int cmp_double_compare(void* arg, const char* a, size_t alen,
 	return ret;
 }
 
-static int cmp_float_compare(void* arg, const char* a, size_t alen,
-			   const char* b, size_t blen) {
+static int cmp_float_compare(void* arg, const char* a, std::size_t alen,
+			   const char* b, std::size_t blen) {
 	int ret;
 
 	ret = cmp_empty(a, alen, b, blen);
@@ -106,8 +106,8 @@ static int cmp_float_compare(void* arg, const char* a, size_t alen,
 
 // For string, first compare for null pointers, then for order
 // up to a null character or the given lengths.
-static int cmp_string_compare(void* arg, const char* a, size_t alen,
-			   const char* b, size_t blen) {
+static int cmp_string_compare(void* arg, const char* a, std::size_t alen,
+			   const char* b, std::size_t blen) {
     unsigned int idx;
 
     if (a && !b) {
@@ -140,8 +140,8 @@ static int cmp_string_compare(void* arg, const char* a, size_t alen,
     return -1;
 }
 
-static int cmp_byte_compare(void* arg, const char* a, size_t alen,
-			    const char* b, size_t blen) {
+static int cmp_byte_compare(void* arg, const char* a, std::size_t alen,
+			    const char* b, std::size_t blen) {
 	int ret;
 
 	ret = cmp_empty(a, alen, b, blen);
@@ -170,17 +170,17 @@ static const char* cmp_name(void* arg) {
  * @return MDHIM_SUCCESS on success or MDHIM_DB_ERROR on failure
  */
 
-int mdhim_leveldb_open(void **dbh, void **dbs, char *path, int flags, int key_type, struct mdhim_db_options *opts) {
-	struct mdhim_leveldb_t *mdhimdb;
-	struct mdhim_leveldb_t *statsdb;
+int mdhim_leveldb_open(void **dbh, void **dbs, char *path, int flags, int key_type, mdhim_db_options_t *opts) {
+	mdhim_leveldb_t *mdhimdb;
+	mdhim_leveldb_t *statsdb;
 	leveldb_t *db;
 	char *err = NULL;
 	char stats_path[PATH_MAX];
 
-	mdhimdb = (mdhim_leveldb_t*)malloc(sizeof(struct mdhim_leveldb_t));
-	memset(mdhimdb, 0, sizeof(struct mdhim_leveldb_t));
-	statsdb = (mdhim_leveldb_t*)malloc(sizeof(struct mdhim_leveldb_t));
-	memset(statsdb, 0, sizeof(struct mdhim_leveldb_t));
+	mdhimdb = (mdhim_leveldb_t*)malloc(sizeof(mdhim_leveldb_t));
+	memset(mdhimdb, 0, sizeof(mdhim_leveldb_t));
+	statsdb = (mdhim_leveldb_t*)malloc(sizeof(mdhim_leveldb_t));
+	memset(statsdb, 0, sizeof(mdhim_leveldb_t));
 
 	//Create the options for the main database
 	mdhimdb->options = leveldb_options_create();
@@ -251,7 +251,7 @@ int mdhim_leveldb_open(void **dbh, void **dbs, char *path, int flags, int key_ty
 	db = leveldb_open(mdhimdb->options, path, &err);
 	mdhimdb->db = db;
 	//Set the output handle
-	*((struct mdhim_leveldb_t **) dbh) = mdhimdb;
+	*((mdhim_leveldb_t **) dbh) = mdhimdb;
 	if (err != NULL) {
 		mlog(MDHIM_SERVER_CRIT, "Error opening leveldb database");
 		return MDHIM_DB_ERROR;
@@ -264,7 +264,7 @@ int mdhim_leveldb_open(void **dbh, void **dbs, char *path, int flags, int key_ty
 	leveldb_options_set_comparator(statsdb->options, statsdb->cmp);
 	db = leveldb_open(statsdb->options, stats_path, &err);
 	statsdb->db = db;
-	*((struct mdhim_leveldb_t **) dbs) = statsdb;
+	*((mdhim_leveldb_t **) dbs) = statsdb;
 
 	if (err != NULL) {
 		mlog(MDHIM_SERVER_CRIT, "Error opening leveldb database");
@@ -287,10 +287,10 @@ int mdhim_leveldb_open(void **dbh, void **dbs, char *path, int flags, int key_ty
  *
  * @return MDHIM_SUCCESS on success or MDHIM_DB_ERROR on failure
  */
-int mdhim_leveldb_put(void *dbh, void *key, int key_len, void *data, int32_t data_len) {
+int mdhim_leveldb_put(void *dbh, void *key, std::size_t key_len, void *data, std::size_t data_len) {
     leveldb_writeoptions_t *options;
     char *err = NULL;
-    struct mdhim_leveldb_t *mdhimdb = (struct mdhim_leveldb_t *) dbh;
+    mdhim_leveldb_t *mdhimdb = (mdhim_leveldb_t *) dbh;
     struct timeval start, end;
 
     gettimeofday(&start, NULL);
@@ -322,11 +322,11 @@ int mdhim_leveldb_put(void *dbh, void *key, int key_len, void *data, int32_t dat
  *
  * @return MDHIM_SUCCESS on success or MDHIM_DB_ERROR on failure
  */
-int mdhim_leveldb_batch_put(void *dbh, void **keys, int32_t *key_lens,
-			    void **data, int32_t *data_lens, int num_records) {
+int mdhim_leveldb_batch_put(void *dbh, void **keys, std::size_t *key_lens,
+			    void **data, std::size_t *data_lens, int num_records) {
 	leveldb_writeoptions_t *options;
 	char *err = NULL;
-	struct mdhim_leveldb_t *mdhimdb = (struct mdhim_leveldb_t *) dbh;
+	mdhim_leveldb_t *mdhimdb = (mdhim_leveldb_t *) dbh;
 	struct timeval start, end;
 	leveldb_writebatch_t* write_batch;
 	int i;
@@ -366,13 +366,13 @@ int mdhim_leveldb_batch_put(void *dbh, void **keys, int32_t *key_lens,
  *
  * @return MDHIM_SUCCESS on success or MDHIM_DB_ERROR on failure
  */
-int mdhim_leveldb_get(void *dbh, void *key, int key_len, void **data, int32_t *data_len) {
+int mdhim_leveldb_get(void *dbh, void *key, std::size_t key_len, void **data, std::size_t *data_len) {
 	leveldb_readoptions_t *options;
 	char *err = NULL;
-	struct mdhim_leveldb_t *mdhimdb = (struct mdhim_leveldb_t *) dbh;
+	mdhim_leveldb_t *mdhimdb = (mdhim_leveldb_t *) dbh;
 	int ret = MDHIM_SUCCESS;
 	void *ldb_data;
-	size_t ldb_data_len = 0;
+	std::size_t ldb_data_len = 0;
 
 	options = mdhimdb->read_options;
 	*data = NULL;
@@ -407,10 +407,10 @@ int mdhim_leveldb_get(void *dbh, void *key, int key_len, void **data, int32_t *d
  * @param mstore_opts in   additional cursor options for the data store layer
  *
  */
-int mdhim_leveldb_get_next(void *dbh, void **key, int *key_len,
-			   void **data, int32_t *data_len) {
+int mdhim_leveldb_get_next(void *dbh, void **key, std::size_t *key_len,
+			   void **data, std::size_t *data_len) {
 	leveldb_readoptions_t *options;
-	struct mdhim_leveldb_t *mdhimdb = (struct mdhim_leveldb_t *) dbh;
+	mdhim_leveldb_t *mdhimdb = (mdhim_leveldb_t *) dbh;
 	int ret = MDHIM_SUCCESS;
 	leveldb_iterator_t *iter;
 	const char *res;
@@ -443,7 +443,7 @@ int mdhim_leveldb_get_next(void *dbh, void **key, int *key_len,
 		if (!leveldb_iter_valid(iter)) {
 			leveldb_iter_seek_to_first(iter);
 			while(leveldb_iter_valid(iter)) {
-				res = leveldb_iter_key(iter, (size_t *) &len);
+				res = leveldb_iter_key(iter, (std::size_t *) &len);
 				if (mdhimdb->compare(NULL, res, len, (char*)old_key, old_key_len) > 0) {
 					break;
 				}
@@ -459,7 +459,7 @@ int mdhim_leveldb_get_next(void *dbh, void **key, int *key_len,
 		goto error;
 	}
 
-	res = leveldb_iter_value(iter, (size_t *) &len);
+	res = leveldb_iter_value(iter, (std::size_t *) &len);
 	if (res) {
 		*data = malloc(len);
 		memcpy(*data, res, len);
@@ -469,7 +469,7 @@ int mdhim_leveldb_get_next(void *dbh, void **key, int *key_len,
 		*data_len = 0;
 	}
 
-	res = leveldb_iter_key(iter, (size_t *) key_len);
+	res = leveldb_iter_key(iter, (std::size_t *) key_len);
 	if (res) {
 		*key = malloc(*key_len);
 		memcpy(*key, res, *key_len);
@@ -512,10 +512,10 @@ error:
  * @param mstore_opts in   additional cursor options for the data store layer
  *
  */
-int mdhim_leveldb_get_prev(void *dbh, void **key, int *key_len,
-			   void **data, int32_t *data_len) {
+int mdhim_leveldb_get_prev(void *dbh, void **key, std::size_t *key_len,
+			   void **data, std::size_t *data_len) {
 	leveldb_readoptions_t *options;
-	struct mdhim_leveldb_t *mdhimdb = (struct mdhim_leveldb_t *) dbh;
+	mdhim_leveldb_t *mdhimdb = (mdhim_leveldb_t *) dbh;
 	int ret = MDHIM_SUCCESS;
 	leveldb_iterator_t *iter;
 	const char *res;
@@ -547,7 +547,7 @@ int mdhim_leveldb_get_prev(void *dbh, void **key, int *key_len,
 		if (!leveldb_iter_valid(iter)) {
 			leveldb_iter_seek_to_last(iter);
 			while(leveldb_iter_valid(iter)) {
-				res = leveldb_iter_key(iter, (size_t *) &len);
+				res = leveldb_iter_key(iter, (std::size_t *) &len);
 				if (mdhimdb->compare(NULL, res, len, (char*)old_key, old_key_len) < 0) {
 					break;
 				}
@@ -563,7 +563,7 @@ int mdhim_leveldb_get_prev(void *dbh, void **key, int *key_len,
 		goto error;
 	}
 
-	res = leveldb_iter_value(iter, (size_t *) &len);
+	res = leveldb_iter_value(iter, (std::size_t *) &len);
 	if (res) {
 		*data = malloc(len);
 		memcpy(*data, res, len);
@@ -573,7 +573,7 @@ int mdhim_leveldb_get_prev(void *dbh, void **key, int *key_len,
 		*data_len = 0;
 	}
 
-	res = leveldb_iter_key(iter, (size_t *) key_len);
+	res = leveldb_iter_key(iter, (std::size_t *) key_len);
 	if (res) {
 		*key = malloc(*key_len);
 		memcpy(*key, res, *key_len);
@@ -614,8 +614,8 @@ error:
  * @return MDHIM_SUCCESS on success or MDHIM_DB_ERROR on failure
  */
 int mdhim_leveldb_close(void *dbh, void *dbs) {
-	struct mdhim_leveldb_t *mdhimdb = (struct mdhim_leveldb_t *) dbh;
-	struct mdhim_leveldb_t *statsdb = (struct mdhim_leveldb_t *) dbs;
+	mdhim_leveldb_t *mdhimdb = (mdhim_leveldb_t *) dbh;
+	mdhim_leveldb_t *statsdb = (mdhim_leveldb_t *) dbs;
 
 	//Close the databases
 	leveldb_close(mdhimdb->db);
@@ -650,10 +650,10 @@ int mdhim_leveldb_close(void *dbh, void *dbs) {
  *
  * @return MDHIM_SUCCESS on success or MDHIM_DB_ERROR on failure
  */
-int mdhim_leveldb_del(void *dbh, void *key, int key_len) {
+int mdhim_leveldb_del(void *dbh, void *key, std::size_t key_len) {
 	leveldb_writeoptions_t *options;
 	char *err = NULL;
-	struct mdhim_leveldb_t *mdhimdb = (struct mdhim_leveldb_t *) dbh;
+	mdhim_leveldb_t *mdhimdb = (mdhim_leveldb_t *) dbh;
 
 	options = mdhimdb->write_options;
 	leveldb_delete(mdhimdb->db, options, (char*)key, key_len, &err);

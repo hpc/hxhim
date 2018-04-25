@@ -65,14 +65,14 @@ TEST(thallium_pack_unpack, TransportBPutMessage) {
         src.keys[0] = ::operator new(KEY_LEN);
         memcpy(src.keys[0], KEY, KEY_LEN * sizeof(char));
 
-        src.key_lens = new int[1]();
+        src.key_lens = new std::size_t[1]();
         src.key_lens[0] = KEY_LEN;
 
         src.values = new void*[1]();;
         src.values[0] = ::operator new(VALUE_LEN);
         memcpy(src.values[0], VALUE, VALUE_LEN * sizeof(char));
 
-        src.value_lens = new int[1]();
+        src.value_lens = new std::size_t[1]();
         src.value_lens[0] = VALUE_LEN;
 
         src.num_keys = 1;
@@ -93,7 +93,7 @@ TEST(thallium_pack_unpack, TransportBPutMessage) {
 
     EXPECT_EQ(src.num_keys, dst->num_keys);
 
-    for(int i = 0; i < dst->num_keys; i++) {
+    for(std::size_t i = 0; i < dst->num_keys; i++) {
         EXPECT_EQ(src.key_lens[i], dst->key_lens[i]);
         EXPECT_EQ(memcmp(src.keys[i], dst->keys[i], dst->key_lens[i]), 0);
 
@@ -160,7 +160,7 @@ TEST(thallium_pack_unpack, TransportBGetMessage) {
         src.keys[0] = ::operator new(KEY_LEN);
         memcpy(src.keys[0], KEY, KEY_LEN * sizeof(char));
 
-        src.key_lens = new int[1]();
+        src.key_lens = new std::size_t[1]();
         src.key_lens[0] = KEY_LEN;
 
         src.num_recs = 1;
@@ -181,7 +181,7 @@ TEST(thallium_pack_unpack, TransportBGetMessage) {
 
     EXPECT_EQ(src.num_keys, dst->num_keys);
 
-    for(int i = 0; i < dst->num_keys; i++) {
+    for(std::size_t i = 0; i < dst->num_keys; i++) {
         EXPECT_EQ(src.key_lens[i], dst->key_lens[i]);
         EXPECT_EQ(memcmp(src.keys[i], dst->keys[i], dst->key_lens[i]), 0);
     }
@@ -240,7 +240,7 @@ TEST(thallium_pack_unpack, TransportBGetMessage) {
 //         src.keys[0] = ::operator new(KEY_LEN);
 //         memcpy(src.keys[0], KEY, KEY_LEN * sizeof(char));
 
-//         src.key_lens = new int[1]();
+//         src.key_lens = new std::size_t[1]();
 //         src.key_lens[0] = KEY_LEN;
 //     }
 
@@ -260,7 +260,7 @@ TEST(thallium_pack_unpack, TransportBGetMessage) {
 
 //     EXPECT_EQ(src.num_keys, dst->num_keys);
 
-//     for(int i = 0; i < dst->num_keys; i++) {
+//     for(std::size_t i = 0; i < dst->num_keys; i++) {
 //         EXPECT_EQ(src.key_lens[i], dst->key_lens[i]);
 //         EXPECT_EQ(memcmp(src.keys[i], dst->keys[i], dst->key_lens[i]), 0);
 //     }
@@ -313,14 +313,14 @@ TEST(thallium_pack_unpack, TransportBGetRecvMessage) {
         src.keys[0] = ::operator new(KEY_LEN);
         memcpy(src.keys[0], KEY, KEY_LEN * sizeof(char));
 
-        src.key_lens = new int[1]();
+        src.key_lens = new std::size_t[1]();
         src.key_lens[0] = KEY_LEN;
 
         src.values = new void*[1]();;
         src.values[0] = ::operator new(VALUE_LEN);
         memcpy(src.values[0], VALUE, VALUE_LEN * sizeof(char));
 
-        src.value_lens = new int[1]();
+        src.value_lens = new std::size_t[1]();
         src.value_lens[0] = VALUE_LEN;
 
         src.num_keys = 1;
@@ -342,7 +342,7 @@ TEST(thallium_pack_unpack, TransportBGetRecvMessage) {
 
     EXPECT_EQ(src.num_keys, dst->num_keys);
 
-    for(int i = 0; i < dst->num_keys; i++) {
+    for(std::size_t i = 0; i < dst->num_keys; i++) {
         EXPECT_EQ(src.key_lens[i], dst->key_lens[i]);
         EXPECT_EQ(memcmp(src.keys[i], dst->keys[i], dst->key_lens[i]), 0);
 

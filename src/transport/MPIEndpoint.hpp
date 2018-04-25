@@ -35,8 +35,8 @@ class MPIEndpoint : virtual public TransportEndpoint, virtual public MPIEndpoint
         /**
          * Functions that perform the actual MPI calls
          */
-        int send_rangesrv_work(const void *buf, const int size);
-        int receive_client_response(void **buf, int *size);
+        int send_rangesrv_work(const void *buf, const std::size_t size);
+        int receive_client_response(void **buf, std::size_t *size);
 
         /**
          * do_operation
@@ -48,9 +48,9 @@ class MPIEndpoint : virtual public TransportEndpoint, virtual public MPIEndpoint
         template <typename Send_t, typename Recv_t>
         Recv_t *do_operation(const Send_t *message) {
             void *sendbuf = nullptr;
-            int sendsize = 0;
+            std::size_t sendsize = 0;
             void *recvbuf = nullptr;
-            int recvsize = 0;
+            std::size_t recvsize = 0;
             Recv_t *response = nullptr;
 
             // the result of this series of function calls does not matter

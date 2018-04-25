@@ -33,29 +33,29 @@ class MPIEndpointGroup : virtual public TransportEndpointGroup, virtual public M
         void RemoveID(const int id);
 
         /** @description Enqueue a BPut requests to multiple endpoints  */
-        TransportBRecvMessage *BPut(const int num_rangesrvs, TransportBPutMessage **bpm_list);
+        TransportBRecvMessage *BPut(const std::size_t num_rangesrvs, TransportBPutMessage **bpm_list);
 
         /** @description Enqueue a BGet request to multiple endpoints  */
-        TransportBGetRecvMessage *BGet(const int num_rangesrvs, TransportBGetMessage **bgm_list);
+        TransportBGetRecvMessage *BGet(const std::size_t num_rangesrvs, TransportBGetMessage **bgm_list);
 
         /** @description Bulk Delete to multiple endpoints   */
-        TransportBRecvMessage *BDelete(const int num_rangesrvs, TransportBDeleteMessage **bpm_list);
+        TransportBRecvMessage *BDelete(const std::size_t num_rangesrvs, TransportBDeleteMessage **bpm_list);
 
     private:
         /** @description Sends messages that result in TransportBRecvMessage responses */
-        TransportBRecvMessage *return_brm(const int num_rangesrvs, TransportMessage **messages);
+        TransportBRecvMessage *return_brm(const std::size_t num_rangesrvs, TransportMessage **messages);
 
         /** @description Sends messages that result in TransportBGetRecvMessage responses */
-        TransportBGetRecvMessage *return_bgrm(const int num_rangesrvs, TransportMessage **messages);
+        TransportBGetRecvMessage *return_bgrm(const std::size_t num_rangesrvs, TransportMessage **messages);
 
         /**
          * Functions that perform the actual MPI calls
          */
-        int only_send_all_rangesrv_work(void **messages, int *sizes, int *dsts, const int num_srvs);
-        int send_all_rangesrv_work(TransportMessage **messages, const int num_srvs);
+        int only_send_all_rangesrv_work(void **messages, std::size_t *sizes, int *dsts, const std::size_t num_srvs);
+        int send_all_rangesrv_work(TransportMessage **messages, const std::size_t num_srvs);
 
-        int only_receive_all_client_responses(int *srcs, int nsrcs, void ***recvbufs, int **sizebufs);
-        int receive_all_client_responses(int *srcs, int nsrcs, TransportMessage ***messages);
+        int only_receive_all_client_responses(int *srcs, std::size_t nsrcs, void ***recvbufs, std::size_t **sizebufs);
+        int receive_all_client_responses(int *srcs, std::size_t nsrcs, TransportMessage ***messages);
 
         pthread_mutex_t mutex_;
 

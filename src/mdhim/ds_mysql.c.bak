@@ -42,7 +42,7 @@ char kchunk[2*k_len+1];
   mysql_real_escape_string(pdb, kchunk, key_t, k_len);
  // mysql_real_escape_string(db, key_t_insert,key_t,k_len);
 	//char *key_copy;
-	size_t st_len, size=0;
+	std::size_t st_len, size=0;
 	char *r_query=NULL, *st;
 	switch(pk_type){
 			case MDHIM_BYTE_KEY:
@@ -109,7 +109,7 @@ char chunk[2*d_len+1];
 char kchunk[2*k_len+1];
   mysql_real_escape_string(pdb, chunk, data_t, d_len);
   mysql_real_escape_string(pdb, kchunk, key_t, k_len);
-	size_t st_len, size=0;
+	std::size_t st_len, size=0;
 	char *r_query=NULL, *st;
 	switch(pk_type){
 			case MDHIM_BYTE_KEY:

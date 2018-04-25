@@ -156,7 +156,7 @@ int mdhim_grm_error(const mdhim_getrm_t *grm, int *error) {
     return MDHIM_SUCCESS;
 }
 
-int mdhim_grm_key(const mdhim_getrm_t *grm, void **key, int *key_len) {
+int mdhim_grm_key(const mdhim_getrm_t *grm, void **key, std::size_t *key_len) {
     if (!grm || !grm->grm) {
         return MDHIM_ERROR;
     }
@@ -172,7 +172,7 @@ int mdhim_grm_key(const mdhim_getrm_t *grm, void **key, int *key_len) {
     return MDHIM_SUCCESS;
 }
 
-int mdhim_grm_value(const mdhim_getrm_t *grm, void **value, int *value_len) {
+int mdhim_grm_value(const mdhim_getrm_t *grm, void **value, std::size_t *value_len) {
     if (!grm || !grm->grm) {
         return MDHIM_ERROR;
     }
@@ -206,7 +206,7 @@ int mdhim_bgrm_error(const mdhim_bgetrm_t *bgrm, int *error) {
     return MDHIM_SUCCESS;
 }
 
-int  mdhim_bgrm_keys(const mdhim_bgetrm_t *bgrm, void ***keys, int **key_lens) {
+int  mdhim_bgrm_keys(const mdhim_bgetrm_t *bgrm, void ***keys, std::size_t **key_lens) {
     if (!bgrm || !bgrm->bgrm) {
         return MDHIM_ERROR;
     }
@@ -222,7 +222,7 @@ int  mdhim_bgrm_keys(const mdhim_bgetrm_t *bgrm, void ***keys, int **key_lens) {
     return MDHIM_SUCCESS;
 }
 
-int mdhim_bgrm_values(const mdhim_bgetrm_t *bgrm, void ***values, int **value_lens) {
+int mdhim_bgrm_values(const mdhim_bgetrm_t *bgrm, void ***values, std::size_t **value_lens) {
     if (!bgrm || !bgrm->bgrm) {
         return MDHIM_ERROR;
     }
@@ -238,7 +238,7 @@ int mdhim_bgrm_values(const mdhim_bgetrm_t *bgrm, void ***values, int **value_le
     return MDHIM_SUCCESS;
 }
 
-int mdhim_bgrm_num_keys(const mdhim_bgetrm_t *bgrm, int *num_keys) {
+int mdhim_bgrm_num_keys(const mdhim_bgetrm_t *bgrm, std::size_t *num_keys) {
     if (!bgrm || !bgrm->bgrm || !num_keys) {
         return MDHIM_ERROR;
     }

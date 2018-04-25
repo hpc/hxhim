@@ -23,11 +23,11 @@ extern "C"
 #endif
 
 //Used for hashing strings to the appropriate range server
-struct mdhim_char {
+typedef struct mdhim_char {
     int id;            /* we'll use this field as the key */
     int pos;
     UT_hash_handle hh; /* makes this structure hashable */
-};
+} mdhim_char_t;
 
 typedef struct rangesrv_info rangesrv_info_t;
 typedef struct rangesrv_list {

@@ -143,6 +143,13 @@ OPS["BDEL"]=$(echo -n "BDEL $COUNT";
                   echo -n " $key"
               done)
 OPS["COMMIT"]=$(echo -n "COMMIT")
+OPS["WHICH"]=$(for key in ${!KEYPAIRS[@]}; do
+                    echo "WHICH $key"
+                done)
+OPS["BWHICH"]=$(echo -n "BWHICH $COUNT";
+                for key in ${!KEYPAIRS[@]}; do
+                    echo -n " $key"
+                done)
 
 # Print configuration
 echo "Key Length:          [$MIN_KEY_LEN, $MAX_KEY_LEN]"
