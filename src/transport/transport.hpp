@@ -271,6 +271,10 @@ class TransportEndpointGroup {
         /** @description Converts Transport*Message ** to TransportMessage ** to prevent pointer weirdness */
         template <typename T, typename = std::enable_if_t<std::is_convertible<T, TransportMessage>::value> >
         static TransportMessage **convert_to_base(const std::size_t num_rangesrvs, T **list) {
+            if (!list) {
+                return nullptr;
+            }
+
             TransportMessage **messages = new TransportMessage *[num_rangesrvs]();
             for(std::size_t i = 0; i < num_rangesrvs; i++) {
                 messages[i] = list[i];

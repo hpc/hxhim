@@ -8,9 +8,10 @@
 #include "MemoryManagers.hpp"
 
 static const char *KEY = "key";
-static const int KEY_LEN = strlen(KEY);
+static const std::size_t KEY_LEN = strlen(KEY);
 static const char *VALUE = "value";
-static const int VALUE_LEN = strlen(VALUE);
+static const std::size_t VALUE_LEN = strlen(VALUE);
+
 static const std::size_t ALLOC_SIZE = 128;
 static const std::size_t REGIONS = 256;
 

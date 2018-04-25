@@ -9,7 +9,7 @@ RANKS=10
 MDHIM_CONFIG=${MDHIM_CONFIG:-"mdhim.conf"}
 
 function help() {
-    echo "Usage: $(basename $0) [Options] PUT|GET|DEL|BPUT|BGET|BDEL|COMMIT ..."
+    echo "Usage: $(basename $0) [Options] PUT|GET|DEL|BPUT|BGET|BDEL|COMMIT|WHICH|BWHICH ..."
     echo
     echo "    Options:"
     echo "        -h, --help       show help"

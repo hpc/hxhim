@@ -60,7 +60,7 @@ TransportBPutMessage::~TransportBPutMessage() {
 }
 
 std::size_t TransportBPutMessage::size() const {
-    int ret = TransportMessage::size() + sizeof(num_keys) + (num_keys * sizeof(*key_lens)) + (num_keys * sizeof(*value_lens));
+    std::size_t ret = TransportMessage::size() + sizeof(num_keys) + (num_keys * sizeof(*key_lens)) + (num_keys * sizeof(*value_lens));
     for(std::size_t i = 0; i < num_keys; i++) {
         ret += key_lens[i] + value_lens[i];
     }
@@ -132,7 +132,7 @@ TransportBGetMessage::~TransportBGetMessage() {
 }
 
 std::size_t TransportBGetMessage::size() const {
-    int ret = TransportMessage::size() + sizeof(op) + sizeof(num_keys) + sizeof(num_recs) + (num_keys * sizeof(*key_lens));
+    size_t ret = TransportMessage::size() + sizeof(op) + sizeof(num_keys) + sizeof(num_recs) + (num_keys * sizeof(*key_lens));
     for(std::size_t i = 0; i < num_keys; i++) {
         ret += key_lens[i];
     }
@@ -188,7 +188,7 @@ TransportBDeleteMessage::~TransportBDeleteMessage() {
 }
 
 std::size_t TransportBDeleteMessage::size() const {
-    int ret = TransportMessage::size() + sizeof(num_keys) + (num_keys * sizeof(*key_lens));
+    size_t ret = TransportMessage::size() + sizeof(num_keys) + (num_keys * sizeof(*key_lens));
     for(std::size_t i = 0; i < num_keys; i++) {
         ret += key_lens[i];
     }
@@ -269,7 +269,7 @@ TransportBGetRecvMessage::~TransportBGetRecvMessage() {
 }
 
 std::size_t TransportBGetRecvMessage::size() const {
-    int ret = TransportMessage::size() + sizeof(error) + sizeof(num_keys) + (num_keys * sizeof(*key_lens)) + (num_keys * sizeof(*value_lens));
+    size_t ret = TransportMessage::size() + sizeof(error) + sizeof(num_keys) + (num_keys * sizeof(*key_lens)) + (num_keys * sizeof(*value_lens));
     for(std::size_t i = 0; i < num_keys; i++) {
         ret += key_lens[i] + value_lens[i];
     }
@@ -463,7 +463,7 @@ TransportRecvMessage *Transport::Delete(const TransportDeleteMessage *dm) {
  * @return the response from the range server
  */
 TransportBRecvMessage *Transport::BPut(const std::size_t num_rangesrvs, TransportBPutMessage **bpm_list) {
-    return endpointgroup_?endpointgroup_->BPut(num_rangesrvs, bpm_list):nullptr;
+    return (bpm_list &&endpointgroup_)?endpointgroup_->BPut(num_rangesrvs, bpm_list):nullptr;
 }
 
 /**
@@ -475,7 +475,7 @@ TransportBRecvMessage *Transport::BPut(const std::size_t num_rangesrvs, Transpor
  * @return the response from the range server
  */
 TransportBGetRecvMessage *Transport::BGet(const std::size_t num_rangesrvs, TransportBGetMessage **bgm_list) {
-    return endpointgroup_?endpointgroup_->BGet(num_rangesrvs, bgm_list):nullptr;
+    return (bgm_list && endpointgroup_)?endpointgroup_->BGet(num_rangesrvs, bgm_list):nullptr;
 }
 
 /**
@@ -487,5 +487,5 @@ TransportBGetRecvMessage *Transport::BGet(const std::size_t num_rangesrvs, Trans
  * @return the response from the range server
  */
 TransportBRecvMessage *Transport::BDelete(const std::size_t num_rangesrvs, TransportBDeleteMessage **bdm_list) {
-    return endpointgroup_?endpointgroup_->BDelete(num_rangesrvs, bdm_list):nullptr;
+    return (bdm_list && endpointgroup_)?endpointgroup_->BDelete(num_rangesrvs, bdm_list):nullptr;
 }
