@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cctype>
 #include <cstdlib>
 #include <cstring>
 #include <dirent.h>
@@ -28,8 +29,16 @@ using Config_it =  Config::const_iterator;
  */
 static bool parse_file(Config &config, std::istream& stream) {
     std::string key, value;
-    while (stream >> key >> value) {
-        config[key] = value;
+    while ((stream >> key) && std::getline(stream >> std::ws, value)) {
+        // remove trailing whitespace
+        std::string::size_type i = value.size();
+        if (value.size()) {
+            while (std::isspace(value[i - 1])) {
+                i--;
+            }
+        }
+
+        config[key] = value.substr(0, i);
     }
 
     return config.size();
@@ -346,7 +355,6 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
     Config_it endpointgroup = config.find(ENDPOINT_GROUP);
     if (endpointgroup != config.end()) {
         mdhim_options_clear_endpoint_group(opts);
-
         if (endpointgroup->second == "ALL") {
             for(int rank = 0; rank < opts->size; rank++) {
                 mdhim_options_add_endpoint_to_group(opts, rank);
@@ -355,9 +363,9 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
         else {
             std::stringstream s(endpointgroup->second);
             int rank;
-
             while (s >> rank) {
                 if (mdhim_options_add_endpoint_to_group(opts, rank) != MDHIM_SUCCESS) {
+                    // should probably write to mlog and continue instead of returning
                     return MDHIM_ERROR;
                 }
             }

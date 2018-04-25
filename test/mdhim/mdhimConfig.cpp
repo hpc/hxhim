@@ -141,7 +141,7 @@ TEST(mdhimConfig, mpi) {
 
     // use MPI, but missing MEMORY_ALLOC_SIZE and MEMORY_REGIONS
     const bool use_mpi = true;
-    s << USE_MPI << " " << std::boolalpha << use_mpi;
+    s << USE_MPI << " " << std::boolalpha << use_mpi << std::endl;
     ConfigString str1(s.str());
     seq.add(&str1);
     ASSERT_EQ(process_config_and_fill_options(seq, &opts), MDHIM_ERROR);
@@ -153,7 +153,7 @@ TEST(mdhimConfig, mpi) {
     // use MPI, and set MEMORY_ALLOC_SIZE and MEMORY_REGIONS
     const int alloc_size = 128;
     const int regions = 256;
-    s << " " << MEMORY_ALLOC_SIZE << " " << alloc_size << " " << MEMORY_REGIONS << " " << regions;
+    s << MEMORY_ALLOC_SIZE << " " << alloc_size << std::endl << MEMORY_REGIONS << " " << regions << std::endl;
     ConfigString str2(s.str());
     seq.add(&str2);
     ASSERT_EQ(process_config_and_fill_options(seq, &opts), MDHIM_SUCCESS);
@@ -181,7 +181,7 @@ TEST(mdhimConfig, thallium) {
 
     // use thallium, but missing THALLIUM_MODULE
     const bool use_thallium = true;
-    s << USE_THALLIUM << " " << std::boolalpha << use_thallium;
+    s << USE_THALLIUM << " " << std::boolalpha << use_thallium << std::endl;
     ConfigString str1(s.str());
     seq.add(&str1);
     ASSERT_EQ(process_config_and_fill_options(seq, &opts), MDHIM_ERROR);
@@ -192,7 +192,7 @@ TEST(mdhimConfig, thallium) {
 
     // use thallium, and set THALLIUM_MODULE
     const std::string module = "tcp";
-    s << " " << THALLIUM_MODULE << " " << module;
+    s << THALLIUM_MODULE << " " << module;
     ConfigString str2(s.str());
     seq.add(&str2);
     ASSERT_EQ(process_config_and_fill_options(seq, &opts), MDHIM_SUCCESS);
@@ -220,11 +220,11 @@ TEST(mdhimConfig, prefer_mpi) {
     // even when USE_THALLIUM shows up first
     // and both are true
     std::stringstream s;
-    s << " " << USE_THALLIUM << " " << std::boolalpha << true
-      << " " << THALLIUM_MODULE << " tcp"
-      << " " << USE_MPI << " " << std::boolalpha << true
-      << " " << MEMORY_ALLOC_SIZE << " " << 128
-      << " " << MEMORY_REGIONS << " " << 256;
+    s << USE_THALLIUM << " " << std::boolalpha << true << std::endl
+      << THALLIUM_MODULE << " tcp" << std::endl
+      << USE_MPI << " " << std::boolalpha << true << std::endl
+      << MEMORY_ALLOC_SIZE << " " << 128 << std::endl
+      << MEMORY_REGIONS << " " << 256 << std::endl;
 
     ConfigString str(s.str());
     seq.add(&str);
