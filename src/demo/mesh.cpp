@@ -13,13 +13,15 @@ Mesh::Mesh(std::size_t xdim, std::size_t ydim, std::size_t maxlevels) {
     uint length = 1000;
     double sparsity = 0.1;
     size_t minbase = 2;
-    cells_ = mesh_maker(cells_, leveldiff, &length, (uint*)&maxlevels, sparsity, minbase);
+
+    // Create a fixed dimension mesh
+    //cells_ = mesh_maker(cells_, leveldiff, &length, (uint*)&maxlevels, sparsity, minbase);
+
+    // Create a randomly refined mesh
+    float threshhold = 0.5
+    cells_ = adaptiveMeshConstructorWij(cells_, xdim*ydim, maxlevels, threshhold, xdim*ydim*8);
 }
 
-int Mesh::Refine(RefinementStrategy rs) {
-    assert(rs == Mesh::Random);
-    if (rs == Mesh::Random) {
-        cells_ = adaptiveMeshConstructorWij(cells_, )
-    }
-    return 0;
+int Mesh::Compare(const Mesh& other) const {
+    return -1;
 }

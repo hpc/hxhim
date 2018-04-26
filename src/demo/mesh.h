@@ -24,9 +24,6 @@ public:
     /** Create a level 0 mesh of xdim x ydim */
     Mesh(std::size_t xdim, std::size_t ydim, std::size_t maxlevels);
 
-    /** Refine the mesh randomly */
-    int Refine(RefinementStrategy rs);
-
     /** @return The cell at index i,j */
     const Cell* Lookup(std::size_t i, std::size_t j) const;
 
@@ -34,7 +31,7 @@ public:
     const std::vector<Cell> GetLevel(std::size_t level) const;
 
     /** @return 0 if this and other are equal */
-    int Compare(const Mesh& other) const { return 0; }
+    int Compare(const Mesh& other) const;
 
 private:
     /** Meshgen non-opaque type */
