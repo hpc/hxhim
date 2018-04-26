@@ -28,12 +28,18 @@ function emit_pkgconfig {
 
 # Download and build LevelDB
 function download_and_build {
-  if [ ! -d $1 ]; then
-    git clone https://github.com/google/leveldb.git $1
+  prefix="$1"
+  ldbsrc="$2"
+    
+  if [ ! -d $2 ]; then
+    git clone https://github.com/google/leveldb.git $2
   fi
-  cd $1
-  make
-  cd ..
+  mkdir -p $2/build
+  cd $2/build
+  cmake -DCMAKE_INSTALL_PREFIX=$1 ..
+  make -j $(nproc --all)
+  make -j $(nproc --all) install
+  cd ../..
 }
 
 function install_leveldb {
@@ -47,25 +53,13 @@ function install_leveldb {
   fi
 
   # Download and build LevelDB
-  download_and_build $ldbsrc
-
-  # Copy binaries
-  mkdir -p $prefix/bin
-  cp $ldbsrc/out-static/leveldbutil $prefix/bin
-
-  # Install include files
-  mkdir -p $prefix/include
-  cp -r $ldbsrc/include/leveldb $prefix/include/
-
-  # Install library files
-  mkdir -p $prefix/lib
-  find . -name "lib*" -type f -exec cp {} $prefix/lib \;
+  download_and_build $prefix $ldbsrc
 
   # Emit a PkgConfig
-  emit_pkgconfig $prefix
+  emit_pkgconfig "$(realpath $prefix)"
 }
 
-if [ "$1" = "" ]; then
+if [ "$#" -lt "1" ]; then
   print_usage
   exit 1
 fi

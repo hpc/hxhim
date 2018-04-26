@@ -29,11 +29,11 @@
  * @param type           in   Database store type to use (i.e., LEVELDB, etc)
  * @return mdhim_store_t      The mdhim storage abstraction struct
  */
-struct mdhim_store_t *mdhim_db_init(int type) {
-	struct mdhim_store_t *store;
+mdhim_store_t *mdhim_db_init(int type) {
+	mdhim_store_t *store;
 
 	//Initialize the store structure
-	store = (mdhim_store_t*)malloc(sizeof(struct mdhim_store_t));
+	store = (mdhim_store_t*)malloc(sizeof(mdhim_store_t));
 	store->type = type;
 	store->db_handle = NULL;
 	store->db_stats = NULL;
@@ -61,19 +61,19 @@ struct mdhim_store_t *mdhim_db_init(int type) {
 
 #endif
 
-#ifdef      HXHIM_USE_ROCKSDB
-	case ROCKSDB:
-		store->open = mdhim_leveldb_open;
-		store->put = mdhim_leveldb_put;
-		store->batch_put = mdhim_leveldb_batch_put;
-		store->get = mdhim_leveldb_get;
-		store->get_next = mdhim_leveldb_get_next;
-		store->get_prev = mdhim_leveldb_get_prev;
-		store->del = mdhim_leveldb_del;
-		store->commit = mdhim_leveldb_commit;
-		store->close = mdhim_leveldb_close;
-		break;
-#endif
+// #ifdef      HXHIM_USE_ROCKSDB
+// 	case ROCKSDB:
+// 		store->open = mdhim_leveldb_open;
+// 		store->put = mdhim_leveldb_put;
+// 		store->batch_put = mdhim_leveldb_batch_put;
+// 		store->get = mdhim_leveldb_get;
+// 		store->get_next = mdhim_leveldb_get_next;
+// 		store->get_prev = mdhim_leveldb_get_prev;
+// 		store->del = mdhim_leveldb_del;
+// 		store->commit = mdhim_leveldb_commit;
+// 		store->close = mdhim_leveldb_close;
+// 		break;
+// #endif
 
 #ifdef      HXHIM_USE_MYSQL
 	case	MYSQLDB:

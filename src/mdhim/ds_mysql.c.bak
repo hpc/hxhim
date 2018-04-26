@@ -42,7 +42,7 @@ char kchunk[2*k_len+1];
   mysql_real_escape_string(pdb, kchunk, key_t, k_len);
  // mysql_real_escape_string(db, key_t_insert,key_t,k_len);
 	//char *key_copy;
-	size_t st_len, size=0;
+	std::size_t st_len, size=0;
 	char *r_query=NULL, *st;
 	switch(pk_type){
 			case MDHIM_BYTE_KEY:
@@ -109,7 +109,7 @@ char chunk[2*d_len+1];
 char kchunk[2*k_len+1];
   mysql_real_escape_string(pdb, chunk, data_t, d_len);
   mysql_real_escape_string(pdb, kchunk, key_t, k_len);
-	size_t st_len, size=0;
+	std::size_t st_len, size=0;
 	char *r_query=NULL, *st;
 	switch(pk_type){
 			case MDHIM_BYTE_KEY:
@@ -318,19 +318,19 @@ int mdhim_mysql_open(void **dbh, void **dbs, char *path, int flags,int key_type,
 	  }
 	/*char *path_s = malloc(sizeof(path));
 	path_s = strcpy(path_s, path);	*/
-	Input_DB ->host =  db_opts->db_host;
-	Stats_DB->host =  db_opts->dbs_host;
-	Input_DB ->user = db_opts->db_user;
-	Stats_DB ->user = db_opts->dbs_user;
-	Input_DB ->pswd = db_opts->db_upswd;
-	Stats_DB->pswd = db_opts->dbs_upswd;
+	Input_DB ->host =  db_opts->p->db_host;
+	Stats_DB->host =  db_opts->p->dbs_host;
+	Input_DB ->user = db_opts->p->db_user;
+	Stats_DB ->user = db_opts->p->dbs_user;
+	Input_DB ->pswd = db_opts->p->db_upswd;
+	Stats_DB->pswd = db_opts->p->dbs_upswd;
 	//Abstracting the host, usernames, and password
 	Input_DB->database= "maindb"; //mstore_opts -> db_ptr4; //Abstracting Database
 	Input_DB->table = "mdhim"; 
 	Stats_DB ->database = "statsdb";//mstore_opts -> db_ptr4; //Abstracting Statsics Database 
 	Stats_DB->table = "mdhim"; 
-	Input_DB->msqkt = db_opts->db_key_type;
-	Stats_DB->msqkt = db_opts->db_key_type;
+	Input_DB->msqkt = db_opts->p->db_key_type;
+	Stats_DB->msqkt = db_opts->p->db_key_type;
 
 	//connect to the Database
 	if (mysql_real_connect(db, Input_DB->host, Input_DB->user, Input_DB->pswd, 

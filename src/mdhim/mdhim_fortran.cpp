@@ -10,7 +10,6 @@
 #include "mdhim.h"
 #include "mdhim_fortran.h"
 #include "range_server.h"
-#include "client.h"
 #include "local_client.h"
 #include "partitioner.h"
 #include "mdhim_options.h"
@@ -52,17 +51,17 @@ void mdhimftopts_init() {
 }
 
 void mdhimftput(void *key, int *key_size, void *val, int *val_size) {
-  mdhimPut(md, key, *key_size, val, *val_size, NULL, NULL);
+    mdhimPut(md, nullptr, key, *key_size, val, *val_size);
 }
 
 void mdhimftget(void *key, int *key_size, void *val, int val_size) {
    printf("Key: %s\n", (char *)key);
-   mdhim_bgetrm_t *bgrm = mdhimGet(md, md->p->primary_index, key, *key_size, TransportGetMessageOp::GET_EQ);
-   if (!bgrm || !bgrm->p || !bgrm->p->bgrm || bgrm->p->bgrm->error) {
+   mdhim_getrm_t *grm = mdhimGet(md, md->p->primary_index, key, *key_size, TransportGetMessageOp::GET_EQ);
+   if (!grm || !grm->grm || grm->grm->error) {
      printf("Error getting value for key: %p from MDHIM\n", key);
    } else {
      printf("Successfully got value from MDHIM\n");
-     memcpy(val, bgrm->p->bgrm->values[0], bgrm->p->bgrm->value_lens[0]);
+     memcpy(val, grm->grm->value, grm->grm->value_len);
    }
 }
 
@@ -99,8 +98,7 @@ void mdhimftoptions_debug_level (int level) {
  * @return mdhim_t* that contains info about this instance or NULL if there was an error
  */
 void mdhimftclose() {
-  int ret;
 
-  ret = mdhimClose(md);
+  mdhimClose(md);
   return;
 }

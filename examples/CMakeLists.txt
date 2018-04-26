@@ -3,15 +3,17 @@
 #
 cmake_minimum_required(VERSION 2.8)
 
-# MPI Tests need to run differently than regular tests
-message( STATUS "MPI_FOUND=" ${MPI_FOUND})
-if (MPI_FOUND)
-    message( STATUS "MPI_CXX_LIBRARIES=" ${MPI_CXX_LIBRARIES})
-    message( STATUS "MPI_CXX_COMPILE_FLAGS=" ${MPI_CXX_COMPILE_FLAGS})
-    message( STATUS "MPI_CXX_LINK_FLAGS=" ${MPI_CXX_LINK_FLAGS})
-    add_executable(putget putget.c)
-    set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${LEVELDB_LIBRARY_DIRS})
-    target_link_libraries(putget mdhim mdhimutils transport ${LEVELDB_LIBRARY} ${MPI_CXX_LIBRARIES} pthread m)
-    set_target_properties(putget PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
-    set_target_properties(putget PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
-endif()
+set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${LEVELDB_LIBRARY_DIRS})
+
+add_executable(putget putget.c)
+target_link_libraries(putget mdhim transport utils ${LEVELDB_LIBRARY} ${MPI_CXX_LIBRARIES} ${THALLIUM_LDFLAGS} pthread m)
+set_target_properties(putget PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
+set_target_properties(putget PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
+
+add_executable(cli cli.cpp util.cpp put.cpp get.cpp bput.cpp bget.cpp del.cpp bdel.cpp)
+target_link_libraries(cli mdhim transport utils ${LEVELDB_LIBRARY} ${MPI_CXX_LIBRARIES} ${THALLIUM_LDFLAGS} pthread m)
+set_target_properties(cli PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
+set_target_properties(cli PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
+configure_file(random.sh ${CMAKE_CURRENT_BINARY_DIR}/random.sh COPYONLY)
+INSTALL(TARGETS cli DESTINATION bin)
+INSTALL(FILES random.sh DESTINATION bin PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ)

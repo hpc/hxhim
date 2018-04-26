@@ -1,156 +1,143 @@
-#include <iostream>
-
 #include "MPIEndpoint.hpp"
 
 #define HXHIM_MPI_REQUEST_TAG 0x311
 
-MPIEndpoint::MPIEndpoint(const MPI_Comm comm, volatile int &shutdown)
-    : TransportEndpoint(),
-      MPIEndpointBase(comm, shutdown),
-      address_(rank_)
+MPIEndpoint::MPIEndpoint(const MPI_Comm comm,
+                         const int remote_rank,
+                         FixedBufferPool *fbp,
+                         volatile int &shutdown)
+  : TransportEndpoint(),
+    MPIEndpointBase(comm, fbp),
+    remote_rank_(remote_rank),
+    shutdown_(shutdown)
 {}
 
-int MPIEndpoint::AddPutRequest(const TransportPutMessage *message) {
-    if (!message) {
+/**
+ * Put
+ * Sends a TransportPutMessage to the other end of the endpoint
+ *
+ * @param request the initiating PUT message
+ * @return a pointer to the response of the PUT operation
+ */
+TransportRecvMessage *MPIEndpoint::Put(const TransportPutMessage *message) {
+    return do_operation<TransportPutMessage, TransportRecvMessage>(message);
+}
+
+/**
+ * Get
+ * Sends a TransportGetMessage to the other end of the endpoint
+ *
+ * @param request the initiating GET message
+ * @return a pointer to the response of the GET operation
+ */
+TransportGetRecvMessage *MPIEndpoint::Get(const TransportGetMessage *message) {
+    TransportGetRecvMessage *grm = do_operation<TransportGetMessage, TransportGetRecvMessage>(message);
+    return grm;
+}
+
+/**
+ * Delete
+ * Sends a TransportDeleteMessage to the other end of the endpoint
+ *
+ * @param request the initiating DELETE message
+ * @return a pointer to the response of the DELETE operation
+ */
+TransportRecvMessage *MPIEndpoint::Delete(const TransportDeleteMessage *message) {
+    return do_operation<TransportDeleteMessage, TransportRecvMessage>(message);
+}
+
+/**
+ * send_rangesrv_work
+ * Sends a packed message (char buffer) to the range server at the given destination
+ *
+ * @param dest    destination to send to
+ * @param buf     data to be sent to dest
+ * @param size    size of data to be sent to dest
+ * @return MDHIM_SUCCESS or MDHIM_ERROR on error
+ */
+int MPIEndpoint::send_rangesrv_work(const void *buf, const std::size_t size) {
+    int return_code = MDHIM_ERROR;
+    MPI_Request req;
+
+    //Send the size of the message
+    pthread_mutex_lock(&mutex_);
+    return_code = MPI_Isend(&size, sizeof(size), MPI_CHAR, remote_rank_, RANGESRV_WORK_SIZE_MSG, comm_, &req);
+    pthread_mutex_unlock(&mutex_);
+    Flush(&req);
+
+    if (return_code != MPI_SUCCESS) {
         return MDHIM_ERROR;
     }
 
-    void *buf = nullptr;
-    int bufsize;
+    //Send the message
+    pthread_mutex_lock(&mutex_);
+    return_code = MPI_Isend(buf, size, MPI_CHAR, remote_rank_, RANGESRV_WORK_MSG, comm_, &req);
+    pthread_mutex_unlock(&mutex_);
+    Flush(&req);
 
-    if (MPIPacker::pack(this, message, &buf, &bufsize) != MDHIM_SUCCESS) {
+    if (return_code != MPI_SUCCESS) {
         return MDHIM_ERROR;
     }
 
-    const int ret = send_rangesrv_work(message->server_rank, buf, bufsize);
-
-    // cleanup
-    free(buf);
-
-    if (ret != MDHIM_SUCCESS) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - Error: %d from server while sending "
-             "bget record request", rank_, ret);
-    }
-
-    return ret;
+    return MDHIM_SUCCESS;
 }
 
-int MPIEndpoint::AddGetRequest(const TransportBGetMessage *message) {
-    throw;
-    // if (!message) {
-    //     return MDHIM_ERROR;
-    // }
+/**
+ * receive_client_response message
+ * Receives a message from the given source
+ *
+ * @param md      in   main MDHIM struct
+ * @param src     in   source to receive from
+ * @param message out  double pointer for message received
+ * @return MDHIM_SUCCESS or MDHIM_ERROR on error
+ */
+int MPIEndpoint::receive_client_response(void **buf, std::size_t *size) {
+    int return_code;
+    MPI_Request req;
 
-    // void *buf = nullptr;
-    // int size;
+    // Receive the size of the message
+    pthread_mutex_lock(&mutex_);
+    return_code = MPI_Irecv(size, sizeof(*size), MPI_CHAR, remote_rank_, CLIENT_RESPONSE_SIZE_MSG, comm_, &req);
+    pthread_mutex_unlock(&mutex_);
+    Flush(&req);
 
-    // // encode the mesage
-    // if (MPIPacker::pack(this, message, &buf, &size) != MDHIM_SUCCESS) {
-    //     mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - Error: MPIEndpoint Packing message "
-    //          "failed before sending.", rank_);
-    //     return MDHIM_ERROR;
-    // }
-
-    // // send the message
-    // int dest = message->server_rank;
-    // const int ret = send_all_rangesrv_work(&buf, &size, &dest, 1);
-
-    // // cleanup
-    // free(buf);
-
-    // if (ret != MDHIM_SUCCESS) {
-    //     mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - Error: %d from server while sending "
-    //          "bget record request", rank_, ret);
-    // }
-
-    // return ret;
-    return MDHIM_ERROR;
-}
-
-int MPIEndpoint::AddPutReply(const TransportAddress *src, TransportRecvMessage **message) {
-    if (!src || !message) {
+    // If the receive did not succeed then return the error code back
+    if (return_code != MPI_SUCCESS) {
         return MDHIM_ERROR;
     }
 
-    void *recvbuf = nullptr;
-    int recvsize = 0; // initializing this value helps; someone is probably writing an int instead of a int
-    int ret = MDHIM_ERROR;
-
-    if ((ret = receive_client_response(dynamic_cast<const MPIAddress*>(src)->Rank(), &recvbuf, &recvsize)) == MDHIM_SUCCESS) {
-        ret = MPIUnpacker::unpack(this, message, recvbuf, recvsize);
+    // allocate space for the message
+    if (!(*buf = fbp_->acquire(*size))) {
+        return MDHIM_ERROR;
     }
 
-    free(recvbuf);
+    // Receive the message
+    pthread_mutex_lock(&mutex_);
+    return_code = MPI_Irecv(*buf, *size, MPI_CHAR, remote_rank_, CLIENT_RESPONSE_MSG, comm_, &req);
+    pthread_mutex_unlock(&mutex_);
+    Flush(&req);
 
-    if (ret != MDHIM_SUCCESS) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - Error: %d from server while receiving "
-             "put record request", rank_, ret);
-        (*message)->error = MDHIM_ERROR;
+    // If the receive did not succeed then return the error code back
+    if ( return_code != MPI_SUCCESS ) {
+        return MDHIM_ERROR;
     }
 
-    return ret;
+    return MDHIM_SUCCESS;
 }
 
-int MPIEndpoint::AddGetReply(const TransportAddress *srcs, TransportBGetRecvMessage ***messages) {
-    throw;
-    // if (!srcs || !messages) {
-    //     return MDHIM_ERROR;
-    // }
+void MPIEndpoint::Flush(MPI_Request *req) {
+    int flag = 0;
+    MPI_Status status;
 
-    // char **recvbufs = nullptr;
-    // int *sizebuf = nullptr;
-    // int ret = MDHIM_ERROR;
-    // int src = dynamic_cast<const MPIAddress *>(srcs)->Rank();
-
-    // if ((ret = receive_all_client_responses(&src, nsrcs, &recvbufs, &sizebuf)) == MDHIM_SUCCESS) {
-    //     ret = MPIUnpacker::unpack(this, *messages, *recvbufs, *sizebuf);
-    //     free(recvbufs[i]);
-    // }
-
-    // free(recvbufs);
-    // free(sizebuf);
-
-    // // If the receives did not succeed then log the error code and return MDHIM_ERROR
-    // if (ret != MDHIM_SUCCESS) {
-    //     mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - Error: %d from server while receiving "
-    //          "bget record requests", rank_, ret);
-    // }
-
-    // return ret;
-    return MDHIM_ERROR;
-}
-
-std::size_t MPIEndpoint::PollForMessage(std::size_t timeoutSecs) {
-    int nbytes = 0;
-
-    // Poll to see if a message is waiting
-    int msgWaiting = 0;
-    MPI_Status status = {};
-    int rc = MPI_Iprobe(MPI_ANY_SOURCE, HXHIM_MPI_REQUEST_TAG, comm_, &msgWaiting, &status);
-    if (rc == 0 && msgWaiting == 1) {
-        // Get the message size
-        int bytecount;
-        rc = MPI_Get_count(&status, MPI_BYTE, &bytecount);
-        if (rc == 0) {
-            nbytes = (size_t) bytecount;
-        } else {
-            std::cerr << __FILE__ << ":" << __LINE__ << ":Failed determing message size\n";
-        }
+    if (!req) {
+        return;
     }
-    else {
-        std::cerr << "No message waiting\n";
+
+    while (!flag && !shutdown_) {
+        usleep(100);
+
+        pthread_mutex_lock(&mutex_);
+        MPI_Test(req, &flag, &status);
+        pthread_mutex_unlock(&mutex_);
     }
-   return nbytes;
-}
-
-std::size_t MPIEndpoint::WaitForMessage(std::size_t timeoutSecs) {
-    return 0;
-}
-
-int MPIEndpoint::Flush() {
-    return 0;
-}
-
-const TransportAddress *MPIEndpoint::Address() const {
-    return &address_;
 }

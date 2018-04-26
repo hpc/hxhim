@@ -23,11 +23,11 @@ extern "C"
 #endif
 
 //Used for hashing strings to the appropriate range server
-struct mdhim_char {
+typedef struct mdhim_char {
     int id;            /* we'll use this field as the key */
     int pos;
     UT_hash_handle hh; /* makes this structure hashable */
-};
+} mdhim_char_t;
 
 typedef struct rangesrv_info rangesrv_info_t;
 typedef struct rangesrv_list {
@@ -37,18 +37,18 @@ typedef struct rangesrv_list {
 
 void partitioner_init();
 void partitioner_release();
-rangesrv_list_t *get_range_servers(mdhim_t *md, struct index *index,
+rangesrv_list_t *get_range_servers(mdhim_t *md, index_t *index,
                                    void *key, int key_len);
 rangesrv_info_t *get_range_server_by_slice(mdhim_t *md,
-                                           struct index *index, int slice);
+                                           index_t *index, int slice);
 void build_alphabet();
-int verify_key(struct index *index, void *key, int key_len, int key_type);
+int verify_key(index_t *index, void *key, int key_len, int key_type);
 long double get_str_num(void *key, uint32_t key_len);
   //long double get_byte_num(void *key, uint32_t key_len);
 uint64_t get_byte_num(void *key, uint32_t key_len);
-int get_slice_num(mdhim_t *md, struct index *index, void *key, int key_len);
+int get_slice_num(mdhim_t *md, index_t *index, void *key, int key_len);
 int is_float_key(int type);
-rangesrv_list_t *get_range_servers_from_stats(mdhim_t *md, struct index *index,
+rangesrv_list_t *get_range_servers_from_stats(mdhim_t *md, index_t *index,
                                               void *key, int key_len, TransportGetMessageOp op);
 
 #ifdef __cplusplus

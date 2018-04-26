@@ -14,14 +14,16 @@ enum TransportMessageType {
     INVALID   = 0,
     PUT       = 1,
     BPUT      = 2,
-    BGET      = 3,
-    DELETE    = 4,
-    BDELETE   = 5,
-    CLOSE     = 6,
-    RECV      = 7,
-    RECV_GET  = 8,
-    RECV_BGET = 9,
-    COMMIT    = 10
+    GET       = 3,
+    BGET      = 4,
+    DELETE    = 5,
+    BDELETE   = 6,
+    CLOSE     = 7,
+    RECV      = 8,
+    RECV_GET  = 9,
+    RECV_BGET = 10,
+    RECV_BULK = 11,
+    COMMIT    = 12
 };
 
 /**

@@ -16,7 +16,7 @@ MPIInstance::MPIInstance() {
         // Retrieve the command line arguments (not portable)
         int argc = 0;
         char **argv = nullptr;
-        //GetTransportandLineArguments(&argc, &argv);
+        //GetCommandLineArguments(&argc, &argv);
 
         // Perform initialization
         int provided = 0;

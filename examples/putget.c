@@ -1,16 +1,17 @@
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "mdhim.h"
 
-/*
- * cleanup
- * A quick and dirty cleanup function
- *
- * param md mdhim instance to close
- */
-void cleanup(mdhim_t *md) {
+typedef int Key_t;
+typedef int Value_t;
+
+// A quick and dirty cleanup function
+void cleanup(mdhim_t *md, mdhim_options_t *opts) {
     mdhimClose(md);
+    mdhim_options_destroy(opts);
     MPI_Finalize();
 }
 
@@ -18,105 +19,118 @@ int main(int argc, char *argv[]){
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 
-    int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
-    int size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-
     srand(time(NULL));
 
+    // initialize options through config
     mdhim_options_t opts;
+    if (mdhim_default_config_reader(&opts, MPI_COMM_WORLD) != MDHIM_SUCCESS) {
+        printf("Error Reading Configuration\n");
+        cleanup(NULL, &opts);
+        return MDHIM_ERROR;
+    }
+
+    // initialize mdhim context
     mdhim_t md;
-
-    if (mdhim_options_init(&opts) != MDHIM_SUCCESS) {
-        cleanup(&md);
-        return MDHIM_ERROR;
-    }
-
-    //Set some other values inside mdhim_options_t
-    opts.comm = MPI_COMM_WORLD;
-    mdhim_options_set_db_path(&opts, "./");
-    mdhim_options_set_db_name(&opts, "mdhim");
-    mdhim_options_set_db_type(&opts, LEVELDB);
-    mdhim_options_set_key_type(&opts, MDHIM_INT_KEY);
-    mdhim_options_set_debug_level(&opts, MLOG_CRIT);
-    mdhim_options_set_server_factor(&opts, 1);
-
     if (mdhimInit(&md, &opts) != MDHIM_SUCCESS) {
-        cleanup(&md);
+        printf("Error Initializng MDHIM\n");
+        cleanup(&md, &opts);
         return MDHIM_ERROR;
-    }
-
-    typedef int Key_t;
-    typedef int Value_t;
-    const Key_t   MDHIM_PUT_GET_PRIMARY_KEY = 13579;
-    const Value_t MDHIM_PUT_GET_VALUE       = 24680;
-
-    //Use arbitrary rank to do put
-    if (rank == rand() % size) {
-        //Put the key-value pair
-        mdhim_brm_t *brm = mdhimPut(&md,
-                                    (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
-                                    (void *)&MDHIM_PUT_GET_VALUE, sizeof(MDHIM_PUT_GET_VALUE),
-                                    NULL, NULL);
-        if (mdhim_brm_error(brm) != MDHIM_SUCCESS) {
-            mdhim_brm_destroy(brm);
-            cleanup(&md);
-            return MDHIM_ERROR;
-        }
-
-        mdhim_brm_destroy(brm);
-
-        //Commit changes
-        //Pass NULL here to use md->p->primary_index
-        if (mdhimCommit(&md, NULL) != MDHIM_SUCCESS) {
-            cleanup(&md);
-            return MDHIM_ERROR;
-        }
-
-        printf("Rank %d put: %d -> %d\n", rank, MDHIM_PUT_GET_PRIMARY_KEY, MDHIM_PUT_GET_VALUE);
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    //Every rank gets the value back
+    // Generate a random key value pair
+    const Key_t   MDHIM_PUT_GET_PRIMARY_KEY = rand();
+    const Value_t MDHIM_PUT_GET_VALUE       = rand();
+
+    // Use arbitrary rank to do put
+    if (md.rank == rand() % md.size) {
+        // Put the key-value pair
+        mdhim_rm_t *rm = mdhimPut(&md, NULL,
+                                  (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
+                                  (void *)&MDHIM_PUT_GET_VALUE, sizeof(MDHIM_PUT_GET_VALUE));
+        int error = MDHIM_ERROR;
+        if ((mdhim_rm_error(rm, &error) != MDHIM_SUCCESS) ||
+            (error != MDHIM_SUCCESS)) {
+            printf("Rank %d: Could not put\n", md.rank);
+            mdhim_rm_destroy(rm);
+            cleanup(&md, &opts);
+            return MDHIM_ERROR;
+        }
+
+        int src = -1;
+        if (mdhim_rm_src(rm, &src) != MDHIM_SUCCESS) {
+            printf("Rank %d: Could not get source of put response\n", md.rank);
+            mdhim_rm_destroy(rm);
+            cleanup(&md, &opts);
+            return MDHIM_ERROR;
+        }
+
+        mdhim_rm_destroy(rm);
+
+        // Commit changes
+        // Pass NULL here to use md->p->primary_index
+        if (mdhimCommit(&md, NULL) != MDHIM_SUCCESS) {
+            printf("Rank %d: Could not commit\n", md.rank);
+            cleanup(&md, &opts);
+            return MDHIM_ERROR;
+        }
+
+        printf("Rank %d put: %d -> %d  to  range server %d\n", md.rank, MDHIM_PUT_GET_PRIMARY_KEY, MDHIM_PUT_GET_VALUE, src);
+    }
+
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    // Every rank gets the value back
     {
-        //Pass NULL here to use md->p->primary_index
-        mdhim_bgetrm_t *bgrm = mdhimGet(&md, NULL,
-                                        (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
-                                        GET_EQ);
-        if (mdhim_bgrm_error(bgrm) != MDHIM_SUCCESS) {
-            mdhim_bgrm_destroy(bgrm);
-            cleanup(&md);
+        // Pass NULL here to use md->p->primary_index
+        mdhim_getrm_t *grm = mdhimGet(&md, NULL,
+                                      (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
+                                      GET_EQ);
+        int error = MDHIM_ERROR;
+        if ((mdhim_grm_error(grm, &error) != MDHIM_SUCCESS) ||
+            (error != MDHIM_SUCCESS)) {
+            printf("Rank %d: Bad return value\n", md.rank);
+            mdhim_grm_destroy(grm);
+            cleanup(&md, &opts);
             return MDHIM_ERROR;
         }
 
         // Extract the keys from the returned value (do not free)
-        Key_t **keys = NULL;
-        if (mdhim_bgrm_keys(bgrm, (void ***) &keys, NULL) != MDHIM_SUCCESS) {
-            mdhim_bgrm_destroy(bgrm);
-            cleanup(&md);
+        Key_t *key = NULL;
+        if (mdhim_grm_key(grm, (void **) &key, NULL) != MDHIM_SUCCESS) {
+            printf("Rank %d: Could not extract key\n", md.rank);
+            mdhim_grm_destroy(grm);
+            cleanup(&md, &opts);
             return MDHIM_ERROR;
         }
 
         // Extract the values from the returned value (do not free)
-        Value_t **values = NULL;
-        if (mdhim_bgrm_values(bgrm, (void ***) &values, NULL) != MDHIM_SUCCESS) {
-            mdhim_bgrm_destroy(bgrm);
-            cleanup(&md);
+        Value_t *value = NULL;
+        if (mdhim_grm_value(grm, (void **) &value, NULL) != MDHIM_SUCCESS) {
+            printf("Rank %d: Could not extract value\n", md.rank);
+            mdhim_grm_destroy(grm);
+            cleanup(&md, &opts);
             return MDHIM_ERROR;
         }
 
-        //Print value gotten back
-        printf("Rank %d got: %d -> %d\n", rank, **keys, **values);
+        int src = -1;
+        if (mdhim_grm_src(grm, &src) != MDHIM_SUCCESS) {
+            printf("Rank %d: Could not get source of get response\n", md.rank);
+            mdhim_grm_destroy(grm);
+            cleanup(&md, &opts);
+            return MDHIM_ERROR;
+        }
 
-        mdhim_bgrm_destroy(bgrm);
+        // Print value gotten back
+        printf("Rank %d got: %d -> %d from range server %d\n", md.rank, *key, *value, src);
+
+        mdhim_grm_destroy(grm);
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    cleanup(&md);
+    cleanup(&md, &opts);
 
     return MDHIM_SUCCESS;
 }
