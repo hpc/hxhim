@@ -18,7 +18,7 @@ Mesh::Mesh(std::size_t xdim, std::size_t ydim, std::size_t maxlevels) {
     //cells_ = mesh_maker(cells_, leveldiff, &length, (uint*)&maxlevels, sparsity, minbase);
 
     // Create a randomly refined mesh
-    float threshhold = 0.5
+    float threshhold = 0.5;
     cells_ = adaptiveMeshConstructorWij(cells_, xdim*ydim, maxlevels, threshhold, xdim*ydim*8);
 }
 
