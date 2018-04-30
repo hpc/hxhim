@@ -88,7 +88,7 @@ static index_t * find_index_by_name(mdhim_t *md, TransportMessage *msg) {
  */
 int range_server_add_work(mdhim_t *md, work_item_t *item) {
     //Lock the work queue mutex
-    pthread_mutex_lock(md->p->mdhim_rs->work_queue_mutex);
+    pthread_mutex_lock(&md->p->mdhim_rs->work_queue_mutex);
     item->next = NULL;
     item->prev = NULL;
 
@@ -103,8 +103,8 @@ int range_server_add_work(mdhim_t *md, work_item_t *item) {
     }
 
     //Signal the waiting thread that there is work available
-    pthread_cond_signal(md->p->mdhim_rs->work_ready_cv);
-    pthread_mutex_unlock(md->p->mdhim_rs->work_queue_mutex);
+    pthread_cond_signal(&md->p->mdhim_rs->work_ready_cv);
+    pthread_mutex_unlock(&md->p->mdhim_rs->work_queue_mutex);
 
     return MDHIM_SUCCESS;
 }
@@ -143,15 +143,13 @@ int range_server_stop(mdhim_t *md) {
         return MDHIM_ERROR;
     }
 
-    int ret;
-
     //Signal to the listener thread that it needs to shutdown
     md->p->shutdown = 1;
 
     /* Wait for the threads to finish */
-    pthread_mutex_lock(md->p->mdhim_rs->work_queue_mutex);
-    pthread_cond_broadcast(md->p->mdhim_rs->work_ready_cv);
-    pthread_mutex_unlock(md->p->mdhim_rs->work_queue_mutex);
+    pthread_mutex_lock(&md->p->mdhim_rs->work_queue_mutex);
+    pthread_cond_broadcast(&md->p->mdhim_rs->work_ready_cv);
+    pthread_mutex_unlock(&md->p->mdhim_rs->work_queue_mutex);
 
     /* Wait for the threads to finish */
     for (int i = 0; i < md->p->db_opts->num_wthreads; i++) {
@@ -160,28 +158,8 @@ int range_server_stop(mdhim_t *md) {
     }
     delete [] md->p->mdhim_rs->workers;
 
-    //Destroy the condition variables
-    if ((ret = pthread_cond_destroy(md->p->mdhim_rs->work_ready_cv)) != 0) {
-      mlog(MDHIM_SERVER_DBG, "Rank %d - Error destroying work cond variable",
-           md->rank);
-    }
-    delete md->p->mdhim_rs->work_ready_cv;
-
-    //Destroy the work queue mutex
-    if ((ret = pthread_mutex_destroy(md->p->mdhim_rs->work_queue_mutex)) != 0) {
-      mlog(MDHIM_SERVER_DBG, "Rank %d - Error destroying work queue mutex",
-           md->rank);
-    }
-    delete md->p->mdhim_rs->work_queue_mutex;
-
     //Clean outstanding sends
     range_server_clean_oreqs(md);
-    //Destroy the out req mutex
-    if ((ret = pthread_mutex_destroy(md->p->mdhim_rs->out_req_mutex)) != 0) {
-      mlog(MDHIM_SERVER_DBG, "Rank %d - Error destroying work queue mutex",
-           md->rank);
-    }
-    delete md->p->mdhim_rs->out_req_mutex;
 
     //Free the work queue
     work_item_t *head = md->p->mdhim_rs->work_queue->head;
@@ -1116,24 +1094,21 @@ static void *worker_thread(void *data) {
     mdhim_t *md = (mdhim_t *) data;
     work_item_t *item = nullptr;
 
-    while (true) {
-        if (md->p->shutdown) {
-            break;
-        }
+    while (!md->p->shutdown) {
         //Lock the work queue mutex
-        pthread_mutex_lock(md->p->mdhim_rs->work_queue_mutex);
+        pthread_mutex_lock(&md->p->mdhim_rs->work_queue_mutex);
         pthread_cleanup_push((void (*)(void *)) pthread_mutex_unlock,
-                             (void *) md->p->mdhim_rs->work_queue_mutex);
+                             (void *) &md->p->mdhim_rs->work_queue_mutex);
 
         //Wait until there is work to be performed
         //Do not loop
         if (!(item = get_work(md))) {
-            pthread_cond_wait(md->p->mdhim_rs->work_ready_cv, md->p->mdhim_rs->work_queue_mutex);
+            pthread_cond_wait(&md->p->mdhim_rs->work_ready_cv, &md->p->mdhim_rs->work_queue_mutex);
             item = get_work(md);
         }
 
         pthread_cleanup_pop(0);
-        pthread_mutex_unlock(md->p->mdhim_rs->work_queue_mutex);
+        pthread_mutex_unlock(&md->p->mdhim_rs->work_queue_mutex);
 
         if (!item) {
             continue;
@@ -1195,7 +1170,7 @@ int range_server_add_oreq(mdhim_t *md, MPI_Request *req, void *msg) {
     out_req_t *oreq;
     out_req_t *item;
 
-    pthread_mutex_lock(md->p->mdhim_rs->out_req_mutex);
+    pthread_mutex_lock(&md->p->mdhim_rs->out_req_mutex);
     item = md->p->mdhim_rs->out_req_list;
     oreq = new out_req_t();
     oreq->next = NULL;
@@ -1205,24 +1180,38 @@ int range_server_add_oreq(mdhim_t *md, MPI_Request *req, void *msg) {
 
     if (!item) {
         md->p->mdhim_rs->out_req_list = oreq;
-        pthread_mutex_unlock(md->p->mdhim_rs->out_req_mutex);
+        pthread_mutex_unlock(&md->p->mdhim_rs->out_req_mutex);
         return MDHIM_SUCCESS;
     }
 
     item->prev = oreq;
     oreq->next = item;
     md->p->mdhim_rs->out_req_list = oreq;
-    pthread_mutex_unlock(md->p->mdhim_rs->out_req_mutex);
+    pthread_mutex_unlock(&md->p->mdhim_rs->out_req_mutex);
 
     return MDHIM_SUCCESS;
 }
 
+static out_req_t *clean_item(out_req_t *item) {
+    if (!item) {
+        return nullptr;
+    }
+
+    out_req_t *next = item->next;
+
+    ::operator delete(item->message);
+    delete item->req;
+    delete item;
+
+    return next;
+}
+
 int range_server_clean_oreqs(mdhim_t *md) {
-    pthread_mutex_lock(md->p->mdhim_rs->out_req_mutex);
+    pthread_mutex_lock(&md->p->mdhim_rs->out_req_mutex);
     out_req_t *item = md->p->mdhim_rs->out_req_list;
     while (item) {
         if (!item->req) {
-            item = item->next;
+            item = clean_item(item);
             continue;
         }
 
@@ -1251,17 +1240,10 @@ int range_server_clean_oreqs(mdhim_t *md) {
             }
         }
 
-        out_req_t *t = item->next;
-        ::operator delete(item->req);
-        if (item->message) {
-            ::operator delete(item->message);
-        }
-
-        delete item;
-        item = t;
+        item = clean_item(item);
     }
 
-    pthread_mutex_unlock(md->p->mdhim_rs->out_req_mutex);
+    pthread_mutex_unlock(&md->p->mdhim_rs->out_req_mutex);
 
     return MDHIM_SUCCESS;
 }
@@ -1299,47 +1281,13 @@ int range_server_init(mdhim_t *md) {
     md->p->mdhim_rs->out_req_list = NULL;
 
     //Initialize work queue mutex
-    md->p->mdhim_rs->work_queue_mutex = new pthread_mutex_t();
-    if (!md->p->mdhim_rs->work_queue_mutex) {
-        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
-             "Error while allocating memory for range server",
-             md->rank);
-        return MDHIM_ERROR;
-    }
-    if ((ret = pthread_mutex_init(md->p->mdhim_rs->work_queue_mutex, NULL)) != 0) {
-        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
-             "Error while initializing work queue mutex", md->rank);
-        return MDHIM_ERROR;
-    }
+    md->p->mdhim_rs->work_queue_mutex = PTHREAD_MUTEX_INITIALIZER;
 
     //Initialize out req mutex
-    md->p->mdhim_rs->out_req_mutex = new pthread_mutex_t();
-    if (!md->p->mdhim_rs->out_req_mutex) {
-        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
-             "Error while allocating memory for range server",
-             md->rank);
-        return MDHIM_ERROR;
-    }
-    if ((ret = pthread_mutex_init(md->p->mdhim_rs->out_req_mutex, NULL)) != 0) {
-        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
-             "Error while initializing out req mutex", md->rank);
-        return MDHIM_ERROR;
-    }
+    md->p->mdhim_rs->out_req_mutex = PTHREAD_MUTEX_INITIALIZER;
 
     //Initialize the condition variables
-    md->p->mdhim_rs->work_ready_cv = new pthread_cond_t();
-    if (!md->p->mdhim_rs->work_ready_cv) {
-        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
-             "Error while allocating memory for range server",
-             md->rank);
-        return MDHIM_ERROR;
-    }
-    if ((ret = pthread_cond_init(md->p->mdhim_rs->work_ready_cv, NULL)) != 0) {
-        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
-             "Error while initializing condition variable",
-             md->rank);
-        return MDHIM_ERROR;
-    }
+    md->p->mdhim_rs->work_ready_cv = PTHREAD_COND_INITIALIZER;
 
     //Initialize worker threads
     md->p->mdhim_rs->workers = new pthread_t *[md->p->db_opts->num_wthreads]();

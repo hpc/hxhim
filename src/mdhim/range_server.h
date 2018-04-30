@@ -26,8 +26,8 @@ typedef struct out_req {
 /* Range server specific data */
 typedef struct mdhim_rs {
 	work_queue_t *work_queue;
-	pthread_mutex_t *work_queue_mutex;
-	pthread_cond_t *work_ready_cv;
+	pthread_mutex_t work_queue_mutex;
+	pthread_cond_t work_ready_cv;
 	pthread_t *listener;
 	pthread_t **workers;
 	index_t *indexes; /* A linked list of remote indexes that is served
@@ -39,7 +39,7 @@ typedef struct mdhim_rs {
 	long num_put;
 	long num_get;
 	out_req_t *out_req_list;
-	pthread_mutex_t *out_req_mutex;
+	pthread_mutex_t out_req_mutex;
 } mdhim_rs_t;
 
 int range_server_add_work(mdhim_t *md, work_item_t *item);

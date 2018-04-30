@@ -34,7 +34,7 @@ TEST(elen, encode_integers) {
 }
 
 // Chapter 3 Integers
-TEST(elen, decode_integers_integers) {
+TEST(elen, decode_integers) {
     EXPECT_EQ(elen::decode::integers<int32_t>("---7898765432108"), -1234567891);
     EXPECT_EQ(elen::decode::integers<int32_t>("---7898765432109"), -1234567890);
     EXPECT_EQ(elen::decode::integers<int32_t>("---7898765432110"), -1234567889);

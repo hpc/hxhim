@@ -511,15 +511,7 @@ int open_db_store(mdhim_t *md, index_t *index) {
  * @return         MDHIM_ERROR on error, otherwise the number of range servers
  */
 uint32_t get_num_range_servers(mdhim_t *md, index_t *rindex) {
-	int size = md->size;
-	uint32_t num_servers = 0;
-	int i = 0;
-
-	// if ((ret = MPI_Comm_size(md->comm, &size)) != MPI_SUCCESS) {
-	// 	mlog(MPI_EMERG, "Rank %d - Couldn't get the size of the comm in get_num_range_servers",
-	// 	     md->rank);
-	// 	return MDHIM_ERROR;
-	// }
+	const int size = md->size;
 
 	/* Get the number of range servers */
 	if (size - 1 < rindex->range_server_factor) {
@@ -528,7 +520,8 @@ uint32_t get_num_range_servers(mdhim_t *md, index_t *rindex) {
 	}
 
 	//Figure out the number of range servers, details on the algorithm are in is_range_server
-	for (i = 0; i < size; i++) {
+	uint32_t num_servers = 0;
+	for (int i = 0; i < size; i++) {
 		if (i % rindex->range_server_factor == 0) {
 			num_servers++;
 		}
@@ -890,8 +883,6 @@ int get_rangesrvs(mdhim_t *md, index_t *index) {
  * @return        MDHIM_ERROR on error, 0 on false, 1 or greater to represent the range server number otherwise
  */
 int32_t is_range_server(mdhim_t *md, int rank, index_t *index) {
-	int size;
-	int ret;
 	int32_t rangesrv_num = 0;
 
 	//If a local index, check to see if the rank is a range server for the primary index
@@ -901,7 +892,8 @@ int32_t is_range_server(mdhim_t *md, int rank, index_t *index) {
 		return rangesrv_num;
 	}
 
-	if ((ret = MPI_Comm_size(md->comm, &size)) != MPI_SUCCESS) {
+	int size;
+	if (MPI_Comm_size(md->comm, &size) != MPI_SUCCESS) {
 		mlog(MPI_EMERG, "Rank %d - Couldn't get the size of the comm in is_range_server",
 		     md->rank);
 		return MDHIM_ERROR;
