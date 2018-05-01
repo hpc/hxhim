@@ -24,9 +24,8 @@ int MPIRangeServer::init(mdhim_t *md, FixedBufferPool *fbp) {
 }
 
 void MPIRangeServer::destroy() {
-    if (listener_) {
-        pthread_join(listener_, nullptr);
-    }
+    pthread_join(listener_, nullptr);
+    fbp_ = nullptr;
 }
 
 /*

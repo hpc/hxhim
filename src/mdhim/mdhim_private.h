@@ -38,6 +38,7 @@ typedef struct mdhim_private {
 
     //The range server structure which is used only if we are a range server
     mdhim_rs_t *mdhim_rs;
+    mdhim_rs_t **mdhim_rss;
     //The mutex used if receiving from ourselves
     pthread_mutex_t receive_msg_mutex;
     //The condition variable used if receiving from ourselves
@@ -87,8 +88,8 @@ TransportBRecvMessage *_bdel_records(mdhim_t *md, index_t *index,
                                      void **keys, std::size_t *key_lens,
                                      std::size_t num_records);
 
-/** @description Internal function for getting the destination range server of a key */
-int _which_server(mdhim_t *md, void *key, std::size_t key_len);
+/** @description Internal function for getting the destination database of a key */
+int _which_db(mdhim_t *md, void *key, std::size_t key_len);
 
 #ifdef __cplusplus
 }

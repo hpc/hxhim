@@ -26,14 +26,14 @@ void get(mdhim_t *md,
     // Get error value
     int error = MDHIM_ERROR;
     if (mdhim_grm_error(grm, &error) != MDHIM_SUCCESS) {
-        err << "Could not GET " << std::string((char *)primary_key, primary_key_len) << " from range server " << mdhimWhichServer(md, primary_key, primary_key_len) << std::endl;
+        err << "Could not GET " << std::string((char *)primary_key, primary_key_len) << " from database " << mdhimWhichDB(md, primary_key, primary_key_len) << std::endl;
         mdhim_grm_destroy(grm);
         return;
     }
 
     // Check error value
     if (error != MDHIM_SUCCESS) {
-        err << "GET " << std::string((char *)primary_key, primary_key_len) << " from range server " << mdhimWhichServer(md, primary_key, primary_key_len) << " returned error " << error << std::endl;
+        err << "GET " << std::string((char *)primary_key, primary_key_len) << " from database " << mdhimWhichDB(md, primary_key, primary_key_len) << " returned error " << error << std::endl;
         mdhim_grm_destroy(grm);
         return;
     }
@@ -56,9 +56,29 @@ void get(mdhim_t *md,
         return;
     }
 
+    int src = -1;
+    if (mdhim_grm_src(grm, &src) != MDHIM_SUCCESS) {
+        err << "Could not get return message source" << std::endl;
+        mdhim_grm_destroy(grm);
+        return;
+    }
+
+    int rs_idx = -1;
+    if (mdhim_grm_rs_idx(grm, &rs_idx) != MDHIM_SUCCESS) {
+        err << "Could not get return message index" << std::endl;
+        mdhim_grm_destroy(grm);
+        return;
+    }
+
+    int db = -1;
+    if (mdhimComposeDB(md, &db, src, rs_idx) != MDHIM_SUCCESS) {
+        err << "Could not compute database id" << std::endl;
+        mdhim_grm_destroy(grm);
+        return;
+    }
+
     // Print value gotten back
-    int src;
-    out << "GET " << std::string(key, key_len) << " -> " << std::string(value, value_len) << " from range server on rank " << ((mdhim_grm_src(grm, &src) == MDHIM_SUCCESS)?src:-1) << std::endl;
+    out << "GET " << std::string(key, key_len) << " -> " << std::string(value, value_len) << " from database " << db << std::endl;
 
     // destroying the return value must occur
     // after the private values are accessed

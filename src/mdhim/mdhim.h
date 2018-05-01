@@ -48,7 +48,10 @@ mdhim_brm_t *mdhimBDelete(mdhim_t *md, index_t *index,
                           void **keys, size_t *key_lens,
                           size_t num_keys);
 
-int mdhimWhichServer(mdhim_t *md, void *key, size_t key_len);
+// Utility functions
+int mdhimWhichDB(mdhim_t *md, void *key, size_t key_len);
+int mdhimDecomposeDB(mdhim_t *md, const int db, int *rank, int *rs_idx);
+int mdhimComposeDB(mdhim_t *md, int *db, const int rank, const int rs_idx);
 
 #ifdef __cplusplus
 }

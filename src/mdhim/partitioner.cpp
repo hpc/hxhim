@@ -222,18 +222,16 @@ int verify_key(index_t *index, void *key,
 int is_float_key(int type) {
 	int ret = 0;
 
-	if (type == MDHIM_STRING_KEY) {
-		ret = 1;
-	} else if (type == MDHIM_FLOAT_KEY) {
-		ret = 1;
-	} else if (type == MDHIM_DOUBLE_KEY) {
-		ret = 1;
-	} else if (type == MDHIM_INT_KEY) {
-		ret = 0;
-	} else if (type == MDHIM_LONG_INT_KEY) {
-		ret = 0;
-	} else if (type == MDHIM_BYTE_KEY) {
-		ret = 1;
+    switch (type) {
+        case MDHIM_STRING_KEY:
+        case MDHIM_FLOAT_KEY:
+        case MDHIM_DOUBLE_KEY:
+        case MDHIM_BYTE_KEY:
+            ret = 1;
+        case MDHIM_INT_KEY:
+        case MDHIM_LONG_INT_KEY:
+        default:
+            ret = 0;
 	}
 
 	return ret;
@@ -259,11 +257,10 @@ int get_slice_num(mdhim_t *md, index_t *index, void *key, int key_len) {
 	double dkey;
 	int ret;
 	long double map_num;
-	uint64_t total_keys;
 	int key_type = index->key_type;
 
 	//The last key number that can be represented by the number of slices and the slice size
-	total_keys = MDHIM_MAX_SLICES *  index->mdhim_max_recs_per_slice;
+	const uint64_t total_keys = MDHIM_MAX_SLICES * index->mdhim_max_recs_per_slice;
 
 	//Make sure this key is valid
 	if ((ret = verify_key(index, key, key_len, key_type)) != MDHIM_SUCCESS) {
@@ -362,21 +359,20 @@ int get_slice_num(mdhim_t *md, index_t *index, void *key, int key_len) {
  * @return the rank of the range server or NULL on error
  */
 rangesrv_info_t *get_range_server_by_slice(mdhim_t *md, index_t *index, int slice) {
-	//The number that maps a key to range server (dependent on key type)
-	uint32_t rangesrv_num;
-	//The range server number that we return
-	rangesrv_info_t *ret_rp;
+	//The number that maps a key to database (dependent on key type)
+	uint32_t database;
 
-	if (index->num_rangesrvs == 1) {
-		rangesrv_num = 1;
+	if (index->num_databases == 1) {
+		database = 0;
 	} else {
-		rangesrv_num = slice % index->num_rangesrvs;
-		rangesrv_num++;
+		database = slice % (index->num_rangesrvs * md->p->db_opts->dbs_per_server);
 	}
 
+	//The range server number that we return
+	rangesrv_info_t *ret_rp = nullptr;
+
 	//Find the range server number in the hash table
-	ret_rp = NULL;
-	HASH_FIND_INT(index->rangesrvs_by_num, &rangesrv_num, ret_rp);
+	HASH_FIND_INT(index->rangesrvs_by_database, &database, ret_rp);
 
 	//Return the rank
 	return ret_rp;

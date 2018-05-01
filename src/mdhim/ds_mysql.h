@@ -17,7 +17,7 @@ struct MDI {
 	char *database;
 };
 
-int mdhim_mysql_open(void **dbh, void **dbs, char *path, int flags, int key_type, struct mdhim_options_t *opts);
+int mdhim_mysql_open(void **dbh, void **dbs, const char *path, int flags, int key_type, struct mdhim_options_t *opts);
 int mdhim_mysql_put(void *dbh, void *key, std::size_t key_len, void *data, std::size_t data_len);
 int mdhim_mysql_get(void *dbh, void *key, std::size_t key_len, void **data, std::size_t *data_len);
 int mdhim_mysql_get_next(void *dbh, void **key, std::size_t *key_len,

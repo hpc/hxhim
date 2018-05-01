@@ -10,8 +10,11 @@
  * Contains information about each range server
  */
 typedef struct rangesrv_info {
+    int32_t database;
+
 	//The range server's rank in the mdhim_comm
 	int32_t rank;
+
 	//The range server's identifier based on rank and number of servers
 	int32_t rangesrv_num;
 	UT_hash_handle hh;         /* makes this structure hashable */

@@ -62,16 +62,35 @@ void bget(mdhim_t *md,
                 err << "BGET error " << error << std::endl;
             }
             else {
+                int src = -1;
+                if (mdhim_bgrm_src(bgrm, &src) != MDHIM_SUCCESS) {
+                    err << "Could not get return message source" << std::endl;
+                    mdhim_bgrm_destroy(bgrm);
+                    return;
+                }
+
+                int *rs_idx = nullptr;
+                if (mdhim_bgrm_rs_idx(bgrm, &rs_idx) != MDHIM_SUCCESS) {
+                    err << "Could not get return message index" << std::endl;
+                    mdhim_bgrm_destroy(bgrm);
+                    return;
+                }
+
                 for(std::size_t i = 0; i < get_num_keys; i++) {
-                    int src;
-                    out << "BGET " << std::string((char *)get_keys[i], get_key_lens[i]) << " -> " << std::string((char *)get_values[i], get_value_lens[i]) << " from range server on rank " << ((mdhim_bgrm_src(bgrm, &src) == MDHIM_SUCCESS)?src:-1) << std::endl;
+                    int db = -1;
+                    if (mdhimComposeDB(md, &db, src, rs_idx[i]) != MDHIM_SUCCESS) {
+                        err << "Could not compute database id" << std::endl;
+                        mdhim_bgrm_destroy(bgrm);
+                        return;
+                    }
+
+                    out << "BGET " << std::string((char *)get_keys[i], get_key_lens[i]) << " -> " << std::string((char *)get_values[i], get_value_lens[i]) << " from database " << db << std::endl;
                 }
             }
         }
         else {
             for(std::size_t i = 0; i < get_num_keys; i++) {
-                int src;
-                out << "Could not BGET " << std::string((char *)get_keys[i], get_key_lens[i]) << " from range server on rank " << ((mdhim_bgrm_src(bgrm, &src) == MDHIM_SUCCESS)?src:-1) << std::endl;
+                out << "Could not BGET " << std::string((char *)get_keys[i], get_key_lens[i]) << " from database " << mdhimWhichDB(md, get_keys[i], get_key_lens[i]) << std::endl;
             }
         }
     }

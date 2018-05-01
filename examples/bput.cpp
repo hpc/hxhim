@@ -30,25 +30,45 @@ void bput(mdhim_t *md,
 
     // Get and print results
     for(int ret = MDHIM_SUCCESS; (ret == MDHIM_SUCCESS) && brm; ret = next(&brm)) {
-        int src;
+        int src = -1;
         if (mdhim_brm_src(brm, &src) != MDHIM_SUCCESS) {
-            err << "Could not get source from BPUT response message" << std::endl;
+            err << "Could not get return message source" << std::endl;
             continue;
         }
 
         // Get error value
         int error = MDHIM_ERROR;
         if (mdhim_brm_error(brm, &error) != MDHIM_SUCCESS) {
-            err << "Could not BPUT to " << src << brm << std::endl;
+            err << "Could not get error" << std::endl;
             continue;
         }
 
         // Check error value
         if (error != MDHIM_SUCCESS) {
-            err << "BPUT to " << src  << " returned error " << error << std::endl;
+            err << "BPUT to range server " << src << " returned error " << error << std::endl;
             continue;
         }
 
-        out << "BPUT to " << src  << " succeeded" << std::endl;
+        std::size_t num_keys_to_rs = 0;
+        if (mdhim_brm_num_keys(brm, &num_keys_to_rs) != MDHIM_SUCCESS) {
+            err << "Could not get number of keys sent to range server " << src << std::endl;
+            continue;
+        }
+
+        int *rs_idx = nullptr;
+        if (mdhim_brm_rs_idx(brm, &rs_idx) != MDHIM_SUCCESS) {
+            err << "Could not get return message indicies" << std::endl;
+            continue;
+        }
+
+        for(int i = 0; i < num_keys_to_rs; i++) {
+            int db = -1;
+            if (mdhimComposeDB(md, &db, src, rs_idx[i]) != MDHIM_SUCCESS) {
+                err << "Could not compute database id" << std::endl;
+                continue;
+            }
+
+            out << "BPUT to " << db  << " succeeded" << std::endl;
+        }
     }
 }

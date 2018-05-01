@@ -29,8 +29,8 @@ class TransportMessage {
         virtual void cleanup();
 
         TransportMessageType mtype;
-        int src;
-        int dst;
+        int src;      // rank
+        int dst;      // rank
         int index;
         int index_type;
         char *index_name;
@@ -48,8 +48,11 @@ class TransportPutMessage final : virtual public TransportMessage {
         std::size_t size() const;
         void cleanup();
 
+        int rs_idx;
+
         void *key;
         std::size_t key_len;
+
         void *value;
         std::size_t value_len;
 };
@@ -66,10 +69,14 @@ class TransportBPutMessage final : virtual public TransportMessage {
         std::size_t size() const;
         void cleanup();
 
+        int *rs_idx;
+
         void **keys;
         std::size_t *key_lens;
+
         void **values;
         std::size_t *value_lens;
+
         std::size_t num_keys;
 };
 
@@ -98,6 +105,8 @@ class TransportGetMessage final : virtual public TransportGet {
         std::size_t size() const;
         void cleanup();
 
+        int rs_idx;
+
         void *key;
         std::size_t key_len;
 };
@@ -113,6 +122,8 @@ class TransportBGetMessage final : virtual public TransportGet {
 
         std::size_t size() const;
         void cleanup();
+
+        int *rs_idx;
 
         void **keys;
         std::size_t *key_lens;
@@ -133,6 +144,8 @@ class TransportDeleteMessage final : virtual public TransportMessage {
         std::size_t size() const;
         void cleanup();
 
+        int rs_idx;
+
         void *key;
         std::size_t key_len;
 };
@@ -149,8 +162,11 @@ class TransportBDeleteMessage final : virtual public TransportMessage {
         std::size_t size() const;
         void cleanup();
 
+        int *rs_idx;
+
         void **keys;
         std::size_t *key_lens;
+
         std::size_t num_keys;
 };
 
@@ -165,6 +181,8 @@ class TransportRecvMessage final : virtual public TransportMessage {
 
         std::size_t size() const;
         void cleanup();
+
+        int rs_idx;
 
         int error;
 };
@@ -181,9 +199,13 @@ class TransportGetRecvMessage final : virtual public TransportMessage {
         std::size_t size() const;
         void cleanup();
 
+        int rs_idx;
+
         int error;
+
         void *key;
         std::size_t key_len;
+
         void *value;
         std::size_t value_len;
 };
@@ -200,12 +222,18 @@ class TransportBGetRecvMessage final : virtual public TransportMessage {
         std::size_t size() const;
         void cleanup();
 
+        int *rs_idx;
+
         int error;
+
         void **keys;
         std::size_t *key_lens;
+
         void **values;
         std::size_t *value_lens;
+
         std::size_t num_keys;
+
         TransportBGetRecvMessage *next;
 };
 
@@ -221,7 +249,12 @@ class TransportBRecvMessage final : virtual public TransportMessage {
         std::size_t size() const;
         void cleanup();
 
+        int *rs_idx;
+
         int error;
+
+        std::size_t num_keys;
+
         TransportBRecvMessage *next;
 };
 

@@ -32,12 +32,6 @@ typedef struct mdhim_rs {
 	pthread_t **workers;
 	index_t *indexes; /* A linked list of remote indexes that is served
                          (partially for fully) by this range server */
-	//Records seconds spent on putting records
-	long double put_time;
-	//Records seconds spend on getting records
-	long double get_time;
-	long num_put;
-	long num_get;
 	out_req_t *out_req_list;
 	pthread_mutex_t out_req_mutex;
 } mdhim_rs_t;

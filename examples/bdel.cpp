@@ -42,7 +42,7 @@ void bdel(mdhim_t *md,
 
     if (!brm) {
         for(int i = 0; i < num_keys; i++) {
-            out << "BDEL " << std::string((char *)keys[i], key_lens[i]) << " from range server on rank " << mdhimWhichServer(md, keys[i], key_lens[i]) << std::endl;;
+            out << "BDEL " << std::string((char *)keys[i], key_lens[i]) << " from database " << mdhimWhichDB(md, keys[i], key_lens[i]) << std::endl;;
         }
     }
 

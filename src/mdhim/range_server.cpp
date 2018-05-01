@@ -20,21 +20,6 @@
 #include "mdhim_options_private.h"
 #include "mdhim_private.h"
 
-static void add_timing(struct timeval start, struct timeval end, int num,
-                       mdhim_t *md, TransportMessageType mtype) {
-    long double elapsed;
-
-    elapsed = (long double) (end.tv_sec - start.tv_sec) +
-        ((long double) (end.tv_usec - start.tv_usec)/1000000.0);
-    if (mtype == TransportMessageType::PUT || mtype == TransportMessageType::BPUT) {
-        md->p->mdhim_rs->put_time += elapsed;
-        md->p->mdhim_rs->num_put += num;
-    } else if (mtype == TransportMessageType::BGET) {
-        md->p->mdhim_rs->get_time += elapsed;
-        md->p->mdhim_rs->num_get += num;
-    }
-}
-
 /**
  * send_locally_or_remote
  * Sends the message remotely or locally
@@ -53,7 +38,6 @@ static int send_locally_or_remote(mdhim_t *md, work_item_t *item, TransportMessa
         //Send the message locally
         pthread_mutex_lock(&md->p->receive_msg_mutex);
         md->p->receive_msg = message;
-
         pthread_cond_signal(&md->p->receive_msg_ready_cv);
         pthread_mutex_unlock(&md->p->receive_msg_mutex);
     }
@@ -89,8 +73,8 @@ static index_t * find_index_by_name(mdhim_t *md, TransportMessage *msg) {
 int range_server_add_work(mdhim_t *md, work_item_t *item) {
     //Lock the work queue mutex
     pthread_mutex_lock(&md->p->mdhim_rs->work_queue_mutex);
-    item->next = NULL;
-    item->prev = NULL;
+    item->next = nullptr;
+    item->prev = nullptr;
 
     //Add work to the tail of the work queue
     if (md->p->mdhim_rs->work_queue->tail) {
@@ -120,12 +104,12 @@ int range_server_add_work(mdhim_t *md, work_item_t *item) {
 static work_item_t *get_work(mdhim_t *md) {
     work_item_t *item = md->p->mdhim_rs->work_queue->head;
     if (!item) {
-        return NULL;
+        return nullptr;
     }
 
-    //Set the list head and tail to NULL
-    md->p->mdhim_rs->work_queue->head = NULL;
-    md->p->mdhim_rs->work_queue->tail = NULL;
+    //Set the list head and tail to nullptr
+    md->p->mdhim_rs->work_queue->head = nullptr;
+    md->p->mdhim_rs->work_queue->tail = nullptr;
 
     //Return the list
     return item;
@@ -153,7 +137,7 @@ int range_server_stop(mdhim_t *md) {
 
     /* Wait for the threads to finish */
     for (int i = 0; i < md->p->db_opts->num_wthreads; i++) {
-        pthread_join(*md->p->mdhim_rs->workers[i], NULL);
+        pthread_join(*md->p->mdhim_rs->workers[i], nullptr);
         delete md->p->mdhim_rs->workers[i];
     }
     delete [] md->p->mdhim_rs->workers;
@@ -164,16 +148,11 @@ int range_server_stop(mdhim_t *md) {
     //Free the work queue
     work_item_t *head = md->p->mdhim_rs->work_queue->head;
     while (head) {
-      work_item_t *temp_item = head->next;
-      delete head;
-      head = temp_item;
+        work_item_t *temp_item = head->next;
+        delete head;
+        head = temp_item;
     }
     delete md->p->mdhim_rs->work_queue;
-
-    mlog(MDHIM_SERVER_INFO, "Rank %d - Inserted:  %ld records in %Lf seconds",
-         md->rank, md->p->mdhim_rs->num_put, md->p->mdhim_rs->put_time);
-    mlog(MDHIM_SERVER_INFO, "Rank %d - Retrieved: %ld records in %Lf seconds",
-         md->rank, md->p->mdhim_rs->num_get, md->p->mdhim_rs->get_time);
 
     //Free the range server data
     delete md->p->mdhim_rs;
@@ -194,22 +173,18 @@ int range_server_stop(mdhim_t *md) {
 static int range_server_put(mdhim_t *md, work_item_t *item) {
     int ret;
     int error = 0;
-    int exists = 0;
+    bool exists = false;
     void *new_value;
     std::size_t new_value_len;
     void *old_value;
     std::size_t old_value_len;
-    struct timeval start, end;
     int inserted = 0;
 
     TransportPutMessage *im = dynamic_cast<TransportPutMessage *>(item->message);
     item->message = nullptr;
 
-    void **value = new void *();
-    *value = nullptr;
-
-    int32_t *value_len = new int32_t();
-    *value_len = 0;
+    void *value = nullptr;
+    std::size_t value_len = 0;
 
     //Get the index referenced the message
     index_t *index = find_index(md, (TransportMessage *) im);
@@ -220,41 +195,31 @@ static int range_server_put(mdhim_t *md, work_item_t *item) {
         goto done;
     }
 
-    gettimeofday(&start, NULL);
-       //Check for the key's existence
-/*    index->mdhim_store->get(index->mdhim_store->db_handle,
-                       im->key, im->key_len, value,
-                       value_len);
-*/
-    //The key already exists
-    if (*value && *value_len) {
-        exists = 1;
-    }
+    // //Check for the key's existence
+    // index->mdhim_stores[im->rs_idx]->get(index->mdhim_stores[im->rs_idx]->db_handle,
+    //                                      im->key, im->key_len, &value, &value_len);
+    // //The key already exists
+    // exists = (value && value_len);
 
     //If the option to append was specified and there is old data, concat the old and new
     if (exists && md->p->db_opts->value_append == MDHIM_DB_APPEND) {
-        old_value = *value;
-        old_value_len = *value_len;
+        old_value = value;
+        old_value_len = value_len;
         new_value_len = old_value_len + im->value_len;
         new_value = ::operator new(new_value_len);
         memcpy(new_value, old_value, old_value_len);
         memcpy((char*)new_value + old_value_len, im->value, im->value_len);
+        free(value);
     } else {
         new_value = im->value;
         new_value_len = im->value_len;
     }
 
-    if (*value && *value_len) {
-        ::operator delete(*value);
-    }
-    delete value;
-    delete value_len;
-
     //Put the record in the database
     if ((ret =
-         index->mdhim_store->put(index->mdhim_store->db_handle,
-                     im->key, im->key_len, new_value,
-                     new_value_len)) != MDHIM_SUCCESS) {
+         index->mdhim_stores[im->rs_idx]->put(index->mdhim_stores[im->rs_idx]->db_handle,
+                                              im->key, im->key_len, new_value,
+                                              new_value_len)) != MDHIM_SUCCESS) {
         mlog(MDHIM_SERVER_CRIT, "Rank %d - Error putting record",
              md->rank);
         error = ret;
@@ -263,21 +228,19 @@ static int range_server_put(mdhim_t *md, work_item_t *item) {
     }
 
     if (!exists && error == MDHIM_SUCCESS) {
-        update_stat(md, index, im->key, im->key_len);
+        update_stat(md, index, im->rs_idx, im->key, im->key_len);
     }
 
-    gettimeofday(&end, NULL);
-    add_timing(start, end, inserted, md, TransportMessageType::PUT);
-
-done:
+  done:
     //Create the response message
     TransportRecvMessage *rm = new TransportRecvMessage();
     //Set the type
     rm->mtype = TransportMessageType::RECV;
     //Set the operation return code as the error
     rm->error = error;
-    rm->src = md->rank;
+    rm->src = im->dst;
     rm->dst = im->src;
+    rm->rs_idx = im->rs_idx;
 
     //Free memory
     if (exists && md->p->db_opts->value_append == MDHIM_DB_APPEND) {
@@ -309,23 +272,17 @@ done:
 static int range_server_bput(mdhim_t *md, work_item_t *item) {
     int ret;
     int error = MDHIM_SUCCESS;
-    std::size_t value_len;
     void *new_value;
     std::size_t new_value_len;
     void *old_value;
     std::size_t old_value_len;
-    struct timeval start, end;
     int num_put = 0;
-
-    gettimeofday(&start, NULL);
 
     TransportBPutMessage *bim = dynamic_cast<TransportBPutMessage *>(item->message);
     item->message = nullptr;
 
-    int *exists = new int[bim->num_keys]();
     void **new_values = new void *[bim->num_keys]();
     std::size_t *new_value_lens = new std::size_t[bim->num_keys]();
-    void **value = new void *();
 
     //Get the index referenced the message
     index_t *index = find_index(md, (TransportMessage *)bim);
@@ -338,29 +295,25 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
 
     //Iterate through the arrays and insert each record
     for (std::size_t i = 0; i < bim->num_keys && i < MAX_BULK_OPS; i++) {
-        *value = nullptr;
-        value_len = 0;
+        void *value = nullptr;
+        std::size_t value_len = 0;
 
         //Check for the key's existence
-        index->mdhim_store->get(index->mdhim_store->db_handle,
-                                bim->keys[i], bim->key_lens[i], value,
-                                &value_len);
+        index->mdhim_stores[bim->rs_idx[i]]->get(index->mdhim_stores[bim->rs_idx[i]]->db_handle,
+                                                 bim->keys[i], bim->key_lens[i], &value,
+                                                 &value_len);
         //The key already exists
-        if (*value && value_len) {
-            exists[i] = 1;
-        } else {
-            exists[i] = 0;
-        }
+        const bool exists = (value && value_len);
 
         //If the option to append was specified and there is old data, concat the old and new
-        if (exists[i] && md->p->db_opts->value_append == MDHIM_DB_APPEND) {
-            old_value = *value;
+        if (exists && md->p->db_opts->value_append == MDHIM_DB_APPEND) {
+            old_value = value;
             old_value_len = value_len;
             new_value_len = old_value_len + bim->value_lens[i];
             new_value = ::operator new(new_value_len);
             memcpy(new_value, old_value, old_value_len);
             memcpy((char*)new_value + old_value_len, bim->values[i], bim->value_lens[i]);
-            if (exists[i] && bim->src != md->rank) {
+            if (exists && bim->src != md->rank) {
                 ::operator delete(bim->values[i]);
                 bim->values[i] = nullptr;
             }
@@ -372,32 +325,30 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
             new_value_lens[i] = bim->value_lens[i];
         }
 
-        if (*value) {
+        if (value) {
             // value comes from leveldb
-            free(*value);
-            *value = nullptr;
+            free(value);
+            value = nullptr;
         }
-    }
 
-    //Put the record in the database
-    if ((ret =
-         index->mdhim_store->batch_put(index->mdhim_store->db_handle,
-                                       bim->keys, bim->key_lens, new_values,
-                                       new_value_lens, bim->num_keys)) != MDHIM_SUCCESS) {
-        mlog(MDHIM_SERVER_CRIT, "Rank %d - Error batch putting records",
-             md->rank);
-        error = ret;
-    } else {
-        num_put = bim->num_keys;
-    }
+        //Put the record in the database
+        if ((ret =
+             index->mdhim_stores[bim->rs_idx[i]]->put(index->mdhim_stores[bim->rs_idx[i]]->db_handle,
+                                                      bim->keys[i], bim->key_lens[i],
+                                                      new_values[i], new_value_lens[i])) != MDHIM_SUCCESS) {
+            mlog(MDHIM_SERVER_CRIT, "Rank %d - Error batch putting records",
+                 md->rank);
+            error = ret;
+        } else {
+            num_put = bim->num_keys;
+        }
 
-    for (std::size_t i = 0; i < bim->num_keys && i < MAX_BULK_OPS; i++) {
         //Update the stats if this key didn't exist before
-        if (!exists[i] && error == MDHIM_SUCCESS) {
-            update_stat(md, index, bim->keys[i], bim->key_lens[i]);
+        if (!exists && error == MDHIM_SUCCESS) {
+            update_stat(md, index, bim->rs_idx[i], bim->keys[i], bim->key_lens[i]);
         }
 
-        if (exists[i] && md->p->db_opts->value_append == MDHIM_DB_APPEND) {
+        if (exists && md->p->db_opts->value_append == MDHIM_DB_APPEND) {
             //Release the value created for appending the new and old value
             ::operator delete(new_values[i]);
         }
@@ -411,27 +362,25 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
         }
     }
 
-    delete [] exists;
     delete [] new_values;
     delete [] new_value_lens;
-    delete value;
-    gettimeofday(&end, NULL);
-    add_timing(start, end, num_put, md, TransportMessageType::BPUT);
 
- done:
+  done:
 
     //Create the response message
-    TransportRecvMessage *brm = new TransportRecvMessage();
+    TransportBRecvMessage *brm = new TransportBRecvMessage();
 
     //Set the type
-    brm->mtype = TransportMessageType::RECV;
-    brm->error = error;
-    brm->src = md->rank;
+    brm->mtype = TransportMessageType::RECV_BULK;
+    brm->src = bim->dst;
     brm->dst = bim->src;
+    brm->error = error;
+    brm->num_keys = bim->num_keys;
+    brm->rs_idx = new int[bim->num_keys]();
+    memcpy(brm->rs_idx, bim->rs_idx, bim->num_keys * sizeof(*bim->rs_idx));
 
     //Release the internals of the bput message
     delete bim;
-
 
     //Send response
     return send_locally_or_remote(md, item, brm);
@@ -463,19 +412,20 @@ static int range_server_del(mdhim_t *md, work_item_t *item) {
 
     //Delete the record from the database
     if ((ret =
-         index->mdhim_store->del(index->mdhim_store->db_handle,
-                                 dm->key, dm->key_len)) != MDHIM_SUCCESS) {
+         index->mdhim_stores[dm->rs_idx]->del(index->mdhim_stores[dm->rs_idx]->db_handle,
+                                              dm->key, dm->key_len)) != MDHIM_SUCCESS) {
         mlog(MDHIM_SERVER_CRIT, "Rank %d - Error deleting record",
              md->rank);
     }
 
- done:
+  done:
     //Create the response message
     TransportRecvMessage *rm = new TransportRecvMessage();
     rm->mtype = TransportMessageType::RECV;
     rm->error = ret;
-    rm->src = md->rank;
+    rm->src = dm->dst;
     rm->dst = dm->src;
+    rm->rs_idx = dm->rs_idx;
 
     delete dm;
 
@@ -512,8 +462,8 @@ int range_server_bdel(mdhim_t *md, work_item_t *item) {
         //Put the record in the database
         int ret;
         if ((ret =
-             index->mdhim_store->del(index->mdhim_store->db_handle,
-                                     bdm->keys[i], bdm->key_lens[i]))
+             index->mdhim_stores[bdm->rs_idx[i]]->del(index->mdhim_stores[bdm->rs_idx[i]]->db_handle,
+                                                      bdm->keys[i], bdm->key_lens[i]))
             != MDHIM_SUCCESS) {
             mlog(MDHIM_SERVER_CRIT, "Rank %d - Error deleting record",
                  md->rank);
@@ -521,13 +471,15 @@ int range_server_bdel(mdhim_t *md, work_item_t *item) {
         }
     }
 
-done:
+  done:
     //Create the response message
-    TransportRecvMessage *brm = new TransportRecvMessage();
-    brm->mtype = TransportMessageType::RECV;
+    TransportBRecvMessage *brm = new TransportBRecvMessage();
+    brm->mtype = TransportMessageType::RECV_BULK;
     brm->error = error;
-    brm->src = md->rank;
+    brm->src = bdm->dst;
     brm->dst = bdm->src;
+    brm->rs_idx = new int[bdm->num_keys]();
+    memcpy(brm->rs_idx, bdm->rs_idx, bdm->num_keys * sizeof(*bdm->rs_idx));
 
     delete bdm;
 
@@ -560,28 +512,33 @@ static int range_server_commit(mdhim_t *md, work_item_t *item) {
         goto done;
     }
 
-        //Put the record in the database
-    if ((ret =
-         index->mdhim_store->commit(index->mdhim_store->db_handle))
-        != MDHIM_SUCCESS) {
-        mlog(MDHIM_SERVER_CRIT, "Rank %d - Error committing database",
-             md->rank);
+    //Put the record in the database
+    for(int i = 0; i < md->p->db_opts->dbs_per_server; i++) {
+        if ((ret =
+             index->mdhim_stores[i]->commit(index->mdhim_stores[i]->db_handle))
+            != MDHIM_SUCCESS) {
+            mlog(MDHIM_SERVER_CRIT, "Rank %d - Error committing database",
+                 md->rank);
+        }
     }
 
- done:
+  done:
     //Create the response message
-    TransportRecvMessage *rm = new TransportRecvMessage();
+    TransportBRecvMessage *brm = new TransportBRecvMessage();
     //Set the type
-    rm->mtype = TransportMessageType::RECV;
+    brm->mtype = TransportMessageType::RECV;
     //Set the operation return code as the error
-    rm->error = ret;
-    rm->src = md->rank;
-    rm->dst = im->src;
-
+    brm->error = ret;
+    brm->src = im->dst;
+    brm->dst = im->src;
+    brm->rs_idx = new int[md->p->db_opts->dbs_per_server]();
+    for(int i = 0; i < md->p->db_opts->dbs_per_server; i++) {
+        brm->rs_idx[i] = i;
+    }
     delete im;
 
     //Send response
-    return send_locally_or_remote(md, item, rm);
+    return send_locally_or_remote(md, item, brm);
 }
 
 /**
@@ -598,10 +555,6 @@ static int range_server_get(mdhim_t *md, work_item_t *item) {
     void *value = nullptr;
     std::size_t value_len = 0;
     int error = 0;
-    struct timeval start, end;
-    int num_retrieved = 0;
-
-    gettimeofday(&start, NULL);
 
     TransportGetMessage *gm = dynamic_cast<TransportGetMessage *>(item->message);
     item->message = nullptr;
@@ -617,58 +570,58 @@ static int range_server_get(mdhim_t *md, work_item_t *item) {
         // Gets the value for the given key
         case TransportGetMessageOp::GET_EQ:
             if ((ret =
-                 index->mdhim_store->get(index->mdhim_store->db_handle,
-                                         gm->key, gm->key_len, &value,
-                                         &value_len)) != MDHIM_SUCCESS) {
+                 index->mdhim_stores[gm->rs_idx]->get(index->mdhim_stores[gm->rs_idx]->db_handle,
+                                                      gm->key, gm->key_len, &value,
+                                                      &value_len)) != MDHIM_SUCCESS) {
                 error = ret;
                 value_len = 0;
                 value = nullptr;
             }
 
             break;
-        /* Gets the next key and value that is in order after the passed in key */
+            /* Gets the next key and value that is in order after the passed in key */
         case TransportGetMessageOp::GET_NEXT:
             if ((ret =
-                 index->mdhim_store->get_next(index->mdhim_store->db_handle,
-                                              &gm->key, &gm->key_len, &value,
-                                              &value_len)) != MDHIM_SUCCESS) {
+                 index->mdhim_stores[gm->rs_idx]->get_next(index->mdhim_stores[gm->rs_idx]->db_handle,
+                                                           &gm->key, &gm->key_len, &value,
+                                                           &value_len)) != MDHIM_SUCCESS) {
                 error = ret;
                 value_len = 0;
                 value = nullptr;
             }
 
             break;
-        /* Gets the previous key and value that is in order before the passed in key
-           or the last key if no key was passed in */
+            /* Gets the previous key and value that is in order before the passed in key
+               or the last key if no key was passed in */
         case TransportGetMessageOp::GET_PREV:
             if ((ret =
-                 index->mdhim_store->get_prev(index->mdhim_store->db_handle,
-                                              &gm->key, &gm->key_len, &value,
-                                              &value_len)) != MDHIM_SUCCESS) {
+                 index->mdhim_stores[gm->rs_idx]->get_prev(index->mdhim_stores[gm->rs_idx]->db_handle,
+                                                           &gm->key, &gm->key_len, &value,
+                                                           &value_len)) != MDHIM_SUCCESS) {
                 error = ret;
                 value_len = 0;
                 value = nullptr;
             }
 
             break;
-        /* Gets the first key/value */
+            /* Gets the first key/value */
         case TransportGetMessageOp::GET_FIRST:
             if ((ret =
-                 index->mdhim_store->get_next(index->mdhim_store->db_handle,
-                                              &gm->key, 0, &value,
-                                              &value_len)) != MDHIM_SUCCESS) {
+                 index->mdhim_stores[gm->rs_idx]->get_next(index->mdhim_stores[gm->rs_idx]->db_handle,
+                                                           &gm->key, 0, &value,
+                                                           &value_len)) != MDHIM_SUCCESS) {
                 error = ret;
                 value_len = 0;
                 value = nullptr;
             }
 
             break;
-        /* Gets the last key/value */
+            /* Gets the last key/value */
         case TransportGetMessageOp::GET_LAST:
             if ((ret =
-                 index->mdhim_store->get_prev(index->mdhim_store->db_handle,
-                                              &gm->key, 0, &value,
-                                              &value_len)) != MDHIM_SUCCESS) {
+                 index->mdhim_stores[gm->rs_idx]->get_prev(index->mdhim_stores[gm->rs_idx]->db_handle,
+                                                           &gm->key, 0, &value,
+                                                           &value_len)) != MDHIM_SUCCESS) {
                 error = ret;
                 value_len = 0;
                 value = nullptr;
@@ -679,18 +632,16 @@ static int range_server_get(mdhim_t *md, work_item_t *item) {
             break;
     }
 
-    gettimeofday(&end, NULL);
-    add_timing(start, end, num_retrieved, md, TransportMessageType::BGET);
-
-done:
+  done:
     //Create the response message
     TransportGetRecvMessage *grm = new TransportGetRecvMessage();
     //Set the type
     grm->mtype = TransportMessageType::RECV_GET;
     //Set the operation return code as the error
     grm->error = error;
-    grm->src = md->rank;
+    grm->src = gm->dst;
     grm->dst = gm->src;
+    grm->rs_idx = gm->rs_idx;
     //Set the key and value
 
     if (gm->src == md->rank) {
@@ -736,10 +687,6 @@ done:
 static int range_server_bget(mdhim_t *md, work_item_t *item) {
     int ret;
     int error = 0;
-    struct timeval start, end;
-    int num_retrieved = 0;
-
-    gettimeofday(&start, NULL);
 
     TransportBGetMessage *bgm = dynamic_cast<TransportBGetMessage *>(item->message);
     item->message = nullptr;
@@ -762,21 +709,21 @@ static int range_server_bget(mdhim_t *md, work_item_t *item) {
             // Gets the value for the given key
             case TransportGetMessageOp::GET_EQ:
                 if ((ret =
-                     index->mdhim_store->get(index->mdhim_store->db_handle,
-                                             bgm->keys[i], bgm->key_lens[i], &values[i],
-                                             &value_lens[i])) != MDHIM_SUCCESS) {
+                     index->mdhim_stores[bgm->rs_idx[i]]->get(index->mdhim_stores[bgm->rs_idx[i]]->db_handle,
+                                                           bgm->keys[i], bgm->key_lens[i], &values[i],
+                                                           &value_lens[i])) != MDHIM_SUCCESS) {
                     error = ret;
                     value_lens[i] = 0;
                     values[i] = nullptr;
                     continue;
                 }
                 break;
-            /* Gets the next key and value that is in order after the passed in key */
+                /* Gets the next key and value that is in order after the passed in key */
             case TransportGetMessageOp::GET_NEXT:
                 if ((ret =
-                     index->mdhim_store->get_next(index->mdhim_store->db_handle,
-                                                  &bgm->keys[i], &bgm->key_lens[i], &values[i],
-                                                  &value_lens[i])) != MDHIM_SUCCESS) {
+                     index->mdhim_stores[bgm->rs_idx[i]]->get_next(index->mdhim_stores[bgm->rs_idx[i]]->db_handle,
+                                                                &bgm->keys[i], &bgm->key_lens[i], &values[i],
+                                                                &value_lens[i])) != MDHIM_SUCCESS) {
                     mlog(MDHIM_SERVER_DBG, "Rank %d - Error getting record", md->rank);
                     error = ret;
                     value_lens[i] = 0;
@@ -785,13 +732,13 @@ static int range_server_bget(mdhim_t *md, work_item_t *item) {
                 }
 
                 break;
-            /* Gets the previous key and value that is in order before the passed in key
-               or the last key if no key was passed in */
+                /* Gets the previous key and value that is in order before the passed in key
+                   or the last key if no key was passed in */
             case TransportGetMessageOp::GET_PREV:
                 if ((ret =
-                     index->mdhim_store->get_prev(index->mdhim_store->db_handle,
-                                                  &bgm->keys[i], &bgm->key_lens[i], &values[i],
-                                                  &value_lens[i])) != MDHIM_SUCCESS) {
+                     index->mdhim_stores[bgm->rs_idx[i]]->get_prev(index->mdhim_stores[bgm->rs_idx[i]]->db_handle,
+                                                                &bgm->keys[i], &bgm->key_lens[i], &values[i],
+                                                                &value_lens[i])) != MDHIM_SUCCESS) {
                     mlog(MDHIM_SERVER_DBG, "Rank %d - Error getting record", md->rank);
                     error = ret;
                     value_lens[i] = 0;
@@ -800,12 +747,12 @@ static int range_server_bget(mdhim_t *md, work_item_t *item) {
                 }
 
                 break;
-             /* Gets the first key/value */
+                /* Gets the first key/value */
             case TransportGetMessageOp::GET_FIRST:
                 if ((ret =
-                     index->mdhim_store->get_next(index->mdhim_store->db_handle,
-                                                  &bgm->keys[i], 0, &values[i],
-                                                  &value_lens[i])) != MDHIM_SUCCESS) {
+                     index->mdhim_stores[bgm->rs_idx[i]]->get_next(index->mdhim_stores[bgm->rs_idx[i]]->db_handle,
+                                                                &bgm->keys[i], 0, &values[i],
+                                                                &value_lens[i])) != MDHIM_SUCCESS) {
                     mlog(MDHIM_SERVER_DBG, "Rank %d - Error getting record", md->rank);
                     error = ret;
                     value_lens[i] = 0;
@@ -814,12 +761,12 @@ static int range_server_bget(mdhim_t *md, work_item_t *item) {
                 }
 
                 break;
-            /* Gets the last key/value */
+                /* Gets the last key/value */
             case TransportGetMessageOp::GET_LAST:
                 if ((ret =
-                     index->mdhim_store->get_prev(index->mdhim_store->db_handle,
-                                                  &bgm->keys[i], 0, &values[i],
-                                                  &value_lens[i])) != MDHIM_SUCCESS) {
+                     index->mdhim_stores[bgm->rs_idx[i]]->get_prev(index->mdhim_stores[bgm->rs_idx[i]]->db_handle,
+                                                                &bgm->keys[i], 0, &values[i],
+                                                                &value_lens[i])) != MDHIM_SUCCESS) {
                     mlog(MDHIM_SERVER_DBG, "Rank %d - Error getting record", md->rank);
                     error = ret;
                     value_lens[i] = 0;
@@ -833,14 +780,9 @@ static int range_server_bget(mdhim_t *md, work_item_t *item) {
                      md->rank, (int) bgm->op);
                 continue;
         }
-
-        num_retrieved++;
     }
 
-    gettimeofday(&end, NULL);
-    add_timing(start, end, num_retrieved, md, TransportMessageType::BGET);
-
-done:
+  done:
 
     //Create the response message
     TransportBGetRecvMessage *bgrm = new TransportBGetRecvMessage();
@@ -848,8 +790,10 @@ done:
     bgrm->mtype = TransportMessageType::RECV_BGET;
     //Set the operation return code as the error
     bgrm->error = error;
-    bgrm->src = md->rank;
+    bgrm->src = bgm->dst;
     bgrm->dst = bgm->src;
+    bgrm->rs_idx = new int[bgm->num_keys]();
+    memcpy(bgrm->rs_idx, bgm->rs_idx, bgm->num_keys * sizeof(*bgm->rs_idx));
     bgrm->num_keys = bgm->num_keys;
     bgrm->index = index?index->id:-1;
     bgrm->index_type = index?index->type:BAD_INDEX;
@@ -909,10 +853,11 @@ done:
 static int range_server_bget_op(mdhim_t *md, work_item_t *item, TransportGetMessageOp op) {
     int error = 0;
     int ret;
-    struct timeval start, end;
 
     TransportBGetMessage *bgm = dynamic_cast<TransportBGetMessage *>(item->message);
     item->message = nullptr;
+
+    const int rs_idx = bgm->dst % md->p->db_opts->dbs_per_server;
 
     //Initialize pointers and lengths
     const std::size_t count = bgm->num_keys * bgm->num_recs;
@@ -950,11 +895,10 @@ static int range_server_bget_op(mdhim_t *md, work_item_t *item, TransportGetMess
 
     mlog(MDHIM_SERVER_CRIT, "Rank %d - Num keys is: %zu and num recs is: %zu",
          md->rank, bgm->num_keys, bgm->num_recs);
-    gettimeofday(&start, NULL);
     //Iterate through the arrays and get each record
     for (std::size_t i = 0; i < bgm->num_keys; i++) {
         for (int j = 0; j < bgm->num_recs; j++) {
-            keys[num_records] = NULL;
+            keys[num_records] = nullptr;
             key_lens[num_records] = 0;
 
             //If we were passed in a key, copy it
@@ -964,79 +908,79 @@ static int range_server_bget_op(mdhim_t *md, work_item_t *item, TransportGetMess
                 *get_key_len = bgm->key_lens[i];
                 //If we were not passed a key and this is a next/prev, then return an error
             } else if (!j && (!bgm->key_lens[i] || !bgm->keys[i])
-                   && (op ==  TransportGetMessageOp::GET_NEXT ||
-                       op == TransportGetMessageOp::GET_PREV)) {
+                       && (op ==  TransportGetMessageOp::GET_NEXT ||
+                           op == TransportGetMessageOp::GET_PREV)) {
                 error = MDHIM_ERROR;
                 goto respond;
             }
 
             switch(op) {
                 //Get a record from the database
-            case TransportGetMessageOp::GET_FIRST:
-                if (j == 0) {
-                    keys[num_records] = NULL;
-                    key_lens[num_records] = sizeof(int32_t);
-                }
-            case TransportGetMessageOp::GET_NEXT:
-                if (j && (ret =
-                      index->mdhim_store->get_next(index->mdhim_store->db_handle,
-                                       get_key, get_key_len,
-                                       get_value,
-                                       get_value_len))
-                    != MDHIM_SUCCESS) {
-                    mlog(MDHIM_SERVER_DBG, "Rank %d - Couldn't get next record",
+                case TransportGetMessageOp::GET_FIRST:
+                    if (j == 0) {
+                        keys[num_records] = nullptr;
+                        key_lens[num_records] = sizeof(int32_t);
+                    }
+                case TransportGetMessageOp::GET_NEXT:
+                    if (j && (ret =
+                              index->mdhim_stores[rs_idx]->get_next(index->mdhim_stores[rs_idx]->db_handle,
+                                                                   get_key, get_key_len,
+                                                                   get_value,
+                                                                   get_value_len))
+                        != MDHIM_SUCCESS) {
+                        mlog(MDHIM_SERVER_DBG, "Rank %d - Couldn't get next record",
+                             md->rank);
+                        error = ret;
+                        key_lens[num_records] = 0;
+                        value_lens[num_records] = 0;
+                        goto respond;
+                    } else if (!j && (ret =
+                                      index->mdhim_stores[rs_idx]->get(index->mdhim_stores[rs_idx]->db_handle,
+                                                                      *get_key, *get_key_len,
+                                                                      get_value,
+                                                                      get_value_len))
+                               != MDHIM_SUCCESS) {
+                        error = ret;
+                        key_lens[num_records] = 0;
+                        value_lens[num_records] = 0;
+                        goto respond;
+                    }
+                    break;
+                case TransportGetMessageOp::GET_LAST:
+                    if (j == 0) {
+                        keys[num_records] = nullptr;
+                        key_lens[num_records] = sizeof(std::size_t);
+                    }
+                case TransportGetMessageOp::GET_PREV:
+                    if (j && (ret =
+                              index->mdhim_stores[rs_idx]->get_prev(index->mdhim_stores[rs_idx]->db_handle,
+                                                                   get_key, get_key_len,
+                                                                   get_value,
+                                                                   get_value_len))
+                        != MDHIM_SUCCESS) {
+                        mlog(MDHIM_SERVER_DBG, "Rank %d - Couldn't get prev record",
+                             md->rank);
+                        error = ret;
+                        key_lens[num_records] = 0;
+                        value_lens[num_records] = 0;
+                        goto respond;
+                    } else if (!j && (ret =
+                                      index->mdhim_stores[rs_idx]->get(index->mdhim_stores[rs_idx]->db_handle,
+                                                                      *get_key, *get_key_len,
+                                                                      get_value,
+                                                                      get_value_len))
+                               != MDHIM_SUCCESS) {
+                        error = ret;
+                        key_lens[num_records] = 0;
+                        value_lens[num_records] = 0;
+                        goto respond;
+                    }
+                    break;
+                default:
+                    mlog(MDHIM_SERVER_CRIT, "Rank %d - Invalid operation for bulk get op",
                          md->rank);
-                    error = ret;
-                    key_lens[num_records] = 0;
-                    value_lens[num_records] = 0;
                     goto respond;
-                } else if (!j && (ret =
-                          index->mdhim_store->get(index->mdhim_store->db_handle,
-                                      *get_key, *get_key_len,
-                                      get_value,
-                                      get_value_len))
-                       != MDHIM_SUCCESS) {
-                    error = ret;
-                    key_lens[num_records] = 0;
-                    value_lens[num_records] = 0;
-                    goto respond;
-                }
-                break;
-            case TransportGetMessageOp::GET_LAST:
-                if (j == 0) {
-                    keys[num_records] = NULL;
-                    key_lens[num_records] = sizeof(std::size_t);
-                }
-            case TransportGetMessageOp::GET_PREV:
-                if (j && (ret =
-                      index->mdhim_store->get_prev(index->mdhim_store->db_handle,
-                                       get_key, get_key_len,
-                                       get_value,
-                                       get_value_len))
-                    != MDHIM_SUCCESS) {
-                    mlog(MDHIM_SERVER_DBG, "Rank %d - Couldn't get prev record",
-                         md->rank);
-                    error = ret;
-                    key_lens[num_records] = 0;
-                    value_lens[num_records] = 0;
-                    goto respond;
-                } else if (!j && (ret =
-                          index->mdhim_store->get(index->mdhim_store->db_handle,
-                                      *get_key, *get_key_len,
-                                      get_value,
-                                      get_value_len))
-                       != MDHIM_SUCCESS) {
-                    error = ret;
-                    key_lens[num_records] = 0;
-                    value_lens[num_records] = 0;
-                    goto respond;
-                }
-                break;
-            default:
-                mlog(MDHIM_SERVER_CRIT, "Rank %d - Invalid operation for bulk get op",
-                     md->rank);
-                goto respond;
-                break;
+                    break;
             }
 
             keys[num_records] = *get_key;
@@ -1047,19 +991,15 @@ static int range_server_bget_op(mdhim_t *md, work_item_t *item, TransportGetMess
         }
     }
 
-respond:
-    gettimeofday(&end, NULL);
-    add_timing(start, end, num_records, md, TransportMessageType::BGET);
-
+  respond:
     //Create the response message
     TransportBGetRecvMessage *bgrm = new TransportBGetRecvMessage();
-    //Set the type
     bgrm->mtype = TransportMessageType::RECV_BGET;
-    //Set the operation return code as the error
     bgrm->error = error;
-    bgrm->src = md->rank;
+    bgrm->src = bgm->dst;
     bgrm->dst = bgm->src;
-    //Set the keys and values
+    bgrm->rs_idx = new int[bgm->num_keys]();
+    memcpy(bgrm->rs_idx, bgm->rs_idx, bgm->num_keys * sizeof(*bgm->rs_idx));
     bgrm->keys = keys;
     bgrm->key_lens = key_lens;
     bgrm->values = values;
@@ -1120,16 +1060,16 @@ static void *worker_thread(void *data) {
         //Call the appropriate function depending on the message type
         while (item) {
             switch(item->message->mtype) {
-            case TransportMessageType::PUT:
-                range_server_put(md, item);
-                break;
-            case TransportMessageType::GET:
-                range_server_get(md, item);
-                break;
-            case TransportMessageType::BPUT:
-                range_server_bput(md, item);
-                break;
-            case TransportMessageType::BGET:
+                case TransportMessageType::PUT:
+                    range_server_put(md, item);
+                    break;
+                case TransportMessageType::GET:
+                    range_server_get(md, item);
+                    break;
+                case TransportMessageType::BPUT:
+                    range_server_bput(md, item);
+                    break;
+                case TransportMessageType::BGET:
                 {
                     TransportBGetMessage *bgm = dynamic_cast<TransportBGetMessage *>(item->message);
                     //The client is sending one key, but requesting the retrieval of more than one
@@ -1141,17 +1081,17 @@ static void *worker_thread(void *data) {
                     }
                 }
                 break;
-            case TransportMessageType::DELETE:
-                range_server_del(md, item);
-                break;
-            case TransportMessageType::BDELETE:
-                range_server_bdel(md, item);
-                break;
-            case TransportMessageType::COMMIT:
-                range_server_commit(md, item);
-                break;
-            default:
-                break;
+                case TransportMessageType::DELETE:
+                    range_server_del(md, item);
+                    break;
+                case TransportMessageType::BDELETE:
+                    range_server_bdel(md, item);
+                    break;
+                case TransportMessageType::COMMIT:
+                    range_server_commit(md, item);
+                    break;
+                default:
+                    break;
             }
 
             work_item_t *item_tmp = item;
@@ -1163,7 +1103,7 @@ static void *worker_thread(void *data) {
         range_server_clean_oreqs(md);
     }
 
-    return NULL;
+    return nullptr;
 }
 
 int range_server_add_oreq(mdhim_t *md, MPI_Request *req, void *msg) {
@@ -1173,8 +1113,8 @@ int range_server_add_oreq(mdhim_t *md, MPI_Request *req, void *msg) {
     pthread_mutex_lock(&md->p->mdhim_rs->out_req_mutex);
     item = md->p->mdhim_rs->out_req_list;
     oreq = new out_req_t();
-    oreq->next = NULL;
-    oreq->prev = NULL;
+    oreq->next = nullptr;
+    oreq->prev = nullptr;
     oreq->message = msg;
     oreq->req = req;
 
@@ -1229,7 +1169,7 @@ int range_server_clean_oreqs(mdhim_t *md) {
         if (item == md->p->mdhim_rs->out_req_list) {
             md->p->mdhim_rs->out_req_list = item->next;
             if (item->next) {
-                item->next->prev = NULL;
+                item->next->prev = nullptr;
             }
         } else {
             if (item->next) {
@@ -1267,18 +1207,13 @@ int range_server_init(mdhim_t *md) {
         return MDHIM_ERROR;
     }
 
-    //Initialize variables for printing out timings
-    md->p->mdhim_rs->put_time = 0;
-    md->p->mdhim_rs->get_time = 0;
-    md->p->mdhim_rs->num_put = 0;
-    md->p->mdhim_rs->num_get = 0;
     //Initialize work queue
     md->p->mdhim_rs->work_queue = new work_queue_t();
-    md->p->mdhim_rs->work_queue->head = NULL;
-    md->p->mdhim_rs->work_queue->tail = NULL;
+    md->p->mdhim_rs->work_queue->head = nullptr;
+    md->p->mdhim_rs->work_queue->tail = nullptr;
 
     //Initialize the outstanding request list
-    md->p->mdhim_rs->out_req_list = NULL;
+    md->p->mdhim_rs->out_req_list = nullptr;
 
     //Initialize work queue mutex
     md->p->mdhim_rs->work_queue_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -1293,8 +1228,8 @@ int range_server_init(mdhim_t *md) {
     md->p->mdhim_rs->workers = new pthread_t *[md->p->db_opts->num_wthreads]();
     for (std::size_t i = 0; i < md->p->db_opts->num_wthreads; i++) {
         md->p->mdhim_rs->workers[i] = new pthread_t();
-        if ((ret = pthread_create(md->p->mdhim_rs->workers[i], NULL,
-                      worker_thread, (void *) md)) != 0) {
+        if ((ret = pthread_create(md->p->mdhim_rs->workers[i], nullptr,
+                                  worker_thread, (void *) md)) != 0) {
             mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
                  "Error while initializing worker thread",
                  md->rank);

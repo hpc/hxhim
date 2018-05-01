@@ -28,6 +28,7 @@ class ThalliumUnpacker {
         static int unpack(TransportRecvMessage     **rm,   const std::string &buf);
         static int unpack(TransportGetRecvMessage  **grm,  const std::string &buf);
         static int unpack(TransportBGetRecvMessage **bgrm, const std::string &buf);
+        static int unpack(TransportBRecvMessage    **brm,  const std::string &buf);
 
     private:
         /**

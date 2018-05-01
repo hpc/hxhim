@@ -29,6 +29,7 @@ class MPIPacker {
         static int pack(const MPI_Comm comm, const TransportRecvMessage     *rm,   void **buf, std::size_t *bufsize, FixedBufferPool *fbp);
         static int pack(const MPI_Comm comm, const TransportGetRecvMessage  *grm,  void **buf, std::size_t *bufsize, FixedBufferPool *fbp);
         static int pack(const MPI_Comm comm, const TransportBGetRecvMessage *bgrm, void **buf, std::size_t *bufsize, FixedBufferPool *fbp);
+        static int pack(const MPI_Comm comm, const TransportBRecvMessage    *brm,  void **buf, std::size_t *bufsize, FixedBufferPool *fbp);
 
     private:
         /**

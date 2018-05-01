@@ -97,6 +97,15 @@ int mdhim_rm_src(const mdhim_rm_t *rm, int *src) {
     return MDHIM_SUCCESS;
 }
 
+int mdhim_rm_rs_idx(const mdhim_rm_t *rm, int *rs_idx) {
+    if (!rm || !rm->rm || !rs_idx) {
+        return MDHIM_ERROR;
+    }
+
+    *rs_idx = rm->rm->rs_idx;
+    return MDHIM_SUCCESS;
+}
+
 int mdhim_rm_error(const mdhim_rm_t *rm, int *error) {
     if (!rm || !rm->rm || !error) {
         return MDHIM_ERROR;
@@ -115,12 +124,30 @@ int mdhim_brm_src(const mdhim_brm_t *brm, int *src) {
     return MDHIM_SUCCESS;
 }
 
+int mdhim_brm_rs_idx(const mdhim_brm_t *brm, int **rs_idx) {
+    if (!brm || !brm->brm || !rs_idx) {
+        return MDHIM_ERROR;
+    }
+
+    *rs_idx = brm->brm->rs_idx;
+    return MDHIM_SUCCESS;
+}
+
 int mdhim_brm_error(const mdhim_brm_t *brm, int *error) {
     if (!brm || !brm->brm || !error) {
         return MDHIM_ERROR;
     }
 
     *error = brm->brm->error;
+    return MDHIM_SUCCESS;
+}
+
+int mdhim_brm_num_keys(const mdhim_brm_t *brm, size_t *num_keys) {
+    if (!brm || !brm->brm || !num_keys) {
+        return MDHIM_ERROR;
+    }
+
+    *num_keys = brm->brm->num_keys;
     return MDHIM_SUCCESS;
 }
 
@@ -144,6 +171,15 @@ int mdhim_grm_src(const mdhim_getrm_t *grm, int *src) {
     }
 
     *src = grm->grm->src;
+    return MDHIM_SUCCESS;
+}
+
+int mdhim_grm_rs_idx(const mdhim_getrm_t *grm, int *rs_idx) {
+    if (!grm || !grm->grm || !rs_idx) {
+        return MDHIM_ERROR;
+    }
+
+    *rs_idx = grm->grm->rs_idx;
     return MDHIM_SUCCESS;
 }
 
@@ -197,6 +233,15 @@ int mdhim_bgrm_src(const mdhim_bgetrm_t *bgrm, int *src) {
     return MDHIM_SUCCESS;
 }
 
+int mdhim_bgrm_rs_idx(const mdhim_bgetrm_t *bgrm, int **rs_idx) {
+    if (!bgrm || !bgrm->bgrm || !rs_idx) {
+        return MDHIM_ERROR;
+    }
+
+    *rs_idx = bgrm->bgrm->rs_idx;
+    return MDHIM_SUCCESS;
+}
+
 int mdhim_bgrm_error(const mdhim_bgetrm_t *bgrm, int *error) {
     if (!bgrm || !bgrm->bgrm || !error) {
         return MDHIM_ERROR;
@@ -239,6 +284,15 @@ int mdhim_bgrm_values(const mdhim_bgetrm_t *bgrm, void ***values, std::size_t **
 }
 
 int mdhim_bgrm_num_keys(const mdhim_bgetrm_t *bgrm, std::size_t *num_keys) {
+    if (!bgrm || !bgrm->bgrm || !num_keys) {
+        return MDHIM_ERROR;
+    }
+
+    *num_keys = bgrm->bgrm->num_keys;
+    return MDHIM_SUCCESS;
+}
+
+int mdhim_brm_num_keys(const mdhim_bgetrm_t *bgrm, size_t *num_keys) {
     if (!bgrm || !bgrm->bgrm || !num_keys) {
         return MDHIM_ERROR;
     }

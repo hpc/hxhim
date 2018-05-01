@@ -20,6 +20,8 @@ TEST(thallium_pack_unpack, TransportPutMessage) {
         src.index_type = PRIMARY_INDEX;
         src.index_name = nullptr;
 
+        src.rs_idx = 1;
+
         src.key = ::operator new(KEY_LEN);
         memcpy(src.key, KEY, KEY_LEN * sizeof(char));
         src.key_len = KEY_LEN;
@@ -61,6 +63,11 @@ TEST(thallium_pack_unpack, TransportBPutMessage) {
         src.index_type = PRIMARY_INDEX;
         src.index_name = nullptr;
 
+        src.num_keys = 1;
+
+        src.rs_idx = new int[src.num_keys]();
+        src.rs_idx[0] = 1;
+
         src.keys = new void*[1]();;
         src.keys[0] = ::operator new(KEY_LEN);
         memcpy(src.keys[0], KEY, KEY_LEN * sizeof(char));
@@ -74,8 +81,6 @@ TEST(thallium_pack_unpack, TransportBPutMessage) {
 
         src.value_lens = new std::size_t[1]();
         src.value_lens[0] = VALUE_LEN;
-
-        src.num_keys = 1;
     }
 
     std::string buf;
@@ -92,6 +97,7 @@ TEST(thallium_pack_unpack, TransportBPutMessage) {
     EXPECT_EQ(src.index_type, dst->index_type);
 
     EXPECT_EQ(src.num_keys, dst->num_keys);
+    EXPECT_EQ(src.rs_idx[0], dst->rs_idx[0]);
 
     for(std::size_t i = 0; i < dst->num_keys; i++) {
         EXPECT_EQ(src.key_lens[i], dst->key_lens[i]);
@@ -116,6 +122,8 @@ TEST(thallium_pack_unpack, TransportGetMessage) {
 
         src.op = TransportGetMessageOp::GET_EQ;
         src.num_keys = 1;
+
+        src.rs_idx = 1;
 
         src.key = ::operator new(KEY_LEN);
         memcpy(src.key, KEY, KEY_LEN * sizeof(char));
@@ -156,6 +164,9 @@ TEST(thallium_pack_unpack, TransportBGetMessage) {
         src.op = TransportGetMessageOp::GET_EQ;
         src.num_keys = 1;
 
+        src.rs_idx = new int[src.num_keys]();
+        src.rs_idx[0] = 1;
+
         src.keys = new void*[1]();;
         src.keys[0] = ::operator new(KEY_LEN);
         memcpy(src.keys[0], KEY, KEY_LEN * sizeof(char));
@@ -180,6 +191,7 @@ TEST(thallium_pack_unpack, TransportBGetMessage) {
     EXPECT_EQ(src.index_type, dst->index_type);
 
     EXPECT_EQ(src.num_keys, dst->num_keys);
+    EXPECT_EQ(src.rs_idx[0], dst->rs_idx[0]);
 
     for(std::size_t i = 0; i < dst->num_keys; i++) {
         EXPECT_EQ(src.key_lens[i], dst->key_lens[i]);
@@ -222,6 +234,8 @@ TEST(thallium_pack_unpack, TransportDeleteMessage) {
 
     EXPECT_EQ(src.key_len, dst->key_len);
     EXPECT_EQ(memcmp(src.key, dst->key, dst->key_len), 0);
+
+    delete dst;
 }
 
 TEST(thallium_pack_unpack, TransportBDeleteMessage) {
@@ -235,6 +249,9 @@ TEST(thallium_pack_unpack, TransportBDeleteMessage) {
         src.index_name = nullptr;
 
         src.num_keys = 1;
+
+        src.rs_idx = new int[src.num_keys]();
+        src.rs_idx[0] = 1;
 
         src.keys = new void*[1]();;
         src.keys[0] = ::operator new(KEY_LEN);
@@ -258,11 +275,14 @@ TEST(thallium_pack_unpack, TransportBDeleteMessage) {
     EXPECT_EQ(src.index_type, dst->index_type);
 
     EXPECT_EQ(src.num_keys, dst->num_keys);
+    EXPECT_EQ(src.rs_idx[0], dst->rs_idx[0]);
 
     for(std::size_t i = 0; i < dst->num_keys; i++) {
         EXPECT_EQ(src.key_lens[i], dst->key_lens[i]);
         EXPECT_EQ(memcmp(src.keys[i], dst->keys[i], dst->key_lens[i]), 0);
     }
+
+    delete dst;
 }
 
 TEST(thallium_pack_unpack, TransportRecvMessage) {
@@ -308,6 +328,11 @@ TEST(thallium_pack_unpack, TransportBGetRecvMessage) {
 
         src.error = MDHIM_SUCCESS;
 
+        src.num_keys = 1;
+
+        src.rs_idx = new int[src.num_keys]();
+        src.rs_idx[0] = 1;
+
         src.keys = new void*[1]();;
         src.keys[0] = ::operator new(KEY_LEN);
         memcpy(src.keys[0], KEY, KEY_LEN * sizeof(char));
@@ -322,7 +347,6 @@ TEST(thallium_pack_unpack, TransportBGetRecvMessage) {
         src.value_lens = new std::size_t[1]();
         src.value_lens[0] = VALUE_LEN;
 
-        src.num_keys = 1;
         src.next = nullptr;
     }
 
@@ -340,6 +364,7 @@ TEST(thallium_pack_unpack, TransportBGetRecvMessage) {
     EXPECT_EQ(src.index_type, dst->index_type);
 
     EXPECT_EQ(src.num_keys, dst->num_keys);
+    EXPECT_EQ(src.rs_idx[0], dst->rs_idx[0]);
 
     for(std::size_t i = 0; i < dst->num_keys; i++) {
         EXPECT_EQ(src.key_lens[i], dst->key_lens[i]);
@@ -348,6 +373,44 @@ TEST(thallium_pack_unpack, TransportBGetRecvMessage) {
         EXPECT_EQ(src.value_lens[i], dst->value_lens[i]);
         EXPECT_EQ(memcmp(src.values[i], dst->values[i], dst->value_lens[i]), 0);
     }
+
+    delete dst;
+}
+
+TEST(thallium_pack_unpack, TransportBRecvMessage) {
+    TransportBRecvMessage src;
+    {
+        src.mtype = TransportMessageType::RECV_BULK;
+        src.src = 1;
+        src.dst = 1;
+        src.index = 1;
+        src.index_type = PRIMARY_INDEX;
+        src.index_name = nullptr;
+
+        src.error = MDHIM_SUCCESS;
+        src.num_keys = 1;
+
+        src.rs_idx = new int[src.num_keys]();
+        src.rs_idx[0] = 1;
+
+        src.next = nullptr;
+    }
+
+    std::string buf;
+    EXPECT_EQ(ThalliumPacker::pack(&src, buf), MDHIM_SUCCESS);
+
+    TransportBRecvMessage *dst = nullptr;
+    EXPECT_EQ(ThalliumUnpacker::unpack(&dst, buf), MDHIM_SUCCESS);
+
+    ASSERT_NE(dst, nullptr);
+    EXPECT_EQ(src.mtype, dst->mtype);
+    EXPECT_EQ(src.src, dst->src);
+    EXPECT_EQ(src.dst, dst->dst);
+    EXPECT_EQ(src.index, dst->index);
+    EXPECT_EQ(src.index_type, dst->index_type);
+
+    EXPECT_EQ(src.num_keys, dst->num_keys);
+    EXPECT_EQ(src.rs_idx[0], dst->rs_idx[0]);
 
     delete dst;
 }

@@ -32,6 +32,7 @@ class MPIUnpacker {
         static int unpack(const MPI_Comm comm, TransportRecvMessage     **rm,   const void *buf, const std::size_t bufsize);
         static int unpack(const MPI_Comm comm, TransportGetRecvMessage  **grm,  const void *buf, const std::size_t bufsize);
         static int unpack(const MPI_Comm comm, TransportBGetRecvMessage **bgrm, const void *buf, const std::size_t bufsize);
+        static int unpack(const MPI_Comm comm, TransportBRecvMessage    **brm,  const void *buf, const std::size_t bufsize);
 
     private:
         /**

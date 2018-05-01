@@ -25,7 +25,7 @@ using Config_it =  Config::const_iterator;
  *
  * @param config the configuration to fill
  * @param stream the input stream
- * @return whether or not something was read
+ * @return how many items were read; 0 is considered a failure even if the file was opened properly
  */
 static bool parse_file(Config &config, std::istream& stream) {
     std::string key, value;
@@ -53,7 +53,8 @@ ConfigFile::~ConfigFile() {}
 
 bool ConfigFile::process(Config &config) const {
     std::ifstream f(filename_);
-    return parse_file(config, f);
+    int ret = parse_file(config, f);
+    return ret;
 }
 
 ConfigDirectory::ConfigDirectory(const std::string &directory)
@@ -215,6 +216,14 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
     ret = get_integral(config, RSERVER_FACTOR, rserver_factor);
     if ((ret == MDHIM_ERROR)                                                                                 ||
         ((ret == MDHIM_SUCCESS) && (mdhim_options_set_server_factor(opts, rserver_factor) != MDHIM_SUCCESS))) {
+        return MDHIM_ERROR;
+    }
+
+    // Set Number of databases per server
+    int dbs_per_rserver;
+    ret = get_integral(config, DBS_PER_RSERVER, dbs_per_rserver);
+    if ((ret == MDHIM_ERROR)                                                                                   ||
+        ((ret == MDHIM_SUCCESS) && (mdhim_options_set_dbs_per_server(opts, dbs_per_rserver) != MDHIM_SUCCESS))) {
         return MDHIM_ERROR;
     }
 

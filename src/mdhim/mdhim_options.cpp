@@ -272,8 +272,9 @@ int mdhim_options_init_db(mdhim_options_t *opts, const int set_defaults) {
                                   "localhost", "test", "pass",
                                   "localhost", "test", "pass");
 
-        mdhim_options_set_debug_level(opts, 1);
+        mdhim_options_set_debug_level(opts, MLOG_CRIT);
         mdhim_options_set_server_factor(opts, 1);
+        mdhim_options_set_dbs_per_server(opts, 1);
         mdhim_options_set_max_recs_per_slice(opts, 100000);
         mdhim_options_set_db_paths(opts, nullptr, 0);
         mdhim_options_set_num_worker_threads(opts, 1);
@@ -507,7 +508,25 @@ int mdhim_options_set_server_factor(mdhim_options_t *opts, const int server_fact
         return MDHIM_ERROR;
     }
 
+    if (server_factor < 1) {
+        return MDHIM_ERROR;
+    }
+
     opts->p->db->rserver_factor = server_factor;
+
+    return MDHIM_SUCCESS;
+}
+
+int mdhim_options_set_dbs_per_server(mdhim_options_t *opts, const int dbs_per_server) {
+    if (!valid_db(opts)) {
+        return MDHIM_ERROR;
+    }
+
+    if (dbs_per_server < 1) {
+        return MDHIM_ERROR;
+    }
+
+    opts->p->db->dbs_per_server = dbs_per_server;
 
     return MDHIM_SUCCESS;
 }

@@ -40,10 +40,7 @@ void MPIEndpointGroup::RemoveID(const int id) {
  * @return a linked list of response messages, or nullptr
  */
 TransportBRecvMessage *MPIEndpointGroup::BPut(const std::size_t num_rangesrvs, TransportBPutMessage **bpm_list) {
-    TransportMessage **messages = convert_to_base(num_rangesrvs, bpm_list);
-    TransportBRecvMessage *ret = return_brm(num_rangesrvs, messages);
-    delete [] messages;
-    return ret;
+    return return_msgs<TransportBRecvMessage>(num_rangesrvs, convert_to_base(num_rangesrvs, bpm_list));
 }
 
 /**
@@ -54,10 +51,7 @@ TransportBRecvMessage *MPIEndpointGroup::BPut(const std::size_t num_rangesrvs, T
  * @return a linked list of response messages, or nullptr
  */
 TransportBGetRecvMessage *MPIEndpointGroup::BGet(const std::size_t num_rangesrvs, TransportBGetMessage **bgm_list) {
-    TransportMessage **messages = convert_to_base(num_rangesrvs, bgm_list);
-    TransportBGetRecvMessage *ret = return_bgrm(num_rangesrvs, messages);
-    delete [] messages;
-    return ret;
+    return return_msgs<TransportBGetRecvMessage>(num_rangesrvs, convert_to_base(num_rangesrvs, bgm_list));
 }
 
 /**
@@ -68,127 +62,7 @@ TransportBGetRecvMessage *MPIEndpointGroup::BGet(const std::size_t num_rangesrvs
  * @return a linked list of response messages, or nullptr
  */
 TransportBRecvMessage *MPIEndpointGroup::BDelete(const std::size_t num_rangesrvs, TransportBDeleteMessage **bdm_list) {
-    TransportMessage **messages = convert_to_base(num_rangesrvs, bdm_list);
-    TransportBRecvMessage *ret = return_brm(num_rangesrvs, messages);
-    delete [] messages;
-    return ret;
-}
-
-/**
- * return_brm
- *
- * @param num_rangesrvs the number of range servers there are
- * @param messages      an array of messages to send
- * @return a linked list of return messages
- */
-TransportBRecvMessage *MPIEndpointGroup::return_brm(const std::size_t num_rangesrvs, TransportMessage **messages) {
-    int *srvs = nullptr;
-    std::size_t num_srvs = 0;
-    if (!(num_srvs = get_num_srvs(messages, num_rangesrvs, &srvs))) {
-        return nullptr;
-    }
-
-    // send the messages
-    if (send_all_rangesrv_work(messages, num_rangesrvs) != MDHIM_SUCCESS) {
-        delete [] srvs;
-        return nullptr;
-    }
-
-    // wait for responses
-    TransportMessage **recv_list = new TransportMessage *[num_srvs]();
-    if (receive_all_client_responses(srvs, num_srvs, &recv_list) != MDHIM_SUCCESS) {
-        delete [] srvs;
-        return nullptr;
-    }
-
-    // convert the responses into a list
-    TransportBRecvMessage *head = nullptr;
-    TransportBRecvMessage *tail = nullptr;
-    for (std::size_t i = 0; i < num_srvs; i++) {
-        TransportRecvMessage *rm = dynamic_cast<TransportRecvMessage *>(recv_list[i]);
-        if (!rm) {
-            //Skip this as the message doesn't exist
-            continue;
-        }
-
-        TransportBRecvMessage *brm = new TransportBRecvMessage();
-        brm->error = rm->error;
-        brm->src = rm->src;
-        brm->dst = rm->dst;
-        brm->next = nullptr;
-        delete rm;
-
-        //Build the linked list to return
-        if (!head) {
-            head = brm;
-            tail = brm;
-        } else {
-            tail->next = brm;
-            tail = brm;
-        }
-    }
-
-    delete [] recv_list;
-    delete [] srvs;
-
-    // Return response list
-    return head;
-}
-
-/**
- * return_bgrm
- * This function is very similar to return_brm
- *
- * @param num_rangesrvs the number of range servers there are
- * @param messages      an array of messages to send
- * @return a linked list of return messages
- */
-TransportBGetRecvMessage *MPIEndpointGroup::return_bgrm(const std::size_t num_rangesrvs, TransportMessage **messages) {
-    int *srvs = nullptr;
-    std::size_t num_srvs = 0;
-    if (!(num_srvs = get_num_srvs(messages, num_rangesrvs, &srvs))) {
-        return nullptr;
-    }
-
-    // send the messages
-    if (send_all_rangesrv_work(messages, num_rangesrvs) != MDHIM_SUCCESS) {
-        delete [] srvs;
-        return nullptr;
-    }
-
-    // wait for responses
-    TransportMessage **bgrm_list = new TransportMessage *[num_srvs]();
-    if (receive_all_client_responses(srvs, num_srvs, &bgrm_list) != MDHIM_SUCCESS) {
-        delete [] srvs;
-        return nullptr;
-    }
-
-    // convert the responses into a list
-    TransportBGetRecvMessage *head = nullptr;
-    TransportBGetRecvMessage *tail = nullptr;
-    for (std::size_t i = 0; i < num_srvs; i++) {
-        TransportBGetRecvMessage *bgrm = dynamic_cast<TransportBGetRecvMessage *>(bgrm_list[i]);
-        if (!bgrm) {
-            //Skip this as the message doesn't exist
-            continue;
-        }
-
-        //Build the linked list to return
-        bgrm->next = nullptr;
-        if (!head) {
-            head = bgrm;
-            tail = bgrm;
-        } else {
-            tail->next = bgrm;
-            tail = bgrm;
-        }
-    }
-
-    delete [] bgrm_list;
-    delete [] srvs;
-
-    // Return response list
-    return head;
+    return return_msgs<TransportBRecvMessage>(num_rangesrvs, convert_to_base(num_rangesrvs, bdm_list));
 }
 
 /**

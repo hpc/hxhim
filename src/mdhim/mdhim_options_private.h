@@ -56,6 +56,12 @@ typedef struct mdhim_db_options {
     // This option is used to set range_server_factor previously a defined var.
     int rserver_factor;
 
+    //Number of databases under a range server
+    //Each rank holds databases with sequential IDs
+    //    n = md->rank / rserver_factor
+    //    [n * dbs_per_server, (n + 1) * dbs_per_server)
+    int dbs_per_server;
+
     //Maximum size of a slice. A ranger server may server several slices.
     uint64_t max_recs_per_slice;
 

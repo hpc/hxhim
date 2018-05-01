@@ -42,12 +42,6 @@ class MPIEndpointGroup : virtual public TransportEndpointGroup, virtual public M
         TransportBRecvMessage *BDelete(const std::size_t num_rangesrvs, TransportBDeleteMessage **bpm_list);
 
     private:
-        /** @description Sends messages that result in TransportBRecvMessage responses */
-        TransportBRecvMessage *return_brm(const std::size_t num_rangesrvs, TransportMessage **messages);
-
-        /** @description Sends messages that result in TransportBGetRecvMessage responses */
-        TransportBGetRecvMessage *return_bgrm(const std::size_t num_rangesrvs, TransportMessage **messages);
-
         /**
          * Functions that perform the actual MPI calls
          */
@@ -56,6 +50,67 @@ class MPIEndpointGroup : virtual public TransportEndpointGroup, virtual public M
 
         int only_receive_all_client_responses(int *srcs, std::size_t nsrcs, void ***recvbufs, std::size_t **sizebufs);
         int receive_all_client_responses(int *srcs, std::size_t nsrcs, TransportMessage ***messages);
+
+        /**
+         * return_msgs
+         * Send TransportB*Messages and waits for their responses.
+         * The responses are chained together into a list.
+         *
+         * This function takes ownership of the messages array and deallocates it.
+         *
+         * @param num_rangesrvs the number of range servers there are
+         * @param messages      an array of messages to send
+         * @treturn a linked list of return messages
+         */
+        template<typename T>
+        T *return_msgs(const std::size_t num_rangesrvs, TransportMessage **messages) {
+            int *srvs = nullptr;
+            std::size_t num_srvs = 0;
+            if (!(num_srvs = get_num_srvs(messages, num_rangesrvs, &srvs))) {
+                delete [] messages;
+                return nullptr;
+            }
+
+            // send the messages
+            if (send_all_rangesrv_work(messages, num_rangesrvs) != MDHIM_SUCCESS) {
+                delete [] srvs;
+                delete [] messages;
+                return nullptr;
+            }
+
+            // wait for responses
+            TransportMessage **recv_list = new TransportMessage *[num_srvs]();
+            if (receive_all_client_responses(srvs, num_srvs, &recv_list) != MDHIM_SUCCESS) {
+                delete [] srvs;
+                delete [] messages;
+                return nullptr;
+            }
+
+            // convert the responses into a list
+            T *head = nullptr;
+            T *tail = nullptr;
+            for (std::size_t i = 0; i < num_srvs; i++) {
+                T *brm = dynamic_cast<T *>(recv_list[i]);
+                if (brm) {
+                    //Build the linked list to return
+                    if (!head) {
+                        head = brm;
+                        tail = brm;
+                    } else {
+                        tail->next = brm;
+                        tail = brm;
+                    }
+                }
+            }
+
+            delete [] recv_list;
+            delete [] srvs;
+            delete [] messages;
+
+            // Return response list
+            return head;
+        }
+
 
         pthread_mutex_t mutex_;
 

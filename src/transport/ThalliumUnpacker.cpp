@@ -95,6 +95,7 @@ int ThalliumUnpacker::unpack(TransportPutMessage **pm, const std::string &buf) {
     }
 
     if (!s
+        .read((char *) &out->rs_idx, sizeof(out->rs_idx))
         .read((char *) &out->key_len, sizeof(out->key_len))
         .read((char *) &out->value_len, sizeof(out->value_len))) {
         delete out;
@@ -128,15 +129,17 @@ int ThalliumUnpacker::unpack(TransportBPutMessage **bpm, const std::string &buf)
         return MDHIM_ERROR;
     }
 
-    if (!(out->keys = new void *[out->num_keys]())    ||
+    if (!(out->rs_idx = new int[out->num_keys]())             ||
+        !(out->keys = new void *[out->num_keys]())            ||
         !(out->key_lens = new std::size_t[out->num_keys]())   ||
-        !(out->values = new void *[out->num_keys]())  ||
+        !(out->values = new void *[out->num_keys]())          ||
         !(out->value_lens = new std::size_t[out->num_keys]())) {
         delete out;
         return MDHIM_ERROR;
     }
 
     if (!s
+        .read((char *) out->rs_idx, sizeof(*out->rs_idx) * out->num_keys)
         .read((char *) out->key_lens, sizeof(*out->key_lens) * out->num_keys)
         .read((char *) out->value_lens, sizeof(*out->value_lens) * out->num_keys)) {
         delete out;
@@ -172,6 +175,7 @@ int ThalliumUnpacker::unpack(TransportGetMessage **gm, const std::string &buf) {
     }
 
     if (!s
+        .read((char *) &out->rs_idx, sizeof(out->rs_idx))
         .read((char *) &out->op, sizeof(out->op))
         .read((char *) &out->num_keys, sizeof(out->num_keys))
         .read((char *) &out->key_len, sizeof(out->key_len))) {
@@ -207,13 +211,16 @@ int ThalliumUnpacker::unpack(TransportBGetMessage **bgm, const std::string &buf)
         return MDHIM_ERROR;
     }
 
-    if (!(out->keys = new void *[out->num_keys]())  ||
+    if (!(out->rs_idx = new int[out->num_keys]())           ||
+        !(out->keys = new void *[out->num_keys]())          ||
         !(out->key_lens = new std::size_t[out->num_keys]())) {
         delete out;
         return MDHIM_ERROR;
     }
 
-    if (!s.read((char *) out->key_lens, sizeof(*out->key_lens) * out->num_keys)) {
+    if (!s
+        .read((char *) out->rs_idx, sizeof(*out->rs_idx) * out->num_keys)
+        .read((char *) out->key_lens, sizeof(*out->key_lens) * out->num_keys)) {
         delete out;
         return MDHIM_ERROR;
     }
@@ -243,7 +250,9 @@ int ThalliumUnpacker::unpack(TransportDeleteMessage **dm, const std::string &buf
         return MDHIM_ERROR;
     }
 
-    if (!s.read((char *) &out->key_len, sizeof(out->key_len))) {
+    if (!s
+        .read((char *) &out->rs_idx, sizeof(out->rs_idx))
+        .read((char *) &out->key_len, sizeof(out->key_len))) {
         delete out;
         return MDHIM_ERROR;
     }
@@ -273,13 +282,16 @@ int ThalliumUnpacker::unpack(TransportBDeleteMessage **bdm, const std::string &b
         return MDHIM_ERROR;
     }
 
-    if (!(out->keys = new void *[out->num_keys]())  ||
+    if (!(out->rs_idx = new int[out->num_keys]())           ||
+        !(out->keys = new void *[out->num_keys]())          ||
         !(out->key_lens = new std::size_t[out->num_keys]())) {
         delete out;
         return MDHIM_ERROR;
     }
 
-    if (!s.read((char *) out->key_lens, sizeof(*out->key_lens) * out->num_keys)) {
+    if (!s
+        .read((char *) out->rs_idx, sizeof(*out->rs_idx) * out->num_keys)
+        .read((char *) out->key_lens, sizeof(*out->key_lens) * out->num_keys)) {
         delete out;
         return MDHIM_ERROR;
     }
@@ -309,7 +321,9 @@ int ThalliumUnpacker::unpack(TransportRecvMessage **rm, const std::string &buf) 
         return MDHIM_ERROR;
     }
 
-    if (!s.read((char *) &out->error, sizeof(out->error))) {
+    if (!s
+        .read((char *) &out->rs_idx, sizeof(out->rs_idx))
+        .read((char *) &out->error, sizeof(out->error))) {
         delete out;
         return MDHIM_ERROR;
     }
@@ -328,6 +342,7 @@ int ThalliumUnpacker::unpack(TransportGetRecvMessage **grm, const std::string &b
     }
 
     if (!s
+        .read((char *) &out->rs_idx, sizeof(out->rs_idx))
         .read((char *) &out->error, sizeof(out->error))
         .read((char *) &out->key_len, sizeof(out->key_len))
         .read((char *) &out->value_len, sizeof(out->value_len))) {
@@ -364,15 +379,17 @@ int ThalliumUnpacker::unpack(TransportBGetRecvMessage **bgrm, const std::string 
         return MDHIM_ERROR;
     }
 
-    if (!(out->keys = new void *[out->num_keys]())    ||
+    if (!(out->rs_idx = new int[out->num_keys]())             ||
+        !(out->keys = new void *[out->num_keys]())            ||
         !(out->key_lens = new std::size_t[out->num_keys]())   ||
-        !(out->values = new void *[out->num_keys]())  ||
+        !(out->values = new void *[out->num_keys]())          ||
         !(out->value_lens = new std::size_t[out->num_keys]())) {
         delete out;
         return MDHIM_ERROR;
     }
 
     if (!s
+        .read((char *) out->rs_idx, sizeof(*out->rs_idx) * out->num_keys)
         .read((char *) out->key_lens, sizeof(*out->key_lens) * out->num_keys)
         .read((char *) out->value_lens, sizeof(*out->value_lens) * out->num_keys)) {
         delete out;
@@ -395,6 +412,37 @@ int ThalliumUnpacker::unpack(TransportBGetRecvMessage **bgrm, const std::string 
     }
 
     *bgrm = out;
+
+    return MDHIM_SUCCESS;
+}
+
+int ThalliumUnpacker::unpack(TransportBRecvMessage **brm, const std::string &buf) {
+    TransportBRecvMessage *out = new TransportBRecvMessage();
+    std::stringstream s(buf);
+    if (unpack(static_cast<TransportMessage *>(out), s) != MDHIM_SUCCESS) {
+        delete out;
+        return MDHIM_ERROR;
+    }
+
+    if (!s
+        .read((char *) &out->error, sizeof(out->error))
+        .read((char *) &out->num_keys, sizeof(out->num_keys))) {
+        delete out;
+        return MDHIM_ERROR;
+    }
+
+    if (!(out->rs_idx = new int[out->num_keys]())) {
+        delete out;
+        return MDHIM_ERROR;
+    }
+
+    if (!s
+        .read((char *) out->rs_idx, sizeof(*out->rs_idx) * out->num_keys)) {
+        delete out;
+        return MDHIM_ERROR;
+    }
+
+    *brm = out;
 
     return MDHIM_SUCCESS;
 }

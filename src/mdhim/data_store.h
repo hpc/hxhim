@@ -14,7 +14,7 @@
 #include "mdhim_constants.h"
 
 /* Function pointers for abstracting data stores */
-typedef int (*mdhim_store_open_fn_t)(void **db_handle, void **db_stats, char *path, int flags,
+typedef int (*mdhim_store_open_fn_t)(void **db_handle, void **db_stats, const char *path, int flags,
                                      int key_type, mdhim_db_options_t *opts);
 typedef int (*mdhim_store_put_fn_t)(void *db_handle, void *key, std::size_t key_len,
                                     void *data, std::size_t data_len);

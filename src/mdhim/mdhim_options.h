@@ -39,6 +39,7 @@ int mdhim_options_set_login_c(mdhim_options_t *opts, const char* db_hl, const ch
 int mdhim_options_set_debug_level(mdhim_options_t *opts, const int dbug);
 int mdhim_options_set_value_append(mdhim_options_t *opts, const int append);
 int mdhim_options_set_server_factor(mdhim_options_t *opts, const int server_factor);
+int mdhim_options_set_dbs_per_server(mdhim_options_t *opts, const int dbs_per_server);
 int mdhim_options_set_max_recs_per_slice(mdhim_options_t *opts, const uint64_t max_recs_per_slice);
 int mdhim_options_set_num_worker_threads(mdhim_options_t *opts, const int num_wthreads);
 int mdhim_options_set_manifest_path(mdhim_options_t *opts, const char *path);

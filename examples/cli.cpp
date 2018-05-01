@@ -108,11 +108,11 @@ int main(int argc, char *argv[]) {
                     bdel(&md, data[0], lens[0], num_keys);
                 }
                 else if (cmd == "WHICH") {
-                    std::cout << std::string((char *)data[0][0], lens[0][0]) << " belongs on range server " <<  mdhimWhichServer(&md, data[0][0], lens[0][0]) << std::endl;
+                    std::cout << std::string((char *)data[0][0], lens[0][0]) << " belongs on database " <<  mdhimWhichDB(&md, data[0][0], lens[0][0]) << std::endl;
                 }
                 else if (cmd == "BWHICH") {
-                    for(int i = 0; i < num_keys; i++) {
-                        std::cout << std::string((char *)data[0][i], lens[0][i]) << " belongs on range server " <<  mdhimWhichServer(&md, data[0][i], lens[0][i]) << std::endl;
+                    for(std::size_t i = 0; i < num_keys; i++) {
+                        std::cout << std::string((char *)data[0][i], lens[0][i]) << " belongs on database " <<  mdhimWhichDB(&md, data[0][i], lens[0][i]) << std::endl;
                     }
                 }
                 else {

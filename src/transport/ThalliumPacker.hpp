@@ -29,6 +29,7 @@ class ThalliumPacker {
         static int pack(const TransportRecvMessage     *rm,   std::string &buf);
         static int pack(const TransportGetRecvMessage  *grm,  std::string &buf);
         static int pack(const TransportBGetRecvMessage *bgrm, std::string &buf);
+        static int pack(const TransportBRecvMessage    *brm,  std::string &buf);
 
     private:
         /**

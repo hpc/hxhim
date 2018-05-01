@@ -39,8 +39,28 @@ void put(mdhim_t *md,
         err << "PUT error " << error << std::endl;
     }
     else {
-        int src;
-        out << "PUT " << std::string((char *)primary_key, primary_key_len) << " -> " << std::string((char *)value, value_len) << " to range server on rank " << ((mdhim_rm_src(rm, &src) == MDHIM_SUCCESS)?src:-1) << std::endl;
+        int src = -1;
+        if (mdhim_rm_src(rm, &src) != MDHIM_SUCCESS) {
+            err << "Could not get return message source" << std::endl;
+            mdhim_rm_destroy(rm);
+            return;
+        }
+
+        int rs_idx = -1;
+        if (mdhim_rm_rs_idx(rm, &rs_idx) != MDHIM_SUCCESS) {
+            err << "Could not get return message index" << std::endl;
+            mdhim_rm_destroy(rm);
+            return;
+        }
+
+        int db = -1;
+        if (mdhimComposeDB(md, &db, src, rs_idx) != MDHIM_SUCCESS) {
+            err << "Could not compute database id" << std::endl;
+            mdhim_rm_destroy(rm);
+            return;
+        }
+
+        out << "PUT " << std::string((char *)primary_key, primary_key_len) << " -> " << std::string((char *)value, value_len) << " to database " << db << std::endl;
     }
 
     // destroying the return value must occur

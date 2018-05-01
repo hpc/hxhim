@@ -145,15 +145,15 @@ int mdhimCommit(mdhim_t *md, index_t *index) {
         cm->index_type = index->type;
         cm->src = md->rank;
         cm->dst = md->rank;
-        TransportRecvMessage *rm = local_client_commit(md, static_cast<TransportMessage *>(cm));
-        if (!rm || rm->error) {
+        TransportBRecvMessage *brm = local_client_commit(md, static_cast<TransportMessage *>(cm));
+        if (!brm || brm->error) {
             ret = MDHIM_ERROR;
             mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d mdhimCommit - "
                  "Error while committing to database",
                   md->rank);
         }
 
-        delete rm;
+        delete brm;
     }
 
     return ret;
@@ -574,7 +574,7 @@ mdhim_bgetrm_t *mdhimBGetOp(mdhim_t *md, index_t *index,
  * @return mdhim_rm_t * or nullptr on error
  */
 mdhim_rm_t *mdhimDelete(mdhim_t *md, index_t *index,
-                         void *key, std::size_t key_len) {
+                        void *key, std::size_t key_len) {
     if (!md || !md->p ||
         !key || !key_len) {
         return nullptr;
@@ -660,8 +660,16 @@ int mdhimStatFlush(mdhim_t *md, index_t *index) {
     return ret;
 }
 
-/* what server would respond to this key? */
-int mdhimWhichServer(mdhim_t *md, void *key, std::size_t key_len)
+/* what database would respond to this key? */
+int mdhimWhichDB(mdhim_t *md, void *key, std::size_t key_len)
 {
-    return(_which_server(md, key, key_len));
+    return _which_db(md, key, key_len);
+}
+
+int mdhimDecomposeDB(mdhim_t *md, const int db, int *rank, int *rs_idx) {
+    return _decompose_db(md, db, rank, rs_idx);
+}
+
+int mdhimComposeDB(mdhim_t *md, int *db, const int rank, const int rs_idx) {
+    return _compose_db(md, db, rank, rs_idx);
 }
