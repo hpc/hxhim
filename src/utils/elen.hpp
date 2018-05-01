@@ -5,6 +5,7 @@
 // Peter Seymour
 // https://github.com/jordanorelli/lexnum
 
+#include <algorithm>
 #include <cmath>
 #include <stdexcept>
 #include <string>
@@ -14,42 +15,59 @@
 namespace elen {
     namespace encode {
         // Chapter 3 Integers
-        template <typename T, typename = std::enable_if<std::is_integral<T>::value> >
-        std::string integers(const T value, const char pos = '+', const char neg = '-');
+        template <const char neg = '0' - 1, const char pos = '9' + 1,
+                  typename T,
+                  typename = std::enable_if_t<(neg < '0') && (pos > '9') && std::is_integral<T>::value> >
+        static std::string integers(const T value);
 
         // Chapter 4 Small Decimals
-        // value is in (0, 1)
-        template <typename T, typename = std::enable_if<std::is_floating_point<T>::value> >
-        std::string small_decimals(const T value, const int precision, const char pos = '+', const char neg = '-');
+        template <const char neg = '0' - 1, const char pos = '9' + 1,
+                  typename T,
+                  typename = std::enable_if_t<(neg < '0') && (pos > '9') && std::is_floating_point<T>::value> >
+        static std::string small_decimals(const T value, const int precision = sizeof(T) * 2);
 
         // Chapter 5 Large Decimals
-        template <typename T, typename = std::enable_if<std::is_floating_point<T>::value> >
-        std::string large_decimals(const T value, const int precision, const char pos = '+', const char neg = '-');
+        template <const char neg = '0' - 1, const char pos = '9' + 1,
+                  typename T,
+                  typename = std::enable_if_t<(neg < '0') && (pos > '9') && std::is_floating_point<T>::value> >
+        static std::string large_decimals(const T value, const int precision = sizeof(T) * 2);
 
         // Chapter 6 Floating Pointer Numbers
-        template <typename T, typename = std::enable_if<std::is_floating_point<T>::value> >
-        std::string floating_point(const T value, const int precision, const char pos = '+', const char neg = '-');
+        template <const char neg = '0' - 1, const char pos = '9' + 1,
+                  typename T,
+                  typename = std::enable_if_t<(neg < '0') && (pos > '9') && std::is_floating_point<T>::value> >
+        static std::string floating_point(const T value, const int precision = sizeof(T) * 2);
     }
 
     namespace decode {
         // Chapter 3 Integers
-        template <typename T, typename = std::enable_if<std::is_integral<T>::value> >
-        T integers(const std::string &str, const char pos = '+', const char neg = '-');
+        template <typename T,
+                  const char neg = '0' - 1, const char pos = '9' + 1,
+                  typename = std::enable_if_t<std::is_integral<T>::value && (neg < '0') && (pos > '9')> >
+        static T integers(const std::string &str);
 
         // Chapter 4 Small Decimals
-        // value is in (0, 1)
-        template <typename T, typename = std::enable_if<std::is_floating_point<T>::value> >
-        T small_decimals(const std::string &str, const char pos = '+', const char neg = '-');
+        template <typename T,
+                  const char neg = '0' - 1, const char pos = '9' + 1,
+                  typename = std::enable_if_t<std::is_floating_point<T>::value && (neg < '0') && (pos > '9')> >
+        static T small_decimals(const std::string &str);
 
         // Chapter 5 Large Decimals
-        template <typename T, typename = std::enable_if<std::is_floating_point<T>::value> >
-        T large_decimals(const std::string &str, const char pos = '+', const char neg = '-');
+        template <typename T,
+                  const char neg = '0' - 1, const char pos = '9' + 1,
+                  typename = std::enable_if_t<std::is_floating_point<T>::value && (neg < '0') && (pos > '9')> >
+        static T large_decimals(const std::string &str);
 
         // Chapter 6 Floating Pointer Numbers
-        template <typename T, typename = std::enable_if<std::is_floating_point<T>::value> >
-        T floating_point(const std::string &str, const char pos = '+', const char neg = '-');
+        template <typename T,
+                  const char neg = '0' - 1, const char pos = '9' + 1,
+                  typename = std::enable_if_t<std::is_floating_point<T>::value && (neg < '0') && (pos > '9')> >
+        static T floating_point(const std::string &str);
     }
-};
+}
+
+/* @description Use this function for lexicographic comparisions */
+bool lex_comp(const std::string &lhs, const std::string &rhs);
 
 #include "elen.cpp"
 

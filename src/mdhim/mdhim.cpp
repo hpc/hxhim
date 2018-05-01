@@ -305,7 +305,7 @@ mdhim_rm_t *mdhimPut(mdhim_t *md, index_t *index,
         return nullptr;
     }
 
-    return mdhim_rm_init(_put_record(md, md->p->primary_index, pk, primary_key_len, val, value_len));
+    return mdhim_rm_init(_put_record(md, index, pk, primary_key_len, val, value_len));
 }
 
 /**
@@ -343,7 +343,7 @@ mdhim_brm_t *mdhimBPut(mdhim_t *md, index_t *index,
         return nullptr;
     }
 
-    TransportBRecvMessage *brm = _bput_records(md, md->p->primary_index,
+    TransportBRecvMessage *brm = _bput_records(md, index,
                                                pks, pk_lens,
                                                pvs, pv_lens,
                                                num_records);

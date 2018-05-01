@@ -1,7 +1,7 @@
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <limits.h>
+#include <cstdlib>
+#include <cstring>
+#include <cstdio>
+#include <climits>
 #include <sys/time.h>
 #include "ds_leveldb.h"
 
@@ -649,11 +649,10 @@ int mdhim_leveldb_close(void *dbh, void *dbs) {
  * @return MDHIM_SUCCESS on success or MDHIM_DB_ERROR on failure
  */
 int mdhim_leveldb_del(void *dbh, void *key, std::size_t key_len) {
-    leveldb_writeoptions_t *options;
     char *err = NULL;
     mdhim_leveldb_t *mdhimdb = (mdhim_leveldb_t *) dbh;
+    leveldb_writeoptions_t *options = mdhimdb->write_options;
 
-    options = mdhimdb->write_options;
     leveldb_delete(mdhimdb->db, options, (char*)key, key_len, &err);
     if (err != NULL) {
         mlog(MDHIM_SERVER_CRIT, "Error deleting key in leveldb");

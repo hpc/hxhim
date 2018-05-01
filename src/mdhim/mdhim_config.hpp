@@ -74,6 +74,11 @@ const std::map<std::string, int> DEBUG_LEVELS = {
     std::make_pair("WARNING",   MLOG_WARN),
     std::make_pair("NOTICE",    MLOG_NOTE),
     std::make_pair("INFO",      MLOG_INFO),
+    std::make_pair("DEBUG",     MLOG_DBG),
+    std::make_pair("DEBUG0",    MLOG_DBG0),
+    std::make_pair("DEBUG1",    MLOG_DBG1),
+    std::make_pair("DEBUG2",    MLOG_DBG2),
+    std::make_pair("DEBUG3",    MLOG_DBG3),
 };
 
 /**
