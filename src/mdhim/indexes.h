@@ -16,8 +16,6 @@
 #include "range_server_info_struct.h"
 
 int update_stat(mdhim_t *md, index_t *bi, const int rs_id, void *key, uint32_t key_len);
-uint32_t get_num_range_servers(mdhim_t *md, index_t *index);
-uint32_t get_num_databases(mdhim_t *md, index_t *rindex);
 index_t *create_local_index(mdhim_t *md, int db_type, int key_type, const char *index_name);
 index_t *create_global_index(mdhim_t *md, int server_factor,
 				    uint64_t max_recs_per_slice, int db_type,
@@ -32,10 +30,13 @@ void indexes_release(mdhim_t *md);
 int im_range_server(index_t *index);
 
 /** @description Internal function for converting a database id into a rank and index */
-int _decompose_db(mdhim_t *md, const int db, int *rank, int *rs_idx);
+int _decompose_db(index_t *index, const int db, int *rank, int *rs_idx);
 
 /** @description Internal function for converting a rank and index into a database id */
-int _compose_db(mdhim_t *md, int *db, const int rank, const int rs_idx);
+int _compose_db(index_t *index, int *db, const int rank, const int rs_idx);
+int _compose_db(int *db, const int rank, const int dbs_per_server, const int range_server_factor, const int rs_idx);
 
+uint32_t get_num_range_servers(const int size, const int range_server_factor);
+uint32_t get_num_databases(const int size, const int range_server_factor, const int dbs_per_server);
 
 #endif

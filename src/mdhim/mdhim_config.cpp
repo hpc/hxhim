@@ -6,7 +6,6 @@
 #include <fstream>
 #include <iomanip>
 #include <sstream>
-#include <vector>
 #include <sys/types.h>
 
 #include "mdhim_config.h"
@@ -20,25 +19,35 @@
 using Config_it =  Config::const_iterator;
 
 /**
- * parse_file
+ * parse_stream
  * Generic key-value stream parser
  *
  * @param config the configuration to fill
  * @param stream the input stream
  * @return how many items were read; 0 is considered a failure even if the file was opened properly
  */
-static bool parse_file(Config &config, std::istream& stream) {
-    std::string key, value;
-    while ((stream >> key) && std::getline(stream >> std::ws, value)) {
-        // remove trailing whitespace
-        std::string::size_type i = value.size();
-        if (value.size()) {
-            while (std::isspace(value[i - 1])) {
-                i--;
+static bool parse_stream(Config &config, std::istream& stream) {
+    // parsing should not cross line boundaries
+    std::string line;
+    while (std::getline(stream, line)) {
+        std::stringstream s(line);
+        std::string key, value;
+        if (s >> key >> value) {
+            // check for comments
+            if (key[0] == '#') {
+                continue;
             }
-        }
 
-        config[key] = value.substr(0, i);
+            // remove trailing whitespace
+            std::string::size_type i = value.size();
+            if (value.size()) {
+                while (std::isspace(value[i - 1])) {
+                    i--;
+                }
+            }
+
+            config[key] = value.substr(0, i);
+        }
     }
 
     return config.size();
@@ -53,7 +62,7 @@ ConfigFile::~ConfigFile() {}
 
 bool ConfigFile::process(Config &config) const {
     std::ifstream f(filename_);
-    int ret = parse_file(config, f);
+    int ret = parse_stream(config, f);
     return ret;
 }
 
@@ -86,7 +95,7 @@ bool ConfigEnvironment::process(Config &config) const {
     char *env = getenv(variable_.c_str());
     if (env) {
         std::ifstream f(env);
-        return parse_file(config, f);
+        return parse_stream(config, f);
     }
     return false;
 }

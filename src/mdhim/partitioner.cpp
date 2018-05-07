@@ -13,55 +13,48 @@ mdhim_char_t *mdhim_alphabet = NULL;
  * Deletes the alphabet hash table
  */
 void delete_alphabet() {
-	mdhim_char_t *cur_char, *tmp;
-	HASH_ITER(hh, mdhim_alphabet, cur_char, tmp) {
-		HASH_DEL(mdhim_alphabet, cur_char);  /*delete it (mdhim_alphabet advances to next)*/
-		free(cur_char);            /* free it */
-	}
+    mdhim_char_t *cur_char, *tmp;
+    HASH_ITER(hh, mdhim_alphabet, cur_char, tmp) {
+        HASH_DEL(mdhim_alphabet, cur_char);  /*delete it (mdhim_alphabet advances to next)*/
+        free(cur_char);            /* free it */
+    }
 
-	mdhim_alphabet = NULL;
+    mdhim_alphabet = NULL;
 }
 
 long double get_str_num(void *key, uint32_t key_len) {
-  int id;
-  unsigned int i;
-  mdhim_char_t *mc;
-  long double str_num;
+    long double str_num = 0;
 
-  str_num = 0;
-  //Iterate through each character to perform the algorithm mentioned above
-  for (i = 0; i < key_len; i++) {
-    //Ignore null terminating char
-    if (i == key_len - 1 && ((char *)key)[i] == '\0') {
-      break;
+    //Iterate through each character to perform the algorithm mentioned above
+    for (uint32_t i = 0; i < key_len; i++) {
+        //Ignore null terminating char
+        if (i == key_len - 1 && ((char *)key)[i] == '\0') {
+            break;
+        }
+
+        int id = (int) ((char *)key)[i];
+        mdhim_char_t *mc = nullptr;
+        HASH_FIND_INT(mdhim_alphabet, &id, mc);
+        str_num += mc->pos * powl(2, MDHIM_ALPHABET_EXPONENT * -(i + 1));
     }
 
-    id = (int) ((char *)key)[i];
-    HASH_FIND_INT(mdhim_alphabet, &id, mc);
-    str_num += mc->pos * powl(2, MDHIM_ALPHABET_EXPONENT * -(i + 1));
-  }
-
-  return str_num;
+    return str_num;
 }
 
 uint64_t get_byte_num(void *key, uint32_t key_len) {
-	unsigned int i;
-	unsigned char val;
-	uint64_t byte_num;
+    //Iterate through each character to perform the algorithm mentioned above
+    uint64_t byte_num = 0;
+    for (uint32_t i = 0; i < key_len; i++) {
+        unsigned char val = (int)(((char *) key)[i]);
+        byte_num += val * powl(2, i);
+    }
 
-	byte_num = 0;
-	//Iterate through each character to perform the algorithm mentioned above
-	for (i = 0; i < key_len; i++) {
-	  val = (int)(((char *) key)[i]);
-		byte_num += val * powl(2, i);
-	}
-
-	return byte_num;
+    return byte_num;
 }
 
 void partitioner_init() {
-	// Create the alphabet for string keys
-	build_alphabet();
+    // Create the alphabet for string keys
+    build_alphabet();
 }
 
 /*
@@ -70,8 +63,8 @@ void partitioner_init() {
  *
  */
 void partitioner_release() {
-	delete_alphabet();
-	mdhim_alphabet = NULL;
+    delete_alphabet();
+    mdhim_alphabet = NULL;
 }
 
 /**
@@ -82,19 +75,17 @@ void partitioner_release() {
  * @param pos     The value of our entry (the position of the character in our alphabet)
  */
 void add_char(int id, int pos) {
-	mdhim_char_t *mc;
+    //Create a new mdhim_char to hold our entry
+    mdhim_char_t *mc = (mdhim_char_t*)calloc(1, sizeof(mdhim_char_t));
 
-	//Create a new mdhim_char to hold our entry
-	mc = (mdhim_char_t*)malloc(sizeof(mdhim_char_t));
+    //Set the mdhim_char
+    mc->id = id;
+    mc->pos = pos;
 
-	//Set the mdhim_char
-	mc->id = id;
-	mc->pos = pos;
+    //Add it to the hash table
+    HASH_ADD_INT(mdhim_alphabet, id, mc);
 
-	//Add it to the hash table
-	HASH_ADD_INT(mdhim_alphabet, id, mc);
-
-	return;
+    return;
 }
 
 /**
@@ -102,61 +93,52 @@ void add_char(int id, int pos) {
  * Creates our ascii based alphabet and inserts each character into a uthash table
  */
 void build_alphabet() {
-	char c;
-	int i, indx;
+    /* Index of the character in the our alphabet
+       This is to number each character we care about so we can map
+       a string to a range server
 
-        /* Index of the character in the our alphabet
-	   This is to number each character we care about so we can map
-	   a string to a range server
+       0 - 9 have indexes 0 - 9
+       A - Z have indexes 10 - 35
+       a - z have indexes 36 - 61
+    */
+    int indx = 0;
 
-	   0 - 9 have indexes 0 - 9
-	   A - Z have indexes 10 - 35
-	   a - z have indexes 36 - 61
-	*/
-	indx = 0;
+    //Start with numbers 0 - 9
+    for (char i = '0'; i <= '9'; i++) {
+        add_char(i, indx++);
+    }
 
-	//Start with numbers 0 - 9
-	c = '0';
-	for (i = (int) c; i <= (int) '9'; i++) {
-		add_char(i, indx);
-		indx++;
-	}
+    //Next deal with A-Z
+    for (char i = 'A'; i <= 'Z'; i++) {
+        add_char(i, indx++);
+    }
 
-	//Next deal with A-Z
-	c = 'A';
-	for (i = (int) c; i <= (int) 'Z'; i++) {
-		add_char(i, indx);
-		indx++;
-	}
+    //Next deal with a-z
+    for (char i = 'a'; i <= 'z'; i++) {
+        add_char(i, indx++);
+    }
 
-        //Next deal with a-z
-	c = 'a';
-	for (i = (int) c; i <= (int) 'z'; i++) {
-		add_char(i, indx);
-		indx++;
-	}
-
-	return;
+    return;
 }
 
 void _add_to_rangesrv_list(rangesrv_list_t **list, rangesrv_info_t *ri) {
-	rangesrv_list_t *list_p, *entry;
+    rangesrv_list_t *list_p, *entry;
 
-	entry = (rangesrv_list*)malloc(sizeof(rangesrv_list));
-	entry->ri = ri;
-	entry->next = NULL;
-	if (!*list) {
-		*list = entry;
-	} else {
-		list_p = *list;
-		while (list_p->next) {
-			list_p = list_p->next;
-		}
+    entry = (rangesrv_list*)malloc(sizeof(rangesrv_list));
+    entry->ri = ri;
+    entry->next = NULL;
+    if (!*list) {
+        *list = entry;
+    } else {
+        list_p = *list;
+        while (list_p->next) {
+            list_p = list_p->next;
+        }
 
-		list_p->next = entry;
-	}
+        list_p->next = entry;
+    }
 
-	return;
+    return;
 }
 
 /**
@@ -169,58 +151,57 @@ void _add_to_rangesrv_list(rangesrv_list_t **list, rangesrv_info_t *ri) {
  *
  * @return        MDHIM_ERROR if the key is not valid, otherwise the MDHIM_SUCCESS
  */
-int verify_key(index_t *index, void *key,
-	       int key_len, int key_type) {
-	int i;
-	int id;
-	mdhim_char_t *mc;
-	uint64_t ikey = 0;
-	uint64_t size_check;
+static int verify_key(uint64_t slice_size, void *key,
+               int key_len, int key_type) {
+    int id;
+    mdhim_char_t *mc;
+    uint64_t ikey = 0;
+    uint64_t size_check;
 
-	if (!key) {
-	  return MDHIM_ERROR;
-	}
+    if (!key) {
+        return MDHIM_ERROR;
+    }
 
-	if (key_len > MAX_KEY_LEN) {
-		return MDHIM_ERROR;
-	}
-	if (key_type == MDHIM_STRING_KEY) {
-		for (i = 0; i < key_len; i++) {
-			//Ignore null terminating char
-			if (i == key_len - 1 && ((char *)key)[i] == '\0') {
-				break;
-			}
+    if (key_len > MAX_KEY_LEN) {
+        return MDHIM_ERROR;
+    }
+    if (key_type == MDHIM_STRING_KEY) {
+        for (int i = 0; i < key_len; i++) {
+            //Ignore null terminating char
+            if (i == key_len - 1 && ((char *)key)[i] == '\0') {
+                break;
+            }
 
-			id = (int) ((char *)key)[i];
-			HASH_FIND_INT(mdhim_alphabet, &id, mc);
-			if (!mc) {
-				return MDHIM_ERROR;
-			}
-		}
-	}
+            id = (int) ((char *)key)[i];
+            HASH_FIND_INT(mdhim_alphabet, &id, mc);
+            if (!mc) {
+                return MDHIM_ERROR;
+            }
+        }
+    }
 
-	if (key_type == MDHIM_INT_KEY) {
-		ikey = *(uint32_t *)key;
-	} else if (key_type == MDHIM_LONG_INT_KEY) {
-		ikey = *(uint64_t *)key;
-	} else if (key_type == MDHIM_FLOAT_KEY) {
-		ikey = *(float *)key;
-	} else if (key_type == MDHIM_DOUBLE_KEY) {
-		ikey = *(double *)key;
-	}
+    if (key_type == MDHIM_INT_KEY) {
+        ikey = *(uint32_t *)key;
+    } else if (key_type == MDHIM_LONG_INT_KEY) {
+        ikey = *(uint64_t *)key;
+    } else if (key_type == MDHIM_FLOAT_KEY) {
+        ikey = *(float *)key;
+    } else if (key_type == MDHIM_DOUBLE_KEY) {
+        ikey = *(double *)key;
+    }
 
-	size_check = ikey/index->mdhim_max_recs_per_slice;
-	if (size_check >= MDHIM_MAX_SLICES) {
-		mlog(MDHIM_CLIENT_CRIT, "Error - Not enough slices for this key."
-		     "  Try increasing the slice size.");
-		return MDHIM_ERROR;
-	}
+    size_check = ikey/slice_size;
+    if (size_check >= MDHIM_MAX_SLICES) {
+        mlog(MDHIM_CLIENT_CRIT, "Error - Not enough slices for this key."
+             "  Try increasing the slice size.");
+        return MDHIM_ERROR;
+    }
 
-	return MDHIM_SUCCESS;
+    return MDHIM_SUCCESS;
 }
 
 int is_float_key(int type) {
-	int ret = 0;
+    int ret = 0;
 
     switch (type) {
         case MDHIM_STRING_KEY:
@@ -232,9 +213,9 @@ int is_float_key(int type) {
         case MDHIM_LONG_INT_KEY:
         default:
             ret = 0;
-	}
+    }
 
-	return ret;
+    return ret;
 }
 
 /**
@@ -248,106 +229,81 @@ int is_float_key(int type) {
  * @param key_len   length of the key
  * @return the slice number or 0 on error
  */
-int get_slice_num(mdhim_t *md, index_t *index, void *key, int key_len) {
-	//The number that maps a key to range server (dependent on key type)
-	int slice_num;
-	uint64_t key_num;
-	//The range server number that we return
-	float fkey;
-	double dkey;
-	int ret;
-	long double map_num;
-	int key_type = index->key_type;
+int get_slice_num(const int key_type, uint64_t slice_size, void *key, int key_len) {
+    uint64_t key_num;
 
-	//The last key number that can be represented by the number of slices and the slice size
-	const uint64_t total_keys = MDHIM_MAX_SLICES * index->mdhim_max_recs_per_slice;
+    //The last key number that can be represented by the number of slices and the slice size
+    const uint64_t total_keys = MDHIM_MAX_SLICES * slice_size;
 
-	//Make sure this key is valid
-	if ((ret = verify_key(index, key, key_len, key_type)) != MDHIM_SUCCESS) {
-		mlog(MDHIM_CLIENT_INFO, "Rank %d - Invalid key given",
-		     md->rank);
-		return MDHIM_ERROR;
-	}
+    //Make sure this key is valid
+    if (verify_key(slice_size, key, key_len, key_type) != MDHIM_SUCCESS) {
+        mlog(MDHIM_CLIENT_INFO, "Invalid key given");
+        return MDHIM_ERROR;
+    }
 
-	//Perform key dependent algorithm to get the key in terms of the ranges served
-	switch(key_type) {
-	case MDHIM_INT_KEY:
-		key_num = *(uint32_t *) key;
+    //Perform key dependent algorithm to get the key in terms of the ranges served
+    switch(key_type) {
+    case MDHIM_INT_KEY:
+        key_num = *(uint32_t *) key;
+        break;
+    case MDHIM_LONG_INT_KEY:
+        key_num = *(uint64_t *) key;
+        break;
+    case MDHIM_BYTE_KEY:
+        /* Algorithm used
+           1. Iterate through each byte
+           2. Transform each byte into a floating point number
+           3. Add this floating point number to map_num
+           4. Multiply this number times the total number of keys to get the number
+              that represents the position in a range
 
-		break;
-	case MDHIM_LONG_INT_KEY:
-		key_num = *(uint64_t *) key;
+           For #2, the transformation is as follows:
 
-		break;
-	case MDHIM_BYTE_KEY:
-		/* Algorithm used
-		   1. Iterate through each byte
-		   2. Transform each byte into a floating point number
-		   3. Add this floating point number to map_num
-		   4. Multiply this number times the total number of keys to get the number
-		      that represents the position in a range
-
-		   For #2, the transformation is as follows:
-
-		   Take the position of the character in the mdhim alphabet
+           Take the position of the character in the mdhim alphabet
                    times 2 raised to 8 * -(i + 1)
-		   where i is the current iteration in the loop
-		*/
+           where i is the current iteration in the loop
+        */
 
-                //Used for calculating the range server to use for this string
-	  //		map_num = 0;
-	  //		map_num = get_byte_num(key, key_len);
-	  //		key_num = floorl(map_num * total_keys);
-		key_num = get_byte_num(key, key_len);
-//		printf("key_num is: %llu\n", key_num);
+        // Used for calculating the range server to use for this string
+        //        map_num = 0;
+        //        map_num = get_byte_num(key, key_len);
+        //        key_num = floorl(map_num * total_keys);
+        key_num = get_byte_num(key, key_len);
+        break;
+    case MDHIM_FLOAT_KEY:
+        //Convert the key to a float
+        key_num = floor(fabsf(*((float *) key)));
+        break;
+    case MDHIM_DOUBLE_KEY:
+        //Convert the key to a double
+        key_num = floor(fabs(*((double *) key)));
+        break;
+    case MDHIM_STRING_KEY:
+        /* Algorithm used
 
-		break;
-	case MDHIM_FLOAT_KEY:
-		//Convert the key to a float
-		fkey = *((float *) key);
-		fkey = floor(fabsf(fkey));
-		key_num = fkey;
+           1. Iterate through each character
+           2. Transform each character into a floating point number
+           3. Add this floating point number to map_num
+           4. Multiply this number times the total number of keys to get the number
+              that represents the position in a range
 
-		break;
-	case MDHIM_DOUBLE_KEY:
-		//Convert the key to a double
-		dkey = *((double *) key);
-		dkey = floor(fabs(dkey));
-		key_num = dkey;
+           For #2, the transformation is as follows:
 
-		break;
-	case MDHIM_STRING_KEY:
-		/* Algorithm used
-
-		   1. Iterate through each character
-		   2. Transform each character into a floating point number
-		   3. Add this floating point number to map_num
-		   4. Multiply this number times the total number of keys to get the number
-		      that represents the position in a range
-
-		   For #2, the transformation is as follows:
-
-		   Take the position of the character in the mdhim alphabet
+           Take the position of the character in the mdhim alphabet
                    times 2 raised to the MDHIM_ALPHABET_EXPONENT * -(i + 1)
-		   where i is the current iteration in the loop
-		*/
+           where i is the current iteration in the loop
+        */
 
-                //Used for calculating the range server to use for this string
-		map_num = 0;
-		map_num = get_str_num(key, key_len);
-		key_num = floorl(map_num * total_keys);
-//		printf("map_num is: %LF and key_num is: %llu\n", map_num, key_num);
-		break;
-	default:
-		return 0;
-		break;
-	}
+        //Used for calculating the range server to use for this string
+        key_num = floorl(get_str_num(key, key_len) * total_keys);
+        break;
+    default:
+        return 0;
+        break;
+    }
 
-	/* Convert the key to a slice number  */
-	slice_num = key_num/index->mdhim_max_recs_per_slice;
-
-	//Return the slice number
-	return slice_num;
+    /* Convert the key to a slice number  */
+    return key_num/slice_size;
 }
 
 /**
@@ -358,433 +314,421 @@ int get_slice_num(mdhim_t *md, index_t *index, void *key, int key_len) {
  * @param slice     the slice number
  * @return the rank of the range server or NULL on error
  */
-rangesrv_info_t *get_range_server_by_slice(mdhim_t *md, index_t *index, int slice) {
-	//The number that maps a key to database (dependent on key type)
-	uint32_t database;
+rangesrv_info_t *get_range_server_by_slice(index_t *index, const int slice) {
+    //The number that maps a key to database (dependent on key type)
+    const uint32_t database = slice % (index->num_rangesrvs * index->dbs_per_server);
 
-	if (index->num_databases == 1) {
-		database = 0;
-	} else {
-		database = slice % (index->num_rangesrvs * md->p->db_opts->dbs_per_server);
-	}
+    //Find the range server number in the hash table
+    rangesrv_info_t *ret_rp = nullptr;
+    HASH_FIND_INT(index->rangesrvs_by_database, &database, ret_rp);
 
-	//The range server number that we return
-	rangesrv_info_t *ret_rp = nullptr;
-
-	//Find the range server number in the hash table
-	HASH_FIND_INT(index->rangesrvs_by_database, &database, ret_rp);
-
-	//Return the rank
-	return ret_rp;
+    //Return the rank
+    return ret_rp;
 }
 
-/**
- * get_range_servers
- *
- * gets the range server that handles the key given
- * @param md        main MDHIM struct
- * @param key       pointer to the key to find the range server of
- * @param key_len   length of the key
- * @return the rank of the range server or NULL on error
- */
-rangesrv_list_t *get_range_servers(mdhim_t *md, index_t *index,
+rangesrv_list_t *get_range_servers(const int size,
+                                   index_t *index,
                                    void *key, int key_len) {
-	//The number that maps a key to range server (dependent on key type)
-	int slice_num;
-	//The range server number that we return
-	rangesrv_info_t *ret_rp;
-	rangesrv_list_t *rl = nullptr;
+    //The number that maps a key to range server (dependent on key type)
+    int slice_num;
+    //The range server number that we return
+    rangesrv_info_t *ret_rp;
+    rangesrv_list_t *rl = nullptr;
 
-	if ((slice_num = get_slice_num(md, index, key, key_len)) == MDHIM_ERROR) {
-		return nullptr;
-	}
+    if ((slice_num = get_slice_num(index->key_type, index->slice_size, key, key_len)) == MDHIM_ERROR) {
+        return nullptr;
+    }
 
-	ret_rp = get_range_server_by_slice(md, index, slice_num);
-	_add_to_rangesrv_list(&rl, ret_rp);
+    ret_rp = get_range_server_by_slice(index, slice_num);
+    _add_to_rangesrv_list(&rl, ret_rp);
 
-	//Return the range server list
-	return rl;
+    //Return the range server list
+    return rl;
 }
 
 mdhim_stat_t *get_next_slice_stat(mdhim_t *md, index_t *index,
-				       int slice_num) {
-	mdhim_stat_t *stat, *tmp, *next_slice;
+                                  int slice_num) {
+    mdhim_stat_t *stat, *tmp, *next_slice;
 
-	next_slice = nullptr;
+    next_slice = nullptr;
 
-	//Iterate through the stat hash entries to find the slice
-	//number next after the given slice number
-	HASH_ITER(hh, index->stats, stat, tmp) {
-		if (!stat) {
-			continue;
-		}
+    //Iterate through the stat hash entries to find the slice
+    //number next after the given slice number
+    HASH_ITER(hh, index->stats, stat, tmp) {
+        if (!stat) {
+            continue;
+        }
 
-		if (stat->key > slice_num && !next_slice) {
-			next_slice = stat;
-		} else if (next_slice && stat->key > slice_num && stat->key < next_slice->key) {
-			next_slice = stat;
-		}
-	}
+        if (stat->key > slice_num && !next_slice) {
+            next_slice = stat;
+        } else if (next_slice && stat->key > slice_num && stat->key < next_slice->key) {
+            next_slice = stat;
+        }
+    }
 
-	return next_slice;
+    return next_slice;
 }
 
 mdhim_stat_t *get_prev_slice_stat(mdhim_t *md, index_t *index,
-				       int slice_num) {
-	mdhim_stat_t *stat, *tmp, *prev_slice;
+                       int slice_num) {
+    mdhim_stat_t *stat, *tmp, *prev_slice;
 
-	prev_slice = NULL;
+    prev_slice = NULL;
 
-	//Iterate through the stat hash entries to find the slice
-	//number next after the given slice number
-	HASH_ITER(hh, index->stats, stat, tmp) {
-		if (!stat) {
-			continue;
-		}
+    //Iterate through the stat hash entries to find the slice
+    //number next after the given slice number
+    HASH_ITER(hh, index->stats, stat, tmp) {
+        if (!stat) {
+            continue;
+        }
 
-		if (stat->key < slice_num && !prev_slice) {
-			prev_slice = stat;
-		} else if (prev_slice && stat->key < slice_num && stat->key > prev_slice->key) {
-			prev_slice = stat;
-		}
-	}
+        if (stat->key < slice_num && !prev_slice) {
+            prev_slice = stat;
+        } else if (prev_slice && stat->key < slice_num && stat->key > prev_slice->key) {
+            prev_slice = stat;
+        }
+    }
 
-	return prev_slice;
+    return prev_slice;
 }
 
 mdhim_stat_t *get_last_slice_stat(mdhim_t *md, index_t *index) {
-	mdhim_stat_t *stat, *tmp, *last_slice;
+    mdhim_stat_t *stat, *tmp, *last_slice;
 
-	last_slice = NULL;
+    last_slice = NULL;
 
-	//Iterate through the stat hash entries to find the slice
-	//number next after the given slice number
-	HASH_ITER(hh, index->stats, stat, tmp) {
-		if (!stat) {
-			continue;
-		}
+    //Iterate through the stat hash entries to find the slice
+    //number next after the given slice number
+    HASH_ITER(hh, index->stats, stat, tmp) {
+        if (!stat) {
+            continue;
+        }
 
-		if (!last_slice) {
-			last_slice = stat;
-		} else if (stat->key > last_slice->key) {
-			last_slice = stat;
-		}
-	}
+        if (!last_slice) {
+            last_slice = stat;
+        } else if (stat->key > last_slice->key) {
+            last_slice = stat;
+        }
+    }
 
-	return last_slice;
+    return last_slice;
 }
 
 mdhim_stat_t *get_first_slice_stat(mdhim_t *md, index_t *index) {
-	mdhim_stat_t *stat, *tmp, *first_slice;
+    mdhim_stat_t *stat, *tmp, *first_slice;
 
-	first_slice = NULL;
+    first_slice = NULL;
 
-	//Iterate through the stat hash entries to find the slice
-	//number next after the given slice number
-	HASH_ITER(hh, index->stats, stat, tmp) {
-		if (!stat) {
-			continue;
-		}
+    //Iterate through the stat hash entries to find the slice
+    //number next after the given slice number
+    HASH_ITER(hh, index->stats, stat, tmp) {
+        if (!stat) {
+            continue;
+        }
 
-		if (!first_slice) {
-			first_slice = stat;
-		} else if (stat->key < first_slice->key) {
-			first_slice = stat;
-		}
-	}
+        if (!first_slice) {
+            first_slice = stat;
+        } else if (stat->key < first_slice->key) {
+            first_slice = stat;
+        }
+    }
 
-	return first_slice;
+    return first_slice;
 }
 
 int get_slice_from_fstat(mdhim_t *md, index_t *index,
                          int cur_slice, long double fstat, TransportGetMessageOp op) {
-	int slice_num = 0;
-	mdhim_stat_t *cur_stat, *new_stat;
+    int slice_num = 0;
+    mdhim_stat_t *cur_stat, *new_stat;
 
-	if (!index->stats) {
-		return 0;
-	}
+    if (!index->stats) {
+        return 0;
+    }
 
-	//Get the stat struct for our current slice
-	HASH_FIND_INT(index->stats, &cur_slice, cur_stat);
+    //Get the stat struct for our current slice
+    HASH_FIND_INT(index->stats, &cur_slice, cur_stat);
 
-	switch(op) {
-	case TransportGetMessageOp::GET_NEXT:
-		if (cur_stat && *(long double *)cur_stat->max > fstat) {
-			slice_num = cur_slice;
-			goto done;
-		} else {
-			new_stat = get_next_slice_stat(md, index, cur_slice);
-			goto new_stat;
-		}
+    switch(op) {
+    case TransportGetMessageOp::GET_NEXT:
+        if (cur_stat && *(long double *)cur_stat->max > fstat) {
+            slice_num = cur_slice;
+            goto done;
+        } else {
+            new_stat = get_next_slice_stat(md, index, cur_slice);
+            goto new_stat;
+        }
 
-		break;
-	case TransportGetMessageOp::GET_PREV:
-		if (cur_stat && *(long double *)cur_stat->min < fstat) {
-			slice_num = cur_slice;
-			goto done;
-		} else {
-			new_stat = get_prev_slice_stat(md, index, cur_slice);
-			goto new_stat;
-		}
+        break;
+    case TransportGetMessageOp::GET_PREV:
+        if (cur_stat && *(long double *)cur_stat->min < fstat) {
+            slice_num = cur_slice;
+            goto done;
+        } else {
+            new_stat = get_prev_slice_stat(md, index, cur_slice);
+            goto new_stat;
+        }
 
-		break;
-	case TransportGetMessageOp::GET_FIRST:
-		new_stat = get_first_slice_stat(md, index);
-		goto new_stat;
-		break;
-	case TransportGetMessageOp::GET_LAST:
-		new_stat = get_last_slice_stat(md, index);
-		goto new_stat;
-		break;
-	default:
-		slice_num = 0;
-		break;
-	}
+        break;
+    case TransportGetMessageOp::GET_FIRST:
+        new_stat = get_first_slice_stat(md, index);
+        goto new_stat;
+        break;
+    case TransportGetMessageOp::GET_LAST:
+        new_stat = get_last_slice_stat(md, index);
+        goto new_stat;
+        break;
+    default:
+        slice_num = 0;
+        break;
+    }
 
 done:
-	return slice_num;
+    return slice_num;
 
 new_stat:
-	if (new_stat) {
-		return new_stat->key;
-	} else {
-		return 0;
-	}
+    if (new_stat) {
+        return new_stat->key;
+    } else {
+        return 0;
+    }
 }
 
 int get_slice_from_istat(mdhim_t *md, index_t *index,
-			 int cur_slice, uint64_t istat, TransportGetMessageOp op) {
-	int slice_num = 0;
-	mdhim_stat_t *cur_stat, *new_stat;
+                         int cur_slice, uint64_t istat, TransportGetMessageOp op) {
+    int slice_num = 0;
+    mdhim_stat_t *cur_stat, *new_stat;
 
-	if (!index->stats) {
-		return 0;
-	}
+    if (!index->stats) {
+        return 0;
+    }
 
-	new_stat = cur_stat = NULL;
-	//Get the stat struct for our current slice
-	HASH_FIND_INT(index->stats, &cur_slice, cur_stat);
+    new_stat = cur_stat = NULL;
+    //Get the stat struct for our current slice
+    HASH_FIND_INT(index->stats, &cur_slice, cur_stat);
 
-	switch(op) {
-	case TransportGetMessageOp::GET_NEXT:
-		if (cur_stat && *(uint64_t *)cur_stat->max > istat &&
-		    *(uint64_t *)cur_stat->min <= istat) {
-			slice_num = cur_slice;
-			goto done;
-		} else {
-			new_stat = get_next_slice_stat(md, index, cur_slice);
-			goto new_stat;
-		}
+    switch(op) {
+    case TransportGetMessageOp::GET_NEXT:
+        if (cur_stat && *(uint64_t *)cur_stat->max > istat &&
+            *(uint64_t *)cur_stat->min <= istat) {
+            slice_num = cur_slice;
+            goto done;
+        } else {
+            new_stat = get_next_slice_stat(md, index, cur_slice);
+            goto new_stat;
+        }
 
-		break;
-	case TransportGetMessageOp::GET_PREV:
-		if (cur_stat && *(uint64_t *)cur_stat->min < istat &&
-		    *(uint64_t *)cur_stat->max >= istat ) {
-			slice_num = cur_slice;
-			goto done;
-		} else {
-			new_stat = get_prev_slice_stat(md, index, cur_slice);
-			goto new_stat;
-		}
+        break;
+    case TransportGetMessageOp::GET_PREV:
+        if (cur_stat && *(uint64_t *)cur_stat->min < istat &&
+            *(uint64_t *)cur_stat->max >= istat ) {
+            slice_num = cur_slice;
+            goto done;
+        } else {
+            new_stat = get_prev_slice_stat(md, index, cur_slice);
+            goto new_stat;
+        }
 
-		break;
-	case TransportGetMessageOp::GET_FIRST:
-		new_stat = get_first_slice_stat(md, index);
-		goto new_stat;
-		break;
-	case TransportGetMessageOp::GET_LAST:
-		new_stat = get_last_slice_stat(md, index);
-		goto new_stat;
-		break;
-	default:
-		slice_num = 0;
-		break;
-	}
+        break;
+    case TransportGetMessageOp::GET_FIRST:
+        new_stat = get_first_slice_stat(md, index);
+        goto new_stat;
+        break;
+    case TransportGetMessageOp::GET_LAST:
+        new_stat = get_last_slice_stat(md, index);
+        goto new_stat;
+        break;
+    default:
+        slice_num = 0;
+        break;
+    }
 
 done:
-	return slice_num;
+    return slice_num;
 
 new_stat:
-	if (new_stat) {
-		return new_stat->key;
-	} else {
-		return 0;
-	}
+    if (new_stat) {
+        return new_stat->key;
+    } else {
+        return 0;
+    }
 }
 
 /* Iterate through the multi-level hash table in index->stats to find the range servers
    that could have the key */
 rangesrv_list_t *get_rangesrvs_from_istat(mdhim_t *md, index_t *index,
                                           uint64_t istat, TransportGetMessageOp op) {
-	mdhim_stat_t *cur_rank, *cur_stat, *tmp, *tmp2;
-	rangesrv_list_t *head, *lp, *entry;
-	int slice_num = 0;
-	unsigned int num_slices;
-	unsigned int i;
+    mdhim_stat_t *cur_rank, *cur_stat, *tmp, *tmp2;
+    rangesrv_list_t *head, *lp, *entry;
+    int slice_num = 0;
+    unsigned int num_slices;
+    unsigned int i;
 
-	if (!index->stats) {
-		return 0;
-	}
+    if (!index->stats) {
+        return 0;
+    }
 
-	cur_stat = cur_rank = NULL;
-	head = lp = entry = NULL;
-	HASH_ITER(hh, index->stats, cur_rank, tmp) {
-		num_slices = HASH_COUNT(cur_rank->stats);
-		i = 0;
-		HASH_ITER(hh, cur_rank->stats, cur_stat, tmp2) {
-			if (cur_stat->num <= 0) {
-				continue;
-			}
+    cur_stat = cur_rank = NULL;
+    head = lp = entry = NULL;
+    HASH_ITER(hh, index->stats, cur_rank, tmp) {
+        num_slices = HASH_COUNT(cur_rank->stats);
+        i = 0;
+        HASH_ITER(hh, cur_rank->stats, cur_stat, tmp2) {
+            if (cur_stat->num <= 0) {
+                continue;
+            }
 
-			slice_num = -1;
-			switch(op) {
-			case TransportGetMessageOp::GET_NEXT:
-				if (cur_stat && *(uint64_t *)cur_stat->max > istat &&
-				    *(uint64_t *)cur_stat->min - 1 <= istat) {
-					slice_num = cur_stat->key;
-				}
+            slice_num = -1;
+            switch(op) {
+            case TransportGetMessageOp::GET_NEXT:
+                if (cur_stat && *(uint64_t *)cur_stat->max > istat &&
+                    *(uint64_t *)cur_stat->min - 1 <= istat) {
+                    slice_num = cur_stat->key;
+                }
 
-				break;
-			case TransportGetMessageOp::GET_PREV:
-				if (cur_stat && *(uint64_t *)cur_stat->min < istat &&
-				    *(uint64_t *)cur_stat->max + 1 >= istat ) {
-					slice_num = cur_stat->key;
-				}
+                break;
+            case TransportGetMessageOp::GET_PREV:
+                if (cur_stat && *(uint64_t *)cur_stat->min < istat &&
+                    *(uint64_t *)cur_stat->max + 1 >= istat ) {
+                    slice_num = cur_stat->key;
+                }
 
-				break;
-			case TransportGetMessageOp::GET_FIRST:
-				if (!i) {
-					slice_num = cur_stat->key;
-				}
-				break;
-			case TransportGetMessageOp::GET_LAST:
-				if (i == num_slices - 1) {
-					slice_num = cur_stat->key;
-				}
-				break;
-			case TransportGetMessageOp::GET_EQ:
-				if (cur_stat && *(uint64_t *)cur_stat->max >= istat &&
-				    *(uint64_t *)cur_stat->min <= istat) {
-					slice_num = cur_stat->key;
-				}
+                break;
+            case TransportGetMessageOp::GET_FIRST:
+                if (!i) {
+                    slice_num = cur_stat->key;
+                }
+                break;
+            case TransportGetMessageOp::GET_LAST:
+                if (i == num_slices - 1) {
+                    slice_num = cur_stat->key;
+                }
+                break;
+            case TransportGetMessageOp::GET_EQ:
+                if (cur_stat && *(uint64_t *)cur_stat->max >= istat &&
+                    *(uint64_t *)cur_stat->min <= istat) {
+                    slice_num = cur_stat->key;
+                }
 
-				break;
-			default:
-				slice_num = 0;
-				break;
-			}
+                break;
+            default:
+                slice_num = 0;
+                break;
+            }
 
-			if (slice_num < 0) {
-				continue;
-			}
+            if (slice_num < 0) {
+                continue;
+            }
 
-			entry = (rangesrv_list*)malloc(sizeof(rangesrv_list));
-			memset(entry, 0, sizeof(rangesrv_list));
-			HASH_FIND_INT(index->rangesrvs_by_rank, &cur_rank->key, entry->ri);
-			if (!entry->ri) {
-				free(entry);
-				continue;
-			}
+            entry = (rangesrv_list*)malloc(sizeof(rangesrv_list));
+            memset(entry, 0, sizeof(rangesrv_list));
+            HASH_FIND_INT(index->rangesrvs_by_rank, &cur_rank->key, entry->ri);
+            if (!entry->ri) {
+                free(entry);
+                continue;
+            }
 
-			if (!head) {
-				lp = head = entry;
-			} else {
-				lp->next = entry;
-				lp = lp->next;
-			}
+            if (!head) {
+                lp = head = entry;
+            } else {
+                lp->next = entry;
+                lp = lp->next;
+            }
 
-			break;
-		}
-	}
+            break;
+        }
+    }
 
-	return head;
+    return head;
 }
 
 /* Iterate through the multi-level hash table in index->stats to find the range servers
    that could have the key */
 rangesrv_list_t *get_rangesrvs_from_fstat(mdhim_t *md, index_t *index,
                                           long double fstat, TransportGetMessageOp op) {
-	mdhim_stat_t *cur_rank, *cur_stat, *tmp, *tmp2;
-	rangesrv_list_t *head, *lp, *entry;
-	int slice_num = 0;
-	unsigned int num_slices;
-	unsigned int i;
+    mdhim_stat_t *cur_rank, *cur_stat, *tmp, *tmp2;
+    rangesrv_list_t *head, *lp, *entry;
+    int slice_num = 0;
+    unsigned int num_slices;
+    unsigned int i;
 
-	if (!index->stats) {
-		return 0;
-	}
+    if (!index->stats) {
+        return 0;
+    }
 
-	cur_stat = cur_rank = NULL;
-	head = lp = entry = NULL;
-	HASH_ITER(hh, index->stats, cur_rank, tmp) {
-		num_slices = HASH_COUNT(cur_rank->stats);
-		i = 0;
-		HASH_ITER(hh, cur_rank->stats, cur_stat, tmp2) {
-			if (cur_stat->num <= 0) {
-				continue;
-			}
+    cur_stat = cur_rank = NULL;
+    head = lp = entry = NULL;
+    HASH_ITER(hh, index->stats, cur_rank, tmp) {
+        num_slices = HASH_COUNT(cur_rank->stats);
+        i = 0;
+        HASH_ITER(hh, cur_rank->stats, cur_stat, tmp2) {
+            if (cur_stat->num <= 0) {
+                continue;
+            }
 
-			slice_num = -1;
-			switch(op) {
-			case TransportGetMessageOp::GET_NEXT:
-				if (cur_stat && *(long double *)cur_stat->max > fstat &&
-				    *(long double *)cur_stat->min - 1.0L <= fstat) {
-					slice_num = cur_stat->key;
-				}
-				break;
-			case TransportGetMessageOp::GET_PREV:
-				if (cur_stat && *(long double *)cur_stat->min < fstat &&
-				    *(long double *)cur_stat->max + 1.0L >= fstat ) {
-					slice_num = cur_stat->key;
-				}
+            slice_num = -1;
+            switch(op) {
+            case TransportGetMessageOp::GET_NEXT:
+                if (cur_stat && *(long double *)cur_stat->max > fstat &&
+                    *(long double *)cur_stat->min - 1.0L <= fstat) {
+                    slice_num = cur_stat->key;
+                }
 
-				break;
-			case TransportGetMessageOp::GET_FIRST:
-				if (!i) {
-					slice_num = cur_stat->key;
-				}
-				break;
-			case TransportGetMessageOp::GET_LAST:
-				if (i == num_slices - 1) {
-					slice_num = cur_stat->key;
-				}
-				break;
-			case TransportGetMessageOp::GET_EQ:
-				if (cur_stat && *(long double *)cur_stat->max >= fstat &&
-				    *(long double *)cur_stat->min <= fstat) {
-					slice_num = cur_stat->key;
-				}
+                break;
+            case TransportGetMessageOp::GET_PREV:
+                if (cur_stat && *(long double *)cur_stat->min < fstat &&
+                    *(long double *)cur_stat->max + 1.0L >= fstat ) {
+                    slice_num = cur_stat->key;
+                }
 
-				break;
-			default:
-				slice_num = 0;
-				break;
-			}
+                break;
+            case TransportGetMessageOp::GET_FIRST:
+                if (!i) {
+                    slice_num = cur_stat->key;
+                }
 
-			if (slice_num < 0) {
-				continue;
-			}
+                break;
+            case TransportGetMessageOp::GET_LAST:
+                if (i == num_slices - 1) {
+                    slice_num = cur_stat->key;
+                }
 
-			entry = (rangesrv_list*)malloc(sizeof(rangesrv_list));
-			HASH_FIND_INT(index->rangesrvs_by_rank, &cur_rank->key, entry->ri);
-			if (!entry->ri) {
-				free(entry);
-				continue;
-			}
+                break;
+            case TransportGetMessageOp::GET_EQ:
+                if (cur_stat && *(long double *)cur_stat->max >= fstat &&
+                    *(long double *)cur_stat->min <= fstat) {
+                    slice_num = cur_stat->key;
+                }
 
-			if (!head) {
-				lp = head = entry;
-			} else {
-				lp->next = entry;
-				lp = lp->next;
-			}
+                break;
+            default:
+                slice_num = 0;
 
-			break;
-		}
-	}
+                break;
+            }
 
-	return head;
+            if (slice_num < 0) {
+                continue;
+            }
+
+            entry = (rangesrv_list*)malloc(sizeof(rangesrv_list));
+            HASH_FIND_INT(index->rangesrvs_by_rank, &cur_rank->key, entry->ri);
+            if (!entry->ri) {
+                free(entry);
+                continue;
+            }
+
+            if (!head) {
+                lp = head = entry;
+            } else {
+                lp->next = entry;
+                lp = lp->next;
+            }
+
+            break;
+        }
+    }
+
+    return head;
 }
 
 /**
@@ -798,87 +742,85 @@ rangesrv_list_t *get_rangesrvs_from_fstat(mdhim_t *md, index_t *index,
  * @return the rank of the range server or NULL on error
  */
 rangesrv_list_t *get_range_servers_from_stats(mdhim_t *md, index_t *index,
-					    void *key, int key_len, TransportGetMessageOp op) {
-	//The number that maps a key to range server (dependent on key type)
-	int slice_num, cur_slice;
-	//The range server number that we return
-	rangesrv_info_t *ret_rp;
-	rangesrv_list_t *rl;
-	int float_type = 0;
-	long double fstat = 0;
-	uint64_t istat = 0;
+                        void *key, int key_len, TransportGetMessageOp op) {
+    //The number that maps a key to range server (dependent on key type)
+    int slice_num, cur_slice;
+    //The range server number that we return
+    rangesrv_info_t *ret_rp;
+    rangesrv_list_t *rl;
+    int float_type = 0;
+    long double fstat = 0;
+    uint64_t istat = 0;
 
-	if (key && key_len) {
-		//Find the slice based on the operation and key value
-		if (index->key_type == MDHIM_STRING_KEY) {
-			fstat = get_str_num(key, key_len);
-		} else if (index->key_type == MDHIM_FLOAT_KEY) {
-			fstat = *(float *) key;
-		} else if (index->key_type == MDHIM_DOUBLE_KEY) {
-			fstat = *(double *) key;
-		} else if (index->key_type == MDHIM_INT_KEY) {
-			istat = *(uint32_t *) key;
-		} else if (index->key_type == MDHIM_LONG_INT_KEY) {
-			istat = *(uint64_t *) key;
-		} else if (index->key_type == MDHIM_BYTE_KEY) {
-			fstat = get_byte_num(key, key_len);
-		}
-	}
+    if (key && key_len) {
+        //Find the slice based on the operation and key value
+        if (index->key_type == MDHIM_STRING_KEY) {
+            fstat = get_str_num(key, key_len);
+        } else if (index->key_type == MDHIM_FLOAT_KEY) {
+            fstat = *(float *) key;
+        } else if (index->key_type == MDHIM_DOUBLE_KEY) {
+            fstat = *(double *) key;
+        } else if (index->key_type == MDHIM_INT_KEY) {
+            istat = *(uint32_t *) key;
+        } else if (index->key_type == MDHIM_LONG_INT_KEY) {
+            istat = *(uint64_t *) key;
+        } else if (index->key_type == MDHIM_BYTE_KEY) {
+            fstat = get_byte_num(key, key_len);
+        }
+    }
 
-	//If we don't have any stats info, then return null
-	if (!index->stats) {
-		mlog(MDHIM_CLIENT_CRIT, "Rank %d - No statistics data available."
-		     " Perform a mdhimStatFlush first.",
-		     md->rank);
-		return NULL;
-	}
+    //If we don't have any stats info, then return null
+    if (!index->stats) {
+        mlog(MDHIM_CLIENT_CRIT, "Rank %d - No statistics data available."
+             " Perform a mdhimStatFlush first.",
+             md->rank);
+        return NULL;
+    }
 
-	if (index->type != LOCAL_INDEX) {
-		cur_slice = slice_num = 0;
-		float_type = is_float_key(index->key_type);
+    if (index->type != LOCAL_INDEX) {
+        cur_slice = slice_num = 0;
+        float_type = is_float_key(index->key_type);
 
-		//Get the current slice number of our key
-		if (key && key_len) {
-			cur_slice = get_slice_num(md, index, key, key_len);
-			if (cur_slice == MDHIM_ERROR) {
-				mlog(MDHIM_CLIENT_CRIT, "Rank %d - Error: could not determine a"
-				     " valid a slice number",
-				     md->rank);
-				return NULL;
-			}
-		} else if (op != TransportGetMessageOp::GET_FIRST && op != TransportGetMessageOp::GET_LAST) {
-			//If the op is not first or last, then we expect a key
-			return NULL;
-		}
+        //Get the current slice number of our key
+        if (key && key_len) {
+            cur_slice = get_slice_num(index->key_type, index->slice_size, key, key_len);
+            if (cur_slice == MDHIM_ERROR) {
+                mlog(MDHIM_CLIENT_CRIT, "Rank %d - Error: could not determine a"
+                     " valid a slice number",
+                     md->rank);
+                return NULL;
+            }
+        } else if (op != TransportGetMessageOp::GET_FIRST && op != TransportGetMessageOp::GET_LAST) {
+            //If the op is not first or last, then we expect a key
+            return NULL;
+        }
 
-		if (float_type) {
-			slice_num = get_slice_from_fstat(md, index, cur_slice, fstat, op);
-		} else {
-			slice_num = get_slice_from_istat(md, index, cur_slice, istat, op);
-		}
+        slice_num = (float_type == 1)?
+            get_slice_from_fstat(md, index, cur_slice, fstat, op):
+            get_slice_from_istat(md, index, cur_slice, istat, op);
 
-		if (slice_num == MDHIM_ERROR) {
-			return NULL;
-		}
+        if (slice_num == MDHIM_ERROR) {
+            return NULL;
+        }
 
-		ret_rp = get_range_server_by_slice(md, index, slice_num);
-		if (!ret_rp) {
-			mlog(MDHIM_CLIENT_INFO, "Rank %d - Did not get a valid range server from"
-			     " get_range_server_by_size",
-			     md->rank);
-			return NULL;
-		}
+        ret_rp = get_range_server_by_slice(index, slice_num);
+        if (!ret_rp) {
+            mlog(MDHIM_CLIENT_INFO, "Rank %d - Did not get a valid range server from"
+                 " get_range_server_by_size",
+                 md->rank);
+            return NULL;
+        }
 
-		rl = NULL;
-		_add_to_rangesrv_list(&rl, ret_rp);
-	} else {
-		if (float_type) {
-			rl = get_rangesrvs_from_fstat(md, index, fstat, op);
-		} else {
-			rl = get_rangesrvs_from_istat(md, index, istat, op);
-		}
-	}
+        rl = NULL;
+        _add_to_rangesrv_list(&rl, ret_rp);
+    } else {
+        if (float_type) {
+            rl = get_rangesrvs_from_fstat(md, index, fstat, op);
+        } else {
+            rl = get_rangesrvs_from_istat(md, index, istat, op);
+        }
+    }
 
-	//Return the range server information
-	return rl;
+    //Return the range server information
+    return rl;
 }

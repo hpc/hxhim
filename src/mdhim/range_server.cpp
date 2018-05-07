@@ -49,19 +49,6 @@ static index_t *find_index(mdhim_t *md, TransportMessage *msg) {
     return get_index(md, msg->index);
 }
 
-/*
- * ===  FUNCTION  ======================================================================
- *         Name:  find_index_by_name
- *  Description:  Search for index by name
- *    Variables:  <struct mdhim_t *md> the pointer to the mdhim structure
- *                <struct mdhim_basem_t *msg> A pointer to a base message that contains
- *                                            the name of the index
- * =====================================================================================
- */
-static index_t * find_index_by_name(mdhim_t *md, TransportMessage *msg) {
-    return get_index_by_name(md, msg->index_name);
-}
-
 /**
  * range_server_add_work
  * Adds work to the work queue and signals the condition variable for the worker thread

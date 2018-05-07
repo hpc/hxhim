@@ -7,7 +7,6 @@
 #include <leveldb/c.h>
 //#endif
 
-#include "partitioner.h"
 #include "data_store.h"
 
 /* Function pointer for comparator in C */

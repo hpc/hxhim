@@ -24,7 +24,6 @@ make install
 ```
 
 ### Usage Notes
-Always remember to clear out old manifest files if there are overlapping names between runs
-
-All pointers that are passed into HXHIM are still owned by the caller.
-All pointers returned by HXHIM must be deleted through HXHIM.
+* The number of databases should be able to grow between runs, but is not able to shrink.
+* All pointers that are passed into HXHIM are still owned by the caller.
+* All pointers returned by HXHIM must be deleted through HXHIM.
