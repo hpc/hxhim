@@ -65,11 +65,13 @@ TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
 /** @description Internal GET function */
 TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
                                      void *key, std::size_t key_len,
-                                     enum TransportGetMessageOp op);
+                                     enum TransportGetMessageOp op,
+                                     const bool check_prev = true);
 
 /** @description Internal DELETE function */
 TransportRecvMessage *_del_record(mdhim_t *md, index_t *index,
-                                  void *key, std::size_t key_len);
+                                  void *key, std::size_t key_len,
+                                  const bool check_prev = true);
 
 /** @description Internal BPUT function */
 TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,

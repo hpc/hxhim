@@ -449,9 +449,26 @@ TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
     return rm;
 }
 
-static TransportGetRecvMessage *_actual_get_record(mdhim_t *md, index_t *index,
-                                                   void *key, std::size_t key_len,
-                                                   enum TransportGetMessageOp op) {
+/**
+ * _get_record
+ * Gets a record into MDHIM
+ *
+ * @param md          main MDHIM struct
+ * @param index       the index to get the key from
+ * @param key         pointer to key to get
+ * @param key_len     the length of the key
+ * @return TransportGetRecvMessage * or nullptr on error
+ */
+TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
+                                     void *key, std::size_t key_len,
+                                     enum TransportGetMessageOp op,
+                                     const bool check_prev) {
+    if (!md || !md->p ||
+        !index ||
+        !key || !key_len) {
+        return nullptr;
+    }
+
     rangesrv_list *rl = nullptr;
     //Get the range server this key will be sent to
     if ((op == TransportGetMessageOp::GET_EQ || op == TransportGetMessageOp::GET_PRIMARY_EQ) &&
@@ -497,32 +514,9 @@ static TransportGetRecvMessage *_actual_get_record(mdhim_t *md, index_t *index,
         free(rlp);
     }
 
-    return grm;
-}
-
-/**
- * _get_record
- * Gets a record into MDHIM
- *
- * @param md          main MDHIM struct
- * @param index       the index to get the key from
- * @param key         pointer to key to get
- * @param key_len     the length of the key
- * @return TransportGetRecvMessage * or nullptr on error
- */
-TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
-                                     void *key, std::size_t key_len,
-                                     enum TransportGetMessageOp op) {
-    if (!md || !md->p ||
-        !index ||
-        !key || !key_len) {
-        return nullptr;
-    }
-
-    TransportGetRecvMessage *grm = _actual_get_record(md, index, key, key_len, op);
-
     // if GET failed, search the previous database
-    if ((!grm || (grm->error != MDHIM_SUCCESS)) &&
+    if (check_prev &&
+        (!grm || (grm->error != MDHIM_SUCCESS)) &&
         (index->num_databases != index->prev_num_databases)) {
         delete grm;
         grm = nullptr;
@@ -535,7 +529,9 @@ TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
         old_index.num_rangesrvs = get_num_range_servers(index->prev_size, index->prev_range_server_factor);
 
         // GET again
-        grm = _actual_get_record(md, &old_index, key, key_len, op);
+        void *k;
+        _clone(key, key_len, &k);
+        grm = _get_record(md, &old_index, k, key_len, op, false);
 
         // migrate the key pair
         if (grm && (grm->error == MDHIM_SUCCESS)) {
@@ -561,10 +557,10 @@ TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
                          md->rank);
                 }
                 else {
-                     int prev_db = -1;
-                     _compose_db(&prev_db, grm->src, old_index.dbs_per_server, old_index.range_server_factor, grm->rs_idx);
-                     int curr_db = -1;
-                     _compose_db(&curr_db, prm->src, index->dbs_per_server, index->range_server_factor, prm->rs_idx);
+                    int prev_db = -1;
+                    _compose_db(&old_index, &prev_db, grm->src, grm->rs_idx);
+                    int curr_db = -1;
+                    _compose_db(index, &curr_db, prm->src, prm->rs_idx);
 
                     mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d - "
                          "Migrated key pair from database %d to database %d",
@@ -689,14 +685,14 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
             //If the message doesn't exist, create one
             if (!bpm) {
                 bpm = new TransportBPutMessage();
-                bpm->keys = new void *[MAX_BULK_OPS]();
-                bpm->key_lens = new std::size_t[MAX_BULK_OPS]();
-                bpm->values = new void *[MAX_BULK_OPS]();
-                bpm->value_lens = new std::size_t[MAX_BULK_OPS]();
+                bpm->keys = new void *[num_keys]();
+                bpm->key_lens = new std::size_t[num_keys]();
+                bpm->values = new void *[num_keys]();
+                bpm->value_lens = new std::size_t[num_keys]();
                 bpm->num_keys = 0;
                 bpm->src = md->rank;
                 bpm->dst = dst_rank;
-                bpm->rs_idx = new int[MAX_BULK_OPS]();
+                bpm->rs_idx = new int[num_keys]();
                 bpm->mtype = TransportMessageType::BPUT;
                 bpm->index = index->id;
                 bpm->index_type = index->type;
@@ -767,6 +763,14 @@ TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
         return nullptr;
     }
 
+    //Check to see that we were given a sane amount of records
+    if (num_keys > MAX_BULK_OPS) {
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
+             "To many bulk operations requested in mdhimBGetOp",
+             md->rank);
+        return nullptr;
+    }
+
     //Create an array of bulk get messages that holds one bulk message per range server
     TransportBGetMessage **bgm_list = new TransportBGetMessage*[index->num_rangesrvs]();
     TransportBGetMessage *lbgm = nullptr; //The message to be sent to ourselves if necessary
@@ -775,7 +779,7 @@ TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
     /* Go through each of the records to find the range server the record belongs to.
        If there is not a bulk message in the array for the range server the key belongs to,
        then it is created.  Otherwise, the data is added to the existing message in the array.*/
-    for (std::size_t i = 0; i < num_keys && i < MAX_BULK_OPS; i++) {
+    for (std::size_t i = 0; i < num_keys; i++) {
         //Get the range server this key will be sent to
         if ((op == TransportGetMessageOp::GET_EQ || op == TransportGetMessageOp::GET_PRIMARY_EQ) &&
             index->type != LOCAL_INDEX &&
@@ -858,8 +862,35 @@ TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
     return bgrm_head;
 }
 
-static TransportRecvMessage *_actual_del_record(mdhim_t *md, index_t *index,
-                                                void *key, std::size_t key_len) {
+/**
+ * _del_record
+ * Deletes a record from MDHIM
+ *
+ * @param md main MDHIM struct
+ * @param index       the index to delete the key from
+ * @param key         pointer to array of keys to delete
+ * @param key_len     array with lengths of each key in keys
+ * @return TransportRecvMessage * or nullptr on error
+ */
+TransportRecvMessage *_del_record(mdhim_t *md, index_t *index,
+                                  void *key, std::size_t key_len,
+                                     const bool check_prev) {
+    if (!md || !md->p ||
+        !index ||
+        !key || !key_len) {
+        return nullptr;
+    }
+
+    index_t *lookup_index = nullptr;
+    if (index->type == LOCAL_INDEX) {
+        lookup_index = get_index(md, index->primary_id);
+        if (!lookup_index) {
+            return nullptr;
+        }
+    } else {
+        lookup_index = index;
+    }
+
     rangesrv_list *rl = nullptr;
 
     //Get the range server this key will be sent to
@@ -917,46 +948,22 @@ static TransportRecvMessage *_actual_del_record(mdhim_t *md, index_t *index,
         free(rlp);
     }
 
-    return rm;
-}
+    // check the previous database
+    if (check_prev &&
+        (!rm || (rm->error != MDHIM_SUCCESS)) &&
+        (index->num_databases != index->prev_num_databases)) {
+        delete rm;
+        rm = nullptr;
 
-/**
- * _del_record
- * Deletes a record from MDHIM
- *
- * @param md main MDHIM struct
- * @param index       the index to delete the key from
- * @param key         pointer to array of keys to delete
- * @param key_len     array with lengths of each key in keys
- * @return TransportRecvMessage * or nullptr on error
- */
-TransportRecvMessage *_del_record(mdhim_t *md, index_t *index,
-                                  void *key, std::size_t key_len) {
-    if (!md || !md->p ||
-        !index ||
-        !key || !key_len) {
-        return nullptr;
-    }
-
-    index_t *lookup_index = nullptr;
-    if (index->type == LOCAL_INDEX) {
-        lookup_index = get_index(md, index->primary_id);
-        if (!lookup_index) {
-            return nullptr;
-        }
-    } else {
-        lookup_index = index;
-    }
-
-    TransportRecvMessage *rm = _actual_del_record(md, lookup_index, key, key_len);
-    if (!rm || (rm->error != MDHIM_SUCCESS)) {
         index_t old_lookup_index;
         memcpy(&old_lookup_index, lookup_index, sizeof(*lookup_index));
         old_lookup_index.range_server_factor = lookup_index->prev_range_server_factor;
         old_lookup_index.dbs_per_server = lookup_index->prev_dbs_per_server;
         old_lookup_index.num_rangesrvs = get_num_range_servers(lookup_index->prev_size, lookup_index->prev_range_server_factor);
 
-        rm = _actual_del_record(md, &old_lookup_index, key, key_len);
+        void *k = nullptr;
+        _clone(key, key_len, &k);
+        rm = _del_record(md, &old_lookup_index, k, key_len, false);
     }
 
     return rm;
@@ -982,6 +989,14 @@ TransportBRecvMessage *_bdel_records(mdhim_t *md, index_t *index,
         return nullptr;
     }
 
+    //Check to see that we were given a sane amount of records
+    if (num_keys > MAX_BULK_OPS) {
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
+             "To many bulk operations requested in mdhimBGetOp",
+             md->rank);
+        return nullptr;
+    }
+
     //The message to be sent to ourselves if necessary
     TransportBDeleteMessage *lbdm = nullptr;
 
@@ -993,7 +1008,7 @@ TransportBRecvMessage *_bdel_records(mdhim_t *md, index_t *index,
     /* Go through each of the records to find the range server the record belongs to.
        If there is not a bulk message in the array for the range server the key belongs to,
        then it is created.  Otherwise, the data is added to the existing message in the array.*/
-    for (std::size_t i = 0; i < num_keys && i < MAX_BULK_OPS; i++) {
+    for (std::size_t i = 0; i < num_keys; i++) {
         //Get the range server this key will be sent to
         if (index->type != LOCAL_INDEX &&
             !(rl = get_range_servers(md->size, index, keys[i], key_lens[i]))) {
@@ -1026,12 +1041,12 @@ TransportBRecvMessage *_bdel_records(mdhim_t *md, index_t *index,
         //If the message doesn't exist, create one
         if (!bdm) {
             bdm = new TransportBDeleteMessage();
-            bdm->keys = new void *[MAX_BULK_OPS]();
-            bdm->key_lens = new std::size_t[MAX_BULK_OPS]();
+            bdm->keys = new void *[num_keys]();
+            bdm->key_lens = new std::size_t[num_keys]();
             bdm->num_keys = 0;
             bdm->src = md->rank;
             bdm->dst = dst_rank;
-            bdm->rs_idx = new int[MAX_BULK_OPS]();
+            bdm->rs_idx = new int[num_keys]();
             bdm->mtype = TransportMessageType::BDELETE;
             bdm->index = index->id;
             bdm->index_type = index->type;

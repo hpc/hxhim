@@ -1563,15 +1563,6 @@ int _compose_db(index_t *index, int *db, const int rank, const int rs_idx) {
     return MDHIM_SUCCESS;
 }
 
-int _compose_db(int *db, const int rank, const int dbs_per_server, const int range_server_factor, const int rs_idx) {
-    if (!range_server_factor) {
-        return MDHIM_ERROR;
-    }
-
-    *db = dbs_per_server * rank / range_server_factor + rs_idx;
-    return MDHIM_SUCCESS;
-}
-
 /**
  * get_num_range_servers
  * Gets the number of range servers with a given number of ranks and range server factor
