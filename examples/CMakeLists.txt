@@ -15,5 +15,6 @@ target_link_libraries(cli mdhim transport utils ${LEVELDB_LIBRARY} ${MPI_CXX_LIB
 set_target_properties(cli PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
 set_target_properties(cli PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
 configure_file(random.sh ${CMAKE_CURRENT_BINARY_DIR}/random.sh COPYONLY)
+configure_file(different_num_processes.sh ${CMAKE_CURRENT_BINARY_DIR}/different_num_processes.sh COPYONLY)
 INSTALL(TARGETS cli DESTINATION bin)
-INSTALL(FILES random.sh DESTINATION bin PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ)
+INSTALL(FILES random.sh different_num_processes.sh DESTINATION bin PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ)

@@ -5,20 +5,20 @@ MAX_KEY_LEN=10
 MIN_VALUE_LEN=1
 MAX_VALUE_LEN=10
 COUNT=10
-RANKS=10
+DATABASES=12
 MDHIM_CONFIG=${MDHIM_CONFIG:-"mdhim.conf"}
 
 function help() {
-    echo "Usage: $(basename $0) [Options] PUT|GET|DEL|BPUT|BGET|BDEL|COMMIT|WHICH|BWHICH ..."
+    echo "Usage: $(basename $0) [Options]"
     echo
     echo "    Options:"
-    echo "        -h, --help       show help"
-    echo "        -n, --count      number of key value pairs     ($COUNT)"
-    echo "        -np, --ranks     the number of MPI ranks       ($RANKS)"
-    echo "        --min_key_len    the minimum length of a key   ($MIN_KEY_LEN)"
-    echo "        --max_key_len    the maximum length of a key   ($MAX_KEY_LEN)"
-    echo "        --min_value_len  the minimum length of a value ($MIN_VALUE_LEN)"
-    echo "        --max_value_len  the maximum length of a value ($MAX_VALUE_LEN)"
+    echo "        -h, --help      show help"
+    echo "        -n, --count     number of key value pairs     ($COUNT)"
+    echo "        -d, --databases the number of databases       ($DATABASES)"
+    echo "        --min_key_len   the minimum length of a key   ($MIN_KEY_LEN)"
+    echo "        --max_key_len   the maximum length of a key   ($MAX_KEY_LEN)"
+    echo "        --min_value_len the minimum length of a value ($MIN_VALUE_LEN)"
+    echo "        --max_value_len the maximum length of a value ($MAX_VALUE_LEN)"
 }
 
 # Parse command line arguments
@@ -38,7 +38,7 @@ case $key in
     shift # past argument
     shift # past value
     ;;
-    -np|--ranks)
+    -d|--databases)
     RANKS=$2
     shift # past argument
     shift # past value
@@ -107,12 +107,6 @@ if [[ "$COUNT" -lt "0" ]] ; then
     exit -1
 fi
 
-# Check for positional parameters
-if [[ "$#" -eq "0" ]] ; then
-    help
-    exit 0
-fi
-
 # Generate key value pairs
 declare -A KEYPAIRS
 for i in $(seq 1 $COUNT); do
@@ -142,25 +136,29 @@ OPS["BDEL"]=$(echo -n "BDEL $COUNT";
               for key in ${!KEYPAIRS[@]}; do
                   echo -n " $key"
               done)
-OPS["COMMIT"]=$(echo -n "COMMIT")
-OPS["WHICH"]=$(for key in ${!KEYPAIRS[@]}; do
-                    echo "WHICH $key"
-                done)
-OPS["BWHICH"]=$(echo -n "BWHICH $COUNT";
-                for key in ${!KEYPAIRS[@]}; do
-                    echo -n " $key"
-                done)
 
 # Print configuration
 echo "Key Length:          [$MIN_KEY_LEN, $MAX_KEY_LEN]"
 echo "Value Length:        [$MIN_VALUE_LEN, $MAX_VALUE_LEN]"
 echo "Number of KV Pairs:  $COUNT"
-echo "Number of MPI ranks: $RANKS"
+echo "Number of Databases: $DATABASES"
 echo "Reading config from: $(realpath $MDHIM_CONFIG)"
 
+# Put some keys into the databases
+config=${MDHIM_CONFIG}.tmp
+cp $MDHIM_CONFIG $config
+echo "${OPS[PUT]}" | MDHIM_CONFIG=$config mpirun -np $DATABASES examples/cli
+
 # Pass the commands to the CLI
-(
-    for op in "${POSITIONAL[@]}"; do
-        echo "${OPS[$op]}"
-    done
-) | MDHIM_CONFIG=$MDHIM_CONFIG mpirun -np $RANKS examples/cli
+for ranks in $(seq 1 $DATABASES); do
+    if [[ $(($DATABASES % $ranks)) -eq 0 ]]; then
+        echo "DBS_PER_RSERVER $(($DATABASES / $ranks))" >> $config
+        (
+            echo "${OPS[GET]}"
+            echo "${OPS[BGET]}"
+        ) | MDHIM_CONFIG=$config mpirun -np $ranks examples/cli
+    fi
+done
+
+# Clean upp
+rm -f $config
