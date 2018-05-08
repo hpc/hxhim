@@ -24,6 +24,6 @@ make install
 ```
 
 ### Usage Notes
-* The number of databases should be able to grow between runs, but is not able to shrink.
+* The number of databases must remain the same across all runs. Remember to delete at least the manifest file if the number of databases change, but the name of the manifest file does not.
 * All pointers that are passed into HXHIM are still owned by the caller.
 * All pointers returned by HXHIM must be deleted through HXHIM.
