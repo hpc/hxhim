@@ -388,8 +388,6 @@ TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
 
     rangesrv_list *rl = nullptr;
     index_t *lookup_index = nullptr;
-
-    index_t *put_index = index;
     if (index->type == LOCAL_INDEX) {
         lookup_index = get_index(md, index->primary_id);
         if (!lookup_index) {
@@ -400,8 +398,8 @@ TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
     }
 
     //Get the range server this key will be sent to
-    void *lookup = (put_index->type == LOCAL_INDEX)?value:key;
-    std::size_t lookup_len = (put_index->type == LOCAL_INDEX)?value_len:key_len;
+    void *lookup = (index->type == LOCAL_INDEX)?value:key;
+    std::size_t lookup_len = (index->type == LOCAL_INDEX)?value_len:key_len;
     if (!(rl = get_range_servers(md->size, lookup_index, lookup, lookup_len))) {
         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
              "Error while determining range server in _put_record",
@@ -426,8 +424,8 @@ TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
         pm->value = value;
         pm->value_len = value_len;
         pm->src = md->rank;
-        pm->index = put_index->id;
-        pm->index_type = put_index->type;
+        pm->index = index->id;
+        pm->index_type = index->type;
 
         if (_decompose_db(index, rl->ri->database, &pm->dst, &pm->rs_idx) != MDHIM_SUCCESS) {
             delete pm;
@@ -435,7 +433,7 @@ TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
         }
 
         //If I'm a range server and I'm the one this key goes to, send the message locally
-        if (im_range_server(put_index) && md->rank == pm->dst) {
+        if (im_range_server(index) && md->rank == pm->dst) {
             rm = local_client_put(md, pm);
         } else {
             //Send the message through the network as this message is for another rank
@@ -451,27 +449,9 @@ TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
     return rm;
 }
 
-/**
- * _get_record
- * Gets a record into MDHIM
- *
- * @param md          main MDHIM struct
- * @param index       the index to get the key from
- * @param key         pointer to key to get
- * @param key_len     the length of the key
- * @return TransportGetRecvMessage * or nullptr on error
- */
-TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
-                                     void *key, std::size_t key_len,
-                                     enum TransportGetMessageOp op) {
-    if (!md || !md->p ||
-        !index ||
-        !key || !key_len) {
-        return nullptr;
-    }
-
-    TransportGetRecvMessage *grm = nullptr;
-
+static TransportGetRecvMessage *_actual_get_record(mdhim_t *md, index_t *index,
+                                                   void *key, std::size_t key_len,
+                                                   enum TransportGetMessageOp op) {
     rangesrv_list *rl = nullptr;
     //Get the range server this key will be sent to
     if ((op == TransportGetMessageOp::GET_EQ || op == TransportGetMessageOp::GET_PRIMARY_EQ) &&
@@ -481,11 +461,12 @@ TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
         return nullptr;
     } else if ((index->type == LOCAL_INDEX ||
                 (op != TransportGetMessageOp::GET_EQ && op != TransportGetMessageOp::GET_PRIMARY_EQ)) &&
-               (rl = get_range_servers_from_stats(md, index, key, key_len, op)) ==
+               (rl = get_range_servers_from_stats(md->rank, index, key, key_len, op)) ==
                nullptr) {
         return nullptr;
     }
 
+    TransportGetRecvMessage *grm = nullptr;
     while (rl) {
         TransportGetMessage *gm = new TransportGetMessage();
         _clone(key, key_len, &gm->key);
@@ -516,6 +497,30 @@ TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
         free(rlp);
     }
 
+    return grm;
+}
+
+/**
+ * _get_record
+ * Gets a record into MDHIM
+ *
+ * @param md          main MDHIM struct
+ * @param index       the index to get the key from
+ * @param key         pointer to key to get
+ * @param key_len     the length of the key
+ * @return TransportGetRecvMessage * or nullptr on error
+ */
+TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
+                                     void *key, std::size_t key_len,
+                                     enum TransportGetMessageOp op) {
+    if (!md || !md->p ||
+        !index ||
+        !key || !key_len) {
+        return nullptr;
+    }
+
+    TransportGetRecvMessage *grm = _actual_get_record(md, index, key, key_len, op);
+
     // if GET failed, search the previous database
     if ((!grm || (grm->error != MDHIM_SUCCESS)) &&
         (index->num_databases != index->prev_num_databases)) {
@@ -530,89 +535,49 @@ TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
         old_index.num_rangesrvs = get_num_range_servers(index->prev_size, index->prev_range_server_factor);
 
         // GET again
+        grm = _actual_get_record(md, &old_index, key, key_len, op);
 
-        //Get the range server this key will be sent to
-        if ((op == TransportGetMessageOp::GET_EQ || op == TransportGetMessageOp::GET_PRIMARY_EQ) &&
-            old_index.type != LOCAL_INDEX &&
-            (rl = get_range_servers(index->prev_size, &old_index, key, key_len)) ==
-            nullptr) {
-            return nullptr;
-        } else if ((old_index.type == LOCAL_INDEX ||
-                    (op != TransportGetMessageOp::GET_EQ && op != TransportGetMessageOp::GET_PRIMARY_EQ)) &&
-                   (rl = get_range_servers_from_stats(md, &old_index, key, key_len, op)) ==
-                   nullptr) {
-            return nullptr;
-        }
+        // migrate the key pair
+        if (grm && (grm->error == MDHIM_SUCCESS)) {
+            void *k = nullptr;
+            void *value = nullptr;
+            _clone(key, key_len, &k);
+            _clone(grm->value, grm->value_len, &value);
 
-        while (rl) {
-            TransportGetMessage *gm = new TransportGetMessage();
-            _clone(key, key_len, &gm->key);
-            gm->key_len = key_len;
-            gm->num_keys = 1;
-            gm->src = md->rank;
-            gm->mtype = TransportMessageType::GET;
-            gm->op = (op == TransportGetMessageOp::GET_PRIMARY_EQ)?TransportGetMessageOp::GET_EQ:op;
-            gm->index = old_index.id;
-            gm->index_type = old_index.type;
+            // copy the key pair to the new database
+            TransportRecvMessage *prm = _put_record(md, index, k, key_len, value, grm->value_len);
+            if (!prm || (prm->error != MDHIM_SUCCESS)) {
+                mlog(MDHIM_CLIENT_WARN, "MDHIM Rank %d - "
+                     "Error while moving key",
+                     md->rank);
+            }
+            else {
+                // delete the key pair from the old database
+                _clone(key, key_len, &k);
+                TransportRecvMessage *drm = _del_record(md, &old_index, k, key_len);
+                if (!drm || (drm->error != MDHIM_SUCCESS)) {
+                    mlog(MDHIM_CLIENT_WARN, "MDHIM Rank %d - "
+                         "Error while removing old key",
+                         md->rank);
+                }
+                else {
+                     int prev_db = -1;
+                     _compose_db(&prev_db, grm->src, old_index.dbs_per_server, old_index.range_server_factor, grm->rs_idx);
+                     int curr_db = -1;
+                     _compose_db(&curr_db, prm->src, index->dbs_per_server, index->range_server_factor, prm->rs_idx);
 
-            if (_decompose_db(index, rl->ri->database, &gm->dst, &gm->rs_idx) != MDHIM_SUCCESS) {
-                delete gm;
-                return nullptr;
+                    mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d - "
+                         "Migrated key pair from database %d to database %d",
+                         md->rank,
+                         prev_db,
+                         curr_db);
+                }
+
+                delete drm;
             }
 
-            //If I'm a range server and I'm the one this key goes to, send the message locally
-            if (im_range_server(index) && md->rank == gm->dst) {
-                grm = local_client_get(md, gm);
-            } else {
-                //Send the message through the network as this message is for another rank
-                grm = md->p->transport->Get(gm);
-                delete gm;
-            }
-
-            rangesrv_list *rlp = rl;
-            rl = rl->next;
-            free(rlp);
+            delete prm;
         }
-
-        // // migrate the key pair
-        // if (grm && (grm->error == MDHIM_SUCCESS)) {
-        //     void *k = nullptr;
-        //     void *value = nullptr;
-        //     _clone(key, key_len, &k);
-        //     _clone(grm->value, grm->value_len, &value);
-
-        //     // copy the key pair to the new database
-        //     TransportRecvMessage *prm = _put_record(md, index, k, key_len, value, grm->value_len);
-        //     if (!prm || (prm->error != MDHIM_SUCCESS)) {
-        //         mlog(MDHIM_CLIENT_WARN, "MDHIM Rank %d - "
-        //              "Error while moving key",
-        //              md->rank);
-        //     }
-        // //     else {
-        // //         // This does not work yet - have to properly replace md and index with their previous versions
-        // //         // delete the key pair from the old database
-        // //         _clone(key, key_len, &k);
-        // //         TransportRecvMessage *drm = _del_record(md, &old_index, k, key_len);
-        // //         if (!drm || (drm->error != MDHIM_SUCCESS)) {
-        // //             mlog(MDHIM_CLIENT_WARN, "MDHIM Rank %d - "
-        // //                  "Error while removing old key",
-        // //                  md->rank);
-        // //         }
-        // //         else {
-        // //             const int prev_db = _compose_db(grm->src, index->prev_dbs_per_server, index->prev_range_server_factor, grm->rs_idx);
-        // //             const int curr_db = _compose_db(prm->src, index->dbs_per_server, index->range_server_factor, prm->rs_idx);
-        // //             mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d - "
-        // //                  "Migrated key pair from database %d to database %d",
-        // //                  md->rank,
-        // //                  prev_db,
-        // //                  curr_db);
-        // //         }
-
-        // //         delete drm;
-        // //     }
-
-        //     delete prm;
-        // }
     }
 
     // the key is normally placed into a TransportMessage and deleted later
@@ -657,13 +622,11 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
                                      void **values, std::size_t *value_lens,
                                      std::size_t num_keys) {
     index_t *lookup_index = nullptr;
-    index_t *put_index = index;
     if (index->type == LOCAL_INDEX) {
         lookup_index = get_index(md, index->primary_id);
         if (!lookup_index) {
             return nullptr;
         }
-
     } else {
         lookup_index = index;
     }
@@ -688,7 +651,7 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
     for (std::size_t i = 0; i < num_keys; i++) {
         //Get the range server this key will be sent to
         rangesrv_list *rl = nullptr;
-        if (put_index->type == LOCAL_INDEX) {
+        if (index->type == LOCAL_INDEX) {
             if ((rl = get_range_servers(md->size, lookup_index, values[i], value_lens[i])) ==
                 nullptr) {
                 mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
@@ -735,8 +698,8 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
                 bpm->dst = dst_rank;
                 bpm->rs_idx = new int[MAX_BULK_OPS]();
                 bpm->mtype = TransportMessageType::BPUT;
-                bpm->index = put_index->id;
-                bpm->index_type = put_index->type;
+                bpm->index = index->id;
+                bpm->index_type = index->type;
 
                 if (md->rank != bpm->dst) {
                     bpm_list[dst_rank] = bpm;
@@ -752,6 +715,7 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
             bpm->value_lens[bpm->num_keys] = value_lens[i];
             bpm->rs_idx[bpm->num_keys] = rs_idx;
             bpm->num_keys++;
+
             rangesrv_list *rlp = rl;
             rl = rl->next;
             free(rlp);
@@ -759,7 +723,7 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
     }
 
     //Make a list out of the received messages to return
-    TransportBRecvMessage *brm_head = md->p->transport->BPut(put_index->num_rangesrvs, bpm_list);
+    TransportBRecvMessage *brm_head = md->p->transport->BPut(index->num_rangesrvs, bpm_list);
     if (lbpm) {
         TransportBRecvMessage *brm = local_client_bput(md, lbpm);
         if (brm) {
@@ -824,7 +788,7 @@ TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
             return nullptr;
         } else if ((index->type == LOCAL_INDEX ||
                     (op != TransportGetMessageOp::GET_EQ && op != TransportGetMessageOp::GET_PRIMARY_EQ)) &&
-                   (rl = get_range_servers_from_stats(md, index, keys[i], key_lens[i], op)) ==
+                   (rl = get_range_servers_from_stats(md->rank, index, keys[i], key_lens[i], op)) ==
                    nullptr) {
 
             mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
@@ -894,41 +858,13 @@ TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
     return bgrm_head;
 }
 
-/**
- * _del_record
- * Deletes a record from MDHIM
- *
- * @param md main MDHIM struct
- * @param index       the index to delete the key from
- * @param key         pointer to array of keys to delete
- * @param key_len     array with lengths of each key in keys
- * @return TransportRecvMessage * or nullptr on error
- */
-TransportRecvMessage *_del_record(mdhim_t *md, index_t *index,
-                                  void *key, std::size_t key_len) {
-
-    if (!md || !md->p ||
-        !index ||
-        !key || !key_len) {
-        return nullptr;
-    }
-
+static TransportRecvMessage *_actual_del_record(mdhim_t *md, index_t *index,
+                                                void *key, std::size_t key_len) {
     rangesrv_list *rl = nullptr;
-    index_t *lookup_index = nullptr;
-
-    index_t *del_index = index;
-    if (index->type == LOCAL_INDEX) {
-        lookup_index = get_index(md, index->primary_id);
-        if (!lookup_index) {
-            return nullptr;
-        }
-    } else {
-        lookup_index = index;
-    }
 
     //Get the range server this key will be sent to
-    if (del_index->type == LOCAL_INDEX) {
-        if (!(rl = get_range_servers_from_stats(md, lookup_index, key, key_len, TransportGetMessageOp::GET_EQ))) {
+    if (index->type == LOCAL_INDEX) {
+        if (!(rl = get_range_servers_from_stats(md->rank, index, key, key_len, TransportGetMessageOp::GET_EQ))) {
             mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
                  "Error while determining range server in mdhimBDel",
                  md->rank);
@@ -936,7 +872,7 @@ TransportRecvMessage *_del_record(mdhim_t *md, index_t *index,
         }
     } else {
         //Get the range server this key will be sent to
-        if (!(rl = get_range_servers(md->size, lookup_index, key, key_len))) {
+        if (!(rl = get_range_servers(md->size, index, key, key_len))) {
             mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
                  "Error while determining range server in _del_record",
                  md->rank);
@@ -959,8 +895,8 @@ TransportRecvMessage *_del_record(mdhim_t *md, index_t *index,
         dm->key = key;
         dm->key_len = key_len;
         dm->src = md->rank;
-        dm->index = del_index->id;
-        dm->index_type = del_index->type;
+        dm->index = index->id;
+        dm->index_type = index->type;
 
         if (_decompose_db(index, rl->ri->database, &dm->dst, &dm->rs_idx) != MDHIM_SUCCESS) {
             delete dm;
@@ -968,7 +904,7 @@ TransportRecvMessage *_del_record(mdhim_t *md, index_t *index,
         }
 
         //If I'm a range server and I'm the one this key goes to, send the message locally
-        if (im_range_server(del_index) && md->rank == dm->dst) {
+        if (im_range_server(index) && md->rank == dm->dst) {
             rm = local_client_delete(md, dm);
         } else {
             //Send the message through the network as this message is for another rank
@@ -979,6 +915,48 @@ TransportRecvMessage *_del_record(mdhim_t *md, index_t *index,
         rangesrv_list *rlp = rl;
         rl = rl->next;
         free(rlp);
+    }
+
+    return rm;
+}
+
+/**
+ * _del_record
+ * Deletes a record from MDHIM
+ *
+ * @param md main MDHIM struct
+ * @param index       the index to delete the key from
+ * @param key         pointer to array of keys to delete
+ * @param key_len     array with lengths of each key in keys
+ * @return TransportRecvMessage * or nullptr on error
+ */
+TransportRecvMessage *_del_record(mdhim_t *md, index_t *index,
+                                  void *key, std::size_t key_len) {
+    if (!md || !md->p ||
+        !index ||
+        !key || !key_len) {
+        return nullptr;
+    }
+
+    index_t *lookup_index = nullptr;
+    if (index->type == LOCAL_INDEX) {
+        lookup_index = get_index(md, index->primary_id);
+        if (!lookup_index) {
+            return nullptr;
+        }
+    } else {
+        lookup_index = index;
+    }
+
+    TransportRecvMessage *rm = _actual_del_record(md, lookup_index, key, key_len);
+    if (!rm || (rm->error != MDHIM_SUCCESS)) {
+        index_t old_lookup_index;
+        memcpy(&old_lookup_index, lookup_index, sizeof(*lookup_index));
+        old_lookup_index.range_server_factor = lookup_index->prev_range_server_factor;
+        old_lookup_index.dbs_per_server = lookup_index->prev_dbs_per_server;
+        old_lookup_index.num_rangesrvs = get_num_range_servers(lookup_index->prev_size, lookup_index->prev_range_server_factor);
+
+        rm = _actual_del_record(md, &old_lookup_index, key, key_len);
     }
 
     return rm;
@@ -1024,7 +1002,7 @@ TransportBRecvMessage *_bdel_records(mdhim_t *md, index_t *index,
                  md->rank);
             continue;
         } else if (index->type == LOCAL_INDEX &&
-                   !(rl = get_range_servers_from_stats(md, index, keys[i], key_lens[i], TransportGetMessageOp::GET_EQ))) {
+                   !(rl = get_range_servers_from_stats(md->rank, index, keys[i], key_lens[i], TransportGetMessageOp::GET_EQ))) {
             mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank: %d - "
                  "Error while determining range server in mdhimBdel",
                  md->rank);

@@ -346,7 +346,7 @@ rangesrv_list_t *get_range_servers(const int size,
     return rl;
 }
 
-mdhim_stat_t *get_next_slice_stat(mdhim_t *md, index_t *index,
+static mdhim_stat_t *get_next_slice_stat(index_t *index,
                                   int slice_num) {
     mdhim_stat_t *stat, *tmp, *next_slice;
 
@@ -369,8 +369,7 @@ mdhim_stat_t *get_next_slice_stat(mdhim_t *md, index_t *index,
     return next_slice;
 }
 
-mdhim_stat_t *get_prev_slice_stat(mdhim_t *md, index_t *index,
-                       int slice_num) {
+static mdhim_stat_t *get_prev_slice_stat(index_t *index, int slice_num) {
     mdhim_stat_t *stat, *tmp, *prev_slice;
 
     prev_slice = NULL;
@@ -392,7 +391,7 @@ mdhim_stat_t *get_prev_slice_stat(mdhim_t *md, index_t *index,
     return prev_slice;
 }
 
-mdhim_stat_t *get_last_slice_stat(mdhim_t *md, index_t *index) {
+static mdhim_stat_t *get_last_slice_stat(index_t *index) {
     mdhim_stat_t *stat, *tmp, *last_slice;
 
     last_slice = NULL;
@@ -414,7 +413,7 @@ mdhim_stat_t *get_last_slice_stat(mdhim_t *md, index_t *index) {
     return last_slice;
 }
 
-mdhim_stat_t *get_first_slice_stat(mdhim_t *md, index_t *index) {
+static mdhim_stat_t *get_first_slice_stat(index_t *index) {
     mdhim_stat_t *stat, *tmp, *first_slice;
 
     first_slice = NULL;
@@ -436,8 +435,8 @@ mdhim_stat_t *get_first_slice_stat(mdhim_t *md, index_t *index) {
     return first_slice;
 }
 
-int get_slice_from_fstat(mdhim_t *md, index_t *index,
-                         int cur_slice, long double fstat, TransportGetMessageOp op) {
+static int get_slice_from_fstat(index_t *index,
+                                int cur_slice, long double fstat, TransportGetMessageOp op) {
     int slice_num = 0;
     mdhim_stat_t *cur_stat, *new_stat;
 
@@ -454,7 +453,7 @@ int get_slice_from_fstat(mdhim_t *md, index_t *index,
             slice_num = cur_slice;
             goto done;
         } else {
-            new_stat = get_next_slice_stat(md, index, cur_slice);
+            new_stat = get_next_slice_stat(index, cur_slice);
             goto new_stat;
         }
 
@@ -464,17 +463,17 @@ int get_slice_from_fstat(mdhim_t *md, index_t *index,
             slice_num = cur_slice;
             goto done;
         } else {
-            new_stat = get_prev_slice_stat(md, index, cur_slice);
+            new_stat = get_prev_slice_stat(index, cur_slice);
             goto new_stat;
         }
 
         break;
     case TransportGetMessageOp::GET_FIRST:
-        new_stat = get_first_slice_stat(md, index);
+        new_stat = get_first_slice_stat(index);
         goto new_stat;
         break;
     case TransportGetMessageOp::GET_LAST:
-        new_stat = get_last_slice_stat(md, index);
+        new_stat = get_last_slice_stat(index);
         goto new_stat;
         break;
     default:
@@ -493,8 +492,8 @@ new_stat:
     }
 }
 
-int get_slice_from_istat(mdhim_t *md, index_t *index,
-                         int cur_slice, uint64_t istat, TransportGetMessageOp op) {
+static int get_slice_from_istat(index_t *index,
+                                int cur_slice, uint64_t istat, TransportGetMessageOp op) {
     int slice_num = 0;
     mdhim_stat_t *cur_stat, *new_stat;
 
@@ -513,7 +512,7 @@ int get_slice_from_istat(mdhim_t *md, index_t *index,
             slice_num = cur_slice;
             goto done;
         } else {
-            new_stat = get_next_slice_stat(md, index, cur_slice);
+            new_stat = get_next_slice_stat(index, cur_slice);
             goto new_stat;
         }
 
@@ -524,17 +523,17 @@ int get_slice_from_istat(mdhim_t *md, index_t *index,
             slice_num = cur_slice;
             goto done;
         } else {
-            new_stat = get_prev_slice_stat(md, index, cur_slice);
+            new_stat = get_prev_slice_stat(index, cur_slice);
             goto new_stat;
         }
 
         break;
     case TransportGetMessageOp::GET_FIRST:
-        new_stat = get_first_slice_stat(md, index);
+        new_stat = get_first_slice_stat(index);
         goto new_stat;
         break;
     case TransportGetMessageOp::GET_LAST:
-        new_stat = get_last_slice_stat(md, index);
+        new_stat = get_last_slice_stat(index);
         goto new_stat;
         break;
     default:
@@ -555,8 +554,8 @@ new_stat:
 
 /* Iterate through the multi-level hash table in index->stats to find the range servers
    that could have the key */
-rangesrv_list_t *get_rangesrvs_from_istat(mdhim_t *md, index_t *index,
-                                          uint64_t istat, TransportGetMessageOp op) {
+static rangesrv_list_t *get_rangesrvs_from_istat(index_t *index,
+                                                 uint64_t istat, TransportGetMessageOp op) {
     mdhim_stat_t *cur_rank, *cur_stat, *tmp, *tmp2;
     rangesrv_list_t *head, *lp, *entry;
     int slice_num = 0;
@@ -643,7 +642,7 @@ rangesrv_list_t *get_rangesrvs_from_istat(mdhim_t *md, index_t *index,
 
 /* Iterate through the multi-level hash table in index->stats to find the range servers
    that could have the key */
-rangesrv_list_t *get_rangesrvs_from_fstat(mdhim_t *md, index_t *index,
+static rangesrv_list_t *get_rangesrvs_from_fstat(index_t *index,
                                           long double fstat, TransportGetMessageOp op) {
     mdhim_stat_t *cur_rank, *cur_stat, *tmp, *tmp2;
     rangesrv_list_t *head, *lp, *entry;
@@ -741,8 +740,8 @@ rangesrv_list_t *get_rangesrvs_from_fstat(mdhim_t *md, index_t *index,
  * @param op        operation type (
  * @return the rank of the range server or NULL on error
  */
-rangesrv_list_t *get_range_servers_from_stats(mdhim_t *md, index_t *index,
-                        void *key, int key_len, TransportGetMessageOp op) {
+rangesrv_list_t *get_range_servers_from_stats(const int rank, index_t *index,
+                                              void *key, int key_len, TransportGetMessageOp op) {
     //The number that maps a key to range server (dependent on key type)
     int slice_num, cur_slice;
     //The range server number that we return
@@ -773,13 +772,13 @@ rangesrv_list_t *get_range_servers_from_stats(mdhim_t *md, index_t *index,
     if (!index->stats) {
         mlog(MDHIM_CLIENT_CRIT, "Rank %d - No statistics data available."
              " Perform a mdhimStatFlush first.",
-             md->rank);
+             rank);
         return NULL;
     }
 
+    float_type = is_float_key(index->key_type);
     if (index->type != LOCAL_INDEX) {
         cur_slice = slice_num = 0;
-        float_type = is_float_key(index->key_type);
 
         //Get the current slice number of our key
         if (key && key_len) {
@@ -787,7 +786,7 @@ rangesrv_list_t *get_range_servers_from_stats(mdhim_t *md, index_t *index,
             if (cur_slice == MDHIM_ERROR) {
                 mlog(MDHIM_CLIENT_CRIT, "Rank %d - Error: could not determine a"
                      " valid a slice number",
-                     md->rank);
+                     rank);
                 return NULL;
             }
         } else if (op != TransportGetMessageOp::GET_FIRST && op != TransportGetMessageOp::GET_LAST) {
@@ -796,8 +795,8 @@ rangesrv_list_t *get_range_servers_from_stats(mdhim_t *md, index_t *index,
         }
 
         slice_num = (float_type == 1)?
-            get_slice_from_fstat(md, index, cur_slice, fstat, op):
-            get_slice_from_istat(md, index, cur_slice, istat, op);
+            get_slice_from_fstat(index, cur_slice, fstat, op):
+            get_slice_from_istat(index, cur_slice, istat, op);
 
         if (slice_num == MDHIM_ERROR) {
             return NULL;
@@ -807,7 +806,7 @@ rangesrv_list_t *get_range_servers_from_stats(mdhim_t *md, index_t *index,
         if (!ret_rp) {
             mlog(MDHIM_CLIENT_INFO, "Rank %d - Did not get a valid range server from"
                  " get_range_server_by_size",
-                 md->rank);
+                 rank);
             return NULL;
         }
 
@@ -815,9 +814,9 @@ rangesrv_list_t *get_range_servers_from_stats(mdhim_t *md, index_t *index,
         _add_to_rangesrv_list(&rl, ret_rp);
     } else {
         if (float_type) {
-            rl = get_rangesrvs_from_fstat(md, index, fstat, op);
+            rl = get_rangesrvs_from_fstat(index, fstat, op);
         } else {
-            rl = get_rangesrvs_from_istat(md, index, istat, op);
+            rl = get_rangesrvs_from_istat(index, istat, op);
         }
     }
 

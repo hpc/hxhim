@@ -43,7 +43,7 @@ long double get_str_num(void *key, uint32_t key_len);
 uint64_t get_byte_num(void *key, uint32_t key_len);
 int get_slice_num(const int key_type, uint64_t slice_size, void *key, int key_len);
 int is_float_key(int type);
-rangesrv_list_t *get_range_servers_from_stats(mdhim_t *md, index_t *index,
+rangesrv_list_t *get_range_servers_from_stats(const int rank, index_t *index,
                                               void *key, int key_len, TransportGetMessageOp op);
 
 #endif
