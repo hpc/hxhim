@@ -365,6 +365,51 @@ int mdhim_private_destroy(mdhim_t *md) {
 }
 
 /**
+ * _decompose_db
+ * Decompose a database id into a rank and index
+ *
+ * @param md     the mdhim context
+ * @param db     the database id
+ * @param rank   (optional) the rank the database is located at
+ * @param rs_idx (optional) the index the database is at inside the rank
+ * @return MDHIM_SUCCESS or MDHIM_ERROR
+ */
+int _decompose_db(index_t *index, const int db, int *rank, int *rs_idx) {
+    if (!index || (db < 0)) {
+        return MDHIM_ERROR;
+    }
+
+    if (rank) {
+        *rank = index->range_server_factor * db / index->dbs_per_server;
+    }
+
+    if (rs_idx) {
+        *rs_idx = db % index->dbs_per_server;
+    }
+
+    return MDHIM_SUCCESS;
+}
+
+/**
+ * _compose_db
+ * Converts a rank and index back into a database
+ *
+ * @param md     the mdhim context
+ * @param db     the database id
+ * @param rank   the rank the database is located at
+ * @param rs_idx the index the database is at inside the rank
+ * @return MDHIM_SUCCESS or MDHIM_ERROR
+ */
+int _compose_db(index_t *index, int *db, const int rank, const int rs_idx) {
+    if (!index || !db) {
+        return MDHIM_ERROR;
+    }
+
+    *db = index->dbs_per_server * rank / index->range_server_factor + rs_idx;
+    return MDHIM_SUCCESS;
+}
+
+/**
  * _put_record
  * Puts a record into MDHIM
  *
@@ -461,8 +506,7 @@ TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
  */
 TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
                                      void *key, std::size_t key_len,
-                                     enum TransportGetMessageOp op,
-                                     const bool check_prev) {
+                                     enum TransportGetMessageOp op) {
     if (!md || !md->p ||
         !index ||
         !key || !key_len) {
@@ -512,68 +556,6 @@ TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
         rangesrv_list *rlp = rl;
         rl = rl->next;
         free(rlp);
-    }
-
-    // if GET failed, search the previous database
-    if (check_prev &&
-        (!grm || (grm->error != MDHIM_SUCCESS)) &&
-        (index->num_databases != index->prev_num_databases)) {
-        delete grm;
-        grm = nullptr;
-
-        // use the current index as the template for the old index
-        index_t old_index;
-        memcpy(&old_index, index, sizeof(*index));
-        old_index.range_server_factor = index->prev_range_server_factor;
-        old_index.dbs_per_server = index->prev_dbs_per_server;
-        old_index.num_rangesrvs = get_num_range_servers(index->prev_size, index->prev_range_server_factor);
-
-        // GET again
-        void *k;
-        _clone(key, key_len, &k);
-        grm = _get_record(md, &old_index, k, key_len, op, false);
-
-        // migrate the key pair
-        if (grm && (grm->error == MDHIM_SUCCESS)) {
-            void *k = nullptr;
-            void *value = nullptr;
-            _clone(key, key_len, &k);
-            _clone(grm->value, grm->value_len, &value);
-
-            // copy the key pair to the new database
-            TransportRecvMessage *prm = _put_record(md, index, k, key_len, value, grm->value_len);
-            if (!prm || (prm->error != MDHIM_SUCCESS)) {
-                mlog(MDHIM_CLIENT_WARN, "MDHIM Rank %d - "
-                     "Error while moving key",
-                     md->rank);
-            }
-            else {
-                // delete the key pair from the old database
-                _clone(key, key_len, &k);
-                TransportRecvMessage *drm = _del_record(md, &old_index, k, key_len);
-                if (!drm || (drm->error != MDHIM_SUCCESS)) {
-                    mlog(MDHIM_CLIENT_WARN, "MDHIM Rank %d - "
-                         "Error while removing old key",
-                         md->rank);
-                }
-                else {
-                    int prev_db = -1;
-                    _compose_db(&old_index, &prev_db, grm->src, grm->rs_idx);
-                    int curr_db = -1;
-                    _compose_db(index, &curr_db, prm->src, prm->rs_idx);
-
-                    mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d - "
-                         "Migrated key pair from database %d to database %d",
-                         md->rank,
-                         prev_db,
-                         curr_db);
-                }
-
-                delete drm;
-            }
-
-            delete prm;
-        }
     }
 
     // the key is normally placed into a TransportMessage and deleted later
@@ -873,8 +855,7 @@ TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
  * @return TransportRecvMessage * or nullptr on error
  */
 TransportRecvMessage *_del_record(mdhim_t *md, index_t *index,
-                                  void *key, std::size_t key_len,
-                                     const bool check_prev) {
+                                  void *key, std::size_t key_len) {
     if (!md || !md->p ||
         !index ||
         !key || !key_len) {
@@ -946,24 +927,6 @@ TransportRecvMessage *_del_record(mdhim_t *md, index_t *index,
         rangesrv_list *rlp = rl;
         rl = rl->next;
         free(rlp);
-    }
-
-    // check the previous database
-    if (check_prev &&
-        (!rm || (rm->error != MDHIM_SUCCESS)) &&
-        (index->num_databases != index->prev_num_databases)) {
-        delete rm;
-        rm = nullptr;
-
-        index_t old_lookup_index;
-        memcpy(&old_lookup_index, lookup_index, sizeof(*lookup_index));
-        old_lookup_index.range_server_factor = lookup_index->prev_range_server_factor;
-        old_lookup_index.dbs_per_server = lookup_index->prev_dbs_per_server;
-        old_lookup_index.num_rangesrvs = get_num_range_servers(lookup_index->prev_size, lookup_index->prev_range_server_factor);
-
-        void *k = nullptr;
-        _clone(key, key_len, &k);
-        rm = _del_record(md, &old_lookup_index, k, key_len, false);
     }
 
     return rm;

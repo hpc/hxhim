@@ -29,12 +29,6 @@ index_t *get_index_by_name(mdhim_t *md, char *index_name);
 void indexes_release(mdhim_t *md);
 int im_range_server(index_t *index);
 
-/** @description Internal function for converting a database id into a rank and index */
-int _decompose_db(index_t *index, const int db, int *rank, int *rs_idx);
-
-/** @description Internal function for converting a rank and index into a database id */
-int _compose_db(index_t *index, int *db, const int rank, const int rs_idx);
-
 uint32_t get_num_range_servers(const int size, const int range_server_factor);
 uint32_t get_num_databases(const int size, const int range_server_factor, const int dbs_per_server);
 

@@ -117,12 +117,10 @@ static void write_manifest(mdhim_t *md, index_t *index) {
         return;
     }
 
-    if ((write_integral(fd, index->key_type,            8) < 0) ||
-        (write_integral(fd, index->db_type,             8) < 0) ||
-        (write_integral(fd, index->range_server_factor, 8) < 0) ||
-        (write_integral(fd, md->size,                   8) < 0) ||
-        (write_integral(fd, index->dbs_per_server,      8) < 0) ||
-        (write_integral(fd, index->slice_size,          8) < 0)) {
+    if ((write_integral(fd, index->key_type,                                                                8) < 0) ||
+        (write_integral(fd, index->db_type,                                                                 8) < 0) ||
+        (write_integral(fd, get_num_databases(md->size, index->range_server_factor, index->dbs_per_server), 8) < 0) ||
+        (write_integral(fd, index->slice_size,                                                              8) < 0)) {
         mlog(MDHIM_SERVER_CRIT, "Rank %d - Error writing manifest file",
              md->rank);
     }
@@ -139,32 +137,28 @@ static void write_manifest(mdhim_t *md, index_t *index) {
  */
 static int read_manifest(mdhim_t *md, index_t *index) {
     int fd;
-    int ret;
-
     if ((fd = open_manifest(md, index, O_RDWR)) < 0) {
         mlog(MDHIM_SERVER_DBG, "Rank %d - Couldn't open manifest file",
              md->rank);
         return MDHIM_SUCCESS;
     }
 
-    int key_type, db_type, rangesrv_factor, size, dbs_per_server;
+    int key_type, db_type, databases;
     uint64_t slice_size;
-    if ((read_integral(fd, key_type,        8) < 0) ||
-        (read_integral(fd, db_type,         8) < 0) ||
-        (read_integral(fd, rangesrv_factor, 8) < 0) ||
-        (read_integral(fd, size,            8) < 0) ||
-        (read_integral(fd, dbs_per_server,  8) < 0) ||
-        (read_integral(fd, slice_size,      8) < 0)) {
+    if ((read_integral(fd, key_type,   8) < 0) ||
+        (read_integral(fd, db_type,    8) < 0) ||
+        (read_integral(fd, databases,  8) < 0) ||
+        (read_integral(fd, slice_size, 8) < 0)) {
         mlog(MDHIM_SERVER_CRIT, "Rank %d - Couldn't read manifest file",
              md->rank);
         return MDHIM_ERROR;
     }
 
-    ret = MDHIM_SUCCESS;
+    int ret = MDHIM_SUCCESS;
     mlog(MDHIM_SERVER_DBG, "Rank %d - Manifest contents - \nkey_type: %d, "
-         "db_type: %d, rs_factor: %u, slice_size: %lu, databases per server: %d",
+         "db_type: %d, slice_size: %" PRIu64 ", databases: %d",
          md->rank, key_type, db_type,
-         rangesrv_factor, (unsigned long)slice_size, dbs_per_server);
+         slice_size, databases);
 
     //Check that the manifest and the current config match
     if (key_type != index->key_type) {
@@ -189,27 +183,13 @@ static int read_manifest(mdhim_t *md, index_t *index) {
     }
 
     // the current number of databases should be at least as many as the previous size
-    const int prev_dbs = get_num_databases(size, rangesrv_factor, dbs_per_server);
     const int curr_dbs = get_num_databases(md->size, index->range_server_factor, index->dbs_per_server);
-    if (prev_dbs != curr_dbs) {
+    if (databases != curr_dbs) {
         mlog(MDHIM_SERVER_INFO, "Rank %d - The number of databases in this MDHIM instance (%d)"
              " doesn't match the number used previously (%d)",
-             md->rank, curr_dbs, prev_dbs);
-
-        // fewer databases than before is not allowed
-        if (prev_dbs > curr_dbs) {
-            mlog(MDHIM_SERVER_CRIT, "Rank %d - The number of databases in this MDHIM instance (%d)"
-                 " is less than the number used previously (%d)",
-                 md->rank, curr_dbs, prev_dbs);
-            ret = MDHIM_ERROR;
-        }
+             md->rank, curr_dbs, databases);
+        ret = MDHIM_ERROR;
     }
-
-    // overwrite previous values with manifest values
-    index->prev_size = size;
-    index->prev_dbs_per_server = dbs_per_server;
-    index->prev_range_server_factor = rangesrv_factor;
-    index->prev_num_databases = prev_dbs;
 
     close(fd);
     return ret;
@@ -617,7 +597,6 @@ index_t *create_local_index(mdhim_t *md, int db_type, int key_type, const char *
     //Initialize the new index struct
     li->id = HASH_COUNT(md->p->indexes);
     li->range_server_factor = md->p->primary_index->range_server_factor;
-    li->prev_range_server_factor = li->range_server_factor;
     li->slice_size = MDHIM_MAX_SLICES;
     li->type = LOCAL_INDEX;
     li->key_type = key_type;
@@ -629,15 +608,9 @@ index_t *create_local_index(mdhim_t *md, int db_type, int key_type, const char *
 
     //Figure out how many range servers we could have based on the range server factor
     li->num_rangesrvs = get_num_range_servers(md->size, li->range_server_factor);
-    li->prev_size = md->size;
 
     //Get the number of databases per server there are
     li->dbs_per_server = md->p->db_opts->dbs_per_server;
-    li->prev_dbs_per_server = li->dbs_per_server;
-
-    //Get the total number of databases
-    li->num_databases = get_num_databases(md->size, li->range_server_factor, li->dbs_per_server);
-    li->prev_num_databases = li->num_databases;
 
     //Get the range servers for this index
     if (get_rangesrvs(md, li) != MDHIM_SUCCESS) {
@@ -746,7 +719,6 @@ index_t *create_global_index(mdhim_t *md, int server_factor,
     //Initialize the new index struct
     gi->id = HASH_COUNT(md->p->indexes);
     gi->range_server_factor = server_factor;
-    gi->prev_range_server_factor = gi->range_server_factor;
     gi->slice_size = max_recs_per_slice;
     gi->type = gi->id > 0 ? SECONDARY_INDEX : PRIMARY_INDEX;
     gi->key_type = key_type;
@@ -758,15 +730,9 @@ index_t *create_global_index(mdhim_t *md, int server_factor,
 
     //Figure out how many range servers we could have based on the range server factor
     gi->num_rangesrvs = get_num_range_servers(md->size, gi->range_server_factor);
-    gi->prev_size = md->size;
 
     //Get the number of databases per server there are
     gi->dbs_per_server = md->p->db_opts->dbs_per_server;
-    gi->prev_dbs_per_server = gi->dbs_per_server;
-
-    //Get the total number of databases
-    gi->num_databases = get_num_databases(md->size, gi->range_server_factor, gi->dbs_per_server);
-    gi->prev_num_databases = gi->num_databases;
 
     //Get the range servers for this index
     if (get_rangesrvs(md, gi) != MDHIM_SUCCESS) {
@@ -1516,51 +1482,6 @@ int get_stat_flush(mdhim_t *md, index_t *index) {
     pthread_mutex_unlock(&md->lock);
 
     return ret;
-}
-
-/**
- * _decompose_db
- * Decompose a database id into a rank and index
- *
- * @param md     the mdhim context
- * @param db     the database id
- * @param rank   (optional) the rank the database is located at
- * @param rs_idx (optional) the index the database is at inside the rank
- * @return MDHIM_SUCCESS or MDHIM_ERROR
- */
-int _decompose_db(index_t *index, const int db, int *rank, int *rs_idx) {
-    if (!index || (db < 0)) {
-        return MDHIM_ERROR;
-    }
-
-    if (rank) {
-        *rank = index->range_server_factor * db / index->dbs_per_server;
-    }
-
-    if (rs_idx) {
-        *rs_idx = db % index->dbs_per_server;
-    }
-
-    return MDHIM_SUCCESS;
-}
-
-/**
- * _compose_db
- * Converts a rank and index back into a database
- *
- * @param md     the mdhim context
- * @param db     the database id
- * @param rank   the rank the database is located at
- * @param rs_idx the index the database is at inside the rank
- * @return MDHIM_SUCCESS or MDHIM_ERROR
- */
-int _compose_db(index_t *index, int *db, const int rank, const int rs_idx) {
-    if (!index || !db) {
-        return MDHIM_ERROR;
-    }
-
-    *db = index->dbs_per_server * rank / index->range_server_factor + rs_idx;
-    return MDHIM_SUCCESS;
 }
 
 /**

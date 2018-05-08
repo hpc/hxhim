@@ -57,12 +57,6 @@ typedef struct index {
     //The number of range servers for this index
     size_t num_rangesrvs;
     size_t dbs_per_server;
-    size_t num_databases;
-
-    size_t prev_size;
-    size_t prev_dbs_per_server;
-    size_t prev_range_server_factor;
-    size_t prev_num_databases;
 
     //The rank's range server information, if it is a range server for this index
     rangesrv_info_t myinfo;

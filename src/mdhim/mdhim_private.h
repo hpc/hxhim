@@ -57,6 +57,12 @@ int mdhim_private_init(mdhim_t *md, mdhim_db_options_t *db, mdhim_transport_opti
 /** @description The actual destructor for mdhim_t */
 int mdhim_private_destroy(mdhim_t *md);
 
+/** @description Internal function for converting a database id into a rank and index */
+int _decompose_db(index_t *index, const int db, int *rank, int *rs_idx);
+
+/** @description Internal function for converting a rank and index into a database id */
+int _compose_db(index_t *index, int *db, const int rank, const int rs_idx);
+
 /** @description Internal PUT function */
 TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
                                   void *key, std::size_t key_len,
@@ -65,13 +71,11 @@ TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
 /** @description Internal GET function */
 TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
                                      void *key, std::size_t key_len,
-                                     enum TransportGetMessageOp op,
-                                     const bool check_prev = true);
+                                     enum TransportGetMessageOp op);
 
 /** @description Internal DELETE function */
 TransportRecvMessage *_del_record(mdhim_t *md, index_t *index,
-                                  void *key, std::size_t key_len,
-                                  const bool check_prev = true);
+                                  void *key, std::size_t key_len);
 
 /** @description Internal BPUT function */
 TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
