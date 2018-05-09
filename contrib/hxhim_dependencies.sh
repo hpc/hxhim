@@ -245,7 +245,7 @@ function thallium() {
     mkdir -p build
     cd build
     install_dir=$PREFIX/$name
-    CC=clang CXX=clang++ PKG_CONFIG_PATH=$PKG_CONFIG_PATH mercury_DIR=$MERCURY_DIR cmake -DCMAKE_INSTALL_PREFIX=$install_dir ..
+    CC=clang CXX=clang++ PKG_CONFIG_PATH=$PKG_CONFIG_PATH mercury_DIR=$MERCURY_DIR cmake -DCMAKE_INSTALL_PREFIX=$install_dir -DCMAKE_CXX_EXTENSIONS:BOOL=OFF ..
     make -j ${PROCS}
     make -j ${PROCS} install
     cd ../..

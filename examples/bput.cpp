@@ -61,7 +61,7 @@ void bput(mdhim_t *md,
             continue;
         }
 
-        for(int i = 0; i < num_keys_to_rs; i++) {
+        for(std::size_t i = 0; i < num_keys_to_rs; i++) {
             int db = -1;
             if (mdhimComposeDB(md, &db, src, rs_idx[i]) != MDHIM_SUCCESS) {
                 err << "Could not compute database id" << std::endl;
