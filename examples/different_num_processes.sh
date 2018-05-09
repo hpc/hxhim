@@ -1,4 +1,17 @@
 #!/usr/bin/env bash
+# different_num_processes.sh
+# This script runs a fixed number of MDHIM
+# databases with variable numbers of processes
+# to make sure that MDHIM is able to handle
+# process count changes.
+#
+# Randomly generated key-value pairs are
+# PUT into d databases with the configuration
+# of d processes with 1 database each. Then,
+# The keys are extracted using GET and BGET
+# while running MDHIM with r ranks, where
+# 1 <= r <= d and d % r == 0.
+#
 
 MIN_KEY_LEN=1
 MAX_KEY_LEN=10
@@ -39,7 +52,7 @@ case $key in
     shift # past value
     ;;
     -d|--databases)
-    RANKS=$2
+    DATABASES=$2
     shift # past argument
     shift # past value
     ;;
@@ -71,47 +84,18 @@ esac
 done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
-#Make sure optional arguments make sense
-if [[ "$MIN_KEY_LEN" -lt 1 ]] ; then
-    echo "Minimum Key Length ($MIN_KEY_LEN) is too small"
-    exit -1
-fi
-
-if [[ "$MAX_KEY_LEN" -lt 1 ]] ; then
-    echo "Maximum Key Length ($MAX_KEY_LEN) is too small"
-    exit -1
-fi
-
-if [[ "$MIN_KEY_LEN" -gt "$MAX_KEY_LEN" ]] ; then
-    echo "Minimum Key Length ($MIN_KEY_LEN) is larger than Maximum Key Length ($MAX_KEY_LEN)"
-    exit -1
-fi
-
-if [[ "$MIN_VALUE_LEN" -lt 1 ]] ; then
-    echo "Minimum Value Length ($MIN_VALUE_LEN) is too small"
-    exit -1
-fi
-
-if [[ "$MAX_VALUE_LEN" -lt 1 ]] ; then
-    echo "Maximum Value Length ($MAX_VALUE_LEN) is too small"
-    exit -1
-fi
-
-if [[ "$MIN_VALUE_LEN" -gt "$MAX_VALUE_LEN" ]] ; then
-    echo "Minimum Value Length ($MIN_VALUE_LEN) is larger than Maximum Value Length ($MAX_VALUE_LEN)"
-    exit -1
-fi
-
-if [[ "$COUNT" -lt "0" ]] ; then
-    echo "Too few key value pairs: $COUNT"
-    exit -1
-fi
-
 # Generate key value pairs
+kv_pairs=$($(dirname $0)/generate_kv_pairs.sh --count $COUNT --min_key_len $MIN_KEY_LEN --max_key_len $MAX_KEY_LEN --min_value_len $MIN_VALUE_LEN --max_value_len $MAX_VALUE_LEN)
+if [[ "$?" -eq "1" ]] ; then
+    echo $kv_pairs
+    exit 1
+fi
+
+# Read the key value pairs in
 declare -A KEYPAIRS
-for i in $(seq 1 $COUNT); do
-    KEYPAIRS[$(pwgen $(shuf -i $MIN_KEY_LEN-$MAX_KEY_LEN -n 1) 1)]=$(pwgen $(shuf -i $MIN_VALUE_LEN-$MAX_VALUE_LEN -n 1) 1)
-done
+while read key value ; do
+    KEYPAIRS[$key]=$value
+done < <(echo "$kv_pairs")
 
 # Generate commands using the key value pairs
 declare -A OPS
