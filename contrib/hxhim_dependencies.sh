@@ -13,7 +13,7 @@
 #     boost-devel
 #     clang
 #     cmake (3+)
-#     libev
+#     libev-devel
 #     libtool-ltdl-devel
 #
 # Git Repositories:
@@ -117,20 +117,20 @@ function mercury() {
     check_boost
 
     cmake_options=
-    if [[ -z ${NA_USE_BMI+} ]]; then
-        dir=$(pwd)
+    if [[ ! -z ${USE_NA_BMI+false} ]]; then
+        echo BMI
         NA_BMI
         cmake_options="$cmake_options -DNA_USE_BMI:BOOL=ON -DBMI_INCLUDE_DIR=$BMI_INCLUDE_DIR -DBMI_LIBRARY=$BMI_LIBRARY"
     fi
 
-    if [[ -z ${NA_USE_CCI+} ]]; then
-        dir=$(pwd)
+    if [[ ! -z ${USE_NA_CCI+false} ]]; then
+        echo CCI
         NA_CCI
         cmake_options="$cmake_options -DNA_USE_CCI:BOOL=ON -DCCI_INCLUDE_DIR=$CCI_INCLUDE_DIR -DCCI_LIBRARY=$CCI_LIBRARY"
     fi
 
-    if [[ -z ${NA_USE_SM+} ]]; then
-        dir=$(pwd)
+    if [[ ! -z ${USE_NA_SM+false} ]]; then
+        echo SM
         NA_SM
         cmake_options="$cmake_options -DNA_USE_SM:BOOL=ON"
     fi
@@ -304,15 +304,15 @@ case $key in
     exit 0
     ;;
     --BMI)
-    NA_USE_BMI=
+    USE_NA_BMI=
     shift # past argument
     ;;
     --CCI)
-    NA_USE_CCI=
+    USE_NA_CCI=
     shift # past argument
     ;;
     --SM)
-    NA_USE_SM=
+    USE_NA_SM=
     shift # past argument
     ;;
     *)    # unknown option
