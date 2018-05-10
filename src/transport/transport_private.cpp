@@ -129,7 +129,10 @@ int mdhim_brm_rs_idx(const mdhim_brm_t *brm, int **rs_idx) {
         return MDHIM_ERROR;
     }
 
-    *rs_idx = brm->brm->rs_idx;
+    for(std::size_t i = 0; i < brm->brm->num_keys; i++) {
+        (*rs_idx)[i] = brm->brm->rs_idx[i];
+    }
+
     return MDHIM_SUCCESS;
 }
 
@@ -234,11 +237,14 @@ int mdhim_bgrm_src(const mdhim_bgetrm_t *bgrm, int *src) {
 }
 
 int mdhim_bgrm_rs_idx(const mdhim_bgetrm_t *bgrm, int **rs_idx) {
-    if (!bgrm || !bgrm->bgrm || !rs_idx) {
+    if (!bgrm || !bgrm->bgrm || !rs_idx || !*rs_idx) {
         return MDHIM_ERROR;
     }
 
-    *rs_idx = bgrm->bgrm->rs_idx;
+    for(std::size_t i = 0; i < bgrm->bgrm->num_keys; i++) {
+        (*rs_idx)[i] = bgrm->bgrm->rs_idx[i];
+    }
+
     return MDHIM_SUCCESS;
 }
 
@@ -251,17 +257,25 @@ int mdhim_bgrm_error(const mdhim_bgetrm_t *bgrm, int *error) {
     return MDHIM_SUCCESS;
 }
 
-int  mdhim_bgrm_keys(const mdhim_bgetrm_t *bgrm, void ***keys, std::size_t **key_lens) {
+int mdhim_bgrm_keys(const mdhim_bgetrm_t *bgrm, void ***keys, std::size_t **key_lens) {
     if (!bgrm || !bgrm->bgrm) {
         return MDHIM_ERROR;
     }
 
     if (keys) {
-        *keys = bgrm->bgrm->keys;
+        if (!*keys) {
+            return MDHIM_ERROR;
+        }
+
+        for(std::size_t i = 0; i < bgrm->bgrm->num_keys; i++) {
+            (*keys)[i] = bgrm->bgrm->keys[i];
+        }
     }
 
     if (key_lens) {
-        *key_lens = bgrm->bgrm->key_lens;
+        for(std::size_t i = 0; i < bgrm->bgrm->num_keys; i++) {
+            (*key_lens)[i] = bgrm->bgrm->key_lens[i];
+        }
     }
 
     return MDHIM_SUCCESS;
@@ -273,11 +287,23 @@ int mdhim_bgrm_values(const mdhim_bgetrm_t *bgrm, void ***values, std::size_t **
     }
 
     if (values) {
-        *values = bgrm->bgrm->values;
+        if (!*values) {
+            return MDHIM_ERROR;
+        }
+
+        for(std::size_t i = 0; i < bgrm->bgrm->num_keys; i++) {
+            (*values)[i] = bgrm->bgrm->values[i];
+        }
     }
 
     if (value_lens) {
-        *value_lens = bgrm->bgrm->value_lens;
+        if (!*value_lens) {
+            return MDHIM_ERROR;
+        }
+
+        for(std::size_t i = 0; i < bgrm->bgrm->num_keys; i++) {
+            (*value_lens)[i] = bgrm->bgrm->value_lens[i];
+        }
     }
 
     return MDHIM_SUCCESS;

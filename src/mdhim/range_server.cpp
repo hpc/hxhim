@@ -227,7 +227,7 @@ static int range_server_put(mdhim_t *md, work_item_t *item) {
     rm->error = error;
     rm->src = im->dst;
     rm->dst = im->src;
-    rm->rs_idx = im->rs_idx;
+    rm->rs_idx = std::move(im->rs_idx);
 
     //Free memory
     if (exists && md->p->db_opts->value_append == MDHIM_DB_APPEND) {
@@ -363,8 +363,7 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
     brm->dst = bim->src;
     brm->error = error;
     brm->num_keys = bim->num_keys;
-    brm->rs_idx = new int[bim->num_keys]();
-    memcpy(brm->rs_idx, bim->rs_idx, bim->num_keys * sizeof(*bim->rs_idx));
+    brm->rs_idx = std::move(bim->rs_idx);
 
     //Release the internals of the bput message
     delete bim;
@@ -412,7 +411,7 @@ static int range_server_del(mdhim_t *md, work_item_t *item) {
     rm->error = ret;
     rm->src = dm->dst;
     rm->dst = dm->src;
-    rm->rs_idx = dm->rs_idx;
+    rm->rs_idx = std::move(dm->rs_idx);
 
     delete dm;
 
@@ -465,8 +464,7 @@ int range_server_bdel(mdhim_t *md, work_item_t *item) {
     brm->error = error;
     brm->src = bdm->dst;
     brm->dst = bdm->src;
-    brm->rs_idx = new int[bdm->num_keys]();
-    memcpy(brm->rs_idx, bdm->rs_idx, bdm->num_keys * sizeof(*bdm->rs_idx));
+    brm->rs_idx = std::move(bdm->rs_idx);
 
     delete bdm;
 
@@ -518,7 +516,7 @@ static int range_server_commit(mdhim_t *md, work_item_t *item) {
     brm->error = ret;
     brm->src = im->dst;
     brm->dst = im->src;
-    brm->rs_idx = new int[md->p->db_opts->dbs_per_server]();
+    brm->rs_idx.resize(md->p->db_opts->dbs_per_server);
     for(int i = 0; i < md->p->db_opts->dbs_per_server; i++) {
         brm->rs_idx[i] = i;
     }
@@ -628,7 +626,7 @@ static int range_server_get(mdhim_t *md, work_item_t *item) {
     grm->error = error;
     grm->src = gm->dst;
     grm->dst = gm->src;
-    grm->rs_idx = gm->rs_idx;
+    grm->rs_idx = std::move(gm->rs_idx);
     //Set the key and value
 
     if (gm->src == md->rank) {
@@ -779,15 +777,14 @@ static int range_server_bget(mdhim_t *md, work_item_t *item) {
     bgrm->error = error;
     bgrm->src = bgm->dst;
     bgrm->dst = bgm->src;
-    bgrm->rs_idx = new int[bgm->num_keys]();
-    memcpy(bgrm->rs_idx, bgm->rs_idx, bgm->num_keys * sizeof(*bgm->rs_idx));
+    bgrm->rs_idx = std::move(bgm->rs_idx);
     bgrm->num_keys = bgm->num_keys;
     bgrm->index = index?index->id:-1;
     bgrm->index_type = index?index->type:BAD_INDEX;
 
     // copy the values
-    bgrm->values = new void *[bgm->num_keys]();
-    bgrm->value_lens = new std::size_t[bgm->num_keys]();
+    bgrm->values.resize(bgm->num_keys);
+    bgrm->value_lens.resize(bgm->num_keys);
     for (std::size_t i = 0; i < bgm->num_keys; i++) {
         if (values[i]) {
             bgrm->values[i] = ::operator new(value_lens[i]);
@@ -805,18 +802,16 @@ static int range_server_bget(mdhim_t *md, work_item_t *item) {
     //Set the keys into bgrm
     if (bgm->src == md->rank) {
         //If this message is coming from myself, copy the keys
-        bgrm->key_lens = new std::size_t[bgm->num_keys]();
-        bgrm->keys = new void *[bgm->num_keys]();
+        bgrm->key_lens.resize(bgm->num_keys);
+        bgrm->keys.resize(bgm->num_keys);
         for (std::size_t i = 0; i < bgm->num_keys; i++) {
             bgrm->key_lens[i] = bgm->key_lens[i];
             bgrm->keys[i] = ::operator new(bgrm->key_lens[i]);
             memcpy(bgrm->keys[i], bgm->keys[i], bgm->key_lens[i]);
         }
     } else {
-        bgrm->keys = bgm->keys;
-        bgrm->key_lens = bgm->key_lens;
-        bgm->keys = nullptr;
-        bgm->key_lens = nullptr;
+        bgrm->keys = std::move(bgm->keys);
+        bgrm->key_lens = std::move(bgm->key_lens);
         bgm->num_keys = 0;
     }
 
@@ -848,18 +843,18 @@ static int range_server_bget_op(mdhim_t *md, work_item_t *item, TransportGetMess
 
     //Initialize pointers and lengths
     const std::size_t count = bgm->num_keys * bgm->num_recs;
-    void **values = new void *[count]();
-    std::size_t *value_lens = new std::size_t[count]();
+    std::deque<void *> values(count);
+    std::deque<std::size_t> value_lens(count);
 
-    void **keys = new void *[count];
-    std::size_t *key_lens = new std::size_t[count];
+    std::deque<void *> keys(count);
+    std::deque<std::size_t> key_lens(count);
 
     //Used for passing the key and key len to the db
-    void **get_key = new void *();
+    void ** get_key = new void *();
     std::size_t *get_key_len = new std::size_t();
 
     //Used for passing the value and value len to the db
-    void **get_value = new void *();
+    void ** get_value = new void *();
     std::size_t *get_value_len = new std::size_t();
 
     std::size_t num_records = 0;
@@ -985,8 +980,7 @@ static int range_server_bget_op(mdhim_t *md, work_item_t *item, TransportGetMess
     bgrm->error = error;
     bgrm->src = bgm->dst;
     bgrm->dst = bgm->src;
-    bgrm->rs_idx = new int[bgm->num_keys]();
-    memcpy(bgrm->rs_idx, bgm->rs_idx, bgm->num_keys * sizeof(*bgm->rs_idx));
+    bgrm->rs_idx = std::move(bgm->rs_idx);
     bgrm->keys = keys;
     bgrm->key_lens = key_lens;
     bgrm->values = values;

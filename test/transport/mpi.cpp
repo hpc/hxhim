@@ -12,7 +12,7 @@ static const std::size_t KEY_LEN = strlen(KEY);
 static const char *VALUE = "value";
 static const std::size_t VALUE_LEN = strlen(VALUE);
 
-static const std::size_t ALLOC_SIZE = 128;
+static const std::size_t ALLOC_SIZE = 192;
 static const std::size_t REGIONS = 256;
 
 TEST(MPIInstance, Rank) {
@@ -62,10 +62,10 @@ TEST(mpi_pack_unpack, TransportPutMessage) {
     FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
-    EXPECT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize, fbp), MDHIM_SUCCESS);
+    ASSERT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize, fbp), MDHIM_SUCCESS);
 
     TransportPutMessage *dst = nullptr;
-    EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
+    ASSERT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
     fbp->release(buf);
 
@@ -102,31 +102,31 @@ TEST(mpi_pack_unpack, TransportBPutMessage) {
 
         src.num_keys = 1;
 
-        src.rs_idx = new int[src.num_keys]();
+        src.rs_idx.resize(src.num_keys);
         src.rs_idx[0] = 1;
 
-        src.keys = new void *[1]();
+        src.keys.resize(src.num_keys);
         src.keys[0] = ::operator new(KEY_LEN);
         memcpy(src.keys[0], KEY, KEY_LEN * sizeof(char));
 
-        src.key_lens = new std::size_t[1]();;
+        src.key_lens.resize(src.num_keys);
         src.key_lens[0] = KEY_LEN;
 
-        src.values = new void *[1]();
+        src.values.resize(src.num_keys);
         src.values[0] = (void *)::operator new(VALUE_LEN);
         memcpy(src.values[0], VALUE, VALUE_LEN * sizeof(char));
 
-        src.value_lens = new std::size_t[1]();;
+        src.value_lens.resize(src.num_keys);
         src.value_lens[0] = VALUE_LEN;
     }
 
     FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
-    EXPECT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize, fbp), MDHIM_SUCCESS);
+    ASSERT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize, fbp), MDHIM_SUCCESS);
 
     TransportBPutMessage *dst = nullptr;
-    EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
+    ASSERT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
     fbp->release(buf);
 
@@ -177,10 +177,10 @@ TEST(mpi_pack_unpack, TransportGetMessage) {
     FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
-    EXPECT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize, fbp), MDHIM_SUCCESS);
+    ASSERT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize, fbp), MDHIM_SUCCESS);
 
     TransportGetMessage *dst = nullptr;
-    EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
+    ASSERT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
     fbp->release(buf);
 
@@ -216,14 +216,14 @@ TEST(mpi_pack_unpack, TransportBGetMessage) {
         src.op = TransportGetMessageOp::GET_EQ;
         src.num_keys = 1;
 
-        src.rs_idx = new int[src.num_keys]();
+        src.rs_idx.resize(src.num_keys);
         src.rs_idx[0] = 1;
 
-        src.keys = new void *[1]();
+        src.keys.resize(src.num_keys);
         src.keys[0] = ::operator new(KEY_LEN);
         memcpy(src.keys[0], KEY, KEY_LEN * sizeof(char));
 
-        src.key_lens = new std::size_t[1]();;
+        src.key_lens.resize(src.num_keys);
         src.key_lens[0] = KEY_LEN;
 
         src.num_recs = 1;
@@ -232,10 +232,10 @@ TEST(mpi_pack_unpack, TransportBGetMessage) {
     FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
-    EXPECT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize, fbp), MDHIM_SUCCESS);
+    ASSERT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize, fbp), MDHIM_SUCCESS);
 
     TransportBGetMessage *dst = nullptr;
-    EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
+    ASSERT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
     fbp->release(buf);
 
@@ -282,10 +282,10 @@ TEST(mpi_pack_unpack, TransportDeleteMessage) {
     FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
-    EXPECT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize, fbp), MDHIM_SUCCESS);
+    ASSERT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize, fbp), MDHIM_SUCCESS);
 
     TransportDeleteMessage *dst = nullptr;
-    EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
+    ASSERT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
     fbp->release(buf);
 
@@ -319,24 +319,24 @@ TEST(mpi_pack_unpack, TransportBDeleteMessage) {
 
         src.num_keys = 1;
 
-        src.rs_idx = new int[src.num_keys]();
+        src.rs_idx.resize(src.num_keys);
         src.rs_idx[0] = 1;
 
-        src.keys = new void *[1]();
+        src.keys.resize(src.num_keys);
         src.keys[0] = ::operator new(KEY_LEN);
         memcpy(src.keys[0], KEY, KEY_LEN * sizeof(char));
 
-        src.key_lens = new std::size_t[1]();;
+        src.key_lens.resize(src.num_keys);
         src.key_lens[0] = KEY_LEN;
     }
 
     FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
-    EXPECT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize, fbp), MDHIM_SUCCESS);
+    ASSERT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize, fbp), MDHIM_SUCCESS);
 
     TransportBDeleteMessage *dst = nullptr;
-    EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
+    ASSERT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
     fbp->release(buf);
 
@@ -378,10 +378,10 @@ TEST(mpi_pack_unpack, TransportRecvMessage) {
     FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
-    EXPECT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize, fbp), MDHIM_SUCCESS);
+    ASSERT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize, fbp), MDHIM_SUCCESS);
 
     TransportRecvMessage *dst = nullptr;
-    EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
+    ASSERT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
     fbp->release(buf);
 
@@ -429,10 +429,10 @@ TEST(mpi_pack_unpack, TransportGetRecvMessage) {
     FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
-    EXPECT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize, fbp), MDHIM_SUCCESS);
+    ASSERT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize, fbp), MDHIM_SUCCESS);
 
     TransportGetRecvMessage *dst = nullptr;
-    EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
+    ASSERT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
     fbp->release(buf);
 
@@ -472,21 +472,21 @@ TEST(mpi_pack_unpack, TransportBGetRecvMessage) {
 
         src.num_keys = 1;
 
-        src.rs_idx = new int[src.num_keys]();
+        src.rs_idx.resize(src.num_keys);
         src.rs_idx[0] = 1;
 
-        src.keys = new void *[1]();
+        src.keys.resize(src.num_keys);
         src.keys[0] = ::operator new(KEY_LEN);
         memcpy(src.keys[0], KEY, KEY_LEN * sizeof(char));
 
-        src.key_lens = new std::size_t[1]();;
+        src.key_lens.resize(src.num_keys);
         src.key_lens[0] = KEY_LEN;
 
-        src.values = new void *[1]();
+        src.values.resize(src.num_keys);
         src.values[0] = (void *)::operator new(VALUE_LEN);
         memcpy(src.values[0], VALUE, VALUE_LEN * sizeof(char));
 
-        src.value_lens = new std::size_t[1]();;
+        src.value_lens.resize(src.num_keys);
         src.value_lens[0] = VALUE_LEN;
 
         src.next = nullptr;
@@ -495,10 +495,10 @@ TEST(mpi_pack_unpack, TransportBGetRecvMessage) {
     FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
-    EXPECT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize, fbp), MDHIM_SUCCESS);
+    ASSERT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize, fbp), MDHIM_SUCCESS);
 
     TransportBGetRecvMessage *dst = nullptr;
-    EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
+    ASSERT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
     fbp->release(buf);
 
@@ -541,7 +541,7 @@ TEST(mpi_pack_unpack, TransportBRecvMessage) {
 
         src.num_keys = 1;
 
-        src.rs_idx = new int[src.num_keys]();
+        src.rs_idx.resize(src.num_keys);
         src.rs_idx[0] = 1;
 
         src.next = nullptr;
@@ -550,10 +550,10 @@ TEST(mpi_pack_unpack, TransportBRecvMessage) {
     FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
-    EXPECT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize, fbp), MDHIM_SUCCESS);
+    ASSERT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize, fbp), MDHIM_SUCCESS);
 
     TransportBRecvMessage *dst = nullptr;
-    EXPECT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
+    ASSERT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
 
     fbp->release(buf);
 

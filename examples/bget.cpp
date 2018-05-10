@@ -35,10 +35,12 @@ void bget(mdhim_t *md,
         }
 
         // Get keys
-        void **get_keys = nullptr;
-        std::size_t *get_key_lens = nullptr;
+        void **get_keys = new void *[get_num_keys]();
+        std::size_t *get_key_lens = new std::size_t[get_num_keys]();
         if (mdhim_bgrm_keys(bgrm, &get_keys, &get_key_lens) != MDHIM_SUCCESS) {
             err << "Could not get keys" << std::endl;
+            delete [] get_keys;
+            delete [] get_key_lens;
             continue;
         }
 
@@ -50,14 +52,16 @@ void bget(mdhim_t *md,
                 err << " " << std::string((char *)keys[i], key_lens[i]);
             }
             err << std::endl;
+            delete [] get_keys;
+            delete [] get_key_lens;
             continue;
         }
 
         // Check error value
         if (error == MDHIM_SUCCESS) {
             // Get values
-            void **get_values = nullptr;
-            std::size_t *get_value_lens = nullptr;
+            void **get_values = new void *[get_num_keys]();
+            std::size_t *get_value_lens = new std::size_t[get_num_keys]();
             if (mdhim_bgrm_values(bgrm, &get_values, &get_value_lens) != MDHIM_SUCCESS) {
                 err << "BGET error " << error << std::endl;
             }
@@ -66,13 +70,22 @@ void bget(mdhim_t *md,
                 if (mdhim_bgrm_src(bgrm, &src) != MDHIM_SUCCESS) {
                     err << "Could not get return message source" << std::endl;
                     mdhim_bgrm_destroy(bgrm);
+                    delete [] get_keys;
+                    delete [] get_key_lens;
+                    delete [] get_values;
+                    delete [] get_value_lens;
                     return;
                 }
 
-                int *rs_idx = nullptr;
+                int *rs_idx = new int[get_num_keys]();
                 if (mdhim_bgrm_rs_idx(bgrm, &rs_idx) != MDHIM_SUCCESS) {
                     err << "Could not get return message index" << std::endl;
                     mdhim_bgrm_destroy(bgrm);
+                    delete [] rs_idx;
+                    delete [] get_keys;
+                    delete [] get_key_lens;
+                    delete [] get_values;
+                    delete [] get_value_lens;
                     return;
                 }
 
@@ -81,18 +94,31 @@ void bget(mdhim_t *md,
                     if (mdhimComposeDB(md, &db, src, rs_idx[i]) != MDHIM_SUCCESS) {
                         err << "Could not compute database id" << std::endl;
                         mdhim_bgrm_destroy(bgrm);
+                        delete [] rs_idx;
+                        delete [] get_keys;
+                        delete [] get_key_lens;
+                        delete [] get_values;
+                        delete [] get_value_lens;
                         return;
                     }
 
                     out << "BGET " << std::string((char *)get_keys[i], get_key_lens[i]) << " -> " << std::string((char *)get_values[i], get_value_lens[i]) << " from database " << db << std::endl;
                 }
+
+                delete [] rs_idx;
             }
+
+            delete [] get_values;
+            delete [] get_value_lens;
         }
         else {
             for(std::size_t i = 0; i < get_num_keys; i++) {
                 out << "Could not BGET " << std::string((char *)get_keys[i], get_key_lens[i]) << " from database " << mdhimWhichDB(md, get_keys[i], get_key_lens[i]) << std::endl;
             }
         }
+
+        delete [] get_keys;
+        delete [] get_key_lens;
     }
 
     while (bgrm) {

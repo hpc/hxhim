@@ -55,7 +55,7 @@ void bput(mdhim_t *md,
             continue;
         }
 
-        int *rs_idx = nullptr;
+        int *rs_idx = new int[num_keys_to_rs]();
         if (mdhim_brm_rs_idx(brm, &rs_idx) != MDHIM_SUCCESS) {
             err << "Could not get return message indicies" << std::endl;
             continue;
@@ -70,5 +70,7 @@ void bput(mdhim_t *md,
 
             out << "BPUT to " << db  << " succeeded" << std::endl;
         }
+
+        delete [] rs_idx;
     }
 }

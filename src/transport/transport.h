@@ -41,8 +41,13 @@ void mdhim_bgrm_destroy(mdhim_bgetrm_t *bgrm);
 
 /**
  * Accessor functions for the structs
+ * The pointers used to extract values from the structures
+ * should be the addresses of predefined locations that
+ * are owned by the caller - No memory is allocated by
+ * these functions.
  *
  * These will need to be organized later on.
+ *
 */
 int mdhim_rm_src(const mdhim_rm_t *rm, int *src);
 int mdhim_rm_rs_idx(const mdhim_rm_t *rm, int *rs_idx);
@@ -66,7 +71,6 @@ int mdhim_bgrm_error(const mdhim_bgetrm_t *bgrm, int *error);
 int mdhim_bgrm_num_keys(const mdhim_bgetrm_t *bgrm, size_t *num_keys);
 int mdhim_bgrm_keys(const mdhim_bgetrm_t *bgrm, void ***keys, size_t **key_lens);
 int mdhim_bgrm_values(const mdhim_bgetrm_t *bgrm, void ***values, size_t **value_lens);
-int mdhim_bgrm_num_keys(const mdhim_bgetrm_t *bgrm, size_t *num_keys);
 int mdhim_bgrm_next(const mdhim_bgetrm_t *bgrm, mdhim_bgetrm_t **next);
 
 #ifdef __cplusplus

@@ -77,16 +77,16 @@ int ThalliumPacker::pack(const TransportBPutMessage *bpm, std::string &buf) {
     }
 
     if (!s
-        .write((char *) &bpm->num_keys, sizeof(bpm->num_keys))
-        .write((char *) bpm->rs_idx, bpm->num_keys * sizeof(*bpm->rs_idx))
-        .write((char *) bpm->key_lens, sizeof(*bpm->key_lens) * bpm->num_keys)
-        .write((char *) bpm->value_lens, sizeof(*bpm->value_lens) * bpm->num_keys)) {
+        .write((char *) &bpm->num_keys, sizeof(bpm->num_keys))) {
         return MDHIM_ERROR;
     }
 
     for(std::size_t i = 0; i < bpm->num_keys; i++) {
         if (!s
+            .write((char *) &bpm->rs_idx[i], sizeof(bpm->rs_idx[i]))
+            .write((char *) &bpm->key_lens[i], sizeof(bpm->key_lens[i]))
             .write((char *) bpm->keys[i], bpm->key_lens[i])
+            .write((char *) &bpm->value_lens[i], sizeof(bpm->value_lens[i]))
             .write((char *) bpm->values[i], bpm->value_lens[i])) {
             return MDHIM_ERROR;
         }
@@ -126,14 +126,14 @@ int ThalliumPacker::pack(const TransportBGetMessage *bgm, std::string &buf) {
     if (!s
         .write((char *) &bgm->op, sizeof(bgm->op))
         .write((char *) &bgm->num_keys, sizeof(bgm->num_keys))
-        .write((char *) &bgm->num_recs, sizeof(bgm->num_recs))
-        .write((char *) bgm->rs_idx, bgm->num_keys * sizeof(*bgm->rs_idx))
-        .write((char *) bgm->key_lens, sizeof(*bgm->key_lens) * bgm->num_keys)) {
+        .write((char *) &bgm->num_recs, sizeof(bgm->num_recs))) {
         return MDHIM_ERROR;
     }
 
     for(std::size_t i = 0; i < bgm->num_keys; i++) {
         if (!s
+            .write((char *) &bgm->rs_idx[i], sizeof(bgm->rs_idx[i]))
+            .write((char *) &bgm->key_lens[i], sizeof(bgm->key_lens[i]))
             .write((char *) bgm->keys[i], bgm->key_lens[i])) {
             return MDHIM_ERROR;
         }
@@ -169,14 +169,14 @@ int ThalliumPacker::pack(const TransportBDeleteMessage *bdm, std::string &buf) {
     }
 
     if (!s
-        .write((char *) &bdm->num_keys, sizeof(bdm->num_keys))
-        .write((char *) bdm->rs_idx, bdm->num_keys * sizeof(*bdm->rs_idx))
-        .write((char *) bdm->key_lens, sizeof(*bdm->key_lens) * bdm->num_keys)) {
+        .write((char *) &bdm->num_keys, sizeof(bdm->num_keys))) {
         return MDHIM_ERROR;
     }
 
     for(std::size_t i = 0; i < bdm->num_keys; i++) {
         if (!s
+            .write((char *) &bdm->rs_idx[i], sizeof(bdm->rs_idx[i]))
+            .write((char *) &bdm->key_lens[i], sizeof(bdm->key_lens[i]))
             .write((char *) bdm->keys[i], bdm->key_lens[i])) {
             return MDHIM_ERROR;
         }
@@ -233,16 +233,16 @@ int ThalliumPacker::pack(const TransportBGetRecvMessage *bgrm, std::string &buf)
 
     if (!s
         .write((char *) &bgrm->error, sizeof(bgrm->error))
-        .write((char *) &bgrm->num_keys, sizeof(bgrm->num_keys))
-        .write((char *) bgrm->rs_idx, bgrm->num_keys * sizeof(*bgrm->rs_idx))
-        .write((char *) bgrm->key_lens, sizeof(*bgrm->key_lens) * bgrm->num_keys)
-        .write((char *) bgrm->value_lens, sizeof(*bgrm->value_lens) * bgrm->num_keys)) {
+        .write((char *) &bgrm->num_keys, sizeof(bgrm->num_keys))) {
         return MDHIM_ERROR;
     }
 
     for(std::size_t i = 0; i < bgrm->num_keys; i++) {
         if (!s
+            .write((char *) &bgrm->rs_idx[i], sizeof(bgrm->rs_idx[i]))
+            .write((char *) &bgrm->key_lens[i], sizeof(bgrm->key_lens[i]))
             .write((char *) bgrm->keys[i], bgrm->key_lens[i])
+            .write((char *) &bgrm->value_lens[i], sizeof(bgrm->value_lens[i]))
             .write((char *) bgrm->values[i], bgrm->value_lens[i])) {
             return MDHIM_ERROR;
         }
@@ -261,9 +261,15 @@ int ThalliumPacker::pack(const TransportBRecvMessage *brm, std::string &buf) {
 
     if (!s
         .write((char *) &brm->error, sizeof(brm->error))
-        .write((char *) &brm->num_keys, sizeof(brm->num_keys))
-        .write((char *) brm->rs_idx, brm->num_keys * sizeof(*brm->rs_idx))) {
+        .write((char *) &brm->num_keys, sizeof(brm->num_keys))) {
         return MDHIM_ERROR;
+    }
+
+    for(std::size_t i = 0; i < brm->num_keys; i++) {
+        if (!s
+            .write((char *) &brm->rs_idx[i], sizeof(brm->rs_idx[i]))) {
+            return MDHIM_ERROR;
+        }
     }
 
     buf = s.str();

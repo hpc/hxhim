@@ -667,14 +667,14 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
             //If the message doesn't exist, create one
             if (!bpm) {
                 bpm = new TransportBPutMessage();
-                bpm->keys = new void *[num_keys]();
-                bpm->key_lens = new std::size_t[num_keys]();
-                bpm->values = new void *[num_keys]();
-                bpm->value_lens = new std::size_t[num_keys]();
+                bpm->keys.resize(num_keys);
+                bpm->key_lens.resize(num_keys);
+                bpm->values.resize(num_keys);
+                bpm->value_lens.resize(num_keys);
                 bpm->num_keys = 0;
                 bpm->src = md->rank;
                 bpm->dst = dst_rank;
-                bpm->rs_idx = new int[num_keys]();
+                bpm->rs_idx.resize(num_keys);
                 bpm->mtype = TransportMessageType::BPUT;
                 bpm->index = index->id;
                 bpm->index_type = index->type;
@@ -801,13 +801,13 @@ TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
             //If the message doesn't exist, create one
             if (!bgm) {
                 bgm = new TransportBGetMessage();
-                bgm->keys = new void *[num_keys]();
-                bgm->key_lens = new std::size_t[num_keys]();
+                bgm->keys.resize(num_keys);
+                bgm->key_lens.resize(num_keys);
                 bgm->num_keys = 0;
                 bgm->num_recs = num_records;
                 bgm->src = md->rank;
                 bgm->dst = dst_rank;
-                bgm->rs_idx = new int[num_keys]();;
+                bgm->rs_idx.resize(num_keys);
                 bgm->mtype = TransportMessageType::BGET;
                 bgm->op = (op == TransportGetMessageOp::GET_PRIMARY_EQ)?TransportGetMessageOp::GET_EQ:op;
                 bgm->index = index->id;
@@ -1004,12 +1004,12 @@ TransportBRecvMessage *_bdel_records(mdhim_t *md, index_t *index,
         //If the message doesn't exist, create one
         if (!bdm) {
             bdm = new TransportBDeleteMessage();
-            bdm->keys = new void *[num_keys]();
-            bdm->key_lens = new std::size_t[num_keys]();
+            bdm->keys.resize(num_keys);
+            bdm->key_lens.resize(num_keys);
             bdm->num_keys = 0;
             bdm->src = md->rank;
             bdm->dst = dst_rank;
-            bdm->rs_idx = new int[num_keys]();
+            bdm->rs_idx.resize(num_keys);
             bdm->mtype = TransportMessageType::BDELETE;
             bdm->index = index->id;
             bdm->index_type = index->type;

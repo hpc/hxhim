@@ -65,21 +65,21 @@ TEST(thallium_pack_unpack, TransportBPutMessage) {
 
         src.num_keys = 1;
 
-        src.rs_idx = new int[src.num_keys]();
+        src.rs_idx.resize(src.num_keys);
         src.rs_idx[0] = 1;
 
-        src.keys = new void*[1]();;
+        src.keys.resize(src.num_keys);
         src.keys[0] = ::operator new(KEY_LEN);
         memcpy(src.keys[0], KEY, KEY_LEN * sizeof(char));
 
-        src.key_lens = new std::size_t[1]();
+        src.key_lens.resize(src.num_keys);
         src.key_lens[0] = KEY_LEN;
 
-        src.values = new void*[1]();;
+        src.values.resize(src.num_keys);
         src.values[0] = ::operator new(VALUE_LEN);
         memcpy(src.values[0], VALUE, VALUE_LEN * sizeof(char));
 
-        src.value_lens = new std::size_t[1]();
+        src.value_lens.resize(src.num_keys);
         src.value_lens[0] = VALUE_LEN;
     }
 
@@ -164,14 +164,14 @@ TEST(thallium_pack_unpack, TransportBGetMessage) {
         src.op = TransportGetMessageOp::GET_EQ;
         src.num_keys = 1;
 
-        src.rs_idx = new int[src.num_keys]();
+        src.rs_idx.resize(src.num_keys);
         src.rs_idx[0] = 1;
 
-        src.keys = new void*[1]();;
+        src.keys.resize(src.num_keys);
         src.keys[0] = ::operator new(KEY_LEN);
         memcpy(src.keys[0], KEY, KEY_LEN * sizeof(char));
 
-        src.key_lens = new std::size_t[1]();
+        src.key_lens.resize(src.num_keys);
         src.key_lens[0] = KEY_LEN;
 
         src.num_recs = 1;
@@ -250,14 +250,14 @@ TEST(thallium_pack_unpack, TransportBDeleteMessage) {
 
         src.num_keys = 1;
 
-        src.rs_idx = new int[src.num_keys]();
+        src.rs_idx.resize(src.num_keys);
         src.rs_idx[0] = 1;
 
-        src.keys = new void*[1]();;
+        src.keys.resize(src.num_keys);
         src.keys[0] = ::operator new(KEY_LEN);
         memcpy(src.keys[0], KEY, KEY_LEN * sizeof(char));
 
-        src.key_lens = new std::size_t[1]();
+        src.key_lens.resize(src.num_keys);
         src.key_lens[0] = KEY_LEN;
     }
 
@@ -330,21 +330,21 @@ TEST(thallium_pack_unpack, TransportBGetRecvMessage) {
 
         src.num_keys = 1;
 
-        src.rs_idx = new int[src.num_keys]();
+        src.rs_idx.resize(src.num_keys);
         src.rs_idx[0] = 1;
 
-        src.keys = new void*[1]();;
+        src.keys.resize(src.num_keys);
         src.keys[0] = ::operator new(KEY_LEN);
         memcpy(src.keys[0], KEY, KEY_LEN * sizeof(char));
 
-        src.key_lens = new std::size_t[1]();
+        src.key_lens.resize(src.num_keys);
         src.key_lens[0] = KEY_LEN;
 
-        src.values = new void*[1]();;
+        src.values.resize(src.num_keys);
         src.values[0] = ::operator new(VALUE_LEN);
         memcpy(src.values[0], VALUE, VALUE_LEN * sizeof(char));
 
-        src.value_lens = new std::size_t[1]();
+        src.value_lens.resize(src.num_keys);
         src.value_lens[0] = VALUE_LEN;
 
         src.next = nullptr;
@@ -390,7 +390,7 @@ TEST(thallium_pack_unpack, TransportBRecvMessage) {
         src.error = MDHIM_SUCCESS;
         src.num_keys = 1;
 
-        src.rs_idx = new int[src.num_keys]();
+        src.rs_idx.resize(src.num_keys);
         src.rs_idx[0] = 1;
 
         src.next = nullptr;

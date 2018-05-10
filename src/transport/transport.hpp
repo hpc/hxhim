@@ -6,6 +6,7 @@
 #define HXHIM_TRANSPORT
 
 #include <cstdlib>
+#include <deque>
 #include <map>
 #include <type_traits>
 
@@ -69,13 +70,13 @@ class TransportBPutMessage final : virtual public TransportMessage {
         std::size_t size() const;
         void cleanup();
 
-        int *rs_idx;
+        std::deque<int> rs_idx;
 
-        void **keys;
-        std::size_t *key_lens;
+        std::deque<void *> keys;
+        std::deque<std::size_t> key_lens;
 
-        void **values;
-        std::size_t *value_lens;
+        std::deque<void *> values;
+        std::deque<std::size_t> value_lens;
 
         std::size_t num_keys;
 };
@@ -123,10 +124,10 @@ class TransportBGetMessage final : virtual public TransportGet {
         std::size_t size() const;
         void cleanup();
 
-        int *rs_idx;
+        std::deque<int> rs_idx;
 
-        void **keys;
-        std::size_t *key_lens;
+        std::deque<void *> keys;
+        std::deque<std::size_t> key_lens;
 
         //Number of records to retrieve per key given
         std::size_t num_recs;
@@ -162,10 +163,10 @@ class TransportBDeleteMessage final : virtual public TransportMessage {
         std::size_t size() const;
         void cleanup();
 
-        int *rs_idx;
+        std::deque<int> rs_idx;
 
-        void **keys;
-        std::size_t *key_lens;
+        std::deque<void *> keys;
+        std::deque<std::size_t> key_lens;
 
         std::size_t num_keys;
 };
@@ -222,15 +223,15 @@ class TransportBGetRecvMessage final : virtual public TransportMessage {
         std::size_t size() const;
         void cleanup();
 
-        int *rs_idx;
+        std::deque<int> rs_idx;
 
         int error;
 
-        void **keys;
-        std::size_t *key_lens;
+        std::deque<void *> keys;
+        std::deque<std::size_t> key_lens;
 
-        void **values;
-        std::size_t *value_lens;
+        std::deque<void *> values;
+        std::deque<std::size_t> value_lens;
 
         std::size_t num_keys;
 
@@ -249,7 +250,7 @@ class TransportBRecvMessage final : virtual public TransportMessage {
         std::size_t size() const;
         void cleanup();
 
-        int *rs_idx;
+        std::deque<int> rs_idx;
 
         int error;
 
