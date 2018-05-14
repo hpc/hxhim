@@ -102,8 +102,8 @@ int ThalliumUnpacker::unpack(TransportPutMessage **pm, const std::string &buf) {
         return MDHIM_ERROR;
     }
 
-    if (!(out->key = ::operator new(out->key_len))         ||
-        !(out->value = ::operator new(out->value_len))     ||
+    if (!(out->key = ::operator new(out->key_len))     ||
+        !(out->value = ::operator new(out->value_len)) ||
         !s
         .read((char *) out->key, out->key_len)
         .read((char *) out->value, out->value_len)) {
@@ -124,7 +124,8 @@ int ThalliumUnpacker::unpack(TransportBPutMessage **bpm, const std::string &buf)
         return MDHIM_ERROR;
     }
 
-    if (!s.read((char *) &out->num_keys, sizeof(out->num_keys))) {
+    if (!s
+        .read((char *) &out->num_keys, sizeof(out->num_keys))) {
         delete out;
         return MDHIM_ERROR;
     }
@@ -136,15 +137,20 @@ int ThalliumUnpacker::unpack(TransportBPutMessage **bpm, const std::string &buf)
     out->values.resize(out->num_keys);
 
     for(std::size_t i = 0; i < out->num_keys; i++) {
-        if (!s.read((char *) &out->rs_idx[i], sizeof(out->rs_idx[i]))         ||
+        if (!s
+            .read((char *) &out->rs_idx[i], sizeof(out->rs_idx[i]))         ||
             // read the key
-            !s.read((char *) &out->key_lens[i], sizeof(out->key_lens[i]))     ||
-            !(out->keys[i] = ::operator new(out->key_lens[i]))                ||
-            !s.read((char *) out->keys[i], out->key_lens[i])                  ||
+            !s
+            .read((char *) &out->key_lens[i], sizeof(out->key_lens[i]))     ||
+            !(out->keys[i] = ::operator new(out->key_lens[i]))              ||
+            !s
+            .read((char *) out->keys[i], out->key_lens[i])                  ||
             // read the value
-            !s.read((char *) &out->value_lens[i], sizeof(out->value_lens[i])) ||
-            !(out->values[i] = ::operator new(out->value_lens[i]))            ||
-            !s.read((char *) out->values[i], out->value_lens[i]))              {
+            !s
+            .read((char *) &out->value_lens[i], sizeof(out->value_lens[i])) ||
+            !(out->values[i] = ::operator new(out->value_lens[i]))          ||
+            !s
+            .read((char *) out->values[i], out->value_lens[i]))              {
             delete out;
             return MDHIM_ERROR;
         }
@@ -164,9 +170,9 @@ int ThalliumUnpacker::unpack(TransportGetMessage **gm, const std::string &buf) {
     }
 
     if (!s
-        .read((char *) &out->rs_idx, sizeof(out->rs_idx))
         .read((char *) &out->op, sizeof(out->op))
         .read((char *) &out->num_keys, sizeof(out->num_keys))
+        .read((char *) &out->rs_idx, sizeof(out->rs_idx))
         .read((char *) &out->key_len, sizeof(out->key_len))) {
         delete out;
         return MDHIM_ERROR;
@@ -211,9 +217,11 @@ int ThalliumUnpacker::unpack(TransportBGetMessage **bgm, const std::string &buf)
             return MDHIM_ERROR;
         }
 
-        if (!s.read((char *) &out->key_lens[i], sizeof(out->key_lens[i])) ||
-            !(out->keys[i] = ::operator new(out->key_lens[i]))            ||
-            !s.read((char *) out->keys[i], out->key_lens[i]))              {
+        if (!s
+            .read((char *) &out->key_lens[i], sizeof(out->key_lens[i])) ||
+            !(out->keys[i] = ::operator new(out->key_lens[i]))          ||
+            !s
+            .read((char *) out->keys[i], out->key_lens[i]))              {
             delete out;
             return MDHIM_ERROR;
         }
@@ -259,7 +267,8 @@ int ThalliumUnpacker::unpack(TransportBDeleteMessage **bdm, const std::string &b
         return MDHIM_ERROR;
     }
 
-    if (!s.read((char *) &out->num_keys, sizeof(out->num_keys))) {
+    if (!s
+        .read((char *) &out->num_keys, sizeof(out->num_keys))) {
         delete out;
         return MDHIM_ERROR;
     }
@@ -275,9 +284,11 @@ int ThalliumUnpacker::unpack(TransportBDeleteMessage **bdm, const std::string &b
             return MDHIM_ERROR;
         }
 
-        if (!s.read((char *) &out->key_lens[i], sizeof(out->key_lens[i])) ||
-            !(out->keys[i] = ::operator new(out->key_lens[i]))            ||
-            !s.read((char *) out->keys[i], out->key_lens[i]))              {
+        if (!s
+            .read((char *) &out->key_lens[i], sizeof(out->key_lens[i])) ||
+            !(out->keys[i] = ::operator new(out->key_lens[i]))          ||
+            !s
+            .read((char *) out->keys[i], out->key_lens[i]))              {
             delete out;
             return MDHIM_ERROR;
         }
@@ -325,8 +336,8 @@ int ThalliumUnpacker::unpack(TransportGetRecvMessage **grm, const std::string &b
         return MDHIM_ERROR;
     }
 
-    if (!(out->key = ::operator new(out->key_len))         ||
-        !(out->value = ::operator new(out->value_len))     ||
+    if (!(out->key = ::operator new(out->key_len))     ||
+        !(out->value = ::operator new(out->value_len)) ||
         !s
         .read((char *) out->key, out->key_len)
         .read((char *) out->value, out->value_len)) {
@@ -361,15 +372,20 @@ int ThalliumUnpacker::unpack(TransportBGetRecvMessage **bgrm, const std::string 
     out->values.resize(out->num_keys);
 
     for(std::size_t i = 0; i < out->num_keys; i++) {
-        if (!s.read((char *) &out->rs_idx[i], sizeof(out->rs_idx[i]))         ||
+        if (!s
+            .read((char *) &out->rs_idx[i], sizeof(out->rs_idx[i]))         ||
             // read the key
-            !s.read((char *) &out->key_lens[i], sizeof(out->key_lens[i]))     ||
-            !(out->keys[i] = ::operator new(out->key_lens[i]))                ||
-            !s.read((char *) out->keys[i], out->key_lens[i])                  ||
+            !s
+            .read((char *) &out->key_lens[i], sizeof(out->key_lens[i]))     ||
+            !(out->keys[i] = ::operator new(out->key_lens[i]))              ||
+            !s
+            .read((char *) out->keys[i], out->key_lens[i])                  ||
             // read the value
-            !s.read((char *) &out->value_lens[i], sizeof(out->value_lens[i])) ||
-            !(out->values[i] = ::operator new(out->value_lens[i]))            ||
-            !s.read((char *) out->values[i], out->value_lens[i]))              {
+            !s
+            .read((char *) &out->value_lens[i], sizeof(out->value_lens[i])) ||
+            !(out->values[i] = ::operator new(out->value_lens[i]))          ||
+            !s
+            .read((char *) out->values[i], out->value_lens[i]))              {
             delete out;
             return MDHIM_ERROR;
         }
@@ -398,7 +414,8 @@ int ThalliumUnpacker::unpack(TransportBRecvMessage **brm, const std::string &buf
     out->rs_idx.resize(out->num_keys);
 
     for(std::size_t i = 0; i < out->num_keys; i++) {
-        if (!s.read((char *) &out->rs_idx[i], sizeof(out->rs_idx[i]))) {
+        if (!s
+            .read((char *) &out->rs_idx[i], sizeof(out->rs_idx[i]))) {
             delete out;
             return MDHIM_ERROR;
         }

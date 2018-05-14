@@ -104,9 +104,9 @@ int ThalliumPacker::pack(const TransportGetMessage *gm, std::string &buf) {
     }
 
     if (!s
-        .write((char *) &gm->rs_idx, sizeof(gm->rs_idx))
         .write((char *) &gm->op, sizeof(gm->op))
         .write((char *) &gm->num_keys, sizeof(gm->num_keys))
+        .write((char *) &gm->rs_idx, sizeof(gm->rs_idx))
         .write((char *) &gm->key_len, sizeof(gm->key_len))
         .write((char *) gm->key, gm->key_len)) {
         return MDHIM_ERROR;

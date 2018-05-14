@@ -210,8 +210,8 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportGetMessage **gm, const voi
         return MDHIM_ERROR;
     }
 
-    if ((MPI_Unpack(buf, bufsize, &position, &out->num_keys, sizeof(out->num_keys), MPI_CHAR, comm) != MPI_SUCCESS) ||
-        (MPI_Unpack(buf, bufsize, &position, &out->op, sizeof(out->op), MPI_CHAR, comm)             != MPI_SUCCESS) ||
+    if ((MPI_Unpack(buf, bufsize, &position, &out->op, sizeof(out->op), MPI_CHAR, comm)             != MPI_SUCCESS) ||
+        (MPI_Unpack(buf, bufsize, &position, &out->num_keys, sizeof(out->num_keys), MPI_CHAR, comm) != MPI_SUCCESS) ||
         (MPI_Unpack(buf, bufsize, &position, &out->rs_idx, sizeof(out->rs_idx), MPI_CHAR, comm)     != MPI_SUCCESS) ||
         (MPI_Unpack(buf, bufsize, &position, &out->key_len, sizeof(out->key_len), MPI_CHAR, comm)   != MPI_SUCCESS)) {
         delete out;
