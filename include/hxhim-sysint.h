@@ -8,7 +8,7 @@
 extern "C"
 {
 #endif
-    
+
     /**
      * @description Begin an HXHIM session
      * @param sess a pointer to an uninitialized session
@@ -22,9 +22,9 @@ extern "C"
      * @param sess the session to persist
      */
     int hxhim_sess_sync(hxhim_session_t* sess);
-    
+
     /**
-     * @description Transportit an HXHIM session. Data is not persistent until
+     * @description Commit an HXHIM session. Data is not persistent until
      *  commit is called. This call blocks until all data is persistent.
      * @param sess a pointer to to a session
      * @return 0 if the RDF triples are successfully stored
