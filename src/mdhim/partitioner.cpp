@@ -122,15 +122,13 @@ void build_alphabet() {
 }
 
 void _add_to_rangesrv_list(rangesrv_list_t **list, rangesrv_info_t *ri) {
-    rangesrv_list_t *list_p, *entry;
-
-    entry = (rangesrv_list*)malloc(sizeof(rangesrv_list));
+    rangesrv_list *entry = (rangesrv_list*)malloc(sizeof(rangesrv_list));
     entry->ri = ri;
     entry->next = NULL;
     if (!*list) {
         *list = entry;
     } else {
-        list_p = *list;
+        rangesrv_list_t *list_p = *list;
         while (list_p->next) {
             list_p = list_p->next;
         }
@@ -209,10 +207,12 @@ int is_float_key(int type) {
         case MDHIM_DOUBLE_KEY:
         case MDHIM_BYTE_KEY:
             ret = 1;
+            break;
         case MDHIM_INT_KEY:
         case MDHIM_LONG_INT_KEY:
         default:
             ret = 0;
+            break;
     }
 
     return ret;

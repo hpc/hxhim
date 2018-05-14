@@ -9,11 +9,13 @@
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
+#include <iostream>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "clone.hpp"
 #include "range_server.h"
 #include "partitioner.h"
 #include "mdhim_options.h"
@@ -168,7 +170,6 @@ static int range_server_put(mdhim_t *md, work_item_t *item) {
     int inserted = 0;
 
     TransportPutMessage *im = dynamic_cast<TransportPutMessage *>(item->message);
-    item->message = nullptr;
 
     void *value = nullptr;
     std::size_t value_len = 0;
@@ -221,27 +222,21 @@ static int range_server_put(mdhim_t *md, work_item_t *item) {
   done:
     //Create the response message
     TransportRecvMessage *rm = new TransportRecvMessage();
-    //Set the type
-    rm->mtype = TransportMessageType::RECV;
-    //Set the operation return code as the error
     rm->error = error;
     rm->src = im->dst;
     rm->dst = im->src;
-    rm->rs_idx = std::move(im->rs_idx);
+    rm->rs_idx = im->rs_idx;
 
     //Free memory
     if (exists && md->p->db_opts->value_append == MDHIM_DB_APPEND) {
         ::operator delete(new_value);
     }
+
+    // only delete the key and value if they were unpacked
     if (im->src != md->rank) {
         ::operator delete(im->key);
-        im->key = nullptr;
-
         ::operator delete(im->value);
-        im->value = nullptr;
     }
-
-    delete im;
 
     //Send response
     return send_locally_or_remote(md, item, rm);
@@ -259,17 +254,9 @@ static int range_server_put(mdhim_t *md, work_item_t *item) {
 static int range_server_bput(mdhim_t *md, work_item_t *item) {
     int ret;
     int error = MDHIM_SUCCESS;
-    void *new_value;
-    std::size_t new_value_len;
-    void *old_value;
-    std::size_t old_value_len;
     int num_put = 0;
 
     TransportBPutMessage *bim = dynamic_cast<TransportBPutMessage *>(item->message);
-    item->message = nullptr;
-
-    void **new_values = new void *[bim->num_keys]();
-    std::size_t *new_value_lens = new std::size_t[bim->num_keys]();
 
     //Get the index referenced the message
     index_t *index = find_index(md, (TransportMessage *)bim);
@@ -282,20 +269,20 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
 
     //Iterate through the arrays and insert each record
     for (std::size_t i = 0; i < bim->num_keys && i < MAX_BULK_OPS; i++) {
-        void *value = nullptr;
-        std::size_t value_len = 0;
+        void *old_value = nullptr;
+        std::size_t old_value_len = 0;
 
         //Check for the key's existence
         index->mdhim_stores[bim->rs_idx[i]]->get(index->mdhim_stores[bim->rs_idx[i]]->db_handle,
-                                                 bim->keys[i], bim->key_lens[i], &value,
-                                                 &value_len);
+                                                 bim->keys[i], bim->key_lens[i],
+                                                 &old_value, &old_value_len);
         //The key already exists
-        const bool exists = (value && value_len);
+        const bool exists = (old_value && old_value_len);
 
         //If the option to append was specified and there is old data, concat the old and new
+        void *new_value = nullptr;
+        std::size_t new_value_len;
         if (exists && md->p->db_opts->value_append == MDHIM_DB_APPEND) {
-            old_value = value;
-            old_value_len = value_len;
             new_value_len = old_value_len + bim->value_lens[i];
             new_value = ::operator new(new_value_len);
             memcpy(new_value, old_value, old_value_len);
@@ -304,25 +291,22 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
                 ::operator delete(bim->values[i]);
                 bim->values[i] = nullptr;
             }
-
-            new_values[i] = new_value;
-            new_value_lens[i] = new_value_len;
         } else {
-            new_values[i] = bim->values[i];
-            new_value_lens[i] = bim->value_lens[i];
+            new_value = bim->values[i];
+            new_value_len = bim->value_lens[i];
         }
 
-        if (value) {
-            // value comes from leveldb
-            free(value);
-            value = nullptr;
+        if (old_value) {
+            // old_value comes from leveldb
+            free(old_value);
+            old_value = nullptr;
         }
 
         //Put the record in the database
         if ((ret =
              index->mdhim_stores[bim->rs_idx[i]]->put(index->mdhim_stores[bim->rs_idx[i]]->db_handle,
                                                       bim->keys[i], bim->key_lens[i],
-                                                      new_values[i], new_value_lens[i])) != MDHIM_SUCCESS) {
+                                                      new_value, new_value_len)) != MDHIM_SUCCESS) {
             mlog(MDHIM_SERVER_CRIT, "Rank %d - Error batch putting records",
                  md->rank);
             error = ret;
@@ -337,36 +321,29 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
 
         if (exists && md->p->db_opts->value_append == MDHIM_DB_APPEND) {
             //Release the value created for appending the new and old value
-            ::operator delete(new_values[i]);
-        }
-
-        //Release the bput keys/value if the message isn't coming from myself
-        if (bim->src != md->rank) {
-            ::operator delete(bim->keys[i]);
-            bim->keys[i] = nullptr;
-            ::operator delete(bim->values[i]);
-            bim->values[i] = nullptr;
+            ::operator delete(new_value);
         }
     }
-
-    delete [] new_values;
-    delete [] new_value_lens;
 
   done:
 
     //Create the response message
     TransportBRecvMessage *brm = new TransportBRecvMessage();
-
-    //Set the type
-    brm->mtype = TransportMessageType::RECV_BULK;
     brm->src = bim->dst;
     brm->dst = bim->src;
     brm->error = error;
     brm->num_keys = bim->num_keys;
     brm->rs_idx = std::move(bim->rs_idx);
 
-    //Release the internals of the bput message
-    delete bim;
+    //Release the bput keys/values if the message isn't coming from myself
+    if (bim->src != md->rank) {
+        for (std::size_t i = 0; i < bim->num_keys; i++) {
+            ::operator delete(bim->keys[i]);
+            bim->keys[i] = nullptr;
+            ::operator delete(bim->values[i]);
+            bim->values[i] = nullptr;
+        }
+    }
 
     //Send response
     return send_locally_or_remote(md, item, brm);
@@ -385,7 +362,6 @@ static int range_server_del(mdhim_t *md, work_item_t *item) {
     int ret = MDHIM_ERROR;
 
     TransportDeleteMessage *dm = dynamic_cast<TransportDeleteMessage *>(item->message);
-    item->message = nullptr;
 
     //Get the index referenced the message
     index_t *index = find_index(md, (TransportMessage *)dm);
@@ -407,13 +383,15 @@ static int range_server_del(mdhim_t *md, work_item_t *item) {
   done:
     //Create the response message
     TransportRecvMessage *rm = new TransportRecvMessage();
-    rm->mtype = TransportMessageType::RECV;
     rm->error = ret;
     rm->src = dm->dst;
     rm->dst = dm->src;
-    rm->rs_idx = std::move(dm->rs_idx);
+    rm->rs_idx = dm->rs_idx;
 
-    delete dm;
+    // if the key came from a different rank, deallocate it
+    if (md->rank != dm->src) {
+        ::operator delete(dm->key);
+    }
 
     //Send response
     return send_locally_or_remote(md, item, rm);
@@ -432,7 +410,6 @@ int range_server_bdel(mdhim_t *md, work_item_t *item) {
     int error = 0;
 
     TransportBDeleteMessage *bdm = dynamic_cast<TransportBDeleteMessage *>(item->message);
-    item->message = nullptr;
 
     //Get the index referenced the message
     index_t *index = find_index(md, (TransportMessage *)bdm);
@@ -460,13 +437,18 @@ int range_server_bdel(mdhim_t *md, work_item_t *item) {
   done:
     //Create the response message
     TransportBRecvMessage *brm = new TransportBRecvMessage();
-    brm->mtype = TransportMessageType::RECV_BULK;
     brm->error = error;
     brm->src = bdm->dst;
     brm->dst = bdm->src;
     brm->rs_idx = std::move(bdm->rs_idx);
 
-    delete bdm;
+    //Release the bdel keys if the message isn't coming from myself
+    if (bdm->src != md->rank) {
+        for (std::size_t i = 0; i < bdm->num_keys; i++) {
+            ::operator delete(bdm->keys[i]);
+            bdm->keys[i] = nullptr;
+        }
+    }
 
     //Send response
     return send_locally_or_remote(md, item, brm);
@@ -486,7 +468,6 @@ static int range_server_commit(mdhim_t *md, work_item_t *item) {
     index_t *index;
 
     TransportMessage *im = item->message;
-    item->message = nullptr;
 
     //Get the index referenced the message
     index = find_index(md, im);
@@ -510,17 +491,12 @@ static int range_server_commit(mdhim_t *md, work_item_t *item) {
   done:
     //Create the response message
     TransportBRecvMessage *brm = new TransportBRecvMessage();
-    //Set the type
-    brm->mtype = TransportMessageType::RECV;
-    //Set the operation return code as the error
     brm->error = ret;
     brm->src = im->dst;
     brm->dst = im->src;
-    brm->rs_idx.resize(md->p->db_opts->dbs_per_server);
     for(int i = 0; i < md->p->db_opts->dbs_per_server; i++) {
-        brm->rs_idx[i] = i;
+        brm->rs_idx.push_back(i);
     }
-    delete im;
 
     //Send response
     return send_locally_or_remote(md, item, brm);
@@ -542,7 +518,6 @@ static int range_server_get(mdhim_t *md, work_item_t *item) {
     int error = 0;
 
     TransportGetMessage *gm = dynamic_cast<TransportGetMessage *>(item->message);
-    item->message = nullptr;
 
     //Get the index referenced the message
     index_t *index = find_index(md, (TransportMessage *) gm);
@@ -564,7 +539,7 @@ static int range_server_get(mdhim_t *md, work_item_t *item) {
             }
 
             break;
-            /* Gets the next key and value that is in order after the passed in key */
+        /* Gets the next key and value that is in order after the passed in key */
         case TransportGetMessageOp::GET_NEXT:
             if ((ret =
                  index->mdhim_stores[gm->rs_idx]->get_next(index->mdhim_stores[gm->rs_idx]->db_handle,
@@ -576,8 +551,8 @@ static int range_server_get(mdhim_t *md, work_item_t *item) {
             }
 
             break;
-            /* Gets the previous key and value that is in order before the passed in key
-               or the last key if no key was passed in */
+        /* Gets the previous key and value that is in order before the passed in key
+           or the last key if no key was passed in */
         case TransportGetMessageOp::GET_PREV:
             if ((ret =
                  index->mdhim_stores[gm->rs_idx]->get_prev(index->mdhim_stores[gm->rs_idx]->db_handle,
@@ -589,7 +564,7 @@ static int range_server_get(mdhim_t *md, work_item_t *item) {
             }
 
             break;
-            /* Gets the first key/value */
+        /* Gets the first key/value */
         case TransportGetMessageOp::GET_FIRST:
             if ((ret =
                  index->mdhim_stores[gm->rs_idx]->get_next(index->mdhim_stores[gm->rs_idx]->db_handle,
@@ -601,7 +576,7 @@ static int range_server_get(mdhim_t *md, work_item_t *item) {
             }
 
             break;
-            /* Gets the last key/value */
+        /* Gets the last key/value */
         case TransportGetMessageOp::GET_LAST:
             if ((ret =
                  index->mdhim_stores[gm->rs_idx]->get_prev(index->mdhim_stores[gm->rs_idx]->db_handle,
@@ -620,41 +595,27 @@ static int range_server_get(mdhim_t *md, work_item_t *item) {
   done:
     //Create the response message
     TransportGetRecvMessage *grm = new TransportGetRecvMessage();
-    //Set the type
-    grm->mtype = TransportMessageType::RECV_GET;
-    //Set the operation return code as the error
     grm->error = error;
     grm->src = gm->dst;
     grm->dst = gm->src;
-    grm->rs_idx = std::move(gm->rs_idx);
-    //Set the key and value
+    grm->rs_idx = gm->rs_idx;
 
+    //If this message is coming from myself, copy the key so that the user still has ownership of the key
     if (gm->src == md->rank) {
-        //If this message is coming from myself, copy the keys
-        if ((grm->key = ::operator new(gm->key_len))) {
-            memcpy(grm->key, gm->key, gm->key_len);
-        }
-        ::operator delete(gm->key);
-    } else {
+        _clone(gm->key, gm->key_len, &grm->key);
+    }
+    //If this message was unpacked, do not delete gm->key, since it is reused in grm
+    else {
         grm->key = gm->key;
     }
 
-    gm->key = nullptr;
     grm->key_len = gm->key_len;
 
-    // clone the value
-    if ((grm->value = ::operator new(value_len))) {
-        memcpy(grm->value, value, value_len);
-    }
-    free(value); // cleanup leveldb
-
+    grm->value = value;
     grm->value_len = value_len;
 
     grm->index = index->id;
     grm->index_type = index->type;
-
-    //Release the bget message
-    delete gm;
 
     //Send response
     return send_locally_or_remote(md, item, grm);
@@ -674,7 +635,6 @@ static int range_server_bget(mdhim_t *md, work_item_t *item) {
     int error = 0;
 
     TransportBGetMessage *bgm = dynamic_cast<TransportBGetMessage *>(item->message);
-    item->message = nullptr;
 
     void **values = new void *[bgm->num_keys]();
     std::size_t *value_lens = new std::size_t[bgm->num_keys]();
@@ -703,7 +663,7 @@ static int range_server_bget(mdhim_t *md, work_item_t *item) {
                     continue;
                 }
                 break;
-                /* Gets the next key and value that is in order after the passed in key */
+            /* Gets the next key and value that is in order after the passed in key */
             case TransportGetMessageOp::GET_NEXT:
                 if ((ret =
                      index->mdhim_stores[bgm->rs_idx[i]]->get_next(index->mdhim_stores[bgm->rs_idx[i]]->db_handle,
@@ -717,8 +677,8 @@ static int range_server_bget(mdhim_t *md, work_item_t *item) {
                 }
 
                 break;
-                /* Gets the previous key and value that is in order before the passed in key
-                   or the last key if no key was passed in */
+            /* Gets the previous key and value that is in order before the passed in key
+               or the last key if no key was passed in */
             case TransportGetMessageOp::GET_PREV:
                 if ((ret =
                      index->mdhim_stores[bgm->rs_idx[i]]->get_prev(index->mdhim_stores[bgm->rs_idx[i]]->db_handle,
@@ -732,7 +692,7 @@ static int range_server_bget(mdhim_t *md, work_item_t *item) {
                 }
 
                 break;
-                /* Gets the first key/value */
+            /* Gets the first key/value */
             case TransportGetMessageOp::GET_FIRST:
                 if ((ret =
                      index->mdhim_stores[bgm->rs_idx[i]]->get_next(index->mdhim_stores[bgm->rs_idx[i]]->db_handle,
@@ -746,7 +706,7 @@ static int range_server_bget(mdhim_t *md, work_item_t *item) {
                 }
 
                 break;
-                /* Gets the last key/value */
+            /* Gets the last key/value */
             case TransportGetMessageOp::GET_LAST:
                 if ((ret =
                      index->mdhim_stores[bgm->rs_idx[i]]->get_prev(index->mdhim_stores[bgm->rs_idx[i]]->db_handle,
@@ -771,9 +731,6 @@ static int range_server_bget(mdhim_t *md, work_item_t *item) {
 
     //Create the response message
     TransportBGetRecvMessage *bgrm = new TransportBGetRecvMessage();
-    //Set the type
-    bgrm->mtype = TransportMessageType::RECV_BGET;
-    //Set the operation return code as the error
     bgrm->error = error;
     bgrm->src = bgm->dst;
     bgrm->dst = bgm->src;
@@ -786,37 +743,27 @@ static int range_server_bget(mdhim_t *md, work_item_t *item) {
     bgrm->values.resize(bgm->num_keys);
     bgrm->value_lens.resize(bgm->num_keys);
     for (std::size_t i = 0; i < bgm->num_keys; i++) {
-        if (values[i]) {
-            bgrm->values[i] = ::operator new(value_lens[i]);
-            memcpy(bgrm->values[i], values[i], value_lens[i]);
-            bgrm->value_lens[i] = value_lens[i];
-        }
-
-        // cleanup leveldb
-        free(values[i]);
+        bgrm->values[i] = values[i];
+        bgrm->value_lens[i] = value_lens[i];
     }
 
     delete [] values;
     delete [] value_lens;
 
-    //Set the keys into bgrm
+    //If this message is coming from myself, copy the key so that the user still has ownership of the key
     if (bgm->src == md->rank) {
-        //If this message is coming from myself, copy the keys
-        bgrm->key_lens.resize(bgm->num_keys);
         bgrm->keys.resize(bgm->num_keys);
         for (std::size_t i = 0; i < bgm->num_keys; i++) {
-            bgrm->key_lens[i] = bgm->key_lens[i];
-            bgrm->keys[i] = ::operator new(bgrm->key_lens[i]);
-            memcpy(bgrm->keys[i], bgm->keys[i], bgm->key_lens[i]);
+            _clone(bgm->keys[i], bgm->key_lens[i], &bgrm->keys[i]);
+            bgm->keys[i] = nullptr;
         }
-    } else {
+    }
+    //If this message was unpacked, do not delete bgm->keys, since it is reused in bgrm
+    else {
         bgrm->keys = std::move(bgm->keys);
-        bgrm->key_lens = std::move(bgm->key_lens);
-        bgm->num_keys = 0;
     }
 
-    //Release the bget message
-    delete bgm;
+    bgrm->key_lens = std::move(bgm->key_lens);
 
     //Send response
     return send_locally_or_remote(md, item, bgrm);
@@ -837,7 +784,6 @@ static int range_server_bget_op(mdhim_t *md, work_item_t *item, TransportGetMess
     int ret;
 
     TransportBGetMessage *bgm = dynamic_cast<TransportBGetMessage *>(item->message);
-    item->message = nullptr;
 
     const int rs_idx = bgm->dst % md->p->db_opts->dbs_per_server;
 
@@ -907,8 +853,7 @@ static int range_server_bget_op(mdhim_t *md, work_item_t *item, TransportGetMess
                     if (j && (ret =
                               index->mdhim_stores[rs_idx]->get_next(index->mdhim_stores[rs_idx]->db_handle,
                                                                    get_key, get_key_len,
-                                                                   get_value,
-                                                                   get_value_len))
+                                                                   get_value, get_value_len))
                         != MDHIM_SUCCESS) {
                         mlog(MDHIM_SERVER_DBG, "Rank %d - Couldn't get next record",
                              md->rank);
@@ -918,9 +863,8 @@ static int range_server_bget_op(mdhim_t *md, work_item_t *item, TransportGetMess
                         goto respond;
                     } else if (!j && (ret =
                                       index->mdhim_stores[rs_idx]->get(index->mdhim_stores[rs_idx]->db_handle,
-                                                                      *get_key, *get_key_len,
-                                                                      get_value,
-                                                                      get_value_len))
+                                                                       *get_key, *get_key_len,
+                                                                       get_value, get_value_len))
                                != MDHIM_SUCCESS) {
                         error = ret;
                         key_lens[num_records] = 0;
@@ -937,8 +881,7 @@ static int range_server_bget_op(mdhim_t *md, work_item_t *item, TransportGetMess
                     if (j && (ret =
                               index->mdhim_stores[rs_idx]->get_prev(index->mdhim_stores[rs_idx]->db_handle,
                                                                    get_key, get_key_len,
-                                                                   get_value,
-                                                                   get_value_len))
+                                                                   get_value, get_value_len))
                         != MDHIM_SUCCESS) {
                         mlog(MDHIM_SERVER_DBG, "Rank %d - Couldn't get prev record",
                              md->rank);
@@ -949,8 +892,7 @@ static int range_server_bget_op(mdhim_t *md, work_item_t *item, TransportGetMess
                     } else if (!j && (ret =
                                       index->mdhim_stores[rs_idx]->get(index->mdhim_stores[rs_idx]->db_handle,
                                                                       *get_key, *get_key_len,
-                                                                      get_value,
-                                                                      get_value_len))
+                                                                       get_value, get_value_len))
                                != MDHIM_SUCCESS) {
                         error = ret;
                         key_lens[num_records] = 0;
@@ -976,7 +918,6 @@ static int range_server_bget_op(mdhim_t *md, work_item_t *item, TransportGetMess
   respond:
     //Create the response message
     TransportBGetRecvMessage *bgrm = new TransportBGetRecvMessage();
-    bgrm->mtype = TransportMessageType::RECV_BGET;
     bgrm->error = error;
     bgrm->src = bgm->dst;
     bgrm->dst = bgm->src;
@@ -989,13 +930,20 @@ static int range_server_bget_op(mdhim_t *md, work_item_t *item, TransportGetMess
     bgrm->index = index->id;
     bgrm->index_type = index->type;
 
-    //Free stuff
+    //If this message is coming from myself, copy the key so that the user still has ownership of the key
     if (bgm->src == md->rank) {
-        /* If this message is not coming from myself,
-           free the keys and values from the get message */
-        // mdhim_partial_release_msg(bgm);
-        delete bgm;
+        bgrm->keys.resize(bgm->num_keys);
+        for (std::size_t i = 0; i < bgm->num_keys; i++) {
+            _clone(bgm->keys[i], bgm->key_lens[i], &bgrm->keys[i]);
+        }
     }
+    //If this message was unpacked, do not delete bgm->keys, since it is reused in bgrm
+    else {
+        bgrm->keys = std::move(bgm->keys);
+        bgm->keys.clear();
+    }
+
+    bgrm->key_lens = std::move(bgm->key_lens);
 
     delete get_key;
     delete get_key_len;
@@ -1051,16 +999,16 @@ static void *worker_thread(void *data) {
                     range_server_bput(md, item);
                     break;
                 case TransportMessageType::BGET:
-                {
-                    TransportBGetMessage *bgm = dynamic_cast<TransportBGetMessage *>(item->message);
-                    //The client is sending one key, but requesting the retrieval of more than one
-                    if (bgm->num_recs > 1 && bgm->num_keys == 1) {
-                        range_server_bget_op(md, item, bgm->op);
+                    {
+                        TransportBGetMessage *bgm = dynamic_cast<TransportBGetMessage *>(item->message);
+                        //The client is sending one key, but requesting the retrieval of more than one
+                        if (bgm->num_recs > 1 && bgm->num_keys == 1) {
+                            range_server_bget_op(md, item, bgm->op);
+                        }
+                        else {
+                            range_server_bget(md, item);
+                        }
                     }
-                    else {
-                        range_server_bget(md, item);
-                    }
-                }
                 break;
                 case TransportMessageType::DELETE:
                     range_server_del(md, item);
@@ -1075,9 +1023,10 @@ static void *worker_thread(void *data) {
                     break;
             }
 
-            work_item_t *item_tmp = item;
-            item = item->next;
-            delete item_tmp;
+            // go to the next item
+            work_item_t *next = item->next;
+            delete item;
+            item = next;
         }
 
         //Clean outstanding sends

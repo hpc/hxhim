@@ -5,22 +5,17 @@
 
 /**
  * work_item_t
- * Unit of work placed on the
- * work queue of a range server
+ * Unit of work placed on the work queue of a range server
  *
- * Each work_item_t is a node
- * in a linked list
- *
- * address is the source of the message
+ * Each work_item_t is a node in a linked list
  *
  */
 typedef struct work_item {
-    virtual ~work_item() {}
+    virtual ~work_item() { delete message; }
 
 	work_item *next;
 	work_item *prev;
 	TransportMessage *message;
-
 } work_item_t;
 
 #endif

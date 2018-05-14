@@ -83,7 +83,7 @@ int MPIEndpointGroup::only_send_all_rangesrv_work(void **messages, std::size_t *
     int ret = MDHIM_SUCCESS;
 
     //Send all messages at once
-    for (std::size_t i = 0; i < num_srvs; i++) {
+    for(std::size_t i = 0; i < num_srvs; i++) {
         void *mesg = messages[i];
         if (!mesg) {
             continue;
@@ -126,7 +126,7 @@ int MPIEndpointGroup::only_send_all_rangesrv_work(void **messages, std::size_t *
         int flag;
         MPI_Status status;
 
-        for (std::size_t i = 0; i < num_srvs; i++) {
+        for(std::size_t i = 0; i < num_srvs; i++) {
             if (!size_reqs[i]) {
                 continue;
             }
@@ -141,7 +141,7 @@ int MPIEndpointGroup::only_send_all_rangesrv_work(void **messages, std::size_t *
                 done++;
             }
         }
-        for (std::size_t i = 0; i < num_srvs; i++) {
+        for(std::size_t i = 0; i < num_srvs; i++) {
             if (!reqs[i]) {
                 continue;
             }
@@ -197,7 +197,7 @@ int MPIEndpointGroup::send_all_rangesrv_work(TransportMessage **messages, const 
     int ret = only_send_all_rangesrv_work(sendbufs, sizebufs, dsts, num_srvs);
 
     // cleanup
-    for (std::size_t i = 0; i < num_srvs; i++) {
+    for(std::size_t i = 0; i < num_srvs; i++) {
         fbp_->release(sendbufs[i]);
     }
 
@@ -219,7 +219,7 @@ int MPIEndpointGroup::only_receive_all_client_responses(int *srcs, std::size_t n
     *sizebufs = new std::size_t[nsrcs]();
 
     // Receive a size message from the servers in the list
-    for (std::size_t i = 0; i < nsrcs; i++) {
+    for(std::size_t i = 0; i < nsrcs; i++) {
         std::map<int, int>::const_iterator src_it = ranks_.find(srcs[i]);
         if (src_it != ranks_.end()) {
             reqs[i] = new MPI_Request();
@@ -242,7 +242,7 @@ int MPIEndpointGroup::only_receive_all_client_responses(int *srcs, std::size_t n
     // Wait for size messages to complete
     std::size_t done = 0;
     while (done != num_endpoints) {
-        for (std::size_t i = 0; i < nsrcs; i++) {
+        for(std::size_t i = 0; i < nsrcs; i++) {
             // if there is a request
             if (reqs[i]) {
                 int flag = 0;
@@ -267,7 +267,7 @@ int MPIEndpointGroup::only_receive_all_client_responses(int *srcs, std::size_t n
     }
 
     done = 0;
-    for (std::size_t i = 0; i < nsrcs; i++) {
+    for(std::size_t i = 0; i < nsrcs; i++) {
         std::map<int, int>::const_iterator src_it = ranks_.find(srcs[i]);
         if (src_it != ranks_.end()) {
             // Receive a message from the servers in the list
@@ -289,7 +289,7 @@ int MPIEndpointGroup::only_receive_all_client_responses(int *srcs, std::size_t n
 
     //Wait for messages to complete
     while (done != num_endpoints) {
-        for (std::size_t i = 0; i < nsrcs; i++) {
+        for(std::size_t i = 0; i < nsrcs; i++) {
             if (!reqs[i]) {
                 continue;
             }
@@ -325,7 +325,7 @@ int MPIEndpointGroup::receive_all_client_responses(int *srcs, std::size_t nsrcs,
     int ret = MDHIM_SUCCESS;
 
     if ((ret = only_receive_all_client_responses(srcs, nsrcs, &recvbufs, &sizebufs)) == MDHIM_SUCCESS) {
-        for (std::size_t i = 0; i < nsrcs; i++) {
+        for(std::size_t i = 0; i < nsrcs; i++) {
             if (recvbufs[i]) {
                 ret = MPIUnpacker::any(comm_, (*messages) + i, recvbufs[i], sizebufs[i]);
                 fbp_->release(recvbufs[i]);

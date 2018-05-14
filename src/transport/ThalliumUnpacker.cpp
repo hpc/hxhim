@@ -74,6 +74,13 @@ int ThalliumUnpacker::any (TransportMessage **msg, const std::string &buf) {
                 *msg = bgrm;
             }
             break;
+        case TransportMessageType::RECV_BULK:
+            {
+                TransportBRecvMessage *brm = nullptr;
+                ret = unpack(&brm, buf);
+                *msg = brm;
+            }
+            break;
         // commit messages are not sent across the network
         // case TransportMessageType::COMMIT:
         //     break;

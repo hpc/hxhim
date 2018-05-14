@@ -6,7 +6,6 @@
 #include <thallium.hpp>
 #include <thallium/serialization/stl/string.hpp>
 
-#include "clone.hpp"
 #include "indexes.h"
 #include "local_client.h"
 #include "mdhim_options_private.h"
@@ -530,7 +529,7 @@ TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
     TransportGetRecvMessage *grm = nullptr;
     while (rl) {
         TransportGetMessage *gm = new TransportGetMessage();
-        _clone(key, key_len, &gm->key);
+        gm->key = key;
         gm->key_len = key_len;
         gm->num_keys = 1;
         gm->src = md->rank;
@@ -557,9 +556,6 @@ TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
         rl = rl->next;
         free(rlp);
     }
-
-    // the key is normally placed into a TransportMessage and deleted later
-    ::operator delete(key);
 
     return grm;
 }
@@ -667,15 +663,9 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
             //If the message doesn't exist, create one
             if (!bpm) {
                 bpm = new TransportBPutMessage();
-                bpm->keys.resize(num_keys);
-                bpm->key_lens.resize(num_keys);
-                bpm->values.resize(num_keys);
-                bpm->value_lens.resize(num_keys);
                 bpm->num_keys = 0;
                 bpm->src = md->rank;
                 bpm->dst = dst_rank;
-                bpm->rs_idx.resize(num_keys);
-                bpm->mtype = TransportMessageType::BPUT;
                 bpm->index = index->id;
                 bpm->index_type = index->type;
 
@@ -687,11 +677,11 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
             }
 
             //Add the key, lengths, and data to the message
-            bpm->keys[bpm->num_keys] = keys[i];
-            bpm->key_lens[bpm->num_keys] = key_lens[i];
-            bpm->values[bpm->num_keys] = values[i];
-            bpm->value_lens[bpm->num_keys] = value_lens[i];
-            bpm->rs_idx[bpm->num_keys] = rs_idx;
+            bpm->keys.push_back(keys[i]);
+            bpm->key_lens.push_back(key_lens[i]);
+            bpm->values.push_back(values[i]);
+            bpm->value_lens.push_back(value_lens[i]);
+            bpm->rs_idx.push_back(rs_idx);
             bpm->num_keys++;
 
             rangesrv_list *rlp = rl;
@@ -801,14 +791,10 @@ TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
             //If the message doesn't exist, create one
             if (!bgm) {
                 bgm = new TransportBGetMessage();
-                bgm->keys.resize(num_keys);
-                bgm->key_lens.resize(num_keys);
                 bgm->num_keys = 0;
                 bgm->num_recs = num_records;
                 bgm->src = md->rank;
                 bgm->dst = dst_rank;
-                bgm->rs_idx.resize(num_keys);
-                bgm->mtype = TransportMessageType::BGET;
                 bgm->op = (op == TransportGetMessageOp::GET_PRIMARY_EQ)?TransportGetMessageOp::GET_EQ:op;
                 bgm->index = index->id;
                 bgm->index_type = index->type;
@@ -820,9 +806,9 @@ TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
             }
 
             //Add the key, lengths, and data to the message
-            bgm->keys[bgm->num_keys] = keys[i];
-            bgm->key_lens[bgm->num_keys] = key_lens[i];
-            bgm->rs_idx[bgm->num_keys] = rs_idx;
+            bgm->keys.push_back(keys[i]);
+            bgm->key_lens.push_back(key_lens[i]);
+            bgm->rs_idx.push_back(rs_idx);
             bgm->num_keys++;
 
             rangesrv_list *rlp = rl;
@@ -902,8 +888,6 @@ TransportRecvMessage *_del_record(mdhim_t *md, index_t *index,
             return nullptr;
         }
 
-        //Initialize the del message
-        dm->mtype = TransportMessageType::DELETE;
         dm->key = key;
         dm->key_len = key_len;
         dm->src = md->rank;
@@ -987,44 +971,46 @@ TransportBRecvMessage *_bdel_records(mdhim_t *md, index_t *index,
             continue;
         }
 
-        int dst_rank, rs_idx;
-        if (_decompose_db(index, rl->ri->database, &dst_rank, &rs_idx) != MDHIM_SUCCESS) {
-            return nullptr;
-        }
-
-        TransportBDeleteMessage *bdm = nullptr;
-        if (md->rank != dst_rank) {
-            //Set the message in the list for this range server
-            bdm = bdm_list[rl->ri->rangesrv_num - 1];
-        } else {
-            //Set the local message
-            bdm = lbdm;
-        }
-
-        //If the message doesn't exist, create one
-        if (!bdm) {
-            bdm = new TransportBDeleteMessage();
-            bdm->keys.resize(num_keys);
-            bdm->key_lens.resize(num_keys);
-            bdm->num_keys = 0;
-            bdm->src = md->rank;
-            bdm->dst = dst_rank;
-            bdm->rs_idx.resize(num_keys);
-            bdm->mtype = TransportMessageType::BDELETE;
-            bdm->index = index->id;
-            bdm->index_type = index->type;
-            if (md->rank != dst_rank) {
-                bdm_list[rl->ri->rangesrv_num - 1] = bdm;
-            } else {
-                lbdm = bdm;
+        while (rl) {
+            int dst_rank, rs_idx;
+            if (_decompose_db(index, rl->ri->database, &dst_rank, &rs_idx) != MDHIM_SUCCESS) {
+                return nullptr;
             }
-        }
 
-        //Add the key, lengths, and data to the message
-        bdm->keys[bdm->num_keys] = keys[i];
-        bdm->key_lens[bdm->num_keys] = key_lens[i];
-        bdm->rs_idx[bdm->num_keys] = rs_idx;
-        bdm->num_keys++;
+            TransportBDeleteMessage *bdm = nullptr;
+            if (md->rank != dst_rank) {
+                //Set the message in the list for this range server
+                bdm = bdm_list[rl->ri->rangesrv_num - 1];
+            } else {
+                //Set the local message
+                bdm = lbdm;
+            }
+
+            //If the message doesn't exist, create one
+            if (!bdm) {
+                bdm = new TransportBDeleteMessage();
+                bdm->num_keys = 0;
+                bdm->src = md->rank;
+                bdm->dst = dst_rank;
+                bdm->index = index->id;
+                bdm->index_type = index->type;
+                if (md->rank != dst_rank) {
+                    bdm_list[rl->ri->rangesrv_num - 1] = bdm;
+                } else {
+                    lbdm = bdm;
+                }
+            }
+
+            //Add the key, lengths, and data to the message
+            bdm->keys.push_back(keys[i]);
+            bdm->key_lens.push_back(key_lens[i]);
+            bdm->rs_idx.push_back(rs_idx);
+            bdm->num_keys++;
+
+            rangesrv_list *rlp = rl;
+            rl = rl->next;
+            free(rlp);
+        }
     }
 
     //Make a list out of the received messages to return

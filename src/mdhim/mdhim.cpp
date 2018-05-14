@@ -185,18 +185,7 @@ mdhim_rm_t *mdhimPut(mdhim_t *md, index_t *index,
         index = md->p->primary_index;
     }
 
-    // Clone primary key and value
-    void *pk = nullptr;
-    void *val = nullptr;
-    if ((_clone(primary_key, primary_key_len, &pk) != MDHIM_SUCCESS) ||
-        (_clone(value, value_len, &val)            != MDHIM_SUCCESS)) {
-        _cleanup(pk);
-        _cleanup(val);
-        mlog(MDHIM_CLIENT_ERR, "MDHIM Rank %d mdhimPut - Could not allocate memory", md->rank);
-        return nullptr;
-    }
-
-    return mdhim_rm_init(_put_record(md, index, pk, primary_key_len, val, value_len));
+    return mdhim_rm_init(_put_record(md, index, primary_key, primary_key_len, value, value_len));
 }
 
 /**
@@ -224,28 +213,10 @@ mdhim_brm_t *mdhimBPut(mdhim_t *md, index_t *index,
         index = md->p->primary_index;
     }
 
-    //Copy the keys and values
-    void **pks = nullptr, **pvs = nullptr;
-    std::size_t *pk_lens = nullptr, *pv_lens = nullptr;
-    if ((_clone(num_records, primary_keys, primary_key_lens, &pks, &pk_lens)     != MDHIM_SUCCESS) ||
-        (_clone(num_records, primary_values, primary_value_lens, &pvs, &pv_lens) != MDHIM_SUCCESS)) {
-        _cleanup(num_records, pks, pk_lens);
-        _cleanup(num_records, pvs, pv_lens);
-        return nullptr;
-    }
-
-    TransportBRecvMessage *brm = _bput_records(md, index,
-                                               pks, pk_lens,
-                                               pvs, pv_lens,
-                                               num_records);
-
-    // pk, pk_lens, pvs, pv_lens are created in _bput_records
-    delete [] pks;
-    delete [] pk_lens;
-    delete [] pvs;
-    delete [] pv_lens;
-
-    return mdhim_brm_init(brm);
+    return mdhim_brm_init(_bput_records(md, index,
+                                        primary_keys, primary_key_lens,
+                                        primary_values, primary_value_lens,
+                                        num_records));
 }
 
 /**
@@ -274,15 +245,7 @@ mdhim_getrm_t *mdhimGet(mdhim_t *md, index_t *index,
         return nullptr;
     }
 
-    // Clone primary key
-    void *k = nullptr;
-    if (_clone(key, key_len, &k) != MDHIM_SUCCESS) {
-        _cleanup(k);
-        mlog(MDHIM_CLIENT_ERR, "MDHIM Rank %d mdhimGet - Could not allocate memory", md->rank);
-        return nullptr;
-    }
-
-    return mdhim_grm_init(_get_record(md, index, k, key_len, op));
+    return mdhim_grm_init(_get_record(md, index, key, key_len, op));
 }
 
 /**
@@ -321,19 +284,7 @@ mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, index_t *index,
         return nullptr;
     }
 
-    // copy the keys
-    void **ks = nullptr;
-    std::size_t *k_lens = nullptr;
-    if (_clone(num_keys, keys, key_lens, &ks, &k_lens) != MDHIM_SUCCESS) {
-        _cleanup(num_keys, ks, k_lens);
-        return nullptr;
-    }
-
-    TransportBGetRecvMessage *bgrm_head = _bget_records(md, index, ks, k_lens, num_keys, 1, op);
-
-    // ks and k_lens are created in _bget_records
-    delete [] ks;
-    delete [] k_lens;
+    TransportBGetRecvMessage *bgrm_head = _bget_records(md, index, keys, key_lens, num_keys, 1, op);
 
     if (!bgrm_head) {
         return nullptr;
@@ -438,22 +389,8 @@ mdhim_bgetrm_t *mdhimBGetOp(mdhim_t *md, index_t *index,
         return nullptr;
     }
 
-    // copy the key
-    void **k = nullptr;
-    std::size_t *k_len = nullptr;
-    if (_clone(1, &key, &key_len, &k, &k_len) != MDHIM_SUCCESS) {
-        _cleanup(1, k, k_len);
-        return nullptr;
-    }
-
     //Get the linked list of return messages from mdhimBGet
-    TransportBGetRecvMessage *bgrm = _bget_records(md, index, k, k_len, 1, num_records, op);
-
-    // ks and k_lens are created in _bget_records
-    delete [] k;
-    delete [] k_len;
-
-    return mdhim_bgrm_init(bgrm);
+    return mdhim_bgrm_init(_bget_records(md, index, &key, &key_len, 1, num_records, op));
 }
 
 /**
@@ -475,14 +412,7 @@ mdhim_rm_t *mdhimDelete(mdhim_t *md, index_t *index,
         index = md->p->primary_index;
     }
 
-    // Copy the key
-    void *k = nullptr;
-    if (_clone(key, key_len, &k) != MDHIM_SUCCESS) {
-        _cleanup(k);
-        return nullptr;
-    }
-
-    return mdhim_rm_init(_del_record(md, index, k, key_len));
+    return mdhim_rm_init(_del_record(md, index, key, key_len));
 }
 
 /**
@@ -514,21 +444,7 @@ mdhim_brm_t *mdhimBDelete(mdhim_t *md, index_t *index,
         return nullptr;
     }
 
-    // copy the keys
-    void **ks = nullptr;
-    std::size_t *k_lens = nullptr;
-    if (_clone(num_records, keys, key_lens, &ks, &k_lens) != MDHIM_SUCCESS) {
-        _cleanup(1, ks, k_lens);
-        return nullptr;
-    }
-
-    TransportBRecvMessage *brm = _bdel_records(md, index, ks, k_lens, num_records);
-
-    // ks and k_lens are created in _bget_records
-    delete [] ks;
-    delete [] k_lens;
-
-    return mdhim_brm_init(brm);
+    return mdhim_brm_init(_bdel_records(md, index, keys, key_lens, num_records));
 }
 
 /**

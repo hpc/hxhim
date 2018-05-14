@@ -68,7 +68,7 @@ void bput(mdhim_t *md,
                 continue;
             }
 
-            out << "BPUT to " << db  << " succeeded" << std::endl;
+            out << "BPUT to database " << db  << " succeeded" << std::endl;
         }
 
         delete [] rs_idx;

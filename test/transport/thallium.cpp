@@ -22,12 +22,10 @@ TEST(thallium_pack_unpack, TransportPutMessage) {
 
         src.rs_idx = 1;
 
-        src.key = ::operator new(KEY_LEN);
-        memcpy(src.key, KEY, KEY_LEN * sizeof(char));
+        src.key = &KEY;
         src.key_len = KEY_LEN;
 
-        src.value = ::operator new(VALUE_LEN);
-        memcpy(src.value, VALUE, VALUE_LEN * sizeof(char));
+        src.value = &VALUE;
         src.value_len = VALUE_LEN;
     }
 
@@ -50,6 +48,10 @@ TEST(thallium_pack_unpack, TransportPutMessage) {
     EXPECT_EQ(src.value_len, dst->value_len);
     EXPECT_EQ(memcmp(src.value, dst->value, dst->value_len), 0);
 
+    // key is allocated when unpacking, but is not owned by TransportPutMessage
+    ::operator delete(dst->key);
+    // value is allocated when unpacking, but is not owned by TransportPutMessage
+    ::operator delete(dst->value);
     delete dst;
 }
 
@@ -125,9 +127,7 @@ TEST(thallium_pack_unpack, TransportGetMessage) {
 
         src.rs_idx = 1;
 
-        src.key = ::operator new(KEY_LEN);
-        memcpy(src.key, KEY, KEY_LEN * sizeof(char));
-
+        src.key = &KEY;
         src.key_len = KEY_LEN;
     }
 
@@ -148,6 +148,8 @@ TEST(thallium_pack_unpack, TransportGetMessage) {
     EXPECT_EQ(src.key_len, dst->key_len);
     EXPECT_EQ(memcmp(src.key, dst->key, dst->key_len), 0);
 
+    // key is allocated when unpacking, but is not owned by TransportGetMessage
+    ::operator delete(dst->key);
     delete dst;
 }
 
@@ -213,9 +215,7 @@ TEST(thallium_pack_unpack, TransportDeleteMessage) {
         src.index_type = PRIMARY_INDEX;
         src.index_name = nullptr;
 
-        src.key = ::operator new(KEY_LEN);
-        memcpy(src.key, KEY, KEY_LEN * sizeof(char));
-
+        src.key = &KEY;
         src.key_len = KEY_LEN;
     }
 
@@ -235,6 +235,8 @@ TEST(thallium_pack_unpack, TransportDeleteMessage) {
     EXPECT_EQ(src.key_len, dst->key_len);
     EXPECT_EQ(memcmp(src.key, dst->key, dst->key_len), 0);
 
+    // key is allocated when unpacking, but is not owned by TransportDeleteMessage
+    ::operator delete(dst->key);
     delete dst;
 }
 
