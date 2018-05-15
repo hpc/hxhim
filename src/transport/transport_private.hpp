@@ -1,5 +1,5 @@
-#ifndef HXHIM_TRANSPORT_PRIVATE_TYPES
-#define HXHIM_TRANSPORT_PRIVATE_TYPES
+#ifndef MDHIM_TRANSPORT_PRIVATE_TYPES_HPP
+#define MDHIM_TRANSPORT_PRIVATE_TYPES_HPP
 
 #include "transport.h"
 #include "transport.hpp"

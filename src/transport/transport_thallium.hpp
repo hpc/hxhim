@@ -1,5 +1,5 @@
-#ifndef HXHIM_TRANSPORT_THALLIUM
-#define HXHIM_TRANSPORT_THALLIUM
+#ifndef MDHIM_TRANSPORT_THALLIUM_HPP
+#define MDHIM_TRANSPORT_THALLIUM_HPP
 
 #include "ThalliumOptions.hpp"
 #include "ThalliumUtilities.hpp"

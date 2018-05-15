@@ -7,10 +7,10 @@ extern "C"
 #endif
 
 /** Success constant */
-#define HXHIM_OK = 0
+#define HXHIM_SUCCESS 0
 
 /** Error constant */
-#define HXHIM_ERROR = 1
+#define HXHIM_ERROR 1
 
 /** HXHIM Option Values */
 #define HXHIM_OPT_COMM_NULL     (1 << 0)
@@ -19,22 +19,18 @@ extern "C"
 #define HXHIM_OPT_STORE_NULL    (1 << 8)
 #define HXHIM_OPT_STORE_LEVELDB (1 << 9)
 
-/**
- * Opaque struct that establishes the communication library in use
- */
-typedef struct hxhim_cfg_comm_s hxhim_cfg_comm;
+typedef struct hxhim_cursor_private hxhim_cursor_private_t;
+typedef struct hxhim_cursor {
+    hxhim_cursor_private_t *p;
+} hxhim_cursor_t;
 
-/**
- * Opaque struct that establishes the storage library to use
- */
-typedef struct hxhim_cfg_store_s hxhim_cfg_store;
+typedef struct hxhim_session_private hxhim_session_private_t;
 
 /**
  * HXHIM session data
  */
 typedef struct hxhim_session {
-    const hxhim_cfg_comm *comm;
-    const hxhim_cfg_store *store;
+    hxhim_session_private_t *p;
 } hxhim_session_t;
 
 #ifdef __cplusplus

@@ -16,6 +16,12 @@ set_target_properties(cli PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
 set_target_properties(cli PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
 INSTALL(TARGETS cli DESTINATION bin)
 
+add_executable(hx hx.cpp)
+target_link_libraries(hx hxhim mdhim transport utils ${LEVELDB_LIBRARY} ${MPI_CXX_LIBRARIES} ${THALLIUM_LDFLAGS} pthread m)
+set_target_properties(hx PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
+set_target_properties(hx PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
+INSTALL(TARGETS hx DESTINATION bin)
+
 # Scripts
 # random.sh and different_num_processes.sh should have dependencies on generate_kv_pairs.sh
 configure_file(generate_kv_pairs.sh ${CMAKE_CURRENT_BINARY_DIR}/generate_kv_pairs.sh COPYONLY)

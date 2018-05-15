@@ -1,5 +1,5 @@
-#ifndef HXHIM_TRANSPORT_THALLIUM_RANGE_SERVER
-#define HXHIM_TRANSPORT_THALLIUM_RANGE_SERVER
+#ifndef MDHIM_TRANSPORT_THALLIUM_RANGE_SERVER_HPP
+#define MDHIM_TRANSPORT_THALLIUM_RANGE_SERVER_HPP
 
 #include <thallium.hpp>
 #include <thallium/serialization/stl/string.hpp>

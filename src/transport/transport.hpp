@@ -2,8 +2,8 @@
 // Created by bws on 8/24/17.
 //
 
-#ifndef HXHIM_TRANSPORT
-#define HXHIM_TRANSPORT
+#ifndef MDHIM_TRANSPORT_HPP
+#define MDHIM_TRANSPORT_HPP
 
 #include <cstdlib>
 #include <deque>

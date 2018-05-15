@@ -1,5 +1,5 @@
-#ifndef HXHIM_MEMORY_ALLOCATORS
-#define HXHIM_MEMORY_ALLOCATORS
+#ifndef MEMORY_ALLOCATORS
+#define MEMORY_ALLOCATORS
 
 #include <map>
 

@@ -9,6 +9,9 @@
 #include <mutex>
 #include <type_traits>
 
+#include "mlog2.h"
+#include "mlogfacs2.h"
+
 /**
  * FixedBufferPool
  * This class distributes memory addresses from a fixed size pool of memory.

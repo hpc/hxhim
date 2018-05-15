@@ -1,14 +1,11 @@
 /*
- * MDHIM TNG
+ * MDHIM
  *
- * External API and data structures
+ * External API
  */
 
 #ifndef      __MDHIM_H
 #define      __MDHIM_H
-
-#include "mlog2.h"
-#include "mlogfacs2.h"
 
 #include "index_struct.h"
 #include "mdhim_config.h"

@@ -47,8 +47,6 @@ int main(int argc, char *argv[]) {
         return MDHIM_ERROR;
     }
 
-    MPI_Barrier(MPI_COMM_WORLD);
-
     if (rank == 0) {
         std::cout << "World Size: " << size << std::endl;
 
@@ -127,8 +125,6 @@ int main(int argc, char *argv[]) {
             bulk_clean(fields, data, lens, num_keys);
         }
     }
-
-    MPI_Barrier(MPI_COMM_WORLD);
 
     cleanup(&md, &opts);
 

@@ -37,8 +37,6 @@ int main(int argc, char *argv[]){
         return MDHIM_ERROR;
     }
 
-    MPI_Barrier(MPI_COMM_WORLD);
-
     // Generate a random key value pair
     const Key_t   MDHIM_PUT_GET_PRIMARY_KEY = rand();
     const Value_t MDHIM_PUT_GET_VALUE       = rand();
@@ -127,8 +125,6 @@ int main(int argc, char *argv[]){
 
         mdhim_grm_destroy(grm);
     }
-
-    MPI_Barrier(MPI_COMM_WORLD);
 
     cleanup(&md, &opts);
 

@@ -1,5 +1,5 @@
-#ifndef HXHIM_TRANSPORT_THALLIUM_ENDPOINT_GROUP
-#define HXHIM_TRANSPORT_THALLIUM_ENDPOINT_GROUP
+#ifndef MDHIM_TRANSPORT_THALLIUM_ENDPOINT_GROUP_HPP
+#define MDHIM_TRANSPORT_THALLIUM_ENDPOINT_GROUP_HPP
 
 #include <map>
 
@@ -39,7 +39,7 @@ class ThalliumEndpointGroup : virtual public TransportEndpointGroup {
         /** @description Enqueue a BGet request to multiple endpoints  */
         TransportBGetRecvMessage *BGet(const std::size_t num_rangesrvs, TransportBGetMessage **bgm_list);
 
-        /** @description Bulk Delete to multiple endpoints   */
+        /** @description Bulk Delete to multiple endpoints             */
         TransportBRecvMessage *BDelete(const std::size_t num_rangesrvs, TransportBDeleteMessage **bdm_list);
 
     private:

@@ -11,6 +11,9 @@
 #include <pthread.h>
 #include <sys/time.h>
 
+#include "mlog2.h"
+#include "mlogfacs2.h"
+
 #include "clone.hpp"
 #include "data_store.h"
 #include "index_struct.h"
@@ -19,7 +22,6 @@
 #include "mdhim_options.h"
 #include "mdhim_options_private.h"
 #include "mdhim_private.h"
-#include "partitioner.h"
 #include "range_server.h"
 #include "transport_private.hpp"
 
@@ -87,7 +89,7 @@ int mdhimInit(mdhim_t* md, mdhim_options_t *opts) {
     }
 
     //Open mlog - stolen from plfs
-    mlog_open((char *)"mdhim", 0, opts->p->db->debug_level, opts->p->db->debug_level, nullptr, 0, MLOG_LOGPID, 0);
+    mlog_open((char *) "mdhim", 0, opts->p->db->debug_level, opts->p->db->debug_level, nullptr, 0, MLOG_LOGPID, 0);
 
     //Initialize bootstrapping variables
     if (bootstrapInit(md, opts) != MDHIM_SUCCESS){
@@ -102,6 +104,8 @@ int mdhimInit(mdhim_t* md, mdhim_options_t *opts) {
     }
 
     mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d mdhimInit - Completed Successfully", md->rank);
+    MPI_Barrier(md->comm);
+
     return MDHIM_SUCCESS;
 }
 
@@ -112,6 +116,7 @@ int mdhimInit(mdhim_t* md, mdhim_options_t *opts) {
  * @return MDHIM status value
  */
 int mdhimClose(mdhim_t *md) {
+    MPI_Barrier(md->comm);
     mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d mdhimClose - Started", md->rank);
 
     mdhim_private_destroy(md);
@@ -173,8 +178,8 @@ int mdhimCommit(mdhim_t *md, index_t *index) {
  * @return                   mdhim_brm_t * or nullptr on error
  */
 mdhim_rm_t *mdhimPut(mdhim_t *md, index_t *index,
-                      void *primary_key, std::size_t primary_key_len,
-                      void *value, std::size_t value_len) {
+                     void *primary_key, std::size_t primary_key_len,
+                     void *value, std::size_t value_len) {
     if (!md || !md->p ||
         !primary_key || !primary_key_len ||
         !value || !value_len) {
@@ -230,8 +235,8 @@ mdhim_brm_t *mdhimBPut(mdhim_t *md, index_t *index,
  * @return mdhim_getrm_t * or nullptr on error
  */
 mdhim_getrm_t *mdhimGet(mdhim_t *md, index_t *index,
-                         void *key, std::size_t key_len,
-                         enum TransportGetMessageOp op) {
+                        void *key, std::size_t key_len,
+                        enum TransportGetMessageOp op) {
     if (!md || !md->p ||
         !key || !key_len) {
         return nullptr;
@@ -285,20 +290,17 @@ mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, index_t *index,
     }
 
     TransportBGetRecvMessage *bgrm_head = _bget_records(md, index, keys, key_lens, num_keys, 1, op);
-
     if (!bgrm_head) {
         return nullptr;
     }
 
     if (op == TransportGetMessageOp::GET_PRIMARY_EQ) {
         //Get the number of keys/values we received
+        TransportBGetRecvMessage *bgrm = bgrm_head;
         int plen = 0;
-        while (bgrm_head) {
-            for(std::size_t i = 0; i < bgrm_head->num_keys; i++) {
-                plen++;
-            }
-
-            bgrm_head = bgrm_head->next;
+        while (bgrm) {
+            plen += bgrm->num_keys;
+            bgrm = bgrm->next;
         }
 
         if (plen > MAX_BULK_OPS) {
@@ -314,13 +316,11 @@ mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, index_t *index,
         std::size_t *primary_key_lens = new std::size_t[plen]();
 
         //Get the primary keys from the previously received messages' values
-        plen = 0;
         while (bgrm_head) {
-            for(std::size_t i = 0; i < bgrm_head->num_keys && plen < MAX_BULK_OPS; i++) {
-                primary_keys[plen] = ::operator new(bgrm_head->value_lens[i]);
-                memcpy(primary_keys[plen], bgrm_head->values[i], bgrm_head->value_lens[i]);
-                primary_key_lens[plen] = bgrm_head->value_lens[i];
-                plen++;
+            for(std::size_t i = 0; i < bgrm_head->num_keys && i < MAX_BULK_OPS; i++) {
+                primary_keys[i] = ::operator new(bgrm_head->value_lens[i]);
+                memcpy(primary_keys[i], bgrm_head->values[i], bgrm_head->value_lens[i]);
+                primary_key_lens[i] = bgrm_head->value_lens[i];
             }
 
             TransportBGetRecvMessage *next = bgrm_head->next;

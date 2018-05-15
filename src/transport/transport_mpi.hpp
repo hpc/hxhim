@@ -2,8 +2,8 @@
 // Created by bws on 8/24/17.
 //
 
-#ifndef HXHIM_TRANSPORT_MPI
-#define HXHIM_TRANSPORT_MPI
+#ifndef MDHIM_TRANSPORT_MPI_HPP
+#define MDHIM_TRANSPORT_MPI_HPP
 
 #include "MPIInstance.hpp"
 #include "MPIOptions.hpp"

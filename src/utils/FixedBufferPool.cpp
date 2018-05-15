@@ -25,6 +25,7 @@ FixedBufferPool::FixedBufferPool(const std::size_t alloc_size, const std::size_t
         nodes_ = new Node[regions_]();
     }
     catch (...) {
+        mlog(MLOG_CRIT, "FixedBufferPool failed to allocate FixedBufferPool bookkeeping array");
         ::operator delete(pool_);
         throw;
     }
@@ -86,11 +87,13 @@ FixedBufferPool::~FixedBufferPool() {
 void *FixedBufferPool::acquire(const std::size_t size) {
     // 0 bytes
     if (!size) {
+        mlog(MLOG_DBG, "Requested a 0 size buffer from FixedBufferPool");
         return nullptr;
     }
 
     // too big
     if (size > alloc_size_) {
+        mlog(MLOG_CRIT, "Requested a %zu size buffer from FixedBufferPool, which is greater than the size of a region (%zu)", size, alloc_size_);
         return nullptr;
     }
 
@@ -124,6 +127,7 @@ void *FixedBufferPool::acquire(const std::size_t size) {
  */
 void FixedBufferPool::release(void *ptr) {
     if (!ptr) {
+        mlog(MLOG_DBG, "Attempted to free a nullptr");
         return;
     }
 
@@ -132,22 +136,24 @@ void FixedBufferPool::release(void *ptr) {
     // if the pointer is not within the memory pool, do nothing
     if (((char *)ptr < (char *)pool_) ||
         (((char *)pool_ + pool_size_)) < (char *)ptr) {
+        mlog(MLOG_DBG, "Attempted to free a pointer not within the memory pool");
         return;
     }
 
     // offset of the pointer from the front of the pool
     const std::size_t offset = (char *)ptr - (char *)pool_;
 
-    // // if the pointer isn't a multiple of the of the allocation size, do nothing
-    // if (offset % alloc_size_) {
-    //     return;
-    // }
+    // if the pointer isn't a multiple of the of the allocation size, do nothing
+    if (offset % alloc_size_) {
+        mlog(MLOG_DBG, "Address being freed is not aligned to an allocation region");
+    }
 
     // index of this pointer in the fixed size array
     const std::size_t index = offset / alloc_size_;
 
     // check for double frees (to prevent loops)
     if (nodes_[index].next) {
+        mlog(MLOG_DBG, "Address being freed has already been freed");
         return;
     }
 

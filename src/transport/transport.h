@@ -1,5 +1,5 @@
-#ifndef HXHIM_TRANSPORT_TYPES
-#define HXHIM_TRANSPORT_TYPES
+#ifndef MDHIM_TRANSPORT_TYPES_HPP
+#define MDHIM_TRANSPORT_TYPES_HPP
 
 #include <stddef.h>
 

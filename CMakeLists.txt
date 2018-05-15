@@ -162,11 +162,12 @@ message( STATUS "GTest source dir: " ${gtest_SOURCE_DIR})
 #
 # Add subdirectories
 #
-add_subdirectory (src/base)
-add_subdirectory (src/demo)
-add_subdirectory (src/mdhim)
-add_subdirectory (src/transport)
-add_subdirectory (src/utils)
+add_subdirectory(include)
+add_subdirectory(src/base)
+add_subdirectory(src/demo)
+add_subdirectory(src/mdhim)
+add_subdirectory(src/transport)
+add_subdirectory(src/utils)
 
 #
 # Add unit test subdirectories
