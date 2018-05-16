@@ -19,11 +19,6 @@ extern "C"
 #define HXHIM_OPT_STORE_NULL    (1 << 8)
 #define HXHIM_OPT_STORE_LEVELDB (1 << 9)
 
-typedef struct hxhim_cursor_private hxhim_cursor_private_t;
-typedef struct hxhim_cursor {
-    hxhim_cursor_private_t *p;
-} hxhim_cursor_t;
-
 typedef struct hxhim_session_private hxhim_session_private_t;
 
 /**
