@@ -4,7 +4,6 @@
 #include <mpi.h>
 
 #include "hxhim.hpp"
-#include "mdhim.hpp"
 
 int main(int argc, char *argv[]) {
     int provided;
@@ -13,9 +12,11 @@ int main(int argc, char *argv[]) {
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
+    const std::size_t count = 10;
+
     // Generate some key value pairs
-    std::pair<std::string, std::string> kvs[10];
-    for(int i = 0; i < 10; i++) {
+    std::pair<std::string, std::string> kvs[count];
+    for(std::size_t i = 0; i < count; i++) {
         std::stringstream key, value;
         key << "key" << rank << i;
         value << "value" << rank << i;
@@ -25,40 +26,40 @@ int main(int argc, char *argv[]) {
 
     // start hxhim
     hxhim_session_t hx;
-    hxhim::open(&hx, MPI_COMM_WORLD, "mdhim.conf");
+    hxhim::Open(&hx, MPI_COMM_WORLD, "mdhim.conf");
 
     // PUT the key value pairs into MDHIM
     for(std::pair<std::string, std::string> const & kv : kvs) {
-        hxhim::put(&hx, (void *)kv.first.c_str(), kv.first.size(), (void *)kv.second.c_str(), kv.second.size());
+        hxhim::Put(&hx, (void *)kv.first.c_str(), kv.first.size(), (void *)kv.second.c_str(), kv.second.size());
     }
 
     // GET them back
     for(std::pair<std::string, std::string> const & kv : kvs) {
-        hxhim::get(&hx, (void *)kv.first.c_str(), kv.first.size());
+        hxhim::Get(&hx, (void *)kv.first.c_str(), kv.first.size());
     }
 
     // DEL the key value pairs
     for(std::pair<std::string, std::string> const & kv : kvs) {
-        hxhim::del(&hx, (void *)kv.first.c_str(), kv.first.size());
+        hxhim::Delete(&hx, (void *)kv.first.c_str(), kv.first.size());
     }
 
     // try to GET the key value pairs again
     for(std::pair<std::string, std::string> const & kv : kvs) {
-        hxhim::get(&hx, (void *)kv.first.c_str(), kv.first.size());
+        hxhim::Get(&hx, (void *)kv.first.c_str(), kv.first.size());
     }
 
     // perform the queued operations
-    hxhim::Return *results = hxhim::flush(&hx);
+    hxhim::Return *results = hxhim::Flush(&hx);
 
     // iterate through the results
     while (results) {
         switch (results->GetOp()) {
-            case hxhim::work_t::Op::PUT:
+            case hxhim_work_op::HXHIM_PUT:
                 {
                     std::cout << "PUT returned status " << results->GetError() << std::endl;
                     break;
                 }
-            case hxhim::work_t::Op::GET:
+            case hxhim_work_op::HXHIM_GET:
                 {
                     hxhim::GetReturn *get_results = dynamic_cast<hxhim::GetReturn *>(results);
                     for(get_results->MoveToFirstRS(); get_results->ValidRS() == HXHIM_SUCCESS; get_results->NextRS()) {
@@ -77,12 +78,12 @@ int main(int argc, char *argv[]) {
                     }
                 }
                 break;
-            case hxhim::work_t::Op::DEL:
+            case hxhim_work_op::HXHIM_DEL:
                 {
                     std::cout << "DEL returned status " << results->GetError() << std::endl;
                 }
                 break;
-            case hxhim::work_t::Op::NONE:
+            case hxhim_work_op::HXHIM_NOP:
             default:
                 break;
         }
@@ -94,7 +95,7 @@ int main(int argc, char *argv[]) {
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    hxhim::close(&hx);
+    hxhim::Close(&hx);
     MPI_Finalize();
 
     return 0;

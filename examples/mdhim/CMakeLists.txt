@@ -1,0 +1,28 @@
+#
+# Create the demo executable
+#
+cmake_minimum_required(VERSION 2.8)
+
+set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${LEVELDB_LIBRARY_DIRS})
+
+add_executable(putget putget.c)
+target_link_libraries(putget mdhim transport utils ${LEVELDB_LIBRARY} ${MPI_CXX_LIBRARIES} ${THALLIUM_LDFLAGS} pthread m)
+set_target_properties(putget PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
+set_target_properties(putget PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
+
+add_executable(cli cli.cpp util.cpp put.cpp get.cpp bput.cpp bget.cpp del.cpp bdel.cpp)
+target_link_libraries(cli mdhim transport utils ${LEVELDB_LIBRARY} ${MPI_CXX_LIBRARIES} ${THALLIUM_LDFLAGS} pthread m)
+set_target_properties(cli PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
+set_target_properties(cli PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
+INSTALL(TARGETS cli DESTINATION bin)
+
+# Scripts
+# random.sh and different_num_processes.sh should have dependencies on generate_kv_pairs.sh
+configure_file(generate_kv_pairs.sh ${CMAKE_CURRENT_BINARY_DIR}/generate_kv_pairs.sh COPYONLY)
+INSTALL(FILES generate_kv_pairs.sh DESTINATION bin PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ)
+
+configure_file(random.sh ${CMAKE_CURRENT_BINARY_DIR}/random.sh COPYONLY)
+INSTALL(FILES random.sh DESTINATION bin PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ)
+
+configure_file(different_num_processes.sh ${CMAKE_CURRENT_BINARY_DIR}/different_num_processes.sh COPYONLY)
+INSTALL(FILES different_num_processes.sh DESTINATION bin PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ)

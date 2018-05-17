@@ -15,8 +15,8 @@ namespace hxhim {
  * @param key_lesn   the length of the keys to bget
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-work_t *get_matching_work(hxhim_session_t *hx, const work_t::Op op) {
-    if (!hx || !hx->p || (op == work_t::Op::NONE)) {
+work_t *get_matching_work(hxhim_session_t *hx, const hxhim_work_op op) {
+    if (!hx || !hx->p || (op == hxhim_work_op::HXHIM_NOP)) {
         return nullptr;
     }
 
@@ -28,16 +28,16 @@ work_t *get_matching_work(hxhim_session_t *hx, const work_t::Op op) {
     if (!hx->p->queue.size() || (hx->p->queue.back()->op != op)) {
         work_t *work = nullptr;
         switch (op) {
-            case work_t::Op::PUT:
+            case hxhim_work_op::HXHIM_PUT:
                 work = new put_work_t();
                 break;
-            case work_t::Op::GET:
+            case hxhim_work_op::HXHIM_GET:
                 work = new get_work_t();
                 break;
-            case work_t::Op::DEL:
+            case hxhim_work_op::HXHIM_DEL:
                 work = new del_work_t();
                 break;
-            case work_t::Op::NONE:
+            case hxhim_work_op::HXHIM_NOP:
             default:
                 break;
         }
