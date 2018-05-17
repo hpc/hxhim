@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "hxhim-types.h"
-#include "mdhim.h"
+#include "mdhim.hpp"
 
 namespace hxhim {
 

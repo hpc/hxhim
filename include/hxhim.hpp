@@ -7,14 +7,15 @@
 #include "mlogfacs2.h"
 #include <mpi.h>
 
-#include <hxhim-types.h>
+#include "hxhim-types.h"
+#include "return.hpp"
 
 namespace hxhim {
 
 int open(hxhim_session_t *hx, const MPI_Comm bootstrap_comm, const std::string &filename);
 int close(hxhim_session_t *hx);
 
-int flush(hxhim_session_t *hx);
+Return *flush(hxhim_session_t *hx);
 
 int put(hxhim_session_t *hx, void *key, std::size_t key_len, void *value, std::size_t value_len);
 int get(hxhim_session_t *hx, void *key, std::size_t key_len);

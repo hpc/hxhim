@@ -17,7 +17,7 @@ typedef struct mdhim_private mdhim_private_t;
  * The public variables are public because they are used
  * to bootstrap mdhim, and should be known by everyone.
  */
-typedef struct mdhim {
+typedef struct {
     // ///////////////////////////////////////
     // MPI boostrap
     MPI_Comm comm;

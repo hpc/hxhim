@@ -19,6 +19,7 @@
 #include "index_struct.h"
 #include "local_client.h"
 #include "mdhim.h"
+#include "mdhim.hpp"
 #include "mdhim_options.h"
 #include "mdhim_options_private.h"
 #include "mdhim_private.h"
@@ -70,14 +71,14 @@ static int bootstrapDestroy(mdhim_t *md) {
 }
 
 /**
- * mdhimInit
+ * Init
  * Initializes MDHIM
  *
  * @param md MDHIM context
  * @param opts Options structure for DB creation, such as name, and primary key type
  * @return MDHIM status value
  */
-int mdhimInit(mdhim_t* md, mdhim_options_t *opts) {
+int mdhim::Init(mdhim_t *md, mdhim_options_t *opts) {
     if (!md) {
         return MDHIM_ERROR;
     }
@@ -110,12 +111,25 @@ int mdhimInit(mdhim_t* md, mdhim_options_t *opts) {
 }
 
 /**
+ * mdhimInit
+ * Initializes MDHIM
+ *
+ * @param md MDHIM context
+ * @param opts Options structure for DB creation, such as name, and primary key type
+ * @return MDHIM status value
+ */
+int mdhimInit(mdhim_t *md, mdhim_options_t *opts) {
+    return mdhim::Init(md, opts);
+}
+
+/**
+ * Close
  * Quits the MDHIM instance
  *
  * @param md MDHIM context to be closed
  * @return MDHIM status value
  */
-int mdhimClose(mdhim_t *md) {
+int mdhim::Close(mdhim_t *md) {
     MPI_Barrier(md->comm);
     mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d mdhimClose - Started", md->rank);
 
@@ -131,12 +145,24 @@ int mdhimClose(mdhim_t *md) {
 }
 
 /**
- * Commits outstanding MDHIM writes - collective call
+ * mdhimClose
+ * Quits the MDHIM instance
+ *
+ * @param md MDHIM context to be closed
+ * @return MDHIM status value
+ */
+int mdhimClose(mdhim_t *md) {
+    return mdhim::Close(md);
+}
+
+/**
+ * Commit
+ * Commits outstanding MDHIM writes
  *
  * @param md main MDHIM struct
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int mdhimCommit(mdhim_t *md, index_t *index) {
+int mdhim::Commit(mdhim_t *md, index_t *index) {
     int ret = MDHIM_SUCCESS;
 
     if (!index) {
@@ -166,6 +192,18 @@ int mdhimCommit(mdhim_t *md, index_t *index) {
 }
 
 /**
+ * mdhimCommit
+ * Commits outstanding MDHIM writes
+ *
+ * @param md main MDHIM struct
+ * @return MDHIM_SUCCESS or MDHIM_ERROR on error
+ */
+int mdhimCommit(mdhim_t *md, index_t *index) {
+    return mdhim::Commit(md, index);
+}
+
+/**
+ * Put
  * Inserts a single record into MDHIM
  *
  * @param md main MDHIM context
@@ -175,11 +213,11 @@ int mdhimCommit(mdhim_t *md, index_t *index) {
  * @param value_len          the length of the value
  * @param secondary_info     secondary global and local information for
                              inserting secondary global and local keys
- * @return                   mdhim_brm_t * or nullptr on error
+ * @return TransportRecvMessage * or nullptr on error
  */
-mdhim_rm_t *mdhimPut(mdhim_t *md, index_t *index,
-                     void *primary_key, std::size_t primary_key_len,
-                     void *value, std::size_t value_len) {
+TransportRecvMessage *mdhim::Put(mdhim_t *md, index_t *index,
+                                 void *primary_key, std::size_t primary_key_len,
+                                 void *value, std::size_t value_len) {
     if (!md || !md->p ||
         !primary_key || !primary_key_len ||
         !value || !value_len) {
@@ -190,10 +228,62 @@ mdhim_rm_t *mdhimPut(mdhim_t *md, index_t *index,
         index = md->p->primary_index;
     }
 
-    return mdhim_rm_init(_put_record(md, index, primary_key, primary_key_len, value, value_len));
+    return _put_record(md, index, primary_key, primary_key_len, value, value_len);
 }
 
 /**
+ * mdhimPut
+ * Inserts a single record into MDHIM
+ *
+ * @param md main MDHIM context
+ * @param primary_key        pointer to key to store
+ * @param primary_key_len    the length of the key
+ * @param value              pointer to the value to store
+ * @param value_len          the length of the value
+ * @param secondary_info     secondary global and local information for
+                             inserting secondary global and local keys
+ * @return mdhim_brm_t * or nullptr on error
+ */
+mdhim_rm_t *mdhimPut(mdhim_t *md, index_t *index,
+                     void *primary_key, std::size_t primary_key_len,
+                     void *value, std::size_t value_len) {
+    return mdhim_rm_init(mdhim::Put(md, index, primary_key, primary_key_len, value, value_len));
+}
+
+/**
+ * BPut
+ * Inserts multiple records into MDHIM
+ *
+ * @param md main MDHIM struct
+ * @param keys         pointer to array of keys to store
+ * @param key_lens     array with lengths of each key in keys
+ * @param values       pointer to array of values to store
+ * @param value_lens   array with lengths of each value
+ * @param num_records  the number of records to store (i.e., the number of keys in keys array)
+ * @return TransportBRecvMessage * or nullptr on error
+ */
+TransportBRecvMessage *mdhim::BPut(mdhim_t *md, index_t *index,
+                                   void **primary_keys, std::size_t *primary_key_lens,
+                                   void **primary_values, std::size_t *primary_value_lens,
+                                   std::size_t num_records) {
+    if (!md || !md->p ||
+        !primary_keys || !primary_key_lens ||
+        !primary_values || !primary_value_lens) {
+        return nullptr;
+    }
+
+    if (!index) {
+        index = md->p->primary_index;
+    }
+
+    return _bput_records(md, index,
+                         primary_keys, primary_key_lens,
+                         primary_values, primary_value_lens,
+                         num_records);
+}
+
+/**
+ * mdhimBPut
  * Inserts multiple records into MDHIM
  *
  * @param md main MDHIM struct
@@ -208,23 +298,14 @@ mdhim_brm_t *mdhimBPut(mdhim_t *md, index_t *index,
                        void **primary_keys, std::size_t *primary_key_lens,
                        void **primary_values, std::size_t *primary_value_lens,
                        std::size_t num_records) {
-    if (!md || !md->p ||
-        !primary_keys || !primary_key_lens ||
-        !primary_values || !primary_value_lens) {
-        return nullptr;
-    }
-
-    if (!index) {
-        index = md->p->primary_index;
-    }
-
-    return mdhim_brm_init(_bput_records(md, index,
-                                        primary_keys, primary_key_lens,
-                                        primary_values, primary_value_lens,
-                                        num_records));
+    return mdhim_brm_init(mdhim::BPut(md, index,
+                                      primary_keys, primary_key_lens,
+                                      primary_values, primary_value_lens,
+                                      num_records));
 }
 
 /**
+ * Get
  * Retrieves a single record from MDHIM
  *
  * @param md main MDHIM struct
@@ -232,11 +313,11 @@ mdhim_brm_t *mdhimBPut(mdhim_t *md, index_t *index,
  (MDHIM_GET_NEXT or MDHIM_GET_PREV)
  * @param key_len   the length of the key
  * @param op        the operation type
- * @return mdhim_getrm_t * or nullptr on error
+ * @return TransportGetRecvMessage * or nullptr on error
  */
-mdhim_getrm_t *mdhimGet(mdhim_t *md, index_t *index,
-                        void *key, std::size_t key_len,
-                        enum TransportGetMessageOp op) {
+TransportGetRecvMessage *mdhim::Get(mdhim_t *md, index_t *index,
+                                    void *key, std::size_t key_len,
+                                    enum TransportGetMessageOp op) {
     if (!md || !md->p ||
         !key || !key_len) {
         return nullptr;
@@ -250,21 +331,39 @@ mdhim_getrm_t *mdhimGet(mdhim_t *md, index_t *index,
         return nullptr;
     }
 
-    return mdhim_grm_init(_get_record(md, index, key, key_len, op));
+    return _get_record(md, index, key, key_len, op);
 }
 
 /**
+ * mdhimGet
+ * Retrieves a single record from MDHIM
+ *
+ * @param md main MDHIM struct
+ * @param key       pointer to key to get value of or last key to start from if op is
+ (MDHIM_GET_NEXT or MDHIM_GET_PREV)
+ * @param key_len   the length of the key
+ * @param op        the operation type
+ * @return mdhim_getrm_t * or nullptr on error
+ */
+mdhim_getrm_t *mdhimGet(mdhim_t *md, index_t *index,
+                        void *key, std::size_t key_len,
+                        enum TransportGetMessageOp op) {
+    return mdhim_grm_init(mdhim::Get(md, index, key, key_len, op));
+}
+
+/**
+ * BGet
  * Retrieves multiple records from MDHIM
  *
  * @param md main MDHIM struct
  * @param keys         pointer to array of keys to get values for
  * @param key_lens     array with lengths of each key in keys
  * @param num_records  the number of keys to get (i.e., the number of keys in keys array)
- * @return mdhim_bgetrm_t * or nullptr on error
+ * @return TransportBGetRecvMessage * or nullptr on error
  */
-mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, index_t *index,
-                          void **keys, std::size_t *key_lens,
-                          std::size_t num_keys, enum TransportGetMessageOp op) {
+TransportBGetRecvMessage *mdhim::BGet(mdhim_t *md, index_t *index,
+                                      void **keys, std::size_t *key_lens,
+                                      std::size_t num_keys, enum TransportGetMessageOp op) {
     if (!md || !md->p ||
         !keys || !key_lens) {
         return nullptr;
@@ -340,10 +439,30 @@ mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, index_t *index,
     }
 
     //Return the head of the list
-    return mdhim_bgrm_init(bgrm_head);
+    return bgrm_head;
+}
+
+
+/**
+ * mdhimBGet
+ * Retrieves multiple records from MDHIM
+ *
+ * @param md main MDHIM struct
+ * @param keys         pointer to array of keys to get values for
+ * @param key_lens     array with lengths of each key in keys
+ * @param num_records  the number of keys to get (i.e., the number of keys in keys array)
+ * @return mdhim_bgetrm_t * or nullptr on error
+ */
+mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, index_t *index,
+                          void **keys, std::size_t *key_lens,
+                          std::size_t num_keys, enum TransportGetMessageOp op) {
+    return mdhim_bgrm_init(mdhim::BGet(md, index,
+                                       keys, key_lens,
+                                       num_keys, op));
 }
 
 /**
+ * BGetOp
  * Retrieves multiple sequential records from a single range server if they exist
  *
  * If the operation passed in is MDHIM_GET_NEXT or MDHIM_GET_PREV, this return all the records
@@ -361,11 +480,11 @@ mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, index_t *index,
  * @param key_len      the length of the key
  * @param num_records  the number of successive keys to get
  * @param op           the operation to perform (i.e., MDHIM_GET_NEXT or MDHIM_GET_PREV)
- * @return mdhim_bgetrm_t * or nullptr on error
+ * @return TransportBGetRecvMessage * or nullptr on error
  */
-mdhim_bgetrm_t *mdhimBGetOp(mdhim_t *md, index_t *index,
-                            void *key, std::size_t key_len,
-                            std::size_t num_records, enum TransportGetMessageOp op) {
+TransportBGetRecvMessage *mdhim::BGetOp(mdhim_t *md, index_t *index,
+                                        void *key, std::size_t key_len,
+                                        std::size_t num_records, enum TransportGetMessageOp op) {
     if (!md || !md->p ||
         !key || !key_len) {
         return nullptr;
@@ -390,19 +509,47 @@ mdhim_bgetrm_t *mdhimBGetOp(mdhim_t *md, index_t *index,
     }
 
     //Get the linked list of return messages from mdhimBGet
-    return mdhim_bgrm_init(_bget_records(md, index, &key, &key_len, 1, num_records, op));
+    return _bget_records(md, index, &key, &key_len, 1, num_records, op);
 }
 
 /**
+ * mdhimBGetOp
+ * Retrieves multiple sequential records from a single range server if they exist
+ *
+ * If the operation passed in is MDHIM_GET_NEXT or MDHIM_GET_PREV, this return all the records
+ * starting from the key passed in in the direction specified
+ *
+ * If the operation passed in is MDHIM_GET_FIRST and MDHIM_GET_LAST and the key is nullptr,
+ * then this operation will return the keys starting from the first or last key
+ *
+ * If the operation passed in is MDHIM_GET_FIRST and MDHIM_GET_LAST and the key is not nullptr,
+ * then this operation will return the keys starting the first key on
+ * the range server that the key resolves to
+ *
+ * @param md           main MDHIM struct
+ * @param key          pointer to the key to start getting next entries from
+ * @param key_len      the length of the key
+ * @param num_records  the number of successive keys to get
+ * @param op           the operation to perform (i.e., MDHIM_GET_NEXT or MDHIM_GET_PREV)
+ * @return mdhim_bgetrm_t * or nullptr on error
+ */
+mdhim_bgetrm_t *mdhimBGetOp(mdhim_t *md, index_t *index,
+                            void *key, std::size_t key_len,
+                            std::size_t num_records, enum TransportGetMessageOp op) {
+    return mdhim_bgrm_init(mdhim::BGetOp(md, index, key, key_len, num_records, op));
+}
+
+/**
+ * Delete
  * Deletes a single record from MDHIM
  *
  * @param md main MDHIM struct
  * @param key       pointer to key to delete
  * @param key_len   the length of the key
- * @return mdhim_rm_t * or nullptr on error
+ * @return TransportRecvMessage * or nullptr on error
  */
-mdhim_rm_t *mdhimDelete(mdhim_t *md, index_t *index,
-                        void *key, std::size_t key_len) {
+TransportRecvMessage *mdhim::Delete(mdhim_t *md, index_t *index,
+                                    void *key, std::size_t key_len) {
     if (!md || !md->p ||
         !key || !key_len) {
         return nullptr;
@@ -412,21 +559,36 @@ mdhim_rm_t *mdhimDelete(mdhim_t *md, index_t *index,
         index = md->p->primary_index;
     }
 
-    return mdhim_rm_init(_del_record(md, index, key, key_len));
+    return _del_record(md, index, key, key_len);
 }
 
 /**
+ * mdhimDelete
+ * Deletes a single record from MDHIM
+ *
+ * @param md main MDHIM struct
+ * @param key       pointer to key to delete
+ * @param key_len   the length of the key
+ * @return mdhim_rm_t * or nullptr on error
+ */
+mdhim_rm_t *mdhimDelete(mdhim_t *md, index_t *index,
+                        void *key, std::size_t key_len) {
+    return mdhim_rm_init(mdhim::Delete(md, index, key, key_len));
+}
+
+/**
+ * BDelete
  * Deletes multiple records from MDHIM
  *
  * @param md main MDHIM struct
  * @param keys         pointer to array of keys to delete
  * @param key_lens     array with lengths of each key in keys
  * @param num_records  the number of keys to delete (i.e., the number of keys in keys array)
- * @return mdhim_brm_t * or nullptr on error
+ * @return TransportBRecvMessage * or nullptr on error
  */
-mdhim_brm_t *mdhimBDelete(mdhim_t *md, index_t *index,
-                          void **keys, std::size_t *key_lens,
-                          std::size_t num_records) {
+TransportBRecvMessage *mdhim::BDelete(mdhim_t *md, index_t *index,
+                                      void **keys, std::size_t *key_lens,
+                                      std::size_t num_records) {
     if (!md || !md->p ||
         !keys || !key_lens) {
         return nullptr;
@@ -444,16 +606,33 @@ mdhim_brm_t *mdhimBDelete(mdhim_t *md, index_t *index,
         return nullptr;
     }
 
-    return mdhim_brm_init(_bdel_records(md, index, keys, key_lens, num_records));
+    return _bdel_records(md, index, keys, key_lens, num_records);
 }
 
 /**
+ * mdhimBDelete
+ * Deletes multiple records from MDHIM
+ *
+ * @param md main MDHIM struct
+ * @param keys         pointer to array of keys to delete
+ * @param key_lens     array with lengths of each key in keys
+ * @param num_records  the number of keys to delete (i.e., the number of keys in keys array)
+ * @return mdhim_brm_t * or nullptr on error
+ */
+mdhim_brm_t *mdhimBDelete(mdhim_t *md, index_t *index,
+                          void **keys, std::size_t *key_lens,
+                          std::size_t num_records) {
+    return mdhim_brm_init(mdhim::BDelete(md, index, keys, key_lens, num_records));
+}
+
+/**
+ * StatFlush
  * Retrieves statistics from all the range servers - collective call
  *
  * @param md main MDHIM struct
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int mdhimStatFlush(mdhim_t *md, index_t *index) {
+int mdhim::StatFlush(mdhim_t *md, index_t *index) {
     int ret;
 
     MPI_Barrier(md->comm);
@@ -467,16 +646,39 @@ int mdhimStatFlush(mdhim_t *md, index_t *index) {
     return ret;
 }
 
-/* what database would respond to this key? */
-int mdhimWhichDB(mdhim_t *md, void *key, std::size_t key_len)
+/**
+ * mdhimStatFlush
+ * Retrieves statistics from all the range servers - collective call
+ *
+ * @param md main MDHIM struct
+ * @return MDHIM_SUCCESS or MDHIM_ERROR on error
+ */
+int mdhimStatFlush(mdhim_t *md, index_t *index) {
+    return mdhim::StatFlush(md, index);
+}
+
+int mdhim::WhichDB(mdhim_t *md, void *key, std::size_t key_len)
 {
     return _which_db(md, key, key_len);
 }
 
-int mdhimDecomposeDB(mdhim_t *md, const int db, int *rank, int *rs_idx) {
+int mdhimWhichDB(mdhim_t *md, void *key, std::size_t key_len)
+{
+    return mdhim::WhichDB(md, key, key_len);
+}
+
+int mdhim::DecomposeDB(mdhim_t *md, const int db, int *rank, int *rs_idx) {
     return _decompose_db(md->p->primary_index, db, rank, rs_idx);
 }
 
-int mdhimComposeDB(mdhim_t *md, int *db, const int rank, const int rs_idx) {
+int mdhimDecomposeDB(mdhim_t *md, const int db, int *rank, int *rs_idx) {
+    return mdhim::DecomposeDB(md, db, rank, rs_idx);
+}
+
+int mdhim::ComposeDB(mdhim_t *md, int *db, const int rank, const int rs_idx) {
     return _compose_db(md->p->primary_index, db, rank, rs_idx);
+}
+
+int mdhimComposeDB(mdhim_t *md, int *db, const int rank, const int rs_idx) {
+    return mdhim::ComposeDB(md, db, rank, rs_idx);
 }

@@ -20,6 +20,9 @@ work_t *get_matching_work(hxhim_session_t *hx, const work_t::Op op) {
         return nullptr;
     }
 
+    // only one new work item creation at a time
+    std::lock_guard<std::mutex> lock(hx->p->queue_mutex);
+
     // if there is no work, add an empty operation
     // or if the most recent operation doesn't match the given operation, add a new operation
     if (!hx->p->queue.size() || (hx->p->queue.back()->op != op)) {
