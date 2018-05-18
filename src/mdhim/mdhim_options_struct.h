@@ -21,6 +21,9 @@ typedef struct mdhim_options {
     int rank;
     // ///////////////////////////////////////
 
+    //DEBUG level
+    int debug_level;
+
     mdhim_options_private_t *p;
 } mdhim_options_t;
 

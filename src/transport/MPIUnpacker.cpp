@@ -1,96 +1,39 @@
 #include "MPIUnpacker.hpp"
 
 int MPIUnpacker::any(const MPI_Comm comm, TransportMessage **msg, const void *buf, const std::size_t bufsize) {
-    if (!msg) {
-        return MDHIM_ERROR;
-    }
-
     TransportMessage *basemsg = nullptr;
     if (unpack(comm, &basemsg, buf, bufsize) != MDHIM_SUCCESS) {
         return MDHIM_ERROR;
     }
 
-    int ret = MDHIM_ERROR;
-    switch (basemsg->mtype) {
-        case TransportMessageType::PUT:
-            {
-                TransportPutMessage *put = nullptr;
-                ret = unpack(comm, &put, buf, bufsize);
-                *msg = put;
-            }
-            break;
-        case TransportMessageType::BPUT:
-            {
-                TransportBPutMessage *bput = nullptr;
-                ret = unpack(comm, &bput, buf, bufsize);
-                *msg = bput;
-            }
-            break;
-        case TransportMessageType::GET:
-            {
-                TransportGetMessage *get = nullptr;
-                ret = unpack(comm, &get, buf, bufsize);
-                *msg = get;
-            }
-            break;
-        case TransportMessageType::BGET:
-            {
-                TransportBGetMessage *bget = nullptr;
-                ret = unpack(comm, &bget, buf, bufsize);
-                *msg = bget;
-            }
-            break;
-        case TransportMessageType::DELETE:
-            {
-                TransportDeleteMessage *dm = nullptr;
-                ret = unpack(comm, &dm, buf, bufsize);
-                *msg = dm;
-            }
-            break;
-        case TransportMessageType::BDELETE:
-            {
-                TransportBDeleteMessage *bdm = nullptr;
-                ret = unpack(comm, &bdm, buf, bufsize);
-                *msg = bdm;
-            }
-        break;
-        // close meesages are not sent across the network
-        // case TransportMessageType::CLOSE:
-        //     break;
-        case TransportMessageType::RECV:
-            {
-                TransportRecvMessage *rm = nullptr;
-                ret = unpack(comm, &rm, buf, bufsize);
-                *msg = rm;
-            }
-            break;
-        case TransportMessageType::RECV_GET:
-            {
-                TransportGetRecvMessage *grm = nullptr;
-                ret = unpack(comm, &grm, buf, bufsize);
-                *msg = grm;
-            }
-            break;
-        case TransportMessageType::RECV_BGET:
-            {
-                TransportBGetRecvMessage *bgrm = nullptr;
-                ret = unpack(comm, &bgrm, buf, bufsize);
-                *msg = bgrm;
-            }
-            break;
-        case TransportMessageType::RECV_BULK:
-            {
-                TransportBRecvMessage *brm = nullptr;
-                ret = unpack(comm, &brm, buf, bufsize);
-                *msg = brm;
-            }
-            break;
-        // commit messages are not sent across the network
-        // case TransportMessageType::COMMIT:
-        //     break;
-        default:
-            break;
+    // try unpacking into a TransportRequestMessage
+    TransportRequestMessage *req = nullptr;
+    if (unpack(comm, &req, buf, bufsize, basemsg->mtype) == MDHIM_SUCCESS) {
+        *msg = req;
+        delete basemsg;
+        return MDHIM_SUCCESS;
     }
+
+    // try unpacking into a Transport Response
+    TransportResponseMessage *res = nullptr;
+    if (unpack(comm, &res, buf, bufsize, basemsg->mtype) == MDHIM_SUCCESS) {
+        *msg = res;
+        delete basemsg;
+        return MDHIM_SUCCESS;
+    }
+
+    *msg = nullptr;
+    delete basemsg;
+    return MDHIM_ERROR;
+}
+
+int MPIUnpacker::unpack(const MPI_Comm comm, TransportRequestMessage **req, const void *buf, const std::size_t bufsize) {
+    TransportMessage *basemsg = nullptr;
+    if (unpack(comm, &basemsg, buf, bufsize) != MDHIM_SUCCESS) {
+        return MDHIM_ERROR;
+    }
+
+    const int ret = unpack(comm, req, buf, bufsize, basemsg->mtype);
 
     delete basemsg;
 
@@ -98,10 +41,6 @@ int MPIUnpacker::any(const MPI_Comm comm, TransportMessage **msg, const void *bu
 }
 
 int MPIUnpacker::unpack(const MPI_Comm comm, TransportPutMessage **pm, const void *buf, const std::size_t bufsize) {
-    if (!pm || !buf) {
-        return MDHIM_ERROR;
-    }
-
     TransportPutMessage *out = new TransportPutMessage();
     if (!out) {
         return MDHIM_ERROR;
@@ -150,10 +89,6 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportPutMessage **pm, const voi
 }
 
 int MPIUnpacker::unpack(const MPI_Comm comm, TransportBPutMessage **bpm, const void *buf, const std::size_t bufsize) {
-    if (!bpm || !buf) {
-        return MDHIM_ERROR;
-    }
-
     TransportBPutMessage *out = new TransportBPutMessage();
     if (!out) {
         return MDHIM_ERROR;
@@ -198,10 +133,6 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportBPutMessage **bpm, const v
 }
 
 int MPIUnpacker::unpack(const MPI_Comm comm, TransportGetMessage **gm, const void *buf, const std::size_t bufsize) {
-    if (!gm || !buf) {
-        return MDHIM_ERROR;
-    }
-
     TransportGetMessage *out = new TransportGetMessage();
     if (!out) {
         return MDHIM_ERROR;
@@ -281,10 +212,6 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportBGetMessage **bgm, const v
 }
 
 int MPIUnpacker::unpack(const MPI_Comm comm, TransportDeleteMessage **dm, const void *buf, const std::size_t bufsize) {
-    if (!dm || !buf) {
-        return MDHIM_ERROR;
-    }
-
     TransportDeleteMessage *out = new TransportDeleteMessage();
     if (!out) {
         return MDHIM_ERROR;
@@ -321,10 +248,6 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportDeleteMessage **dm, const 
 }
 
 int MPIUnpacker::unpack(const MPI_Comm comm, TransportBDeleteMessage **bdm, const void *buf, const std::size_t bufsize) {
-    if (!bdm || !buf) {
-        return MDHIM_ERROR;
-    }
-
     TransportBDeleteMessage *out = new TransportBDeleteMessage();
     if (!out) {
         return MDHIM_ERROR;
@@ -364,11 +287,20 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportBDeleteMessage **bdm, cons
     return MDHIM_SUCCESS;
 }
 
-int MPIUnpacker::unpack(const MPI_Comm comm, TransportRecvMessage **rm, const void *buf, const std::size_t bufsize) {
-    if (!rm || !buf) {
+int MPIUnpacker::unpack(const MPI_Comm comm, TransportResponseMessage **res, const void *buf, const std::size_t bufsize) {
+    TransportMessage *basemsg = nullptr;
+    if (unpack(comm, &basemsg, buf, bufsize) != MDHIM_SUCCESS) {
         return MDHIM_ERROR;
     }
 
+    const int ret = unpack(comm, res, buf, bufsize, basemsg->mtype);
+
+    delete basemsg;
+
+    return ret;
+}
+
+int MPIUnpacker::unpack(const MPI_Comm comm, TransportRecvMessage **rm, const void *buf, const std::size_t bufsize) {
     TransportRecvMessage *out = new TransportRecvMessage();
     if (!out) {
         return MDHIM_ERROR;
@@ -391,10 +323,6 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportRecvMessage **rm, const vo
 }
 
 int MPIUnpacker::unpack(const MPI_Comm comm, TransportGetRecvMessage **grm, const void *buf, const std::size_t bufsize) {
-    if (!grm || !buf) {
-        return MDHIM_ERROR;
-    }
-
     TransportGetRecvMessage *out = new TransportGetRecvMessage();
     if (!out) {
         return MDHIM_ERROR;
@@ -437,10 +365,6 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportGetRecvMessage **grm, cons
 }
 
 int MPIUnpacker::unpack(const MPI_Comm comm, TransportBGetRecvMessage **bgrm, const void *buf, const std::size_t bufsize) {
-    if (!bgrm || !buf) {
-        return MDHIM_ERROR;
-    }
-
     TransportBGetRecvMessage *out = new TransportBGetRecvMessage();
     if (!out) {
         return MDHIM_ERROR;
@@ -471,12 +395,12 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportBGetRecvMessage **bgrm, co
 
                 // unpack the key
                 (MPI_Unpack(buf, bufsize, &position, &out->key_lens[i], sizeof(out->key_lens[i]), MPI_CHAR, comm)     != MPI_SUCCESS) ||
-                !(out->keys[i] = ::operator new(out->key_lens[i]))                                                                  ||
+                !(out->keys[i] = ::operator new(out->key_lens[i]))                                                                    ||
                 (MPI_Unpack(buf, bufsize, &position, out->keys[i], out->key_lens[i], MPI_CHAR, comm)                  != MPI_SUCCESS) ||
 
                 // unpack the value
                 (MPI_Unpack(buf, bufsize, &position, &out->value_lens[i], sizeof(out->value_lens[i]), MPI_CHAR, comm) != MPI_SUCCESS) ||
-                !(out->values[i] = ::operator new(out->value_lens[i]))                                                                ||
+                !(out->values[i] = malloc(out->value_lens[i]))                                                                        ||
                 (MPI_Unpack(buf, bufsize, &position, out->values[i], out->value_lens[i], MPI_CHAR, comm)              != MPI_SUCCESS)) {
                 delete out;
                 return MDHIM_ERROR;
@@ -490,10 +414,6 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportBGetRecvMessage **bgrm, co
 }
 
 int MPIUnpacker::unpack(const MPI_Comm comm, TransportBRecvMessage **brm, const void *buf, const std::size_t bufsize) {
-    if (!brm || !buf) {
-        return MDHIM_ERROR;
-    }
-
     TransportBRecvMessage *out = new TransportBRecvMessage();
     if (!out) {
         return MDHIM_ERROR;
@@ -525,10 +445,6 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportBRecvMessage **brm, const 
 }
 
 int MPIUnpacker::unpack(const MPI_Comm comm, TransportMessage **msg, const void *buf, const std::size_t bufsize) {
-    if (!msg || !buf) {
-        return MDHIM_ERROR;
-    }
-
     TransportMessage *out = new TransportMessage();
     if (!out) {
         return MDHIM_ERROR;
@@ -549,6 +465,8 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportMessage *msg, const void *
         return MDHIM_ERROR;
     }
 
+    msg->unpacked = true;
+
     std::size_t givensize = 0;
     if ((MPI_Unpack(buf, bufsize, position, &msg->mtype,      sizeof(msg->mtype),      MPI_CHAR, comm) != MPI_SUCCESS) ||
         (MPI_Unpack(buf, bufsize, position, &givensize,       sizeof(givensize),       MPI_CHAR, comm) != MPI_SUCCESS) ||
@@ -562,4 +480,110 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportMessage *msg, const void *
     }
 
     return (givensize == bufsize)?MDHIM_SUCCESS:MDHIM_ERROR;
+}
+
+int MPIUnpacker::unpack(const MPI_Comm comm, TransportRequestMessage *req, const void *buf, const std::size_t bufsize, int *position) {
+    if (unpack(comm, static_cast<TransportMessage *>(req), buf, bufsize, position) != MDHIM_SUCCESS) {
+        return MDHIM_ERROR;
+    }
+
+    return MDHIM_SUCCESS;
+}
+
+int MPIUnpacker::unpack(const MPI_Comm comm, TransportResponseMessage *res, const void *buf, const std::size_t bufsize, int *position) {
+    if (unpack(comm, static_cast<TransportMessage *>(res), buf, bufsize, position) != MDHIM_SUCCESS) {
+        return MDHIM_ERROR;
+    }
+
+    return MDHIM_SUCCESS;
+}
+
+int MPIUnpacker::unpack(const MPI_Comm comm, TransportRequestMessage **req, const void *buf, const std::size_t bufsize, const TransportMessageType mtype) {
+    int ret = MDHIM_ERROR;
+    switch (mtype) {
+        case TransportMessageType::PUT:
+            {
+                TransportPutMessage *put = nullptr;
+                ret = unpack(comm, &put, buf, bufsize);
+                *req = put;
+            }
+            break;
+        case TransportMessageType::BPUT:
+            {
+                TransportBPutMessage *bput = nullptr;
+                ret = unpack(comm, &bput, buf, bufsize);
+                *req = bput;
+            }
+            break;
+        case TransportMessageType::GET:
+            {
+                TransportGetMessage *get = nullptr;
+                ret = unpack(comm, &get, buf, bufsize);
+                *req = get;
+            }
+            break;
+        case TransportMessageType::BGET:
+            {
+                TransportBGetMessage *bget = nullptr;
+                ret = unpack(comm, &bget, buf, bufsize);
+                *req = bget;
+            }
+            break;
+        case TransportMessageType::DELETE:
+            {
+                TransportDeleteMessage *dm = nullptr;
+                ret = unpack(comm, &dm, buf, bufsize);
+                *req = dm;
+            }
+            break;
+        case TransportMessageType::BDELETE:
+            {
+                TransportBDeleteMessage *bdm = nullptr;
+                ret = unpack(comm, &bdm, buf, bufsize);
+                *req = bdm;
+            }
+            break;
+        default:
+            break;
+    }
+
+    return ret;
+}
+
+int MPIUnpacker::unpack(const MPI_Comm comm, TransportResponseMessage **res, const void *buf, const std::size_t bufsize, const TransportMessageType mtype) {
+    int ret = MDHIM_ERROR;
+    switch (mtype) {
+        case TransportMessageType::RECV:
+            {
+                TransportRecvMessage *rm = nullptr;
+                ret = unpack(comm, &rm, buf, bufsize);
+                *res = rm;
+            }
+            break;
+        case TransportMessageType::RECV_GET:
+            {
+                TransportGetRecvMessage *grm = nullptr;
+                ret = unpack(comm, &grm, buf, bufsize);
+                *res = grm;
+            }
+            break;
+        case TransportMessageType::RECV_BGET:
+            {
+                TransportBGetRecvMessage *bgrm = nullptr;
+                ret = unpack(comm, &bgrm, buf, bufsize);
+                *res = bgrm;
+            }
+            break;
+        case TransportMessageType::RECV_BULK:
+            {
+                TransportBRecvMessage *brm = nullptr;
+                ret = unpack(comm, &brm, buf, bufsize);
+                *res = brm;
+            }
+            break;
+        default:
+            break;
+    }
+
+    return ret;
 }

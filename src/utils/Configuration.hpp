@@ -52,7 +52,7 @@ class ConfigSequence {
         /** @description Call all of the configuration parsing functions in the order they are listed */
         bool process(Config &config) const;
 
-        /** #description Resets the ConfigSequence for reuse */
+        /** @description Resets the ConfigSequence for reuse */
         std::size_t reset();
 
     private:

@@ -19,14 +19,14 @@ extern "C"
 #define HXHIM_OPT_STORE_NULL    (1 << 8)
 #define HXHIM_OPT_STORE_LEVELDB (1 << 9)
 
-typedef struct hxhim_session_private hxhim_session_private_t;
+typedef struct hxhim_private hxhim_private_t;
 
 /**
  * HXHIM session data
  */
-typedef struct hxhim_session {
-    hxhim_session_private_t *p;
-} hxhim_session_t;
+typedef struct {
+    hxhim_private_t *p;
+} hxhim_t;
 
 #ifdef __cplusplus
 }

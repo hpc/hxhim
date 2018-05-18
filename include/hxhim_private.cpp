@@ -15,7 +15,7 @@ namespace hxhim {
  * @param key_lesn   the length of the keys to bget
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-work_t *get_matching_work(hxhim_session_t *hx, const hxhim_work_op op) {
+work_t *get_matching_work(hxhim_t *hx, const hxhim_work_op op) {
     if (!hx || !hx->p || (op == hxhim_work_op::HXHIM_NOP)) {
         return nullptr;
     }

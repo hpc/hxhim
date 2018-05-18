@@ -15,51 +15,39 @@ namespace hxhim {
  */
 class Return {
     public:
-        Return(enum hxhim_work_op operation, bool msg_sent, TransportMessage *message = nullptr);
+        Return(enum hxhim_work_op operation, TransportResponseMessage *response = nullptr);
         virtual ~Return();
 
         int GetSrc() const;
         hxhim_work_op GetOp() const;
         int GetError() const;
 
-        Return *Next() const;
-        Return *Next(Return *ret);
-
-    protected:
-        hxhim_work_op op;
-        bool sent;
-        TransportMessage *msg;
-
-        Return *next;
-};
-
-/**
- * GetReturn
- * This class is a container for storing
- * the respopnse of a MDHIM GET or BGET operation.
- */
-class GetReturn : virtual public Return {
-    public:
-        explicit GetReturn(enum hxhim_work_op operation, TransportGetRecvMessage *grm);
-        explicit GetReturn(enum hxhim_work_op operation, TransportBGetRecvMessage *bgrm);
-
         // Range Server Operations
-        void MoveToFirstRS();
-        void NextRS();
+        int MoveToFirstRS();
+        int NextRS();
         int ValidRS() const;
 
         // Key Value Pair Operations
-        void MoveToFirstKV();
+        // Only valid when op is HXHIM_GET
+        int MoveToFirstKV();
         int PrevKV();
         int NextKV();
         int ValidKV() const;
         int GetKV(void **key, std::size_t *key_len, void **value, std::size_t *value_len);
 
+        Return *Next() const;
+        Return *Next(Return *ret);
+
     private:
         int ValidKV(const std::size_t position) const;
 
-        std::size_t pos;
-        TransportMessage *curr;
+        hxhim_work_op op;               // which operation's response this return structure contains
+        TransportResponseMessage *head; // the head of the response list
+
+        TransportResponseMessage *curr; // current range server
+        std::size_t pos;                // current key index
+
+        Return *next;
 };
 
 }
@@ -73,11 +61,6 @@ extern "C"
 typedef struct hxhim_return {
     hxhim::Return *ret;
 } hxhim_return_t;
-
-/** Opaque structure found within hxhim_return_t */
-typedef struct hxhim_get_return {
-    hxhim::GetReturn *ret;
-} hxhim_get_return_t;
 
 #ifdef __cplusplus
 }

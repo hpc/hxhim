@@ -48,9 +48,6 @@ typedef struct mdhim_db_options {
     //MDHIM_DB_APPEND to append or MDHIM_DB_OVERWRITE (default)
     int value_append;
 
-    //DEBUG level
-    int debug_level;
-
     //Used to determine the number of range servers which is based in
     //if myrank % rserver_factor == 0, then myrank is a server.
     // This option is used to set range_server_factor previously a defined var.

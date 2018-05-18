@@ -23,12 +23,15 @@ class MPIUnpacker {
     public:
         static int any   (const MPI_Comm comm, TransportMessage         **msg,  const void *buf, const std::size_t bufsize);
 
+        static int unpack(const MPI_Comm comm, TransportRequestMessage         **req,  const void *buf, const std::size_t bufsize);
         static int unpack(const MPI_Comm comm, TransportPutMessage      **pm,   const void *buf, const std::size_t bufsize);
         static int unpack(const MPI_Comm comm, TransportBPutMessage     **bpm,  const void *buf, const std::size_t bufsize);
         static int unpack(const MPI_Comm comm, TransportGetMessage      **gm,   const void *buf, const std::size_t bufsize);
         static int unpack(const MPI_Comm comm, TransportBGetMessage     **bgm,  const void *buf, const std::size_t bufsize);
         static int unpack(const MPI_Comm comm, TransportDeleteMessage   **dm,   const void *buf, const std::size_t bufsize);
         static int unpack(const MPI_Comm comm, TransportBDeleteMessage  **bdm,  const void *buf, const std::size_t bufsize);
+
+        static int unpack(const MPI_Comm comm, TransportResponseMessage        **res,  const void *buf, const std::size_t bufsize);
         static int unpack(const MPI_Comm comm, TransportRecvMessage     **rm,   const void *buf, const std::size_t bufsize);
         static int unpack(const MPI_Comm comm, TransportGetRecvMessage  **grm,  const void *buf, const std::size_t bufsize);
         static int unpack(const MPI_Comm comm, TransportBGetRecvMessage **bgrm, const void *buf, const std::size_t bufsize);
@@ -46,10 +49,37 @@ class MPIUnpacker {
         /**
          * unpack TransportMessage *
          *
-         * This function can only be called by the other functions.
-         * It assumes that the message pointer is valid.
+         * This function is only be called by unpack TransportRequestMessage and TransportResponseMessage
          */
         static int unpack(const MPI_Comm comm, TransportMessage         *msg,   const void *buf, const std::size_t bufsize, int *position);
+
+        /**
+         * unpack TransportRequestMessage *
+         *
+         * This function is only be called by the functions that unpack buffers containing TransportRequestMessage messages
+         */
+        static int unpack(const MPI_Comm comm, TransportRequestMessage         *req,  const void *buf, const std::size_t bufsize, int *position);
+
+        /**
+         * unpack TransportResponseMessage *
+         *
+         * This function is only be called by the functions that unpack buffers containing TransportResponseMessage messages
+         */
+        static int unpack(const MPI_Comm comm, TransportResponseMessage        *res,  const void *buf, const std::size_t bufsize, int *position);
+
+        /**
+         * unpack TransportRequestMessage *, given a type
+         *
+         * This function is only be called by MPIUnpacker::any and unpack TransportRequestMessage
+         */
+        static int unpack(const MPI_Comm comm, TransportRequestMessage         **req, const void *buf, const std::size_t bufsize, const TransportMessageType mtype);
+
+        /**
+         * unpack TransportResponseMessage *, given a type
+         *
+         * This function is only be called by MPIUnpacker::any and unpack TransportResponseMessage
+         */
+        static int unpack(const MPI_Comm comm, TransportResponseMessage        **res, const void *buf, const std::size_t bufsize, const TransportMessageType mtype);
 };
 
 #endif

@@ -1,48 +1,42 @@
 #include "ThalliumPacker.hpp"
 
 int ThalliumPacker::any(const TransportMessage *msg, std::string &buf) {
-    if (!msg) {
+    if (pack(dynamic_cast<const TransportRequestMessage *>(msg), buf) == MDHIM_SUCCESS) {
+        return MDHIM_SUCCESS;
+    }
+
+    if (pack(dynamic_cast<const TransportResponseMessage *>(msg), buf) == MDHIM_SUCCESS) {
+        return MDHIM_SUCCESS;
+    }
+
+    return MDHIM_ERROR;
+}
+
+int ThalliumPacker::pack(const TransportRequestMessage *req, std::string &buf) {
+    if (!req) {
         return MDHIM_ERROR;
     }
 
     int ret = MDHIM_ERROR;
-    switch (msg->mtype) {
+    switch (req->mtype) {
         case TransportMessageType::PUT:
-            ret = pack(dynamic_cast<const TransportPutMessage *>(msg), buf);
+            ret = pack(dynamic_cast<const TransportPutMessage *>(req), buf);
             break;
         case TransportMessageType::BPUT:
-            ret = pack(dynamic_cast<const TransportBPutMessage *>(msg), buf);
+            ret = pack(dynamic_cast<const TransportBPutMessage *>(req), buf);
             break;
         case TransportMessageType::GET:
-            ret = pack(dynamic_cast<const TransportGetMessage *>(msg), buf);
+            ret = pack(dynamic_cast<const TransportGetMessage *>(req), buf);
             break;
         case TransportMessageType::BGET:
-            ret = pack(dynamic_cast<const TransportBGetMessage *>(msg), buf);
+            ret = pack(dynamic_cast<const TransportBGetMessage *>(req), buf);
             break;
         case TransportMessageType::DELETE:
-            ret = pack(dynamic_cast<const TransportDeleteMessage *>(msg), buf);
+            ret = pack(dynamic_cast<const TransportDeleteMessage *>(req), buf);
             break;
         case TransportMessageType::BDELETE:
-            ret = pack(dynamic_cast<const TransportBDeleteMessage *>(msg), buf);
+            ret = pack(dynamic_cast<const TransportBDeleteMessage *>(req), buf);
             break;
-        // close meesages are not sent across the network
-        // case TransportMessageType::CLOSE:
-        //     break;
-        case TransportMessageType::RECV:
-            ret = pack(dynamic_cast<const TransportRecvMessage *>(msg), buf);
-            break;
-        case TransportMessageType::RECV_GET:
-            ret = pack(dynamic_cast<const TransportGetRecvMessage *>(msg), buf);
-            break;
-        case TransportMessageType::RECV_BGET:
-            ret = pack(dynamic_cast<const TransportBGetRecvMessage *>(msg), buf);
-            break;
-        case TransportMessageType::RECV_BULK:
-            ret = pack(dynamic_cast<const TransportBRecvMessage *>(msg), buf);
-            break;
-        // commit messages are not sent across the network
-        // case TransportMessageType::COMMIT:
-        //     break;
         default:
             break;
     }
@@ -52,7 +46,7 @@ int ThalliumPacker::any(const TransportMessage *msg, std::string &buf) {
 
 int ThalliumPacker::pack(const TransportPutMessage *pm, std::string &buf) {
     std::stringstream s;
-    if (pack(static_cast<const TransportMessage *>(pm), s) != MDHIM_SUCCESS) {
+    if (pack(static_cast<const TransportRequestMessage *>(pm), s) != MDHIM_SUCCESS) {
         return MDHIM_ERROR;
     }
 
@@ -72,7 +66,7 @@ int ThalliumPacker::pack(const TransportPutMessage *pm, std::string &buf) {
 
 int ThalliumPacker::pack(const TransportBPutMessage *bpm, std::string &buf) {
     std::stringstream s;
-    if (pack(static_cast<const TransportMessage *>(bpm), s) != MDHIM_SUCCESS) {
+    if (pack(static_cast<const TransportRequestMessage *>(bpm), s) != MDHIM_SUCCESS) {
         return MDHIM_ERROR;
     }
 
@@ -99,7 +93,7 @@ int ThalliumPacker::pack(const TransportBPutMessage *bpm, std::string &buf) {
 
 int ThalliumPacker::pack(const TransportGetMessage *gm, std::string &buf) {
     std::stringstream s;
-    if (pack(static_cast<const TransportMessage *>(gm), s) != MDHIM_SUCCESS) {
+    if (pack(static_cast<const TransportRequestMessage *>(gm), s) != MDHIM_SUCCESS) {
         return MDHIM_ERROR;
     }
 
@@ -119,7 +113,7 @@ int ThalliumPacker::pack(const TransportGetMessage *gm, std::string &buf) {
 
 int ThalliumPacker::pack(const TransportBGetMessage *bgm, std::string &buf) {
     std::stringstream s;
-    if (pack(static_cast<const TransportMessage *>(bgm), s) != MDHIM_SUCCESS) {
+    if (pack(static_cast<const TransportRequestMessage *>(bgm), s) != MDHIM_SUCCESS) {
         return MDHIM_ERROR;
     }
 
@@ -146,7 +140,7 @@ int ThalliumPacker::pack(const TransportBGetMessage *bgm, std::string &buf) {
 
 int ThalliumPacker::pack(const TransportDeleteMessage *dm, std::string &buf) {
     std::stringstream s;
-    if (pack(static_cast<const TransportMessage *>(dm), s) != MDHIM_SUCCESS) {
+    if (pack(static_cast<const TransportRequestMessage *>(dm), s) != MDHIM_SUCCESS) {
         return MDHIM_ERROR;
     }
 
@@ -164,7 +158,7 @@ int ThalliumPacker::pack(const TransportDeleteMessage *dm, std::string &buf) {
 
 int ThalliumPacker::pack(const TransportBDeleteMessage *bdm, std::string &buf) {
     std::stringstream s;
-    if (pack(static_cast<const TransportMessage *>(bdm), s) != MDHIM_SUCCESS) {
+    if (pack(static_cast<const TransportRequestMessage *>(bdm), s) != MDHIM_SUCCESS) {
         return MDHIM_ERROR;
     }
 
@@ -187,9 +181,35 @@ int ThalliumPacker::pack(const TransportBDeleteMessage *bdm, std::string &buf) {
     return MDHIM_SUCCESS;
 }
 
+int ThalliumPacker::pack(const TransportResponseMessage *res, std::string &buf) {
+    if (!res) {
+        return MDHIM_ERROR;
+    }
+
+    int ret = MDHIM_ERROR;
+    switch (res->mtype) {
+        case TransportMessageType::RECV:
+            ret = pack(dynamic_cast<const TransportRecvMessage *>(res), buf);
+            break;
+        case TransportMessageType::RECV_GET:
+            ret = pack(dynamic_cast<const TransportGetRecvMessage *>(res), buf);
+            break;
+        case TransportMessageType::RECV_BGET:
+            ret = pack(dynamic_cast<const TransportBGetRecvMessage *>(res), buf);
+            break;
+        case TransportMessageType::RECV_BULK:
+            ret = pack(dynamic_cast<const TransportBRecvMessage *>(res), buf);
+            break;
+        default:
+            break;
+    }
+
+    return ret;
+}
+
 int ThalliumPacker::pack(const TransportRecvMessage *rm, std::string &buf) {
     std::stringstream s;
-    if (pack(static_cast<const TransportMessage *>(rm), s) != MDHIM_SUCCESS) {
+    if (pack(static_cast<const TransportResponseMessage *>(rm), s) != MDHIM_SUCCESS) {
         return MDHIM_ERROR;
     }
 
@@ -206,7 +226,7 @@ int ThalliumPacker::pack(const TransportRecvMessage *rm, std::string &buf) {
 
 int ThalliumPacker::pack(const TransportGetRecvMessage *grm, std::string &buf) {
     std::stringstream s;
-    if (pack(static_cast<const TransportMessage *>(grm), s) != MDHIM_SUCCESS) {
+    if (pack(static_cast<const TransportResponseMessage *>(grm), s) != MDHIM_SUCCESS) {
         return MDHIM_ERROR;
     }
 
@@ -227,7 +247,7 @@ int ThalliumPacker::pack(const TransportGetRecvMessage *grm, std::string &buf) {
 
 int ThalliumPacker::pack(const TransportBGetRecvMessage *bgrm, std::string &buf) {
     std::stringstream s;
-    if (pack(static_cast<const TransportMessage *>(bgrm), s) != MDHIM_SUCCESS) {
+    if (pack(static_cast<const TransportResponseMessage *>(bgrm), s) != MDHIM_SUCCESS) {
         return MDHIM_ERROR;
     }
 
@@ -255,7 +275,7 @@ int ThalliumPacker::pack(const TransportBGetRecvMessage *bgrm, std::string &buf)
 
 int ThalliumPacker::pack(const TransportBRecvMessage *brm, std::string &buf) {
     std::stringstream s;
-    if (pack(static_cast<const TransportMessage *>(brm), s) != MDHIM_SUCCESS) {
+    if (pack(static_cast<const TransportResponseMessage *>(brm), s) != MDHIM_SUCCESS) {
         return MDHIM_ERROR;
     }
 
@@ -285,4 +305,20 @@ int ThalliumPacker::pack(const TransportMessage *msg, std::stringstream &s) {
         .write((char *) &msg->index, sizeof(msg->index))
         .write((char *) &msg->index_type, sizeof(msg->index_type))
         .write((char *) &msg->index_name, sizeof(msg->index_name))?MDHIM_SUCCESS:MDHIM_ERROR;
+}
+
+int ThalliumPacker::pack(const TransportRequestMessage *req, std::stringstream &s) {
+    if (pack(static_cast<const TransportMessage *>(req), s) != MDHIM_SUCCESS) {
+        return MDHIM_ERROR;
+    }
+
+    return MDHIM_SUCCESS;
+}
+
+int ThalliumPacker::pack(const TransportResponseMessage *res, std::stringstream &s) {
+    if (pack(static_cast<const TransportMessage *>(res), s) != MDHIM_SUCCESS) {
+        return MDHIM_ERROR;
+    }
+
+    return MDHIM_SUCCESS;
 }

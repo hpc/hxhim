@@ -42,7 +42,7 @@ static int mdhim_private_init_db(mdhim_t *md, mdhim_db_options_t *db) {
  * @param MDHIM_SUCCESS or MDHIM_ERROR
  */
 static int mdhim_private_init_transport_mpi(mdhim_t *md, MPIOptions *opts, const std::set<int> &endpointgroup) {
-    if (!opts) {
+    if (!md || !md->p || !md->p->transport || !opts) {
         return MDHIM_ERROR;
     }
 
@@ -61,6 +61,9 @@ static int mdhim_private_init_transport_mpi(mdhim_t *md, MPIOptions *opts, const
     MPIRangeServer::init(md, fbp);
 
     MPIEndpointGroup *eg = new MPIEndpointGroup(opts->comm_, md->lock, fbp);
+    if (!eg) {
+        return MDHIM_ERROR;
+    }
 
     // create mapping between unique IDs and ranks
     for(int i = 0; i < md->size; i++) {
@@ -91,7 +94,7 @@ static int mdhim_private_init_transport_mpi(mdhim_t *md, MPIOptions *opts, const
  * @param MDHIM_SUCCESS or MDHIM_ERROR
  */
 static int mdhim_private_init_transport_thallium(mdhim_t *md, ThalliumOptions *opts, const std::set<int> &endpointgroup) {
-    if (!opts) {
+    if (!md || !md->p || !md->p->transport || !opts) {
         return MDHIM_ERROR;
     }
 
@@ -122,6 +125,9 @@ static int mdhim_private_init_transport_thallium(mdhim_t *md, ThalliumOptions *o
     addrs.erase(md->rank);
 
     ThalliumEndpointGroup *eg = new ThalliumEndpointGroup(rpc);
+    if (!eg) {
+        return MDHIM_ERROR;
+    }
 
     // create mapping between unique IDs and ranks
     for(std::pair<const int, std::string> const &addr : addrs) {

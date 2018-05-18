@@ -48,10 +48,6 @@ TEST(thallium_pack_unpack, TransportPutMessage) {
     EXPECT_EQ(src.value_len, dst->value_len);
     EXPECT_EQ(memcmp(src.value, dst->value, dst->value_len), 0);
 
-    // key is allocated when unpacking, but is not owned by TransportPutMessage
-    ::operator delete(dst->key);
-    // value is allocated when unpacking, but is not owned by TransportPutMessage
-    ::operator delete(dst->value);
     delete dst;
 }
 
@@ -71,15 +67,13 @@ TEST(thallium_pack_unpack, TransportBPutMessage) {
         src.rs_idx[0] = 1;
 
         src.keys.resize(src.num_keys);
-        src.keys[0] = ::operator new(KEY_LEN);
-        memcpy(src.keys[0], KEY, KEY_LEN * sizeof(char));
+        src.keys[0] = (void *) &KEY;
 
         src.key_lens.resize(src.num_keys);
         src.key_lens[0] = KEY_LEN;
 
         src.values.resize(src.num_keys);
-        src.values[0] = ::operator new(VALUE_LEN);
-        memcpy(src.values[0], VALUE, VALUE_LEN * sizeof(char));
+        src.values[0] = (void *) &VALUE;
 
         src.value_lens.resize(src.num_keys);
         src.value_lens[0] = VALUE_LEN;
@@ -148,7 +142,7 @@ TEST(thallium_pack_unpack, TransportGetMessage) {
     EXPECT_EQ(src.key_len, dst->key_len);
     EXPECT_EQ(memcmp(src.key, dst->key, dst->key_len), 0);
 
-    // key is allocated when unpacking, but is not owned by TransportGetMessage
+    // normally, the key is transferred over to the response message for deletion
     ::operator delete(dst->key);
     delete dst;
 }
@@ -170,8 +164,7 @@ TEST(thallium_pack_unpack, TransportBGetMessage) {
         src.rs_idx[0] = 1;
 
         src.keys.resize(src.num_keys);
-        src.keys[0] = ::operator new(KEY_LEN);
-        memcpy(src.keys[0], KEY, KEY_LEN * sizeof(char));
+        src.keys[0] = (void *) &KEY;
 
         src.key_lens.resize(src.num_keys);
         src.key_lens[0] = KEY_LEN;
@@ -202,6 +195,8 @@ TEST(thallium_pack_unpack, TransportBGetMessage) {
 
     EXPECT_EQ(src.num_recs, dst->num_recs);
 
+    // normally, the keys are transferred over to the response message for deletion
+    ::operator delete(dst->keys[0]);
     delete dst;
 }
 
@@ -235,8 +230,6 @@ TEST(thallium_pack_unpack, TransportDeleteMessage) {
     EXPECT_EQ(src.key_len, dst->key_len);
     EXPECT_EQ(memcmp(src.key, dst->key, dst->key_len), 0);
 
-    // key is allocated when unpacking, but is not owned by TransportDeleteMessage
-    ::operator delete(dst->key);
     delete dst;
 }
 
@@ -256,8 +249,7 @@ TEST(thallium_pack_unpack, TransportBDeleteMessage) {
         src.rs_idx[0] = 1;
 
         src.keys.resize(src.num_keys);
-        src.keys[0] = ::operator new(KEY_LEN);
-        memcpy(src.keys[0], KEY, KEY_LEN * sizeof(char));
+        src.keys[0] = (void *) &KEY;
 
         src.key_lens.resize(src.num_keys);
         src.key_lens[0] = KEY_LEN;
@@ -336,14 +328,13 @@ TEST(thallium_pack_unpack, TransportBGetRecvMessage) {
         src.rs_idx[0] = 1;
 
         src.keys.resize(src.num_keys);
-        src.keys[0] = ::operator new(KEY_LEN);
-        memcpy(src.keys[0], KEY, KEY_LEN * sizeof(char));
+        src.keys[0] = (void *) &KEY;
 
         src.key_lens.resize(src.num_keys);
         src.key_lens[0] = KEY_LEN;
 
         src.values.resize(src.num_keys);
-        src.values[0] = ::operator new(VALUE_LEN);
+        src.values[0] = malloc(VALUE_LEN);
         memcpy(src.values[0], VALUE, VALUE_LEN * sizeof(char));
 
         src.value_lens.resize(src.num_keys);

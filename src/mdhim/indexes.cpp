@@ -928,7 +928,7 @@ int index_init_comm(mdhim_t *md, index_t *bi) {
             }
         }
     } else {
-        MPI_Comm_size(md->comm, &size);
+        size = md->size;
         ranks = new int[size]();
         for (int i = 0; i < size; i++) {
             HASH_FIND_INT(bi->rangesrvs_by_rank, &i, rangesrv);
@@ -956,6 +956,7 @@ int index_init_comm(mdhim_t *md, index_t *bi) {
         mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
              "Error while creating adding ranks to the new group in range_server_init_comm",
              md->rank);
+        MPI_Group_free(&orig);
         return MDHIM_ERROR;
     }
 
@@ -964,12 +965,13 @@ int index_init_comm(mdhim_t *md, index_t *bi) {
         mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
              "Error while creating the new communicator in range_server_init_comm",
              md->rank);
+        MPI_Group_free(&orig);
+        MPI_Group_free(&new_group);
         return MDHIM_ERROR;
     }
 
     if (im_range_server(bi) == 1) {
         MPI_Comm_dup(new_comm, &bi->rs_comm);
-        // bi->rs_comm = new_comm;
     } else {
         MPI_Comm_free(&new_comm);
     }

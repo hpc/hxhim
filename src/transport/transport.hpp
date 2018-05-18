@@ -14,249 +14,258 @@
 #include "transport_constants.h"
 
 /**
- * Base Message Type
- * Specific message types are meant to inherit from this class.
+ * TransportMessage
+ * Specific message types are meant to inherit from this struct.
  * Utility functions should be implemented as standalone functions
- * rather than new functions in subclasses. All child classes of
+ * rather than new functions in subclasses. All children of
  * TransportMessage are marked final to prevent inheritance.
  */
-class TransportMessage {
-    public:
-        TransportMessage(const TransportMessageType type = TransportMessageType::INVALID);
+struct TransportMessage {
+    TransportMessage(const TransportMessageType type = TransportMessageType::INVALID);
+    virtual ~TransportMessage();
 
-        virtual ~TransportMessage();
+    virtual std::size_t size() const;
+    virtual void cleanup();
 
-        virtual std::size_t size() const;
-        virtual void cleanup();
+    TransportMessageType mtype;
+    int src;      // rank
+    int dst;      // rank
+    int index;
+    int index_type;
+    char *index_name;
 
-        TransportMessageType mtype;
-        int src;      // rank
-        int dst;      // rank
-        int index;
-        int index_type;
-        char *index_name;
+    bool unpacked; // whether or not this message was created using an unpacker, and thus needs to deallocate pointers
+};
+
+/**
+ * TransportRequestMessage
+ * This struct is just meant to provide a more specific relationship
+ * between request message types than TransportMessage.
+ */
+struct TransportRequestMessage : virtual public TransportMessage {
+    TransportRequestMessage(const TransportMessageType type = TransportMessageType::INVALID);
+    virtual ~TransportRequestMessage();
 };
 
 /**
  * TransportPutMessage
  * Put message implementation
  */
-class TransportPutMessage final : virtual public TransportMessage {
-    public:
-        TransportPutMessage();
-        ~TransportPutMessage();
+struct TransportPutMessage final : virtual public TransportRequestMessage {
+    TransportPutMessage();
+    ~TransportPutMessage();
 
-        std::size_t size() const;
-        void cleanup();
+    std::size_t size() const;
+    void cleanup();
 
-        int rs_idx;
+    int rs_idx;
 
-        void *key;
-        std::size_t key_len;
+    void *key;
+    std::size_t key_len;
 
-        void *value;
-        std::size_t value_len;
+    void *value;
+    std::size_t value_len;
 };
 
 /**
  * TransportBPutMessage
  * Bulk put message imeplementation
  */
-class TransportBPutMessage final : virtual public TransportMessage {
-    public:
-        TransportBPutMessage();
-        ~TransportBPutMessage();
+struct TransportBPutMessage final : virtual public TransportRequestMessage {
+    TransportBPutMessage();
+    ~TransportBPutMessage();
 
-        std::size_t size() const;
-        void cleanup();
+    std::size_t size() const;
+    void cleanup();
 
-        std::deque<int> rs_idx;
+    std::deque<int> rs_idx;
 
-        std::deque<void *> keys;
-        std::deque<std::size_t> key_lens;
+    std::deque<void *> keys;
+    std::deque<std::size_t> key_lens;
 
-        std::deque<void *> values;
-        std::deque<std::size_t> value_lens;
+    std::deque<void *> values;
+    std::deque<std::size_t> value_lens;
 
-        std::size_t num_keys;
+    std::size_t num_keys;
 };
 
 /**
  * TransportGet
  * Base type for get messages
  */
-class TransportGet : virtual public TransportMessage {
-    public:
-        TransportGet(const TransportMessageType type);
-        virtual ~TransportGet();
+struct TransportGet : virtual public TransportRequestMessage {
+    TransportGet(const TransportMessageType type);
+    virtual ~TransportGet();
 
-        TransportGetMessageOp op;
-        std::size_t num_keys;
+    TransportGetMessageOp op;
+    std::size_t num_keys;
 };
 
 /**
  * TransportGetMessage
  * Get message implementation
  */
-class TransportGetMessage final : virtual public TransportGet {
-    public:
-        TransportGetMessage();
-        ~TransportGetMessage();
+struct TransportGetMessage final : virtual public TransportGet {
+    TransportGetMessage();
+    ~TransportGetMessage();
 
-        std::size_t size() const;
-        void cleanup();
+    std::size_t size() const;
+    void cleanup();
 
-        int rs_idx;
+    int rs_idx;
 
-        void *key;
-        std::size_t key_len;
+    void *key;
+    std::size_t key_len;
 };
 
 /**
  * TransportBGetMessage
  * Bulk get message implementation
  */
-class TransportBGetMessage final : virtual public TransportGet {
-    public:
-        TransportBGetMessage();
-        ~TransportBGetMessage();
+struct TransportBGetMessage final : virtual public TransportGet {
+    TransportBGetMessage();
+    ~TransportBGetMessage();
 
-        std::size_t size() const;
-        void cleanup();
+    std::size_t size() const;
+    void cleanup();
 
-        std::deque<int> rs_idx;
+    std::deque<int> rs_idx;
 
-        std::deque<void *> keys;
-        std::deque<std::size_t> key_lens;
+    std::deque<void *> keys;
+    std::deque<std::size_t> key_lens;
 
-        //Number of records to retrieve per key given
-        std::size_t num_recs;
+    //Number of records to retrieve per key given
+    std::size_t num_recs;
 };
 
 /**
  * TransportDeleteMessage
  * Delete message implementation
  */
-class TransportDeleteMessage final : virtual public TransportMessage {
-    public:
-        TransportDeleteMessage();
-        ~TransportDeleteMessage();
+struct TransportDeleteMessage final : virtual public TransportRequestMessage {
+    TransportDeleteMessage();
+    ~TransportDeleteMessage();
 
-        std::size_t size() const;
-        void cleanup();
+    std::size_t size() const;
+    void cleanup();
 
-        int rs_idx;
+    int rs_idx;
 
-        void *key;
-        std::size_t key_len;
+    void *key;
+    std::size_t key_len;
 };
 
 /**
  * TransportBDeleteMessage
  * Bulk delete message implementation
  */
-class TransportBDeleteMessage final : virtual public TransportMessage {
-    public:
-        TransportBDeleteMessage();
-        ~TransportBDeleteMessage();
+struct TransportBDeleteMessage final : virtual public TransportRequestMessage {
+    TransportBDeleteMessage();
+    ~TransportBDeleteMessage();
 
-        std::size_t size() const;
-        void cleanup();
+    std::size_t size() const;
+    void cleanup();
 
-        std::deque<int> rs_idx;
+    std::deque<int> rs_idx;
 
-        std::deque<void *> keys;
-        std::deque<std::size_t> key_lens;
+    std::deque<void *> keys;
+    std::deque<std::size_t> key_lens;
 
-        std::size_t num_keys;
+    std::size_t num_keys;
+};
+
+/**
+ * TransportResponseMessage
+ * This struct is just meant to provide a more specific relationship
+ * between response message types than TransportMessage.
+ */
+struct TransportResponseMessage : virtual public TransportMessage {
+    TransportResponseMessage(const TransportMessageType type = TransportMessageType::INVALID);
+    virtual ~TransportResponseMessage();
 };
 
 /**
  * TransportRecvMessage
  * Generic receive message implementation
  */
-class TransportRecvMessage final : virtual public TransportMessage {
-    public:
-        TransportRecvMessage();
-        ~TransportRecvMessage();
+struct TransportRecvMessage final : virtual public TransportResponseMessage {
+    TransportRecvMessage();
+    ~TransportRecvMessage();
 
-        std::size_t size() const;
-        void cleanup();
+    std::size_t size() const;
+    void cleanup();
 
-        int rs_idx;
+    int rs_idx;
 
-        int error;
+    int error;
 };
 
 /**
  * TransportGetRecvMessage
  * Generic receive get message implementation
  */
-class TransportGetRecvMessage final : virtual public TransportMessage {
-    public:
-        TransportGetRecvMessage();
-        ~TransportGetRecvMessage();
+struct TransportGetRecvMessage final : virtual public TransportResponseMessage {
+    TransportGetRecvMessage();
+    ~TransportGetRecvMessage();
 
-        std::size_t size() const;
-        void cleanup();
+    std::size_t size() const;
+    void cleanup();
 
-        int rs_idx;
+    int rs_idx;
 
-        int error;
+    int error;
 
-        void *key;
-        std::size_t key_len;
+    void *key;
+    std::size_t key_len;
 
-        void *value;
-        std::size_t value_len;
+    void *value;
+    std::size_t value_len;
 };
 
 /**
  * TransportBGetRecvMessage
  * Bulk get receive message implementation
  */
-class TransportBGetRecvMessage final : virtual public TransportMessage {
-    public:
-        TransportBGetRecvMessage();
-        ~TransportBGetRecvMessage();
+struct TransportBGetRecvMessage final : virtual public TransportResponseMessage {
+    TransportBGetRecvMessage();
+    ~TransportBGetRecvMessage();
 
-        std::size_t size() const;
-        void cleanup();
+    std::size_t size() const;
+    void cleanup();
 
-        std::deque<int> rs_idx;
+    std::deque<int> rs_idx;
 
-        int error;
+    int error;
 
-        std::deque<void *> keys;
-        std::deque<std::size_t> key_lens;
+    std::deque<void *> keys;
+    std::deque<std::size_t> key_lens;
 
-        std::deque<void *> values;
-        std::deque<std::size_t> value_lens;
+    std::deque<void *> values;
+    std::deque<std::size_t> value_lens;
 
-        std::size_t num_keys;
+    std::size_t num_keys;
 
-        TransportBGetRecvMessage *next;
+    TransportBGetRecvMessage *next;
 };
 
 /**
  * TransportBRecvMessage
  * Bulk receive message implementation
  */
-class TransportBRecvMessage final : virtual public TransportMessage {
-    public:
-        TransportBRecvMessage();
-        ~TransportBRecvMessage();
+struct TransportBRecvMessage final : virtual public TransportResponseMessage {
+    TransportBRecvMessage();
+    ~TransportBRecvMessage();
 
-        std::size_t size() const;
-        void cleanup();
+    std::size_t size() const;
+    void cleanup();
 
-        std::deque<int> rs_idx;
+    std::deque<int> rs_idx;
 
-        int error;
+    int error;
 
-        std::size_t num_keys;
+    std::size_t num_keys;
 
-        TransportBRecvMessage *next;
+    TransportBRecvMessage *next;
 };
 
 /**
@@ -333,28 +342,28 @@ class Transport {
         Transport();
         ~Transport();
 
-        /** @description Takes ownership of an endpoint and associates it with a unique id */
+        /** @description Takes ownership of an endpoint and associates it with a unique id   */
         void AddEndpoint(const int id, TransportEndpoint *ep);
 
-        /** @description Deallocates and removes the endpoint from the transport */
+        /** @description Deallocates and removes the endpoint from the transport             */
         void RemoveEndpoint(const int id);
 
         /** @description Takes ownership of an endpoint group, deallocating the previous one */
         void SetEndpointGroup(TransportEndpointGroup *eg);
 
-        /**  @description Puts a message onto the the underlying transport */
+        /**  @description Puts a message onto the the underlying transport    */
         TransportRecvMessage *Put(const TransportPutMessage *pm);
 
-        /**  @description Gets a message onto the the underlying transport */
+        /**  @description Gets a message onto the the underlying transport    */
         TransportGetRecvMessage *Get(const TransportGetMessage *gm);
 
         /**  @description Deletes a message onto the the underlying transport */
         TransportRecvMessage *Delete(const TransportDeleteMessage *dm);
 
-        /** @description Bulk Put to multiple endpoints  */
+        /** @description Bulk Put to multiple endpoints     */
         TransportBRecvMessage *BPut(const std::size_t num_rangesrvs, TransportBPutMessage **bpm_list);
 
-        /** @description Bulk Get from multiple endpoints  */
+        /** @description Bulk Get from multiple endpoints   */
         TransportBGetRecvMessage *BGet(const std::size_t num_rangesrvs, TransportBGetMessage **bgm_list);
 
         /** @description Bulk Delete to multiple endpoints  */

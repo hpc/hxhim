@@ -9,7 +9,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
-#include <iostream>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -232,12 +231,6 @@ static int range_server_put(mdhim_t *md, work_item_t *item) {
         ::operator delete(new_value);
     }
 
-    // only delete the key and value if they were unpacked
-    if (im->src != md->rank) {
-        ::operator delete(im->key);
-        ::operator delete(im->value);
-    }
-
     //Send response
     return send_locally_or_remote(md, item, rm);
 }
@@ -335,16 +328,6 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
     brm->num_keys = bim->num_keys;
     brm->rs_idx = std::move(bim->rs_idx);
 
-    //Release the bput keys/values if the message isn't coming from myself
-    if (bim->src != md->rank) {
-        for (std::size_t i = 0; i < bim->num_keys; i++) {
-            ::operator delete(bim->keys[i]);
-            bim->keys[i] = nullptr;
-            ::operator delete(bim->values[i]);
-            bim->values[i] = nullptr;
-        }
-    }
-
     //Send response
     return send_locally_or_remote(md, item, brm);
 }
@@ -387,11 +370,6 @@ static int range_server_del(mdhim_t *md, work_item_t *item) {
     rm->src = dm->dst;
     rm->dst = dm->src;
     rm->rs_idx = dm->rs_idx;
-
-    // if the key came from a different rank, deallocate it
-    if (md->rank != dm->src) {
-        ::operator delete(dm->key);
-    }
 
     //Send response
     return send_locally_or_remote(md, item, rm);
@@ -599,21 +577,10 @@ static int range_server_get(mdhim_t *md, work_item_t *item) {
     grm->src = gm->dst;
     grm->dst = gm->src;
     grm->rs_idx = gm->rs_idx;
-
-    //If this message is coming from myself, copy the key so that the user still has ownership of the key
-    if (gm->src == md->rank) {
-        _clone(gm->key, gm->key_len, &grm->key);
-    }
-    //If this message was unpacked, do not delete gm->key, since it is reused in grm
-    else {
-        grm->key = gm->key;
-    }
-
+    grm->key = gm->key;
     grm->key_len = gm->key_len;
-
     grm->value = value;
     grm->value_len = value_len;
-
     grm->index = index->id;
     grm->index_type = index->type;
 
@@ -746,23 +713,10 @@ static int range_server_bget(mdhim_t *md, work_item_t *item) {
         bgrm->values[i] = values[i];
         bgrm->value_lens[i] = value_lens[i];
     }
-
     delete [] values;
     delete [] value_lens;
 
-    //If this message is coming from myself, copy the key so that the user still has ownership of the key
-    if (bgm->src == md->rank) {
-        bgrm->keys.resize(bgm->num_keys);
-        for (std::size_t i = 0; i < bgm->num_keys; i++) {
-            _clone(bgm->keys[i], bgm->key_lens[i], &bgrm->keys[i]);
-            bgm->keys[i] = nullptr;
-        }
-    }
-    //If this message was unpacked, do not delete bgm->keys, since it is reused in bgrm
-    else {
-        bgrm->keys = std::move(bgm->keys);
-    }
-
+    bgrm->keys = std::move(bgm->keys);
     bgrm->key_lens = std::move(bgm->key_lens);
 
     //Send response
@@ -1009,7 +963,7 @@ static void *worker_thread(void *data) {
                             range_server_bget(md, item);
                         }
                     }
-                break;
+                    break;
                 case TransportMessageType::DELETE:
                     range_server_del(md, item);
                     break;

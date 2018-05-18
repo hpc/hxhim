@@ -26,6 +26,7 @@
 #include "range_server.h"
 #include "transport_private.hpp"
 
+#include <iostream>
 /**
  * bootstrapInit
  * Initializes bootstrapping values in mdhim_t
@@ -39,11 +40,10 @@ static int bootstrapInit(mdhim_t *md, mdhim_options_t *opts) {
     }
 
     // do not allow MDHIM_COMM_NULL to be used
-    if (opts->comm == MPI_COMM_NULL) {
+    if ((md->comm = opts->comm) == MPI_COMM_NULL) {
         return MDHIM_ERROR;
     }
 
-    md->comm = opts->comm;
     md->lock = PTHREAD_MUTEX_INITIALIZER;
     md->size = opts->size;
     md->rank = opts->rank;
@@ -59,7 +59,7 @@ static int bootstrapInit(mdhim_t *md, mdhim_options_t *opts) {
  * @return MDHIM status value
  */
 static int bootstrapDestroy(mdhim_t *md) {
-    if (!md || !md->p){
+    if (!md){
         return MDHIM_ERROR;
     }
 
@@ -85,16 +85,20 @@ int mdhim::Init(mdhim_t *md, mdhim_options_t *opts) {
 
     memset(md, 0, sizeof(*md));
 
-    if (!opts || !opts->p || !opts->p->transport || !opts->p->db) {
+    if (!opts) {
         return MDHIM_ERROR;
     }
 
     //Open mlog - stolen from plfs
-    mlog_open((char *) "mdhim", 0, opts->p->db->debug_level, opts->p->db->debug_level, nullptr, 0, MLOG_LOGPID, 0);
+    mlog_open((char *) "mdhim", 0, opts->debug_level, opts->debug_level, nullptr, 0, MLOG_LOGPID, 0);
 
     //Initialize bootstrapping variables
     if (bootstrapInit(md, opts) != MDHIM_SUCCESS){
         mlog(MDHIM_CLIENT_CRIT, "MDHIM - Error Bootstrap Initialization Failed");
+        return MDHIM_ERROR;
+    }
+
+    if (!opts->p) {
         return MDHIM_ERROR;
     }
 
@@ -127,19 +131,24 @@ int mdhimInit(mdhim_t *md, mdhim_options_t *opts) {
  * Quits the MDHIM instance
  *
  * @param md MDHIM context to be closed
- * @return MDHIM status value
+ * @return MDHIM_SUCCESS - all errors are ignored
  */
 int mdhim::Close(mdhim_t *md) {
-    MPI_Barrier(md->comm);
-    mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d mdhimClose - Started", md->rank);
+    if (md) {
+        if (md->comm != MPI_COMM_NULL) {
+            MPI_Barrier(md->comm);
+        }
 
-    mdhim_private_destroy(md);
+        mlog(MDHIM_CLIENT_INFO, "MDHIM Rank %d mdhimClose - Started", md->rank);
 
-    //Clean up bootstrapping variables
-    bootstrapDestroy(md);
+        mdhim_private_destroy(md);
 
-    //Close MLog
-    mlog_close();
+        //Clean up bootstrapping variables
+        bootstrapDestroy(md);
+
+        //Close MLog
+        mlog_close();
+    }
 
     return MDHIM_SUCCESS;
 }

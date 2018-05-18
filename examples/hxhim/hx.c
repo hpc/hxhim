@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
     }
 
     // start hxhim
-    hxhim_session_t hx;
+    hxhim_t hx;
     hxhimOpen(&hx, MPI_COMM_WORLD, "mdhim.conf");
 
     // PUT the key value pairs into MDHIM
@@ -57,68 +57,53 @@ int main(int argc, char *argv[]) {
     while (results) {
         enum hxhim_work_op op;
         hxhim_return_get_op(results, &op);
-        switch (op) {
-            case HXHIM_PUT:
-                {
-                    int error;
-                    hxhim_return_get_error(results, &error);
-                    printf("Rank %d PUT returned status %d\n", rank, error);
+
+        // start at the first range server
+        hxhim_return_move_to_first_rs(results);
+
+        // iterate through the values
+        int valid_rs = HXHIM_ERROR;
+        while ((hxhim_return_valid_rs(results, &valid_rs) == HXHIM_SUCCESS) && (valid_rs == HXHIM_SUCCESS)) {
+            int src = -1;
+            hxhim_return_get_src(results, &src);
+
+            int error = HXHIM_ERROR;
+            hxhim_return_get_error(results, &error);
+            switch (op) {
+                case HXHIM_PUT:
+                    printf("Rank %d PUT returned status %d on range server %d\n", rank, error, src);
                     break;
-                }
-            case HXHIM_GET:
-                {
-                    // convert the result into a get_result
-                    hxhim_get_return_t *get_results = NULL;
-                    hxhim_return_convert_to_get(results, &get_results);
+                case HXHIM_GET:
+                    if (error == HXHIM_SUCCESS) {
+                        // start at the first key value pair
+                        hxhim_return_move_to_first_kv(results);
 
-                    // start at the first range server
-                    hxhim_get_return_move_to_first_rs(get_results);
-
-                    // iterate through the values
-                    int valid_rs = HXHIM_ERROR;
-                    while ((hxhim_get_return_valid_rs(get_results, &valid_rs) == HXHIM_SUCCESS) && (valid_rs == HXHIM_SUCCESS)) {
-                        int src = -1;
-                        hxhim_return_get_src(results, &src);
-
-                        int error = HXHIM_ERROR;
-                        hxhim_return_get_error(results, &error);
-                        if (error == HXHIM_SUCCESS) {
-                            // start at the first key value pair
-                            hxhim_get_return_move_to_first_kv(get_results);
-
-                            // iterate through the key value pairs
-                            int valid_kv = HXHIM_ERROR;
-                            while ((hxhim_get_return_valid_kv(get_results, &valid_kv) == HXHIM_SUCCESS) && (valid_kv == HXHIM_SUCCESS)) {
-                                char *key, *value;
-                                size_t key_len, value_len;
-                                if (hxhim_get_return_get_kv(get_results, (void **) &key, &key_len, (void **) &value, &value_len) == HXHIM_SUCCESS) {
-                                    // https://stackoverflow.com/a/3767300
-                                    printf("Rank %d GET %.*s -> %.*s on range server %d\n", rank, (int) key_len, key, (int) value_len, value, src);
-                                }
-
-                                hxhim_get_return_next_kv(get_results);
+                        // iterate through the key value pairs
+                        int valid_kv = HXHIM_ERROR;
+                        while ((hxhim_return_valid_kv(results, &valid_kv) == HXHIM_SUCCESS) && (valid_kv == HXHIM_SUCCESS)) {
+                            char *key, *value;
+                            size_t key_len, value_len;
+                            if (hxhim_return_get_kv(results, (void **) &key, &key_len, (void **) &value, &value_len) == HXHIM_SUCCESS) {
+                                // https://stackoverflow.com/a/3767300
+                                printf("Rank %d GET %.*s -> %.*s on range server %d\n", rank, (int) key_len, key, (int) value_len, value, src);
                             }
-                        }
-                        else {
-                            printf("Rank %d GET failed for range server %d\n", rank, src);
-                        }
 
-                        hxhim_get_return_next_rs(get_results);
+                            hxhim_return_next_kv(results);
+                        }
                     }
+                    else {
+                        printf("Rank %d GET failed on range server %d\n", rank, src);
+                    }
+                    break;
+                case HXHIM_DEL:
+                    printf("Rank %d DEL returned status %d on range server %d\n", rank, error, src);
+                    break;
+                default:
+                    printf("Found a bad return value with operation %d\n", (int) op);
+                    break;
+            }
 
-                    hxhim_get_return_destroy(get_results);
-                }
-                break;
-            case HXHIM_DEL:
-                {
-                    int error;
-                    hxhim_return_get_error(results, &error);
-                    printf("Rank %d DEL returned status %d\n", rank, error);
-                }
-                break;
-            case HXHIM_NOP:
-            default:
-                break;
+            hxhim_return_next_rs(results);
         }
 
         hxhim_return_t *next = NULL;

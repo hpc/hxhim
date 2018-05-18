@@ -1,92 +1,39 @@
 #include "ThalliumUnpacker.hpp"
 
-int ThalliumUnpacker::any (TransportMessage **msg, const std::string &buf) {
+int ThalliumUnpacker::any(TransportMessage **msg, const std::string &buf) {
     TransportMessage *basemsg = nullptr;
     if (unpack(&basemsg, buf) != MDHIM_SUCCESS) {
         return MDHIM_ERROR;
     }
 
-    int ret = MDHIM_ERROR;
-    switch (basemsg->mtype) {
-        case TransportMessageType::PUT:
-            {
-                TransportPutMessage *put = nullptr;
-                ret = unpack(&put, buf);
-                *msg = put;
-            }
-            break;
-        case TransportMessageType::BPUT:
-            {
-                TransportBPutMessage *bput = nullptr;
-                ret = unpack(&bput, buf);
-                *msg = bput;
-            }
-            break;
-        case TransportMessageType::GET:
-            {
-                TransportGetMessage *get = nullptr;
-                ret = unpack(&get, buf);
-                *msg = get;
-            }
-            break;
-        case TransportMessageType::BGET:
-            {
-                TransportBGetMessage *bget = nullptr;
-                ret = unpack(&bget, buf);
-                *msg = bget;
-            }
-            break;
-        case TransportMessageType::DELETE:
-            {
-                TransportDeleteMessage *dm = nullptr;
-                ret = unpack(&dm, buf);
-                *msg = dm;
-            }
-            break;
-        case TransportMessageType::BDELETE:
-            {
-                TransportBDeleteMessage *bdm = nullptr;
-                ret = unpack(&bdm, buf);
-                *msg = bdm;
-            }
-            break;
-        // close meesages are not sent across the network
-        // case TransportMessageType::CLOSE:
-        //     break;
-        case TransportMessageType::RECV:
-            {
-                TransportRecvMessage *rm = nullptr;
-                ret = unpack(&rm, buf);
-                *msg = rm;
-            }
-            break;
-        case TransportMessageType::RECV_GET:
-            {
-                TransportGetRecvMessage *grm = nullptr;
-                ret = unpack(&grm, buf);
-                *msg = grm;
-            }
-            break;
-        case TransportMessageType::RECV_BGET:
-            {
-                TransportBGetRecvMessage *bgrm = nullptr;
-                ret = unpack(&bgrm, buf);
-                *msg = bgrm;
-            }
-            break;
-        case TransportMessageType::RECV_BULK:
-            {
-                TransportBRecvMessage *brm = nullptr;
-                ret = unpack(&brm, buf);
-                *msg = brm;
-            }
-            break;
-        // commit messages are not sent across the network
-        // case TransportMessageType::COMMIT:
-        //     break;
-        default:
-            break;
+    // try unpacking into a TransportRequestMessage
+    TransportRequestMessage *req = nullptr;
+    if (unpack(&req, buf, basemsg->mtype) == MDHIM_SUCCESS) {
+        *msg = req;
+        delete basemsg;
+        return MDHIM_SUCCESS;
     }
+
+    // try unpacking into a Transport Response
+    TransportResponseMessage *res = nullptr;
+    if (unpack(&res, buf, basemsg->mtype) == MDHIM_SUCCESS) {
+        *msg = res;
+        delete basemsg;
+        return MDHIM_SUCCESS;
+    }
+
+    *msg = nullptr;
+    delete basemsg;
+    return MDHIM_ERROR;
+}
+
+int ThalliumUnpacker::unpack(TransportRequestMessage **req, const std::string &buf) {
+    TransportMessage *basemsg = nullptr;
+    if (unpack(&basemsg, buf) != MDHIM_SUCCESS) {
+        return MDHIM_ERROR;
+    }
+
+    const int ret = unpack(req, buf, basemsg->mtype);
 
     delete basemsg;
 
@@ -96,7 +43,7 @@ int ThalliumUnpacker::any (TransportMessage **msg, const std::string &buf) {
 int ThalliumUnpacker::unpack(TransportPutMessage **pm, const std::string &buf) {
     TransportPutMessage *out = new TransportPutMessage();
     std::stringstream s(buf);
-    if (unpack(static_cast<TransportMessage *>(out), s) != MDHIM_SUCCESS) {
+    if (unpack(static_cast<TransportRequestMessage *>(out), s) != MDHIM_SUCCESS) {
         delete out;
         return MDHIM_ERROR;
     }
@@ -126,7 +73,7 @@ int ThalliumUnpacker::unpack(TransportPutMessage **pm, const std::string &buf) {
 int ThalliumUnpacker::unpack(TransportBPutMessage **bpm, const std::string &buf) {
     TransportBPutMessage *out = new TransportBPutMessage();
     std::stringstream s(buf);
-    if (unpack(static_cast<TransportMessage *>(out), s) != MDHIM_SUCCESS) {
+    if (unpack(static_cast<TransportRequestMessage *>(out), s) != MDHIM_SUCCESS) {
         delete out;
         return MDHIM_ERROR;
     }
@@ -171,7 +118,7 @@ int ThalliumUnpacker::unpack(TransportBPutMessage **bpm, const std::string &buf)
 int ThalliumUnpacker::unpack(TransportGetMessage **gm, const std::string &buf) {
     TransportGetMessage *out = new TransportGetMessage();
     std::stringstream s(buf);
-    if (unpack(static_cast<TransportMessage *>(out), s) != MDHIM_SUCCESS) {
+    if (unpack(static_cast<TransportRequestMessage *>(out), s) != MDHIM_SUCCESS) {
         delete out;
         return MDHIM_ERROR;
     }
@@ -200,7 +147,7 @@ int ThalliumUnpacker::unpack(TransportGetMessage **gm, const std::string &buf) {
 int ThalliumUnpacker::unpack(TransportBGetMessage **bgm, const std::string &buf) {
     TransportBGetMessage *out = new TransportBGetMessage();
     std::stringstream s(buf);
-    if (unpack(static_cast<TransportMessage *>(out), s) != MDHIM_SUCCESS) {
+    if (unpack(static_cast<TransportRequestMessage *>(out), s) != MDHIM_SUCCESS) {
         delete out;
         return MDHIM_ERROR;
     }
@@ -242,7 +189,7 @@ int ThalliumUnpacker::unpack(TransportBGetMessage **bgm, const std::string &buf)
 int ThalliumUnpacker::unpack(TransportDeleteMessage **dm, const std::string &buf) {
     TransportDeleteMessage *out = new TransportDeleteMessage();
     std::stringstream s(buf);
-    if (unpack(static_cast<TransportMessage *>(out), s) != MDHIM_SUCCESS) {
+    if (unpack(static_cast<TransportRequestMessage *>(out), s) != MDHIM_SUCCESS) {
         delete out;
         return MDHIM_ERROR;
     }
@@ -269,7 +216,7 @@ int ThalliumUnpacker::unpack(TransportDeleteMessage **dm, const std::string &buf
 int ThalliumUnpacker::unpack(TransportBDeleteMessage **bdm, const std::string &buf) {
     TransportBDeleteMessage *out = new TransportBDeleteMessage();
     std::stringstream s(buf);
-    if (unpack(static_cast<TransportMessage *>(out), s) != MDHIM_SUCCESS) {
+    if (unpack(static_cast<TransportRequestMessage *>(out), s) != MDHIM_SUCCESS) {
         delete out;
         return MDHIM_ERROR;
     }
@@ -306,10 +253,23 @@ int ThalliumUnpacker::unpack(TransportBDeleteMessage **bdm, const std::string &b
     return MDHIM_SUCCESS;
 }
 
+int ThalliumUnpacker::unpack(TransportResponseMessage **res, const std::string &buf) {
+    TransportMessage *basemsg = nullptr;
+    if (unpack(&basemsg, buf) != MDHIM_SUCCESS) {
+        return MDHIM_ERROR;
+    }
+
+    const int ret = unpack(res, buf, basemsg->mtype);
+
+    delete basemsg;
+
+    return ret;
+}
+
 int ThalliumUnpacker::unpack(TransportRecvMessage **rm, const std::string &buf) {
     TransportRecvMessage *out = new TransportRecvMessage();
     std::stringstream s(buf);
-    if (unpack(static_cast<TransportMessage *>(out), s) != MDHIM_SUCCESS) {
+    if (unpack(static_cast<TransportResponseMessage *>(out), s) != MDHIM_SUCCESS) {
         delete out;
         return MDHIM_ERROR;
     }
@@ -329,7 +289,7 @@ int ThalliumUnpacker::unpack(TransportRecvMessage **rm, const std::string &buf) 
 int ThalliumUnpacker::unpack(TransportGetRecvMessage **grm, const std::string &buf) {
     TransportGetRecvMessage *out = new TransportGetRecvMessage();
     std::stringstream s(buf);
-    if (unpack(static_cast<TransportMessage *>(out), s) != MDHIM_SUCCESS) {
+    if (unpack(static_cast<TransportResponseMessage *>(out), s) != MDHIM_SUCCESS) {
         delete out;
         return MDHIM_ERROR;
     }
@@ -360,7 +320,7 @@ int ThalliumUnpacker::unpack(TransportGetRecvMessage **grm, const std::string &b
 int ThalliumUnpacker::unpack(TransportBGetRecvMessage **bgrm, const std::string &buf) {
     TransportBGetRecvMessage *out = new TransportBGetRecvMessage();
     std::stringstream s(buf);
-    if (unpack(static_cast<TransportMessage *>(out), s) != MDHIM_SUCCESS) {
+    if (unpack(static_cast<TransportResponseMessage *>(out), s) != MDHIM_SUCCESS) {
         delete out;
         return MDHIM_ERROR;
     }
@@ -390,7 +350,7 @@ int ThalliumUnpacker::unpack(TransportBGetRecvMessage **bgrm, const std::string 
             // read the value
             !s
             .read((char *) &out->value_lens[i], sizeof(out->value_lens[i])) ||
-            !(out->values[i] = ::operator new(out->value_lens[i]))          ||
+            !(out->values[i] = malloc(out->value_lens[i]))                  ||
             !s
             .read((char *) out->values[i], out->value_lens[i]))              {
             delete out;
@@ -406,7 +366,7 @@ int ThalliumUnpacker::unpack(TransportBGetRecvMessage **bgrm, const std::string 
 int ThalliumUnpacker::unpack(TransportBRecvMessage **brm, const std::string &buf) {
     TransportBRecvMessage *out = new TransportBRecvMessage();
     std::stringstream s(buf);
-    if (unpack(static_cast<TransportMessage *>(out), s) != MDHIM_SUCCESS) {
+    if (unpack(static_cast<TransportResponseMessage *>(out), s) != MDHIM_SUCCESS) {
         delete out;
         return MDHIM_ERROR;
     }
@@ -449,6 +409,7 @@ int ThalliumUnpacker::unpack(TransportMessage *msg, std::stringstream &s) {
         return MDHIM_ERROR;
     }
 
+    msg->unpacked = true;
     return s
         .read((char *) &msg->mtype, sizeof(msg->mtype))
         .read((char *) &msg->src, sizeof(msg->src))
@@ -456,4 +417,111 @@ int ThalliumUnpacker::unpack(TransportMessage *msg, std::stringstream &s) {
         .read((char *) &msg->index, sizeof(msg->index))
         .read((char *) &msg->index_type, sizeof(msg->index_type))
         .read((char *) &msg->index_name, sizeof(msg->index_name))?MDHIM_SUCCESS:MDHIM_ERROR;
+}
+
+int ThalliumUnpacker::unpack(TransportRequestMessage *req, std::stringstream &s) {
+    if (unpack(static_cast<TransportMessage *>(req), s) != MDHIM_SUCCESS) {
+        return MDHIM_ERROR;
+    }
+
+    return MDHIM_SUCCESS;
+}
+
+int ThalliumUnpacker::unpack(TransportResponseMessage *res, std::stringstream &s) {
+    if (unpack(static_cast<TransportMessage *>(res), s) != MDHIM_SUCCESS) {
+        return MDHIM_ERROR;
+    }
+
+    return MDHIM_SUCCESS;
+}
+
+int ThalliumUnpacker::unpack(TransportRequestMessage  **req, const std::string &buf, const TransportMessageType mtype) {
+    int ret = MDHIM_ERROR;
+    switch (mtype) {
+        case TransportMessageType::PUT:
+            {
+                TransportPutMessage *put = nullptr;
+                ret = unpack(&put, buf);
+                *req = put;
+            }
+            break;
+        case TransportMessageType::BPUT:
+            {
+                TransportBPutMessage *bput = nullptr;
+                ret = unpack(&bput, buf);
+                *req = bput;
+            }
+            break;
+        case TransportMessageType::GET:
+            {
+                TransportGetMessage *get = nullptr;
+                ret = unpack(&get, buf);
+                *req = get;
+            }
+            break;
+        case TransportMessageType::BGET:
+            {
+                TransportBGetMessage *bget = nullptr;
+                ret = unpack(&bget, buf);
+                *req = bget;
+            }
+            break;
+        case TransportMessageType::DELETE:
+            {
+                TransportDeleteMessage *dm = nullptr;
+                ret = unpack(&dm, buf);
+                *req = dm;
+            }
+            break;
+        case TransportMessageType::BDELETE:
+            {
+                TransportBDeleteMessage *bdm = nullptr;
+                ret = unpack(&bdm, buf);
+                *req = bdm;
+            }
+            break;
+        default:
+            break;
+    }
+
+    return ret;
+}
+
+int ThalliumUnpacker::unpack(TransportResponseMessage **res, const std::string &buf, const TransportMessageType mtype) {
+    int ret = MDHIM_ERROR;
+    switch (mtype) {
+        case TransportMessageType::RECV:
+            {
+                TransportRecvMessage *rm = nullptr;
+                ret = unpack(&rm, buf);
+                *res = rm;
+            }
+            break;
+        case TransportMessageType::RECV_GET:
+            {
+                TransportGetRecvMessage *grm = nullptr;
+                ret = unpack(&grm, buf);
+                *res = grm;
+            }
+            break;
+        case TransportMessageType::RECV_BGET:
+            {
+                TransportBGetRecvMessage *bgrm = nullptr;
+                ret = unpack(&bgrm, buf);
+                *res = bgrm;
+            }
+            break;
+        case TransportMessageType::RECV_BULK:
+            {
+                TransportBRecvMessage *brm = nullptr;
+                ret = unpack(&brm, buf);
+                *res = brm;
+            }
+            break;
+        default:
+            break;
+    }
+
+    return ret;
+
 }

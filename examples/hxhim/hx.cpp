@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
     }
 
     // start hxhim
-    hxhim_session_t hx;
+    hxhim_t hx;
     hxhim::Open(&hx, MPI_COMM_WORLD, "mdhim.conf");
 
     // PUT the key value pairs into MDHIM
@@ -53,39 +53,31 @@ int main(int argc, char *argv[]) {
 
     // iterate through the results
     while (results) {
-        switch (results->GetOp()) {
-            case hxhim_work_op::HXHIM_PUT:
-                {
-                    std::cout << "PUT returned status " << results->GetError() << std::endl;
+        for(results->MoveToFirstRS(); results->ValidRS() == HXHIM_SUCCESS; results->NextRS()) {
+            switch (results->GetOp()) {
+                case hxhim_work_op::HXHIM_PUT:
+                    std::cout << "Rank " << rank << " PUT returned status " << results->GetError() << " on range server " << results->GetSrc() << std::endl;
                     break;
-                }
-            case hxhim_work_op::HXHIM_GET:
-                {
-                    hxhim::GetReturn *get_results = dynamic_cast<hxhim::GetReturn *>(results);
-                    for(get_results->MoveToFirstRS(); get_results->ValidRS() == HXHIM_SUCCESS; get_results->NextRS()) {
-                        if (get_results->GetError() == HXHIM_SUCCESS) {
-                            for(get_results->MoveToFirstKV(); get_results->ValidKV() == HXHIM_SUCCESS; get_results->NextKV()) {
-                                char *key, *value;
-                                std::size_t key_len, value_len;
-                                if (get_results->GetKV((void **) &key, &key_len, (void **) &value, &value_len) == HXHIM_SUCCESS) {
-                                    std::cout << "Get " << std::string(key, key_len) << " -> " << std::string(value, value_len) << std::endl;
-                                }
+                case hxhim_work_op::HXHIM_GET:
+                    if (results->GetError() == HXHIM_SUCCESS) {
+                        for(results->MoveToFirstKV(); results->ValidKV() == HXHIM_SUCCESS; results->NextKV()) {
+                            char *key, *value;
+                            std::size_t key_len, value_len;
+                            if (results->GetKV((void **) &key, &key_len, (void **) &value, &value_len) == HXHIM_SUCCESS) {
+                                std::cout << "Rank " << rank << " GET " << std::string(key, key_len) << " -> " << std::string(value, value_len) << " on range server " << results->GetSrc() << std::endl;
                             }
                         }
-                        else {
-                            std::cout << "Get failed for database " << get_results->GetSrc() << std::endl;
-                        }
                     }
-                }
-                break;
-            case hxhim_work_op::HXHIM_DEL:
-                {
-                    std::cout << "DEL returned status " << results->GetError() << std::endl;
-                }
-                break;
-            case hxhim_work_op::HXHIM_NOP:
-            default:
-                break;
+                    else {
+                        std::cout << "Rank " << rank << " GET failed on range server " << results->GetSrc() << std::endl;
+                    }
+                    break;
+                case hxhim_work_op::HXHIM_DEL:
+                    std::cout << "Rank " << rank << " DEL returned status " << results->GetError() << " on range server " << results->GetSrc() << std::endl;
+                    break;
+                default:
+                    break;
+            }
         }
 
         hxhim::Return *next = results->Next();

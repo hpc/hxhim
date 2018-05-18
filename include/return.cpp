@@ -1,25 +1,27 @@
 #include "return.h"
 #include "return.hpp"
+#include <iostream>
 
 namespace hxhim {
 
-Return::Return(enum hxhim_work_op operation, bool msg_sent, TransportMessage *message)
+Return::Return(enum hxhim_work_op operation, TransportResponseMessage *response)
   : op(operation),
-    sent(msg_sent),
-    msg(message),
+    head(response),
+    curr(head),
+    pos(0),
     next(nullptr)
 {}
 
 Return::~Return() {
-    delete msg;
+    delete head;
 }
 
 int Return::GetSrc() const {
-    if (!msg) {
+    if (!curr) {
         return HXHIM_ERROR;
     }
 
-    return msg->src;
+    return curr->src;
 }
 
 hxhim_work_op Return::GetOp() const {
@@ -27,19 +29,19 @@ hxhim_work_op Return::GetOp() const {
 }
 
 int Return::GetError() const {
-    if (!msg) {
+    if (!curr) {
         return HXHIM_ERROR;
     }
 
-    switch (msg->mtype) {
+    switch (curr->mtype) {
         case TransportMessageType::RECV:
-            return dynamic_cast<TransportRecvMessage *>(msg)->error;
+            return dynamic_cast<TransportRecvMessage *>(curr)->error;
         case TransportMessageType::RECV_GET:
-            return dynamic_cast<TransportGetRecvMessage *>(msg)->error;
+            return dynamic_cast<TransportGetRecvMessage *>(curr)->error;
         case TransportMessageType::RECV_BGET:
-            return dynamic_cast<TransportBGetRecvMessage *>(msg)->error;
+            return dynamic_cast<TransportBGetRecvMessage *>(curr)->error;
         case TransportMessageType::RECV_BULK:
-            return dynamic_cast<TransportBRecvMessage *>(msg)->error;
+            return dynamic_cast<TransportBRecvMessage *>(curr)->error;
         default:
             return HXHIM_ERROR;
     }
@@ -47,68 +49,54 @@ int Return::GetError() const {
     return HXHIM_ERROR;
 }
 
-Return *Return::Next() const {
-    return next;
+int Return::MoveToFirstRS() {
+    curr = head;
+
+    return MoveToFirstKV();
 }
 
-Return *Return::Next(Return *ret) {
-    return (next = ret);
-}
-
-GetReturn::GetReturn(enum hxhim_work_op operation, TransportGetRecvMessage *grm)
-  : Return(operation, true, grm),
-    pos(0),
-    curr(msg)
-{}
-
-GetReturn::GetReturn(enum hxhim_work_op operation, TransportBGetRecvMessage *bgrm)
-    : Return(operation, true, bgrm),
-      pos(0),
-      curr(msg)
-{}
-
-void GetReturn::MoveToFirstRS() {
-    curr = msg;
-
-    MoveToFirstKV();
-}
-
-void GetReturn::NextRS() {
-    if (curr) {
-        switch (curr->mtype) {
-            case TransportMessageType::RECV_BGET:
-                curr = dynamic_cast<TransportBGetRecvMessage *>(curr)->next;
-                break;
-            case TransportMessageType::RECV_GET:
-            default:
-                curr = nullptr;
-                break;
-        }
+int Return::NextRS() {
+    if (!curr) {
+        return HXHIM_ERROR;
     }
-}
 
-int GetReturn::ValidRS() const {
+    switch (curr->mtype) {
+        case TransportMessageType::RECV_BULK:
+            curr = dynamic_cast<TransportBRecvMessage *>(curr)->next;
+            break;
+        case TransportMessageType::RECV_BGET:
+            curr = dynamic_cast<TransportBGetRecvMessage *>(curr)->next;
+            break;
+        default:
+            curr = nullptr;
+            break;
+    }
+
     return curr?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 
-void GetReturn::MoveToFirstKV() {
-    pos = 0;
+int Return::ValidRS() const {
+    return curr?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 
-int GetReturn::PrevKV() {
+int Return::MoveToFirstKV() {
+    pos = 0;
+    return curr?HXHIM_SUCCESS:HXHIM_ERROR;
+}
+
+int Return::PrevKV() {
     return ValidKV(pos -= (bool) pos);
 }
 
-int GetReturn::NextKV() {
-    const int ret = ValidKV(++pos);
-    return ret;
+int Return::NextKV() {
+    return ValidKV(++pos);
 }
 
-int GetReturn::ValidKV() const {
+int Return::ValidKV() const {
     return ValidKV(pos);
 }
 
-int GetReturn::GetKV(void **key, std::size_t *key_len, void **value, std::size_t *value_len) {
+int Return::GetKV(void **key, std::size_t *key_len, void **value, std::size_t *value_len) {
     if (ValidKV() != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
@@ -161,7 +149,7 @@ int GetReturn::GetKV(void **key, std::size_t *key_len, void **value, std::size_t
     return HXHIM_SUCCESS;
 }
 
-int GetReturn::ValidKV(const std::size_t position) const {
+int Return::ValidKV(const std::size_t position) const {
     if (!curr) {
         return HXHIM_ERROR;
     }
@@ -186,6 +174,14 @@ int GetReturn::ValidKV(const std::size_t position) const {
     return ret;
 }
 
+Return *Return::Next() const {
+    return next;
+}
+
+Return *Return::Next(Return *ret) {
+    return (next = ret);
+}
+
 }
 
 void hxhim_return_destroy(hxhim_return_t *ret) {
@@ -193,11 +189,6 @@ void hxhim_return_destroy(hxhim_return_t *ret) {
         delete ret->ret;
     }
 
-    delete ret;
-}
-
-void hxhim_get_return_destroy(hxhim_get_return_t *ret) {
-    // do not delete ret->ret because it is not owned by hxhim_get_return_t
     delete ret;
 }
 
@@ -228,18 +219,70 @@ int hxhim_return_get_error(hxhim_return_t *ret, int *error) {
     return HXHIM_SUCCESS;
 }
 
-int hxhim_return_convert_to_get(hxhim_return_t *ret, hxhim_get_return_t **get) {
-    if (!ret || !ret->ret || !get) {
+int hxhim_return_move_to_first_rs(hxhim_return_t *ret) {
+    if (!ret || !ret->ret) {
         return HXHIM_ERROR;
     }
 
-    *get = nullptr;
-    if (ret->ret->GetOp() == hxhim_work_op::HXHIM_GET) {
-        *get = new hxhim_get_return_t();
-        (*get)->ret = dynamic_cast<hxhim::GetReturn *>(ret->ret);
+    return ret->ret->MoveToFirstRS();
+}
+
+int hxhim_return_next_rs(hxhim_return_t *ret) {
+    if (!ret || !ret->ret) {
+        return HXHIM_ERROR;
     }
 
+    return ret->ret->NextRS();
+}
+
+int hxhim_return_valid_rs(hxhim_return_t *ret, int *valid) {
+    if (!ret || !ret->ret || !valid) {
+        return HXHIM_ERROR;
+    }
+
+    *valid = ret->ret->ValidRS();
     return HXHIM_SUCCESS;
+}
+
+int hxhim_return_move_to_first_kv(hxhim_return_t *ret) {
+    if (!ret || !ret->ret) {
+        return HXHIM_ERROR;
+    }
+
+    return ret->ret->MoveToFirstKV();
+}
+
+int hxhim_return_prev_kv(hxhim_return_t *ret) {
+    if (!ret || !ret->ret) {
+        return HXHIM_ERROR;
+    }
+
+    return ret->ret->PrevKV();
+}
+
+int hxhim_return_next_kv(hxhim_return_t *ret) {
+    if (!ret || !ret->ret) {
+        return HXHIM_ERROR;
+    }
+
+    return ret->ret->NextKV();
+}
+
+int hxhim_return_valid_kv(hxhim_return_t *ret, int *valid) {
+    if (!ret || !ret->ret || !valid) {
+        return HXHIM_ERROR;
+    }
+
+    *valid = ret->ret->ValidKV();
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_return_get_kv(hxhim_return_t *ret, void **key, size_t *key_len, void **value, size_t *value_len) {
+    if (!ret || !ret->ret) {
+        return HXHIM_ERROR;
+    }
+
+    return ret->ret->GetKV(key, key_len, value, value_len);;
 }
 
 int hxhim_return_next(hxhim_return_t *ret, hxhim_return_t **next) {
@@ -253,75 +296,4 @@ int hxhim_return_next(hxhim_return_t *ret, hxhim_return_t **next) {
         (*next)->ret = ret->ret->Next();
     }
     return HXHIM_SUCCESS;
-}
-
-int hxhim_get_return_move_to_first_rs(hxhim_get_return_t *ret) {
-    if (!ret || !ret->ret) {
-        return HXHIM_ERROR;
-    }
-
-    ret->ret->MoveToFirstRS();
-    return HXHIM_SUCCESS;
-}
-
-int hxhim_get_return_next_rs(hxhim_get_return_t *ret) {
-    if (!ret || !ret->ret) {
-        return HXHIM_ERROR;
-    }
-
-    ret->ret->NextRS();
-    return HXHIM_SUCCESS;
-}
-
-int hxhim_get_return_valid_rs(hxhim_get_return_t *ret, int *valid) {
-    if (!ret || !ret->ret || !valid) {
-        return HXHIM_ERROR;
-    }
-
-    *valid = ret->ret->ValidRS();
-    return HXHIM_SUCCESS;
-}
-
-int hxhim_get_return_move_to_first_kv(hxhim_get_return_t *ret) {
-    if (!ret || !ret->ret) {
-        return HXHIM_ERROR;
-    }
-
-    ret->ret->MoveToFirstKV();
-    return HXHIM_SUCCESS;
-}
-
-int hxhim_get_return_prev_kv(hxhim_get_return_t *ret) {
-    if (!ret || !ret->ret) {
-        return HXHIM_ERROR;
-    }
-
-    ret->ret->PrevKV();
-    return HXHIM_SUCCESS;
-}
-
-int hxhim_get_return_next_kv(hxhim_get_return_t *ret) {
-    if (!ret || !ret->ret) {
-        return HXHIM_ERROR;
-    }
-
-    ret->ret->NextKV();
-    return HXHIM_SUCCESS;
-}
-
-int hxhim_get_return_valid_kv(hxhim_get_return_t *ret, int *valid) {
-    if (!ret || !ret->ret || !valid) {
-        return HXHIM_ERROR;
-    }
-
-    *valid = ret->ret->ValidKV();
-    return HXHIM_SUCCESS;
-}
-
-int hxhim_get_return_get_kv(hxhim_get_return_t *ret, void **key, size_t *key_len, void **value, size_t *value_len) {
-    if (!ret || !ret->ret) {
-        return HXHIM_ERROR;
-    }
-
-    return ret->ret->GetKV(key, key_len, value, value_len);;
 }

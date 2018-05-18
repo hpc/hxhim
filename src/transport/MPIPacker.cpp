@@ -1,48 +1,42 @@
 #include "MPIPacker.hpp"
 
 int MPIPacker::any(const MPI_Comm comm, const TransportMessage *msg, void **buf, std::size_t *bufsize, FixedBufferPool *fbp) {
-    if (!msg) {
+    if (pack(comm, dynamic_cast<const TransportRequestMessage *>(msg), buf, bufsize, fbp) == MDHIM_SUCCESS) {
+        return MDHIM_SUCCESS;
+    }
+
+    if (pack(comm, dynamic_cast<const TransportResponseMessage *>(msg), buf, bufsize, fbp) == MDHIM_SUCCESS) {
+        return MDHIM_SUCCESS;
+    }
+
+    return MDHIM_ERROR;
+}
+
+int MPIPacker::pack(const MPI_Comm comm, const TransportRequestMessage *req, void **buf, std::size_t *bufsize, FixedBufferPool *fbp) {
+    if (!req) {
         return MDHIM_ERROR;
     }
 
     int ret = MDHIM_ERROR;
-    switch (msg->mtype) {
+    switch (req->mtype) {
         case TransportMessageType::PUT:
-            ret = pack(comm, dynamic_cast<const TransportPutMessage *>(msg), buf, bufsize, fbp);
+            ret = pack(comm, dynamic_cast<const TransportPutMessage *>(req), buf, bufsize, fbp);
             break;
         case TransportMessageType::BPUT:
-            ret = pack(comm, dynamic_cast<const TransportBPutMessage *>(msg), buf, bufsize, fbp);
+            ret = pack(comm, dynamic_cast<const TransportBPutMessage *>(req), buf, bufsize, fbp);
             break;
         case TransportMessageType::GET:
-            ret = pack(comm, dynamic_cast<const TransportGetMessage *>(msg), buf, bufsize, fbp);
+            ret = pack(comm, dynamic_cast<const TransportGetMessage *>(req), buf, bufsize, fbp);
             break;
         case TransportMessageType::BGET:
-            ret = pack(comm, dynamic_cast<const TransportBGetMessage *>(msg), buf, bufsize, fbp);
+            ret = pack(comm, dynamic_cast<const TransportBGetMessage *>(req), buf, bufsize, fbp);
             break;
         case TransportMessageType::DELETE:
-            ret = pack(comm, dynamic_cast<const TransportDeleteMessage *>(msg), buf, bufsize, fbp);
+            ret = pack(comm, dynamic_cast<const TransportDeleteMessage *>(req), buf, bufsize, fbp);
             break;
         case TransportMessageType::BDELETE:
-            ret = pack(comm, dynamic_cast<const TransportBDeleteMessage *>(msg), buf, bufsize, fbp);
+            ret = pack(comm, dynamic_cast<const TransportBDeleteMessage *>(req), buf, bufsize, fbp);
             break;
-        // close meesages are not sent across the network
-        // case TransportMessageType::CLOSE:
-        //     break;
-        case TransportMessageType::RECV:
-            ret = pack(comm, dynamic_cast<const TransportRecvMessage *>(msg), buf, bufsize, fbp);
-            break;
-        case TransportMessageType::RECV_GET:
-            ret = pack(comm, dynamic_cast<const TransportGetRecvMessage *>(msg), buf, bufsize, fbp);
-            break;
-        case TransportMessageType::RECV_BGET:
-            ret = pack(comm, dynamic_cast<const TransportBGetRecvMessage *>(msg), buf, bufsize, fbp);
-            break;
-        case TransportMessageType::RECV_BULK:
-            ret = pack(comm, dynamic_cast<const TransportBRecvMessage *>(msg), buf, bufsize, fbp);
-            break;
-        // commit messages are not sent across the network
-        // case TransportMessageType::COMMIT:
-        //     break;
         default:
             break;
     }
@@ -52,7 +46,7 @@ int MPIPacker::any(const MPI_Comm comm, const TransportMessage *msg, void **buf,
 
 int MPIPacker::pack(const MPI_Comm comm, const TransportPutMessage *pm, void **buf, std::size_t *bufsize, FixedBufferPool *fbp) {
     int position = 0;
-    if (pack(comm, static_cast<const TransportMessage *>(pm), buf, bufsize, &position, fbp)         != MDHIM_SUCCESS) {
+    if (pack(comm, static_cast<const TransportRequestMessage *>(pm), buf, bufsize, &position, fbp)         != MDHIM_SUCCESS) {
         return MDHIM_ERROR;
     }
 
@@ -70,7 +64,7 @@ int MPIPacker::pack(const MPI_Comm comm, const TransportPutMessage *pm, void **b
 
 int MPIPacker::pack(const MPI_Comm comm, const TransportBPutMessage *bpm, void **buf, std::size_t *bufsize, FixedBufferPool *fbp) {
     int position = 0;
-    if (pack(comm, static_cast<const TransportMessage *>(bpm), buf, bufsize, &position, fbp)                      != MDHIM_SUCCESS) {
+    if (pack(comm, static_cast<const TransportRequestMessage *>(bpm), buf, bufsize, &position, fbp)                      != MDHIM_SUCCESS) {
         return MDHIM_ERROR;
     }
 
@@ -95,7 +89,7 @@ int MPIPacker::pack(const MPI_Comm comm, const TransportBPutMessage *bpm, void *
 
 int MPIPacker::pack(const MPI_Comm comm, const TransportGetMessage *gm, void **buf, std::size_t *bufsize, FixedBufferPool *fbp) {
     int position = 0;
-    if (pack(comm, static_cast<const TransportMessage *>(gm), buf, bufsize, &position, fbp)       != MDHIM_SUCCESS) {
+    if (pack(comm, static_cast<const TransportRequestMessage *>(gm), buf, bufsize, &position, fbp)       != MDHIM_SUCCESS) {
         return MDHIM_ERROR;
     }
 
@@ -113,7 +107,7 @@ int MPIPacker::pack(const MPI_Comm comm, const TransportGetMessage *gm, void **b
 
 int MPIPacker::pack(const MPI_Comm comm, const TransportBGetMessage *bgm, void **buf, std::size_t *bufsize, FixedBufferPool *fbp) {
     int position = 0;
-    if (pack(comm, static_cast<const TransportMessage *>(bgm), buf, bufsize, &position, fbp)                  != MDHIM_SUCCESS) {
+    if (pack(comm, static_cast<const TransportRequestMessage *>(bgm), buf, bufsize, &position, fbp)                  != MDHIM_SUCCESS) {
         return MDHIM_ERROR;
     }
 
@@ -138,7 +132,7 @@ int MPIPacker::pack(const MPI_Comm comm, const TransportBGetMessage *bgm, void *
 
 int MPIPacker::pack(const MPI_Comm comm, const TransportDeleteMessage *dm, void **buf, std::size_t *bufsize, FixedBufferPool *fbp) {
     int position = 0;
-    if (pack(comm, static_cast<const TransportMessage *>(dm), buf, bufsize, &position, fbp)     != MDHIM_SUCCESS) {
+    if (pack(comm, static_cast<const TransportRequestMessage *>(dm), buf, bufsize, &position, fbp)     != MDHIM_SUCCESS) {
         return MDHIM_ERROR;
     }
 
@@ -154,11 +148,11 @@ int MPIPacker::pack(const MPI_Comm comm, const TransportDeleteMessage *dm, void 
 
 int MPIPacker::pack(const MPI_Comm comm, const TransportBDeleteMessage *bdm, void **buf, std::size_t *bufsize, FixedBufferPool *fbp) {
     int position = 0;
-    if (pack(comm, static_cast<const TransportMessage *>(bdm), buf, bufsize, &position, fbp)                  != MDHIM_SUCCESS) {
+    if (pack(comm, static_cast<const TransportRequestMessage *>(bdm), buf, bufsize, &position, fbp)                  != MDHIM_SUCCESS) {
         return MDHIM_ERROR;
     }
 
-    if (MPI_Pack(&bdm->num_keys, sizeof(bdm->num_keys), MPI_CHAR, *buf, *bufsize, &position, comm)           != MPI_SUCCESS) {
+    if (MPI_Pack(&bdm->num_keys, sizeof(bdm->num_keys), MPI_CHAR, *buf, *bufsize, &position, comm)            != MPI_SUCCESS) {
         cleanup(buf, bufsize, fbp);
         return MDHIM_ERROR;
     }
@@ -175,9 +169,35 @@ int MPIPacker::pack(const MPI_Comm comm, const TransportBDeleteMessage *bdm, voi
     return MDHIM_SUCCESS;
 }
 
+int MPIPacker::pack(const MPI_Comm comm, const TransportResponseMessage *res, void **buf, std::size_t *bufsize, FixedBufferPool *fbp) {
+    if (!res) {
+        return MDHIM_ERROR;
+    }
+
+    int ret = MDHIM_ERROR;
+    switch (res->mtype) {
+        case TransportMessageType::RECV:
+            ret = pack(comm, dynamic_cast<const TransportRecvMessage *>(res), buf, bufsize, fbp);
+            break;
+        case TransportMessageType::RECV_GET:
+            ret = pack(comm, dynamic_cast<const TransportGetRecvMessage *>(res), buf, bufsize, fbp);
+            break;
+        case TransportMessageType::RECV_BGET:
+            ret = pack(comm, dynamic_cast<const TransportBGetRecvMessage *>(res), buf, bufsize, fbp);
+            break;
+        case TransportMessageType::RECV_BULK:
+            ret = pack(comm, dynamic_cast<const TransportBRecvMessage *>(res), buf, bufsize, fbp);
+            break;
+        default:
+            break;
+    }
+
+    return ret;
+}
+
 int MPIPacker::pack(const MPI_Comm comm, const TransportRecvMessage *rm, void **buf, std::size_t *bufsize, FixedBufferPool *fbp) {
     int position = 0;
-    if (pack(comm, static_cast<const TransportMessage *>(rm), buf, bufsize, &position, fbp)   != MDHIM_SUCCESS) {
+    if (pack(comm, static_cast<const TransportResponseMessage *>(rm), buf, bufsize, &position, fbp)  != MDHIM_SUCCESS) {
         return MDHIM_ERROR;
     }
 
@@ -192,7 +212,7 @@ int MPIPacker::pack(const MPI_Comm comm, const TransportRecvMessage *rm, void **
 
 int MPIPacker::pack(const MPI_Comm comm, const TransportGetRecvMessage *grm, void **buf, std::size_t *bufsize, FixedBufferPool *fbp) {
     int position = 0;
-    if (pack(comm, static_cast<const TransportMessage *>(grm), buf, bufsize, &position, fbp)          != MDHIM_SUCCESS) {
+    if (pack(comm, static_cast<const TransportResponseMessage *>(grm), buf, bufsize, &position, fbp)         != MDHIM_SUCCESS) {
         return MDHIM_ERROR;
     }
 
@@ -211,7 +231,7 @@ int MPIPacker::pack(const MPI_Comm comm, const TransportGetRecvMessage *grm, voi
 
 int MPIPacker::pack(const MPI_Comm comm, const TransportBGetRecvMessage *bgrm, void **buf, std::size_t *bufsize, FixedBufferPool *fbp) {
     int position = 0;
-    if (pack(comm, static_cast<const TransportMessage *>(bgrm), buf, bufsize, &position, fbp)                       != MDHIM_SUCCESS) {
+    if (pack(comm, static_cast<const TransportResponseMessage *>(bgrm), buf, bufsize, &position, fbp)                      != MDHIM_SUCCESS) {
         return MDHIM_ERROR;
     }
 
@@ -237,7 +257,7 @@ int MPIPacker::pack(const MPI_Comm comm, const TransportBGetRecvMessage *bgrm, v
 
 int MPIPacker::pack(const MPI_Comm comm, const TransportBRecvMessage *brm, void **buf, std::size_t *bufsize, FixedBufferPool *fbp) {
     int position = 0;
-    if (pack(comm, static_cast<const TransportMessage *>(brm), buf, bufsize, &position, fbp)             != MDHIM_SUCCESS) {
+    if (pack(comm, static_cast<const TransportResponseMessage *>(brm), buf, bufsize, &position, fbp)            != MDHIM_SUCCESS) {
         return MDHIM_ERROR;
     }
 
@@ -263,7 +283,6 @@ int MPIPacker::pack(const MPI_Comm comm, const TransportMessage *msg, void **buf
         return MDHIM_ERROR;
     }
 
-
     *bufsize = msg->size() + sizeof(*bufsize);
 
     // Is the computed message size greater than the max message size?
@@ -286,6 +305,22 @@ int MPIPacker::pack(const MPI_Comm comm, const TransportMessage *msg, void **buf
         // intentional error
         (MPI_Pack(&msg->index_name, sizeof(msg->index_name), MPI_CHAR, *buf, *bufsize, position, comm) != MPI_SUCCESS)) {
         cleanup(buf, bufsize, fbp);
+        return MDHIM_ERROR;
+    }
+
+    return MDHIM_SUCCESS;
+}
+
+int MPIPacker::pack(const MPI_Comm comm, const TransportRequestMessage *req, void **buf, std::size_t *bufsize, int *position, FixedBufferPool *fbp) {
+    if (pack(comm, static_cast<const TransportMessage *>(req), buf, bufsize, position, fbp) != MDHIM_SUCCESS) {
+        return MDHIM_ERROR;
+    }
+
+    return MDHIM_SUCCESS;
+}
+
+int MPIPacker::pack(const MPI_Comm comm, const TransportResponseMessage *res, void **buf, std::size_t *bufsize, int *position, FixedBufferPool *fbp) {
+    if (pack(comm, static_cast<const TransportMessage *>(res), buf, bufsize, position, fbp) != MDHIM_SUCCESS) {
         return MDHIM_ERROR;
     }
 

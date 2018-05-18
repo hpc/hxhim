@@ -57,6 +57,7 @@ TEST(mdhimOptions, no_db) {
     ASSERT_EQ(mdhim_options_init(&opts, MPI_COMM_WORLD, false, false), MDHIM_SUCCESS);
 
     // opts.p->db exists, but is empty
+    EXPECT_EQ(opts.debug_level, 0);
     ASSERT_NE(opts.p, nullptr);
     ASSERT_NE(opts.p->db, nullptr);
     EXPECT_EQ(opts.p->db->path, nullptr);
@@ -67,7 +68,6 @@ TEST(mdhimOptions, no_db) {
     EXPECT_EQ(opts.p->db->type, 0);
     EXPECT_EQ(opts.p->db->key_type, 0);
     EXPECT_EQ(opts.p->db->value_append, 0);
-    EXPECT_EQ(opts.p->db->debug_level, 0);
     EXPECT_EQ(opts.p->db->rserver_factor, 0);
     EXPECT_EQ(opts.p->db->max_recs_per_slice, 0);
     EXPECT_EQ(opts.p->db->num_wthreads, 0);

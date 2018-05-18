@@ -173,16 +173,16 @@ static const char* cmp_name(void* arg) {
  */
 
 int mdhim_leveldb_open(void **dbh, void **dbs, const char *path, int flags, int key_type, mdhim_db_options_t *opts) {
-    mdhim_leveldb_t *mdhimdb;
-    mdhim_leveldb_t *statsdb;
-    leveldb_t *db;
+    mdhim_leveldb_t *mdhimdb = new mdhim_leveldb_t();
+    mdhim_leveldb_t *statsdb = new mdhim_leveldb_t();
+    if (!mdhimdb || !statsdb) {
+        delete mdhimdb;
+        delete statsdb;
+        return MDHIM_DB_ERROR;
+    }
+
     char *err = NULL;
     char stats_path[PATH_MAX] = {0};
-
-    mdhimdb = (mdhim_leveldb_t*)malloc(sizeof(mdhim_leveldb_t));
-    memset(mdhimdb, 0, sizeof(mdhim_leveldb_t));
-    statsdb = (mdhim_leveldb_t*)malloc(sizeof(mdhim_leveldb_t));
-    memset(statsdb, 0, sizeof(mdhim_leveldb_t));
 
     //Create the options for the main database
     mdhimdb->options = leveldb_options_create();
@@ -250,8 +250,8 @@ int mdhim_leveldb_open(void **dbh, void **dbs, const char *path, int flags, int 
     }
 
     //Open the main database
-    db = leveldb_open(mdhimdb->options, path, &err);
-    mdhimdb->db = db;
+    mdhimdb->db = leveldb_open(mdhimdb->options, path, &err);
+
     //Set the output handle
     *((mdhim_leveldb_t **) dbh) = mdhimdb;
     if (err != NULL) {
@@ -264,8 +264,7 @@ int mdhim_leveldb_open(void **dbh, void **dbs, const char *path, int flags, int 
     statsdb->compare = cmp_int_compare;
     statsdb->cmp = leveldb_comparator_create(NULL, cmp_destroy, cmp_int_compare, cmp_name);
     leveldb_options_set_comparator(statsdb->options, statsdb->cmp);
-    db = leveldb_open(statsdb->options, stats_path, &err);
-    statsdb->db = db;
+    statsdb->db = leveldb_open(statsdb->options, stats_path, &err);
     *((mdhim_leveldb_t **) dbs) = statsdb;
 
     if (err != NULL) {
@@ -633,8 +632,8 @@ int mdhim_leveldb_close(void *dbh, void *dbs) {
     leveldb_env_destroy(statsdb->env);
     leveldb_cache_destroy(statsdb->cache);
 
-    free(mdhimdb);
-    free(statsdb);
+    delete mdhimdb;
+    delete statsdb;
 
     return MDHIM_SUCCESS;
 }

@@ -64,7 +64,7 @@ typedef struct del_work : work_t {
 
 typedef std::list<work_t *> work_queue_t;
 
-work_t *get_matching_work(hxhim_session_t *hx, const hxhim_work_op op);
+work_t *get_matching_work(hxhim_t *hx, const hxhim_work_op op);
 
 }
 
@@ -73,13 +73,13 @@ extern "C"
 {
 #endif
 
-typedef struct hxhim_session_private {
+typedef struct hxhim_private {
     mdhim_t *md;
     mdhim_options_t *mdhim_opts;
 
     std::mutex queue_mutex;
     hxhim::work_queue_t queue;
-} hxhim_session_private_t;
+} hxhim_private_t;
 
 #ifdef __cplusplus
 }

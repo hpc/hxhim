@@ -488,7 +488,7 @@ int mdhim_options_set_debug_level(mdhim_options_t *opts, const int dbug) {
         return MDHIM_ERROR;
     }
 
-    opts->p->db->debug_level = dbug;
+    opts->debug_level = dbug;
 
     return MDHIM_SUCCESS;
 }
