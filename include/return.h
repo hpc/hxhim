@@ -25,7 +25,6 @@ int hxhim_return_prev_kv(hxhim_return_t *ret);
 int hxhim_return_next_kv(hxhim_return_t *ret);
 int hxhim_return_valid_kv(hxhim_return_t *ret, int *valid);
 int hxhim_return_get_kv(hxhim_return_t *ret, void **key, size_t *key_len, void **value, size_t *value_len);
-int hxhim_return_next(hxhim_return_t *ret, hxhim_return_t **next);
 
 #ifdef __cplusplus
 }

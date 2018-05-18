@@ -93,9 +93,7 @@ int hxhim::Close(hxhim_t *hx) {
     }
 
     // clear out unsent work in the work queue
-    for(work_t *work : hx->p->queue) {
-        delete work;
-    }
+    hx->p->puts.clear();
 
     // clean up mdhim
     if (hx->p->md) {
@@ -131,144 +129,79 @@ int hxhimClose(hxhim_t *hx) {
 
 /**
  * Flush
- * Push all queued work into MDHIM
+ * Push the PUT stream so that the keys are visible.
  *
  * @param hx
  * @return A list of wrapped MDHIM return values
  */
-hxhim::Return *hxhim::Flush(hxhim_t *hx) {
-    std::lock_guard<std::mutex> lock(hx->p->queue_mutex);
+int hxhim::Flush(hxhim_t *hx) {
+    hxhim::put_stream_t &puts = hx->p->puts;
+    std::lock_guard<std::mutex> lock(puts.mutex);
 
-    // process all of the work
-    Return *ret = new Return(hxhim_work_op::HXHIM_NOP, nullptr);
-    Return *head = ret;
-    while (hx->p->queue.size()) {
-        hxhim::work_t *work = hx->p->queue.front();
-        hx->p->queue.pop_front();
-
-        // empty work
-        if (!work) {
-            continue;
-        }
-
-        // make sure keys and lengths match up
-        if (work->keys.size() != work->key_lens.size()) {
-            mlog(MLOG_WARN, "HXHIM Rank %d - Attempted to flush message with mismatched key (%zu) and key length data %zu. Skipping.", hx->p->md->rank, work->keys.size(), work->key_lens.size());
-            delete work;
-            ret = ret->Next(new hxhim::Return(work->op, nullptr));
-            continue;
-        }
-
-        // when there is only 1 set of data to operate on, use single PUT/GET/DEL
-        if (work->keys.size() == 1) {
-            switch (work->op) {
-                case hxhim_work_op::HXHIM_PUT:
-                    {
-                        put_work_t *put = dynamic_cast<put_work_t *>(work);
-                        TransportRecvMessage *rm = mdhim::Put(hx->p->md, nullptr, put->keys[0], put->key_lens[0], put->values[0], put->value_lens[0]);
-                        ret = ret->Next(new hxhim::Return(work->op, rm));
-                    }
-                    break;
-                case hxhim_work_op::HXHIM_GET:
-                    {
-                        get_work_t *get = dynamic_cast<get_work_t *>(work);
-                        TransportGetRecvMessage *grm = mdhim::Get(hx->p->md, nullptr, get->keys[0], get->key_lens[0], get->get_op);
-                        ret = ret->Next(new hxhim::Return(work->op, grm));
-                    }
-                    break;
-                case hxhim_work_op::HXHIM_DEL:
-                    {
-                        del_work_t *del = dynamic_cast<del_work_t *>(work);
-                        TransportRecvMessage *rm = mdhim::Delete(hx->p->md, nullptr, del->keys[0], del->key_lens[0]);
-                        ret = ret->Next(new hxhim::Return(work->op, rm));
-                    }
-                    break;
-                case hxhim_work_op::HXHIM_NOP:
-                default:
-                    break;
-            }
-        }
-        // use BPUT/BGET/BDEL
-        else {
-            // copy the keys and lengths into arrays
-            void **keys = new void *[work->keys.size()]();
-            std::size_t *key_lens = new std::size_t[work->key_lens.size()]();
-            for(std::size_t i = 0; i < work->keys.size(); i++) {
-                keys[i] = work->keys[i];
-                key_lens[i] = work->key_lens[i];
-            }
-
-            if (!keys || !key_lens) {
-                delete [] keys;
-                delete [] key_lens;
-                delete work;
-                ret = ret->Next(new Return(work->op, nullptr));
-                continue;
-            }
-
-            // can add some async stuff here, if keys are sorted here instead of in MDHIM
-            switch (work->op) {
-                case hxhim_work_op::HXHIM_PUT:
-                    {
-                        put_work_t *put = dynamic_cast<put_work_t *>(work);
-                        if (put->values.size() != put->value_lens.size()) {
-                            mlog(MLOG_WARN, "HXHIM Rank %d - Attempted to flush message with mismatched value (%zu) and value length data %zu. Skipping.", hx->p->md->rank, put->values.size(), put->value_lens.size());
-                            delete work;
-                            ret = ret->Next(new hxhim::Return(work->op, nullptr));
-                            continue;
-                        }
-
-                        // copy the values and lengths into arrays
-                        void **values = new void *[put->values.size()]();
-                        std::size_t *value_lens = new std::size_t[put->value_lens.size()]();
-                        if (!values || !value_lens) {
-                            delete [] values;
-                            delete [] value_lens;
-                            delete work;
-                            ret = ret->Next(new hxhim::Return(work->op, nullptr));
-                            continue;
-                        }
-
-                        for(std::size_t i = 0; i < put->values.size(); i++) {
-                            values[i] = put->values[i];
-                            value_lens[i] = put->value_lens[i];
-                        }
-
-                        TransportBRecvMessage *brm = mdhim::BPut(hx->p->md, nullptr, keys, key_lens, values, value_lens, put->keys.size());
-                        ret = ret->Next(new hxhim::Return(work->op, brm));
-
-                        delete [] values;
-                        delete [] value_lens;
-                    }
-                    break;
-                case hxhim_work_op::HXHIM_GET:
-                    {
-                        get_work_t *get = dynamic_cast<get_work_t *>(work);
-                        TransportBGetRecvMessage *bgrm = mdhim::BGet(hx->p->md, nullptr, keys, key_lens, get->keys.size(), get->get_op);
-                        ret = ret->Next(new hxhim::Return(work->op, bgrm));
-                    }
-                    break;
-                case hxhim_work_op::HXHIM_DEL:
-                    {
-                        del_work_t *del = dynamic_cast<del_work_t *>(work);
-                        TransportBRecvMessage *brm = mdhim::BDelete(hx->p->md, nullptr, keys, key_lens, del->keys.size());
-                        ret = ret->Next(new hxhim::Return(work->op, brm));
-                    }
-                    break;
-                case hxhim_work_op::HXHIM_NOP:
-                default:
-                    break;
-            }
-
-            delete [] keys;
-            delete [] key_lens;
-        }
-
-        delete work;
+    // make sure keys and values match up
+    if ((puts.keys.size()   != puts.key_lens.size())   ||
+        (puts.values.size() != puts.value_lens.size()) ||
+        (puts.keys.size()   != puts.values.size()))     {
+        mlog(MLOG_WARN, "HXHIM Rank %d - Attempted to flush message with mismatched lengths: key (%zu), key length (%zu), value (%zu), value length (%zu). Skipping.", hx->p->md->rank, puts.keys.size(), puts.key_lens.size(), puts.values.size(), puts.value_lens.size());
+        puts.clear();
+        return HXHIM_ERROR;
     }
 
-    ret = head->Next();
-    delete head;
+    int ret = HXHIM_SUCCESS;
+
+    // when there is only 1 set of data to operate on, use single PUT
+    if (puts.keys.size() == 1) {
+        TransportRecvMessage *rm = mdhim::Put(hx->p->md, nullptr, puts.keys[0], puts.key_lens[0], puts.values[0], puts.value_lens[0]);
+        ret = (rm && (rm->error == MDHIM_SUCCESS))?HXHIM_SUCCESS:HXHIM_ERROR;
+        delete rm;
+    }
+    // use BPUT
+    else {
+        // copy the keys and lengths into arrays
+        void **keys = new void *[puts.keys.size()]();
+        std::size_t *key_lens = new std::size_t[puts.key_lens.size()]();
+        void **values = new void *[puts.values.size()]();
+        std::size_t *value_lens = new std::size_t[puts.value_lens.size()]();
+
+        if (!keys   || !key_lens   ||
+            !values || !value_lens) {
+            delete [] keys;
+            delete [] key_lens;
+            delete [] values;
+            delete [] value_lens;
+            return HXHIM_ERROR;
+        }
+
+        for(std::size_t i = 0; i < puts.keys.size(); i++) {
+            keys[i] = puts.keys[i];
+            key_lens[i] = puts.key_lens[i];
+            values[i] = puts.values[i];
+            value_lens[i] = puts.value_lens[i];
+        }
+
+        // can add some async stuff here, if keys are sorted here instead of in MDHIM
+
+        TransportBRecvMessage *brm = mdhim::BPut(hx->p->md, nullptr, keys, key_lens, values, value_lens, puts.keys.size());
+
+        // check for errors
+        while (brm) {
+            if (brm->error != MDHIM_SUCCESS) {
+                ret = HXHIM_ERROR;
+            }
+
+            TransportBRecvMessage *next = brm->next;
+            delete brm;
+            brm = next;
+        }
+
+        // cleanup
+        delete [] keys;
+        delete [] key_lens;
+        delete [] values;
+        delete [] value_lens;
+
+        puts.clear();
+    }
 
     return ret;
 }
@@ -280,8 +213,8 @@ hxhim::Return *hxhim::Flush(hxhim_t *hx) {
  * @param hx
  * @return A list of wrapped MDHIM return values
  */
-hxhim_return_t *hxhimFlush(hxhim_t *hx) {
-    return hxhim_return_init(hxhim::Flush(hx));
+int hxhimFlush(hxhim_t *hx) {
+    return hxhim::Flush(hx);
 }
 
 /**
@@ -300,16 +233,10 @@ int hxhim::Put(hxhim_t *hx, void *key, std::size_t key_len, void *value, std::si
         return HXHIM_ERROR;
     }
 
-    put_work_t *work = dynamic_cast<put_work_t *>(get_matching_work(hx, hxhim_work_op::HXHIM_PUT));
-    if (!work) {
-        return HXHIM_ERROR;
-    }
-
-    work->keys.push_back(key);
-    work->key_lens.push_back(key_len);
-
-    work->values.push_back(value);
-    work->value_lens.push_back(value_len);
+    hx->p->puts.keys.push_back(key);
+    hx->p->puts.key_lens.push_back(key_len);
+    hx->p->puts.values.push_back(value);
+    hx->p->puts.value_lens.push_back(value_len);
 
     return HXHIM_SUCCESS;
 }
@@ -338,20 +265,12 @@ int hxhimPut(hxhim_t *hx, void *key, std::size_t key_len, void *value, std::size
  * @param key_len   the length of the key to get
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim::Get(hxhim_t *hx, void *key, std::size_t key_len) {
+hxhim::Return *hxhim::Get(hxhim_t *hx, void *key, std::size_t key_len) {
     if (!hx || !hx->p || !key) {
-        return HXHIM_ERROR;
+        return nullptr;
     }
 
-    get_work_t *work = dynamic_cast<get_work_t *>(get_matching_work(hx, hxhim_work_op::HXHIM_GET));
-    if (!work) {
-        return HXHIM_ERROR;
-    }
-
-    work->keys.push_back(key);
-    work->key_lens.push_back(key_len);
-
-    return HXHIM_SUCCESS;
+    return new hxhim::Return(HXHIM_GET, mdhim::Get(hx->p->md, nullptr, key, key_len, GET_EQ));
 }
 
 /**
@@ -363,47 +282,47 @@ int hxhim::Get(hxhim_t *hx, void *key, std::size_t key_len) {
  * @param key_len   the length of the key to get
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhimGet(hxhim_t *hx, void *key, std::size_t key_len) {
-    return hxhim::Get(hx, key, key_len);
+hxhim_return_t *hxhimGet(hxhim_t *hx, void *key, std::size_t key_len) {
+    return hxhim_return_init(hxhim::Get(hx, key, key_len));
 }
 
-/**
- * Delete
- * Add a DEL into the work queue
- *
- * @param hx        the HXHIM session
- * @param key       the key to del
- * @param key_len   the length of the key to delete
- * @return HXHIM_SUCCESS or HXHIM_ERROR
- */
-int hxhim::Delete(hxhim_t *hx, void *key, std::size_t key_len) {
-    if (!hx || !hx->p || !key) {
-        return HXHIM_ERROR;
-    }
+// /**
+//  * Delete
+//  * Add a DEL into the work queue
+//  *
+//  * @param hx        the HXHIM session
+//  * @param key       the key to del
+//  * @param key_len   the length of the key to delete
+//  * @return HXHIM_SUCCESS or HXHIM_ERROR
+//  */
+// int hxhim::Delete(hxhim_t *hx, void *key, std::size_t key_len) {
+//     if (!hx || !hx->p || !key) {
+//         return HXHIM_ERROR;
+//     }
 
-    del_work_t *work = dynamic_cast<del_work_t *>(get_matching_work(hx, hxhim_work_op::HXHIM_DEL));
-    if (!work) {
-        return HXHIM_ERROR;
-    }
+//     del_work_t *work = dynamic_cast<del_work_t *>(get_matching_work(hx, hxhim_work_op::HXHIM_DEL));
+//     if (!work) {
+//         return HXHIM_ERROR;
+//     }
 
-    work->keys.push_back(key);
-    work->key_lens.push_back(key_len);
+//     puts.keys.push_back(key);
+//     puts.key_lens.push_back(key_len);
 
-    return HXHIM_SUCCESS;
-}
+//     return HXHIM_SUCCESS;
+// }
 
-/**
- * hxhimDelete
- * Add a DEL into the work queue
- *
- * @param hx        the HXHIM session
- * @param key       the key to del
- * @param key_len   the length of the key to delete
- * @return HXHIM_SUCCESS or HXHIM_ERROR
- */
-int hxhimDelete(hxhim_t *hx, void *key, std::size_t key_len) {
-    return hxhim::Delete(hx, key, key_len);
-}
+// /**
+//  * hxhimDelete
+//  * Add a DEL into the work queue
+//  *
+//  * @param hx        the HXHIM session
+//  * @param key       the key to del
+//  * @param key_len   the length of the key to delete
+//  * @return HXHIM_SUCCESS or HXHIM_ERROR
+//  */
+// int hxhimDelete(hxhim_t *hx, void *key, std::size_t key_len) {
+//     return hxhim::Delete(hx, key, key_len);
+// }
 
 /**
  * BPut
@@ -421,17 +340,11 @@ int hxhim::BPut(hxhim_t *hx, void **keys, std::size_t *key_lens, void **values, 
         return HXHIM_ERROR;
     }
 
-    put_work_t *work = dynamic_cast<put_work_t *>(get_matching_work(hx, hxhim_work_op::HXHIM_PUT));
-    if (!work) {
-        return HXHIM_ERROR;
-    }
-
     for(std::size_t i = 0; i < num_keys; i++) {
-        work->keys.push_back(keys[i]);
-        work->key_lens.push_back(key_lens[i]);
-
-        work->values.push_back(values[i]);
-        work->value_lens.push_back(value_lens[i]);
+        hx->p->puts.keys.push_back(keys[i]);
+        hx->p->puts.key_lens.push_back(key_lens[i]);
+        hx->p->puts.values.push_back(values[i]);
+        hx->p->puts.value_lens.push_back(value_lens[i]);
     }
 
     return HXHIM_SUCCESS;
@@ -461,22 +374,12 @@ int hxhimBPut(hxhim_t *hx, void **keys, std::size_t *key_lens, void **values, st
  * @param key_lesn   the length of the keys to bget
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim::BGet(hxhim_t *hx, void **keys, std::size_t *key_lens, std::size_t num_keys) {
+hxhim::Return *hxhim::BGet(hxhim_t *hx, void **keys, std::size_t *key_lens, std::size_t num_keys) {
     if (!hx || !hx->p || !keys || !key_lens) {
-        return HXHIM_ERROR;
+        return nullptr;
     }
 
-    get_work_t *work = dynamic_cast<get_work_t *>(get_matching_work(hx, hxhim_work_op::HXHIM_GET));
-    if (!work) {
-        return HXHIM_ERROR;
-    }
-
-    for(std::size_t i = 0; i < num_keys; i++) {
-        work->keys.push_back(keys[i]);
-        work->key_lens.push_back(key_lens[i]);
-    }
-
-    return HXHIM_SUCCESS;
+    return new hxhim::Return(HXHIM_GET, mdhim::BGet(hx->p->md, nullptr, keys, key_lens, num_keys, GET_EQ));
 }
 
 /**
@@ -488,46 +391,46 @@ int hxhim::BGet(hxhim_t *hx, void **keys, std::size_t *key_lens, std::size_t num
  * @param key_lesn   the length of the keys to bget
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhimBGet(hxhim_t *hx, void **keys, std::size_t *key_lens, std::size_t num_keys) {
-    return hxhim::BGet(hx, keys, key_lens, num_keys);
+hxhim_return_t *hxhimBGet(hxhim_t *hx, void **keys, std::size_t *key_lens, std::size_t num_keys) {
+    return hxhim_return_init(hxhim::BGet(hx, keys, key_lens, num_keys));
 }
 
-/**
- * BDelete
- * Add a BDEL into the work queue
- *
- * @param hx         the HXHIM session
- * @param keys       the keys to bdel
- * @param key_lesn   the length of the keys to bdelete
- * @return HXHIM_SUCCESS or HXHIM_ERROR
- */
-int hxhim::BDelete(hxhim_t *hx, void **keys, std::size_t *key_lens, std::size_t num_keys) {
-    if (!hx || !hx->p || !keys || !key_lens) {
-        return HXHIM_ERROR;
-    }
+// /**
+//  * BDelete
+//  * Add a BDEL into the work queue
+//  *
+//  * @param hx         the HXHIM session
+//  * @param keys       the keys to bdel
+//  * @param key_lesn   the length of the keys to bdelete
+//  * @return HXHIM_SUCCESS or HXHIM_ERROR
+//  */
+// int hxhim::BDelete(hxhim_t *hx, void **keys, std::size_t *key_lens, std::size_t num_keys) {
+//     if (!hx || !hx->p || !keys || !key_lens) {
+//         return HXHIM_ERROR;
+//     }
 
-    del_work_t *work = dynamic_cast<del_work_t *>(get_matching_work(hx, hxhim_work_op::HXHIM_DEL));
-    if (!work) {
-        return HXHIM_ERROR;
-    }
+//     del_work_t *work = dynamic_cast<del_work_t *>(get_matching_work(hx, hxhim_work_op::HXHIM_DEL));
+//     if (!work) {
+//         return HXHIM_ERROR;
+//     }
 
-    for(std::size_t i = 0; i < num_keys; i++) {
-        work->keys.push_back(keys[i]);
-        work->key_lens.push_back(key_lens[i]);
-    }
+//     for(std::size_t i = 0; i < num_keys; i++) {
+//         puts.keys.push_back(keys[i]);
+//         puts.key_lens.push_back(key_lens[i]);
+//     }
 
-    return HXHIM_SUCCESS;
-}
+//     return HXHIM_SUCCESS;
+// }
 
-/**
- * hxhimBDelete
- * Add a BDEL into the work queue
- *
- * @param hx         the HXHIM session
- * @param keys       the keys to bdel
- * @param key_lesn   the length of the keys to bdelete
- * @return HXHIM_SUCCESS or HXHIM_ERROR
- */
-int hxhimBDelete(hxhim_t *hx, void **keys, std::size_t *key_lens, std::size_t num_keys) {
-    return hxhim::BDelete(hx, keys, key_lens, num_keys);
-}
+// /**
+//  * hxhimBDelete
+//  * Add a BDEL into the work queue
+//  *
+//  * @param hx         the HXHIM session
+//  * @param keys       the keys to bdel
+//  * @param key_lesn   the length of the keys to bdelete
+//  * @return HXHIM_SUCCESS or HXHIM_ERROR
+//  */
+// int hxhimBDelete(hxhim_t *hx, void **keys, std::size_t *key_lens, std::size_t num_keys) {
+//     return hxhim::BDelete(hx, keys, key_lens, num_keys);
+// }

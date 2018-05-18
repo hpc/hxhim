@@ -4,6 +4,31 @@
 #include <mpi.h>
 
 #include "hxhim.hpp"
+#include "kv_gen.h"
+
+static void print_results(const int rank, hxhim::Return *results) {
+    if (results) {
+        // iterate through each range server
+        for(results->MoveToFirstRS(); results->ValidRS() == HXHIM_SUCCESS; results->NextRS()) {
+            // iterate through each key value pair
+            for(results->MoveToFirstKV(); results->ValidKV() == HXHIM_SUCCESS; results->NextKV()) {
+                char *key; std::size_t key_len;
+                results->GetKV((void **) &key, &key_len, nullptr, nullptr);
+                std::cout << "Rank " << rank << " GET " << std::string(key, key_len);
+
+                if (results->GetError() == HXHIM_SUCCESS) {
+                    char *value; std::size_t value_len;
+                    results->GetKV(nullptr, nullptr, (void **) &value, &value_len);
+                    std::cout << " -> " << std::string(value, value_len);
+                }
+                else {
+                    std::cout << " failed";
+                }
+                std::cout << " on range server " << results->GetSrc() << std::endl;
+            }
+        }
+    }
+}
 
 int main(int argc, char *argv[]) {
     int provided;
@@ -12,80 +37,44 @@ int main(int argc, char *argv[]) {
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    const std::size_t count = 10;
-
     // Generate some key value pairs
-    std::pair<std::string, std::string> kvs[count];
-    for(std::size_t i = 0; i < count; i++) {
-        std::stringstream key, value;
-        key << "key" << rank << i;
-        value << "value" << rank << i;
-        kvs[i].first = key.str();
-        kvs[i].second = value.str();
-    }
+    const std::size_t count = 10;
+    void **keys = NULL, **values = NULL;
+    size_t *key_lens = NULL, *value_lens = NULL;
+    kv_gen(count, 100, rank, &keys, &key_lens, &values, &value_lens);
 
     // start hxhim
     hxhim_t hx;
     hxhim::Open(&hx, MPI_COMM_WORLD, "mdhim.conf");
 
     // PUT the key value pairs into MDHIM
-    for(std::pair<std::string, std::string> const & kv : kvs) {
-        hxhim::Put(&hx, (void *)kv.first.c_str(), kv.first.size(), (void *)kv.second.c_str(), kv.second.size());
+    for(size_t i = 0; i < count; i++) {
+        hxhim::Put(&hx, keys[i], key_lens[i], values[i], value_lens[i]);
     }
 
-    // GET them back
-    for(std::pair<std::string, std::string> const & kv : kvs) {
-        hxhim::Get(&hx, (void *)kv.first.c_str(), kv.first.size());
-    }
-
-    // DEL the key value pairs
-    for(std::pair<std::string, std::string> const & kv : kvs) {
-        hxhim::Delete(&hx, (void *)kv.first.c_str(), kv.first.size());
-    }
-
-    // try to GET the key value pairs again
-    for(std::pair<std::string, std::string> const & kv : kvs) {
-        hxhim::Get(&hx, (void *)kv.first.c_str(), kv.first.size());
-    }
-
-    // perform the queued operations
-    hxhim::Return *results = hxhim::Flush(&hx);
-
-    // iterate through the results
-    while (results) {
-        for(results->MoveToFirstRS(); results->ValidRS() == HXHIM_SUCCESS; results->NextRS()) {
-            switch (results->GetOp()) {
-                case hxhim_work_op::HXHIM_PUT:
-                    std::cout << "Rank " << rank << " PUT returned status " << results->GetError() << " on range server " << results->GetSrc() << std::endl;
-                    break;
-                case hxhim_work_op::HXHIM_GET:
-                    if (results->GetError() == HXHIM_SUCCESS) {
-                        for(results->MoveToFirstKV(); results->ValidKV() == HXHIM_SUCCESS; results->NextKV()) {
-                            char *key, *value;
-                            std::size_t key_len, value_len;
-                            if (results->GetKV((void **) &key, &key_len, (void **) &value, &value_len) == HXHIM_SUCCESS) {
-                                std::cout << "Rank " << rank << " GET " << std::string(key, key_len) << " -> " << std::string(value, value_len) << " on range server " << results->GetSrc() << std::endl;
-                            }
-                        }
-                    }
-                    else {
-                        std::cout << "Rank " << rank << " GET failed on range server " << results->GetSrc() << std::endl;
-                    }
-                    break;
-                case hxhim_work_op::HXHIM_DEL:
-                    std::cout << "Rank " << rank << " DEL returned status " << results->GetError() << " on range server " << results->GetSrc() << std::endl;
-                    break;
-                default:
-                    break;
-            }
-        }
-
-        hxhim::Return *next = results->Next();
+    // GET them back without flushing
+    for(size_t i = 0; i < count; i++) {
+        hxhim::Return *results = hxhim::Get(&hx, keys[i], key_lens[i]);
+        print_results(rank, results);
         delete results;
-        results = next;
+    }
+
+    // flush the PUT stream
+    if (hxhim::Flush(&hx) != HXHIM_SUCCESS) {
+        std::cerr << "Rank " << rank << " failed to flush" << std::endl;
+    }
+    else {
+        std::cerr << "Rank " << rank << " flushed" << std::endl;
+
+        // use BGET instead of GET
+        hxhim::Return *results = hxhim::BGet(&hx, keys, key_lens, count);
+        print_results(rank, results);
+        delete results;
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
+
+    kv_clean(count, keys, key_lens, values, value_lens);
 
     hxhim::Close(&hx);
     MPI_Finalize();

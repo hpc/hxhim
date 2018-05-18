@@ -194,11 +194,7 @@ int MPIRangeServer::only_receive_rangesrv_work(void **recvbuf, std::size_t *recv
     }
     Flush(&req, &flag, &status, shutdown);
 
-    if (!*recvbuf) {
-        return MDHIM_ERROR;
-    }
-
-    return MDHIM_SUCCESS;
+    return (*recvbuf)?MDHIM_SUCCESS:MDHIM_ERROR;
 }
 
 /**

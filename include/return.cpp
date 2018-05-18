@@ -8,8 +8,7 @@ Return::Return(enum hxhim_work_op operation, TransportResponseMessage *response)
   : op(operation),
     head(response),
     curr(head),
-    pos(0),
-    next(nullptr)
+    pos(0)
 {}
 
 Return::~Return() {
@@ -174,14 +173,6 @@ int Return::ValidKV(const std::size_t position) const {
     return ret;
 }
 
-Return *Return::Next() const {
-    return next;
-}
-
-Return *Return::Next(Return *ret) {
-    return (next = ret);
-}
-
 }
 
 void hxhim_return_destroy(hxhim_return_t *ret) {
@@ -283,17 +274,4 @@ int hxhim_return_get_kv(hxhim_return_t *ret, void **key, size_t *key_len, void *
     }
 
     return ret->ret->GetKV(key, key_len, value, value_len);;
-}
-
-int hxhim_return_next(hxhim_return_t *ret, hxhim_return_t **next) {
-    if (!ret || !ret->ret || !next) {
-        return HXHIM_ERROR;
-    }
-
-    *next = nullptr;
-    if (ret->ret->Next()) {
-        *next = new hxhim_return_t();
-        (*next)->ret = ret->ret->Next();
-    }
-    return HXHIM_SUCCESS;
 }

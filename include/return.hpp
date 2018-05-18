@@ -35,9 +35,6 @@ class Return {
         int ValidKV() const;
         int GetKV(void **key, std::size_t *key_len, void **value, std::size_t *value_len);
 
-        Return *Next() const;
-        Return *Next(Return *ret);
-
     private:
         int ValidKV(const std::size_t position) const;
 
@@ -46,8 +43,6 @@ class Return {
 
         TransportResponseMessage *curr; // current range server
         std::size_t pos;                // current key index
-
-        Return *next;
 };
 
 }

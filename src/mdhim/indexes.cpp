@@ -971,9 +971,7 @@ int index_init_comm(mdhim_t *md, index_t *bi) {
     }
 
     if (im_range_server(bi) == 1) {
-        MPI_Comm_dup(new_comm, &bi->rs_comm);
-    } else {
-        MPI_Comm_free(&new_comm);
+        bi->rs_comm = new_comm;
     }
 
     MPI_Group_free(&orig);
