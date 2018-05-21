@@ -22,6 +22,8 @@ int hxhimOpen(hxhim_t *hx, const MPI_Comm bootstrap_comm, const char *filename);
 int hxhimClose(hxhim_t *hx);
 
 int hxhimFlush(hxhim_t *hx);
+hxhim_return_t *hxhimFlushGet(hxhim_t *hx, void *key, size_t key_len);
+hxhim_return_t *hxhimFlushBGet(hxhim_t *hx, void **keys, size_t *key_lens, size_t num_keys);
 
 int hxhimPut(hxhim_t *hx, void *key, size_t key_len, void *value, size_t value_len);
 hxhim_return_t *hxhimGet(hxhim_t *hx, void *key, size_t key_len);

@@ -74,18 +74,10 @@ int main(int argc, char *argv[]) {
         hxhim_return_destroy(results);
     }
 
-    // flush the PUT stream
-    if (hxhimFlush(&hx) != HXHIM_SUCCESS) {
-        printf("Rank %d failed to flush\n", rank);
-    }
-    else {
-        printf("Rank %d flushed\n", rank);
-
-        // use BGET instead of GET
-        hxhim_return_t *results = hxhimBGet(&hx, keys, key_lens, count);
-        print_results(rank, results);
-        hxhim_return_destroy(results);
-    }
+    // use BGET instead of GET
+    hxhim_return_t *results = hxhimFlushBGet(&hx, keys, key_lens, count);
+    print_results(rank, results);
+    hxhim_return_destroy(results);
 
     MPI_Barrier(MPI_COMM_WORLD);
 

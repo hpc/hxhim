@@ -50,6 +50,7 @@ int main(int argc, char *argv[]) {
     // PUT the key value pairs into MDHIM
     for(size_t i = 0; i < count; i++) {
         hxhim::Put(&hx, keys[i], key_lens[i], values[i], value_lens[i]);
+        std::cout << "Rank " << rank << " PUT " << std::string((char *) keys[i], key_lens[i]) << " -> " << std::string((char *) values[i], value_lens[i]) << std::endl;
     }
 
     // GET them back without flushing
@@ -59,18 +60,9 @@ int main(int argc, char *argv[]) {
         delete results;
     }
 
-    // flush the PUT stream
-    if (hxhim::Flush(&hx) != HXHIM_SUCCESS) {
-        std::cerr << "Rank " << rank << " failed to flush" << std::endl;
-    }
-    else {
-        std::cerr << "Rank " << rank << " flushed" << std::endl;
-
-        // use BGET instead of GET
-        hxhim::Return *results = hxhim::BGet(&hx, keys, key_lens, count);
-        print_results(rank, results);
-        delete results;
-    }
+    hxhim::Return *results = hxhim::FlushBGet(&hx, keys, key_lens, count);
+    print_results(rank, results);
+    delete results;
 
     MPI_Barrier(MPI_COMM_WORLD);
 

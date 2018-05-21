@@ -132,7 +132,7 @@ int hxhimClose(hxhim_t *hx) {
  * Push the PUT stream so that the keys are visible.
  *
  * @param hx
- * @return A list of wrapped MDHIM return values
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::Flush(hxhim_t *hx) {
     hxhim::put_stream_t &puts = hx->p->puts;
@@ -211,10 +211,62 @@ int hxhim::Flush(hxhim_t *hx) {
  * Push all queued work into MDHIM
  *
  * @param hx
- * @return A list of wrapped MDHIM return values
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimFlush(hxhim_t *hx) {
     return hxhim::Flush(hx);
+}
+
+/**
+ * FlushGet
+ * Flush the queued PUTs before getting
+ *
+ * @param hx
+ * @param key       the key to get
+ * @param key_len   the length of the key to get
+ * @return A wrapped return value containing responses
+ */
+hxhim::Return *hxhim::FlushGet(hxhim_t *hx, void *key, size_t key_len) {
+    return (hxhim::Flush(hx) == HXHIM_SUCCESS)?hxhim::Get(hx, key, key_len):nullptr;
+}
+
+/**
+ * hxhimFlushGet
+ * Flush the queued PUTs before getting
+ *
+ * @param hx
+ * @param key       the key to get
+ * @param key_len   the length of the key to get
+ * @return A wrapped return value containing responses
+ */
+hxhim_return_t *hxhimFlushGet(hxhim_t *hx, void *key, size_t key_len) {
+    return hxhim_return_init(hxhim::FlushGet(hx, key, key_len));
+}
+
+/**
+ * FlushBGet
+ * Flush the queued PUTs before getting
+ *
+ * @param hx
+ * @param keys       the keys to bget
+ * @param key_lens   the length of the keys to bget
+ * @return A wrapped return value containing responses
+ */
+hxhim::Return *hxhim::FlushBGet(hxhim_t *hx, void **keys, size_t *key_lens, std::size_t num_keys) {
+    return (hxhim::Flush(hx) == HXHIM_SUCCESS)?hxhim::BGet(hx, keys, key_lens, num_keys):nullptr;
+}
+
+/**
+ * hxhimFlushBGet
+ * Flush the queued PUTs before getting
+ *
+ * @param hx
+ * @param keys       the keys to bget
+ * @param key_lens   the length of the keys to bget
+ * @return A wrapped return value containing responses
+ */
+hxhim_return_t *hxhimFlushBGet(hxhim_t *hx, void **keys, size_t *key_lens, std::size_t num_keys) {
+    return hxhim_return_init(hxhim::FlushBGet(hx, keys, key_lens, num_keys));
 }
 
 /**
@@ -263,7 +315,7 @@ int hxhimPut(hxhim_t *hx, void *key, std::size_t key_len, void *value, std::size
  * @param hx        the HXHIM session
  * @param key       the key to get
  * @param key_len   the length of the key to get
- * @return HXHIM_SUCCESS or HXHIM_ERROR
+ * @return A wrapped return value containing responses
  */
 hxhim::Return *hxhim::Get(hxhim_t *hx, void *key, std::size_t key_len) {
     if (!hx || !hx->p || !key) {
@@ -280,7 +332,7 @@ hxhim::Return *hxhim::Get(hxhim_t *hx, void *key, std::size_t key_len) {
  * @param hx        the HXHIM session
  * @param key       the key to get
  * @param key_len   the length of the key to get
- * @return HXHIM_SUCCESS or HXHIM_ERROR
+ * @return A wrapped return value containing responses
  */
 hxhim_return_t *hxhimGet(hxhim_t *hx, void *key, std::size_t key_len) {
     return hxhim_return_init(hxhim::Get(hx, key, key_len));
@@ -330,7 +382,7 @@ hxhim_return_t *hxhimGet(hxhim_t *hx, void *key, std::size_t key_len) {
  *
  * @param hx         the HXHIM session
  * @param keys       the keys to bput
- * @param key_lesn   the length of the keys to bput
+ * @param key_lens   the length of the keys to bput
  * @param values     the values associated with the keys
  * @param value_lens the length of the values
  * @return HXHIM_SUCCESS or HXHIM_ERROR
@@ -356,7 +408,7 @@ int hxhim::BPut(hxhim_t *hx, void **keys, std::size_t *key_lens, void **values, 
  *
  * @param hx         the HXHIM session
  * @param keys       the keys to bput
- * @param key_lesn   the length of the keys to bput
+ * @param key_lens   the length of the keys to bput
  * @param values     the values associated with the keys
  * @param value_lens the length of the values
  * @return HXHIM_SUCCESS or HXHIM_ERROR
@@ -371,8 +423,8 @@ int hxhimBPut(hxhim_t *hx, void **keys, std::size_t *key_lens, void **values, st
  *
  * @param hx         the HXHIM session
  * @param keys       the keys to bget
- * @param key_lesn   the length of the keys to bget
- * @return HXHIM_SUCCESS or HXHIM_ERROR
+ * @param key_lens   the length of the keys to bget
+ * @return A wrapped return value containing responses
  */
 hxhim::Return *hxhim::BGet(hxhim_t *hx, void **keys, std::size_t *key_lens, std::size_t num_keys) {
     if (!hx || !hx->p || !keys || !key_lens) {
@@ -388,8 +440,8 @@ hxhim::Return *hxhim::BGet(hxhim_t *hx, void **keys, std::size_t *key_lens, std:
  *
  * @param hx         the HXHIM session
  * @param keys       the keys to bget
- * @param key_lesn   the length of the keys to bget
- * @return HXHIM_SUCCESS or HXHIM_ERROR
+ * @param key_lens   the length of the keys to bget
+ * @return A wrapped return value containing responses
  */
 hxhim_return_t *hxhimBGet(hxhim_t *hx, void **keys, std::size_t *key_lens, std::size_t num_keys) {
     return hxhim_return_init(hxhim::BGet(hx, keys, key_lens, num_keys));
@@ -401,7 +453,7 @@ hxhim_return_t *hxhimBGet(hxhim_t *hx, void **keys, std::size_t *key_lens, std::
 //  *
 //  * @param hx         the HXHIM session
 //  * @param keys       the keys to bdel
-//  * @param key_lesn   the length of the keys to bdelete
+//  * @param key_lens   the length of the keys to bdelete
 //  * @return HXHIM_SUCCESS or HXHIM_ERROR
 //  */
 // int hxhim::BDelete(hxhim_t *hx, void **keys, std::size_t *key_lens, std::size_t num_keys) {
@@ -428,7 +480,7 @@ hxhim_return_t *hxhimBGet(hxhim_t *hx, void **keys, std::size_t *key_lens, std::
 //  *
 //  * @param hx         the HXHIM session
 //  * @param keys       the keys to bdel
-//  * @param key_lesn   the length of the keys to bdelete
+//  * @param key_lens   the length of the keys to bdelete
 //  * @return HXHIM_SUCCESS or HXHIM_ERROR
 //  */
 // int hxhimBDelete(hxhim_t *hx, void **keys, std::size_t *key_lens, std::size_t num_keys) {
