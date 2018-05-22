@@ -82,7 +82,7 @@ int main(int argc, char *argv[]){
     // Every rank gets the value back
     {
         // Pass NULL here to use md->p->primary_index
-        mdhim_getrm_t *grm = mdhimGet(&md, NULL,
+        mdhim_grm_t *grm = mdhimGet(&md, NULL,
                                       (void *)&MDHIM_PUT_GET_PRIMARY_KEY, sizeof(MDHIM_PUT_GET_PRIMARY_KEY),
                                       GET_EQ);
         int error = MDHIM_ERROR;

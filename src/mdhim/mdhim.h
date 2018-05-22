@@ -30,13 +30,13 @@ mdhim_brm_t *mdhimBPut(mdhim_t *md, index_t *index,
                        void **primary_keys, size_t *primary_key_lens,
                        void **primary_values, size_t *primary_value_lens,
                        size_t num_records);
-mdhim_getrm_t *mdhimGet(mdhim_t *md, index_t *index,
+mdhim_grm_t *mdhimGet(mdhim_t *md, index_t *index,
                         void *key, size_t key_len,
                         enum TransportGetMessageOp op);
-mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, index_t *index,
+mdhim_bgrm_t *mdhimBGet(mdhim_t *md, index_t *index,
                           void **keys, size_t *key_lens,
                           size_t num_records, enum TransportGetMessageOp op);
-mdhim_bgetrm_t *mdhimBGetOp(mdhim_t *md, index_t *index,
+mdhim_bgrm_t *mdhimBGetOp(mdhim_t *md, index_t *index,
                             void *key, size_t key_len,
                             size_t num_records, enum TransportGetMessageOp op);
 mdhim_rm_t *mdhimDelete(mdhim_t *md, index_t *index,

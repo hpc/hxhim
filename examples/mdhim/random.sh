@@ -139,4 +139,4 @@ echo "Reading config from: $(realpath $MDHIM_CONFIG)"
     for op in "${POSITIONAL[@]}"; do
         echo "${OPS[$op]}"
     done
-) | MDHIM_CONFIG=$MDHIM_CONFIG mpirun -np $RANKS examples/cli
+) | MDHIM_CONFIG=$MDHIM_CONFIG mpirun -np $RANKS $(dirname $0)/cli

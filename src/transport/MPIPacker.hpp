@@ -20,7 +20,7 @@ class MPIPacker {
     public:
         static int any (const MPI_Comm comm, const TransportMessage         *msg,  void **buf, std::size_t *bufsize, FixedBufferPool *fbp);
 
-        static int pack(const MPI_Comm comm, const TransportRequestMessage         *req,  void **buf, std::size_t *bufsize, FixedBufferPool *fbp);
+        static int pack(const MPI_Comm comm, const TransportRequestMessage  *req,  void **buf, std::size_t *bufsize, FixedBufferPool *fbp);
         static int pack(const MPI_Comm comm, const TransportPutMessage      *pm,   void **buf, std::size_t *bufsize, FixedBufferPool *fbp);
         static int pack(const MPI_Comm comm, const TransportBPutMessage     *bpm,  void **buf, std::size_t *bufsize, FixedBufferPool *fbp);
         static int pack(const MPI_Comm comm, const TransportGetMessage      *gm,   void **buf, std::size_t *bufsize, FixedBufferPool *fbp);
@@ -28,7 +28,7 @@ class MPIPacker {
         static int pack(const MPI_Comm comm, const TransportDeleteMessage   *dm,   void **buf, std::size_t *bufsize, FixedBufferPool *fbp);
         static int pack(const MPI_Comm comm, const TransportBDeleteMessage  *bdm,  void **buf, std::size_t *bufsize, FixedBufferPool *fbp);
 
-        static int pack(const MPI_Comm comm, const TransportResponseMessage        *res,  void **buf, std::size_t *bufsize, FixedBufferPool *fbp);
+        static int pack(const MPI_Comm comm, const TransportResponseMessage *res,  void **buf, std::size_t *bufsize, FixedBufferPool *fbp);
         static int pack(const MPI_Comm comm, const TransportRecvMessage     *rm,   void **buf, std::size_t *bufsize, FixedBufferPool *fbp);
         static int pack(const MPI_Comm comm, const TransportGetRecvMessage  *grm,  void **buf, std::size_t *bufsize, FixedBufferPool *fbp);
         static int pack(const MPI_Comm comm, const TransportBGetRecvMessage *bgrm, void **buf, std::size_t *bufsize, FixedBufferPool *fbp);
@@ -41,8 +41,8 @@ class MPIPacker {
          * *bufsize should already have been determined when calling this function
          */
         static int pack(const MPI_Comm comm, const TransportMessage         *msg,  void **buf, std::size_t *bufsize, int *position, FixedBufferPool *fbp);
-        static int pack(const MPI_Comm comm, const TransportRequestMessage         *req,  void **buf, std::size_t *bufsize, int *position, FixedBufferPool *fbp);
-        static int pack(const MPI_Comm comm, const TransportResponseMessage        *res,  void **buf, std::size_t *bufsize, int *position, FixedBufferPool *fbp);
+        static int pack(const MPI_Comm comm, const TransportRequestMessage  *req,  void **buf, std::size_t *bufsize, int *position, FixedBufferPool *fbp);
+        static int pack(const MPI_Comm comm, const TransportResponseMessage *res,  void **buf, std::size_t *bufsize, int *position, FixedBufferPool *fbp);
 
         static void cleanup(void **buf, std::size_t *bufsize, FixedBufferPool *fbp);
 };

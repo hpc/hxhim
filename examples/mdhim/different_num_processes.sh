@@ -140,7 +140,7 @@ for ranks in $(seq 1 $DATABASES); do
         (
             echo "${OPS[GET]}"
             echo "${OPS[BGET]}"
-        ) | MDHIM_CONFIG=$config mpirun -np $ranks examples/cli
+        ) | MDHIM_CONFIG=$config mpirun -np $ranks $(dirname $0)/cli
     fi
 done
 

@@ -352,9 +352,9 @@ TransportGetRecvMessage *mdhim::Get(mdhim_t *md, index_t *index,
  (MDHIM_GET_NEXT or MDHIM_GET_PREV)
  * @param key_len   the length of the key
  * @param op        the operation type
- * @return mdhim_getrm_t * or nullptr on error
+ * @return mdhim_grm_t * or nullptr on error
  */
-mdhim_getrm_t *mdhimGet(mdhim_t *md, index_t *index,
+mdhim_grm_t *mdhimGet(mdhim_t *md, index_t *index,
                         void *key, std::size_t key_len,
                         enum TransportGetMessageOp op) {
     return mdhim_grm_init(mdhim::Get(md, index, key, key_len, op));
@@ -460,9 +460,9 @@ TransportBGetRecvMessage *mdhim::BGet(mdhim_t *md, index_t *index,
  * @param keys         pointer to array of keys to get values for
  * @param key_lens     array with lengths of each key in keys
  * @param num_records  the number of keys to get (i.e., the number of keys in keys array)
- * @return mdhim_bgetrm_t * or nullptr on error
+ * @return mdhim_bgrm_t * or nullptr on error
  */
-mdhim_bgetrm_t *mdhimBGet(mdhim_t *md, index_t *index,
+mdhim_bgrm_t *mdhimBGet(mdhim_t *md, index_t *index,
                           void **keys, std::size_t *key_lens,
                           std::size_t num_keys, enum TransportGetMessageOp op) {
     return mdhim_bgrm_init(mdhim::BGet(md, index,
@@ -540,9 +540,9 @@ TransportBGetRecvMessage *mdhim::BGetOp(mdhim_t *md, index_t *index,
  * @param key_len      the length of the key
  * @param num_records  the number of successive keys to get
  * @param op           the operation to perform (i.e., MDHIM_GET_NEXT or MDHIM_GET_PREV)
- * @return mdhim_bgetrm_t * or nullptr on error
+ * @return mdhim_bgrm_t * or nullptr on error
  */
-mdhim_bgetrm_t *mdhimBGetOp(mdhim_t *md, index_t *index,
+mdhim_bgrm_t *mdhimBGetOp(mdhim_t *md, index_t *index,
                             void *key, std::size_t key_len,
                             std::size_t num_records, enum TransportGetMessageOp op) {
     return mdhim_bgrm_init(mdhim::BGetOp(md, index, key, key_len, num_records, op));

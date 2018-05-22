@@ -14,7 +14,7 @@ int bulk_clean(std::size_t columns, void ***data, std::size_t **lens, std::size_
 /** @description Incremenet a mdhim_brm_t to the next message */
 int next(mdhim_brm_t **brm);
 
-/** @description Incremenet a mdhim_bgetrm_t to the next message */
-int next(mdhim_bgetrm_t **bgrm);
+/** @description Incremenet a mdhim_bgrm_t to the next message */
+int next(mdhim_bgrm_t **bgrm);
 
 #endif

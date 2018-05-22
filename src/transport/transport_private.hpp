@@ -20,14 +20,14 @@ typedef struct mdhim_brm {
 } mdhim_brm_t;
 
 /* Get Receive message */
-typedef struct mdhim_getrm {
+typedef struct mdhim_grm {
     TransportGetRecvMessage *grm;
-} mdhim_getrm_t;
+} mdhim_grm_t;
 
 /* Bulk Get Receive message */
-typedef struct mdhim_bgetrm {
+typedef struct mdhim_bgrm {
     TransportBGetRecvMessage *bgrm;
-} mdhim_bgetrm_t;
+} mdhim_bgrm_t;
 
 /**
  * Initialization functions for the mdhim structures
@@ -35,9 +35,9 @@ typedef struct mdhim_bgetrm {
  * These functsios are private because users never
  * allocate the mdhim structures.
 */
-mdhim_rm_t     *mdhim_rm_init(TransportRecvMessage *rm = nullptr);
-mdhim_brm_t    *mdhim_brm_init(TransportBRecvMessage *brm = nullptr);
-mdhim_getrm_t  *mdhim_grm_init(TransportGetRecvMessage *grm = nullptr);
-mdhim_bgetrm_t *mdhim_bgrm_init(TransportBGetRecvMessage *bgrm = nullptr);
+mdhim_rm_t   *mdhim_rm_init(TransportRecvMessage *rm = nullptr);
+mdhim_brm_t  *mdhim_brm_init(TransportBRecvMessage *brm = nullptr);
+mdhim_grm_t  *mdhim_grm_init(TransportGetRecvMessage *grm = nullptr);
+mdhim_bgrm_t *mdhim_bgrm_init(TransportBGetRecvMessage *bgrm = nullptr);
 
 #endif

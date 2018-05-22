@@ -56,7 +56,7 @@ void mdhimftput(void *key, int *key_size, void *val, int *val_size) {
 
 void mdhimftget(void *key, int *key_size, void *val, int val_size) {
    printf("Key: %s\n", (char *)key);
-   mdhim_getrm_t *grm = mdhimGet(md, md->p->primary_index, key, *key_size, TransportGetMessageOp::GET_EQ);
+   mdhim_grm_t *grm = mdhimGet(md, md->p->primary_index, key, *key_size, TransportGetMessageOp::GET_EQ);
    if (!grm || !grm->grm || grm->grm->error) {
      printf("Error getting value for key: %p from MDHIM\n", key);
    } else {

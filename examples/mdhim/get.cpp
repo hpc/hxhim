@@ -14,7 +14,7 @@ void get(mdhim_t *md,
          void *primary_key, std::size_t primary_key_len,
          std::ostream &out, std::ostream &err) {
     // Get the value
-    mdhim_getrm_t *grm = mdhimGet(md, nullptr,
+    mdhim_grm_t *grm = mdhimGet(md, nullptr,
                                   primary_key, primary_key_len,
                                   GET_EQ);
 

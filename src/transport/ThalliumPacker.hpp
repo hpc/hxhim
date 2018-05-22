@@ -20,7 +20,7 @@ class ThalliumPacker {
     public:
         static int any (const TransportMessage         *msg,  std::string &buf);
 
-        static int pack(const TransportRequestMessage         *req,  std::string &buf);
+        static int pack(const TransportRequestMessage  *req,  std::string &buf);
         static int pack(const TransportPutMessage      *pm,   std::string &buf);
         static int pack(const TransportBPutMessage     *bpm,  std::string &buf);
         static int pack(const TransportGetMessage      *gm,   std::string &buf);
@@ -28,7 +28,7 @@ class ThalliumPacker {
         static int pack(const TransportDeleteMessage   *dm,   std::string &buf);
         static int pack(const TransportBDeleteMessage  *bdm,  std::string &buf);
 
-        static int pack(const TransportResponseMessage        *res,  std::string &buf);
+        static int pack(const TransportResponseMessage *res,  std::string &buf);
         static int pack(const TransportRecvMessage     *rm,   std::string &buf);
         static int pack(const TransportGetRecvMessage  *grm,  std::string &buf);
         static int pack(const TransportBGetRecvMessage *bgrm, std::string &buf);
@@ -39,8 +39,8 @@ class ThalliumPacker {
          * Common to all public functions
          */
         static int pack(const TransportMessage         *msg,  std::stringstream &s);
-        static int pack(const TransportRequestMessage         *req,  std::stringstream &s);
-        static int pack(const TransportResponseMessage        *res,  std::stringstream &s);
+        static int pack(const TransportRequestMessage  *req,  std::stringstream &s);
+        static int pack(const TransportResponseMessage *res,  std::stringstream &s);
 };
 
 #endif

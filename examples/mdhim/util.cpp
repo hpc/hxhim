@@ -127,18 +127,18 @@ int next(mdhim_brm_t **brm) {
 
 /**
  * next
- * Increment a mdhim_bgetrm_t to the next message
+ * Increment a mdhim_bgrm_t to the next message
  *
  * @param bgrm the current message
  * @return MDHIM_SUCCESS or MDHIM_ERROR
  */
-int next(mdhim_bgetrm_t **bgrm) {
+int next(mdhim_bgrm_t **bgrm) {
     if (!bgrm) {
         return MDHIM_ERROR;
     }
 
     // Go to next result
-    mdhim_bgetrm_t *next = nullptr;
+    mdhim_bgrm_t *next = nullptr;
     if (mdhim_bgrm_next(*bgrm, &next) != MDHIM_SUCCESS) {
         return MDHIM_ERROR;
     }
