@@ -16,9 +16,9 @@ void bget(mdhim_t *md,
           std::size_t num_keys,
           std::ostream &out, std::ostream &err) {
     mdhim_bgrm_t *bgrm = mdhimBGet(md, nullptr,
-                                     keys, key_lens,
-                                     num_keys,
-                                     TransportGetMessageOp::GET_EQ);
+                                   keys, key_lens,
+                                   num_keys,
+                                   TransportGetMessageOp::GET_EQ);
 
     if (!bgrm) {
         err << "mdhimBGet error" << std::endl;

@@ -31,8 +31,7 @@ TransportRequestMessage::TransportRequestMessage(const TransportMessageType type
 TransportRequestMessage::~TransportRequestMessage(){}
 
 TransportPutMessage::TransportPutMessage()
-    : TransportMessage(TransportMessageType::PUT),
-      TransportRequestMessage(TransportMessageType::PUT),
+    : TransportRequestMessage(TransportMessageType::PUT),
       rs_idx(-1),
       key(nullptr), key_len(0), value(nullptr), value_len(0)
 {}
@@ -61,8 +60,7 @@ void TransportPutMessage::cleanup() {
 }
 
 TransportBPutMessage::TransportBPutMessage()
-    : TransportMessage(TransportMessageType::BPUT),
-      TransportRequestMessage(TransportMessageType::BPUT),
+    : TransportRequestMessage(TransportMessageType::BPUT),
       rs_idx(),
       keys(), key_lens(),
       values(), value_lens(),
@@ -104,8 +102,7 @@ void TransportBPutMessage::cleanup() {
 }
 
 TransportGet::TransportGet(const TransportMessageType type)
-    : TransportMessage(type),
-      TransportRequestMessage(type),
+    : TransportRequestMessage(type),
       op(TransportGetMessageOp::GET_OP_MAX),
       num_keys(0)
 {}
@@ -113,9 +110,7 @@ TransportGet::TransportGet(const TransportMessageType type)
 TransportGet::~TransportGet() {}
 
 TransportGetMessage::TransportGetMessage()
-    : TransportMessage(TransportMessageType::GET),
-      TransportRequestMessage(TransportMessageType::GET),
-      TransportGet(TransportMessageType::GET),
+    : TransportGet(TransportMessageType::GET),
       rs_idx(-1),
       key(nullptr), key_len(0)
 {}
@@ -142,9 +137,7 @@ void TransportGetMessage::cleanup() {
 }
 
 TransportBGetMessage::TransportBGetMessage()
-    : TransportMessage(TransportMessageType::BGET),
-      TransportRequestMessage(TransportMessageType::GET),
-      TransportGet(TransportMessageType::BGET),
+    : TransportGet(TransportMessageType::BGET),
       rs_idx(),
       keys(), key_lens(),
       num_recs(0)
@@ -178,8 +171,7 @@ void TransportBGetMessage::cleanup() {
 }
 
 TransportDeleteMessage::TransportDeleteMessage()
-    : TransportMessage(TransportMessageType::DELETE),
-      TransportRequestMessage(TransportMessageType::DELETE),
+    : TransportRequestMessage(TransportMessageType::DELETE),
       rs_idx(-1),
       key(nullptr), key_len(0)
 {}
@@ -205,8 +197,7 @@ void TransportDeleteMessage::cleanup() {
 }
 
 TransportBDeleteMessage::TransportBDeleteMessage()
-    : TransportMessage(TransportMessageType::BDELETE),
-      TransportRequestMessage(TransportMessageType::BDELETE),
+    : TransportRequestMessage(TransportMessageType::BDELETE),
       rs_idx(),
       keys(), key_lens(),
       num_keys(0)
@@ -248,8 +239,7 @@ TransportResponseMessage::TransportResponseMessage(const TransportMessageType ty
 TransportResponseMessage::~TransportResponseMessage(){}
 
 TransportRecvMessage::TransportRecvMessage()
-    : TransportMessage(TransportMessageType::RECV),
-      TransportResponseMessage(TransportMessageType::RECV),
+    : TransportResponseMessage(TransportMessageType::RECV),
       rs_idx(-1),
       error(MDHIM_SUCCESS)
 {}
@@ -267,8 +257,7 @@ void TransportRecvMessage::cleanup() {
 }
 
 TransportGetRecvMessage::TransportGetRecvMessage()
-    : TransportMessage(TransportMessageType::RECV_GET),
-      TransportResponseMessage(TransportMessageType::RECV_GET),
+    : TransportResponseMessage(TransportMessageType::RECV_GET),
       rs_idx(-1),
       error(MDHIM_SUCCESS),
       key(nullptr), key_len(0),
@@ -302,8 +291,7 @@ void TransportGetRecvMessage::cleanup() {
 }
 
 TransportBGetRecvMessage::TransportBGetRecvMessage()
-    : TransportMessage(TransportMessageType::RECV_BGET),
-      TransportResponseMessage(TransportMessageType::RECV_BGET),
+    : TransportResponseMessage(TransportMessageType::RECV_BGET),
       rs_idx(),
       error(MDHIM_SUCCESS),
       keys(), key_lens(),
@@ -351,8 +339,7 @@ void TransportBGetRecvMessage::cleanup() {
 }
 
 TransportBRecvMessage::TransportBRecvMessage()
-    : TransportMessage(TransportMessageType::RECV_BULK),
-      TransportResponseMessage(TransportMessageType::RECV_BULK),
+    : TransportResponseMessage(TransportMessageType::RECV_BULK),
       rs_idx(),
       error(MDHIM_SUCCESS),
       num_keys(0),

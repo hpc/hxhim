@@ -13,26 +13,38 @@ namespace hxhim {
 /**
  * Base operation structure
  */
-typedef struct put_stream {
-    put_stream()
-      : keys(), key_lens(),
-        values(), value_lens()
+typedef struct key_stream {
+    key_stream()
+      : keys(), key_lens()
     {}
 
     // the mutex should be locked before calling clear
-    void clear() {
+    virtual void clear() {
         keys.clear();
         key_lens.clear();
-        values.clear();
-        value_lens.clear();
     }
 
     std::mutex mutex;
     std::deque<void *> keys;
     std::deque<std::size_t> key_lens;
+} key_stream_t;
+
+
+typedef struct keyvalue_stream : public key_stream {
+    keyvalue_stream()
+      : values(), value_lens()
+    {}
+
+    // the mutex should be locked before calling clear
+    void clear() {
+        key_stream::clear();
+        values.clear();
+        value_lens.clear();
+    }
+
     std::deque<void *> values;
     std::deque<std::size_t> value_lens;
-} put_stream_t;
+} keyvalue_stream_t;
 
 }
 
@@ -46,7 +58,9 @@ typedef struct hxhim_private {
     mdhim_options_t *mdhim_opts;
 
     // key value pairs are stored here until flush is called
-    hxhim::put_stream_t puts;
+    hxhim::keyvalue_stream_t puts;
+    hxhim::key_stream_t gets;
+    hxhim::key_stream dels;
 } hxhim_private_t;
 
 #ifdef __cplusplus

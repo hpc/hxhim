@@ -15,8 +15,8 @@ void get(mdhim_t *md,
          std::ostream &out, std::ostream &err) {
     // Get the value
     mdhim_grm_t *grm = mdhimGet(md, nullptr,
-                                  primary_key, primary_key_len,
-                                  GET_EQ);
+                                primary_key, primary_key_len,
+                                GET_EQ);
 
     if (!grm) {
         err << "mdhimGet error" << std::endl;

@@ -41,7 +41,9 @@ int main(int argc, char *argv[]) {
     const std::size_t count = 10;
     void **keys = NULL, **values = NULL;
     size_t *key_lens = NULL, *value_lens = NULL;
-    kv_gen(count, 100, rank, &keys, &key_lens, &values, &value_lens);
+    if (kv_gen(count, 100, rank, &keys, &key_lens, &values, &value_lens) != count) {
+        return -1;
+    }
 
     // start hxhim
     hxhim_t hx;
@@ -53,16 +55,23 @@ int main(int argc, char *argv[]) {
         std::cout << "Rank " << rank << " PUT " << std::string((char *) keys[i], key_lens[i]) << " -> " << std::string((char *) values[i], value_lens[i]) << std::endl;
     }
 
-    // GET them back without flushing
+    // GET them back, flushing only the GETs
     for(size_t i = 0; i < count; i++) {
-        hxhim::Return *results = hxhim::Get(&hx, keys[i], key_lens[i]);
-        print_results(rank, results);
-        delete results;
+         hxhim::Get(&hx, keys[i], key_lens[i]);
     }
+    hxhim::Return *flush_get_res = hxhim::FlushGets(&hx);
+    print_results(rank, flush_get_res);
+    delete flush_get_res;
 
-    hxhim::Return *results = hxhim::FlushBGet(&hx, keys, key_lens, count);
-    print_results(rank, results);
-    delete results;
+    // GET again, but flush everything this time
+    for(size_t i = 0; i < count; i++) {
+         hxhim::Get(&hx, keys[i], key_lens[i]);
+    }
+    hxhim::Return **flush_all_res = hxhim::Flush(&hx);
+    for(int i = 0; i < HXHIM_RESULTS_SIZE; i++) {
+        print_results(rank, flush_all_res[i]);
+    }
+    hxhim::DestroyFlush(flush_all_res);
 
     MPI_Barrier(MPI_COMM_WORLD);
 

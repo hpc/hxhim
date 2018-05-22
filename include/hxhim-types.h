@@ -12,6 +12,9 @@ extern "C"
 /** Error constant */
 #define HXHIM_ERROR 1
 
+/** The number of results that are in the array returned by hxhim::Flush/hxhimFlush */
+#define HXHIM_RESULTS_SIZE 3
+
 /** HXHIM Option Values */
 #define HXHIM_OPT_COMM_NULL     (1 << 0)
 #define HXHIM_OPT_COMM_MPI      (1 << 1)

@@ -42,7 +42,7 @@ struct TransportMessage {
  * This struct is just meant to provide a more specific relationship
  * between request message types than TransportMessage.
  */
-struct TransportRequestMessage : virtual public TransportMessage {
+struct TransportRequestMessage : public TransportMessage {
     TransportRequestMessage(const TransportMessageType type = TransportMessageType::INVALID);
     virtual ~TransportRequestMessage();
 };
@@ -51,7 +51,7 @@ struct TransportRequestMessage : virtual public TransportMessage {
  * TransportPutMessage
  * Put message implementation
  */
-struct TransportPutMessage final : virtual public TransportRequestMessage {
+struct TransportPutMessage final : public TransportRequestMessage {
     TransportPutMessage();
     ~TransportPutMessage();
 
@@ -71,7 +71,7 @@ struct TransportPutMessage final : virtual public TransportRequestMessage {
  * TransportBPutMessage
  * Bulk put message imeplementation
  */
-struct TransportBPutMessage final : virtual public TransportRequestMessage {
+struct TransportBPutMessage final : public TransportRequestMessage {
     TransportBPutMessage();
     ~TransportBPutMessage();
 
@@ -93,7 +93,7 @@ struct TransportBPutMessage final : virtual public TransportRequestMessage {
  * TransportGet
  * Base type for get messages
  */
-struct TransportGet : virtual public TransportRequestMessage {
+struct TransportGet : public TransportRequestMessage {
     TransportGet(const TransportMessageType type);
     virtual ~TransportGet();
 
@@ -105,7 +105,7 @@ struct TransportGet : virtual public TransportRequestMessage {
  * TransportGetMessage
  * Get message implementation
  */
-struct TransportGetMessage final : virtual public TransportGet {
+struct TransportGetMessage final : public TransportGet {
     TransportGetMessage();
     ~TransportGetMessage();
 
@@ -122,7 +122,7 @@ struct TransportGetMessage final : virtual public TransportGet {
  * TransportBGetMessage
  * Bulk get message implementation
  */
-struct TransportBGetMessage final : virtual public TransportGet {
+struct TransportBGetMessage final : public TransportGet {
     TransportBGetMessage();
     ~TransportBGetMessage();
 
@@ -142,7 +142,7 @@ struct TransportBGetMessage final : virtual public TransportGet {
  * TransportDeleteMessage
  * Delete message implementation
  */
-struct TransportDeleteMessage final : virtual public TransportRequestMessage {
+struct TransportDeleteMessage final : public TransportRequestMessage {
     TransportDeleteMessage();
     ~TransportDeleteMessage();
 
@@ -159,7 +159,7 @@ struct TransportDeleteMessage final : virtual public TransportRequestMessage {
  * TransportBDeleteMessage
  * Bulk delete message implementation
  */
-struct TransportBDeleteMessage final : virtual public TransportRequestMessage {
+struct TransportBDeleteMessage final : public TransportRequestMessage {
     TransportBDeleteMessage();
     ~TransportBDeleteMessage();
 
@@ -179,7 +179,7 @@ struct TransportBDeleteMessage final : virtual public TransportRequestMessage {
  * This struct is just meant to provide a more specific relationship
  * between response message types than TransportMessage.
  */
-struct TransportResponseMessage : virtual public TransportMessage {
+struct TransportResponseMessage : public TransportMessage {
     TransportResponseMessage(const TransportMessageType type = TransportMessageType::INVALID);
     virtual ~TransportResponseMessage();
 };
@@ -188,7 +188,7 @@ struct TransportResponseMessage : virtual public TransportMessage {
  * TransportRecvMessage
  * Generic receive message implementation
  */
-struct TransportRecvMessage final : virtual public TransportResponseMessage {
+struct TransportRecvMessage final : public TransportResponseMessage {
     TransportRecvMessage();
     ~TransportRecvMessage();
 
@@ -204,7 +204,7 @@ struct TransportRecvMessage final : virtual public TransportResponseMessage {
  * TransportGetRecvMessage
  * Generic receive get message implementation
  */
-struct TransportGetRecvMessage final : virtual public TransportResponseMessage {
+struct TransportGetRecvMessage final : public TransportResponseMessage {
     TransportGetRecvMessage();
     ~TransportGetRecvMessage();
 
@@ -226,7 +226,7 @@ struct TransportGetRecvMessage final : virtual public TransportResponseMessage {
  * TransportBGetRecvMessage
  * Bulk get receive message implementation
  */
-struct TransportBGetRecvMessage final : virtual public TransportResponseMessage {
+struct TransportBGetRecvMessage final : public TransportResponseMessage {
     TransportBGetRecvMessage();
     ~TransportBGetRecvMessage();
 
@@ -252,7 +252,7 @@ struct TransportBGetRecvMessage final : virtual public TransportResponseMessage 
  * TransportBRecvMessage
  * Bulk receive message implementation
  */
-struct TransportBRecvMessage final : virtual public TransportResponseMessage {
+struct TransportBRecvMessage final : public TransportResponseMessage {
     TransportBRecvMessage();
     ~TransportBRecvMessage();
 

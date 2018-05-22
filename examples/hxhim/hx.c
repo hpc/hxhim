@@ -55,7 +55,9 @@ int main(int argc, char *argv[]) {
     const size_t count = 10;
     void **keys = NULL, **values = NULL;
     size_t *key_lens = NULL, *value_lens = NULL;
-    kv_gen(count, 100, rank, &keys, &key_lens, &values, &value_lens);
+    if (kv_gen(count, 100, rank, &keys, &key_lens, &values, &value_lens) != count) {
+        return -1;
+    }
 
     // start hxhim
     hxhim_t hx;
@@ -67,17 +69,24 @@ int main(int argc, char *argv[]) {
         printf("Rank %d PUT %.*s -> %.*s\n", rank, (int) key_lens[i], (char *) keys[i], (int) value_lens[i], (char *) values[i]);
     }
 
-    // GET them back without flushing
+    // GET them back, flushing only the GETs
     for(size_t i = 0; i < count; i++) {
-        hxhim_return_t *results = hxhimGet(&hx, keys[i], key_lens[i]);
-        print_results(rank, results);
-        hxhim_return_destroy(results);
+         hxhimGet(&hx, keys[i], key_lens[i]);
+    }
+    hxhim_return_t *flush_get_res = hxhimFlushGets(&hx);
+    print_results(rank, flush_get_res);
+    hxhim_return_destroy(flush_get_res);
+
+    // GET again, but flush everything this time
+    for(size_t i = 0; i < count; i++) {
+        hxhimGet(&hx, keys[i], key_lens[i]);
     }
 
-    // use BGET instead of GET
-    hxhim_return_t *results = hxhimFlushBGet(&hx, keys, key_lens, count);
-    print_results(rank, results);
-    hxhim_return_destroy(results);
+    hxhim_return_t **flush_all_res = hxhimFlush(&hx);
+    for(int i = 0; i < HXHIM_RESULTS_SIZE; i++) {
+        print_results(rank, flush_all_res[i]);
+    }
+    hxhimDestroyFlush(flush_all_res);
 
     MPI_Barrier(MPI_COMM_WORLD);
 

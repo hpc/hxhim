@@ -16,8 +16,8 @@ void bdel(mdhim_t *md,
           std::size_t num_keys,
           std::ostream &out, std::ostream &err) {
     mdhim_brm_t *brm = mdhimBDelete(md, nullptr,
-                                     keys, key_lens,
-                                     num_keys);
+                                    keys, key_lens,
+                                    num_keys);
 
     if (!brm) {
         err << "mdhimBGet error" << std::endl;
