@@ -1,6 +1,5 @@
 #include "return.h"
 #include "return.hpp"
-#include <iostream>
 
 namespace hxhim {
 
@@ -8,11 +7,13 @@ Return::Return(enum hxhim_work_op operation, TransportResponseMessage *response)
   : op(operation),
     head(response),
     curr(head),
-    pos(0)
+    pos(0),
+    next(nullptr)
 {}
 
 Return::~Return() {
     delete head;
+    delete next;
 }
 
 int Return::GetSrc() const {
@@ -71,7 +72,7 @@ int Return::NextRS() {
             break;
     }
 
-    return curr?HXHIM_SUCCESS:HXHIM_ERROR;
+    return MoveToFirstKV();
 }
 
 int Return::ValidRS() const {
@@ -173,105 +174,124 @@ int Return::ValidKV(const std::size_t position) const {
     return ret;
 }
 
+Return *Return::Next(Return *ret) {
+    if (!(next = ret)) {
+        return this;
+    }
+    return next;
+}
+
+Return *Return::Next() const {
+    return next;
+}
+
 }
 
 void hxhim_return_destroy(hxhim_return_t *ret) {
     if (ret) {
-        delete ret->ret;
+        delete ret->head;
+        delete ret;
     }
-
-    delete ret;
 }
 
 int hxhim_return_get_src(hxhim_return_t *ret, int *src) {
-    if (!ret || !ret->ret || !src) {
+    if (!ret || !ret->curr || !src) {
         return HXHIM_ERROR;
     }
 
-    *src = ret->ret->GetSrc();
+    *src = ret->curr->GetSrc();
     return HXHIM_SUCCESS;
 }
 
 int hxhim_return_get_op(hxhim_return_t *ret, enum hxhim_work_op *op) {
-    if (!ret || !ret->ret || !op) {
+    if (!ret || !ret->curr || !op) {
         return HXHIM_ERROR;
     }
 
-    *op = ret->ret->GetOp();
+    *op = ret->curr->GetOp();
     return HXHIM_SUCCESS;
 }
 
 int hxhim_return_get_error(hxhim_return_t *ret, int *error) {
-    if (!ret || !ret->ret || !error) {
+    if (!ret || !ret->curr || !error) {
         return HXHIM_ERROR;
     }
 
-    *error = ret->ret->GetError();
+    *error = ret->curr->GetError();
     return HXHIM_SUCCESS;
 }
 
 int hxhim_return_move_to_first_rs(hxhim_return_t *ret) {
-    if (!ret || !ret->ret) {
+    if (!ret || !ret->curr) {
         return HXHIM_ERROR;
     }
 
-    return ret->ret->MoveToFirstRS();
+    return ret->curr->MoveToFirstRS();
 }
 
 int hxhim_return_next_rs(hxhim_return_t *ret) {
-    if (!ret || !ret->ret) {
+    if (!ret || !ret->curr) {
         return HXHIM_ERROR;
     }
 
-    return ret->ret->NextRS();
+    return ret->curr->NextRS();
 }
 
 int hxhim_return_valid_rs(hxhim_return_t *ret, int *valid) {
-    if (!ret || !ret->ret || !valid) {
+    if (!ret || !ret->curr || !valid) {
         return HXHIM_ERROR;
     }
 
-    *valid = ret->ret->ValidRS();
+    *valid = ret->curr->ValidRS();
     return HXHIM_SUCCESS;
 }
 
 int hxhim_return_move_to_first_kv(hxhim_return_t *ret) {
-    if (!ret || !ret->ret) {
+    if (!ret || !ret->curr) {
         return HXHIM_ERROR;
     }
 
-    return ret->ret->MoveToFirstKV();
+    return ret->curr->MoveToFirstKV();
 }
 
 int hxhim_return_prev_kv(hxhim_return_t *ret) {
-    if (!ret || !ret->ret) {
+    if (!ret || !ret->curr) {
         return HXHIM_ERROR;
     }
 
-    return ret->ret->PrevKV();
+    return ret->curr->PrevKV();
 }
 
 int hxhim_return_next_kv(hxhim_return_t *ret) {
-    if (!ret || !ret->ret) {
+    if (!ret || !ret->curr) {
         return HXHIM_ERROR;
     }
 
-    return ret->ret->NextKV();
+    return ret->curr->NextKV();
 }
 
 int hxhim_return_valid_kv(hxhim_return_t *ret, int *valid) {
-    if (!ret || !ret->ret || !valid) {
+    if (!ret || !ret->curr || !valid) {
         return HXHIM_ERROR;
     }
 
-    *valid = ret->ret->ValidKV();
+    *valid = ret->curr->ValidKV();
     return HXHIM_SUCCESS;
 }
 
 int hxhim_return_get_kv(hxhim_return_t *ret, void **key, size_t *key_len, void **value, size_t *value_len) {
-    if (!ret || !ret->ret) {
+    if (!ret || !ret->curr) {
         return HXHIM_ERROR;
     }
 
-    return ret->ret->GetKV(key, key_len, value, value_len);;
+    return ret->curr->GetKV(key, key_len, value, value_len);;
+}
+
+int hxhim_return_next(hxhim_return_t *ret) {
+    if (!ret || !ret->curr) {
+        return HXHIM_ERROR;
+    }
+
+    ret->curr = ret->curr->Next();
+    return ret->curr?HXHIM_SUCCESS:HXHIM_ERROR;
 }

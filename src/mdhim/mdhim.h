@@ -36,16 +36,40 @@ mdhim_grm_t *mdhimGet(mdhim_t *md, index_t *index,
 mdhim_bgrm_t *mdhimBGet(mdhim_t *md, index_t *index,
                         void **keys, size_t *key_lens,
                         size_t num_records, enum TransportGetMessageOp op);
-mdhim_bgrm_t *mdhimBGetOp(mdhim_t *md, index_t *index,
-                          void *key, size_t key_len,
-                          size_t num_records, enum TransportGetMessageOp op);
 mdhim_rm_t *mdhimDelete(mdhim_t *md, index_t *index,
                         void *key, size_t key_len);
 mdhim_brm_t *mdhimBDelete(mdhim_t *md, index_t *index,
                           void **keys, size_t *key_lens,
                           size_t num_keys);
 
+// Functions that allow for ignoring of indexing
+mdhim_rm_t *mdhimUnsafePut(mdhim_t *md, index_t *index,
+                           void *primary_key, size_t primary_key_len,
+                           void *value, size_t value_len,
+                           const int database);
+mdhim_brm_t *mdhimUnsafeBPut(mdhim_t *md, index_t *index,
+                             void **primary_keys, size_t *primary_key_lens,
+                             void **primary_values, size_t *primary_value_lens,
+                             const int *databases,
+                             size_t num_records);
+mdhim_grm_t *mdhimUnsafeGet(mdhim_t *md, index_t *index,
+                            void *key, size_t key_len,
+                            const int database,
+                            enum TransportGetMessageOp op);
+mdhim_bgrm_t *mdhimUnsafeBGet(mdhim_t *md, index_t *index,
+                              void **keys, size_t *key_lens,
+                              const int *databases,
+                              size_t num_records, enum TransportGetMessageOp op);
+mdhim_rm_t *mdhimUnsafeDelete(mdhim_t *md, index_t *index,
+                              void *key, size_t key_len,
+                              const int database);
+mdhim_brm_t *mdhimUnsafeBDelete(mdhim_t *md, index_t *index,
+                                void **keys, size_t *key_lens,
+                                const int *databases,
+                                size_t num_keys);
+
 // Utility functions
+int mdhimDBCount(mdhim_t *md);
 int mdhimWhichDB(mdhim_t *md, void *key, size_t key_len);
 int mdhimDecomposeDB(mdhim_t *md, const int db, int *rank, int *rs_idx);
 int mdhimComposeDB(mdhim_t *md, int *db, const int rank, const int rs_idx);

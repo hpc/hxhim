@@ -3,13 +3,11 @@
 
 #include "mdhim.h"
 
-//Constants used across all mdhimPutGet tests
 typedef int Key_t;
 typedef int Value_t;
 static const Key_t   MDHIM_PUT_GET_PRIMARY_KEY = 13579;
 static const Value_t MDHIM_PUT_GET_VALUE       = 24680;
 
-//Put and Get a key-value pair without secondary indexes
 TEST(mdhim, PutGet) {
     mdhim_options_t opts;
     mdhim_t md;
@@ -42,14 +40,15 @@ TEST(mdhim, PutGet) {
         ASSERT_NE(grm, nullptr);
 
         int error = MDHIM_ERROR;
-        EXPECT_EQ(mdhim_grm_error(grm, &error), MDHIM_SUCCESS);
-        EXPECT_EQ(error, MDHIM_SUCCESS);
+        ASSERT_EQ(mdhim_grm_error(grm, &error), MDHIM_SUCCESS);
+        ASSERT_EQ(error, MDHIM_SUCCESS);
 
-        //Make sure value gotten back is correct
+        //Make sure key gotten back is correct
         Key_t *key = nullptr;
         ASSERT_EQ(mdhim_grm_key(grm, (void **)&key, nullptr), MDHIM_SUCCESS);
         EXPECT_EQ(*key, MDHIM_PUT_GET_PRIMARY_KEY);
 
+        //Make sure value gotten back is correct
         Value_t *value = nullptr;
         ASSERT_EQ(mdhim_grm_value(grm, (void **)&value, nullptr), MDHIM_SUCCESS);
         EXPECT_EQ(*value, MDHIM_PUT_GET_VALUE);

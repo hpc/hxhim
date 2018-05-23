@@ -1,6 +1,5 @@
 #include "mlog2.h"
 #include "mlogfacs2.h"
-#include <iostream>
 
 #include "hxhim.h"
 #include "hxhim.hpp"
@@ -125,6 +124,119 @@ int hxhim::Close(hxhim_t *hx) {
  */
 int hxhimClose(hxhim_t *hx) {
     return hxhim::Close(hx);
+}
+
+/**
+ * FlushAllPuts
+ * Flushes all queued safe and unsafe PUTs
+ * The internal queues are cleared, even on error
+ *
+ * @param hx the HXHIM session to terminate
+ * @return Pointer to return value wrapper
+ */
+hxhim::Return *hxhim::FlushAllPuts(hxhim_t *hx) {
+    hxhim::Return *head = new hxhim::Return(hxhim_work_op::HXHIM_NOP, nullptr);
+    hxhim::Return *puts = FlushPuts(hx);
+    hxhim::Return *unsafe_puts = Unsafe::FlushPuts(hx);
+
+    head->Next(puts)->Next(unsafe_puts);
+
+    hxhim::Return *ret = head->Next();
+    head->Next(nullptr);
+    delete head;
+
+    return ret;
+}
+
+hxhim_return_t *hxhimFlushAllPuts(hxhim_t *hx) {
+    return hxhim_return_init(hxhim::FlushAllPuts(hx));
+}
+
+/**
+ * FlushAllGets
+ * Flushes all queued safe and unsafe GETs
+ * The internal queues are cleared, even on error
+ *
+ * @param hx the HXHIM session to terminate
+ * @return Pointer to return value wrapper
+ */
+hxhim::Return *hxhim::FlushAllGets(hxhim_t *hx) {
+    hxhim::Return *head = new hxhim::Return(hxhim_work_op::HXHIM_NOP, nullptr);
+    hxhim::Return *gets = FlushGets(hx);
+    hxhim::Return *unsafe_gets = Unsafe::FlushGets(hx);
+
+    head->Next(gets)->Next(unsafe_gets);
+
+    hxhim::Return *ret = head->Next();
+    head->Next(nullptr);
+    delete head;
+
+    return ret;
+}
+
+hxhim_return_t *hxhimFlushAllGets(hxhim_t *hx) {
+    return hxhim_return_init(hxhim::FlushAllGets(hx));
+}
+
+/**
+ * FlushAllDeletes
+ * Flushes all queued safe and unsafe DELs
+ * The internal queues are cleared, even on error
+ *
+ * @param hx the HXHIM session to terminate
+ * @return Pointer to return value wrapper
+ */
+hxhim::Return *hxhim::FlushAllDeletes(hxhim_t *hx) {
+    hxhim::Return *head = new hxhim::Return(hxhim_work_op::HXHIM_NOP, nullptr);
+    hxhim::Return *dels = FlushDeletes(hx);
+    hxhim::Return *unsafe_dels = Unsafe::FlushDeletes(hx);
+
+    head->Next(dels)->Next(unsafe_dels);
+
+    hxhim::Return *ret = head->Next();
+    head->Next(nullptr);
+    delete head;
+
+    return ret;
+}
+
+hxhim_return_t *hxhimFlushAllDeletes(hxhim_t *hx) {
+    return hxhim_return_init(hxhim::FlushAllDeletes(hx));
+}
+
+/**
+ * FlushAll
+ * Flushes all queued safe and unsafe work
+ * The internal queues are cleared, even on error
+ *
+ * @param hx the HXHIM session to terminate
+ * @return Pointer to return value wrapper
+ */
+hxhim::Return *hxhim::FlushAll(hxhim_t *hx) {
+    hxhim::Return *head = new hxhim::Return(hxhim_work_op::HXHIM_NOP, nullptr);
+
+    hxhim::Return *puts = FlushPuts(hx);
+    hxhim::Return *unsafe_puts = Unsafe::FlushPuts(hx);
+
+    hxhim::Return *gets = FlushGets(hx);
+    hxhim::Return *unsafe_gets = Unsafe::FlushGets(hx);
+
+    hxhim::Return *dels = FlushDeletes(hx);
+    hxhim::Return *unsafe_dels = Unsafe::FlushDeletes(hx);
+
+    head->Next(puts)->Next(unsafe_puts)
+        ->Next(gets)->Next(unsafe_gets)
+        ->Next(dels)->Next(unsafe_dels);
+
+    hxhim::Return *ret = head->Next();
+    head->Next(nullptr);
+    delete head;
+
+    return ret;
+}
+
+hxhim_return_t *hxhimFlushAll(hxhim_t *hx) {
+    return hxhim_return_init(hxhim::FlushAll(hx));
 }
 
 /**
@@ -339,16 +451,19 @@ hxhim_return_t *hxhimFlushDeletes(hxhim_t *hx) {
  * @param hx
  * @return An array of results (3 values)
  */
-hxhim::Return **hxhim::Flush(hxhim_t *hx) {
-    // All return Return *
-    // Put these into an array
-    hxhim::Return **res = new hxhim::Return *[HXHIM_RESULTS_SIZE]();
+hxhim::Return *hxhim::Flush(hxhim_t *hx) {
+    hxhim::Return *head = new hxhim::Return(hxhim_work_op::HXHIM_NOP, nullptr);
+    hxhim::Return *puts = FlushPuts(hx);
+    hxhim::Return *gets = FlushGets(hx);
+    hxhim::Return *dels = FlushDeletes(hx);
 
-    res[0] = FlushPuts(hx);
-    res[1] = FlushGets(hx);
-    res[2] = FlushDeletes(hx);
+    head->Next(puts)->Next(gets)->Next(dels);
 
-    return res;
+    hxhim::Return *ret = head->Next();
+    head->Next(nullptr);
+    delete head;
+
+    return ret;
 }
 
 /**
@@ -358,46 +473,8 @@ hxhim::Return **hxhim::Flush(hxhim_t *hx) {
  * @param hx
  * @return An array of results (3 values)
  */
-hxhim_return_t **hxhimFlush(hxhim_t *hx) {
-    hxhim::Return **res = hxhim::Flush(hx);
-    hxhim_return_t **ret = new hxhim_return_t *[HXHIM_RESULTS_SIZE]();
-    for(int i = 0; i < HXHIM_RESULTS_SIZE; i++) {
-        ret[i] = hxhim_return_init(res[i]);
-    }
-    delete [] res;
-    return ret;
-}
-
-/**
- * DestroyFlush
- * Deallocate the result array of flush
- *
- * @param res the array of 3 results from Flush
- */
-void hxhim::DestroyFlush(hxhim::Return **res) {
-    if (res) {
-        for(int i = 0; i < HXHIM_RESULTS_SIZE; i++) {
-            delete res[i];
-        }
-
-        delete [] res;
-    }
-}
-
-/**
- * hxhimDestroyFlush
- * Deallocate the result array of flush
- *
- * @param res the array of 3 results from hxhimFlush
- */
-void hxhimDestroyFlush(hxhim_return_t **ret) {
-    if (ret) {
-        for(int i = 0; i < HXHIM_RESULTS_SIZE; i++) {
-            hxhim_return_destroy(ret[i]);
-        }
-
-        delete [] ret;
-    }
+hxhim_return_t *hxhimFlush(hxhim_t *hx) {
+    return hxhim_return_init(hxhim::Flush(hx));
 }
 
 /**

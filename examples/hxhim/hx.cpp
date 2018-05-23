@@ -7,7 +7,7 @@
 #include "kv_gen.h"
 
 static void print_results(const int rank, hxhim::Return *results) {
-    if (results) {
+    while (results) {
         // iterate through each range server
         for(results->MoveToFirstRS(); results->ValidRS() == HXHIM_SUCCESS; results->NextRS()) {
             // iterate through each key value pair
@@ -27,6 +27,8 @@ static void print_results(const int rank, hxhim::Return *results) {
                 std::cout << " on range server " << results->GetSrc() << std::endl;
             }
         }
+
+        results = results->Next();
     }
 }
 
@@ -67,11 +69,9 @@ int main(int argc, char *argv[]) {
     for(size_t i = 0; i < count; i++) {
          hxhim::Get(&hx, keys[i], key_lens[i]);
     }
-    hxhim::Return **flush_all_res = hxhim::Flush(&hx);
-    for(int i = 0; i < HXHIM_RESULTS_SIZE; i++) {
-        print_results(rank, flush_all_res[i]);
-    }
-    hxhim::DestroyFlush(flush_all_res);
+    hxhim::Return *flush_all_res = hxhim::Flush(&hx);
+    print_results(rank, flush_all_res);
+    delete flush_all_res;
 
     MPI_Barrier(MPI_COMM_WORLD);
 

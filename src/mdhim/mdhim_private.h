@@ -6,11 +6,6 @@
 #include "range_server.h"
 #include "transport_options.hpp"
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 /**
  * Struct that contains the private details about MDHim's implementation
  */
@@ -68,19 +63,39 @@ TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
                                   void *key, std::size_t key_len,
                                   void *value, std::size_t value_len);
 
+TransportRecvMessage *_put_record(mdhim_t *md, index_t *index,
+                                  void *key, std::size_t key_len,
+                                  void *value, std::size_t value_len,
+                                  const int database);
+
 /** @description Internal GET function */
 TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
                                      void *key, std::size_t key_len,
+                                     enum TransportGetMessageOp op);
+
+TransportGetRecvMessage *_get_record(mdhim_t *md, index_t *index,
+                                     void *key, std::size_t key_len,
+                                     const int database,
                                      enum TransportGetMessageOp op);
 
 /** @description Internal DELETE function */
 TransportRecvMessage *_del_record(mdhim_t *md, index_t *index,
                                   void *key, std::size_t key_len);
 
+TransportRecvMessage *_del_record(mdhim_t *md, index_t *index,
+                                  void *key, std::size_t key_len,
+                                  const int database);
+
 /** @description Internal BPUT function */
 TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
                                      void **keys, std::size_t *key_lens,
                                      void **values, std::size_t *value_lens,
+                                     std::size_t num_records);
+
+TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
+                                     void **keys, std::size_t *key_lens,
+                                     void **values, std::size_t *value_lens,
+                                     const int *databases,
                                      std::size_t num_records);
 
 /** @description Internal BGET function */
@@ -89,16 +104,23 @@ TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
                                         std::size_t num_keys, std::size_t num_records,
                                         enum TransportGetMessageOp op);
 
+TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
+                                        void **keys, std::size_t *key_lens,
+                                        const int *databases,
+                                        std::size_t num_keys, std::size_t num_records,
+                                        enum TransportGetMessageOp op);
+
 /** @description Internal BDELETE function */
 TransportBRecvMessage *_bdel_records(mdhim_t *md, index_t *index,
                                      void **keys, std::size_t *key_lens,
                                      std::size_t num_records);
 
+TransportBRecvMessage *_bdel_records(mdhim_t *md, index_t *index,
+                                     void **keys, std::size_t *key_lens,
+                                     const int *databases,
+                                     std::size_t num_records);
+
 /** @description Internal function for getting the destination database of a key */
 int _which_db(mdhim_t *md, void *key, std::size_t key_len);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

@@ -26,7 +26,6 @@
 #include "range_server.h"
 #include "transport_private.hpp"
 
-#include <iostream>
 /**
  * bootstrapInit
  * Initializes bootstrapping values in mdhim_t
@@ -191,7 +190,7 @@ int mdhim::Commit(mdhim_t *md, index_t *index) {
             ret = MDHIM_ERROR;
             mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d mdhimCommit - "
                  "Error while committing to database",
-                  md->rank);
+                 md->rank);
         }
 
         delete brm;
@@ -221,7 +220,7 @@ int mdhimCommit(mdhim_t *md, index_t *index) {
  * @param value              pointer to the value to store
  * @param value_len          the length of the value
  * @param secondary_info     secondary global and local information for
-                             inserting secondary global and local keys
+ inserting secondary global and local keys
  * @return TransportRecvMessage * or nullptr on error
  */
 TransportRecvMessage *mdhim::Put(mdhim_t *md, index_t *index,
@@ -250,7 +249,7 @@ TransportRecvMessage *mdhim::Put(mdhim_t *md, index_t *index,
  * @param value              pointer to the value to store
  * @param value_len          the length of the value
  * @param secondary_info     secondary global and local information for
-                             inserting secondary global and local keys
+ inserting secondary global and local keys
  * @return mdhim_brm_t * or nullptr on error
  */
 mdhim_rm_t *mdhimPut(mdhim_t *md, index_t *index,
@@ -283,6 +282,13 @@ TransportBRecvMessage *mdhim::BPut(mdhim_t *md, index_t *index,
 
     if (!index) {
         index = md->p->primary_index;
+    }
+
+    if (num_records > MAX_BULK_OPS) {
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
+             "Too many bulk operations requested in mdhimBPut",
+             md->rank);
+        return nullptr;
     }
 
     return _bput_records(md, index,
@@ -355,8 +361,8 @@ TransportGetRecvMessage *mdhim::Get(mdhim_t *md, index_t *index,
  * @return mdhim_grm_t * or nullptr on error
  */
 mdhim_grm_t *mdhimGet(mdhim_t *md, index_t *index,
-                        void *key, std::size_t key_len,
-                        enum TransportGetMessageOp op) {
+                      void *key, std::size_t key_len,
+                      enum TransportGetMessageOp op) {
     return mdhim_grm_init(mdhim::Get(md, index, key, key_len, op));
 }
 
@@ -382,18 +388,17 @@ TransportBGetRecvMessage *mdhim::BGet(mdhim_t *md, index_t *index,
         index = md->p->primary_index;
     }
 
-    if (op != TransportGetMessageOp::GET_EQ && op != TransportGetMessageOp::GET_PRIMARY_EQ) {
+    if (num_keys > MAX_BULK_OPS) {
         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
-             "Invalid operation for mdhimBGet",
-              md->rank);
+             "Too many bulk operations requested in mdhimBPut",
+             md->rank);
         return nullptr;
     }
 
-    //Check to see that we were given a sane amount of records
-    if (num_keys > MAX_BULK_OPS) {
+    if (op != TransportGetMessageOp::GET_EQ && op != TransportGetMessageOp::GET_PRIMARY_EQ) {
         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
-             "Too many bulk operations requested in mdhimBGet",
-              md->rank);
+             "Invalid operation for mdhimBGet",
+             md->rank);
         return nullptr;
     }
 
@@ -416,7 +421,7 @@ TransportBGetRecvMessage *mdhim::BGet(mdhim_t *md, index_t *index,
                  "Too many bulk operations would be performed "
                  "with the MDHIM_GET_PRIMARY_EQ operation.  Limiting "
                  "request to : %u key/values",
-                  md->rank, MAX_BULK_OPS);
+                 md->rank, MAX_BULK_OPS);
             plen = MAX_BULK_OPS - 1;
         }
 
@@ -451,7 +456,6 @@ TransportBGetRecvMessage *mdhim::BGet(mdhim_t *md, index_t *index,
     return bgrm_head;
 }
 
-
 /**
  * mdhimBGet
  * Retrieves multiple records from MDHIM
@@ -463,89 +467,11 @@ TransportBGetRecvMessage *mdhim::BGet(mdhim_t *md, index_t *index,
  * @return mdhim_bgrm_t * or nullptr on error
  */
 mdhim_bgrm_t *mdhimBGet(mdhim_t *md, index_t *index,
-                          void **keys, std::size_t *key_lens,
-                          std::size_t num_keys, enum TransportGetMessageOp op) {
+                        void **keys, std::size_t *key_lens,
+                        std::size_t num_keys, enum TransportGetMessageOp op) {
     return mdhim_bgrm_init(mdhim::BGet(md, index,
                                        keys, key_lens,
                                        num_keys, op));
-}
-
-/**
- * BGetOp
- * Retrieves multiple sequential records from a single range server if they exist
- *
- * If the operation passed in is MDHIM_GET_NEXT or MDHIM_GET_PREV, this return all the records
- * starting from the key passed in in the direction specified
- *
- * If the operation passed in is MDHIM_GET_FIRST and MDHIM_GET_LAST and the key is nullptr,
- * then this operation will return the keys starting from the first or last key
- *
- * If the operation passed in is MDHIM_GET_FIRST and MDHIM_GET_LAST and the key is not nullptr,
- * then this operation will return the keys starting the first key on
- * the range server that the key resolves to
- *
- * @param md           main MDHIM struct
- * @param key          pointer to the key to start getting next entries from
- * @param key_len      the length of the key
- * @param num_records  the number of successive keys to get
- * @param op           the operation to perform (i.e., MDHIM_GET_NEXT or MDHIM_GET_PREV)
- * @return TransportBGetRecvMessage * or nullptr on error
- */
-TransportBGetRecvMessage *mdhim::BGetOp(mdhim_t *md, index_t *index,
-                                        void *key, std::size_t key_len,
-                                        std::size_t num_records, enum TransportGetMessageOp op) {
-    if (!md || !md->p ||
-        !key || !key_len) {
-        return nullptr;
-    }
-
-    if (!index) {
-        index = md->p->primary_index;
-    }
-
-    if (num_records > MAX_BULK_OPS) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
-             "Too many bulk operations requested in mdhimBGetOp",
-              md->rank);
-        return nullptr;
-    }
-
-    if (op == TransportGetMessageOp::GET_EQ || op == TransportGetMessageOp::GET_PRIMARY_EQ) {
-        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
-             "Invalid op specified for mdhimGet",
-              md->rank);
-        return nullptr;
-    }
-
-    //Get the linked list of return messages from mdhimBGet
-    return _bget_records(md, index, &key, &key_len, 1, num_records, op);
-}
-
-/**
- * mdhimBGetOp
- * Retrieves multiple sequential records from a single range server if they exist
- *
- * If the operation passed in is MDHIM_GET_NEXT or MDHIM_GET_PREV, this return all the records
- * starting from the key passed in in the direction specified
- *
- * If the operation passed in is MDHIM_GET_FIRST and MDHIM_GET_LAST and the key is nullptr,
- * then this operation will return the keys starting from the first or last key
- *
- * If the operation passed in is MDHIM_GET_FIRST and MDHIM_GET_LAST and the key is not nullptr,
- * then this operation will return the keys starting the first key on
- * the range server that the key resolves to
- *
- * @param md           main MDHIM struct
- * @param key          pointer to the key to start getting next entries from
- * @param key_len      the length of the key
- * @param num_records  the number of successive keys to get
- * @param op           the operation to perform (i.e., MDHIM_GET_NEXT or MDHIM_GET_PREV)
- * @return mdhim_bgrm_t * or nullptr on error
- */
-mdhim_bgrm_t *mdhimBGetOp(mdhim_t *md, index_t *index,
-                            void *key, std::size_t key_len,
-                            std::size_t num_records, enum TransportGetMessageOp op) {
-    return mdhim_bgrm_init(mdhim::BGetOp(md, index, key, key_len, num_records, op));
 }
 
 /**
@@ -607,11 +533,10 @@ TransportBRecvMessage *mdhim::BDelete(mdhim_t *md, index_t *index,
         index = md->p->primary_index;
     }
 
-    //Check to see that we were given a sane amount of records
     if (num_records > MAX_BULK_OPS) {
         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
              "Too many bulk operations requested in mdhimBDelete",
-              md->rank);
+             md->rank);
         return nullptr;
     }
 
@@ -648,7 +573,7 @@ int mdhim::StatFlush(mdhim_t *md, index_t *index) {
     if ((ret = get_stat_flush(md, index)) != MDHIM_SUCCESS) {
         mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
              "Error while getting MDHIM stat data in mdhimStatFlush",
-              md->rank);
+             md->rank);
     }
     MPI_Barrier(md->comm);
 
@@ -664,6 +589,18 @@ int mdhim::StatFlush(mdhim_t *md, index_t *index) {
  */
 int mdhimStatFlush(mdhim_t *md, index_t *index) {
     return mdhim::StatFlush(md, index);
+}
+
+int mdhim::DBCount(mdhim_t *md) {
+    if (!md || !md->p || !md->p->primary_index) {
+        return MDHIM_ERROR;
+    }
+
+    return get_num_databases(md->size, md->p->primary_index->range_server_factor, md->p->primary_index->dbs_per_server);
+}
+
+int mdhimDBCount(mdhim_t *md) {
+    return mdhim::DBCount(md);
 }
 
 int mdhim::WhichDB(mdhim_t *md, void *key, std::size_t key_len)

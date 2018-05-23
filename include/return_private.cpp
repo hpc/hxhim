@@ -10,6 +10,7 @@ hxhim_return_t *hxhim_return_init(hxhim::Return *ret) {
         return nullptr;
     }
 
-    r->ret = ret;
+    r->head = ret;
+    r->curr = ret;
     return r;
 }

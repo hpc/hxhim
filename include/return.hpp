@@ -12,6 +12,11 @@ namespace hxhim {
  * Return
  * This class is a container for storing
  * the reponses of MDHIM operations.
+ *
+ * Each instance of Return represents the response
+ * from a single range server, with a pointer
+ * pointing to the next range server (if there
+ * is one).
  */
 class Return {
     public:
@@ -35,6 +40,9 @@ class Return {
         int ValidKV() const;
         int GetKV(void **key, std::size_t *key_len, void **value, std::size_t *value_len);
 
+        Return *Next(Return *ret);
+        Return *Next() const;
+
     private:
         int ValidKV(const std::size_t position) const;
 
@@ -43,6 +51,8 @@ class Return {
 
         TransportResponseMessage *curr; // current range server
         std::size_t pos;                // current key index
+
+        Return *next;
 };
 
 }
@@ -54,7 +64,8 @@ extern "C"
 
 /** Opaque structure returned by hxhimFlush */
 typedef struct hxhim_return {
-    hxhim::Return *ret;
+    hxhim::Return *head;
+    hxhim::Return *curr;
 } hxhim_return_t;
 
 #ifdef __cplusplus

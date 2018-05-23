@@ -3,15 +3,6 @@
 
 #include "return.hpp"
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 hxhim_return_t *hxhim_return_init(hxhim::Return *ret);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

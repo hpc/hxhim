@@ -29,6 +29,19 @@ typedef struct key_stream {
     std::deque<std::size_t> key_lens;
 } key_stream_t;
 
+typedef struct unsafe_key_stream : public key_stream {
+    unsafe_key_stream()
+      : key_stream(),
+        databases()
+    {}
+
+    void clear() {
+        key_stream::clear();
+        databases.clear();
+    }
+
+    std::deque<int> databases;
+} unsafe_key_stream_t;
 
 typedef struct keyvalue_stream : public key_stream {
     keyvalue_stream()
@@ -36,7 +49,7 @@ typedef struct keyvalue_stream : public key_stream {
     {}
 
     // the mutex should be locked before calling clear
-    void clear() {
+    virtual void clear() {
         key_stream::clear();
         values.clear();
         value_lens.clear();
@@ -45,6 +58,20 @@ typedef struct keyvalue_stream : public key_stream {
     std::deque<void *> values;
     std::deque<std::size_t> value_lens;
 } keyvalue_stream_t;
+
+typedef struct unsafe_keyvalue_stream : public keyvalue_stream {
+    unsafe_keyvalue_stream()
+      : keyvalue_stream(),
+        databases()
+    {}
+
+    void clear() {
+        keyvalue_stream::clear();
+        databases.clear();
+    }
+
+    std::deque<int> databases;
+} unsafe_keyvalue_stream_t;
 
 }
 
@@ -61,6 +88,10 @@ typedef struct hxhim_private {
     hxhim::keyvalue_stream_t puts;
     hxhim::key_stream_t gets;
     hxhim::key_stream dels;
+
+    hxhim::unsafe_keyvalue_stream_t unsafe_puts;
+    hxhim::unsafe_key_stream_t unsafe_gets;
+    hxhim::unsafe_key_stream unsafe_dels;
 } hxhim_private_t;
 
 #ifdef __cplusplus

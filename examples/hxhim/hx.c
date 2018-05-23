@@ -9,7 +9,7 @@
 
 static void print_results(const int rank, hxhim_return_t *results) {
     // move the internal index to the first range server
-    if (hxhim_return_move_to_first_rs(results) == HXHIM_SUCCESS) {
+    while (hxhim_return_move_to_first_rs(results) == HXHIM_SUCCESS) {
         // iterate through each range server
         for(int valid_rs; (hxhim_return_valid_rs(results, &valid_rs) == HXHIM_SUCCESS) && (valid_rs == HXHIM_SUCCESS); hxhim_return_next_rs(results)) {
             // move the internal index to the beginning of the key value pairs list
@@ -41,6 +41,7 @@ static void print_results(const int rank, hxhim_return_t *results) {
                 }
             }
         }
+        hxhim_return_next(results);
     }
 }
 
@@ -82,11 +83,9 @@ int main(int argc, char *argv[]) {
         hxhimGet(&hx, keys[i], key_lens[i]);
     }
 
-    hxhim_return_t **flush_all_res = hxhimFlush(&hx);
-    for(int i = 0; i < HXHIM_RESULTS_SIZE; i++) {
-        print_results(rank, flush_all_res[i]);
-    }
-    hxhimDestroyFlush(flush_all_res);
+    hxhim_return_t *flush_all_res = hxhimFlush(&hx);
+    print_results(rank, flush_all_res);
+    hxhim_return_destroy(flush_all_res);
 
     MPI_Barrier(MPI_COMM_WORLD);
 

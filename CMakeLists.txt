@@ -172,6 +172,7 @@ add_subdirectory(src/utils)
 #
 # Add unit test subdirectories
 #
+add_subdirectory(test/hxhim)
 add_subdirectory(test/mdhim)
 add_subdirectory(test/transport)
 add_subdirectory(test/utils)

@@ -3,13 +3,11 @@
 
 #include "mdhim.h"
 
-//Constants used across all mdhimBPutBGet tests
 typedef int Key_t;
 typedef int Value_t;
 static const Key_t   MDHIM_BPUT_BGET_PRIMARY_KEY = 13579;
 static const Value_t MDHIM_BPUT_BGET_VALUE       = 24680;
 
-//BPut and BGet a key-value pair without secondary indexes
 TEST(mdhim, BPutBGet) {
     mdhim_options_t opts;
     mdhim_t md;
