@@ -49,7 +49,11 @@ int main(int argc, char *argv[]) {
 
     // start hxhim
     hxhim_t hx;
-    hxhim::Open(&hx, MPI_COMM_WORLD, "mdhim.conf");
+    if (hxhim::Open(&hx, MPI_COMM_WORLD, "mdhim.conf") != HXHIM_SUCCESS) {
+        std::cerr << "Failed to initialize hxhim" << std::endl;
+        kv_clean(count, keys, key_lens, values, value_lens);
+        return 1;
+    }
 
     // PUT the key value pairs into MDHIM
     for(size_t i = 0; i < count; i++) {

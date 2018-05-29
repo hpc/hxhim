@@ -160,17 +160,72 @@ endif()
 message( STATUS "GTest source dir: " ${gtest_SOURCE_DIR})
 
 #
-# Add subdirectories
+# Create libraries
 #
-add_subdirectory(include)
-add_subdirectory(src/base)
-add_subdirectory(src/demo)
-add_subdirectory(src/mdhim)
-add_subdirectory(src/transport)
-add_subdirectory(src/utils)
+file(GLOB INCLUDES include/*.c*)
+file(GLOB BASE src/base/*.c*)
+file(GLOB MDHIM src/mdhim/*.c*)
+file(GLOB TRANSPORT src/transport/*.c*)
+file(GLOB UTILS src/utils/*.c*)
+list(FILTER UTILS EXCLUDE REGEX ".*/elen.cpp")
+
+set(LIBMDHIM_SOURCES ${MDHIM} ${TRANSPORT} ${UTILS})
+set(LIBHXHIM_SOURCES ${INCLUDES} ${BASE})
+message(STATUS "LIBMDHIM_SOURCES: " ${LIBMDHIM_SOURCES})
+message(STATUS "LIBHXHIM_SOURCES: " ${LIBHXHIM_SOURCES})
+add_library(mdhim.a  STATIC ${LIBMDHIM_SOURCES})
+add_library(mdhim.so SHARED ${LIBMDHIM_SOURCES})
+add_library(hxhim.a  STATIC ${LIBHXHIM_SOURCES})
+add_library(hxhim.so SHARED ${LIBHXHIM_SOURCES})
+
+set_target_properties(mdhim.a  PROPERTIES OUTPUT_NAME mdhim)
+set_target_properties(mdhim.so PROPERTIES OUTPUT_NAME mdhim)
+set_target_properties(hxhim.a  PROPERTIES OUTPUT_NAME hxhim)
+set_target_properties(hxhim.so PROPERTIES OUTPUT_NAME hxhim)
+
+configure_file(src/mdhim/mdhim.conf ${CMAKE_BINARY_DIR} COPYONLY)
 
 #
-# Add unit test subdirectories
+# Install headers and libraries
+#
+INSTALL(FILES
+  src/mdhim/mdhim.h
+  src/mdhim/index_struct.h
+  src/mdhim/mdhim_config.h
+  src/mdhim/mdhim_constants.h
+  src/mdhim/mdhim_options.h
+  src/mdhim/mdhim_options_struct.h
+  src/mdhim/mdhim_struct.h
+  src/mdhim/range_server_info_struct.h
+  src/transport/transport.h
+  src/transport/transport_constants.h
+  src/utils/mlog2.h
+  src/utils/mlogfacs2.h
+  src/utils/uthash.h
+  DESTINATION include/mdhim)
+
+install(FILES
+  include/hxhim-types.h
+  include/hxhim.h
+  include/hxhim.hpp
+  include/return.h
+  include/return.hpp
+  DESTINATION include/hxhim)
+
+INSTALL(TARGETS
+  mdhim.a
+  mdhim.so
+  hxhim.a
+  hxhim.so
+  DESTINATION lib)
+
+#
+# Add demo executable
+#
+add_subdirectory(src/demo)
+
+#
+# Add unit test executables
 #
 add_subdirectory(test/hxhim)
 add_subdirectory(test/mdhim)
@@ -178,6 +233,6 @@ add_subdirectory(test/transport)
 add_subdirectory(test/utils)
 
 #
-# Add examples subdirectory
+# Add example executables
 #
 add_subdirectory(examples)
