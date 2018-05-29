@@ -3,13 +3,11 @@
 
 #include "hxhim.h"
 
-//Constants used across all hxhimPutGet tests
 typedef int Key_t;
 typedef int Value_t;
 static const Key_t   HXHIM_PUT_GET_PRIMARY_KEY = 13579;
 static const Value_t HXHIM_PUT_GET_VALUE       = 24680;
 
-//Put and Get a key-value pair without secondary indexes
 TEST(hxhim, PutGet) {
     hxhim_t hx;
 

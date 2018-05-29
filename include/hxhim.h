@@ -1,9 +1,9 @@
 /*
-  This is the HXHim primary include for HXHIM, the Hexadimensional Hashing Indexing Middleware
+  This is the primary include for HXHIM, the Hexadimensional Hashing Indexing Middleware
 */
 
-#ifndef HXHIM_INTERFACE_H
-#define HXHIM_INTERFACE_H
+#ifndef HXHIM_H
+#define HXHIM_H
 
 #include <ctype.h>
 

@@ -10,13 +10,14 @@ namespace hxhim {
 
 /**
  * Return
- * This class is a container for storing
- * the reponses of MDHIM operations.
- *
  * Each instance of Return represents the response
- * from a single range server, with a pointer
- * pointing to the next range server (if there
- * is one).
+ * from a single operation. The response may come
+ * from multiple range servers. Return points to one
+ * range server at a time, and has functions to
+ * iterate through all of the range servers.
+ *
+ * Multiple Returns chained together represents responses
+ * from multiple operations.
  */
 class Return {
     public:

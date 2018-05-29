@@ -1,5 +1,5 @@
-#ifndef HXHIM_INTERFACE_HPP
-#define HXHIM_INTERFACE_HPP
+#ifndef HXHIM_HPP
+#define HXHIM_HPP
 
 #include <string>
 
