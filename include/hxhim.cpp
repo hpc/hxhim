@@ -1,34 +1,15 @@
+#include <algorithm>
+#include <cmath>
+
 #include "mlog2.h"
 #include "mlogfacs2.h"
 
 #include "hxhim.h"
 #include "hxhim.hpp"
+#include "hxhim_config.h"
 #include "hxhim_private.hpp"
 #include "return_private.hpp"
-
-/**
- * config_reader
- * Opens a configuration file
- *
- * @param opts           the MDHIM options to fill in
- * @param bootstrap_comm the MPI communicator used to boostrap MDHIM
- * @param filename       the name of the file to open (for now, it is only the mdhim configuration)
- * @return HXHIM_SUCCESS or HXHIM_ERROR
- */
-static int config_reader(mdhim_options_t *opts, const MPI_Comm bootstrap_comm, const std::string &filename) {
-    ConfigSequence config_sequence;
-
-    ConfigFile file(filename);
-    config_sequence.add(&file);
-
-    if ((mdhim_options_init(opts, bootstrap_comm, false, false) != MDHIM_SUCCESS) || // initialize opts->p, opts->p->transport, and opts->p->db
-        (process_config_and_fill_options(config_sequence, opts) != MDHIM_SUCCESS)) { // read the configuration and overwrite default values
-        mdhim_options_destroy(opts);
-        return HXHIM_ERROR;
-    }
-
-    return HXHIM_SUCCESS;
-}
+#include "triplestore.hpp"
 
 /**
  * Open
@@ -39,7 +20,7 @@ static int config_reader(mdhim_options_t *opts, const MPI_Comm bootstrap_comm, c
  * @param filename       the name of the file to open (for now, it is only the mdhim configuration)
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim::Open(hxhim_t *hx, const MPI_Comm bootstrap_comm, const std::string &filename) {
+int hxhim::Open(hxhim_t *hx, const MPI_Comm bootstrap_comm) {
     if (!hx) {
         return HXHIM_ERROR;
     }
@@ -48,22 +29,7 @@ int hxhim::Open(hxhim_t *hx, const MPI_Comm bootstrap_comm, const std::string &f
         return HXHIM_ERROR;
     }
 
-    // initialize options through config
-    const std::string mdhim_config = filename; // the mdhim_config value should be part of the hxhim configuration
-    if (!(hx->p->mdhim_opts = new mdhim_options_t())                                            ||
-        (config_reader(hx->p->mdhim_opts, bootstrap_comm, mdhim_config) != MDHIM_SUCCESS)) {
-        Close(hx);
-        return HXHIM_ERROR;
-    }
-
-    // initialize mdhim context
-    if (!(hx->p->md = new mdhim_t())                               ||
-        (mdhim::Init(hx->p->md, hx->p->mdhim_opts) != MDHIM_SUCCESS)) {
-        Close(hx);
-        return HXHIM_ERROR;
-    }
-
-    return HXHIM_SUCCESS;
+    return hxhim_default_config_reader(hx, bootstrap_comm);
 }
 
 /**
@@ -75,8 +41,8 @@ int hxhim::Open(hxhim_t *hx, const MPI_Comm bootstrap_comm, const std::string &f
  * @param filename       the name of the file to open (for now, it is only the mdhim configuration)
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhimOpen(hxhim_t *hx, const MPI_Comm bootstrap_comm, const char *filename) {
-    return hxhim::Open(hx, bootstrap_comm, std::string(filename, strlen(filename)));
+int hxhimOpen(hxhim_t *hx, const MPI_Comm bootstrap_comm) {
+    return hxhim::Open(hx, bootstrap_comm);
 }
 
 /**
@@ -92,7 +58,14 @@ int hxhim::Close(hxhim_t *hx) {
     }
 
     // clear out unsent work in the work queue
-    hx->p->puts.clear();
+    hx->p->puts.data.clear();
+    hx->p->gets.data.clear();
+    hx->p->getops.data.clear();
+    hx->p->dels.data.clear();
+    hx->p->unsafe_puts.data.clear();
+    hx->p->unsafe_gets.data.clear();
+    hx->p->unsafe_getops.data.clear();
+    hx->p->unsafe_dels.data.clear();
 
     // clean up mdhim
     if (hx->p->md) {
@@ -135,19 +108,23 @@ int hxhimClose(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Return *hxhim::FlushAllPuts(hxhim_t *hx) {
-    hxhim::Return *head = new hxhim::Return(hxhim_work_op::HXHIM_NOP, nullptr);
+    hxhim::Return head(hxhim_work_op::HXHIM_NOP, nullptr);
     hxhim::Return *puts = FlushPuts(hx);
     hxhim::Return *unsafe_puts = Unsafe::FlushPuts(hx);
 
-    head->Next(puts)->Next(unsafe_puts);
+    head.Next(puts)->Next(unsafe_puts);
 
-    hxhim::Return *ret = head->Next();
-    head->Next(nullptr);
-    delete head;
-
-    return ret;
+    return hxhim::return_results(head);
 }
 
+/**
+ * FlushAllPuts
+ * Flushes all queued safe and unsafe PUTs
+ * The internal queues are cleared, even on error
+ *
+ * @param hx the HXHIM session to terminate
+ * @return Pointer to return value wrapper
+ */
 hxhim_return_t *hxhimFlushAllPuts(hxhim_t *hx) {
     return hxhim_return_init(hxhim::FlushAllPuts(hx));
 }
@@ -161,21 +138,55 @@ hxhim_return_t *hxhimFlushAllPuts(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Return *hxhim::FlushAllGets(hxhim_t *hx) {
-    hxhim::Return *head = new hxhim::Return(hxhim_work_op::HXHIM_NOP, nullptr);
+    hxhim::Return head(hxhim_work_op::HXHIM_NOP, nullptr);
     hxhim::Return *gets = FlushGets(hx);
     hxhim::Return *unsafe_gets = Unsafe::FlushGets(hx);
 
-    head->Next(gets)->Next(unsafe_gets);
+    head.Next(gets)->Next(unsafe_gets);
 
-    hxhim::Return *ret = head->Next();
-    head->Next(nullptr);
-    delete head;
-
-    return ret;
+    return hxhim::return_results(head);
 }
 
+/**
+ * FlushAllGets
+ * Flushes all queued safe and unsafe GETs
+ * The internal queues are cleared, even on error
+ *
+ * @param hx the HXHIM session to terminate
+ * @return Pointer to return value wrapper
+ */
 hxhim_return_t *hxhimFlushAllGets(hxhim_t *hx) {
     return hxhim_return_init(hxhim::FlushAllGets(hx));
+}
+
+/**
+ * FlushAllGetOps
+ * Flushes all queued safe and unsafe GETs
+ * The internal queues are cleared, even on error
+ *
+ * @param hx the HXHIM session to terminate
+ * @return Pointer to return value wrapper
+ */
+hxhim::Return *hxhim::FlushAllGetOps(hxhim_t *hx) {
+    hxhim::Return head(hxhim_work_op::HXHIM_NOP, nullptr);
+    hxhim::Return *getops = FlushGetOps(hx);
+    hxhim::Return *unsafe_getops = Unsafe::FlushGetOps(hx);
+
+    head.Next(getops)->Next(unsafe_getops);
+
+    return hxhim::return_results(head);
+}
+
+/**
+ * FlushAllGetOps
+ * Flushes all queued safe and unsafe GETs
+ * The internal queues are cleared, even on error
+ *
+ * @param hx the HXHIM session to terminate
+ * @return Pointer to return value wrapper
+ */
+hxhim_return_t *hxhimFlushAllGetOps(hxhim_t *hx) {
+    return hxhim_return_init(hxhim::FlushAllGetOps(hx));
 }
 
 /**
@@ -187,19 +198,23 @@ hxhim_return_t *hxhimFlushAllGets(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Return *hxhim::FlushAllDeletes(hxhim_t *hx) {
-    hxhim::Return *head = new hxhim::Return(hxhim_work_op::HXHIM_NOP, nullptr);
+    hxhim::Return head(hxhim_work_op::HXHIM_NOP, nullptr);
     hxhim::Return *dels = FlushDeletes(hx);
     hxhim::Return *unsafe_dels = Unsafe::FlushDeletes(hx);
 
-    head->Next(dels)->Next(unsafe_dels);
+    head.Next(dels)->Next(unsafe_dels);
 
-    hxhim::Return *ret = head->Next();
-    head->Next(nullptr);
-    delete head;
-
-    return ret;
+    return hxhim::return_results(head);
 }
 
+/**
+ * FlushAllDeletes
+ * Flushes all queued safe and unsafe DELs
+ * The internal queues are cleared, even on error
+ *
+ * @param hx the HXHIM session to terminate
+ * @return Pointer to return value wrapper
+ */
 hxhim_return_t *hxhimFlushAllDeletes(hxhim_t *hx) {
     return hxhim_return_init(hxhim::FlushAllDeletes(hx));
 }
@@ -213,7 +228,7 @@ hxhim_return_t *hxhimFlushAllDeletes(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Return *hxhim::FlushAll(hxhim_t *hx) {
-    hxhim::Return *head = new hxhim::Return(hxhim_work_op::HXHIM_NOP, nullptr);
+    hxhim::Return head(hxhim_work_op::HXHIM_NOP, nullptr);
 
     hxhim::Return *puts = FlushPuts(hx);
     hxhim::Return *unsafe_puts = Unsafe::FlushPuts(hx);
@@ -221,20 +236,28 @@ hxhim::Return *hxhim::FlushAll(hxhim_t *hx) {
     hxhim::Return *gets = FlushGets(hx);
     hxhim::Return *unsafe_gets = Unsafe::FlushGets(hx);
 
+    hxhim::Return *getops = FlushGetOps(hx);
+    hxhim::Return *unsafe_getops = Unsafe::FlushGetOps(hx);
+
     hxhim::Return *dels = FlushDeletes(hx);
     hxhim::Return *unsafe_dels = Unsafe::FlushDeletes(hx);
 
-    head->Next(puts)->Next(unsafe_puts)
+    head.Next(puts)->Next(unsafe_puts)
         ->Next(gets)->Next(unsafe_gets)
+        ->Next(getops)->Next(unsafe_getops)
         ->Next(dels)->Next(unsafe_dels);
 
-    hxhim::Return *ret = head->Next();
-    head->Next(nullptr);
-    delete head;
-
-    return ret;
+    return hxhim::return_results(head);
 }
 
+/**
+ * FlushAll
+ * Flushes all queued safe and unsafe work
+ * The internal queues are cleared, even on error
+ *
+ * @param hx the HXHIM session to terminate
+ * @return Pointer to return value wrapper
+ */
 hxhim_return_t *hxhimFlushAll(hxhim_t *hx) {
     return hxhim_return_init(hxhim::FlushAll(hx));
 }
@@ -248,44 +271,66 @@ hxhim_return_t *hxhimFlushAll(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Return *hxhim::FlushPuts(hxhim_t *hx) {
-    hxhim::keyvalue_stream_t &puts = hx->p->puts;
-    std::lock_guard<std::mutex> lock(puts.mutex);
+    std::lock_guard<std::mutex> lock(hx->p->puts.mutex);
+    std::list<hxhim::spo_t> &puts = hx->p->puts.data;
 
-    // make sure keys and values match up
-    if ((puts.keys.size()   != puts.key_lens.size())   ||
-        (puts.values.size() != puts.value_lens.size()) ||
-        (puts.keys.size()   != puts.values.size()))     {
-        mlog(MLOG_WARN, "HXHIM Rank %d - Attempted to flush message with mismatched lengths: key (%zu), key length (%zu), value (%zu), value length (%zu). Skipping.", hx->p->md->rank, puts.keys.size(), puts.key_lens.size(), puts.values.size(), puts.value_lens.size());
-        puts.clear();
-        return nullptr;
-    }
+    hxhim::Return head(hxhim_work_op::HXHIM_NOP, nullptr);
+    hxhim::Return *res = &head;
 
-    Return *res = nullptr;
+    while (puts.size()) {
+        // Generate up to 1 MAX_BULK_OPS worth of data
+        std::size_t count = std::min(puts.size(), (std::size_t) HXHIM_MAX_BULK_PUT_OPS);
+        std::size_t hexcount = 6 * count;
 
-    // when there is only 1 set of data to operate on, use single PUT
-    if (puts.keys.size() == 1) {
-        res = new hxhim::Return(hxhim_work_op::HXHIM_PUT, mdhim::Put(hx->p->md, nullptr, puts.keys[0], puts.key_lens[0], puts.values[0], puts.value_lens[0]));
-    }
-    // use BPUT
-    else {
         // copy the keys and lengths into arrays
-        void **keys = new void *[puts.keys.size()]();
-        std::size_t *key_lens = new std::size_t[puts.key_lens.size()]();
-        void **values = new void *[puts.values.size()]();
-        std::size_t *value_lens = new std::size_t[puts.value_lens.size()]();
+        void **keys = new void *[hexcount]();
+        std::size_t *key_lens = new std::size_t[hexcount]();
+        void **values = new void *[hexcount]();
+        std::size_t *value_lens = new std::size_t[hexcount]();
 
         if (keys   && key_lens   &&
             values && value_lens) {
-            for(std::size_t i = 0; i < puts.keys.size(); i++) {
-                keys[i] = puts.keys[i];
-                key_lens[i] = puts.key_lens[i];
-                values[i] = puts.values[i];
-                value_lens[i] = puts.value_lens[i];
+            for(std::size_t i = 0; i < count; i++) {
+                const hxhim::spo_t &put = puts.front();
+                const std::size_t offset = 6 * i;
+
+                convert2key(put.subject,   put.subject_len,   put.predicate, put.predicate_len, &keys[offset + 0], &key_lens[offset + 0]);
+                values[offset + 0] = put.object;
+                value_lens[offset + 0] = put.object_len;
+
+                convert2key(put.subject,   put.subject_len,   put.object,    put.object_len,    &keys[offset + 1], &key_lens[offset + 1]);
+                values[offset + 1] = put.predicate;
+                value_lens[offset + 1] = put.predicate_len;
+
+                convert2key(put.predicate, put.predicate_len, put.subject,   put.subject_len,   &keys[offset + 2], &key_lens[offset + 2]);
+                values[offset + 2] = put.object;
+                value_lens[offset + 2] = put.object_len;
+
+                convert2key(put.predicate, put.predicate_len, put.object,    put.object_len,    &keys[offset + 3], &key_lens[offset + 3]);
+                values[offset + 3] = put.subject;
+                value_lens[offset + 3] = put.subject_len;
+
+                convert2key(put.object,    put.object_len,    put.subject,   put.subject_len,   &keys[offset + 4], &key_lens[offset + 4]);
+                values[offset + 4] = put.predicate;
+                value_lens[offset + 4] = put.predicate_len;
+
+                convert2key(put.object,    put.object_len,    put.predicate, put.predicate_len, &keys[offset + 5], &key_lens[offset + 5]);
+                values[offset + 5] = put.subject;
+                value_lens[offset + 5] = put.subject_len;
+
+                puts.pop_front();
             }
 
-            // can add some async stuff here, if keys are sorted here instead of in MDHIM
+            res = res->Next(new hxhim::Return(hxhim_work_op::HXHIM_PUT, mdhim::BPut(hx->p->md, nullptr, keys, key_lens, values, value_lens, hexcount)));
 
-            res = new hxhim::Return(hxhim_work_op::HXHIM_PUT, mdhim::BPut(hx->p->md, nullptr, keys, key_lens, values, value_lens, puts.keys.size()));
+            for(std::size_t i = 0; i < hexcount; i++) {
+                ::operator delete(keys[i]);
+            }
+        }
+        else {
+            for(std::size_t i = 0; i < count; i++) {
+                puts.pop_front();
+            }
         }
 
         // cleanup
@@ -295,9 +340,7 @@ hxhim::Return *hxhim::FlushPuts(hxhim_t *hx) {
         delete [] value_lens;
     }
 
-    puts.clear();
-
-    return res;
+    return hxhim::return_results(head);
 }
 
 /**
@@ -321,38 +364,43 @@ hxhim_return_t *hxhimFlushPuts(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Return *hxhim::FlushGets(hxhim_t *hx) {
-    hxhim::key_stream_t &gets = hx->p->gets;
-    std::lock_guard<std::mutex> lock(gets.mutex);
+    std::lock_guard<std::mutex> lock(hx->p->gets.mutex);
+    std::list<hxhim::sp_t> &gets = hx->p->gets.data;
 
-    // make sure keys and values match up
-    if (gets.keys.size() != gets.key_lens.size()) {
-        mlog(MLOG_WARN, "HXHIM Rank %d - Attempted to flush message with mismatched lengths: key (%zu) and key length (%zu). Skipping.", hx->p->md->rank, gets.keys.size(), gets.key_lens.size());
-        gets.clear();
-        return nullptr;
-    }
+    hxhim::Return head(hxhim_work_op::HXHIM_NOP, nullptr);
+    hxhim::Return *res = &head;
 
-    Return *res = nullptr;
-
-    // when there is only 1 set of data to operate on, use single GET
-    if (gets.keys.size() == 1) {
-        res = new hxhim::Return(hxhim_work_op::HXHIM_GET, mdhim::Get(hx->p->md, nullptr, gets.keys[0], gets.key_lens[0], TransportGetMessageOp::GET_EQ));
-    }
-    else {
-        // use BGET
+    while (gets.size()) {
+        // Process up to 1 MAX_BULK_OPS worth of data
+        std::size_t count = std::min(gets.size(), (std::size_t) HXHIM_MAX_BULK_GET_OPS);
 
         // copy the keys and lengths into arrays
-        void **keys = new void *[gets.keys.size()]();
-        std::size_t *key_lens = new std::size_t[gets.key_lens.size()]();
+        void **keys = new void *[count]();
+        std::size_t *key_lens = new std::size_t[count]();
 
         if (keys && key_lens) {
-            for(std::size_t i = 0; i < gets.keys.size(); i++) {
-                keys[i] = gets.keys[i];
-                key_lens[i] = gets.key_lens[i];
+            for(std::size_t i = 0; i < count; i++) {
+                // convert current subject+predicate into a key
+                void *key = nullptr;
+                std::size_t key_len = 0;
+
+                convert2key(gets.front().subject, gets.front().subject_len, gets.front().predicate, gets.front().predicate_len, &key, &key_len);
+
+                // move the constructed key into the buffer
+                keys    [i] = key;
+                key_lens[i] = key_len;
+
+                gets.pop_front();
             }
 
-            // can add some async stuff here, if keys are sorted here instead of in MDHIM
-
-            res = new hxhim::Return(hxhim_work_op::HXHIM_GET, mdhim::BGet(hx->p->md, nullptr, keys, key_lens, gets.keys.size(), TransportGetMessageOp::GET_EQ));
+            TransportBGetRecvMessage *bgrm = mdhim::BGet(hx->p->md, nullptr, keys, key_lens, count, TransportGetMessageOp::GET_EQ);
+            bgrm->clean = true;
+            res = res->Next(new hxhim::Return(hxhim_work_op::HXHIM_PUT, bgrm));
+        }
+        else {
+            for(std::size_t i = 0; i < count; i++) {
+                gets.pop_front();
+            }
         }
 
         // cleanup
@@ -360,9 +408,7 @@ hxhim::Return *hxhim::FlushGets(hxhim_t *hx) {
         delete [] key_lens;
     }
 
-    gets.clear();
-
-    return res;
+    return hxhim::return_results(head);
 }
 
 /**
@@ -378,6 +424,50 @@ hxhim_return_t *hxhimFlushGets(hxhim_t *hx) {
 }
 
 /**
+ * FlushGetOps
+ * Flushes all queued GETs with specific operations
+ * The internal queue is cleared, even on error
+ *
+ * @param hx the HXHIM session to terminate
+ * @return Pointer to return value wrapper
+ */
+hxhim::Return *hxhim::FlushGetOps(hxhim_t *hx) {
+    std::lock_guard<std::mutex> lock(hx->p->getops.mutex);
+    std::list<hxhim::sp_op_t> &gets = hx->p->getops.data;
+
+    hxhim::Return head(hxhim_work_op::HXHIM_NOP, nullptr);
+    hxhim::Return *res = &head;
+
+    while (gets.size()) {
+        // convert current subject+predicate into a key
+        void *key = nullptr;
+        std::size_t key_len = 0;
+
+        convert2key(gets.front().subject, gets.front().subject_len, gets.front().predicate, gets.front().predicate_len, &key, &key_len);
+
+        res = res->Next(new hxhim::Return(hxhim_work_op::HXHIM_PUT, mdhim::BGetOp(hx->p->md, nullptr, key, key_len, gets.front().num_records, gets.front().op)));
+
+        // cleanup
+        ::operator delete(key);
+        gets.pop_front();
+    }
+
+    return hxhim::return_results(head);
+}
+
+/**
+ * FlushGetOps
+ * Flushes all queued GETs with specific operations
+ * The internal queue is cleared, even on error
+ *
+ * @param hx the HXHIM session to terminate
+ * @return Pointer to return value wrapper
+ */
+hxhim_return_t *hxhimFlushGetOps(hxhim_t *hx) {
+    return hxhim_return_init(hxhim::FlushGetOps(hx));
+}
+
+/**
  * FlushDeletes
  * Flushes all queued DELs
  * The internal queue is cleared, even on error
@@ -386,38 +476,44 @@ hxhim_return_t *hxhimFlushGets(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Return *hxhim::FlushDeletes(hxhim_t *hx) {
-    hxhim::key_stream_t &dels = hx->p->dels;
-    std::lock_guard<std::mutex> lock(dels.mutex);
+    std::lock_guard<std::mutex> lock(hx->p->dels.mutex);
+    std::list<hxhim::sp_t> &dels = hx->p->dels.data;
 
-    // make sure keys and values match up
-    if (dels.keys.size() != dels.key_lens.size()) {
-        mlog(MLOG_WARN, "HXHIM Rank %d - Attempted to flush message with mismatched lengths: key (%zu) and key length (%zu). Skipping.", hx->p->md->rank, dels.keys.size(), dels.key_lens.size());
-        dels.clear();
-        return nullptr;
-    }
+    hxhim::Return head(hxhim_work_op::HXHIM_NOP, nullptr);
+    hxhim::Return *res = &head;
 
-    Return *res = nullptr;
-
-    // when there is only 1 set of data to operate on, use single DEL
-    if (dels.keys.size() == 1) {
-        res = new hxhim::Return(hxhim_work_op::HXHIM_DEL, mdhim::Delete(hx->p->md, nullptr, dels.keys[0], dels.key_lens[0]));
-    }
-    else {
-        // use BDEL
+    while (dels.size()) {
+        std::size_t count = std::min(dels.size(), (std::size_t) HXHIM_MAX_BULK_DEL_OPS);
 
         // copy the keys and lengths into arrays
-        void **keys = new void *[dels.keys.size()]();
-        std::size_t *key_lens = new std::size_t[dels.key_lens.size()]();
+        void **keys = new void *[count]();
+        std::size_t *key_lens = new std::size_t[count]();
 
         if (keys && key_lens) {
-            for(std::size_t i = 0; i < dels.keys.size(); i++) {
-                keys[i] = dels.keys[i];
-                key_lens[i] = dels.key_lens[i];
+            for(std::size_t i = 0; i < count; i++) {
+                // convert current subject+predicate into a key
+                void *key = nullptr;
+                std::size_t key_len = 0;
+
+                convert2key(dels.front().subject, dels.front().subject_len, dels.front().predicate, dels.front().predicate_len, &key, &key_len);
+
+                // move the constructed key into the buffer
+                keys    [i] = key;
+                key_lens[i] = key_len;
+
+                dels.pop_front();
             }
 
-            // can add some async stuff here, if keys are sorted here instead of in MDHIM
+            res = res->Next(new hxhim::Return(hxhim_work_op::HXHIM_PUT, mdhim::BDelete(hx->p->md, nullptr, keys, key_lens, count)));
 
-            res = new hxhim::Return(hxhim_work_op::HXHIM_DEL, mdhim::BDelete(hx->p->md, nullptr, keys, key_lens, dels.keys.size()));
+            for(std::size_t i = 0; i < count; i++) {
+                ::operator delete(keys[i]);
+            }
+        }
+        else {
+            for(std::size_t i = 0; i < count; i++) {
+                dels.pop_front();
+            }
         }
 
         // cleanup
@@ -425,9 +521,7 @@ hxhim::Return *hxhim::FlushDeletes(hxhim_t *hx) {
         delete [] key_lens;
     }
 
-    dels.clear();
-
-    return res;
+    return hxhim::return_results(head);
 }
 
 /**
@@ -446,24 +540,22 @@ hxhim_return_t *hxhimFlushDeletes(hxhim_t *hx) {
  * Flush
  *     1. Do all PUTs
  *     2. Do all GETs
- *     3. Do all DELs
+ *     3. Do all GET_OPs
+ *     4. Do all DELs
  *
  * @param hx
  * @return An array of results (3 values)
  */
 hxhim::Return *hxhim::Flush(hxhim_t *hx) {
-    hxhim::Return *head = new hxhim::Return(hxhim_work_op::HXHIM_NOP, nullptr);
+    hxhim::Return head(hxhim_work_op::HXHIM_NOP, nullptr);
     hxhim::Return *puts = FlushPuts(hx);
     hxhim::Return *gets = FlushGets(hx);
+    hxhim::Return *getops = FlushGetOps(hx);
     hxhim::Return *dels = FlushDeletes(hx);
 
-    head->Next(puts)->Next(gets)->Next(dels);
+    head.Next(puts)->Next(gets)->Next(getops)->Next(dels);
 
-    hxhim::Return *ret = head->Next();
-    head->Next(nullptr);
-    delete head;
-
-    return ret;
+    return hxhim::return_results(head);
 }
 
 /**
@@ -481,24 +573,36 @@ hxhim_return_t *hxhimFlush(hxhim_t *hx) {
  * Put
  * Add a PUT into the work queue
  *
- * @param hx        the HXHIM session
- * @param key       the key to put
- * @param key_len   the length of the key to put
- * @param value     the value associated with the key
- * @param value_len the length of the value
+ * @param hx           the HXHIM session
+ * @param subject      the subject to put
+ * @param subject_len  the length of the subject to put
+ * @param prediate     the prediate to put
+ * @param prediate_len the length of the prediate to put
+ * @param object       the object to put
+ * @param object_len   the length of the object
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim::Put(hxhim_t *hx, void *key, std::size_t key_len, void *value, std::size_t value_len) {
-    if (!hx || !hx->p || !key || !value) {
+int hxhim::Put(hxhim_t *hx,
+               void *subject, std::size_t subject_len,
+               void *predicate, std::size_t predicate_len,
+               void *object, std::size_t object_len) {
+    if (!hx        || !hx->p        ||
+        !subject   || !subject_len   ||
+        !predicate || !predicate_len ||
+        !object    || !object_len)    {
         return HXHIM_ERROR;
     }
 
-    std::lock_guard<std::mutex> lock(hx->p->puts.mutex);
-    hx->p->puts.keys.push_back(key);
-    hx->p->puts.key_lens.push_back(key_len);
-    hx->p->puts.values.push_back(value);
-    hx->p->puts.value_lens.push_back(value_len);
+    hxhim::spo_t spo;
+    spo.subject = subject;
+    spo.subject_len = subject_len;
+    spo.predicate = predicate;
+    spo.predicate_len = predicate_len;
+    spo.object = object;
+    spo.object_len = object_len;
 
+    std::lock_guard<std::mutex> lock(hx->p->puts.mutex);
+    hx->p->puts.data.emplace_back(spo);
     return HXHIM_SUCCESS;
 }
 
@@ -506,35 +610,53 @@ int hxhim::Put(hxhim_t *hx, void *key, std::size_t key_len, void *value, std::si
  * hxhimPut
  * Add a PUT into the work queue
  *
- * @param hx        the HXHIM session
- * @param key       the key to put
- * @param key_len   the length of the key to put
- * @param value     the value associated with the key
- * @param value_len the length of the value
+ * @param hx           the HXHIM session
+ * @param subject      the subject to put
+ * @param subject_len  the length of the subject to put
+ * @param prediate     the prediate to put
+ * @param prediate_len the length of the prediate to put
+ * @param object       the object to put
+ * @param object_len   the length of the object
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhimPut(hxhim_t *hx, void *key, std::size_t key_len, void *value, std::size_t value_len) {
-    return hxhim::Put(hx, key, key_len, value, value_len);
+int hxhimPut(hxhim_t *hx,
+             void *subject, std::size_t subject_len,
+             void *predicate, std::size_t predicate_len,
+             void *object, std::size_t object_len) {
+    return hxhim::Put(hx,
+                      subject, subject_len,
+                      predicate, predicate_len,
+                      object, object_len);
 }
 
 /**
  * Get
  * Add a GET into the work queue
  *
- * @param hx        the HXHIM session
- * @param key       the key to get
- * @param key_len   the length of the key to get
+ * @param hx           the HXHIM session
+ * @param subject      the subject to get
+ * @param subject_len  the length of the subject to get
+ * @param prediate     the prediate to get
+ * @param prediate_len the length of the prediate to get
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim::Get(hxhim_t *hx, void *key, std::size_t key_len) {
-    if (!hx || !hx->p || !key) {
+int hxhim::Get(hxhim_t *hx,
+               void *subject, std::size_t subject_len,
+               void *predicate, std::size_t predicate_len) {
+    if (!hx        || !hx->p        ||
+        !subject   || !subject_len   ||
+        !predicate || !predicate_len) {
         return HXHIM_ERROR;
     }
 
-    std::lock_guard<std::mutex> lock(hx->p->gets.mutex);
-    hx->p->gets.keys.push_back(key);
-    hx->p->gets.key_lens.push_back(key_len);
+    hxhim::sp_t sp;
+    sp.subject = subject;
+    sp.subject_len = subject_len;
+    sp.predicate = predicate;
+    sp.predicate_len = predicate_len;
 
+    std::lock_guard<std::mutex> lock(hx->p->gets.mutex);
+    hx->p->gets.data.emplace_back(sp);
     return HXHIM_SUCCESS;
 }
 
@@ -542,71 +664,108 @@ int hxhim::Get(hxhim_t *hx, void *key, std::size_t key_len) {
  * hxhimGet
  * Add a GET into the work queue
  *
- * @param hx        the HXHIM session
- * @param key       the key to get
- * @param key_len   the length of the key to get
+ * @param hx           the HXHIM session
+ * @param subject      the subject to get
+ * @param subject_len  the length of the subject to get
+ * @param prediate     the prediate to get
+ * @param prediate_len the length of the prediate to get
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhimGet(hxhim_t *hx, void *key, std::size_t key_len) {
-    return hxhim::Get(hx, key, key_len);
+int hxhimGet(hxhim_t *hx,
+             void *subject, std::size_t subject_len,
+             void *predicate, std::size_t predicate_len) {
+    return hxhim::Get(hx,
+                      subject, subject_len,
+                      predicate, predicate_len);
 }
 
 /**
  * Delete
- * Add a DEL into the work queue
+ * Add a DELETE into the work queue
  *
- * @param hx        the HXHIM session
- * @param key       the key to del
- * @param key_len   the length of the key to delete
+ * @param hx           the HXHIM session
+ * @param subject      the subject to delete
+ * @param subject_len  the length of the subject to delete
+ * @param prediate     the prediate to delete
+ * @param prediate_len the length of the prediate to delete
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim::Delete(hxhim_t *hx, void *key, std::size_t key_len) {
-    if (!hx || !hx->p || !key) {
+int hxhim::Delete(hxhim_t *hx,
+                  void *subject, std::size_t subject_len,
+                  void *predicate, std::size_t predicate_len) {
+    if (!hx        || !hx->p        ||
+        !subject   || !subject_len   ||
+        !predicate || !predicate_len) {
         return HXHIM_ERROR;
     }
 
-    std::lock_guard<std::mutex> lock(hx->p->dels.mutex);
-    hx->p->dels.keys.push_back(key);
-    hx->p->dels.key_lens.push_back(key_len);
+    hxhim::sp_t sp;
+    sp.subject = subject;
+    sp.subject_len = subject_len;
+    sp.predicate = predicate;
+    sp.predicate_len = predicate_len;
 
+    std::lock_guard<std::mutex> lock(hx->p->dels.mutex);
+    hx->p->dels.data.emplace_back(sp);
     return HXHIM_SUCCESS;
 }
 
 /**
  * hxhimDelete
- * Add a DEL into the work queue
+ * Add a DELETE into the work queue
  *
- * @param hx        the HXHIM session
- * @param key       the key to del
- * @param key_len   the length of the key to delete
+ * @param hx           the HXHIM session
+ * @param subject      the subject to delete
+ * @param subject_len  the length of the subject to delete
+ * @param prediate     the prediate to delete
+ * @param prediate_len the length of the prediate to delete
+ * @param object       the object associated with the key
+ * @param object_len   the length of the object
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhimDelete(hxhim_t *hx, void *key, std::size_t key_len) {
-    return hxhim::Delete(hx, key, key_len);
+int hxhimDelete(hxhim_t *hx,
+                void *subject, std::size_t subject_len,
+                void *predicate, std::size_t predicate_len) {
+    return hxhim::Delete(hx,
+                         subject, subject_len,
+                         predicate, predicate_len);
 }
 
 /**
  * BPut
  * Add a BPUT into the work queue
  *
- * @param hx         the HXHIM session
- * @param keys       the keys to bput
- * @param key_lens   the length of the keys to bput
- * @param values     the values associated with the keys
- * @param value_lens the length of the values
+ * @param hx            the HXHIM session
+ * @param subjects      the subjects to put
+ * @param subject_lens  the lengths of the subjects to put
+ * @param prediates     the prediates to put
+ * @param prediate_lens the lengths of the prediates to put
+ * @param objects       the objects to put
+ * @param object_lens   the lengths of the objects
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim::BPut(hxhim_t *hx, void **keys, std::size_t *key_lens, void **values, std::size_t *value_lens, std::size_t num_keys) {
-    if (!hx || !hx->p || !keys || !key_lens || !values || !value_lens) {
+int hxhim::BPut(hxhim_t *hx,
+                void **subjects, std::size_t *subject_lens,
+                void **predicates, std::size_t *predicate_lens,
+                void **objects, std::size_t *object_lens,
+                std::size_t count) {
+    if (!hx         || !hx->p         ||
+        !subjects   || !subject_lens   ||
+        !predicates || !predicate_lens ||
+        !objects    || !object_lens) {
         return HXHIM_ERROR;
     }
 
     std::lock_guard<std::mutex> lock(hx->p->puts.mutex);
-    for(std::size_t i = 0; i < num_keys; i++) {
-        hx->p->puts.keys.push_back(keys[i]);
-        hx->p->puts.key_lens.push_back(key_lens[i]);
-        hx->p->puts.values.push_back(values[i]);
-        hx->p->puts.value_lens.push_back(value_lens[i]);
+    for(std::size_t i = 0; i < count; i++) {
+        hxhim::spo_t spo;
+        spo.subject = subjects[i];
+        spo.subject_len = subject_lens[i];
+        spo.predicate = predicates[i];
+        spo.predicate_len = predicate_lens[i];
+        spo.object = objects[i];
+        spo.object_len = object_lens[i];
+        hx->p->puts.data.emplace_back(spo);
     }
 
     return HXHIM_SUCCESS;
@@ -616,35 +775,57 @@ int hxhim::BPut(hxhim_t *hx, void **keys, std::size_t *key_lens, void **values, 
  * hxhimBPut
  * Add a BPUT into the work queue
  *
- * @param hx         the HXHIM session
- * @param keys       the keys to bput
- * @param key_lens   the length of the keys to bput
- * @param values     the values associated with the keys
- * @param value_lens the length of the values
+ * @param hx            the HXHIM session
+ * @param subjects      the subjects to put
+ * @param subject_lens  the lengths of the subjects to put
+ * @param prediates     the prediates to put
+ * @param prediate_lens the lengths of the prediates to put
+ * @param objects       the objects to put
+ * @param object_lens   the lengths of the objects
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhimBPut(hxhim_t *hx, void **keys, std::size_t *key_lens, void **values, std::size_t *value_lens, std::size_t num_keys) {
-    return hxhim::BPut(hx, keys, key_lens, values, value_lens, num_keys);
+int hxhimBPut(hxhim_t *hx,
+              void **subjects, std::size_t *subject_lens,
+              void **predicates, std::size_t *predicate_lens,
+              void **objects, std::size_t *object_lens,
+              std::size_t count) {
+    return hxhim::BPut(hx,
+                       subjects, subject_lens,
+                       predicates, predicate_lens,
+                       objects, object_lens,
+                       count);
 }
 
 /**
  * BGet
  * Add a BGET into the work queue
  *
- * @param hx         the HXHIM session
- * @param keys       the keys to bget
- * @param key_lens   the length of the keys to bget
+ * @param hx            the HXHIM session
+ * @param hx            the HXHIM session
+ * @param subjects      the subjects to get
+ * @param subject_lens  the lengths of the subjects to get
+ * @param prediates     the prediates to get
+ * @param prediate_lens the lengths of the prediates to get
  * @return A wrapped return value containing responses
  */
-int hxhim::BGet(hxhim_t *hx, void **keys, std::size_t *key_lens, std::size_t num_keys) {
-    if (!hx || !hx->p || !keys || !key_lens) {
-        return MDHIM_ERROR;
+int hxhim::BGet(hxhim_t *hx,
+                void **subjects, std::size_t *subject_lens,
+                void **predicates, std::size_t *predicate_lens,
+                std::size_t count) {
+    if (!hx         || !hx->p         ||
+        !subjects   || !subject_lens   ||
+        !predicates || !predicate_lens) {
+        return HXHIM_ERROR;
     }
 
     std::lock_guard<std::mutex> lock(hx->p->gets.mutex);
-    for(std::size_t i = 0; i < num_keys; i++) {
-        hx->p->gets.keys.push_back(keys[i]);
-        hx->p->gets.key_lens.push_back(key_lens[i]);
+    for(std::size_t i = 0; i < count; i++) {
+        hxhim::sp_t sp;
+        sp.subject = subjects[i];
+        sp.subject_len = subject_lens[i];
+        sp.predicate = predicates[i];
+        sp.predicate_len = predicate_lens[i];
+        hx->p->gets.data.emplace_back(sp);
     }
 
     return MDHIM_SUCCESS;
@@ -654,33 +835,102 @@ int hxhim::BGet(hxhim_t *hx, void **keys, std::size_t *key_lens, std::size_t num
  * hxhimBGet
  * Add a BGET into the work queue
  *
+ * @param hx            the HXHIM session
+ * @param subjects      the subjects to get
+ * @param subject_lens  the lengths of the subjects to get
+ * @param prediates     the prediates to get
+ * @param prediate_lens the lengths of the prediates to get
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhimBGet(hxhim_t *hx,
+              void **subjects, size_t *subject_lens,
+              void **predicates, size_t *predicate_lens,
+              size_t count) {
+    return hxhim::BGet(hx,
+                       subjects, subject_lens,
+                       predicates, predicate_lens,
+                       count);
+}
+
+/**
+ * BGetOp
+ * Add a BGET into the work queue
+ *
+ * @param hx         the HXHIM session
+ * @param keys       the keys to bget
+ * @param key_lens   the length of the keys to bget
+ * @return A wrapped return value containing responses
+ */
+int hxhim::BGetOp(hxhim_t *hx,
+                  void *subject, std::size_t subject_len,
+                  void *predicate, std::size_t predicate_len,
+                  std::size_t num_records, enum TransportGetMessageOp op) {
+    if (!hx         || !hx->p        ||
+        !subject    || !subject_len   ||
+        !predicate  || !predicate_len) {
+        return HXHIM_ERROR;
+    }
+
+    hxhim::sp_t sp;
+    sp.subject = subject;
+    sp.subject_len = subject_len;
+    sp.predicate = predicate;
+    sp.predicate_len = predicate_len;
+
+    std::lock_guard<std::mutex> lock(hx->p->gets.mutex);
+    hx->p->gets.data.emplace_back(sp);
+
+    return MDHIM_SUCCESS;
+}
+
+/**
+ * hxhimBGetOp
+ * Add a BGET into the work queue
+ *
  * @param hx         the HXHIM session
  * @param keys       the keys to bget
  * @param key_lens   the length of the keys to bget
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhimBGet(hxhim_t *hx, void **keys, std::size_t *key_lens, std::size_t num_keys) {
-    return hxhim::BGet(hx, keys, key_lens, num_keys);
+int hxhimBGetOp(hxhim_t *hx,
+                void *subject, std::size_t subject_len,
+                void *predicate, std::size_t predicate_len,
+                std::size_t num_records, enum TransportGetMessageOp op) {
+    return hxhim::BGetOp(hx,
+                         subject, subject_len,
+                         predicate, predicate_len,
+                         num_records, op);
 }
 
 /**
  * BDelete
  * Add a BDEL into the work queue
  *
- * @param hx         the HXHIM session
- * @param keys       the keys to bdel
- * @param key_lens   the length of the keys to bdelete
+ * @param hx            the HXHIM session
+ * @param subjects      the subjects to delete
+ * @param subject_lens  the lengths of the subjects to delete
+ * @param prediates     the prediates to delete
+ * @param prediate_lens the lengths of the prediates to delete
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim::BDelete(hxhim_t *hx, void **keys, std::size_t *key_lens, std::size_t num_keys) {
-    if (!hx || !hx->p || !keys || !key_lens) {
+int hxhim::BDelete(hxhim_t *hx,
+                   void **subjects, std::size_t *subject_lens,
+                   void **predicates, std::size_t *predicate_lens,
+                   std::size_t count) {
+    if (!hx         || !hx->p         ||
+        !subjects   || !subject_lens   ||
+        !predicates || !predicate_lens) {
         return HXHIM_ERROR;
     }
 
     std::lock_guard<std::mutex> lock(hx->p->dels.mutex);
-    for(std::size_t i = 0; i < num_keys; i++) {
-        hx->p->dels.keys.push_back(keys[i]);
-        hx->p->dels.key_lens.push_back(key_lens[i]);
+    for(std::size_t i = 0; i < count; i++) {
+        hxhim::sp_t sp;
+        sp.subject = subjects[i];
+        sp.subject_len = subject_lens[i];
+        sp.predicate = predicates[i];
+        sp.predicate_len = predicate_lens[i];
+        hx->p->dels.data.emplace_back(sp);
     }
 
     return HXHIM_SUCCESS;
@@ -690,11 +940,77 @@ int hxhim::BDelete(hxhim_t *hx, void **keys, std::size_t *key_lens, std::size_t 
  * hxhimBDelete
  * Add a BDEL into the work queue
  *
- * @param hx         the HXHIM session
- * @param keys       the keys to bdel
- * @param key_lens   the length of the keys to bdelete
+ * @param hx            the HXHIM session
+ * @param subjects      the subjects to delete
+ * @param subject_lens  the lengths of the subjects to delete
+ * @param prediates     the prediates to delete
+ * @param prediate_lens the lengths of the prediates to delete
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhimBDelete(hxhim_t *hx, void **keys, std::size_t *key_lens, std::size_t num_keys) {
-    return hxhim::BDelete(hx, keys, key_lens, num_keys);
+int hxhimBDelete(hxhim_t *hx,
+                 void **subjects, size_t *subject_lens,
+                 void **predicates, size_t *predicate_lens,
+                 size_t count) {
+    return hxhim::BDelete(hx,
+                          subjects, subject_lens,
+                          predicates, predicate_lens,
+                          count);
+}
+
+/**
+ * GetStats
+ * Collective operation
+ * Each desired pointer should be preallocated with space for md->size values
+ *
+ * @param hx             the HXHIM session
+ * @param rank           the rank that is collecting the data
+ * @param get_put_times  whether or not to get put_times
+ * @param put_times      the array of put times from each rank
+ * @param get_num_puts   whether or not to get num_puts
+ * @param num_puts       the array of number of puts from each rank
+ * @param get_get_times  whether or not to get get_times
+ * @param get_times      the array of get times from each rank
+ * @param get_num_gets   whether or not to get num_gets
+ * @param num_gets       the array of number of gets from each rank
+ * @return MDHIM_SUCCESS or MDHIM_ERROR
+ */
+int hxhim::GetStats(hxhim_t *hx, const int rank,
+                    const bool get_put_times, long double *put_times,
+                    const bool get_num_puts, std::size_t *num_puts,
+                    const bool get_get_times, long double *get_times,
+                    const bool get_num_gets, std::size_t *num_gets) {
+    return mdhim::GetStats(hx->p->md, rank,
+                           get_put_times, put_times,
+                           get_num_puts, num_puts,
+                           get_get_times, get_times,
+                           get_num_gets, num_gets);
+}
+
+/**
+ * mdhimGetStats
+ * Collective operation
+ * Each desired pointer should be preallocated with space for md->size values
+ *
+ * @param hx             the HXHIM session
+ * @param rank           the rank that is collecting the data
+ * @param get_put_times  whether or not to get put_times
+ * @param put_times      the array of put times from each rank
+ * @param get_num_puts   whether or not to get num_puts
+ * @param num_puts       the array of number of puts from each rank
+ * @param get_get_times  whether or not to get get_times
+ * @param get_times      the array of get times from each rank
+ * @param get_num_gets   whether or not to get num_gets
+ * @param num_gets       the array of number of gets from each rank
+ * @return MDHIM_SUCCESS or MDHIM_ERROR
+ */
+int hxhimGetStats(hxhim_t *hx, const int rank,
+                  const int get_put_times, long double *put_times,
+                  const int get_num_puts, std::size_t *num_puts,
+                  const int get_get_times, long double *get_times,
+                  const int get_num_gets, std::size_t *num_gets) {
+    return hxhim::GetStats(hx, rank,
+                           get_put_times, put_times,
+                           get_num_puts, num_puts,
+                           get_get_times, get_times,
+                           get_num_gets, num_gets);
 }

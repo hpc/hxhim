@@ -1,12 +1,6 @@
 #include <algorithm>
-#include <cctype>
-#include <cstdlib>
-#include <cstring>
-#include <dirent.h>
-#include <fstream>
-#include <iomanip>
 #include <sstream>
-#include <sys/types.h>
+#include <type_traits>
 
 #include "mdhim_config.h"
 #include "mdhim_config.hpp"
@@ -16,89 +10,6 @@
 #include "transport_thallium.hpp"
 
 #define MDHIM_CONFIG_NOT_FOUND (MDHIM_DB_ERROR - 1)
-using Config_it =  Config::const_iterator;
-
-/**
- * parse_stream
- * Generic key-value stream parser
- *
- * @param config the configuration to fill
- * @param stream the input stream
- * @return how many items were read; 0 is considered a failure even if the file was opened properly
- */
-static bool parse_stream(Config &config, std::istream& stream) {
-    // parsing should not cross line boundaries
-    std::string line;
-    while (std::getline(stream, line)) {
-        std::stringstream s(line);
-        std::string key, value;
-        if (s >> key >> value) {
-            // check for comments
-            if (key[0] == '#') {
-                continue;
-            }
-
-            // remove trailing whitespace
-            std::string::size_type i = value.size();
-            if (value.size()) {
-                while (std::isspace(value[i - 1])) {
-                    i--;
-                }
-            }
-
-            config[key] = value.substr(0, i);
-        }
-    }
-
-    return config.size();
-}
-
-ConfigFile::ConfigFile(const std::string &filename)
-  : ConfigReader(),
-    filename_(filename)
-{}
-
-ConfigFile::~ConfigFile() {}
-
-bool ConfigFile::process(Config &config) const {
-    std::ifstream f(filename_);
-    int ret = parse_stream(config, f);
-    return ret;
-}
-
-ConfigDirectory::ConfigDirectory(const std::string &directory)
-  : ConfigReader(),
-    directory_(directory)
-{}
-
-ConfigDirectory::~ConfigDirectory() {}
-
-bool ConfigDirectory::process(Config &config) const {
-    DIR *dirp = opendir(directory_.c_str());
-    struct dirent *entry = nullptr;
-    while ((entry = readdir(dirp))) {
-        // do something with the entry
-    }
-    closedir(dirp);
-    return false;
-
-}
-
-ConfigEnvironment::ConfigEnvironment(const std::string& variable)
-  : ConfigReader(),
-    variable_(variable)
-{}
-
-ConfigEnvironment::~ConfigEnvironment() {}
-
-bool ConfigEnvironment::process(Config &config) const {
-    char *env = getenv(variable_.c_str());
-    if (env) {
-        std::ifstream f(env);
-        return parse_stream(config, f);
-    }
-    return false;
-}
 
 /**
  * get_bool
@@ -344,13 +255,14 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
     bool use_mpi;
     if ((get_bool(config, USE_MPI, use_mpi) == MDHIM_SUCCESS) &&
         use_mpi) {
-        int memory_alloc_size, memory_regions;
+        std::size_t memory_alloc_size, memory_regions, listeners;
         if ((get_integral(config, MEMORY_ALLOC_SIZE, memory_alloc_size) != MDHIM_SUCCESS) ||
-            (get_integral(config, MEMORY_REGIONS, memory_regions)       != MDHIM_SUCCESS)) {
+            (get_integral(config, MEMORY_REGIONS, memory_regions)       != MDHIM_SUCCESS) ||
+            (get_integral(config, LISTENERS, listeners)                 != MDHIM_SUCCESS)) {
             return MDHIM_ERROR;
         }
 
-        if (mdhim_options_set_mpi(opts, MPI_COMM_WORLD, memory_alloc_size, memory_regions) != MDHIM_SUCCESS) {
+        if (mdhim_options_set_mpi(opts, MPI_COMM_WORLD, memory_alloc_size, memory_regions, listeners) != MDHIM_SUCCESS) {
             return MDHIM_ERROR;
         }
     }
@@ -394,7 +306,7 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
 }
 
 /**
- * read_config_and_fill_options
+ * process_config_and_fill_options
  * This function is just a logical separator between
  * setting up the configuration reader and filling out
  * the mdhim_options_t.
@@ -404,7 +316,7 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
  * This function should not be modified unless the
  * ConfigReader interface changes.
  *
- * opts should be cleand up by the calling function.
+ * opts should be cleaned up by the calling function.
  *
  * @param config_reader the configuration reader that has been set up
  * @param opts          the options to fill

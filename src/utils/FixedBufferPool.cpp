@@ -115,6 +115,7 @@ void *FixedBufferPool::acquire(const std::size_t size) {
     unused_ = next;
 
     used_++;
+    mlog(MLOG_DBG, "Acquired a %zu size buffer from FixedBufferPool. %zu regions left.", size, regions_ - used_);
     return ret;
 }
 

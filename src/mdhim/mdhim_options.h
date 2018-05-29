@@ -15,7 +15,7 @@ int mdhim_options_init(mdhim_options_t *opts, const MPI_Comm comm, const int set
 
 // Transport Options
 int mdhim_options_init_transport(mdhim_options_t *opts, const int set_defaults);
-int mdhim_options_set_mpi(mdhim_options_t *opts, const MPI_Comm comm, const size_t alloc_size, const size_t regions);
+int mdhim_options_set_mpi(mdhim_options_t *opts, const MPI_Comm comm, const size_t alloc_size, const size_t regions, const size_t listeners);
 int mdhim_options_set_thallium(mdhim_options_t *opts, const char *protocol);
 int mdhim_options_set_endpoint_group(mdhim_options_t *opts, const int *ranks, const int count);
 int mdhim_options_add_endpoint_to_group(mdhim_options_t *opts, const int rank);

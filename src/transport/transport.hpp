@@ -6,7 +6,6 @@
 #define MDHIM_TRANSPORT_HPP
 
 #include <cstdlib>
-#include <deque>
 #include <map>
 #include <type_traits>
 
@@ -34,7 +33,7 @@ struct TransportMessage {
     int index_type;
     char *index_name;
 
-    bool unpacked; // whether or not this message was created using an unpacker, and thus needs to deallocate pointers
+    bool clean;   // whether or not this message should deallocate its pointers upon destruction
 };
 
 /**
@@ -78,13 +77,13 @@ struct TransportBPutMessage final : public TransportRequestMessage {
     std::size_t size() const;
     void cleanup();
 
-    std::deque<int> rs_idx;
+    int *rs_idx;
 
-    std::deque<void *> keys;
-    std::deque<std::size_t> key_lens;
+    void **keys;
+    std::size_t *key_lens;
 
-    std::deque<void *> values;
-    std::deque<std::size_t> value_lens;
+    void **values;
+    std::size_t *value_lens;
 
     std::size_t num_keys;
 };
@@ -129,10 +128,10 @@ struct TransportBGetMessage final : public TransportGet {
     std::size_t size() const;
     void cleanup();
 
-    std::deque<int> rs_idx;
+    int *rs_idx;
 
-    std::deque<void *> keys;
-    std::deque<std::size_t> key_lens;
+    void **keys;
+    std::size_t *key_lens;
 
     //Number of records to retrieve per key given
     std::size_t num_recs;
@@ -166,10 +165,10 @@ struct TransportBDeleteMessage final : public TransportRequestMessage {
     std::size_t size() const;
     void cleanup();
 
-    std::deque<int> rs_idx;
+    int *rs_idx;
 
-    std::deque<void *> keys;
-    std::deque<std::size_t> key_lens;
+    void **keys;
+    std::size_t *key_lens;
 
     std::size_t num_keys;
 };
@@ -233,15 +232,15 @@ struct TransportBGetRecvMessage final : public TransportResponseMessage {
     std::size_t size() const;
     void cleanup();
 
-    std::deque<int> rs_idx;
+    int *rs_idx;
 
     int error;
 
-    std::deque<void *> keys;
-    std::deque<std::size_t> key_lens;
+    void **keys;
+    std::size_t *key_lens;
 
-    std::deque<void *> values;
-    std::deque<std::size_t> value_lens;
+    void **values;
+    std::size_t *value_lens;
 
     std::size_t num_keys;
 
@@ -259,7 +258,7 @@ struct TransportBRecvMessage final : public TransportResponseMessage {
     std::size_t size() const;
     void cleanup();
 
-    std::deque<int> rs_idx;
+    int *rs_idx;
 
     int error;
 

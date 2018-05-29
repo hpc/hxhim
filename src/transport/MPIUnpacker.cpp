@@ -106,24 +106,29 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportBPutMessage **bpm, const v
     }
 
     // If there are keys/values, allocate space for them and unpack
-    out->rs_idx.resize(out->num_keys);
-    out->key_lens.resize(out->num_keys);
-    out->keys.resize(out->num_keys);
-    out->value_lens.resize(out->num_keys);
-    out->values.resize(out->num_keys);
-
-    for(std::size_t i = 0; i < out->num_keys; i++) {
-        if ((MPI_Unpack(buf, bufsize, &position, &out->rs_idx[i], sizeof(out->rs_idx[i]), MPI_CHAR, comm)         != MPI_SUCCESS) ||
-            // unpack the key
-            (MPI_Unpack(buf, bufsize, &position, &out->key_lens[i], sizeof(out->key_lens[i]), MPI_CHAR, comm)     != MPI_SUCCESS) ||
-            !(out->keys[i] = ::operator new(out->key_lens[i]))                                                                    ||
-            (MPI_Unpack(buf, bufsize, &position, out->keys[i], out->key_lens[i], MPI_CHAR, comm)                  != MPI_SUCCESS) ||
-            // unpack the value
-            (MPI_Unpack(buf, bufsize, &position, &out->value_lens[i], sizeof(out->value_lens[i]), MPI_CHAR, comm) != MPI_SUCCESS) ||
-            !(out->values[i] = ::operator new(out->value_lens[i]))                                                                ||
-            (MPI_Unpack(buf, bufsize, &position, out->values[i], out->value_lens[i], MPI_CHAR, comm)              != MPI_SUCCESS)) {
+    if (out->num_keys) {
+        if (!(out->rs_idx = new int[out->num_keys]())             ||
+            !(out->keys = new void *[out->num_keys]())            ||
+            !(out->key_lens = new std::size_t[out->num_keys]())   ||
+            !(out->values = new void *[out->num_keys]())          ||
+            !(out->value_lens = new std::size_t[out->num_keys]())) {
             delete out;
             return MDHIM_ERROR;
+        }
+
+        for(std::size_t i = 0; i < out->num_keys; i++) {
+            if ((MPI_Unpack(buf, bufsize, &position, &out->rs_idx[i], sizeof(out->rs_idx[i]), MPI_CHAR, comm)         != MPI_SUCCESS) ||
+                // unpack the key
+                (MPI_Unpack(buf, bufsize, &position, &out->key_lens[i], sizeof(out->key_lens[i]), MPI_CHAR, comm)     != MPI_SUCCESS) ||
+                !(out->keys[i] = ::operator new(out->key_lens[i]))                                                                    ||
+                (MPI_Unpack(buf, bufsize, &position, out->keys[i], out->key_lens[i], MPI_CHAR, comm)                  != MPI_SUCCESS) ||
+                // unpack the value
+                (MPI_Unpack(buf, bufsize, &position, &out->value_lens[i], sizeof(out->value_lens[i]), MPI_CHAR, comm) != MPI_SUCCESS) ||
+                !(out->values[i] = ::operator new(out->value_lens[i]))                                                                ||
+                (MPI_Unpack(buf, bufsize, &position, out->values[i], out->value_lens[i], MPI_CHAR, comm)              != MPI_SUCCESS)) {
+                delete out;
+                return MDHIM_ERROR;
+            }
         }
     }
 
@@ -191,9 +196,12 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportBGetMessage **bgm, const v
 
     // If there are keys/values, allocate space for them and unpack
     if (out->num_keys) {
-        out->rs_idx.resize(out->num_keys);
-        out->key_lens.resize(out->num_keys);
-        out->keys.resize(out->num_keys);
+        if (!(out->rs_idx = new int[out->num_keys]())           ||
+            !(out->keys = new void *[out->num_keys]())          ||
+            !(out->key_lens = new std::size_t[out->num_keys]())) {
+            delete out;
+            return MDHIM_ERROR;
+        }
 
         for(std::size_t i = 0; i < out->num_keys; i++) {
             if ((MPI_Unpack(buf, bufsize, &position, &out->rs_idx[i], sizeof(out->rs_idx[i]), MPI_CHAR, comm)     != MPI_SUCCESS) ||
@@ -266,9 +274,12 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportBDeleteMessage **bdm, cons
 
     // If there are keys, allocate space for them and unpack
     if (out->num_keys) {
-        out->rs_idx.resize(out->num_keys);
-        out->key_lens.resize(out->num_keys);
-        out->keys.resize(out->num_keys);
+        if (!(out->rs_idx = new int[out->num_keys]())           ||
+            !(out->keys = new void *[out->num_keys]())          ||
+            !(out->key_lens = new std::size_t[out->num_keys]())) {
+            delete out;
+            return MDHIM_ERROR;
+        }
 
         for(std::size_t i = 0; i < out->num_keys; i++) {
             if ((MPI_Unpack(buf, bufsize, &position, &out->rs_idx[i], sizeof(out->rs_idx[i]), MPI_CHAR, comm)     != MPI_SUCCESS) ||
@@ -384,11 +395,14 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportBGetRecvMessage **bgrm, co
 
     // If there are keys/values, allocate space for them and unpack
     if (out->num_keys) {
-        out->rs_idx.resize(out->num_keys);
-        out->key_lens.resize(out->num_keys);
-        out->keys.resize(out->num_keys);
-        out->value_lens.resize(out->num_keys);
-        out->values.resize(out->num_keys);
+        if (!(out->rs_idx = new int[out->num_keys]())             ||
+            !(out->keys = new void *[out->num_keys]())            ||
+            !(out->key_lens = new std::size_t[out->num_keys]())   ||
+            !(out->values = new void *[out->num_keys]())          ||
+            !(out->value_lens = new std::size_t[out->num_keys]())) {
+            delete out;
+            return MDHIM_ERROR;
+        }
 
         for(std::size_t i = 0; i < out->num_keys; i++) {
             if ((MPI_Unpack(buf, bufsize, &position, &out->rs_idx[i], sizeof(out->rs_idx[i]), MPI_CHAR, comm)         != MPI_SUCCESS) ||
@@ -431,11 +445,16 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportBRecvMessage **brm, const 
         return MDHIM_ERROR;
     }
 
-    out->rs_idx.resize(out->num_keys);
-    for(std::size_t i = 0; i < out->num_keys; i++) {
-        if (MPI_Unpack(buf, bufsize, &position, &out->rs_idx[i], sizeof(out->rs_idx[i]), MPI_CHAR, comm) != MPI_SUCCESS) {
+    if (out->num_keys) {
+        if (!(out->rs_idx = new int[out->num_keys]())) {
             delete out;
             return MDHIM_ERROR;
+        }
+        for(std::size_t i = 0; i < out->num_keys; i++) {
+            if (MPI_Unpack(buf, bufsize, &position, &out->rs_idx[i], sizeof(out->rs_idx[i]), MPI_CHAR, comm) != MPI_SUCCESS) {
+                delete out;
+                return MDHIM_ERROR;
+            }
         }
     }
 
@@ -465,7 +484,7 @@ int MPIUnpacker::unpack(const MPI_Comm comm, TransportMessage *msg, const void *
         return MDHIM_ERROR;
     }
 
-    msg->unpacked = true;
+    msg->clean = true;
 
     std::size_t givensize = 0;
     if ((MPI_Unpack(buf, bufsize, position, &msg->mtype,      sizeof(msg->mtype),      MPI_CHAR, comm) != MPI_SUCCESS) ||

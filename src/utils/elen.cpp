@@ -1,7 +1,7 @@
 namespace elen {
 
 // negatives get their digits flipped (9 - digit)
-static void flip(std::string &str) {
+static inline void flip(std::string &str) {
     for(char &c : str) {
         if (std::isdigit(c)) {
             c = '9' - c + '0';
@@ -257,7 +257,7 @@ static T next(const char prefix, const std::string &str, std::size_t &position, 
 template <typename T,
           const char neg, const char pos,
           typename Cond>
-T integers(const std::string &str) {
+T integers(const std::string &str, std::size_t* prefix_len) {
     if (str.size() == 0) {
         throw std::runtime_error("Empty string");
     }
@@ -279,6 +279,10 @@ T integers(const std::string &str) {
     std::size_t len = 1;
     for(std::size_t i = 0; i < prefix_count - 1; i++) {
         len = next<std::size_t, neg, pos, std::true_type>(prefix, str, position, len);
+    }
+
+    if (prefix_len) {
+        *prefix_len = position + len;
     }
 
     // read the final value
@@ -466,6 +470,6 @@ T floating_point(const std::string &str) {
  * @param rhs the string on the right hand side
  * @return whether or not lhs comes before rhs
  */
-bool lex_comp(const std::string &lhs, const std::string &rhs) {
+[[maybe_unused]] static bool lex_comp(const std::string &lhs, const std::string &rhs) {
     return std::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
 }

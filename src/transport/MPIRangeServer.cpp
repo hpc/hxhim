@@ -1,30 +1,40 @@
 #include "MPIRangeServer.hpp"
 
-pthread_t MPIRangeServer::listener_ = 0;
+std::size_t MPIRangeServer::listener_count_ = 0;
+pthread_t *MPIRangeServer::listeners_ = nullptr;
 pthread_mutex_t MPIRangeServer::mutex_ = PTHREAD_MUTEX_INITIALIZER;
 FixedBufferPool *MPIRangeServer::fbp_ = nullptr;
 
-int MPIRangeServer::init(mdhim_t *md, FixedBufferPool *fbp) {
+int MPIRangeServer::init(mdhim_t *md, FixedBufferPool *fbp, const std::size_t listener_count) {
     if (!fbp) {
         return MDHIM_ERROR;
     }
 
     fbp_ = fbp;
 
-    //Initialize listener threads
-    if (pthread_create(&listener_, nullptr,
-                       listener_thread, (void *)md) != 0) {
-        mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
-             "Error while initializing listener thread",
-             md->rank);
-        return MDHIM_ERROR;
+    listener_count_ = listener_count;
+    listeners_ = new pthread_t[listener_count_]();
+
+    for(int i = 0; i < listener_count_; i++) {
+        //Initialize listener threads
+        if (pthread_create(&listeners_[i], nullptr,
+                           listener_thread, (void *)md) != 0) {
+            mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
+                 "Error while initializing listener thread",
+                 md->rank);
+            return MDHIM_ERROR;
+        }
     }
 
     return MDHIM_SUCCESS;
 }
 
 void MPIRangeServer::destroy() {
-    pthread_join(listener_, nullptr);
+    for(int i = 0; i < listener_count_; i++) {
+        pthread_join(listeners_[i], nullptr);
+    }
+    delete [] listeners_;
+
     fbp_ = nullptr;
 }
 

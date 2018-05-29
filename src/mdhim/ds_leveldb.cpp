@@ -255,7 +255,7 @@ int mdhim_leveldb_open(void **dbh, void **dbs, const char *path, int flags, int 
     //Set the output handle
     *((mdhim_leveldb_t **) dbh) = mdhimdb;
     if (err != NULL) {
-        mlog(MDHIM_SERVER_CRIT, "Error opening leveldb database");
+        mlog(MDHIM_SERVER_CRIT, "Error opening leveldb database: %s", err);
         return MDHIM_DB_ERROR;
     }
 
@@ -268,7 +268,7 @@ int mdhim_leveldb_open(void **dbh, void **dbs, const char *path, int flags, int 
     *((mdhim_leveldb_t **) dbs) = statsdb;
 
     if (err != NULL) {
-        mlog(MDHIM_SERVER_CRIT, "Error opening leveldb database");
+        mlog(MDHIM_SERVER_CRIT, "Error opening leveldb database, %s", err);
         return MDHIM_DB_ERROR;
     }
 

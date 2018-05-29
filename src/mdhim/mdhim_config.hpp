@@ -1,8 +1,11 @@
 #ifndef MDHIM_CONFIG_PRIVATE
 #define MDHIM_CONFIG_PRIVATE
 
+#include <map>
+#include <string>
+
 #include "mlog2.h"
-#include "mlogfacs2.h"
+//#include "mlogfacs2.h"
 
 #include "Configuration.hpp"
 #include "mdhim_constants.h"
@@ -39,6 +42,7 @@ const std::string DBS_PASSWORD       = "DBS_PASSWORD";          // string
 const std::string USE_MPI            = "USE_MPI";               // true/false
 const std::string MEMORY_ALLOC_SIZE  = "MEMORY_ALLOC_SIZE";     // positive integer
 const std::string MEMORY_REGIONS     = "MEMORY_REGIONS";        // positive integer
+const std::string LISTENERS          = "NUM_LISTENERS";         // positive integer
 const std::string USE_THALLIUM       = "USE_THALLIUM";          // true/false
 const std::string THALLIUM_MODULE    = "THALLIUM_MODULE";       // See mercury documentation
 const std::string ENDPOINT_GROUP     = "ENDPOINT_GROUP";        // list of globally unique rank ids or "ALL"
@@ -115,57 +119,10 @@ const Config MDHIM_DEFAULT_CONFIG = {
     std::make_pair(USE_MPI,            "true"),
     std::make_pair(MEMORY_ALLOC_SIZE,  "128"),
     std::make_pair(MEMORY_REGIONS,     "256"),
+    std::make_pair(LISTENERS,          "1"),
     std::make_pair(USE_THALLIUM,       "false"),
     std::make_pair(THALLIUM_MODULE,    "na+sm"),
     std::make_pair(ENDPOINT_GROUP,     "ALL"),
-};
-
-/**
- * ConfigFile
- * Attempts to find the file with the given filename
- * Used in the default configuration reader.
- */
-class ConfigFile : public ConfigReader {
-    public:
-       ConfigFile(const std::string &filename);
-       ~ConfigFile();
-
-       bool process(Config &config) const;
-
-    private:
-        std::string filename_;
-};
-
-/**
- * ConfigDirectory
- * Searches the given directory
- * Used in the default configuration reader.
- */
-class ConfigDirectory : public ConfigReader {
-    public:
-       ConfigDirectory(const std::string &directory);
-       ~ConfigDirectory();
-
-       bool process(Config &config) const;
-
-    private:
-        std::string directory_;
-};
-
-/**
- * ConfigEnvironment
- * Attempts to find the file pointed to by a given environment variable
- * Used in the default configuration reader.
- */
-class ConfigEnvironment : public ConfigReader {
-    public:
-       ConfigEnvironment(const std::string& variable);
-       ~ConfigEnvironment();
-
-       bool process(Config &config) const;
-
-    private:
-        std::string variable_;
 };
 
 /**

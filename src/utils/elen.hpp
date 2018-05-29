@@ -7,11 +7,15 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iomanip>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 // #include <string_view>
 #include <type_traits>
 
+// Intentionally set default precision too high for floating point values
+// Do not use std::numeric_limits<T>::digits10
 namespace elen {
     namespace encode {
         // Chapter 3 Integers
@@ -24,19 +28,19 @@ namespace elen {
         template <const char neg = '0' - 1, const char pos = '9' + 1,
                   typename T,
                   typename = std::enable_if_t<(neg < '0') && (pos > '9') && std::is_floating_point<T>::value> >
-        static std::string small_decimals(const T value, const int precision = sizeof(T) * 2);
+        static std::string small_decimals(const T value, const int precision = 2 * sizeof(T));
 
         // Chapter 5 Large Decimals
         template <const char neg = '0' - 1, const char pos = '9' + 1,
                   typename T,
                   typename = std::enable_if_t<(neg < '0') && (pos > '9') && std::is_floating_point<T>::value> >
-        static std::string large_decimals(const T value, const int precision = sizeof(T) * 2);
+        static std::string large_decimals(const T value, const int precision = 2 * sizeof(T));
 
         // Chapter 6 Floating Pointer Numbers
         template <const char neg = '0' - 1, const char pos = '9' + 1,
                   typename T,
                   typename = std::enable_if_t<(neg < '0') && (pos > '9') && std::is_floating_point<T>::value> >
-        static std::string floating_point(const T value, const int precision = sizeof(T) * 2);
+        static std::string floating_point(const T value, const int precision = 2 * sizeof(T));
     }
 
     namespace decode {
@@ -44,7 +48,7 @@ namespace elen {
         template <typename T,
                   const char neg = '0' - 1, const char pos = '9' + 1,
                   typename = std::enable_if_t<std::is_integral<T>::value && (neg < '0') && (pos > '9')> >
-        static T integers(const std::string &str);
+        static T integers(const std::string &str, std::size_t* prefix_len = nullptr);
 
         // Chapter 4 Small Decimals
         template <typename T,
@@ -67,7 +71,7 @@ namespace elen {
 }
 
 /* @description Use this function for lexicographic comparisions */
-bool lex_comp(const std::string &lhs, const std::string &rhs);
+[[maybe_unused]] static bool lex_comp(const std::string &lhs, const std::string &rhs);
 
 #include "elen.cpp"
 

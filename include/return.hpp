@@ -21,7 +21,7 @@ namespace hxhim {
  */
 class Return {
     public:
-        Return(enum hxhim_work_op operation, TransportResponseMessage *response = nullptr);
+        Return(enum hxhim_work_op operatio = HXHIM_NOP, TransportResponseMessage *response = nullptr);
         virtual ~Return();
 
         int GetSrc() const;
@@ -35,19 +35,19 @@ class Return {
 
         // Key Value Pair Operations
         // Only valid when op is HXHIM_GET
-        int MoveToFirstKV();
-        int PrevKV();
-        int NextKV();
-        int ValidKV() const;
-        int GetKV(void **key, std::size_t *key_len, void **value, std::size_t *value_len);
+        int MoveToFirstSPO();
+        int PrevSPO();
+        int NextSPO();
+        int ValidSPO() const;
+        int GetSPO(void **subject, size_t *subject_len, void **predicate, size_t *predicate_len, void **object, size_t *object_len);
 
         Return *Next(Return *ret);
         Return *Next() const;
 
     private:
-        int ValidKV(const std::size_t position) const;
+        int ValidSPO(const std::size_t position) const;
 
-        hxhim_work_op op;               // which operation's response this return structure contains
+        hxhim_work_op op;               // which operation type response this return structure contains
         TransportResponseMessage *head; // the head of the response list
 
         TransportResponseMessage *curr; // current range server
@@ -55,6 +55,8 @@ class Return {
 
         Return *next;
 };
+
+Return *return_results(Return &head);
 
 }
 

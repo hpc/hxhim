@@ -20,11 +20,11 @@ int hxhim_return_get_error(hxhim_return_t *ret, int *error);
 int hxhim_return_move_to_first_rs(hxhim_return_t *ret);
 int hxhim_return_next_rs(hxhim_return_t *ret);
 int hxhim_return_valid_rs(hxhim_return_t *ret, int *valid);
-int hxhim_return_move_to_first_kv(hxhim_return_t *ret);
-int hxhim_return_prev_kv(hxhim_return_t *ret);
-int hxhim_return_next_kv(hxhim_return_t *ret);
-int hxhim_return_valid_kv(hxhim_return_t *ret, int *valid);
-int hxhim_return_get_kv(hxhim_return_t *ret, void **key, size_t *key_len, void **value, size_t *value_len);
+int hxhim_return_move_to_first_spo(hxhim_return_t *ret);
+int hxhim_return_prev_spo(hxhim_return_t *ret);
+int hxhim_return_next_spo(hxhim_return_t *ret);
+int hxhim_return_valid_spo(hxhim_return_t *ret, int *valid);
+int hxhim_return_get_spo(hxhim_return_t *ret, void **subject, size_t *subject_len, void **predicate, size_t *predicate_len, void **object, size_t *object_len);
 int hxhim_return_next(hxhim_return_t *ret);
 
 #ifdef __cplusplus

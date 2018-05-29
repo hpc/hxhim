@@ -1,6 +1,8 @@
 #ifndef MDHIM_OPTIONS_STRUCT
 #define MDHIM_OPTIONS_STRUCT
 
+#include <mpi.h>
+
 #ifdef __cplusplus
 extern "C"
 {

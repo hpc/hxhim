@@ -100,19 +100,19 @@ TEST(mpi_pack_unpack, TransportBPutMessage) {
 
         src.num_keys = 1;
 
-        src.rs_idx.resize(src.num_keys);
+        ASSERT_NE(src.rs_idx = new int[src.num_keys](), nullptr);
         src.rs_idx[0] = 1;
 
-        src.keys.resize(src.num_keys);
+        ASSERT_NE(src.keys = new void *[src.num_keys](), nullptr);
         src.keys[0] = (void *) &KEY;
 
-        src.key_lens.resize(src.num_keys);
+        ASSERT_NE(src.key_lens = new std::size_t[src.num_keys](), nullptr);
         src.key_lens[0] = KEY_LEN;
 
-        src.values.resize(src.num_keys);
+        ASSERT_NE(src.values = new void *[src.num_keys](), nullptr);
         src.values[0] = (void *) &VALUE;
 
-        src.value_lens.resize(src.num_keys);
+        ASSERT_NE(src.value_lens = new std::size_t[src.num_keys](), nullptr);
         src.value_lens[0] = VALUE_LEN;
     }
 
@@ -212,13 +212,13 @@ TEST(mpi_pack_unpack, TransportBGetMessage) {
         src.op = TransportGetMessageOp::GET_EQ;
         src.num_keys = 1;
 
-        src.rs_idx.resize(src.num_keys);
+        ASSERT_NE(src.rs_idx = new int[src.num_keys](), nullptr);
         src.rs_idx[0] = 1;
 
-        src.keys.resize(src.num_keys);
+        ASSERT_NE(src.keys = new void *[src.num_keys](), nullptr);
         src.keys[0] = (void *) &KEY;
 
-        src.key_lens.resize(src.num_keys);
+        ASSERT_NE(src.key_lens = new std::size_t[src.num_keys](), nullptr);
         src.key_lens[0] = KEY_LEN;
 
         src.num_recs = 1;
@@ -314,13 +314,13 @@ TEST(mpi_pack_unpack, TransportBDeleteMessage) {
 
         src.num_keys = 1;
 
-        src.rs_idx.resize(src.num_keys);
+        ASSERT_NE(src.rs_idx = new int[src.num_keys](), nullptr);
         src.rs_idx[0] = 1;
 
-        src.keys.resize(src.num_keys);
+        ASSERT_NE(src.keys = new void *[src.num_keys](), nullptr);
         src.keys[0] = (void *) &KEY;
 
-        src.key_lens.resize(src.num_keys);
+        ASSERT_NE(src.key_lens = new std::size_t[src.num_keys](), nullptr);
         src.key_lens[0] = KEY_LEN;
     }
 
@@ -465,20 +465,20 @@ TEST(mpi_pack_unpack, TransportBGetRecvMessage) {
 
         src.num_keys = 1;
 
-        src.rs_idx.resize(src.num_keys);
+        ASSERT_NE(src.rs_idx = new int[src.num_keys](), nullptr);
         src.rs_idx[0] = 1;
 
-        src.keys.resize(src.num_keys);
+        ASSERT_NE(src.keys = new void *[src.num_keys](), nullptr);
         src.keys[0] = (void *) &KEY;
 
-        src.key_lens.resize(src.num_keys);
+        ASSERT_NE(src.key_lens = new std::size_t[src.num_keys](), nullptr);
         src.key_lens[0] = KEY_LEN;
 
-        src.values.resize(src.num_keys);
+        ASSERT_NE(src.values = new void *[src.num_keys](), nullptr);
         src.values[0] = malloc(VALUE_LEN);
         memcpy(src.values[0], VALUE, VALUE_LEN * sizeof(char));
 
-        src.value_lens.resize(src.num_keys);
+        ASSERT_NE(src.value_lens = new std::size_t[src.num_keys](), nullptr);
         src.value_lens[0] = VALUE_LEN;
 
         src.next = nullptr;
@@ -533,7 +533,7 @@ TEST(mpi_pack_unpack, TransportBRecvMessage) {
 
         src.num_keys = 1;
 
-        src.rs_idx.resize(src.num_keys);
+        ASSERT_NE(src.rs_idx = new int[src.num_keys](), nullptr);
         src.rs_idx[0] = 1;
 
         src.next = nullptr;

@@ -16,7 +16,7 @@
 
 class MPIRangeServer {
     public:
-        static int init(mdhim_t *md, FixedBufferPool *fbp);
+        static int init(mdhim_t *md, FixedBufferPool *fbp, const std::size_t listener_count);
         static void destroy();
 
         /**
@@ -32,7 +32,8 @@ class MPIRangeServer {
         static int only_receive_rangesrv_work(void **recvbuf, std::size_t *recvsize, volatile int &shutdown);
         static int receive_rangesrv_work(TransportMessage **message, volatile int &shutdown);
 
-        static pthread_t listener_;
+        static std::size_t listener_count_;
+        static pthread_t *listeners_;
         static pthread_mutex_t mutex_;
         static FixedBufferPool *fbp_;
 };

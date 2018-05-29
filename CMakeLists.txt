@@ -170,20 +170,22 @@ file(GLOB UTILS src/utils/*.c*)
 list(FILTER UTILS EXCLUDE REGEX ".*/elen.cpp")
 
 set(LIBMDHIM_SOURCES ${MDHIM} ${TRANSPORT} ${UTILS})
-set(LIBHXHIM_SOURCES ${INCLUDES} ${BASE})
 message(STATUS "LIBMDHIM_SOURCES: " ${LIBMDHIM_SOURCES})
-message(STATUS "LIBHXHIM_SOURCES: " ${LIBHXHIM_SOURCES})
-add_library(mdhim.a  STATIC ${LIBMDHIM_SOURCES})
-add_library(mdhim.so SHARED ${LIBMDHIM_SOURCES})
-add_library(hxhim.a  STATIC ${LIBHXHIM_SOURCES})
-add_library(hxhim.so SHARED ${LIBHXHIM_SOURCES})
-
+add_library(mdhim OBJECT ${LIBMDHIM_SOURCES})
+set_target_properties(mdhim PROPERTIES POSITION_INDEPENDENT_CODE ON)
+add_library(mdhim.a  STATIC $<TARGET_OBJECTS:mdhim>)
 set_target_properties(mdhim.a  PROPERTIES OUTPUT_NAME mdhim)
+add_library(mdhim.so SHARED $<TARGET_OBJECTS:mdhim>)
 set_target_properties(mdhim.so PROPERTIES OUTPUT_NAME mdhim)
-set_target_properties(hxhim.a  PROPERTIES OUTPUT_NAME hxhim)
-set_target_properties(hxhim.so PROPERTIES OUTPUT_NAME hxhim)
 
-configure_file(src/mdhim/mdhim.conf ${CMAKE_BINARY_DIR} COPYONLY)
+set(LIBHXHIM_SOURCES ${INCLUDES} ${BASE})
+message(STATUS "LIBHXHIM_SOURCES: " ${LIBHXHIM_SOURCES})
+add_library(hxhim OBJECT ${LIBHXHIM_SOURCES})
+set_target_properties(hxhim PROPERTIES POSITION_INDEPENDENT_CODE ON)
+add_library(hxhim.a  STATIC $<TARGET_OBJECTS:hxhim>)
+set_target_properties(hxhim.a  PROPERTIES OUTPUT_NAME hxhim)
+add_library(hxhim.so SHARED $<TARGET_OBJECTS:hxhim>)
+set_target_properties(hxhim.so PROPERTIES OUTPUT_NAME hxhim)
 
 #
 # Install headers and libraries
@@ -218,6 +220,12 @@ INSTALL(TARGETS
   hxhim.a
   hxhim.so
   DESTINATION lib)
+
+#
+# Install configuration files
+#
+configure_file(config/mdhim.conf ${CMAKE_BINARY_DIR} COPYONLY)
+configure_file(config/hxhim.conf ${CMAKE_BINARY_DIR} COPYONLY)
 
 #
 # Add demo executable

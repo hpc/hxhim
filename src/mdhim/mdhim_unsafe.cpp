@@ -21,7 +21,7 @@
 #include "transport_private.hpp"
 
 /**
- * UnsafePut
+ * Put
  * Inserts a single record into MDHIM into the given database
  *
  * @param md main MDHIM context
@@ -34,10 +34,10 @@
  inserting secondary global and local keys
  * @return TransportRecvMessage * or nullptr on error
  */
-TransportRecvMessage *mdhim::UnsafePut(mdhim_t *md, index_t *index,
-                                       void *primary_key, std::size_t primary_key_len,
-                                       void *value, std::size_t value_len,
-                                       const int database) {
+TransportRecvMessage *mdhim::Unsafe::Put(mdhim_t *md, index_t *index,
+                                         void *primary_key, std::size_t primary_key_len,
+                                         void *value, std::size_t value_len,
+                                         const int database) {
     if (!md || !md->p ||
         !primary_key || !primary_key_len ||
         !value || !value_len) {
@@ -67,11 +67,11 @@ mdhim_rm_t *mdhimUnsafePut(mdhim_t *md, index_t *index,
                            void *primary_key, std::size_t primary_key_len,
                            void *value, std::size_t value_len,
                            const int database) {
-    return mdhim_rm_init(mdhim::UnsafePut(md, index, primary_key, primary_key_len, value, value_len, database));
+    return mdhim_rm_init(mdhim::Unsafe::Put(md, index, primary_key, primary_key_len, value, value_len, database));
 }
 
 /**
- * UnsafeBPut
+ * BPut
  * Inserts multiple records into MDHIM into the given databases
  *
  * @param md main MDHIM struct
@@ -83,11 +83,11 @@ mdhim_rm_t *mdhimUnsafePut(mdhim_t *md, index_t *index,
  * @param num_records  the number of records to store (i.e., the number of keys in keys array)
  * @return TransportBRecvMessage * or nullptr on error
  */
-TransportBRecvMessage *mdhim::UnsafeBPut(mdhim_t *md, index_t *index,
-                                         void **primary_keys, std::size_t *primary_key_lens,
-                                         void **primary_values, std::size_t *primary_value_lens,
-                                         const int *databases,
-                                         std::size_t num_records) {
+TransportBRecvMessage *mdhim::Unsafe::BPut(mdhim_t *md, index_t *index,
+                                           void **primary_keys, std::size_t *primary_key_lens,
+                                           void **primary_values, std::size_t *primary_value_lens,
+                                           const int *databases,
+                                           std::size_t num_records) {
     if (!md || !md->p ||
         !primary_keys || !primary_key_lens ||
         !primary_values || !primary_value_lens) {
@@ -130,15 +130,15 @@ mdhim_brm_t *mdhimUnsafeBPut(mdhim_t *md, index_t *index,
                              void **primary_values, std::size_t *primary_value_lens,
                              const int *databases,
                              std::size_t num_records) {
-    return mdhim_brm_init(mdhim::UnsafeBPut(md, index,
-                                            primary_keys, primary_key_lens,
-                                            primary_values, primary_value_lens,
-                                            databases,
-                                            num_records));
+    return mdhim_brm_init(mdhim::Unsafe::BPut(md, index,
+                                              primary_keys, primary_key_lens,
+                                              primary_values, primary_value_lens,
+                                              databases,
+                                              num_records));
 }
 
 /**
- * UnsafeGet
+ * Get
  * Retrieves a single record from MDHIM from the given database
  *
  * @param md main MDHIM struct
@@ -149,10 +149,10 @@ mdhim_brm_t *mdhimUnsafeBPut(mdhim_t *md, index_t *index,
  * @param op        the operation type
  * @return TransportGetRecvMessage * or nullptr on error
  */
-TransportGetRecvMessage *mdhim::UnsafeGet(mdhim_t *md, index_t *index,
-                                          void *key, std::size_t key_len,
-                                          const int database,
-                                          enum TransportGetMessageOp op) {
+TransportGetRecvMessage *mdhim::Unsafe::Get(mdhim_t *md, index_t *index,
+                                            void *key, std::size_t key_len,
+                                            const int database,
+                                            enum TransportGetMessageOp op) {
     if (!md || !md->p ||
         !key || !key_len) {
         return nullptr;
@@ -185,11 +185,11 @@ mdhim_grm_t *mdhimUnsafeGet(mdhim_t *md, index_t *index,
                             void *key, std::size_t key_len,
                             const int database,
                             enum TransportGetMessageOp op) {
-    return mdhim_grm_init(mdhim::UnsafeGet(md, index, key, key_len, database, op));
+    return mdhim_grm_init(mdhim::Unsafe::Get(md, index, key, key_len, database, op));
 }
 
 /**
- * UnsafeBGet
+ * BGet
  * Retrieves multiple records from MDHIM from the given databases
  *
  * @param md main MDHIM struct
@@ -199,10 +199,10 @@ mdhim_grm_t *mdhimUnsafeGet(mdhim_t *md, index_t *index,
  * @param num_records  the number of keys to get (i.e., the number of keys in keys array)
  * @return TransportBGetRecvMessage * or nullptr on error
  */
-TransportBGetRecvMessage *mdhim::UnsafeBGet(mdhim_t *md, index_t *index,
-                                            void **keys, std::size_t *key_lens,
-                                            const int *databases,
-                                            std::size_t num_keys, enum TransportGetMessageOp op) {
+TransportBGetRecvMessage *mdhim::Unsafe::BGet(mdhim_t *md, index_t *index,
+                                              void **keys, std::size_t *key_lens,
+                                              const int *databases,
+                                              std::size_t num_keys, enum TransportGetMessageOp op) {
     if (!md || !md->p ||
         !keys || !key_lens) {
         return nullptr;
@@ -296,14 +296,94 @@ mdhim_bgrm_t *mdhimUnsafeBGet(mdhim_t *md, index_t *index,
                               void **keys, std::size_t *key_lens,
                               const int *databases,
                               std::size_t num_keys, enum TransportGetMessageOp op) {
-    return mdhim_bgrm_init(mdhim::UnsafeBGet(md, index,
-                                             keys, key_lens,
-                                             databases,
-                                             num_keys, op));
+    return mdhim_bgrm_init(mdhim::Unsafe::BGet(md, index,
+                                               keys, key_lens,
+                                               databases,
+                                               num_keys, op));
 }
 
 /**
- * UnsafeDelete
+ * BGetOp
+ * Retrieves multiple sequential records from a single range server if they exist
+ *
+ * If the operation passed in is MDHIM_GET_NEXT or MDHIM_GET_PREV, this return all the records
+ * starting from the key passed in in the direction specified
+ *
+ * If the operation passed in is MDHIM_GET_FIRST and MDHIM_GET_LAST and the key is nullptr,
+ * then this operation will return the keys starting from the first or last key
+ *
+ * If the operation passed in is MDHIM_GET_FIRST and MDHIM_GET_LAST and the key is not nullptr,
+ * then this operation will return the keys starting the first key on
+ * the range server that the key resolves to
+ *
+ * @param md           main MDHIM struct
+ * @param key          pointer to the key to start getting next entries from
+ * @param key_len      the length of the key
+ * @param num_records  the number of successive keys to get
+ * @param op           the operation to perform (i.e., MDHIM_GET_NEXT or MDHIM_GET_PREV)
+ * @return TransportBGetRecvMessage * or nullptr on error
+ */
+TransportBGetRecvMessage *mdhim::Unsafe::BGetOp(mdhim_t *md, index_t *index,
+                                                void *key, std::size_t key_len,
+                                                const int database,
+                                                std::size_t num_records, enum TransportGetMessageOp op) {
+    if (!md || !md->p ||
+        !key || !key_len) {
+        return nullptr;
+    }
+
+    if (!index) {
+        index = md->p->primary_index;
+    }
+
+    if (num_records > MAX_BULK_OPS) {
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
+             "Too many bulk operations requested in mdhimBGetOp",
+             md->rank);
+        return nullptr;
+    }
+
+    if (op == TransportGetMessageOp::GET_EQ || op == TransportGetMessageOp::GET_PRIMARY_EQ) {
+        mlog(MDHIM_CLIENT_CRIT, "MDHIM Rank %d - "
+             "Invalid op specified for mdhimGet",
+             md->rank);
+        return nullptr;
+    }
+
+    //Get the linked list of return messages from mdhimBGet
+    return _bget_records(md, index, &key, &key_len, &database, 1, num_records, op);
+}
+
+/**
+ * mdhimUnsafeBGetOp
+ * Retrieves multiple sequential records from a single range server if they exist
+ *
+ * If the operation passed in is MDHIM_GET_NEXT or MDHIM_GET_PREV, this return all the records
+ * starting from the key passed in in the direction specified
+ *
+ * If the operation passed in is MDHIM_GET_FIRST and MDHIM_GET_LAST and the key is nullptr,
+ * then this operation will return the keys starting from the first or last key
+ *
+ * If the operation passed in is MDHIM_GET_FIRST and MDHIM_GET_LAST and the key is not nullptr,
+ * then this operation will return the keys starting the first key on
+ * the range server that the key resolves to
+ *
+ * @param md           main MDHIM struct
+ * @param key          pointer to the key to start getting next entries from
+ * @param key_len      the length of the key
+ * @param num_records  the number of successive keys to get
+ * @param op           the operation to perform (i.e., MDHIM_GET_NEXT or MDHIM_GET_PREV)
+ * @return mdhim_bgrm_t * or nullptr on error
+ */
+mdhim_bgrm_t *mdhimUnsafeBGetOp(mdhim_t *md, index_t *index,
+                                void *key, std::size_t key_len,
+                                const int database,
+                                std::size_t num_records, enum TransportGetMessageOp op) {
+    return mdhim_bgrm_init(mdhim::Unsafe::BGetOp(md, index, key, key_len, database, num_records, op));
+}
+
+/**
+ * Delete
  * Deletes a single record from MDHIM from the given database
  *
  * @param md main MDHIM struct
@@ -312,9 +392,9 @@ mdhim_bgrm_t *mdhimUnsafeBGet(mdhim_t *md, index_t *index,
  * @param database  the database to delete the key value pair from
  * @return TransportRecvMessage * or nullptr on error
  */
-TransportRecvMessage *mdhim::UnsafeDelete(mdhim_t *md, index_t *index,
-                                          void *key, std::size_t key_len,
-                                          const int database) {
+TransportRecvMessage *mdhim::Unsafe::Delete(mdhim_t *md, index_t *index,
+                                            void *key, std::size_t key_len,
+                                            const int database) {
     if (!md || !md->p ||
         !key || !key_len) {
         return nullptr;
@@ -340,11 +420,11 @@ TransportRecvMessage *mdhim::UnsafeDelete(mdhim_t *md, index_t *index,
 mdhim_rm_t *mdhimUnsafeDelete(mdhim_t *md, index_t *index,
                               void *key, std::size_t key_len,
                               const int database) {
-    return mdhim_rm_init(mdhim::UnsafeDelete(md, index, key, key_len, database));
+    return mdhim_rm_init(mdhim::Unsafe::Delete(md, index, key, key_len, database));
 }
 
 /**
- * UnsafeBDelete
+ * BDelete
  * Deletes multiple records from MDHIM from the given databases
  *
  * @param md main MDHIM struct
@@ -354,10 +434,10 @@ mdhim_rm_t *mdhimUnsafeDelete(mdhim_t *md, index_t *index,
  * @param num_records  the number of keys to delete (i.e., the number of keys in keys array)
  * @return TransportBRecvMessage * or nullptr on error
  */
-TransportBRecvMessage *mdhim::UnsafeBDelete(mdhim_t *md, index_t *index,
-                                            void **keys, std::size_t *key_lens,
-                                            const int *databases,
-                                            std::size_t num_records) {
+TransportBRecvMessage *mdhim::Unsafe::BDelete(mdhim_t *md, index_t *index,
+                                              void **keys, std::size_t *key_lens,
+                                              const int *databases,
+                                              std::size_t num_records) {
     if (!md || !md->p ||
         !keys || !key_lens) {
         return nullptr;
@@ -392,5 +472,5 @@ mdhim_brm_t *mdhimBDeleteDB(mdhim_t *md, index_t *index,
                             void **keys, std::size_t *key_lens,
                             const int *databases,
                             std::size_t num_records) {
-    return mdhim_brm_init(mdhim::UnsafeBDelete(md, index, keys, key_lens, databases, num_records));
+    return mdhim_brm_init(mdhim::Unsafe::BDelete(md, index, keys, key_lens, databases, num_records));
 }

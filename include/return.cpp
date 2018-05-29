@@ -1,5 +1,6 @@
 #include "return.h"
 #include "return.hpp"
+#include "triplestore.hpp"
 
 namespace hxhim {
 
@@ -17,8 +18,8 @@ Return::Return(enum hxhim_work_op operation, TransportResponseMessage *response)
  * as well as all linked Returns
  */
 Return::~Return() {
-    delete head;
     delete next;
+    delete head;
 }
 
 /**
@@ -81,7 +82,7 @@ int Return::GetError() const {
 int Return::MoveToFirstRS() {
     curr = head;
 
-    return MoveToFirstKV();
+    return MoveToFirstSPO();
 }
 
 /**
@@ -107,7 +108,7 @@ int Return::NextRS() {
             break;
     }
 
-    return MoveToFirstKV();
+    return MoveToFirstSPO();
 }
 
 /**
@@ -120,117 +121,165 @@ int Return::ValidRS() const {
 }
 
 /**
- * MoveToFirstKV
- * Moves the KV index to the first KV pair
+ * MoveToFirstSPO
+ * Moves the SPO index to the first SPO pair
  *
  * @return HXHIM_SUCCESS if the current pointer is valid, otherwise HXHIM_ERROR
  */
-int Return::MoveToFirstKV() {
+int Return::MoveToFirstSPO() {
     pos = 0;
     return curr?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 
 /**
- * PrevKV
- * Moves the KV index to the previous index.
+ * PrevSPO
+ * Moves the SPO index to the previous index.
  *
  * @return HXHIM_SUCCESS if the index is valid, otherwise HXHIM_ERROR
  */
-int Return::PrevKV() {
-    return ValidKV(--pos);
+int Return::PrevSPO() {
+    return ValidSPO(--pos);
 }
 
 /**
- * NextKV
- * Moves the KV index to the next index
+ * NextSPO
+ * Moves the SPO index to the next index
  *
  * @return HXHIM_SUCCESS if the index is valid, otherwise HXHIM_ERROR
  */
-int Return::NextKV() {
-    return ValidKV(++pos);
+int Return::NextSPO() {
+    return ValidSPO(++pos);
 }
 
 /**
- * ValidKV
+ * ValidSPO
  *
  * @return HXHIM_SUCCESS if the index is valid, otherwise HXHIM_ERROR
  */
-int Return::ValidKV() const {
-    return ValidKV(pos);
+int Return::ValidSPO() const {
+    return ValidSPO(pos);
 }
 
 /**
- * GetKV
- * Fills in the key and value data at the current KV index, if it is valid.
+ * GetSPO
+ * Fills in the key and value data at the current SPO index, if it is valid.
  * All of the parameters are optional
  *
- * @param key       address of a pointer that will be set to the address of the key
- * @param key_len   address of a size_t that will be set to the length of the key
- * @param value     address of a pointer that will be set to the address of the value
- * @param value_len address of a size_t that will be set to the length of the value
- *
+ * @param subject       address of the pointer to the subject
+ * @param subject_len   address of the the subject's length
+ * @param predicate     address of the pointer to the predicate
+ * @param predicate_len address of the the predicate's length
+ * @param object        address of the pointer to the object
+ * @param object_len    address of the the object's length
  * @return HXHIM_SUCCESS if the index is valid, otherwise HXHIM_ERROR
  */
-int Return::GetKV(void **key, std::size_t *key_len, void **value, std::size_t *value_len) {
-    if (ValidKV() != HXHIM_SUCCESS) {
+int Return::GetSPO(void **subject, size_t *subject_len, void **predicate, size_t *predicate_len, void **object, size_t *object_len) {
+    if (ValidSPO() != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
 
+    int ret = HXHIM_ERROR;
     switch (curr->mtype) {
         case TransportMessageType::RECV_GET:
             {
                 TransportGetRecvMessage *grm = dynamic_cast<TransportGetRecvMessage *>(curr);
-                if (key) {
-                    *key = grm->key;
-                }
+                if (grm) {
+                    if (subject   || subject_len   ||
+                        predicate || predicate_len) {
+                        std::size_t sub_len;
+                        decode_unsigned(grm->key, sub_len);
 
-                if (key_len) {
-                    *key_len = grm->key_len;
-                }
+                        if (subject) {
+                            *subject = (char *)grm->key + sizeof(sub_len);
+                        }
 
-                if (value) {
-                    *value = grm->value;
-                }
+                        if (subject_len) {
+                            *subject_len = sub_len;
+                        }
 
-                if (value_len) {
-                    *value_len = grm->value_len;
+                        if (predicate || predicate_len) {
+                            std::size_t pred_len;
+                            decode_unsigned((char *) grm->key + sizeof(sub_len) + sub_len, pred_len);
+
+                            if (predicate) {
+                                *predicate = (char *) grm->key + sizeof(sub_len) + sub_len + sizeof(pred_len);
+                            }
+
+                            if (predicate_len) {
+                                *predicate_len = pred_len;
+                            }
+                        }
+                    }
+
+                    if (object) {
+                        *object = grm->value;
+                    }
+
+                    if (object_len) {
+                        *object_len = grm->value_len;
+                    }
+
+                    ret = HXHIM_SUCCESS;
                 }
             }
             break;
         case TransportMessageType::RECV_BGET:
             {
                 TransportBGetRecvMessage *bgrm = dynamic_cast<TransportBGetRecvMessage *>(curr);
-                if (key) {
-                    *key = bgrm->keys[pos];
-                }
+                if (bgrm) {
+                    if (subject   || subject_len   ||
+                        predicate || predicate_len) {
+                        std::size_t sub_len = 0;
+                        decode_unsigned(bgrm->keys[pos], sub_len);
 
-                if (key_len) {
-                    *key_len = bgrm->key_lens[pos];
-                }
+                        if (subject) {
+                            *subject = (char *)bgrm->keys[pos] + sizeof(sub_len);
+                        }
 
-                if (value) {
-                    *value = bgrm->values[pos];
-                }
+                        if (subject_len) {
+                            *subject_len = sub_len;
+                        }
 
-                if (value_len) {
-                    *value_len = bgrm->value_lens[pos];
+                        if (predicate || predicate_len) {
+                            std::size_t pred_len;
+                            decode_unsigned((char *) bgrm->keys[pos] + sizeof(sub_len) + sub_len, pred_len);
+
+                            if (predicate) {
+                                *predicate = (char *) bgrm->keys[pos] + sizeof(sub_len) + sub_len + sizeof(pred_len);
+                            }
+
+                            if (predicate_len) {
+                                *predicate_len = pred_len;
+                            }
+                        }
+                    }
+
+                    if (object) {
+                        *object = bgrm->values[pos];
+                    }
+
+                    if (object_len) {
+                        *object_len = bgrm->value_lens[pos];
+                    }
+
+                    ret = HXHIM_SUCCESS;
                 }
             }
             break;
         default:
-            return HXHIM_ERROR;
+            break;
     }
 
     return HXHIM_SUCCESS;
 }
 
 /**
- * ValidKV
- * Whether or not the given KV index is valid
+ * ValidSPO
+ * Whether or not the given SPO index is valid
  *
  * @return HXHIM_SUCCESS if the index is valid, otherwise HXHIM_ERROR
  */
-int Return::ValidKV(const std::size_t position) const {
+int Return::ValidSPO(const std::size_t position) const {
     if (!curr) {
         return HXHIM_ERROR;
     }
@@ -278,6 +327,18 @@ Return *Return::Next() const {
     return next;
 }
 
+/**
+ * return_results
+ *
+ * @param head the head of the list, whose only purpose is to store Return::next
+ * @return head->Next()
+ */
+Return *return_results(Return &head) {
+    Return *ret = head.Next();
+    head.Next(nullptr);
+    return ret;
+}
+
 }
 
 /**
@@ -288,6 +349,7 @@ Return *Return::Next() const {
  */
 void hxhim_return_destroy(hxhim_return_t *ret) {
     if (ret) {
+        delete ret->head;
         delete ret;
     }
 }
@@ -389,82 +451,84 @@ int hxhim_return_valid_rs(hxhim_return_t *ret, int *valid) {
 }
 
 /**
- * hxhim_return_move_to_first_kv
- * Moves the internal KV index to 0
+ * hxhim_return_move_to_first_spo
+ * Moves the internal SPO index to 0
  *
  * @param ret the response
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_return_move_to_first_kv(hxhim_return_t *ret) {
+int hxhim_return_move_to_first_spo(hxhim_return_t *ret) {
     if (!ret || !ret->curr) {
         return HXHIM_ERROR;
     }
 
-    return ret->curr->MoveToFirstKV();
+    return ret->curr->MoveToFirstSPO();
 }
 
 /**
- * hxhim_return_prev_kv
- * Moves the internal KV index to the previous index.
+ * hxhim_return_prev_spo
+ * Moves the internal SPO index to the previous index.
  *
  * @param ret the response
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_return_prev_kv(hxhim_return_t *ret) {
+int hxhim_return_prev_spo(hxhim_return_t *ret) {
     if (!ret || !ret->curr) {
         return HXHIM_ERROR;
     }
 
-    return ret->curr->PrevKV();
+    return ret->curr->PrevSPO();
 }
 
 /**
- * hxhim_return_next_kv
- * Moves the KV index to the next index
+ * hxhim_return_next_spo
+ * Moves the SPO index to the next index
  *
  * @param ret the response
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_return_next_kv(hxhim_return_t *ret) {
+int hxhim_return_next_spo(hxhim_return_t *ret) {
     if (!ret || !ret->curr) {
         return HXHIM_ERROR;
     }
 
-    return ret->curr->NextKV();
+    return ret->curr->NextSPO();
 }
 
 /**
- * hxhim_return_valid_kv
+ * hxhim_return_valid_spo
  *
  * @param ret the response
- * @param valid whether or not the current KV pair (index) is valid
+ * @param valid whether or not the current SPO pair (index) is valid
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_return_valid_kv(hxhim_return_t *ret, int *valid) {
+int hxhim_return_valid_spo(hxhim_return_t *ret, int *valid) {
     if (!ret || !ret->curr || !valid) {
         return HXHIM_ERROR;
     }
 
-    *valid = ret->curr->ValidKV();
+    *valid = ret->curr->ValidSPO();
     return HXHIM_SUCCESS;
 }
 
 /**
- * hxhim_return_get_kv
+ * hxhim_return_get_spo
  *
- * @param ret       the response
- * @param key       address of a pointer that will be set to the address of the key
- * @param key_len   address of a size_t that will be set to the length of the key
- * @param value     address of a pointer that will be set to the address of the value
- * @param value_len address of a size_t that will be set to the length of the value
+ * @param ret           the response
+ * @param subject       address of the pointer to the subject
+ * @param subject_len   address of the the subject's length
+ * @param predicate     address of the pointer to the predicate
+ * @param predicate_len address of the the predicate's length
+ * @param object        address of the pointer to the object
+ * @param object_len    address of the the object's length
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_return_get_kv(hxhim_return_t *ret, void **key, size_t *key_len, void **value, size_t *value_len) {
+int hxhim_return_get_spo(hxhim_return_t *ret, void **subject, size_t *subject_len, void **predicate, size_t *predicate_len, void **object, size_t *object_len) {
     if (!ret || !ret->curr) {
         return HXHIM_ERROR;
     }
 
-    return ret->curr->GetKV(key, key_len, value, value_len);;
+    return ret->curr->GetSPO(subject, subject_len, predicate, predicate_len, object, object_len);
 }
 
 /**

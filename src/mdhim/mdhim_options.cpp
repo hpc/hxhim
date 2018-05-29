@@ -127,7 +127,7 @@ int mdhim_options_init_transport(mdhim_options_t *opts, const int set_defaults) 
     }
 
     if (set_defaults) {
-        mdhim_options_set_mpi(opts, MPI_COMM_WORLD, 128, 256);
+        mdhim_options_set_mpi(opts, MPI_COMM_WORLD, 128, 256, 1);
     }
 
     return MDHIM_SUCCESS;
@@ -146,13 +146,13 @@ int mdhim_options_init_transport(mdhim_options_t *opts, const int set_defaults) 
  * @param set_defaults whether or not to set default values for the private data
  * @return MDHIM_SUCCESS or MDHIM_ERROR
  */
-int mdhim_options_set_mpi(mdhim_options_t *opts, const MPI_Comm comm, const std::size_t alloc_size, const std::size_t regions) {
+int mdhim_options_set_mpi(mdhim_options_t *opts, const MPI_Comm comm, const std::size_t alloc_size, const std::size_t regions, const std::size_t listeners) {
     if (!valid_transport(opts)) {
         return MDHIM_ERROR;
     }
 
     delete opts->p->transport->transport_specific;
-    return (opts->p->transport->transport_specific = new MPIOptions(comm, alloc_size, regions))?MDHIM_SUCCESS:MDHIM_ERROR;
+    return (opts->p->transport->transport_specific = new MPIOptions(comm, alloc_size, regions, listeners))?MDHIM_SUCCESS:MDHIM_ERROR;
 }
 
 /**

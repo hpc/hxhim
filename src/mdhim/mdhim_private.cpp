@@ -58,7 +58,7 @@ static int mdhim_private_init_transport_mpi(mdhim_t *md, MPIOptions *opts, const
     }
 
     // give the range server access to the memory buffer
-    MPIRangeServer::init(md, fbp);
+    MPIRangeServer::init(md, fbp, opts->listeners_);
 
     MPIEndpointGroup *eg = new MPIEndpointGroup(opts->comm_, md->lock, fbp);
     if (!eg) {
@@ -200,9 +200,7 @@ static int mdhim_private_init_index(mdhim_t *md) {
     //Initialize the indexes and create the primary index
     md->p->indexes = nullptr;
     md->p->indexes_by_name = nullptr;
-    if (pthread_rwlock_init(&md->p->indexes_lock, nullptr) != 0) {
-        return MDHIM_ERROR;
-    }
+    md->p->indexes_lock = PTHREAD_RWLOCK_INITIALIZER;
 
     //Create the default remote primary index
     md->p->primary_index = create_global_index(md, md->p->db_opts->rserver_factor, md->p->db_opts->max_recs_per_slice,
@@ -298,8 +296,6 @@ static int mdhim_private_destroy_transport(mdhim_t *md) {
     if (!md || !md->p){
         return MDHIM_ERROR;
     }
-
-    md->p->range_server_destroy();
 
     delete md->p->transport;
     md->p->transport = nullptr;
@@ -748,6 +744,12 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
                 bpm->index = index->id;
                 bpm->index_type = index->type;
 
+                bpm->rs_idx = new int[num_keys]();
+                bpm->keys = new void *[num_keys]();
+                bpm->key_lens = new std::size_t[num_keys]();
+                bpm->values = new void *[num_keys]();
+                bpm->value_lens = new std::size_t[num_keys]();
+
                 if (md->rank != bpm->dst) {
                     bpm_list[dst_rank] = bpm;
                 } else {
@@ -756,11 +758,11 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
             }
 
             //Add the key, lengths, and data to the message
-            bpm->keys.push_back(keys[i]);
-            bpm->key_lens.push_back(key_lens[i]);
-            bpm->values.push_back(values[i]);
-            bpm->value_lens.push_back(value_lens[i]);
-            bpm->rs_idx.push_back(rs_idx);
+            bpm->keys[bpm->num_keys] = keys[i];
+            bpm->key_lens[bpm->num_keys] = key_lens[i];
+            bpm->values[bpm->num_keys] = values[i];
+            bpm->value_lens[bpm->num_keys] = value_lens[i];
+            bpm->rs_idx[bpm->num_keys] = rs_idx;
             bpm->num_keys++;
 
             rangesrv_list *rlp = rl;
@@ -830,6 +832,12 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
             bpm->index = index->id;
             bpm->index_type = index->type;
 
+            bpm->rs_idx = new int[num_keys]();
+            bpm->keys = new void *[num_keys]();
+            bpm->key_lens = new std::size_t[num_keys]();
+            bpm->values = new void *[num_keys]();
+            bpm->value_lens = new std::size_t[num_keys]();
+
             if (md->rank != bpm->dst) {
                 bpm_list[dst_rank] = bpm;
             } else {
@@ -838,11 +846,11 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
         }
 
         //Add the key, lengths, and data to the message
-        bpm->keys.push_back(keys[i]);
-        bpm->key_lens.push_back(key_lens[i]);
-        bpm->values.push_back(values[i]);
-        bpm->value_lens.push_back(value_lens[i]);
-        bpm->rs_idx.push_back(rs_idx);
+        bpm->keys[bpm->num_keys] = keys[i];
+        bpm->key_lens[bpm->num_keys] = key_lens[i];
+        bpm->values[bpm->num_keys] = values[i];
+        bpm->value_lens[bpm->num_keys] = value_lens[i];
+        bpm->rs_idx[bpm->num_keys] = rs_idx;
         bpm->num_keys++;
     }
 
@@ -877,7 +885,7 @@ TransportBRecvMessage *_bput_records(mdhim_t *md, index_t *index,
  * @param keys        array of pointers to keys to put
  * @param key_lens    array of the key lengths
  * @param num_keys    the number of key value pairs
- * @param num_records ??
+ * @param num_records the number of records to get back
  * @param op          the comparison to use for key matching
  * @return TransportBGetRecvMessage * or nullptr on error
  */
@@ -946,6 +954,10 @@ TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
                 bgm->op = (op == TransportGetMessageOp::GET_PRIMARY_EQ)?TransportGetMessageOp::GET_EQ:op;
                 bgm->index = index->id;
                 bgm->index_type = index->type;
+                bgm->rs_idx = new int[num_keys]();
+                bgm->keys = new void *[num_keys]();
+                bgm->key_lens = new std::size_t[num_keys]();
+
                 if (md->rank != dst_rank) {
                     bgm_list[dst_rank] = bgm;
                 } else {
@@ -954,9 +966,9 @@ TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
             }
 
             //Add the key, lengths, and data to the message
-            bgm->keys.push_back(keys[i]);
-            bgm->key_lens.push_back(key_lens[i]);
-            bgm->rs_idx.push_back(rs_idx);
+            bgm->keys[bgm->num_keys] = keys[i];
+            bgm->key_lens[bgm->num_keys] = key_lens[i];
+            bgm->rs_idx[bgm->num_keys] = rs_idx;
             bgm->num_keys++;
 
             rangesrv_list *rlp = rl;
@@ -1020,6 +1032,10 @@ TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
             bgm->op = (op == TransportGetMessageOp::GET_PRIMARY_EQ)?TransportGetMessageOp::GET_EQ:op;
             bgm->index = index->id;
             bgm->index_type = index->type;
+            bgm->rs_idx = new int[num_keys]();
+            bgm->keys = new void *[num_keys]();
+            bgm->key_lens = new std::size_t[num_keys]();
+
             if (md->rank != dst_rank) {
                 bgm_list[dst_rank] = bgm;
             } else {
@@ -1028,9 +1044,9 @@ TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
         }
 
         //Add the key, lengths, and data to the message
-        bgm->keys.push_back(keys[i]);
-        bgm->key_lens.push_back(key_lens[i]);
-        bgm->rs_idx.push_back(rs_idx);
+        bgm->keys[bgm->num_keys] = keys[i];
+        bgm->key_lens[bgm->num_keys] = key_lens[i];
+        bgm->rs_idx[bgm->num_keys] = rs_idx;
         bgm->num_keys++;
     }
 
@@ -1244,6 +1260,10 @@ TransportBRecvMessage *_bdel_records(mdhim_t *md, index_t *index,
                 bdm->dst = dst_rank;
                 bdm->index = index->id;
                 bdm->index_type = index->type;
+                bdm->rs_idx = new int[num_keys]();
+                bdm->keys = new void *[num_keys]();
+                bdm->key_lens = new std::size_t[num_keys]();
+
                 if (md->rank != dst_rank) {
                     bdm_list[dst_rank - 1] = bdm;
                 } else {
@@ -1252,9 +1272,9 @@ TransportBRecvMessage *_bdel_records(mdhim_t *md, index_t *index,
             }
 
             //Add the key, lengths, and data to the message
-            bdm->keys.push_back(keys[i]);
-            bdm->key_lens.push_back(key_lens[i]);
-            bdm->rs_idx.push_back(rs_idx);
+            bdm->keys[bdm->num_keys] = keys[i];
+            bdm->key_lens[bdm->num_keys] = key_lens[i];
+            bdm->rs_idx[bdm->num_keys] = rs_idx;
             bdm->num_keys++;
 
             rangesrv_list *rlp = rl;
@@ -1325,6 +1345,10 @@ TransportBRecvMessage *_bdel_records(mdhim_t *md, index_t *index,
             bdm->dst = dst_rank;
             bdm->index = index->id;
             bdm->index_type = index->type;
+            bdm->rs_idx = new int[num_keys]();
+            bdm->keys = new void *[num_keys]();
+            bdm->key_lens = new std::size_t[num_keys]();
+
             if (md->rank != dst_rank) {
                 bdm_list[dst_rank - 1] = bdm;
             } else {
@@ -1333,9 +1357,9 @@ TransportBRecvMessage *_bdel_records(mdhim_t *md, index_t *index,
         }
 
         //Add the key, lengths, and data to the message
-        bdm->keys.push_back(keys[i]);
-        bdm->key_lens.push_back(key_lens[i]);
-        bdm->rs_idx.push_back(rs_idx);
+        bdm->keys[bdm->num_keys] = keys[i];
+        bdm->key_lens[bdm->num_keys] = key_lens[i];
+        bdm->rs_idx[bdm->num_keys] = rs_idx;
         bdm->num_keys++;
     }
 

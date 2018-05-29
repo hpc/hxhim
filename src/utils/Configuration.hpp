@@ -3,9 +3,11 @@
 
 #include <cmath>
 #include <map>
+#include <string>
 
 /** @description The underlying configuration type */
 typedef std::map<std::string, std::string> Config;
+typedef Config::const_iterator Config_it;
 
 /**
  * ConfigReader
@@ -65,6 +67,52 @@ class ConfigSequence {
         Sequence_t sequence_;
 
         std::size_t next_index_;
+};
+
+/** Example ConfigReaders that try to get configurations from different sources */
+/**
+ * ConfigFile
+ * Attempts to find the file with the given filename
+ */
+class ConfigFile : public ConfigReader {
+    public:
+       ConfigFile(const std::string &filename);
+       ~ConfigFile();
+
+       bool process(Config &config) const;
+
+    private:
+        std::string filename_;
+};
+
+/**
+ * ConfigDirectory
+ * Searches the given directory
+ */
+class ConfigDirectory : public ConfigReader {
+    public:
+       ConfigDirectory(const std::string &directory);
+       ~ConfigDirectory();
+
+       bool process(Config &config) const;
+
+    private:
+        std::string directory_;
+};
+
+/**
+ * ConfigEnvironment
+ * Attempts to find the file pointed to by a given environment variable
+ */
+class ConfigEnvironment : public ConfigReader {
+    public:
+       ConfigEnvironment(const std::string& variable);
+       ~ConfigEnvironment();
+
+       bool process(Config &config) const;
+
+    private:
+        std::string variable_;
 };
 
 #endif
