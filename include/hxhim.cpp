@@ -279,8 +279,9 @@ hxhim::Return *hxhim::FlushPuts(hxhim_t *hx) {
 
     while (puts.size()) {
         // Generate up to 1 MAX_BULK_OPS worth of data
-        std::size_t count = std::min(puts.size(), (std::size_t) HXHIM_MAX_BULK_PUT_OPS);
-        std::size_t hexcount = 6 * count;
+        const std::size_t count = std::min(puts.size(), (std::size_t) HXHIM_MAX_BULK_PUT_OPS);
+        const std::size_t multiplier = 6;
+        const std::size_t hexcount = multiplier * count;
 
         // copy the keys and lengths into arrays
         void **keys = new void *[hexcount]();
@@ -292,7 +293,7 @@ hxhim::Return *hxhim::FlushPuts(hxhim_t *hx) {
             values && value_lens) {
             for(std::size_t i = 0; i < count; i++) {
                 const hxhim::spo_t &put = puts.front();
-                const std::size_t offset = 6 * i;
+                const std::size_t offset = multiplier * i;
 
                 convert2key(put.subject,   put.subject_len,   put.predicate, put.predicate_len, &keys[offset + 0], &key_lens[offset + 0]);
                 values[offset + 0] = put.object;
@@ -340,7 +341,8 @@ hxhim::Return *hxhim::FlushPuts(hxhim_t *hx) {
         delete [] value_lens;
     }
 
-    return hxhim::return_results(head);
+    auto ret = hxhim::return_results(head);
+    return ret;
 }
 
 /**
@@ -404,6 +406,9 @@ hxhim::Return *hxhim::FlushGets(hxhim_t *hx) {
         }
 
         // cleanup
+        for(std::size_t i = 0; i < count; i++) {
+            ::operator delete(keys[i]);
+        }
         delete [] keys;
         delete [] key_lens;
     }
@@ -432,6 +437,8 @@ hxhim_return_t *hxhimFlushGets(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Return *hxhim::FlushGetOps(hxhim_t *hx) {
+    mdhim::StatFlush(hx->p->md, nullptr);
+
     std::lock_guard<std::mutex> lock(hx->p->getops.mutex);
     std::list<hxhim::sp_op_t> &gets = hx->p->getops.data;
 
@@ -445,7 +452,7 @@ hxhim::Return *hxhim::FlushGetOps(hxhim_t *hx) {
 
         convert2key(gets.front().subject, gets.front().subject_len, gets.front().predicate, gets.front().predicate_len, &key, &key_len);
 
-        res = res->Next(new hxhim::Return(hxhim_work_op::HXHIM_PUT, mdhim::BGetOp(hx->p->md, nullptr, key, key_len, gets.front().num_records, gets.front().op)));
+        res = res->Next(new hxhim::Return(hxhim_work_op::HXHIM_GET, mdhim::BGetOp(hx->p->md, nullptr, key, key_len, gets.front().num_records, gets.front().op)));
 
         // cleanup
         ::operator delete(key);
@@ -504,7 +511,7 @@ hxhim::Return *hxhim::FlushDeletes(hxhim_t *hx) {
                 dels.pop_front();
             }
 
-            res = res->Next(new hxhim::Return(hxhim_work_op::HXHIM_PUT, mdhim::BDelete(hx->p->md, nullptr, keys, key_lens, count)));
+            res = res->Next(new hxhim::Return(hxhim_work_op::HXHIM_DEL, mdhim::BDelete(hx->p->md, nullptr, keys, key_lens, count)));
 
             for(std::size_t i = 0; i < count; i++) {
                 ::operator delete(keys[i]);
@@ -586,7 +593,7 @@ int hxhim::Put(hxhim_t *hx,
                void *subject, std::size_t subject_len,
                void *predicate, std::size_t predicate_len,
                void *object, std::size_t object_len) {
-    if (!hx        || !hx->p        ||
+    if (!hx        || !hx->p         ||
         !subject   || !subject_len   ||
         !predicate || !predicate_len ||
         !object    || !object_len)    {
@@ -603,6 +610,7 @@ int hxhim::Put(hxhim_t *hx,
 
     std::lock_guard<std::mutex> lock(hx->p->puts.mutex);
     hx->p->puts.data.emplace_back(spo);
+
     return HXHIM_SUCCESS;
 }
 
@@ -643,7 +651,7 @@ int hxhimPut(hxhim_t *hx,
 int hxhim::Get(hxhim_t *hx,
                void *subject, std::size_t subject_len,
                void *predicate, std::size_t predicate_len) {
-    if (!hx        || !hx->p        ||
+    if (!hx        || !hx->p         ||
         !subject   || !subject_len   ||
         !predicate || !predicate_len) {
         return HXHIM_ERROR;
@@ -693,7 +701,7 @@ int hxhimGet(hxhim_t *hx,
 int hxhim::Delete(hxhim_t *hx,
                   void *subject, std::size_t subject_len,
                   void *predicate, std::size_t predicate_len) {
-    if (!hx        || !hx->p        ||
+    if (!hx        || !hx->p         ||
         !subject   || !subject_len   ||
         !predicate || !predicate_len) {
         return HXHIM_ERROR;
@@ -749,7 +757,7 @@ int hxhim::BPut(hxhim_t *hx,
                 void **predicates, std::size_t *predicate_lens,
                 void **objects, std::size_t *object_lens,
                 std::size_t count) {
-    if (!hx         || !hx->p         ||
+    if (!hx         || !hx->p          ||
         !subjects   || !subject_lens   ||
         !predicates || !predicate_lens ||
         !objects    || !object_lens) {
@@ -812,7 +820,7 @@ int hxhim::BGet(hxhim_t *hx,
                 void **subjects, std::size_t *subject_lens,
                 void **predicates, std::size_t *predicate_lens,
                 std::size_t count) {
-    if (!hx         || !hx->p         ||
+    if (!hx         || !hx->p          ||
         !subjects   || !subject_lens   ||
         !predicates || !predicate_lens) {
         return HXHIM_ERROR;
@@ -865,20 +873,22 @@ int hxhim::BGetOp(hxhim_t *hx,
                   void *subject, std::size_t subject_len,
                   void *predicate, std::size_t predicate_len,
                   std::size_t num_records, enum TransportGetMessageOp op) {
-    if (!hx         || !hx->p        ||
-        !subject    || !subject_len   ||
-        !predicate  || !predicate_len) {
+    if (!hx        || !hx->p         ||
+        !subject   || !subject_len   ||
+        !predicate || !predicate_len) {
         return HXHIM_ERROR;
     }
 
-    hxhim::sp_t sp;
+    hxhim::sp_op_t sp;
     sp.subject = subject;
     sp.subject_len = subject_len;
     sp.predicate = predicate;
     sp.predicate_len = predicate_len;
+    sp.num_records = num_records;
+    sp.op = op;
 
-    std::lock_guard<std::mutex> lock(hx->p->gets.mutex);
-    hx->p->gets.data.emplace_back(sp);
+    std::lock_guard<std::mutex> lock(hx->p->getops.mutex);
+    hx->p->getops.data.emplace_back(sp);
 
     return MDHIM_SUCCESS;
 }
@@ -917,7 +927,7 @@ int hxhim::BDelete(hxhim_t *hx,
                    void **subjects, std::size_t *subject_lens,
                    void **predicates, std::size_t *predicate_lens,
                    std::size_t count) {
-    if (!hx         || !hx->p         ||
+    if (!hx         || !hx->p          ||
         !subjects   || !subject_lens   ||
         !predicates || !predicate_lens) {
         return HXHIM_ERROR;

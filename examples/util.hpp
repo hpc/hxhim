@@ -2,14 +2,22 @@
 #define MDHIM_CLI_UTILITY
 
 #include <istream>
+#include <list>
 
 #include "mdhim.h"
 
+struct UserInput {
+    std::size_t fields;
+    void ***data;
+    std::size_t **lens;
+    std::size_t num_keys;
+};
+
 /** @description Utility function for reading arbitrary number of fields          */
-int bulk_read(std::istream &s, std::size_t columns, void ****data, std::size_t ***lens, std::size_t &rows, bool read_rows = true);
+bool bulk_read(std::istream &s, UserInput &input, bool read_rows = true);
 
 /** @description Utility function for cleaning up pointers allocated by bulk_read */
-int bulk_clean(std::size_t columns, void ***data, std::size_t **lens, std::size_t rows);
+bool bulk_clean(UserInput &input);
 
 /** @description Incremenet a mdhim_brm_t to the next message */
 int next(mdhim_brm_t **brm);

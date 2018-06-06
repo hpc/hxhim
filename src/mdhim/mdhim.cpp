@@ -497,7 +497,7 @@ mdhim_bgrm_t *mdhimBGet(mdhim_t *md, index_t *index,
 TransportBGetRecvMessage *mdhim::BGetOp(mdhim_t *md, index_t *index,
                                         void *key, std::size_t key_len,
                                         std::size_t num_records, enum TransportGetMessageOp op) {
-    if (!md || !md->p ||
+    if (!md || !md->p    ||
         !key || !key_len) {
         return nullptr;
     }

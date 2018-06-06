@@ -12,10 +12,10 @@ int MPIRangeServer::init(mdhim_t *md, FixedBufferPool *fbp, const std::size_t li
 
     fbp_ = fbp;
 
-    listener_count_ = listener_count;
-    listeners_ = new pthread_t[listener_count_]();
+    listeners_ = new pthread_t[listener_count]();
 
-    for(int i = 0; i < listener_count_; i++) {
+    std::size_t &i = listener_count_;
+    for(i = 0; i < listener_count; i++) {
         //Initialize listener threads
         if (pthread_create(&listeners_[i], nullptr,
                            listener_thread, (void *)md) != 0) {

@@ -929,6 +929,18 @@ TransportBGetRecvMessage *_bget_records(mdhim_t *md, index_t *index,
             delete [] bgm_list;
             return nullptr;
         }
+        // else if (op == TransportGetMessageOp::GET_FIRST) {
+        //     rangesrv_info_t *ret_rp = (rangesrv_info_t *) calloc(1, sizeof(rangesrv_info_t));
+        //     ret_rp->database = 0; // this might not be correct
+        //     rl = (rangesrv_list *) malloc(sizeof(rangesrv_list));
+        //     _add_to_rangesrv_list(&rl, ret_rp);
+        // }
+        // else if (op == TransportGetMessageOp::GET_LAST) {
+        //     rangesrv_info_t *ret_rp = (rangesrv_info_t *) calloc(1, sizeof(rangesrv_info_t));
+        //     ret_rp->database = get_num_databases(md->size, index->range_server_factor, index->dbs_per_server) - 1;
+        //     rl = (rangesrv_list *) malloc(sizeof(rangesrv_list));
+        //     _add_to_rangesrv_list(&rl, ret_rp);
+        // }
 
         while (rl) {
             int dst_rank, rs_idx;

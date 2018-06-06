@@ -1,4 +1,5 @@
 #include <climits>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -142,19 +143,50 @@ static int cmp_string_compare(void* arg, const char* a, std::size_t alen,
     return -1;
 }
 
-static int cmp_byte_compare(void* arg, const char* a, std::size_t alen,
-                const char* b, std::size_t blen) {
-    int ret;
+static int cmp_byte_compare(void* arg, const char* a, size_t alen,
+			    const char* b, size_t blen) {
+	int ret;
 
-    ret = cmp_empty(a, alen, b, blen);
-    if (ret != 2) {
-        return ret;
+	ret = cmp_empty(a, alen, b, blen);
+	if (ret != 2) {
+		return ret;
+	}
+
+	ret = memcmp(a, b, alen);
+
+	return ret;
+}
+
+static int cmp_lex_compare(void* arg, const char* a, std::size_t alen,
+                const char* b, std::size_t blen) {
+    // check the pointers first
+    if (a && !b) {
+        return 1;
+    } else if (!a && b) {
+        return -1;
+    } else if (!a && !b) {
+        return 0;
     }
 
-    ret = memcmp(a, b, alen);
+    // compare up to the shorter buffer's last value
+    const std::size_t min = std::min(alen, blen);
+    for(std::size_t i = 0; i < min; i++) {
+        const int diff = a[i] - b[i];
+        if (diff) {
+            return diff;
+        }
+    }
 
-    return ret;
+    // if both buffers have the same prefix, return a value based on the next character
+    if (alen > blen) {
+        return -a[blen];
+    }
+    else if (alen < blen) {
+        return b[alen];
+    }
+    return 0;
 }
+
 static const char* cmp_name(void* arg) {
     return "mdhim_cmp";
 }
@@ -171,7 +203,6 @@ static const char* cmp_name(void* arg) {
  *
  * @return MDHIM_SUCCESS on success or MDHIM_DB_ERROR on failure
  */
-
 int mdhim_leveldb_open(void **dbh, void **dbs, const char *path, int flags, int key_type, mdhim_db_options_t *opts) {
     mdhim_leveldb_t *mdhimdb = new mdhim_leveldb_t();
     mdhim_leveldb_t *statsdb = new mdhim_leveldb_t();
@@ -236,9 +267,14 @@ int mdhim_leveldb_open(void **dbh, void **dbs, const char *path, int flags, int 
         mdhimdb->cmp = leveldb_comparator_create(NULL, cmp_destroy, cmp_string_compare, cmp_name);
         mdhimdb->compare = cmp_string_compare;
         break;
-    default:
+    case MDHIM_BYTE_KEY:
         mdhimdb->cmp = leveldb_comparator_create(NULL, cmp_destroy, cmp_byte_compare, cmp_name);
         mdhimdb->compare = cmp_byte_compare;
+        break;
+    case MDHIM_LEX_BYTE_KEY:
+    default:
+        mdhimdb->cmp = leveldb_comparator_create(NULL, cmp_destroy, cmp_lex_compare, cmp_name);
+        mdhimdb->compare = cmp_lex_compare;
         break;
     }
 
@@ -404,8 +440,9 @@ int mdhim_leveldb_get(void *dbh, void *key, std::size_t key_len, void **data, st
  * @param mstore_opts in   additional cursor options for the data store layer
  *
  */
-int mdhim_leveldb_get_next(void *dbh, void **key, std::size_t *key_len,
-               void **data, std::size_t *data_len) {
+int mdhim_leveldb_get_next(void *dbh,
+                           void **key, std::size_t *key_len,
+                           void **data, std::size_t *data_len) {
     mdhim_leveldb_t *mdhimdb = (mdhim_leveldb_t *) dbh;
     leveldb_readoptions_t *options = mdhimdb->read_options;
     int ret = MDHIM_SUCCESS;
@@ -478,7 +515,7 @@ int mdhim_leveldb_get_next(void *dbh, void **key, std::size_t *key_len,
         goto error;
     }
 
-        //Destroy iterator
+    //Destroy iterator
     leveldb_iter_destroy(iter);
     gettimeofday(&end, NULL);
     mlog(MDHIM_SERVER_DBG, "Took: %d seconds to get the next record",
@@ -515,9 +552,9 @@ int mdhim_leveldb_get_prev(void *dbh, void **key, std::size_t *key_len,
     int ret = MDHIM_SUCCESS;
     leveldb_iterator_t *iter;
     const char *res;
-    int len = 0;
+    size_t len = 0;
     void *old_key;
-    int old_key_len;
+    size_t old_key_len;
     struct timeval start, end;
 
     //Init the data to return
@@ -581,7 +618,7 @@ int mdhim_leveldb_get_prev(void *dbh, void **key, std::size_t *key_len,
         goto error;
     }
 
-        //Destroy iterator
+    //Destroy iterator
     leveldb_iter_destroy(iter);
     gettimeofday(&end, NULL);
     mlog(MDHIM_SERVER_DBG, "Took: %d seconds to get the previous record",

@@ -13,104 +13,65 @@
 # 1 <= r <= d and d % r == 0.
 #
 
-MIN_KEY_LEN=1
-MAX_KEY_LEN=10
-MIN_VALUE_LEN=1
-MAX_VALUE_LEN=10
-COUNT=10
 DATABASES=12
 MDHIM_CONFIG=${MDHIM_CONFIG:-"mdhim.conf"}
 PRINT=true
 
 function help() {
-    echo "Usage: $(basename $0) [Options]"
+    echo "Usage: $(basename $0) [Options] kv_source"
     echo
     echo "    Options:"
     echo "        -h, --help      show help"
-    echo "        -n, --count     number of key value pairs     ($COUNT)"
-    echo "        -d, --databases the number of databases       ($DATABASES)"
-    echo "        --print         print to stdout               ($PRINT)"
-    echo "        --min_key_len   the minimum length of a key   ($MIN_KEY_LEN)"
-    echo "        --max_key_len   the maximum length of a key   ($MAX_KEY_LEN)"
-    echo "        --min_value_len the minimum length of a value ($MIN_VALUE_LEN)"
-    echo "        --max_value_len the maximum length of a value ($MAX_VALUE_LEN)"
+    echo "        -d, --databases the number of databases             ($DATABASES)"
+    echo "        --print         print to stdout                     ($PRINT)"
 }
+
+# Check for positional parameters
+if [[ "$#" -eq "0" ]] ; then
+    help
+    exit 0
+fi
 
 # Parse command line arguments
 # https://stackoverflow.com/a/14203146
 POSITIONAL=()
-while [[ $# -gt 0 ]]
-do
-key="$1"
-
-case $key in
-    -h|--help)
-    help
-    exit 0
-    ;;
-    -n|--count)
-    COUNT=$2
-    shift # past argument
-    shift # past value
-    ;;
-    -d|--databases)
-    DATABASES=$2
-    shift # past argument
-    shift # past value
-    ;;
-    --print)
-    PRINT=$2
-    shift # past argument
-    shift # past value
-    ;;
-    --min_key_len)
-    MIN_KEY_LEN=$2
-    shift # past argument
-    shift # past value
-    ;;
-    --max_key_len)
-    MAX_KEY_LEN=$2
-    shift # past argument
-    shift # past value
-    ;;
-    --min_value_len)
-    MIN_VALUE_LEN=$2
-    shift # past argument
-    shift # past value
-    ;;
-    --max_value_len)
-    MAX_VALUE_LEN=$2
-    shift # past argument
-    shift # past value
-    ;;
-    *)    # unknown option
-    POSITIONAL+=("$1") # save it in an array for later
-    shift # past argument
-    ;;
-esac
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -h|--help)
+            help
+            exit 0
+            ;;
+        -d|--databases)
+            DATABASES=$2
+            shift
+            shift
+            ;;
+        --print)
+            PRINT=$2
+            shift
+            shift
+            ;;
+        *)    # unknown option
+            POSITIONAL+=("$1") # save it in an array for later
+            shift # past argument
+            ;;
+    esac
 done
-set -- "${POSITIONAL[@]}" # restore positional parameters
 
-# Get $COUNT key value pairs
-declare -A KEYPAIRS
-while [[ "${#KEYPAIRS[@]}" -lt "$COUNT" ]] ; do
-    # Generate key value pairs (there are potentially duplicates)
-    kv_pairs=$($(dirname $0)/../generate_kv_pairs.sh --count $(($COUNT - ${#KEYPAIRS[@]})) --min_key_len $MIN_KEY_LEN --max_key_len $MAX_KEY_LEN --min_value_len $MIN_VALUE_LEN --max_value_len $MAX_VALUE_LEN)
-    if [[ "$?" -eq "1" ]] ; then
-        echo $kv_pairs
-        exit 1
-    fi
+KV_SOURCE="${POSITIONAL[0]}"
+[[ ! -e "$KV_SOURCE" ]] && echo "Cannot open $KV_SOURCE" && exit 1
 
-    # Read the key value pairs in
-    while read key value ; do
-        KEYPAIRS[$key]=$value
-    done < <(echo "$kv_pairs")
-done
+# Read the key value pairs in
+COUNT=0
+KEYS=()
+VALUES=()
+while read key value ; do
+    KEYS+=($key)
+    VALUES+=($value)
+    COUNT=$((COUNT+1))
+done < $KV_SOURCE
 
 # Print configuration
-echo "Key Length:          [$MIN_KEY_LEN, $MAX_KEY_LEN]"
-echo "Value Length:        [$MIN_VALUE_LEN, $MAX_VALUE_LEN]"
-echo "Number of KV Pairs:  ${#KEYPAIRS[@]}"
 echo "Number of Databases: $DATABASES"
 echo "Reading config from: $(realpath $MDHIM_CONFIG)"
 
@@ -119,8 +80,8 @@ config=${MDHIM_CONFIG}.tmp
 cp $MDHIM_CONFIG $config
 echo "DBS_PER_RSERVER 1" >> $config
 (
-    for key in ${!KEYPAIRS[@]}; do
-        echo "PUT $key ${KEYPAIRS[$key]}"
+    for i in ${!KEYS[@]}; do
+        echo "PUT ${KEYS[$i]} ${VALUES[$i]}"
     done
 ) | MDHIM_CONFIG=$config mpirun -np $DATABASES $(dirname $0)/cli $PRINT
 
@@ -129,13 +90,13 @@ for ranks in $(seq 1 $DATABASES); do
     if [[ $(($DATABASES % $ranks)) -eq 0 ]]; then
         echo "DBS_PER_RSERVER $(($DATABASES / $ranks))" >> $config
         (
-            for key in ${!KEYPAIRS[@]}; do
-                echo "GET $key"
+            for i in ${!KEYS[@]}; do
+                echo "GET ${KEYS[$i]}"
             done
 
             echo -n "BGET $COUNT";
-            for key in ${!KEYPAIRS[@]}; do
-                echo -n " $key"
+            for i in ${!KEYS[@]}; do
+                echo -n " ${KEYS[$i]}"
             done
         ) | MDHIM_CONFIG=$config mpirun -np $ranks $(dirname $0)/cli $PRINT
     fi

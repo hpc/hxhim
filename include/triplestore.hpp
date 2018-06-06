@@ -30,6 +30,7 @@ int decode_unsigned(void *buf, Z &val, std::size_t len = sizeof(Z)) {
         return HXHIM_ERROR;
     }
 
+    val = 0;
     for(std::size_t i = 0; i < len; i++) {
         val = (val << 8) | ((char *) buf)[i];
     }

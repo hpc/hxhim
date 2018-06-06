@@ -559,10 +559,16 @@ static int range_server_get(mdhim_t *md, work_item_t *item) {
     switch(gm->op) {
         // Gets the value for the given key
         case TransportGetMessageOp::GET_EQ:
-            error =
-                index->mdhim_stores[gm->rs_idx]->get(index->mdhim_stores[gm->rs_idx]->db_handle,
-                                                     gm->key, gm->key_len,
-                                                     &value, &value_len);
+            {
+                // fake getting key from database
+                void *key = malloc(gm->key_len);
+                memcpy(key, gm->key, gm->key_len);
+                gm->key = key;
+                error =
+                    index->mdhim_stores[gm->rs_idx]->get(index->mdhim_stores[gm->rs_idx]->db_handle,
+                                                         gm->key, gm->key_len,
+                                                         &value, &value_len);
+            }
             break;
         /* Gets the next key and value that is in order after the passed in key */
         case TransportGetMessageOp::GET_NEXT:
@@ -659,10 +665,18 @@ static int range_server_bget(mdhim_t *md, work_item_t *item) {
         switch(bgm->op) {
             // Gets the value for the given key
             case TransportGetMessageOp::GET_EQ:
-                error =
-                    index->mdhim_stores[bgm->rs_idx[i]]->get(index->mdhim_stores[bgm->rs_idx[i]]->db_handle,
-                                                             bgm->keys[i], bgm->key_lens[i],
-                                                             &values[i], &value_lens[i]);
+                {
+                    // fake getting key from database
+                    void *key = malloc(bgm->key_lens[i]);
+                    memcpy(key, bgm->keys[i], bgm->key_lens[i]);
+                    bgm->keys[i] = key;
+                    error =
+                        index->mdhim_stores[bgm->rs_idx[i]]->get(index->mdhim_stores[bgm->rs_idx[i]]->db_handle,
+                                                                 bgm->keys[i], bgm->key_lens[i],
+                                                                 &values[i], &value_lens[i]);
+
+
+                }
                 break;
             /* Gets the next key and value that is in order after the passed in key */
             case TransportGetMessageOp::GET_NEXT:
@@ -683,14 +697,14 @@ static int range_server_bget(mdhim_t *md, work_item_t *item) {
             case TransportGetMessageOp::GET_FIRST:
                 error =
                     index->mdhim_stores[bgm->rs_idx[i]]->get_next(index->mdhim_stores[bgm->rs_idx[i]]->db_handle,
-                                                                  &bgm->keys[i], 0,
+                                                                  &bgm->keys[i], &bgm->key_lens[i],
                                                                   &values[i], &value_lens[i]);
                 break;
             /* Gets the last key/value */
             case TransportGetMessageOp::GET_LAST:
                 error =
                     index->mdhim_stores[bgm->rs_idx[i]]->get_prev(index->mdhim_stores[bgm->rs_idx[i]]->db_handle,
-                                                                  &bgm->keys[i], 0,
+                                                                  &bgm->keys[i], &bgm->key_lens[i],
                                                                   &values[i], &value_lens[i]);
                 break;
             default:
@@ -792,16 +806,17 @@ static int range_server_bget_op(mdhim_t *md, work_item_t *item, TransportGetMess
          md->rank, bgm->num_keys, bgm->num_recs);
     //Iterate through the arrays and get each record
     for (std::size_t i = 0; i < bgm->num_keys; i++) {
-        for (int j = 0; j < bgm->num_recs; j++) {
+        for (std::size_t j = 0; j < bgm->num_recs; j++) {
             keys[num_records] = nullptr;
             key_lens[num_records] = 0;
 
             //If we were passed in a key, copy it
             if (!j && bgm->key_lens[i] && bgm->keys[i]) {
-                *get_key = ::operator new(bgm->key_lens[i]);
+                // fake getting key from database
+                *get_key = malloc(bgm->key_lens[i]);
                 memcpy(*get_key, bgm->keys[i], bgm->key_lens[i]);
                 *get_key_len = bgm->key_lens[i];
-                //If we were not passed a key and this is a next/prev, then return an error
+            //If we were not passed a key and this is a next/prev, then return an error
             } else if (!j && (!bgm->key_lens[i] || !bgm->keys[i])
                        && (op ==  TransportGetMessageOp::GET_NEXT ||
                            op == TransportGetMessageOp::GET_PREV)) {
@@ -883,6 +898,11 @@ static int range_server_bget_op(mdhim_t *md, work_item_t *item, TransportGetMess
     }
 
   respond:
+    delete get_key;
+    delete get_key_len;
+    delete get_value;
+    delete get_value_len;
+
     //Create the response message
     TransportBGetRecvMessage *bgrm = new TransportBGetRecvMessage();
     bgrm->error = error;

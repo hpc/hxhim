@@ -4,7 +4,7 @@
 #include <iostream>
 
 #include "mdhim.h"
-#include "util.hpp"
+#include "../util.hpp"
 
 /** @description Example usage and cleanup of mdhimPut */
 void bput(mdhim_t *md,

@@ -66,6 +66,7 @@ const std::map<std::string, int> KEY_TYPES = {
     std::make_pair("DOUBLE",   MDHIM_DOUBLE_KEY),
     std::make_pair("STRING",   MDHIM_STRING_KEY),
     std::make_pair("BYTE",     MDHIM_BYTE_KEY),
+    std::make_pair("LEX_BYTE", MDHIM_LEX_BYTE_KEY),
 };
 
 /**
@@ -104,7 +105,7 @@ const Config MDHIM_DEFAULT_CONFIG = {
     std::make_pair(RSERVER_FACTOR,     "1"),
     std::make_pair(DBS_PER_RSERVER,    "1"),
     std::make_pair(MAX_RECS_PER_SLICE, "1000"),
-    std::make_pair(KEY_TYPE,           "BYTE"),
+    std::make_pair(KEY_TYPE,           "LEX_BYTE"),
     std::make_pair(DEBUG_LEVEL,        "CRITICAL"),
     std::make_pair(NUM_WORKER_THREADS, "1"),
     std::make_pair(MANIFEST_PATH,      "./"),

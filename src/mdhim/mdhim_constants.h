@@ -44,8 +44,9 @@ extern "C"
 #define MDHIM_FLOAT_KEY 3
 #define MDHIM_DOUBLE_KEY 4
 #define MDHIM_STRING_KEY 5
-//An arbitrary sized key
-#define MDHIM_BYTE_KEY 6
+#define MDHIM_BYTE_KEY 6      //Arbitrary sized key; order is determined by length before value
+#define MDHIM_LEX_BYTE_KEY 7  //Arbitrary sized key; order is determined by value
+
 
 //Maximum length of a key
 #define MAX_KEY_LEN 1048576

@@ -73,6 +73,6 @@ namespace elen {
 /* @description Use this function for lexicographic comparisions */
 [[maybe_unused]] static bool lex_comp(const std::string &lhs, const std::string &rhs);
 
-#include "elen.cpp"
+#include "elen.tpp"
 
 #endif

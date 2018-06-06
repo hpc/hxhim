@@ -167,7 +167,7 @@ file(GLOB BASE src/base/*.c*)
 file(GLOB MDHIM src/mdhim/*.c*)
 file(GLOB TRANSPORT src/transport/*.c*)
 file(GLOB UTILS src/utils/*.c*)
-list(FILTER UTILS EXCLUDE REGEX ".*/elen.cpp")
+list(FILTER UTILS EXCLUDE REGEX ".*/elen.tpp")
 
 set(LIBMDHIM_SOURCES ${MDHIM} ${TRANSPORT} ${UTILS})
 message(STATUS "LIBMDHIM_SOURCES: " ${LIBMDHIM_SOURCES})

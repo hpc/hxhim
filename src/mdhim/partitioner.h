@@ -32,6 +32,7 @@ typedef struct rangesrv_list {
 
 void partitioner_init();
 void partitioner_release();
+void _add_to_rangesrv_list(rangesrv_list_t **list, rangesrv_info_t *ri);
 
 rangesrv_list_t *get_range_servers(const int size, index_t *index,
                                    void *key, int key_len);

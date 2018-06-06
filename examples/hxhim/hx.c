@@ -23,13 +23,13 @@ static void print_results(const int rank, hxhim_return_t *results) {
                         char *subject; size_t subject_len;
                         char *predicate; size_t predicate_len;
                         hxhim_return_get_spo(results, (void **) &subject, &subject_len, (void **) &predicate, &predicate_len, NULL, NULL);
-                        printf("Rank %d GET {%.*s, %.*s} ", rank, (int) subject_len, (char *) subject, (int) predicate_len, (char *) predicate);
+                        printf("Rank %d GET {%.*s, %.*s} ", rank, (int) subject_len, subject, (int) predicate_len, predicate);
 
                         // if there was no error, get the value
                         if (error == HXHIM_SUCCESS) {
                             char *object; size_t object_len;
                             hxhim_return_get_spo(results, NULL, NULL, NULL, NULL, (void **) &object, &object_len);
-                            printf("-> %.*s", (int) object_len, (char *) object);
+                            printf("-> %.*s", (int) object_len, object);
                         }
                         else {
                             printf("failed");

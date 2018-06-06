@@ -323,10 +323,9 @@ std::size_t TransportBGetRecvMessage::size() const {
 }
 
 void TransportBGetRecvMessage::cleanup() {
-    if (clean) {
-        for(std::size_t i = 0; i < num_keys; i++) {
-            ::operator delete(keys[i]);
-        }
+    // the keys are always freed
+    for(std::size_t i = 0; i < num_keys; i++) {
+        free(keys[i]);
     }
 
     // the values are always freed
@@ -371,6 +370,8 @@ std::size_t TransportBRecvMessage::size() const {
 }
 
 void TransportBRecvMessage::cleanup() {
+    delete [] rs_idx;
+
     // do not delete next
     next = nullptr;
 

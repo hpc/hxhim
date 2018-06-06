@@ -7,13 +7,24 @@
 
 #include "mdhim.h"
 
-#include "util.hpp"
+#include "../util.hpp"
 #include "put.hpp"
 #include "get.hpp"
 #include "bput.hpp"
 #include "bget.hpp"
 #include "del.hpp"
 #include "bdel.hpp"
+
+std::ostream &help(char *self, std::ostream &stream = std::cout) {
+    return stream << "Syntax: " << self << " print?" << std::endl
+                  << std::endl
+                  << "Input is pass in through stdin in the following formats:" << std::endl
+                  << "    PUT <KEY> <VALUE>" << std::endl
+                  << "    GET|DEL|WHICH <KEY>" << std::endl
+                  << "    BPUT N <KEY_1> <VALUE_1> ... <KEY_N> <VALUE_N>" << std::endl
+                  << "    BGET|BDEL|BWHICH N <KEY_1> ... <KEY_N>" << std::endl
+                  << "    COMMIT" << std::endl;
+}
 
 // A quick and dirty cleanup function
 void cleanup(mdhim_t *md, mdhim_options_t *opts) {
@@ -24,14 +35,7 @@ void cleanup(mdhim_t *md, mdhim_options_t *opts) {
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
-        std::cerr << "Syntax: " << argv[0] << " print?" << std::endl
-                  << std::endl
-                  << "Input is pass in through stdin in the following formats:" << std::endl
-                  << "    PUT <KEY> <VALUE>" << std::endl
-                  << "    GET|DEL|WHICH <KEY>" << std::endl
-                  << "    BPUT N <KEY_1> <VALUE_1> ... <KEY_N> <VALUE_N>" << std::endl
-                  << "    BGET|BDEL|BWHICH N <KEY_1> ... <KEY_N>" << std::endl
-                  << "    COMMIT" << std::endl;
+        help(argv[0], std::cerr);
         return 1;
     }
 
@@ -83,6 +87,10 @@ int main(int argc, char *argv[]) {
                 continue;
             }
 
+            if (cmd[0] == '#') {
+                continue;
+            }
+
             if (cmd.size() < 3) {
                 std::cerr << "Error: Unknown command " << cmd << std::endl;
                 continue;
@@ -93,6 +101,14 @@ int main(int argc, char *argv[]) {
 
             if (cmd == "QUIT") {
                 break;
+            }
+            else if (cmd == "HELP") {
+                std::cout.clear();
+                help(argv[0]);
+                if (!print) {
+                    std::cout.setstate(std::ios_base::failbit);
+                }
+                continue;
             }
 
             if (cmd == "COMMIT") {
@@ -105,37 +121,38 @@ int main(int argc, char *argv[]) {
                 continue;
             }
 
-            std::size_t fields = 1 + (cmd.substr(cmd.size() - 3, 3) == "PUT"); // only PUT and BPUT have values in addition to keys
-            void ***data = nullptr;
-            std::size_t **lens = nullptr;
-            std::size_t num_keys = 0;
+            UserInput input;
+            input.fields = 1 + (cmd.substr(cmd.size() - 3, 3) == "PUT"); // only PUT and BPUT have values in addition to keys
+            input.data = nullptr;
+            input.lens = nullptr;
+            input.num_keys = 0;
             bool read_rows = (cmd[0] == 'B');                                  // bulk operations take in a number before the data to indicate how many key-pair values there are
 
-            if (bulk_read(s, fields, &data, &lens, num_keys, read_rows) == MDHIM_SUCCESS) {
+            if (bulk_read(s, input, read_rows)) {
                 if (cmd == "PUT") {
-                    put(&md, data[0][0], lens[0][0], data[1][0], lens[1][0]);
+                    put(&md, input.data[0][0], input.lens[0][0], input.data[1][0], input.lens[1][0]);
                 }
                 else if (cmd == "BPUT") {
-                    bput(&md, data[0], lens[0], data[1], lens[1], num_keys);
+                    bput(&md, input.data[0], input.lens[0], input.data[1], input.lens[1], input.num_keys);
                 }
                 else if (cmd == "GET") {
-                    get(&md, data[0][0], lens[0][0]);
+                    get(&md, input.data[0][0], input.lens[0][0]);
                 }
                 else if (cmd == "BGET") {
-                    bget(&md, data[0], lens[0], num_keys);
+                    bget(&md, input.data[0], input.lens[0], input.num_keys);
                 }
                 else if (cmd == "DEL") {
-                    del(&md, data[0][0], lens[0][0]);
+                    del(&md, input.data[0][0], input.lens[0][0]);
                 }
                 else if (cmd == "BDEL") {
-                    bdel(&md, data[0], lens[0], num_keys);
+                    bdel(&md, input.data[0], input.lens[0], input.num_keys);
                 }
                 else if (cmd == "WHICH") {
-                    std::cout << std::string((char *)data[0][0], lens[0][0]) << " belongs on database " <<  mdhimWhichDB(&md, data[0][0], lens[0][0]) << std::endl;
+                    std::cout << std::string((char *)input.data[0][0], input.lens[0][0]) << " belongs on input.database " <<  mdhimWhichDB(&md, input.data[0][0], input.lens[0][0]) << std::endl;
                 }
                 else if (cmd == "BWHICH") {
-                    for(std::size_t i = 0; i < num_keys; i++) {
-                        std::cout << std::string((char *)data[0][i], lens[0][i]) << " belongs on database " <<  mdhimWhichDB(&md, data[0][i], lens[0][i]) << std::endl;
+                    for(std::size_t i = 0; i < input.num_keys; i++) {
+                        std::cout << std::string((char *)input.data[0][i], input.lens[0][i]) << " belongs on input.database " <<  mdhimWhichDB(&md, input.data[0][i], input.lens[0][i]) << std::endl;
                     }
                 }
                 else {
@@ -143,19 +160,17 @@ int main(int argc, char *argv[]) {
                 }
             }
             else {
-                std::cerr << "Error: Bad input" << std::endl;
+                std::cerr << "Error: Bad input: " << line << std::endl;
             }
 
             // cleanup input data
-            bulk_clean(fields, data, lens, num_keys);
+            bulk_clean(input);
         }
 
-        std::cout.clear();
-
-        long double *put_times = new long double[md.size]();
-        std::size_t *num_puts = new std::size_t[md.size]();
-        long double *get_times = new long double[md.size]();
-        std::size_t *num_gets = new std::size_t[md.size]();
+        long double *put_times = new long double[size]();
+        std::size_t *num_puts = new std::size_t[size]();
+        long double *get_times = new long double[size]();
+        std::size_t *num_gets = new std::size_t[size]();
 
         mdhimGetStats(&md, 0, 1, put_times, 1, num_puts, 1, get_times, 1, num_gets);
 
@@ -164,7 +179,7 @@ int main(int argc, char *argv[]) {
         std::size_t gets = 0;
         long double get_rate = 0;
 
-        for(std::size_t i = 0; i < md.size; i++) {
+        for(std::size_t i = 0; i < size; i++) {
             if (num_puts[i]) {
                 put_rate += num_puts[i] / put_times[i];
                 puts++;
@@ -175,6 +190,7 @@ int main(int argc, char *argv[]) {
             }
         }
 
+        std::cout.clear();
         std::cout << put_rate / puts << " PUTs/sec " << get_rate / gets << " GETs/sec" << std::endl;
 
         delete [] put_times;

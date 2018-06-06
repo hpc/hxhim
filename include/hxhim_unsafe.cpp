@@ -188,6 +188,8 @@ hxhim_return_t *hxhimUnsafeFlushGets(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Return *hxhim::Unsafe::FlushGetOps(hxhim_t *hx) {
+    mdhim::StatFlush(hx->p->md, nullptr);
+
     std::lock_guard<std::mutex> lock(hx->p->unsafe_getops.mutex);
     std::list<hxhim::unsafe_sp_op_t> &getops = hx->p->unsafe_getops.data;
 
@@ -659,6 +661,8 @@ int hxhim::Unsafe::BGetOp(hxhim_t *hx,
     sp.subject_len = subject_len;
     sp.predicate = predicate;
     sp.predicate_len = predicate_len;
+    sp.num_records = num_records;
+    sp.op = op;
     sp.database = database;
 
     std::lock_guard<std::mutex> lock(hx->p->unsafe_getops.mutex);

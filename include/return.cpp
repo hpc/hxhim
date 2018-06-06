@@ -81,7 +81,6 @@ int Return::GetError() const {
  */
 int Return::MoveToFirstRS() {
     curr = head;
-
     return MoveToFirstSPO();
 }
 
@@ -186,28 +185,26 @@ int Return::GetSPO(void **subject, size_t *subject_len, void **predicate, size_t
                 if (grm) {
                     if (subject   || subject_len   ||
                         predicate || predicate_len) {
-                        std::size_t sub_len;
-                        decode_unsigned(grm->key, sub_len);
+                        std::size_t sub_len = 0;
+                        decode_unsigned((char *) grm->key + grm->key_len - sizeof(std::size_t) - sizeof(std::size_t), sub_len);
 
                         if (subject) {
-                            *subject = (char *)grm->key + sizeof(sub_len);
+                            *subject = (char *) grm->key;
                         }
 
                         if (subject_len) {
                             *subject_len = sub_len;
                         }
 
-                        if (predicate || predicate_len) {
-                            std::size_t pred_len;
-                            decode_unsigned((char *) grm->key + sizeof(sub_len) + sub_len, pred_len);
+                        std::size_t pred_len = 0;
+                        decode_unsigned((char *) grm->key + grm->key_len - sizeof(std::size_t), pred_len);
 
-                            if (predicate) {
-                                *predicate = (char *) grm->key + sizeof(sub_len) + sub_len + sizeof(pred_len);
-                            }
+                        if (predicate) {
+                            *predicate = (char *) grm->key + sub_len;
+                        }
 
-                            if (predicate_len) {
-                                *predicate_len = pred_len;
-                            }
+                        if (predicate_len) {
+                            *predicate_len = pred_len;
                         }
                     }
 
@@ -226,31 +223,30 @@ int Return::GetSPO(void **subject, size_t *subject_len, void **predicate, size_t
         case TransportMessageType::RECV_BGET:
             {
                 TransportBGetRecvMessage *bgrm = dynamic_cast<TransportBGetRecvMessage *>(curr);
+
                 if (bgrm) {
                     if (subject   || subject_len   ||
                         predicate || predicate_len) {
                         std::size_t sub_len = 0;
-                        decode_unsigned(bgrm->keys[pos], sub_len);
+                        decode_unsigned((char *) bgrm->keys[pos] + bgrm->key_lens[pos] - sizeof(std::size_t) - sizeof(std::size_t), sub_len);
 
                         if (subject) {
-                            *subject = (char *)bgrm->keys[pos] + sizeof(sub_len);
+                            *subject = (char *) bgrm->keys[pos];
                         }
 
                         if (subject_len) {
                             *subject_len = sub_len;
                         }
 
-                        if (predicate || predicate_len) {
-                            std::size_t pred_len;
-                            decode_unsigned((char *) bgrm->keys[pos] + sizeof(sub_len) + sub_len, pred_len);
+                        std::size_t pred_len = 0;
+                        decode_unsigned((char *) bgrm->keys[pos] + bgrm->key_lens[pos] - sizeof(std::size_t), pred_len);
 
-                            if (predicate) {
-                                *predicate = (char *) bgrm->keys[pos] + sizeof(sub_len) + sub_len + sizeof(pred_len);
-                            }
+                        if (predicate) {
+                            *predicate = (char *) bgrm->keys[pos] + sub_len;
+                        }
 
-                            if (predicate_len) {
-                                *predicate_len = pred_len;
-                            }
+                        if (predicate_len) {
+                            *predicate_len = pred_len;
                         }
                     }
 

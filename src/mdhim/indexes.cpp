@@ -236,7 +236,8 @@ int update_stat(mdhim_t *md, index_t *index, const int rs_idx, void *key, uint32
     } else if (index->key_type == MDHIM_LONG_INT_KEY) {
         *(uint64_t *)val1 = *(uint64_t *) key;
         *(uint64_t *)val2 = *(uint64_t *) key;
-    } else if (index->key_type == MDHIM_BYTE_KEY) {
+    } else if ((index->key_type == MDHIM_BYTE_KEY)     ||
+               (index->key_type == MDHIM_LEX_BYTE_KEY)) {
         *(long double *)val1 = get_byte_num(key, key_len);
         *(long double *)val2 = *(long double *)val1;
     }
@@ -578,7 +579,7 @@ index_t *create_local_index(mdhim_t *md, int db_type, int key_type, const char *
     MPI_Barrier(md->comm);
 
     //Check that the key type makes sense
-    if (key_type < MDHIM_INT_KEY || key_type > MDHIM_BYTE_KEY) {
+    if (key_type < MDHIM_INT_KEY || key_type > MDHIM_LEX_BYTE_KEY) {
         mlog(MDHIM_CLIENT_CRIT, "MDHIM - Invalid key type specified");
         return nullptr;
     }
@@ -700,7 +701,7 @@ index_t *create_global_index(mdhim_t *md, int server_factor,
     MPI_Barrier(md->comm);
 
     //Check that the key type makes sense
-    if (key_type < MDHIM_INT_KEY || key_type > MDHIM_BYTE_KEY) {
+    if (key_type < MDHIM_INT_KEY || key_type > MDHIM_LEX_BYTE_KEY) {
         mlog(MDHIM_CLIENT_CRIT, "MDHIM - Invalid key type specified");
         return nullptr;
     }
@@ -1269,6 +1270,8 @@ static int get_stat_flush_global(mdhim_t *md, index_t *index) {
             } else {
                 //Replace the existing stat
                 HASH_REPLACE_INT(index->stats, key, stat, tmp);
+                free(tmp->min);
+                free(tmp->max);
                 free(tmp);
             }
             free(tstat);

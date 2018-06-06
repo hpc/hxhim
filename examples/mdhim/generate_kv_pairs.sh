@@ -66,11 +66,6 @@ esac
 done
 
 #Make sure optional arguments make sense
-if [[ "$MIN_KEY_LEN" -lt 1 ]] ; then
-    echo "Minimum Key Length ($MIN_KEY_LEN) is too small"
-    exit 1
-fi
-
 if [[ "$MAX_KEY_LEN" -lt 1 ]] ; then
     echo "Maximum Key Length ($MAX_KEY_LEN) is too small"
     exit 1
@@ -78,11 +73,6 @@ fi
 
 if [[ "$MIN_KEY_LEN" -gt "$MAX_KEY_LEN" ]] ; then
     echo "Minimum Key Length ($MIN_KEY_LEN) is larger than Maximum Key Length ($MAX_KEY_LEN)"
-    exit 1
-fi
-
-if [[ "$MIN_VALUE_LEN" -lt 1 ]] ; then
-    echo "Minimum Value Length ($MIN_VALUE_LEN) is too small"
     exit 1
 fi
 
@@ -96,7 +86,7 @@ if [[ "$MIN_VALUE_LEN" -gt "$MAX_VALUE_LEN" ]] ; then
     exit 1
 fi
 
-if [[ "$COUNT" -lt "0" ]] ; then
+if [[ "$COUNT" -lt 0 ]] ; then
     echo "Too few key value pairs: $COUNT"
     exit 1
 fi
