@@ -222,10 +222,9 @@ INSTALL(TARGETS
   DESTINATION lib)
 
 #
-# Install configuration files
+# Add configuration files
 #
-configure_file(config/mdhim.conf ${CMAKE_BINARY_DIR} COPYONLY)
-configure_file(config/hxhim.conf ${CMAKE_BINARY_DIR} COPYONLY)
+add_subdirectory(config)
 
 #
 # Add demo executable

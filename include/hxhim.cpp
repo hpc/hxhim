@@ -277,13 +277,12 @@ hxhim::Return *hxhim::FlushPuts(hxhim_t *hx) {
     hxhim::Return head(hxhim_work_op::HXHIM_NOP, nullptr);
     hxhim::Return *res = &head;
 
+    static const std::size_t multiplier = 6;
     while (puts.size()) {
         // Generate up to 1 MAX_BULK_OPS worth of data
         const std::size_t count = std::min(puts.size(), (std::size_t) HXHIM_MAX_BULK_PUT_OPS);
-        const std::size_t multiplier = 6;
         const std::size_t hexcount = multiplier * count;
 
-        // copy the keys and lengths into arrays
         void **keys = new void *[hexcount]();
         std::size_t *key_lens = new std::size_t[hexcount]();
         void **values = new void *[hexcount]();
@@ -291,33 +290,40 @@ hxhim::Return *hxhim::FlushPuts(hxhim_t *hx) {
 
         if (keys   && key_lens   &&
             values && value_lens) {
+            std::size_t offset = 0;
             for(std::size_t i = 0; i < count; i++) {
+                // generate the 6 different permutations of the subject-predicate-object triple
                 const hxhim::spo_t &put = puts.front();
-                const std::size_t offset = multiplier * i;
 
-                convert2key(put.subject,   put.subject_len,   put.predicate, put.predicate_len, &keys[offset + 0], &key_lens[offset + 0]);
-                values[offset + 0] = put.object;
-                value_lens[offset + 0] = put.object_len;
+                sp_to_key(put.subject,   put.subject_len,   put.predicate, put.predicate_len, &keys[offset], &key_lens[offset]);
+                values[offset] = put.object;
+                value_lens[offset] = put.object_len;
+                offset++;
 
-                convert2key(put.subject,   put.subject_len,   put.object,    put.object_len,    &keys[offset + 1], &key_lens[offset + 1]);
-                values[offset + 1] = put.predicate;
-                value_lens[offset + 1] = put.predicate_len;
+                sp_to_key(put.subject,   put.subject_len,   put.object,    put.object_len,    &keys[offset], &key_lens[offset]);
+                values[offset] = put.predicate;
+                value_lens[offset] = put.predicate_len;
+                offset++;
 
-                convert2key(put.predicate, put.predicate_len, put.subject,   put.subject_len,   &keys[offset + 2], &key_lens[offset + 2]);
-                values[offset + 2] = put.object;
-                value_lens[offset + 2] = put.object_len;
+                sp_to_key(put.predicate, put.predicate_len, put.subject,   put.subject_len,   &keys[offset], &key_lens[offset]);
+                values[offset] = put.object;
+                value_lens[offset] = put.object_len;
+                offset++;
 
-                convert2key(put.predicate, put.predicate_len, put.object,    put.object_len,    &keys[offset + 3], &key_lens[offset + 3]);
-                values[offset + 3] = put.subject;
-                value_lens[offset + 3] = put.subject_len;
+                sp_to_key(put.predicate, put.predicate_len, put.object,    put.object_len,    &keys[offset], &key_lens[offset]);
+                values[offset] = put.subject;
+                value_lens[offset] = put.subject_len;
+                offset++;
 
-                convert2key(put.object,    put.object_len,    put.subject,   put.subject_len,   &keys[offset + 4], &key_lens[offset + 4]);
-                values[offset + 4] = put.predicate;
-                value_lens[offset + 4] = put.predicate_len;
+                sp_to_key(put.object,    put.object_len,    put.subject,   put.subject_len,   &keys[offset], &key_lens[offset]);
+                values[offset] = put.predicate;
+                value_lens[offset] = put.predicate_len;
+                offset++;
 
-                convert2key(put.object,    put.object_len,    put.predicate, put.predicate_len, &keys[offset + 5], &key_lens[offset + 5]);
-                values[offset + 5] = put.subject;
-                value_lens[offset + 5] = put.subject_len;
+                sp_to_key(put.object,    put.object_len,    put.predicate, put.predicate_len, &keys[offset], &key_lens[offset]);
+                values[offset] = put.subject;
+                value_lens[offset] = put.subject_len;
+                offset++;
 
                 puts.pop_front();
             }
@@ -341,8 +347,7 @@ hxhim::Return *hxhim::FlushPuts(hxhim_t *hx) {
         delete [] value_lens;
     }
 
-    auto ret = hxhim::return_results(head);
-    return ret;
+    return hxhim::return_results(head);
 }
 
 /**
@@ -386,7 +391,7 @@ hxhim::Return *hxhim::FlushGets(hxhim_t *hx) {
                 void *key = nullptr;
                 std::size_t key_len = 0;
 
-                convert2key(gets.front().subject, gets.front().subject_len, gets.front().predicate, gets.front().predicate_len, &key, &key_len);
+                sp_to_key(gets.front().subject, gets.front().subject_len, gets.front().predicate, gets.front().predicate_len, &key, &key_len);
 
                 // move the constructed key into the buffer
                 keys    [i] = key;
@@ -437,8 +442,6 @@ hxhim_return_t *hxhimFlushGets(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Return *hxhim::FlushGetOps(hxhim_t *hx) {
-    mdhim::StatFlush(hx->p->md, nullptr);
-
     std::lock_guard<std::mutex> lock(hx->p->getops.mutex);
     std::list<hxhim::sp_op_t> &gets = hx->p->getops.data;
 
@@ -450,7 +453,7 @@ hxhim::Return *hxhim::FlushGetOps(hxhim_t *hx) {
         void *key = nullptr;
         std::size_t key_len = 0;
 
-        convert2key(gets.front().subject, gets.front().subject_len, gets.front().predicate, gets.front().predicate_len, &key, &key_len);
+        sp_to_key(gets.front().subject, gets.front().subject_len, gets.front().predicate, gets.front().predicate_len, &key, &key_len);
 
         res = res->Next(new hxhim::Return(hxhim_work_op::HXHIM_GET, mdhim::BGetOp(hx->p->md, nullptr, key, key_len, gets.front().num_records, gets.front().op)));
 
@@ -502,7 +505,7 @@ hxhim::Return *hxhim::FlushDeletes(hxhim_t *hx) {
                 void *key = nullptr;
                 std::size_t key_len = 0;
 
-                convert2key(dels.front().subject, dels.front().subject_len, dels.front().predicate, dels.front().predicate_len, &key, &key_len);
+                sp_to_key(dels.front().subject, dels.front().subject_len, dels.front().predicate, dels.front().predicate_len, &key, &key_len);
 
                 // move the constructed key into the buffer
                 keys    [i] = key;

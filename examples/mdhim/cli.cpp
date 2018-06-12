@@ -18,7 +18,7 @@
 std::ostream &help(char *self, std::ostream &stream = std::cout) {
     return stream << "Syntax: " << self << " print?" << std::endl
                   << std::endl
-                  << "Input is pass in through stdin in the following formats:" << std::endl
+                  << "Input is passed in through stdin in the following formats:" << std::endl
                   << "    PUT <KEY> <VALUE>" << std::endl
                   << "    GET|DEL|WHICH <KEY>" << std::endl
                   << "    BPUT N <KEY_1> <VALUE_1> ... <KEY_N> <VALUE_N>" << std::endl
@@ -148,11 +148,11 @@ int main(int argc, char *argv[]) {
                     bdel(&md, input.data[0], input.lens[0], input.num_keys);
                 }
                 else if (cmd == "WHICH") {
-                    std::cout << std::string((char *)input.data[0][0], input.lens[0][0]) << " belongs on input.database " <<  mdhimWhichDB(&md, input.data[0][0], input.lens[0][0]) << std::endl;
+                    std::cout << std::string((char *)input.data[0][0], input.lens[0][0]) << " belongs on database " <<  mdhimWhichDB(&md, input.data[0][0], input.lens[0][0]) << std::endl;
                 }
                 else if (cmd == "BWHICH") {
                     for(std::size_t i = 0; i < input.num_keys; i++) {
-                        std::cout << std::string((char *)input.data[0][i], input.lens[0][i]) << " belongs on input.database " <<  mdhimWhichDB(&md, input.data[0][i], input.lens[0][i]) << std::endl;
+                        std::cout << std::string((char *)input.data[0][i], input.lens[0][i]) << " belongs on database " <<  mdhimWhichDB(&md, input.data[0][i], input.lens[0][i]) << std::endl;
                     }
                 }
                 else {

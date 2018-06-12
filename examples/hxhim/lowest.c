@@ -96,10 +96,10 @@ int main(int argc, char *argv[]) {
             snprintf(c->name, BUF_SIZE, NAME_FMT, id++);
 
             size_t x_len = 0;
-            elen_encode_size_t(id++, &c->x, &x_len);
+            elen_encode_size_t(x, &c->x, &x_len);
 
             size_t y_len = 0;
-            elen_encode_size_t(id++, &c->y, &y_len);
+            elen_encode_size_t(y, &c->y, &y_len);
 
             const double temp = MIN_DOUBLE + (MAX_DOUBLE - MIN_DOUBLE) * ((double) rand()) / ((double) RAND_MAX);
             size_t temp_len = 0;

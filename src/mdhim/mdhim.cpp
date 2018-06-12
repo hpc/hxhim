@@ -736,7 +736,7 @@ int mdhim::GetStats(mdhim_t *md, const int rank,
         return MDHIM_ERROR;
     }
 
-    MPI_Barrier(md->comm);
+    mdhim::StatFlush(md, nullptr);
 
     pthread_mutex_lock(&md->p->mdhim_rs->stat_mutex);
 

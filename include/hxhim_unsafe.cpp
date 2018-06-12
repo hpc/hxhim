@@ -41,32 +41,32 @@ hxhim::Return *hxhim::Unsafe::FlushPuts(hxhim_t *hx) {
                 const hxhim::unsafe_spo_t &put = puts.front();
                 const std::size_t offset = 6 * i;
 
-                convert2key(put.subject,   put.subject_len,   put.predicate, put.predicate_len, &keys[offset + 0], &key_lens[offset + 0]);
+                sp_to_key(put.subject,   put.subject_len,   put.predicate, put.predicate_len, &keys[offset + 0], &key_lens[offset + 0]);
                 values[offset + 0] = put.object;
                 value_lens[offset + 0] = put.object_len;
                 databases[offset + 0] = put.database;
 
-                convert2key(put.subject,   put.subject_len,   put.object,    put.object_len,    &keys[offset + 1], &key_lens[offset + 1]);
+                sp_to_key(put.subject,   put.subject_len,   put.object,    put.object_len,    &keys[offset + 1], &key_lens[offset + 1]);
                 values[offset + 1] = put.predicate;
                 value_lens[offset + 1] = put.predicate_len;
                 databases[offset + 1] = put.database;
 
-                convert2key(put.predicate, put.predicate_len, put.subject,   put.subject_len,   &keys[offset + 2], &key_lens[offset + 2]);
+                sp_to_key(put.predicate, put.predicate_len, put.subject,   put.subject_len,   &keys[offset + 2], &key_lens[offset + 2]);
                 values[offset + 2] = put.object;
                 value_lens[offset + 2] = put.object_len;
                 databases[offset + 2] = put.database;
 
-                convert2key(put.predicate, put.predicate_len, put.object,    put.object_len,    &keys[offset + 3], &key_lens[offset + 3]);
+                sp_to_key(put.predicate, put.predicate_len, put.object,    put.object_len,    &keys[offset + 3], &key_lens[offset + 3]);
                 values[offset + 3] = put.subject;
                 value_lens[offset + 3] = put.subject_len;
                 databases[offset + 3] = put.database;
 
-                convert2key(put.object,    put.object_len,    put.subject,   put.subject_len,   &keys[offset + 4], &key_lens[offset + 4]);
+                sp_to_key(put.object,    put.object_len,    put.subject,   put.subject_len,   &keys[offset + 4], &key_lens[offset + 4]);
                 values[offset + 4] = put.predicate;
                 value_lens[offset + 4] = put.predicate_len;
                 databases[offset + 4] = put.database;
 
-                convert2key(put.object,    put.object_len,    put.predicate, put.predicate_len, &keys[offset + 5], &key_lens[offset + 5]);
+                sp_to_key(put.object,    put.object_len,    put.predicate, put.predicate_len, &keys[offset + 5], &key_lens[offset + 5]);
                 values[offset + 5] = put.subject;
                 value_lens[offset + 5] = put.subject_len;
                 databases[offset + 5] = put.database;
@@ -138,7 +138,7 @@ hxhim::Return *hxhim::Unsafe::FlushGets(hxhim_t *hx) {
                 void *key = nullptr;
                 std::size_t key_len = 0;
 
-                convert2key(gets.front().subject, gets.front().subject_len, gets.front().predicate, gets.front().predicate_len, &key, &key_len);
+                sp_to_key(gets.front().subject, gets.front().subject_len, gets.front().predicate, gets.front().predicate_len, &key, &key_len);
 
                 // move the constructed key into the buffer
                 keys     [i] = key;
@@ -202,7 +202,7 @@ hxhim::Return *hxhim::Unsafe::FlushGetOps(hxhim_t *hx) {
         void *key = nullptr;
         std::size_t key_len = 0;
 
-        convert2key(getops.front().subject, getops.front().subject_len, getops.front().predicate, getops.front().predicate_len, &key, &key_len);
+        sp_to_key(getops.front().subject, getops.front().subject_len, getops.front().predicate, getops.front().predicate_len, &key, &key_len);
 
         TransportBGetRecvMessage *bgrm = mdhim::Unsafe::BGetOp(hx->p->md, nullptr, key, key_len, getops.front().database, getops.front().num_records, getops.front().op);
         bgrm->clean = true;
@@ -254,7 +254,7 @@ hxhim::Return *hxhim::Unsafe::FlushDeletes(hxhim_t *hx) {
                 void *key = nullptr;
                 std::size_t key_len = 0;
 
-                convert2key(dels.front().subject, dels.front().subject_len, dels.front().predicate, dels.front().predicate_len, &key, &key_len);
+                sp_to_key(dels.front().subject, dels.front().subject_len, dels.front().predicate, dels.front().predicate_len, &key, &key_len);
 
                 // move the constructed key into the buffer
                 keys     [i] = key;

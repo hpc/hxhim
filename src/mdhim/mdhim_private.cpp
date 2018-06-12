@@ -1398,7 +1398,7 @@ TransportBRecvMessage *_bdel_records(mdhim_t *md, index_t *index,
 int _which_db(mdhim_t *md, void *key, std::size_t key_len)
 {
     rangesrv_list *rl = get_range_servers(md->size, md->p->primary_index, key, key_len);
-    int db = rl?rl->ri->database:MDHIM_ERROR;
+    const int db = rl?rl->ri->database:MDHIM_ERROR;
     free(rl);
     return db;
 }

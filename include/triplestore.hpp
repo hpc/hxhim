@@ -38,9 +38,13 @@ int decode_unsigned(void *buf, Z &val, std::size_t len = sizeof(Z)) {
     return HXHIM_SUCCESS;
 }
 
-std::ostream &print_hex(std::ostream &stream, const void *data, const std::size_t len);
+/** @description Combines a subject and predicate into a key */
+int sp_to_key(const void *subject, const std::size_t subject_len,
+              const void *predicate, const std::size_t predicate_len,
+              void **key, std::size_t *key_len);
 
-int convert2key(const void *first, std::size_t first_len,
-                const void *second, std::size_t second_len,
-                void **out, std::size_t *out_len);
+/** @description Splits a key into a subject and predicate */
+int key_to_sp(const void *key, const std::size_t key_len,
+              void **subject, std::size_t *subject_len,
+              void **predicate, std::size_t *predicate_len);
 #endif

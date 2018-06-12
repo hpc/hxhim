@@ -1,43 +1,92 @@
 #include "triplestore.hpp"
 
-std::ostream &print_hex(std::ostream &stream, const void *data, const std::size_t len) {
-    for(std::size_t i = 0; i < len; i++) {
-        stream << std::setw(2) << std::setfill('0') << std::hex << (uint16_t) (uint8_t) ((const char *)data)[i] << " ";
+/**
+ * sp_to_key
+ * Combines a subject and a predicate to form a key.
+ *
+ * @param subject        the subject of the triple
+ * @param subject_len    the length of the subject
+ * @param predicate      the predicate of the triple
+ * @param predicate_len  the length of the predicate
+ * @param key            address of the key
+ * @param key_len        address of the key length
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
+ */
+int sp_to_key(const void *subject, const std::size_t subject_len,
+              const void *predicate, const std::size_t predicate_len,
+              void **key, std::size_t *key_len) {
+    if (!key       || !key_len       ||
+        !subject   || !subject_len   ||
+        !predicate || !predicate_len) {
+        return HXHIM_ERROR;
     }
-    return stream;
+
+    *key_len = sizeof(subject_len) + subject_len + sizeof(predicate_len) + predicate_len;
+    if (!(*key = ::operator new(*key_len))) {
+        *key_len = 0;
+        return HXHIM_ERROR;
+    }
+
+    char *curr = (char *) *key;
+
+    // copy the subject value
+    memcpy(curr, subject, subject_len);
+    curr += subject_len;
+
+    // copy the predicate value
+    memcpy(curr, predicate, predicate_len);
+    curr += predicate_len;
+
+    // length of the subject value
+    encode_unsigned(curr, subject_len);
+    curr += sizeof(subject_len);
+
+    // length of the predicate value
+    encode_unsigned(curr, predicate_len);
+
+    return HXHIM_SUCCESS;
 }
 
-int convert2key(const void *first, std::size_t first_len,
-                const void *second, std::size_t second_len,
-                void **out, std::size_t *out_len) {
-    if (!out    || !out_len    ||
-        !first  || !first_len  ||
-        !second || !second_len) {
+/**
+ * key_to_sp
+ * Splits a key into a subject key pair.
+ *
+ * @param key            the key
+ * @param key_len        the key length
+ * @param subject        address of the subject of the triple
+ * @param subject_len    address of the length of the subject
+ * @param predicate      address of the predicate of the triple
+ * @param predicate_len  address of the length of the predicate
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
+ */
+int key_to_sp(const void *key, const std::size_t key_len,
+              void **subject, std::size_t *subject_len,
+              void **predicate, std::size_t *predicate_len) {
+    if (!key) {
         return HXHIM_ERROR;
     }
 
-    *out_len = sizeof(first_len) + first_len + sizeof(second_len) + second_len;
-    if (!(*out = ::operator new(*out_len))) {
-        *out_len = 0;
-        return HXHIM_ERROR;
+    std::size_t sub_len = 0;
+    decode_unsigned((char *) key + key_len - sizeof(std::size_t) - sizeof(std::size_t), sub_len);
+
+    if (subject) {
+        *subject = (char *) key;
     }
 
-    char *curr = (char *) *out;
+    if (subject_len) {
+        *subject_len = sub_len;
+    }
 
-    // copy the first value
-    memcpy(curr, first, first_len);
-    curr += first_len;
+    std::size_t pred_len = 0;
+    decode_unsigned((char *) key + key_len - sizeof(std::size_t), pred_len);
 
-    // copy the second value
-    memcpy(curr, second, second_len);
-    curr += second_len;
+    if (predicate) {
+        *predicate = (char *) key + sub_len;
+    }
 
-    // length of the first value
-    encode_unsigned(curr, first_len);
-    curr += sizeof(first_len);
-
-    // length of the second value
-    encode_unsigned(curr, second_len);
+    if (predicate_len) {
+        *predicate_len = pred_len;
+    }
 
     return HXHIM_SUCCESS;
 }

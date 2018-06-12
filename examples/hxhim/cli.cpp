@@ -12,7 +12,7 @@
 std::ostream &help(char *self, std::ostream &stream = std::cout) {
     return stream << "Syntax: " << self << std::endl
                   << std::endl
-                  << "Input is pass in through stdin in the following formats:" << std::endl
+                  << "Input is passed in through stdin in the following formats:" << std::endl
                   << "    PUT <SUBJECT> <PREDICATE> <OBJECT>" << std::endl
                   << "    GET|DEL <SUBJECT> <PREDICATE> " << std::endl
                   << "    BPUT N <SUBJECT_1> <PREDICATE_1> <OBJECT_1> ... <SUBJECT_N> <PREDICATE_N> <OBJECT_N>" << std::endl

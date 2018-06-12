@@ -29,14 +29,14 @@ int main(int argc, char *argv[]) {
     const size_t count = HXHIM_MAX_BULK_PUT_OPS * 10;
     void **subjects = NULL, **predicates = NULL, **objects = NULL;
     size_t *subject_lens = NULL, *predicate_lens = NULL, *object_lens = NULL;
-    if (spo_gen_random(count, 8, 16, &subjects, &subject_lens, &predicates, &predicate_lens, &objects, &object_lens) != count) {
+    if (spo_gen_fixed(count, 64, rank, &subjects, &subject_lens, &predicates, &predicate_lens, &objects, &object_lens) != count) {
         printf("Could not generate triples\n");
         return -1;
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    // BPUT the key value pairs into MDHIM
+    // BPUT the key value pairs into HXHIM
     hxhimBPut(&hx, subjects, subject_lens, predicates, predicate_lens, objects, object_lens, count);
     hxhim_return_t *flush_all_res = hxhimFlush(&hx);
     hxhim_return_destroy(flush_all_res);
@@ -52,12 +52,10 @@ int main(int argc, char *argv[]) {
 
         hxhimGetStats(&hx, 0, 1, put_times, 1, num_puts, 1, get_times, 1, num_gets);
 
-        size_t total_puts = 0;
+        size_t total_puts = 0;       // total number of PUTs across all ranks
         long double put_rates = 0;   // sum of all PUT rates
-        size_t puts = 0;             // number of range server that did PUTs
-        size_t total_gets = 0;
+        size_t total_gets = 0;       // total number of GETs across all ranks
         long double get_rates = 0;   // sum of all GET rates
-        size_t gets = 0;             // number of range server that did GETs
 
         printf("Stats:\n");
         printf("Rank PUTs seconds GETs seconds\n");
@@ -67,13 +65,11 @@ int main(int argc, char *argv[]) {
             if (num_puts[i]) {
                 total_puts += num_puts[i];
                 put_rates += num_puts[i] / put_times[i];
-                puts++;
             }
 
             if (num_gets[i]) {
                 total_gets += num_gets[i];
                 get_rates += num_gets[i] / get_times[i];
-                gets++;
             }
         }
 
@@ -83,7 +79,7 @@ int main(int argc, char *argv[]) {
         free(num_gets);
 
         printf("Total:   %zu PUTs     %zu GETs\n", total_puts, total_gets);
-        printf("Average: %Lf PUTs/sec %Lf GETs/sec\n", put_rates / puts, get_rates / gets);
+        printf("Average: %Lf PUTs/sec %Lf GETs/sec\n", put_rates, get_rates);
     }
     else {
         hxhimGetStats(&hx, 0, 1, NULL, 1, NULL, 1, NULL, 1, NULL);

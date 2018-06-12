@@ -206,6 +206,7 @@ int is_float_key(int type) {
         case MDHIM_FLOAT_KEY:
         case MDHIM_DOUBLE_KEY:
         case MDHIM_BYTE_KEY:
+        case MDHIM_LEX_BYTE_KEY:
             ret = 1;
             break;
         case MDHIM_INT_KEY:
@@ -250,6 +251,7 @@ int get_slice_num(const int key_type, uint64_t slice_size, void *key, int key_le
         key_num = *(uint64_t *) key;
         break;
     case MDHIM_BYTE_KEY:
+    case MDHIM_LEX_BYTE_KEY:
         /* Algorithm used
            1. Iterate through each byte
            2. Transform each byte into a floating point number
@@ -299,7 +301,6 @@ int get_slice_num(const int key_type, uint64_t slice_size, void *key, int key_le
         break;
     default:
         return 0;
-        break;
     }
 
     /* Convert the key to a slice number  */
@@ -763,7 +764,8 @@ rangesrv_list_t *get_range_servers_from_stats(const int rank, index_t *index,
             istat = *(uint32_t *) key;
         } else if (index->key_type == MDHIM_LONG_INT_KEY) {
             istat = *(uint64_t *) key;
-        } else if (index->key_type == MDHIM_BYTE_KEY) {
+        } else if ((index->key_type == MDHIM_BYTE_KEY)     ||
+                   (index->key_type == MDHIM_LEX_BYTE_KEY)) {
             fstat = get_byte_num(key, key_len);
         }
     }
