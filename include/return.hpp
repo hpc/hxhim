@@ -56,6 +56,8 @@ class Return {
         Return *next;
 };
 
+/** Utility functions */
+Return *combine_results(Return *&last, Return *result);
 Return *return_results(Return &head);
 
 }

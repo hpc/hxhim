@@ -840,6 +840,7 @@ static int range_server_bget_op(mdhim_t *md, work_item_t *item, TransportGetMess
                         mlog(MDHIM_SERVER_DBG, "Rank %d - Couldn't get next record",
                              md->rank);
                         error = ret;
+                        free(*get_key);
                         key_lens[num_records] = 0;
                         value_lens[num_records] = 0;
                         goto respond;
@@ -849,6 +850,7 @@ static int range_server_bget_op(mdhim_t *md, work_item_t *item, TransportGetMess
                                                                                get_value, get_value_len))
                                != MDHIM_SUCCESS) {
                         error = ret;
+                        free(*get_key);
                         key_lens[num_records] = 0;
                         value_lens[num_records] = 0;
                         goto respond;
@@ -868,6 +870,7 @@ static int range_server_bget_op(mdhim_t *md, work_item_t *item, TransportGetMess
                         mlog(MDHIM_SERVER_DBG, "Rank %d - Couldn't get prev record",
                              md->rank);
                         error = ret;
+                        free(*get_key);
                         key_lens[num_records] = 0;
                         value_lens[num_records] = 0;
                         goto respond;
@@ -877,6 +880,7 @@ static int range_server_bget_op(mdhim_t *md, work_item_t *item, TransportGetMess
                                                                                get_value, get_value_len))
                                != MDHIM_SUCCESS) {
                         error = ret;
+                        free(*get_key);
                         key_lens[num_records] = 0;
                         value_lens[num_records] = 0;
                         goto respond;

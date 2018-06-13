@@ -278,6 +278,21 @@ Return *Return::Next() const {
 }
 
 /**
+ * combine_results
+ * Appends result to the last result and returns the new last result
+ *
+ * @param last   the final result from a previous operation
+ * @param result the set of results to append
+ * @return       the final result of results
+ */
+Return *combine_results(Return *&last, Return *result) {
+    if (last) {
+        for(last = last->Next(result); last->Next(); last = last->Next());
+    }
+    return last;
+}
+
+/**
  * return_results
  *
  * @param head the head of the list, whose only purpose is to store Return::next

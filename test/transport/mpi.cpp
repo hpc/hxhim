@@ -468,8 +468,10 @@ TEST(mpi_pack_unpack, TransportBGetRecvMessage) {
         ASSERT_NE(src.rs_idx = new int[src.num_keys](), nullptr);
         src.rs_idx[0] = 1;
 
+        // the key comes from the database
         ASSERT_NE(src.keys = new void *[src.num_keys](), nullptr);
-        src.keys[0] = (void *) &KEY;
+        src.keys[0] = calloc(KEY_LEN, sizeof(char));
+        memcpy(src.keys[0], (void *) &KEY, KEY_LEN);
 
         ASSERT_NE(src.key_lens = new std::size_t[src.num_keys](), nullptr);
         src.key_lens[0] = KEY_LEN;

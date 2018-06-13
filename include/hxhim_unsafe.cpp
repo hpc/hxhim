@@ -309,12 +309,12 @@ hxhim_return_t *hxhimUnsafeFlushDeletes(hxhim_t *hx) {
  */
 hxhim::Return *hxhim::Unsafe::Flush(hxhim_t *hx) {
     hxhim::Return head(hxhim_work_op::HXHIM_NOP, nullptr);
-    hxhim::Return *unsafe_puts = Unsafe::FlushPuts(hx);
-    hxhim::Return *unsafe_gets = Unsafe::FlushGets(hx);
-    hxhim::Return *unsafe_getops = Unsafe::FlushGetOps(hx);
-    hxhim::Return *unsafe_dels = Unsafe::FlushDeletes(hx);
+    hxhim::Return *curr = &head;
 
-    head.Next(unsafe_puts)->Next(unsafe_gets)->Next(unsafe_getops)->Next(unsafe_dels);
+    combine_results(curr, Unsafe::FlushPuts(hx));
+    combine_results(curr, Unsafe::FlushGets(hx));
+    combine_results(curr, Unsafe::FlushGetOps(hx));
+    combine_results(curr, Unsafe::FlushDeletes(hx));
 
     return hxhim::return_results(head);
 }
@@ -754,6 +754,6 @@ int hxhimUnsafeBDelete(hxhim_t *hx,
     return hxhim::Unsafe::BDelete(hx,
                                   subjects, subject_lens,
                                   predicates, predicate_lens,
-                               databases,
+                                  databases,
                                   count);
 }

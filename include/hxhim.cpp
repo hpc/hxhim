@@ -136,10 +136,10 @@ int hxhimStatFlush(hxhim_t *hx) {
  */
 hxhim::Return *hxhim::FlushAllPuts(hxhim_t *hx) {
     hxhim::Return head(hxhim_work_op::HXHIM_NOP, nullptr);
-    hxhim::Return *puts = FlushPuts(hx);
-    hxhim::Return *unsafe_puts = Unsafe::FlushPuts(hx);
+    hxhim::Return *curr = &head;
 
-    head.Next(puts)->Next(unsafe_puts);
+    combine_results(curr, FlushPuts(hx));
+    combine_results(curr, Unsafe::FlushPuts(hx));
 
     return hxhim::return_results(head);
 }
@@ -166,10 +166,10 @@ hxhim_return_t *hxhimFlushAllPuts(hxhim_t *hx) {
  */
 hxhim::Return *hxhim::FlushAllGets(hxhim_t *hx) {
     hxhim::Return head(hxhim_work_op::HXHIM_NOP, nullptr);
-    hxhim::Return *gets = FlushGets(hx);
-    hxhim::Return *unsafe_gets = Unsafe::FlushGets(hx);
+    hxhim::Return *curr = &head;
 
-    head.Next(gets)->Next(unsafe_gets);
+    combine_results(curr, FlushGets(hx));
+    combine_results(curr, Unsafe::FlushGets(hx));
 
     return hxhim::return_results(head);
 }
@@ -196,10 +196,10 @@ hxhim_return_t *hxhimFlushAllGets(hxhim_t *hx) {
  */
 hxhim::Return *hxhim::FlushAllGetOps(hxhim_t *hx) {
     hxhim::Return head(hxhim_work_op::HXHIM_NOP, nullptr);
-    hxhim::Return *getops = FlushGetOps(hx);
-    hxhim::Return *unsafe_getops = Unsafe::FlushGetOps(hx);
+    hxhim::Return *curr = &head;
 
-    head.Next(getops)->Next(unsafe_getops);
+    combine_results(curr, FlushGetOps(hx));
+    combine_results(curr, Unsafe::FlushGetOps(hx));
 
     return hxhim::return_results(head);
 }
@@ -226,10 +226,10 @@ hxhim_return_t *hxhimFlushAllGetOps(hxhim_t *hx) {
  */
 hxhim::Return *hxhim::FlushAllDeletes(hxhim_t *hx) {
     hxhim::Return head(hxhim_work_op::HXHIM_NOP, nullptr);
-    hxhim::Return *dels = FlushDeletes(hx);
-    hxhim::Return *unsafe_dels = Unsafe::FlushDeletes(hx);
+    hxhim::Return *curr = &head;
 
-    head.Next(dels)->Next(unsafe_dels);
+    combine_results(curr, FlushDeletes(hx));
+    combine_results(curr, Unsafe::FlushDeletes(hx));
 
     return hxhim::return_results(head);
 }
@@ -256,23 +256,16 @@ hxhim_return_t *hxhimFlushAllDeletes(hxhim_t *hx) {
  */
 hxhim::Return *hxhim::FlushAll(hxhim_t *hx) {
     hxhim::Return head(hxhim_work_op::HXHIM_NOP, nullptr);
+    hxhim::Return *curr = &head;
 
-    hxhim::Return *puts = FlushPuts(hx);
-    hxhim::Return *unsafe_puts = Unsafe::FlushPuts(hx);
-
-    hxhim::Return *gets = FlushGets(hx);
-    hxhim::Return *unsafe_gets = Unsafe::FlushGets(hx);
-
-    hxhim::Return *getops = FlushGetOps(hx);
-    hxhim::Return *unsafe_getops = Unsafe::FlushGetOps(hx);
-
-    hxhim::Return *dels = FlushDeletes(hx);
-    hxhim::Return *unsafe_dels = Unsafe::FlushDeletes(hx);
-
-    head.Next(puts)->Next(unsafe_puts)
-        ->Next(gets)->Next(unsafe_gets)
-        ->Next(getops)->Next(unsafe_getops)
-        ->Next(dels)->Next(unsafe_dels);
+    combine_results(curr, FlushPuts(hx));
+    combine_results(curr, Unsafe::FlushPuts(hx));
+    combine_results(curr, FlushGets(hx));
+    combine_results(curr, Unsafe::FlushGets(hx));
+    combine_results(curr, FlushGetOps(hx));
+    combine_results(curr, Unsafe::FlushGetOps(hx));
+    combine_results(curr, FlushDeletes(hx));
+    combine_results(curr, Unsafe::FlushDeletes(hx));
 
     return hxhim::return_results(head);
 }
@@ -585,12 +578,12 @@ hxhim_return_t *hxhimFlushDeletes(hxhim_t *hx) {
  */
 hxhim::Return *hxhim::Flush(hxhim_t *hx) {
     hxhim::Return head(hxhim_work_op::HXHIM_NOP, nullptr);
-    hxhim::Return *puts = FlushPuts(hx);
-    hxhim::Return *gets = FlushGets(hx);
-    hxhim::Return *getops = FlushGetOps(hx);
-    hxhim::Return *dels = FlushDeletes(hx);
+    hxhim::Return *curr = &head;
 
-    head.Next(puts)->Next(gets)->Next(getops)->Next(dels);
+    for(curr = curr->Next(FlushPuts(hx));    curr->Next(); curr = curr->Next());
+    for(curr = curr->Next(FlushGets(hx));    curr->Next(); curr = curr->Next());
+    for(curr = curr->Next(FlushGetOps(hx));  curr->Next(); curr = curr->Next());
+    for(curr = curr->Next(FlushDeletes(hx)); curr->Next(); curr = curr->Next());
 
     return hxhim::return_results(head);
 }

@@ -81,6 +81,7 @@ int main(int argc, char *argv[]) {
     hxhimOpen(&hx, MPI_COMM_WORLD);
 
     double lowest = DBL_MAX;
+    double highest = -DBL_MAX;
 
     // generate some data
     const size_t num_x = 10;
@@ -110,6 +111,11 @@ int main(int argc, char *argv[]) {
                 lowest = temp;
             }
 
+            // keep track of the highest temperature
+            if (temp > highest) {
+                highest = temp;
+            }
+
             hxhimPut(&hx, (void *) c->name, strlen(c->name), (void *) &X,    strlen(X),    (void *) c->x,    x_len);
             hxhimPut(&hx, (void *) c->name, strlen(c->name), (void *) &Y,    strlen(Y),    (void *) c->y,    y_len);
             hxhimPut(&hx, (void *) c->name, strlen(c->name), (void *) &TEMP, strlen(TEMP), (void *) c->temp, temp_len);
@@ -123,14 +129,20 @@ int main(int argc, char *argv[]) {
     size_t lowest_str_len = 0;
     elen_encode_double(lowest, 2 * sizeof(double), &lowest_str, &lowest_str_len);
 
+    char *highest_str = NULL;
+    size_t highest_str_len = 0;
+    elen_encode_double(highest, 2 * sizeof(double), &highest_str, &highest_str_len);
+
     hxhimStatFlush(&hx);
-    hxhimBGetOp(&hx, (void *) &TEMP, strlen(TEMP), (void *) lowest_str, lowest_str_len, total, GET_NEXT);
+    hxhimBGetOp(&hx, (void *) &TEMP, strlen(TEMP), (void *) lowest_str, lowest_str_len, 10, GET_NEXT);
+    hxhimBGetOp(&hx, (void *) &TEMP, strlen(TEMP), (void *) highest_str, highest_str_len, 10, GET_PREV);
 
     hxhim_return_t *flush2 = hxhimFlush(&hx);
     print_double_results(flush2);
     hxhim_return_destroy(flush2);
 
     free(lowest_str);
+    free(highest_str);
 
     for(size_t i = 0; i < total; i++) {
         free(cells[i].x);
