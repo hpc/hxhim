@@ -123,6 +123,7 @@ int main(int argc, char *argv[]) {
     size_t lowest_str_len = 0;
     elen_encode_double(lowest, 2 * sizeof(double), &lowest_str, &lowest_str_len);
 
+    hxhimStatFlush(&hx);
     hxhimBGetOp(&hx, (void *) &TEMP, strlen(TEMP), (void *) lowest_str, lowest_str_len, total, GET_NEXT);
 
     hxhim_return_t *flush2 = hxhimFlush(&hx);

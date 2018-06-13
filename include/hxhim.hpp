@@ -1,8 +1,6 @@
 #ifndef HXHIM_HPP
 #define HXHIM_HPP
 
-#include <string>
-
 #include <mpi.h>
 
 #include "hxhim-types.h"
@@ -16,6 +14,9 @@ int Open(hxhim_t *hx, const MPI_Comm bootstrap_comm);
 
 /** @description Stops an HXHIM instance */
 int Close(hxhim_t *hx);
+
+/** @description Flushes the internal statistics */
+int StatFlush(hxhim_t *hx);
 
 /** @description Flush safe and unsafe HXHIM queues */
 Return *FlushAllPuts(hxhim_t *hx);

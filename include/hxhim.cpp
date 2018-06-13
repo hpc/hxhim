@@ -100,6 +100,33 @@ int hxhimClose(hxhim_t *hx) {
 }
 
 /**
+ * StatFlush
+ * Flushes the MDHIM statistics
+ * Mainly needed for BGetOp
+ *
+ * @param hx the HXHIM session to terminate
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim::StatFlush(hxhim_t *hx) {
+    if (!hx || !hx->p || !hx->p->md) {
+        return HXHIM_ERROR;
+    }
+    return (mdhim::StatFlush(hx->p->md, nullptr) == MDHIM_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
+}
+
+/**
+ * hxhimStatFlush
+ * Flushes the MDHIM statistics
+ * Mainly needed for BGetOp
+ *
+ * @param hx the HXHIM session to terminate
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhimStatFlush(hxhim_t *hx) {
+    return hxhim::StatFlush(hx);
+}
+
+/**
  * FlushAllPuts
  * Flushes all queued safe and unsafe PUTs
  * The internal queues are cleared, even on error

@@ -24,6 +24,9 @@ int hxhimOpen(hxhim_t *hx, const MPI_Comm bootstrap_comm);
 /** @description Stops an HXHIM instance */
 int hxhimClose(hxhim_t *hx);
 
+/** @description Flushes the internal statistics */
+int hxhimStatFlush(hxhim_t *hx);
+
 /** @description Flush safe and unsafe HXHIM queues */
 hxhim_return_t *hxhimFlushAllPuts(hxhim_t *hx);
 hxhim_return_t *hxhimFlushAllGets(hxhim_t *hx);
