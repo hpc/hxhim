@@ -1,11 +1,7 @@
 #ifndef      __LEVELDB_H
 #define      __LEVELDB_H
 
-//#ifndef      LEVELDB_SUPPORT
-//#include <rocksdb/c.h>
-//#else
 #include <leveldb/c.h>
-//#endif
 
 #include "data_store.h"
 

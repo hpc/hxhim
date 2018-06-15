@@ -98,7 +98,7 @@ typedef struct mdhim_store {
     mdhim_stat_t *mdhim_store_stats;
 
     //Lock to allow concurrent readers and a single writer to the mdhim_store_stats
-    pthread_rwlock_t *mdhim_store_stats_lock;
+    pthread_rwlock_t mdhim_store_stats_lock;
 } mdhim_store_t;
 
 //Initializes the data store based on the type given (i.e., LEVELDB, etc...)

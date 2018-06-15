@@ -971,17 +971,17 @@ static void *worker_thread(void *data) {
                 range_server_bput(md, item);
                 break;
             case TransportMessageType::BGET:
-            {
-                TransportBGetMessage *bgm = dynamic_cast<TransportBGetMessage *>(item->message);
-                //The client is sending one key, but requesting the retrieval of more than one
-                if (bgm->num_recs > 1 && bgm->num_keys == 1) {
-                    range_server_bget_op(md, item, bgm->op);
+                {
+                    TransportBGetMessage *bgm = dynamic_cast<TransportBGetMessage *>(item->message);
+                    //The client is sending one key, but requesting the retrieval of more than one
+                    if (bgm->num_recs > 1 && bgm->num_keys == 1) {
+                        range_server_bget_op(md, item, bgm->op);
+                    }
+                    else {
+                        range_server_bget(md, item);
+                    }
                 }
-                else {
-                    range_server_bget(md, item);
-                }
-            }
-            break;
+                break;
             case TransportMessageType::DELETE:
                 range_server_del(md, item);
                 break;

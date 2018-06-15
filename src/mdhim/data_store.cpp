@@ -8,19 +8,18 @@
 #include <stdio.h>
 #include "mdhim_options.h"
 #include "data_store.h"
-#ifdef      HXHIM_USE_LEVELDB
+#ifdef HXHIM_USE_LEVELDB
 #include "ds_leveldb.h"
 #endif
-#ifdef      HXHIM_USE_ROCKSDB
+#ifdef HXHIM_USE_ROCKSDB
 #include "ds_leveldb.h"
 #endif
-#ifdef      SOPHIADB_SUPPORT
+#ifdef SOPHIADB_SUPPORT
 #include "ds_sophia.h"
 #endif
-#ifdef      HXHIM_USE_MYSQL
+#ifdef HXHIM_USE_MYSQL
 #include "ds_mysql.h"
 #endif
-
 
 /**
  * mdhim_db_init
@@ -38,15 +37,11 @@ mdhim_store_t *mdhim_db_init(int type) {
 	store->db_handle = NULL;
 	store->db_stats = NULL;
 	store->mdhim_store_stats = NULL;
-	store->mdhim_store_stats_lock = (pthread_rwlock_t*)malloc(sizeof(pthread_rwlock_t));
-	if (pthread_rwlock_init(store->mdhim_store_stats_lock, NULL) != 0) {
-		free(store->mdhim_store_stats_lock);
-		return NULL;
-	}
+    store->mdhim_store_stats_lock = PTHREAD_RWLOCK_INITIALIZER;
 
 	switch(type) {
 
-#ifdef      HXHIM_USE_LEVELDB
+#ifdef HXHIM_USE_LEVELDB
 	case LEVELDB:
 		store->open = mdhim_leveldb_open;
 		store->put = mdhim_leveldb_put;
@@ -61,7 +56,7 @@ mdhim_store_t *mdhim_db_init(int type) {
 
 #endif
 
-// #ifdef      HXHIM_USE_ROCKSDB
+// #ifdef HXHIM_USE_ROCKSDB
 // 	case ROCKSDB:
 // 		store->open = mdhim_leveldb_open;
 // 		store->put = mdhim_leveldb_put;
@@ -75,8 +70,8 @@ mdhim_store_t *mdhim_db_init(int type) {
 // 		break;
 // #endif
 
-#ifdef      HXHIM_USE_MYSQL
-	case	MYSQLDB:
+#ifdef HXHIM_USE_MYSQL
+	case MYSQLDB:
 		store->open = mdhim_mysql_open;
 		store->put = mdhim_mysql_put;
 		store->batch_put = mdhim_mysql_batch_put;
@@ -88,7 +83,6 @@ mdhim_store_t *mdhim_db_init(int type) {
 		store->close = mdhim_mysql_close;
 		break;
 #endif
-
 
 	default:
 		free(store);

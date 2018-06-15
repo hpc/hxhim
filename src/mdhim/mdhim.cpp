@@ -166,7 +166,7 @@ int mdhimClose(mdhim_t *md) {
 
 /**
  * Commit
- * Commits outstanding MDHIM writes
+ * Commits cached local database data to disk
  *
  * @param md main MDHIM struct
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
@@ -190,7 +190,7 @@ int mdhim::Commit(mdhim_t *md, index_t *index) {
         if (!brm || brm->error) {
             ret = MDHIM_ERROR;
             mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d mdhimCommit - "
-                 "Error while committing to database",
+                 "Error while committing database",
                  md->rank);
         }
 
@@ -202,7 +202,7 @@ int mdhim::Commit(mdhim_t *md, index_t *index) {
 
 /**
  * mdhimCommit
- * Commits outstanding MDHIM writes
+ * Commits cached local database data to disk
  *
  * @param md main MDHIM struct
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error

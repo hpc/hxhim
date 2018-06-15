@@ -207,7 +207,7 @@ static int read_manifest(mdhim_t *md, index_t *index) {
  */
 int update_stat(mdhim_t *md, index_t *index, const int rs_idx, void *key, uint32_t key_len) {
     //Acquire the lock to update the stats
-    while (pthread_rwlock_wrlock(index->mdhim_stores[rs_idx]->mdhim_store_stats_lock) == EBUSY) {
+    while (pthread_rwlock_wrlock(&index->mdhim_stores[rs_idx]->mdhim_store_stats_lock) == EBUSY) {
         usleep(10);
     }
 
@@ -300,7 +300,7 @@ int update_stat(mdhim_t *md, index_t *index, const int rs_idx, void *key, uint32
     }
 
     //Release the stats lock
-    pthread_rwlock_unlock(index->mdhim_stores[rs_idx]->mdhim_store_stats_lock);
+    pthread_rwlock_unlock(&index->mdhim_stores[rs_idx]->mdhim_store_stats_lock);
     return MDHIM_SUCCESS;
 }
 
@@ -1047,8 +1047,7 @@ void indexes_release(mdhim_t *md) {
                          md->rank);
                 }
 
-                pthread_rwlock_destroy(cur_indx->mdhim_stores[i]->mdhim_store_stats_lock);
-                free(cur_indx->mdhim_stores[i]->mdhim_store_stats_lock);
+                pthread_rwlock_destroy(&cur_indx->mdhim_stores[i]->mdhim_store_stats_lock);
                 free(cur_indx->mdhim_stores[i]);
             }
             delete [] cur_indx->mdhim_stores;

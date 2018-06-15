@@ -100,6 +100,32 @@ int hxhimClose(hxhim_t *hx) {
 }
 
 /**
+ * Commit
+ * Commits all flushed data to disk
+ *
+ * @param hx the HXHIM session to terminate
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim::Commit(hxhim_t *hx) {
+    if (!hx || !hx->p || !hx->p->md) {
+        return HXHIM_ERROR;
+    }
+
+    return (mdhim::Commit(hx->p->md, nullptr) == MDHIM_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
+}
+
+/**
+ * hxhimCommit
+ * Commits all flushed data to disk
+ *
+ * @param hx the HXHIM session to terminate
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhimCommit(hxhim_t *hx) {
+    return hxhim::Commit(hx);
+}
+
+/**
  * StatFlush
  * Flushes the MDHIM statistics
  * Mainly needed for BGetOp
@@ -111,6 +137,7 @@ int hxhim::StatFlush(hxhim_t *hx) {
     if (!hx || !hx->p || !hx->p->md) {
         return HXHIM_ERROR;
     }
+
     return (mdhim::StatFlush(hx->p->md, nullptr) == MDHIM_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 

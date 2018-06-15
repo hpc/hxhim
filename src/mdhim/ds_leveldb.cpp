@@ -702,12 +702,32 @@ int mdhim_leveldb_del(void *dbh, void *key, std::size_t key_len) {
 
 /**
  * mdhim_leveldb_commit
- * Transportits outstanding writes the data store
+ * Write all cached data to disk
  *
  * @param dbh         in   pointer to the leveldb handle
  *
  * @return MDHIM_SUCCESS on success or MDHIM_DB_ERROR on failure
  */
 int mdhim_leveldb_commit(void *dbh) {
+    char *err = NULL;
+    mdhim_leveldb_t *mdhimdb = (mdhim_leveldb_t *) dbh;
+    leveldb_writeoptions_t *options = leveldb_writeoptions_create();
+    struct timeval start, end;
+
+    leveldb_writeoptions_set_sync(options, 1);
+
+    gettimeofday(&start, NULL);
+    // write an empty key-value pair
+    leveldb_put(mdhimdb->db, options, NULL, 0, NULL, 0, &err);
+    leveldb_writeoptions_destroy(options);
+    if (err != NULL) {
+        mlog(MDHIM_SERVER_CRIT, "Error committing leveldb to disk");
+        return MDHIM_DB_ERROR;
+    }
+
+    gettimeofday(&end, NULL);
+    mlog(MDHIM_SERVER_DBG, "Took: %d seconds to commit",
+     (int) (end.tv_sec - start.tv_sec));
+
     return MDHIM_SUCCESS;
 }

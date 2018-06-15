@@ -15,6 +15,9 @@ int Open(hxhim_t *hx, const MPI_Comm bootstrap_comm);
 /** @description Stops an HXHIM instance */
 int Close(hxhim_t *hx);
 
+/** @description Commits all flushed data on local databases to disk */
+int Commit(hxhim_t *hx);
+
 /** @description Flushes the internal statistics */
 int StatFlush(hxhim_t *hx);
 
