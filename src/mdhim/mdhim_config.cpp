@@ -33,20 +33,20 @@ static int get_bool(const Config &config, const std::string &config_key, bool &b
 }
 
 /**
- * get_integral
- * Helper function for reading integral values from the configuration
+ * get_value
+ * Helper function for reading numeric values from the configuration
  *
  * @param config     the configuration
  * @param config_key the entry in the configuraion to read
- * @tparam i         the value of the configuration
+ * @tparam value     the value of the configuration
  * @return MDHIM_SUCCESS if the configuration value was good, MDHIM_CONFIG_NOT_FOUND if the configuration key was not found, or MDHIM_ERROR if the configuration value was bad
  */
-template<typename T, typename = std::enable_if_t<std::is_integral<T>::value> >
-static int get_integral(const Config &config, const std::string &config_key, T &i) {
+template<typename T, typename = std::enable_if <std::is_arithmetic<T>::value> >
+static int get_value(const Config &config, const std::string &config_key, T &v) {
     // find the key
     Config_it in_config = config.find(config_key);
     if (in_config != config.end()) {
-        return (std::stringstream(in_config->second) >> i)?MDHIM_SUCCESS:MDHIM_ERROR;
+        return (std::stringstream(in_config->second) >> v)?MDHIM_SUCCESS:MDHIM_ERROR;
     }
 
     return MDHIM_CONFIG_NOT_FOUND;
@@ -64,7 +64,7 @@ static int get_integral(const Config &config, const std::string &config_key, T &
  */
 template<typename T>
 static int get_from_map(const Config &config, const std::string &config_key,
-                 const std::map<std::string, T> &map, T &value) {
+                        const std::map<std::string, T> &map, T &value) {
     // find key in configuration
     Config_it in_config = config.find(config_key);
     if (in_config!= config.end()) {
@@ -133,7 +133,7 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
 
     // Set Server Factor
     int rserver_factor;
-    ret = get_integral(config, RSERVER_FACTOR, rserver_factor);
+    ret = get_value(config, RSERVER_FACTOR, rserver_factor);
     if ((ret == MDHIM_ERROR)                                                                                 ||
         ((ret == MDHIM_SUCCESS) && (mdhim_options_set_server_factor(opts, rserver_factor) != MDHIM_SUCCESS))) {
         return MDHIM_ERROR;
@@ -141,7 +141,7 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
 
     // Set Number of databases per server
     int dbs_per_rserver;
-    ret = get_integral(config, DBS_PER_RSERVER, dbs_per_rserver);
+    ret = get_value(config, DBS_PER_RSERVER, dbs_per_rserver);
     if ((ret == MDHIM_ERROR)                                                                                   ||
         ((ret == MDHIM_SUCCESS) && (mdhim_options_set_dbs_per_server(opts, dbs_per_rserver) != MDHIM_SUCCESS))) {
         return MDHIM_ERROR;
@@ -149,7 +149,7 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
 
     // Set Maximum Number of Records Per Slice
     int max_recs_per_slice;
-    ret = get_integral(config, MAX_RECS_PER_SLICE, max_recs_per_slice);
+    ret = get_value(config, MAX_RECS_PER_SLICE, max_recs_per_slice);
     if ((ret == MDHIM_ERROR)                                                                                          ||
         ((ret == MDHIM_SUCCESS) && (mdhim_options_set_max_recs_per_slice(opts, max_recs_per_slice) != MDHIM_SUCCESS))) {
         return MDHIM_ERROR;
@@ -173,9 +173,33 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
 
     // Set Number of Worker Threads
     int num_worker_threads;
-    ret = get_integral(config, NUM_WORKER_THREADS, num_worker_threads);
+    ret = get_value(config, NUM_WORKER_THREADS, num_worker_threads);
     if ((ret == MDHIM_ERROR)                                                                                          ||
         ((ret == MDHIM_SUCCESS) && (mdhim_options_set_num_worker_threads(opts, num_worker_threads) != MDHIM_SUCCESS))) {
+        return MDHIM_ERROR;
+    }
+
+    // Set Histogram Minimum
+    long double histogram_min;
+    ret = get_value(config, HISTOGRAM_MIN, histogram_min);
+    if ((ret == MDHIM_ERROR)                                                                                ||
+        ((ret == MDHIM_SUCCESS) && (mdhim_options_set_histogram_min(opts, histogram_min) != MDHIM_SUCCESS))) {
+        return MDHIM_ERROR;
+    }
+
+    // Set Histogram Step Size
+    long double histogram_step_size;
+    ret = get_value(config, HISTOGRAM_STEP_SIZE, histogram_step_size);
+    if ((ret == MDHIM_ERROR)                                                                                       ||
+        ((ret == MDHIM_SUCCESS) && (mdhim_options_set_histogram_step_size(opts, histogram_step_size) != MDHIM_SUCCESS))) {
+        return MDHIM_ERROR;
+    }
+
+    // Set Histogram Bucket Count
+    std::size_t histogram_count;
+    ret = get_value(config, HISTOGRAM_COUNT, histogram_count);
+    if ((ret == MDHIM_ERROR)                                                                                  ||
+        ((ret == MDHIM_SUCCESS) && (mdhim_options_set_histogram_count(opts, histogram_count) != MDHIM_SUCCESS))) {
         return MDHIM_ERROR;
     }
 
@@ -256,9 +280,9 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
     if ((get_bool(config, USE_MPI, use_mpi) == MDHIM_SUCCESS) &&
         use_mpi) {
         std::size_t memory_alloc_size, memory_regions, listeners;
-        if ((get_integral(config, MEMORY_ALLOC_SIZE, memory_alloc_size) != MDHIM_SUCCESS) ||
-            (get_integral(config, MEMORY_REGIONS, memory_regions)       != MDHIM_SUCCESS) ||
-            (get_integral(config, LISTENERS, listeners)                 != MDHIM_SUCCESS)) {
+        if ((get_value(config, MEMORY_ALLOC_SIZE, memory_alloc_size) != MDHIM_SUCCESS) ||
+            (get_value(config, MEMORY_REGIONS, memory_regions)       != MDHIM_SUCCESS) ||
+            (get_value(config, LISTENERS, listeners)                 != MDHIM_SUCCESS)) {
             return MDHIM_ERROR;
         }
 

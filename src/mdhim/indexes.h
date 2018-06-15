@@ -15,7 +15,8 @@
 #include "mdhim_struct.h"
 #include "range_server_info_struct.h"
 
-int update_stat(mdhim_t *md, index_t *bi, const int rs_id, void *key, uint32_t key_len);
+int update_stat(mdhim_t *md, index_t *bi, const int rs_id, void *key, std::size_t key_len);
+int write_stat(mdhim_t *md, index_t *bi, const int rs_idx);
 index_t *create_local_index(mdhim_t *md, int db_type, int key_type, const char *index_name);
 index_t *create_global_index(mdhim_t *md, int server_factor,
 				    uint64_t max_recs_per_slice, int db_type,

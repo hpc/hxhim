@@ -297,8 +297,8 @@ int mdhim_leveldb_open(void **dbh, void **dbs, const char *path, int flags, int 
 
     //Open the stats database
     sprintf(stats_path, "%s_stats", path);
-    statsdb->compare = cmp_int_compare;
-    statsdb->cmp = leveldb_comparator_create(NULL, cmp_destroy, cmp_int_compare, cmp_name);
+    statsdb->compare = cmp_byte_compare;
+    statsdb->cmp = leveldb_comparator_create(NULL, cmp_destroy, cmp_byte_compare, cmp_name);
     leveldb_options_set_comparator(statsdb->options, statsdb->cmp);
     statsdb->db = leveldb_open(statsdb->options, stats_path, &err);
     *((mdhim_leveldb_t **) dbs) = statsdb;
@@ -404,7 +404,6 @@ int mdhim_leveldb_get(void *dbh, void *key, std::size_t key_len, void **data, st
     char *err = NULL;
     mdhim_leveldb_t *mdhimdb = (mdhim_leveldb_t *) dbh;
     leveldb_readoptions_t *options = mdhimdb->read_options;
-    int ret = MDHIM_SUCCESS;
     void *ldb_data;
     std::size_t ldb_data_len = 0;
 
@@ -416,16 +415,16 @@ int mdhim_leveldb_get(void *dbh, void *key, std::size_t key_len, void **data, st
     }
 
     if (!ldb_data_len) {
-        ret = MDHIM_DB_ERROR;
-        return ret;
+        return MDHIM_DB_ERROR;
     }
 
     *data_len = ldb_data_len;
+    // *data = ldb_data;
     *data = malloc(*data_len);
     memcpy(*data, ldb_data, *data_len);
     free(ldb_data);
 
-    return ret;
+    return MDHIM_SUCCESS;
 }
 
 /**

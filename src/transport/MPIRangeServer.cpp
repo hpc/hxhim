@@ -30,7 +30,7 @@ int MPIRangeServer::init(mdhim_t *md, FixedBufferPool *fbp, const std::size_t li
 }
 
 void MPIRangeServer::destroy() {
-    for(int i = 0; i < listener_count_; i++) {
+    for(std::size_t i = 0; i < listener_count_; i++) {
         pthread_join(listeners_[i], nullptr);
     }
     delete [] listeners_;

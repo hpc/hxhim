@@ -22,11 +22,11 @@ void delete_alphabet() {
     mdhim_alphabet = NULL;
 }
 
-long double get_str_num(void *key, uint32_t key_len) {
+long double get_str_num(void *key, std::size_t key_len) {
     long double str_num = 0;
 
     //Iterate through each character to perform the algorithm mentioned above
-    for (uint32_t i = 0; i < key_len; i++) {
+    for (std::size_t i = 0; i < key_len; i++) {
         //Ignore null terminating char
         if (i == key_len - 1 && ((char *)key)[i] == '\0') {
             break;
@@ -41,12 +41,13 @@ long double get_str_num(void *key, uint32_t key_len) {
     return str_num;
 }
 
-uint64_t get_byte_num(void *key, uint32_t key_len) {
+uint64_t get_byte_num(void *key, std::size_t key_len) {
     //Iterate through each character to perform the algorithm mentioned above
     uint64_t byte_num = 0;
-    for (uint32_t i = 0; i < key_len; i++) {
-        unsigned char val = (int)(((char *) key)[i]);
-        byte_num += val * powl(2, i);
+    const std::size_t max_index = std::min(key_len, sizeof(byte_num) << 3);
+    for (std::size_t i = 0; i < max_index; i++) {
+        uint64_t val = (uint64_t) ((unsigned char)(((char *) key)[i]));
+        byte_num += val << i;
     }
 
     return byte_num;
@@ -149,8 +150,9 @@ void _add_to_rangesrv_list(rangesrv_list_t **list, rangesrv_info_t *ri) {
  *
  * @return        MDHIM_ERROR if the key is not valid, otherwise the MDHIM_SUCCESS
  */
-static int verify_key(uint64_t slice_size, void *key,
-               int key_len, int key_type) {
+static int verify_key(uint64_t slice_size,
+                      void *key, std::size_t key_len,
+                      int key_type) {
     int id;
     mdhim_char_t *mc;
     uint64_t ikey = 0;
@@ -164,7 +166,7 @@ static int verify_key(uint64_t slice_size, void *key,
         return MDHIM_ERROR;
     }
     if (key_type == MDHIM_STRING_KEY) {
-        for (int i = 0; i < key_len; i++) {
+        for (std::size_t i = 0; i < key_len; i++) {
             //Ignore null terminating char
             if (i == key_len - 1 && ((char *)key)[i] == '\0') {
                 break;
@@ -230,7 +232,7 @@ int is_float_key(int type) {
  * @param key_len   length of the key
  * @return the slice number or 0 on error
  */
-int get_slice_num(const int key_type, uint64_t slice_size, void *key, int key_len) {
+int get_slice_num(const int key_type, uint64_t slice_size, void *key, std::size_t key_len) {
     uint64_t key_num;
 
     //The last key number that can be represented by the number of slices and the slice size
@@ -315,7 +317,7 @@ int get_slice_num(const int key_type, uint64_t slice_size, void *key, int key_le
  * @param slice     the slice number
  * @return the rank of the range server or NULL on error
  */
-rangesrv_info_t *get_range_server_by_slice(index_t *index, const int slice) {
+rangesrv_info_t *get_range_server_by_slice(index_t *index, const uint64_t slice) {
     //The number that maps a key to database (dependent on key type)
     const uint32_t database = slice % (index->num_rangesrvs * index->dbs_per_server);
 
@@ -329,9 +331,9 @@ rangesrv_info_t *get_range_server_by_slice(index_t *index, const int slice) {
 
 rangesrv_list_t *get_range_servers(const int size,
                                    index_t *index,
-                                   void *key, int key_len) {
+                                   void *key, std::size_t key_len) {
     //The number that maps a key to range server (dependent on key type)
-    int slice_num;
+    uint64_t slice_num;
     //The range server number that we return
     rangesrv_info_t *ret_rp;
     rangesrv_list_t *rl = nullptr;
@@ -348,7 +350,7 @@ rangesrv_list_t *get_range_servers(const int size,
 }
 
 static mdhim_stat_t *get_next_slice_stat(index_t *index,
-                                  int slice_num) {
+                                         uint64_t slice_num) {
     mdhim_stat_t *stat, *tmp, *next_slice;
 
     next_slice = nullptr;
@@ -370,7 +372,7 @@ static mdhim_stat_t *get_next_slice_stat(index_t *index,
     return next_slice;
 }
 
-static mdhim_stat_t *get_prev_slice_stat(index_t *index, int slice_num) {
+static mdhim_stat_t *get_prev_slice_stat(index_t *index, uint64_t slice_num) {
     mdhim_stat_t *stat, *tmp, *prev_slice;
 
     prev_slice = NULL;
@@ -437,8 +439,8 @@ static mdhim_stat_t *get_first_slice_stat(index_t *index) {
 }
 
 static int get_slice_from_fstat(index_t *index,
-                                int cur_slice, long double fstat, TransportGetMessageOp op) {
-    int slice_num = 0;
+                                uint64_t cur_slice, long double fstat, TransportGetMessageOp op) {
+    uint64_t slice_num = 0;
     mdhim_stat_t *cur_stat, *new_stat;
 
     if (!index->stats) {
@@ -494,8 +496,8 @@ new_stat:
 }
 
 static int get_slice_from_istat(index_t *index,
-                                int cur_slice, uint64_t istat, TransportGetMessageOp op) {
-    int slice_num = 0;
+                                uint64_t cur_slice, uint64_t istat, TransportGetMessageOp op) {
+    uint64_t slice_num = 0;
     mdhim_stat_t *cur_stat, *new_stat;
 
     if (!index->stats) {
@@ -644,10 +646,10 @@ static rangesrv_list_t *get_rangesrvs_from_istat(index_t *index,
 /* Iterate through the multi-level hash table in index->stats to find the range servers
    that could have the key */
 static rangesrv_list_t *get_rangesrvs_from_fstat(index_t *index,
-                                          long double fstat, TransportGetMessageOp op) {
+                                                 long double fstat, TransportGetMessageOp op) {
     mdhim_stat_t *cur_rank, *cur_stat, *tmp, *tmp2;
     rangesrv_list_t *head, *lp, *entry;
-    int slice_num = 0;
+    uint64_t slice_num = 0;
     unsigned int num_slices;
     unsigned int i;
 
@@ -706,10 +708,6 @@ static rangesrv_list_t *get_rangesrvs_from_fstat(index_t *index,
                 break;
             }
 
-            if (slice_num < 0) {
-                continue;
-            }
-
             entry = (rangesrv_list*)malloc(sizeof(rangesrv_list));
             HASH_FIND_INT(index->rangesrvs_by_rank, &cur_rank->key, entry->ri);
             if (!entry->ri) {
@@ -742,9 +740,9 @@ static rangesrv_list_t *get_rangesrvs_from_fstat(index_t *index,
  * @return the rank of the range server or NULL on error
  */
 rangesrv_list_t *get_range_servers_from_stats(const int rank, index_t *index,
-                                              void *key, int key_len, TransportGetMessageOp op) {
+                                              void *key, std::size_t key_len, TransportGetMessageOp op) {
     //The number that maps a key to range server (dependent on key type)
-    int slice_num, cur_slice;
+    uint64_t slice_num, cur_slice;
     //The range server number that we return
     rangesrv_info_t *ret_rp;
     rangesrv_list_t *rl;

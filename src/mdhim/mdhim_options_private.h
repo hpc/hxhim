@@ -65,6 +65,12 @@ typedef struct mdhim_db_options {
     //Number of worker threads per range server
     int num_wthreads;
 
+    struct {
+        long double min;
+        long double step_size;
+        size_t count;
+    } histogram;
+
     //Login Credentials
     char *db_host;
     char *dbs_host;

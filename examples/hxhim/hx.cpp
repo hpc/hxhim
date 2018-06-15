@@ -75,10 +75,9 @@ int main(int argc, char *argv[]) {
     std::cout << "GET after flushing PUTs" << std::endl;
     print_results(rank, flush_all_res);
     delete flush_all_res;
+    spo_clean(count, subjects, subject_lens, predicates, predicate_lens, objects, object_lens);
 
     MPI_Barrier(MPI_COMM_WORLD);
-
-    spo_clean(count, subjects, subject_lens, predicates, predicate_lens, objects, object_lens);
 
     hxhim::Close(&hx);
     MPI_Finalize();

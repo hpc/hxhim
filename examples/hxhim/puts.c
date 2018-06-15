@@ -26,10 +26,10 @@ int main(int argc, char *argv[]) {
     hxhimOpen(&hx, MPI_COMM_WORLD);
 
     // Generate some subject-predicate-object triples
-    const size_t count = HXHIM_MAX_BULK_PUT_OPS * 10;
+    const size_t count = HXHIM_MAX_BULK_PUT_OPS / 10;
     void **subjects = NULL, **predicates = NULL, **objects = NULL;
     size_t *subject_lens = NULL, *predicate_lens = NULL, *object_lens = NULL;
-    if (spo_gen_fixed(count, 64, rank, &subjects, &subject_lens, &predicates, &predicate_lens, &objects, &object_lens) != count) {
+    if (spo_gen_random(count, 64, 64, &subjects, &subject_lens, &predicates, &predicate_lens, &objects, &object_lens) != count) {
         printf("Could not generate triples\n");
         return -1;
     }

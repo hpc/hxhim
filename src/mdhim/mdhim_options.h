@@ -43,6 +43,9 @@ int mdhim_options_set_dbs_per_server(mdhim_options_t *opts, const int dbs_per_se
 int mdhim_options_set_max_recs_per_slice(mdhim_options_t *opts, const uint64_t max_recs_per_slice);
 int mdhim_options_set_num_worker_threads(mdhim_options_t *opts, const int num_wthreads);
 int mdhim_options_set_manifest_path(mdhim_options_t *opts, const char *path);
+int mdhim_options_set_histogram_min(mdhim_options_t *opts, const long double min);
+int mdhim_options_set_histogram_step_size(mdhim_options_t *opts, const long double step);
+int mdhim_options_set_histogram_count(mdhim_options_t *opts, const size_t count);
 
 int mdhim_options_destroy(mdhim_options_t *opts);
 

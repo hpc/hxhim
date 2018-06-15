@@ -44,7 +44,7 @@ typedef struct mdhim_stat {
 
 //Used for storing stats in the database
 typedef struct mdhim_db_stat {
-    int slice;
+    std::size_t slice;
     uint64_t imax;
     uint64_t imin;
     long double dmax;
@@ -54,7 +54,7 @@ typedef struct mdhim_db_stat {
 
 //Used for transmitting integer stats to all nodes
 typedef struct mdhim_db_istat {
-    int slice;
+    std::size_t slice;
     uint64_t num;
     uint64_t imax;
     uint64_t imin;
@@ -62,7 +62,7 @@ typedef struct mdhim_db_istat {
 
 //Used for transmitting float stats to all nodes
 typedef struct mdhim_db_fstat {
-    int slice;
+    std::size_t slice;
     uint64_t num;
     long double dmax;
     long double dmin;

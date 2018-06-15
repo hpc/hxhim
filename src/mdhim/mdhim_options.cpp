@@ -553,6 +553,41 @@ int mdhim_options_set_num_worker_threads(mdhim_options_t *opts, const int num_wt
     return MDHIM_SUCCESS;
 }
 
+int mdhim_options_set_histogram_min(mdhim_options_t *opts, const long double min) {
+    if (!valid_db(opts)) {
+        return MDHIM_ERROR;
+    }
+
+    opts->p->db->histogram.min = min;
+    return MDHIM_SUCCESS;
+}
+
+int mdhim_options_set_histogram_step_size(mdhim_options_t *opts, const long double step) {
+    if (!valid_db(opts)) {
+        return MDHIM_ERROR;
+    }
+
+    if (step < 0) {
+        return MDHIM_ERROR;
+    }
+
+    opts->p->db->histogram.step_size = step;
+    return MDHIM_SUCCESS;
+}
+
+int mdhim_options_set_histogram_count(mdhim_options_t *opts, const std::size_t count) {
+    if (!valid_db(opts)) {
+        return MDHIM_ERROR;
+    }
+
+    if (!count) {
+        return MDHIM_ERROR;
+    }
+
+    opts->p->db->histogram.count = count;
+    return MDHIM_SUCCESS;
+}
+
 int mdhim_options_destroy(mdhim_options_t *opts) {
     if (!opts) {
         return MDHIM_ERROR;

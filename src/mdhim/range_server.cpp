@@ -5,6 +5,7 @@
  */
 
 #include <climits>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -16,11 +17,12 @@
 #include <unistd.h>
 
 #include "clone.hpp"
-#include "range_server.h"
-#include "partitioner.h"
+#include "elen.hpp"
 #include "mdhim_options.h"
 #include "mdhim_options_private.h"
 #include "mdhim_private.h"
+#include "partitioner.h"
+#include "range_server.h"
 
 static int add_timing(mdhim_t *md, enum TransportMessageType mtype, const struct timespec &start, const struct timespec &end, const std::size_t count) {
     if (!md || !md->p || !md->p->mdhim_rs) {
@@ -148,14 +150,14 @@ int range_server_stop(mdhim_t *md) {
         return MDHIM_ERROR;
     }
 
-    //Signal to the listener thread that it needs to shutdown
     md->p->shutdown = 1;
 
-    /* Wait for the threads to finish */
+    //Signal the listener threads to shutdown
     pthread_mutex_lock(&md->p->mdhim_rs->work_queue_mutex);
     pthread_cond_broadcast(&md->p->mdhim_rs->work_ready_cv);
     pthread_mutex_unlock(&md->p->mdhim_rs->work_queue_mutex);
 
+    /* Wait for the threads to finish */
     for (int i = 0; i < md->p->db_opts->num_wthreads; i++) {
         pthread_join(md->p->mdhim_rs->workers[i], nullptr);
     }
@@ -256,6 +258,19 @@ static int range_server_put(mdhim_t *md, work_item_t *item) {
 
     if (!exists && error == MDHIM_SUCCESS) {
         update_stat(md, index, im->rs_idx, im->key, im->key_len);
+
+        // const double val = elen::decode::floating_point<double>(std::string((char *) new_value, new_value_len));
+
+        // // update histogram
+        // if (!std::isnan(val) && !std::isinf(val)) {
+        //     std::size_t bucket = 0;
+        //     const long double temp = (val - md->p->db_opts->histogram.min) / md->p->db_opts->histogram.step_size;
+        //     if (temp >= 0) {
+        //         bucket = (std::size_t) std::ceil(temp) + 1;
+        //     }
+
+        //     index->histogram[bucket]++;
+        // }
     }
 
     struct timespec end;
@@ -357,6 +372,19 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
         //Update the stats if this key didn't exist before
         if (!exists && error == MDHIM_SUCCESS) {
             update_stat(md, index, bim->rs_idx[i], bim->keys[i], bim->key_lens[i]);
+
+            // const double val = elen::decode::floating_point<double>(std::string((char *) new_value, new_value_len));
+
+            // // update histogram
+            // if (!std::isnan(val) && !std::isinf(val)) {
+            //     std::size_t bucket = 0;
+            //     const long double temp = (val - md->p->db_opts->histogram.min) / md->p->db_opts->histogram.step_size;
+            //     if (temp >= 0) {
+            //         bucket = (std::size_t) std::ceil(temp) + 1;
+            //     }
+
+            //     index->histogram[bucket]++;
+            // }
         }
 
         if (exists && md->p->db_opts->value_append == MDHIM_DB_APPEND) {
@@ -490,7 +518,7 @@ int range_server_bdel(mdhim_t *md, work_item_t *item) {
  * @return          MDHIM_SUCCESS or MDHIM_ERROR on error
  */
 static int range_server_commit(mdhim_t *md, work_item_t *item) {
-    int ret;
+    int error = MDHIM_SUCCESS;
     index_t *index;
 
     TransportMessage *im = item->message;
@@ -500,17 +528,27 @@ static int range_server_commit(mdhim_t *md, work_item_t *item) {
     if (!index) {
         mlog(MDHIM_SERVER_CRIT, "Rank %d - Error retrieving index for id: %d",
              md->rank, im->index);
-        ret = MDHIM_ERROR;
+        error = MDHIM_ERROR;
         goto done;
     }
 
-    //Put the record in the database
+    // start writing stats to the underlying databases
     for(int i = 0; i < md->p->db_opts->dbs_per_server; i++) {
-        if ((ret =
-             index->mdhim_stores[i]->commit(index->mdhim_stores[i]->db_handle))
-            != MDHIM_SUCCESS) {
-            mlog(MDHIM_SERVER_CRIT, "Rank %d - Error committing database",
+        write_stat(md, index, i);
+    }
+
+    // flush the records
+    for(int i = 0; i < md->p->db_opts->dbs_per_server; i++) {
+        if (index->mdhim_stores[i]->commit(index->mdhim_stores[i]->db_handle) != MDHIM_SUCCESS) {
+            mlog(MDHIM_SERVER_CRIT, "Rank %d - Error committing to database",
                  md->rank);
+            error = MDHIM_ERROR;
+        }
+
+        if (index->mdhim_stores[i]->commit(index->mdhim_stores[i]->db_stats) != MDHIM_SUCCESS) {
+            mlog(MDHIM_SERVER_CRIT, "Rank %d - Error committing to stat database",
+                 md->rank);
+            error = MDHIM_ERROR;
         }
     }
 
@@ -518,7 +556,7 @@ static int range_server_commit(mdhim_t *md, work_item_t *item) {
     //Create the response message
     TransportBRecvMessage *brm = new TransportBRecvMessage();
     brm->rs_idx = new int[md->p->db_opts->dbs_per_server]();
-    brm->error = ret;
+    brm->error = error;
     brm->src = im->dst;
     brm->dst = im->src;
     for(int i = 0; i < md->p->db_opts->dbs_per_server; i++) {
@@ -804,6 +842,7 @@ static int range_server_bget_op(mdhim_t *md, work_item_t *item, TransportGetMess
 
     mlog(MDHIM_SERVER_DBG, "Rank %d - Num keys is: %zu and num recs is: %zu",
          md->rank, bgm->num_keys, bgm->num_recs);
+
     //Iterate through the arrays and get each record
     for (std::size_t i = 0; i < bgm->num_keys; i++) {
         for (std::size_t j = 0; j < bgm->num_recs; j++) {
@@ -849,6 +888,8 @@ static int range_server_bget_op(mdhim_t *md, work_item_t *item, TransportGetMess
                                                                                *get_key, *get_key_len,
                                                                                get_value, get_value_len))
                                != MDHIM_SUCCESS) {
+                        mlog(MDHIM_SERVER_DBG, "Rank %d - Couldn't get first record",
+                             md->rank);
                         error = ret;
                         free(*get_key);
                         key_lens[num_records] = 0;

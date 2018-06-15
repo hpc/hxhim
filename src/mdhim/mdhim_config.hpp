@@ -14,38 +14,41 @@
 /**
  * Constant locations where the configuration reader searches
  */
-const std::string MDHIM_CONFIG_FILE = "mdhim.conf";
-const std::string MDHIM_CONFIG_DIR  = "./";
-const std::string MDHIM_CONFIG_ENV  = "MDHIM_CONFIG";
+const std::string MDHIM_CONFIG_FILE    = "mdhim.conf";
+const std::string MDHIM_CONFIG_DIR     = "./";
+const std::string MDHIM_CONFIG_ENV     = "MDHIM_CONFIG";
 
 /**
  * Constants used in the mdhim configuration file
  */
-const std::string DB_PATH            = "DB_PATH";               // directory
-const std::string DB_NAME            = "DB_NAME";               // string
-const std::string DB_TYPE            = "DB_TYPE";               // See DB_TYPES
-const std::string RSERVER_FACTOR     = "RSERVER_FACTOR";        // positive integer
-const std::string DBS_PER_RSERVER    = "DBS_PER_RSERVER";       // positive integer
-const std::string MAX_RECS_PER_SLICE = "MAX_RECS_PER_SLICE";    // positive integer
-const std::string KEY_TYPE           = "KEY_TYPE";              // See KEY_TYPES
-const std::string DEBUG_LEVEL        = "DEBUG_LEVEL";           // See DEBUG_LEVELS
-const std::string NUM_WORKER_THREADS = "NUM_WORKER_THREADS";    // positive integer
-const std::string MANIFEST_PATH      = "MANIFEST_PATH";         // directory
-const std::string CREATE_NEW_DB      = "CREATE_NEW_DB";         // true/false
-const std::string DB_WRITE           = "DB_WRITE";              // See DB_WRITES
-const std::string DB_HOST            = "DB_HOST";               // string
-const std::string DB_LOGIN           = "DB_LOGIN";              // string
-const std::string DB_PASSWORD        = "DB_PASSWORD";           // string
-const std::string DBS_HOST           = "DBS_HOST";              // string
-const std::string DBS_LOGIN          = "DBS_LOGIN";             // string
-const std::string DBS_PASSWORD       = "DBS_PASSWORD";          // string
-const std::string USE_MPI            = "USE_MPI";               // true/false
-const std::string MEMORY_ALLOC_SIZE  = "MEMORY_ALLOC_SIZE";     // positive integer
-const std::string MEMORY_REGIONS     = "MEMORY_REGIONS";        // positive integer
-const std::string LISTENERS          = "NUM_LISTENERS";         // positive integer
-const std::string USE_THALLIUM       = "USE_THALLIUM";          // true/false
-const std::string THALLIUM_MODULE    = "THALLIUM_MODULE";       // See mercury documentation
-const std::string ENDPOINT_GROUP     = "ENDPOINT_GROUP";        // list of globally unique rank ids or "ALL"
+const std::string DB_PATH              = "DB_PATH";               // directory
+const std::string DB_NAME              = "DB_NAME";               // string
+const std::string DB_TYPE              = "DB_TYPE";               // See DB_TYPES
+const std::string RSERVER_FACTOR       = "RSERVER_FACTOR";        // positive integer
+const std::string DBS_PER_RSERVER      = "DBS_PER_RSERVER";       // positive integer
+const std::string MAX_RECS_PER_SLICE   = "MAX_RECS_PER_SLICE";    // positive integer
+const std::string KEY_TYPE             = "KEY_TYPE";              // See KEY_TYPES
+const std::string DEBUG_LEVEL          = "DEBUG_LEVEL";           // See DEBUG_LEVELS
+const std::string NUM_WORKER_THREADS   = "NUM_WORKER_THREADS";    // positive integer
+const std::string MANIFEST_PATH        = "MANIFEST_PATH";         // directory
+const std::string CREATE_NEW_DB        = "CREATE_NEW_DB";         // true/false
+const std::string DB_WRITE             = "DB_WRITE";              // See DB_WRITES
+const std::string DB_HOST              = "DB_HOST";               // string
+const std::string DB_LOGIN             = "DB_LOGIN";              // string
+const std::string DB_PASSWORD          = "DB_PASSWORD";           // string
+const std::string DBS_HOST             = "DBS_HOST";              // string
+const std::string DBS_LOGIN            = "DBS_LOGIN";             // string
+const std::string DBS_PASSWORD         = "DBS_PASSWORD";          // string
+const std::string USE_MPI              = "USE_MPI";               // true/false
+const std::string MEMORY_ALLOC_SIZE    = "MEMORY_ALLOC_SIZE";     // positive integer
+const std::string MEMORY_REGIONS       = "MEMORY_REGIONS";        // positive integer
+const std::string LISTENERS            = "NUM_LISTENERS";         // positive integer
+const std::string USE_THALLIUM         = "USE_THALLIUM";          // true/false
+const std::string THALLIUM_MODULE      = "THALLIUM_MODULE";       // See mercury documentation
+const std::string ENDPOINT_GROUP       = "ENDPOINT_GROUP";        // list of globally unique rank ids or "ALL"
+const std::string HISTOGRAM_MIN        = "HISTOGRAM_MIN";         // floating point value
+const std::string HISTOGRAM_STEP_SIZE  = "HISTOGRAM_STEP_SIZE";   // positive floating point value
+const std::string HISTOGRAM_COUNT      = "HISTOGRAM_COUNT";       // positive integer
 
 /**
  * Mapping from configuration value to database type
@@ -99,31 +102,34 @@ const std::map<std::string, int> DB_WRITES = {
  * Default configuration
  */
 const Config MDHIM_DEFAULT_CONFIG = {
-    std::make_pair(DB_PATH,            "./"),
-    std::make_pair(DB_NAME,            "mdhimTstDB-"),
-    std::make_pair(DB_TYPE,            "LEVELDB"),
-    std::make_pair(RSERVER_FACTOR,     "1"),
-    std::make_pair(DBS_PER_RSERVER,    "1"),
-    std::make_pair(MAX_RECS_PER_SLICE, "1000"),
-    std::make_pair(KEY_TYPE,           "LEX_BYTE"),
-    std::make_pair(DEBUG_LEVEL,        "CRITICAL"),
-    std::make_pair(NUM_WORKER_THREADS, "1"),
-    std::make_pair(MANIFEST_PATH,      "./"),
-    std::make_pair(CREATE_NEW_DB,      "true"),
-    std::make_pair(DB_WRITE,           "OVERWRITE"),
-    std::make_pair(DB_HOST,            "localhost"),
-    std::make_pair(DB_LOGIN,           "test"),
-    std::make_pair(DB_PASSWORD,        "pass"),
-    std::make_pair(DBS_HOST,           "localhost"),
-    std::make_pair(DBS_LOGIN,          "test"),
-    std::make_pair(DBS_PASSWORD,       "pass"),
-    std::make_pair(USE_MPI,            "true"),
-    std::make_pair(MEMORY_ALLOC_SIZE,  "128"),
-    std::make_pair(MEMORY_REGIONS,     "256"),
-    std::make_pair(LISTENERS,          "1"),
-    std::make_pair(USE_THALLIUM,       "false"),
-    std::make_pair(THALLIUM_MODULE,    "na+sm"),
-    std::make_pair(ENDPOINT_GROUP,     "ALL"),
+    std::make_pair(DB_PATH,              "./"),
+    std::make_pair(DB_NAME,              "mdhimTstDB-"),
+    std::make_pair(DB_TYPE,              "LEVELDB"),
+    std::make_pair(RSERVER_FACTOR,       "1"),
+    std::make_pair(DBS_PER_RSERVER,      "1"),
+    std::make_pair(MAX_RECS_PER_SLICE,   "1000"),
+    std::make_pair(KEY_TYPE,             "LEX_BYTE"),
+    std::make_pair(DEBUG_LEVEL,          "CRITICAL"),
+    std::make_pair(NUM_WORKER_THREADS,   "1"),
+    std::make_pair(MANIFEST_PATH,        "./"),
+    std::make_pair(CREATE_NEW_DB,        "true"),
+    std::make_pair(DB_WRITE,             "OVERWRITE"),
+    std::make_pair(DB_HOST,              "localhost"),
+    std::make_pair(DB_LOGIN,             "test"),
+    std::make_pair(DB_PASSWORD,          "pass"),
+    std::make_pair(DBS_HOST,             "localhost"),
+    std::make_pair(DBS_LOGIN,            "test"),
+    std::make_pair(DBS_PASSWORD,         "pass"),
+    std::make_pair(USE_MPI,              "true"),
+    std::make_pair(MEMORY_ALLOC_SIZE,    "128"),
+    std::make_pair(MEMORY_REGIONS,       "256"),
+    std::make_pair(LISTENERS,            "1"),
+    std::make_pair(USE_THALLIUM,         "false"),
+    std::make_pair(THALLIUM_MODULE,      "na+sm"),
+    std::make_pair(ENDPOINT_GROUP,       "ALL"),
+    std::make_pair(HISTOGRAM_MIN,        "-100"),
+    std::make_pair(HISTOGRAM_STEP_SIZE,  "20"),
+    std::make_pair(HISTOGRAM_COUNT,      "10"),
 };
 
 /**

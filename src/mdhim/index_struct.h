@@ -64,6 +64,8 @@ typedef struct index {
     //Statistics retrieved from the mdhimStatFlush operation
     mdhim_stat_t *stats;
 
+    size_t *histogram;
+
     UT_hash_handle hh;         /* makes this structure hashable */
 } index_t;
 

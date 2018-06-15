@@ -90,9 +90,9 @@ int main(int argc, char *argv[]) {
     print_results(rank, flush_all_res);
     hxhim_return_destroy(flush_all_res);
 
-    MPI_Barrier(MPI_COMM_WORLD);
-
     spo_clean(count, subjects, subject_lens, predicates, predicate_lens, objects, object_lens);
+
+    MPI_Barrier(MPI_COMM_WORLD);
 
     hxhimClose(&hx);
     MPI_Finalize();

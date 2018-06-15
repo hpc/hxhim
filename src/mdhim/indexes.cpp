@@ -1,10 +1,13 @@
 #include <cctype>
 #include <cinttypes>
 #include <climits>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
+#include <fstream>
+#include <limits>
 #include <pthread.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -29,72 +32,18 @@ int im_range_server(index_t *index) {
 }
 
 /**
- * open_manifest
- * Opens the manifest file
+ * get_manifest_name
+ * returns a pointer to the manifest name
  *
  * @param md       Pointer to the main MDHIM structure
- * @param flags    Flags to open the file with
+ * @param index    the index to write
  */
-int open_manifest(mdhim_t *md, index_t *index, int flags) {
-    int fd;
-    char path[PATH_MAX];
-
-    sprintf(path, "%s%d_%d_%d", md->p->db_opts->manifest_path, index->type,
-        index->id, md->rank);
-    fd = open(path, flags, 00600);
-    if (fd < 0) {
-        mlog(MDHIM_SERVER_DBG, "Rank %d - Error opening manifest file",
-           md->rank);
+char *get_manifest_name(mdhim_t *md, index_t *index) {
+    char *path = new char[PATH_MAX]();
+    if (path) {
+        sprintf(path, "%s%d_%d_%d", md->p->db_opts->manifest_path, index->type, index->id, md->rank);
     }
-
-    return fd;
-}
-
-/**
- * write_integral
- * Write an integral value into a file descriptor in big endian
- *
- * @param fd   the file descriptor to write to
- * @param val  the value to write
- * @param size the number of bytes to write
- * @param the number of bytes written, or -1 on error
- */
-template<typename Z, typename = std::enable_if_t<std::is_integral<Z>::value> >
-int write_integral(const int fd, Z val, const std::size_t size = sizeof(Z)) {
-    std::string str(size, '\x00');
-
-    std::size_t i = size;
-    while (val && i) {
-        str[--i] = val & 0xff;
-        val >>= 8;
-    }
-
-    return write(fd, (unsigned char *) str.c_str(), size);
-}
-
-/**
- * read_integral
- * Read an integral value from a file descriptor (big endian)
- *
- * @param fd   the file descriptor to read to
- * @param val  the value to read
- * @param size the number of bytes to read
- * @param the number of bytes read, or -1 on error
- */
-template<typename Z, typename = std::enable_if_t<std::is_integral<Z>::value> >
-int read_integral(const int fd, Z &val, const std::size_t size = sizeof(Z)) {
-    std::string str(size, '\x00');
-
-    for(std::size_t i = 0; i < size; i++) {
-        unsigned char c;
-        if (read(fd, &c, 1) != 1) {
-            return -1;
-        }
-
-        val = (val << 8) | c;
-    }
-
-    return size;
+    return path;
 }
 
 /**
@@ -110,22 +59,32 @@ static void write_manifest(mdhim_t *md, index_t *index) {
         return;
     }
 
-    int fd;
-    if ((fd = open_manifest(md, index, O_RDWR | O_CREAT | O_TRUNC)) < 0) {
+    const char *manifest_name = get_manifest_name(md, index);
+    if (!manifest_name) {
+        mlog(MDHIM_SERVER_CRIT, "Rank %d - Error getting manifest file name",
+             md->rank);
+        return;
+    }
+
+    std::ofstream manifest(manifest_name);
+    delete [] manifest_name;
+    if (!manifest) {
         mlog(MDHIM_SERVER_CRIT, "Rank %d - Error opening manifest file",
              md->rank);
         return;
     }
 
-    if ((write_integral(fd, index->key_type,                                                                8) < 0) ||
-        (write_integral(fd, index->db_type,                                                                 8) < 0) ||
-        (write_integral(fd, get_num_databases(md->size, index->range_server_factor, index->dbs_per_server), 8) < 0) ||
-        (write_integral(fd, index->slice_size,                                                              8) < 0)) {
+    if (!(manifest
+          << index->key_type << std::endl
+          << index->db_type << std::endl
+          << get_num_databases(md->size, index->range_server_factor, index->dbs_per_server) << std::endl
+          << index->slice_size << std::endl
+          << md->p->db_opts->histogram.min << std::endl
+          << md->p->db_opts->histogram.step_size << std::endl
+          << md->p->db_opts->histogram.count << std::endl)) {
         mlog(MDHIM_SERVER_CRIT, "Rank %d - Error writing manifest file",
              md->rank);
     }
-
-    close(fd);
 }
 
 /**
@@ -136,19 +95,27 @@ static void write_manifest(mdhim_t *md, index_t *index) {
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
 static int read_manifest(mdhim_t *md, index_t *index) {
-    int fd;
-    if ((fd = open_manifest(md, index, O_RDWR)) < 0) {
-        mlog(MDHIM_SERVER_DBG, "Rank %d - Couldn't open manifest file",
+    const char *manifest_name = get_manifest_name(md, index);
+    if (!manifest_name) {
+        mlog(MDHIM_SERVER_CRIT, "Rank %d - Error getting manifest file name",
+             md->rank);
+        return MDHIM_ERROR;
+    }
+
+    std::ifstream manifest(manifest_name);
+    delete [] manifest_name;
+    if (!manifest) {
+        mlog(MDHIM_SERVER_DBG, "Rank %d - Error opening manifest file",
              md->rank);
         return MDHIM_SUCCESS;
     }
 
     int key_type, db_type, databases;
     uint64_t slice_size;
-    if ((read_integral(fd, key_type,   8) < 0) ||
-        (read_integral(fd, db_type,    8) < 0) ||
-        (read_integral(fd, databases,  8) < 0) ||
-        (read_integral(fd, slice_size, 8) < 0)) {
+    long double hist_min, hist_step;
+    std::size_t hist_count;
+    if (!(manifest >> key_type >> db_type >> databases >> slice_size
+                   >> hist_min >> hist_step >> hist_count)) {
         mlog(MDHIM_SERVER_CRIT, "Rank %d - Couldn't read manifest file",
              md->rank);
         return MDHIM_ERROR;
@@ -182,7 +149,7 @@ static int read_manifest(mdhim_t *md, index_t *index) {
         ret = MDHIM_ERROR;
     }
 
-    // the current number of databases should be at least as many as the previous size
+    // the current number of databases should be the same as the previous size
     const int curr_dbs = get_num_databases(md->size, index->range_server_factor, index->dbs_per_server);
     if (databases != curr_dbs) {
         mlog(MDHIM_SERVER_INFO, "Rank %d - The number of databases in this MDHIM instance (%d)"
@@ -191,7 +158,26 @@ static int read_manifest(mdhim_t *md, index_t *index) {
         ret = MDHIM_ERROR;
     }
 
-    close(fd);
+    if (std::fabs(hist_min - md->p->db_opts->histogram.min) > 1e-6) {
+        mlog(MDHIM_SERVER_INFO, "Rank %d - The histogram minimum value in this MDHIM instance (%Le)"
+             " doesn't match the number used previously (%Le)",
+             md->rank, hist_min, md->p->db_opts->histogram.min);
+        ret = MDHIM_ERROR;
+    }
+
+    if (std::fabs(hist_step - md->p->db_opts->histogram.step_size) > 1e-6) {
+        mlog(MDHIM_SERVER_INFO, "Rank %d - The histogram step size in this MDHIM instance (%Le)"
+             " doesn't match the number used previously (%Le)",
+             md->rank, hist_step, md->p->db_opts->histogram.step_size);
+        ret = MDHIM_ERROR;
+    }
+
+    if (hist_count != md->p->db_opts->histogram.count) {
+        mlog(MDHIM_SERVER_INFO, "Rank %d - The histogram bucket count in this MDHIM instance (%zu)"
+             " doesn't match the number used previously (%zu)",
+             md->rank, hist_count, md->p->db_opts->histogram.count);
+        ret = MDHIM_ERROR;
+    }
     return ret;
 }
 
@@ -205,7 +191,7 @@ static int read_manifest(mdhim_t *md, index_t *index) {
  * @param key_len  the key's length
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-int update_stat(mdhim_t *md, index_t *index, const int rs_idx, void *key, uint32_t key_len) {
+int update_stat(mdhim_t *md, index_t *index, const int rs_idx, void *key, std::size_t key_len) {
     //Acquire the lock to update the stats
     while (pthread_rwlock_wrlock(&index->mdhim_stores[rs_idx]->mdhim_store_stats_lock) == EBUSY) {
         usleep(10);
@@ -242,61 +228,61 @@ int update_stat(mdhim_t *md, index_t *index, const int rs_idx, void *key, uint32
         *(long double *)val2 = *(long double *)val1;
     }
 
-    int slice_num = get_slice_num(index->key_type, index->slice_size, key, key_len);
+    const uint64_t slice_num = get_slice_num(index->key_type, index->slice_size, key, key_len);
 
     mdhim_stat_t *os = nullptr;;
     HASH_FIND_INT(index->mdhim_stores[rs_idx]->mdhim_store_stats, &slice_num, os);
 
-    mdhim_stat *stat = (mdhim_stat*)malloc(sizeof(mdhim_stat_t));
+    mdhim_stat_t *stat = (mdhim_stat_t *)malloc(sizeof(mdhim_stat_t));
     stat->min = val1;
     stat->max = val2;
     stat->num = 1;
     stat->key = slice_num;
     stat->dirty = 1;
+    if (os) {
+        if (float_type) {
+            if (*(long double *)os->min > *(long double *)val1) {
+                free(os->min);
+                stat->min = val1;
+            } else {
+                free(val1);
+                stat->min = os->min;
+            }
 
-    if (float_type && os) {
-        if (*(long double *)os->min > *(long double *)val1) {
-            free(os->min);
-            stat->min = val1;
-        } else {
-            free(val1);
-            stat->min = os->min;
+            if (*(long double *)os->max < *(long double *)val2) {
+                free(os->max);
+                stat->max = val2;
+            } else {
+                free(val2);
+                stat->max = os->max;
+            }
+        }
+        else {
+            if (*(uint64_t *)os->min > *(uint64_t *)val1) {
+                free(os->min);
+                stat->min = val1;
+            } else {
+                free(val1);
+                stat->min = os->min;
+            }
+
+            if (*(uint64_t *)os->max < *(uint64_t *)val2) {
+                free(os->max);
+                stat->max = val2;
+            } else {
+                free(val2);
+                stat->max = os->max;
+            }
         }
 
-        if (*(long double *)os->max < *(long double *)val2) {
-            free(os->max);
-            stat->max = val2;
-        } else {
-            free(val2);
-            stat->max = os->max;
-        }
-    }
-    if (!float_type && os) {
-        if (*(uint64_t *)os->min > *(uint64_t *)val1) {
-            free(os->min);
-            stat->min = val1;
-        } else {
-            free(val1);
-            stat->min = os->min;
-        }
-
-        if (*(uint64_t *)os->max < *(uint64_t *)val2) {
-            free(os->max);
-            stat->max = val2;
-        } else {
-            free(val2);
-            stat->max = os->max;
-        }
-    }
-
-    if (!os) {
-        HASH_ADD_INT(index->mdhim_stores[rs_idx]->mdhim_store_stats, key, stat);
-    } else {
         stat->num = os->num + 1;
         //Replace the existing stat
         HASH_REPLACE_INT(index->mdhim_stores[rs_idx]->mdhim_store_stats, key, stat, os);
         // do not free os->min and os->max here
         free(os);
+    }
+    else {
+        HASH_ADD_INT(index->mdhim_stores[rs_idx]->mdhim_store_stats, key, stat);
     }
 
     //Release the stats lock
@@ -315,23 +301,24 @@ int update_stat(mdhim_t *md, index_t *index, const int rs_idx, void *key, uint32
 static int load_stat(mdhim_t *md, index_t *index, const int rs_idx) {
     void **val;
     std::size_t *val_len, *key_len;
-    int **slice;
-    int *old_slice;
+    uint64_t **slice;
+    uint64_t *old_slice;
     mdhim_stat_t *stat;
     int float_type = 0;
     void *min, *max;
     int done = 0;
 
     float_type = is_float_key(index->key_type);
-    slice = (int**)malloc(sizeof(int *));
+    slice = (uint64_t**)malloc(sizeof(uint64_t *));
     *slice = nullptr;
     key_len = (std::size_t*)malloc(sizeof(std::size_t));
-    *key_len = sizeof(std::size_t);
+    *key_len = sizeof(**slice);
     // BWS This line looks like it was bugged, fixing it without a test
     val = (void**)malloc(sizeof(mdhim_db_stat_t*));
     val_len = (std::size_t*)malloc(sizeof(std::size_t));
     old_slice = nullptr;
     index->mdhim_stores[rs_idx]->mdhim_store_stats = nullptr;
+
     while (!done) {
         //Check the db for the key/value
         *val = nullptr;
@@ -343,6 +330,7 @@ static int load_stat(mdhim_t *md, index_t *index, const int rs_idx) {
         //Add the stat to the hash table - the value is 0 if the key was not in the db
         if (!*val || !*val_len) {
             done = 1;
+            free(*val);
             continue;
         }
 
@@ -351,7 +339,7 @@ static int load_stat(mdhim_t *md, index_t *index, const int rs_idx) {
             old_slice = nullptr;
         }
 
-        mlog(MDHIM_SERVER_DBG, "Rank %d - Loaded stat for slice: %d with "
+        mlog(MDHIM_SERVER_CRIT, "Rank %d - Loaded stat for slice: %" PRIu64 " with "
              "imin: %lu and imax: %lu, dmin: %Lf, dmax: %Lf, and num: %lu",
              md->rank, **slice, (*(mdhim_db_stat_t **)val)->imin,
              (*(mdhim_db_stat_t **)val)->imax, (*(mdhim_db_stat_t **)val)->dmin,
@@ -383,6 +371,7 @@ static int load_stat(mdhim_t *md, index_t *index, const int rs_idx) {
     if (old_slice) {
         free(old_slice);
     }
+
     free(val);
     free(val_len);
     free(key_len);
@@ -400,19 +389,15 @@ static int load_stat(mdhim_t *md, index_t *index, const int rs_idx) {
  * @param rs_idx   the range server index
  * @return MDHIM_SUCCESS or MDHIM_ERROR on error
  */
-static int write_stat(mdhim_t *md, index_t *bi, const int rs_idx) {
+int write_stat(mdhim_t *md, index_t *bi, const int rs_idx) {
     mdhim_stat_t *stat, *tmp;
     mdhim_db_stat_t *dbstat;
     int float_type = is_float_key(bi->key_type);
 
     //Iterate through the stat hash entries
     HASH_ITER(hh, bi->mdhim_stores[rs_idx]->mdhim_store_stats, stat, tmp) {
-        if (!stat) {
+        if (!stat || !stat->dirty) {
             continue;
-        }
-
-        if (!stat->dirty) {
-            goto free_stat;
         }
 
         dbstat = (mdhim_db_stat_t*)calloc(1, sizeof(mdhim_db_stat_t));
@@ -436,12 +421,6 @@ static int write_stat(mdhim_t *md, index_t *bi, const int rs_idx) {
                                      sizeof(mdhim_db_stat_t));
         //Delete and free hash entry
         free(dbstat);
-
-    free_stat:
-        HASH_DEL(bi->mdhim_stores[rs_idx]->mdhim_store_stats, stat);
-        free(stat->max);
-        free(stat->min);
-        free(stat);
     }
 
     return MDHIM_SUCCESS;
@@ -647,6 +626,9 @@ index_t *create_local_index(mdhim_t *md, int db_type, int key_type, const char *
         MPI_Abort(md->comm, 0);
     }
 
+    // allocate space for the histogram
+    li->histogram = new std::size_t[md->p->db_opts->histogram.count + 1]();
+
     //Open the data store
     if (open_db_stores(md, (index_t *) li) != MDHIM_SUCCESS) {
         mlog(MDHIM_CLIENT_CRIT, "Rank %d - Error opening data store for index: %d",
@@ -775,6 +757,9 @@ index_t *create_global_index(mdhim_t *md, int server_factor,
              md->rank);
         MPI_Abort(md->comm, 0);
     }
+
+    // allocate space for the histogram
+    gi->histogram = new std::size_t[md->p->db_opts->histogram.count + 1]();
 
     //Open the data store
     if (open_db_stores(md, (index_t *) gi) != MDHIM_SUCCESS) {
@@ -1039,6 +1024,22 @@ void indexes_release(mdhim_t *md) {
                          md->rank);
                 }
 
+                // free stats from memory
+                mdhim_stat_t *stat, *tmp;
+                HASH_ITER(hh, cur_indx->mdhim_stores[i]->mdhim_store_stats, stat, tmp) {
+                    if (!stat) {
+                        continue;
+                    }
+
+                    HASH_DEL(cur_indx->mdhim_stores[i]->mdhim_store_stats, stat);
+                    free(stat->max);
+                    free(stat->min);
+                    free(stat);
+                }
+
+                // force the database to flush
+                cur_indx->mdhim_stores[i]->commit(cur_indx->mdhim_stores[i]->db_stats);
+
                 //Close the database
                 if (cur_indx->mdhim_stores[i]->close(cur_indx->mdhim_stores[i]->db_handle,
                                                      cur_indx->mdhim_stores[i]->db_stats)
@@ -1050,6 +1051,7 @@ void indexes_release(mdhim_t *md) {
                 pthread_rwlock_destroy(&cur_indx->mdhim_stores[i]->mdhim_store_stats_lock);
                 free(cur_indx->mdhim_stores[i]);
             }
+            delete [] cur_indx->histogram;
             delete [] cur_indx->mdhim_stores;
             if (cur_indx->type != LOCAL_INDEX) {
                 MPI_Comm_free(&cur_indx->rs_comm);

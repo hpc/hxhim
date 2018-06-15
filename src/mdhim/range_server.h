@@ -38,8 +38,8 @@ typedef struct mdhim_rs {
     pthread_mutex_t stat_mutex;
     long double put_time; // seconds
     long double get_time; // seconds
-    size_t num_puts;
-    size_t num_gets;
+    std::size_t num_puts;
+    std::size_t num_gets;
 
     out_req_t *out_req_list;
     pthread_mutex_t out_req_mutex;
