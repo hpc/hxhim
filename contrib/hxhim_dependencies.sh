@@ -21,7 +21,6 @@
 #     CCI (optional)
 #     mercury
 #     argobots
-#     abt-snoozer
 #     margo
 #     thallium
 #
@@ -180,27 +179,6 @@ function argobots() {
     PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$install_dir/lib/pkgconfig
 }
 
-function abt-snoozer() {
-    name=abt-snoozer
-    if [[ ! -d "$name" ]]; then
-        git clone https://xgitlab.cels.anl.gov/sds/abt-snoozer.git $name
-    fi
-
-    check_autoconf
-
-    cd $name
-    ./prepare.sh
-    mkdir -p build
-    cd build
-    install_dir=$PREFIX/$name
-    CC=clang CXX=clang++ PKG_CONFIG_PATH=$PKG_CONFIG_PATH ../configure --prefix=$install_dir
-    make -j ${PROCS}
-    make -j ${PROCS} install
-    cd ../..
-
-    PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$install_dir/lib/pkgconfig
-}
-
 function check_libtool_ltdl() {
     check_package libtool-ltdl-devel
 }
@@ -210,7 +188,6 @@ function margo() {
     check_libtool_ltdl
 
     argobots
-    abt-snoozer
     mercury
 
     name=margo

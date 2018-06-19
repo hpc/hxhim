@@ -3,7 +3,7 @@ FROM fedora:latest
 ENV SWHOME=/install
 ENV MPI_INSTALL=$SWHOME/mpich-3.2.1
 ENV PATH=$PATH:$MPI_INSTALL/bin
-ENV PKG_CONFIG_PATH=$SWHOME/cci/lib/pkgconfig:$SWHOME/argobots/lib/pkgconfig:$SWHOME/abt-snoozer/lib/pkgconfig:$SWHOME/mercury/lib/pkgconfig:$SWHOME/margo/lib/pkgconfig:$SWHOME/leveldb/lib64:$SWHOME/thallium/lib/pkgconfig:$MPI_INSTALL/lib/pkgconfig
+ENV PKG_CONFIG_PATH=$SWHOME/cci/lib/pkgconfig:$SWHOME/argobots/lib/pkgconfig:$SWHOME/mercury/lib/pkgconfig:$SWHOME/margo/lib/pkgconfig:$SWHOME/leveldb/lib64:$SWHOME/thallium/lib/pkgconfig:$MPI_INSTALL/lib/pkgconfig
 
 ADD contrib/hxhim_dependencies.sh hxhim_dependencies.sh
 
