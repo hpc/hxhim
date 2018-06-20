@@ -9,11 +9,12 @@
 #include "elen.h"
 #include "hxhim.h"
 
+#define BUF_SIZE 100
+
 const double MIN_DOUBLE = -100;
 const double MAX_DOUBLE = 100;
 
 const char NAME_FMT[]   = "cell-%zu";
-const size_t BUF_SIZE   = 100;
 const char X[]          = "x";
 const char Y[]          = "y";
 const char TEMP[]       = "TEMP";
