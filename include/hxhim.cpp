@@ -324,16 +324,16 @@ hxhim::Return *hxhim::FlushPuts(hxhim_t *hx) {
     hxhim::Return head(hxhim_work_op::HXHIM_NOP, nullptr);
     hxhim::Return *res = &head;
 
-    static const std::size_t multiplier = 6;
+    static const std::size_t multiplier = 4;
     while (puts.size()) {
         // Generate up to 1 MAX_BULK_OPS worth of data
         const std::size_t count = std::min(puts.size(), (std::size_t) HXHIM_MAX_BULK_PUT_OPS);
-        const std::size_t hexcount = multiplier * count;
+        const std::size_t total = multiplier * count;
 
-        void **keys = new void *[hexcount]();
-        std::size_t *key_lens = new std::size_t[hexcount]();
-        void **values = new void *[hexcount]();
-        std::size_t *value_lens = new std::size_t[hexcount]();
+        void **keys = new void *[total]();
+        std::size_t *key_lens = new std::size_t[total]();
+        void **values = new void *[total]();
+        std::size_t *value_lens = new std::size_t[total]();
 
         if (keys   && key_lens   &&
             values && value_lens) {
@@ -362,22 +362,22 @@ hxhim::Return *hxhim::FlushPuts(hxhim_t *hx) {
                 value_lens[offset] = put.subject_len;
                 offset++;
 
-                sp_to_key(put.object,    put.object_len,    put.subject,   put.subject_len,   &keys[offset], &key_lens[offset]);
-                values[offset] = put.predicate;
-                value_lens[offset] = put.predicate_len;
-                offset++;
+                // sp_to_key(put.object,    put.object_len,    put.subject,   put.subject_len,   &keys[offset], &key_lens[offset]);
+                // values[offset] = put.predicate;
+                // value_lens[offset] = put.predicate_len;
+                // offset++;
 
-                sp_to_key(put.object,    put.object_len,    put.predicate, put.predicate_len, &keys[offset], &key_lens[offset]);
-                values[offset] = put.subject;
-                value_lens[offset] = put.subject_len;
-                offset++;
+                // sp_to_key(put.object,    put.object_len,    put.predicate, put.predicate_len, &keys[offset], &key_lens[offset]);
+                // values[offset] = put.subject;
+                // value_lens[offset] = put.subject_len;
+                // offset++;
 
                 puts.pop_front();
             }
 
-            res = res->Next(new hxhim::Return(hxhim_work_op::HXHIM_PUT, mdhim::BPut(hx->p->md, nullptr, keys, key_lens, values, value_lens, hexcount)));
+            res = res->Next(new hxhim::Return(hxhim_work_op::HXHIM_PUT, mdhim::BPut(hx->p->md, nullptr, keys, key_lens, values, value_lens, total)));
 
-            for(std::size_t i = 0; i < hexcount; i++) {
+            for(std::size_t i = 0; i < total; i++) {
                 ::operator delete(keys[i]);
             }
         }
