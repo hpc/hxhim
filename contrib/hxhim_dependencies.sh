@@ -162,11 +162,10 @@ function argobots() {
 
     name=argobots
     if [[ ! -d "$name" ]]; then
-        git clone https://github.com/carns/argobots.git $name
+        git clone https://github.com/pmodels/argobots.git $name
     fi
 
     cd $name
-    git checkout dev-get-dev-basic
     ./autogen.sh
     mkdir -p build
     cd build
