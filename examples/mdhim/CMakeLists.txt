@@ -22,8 +22,8 @@ INSTALL(TARGETS mdhim-cli DESTINATION bin/mdhim)
 configure_file(generate_kv_pairs.sh ${CMAKE_CURRENT_BINARY_DIR}/generate_kv_pairs.sh COPYONLY)
 INSTALL(PROGRAMS generate_kv_pairs.sh DESTINATION bin/mdhim)
 
-configure_file(generate_commands.sh ${CMAKE_CURRENT_BINARY_DIR}/random.sh COPYONLY)
-INSTALL(PROGRAMS random.sh DESTINATION bin/mdhim)
+configure_file(generate_commands.sh ${CMAKE_CURRENT_BINARY_DIR}/generate_commands.sh COPYONLY)
+INSTALL(PROGRAMS generate_commands.sh DESTINATION bin/mdhim)
 
 configure_file(different_num_processes.sh ${CMAKE_CURRENT_BINARY_DIR}/different_num_processes.sh COPYONLY)
 INSTALL(PROGRAMS different_num_processes.sh DESTINATION bin/mdhim)

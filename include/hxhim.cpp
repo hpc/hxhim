@@ -57,15 +57,15 @@ int hxhim::Close(hxhim_t *hx) {
         return HXHIM_ERROR;
     }
 
-    // clear out unsent work in the work queue
-    hx->p->puts.data.clear();
-    hx->p->gets.data.clear();
-    hx->p->getops.data.clear();
-    hx->p->dels.data.clear();
-    hx->p->unsafe_puts.data.clear();
-    hx->p->unsafe_gets.data.clear();
-    hx->p->unsafe_getops.data.clear();
-    hx->p->unsafe_dels.data.clear();
+    // clear out unflushed work in the work queue
+    hxhim::clean(hx->p->puts.head);
+    hxhim::clean(hx->p->gets.head);
+    hxhim::clean(hx->p->getops.head);
+    hxhim::clean(hx->p->deletes.head);
+    hxhim::clean(hx->p->unsafe_puts.head);
+    hxhim::clean(hx->p->unsafe_gets.head);
+    hxhim::clean(hx->p->unsafe_getops.head);
+    hxhim::clean(hx->p->unsafe_deletes.head);
 
     // clean up mdhim
     if (hx->p->md) {
@@ -202,7 +202,7 @@ hxhim::Return *hxhim::FlushAllGets(hxhim_t *hx) {
 }
 
 /**
- * FlushAllGets
+ * hxhimFlushAllGets
  * Flushes all queued safe and unsafe GETs
  * The internal queues are cleared, even on error
  *
@@ -232,7 +232,7 @@ hxhim::Return *hxhim::FlushAllGetOps(hxhim_t *hx) {
 }
 
 /**
- * FlushAllGetOps
+ * hxhimFlushAllGetOps
  * Flushes all queued safe and unsafe GETs
  * The internal queues are cleared, even on error
  *
@@ -262,7 +262,7 @@ hxhim::Return *hxhim::FlushAllDeletes(hxhim_t *hx) {
 }
 
 /**
- * FlushAllDeletes
+ * hxhimFlushAllDeletes
  * Flushes all queued safe and unsafe DELs
  * The internal queues are cleared, even on error
  *
@@ -298,7 +298,7 @@ hxhim::Return *hxhim::FlushAll(hxhim_t *hx) {
 }
 
 /**
- * FlushAll
+ * hxhimFlushAll
  * Flushes all queued safe and unsafe work
  * The internal queues are cleared, even on error
  *
@@ -318,87 +318,129 @@ hxhim_return_t *hxhimFlushAll(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Return *hxhim::FlushPuts(hxhim_t *hx) {
-    std::lock_guard<std::mutex> lock(hx->p->puts.mutex);
-    std::list<hxhim::spo_t> &puts = hx->p->puts.data;
+    hxhim::Batch<hxhim::PutData> &puts = hx->p->puts;
+    std::lock_guard<std::mutex> lock(puts.mutex);
+
+    hxhim::PutData *curr = puts.head;
+    if (!curr) {
+        return HXHIM_SUCCESS;
+    }
 
     hxhim::Return head(hxhim_work_op::HXHIM_NOP, nullptr);
     hxhim::Return *res = &head;
 
+    void **keys = nullptr;
+    std::size_t *key_lens = nullptr;
+    void **values = nullptr;
+    std::size_t *value_lens = nullptr;
+    std::size_t offset = 0;
+
     static const std::size_t multiplier = 4;
-    while (puts.size()) {
+
+    // write complete batches
+    while (curr->next) {
         // Generate up to 1 MAX_BULK_OPS worth of data
-        const std::size_t count = std::min(puts.size(), (std::size_t) HXHIM_MAX_BULK_PUT_OPS);
-        const std::size_t total = multiplier * count;
+        static const std::size_t total = multiplier * HXHIM_MAX_BULK_PUT_OPS;
 
-        void **keys = new void *[total]();
-        std::size_t *key_lens = new std::size_t[total]();
-        void **values = new void *[total]();
-        std::size_t *value_lens = new std::size_t[total]();
+        keys = new void *[total]();
+        key_lens = new std::size_t[total]();
+        values = new void *[total]();
+        value_lens = new std::size_t[total]();
 
-        if (keys   && key_lens   &&
-            values && value_lens) {
-            std::size_t offset = 0;
-            for(std::size_t i = 0; i < count; i++) {
-                // generate the 6 different permutations of the subject-predicate-object triple
-                const hxhim::spo_t &put = puts.front();
+        offset = 0;
+        for(std::size_t i = 0; i < HXHIM_MAX_BULK_PUT_OPS; i++) {
+            sp_to_key(curr->subjects[i], curr->subject_lens[i], curr->predicates[i], curr->predicate_lens[i], &keys[offset], &key_lens[offset]);
+            values[offset] = curr->objects[i];
+            value_lens[offset] = curr->object_lens[i];
+            offset++;
 
-                sp_to_key(put.subject,   put.subject_len,   put.predicate, put.predicate_len, &keys[offset], &key_lens[offset]);
-                values[offset] = put.object;
-                value_lens[offset] = put.object_len;
-                offset++;
+            sp_to_key(curr->subjects[i], curr->subject_lens[i], curr->objects[i], curr->object_lens[i], &keys[offset], &key_lens[offset]);
+            values[offset] = curr->predicates[i];
+            value_lens[offset] = curr->predicate_lens[i];
+            offset++;
 
-                sp_to_key(put.subject,   put.subject_len,   put.object,    put.object_len,    &keys[offset], &key_lens[offset]);
-                values[offset] = put.predicate;
-                value_lens[offset] = put.predicate_len;
-                offset++;
+            sp_to_key(curr->predicates[i], curr->predicate_lens[i], curr->objects[i], curr->object_lens[i], &keys[offset], &key_lens[offset]);
+            values[offset] = curr->subjects[i];
+            value_lens[offset] = curr->subject_lens[i];
+            offset++;
 
-                sp_to_key(put.predicate, put.predicate_len, put.subject,   put.subject_len,   &keys[offset], &key_lens[offset]);
-                values[offset] = put.object;
-                value_lens[offset] = put.object_len;
-                offset++;
-
-                sp_to_key(put.predicate, put.predicate_len, put.object,    put.object_len,    &keys[offset], &key_lens[offset]);
-                values[offset] = put.subject;
-                value_lens[offset] = put.subject_len;
-                offset++;
-
-                // sp_to_key(put.object,    put.object_len,    put.subject,   put.subject_len,   &keys[offset], &key_lens[offset]);
-                // values[offset] = put.predicate;
-                // value_lens[offset] = put.predicate_len;
-                // offset++;
-
-                // sp_to_key(put.object,    put.object_len,    put.predicate, put.predicate_len, &keys[offset], &key_lens[offset]);
-                // values[offset] = put.subject;
-                // value_lens[offset] = put.subject_len;
-                // offset++;
-
-                puts.pop_front();
-            }
-
-            res = res->Next(new hxhim::Return(hxhim_work_op::HXHIM_PUT, mdhim::BPut(hx->p->md, nullptr, keys, key_lens, values, value_lens, total)));
-
-            for(std::size_t i = 0; i < total; i++) {
-                ::operator delete(keys[i]);
-            }
+            sp_to_key(curr->predicates[i], curr->predicate_lens[i], curr->subjects[i], curr->subject_lens[i], &keys[offset], &key_lens[offset]);
+            values[offset] = curr->objects[i];
+            value_lens[offset] = curr->object_lens[i];
+            offset++;
         }
-        else {
-            for(std::size_t i = 0; i < count; i++) {
-                puts.pop_front();
-            }
-        }
+
+        // PUT the batch
+        res = res->Next(new hxhim::Return(hxhim_work_op::HXHIM_PUT, mdhim::BPut(hx->p->md, nullptr, keys, key_lens, values, value_lens, total)));
 
         // cleanup
+        for(std::size_t i = 0; i < total; i++) {
+            ::operator delete(keys[i]);
+        }
         delete [] keys;
         delete [] key_lens;
         delete [] values;
         delete [] value_lens;
+
+        // go to the next batch
+        hxhim::PutData *next = curr->next;
+        delete curr;
+        curr = next;
     }
+
+    // write final (likely incomplete) batch
+    const std::size_t total = multiplier * puts.last_count;
+
+    keys = new void *[total]();
+    key_lens = new std::size_t[total]();
+    values = new void *[total]();
+    value_lens = new std::size_t[total]();
+
+    offset = 0;
+    for(std::size_t i = 0; i < puts.last_count; i++) {
+        sp_to_key(curr->subjects[i], curr->subject_lens[i], curr->predicates[i], curr->predicate_lens[i], &keys[offset], &key_lens[offset]);
+        values[offset] = curr->objects[i];
+        value_lens[offset] = curr->object_lens[i];
+        offset++;
+
+        sp_to_key(curr->subjects[i], curr->subject_lens[i], curr->objects[i], curr->object_lens[i], &keys[offset], &key_lens[offset]);
+        values[offset] = curr->predicates[i];
+        value_lens[offset] = curr->predicate_lens[i];
+        offset++;
+
+        sp_to_key(curr->predicates[i], curr->predicate_lens[i], curr->objects[i], curr->object_lens[i], &keys[offset], &key_lens[offset]);
+        values[offset] = curr->subjects[i];
+        value_lens[offset] = curr->subject_lens[i];
+        offset++;
+
+        sp_to_key(curr->predicates[i], curr->predicate_lens[i], curr->subjects[i], curr->subject_lens[i], &keys[offset], &key_lens[offset]);
+        values[offset] = curr->objects[i];
+        value_lens[offset] = curr->object_lens[i];
+        offset++;
+    }
+
+    // PUT the batch
+    res = res->Next(new hxhim::Return(hxhim_work_op::HXHIM_PUT, mdhim::BPut(hx->p->md, nullptr, keys, key_lens, values, value_lens, total)));
+
+    // cleanup
+    for(std::size_t i = 0; i < total; i++) {
+        ::operator delete(keys[i]);
+    }
+    delete [] keys;
+    delete [] key_lens;
+    delete [] values;
+    delete [] value_lens;
+
+    // delete the last batch
+    delete curr;
+
+    puts.head = puts.tail = nullptr;
 
     return hxhim::return_results(head);
 }
 
 /**
- * FlushPuts
+ * hxhimFlushPuts
  * Flushes all queued PUTs
  * The internal queue is cleared, even on error
  *
@@ -418,58 +460,73 @@ hxhim_return_t *hxhimFlushPuts(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Return *hxhim::FlushGets(hxhim_t *hx) {
-    std::lock_guard<std::mutex> lock(hx->p->gets.mutex);
-    std::list<hxhim::sp_t> &gets = hx->p->gets.data;
+    hxhim::Batch<hxhim::GetData> &gets = hx->p->gets;
+    std::lock_guard<std::mutex> lock(gets.mutex);
+
+    hxhim::GetData *curr = gets.head;
+    if (!curr) {
+        return HXHIM_SUCCESS;
+    }
 
     hxhim::Return head(hxhim_work_op::HXHIM_NOP, nullptr);
     hxhim::Return *res = &head;
 
-    while (gets.size()) {
-        // Process up to 1 MAX_BULK_OPS worth of data
-        std::size_t count = std::min(gets.size(), (std::size_t) HXHIM_MAX_BULK_GET_OPS);
+    void **keys = nullptr;
+    std::size_t *key_lens = nullptr;
 
-        // copy the keys and lengths into arrays
-        void **keys = new void *[count]();
-        std::size_t *key_lens = new std::size_t[count]();
+    // write complete batches
+    while (curr->next) {
+        keys = new void *[HXHIM_MAX_BULK_GET_OPS]();
+        key_lens = new std::size_t[HXHIM_MAX_BULK_GET_OPS]();
 
-        if (keys && key_lens) {
-            for(std::size_t i = 0; i < count; i++) {
-                // convert current subject+predicate into a key
-                void *key = nullptr;
-                std::size_t key_len = 0;
-
-                sp_to_key(gets.front().subject, gets.front().subject_len, gets.front().predicate, gets.front().predicate_len, &key, &key_len);
-
-                // move the constructed key into the buffer
-                keys    [i] = key;
-                key_lens[i] = key_len;
-
-                gets.pop_front();
-            }
-
-            TransportBGetRecvMessage *bgrm = mdhim::BGet(hx->p->md, nullptr, keys, key_lens, count, TransportGetMessageOp::GET_EQ);
-            bgrm->clean = true;
-            res = res->Next(new hxhim::Return(hxhim_work_op::HXHIM_PUT, bgrm));
+        for(std::size_t i = 0; i < HXHIM_MAX_BULK_GET_OPS; i++) {
+            sp_to_key(curr->subjects[i], curr->subject_lens[i], curr->predicates[i], curr->predicate_lens[i], &keys[i], &key_lens[i]);
         }
-        else {
-            for(std::size_t i = 0; i < count; i++) {
-                gets.pop_front();
-            }
-        }
+
+        // GET the batch
+        res = res->Next(new hxhim::Return(hxhim_work_op::HXHIM_GET, mdhim::BGet(hx->p->md, nullptr, keys, key_lens, HXHIM_MAX_BULK_GET_OPS, TransportGetMessageOp::GET_EQ)));
 
         // cleanup
-        for(std::size_t i = 0; i < count; i++) {
+        for(std::size_t i = 0; i < HXHIM_MAX_BULK_GET_OPS; i++) {
             ::operator delete(keys[i]);
         }
         delete [] keys;
         delete [] key_lens;
+
+        // go to the next batch
+        hxhim::GetData *next = curr->next;
+        delete curr;
+        curr = next;
     }
+
+    // write final (likely incomplete) batch
+    keys = new void *[gets.last_count]();
+    key_lens = new std::size_t[gets.last_count]();
+
+    for(std::size_t i = 0; i < gets.last_count; i++) {
+        sp_to_key(curr->subjects[i], curr->subject_lens[i], curr->predicates[i], curr->predicate_lens[i], &keys[i], &key_lens[i]);
+    }
+
+    // GET the batch
+    res = res->Next(new hxhim::Return(hxhim_work_op::HXHIM_GET, mdhim::BGet(hx->p->md, nullptr, keys, key_lens, gets.last_count, TransportGetMessageOp::GET_EQ)));
+
+    // cleanup
+    for(std::size_t i = 0; i < gets.last_count; i++) {
+        ::operator delete(keys[i]);
+    }
+    delete [] keys;
+    delete [] key_lens;
+
+    // delete the last batch
+    delete curr;
+
+    gets.head = gets.tail = nullptr;
 
     return hxhim::return_results(head);
 }
 
 /**
- * FlushGets
+ * hxhimFlushGets
  * Flushes all queued GETs
  * The internal queue is cleared, even on error
  *
@@ -489,31 +546,56 @@ hxhim_return_t *hxhimFlushGets(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Return *hxhim::FlushGetOps(hxhim_t *hx) {
-    std::lock_guard<std::mutex> lock(hx->p->getops.mutex);
-    std::list<hxhim::sp_op_t> &gets = hx->p->getops.data;
+    hxhim::Batch<hxhim::GetOpData> &getops = hx->p->getops;
+    std::lock_guard<std::mutex> lock(getops.mutex);
+
+    hxhim::GetOpData *curr = getops.head;
+    if (!curr) {
+        return HXHIM_SUCCESS;
+    }
 
     hxhim::Return head(hxhim_work_op::HXHIM_NOP, nullptr);
     hxhim::Return *res = &head;
 
-    while (gets.size()) {
-        // convert current subject+predicate into a key
+    // write complete batches
+    while (curr->next) {
+        for(std::size_t i = 0; i < HXHIM_MAX_BULK_GET_OPS; i++) {
+            void *key = nullptr;
+            std::size_t key_len = 0;
+            sp_to_key(curr->subjects[i], curr->subject_lens[i], curr->predicates[i], curr->predicate_lens[i], &key, &key_len);
+
+            // GETOP the key
+            res = res->Next(new hxhim::Return(hxhim_work_op::HXHIM_GET, mdhim::BGetOp(hx->p->md, nullptr, key, key_len, HXHIM_MAX_BULK_GET_OPS, curr->ops[i])));
+            ::operator delete(key);
+        }
+
+        // go to the next batch
+        hxhim::GetOpData *next = curr->next;
+        delete curr;
+        curr = next;
+    }
+
+    // write final (likely incomplete) batch
+    for(std::size_t i = 0; i < getops.last_count; i++) {
         void *key = nullptr;
         std::size_t key_len = 0;
+        sp_to_key(curr->subjects[i], curr->subject_lens[i], curr->predicates[i], curr->predicate_lens[i], &key, &key_len);
 
-        sp_to_key(gets.front().subject, gets.front().subject_len, gets.front().predicate, gets.front().predicate_len, &key, &key_len);
-
-        res = res->Next(new hxhim::Return(hxhim_work_op::HXHIM_GET, mdhim::BGetOp(hx->p->md, nullptr, key, key_len, gets.front().num_records, gets.front().op)));
-
-        // cleanup
+        // GETOP the key
+        res = res->Next(new hxhim::Return(hxhim_work_op::HXHIM_GET, mdhim::BGetOp(hx->p->md, nullptr, key, key_len, getops.last_count, curr->ops[i])));
         ::operator delete(key);
-        gets.pop_front();
     }
+
+    // delete the last batch
+    delete curr;
+
+    getops.head = getops.tail = nullptr;
 
     return hxhim::return_results(head);
 }
 
 /**
- * FlushGetOps
+ * hxhimFlushGetOps
  * Flushes all queued GETs with specific operations
  * The internal queue is cleared, even on error
  *
@@ -533,56 +615,73 @@ hxhim_return_t *hxhimFlushGetOps(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Return *hxhim::FlushDeletes(hxhim_t *hx) {
-    std::lock_guard<std::mutex> lock(hx->p->dels.mutex);
-    std::list<hxhim::sp_t> &dels = hx->p->dels.data;
+    hxhim::Batch<hxhim::DeleteData> &dels = hx->p->deletes;
+    std::lock_guard<std::mutex> lock(dels.mutex);
+
+    hxhim::DeleteData *curr = dels.head;
+    if (!curr) {
+        return HXHIM_SUCCESS;
+    }
 
     hxhim::Return head(hxhim_work_op::HXHIM_NOP, nullptr);
     hxhim::Return *res = &head;
 
-    while (dels.size()) {
-        std::size_t count = std::min(dels.size(), (std::size_t) HXHIM_MAX_BULK_DEL_OPS);
+    void **keys = nullptr;
+    std::size_t *key_lens = nullptr;
 
-        // copy the keys and lengths into arrays
-        void **keys = new void *[count]();
-        std::size_t *key_lens = new std::size_t[count]();
+    // write complete batches
+    while (curr->next) {
+        keys = new void *[HXHIM_MAX_BULK_DEL_OPS]();
+        key_lens = new std::size_t[HXHIM_MAX_BULK_DEL_OPS]();
 
-        if (keys && key_lens) {
-            for(std::size_t i = 0; i < count; i++) {
-                // convert current subject+predicate into a key
-                void *key = nullptr;
-                std::size_t key_len = 0;
-
-                sp_to_key(dels.front().subject, dels.front().subject_len, dels.front().predicate, dels.front().predicate_len, &key, &key_len);
-
-                // move the constructed key into the buffer
-                keys    [i] = key;
-                key_lens[i] = key_len;
-
-                dels.pop_front();
-            }
-
-            res = res->Next(new hxhim::Return(hxhim_work_op::HXHIM_DEL, mdhim::BDelete(hx->p->md, nullptr, keys, key_lens, count)));
-
-            for(std::size_t i = 0; i < count; i++) {
-                ::operator delete(keys[i]);
-            }
+        for(std::size_t i = 0; i < HXHIM_MAX_BULK_DEL_OPS; i++) {
+            sp_to_key(curr->subjects[i], curr->subject_lens[i], curr->predicates[i], curr->predicate_lens[i], &keys[i], &key_lens[i]);
         }
-        else {
-            for(std::size_t i = 0; i < count; i++) {
-                dels.pop_front();
-            }
-        }
+
+        // DEL the batch
+        res = res->Next(new hxhim::Return(hxhim_work_op::HXHIM_DEL, mdhim::BDelete(hx->p->md, nullptr, keys, key_lens, HXHIM_MAX_BULK_DEL_OPS)));
 
         // cleanup
+        for(std::size_t i = 0; i < HXHIM_MAX_BULK_DEL_OPS; i++) {
+            ::operator delete(keys[i]);
+        }
         delete [] keys;
         delete [] key_lens;
+
+        // go to the next batch
+        hxhim::DeleteData *next = curr->next;
+        delete curr;
+        curr = next;
     }
+
+    // write final (likely incomplete) batch
+    keys = new void *[dels.last_count]();
+    key_lens = new std::size_t[dels.last_count]();
+
+    for(std::size_t i = 0; i < dels.last_count; i++) {
+        sp_to_key(curr->subjects[i], curr->subject_lens[i], curr->predicates[i], curr->predicate_lens[i], &keys[i], &key_lens[i]);
+    }
+
+    // DEL the batch
+    res = res->Next(new hxhim::Return(hxhim_work_op::HXHIM_DEL, mdhim::BDelete(hx->p->md, nullptr, keys, key_lens, dels.last_count)));
+
+    // cleanup
+    for(std::size_t i = 0; i < dels.last_count; i++) {
+        ::operator delete(keys[i]);
+    }
+    delete [] keys;
+    delete [] key_lens;
+
+    // delete the last batch
+    delete curr;
+
+    dels.head = dels.tail = nullptr;
 
     return hxhim::return_results(head);
 }
 
 /**
- * FlushDeletes
+ * hxhimFlushDeletes
  * Flushes all queued DELs
  * The internal queue is cleared, even on error
  *
@@ -607,10 +706,10 @@ hxhim::Return *hxhim::Flush(hxhim_t *hx) {
     hxhim::Return head(hxhim_work_op::HXHIM_NOP, nullptr);
     hxhim::Return *curr = &head;
 
-    for(curr = curr->Next(FlushPuts(hx));    curr->Next(); curr = curr->Next());
-    for(curr = curr->Next(FlushGets(hx));    curr->Next(); curr = curr->Next());
-    for(curr = curr->Next(FlushGetOps(hx));  curr->Next(); curr = curr->Next());
-    for(curr = curr->Next(FlushDeletes(hx)); curr->Next(); curr = curr->Next());
+    combine_results(curr, FlushPuts(hx));
+    combine_results(curr, FlushGets(hx));
+    combine_results(curr, FlushGetOps(hx));
+    combine_results(curr, FlushDeletes(hx));
 
     return hxhim::return_results(head);
 }
@@ -650,16 +749,31 @@ int hxhim::Put(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
-    hxhim::spo_t spo;
-    spo.subject = subject;
-    spo.subject_len = subject_len;
-    spo.predicate = predicate;
-    spo.predicate_len = predicate_len;
-    spo.object = object;
-    spo.object_len = object_len;
+    hxhim::Batch<hxhim::PutData> &puts = hx->p->puts;
+    std::lock_guard<std::mutex> lock(puts.mutex);
 
-    std::lock_guard<std::mutex> lock(hx->p->puts.mutex);
-    hx->p->puts.data.emplace_back(spo);
+    // no previous batch
+    if (!puts.tail) {
+        puts.head       = new hxhim::PutData();
+        puts.tail       = puts.head;
+        puts.last_count = 0;
+    }
+
+    // filled the current batch
+    if (puts.last_count == HXHIM_MAX_BULK_PUT_OPS) {
+        puts.tail->next = new hxhim::PutData();
+        puts.tail       = puts.tail->next;
+        puts.last_count = 0;
+    }
+
+    std::size_t &i = puts.last_count;
+    puts.tail->subjects[i] = subject;
+    puts.tail->subject_lens[i] = subject_len;
+    puts.tail->predicates[i] = predicate;
+    puts.tail->predicate_lens[i] = predicate_len;
+    puts.tail->objects[i] = object;
+    puts.tail->object_lens[i] = object_len;
+    i++;
 
     return HXHIM_SUCCESS;
 }
@@ -707,14 +821,30 @@ int hxhim::Get(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
-    hxhim::sp_t sp;
-    sp.subject = subject;
-    sp.subject_len = subject_len;
-    sp.predicate = predicate;
-    sp.predicate_len = predicate_len;
+    hxhim::Batch<hxhim::GetData> &gets = hx->p->gets;
+    std::lock_guard<std::mutex> lock(gets.mutex);
 
-    std::lock_guard<std::mutex> lock(hx->p->gets.mutex);
-    hx->p->gets.data.emplace_back(sp);
+    // no previous batch
+    if (!gets.tail) {
+        gets.head       = new hxhim::GetData();
+        gets.tail       = gets.head;
+        gets.last_count = 0;
+    }
+
+    // filled the current batch
+    if (gets.last_count == HXHIM_MAX_BULK_GET_OPS) {
+        gets.tail->next = new hxhim::GetData();
+        gets.tail       = gets.tail->next;
+        gets.last_count = 0;
+    }
+
+    std::size_t &i = gets.last_count;
+    gets.tail->subjects[i] = subject;
+    gets.tail->subject_lens[i] = subject_len;
+    gets.tail->predicates[i] = predicate;
+    gets.tail->predicate_lens[i] = predicate_len;
+    i++;
+
     return HXHIM_SUCCESS;
 }
 
@@ -757,14 +887,30 @@ int hxhim::Delete(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
-    hxhim::sp_t sp;
-    sp.subject = subject;
-    sp.subject_len = subject_len;
-    sp.predicate = predicate;
-    sp.predicate_len = predicate_len;
+    hxhim::Batch<hxhim::DeleteData> &dels = hx->p->deletes;
+    std::lock_guard<std::mutex> lock(dels.mutex);
 
-    std::lock_guard<std::mutex> lock(hx->p->dels.mutex);
-    hx->p->dels.data.emplace_back(sp);
+    // no previous batch
+    if (!dels.tail) {
+        dels.head       = new hxhim::DeleteData();
+        dels.tail       = dels.head;
+        dels.last_count = 0;
+    }
+
+    // filled the current batch
+    if (dels.last_count == HXHIM_MAX_BULK_DEL_OPS) {
+        dels.tail->next = new hxhim::DeleteData();
+        dels.tail       = dels.tail->next;
+        dels.last_count = 0;
+    }
+
+    std::size_t &i = dels.last_count;
+    dels.tail->subjects[i] = subject;
+    dels.tail->subject_lens[i] = subject_len;
+    dels.tail->predicates[i] = predicate;
+    dels.tail->predicate_lens[i] = predicate_len;
+    i++;
+
     return HXHIM_SUCCESS;
 }
 
@@ -814,16 +960,34 @@ int hxhim::BPut(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
-    std::lock_guard<std::mutex> lock(hx->p->puts.mutex);
-    for(std::size_t i = 0; i < count; i++) {
-        hxhim::spo_t spo;
-        spo.subject = subjects[i];
-        spo.subject_len = subject_lens[i];
-        spo.predicate = predicates[i];
-        spo.predicate_len = predicate_lens[i];
-        spo.object = objects[i];
-        spo.object_len = object_lens[i];
-        hx->p->puts.data.emplace_back(spo);
+    if (count) {
+        hxhim::Batch<hxhim::PutData> &puts = hx->p->puts;
+        std::lock_guard<std::mutex> lock(puts.mutex);
+
+        // no previous batch
+        if (!puts.tail) {
+            puts.head       = new hxhim::PutData();
+            puts.tail       = puts.head;
+            puts.last_count = 0;
+        }
+
+        for(std::size_t c = 0; c < count; c++) {
+            // filled the current batch
+            if (puts.last_count == HXHIM_MAX_BULK_PUT_OPS) {
+                puts.tail->next = new hxhim::PutData();
+                puts.tail       = puts.tail->next;
+                puts.last_count = 0;
+            }
+
+            std::size_t &i = puts.last_count;
+            puts.tail->subjects[i] = subjects[c];
+            puts.tail->subject_lens[i] = subject_lens[c];
+            puts.tail->predicates[i] = predicates[c];
+            puts.tail->predicate_lens[i] = predicate_lens[c];
+            puts.tail->objects[i] = objects[c];
+            puts.tail->object_lens[i] = object_lens[c];
+            i++;
+        }
     }
 
     return HXHIM_SUCCESS;
@@ -864,7 +1028,7 @@ int hxhimBPut(hxhim_t *hx,
  * @param subject_lens  the lengths of the subjects to get
  * @param prediates     the prediates to get
  * @param prediate_lens the lengths of the prediates to get
- * @return A wrapped return value containing responses
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::BGet(hxhim_t *hx,
                 void **subjects, std::size_t *subject_lens,
@@ -876,17 +1040,35 @@ int hxhim::BGet(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
-    std::lock_guard<std::mutex> lock(hx->p->gets.mutex);
-    for(std::size_t i = 0; i < count; i++) {
-        hxhim::sp_t sp;
-        sp.subject = subjects[i];
-        sp.subject_len = subject_lens[i];
-        sp.predicate = predicates[i];
-        sp.predicate_len = predicate_lens[i];
-        hx->p->gets.data.emplace_back(sp);
+    if (count) {
+        hxhim::Batch<hxhim::GetData> &gets = hx->p->gets;
+        std::lock_guard<std::mutex> lock(gets.mutex);
+
+        // no previous batch
+        if (!gets.tail) {
+            gets.head       = new hxhim::GetData();
+            gets.tail       = gets.head;
+            gets.last_count = 0;
+        }
+
+        for(std::size_t c = 0; c < count; c++) {
+            // filled the current batch
+            if (gets.last_count == HXHIM_MAX_BULK_GET_OPS) {
+                gets.tail->next = new hxhim::GetData();
+                gets.tail       = gets.tail->next;
+                gets.last_count = 0;
+            }
+
+            std::size_t &i = gets.last_count;
+            gets.tail->subjects[i] = subjects[c];
+            gets.tail->subject_lens[i] = subject_lens[c];
+            gets.tail->predicates[i] = predicates[c];
+            gets.tail->predicate_lens[i] = predicate_lens[c];
+            i++;
+        }
     }
 
-    return MDHIM_SUCCESS;
+    return HXHIM_SUCCESS;
 }
 
 /**
@@ -901,9 +1083,9 @@ int hxhim::BGet(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimBGet(hxhim_t *hx,
-              void **subjects, size_t *subject_lens,
-              void **predicates, size_t *predicate_lens,
-              size_t count) {
+              void **subjects, std::size_t *subject_lens,
+              void **predicates, std::size_t *predicate_lens,
+              std::size_t count) {
     return hxhim::BGet(hx,
                        subjects, subject_lens,
                        predicates, predicate_lens,
@@ -915,9 +1097,11 @@ int hxhimBGet(hxhim_t *hx,
  * Add a BGET into the work queue
  *
  * @param hx         the HXHIM session
- * @param keys       the keys to bget
- * @param key_lens   the length of the keys to bget
- * @return A wrapped return value containing responses
+ * @param subjects      the subjects to get
+ * @param subject_lens  the lengths of the subjects to get
+ * @param prediates     the prediates to get
+ * @param prediate_lens the lengths of the prediates to get
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::BGetOp(hxhim_t *hx,
                   void *subject, std::size_t subject_len,
@@ -929,18 +1113,32 @@ int hxhim::BGetOp(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
-    hxhim::sp_op_t sp;
-    sp.subject = subject;
-    sp.subject_len = subject_len;
-    sp.predicate = predicate;
-    sp.predicate_len = predicate_len;
-    sp.num_records = num_records;
-    sp.op = op;
+    hxhim::Batch<hxhim::GetOpData> &getops = hx->p->getops;
+    std::lock_guard<std::mutex> lock(getops.mutex);
 
-    std::lock_guard<std::mutex> lock(hx->p->getops.mutex);
-    hx->p->getops.data.emplace_back(sp);
+    // no previous batch
+    if (!getops.tail) {
+        getops.head       = new hxhim::GetOpData();
+        getops.tail       = getops.head;
+        getops.last_count = 0;
+    }
 
-    return MDHIM_SUCCESS;
+    // filled the current batch
+    if (getops.last_count == HXHIM_MAX_BULK_GET_OPS) {
+        getops.tail->next = new hxhim::GetOpData();
+        getops.tail       = getops.tail->next;
+        getops.last_count = 0;
+    }
+
+    std::size_t &i = getops.last_count;
+    getops.tail->subjects[i] = subject;
+    getops.tail->subject_lens[i] = subject_len;
+    getops.tail->predicates[i] = predicate;
+    getops.tail->predicate_lens[i] = predicate_len;
+    getops.tail->ops[i] = op;
+    i++;
+
+    return HXHIM_SUCCESS;
 }
 
 /**
@@ -948,8 +1146,10 @@ int hxhim::BGetOp(hxhim_t *hx,
  * Add a BGET into the work queue
  *
  * @param hx         the HXHIM session
- * @param keys       the keys to bget
- * @param key_lens   the length of the keys to bget
+ * @param subjects      the subjects to get
+ * @param subject_lens  the lengths of the subjects to get
+ * @param prediates     the prediates to get
+ * @param prediate_lens the lengths of the prediates to get
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimBGetOp(hxhim_t *hx,
@@ -983,14 +1183,32 @@ int hxhim::BDelete(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
-    std::lock_guard<std::mutex> lock(hx->p->dels.mutex);
-    for(std::size_t i = 0; i < count; i++) {
-        hxhim::sp_t sp;
-        sp.subject = subjects[i];
-        sp.subject_len = subject_lens[i];
-        sp.predicate = predicates[i];
-        sp.predicate_len = predicate_lens[i];
-        hx->p->dels.data.emplace_back(sp);
+    if (count) {
+        hxhim::Batch<hxhim::DeleteData> &dels = hx->p->deletes;
+        std::lock_guard<std::mutex> lock(dels.mutex);
+
+        // no previous batch
+        if (!dels.tail) {
+            dels.head     = new hxhim::DeleteData();
+            dels.tail     = dels.head;
+            dels.last_count = 0;
+        }
+
+        for(std::size_t c = 0; c < count; c++) {
+            // filled the current batch
+            if (dels.last_count == HXHIM_MAX_BULK_DEL_OPS) {
+                dels.tail->next = new hxhim::DeleteData();
+                dels.tail       = dels.tail->next;
+                dels.last_count = 0;
+            }
+
+            std::size_t &i = dels.last_count;
+            dels.tail->subjects[i] = subjects[c];
+            dels.tail->subject_lens[i] = subject_lens[c];
+            dels.tail->predicates[i] = predicates[c];
+            dels.tail->predicate_lens[i] = predicate_lens[c];
+            i++;
+        }
     }
 
     return HXHIM_SUCCESS;
@@ -1008,9 +1226,9 @@ int hxhim::BDelete(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimBDelete(hxhim_t *hx,
-                 void **subjects, size_t *subject_lens,
-                 void **predicates, size_t *predicate_lens,
-                 size_t count) {
+                 void **subjects, std::size_t *subject_lens,
+                 void **predicates, std::size_t *predicate_lens,
+                 std::size_t count) {
     return hxhim::BDelete(hx,
                           subjects, subject_lens,
                           predicates, predicate_lens,
@@ -1032,7 +1250,7 @@ int hxhimBDelete(hxhim_t *hx,
  * @param get_times      the array of get times from each rank
  * @param get_num_gets   whether or not to get num_gets
  * @param num_gets       the array of number of gets from each rank
- * @return MDHIM_SUCCESS or MDHIM_ERROR
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::GetStats(hxhim_t *hx, const int rank,
                     const bool get_put_times, long double *put_times,
@@ -1047,7 +1265,7 @@ int hxhim::GetStats(hxhim_t *hx, const int rank,
 }
 
 /**
- * mdhimGetStats
+ * hxhimGetStats
  * Collective operation
  * Each desired pointer should be preallocated with space for md->size values
  *
@@ -1061,7 +1279,7 @@ int hxhim::GetStats(hxhim_t *hx, const int rank,
  * @param get_times      the array of get times from each rank
  * @param get_num_gets   whether or not to get num_gets
  * @param num_gets       the array of number of gets from each rank
- * @return MDHIM_SUCCESS or MDHIM_ERROR
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimGetStats(hxhim_t *hx, const int rank,
                   const int get_put_times, long double *put_times,

@@ -1,4 +1,35 @@
+#include <cstring>
+
 #include "triplestore.hpp"
+
+template <typename Z, typename = std::enable_if_t<std::is_unsigned<Z>::value> >
+int encode_unsigned(void *buf, Z val, std::size_t len = sizeof(Z)) {
+    if (!buf) {
+        return HXHIM_ERROR;
+    }
+
+    memset(buf, 0, len);
+    while (val && len) {
+        ((char *) buf)[--len] = val & 0xffU;
+        val >>= 8;
+    }
+
+    return HXHIM_SUCCESS;
+}
+
+template <typename Z, typename = std::enable_if_t<std::is_unsigned<Z>::value> >
+int decode_unsigned(void *buf, Z &val, std::size_t len = sizeof(Z)) {
+    if (!buf) {
+        return HXHIM_ERROR;
+    }
+
+    val = 0;
+    for(std::size_t i = 0; i < len; i++) {
+        val = (val << 8) | ((char *) buf)[i];
+    }
+
+    return HXHIM_SUCCESS;
+}
 
 /**
  * sp_to_key
@@ -21,7 +52,7 @@ int sp_to_key(const void *subject, const std::size_t subject_len,
         return HXHIM_ERROR;
     }
 
-    *key_len = sizeof(subject_len) + subject_len + sizeof(predicate_len) + predicate_len;
+    *key_len = subject_len + predicate_len + sizeof(subject_len) + sizeof(predicate_len);
     if (!(*key = ::operator new(*key_len))) {
         *key_len = 0;
         return HXHIM_ERROR;
@@ -67,7 +98,7 @@ int key_to_sp(const void *key, const std::size_t key_len,
     }
 
     std::size_t sub_len = 0;
-    decode_unsigned((char *) key + key_len - sizeof(std::size_t) - sizeof(std::size_t), sub_len);
+    decode_unsigned((char *) key + key_len - sizeof(*subject_len) - sizeof(*predicate_len), sub_len);
 
     if (subject) {
         *subject = (char *) key;
@@ -78,7 +109,7 @@ int key_to_sp(const void *key, const std::size_t key_len,
     }
 
     std::size_t pred_len = 0;
-    decode_unsigned((char *) key + key_len - sizeof(std::size_t), pred_len);
+    decode_unsigned((char *) key + key_len - sizeof(*predicate_len), pred_len);
 
     if (predicate) {
         *predicate = (char *) key + sub_len;

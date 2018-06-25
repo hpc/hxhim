@@ -1,47 +1,80 @@
 #ifndef HXHIM_PRIVATE_HPP
 #define HXHIM_PRIVATE_HPP
 
-#include <list>
 #include <mutex>
+#include <type_traits>
 
 #include "hxhim-types.h"
 #include "hxhim_work_op.h"
 #include "mdhim.hpp"
 
 namespace hxhim {
+    typedef struct SubjectPredicate {
+        void *subjects[HXHIM_MAX_BULK_OPS];
+        std::size_t subject_lens[HXHIM_MAX_BULK_OPS];
+        void *predicates[HXHIM_MAX_BULK_OPS];
+        std::size_t predicate_lens[HXHIM_MAX_BULK_OPS];
+    } SP_t;
 
-/**
- * Structures for storing data for passing into MDHIM
- */
-typedef struct subject_predicate {
-    void *subject;
-    std::size_t subject_len;
-    void *predicate;
-    std::size_t predicate_len;
-} sp_t;
+    typedef struct SubjectPredicateObject : SP_t {
+        void *objects[HXHIM_MAX_BULK_OPS];
+        std::size_t object_lens[HXHIM_MAX_BULK_OPS];
+    } SPO_t;
 
-typedef struct subject_predicate_object : sp_t {
-    void *object;
-    std::size_t object_len;
-} spo_t;
+    struct UnsafeOp {
+        int databases[HXHIM_MAX_BULK_OPS];
+    };
 
-typedef struct unsafe_subject_predicate : sp_t {
-    int database;
-} unsafe_sp_t;
+    struct PutData : SPO_t {
+        PutData *next;
+    };
 
-typedef struct unsafe_subject_predicate_object : spo_t {
-    int database;
-} unsafe_spo_t;
+    struct GetData : SP_t {
+        GetData *next;
+    };
 
-typedef struct subject_predicate_op : sp_t {
-    enum TransportGetMessageOp op;
-    std::size_t num_records;
-} sp_op_t;
+    struct GetOpData : SP_t {
+        TransportGetMessageOp ops[HXHIM_MAX_BULK_GET_OPS];
+        GetOpData *next;
+    };
 
-typedef struct unsafe_subject_predicate_op : sp_op_t {
-    int database;
-} unsafe_sp_op_t;
+    struct DeleteData : SP_t {
+        DeleteData *next;
+    };
 
+    struct UnsafePutData : SPO_t, UnsafeOp {
+        UnsafePutData *next;
+    };
+
+    struct UnsafeGetData : SP_t, UnsafeOp {
+        UnsafeGetData *next;
+    };
+
+    struct UnsafeGetOpData : SP_t, UnsafeOp {
+        TransportGetMessageOp ops[HXHIM_MAX_BULK_GET_OPS];
+        UnsafeGetOpData *next;
+    };
+
+    struct UnsafeDeleteData : SP_t, UnsafeOp {
+        UnsafeDeleteData *next;
+    };
+
+    template <typename Data, typename = std::is_base_of<SubjectPredicate, Data> >
+    struct Batch {
+        std::mutex mutex;
+        std::size_t last_count;
+        Data *head;
+        Data *tail;
+    };
+
+    template <typename Data, typename = std::is_base_of<SubjectPredicate, Data> >
+    void clean(Data *node) {
+        while (node) {
+            Data *next = node->next;
+            delete node;
+            node = next;
+        }
+    }
 }
 
 #ifdef __cplusplus
@@ -53,46 +86,15 @@ typedef struct hxhim_private {
     mdhim_t *md;
     mdhim_options_t *mdhim_opts;
 
-    // data is stored here until flush is called
-    struct {
-        std::mutex mutex;
-        std::list<hxhim::spo_t> data;
-    } puts;
+    hxhim::Batch<hxhim::PutData> puts;
+    hxhim::Batch<hxhim::GetData> gets;
+    hxhim::Batch<hxhim::GetOpData> getops;
+    hxhim::Batch<hxhim::DeleteData> deletes;
 
-    struct {
-        std::mutex mutex;
-        std::list<hxhim::sp_t> data;
-    } gets;
-
-    struct {
-        std::mutex mutex;
-        std::list<hxhim::sp_op_t> data;
-    } getops;
-
-    struct {
-        std::mutex mutex;
-        std::list<hxhim::sp_t>  data;
-    } dels;
-
-    struct {
-        std::mutex mutex;
-        std::list<hxhim::unsafe_spo_t>  data;
-    } unsafe_puts;
-
-    struct {
-        std::mutex mutex;
-        std::list<hxhim::unsafe_sp_t>  data;
-    } unsafe_gets;
-
-    struct {
-        std::mutex mutex;
-        std::list<hxhim::unsafe_sp_op_t>  data;
-    } unsafe_getops;
-
-    struct {
-        std::mutex mutex;
-        std::list<hxhim::unsafe_sp_t>  data;
-    } unsafe_dels;
+    hxhim::Batch<hxhim::UnsafePutData> unsafe_puts;
+    hxhim::Batch<hxhim::UnsafeGetData> unsafe_gets;
+    hxhim::Batch<hxhim::UnsafeGetOpData> unsafe_getops;
+    hxhim::Batch<hxhim::UnsafeDeleteData> unsafe_deletes;
 } hxhim_private_t;
 
 #ifdef __cplusplus
