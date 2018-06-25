@@ -52,7 +52,7 @@ class ConfigSequence {
         std::size_t add(const std::size_t index, const ConfigReader *reader);
 
         /** @description Call all of the configuration parsing functions in the order they are listed */
-        bool process(Config &config) const;
+        void process(Config &config) const;
 
         /** @description Resets the ConfigSequence for reuse */
         std::size_t reset();
@@ -101,18 +101,34 @@ class ConfigDirectory : public ConfigReader {
 };
 
 /**
- * ConfigEnvironment
+ * ConfigFileEnvironment
  * Attempts to find the file pointed to by a given environment variable
  */
-class ConfigEnvironment : public ConfigReader {
+class ConfigFileEnvironment : public ConfigReader {
     public:
-       ConfigEnvironment(const std::string& variable);
-       ~ConfigEnvironment();
+       ConfigFileEnvironment(const std::string& filename);
+       ~ConfigFileEnvironment();
 
        bool process(Config &config) const;
 
     private:
-        std::string variable_;
+       const std::string filename_;
+};
+
+/**
+ * ConfigVarEnvironment
+ * Attempts to find one configuration variable set as an environment variable
+ */
+class ConfigVarEnvironment : public ConfigReader {
+    public:
+       ConfigVarEnvironment(const std::string &key);
+       ~ConfigVarEnvironment();
+
+       bool process(Config &config) const;
+
+    private:
+
+       const std::string key_;
 };
 
 #endif

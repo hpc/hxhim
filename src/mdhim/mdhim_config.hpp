@@ -138,4 +138,6 @@ const Config MDHIM_DEFAULT_CONFIG = {
  */
 int process_config_and_fill_options(ConfigSequence &config_sequence, mdhim_options_t *opts);
 
+int mdhim_default_config_reader(mdhim_options_t *opts, const MPI_Comm comm, const std::string &config_filename);
+
 #endif

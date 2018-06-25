@@ -349,9 +349,7 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
 int process_config_and_fill_options(ConfigSequence &config_sequence, mdhim_options_t *opts) {
     // Parse the configuration data
     Config config;
-    if (!config_sequence.process(config)) {
-        return MDHIM_ERROR;
-    }
+    config_sequence.process(config);
 
     // fill opts with values from configuration
     return fill_options(config, opts);
@@ -368,25 +366,47 @@ int process_config_and_fill_options(ConfigSequence &config_sequence, mdhim_optio
  * @param comm the bootstrapping communicator
  * @return whether or not configuration was completed
  */
-int mdhim_default_config_reader(mdhim_options_t *opts, const MPI_Comm comm) {
+int mdhim_default_config_reader(mdhim_options_t *opts, const MPI_Comm comm, const std::string &config_filename) {
     ConfigSequence config_sequence;
 
-    // add default search locations in order of preference: environmental variable, file, and directory
-    ConfigEnvironment env(MDHIM_CONFIG_ENV);
-    config_sequence.add(&env);
-
-    ConfigFile file(MDHIM_CONFIG_FILE);
+    // add default search locations in order of preference: filename, file environment variable, environment variable overrides
+    ConfigFile file(config_filename);
     config_sequence.add(&file);
 
-    ConfigDirectory dir(MDHIM_CONFIG_DIR);
-    config_sequence.add(&dir);
+    ConfigFileEnvironment fileenv(MDHIM_CONFIG_ENV);
+    config_sequence.add(&fileenv);
 
+    std::vector<ConfigVarEnvironment *> vars;
+    for(std::pair<const std::string, std::string> const &default_config : MDHIM_DEFAULT_CONFIG) {
+        ConfigVarEnvironment *var = new ConfigVarEnvironment(default_config.first);
+        config_sequence.add(var);
+        vars.push_back(var);
+    }
+
+    int ret = MDHIM_SUCCESS;
     if ((mdhim_options_init(opts, comm, false, false)           != MDHIM_SUCCESS) || // initialize opts->p, opts->p->transport, and opts->p->db
         (fill_options(MDHIM_DEFAULT_CONFIG, opts)               != MDHIM_SUCCESS) || // fill in the configuration with default values
         (process_config_and_fill_options(config_sequence, opts) != MDHIM_SUCCESS)) { // read the configuration and overwrite default values
         mdhim_options_destroy(opts);
-        return MDHIM_ERROR;
+        ret = MDHIM_ERROR;
     }
 
-    return MDHIM_SUCCESS;
+    for(ConfigVarEnvironment *&var : vars) {
+        delete var;
+    }
+
+    return ret;
+}
+
+/**
+ * mdhim_default_config_reader
+ * This is the C version of the function, which does not
+ * allow for the configuration file name to be set.
+ *
+ * @param opts the options to fill
+ * @param comm the bootstrapping communicator
+ * @return whether or not configuration was completed
+ */
+int mdhim_default_config_reader(mdhim_options_t *opts, const MPI_Comm comm) {
+    return mdhim_default_config_reader(opts, comm, MDHIM_CONFIG_FILE);
 }

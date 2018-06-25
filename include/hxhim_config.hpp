@@ -13,6 +13,6 @@
 const std::string HXHIM_CONFIG_FILE = "hxhim.conf";
 const std::string HXHIM_CONFIG_ENV  = "HXHIM_CONFIG";
 
-const std::string MDHIM_CONFIG = "MDHIM_CONFIG"; // file path
+const std::string HXHIM_MDHIM_CONFIG = "MDHIM_CONFIG"; // file path
 
 #endif

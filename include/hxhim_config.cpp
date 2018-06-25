@@ -9,17 +9,13 @@ static int fill_options(hxhim_t *hx, const Config &config, MPI_Comm comm) {
     }
 
     // read the MDHIM configuration
-    Config_it mdhim_config = config.find(MDHIM_CONFIG);
+    Config_it mdhim_config = config.find(HXHIM_MDHIM_CONFIG);
     if (mdhim_config != config.end()) {
         ConfigSequence config_sequence;
 
-        ConfigFile file(mdhim_config->second);
-        config_sequence.add(&file);
-
         // fill in the MDHIM options
-        if (!(hx->p->mdhim_opts = new mdhim_options_t())                                           ||
-            (mdhim_options_init(hx->p->mdhim_opts, comm, false, false)           != MDHIM_SUCCESS) ||
-            (process_config_and_fill_options(config_sequence, hx->p->mdhim_opts) != MDHIM_SUCCESS)) {
+        if (!(hx->p->mdhim_opts = new mdhim_options_t())                                       ||
+            mdhim_default_config_reader(hx->p->mdhim_opts, comm, mdhim_config->second.c_str())) {
             mdhim_options_destroy(hx->p->mdhim_opts);
             delete hx->p->mdhim_opts;
             return HXHIM_ERROR;
@@ -63,9 +59,7 @@ int process_config_and_fill_options(hxhim_t *hx, ConfigSequence &config_sequence
 
     // Parse the configuration data
     Config config;
-    if (!config_sequence.process(config)) {
-        return HXHIM_ERROR;
-    }
+    config_sequence.process(config);
 
     // fill opts with values from configuration
     return fill_options(hx, config, comm);
@@ -89,12 +83,15 @@ int hxhim_default_config_reader(hxhim_t *hx, const MPI_Comm comm) {
 
     ConfigSequence config_sequence;
 
-    // add default search locations in order of preference: environmental variable, file, and directory
-    ConfigEnvironment env(HXHIM_CONFIG_ENV);
-    config_sequence.add(&env);
-
+    // add default search locations in order of preference: default filename, file environment variable, environment variable overrides
     ConfigFile file(HXHIM_CONFIG_FILE);
     config_sequence.add(&file);
+
+    ConfigFileEnvironment fileenv(HXHIM_CONFIG_ENV);
+    config_sequence.add(&fileenv);
+
+    ConfigVarEnvironment mdhim_config(HXHIM_MDHIM_CONFIG);
+    config_sequence.add(&mdhim_config);
 
     if (process_config_and_fill_options(hx, config_sequence, comm) != HXHIM_SUCCESS) { // read the configuration and overwrite default values
         return HXHIM_ERROR;

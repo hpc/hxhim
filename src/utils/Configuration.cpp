@@ -61,22 +61,17 @@ std::size_t ConfigSequence::reset() {
 
 /**
  * Process
- * Try each source until one completes successfully.
- * The configuration is cleared each time.
- * If a pointer is null, it is skipped.
+ * Try each source, overwriting previously set values.
  *
  * @param config the configuration that will be used by the user
- * @return whether or not any of the callbacks returned true
  */
-bool ConfigSequence::process(Config &config) const {
+void ConfigSequence::process(Config &config) const {
+    config.clear();
     for(std::pair<const std::size_t, const ConfigReader *> const &seq : sequence_) {
-        config.clear();
-        if (seq.second && seq.second->process(config)) {
-            return true;
+        if (seq.second) {
+            seq.second->process(config);
         }
     }
-
-    return false;
 }
 
 /**
@@ -127,36 +122,34 @@ bool ConfigFile::process(Config &config) const {
     return ret;
 }
 
-ConfigDirectory::ConfigDirectory(const std::string &directory)
+ConfigFileEnvironment::ConfigFileEnvironment(const std::string& filename)
   : ConfigReader(),
-    directory_(directory)
+    filename_(filename)
 {}
 
-ConfigDirectory::~ConfigDirectory() {}
+ConfigFileEnvironment::~ConfigFileEnvironment() {}
 
-bool ConfigDirectory::process(Config &config) const {
-    DIR *dirp = opendir(directory_.c_str());
-    struct dirent *entry = nullptr;
-    while ((entry = readdir(dirp))) {
-        // do something with the entry
-    }
-    closedir(dirp);
-    return false;
-
-}
-
-ConfigEnvironment::ConfigEnvironment(const std::string& variable)
-  : ConfigReader(),
-    variable_(variable)
-{}
-
-ConfigEnvironment::~ConfigEnvironment() {}
-
-bool ConfigEnvironment::process(Config &config) const {
-    char *env = getenv(variable_.c_str());
+bool ConfigFileEnvironment::process(Config &config) const {
+    char *env = getenv(filename_.c_str());
     if (env) {
         std::ifstream f(env);
         return parse_kv_stream(config, f);
+    }
+    return false;
+}
+
+ConfigVarEnvironment::ConfigVarEnvironment(const std::string &key)
+  : ConfigReader(),
+    key_(key)
+{}
+
+ConfigVarEnvironment::~ConfigVarEnvironment() {}
+
+bool ConfigVarEnvironment::process(Config &config) const {
+    char *env = getenv(key_.c_str());
+    if (env) {
+        config[key_] = env;
+        return true;
     }
     return false;
 }
