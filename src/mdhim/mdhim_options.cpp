@@ -298,13 +298,13 @@ int mdhim_options_set_manifest_path(mdhim_options_t *opts, const char *path) {
         return MDHIM_ERROR;
     }
 
-    const int path_len = strlen(path) + strlen(MANIFEST_FILE_NAME) + 1;
+    const int path_len = strlen(path) + strlen(MANIFEST_FILE_NAME) + 2;
     char *manifest_path = new char[path_len]();
     if (!manifest_path) {
         return MDHIM_ERROR;
     }
 
-    sprintf(manifest_path, "%s%s", path, MANIFEST_FILE_NAME);
+    sprintf(manifest_path, "%s/%s", path, MANIFEST_FILE_NAME);
 
     int ret = update_c_str(manifest_path, &opts->p->db->manifest_path);
     delete [] manifest_path;

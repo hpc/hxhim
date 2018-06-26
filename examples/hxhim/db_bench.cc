@@ -924,6 +924,8 @@ class Benchmark {
       // }
       thread->stats.FinishedSingleOp();
     }
+
+      thread->stats.FinishedSingleOp();
     char msg[100];
     snprintf(msg, sizeof(msg), "(%d of %d found)", found, num_);
     thread->stats.AddMessage(msg);

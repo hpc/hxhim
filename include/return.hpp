@@ -21,7 +21,7 @@ namespace hxhim {
  */
 class Return {
     public:
-        Return(enum hxhim_work_op operatio = HXHIM_NOP, TransportResponseMessage *response = nullptr);
+        Return(enum hxhim_work_op operation = HXHIM_NOP, TransportResponseMessage *response = nullptr);
         virtual ~Return();
 
         int GetSrc() const;

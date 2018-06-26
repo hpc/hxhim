@@ -146,7 +146,7 @@ int main(int argc, char *argv[]) {
             input.data = nullptr;
             input.lens = nullptr;
             input.num_keys = 0;
-            bool read_rows = (cmd[0] == 'B');                                  // bulk operations take in a number before the data to indicate how many key-pair values there are
+            bool read_rows = (cmd[0] == 'B');                            // bulk operations take in a number before the data to indicate how many key-pair values there are
 
             if (bulk_read(s, input, read_rows)) {
                 if (cmd == "PUT") {

@@ -1,12 +1,41 @@
+#include <algorithm>
+#include <sstream>
+
+#include "Configuration.hpp"
 #include "mdhim_config.hpp"
 #include "hxhim_config.hpp"
 #include "hxhim_private.hpp"
+#include <iostream>
+
+#define HXHIM_CONFIG_NOT_FOUND (HXHIM_ERROR - 1)
+
+/**
+ * get_value
+ * Helper function for reading numeric values from the configuration
+ *
+ * @param config     the configuration
+ * @param config_key the entry in the configuraion to read
+ * @tparam value     the value of the configuration
+ * @return HXHIM_SUCCESS if the configuration value was good, HXHIM_CONFIG_NOT_FOUND if the configuration key was not found, or HXHIM_ERROR if the configuration value was bad
+ */
+template<typename T, typename = std::enable_if <std::is_arithmetic<T>::value> >
+static int get_value(const Config &config, const std::string &config_key, T &v) {
+    // find the key
+    Config_it in_config = config.find(config_key);
+    if (in_config != config.end()) {
+        return (std::stringstream(in_config->second) >> v)?HXHIM_SUCCESS:HXHIM_ERROR;
+    }
+
+    return HXHIM_CONFIG_NOT_FOUND;
+}
 
 static int fill_options(hxhim_t *hx, const Config &config, MPI_Comm comm) {
     if (!hx || !hx->p ||
         (comm == MPI_COMM_NULL)) {
         return HXHIM_ERROR;
     }
+
+    int ret = HXHIM_SUCCESS;
 
     // read the MDHIM configuration
     Config_it mdhim_config = config.find(HXHIM_MDHIM_CONFIG);
@@ -30,6 +59,19 @@ static int fill_options(hxhim_t *hx, const Config &config, MPI_Comm comm) {
             delete hx->p->mdhim_opts;
             return HXHIM_ERROR;
         }
+    }
+
+    std::size_t watermark = 0;
+    ret = get_value(config, HXHIM_QUEUED_BULK_PUTS, watermark);
+    if (ret == HXHIM_ERROR) {
+        mdhim::Close(hx->p->md);
+        delete hx->p->md;
+        mdhim_options_destroy(hx->p->mdhim_opts);
+        delete hx->p->mdhim_opts;
+        return HXHIM_ERROR;
+    }
+    else if (ret == HXHIM_SUCCESS) {
+        hx->p->watermark = watermark;
     }
 
     return HXHIM_SUCCESS;

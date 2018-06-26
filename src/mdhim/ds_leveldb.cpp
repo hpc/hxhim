@@ -30,8 +30,9 @@ static int cmp_empty(const char* a, std::size_t alen,
     return ret;
 }
 
-static int cmp_int_compare(void* arg, const char* a, std::size_t alen,
-               const char* b, std::size_t blen) {
+static int cmp_int_compare(void* arg,
+                           const char* a, std::size_t alen,
+                           const char* b, std::size_t blen) {
     int ret;
 
     ret = cmp_empty(a, alen, b, blen);
@@ -49,8 +50,9 @@ static int cmp_int_compare(void* arg, const char* a, std::size_t alen,
     return ret;
 }
 
-static int cmp_lint_compare(void* arg, const char* a, std::size_t alen,
-               const char* b, std::size_t blen) {
+static int cmp_lint_compare(void* arg,
+                            const char* a, std::size_t alen,
+                            const char* b, std::size_t blen) {
     int ret;
 
     ret = cmp_empty(a, alen, b, blen);
@@ -68,8 +70,9 @@ static int cmp_lint_compare(void* arg, const char* a, std::size_t alen,
     return ret;
 }
 
-static int cmp_double_compare(void* arg, const char* a, std::size_t alen,
-                  const char* b, std::size_t blen) {
+static int cmp_double_compare(void* arg,
+                              const char* a, std::size_t alen,
+                              const char* b, std::size_t blen) {
     int ret;
 
     ret = cmp_empty(a, alen, b, blen);
@@ -87,8 +90,9 @@ static int cmp_double_compare(void* arg, const char* a, std::size_t alen,
     return ret;
 }
 
-static int cmp_float_compare(void* arg, const char* a, std::size_t alen,
-               const char* b, std::size_t blen) {
+static int cmp_float_compare(void* arg,
+                             const char* a, std::size_t alen,
+                             const char* b, std::size_t blen) {
     int ret;
 
     ret = cmp_empty(a, alen, b, blen);
@@ -109,8 +113,9 @@ static int cmp_float_compare(void* arg, const char* a, std::size_t alen,
 
 // For string, first compare for null pointers, then for order
 // up to a null character or the given lengths.
-static int cmp_string_compare(void* arg, const char* a, std::size_t alen,
-               const char* b, std::size_t blen) {
+static int cmp_string_compare(void* arg,
+                              const char* a, std::size_t alen,
+                              const char* b, std::size_t blen) {
     unsigned int idx;
 
     if (a && !b) {
@@ -143,8 +148,9 @@ static int cmp_string_compare(void* arg, const char* a, std::size_t alen,
     return -1;
 }
 
-static int cmp_byte_compare(void* arg, const char* a, size_t alen,
-			    const char* b, size_t blen) {
+static int cmp_byte_compare(void* arg,
+                            const char* a, size_t alen,
+                            const char* b, size_t blen) {
 	int ret;
 
 	ret = cmp_empty(a, alen, b, blen);
@@ -155,36 +161,6 @@ static int cmp_byte_compare(void* arg, const char* a, size_t alen,
 	ret = memcmp(a, b, alen);
 
 	return ret;
-}
-
-static int cmp_lex_compare(void* arg, const char* a, std::size_t alen,
-                const char* b, std::size_t blen) {
-    // check the pointers first
-    if (a && !b) {
-        return 1;
-    } else if (!a && b) {
-        return -1;
-    } else if (!a && !b) {
-        return 0;
-    }
-
-    // compare up to the shorter buffer's last value
-    const std::size_t min = std::min(alen, blen);
-    for(std::size_t i = 0; i < min; i++) {
-        const int diff = a[i] - b[i];
-        if (diff) {
-            return diff;
-        }
-    }
-
-    // if both buffers have the same prefix, return a value based on the next character
-    if (alen > blen) {
-        return -a[blen];
-    }
-    else if (alen < blen) {
-        return b[alen];
-    }
-    return 0;
 }
 
 static const char* cmp_name(void* arg) {
@@ -268,13 +244,10 @@ int mdhim_leveldb_open(void **dbh, void **dbs, const char *path, int flags, int 
         mdhimdb->compare = cmp_string_compare;
         break;
     case MDHIM_BYTE_KEY:
-        mdhimdb->cmp = leveldb_comparator_create(NULL, cmp_destroy, cmp_byte_compare, cmp_name);
-        mdhimdb->compare = cmp_byte_compare;
-        break;
     case MDHIM_LEX_BYTE_KEY:
     default:
-        mdhimdb->cmp = leveldb_comparator_create(NULL, cmp_destroy, cmp_lex_compare, cmp_name);
-        mdhimdb->compare = cmp_lex_compare;
+        mdhimdb->cmp = leveldb_comparator_create(NULL, cmp_destroy, cmp_byte_compare, cmp_name);
+        mdhimdb->compare = cmp_byte_compare;
         break;
     }
 

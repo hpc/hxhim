@@ -20,7 +20,7 @@
  * @return Pointer to return value wrapper
  */
 hxhim::Return *hxhim::Unsafe::FlushPuts(hxhim_t *hx) {
-    hxhim::Batch<hxhim::UnsafePutData> &puts = hx->p->unsafe_puts;
+    hxhim::Unsent<hxhim::UnsafePutData> &puts = hx->p->unsafe_puts;
     std::lock_guard<std::mutex> lock(puts.mutex);
 
     hxhim::UnsafePutData *curr = puts.head;
@@ -162,7 +162,7 @@ hxhim_return_t *hxhimFlushUnsafePuts(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Return *hxhim::Unsafe::FlushGets(hxhim_t *hx) {
-    hxhim::Batch<hxhim::UnsafeGetData> &gets = hx->p->unsafe_gets;
+    hxhim::Unsent<hxhim::UnsafeGetData> &gets = hx->p->unsafe_gets;
     std::lock_guard<std::mutex> lock(gets.mutex);
 
     hxhim::UnsafeGetData *curr = gets.head;
@@ -250,7 +250,7 @@ hxhim_return_t *hxhimFlushUnsafeGets(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Return *hxhim::Unsafe::FlushGetOps(hxhim_t *hx) {
-    hxhim::Batch<hxhim::UnsafeGetOpData> &getops = hx->p->unsafe_getops;
+    hxhim::Unsent<hxhim::UnsafeGetOpData> &getops = hx->p->unsafe_getops;
     std::lock_guard<std::mutex> lock(getops.mutex);
 
     hxhim::UnsafeGetOpData *curr = getops.head;
@@ -319,7 +319,7 @@ hxhim_return_t *hxhimFlushUnsafeGetOps(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Return *hxhim::Unsafe::FlushDeletes(hxhim_t *hx) {
-    hxhim::Batch<hxhim::UnsafeDeleteData> &dels = hx->p->unsafe_deletes;
+    hxhim::Unsent<hxhim::UnsafeDeleteData> &dels = hx->p->unsafe_deletes;
     std::lock_guard<std::mutex> lock(dels.mutex);
 
     hxhim::UnsafeDeleteData *curr = dels.head;
@@ -455,7 +455,7 @@ int hxhim::Unsafe::Put(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
-    hxhim::Batch<hxhim::UnsafePutData> &puts = hx->p->unsafe_puts;
+    hxhim::Unsent<hxhim::UnsafePutData> &puts = hx->p->unsafe_puts;
     std::lock_guard<std::mutex> lock(puts.mutex);
 
     // no previous batch
@@ -533,7 +533,7 @@ int hxhim::Unsafe::Get(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
-    hxhim::Batch<hxhim::UnsafeGetData> &gets = hx->p->unsafe_gets;
+    hxhim::Unsent<hxhim::UnsafeGetData> &gets = hx->p->unsafe_gets;
     std::lock_guard<std::mutex> lock(gets.mutex);
 
     // no previous batch
@@ -605,7 +605,7 @@ int hxhim::Unsafe::Delete(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
-    hxhim::Batch<hxhim::UnsafeDeleteData> &dels = hx->p->unsafe_deletes;
+    hxhim::Unsent<hxhim::UnsafeDeleteData> &dels = hx->p->unsafe_deletes;
     std::lock_guard<std::mutex> lock(dels.mutex);
 
     // no previous batch
@@ -685,7 +685,7 @@ int hxhim::Unsafe::BPut(hxhim_t *hx,
     }
 
     if (count) {
-        hxhim::Batch<hxhim::UnsafePutData> &puts = hx->p->unsafe_puts;
+        hxhim::Unsent<hxhim::UnsafePutData> &puts = hx->p->unsafe_puts;
         std::lock_guard<std::mutex> lock(puts.mutex);
 
         // no previous batch
@@ -768,7 +768,7 @@ int hxhim::Unsafe::BGet(hxhim_t *hx,
     }
 
     if (count) {
-        hxhim::Batch<hxhim::UnsafeGetData> &gets = hx->p->unsafe_gets;
+        hxhim::Unsent<hxhim::UnsafeGetData> &gets = hx->p->unsafe_gets;
         std::lock_guard<std::mutex> lock(gets.mutex);
 
         // no previous batch
@@ -844,7 +844,7 @@ int hxhim::Unsafe::BGetOp(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
-    hxhim::Batch<hxhim::UnsafeGetOpData> &getops = hx->p->unsafe_getops;
+    hxhim::Unsent<hxhim::UnsafeGetOpData> &getops = hx->p->unsafe_getops;
     std::lock_guard<std::mutex> lock(getops.mutex);
 
     // no previous batch
@@ -921,7 +921,7 @@ int hxhim::Unsafe::BDelete(hxhim_t *hx,
     }
 
     if (count) {
-        hxhim::Batch<hxhim::UnsafeDeleteData> &dels = hx->p->unsafe_deletes;
+        hxhim::Unsent<hxhim::UnsafeDeleteData> &dels = hx->p->unsafe_deletes;
         std::lock_guard<std::mutex> lock(dels.mutex);
 
         // no previous batch

@@ -1,12 +1,18 @@
 #ifndef HXHIM_PRIVATE_HPP
 #define HXHIM_PRIVATE_HPP
 
+#include <atomic>
+#include <condition_variable>
 #include <mutex>
+#include <thread>
 #include <type_traits>
+
+#include "abt.h"
 
 #include "hxhim-types.h"
 #include "hxhim_work_op.h"
 #include "mdhim.hpp"
+#include "return.hpp"
 
 namespace hxhim {
     typedef struct SubjectPredicate {
@@ -26,6 +32,7 @@ namespace hxhim {
     };
 
     struct PutData : SPO_t {
+        PutData *prev;
         PutData *next;
     };
 
@@ -60,11 +67,15 @@ namespace hxhim {
     };
 
     template <typename Data, typename = std::is_base_of<SubjectPredicate, Data> >
-    struct Batch {
+    struct Unsent {
         std::mutex mutex;
+        std::condition_variable start_processing;
+        std::condition_variable done_processing;
+        std::size_t full_batches;
         std::size_t last_count;
         Data *head;
         Data *tail;
+        bool force;
     };
 
     template <typename Data, typename = std::is_base_of<SubjectPredicate, Data> >
@@ -75,6 +86,8 @@ namespace hxhim {
             node = next;
         }
     }
+
+    class Return;
 }
 
 #ifdef __cplusplus
@@ -86,15 +99,27 @@ typedef struct hxhim_private {
     mdhim_t *md;
     mdhim_options_t *mdhim_opts;
 
-    hxhim::Batch<hxhim::PutData> puts;
-    hxhim::Batch<hxhim::GetData> gets;
-    hxhim::Batch<hxhim::GetOpData> getops;
-    hxhim::Batch<hxhim::DeleteData> deletes;
+    std::atomic_bool running;
 
-    hxhim::Batch<hxhim::UnsafePutData> unsafe_puts;
-    hxhim::Batch<hxhim::UnsafeGetData> unsafe_gets;
-    hxhim::Batch<hxhim::UnsafeGetOpData> unsafe_getops;
-    hxhim::Batch<hxhim::UnsafeDeleteData> unsafe_deletes;
+    std::thread thread;
+    // ABT_xstream stream;
+    // ABT_pool pool;
+    // ABT_thread thread;
+
+    std::size_t watermark;
+    hxhim::Unsent<hxhim::PutData> puts;
+    hxhim::Unsent<hxhim::GetData> gets;
+    hxhim::Unsent<hxhim::GetOpData> getops;
+    hxhim::Unsent<hxhim::DeleteData> deletes;
+
+    hxhim::Unsent<hxhim::UnsafePutData> unsafe_puts;
+    hxhim::Unsent<hxhim::UnsafeGetData> unsafe_gets;
+    hxhim::Unsent<hxhim::UnsafeGetOpData> unsafe_getops;
+    hxhim::Unsent<hxhim::UnsafeDeleteData> unsafe_deletes;
+
+    std::mutex results_mutex;
+    hxhim::Return *results;
+
 } hxhim_private_t;
 
 #ifdef __cplusplus

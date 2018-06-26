@@ -339,7 +339,7 @@ static int load_stat(mdhim_t *md, index_t *index, const int rs_idx) {
             old_slice = nullptr;
         }
 
-        mlog(MDHIM_SERVER_CRIT, "Rank %d - Loaded stat for slice: %" PRIu64 " with "
+        mlog(MDHIM_SERVER_INFO, "Rank %d - Loaded stat for slice: %" PRIu64 " with "
              "imin: %lu and imax: %lu, dmin: %Lf, dmax: %Lf, and num: %lu",
              md->rank, **slice, (*(mdhim_db_stat_t **)val)->imin,
              (*(mdhim_db_stat_t **)val)->imax, (*(mdhim_db_stat_t **)val)->dmin,
@@ -442,7 +442,7 @@ static void open_db_store(mdhim_t *md, index_t *index, const char *path, const i
 
     //Database filenames are dependent on the selected path, name, range server factor, rank, and the number of databses per range server
     char filename[PATH_MAX] = {0};
-    sprintf(filename, "%s%s-%d", path, md->p->db_opts->name, rs_index + offset);
+    sprintf(filename, "%s/%s-%d", path, md->p->db_opts->name, rs_index + offset);
 
     //Initialize data store
     if (!(*mdhim_store = mdhim_db_init(index->db_type))) {
