@@ -16,7 +16,7 @@
 #include "bdel.hpp"
 
 std::ostream &help(char *self, std::ostream &stream = std::cout) {
-    return stream << "Syntax: " << self << " print?" << std::endl
+    return stream << "Syntax: " << self << " [--help] [--print true|false]" << std::endl
                   << std::endl
                   << "Input is passed in through stdin in the following formats:" << std::endl
                   << "    PUT <KEY> <VALUE>" << std::endl
@@ -34,11 +34,6 @@ void cleanup(mdhim_t *md, mdhim_options_t *opts) {
 }
 
 int main(int argc, char *argv[]) {
-    if (argc < 2) {
-        help(argv[0], std::cerr);
-        return 1;
-    }
-
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 
@@ -47,6 +42,37 @@ int main(int argc, char *argv[]) {
 
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    bool print = true;
+    int i = 1;
+    while (i < argc) {
+        const std::string args(argv[i]) ;
+        if (args == "--help") {
+            if (rank == 0){
+                help(argv[0], std::cerr);
+            }
+            cleanup(nullptr, nullptr);
+            return 0;
+        }
+        else if(args == "--print") {
+            i++;
+
+            if ((argc <= i)  || !(std::stringstream(argv[i]) >> std::boolalpha >> print)) {
+                if (rank == 0){
+                    std::cerr << "Bad print argument: " << argv[i] << ". Should be true or false" << std::endl;
+                }
+                cleanup(nullptr, nullptr);
+                return MDHIM_ERROR;
+            }
+        }
+        else {
+            if (rank == 0){
+                std::cerr << "Ignoring bad argument: " << argv[i] << std::endl;
+            }
+        }
+
+        i++;
+    }
 
     // initialize options through config
     mdhim_options_t opts;
@@ -66,13 +92,6 @@ int main(int argc, char *argv[]) {
 
     if (rank == 0) {
         std::cout << "World Size: " << size << std::endl;
-
-        bool print = true;
-        if (!(std::stringstream(argv[1]) >> std::boolalpha >> print)) {
-            std::cerr << "Bad print argument: " << argv[1] << ". Should be true or false" << std::endl;
-            cleanup(&md, &opts);
-            return MDHIM_ERROR;
-        }
 
         // if don't want to print, set failbit
         if (!print) {
