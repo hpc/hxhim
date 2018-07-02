@@ -3,7 +3,7 @@
 
 #include <gtest/gtest.h>
 
-#include "Configuration.hpp"
+#include "utils/Configuration.hpp"
 
 // Context for reading configuration from a string
 class ConfigOnePair : public ConfigReader {

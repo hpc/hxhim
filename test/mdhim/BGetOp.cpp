@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <mpi.h>
 
-#include "mdhim.h"
+#include "mdhim/mdhim.h"
 
 typedef int Key_t;
 typedef double Value_t;

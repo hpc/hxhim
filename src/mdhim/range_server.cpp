@@ -16,13 +16,13 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "clone.hpp"
-#include "elen.hpp"
-#include "mdhim_options.h"
-#include "mdhim_options_private.h"
-#include "mdhim_private.h"
-#include "partitioner.h"
-#include "range_server.h"
+#include "mdhim/mdhim_options.h"
+#include "mdhim/mdhim_options_private.h"
+#include "mdhim/partitioner.h"
+#include "mdhim/private.h"
+#include "mdhim/range_server.h"
+#include "utils/clone.hpp"
+#include "utils/elen.hpp"
 
 static int add_timing(mdhim_t *md, enum TransportMessageType mtype, const struct timespec &start, const struct timespec &end, const std::size_t count) {
     if (!md || !md->p || !md->p->mdhim_rs) {

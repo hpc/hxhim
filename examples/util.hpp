@@ -4,7 +4,7 @@
 #include <istream>
 #include <list>
 
-#include "mdhim.h"
+#include "mdhim/mdhim.h"
 
 struct UserInput {
     std::size_t fields;

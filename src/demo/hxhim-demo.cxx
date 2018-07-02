@@ -1,8 +1,8 @@
 
 #include <iostream>
 #include <string>
-#include <hxhim.h>
-#include "mesh.h"
+#include <hxhim/hxhim.h>
+#include "demo/mesh.h"
 using namespace std;
 
 

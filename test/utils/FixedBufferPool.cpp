@@ -3,7 +3,7 @@
 
 #include <gtest/gtest.h>
 
-#include "FixedBufferPool.hpp"
+#include "utils/FixedBufferPool.hpp"
 
 TEST(FixedBufferPool, usage) {
     const std::size_t TEST_ALLOC_SIZE = 8;

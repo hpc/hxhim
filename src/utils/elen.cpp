@@ -1,8 +1,8 @@
 #include <cstring>
 #include <string>
 
-#include "elen.h"
-#include "elen.hpp"
+#include "utils/elen.h"
+#include "utils/elen.hpp"
 
 int elen_encode_int(const int value, char **encoded, size_t *encoded_len) {
     if (!encoded) {

@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include "mdhim.h"
+#include "mdhim/mdhim.h"
 
 /** @description Example usage and cleanup of mdhimDelete */
 void del(mdhim_t *md,

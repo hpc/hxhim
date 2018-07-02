@@ -6,9 +6,9 @@
 
 #include <cstdlib>
 
-#include "mdhim_private.h"
-#include "local_client.h"
-#include "transport_private.hpp"
+#include "mdhim/local_client.h"
+#include "mdhim/private.h"
+#include "transport/private.hpp"
 
 /**
  * get_msg_self

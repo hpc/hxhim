@@ -1,4 +1,4 @@
-#include "ThalliumEndpointGroup.hpp"
+#include "transport/ThalliumEndpointGroup.hpp"
 
 ThalliumEndpointGroup::ThalliumEndpointGroup(const Thallium::RPC_t &rpc)
     : TransportEndpointGroup(),

@@ -1,16 +1,16 @@
 /* Copyright 2015-16.  Los Alamos National Security, LLC. This material was produced
- * under U.S. Government contract DE-AC52-06NA25396 for Los Alamos National 
+ * under U.S. Government contract DE-AC52-06NA25396 for Los Alamos National
  * Laboratory (LANL), which is operated by Los Alamos National Security, LLC
  * for the U.S. Department of Energy. The U.S. Government has rights to use,
  * reproduce, and distribute this software.  NEITHER THE GOVERNMENT NOR LOS
  * ALAMOS NATIONAL SECURITY, LLC MAKES ANY WARRANTY, EXPRESS OR IMPLIED, OR
  * ASSUMES ANY LIABILITY FOR THE USE OF THIS SOFTWARE.  If software is modified
  * to produce derivative works, such modified software should be clearly marked,
- * so as not to confuse it with the version available from LANL.   
+ * so as not to confuse it with the version available from LANL.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy
- * of the License at 
+ * of the License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -25,7 +25,7 @@
  *
  * Authors: Bob Robey         XCP-2   brobey@lanl.gov
  *          Gerald Collom     XCP-2   gcollom@lanl.gov
- *          Colin Redman      XCP-2   credman@lanl.gov 
+ *          Colin Redman      XCP-2   credman@lanl.gov
  */
 
 #ifndef CHECK_LEV
@@ -34,7 +34,7 @@
 
 #include <stdio.h>
 #include <math.h>
-#include "meshgen.h"
+#include "demo/meshgen.h"
 
 static bool randomize = true;
 
@@ -93,18 +93,18 @@ void destroy(cell_list a) {
     free(a.values);
 }
 
-cell_list mesh_maker(cell_list clist, uint num_levels, uint *length, 
+cell_list mesh_maker(cell_list clist, uint num_levels, uint *length,
                                 uint *max_level, double sparsity, uint min_base_size) {
     *max_level = num_levels-1;
     uint cell_count;
-    
+
     uint num_cells = *length;
-    
+
     clist.ibasesize = sqrt(*length/(sparsity*four_to_the(*max_level))) + 1;
     if (clist.ibasesize < min_base_size) {
         clist.ibasesize = min_base_size;
     }
-   
+
     if ((num_cells - (clist.ibasesize*clist.ibasesize)) % 3 != 0) {
         num_cells -= clist.ibasesize*clist.ibasesize;
         num_cells /= 3;
@@ -112,18 +112,18 @@ cell_list mesh_maker(cell_list clist, uint num_levels, uint *length,
         num_cells += clist.ibasesize*clist.ibasesize;;
         printf("\nImpossible number of cells, using %u instead\n", num_cells);
     }
- 
- 
+
+
     if (num_cells < (3*(*max_level) + clist.ibasesize*clist.ibasesize)) {
         num_cells = ((3*(*max_level) + 1) + (clist.ibasesize*clist.ibasesize - 1));
         printf("\nNot enough cells to fill a mesh of sparsity of %0.2f. Using %u instead.\n", sparsity, num_cells);
         *length = num_cells;
     }
-    
+
     *length = num_cells;
-    
+
     clist = create_cell_list (clist, num_cells);
-    
+
     for (uint idx = 0; idx < clist.ibasesize*clist.ibasesize; idx++) {
         clist.i[idx] = idx % clist.ibasesize;
         clist.j[idx] = idx / clist.ibasesize;
@@ -131,35 +131,35 @@ cell_list mesh_maker(cell_list clist, uint num_levels, uint *length,
         clist.values[idx] = -1;
     }
     cell_count = clist.ibasesize*clist.ibasesize;
-    
+
     uint *dist = (uint *)malloc((*max_level + 1) * sizeof(uint));
     dist[0] = cell_count;
     for (uint i = 1; i < *max_level+1; i++) {
         dist[i] = 0;
     }
-    
+
     uint cell_target, current_max_lev = 0, lev;
-    
+
     while (current_max_lev < *max_level || cell_count < *length) {
         cell_target = (uint) rand() % (cell_count);
         //print_cell (clist, cell_target);
         lev = clist.level[cell_target];
         //printf("%u\t%u\n", lev, dist[lev]);
-        
+
         //printf("%u, %d, %d, %d\n", cell_target, lev < *max_level, current_max_lev == *max_level || lev == current_max_lev, dist[lev] > 1);
-        if (lev < *max_level 
-                && (current_max_lev == *max_level || lev == current_max_lev) 
+        if (lev < *max_level
+                && (current_max_lev == *max_level || lev == current_max_lev)
                 && dist[lev] > 1) {
             divide_cell (clist.i[cell_target], clist.j[cell_target],
                 lev, clist, cell_count, cell_target);
             dist[lev]--;
             dist[lev+1]+=4;
             cell_count += 3;
-             
+
             if (lev + 1 > current_max_lev) {
                 current_max_lev = lev + 1;
             }
-           
+
         }
     }
     //printf("b: %u, d: %u, finecells: %u\n", clist.ibasesize, *max_level, clist.ibasesize*clist.ibasesize*four_to_the(*max_level));
@@ -169,14 +169,14 @@ cell_list mesh_maker(cell_list clist, uint num_levels, uint *length,
     return clist;
 }
 
-void divide_cell (uint super_i, uint super_j, uint super_level, cell_list cells, 
+void divide_cell (uint super_i, uint super_j, uint super_level, cell_list cells,
     uint cell_count, uint cell_id) {
-    
+
     uint ibase, jbase;
-    
+
     ibase = super_i << 1;
     jbase = super_j << 1;
-    
+
     //New cell 1:
     cells.i[cell_id] = ibase;
     cells.j[cell_id] = jbase;
@@ -202,14 +202,14 @@ void divide_cell (uint super_i, uint super_j, uint super_level, cell_list cells,
 void print_cell_list (cell_list cells, uint length) {
     printf("#\ti\tj\tlevel\tvalue\n");
     for (uint n = 0; n < length; n++) {
-        printf("%d\t%d\t%d\t%d\t%f\n", n, cells.i[n], cells.j[n],         
+        printf("%d\t%d\t%d\t%d\t%f\n", n, cells.i[n], cells.j[n],
             cells.level[n], cells.values[n]);
     }
 }
 
 #ifndef USE_MACROS
 uint key_to_i (uint key, uint lev) {
-    return (key % two_to_the(lev)); 
+    return (key % two_to_the(lev));
 }
 
 uint key_to_j (uint key, uint lev) {
@@ -257,7 +257,7 @@ int two_to_the (int val) {
 
 cell_list shuffle_cell_list(cell_list clist, uint num) {
     uint a, b, temp_i, temp_j, temp_lev, temp_val;
-    
+
     for (uint i = 0; i < num; i++) {
         //printf("%u\n", i);
         a = (uint) rand() % clist.ncells;
@@ -474,8 +474,8 @@ cell_list adaptiveMeshConstructorWij(cell_list icells, const uint n, const uint 
   }
   free(lev_check);
 #endif
-  
-  
+
+
   // Allocate Space for the Adaptive Mesh
   newcount = 0;
   for(ic = 0; ic < ncells; ic++) {newcount += (powerOfFour(level[ic]) - 1);}
@@ -496,7 +496,7 @@ cell_list adaptiveMeshConstructorWij(cell_list icells, const uint n, const uint 
           level_temp[ic + offset + (nlc*ylc + xlc)] = level[ic];
           i_temp[ic + offset + (nlc*ylc + xlc)] = i[ic]*pow(2,level[ic]) + xlc;
           j_temp[ic + offset + (nlc*ylc + xlc)] = j[ic]*pow(2,level[ic]) + ylc;
-        }         
+        }
       }
       offset += powerOfFour(level[ic])-1;
     }
@@ -533,7 +533,7 @@ cell_list adaptiveMeshConstructorWij(cell_list icells, const uint n, const uint 
     nlc = 0;
     for(int ii = 0; ii < 7; ii++) {
       for(ic = 0; ic < ncells; ic++) {
-    
+
         uint jj = (int)( (double)ncells*((double)rand() / (double)(RAND_MAX+1.0) ) );
         // occasionally jj will be ncells and random ratio is 1.0
         if (jj >= ncells) jj=ncells-1;

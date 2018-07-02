@@ -2,7 +2,7 @@
 // Created by bws on 4/17/18.
 //
 
-#include "mesh.h"
+#include "demo/mesh.h"
 #include <cassert>
 
 Mesh::Mesh(std::size_t xdim, std::size_t ydim, std::size_t maxlevels) {

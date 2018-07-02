@@ -2,8 +2,8 @@
 #include <cstdio>
 #include <cstdlib>
 
-#include "partitioner.h"
-#include "mdhim_private.h"
+#include "mdhim/partitioner.h"
+#include "mdhim/private.h"
 
 //Global hashtable for alphabet used in partitioner algorithm
 mdhim_char_t *mdhim_alphabet = NULL;

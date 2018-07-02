@@ -4,8 +4,8 @@
 
 #include "gtest/gtest.h"
 
-#include "transport_mpi.hpp"
-#include "MemoryManagers.hpp"
+#include "transport/MPI.hpp"
+#include "utils/MemoryManagers.hpp"
 
 static const char *KEY = "key";
 static const std::size_t KEY_LEN = strlen(KEY);

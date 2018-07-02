@@ -1,4 +1,4 @@
-#include "ThalliumPacker.hpp"
+#include "transport/ThalliumPacker.hpp"
 
 int ThalliumPacker::any(const TransportMessage *msg, std::string &buf) {
     if (pack(dynamic_cast<const TransportRequestMessage *>(msg), buf) == MDHIM_SUCCESS) {

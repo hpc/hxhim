@@ -3,32 +3,42 @@
 
 #include <mpi.h>
 
-#include "hxhim.hpp"
+#include "hxhim/hxhim.hpp"
 #include "spo_gen.h"
 
-static void print_results(const int rank, hxhim::Return *results) {
-    while (results) {
-        // iterate through each range server
-        for(results->MoveToFirstRS(); results->ValidRS() == HXHIM_SUCCESS; results->NextRS()) {
-            // iterate through each key value pair
-            for(results->MoveToFirstSPO(); results->ValidSPO() == HXHIM_SUCCESS; results->NextSPO()) {
-                char *subject = nullptr; std::size_t subject_len = 0;
-                char *predicate = nullptr; std::size_t predicate_len = 0;
-                results->GetSPO((void **) &subject, &subject_len, (void **) &predicate, &predicate_len, nullptr, nullptr);
-                std::cout << "Rank " << rank << " GET {" << std::string(subject, subject_len) << ", " << std::string(predicate, predicate_len) << "} ";
-                if (results->GetError() == HXHIM_SUCCESS) {
-                    char *object = nullptr; std::size_t object_len = 0;
-                    results->GetSPO(nullptr, nullptr, nullptr, nullptr, (void **) &object, &object_len);
-                    std::cout << "-> " << std::string(object, object_len);
+static void print_results(const int rank, hxhim::Results *results) {
+    if (!results) {
+        return;
+    }
+
+    for(results->GoToHead(); results->Valid(); results->GoToNext()) {
+        std::cout << "Rank " << rank << " ";
+        hxhim::Results::Result *curr = results->Curr();
+        switch (curr->type) {
+            case HXHIM_RESULT_PUT:
+                std::cout << "PUT returned " << ((curr->error == HXHIM_SUCCESS)?std::string("SUCCESS"):std::string("ERROR")) << " from database " << curr->database << std::endl;
+                break;
+            case HXHIM_RESULT_GET:
+                std::cout << "GET returned ";
+                if (curr->error == HXHIM_SUCCESS) {
+                    hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(curr);
+                    std::cout << "{" << std::string((char *) get->subject, get->subject_len)
+                              << ", " << std::string((char *) get->predicate, get->predicate_len)
+                              << "} -> " << std::string((char *) get->object, get->object_len);
                 }
                 else {
-                    std::cout << "failed";
+                    std::cout << "ERROR";
                 }
-                std::cout << " on range server " << results->GetSrc() << std::endl;
-            }
-        }
 
-        results = results->Next();
+                std::cout << " from database " << curr->database << std::endl;
+                break;
+            case HXHIM_RESULT_DEL:
+                std::cout << "DEL returned " << ((curr->error == HXHIM_SUCCESS)?std::string("SUCCESS"):std::string("ERROR")) << " from database " << curr->database << std::endl;
+                break;
+            default:
+                std::cout << "Bad type: " << curr->type << std::endl;
+                break;
+        }
     }
 }
 
@@ -64,14 +74,14 @@ int main(int argc, char *argv[]) {
     for(std::size_t i = 0; i < count; i++) {
         hxhim::Get(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i]);
     }
-    hxhim::Return *flush_get_res = hxhim::FlushGets(&hx);
+    hxhim::Results *flush_get_res = hxhim::FlushGets(&hx);
     std::cout << "GET before flushing PUTs" << std::endl;
     print_results(rank, flush_get_res);
     delete flush_get_res;
 
     // GET again, but flush everything this time
     hxhim::BGet(&hx, subjects, subject_lens, predicates, predicate_lens, count);
-    hxhim::Return *flush_all_res = hxhim::Flush(&hx);
+    hxhim::Results *flush_all_res = hxhim::Flush(&hx);
     std::cout << "GET after flushing PUTs" << std::endl;
     print_results(rank, flush_all_res);
     delete flush_all_res;

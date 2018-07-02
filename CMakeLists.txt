@@ -2,7 +2,12 @@
 # refer to the root source directory of the project as ${HXHIM_SOURCE_DIR} and
 # to the root binary directory of the project as ${HXHIM_BINARY_DIR}.
 cmake_minimum_required (VERSION 3.6.3)
-project (HXHIM C CXX Fortran)
+project (HXHIM LANGUAGES C CXX Fortran)
+#
+# Enable C11
+#
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
 
 #
 # Enable C++14
@@ -26,10 +31,6 @@ set(CMAKE_MODULE_PATH $PCMAKE_MODULE_PATH} ${HXHIM_CMAKE_MODULE_DIR})
 # Project wide include stuff
 #
 include_directories(BEFORE include)
-set(HEADER_FILES include/hxhim.h)
-include_directories(src/transport)
-include_directories(src/mdhim)
-include_directories(src/utils)
 
 # Include CMake modules
 find_package(PkgConfig REQUIRED)
@@ -154,12 +155,11 @@ message( STATUS "GTest source dir: " ${gtest_SOURCE_DIR})
 #
 # Create libraries
 #
-file(GLOB INCLUDES include/*.c*)
+file(GLOB_RECURSE HXHIM src/hxhim/*.c*)
 file(GLOB BASE src/base/*.c*)
 file(GLOB MDHIM src/mdhim/*.c*)
 file(GLOB TRANSPORT src/transport/*.c*)
 file(GLOB UTILS src/utils/*.c*)
-list(FILTER UTILS EXCLUDE REGEX ".*/elen.tpp")
 
 set(LIBMDHIM_SOURCES ${MDHIM} ${TRANSPORT} ${UTILS})
 message(STATUS "LIBMDHIM_SOURCES: " ${LIBMDHIM_SOURCES})
@@ -170,7 +170,7 @@ set_target_properties(mdhim.a  PROPERTIES OUTPUT_NAME mdhim)
 add_library(mdhim.so SHARED $<TARGET_OBJECTS:mdhim>)
 set_target_properties(mdhim.so PROPERTIES OUTPUT_NAME mdhim)
 
-set(LIBHXHIM_SOURCES ${INCLUDES} ${BASE})
+set(LIBHXHIM_SOURCES ${HXHIM} ${BASE})
 message(STATUS "LIBHXHIM_SOURCES: " ${LIBHXHIM_SOURCES})
 add_library(hxhim OBJECT ${LIBHXHIM_SOURCES})
 set_target_properties(hxhim PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -182,29 +182,7 @@ set_target_properties(hxhim.so PROPERTIES OUTPUT_NAME hxhim)
 #
 # Install headers and libraries
 #
-INSTALL(FILES
-  src/mdhim/mdhim.h
-  src/mdhim/index_struct.h
-  src/mdhim/mdhim_config.h
-  src/mdhim/mdhim_constants.h
-  src/mdhim/mdhim_options.h
-  src/mdhim/mdhim_options_struct.h
-  src/mdhim/mdhim_struct.h
-  src/mdhim/range_server_info_struct.h
-  src/transport/transport.h
-  src/transport/transport_constants.h
-  src/utils/mlog2.h
-  src/utils/mlogfacs2.h
-  src/utils/uthash.h
-  DESTINATION include/mdhim)
-
-install(FILES
-  include/hxhim-types.h
-  include/hxhim.h
-  include/hxhim.hpp
-  include/return.h
-  include/return.hpp
-  DESTINATION include/hxhim)
+add_subdirectory(include)
 
 INSTALL(TARGETS
   mdhim.a

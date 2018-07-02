@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include "mdhim.h"
+#include "mdhim/mdhim.h"
 #include "../util.hpp"
 
 /** @description Example usage and cleanup of mdhimPut */

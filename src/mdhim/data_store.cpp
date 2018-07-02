@@ -6,19 +6,19 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include "mdhim_options.h"
-#include "data_store.h"
+#include "mdhim/mdhim_options.h"
+#include "mdhim/data_store.h"
 #ifdef HXHIM_USE_LEVELDB
-#include "ds_leveldb.h"
+#include "mdhim/ds_leveldb.h"
 #endif
 #ifdef HXHIM_USE_ROCKSDB
-#include "ds_leveldb.h"
+#include "mdhim/ds_leveldb.h"
 #endif
 #ifdef SOPHIADB_SUPPORT
-#include "ds_sophia.h"
+#include "mdhim/ds_sophia.h"
 #endif
 #ifdef HXHIM_USE_MYSQL
-#include "ds_mysql.h"
+#include "mdhim/ds_mysql.h"
 #endif
 
 /**

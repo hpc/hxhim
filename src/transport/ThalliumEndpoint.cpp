@@ -1,4 +1,4 @@
-#include "ThalliumEndpoint.hpp"
+#include "transport/ThalliumEndpoint.hpp"
 
 std::mutex ThalliumEndpoint::mutex_ = {};
 

@@ -5,14 +5,14 @@
 #include <list>
 #include <sstream>
 
-#include "hxhim.h"
-
 #include "../util.hpp"
+#include "hxhim/hxhim.h"
+#include "print_results.h"
 
 std::ostream &help(char *self, std::ostream &stream = std::cout) {
     return stream << "Syntax: " << self << std::endl
                   << std::endl
-                  << "Input is passed in through stdin in the following formats:" << std::endl
+                  << "Input is passed in through stdin, delimited with newlines, in the following formats:" << std::endl
                   << "    PUT <SUBJECT> <PREDICATE> <OBJECT>" << std::endl
                   << "    GET|DEL <SUBJECT> <PREDICATE> " << std::endl
                   << "    BPUT N <SUBJECT_1> <PREDICATE_1> <OBJECT_1> ... <SUBJECT_N> <PREDICATE_N> <OBJECT_N>" << std::endl
@@ -24,45 +24,6 @@ std::ostream &help(char *self, std::ostream &stream = std::cout) {
 void cleanup(hxhim_t *hx) {
     hxhimClose(hx);
     MPI_Finalize();
-}
-
-void print_results(hxhim_return_t *results) {
-    // move the internal index to the first range server
-    while (hxhim_return_move_to_first_rs(results) == HXHIM_SUCCESS) {
-        // iterate through each range server
-        for(int valid_rs; (hxhim_return_valid_rs(results, &valid_rs) == HXHIM_SUCCESS) && (valid_rs == HXHIM_SUCCESS); hxhim_return_next_rs(results)) {
-            // move the internal index to the beginning of the key value pairs vector
-            if (hxhim_return_move_to_first_spo(results) == HXHIM_SUCCESS) {
-                // make sure the return value can be obtained
-                int error = HXHIM_SUCCESS;
-                if (hxhim_return_get_error(results, &error) == HXHIM_SUCCESS) {
-                    // iterate through each key value pair
-                    for(int valid_spo; (hxhim_return_valid_spo(results, &valid_spo) == HXHIM_SUCCESS) && (valid_spo == HXHIM_SUCCESS); hxhim_return_next_spo(results)) {
-                        // get the key
-                        char *subject; size_t subject_len;
-                        char *predicate; size_t predicate_len;
-                        hxhim_return_get_spo(results, (void **) &subject, &subject_len, (void **) &predicate, &predicate_len, NULL, NULL);
-                        std::cout << "GET {" << std::string(subject, subject_len) << ", " << std::string(predicate, predicate_len) << "} ";
-
-                        // if there was no error, get the value
-                        if (error == HXHIM_SUCCESS) {
-                            char *object; size_t object_len;
-                            hxhim_return_get_spo(results, NULL, NULL, NULL, NULL, (void **) &object, &object_len);
-                            std::cout << "-> " << std::string(object, object_len);
-                        }
-                        else {
-                            std::cout << "failed";
-                        }
-
-                        int src = -1;
-                        hxhim_return_get_src(results, &src);
-                        std::cout << " on range server " << src << std::endl;
-                    }
-                }
-            }
-        }
-        hxhim_return_next(results);
-    }
 }
 
 int main(int argc, char *argv[]) {
@@ -122,15 +83,15 @@ int main(int argc, char *argv[]) {
             }
 
             if (cmd == "FLUSH") {
-                hxhim_return_t *results = hxhimFlush(&hx);
+                hxhim_results_t *results = hxhimFlush(&hx);
                 if (!results) {
                     std::cerr << "Could not Flush" << std::endl;
                 }
                 else {
-                    print_results(results);
+                    print_results(-1, results);
                 }
 
-                hxhim_return_destroy(results);
+                hxhim_results_destroy(results);
 
                 // clean up user input
                 for(UserInput &input : inputs) {

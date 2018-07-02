@@ -15,10 +15,10 @@
 #include <unistd.h>
 #include <vector>
 
-#include "mdhim_private.h"
-#include "mdhim_options_private.h"
-#include "indexes.h"
-#include "partitioner.h"
+#include "mdhim/indexes.h"
+#include "mdhim/mdhim_options_private.h"
+#include "mdhim/partitioner.h"
+#include "mdhim/private.h"
 
 /**
  * im_range_server

@@ -4,18 +4,19 @@
  * MDHIM Fortran90 API implementation
  */
 
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <sys/time.h>
-#include <stdio.h>
-#include "mdhim.h"
-#include "mdhim_fortran.h"
-#include "range_server.h"
-#include "local_client.h"
-#include "partitioner.h"
-#include "mdhim_options.h"
-#include "indexes.h"
-#include "mdhim_private.h"
-#include "transport_private.hpp"
+
+#include "mdhim/indexes.h"
+#include "mdhim/local_client.h"
+#include "mdhim/mdhim.h"
+#include "mdhim/mdhim_fortran.h"
+#include "mdhim/mdhim_options.h"
+#include "mdhim/partitioner.h"
+#include "mdhim/private.h"
+#include "mdhim/range_server.h"
+#include "transport/private.hpp"
 
 /*! \mainpage MDHIM TNG
  *

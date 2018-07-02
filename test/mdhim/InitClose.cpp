@@ -4,7 +4,7 @@
 
 #include <gtest/gtest.h>
 
-#include "mdhim.h"
+#include "mdhim/mdhim.h"
 
 // Normal usage
 TEST(mdhimInitClose, Good) {

@@ -5,20 +5,20 @@
 #include <pthread.h>
 #include <sys/time.h>
 
-#include "mlog2.h"
-#include "mlogfacs2.h"
+#include "utils/mlog2.h"
+#include "utils/mlogfacs2.h"
 
-#include "clone.hpp"
-#include "data_store.h"
-#include "index_struct.h"
-#include "local_client.h"
-#include "mdhim.h"
-#include "mdhim.hpp"
-#include "mdhim_options.h"
-#include "mdhim_options_private.h"
-#include "mdhim_private.h"
-#include "range_server.h"
-#include "transport_private.hpp"
+#include "mdhim/data_store.h"
+#include "mdhim/index_struct.h"
+#include "mdhim/local_client.h"
+#include "mdhim/mdhim.h"
+#include "mdhim/mdhim.hpp"
+#include "mdhim/mdhim_options.h"
+#include "mdhim/mdhim_options_private.h"
+#include "mdhim/private.h"
+#include "mdhim/range_server.h"
+#include "transport/private.hpp"
+#include "utils/clone.hpp"
 
 /**
  * Put

@@ -3,7 +3,7 @@
 
 #include "gtest/gtest.h"
 
-#include "transport_thallium.hpp"
+#include "transport/Thallium.hpp"
 
 static const char *KEY = "key";
 static const std::size_t KEY_LEN = strlen(KEY);

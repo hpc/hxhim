@@ -5,7 +5,7 @@
 
 #include <gtest/gtest.h>
 
-#include "elen.hpp"
+#include "utils/elen.hpp"
 
 // Efficient Lexicographic Encoding of Numbers
 // Peter Seymour

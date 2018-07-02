@@ -6,8 +6,8 @@
 
 #include <mpi.h>
 
-#include "elen.h"
-#include "hxhim.h"
+#include "hxhim/hxhim.h"
+#include "utils/elen.h"
 
 #define BUF_SIZE 100
 
@@ -26,42 +26,60 @@ typedef struct Cell {
     char *temp;
 } Cell_t;
 
-static void print_double_results(hxhim_return_t *results) {
-    // move the internal index to the first range server
-    while (hxhim_return_move_to_first_rs(results) == HXHIM_SUCCESS) {
-        // iterate through each range server
-        for(int valid_rs; (hxhim_return_valid_rs(results, &valid_rs) == HXHIM_SUCCESS) && (valid_rs == HXHIM_SUCCESS); hxhim_return_next_rs(results)) {
-            int src = -1;
-            hxhim_return_get_src(results, &src);
+static void print_double_results(hxhim_results_t *results) {
+    if (!results) {
+        return;
+    }
 
-            // move the internal index to the beginning of the key value pairs list
-            if (hxhim_return_move_to_first_spo(results) == HXHIM_SUCCESS) {
-                // make sure the return value can be obtained
-                int error = HXHIM_SUCCESS;
-                if (hxhim_return_get_error(results, &error) == HXHIM_SUCCESS) {
-                    if (error == HXHIM_SUCCESS) {
-                        // iterate through each key value pair
-                        for(int valid_spo; (hxhim_return_valid_spo(results, &valid_spo) == HXHIM_SUCCESS) && (valid_spo == HXHIM_SUCCESS); hxhim_return_next_spo(results)) {
-                            // get the key
-                            char *subject; size_t subject_len;
-                            char *predicate; size_t predicate_len;
-                            char *object; size_t object_len;
-                            hxhim_return_get_spo(results, (void **) &subject, &subject_len, (void **) &predicate, &predicate_len, (void **) &object, &object_len);
+    for(hxhim_results_goto_head(results); hxhim_results_valid(results) == HXHIM_SUCCESS; hxhim_results_goto_next(results)) {
+        enum hxhim_result_type type;
+        hxhim_results_type(results, &type);
 
-                            // turn the predicate back into a double
-                            double temp = 0;
-                            elen_decode_double(predicate, predicate_len, &temp);
+        int error;
+        hxhim_results_error(results, &error);
 
-                            printf("GET {%.*s, %f} -> %.*s on range server %d\n", (int) subject_len, subject, temp, (int) object_len, object, src);
-                        }
-                    }
-                    else {
-                        printf("Range server %d responded with failure\n", src);
-                    }
+        int database;
+        hxhim_results_database(results, &database);
+
+        switch (type) {
+            case HXHIM_RESULT_PUT:
+                printf("PUT returned %s from database %d", (error == HXHIM_SUCCESS)?"SUCCESS":"ERROR", database);
+                break;
+            case HXHIM_RESULT_GET:
+                printf("GET returned ");
+                if (error == HXHIM_SUCCESS) {
+                    void *subject;
+                    size_t subject_len = 0;
+                    hxhim_results_get_subject(results, &subject, &subject_len);
+
+                    void *predicate;
+                    size_t predicate_len = 0;
+                    hxhim_results_get_predicate(results, &predicate, &predicate_len);
+
+                    void *object;
+                    size_t object_len = 0;
+                    hxhim_results_get_object(results, &object, &object_len);
+
+                    double temp = 0;
+                    elen_decode_double(predicate, predicate_len, &temp);
+
+                    printf("{%.*s, %f} -> %.*s",
+                           (int) subject_len, (char *) subject,
+                           temp,
+                           (int) object_len, (char *) object);
                 }
-            }
+                else {
+                    printf("ERROR");
+                }
+
+                printf("from database %d\n", database);
+                break;
+            case HXHIM_RESULT_DEL:
+                printf("DEL returned %s from database %d", (error == HXHIM_SUCCESS)?"SUCCESS":"ERROR", database);
+                break;
+            default:
+                break;
         }
-        hxhim_return_next(results);
     }
 }
 
@@ -123,8 +141,8 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    hxhim_return_t *flush1 = hxhimFlush(&hx);
-    hxhim_return_destroy(flush1);
+    hxhim_results_t *flush1 = hxhimFlush(&hx);
+    hxhim_results_destroy(flush1);
 
     char *lowest_str = NULL;
     size_t lowest_str_len = 0;
@@ -135,12 +153,12 @@ int main(int argc, char *argv[]) {
     elen_encode_double(highest, 2 * sizeof(double), &highest_str, &highest_str_len);
 
     hxhimStatFlush(&hx);
-    hxhimBGetOp(&hx, (void *) &TEMP, strlen(TEMP), (void *) lowest_str, lowest_str_len, 10, GET_NEXT);
-    hxhimBGetOp(&hx, (void *) &TEMP, strlen(TEMP), (void *) highest_str, highest_str_len, 10, GET_PREV);
+    hxhimBGetOp(&hx, (void *) &TEMP, strlen(TEMP), (void *) lowest_str, lowest_str_len, 10, HXHIM_GET_NEXT);
+    hxhimBGetOp(&hx, (void *) &TEMP, strlen(TEMP), (void *) highest_str, highest_str_len, 10, HXHIM_GET_PREV);
 
-    hxhim_return_t *flush2 = hxhimFlush(&hx);
+    hxhim_results_t *flush2 = hxhimFlush(&hx);
     print_double_results(flush2);
-    hxhim_return_destroy(flush2);
+    hxhim_results_destroy(flush2);
 
     free(lowest_str);
     free(highest_str);

@@ -1,4 +1,4 @@
-#include "MPIInstance.hpp"
+#include "transport/MPIInstance.hpp"
 
 /** Singleton accessor */
 const MPIInstance& MPIInstance::instance() {

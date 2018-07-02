@@ -4,7 +4,7 @@
 #include <sstream>
 #include <sys/types.h>
 
-#include "Configuration.hpp"
+#include "utils/Configuration.hpp"
 
 ConfigReader::~ConfigReader() {}
 
@@ -152,4 +152,25 @@ bool ConfigVarEnvironment::process(Config &config) const {
         return true;
     }
     return false;
+}
+
+/**
+ * get_bool
+ * Helper function for reading booleans from the configuration
+ *
+ * @param config     the configuration
+ * @param config_key the entry in the configuraion to read
+ * @param b          the value of the configuration
+ * @return CONFIG_FOUND if the configuration value was good, CONFIG_NOT_FOUND if the configuration key was not found, or CONFIG_ERROR if the configuration value was bad
+ */
+int get_bool(const Config &config, const std::string &config_key, bool &b) {
+    // find the key
+    Config_it in_config = config.find(config_key);
+    if (in_config != config.end()) {
+        std::string config_value = in_config->second;
+        std::transform(config_value.begin(), config_value.end(), config_value.begin(), ::tolower);
+        return (std::stringstream(config_value) >> std::boolalpha >> b)?CONFIG_FOUND:CONFIG_ERROR;
+    }
+
+    return CONFIG_NOT_FOUND;
 }

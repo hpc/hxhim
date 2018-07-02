@@ -20,7 +20,7 @@
 
 #include <mpi.h>
 
-#include "hxhim.h"
+#include "hxhim/hxhim.h"
 
 // Comma-separated list of operations to run in the specified order
 //   Actual benchmarks:
@@ -807,7 +807,7 @@ class Benchmark {
       objects[i] = ::operator new(value_size_);
     }
 
-    // generate dat and put
+    // generate data and put
     for (int i = 0; i < num_; i += entries_per_batch_) {
       for (int j = 0; j < entries_per_batch_; j++) {
         const int sub = seq?i:(thread->rand.Next() % FLAGS_num);
@@ -830,12 +830,13 @@ class Benchmark {
     }
 
     // flush
-    hxhim_return_t *ret = hxhimFlush(hx);
+    hxhim_results_t *ret = hxhimFlush(hx);
     if (write_options_.sync) {
         hxhimCommit(hx);
+        thread->stats.FinishedSingleOp();
     }
-    hxhim_return_destroy(ret);
-    thread->stats.FinishedSingleOp();
+
+    hxhim_results_destroy(ret);
 
     for (int i = 0; i < entries_per_batch_; i++) {
       ::operator delete(subjects[i]);
@@ -910,11 +911,13 @@ class Benchmark {
 
       hxhimGet(hx, (void *) subject, subject_len, (void *) predicate, predicate_len);
 
-      hxhim_return_t *ret = hxhimFlush(hx);
-      hxhim_return_move_to_first_rs(ret);
-      int error; hxhim_return_get_error(ret, &error);
+      hxhim_results_t *ret = hxhimFlush(hx);
+      thread->stats.FinishedSingleOp();
+
+      hxhim_results_goto_head(ret);
+      int error; hxhim_results_error(ret, &error);
       found += (error == HXHIM_SUCCESS);
-      hxhim_return_destroy(ret);
+      hxhim_results_destroy(ret);
 
       // char key[100];
       // const int k = thread->rand.Next() % FLAGS_num;
@@ -922,7 +925,6 @@ class Benchmark {
       // if (db_->Get(options, key, &value).ok()) {
       //   found++;
       // }
-      thread->stats.FinishedSingleOp();
     }
 
       thread->stats.FinishedSingleOp();
@@ -945,8 +947,8 @@ class Benchmark {
 
       hxhimGet(hx, (void *) subject, strlen(subject), (void *) predicate, strlen(predicate));
 
-      hxhim_return_t *ret = hxhimFlush(hx);
-      hxhim_return_destroy(ret);
+      hxhim_results_t *ret = hxhimFlush(hx);
+      hxhim_results_destroy(ret);
 
       // char key[100];
       // const int k = thread->rand.Next() % FLAGS_num;
@@ -970,8 +972,8 @@ class Benchmark {
       snprintf(predicate, sizeof(predicate), "%016d", pred);
 
       hxhimGet(hx, (void *) subject, strlen(subject), (void *) predicate, strlen(predicate));
-      hxhim_return_t *ret = hxhimFlush(hx);
-      hxhim_return_destroy(ret);
+      hxhim_results_t *ret = hxhimFlush(hx);
+      hxhim_results_destroy(ret);
 
       // char key[100];
       // const int k = thread->rand.Next() % range;
@@ -1024,8 +1026,8 @@ class Benchmark {
   //       thread->stats.FinishedSingleOp();
   //     }
 
-  //     hxhim_return_t *ret = hxhimFlush(hx);
-  //     hxhim_return_destroy(ret);
+  //     hxhim_results_t *ret = hxhimFlush(hx);
+  //     hxhim_results_destroy(ret);
   //   }
 
   //   for (int i = 0; i < entries_per_batch_; i++) {

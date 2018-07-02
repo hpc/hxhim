@@ -3,12 +3,12 @@
 
 #include <gtest/gtest.h>
 
-#include "mdhim.h"
-#include "mdhim_options_private.h"
-#include "mdhim_config.hpp"
-#include "Configuration.hpp"
-#include "MPIOptions.hpp"
-#include "ThalliumOptions.hpp"
+#include "mdhim/config.hpp"
+#include "mdhim/mdhim.h"
+#include "mdhim/mdhim_options_private.h"
+#include "transport/MPIOptions.hpp"
+#include "transport/ThalliumOptions.hpp"
+#include "utils/Configuration.hpp"
 
 // Context for reading configuration from a string
 class ConfigString : public ConfigReader {

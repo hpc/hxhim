@@ -2,16 +2,16 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <string>
 #include <sstream>
+#include <string>
 #include <unistd.h>
 
-#include "mdhim_constants.h"
-#include "mdhim_options.h"
-#include "mdhim_options_private.h"
-#include "mdhim_config.hpp"
-#include "MPIOptions.hpp"
-#include "ThalliumOptions.hpp"
+#include "mdhim/config.hpp"
+#include "mdhim/constants.h"
+#include "mdhim/mdhim_options.h"
+#include "mdhim/mdhim_options_private.h"
+#include "transport/MPIOptions.hpp"
+#include "transport/ThalliumOptions.hpp"
 
 #define MANIFEST_FILE_NAME "/mdhim_manifest_"
 

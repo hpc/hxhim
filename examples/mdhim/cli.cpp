@@ -1,11 +1,11 @@
 #include <algorithm>
 #include <cctype>
 #include <cstddef>
-#include <iostream>
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 
-#include "mdhim.h"
+#include "mdhim/mdhim.h"
 
 #include "../util.hpp"
 #include "put.hpp"
@@ -18,7 +18,7 @@
 std::ostream &help(char *self, std::ostream &stream = std::cout) {
     return stream << "Syntax: " << self << " [--help] [--print true|false]" << std::endl
                   << std::endl
-                  << "Input is passed in through stdin in the following formats:" << std::endl
+                  << "Input is passed in through stdin, delimited with newlines, in the following formats:" << std::endl
                   << "    PUT <KEY> <VALUE>" << std::endl
                   << "    GET|DEL|WHICH <KEY>" << std::endl
                   << "    BPUT N <KEY_1> <VALUE_1> ... <KEY_N> <VALUE_N>" << std::endl

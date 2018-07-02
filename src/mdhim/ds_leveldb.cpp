@@ -5,8 +5,8 @@
 #include <cstring>
 #include <sys/time.h>
 
-#include "ds_leveldb.h"
-#include "partitioner.h"
+#include "mdhim/ds_leveldb.h"
+#include "mdhim/partitioner.h"
 
 static void cmp_destroy(void* arg) { }
 

@@ -1,4 +1,4 @@
-#include "MPIEndpointGroup.hpp"
+#include "transport/MPIEndpointGroup.hpp"
 
 MPIEndpointGroup::MPIEndpointGroup(const MPI_Comm comm, pthread_mutex_t mutex,
                                    FixedBufferPool *fbp)

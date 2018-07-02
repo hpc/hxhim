@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "mdhim.h"
+#include "mdhim/mdhim.h"
 
 typedef int Key_t;
 typedef int Value_t;

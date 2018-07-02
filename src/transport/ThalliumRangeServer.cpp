@@ -1,4 +1,4 @@
-#include "ThalliumRangeServer.hpp"
+#include "transport/ThalliumRangeServer.hpp"
 
 struct thallium_work_item_t : public work_item_t {
     thallium_work_item_t(const thallium::request &req)
