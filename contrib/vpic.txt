@@ -1,0 +1,86 @@
+To provide better requirements I'll write them here:
+
+Goal:
+Integrate HXHIM into VPIC to support 2 query types:
+
+1) Query of the trajectory for specific high-energy particles
+2) Query of all particles within a single band of energy
+
+Background:
+VPIC is a particle-in-cell (PIC) code used to simulate astrophysics. The
+particles are collisionless, and two phenomena of interest emerge that HXHIM
+can help with. First, some particles enter a regime of Fermi acceleration and
+become "high-energy." These particles can be identified at simulation endtime,
+but not earlier, and exploring the trajectory of these particles is
+interesting. Second, there is often a regime of a large number of particles
+that have a certain energy within some spatial area. Exploring those particles
+is interesting.
+
+Specification:
+ - Use the VPIC available at CMU pdl git repository: https://github.com/pdlfs/vpic
+   - This is an older version 4 VPIC fork -- its easier to work with
+   - This deck can be configured to run at very small scales
+   - Input decks to VPIC are regular C++ code
+   - In particular create a new deck based on the existing deck that writes a
+     particle per file (called trecon-part2)
+   - Make as few modifications as possible
+
+   - Within the species_advance.h file you can see the struct that contains
+     particle fields (dx, dy, dz, ux, uy, uz)
+     - put(particle-id, "pos", dx-dy-dz) // dx dy and dz are store contiguously
+     - put(particle-id, "tmom", sqrt(1+ux^2+uy^2+uz^2))
+       - You can ignore overflow
+
+ - Start with single range server per client
+
+ - Position is used to track trajectory (position over time)
+   - Position is stored as a triple (struct)
+ - Instantaneous momentum is used to track energy
+   - Momentum is used in histograms
+   - position is not
+   - Momentum is stored as a single float (sum of 3 values)
+
+ - Writes occur for multiple timesteps
+   - Start with 5 timesteps (we will increase this later)
+   - Create a new leveldb instance per range server, per timestep
+   - We will later change this and include time in our keyspace, so don't make
+     it impossible to change
+
+ - Use histograms to identify clusters of momentums
+   - The CMU input deck isn't perfect for this and won't generate
+     differentiated energies immediately
+   - We need a way of estimating bucket sizes
+   - Start with the easiest way: base it on a sample of the first 1% of particles
+   - Even hardcoding the buckets is fine to begin with, just document what
+     technique you choose
+
+   - Making it possible to construct other binning strategies is important (in
+     particular we may try "quartile sketches" later)
+
+
+Queries:
+ - We will need a reader code for both types of queries
+
+ - Trajectory tracking reader program:
+   - Takes a file of particle ids (one per line)
+   - Creates a trajectory output in CSV format (particle id, time, x,y,z, ux,
+     uy, uz)
+   - File should be sorted by particle-id then by time
+   - Create a file per particle
+   - Start with querying 1000 particles
+   - Take an option to specify an output directory
+   - This query can/should be single threaded, single process
+
+ - Energy band tracking reader program:
+   - This is a two phase process
+   - Phase 1:
+     - Output histograms for each of the 5 timesteps
+   - Phase 2:
+     - User will select an energy range of interest from histogram output
+     - Return all particles that have that energy range within a box bounded
+       by two <x,y,z> positions (a hyperslab)
+     - If no bounding positions are provided, simply return all particles
+
+HXHIM Requirements:
+  - The ability to alter number of clients opening an HXHIM instance
+  -
