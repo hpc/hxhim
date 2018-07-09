@@ -1,3 +1,5 @@
+#include <cstdlib>
+
 #include "hxhim/Results.hpp"
 #include "hxhim/Results_private.hpp"
 
@@ -32,7 +34,7 @@ Results::Get::Get(const int err, const int db,
 Results::Get::~Get() {
     ::operator delete(subject);
     ::operator delete(predicate);
-    ::operator delete(object);
+    free(object);
 }
 
 Results::Delete::Delete(const int err, const int db)

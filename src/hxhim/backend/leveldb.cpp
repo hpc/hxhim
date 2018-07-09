@@ -235,7 +235,7 @@ Results *leveldb::BGet(void **subjects, std::size_t *subject_lens,
         memcpy(pred, predicates[i], predicate_lens[i]);
 
         // copy the object
-        void *obj = ::operator new(it->value().size());
+        void *obj = malloc(it->value().size());
         memcpy(obj, it->value().data(), it->value().size());
 
         res->AddGet(it->status().ok()?HXHIM_SUCCESS:HXHIM_ERROR, hxhim_rank, sub, subject_lens[i], pred, predicate_lens[i], obj, it->value().size());
@@ -283,40 +283,59 @@ Results *leveldb::BGetOp(void *subject, std::size_t subject_len,
     clock_gettime(CLOCK_MONOTONIC, &start);
     it->Seek(::leveldb::Slice((char *) starting_key, starting_key_len));
     clock_gettime(CLOCK_MONOTONIC, &end);
+
     stats.get_times += elapsed(start, end);
 
-    for(std::size_t i = 0; i < count && it->Valid(); i++) {
-        clock_gettime(CLOCK_MONOTONIC, &start);
-        ::leveldb::Slice key = it->key();
-        ::leveldb::Slice value = it->value();
-        clock_gettime(CLOCK_MONOTONIC, &end);
+    if (it->status().ok()) {
+        for(std::size_t i = 0; i < count && it->Valid(); i++) {
+            clock_gettime(CLOCK_MONOTONIC, &start);
+            ::leveldb::Slice key = it->key();
+            ::leveldb::Slice value = it->value();
+            clock_gettime(CLOCK_MONOTONIC, &end);
 
-        stats.gets++;
-        stats.get_times += elapsed(start, end);
+            stats.gets++;
+            stats.get_times += elapsed(start, end);
 
-        // convert the key into a subject predicate pair
-        void *temp_sub = nullptr;
-        std::size_t sub_len = 0;
-        void *temp_pred = nullptr;
-        std::size_t pred_len = 0;
+            // convert the key into a subject predicate pair
+            void *temp_sub = nullptr;
+            std::size_t sub_len = 0;
+            void *temp_pred = nullptr;
+            std::size_t pred_len = 0;
 
-        key_to_sp(key.data(), key.size(), &temp_sub, &sub_len, &temp_pred, &pred_len);
+            key_to_sp(key.data(), key.size(), &temp_sub, &sub_len, &temp_pred, &pred_len);
 
-        // copy the subject into a new location
-        void *sub = ::operator new(sub_len);
-        memcpy(sub, temp_sub, sub_len);
+            // copy the subject into a new location
+            void *sub = ::operator new(sub_len);
+            memcpy(sub, temp_sub, sub_len);
 
-        // copy the predicate into a new location
-        void *pred = ::operator new(pred_len);
-        memcpy(pred, temp_pred, pred_len);
+            // copy the predicate into a new location
+            void *pred = ::operator new(pred_len);
+            memcpy(pred, temp_pred, pred_len);
 
-        // copy the object
-        void *obj = malloc(value.size());
-        memcpy(obj, value.data(), value.size());
+            // copy the object
+            void *obj = malloc(value.size());
+            memcpy(obj, value.data(), value.size());
 
-        res->AddGet(it->status().ok()?HXHIM_SUCCESS:HXHIM_ERROR, hxhim_rank, sub, sub_len, pred, pred_len, obj, value.size());
+            res->AddGet(it->status().ok()?HXHIM_SUCCESS:HXHIM_ERROR, hxhim_rank, sub, sub_len, pred, pred_len, obj, value.size());
 
-        it->Next();
+            // move to next iterator according to operation
+            switch (op) {
+                case hxhim_get_op::HXHIM_GET_NEXT:
+                    it->Next();
+                    break;
+                case hxhim_get_op::HXHIM_GET_PREV:
+                    it->Prev();
+                    break;
+                case hxhim_get_op::HXHIM_GET_FIRST:
+                    it->Next();
+                    break;
+                case hxhim_get_op::HXHIM_GET_LAST:
+                    it->Prev();
+                    break;
+                default:
+                    break;
+            }
+        }
     }
 
     delete it;

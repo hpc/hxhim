@@ -1035,6 +1035,7 @@ int hxhim::BGetOp(hxhim_t *hx,
     getops.tail->subject_lens[i] = subject_len;
     getops.tail->predicates[i] = predicate;
     getops.tail->predicate_lens[i] = predicate_len;
+    getops.tail->counts[i] = num_records;
     getops.tail->ops[i] = op;
     i++;
 
