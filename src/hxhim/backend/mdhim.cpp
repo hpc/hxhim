@@ -1,6 +1,5 @@
-#include <utility>
 #include <stdexcept>
-#include <iostream>
+#include <utility>
 
 #include "hxhim/backend/mdhim.hpp"
 #include "hxhim/triplestore.hpp"
@@ -32,22 +31,16 @@ mdhim::~mdhim() {
 
 int mdhim::Open(MPI_Comm comm, const std::string &config) {
     // fill in the MDHIM options
-    mdhim_opts = new mdhim_options_t();
-    if (!mdhim_opts                                           ||
-        mdhim_default_config_reader(mdhim_opts, comm, config)) {
-        mdhim_options_destroy(mdhim_opts);
-        delete mdhim_opts;
+    if (!(mdhim_opts = new mdhim_options_t())                                  ||
+        mdhim_default_config_reader(mdhim_opts, comm, config) != MDHIM_SUCCESS) {
+        Close();
         return HXHIM_ERROR;
     }
 
     // fill in the mdhim_t structure
-    md = new mdhim_t();
-    if (!md                                            ||
+    if (!(md = new mdhim_t())                            ||
         (::mdhim::Init(md, mdhim_opts) != MDHIM_SUCCESS)) {
-        ::mdhim::Close(md);
-        delete md;
-        mdhim_options_destroy(mdhim_opts);
-        delete mdhim_opts;
+        Close();
         return HXHIM_ERROR;
     }
 

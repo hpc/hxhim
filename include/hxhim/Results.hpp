@@ -22,7 +22,7 @@ class Results {
         // These structs only hold data, which should to be
         // accessed directly instead of through accessors.
         struct Result {
-            Result(hxhim_result_type t = hxhim_result_type::HXHIM_RESULT_NONE, int err = HXHIM_SUCCESS, int db = -1);
+            Result(enum hxhim_result_type t = HXHIM_RESULT_NONE, int err = HXHIM_SUCCESS, int db = -1);
             virtual ~Result();
 
             const hxhim_result_type type;

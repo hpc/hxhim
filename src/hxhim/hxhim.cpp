@@ -1,11 +1,61 @@
 #include <algorithm>
 #include <cmath>
+#include <cstring>
+#include <list>
 
 #include "hxhim/config.h"
 #include "hxhim/hxhim.h"
 #include "hxhim/hxhim.hpp"
 #include "hxhim/private.hpp"
 #include "hxhim/Results_private.hpp"
+#include "utils/elen.hpp"
+
+/**
+ * encode
+ * Converts the contents of a void * into another
+ * format if the type is floating point.
+ *
+ * @param type   the underlying type of this value
+ * @param ptr    address of the value
+ * @param len    size of the memory being pointed to
+ * @param copied whether or not the original ptr was replaced by a copy that needs to be deallocated
+ * @param HXHIM_SUCCESS or HXHIM_ERROR
+ */
+static int encode(const int type, void *&ptr, std::size_t &len, bool &copied) {
+    if (!ptr) {
+        return HXHIM_ERROR;
+    }
+
+    copied = false;
+
+    switch (type) {
+        case HXHIM_FLOAT_TYPE:
+            {
+                const std::string str = elen::encode::floating_point(* (float *) ptr);
+                len = str.size();
+                ptr = ::operator new(len);
+                memcpy(ptr, str.c_str(), len);
+                copied = true;
+            }
+            break;
+        case HXHIM_DOUBLE_TYPE:
+            {
+                const std::string str = elen::encode::floating_point(* (double *) ptr);
+                len = str.size();
+                ptr = ::operator new(len);
+                memcpy(ptr, str.c_str(), len);
+                copied = true;
+            }
+            break;
+        case HXHIM_INT_TYPE:
+        case HXHIM_BYTE_TYPE:
+            break;
+        default:
+            return HXHIM_ERROR;
+    }
+
+    return HXHIM_SUCCESS;
+}
 
 /**
  * put_core
@@ -31,38 +81,64 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
     void **objects = new void *[total]();
     std::size_t *object_lens = new std::size_t[total]();
 
+    std::list <void *> ptrs;
     std::size_t offset = 0;
     for(std::size_t i = 0; i < count; i++) {
-        subjects[offset] = head->subjects[i];
-        subject_lens[offset] = head->subject_lens[i];
-        predicates[offset] = head->predicates[i];
-        predicate_lens[offset] = head->predicate_lens[i];
-        objects[offset] = head->objects[i];
-        object_lens[offset] = head->object_lens[i];
+        // alias the values
+        void *subject = head->subjects[i];
+        std::size_t subject_len = head->subject_lens[i];
+        void *predicate = head->predicates[i];
+        std::size_t predicate_len = head->predicate_lens[i];
+        void *object = head->objects[i];
+        std::size_t object_len = head->object_lens[i];
+
+        // encode the values
+        bool copied = false;
+        encode(hx->p->subject_type, subject, subject_len, copied);
+        if (copied) {
+            ptrs.push_back(subject);
+        }
+
+        encode(hx->p->predicate_type, predicate, predicate_len, copied);
+        if (copied) {
+            ptrs.push_back(predicate);
+        }
+
+        encode(hx->p->object_type, object, object_len, copied);
+        if (copied) {
+            ptrs.push_back(object);
+        }
+
+        subjects[offset] = subject;
+        subject_lens[offset] = subject_len;
+        predicates[offset] = predicate;
+        predicate_lens[offset] = predicate_len;
+        objects[offset] = object;
+        object_lens[offset] = object_len;
         offset++;
 
-        subjects[offset] = head->subjects[i];
-        subject_lens[offset] = head->subject_lens[i];
-        predicates[offset] = head->objects[i];
-        predicate_lens[offset] = head->object_lens[i];
-        objects[offset] = head->predicates[i];
-        object_lens[offset] = head->predicate_lens[i];
+        subjects[offset] = subject;
+        subject_lens[offset] = subject_len;
+        predicates[offset] = object;
+        predicate_lens[offset] = object_len;
+        objects[offset] = predicate;
+        object_lens[offset] = predicate_len;
         offset++;
 
-        subjects[offset] = head->predicates[i];
-        subject_lens[offset] = head->predicate_lens[i];
-        predicates[offset] = head->objects[i];
-        predicate_lens[offset] = head->object_lens[i];
-        objects[offset] = head->subjects[i];
-        object_lens[offset] = head->subject_lens[i];
+        subjects[offset] = predicate;
+        subject_lens[offset] = predicate_len;
+        predicates[offset] = object;
+        predicate_lens[offset] = object_len;
+        objects[offset] = subject;
+        object_lens[offset] = subject_len;
         offset++;
 
-        subjects[offset] = head->predicates[i];
-        subject_lens[offset] = head->predicate_lens[i];
-        predicates[offset] = head->subjects[i];
-        predicate_lens[offset] = head->subject_lens[i];
-        objects[offset] = head->objects[i];
-        object_lens[offset] = head->object_lens[i];
+        subjects[offset] = predicate;
+        subject_lens[offset] = predicate_len;
+        predicates[offset] = subject;
+        predicate_lens[offset] = subject_len;
+        objects[offset] = object;
+        object_lens[offset] = object_len;
         offset++;
     }
 
@@ -70,6 +146,10 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
     hxhim::Results *res = hx->p->backend->BPut(subjects, subject_lens, predicates, predicate_lens, objects, object_lens, total);
 
     // cleanup
+    for(void *ptr : ptrs) {
+        ::operator delete(ptr);
+    }
+
     delete [] subjects;
     delete [] subject_lens;
     delete [] predicates;
@@ -88,6 +168,9 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
  */
 static void backgroundPUT(void *args) {
     hxhim_t *hx = (hxhim_t *)args;
+    if (!hx || !hx->p) {
+        return;
+    }
 
     while (hx->p->running) {
         hxhim::PutData *head = nullptr;    // the first batch of PUTs to process
@@ -227,6 +310,7 @@ int hxhim::Open(hxhim_t *hx, const MPI_Comm bootstrap_comm) {
 
     hx->p->running = true;
     hx->p->mpi.comm = bootstrap_comm;
+
     if ((MPI_Comm_rank(hx->p->mpi.comm, &hx->p->mpi.rank) != MPI_SUCCESS) ||
         (MPI_Comm_size(hx->p->mpi.comm, &hx->p->mpi.size) != MPI_SUCCESS) ||
         !(hx->p->put_results = new hxhim::Results())) {
@@ -236,7 +320,9 @@ int hxhim::Open(hxhim_t *hx, const MPI_Comm bootstrap_comm) {
 
     hx->p->background_put_thread = std::thread(backgroundPUT, hx);
 
-    return hxhim_default_config_reader(hx);
+    const int ret = hxhim_default_config_reader(hx);
+    MPI_Barrier(hx->p->mpi.comm);
+    return ret;
 }
 
 /**
@@ -263,6 +349,8 @@ int hxhim::Close(hxhim_t *hx) {
     if (!hx || !hx->p) {
         return HXHIM_ERROR;
     }
+
+    MPI_Barrier(hx->p->mpi.comm);
 
     hx->p->running = false;
     hx->p->puts.start_processing.notify_all();
@@ -372,6 +460,10 @@ int hxhimStatFlush(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
+    if (!hx || !hx->p) {
+        return nullptr;
+    }
+
     hxhim::Unsent<hxhim::PutData> &unsent = hx->p->puts;
     std::unique_lock<std::mutex> lock(unsent.mutex);
     unsent.force = true;
@@ -410,6 +502,10 @@ hxhim_results_t *hxhimFlushPuts(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
+    if (!hx || !hx->p) {
+        return nullptr;
+    }
+
     hxhim::Unsent<hxhim::GetData> &gets = hx->p->gets;
     std::lock_guard<std::mutex> lock(gets.mutex);
 
@@ -467,6 +563,10 @@ hxhim_results_t *hxhimFlushGets(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
+    if (!hx || !hx->p) {
+        return nullptr;
+    }
+
     hxhim::Unsent<hxhim::GetOpData> &getops = hx->p->getops;
     std::lock_guard<std::mutex> lock(getops.mutex);
 
@@ -530,6 +630,10 @@ hxhim_results_t *hxhimFlushGetOps(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
+    if (!hx || !hx->p) {
+        return nullptr;
+    }
+
     hxhim::Unsent<hxhim::DeleteData> &dels = hx->p->deletes;
     std::lock_guard<std::mutex> lock(dels.mutex);
 
@@ -1193,4 +1297,277 @@ int hxhimGetStats(hxhim_t *hx, const int rank,
                            get_num_puts, num_puts,
                            get_get_times, get_times,
                            get_num_gets, num_gets);
+}
+
+/**
+ * SubjectType
+ *
+ * @param hx   the HXHIM session
+ * @param type the type of subjects used in this HXHIM session
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR if the subject type was not copied into the type variable
+ */
+int hxhim::SubjectType(hxhim_t *hx, int *type) {
+    if (!hx || !hx->p || !type) {
+        return HXHIM_ERROR;
+    }
+
+    *type = hx->p->subject_type;
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * hxhimSubjectType
+ *
+ * @param hx   the HXHIM session
+ * @param type the type of subjects used in this HXHIM session
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR if the subject type was not copied into the type variable
+ */
+int hxhimSubjectType(hxhim_t *hx, int *type) {
+    return hxhim::SubjectType(hx, type);
+}
+
+/**
+ * PredicateType
+ *
+ * @param hx   the HXHIM session
+ * @param type the type of predicates used in this HXHIM session
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR if the predicate type was not copied into the type variable
+ */
+int hxhim::PredicateType(hxhim_t *hx, int *type) {
+    if (!hx || !hx->p || !type) {
+        return HXHIM_ERROR;
+    }
+
+    *type = hx->p->predicate_type;
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * hxhimPredicateType
+ *
+ * @param hx   the HXHIM session
+ * @param type the type of predicates used in this HXHIM session
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR if the predicate type was not copied into the type variable
+ */
+int hxhimPredicateType(hxhim_t *hx, int *type) {
+    return hxhim::PredicateType(hx, type);
+}
+
+/**
+ * ObjectType
+ *
+ * @param hx   the HXHIM session
+ * @param type the type of objects used in this HXHIM session
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR if the object type was not copied into the type variable
+ */
+int hxhim::ObjectType(hxhim_t *hx, int *type) {
+    if (!hx || !hx->p || !type) {
+        return HXHIM_ERROR;
+    }
+
+    *type = hx->p->object_type;
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * hxhimObjectType
+ *
+ * @param hx   the HXHIM session
+ * @param type the type of objects used in this HXHIM session
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR if the object type was not copied into the type variable
+ */
+int hxhimObjectType(hxhim_t *hx, int *type) {
+    return hxhim::ObjectType(hx, type);
+}
+
+/**
+ * hxhimPut
+ * Add a PUT into the work queue
+ *
+ * @param hx           the HXHIM session
+ * @param subject      the subject to put
+ * @param subject_len  the length of the subject to put
+ * @param prediate     the prediate to put
+ * @param prediate_len the length of the prediate to put
+ * @param object       the float to put
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhimPut(hxhim_t *hx,
+             void *subject, std::size_t subject_len,
+             void *predicate, std::size_t predicate_len,
+             float *object) {
+    return hxhim::Put(hx,
+                      subject, subject_len,
+                      predicate, predicate_len,
+                      (void *) object, sizeof(float));
+}
+
+/**
+ * hxhimPutFloat
+ * Add a PUT that points to a float into the work queue
+ *
+ * @param hx           the HXHIM session
+ * @param subject      the subject to put
+ * @param subject_len  the length of the subject to put
+ * @param prediate     the prediate to put
+ * @param prediate_len the length of the prediate to put
+ * @param object       the float to put
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhimPutFloat(hxhim_t *hx,
+             void *subject, std::size_t subject_len,
+             void *predicate, std::size_t predicate_len,
+             void *object, std::size_t object_len) {
+    return hxhim::Put(hx,
+                      subject, subject_len,
+                      predicate, predicate_len,
+                      (void *) object, sizeof(float));
+}
+
+/**
+ * hxhimPut
+ * Add a PUT into the work queue
+ *
+ * @param hx           the HXHIM session
+ * @param subject      the subject to put
+ * @param subject_len  the length of the subject to put
+ * @param prediate     the prediate to put
+ * @param prediate_len the length of the prediate to put
+ * @param object       the double to put
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhimPut(hxhim_t *hx,
+             void *subject, std::size_t subject_len,
+             void *predicate, std::size_t predicate_len,
+             double *object) {
+    return hxhim::Put(hx,
+                      subject, subject_len,
+                      predicate, predicate_len,
+                      (void *) object, sizeof(double));
+}
+
+/**
+ * hxhimPutDouble
+ * Add a PUT into the work queue
+ *
+ * @param hx           the HXHIM session
+ * @param subject      the subject to put
+ * @param subject_len  the length of the subject to put
+ * @param prediate     the prediate to put
+ * @param prediate_len the length of the prediate to put
+ * @param object       the double to put
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhimPutDouble(hxhim_t *hx,
+             void *subject, std::size_t subject_len,
+             void *predicate, std::size_t predicate_len,
+             double *object) {
+    return hxhim::Put(hx,
+                      subject, subject_len,
+                      predicate, predicate_len,
+                      (void *) object, sizeof(double));
+}
+
+/**
+ * BPut
+ * Add a BPUT into the work queue
+ *
+ * @param hx            the HXHIM session
+ * @param subjects      the subjects to put
+ * @param subject_lens  the lengths of the subjects to put
+ * @param prediates     the prediates to put
+ * @param prediate_lens the lengths of the prediates to put
+ * @param objects       the floats to put
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim::BPut(hxhim_t *hx,
+                void **subjects, std::size_t *subject_lens,
+                void **predicates, std::size_t *predicate_lens,
+                float **objects,
+                std::size_t count) {
+    std::size_t *lens = new std::size_t[count];
+    memset((void *) lens, sizeof(float), sizeof(std::size_t) * count);
+    const int ret = hxhim::BPut(hx,
+                       subjects, subject_lens,
+                       predicates, predicate_lens,
+                       (void **) objects, lens,
+                       count);
+    delete [] lens;
+    return ret;
+}
+
+/**
+ * hxhimBPutFloat
+ * Add a BPUT into the work queue
+ *
+ * @param hx            the HXHIM session
+ * @param subjects      the subjects to put
+ * @param subject_lens  the lengths of the subjects to put
+ * @param prediates     the prediates to put
+ * @param prediate_lens the lengths of the prediates to put
+ * @param objects       the floats to put
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhimBPutFloat(hxhim_t *hx,
+                   void **subjects, std::size_t *subject_lens,
+                   void **predicates, std::size_t *predicate_lens,
+                   float **objects,
+                   std::size_t count) {
+    return hxhim::BPut(hx,
+                       subjects, subject_lens,
+                       predicates, predicate_lens,
+                       objects,
+                       count);
+}
+
+/**
+ * BPut
+ * Add a BPUT into the work queue
+ *
+ * @param hx            the HXHIM session
+ * @param subjects      the subjects to put
+ * @param subject_lens  the lengths of the subjects to put
+ * @param prediates     the prediates to put
+ * @param prediate_lens the lengths of the prediates to put
+ * @param objects       the floats to put
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim::BPut(hxhim_t *hx,
+                void **subjects, std::size_t *subject_lens,
+                void **predicates, std::size_t *predicate_lens,
+                double **objects,
+                std::size_t count) {
+    std::size_t *lens = new std::size_t[count];
+    memset((void *) lens, sizeof(float), sizeof(std::size_t) * count);
+    const int ret = hxhim::BPut(hx,
+                                subjects, subject_lens,
+                                predicates, predicate_lens,
+                                (void **) objects, lens,
+                                count);
+    delete [] lens;
+    return ret;
+}
+
+/**
+ * hxhimBPutDouble
+ * Add a BPUT into the work queue
+ *
+ * @param hx            the HXHIM session
+ * @param subjects      the subjects to put
+ * @param subject_lens  the lengths of the subjects to put
+ * @param prediates     the prediates to put
+ * @param prediate_lens the lengths of the prediates to put
+ * @param objects       the doubles to put
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhimBPutDouble(hxhim_t *hx,
+                    void **subjects, std::size_t *subject_lens,
+                    void **predicates, std::size_t *predicate_lens,
+                    double **objects,
+                    std::size_t count) {
+    return hxhim::BPut(hx,
+                       subjects, subject_lens,
+                       predicates, predicate_lens,
+                       objects,
+                       count);
 }

@@ -11,7 +11,7 @@ set_target_properties(hx-c PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
 set_target_properties(hx-c PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
 INSTALL(TARGETS hx-c DESTINATION bin/hxhim)
 
-add_executable(hx-c++ hx.cpp print_results.c)
+add_executable(hx-c++ hx.cpp)
 target_link_libraries(hx-c++ hxhim.a mdhim.a ${LEVELDB_LIBRARY} ${MPI_CXX_LIBRARIES} ${THALLIUM_LDFLAGS} pthread m)
 set_target_properties(hx-c++ PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
 set_target_properties(hx-c++ PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")

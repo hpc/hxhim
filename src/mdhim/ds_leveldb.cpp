@@ -681,6 +681,10 @@ int mdhim_leveldb_del(void *dbh, void *key, std::size_t key_len) {
  * @return MDHIM_SUCCESS on success or MDHIM_DB_ERROR on failure
  */
 int mdhim_leveldb_commit(void *dbh) {
+    if (!dbh) {
+        return MDHIM_ERROR;
+    }
+
     char *err = NULL;
     mdhim_leveldb_t *mdhimdb = (mdhim_leveldb_t *) dbh;
     leveldb_writeoptions_t *options = leveldb_writeoptions_create();

@@ -26,7 +26,7 @@ static TransportMessage *get_msg_self(mdhim_t *md) {
 	//Wait until there is a message to receive
 	if (!md->p->receive_msg) {
 		pthread_cond_wait(&md->p->receive_msg_ready_cv, &md->p->receive_msg_mutex);
-	}
+    }
 
 	//Get the message
 	TransportMessage *msg = md->p->receive_msg;

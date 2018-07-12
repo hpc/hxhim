@@ -621,8 +621,8 @@ index_t *create_local_index(mdhim_t *md, int db_type, int key_type, const char *
     if (rangesrv_num == 1 &&
         read_manifest(md, li) != MDHIM_SUCCESS) {
         mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
-             "Error: There was a problem reading or validating the manifest file",
-             md->rank);
+             "Error: There was a problem reading or validating the manifest file '%s'",
+             md->rank, get_manifest_name(md, li));
         MPI_Abort(md->comm, 0);
     }
 
@@ -753,8 +753,8 @@ index_t *create_global_index(mdhim_t *md, int server_factor,
     if (rangesrv_num == 1 &&
         read_manifest(md, gi) != MDHIM_SUCCESS) {
         mlog(MDHIM_SERVER_CRIT, "MDHIM Rank %d - "
-             "Error: There was a problem reading or validating the manifest file",
-             md->rank);
+             "Error: There was a problem reading or validating the manifest file '%s'",
+             md->rank, get_manifest_name(md, gi));
         MPI_Abort(md->comm, 0);
     }
 

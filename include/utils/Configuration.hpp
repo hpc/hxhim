@@ -183,7 +183,7 @@ int get_from_map(const Config &config, const std::string &config_key,
                  const std::map<std::string, T> &map, T &value) {
     // find key in configuration
     Config_it in_config = config.find(config_key);
-    if (in_config!= config.end()) {
+    if (in_config != config.end()) {
         // use value to get internal value from map
         typename std::map<std::string, T>::const_iterator in_map = map.find(in_config->second);
         if (in_map == map.end()) {

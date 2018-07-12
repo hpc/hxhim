@@ -89,8 +89,9 @@ static int mdhim_private_init_transport_mpi(mdhim_t *md, MPIOptions *opts, const
 /**
  * mdhim_private_init_transport_thallium
  *
- * @param md        the mdhim context to initialize
- * @param opts      the data needed to set up thallium as the underlying transport
+ * @param md            the mdhim context to initialize
+ * @param opts          the data needed to set up thallium as the underlying transport
+ * @param endpointgroup a set of endpoint ranks that will be considered to be under one group
  * @param MDHIM_SUCCESS or MDHIM_ERROR
  */
 static int mdhim_private_init_transport_thallium(mdhim_t *md, ThalliumOptions *opts, const std::set<int> &endpointgroup) {

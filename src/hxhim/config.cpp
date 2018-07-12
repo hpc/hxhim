@@ -26,6 +26,18 @@ static int fill_options(hxhim_t *hx, const Config &config) {
             return HXHIM_ERROR;
     }
 
+    if (get_from_map(config, HXHIM_SUBJECT_TYPE, HXHIM_SPO_TYPES, hx->p->subject_type) == CONFIG_ERROR) {
+        return HXHIM_ERROR;
+    }
+
+    if (get_from_map(config, HXHIM_PREDICATE_TYPE, HXHIM_SPO_TYPES, hx->p->predicate_type) == CONFIG_ERROR) {
+        return HXHIM_ERROR;
+    }
+
+    if (get_from_map(config, HXHIM_OBJECT_TYPE, HXHIM_SPO_TYPES, hx->p->object_type) == CONFIG_ERROR) {
+        return HXHIM_ERROR;
+    }
+
     int backend;
     if (get_from_map(config, HXHIM_BACKEND_TYPE, HXHIM_BACKEND_TYPES, backend) == CONFIG_FOUND) {
         if (backend == HXHIM_BACKEND_MDHIM) {

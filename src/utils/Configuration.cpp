@@ -118,8 +118,7 @@ ConfigFile::~ConfigFile() {}
 
 bool ConfigFile::process(Config &config) const {
     std::ifstream f(filename_);
-    int ret = parse_kv_stream(config, f);
-    return ret;
+    return parse_kv_stream(config, f);
 }
 
 ConfigFileEnvironment::ConfigFileEnvironment(const std::string& filename)

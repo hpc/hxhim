@@ -34,6 +34,11 @@ extern "C"
 #define HXHIM_BACKEND_MDHIM   0
 #define HXHIM_BACKEND_LEVELDB 1
 
+#define HXHIM_INT_TYPE    0
+#define HXHIM_FLOAT_TYPE  1
+#define HXHIM_DOUBLE_TYPE 2
+#define HXHIM_BYTE_TYPE   3
+
 #ifdef __cplusplus
 }
 #endif

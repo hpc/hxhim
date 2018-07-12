@@ -2,7 +2,7 @@
 # refer to the root source directory of the project as ${HXHIM_SOURCE_DIR} and
 # to the root binary directory of the project as ${HXHIM_BINARY_DIR}.
 cmake_minimum_required (VERSION 3.6.3)
-project (HXHIM LANGUAGES C CXX Fortran)
+project (HXHIM LANGUAGES C CXX)
 #
 # Enable C11
 #

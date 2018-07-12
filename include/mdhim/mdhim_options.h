@@ -1,6 +1,8 @@
 #ifndef      __OPTIONS_H
 #define      __OPTIONS_H
 
+#include <stdint.h>
+
 #include <mpi.h>
 
 #include "constants.h"

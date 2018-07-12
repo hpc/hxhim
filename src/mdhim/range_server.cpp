@@ -398,7 +398,6 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
     add_timing(md, TransportMessageType::BPUT, start, end, inserted);
 
   done:
-
     //Create the response message
     TransportBRecvMessage *brm = new TransportBRecvMessage();
     brm->src = bim->dst;

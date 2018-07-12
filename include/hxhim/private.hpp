@@ -25,6 +25,10 @@ typedef struct hxhim_private {
         int size;
     } mpi;
 
+    int subject_type;
+    int predicate_type;
+    int object_type;
+
     hxhim::backend::base *backend;
 
     std::atomic_bool running;

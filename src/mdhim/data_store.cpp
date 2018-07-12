@@ -4,8 +4,9 @@
  * Data store abstraction
  */
 
-#include <stdlib.h>
-#include <stdio.h>
+#include <cstdint>
+#include <cstdlib>
+#include <cstdio>
 #include "mdhim/mdhim_options.h"
 #include "mdhim/data_store.h"
 #ifdef HXHIM_USE_LEVELDB
