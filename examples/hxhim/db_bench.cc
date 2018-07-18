@@ -325,6 +325,7 @@ class Benchmark {
   const FilterPolicy* filter_policy_;
   // DB* db_;
   hxhim_t *hx;
+  hxhim_options_t *opts;
   int num_;
   int value_size_;
   int entries_per_batch_;
@@ -435,6 +436,8 @@ class Benchmark {
   ~Benchmark() {
     hxhimClose(hx);
     delete hx;
+    hxhim_options_destroy(opts);
+    delete opts;
     // delete db_;
     // delete cache_;
     delete filter_policy_;
@@ -547,6 +550,10 @@ class Benchmark {
           hxhimClose(hx);
           delete hx;
           hx = nullptr;
+
+          hxhim_options_destroy(opts);
+          delete opts;
+          opts = nullptr;
 
           // quick and dirty "rm -rf mdhim_manifest* mdhimTstDB--*"
           DIR *dir = opendir(".");
@@ -741,9 +748,18 @@ class Benchmark {
   // }
 
   void Open() {
+    assert(opts == nullptr);
     assert(hx == nullptr);
+
+    // read the config
+    opts = new hxhim_options_t();
+    if (hxhim_default_config_reader(opts, MPI_COMM_WORLD) != HXHIM_SUCCESS) {
+        fprintf(stderr, "Failed to read configuration");
+        exit(1);
+    }
+
     hx = new hxhim_t();
-    if (hxhimOpen(hx, MPI_COMM_WORLD) != HXHIM_SUCCESS) {
+    if (hxhimOpen(hx, opts) != HXHIM_SUCCESS) {
         fprintf(stderr, "Failed to initialize hxhim\n");
         exit(1);
     }

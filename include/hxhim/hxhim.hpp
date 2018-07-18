@@ -1,16 +1,16 @@
 #ifndef HXHIM_HPP
 #define HXHIM_HPP
 
-#include <mpi.h>
-
-#include "constants.h"
-#include "struct.h"
 #include "Results.hpp"
+#include "config.h"
+#include "constants.h"
+#include "options.h"
+#include "struct.h"
 
 namespace hxhim {
 
 /** @description Starts an HXHIM instance */
-int Open(hxhim_t *hx, const MPI_Comm bootstrap_comm);
+int Open(hxhim_t *hx, hxhim_options_t *opts);
 
 /** @description Stops an HXHIM instance */
 int Close(hxhim_t *hx);
@@ -47,7 +47,6 @@ int BPut(hxhim_t *hx,
          void **predicates, std::size_t *predicate_lens,
          void **objects, std::size_t *object_lens,
          std::size_t count);
-
 
 int BGet(hxhim_t *hx,
          void **subjects, std::size_t *subject_lens,
@@ -96,6 +95,10 @@ int BPut(hxhim_t *hx,
     void **predicates, std::size_t *predicate_lens,
     double **objects,
     std::size_t count);
+
+int BGetOp(hxhim_t *hx,
+           void *prefix, std::size_t prefix_len,
+           std::size_t num_records, enum hxhim_get_op op);
 
 }
 

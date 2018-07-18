@@ -8,8 +8,8 @@
 
 #include "MPIPacker.hpp"
 #include "MPIUnpacker.hpp"
-#include "mdhim/mdhim_struct.h"
 #include "mdhim/private.h"
+#include "mdhim/struct.h"
 #include "mdhim/work_item.h"
 #include "transport.hpp"
 #include "utils/MemoryManagers.hpp"

@@ -1,19 +1,20 @@
-#ifndef HXHIM_BACKEND_LEVELDB_HPP
-#define HXHIM_BACKEND_LEVELDB_HPP
+#ifndef HXHIM_BACKEND_INMEMORY_HPP
+#define HXHIM_BACKEND_INMEMORY_HPP
 
-#include <leveldb/db.h>
+#include <map>
+
 #include <mpi.h>
 
-#include "hxhim/struct.h"
 #include "base.hpp"
+#include "hxhim/struct.h"
 
 namespace hxhim {
 namespace backend {
 
-class leveldb : public base {
+class InMemory : public base {
     public:
-        leveldb(hxhim_t *hx, const std::string &name, const bool create_if_missing = true);
-        ~leveldb();
+        InMemory(hxhim_t *hx);
+        ~InMemory();
 
         void Close();
         int Commit();
@@ -41,11 +42,9 @@ class leveldb : public base {
         std::ostream &print_config(std::ostream &stream) const;
 
     private:
-        const std::string name;
-        const bool create_if_missing;
+        int Open(MPI_Comm comm, const std::string &config);
 
-        ::leveldb::DB *db;
-        ::leveldb::Options options;
+        std::map<std::string, std::string> db;
 
         struct {
             std::size_t puts;
@@ -53,6 +52,7 @@ class leveldb : public base {
             std::size_t gets;
             long double get_times;
         } stats;
+
 };
 
 }

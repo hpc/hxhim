@@ -1,16 +1,17 @@
 #ifndef HXHIM_BACKEND_MDHIM_HPP
 #define HXHIM_BACKEND_MDHIM_HPP
 
-#include "base.hpp"
 #include "mdhim/mdhim.hpp"
-#include "transport/constants.h"
+
+#include "base.hpp"
+#include "hxhim/struct.h"
 
 namespace hxhim {
 namespace backend {
 
 class mdhim : public base {
     public:
-        mdhim(MPI_Comm comm, const std::string &config);
+        mdhim(hxhim_t *hx, const std::string &config);
         ~mdhim();
 
         void Close();
@@ -36,7 +37,10 @@ class mdhim : public base {
                          void **predicates, std::size_t *predicate_lens,
                          std::size_t count);
 
+        std::ostream &print_config(std::ostream &stream) const;
+
     private:
+        const std::string config_filename;
         mdhim_t *md;
         mdhim_options_t *mdhim_opts;
 

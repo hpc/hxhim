@@ -2,12 +2,16 @@
 #include <cmath>
 #include <cstring>
 #include <list>
+#include <iostream>
 
+#include "hxhim/Results_private.hpp"
+#include "hxhim/backend/backends.hpp"
 #include "hxhim/config.h"
+#include "hxhim/config.hpp"
 #include "hxhim/hxhim.h"
 #include "hxhim/hxhim.hpp"
+#include "hxhim/options_private.hpp"
 #include "hxhim/private.hpp"
-#include "hxhim/Results_private.hpp"
 #include "utils/elen.hpp"
 
 /**
@@ -21,15 +25,13 @@
  * @param copied whether or not the original ptr was replaced by a copy that needs to be deallocated
  * @param HXHIM_SUCCESS or HXHIM_ERROR
  */
-static int encode(const int type, void *&ptr, std::size_t &len, bool &copied) {
+static int encode(const hxhim_spo_type_t type, void *&ptr, std::size_t &len, bool &copied) {
     if (!ptr) {
         return HXHIM_ERROR;
     }
 
-    copied = false;
-
     switch (type) {
-        case HXHIM_FLOAT_TYPE:
+        case HXHIM_SPO_FLOAT_TYPE:
             {
                 const std::string str = elen::encode::floating_point(* (float *) ptr);
                 len = str.size();
@@ -38,7 +40,7 @@ static int encode(const int type, void *&ptr, std::size_t &len, bool &copied) {
                 copied = true;
             }
             break;
-        case HXHIM_DOUBLE_TYPE:
+        case HXHIM_SPO_DOUBLE_TYPE:
             {
                 const std::string str = elen::encode::floating_point(* (double *) ptr);
                 len = str.size();
@@ -47,8 +49,10 @@ static int encode(const int type, void *&ptr, std::size_t &len, bool &copied) {
                 copied = true;
             }
             break;
-        case HXHIM_INT_TYPE:
-        case HXHIM_BYTE_TYPE:
+        case HXHIM_SPO_INT_TYPE:
+        case HXHIM_SPO_SIZE_TYPE:
+        case HXHIM_SPO_BYTE_TYPE:
+            copied = false;
             break;
         default:
             return HXHIM_ERROR;
@@ -91,6 +95,9 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
         std::size_t predicate_len = head->predicate_lens[i];
         void *object = head->objects[i];
         std::size_t object_len = head->object_lens[i];
+
+        // add the value to the histogram
+        hx->p->histogram->add(object);
 
         // encode the values
         bool copied = false;
@@ -162,7 +169,7 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
 
 /**
  * backgroundPUT
- * The thread that runs when the number of full batches crosses the watermark
+ * The thread that runs when the number of full batches crosses the queued bputs watermark
  *
  * @param args   hx typecast to void *
  */
@@ -183,8 +190,8 @@ static void backgroundPUT(void *args) {
         {
             hxhim::Unsent<hxhim::PutData> &unsent = hx->p->puts;
             std::unique_lock<std::mutex> lock(unsent.mutex);
-            while (hx->p->running && (unsent.full_batches < hx->p->watermark) && !unsent.force) {
-                unsent.start_processing.wait(lock, [&]() -> bool { return !hx->p->running || (unsent.full_batches >= hx->p->watermark) || unsent.force; });
+            while (hx->p->running && (unsent.full_batches < hx->p->queued_bputs) && !unsent.force) {
+                unsent.start_processing.wait(lock, [&]() -> bool { return !hx->p->running || (unsent.full_batches >= hx->p->queued_bputs) || unsent.force; });
             }
 
             // record whether or not this loop was forced, since the lock is not held
@@ -294,35 +301,108 @@ static void backgroundPUT(void *args) {
  * Open
  * Start a HXHIM session
  *
- * @param hx             the HXHIM session
- * @param bootstrap_comm the MPI communicator used to boostrap MDHIM
- * @param filename       the name of the file to open (for now, it is only the mdhim configuration)
+ * @param hx   the HXHIM session
+ * @param opts the HXHIM options to use
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim::Open(hxhim_t *hx, const MPI_Comm bootstrap_comm) {
-    if (!hx) {
+int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
+    if (!hx || !opts || !opts->p) {
         return HXHIM_ERROR;
     }
+
+    hx->mpi = opts->p->mpi;
 
     if (!(hx->p = new hxhim_private_t())) {
         return HXHIM_ERROR;
     }
 
     hx->p->running = true;
-    hx->p->mpi.comm = bootstrap_comm;
+    hx->p->subject_type = opts->p->subject_type;
+    hx->p->predicate_type = opts->p->predicate_type;
+    hx->p->object_type = opts->p->object_type;
 
-    if ((MPI_Comm_rank(hx->p->mpi.comm, &hx->p->mpi.rank) != MPI_SUCCESS) ||
-        (MPI_Comm_size(hx->p->mpi.comm, &hx->p->mpi.size) != MPI_SUCCESS) ||
-        !(hx->p->put_results = new hxhim::Results())) {
+    // Set up queued PUT results list
+    if (!(hx->p->put_results = new hxhim::Results(hx->p->subject_type, hx->p->predicate_type, hx->p->object_type))) {
         Close(hx);
         return HXHIM_ERROR;
     }
 
+    // Start the background thread
     hx->p->background_put_thread = std::thread(backgroundPUT, hx);
 
-    const int ret = hxhim_default_config_reader(hx);
-    MPI_Barrier(hx->p->mpi.comm);
-    return ret;
+    // Setup the histogram
+
+    // Find Histogram Bucket Generation Method Extra Arguments
+    void *bucket_gen_extra = nullptr;
+    std::map <std::string, void *>::const_iterator extra_args_it = HXHIM_HISTOGRAM_BUCKET_GENERATOR_EXTRA_ARGS.find(opts->p->histogram_bucket_gen_method);
+    if (extra_args_it != HXHIM_HISTOGRAM_BUCKET_GENERATOR_EXTRA_ARGS.end()) {
+        bucket_gen_extra = extra_args_it->second;
+    }
+
+    // Get the bucket generator and create the histogram
+    switch (hx->p->object_type) {
+        case HXHIM_SPO_INT_TYPE:
+            hx->p->histogram = new Histogram<int>(opts->p->histogram_first_n,
+                                                  HXHIM_HISTOGRAM_BUCKET_GENERATORS<int>().at(opts->p->histogram_bucket_gen_method),
+                                                  bucket_gen_extra);
+            break;
+        case HXHIM_SPO_SIZE_TYPE:
+            hx->p->histogram = new Histogram<std::size_t>(opts->p->histogram_first_n,
+                                                          HXHIM_HISTOGRAM_BUCKET_GENERATORS<std::size_t>().at(opts->p->histogram_bucket_gen_method),
+                                                          bucket_gen_extra);
+            break;
+        case HXHIM_SPO_FLOAT_TYPE:
+            hx->p->histogram = new Histogram<float>(opts->p->histogram_first_n,
+                                                    HXHIM_HISTOGRAM_BUCKET_GENERATORS<float>().at(opts->p->histogram_bucket_gen_method),
+                                                    bucket_gen_extra);
+            break;
+        case HXHIM_SPO_DOUBLE_TYPE:
+            hx->p->histogram = new Histogram<double>(opts->p->histogram_first_n,
+                                                     HXHIM_HISTOGRAM_BUCKET_GENERATORS<double>().at(opts->p->histogram_bucket_gen_method),
+                                                     bucket_gen_extra);
+            break;
+        case HXHIM_SPO_BYTE_TYPE:
+            hx->p->histogram = new Histogram<char>(opts->p->histogram_first_n,
+                                                   HXHIM_HISTOGRAM_BUCKET_GENERATORS<char>().at(opts->p->histogram_bucket_gen_method),
+                                                   bucket_gen_extra);
+            break;
+        default:
+            break;
+    }
+
+    if (!hx->p->histogram) {
+        Close(hx);
+        return HXHIM_ERROR;
+    }
+
+    // Start the backend
+    switch (opts->p->backend) {
+        case HXHIM_BACKEND_MDHIM:
+            {
+                hxhim_mdhim_config_t *config = static_cast<hxhim_mdhim_config_t *>(opts->p->backend_config);
+                hx->p->backend = new hxhim::backend::mdhim(hx, config->path);
+            }
+            break;
+        case HXHIM_BACKEND_LEVELDB:
+            {
+                hxhim_leveldb_config_t *config = static_cast<hxhim_leveldb_config_t *>(opts->p->backend_config);
+                hx->p->backend = new hxhim::backend::leveldb(hx, config->path, config->create_if_missing);
+            }
+            break;
+        case HXHIM_BACKEND_IN_MEMORY:
+            {
+                hx->p->backend = new hxhim::backend::InMemory(hx);
+            }
+            break;
+    }
+
+    if (!hx->p->backend) {
+        Close(hx);
+        return HXHIM_ERROR;
+    }
+
+    MPI_Barrier(hx->mpi.comm);
+    return HXHIM_SUCCESS;
 }
 
 /**
@@ -334,8 +414,8 @@ int hxhim::Open(hxhim_t *hx, const MPI_Comm bootstrap_comm) {
  * @param filename       the name of the file to open (for now, it is only the mdhim configuration)
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhimOpen(hxhim_t *hx, const MPI_Comm bootstrap_comm) {
-    return hxhim::Open(hx, bootstrap_comm);
+int hxhimOpen(hxhim_t *hx, hxhim_options_t *opts) {
+    return hxhim::Open(hx, opts);
 }
 
 /**
@@ -350,7 +430,7 @@ int hxhim::Close(hxhim_t *hx) {
         return HXHIM_ERROR;
     }
 
-    MPI_Barrier(hx->p->mpi.comm);
+    MPI_Barrier(hx->mpi.comm);
 
     hx->p->running = false;
     hx->p->puts.start_processing.notify_all();
@@ -371,6 +451,10 @@ int hxhim::Close(hxhim_t *hx) {
         delete hx->p->put_results;
         hx->p->put_results = nullptr;
     }
+
+    // clean up histogram;
+    delete hx->p->histogram;
+    hx->p->histogram = nullptr;
 
     // clean up backend
     if (hx->p->backend) {
@@ -477,7 +561,8 @@ hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
     // retrieve all results
     std::unique_lock<std::mutex> results_lock(hx->p->put_results_mutex);
     hxhim::Results *res = hx->p->put_results;
-    hx->p->put_results = new hxhim::Results();
+    hx->p->put_results = new hxhim::Results(hx->p->subject_type, hx->p->predicate_type, hx->p->object_type);
+
     return res;
 }
 
@@ -514,7 +599,7 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
         return HXHIM_SUCCESS;
     }
 
-    hxhim::Results *res = new hxhim::Results();
+    hxhim::Results *res = new hxhim::Results(hx->p->subject_type, hx->p->predicate_type, hx->p->object_type);
 
     // write complete batches
     while (curr->next) {
@@ -575,9 +660,7 @@ hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
         return HXHIM_SUCCESS;
     }
 
-    // hxhim::Results head(hxhim_work_op::HXHIM_NOP, nullptr);
-    // hxhim::Results *res = &head;
-    hxhim::Results *res = new hxhim::Results();
+    hxhim::Results *res = new hxhim::Results(hx->p->subject_type, hx->p->predicate_type, hx->p->object_type);
 
     // write complete batches
     while (curr->next) {
@@ -642,7 +725,7 @@ hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
         return HXHIM_SUCCESS;
     }
 
-    hxhim::Results *res = new hxhim::Results();
+    hxhim::Results *res = new hxhim::Results(hx->p->subject_type, hx->p->predicate_type, hx->p->object_type);
 
     // write complete batches
     while (curr->next) {
@@ -693,7 +776,7 @@ hxhim_results_t *hxhimFlushDeletes(hxhim_t *hx) {
  * @return An array of results (3 values)
  */
 hxhim::Results *hxhim::Flush(hxhim_t *hx) {
-    hxhim::Results *res    = new hxhim::Results();
+    hxhim::Results *res    = new hxhim::Results(hx->p->subject_type, hx->p->predicate_type, hx->p->object_type);
     hxhim::Results *puts   = FlushPuts(hx);
     hxhim::Results *gets   = FlushGets(hx);
     hxhim::Results *getops = FlushGetOps(hx);
@@ -735,10 +818,7 @@ int hxhim::Put(hxhim_t *hx,
                void *subject, std::size_t subject_len,
                void *predicate, std::size_t predicate_len,
                void *object, std::size_t object_len) {
-    if (!hx        || !hx->p         ||
-        !subject   || !subject_len   ||
-        !predicate || !predicate_len ||
-        !object    || !object_len)    {
+    if (!hx || !hx->p) {
         return HXHIM_ERROR;
     }
 
@@ -812,9 +892,7 @@ int hxhimPut(hxhim_t *hx,
 int hxhim::Get(hxhim_t *hx,
                void *subject, std::size_t subject_len,
                void *predicate, std::size_t predicate_len) {
-    if (!hx        || !hx->p         ||
-        !subject   || !subject_len   ||
-        !predicate || !predicate_len) {
+    if (!hx || !hx->p) {
         return HXHIM_ERROR;
     }
 
@@ -878,9 +956,7 @@ int hxhimGet(hxhim_t *hx,
 int hxhim::Delete(hxhim_t *hx,
                   void *subject, std::size_t subject_len,
                   void *predicate, std::size_t predicate_len) {
-    if (!hx        || !hx->p         ||
-        !subject   || !subject_len   ||
-        !predicate || !predicate_len) {
+    if (!hx || !hx->p) {
         return HXHIM_ERROR;
     }
 
@@ -1110,9 +1186,8 @@ int hxhim::BGetOp(hxhim_t *hx,
                   void *subject, std::size_t subject_len,
                   void *predicate, std::size_t predicate_len,
                   std::size_t num_records, enum hxhim_get_op op) {
-    if (!hx        || !hx->p         ||
-        !subject   || !subject_len   ||
-        !predicate || !predicate_len) {
+    if (!hx      || !hx->p       ||
+        !subject || !subject_len) {
         return HXHIM_ERROR;
     }
 
@@ -1150,11 +1225,13 @@ int hxhim::BGetOp(hxhim_t *hx,
  * hxhimBGetOp
  * Add a BGET into the work queue
  *
- * @param hx         the HXHIM session
+ * @param hx            the HXHIM session
  * @param subjects      the subjects to get
  * @param subject_lens  the lengths of the subjects to get
  * @param prediates     the prediates to get
  * @param prediate_lens the lengths of the prediates to get
+ * @param num_records   the number of key value pairs to get back
+ * @param op            the operation to do
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimBGetOp(hxhim_t *hx,
@@ -1381,7 +1458,7 @@ int hxhimObjectType(hxhim_t *hx, int *type) {
 }
 
 /**
- * hxhimPut
+ * Put
  * Add a PUT into the work queue
  *
  * @param hx           the HXHIM session
@@ -1392,10 +1469,10 @@ int hxhimObjectType(hxhim_t *hx, int *type) {
  * @param object       the float to put
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhimPut(hxhim_t *hx,
-             void *subject, std::size_t subject_len,
-             void *predicate, std::size_t predicate_len,
-             float *object) {
+int hxhim::Put(hxhim_t *hx,
+               void *subject, std::size_t subject_len,
+               void *predicate, std::size_t predicate_len,
+               float *object) {
     return hxhim::Put(hx,
                       subject, subject_len,
                       predicate, predicate_len,
@@ -1415,9 +1492,9 @@ int hxhimPut(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimPutFloat(hxhim_t *hx,
-             void *subject, std::size_t subject_len,
-             void *predicate, std::size_t predicate_len,
-             void *object, std::size_t object_len) {
+                  void *subject, std::size_t subject_len,
+                  void *predicate, std::size_t predicate_len,
+                  void *object, std::size_t object_len) {
     return hxhim::Put(hx,
                       subject, subject_len,
                       predicate, predicate_len,
@@ -1425,7 +1502,7 @@ int hxhimPutFloat(hxhim_t *hx,
 }
 
 /**
- * hxhimPut
+ * Put
  * Add a PUT into the work queue
  *
  * @param hx           the HXHIM session
@@ -1436,10 +1513,10 @@ int hxhimPutFloat(hxhim_t *hx,
  * @param object       the double to put
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhimPut(hxhim_t *hx,
-             void *subject, std::size_t subject_len,
-             void *predicate, std::size_t predicate_len,
-             double *object) {
+int hxhim::Put(hxhim_t *hx,
+               void *subject, std::size_t subject_len,
+               void *predicate, std::size_t predicate_len,
+               double *object) {
     return hxhim::Put(hx,
                       subject, subject_len,
                       predicate, predicate_len,
@@ -1570,4 +1647,24 @@ int hxhimBPutDouble(hxhim_t *hx,
                        predicates, predicate_lens,
                        objects,
                        count);
+}
+
+/**
+ * BGetOp
+ * This version of BGetOp gets data based on the prefix of the key
+ *
+ * @param hx            the HXHIM session
+ * @param prefix        the prefix to search for; should be equivalent to a subject
+ * @param prefix_len    the length of the prefix
+ * @param num_records   the number of key value pairs to get back
+ * @param op            the operation to do
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim::BGetOp(hxhim_t *hx,
+                  void *prefix, std::size_t prefix_len,
+                  std::size_t num_records, enum hxhim_get_op op) {
+    return hxhim::BGetOp(hx,
+                         prefix, prefix_len,
+                         nullptr, 0,
+                         num_records, op);
 }

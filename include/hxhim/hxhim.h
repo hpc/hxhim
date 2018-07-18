@@ -7,11 +7,11 @@
 
 #include <ctype.h>
 
-#include <mpi.h>
-
-#include "constants.h"
-#include "struct.h"
 #include "Results.h"
+#include "config.h"
+#include "constants.h"
+#include "options.h"
+#include "struct.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -19,7 +19,7 @@ extern "C"
 #endif
 
 /** @description Starts an HXHIM instance */
-int hxhimOpen(hxhim_t *hx, const MPI_Comm bootstrap_comm);
+int hxhimOpen(hxhim_t *hx, hxhim_options_t *opts);
 
 /** @description Stops an HXHIM instance */
 int hxhimClose(hxhim_t *hx);

@@ -15,9 +15,16 @@ int main(int argc, char *argv[]) {
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
+    // read the config
+    hxhim_options_t opts;
+    if (hxhim_default_config_reader(&opts, MPI_COMM_WORLD) != HXHIM_SUCCESS) {
+        fprintf(stderr, "Failed to read configuration");
+        return 1;
+    }
+
     // start hxhim
     hxhim_t hx;
-    if (hxhimOpen(&hx, MPI_COMM_WORLD) != HXHIM_SUCCESS) {
+    if (hxhimOpen(&hx, &opts) != HXHIM_SUCCESS) {
         fprintf(stderr, "Failed to initialize hxhim\n");
         return 1;
     }
@@ -57,6 +64,8 @@ int main(int argc, char *argv[]) {
     MPI_Barrier(MPI_COMM_WORLD);
 
     hxhimClose(&hx);
+    hxhim_options_destroy(&opts);
+
     MPI_Finalize();
 
     return 0;

@@ -21,8 +21,9 @@ std::ostream &help(char *self, std::ostream &stream = std::cout) {
 }
 
 // A quick and dirty cleanup function
-void cleanup(hxhim_t *hx) {
+void cleanup(hxhim_t *hx, hxhim_options_t *opts) {
     hxhimClose(hx);
+    hxhim_options_destroy(opts);
     MPI_Finalize();
 }
 
@@ -41,11 +42,18 @@ int main(int argc, char *argv[]) {
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
+    // read the config
+    hxhim_options_t opts;
+    if (hxhim_default_config_reader(&opts, MPI_COMM_WORLD) != HXHIM_SUCCESS) {
+        printf("Failed to read configuration");
+        return 1;
+    }
+
     // initialize hxhim context
     hxhim_t hx;
-    if (hxhimOpen(&hx, MPI_COMM_WORLD) != HXHIM_SUCCESS) {
+    if (hxhimOpen(&hx, &opts) != HXHIM_SUCCESS) {
         std::cerr << "Failed to initialize hxhim" << std::endl;
-        cleanup(&hx);
+        cleanup(&hx, &opts);
         return HXHIM_ERROR;
     }
 
@@ -180,7 +188,7 @@ int main(int argc, char *argv[]) {
         hxhimGetStats(&hx, 0, 1, nullptr, 1, nullptr, 1, nullptr, 1, nullptr);
     }
 
-    cleanup(&hx);
+    cleanup(&hx, &opts);
 
     return HXHIM_SUCCESS;
 }

@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstdio>
-#include "mdhim/mdhim_options.h"
+#include "mdhim/options.h"
 #include "mdhim/data_store.h"
 #ifdef HXHIM_USE_LEVELDB
 #include "mdhim/ds_leveldb.h"

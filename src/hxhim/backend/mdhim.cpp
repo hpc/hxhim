@@ -2,6 +2,7 @@
 #include <utility>
 
 #include "hxhim/backend/mdhim.hpp"
+#include "hxhim/private.hpp"
 #include "hxhim/triplestore.hpp"
 
 namespace hxhim {
@@ -17,10 +18,12 @@ const std::map<enum hxhim_get_op, enum TransportGetMessageOp> mdhim::GET_OP_MAPP
     std::make_pair(hxhim_get_op::HXHIM_GET_OP_MAX,     TransportGetMessageOp::GET_OP_MAX),
 };
 
-mdhim::mdhim(MPI_Comm comm, const std::string &config)
-    : md(nullptr), mdhim_opts(nullptr)
+mdhim::mdhim(hxhim_t *hx, const std::string &config)
+    : base(hx),
+      config_filename(config),
+      md(nullptr), mdhim_opts(nullptr)
 {
-    if (Open(comm, config) != HXHIM_SUCCESS) {
+    if (Open(hx->mpi.comm, config_filename) != HXHIM_SUCCESS) {
         throw std::runtime_error("Could not configure MDHIM backend");
     }
 }
@@ -120,7 +123,7 @@ Results *mdhim::BPut(void **subjects, std::size_t *subject_lens,
                      void **predicates, std::size_t *predicate_lens,
                      void **objects, std::size_t *object_lens,
                       std::size_t count) {
-    Results *res = new Results();
+    Results *res = new Results(hx->p->subject_type, hx->p->predicate_type, hx->p->object_type);
 
     // create keys from subjects and predicates
     void **keys = new void *[count]();
@@ -165,7 +168,7 @@ Results *mdhim::BPut(void **subjects, std::size_t *subject_lens,
 Results *mdhim::BGet(void **subjects, std::size_t *subject_lens,
                      void **predicates, std::size_t *predicate_lens,
                      std::size_t count) {
-    Results *res = new Results();
+    Results *res = new Results(hx->p->subject_type, hx->p->predicate_type, hx->p->object_type);
 
     // create keys from subjects and predicates
     void **keys = new void *[count]();
@@ -194,13 +197,18 @@ Results *mdhim::BGet(void **subjects, std::size_t *subject_lens,
             void *pred = ::operator new(pred_len);
             memcpy(pred, temp_pred, pred_len);
 
-            void *obj = ::operator new(curr->value_lens[i]);
-            memcpy(obj, curr->values[i], curr->value_lens[i]);
+            void *obj = nullptr;
+            std::size_t obj_len = 0;
+            if (curr->error == MDHIM_SUCCESS) {
+                obj_len = curr->value_lens[i];
+                obj = malloc(obj_len);
+                memcpy(obj, curr->values[i], obj_len);
+            }
 
             int database = -1;
             ::mdhim::ComposeDB(md, &database, curr->src, curr->rs_idx[i]);
 
-            res->AddGet((curr->error == MDHIM_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR, database, sub, sub_len, pred, pred_len, obj, curr->value_lens[i]);
+            res->AddGet((curr->error == MDHIM_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR, database, sub, sub_len, pred, pred_len, obj, obj_len);
         }
     }
 
@@ -230,7 +238,7 @@ Results *mdhim::BGet(void **subjects, std::size_t *subject_lens,
 Results *mdhim::BGetOp(void *subject, std::size_t subject_len,
                        void *predicate, std::size_t predicate_len,
                        std::size_t count, enum hxhim_get_op op) {
-    Results *res = new Results();
+    Results *res = new Results(hx->p->subject_type, hx->p->predicate_type, hx->p->object_type);
 
     // create key from subjects and predicates
     void *key = nullptr;
@@ -286,7 +294,7 @@ Results *mdhim::BGetOp(void *subject, std::size_t subject_len,
 Results *mdhim::BDelete(void **subjects, std::size_t *subject_lens,
                         void **predicates, std::size_t *predicate_lens,
                         std::size_t count) {
-    Results *res = new Results();
+    Results *res = new Results(hx->p->subject_type, hx->p->predicate_type, hx->p->object_type);
 
     // create keys from subjects and predicates
     void **keys = new void *[count]();
@@ -316,6 +324,12 @@ Results *mdhim::BDelete(void **subjects, std::size_t *subject_lens,
     delete [] key_lens;
 
     return res;
+}
+
+std::ostream &mdhim::print_config(std::ostream &stream) const {
+    return stream
+        << "mdhim" << std::endl
+        << "    config: " << config_filename << std::endl;
 }
 
 }

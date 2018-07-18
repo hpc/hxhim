@@ -3,9 +3,9 @@
 
 #include "utils/uthash.h"
 
-#include "indexes.h"
 #include "constants.h"
-#include "mdhim_struct.h"
+#include "indexes.h"
+#include "struct.h"
 #include "transport/transport.hpp"
 
 /* Used to determine if a rank is a range server

@@ -5,7 +5,7 @@
 #include "mdhim/config.h"
 #include "mdhim/config.hpp"
 #include "mdhim/constants.h"
-#include "mdhim/mdhim_options_private.h"
+#include "mdhim/options_private.h"
 #include "transport/MPI.hpp"
 #include "transport/Thallium.hpp"
 
@@ -104,30 +104,6 @@ static int fill_options(const Config &config, mdhim_options_t *opts) {
     ret = get_value(config, NUM_WORKER_THREADS, num_worker_threads);
     if ((ret == CONFIG_ERROR)                                                                                        ||
         ((ret == CONFIG_FOUND) && (mdhim_options_set_num_worker_threads(opts, num_worker_threads) != MDHIM_SUCCESS))) {
-        return MDHIM_ERROR;
-    }
-
-    // Set Histogram Minimum
-    long double histogram_min;
-    ret = get_value(config, HISTOGRAM_MIN, histogram_min);
-    if ((ret == CONFIG_ERROR)                                                                              ||
-        ((ret == CONFIG_FOUND) && (mdhim_options_set_histogram_min(opts, histogram_min) != MDHIM_SUCCESS))) {
-        return MDHIM_ERROR;
-    }
-
-    // Set Histogram Step Size
-    long double histogram_step_size;
-    ret = get_value(config, HISTOGRAM_STEP_SIZE, histogram_step_size);
-    if ((ret == CONFIG_ERROR)                                                                                          ||
-        ((ret == CONFIG_FOUND) && (mdhim_options_set_histogram_step_size(opts, histogram_step_size) != MDHIM_SUCCESS))) {
-        return MDHIM_ERROR;
-    }
-
-    // Set Histogram Bucket Count
-    std::size_t histogram_count;
-    ret = get_value(config, HISTOGRAM_COUNT, histogram_count);
-    if ((ret == CONFIG_ERROR)                                                                                  ||
-        ((ret == CONFIG_FOUND) && (mdhim_options_set_histogram_count(opts, histogram_count) != MDHIM_SUCCESS))) {
         return MDHIM_ERROR;
     }
 

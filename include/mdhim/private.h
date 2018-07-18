@@ -2,7 +2,7 @@
 #define MDHIM_PRIVATE_H
 
 #include "mdhim.h"
-#include "mdhim_options_private.h"
+#include "options_private.h"
 #include "range_server.h"
 #include "transport/transport_options.hpp"
 

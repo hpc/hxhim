@@ -7,11 +7,11 @@
 #ifndef      __MDHIM_H
 #define      __MDHIM_H
 
-#include "index_struct.h"
 #include "config.h"
 #include "constants.h"
-#include "mdhim_options.h"
-#include "mdhim_struct.h"
+#include "index_struct.h"
+#include "options.h"
+#include "struct.h"
 #include "transport/transport.h"
 
 #ifdef __cplusplus

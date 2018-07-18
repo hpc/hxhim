@@ -1,6 +1,7 @@
 #ifndef HXHIM_BACKEND_BASE_HPP
 #define HXHIM_BACKEND_BASE_HPP
 
+#include "hxhim/struct.h"
 #include "hxhim/Results.hpp"
 
 namespace hxhim {
@@ -12,6 +13,7 @@ namespace backend {
  */
 class base {
     public:
+        base(hxhim_t *hx);
         virtual ~base() {}
 
         virtual void Close() {}
@@ -36,6 +38,11 @@ class base {
         virtual Results *BDelete(void **subjects, std::size_t *subject_lens,
                                  void **predicates, std::size_t *predicate_lens,
                                  std::size_t count) = 0;
+
+        virtual std::ostream &print_config(std::ostream &stream) const = 0;
+
+    protected:
+        hxhim_t *hx;
 };
 
 }

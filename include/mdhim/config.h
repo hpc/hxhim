@@ -3,7 +3,7 @@
 
 #include <mpi.h>
 
-#include "mdhim_options.h"
+#include "options.h"
 
 #ifdef __cplusplus
 extern "C"

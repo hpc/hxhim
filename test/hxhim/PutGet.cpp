@@ -1,25 +1,43 @@
 #include <cstdlib>
 #include <ctime>
+#include <type_traits>
 
 #include <gtest/gtest.h>
 #include <mpi.h>
 
 #include "hxhim/hxhim.hpp"
+#include "hxhim/private.hpp"
+#include "hxhim/backend/InMemory.hpp"
+#include "hxhim/config.hpp"
 
 typedef uint64_t Subject_t;
 typedef uint64_t Predicate_t;
-typedef uint64_t Object_t;
+typedef double   Object_t;
 
 TEST(hxhim, PutGet) {
     srand(time(NULL));
 
     const Subject_t SUBJECT     = (((Subject_t) rand()) << 32) | rand();
     const Predicate_t PREDICATE = (((Predicate_t) rand()) << 32) | rand();
-    const Object_t OBJECT       = SUBJECT ^ PREDICATE;
+    const Object_t OBJECT       = (((Object_t) SUBJECT) * ((Object_t) SUBJECT)) / (((Object_t) PREDICATE) * ((Object_t) PREDICATE));
+
+    hxhim_options_t opts;
+    ASSERT_EQ(hxhim_options_init(&opts), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim_options_set_mpi_bootstrap(&opts, MPI_COMM_WORLD), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim_options_set_backend(&opts, HXHIM_BACKEND_IN_MEMORY, nullptr), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim_options_set_subject_type(&opts, HXHIM_SPO_BYTE_TYPE), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim_options_set_predicate_type(&opts, HXHIM_SPO_BYTE_TYPE), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim_options_set_object_type(&opts, HXHIM_SPO_DOUBLE_TYPE), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim_options_set_queued_bputs(&opts, 1), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim_options_set_histogram_first_n(&opts, 10), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim_options_set_histogram_bucket_gen_method(&opts, TEN_BUCKETS.c_str()), HXHIM_SUCCESS);
 
     hxhim_t hx;
+    ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
 
-    ASSERT_EQ(hxhim::Open(&hx, MPI_COMM_WORLD), HXHIM_SUCCESS);
+    // replace backend with in-memory database
+    delete hx.p->backend;
+    ASSERT_NE(hx.p->backend = new hxhim::backend::InMemory(&hx), nullptr);
 
     // Add triple for putting
     EXPECT_EQ(hxhim::Put(&hx,
@@ -43,31 +61,30 @@ TEST(hxhim, PutGet) {
     hxhim::Results *get_results = hxhim::Flush(&hx);
     ASSERT_NE(get_results, nullptr);
 
-    // // go to first range server and make sure that this range server is valid
-    // ASSERT_EQ(get_results->MoveToFirstRS(), HXHIM_SUCCESS);
-    // ASSERT_EQ(get_results->ValidRS(), HXHIM_SUCCESS);
+    // get the results and compare them with the original data
+    std::size_t count = 0;
+    for(get_results->GoToHead(); get_results->Valid(); get_results->GoToNext()) {
+        hxhim::Results::Result *res = get_results->Curr();
+        EXPECT_NE(res, nullptr);
+        EXPECT_EQ(res->type, HXHIM_RESULT_GET);
 
-    // // go to first key value pair and make sure that the key value pairs can be obtained
-    // ASSERT_EQ(get_results->MoveToFirstSPO(), HXHIM_SUCCESS);
-    // ASSERT_EQ(get_results->GetError(), HXHIM_SUCCESS);
+        hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(get_results->Curr());
+        EXPECT_EQ(* (Subject_t *) get->subject, SUBJECT);
+        EXPECT_EQ(* (Predicate_t *) get->predicate, PREDICATE);
 
-    // // get the key value pair back
-    // ASSERT_EQ(get_results->ValidSPO(), HXHIM_SUCCESS);
-    // Object_t *object; std::size_t object_len;
-    // ASSERT_EQ(get_results->GetSPO(nullptr, nullptr, nullptr, nullptr, (void **) &object, &object_len), HXHIM_SUCCESS);
-    // EXPECT_EQ(*object, OBJECT);
-    // EXPECT_EQ(object_len, sizeof(OBJECT));
+        if (std::is_same<float, Object_t>::value) {
+            EXPECT_FLOAT_EQ((* (Object_t *) get->object), OBJECT);
+        }
+        else if (std::is_same<double, Object_t>::value) {
+            EXPECT_DOUBLE_EQ((* (Object_t *) get->object), OBJECT);
+        }
 
-    // // go to the next key value pair
-    // EXPECT_NE(get_results->NextSPO(), HXHIM_SUCCESS);
-
-    // // go to the next range server
-    // EXPECT_NE(get_results->NextRS(), HXHIM_SUCCESS);
-
-    // // go to the next response
-    // EXPECT_EQ(get_results->Next(), nullptr);
+        count++;
+    }
 
     delete get_results;
+    EXPECT_EQ(count, 1);
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
+    EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }

@@ -49,9 +49,16 @@ int main(int argc, char *argv[]) {
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
+    // read the config
+    hxhim_options_t opts;
+    if (hxhim_default_config_reader(&opts, MPI_COMM_WORLD) != HXHIM_SUCCESS) {
+        std::cerr << "Failed to read configuration" << std::endl;
+        return 1;
+    }
+
     // start hxhim
     hxhim_t hx;
-    if (hxhim::Open(&hx, MPI_COMM_WORLD) != HXHIM_SUCCESS) {
+    if (hxhim::Open(&hx, &opts) != HXHIM_SUCCESS) {
         std::cerr << "Failed to initialize hxhim" << std::endl;
         return 1;
     }
@@ -61,7 +68,7 @@ int main(int argc, char *argv[]) {
     void **subjects = NULL, **predicates = NULL, **objects = NULL;
     std::size_t *subject_lens = NULL, *predicate_lens = NULL, *object_lens = NULL;
     if (spo_gen_fixed(count, 100, rank, &subjects, &subject_lens, &predicates, &predicate_lens, &objects, &object_lens) != count) {
-        return -1;
+        return 1;
     }
 
     // PUT the subject-predicate-object triples
@@ -90,6 +97,8 @@ int main(int argc, char *argv[]) {
     MPI_Barrier(MPI_COMM_WORLD);
 
     hxhim::Close(&hx);
+    hxhim_options_destroy(&opts);
+
     MPI_Finalize();
 
     return 0;

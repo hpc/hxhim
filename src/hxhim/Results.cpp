@@ -1,7 +1,78 @@
 #include <cstdlib>
+#include <cstring>
 
+#include "hxhim/private.hpp"
 #include "hxhim/Results.hpp"
 #include "hxhim/Results_private.hpp"
+#include "utils/elen.hpp"
+
+/**
+ * decode
+ * Decodes values taken from a backend back into their
+ * local format (i.e. encoded floating point -> double)
+ *
+ * If the type is a floating point type, the original data
+ * is deallocated and a new memory region is allocated in
+ * its place.
+ *
+ * @param type the type the data being pointed to by ptr is
+ * @param ptr  the data
+ * @param len  the length of the data
+ * @param cxx  whether to use new or malloc to allocate/deallocate the original data
+ * @return HXHIM_SUCCESS or HXHIM_ERROR;
+ */
+static int decode(const hxhim_spo_type_t type, void *&ptr, std::size_t &len, const bool cxx, bool &replaced) {
+    if (!ptr) {
+        return HXHIM_ERROR;
+    }
+
+    replaced = false;
+
+    switch (type) {
+        case HXHIM_SPO_FLOAT_TYPE:
+            {
+                const float value = elen::decode::floating_point<float>(std::string((char *) ptr, len));
+                len = sizeof(float);
+                if (cxx) {
+                    ::operator delete(ptr);
+                    ptr = ::operator new(len);
+                }
+                else {
+                    free(ptr);
+                    ptr = malloc(len);
+                }
+                memcpy(ptr, &value, len);
+
+                replaced = true;
+            }
+            break;
+        case HXHIM_SPO_DOUBLE_TYPE:
+            {
+                const double value = elen::decode::floating_point<double>(std::string((char *) ptr, len));
+                len = sizeof(double);
+                if (cxx) {
+                    ::operator delete(ptr);
+                    ptr = ::operator new(len);
+                }
+                else {
+                    free(ptr);
+                    ptr = malloc(len);
+                }
+                memcpy(ptr, &value, len);
+
+                replaced = true;
+            }
+            break;
+        case HXHIM_SPO_INT_TYPE:
+        case HXHIM_SPO_SIZE_TYPE:
+        case HXHIM_SPO_BYTE_TYPE:
+            break;
+        default:
+            return HXHIM_ERROR;
+    }
+
+    return HXHIM_SUCCESS;
+}
 
 namespace hxhim {
 
@@ -43,8 +114,11 @@ Results::Delete::Delete(const int err, const int db)
 
 Results::Delete::~Delete() {}
 
-Results::Results()
-    : head(nullptr),
+Results::Results(hxhim_spo_type_t sub_type, hxhim_spo_type_t pred_type, hxhim_spo_type_t obj_type)
+    : subject_type(sub_type),
+      predicate_type(pred_type),
+      object_type(obj_type),
+      head(nullptr),
       tail(nullptr),
       curr(nullptr)
 {}
@@ -124,6 +198,23 @@ Results::Result *Results::AddGet(const int error, const int database,
                                  void *subject, std::size_t subject_len,
                                  void *predicate, std::size_t predicate_len,
                                  void *object, std::size_t object_len) {
+    bool subject_replaced = false, predicate_replaced = false, object_replaced = false;
+    if ((decode(subject_type, subject, subject_len, true, subject_replaced)         != HXHIM_SUCCESS) ||
+        (decode(predicate_type, predicate, predicate_len, true, predicate_replaced) != HXHIM_SUCCESS) ||
+        (decode(object_type, object, object_len, false, object_replaced)            != HXHIM_SUCCESS)) {
+        if (subject_replaced) {
+            ::operator delete(subject);
+        }
+        if (predicate_replaced) {
+            ::operator delete(predicate);
+        }
+        if (object_replaced) {
+            free(object);
+        }
+
+        append(nullptr);
+    }
+
     return append(new Get(error, database, subject, subject_len, predicate, predicate_len, object, object_len));
 }
 

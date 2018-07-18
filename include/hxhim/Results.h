@@ -8,12 +8,12 @@ extern "C"
 {
 #endif
 
-enum hxhim_result_type {
+typedef enum hxhim_result_type {
     HXHIM_RESULT_NONE,
     HXHIM_RESULT_PUT,
     HXHIM_RESULT_GET,
     HXHIM_RESULT_DEL,
-};
+} hxhim_result_type_t;
 
 // Opaque C struct, since user will never create one themselves
 typedef struct hxhim_results hxhim_results_t;

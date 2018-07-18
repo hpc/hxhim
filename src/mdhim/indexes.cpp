@@ -16,7 +16,7 @@
 #include <vector>
 
 #include "mdhim/indexes.h"
-#include "mdhim/mdhim_options_private.h"
+#include "mdhim/options_private.h"
 #include "mdhim/partitioner.h"
 #include "mdhim/private.h"
 
@@ -78,10 +78,7 @@ static void write_manifest(mdhim_t *md, index_t *index) {
           << index->key_type << std::endl
           << index->db_type << std::endl
           << get_num_databases(md->size, index->range_server_factor, index->dbs_per_server) << std::endl
-          << index->slice_size << std::endl
-          << md->p->db_opts->histogram.min << std::endl
-          << md->p->db_opts->histogram.step_size << std::endl
-          << md->p->db_opts->histogram.count << std::endl)) {
+          << index->slice_size << std::endl)) {
         mlog(MDHIM_SERVER_CRIT, "Rank %d - Error writing manifest file",
              md->rank);
     }
@@ -112,10 +109,7 @@ static int read_manifest(mdhim_t *md, index_t *index) {
 
     int key_type, db_type, databases;
     uint64_t slice_size;
-    long double hist_min, hist_step;
-    std::size_t hist_count;
-    if (!(manifest >> key_type >> db_type >> databases >> slice_size
-                   >> hist_min >> hist_step >> hist_count)) {
+    if (!(manifest >> key_type >> db_type >> databases >> slice_size)) {
         mlog(MDHIM_SERVER_CRIT, "Rank %d - Couldn't read manifest file",
              md->rank);
         return MDHIM_ERROR;
@@ -152,32 +146,13 @@ static int read_manifest(mdhim_t *md, index_t *index) {
     // the current number of databases should be the same as the previous size
     const int curr_dbs = get_num_databases(md->size, index->range_server_factor, index->dbs_per_server);
     if (databases != curr_dbs) {
-        mlog(MDHIM_SERVER_INFO, "Rank %d - The number of databases in this MDHIM instance (%d)"
+        mlog(MDHIM_SERVER_CRIT, "Rank %d - The number of databases in this MDHIM instance (%d)"
              " doesn't match the number used previously (%d)",
              md->rank, curr_dbs, databases);
         ret = MDHIM_ERROR;
     }
 
-    if (std::fabs(hist_min - md->p->db_opts->histogram.min) > 1e-6) {
-        mlog(MDHIM_SERVER_INFO, "Rank %d - The histogram minimum value in this MDHIM instance (%Le)"
-             " doesn't match the number used previously (%Le)",
-             md->rank, hist_min, md->p->db_opts->histogram.min);
-        ret = MDHIM_ERROR;
-    }
-
-    if (std::fabs(hist_step - md->p->db_opts->histogram.step_size) > 1e-6) {
-        mlog(MDHIM_SERVER_INFO, "Rank %d - The histogram step size in this MDHIM instance (%Le)"
-             " doesn't match the number used previously (%Le)",
-             md->rank, hist_step, md->p->db_opts->histogram.step_size);
-        ret = MDHIM_ERROR;
-    }
-
-    if (hist_count != md->p->db_opts->histogram.count) {
-        mlog(MDHIM_SERVER_INFO, "Rank %d - The histogram bucket count in this MDHIM instance (%zu)"
-             " doesn't match the number used previously (%zu)",
-             md->rank, hist_count, md->p->db_opts->histogram.count);
-        ret = MDHIM_ERROR;
-    }
+    mlog(MDHIM_SERVER_INFO, "Manifest file matches previously set values");
     return ret;
 }
 
@@ -626,9 +601,6 @@ index_t *create_local_index(mdhim_t *md, int db_type, int key_type, const char *
         MPI_Abort(md->comm, 0);
     }
 
-    // allocate space for the histogram
-    li->histogram = new std::size_t[md->p->db_opts->histogram.count + 1]();
-
     //Open the data store
     if (open_db_stores(md, (index_t *) li) != MDHIM_SUCCESS) {
         mlog(MDHIM_CLIENT_CRIT, "Rank %d - Error opening data store for index: %d",
@@ -757,9 +729,6 @@ index_t *create_global_index(mdhim_t *md, int server_factor,
              md->rank, get_manifest_name(md, gi));
         MPI_Abort(md->comm, 0);
     }
-
-    // allocate space for the histogram
-    gi->histogram = new std::size_t[md->p->db_opts->histogram.count + 1]();
 
     //Open the data store
     if (open_db_stores(md, (index_t *) gi) != MDHIM_SUCCESS) {
@@ -1051,7 +1020,6 @@ void indexes_release(mdhim_t *md) {
                 pthread_rwlock_destroy(&cur_indx->mdhim_stores[i]->mdhim_store_stats_lock);
                 free(cur_indx->mdhim_stores[i]);
             }
-            delete [] cur_indx->histogram;
             delete [] cur_indx->mdhim_stores;
             if (cur_indx->type != LOCAL_INDEX) {
                 MPI_Comm_free(&cur_indx->rs_comm);

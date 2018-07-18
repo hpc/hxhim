@@ -5,7 +5,7 @@
 
 #include "mdhim/config.hpp"
 #include "mdhim/mdhim.h"
-#include "mdhim/mdhim_options_private.h"
+#include "mdhim/options_private.h"
 #include "transport/MPIOptions.hpp"
 #include "transport/ThalliumOptions.hpp"
 #include "utils/Configuration.hpp"

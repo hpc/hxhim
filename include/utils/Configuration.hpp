@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <list>
 #include <map>
 #include <string>
 #include <sstream>
@@ -31,12 +32,10 @@ class ConfigReader {
  * ConfigSequence
  * A series of user defined child classes of ConfigReader
  * are passed into ConfigSequence. These classes contain all
- * of the information necessary to  search for a configuration
- * in a specified order to allow for preference of source.
- *
- * Each source should provide a full configuration.
- * The first callback to return true will terminate
- * search/parsing and return.
+ * of the information necessary to search for a configuration
+ * and fill in as much of a Config variable as they can. The
+ * configurations are read in FIFO order, so newer configurations
+ * will over older configurations.
  *
  * ConfigSequence DOES NOT take ownership of the ConfigReaders
  */
@@ -44,14 +43,8 @@ class ConfigSequence {
     public:
         ConfigSequence();
 
-        /** @description Gets the next unused index */
-        std::size_t next_index() const;
-
         /** @description Add a new source */
         std::size_t add(const ConfigReader *reader);
-
-        /** @description Add a new source at a specific position (overwrites old source) */
-        std::size_t add(const std::size_t index, const ConfigReader *reader);
 
         /** @description Call all of the configuration parsing functions in the order they are listed */
         void process(Config &config) const;
@@ -65,10 +58,8 @@ class ConfigSequence {
         ConfigSequence &operator=(const ConfigSequence&  rhs) = delete;
         ConfigSequence &operator=(const ConfigSequence&& rhs) = delete;
 
-        typedef std::map<std::size_t, const ConfigReader *> Sequence_t;
+        typedef std::list<const ConfigReader *> Sequence_t;
         Sequence_t sequence_;
-
-        std::size_t next_index_;
 };
 
 /** Example ConfigReaders that try to get configurations from different sources */
@@ -183,6 +174,7 @@ int get_from_map(const Config &config, const std::string &config_key,
                  const std::map<std::string, T> &map, T &value) {
     // find key in configuration
     Config_it in_config = config.find(config_key);
+
     if (in_config != config.end()) {
         // use value to get internal value from map
         typename std::map<std::string, T>::const_iterator in_map = map.find(in_config->second);

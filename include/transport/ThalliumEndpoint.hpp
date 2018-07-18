@@ -13,7 +13,7 @@
 #include "ThalliumUtilities.hpp"
 #include "mdhim/constants.h"
 #include "mdhim/private.h"
-#include "mdhim/mdhim_struct.h"
+#include "mdhim/struct.h"
 #include "transport.hpp"
 
 /**

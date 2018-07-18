@@ -12,7 +12,7 @@
 #include "mdhim/local_client.h"
 #include "mdhim/mdhim.h"
 #include "mdhim/mdhim_fortran.h"
-#include "mdhim/mdhim_options.h"
+#include "mdhim/options.h"
 #include "mdhim/partitioner.h"
 #include "mdhim/private.h"
 #include "mdhim/range_server.h"

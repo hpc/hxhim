@@ -1,70 +1,115 @@
 #include <vector>
+#include <sstream>
 
-#include "hxhim/backend/leveldb.hpp"
-#include "hxhim/backend/mdhim.hpp"
 #include "hxhim/config.h"
 #include "hxhim/config.hpp"
 #include "hxhim/constants.h"
-#include "hxhim/private.hpp"
-#include "mdhim/config.hpp"
-#include "mdhim/mdhim.hpp"
+#include "hxhim/options.h"
+#include "hxhim/options_private.hpp"
 #include "utils/Configuration.hpp"
+#include "utils/Histogram.hpp"
 
-static int fill_options(hxhim_t *hx, const Config &config) {
-    if (!hx || !hx->p ||
-        (hx->p->mpi.comm == MPI_COMM_NULL)) {
+static int fill_options(hxhim_options_t *opts, const Config &config) {
+    if (!opts || !opts->p ||
+        (opts->p->mpi.comm == MPI_COMM_NULL)) {
         return HXHIM_ERROR;
     }
 
-    std::size_t watermark = 0;
-    switch (get_value(config, HXHIM_QUEUED_BULK_PUTS, watermark)) {
-        case CONFIG_FOUND:
-            hx->p->watermark = watermark;
-            break;
-        case CONFIG_ERROR:
-        default:
-            return HXHIM_ERROR;
-    }
+    int ret = HXHIM_SUCCESS;
 
-    if (get_from_map(config, HXHIM_SUBJECT_TYPE, HXHIM_SPO_TYPES, hx->p->subject_type) == CONFIG_ERROR) {
-        return HXHIM_ERROR;
-    }
-
-    if (get_from_map(config, HXHIM_PREDICATE_TYPE, HXHIM_SPO_TYPES, hx->p->predicate_type) == CONFIG_ERROR) {
-        return HXHIM_ERROR;
-    }
-
-    if (get_from_map(config, HXHIM_OBJECT_TYPE, HXHIM_SPO_TYPES, hx->p->object_type) == CONFIG_ERROR) {
-        return HXHIM_ERROR;
-    }
-
-    int backend;
-    if (get_from_map(config, HXHIM_BACKEND_TYPE, HXHIM_BACKEND_TYPES, backend) == CONFIG_FOUND) {
+    // Set the backend
+    hxhim_backend_t backend;
+    hxhim_backend_config_t *backend_config = nullptr;
+    if (get_from_map(config, HXHIM_BACKEND_TYPE, HXHIM_BACKENDS, backend) != CONFIG_ERROR) {
         if (backend == HXHIM_BACKEND_MDHIM) {
-            // read the MDHIM configuration
+            hxhim_mdhim_config_t *cfg = new hxhim_mdhim_config_t();
+            if (!cfg) {
+                return HXHIM_ERROR;
+            }
+
+            // get the location of the MDHIM config file
             Config_it mdhim_config = config.find(HXHIM_MDHIM_CONFIG);
             if (mdhim_config == config.end()) {
                 return HXHIM_ERROR;
             }
 
-            hx->p->backend = new hxhim::backend::mdhim(hx->p->mpi.comm, mdhim_config->second);
+            cfg->path = mdhim_config->second;
+            backend_config = cfg;
         }
         else if (backend == HXHIM_BACKEND_LEVELDB) {
+            hxhim_leveldb_config_t *cfg = new hxhim_leveldb_config_t();
+            if (!cfg) {
+                return HXHIM_ERROR;
+            }
+
+            // get the leveldb database name prefix
             Config_it name = config.find(HXHIM_LEVELDB_NAME);
             if (name == config.end()) {
                 return HXHIM_ERROR;
             }
+            cfg->path = name->second;
 
-            bool create_if_missing = true; // default to true
-            if (get_bool(config, HXHIM_LEVELDB_CREATE_IF_MISSING, create_if_missing) == CONFIG_ERROR) {
+            cfg->create_if_missing = true; // default to true
+            if (get_bool(config, HXHIM_LEVELDB_CREATE_IF_MISSING, cfg->create_if_missing) == CONFIG_ERROR) {
                 return HXHIM_ERROR;
             }
 
-            hx->p->backend = new hxhim::backend::leveldb(name->second, hx->p->mpi.comm, hx->p->mpi.rank, create_if_missing);
+            backend_config = cfg;
         }
+        else if (backend == HXHIM_BACKEND_IN_MEMORY) {}
         else {
             return HXHIM_ERROR;
         }
+
+        hxhim_options_set_backend(opts, backend, backend_config);
+    }
+
+    // Set Queued Bulk Puts
+    std::size_t queued_bputs = 0;
+    ret = get_value(config, HXHIM_QUEUED_BULK_PUTS, queued_bputs);
+    if ((ret == CONFIG_ERROR) ||
+        hxhim_options_set_queued_bputs(opts, queued_bputs) != HXHIM_SUCCESS) {
+        return HXHIM_ERROR;
+    }
+
+    // Set Subject Type
+    hxhim_spo_type_t subject_type;
+    ret = get_from_map(config, HXHIM_SUBJECT_TYPE, HXHIM_SPO_TYPES, subject_type);
+    if ((ret == CONFIG_ERROR) ||
+        hxhim_options_set_subject_type(opts, subject_type) != HXHIM_SUCCESS) {
+        return HXHIM_ERROR;
+    }
+
+    // Set Predicate Type
+    hxhim_spo_type_t predicate_type;
+    ret = get_from_map(config, HXHIM_PREDICATE_TYPE, HXHIM_SPO_TYPES, predicate_type);
+    if ((ret == CONFIG_ERROR) ||
+        hxhim_options_set_predicate_type(opts, predicate_type) != HXHIM_SUCCESS) {
+        return HXHIM_ERROR;
+    }
+
+    // Set Object Type
+    hxhim_spo_type_t object_type;
+    ret = get_from_map(config, HXHIM_OBJECT_TYPE, HXHIM_SPO_TYPES, object_type);
+    if ((ret == CONFIG_ERROR) ||
+        hxhim_options_set_object_type(opts, object_type) != HXHIM_SUCCESS) {
+        return HXHIM_ERROR;
+    }
+
+    // Set Histogram Use First N Values
+    std::size_t use_first_n = 0;
+    ret = get_value(config, HXHIM_HISTOGRAM_FIRST_N, use_first_n);
+    if ((ret == CONFIG_ERROR) ||
+        hxhim_options_set_histogram_first_n(opts, use_first_n) != HXHIM_SUCCESS) {
+        return HXHIM_ERROR;
+    }
+
+    // Set Histogram Bucket Generation Method
+    std::string method;
+    ret = get_value(config, HXHIM_HISTOGRAM_BUCKET_GEN_METHOD, method);
+    if ((ret == CONFIG_ERROR) ||
+        hxhim_options_set_histogram_bucket_gen_method(opts, method.c_str()) != HXHIM_SUCCESS) {
+        return HXHIM_ERROR;
     }
 
     return HXHIM_SUCCESS;
@@ -87,8 +132,8 @@ static int fill_options(hxhim_t *hx, const Config &config) {
  * @param opts          the options to fill
  * @return whether or not opts was successfully filled
  */
-int process_config_and_fill_options(hxhim_t *hx, ConfigSequence &config_sequence) {
-    if (!hx || !hx->p) {
+int process_config_and_fill_options(hxhim_options_t *opts, ConfigSequence &config_sequence) {
+    if (!opts || !opts->p) {
         return HXHIM_ERROR;
     }
 
@@ -97,7 +142,7 @@ int process_config_and_fill_options(hxhim_t *hx, ConfigSequence &config_sequence
     config_sequence.process(config);
 
     // fill opts with values from configuration
-    return fill_options(hx, config);
+    return fill_options(opts, config);
 }
 
 /**
@@ -110,8 +155,8 @@ int process_config_and_fill_options(hxhim_t *hx, ConfigSequence &config_sequence
  * @param opts the options to fill
  * @return whether or not configuration was completed
  */
-int hxhim_default_config_reader(hxhim_t *hx) {
-    if (!hx || !hx->p) {
+int hxhim_default_config_reader(hxhim_options_t *opts, MPI_Comm comm) {
+    if (!opts) {
         return HXHIM_ERROR;
     }
 
@@ -124,6 +169,7 @@ int hxhim_default_config_reader(hxhim_t *hx) {
     ConfigFileEnvironment fileenv(HXHIM_CONFIG_ENV);
     config_sequence.add(&fileenv);
 
+    // get the environment variables from the default configuration
     std::vector<ConfigVarEnvironment *> vars;
     for(std::pair<const std::string, std::string> const &default_config : HXHIM_DEFAULT_CONFIG) {
         ConfigVarEnvironment *var = new ConfigVarEnvironment(default_config.first);
@@ -132,7 +178,12 @@ int hxhim_default_config_reader(hxhim_t *hx) {
     }
 
     int ret = HXHIM_SUCCESS;
-    if (process_config_and_fill_options(hx, config_sequence) != HXHIM_SUCCESS) { // read the configuration and overwrite default values
+
+    hxhim_options_init(opts);
+    hxhim_options_set_mpi_bootstrap(opts, comm);
+
+    if ((fill_options(opts, HXHIM_DEFAULT_CONFIG)               != HXHIM_SUCCESS) || // fill in the options with default values
+        (process_config_and_fill_options(opts, config_sequence) != HXHIM_SUCCESS)) { // read the configuration and overwrite default values
         ret = HXHIM_ERROR;
     }
 

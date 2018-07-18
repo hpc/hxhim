@@ -10,8 +10,8 @@
 #include <pthread.h>
 #include "utils/uthash.h"
 
-#include "mdhim_options_private.h"
-#include "mdhim/constants.h"
+#include "options_private.h"
+#include "constants.h"
 
 /* Function pointers for abstracting data stores */
 typedef int (*mdhim_store_open_fn_t)(void **db_handle, void **db_stats, const char *path, int flags,

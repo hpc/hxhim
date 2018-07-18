@@ -1,39 +1,8 @@
-#include <cstring>
-
 #include "hxhim/triplestore.hpp"
-
-template <typename Z, typename = std::enable_if_t<std::is_unsigned<Z>::value> >
-int encode_unsigned(void *buf, Z val, std::size_t len = sizeof(Z)) {
-    if (!buf) {
-        return HXHIM_ERROR;
-    }
-
-    memset(buf, 0, len);
-    while (val && len) {
-        ((char *) buf)[--len] = val & 0xffU;
-        val >>= 8;
-    }
-
-    return HXHIM_SUCCESS;
-}
-
-template <typename Z, typename = std::enable_if_t<std::is_unsigned<Z>::value> >
-int decode_unsigned(void *buf, Z &val, std::size_t len = sizeof(Z)) {
-    if (!buf) {
-        return HXHIM_ERROR;
-    }
-
-    val = 0;
-    for(std::size_t i = 0; i < len; i++) {
-        val = (val << 8) | ((char *) buf)[i];
-    }
-
-    return HXHIM_SUCCESS;
-}
 
 /**
  * sp_to_key
- * Combines a subject and a predicate to form a key.
+ * Combines a subject and a predicate (if present) to form a key.
  *
  * @param subject        the subject of the triple
  * @param subject_len    the length of the subject
@@ -46,13 +15,17 @@ int decode_unsigned(void *buf, Z &val, std::size_t len = sizeof(Z)) {
 int sp_to_key(const void *subject, const std::size_t subject_len,
               const void *predicate, const std::size_t predicate_len,
               void **key, std::size_t *key_len) {
-    if (!key       || !key_len       ||
-        !subject   || !subject_len   ||
-        !predicate || !predicate_len) {
+    if (!key       || !key_len     ||
+        !subject   || !subject_len) {
         return HXHIM_ERROR;
     }
 
-    *key_len = subject_len + predicate_len + sizeof(subject_len) + sizeof(predicate_len);
+    *key_len = subject_len + sizeof(subject_len) + predicate_len + sizeof(predicate_len);
+    if (!*key_len) {
+        *key = nullptr;
+        return HXHIM_SUCCESS;
+    }
+
     if (!(*key = ::operator new(*key_len))) {
         *key_len = 0;
         return HXHIM_ERROR;
@@ -60,27 +33,33 @@ int sp_to_key(const void *subject, const std::size_t subject_len,
 
     char *curr = (char *) *key;
 
-    // copy the subject value
-    memcpy(curr, subject, subject_len);
-    curr += subject_len;
+    if (subject && subject_len) {
+        // copy the subject value
+        memcpy(curr, subject, subject_len);
+        curr += subject_len;
 
-    // copy the predicate value
-    memcpy(curr, predicate, predicate_len);
-    curr += predicate_len;
+        // length of the subject value
+        encode_unsigned(curr, subject_len);
+        curr += sizeof(subject_len);
+    }
 
-    // length of the subject value
-    encode_unsigned(curr, subject_len);
-    curr += sizeof(subject_len);
+    if (predicate && predicate_len) {
+        // copy the predicate value
+        memcpy(curr, predicate, predicate_len);
+        curr += predicate_len;
 
-    // length of the predicate value
-    encode_unsigned(curr, predicate_len);
+        // length of the predicate value
+        encode_unsigned(curr, predicate_len);
+    }
 
     return HXHIM_SUCCESS;
 }
 
 /**
  * key_to_sp
- * Splits a key into a subject key pair.
+ * Splits a key into a subject key pair. No memory is allocated.
+ * The key must be valid until the outputs of this function are
+ * no longer needed.
  *
  * @param key            the key
  * @param key_len        the key length
@@ -97,8 +76,21 @@ int key_to_sp(const void *key, const std::size_t key_len,
         return HXHIM_ERROR;
     }
 
+    // read predicate
+    std::size_t pred_len = 0;
+    decode_unsigned((char *) key + key_len - sizeof(*predicate_len), pred_len);
+
+    if (predicate) {
+        *predicate = (char *) key + key_len - pred_len - sizeof(*predicate_len);
+    }
+
+    if (predicate_len) {
+        *predicate_len = pred_len;
+    }
+
+    // read subject
     std::size_t sub_len = 0;
-    decode_unsigned((char *) key + key_len - sizeof(*subject_len) - sizeof(*predicate_len), sub_len);
+    decode_unsigned((char *) key + key_len - sizeof(*subject_len) - pred_len - sizeof(*predicate_len), sub_len);
 
     if (subject) {
         *subject = (char *) key;
@@ -106,17 +98,6 @@ int key_to_sp(const void *key, const std::size_t key_len,
 
     if (subject_len) {
         *subject_len = sub_len;
-    }
-
-    std::size_t pred_len = 0;
-    decode_unsigned((char *) key + key_len - sizeof(*predicate_len), pred_len);
-
-    if (predicate) {
-        *predicate = (char *) key + sub_len;
-    }
-
-    if (predicate_len) {
-        *predicate_len = pred_len;
     }
 
     return HXHIM_SUCCESS;

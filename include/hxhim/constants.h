@@ -31,13 +31,19 @@ extern "C"
 #define HXHIM_OPT_STORE_NULL    (1 << 8)
 #define HXHIM_OPT_STORE_LEVELDB (1 << 9)
 
-#define HXHIM_BACKEND_MDHIM   0
-#define HXHIM_BACKEND_LEVELDB 1
+typedef enum hxhim_backend {
+    HXHIM_BACKEND_MDHIM,
+    HXHIM_BACKEND_LEVELDB,
+    HXHIM_BACKEND_IN_MEMORY,
+} hxhim_backend_t;
 
-#define HXHIM_INT_TYPE    0
-#define HXHIM_FLOAT_TYPE  1
-#define HXHIM_DOUBLE_TYPE 2
-#define HXHIM_BYTE_TYPE   3
+typedef enum hxhim_spo_type {
+    HXHIM_SPO_INT_TYPE,
+    HXHIM_SPO_SIZE_TYPE,
+    HXHIM_SPO_FLOAT_TYPE,
+    HXHIM_SPO_DOUBLE_TYPE,
+    HXHIM_SPO_BYTE_TYPE,
+} hxhim_spo_type_t;
 
 #ifdef __cplusplus
 }

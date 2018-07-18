@@ -7,7 +7,7 @@
 #ifndef      __LOCAL_CLIENT_H
 #define      __LOCAL_CLIENT_H
 
-#include "mdhim_struct.h"
+#include "struct.h"
 #include "transport/transport.hpp"
 
 TransportRecvMessage *local_client_put(mdhim_t *md, TransportPutMessage *pm);

@@ -95,9 +95,20 @@ int main(int argc, char *argv[]) {
 
     srand(time(NULL));
 
+    // read the config
+    hxhim_options_t opts;
+    if (hxhim_default_config_reader(&opts, MPI_COMM_WORLD) != HXHIM_SUCCESS) {
+        fprintf(stderr, "Failed to read configuration");
+        return 1;
+    }
+
     // start hxhim
     hxhim_t hx;
-    hxhimOpen(&hx, MPI_COMM_WORLD);
+    if (hxhimOpen(&hx, &opts) != HXHIM_SUCCESS) {
+        fprintf(stderr, "Failed to initialize hxhim\n");
+        hxhim_options_destroy(&opts);
+        return 1;
+    }
 
     double lowest = DBL_MAX;
     double highest = -DBL_MAX;
@@ -171,6 +182,8 @@ int main(int argc, char *argv[]) {
     free(cells);
 
     hxhimClose(&hx);
+    hxhim_options_destroy(&opts);
+
     MPI_Finalize();
 
     return 0;

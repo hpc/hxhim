@@ -10,8 +10,8 @@
 #include "index_struct.h"
 #include "config.hpp"
 #include "constants.h"
-#include "mdhim_options.h"
-#include "mdhim_struct.h"
+#include "options.h"
+#include "struct.h"
 #include "transport/transport.hpp"
 
 namespace mdhim {

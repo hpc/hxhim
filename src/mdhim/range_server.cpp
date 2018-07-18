@@ -16,8 +16,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "mdhim/mdhim_options.h"
-#include "mdhim/mdhim_options_private.h"
+#include "mdhim/options.h"
+#include "mdhim/options_private.h"
 #include "mdhim/partitioner.h"
 #include "mdhim/private.h"
 #include "mdhim/range_server.h"

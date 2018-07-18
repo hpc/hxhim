@@ -8,7 +8,7 @@
 
 #include "mdhim/indexes.h"
 #include "mdhim/local_client.h"
-#include "mdhim/mdhim_options_private.h"
+#include "mdhim/options_private.h"
 #include "mdhim/partitioner.h"
 #include "mdhim/private.h"
 #include "transport/MPI.hpp"

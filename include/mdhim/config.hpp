@@ -6,9 +6,9 @@
 
 #include "utils/mlog2.h"
 
-#include "utils/Configuration.hpp"
 #include "constants.h"
-#include "mdhim_options_struct.h"
+#include "options_struct.h"
+#include "utils/Configuration.hpp"
 
 /**
  * Constant locations where the configuration reader searches
@@ -45,9 +45,6 @@ const std::string LISTENERS            = "NUM_LISTENERS";         // positive in
 const std::string USE_THALLIUM         = "USE_THALLIUM";          // true/false
 const std::string THALLIUM_MODULE      = "THALLIUM_MODULE";       // See mercury documentation
 const std::string ENDPOINT_GROUP       = "ENDPOINT_GROUP";        // list of globally unique rank ids or "ALL"
-const std::string HISTOGRAM_MIN        = "HISTOGRAM_MIN";         // floating point value
-const std::string HISTOGRAM_STEP_SIZE  = "HISTOGRAM_STEP_SIZE";   // positive floating point value
-const std::string HISTOGRAM_COUNT      = "HISTOGRAM_COUNT";       // positive integer
 
 /**
  * Mapping from configuration value to database type
@@ -126,9 +123,6 @@ const Config MDHIM_DEFAULT_CONFIG = {
     std::make_pair(USE_THALLIUM,         "false"),
     std::make_pair(THALLIUM_MODULE,      "na+sm"),
     std::make_pair(ENDPOINT_GROUP,       "ALL"),
-    std::make_pair(HISTOGRAM_MIN,        "-100"),
-    std::make_pair(HISTOGRAM_STEP_SIZE,  "20"),
-    std::make_pair(HISTOGRAM_COUNT,      "10"),
 };
 
 /**

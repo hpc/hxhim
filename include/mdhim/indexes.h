@@ -12,8 +12,8 @@
 #include <mpi.h>
 
 #include "index_struct.h"
-#include "mdhim_struct.h"
 #include "range_server_info_struct.h"
+#include "struct.h"
 
 int update_stat(mdhim_t *md, index_t *bi, const int rs_id, void *key, std::size_t key_len);
 int write_stat(mdhim_t *md, index_t *bi, const int rs_idx);

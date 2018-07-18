@@ -3,11 +3,6 @@
 # to the root binary directory of the project as ${HXHIM_BINARY_DIR}.
 cmake_minimum_required (VERSION 3.6.3)
 project (HXHIM LANGUAGES C CXX)
-#
-# Enable C11
-#
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED ON)
 
 #
 # Enable C++14
@@ -160,6 +155,7 @@ file(GLOB BASE src/base/*.c*)
 file(GLOB MDHIM src/mdhim/*.c*)
 file(GLOB TRANSPORT src/transport/*.c*)
 file(GLOB UTILS src/utils/*.c*)
+list(REMOVE_ITEM UTILS **.tpp)
 
 set(LIBMDHIM_SOURCES ${MDHIM} ${TRANSPORT} ${UTILS})
 message(STATUS "LIBMDHIM_SOURCES: " ${LIBMDHIM_SOURCES})

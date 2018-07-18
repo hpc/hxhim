@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "mdhim/mdhim.h"
-#include "mdhim/mdhim_options_private.h"
+#include "mdhim/options_private.h"
 
 TEST(mdhimOptions, Good) {
     mdhim_options_t opts;

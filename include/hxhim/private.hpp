@@ -12,22 +12,14 @@
 #include "cache.hpp"
 #include "constants.h"
 #include "struct.h"
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+#include "utils/Histogram.hpp"
 
 typedef struct hxhim_private {
-    struct {
-        MPI_Comm comm;
-        int rank;
-        int size;
-    } mpi;
+    hxhim_private();
 
-    int subject_type;
-    int predicate_type;
-    int object_type;
+    hxhim_spo_type_t subject_type;
+    hxhim_spo_type_t predicate_type;
+    hxhim_spo_type_t object_type;
 
     hxhim::backend::base *backend;
 
@@ -40,15 +32,13 @@ typedef struct hxhim_private {
     hxhim::Unsent<hxhim::DeleteData> deletes;
 
     // asynchronous PUT data
-    std::size_t watermark;               // number of batches to hold before sending PUTs asynchronously
+    std::size_t queued_bputs;               // number of batches to hold before sending PUTs asynchronously
     std::thread background_put_thread;
     std::mutex put_results_mutex;
     hxhim::Results *put_results;
 
-} hxhim_private_t;
+    HistogramBase *histogram;
 
-#ifdef __cplusplus
-}
-#endif
+} hxhim_private_t;
 
 #endif
