@@ -12,6 +12,7 @@
 #include "constants.h"
 #include "options.h"
 #include "struct.h"
+#include "utils/Histogram.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -104,6 +105,8 @@ int hxhimBPutDouble(hxhim_t *hx,
                     void **predicates, size_t *predicate_lens,
                     double **objects,
                     size_t count);
+
+int hxhimGetHistogram(hxhim_t *hx, histogram_t *histogram);
 
 #ifdef __cplusplus
 }

@@ -6,6 +6,7 @@
 #include "constants.h"
 #include "options.h"
 #include "struct.h"
+#include "utils/Histogram.hpp"
 
 namespace hxhim {
 
@@ -85,20 +86,22 @@ int Put(hxhim_t *hx,
         double *object);
 
 int BPut(hxhim_t *hx,
-    void **subjects, std::size_t *subject_lens,
-    void **predicates, std::size_t *predicate_lens,
-    float **objects,
-    std::size_t count);
+         void **subjects, std::size_t *subject_lens,
+         void **predicates, std::size_t *predicate_lens,
+         float **objects,
+         std::size_t count);
 
 int BPut(hxhim_t *hx,
-    void **subjects, std::size_t *subject_lens,
-    void **predicates, std::size_t *predicate_lens,
-    double **objects,
-    std::size_t count);
+         void **subjects, std::size_t *subject_lens,
+         void **predicates, std::size_t *predicate_lens,
+         double **objects,
+         std::size_t count);
 
 int BGetOp(hxhim_t *hx,
            void *prefix, std::size_t prefix_len,
            std::size_t num_records, enum hxhim_get_op op);
+
+int GetHistogram(hxhim_t *hx, Histogram::Histogram **histogram);
 
 }
 

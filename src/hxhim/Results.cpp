@@ -83,7 +83,26 @@ Results::Result::Result(hxhim_result_type t, const int err, const int db)
       next(nullptr)
 {}
 
-Results::Result::~Result() {
+Results::Result::~Result() {}
+
+hxhim_result_type_t Results::Result::GetType() const {
+    return type;
+}
+
+int Results::Result::GetError() const {
+    return error;
+}
+
+int Results::Result::GetDatabase() const {
+    return database;
+}
+
+Results::Result *Results::Result::Next() const {
+    return next;
+}
+
+Results::Result *&Results::Result::Next() {
+    return next;
 }
 
 Results::Put::Put(const int err, const int db)
@@ -92,21 +111,11 @@ Results::Put::Put(const int err, const int db)
 
 Results::Put::~Put() {}
 
-Results::Get::Get(const int err, const int db,
-                  void *sub, std::size_t sub_len,
-                  void *pred, std::size_t pred_len,
-                  void *obj, std::size_t obj_len)
-    : Result(hxhim_result_type::HXHIM_RESULT_GET, err, db),
-      subject(sub), subject_len(sub_len),
-      predicate(pred), predicate_len(pred_len),
-      object(obj), object_len(obj_len)
+Results::Get::Get(const int err, const int db)
+    : Result(hxhim_result_type::HXHIM_RESULT_GET, err, db)
 {}
 
-Results::Get::~Get() {
-    ::operator delete(subject);
-    ::operator delete(predicate);
-    free(object);
-}
+Results::Get::~Get() {}
 
 Results::Delete::Delete(const int err, const int db)
     : Result(hxhim_result_type::HXHIM_RESULT_DEL, err, db)
@@ -125,7 +134,7 @@ Results::Results(hxhim_spo_type_t sub_type, hxhim_spo_type_t pred_type, hxhim_sp
 
 Results::~Results() {
     while (head) {
-        Result *next = head->next;
+        Result *next = head->Next();
         delete head;
         head = next;
     }
@@ -175,69 +184,30 @@ Results::Result *Results::Curr() const {
  * @return the pointer to the node after the one currently being pointed to
  */
 Results::Result *Results::Next() const {
-    return Valid()?curr->next:nullptr;
+    return Valid()?curr->Next():nullptr;
 }
 
 /**
- * AddPut
- * Appends a put to the list
+ * Add
+ * Appends a single result node to the end of the list;
  *
  * @return the pointer to the new node
  */
-Results::Result *Results::AddPut(const int error, const int database) {
-    return append(new Put(error, database));
-}
-
-/**
- * AddGet
- * Appends a get to the list
- *
- * @return the pointer to the new node
- */
-Results::Result *Results::AddGet(const int error, const int database,
-                                 void *subject, std::size_t subject_len,
-                                 void *predicate, std::size_t predicate_len,
-                                 void *object, std::size_t object_len) {
-    bool subject_replaced = false, predicate_replaced = false, object_replaced = false;
-    if ((decode(subject_type, subject, subject_len, true, subject_replaced)         != HXHIM_SUCCESS) ||
-        (decode(predicate_type, predicate, predicate_len, true, predicate_replaced) != HXHIM_SUCCESS) ||
-        (decode(object_type, object, object_len, false, object_replaced)            != HXHIM_SUCCESS)) {
-        if (subject_replaced) {
-            ::operator delete(subject);
-        }
-        if (predicate_replaced) {
-            ::operator delete(predicate);
-        }
-        if (object_replaced) {
-            free(object);
-        }
-
-        append(nullptr);
-    }
-
-    return append(new Get(error, database, subject, subject_len, predicate, predicate_len, object, object_len));
-}
-
-/**
- * AddDelete
- * Appends a delete to the list
- *
- * @return the pointer to the new node
- */
-Results::Result *Results::AddDelete(const int error, const int database) {
-    return append(new Delete(error, database));
+Results::Result *Results::Add(Results::Result *res) {
+    (head?tail->Next():head) = res;
+    return tail = res;
 }
 
 /**
  * Append
- * Moves the contents of another hxhim::Results into this one.
+ * Moves and appends the contents of another hxhim::Results into this one.
  * The other list is emptied out;
  *
  * @return the pointer to the new node
  */
 Results &Results::Append(Results *results) {
     if (results) {
-        append(results->head);
+        Add(results->head);
         tail = results->tail;
         results->head = nullptr;
         results->tail = nullptr;
@@ -245,17 +215,6 @@ Results &Results::Append(Results *results) {
     }
 
     return *this;
-}
-
-/**
- * append
- * Appends a single result node to the end of the list;
- *
- * @return the pointer to the new node
- */
-Results::Result *Results::append(Results::Result *single) {
-    (head?tail->next:head) = single;
-    return tail = single;
 }
 
 }
@@ -333,7 +292,7 @@ int hxhim_results_type(hxhim_results_t *res, enum hxhim_result_type *type) {
     }
 
     if (type) {
-        *type = curr->type;
+        *type = curr->GetType();
     }
 
     return HXHIM_SUCCESS;
@@ -358,7 +317,7 @@ int hxhim_results_error(hxhim_results_t *res, int *error) {
     }
 
     if (error) {
-        *error = curr->error;
+        *error = curr->GetError();
     }
 
     return HXHIM_SUCCESS;
@@ -383,7 +342,7 @@ int hxhim_results_database(hxhim_results_t *res, int *database) {
     }
 
     if (database) {
-        *database = curr->database;
+        *database = curr->GetDatabase();
     }
 
     return HXHIM_SUCCESS;
@@ -404,18 +363,8 @@ int hxhim_results_get_subject(hxhim_results_t *res, void **subject, std::size_t 
     }
 
     hxhim::Results::Result *curr = res->res->Curr();
-    if (curr->type == hxhim_result_type::HXHIM_RESULT_GET) {
-        hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(curr);
-
-        if (subject) {
-            *subject = get->subject;
-        }
-
-        if (subject_len) {
-            *subject_len = get->subject_len;
-        }
-
-        return HXHIM_SUCCESS;
+    if (curr->GetType() == hxhim_result_type::HXHIM_RESULT_GET) {
+        return static_cast<hxhim::Results::Get *>(curr)->GetPredicate(subject, subject_len);
     }
 
     return HXHIM_ERROR;
@@ -436,18 +385,8 @@ int hxhim_results_get_predicate(hxhim_results_t *res, void **predicate, std::siz
     }
 
     hxhim::Results::Result *curr = res->res->Curr();
-    if (curr->type == hxhim_result_type::HXHIM_RESULT_GET) {
-        hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(curr);
-
-        if (predicate) {
-            *predicate = get->predicate;
-        }
-
-        if (predicate_len) {
-            *predicate_len = get->predicate_len;
-        }
-
-        return HXHIM_SUCCESS;
+    if (curr->GetType() == hxhim_result_type::HXHIM_RESULT_GET) {
+        return static_cast<hxhim::Results::Get *>(curr)->GetPredicate(predicate, predicate_len);
     }
 
     return HXHIM_ERROR;
@@ -468,18 +407,8 @@ int hxhim_results_get_object(hxhim_results_t *res, void **object, std::size_t *o
     }
 
     hxhim::Results::Result *curr = res->res->Curr();
-    if (curr->type == hxhim_result_type::HXHIM_RESULT_GET) {
-        hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(curr);
-
-        if (object) {
-            *object = get->object;
-        }
-
-        if (object_len) {
-            *object_len = get->object_len;
-        }
-
-        return HXHIM_SUCCESS;
+    if (curr->GetType() == hxhim_result_type::HXHIM_RESULT_GET) {
+        return static_cast<hxhim::Results::Get *>(curr)->GetPredicate(object, object_len);
     }
 
     return HXHIM_ERROR;

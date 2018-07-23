@@ -41,6 +41,33 @@ class leveldb : public base {
         std::ostream &print_config(std::ostream &stream) const;
 
     private:
+        class GetResult : public Results::Get {
+            public:
+                GetResult(const int db, const ::leveldb::Iterator *it);
+                ~GetResult();
+
+                int GetSubject(void **subject, std::size_t *subject_len) const;
+                int GetPredicate(void **predicate, std::size_t *predicate_len) const;
+                int GetObject(void **object, std::size_t *object_len) const;
+
+            private:
+                const ::leveldb::Iterator *res;
+        };
+
+        struct GetOpResult : public Results::Get {
+            public:
+                GetOpResult(const bool ok, const int db, const ::leveldb::Slice &key, const ::leveldb::Slice &value);
+                ~GetOpResult();
+
+                int GetSubject(void **subject, std::size_t *subject_len) const;
+                int GetPredicate(void **predicate, std::size_t *predicate_len) const;
+                int GetObject(void **object, std::size_t *object_len) const;
+
+            private:
+                const ::leveldb::Slice k;
+                const ::leveldb::Slice v;
+        };
+
         const std::string name;
         const bool create_if_missing;
 

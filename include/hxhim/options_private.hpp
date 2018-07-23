@@ -30,7 +30,7 @@ typedef struct hxhim_options_private {
     bootstrap_t mpi;                            // bootstrap information
 
     hxhim_backend_t backend;
-    hxhim_backend_config_t *backend_config;                       // depends on backend value
+    hxhim_backend_config_t *backend_config;     // depends on backend value
 
     hxhim_spo_type_t subject_type;
     hxhim_spo_type_t predicate_type;

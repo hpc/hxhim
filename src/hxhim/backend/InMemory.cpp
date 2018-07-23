@@ -152,7 +152,7 @@ Results *InMemory::BPut(void **subjects, std::size_t *subject_lens,
         stats.puts++;
         stats.put_times += elapsed(start, end);
 
-        res->AddPut(HXHIM_SUCCESS, hx->mpi.rank);
+        res->Add(new Results::Put(HXHIM_SUCCESS, hx->mpi.rank));
     }
 
     stats.put_times += elapsed(start, end);
@@ -198,24 +198,8 @@ Results *InMemory::BGet(void **subjects, std::size_t *subject_lens,
         stats.gets++;
         stats.get_times += elapsed(start, end);
 
-        // copy the subject
-        void *sub = ::operator new(subject_lens[i]);
-        memcpy(sub, subjects[i], subject_lens[i]);
 
-        // copy the predicate
-        void *pred = ::operator new(predicate_lens[i]);
-        memcpy(pred, predicates[i], predicate_lens[i]);
-
-        // copy the object
-        void *obj = nullptr;
-        std::size_t obj_len = 0;
-        if (it != db.end()){
-            obj_len = it->second.size();
-            obj = malloc(obj_len);
-            memcpy(obj, it->second.c_str(), obj_len);
-        }
-
-        res->AddGet((it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR, hx->mpi.rank, sub, subject_lens[i], pred, predicate_lens[i], obj, obj_len);
+        res->Add(new GetResult((it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR, hx->mpi.rank, it));
     }
 
     for(std::size_t i = 0; i < count; i++) {
@@ -264,40 +248,9 @@ Results *InMemory::BGetOp(void *subject, std::size_t subject_len,
 
     if (it != db.end()) {
         for(std::size_t i = 0; i < count && (it != db.end()) && (rit != db.rend()); i++) {
+            res->Add(new GetResult((it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR, hx->mpi.rank, it));
+
             clock_gettime(CLOCK_MONOTONIC, &start);
-            const std::string &key = it->first;
-            const std::string &value = it->second;
-            clock_gettime(CLOCK_MONOTONIC, &end);
-
-            stats.gets++;
-            stats.get_times += elapsed(start, end);
-
-            // convert the key into a subject predicate pair
-            void *temp_sub = nullptr;
-            std::size_t sub_len = 0;
-            void *temp_pred = nullptr;
-            std::size_t pred_len = 0;
-
-            key_to_sp(key.data(), key.size(), &temp_sub, &sub_len, &temp_pred, &pred_len);
-
-            // copy the subject into a new location
-            void *sub = ::operator new(sub_len);
-            memcpy(sub, temp_sub, sub_len);
-
-            // copy the predicate into a new location
-            void *pred = ::operator new(pred_len);
-            memcpy(pred, temp_pred, pred_len);
-
-            // copy the object
-            void *obj = nullptr;
-            std::size_t obj_len = 0;
-            if (it != db.end()){
-                obj_len = value.size();
-                obj = malloc(obj_len);
-                memcpy(obj, value.data(), obj_len);
-            }
-
-            res->AddGet(HXHIM_SUCCESS, hx->mpi.rank, sub, sub_len, pred, pred_len, obj, obj_len);
 
             // move to next iterator according to operation
             switch (op) {
@@ -316,6 +269,10 @@ Results *InMemory::BGetOp(void *subject, std::size_t subject_len,
                 default:
                     break;
             }
+
+            clock_gettime(CLOCK_MONOTONIC, &end);
+            stats.gets++;
+            stats.get_times += elapsed(start, end);
         }
     }
 
@@ -345,7 +302,7 @@ Results *InMemory::BDelete(void **subjects, std::size_t *subject_lens,
         sp_to_key(subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &keys[i], &key_len);
 
         db.erase(std::string((char *) keys[i], key_len));
-        res->AddPut(HXHIM_SUCCESS, hx->mpi.rank);
+        res->Add(new Results::Delete(HXHIM_SUCCESS, hx->mpi.rank));
     }
 
     for(std::size_t i = 0; i < count; i++) {
@@ -358,6 +315,34 @@ Results *InMemory::BDelete(void **subjects, std::size_t *subject_lens,
 
 std::ostream &InMemory::print_config(std::ostream &stream) const {
     return stream;
+}
+
+InMemory::GetResult::GetResult(const int err, const int db, const std::map<std::string, std::string>::const_iterator &it)
+    : Get(err, db),
+      k((err == HXHIM_SUCCESS)?it->first:""),
+      v((err == HXHIM_SUCCESS)?it->second:"")
+{}
+
+InMemory::GetResult::~GetResult() {}
+
+int InMemory::GetResult::GetSubject(void **subject, std::size_t *subject_len) const {
+    return key_to_sp(k.data(), k.size(), subject, subject_len, nullptr, nullptr);
+}
+
+int InMemory::GetResult::GetPredicate(void **predicate, std::size_t *predicate_len) const {
+    return key_to_sp(k.data(), k.size(), nullptr, nullptr, predicate, predicate_len);
+}
+
+int InMemory::GetResult::GetObject(void **object, std::size_t *object_len) const {
+    if (object) {
+        *object = (char *) v.data();
+    }
+
+    if (object_len) {
+        *object_len = v.size();
+    }
+
+    return HXHIM_SUCCESS;
 }
 
 }

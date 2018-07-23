@@ -37,7 +37,7 @@ typedef struct hxhim_private {
     std::mutex put_results_mutex;
     hxhim::Results *put_results;
 
-    HistogramBase *histogram;
+    Histogram::Histogram *histogram;
 
 } hxhim_private_t;
 

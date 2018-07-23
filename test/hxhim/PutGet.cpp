@@ -66,17 +66,23 @@ TEST(hxhim, PutGet) {
     for(get_results->GoToHead(); get_results->Valid(); get_results->GoToNext()) {
         hxhim::Results::Result *res = get_results->Curr();
         EXPECT_NE(res, nullptr);
-        EXPECT_EQ(res->type, HXHIM_RESULT_GET);
+        EXPECT_EQ(res->GetType(), HXHIM_RESULT_GET);
 
         hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(get_results->Curr());
-        EXPECT_EQ(* (Subject_t *) get->subject, SUBJECT);
-        EXPECT_EQ(* (Predicate_t *) get->predicate, PREDICATE);
+        Subject_t *subject = nullptr;
+        EXPECT_EQ(get->GetSubject((void **) &subject, nullptr), HXHIM_SUCCESS);
+        EXPECT_EQ(*subject, SUBJECT);
+        Predicate_t *predicate = nullptr;
+        EXPECT_EQ(get->GetPredicate((void **) &predicate, nullptr), HXHIM_SUCCESS);
+        EXPECT_EQ(*predicate, PREDICATE);
 
+        Object_t *object = nullptr;
+        EXPECT_EQ(get->GetObject((void **) &object, nullptr), HXHIM_SUCCESS);
         if (std::is_same<float, Object_t>::value) {
-            EXPECT_FLOAT_EQ((* (Object_t *) get->object), OBJECT);
+            EXPECT_FLOAT_EQ(*object, OBJECT);
         }
         else if (std::is_same<double, Object_t>::value) {
-            EXPECT_DOUBLE_EQ((* (Object_t *) get->object), OBJECT);
+            EXPECT_DOUBLE_EQ(*object, OBJECT);
         }
 
         count++;

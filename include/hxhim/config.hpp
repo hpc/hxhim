@@ -60,20 +60,15 @@ const std::string UNIFORM_LOG10                = "UNIFORM_LOG10";
 /**
  * Set of predefined histogram bucket generators
  */
-template <typename T>
-const std::map<std::string, typename HistogramBucketGen<T>::generator> &HXHIM_HISTOGRAM_BUCKET_GENERATORS() {
-    static const std::map<std::string, typename HistogramBucketGen<T>::generator> generators = {
-        std::make_pair(TEN_BUCKETS,                  HistogramBucketGen<T>::n_buckets),
-        std::make_pair(SQUARE_ROOT_CHOICE,           HistogramBucketGen<T>::square_root_choice),
-        std::make_pair(STURGES_FORMULA,              HistogramBucketGen<T>::sturges_formula),
-        std::make_pair(RICE_RULE,                    HistogramBucketGen<T>::rice_rule),
-        std::make_pair(SCOTTS_NORMAL_REFERENCE_RULE, HistogramBucketGen<T>::scotts_normal_reference_rule),
-        std::make_pair(UNIFORM_LOG2,                 HistogramBucketGen<T>::uniform_logn),
-        std::make_pair(UNIFORM_LOG10,                HistogramBucketGen<T>::uniform_logn),
-    };
-
-    return generators;
-}
+const std::map<std::string, Histogram::BucketGen::generator> HXHIM_HISTOGRAM_BUCKET_GENERATORS = {
+    std::make_pair(TEN_BUCKETS,                  Histogram::BucketGen::n_buckets),
+    std::make_pair(SQUARE_ROOT_CHOICE,           Histogram::BucketGen::square_root_choice),
+    std::make_pair(STURGES_FORMULA,              Histogram::BucketGen::sturges_formula),
+    std::make_pair(RICE_RULE,                    Histogram::BucketGen::rice_rule),
+    std::make_pair(SCOTTS_NORMAL_REFERENCE_RULE, Histogram::BucketGen::scotts_normal_reference_rule),
+    std::make_pair(UNIFORM_LOG2,                 Histogram::BucketGen::uniform_logn),
+    std::make_pair(UNIFORM_LOG10,                Histogram::BucketGen::uniform_logn),
+};
 
 /**
  * Set of predefined extra arguments for bucket generators

@@ -40,6 +40,22 @@ class mdhim : public base {
         std::ostream &print_config(std::ostream &stream) const;
 
     private:
+        class GetResult : public Results::Get {
+            public:
+                GetResult(const int err, const int db, void *key, std::size_t key_len, void *value, std::size_t value_len);
+                ~GetResult();
+
+                int GetSubject(void **subject, std::size_t *subject_len) const;
+                int GetPredicate(void **predicate, std::size_t *predicate_len) const;
+                int GetObject(void **object, std::size_t *object_len) const;
+
+            private:
+                void *k;
+                std::size_t k_len;
+                void *v;
+                std::size_t v_len;
+        };
+
         const std::string config_filename;
         mdhim_t *md;
         mdhim_options_t *mdhim_opts;

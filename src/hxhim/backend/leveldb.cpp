@@ -180,8 +180,9 @@ Results *leveldb::BPut(void **subjects, std::size_t *subject_lens,
     clock_gettime(CLOCK_MONOTONIC, &end);
 
     for(std::size_t i = 0; i < count; i++) {
-        res->AddPut(status.ok()?HXHIM_SUCCESS:HXHIM_ERROR, hx->mpi.rank);
+        res->Add(new Results::Put(status.ok()?HXHIM_SUCCESS:HXHIM_ERROR, hx->mpi.rank));
     }
+
     stats.put_times += elapsed(start, end);
 
     for(std::size_t i = 0; i < count; i++) {
@@ -227,26 +228,7 @@ Results *leveldb::BGet(void **subjects, std::size_t *subject_lens,
         stats.gets++;
         stats.get_times += elapsed(start, end);
 
-        // copy the subject
-        void *sub = ::operator new(subject_lens[i]);
-        memcpy(sub, subjects[i], subject_lens[i]);
-
-        // copy the predicate
-        void *pred = ::operator new(predicate_lens[i]);
-        memcpy(pred, predicates[i], predicate_lens[i]);
-
-        // copy the object
-        void *obj = nullptr;
-        std::size_t obj_len = 0;
-        if (it->status().ok()) {
-            obj_len = it->value().size();
-            obj = malloc(obj_len);
-            memcpy(obj, it->value().data(), obj_len);
-        }
-
-        res->AddGet(it->status().ok()?HXHIM_SUCCESS:HXHIM_ERROR, hx->mpi.rank, sub, subject_lens[i], pred, predicate_lens[i], obj, obj_len);
-
-        delete it;
+        res->Add(new GetResult(hx->mpi.rank, it));
     }
 
     for(std::size_t i = 0; i < count; i++) {
@@ -295,34 +277,14 @@ Results *leveldb::BGetOp(void *subject, std::size_t subject_len,
     if (it->status().ok()) {
         for(std::size_t i = 0; i < count && it->Valid(); i++) {
             clock_gettime(CLOCK_MONOTONIC, &start);
-            ::leveldb::Slice key = it->key();
-            ::leveldb::Slice value = it->value();
+            const ::leveldb::Slice key = it->key();
+            const ::leveldb::Slice value = it->value();
             clock_gettime(CLOCK_MONOTONIC, &end);
 
             stats.gets++;
             stats.get_times += elapsed(start, end);
 
-            // convert the key into a subject predicate pair
-            void *temp_sub = nullptr;
-            std::size_t sub_len = 0;
-            void *temp_pred = nullptr;
-            std::size_t pred_len = 0;
-
-            key_to_sp(key.data(), key.size(), &temp_sub, &sub_len, &temp_pred, &pred_len);
-
-            // copy the subject into a new location
-            void *sub = ::operator new(sub_len);
-            memcpy(sub, temp_sub, sub_len);
-
-            // copy the predicate into a new location
-            void *pred = ::operator new(pred_len);
-            memcpy(pred, temp_pred, pred_len);
-
-            // copy the object
-            void *obj = malloc(value.size());
-            memcpy(obj, value.data(), value.size());
-
-            res->AddGet(it->status().ok()?HXHIM_SUCCESS:HXHIM_ERROR, hx->mpi.rank, sub, sub_len, pred, pred_len, obj, value.size());
+            res->Add(new GetOpResult(it->status().ok(), hx->mpi.rank, key, value));
 
             // move to next iterator according to operation
             switch (op) {
@@ -376,7 +338,7 @@ Results *leveldb::BDelete(void **subjects, std::size_t *subject_lens,
 
     ::leveldb::Status status = db->Write(::leveldb::WriteOptions(), &batch);
     for(std::size_t i = 0; i < count; i++) {
-        res->AddPut(status.ok()?HXHIM_SUCCESS:HXHIM_ERROR, hx->mpi.rank);
+        res->Add(new Results::Delete(status.ok()?HXHIM_SUCCESS:HXHIM_ERROR, hx->mpi.rank));
     }
 
     for(std::size_t i = 0; i < count; i++) {
@@ -392,6 +354,65 @@ std::ostream &leveldb::print_config(std::ostream &stream) const {
         << "leveldb" << std::endl
         << "    name: " << name << std::endl
         << "    create_if_missing: " << std::boolalpha << create_if_missing << std::endl;
+}
+
+leveldb::GetResult::GetResult(const int db, const ::leveldb::Iterator *it)
+    : Get(it->status().ok()?HXHIM_SUCCESS:HXHIM_ERROR, db),
+      res(it)
+{}
+
+leveldb::GetResult::~GetResult()
+{
+    delete res;
+}
+
+int leveldb::GetResult::GetSubject(void **subject, std::size_t *subject_len) const {
+    return key_to_sp((void *) res->key().data(), res->key().size(), subject, subject_len, nullptr, nullptr);
+}
+
+int leveldb::GetResult::GetPredicate(void **predicate, std::size_t *predicate_len) const {
+    return key_to_sp((void *) res->key().data(), res->key().size(), nullptr, nullptr, predicate, predicate_len);
+}
+
+int leveldb::GetResult::GetObject(void **object, std::size_t *object_len) const {
+    if (object) {
+        *object = (void *) res->value().data();
+    }
+
+    if (object_len) {
+        *object_len = res->value().size();
+    }
+
+    return HXHIM_SUCCESS;
+}
+
+leveldb::GetOpResult::GetOpResult(const bool ok, const int db, const ::leveldb::Slice &key, const ::leveldb::Slice &value)
+    : Get(ok?HXHIM_SUCCESS:HXHIM_ERROR, db),
+      k(key),
+      v(value)
+{}
+
+leveldb::GetOpResult::~GetOpResult()
+{}
+
+int leveldb::GetOpResult::GetSubject(void **subject, std::size_t *subject_len) const {
+    return key_to_sp((void *) k.data(), k.size(), subject, subject_len, nullptr, nullptr);
+}
+
+int leveldb::GetOpResult::GetPredicate(void **predicate, std::size_t *predicate_len) const {
+    return key_to_sp((void *) k.data(), k.size(), nullptr, nullptr, predicate, predicate_len);
+}
+
+int leveldb::GetOpResult::GetObject(void **object, std::size_t *object_len) const {
+    if (object) {
+        *object = (void *) v.data();
+    }
+
+    if (object_len) {
+        *object_len = v.size();
+    }
+
+    return HXHIM_SUCCESS;
 }
 
 }

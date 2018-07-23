@@ -6,11 +6,11 @@
 #include "utils/Histogram.hpp"
 
 TEST(Histogram, bad_generator) {
-    EXPECT_THROW(Histogram<std::size_t>(10, nullptr, nullptr), std::runtime_error);
+    EXPECT_THROW(Histogram::Histogram(10, nullptr, nullptr), std::runtime_error);
 }
 
 TEST(Histogram, not_enough_values) {
-    Histogram<std::size_t> h(100, [](const std::list<std::size_t> &, std::map<double, std::size_t> &histogram, void *) { return HISTOGRAM_ERROR; }, nullptr);
+    Histogram::Histogram h(100, [](const std::list<double> &, std::map<double, std::size_t> &histogram, void *) { return Histogram::ERROR; }, nullptr);
 
     for(std::size_t i = 0; i < 10; i++) {
         h.add(i);
@@ -19,15 +19,15 @@ TEST(Histogram, not_enough_values) {
     EXPECT_EQ(h.get().size(), 0);
 }
 
-static int every_two(const std::list<std::size_t> &values, std::map<double, std::size_t> &histogram, void *) {
+static int every_two(const std::list<double> &values, std::map<double, std::size_t> &histogram, void *) {
     if (!values.size()) {
-        return HISTOGRAM_ERROR;
+        return Histogram::ERROR;
     }
 
     // get min and max
-    std::size_t min = std::numeric_limits<std::size_t>::max();
-    std::size_t max = std::numeric_limits<std::size_t>::min();
-    for(std::size_t const &value : values) {
+    double min = std::numeric_limits<double>::max();
+    double max = std::numeric_limits<double>::min();
+    for(double const &value : values) {
         if (value < min) {
             min = value;
         }
@@ -39,15 +39,15 @@ static int every_two(const std::list<std::size_t> &values, std::map<double, std:
 
     histogram.clear();
 
-    for(std::size_t i = min; i < max; i += 2) {
+    for(double i = min; i < max; i += 2) {
         histogram[i] = 0;
     }
 
-    return HISTOGRAM_SUCCESS;
+    return Histogram::SUCCESS;
 }
 
 TEST(Histogram, every_two) {
-    Histogram<std::size_t> h(10, every_two, nullptr);
+    Histogram::Histogram h(10, every_two, nullptr);
 
     // fill the histogram
     for(std::size_t i = 0; i < 10; i++) {
@@ -61,15 +61,15 @@ TEST(Histogram, every_two) {
 }
 
 TEST(Histogram, custom_nonuniform) {
-    Histogram<std::size_t> h(10,
-                             [](const std::list<std::size_t> &, std::map<double, std::size_t> &histogram, void *) {
+    Histogram::Histogram h(10,
+                             [](const std::list<double> &, std::map<double, std::size_t> &histogram, void *) {
                                  histogram.clear();
 
                                  histogram[0] = 0;
                                  histogram[5] = 0;
                                  histogram[9] = 0;
 
-                                 return HISTOGRAM_SUCCESS;
+                                 return Histogram::SUCCESS;
                              },
                              nullptr);
 
@@ -84,7 +84,7 @@ TEST(Histogram, custom_nonuniform) {
 
 TEST(Histogram, uniform_log10) {
     static const std::size_t ten = 10;
-    Histogram<double> h(10, HistogramBucketGen<double>::uniform_logn, (void *) &ten);
+    Histogram::Histogram h(10, Histogram::BucketGen::uniform_logn, (void *) &ten);
 
     for(std::size_t i = 0; i < 10; i++) {
         h.add(i);

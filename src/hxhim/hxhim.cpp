@@ -97,7 +97,7 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
         std::size_t object_len = head->object_lens[i];
 
         // add the value to the histogram
-        hx->p->histogram->add(object);
+        hx->p->histogram->add(* (double *) object);
 
         // encode the values
         bool copied = false;
@@ -340,35 +340,9 @@ int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
     }
 
     // Get the bucket generator and create the histogram
-    switch (hx->p->object_type) {
-        case HXHIM_SPO_INT_TYPE:
-            hx->p->histogram = new Histogram<int>(opts->p->histogram_first_n,
-                                                  HXHIM_HISTOGRAM_BUCKET_GENERATORS<int>().at(opts->p->histogram_bucket_gen_method),
-                                                  bucket_gen_extra);
-            break;
-        case HXHIM_SPO_SIZE_TYPE:
-            hx->p->histogram = new Histogram<std::size_t>(opts->p->histogram_first_n,
-                                                          HXHIM_HISTOGRAM_BUCKET_GENERATORS<std::size_t>().at(opts->p->histogram_bucket_gen_method),
-                                                          bucket_gen_extra);
-            break;
-        case HXHIM_SPO_FLOAT_TYPE:
-            hx->p->histogram = new Histogram<float>(opts->p->histogram_first_n,
-                                                    HXHIM_HISTOGRAM_BUCKET_GENERATORS<float>().at(opts->p->histogram_bucket_gen_method),
-                                                    bucket_gen_extra);
-            break;
-        case HXHIM_SPO_DOUBLE_TYPE:
-            hx->p->histogram = new Histogram<double>(opts->p->histogram_first_n,
-                                                     HXHIM_HISTOGRAM_BUCKET_GENERATORS<double>().at(opts->p->histogram_bucket_gen_method),
-                                                     bucket_gen_extra);
-            break;
-        case HXHIM_SPO_BYTE_TYPE:
-            hx->p->histogram = new Histogram<char>(opts->p->histogram_first_n,
-                                                   HXHIM_HISTOGRAM_BUCKET_GENERATORS<char>().at(opts->p->histogram_bucket_gen_method),
-                                                   bucket_gen_extra);
-            break;
-        default:
-            break;
-    }
+    hx->p->histogram = new Histogram::Histogram(opts->p->histogram_first_n,
+                                                HXHIM_HISTOGRAM_BUCKET_GENERATORS.at(opts->p->histogram_bucket_gen_method),
+                                                bucket_gen_extra);
 
     if (!hx->p->histogram) {
         Close(hx);
@@ -1667,4 +1641,37 @@ int hxhim::BGetOp(hxhim_t *hx,
                          prefix, prefix_len,
                          nullptr, 0,
                          num_records, op);
+}
+
+/**
+ * GetHistogram
+ * Get access to the histogram
+ *
+ * @param hx            the HXHIM session
+ * @param histogram     variable to place the histogram pointer into
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim::GetHistogram(hxhim_t *hx, Histogram::Histogram **histogram) {
+    if (!hx || !hx->p || !histogram) {
+        return HXHIM_ERROR;
+    }
+
+    *histogram = hx->p->histogram;
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * hxhimgetHistogram
+ * C version of hxhim::GetHistogram
+ * Converts a Histogram::Histogram pointer into a histogram_t
+ *
+ * @param hx            the HXHIM session
+ * @param histogram     variable to place the histogram pointer into
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhimGetHistogram(hxhim_t *hx, histogram_t *histogram) {
+    Histogram::Histogram *ptr = nullptr;
+    const int ret = hxhim::GetHistogram(hx, &ptr);
+    *histogram = (void *) ptr;
+    return ret;
 }

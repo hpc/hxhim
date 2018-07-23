@@ -48,43 +48,50 @@ namespace hxhim {
  */
 class Results {
     public:
-        // Structs for storing results
-        // These structs only hold data, which should to be
-        // accessed directly instead of through accessors.
-        struct Result {
-            Result(hxhim_result_type_t t = HXHIM_RESULT_NONE, int err = HXHIM_SUCCESS, int db = -1);
-            virtual ~Result();
+        /** @description Base class for storing individual results */
+        class Result {
+            public:
+                Result(hxhim_result_type_t t = HXHIM_RESULT_NONE, int err = HXHIM_SUCCESS, int db = -1);
+                virtual ~Result();
 
-            const hxhim_result_type type;
-            const int error;
-            const int database;
+                hxhim_result_type_t GetType() const;
+                int GetError() const;
+                int GetDatabase() const;
 
-            Result *next;
+                Result *Next() const;
+                Result *&Next();
+
+            private:
+                const hxhim_result_type_t type;
+                const int error;
+                const int database;
+
+                Result *next;
         };
 
-        struct Put : Result {
-            Put(const int err, const int db);
-            ~Put();
+        /** @description Convenience class for PUT results */
+        class Put : public Result {
+            public:
+                Put(const int err, const int db);
+                virtual ~Put();
         };
 
-        struct Get : Result {
-            Get(const int err, const int db,
-                void *sub, std::size_t sub_len,
-                void *pred, std::size_t pred_len,
-                void *obj, std::size_t obj_len);
-            ~Get();
+        /** @description Convenience class for GET results */
+        class Get : public Result {
+            public:
+                Get(const int err, const int db);
+                virtual ~Get();
 
-            void *subject;
-            std::size_t subject_len;
-            void *predicate;
-            std::size_t predicate_len;
-            void *object;
-            std::size_t object_len;
+                // Users should not have to deallocate the pointers returned by these functions
+                virtual int GetSubject(void **subject, std::size_t *subject_len) const = 0;
+                virtual int GetPredicate(void **predicate, std::size_t *predicate_len) const = 0;
+                virtual int GetObject(void **object, std::size_t *object_len) const = 0;
         };
 
+        /** @description Convenience class for DEL results */
         struct Delete : Result {
             Delete(const int err, const int db);
-            ~Delete();
+            virtual ~Delete();
         };
 
     public:
@@ -98,20 +105,13 @@ class Results {
         Result *Curr() const;
         Result *Next() const;
 
-        // Modifiers (appends new nodes to the list)
-        Result *AddPut(const int error, const int database);
-        Result *AddGet(const int error, const int database,
-                       void *subject, std::size_t subject_len,
-                       void *predicate, std::size_t predicate_len,
-                       void *object, std::size_t object_len);
-        Result *AddDelete(const int error, const int database);
+        // Appends a single new node to the list
+        Result *Add(Result *res);
 
-        // Append another set of results; the list being appended is emptied out
+        // Moves and appends another set of results; the list being appended is emptied out
         Results &Append(Results *results);
 
     private:
-        Result *append(Result *single);
-
         hxhim_spo_type_t subject_type;
         hxhim_spo_type_t predicate_type;
         hxhim_spo_type_t object_type;
