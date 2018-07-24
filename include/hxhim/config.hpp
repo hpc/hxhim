@@ -4,7 +4,7 @@
 #include <map>
 #include <string>
 
-#include "constants.h"
+#include "hxhim/constants.h"
 #include "utils/Configuration.hpp"
 #include "utils/Histogram.hpp"
 
@@ -41,6 +41,7 @@ const std::map<std::string, hxhim_backend_t> HXHIM_BACKENDS = {
 const std::map<std::string, hxhim_spo_type_t> HXHIM_SPO_TYPES = {
     std::make_pair("INT",    HXHIM_SPO_INT_TYPE),
     std::make_pair("SIZE",   HXHIM_SPO_SIZE_TYPE),
+    std::make_pair("INT64",  HXHIM_SPO_INT64_TYPE),
     std::make_pair("FLOAT",  HXHIM_SPO_FLOAT_TYPE),
     std::make_pair("DOUBLE", HXHIM_SPO_DOUBLE_TYPE),
     std::make_pair("BYTE",   HXHIM_SPO_BYTE_TYPE),

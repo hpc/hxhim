@@ -1,13 +1,38 @@
+#include <inttypes.h>
+
 #include "print_results.h"
 
-void print_results(const int rank, hxhim_results_t *results) {
+static void print_by_type(hxhim_spo_type_t type, void *value, size_t value_len) {
+    switch (type) {
+        case HXHIM_SPO_INT_TYPE:
+            printf("%d", * (int *) value);
+            break;
+        case HXHIM_SPO_SIZE_TYPE:
+            printf("%zu", * (size_t *) value);
+            break;
+        case HXHIM_SPO_INT64_TYPE:
+            printf("%" PRId64, * (int64_t *) value);
+            break;
+        case HXHIM_SPO_FLOAT_TYPE:
+            printf("%f", * (float *) value);
+            break;
+        case HXHIM_SPO_DOUBLE_TYPE:
+            printf("%f", * (double *) value);
+            break;
+        case HXHIM_SPO_BYTE_TYPE:
+            printf("%.*s", (int) value_len, (char *) value);
+            break;
+    }
+}
+
+void print_results(hxhim_t *hx, const int print_rank, hxhim_results_t *results) {
     if (!results) {
         return;
     }
 
     for(hxhim_results_goto_head(results); hxhim_results_valid(results) == HXHIM_SUCCESS; hxhim_results_goto_next(results)) {
-        if (rank > -1) {
-            printf("Rank %d ", rank);
+        if (print_rank) {
+            printf("Rank %d ", hx->mpi.rank);
         }
 
         enum hxhim_result_type type;
@@ -26,22 +51,30 @@ void print_results(const int rank, hxhim_results_t *results) {
             case HXHIM_RESULT_GET:
                 printf("GET returned ");
                 if (error == HXHIM_SUCCESS) {
+                    hxhim_spo_type_t subject_type;
+                    hxhimSubjectType(hx, &subject_type);
                     void *subject = NULL;
                     size_t subject_len = 0;
                     hxhim_results_get_subject(results, &subject, &subject_len);
 
+                    hxhim_spo_type_t predicate_type;
+                    hxhimPredicateType(hx, &predicate_type);
                     void *predicate = NULL;
                     size_t predicate_len = 0;
                     hxhim_results_get_predicate(results, &predicate, &predicate_len);
 
+                    hxhim_spo_type_t object_type;
+                    hxhimObjectType(hx, &object_type);
                     void *object = NULL;
                     size_t object_len = 0;
                     hxhim_results_get_object(results, &object, &object_len);
 
-                    printf("{%.*s, %.*s} -> %.*s",
-                           (int) subject_len, (char *) subject,
-                           (int) predicate_len, (char *) predicate,
-                           (int) object_len, (char *) object);
+                    printf("{");
+                    print_by_type(subject_type, subject, subject_len);
+                    printf(", ");
+                    print_by_type(predicate_type, predicate, predicate_len);
+                    printf("} -> ");
+                    print_by_type(object_type, object, object_len);
                 }
                 else {
                     printf("ERROR");

@@ -48,7 +48,6 @@ int BucketGen::n_buckets(const std::list<double> &values, std::map<double, std::
     histogram.clear();
 
     const std::size_t buckets = * (std::size_t *) extra;
-
     const double width = std::ceil((max - min) / buckets);
     for(std::size_t i = 0; i < buckets; i++) {
         histogram[min] = 0;
@@ -226,13 +225,12 @@ const int HISTOGRAM_ERROR   = Histogram::ERROR;
  * @param count  address to fill with the number of buckets there are
  * @return       HISTOGRAM_SUCCESS or HISTOGRAM_ERROR
  */
-int histogram_get_bucket_count(histogram_t h, size_t *count) {
-    if (!h || !count) {
+int histogram_get_bucket_count(histogram_t *histogram, size_t *count) {
+    if (!histogram || !count) {
         return HISTOGRAM_ERROR;
     }
 
-    Histogram::Histogram *histogram = (Histogram::Histogram *) h;
-    *count = histogram->get().size();
+    *count = histogram->histogram->get().size();
     return HISTOGRAM_SUCCESS;
 }
 
@@ -243,17 +241,15 @@ int histogram_get_bucket_count(histogram_t h, size_t *count) {
  * @param buckets preallocated array to place buckets into
  * @return        HISTOGRAM_SUCCESS or HISTOGRAM_ERROR
  */
-int histogram_get_buckets(histogram_t h, histogram_bucket_t *buckets) {
-    if (!h || !buckets) {
+int histogram_get_buckets(histogram_t *histogram, histogram_bucket_t *buckets) {
+    if (!histogram || !buckets) {
         return HISTOGRAM_ERROR;
     }
 
-    Histogram::Histogram *histogram = (Histogram::Histogram *) h;
-    std::size_t i = 0;
-    for(std::pair<const double, std::size_t> bucket : histogram->get()) {
-        buckets[i].left = bucket.first;
-        buckets[i].count = bucket.second;
-        i++;
+    for(std::pair<const double, std::size_t> bucket : histogram->histogram->get()) {
+        buckets->left = bucket.first;
+        buckets->count = bucket.second;
+        buckets++;
     }
 
     return HISTOGRAM_SUCCESS;

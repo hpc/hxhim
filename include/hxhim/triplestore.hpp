@@ -4,7 +4,7 @@
 #include <cstring>
 #include <type_traits>
 
-#include "constants.h"
+#include "hxhim/constants.h"
 
 /** @description encoding of unsigned integral types into big endian */
 template <typename Z, typename = std::enable_if_t<std::is_unsigned<Z>::value> >

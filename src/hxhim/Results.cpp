@@ -6,74 +6,6 @@
 #include "hxhim/Results_private.hpp"
 #include "utils/elen.hpp"
 
-/**
- * decode
- * Decodes values taken from a backend back into their
- * local format (i.e. encoded floating point -> double)
- *
- * If the type is a floating point type, the original data
- * is deallocated and a new memory region is allocated in
- * its place.
- *
- * @param type the type the data being pointed to by ptr is
- * @param ptr  the data
- * @param len  the length of the data
- * @param cxx  whether to use new or malloc to allocate/deallocate the original data
- * @return HXHIM_SUCCESS or HXHIM_ERROR;
- */
-static int decode(const hxhim_spo_type_t type, void *&ptr, std::size_t &len, const bool cxx, bool &replaced) {
-    if (!ptr) {
-        return HXHIM_ERROR;
-    }
-
-    replaced = false;
-
-    switch (type) {
-        case HXHIM_SPO_FLOAT_TYPE:
-            {
-                const float value = elen::decode::floating_point<float>(std::string((char *) ptr, len));
-                len = sizeof(float);
-                if (cxx) {
-                    ::operator delete(ptr);
-                    ptr = ::operator new(len);
-                }
-                else {
-                    free(ptr);
-                    ptr = malloc(len);
-                }
-                memcpy(ptr, &value, len);
-
-                replaced = true;
-            }
-            break;
-        case HXHIM_SPO_DOUBLE_TYPE:
-            {
-                const double value = elen::decode::floating_point<double>(std::string((char *) ptr, len));
-                len = sizeof(double);
-                if (cxx) {
-                    ::operator delete(ptr);
-                    ptr = ::operator new(len);
-                }
-                else {
-                    free(ptr);
-                    ptr = malloc(len);
-                }
-                memcpy(ptr, &value, len);
-
-                replaced = true;
-            }
-            break;
-        case HXHIM_SPO_INT_TYPE:
-        case HXHIM_SPO_SIZE_TYPE:
-        case HXHIM_SPO_BYTE_TYPE:
-            break;
-        default:
-            return HXHIM_ERROR;
-    }
-
-    return HXHIM_SUCCESS;
-}
-
 namespace hxhim {
 
 Results::Result::Result(hxhim_result_type t, const int err, const int db)
@@ -111,11 +43,124 @@ Results::Put::Put(const int err, const int db)
 
 Results::Put::~Put() {}
 
-Results::Get::Get(const int err, const int db)
-    : Result(hxhim_result_type::HXHIM_RESULT_GET, err, db)
+Results::Get::Get(SPO_Types_t *types, const int err, const int db)
+    : Result(hxhim_result_type::HXHIM_RESULT_GET, err, db),
+      types(types),
+      sub(nullptr), sub_len(0),
+      pred(nullptr), pred_len(0),
+      obj(nullptr), obj_len(0)
 {}
 
-Results::Get::~Get() {}
+Results::Get::~Get() {
+    ::operator delete(sub);
+    ::operator delete(pred);
+    ::operator delete(obj);
+}
+
+/**
+ * decode
+ * Decodes values taken from a backend back into their
+ * local format (i.e. encoded floating point -> double)
+ *
+ * @param type    the type the data being pointed to by ptr is
+ * @param src     the original data
+ * @param src_len the original data length
+ * @param dst     pointer to the destination buffer of the decoded data
+ * @param dst_len pointer to the destination buffer's length
+ * @return HXHIM_SUCCESS or HXHIM_ERROR;
+ */
+int Results::Get::decode(const hxhim_spo_type_t type, void *src, const std::size_t &src_len, void **dst, std::size_t *dst_len) {
+    if (!src || !dst || !dst_len) {
+        return HXHIM_ERROR;
+    }
+
+    *dst = nullptr;
+    *dst_len = 0;
+
+    // nothing to decode
+    if (!src_len) {
+        return HXHIM_SUCCESS;
+    }
+
+    switch (type) {
+        case HXHIM_SPO_FLOAT_TYPE:
+            {
+                const float value = elen::decode::floating_point<float>(std::string((char *) src, src_len));
+                *dst_len = sizeof(float);
+                *dst = ::operator new(*dst_len);
+                memcpy(*dst, &value, *dst_len);
+            }
+            break;
+        case HXHIM_SPO_DOUBLE_TYPE:
+            {
+                const double value = elen::decode::floating_point<double>(std::string((char *) src, src_len));
+                *dst_len = sizeof(double);
+                *dst = ::operator new(*dst_len);
+                memcpy(*dst, &value, *dst_len);
+            }
+            break;
+        case HXHIM_SPO_INT_TYPE:
+        case HXHIM_SPO_SIZE_TYPE:
+        case HXHIM_SPO_INT64_TYPE:
+        case HXHIM_SPO_BYTE_TYPE:
+            *dst_len = src_len;
+            *dst = ::operator new(*dst_len);
+            memcpy(*dst, src, *dst_len);
+            break;
+        default:
+            return HXHIM_ERROR;
+    }
+
+    return HXHIM_SUCCESS;
+}
+
+int Results::Get::GetSubject(void **subject, std::size_t *subject_len) {
+    if (FillSubject() != HXHIM_SUCCESS) {
+        return HXHIM_ERROR;
+    }
+
+    if (subject) {
+        *subject = sub;
+    }
+
+    if (subject_len) {
+        *subject_len = sub_len;
+    }
+
+    return HXHIM_SUCCESS;
+}
+
+int Results::Get::GetPredicate(void **predicate, std::size_t *predicate_len) {
+    if (FillPredicate() != HXHIM_SUCCESS) {
+        return HXHIM_ERROR;
+    }
+
+    if (predicate) {
+        *predicate = pred;
+    }
+
+    if (predicate_len) {
+        *predicate_len = pred_len;
+    }
+
+    return HXHIM_SUCCESS;
+}
+
+int Results::Get::GetObject(void **object, std::size_t *object_len) {
+    if (FillObject() != HXHIM_SUCCESS) {
+        return HXHIM_ERROR;
+    }
+
+    if (object) {
+        *object = obj;
+    }
+
+    if (object_len) {
+        *object_len = obj_len;
+    }
+
+    return HXHIM_SUCCESS;
+}
 
 Results::Delete::Delete(const int err, const int db)
     : Result(hxhim_result_type::HXHIM_RESULT_DEL, err, db)
@@ -123,11 +168,8 @@ Results::Delete::Delete(const int err, const int db)
 
 Results::Delete::~Delete() {}
 
-Results::Results(hxhim_spo_type_t sub_type, hxhim_spo_type_t pred_type, hxhim_spo_type_t obj_type)
-    : subject_type(sub_type),
-      predicate_type(pred_type),
-      object_type(obj_type),
-      head(nullptr),
+Results::Results()
+    : head(nullptr),
       tail(nullptr),
       curr(nullptr)
 {}
@@ -364,7 +406,7 @@ int hxhim_results_get_subject(hxhim_results_t *res, void **subject, std::size_t 
 
     hxhim::Results::Result *curr = res->res->Curr();
     if (curr->GetType() == hxhim_result_type::HXHIM_RESULT_GET) {
-        return static_cast<hxhim::Results::Get *>(curr)->GetPredicate(subject, subject_len);
+        return static_cast<hxhim::Results::Get *>(curr)->GetSubject(subject, subject_len);
     }
 
     return HXHIM_ERROR;
@@ -408,7 +450,7 @@ int hxhim_results_get_object(hxhim_results_t *res, void **object, std::size_t *o
 
     hxhim::Results::Result *curr = res->res->Curr();
     if (curr->GetType() == hxhim_result_type::HXHIM_RESULT_GET) {
-        return static_cast<hxhim::Results::Get *>(curr)->GetPredicate(object, object_len);
+        return static_cast<hxhim::Results::Get *>(curr)->GetObject(object, object_len);
     }
 
     return HXHIM_ERROR;

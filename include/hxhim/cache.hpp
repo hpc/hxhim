@@ -5,8 +5,8 @@
 #include <mutex>
 #include <type_traits>
 
-#include "constants.h"
-#include "get_op.h"
+#include "hxhim/constants.h"
+#include "hxhim/get_op.h"
 
 namespace hxhim {
     typedef struct SubjectPredicate {

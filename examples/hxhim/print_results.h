@@ -10,7 +10,7 @@ extern "C"
 {
 #endif
 
-void print_results(const int rank, hxhim_results_t *results);
+void print_results(hxhim_t *hx, const int print_rank, hxhim_results_t *results);
 
 #ifdef __cplusplus
 }

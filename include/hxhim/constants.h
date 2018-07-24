@@ -17,8 +17,11 @@ extern "C"
 
 #define HXHIM_MAX_BULK_OPS MAX_BULK_OPS
 
+/** How many different ways a SPO triple will be PUT into mdhim */
+#define HXHIM_PUT_MULTIPLER 1
+
 /** The maxium number of operations that can be PUT into MDHIM at once */
-#define HXHIM_MAX_BULK_PUT_OPS (MAX_BULK_OPS / 4)
+#define HXHIM_MAX_BULK_PUT_OPS (MAX_BULK_OPS / HXHIM_PUT_MULTIPLER)
 
 /** The maxium number of operations that can be GET or DEL from MDHIM at once */
 #define HXHIM_MAX_BULK_GET_OPS HXHIM_MAX_BULK_OPS
@@ -40,6 +43,7 @@ typedef enum hxhim_backend {
 typedef enum hxhim_spo_type {
     HXHIM_SPO_INT_TYPE,
     HXHIM_SPO_SIZE_TYPE,
+    HXHIM_SPO_INT64_TYPE,
     HXHIM_SPO_FLOAT_TYPE,
     HXHIM_SPO_DOUBLE_TYPE,
     HXHIM_SPO_BYTE_TYPE,

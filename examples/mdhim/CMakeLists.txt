@@ -23,6 +23,11 @@ set_target_properties(mdhim-cli PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
 set_target_properties(mdhim-cli PROPERTIES OUTPUT_NAME cli)
 INSTALL(TARGETS mdhim-cli DESTINATION bin/mdhim)
 
+add_executable(thallium thallium.cpp)
+target_link_libraries(thallium ${MPI_CXX_LIBRARIES} ${THALLIUM_LDFLAGS} pthread m stdc++)
+set_target_properties(thallium PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
+set_target_properties(thallium PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
+
 # Scripts
 # generate_commands.sh and different_num_processes.sh require generate_kv_pairs.sh
 configure_file(generate_kv_pairs.sh ${CMAKE_CURRENT_BINARY_DIR}/generate_kv_pairs.sh COPYONLY)

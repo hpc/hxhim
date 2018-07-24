@@ -20,7 +20,11 @@ int sp_to_key(const void *subject, const std::size_t subject_len,
         return HXHIM_ERROR;
     }
 
-    *key_len = subject_len + sizeof(subject_len) + predicate_len + sizeof(predicate_len);
+    *key_len = subject_len + sizeof(subject_len);
+    if (predicate) {
+        *key_len += predicate_len + sizeof(predicate_len);
+    }
+
     if (!*key_len) {
         *key = nullptr;
         return HXHIM_SUCCESS;

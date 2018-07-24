@@ -3,8 +3,9 @@
 
 #include <cstddef>
 
-#include "constants.h"
-#include "Results.h"
+#include "hxhim/Results.h"
+#include "hxhim/constants.h"
+#include "hxhim/types_struct.hpp"
 
 namespace hxhim {
 
@@ -79,13 +80,31 @@ class Results {
         /** @description Convenience class for GET results */
         class Get : public Result {
             public:
-                Get(const int err, const int db);
+                Get(SPO_Types_t *types, const int err, const int db);
                 virtual ~Get();
 
-                // Users should not have to deallocate the pointers returned by these functions
-                virtual int GetSubject(void **subject, std::size_t *subject_len) const = 0;
-                virtual int GetPredicate(void **predicate, std::size_t *predicate_len) const = 0;
-                virtual int GetObject(void **object, std::size_t *object_len) const = 0;
+                /** Users should not deallocate the pointers returned by these functions */
+                int GetSubject(void **subject, std::size_t *subject_len);
+                int GetPredicate(void **predicate, std::size_t *predicate_len);
+                int GetObject(void **object, std::size_t *object_len);
+
+            protected:
+                int decode(const hxhim_spo_type_t type, void *src, const std::size_t &src_len, void **dst, std::size_t *dst_len);
+
+                SPO_Types_t *types;
+
+                /** @description These functions should be used to fill in the member variables so that they can be returned by the Get* functions */
+                virtual int FillSubject() = 0;
+                virtual int FillPredicate() = 0;
+                virtual int FillObject() = 0;
+
+                /* @description These variables are used to hold decoded data, so that they only have to be decoded once */
+                void *sub;
+                std::size_t sub_len;
+                void *pred;
+                std::size_t pred_len;
+                void *obj;
+                std::size_t obj_len;
         };
 
         /** @description Convenience class for DEL results */
@@ -95,7 +114,7 @@ class Results {
         };
 
     public:
-        Results(hxhim_spo_type_t sub_type, hxhim_spo_type_t pred_type, hxhim_spo_type_t obj_type);
+        Results();
         ~Results();
 
         // Accessors (controls the "curr" pointer)
@@ -112,10 +131,6 @@ class Results {
         Results &Append(Results *results);
 
     private:
-        hxhim_spo_type_t subject_type;
-        hxhim_spo_type_t predicate_type;
-        hxhim_spo_type_t object_type;
-
         Result *head;
         Result *tail;
         Result *curr;

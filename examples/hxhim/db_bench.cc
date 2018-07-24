@@ -55,10 +55,10 @@ static const char* FLAGS_benchmarks =
     // "readseq,"
     // "readreverse,"
     // "compact,"
-    "readrandom,"
+    // "readrandom,"
     // "readseq,"
     // "readreverse,"
-    "fill100K,"
+    // "fill100K,"
     // "crc32c,"
     // "snappycomp,"
     // "snappyuncomp,"
@@ -415,6 +415,7 @@ class Benchmark {
                    : nullptr),
     // db_(nullptr),
     hx(nullptr),
+    opts(nullptr),
     num_(FLAGS_num),
     value_size_(FLAGS_value_size),
     entries_per_batch_(1),
@@ -826,11 +827,11 @@ class Benchmark {
     // generate data and put
     for (int i = 0; i < num_; i += entries_per_batch_) {
       for (int j = 0; j < entries_per_batch_; j++) {
-        const int sub = seq?i:(thread->rand.Next() % FLAGS_num);
+        const int sub = seq ? i+j : (thread->rand.Next() % FLAGS_num);
         subject_lens[j] = snprintf((char *) subjects[j], 17, "%016d", sub);
         bytes += subject_lens[j] + sizeof(std::size_t);
 
-        const int pred = seq?j:(thread->rand.Next() % FLAGS_num);
+        const int pred = 0;//seq?j:(thread->rand.Next() % FLAGS_num);
         predicate_lens[j] = snprintf((char *) predicates[j], 17, "%016d", pred);
         bytes += predicate_lens[j] + sizeof(std::size_t);
 
@@ -921,7 +922,7 @@ class Benchmark {
       char subject[100];
       std::size_t subject_len = snprintf(subject, sizeof(subject), "%016d", sub);
 
-      const int pred = thread->rand.Next() % FLAGS_num;
+      const int pred = 0;//thread->rand.Next() % FLAGS_num;
       char predicate[100];
       std::size_t predicate_len = snprintf(predicate, sizeof(predicate), "%016d", pred);
 
@@ -930,9 +931,10 @@ class Benchmark {
       hxhim_results_t *ret = hxhimFlush(hx);
       thread->stats.FinishedSingleOp();
 
-      hxhim_results_goto_head(ret);
-      int error; hxhim_results_error(ret, &error);
-      found += (error == HXHIM_SUCCESS);
+      for(hxhim_results_goto_head(ret); hxhim_results_valid(ret) == HXHIM_SUCCESS; hxhim_results_goto_next(ret)) {
+          int error; hxhim_results_error(ret, &error);
+          found += (error == HXHIM_SUCCESS);
+      }
       hxhim_results_destroy(ret);
 
       // char key[100];
@@ -1207,7 +1209,7 @@ int main(int argc, char** argv) {
 
   leveldb::g_env = leveldb::Env::Default();
 
-  FLAGS_db = "/tmp/mnt";
+  // FLAGS_db = "/tmp/mnt";
 
   // Choose a location for the test database if none given with --db=<path>
   if (FLAGS_db == nullptr) {

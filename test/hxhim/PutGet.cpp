@@ -35,10 +35,6 @@ TEST(hxhim, PutGet) {
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
 
-    // replace backend with in-memory database
-    delete hx.p->backend;
-    ASSERT_NE(hx.p->backend = new hxhim::backend::InMemory(&hx), nullptr);
-
     // Add triple for putting
     EXPECT_EQ(hxhim::Put(&hx,
                          (void *)&SUBJECT, sizeof(SUBJECT),

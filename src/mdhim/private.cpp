@@ -101,7 +101,7 @@ static int mdhim_private_init_transport_thallium(mdhim_t *md, ThalliumOptions *o
 
     // create the engine (only 1 instance per process)
     Thallium::Engine_t engine(new thallium::engine(opts->protocol_, THALLIUM_SERVER_MODE, true, -1),
-                              [=](thallium::engine *engine) {
+                              [](thallium::engine *engine) {
                                   engine->finalize();
                                   delete engine;
                               });

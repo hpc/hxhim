@@ -258,19 +258,6 @@ static int range_server_put(mdhim_t *md, work_item_t *item) {
 
     if (!exists && error == MDHIM_SUCCESS) {
         update_stat(md, index, im->rs_idx, im->key, im->key_len);
-
-        // const double val = elen::decode::floating_point<double>(std::string((char *) new_value, new_value_len));
-
-        // // update histogram
-        // if (!std::isnan(val) && !std::isinf(val)) {
-        //     std::size_t bucket = 0;
-        //     const long double temp = (val - md->p->db_opts->histogram.min) / md->p->db_opts->histogram.step_size;
-        //     if (temp >= 0) {
-        //         bucket = (std::size_t) std::ceil(temp) + 1;
-        //     }
-
-        //     index->histogram[bucket]++;
-        // }
     }
 
     struct timespec end;
@@ -372,19 +359,6 @@ static int range_server_bput(mdhim_t *md, work_item_t *item) {
         //Update the stats if this key didn't exist before
         if (!exists && error == MDHIM_SUCCESS) {
             update_stat(md, index, bim->rs_idx[i], bim->keys[i], bim->key_lens[i]);
-
-            // const double val = elen::decode::floating_point<double>(std::string((char *) new_value, new_value_len));
-
-            // // update histogram
-            // if (!std::isnan(val) && !std::isinf(val)) {
-            //     std::size_t bucket = 0;
-            //     const long double temp = (val - md->p->db_opts->histogram.min) / md->p->db_opts->histogram.step_size;
-            //     if (temp >= 0) {
-            //         bucket = (std::size_t) std::ceil(temp) + 1;
-            //     }
-
-            //     index->histogram[bucket]++;
-            // }
         }
 
         if (exists && md->p->db_opts->value_append == MDHIM_DB_APPEND) {

@@ -7,19 +7,18 @@
 
 #include <mpi.h>
 
-#include "Results.hpp"
-#include "backend/base.hpp"
-#include "cache.hpp"
-#include "constants.h"
-#include "struct.h"
+#include "hxhim/Results.hpp"
+#include "hxhim/backend/base.hpp"
+#include "hxhim/cache.hpp"
+#include "hxhim/constants.h"
+#include "hxhim/struct.h"
+#include "hxhim/types_struct.hpp"
 #include "utils/Histogram.hpp"
 
 typedef struct hxhim_private {
     hxhim_private();
 
-    hxhim_spo_type_t subject_type;
-    hxhim_spo_type_t predicate_type;
-    hxhim_spo_type_t object_type;
+    SPO_Types_t types;
 
     hxhim::backend::base *backend;
 

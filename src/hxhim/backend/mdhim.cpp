@@ -124,7 +124,7 @@ Results *mdhim::BPut(void **subjects, std::size_t *subject_lens,
                      void **predicates, std::size_t *predicate_lens,
                      void **objects, std::size_t *object_lens,
                       std::size_t count) {
-    Results *res = new Results(hx->p->subject_type, hx->p->predicate_type, hx->p->object_type);
+    Results *res = new Results();
 
     // create keys from subjects and predicates
     void **keys = new void *[count]();
@@ -169,7 +169,7 @@ Results *mdhim::BPut(void **subjects, std::size_t *subject_lens,
 Results *mdhim::BGet(void **subjects, std::size_t *subject_lens,
                      void **predicates, std::size_t *predicate_lens,
                      std::size_t count) {
-    Results *res = new Results(hx->p->subject_type, hx->p->predicate_type, hx->p->object_type);
+    Results *res = new Results();
 
     // create keys from subjects and predicates
     void **keys = new void *[count]();
@@ -188,7 +188,7 @@ Results *mdhim::BGet(void **subjects, std::size_t *subject_lens,
             int database = -1;
             ::mdhim::ComposeDB(md, &database, curr->src, curr->rs_idx[i]);
 
-            res->Add(new GetResult(curr->error, database, curr->keys[i], curr->key_lens[i], curr->values[i], curr->value_lens[i]));
+            res->Add(new GetResult(&hx->p->types, curr->error, database, curr->keys[i], curr->key_lens[i], curr->values[i], curr->value_lens[i]));
         }
     }
 
@@ -218,7 +218,7 @@ Results *mdhim::BGet(void **subjects, std::size_t *subject_lens,
 Results *mdhim::BGetOp(void *subject, std::size_t subject_len,
                        void *predicate, std::size_t predicate_len,
                        std::size_t count, enum hxhim_get_op op) {
-    Results *res = new Results(hx->p->subject_type, hx->p->predicate_type, hx->p->object_type);
+    Results *res = new Results();
 
     // create key from subjects and predicates
     void *key = nullptr;
@@ -235,7 +235,9 @@ Results *mdhim::BGetOp(void *subject, std::size_t subject_len,
             int database = -1;
             ::mdhim::ComposeDB(md, &database, curr->src, curr->rs_idx[i]);
 
-            res->Add(new GetResult(curr->error, database, curr->keys[i], curr->key_lens[i], curr->values[i], curr->value_lens[i]));
+            res->Add(new GetResult(&hx->p->types, curr->error, database, curr->keys[i], curr->key_lens[i], curr->values[i], curr->value_lens[i]));
+            curr->keys[i] = nullptr;
+            curr->values[i] = nullptr;
         }
     }
 
@@ -258,7 +260,7 @@ Results *mdhim::BGetOp(void *subject, std::size_t subject_len,
 Results *mdhim::BDelete(void **subjects, std::size_t *subject_lens,
                         void **predicates, std::size_t *predicate_lens,
                         std::size_t count) {
-    Results *res = new Results(hx->p->subject_type, hx->p->predicate_type, hx->p->object_type);
+    Results *res = new Results();
 
     // create keys from subjects and predicates
     void **keys = new void *[count]();
@@ -296,8 +298,8 @@ std::ostream &mdhim::print_config(std::ostream &stream) const {
         << "    config: " << config_filename << std::endl;
 }
 
-mdhim::GetResult::GetResult(const int err, const int db, void *key, std::size_t key_len, void *value, std::size_t value_len)
-    : Get((err == MDHIM_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR, db),
+mdhim::GetResult::GetResult(SPO_Types_t *types, const int err, const int db, void *key, std::size_t key_len, void *value, std::size_t value_len)
+    : Get(types, (err == MDHIM_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR, db),
       k(nullptr), k_len(key_len),
       v(nullptr), v_len(value_len)
 {
@@ -314,21 +316,35 @@ mdhim::GetResult::~GetResult()
     ::operator delete(v);
 }
 
-int mdhim::GetResult::GetSubject(void **subject, std::size_t *subject_len) const {
-    return key_to_sp(k, k_len, subject, subject_len, nullptr, nullptr);
-}
+int mdhim::GetResult::FillSubject() {
+    if (!sub) {
+        void *encoded = nullptr;
+        std::size_t encoded_len = 0;
+        key_to_sp(k, k_len, &encoded, &encoded_len, nullptr, nullptr);
+        return decode(types->subject, encoded, encoded_len, &sub, &sub_len);
 
-int mdhim::GetResult::GetPredicate(void **predicate, std::size_t *predicate_len) const {
-    return key_to_sp(k, k_len, nullptr, nullptr, predicate, predicate_len);
-}
-
-int mdhim::GetResult::GetObject(void **object, std::size_t *object_len) const {
-    if (object) {
-        *object = v;
+        // do not delete encoded because it is just an address in another array
     }
 
-    if (object_len) {
-        *object_len = v_len;
+    return HXHIM_SUCCESS;
+}
+
+int mdhim::GetResult::FillPredicate() {
+    if (!pred) {
+        void *encoded = nullptr;
+        std::size_t encoded_len = 0;
+        key_to_sp(k, k_len, nullptr, nullptr, &encoded, &encoded_len);
+        return decode(types->predicate, encoded, encoded_len, &pred, &pred_len);
+
+        // do not delete encoded because it is just an address in another array
+    }
+
+    return HXHIM_SUCCESS;
+}
+
+int mdhim::GetResult::FillObject() {
+    if (!obj) {
+        return decode(types->object, v, v_len, &obj, &obj_len);
     }
 
     return HXHIM_SUCCESS;

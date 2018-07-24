@@ -10,7 +10,7 @@ namespace Thallium {
  * @param addrs the map that will be filled with the thallium addresses
  * @return MDHIM_SUCCESS or MDHIM_ERROR
  */
-int get_addrs(const MPI_Comm comm, const std::shared_ptr<thallium::engine> &engine, std::map<int, std::string> &addrs) {
+int get_addrs(const MPI_Comm comm, const Engine_t &engine, std::map<int, std::string> &addrs) {
     if (!engine) {
         return MDHIM_ERROR;
     }

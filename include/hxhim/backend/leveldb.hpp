@@ -4,8 +4,8 @@
 #include <leveldb/db.h>
 #include <mpi.h>
 
-#include "hxhim/struct.h"
 #include "base.hpp"
+#include "hxhim/struct.h"
 
 namespace hxhim {
 namespace backend {
@@ -43,29 +43,18 @@ class leveldb : public base {
     private:
         class GetResult : public Results::Get {
             public:
-                GetResult(const int db, const ::leveldb::Iterator *it);
+                GetResult(SPO_Types_t *types, const int db, const ::leveldb::Slice &key, const ::leveldb::Slice &value);
+                GetResult(SPO_Types_t *types, const int db, const ::leveldb::Slice &key, const std::string &value);
+                GetResult(SPO_Types_t *types, const int db, const ::leveldb::Slice &key);
                 ~GetResult();
 
-                int GetSubject(void **subject, std::size_t *subject_len) const;
-                int GetPredicate(void **predicate, std::size_t *predicate_len) const;
-                int GetObject(void **object, std::size_t *object_len) const;
-
             private:
-                const ::leveldb::Iterator *res;
-        };
+                int FillSubject();
+                int FillPredicate();
+                int FillObject();
 
-        struct GetOpResult : public Results::Get {
-            public:
-                GetOpResult(const bool ok, const int db, const ::leveldb::Slice &key, const ::leveldb::Slice &value);
-                ~GetOpResult();
-
-                int GetSubject(void **subject, std::size_t *subject_len) const;
-                int GetPredicate(void **predicate, std::size_t *predicate_len) const;
-                int GetObject(void **object, std::size_t *object_len) const;
-
-            private:
-                const ::leveldb::Slice k;
-                const ::leveldb::Slice v;
+                const std::string k;
+                const std::string v;
         };
 
         const std::string name;

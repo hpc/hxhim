@@ -11,7 +11,9 @@
  *
  */
 typedef struct work_item {
-    virtual ~work_item() { delete message; }
+    virtual ~work_item() {
+        delete message;
+    }
 
 	work_item *next;
 	work_item *prev;

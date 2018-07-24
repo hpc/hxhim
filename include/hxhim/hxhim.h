@@ -80,9 +80,9 @@ int hxhimGetStats(hxhim_t *hx, const int rank,
                   const int get_get_times, long double *get_times,
                   const int get_num_gets, size_t *num_gets);
 
-int hxhimSubjectType(hxhim_t *hx, int *type);
-int hxhimPredicateType(hxhim_t *hx, int *type);
-int hxhimObjectType(hxhim_t *hx, int *type);
+int hxhimSubjectType(hxhim_t *hx, hxhim_spo_type_t *type);
+int hxhimPredicateType(hxhim_t *hx, hxhim_spo_type_t *type);
+int hxhimObjectType(hxhim_t *hx, hxhim_spo_type_t *type);
 
 int hxhimPutFloat(hxhim_t *hx,
                   void *subject, size_t subject_len,

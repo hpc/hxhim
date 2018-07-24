@@ -26,10 +26,9 @@ leveldb::leveldb(hxhim_t *hx, const std::string &name, const bool create_if_miss
     s << name << "-" << hx->mpi.rank;
 
     options.create_if_missing = create_if_missing;
-    ::leveldb::Status status = ::leveldb::DB::Open(options, s.str(), &db);
 
-    if (!status.ok()) {
-        throw std::runtime_error("Could not configure leveldb backend");
+    if (!::leveldb::DB::Open(options, s.str(), &db).ok()) {
+        throw std::runtime_error("Could not configure leveldb backend " + s.str());
     }
 
     memset(&stats, 0, sizeof(stats));
@@ -153,7 +152,7 @@ Results *leveldb::BPut(void **subjects, std::size_t *subject_lens,
                        void **predicates, std::size_t *predicate_lens,
                        void **objects, std::size_t *object_lens,
                        std::size_t count) {
-    Results *res = new Results(hx->p->subject_type, hx->p->predicate_type, hx->p->object_type);
+    Results *res = new Results();
     if (!res) {
         return nullptr;
     }
@@ -206,7 +205,7 @@ Results *leveldb::BPut(void **subjects, std::size_t *subject_lens,
 Results *leveldb::BGet(void **subjects, std::size_t *subject_lens,
                        void **predicates, std::size_t *predicate_lens,
                        std::size_t count) {
-    Results *res = new Results(hx->p->subject_type, hx->p->predicate_type, hx->p->object_type);
+    Results *res = new Results();
     if (!res) {
         return nullptr;
     }
@@ -214,21 +213,29 @@ Results *leveldb::BGet(void **subjects, std::size_t *subject_lens,
     void **keys = new void *[count]();
     for(std::size_t i = 0; i < count; i++) {
         struct timespec start, end;
-        std::string value_str;
+        std::string value;
 
+        // create the key
         std::size_t key_len = 0;
         sp_to_key(subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &keys[i], &key_len);
+        const ::leveldb::Slice key((char *) keys[i], key_len);
 
-        ::leveldb::Iterator *it = db->NewIterator(::leveldb::ReadOptions());
-
+        // get the value
         clock_gettime(CLOCK_MONOTONIC, &start);
-        it->Seek(::leveldb::Slice((char * ) keys[i], key_len));
+        ::leveldb::Status status = db->Get(::leveldb::ReadOptions(), key, &value);
         clock_gettime(CLOCK_MONOTONIC, &end);
 
+        // update stats
         stats.gets++;
         stats.get_times += elapsed(start, end);
 
-        res->Add(new GetResult(hx->mpi.rank, it));
+        // add to results list
+        if (status.ok()) {
+            res->Add(new GetResult(&hx->p->types, hx->mpi.rank, key, value));
+        }
+        else {
+            res->Add(new GetResult(&hx->p->types, hx->mpi.rank, key));
+        }
     }
 
     for(std::size_t i = 0; i < count; i++) {
@@ -254,7 +261,7 @@ Results *leveldb::BGet(void **subjects, std::size_t *subject_lens,
 Results *leveldb::BGetOp(void *subject, std::size_t subject_len,
                          void *predicate, std::size_t predicate_len,
                          std::size_t count, enum hxhim_get_op op) {
-    Results *res = new Results(hx->p->subject_type, hx->p->predicate_type, hx->p->object_type);
+    Results *res = new Results();
     if (!res) {
         return nullptr;
     }
@@ -284,7 +291,7 @@ Results *leveldb::BGetOp(void *subject, std::size_t subject_len,
             stats.gets++;
             stats.get_times += elapsed(start, end);
 
-            res->Add(new GetOpResult(it->status().ok(), hx->mpi.rank, key, value));
+            res->Add(new GetResult(&hx->p->types, hx->mpi.rank, key, value));
 
             // move to next iterator according to operation
             switch (op) {
@@ -325,7 +332,7 @@ Results *leveldb::BGetOp(void *subject, std::size_t subject_len,
 Results *leveldb::BDelete(void **subjects, std::size_t *subject_lens,
                           void **predicates, std::size_t *predicate_lens,
                           std::size_t count) {
-    Results *res = new Results(hx->p->subject_type, hx->p->predicate_type, hx->p->object_type);
+    Results *res = new Results();
     ::leveldb::WriteBatch batch;
     void **keys = new void *[count]();
 
@@ -356,60 +363,56 @@ std::ostream &leveldb::print_config(std::ostream &stream) const {
         << "    create_if_missing: " << std::boolalpha << create_if_missing << std::endl;
 }
 
-leveldb::GetResult::GetResult(const int db, const ::leveldb::Iterator *it)
-    : Get(it->status().ok()?HXHIM_SUCCESS:HXHIM_ERROR, db),
-      res(it)
+leveldb::GetResult::GetResult(SPO_Types_t *types, const int db, const ::leveldb::Slice &key, const ::leveldb::Slice &value)
+    : Get(types, HXHIM_SUCCESS, db),
+      k(key.ToString()),
+      v(value.ToString())
+{}
+
+leveldb::GetResult::GetResult(SPO_Types_t *types, const int db, const ::leveldb::Slice &key, const std::string &value)
+    : Get(types, HXHIM_SUCCESS, db),
+      k(key.ToString()),
+      v(value)
+{}
+
+leveldb::GetResult::GetResult(SPO_Types_t *types, const int db, const ::leveldb::Slice &key)
+    : Get(types, HXHIM_ERROR, db),
+      k(key.ToString()),
+      v()
 {}
 
 leveldb::GetResult::~GetResult()
-{
-    delete res;
-}
+{}
 
-int leveldb::GetResult::GetSubject(void **subject, std::size_t *subject_len) const {
-    return key_to_sp((void *) res->key().data(), res->key().size(), subject, subject_len, nullptr, nullptr);
-}
+int leveldb::GetResult::FillSubject() {
+    if (!sub) {
+        void *encoded = nullptr;
+        std::size_t encoded_len = 0;
+        key_to_sp((void *) k.c_str(), k.size(), &encoded, &encoded_len, nullptr, nullptr);
+        return decode(types->subject, encoded, encoded_len, &sub, &sub_len);
 
-int leveldb::GetResult::GetPredicate(void **predicate, std::size_t *predicate_len) const {
-    return key_to_sp((void *) res->key().data(), res->key().size(), nullptr, nullptr, predicate, predicate_len);
-}
-
-int leveldb::GetResult::GetObject(void **object, std::size_t *object_len) const {
-    if (object) {
-        *object = (void *) res->value().data();
-    }
-
-    if (object_len) {
-        *object_len = res->value().size();
+        // do not delete encoded because it is just an address in another array
     }
 
     return HXHIM_SUCCESS;
 }
 
-leveldb::GetOpResult::GetOpResult(const bool ok, const int db, const ::leveldb::Slice &key, const ::leveldb::Slice &value)
-    : Get(ok?HXHIM_SUCCESS:HXHIM_ERROR, db),
-      k(key),
-      v(value)
-{}
+int leveldb::GetResult::FillPredicate() {
+    if (!pred) {
+        void *encoded = nullptr;
+        std::size_t encoded_len = 0;
+        key_to_sp((void *) k.c_str(), k.size(), nullptr, nullptr, &encoded, &encoded_len);
+        return decode(types->predicate, encoded, encoded_len, &pred, &pred_len);
 
-leveldb::GetOpResult::~GetOpResult()
-{}
-
-int leveldb::GetOpResult::GetSubject(void **subject, std::size_t *subject_len) const {
-    return key_to_sp((void *) k.data(), k.size(), subject, subject_len, nullptr, nullptr);
-}
-
-int leveldb::GetOpResult::GetPredicate(void **predicate, std::size_t *predicate_len) const {
-    return key_to_sp((void *) k.data(), k.size(), nullptr, nullptr, predicate, predicate_len);
-}
-
-int leveldb::GetOpResult::GetObject(void **object, std::size_t *object_len) const {
-    if (object) {
-        *object = (void *) v.data();
+        // do not delete encoded because it is just an address in another array
     }
 
-    if (object_len) {
-        *object_len = v.size();
+    return HXHIM_SUCCESS;
+}
+
+int leveldb::GetResult::FillObject() {
+    if (!obj) {
+        return decode(types->object, (void *) v.data(), v.size(), &obj, &obj_len);
     }
 
     return HXHIM_SUCCESS;

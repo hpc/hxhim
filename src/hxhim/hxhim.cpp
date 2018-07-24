@@ -2,7 +2,6 @@
 #include <cmath>
 #include <cstring>
 #include <list>
-#include <iostream>
 
 #include "hxhim/Results_private.hpp"
 #include "hxhim/backend/backends.hpp"
@@ -12,12 +11,16 @@
 #include "hxhim/hxhim.hpp"
 #include "hxhim/options_private.hpp"
 #include "hxhim/private.hpp"
+#include "hxhim/types_struct.hpp"
 #include "utils/elen.hpp"
 
 /**
  * encode
  * Converts the contents of a void * into another
  * format if the type is floating point.
+ * This is allowed because the pointers are coming
+ * from the internal arrays, and thus can be
+ * overwritten/replaced with a new pointer.
  *
  * @param type   the underlying type of this value
  * @param ptr    address of the value
@@ -51,6 +54,7 @@ static int encode(const hxhim_spo_type_t type, void *&ptr, std::size_t &len, boo
             break;
         case HXHIM_SPO_INT_TYPE:
         case HXHIM_SPO_SIZE_TYPE:
+        case HXHIM_SPO_INT64_TYPE:
         case HXHIM_SPO_BYTE_TYPE:
             copied = false;
             break;
@@ -75,8 +79,7 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
         return nullptr;
     }
 
-    static const std::size_t multiplier = 4;
-    const std::size_t total = multiplier * count;
+    const std::size_t total = HXHIM_PUT_MULTIPLER * count;
 
     void **subjects = new void *[total]();
     std::size_t *subject_lens = new std::size_t[total]();
@@ -97,25 +100,48 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
         std::size_t object_len = head->object_lens[i];
 
         // add the value to the histogram
-        hx->p->histogram->add(* (double *) object);
+        double add_to_hist = 0;
+        switch (hx->p->types.object) {
+            case HXHIM_SPO_INT_TYPE:
+                add_to_hist = (double) * (int *) object;
+                break;
+            case HXHIM_SPO_SIZE_TYPE:
+                add_to_hist = (double) * (std::size_t *) object;
+                break;
+            case HXHIM_SPO_INT64_TYPE:
+                add_to_hist = (double) * (int64_t *) object;
+                break;
+            case HXHIM_SPO_FLOAT_TYPE:
+                add_to_hist = (double) * (float *) object;
+                break;
+            case HXHIM_SPO_DOUBLE_TYPE:
+                add_to_hist = (double) * (double *) object;
+                break;
+            case HXHIM_SPO_BYTE_TYPE:
+                add_to_hist = (double) * (char *) object;
+                break;
+        }
+
+        hx->p->histogram->add(add_to_hist);
 
         // encode the values
         bool copied = false;
-        encode(hx->p->subject_type, subject, subject_len, copied);
+        encode(hx->p->types.subject, subject, subject_len, copied);
         if (copied) {
             ptrs.push_back(subject);
         }
 
-        encode(hx->p->predicate_type, predicate, predicate_len, copied);
+        encode(hx->p->types.predicate, predicate, predicate_len, copied);
         if (copied) {
             ptrs.push_back(predicate);
         }
 
-        encode(hx->p->object_type, object, object_len, copied);
+        encode(hx->p->types.object, object, object_len, copied);
         if (copied) {
             ptrs.push_back(object);
         }
 
+        // SP -> O
         subjects[offset] = subject;
         subject_lens[offset] = subject_len;
         predicates[offset] = predicate;
@@ -124,29 +150,32 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
         object_lens[offset] = object_len;
         offset++;
 
-        subjects[offset] = subject;
-        subject_lens[offset] = subject_len;
-        predicates[offset] = object;
-        predicate_lens[offset] = object_len;
-        objects[offset] = predicate;
-        object_lens[offset] = predicate_len;
-        offset++;
+        // // SO -> P
+        // subjects[offset] = subject;
+        // subject_lens[offset] = subject_len;
+        // predicates[offset] = object;
+        // predicate_lens[offset] = object_len;
+        // objects[offset] = predicate;
+        // object_lens[offset] = predicate_len;
+        // offset++;
 
-        subjects[offset] = predicate;
-        subject_lens[offset] = predicate_len;
-        predicates[offset] = object;
-        predicate_lens[offset] = object_len;
-        objects[offset] = subject;
-        object_lens[offset] = subject_len;
-        offset++;
+        // // PO -> S
+        // subjects[offset] = predicate;
+        // subject_lens[offset] = predicate_len;
+        // predicates[offset] = object;
+        // predicate_lens[offset] = object_len;
+        // objects[offset] = subject;
+        // object_lens[offset] = subject_len;
+        // offset++;
 
-        subjects[offset] = predicate;
-        subject_lens[offset] = predicate_len;
-        predicates[offset] = subject;
-        predicate_lens[offset] = subject_len;
-        objects[offset] = object;
-        object_lens[offset] = object_len;
-        offset++;
+        // // PS -> O
+        // subjects[offset] = predicate;
+        // subject_lens[offset] = predicate_len;
+        // predicates[offset] = subject;
+        // predicate_lens[offset] = subject_len;
+        // objects[offset] = object;
+        // object_lens[offset] = object_len;
+        // offset++;
     }
 
     // PUT the batch
@@ -174,7 +203,7 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
  * @param args   hx typecast to void *
  */
 static void backgroundPUT(void *args) {
-    hxhim_t *hx = (hxhim_t *)args;
+    hxhim_t *hx = (hxhim_t *) args;
     if (!hx || !hx->p) {
         return;
     }
@@ -317,12 +346,12 @@ int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
     }
 
     hx->p->running = true;
-    hx->p->subject_type = opts->p->subject_type;
-    hx->p->predicate_type = opts->p->predicate_type;
-    hx->p->object_type = opts->p->object_type;
+    hx->p->types.subject = opts->p->subject_type;
+    hx->p->types.predicate = opts->p->predicate_type;
+    hx->p->types.object = opts->p->object_type;
 
     // Set up queued PUT results list
-    if (!(hx->p->put_results = new hxhim::Results(hx->p->subject_type, hx->p->predicate_type, hx->p->object_type))) {
+    if (!(hx->p->put_results = new hxhim::Results())) {
         Close(hx);
         return HXHIM_ERROR;
     }
@@ -535,7 +564,7 @@ hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
     // retrieve all results
     std::unique_lock<std::mutex> results_lock(hx->p->put_results_mutex);
     hxhim::Results *res = hx->p->put_results;
-    hx->p->put_results = new hxhim::Results(hx->p->subject_type, hx->p->predicate_type, hx->p->object_type);
+    hx->p->put_results = new hxhim::Results();
 
     return res;
 }
@@ -550,6 +579,41 @@ hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
  */
 hxhim_results_t *hxhimFlushPuts(hxhim_t *hx) {
     return hxhim_results_init(hxhim::FlushPuts(hx));
+}
+
+/**
+ * encode_sp
+ * Encodes the subjects and predicates in the given arrays
+ * If the encoding results in an allocation, the pointer
+ * is added into the ptrs list for later deallocation.
+ *
+ * @param subject_type     the types of the subjects
+ * @param subjects         the array of subjects
+ * @param subject_lens     the lengths of the subjects
+ * @param predicate_type   the types of the predicate
+ * @param predicates       the array of predicates
+ * @param predicate_lens   the lengths of the predicates
+ * @param count            the number of subjects/predicates
+ * @param ptrs             the list of pointers to deallocate later
+ */
+static void encode_sp(hxhim_spo_type_t subject_type, void **subjects, std::size_t *subject_lens,
+                      hxhim_spo_type_t predicate_type, void **predicates, std::size_t *predicate_lens,
+                      std::size_t count,
+                      std::list <void *> &ptrs) {
+    bool copied = false;
+    for(std::size_t i = 0; i < count; i++) {
+        copied = false;
+        encode(subject_type, subjects[i], subject_lens[i], copied);
+        if (copied) {
+            ptrs.push_back(subjects[i]);
+        }
+
+        copied = false;
+        encode(predicate_type, predicates[i], predicate_lens[i], copied);
+        if (copied) {
+            ptrs.push_back(predicates[i]);
+        }
+    }
 }
 
 /**
@@ -573,10 +637,16 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
         return HXHIM_SUCCESS;
     }
 
-    hxhim::Results *res = new hxhim::Results(hx->p->subject_type, hx->p->predicate_type, hx->p->object_type);
+    hxhim::Results *res = new hxhim::Results();
+    std::list <void *> ptrs;
 
     // write complete batches
     while (curr->next) {
+        // encode the batch
+        encode_sp(hx->p->types.subject, curr->subjects, curr->subject_lens,
+                  hx->p->types.predicate, curr->predicates, curr->predicate_lens,
+                  HXHIM_MAX_BULK_GET_OPS, ptrs);
+
         // GET the batch
         hxhim::Results *ret = hx->p->backend->BGet(curr->subjects, curr->subject_lens, curr->predicates, curr->predicate_lens, HXHIM_MAX_BULK_GET_OPS);
         res->Append(ret);
@@ -588,6 +658,11 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
         curr = next;
     }
 
+    // encode the batch
+    encode_sp(hx->p->types.subject, curr->subjects, curr->subject_lens,
+              hx->p->types.predicate, curr->predicates, curr->predicate_lens,
+              gets.last_count, ptrs);
+
     // write final (possibly incomplete) batch
     hxhim::Results *ret = hx->p->backend->BGet(curr->subjects, curr->subject_lens, curr->predicates, curr->predicate_lens, gets.last_count);
     res->Append(ret);
@@ -595,6 +670,10 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
 
     // delete the last batch
     delete curr;
+
+    for(void *ptr : ptrs) {
+        ::operator delete(ptr);
+    }
 
     gets.head = gets.tail = nullptr;
 
@@ -634,10 +713,16 @@ hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
         return HXHIM_SUCCESS;
     }
 
-    hxhim::Results *res = new hxhim::Results(hx->p->subject_type, hx->p->predicate_type, hx->p->object_type);
+    hxhim::Results *res = new hxhim::Results();
+    std::list <void *> ptrs;
 
     // write complete batches
     while (curr->next) {
+        // encode the batch
+        encode_sp(hx->p->types.subject, curr->subjects, curr->subject_lens,
+                  hx->p->types.predicate, curr->predicates, curr->predicate_lens,
+                  HXHIM_MAX_BULK_GET_OPS, ptrs);
+
         for(std::size_t i = 0; i < HXHIM_MAX_BULK_GET_OPS; i++) {
             // GETOP the key
             hxhim::Results *ret = hx->p->backend->BGetOp(curr->subjects[i], curr->subject_lens[i], curr->predicates[i], curr->predicate_lens[i], curr->counts[i], curr->ops[i]);
@@ -651,6 +736,11 @@ hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
         curr = next;
     }
 
+    // encode the batch
+    encode_sp(hx->p->types.subject, curr->subjects, curr->subject_lens,
+              hx->p->types.predicate, curr->predicates, curr->predicate_lens,
+              getops.last_count, ptrs);
+
     // write final (possibly incomplete) batch
     for(std::size_t i = 0; i < getops.last_count; i++) {
         hxhim::Results *ret = hx->p->backend->BGetOp(curr->subjects[i], curr->subject_lens[i], curr->predicates[i], curr->predicate_lens[i], curr->counts[i], curr->ops[i]);
@@ -660,6 +750,10 @@ hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
 
     // delete the last batch
     delete curr;
+
+    for(void *ptr : ptrs) {
+        ::operator delete(ptr);
+    }
 
     getops.head = getops.tail = nullptr;
 
@@ -699,10 +793,16 @@ hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
         return HXHIM_SUCCESS;
     }
 
-    hxhim::Results *res = new hxhim::Results(hx->p->subject_type, hx->p->predicate_type, hx->p->object_type);
+    hxhim::Results *res = new hxhim::Results();
+    std::list <void *> ptrs;
 
     // write complete batches
     while (curr->next) {
+        // encode the batch
+        encode_sp(hx->p->types.subject, curr->subjects, curr->subject_lens,
+                  hx->p->types.predicate, curr->predicates, curr->predicate_lens,
+                  HXHIM_MAX_BULK_DEL_OPS, ptrs);
+
         // DEL the batch
         hxhim::Results *ret = hx->p->backend->BDelete(curr->subjects, curr->subject_lens, curr->predicates, curr->predicate_lens, HXHIM_MAX_BULK_DEL_OPS);
         res->Append(ret);
@@ -714,6 +814,11 @@ hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
         curr = next;
     }
 
+    // encode the batch
+    encode_sp(hx->p->types.subject, curr->subjects, curr->subject_lens,
+              hx->p->types.predicate, curr->predicates, curr->predicate_lens,
+              dels.last_count, ptrs);
+
     // write final (possibly incomplete) batch
     hxhim::Results *ret = hx->p->backend->BDelete(curr->subjects, curr->subject_lens, curr->predicates, curr->predicate_lens, dels.last_count);
     res->Append(ret);
@@ -721,6 +826,10 @@ hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
 
     // delete the last batch
     delete curr;
+
+    for(void *ptr : ptrs) {
+        ::operator delete(ptr);
+    }
 
     dels.head = dels.tail = nullptr;
 
@@ -750,7 +859,7 @@ hxhim_results_t *hxhimFlushDeletes(hxhim_t *hx) {
  * @return An array of results (3 values)
  */
 hxhim::Results *hxhim::Flush(hxhim_t *hx) {
-    hxhim::Results *res    = new hxhim::Results(hx->p->subject_type, hx->p->predicate_type, hx->p->object_type);
+    hxhim::Results *res    = new hxhim::Results();
     hxhim::Results *puts   = FlushPuts(hx);
     hxhim::Results *gets   = FlushGets(hx);
     hxhim::Results *getops = FlushGetOps(hx);
@@ -1149,11 +1258,11 @@ int hxhimBGet(hxhim_t *hx,
  * BGetOp
  * Add a BGET into the work queue
  *
- * @param hx         the HXHIM session
- * @param subjects      the subjects to get
- * @param subject_lens  the lengths of the subjects to get
- * @param prediates     the prediates to get
- * @param prediate_lens the lengths of the prediates to get
+ * @param hx             the HXHIM session
+ * @param subjects       the subjects to get
+ * @param subject_lens   the lengths of the subjects to get
+ * @param predicates     the predicates to get
+ * @param predicate_lens the lengths of the predicates to get
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::BGetOp(hxhim_t *hx,
@@ -1357,12 +1466,12 @@ int hxhimGetStats(hxhim_t *hx, const int rank,
  * @param type the type of subjects used in this HXHIM session
  * @return HXHIM_SUCCESS, or HXHIM_ERROR if the subject type was not copied into the type variable
  */
-int hxhim::SubjectType(hxhim_t *hx, int *type) {
+int hxhim::SubjectType(hxhim_t *hx, hxhim_spo_type_t *type) {
     if (!hx || !hx->p || !type) {
         return HXHIM_ERROR;
     }
 
-    *type = hx->p->subject_type;
+    *type = hx->p->types.subject;
     return HXHIM_SUCCESS;
 }
 
@@ -1373,7 +1482,7 @@ int hxhim::SubjectType(hxhim_t *hx, int *type) {
  * @param type the type of subjects used in this HXHIM session
  * @return HXHIM_SUCCESS, or HXHIM_ERROR if the subject type was not copied into the type variable
  */
-int hxhimSubjectType(hxhim_t *hx, int *type) {
+int hxhimSubjectType(hxhim_t *hx, hxhim_spo_type_t *type) {
     return hxhim::SubjectType(hx, type);
 }
 
@@ -1384,12 +1493,12 @@ int hxhimSubjectType(hxhim_t *hx, int *type) {
  * @param type the type of predicates used in this HXHIM session
  * @return HXHIM_SUCCESS, or HXHIM_ERROR if the predicate type was not copied into the type variable
  */
-int hxhim::PredicateType(hxhim_t *hx, int *type) {
+int hxhim::PredicateType(hxhim_t *hx, hxhim_spo_type_t *type) {
     if (!hx || !hx->p || !type) {
         return HXHIM_ERROR;
     }
 
-    *type = hx->p->predicate_type;
+    *type = hx->p->types.predicate;
     return HXHIM_SUCCESS;
 }
 
@@ -1400,7 +1509,7 @@ int hxhim::PredicateType(hxhim_t *hx, int *type) {
  * @param type the type of predicates used in this HXHIM session
  * @return HXHIM_SUCCESS, or HXHIM_ERROR if the predicate type was not copied into the type variable
  */
-int hxhimPredicateType(hxhim_t *hx, int *type) {
+int hxhimPredicateType(hxhim_t *hx, hxhim_spo_type_t *type) {
     return hxhim::PredicateType(hx, type);
 }
 
@@ -1411,12 +1520,12 @@ int hxhimPredicateType(hxhim_t *hx, int *type) {
  * @param type the type of objects used in this HXHIM session
  * @return HXHIM_SUCCESS, or HXHIM_ERROR if the object type was not copied into the type variable
  */
-int hxhim::ObjectType(hxhim_t *hx, int *type) {
+int hxhim::ObjectType(hxhim_t *hx, hxhim_spo_type_t *type) {
     if (!hx || !hx->p || !type) {
         return HXHIM_ERROR;
     }
 
-    *type = hx->p->object_type;
+    *type = hx->p->types.object;
     return HXHIM_SUCCESS;
 }
 
@@ -1427,7 +1536,7 @@ int hxhim::ObjectType(hxhim_t *hx, int *type) {
  * @param type the type of objects used in this HXHIM session
  * @return HXHIM_SUCCESS, or HXHIM_ERROR if the object type was not copied into the type variable
  */
-int hxhimObjectType(hxhim_t *hx, int *type) {
+int hxhimObjectType(hxhim_t *hx, hxhim_spo_type_t *type) {
     return hxhim::ObjectType(hx, type);
 }
 
@@ -1670,8 +1779,5 @@ int hxhim::GetHistogram(hxhim_t *hx, Histogram::Histogram **histogram) {
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimGetHistogram(hxhim_t *hx, histogram_t *histogram) {
-    Histogram::Histogram *ptr = nullptr;
-    const int ret = hxhim::GetHistogram(hx, &ptr);
-    *histogram = (void *) ptr;
-    return ret;
+    return hxhim::GetHistogram(hx, &histogram->histogram);
 }

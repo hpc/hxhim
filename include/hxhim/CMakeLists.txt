@@ -12,4 +12,5 @@ install(FILES
   Results.h
   Results.hpp
   struct.h
+  types_struct.hpp
   DESTINATION include/hxhim)

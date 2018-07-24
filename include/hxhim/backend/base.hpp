@@ -14,7 +14,7 @@ namespace backend {
 class base {
     public:
         base(hxhim_t *hx);
-        virtual ~base() {}
+        virtual ~base();
 
         virtual void Close() {}
         virtual int Commit() = 0;

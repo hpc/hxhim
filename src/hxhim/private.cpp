@@ -7,9 +7,7 @@ namespace hxhim {
 }
 
 hxhim_private::hxhim_private()
-    : subject_type(HXHIM_SPO_BYTE_TYPE),
-      predicate_type(HXHIM_SPO_BYTE_TYPE),
-      object_type(HXHIM_SPO_BYTE_TYPE),
+    : types({}),
       backend(nullptr),
       running(false),
       puts(),

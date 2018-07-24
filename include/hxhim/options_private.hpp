@@ -5,8 +5,8 @@
 
 #include <mpi.h>
 
-#include "bootstrap.h"
-#include "constants.h"
+#include "hxhim/bootstrap.h"
+#include "hxhim/constants.h"
 
 #ifdef __cplusplus
 extern "C"

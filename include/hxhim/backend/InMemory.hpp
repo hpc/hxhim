@@ -45,15 +45,14 @@ class InMemory : public base {
         /** @description Convenience class for GET results */
         class GetResult : public Results::Get {
             public:
-                GetResult(const int err, const int db, const std::map<std::string, std::string>::const_iterator &it);
+                GetResult(SPO_Types_t *types, const int err, const int db, const std::map<std::string, std::string>::const_iterator &it);
                 virtual ~GetResult();
 
-                // Users should not have to deallocate the pointers returned by these functions
-                int GetSubject(void **subject, std::size_t *subject_len) const;
-                int GetPredicate(void **predicate, std::size_t *predicate_len) const;
-                int GetObject(void **object, std::size_t *object_len) const;
-
             private:
+                int FillSubject();
+                int FillPredicate();
+                int FillObject();
+
                 const std::string k;
                 const std::string v;
         };

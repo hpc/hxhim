@@ -4,6 +4,7 @@
 #include <iostream>
 #include <list>
 #include <sstream>
+#include <type_traits>
 
 #include "../util.hpp"
 #include "hxhim/hxhim.h"
@@ -25,6 +26,26 @@ void cleanup(hxhim_t *hx, hxhim_options_t *opts) {
     hxhimClose(hx);
     hxhim_options_destroy(opts);
     MPI_Finalize();
+}
+
+template <typename T, typename NotStr = std::enable_if_t<!std::is_same<T, std::string>::value> >
+int read_bgetop_input(std::stringstream & s, void **prefix, std::size_t *prefix_len, int &count) {
+    if (!prefix || !prefix_len) {
+        return HXHIM_ERROR;
+    }
+
+    T subject;
+    if (!(s >> subject >> count)) {
+        return HXHIM_ERROR;
+    }
+
+    *prefix_len = sizeof(T);
+    if (!(*prefix = ::operator new(*prefix_len))) {
+        return HXHIM_ERROR;
+    }
+
+    memcpy(*prefix, &subject, *prefix_len);
+    return HXHIM_SUCCESS;
 }
 
 int main(int argc, char *argv[]) {
@@ -57,11 +78,19 @@ int main(int argc, char *argv[]) {
         return HXHIM_ERROR;
     }
 
+    hxhim_spo_type_t subject_type;
+    hxhimSubjectType(&hx, &subject_type);
+    hxhim_spo_type_t predicate_type;
+    hxhimPredicateType(&hx, &predicate_type);
+    hxhim_spo_type_t object_type;
+    hxhimObjectType(&hx, &object_type);
+
     if (rank == 0) {
         std::cout << "World Size: " << size << std::endl;
 
         // store user input until it is flushed, or the data used will be invalid
         std::list <UserInput> inputs;
+        std::list <void *> bgetop_inputs;
 
         std::string line;
         while (std::cout << ">> ", std::getline(std::cin, line)) {
@@ -89,14 +118,13 @@ int main(int argc, char *argv[]) {
             else if (cmd == "HELP") {
                 help(argv[0]);
             }
-
-            if (cmd == "FLUSH") {
+            else if (cmd == "FLUSH") {
                 hxhim_results_t *results = hxhimFlush(&hx);
                 if (!results) {
                     std::cerr << "Could not Flush" << std::endl;
                 }
                 else {
-                    print_results(-1, results);
+                    print_results(&hx, 0, results);
                 }
 
                 hxhim_results_destroy(results);
@@ -107,45 +135,110 @@ int main(int argc, char *argv[]) {
                 }
                 inputs.clear();
 
+                for(void *ptr : bgetop_inputs) {
+                    ::operator delete(ptr);
+                }
+                bgetop_inputs.clear();
+
                 continue;
             }
+            else if (cmd == "BGETOP") {
+                void *prefix = nullptr;
+                std::size_t prefix_len = 0;
+                int count = 0;
+                int ret = HXHIM_SUCCESS;
 
-            UserInput input;
-            input.fields = 2 + (cmd.substr(cmd.size() - 3, 3) == "PUT"); // only PUT and BPUT have values in addition to keys
-            input.data = nullptr;
-            input.lens = nullptr;
-            input.num_keys = 0;
-            bool read_rows = (cmd[0] == 'B');                            // bulk operations take in a number before the data to indicate how many key-pair values there are
+                switch (subject_type) {
+                    case HXHIM_SPO_INT_TYPE:
+                        ret = read_bgetop_input<int>(s, &prefix, &prefix_len, count);
+                        break;
+                    case HXHIM_SPO_SIZE_TYPE:
+                        ret = read_bgetop_input<std::size_t>(s, &prefix, &prefix_len, count);
+                        break;
+                    case HXHIM_SPO_INT64_TYPE:
+                        ret = read_bgetop_input<int64_t>(s, &prefix, &prefix_len, count);
+                        break;
+                    case HXHIM_SPO_FLOAT_TYPE:
+                        ret = read_bgetop_input<float>(s, &prefix, &prefix_len, count);
+                        break;
+                    case HXHIM_SPO_DOUBLE_TYPE:
+                        ret = read_bgetop_input<double>(s, &prefix, &prefix_len, count);
+                        break;
+                    case HXHIM_SPO_BYTE_TYPE:
+                        {
+                            std::string subject;
+                            if (!(s >> subject >> count)) {
+                                ret = HXHIM_ERROR;
+                                break;
+                            }
 
-            if (bulk_read(s, input, read_rows)) {
-                if (cmd == "PUT") {
-                    hxhimPut(&hx, input.data[0][0], input.lens[0][0], input.data[1][0], input.lens[1][0], input.data[2][0], input.lens[2][0]);
+                            prefix_len = subject.size();
+                            prefix = ::operator new(prefix_len);
+                            memcpy(prefix, subject.c_str(), prefix_len);
+                        }
+                        break;
                 }
-                else if (cmd == "BPUT") {
-                    hxhimBPut(&hx, input.data[0], input.lens[0], input.data[1], input.lens[1], input.data[2], input.lens[2], input.num_keys);
+
+                if (ret != HXHIM_SUCCESS) {
+                    std::cerr << "Bad BGetOp input: " << line << std::endl;
+                    continue;
                 }
-                else if (cmd == "GET") {
-                    hxhimGet(&hx, input.data[0][0], input.lens[0][0], input.data[1][0], input.lens[1][0]);
+
+                // negative indicates "get previous"
+                enum hxhim_get_op op = HXHIM_GET_EQ;
+                if (count < 0) {
+                    op = HXHIM_GET_PREV;
                 }
-                else if (cmd == "BGET") {
-                    hxhimBGet(&hx, input.data[0], input.lens[0], input.data[1], input.lens[1], input.num_keys);
+                // positive indicates "get next"
+                else if (count > 0) {
+                    op = HXHIM_GET_NEXT;
                 }
-                else if (cmd == "DEL") {
-                    hxhimDelete(&hx, input.data[0][0], input.lens[0][0], input.data[1][0], input.lens[1][0]);
-                }
-                else if (cmd == "BDEL") {
-                    hxhimBDelete(&hx, input.data[0], input.lens[0], input.data[1], input.lens[1], input.num_keys);
-                }
+                // 0 indicates "get equal"
                 else {
-                    std::cerr << "Error: Unknown command " << cmd << std::endl;
+                    count = 1;
                 }
+
+                hxhimBGetOp(&hx, prefix, prefix_len, nullptr, 0, std::abs(count), op);
+                bgetop_inputs.push_back(prefix);
             }
             else {
-                std::cerr << "Error: Bad input: " << line << std::endl;
-            }
+                UserInput input;
+                input.fields = 2 + (cmd.substr(cmd.size() - 3, 3) == "PUT"); // only PUT and BPUT have values in addition to keys
+                input.data = nullptr;
+                input.lens = nullptr;
+                input.num_keys = 0;
+                bool read_rows = (cmd[0] == 'B');                            // bulk operations take in a number before the data to indicate how many key-pair values there are
 
-            // store user input because HXHIM does not own any of the pointers
-            inputs.emplace_back(input);
+                if (bulk_read(s, input, read_rows)) {
+                    if (cmd == "PUT") {
+                        hxhimPut(&hx, input.data[0][0], input.lens[0][0], input.data[1][0], input.lens[1][0], input.data[2][0], input.lens[2][0]);
+                    }
+                    else if (cmd == "BPUT") {
+                        hxhimBPut(&hx, input.data[0], input.lens[0], input.data[1], input.lens[1], input.data[2], input.lens[2], input.num_keys);
+                    }
+                    else if (cmd == "GET") {
+                        hxhimGet(&hx, input.data[0][0], input.lens[0][0], input.data[1][0], input.lens[1][0]);
+                    }
+                    else if (cmd == "BGET") {
+                        hxhimBGet(&hx, input.data[0], input.lens[0], input.data[1], input.lens[1], input.num_keys);
+                    }
+                    else if (cmd == "DEL") {
+                        hxhimDelete(&hx, input.data[0][0], input.lens[0][0], input.data[1][0], input.lens[1][0]);
+                    }
+                    else if (cmd == "BDEL") {
+                        hxhimBDelete(&hx, input.data[0], input.lens[0], input.data[1], input.lens[1], input.num_keys);
+                    }
+                    else {
+                        std::cerr << "Error: Unknown command " << cmd << std::endl;
+                    }
+                }
+                else {
+                    std::cerr << "Error: Bad input: " << line << std::endl;
+                }
+
+                // store user input because HXHIM does not own any of the pointers
+                inputs.emplace_back(input);
+            }
         }
 
         // clean up unflushed user input
@@ -153,6 +246,11 @@ int main(int argc, char *argv[]) {
             bulk_clean(input);
         }
         inputs.clear();
+
+        for(void *ptr : bgetop_inputs) {
+            ::operator delete(ptr);
+        }
+        bgetop_inputs.clear();
 
         long double *put_times = new long double[size]();
         std::size_t *num_puts = new std::size_t[size]();

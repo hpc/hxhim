@@ -7,7 +7,6 @@
 #include <mpi.h>
 
 #include "hxhim/hxhim.h"
-#include "utils/elen.h"
 
 #define BUF_SIZE 100
 
@@ -21,13 +20,14 @@ const char TEMP[]       = "TEMP";
 
 typedef struct Cell {
     char name[BUF_SIZE];
-    char *x;
-    char *y;
-    char *temp;
+    size_t x;
+    size_t y;
+    double temp;
 } Cell_t;
 
 static void print_double_results(hxhim_results_t *results) {
     if (!results) {
+        printf("No Results\n");
         return;
     }
 
@@ -60,12 +60,9 @@ static void print_double_results(hxhim_results_t *results) {
                     size_t object_len = 0;
                     hxhim_results_get_object(results, &object, &object_len);
 
-                    double temp = 0;
-                    elen_decode_double(predicate, predicate_len, &temp);
-
                     printf("{%.*s, %f} -> %.*s",
                            (int) subject_len, (char *) subject,
-                           temp,
+                           * (double *) predicate,
                            (int) object_len, (char *) object);
                 }
                 else {
@@ -102,6 +99,10 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    hxhim_options_set_subject_type  (&opts, HXHIM_SPO_SIZE_TYPE);
+    hxhim_options_set_predicate_type(&opts, HXHIM_SPO_SIZE_TYPE);
+    hxhim_options_set_object_type   (&opts, HXHIM_SPO_DOUBLE_TYPE);
+
     // start hxhim
     hxhim_t hx;
     if (hxhimOpen(&hx, &opts) != HXHIM_SUCCESS) {
@@ -126,59 +127,37 @@ int main(int argc, char *argv[]) {
 
             snprintf(c->name, BUF_SIZE, NAME_FMT, id++);
 
-            size_t x_len = 0;
-            elen_encode_size_t(x, &c->x, &x_len);
-
-            size_t y_len = 0;
-            elen_encode_size_t(y, &c->y, &y_len);
-
-            const double temp = MIN_DOUBLE + (MAX_DOUBLE - MIN_DOUBLE) * ((double) rand()) / ((double) RAND_MAX);
-            size_t temp_len = 0;
-            elen_encode_double(temp, 2 * sizeof(double), &c->temp, &temp_len);
+            c->x = x;
+            c->y = y;
+            c->temp = MIN_DOUBLE + (MAX_DOUBLE - MIN_DOUBLE) * ((double) rand()) / ((double) RAND_MAX);
 
             // keep track of the lowest temperature
-            if (temp < lowest) {
-                lowest = temp;
+            if (c->temp < lowest) {
+                lowest = c->temp;
             }
 
             // keep track of the highest temperature
-            if (temp > highest) {
-                highest = temp;
+            if (c->temp > highest) {
+                highest = c->temp;
             }
 
-            hxhimPut(&hx, (void *) c->name, strlen(c->name), (void *) &X,    strlen(X),    (void *) c->x,    x_len);
-            hxhimPut(&hx, (void *) c->name, strlen(c->name), (void *) &Y,    strlen(Y),    (void *) c->y,    y_len);
-            hxhimPut(&hx, (void *) c->name, strlen(c->name), (void *) &TEMP, strlen(TEMP), (void *) c->temp, temp_len);
+            hxhimPut(&hx, (void *) c->name, strlen(c->name), (void *) &X,    strlen(X),    (void *) &c->x,    sizeof(c->x));
+            hxhimPut(&hx, (void *) c->name, strlen(c->name), (void *) &Y,    strlen(Y),    (void *) &c->y,    sizeof(c->y));
+            hxhimPut(&hx, (void *) c->name, strlen(c->name), (void *) &TEMP, strlen(TEMP), (void *) &c->temp, sizeof(c->temp));
         }
     }
 
     hxhim_results_t *flush1 = hxhimFlush(&hx);
     hxhim_results_destroy(flush1);
 
-    char *lowest_str = NULL;
-    size_t lowest_str_len = 0;
-    elen_encode_double(lowest, 2 * sizeof(double), &lowest_str, &lowest_str_len);
-
-    char *highest_str = NULL;
-    size_t highest_str_len = 0;
-    elen_encode_double(highest, 2 * sizeof(double), &highest_str, &highest_str_len);
-
     hxhimStatFlush(&hx);
-    hxhimBGetOp(&hx, (void *) &TEMP, strlen(TEMP), (void *) lowest_str, lowest_str_len, 10, HXHIM_GET_NEXT);
-    hxhimBGetOp(&hx, (void *) &TEMP, strlen(TEMP), (void *) highest_str, highest_str_len, 10, HXHIM_GET_PREV);
+    hxhimBGetOp(&hx, (void *) &TEMP, strlen(TEMP), (void *) &lowest, sizeof(lowest), 10, HXHIM_GET_NEXT);
+    hxhimBGetOp(&hx, (void *) &TEMP, strlen(TEMP), (void *) &highest, sizeof(highest), 10, HXHIM_GET_PREV);
 
     hxhim_results_t *flush2 = hxhimFlush(&hx);
     print_double_results(flush2);
     hxhim_results_destroy(flush2);
 
-    free(lowest_str);
-    free(highest_str);
-
-    for(size_t i = 0; i < total; i++) {
-        free(cells[i].x);
-        free(cells[i].y);
-        free(cells[i].temp);
-    }
     free(cells);
 
     hxhimClose(&hx);

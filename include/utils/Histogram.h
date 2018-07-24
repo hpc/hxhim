@@ -6,7 +6,7 @@ extern "C"
 {
 #endif
 
-typedef void * histogram_t;
+typedef struct histogram histogram_t;
 
 typedef struct {
     double left;    // bucket values represent the left side of the range
@@ -17,8 +17,8 @@ extern const int HISTOGRAM_SUCCESS;
 extern const int HISTOGRAM_ERROR;
 
 /** @description Histogram::Histogram accessor functions only. C code never owns the histogram and should not allocate space for opaque pointers. */
-int histogram_get_bucket_count(histogram_t h, size_t *count);
-int histogram_get_buckets(histogram_t h, histogram_bucket_t *buckets);
+int histogram_get_bucket_count(histogram_t *histogram, size_t *count);
+int histogram_get_buckets(histogram_t *histogram, histogram_bucket_t *buckets);
 
 #ifdef __cplusplus
 }

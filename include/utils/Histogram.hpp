@@ -64,4 +64,17 @@ class Histogram {
 
 }
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+typedef struct histogram {
+    Histogram::Histogram *histogram;
+} histogram_t;
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

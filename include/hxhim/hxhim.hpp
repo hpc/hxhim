@@ -1,11 +1,11 @@
 #ifndef HXHIM_HPP
 #define HXHIM_HPP
 
-#include "Results.hpp"
-#include "config.h"
-#include "constants.h"
-#include "options.h"
-#include "struct.h"
+#include "hxhim/Results.hpp"
+#include "hxhim/config.h"
+#include "hxhim/constants.h"
+#include "hxhim/options.h"
+#include "hxhim/struct.h"
 #include "utils/Histogram.hpp"
 
 namespace hxhim {
@@ -71,9 +71,9 @@ int GetStats(hxhim_t *hx, const int rank,
              const bool get_get_times, long double *get_times,
              const bool get_num_gets, std::size_t *num_gets);
 
-int SubjectType(hxhim_t *hx, int *type);
-int PredicateType(hxhim_t *hx, int *type);
-int ObjectType(hxhim_t *hx, int *type);
+int SubjectType(hxhim_t *hx, hxhim_spo_type_t *type);
+int PredicateType(hxhim_t *hx, hxhim_spo_type_t *type);
+int ObjectType(hxhim_t *hx, hxhim_spo_type_t *type);
 
 int Put(hxhim_t *hx,
         void *subject, std::size_t subject_len,
