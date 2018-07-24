@@ -10,6 +10,12 @@ target_link_libraries(putget mdhim.a ${LEVELDB_LIBRARY} ${MPI_CXX_LIBRARIES} ${T
 set_target_properties(putget PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
 set_target_properties(putget PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
 
+add_executable(mdhim_puts puts.cpp)
+target_link_libraries(mdhim_puts mdhim.a ${LEVELDB_LIBRARY} ${MPI_CXX_LIBRARIES} ${THALLIUM_LDFLAGS} pthread m stdc++)
+set_target_properties(mdhim_puts PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
+set_target_properties(mdhim_puts PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
+set_target_properties(mdhim_puts PROPERTIES OUTPUT_NAME puts)
+
 add_executable(mdhim-cli cli.cpp $<TARGET_OBJECTS:util.o> put.cpp get.cpp bput.cpp bget.cpp del.cpp bdel.cpp)
 target_link_libraries(mdhim-cli mdhim.a ${LEVELDB_LIBRARY} ${MPI_CXX_LIBRARIES} ${THALLIUM_LDFLAGS} pthread m)
 set_target_properties(mdhim-cli PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
