@@ -5,7 +5,6 @@
 
 #include "hxhim/Results.h"
 #include "hxhim/constants.h"
-#include "hxhim/types_struct.hpp"
 
 namespace hxhim {
 
@@ -80,8 +79,10 @@ class Results {
         /** @description Convenience class for GET results */
         class Get : public Result {
             public:
-                Get(SPO_Types_t *types, const int err, const int db);
+                Get(const int err, const int db, hxhim_spo_type_t object_type);
                 virtual ~Get();
+
+                hxhim_spo_type_t GetObjectType() const;
 
                 /** Users should not deallocate the pointers returned by these functions */
                 int GetSubject(void **subject, std::size_t *subject_len);
@@ -91,8 +92,6 @@ class Results {
             protected:
                 int decode(const hxhim_spo_type_t type, void *src, const std::size_t &src_len, void **dst, std::size_t *dst_len);
 
-                SPO_Types_t *types;
-
                 /** @description These functions should be used to fill in the member variables so that they can be returned by the Get* functions */
                 virtual int FillSubject() = 0;
                 virtual int FillPredicate() = 0;
@@ -101,8 +100,11 @@ class Results {
                 /* @description These variables are used to hold decoded data, so that they only have to be decoded once */
                 void *sub;
                 std::size_t sub_len;
+
                 void *pred;
                 std::size_t pred_len;
+
+                hxhim_spo_type_t obj_type;
                 void *obj;
                 std::size_t obj_len;
         };

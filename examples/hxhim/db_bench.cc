@@ -839,15 +839,16 @@ class Benchmark {
         object_lens[j] = value_size_;
         bytes += value_size_;
 
-        hxhimPut(hx, subjects[j], subject_lens[j], predicates[j], predicate_lens[j], objects[j], object_lens[j]);
+        hxhimPut(hx, subjects[j], subject_lens[j], predicates[j], predicate_lens[j], HXHIM_SPO_BYTE_TYPE, objects[j], object_lens[j]);
         thread->stats.FinishedSingleOp();
       }
       // hxhimBPut(hx, subjects, subject_lens, predicates, predicate_lens, objects, object_lens, entries_per_batch_);
       // thread->stats.FinishedSingleOp();
-    }
+  }
 
     // flush
     hxhim_results_t *ret = hxhimFlush(hx);
+    thread->stats.FinishedSingleOp();
     if (write_options_.sync) {
         hxhimCommit(hx);
         thread->stats.FinishedSingleOp();
@@ -920,13 +921,13 @@ class Benchmark {
     for (int i = 0; i < reads_; i++) {
       const int sub = thread->rand.Next() % FLAGS_num;
       char subject[100];
-      std::size_t subject_len = snprintf(subject, sizeof(subject), "%016d", sub);
+      std::size_t subject_len = snprintf(subject, 17, "%016d", sub);
 
       const int pred = 0;//thread->rand.Next() % FLAGS_num;
       char predicate[100];
-      std::size_t predicate_len = snprintf(predicate, sizeof(predicate), "%016d", pred);
+      std::size_t predicate_len = snprintf(predicate, 17, "%016d", pred);
 
-      hxhimGet(hx, (void *) subject, subject_len, (void *) predicate, predicate_len);
+      hxhimGet(hx, (void *) subject, subject_len, (void *) predicate, predicate_len, HXHIM_SPO_BYTE_TYPE);
 
       hxhim_results_t *ret = hxhimFlush(hx);
       thread->stats.FinishedSingleOp();
@@ -945,7 +946,6 @@ class Benchmark {
       // }
     }
 
-      thread->stats.FinishedSingleOp();
     char msg[100];
     snprintf(msg, sizeof(msg), "(%d of %d found)", found, num_);
     thread->stats.AddMessage(msg);
@@ -957,13 +957,13 @@ class Benchmark {
     for (int i = 0; i < reads_; i++) {
       const int sub = thread->rand.Next() % FLAGS_num;
       char subject[100];
-      snprintf(subject, sizeof(subject), "%016d", sub);
+      snprintf(subject, 17, "%016d", sub);
 
-      const int pred = thread->rand.Next() % FLAGS_num;
+      const int pred = 0;//thread->rand.Next() % FLAGS_num;
       char predicate[100];
-      snprintf(predicate, sizeof(predicate), "%016d.", pred);
+      snprintf(predicate, 17, "%016d.", pred);
 
-      hxhimGet(hx, (void *) subject, strlen(subject), (void *) predicate, strlen(predicate));
+      hxhimGet(hx, (void *) subject, strlen(subject), (void *) predicate, strlen(predicate), HXHIM_SPO_BYTE_TYPE);
 
       hxhim_results_t *ret = hxhimFlush(hx);
       hxhim_results_destroy(ret);
@@ -983,21 +983,21 @@ class Benchmark {
     for (int i = 0; i < reads_; i++) {
       const int sub = thread->rand.Next() % range;
       char subject[100] = {0};
-      snprintf(subject, sizeof(subject), "%016d", sub);
+      snprintf(subject, 17, "%016d", sub);
 
-      const int pred = thread->rand.Next() % range;
+      const int pred = 0;//thread->rand.Next() % range;
       char predicate[100] = {0};
-      snprintf(predicate, sizeof(predicate), "%016d", pred);
+      snprintf(predicate, 17, "%016d", pred);
 
-      hxhimGet(hx, (void *) subject, strlen(subject), (void *) predicate, strlen(predicate));
+      hxhimGet(hx, (void *) subject, strlen(subject), (void *) predicate, strlen(predicate), HXHIM_SPO_BYTE_TYPE);
       hxhim_results_t *ret = hxhimFlush(hx);
+      thread->stats.FinishedSingleOp();
       hxhim_results_destroy(ret);
 
       // char key[100];
       // const int k = thread->rand.Next() % range;
       // snprintf(key, sizeof(key), "%016d", k);
       // db_->Get(options, key, &value);
-      thread->stats.FinishedSingleOp();
     }
   }
 

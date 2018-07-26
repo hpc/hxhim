@@ -31,9 +31,11 @@ class base {
                               std::size_t count) = 0;
         virtual Results *BGet(void **subjects, std::size_t *subject_lens,
                               void **predicates, std::size_t *predicate_lens,
+                              hxhim_spo_type_t *object_types,
                               std::size_t count) = 0;
         virtual Results *BGetOp(void *subject, std::size_t subject_len,
                                 void *predicate, std::size_t predicate_len,
+                                hxhim_spo_type_t object_type,
                                 std::size_t count, enum hxhim_get_op op) = 0;
         virtual Results *BDelete(void **subjects, std::size_t *subject_lens,
                                  void **predicates, std::size_t *predicate_lens,

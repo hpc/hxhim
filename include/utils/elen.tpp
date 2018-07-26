@@ -1,5 +1,3 @@
-#include "mdhim/constants.h"
-
 namespace elen {
 
 // negatives get their digits flipped (9 - digit)

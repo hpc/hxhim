@@ -3,7 +3,6 @@
 #include <gtest/gtest.h>
 
 #include "hxhim/Results.hpp"
-#include "hxhim/types_struct.hpp"
 
 static const int ERROR = HXHIM_SUCCESS;
 static const int DATABASE = 1;
@@ -17,58 +16,35 @@ static const std::size_t OBJECT_LEN = strlen(OBJECT);
 /** @description Convenience class for GET results */
 class TestGet : public hxhim::Results::Get {
     public:
-        TestGet(SPO_Types_t *types, const int err, const int db,
+        TestGet(const int err, const int db,
                 void *subject, std::size_t subject_len,
                 void *predicate, std::size_t predicate_len,
-                void *object, std::size_t object_len)
-            : Get(types, err, db),
-              subject(subject), subject_len(subject_len),
-              predicate(predicate), predicate_len(predicate_len),
-              object(object), object_len(object_len)
-        {}
-
-        ~TestGet() {
-            ::operator delete(sub);
-            ::operator delete(pred);
-            ::operator delete(obj);
+                hxhim_spo_type_t object_type, void *object, std::size_t object_len)
+            : Get(err, db, object_type)
+        {
+            sub = subject;
+            sub_len = subject_len;
+            pred = predicate;
+            pred_len = predicate_len;
+            obj = object;
+            obj_len = object_len;
         }
 
         int FillSubject() {
-            if (!sub) {
-                sub = subject;
-                sub_len = subject_len;
-            }
             return HXHIM_SUCCESS;
         }
 
         int FillPredicate() {
-            if (!pred) {
-                pred = predicate;
-                pred_len = predicate_len;
-            }
             return HXHIM_SUCCESS;
         }
 
         int FillObject() {
-            if (!obj) {
-                obj = object;
-                obj_len = object_len;
-            }
             return HXHIM_SUCCESS;
         }
-
-    private:
-        void *subject;
-        std::size_t subject_len;
-        void *predicate;
-        std::size_t predicate_len;
-        void *object;
-        std::size_t object_len;
 };
 
 TEST(hxhim, Results) {
     hxhim::Results results;
-    SPO_Types_t types(HXHIM_SPO_BYTE_TYPE, HXHIM_SPO_BYTE_TYPE, HXHIM_SPO_BYTE_TYPE);
 
     // nothing works yet since there is no data
     EXPECT_EQ(results.GoToHead(), nullptr);
@@ -87,7 +63,10 @@ TEST(hxhim, Results) {
     void *object = ::operator new(OBJECT_LEN);
     memcpy(object, OBJECT, OBJECT_LEN);
 
-    hxhim::Results::Result *get = results.Add(new TestGet(&types, ERROR, DATABASE, subject, SUBJECT_LEN, predicate, PREDICATE_LEN, object, OBJECT_LEN));
+    hxhim::Results::Result *get = results.Add(new TestGet(ERROR, DATABASE,
+                                                          subject, SUBJECT_LEN,
+                                                          predicate, PREDICATE_LEN,
+                                                          HXHIM_SPO_BYTE_TYPE, object, OBJECT_LEN));
     EXPECT_NE(get, nullptr);
     hxhim::Results::Result *del = results.Add(new hxhim::Results::Delete(ERROR, DATABASE));
     EXPECT_NE(del, nullptr);
@@ -101,7 +80,6 @@ TEST(hxhim, Results) {
 
 TEST(hxhim, Results_Append_Empty) {
     hxhim::Results results;
-    SPO_Types_t types(HXHIM_SPO_BYTE_TYPE, HXHIM_SPO_BYTE_TYPE, HXHIM_SPO_BYTE_TYPE);
 
     // add some data
     hxhim::Results::Result *put = results.Add(new hxhim::Results::Put(ERROR, DATABASE));
@@ -115,7 +93,10 @@ TEST(hxhim, Results_Append_Empty) {
     void *object = ::operator new(OBJECT_LEN);
     memcpy(object, OBJECT, OBJECT_LEN);
 
-    hxhim::Results::Result *get = results.Add(new TestGet(&types, ERROR, DATABASE, subject, SUBJECT_LEN, predicate, PREDICATE_LEN, object, OBJECT_LEN));
+    hxhim::Results::Result *get = results.Add(new TestGet(ERROR, DATABASE,
+                                                          subject, SUBJECT_LEN,
+                                                          predicate, PREDICATE_LEN,
+                                                          HXHIM_SPO_BYTE_TYPE, object, OBJECT_LEN));
     EXPECT_NE(get, nullptr);
     hxhim::Results::Result *del = results.Add(new hxhim::Results::Delete(ERROR, DATABASE));
     EXPECT_NE(del, nullptr);
@@ -134,7 +115,6 @@ TEST(hxhim, Results_Append_Empty) {
 TEST(hxhim, Empty_Append_Results) {
     // empty set of results
     hxhim::Results results;
-    SPO_Types_t types(HXHIM_SPO_BYTE_TYPE, HXHIM_SPO_BYTE_TYPE, HXHIM_SPO_BYTE_TYPE);
 
     hxhim::Results empty;
 
@@ -150,7 +130,10 @@ TEST(hxhim, Empty_Append_Results) {
     void *object = ::operator new(OBJECT_LEN);
     memcpy(object, OBJECT, OBJECT_LEN);
 
-    hxhim::Results::Result *get = results.Add(new TestGet(&types, ERROR, DATABASE, subject, SUBJECT_LEN, predicate, PREDICATE_LEN, object, OBJECT_LEN));
+    hxhim::Results::Result *get = results.Add(new TestGet(ERROR, DATABASE,
+                                                          subject, SUBJECT_LEN,
+                                                          predicate, PREDICATE_LEN,
+                                                          HXHIM_SPO_BYTE_TYPE, object, OBJECT_LEN));
     EXPECT_NE(get, nullptr);
     hxhim::Results::Result *del = results.Add(new hxhim::Results::Delete(ERROR, DATABASE));
     EXPECT_NE(del, nullptr);

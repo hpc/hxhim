@@ -31,9 +31,11 @@ class InMemory : public base {
                       std::size_t count);
         Results *BGet(void **subjects, std::size_t *subject_lens,
                       void **predicates, std::size_t *predicate_lens,
+                      hxhim_spo_type_t *object_types,
                       std::size_t count);
         Results *BGetOp(void *subject, std::size_t subject_len,
                         void *predicate, std::size_t predicate_len,
+                        hxhim_spo_type_t object_type,
                         std::size_t count, enum hxhim_get_op op);
         Results *BDelete(void **subjects, std::size_t *subject_lens,
                          void **predicates, std::size_t *predicate_lens,
@@ -45,7 +47,9 @@ class InMemory : public base {
         /** @description Convenience class for GET results */
         class GetResult : public Results::Get {
             public:
-                GetResult(SPO_Types_t *types, const int err, const int db, const std::map<std::string, std::string>::const_iterator &it);
+                GetResult(const int err, const int db,
+                          hxhim_spo_type_t object_type,
+                          const std::map<std::string, std::string>::const_iterator &it);
                 virtual ~GetResult();
 
             private:
@@ -67,7 +71,6 @@ class InMemory : public base {
             std::size_t gets;
             long double get_times;
         } stats;
-
 };
 
 }

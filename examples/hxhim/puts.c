@@ -38,10 +38,13 @@ int main(int argc, char *argv[]) {
     }
 
     // Generate some subject-predicate-object triples
-    const size_t count = HXHIM_MAX_BULK_PUT_OPS * 10;
+    const size_t count = HXHIM_MAX_BULK_PUT_OPS * 100;
     void **subjects = NULL, **predicates = NULL, **objects = NULL;
     size_t *subject_lens = NULL, *predicate_lens = NULL, *object_lens = NULL;
-    if (spo_gen_random(count, 64, 64, &subjects, &subject_lens, &predicates, &predicate_lens, &objects, &object_lens) != count) {
+    if (spo_gen_random(count,
+                       8, 8, &subjects, &subject_lens,
+                       sizeof(int), sizeof(int), &predicates, &predicate_lens,
+                       3 * sizeof(double), 3 * sizeof(double), &objects, &object_lens) != count) {
         printf("Could not generate triples\n");
         return -1;
     }
@@ -49,7 +52,7 @@ int main(int argc, char *argv[]) {
     MPI_Barrier(MPI_COMM_WORLD);
 
     // BPUT the key value pairs into HXHIM
-    hxhimBPut(&hx, subjects, subject_lens, predicates, predicate_lens, objects, object_lens, count);
+    hxhimBPutSingleType(&hx, subjects, subject_lens, predicates, predicate_lens, HXHIM_SPO_BYTE_TYPE, objects, object_lens, count);
     hxhim_results_t *flush_all_res = hxhimFlush(&hx);
     hxhim_results_destroy(flush_all_res);
     spo_clean(count, subjects, subject_lens, predicates, predicate_lens, objects, object_lens);

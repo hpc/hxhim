@@ -11,14 +11,10 @@
 #include "hxhim/config.hpp"
 
 TEST(hxhim, Histogram) {
-
     hxhim_options_t opts;
     ASSERT_EQ(hxhim_options_init(&opts), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_mpi_bootstrap(&opts, MPI_COMM_WORLD), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_backend(&opts, HXHIM_BACKEND_IN_MEMORY, nullptr), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_subject_type(&opts, HXHIM_SPO_INT_TYPE), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_predicate_type(&opts, HXHIM_SPO_INT_TYPE), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_object_type(&opts, HXHIM_SPO_INT_TYPE), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_queued_bputs(&opts, 1), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_histogram_first_n(&opts, 10), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_histogram_bucket_gen_method(&opts, TEN_BUCKETS.c_str()), HXHIM_SUCCESS);
@@ -35,7 +31,7 @@ TEST(hxhim, Histogram) {
         EXPECT_EQ(hxhim::Put(&hx,
                              (void *)&subjects[i], sizeof(subjects[i]),
                              (void *)&predicates[i], sizeof(predicates[i]),
-                             (void *)&objects[i], sizeof(objects[i])),
+                             HXHIM_SPO_SIZE_TYPE, (void *)&objects[i], sizeof(objects[i])),
                   HXHIM_SUCCESS);
     }
 

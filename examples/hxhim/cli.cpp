@@ -11,7 +11,9 @@
 #include "print_results.h"
 
 std::ostream &help(char *self, std::ostream &stream = std::cout) {
-    return stream << "Syntax: " << self << std::endl
+    return stream << "Syntax: " << self << "[-h | --help] [--db db_name] object_type" << std::endl
+                  << std::endl
+                  << "types: INT, SIZE, FLOAT, DOUBLE, BYTE" << std::endl
                   << std::endl
                   << "Input is passed in through stdin, delimited with newlines, in the following formats:" << std::endl
                   << "    PUT <SUBJECT> <PREDICATE> <OBJECT>" << std::endl
@@ -49,9 +51,38 @@ int read_bgetop_input(std::stringstream & s, void **prefix, std::size_t *prefix_
 }
 
 int main(int argc, char *argv[]) {
-    if (argc > 1) {
-        help(argv[0], std::cerr);
-        return 1;
+    char *db = nullptr;
+    hxhim_spo_type_t type;
+    for(int i = 1; i < argc; i++) {
+        const std::string args(argv[i]);
+        if ((args == "-h") || (args == "--help")) {
+            help(argv[0], std::cerr);
+            return 0;
+        }
+        else if (args == "--db") {
+            db = argv[i++];
+        }
+        else {
+            if (args == "INT") {
+                type = HXHIM_SPO_INT_TYPE;
+            }
+            else if (args == "SIZE") {
+                type = HXHIM_SPO_SIZE_TYPE;
+            }
+            else if (args == "FLOAT") {
+                type = HXHIM_SPO_FLOAT_TYPE;
+            }
+            else if (args == "DOUBLE") {
+                type = HXHIM_SPO_DOUBLE_TYPE;
+            }
+            else if (args == "BYTE") {
+                type = HXHIM_SPO_BYTE_TYPE;
+            }
+            else {
+                std::cerr << "Error: Bad Type: " << args << std::endl;
+                return 1;
+            }
+        }
     }
 
     int provided;
@@ -72,18 +103,20 @@ int main(int argc, char *argv[]) {
 
     // initialize hxhim context
     hxhim_t hx;
-    if (hxhimOpen(&hx, &opts) != HXHIM_SUCCESS) {
-        std::cerr << "Failed to initialize hxhim" << std::endl;
-        cleanup(&hx, &opts);
-        return HXHIM_ERROR;
+    if (db) {
+        if (hxhimOpenOne(&hx, &opts, db, strlen(db)) != HXHIM_SUCCESS) {
+            std::cerr << "Failed to initialize hxhim" << std::endl;
+            cleanup(&hx, &opts);
+            return HXHIM_ERROR;
+        }
     }
-
-    hxhim_spo_type_t subject_type;
-    hxhimSubjectType(&hx, &subject_type);
-    hxhim_spo_type_t predicate_type;
-    hxhimPredicateType(&hx, &predicate_type);
-    hxhim_spo_type_t object_type;
-    hxhimObjectType(&hx, &object_type);
+    else {
+        if (hxhimOpen(&hx, &opts) != HXHIM_SUCCESS) {
+            std::cerr << "Failed to initialize hxhim" << std::endl;
+            cleanup(&hx, &opts);
+            return HXHIM_ERROR;
+        }
+    }
 
     if (rank == 0) {
         std::cout << "World Size: " << size << std::endl;
@@ -148,36 +181,15 @@ int main(int argc, char *argv[]) {
                 int count = 0;
                 int ret = HXHIM_SUCCESS;
 
-                switch (subject_type) {
-                    case HXHIM_SPO_INT_TYPE:
-                        ret = read_bgetop_input<int>(s, &prefix, &prefix_len, count);
-                        break;
-                    case HXHIM_SPO_SIZE_TYPE:
-                        ret = read_bgetop_input<std::size_t>(s, &prefix, &prefix_len, count);
-                        break;
-                    case HXHIM_SPO_INT64_TYPE:
-                        ret = read_bgetop_input<int64_t>(s, &prefix, &prefix_len, count);
-                        break;
-                    case HXHIM_SPO_FLOAT_TYPE:
-                        ret = read_bgetop_input<float>(s, &prefix, &prefix_len, count);
-                        break;
-                    case HXHIM_SPO_DOUBLE_TYPE:
-                        ret = read_bgetop_input<double>(s, &prefix, &prefix_len, count);
-                        break;
-                    case HXHIM_SPO_BYTE_TYPE:
-                        {
-                            std::string subject;
-                            if (!(s >> subject >> count)) {
-                                ret = HXHIM_ERROR;
-                                break;
-                            }
-
-                            prefix_len = subject.size();
-                            prefix = ::operator new(prefix_len);
-                            memcpy(prefix, subject.c_str(), prefix_len);
-                        }
-                        break;
+                std::string subject;
+                if (!(s >> subject >> count)) {
+                    ret = HXHIM_ERROR;
+                    break;
                 }
+
+                prefix_len = subject.size();
+                prefix = ::operator new(prefix_len);
+                memcpy(prefix, subject.c_str(), prefix_len);
 
                 if (ret != HXHIM_SUCCESS) {
                     std::cerr << "Bad BGetOp input: " << line << std::endl;
@@ -198,7 +210,7 @@ int main(int argc, char *argv[]) {
                     count = 1;
                 }
 
-                hxhimBGetOp(&hx, prefix, prefix_len, nullptr, 0, std::abs(count), op);
+                hxhimBGetOp(&hx, prefix, prefix_len, nullptr, 0, type, std::abs(count), op);
                 bgetop_inputs.push_back(prefix);
             }
             else {
@@ -211,16 +223,16 @@ int main(int argc, char *argv[]) {
 
                 if (bulk_read(s, input, read_rows)) {
                     if (cmd == "PUT") {
-                        hxhimPut(&hx, input.data[0][0], input.lens[0][0], input.data[1][0], input.lens[1][0], input.data[2][0], input.lens[2][0]);
+                        hxhimPut(&hx, input.data[0][0], input.lens[0][0], input.data[1][0], input.lens[1][0], type, input.data[2][0], input.lens[2][0]);
                     }
                     else if (cmd == "BPUT") {
-                        hxhimBPut(&hx, input.data[0], input.lens[0], input.data[1], input.lens[1], input.data[2], input.lens[2], input.num_keys);
+                        hxhimBPutSingleType(&hx, input.data[0], input.lens[0], input.data[1], input.lens[1], type, input.data[2], input.lens[2], input.num_keys);
                     }
                     else if (cmd == "GET") {
-                        hxhimGet(&hx, input.data[0][0], input.lens[0][0], input.data[1][0], input.lens[1][0]);
+                        hxhimGet(&hx, input.data[0][0], input.lens[0][0], input.data[1][0], input.lens[1][0], type);
                     }
                     else if (cmd == "BGET") {
-                        hxhimBGet(&hx, input.data[0], input.lens[0], input.data[1], input.lens[1], input.num_keys);
+                        hxhimBGetSingleType(&hx, input.data[0], input.lens[0], input.data[1], input.lens[1], type, input.num_keys);
                     }
                     else if (cmd == "DEL") {
                         hxhimDelete(&hx, input.data[0][0], input.lens[0][0], input.data[1][0], input.lens[1][0]);

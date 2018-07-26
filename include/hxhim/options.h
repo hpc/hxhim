@@ -25,9 +25,6 @@ int hxhim_options_init(hxhim_options_t *opts);
  */
 int hxhim_options_set_mpi_bootstrap(hxhim_options_t *opts, MPI_Comm comm);
 int hxhim_options_set_backend(hxhim_options_t *opts, const hxhim_backend_t backend, hxhim_backend_config_t *config);
-int hxhim_options_set_subject_type(hxhim_options_t *opts, const hxhim_spo_type_t type);
-int hxhim_options_set_predicate_type(hxhim_options_t *opts, const hxhim_spo_type_t type);
-int hxhim_options_set_object_type(hxhim_options_t *opts, const hxhim_spo_type_t type);
 int hxhim_options_set_queued_bputs(hxhim_options_t *opts, const size_t count);
 int hxhim_options_set_histogram_first_n(hxhim_options_t *opts, const size_t count);
 int hxhim_options_set_histogram_bucket_gen_method(hxhim_options_t *opts, const char *method);

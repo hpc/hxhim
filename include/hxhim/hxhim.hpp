@@ -12,6 +12,7 @@ namespace hxhim {
 
 /** @description Starts an HXHIM instance */
 int Open(hxhim_t *hx, hxhim_options_t *opts);
+int OpenOne(hxhim_t *hx, hxhim_options_t *opts, const std::string &db_path);
 
 /** @description Stops an HXHIM instance */
 int Close(hxhim_t *hx);
@@ -22,7 +23,7 @@ int Commit(hxhim_t *hx);
 /** @description Flushes the internal statistics */
 int StatFlush(hxhim_t *hx);
 
-/** @description Flush safe HXHIM queues */
+/** @description Functiosn for flushing HXHIM queues */
 Results *FlushPuts(hxhim_t *hx);
 Results *FlushGets(hxhim_t *hx);
 Results *FlushGetOps(hxhim_t *hx);
@@ -33,11 +34,12 @@ Results *Flush(hxhim_t *hx);
 int Put(hxhim_t *hx,
         void *subject, std::size_t subject_len,
         void *predicate, std::size_t predicate_len,
-        void *object, std::size_t object_len);
+        hxhim_spo_type_t object_type, void *object, std::size_t object_len);
 
 int Get(hxhim_t *hx,
         void *subject, std::size_t subject_len,
-        void *predicate, std::size_t predicate_len);
+        void *predicate, std::size_t predicate_len,
+        hxhim_spo_type_t object_type);
 
 int Delete(hxhim_t *hx,
            void *subject, std::size_t subject_len,
@@ -46,17 +48,19 @@ int Delete(hxhim_t *hx,
 int BPut(hxhim_t *hx,
          void **subjects, std::size_t *subject_lens,
          void **predicates, std::size_t *predicate_lens,
-         void **objects, std::size_t *object_lens,
+         hxhim_spo_type_t *object_types, void **objects, std::size_t *object_lens,
          std::size_t count);
 
 int BGet(hxhim_t *hx,
          void **subjects, std::size_t *subject_lens,
          void **predicates, std::size_t *predicate_lens,
+         hxhim_spo_type_t *object_types,
          std::size_t count);
 
 int BGetOp(hxhim_t *hx,
            void *subject, std::size_t subject_len,
            void *predicate, std::size_t predicate_len,
+           hxhim_spo_type_t object_type,
            std::size_t num_records, enum hxhim_get_op op);
 
 int BDelete(hxhim_t *hx,
@@ -71,38 +75,12 @@ int GetStats(hxhim_t *hx, const int rank,
              const bool get_get_times, long double *get_times,
              const bool get_num_gets, std::size_t *num_gets);
 
-int SubjectType(hxhim_t *hx, hxhim_spo_type_t *type);
-int PredicateType(hxhim_t *hx, hxhim_spo_type_t *type);
-int ObjectType(hxhim_t *hx, hxhim_spo_type_t *type);
-
-int Put(hxhim_t *hx,
-        void *subject, std::size_t subject_len,
-        void *predicate, std::size_t predicate_len,
-        float *object);
-
-int Put(hxhim_t *hx,
-        void *subject, std::size_t subject_len,
-        void *predicate, std::size_t predicate_len,
-        double *object);
-
-int BPut(hxhim_t *hx,
-         void **subjects, std::size_t *subject_lens,
-         void **predicates, std::size_t *predicate_lens,
-         float **objects,
-         std::size_t count);
-
-int BPut(hxhim_t *hx,
-         void **subjects, std::size_t *subject_lens,
-         void **predicates, std::size_t *predicate_lens,
-         double **objects,
-         std::size_t count);
-
-int BGetOp(hxhim_t *hx,
-           void *prefix, std::size_t prefix_len,
-           std::size_t num_records, enum hxhim_get_op op);
-
 int GetHistogram(hxhim_t *hx, Histogram::Histogram **histogram);
 
 }
+
+#include "hxhim/float.hpp"
+#include "hxhim/double.hpp"
+#include "hxhim/single_type.hpp"
 
 #endif

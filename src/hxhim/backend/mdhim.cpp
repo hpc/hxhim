@@ -168,6 +168,7 @@ Results *mdhim::BPut(void **subjects, std::size_t *subject_lens,
  */
 Results *mdhim::BGet(void **subjects, std::size_t *subject_lens,
                      void **predicates, std::size_t *predicate_lens,
+                     hxhim_spo_type_t *object_types,
                      std::size_t count) {
     Results *res = new Results();
 
@@ -188,7 +189,10 @@ Results *mdhim::BGet(void **subjects, std::size_t *subject_lens,
             int database = -1;
             ::mdhim::ComposeDB(md, &database, curr->src, curr->rs_idx[i]);
 
-            res->Add(new GetResult(&hx->p->types, curr->error, database, curr->keys[i], curr->key_lens[i], curr->values[i], curr->value_lens[i]));
+            res->Add(new GetResult(curr->error, database,
+                                   object_types[i],
+                                   curr->keys[i], curr->key_lens[i],
+                                   curr->values[i], curr->value_lens[i]));
         }
     }
 
@@ -217,6 +221,7 @@ Results *mdhim::BGet(void **subjects, std::size_t *subject_lens,
  */
 Results *mdhim::BGetOp(void *subject, std::size_t subject_len,
                        void *predicate, std::size_t predicate_len,
+                       hxhim_spo_type_t object_type,
                        std::size_t count, enum hxhim_get_op op) {
     Results *res = new Results();
 
@@ -235,7 +240,10 @@ Results *mdhim::BGetOp(void *subject, std::size_t subject_len,
             int database = -1;
             ::mdhim::ComposeDB(md, &database, curr->src, curr->rs_idx[i]);
 
-            res->Add(new GetResult(&hx->p->types, curr->error, database, curr->keys[i], curr->key_lens[i], curr->values[i], curr->value_lens[i]));
+            res->Add(new GetResult(curr->error, database,
+                                   object_type,
+                                   curr->keys[i], curr->key_lens[i],
+                                   curr->values[i], curr->value_lens[i]));
             curr->keys[i] = nullptr;
             curr->values[i] = nullptr;
         }
@@ -298,8 +306,11 @@ std::ostream &mdhim::print_config(std::ostream &stream) const {
         << "    config: " << config_filename << std::endl;
 }
 
-mdhim::GetResult::GetResult(SPO_Types_t *types, const int err, const int db, void *key, std::size_t key_len, void *value, std::size_t value_len)
-    : Get(types, (err == MDHIM_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR, db),
+mdhim::GetResult::GetResult(const int err, const int db,
+                            hxhim_spo_type_t object_type,
+                            void *key, std::size_t key_len,
+                            void *value, std::size_t value_len)
+    : Get((err == MDHIM_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR, db, object_type),
       k(nullptr), k_len(key_len),
       v(nullptr), v_len(value_len)
 {
@@ -318,12 +329,7 @@ mdhim::GetResult::~GetResult()
 
 int mdhim::GetResult::FillSubject() {
     if (!sub) {
-        void *encoded = nullptr;
-        std::size_t encoded_len = 0;
-        key_to_sp(k, k_len, &encoded, &encoded_len, nullptr, nullptr);
-        return decode(types->subject, encoded, encoded_len, &sub, &sub_len);
-
-        // do not delete encoded because it is just an address in another array
+        key_to_sp(k, k_len, &sub, &sub_len, nullptr, nullptr);
     }
 
     return HXHIM_SUCCESS;
@@ -331,12 +337,7 @@ int mdhim::GetResult::FillSubject() {
 
 int mdhim::GetResult::FillPredicate() {
     if (!pred) {
-        void *encoded = nullptr;
-        std::size_t encoded_len = 0;
-        key_to_sp(k, k_len, nullptr, nullptr, &encoded, &encoded_len);
-        return decode(types->predicate, encoded, encoded_len, &pred, &pred_len);
-
-        // do not delete encoded because it is just an address in another array
+        key_to_sp(k, k_len, nullptr, nullptr, &pred, &pred_len);
     }
 
     return HXHIM_SUCCESS;
@@ -344,7 +345,7 @@ int mdhim::GetResult::FillPredicate() {
 
 int mdhim::GetResult::FillObject() {
     if (!obj) {
-        return decode(types->object, v, v_len, &obj, &obj_len);
+        return decode(obj_type, v, v_len, &obj, &obj_len);
     }
 
     return HXHIM_SUCCESS;

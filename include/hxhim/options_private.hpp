@@ -32,10 +32,6 @@ typedef struct hxhim_options_private {
     hxhim_backend_t backend;
     hxhim_backend_config_t *backend_config;     // depends on backend value
 
-    hxhim_spo_type_t subject_type;
-    hxhim_spo_type_t predicate_type;
-    hxhim_spo_type_t object_type;
-
     std::size_t queued_bputs;                   // number of batches to hold before sending PUTs asynchronously
 
     std::size_t histogram_first_n;              // number of datapoints used to generate histogram buckets

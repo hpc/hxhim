@@ -72,57 +72,6 @@ int hxhim_options_set_backend(hxhim_options_t *opts, const hxhim_backend_t backe
 }
 
 /**
- * hxhim_options_set_subject_type
- *
- * @param opts the set of options to be modified
- * @param type the type the subjects are
- * @return HXHIM_SUCCESS or HXHIM_ERROR
- */
-int hxhim_options_set_subject_type(hxhim_options_t *opts, const hxhim_spo_type_t type) {
-    if (!valid_opts(opts)) {
-        return HXHIM_ERROR;
-    }
-
-    opts->p->subject_type = type;
-
-    return HXHIM_SUCCESS;
-}
-
-/**
- * hxhim_options_set_predicate_type
- *
- * @param opts the set of options to be modified
- * @param type the type the predicate are
- * @return HXHIM_SUCCESS or HXHIM_ERROR
- */
-int hxhim_options_set_predicate_type(hxhim_options_t *opts, const hxhim_spo_type_t type) {
-    if (!valid_opts(opts)) {
-        return HXHIM_ERROR;
-    }
-
-    opts->p->predicate_type = type;
-
-    return HXHIM_SUCCESS;
-}
-
-/**
- * hxhim_options_set_object_type
- *
- * @param opts the set of options to be modified
- * @param type the type the objects are
- * @return HXHIM_SUCCESS or HXHIM_ERROR
- */
-int hxhim_options_set_object_type(hxhim_options_t *opts, const hxhim_spo_type_t type) {
-    if (!valid_opts(opts)) {
-        return HXHIM_ERROR;
-    }
-
-    opts->p->object_type = type;
-
-    return HXHIM_SUCCESS;
-}
-
-/**
  * hxhim_options_set_queued_puts
  * Set the number of bulk PUTs to queue up before flushing in the background thread
  *

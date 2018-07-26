@@ -1,10 +1,11 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "hxhim/private.hpp"
 #include "hxhim/Results.hpp"
 #include "hxhim/Results_private.hpp"
+#include "hxhim/private.hpp"
 #include "utils/elen.hpp"
+#include "utils/reverse_bytes.h"
 
 namespace hxhim {
 
@@ -43,18 +44,22 @@ Results::Put::Put(const int err, const int db)
 
 Results::Put::~Put() {}
 
-Results::Get::Get(SPO_Types_t *types, const int err, const int db)
+Results::Get::Get(const int err, const int db, hxhim_spo_type_t object_type)
     : Result(hxhim_result_type::HXHIM_RESULT_GET, err, db),
-      types(types),
       sub(nullptr), sub_len(0),
       pred(nullptr), pred_len(0),
-      obj(nullptr), obj_len(0)
+      obj_type(object_type), obj(nullptr), obj_len(0)
 {}
 
 Results::Get::~Get() {
-    ::operator delete(sub);
-    ::operator delete(pred);
+    // do not delete subject and predicate because they are pointers into another buffer
+    // ::operator delete(sub);
+    // ::operator delete(pred);
     ::operator delete(obj);
+}
+
+hxhim_spo_type_t Results::Get::GetObjectType() const {
+    return obj_type;
 }
 
 /**
@@ -102,6 +107,10 @@ int Results::Get::decode(const hxhim_spo_type_t type, void *src, const std::size
         case HXHIM_SPO_INT_TYPE:
         case HXHIM_SPO_SIZE_TYPE:
         case HXHIM_SPO_INT64_TYPE:
+            *dst_len = src_len;
+            *dst = ::operator new(*dst_len);
+            reverse_bytes(src, src_len, *dst);
+            break;
         case HXHIM_SPO_BYTE_TYPE:
             *dst_len = src_len;
             *dst = ::operator new(*dst_len);
@@ -236,8 +245,12 @@ Results::Result *Results::Next() const {
  * @return the pointer to the new node
  */
 Results::Result *Results::Add(Results::Result *res) {
-    (head?tail->Next():head) = res;
-    return tail = res;
+    if (res) {
+        (head?tail->Next():head) = res;
+        tail = res;
+    }
+
+    return tail;
 }
 
 /**
@@ -388,6 +401,30 @@ int hxhim_results_database(hxhim_results_t *res, int *database) {
     }
 
     return HXHIM_SUCCESS;
+}
+
+/**
+ * hxhim_results_get_object_type
+ * Gets the object and length from the current result node, if the result node contains data from a GET
+ *
+ * @param res         A list of results
+ * @param object_type (optional) the object type of the current result, only valid if this function returns HXHIM_SUCCESS
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
+ */
+int hxhim_results_get_object_type(hxhim_results_t *res, hxhim_spo_type_t *object_type) {
+    if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
+        return HXHIM_ERROR;
+    }
+
+    hxhim::Results::Result *curr = res->res->Curr();
+    if (curr->GetType() == hxhim_result_type::HXHIM_RESULT_GET) {
+        if (object_type) {
+            *object_type = static_cast<hxhim::Results::Get *>(curr)->GetObjectType();
+            return HXHIM_SUCCESS;
+        }
+    }
+
+    return HXHIM_ERROR;
 }
 
 /**

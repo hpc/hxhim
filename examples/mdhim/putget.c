@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,6 +20,9 @@ int main(int argc, char *argv[]){
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 
+    int size;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+
     srand(time(NULL));
 
     // initialize options through config
@@ -38,8 +42,8 @@ int main(int argc, char *argv[]){
     }
 
     // Generate a random key value pair
-    const Key_t   MDHIM_PUT_GET_PRIMARY_KEY = rand();
-    const Value_t MDHIM_PUT_GET_VALUE       = rand();
+    const Key_t   MDHIM_PUT_GET_PRIMARY_KEY = rand() * rand();
+    const Value_t MDHIM_PUT_GET_VALUE       = rand() * rand();
 
     // Use arbitrary rank to do put
     if (md.rank == rand() % md.size) {
@@ -74,7 +78,7 @@ int main(int argc, char *argv[]){
             return MDHIM_ERROR;
         }
 
-        printf("Rank %d put: %d -> %d  to  range server %d\n", md.rank, MDHIM_PUT_GET_PRIMARY_KEY, MDHIM_PUT_GET_VALUE, src);
+        printf("Rank %*d put: %d -> %d  to  range server %d\n", (int) ceil(log10(size)), md.rank, MDHIM_PUT_GET_PRIMARY_KEY, MDHIM_PUT_GET_VALUE, src);
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
@@ -121,7 +125,7 @@ int main(int argc, char *argv[]){
         }
 
         // Print value gotten back
-        printf("Rank %d got: %d -> %d from range server %d\n", md.rank, *key, *value, src);
+        printf("Rank %*d got: %d -> %d from range server %d\n", (int) ceil(log10(size)), md.rank, *key, *value, src);
 
         mdhim_grm_destroy(grm);
     }

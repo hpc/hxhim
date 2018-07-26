@@ -72,30 +72,6 @@ static int fill_options(hxhim_options_t *opts, const Config &config) {
         return HXHIM_ERROR;
     }
 
-    // Set Subject Type
-    hxhim_spo_type_t subject_type;
-    ret = get_from_map(config, HXHIM_SUBJECT_TYPE, HXHIM_SPO_TYPES, subject_type);
-    if ((ret == CONFIG_ERROR) ||
-        hxhim_options_set_subject_type(opts, subject_type) != HXHIM_SUCCESS) {
-        return HXHIM_ERROR;
-    }
-
-    // Set Predicate Type
-    hxhim_spo_type_t predicate_type;
-    ret = get_from_map(config, HXHIM_PREDICATE_TYPE, HXHIM_SPO_TYPES, predicate_type);
-    if ((ret == CONFIG_ERROR) ||
-        hxhim_options_set_predicate_type(opts, predicate_type) != HXHIM_SUCCESS) {
-        return HXHIM_ERROR;
-    }
-
-    // Set Object Type
-    hxhim_spo_type_t object_type;
-    ret = get_from_map(config, HXHIM_OBJECT_TYPE, HXHIM_SPO_TYPES, object_type);
-    if ((ret == CONFIG_ERROR) ||
-        hxhim_options_set_object_type(opts, object_type) != HXHIM_SUCCESS) {
-        return HXHIM_ERROR;
-    }
-
     // Set Histogram Use First N Values
     std::size_t use_first_n = 0;
     ret = get_value(config, HXHIM_HISTOGRAM_FIRST_N, use_first_n);

@@ -25,9 +25,6 @@ TEST(hxhim, PutGet) {
     ASSERT_EQ(hxhim_options_init(&opts), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_mpi_bootstrap(&opts, MPI_COMM_WORLD), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_backend(&opts, HXHIM_BACKEND_IN_MEMORY, nullptr), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_subject_type(&opts, HXHIM_SPO_BYTE_TYPE), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_predicate_type(&opts, HXHIM_SPO_BYTE_TYPE), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_object_type(&opts, HXHIM_SPO_DOUBLE_TYPE), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_queued_bputs(&opts, 1), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_histogram_first_n(&opts, 10), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_histogram_bucket_gen_method(&opts, TEN_BUCKETS.c_str()), HXHIM_SUCCESS);
@@ -36,10 +33,10 @@ TEST(hxhim, PutGet) {
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
 
     // Add triple for putting
-    EXPECT_EQ(hxhim::Put(&hx,
-                         (void *)&SUBJECT, sizeof(SUBJECT),
-                         (void *)&PREDICATE, sizeof(PREDICATE),
-                         (void *)&OBJECT, sizeof(OBJECT)),
+    EXPECT_EQ(hxhim::PutDouble(&hx,
+                               (void *)&SUBJECT, sizeof(SUBJECT),
+                               (void *)&PREDICATE, sizeof(PREDICATE),
+                               (double *)&OBJECT),
               HXHIM_SUCCESS);
 
     // Flush all queued items
@@ -48,9 +45,9 @@ TEST(hxhim, PutGet) {
     delete put_results;
 
     // Add subject-predicate to get back
-    EXPECT_EQ(hxhim::Get(&hx,
-                         (void *)&SUBJECT, sizeof(SUBJECT),
-                         (void *)&PREDICATE, sizeof(PREDICATE)),
+    EXPECT_EQ(hxhim::GetDouble(&hx,
+                               (void *)&SUBJECT, sizeof(SUBJECT),
+                               (void *)&PREDICATE, sizeof(PREDICATE)),
               HXHIM_SUCCESS);
 
     // Flush all queued items

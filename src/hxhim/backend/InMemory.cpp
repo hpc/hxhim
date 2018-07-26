@@ -114,7 +114,7 @@ int InMemory::GetStats(const int rank,
     }
 
     MPI_Barrier(hx->mpi.comm);
-    return MDHIM_SUCCESS;
+    return HXHIM_SUCCESS;
 }
 
 /**
@@ -176,8 +176,9 @@ Results *InMemory::BPut(void **subjects, std::size_t *subject_lens,
  * @return pointer to a list of results
  */
 Results *InMemory::BGet(void **subjects, std::size_t *subject_lens,
-                      void **predicates, std::size_t *predicate_lens,
-                      std::size_t count) {
+                        void **predicates, std::size_t *predicate_lens,
+                        hxhim_spo_type_t *object_types,
+                        std::size_t count) {
     Results *res = new Results();
     if (!res) {
         return nullptr;
@@ -198,7 +199,7 @@ Results *InMemory::BGet(void **subjects, std::size_t *subject_lens,
         stats.gets++;
         stats.get_times += elapsed(start, end);
 
-        res->Add(new GetResult(&hx->p->types, (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR, hx->mpi.rank, it));
+        res->Add(new GetResult((it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR, hx->mpi.rank, object_types[i], it));
     }
 
     for(std::size_t i = 0; i < count; i++) {
@@ -222,8 +223,9 @@ Results *InMemory::BGet(void **subjects, std::size_t *subject_lens,
  * @return pointer to a list of results
  */
 Results *InMemory::BGetOp(void *subject, std::size_t subject_len,
-                         void *predicate, std::size_t predicate_len,
-                         std::size_t count, enum hxhim_get_op op) {
+                          void *predicate, std::size_t predicate_len,
+                          hxhim_spo_type_t object_type,
+                          std::size_t count, enum hxhim_get_op op) {
     Results *res = new Results();
     if (!res) {
         return nullptr;
@@ -247,7 +249,7 @@ Results *InMemory::BGetOp(void *subject, std::size_t subject_len,
 
     if (it != db.end()) {
         for(std::size_t i = 0; i < count && (it != db.end()) && (rit != db.rend()); i++) {
-            res->Add(new GetResult(&hx->p->types, (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR, hx->mpi.rank, it));
+            res->Add(new GetResult((it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR, hx->mpi.rank, object_type, it));
 
             clock_gettime(CLOCK_MONOTONIC, &start);
 
@@ -291,8 +293,8 @@ Results *InMemory::BGetOp(void *subject, std::size_t subject_len,
  * @return pointer to a list of results
  */
 Results *InMemory::BDelete(void **subjects, std::size_t *subject_lens,
-                          void **predicates, std::size_t *predicate_lens,
-                          std::size_t count) {
+                           void **predicates, std::size_t *predicate_lens,
+                           std::size_t count) {
     Results *res = new Results();
     void **keys = new void *[count]();
 
@@ -316,8 +318,8 @@ std::ostream &InMemory::print_config(std::ostream &stream) const {
     return stream;
 }
 
-InMemory::GetResult::GetResult(SPO_Types_t *types, const int err, const int db, const std::map<std::string, std::string>::const_iterator &it)
-    : Get(types, err, db),
+InMemory::GetResult::GetResult(const int err, const int db, hxhim_spo_type_t object_type, const std::map<std::string, std::string>::const_iterator &it)
+    : Get(err, db, object_type),
       k((err == HXHIM_SUCCESS)?it->first:""),
       v((err == HXHIM_SUCCESS)?it->second:"")
 {}
@@ -326,12 +328,7 @@ InMemory::GetResult::~GetResult() {}
 
 int InMemory::GetResult::FillSubject() {
     if (!sub) {
-        void *encoded = nullptr;
-        std::size_t encoded_len = 0;
-        key_to_sp((void *) k.data(), k.size(), &encoded, &encoded_len, nullptr, nullptr);
-        return decode(types->subject, encoded, encoded_len, &sub, &sub_len);
-
-        // do not delete encoded because it is just an address in another array
+        key_to_sp((void *) k.data(), k.size(), &sub, &sub_len, nullptr, nullptr);
     }
 
     return HXHIM_SUCCESS;
@@ -339,12 +336,7 @@ int InMemory::GetResult::FillSubject() {
 
 int InMemory::GetResult::FillPredicate() {
     if (!pred) {
-        void *encoded = nullptr;
-        std::size_t encoded_len = 0;
-        key_to_sp((void *) k.data(), k.size(), nullptr, nullptr, &encoded, &encoded_len);
-        return decode(types->predicate, encoded, encoded_len, &pred, &pred_len);
-
-        // do not delete encoded because it is just an address in another array
+        key_to_sp((void *) k.data(), k.size(), nullptr, nullptr, &pred, &pred_len);
     }
 
     return HXHIM_SUCCESS;
@@ -352,7 +344,7 @@ int InMemory::GetResult::FillPredicate() {
 
 int InMemory::GetResult::FillObject() {
     if (!obj) {
-        return decode(types->object, (void *) v.data(), v.size(), &obj, &obj_len);
+        return decode(obj_type, (void *) v.data(), v.size(), &obj, &obj_len);
     }
 
     return HXHIM_SUCCESS;

@@ -12,7 +12,8 @@ namespace backend {
 
 class leveldb : public base {
     public:
-        leveldb(hxhim_t *hx, const std::string &name, const bool create_if_missing = true);
+        leveldb(hxhim_t *hx, const std::string &exact_name);
+        leveldb(hxhim_t *hx, const std::string &name, const bool create_if_missing);
         ~leveldb();
 
         void Close();
@@ -30,9 +31,11 @@ class leveldb : public base {
                       std::size_t count);
         Results *BGet(void **subjects, std::size_t *subject_lens,
                       void **predicates, std::size_t *predicate_lens,
+                      hxhim_spo_type_t *object_types,
                       std::size_t count);
         Results *BGetOp(void *subject, std::size_t subject_len,
                         void *predicate, std::size_t predicate_len,
+                        hxhim_spo_type_t object_types,
                         std::size_t count, enum hxhim_get_op op);
         Results *BDelete(void **subjects, std::size_t *subject_lens,
                          void **predicates, std::size_t *predicate_lens,
@@ -43,9 +46,15 @@ class leveldb : public base {
     private:
         class GetResult : public Results::Get {
             public:
-                GetResult(SPO_Types_t *types, const int db, const ::leveldb::Slice &key, const ::leveldb::Slice &value);
-                GetResult(SPO_Types_t *types, const int db, const ::leveldb::Slice &key, const std::string &value);
-                GetResult(SPO_Types_t *types, const int db, const ::leveldb::Slice &key);
+                GetResult(const int db,
+                          hxhim_spo_type_t object_type,
+                          const ::leveldb::Slice &key, const ::leveldb::Slice &value);
+                GetResult(const int db,
+                          hxhim_spo_type_t object_type,
+                          const ::leveldb::Slice &key, const std::string &value);
+                GetResult(const int db,
+                          hxhim_spo_type_t object_type,
+                          const ::leveldb::Slice &key);
                 ~GetResult();
 
             private:

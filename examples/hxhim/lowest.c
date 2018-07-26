@@ -99,10 +99,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    hxhim_options_set_subject_type  (&opts, HXHIM_SPO_SIZE_TYPE);
-    hxhim_options_set_predicate_type(&opts, HXHIM_SPO_SIZE_TYPE);
-    hxhim_options_set_object_type   (&opts, HXHIM_SPO_DOUBLE_TYPE);
-
     // start hxhim
     hxhim_t hx;
     if (hxhimOpen(&hx, &opts) != HXHIM_SUCCESS) {
@@ -141,9 +137,18 @@ int main(int argc, char *argv[]) {
                 highest = c->temp;
             }
 
-            hxhimPut(&hx, (void *) c->name, strlen(c->name), (void *) &X,    strlen(X),    (void *) &c->x,    sizeof(c->x));
-            hxhimPut(&hx, (void *) c->name, strlen(c->name), (void *) &Y,    strlen(Y),    (void *) &c->y,    sizeof(c->y));
-            hxhimPut(&hx, (void *) c->name, strlen(c->name), (void *) &TEMP, strlen(TEMP), (void *) &c->temp, sizeof(c->temp));
+            hxhimPut(&hx,
+                     (void *) c->name, strlen(c->name),
+                     (void *) &X, strlen(X),
+                     HXHIM_SPO_SIZE_TYPE,   (void *) &c->x, sizeof(c->x));
+            hxhimPut(&hx,
+                     (void *) c->name, strlen(c->name),
+                     (void *) &Y, strlen(Y),
+                     HXHIM_SPO_SIZE_TYPE,   (void *) &c->y, sizeof(c->y));
+            hxhimPut(&hx,
+                     (void *) c->name, strlen(c->name),
+                     (void *) &TEMP, strlen(TEMP),
+                     HXHIM_SPO_DOUBLE_TYPE, (void *) &c->temp, sizeof(c->temp));
         }
     }
 
@@ -151,8 +156,8 @@ int main(int argc, char *argv[]) {
     hxhim_results_destroy(flush1);
 
     hxhimStatFlush(&hx);
-    hxhimBGetOp(&hx, (void *) &TEMP, strlen(TEMP), (void *) &lowest, sizeof(lowest), 10, HXHIM_GET_NEXT);
-    hxhimBGetOp(&hx, (void *) &TEMP, strlen(TEMP), (void *) &highest, sizeof(highest), 10, HXHIM_GET_PREV);
+    hxhimBGetOp(&hx, (void *) &TEMP, strlen(TEMP), (void *) &lowest,  sizeof(lowest),  HXHIM_SPO_DOUBLE_TYPE, 10, HXHIM_GET_NEXT);
+    hxhimBGetOp(&hx, (void *) &TEMP, strlen(TEMP), (void *) &highest, sizeof(highest), HXHIM_SPO_DOUBLE_TYPE, 10, HXHIM_GET_PREV);
 
     hxhim_results_t *flush2 = hxhimFlush(&hx);
     print_double_results(flush2);

@@ -31,7 +31,7 @@ extern "C"
 #define CLIENT_RESPONSE_SIZE_MSG  5
 
 //#define MAX_BULK_OPS 1000000
-#define MAX_BULK_OPS 5000
+#define MAX_BULK_OPS 1000
 
 //Maximum size of messages allowed
 #define MDHIM_MAX_MSG_SIZE 2147483647

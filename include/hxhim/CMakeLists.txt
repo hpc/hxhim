@@ -2,15 +2,19 @@
 # Install headers and libraries
 #
 install(FILES
+  Results.h
+  Results.hpp
   bootstrap.h
   config.h
   constants.h
-  get_op.h
+  double.h
+  double.hpp
+  float.h
+  float.hpp
   hxhim.h
   hxhim.hpp
   options.h
-  Results.h
-  Results.hpp
+  single_type.h
+  single_type.hpp
   struct.h
-  types_struct.hpp
   DESTINATION include/hxhim)

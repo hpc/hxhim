@@ -1,6 +1,7 @@
 #include <ctime>
 #include <sstream>
 #include <stdexcept>
+#include <iostream>
 
 #include "leveldb/write_batch.h"
 
@@ -15,6 +16,19 @@ static long double elapsed(const struct timespec &start, const struct timespec &
 
 namespace hxhim {
 namespace backend {
+
+leveldb::leveldb(hxhim_t *hx, const std::string &exact_name)
+    : base(hx),
+      name(exact_name), create_if_missing(false),
+      db(nullptr), options(),
+      stats()
+{
+    if (!::leveldb::DB::Open(options, exact_name, &db).ok()) {
+        throw std::runtime_error("Could not configure leveldb backend " + exact_name);
+    }
+
+    memset(&stats, 0, sizeof(stats));
+}
 
 leveldb::leveldb(hxhim_t *hx, const std::string &name, const bool create_if_missing)
     : base(hx),
@@ -133,7 +147,7 @@ int leveldb::GetStats(const int rank,
     }
 
     MPI_Barrier(hx->mpi.comm);
-    return MDHIM_SUCCESS;
+    return HXHIM_SUCCESS;
 }
 
 /**
@@ -204,6 +218,7 @@ Results *leveldb::BPut(void **subjects, std::size_t *subject_lens,
  */
 Results *leveldb::BGet(void **subjects, std::size_t *subject_lens,
                        void **predicates, std::size_t *predicate_lens,
+                       hxhim_spo_type_t *object_types,
                        std::size_t count) {
     Results *res = new Results();
     if (!res) {
@@ -231,10 +246,10 @@ Results *leveldb::BGet(void **subjects, std::size_t *subject_lens,
 
         // add to results list
         if (status.ok()) {
-            res->Add(new GetResult(&hx->p->types, hx->mpi.rank, key, value));
+            res->Add(new GetResult(hx->mpi.rank, object_types[i], key, value));
         }
         else {
-            res->Add(new GetResult(&hx->p->types, hx->mpi.rank, key));
+            res->Add(new GetResult(hx->mpi.rank, object_types[i], key));
         }
     }
 
@@ -260,6 +275,7 @@ Results *leveldb::BGet(void **subjects, std::size_t *subject_lens,
  */
 Results *leveldb::BGetOp(void *subject, std::size_t subject_len,
                          void *predicate, std::size_t predicate_len,
+                         hxhim_spo_type_t object_type,
                          std::size_t count, enum hxhim_get_op op) {
     Results *res = new Results();
     if (!res) {
@@ -274,11 +290,11 @@ Results *leveldb::BGetOp(void *subject, std::size_t subject_len,
     ::leveldb::Iterator *it = db->NewIterator(::leveldb::ReadOptions());
     struct timespec start, end;
 
-    // add in the time to get the first key-value without adding to the counter
     clock_gettime(CLOCK_MONOTONIC, &start);
     it->Seek(::leveldb::Slice((char *) starting_key, starting_key_len));
     clock_gettime(CLOCK_MONOTONIC, &end);
 
+    // add in the time to get the first key-value without adding to the counter
     stats.get_times += elapsed(start, end);
 
     if (it->status().ok()) {
@@ -291,7 +307,7 @@ Results *leveldb::BGetOp(void *subject, std::size_t subject_len,
             stats.gets++;
             stats.get_times += elapsed(start, end);
 
-            res->Add(new GetResult(&hx->p->types, hx->mpi.rank, key, value));
+            res->Add(new GetResult(hx->mpi.rank, object_type, key, value));
 
             // move to next iterator according to operation
             switch (op) {
@@ -363,20 +379,26 @@ std::ostream &leveldb::print_config(std::ostream &stream) const {
         << "    create_if_missing: " << std::boolalpha << create_if_missing << std::endl;
 }
 
-leveldb::GetResult::GetResult(SPO_Types_t *types, const int db, const ::leveldb::Slice &key, const ::leveldb::Slice &value)
-    : Get(types, HXHIM_SUCCESS, db),
+leveldb::GetResult::GetResult(const int db,
+                              hxhim_spo_type_t object_type,
+                              const ::leveldb::Slice &key, const ::leveldb::Slice &value)
+    : Get(HXHIM_SUCCESS, db, object_type),
       k(key.ToString()),
       v(value.ToString())
 {}
 
-leveldb::GetResult::GetResult(SPO_Types_t *types, const int db, const ::leveldb::Slice &key, const std::string &value)
-    : Get(types, HXHIM_SUCCESS, db),
+leveldb::GetResult::GetResult(const int db,
+                              hxhim_spo_type_t object_type,
+                              const ::leveldb::Slice &key, const std::string &value)
+    : Get(HXHIM_SUCCESS, db, object_type),
       k(key.ToString()),
       v(value)
 {}
 
-leveldb::GetResult::GetResult(SPO_Types_t *types, const int db, const ::leveldb::Slice &key)
-    : Get(types, HXHIM_ERROR, db),
+leveldb::GetResult::GetResult(const int db,
+                              hxhim_spo_type_t object_type,
+                              const ::leveldb::Slice &key)
+    : Get(HXHIM_ERROR, db, object_type),
       k(key.ToString()),
       v()
 {}
@@ -386,12 +408,7 @@ leveldb::GetResult::~GetResult()
 
 int leveldb::GetResult::FillSubject() {
     if (!sub) {
-        void *encoded = nullptr;
-        std::size_t encoded_len = 0;
-        key_to_sp((void *) k.c_str(), k.size(), &encoded, &encoded_len, nullptr, nullptr);
-        return decode(types->subject, encoded, encoded_len, &sub, &sub_len);
-
-        // do not delete encoded because it is just an address in another array
+        key_to_sp((void *) k.c_str(), k.size(), &sub, &sub_len, nullptr, nullptr);
     }
 
     return HXHIM_SUCCESS;
@@ -399,12 +416,7 @@ int leveldb::GetResult::FillSubject() {
 
 int leveldb::GetResult::FillPredicate() {
     if (!pred) {
-        void *encoded = nullptr;
-        std::size_t encoded_len = 0;
-        key_to_sp((void *) k.c_str(), k.size(), nullptr, nullptr, &encoded, &encoded_len);
-        return decode(types->predicate, encoded, encoded_len, &pred, &pred_len);
-
-        // do not delete encoded because it is just an address in another array
+        key_to_sp((void *) k.c_str(), k.size(), nullptr, nullptr, &pred, &pred_len);
     }
 
     return HXHIM_SUCCESS;
@@ -412,7 +424,7 @@ int leveldb::GetResult::FillPredicate() {
 
 int leveldb::GetResult::FillObject() {
     if (!obj) {
-        return decode(types->object, (void *) v.data(), v.size(), &obj, &obj_len);
+        return decode(obj_type, (void *) v.data(), v.size(), &obj, &obj_len);
     }
 
     return HXHIM_SUCCESS;

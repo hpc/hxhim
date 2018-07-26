@@ -29,9 +29,11 @@ class mdhim : public base {
                       std::size_t count);
         Results *BGet(void **subjects, std::size_t *subject_lens,
                       void **predicates, std::size_t *predicate_lens,
+                      hxhim_spo_type_t *object_types,
                       std::size_t count);
         Results *BGetOp(void *subject, std::size_t subject_len,
                         void *predicate, std::size_t predicate_len,
+                        hxhim_spo_type_t object_type,
                         std::size_t count, enum hxhim_get_op op);
         Results *BDelete(void **subjects, std::size_t *subject_lens,
                          void **predicates, std::size_t *predicate_lens,
@@ -42,7 +44,10 @@ class mdhim : public base {
     private:
         class GetResult : public Results::Get {
             public:
-                GetResult(SPO_Types_t *types, const int err, const int db, void *key, std::size_t key_len, void *value, std::size_t value_len);
+                GetResult(const int err, const int db,
+                          hxhim_spo_type_t object_type,
+                          void *key, std::size_t key_len,
+                          void *value, std::size_t value_len);
                 ~GetResult();
 
             private:

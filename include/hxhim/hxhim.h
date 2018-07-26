@@ -7,11 +7,11 @@
 
 #include <ctype.h>
 
-#include "Results.h"
-#include "config.h"
-#include "constants.h"
-#include "options.h"
-#include "struct.h"
+#include "hxhim/Results.h"
+#include "hxhim/config.h"
+#include "hxhim/constants.h"
+#include "hxhim/options.h"
+#include "hxhim/struct.h"
 #include "utils/Histogram.h"
 
 #ifdef __cplusplus
@@ -21,6 +21,7 @@ extern "C"
 
 /** @description Starts an HXHIM instance */
 int hxhimOpen(hxhim_t *hx, hxhim_options_t *opts);
+int hxhimOpenOne(hxhim_t *hx, hxhim_options_t *opts, const char *db_path, const size_t db_path_len);
 
 /** @description Stops an HXHIM instance */
 int hxhimClose(hxhim_t *hx);
@@ -31,7 +32,7 @@ int hxhimCommit(hxhim_t *hx);
 /** @description Flushes the internal statistics */
 int hxhimStatFlush(hxhim_t *hx);
 
-/** @description Flush safe HXHIM queues */
+/** @description Functiosn for flushing HXHIM queues */
 hxhim_results_t *hxhimFlushPuts(hxhim_t *hx);
 hxhim_results_t *hxhimFlushGets(hxhim_t *hx);
 hxhim_results_t *hxhimFlushGetOps(hxhim_t *hx);
@@ -42,11 +43,12 @@ hxhim_results_t *hxhimFlush(hxhim_t *hx);
 int hxhimPut(hxhim_t *hx,
              void *subject, size_t subject_len,
              void *predicate, size_t predicate_len,
-             void *object, size_t object_len);
+             hxhim_spo_type_t object_type, void *object, size_t object_len);
 
 int hxhimGet(hxhim_t *hx,
              void *subject, size_t subject_len,
-             void *predicate, size_t predicate_len);
+             void *predicate, size_t predicate_len,
+             hxhim_spo_type_t object_type);
 
 int hxhimDelete(hxhim_t *hx,
                 void *subject, size_t subject_len,
@@ -61,11 +63,13 @@ int hxhimBPut(hxhim_t *hx,
 int hxhimBGet(hxhim_t *hx,
               void **subjects, size_t *subject_lens,
               void **predicates, size_t *predicate_lens,
+              hxhim_spo_type_t *object_types,
               size_t count);
 
 int hxhimBGetOp(hxhim_t *hx,
                 void *subject, size_t subject_len,
                 void *predicate, size_t predicate_len,
+                hxhim_spo_type_t object_type,
                 size_t num_records, enum hxhim_get_op op);
 
 int hxhimBDelete(hxhim_t *hx,
@@ -80,36 +84,14 @@ int hxhimGetStats(hxhim_t *hx, const int rank,
                   const int get_get_times, long double *get_times,
                   const int get_num_gets, size_t *num_gets);
 
-int hxhimSubjectType(hxhim_t *hx, hxhim_spo_type_t *type);
-int hxhimPredicateType(hxhim_t *hx, hxhim_spo_type_t *type);
-int hxhimObjectType(hxhim_t *hx, hxhim_spo_type_t *type);
-
-int hxhimPutFloat(hxhim_t *hx,
-                  void *subject, size_t subject_len,
-                  void *predicate, size_t predicate_len,
-                  float *object);
-
-int hxhimPutDouble(hxhim_t *hx,
-                   void *subject, size_t subject_len,
-                   void *predicate, size_t predicate_len,
-                   double *object);
-
-int hxhimBPutFloat(hxhim_t *hx,
-                   void **subjects, size_t *subject_lens,
-                   void **predicates, size_t *predicate_lens,
-                   float **objects,
-                   size_t count);
-
-int hxhimBPutDouble(hxhim_t *hx,
-                    void **subjects, size_t *subject_lens,
-                    void **predicates, size_t *predicate_lens,
-                    double **objects,
-                    size_t count);
-
 int hxhimGetHistogram(hxhim_t *hx, histogram_t *histogram);
 
 #ifdef __cplusplus
 }
 #endif
+
+#include "hxhim/float.h"
+#include "hxhim/double.h"
+#include "hxhim/single_type.h"
 
 #endif

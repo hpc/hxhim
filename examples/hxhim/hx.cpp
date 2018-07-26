@@ -79,13 +79,13 @@ int main(int argc, char *argv[]) {
 
     // PUT the subject-predicate-object triples
     for(std::size_t i = 0; i < count; i++) {
-        hxhim::Put(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], objects[i], object_lens[i]);
+        hxhim::Put(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_SPO_BYTE_TYPE, objects[i], object_lens[i]);
         std::cout << "Rank " << rank << " PUT {" << std::string((char *) subjects[i], subject_lens[i]) << ", " << std::string((char *) predicates[i], predicate_lens[i]) << "} -> " << std::string((char *) objects[i], object_lens[i]) << std::endl;
     }
 
     // GET them back, flushing only the GETs
     for(std::size_t i = 0; i < count; i++) {
-        hxhim::Get(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i]);
+        hxhim::Get(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_SPO_BYTE_TYPE);
     }
     hxhim::Results *flush_get_res = hxhim::FlushGets(&hx);
     std::cout << "GET before flushing PUTs" << std::endl;
@@ -93,12 +93,19 @@ int main(int argc, char *argv[]) {
     delete flush_get_res;
 
     // GET again, but flush everything this time
-    hxhim::BGet(&hx, subjects, subject_lens, predicates, predicate_lens, count);
+    hxhim_spo_type_t *bget_types = new hxhim_spo_type_t[count];
+    for(size_t i = 0; i < count; i++) {
+        bget_types[i] = HXHIM_SPO_BYTE_TYPE;
+    }
+
+    hxhim::BGet(&hx, subjects, subject_lens, predicates, predicate_lens, bget_types, count);
     hxhim::Results *flush_all_res = hxhim::Flush(&hx);
     std::cout << "GET after flushing PUTs" << std::endl;
     print_results(rank, flush_all_res);
     delete flush_all_res;
+
     spo_clean(count, subjects, subject_lens, predicates, predicate_lens, objects, object_lens);
+    delete [] bget_types;
 
     MPI_Barrier(MPI_COMM_WORLD);
 

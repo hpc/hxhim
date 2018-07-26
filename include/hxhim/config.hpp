@@ -19,9 +19,6 @@ const std::string HXHIM_MDHIM_CONFIG                = "MDHIM_CONFIG";           
 const std::string HXHIM_LEVELDB_NAME                = "LEVELDB_NAME";              // file path
 const std::string HXHIM_LEVELDB_CREATE_IF_MISSING   = "LEVELDB_CREATE_IF_MISSING"; // boolean
 const std::string HXHIM_QUEUED_BULK_PUTS            = "QUEUED_BULK_PUTS";          // nonnegative integer
-const std::string HXHIM_SUBJECT_TYPE                = "SUBJECT_TYPE";              // See HXHIM_SPO_TYPES
-const std::string HXHIM_PREDICATE_TYPE              = "PREDICATE_TYPE";            // See HXHIM_SPO_TYPES
-const std::string HXHIM_OBJECT_TYPE                 = "OBJECT_TYPE";               // See HXHIM_SPO_TYPES
 
 const std::string HXHIM_HISTOGRAM_FIRST_N           = "HISTOGRAM_FIRST_N";         // unsigned int
 const std::string HXHIM_HISTOGRAM_BUCKET_GEN_METHOD = "HISTOGRAM_BUCKET_METHOD";   // See HXHIM_BUCKET_GENERATORS
@@ -35,17 +32,17 @@ const std::map<std::string, hxhim_backend_t> HXHIM_BACKENDS = {
     std::make_pair("IN_MEMORY", HXHIM_BACKEND_IN_MEMORY),
 };
 
-/**
- * The allowable subject, predicate, and object types
- */
-const std::map<std::string, hxhim_spo_type_t> HXHIM_SPO_TYPES = {
-    std::make_pair("INT",    HXHIM_SPO_INT_TYPE),
-    std::make_pair("SIZE",   HXHIM_SPO_SIZE_TYPE),
-    std::make_pair("INT64",  HXHIM_SPO_INT64_TYPE),
-    std::make_pair("FLOAT",  HXHIM_SPO_FLOAT_TYPE),
-    std::make_pair("DOUBLE", HXHIM_SPO_DOUBLE_TYPE),
-    std::make_pair("BYTE",   HXHIM_SPO_BYTE_TYPE),
-};
+// /**
+//  * The allowable subject, predicate, and object types
+//  */
+// const std::map<std::string, hxhim_spo_type_t> HXHIM_SPO_TYPES = {
+//     std::make_pair("INT",    HXHIM_SPO_INT_TYPE),
+//     std::make_pair("SIZE",   HXHIM_SPO_SIZE_TYPE),
+//     std::make_pair("INT64",  HXHIM_SPO_INT64_TYPE),
+//     std::make_pair("FLOAT",  HXHIM_SPO_FLOAT_TYPE),
+//     std::make_pair("DOUBLE", HXHIM_SPO_DOUBLE_TYPE),
+//     std::make_pair("BYTE",   HXHIM_SPO_BYTE_TYPE),
+// };
 
 /**
  * String representations of predefined histogram bucket generators
@@ -94,9 +91,6 @@ const Config HXHIM_DEFAULT_CONFIG = {
     std::make_pair(HXHIM_MDHIM_CONFIG,                  "mdhim.conf"),
     std::make_pair(HXHIM_LEVELDB_CREATE_IF_MISSING,     "true"),
     std::make_pair(HXHIM_QUEUED_BULK_PUTS,              "5"),
-    std::make_pair(HXHIM_SUBJECT_TYPE,                  "BYTE"),
-    std::make_pair(HXHIM_PREDICATE_TYPE,                "BYTE"),
-    std::make_pair(HXHIM_OBJECT_TYPE,                   "BYTE"),
     std::make_pair(HXHIM_HISTOGRAM_FIRST_N,             "10"),
     std::make_pair(HXHIM_HISTOGRAM_BUCKET_GEN_METHOD,   TEN_BUCKETS),
 };

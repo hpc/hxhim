@@ -6,17 +6,18 @@
 #include <type_traits>
 
 #include "hxhim/constants.h"
-#include "hxhim/get_op.h"
 
 namespace hxhim {
     typedef struct SubjectPredicate {
         void *subjects[HXHIM_MAX_BULK_OPS];
         std::size_t subject_lens[HXHIM_MAX_BULK_OPS];
+
         void *predicates[HXHIM_MAX_BULK_OPS];
         std::size_t predicate_lens[HXHIM_MAX_BULK_OPS];
     } SP_t;
 
     typedef struct SubjectPredicateObject : SP_t {
+        hxhim_spo_type_t object_types[HXHIM_MAX_BULK_OPS];
         void *objects[HXHIM_MAX_BULK_OPS];
         std::size_t object_lens[HXHIM_MAX_BULK_OPS];
     } SPO_t;
@@ -31,10 +32,12 @@ namespace hxhim {
     };
 
     struct GetData : SP_t {
+        hxhim_spo_type_t object_types[HXHIM_MAX_BULK_OPS];
         GetData *next;
     };
 
     struct GetOpData : SP_t {
+        hxhim_spo_type_t object_types[HXHIM_MAX_BULK_OPS];
         std::size_t counts[HXHIM_MAX_BULK_GET_OPS];
         hxhim_get_op ops[HXHIM_MAX_BULK_GET_OPS];
         GetOpData *next;

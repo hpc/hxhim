@@ -6,7 +6,7 @@ struct thallium_work_item_t : public work_item_t {
           request(req)
     {}
 
-    const thallium::request &request;
+    const thallium::request request;
 };
 
 const std::string ThalliumRangeServer::CLIENT_TO_RANGE_SERVER_NAME = "receive_rangesrv_work";
