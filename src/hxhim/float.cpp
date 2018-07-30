@@ -23,7 +23,7 @@ int hxhim::PutFloat(hxhim_t *hx,
     return hxhim::Put(hx,
                       subject, subject_len,
                       predicate, predicate_len,
-                      HXHIM_SPO_FLOAT_TYPE, (void *) object, sizeof(float));
+                      HXHIM_FLOAT_TYPE, (void *) object, sizeof(float));
 }
 
 /**
@@ -45,7 +45,7 @@ int hxhimPutFloat(hxhim_t *hx,
     return hxhim::Put(hx,
                       subject, subject_len,
                       predicate, predicate_len,
-                      HXHIM_SPO_FLOAT_TYPE, (void *) object, sizeof(float));
+                      HXHIM_FLOAT_TYPE, (void *) object, sizeof(float));
 }
 
 /**
@@ -65,7 +65,7 @@ int hxhim::GetFloat(hxhim_t *hx,
     return hxhim::Get(hx,
                       subject, subject_len,
                       predicate, predicate_len,
-                      HXHIM_SPO_FLOAT_TYPE);
+                      HXHIM_FLOAT_TYPE);
 }
 
 /**
@@ -85,7 +85,7 @@ int hxhimGetFloat(hxhim_t *hx,
     return hxhim::Get(hx,
                       subject, subject_len,
                       predicate, predicate_len,
-                      HXHIM_SPO_FLOAT_TYPE);
+                      HXHIM_FLOAT_TYPE);
 }
 
 /**
@@ -114,7 +114,7 @@ int hxhim::BPutFloat(hxhim_t *hx,
     const int ret = hxhim::BPutSingleType(hx,
                                           subjects, subject_lens,
                                           predicates, predicate_lens,
-                                          HXHIM_SPO_DOUBLE_TYPE, (void **) objects, lens,
+                                          HXHIM_DOUBLE_TYPE, (void **) objects, lens,
                                           count);
     delete [] lens;
     return ret;
@@ -165,7 +165,7 @@ int hxhim::BGetFloat(hxhim_t *hx,
     return hxhim::BGetSingleType(hx,
                                  subjects, subject_lens,
                                  predicates, predicate_lens,
-                                 HXHIM_SPO_DOUBLE_TYPE,
+                                 HXHIM_DOUBLE_TYPE,
                                  count);
 }
 
@@ -206,11 +206,11 @@ int hxhimBGetFloat(hxhim_t *hx,
 int hxhim::BGetOpFloat(hxhim_t *hx,
                        void *subject, size_t subject_len,
                        void *predicate, size_t predicate_len,
-                       size_t num_records, enum hxhim_get_op op) {
+                       size_t num_records, enum hxhim_get_op_t op) {
     return hxhim::BGetOp(hx,
                          subject, subject_len,
                          predicate, predicate_len,
-                         HXHIM_SPO_FLOAT_TYPE,
+                         HXHIM_FLOAT_TYPE,
                          num_records, op);
 }
 
@@ -228,7 +228,7 @@ int hxhim::BGetOpFloat(hxhim_t *hx,
 int hxhimBGetOpFloat(hxhim_t *hx,
                      void *subject, size_t subject_len,
                      void *predicate, size_t predicate_len,
-                     size_t num_records, enum hxhim_get_op op) {
+                     size_t num_records, enum hxhim_get_op_t op) {
     return hxhim::BGetOpFloat(hx,
                               subject, subject_len,
                               predicate, predicate_len,

@@ -11,7 +11,7 @@
 #include "print_results.h"
 
 std::ostream &help(char *self, std::ostream &stream = std::cout) {
-    return stream << "Syntax: " << self << "[-h | --help] [--db db_name] object_type" << std::endl
+    return stream << "Syntax: " << self << "[-h | --help] [--db db_name] [object_type=BYTE]" << std::endl
                   << std::endl
                   << "types: INT, SIZE, FLOAT, DOUBLE, BYTE" << std::endl
                   << std::endl
@@ -52,35 +52,37 @@ int read_bgetop_input(std::stringstream & s, void **prefix, std::size_t *prefix_
 
 int main(int argc, char *argv[]) {
     char *db = nullptr;
-    hxhim_spo_type_t type;
+    enum hxhim_type_t type = HXHIM_BYTE_TYPE;
     for(int i = 1; i < argc; i++) {
-        const std::string args(argv[i]);
+        std::string args(argv[i]);
         if ((args == "-h") || (args == "--help")) {
             help(argv[0], std::cerr);
-            return 0;
+            return HXHIM_SUCCESS;
         }
         else if (args == "--db") {
-            db = argv[i++];
+            db = argv[++i];
         }
         else {
+            std::transform(args.begin(), args.end(), args.begin(), ::toupper);
+
             if (args == "INT") {
-                type = HXHIM_SPO_INT_TYPE;
+                type = HXHIM_INT_TYPE;
             }
             else if (args == "SIZE") {
-                type = HXHIM_SPO_SIZE_TYPE;
+                type = HXHIM_SIZE_TYPE;
             }
             else if (args == "FLOAT") {
-                type = HXHIM_SPO_FLOAT_TYPE;
+                type = HXHIM_FLOAT_TYPE;
             }
             else if (args == "DOUBLE") {
-                type = HXHIM_SPO_DOUBLE_TYPE;
+                type = HXHIM_DOUBLE_TYPE;
             }
             else if (args == "BYTE") {
-                type = HXHIM_SPO_BYTE_TYPE;
+                type = HXHIM_BYTE_TYPE;
             }
             else {
                 std::cerr << "Error: Bad Type: " << args << std::endl;
-                return 1;
+                return HXHIM_ERROR;
             }
         }
     }
@@ -184,20 +186,16 @@ int main(int argc, char *argv[]) {
                 std::string subject;
                 if (!(s >> subject >> count)) {
                     ret = HXHIM_ERROR;
-                    break;
+                    std::cerr << "Bad BGetOp input: " << line << std::endl;
+                    continue;
                 }
 
                 prefix_len = subject.size();
                 prefix = ::operator new(prefix_len);
                 memcpy(prefix, subject.c_str(), prefix_len);
 
-                if (ret != HXHIM_SUCCESS) {
-                    std::cerr << "Bad BGetOp input: " << line << std::endl;
-                    continue;
-                }
-
                 // negative indicates "get previous"
-                enum hxhim_get_op op = HXHIM_GET_EQ;
+                enum hxhim_get_op_t op = HXHIM_GET_EQ;
                 if (count < 0) {
                     op = HXHIM_GET_PREV;
                 }
@@ -221,7 +219,31 @@ int main(int argc, char *argv[]) {
                 input.num_keys = 0;
                 bool read_rows = (cmd[0] == 'B');                            // bulk operations take in a number before the data to indicate how many key-pair values there are
 
-                if (bulk_read(s, input, read_rows)) {
+                static const bool encode[] = {false, false, true};
+
+                bool ret = false;
+                switch (type) {
+                    case HXHIM_INT_TYPE:
+                        ret = bulk_read<int>(s, input, encode, read_rows);
+                        break;
+                    case HXHIM_SIZE_TYPE:
+                        ret = bulk_read<std::size_t>(s, input, encode, read_rows);
+                        break;
+                    case HXHIM_INT64_TYPE:
+                        ret = bulk_read<int64_t>(s, input, encode, read_rows);
+                        break;
+                    case HXHIM_FLOAT_TYPE:
+                        ret = bulk_read<float>(s, input, encode, read_rows);
+                        break;
+                    case HXHIM_DOUBLE_TYPE:
+                        ret = bulk_read<double>(s, input, encode, read_rows);
+                        break;
+                    case HXHIM_BYTE_TYPE:
+                        ret = bulk_read<std::string>(s, input, encode, read_rows);
+                        break;
+                }
+
+                if (ret) {
                     if (cmd == "PUT") {
                         hxhimPut(&hx, input.data[0][0], input.lens[0][0], input.data[1][0], input.lens[1][0], type, input.data[2][0], input.lens[2][0]);
                     }

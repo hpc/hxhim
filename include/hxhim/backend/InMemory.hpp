@@ -5,7 +5,7 @@
 
 #include <mpi.h>
 
-#include "base.hpp"
+#include "hxhim/backend/base.hpp"
 #include "hxhim/struct.h"
 
 namespace hxhim {
@@ -13,64 +13,39 @@ namespace backend {
 
 class InMemory : public base {
     public:
-        InMemory(hxhim_t *hx);
+        InMemory(hxhim_t *hx,
+                 const int id,
+                 const std::size_t use_first_n, const Histogram::BucketGen::generator &generator, void *extra_args);
         ~InMemory();
 
         void Close();
         int Commit();
         int StatFlush();
-        int GetStats(const int rank,
-                     const bool get_put_times, long double *put_times,
-                     const bool get_num_puts, std::size_t *num_puts,
-                     const bool get_get_times, long double *get_times,
-                     const bool get_num_gets, std::size_t *num_gets);
 
-        Results *BPut(void **subjects, std::size_t *subject_lens,
-                      void **predicates, std::size_t *predicate_lens,
-                      void **objects, std::size_t *object_lens,
-                      std::size_t count);
-        Results *BGet(void **subjects, std::size_t *subject_lens,
-                      void **predicates, std::size_t *predicate_lens,
-                      hxhim_spo_type_t *object_types,
-                      std::size_t count);
-        Results *BGetOp(void *subject, std::size_t subject_len,
-                        void *predicate, std::size_t predicate_len,
-                        hxhim_spo_type_t object_type,
-                        std::size_t count, enum hxhim_get_op op);
-        Results *BDelete(void **subjects, std::size_t *subject_lens,
-                         void **predicates, std::size_t *predicate_lens,
-                         std::size_t count);
+    private:
+        Transport::Response::BPut *BPutImpl(void **subjects, std::size_t *subject_lens,
+                                            void **predicates, std::size_t *predicate_lens,
+                                            hxhim_type_t *object_types, void **objects, std::size_t *object_lens,
+                                            std::size_t count);
+        Transport::Response::BGet *BGetImpl(void **subjects, std::size_t *subject_lens,
+                                            void **predicates, std::size_t *predicate_lens,
+                                            hxhim_type_t *object_types,
+                                            std::size_t count);
+        Transport::Response::BGetOp *BGetOpImpl(void *subject, std::size_t subject_len,
+                                                void *predicate, std::size_t predicate_len,
+                                                hxhim_type_t object_type,
+                                                std::size_t recs, enum hxhim_get_op_t op);
+        Transport::Response::BDelete *BDeleteImpl(void **subjects, std::size_t *subject_lens,
+                                                  void **predicates, std::size_t *predicate_lens,
+                                                  std::size_t count);
 
+    public:
         std::ostream &print_config(std::ostream &stream) const;
 
     private:
-        /** @description Convenience class for GET results */
-        class GetResult : public Results::Get {
-            public:
-                GetResult(const int err, const int db,
-                          hxhim_spo_type_t object_type,
-                          const std::map<std::string, std::string>::const_iterator &it);
-                virtual ~GetResult();
-
-            private:
-                int FillSubject();
-                int FillPredicate();
-                int FillObject();
-
-                const std::string k;
-                const std::string v;
-        };
-
         int Open(MPI_Comm comm, const std::string &config);
 
         std::map<std::string, std::string> db;
-
-        struct {
-            std::size_t puts;
-            long double put_times;
-            std::size_t gets;
-            long double get_times;
-        } stats;
 };
 
 }

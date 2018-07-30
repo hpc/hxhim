@@ -2,25 +2,28 @@
 #define HXHIM_RESULTS_HPP
 
 #include <cstddef>
+#include <list>
+#include <memory>
 
 #include "hxhim/Results.h"
 #include "hxhim/constants.h"
+#include "transport/Messages.hpp"
 
 namespace hxhim {
 
 /**
  * Results
- * This structure holds a linked list of all results waiting to be processed.
- * A single result node contains exactly 1 set of data. Results of bulk
- * operations are flattened when they are stored.
+ * This structure holds a linked list of all results waiting to be used by a user.
+ * A single result node contains exactly 1 set of data. Results of bulk operations
+ * are flattened when they are stored.
  *
- * Each result node owns the pointers it holds.
+ * Each result takes ownership of the pointers passed into the constructor.
  *
  * Usage:
  *
- *     Results *res = Flush(hx);
+ *     hxhim::Results *res = Flush(hx);
  *     for(res->GoToHead(); res->Valid(); res->GoToNext()) {
- *         switch (res->Curr()->type) {
+ *         switch (res->Curr()->GetType()) {
  *             case HXHIM_RESULT_PUT:
  *                 {
  *                     hxhim::Results::Put *put = static_cast<hxhim::Results::Put *>(res->Curr());
@@ -48,71 +51,66 @@ namespace hxhim {
  */
 class Results {
     public:
-        /** @description Base class for storing individual results */
         class Result {
             public:
-                Result(hxhim_result_type_t t = HXHIM_RESULT_NONE, int err = HXHIM_SUCCESS, int db = -1);
+                Result(hxhim_result_type_t t);
                 virtual ~Result();
 
                 hxhim_result_type_t GetType() const;
-                int GetError() const;
                 int GetDatabase() const;
-
-                Result *Next() const;
-                Result *&Next();
+                int GetStatus() const;
 
             private:
                 const hxhim_result_type_t type;
-                const int error;
-                const int database;
 
-                Result *next;
+            protected:
+                int database;
+                int status;
         };
 
         /** @description Convenience class for PUT results */
         class Put : public Result {
             public:
-                Put(const int err, const int db);
+                Put(Transport::Response::Put *put);
+                Put(Transport::Response::BPut *bput, const std::size_t i);
                 virtual ~Put();
         };
 
         /** @description Convenience class for GET results */
         class Get : public Result {
             public:
-                Get(const int err, const int db, hxhim_spo_type_t object_type);
+                Get(Transport::Response::Get *get);
+                Get(Transport::Response::BGet *bget, const std::size_t i);
+                Get(Transport::Response::BGetOp *bgetop, const std::size_t i);
                 virtual ~Get();
 
-                hxhim_spo_type_t GetObjectType() const;
+                hxhim_type_t GetObjectType() const;
 
                 /** Users should not deallocate the pointers returned by these functions */
-                int GetSubject(void **subject, std::size_t *subject_len);
-                int GetPredicate(void **predicate, std::size_t *predicate_len);
-                int GetObject(void **object, std::size_t *object_len);
+                int GetSubject(void **subject, std::size_t *subject_len) const;
+                int GetPredicate(void **predicate, std::size_t *predicate_len) const;
+                int GetObject(void **object, std::size_t *object_len) const;
 
             protected:
-                int decode(const hxhim_spo_type_t type, void *src, const std::size_t &src_len, void **dst, std::size_t *dst_len);
+                Get();
 
-                /** @description These functions should be used to fill in the member variables so that they can be returned by the Get* functions */
-                virtual int FillSubject() = 0;
-                virtual int FillPredicate() = 0;
-                virtual int FillObject() = 0;
-
-                /* @description These variables are used to hold decoded data, so that they only have to be decoded once */
                 void *sub;
                 std::size_t sub_len;
 
                 void *pred;
                 std::size_t pred_len;
 
-                hxhim_spo_type_t obj_type;
+                hxhim_type_t obj_type;
                 void *obj;
                 std::size_t obj_len;
         };
 
         /** @description Convenience class for DEL results */
-        struct Delete : Result {
-            Delete(const int err, const int db);
-            virtual ~Delete();
+        class Delete : public Result {
+            public:
+                Delete(Transport::Response::Delete *del);
+                Delete(Transport::Response::BDelete *bdel, const std::size_t i);
+                virtual ~Delete();
         };
 
     public:
@@ -130,12 +128,11 @@ class Results {
         Result *Add(Result *res);
 
         // Moves and appends another set of results; the list being appended is emptied out
-        Results &Append(Results *results);
+        Results &Append(Results *other);
 
     private:
-        Result *head;
-        Result *tail;
-        Result *curr;
+        std::list <Result *> results;
+        std::list<Result *>::iterator curr;
 };
 
 }

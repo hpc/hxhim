@@ -1,5 +1,8 @@
+#include "hxhim/config.hpp"
 #include "hxhim/options.h"
 #include "hxhim/options_private.hpp"
+#include "transport/backend/MPI/Options.hpp"
+#include "transport/backend/Thallium/Options.hpp"
 
 /**
  * hxhim_options_init
@@ -50,24 +53,208 @@ int hxhim_options_set_mpi_bootstrap(hxhim_options_t *opts, MPI_Comm comm) {
     return HXHIM_SUCCESS;
 }
 
-/**
- * hxhim_options_set_backend
- * Sets the backend of the options
- *
- * @param opts   the set of options to be modified
- * @param config extra configuration data needed to initialize the backedn
- * @return HXHIM_SUCCESS or HXHIM_ERROR
- */
-int hxhim_options_set_backend(hxhim_options_t *opts, const hxhim_backend_t backend, hxhim_backend_config_t *config) {
+int hxhim_options_set_databases_per_range_server(hxhim_options_t *opts, const size_t count) {
     if (!valid_opts(opts)) {
         return HXHIM_ERROR;
     }
 
-    hxhim_options_backend_config_destroy(opts->p->backend_config);
+    opts->p->database_count = count;
 
-    opts->p->backend = backend;
-    opts->p->backend_config = config;
+    return HXHIM_SUCCESS;
+}
 
+/**
+ * hxhim_options_set_database
+ * Sets the values needed to set up the database
+ * This function moves ownership of the config function from the caller to opts
+ *
+ * @param opts   the set of options to be modified
+ * @param config configuration data needed to initialize the database
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+static int hxhim_options_set_database(hxhim_options_t *opts, hxhim_database_config_t *config) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    hxhim_options_database_config_destroy(opts->p->database);
+
+    opts->p->database = config;
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * hxhim_options_set_database_leveldb
+ * Sets up the values needed for a leveldb database
+ *
+ * @param opts   the set of options to be modified
+ * @param path the name prefix for each database
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim_options_set_database_leveldb(hxhim_options_t *opts, const size_t id, const char *path, const int create_if_missing) {
+    hxhim_database_config_t *config = hxhim_options_create_leveldb_config(id, path, create_if_missing);
+    if (!config) {
+        return HXHIM_ERROR;
+    }
+
+    if (hxhim_options_set_database(opts, config) != HXHIM_SUCCESS) {
+        delete config;
+        return HXHIM_ERROR;
+    }
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * hxhim_options_set_database_in_memory
+ * Sets up the values needed for a in_memory database
+ *
+ * @param opts   the set of options to be modified
+ * @param path the name prefix for each database
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim_options_set_database_in_memory(hxhim_options_t *opts) {
+    hxhim_database_config_t *config = hxhim_options_create_in_memory_config();
+    if (!config) {
+        return HXHIM_ERROR;
+    }
+
+    if (hxhim_options_set_database(opts, config) != HXHIM_SUCCESS) {
+        delete config;
+        return HXHIM_ERROR;
+    }
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * hxhim_options_set_hash
+ * Sets the hash function to use to determine where a key should go
+ * This function takes the hash name instead of a function because
+ * the extra arguments cannot always be determined before HXHIM starts (?).
+ *
+ * @param opts   the set of options to be modified
+ * @param hash   the name of the hash function
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim_options_set_hash(hxhim_options_t *opts, const char *hash) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    if (HXHIM_HASHES.find(hash) == HXHIM_HASHES.end()) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->hash = hash;
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * hxhim_options_set_transport
+ * Sets the values needed to set up the Transport
+ * This function moves ownership of the config function from the caller to opts
+ *
+ * @param opts   the set of options to be modified
+ * @param config configuration data needed to initialize the Transport
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+static int hxhim_options_set_transport(hxhim_options_t *opts, Transport::Options *config) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    delete opts->p->transport;
+
+    opts->p->transport = config;
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * hxhim_options_set_transport_mpi
+ * Sets the values needed to set up a mpi Transport
+ *
+ * @param opts              the set of options to be modified
+ * @param memory_alloc_size the size of each region of memory
+ * @param memory_regions    the number of memory regions
+ * @param listeners         the number of listeners
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim_options_set_transport_mpi(hxhim_options_t *opts, const size_t memory_alloc_size, const size_t memory_regions, const size_t listeners) {
+    if (!opts || !opts->p) {
+        return HXHIM_ERROR;
+    }
+
+    Transport::Options *config = new Transport::MPI::Options(opts->p->mpi.comm, memory_alloc_size, memory_regions, listeners);
+    if (!config) {
+        return HXHIM_ERROR;
+    }
+
+    if (hxhim_options_set_transport(opts, config) != HXHIM_SUCCESS) {
+        delete config;
+        return HXHIM_ERROR;
+    }
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * hxhim_options_set_transport_thallium
+ * Sets the values needed to set up a thallium Transport
+ *
+ * @param opts     the set of options to be modified
+ * @param module   the name of the thallium module to use
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim_options_set_transport_thallium(hxhim_options_t *opts, const char *module) {
+    Transport::Options *config = new Transport::Thallium::Options(module);
+    if (!config) {
+        return HXHIM_ERROR;
+    }
+
+    if (hxhim_options_set_transport(opts, config) != HXHIM_SUCCESS) {
+        delete config;
+        return HXHIM_ERROR;
+    }
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * hxhim_options_add_endpoint_to_group
+ * Adds an endpoint to the endpoint group
+ *
+ * @param opts   the set of options to be modified
+ * @param id     the unique id to add
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim_options_add_endpoint_to_group(hxhim_options_t *opts, const int id) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    if (id < 0) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->endpointgroup.insert(id);
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * hxhim_options_clear_endpoint_group
+ * Removes all endpoints in the endpoint group
+ *
+ * @param opts   the set of options to be modified
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim_options_clear_endpoint_group(hxhim_options_t *opts) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->endpointgroup.clear();
     return HXHIM_SUCCESS;
 }
 
@@ -102,15 +289,16 @@ int hxhim_options_set_histogram_first_n(hxhim_options_t *opts, const std::size_t
         return HXHIM_ERROR;
     }
 
-    opts->p->histogram_first_n = count;
+    opts->p->histogram.first_n = count;
 
     return HXHIM_SUCCESS;
 }
 
 /**
  * hxhim_options_set_histogram_bucket_gen_method
- * Set the name of the bucket generation method. The actual function is not used here
- * because it depends on the object type
+ * Set the name of the bucket generation method.
+ * This function only allows for predefined functions
+ * because the function signature uses C++ objects
  *
  * @param opts   the set of options to be modified
  * @param method the name of the method
@@ -121,7 +309,45 @@ int hxhim_options_set_histogram_bucket_gen_method(hxhim_options_t *opts, const c
         return HXHIM_ERROR;
     }
 
-    opts->p->histogram_bucket_gen_method = method;
+    decltype(HXHIM_HISTOGRAM_BUCKET_GENERATORS)::const_iterator gen_it = HXHIM_HISTOGRAM_BUCKET_GENERATORS.find(method);
+    if (gen_it == HXHIM_HISTOGRAM_BUCKET_GENERATORS.end()) {
+        return HXHIM_ERROR;
+    }
+
+    decltype(HXHIM_HISTOGRAM_BUCKET_GENERATOR_EXTRA_ARGS)::const_iterator args_it = HXHIM_HISTOGRAM_BUCKET_GENERATOR_EXTRA_ARGS.find(method);
+    if (args_it == HXHIM_HISTOGRAM_BUCKET_GENERATOR_EXTRA_ARGS.end()) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->histogram.gen = gen_it->second;
+    opts->p->histogram.args = args_it->second;
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * hxhim_options_set_histogram_bucket_gen_method
+ * Set the name of the bucket generation method.
+ * This function allows for arbitrary functions
+ * that match the histogram bucket generator function
+ * signature to be used.
+ *
+ * @param opts   the set of options to be modified
+ * @param gen    the custom function for generating buckets
+ * @param args   arguments the custom function will use at runtime
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim_options_set_histogram_bucket_gen_method(hxhim_options_t *opts, const Histogram::BucketGen::generator &gen, void *args) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    if (!gen) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->histogram.gen = gen;
+    opts->p->histogram.args = args;
 
     return HXHIM_SUCCESS;
 }
@@ -138,7 +364,8 @@ int hxhim_options_destroy(hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
-    hxhim_options_backend_config_destroy(opts->p->backend_config);
+    hxhim_options_database_config_destroy(opts->p->database);
+    delete opts->p->transport;
 
     delete opts->p;
     opts->p = nullptr;
@@ -147,42 +374,32 @@ int hxhim_options_destroy(hxhim_options_t *opts) {
 }
 
 /**
- * hxhim_options_create_mdhim_config
- *
- * @param path the name prefix for each database
- * @return an pointer to the configuration data, or a nullptr
- */
-hxhim_backend_config_t *hxhim_options_create_mdhim_config(char *path) {
-    hxhim_mdhim_config_t *config = new hxhim_mdhim_config_t();
-    config->path = path;
-    return config;
-}
-
-/**
  * hxhim_options_create_leveldb_config
  *
  * @param path               the name prefix for each database
  * @param create_if_missing  whether or not leveldb should create new databases if the databases do not already exist
- * @return an pointer to the configuration data, or a nullptr
+ * @return a pointer to the configuration data, or a nullptr
  */
-hxhim_backend_config_t *hxhim_options_create_leveldb_config(char *path, const int create_if_missing) {
+hxhim_database_config_t *hxhim_options_create_leveldb_config(const size_t id, const char *path, const int create_if_missing) {
     hxhim_leveldb_config_t *config = new hxhim_leveldb_config_t();
-    config->path = path;
-    config->create_if_missing = create_if_missing;
+    if (config) {
+        config->id = id;
+        config->path = path;
+        config->create_if_missing = create_if_missing;
+    }
     return config;
 }
 
 /**
  * hxhim_options_create_in_memory_config
  *
- * @return
- * @return an pointer to the configuration data, or a nullptr
+ * @return a pointer to the configuration data, or a nullptr
  */
-hxhim_backend_config_t *hxhim_options_create_in_memory_config() {
-    return new hxhim_backend_config_t();
+hxhim_database_config_t *hxhim_options_create_in_memory_config() {
+    return new hxhim_in_memory_config_t();
 }
 
 // Cleans up config memory, including the config variable itself because the user will never be able to create their own config
-void hxhim_options_backend_config_destroy(hxhim_backend_config_t *config) {
+void hxhim_options_database_config_destroy(hxhim_database_config_t *config) {
     delete config;
 }

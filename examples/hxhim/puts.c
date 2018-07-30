@@ -41,6 +41,10 @@ int main(int argc, char *argv[]) {
     const size_t count = HXHIM_MAX_BULK_PUT_OPS * 100;
     void **subjects = NULL, **predicates = NULL, **objects = NULL;
     size_t *subject_lens = NULL, *predicate_lens = NULL, *object_lens = NULL;
+    /* if (spo_gen_fixed(count, 100, rank, */
+    /*                   &subjects, &subject_lens, */
+    /*                   &predicates, &predicate_lens, */
+    /*                   &objects, &object_lens) != count) { */
     if (spo_gen_random(count,
                        8, 8, &subjects, &subject_lens,
                        sizeof(int), sizeof(int), &predicates, &predicate_lens,
@@ -52,7 +56,7 @@ int main(int argc, char *argv[]) {
     MPI_Barrier(MPI_COMM_WORLD);
 
     // BPUT the key value pairs into HXHIM
-    hxhimBPutSingleType(&hx, subjects, subject_lens, predicates, predicate_lens, HXHIM_SPO_BYTE_TYPE, objects, object_lens, count);
+    hxhimBPutSingleType(&hx, subjects, subject_lens, predicates, predicate_lens, HXHIM_BYTE_TYPE, objects, object_lens, count);
     hxhim_results_t *flush_all_res = hxhimFlush(&hx);
     hxhim_results_destroy(flush_all_res);
     spo_clean(count, subjects, subject_lens, predicates, predicate_lens, objects, object_lens);
@@ -62,42 +66,31 @@ int main(int argc, char *argv[]) {
     if (rank == 0) {
         long double *put_times = calloc(size, sizeof(long double));
         size_t *num_puts = calloc(size, sizeof(size_t));
-        long double *get_times = calloc(size, sizeof(long double));
-        size_t *num_gets = calloc(size, sizeof(size_t));
 
-        hxhimGetStats(&hx, 0, 1, put_times, 1, num_puts, 1, get_times, 1, num_gets);
+        hxhimGetStats(&hx, 0, 1, put_times, 1, num_puts, 0, NULL, 0, NULL);
 
         size_t total_puts = 0;       // total number of PUTs across all ranks
         long double put_rates = 0;   // sum of all PUT rates
-        size_t total_gets = 0;       // total number of GETs across all ranks
-        long double get_rates = 0;   // sum of all GET rates
 
         printf("Stats:\n");
-        printf("Rank PUTs seconds GETs seconds\n");
+        printf("Rank PUTs seconds\n");
         for(int i = 0; i < size; i++) {
-            printf("%*d %zu %Lf %zu %Lf\n", (int) ceil(log10(size)), i, num_puts[i], put_times[i], num_gets[i], get_times[i]);
+            printf("%*d %zu %Lf\n", (int) ceil(log10(size)), i, num_puts[i], put_times[i]);
 
             if (num_puts[i]) {
                 total_puts += num_puts[i];
                 put_rates += num_puts[i] / put_times[i];
             }
-
-            if (num_gets[i]) {
-                total_gets += num_gets[i];
-                get_rates += num_gets[i] / get_times[i];
-            }
         }
 
         free(put_times);
         free(num_puts);
-        free(get_times);
-        free(num_gets);
 
-        printf("Total:   %zu PUTs     %zu GETs\n", total_puts, total_gets);
-        printf("Average: %Lf PUTs/sec %Lf GETs/sec\n", put_rates, get_rates);
+        printf("Total:   %zu PUTs\n", total_puts);
+        printf("Average: %Lf PUTs/sec\n", put_rates);
     }
     else {
-        hxhimGetStats(&hx, 0, 1, NULL, 1, NULL, 1, NULL, 1, NULL);
+        hxhimGetStats(&hx, 0, 1, NULL, 1, NULL, 0, NULL, 0, NULL);
     }
 
     hxhimClose(&hx);

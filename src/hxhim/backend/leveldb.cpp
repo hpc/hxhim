@@ -1,51 +1,45 @@
 #include <ctime>
 #include <sstream>
 #include <stdexcept>
-#include <iostream>
 
 #include "leveldb/write_batch.h"
 
 #include "hxhim/backend/leveldb.hpp"
-#include "hxhim/private.hpp"
 #include "hxhim/triplestore.hpp"
-
-static long double elapsed(const struct timespec &start, const struct timespec &end) {
-    return (long double) (end.tv_sec - start.tv_sec) +
-        ((long double) (end.tv_nsec - start.tv_nsec)/1000000000.0);
-}
 
 namespace hxhim {
 namespace backend {
 
-leveldb::leveldb(hxhim_t *hx, const std::string &exact_name)
-    : base(hx),
+using namespace Transport;
+
+leveldb::leveldb(hxhim_t *hx,
+                 const std::size_t use_first_n, const Histogram::BucketGen::generator &generator, void *extra_args,
+                 const std::string &exact_name)
+    : base(hx, 0, use_first_n, generator, extra_args),
       name(exact_name), create_if_missing(false),
-      db(nullptr), options(),
-      stats()
+      db(nullptr), options()
 {
     if (!::leveldb::DB::Open(options, exact_name, &db).ok()) {
         throw std::runtime_error("Could not configure leveldb backend " + exact_name);
     }
-
-    memset(&stats, 0, sizeof(stats));
 }
 
-leveldb::leveldb(hxhim_t *hx, const std::string &name, const bool create_if_missing)
-    : base(hx),
+leveldb::leveldb(hxhim_t *hx,
+                 const int id,
+                 const std::size_t use_first_n, const Histogram::BucketGen::generator &generator, void *extra_args,
+                 const std::string &name, const bool create_if_missing)
+    : base(hx, id, use_first_n, generator, extra_args),
       name(name), create_if_missing(create_if_missing),
-      db(nullptr), options(),
-      stats()
+      db(nullptr), options()
 {
     std::stringstream s;
-    s << name << "-" << hx->mpi.rank;
+    s << name << "-" << id;
 
     options.create_if_missing = create_if_missing;
 
     if (!::leveldb::DB::Open(options, s.str(), &db).ok()) {
         throw std::runtime_error("Could not configure leveldb backend " + s.str());
     }
-
-    memset(&stats, 0, sizeof(stats));
 }
 
 leveldb::~leveldb() {
@@ -81,76 +75,6 @@ int leveldb::StatFlush() {
 }
 
 /**
- * GetStats
- * Collective operation
- * Collects statistics from all HXHIM ranks
- *
- * @param rank           the rank to send to
- * @param get_put_times  whether or not to get put_times
- * @param put_times      the array of put times from each rank
- * @param get_num_puts   whether or not to get num_puts
- * @param num_puts       the array of number of puts from each rank
- * @param get_get_times  whether or not to get get_times
- * @param get_times      the array of get times from each rank
- * @param get_num_gets   whether or not to get num_gets
- * @param num_gets       the array of number of gets from each rank
- * @return HXHIM_SUCCESS or HXHIM_ERROR on error
- */
-int leveldb::GetStats(const int rank,
-                      const bool get_put_times, long double *put_times,
-                      const bool get_num_puts, std::size_t *num_puts,
-                      const bool get_get_times, long double *get_times,
-                      const bool get_num_gets, std::size_t *num_gets) {
-    MPI_Barrier(hx->mpi.comm);
-
-    if (hx->mpi.rank == rank) {
-        if (get_put_times) {
-            const std::size_t size = sizeof(stats.put_times);
-            MPI_Gather(&stats.put_times, size, MPI_CHAR, put_times, size, MPI_CHAR, rank, hx->mpi.comm);
-        }
-
-        if (get_num_puts) {
-            const std::size_t size = sizeof(stats.puts);
-            MPI_Gather(&stats.puts, size, MPI_CHAR, num_puts, size, MPI_CHAR, rank, hx->mpi.comm);
-        }
-
-        if (get_get_times) {
-            const std::size_t size = sizeof(stats.get_times);
-            MPI_Gather(&stats.get_times, size, MPI_CHAR, get_times, size, MPI_CHAR, rank, hx->mpi.comm);
-        }
-
-        if (get_num_gets) {
-            const std::size_t size = sizeof(stats.gets);
-            MPI_Gather(&stats.gets, size, MPI_CHAR, num_gets, size, MPI_CHAR, rank, hx->mpi.comm);
-        }
-    }
-    else {
-        if (get_put_times) {
-            const std::size_t size = sizeof(stats.put_times);
-            MPI_Gather(&stats.put_times, size, MPI_CHAR, nullptr, 0, MPI_CHAR, rank, hx->mpi.comm);
-        }
-
-        if (get_num_puts) {
-            const std::size_t size = sizeof(stats.puts);
-            MPI_Gather(&stats.puts, size, MPI_CHAR, nullptr, 0, MPI_CHAR, rank, hx->mpi.comm);
-        }
-
-        if (get_get_times) {
-            const std::size_t size = sizeof(stats.get_times);
-            MPI_Gather(&stats.get_times, size, MPI_CHAR, nullptr, 0, MPI_CHAR, rank, hx->mpi.comm);
-        }
-
-        if (get_num_gets) {
-            const std::size_t size = sizeof(stats.gets);
-            MPI_Gather(&stats.gets, size, MPI_CHAR, nullptr, 0, MPI_CHAR, rank, hx->mpi.comm);
-        }
-    }
-
-    MPI_Barrier(hx->mpi.comm);
-    return HXHIM_SUCCESS;
-}
-
-/**
  * BPut
  * Performs a bulk PUT in leveldb
  *
@@ -162,29 +86,31 @@ int leveldb::GetStats(const int rank,
  * @param object_lens   the lengths of the objects
  * @return pointer to a list of results
  */
-Results *leveldb::BPut(void **subjects, std::size_t *subject_lens,
-                       void **predicates, std::size_t *predicate_lens,
-                       void **objects, std::size_t *object_lens,
-                       std::size_t count) {
-    Results *res = new Results();
-    if (!res) {
+Response::BPut *leveldb::BPutImpl(void **subjects, std::size_t *subject_lens,
+                                  void **predicates, std::size_t *predicate_lens,
+                                  hxhim_type_t *object_types, void **objects, std::size_t *object_lens,
+                                  std::size_t count) {
+    Response::BPut *ret = new Response::BPut(count);
+    if (!ret) {
         return nullptr;
     }
 
     struct timespec start, end;
     ::leveldb::WriteBatch batch;
-    void **keys = new void *[count]();
 
     for(std::size_t i = 0; i < count; i++) {
+        void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &keys[i], &key_len);
+        sp_to_key(subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &key, &key_len);
 
         clock_gettime(CLOCK_MONOTONIC, &start);
-        batch.Put(::leveldb::Slice((char *) keys[i], key_len), ::leveldb::Slice((char *) objects[i], object_lens[i]));
+        batch.Put(::leveldb::Slice((char *) key, key_len), ::leveldb::Slice((char *) objects[i], object_lens[i]));
         clock_gettime(CLOCK_MONOTONIC, &end);
 
+        ::operator delete(key);
+
         stats.puts++;
-        stats.put_times += elapsed(start, end);
+        stats.put_times += nano(start, end);
     }
 
     // add in the time to write the key-value pairs without adding to the counter
@@ -192,18 +118,20 @@ Results *leveldb::BPut(void **subjects, std::size_t *subject_lens,
     ::leveldb::Status status = db->Write(::leveldb::WriteOptions(), &batch);
     clock_gettime(CLOCK_MONOTONIC, &end);
 
-    for(std::size_t i = 0; i < count; i++) {
-        res->Add(new Results::Put(status.ok()?HXHIM_SUCCESS:HXHIM_ERROR, hx->mpi.rank));
+    if (status.ok()) {
+        for(std::size_t i = 0; i < count; i++) {
+            ret->statuses[i] = HXHIM_SUCCESS;
+        }
+    }
+    else {
+        for(std::size_t i = 0; i < count; i++) {
+            ret->statuses[i] = HXHIM_ERROR;
+        }
     }
 
-    stats.put_times += elapsed(start, end);
+    stats.put_times += nano(start, end);
 
-    for(std::size_t i = 0; i < count; i++) {
-        ::operator delete(keys[i]);
-    }
-    delete [] keys;
-
-    return res;
+    return ret;
 }
 
 /**
@@ -216,49 +144,52 @@ Results *leveldb::BPut(void **subjects, std::size_t *subject_lens,
  * @param prediate_lens the lengths of the prediates to put
  * @return pointer to a list of results
  */
-Results *leveldb::BGet(void **subjects, std::size_t *subject_lens,
-                       void **predicates, std::size_t *predicate_lens,
-                       hxhim_spo_type_t *object_types,
-                       std::size_t count) {
-    Results *res = new Results();
-    if (!res) {
+Response::BGet *leveldb::BGetImpl(void **subjects, std::size_t *subject_lens,
+                                  void **predicates, std::size_t *predicate_lens,
+                                  hxhim_type_t *object_types,
+                                  std::size_t count) {
+    Response::BGet *ret = new Response::BGet(count);
+    if (!ret) {
         return nullptr;
     }
 
-    void **keys = new void *[count]();
     for(std::size_t i = 0; i < count; i++) {
         struct timespec start, end;
         std::string value;
 
-        // create the key
+        void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &keys[i], &key_len);
-        const ::leveldb::Slice key((char *) keys[i], key_len);
+        sp_to_key(subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &key, &key_len);
+
+        // create the key
+        const ::leveldb::Slice k((char *) key, key_len);
 
         // get the value
         clock_gettime(CLOCK_MONOTONIC, &start);
-        ::leveldb::Status status = db->Get(::leveldb::ReadOptions(), key, &value);
+        ::leveldb::Status status = db->Get(::leveldb::ReadOptions(), k, &value);
         clock_gettime(CLOCK_MONOTONIC, &end);
-
-        // update stats
-        stats.gets++;
-        stats.get_times += elapsed(start, end);
 
         // add to results list
         if (status.ok()) {
-            res->Add(new GetResult(hx->mpi.rank, object_types[i], key, value));
+            ret->statuses[i] = HXHIM_SUCCESS;
+            key_to_sp(key, key_len, &ret->subjects[i], &ret->subject_lens[i], &ret->predicates[i], &ret->predicate_lens[i]);
+            ret->object_types[i] = object_types[i];
+            ret->object_lens[i] = value.size();
+            ret->objects[i] = ::operator new(ret->object_lens[i]);
+            memcpy(ret->objects, value.data(), ret->object_lens[i]);
         }
         else {
-            res->Add(new GetResult(hx->mpi.rank, object_types[i], key));
+            ret->statuses[i] = HXHIM_ERROR;
         }
+
+        ::operator delete(key);
+
+        // update stats
+        stats.gets++;
+        stats.get_times += nano(start, end);
     }
 
-    for(std::size_t i = 0; i < count; i++) {
-        ::operator delete(keys[i]);
-    }
-    delete [] keys;
-
-    return res;
+    return ret;
 }
 
 /**
@@ -273,54 +204,66 @@ Results *leveldb::BGet(void **subjects, std::size_t *subject_lens,
  * @param object_lens   the lengths of the objects
  * @return pointer to a list of results
  */
-Results *leveldb::BGetOp(void *subject, std::size_t subject_len,
-                         void *predicate, std::size_t predicate_len,
-                         hxhim_spo_type_t object_type,
-                         std::size_t count, enum hxhim_get_op op) {
-    Results *res = new Results();
-    if (!res) {
+Response::BGetOp *leveldb::BGetOpImpl(void *subject, std::size_t subject_len,
+                                      void *predicate, std::size_t predicate_len,
+                                      hxhim_type_t object_type,
+                                      std::size_t recs, enum hxhim_get_op_t op) {
+    Response::BGetOp *ret = new Response::BGetOp(recs);
+    if (!ret) {
         return nullptr;
     }
-
-    // conbine the subject and predicate into a key
-    void *starting_key = nullptr;
-    std::size_t starting_key_len = 0;
-    sp_to_key(subject, subject_len, predicate, predicate_len, &starting_key, &starting_key_len);
 
     ::leveldb::Iterator *it = db->NewIterator(::leveldb::ReadOptions());
     struct timespec start, end;
 
+    void *key = nullptr;
+    std::size_t key_len = 0;
+    sp_to_key(subject, subject_len, predicate, predicate_len, &key, &key_len);
+
     clock_gettime(CLOCK_MONOTONIC, &start);
-    it->Seek(::leveldb::Slice((char *) starting_key, starting_key_len));
+    it->Seek(::leveldb::Slice((char *) key, key_len));
     clock_gettime(CLOCK_MONOTONIC, &end);
 
+    ::operator delete(key);
+
     // add in the time to get the first key-value without adding to the counter
-    stats.get_times += elapsed(start, end);
+    stats.get_times += nano(start, end);
 
     if (it->status().ok()) {
-        for(std::size_t i = 0; i < count && it->Valid(); i++) {
+        for(std::size_t i = 0; i < recs && it->Valid(); i++) {
             clock_gettime(CLOCK_MONOTONIC, &start);
-            const ::leveldb::Slice key = it->key();
-            const ::leveldb::Slice value = it->value();
+            const ::leveldb::Slice k = it->key();
+            const ::leveldb::Slice v = it->value();
             clock_gettime(CLOCK_MONOTONIC, &end);
 
             stats.gets++;
-            stats.get_times += elapsed(start, end);
+            stats.get_times += nano(start, end);
 
-            res->Add(new GetResult(hx->mpi.rank, object_type, key, value));
+            // add to results list
+            if (it->status().ok()) {
+                ret->statuses[i] = HXHIM_SUCCESS;
+                key_to_sp(k.data(), k.size(), &ret->subjects[i], &ret->subject_lens[i], &ret->predicates[i], &ret->predicate_lens[i]);
+                ret->object_types[i] = object_type;
+                ret->object_lens[i] = v.size();
+                ret->objects[i] = ::operator new(ret->object_lens[i]);
+                memcpy(ret->objects, v.data(), ret->object_lens[i]);
+            }
+            else {
+                ret->statuses[i] = HXHIM_ERROR;
+            }
 
             // move to next iterator according to operation
             switch (op) {
-                case hxhim_get_op::HXHIM_GET_NEXT:
+                case hxhim_get_op_t::HXHIM_GET_NEXT:
                     it->Next();
                     break;
-                case hxhim_get_op::HXHIM_GET_PREV:
+                case hxhim_get_op_t::HXHIM_GET_PREV:
                     it->Prev();
                     break;
-                case hxhim_get_op::HXHIM_GET_FIRST:
+                case hxhim_get_op_t::HXHIM_GET_FIRST:
                     it->Next();
                     break;
-                case hxhim_get_op::HXHIM_GET_LAST:
+                case hxhim_get_op_t::HXHIM_GET_LAST:
                     it->Prev();
                     break;
                 default:
@@ -330,9 +273,8 @@ Results *leveldb::BGetOp(void *subject, std::size_t subject_len,
     }
 
     delete it;
-    ::operator delete(starting_key);
 
-    return res;
+    return ret;
 }
 
 /**
@@ -345,31 +287,31 @@ Results *leveldb::BGetOp(void *subject, std::size_t subject_len,
  * @param prediate_lens the lengths of the prediates to put
  * @return pointer to a list of results
  */
-Results *leveldb::BDelete(void **subjects, std::size_t *subject_lens,
-                          void **predicates, std::size_t *predicate_lens,
-                          std::size_t count) {
-    Results *res = new Results();
+Response::BDelete *leveldb::BDeleteImpl(void **subjects, std::size_t *subject_lens,
+                                        void **predicates, std::size_t *predicate_lens,
+                                        std::size_t count) {
+    Response::BDelete *ret = new Response::BDelete(count);
     ::leveldb::WriteBatch batch;
-    void **keys = new void *[count]();
 
+    // batch delete
     for(std::size_t i = 0; i < count; i++) {
+        void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &keys[i], &key_len);
+        sp_to_key(subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &key, &key_len);
 
-        batch.Delete(::leveldb::Slice((char *) keys[i], key_len));
+        batch.Delete(::leveldb::Slice((char *) key, key_len));
+
+        ::operator delete(key);
     }
 
+    // create responses
     ::leveldb::Status status = db->Write(::leveldb::WriteOptions(), &batch);
+    const int stat = status.ok()?HXHIM_SUCCESS:HXHIM_ERROR;
     for(std::size_t i = 0; i < count; i++) {
-        res->Add(new Results::Delete(status.ok()?HXHIM_SUCCESS:HXHIM_ERROR, hx->mpi.rank));
+        ret->statuses[i] = stat;
     }
 
-    for(std::size_t i = 0; i < count; i++) {
-        ::operator delete(keys[i]);
-    }
-    delete [] keys;
-
-    return res;
+    return ret;
 }
 
 std::ostream &leveldb::print_config(std::ostream &stream) const {
@@ -377,57 +319,6 @@ std::ostream &leveldb::print_config(std::ostream &stream) const {
         << "leveldb" << std::endl
         << "    name: " << name << std::endl
         << "    create_if_missing: " << std::boolalpha << create_if_missing << std::endl;
-}
-
-leveldb::GetResult::GetResult(const int db,
-                              hxhim_spo_type_t object_type,
-                              const ::leveldb::Slice &key, const ::leveldb::Slice &value)
-    : Get(HXHIM_SUCCESS, db, object_type),
-      k(key.ToString()),
-      v(value.ToString())
-{}
-
-leveldb::GetResult::GetResult(const int db,
-                              hxhim_spo_type_t object_type,
-                              const ::leveldb::Slice &key, const std::string &value)
-    : Get(HXHIM_SUCCESS, db, object_type),
-      k(key.ToString()),
-      v(value)
-{}
-
-leveldb::GetResult::GetResult(const int db,
-                              hxhim_spo_type_t object_type,
-                              const ::leveldb::Slice &key)
-    : Get(HXHIM_ERROR, db, object_type),
-      k(key.ToString()),
-      v()
-{}
-
-leveldb::GetResult::~GetResult()
-{}
-
-int leveldb::GetResult::FillSubject() {
-    if (!sub) {
-        key_to_sp((void *) k.c_str(), k.size(), &sub, &sub_len, nullptr, nullptr);
-    }
-
-    return HXHIM_SUCCESS;
-}
-
-int leveldb::GetResult::FillPredicate() {
-    if (!pred) {
-        key_to_sp((void *) k.c_str(), k.size(), nullptr, nullptr, &pred, &pred_len);
-    }
-
-    return HXHIM_SUCCESS;
-}
-
-int leveldb::GetResult::FillObject() {
-    if (!obj) {
-        return decode(obj_type, (void *) v.data(), v.size(), &obj, &obj_len);
-    }
-
-    return HXHIM_SUCCESS;
 }
 
 }

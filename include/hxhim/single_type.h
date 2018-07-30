@@ -12,13 +12,13 @@ extern "C"
 int hxhimBPutSingleType(hxhim_t *hx,
                         void **subjects, size_t *subject_lens,
                         void **predicates, size_t *predicate_lens,
-                        hxhim_spo_type_t object_type, void **objects, size_t *object_lens,
+                        enum hxhim_type_t object_type, void **objects, size_t *object_lens,
                         size_t count);
 
 int hxhimBGetSingleType(hxhim_t *hx,
                         void **subjects, size_t *subject_lens,
                         void **predicates, size_t *predicate_lens,
-                        hxhim_spo_type_t object_type,
+                        enum hxhim_type_t object_type,
                         size_t count);
 
 #ifdef __cplusplus

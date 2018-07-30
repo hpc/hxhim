@@ -32,7 +32,7 @@ int hxhimBGetFloat(hxhim_t *hx,
 int hxhimBGetOpFloat(hxhim_t *hx,
                      void *subject, size_t subject_len,
                      void *predicate, size_t predicate_len,
-                     size_t num_records, enum hxhim_get_op op);
+                     size_t num_records, enum hxhim_get_op_t op);
 #ifdef __cplusplus
 }
 #endif

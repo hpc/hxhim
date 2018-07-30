@@ -1,5 +1,6 @@
-#include <vector>
 #include <sstream>
+#include <vector>
+#include <iostream>
 
 #include "hxhim/config.h"
 #include "hxhim/config.hpp"
@@ -15,75 +16,127 @@ static int fill_options(hxhim_options_t *opts, const Config &config) {
         return HXHIM_ERROR;
     }
 
-    int ret = HXHIM_SUCCESS;
+    // Set the bootstrap values
+    if (MPI_Comm_rank(opts->p->mpi.comm, &opts->p->mpi.rank) != MPI_SUCCESS) {
+        return HXHIM_ERROR;
+    }
 
-    // Set the backend
-    hxhim_backend_t backend;
-    hxhim_backend_config_t *backend_config = nullptr;
-    if (get_from_map(config, HXHIM_BACKEND_TYPE, HXHIM_BACKENDS, backend) != CONFIG_ERROR) {
-        if (backend == HXHIM_BACKEND_MDHIM) {
-            hxhim_mdhim_config_t *cfg = new hxhim_mdhim_config_t();
-            if (!cfg) {
+    if (MPI_Comm_size(opts->p->mpi.comm, &opts->p->mpi.size) != MPI_SUCCESS) {
+        return HXHIM_ERROR;
+    }
+
+    std::size_t databases = 0;
+    if ((get_value(config, HXHIM_DATABASES_PER_RANGE_SERVER, databases) == CONFIG_FOUND) &&
+        (hxhim_options_set_databases_per_range_server(opts, databases) != HXHIM_SUCCESS)) {
+        return HXHIM_ERROR;
+    }
+
+    // Set the database
+    hxhim_database_t database;
+    if (get_from_map(config, HXHIM_DATABASE_TYPE, HXHIM_DATABASES, database) == CONFIG_FOUND) {
+        switch (database) {
+            case HXHIM_DATABASE_LEVELDB:
+                {
+                    // get the leveldb database name prefix
+                    Config_it name = config.find(HXHIM_LEVELDB_NAME);
+                    if (name == config.end()) {
+                        return HXHIM_ERROR;
+                    }
+
+                    bool create_if_missing = true; // default to true
+                    if (get_bool(config, HXHIM_LEVELDB_CREATE_IF_MISSING, create_if_missing) == CONFIG_ERROR) {
+                        return HXHIM_ERROR;
+                    }
+
+                    hxhim_options_set_database_leveldb(opts, opts->p->mpi.rank, name->second.c_str(), create_if_missing);
+                }
+                break;
+            case HXHIM_DATABASE_IN_MEMORY:
+                {
+                    hxhim_options_set_database_in_memory(opts);
+                }
+                break;
+            default:
                 return HXHIM_ERROR;
-            }
-
-            // get the location of the MDHIM config file
-            Config_it mdhim_config = config.find(HXHIM_MDHIM_CONFIG);
-            if (mdhim_config == config.end()) {
-                return HXHIM_ERROR;
-            }
-
-            cfg->path = mdhim_config->second;
-            backend_config = cfg;
         }
-        else if (backend == HXHIM_BACKEND_LEVELDB) {
-            hxhim_leveldb_config_t *cfg = new hxhim_leveldb_config_t();
-            if (!cfg) {
-                return HXHIM_ERROR;
-            }
+    }
 
-            // get the leveldb database name prefix
-            Config_it name = config.find(HXHIM_LEVELDB_NAME);
-            if (name == config.end()) {
-                return HXHIM_ERROR;
-            }
-            cfg->path = name->second;
+    // Get the hash function
+    std::string hash;
+    if ((get_value(config, HXHIM_HASH, hash) == CONFIG_FOUND) &&
+        (hxhim_options_set_hash(opts, hash.c_str()) != HXHIM_SUCCESS)) {
+        return HXHIM_ERROR;
+    }
 
-            cfg->create_if_missing = true; // default to true
-            if (get_bool(config, HXHIM_LEVELDB_CREATE_IF_MISSING, cfg->create_if_missing) == CONFIG_ERROR) {
-                return HXHIM_ERROR;
-            }
+    // Get the transport type to figure out which variables to search for
+    Transport::Type transport_type;
+    if (get_from_map(config, HXHIM_TRANSPORT, HXHIM_TRANSPORTS, transport_type) == CONFIG_FOUND) {
+        switch (transport_type) {
+            case Transport::TRANSPORT_MPI:
+                {
+                    std::size_t memory_alloc_size, memory_regions, listeners;
+                    if ((get_value(config, HXHIM_MPI_MEMORY_ALLOC_SIZE, memory_alloc_size) != CONFIG_FOUND) ||
+                        (get_value(config, HXHIM_MPI_MEMORY_REGIONS, memory_regions)       != CONFIG_FOUND) ||
+                        (get_value(config, HXHIM_MPI_LISTENERS, listeners)                 != CONFIG_FOUND)) {
+                        return HXHIM_ERROR;
+                    }
 
-            backend_config = cfg;
+                    hxhim_options_set_transport_mpi(opts, memory_alloc_size, memory_regions, listeners);
+                }
+                break;
+            case Transport::TRANSPORT_THALLIUM:
+                {
+                    Config_it thallium_module = config.find(HXHIM_THALLIUM_MODULE);
+                    if (thallium_module == config.end()) {
+                        return HXHIM_ERROR;
+                    }
+
+                    hxhim_options_set_transport_thallium(opts, thallium_module->second.c_str());
+                }
+                break;
+            default:
+                return HXHIM_ERROR;
         }
-        else if (backend == HXHIM_BACKEND_IN_MEMORY) {}
+    }
+
+    // Add ranks to the endpoint group
+    Config_it endpointgroup = config.find(HXHIM_TRANSPORT_ENDPOINT_GROUP);
+    if (endpointgroup != config.end()) {
+        hxhim_options_clear_endpoint_group(opts);
+        if (endpointgroup->second == "ALL") {
+            for(int rank = 0; rank < opts->p->mpi.size; rank++) {
+                hxhim_options_add_endpoint_to_group(opts, rank);
+            }
+        }
         else {
-            return HXHIM_ERROR;
+            std::stringstream s(endpointgroup->second);
+            int id;
+            while (s >> id) {
+                if (hxhim_options_add_endpoint_to_group(opts, id) != HXHIM_SUCCESS) {
+                    // should probably write to mlog and continue instead of returning
+                    return HXHIM_ERROR;
+                }
+            }
         }
-
-        hxhim_options_set_backend(opts, backend, backend_config);
     }
 
     // Set Queued Bulk Puts
     std::size_t queued_bputs = 0;
-    ret = get_value(config, HXHIM_QUEUED_BULK_PUTS, queued_bputs);
-    if ((ret == CONFIG_ERROR) ||
+    if ((get_value(config, HXHIM_QUEUED_BULK_PUTS, queued_bputs) == CONFIG_FOUND) &&
         hxhim_options_set_queued_bputs(opts, queued_bputs) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
 
     // Set Histogram Use First N Values
     std::size_t use_first_n = 0;
-    ret = get_value(config, HXHIM_HISTOGRAM_FIRST_N, use_first_n);
-    if ((ret == CONFIG_ERROR) ||
+    if ((get_value(config, HXHIM_HISTOGRAM_FIRST_N, use_first_n) == CONFIG_FOUND) &&
         hxhim_options_set_histogram_first_n(opts, use_first_n) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
 
     // Set Histogram Bucket Generation Method
     std::string method;
-    ret = get_value(config, HXHIM_HISTOGRAM_BUCKET_GEN_METHOD, method);
-    if ((ret == CONFIG_ERROR) ||
+    if ((get_value(config, HXHIM_HISTOGRAM_BUCKET_GEN_METHOD, method) == CONFIG_FOUND) &&
         hxhim_options_set_histogram_bucket_gen_method(opts, method.c_str()) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }

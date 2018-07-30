@@ -236,6 +236,7 @@ int histogram_get_bucket_count(histogram_t *histogram, size_t *count) {
 
 /**
  * histogram_get_buckets
+ * The buckets should be allocated by the caller
  *
  * @param h       the histogram
  * @param buckets preallocated array to place buckets into

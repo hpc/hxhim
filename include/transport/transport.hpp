@@ -9,324 +9,95 @@
 #include <map>
 #include <type_traits>
 
-#include "constants.h"
-#include "mdhim/constants.h"
+#include "hxhim/constants.h"
+#include "transport/Messages.hpp"
+#include "transport/constants.h"
 
-/**
- * TransportMessage
- * Specific message types are meant to inherit from this struct.
- * Utility functions should be implemented as standalone functions
- * rather than new functions in subclasses. All children of
- * TransportMessage are marked final to prevent inheritance.
- */
-struct TransportMessage {
-    TransportMessage(const TransportMessageType type = TransportMessageType::INVALID);
-    virtual ~TransportMessage();
-
-    virtual std::size_t size() const;
-    virtual void cleanup();
-
-    TransportMessageType mtype;
-    int src;      // rank
-    int dst;      // rank
-    int index;
-    int index_type;
-    char *index_name;
-
-    bool clean;   // whether or not this message should deallocate its pointers upon destruction
-};
-
-/**
- * TransportRequestMessage
- * This struct is just meant to provide a more specific relationship
- * between request message types than TransportMessage.
- */
-struct TransportRequestMessage : public TransportMessage {
-    TransportRequestMessage(const TransportMessageType type = TransportMessageType::INVALID);
-    virtual ~TransportRequestMessage();
-};
-
-/**
- * TransportPutMessage
- * Put message implementation
- */
-struct TransportPutMessage final : public TransportRequestMessage {
-    TransportPutMessage();
-    ~TransportPutMessage();
-
-    std::size_t size() const;
-    void cleanup();
-
-    int rs_idx;
-
-    void *key;
-    std::size_t key_len;
-
-    void *value;
-    std::size_t value_len;
-};
-
-/**
- * TransportBPutMessage
- * Bulk put message imeplementation
- */
-struct TransportBPutMessage final : public TransportRequestMessage {
-    TransportBPutMessage();
-    ~TransportBPutMessage();
-
-    std::size_t size() const;
-    void cleanup();
-
-    int *rs_idx;
-
-    void **keys;
-    std::size_t *key_lens;
-
-    void **values;
-    std::size_t *value_lens;
-
-    std::size_t num_keys;
-};
-
-/**
- * TransportGet
- * Base type for get messages
- */
-struct TransportGet : public TransportRequestMessage {
-    TransportGet(const TransportMessageType type);
-    virtual ~TransportGet();
-
-    TransportGetMessageOp op;
-    std::size_t num_keys;
-};
-
-/**
- * TransportGetMessage
- * Get message implementation
- */
-struct TransportGetMessage final : public TransportGet {
-    TransportGetMessage();
-    ~TransportGetMessage();
-
-    std::size_t size() const;
-    void cleanup();
-
-    int rs_idx;
-
-    void *key;
-    std::size_t key_len;
-};
-
-/**
- * TransportBGetMessage
- * Bulk get message implementation
- */
-struct TransportBGetMessage final : public TransportGet {
-    TransportBGetMessage();
-    ~TransportBGetMessage();
-
-    std::size_t size() const;
-    void cleanup();
-
-    int *rs_idx;
-
-    void **keys;
-    std::size_t *key_lens;
-
-    //Number of records to retrieve per key given
-    std::size_t num_recs;
-};
-
-/**
- * TransportDeleteMessage
- * Delete message implementation
- */
-struct TransportDeleteMessage final : public TransportRequestMessage {
-    TransportDeleteMessage();
-    ~TransportDeleteMessage();
-
-    std::size_t size() const;
-    void cleanup();
-
-    int rs_idx;
-
-    void *key;
-    std::size_t key_len;
-};
-
-/**
- * TransportBDeleteMessage
- * Bulk delete message implementation
- */
-struct TransportBDeleteMessage final : public TransportRequestMessage {
-    TransportBDeleteMessage();
-    ~TransportBDeleteMessage();
-
-    std::size_t size() const;
-    void cleanup();
-
-    int *rs_idx;
-
-    void **keys;
-    std::size_t *key_lens;
-
-    std::size_t num_keys;
-};
-
-/**
- * TransportResponseMessage
- * This struct is just meant to provide a more specific relationship
- * between response message types than TransportMessage.
- */
-struct TransportResponseMessage : public TransportMessage {
-    TransportResponseMessage(const TransportMessageType type = TransportMessageType::INVALID);
-    virtual ~TransportResponseMessage();
-};
-
-/**
- * TransportRecvMessage
- * Generic receive message implementation
- */
-struct TransportRecvMessage final : public TransportResponseMessage {
-    TransportRecvMessage();
-    ~TransportRecvMessage();
-
-    std::size_t size() const;
-    void cleanup();
-
-    int rs_idx;
-
-    int error;
-};
-
-/**
- * TransportGetRecvMessage
- * Generic receive get message implementation
- */
-struct TransportGetRecvMessage final : public TransportResponseMessage {
-    TransportGetRecvMessage();
-    ~TransportGetRecvMessage();
-
-    std::size_t size() const;
-    void cleanup();
-
-    int rs_idx;
-
-    int error;
-
-    void *key;
-    std::size_t key_len;
-
-    void *value;
-    std::size_t value_len;
-};
-
-/**
- * TransportBGetRecvMessage
- * Bulk get receive message implementation
- */
-struct TransportBGetRecvMessage final : public TransportResponseMessage {
-    TransportBGetRecvMessage();
-    ~TransportBGetRecvMessage();
-
-    std::size_t size() const;
-    void cleanup();
-
-    int *rs_idx;
-
-    int error;
-
-    void **keys;
-    std::size_t *key_lens;
-
-    void **values;
-    std::size_t *value_lens;
-
-    std::size_t num_keys;
-
-    TransportBGetRecvMessage *next;
-};
-
-/**
- * TransportBRecvMessage
- * Bulk receive message implementation
- */
-struct TransportBRecvMessage final : public TransportResponseMessage {
-    TransportBRecvMessage();
-    ~TransportBRecvMessage();
-
-    std::size_t size() const;
-    void cleanup();
-
-    int *rs_idx;
-
-    int error;
-
-    std::size_t num_keys;
-
-    TransportBRecvMessage *next;
-};
+namespace Transport {
 
 /**
  * @ An abstract communication endpoint
  */
-class TransportEndpoint {
+class Endpoint {
     public:
-        virtual ~TransportEndpoint() {}
+        virtual ~Endpoint() {}
 
         /** @description Send a Put to this endpoint */
-        virtual TransportRecvMessage *Put(const TransportPutMessage *message) = 0;
+        virtual Response::Put *Put(const Request::Put *message) = 0;
 
         /** @description Send a Get to this endpoint */
-        virtual TransportGetRecvMessage *Get(const TransportGetMessage *message) = 0;
+        virtual Response::Get *Get(const Request::Get *message) = 0;
 
-        /** @description Send a Put to this endpoint */
-        virtual TransportRecvMessage *Delete(const TransportDeleteMessage *message) = 0;
+        /** @description Send a Delete to this endpoint */
+        virtual Response::Delete *Delete(const Request::Delete *message) = 0;
 
     protected:
-        TransportEndpoint() {}
-        TransportEndpoint(const TransportEndpoint&  rhs) = delete;
-        TransportEndpoint(const TransportEndpoint&& rhs) = delete;
+        Endpoint() {}
+        Endpoint(const Endpoint&  rhs) = delete;
+        Endpoint(const Endpoint&& rhs) = delete;
 };
 
 /**
  * An abstract group of communication endpoints
  */
-class TransportEndpointGroup {
+class EndpointGroup {
     public:
-        virtual ~TransportEndpointGroup() {}
+        virtual ~EndpointGroup() {}
 
         /** @description Bulk Put to multiple endpoints    */
-        virtual TransportBRecvMessage *BPut(const std::size_t num_rangesrvs, TransportBPutMessage **bpm_list) = 0;
+        virtual Response::BPut *BPut(const std::size_t num_rangesrvs, Request::BPut **bpm_list) = 0;
 
         /** @description Bulk Get from multiple endpoints  */
-        virtual TransportBGetRecvMessage *BGet(const std::size_t num_rangesrvs, TransportBGetMessage **bgm_list) = 0;
+        virtual Response::BGet *BGet(const std::size_t num_rangesrvs, Request::BGet **bgm_list) = 0;
+
+        /** @description Bulk Get from multiple endpoints  */
+        virtual Response::BGetOp *BGetOp(const std::size_t num_rangesrvs, Request::BGetOp **bgm_list) = 0;
 
         /** @description Bulk Delete to multiple endpoints */
-        virtual TransportBRecvMessage *BDelete(const std::size_t num_rangesrvs, TransportBDeleteMessage **bdm_list) = 0;
+        virtual Response::BDelete *BDelete(const std::size_t num_rangesrvs, Request::BDelete **bdm_list) = 0;
 
    protected:
-        TransportEndpointGroup() {}
-        TransportEndpointGroup(const TransportEndpointGroup&  rhs) = delete;
-        TransportEndpointGroup(const TransportEndpointGroup&& rhs) = delete;
+        EndpointGroup() {}
+        EndpointGroup(const EndpointGroup&  rhs) = delete;
+        EndpointGroup(const EndpointGroup&& rhs) = delete;
 
-        /** @description Converts Transport*Message ** to TransportMessage ** to prevent pointer weirdness */
-        template <typename T, typename = std::enable_if_t<std::is_convertible<T, TransportMessage>::value> >
-        static TransportMessage **convert_to_base(const std::size_t num_rangesrvs, T **list) {
-            if (!list) {
-                return nullptr;
+        /**
+         * get_num_srsv
+         * get the number of servers that will be sent work, and need to be waited on
+         *
+         * @param messages      the messages that are to be sent
+         * @param num_rangesrvs the total number of range servers
+         * @param srvs          address of an array that will be created and filled with unique range server IDs
+         * @return the          number of unique IDs in *srvs
+         */
+        template <typename T, typename = std::enable_if_t<std::is_convertible<T, Transport::Message>::value> >
+        std::size_t get_num_srvs(T **messages, const std::size_t num_rangesrvs, int **srvs) {
+            if (!messages || !srvs) {
+                return 0;
             }
 
-            TransportMessage **messages = new TransportMessage *[num_rangesrvs]();
-            for(std::size_t i = 0; i < num_rangesrvs; i++) {
-                messages[i] = list[i];
+            *srvs = nullptr;
+
+            // get the actual number of servers
+            int num_srvs = 0;
+            *srvs = new int[num_rangesrvs]();
+            for (std::size_t i = 0; i < num_rangesrvs; i++) {
+                if (!messages[i]) {
+                    continue;
+                }
+
+                // store server IDs to receive frome
+                (*srvs)[num_srvs] = messages[i]->dst;
+                num_srvs++;
             }
 
-            return messages;
+            if (!num_srvs) {
+                delete [] *srvs;
+                *srvs = nullptr;
+            }
+
+            return num_srvs;
         }
-
-        /** @description Counts and returns the servers that will be sent work */
-        std::size_t get_num_srvs(TransportMessage **messages, const std::size_t num_rangesrvs, int **srvs);
 };
 
 /**
@@ -342,37 +113,42 @@ class Transport {
         ~Transport();
 
         /** @description Takes ownership of an endpoint and associates it with a unique id   */
-        void AddEndpoint(const int id, TransportEndpoint *ep);
+        void AddEndpoint(const int id, Endpoint *ep);
 
         /** @description Deallocates and removes the endpoint from the transport             */
         void RemoveEndpoint(const int id);
 
         /** @description Takes ownership of an endpoint group, deallocating the previous one */
-        void SetEndpointGroup(TransportEndpointGroup *eg);
+        void SetEndpointGroup(EndpointGroup *eg);
 
         /**  @description Puts a message onto the the underlying transport    */
-        TransportRecvMessage *Put(const TransportPutMessage *pm);
+        Response::Put *Put(const Request::Put *pm);
 
         /**  @description Gets a message onto the the underlying transport    */
-        TransportGetRecvMessage *Get(const TransportGetMessage *gm);
+        Response::Get *Get(const Request::Get *gm);
 
         /**  @description Deletes a message onto the the underlying transport */
-        TransportRecvMessage *Delete(const TransportDeleteMessage *dm);
+        Response::Delete *Delete(const Request::Delete *dm);
 
         /** @description Bulk Put to multiple endpoints     */
-        TransportBRecvMessage *BPut(const std::size_t num_rangesrvs, TransportBPutMessage **bpm_list);
+        Response::BPut *BPut(const std::size_t num_rangesrvs, Request::BPut **bpm_list);
 
         /** @description Bulk Get from multiple endpoints   */
-        TransportBGetRecvMessage *BGet(const std::size_t num_rangesrvs, TransportBGetMessage **bgm_list);
+        Response::BGet *BGet(const std::size_t num_rangesrvs, Request::BGet **bgm_list);
+
+        /** @description Bulk Get from multiple endpoints   */
+        Response::BGetOp *BGetOp(const std::size_t num_rangesrvs, Request::BGetOp **bgm_list);
 
         /** @description Bulk Delete to multiple endpoints  */
-        TransportBRecvMessage *BDelete(const std::size_t num_rangesrvs, TransportBDeleteMessage **bdm_list);
+        Response::BDelete *BDelete(const std::size_t num_rangesrvs, Request::BDelete **bdm_list);
 
     private:
-        typedef std::map<int, TransportEndpoint *> TransportEndpointMapping_t;
+        typedef std::map<int, Endpoint *> EndpointMapping_t;
 
-        TransportEndpointMapping_t endpoints_;
-        TransportEndpointGroup *endpointgroup_;
+        EndpointMapping_t endpoints_;
+        EndpointGroup *endpointgroup_;
 };
+
+}
 
 #endif //HXHIM_TRANSPORT

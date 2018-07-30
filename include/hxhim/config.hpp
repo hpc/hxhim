@@ -1,12 +1,14 @@
-#ifndef HXHIM_CONFIG_PRIVATE
-#define HXHIM_CONFIG_PRIVATE
+#ifndef HXHIM_CONFIG_HPP
+#define HXHIM_CONFIG_HPP
 
 #include <map>
 #include <string>
 
 #include "hxhim/constants.h"
+#include "transport/constants.h"
 #include "utils/Configuration.hpp"
 #include "utils/Histogram.hpp"
+#include "hxhim/hash.hpp"
 
 /**
  * Constant locations where the configuration reader searches
@@ -14,35 +16,61 @@
 const std::string HXHIM_CONFIG_FILE                 = "hxhim.conf";
 const std::string HXHIM_CONFIG_ENV                  = "HXHIM_CONFIG";
 
-const std::string HXHIM_BACKEND_TYPE                = "BACKEND";                   // See HXHIM_BACKEND_TYPES
-const std::string HXHIM_MDHIM_CONFIG                = "MDHIM_CONFIG";              // file path
+const std::string HXHIM_DATABASE_TYPE               = "DATABASE";                  // See HXHIM_DATABASE_TYPES
+const std::string HXHIM_DATABASES_PER_RANGE_SERVER  = "DATABASES_PER_RS";          // positive integer
+
+/** LevelDB Database Options*/
 const std::string HXHIM_LEVELDB_NAME                = "LEVELDB_NAME";              // file path
 const std::string HXHIM_LEVELDB_CREATE_IF_MISSING   = "LEVELDB_CREATE_IF_MISSING"; // boolean
+
 const std::string HXHIM_QUEUED_BULK_PUTS            = "QUEUED_BULK_PUTS";          // nonnegative integer
 
+const std::string HXHIM_HASH                        = "HASH";                      // See HXHIM_HASHES
+const std::string HXHIM_TRANSPORT                   = "TRANSPORT";                 // See HXHIM_TRANSPORTS
+
+/** MPI Options */
+const std::string HXHIM_MPI_MEMORY_ALLOC_SIZE       = "MEMORY_ALLOC_SIZE";         // positive integer
+const std::string HXHIM_MPI_MEMORY_REGIONS          = "MEMORY_REGIONS";            // positive integer
+const std::string HXHIM_MPI_LISTENERS               = "NUM_LISTENERS";             // positive integer
+
+/** Thallium Options */
+const std::string HXHIM_THALLIUM_MODULE             = "THALLIUM_MODULE";           // See mercury documentation
+
+const std::string HXHIM_TRANSPORT_ENDPOINT_GROUP    = "ENDPOINT_GROUP";            // list of globally unique ids or "ALL"
+
+/** Histogram Options */
 const std::string HXHIM_HISTOGRAM_FIRST_N           = "HISTOGRAM_FIRST_N";         // unsigned int
 const std::string HXHIM_HISTOGRAM_BUCKET_GEN_METHOD = "HISTOGRAM_BUCKET_METHOD";   // See HXHIM_BUCKET_GENERATORS
 
 /**
- * Set of allowed backends for HXHIM
+ * Set of allowed databases for HXHIM
  */
-const std::map<std::string, hxhim_backend_t> HXHIM_BACKENDS = {
-    std::make_pair("MDHIM",     HXHIM_BACKEND_MDHIM),
-    std::make_pair("LEVELDB",   HXHIM_BACKEND_LEVELDB),
-    std::make_pair("IN_MEMORY", HXHIM_BACKEND_IN_MEMORY),
+const std::map<std::string, hxhim_database_t> HXHIM_DATABASES = {
+    std::make_pair("LEVELDB",   HXHIM_DATABASE_LEVELDB),
+    std::make_pair("IN_MEMORY", HXHIM_DATABASE_IN_MEMORY),
 };
 
-// /**
-//  * The allowable subject, predicate, and object types
-//  */
-// const std::map<std::string, hxhim_spo_type_t> HXHIM_SPO_TYPES = {
-//     std::make_pair("INT",    HXHIM_SPO_INT_TYPE),
-//     std::make_pair("SIZE",   HXHIM_SPO_SIZE_TYPE),
-//     std::make_pair("INT64",  HXHIM_SPO_INT64_TYPE),
-//     std::make_pair("FLOAT",  HXHIM_SPO_FLOAT_TYPE),
-//     std::make_pair("DOUBLE", HXHIM_SPO_DOUBLE_TYPE),
-//     std::make_pair("BYTE",   HXHIM_SPO_BYTE_TYPE),
-// };
+/**
+ * String representations of predefined hash algorithms
+ */
+const std::string RANK              = "RANK";
+const std::string SUM_MOD_DATABASES = "SUM_MOD_DATABASES";
+
+/**
+ * Set of predefined hash functions
+ */
+const std::map<std::string, hxhim::hash::Func> HXHIM_HASHES = {
+    std::make_pair(RANK,              hxhim::hash::Rank),
+    std::make_pair(SUM_MOD_DATABASES, hxhim::hash::SumModDatabases),
+};
+
+/**
+ * Set of available transports
+ */
+const std::map<std::string, Transport::Type> HXHIM_TRANSPORTS = {
+    std::make_pair("MPI",      Transport::TRANSPORT_MPI),
+    std::make_pair("THALLIUM", Transport::TRANSPORT_THALLIUM),
+};
 
 /**
  * String representations of predefined histogram bucket generators
@@ -87,10 +115,15 @@ const std::map<std::string, void *> HXHIM_HISTOGRAM_BUCKET_GENERATOR_EXTRA_ARGS 
  * Default configuration
  */
 const Config HXHIM_DEFAULT_CONFIG = {
-    std::make_pair(HXHIM_BACKEND_TYPE,                  "MDHIM"),
-    std::make_pair(HXHIM_MDHIM_CONFIG,                  "mdhim.conf"),
+    std::make_pair(HXHIM_DATABASE_TYPE,                 "LEVELDB"),
+    std::make_pair(HXHIM_DATABASES_PER_RANGE_SERVER,    "1"),
+    std::make_pair(HXHIM_LEVELDB_NAME,                  "leveldb"),
     std::make_pair(HXHIM_LEVELDB_CREATE_IF_MISSING,     "true"),
+    std::make_pair(HXHIM_HASH,                          SUM_MOD_DATABASES),
     std::make_pair(HXHIM_QUEUED_BULK_PUTS,              "5"),
+    std::make_pair(HXHIM_TRANSPORT,                     "THALLIUM"),
+    std::make_pair(HXHIM_THALLIUM_MODULE,               "na+sm"),
+    std::make_pair(HXHIM_TRANSPORT_ENDPOINT_GROUP,      "ALL"),
     std::make_pair(HXHIM_HISTOGRAM_FIRST_N,             "10"),
     std::make_pair(HXHIM_HISTOGRAM_BUCKET_GEN_METHOD,   TEN_BUCKETS),
 };

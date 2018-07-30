@@ -30,7 +30,7 @@ int sp_to_key(const void *subject, const std::size_t subject_len,
         return HXHIM_SUCCESS;
     }
 
-    if (!(*key = ::operator new(*key_len))) {
+    if (!(*key = ::operator new (*key_len))) {
         *key_len = 0;
         return HXHIM_ERROR;
     }

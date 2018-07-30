@@ -11,49 +11,63 @@
 #include "hxhim/backend/base.hpp"
 #include "hxhim/cache.hpp"
 #include "hxhim/constants.h"
+#include "hxhim/hash.hpp"
 #include "hxhim/options.h"
 #include "hxhim/struct.h"
-#include "utils/Histogram.hpp"
+#include "transport/transport.hpp"
 
 typedef struct hxhim_private {
     hxhim_private();
 
-    hxhim::backend::base *backend;
+    std::atomic_bool running;
 
-    // unsent data
+    // unsent data queues
     hxhim::Unsent<hxhim::PutData> puts;
     hxhim::Unsent<hxhim::GetData> gets;
     hxhim::Unsent<hxhim::GetOpData> getops;
     hxhim::Unsent<hxhim::DeleteData> deletes;
 
+    hxhim::backend::base **databases;
+    std::size_t database_count;
+
     // asynchronous PUT data
-    std::atomic_bool running;
-    std::size_t queued_bputs;               // number of batches to hold before sending PUTs asynchronously
-    std::thread background_put_thread;
-    std::mutex put_results_mutex;
-    hxhim::Results *put_results;
+    struct {
+        std::size_t max_queued;                                // number of batches to hold before sending PUTs asynchronously
+        std::thread thread;                                    // the thread that pushes PUTs off the PUT queue asynchronously
+        std::mutex mutex;                                      // mutex to the list of results from asynchronous PUT operations
+        hxhim::Results *results;                               // the list of of PUT results
+    } async_put;
 
-    Histogram::Histogram *histogram;
-
+    // Transport variables
+    hxhim::hash::Func hash;                                    // the function used to determine which database should be used to perform an operation with
+    void *hash_args;
+    Transport::Transport *transport;
+    void (*range_server_destroy)();                            // Range server static variable cleanup
 } hxhim_private_t;
 
 namespace hxhim {
-int encode(const hxhim_spo_type_t type, void *&ptr, std::size_t &len, bool &copied);
 
+// HXHIM should (probably) be initialized in this order
 namespace init {
-int types(hxhim_t *hx, hxhim_options_t *opts);
-int backend(hxhim_t *hx, hxhim_options_t *opts);
-int one_backend(hxhim_t *hx, hxhim_options_t *opts, const std::string &name);
-int background_thread(hxhim_t *hx, hxhim_options_t *opts);
-int histogram(hxhim_t *hx, hxhim_options_t *opts);
+int running     (hxhim_t *hx, hxhim_options_t *opts);
+int range_server(hxhim_t *hx, hxhim_options_t *opts);
+int database     (hxhim_t *hx, hxhim_options_t *opts);
+int one_database (hxhim_t *hx, hxhim_options_t *opts, const std::string &name);
+int async_put   (hxhim_t *hx, hxhim_options_t *opts);
+int hash        (hxhim_t *hx, hxhim_options_t *opts);
+int transport   (hxhim_t *hx, hxhim_options_t *opts);
 }
 
+// HXHIM should (probably) be destroyed in this order
 namespace destroy {
-int types(hxhim_t *hx);
-int backend(hxhim_t *hx);
-int background_thread(hxhim_t *hx);
-int histogram(hxhim_t *hx);
+int running     (hxhim_t *hx);
+int transport   (hxhim_t *hx);
+int hash        (hxhim_t *hx);
+int async_put   (hxhim_t *hx);
+int database     (hxhim_t *hx);
+int range_server(hxhim_t *hx);
 }
+
 }
 
 #endif

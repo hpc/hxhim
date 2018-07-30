@@ -151,22 +151,12 @@ message( STATUS "GTest source dir: " ${gtest_SOURCE_DIR})
 # Create libraries
 #
 file(GLOB_RECURSE HXHIM src/hxhim/*.c*)
-file(GLOB BASE src/base/*.c*)
-file(GLOB MDHIM src/mdhim/*.c*)
-file(GLOB TRANSPORT src/transport/*.c*)
-file(GLOB UTILS src/utils/*.c*)
-list(REMOVE_ITEM UTILS **.tpp)
+file(GLOB_RECURSE BASE src/base/*.c*)
+file(GLOB_RECURSE TRANSPORT src/transport/*.c*)
+file(GLOB_RECURSE UTILS src/utils/*.c*)
 
-set(LIBMDHIM_SOURCES ${MDHIM} ${TRANSPORT} ${UTILS})
-message(STATUS "LIBMDHIM_SOURCES: " ${LIBMDHIM_SOURCES})
-add_library(mdhim OBJECT ${LIBMDHIM_SOURCES})
-set_target_properties(mdhim PROPERTIES POSITION_INDEPENDENT_CODE ON)
-add_library(mdhim.a  STATIC $<TARGET_OBJECTS:mdhim>)
-set_target_properties(mdhim.a  PROPERTIES OUTPUT_NAME mdhim)
-add_library(mdhim.so SHARED $<TARGET_OBJECTS:mdhim>)
-set_target_properties(mdhim.so PROPERTIES OUTPUT_NAME mdhim)
-
-set(LIBHXHIM_SOURCES ${HXHIM} ${BASE})
+set(LIBHXHIM_SOURCES ${HXHIM} ${BASE} ${TRANSPORT} ${UTILS})
+list(REMOVE_ITEM LIBHXHIM_SOURCES **.tpp)
 message(STATUS "LIBHXHIM_SOURCES: " ${LIBHXHIM_SOURCES})
 add_library(hxhim OBJECT ${LIBHXHIM_SOURCES})
 set_target_properties(hxhim PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -181,8 +171,6 @@ set_target_properties(hxhim.so PROPERTIES OUTPUT_NAME hxhim)
 add_subdirectory(include)
 
 INSTALL(TARGETS
-  mdhim.a
-  mdhim.so
   hxhim.a
   hxhim.so
   DESTINATION lib)
@@ -201,7 +189,6 @@ add_subdirectory(src/demo)
 # Add unit test executables
 #
 add_subdirectory(test/hxhim)
-add_subdirectory(test/mdhim)
 add_subdirectory(test/transport)
 add_subdirectory(test/utils)
 

@@ -1,89 +1,35 @@
 #include <cfloat>
 
 #include "hxhim/backend/backends.hpp"
-#include "hxhim/config.h"
 #include "hxhim/config.hpp"
+#include "hxhim/local_client.hpp"
 #include "hxhim/options_private.hpp"
 #include "hxhim/private.hpp"
-#include "utils/elen.hpp"
-#include "utils/reverse_bytes.h"
+#include "hxhim/shuffle.hpp"
+#include "hxhim/triplestore.hpp"
+#include "transport/backend/backends.hpp"
+#include "transport/transport.hpp"
+#include "utils/MemoryManagers.hpp"
 
 hxhim_private::hxhim_private()
-    : backend(nullptr),
+    : running(false),
       puts(),
       gets(),
       getops(),
       deletes(),
-      running(false),
-      queued_bputs(0),
-      background_put_thread(),
-      put_results_mutex(),
-      put_results(nullptr),
-      histogram(nullptr)
-{}
-
-/**
- * encode
- * Converts the contents of a void * into another
- * format if the type is floating point.
- * This is allowed because the pointers are coming
- * from the internal arrays, and thus can be
- * overwritten/replaced with a new pointer.
- *
- * @param type   the underlying type of this value
- * @param ptr    address of the value
- * @param len    size of the memory being pointed to
- * @param copied whether or not the original ptr was replaced by a copy that needs to be deallocated
- * @param HXHIM_SUCCESS or HXHIM_ERROR
- */
-int hxhim::encode(const hxhim_spo_type_t type, void *&ptr, std::size_t &len, bool &copied) {
-    if (!ptr) {
-        return HXHIM_ERROR;
-    }
-
-    switch (type) {
-        case HXHIM_SPO_FLOAT_TYPE:
-            {
-                const std::string str = elen::encode::floating_point(* (float *) ptr);
-                len = str.size();
-                ptr = ::operator new(len);
-                memcpy(ptr, str.c_str(), len);
-                copied = true;
-            }
-            break;
-        case HXHIM_SPO_DOUBLE_TYPE:
-            {
-                const std::string str = elen::encode::floating_point(* (double *) ptr);
-                len = str.size();
-                ptr = ::operator new(len);
-                memcpy(ptr, str.c_str(), len);
-                copied = true;
-            }
-            break;
-        case HXHIM_SPO_INT_TYPE:
-        case HXHIM_SPO_SIZE_TYPE:
-        case HXHIM_SPO_INT64_TYPE:
-            {
-                // should only do this if little endian is detected
-                void *src = ptr;
-                ptr = ::operator new(len);
-                reverse_bytes(src, len, ptr);
-                copied = true;
-            }
-            break;
-        case HXHIM_SPO_BYTE_TYPE:
-            copied = false;
-            break;
-        default:
-            return HXHIM_ERROR;
-    }
-
-    return HXHIM_SUCCESS;
+      databases(nullptr),
+      database_count(0),
+      async_put(),
+      transport(nullptr),
+      range_server_destroy(nullptr)
+{
+    async_put.max_queued = 0;
+    async_put.results = nullptr;
 }
 
 /**
  * put_core
- * The core functionality for putting a single batch of SPO triples into the backend
+ * The core functionality for putting a single batch of SPO triples into the database
  *
  * @param hx      the HXHIM context
  * @param head    the head of the list of SPO triple batches to send
@@ -95,17 +41,21 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
         return nullptr;
     }
 
-    const std::size_t total = HXHIM_PUT_MULTIPLER * count;
+    const std::size_t total = HXHIM_PUT_MULTIPLER * count;                              // total number of triples that will be PUT
 
-    void **subjects = new void *[total]();
-    std::size_t *subject_lens = new std::size_t[total]();
-    void **predicates = new void *[total]();
-    std::size_t *predicate_lens = new std::size_t[total]();
-    void **objects = new void *[total]();
-    std::size_t *object_lens = new std::size_t[total]();
+    Transport::Request::BPut local(HXHIM_MAX_BULK_GET_OPS);
+    local.src = hx->mpi.rank;
+    local.dst = hx->mpi.rank;
+    local.count = 0;
 
-    std::list <void *> ptrs;
-    std::size_t offset = 0;
+    Transport::Request::BPut **remote = new Transport::Request::BPut *[hx->mpi.size](); // list of destination servers (not databases) and messages to those destinations
+    for(std::size_t i = 0; i < hx->mpi.size; i++) {
+        remote[i] = new Transport::Request::BPut(HXHIM_MAX_BULK_GET_OPS);
+        remote[i]->src = hx->mpi.rank;
+        remote[i]->dst = i;
+        remote[i]->count = 0;
+    }
+
     for(std::size_t i = 0; i < count; i++) {
         // alias the values
         void *subject = head->subjects[i];
@@ -114,94 +64,67 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
         void *predicate = head->predicates[i];
         std::size_t predicate_len = head->predicate_lens[i];
 
-        hxhim_spo_type_t object_type = head->object_types[i];
+        hxhim_type_t object_type = head->object_types[i];
         void *object = head->objects[i];
         std::size_t object_len = head->object_lens[i];
 
-        // add the value to the histogram
-        double add_to_hist = 0;
-        switch (object_type) {
-            case HXHIM_SPO_INT_TYPE:
-                add_to_hist = (double) * (int *) object;
-                break;
-            case HXHIM_SPO_SIZE_TYPE:
-                add_to_hist = (double) * (std::size_t *) object;
-                break;
-            case HXHIM_SPO_INT64_TYPE:
-                add_to_hist = (double) * (int64_t *) object;
-                break;
-            case HXHIM_SPO_FLOAT_TYPE:
-                add_to_hist = (double) * (float *) object;
-                break;
-            case HXHIM_SPO_DOUBLE_TYPE:
-                add_to_hist = (double) * (double *) object;
-                break;
-            case HXHIM_SPO_BYTE_TYPE:
-                add_to_hist = (double) * (char *) object;
-                break;
-        }
-
-        hx->p->histogram->add(add_to_hist);
-
-        // encode the object
-        // the subject and predicate are provided by the user
-        bool copied = false;
-        hxhim::encode(object_type, object, object_len, copied);
-        if (copied) {
-            ptrs.push_back(object);
-        }
-
         // SP -> O
-        subjects[offset] = subject;
-        subject_lens[offset] = subject_len;
-        predicates[offset] = predicate;
-        predicate_lens[offset] = predicate_len;
-        objects[offset] = object;
-        object_lens[offset] = object_len;
-        offset++;
+        hxhim::shuffle::Put(hx, total,
+                            subject, subject_len,
+                            predicate, predicate_len,
+                            object_type, object, object_len,
+                            &local, remote);
 
         // // SO -> P
-        // subjects[offset] = subject;
-        // subject_lens[offset] = subject_len;
-        // predicates[offset] = object;
-        // predicate_lens[offset] = object_len;
-        // objects[offset] = predicate;
-        // object_lens[offset] = predicate_len;
-        // offset++;
+        // hxhim::shuffle::Put(hx, total,
+        //                     subject, subject_len,
+        //                     object, object_len,
+        //                     HXHIM_BYTE_TYPE, predicate, predicate_len,
+        //                     &local, &remote);
 
         // // PO -> S
-        // subjects[offset] = predicate;
-        // subject_lens[offset] = predicate_len;
-        // predicates[offset] = object;
-        // predicate_lens[offset] = object_len;
-        // objects[offset] = subject;
-        // object_lens[offset] = subject_len;
-        // offset++;
+        // hxhim::shuffle::Put(hx, total,
+        //                     predicate, predicate_len,
+        //                     object, object_len,
+        //                     HXHIM_BYTE_TYPE, subject, subject_len,
+        //                     &local, &remote);
 
         // // PS -> O
-        // subjects[offset] = predicate;
-        // subject_lens[offset] = predicate_len;
-        // predicates[offset] = subject;
-        // predicate_lens[offset] = subject_len;
-        // objects[offset] = object;
-        // object_lens[offset] = object_len;
-        // offset++;
+        // hxhim::shuffle::Put(hx, total,
+        //                     predicate, predicate_len,
+        //                     subject, subject_len,
+        //                     object_type, object, object_len,
+        //                     &local, &remote);
     }
+
+    hxhim::Results *res = new hxhim::Results();
 
     // PUT the batch
-    hxhim::Results *res = hx->p->backend->BPut(subjects, subject_lens, predicates, predicate_lens, objects, object_lens, total);
-
-    // cleanup
-    for(void *ptr : ptrs) {
-        ::operator delete(ptr);
+    if (hx->mpi.size > 1) {
+        Transport::Response::BPut *responses = hx->p->transport->BPut(hx->mpi.size, remote);
+        for(Transport::Response::BPut *curr = responses; curr; curr = curr->next) {
+            for(std::size_t i = 0; i < curr->count; i++) {
+                res->Add(new hxhim::Results::Put(curr, i));
+            }
+        }
+        delete responses;
     }
 
-    delete [] subjects;
-    delete [] subject_lens;
-    delete [] predicates;
-    delete [] predicate_lens;
-    delete [] objects;
-    delete [] object_lens;
+    if (local.count) {
+        Transport::Response::BPut *responses = local_client_bput(hx, &local);
+        for(Transport::Response::BPut *curr = responses; curr; curr = curr->next) {
+            for(std::size_t i = 0; i < curr->count; i++) {
+                res->Add(new hxhim::Results::Put(curr, i));
+            }
+        }
+        delete responses;
+    }
+
+    // cleanup
+    for(std::size_t i = 0; i < hx->mpi.size; i++) {
+        delete remote[i];
+    }
+    delete [] remote;
 
     return res;
 }
@@ -229,8 +152,8 @@ static void backgroundPUT(void *args) {
         {
             hxhim::Unsent<hxhim::PutData> &unsent = hx->p->puts;
             std::unique_lock<std::mutex> lock(unsent.mutex);
-            while (hx->p->running && (unsent.full_batches < hx->p->queued_bputs) && !unsent.force) {
-                unsent.start_processing.wait(lock, [&]() -> bool { return !hx->p->running || (unsent.full_batches >= hx->p->queued_bputs) || unsent.force; });
+            while (hx->p->running && (unsent.full_batches < hx->p->async_put.max_queued) && !unsent.force) {
+                unsent.start_processing.wait(lock, [&]() -> bool { return !hx->p->running || (unsent.full_batches >= hx->p->async_put.max_queued) || unsent.force; });
             }
 
             // record whether or not this loop was forced, since the lock is not held
@@ -301,8 +224,8 @@ static void backgroundPUT(void *args) {
             head = next;
 
             {
-                std::unique_lock<std::mutex> lock(hx->p->put_results_mutex);
-                hx->p->put_results->Append(res);
+                std::unique_lock<std::mutex> lock(hx->p->async_put.mutex);
+                hx->p->async_put.results->Append(res);
             }
 
             delete res;
@@ -318,8 +241,8 @@ static void backgroundPUT(void *args) {
                 last = nullptr;
 
                 {
-                    std::unique_lock<std::mutex> lock(hx->p->put_results_mutex);
-                    hx->p->put_results->Append(res);
+                    std::unique_lock<std::mutex> lock(hx->p->async_put.mutex);
+                    hx->p->async_put.results->Append(res);
                 }
 
                 delete res;
@@ -349,128 +272,332 @@ static bool valid(hxhim_t *hx, hxhim_options_t *opts) {
 }
 
 /**
- * types
- * Sets the types of the subjects, predicates, and objects.
+ * running
+ * Sets the state to running
  *
  * @param hx   the HXHIM instance
  * @param opts the HXHIM options
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int hxhim::init::types(hxhim_t *hx, hxhim_options_t *opts) {
+int hxhim::init::running(hxhim_t *hx, hxhim_options_t *opts) {
     if (!valid(hx, opts)) {
         return HXHIM_ERROR;
+    }
+
+    hx->p->running = true;
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * database
+ * Sets up and starts the database
+ *
+ * @param hx   the HXHIM instance
+ * @param opts the HXHIM options
+ * @return HXHIM_SUCCESS on success or HXHIM_ERROR
+ */
+int hxhim::init::database(hxhim_t *hx, hxhim_options_t *opts) {
+    if (!valid(hx, opts)) {
+        return HXHIM_ERROR;
+    }
+
+    if (!(hx->p->database_count = opts->p->database_count)) {
+        return HXHIM_ERROR;
+    }
+
+    if (!(hx->p->databases = new hxhim::backend::base *[hx->p->database_count])) {
+        return HXHIM_ERROR;
+    }
+
+    for(std::size_t i = 0; i < hx->p->database_count; i++) {
+        // Start the database
+        switch (opts->p->database->type) {
+            case HXHIM_DATABASE_LEVELDB:
+                {
+                    hxhim_leveldb_config_t *config = static_cast<hxhim_leveldb_config_t *>(opts->p->database);
+                    hx->p->databases[i] = new hxhim::backend::leveldb(hx,
+                                                                      config->id,
+                                                                      opts->p->histogram.first_n,
+                                                                      opts->p->histogram.gen,
+                                                                      opts->p->histogram.args,
+                                                                      config->path, config->create_if_missing);
+                }
+                break;
+            case HXHIM_DATABASE_IN_MEMORY:
+                {
+                    hx->p->databases[i] = new hxhim::backend::InMemory(hx,
+                                                                       i,
+                                                                       opts->p->histogram.first_n,
+                                                                       opts->p->histogram.gen,
+                                                                       opts->p->histogram.args);
+                }
+                break;
+            default:
+                break;
+        }
+
+        if (!hx->p->databases[i]) {
+            return HXHIM_ERROR;
+        }
     }
 
     return HXHIM_SUCCESS;
 }
 
 /**
- * backend
- * Sets up and starts the backend
+ * one_database
+ * Sets up and starts one database instance
  *
  * @param hx   the HXHIM instance
  * @param opts the HXHIM options
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int hxhim::init::backend(hxhim_t *hx, hxhim_options_t *opts) {
-    if (!valid(hx, opts)) {
+int hxhim::init::one_database(hxhim_t *hx, hxhim_options_t *opts, const std::string &name) {
+    if (destroy::database(hx) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
 
-    // Start the backend
-    switch (opts->p->backend) {
-        case HXHIM_BACKEND_MDHIM:
-            {
-                hxhim_mdhim_config_t *config = static_cast<hxhim_mdhim_config_t *>(opts->p->backend_config);
-                hx->p->backend = new hxhim::backend::mdhim(hx, config->path);
-            }
-            break;
-        case HXHIM_BACKEND_LEVELDB:
-            {
-                hxhim_leveldb_config_t *config = static_cast<hxhim_leveldb_config_t *>(opts->p->backend_config);
-                hx->p->backend = new hxhim::backend::leveldb(hx, config->path, config->create_if_missing);
-            }
-            break;
-        case HXHIM_BACKEND_IN_MEMORY:
-            {
-                hx->p->backend = new hxhim::backend::InMemory(hx);
-            }
-            break;
-    }
-
-    return hx->p->backend?HXHIM_SUCCESS:HXHIM_ERROR;
-}
-
-int hxhim::init::one_backend(hxhim_t *hx, hxhim_options_t *opts, const std::string &name) {
-    if (destroy::backend(hx) != HXHIM_SUCCESS) {
+    if ((hx->p->database_count = opts->p->database_count) != 1) {
         return HXHIM_ERROR;
     }
 
-    // Start the backend
-    switch (opts->p->backend) {
-        case HXHIM_BACKEND_LEVELDB:
-            hx->p->backend = new hxhim::backend::leveldb(hx, name);
+    if (!(hx->p->databases = new hxhim::backend::base *[hx->p->database_count])) {
+        return HXHIM_ERROR;
+    }
+
+    // Start the database
+    switch (opts->p->database->type) {
+        case HXHIM_DATABASE_LEVELDB:
+            hx->p->databases[0] = new hxhim::backend::leveldb(hx,
+                                                              opts->p->histogram.first_n,
+                                                              opts->p->histogram.gen,
+                                                              opts->p->histogram.args,
+                                                              name);
+            break;
+        case HXHIM_DATABASE_IN_MEMORY:
+            hx->p->databases[0] = new hxhim::backend::InMemory(hx,
+                                                               0,
+                                                               opts->p->histogram.first_n,
+                                                               opts->p->histogram.gen,
+                                                               opts->p->histogram.args);
             break;
         default:
             break;
     }
 
-    return hx->p->backend?HXHIM_SUCCESS:HXHIM_ERROR;
-
+    return hx->p->databases[0]?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 
 /**
- * background_thread
+ * async_put
  * Starts up the background thread that does asynchronous PUTs.
  *
  * @param hx   the HXHIM instance
  * @param opts the HXHIM options
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int hxhim::init::background_thread(hxhim_t *hx, hxhim_options_t *opts) {
+int hxhim::init::async_put(hxhim_t *hx, hxhim_options_t *opts) {
     if (!valid(hx, opts)) {
         return HXHIM_ERROR;
     }
 
-    hx->p->running = true;
+    if (init::running(hx, opts) != HXHIM_SUCCESS) {
+        return HXHIM_ERROR;
+    }
 
     // Set up queued PUT results list
-    if (!(hx->p->put_results = new hxhim::Results())) {
+    if (!(hx->p->async_put.results = new hxhim::Results())) {
         return HXHIM_ERROR;
     }
 
     // Start the background thread
-    hx->p->background_put_thread = std::thread(backgroundPUT, hx);
+    hx->p->async_put.thread = std::thread(backgroundPUT, hx);
 
     return HXHIM_SUCCESS;
 }
 
 /**
- * histogram
- * Creates the histogram used to collect statistics
+ * hash
+ * Sets up the hash algorithm and extra arguments
+ *
+ * @param hx             the HXHIM instance
+ * @param opts           the HXHIM options
+ * @return HXHIM_SUCCESS on success or HXHIM_ERROR
+ */
+int hxhim::init::hash(hxhim_t *hx, hxhim_options_t *opts) {
+    if (!valid(hx, opts)) {
+        return HXHIM_ERROR;
+    }
+
+    hxhim::hash::init(hx);
+
+    if (opts->p->hash == RANK) {
+        hx->p->hash_args = &hx->mpi.rank;
+    }
+    else if (opts->p->hash == SUM_MOD_DATABASES) {
+        hx->p->hash_args = &hx->p->database_count;
+    }
+    else {
+        return HXHIM_ERROR;
+    }
+
+    hx->p->hash = HXHIM_HASHES.at(opts->p->hash);
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * init_transport_mpi
+ *
+ * @param hx             the HXHIM instance
+ * @param opts           the HXHIM options
+ * @return HXHIM_SUCCESS on success or HXHIM_ERROR
+ */
+static int init_transport_mpi(hxhim_t *hx, hxhim_options_t *opts) {
+    if (!valid(hx, opts) || !hx->p->transport) {
+        return HXHIM_ERROR;
+    }
+
+    using namespace Transport::MPI;
+
+    // Do not allow MPI_COMM_NULL
+    if (opts->p->mpi.comm == MPI_COMM_NULL) {
+        return TRANSPORT_ERROR;
+    }
+
+    // Get the memory pool used for storing messages
+    Options *config = static_cast<Options *>(opts->p->transport);
+    FixedBufferPool *fbp = Memory::Pool(config->alloc_size, config->regions);
+    if (!fbp) {
+        return TRANSPORT_ERROR;
+    }
+
+    // give the range server access to the memory buffer
+    RangeServer::init(hx, fbp, config->listeners);
+
+    EndpointGroup *eg = new EndpointGroup(opts->p->mpi.comm, fbp);
+    if (!eg) {
+        return TRANSPORT_ERROR;
+    }
+
+    // create mapping between unique IDs and ranks
+    for(int i = 0; i < opts->p->mpi.size; i++) {
+        // MPI ranks map 1:1 with the boostrap MPI rank
+        hx->p->transport->AddEndpoint(i, new Endpoint(opts->p->mpi.comm, i, fbp, hx->p->running));
+
+        // if the rank was specified as part of the endpoint group, add the rank to the endpoint group
+        if (opts->p->endpointgroup.find(i) != opts->p->endpointgroup.end()) {
+            eg->AddID(i, i);
+        }
+    }
+
+    // remove loopback endpoint
+    hx->p->transport->RemoveEndpoint(hx->mpi.rank);
+
+    hx->p->transport->SetEndpointGroup(eg);
+    hx->p->range_server_destroy = RangeServer::destroy;
+
+    return TRANSPORT_SUCCESS;
+}
+
+/**
+ * init_transport_thallium
+ *
+ * @param hx   the HXHIM instance
+ * @param opts the HXHIM options
+ * @param TRANSPORT_SUCCESS or TRANSPORT_ERROR
+ */
+static int init_transport_thallium(hxhim_t *hx, hxhim_options_t *opts) {
+    if (!valid(hx, opts)) {
+        return HXHIM_ERROR;
+    }
+
+    using namespace Transport::Thallium;
+
+    // create the engine (only 1 instance per process)
+    Options *config = static_cast<Options *>(opts->p->transport);
+    Engine_t engine(new thallium::engine(config->module, THALLIUM_SERVER_MODE, true, -1),
+                                         [](thallium::engine *engine) {
+                                             engine->finalize();
+                                             delete engine;
+                    });
+
+    // create client to range server RPC
+    RPC_t rpc(new thallium::remote_procedure(engine->define(RangeServer::CLIENT_TO_RANGE_SERVER_NAME,
+                                                            RangeServer::process)));
+
+    // give the range server access to the mdhim_t data
+    RangeServer::init(hx);
+
+    // wait for every engine to start up
+    MPI_Barrier(opts->p->mpi.comm);
+
+    // get a mapping of unique IDs to thallium addresses
+    std::map<int, std::string> addrs;
+    if (get_addrs(opts->p->mpi.comm, engine, addrs) != TRANSPORT_SUCCESS) {
+        return TRANSPORT_ERROR;
+    }
+
+    // remove the loopback endpoint
+    addrs.erase(opts->p->mpi.rank);
+
+    EndpointGroup *eg = new EndpointGroup(rpc);
+    if (!eg) {
+        return TRANSPORT_ERROR;
+    }
+
+    // create mapping between unique IDs and ranks
+    for(std::pair<const int, std::string> const &addr : addrs) {
+        Endpoint_t server(new thallium::endpoint(engine->lookup(addr.second)));
+
+        // add the remote thallium endpoint to the tranport
+        Endpoint* ep = new Endpoint(engine, rpc, server);
+        hx->p->transport->AddEndpoint(addr.first, ep);
+
+        // if the rank was specified as part of the endpoint group, add the thallium endpoint to the endpoint group
+        if (opts->p->endpointgroup.find(addr.first) != opts->p->endpointgroup.end()) {
+            eg->AddID(addr.first, server);
+        }
+    }
+
+    hx->p->transport->SetEndpointGroup(eg);
+    hx->p->range_server_destroy = RangeServer::destroy;
+
+    return TRANSPORT_SUCCESS;
+}
+
+/**
+ * transport
+ * Starts up the transport layer
  *
  * @param hx   the HXHIM instance
  * @param opts the HXHIM options
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int hxhim::init::histogram(hxhim_t *hx, hxhim_options_t *opts) {
+int hxhim::init::transport(hxhim_t *hx, hxhim_options_t *opts) {
     if (!valid(hx, opts)) {
         return HXHIM_ERROR;
     }
 
-    // Find Histogram Bucket Generation Method Extra Arguments
-    void *bucket_gen_extra = nullptr;
-    std::map <std::string, void *>::const_iterator extra_args_it = HXHIM_HISTOGRAM_BUCKET_GENERATOR_EXTRA_ARGS.find(opts->p->histogram_bucket_gen_method);
-    if (extra_args_it != HXHIM_HISTOGRAM_BUCKET_GENERATOR_EXTRA_ARGS.end()) {
-        bucket_gen_extra = extra_args_it->second;
+    delete hx->p->transport;
+    hx->p->transport = nullptr;
+    if (!(hx->p->transport = new Transport::Transport())) {
+        return HXHIM_ERROR;
     }
 
-    // Get the bucket generator and create the histogram
-    hx->p->histogram = new Histogram::Histogram(opts->p->histogram_first_n,
-                                                HXHIM_HISTOGRAM_BUCKET_GENERATORS.at(opts->p->histogram_bucket_gen_method),
-                                                bucket_gen_extra);
+    int ret = TRANSPORT_ERROR;
+    switch (opts->p->transport->type) {
+        case Transport::TRANSPORT_MPI:
+            ret = init_transport_mpi(hx, opts);
+            break;
+        case Transport::TRANSPORT_THALLIUM:
+            ret = init_transport_thallium(hx, opts);
+            break;
+        default:
+            break;
+    }
 
-    return hx->p->histogram?HXHIM_SUCCESS:HXHIM_ERROR;
+    return (ret == TRANSPORT_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 
 /**
@@ -485,59 +612,84 @@ static bool valid(hxhim_t *hx) {
 }
 
 /**
- * types
- * Does nothing
+ * running
+ * Sets the state to not running
  *
  * @param hx   the HXHIM instance
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int hxhim::destroy::types(hxhim_t *hx) {
+int hxhim::destroy::running(hxhim_t *hx) {
     if (!valid(hx)) {
         return HXHIM_ERROR;
     }
+
+    hx->p->running = false;
     return HXHIM_SUCCESS;
 }
 
 /**
- * backend
- * Cleans up the backend
+ * transport
+ * Cleans up the transport
  *
  * @param hx   the HXHIM instance
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int hxhim::destroy::backend(hxhim_t *hx) {
+int hxhim::destroy::transport(hxhim_t *hx) {
     if (!valid(hx)) {
         return HXHIM_ERROR;
     }
 
-    if (hx->p->backend) {
-        hx->p->backend->Close();
-        delete hx->p->backend;
-        hx->p->backend = nullptr;
+    if (hx->p->range_server_destroy) {
+        hx->p->range_server_destroy();
+    }
+
+    if (hx->p->transport) {
+        delete hx->p->transport;
+        hx->p->transport = nullptr;
     }
 
     return HXHIM_SUCCESS;
 }
 
 /**
- * background_thread
+ * hash
+ * Cleans up the hash function
+ *
+ * @param hx   the HXHIM instance
+ * @return HXHIM_SUCCESS on success or HXHIM_ERROR
+ */
+int hxhim::destroy::hash(hxhim_t *hx) {
+    if (!valid(hx)) {
+        return HXHIM_ERROR;
+    }
+
+    hx->p->hash = nullptr;
+    hx->p->hash_args = nullptr;
+
+    hxhim::hash::destroy();
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * async_put
  * Stops the background thread and cleans up the variables used by it
  *
  * @param hx   the HXHIM instance
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int hxhim::destroy::background_thread(hxhim_t *hx) {
+int hxhim::destroy::async_put(hxhim_t *hx) {
     if (!valid(hx)) {
         return HXHIM_ERROR;
     }
 
     // stop the thread
-    hx->p->running = false;
+    destroy::running(hx);
     hx->p->puts.start_processing.notify_all();
     hx->p->puts.done_processing.notify_all();
 
-    if (hx->p->background_put_thread.joinable()) {
-        hx->p->background_put_thread.join();
+    if (hx->p->async_put.thread.joinable()) {
+        hx->p->async_put.thread.join();
     }
 
     // clear out unflushed work in the work queue
@@ -551,30 +703,38 @@ int hxhim::destroy::background_thread(hxhim_t *hx) {
     hx->p->deletes.head = nullptr;
 
     {
-        std::unique_lock<std::mutex>(hx->p->put_results_mutex);
-        delete hx->p->put_results;
-        hx->p->put_results = nullptr;
+        std::unique_lock<std::mutex>(hx->p->async_put.mutex);
+        delete hx->p->async_put.results;
+        hx->p->async_put.results = nullptr;
     }
 
     return HXHIM_SUCCESS;
 }
 
 /**
- * histogram
- * Destroys the histogram in hx
+ * database
+ * Cleans up the database
  *
  * @param hx   the HXHIM instance
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int hxhim::destroy::histogram(hxhim_t *hx) {
+int hxhim::destroy::database(hxhim_t *hx) {
     if (!valid(hx)) {
         return HXHIM_ERROR;
     }
 
-    background_thread(hx);
+    if (hx->p->databases) {
+        for(std::size_t i = 0; i < hx->p->database_count; i++) {
+            if (hx->p->databases[i]) {
+                hx->p->databases[i]->Close();
+                delete hx->p->databases[i];
+                hx->p->databases[i] = nullptr;
+            }
+        }
 
-    delete hx->p->histogram;
-    hx->p->histogram = nullptr;
+        delete [] hx->p->databases;
+        hx->p->databases = nullptr;
+    }
 
     return HXHIM_SUCCESS;
 }

@@ -17,7 +17,7 @@ namespace hxhim {
     } SP_t;
 
     typedef struct SubjectPredicateObject : SP_t {
-        hxhim_spo_type_t object_types[HXHIM_MAX_BULK_OPS];
+        hxhim_type_t object_types[HXHIM_MAX_BULK_OPS];
         void *objects[HXHIM_MAX_BULK_OPS];
         std::size_t object_lens[HXHIM_MAX_BULK_OPS];
     } SPO_t;
@@ -32,14 +32,14 @@ namespace hxhim {
     };
 
     struct GetData : SP_t {
-        hxhim_spo_type_t object_types[HXHIM_MAX_BULK_OPS];
+        hxhim_type_t object_types[HXHIM_MAX_BULK_OPS];
         GetData *next;
     };
 
     struct GetOpData : SP_t {
-        hxhim_spo_type_t object_types[HXHIM_MAX_BULK_OPS];
-        std::size_t counts[HXHIM_MAX_BULK_GET_OPS];
-        hxhim_get_op ops[HXHIM_MAX_BULK_GET_OPS];
+        hxhim_type_t object_types[HXHIM_MAX_BULK_OPS];
+        std::size_t num_recs[HXHIM_MAX_BULK_GET_OPS];
+        hxhim_get_op_t ops[HXHIM_MAX_BULK_GET_OPS];
         GetOpData *next;
     };
 

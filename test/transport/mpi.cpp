@@ -4,563 +4,785 @@
 
 #include "gtest/gtest.h"
 
-#include "transport/MPI.hpp"
+#include "transport/backend/MPI/MPI.hpp"
 #include "utils/MemoryManagers.hpp"
 
-static const char *KEY = "key";
-static const std::size_t KEY_LEN = strlen(KEY);
-static const char *VALUE = "value";
-static const std::size_t VALUE_LEN = strlen(VALUE);
+static const char *SUBJECT = "SUBJECT";
+static const std::size_t SUBJECT_LEN = strlen(SUBJECT);
+static const char *PREDICATE = "PREDICATE";
+static const std::size_t PREDICATE_LEN = strlen(PREDICATE);
+static const hxhim_type_t OBJECT_TYPE = HXHIM_BYTE_TYPE;
+static const char *OBJECT = "OBJECT";
+static const std::size_t OBJECT_LEN = strlen(OBJECT);
 
 static const std::size_t ALLOC_SIZE = 192;
 static const std::size_t REGIONS = 256;
 
+using namespace ::Transport;
+using namespace ::Transport::MPI;
+
 TEST(MPIInstance, Rank) {
-    const MPIInstance& instance = MPIInstance::instance();
-    EXPECT_EQ(instance.Rank(), 0);
+    EXPECT_EQ(Instance::instance().Rank(), 0);
 }
 
 TEST(MPIInstance, Size) {
-    const MPIInstance& instance = MPIInstance::instance();
-    EXPECT_EQ(instance.Size(), 1);
+    EXPECT_EQ(Instance::instance().Size(), 1);
 }
 
 TEST(MPIInstance, WorldRank) {
-    const MPIInstance& instance = MPIInstance::instance();
-    EXPECT_EQ(instance.WorldRank(), 0);
+    EXPECT_EQ(Instance::instance().WorldRank(), 0);
 }
 
 TEST(MPIInstance, WorldSize) {
-    const MPIInstance& instance = MPIInstance::instance();
-    EXPECT_EQ(instance.WorldSize(), 1);
+    EXPECT_EQ(Instance::instance().WorldSize(), 1);
 }
 
-TEST(mpi_pack_unpack, TransportPutMessage) {
-    volatile int shutdown = 0;
-    (void)shutdown;
-    const MPIInstance& instance = MPIInstance::instance();
-    TransportPutMessage src;
+TEST(mpi_pack_unpack, RequestPut) {
+    const MPI_Comm comm = Instance::instance().Comm();
+    Request::Put src;
     {
-        src.mtype = TransportMessageType::PUT;
-        src.src = instance.Rank();
-        src.dst = instance.Rank();
-        src.index = 1;
-        src.index_type = PRIMARY_INDEX;
-        src.index_name = nullptr;
+        src.src = 1;
+        src.dst = 1;
 
-        src.rs_idx = 1;
+        src.db_offset = 1;
 
-        src.key = &KEY;
-        src.key_len = KEY_LEN;
+        src.subject = (void *) SUBJECT;
+        src.subject_len = SUBJECT_LEN;
 
-        src.value = &VALUE;
-        src.value_len = VALUE_LEN;
+        src.predicate = (void *) PREDICATE;
+        src.predicate_len = PREDICATE_LEN;
+
+        src.object_type = OBJECT_TYPE;
+        src.object = (void *) OBJECT;
+        src.object_len = OBJECT_LEN;
     }
+
+    EXPECT_EQ(src.direction, Message::REQUEST);
+    EXPECT_EQ(src.type, Message::PUT);
+    EXPECT_EQ(src.clean, false);
 
     FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
-    ASSERT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize, fbp), MDHIM_SUCCESS);
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), TRANSPORT_SUCCESS);
 
-    TransportPutMessage *dst = nullptr;
-    ASSERT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
+    Request::Put *dst = nullptr;
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize), TRANSPORT_SUCCESS);
 
-    fbp->release(buf);
-
-    EXPECT_EQ(src.mtype, dst->mtype);
+    ASSERT_NE(dst, nullptr);
+    EXPECT_EQ(src.direction, dst->direction);
+    EXPECT_EQ(src.type, dst->type);
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
-    EXPECT_EQ(src.index, dst->index);
-    EXPECT_EQ(src.index_type, dst->index_type);
 
-    EXPECT_EQ(src.rs_idx, dst->rs_idx);
+    EXPECT_EQ(dst->clean, true);
 
-    EXPECT_EQ(src.key_len, dst->key_len);
-    EXPECT_EQ(memcmp(src.key, dst->key, dst->key_len), 0);
+    EXPECT_EQ(src.db_offset, dst->db_offset);
 
-    EXPECT_EQ(src.value_len, dst->value_len);
-    EXPECT_EQ(memcmp(src.value, dst->value, dst->value_len), 0);
+    EXPECT_EQ(src.subject_len, dst->subject_len);
+    EXPECT_EQ(memcmp(src.subject, dst->subject, dst->subject_len), 0);
+
+    EXPECT_EQ(src.predicate_len, dst->predicate_len);
+    EXPECT_EQ(memcmp(src.predicate, dst->predicate, dst->predicate_len), 0);
+
+    EXPECT_EQ(src.object_type, dst->object_type);
+    EXPECT_EQ(src.object_len, dst->object_len);
+    EXPECT_EQ(memcmp(src.object, dst->object, dst->object_len), 0);
 
     delete dst;
-    EXPECT_EQ(fbp->used(), 0);
 }
 
-TEST(mpi_pack_unpack, TransportBPutMessage) {
-    volatile int shutdown = 0;
-    (void)shutdown;
-    const MPIInstance &instance = MPIInstance::instance();
-    TransportBPutMessage src;
+TEST(mpi_pack_unpack, RequestGet) {
+    const MPI_Comm comm = Instance::instance().Comm();
+    Request::Get src;
     {
-        src.mtype = TransportMessageType::BPUT;
-        src.src = instance.Rank();
-        src.dst = instance.Rank();
-        src.index = 1;
-        src.index_type = PRIMARY_INDEX;
-        src.index_name = nullptr;
+        src.src = 1;
+        src.dst = 1;
 
-        src.num_keys = 1;
+        src.db_offset = 1;
 
-        ASSERT_NE(src.rs_idx = new int[src.num_keys](), nullptr);
-        src.rs_idx[0] = 1;
+        src.subject = (void *) SUBJECT;
+        src.subject_len = SUBJECT_LEN;
 
-        ASSERT_NE(src.keys = new void *[src.num_keys](), nullptr);
-        src.keys[0] = (void *) &KEY;
+        src.predicate = (void *) PREDICATE;
+        src.predicate_len = PREDICATE_LEN;
 
-        ASSERT_NE(src.key_lens = new std::size_t[src.num_keys](), nullptr);
-        src.key_lens[0] = KEY_LEN;
-
-        ASSERT_NE(src.values = new void *[src.num_keys](), nullptr);
-        src.values[0] = (void *) &VALUE;
-
-        ASSERT_NE(src.value_lens = new std::size_t[src.num_keys](), nullptr);
-        src.value_lens[0] = VALUE_LEN;
+        src.object_type = OBJECT_TYPE;
     }
+
+    EXPECT_EQ(src.direction, Message::REQUEST);
+    EXPECT_EQ(src.type, Message::GET);
+    EXPECT_EQ(src.clean, false);
 
     FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
-    ASSERT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize, fbp), MDHIM_SUCCESS);
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), TRANSPORT_SUCCESS);
 
-    TransportBPutMessage *dst = nullptr;
-    ASSERT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
+    Request::Get *dst = nullptr;
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize), TRANSPORT_SUCCESS);
 
-    fbp->release(buf);
-
-    EXPECT_EQ(src.mtype, dst->mtype);
+    ASSERT_NE(dst, nullptr);
+    EXPECT_EQ(src.direction, dst->direction);
+    EXPECT_EQ(src.type, dst->type);
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
-    EXPECT_EQ(src.index, dst->index);
-    EXPECT_EQ(src.index_type, dst->index_type);
 
-    EXPECT_EQ(src.num_keys, dst->num_keys);
-    EXPECT_EQ(src.rs_idx[0], dst->rs_idx[0]);
+    EXPECT_EQ(dst->clean, true);
 
-    for(std::size_t i = 0; i < dst->num_keys; i++) {
-        EXPECT_EQ(src.key_lens[i], dst->key_lens[i]);
-        EXPECT_EQ(memcmp(src.keys[i], dst->keys[i], dst->key_lens[i]), 0);
+    EXPECT_EQ(src.db_offset, dst->db_offset);
 
-        EXPECT_EQ(src.value_lens[i], dst->value_lens[i]);
-        EXPECT_EQ(memcmp(src.values[i], dst->values[i], dst->value_lens[i]), 0);
-    }
+    EXPECT_EQ(src.subject_len, dst->subject_len);
+    EXPECT_EQ(memcmp(src.subject, dst->subject, dst->subject_len), 0);
+
+    EXPECT_EQ(src.predicate_len, dst->predicate_len);
+    EXPECT_EQ(memcmp(src.predicate, dst->predicate, dst->predicate_len), 0);
+
+    EXPECT_EQ(src.object_type, dst->object_type);
 
     delete dst;
-    EXPECT_EQ(fbp->used(), 0);
 }
 
-TEST(mpi_pack_unpack, TransportGetMessage) {
-    volatile int shutdown = 0;
-    (void)shutdown;
-    const MPIInstance &instance = MPIInstance::instance();
-    TransportGetMessage src;
+TEST(mpi_pack_unpack, RequestDelete) {
+    const MPI_Comm comm = Instance::instance().Comm();
+    Request::Delete src;
     {
-        src.mtype = TransportMessageType::BGET;
-        src.src = instance.Rank();
-        src.dst = instance.Rank();
-        src.index = 1;
-        src.index_type = PRIMARY_INDEX;
-        src.index_name = nullptr;
+        src.src = 1;
+        src.dst = 1;
 
-        src.op = TransportGetMessageOp::GET_EQ;
-        src.num_keys = 1;
-        src.rs_idx = 1;
+        src.db_offset = 1;
 
-        src.key = &KEY;
-        src.key_len = KEY_LEN;
+        src.subject = (void *) SUBJECT;
+        src.subject_len = SUBJECT_LEN;
+
+        src.predicate = (void *) PREDICATE;
+        src.predicate_len = PREDICATE_LEN;
     }
+
+    EXPECT_EQ(src.direction, Message::REQUEST);
+    EXPECT_EQ(src.type, Message::DELETE);
+    EXPECT_EQ(src.clean, false);
 
     FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
-    ASSERT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize, fbp), MDHIM_SUCCESS);
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), TRANSPORT_SUCCESS);
 
-    TransportGetMessage *dst = nullptr;
-    ASSERT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
+    Request::Delete *dst = nullptr;
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize), TRANSPORT_SUCCESS);
 
-    fbp->release(buf);
-
-    EXPECT_EQ(src.mtype, dst->mtype);
+    ASSERT_NE(dst, nullptr);
+    EXPECT_EQ(src.direction, dst->direction);
+    EXPECT_EQ(src.type, dst->type);
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
-    EXPECT_EQ(src.index, dst->index);
-    EXPECT_EQ(src.index_type, dst->index_type);
 
-    EXPECT_EQ(src.num_keys, dst->num_keys);
-    EXPECT_EQ(src.rs_idx, dst->rs_idx);
+    EXPECT_EQ(dst->clean, true);
 
-    EXPECT_EQ(src.key_len, dst->key_len);
-    EXPECT_EQ(memcmp(src.key, dst->key, dst->key_len), 0);
+    EXPECT_EQ(src.db_offset, dst->db_offset);
 
-    // normally, the key is transferred over to the response message for deletion
-    ::operator delete(dst->key);
+    EXPECT_EQ(src.subject_len, dst->subject_len);
+    EXPECT_EQ(memcmp(src.subject, dst->subject, dst->subject_len), 0);
+
+    EXPECT_EQ(src.predicate_len, dst->predicate_len);
+    EXPECT_EQ(memcmp(src.predicate, dst->predicate, dst->predicate_len), 0);
+
     delete dst;
-    EXPECT_EQ(fbp->used(), 0);
 }
 
-TEST(mpi_pack_unpack, TransportBGetMessage) {
-    volatile int shutdown = 0;
-    (void)shutdown;
-    const MPIInstance &instance = MPIInstance::instance();
-    TransportBGetMessage src;
+TEST(mpi_pack_unpack, RequestBPut) {
+    const MPI_Comm comm = Instance::instance().Comm();
+    Request::BPut src;
+    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
     {
-        src.mtype = TransportMessageType::BGET;
-        src.src = instance.Rank();
-        src.dst = instance.Rank();
-        src.index = 1;
-        src.index_type = PRIMARY_INDEX;
-        src.index_name = nullptr;
+        src.src = 1;
+        src.dst = 1;
 
-        src.op = TransportGetMessageOp::GET_EQ;
-        src.num_keys = 1;
+        src.count = 1;
 
-        ASSERT_NE(src.rs_idx = new int[src.num_keys](), nullptr);
-        src.rs_idx[0] = 1;
+        src.db_offsets[0] = 1;
 
-        ASSERT_NE(src.keys = new void *[src.num_keys](), nullptr);
-        src.keys[0] = (void *) &KEY;
+        src.subjects[0] = (void *) SUBJECT;
+        src.subject_lens[0] = SUBJECT_LEN;
 
-        ASSERT_NE(src.key_lens = new std::size_t[src.num_keys](), nullptr);
-        src.key_lens[0] = KEY_LEN;
+        src.predicates[0] = (void *) PREDICATE;
+        src.predicate_lens[0] = PREDICATE_LEN;
 
-        src.num_recs = 1;
+        src.object_types[0] = OBJECT_TYPE;
+        src.objects[0] = (void *) OBJECT;
+        src.object_lens[0] = OBJECT_LEN;
     }
+
+    EXPECT_EQ(src.direction, Message::REQUEST);
+    EXPECT_EQ(src.type, Message::BPUT);
+    EXPECT_EQ(src.clean, false);
 
     FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
-    ASSERT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize, fbp), MDHIM_SUCCESS);
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), TRANSPORT_SUCCESS);
 
-    TransportBGetMessage *dst = nullptr;
-    ASSERT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
+    Request::BPut *dst = nullptr;
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize), TRANSPORT_SUCCESS);
 
-    fbp->release(buf);
-
-    EXPECT_EQ(src.mtype, dst->mtype);
+    ASSERT_NE(dst, nullptr);
+    EXPECT_EQ(src.direction, dst->direction);
+    EXPECT_EQ(src.type, dst->type);
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
-    EXPECT_EQ(src.index, dst->index);
-    EXPECT_EQ(src.index_type, dst->index_type);
 
-    EXPECT_EQ(src.num_keys, dst->num_keys);
-    EXPECT_EQ(src.rs_idx[0], dst->rs_idx[0]);
+    EXPECT_EQ(dst->clean, true);
 
-    for(std::size_t i = 0; i < dst->num_keys; i++) {
-        EXPECT_EQ(src.key_lens[i], dst->key_lens[i]);
-        EXPECT_EQ(memcmp(src.keys[i], dst->keys[i], dst->key_lens[i]), 0);
+    EXPECT_EQ(src.count, dst->count);
+
+    for(std::size_t i = 0; i < dst->count; i++) {
+        EXPECT_EQ(src.db_offsets[i], dst->db_offsets[i]);
+
+        EXPECT_EQ(src.subject_lens[i], dst->subject_lens[i]);
+        EXPECT_EQ(memcmp(src.subjects[i], dst->subjects[i], dst->subject_lens[i]), 0);
+
+        EXPECT_EQ(src.predicate_lens[i], dst->predicate_lens[i]);
+        EXPECT_EQ(memcmp(src.predicates[i], dst->predicates[i], dst->predicate_lens[i]), 0);
+
+        EXPECT_EQ(src.object_types[i], dst->object_types[i]);
+        EXPECT_EQ(src.object_lens[i], dst->object_lens[i]);
+        EXPECT_EQ(memcmp(src.objects[i], dst->objects[i], dst->object_lens[i]), 0);
     }
-    EXPECT_EQ(src.num_recs, dst->num_recs);
 
-    // normally, the keys are transferred over to the response message for deletion
-    ::operator delete(dst->keys[0]);
     delete dst;
-    EXPECT_EQ(fbp->used(), 0);
 }
 
-TEST(mpi_pack_unpack, TransportDeleteMessage) {
-    volatile int shutdown = 0;
-    (void)shutdown;
-    const MPIInstance &instance = MPIInstance::instance();
-    TransportDeleteMessage src;
+TEST(mpi_pack_unpack, RequestBGet) {
+    const MPI_Comm comm = Instance::instance().Comm();
+    Request::BGet src;
+    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
     {
-        src.mtype = TransportMessageType::BGET;
-        src.src = instance.Rank();
-        src.dst = instance.Rank();
-        src.index = 1;
-        src.index_type = PRIMARY_INDEX;
-        src.index_name = nullptr;
+        src.src = 1;
+        src.dst = 1;
 
-        src.rs_idx = 1;
+        src.count = 1;
 
-        src.key = &KEY;
-        src.key_len = KEY_LEN;
+        src.db_offsets[0] = 1;
+
+        src.subjects[0] = (void *) &SUBJECT;
+        src.subject_lens[0] = SUBJECT_LEN;
+
+        src.predicates[0] = (void *) &PREDICATE;
+        src.predicate_lens[0] = PREDICATE_LEN;
+
+        src.object_types[0] = OBJECT_TYPE;
     }
+
+    EXPECT_EQ(src.direction, Message::REQUEST);
+    EXPECT_EQ(src.type, Message::BGET);
+    EXPECT_EQ(src.clean, false);
 
     FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
-    ASSERT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize, fbp), MDHIM_SUCCESS);
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), TRANSPORT_SUCCESS);
 
-    TransportDeleteMessage *dst = nullptr;
-    ASSERT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
+    Request::BGet *dst = nullptr;
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize), TRANSPORT_SUCCESS);
 
-    fbp->release(buf);
-
-    EXPECT_EQ(src.mtype, dst->mtype);
+    ASSERT_NE(dst, nullptr);
+    EXPECT_EQ(src.direction, dst->direction);
+    EXPECT_EQ(src.type, dst->type);
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
-    EXPECT_EQ(src.index, dst->index);
-    EXPECT_EQ(src.index_type, dst->index_type);
 
-    EXPECT_EQ(src.rs_idx, dst->rs_idx);
+    EXPECT_EQ(dst->clean, true);
 
-    EXPECT_EQ(src.key_len, dst->key_len);
-    EXPECT_EQ(memcmp(src.key, dst->key, dst->key_len), 0);
+    EXPECT_EQ(src.count, dst->count);
+
+    for(std::size_t i = 0; i < dst->count; i++) {
+        EXPECT_EQ(src.db_offsets[i], dst->db_offsets[i]);
+
+        EXPECT_EQ(src.subject_lens[i], dst->subject_lens[i]);
+        EXPECT_EQ(memcmp(src.subjects[i], dst->subjects[i], dst->subject_lens[i]), 0);
+
+        EXPECT_EQ(src.predicate_lens[i], dst->predicate_lens[i]);
+        EXPECT_EQ(memcmp(src.predicates[i], dst->predicates[i], dst->predicate_lens[i]), 0);
+
+        EXPECT_EQ(src.object_types[i], dst->object_types[i]);
+    }
 
     delete dst;
-    EXPECT_EQ(fbp->used(), 0);
 }
 
-TEST(mpi_pack_unpack, TransportBDeleteMessage) {
-    volatile int shutdown = 0;
-    (void)shutdown;
-    const MPIInstance &instance = MPIInstance::instance();
-    TransportBDeleteMessage src;
+TEST(mpi_pack_unpack, RequestBGetOp) {
+    const MPI_Comm comm = Instance::instance().Comm();
+    Request::BGetOp src;
+    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
     {
-        src.mtype = TransportMessageType::BGET;
-        src.src = instance.Rank();
-        src.dst = instance.Rank();
-        src.index = 1;
-        src.index_type = PRIMARY_INDEX;
-        src.index_name = nullptr;
+        src.src = 1;
+        src.dst = 1;
 
-        src.num_keys = 1;
+        src.count = 1;
 
-        ASSERT_NE(src.rs_idx = new int[src.num_keys](), nullptr);
-        src.rs_idx[0] = 1;
+        src.db_offsets[0] = 1;
 
-        ASSERT_NE(src.keys = new void *[src.num_keys](), nullptr);
-        src.keys[0] = (void *) &KEY;
+        src.subjects[0] = (void *) &SUBJECT;
+        src.subject_lens[0] = SUBJECT_LEN;
 
-        ASSERT_NE(src.key_lens = new std::size_t[src.num_keys](), nullptr);
-        src.key_lens[0] = KEY_LEN;
+        src.predicates[0] = (void *) &PREDICATE;
+        src.predicate_lens[0] = PREDICATE_LEN;
+
+        src.object_types[0] = OBJECT_TYPE;
+
+        src.num_recs[0] = 1;
+        src.ops[0] = HXHIM_GET_EQ;
     }
+
+    EXPECT_EQ(src.direction, Message::REQUEST);
+    EXPECT_EQ(src.type, Message::BGETOP);
+    EXPECT_EQ(src.clean, false);
 
     FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
-    ASSERT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize, fbp), MDHIM_SUCCESS);
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), TRANSPORT_SUCCESS);
 
-    TransportBDeleteMessage *dst = nullptr;
-    ASSERT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
+    Request::BGetOp *dst = nullptr;
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize), TRANSPORT_SUCCESS);
 
-    fbp->release(buf);
-
-    EXPECT_EQ(src.mtype, dst->mtype);
+    ASSERT_NE(dst, nullptr);
+    EXPECT_EQ(src.direction, dst->direction);
+    EXPECT_EQ(src.type, dst->type);
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
-    EXPECT_EQ(src.index, dst->index);
-    EXPECT_EQ(src.index_type, dst->index_type);
 
-    EXPECT_EQ(src.num_keys, dst->num_keys);
-    EXPECT_EQ(src.rs_idx[0], dst->rs_idx[0]);
+    EXPECT_EQ(dst->clean, true);
 
-    for(std::size_t i = 0; i < dst->num_keys; i++) {
-        EXPECT_EQ(src.key_lens[i], dst->key_lens[i]);
-        EXPECT_EQ(memcmp(src.keys[i], dst->keys[i], dst->key_lens[i]), 0);
+    EXPECT_EQ(src.count, dst->count);
+
+    for(std::size_t i = 0; i < dst->count; i++) {
+        EXPECT_EQ(src.db_offsets[i], dst->db_offsets[i]);
+
+        EXPECT_EQ(src.subject_lens[i], dst->subject_lens[i]);
+        EXPECT_EQ(memcmp(src.subjects[i], dst->subjects[i], dst->subject_lens[i]), 0);
+
+        EXPECT_EQ(src.predicate_lens[i], dst->predicate_lens[i]);
+        EXPECT_EQ(memcmp(src.predicates[i], dst->predicates[i], dst->predicate_lens[i]), 0);
+
+        EXPECT_EQ(src.object_types[i], dst->object_types[i]);
+
+        EXPECT_EQ(src.num_recs[i], dst->num_recs[i]);
+        EXPECT_EQ(src.ops[i], dst->ops[i]);
     }
 
     delete dst;
-    EXPECT_EQ(fbp->used(), 0);
 }
 
-TEST(mpi_pack_unpack, TransportRecvMessage) {
-    volatile int shutdown = 0;
-    (void)shutdown;
-    const MPIInstance &instance = MPIInstance::instance();
-    TransportRecvMessage src;
+TEST(mpi_pack_unpack, RequestBDelete) {
+    const MPI_Comm comm = Instance::instance().Comm();
+    Request::BDelete src;
+    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
     {
-        src.mtype = TransportMessageType::PUT;
-        src.src = instance.Rank();
-        src.dst = instance.Rank();
-        src.index = 1;
-        src.index_type = PRIMARY_INDEX;
-        src.index_name = nullptr;
+        src.src = 1;
+        src.dst = 1;
 
-        src.rs_idx = 1;
-        src.error = MDHIM_SUCCESS;
+        src.count = 1;
+
+        src.db_offsets[0] = 1;
+
+        src.subjects[0] = (void *) &SUBJECT;
+        src.subject_lens[0] = SUBJECT_LEN;
+
+        src.predicates[0] = (void *) &PREDICATE;
+        src.predicate_lens[0] = PREDICATE_LEN;
     }
+
+    EXPECT_EQ(src.direction, Message::REQUEST);
+    EXPECT_EQ(src.type, Message::BDELETE);
+    EXPECT_EQ(src.clean, false);
 
     FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
-    ASSERT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize, fbp), MDHIM_SUCCESS);
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), TRANSPORT_SUCCESS);
 
-    TransportRecvMessage *dst = nullptr;
-    ASSERT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
+    Request::BDelete *dst = nullptr;
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize), TRANSPORT_SUCCESS);
 
-    fbp->release(buf);
-
-    EXPECT_EQ(src.mtype, dst->mtype);
+    ASSERT_NE(dst, nullptr);
+    EXPECT_EQ(src.direction, dst->direction);
+    EXPECT_EQ(src.type, dst->type);
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
-    EXPECT_EQ(src.index, dst->index);
-    EXPECT_EQ(src.index_type, dst->index_type);
 
-    EXPECT_EQ(src.rs_idx, dst->rs_idx);
-    EXPECT_EQ(src.error, dst->error);
+    EXPECT_EQ(dst->clean, true);
+
+    EXPECT_EQ(src.count, dst->count);
+
+    for(std::size_t i = 0; i < dst->count; i++) {
+        EXPECT_EQ(src.db_offsets[i], dst->db_offsets[i]);
+
+        EXPECT_EQ(src.subject_lens[i], dst->subject_lens[i]);
+        EXPECT_EQ(memcmp(src.subjects[i], dst->subjects[i], dst->subject_lens[i]), 0);
+
+        EXPECT_EQ(src.predicate_lens[i], dst->predicate_lens[i]);
+        EXPECT_EQ(memcmp(src.predicates[i], dst->predicates[i], dst->predicate_lens[i]), 0);
+    }
 
     delete dst;
-    EXPECT_EQ(fbp->used(), 0);
 }
 
-TEST(mpi_pack_unpack, TransportGetRecvMessage) {
-    volatile int shutdown = 0;
-    (void)shutdown;
-    const MPIInstance &instance = MPIInstance::instance();
-    TransportGetRecvMessage src;
+TEST(mpi_pack_unpack, ResponsePut) {
+    const MPI_Comm comm = Instance::instance().Comm();
+    Response::Put src;
     {
-        src.mtype = TransportMessageType::RECV_BGET;
-        src.src = instance.Rank();
-        src.dst = instance.Rank();
-        src.index = 1;
-        src.index_type = PRIMARY_INDEX;
-        src.index_name = nullptr;
+        src.src = 1;
+        src.dst = 1;
 
-        src.error = MDHIM_SUCCESS;
+        src.db_offset = 1;
 
-        src.rs_idx = 1;
-
-        src.key = (void *) &KEY;
-        src.key_len = KEY_LEN;
-
-        // malloc because value comes from database
-        src.value = malloc(VALUE_LEN);
-        memcpy(src.value, VALUE, VALUE_LEN * sizeof(char));
-
-        src.value_len = VALUE_LEN;
+        src.status = TRANSPORT_SUCCESS;
     }
+
+    EXPECT_EQ(src.direction, Message::RESPONSE);
+    EXPECT_EQ(src.type, Message::PUT);
+    EXPECT_EQ(src.clean, false);
 
     FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
-    ASSERT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize, fbp), MDHIM_SUCCESS);
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), TRANSPORT_SUCCESS);
 
-    TransportGetRecvMessage *dst = nullptr;
-    ASSERT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
+    Response::Put *dst = nullptr;
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize), TRANSPORT_SUCCESS);
 
-    fbp->release(buf);
-
-    EXPECT_EQ(src.mtype, dst->mtype);
+    ASSERT_NE(dst, nullptr);
+    EXPECT_EQ(src.direction, dst->direction);
+    EXPECT_EQ(src.type, dst->type);
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
-    EXPECT_EQ(src.index, dst->index);
-    EXPECT_EQ(src.index_type, dst->index_type);
 
-    EXPECT_EQ(src.error, dst->error);
-    EXPECT_EQ(src.rs_idx, dst->rs_idx);
+    EXPECT_EQ(dst->clean, true);
 
-    EXPECT_EQ(src.key_len, dst->key_len);
-    EXPECT_EQ(memcmp(src.key, dst->key, dst->key_len), 0);
+    EXPECT_EQ(src.db_offset, dst->db_offset);
 
-    EXPECT_EQ(src.value_len, dst->value_len);
-    EXPECT_EQ(memcmp(src.value, dst->value, dst->value_len), 0);
+    EXPECT_EQ(src.status, dst->status);
 
     delete dst;
-    EXPECT_EQ(fbp->used(), 0);
+
 }
 
-TEST(mpi_pack_unpack, TransportBGetRecvMessage) {
-    volatile int shutdown = 0;
-    (void)shutdown;
-    const MPIInstance &instance = MPIInstance::instance();
-    TransportBGetRecvMessage src;
+TEST(mpi_pack_unpack, ResponseGet) {
+    const MPI_Comm comm = Instance::instance().Comm();
+    Response::Get src;
     {
-        src.mtype = TransportMessageType::RECV_BGET;
-        src.src = instance.Rank();
-        src.dst = instance.Rank();
-        src.index = 1;
-        src.index_type = PRIMARY_INDEX;
-        src.index_name = nullptr;
+        src.src = 1;
+        src.dst = 1;
 
-        src.error = MDHIM_SUCCESS;
+        src.db_offset = 1;
 
-        src.num_keys = 1;
+        src.status = TRANSPORT_SUCCESS;
 
-        ASSERT_NE(src.rs_idx = new int[src.num_keys](), nullptr);
-        src.rs_idx[0] = 1;
+        src.subject = (void *) SUBJECT;
+        src.subject_len = SUBJECT_LEN;
 
-        // the key comes from the database
-        ASSERT_NE(src.keys = new void *[src.num_keys](), nullptr);
-        src.keys[0] = calloc(KEY_LEN, sizeof(char));
-        memcpy(src.keys[0], (void *) &KEY, KEY_LEN);
+        src.predicate = (void *) PREDICATE;
+        src.predicate_len = PREDICATE_LEN;
 
-        ASSERT_NE(src.key_lens = new std::size_t[src.num_keys](), nullptr);
-        src.key_lens[0] = KEY_LEN;
+        src.object_type = OBJECT_TYPE;
 
-        ASSERT_NE(src.values = new void *[src.num_keys](), nullptr);
-        src.values[0] = malloc(VALUE_LEN);
-        memcpy(src.values[0], VALUE, VALUE_LEN * sizeof(char));
-
-        ASSERT_NE(src.value_lens = new std::size_t[src.num_keys](), nullptr);
-        src.value_lens[0] = VALUE_LEN;
-
-        src.next = nullptr;
+        src.object = (void *) OBJECT;
+        src.object_len = OBJECT_LEN;
     }
+
+    EXPECT_EQ(src.direction, Message::RESPONSE);
+    EXPECT_EQ(src.type, Message::GET);
+    EXPECT_EQ(src.clean, false);
 
     FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
-    ASSERT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize, fbp), MDHIM_SUCCESS);
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), TRANSPORT_SUCCESS);
 
-    TransportBGetRecvMessage *dst = nullptr;
-    ASSERT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
+    Response::Get *dst = nullptr;
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize), TRANSPORT_SUCCESS);
 
-    fbp->release(buf);
-
-    EXPECT_EQ(src.mtype, dst->mtype);
+    ASSERT_NE(dst, nullptr);
+    EXPECT_EQ(src.direction, dst->direction);
+    EXPECT_EQ(src.type, dst->type);
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
-    EXPECT_EQ(src.index, dst->index);
-    EXPECT_EQ(src.index_type, dst->index_type);
 
-    EXPECT_EQ(src.error, dst->error);
-    EXPECT_EQ(src.num_keys, dst->num_keys);
-    EXPECT_EQ(src.rs_idx[0], dst->rs_idx[0]);
+    EXPECT_EQ(dst->clean, true);
 
-    for(std::size_t i = 0; i < dst->num_keys; i++) {
-        EXPECT_EQ(src.key_lens[i], dst->key_lens[i]);
-        EXPECT_EQ(memcmp(src.keys[i], dst->keys[i], dst->key_lens[i]), 0);
+    EXPECT_EQ(src.db_offset, dst->db_offset);
 
-        EXPECT_EQ(src.value_lens[i], dst->value_lens[i]);
-        EXPECT_EQ(memcmp(src.values[i], dst->values[i], dst->value_lens[i]), 0);
-    }
+    EXPECT_EQ(src.status, dst->status);
+
+    EXPECT_EQ(src.subject_len, dst->subject_len);
+    EXPECT_EQ(memcmp(src.subject, dst->subject, dst->subject_len), 0);
+
+    EXPECT_EQ(src.predicate_len, dst->predicate_len);
+    EXPECT_EQ(memcmp(src.predicate, dst->predicate, dst->predicate_len), 0);
+
+    EXPECT_EQ(src.object_type, dst->object_type);
+    EXPECT_EQ(src.object_len, dst->object_len);
+    EXPECT_EQ(memcmp(src.object, dst->object, dst->object_len), 0);
 
     delete dst;
-    EXPECT_EQ(fbp->used(), 0);
 }
 
-TEST(mpi_pack_unpack, TransportBRecvMessage) {
-    volatile int shutdown = 0;
-    (void)shutdown;
-    const MPIInstance &instance = MPIInstance::instance();
-    TransportBRecvMessage src;
+TEST(mpi_pack_unpack, ResponseDelete) {
+    const MPI_Comm comm = Instance::instance().Comm();
+    Response::Delete src;
     {
-        src.mtype = TransportMessageType::RECV_BGET;
-        src.src = instance.Rank();
-        src.dst = instance.Rank();
-        src.index = 1;
-        src.index_type = PRIMARY_INDEX;
-        src.index_name = nullptr;
+        src.src = 1;
+        src.dst = 1;
 
-        src.error = MDHIM_SUCCESS;
+        src.db_offset = 1;
 
-        src.num_keys = 1;
-
-        ASSERT_NE(src.rs_idx = new int[src.num_keys](), nullptr);
-        src.rs_idx[0] = 1;
-
-        src.next = nullptr;
+        src.status = TRANSPORT_SUCCESS;
     }
+
+    EXPECT_EQ(src.direction, Message::RESPONSE);
+    EXPECT_EQ(src.type, Message::DELETE);
+    EXPECT_EQ(src.clean, false);
 
     FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
-    ASSERT_EQ(MPIPacker::pack(instance.Comm(), &src, &buf, &bufsize, fbp), MDHIM_SUCCESS);
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), TRANSPORT_SUCCESS);
 
-    TransportBRecvMessage *dst = nullptr;
-    ASSERT_EQ(MPIUnpacker::unpack(instance.Comm(), &dst, buf, bufsize), MDHIM_SUCCESS);
+    Response::Delete *dst = nullptr;
+   EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize), TRANSPORT_SUCCESS);
 
-    fbp->release(buf);
-
-    EXPECT_EQ(src.mtype, dst->mtype);
+    ASSERT_NE(dst, nullptr);
+    EXPECT_EQ(src.direction, dst->direction);
+    EXPECT_EQ(src.type, dst->type);
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
-    EXPECT_EQ(src.index, dst->index);
-    EXPECT_EQ(src.index_type, dst->index_type);
 
-    EXPECT_EQ(src.error, dst->error);
-    EXPECT_EQ(src.num_keys, dst->num_keys);
-    EXPECT_EQ(src.rs_idx[0], dst->rs_idx[0]);
+    EXPECT_EQ(dst->clean, true);
+
+    EXPECT_EQ(src.db_offset, dst->db_offset);
+
+    EXPECT_EQ(src.status, dst->status);
 
     delete dst;
-    EXPECT_EQ(fbp->used(), 0);
+}
+
+TEST(mpi_pack_unpack, ResponseBPut) {
+    const MPI_Comm comm = Instance::instance().Comm();
+    Response::BPut src;
+    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
+    {
+        src.src = 1;
+        src.dst = 1;
+
+        src.count = 1;
+
+        src.db_offsets[0] = 1;
+
+        src.statuses[0] = TRANSPORT_SUCCESS;
+    }
+
+    EXPECT_EQ(src.direction, Message::RESPONSE);
+    EXPECT_EQ(src.type, Message::BPUT);
+    EXPECT_EQ(src.clean, false);
+
+    FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
+    void *buf = nullptr;
+    std::size_t bufsize;
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), TRANSPORT_SUCCESS);
+
+    Response::BPut *dst = nullptr;
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize), TRANSPORT_SUCCESS);
+
+    ASSERT_NE(dst, nullptr);
+    EXPECT_EQ(src.direction, dst->direction);
+    EXPECT_EQ(src.type, dst->type);
+    EXPECT_EQ(src.src, dst->src);
+    EXPECT_EQ(src.dst, dst->dst);
+
+    EXPECT_EQ(dst->clean, true);
+
+    EXPECT_EQ(src.count, dst->count);
+
+    for(std::size_t i = 0; i < dst->count; i++) {
+        EXPECT_EQ(src.db_offsets[i], dst->db_offsets[i]);
+        EXPECT_EQ(src.statuses[i], dst->statuses[i]);
+    }
+
+    delete dst;
+}
+
+TEST(mpi_pack_unpack, ResponseBGet) {
+    const MPI_Comm comm = Instance::instance().Comm();
+    Response::BGet src;
+    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
+    {
+        src.src = 1;
+        src.dst = 1;
+
+        src.count = 1;
+
+        src.db_offsets[0] = 1;
+
+        src.statuses[0] = TRANSPORT_SUCCESS;
+
+        src.subjects[0] = (void *) &SUBJECT;
+        src.subject_lens[0] = SUBJECT_LEN;
+
+        src.predicates[0] = (void *) &PREDICATE;
+        src.predicate_lens[0] = PREDICATE_LEN;
+
+        src.object_types[0] = OBJECT_TYPE;
+        src.objects[0] = (void *) &OBJECT;
+        src.object_lens[0] = OBJECT_LEN;
+    }
+
+    EXPECT_EQ(src.direction, Message::RESPONSE);
+    EXPECT_EQ(src.type, Message::BGET);
+    EXPECT_EQ(src.clean, false);
+
+    FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
+    void *buf = nullptr;
+    std::size_t bufsize;
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), TRANSPORT_SUCCESS);
+
+    Response::BGet *dst = nullptr;
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize), TRANSPORT_SUCCESS);
+
+    ASSERT_NE(dst, nullptr);
+    EXPECT_EQ(src.direction, dst->direction);
+    EXPECT_EQ(src.type, dst->type);
+    EXPECT_EQ(src.src, dst->src);
+    EXPECT_EQ(src.dst, dst->dst);
+
+    EXPECT_EQ(dst->clean, true);
+
+    EXPECT_EQ(src.count, dst->count);
+
+    for(std::size_t i = 0; i < dst->count; i++) {
+        EXPECT_EQ(src.db_offsets[i], dst->db_offsets[i]);
+        EXPECT_EQ(src.statuses[i], dst->statuses[i]);
+
+        EXPECT_EQ(src.subject_lens[i], dst->subject_lens[i]);
+        EXPECT_EQ(memcmp(src.subjects[i], dst->subjects[i], dst->subject_lens[i]), 0);
+
+        EXPECT_EQ(src.predicate_lens[i], dst->predicate_lens[i]);
+        EXPECT_EQ(memcmp(src.predicates[i], dst->predicates[i], dst->predicate_lens[i]), 0);
+
+        EXPECT_EQ(src.object_types[i], dst->object_types[i]);
+        EXPECT_EQ(src.object_lens[i], dst->object_lens[i]);
+        EXPECT_EQ(memcmp(src.objects[i], dst->objects[i], dst->object_lens[i]), 0);
+    }
+
+    delete dst;
+}
+
+TEST(mpi_pack_unpack, ResponseBGetOp) {
+    const MPI_Comm comm = Instance::instance().Comm();
+    Response::BGetOp src;
+    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
+    {
+        src.src = 1;
+        src.dst = 1;
+
+        src.count = 1;
+
+        src.db_offsets[0] = 1;
+
+        src.statuses[0] = TRANSPORT_SUCCESS;
+
+        src.subjects[0] = (void *) &SUBJECT;
+        src.subject_lens[0] = SUBJECT_LEN;
+
+        src.predicates[0] = (void *) &PREDICATE;
+        src.predicate_lens[0] = PREDICATE_LEN;
+
+        src.object_types[0] = OBJECT_TYPE;
+        src.objects[0] = (void *) &OBJECT;
+        src.object_lens[0] = OBJECT_LEN;
+    }
+
+    EXPECT_EQ(src.direction, Message::RESPONSE);
+    EXPECT_EQ(src.type, Message::BGETOP);
+    EXPECT_EQ(src.clean, false);
+
+    FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
+    void *buf = nullptr;
+    std::size_t bufsize;
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), TRANSPORT_SUCCESS);
+
+    Response::BGetOp *dst = nullptr;
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize), TRANSPORT_SUCCESS);
+
+    ASSERT_NE(dst, nullptr);
+    EXPECT_EQ(src.direction, dst->direction);
+    EXPECT_EQ(src.type, dst->type);
+    EXPECT_EQ(src.src, dst->src);
+    EXPECT_EQ(src.dst, dst->dst);
+
+    EXPECT_EQ(dst->clean, true);
+
+    EXPECT_EQ(src.count, dst->count);
+
+    for(std::size_t i = 0; i < dst->count; i++) {
+        EXPECT_EQ(src.statuses[i], dst->statuses[i]);
+        EXPECT_EQ(src.db_offsets[i], dst->db_offsets[i]);
+
+        EXPECT_EQ(src.subject_lens[i], dst->subject_lens[i]);
+        EXPECT_EQ(memcmp(src.subjects[i], dst->subjects[i], dst->subject_lens[i]), 0);
+
+        EXPECT_EQ(src.predicate_lens[i], dst->predicate_lens[i]);
+        EXPECT_EQ(memcmp(src.predicates[i], dst->predicates[i], dst->predicate_lens[i]), 0);
+
+        EXPECT_EQ(src.object_types[i], dst->object_types[i]);
+        EXPECT_EQ(src.object_lens[i], dst->object_lens[i]);
+        EXPECT_EQ(memcmp(src.objects[i], dst->objects[i], dst->object_lens[i]), 0);
+    }
+
+    delete dst;
+}
+
+TEST(mpi_pack_unpack, ResponseBDelete) {
+    const MPI_Comm comm = Instance::instance().Comm();
+    Response::BDelete src;
+    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
+    {
+        src.src = 1;
+        src.dst = 1;
+
+        src.count = 1;
+
+        src.db_offsets[0] = 1;
+
+        src.statuses[0] = TRANSPORT_SUCCESS;
+    }
+
+    EXPECT_EQ(src.direction, Message::RESPONSE);
+    EXPECT_EQ(src.type, Message::BDELETE);
+    EXPECT_EQ(src.clean, false);
+
+    FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
+    void *buf = nullptr;
+    std::size_t bufsize;
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), TRANSPORT_SUCCESS);
+
+    Response::BDelete *dst = nullptr;
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize), TRANSPORT_SUCCESS);
+
+    ASSERT_NE(dst, nullptr);
+    EXPECT_EQ(src.direction, dst->direction);
+    EXPECT_EQ(src.type, dst->type);
+    EXPECT_EQ(src.src, dst->src);
+    EXPECT_EQ(src.dst, dst->dst);
+
+    EXPECT_EQ(dst->clean, true);
+
+    EXPECT_EQ(src.count, dst->count);
+
+    for(std::size_t i = 0; i < dst->count; i++) {
+        EXPECT_EQ(src.db_offsets[i], dst->db_offsets[i]);
+        EXPECT_EQ(src.statuses[i], dst->statuses[i]);
+    }
+
+    delete dst;
 }

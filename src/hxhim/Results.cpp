@@ -9,11 +9,8 @@
 
 namespace hxhim {
 
-Results::Result::Result(hxhim_result_type t, const int err, const int db)
-    : type(t),
-      error(err),
-      database(db),
-      next(nullptr)
+Results::Result::Result(hxhim_result_type t)
+    : type(t)
 {}
 
 Results::Result::~Result() {}
@@ -22,112 +19,100 @@ hxhim_result_type_t Results::Result::GetType() const {
     return type;
 }
 
-int Results::Result::GetError() const {
-    return error;
-}
-
 int Results::Result::GetDatabase() const {
     return database;
 }
 
-Results::Result *Results::Result::Next() const {
-    return next;
+int Results::Result::GetStatus() const {
+    return status;
 }
 
-Results::Result *&Results::Result::Next() {
-    return next;
+Results::Put::Put(Transport::Response::Put *put)
+    : Result(hxhim_result_type::HXHIM_RESULT_PUT)
+{
+    if (put) {
+        database = put->src + put->db_offset;
+        status = put->status;
+    }
 }
 
-Results::Put::Put(const int err, const int db)
-    : Result(hxhim_result_type::HXHIM_RESULT_PUT, err, db)
-{}
+Results::Put::Put(Transport::Response::BPut *bput, const std::size_t i)
+    : Result(hxhim_result_type::HXHIM_RESULT_PUT)
+{
+    if (bput && (i < bput->count)) {
+        database = bput->src + bput->db_offsets[i];
+        status = bput->statuses[i];
+    }
+}
 
 Results::Put::~Put() {}
 
-Results::Get::Get(const int err, const int db, hxhim_spo_type_t object_type)
-    : Result(hxhim_result_type::HXHIM_RESULT_GET, err, db),
+Results::Get::Get()
+    : Result(HXHIM_RESULT_GET),
       sub(nullptr), sub_len(0),
       pred(nullptr), pred_len(0),
-      obj_type(object_type), obj(nullptr), obj_len(0)
+      obj_type(), obj(nullptr), obj_len(0)
 {}
 
+Results::Get::Get(Transport::Response::Get *get)
+    : Get()
+{
+    if (get) {
+        database = get->src + get->db_offset;
+        status = get->status;
+        sub = get->subject;
+        sub_len = get->subject_len;
+        pred = get->predicate;
+        pred_len = get->predicate_len;
+        obj_type = get->object_type;
+        obj = get->object;
+        obj_len = get->object_len;
+    }
+}
+
+Results::Get::Get(Transport::Response::BGet *bget, const std::size_t i)
+    : Get()
+{
+    if (bget && (i < bget->count)) {
+        database = bget->src + bget->db_offsets[i];
+        status = bget->statuses[i];
+        sub = std::move(bget->subjects[i]);
+        sub_len = std::move(bget->subject_lens[i]);
+        pred = std::move(bget->predicates[i]);
+        pred_len = std::move(bget->predicate_lens[i]);
+        obj_type = std::move(bget->object_types[i]);
+        obj = std::move(bget->objects[i]);
+        obj_len = std::move(bget->object_lens[i]);
+    }
+}
+
+Results::Get::Get(Transport::Response::BGetOp *bgetop, const std::size_t i)
+    : Get()
+{
+    if (bgetop && (i < bgetop->count)) {
+        database = bgetop->src + bgetop->db_offsets[i];
+        status = bgetop->statuses[i];
+        sub = std::move(bgetop->subjects[i]);
+        sub_len = std::move(bgetop->subject_lens[i]);
+        pred = std::move(bgetop->predicates[i]);
+        pred_len = std::move(bgetop->predicate_lens[i]);
+        obj_type = std::move(bgetop->object_types[i]);
+        obj = std::move(bgetop->objects[i]);
+        obj_len = std::move(bgetop->object_lens[i]);
+    }
+}
+
 Results::Get::~Get() {
-    // do not delete subject and predicate because they are pointers into another buffer
-    // ::operator delete(sub);
-    // ::operator delete(pred);
+    ::operator delete(sub);
+    ::operator delete(pred);
     ::operator delete(obj);
 }
 
-hxhim_spo_type_t Results::Get::GetObjectType() const {
+hxhim_type_t Results::Get::GetObjectType() const {
     return obj_type;
 }
 
-/**
- * decode
- * Decodes values taken from a backend back into their
- * local format (i.e. encoded floating point -> double)
- *
- * @param type    the type the data being pointed to by ptr is
- * @param src     the original data
- * @param src_len the original data length
- * @param dst     pointer to the destination buffer of the decoded data
- * @param dst_len pointer to the destination buffer's length
- * @return HXHIM_SUCCESS or HXHIM_ERROR;
- */
-int Results::Get::decode(const hxhim_spo_type_t type, void *src, const std::size_t &src_len, void **dst, std::size_t *dst_len) {
-    if (!src || !dst || !dst_len) {
-        return HXHIM_ERROR;
-    }
-
-    *dst = nullptr;
-    *dst_len = 0;
-
-    // nothing to decode
-    if (!src_len) {
-        return HXHIM_SUCCESS;
-    }
-
-    switch (type) {
-        case HXHIM_SPO_FLOAT_TYPE:
-            {
-                const float value = elen::decode::floating_point<float>(std::string((char *) src, src_len));
-                *dst_len = sizeof(float);
-                *dst = ::operator new(*dst_len);
-                memcpy(*dst, &value, *dst_len);
-            }
-            break;
-        case HXHIM_SPO_DOUBLE_TYPE:
-            {
-                const double value = elen::decode::floating_point<double>(std::string((char *) src, src_len));
-                *dst_len = sizeof(double);
-                *dst = ::operator new(*dst_len);
-                memcpy(*dst, &value, *dst_len);
-            }
-            break;
-        case HXHIM_SPO_INT_TYPE:
-        case HXHIM_SPO_SIZE_TYPE:
-        case HXHIM_SPO_INT64_TYPE:
-            *dst_len = src_len;
-            *dst = ::operator new(*dst_len);
-            reverse_bytes(src, src_len, *dst);
-            break;
-        case HXHIM_SPO_BYTE_TYPE:
-            *dst_len = src_len;
-            *dst = ::operator new(*dst_len);
-            memcpy(*dst, src, *dst_len);
-            break;
-        default:
-            return HXHIM_ERROR;
-    }
-
-    return HXHIM_SUCCESS;
-}
-
-int Results::Get::GetSubject(void **subject, std::size_t *subject_len) {
-    if (FillSubject() != HXHIM_SUCCESS) {
-        return HXHIM_ERROR;
-    }
-
+int Results::Get::GetSubject(void **subject, std::size_t *subject_len) const {
     if (subject) {
         *subject = sub;
     }
@@ -139,11 +124,7 @@ int Results::Get::GetSubject(void **subject, std::size_t *subject_len) {
     return HXHIM_SUCCESS;
 }
 
-int Results::Get::GetPredicate(void **predicate, std::size_t *predicate_len) {
-    if (FillPredicate() != HXHIM_SUCCESS) {
-        return HXHIM_ERROR;
-    }
-
+int Results::Get::GetPredicate(void **predicate, std::size_t *predicate_len) const {
     if (predicate) {
         *predicate = pred;
     }
@@ -155,11 +136,7 @@ int Results::Get::GetPredicate(void **predicate, std::size_t *predicate_len) {
     return HXHIM_SUCCESS;
 }
 
-int Results::Get::GetObject(void **object, std::size_t *object_len) {
-    if (FillObject() != HXHIM_SUCCESS) {
-        return HXHIM_ERROR;
-    }
-
+int Results::Get::GetObject(void **object, std::size_t *object_len) const {
     if (object) {
         *object = obj;
     }
@@ -171,23 +148,34 @@ int Results::Get::GetObject(void **object, std::size_t *object_len) {
     return HXHIM_SUCCESS;
 }
 
-Results::Delete::Delete(const int err, const int db)
-    : Result(hxhim_result_type::HXHIM_RESULT_DEL, err, db)
-{}
+Results::Delete::Delete(Transport::Response::Delete *del)
+    : Result(hxhim_result_type::HXHIM_RESULT_DEL)
+{
+    if (del) {
+        database = del->src + del->db_offset;
+        status = del->status;
+    }
+}
+
+Results::Delete::Delete(Transport::Response::BDelete *bdel, const std::size_t i)
+    : Result(hxhim_result_type::HXHIM_RESULT_DEL)
+{
+    if (bdel && (i < bdel->count)) {
+        database = bdel->src + bdel->db_offsets[i];
+        status = bdel->statuses[i];
+    }
+}
 
 Results::Delete::~Delete() {}
 
 Results::Results()
-    : head(nullptr),
-      tail(nullptr),
-      curr(nullptr)
+    : results(),
+      curr(results.end())
 {}
 
 Results::~Results() {
-    while (head) {
-        Result *next = head->Next();
-        delete head;
-        head = next;
+    for(Result * res : results) {
+        delete res;
     }
 }
 
@@ -197,7 +185,7 @@ Results::~Results() {
  * @return Whether or not the current node is a valid pointer
  */
 bool Results::Valid() const {
-    return curr;
+    return (curr != results.end());
 }
 
 /**
@@ -207,7 +195,8 @@ bool Results::Valid() const {
  * @return the pointer to the head of the list
  */
 Results::Result *Results::GoToHead() {
-    return curr = head;
+    curr = results.begin();
+    return Valid()?*curr:nullptr;;
 }
 
 /**
@@ -217,7 +206,8 @@ Results::Result *Results::GoToHead() {
  * @return the pointer to the next node in the list
  */
 Results::Result *Results::GoToNext() {
-    return curr = Next();
+    ++curr;
+    return Valid()?*curr:nullptr;;
 }
 
 /**
@@ -226,7 +216,7 @@ Results::Result *Results::GoToNext() {
  * @return the pointer to the node currently being pointed to
  */
 Results::Result *Results::Curr() const {
-    return curr;
+    return Valid()?*curr:nullptr;;
 }
 
 /**
@@ -235,22 +225,22 @@ Results::Result *Results::Curr() const {
  * @return the pointer to the node after the one currently being pointed to
  */
 Results::Result *Results::Next() const {
-    return Valid()?curr->Next():nullptr;
+    std::list<Result *>::iterator it = std::next(curr);
+    return (it != results.end())?*it:nullptr;;
 }
 
 /**
  * Add
  * Appends a single result node to the end of the list;
  *
- * @return the pointer to the new node
+ * @return the pointer to the last valid node
  */
 Results::Result *Results::Add(Results::Result *res) {
     if (res) {
-        (head?tail->Next():head) = res;
-        tail = res;
+        results.push_back(res);
     }
-
-    return tail;
+    std::list<Result *>::reverse_iterator it = results.rbegin();
+    return (it != results.rend())?*it:nullptr;
 }
 
 /**
@@ -260,13 +250,9 @@ Results::Result *Results::Add(Results::Result *res) {
  *
  * @return the pointer to the new node
  */
-Results &Results::Append(Results *results) {
-    if (results) {
-        Add(results->head);
-        tail = results->tail;
-        results->head = nullptr;
-        results->tail = nullptr;
-        results->curr = nullptr;
+Results &Results::Append(Results *other) {
+    if (other) {
+        results.splice(results.end(), other->results);
     }
 
     return *this;
@@ -372,7 +358,7 @@ int hxhim_results_error(hxhim_results_t *res, int *error) {
     }
 
     if (error) {
-        *error = curr->GetError();
+        *error = curr->GetStatus();
     }
 
     return HXHIM_SUCCESS;
@@ -411,7 +397,7 @@ int hxhim_results_database(hxhim_results_t *res, int *database) {
  * @param object_type (optional) the object type of the current result, only valid if this function returns HXHIM_SUCCESS
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim_results_get_object_type(hxhim_results_t *res, hxhim_spo_type_t *object_type) {
+int hxhim_results_get_object_type(hxhim_results_t *res, hxhim_type_t *object_type) {
     if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }

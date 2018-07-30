@@ -2,24 +2,24 @@
 
 #include "print_results.h"
 
-static void print_by_type(hxhim_spo_type_t type, void *value, size_t value_len) {
+static void print_by_type(enum hxhim_type_t type, void *value, size_t value_len) {
     switch (type) {
-        case HXHIM_SPO_INT_TYPE:
+        case HXHIM_INT_TYPE:
             printf("%d", * (int *) value);
             break;
-        case HXHIM_SPO_SIZE_TYPE:
+        case HXHIM_SIZE_TYPE:
             printf("%zu", * (size_t *) value);
             break;
-        case HXHIM_SPO_INT64_TYPE:
+        case HXHIM_INT64_TYPE:
             printf("%" PRId64, * (int64_t *) value);
             break;
-        case HXHIM_SPO_FLOAT_TYPE:
+        case HXHIM_FLOAT_TYPE:
             printf("%f", * (float *) value);
             break;
-        case HXHIM_SPO_DOUBLE_TYPE:
+        case HXHIM_DOUBLE_TYPE:
             printf("%f", * (double *) value);
             break;
-        case HXHIM_SPO_BYTE_TYPE:
+        case HXHIM_BYTE_TYPE:
             printf("%.*s", (int) value_len, (char *) value);
             break;
     }
@@ -59,7 +59,7 @@ void print_results(hxhim_t *hx, const int print_rank, hxhim_results_t *results) 
                     size_t predicate_len = 0;
                     hxhim_results_get_predicate(results, &predicate, &predicate_len);
 
-                    hxhim_spo_type_t object_type;
+                    enum hxhim_type_t object_type;
                     hxhim_results_get_object_type(results, &object_type);
                     void *object = NULL;
                     size_t object_len = 0;

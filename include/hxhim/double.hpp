@@ -31,7 +31,7 @@ int BGetDouble(hxhim_t *hx,
 int BGetOpDouble(hxhim_t *hx,
                  void *subject, std::size_t subject_len,
                  void *predicate, std::size_t predicate_len,
-                 std::size_t num_records, enum hxhim_get_op op);
+                 std::size_t num_records, enum hxhim_get_op_t op);
 
 }
 

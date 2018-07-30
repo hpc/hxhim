@@ -16,11 +16,11 @@ static void print_results(const int rank, hxhim::Results *results) {
         hxhim::Results::Result *curr = results->Curr();
         switch (curr->GetType()) {
             case HXHIM_RESULT_PUT:
-                std::cout << "PUT returned " << ((curr->GetError() == HXHIM_SUCCESS)?std::string("SUCCESS"):std::string("ERROR")) << " from database " << curr->GetDatabase() << std::endl;
+                std::cout << "PUT returned " << ((curr->GetStatus() == HXHIM_SUCCESS)?std::string("SUCCESS"):std::string("ERROR")) << " from database " << curr->GetDatabase() << std::endl;
                 break;
             case HXHIM_RESULT_GET:
                 std::cout << "GET returned ";
-                if (curr->GetError() == HXHIM_SUCCESS) {
+                if (curr->GetStatus() == HXHIM_SUCCESS) {
                     hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(curr);
                     void *subject; std::size_t subject_len;
                     void *predicate; std::size_t predicate_len;
@@ -39,7 +39,7 @@ static void print_results(const int rank, hxhim::Results *results) {
                 std::cout << " from database " << curr->GetDatabase() << std::endl;
                 break;
             case HXHIM_RESULT_DEL:
-                std::cout << "DEL returned " << ((curr->GetError() == HXHIM_SUCCESS)?std::string("SUCCESS"):std::string("ERROR")) << " from database " << curr->GetDatabase() << std::endl;
+                std::cout << "DEL returned " << ((curr->GetStatus() == HXHIM_SUCCESS)?std::string("SUCCESS"):std::string("ERROR")) << " from database " << curr->GetDatabase() << std::endl;
                 break;
             default:
                 std::cout << "Bad type: " << curr->GetType() << std::endl;
@@ -79,13 +79,13 @@ int main(int argc, char *argv[]) {
 
     // PUT the subject-predicate-object triples
     for(std::size_t i = 0; i < count; i++) {
-        hxhim::Put(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_SPO_BYTE_TYPE, objects[i], object_lens[i]);
+        hxhim::Put(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_BYTE_TYPE, objects[i], object_lens[i]);
         std::cout << "Rank " << rank << " PUT {" << std::string((char *) subjects[i], subject_lens[i]) << ", " << std::string((char *) predicates[i], predicate_lens[i]) << "} -> " << std::string((char *) objects[i], object_lens[i]) << std::endl;
     }
 
     // GET them back, flushing only the GETs
     for(std::size_t i = 0; i < count; i++) {
-        hxhim::Get(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_SPO_BYTE_TYPE);
+        hxhim::Get(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_BYTE_TYPE);
     }
     hxhim::Results *flush_get_res = hxhim::FlushGets(&hx);
     std::cout << "GET before flushing PUTs" << std::endl;
@@ -93,9 +93,9 @@ int main(int argc, char *argv[]) {
     delete flush_get_res;
 
     // GET again, but flush everything this time
-    hxhim_spo_type_t *bget_types = new hxhim_spo_type_t[count];
+    enum hxhim_type_t *bget_types = new hxhim_type_t[count];
     for(size_t i = 0; i < count; i++) {
-        bget_types[i] = HXHIM_SPO_BYTE_TYPE;
+        bget_types[i] = HXHIM_BYTE_TYPE;
     }
 
     hxhim::BGet(&hx, subjects, subject_lens, predicates, predicate_lens, bget_types, count);

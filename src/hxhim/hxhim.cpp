@@ -1,13 +1,16 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
-#include <list>
+#include <memory>
 
 #include "hxhim/Results_private.hpp"
 #include "hxhim/hxhim.h"
 #include "hxhim/hxhim.hpp"
+#include "hxhim/local_client.hpp"
 #include "hxhim/options_private.hpp"
 #include "hxhim/private.hpp"
+#include "hxhim/shuffle.hpp"
+#include "hxhim/triplestore.hpp"
 
 /**
  * Open
@@ -28,10 +31,11 @@ int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
-    if ((hxhim::init::types            (hx, opts) != HXHIM_SUCCESS) ||
-        (hxhim::init::background_thread(hx, opts) != HXHIM_SUCCESS) ||
-        (hxhim::init::histogram        (hx, opts) != HXHIM_SUCCESS) ||
-        (hxhim::init::backend          (hx, opts) != HXHIM_SUCCESS)) {
+    if ((init::running     (hx, opts) != HXHIM_SUCCESS) ||
+        (init::database    (hx, opts) != HXHIM_SUCCESS) ||
+        (init::async_put   (hx, opts) != HXHIM_SUCCESS) ||
+        (init::hash        (hx, opts) != HXHIM_SUCCESS) ||
+        (init::transport   (hx, opts) != HXHIM_SUCCESS)) {
         MPI_Barrier(hx->mpi.comm);
         Close(hx);
         return HXHIM_ERROR;
@@ -80,10 +84,10 @@ int hxhim::OpenOne(hxhim_t *hx, hxhim_options_t *opts, const std::string &db_pat
         return HXHIM_ERROR;
     }
 
-    if ((hxhim::init::types            (hx, opts)          != HXHIM_SUCCESS) ||
-        (hxhim::init::background_thread(hx, opts)          != HXHIM_SUCCESS) ||
-        (hxhim::init::histogram        (hx, opts)          != HXHIM_SUCCESS) ||
-        (hxhim::init::one_backend      (hx, opts, db_path) != HXHIM_SUCCESS)) {
+    if ((init::running     (hx, opts)          != HXHIM_SUCCESS) ||
+        (init::one_database (hx, opts, db_path) != HXHIM_SUCCESS) ||
+        (init::async_put   (hx, opts)          != HXHIM_SUCCESS) ||
+        (init::hash        (hx, opts)          != HXHIM_SUCCESS)) {
         MPI_Barrier(hx->mpi.comm);
         Close(hx);
         return HXHIM_ERROR;
@@ -110,7 +114,7 @@ int hxhimOpenOne(hxhim_t *hx, hxhim_options_t *opts, const char *db_path, const 
  * Close
  * Terminates a HXHIM session
  *
- * @param hx the HXHIM session to terminate
+ * @param hx the HXHIM session
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::Close(hxhim_t *hx) {
@@ -120,9 +124,11 @@ int hxhim::Close(hxhim_t *hx) {
 
     MPI_Barrier(hx->mpi.comm);
 
-    destroy::background_thread(hx);
-    destroy::histogram(hx);
-    destroy::backend(hx);
+    destroy::running(hx);
+    destroy::transport(hx);
+    destroy::hash(hx);
+    destroy::async_put(hx);
+    destroy::database(hx);
 
     // clean up pointer to private data
     delete hx->p;
@@ -135,7 +141,7 @@ int hxhim::Close(hxhim_t *hx) {
  * hxhimClose
  * Terminates a HXHIM session
  *
- * @param hx the HXHIM session to terminate
+ * @param hx the HXHIM session
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimClose(hxhim_t *hx) {
@@ -146,22 +152,28 @@ int hxhimClose(hxhim_t *hx) {
  * Commit
  * Commits all flushed data to disk
  *
- * @param hx the HXHIM session to terminate
+ * @param hx the HXHIM session
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::Commit(hxhim_t *hx) {
-    if (!hx || !hx->p || !hx->p->backend) {
+    if (!hx || !hx->p || !hx->p->databases) {
         return HXHIM_ERROR;
     }
 
-    return hx->p->backend->Commit();
+    for(std::size_t i = 0; i < hx->p->database_count; i++) {
+        if (hx->p->databases[i]->Commit() != HXHIM_SUCCESS) {
+            return HXHIM_ERROR;
+        }
+    }
+
+    return HXHIM_SUCCESS;
 }
 
 /**
  * hxhimCommit
  * Commits all flushed data to disk
  *
- * @param hx the HXHIM session to terminate
+ * @param hx the HXHIM session
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimCommit(hxhim_t *hx) {
@@ -173,15 +185,21 @@ int hxhimCommit(hxhim_t *hx) {
  * Flushes the MDHIM statistics
  * Mainly needed for BGetOp
  *
- * @param hx the HXHIM session to terminate
+ * @param hx the HXHIM session
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::StatFlush(hxhim_t *hx) {
-    if (!hx || !hx->p || !hx->p->backend) {
+    if (!hx || !hx->p || !hx->p->databases) {
         return HXHIM_ERROR;
     }
 
-    return hx->p->backend->StatFlush();
+    for(std::size_t i = 0; i < hx->p->database_count; i++) {
+        if (hx->p->databases[i]->StatFlush() != HXHIM_SUCCESS) {
+            return HXHIM_ERROR;
+        }
+    }
+
+    return HXHIM_SUCCESS;
 }
 
 /**
@@ -189,7 +207,7 @@ int hxhim::StatFlush(hxhim_t *hx) {
  * Flushes the MDHIM statistics
  * Mainly needed for BGetOp
  *
- * @param hx the HXHIM session to terminate
+ * @param hx the HXHIM session
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimStatFlush(hxhim_t *hx) {
@@ -201,7 +219,7 @@ int hxhimStatFlush(hxhim_t *hx) {
  * Flushes all queued PUTs
  * The internal queue is cleared, even on error
  *
- * @param hx the HXHIM session to terminate
+ * @param hx the HXHIM session
  * @return Pointer to return value wrapper
  */
 hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
@@ -220,9 +238,9 @@ hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
     }
 
     // retrieve all results
-    std::unique_lock<std::mutex> results_lock(hx->p->put_results_mutex);
-    hxhim::Results *res = hx->p->put_results;
-    hx->p->put_results = new hxhim::Results();
+    std::unique_lock<std::mutex> results_lock(hx->p->async_put.mutex);
+    hxhim::Results *res = hx->p->async_put.results;
+    hx->p->async_put.results = new hxhim::Results();
 
     return res;
 }
@@ -232,7 +250,7 @@ hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
  * Flushes all queued PUTs
  * The internal queue is cleared, even on error
  *
- * @param hx the HXHIM session to terminate
+ * @param hx the HXHIM session
  * @return Pointer to return value wrapper
  */
 hxhim_results_t *hxhimFlushPuts(hxhim_t *hx) {
@@ -240,11 +258,68 @@ hxhim_results_t *hxhimFlushPuts(hxhim_t *hx) {
 }
 
 /**
+ * get_core
+ * The core set of function calls that are needed to send Gets to databases and receive responses
+ *
+ * @param hx        the HXHIM session
+ * @param curr      the current set of data to process
+ * @param count     the number of elements in this set of data
+ * @param local     the buffer for local data  (not a local variable in order to avoid allocations)
+ * @param remote    the buffer for remote data (not a local variable in order to avoid allocations)
+ * @return
+ */
+static hxhim::Results *get_core(hxhim_t *hx,
+                                hxhim::GetData *curr,
+                                const std::size_t count,
+                                Transport::Request::BGet *local,
+                                Transport::Request::BGet **remote) {
+    // reset buffers without deallocating (BGet::clean should be false)
+    local->count = 0;
+    for(std::size_t i = 0; i < hx->mpi.size; i++) {
+        remote[i]->count = 0;
+    }
+
+    // move the data into the appropriate buffers
+    for(std::size_t i = 0; i < count; i++) {
+        hxhim::shuffle::Get(hx, count,
+                            curr->subjects[i], curr->subject_lens[i],
+                            curr->predicates[i], curr->predicate_lens[i],
+                            curr->object_types[i],
+                            local, remote);
+    }
+
+    hxhim::Results *res = new hxhim::Results();
+
+    // GET the batch
+    if (hx->mpi.size > 1) {
+        Transport::Response::BGet *responses = hx->p->transport->BGet(hx->mpi.size, remote);
+        for(Transport::Response::BGet *curr = responses; curr; curr = curr->next) {
+            for(std::size_t i = 0; i < curr->count; i++) {
+                res->Add(new hxhim::Results::Get(curr, i));
+            }
+        }
+        delete responses;
+    }
+
+    if (local->count) {
+        Transport::Response::BGet *responses = local_client_bget(hx, local);
+        for(Transport::Response::BGet *curr = responses; curr; curr = curr->next) {
+            for(std::size_t i = 0; i < curr->count; i++) {
+                res->Add(new hxhim::Results::Get(curr, i));
+            }
+        }
+        delete responses;
+    }
+
+    return res;
+}
+
+/**
  * FlushGets
  * Flushes all queued GETs
  * The internal queue is cleared, even on error
  *
- * @param hx the HXHIM session to terminate
+ * @param hx the HXHIM session
  * @return Pointer to return value wrapper
  */
 hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
@@ -260,16 +335,19 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
         return HXHIM_SUCCESS;
     }
 
-    hxhim::Results *res = new hxhim::Results();
-    std::list <void *> ptrs;
+    Transport::Request::BGet local(HXHIM_MAX_BULK_GET_OPS);
+    local.src = hx->mpi.rank;
+    local.dst = hx->mpi.rank;
+
+    Transport::Request::BGet **remote = new Transport::Request::BGet *[hx->mpi.size](); // list of destination servers (not databases) and messages to those destinations
+    for(std::size_t i = 0; i < hx->mpi.size; i++) {
+        remote[i] = new Transport::Request::BGet(HXHIM_MAX_BULK_GET_OPS);
+    }
 
     // write complete batches
+    hxhim::Results *res = new hxhim::Results();
     while (curr->next) {
-        // GET the batch
-        hxhim::Results *ret = hx->p->backend->BGet(curr->subjects, curr->subject_lens,
-                                                   curr->predicates, curr->predicate_lens,
-                                                   curr->object_types,
-                                                   HXHIM_MAX_BULK_GET_OPS);
+        hxhim::Results *ret = get_core(hx, curr, HXHIM_MAX_BULK_GET_OPS, &local, remote);
         res->Append(ret);
         delete ret;
 
@@ -279,20 +357,17 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
         curr = next;
     }
 
-    // write final (possibly incomplete) batch
-    hxhim::Results *ret = hx->p->backend->BGet(curr->subjects, curr->subject_lens,
-                                               curr->predicates, curr->predicate_lens,
-                                               curr->object_types,
-                                               gets.last_count);
+    hxhim::Results *ret = get_core(hx, curr, gets.last_count, &local, remote);
     res->Append(ret);
     delete ret;
 
     // delete the last batch
     delete curr;
 
-    for(void *ptr : ptrs) {
-        ::operator delete(ptr);
+    for(std::size_t i = 0; i < hx->mpi.size; i++) {
+        delete remote[i];
     }
+    delete [] remote;
 
     gets.head = gets.tail = nullptr;
 
@@ -304,7 +379,7 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
  * Flushes all queued GETs
  * The internal queue is cleared, even on error
  *
- * @param hx the HXHIM session to terminate
+ * @param hx the HXHIM session
  * @return Pointer to return value wrapper
  */
 hxhim_results_t *hxhimFlushGets(hxhim_t *hx) {
@@ -312,11 +387,70 @@ hxhim_results_t *hxhimFlushGets(hxhim_t *hx) {
 }
 
 /**
+ * getop_core
+ * The core set of function calls that are needed to send GetOps to databases and receive responses
+ *
+ * @param hx        the HXHIM session
+ * @param curr      the current set of data to process
+ * @param count     the number of elements in this set of data
+ * @param local     the buffer for local data  (not a local variable in order to avoid allocations)
+ * @param remote    the buffer for remote data (not a local variable in order to avoid allocations)
+ * @return
+ */
+static hxhim::Results *getop_core(hxhim_t *hx,
+                                  hxhim::GetOpData *curr,
+                                  const std::size_t count,
+                                  Transport::Request::BGetOp *local,
+                                  Transport::Request::BGetOp **remote) {
+    // reset buffers without deallocating (BGetOp::clean should be false)
+    local->count = 0;
+    for(std::size_t i = 0; i < hx->mpi.size; i++) {
+        remote[i]->count = 0;
+    }
+
+    // move the data into the appropriate buffers
+    for(std::size_t i = 0; i < count; i++) {
+        hxhim::shuffle::GetOp(hx, count,
+                              curr->subjects[i], curr->subject_lens[i],
+                              curr->predicates[i], curr->predicate_lens[i],
+                              curr->object_types[i],
+                              curr->num_recs[i],
+                              curr->ops[i],
+                              local, remote);
+    }
+
+    hxhim::Results *res = new hxhim::Results();
+
+    // GET the batch
+    if (hx->mpi.size > 1) {
+        Transport::Response::BGetOp *responses = hx->p->transport->BGetOp(hx->mpi.size, remote);
+        for(Transport::Response::BGetOp *curr = responses; curr; curr = curr->next) {
+            for(std::size_t i = 0; i < curr->count; i++) {
+                res->Add(new hxhim::Results::Get(curr, i));
+            }
+        }
+        delete responses;
+    }
+
+    if (local->count) {
+        Transport::Response::BGetOp *responses = local_client_bget_op(hx, local);
+        for(Transport::Response::BGetOp *curr = responses; curr; curr = curr->next) {
+            for(std::size_t i = 0; i < curr->count; i++) {
+                res->Add(new hxhim::Results::Get(curr, i));
+            }
+        }
+        delete responses;
+    }
+
+    return res;
+}
+
+/**
  * FlushGetOps
  * Flushes all queued GETs with specific operations
  * The internal queue is cleared, even on error
  *
- * @param hx the HXHIM session to terminate
+ * @param hx the HXHIM session
  * @return Pointer to return value wrapper
  */
 hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
@@ -332,20 +466,24 @@ hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
         return HXHIM_SUCCESS;
     }
 
+    Transport::Request::BGetOp local(HXHIM_MAX_BULK_GET_OPS);
+    local.src = hx->mpi.rank;
+    local.dst = hx->mpi.rank;
+
+    Transport::Request::BGetOp **remote = new Transport::Request::BGetOp *[hx->mpi.size](); // list of destination servers (not databases) and messages to those destinations
+    for(std::size_t i = 0; i < hx->mpi.size; i++) {
+        remote[i] = new Transport::Request::BGetOp(HXHIM_MAX_BULK_GET_OPS);
+        remote[i]->src = hx->mpi.rank;
+        remote[i]->dst = i;
+    }
+
     hxhim::Results *res = new hxhim::Results();
-    std::list <void *> ptrs;
 
     // write complete batches
     while (curr->next) {
-        for(std::size_t i = 0; i < HXHIM_MAX_BULK_GET_OPS; i++) {
-            // GETOP the key
-            hxhim::Results *ret = hx->p->backend->BGetOp(curr->subjects[i], curr->subject_lens[i],
-                                                         curr->predicates[i], curr->predicate_lens[i],
-                                                         curr->object_types[i],
-                                                         curr->counts[i], curr->ops[i]);
-            res->Append(ret);
-            delete ret;
-        }
+        hxhim::Results *ret = getop_core(hx, curr, HXHIM_MAX_BULK_GET_OPS, &local, remote);
+        res->Append(ret);
+        delete ret;
 
         // go to the next batch
         hxhim::GetOpData *next = curr->next;
@@ -354,21 +492,17 @@ hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
     }
 
     // write final (possibly incomplete) batch
-    for(std::size_t i = 0; i < getops.last_count; i++) {
-        hxhim::Results *ret = hx->p->backend->BGetOp(curr->subjects[i], curr->subject_lens[i],
-                                                     curr->predicates[i], curr->predicate_lens[i],
-                                                     curr->object_types[i],
-                                                     curr->counts[i], curr->ops[i]);
-        res->Append(ret);
-        delete ret;
-    }
+    hxhim::Results *ret = getop_core(hx, curr, getops.last_count, &local, remote);
+    res->Append(ret);
+    delete ret;
 
     // delete the last batch
     delete curr;
 
-    for(void *ptr : ptrs) {
-        ::operator delete(ptr);
+    for(std::size_t i = 0; i < hx->mpi.size; i++) {
+        delete remote[i];
     }
+    delete [] remote;
 
     getops.head = getops.tail = nullptr;
 
@@ -380,7 +514,7 @@ hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
  * Flushes all queued GETs with specific operations
  * The internal queue is cleared, even on error
  *
- * @param hx the HXHIM session to terminate
+ * @param hx the HXHIM session
  * @return Pointer to return value wrapper
  */
 hxhim_results_t *hxhimFlushGetOps(hxhim_t *hx) {
@@ -388,11 +522,67 @@ hxhim_results_t *hxhimFlushGetOps(hxhim_t *hx) {
 }
 
 /**
+ * delete_core
+ * The core set of function calls that are needed to send Deletes to databases and receive responses
+ *
+ * @param hx        the HXHIM session
+ * @param curr      the current set of data to process
+ * @param count     the number of elements in this set of data
+ * @param local     the buffer for local data  (not a local variable in order to avoid allocations)
+ * @param remote    the buffer for remote data (not a local variable in order to avoid allocations)
+ * @return
+ */
+static hxhim::Results *delete_core(hxhim_t *hx,
+                                   hxhim::DeleteData *curr,
+                                   const std::size_t count,
+                                   Transport::Request::BDelete *local,
+                                   Transport::Request::BDelete **remote) {
+    // reset buffers without deallocating (BDelete::clean should be false)
+    local->count = 0;
+    for(std::size_t i = 0; i < hx->mpi.size; i++) {
+        remote[i]->count = 0;
+    }
+
+    // move the data into the appropriate buffers
+    for(std::size_t i = 0; i < count; i++) {
+        hxhim::shuffle::Delete(hx, count,
+                               curr->subjects[i], curr->subject_lens[i],
+                               curr->predicates[i], curr->predicate_lens[i],
+                               local, remote);
+    }
+
+    hxhim::Results *res = new hxhim::Results();
+
+    // DELETE the batch
+    if (hx->mpi.size > 1) {
+        Transport::Response::BDelete *responses = hx->p->transport->BDelete(hx->mpi.size, remote);
+        for(Transport::Response::BDelete *curr = responses; curr; curr = curr->next) {
+            for(std::size_t i = 0; i < curr->count; i++) {
+                res->Add(new hxhim::Results::Delete(curr, i));
+            }
+        }
+        delete responses;
+    }
+
+    if (local->count) {
+        Transport::Response::BDelete *responses = local_client_bdelete(hx, local);
+        for(Transport::Response::BDelete *curr = responses; curr; curr = curr->next) {
+            for(std::size_t i = 0; i < curr->count; i++) {
+                res->Add(new hxhim::Results::Delete(curr, i));
+            }
+        }
+        delete responses;
+    }
+
+    return res;
+}
+
+/**
  * FlushDeletes
  * Flushes all queued DELs
  * The internal queue is cleared, even on error
  *
- * @param hx the HXHIM session to terminate
+ * @param hx the HXHIM session
  * @return Pointer to return value wrapper
  */
 hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
@@ -408,16 +598,23 @@ hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
         return HXHIM_SUCCESS;
     }
 
+    Transport::Request::BDelete local(HXHIM_MAX_BULK_GET_OPS);
+    local.src = hx->mpi.rank;
+    local.dst = hx->mpi.rank;
+
+    Transport::Request::BDelete **remote = new Transport::Request::BDelete *[hx->mpi.size](); // list of destination servers (not databases) and messages to those destinations
+    for(std::size_t i = 0; i < hx->mpi.size; i++) {
+        remote[i] = new Transport::Request::BDelete(HXHIM_MAX_BULK_GET_OPS);
+        remote[i]->src = hx->mpi.rank;
+        remote[i]->dst = i;
+    }
+
     hxhim::Results *res = new hxhim::Results();
-    std::list <void *> ptrs;
 
     // write complete batches
     while (curr->next) {
-
-        // DEL the batch
-        hxhim::Results *ret = hx->p->backend->BDelete(curr->subjects, curr->subject_lens, curr->predicates, curr->predicate_lens, HXHIM_MAX_BULK_DEL_OPS);
-        res->Append(ret);
-        delete ret;
+        // move the data into the appropriate buffers
+        res->Append(delete_core(hx, curr, HXHIM_MAX_BULK_DEL_OPS, &local, remote));
 
         // go to the next batch
         hxhim::DeleteData *next = curr->next;
@@ -426,16 +623,16 @@ hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
     }
 
     // write final (possibly incomplete) batch
-    hxhim::Results *ret = hx->p->backend->BDelete(curr->subjects, curr->subject_lens, curr->predicates, curr->predicate_lens, dels.last_count);
-    res->Append(ret);
-    delete ret;
+    // move the data into the appropriate buffers
+    res->Append(delete_core(hx, curr, dels.last_count, &local, remote));
 
     // delete the last batch
     delete curr;
 
-    for(void *ptr : ptrs) {
-        ::operator delete(ptr);
+    for(std::size_t i = 0; i < hx->mpi.size; i++) {
+        delete remote[i];
     }
+    delete [] remote;
 
     dels.head = dels.tail = nullptr;
 
@@ -447,7 +644,7 @@ hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
  * Flushes all queued DELs
  * The internal queue is cleared, even on error
  *
- * @param hx the HXHIM session to terminate
+ * @param hx the HXHIM session
  * @return Pointer to return value wrapper
  */
 hxhim_results_t *hxhimFlushDeletes(hxhim_t *hx) {
@@ -507,7 +704,7 @@ hxhim_results_t *hxhimFlush(hxhim_t *hx) {
 int hxhim::Put(hxhim_t *hx,
                void *subject, std::size_t subject_len,
                void *predicate, std::size_t predicate_len,
-               hxhim_spo_type_t object_type, void *object, std::size_t object_len) {
+               enum hxhim_type_t object_type, void *object, std::size_t object_len) {
     if (!hx || !hx->p) {
         return HXHIM_ERROR;
     }
@@ -567,7 +764,7 @@ int hxhim::Put(hxhim_t *hx,
 int hxhimPut(hxhim_t *hx,
              void *subject, std::size_t subject_len,
              void *predicate, std::size_t predicate_len,
-             hxhim_spo_type_t object_type, void *object, std::size_t object_len) {
+             enum hxhim_type_t object_type, void *object, std::size_t object_len) {
     return hxhim::Put(hx,
                       subject, subject_len,
                       predicate, predicate_len,
@@ -589,7 +786,7 @@ int hxhimPut(hxhim_t *hx,
 int hxhim::Get(hxhim_t *hx,
                void *subject, std::size_t subject_len,
                void *predicate, std::size_t predicate_len,
-               hxhim_spo_type_t object_type) {
+               enum hxhim_type_t object_type) {
     if (!hx || !hx->p) {
         return HXHIM_ERROR;
     }
@@ -642,7 +839,7 @@ int hxhim::Get(hxhim_t *hx,
 int hxhimGet(hxhim_t *hx,
              void *subject, size_t subject_len,
              void *predicate, size_t predicate_len,
-             hxhim_spo_type_t object_type) {
+             enum hxhim_type_t object_type) {
     return hxhim::Get(hx,
                       subject, subject_len,
                       predicate, predicate_len,
@@ -735,7 +932,7 @@ int hxhimDelete(hxhim_t *hx,
 int hxhim::BPut(hxhim_t *hx,
                 void **subjects, std::size_t *subject_lens,
                 void **predicates, std::size_t *predicate_lens,
-                hxhim_spo_type_t *object_types, void **objects, std::size_t *object_lens,
+                enum hxhim_type_t *object_types, void **objects, std::size_t *object_lens,
                 std::size_t count) {
     if (!hx         || !hx->p          ||
         !subjects   || !subject_lens   ||
@@ -768,6 +965,7 @@ int hxhim::BPut(hxhim_t *hx,
             }
 
             std::size_t &i = puts.last_count;
+
             puts.tail->subjects[i] = subjects[c];
             puts.tail->subject_lens[i] = subject_lens[c];
 
@@ -803,7 +1001,7 @@ int hxhim::BPut(hxhim_t *hx,
 int hxhimBPut(hxhim_t *hx,
               void **subjects, std::size_t *subject_lens,
               void **predicates, std::size_t *predicate_lens,
-              hxhim_spo_type_t *object_types, void **objects, std::size_t *object_lens,
+              enum hxhim_type_t *object_types, void **objects, std::size_t *object_lens,
               std::size_t count) {
     return hxhim::BPut(hx,
                        subjects, subject_lens,
@@ -829,7 +1027,7 @@ int hxhimBPut(hxhim_t *hx,
 int hxhim::BGet(hxhim_t *hx,
                 void **subjects, std::size_t *subject_lens,
                 void **predicates, std::size_t *predicate_lens,
-                hxhim_spo_type_t *object_types,
+                hxhim_type_t *object_types,
                 std::size_t count) {
     if (!hx         || !hx->p          ||
         !subjects   || !subject_lens   ||
@@ -890,7 +1088,7 @@ int hxhim::BGet(hxhim_t *hx,
 int hxhimBGet(hxhim_t *hx,
               void **subjects, std::size_t *subject_lens,
               void **predicates, std::size_t *predicate_lens,
-              hxhim_spo_type_t *object_types,
+              enum hxhim_type_t *object_types,
               std::size_t count) {
     return hxhim::BGet(hx,
                        subjects, subject_lens,
@@ -914,8 +1112,8 @@ int hxhimBGet(hxhim_t *hx,
 int hxhim::BGetOp(hxhim_t *hx,
                   void *subject, size_t subject_len,
                   void *predicate, size_t predicate_len,
-                  hxhim_spo_type_t object_type,
-                  std::size_t num_records, enum hxhim_get_op op) {
+                  enum hxhim_type_t object_type,
+                  std::size_t num_records, enum hxhim_get_op_t op) {
     if (!hx      || !hx->p       ||
         !subject || !subject_len) {
         return HXHIM_ERROR;
@@ -949,7 +1147,7 @@ int hxhim::BGetOp(hxhim_t *hx,
 
     getops.tail->object_types[i] = object_type;
 
-    getops.tail->counts[i] = num_records;
+    getops.tail->num_recs[i] = num_records;
     getops.tail->ops[i] = op;
 
     i++;
@@ -974,8 +1172,8 @@ int hxhim::BGetOp(hxhim_t *hx,
 int hxhimBGetOp(hxhim_t *hx,
                 void *subject, size_t subject_len,
                 void *predicate, size_t predicate_len,
-                hxhim_spo_type_t object_type,
-                std::size_t num_records, enum hxhim_get_op op) {
+                enum hxhim_type_t object_type,
+                std::size_t num_records, enum hxhim_get_op_t op) {
     return hxhim::BGetOp(hx,
                          subject, subject_len,
                          predicate, predicate_len,
@@ -1027,10 +1225,13 @@ int hxhim::BDelete(hxhim_t *hx,
             }
 
             std::size_t &i = dels.last_count;
+
             dels.tail->subjects[i] = subjects[c];
             dels.tail->subject_lens[i] = subject_lens[c];
+
             dels.tail->predicates[i] = predicates[c];
             dels.tail->predicate_lens[i] = predicate_lens[c];
+
             i++;
         }
     }
@@ -1083,11 +1284,11 @@ int hxhim::GetStats(hxhim_t *hx, const int rank,
                     const bool get_num_puts, std::size_t *num_puts,
                     const bool get_get_times, long double *get_times,
                     const bool get_num_gets, std::size_t *num_gets) {
-    return hx->p->backend->GetStats(rank,
-                                    get_put_times, put_times,
-                                    get_num_puts, num_puts,
-                                    get_get_times, get_times,
-                                    get_num_gets, num_gets);
+    return hx->p->databases[0]->GetStats(rank,
+                                        get_put_times, put_times,
+                                        get_num_puts, num_puts,
+                                        get_get_times, get_times,
+                                        get_num_gets, num_gets);
 }
 
 /**
@@ -1132,8 +1333,7 @@ int hxhim::GetHistogram(hxhim_t *hx, Histogram::Histogram **histogram) {
         return HXHIM_ERROR;
     }
 
-    *histogram = hx->p->histogram;
-    return HXHIM_SUCCESS;
+    return HXHIM_ERROR;
 }
 
 /**

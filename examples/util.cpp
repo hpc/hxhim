@@ -96,48 +96,48 @@ bool bulk_clean(UserInput &input) {
     return true;
 }
 
-/**
- * next
- * Increment a mdhim_brm_t to the next message
- *
- * @param brm the current message
- * @return MDHIM_SUCCESS or MDHIM_ERROR
- */
-int next(mdhim_brm_t **brm) {
-    if (!brm) {
-        return MDHIM_ERROR;
-    }
+// /**
+//  * next
+//  * Increment a transport_brm_t to the next message
+//  *
+//  * @param brm the current message
+//  * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR
+//  */
+// int next(transport_brm_t **brm) {
+//     if (!brm) {
+//         return TRANSPORT_ERROR;
+//     }
 
-    // Go to next result
-    mdhim_brm_t *next = nullptr;
-    if (mdhim_brm_next(*brm, &next) != MDHIM_SUCCESS) {
-        return MDHIM_ERROR;
-    }
+//     // Go to next result
+//     transport_brm_t *next = nullptr;
+//     if (transport_brm_next(*brm, &next) != TRANSPORT_SUCCESS) {
+//         return TRANSPORT_ERROR;
+//     }
 
-    mdhim_brm_destroy(*brm);
-    *brm = next;
-    return MDHIM_SUCCESS;
-}
+//     transport_brm_destroy(*brm);
+//     *brm = next;
+//     return TRANSPORT_SUCCESS;
+// }
 
-/**
- * next
- * Increment a mdhim_bgrm_t to the next message
- *
- * @param bgrm the current message
- * @return MDHIM_SUCCESS or MDHIM_ERROR
- */
-int next(mdhim_bgrm_t **bgrm) {
-    if (!bgrm) {
-        return MDHIM_ERROR;
-    }
+// /**
+//  * next
+//  * Increment a transport_bgrm_t to the next message
+//  *
+//  * @param bgrm the current message
+//  * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR
+//  */
+// int next(transport_bgrm_t **bgrm) {
+//     if (!bgrm) {
+//         return TRANSPORT_ERROR;
+//     }
 
-    // Go to next result
-    mdhim_bgrm_t *next = nullptr;
-    if (mdhim_bgrm_next(*bgrm, &next) != MDHIM_SUCCESS) {
-        return MDHIM_ERROR;
-    }
+//     // Go to next result
+//     transport_bgrm_t *next = nullptr;
+//     if (transport_bgrm_next(*bgrm, &next) != TRANSPORT_SUCCESS) {
+//         return TRANSPORT_ERROR;
+//     }
 
-    mdhim_bgrm_destroy(*bgrm);
-    *bgrm = next;
-    return MDHIM_SUCCESS;
-}
+//     transport_bgrm_destroy(*bgrm);
+//     *bgrm = next;
+//     return TRANSPORT_SUCCESS;
+// }

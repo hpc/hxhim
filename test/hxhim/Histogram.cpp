@@ -6,15 +6,17 @@
 #include <mpi.h>
 
 #include "hxhim/hxhim.hpp"
-#include "hxhim/private.hpp"
 #include "hxhim/backend/InMemory.hpp"
 #include "hxhim/config.hpp"
 
-TEST(hxhim, Histogram) {
+TEST(Histogram, normal_usage) {
     hxhim_options_t opts;
     ASSERT_EQ(hxhim_options_init(&opts), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_mpi_bootstrap(&opts, MPI_COMM_WORLD), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_backend(&opts, HXHIM_BACKEND_IN_MEMORY, nullptr), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim_options_set_database_in_memory(&opts), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim_options_set_databases_per_range_server(&opts, 1), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim_options_set_hash(&opts, RANK.c_str()), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim_options_set_transport_thallium(&opts, "na+sm"), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_queued_bputs(&opts, 1), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_histogram_first_n(&opts, 10), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_histogram_bucket_gen_method(&opts, TEN_BUCKETS.c_str()), HXHIM_SUCCESS);
@@ -31,7 +33,7 @@ TEST(hxhim, Histogram) {
         EXPECT_EQ(hxhim::Put(&hx,
                              (void *)&subjects[i], sizeof(subjects[i]),
                              (void *)&predicates[i], sizeof(predicates[i]),
-                             HXHIM_SPO_SIZE_TYPE, (void *)&objects[i], sizeof(objects[i])),
+                             HXHIM_SIZE_TYPE, (void *)&objects[i], sizeof(objects[i])),
                   HXHIM_SUCCESS);
     }
 

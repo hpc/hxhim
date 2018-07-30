@@ -27,13 +27,12 @@ int hxhimBPutDouble(hxhim_t *hx,
 int hxhimBGetDouble(hxhim_t *hx,
                     void **subjects, size_t *subject_lens,
                     void **predicates, size_t *predicate_lens,
-                    hxhim_spo_type_t *object_types,
                     size_t count);
 
 int hxhimBGetOpDouble(hxhim_t *hx,
                       void *subject, size_t subject_len,
                       void *predicate, size_t predicate_len,
-                      size_t num_records, enum hxhim_get_op op);
+                      size_t num_records, enum hxhim_get_op_t op);
 
 #ifdef __cplusplus
 }

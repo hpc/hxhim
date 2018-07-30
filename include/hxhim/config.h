@@ -1,5 +1,5 @@
-#ifndef HXHIM_CONFIG
-#define HXHIM_CONFIG
+#ifndef HXHIM_CONFIG_H
+#define HXHIM_CONFIG_H
 
 #include <mpi.h>
 
