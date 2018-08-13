@@ -9,7 +9,7 @@ struct Single {
     Single();
     virtual ~Single();
 
-    int db_offset;
+    int ds_offset;
 };
 
 }

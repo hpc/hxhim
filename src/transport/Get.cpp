@@ -22,7 +22,7 @@ Transport::Request::Get::~Get()
 }
 
 std::size_t Transport::Request::Get::size() const {
-    return Request::size() + sizeof(db_offset) +
+    return Request::size() + sizeof(ds_offset) +
         subject_len + sizeof(subject_len) +
         predicate_len + sizeof(predicate_len) +
         sizeof(object_type);
@@ -54,7 +54,7 @@ Transport::Response::Get::~Get()
 }
 
 std::size_t Transport::Response::Get::size() const {
-    return Response::size() + sizeof(db_offset) +
+    return Response::size() + sizeof(ds_offset) +
         sizeof(status) +
         subject_len + sizeof(subject_len) +
         predicate_len + sizeof(predicate_len) +

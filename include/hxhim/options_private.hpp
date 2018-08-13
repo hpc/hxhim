@@ -18,19 +18,19 @@ extern "C"
 #endif
 
 /**
- * Structures for holding database configurations
+ * Structures for holding datastore configurations
  */
-typedef struct hxhim_database_config {
-    hxhim_database_config(const hxhim_database_t database)
-        : type(database)
+typedef struct hxhim_datastore_config {
+    hxhim_datastore_config(const hxhim_datastore_t datastore)
+        : type(datastore)
     {}
 
-    const hxhim_database_t type;
-} hxhim_database_config_t;
+    const hxhim_datastore_t type;
+} hxhim_datastore_config_t;
 
-typedef struct hxhim_leveldb_config : hxhim_database_config_t {
+typedef struct hxhim_leveldb_config : hxhim_datastore_config_t {
     hxhim_leveldb_config()
-        : hxhim_database_config_t(HXHIM_DATABASE_LEVELDB)
+        : hxhim_datastore_config_t(HXHIM_DATASTORE_LEVELDB)
     {}
 
     std::size_t id;
@@ -38,9 +38,9 @@ typedef struct hxhim_leveldb_config : hxhim_database_config_t {
     bool create_if_missing;
 } hxhim_leveldb_config_t;
 
-typedef struct hxhim_in_memory_config : hxhim_database_config_t {
+typedef struct hxhim_in_memory_config : hxhim_datastore_config_t {
     hxhim_in_memory_config()
-        : hxhim_database_config_t(HXHIM_DATABASE_IN_MEMORY)
+        : hxhim_datastore_config_t(HXHIM_DATASTORE_IN_MEMORY)
     {}
 } hxhim_in_memory_config_t;
 
@@ -50,8 +50,8 @@ typedef struct hxhim_in_memory_config : hxhim_database_config_t {
 typedef struct hxhim_options_private {
     bootstrap_t mpi;                          // bootstrap information
 
-    hxhim_database_config_t *database;        // configuration options for the selected database
-    std::size_t database_count;
+    hxhim_datastore_config_t *datastore;      // configuration options for the selected datastore
+    std::size_t datastore_count;
 
     std::string hash;
     Transport::Options *transport;

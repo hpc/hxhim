@@ -53,52 +53,52 @@ int hxhim_options_set_mpi_bootstrap(hxhim_options_t *opts, MPI_Comm comm) {
     return HXHIM_SUCCESS;
 }
 
-int hxhim_options_set_databases_per_range_server(hxhim_options_t *opts, const size_t count) {
+int hxhim_options_set_datastores_per_range_server(hxhim_options_t *opts, const size_t count) {
     if (!valid_opts(opts)) {
         return HXHIM_ERROR;
     }
 
-    opts->p->database_count = count;
+    opts->p->datastore_count = count;
 
     return HXHIM_SUCCESS;
 }
 
 /**
- * hxhim_options_set_database
- * Sets the values needed to set up the database
+ * hxhim_options_set_datastore
+ * Sets the values needed to set up the datastore
  * This function moves ownership of the config function from the caller to opts
  *
  * @param opts   the set of options to be modified
- * @param config configuration data needed to initialize the database
+ * @param config configuration data needed to initialize the datastore
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-static int hxhim_options_set_database(hxhim_options_t *opts, hxhim_database_config_t *config) {
+static int hxhim_options_set_datastore(hxhim_options_t *opts, hxhim_datastore_config_t *config) {
     if (!valid_opts(opts)) {
         return HXHIM_ERROR;
     }
 
-    hxhim_options_database_config_destroy(opts->p->database);
+    hxhim_options_datastore_config_destroy(opts->p->datastore);
 
-    opts->p->database = config;
+    opts->p->datastore = config;
 
     return HXHIM_SUCCESS;
 }
 
 /**
- * hxhim_options_set_database_leveldb
- * Sets up the values needed for a leveldb database
+ * hxhim_options_set_datastore_leveldb
+ * Sets up the values needed for a leveldb datastore
  *
  * @param opts   the set of options to be modified
- * @param path the name prefix for each database
+ * @param path the name prefix for each datastore
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_options_set_database_leveldb(hxhim_options_t *opts, const size_t id, const char *path, const int create_if_missing) {
-    hxhim_database_config_t *config = hxhim_options_create_leveldb_config(id, path, create_if_missing);
+int hxhim_options_set_datastore_leveldb(hxhim_options_t *opts, const size_t id, const char *path, const int create_if_missing) {
+    hxhim_datastore_config_t *config = hxhim_options_create_leveldb_config(id, path, create_if_missing);
     if (!config) {
         return HXHIM_ERROR;
     }
 
-    if (hxhim_options_set_database(opts, config) != HXHIM_SUCCESS) {
+    if (hxhim_options_set_datastore(opts, config) != HXHIM_SUCCESS) {
         delete config;
         return HXHIM_ERROR;
     }
@@ -106,20 +106,20 @@ int hxhim_options_set_database_leveldb(hxhim_options_t *opts, const size_t id, c
 }
 
 /**
- * hxhim_options_set_database_in_memory
- * Sets up the values needed for a in_memory database
+ * hxhim_options_set_datastore_in_memory
+ * Sets up the values needed for a in_memory datastore
  *
  * @param opts   the set of options to be modified
- * @param path the name prefix for each database
+ * @param path the name prefix for each datastore
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_options_set_database_in_memory(hxhim_options_t *opts) {
-    hxhim_database_config_t *config = hxhim_options_create_in_memory_config();
+int hxhim_options_set_datastore_in_memory(hxhim_options_t *opts) {
+    hxhim_datastore_config_t *config = hxhim_options_create_in_memory_config();
     if (!config) {
         return HXHIM_ERROR;
     }
 
-    if (hxhim_options_set_database(opts, config) != HXHIM_SUCCESS) {
+    if (hxhim_options_set_datastore(opts, config) != HXHIM_SUCCESS) {
         delete config;
         return HXHIM_ERROR;
     }
@@ -364,7 +364,7 @@ int hxhim_options_destroy(hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
-    hxhim_options_database_config_destroy(opts->p->database);
+    hxhim_options_datastore_config_destroy(opts->p->datastore);
     delete opts->p->transport;
 
     delete opts->p;
@@ -376,11 +376,11 @@ int hxhim_options_destroy(hxhim_options_t *opts) {
 /**
  * hxhim_options_create_leveldb_config
  *
- * @param path               the name prefix for each database
- * @param create_if_missing  whether or not leveldb should create new databases if the databases do not already exist
+ * @param path               the name prefix for each datastore
+ * @param create_if_missing  whether or not leveldb should create new datastores if the datastores do not already exist
  * @return a pointer to the configuration data, or a nullptr
  */
-hxhim_database_config_t *hxhim_options_create_leveldb_config(const size_t id, const char *path, const int create_if_missing) {
+hxhim_datastore_config_t *hxhim_options_create_leveldb_config(const size_t id, const char *path, const int create_if_missing) {
     hxhim_leveldb_config_t *config = new hxhim_leveldb_config_t();
     if (config) {
         config->id = id;
@@ -395,11 +395,11 @@ hxhim_database_config_t *hxhim_options_create_leveldb_config(const size_t id, co
  *
  * @return a pointer to the configuration data, or a nullptr
  */
-hxhim_database_config_t *hxhim_options_create_in_memory_config() {
+hxhim_datastore_config_t *hxhim_options_create_in_memory_config() {
     return new hxhim_in_memory_config_t();
 }
 
 // Cleans up config memory, including the config variable itself because the user will never be able to create their own config
-void hxhim_options_database_config_destroy(hxhim_database_config_t *config) {
+void hxhim_options_datastore_config_destroy(hxhim_datastore_config_t *config) {
     delete config;
 }

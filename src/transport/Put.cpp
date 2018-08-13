@@ -22,7 +22,7 @@ Transport::Request::Put::~Put()
 }
 
 std::size_t Transport::Request::Put::size() const {
-    return Request::size() + sizeof(db_offset) +
+    return Request::size() + sizeof(ds_offset) +
         subject_len + sizeof(subject_len) +
         predicate_len + sizeof(predicate_len) +
         sizeof(object_type) + object_len + sizeof(object_len);
@@ -38,6 +38,6 @@ Transport::Response::Put::~Put()
 {}
 
 std::size_t Transport::Response::Put::size() const {
-    return Response::size() + sizeof(db_offset) +
+    return Response::size() + sizeof(ds_offset) +
         sizeof(status);
 }

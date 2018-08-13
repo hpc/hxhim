@@ -148,14 +148,15 @@ endif()
 message( STATUS "GTest source dir: " ${gtest_SOURCE_DIR})
 
 #
-# Create libraries
+# Create library
 #
-file(GLOB_RECURSE HXHIM src/hxhim/*.c*)
 file(GLOB_RECURSE BASE src/base/*.c*)
+file(GLOB_RECURSE DATASTORE src/datastore/*.c*)
+file(GLOB_RECURSE HXHIM src/hxhim/*.c*)
 file(GLOB_RECURSE TRANSPORT src/transport/*.c*)
 file(GLOB_RECURSE UTILS src/utils/*.c*)
 
-set(LIBHXHIM_SOURCES ${HXHIM} ${BASE} ${TRANSPORT} ${UTILS})
+set(LIBHXHIM_SOURCES ${BASE} ${DATASTORE} ${HXHIM} ${TRANSPORT} ${UTILS})
 list(REMOVE_ITEM LIBHXHIM_SOURCES **.tpp)
 message(STATUS "LIBHXHIM_SOURCES: " ${LIBHXHIM_SOURCES})
 add_library(hxhim OBJECT ${LIBHXHIM_SOURCES})

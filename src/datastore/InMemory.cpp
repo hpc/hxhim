@@ -2,18 +2,18 @@
 #include <sstream>
 #include <stdexcept>
 
-#include "hxhim/backend/InMemory.hpp"
+#include "datastore/InMemory.hpp"
 #include "hxhim/triplestore.hpp"
 
 namespace hxhim {
-namespace backend {
+namespace datastore {
 
 using namespace Transport;
 
 InMemory::InMemory(hxhim_t *hx,
                    const int id,
                    const std::size_t use_first_n, const Histogram::BucketGen::generator &generator, void *extra_args)
-    : base(hx, id, use_first_n, generator, extra_args),
+    : Datastore(hx, id, use_first_n, generator, extra_args),
       db()
 {}
 

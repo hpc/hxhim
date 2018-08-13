@@ -12,7 +12,7 @@ struct Bulk {
     virtual int alloc(const std::size_t max);
     virtual int cleanup();
 
-    int *db_offsets;
+    int *ds_offsets;
     std::size_t count;
 };
 

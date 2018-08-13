@@ -16,10 +16,10 @@
 const std::string HXHIM_CONFIG_FILE                 = "hxhim.conf";
 const std::string HXHIM_CONFIG_ENV                  = "HXHIM_CONFIG";
 
-const std::string HXHIM_DATABASE_TYPE               = "DATABASE";                  // See HXHIM_DATABASE_TYPES
-const std::string HXHIM_DATABASES_PER_RANGE_SERVER  = "DATABASES_PER_RS";          // positive integer
+const std::string HXHIM_DATASTORE_TYPE              = "DATASTORE";                 // See HXHIM_DATASTORE_TYPES
+const std::string HXHIM_DATASTORES_PER_RANGE_SERVER = "DATASTORES_PER_RS";         // positive integer
 
-/** LevelDB Database Options*/
+/** LevelDB Datastore Options*/
 const std::string HXHIM_LEVELDB_NAME                = "LEVELDB_NAME";              // file path
 const std::string HXHIM_LEVELDB_CREATE_IF_MISSING   = "LEVELDB_CREATE_IF_MISSING"; // boolean
 
@@ -36,32 +36,32 @@ const std::string HXHIM_MPI_LISTENERS               = "NUM_LISTENERS";          
 /** Thallium Options */
 const std::string HXHIM_THALLIUM_MODULE             = "THALLIUM_MODULE";           // See mercury documentation
 
-const std::string HXHIM_TRANSPORT_ENDPOINT_GROUP    = "ENDPOINT_GROUP";            // list of globally unique ids or "ALL"
+const std::string HXHIM_TRANSPORT_ENDPOINT_GROUP    = "ENDPOINT_GROUP";            // list of ranks or "ALL"
 
 /** Histogram Options */
 const std::string HXHIM_HISTOGRAM_FIRST_N           = "HISTOGRAM_FIRST_N";         // unsigned int
 const std::string HXHIM_HISTOGRAM_BUCKET_GEN_METHOD = "HISTOGRAM_BUCKET_METHOD";   // See HXHIM_BUCKET_GENERATORS
 
 /**
- * Set of allowed databases for HXHIM
+ * Set of allowed datastores for HXHIM
  */
-const std::map<std::string, hxhim_database_t> HXHIM_DATABASES = {
-    std::make_pair("LEVELDB",   HXHIM_DATABASE_LEVELDB),
-    std::make_pair("IN_MEMORY", HXHIM_DATABASE_IN_MEMORY),
+const std::map<std::string, hxhim_datastore_t> HXHIM_DATASTORES = {
+    std::make_pair("LEVELDB",   HXHIM_DATASTORE_LEVELDB),
+    std::make_pair("IN_MEMORY", HXHIM_DATASTORE_IN_MEMORY),
 };
 
 /**
  * String representations of predefined hash algorithms
  */
-const std::string RANK              = "RANK";
-const std::string SUM_MOD_DATABASES = "SUM_MOD_DATABASES";
+const std::string RANK               = "RANK";
+const std::string SUM_MOD_DATASTORES = "SUM_MOD_DATASTORES";
 
 /**
  * Set of predefined hash functions
  */
 const std::map<std::string, hxhim::hash::Func> HXHIM_HASHES = {
-    std::make_pair(RANK,              hxhim::hash::Rank),
-    std::make_pair(SUM_MOD_DATABASES, hxhim::hash::SumModDatabases),
+    std::make_pair(RANK,               hxhim::hash::Rank),
+    std::make_pair(SUM_MOD_DATASTORES, hxhim::hash::SumModDatastores),
 };
 
 /**
@@ -115,11 +115,11 @@ const std::map<std::string, void *> HXHIM_HISTOGRAM_BUCKET_GENERATOR_EXTRA_ARGS 
  * Default configuration
  */
 const Config HXHIM_DEFAULT_CONFIG = {
-    std::make_pair(HXHIM_DATABASE_TYPE,                 "LEVELDB"),
-    std::make_pair(HXHIM_DATABASES_PER_RANGE_SERVER,    "1"),
+    std::make_pair(HXHIM_DATASTORE_TYPE,                "LEVELDB"),
+    std::make_pair(HXHIM_DATASTORES_PER_RANGE_SERVER,   "1"),
     std::make_pair(HXHIM_LEVELDB_NAME,                  "leveldb"),
     std::make_pair(HXHIM_LEVELDB_CREATE_IF_MISSING,     "true"),
-    std::make_pair(HXHIM_HASH,                          SUM_MOD_DATABASES),
+    std::make_pair(HXHIM_HASH,                          SUM_MOD_DATASTORES),
     std::make_pair(HXHIM_QUEUED_BULK_PUTS,              "5"),
     std::make_pair(HXHIM_TRANSPORT,                     "THALLIUM"),
     std::make_pair(HXHIM_THALLIUM_MODULE,               "na+sm"),

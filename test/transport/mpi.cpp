@@ -44,7 +44,7 @@ TEST(mpi_pack_unpack, RequestPut) {
         src.src = 1;
         src.dst = 1;
 
-        src.db_offset = 1;
+        src.ds_offset = 1;
 
         src.subject = (void *) SUBJECT;
         src.subject_len = SUBJECT_LEN;
@@ -77,7 +77,7 @@ TEST(mpi_pack_unpack, RequestPut) {
 
     EXPECT_EQ(dst->clean, true);
 
-    EXPECT_EQ(src.db_offset, dst->db_offset);
+    EXPECT_EQ(src.ds_offset, dst->ds_offset);
 
     EXPECT_EQ(src.subject_len, dst->subject_len);
     EXPECT_EQ(memcmp(src.subject, dst->subject, dst->subject_len), 0);
@@ -99,7 +99,7 @@ TEST(mpi_pack_unpack, RequestGet) {
         src.src = 1;
         src.dst = 1;
 
-        src.db_offset = 1;
+        src.ds_offset = 1;
 
         src.subject = (void *) SUBJECT;
         src.subject_len = SUBJECT_LEN;
@@ -130,7 +130,7 @@ TEST(mpi_pack_unpack, RequestGet) {
 
     EXPECT_EQ(dst->clean, true);
 
-    EXPECT_EQ(src.db_offset, dst->db_offset);
+    EXPECT_EQ(src.ds_offset, dst->ds_offset);
 
     EXPECT_EQ(src.subject_len, dst->subject_len);
     EXPECT_EQ(memcmp(src.subject, dst->subject, dst->subject_len), 0);
@@ -150,7 +150,7 @@ TEST(mpi_pack_unpack, RequestDelete) {
         src.src = 1;
         src.dst = 1;
 
-        src.db_offset = 1;
+        src.ds_offset = 1;
 
         src.subject = (void *) SUBJECT;
         src.subject_len = SUBJECT_LEN;
@@ -179,7 +179,7 @@ TEST(mpi_pack_unpack, RequestDelete) {
 
     EXPECT_EQ(dst->clean, true);
 
-    EXPECT_EQ(src.db_offset, dst->db_offset);
+    EXPECT_EQ(src.ds_offset, dst->ds_offset);
 
     EXPECT_EQ(src.subject_len, dst->subject_len);
     EXPECT_EQ(memcmp(src.subject, dst->subject, dst->subject_len), 0);
@@ -200,7 +200,7 @@ TEST(mpi_pack_unpack, RequestBPut) {
 
         src.count = 1;
 
-        src.db_offsets[0] = 1;
+        src.ds_offsets[0] = 1;
 
         src.subjects[0] = (void *) SUBJECT;
         src.subject_lens[0] = SUBJECT_LEN;
@@ -236,7 +236,7 @@ TEST(mpi_pack_unpack, RequestBPut) {
     EXPECT_EQ(src.count, dst->count);
 
     for(std::size_t i = 0; i < dst->count; i++) {
-        EXPECT_EQ(src.db_offsets[i], dst->db_offsets[i]);
+        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
 
         EXPECT_EQ(src.subject_lens[i], dst->subject_lens[i]);
         EXPECT_EQ(memcmp(src.subjects[i], dst->subjects[i], dst->subject_lens[i]), 0);
@@ -262,7 +262,7 @@ TEST(mpi_pack_unpack, RequestBGet) {
 
         src.count = 1;
 
-        src.db_offsets[0] = 1;
+        src.ds_offsets[0] = 1;
 
         src.subjects[0] = (void *) &SUBJECT;
         src.subject_lens[0] = SUBJECT_LEN;
@@ -296,7 +296,7 @@ TEST(mpi_pack_unpack, RequestBGet) {
     EXPECT_EQ(src.count, dst->count);
 
     for(std::size_t i = 0; i < dst->count; i++) {
-        EXPECT_EQ(src.db_offsets[i], dst->db_offsets[i]);
+        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
 
         EXPECT_EQ(src.subject_lens[i], dst->subject_lens[i]);
         EXPECT_EQ(memcmp(src.subjects[i], dst->subjects[i], dst->subject_lens[i]), 0);
@@ -320,7 +320,7 @@ TEST(mpi_pack_unpack, RequestBGetOp) {
 
         src.count = 1;
 
-        src.db_offsets[0] = 1;
+        src.ds_offsets[0] = 1;
 
         src.subjects[0] = (void *) &SUBJECT;
         src.subject_lens[0] = SUBJECT_LEN;
@@ -357,7 +357,7 @@ TEST(mpi_pack_unpack, RequestBGetOp) {
     EXPECT_EQ(src.count, dst->count);
 
     for(std::size_t i = 0; i < dst->count; i++) {
-        EXPECT_EQ(src.db_offsets[i], dst->db_offsets[i]);
+        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
 
         EXPECT_EQ(src.subject_lens[i], dst->subject_lens[i]);
         EXPECT_EQ(memcmp(src.subjects[i], dst->subjects[i], dst->subject_lens[i]), 0);
@@ -384,7 +384,7 @@ TEST(mpi_pack_unpack, RequestBDelete) {
 
         src.count = 1;
 
-        src.db_offsets[0] = 1;
+        src.ds_offsets[0] = 1;
 
         src.subjects[0] = (void *) &SUBJECT;
         src.subject_lens[0] = SUBJECT_LEN;
@@ -416,7 +416,7 @@ TEST(mpi_pack_unpack, RequestBDelete) {
     EXPECT_EQ(src.count, dst->count);
 
     for(std::size_t i = 0; i < dst->count; i++) {
-        EXPECT_EQ(src.db_offsets[i], dst->db_offsets[i]);
+        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
 
         EXPECT_EQ(src.subject_lens[i], dst->subject_lens[i]);
         EXPECT_EQ(memcmp(src.subjects[i], dst->subjects[i], dst->subject_lens[i]), 0);
@@ -435,7 +435,7 @@ TEST(mpi_pack_unpack, ResponsePut) {
         src.src = 1;
         src.dst = 1;
 
-        src.db_offset = 1;
+        src.ds_offset = 1;
 
         src.status = TRANSPORT_SUCCESS;
     }
@@ -460,7 +460,7 @@ TEST(mpi_pack_unpack, ResponsePut) {
 
     EXPECT_EQ(dst->clean, true);
 
-    EXPECT_EQ(src.db_offset, dst->db_offset);
+    EXPECT_EQ(src.ds_offset, dst->ds_offset);
 
     EXPECT_EQ(src.status, dst->status);
 
@@ -475,7 +475,7 @@ TEST(mpi_pack_unpack, ResponseGet) {
         src.src = 1;
         src.dst = 1;
 
-        src.db_offset = 1;
+        src.ds_offset = 1;
 
         src.status = TRANSPORT_SUCCESS;
 
@@ -511,7 +511,7 @@ TEST(mpi_pack_unpack, ResponseGet) {
 
     EXPECT_EQ(dst->clean, true);
 
-    EXPECT_EQ(src.db_offset, dst->db_offset);
+    EXPECT_EQ(src.ds_offset, dst->ds_offset);
 
     EXPECT_EQ(src.status, dst->status);
 
@@ -535,7 +535,7 @@ TEST(mpi_pack_unpack, ResponseDelete) {
         src.src = 1;
         src.dst = 1;
 
-        src.db_offset = 1;
+        src.ds_offset = 1;
 
         src.status = TRANSPORT_SUCCESS;
     }
@@ -560,7 +560,7 @@ TEST(mpi_pack_unpack, ResponseDelete) {
 
     EXPECT_EQ(dst->clean, true);
 
-    EXPECT_EQ(src.db_offset, dst->db_offset);
+    EXPECT_EQ(src.ds_offset, dst->ds_offset);
 
     EXPECT_EQ(src.status, dst->status);
 
@@ -577,7 +577,7 @@ TEST(mpi_pack_unpack, ResponseBPut) {
 
         src.count = 1;
 
-        src.db_offsets[0] = 1;
+        src.ds_offsets[0] = 1;
 
         src.statuses[0] = TRANSPORT_SUCCESS;
     }
@@ -605,7 +605,7 @@ TEST(mpi_pack_unpack, ResponseBPut) {
     EXPECT_EQ(src.count, dst->count);
 
     for(std::size_t i = 0; i < dst->count; i++) {
-        EXPECT_EQ(src.db_offsets[i], dst->db_offsets[i]);
+        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
         EXPECT_EQ(src.statuses[i], dst->statuses[i]);
     }
 
@@ -622,7 +622,7 @@ TEST(mpi_pack_unpack, ResponseBGet) {
 
         src.count = 1;
 
-        src.db_offsets[0] = 1;
+        src.ds_offsets[0] = 1;
 
         src.statuses[0] = TRANSPORT_SUCCESS;
 
@@ -660,7 +660,7 @@ TEST(mpi_pack_unpack, ResponseBGet) {
     EXPECT_EQ(src.count, dst->count);
 
     for(std::size_t i = 0; i < dst->count; i++) {
-        EXPECT_EQ(src.db_offsets[i], dst->db_offsets[i]);
+        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
         EXPECT_EQ(src.statuses[i], dst->statuses[i]);
 
         EXPECT_EQ(src.subject_lens[i], dst->subject_lens[i]);
@@ -687,7 +687,7 @@ TEST(mpi_pack_unpack, ResponseBGetOp) {
 
         src.count = 1;
 
-        src.db_offsets[0] = 1;
+        src.ds_offsets[0] = 1;
 
         src.statuses[0] = TRANSPORT_SUCCESS;
 
@@ -726,7 +726,7 @@ TEST(mpi_pack_unpack, ResponseBGetOp) {
 
     for(std::size_t i = 0; i < dst->count; i++) {
         EXPECT_EQ(src.statuses[i], dst->statuses[i]);
-        EXPECT_EQ(src.db_offsets[i], dst->db_offsets[i]);
+        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
 
         EXPECT_EQ(src.subject_lens[i], dst->subject_lens[i]);
         EXPECT_EQ(memcmp(src.subjects[i], dst->subjects[i], dst->subject_lens[i]), 0);
@@ -752,7 +752,7 @@ TEST(mpi_pack_unpack, ResponseBDelete) {
 
         src.count = 1;
 
-        src.db_offsets[0] = 1;
+        src.ds_offsets[0] = 1;
 
         src.statuses[0] = TRANSPORT_SUCCESS;
     }
@@ -780,7 +780,7 @@ TEST(mpi_pack_unpack, ResponseBDelete) {
     EXPECT_EQ(src.count, dst->count);
 
     for(std::size_t i = 0; i < dst->count; i++) {
-        EXPECT_EQ(src.db_offsets[i], dst->db_offsets[i]);
+        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
         EXPECT_EQ(src.statuses[i], dst->statuses[i]);
     }
 

@@ -2,7 +2,7 @@
 #include "transport/constants.h"
 
 Transport::Bulk::Bulk(const std::size_t max)
-    : db_offsets(nullptr),
+    : ds_offsets(nullptr),
       count(0)
 {
     alloc(max);
@@ -16,7 +16,7 @@ int Transport::Bulk::alloc(const std::size_t max) {
     Bulk::cleanup();
 
     if ((count = max)) {
-        if (!(db_offsets = new int[max]())) {
+        if (!(ds_offsets = new int[max]())) {
             cleanup();
             return TRANSPORT_ERROR;
         }
@@ -26,8 +26,8 @@ int Transport::Bulk::alloc(const std::size_t max) {
 }
 
 int Transport::Bulk::cleanup() {
-    delete [] db_offsets;
-    db_offsets = nullptr;
+    delete [] ds_offsets;
+    ds_offsets = nullptr;
 
     count = 0;
 

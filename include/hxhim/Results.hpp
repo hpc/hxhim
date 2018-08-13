@@ -57,14 +57,14 @@ class Results {
                 virtual ~Result();
 
                 hxhim_result_type_t GetType() const;
-                int GetDatabase() const;
+                int GetDatastore() const;
                 int GetStatus() const;
 
             private:
                 const hxhim_result_type_t type;
 
             protected:
-                int database;
+                int datastore;
                 int status;
         };
 

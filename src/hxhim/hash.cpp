@@ -12,12 +12,12 @@ void hxhim::hash::destroy() {
 
 /**
  * Rank
- * Returns the rank of the process as the target database
+ * Returns the rank of the process as the target datastore
  *
  * @param data     the byte string to hash
  * @param data_len the length of the byte string
  * @param args     a pointer to an int that contains the rank of the calling function
- * @return the destination database ID or -1 on error
+ * @return the destination datastore ID or -1 on error
  */
 int hxhim::hash::Rank(void *subject, const std::size_t subject_len, void *predicate, const std::size_t predicate_len, void *args) {
     int *rank = static_cast<int *>(args);
@@ -29,22 +29,22 @@ int hxhim::hash::Rank(void *subject, const std::size_t subject_len, void *predic
 }
 
 /**
- * SumModSDatabases
+ * SumModSDatastores
  * Simple hash that sums the bytes of the data
- * and mods it by the number of databases.
+ * and mods it by the number of datastores.
  *
  * @param data     the byte string to hash
  * @param data_len the length of the byte string
- * @param args     a pointer to an int that contains the number of databases there are
- * @return the destination database ID or -1 on error
+ * @param args     a pointer to an int that contains the number of datastores there are
+ * @return the destination datastore ID or -1 on error
  */
-int hxhim::hash::SumModDatabases(void *subject, const std::size_t subject_len, void *predicate, const std::size_t predicate_len, void *args) {
-    int *databases = static_cast<int *>(args);
-    if (!databases || (*databases < 0)) {
+int hxhim::hash::SumModDatastores(void *subject, const std::size_t subject_len, void *predicate, const std::size_t predicate_len, void *args) {
+    int *datastores = static_cast<int *>(args);
+    if (!datastores || (*datastores < 0)) {
         return -1;
     }
 
-    static const int mod = *databases * hx_->mpi.size;
+    static const int mod = *datastores * hx_->mpi.size;
 
     int dst = 0;
     for(std::size_t i = 0; i < subject_len; i++) {

@@ -73,7 +73,7 @@ int Transport::Thallium::Unpacker::unpack(Request::Put **pm, const std::string &
 
     // read non array data
     if (!s
-        .read((char *) &out->db_offset, sizeof(out->db_offset))
+        .read((char *) &out->ds_offset, sizeof(out->ds_offset))
         .read((char *) &out->subject_len, sizeof(out->subject_len))
         .read((char *) &out->predicate_len, sizeof(out->predicate_len))
         .read((char *) &out->object_len, sizeof(out->object_len))
@@ -113,7 +113,7 @@ int Transport::Thallium::Unpacker::unpack(Request::Get **gm, const std::string &
 
     // read non array data
     if (!s
-        .read((char *) &out->db_offset, sizeof(out->db_offset))
+        .read((char *) &out->ds_offset, sizeof(out->ds_offset))
         .read((char *) &out->subject_len, sizeof(out->subject_len))
         .read((char *) &out->predicate_len, sizeof(out->predicate_len))
         .read((char *) &out->object_type, sizeof(out->object_type))) {
@@ -150,7 +150,7 @@ int Transport::Thallium::Unpacker::unpack(Request::Delete **dm, const std::strin
 
     // read non array data
     if (!s
-        .read((char *) &out->db_offset, sizeof(out->db_offset))
+        .read((char *) &out->ds_offset, sizeof(out->ds_offset))
         .read((char *) &out->subject_len, sizeof(out->subject_len))
         .read((char *) &out->predicate_len, sizeof(out->predicate_len))) {
         delete out;
@@ -191,7 +191,7 @@ int Transport::Thallium::Unpacker::unpack(Request::BPut **bpm, const std::string
     }
 
     // allocate space
-    if (!(out->db_offsets    = new int[out->count])                ||
+    if (!(out->ds_offsets    = new int[out->count])                ||
         !(out->subject_lens   = new std::size_t[out->count])       ||
         !(out->predicate_lens = new std::size_t[out->count])       ||
         !(out->object_lens    = new std::size_t[out->count])       ||
@@ -205,7 +205,7 @@ int Transport::Thallium::Unpacker::unpack(Request::BPut **bpm, const std::string
 
     for(std::size_t i = 0; i < out->count; i++) {
         if (!s
-            .read((char *) &out->db_offsets[i], sizeof(out->db_offsets[i]))
+            .read((char *) &out->ds_offsets[i], sizeof(out->ds_offsets[i]))
             .read((char *) &out->subject_lens[i], sizeof(out->subject_lens[i]))
             .read((char *) &out->predicate_lens[i], sizeof(out->predicate_lens[i]))
             .read((char *) &out->object_lens[i], sizeof(out->object_lens[i]))
@@ -249,7 +249,7 @@ int Transport::Thallium::Unpacker::unpack(Request::BGet **bgm, const std::string
     }
 
     // allocate space
-    if (!(out->db_offsets     = new int[out->count])               ||
+    if (!(out->ds_offsets     = new int[out->count])               ||
         !(out->subject_lens   = new std::size_t[out->count])       ||
         !(out->predicate_lens = new std::size_t[out->count])       ||
         !(out->object_types   = new hxhim_type_t[out->count])      ||
@@ -261,7 +261,7 @@ int Transport::Thallium::Unpacker::unpack(Request::BGet **bgm, const std::string
 
     for(std::size_t i = 0; i < out->count; i++) {
         if (!s
-            .read((char *) &out->db_offsets[i], sizeof(out->db_offsets[i]))
+            .read((char *) &out->ds_offsets[i], sizeof(out->ds_offsets[i]))
             .read((char *) &out->subject_lens[i], sizeof(out->subject_lens[i]))
             .read((char *) &out->predicate_lens[i], sizeof(out->predicate_lens[i]))
             .read((char *) &out->object_types[i], sizeof(out->object_types[i]))) {
@@ -302,7 +302,7 @@ int Transport::Thallium::Unpacker::unpack(Request::BGetOp **bgm, const std::stri
     }
 
     // allocate space
-    if (!(out->db_offsets     = new int[out->count])               ||
+    if (!(out->ds_offsets     = new int[out->count])               ||
         !(out->subject_lens   = new std::size_t[out->count])       ||
         !(out->predicate_lens = new std::size_t[out->count])       ||
         !(out->object_types   = new hxhim_type_t[out->count])      ||
@@ -316,7 +316,7 @@ int Transport::Thallium::Unpacker::unpack(Request::BGetOp **bgm, const std::stri
 
     for(std::size_t i = 0; i < out->count; i++) {
         if (!s
-            .read((char *) &out->db_offsets[i], sizeof(out->db_offsets[i]))
+            .read((char *) &out->ds_offsets[i], sizeof(out->ds_offsets[i]))
             .read((char *) &out->subject_lens[i], sizeof(out->subject_lens[i]))
             .read((char *) &out->predicate_lens[i], sizeof(out->predicate_lens[i]))
             .read((char *) &out->object_types[i], sizeof(out->object_types[i]))
@@ -359,7 +359,7 @@ int Transport::Thallium::Unpacker::unpack(Request::BDelete **bdm, const std::str
     }
 
     // allocate space
-    if (!(out->db_offsets    = new int[out->count])                ||
+    if (!(out->ds_offsets    = new int[out->count])                ||
         !(out->subject_lens   = new std::size_t[out->count])       ||
         !(out->predicate_lens = new std::size_t[out->count])       ||
         !(out->subjects       = new void *[out->count])            ||
@@ -370,7 +370,7 @@ int Transport::Thallium::Unpacker::unpack(Request::BDelete **bdm, const std::str
 
     for(std::size_t i = 0; i < out->count; i++) {
         if (!s
-            .read((char *) &out->db_offsets[i], sizeof(out->db_offsets[i]))
+            .read((char *) &out->ds_offsets[i], sizeof(out->ds_offsets[i]))
             .read((char *) &out->subject_lens[i], sizeof(out->subject_lens[i]))
             .read((char *) &out->predicate_lens[i], sizeof(out->predicate_lens[i]))) {
             delete out;
@@ -430,7 +430,7 @@ int Transport::Thallium::Unpacker::unpack(Response::Put **pm, const std::string 
     // read non array data
     if (!s
         .read((char *) &out->status, sizeof(out->status))
-        .read((char *) &out->db_offset, sizeof(out->db_offset))) {
+        .read((char *) &out->ds_offset, sizeof(out->ds_offset))) {
         delete out;
         return TRANSPORT_ERROR;
     }
@@ -450,7 +450,7 @@ int Transport::Thallium::Unpacker::unpack(Response::Get **gm, const std::string 
     // read non array data
     if (!s
         .read((char *) &out->status, sizeof(out->status))
-        .read((char *) &out->db_offset, sizeof(out->db_offset))) {
+        .read((char *) &out->ds_offset, sizeof(out->ds_offset))) {
         delete out;
         return TRANSPORT_ERROR;
     }
@@ -499,7 +499,7 @@ int Transport::Thallium::Unpacker::unpack(Response::Delete **dm, const std::stri
     // read non array data
     if (!s
         .read((char *) &out->status, sizeof(out->status))
-        .read((char *) &out->db_offset, sizeof(out->db_offset))) {
+        .read((char *) &out->ds_offset, sizeof(out->ds_offset))) {
         delete out;
         return TRANSPORT_ERROR;
     }
@@ -525,7 +525,7 @@ int Transport::Thallium::Unpacker::unpack(Response::BPut **bpm, const std::strin
 
     // allocate arrays
     if (!(out->statuses = new int[out->count])    ||
-        !(out->db_offsets = new int[out->count])) {
+        !(out->ds_offsets = new int[out->count])) {
         delete out;
         return TRANSPORT_ERROR;
     }
@@ -533,7 +533,7 @@ int Transport::Thallium::Unpacker::unpack(Response::BPut **bpm, const std::strin
     // read arrays
     if (!s
         .read((char *) out->statuses, sizeof(*out->statuses) * out->count)
-        .read((char *) out->db_offsets, sizeof(*out->db_offsets) * out->count)) {
+        .read((char *) out->ds_offsets, sizeof(*out->ds_offsets) * out->count)) {
         return TRANSPORT_ERROR;
     }
 
@@ -558,7 +558,7 @@ int Transport::Thallium::Unpacker::unpack(Response::BGet **bgm, const std::strin
 
     // allocate arrays
     if (!(out->statuses = ::new int[out->count]())                   ||
-        !(out->db_offsets = ::new int[out->count]())                 ||
+        !(out->ds_offsets = ::new int[out->count]())                 ||
         !(out->subject_lens = ::new std::size_t[out->count]())       ||
         !(out->predicate_lens = ::new std::size_t[out->count]())     ||
         !(out->object_lens = ::new std::size_t[out->count]())        ||
@@ -574,7 +574,7 @@ int Transport::Thallium::Unpacker::unpack(Response::BGet **bgm, const std::strin
     for(std::size_t i = 0; i < out->count; i++) {
         if (!s
             .read((char *) &out->statuses[i], sizeof(out->statuses[i]))
-            .read((char *) &out->db_offsets[i], sizeof(out->db_offsets[i]))) {
+            .read((char *) &out->ds_offsets[i], sizeof(out->ds_offsets[i]))) {
             delete out;
             return TRANSPORT_ERROR;
         }
@@ -627,7 +627,7 @@ int Transport::Thallium::Unpacker::unpack(Response::BGetOp **bgm, const std::str
 
     // allocate arrays
     if (!(out->statuses = ::new int[out->count]())                   ||
-        !(out->db_offsets = ::new int[out->count]())                 ||
+        !(out->ds_offsets = ::new int[out->count]())                 ||
         !(out->subject_lens = ::new std::size_t[out->count]())       ||
         !(out->predicate_lens = ::new std::size_t[out->count]())     ||
         !(out->object_lens = ::new std::size_t[out->count]())        ||
@@ -643,7 +643,7 @@ int Transport::Thallium::Unpacker::unpack(Response::BGetOp **bgm, const std::str
     for(std::size_t i = 0; i < out->count; i++) {
         if (!s
             .read((char *) &out->statuses[i], sizeof(out->statuses[i]))
-            .read((char *) &out->db_offsets[i], sizeof(out->db_offsets[i]))) {
+            .read((char *) &out->ds_offsets[i], sizeof(out->ds_offsets[i]))) {
             delete out;
             return TRANSPORT_ERROR;
         }
@@ -696,7 +696,7 @@ int Transport::Thallium::Unpacker::unpack(Response::BDelete **bdm, const std::st
 
     // allocate arrays
     if (!(out->statuses = new int[out->count])   ||
-        !(out->db_offsets = new int[out->count])) {
+        !(out->ds_offsets = new int[out->count])) {
         delete out;
         return TRANSPORT_ERROR;
     }
@@ -704,7 +704,7 @@ int Transport::Thallium::Unpacker::unpack(Response::BDelete **bdm, const std::st
     // read arrays
     if (!s
         .read((char *) out->statuses, sizeof(*out->statuses) * out->count)
-        .read((char *) out->db_offsets, sizeof(*out->db_offsets) * out->count)) {
+        .read((char *) out->ds_offsets, sizeof(*out->ds_offsets) * out->count)) {
         return TRANSPORT_ERROR;
     }
 

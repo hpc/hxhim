@@ -7,8 +7,8 @@
 
 #include <mpi.h>
 
+#include "datastore/datastore.hpp"
 #include "hxhim/Results.hpp"
-#include "hxhim/backend/base.hpp"
 #include "hxhim/cache.hpp"
 #include "hxhim/constants.h"
 #include "hxhim/hash.hpp"
@@ -27,8 +27,8 @@ typedef struct hxhim_private {
     hxhim::Unsent<hxhim::GetOpData> getops;
     hxhim::Unsent<hxhim::DeleteData> deletes;
 
-    hxhim::backend::base **databases;
-    std::size_t database_count;
+    hxhim::datastore::Datastore **datastores;
+    std::size_t datastore_count;
 
     // asynchronous PUT data
     struct {
@@ -39,7 +39,7 @@ typedef struct hxhim_private {
     } async_put;
 
     // Transport variables
-    hxhim::hash::Func hash;                                    // the function used to determine which database should be used to perform an operation with
+    hxhim::hash::Func hash;                                    // the function used to determine which datastore should be used to perform an operation with
     void *hash_args;
     Transport::Transport *transport;
     void (*range_server_destroy)();                            // Range server static variable cleanup
@@ -49,13 +49,13 @@ namespace hxhim {
 
 // HXHIM should (probably) be initialized in this order
 namespace init {
-int running     (hxhim_t *hx, hxhim_options_t *opts);
-int range_server(hxhim_t *hx, hxhim_options_t *opts);
-int database     (hxhim_t *hx, hxhim_options_t *opts);
-int one_database (hxhim_t *hx, hxhim_options_t *opts, const std::string &name);
-int async_put   (hxhim_t *hx, hxhim_options_t *opts);
-int hash        (hxhim_t *hx, hxhim_options_t *opts);
-int transport   (hxhim_t *hx, hxhim_options_t *opts);
+int running      (hxhim_t *hx, hxhim_options_t *opts);
+int range_server (hxhim_t *hx, hxhim_options_t *opts);
+int datastore    (hxhim_t *hx, hxhim_options_t *opts);
+int one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::string &name);
+int async_put    (hxhim_t *hx, hxhim_options_t *opts);
+int hash         (hxhim_t *hx, hxhim_options_t *opts);
+int transport    (hxhim_t *hx, hxhim_options_t *opts);
 }
 
 // HXHIM should (probably) be destroyed in this order
@@ -64,7 +64,7 @@ int running     (hxhim_t *hx);
 int transport   (hxhim_t *hx);
 int hash        (hxhim_t *hx);
 int async_put   (hxhim_t *hx);
-int database     (hxhim_t *hx);
+int datastore   (hxhim_t *hx);
 int range_server(hxhim_t *hx);
 }
 

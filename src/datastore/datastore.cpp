@@ -1,14 +1,14 @@
 #include <cstring>
 #include <stdexcept>
 
-#include "hxhim/backend/base.hpp"
+#include "datastore/datastore.hpp"
 #include "utils/elen.hpp"
 #include "utils/reverse_bytes.h"
 
 namespace hxhim {
-namespace backend {
+namespace datastore {
 
-base::base(hxhim_t *hx,
+Datastore::Datastore(hxhim_t *hx,
            const int id,
            const std::size_t use_first_n, const Histogram::BucketGen::generator &generator, void *extra_args)
     : hx(hx),
@@ -18,12 +18,12 @@ base::base(hxhim_t *hx,
       stats()
 {}
 
-base::~base() {}
+Datastore::~Datastore() {}
 
-Transport::Response::BPut *base::BPut(void **subjects, std::size_t *subject_lens,
-                                      void **predicates, std::size_t *predicate_lens,
-                                      hxhim_type_t *object_types, void **objects, std::size_t *object_lens,
-                                      std::size_t count) {
+Transport::Response::BPut *Datastore::BPut(void **subjects, std::size_t *subject_lens,
+                                           void **predicates, std::size_t *predicate_lens,
+                                           hxhim_type_t *object_types, void **objects, std::size_t *object_lens,
+                                           std::size_t count) {
     // add floating point values to the histogram
     for(std::size_t i = 0; i < count; i++) {
         switch (object_types[i]) {
@@ -45,10 +45,10 @@ Transport::Response::BPut *base::BPut(void **subjects, std::size_t *subject_lens
                     count);
 }
 
-Transport::Response::BGet *base::BGet(void **subjects, std::size_t *subject_lens,
-                                      void **predicates, std::size_t *predicate_lens,
-                                      hxhim_type_t *object_types,
-                                      std::size_t count) {
+Transport::Response::BGet *Datastore::BGet(void **subjects, std::size_t *subject_lens,
+                                           void **predicates, std::size_t *predicate_lens,
+                                           hxhim_type_t *object_types,
+                                           std::size_t count) {
     std::lock_guard<std::mutex> lock(mutex);
     return BGetImpl(subjects, subject_lens,
                     predicates, predicate_lens,
@@ -56,10 +56,10 @@ Transport::Response::BGet *base::BGet(void **subjects, std::size_t *subject_lens
                     count);
 }
 
-Transport::Response::BGetOp *base::BGetOp(void *subject, std::size_t subject_len,
-                                          void *predicate, std::size_t predicate_len,
-                                          hxhim_type_t object_type,
-                                          std::size_t recs, enum hxhim_get_op_t op) {
+Transport::Response::BGetOp *Datastore::BGetOp(void *subject, std::size_t subject_len,
+                                               void *predicate, std::size_t predicate_len,
+                                               hxhim_type_t object_type,
+                                               std::size_t recs, enum hxhim_get_op_t op) {
     std::lock_guard<std::mutex> lock(mutex);
     return BGetOpImpl(subject, subject_len,
                       predicate, predicate_len,
@@ -67,9 +67,9 @@ Transport::Response::BGetOp *base::BGetOp(void *subject, std::size_t subject_len
                       recs, op);
 }
 
-Transport::Response::BDelete *base::BDelete(void **subjects, std::size_t *subject_lens,
-                                            void **predicates, std::size_t *predicate_lens,
-                                            std::size_t count) {
+Transport::Response::BDelete *Datastore::BDelete(void **subjects, std::size_t *subject_lens,
+                                                 void **predicates, std::size_t *predicate_lens,
+                                                 std::size_t count) {
     std::lock_guard<std::mutex> lock(mutex);
     return BDeleteImpl(subjects, subject_lens,
                        predicates, predicate_lens,
@@ -92,11 +92,11 @@ Transport::Response::BDelete *base::BDelete(void **subjects, std::size_t *subjec
  * @param num_gets       the array of number of gets from each rank
  * @return HXHIM_SUCCESS or HXHIM_ERROR on error
  */
-int base::GetStats(const int rank,
-                   const bool get_put_times, long double *put_times,
-                   const bool get_num_puts, std::size_t *num_puts,
-                   const bool get_get_times, long double *get_times,
-                   const bool get_num_gets, std::size_t *num_gets) {
+int Datastore::GetStats(const int rank,
+                        const bool get_put_times, long double *put_times,
+                        const bool get_num_puts, std::size_t *num_puts,
+                        const bool get_get_times, long double *get_times,
+                        const bool get_num_gets, std::size_t *num_gets) {
     MPI_Barrier(hx->mpi.comm);
 
     std::lock_guard<std::mutex> lock(mutex);
@@ -162,7 +162,7 @@ int base::GetStats(const int rank,
  * @param copied whether or not the original ptr was replaced by a copy that needs to be deallocated
  * @param HXHIM_SUCCESS or HXHIM_ERROR
  */
-int base::encode(const hxhim_type_t type, void *&ptr, std::size_t &len, bool &copied) {
+int Datastore::encode(const hxhim_type_t type, void *&ptr, std::size_t &len, bool &copied) {
     if (!ptr) {
         return HXHIM_ERROR;
     }
@@ -219,7 +219,7 @@ int base::encode(const hxhim_type_t type, void *&ptr, std::size_t &len, bool &co
  * @param dst_len pointer to the destination buffer's length
  * @return HXHIM_SUCCESS or HXHIM_ERROR;
  */
-int base::decode(const hxhim_type_t type, void *src, const std::size_t &src_len, void **dst, std::size_t *dst_len) {
+int Datastore::decode(const hxhim_type_t type, void *src, const std::size_t &src_len, void **dst, std::size_t *dst_len) {
     if (!src || !dst || !dst_len) {
         return HXHIM_ERROR;
     }

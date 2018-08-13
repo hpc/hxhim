@@ -1,4 +1,5 @@
 add_subdirectory(base)
+add_subdirectory(datastore)
 add_subdirectory(demo)
 add_subdirectory(hxhim)
 add_subdirectory(transport)

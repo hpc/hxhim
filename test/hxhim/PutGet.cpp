@@ -5,10 +5,10 @@
 #include <gtest/gtest.h>
 #include <mpi.h>
 
+#include "datastore/InMemory.hpp"
+#include "hxhim/config.hpp"
 #include "hxhim/hxhim.hpp"
 #include "hxhim/private.hpp"
-#include "hxhim/backend/InMemory.hpp"
-#include "hxhim/config.hpp"
 
 typedef uint64_t Subject_t;
 typedef uint64_t Predicate_t;
@@ -24,8 +24,8 @@ TEST(hxhim, PutGet) {
     hxhim_options_t opts;
     ASSERT_EQ(hxhim_options_init(&opts), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_mpi_bootstrap(&opts, MPI_COMM_WORLD),                    HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_database_in_memory(&opts),                               HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_databases_per_range_server(&opts, 1),                    HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim_options_set_datastore_in_memory(&opts),                              HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim_options_set_datastores_per_range_server(&opts, 1),                   HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_hash(&opts, RANK.c_str()),                               HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_transport_thallium(&opts, "na+sm"),                      HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_queued_bputs(&opts, 1),                                  HXHIM_SUCCESS);

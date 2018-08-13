@@ -21,7 +21,7 @@ Transport::Request::BPut::~BPut() {
 std::size_t Transport::Request::BPut::size() const {
     std::size_t total = Request::size() + sizeof(count);
     for(std::size_t i = 0; i < count; i++) {
-        total += sizeof(db_offsets[i]) +
+        total += sizeof(ds_offsets[i]) +
             subject_lens[i] + sizeof(subject_lens[i]) +
             predicate_lens[i] + sizeof(predicate_lens[i]) +
             sizeof(object_types[i]) + object_lens[i] + sizeof(object_lens[i]);
@@ -110,7 +110,7 @@ Transport::Response::BPut::~BPut() {
 }
 
 std::size_t Transport::Response::BPut::size() const {
-    return Response::size() + sizeof(count) + (sizeof(*db_offsets) * count) + (sizeof(*statuses) * count);
+    return Response::size() + sizeof(count) + (sizeof(*ds_offsets) * count) + (sizeof(*statuses) * count);
 }
 
 int Transport::Response::BPut::alloc(const std::size_t max) {

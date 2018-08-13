@@ -19,8 +19,8 @@ hxhim_result_type_t Results::Result::GetType() const {
     return type;
 }
 
-int Results::Result::GetDatabase() const {
-    return database;
+int Results::Result::GetDatastore() const {
+    return datastore;
 }
 
 int Results::Result::GetStatus() const {
@@ -31,7 +31,7 @@ Results::Put::Put(Transport::Response::Put *put)
     : Result(hxhim_result_type::HXHIM_RESULT_PUT)
 {
     if (put) {
-        database = put->src + put->db_offset;
+        datastore = put->src + put->ds_offset;
         status = put->status;
     }
 }
@@ -40,7 +40,7 @@ Results::Put::Put(Transport::Response::BPut *bput, const std::size_t i)
     : Result(hxhim_result_type::HXHIM_RESULT_PUT)
 {
     if (bput && (i < bput->count)) {
-        database = bput->src + bput->db_offsets[i];
+        datastore = bput->src + bput->ds_offsets[i];
         status = bput->statuses[i];
     }
 }
@@ -58,7 +58,7 @@ Results::Get::Get(Transport::Response::Get *get)
     : Get()
 {
     if (get) {
-        database = get->src + get->db_offset;
+        datastore = get->src + get->ds_offset;
         status = get->status;
         sub = get->subject;
         sub_len = get->subject_len;
@@ -74,7 +74,7 @@ Results::Get::Get(Transport::Response::BGet *bget, const std::size_t i)
     : Get()
 {
     if (bget && (i < bget->count)) {
-        database = bget->src + bget->db_offsets[i];
+        datastore = bget->src + bget->ds_offsets[i];
         status = bget->statuses[i];
         sub = std::move(bget->subjects[i]);
         sub_len = std::move(bget->subject_lens[i]);
@@ -90,7 +90,7 @@ Results::Get::Get(Transport::Response::BGetOp *bgetop, const std::size_t i)
     : Get()
 {
     if (bgetop && (i < bgetop->count)) {
-        database = bgetop->src + bgetop->db_offsets[i];
+        datastore = bgetop->src + bgetop->ds_offsets[i];
         status = bgetop->statuses[i];
         sub = std::move(bgetop->subjects[i]);
         sub_len = std::move(bgetop->subject_lens[i]);
@@ -152,7 +152,7 @@ Results::Delete::Delete(Transport::Response::Delete *del)
     : Result(hxhim_result_type::HXHIM_RESULT_DEL)
 {
     if (del) {
-        database = del->src + del->db_offset;
+        datastore = del->src + del->ds_offset;
         status = del->status;
     }
 }
@@ -161,7 +161,7 @@ Results::Delete::Delete(Transport::Response::BDelete *bdel, const std::size_t i)
     : Result(hxhim_result_type::HXHIM_RESULT_DEL)
 {
     if (bdel && (i < bdel->count)) {
-        database = bdel->src + bdel->db_offsets[i];
+        datastore = bdel->src + bdel->ds_offsets[i];
         status = bdel->statuses[i];
     }
 }
@@ -365,14 +365,14 @@ int hxhim_results_error(hxhim_results_t *res, int *error) {
 }
 
 /**
- * hxhim_results_database
- * Gets the database of the result node currently being pointed to
+ * hxhim_results_datastore
+ * Gets the datastore of the result node currently being pointed to
  *
  * @param res       A list of results
- * @param database  (optional) the database of the current result, only valid if this function returns HXHIM_SUCCESS
+ * @param datastore  (optional) the datastore of the current result, only valid if this function returns HXHIM_SUCCESS
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim_results_database(hxhim_results_t *res, int *database) {
+int hxhim_results_datastore(hxhim_results_t *res, int *datastore) {
     if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
@@ -382,8 +382,8 @@ int hxhim_results_database(hxhim_results_t *res, int *database) {
         return HXHIM_ERROR;
     }
 
-    if (database) {
-        *database = curr->GetDatabase();
+    if (datastore) {
+        *datastore = curr->GetDatastore();
     }
 
     return HXHIM_SUCCESS;

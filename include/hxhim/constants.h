@@ -25,12 +25,12 @@ extern "C"
 #define HXHIM_MAX_BULK_DEL_OPS HXHIM_MAX_BULK_OPS
 
 /**
- * hxhim_database_t
- * The types of databases that are available
+ * hxhim_datastore_t
+ * The types of datastores that are available
  */
-enum hxhim_database_t {
-    HXHIM_DATABASE_LEVELDB,
-    HXHIM_DATABASE_IN_MEMORY,
+enum hxhim_datastore_t {
+    HXHIM_DATASTORE_LEVELDB,
+    HXHIM_DATASTORE_IN_MEMORY,
 };
 
 /**

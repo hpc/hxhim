@@ -1,19 +1,20 @@
 #include "transport/Sync.hpp"
 
 Transport::Request::Sync::Sync()
-    : Single(),
-      Request(Message::SYNC)
+    : Request(Message::SYNC),
+      Single()
 {}
 
+
 std::size_t Transport::Request::Sync::size() const {
-    return sizeof(db_offset) + Request::size();
+    return sizeof(ds_offset) + Request::size();
 }
 
 Transport::Response::Sync::Sync()
-    : Single(),
-      Response(Message::SYNC)
+    : Response(Message::SYNC),
+      Single()
 {}
 
 std::size_t Transport::Response::Sync::size() const {
-    return sizeof(db_offset) + Response::size();
+    return sizeof(ds_offset) + Response::size();
 }

@@ -19,7 +19,7 @@ Transport::Request::BGet::~BGet() {
 std::size_t Transport::Request::BGet::size() const {
     std::size_t total = Request::size() + sizeof(count);
     for(std::size_t i = 0; i < count; i++) {
-        total += sizeof(db_offsets[i]) +
+        total += sizeof(ds_offsets[i]) +
             subject_lens[i] + sizeof(subject_lens[i]) +
             predicate_lens[i] + sizeof(predicate_lens[i]) +
             sizeof(object_types[i]);
@@ -103,7 +103,7 @@ Transport::Response::BGet::~BGet() {
 std::size_t Transport::Response::BGet::size() const {
     std::size_t total = Response::size() + sizeof(count);
     for(std::size_t i = 0; i < count; i++) {
-        total += sizeof(db_offsets[i]) +
+        total += sizeof(ds_offsets[i]) +
             sizeof(statuses[i]) +
             subject_lens[i] + sizeof(subject_lens[i]) +
             predicate_lens[i] + sizeof(predicate_lens[i]) +

@@ -32,7 +32,7 @@ int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
     }
 
     if ((init::running     (hx, opts) != HXHIM_SUCCESS) ||
-        (init::database    (hx, opts) != HXHIM_SUCCESS) ||
+        (init::datastore    (hx, opts) != HXHIM_SUCCESS) ||
         (init::async_put   (hx, opts) != HXHIM_SUCCESS) ||
         (init::hash        (hx, opts) != HXHIM_SUCCESS) ||
         (init::transport   (hx, opts) != HXHIM_SUCCESS)) {
@@ -60,12 +60,12 @@ int hxhimOpen(hxhim_t *hx, hxhim_options_t *opts) {
 
 /**
  * OpenOne
- * Starts a HXHIM session with only 1 backend database.
+ * Starts a HXHIM session with only 1 backend datastore.
  * This can only be called when the world size is 1.
  *
  * @param hx       the HXHIM session
  * @param opts     the HXHIM options to use
- * @param db_path  the name of the database to pass
+ * @param db_path  the name of the datastore to pass
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::OpenOne(hxhim_t *hx, hxhim_options_t *opts, const std::string &db_path) {
@@ -85,7 +85,7 @@ int hxhim::OpenOne(hxhim_t *hx, hxhim_options_t *opts, const std::string &db_pat
     }
 
     if ((init::running     (hx, opts)          != HXHIM_SUCCESS) ||
-        (init::one_database (hx, opts, db_path) != HXHIM_SUCCESS) ||
+        (init::one_datastore (hx, opts, db_path) != HXHIM_SUCCESS) ||
         (init::async_put   (hx, opts)          != HXHIM_SUCCESS) ||
         (init::hash        (hx, opts)          != HXHIM_SUCCESS)) {
         MPI_Barrier(hx->mpi.comm);
@@ -99,11 +99,11 @@ int hxhim::OpenOne(hxhim_t *hx, hxhim_options_t *opts, const std::string &db_pat
 
 /**
  * OpenOne
- * Starts a HXHIM session with only 1 backend database
+ * Starts a HXHIM session with only 1 backend datastore
  *
  * @param hx       the HXHIM session
  * @param opts     the HXHIM options to use
- * @param db_path  the name of the database to pass
+ * @param db_path  the name of the datastore to pass
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimOpenOne(hxhim_t *hx, hxhim_options_t *opts, const char *db_path, const size_t db_path_len) {
@@ -128,7 +128,7 @@ int hxhim::Close(hxhim_t *hx) {
     destroy::transport(hx);
     destroy::hash(hx);
     destroy::async_put(hx);
-    destroy::database(hx);
+    destroy::datastore(hx);
 
     // clean up pointer to private data
     delete hx->p;
@@ -156,12 +156,12 @@ int hxhimClose(hxhim_t *hx) {
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::Commit(hxhim_t *hx) {
-    if (!hx || !hx->p || !hx->p->databases) {
+    if (!hx || !hx->p || !hx->p->datastores) {
         return HXHIM_ERROR;
     }
 
-    for(std::size_t i = 0; i < hx->p->database_count; i++) {
-        if (hx->p->databases[i]->Commit() != HXHIM_SUCCESS) {
+    for(std::size_t i = 0; i < hx->p->datastore_count; i++) {
+        if (hx->p->datastores[i]->Commit() != HXHIM_SUCCESS) {
             return HXHIM_ERROR;
         }
     }
@@ -189,12 +189,12 @@ int hxhimCommit(hxhim_t *hx) {
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::StatFlush(hxhim_t *hx) {
-    if (!hx || !hx->p || !hx->p->databases) {
+    if (!hx || !hx->p || !hx->p->datastores) {
         return HXHIM_ERROR;
     }
 
-    for(std::size_t i = 0; i < hx->p->database_count; i++) {
-        if (hx->p->databases[i]->StatFlush() != HXHIM_SUCCESS) {
+    for(std::size_t i = 0; i < hx->p->datastore_count; i++) {
+        if (hx->p->datastores[i]->StatFlush() != HXHIM_SUCCESS) {
             return HXHIM_ERROR;
         }
     }
@@ -259,7 +259,7 @@ hxhim_results_t *hxhimFlushPuts(hxhim_t *hx) {
 
 /**
  * get_core
- * The core set of function calls that are needed to send Gets to databases and receive responses
+ * The core set of function calls that are needed to send Gets to datastores and receive responses
  *
  * @param hx        the HXHIM session
  * @param curr      the current set of data to process
@@ -339,7 +339,7 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
     local.src = hx->mpi.rank;
     local.dst = hx->mpi.rank;
 
-    Transport::Request::BGet **remote = new Transport::Request::BGet *[hx->mpi.size](); // list of destination servers (not databases) and messages to those destinations
+    Transport::Request::BGet **remote = new Transport::Request::BGet *[hx->mpi.size](); // list of destination servers (not datastores) and messages to those destinations
     for(std::size_t i = 0; i < hx->mpi.size; i++) {
         remote[i] = new Transport::Request::BGet(HXHIM_MAX_BULK_GET_OPS);
     }
@@ -388,7 +388,7 @@ hxhim_results_t *hxhimFlushGets(hxhim_t *hx) {
 
 /**
  * getop_core
- * The core set of function calls that are needed to send GetOps to databases and receive responses
+ * The core set of function calls that are needed to send GetOps to datastores and receive responses
  *
  * @param hx        the HXHIM session
  * @param curr      the current set of data to process
@@ -470,7 +470,7 @@ hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
     local.src = hx->mpi.rank;
     local.dst = hx->mpi.rank;
 
-    Transport::Request::BGetOp **remote = new Transport::Request::BGetOp *[hx->mpi.size](); // list of destination servers (not databases) and messages to those destinations
+    Transport::Request::BGetOp **remote = new Transport::Request::BGetOp *[hx->mpi.size](); // list of destination servers (not datastores) and messages to those destinations
     for(std::size_t i = 0; i < hx->mpi.size; i++) {
         remote[i] = new Transport::Request::BGetOp(HXHIM_MAX_BULK_GET_OPS);
         remote[i]->src = hx->mpi.rank;
@@ -523,7 +523,7 @@ hxhim_results_t *hxhimFlushGetOps(hxhim_t *hx) {
 
 /**
  * delete_core
- * The core set of function calls that are needed to send Deletes to databases and receive responses
+ * The core set of function calls that are needed to send Deletes to datastores and receive responses
  *
  * @param hx        the HXHIM session
  * @param curr      the current set of data to process
@@ -602,7 +602,7 @@ hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
     local.src = hx->mpi.rank;
     local.dst = hx->mpi.rank;
 
-    Transport::Request::BDelete **remote = new Transport::Request::BDelete *[hx->mpi.size](); // list of destination servers (not databases) and messages to those destinations
+    Transport::Request::BDelete **remote = new Transport::Request::BDelete *[hx->mpi.size](); // list of destination servers (not datastores) and messages to those destinations
     for(std::size_t i = 0; i < hx->mpi.size; i++) {
         remote[i] = new Transport::Request::BDelete(HXHIM_MAX_BULK_GET_OPS);
         remote[i]->src = hx->mpi.rank;
@@ -1284,7 +1284,7 @@ int hxhim::GetStats(hxhim_t *hx, const int rank,
                     const bool get_num_puts, std::size_t *num_puts,
                     const bool get_get_times, long double *get_times,
                     const bool get_num_gets, std::size_t *num_gets) {
-    return hx->p->databases[0]->GetStats(rank,
+    return hx->p->datastores[0]->GetStats(rank,
                                         get_put_times, put_times,
                                         get_num_puts, num_puts,
                                         get_get_times, get_times,

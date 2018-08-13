@@ -1,25 +1,22 @@
-#ifndef HXHIM_BACKEND_LEVELDB_HPP
-#define HXHIM_BACKEND_LEVELDB_HPP
+#ifndef HXHIM_DATASTORE_INMEMORY_HPP
+#define HXHIM_DATASTORE_INMEMORY_HPP
 
-#include <leveldb/db.h>
+#include <map>
+
 #include <mpi.h>
 
-#include "base.hpp"
+#include "datastore/datastore.hpp"
 #include "hxhim/struct.h"
 
 namespace hxhim {
-namespace backend {
+namespace datastore {
 
-class leveldb : public base {
+class InMemory : public Datastore {
     public:
-        leveldb(hxhim_t *hx,
-                const std::size_t use_first_n, const Histogram::BucketGen::generator &generator, void *extra_args,
-                const std::string &exact_name);
-        leveldb(hxhim_t *hx,
-                const int id,
-                const std::size_t use_first_n, const Histogram::BucketGen::generator &generator, void *extra_args,
-                const std::string &name, const bool create_if_missing);
-        ~leveldb();
+        InMemory(hxhim_t *hx,
+                 const int id,
+                 const std::size_t use_first_n, const Histogram::BucketGen::generator &generator, void *extra_args);
+        ~InMemory();
 
         void Close();
         int Commit();
@@ -46,11 +43,9 @@ class leveldb : public base {
         std::ostream &print_config(std::ostream &stream) const;
 
     private:
-        const std::string name;
-        const bool create_if_missing;
+        int Open(MPI_Comm comm, const std::string &config);
 
-        ::leveldb::DB *db;
-        ::leveldb::Options options;
+        std::map<std::string, std::string> db;
 };
 
 }

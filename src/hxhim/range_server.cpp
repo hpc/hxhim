@@ -9,24 +9,24 @@
 
 /**
  * range_server_bput
- * Handles the bput message and puts data in the database
+ * Handles the bput message and puts data in the datastore
  *
  * @param hx        pointer to the main HXHIM struct
  * @param req       the request packet to operate on
  * @return          the response packet resulting from the request
  */
 static Transport::Response::BPut *range_server_bput(hxhim_t *hx, Transport::Request::BPut *req) {
-    void ***subjects = new void **[hx->p->database_count];
-    std::size_t **subject_lens = new std::size_t *[hx->p->database_count];
-    void ***predicates = new void **[hx->p->database_count];
-    std::size_t **predicate_lens = new std::size_t *[hx->p->database_count];
-    hxhim_type_t **object_types = new hxhim_type_t *[hx->p->database_count];
-    void ***objects = new void **[hx->p->database_count];
-    std::size_t **object_lens = new std::size_t *[hx->p->database_count];
-    std::size_t *counters = new std::size_t[hx->p->database_count];
+    void ***subjects = new void **[hx->p->datastore_count];
+    std::size_t **subject_lens = new std::size_t *[hx->p->datastore_count];
+    void ***predicates = new void **[hx->p->datastore_count];
+    std::size_t **predicate_lens = new std::size_t *[hx->p->datastore_count];
+    hxhim_type_t **object_types = new hxhim_type_t *[hx->p->datastore_count];
+    void ***objects = new void **[hx->p->datastore_count];
+    std::size_t **object_lens = new std::size_t *[hx->p->datastore_count];
+    std::size_t *counters = new std::size_t[hx->p->datastore_count];
 
-    // overallocate in case all of the requests go to one database
-    for(std::size_t i = 0; i < hx->p->database_count; i++) {
+    // overallocate in case all of the requests go to one datastore
+    for(std::size_t i = 0; i < hx->p->datastore_count; i++) {
         subjects[i] = new void *[req->count];
         subject_lens[i] = new std::size_t[req->count];
         predicates[i] = new void *[req->count];
@@ -37,20 +37,20 @@ static Transport::Response::BPut *range_server_bput(hxhim_t *hx, Transport::Requ
         counters[i] = 0;
     }
 
-    // split up requests into databases
+    // split up requests into datastores
     for(std::size_t i = 0; i < req->count; i++) {
-        const int database = req->db_offsets[i];
-        std::size_t &index = counters[req->db_offsets[i]];
+        const int datastore = req->ds_offsets[i];
+        std::size_t &index = counters[req->ds_offsets[i]];
 
-        subjects[database][index] = req->subjects[i];
-        subject_lens[database][index] = req->subject_lens[i];
+        subjects[datastore][index] = req->subjects[i];
+        subject_lens[datastore][index] = req->subject_lens[i];
 
-        predicates[database][index] = req->predicates[i];
-        predicate_lens[database][index] = req->predicate_lens[i];
+        predicates[datastore][index] = req->predicates[i];
+        predicate_lens[datastore][index] = req->predicate_lens[i];
 
-        object_types[database][index] = req->object_types[i];
-        objects[database][index] = req->objects[i];
-        object_lens[database][index] = req->object_lens[i];
+        object_types[datastore][index] = req->object_types[i];
+        objects[datastore][index] = req->objects[i];
+        object_lens[datastore][index] = req->object_lens[i];
 
         index++;
     }
@@ -60,13 +60,13 @@ static Transport::Response::BPut *range_server_bput(hxhim_t *hx, Transport::Requ
     res->dst = req->src;
     res->count = 0; // reset counter, but keep allocated space
 
-    for(std::size_t i = 0; i < hx->p->database_count; i++) {
-        Transport::Response::BPut *response = hx->p->databases[i]->BPut(subjects[i], subject_lens[i],
+    for(std::size_t i = 0; i < hx->p->datastore_count; i++) {
+        Transport::Response::BPut *response = hx->p->datastores[i]->BPut(subjects[i], subject_lens[i],
                                                                         predicates[i], predicate_lens[i],
                                                                         object_types[i], objects[i], object_lens[i],
                                                                         counters[i]);
         for(std::size_t j = 0; j < response->count; j++) {
-            res->db_offsets[res->count] = i;
+            res->ds_offsets[res->count] = i;
             res->statuses[res->count] = response->statuses[j];
             res->count++;
         }
@@ -74,7 +74,7 @@ static Transport::Response::BPut *range_server_bput(hxhim_t *hx, Transport::Requ
         delete response;
     }
 
-    for(std::size_t i = 0; i < hx->p->database_count; i++) {
+    for(std::size_t i = 0; i < hx->p->datastore_count; i++) {
         delete [] subjects[i];
         delete [] subject_lens[i];
         delete [] predicates[i];
@@ -98,22 +98,22 @@ static Transport::Response::BPut *range_server_bput(hxhim_t *hx, Transport::Requ
 
 /**
  * range_server_bget
- * Handles the bget message and gets data in the database
+ * Handles the bget message and gets data in the datastore
  *
  * @param hx        pointer to the main HXHIM struct
  * @param req       the request packet to operate on
  * @return          the response packet resulting from the request
  */
 static Transport::Response::BGet *range_server_bget(hxhim_t *hx, Transport::Request::BGet *req) {
-    void ***subjects = new void **[hx->p->database_count];
-    std::size_t **subject_lens = new std::size_t *[hx->p->database_count];
-    void ***predicates = new void **[hx->p->database_count];
-    std::size_t **predicate_lens = new std::size_t *[hx->p->database_count];
-    hxhim_type_t **object_types = new hxhim_type_t *[hx->p->database_count];
-    std::size_t *counters = new std::size_t[hx->p->database_count];
+    void ***subjects = new void **[hx->p->datastore_count];
+    std::size_t **subject_lens = new std::size_t *[hx->p->datastore_count];
+    void ***predicates = new void **[hx->p->datastore_count];
+    std::size_t **predicate_lens = new std::size_t *[hx->p->datastore_count];
+    hxhim_type_t **object_types = new hxhim_type_t *[hx->p->datastore_count];
+    std::size_t *counters = new std::size_t[hx->p->datastore_count];
 
-    // overallocate in case all of the requests go to one database
-    for(std::size_t i = 0; i < hx->p->database_count; i++) {
+    // overallocate in case all of the requests go to one datastore
+    for(std::size_t i = 0; i < hx->p->datastore_count; i++) {
         subjects[i] = new void *[req->count];
         subject_lens[i] = new std::size_t[req->count];
         predicates[i] = new void *[req->count];
@@ -122,18 +122,18 @@ static Transport::Response::BGet *range_server_bget(hxhim_t *hx, Transport::Requ
         counters[i] = 0;
     }
 
-    // split up requests into specific databases
+    // split up requests into specific datastores
     for(std::size_t i = 0; i < req->count; i++) {
-        const int database = req->db_offsets[i];
-        std::size_t &index = counters[req->db_offsets[i]];
+        const int datastore = req->ds_offsets[i];
+        std::size_t &index = counters[req->ds_offsets[i]];
 
-        subjects[database][index] = req->subjects[i];
-        subject_lens[database][index] = req->subject_lens[i];
+        subjects[datastore][index] = req->subjects[i];
+        subject_lens[datastore][index] = req->subject_lens[i];
 
-        predicates[database][index] = req->predicates[i];
-        predicate_lens[database][index] = req->predicate_lens[i];
+        predicates[datastore][index] = req->predicates[i];
+        predicate_lens[datastore][index] = req->predicate_lens[i];
 
-        object_types[database][index] = req->object_types[i];
+        object_types[datastore][index] = req->object_types[i];
 
         index++;
     }
@@ -142,13 +142,13 @@ static Transport::Response::BGet *range_server_bget(hxhim_t *hx, Transport::Requ
     res->src = req->dst;
     res->dst = req->src;
 
-    for(std::size_t i = 0; i < hx->p->database_count; i++) {
-        Transport::Response::BGet *response = hx->p->databases[i]->BGet(subjects[i], subject_lens[i],
+    for(std::size_t i = 0; i < hx->p->datastore_count; i++) {
+        Transport::Response::BGet *response = hx->p->datastores[i]->BGet(subjects[i], subject_lens[i],
                                                                        predicates[i], predicate_lens[i],
                                                                        object_types[i],
                                                                        counters[i]);
         for(std::size_t j = 0; j < response->count; j++) {
-            res->db_offsets[res->count] = i;
+            res->ds_offsets[res->count] = i;
             res->statuses[res->count] = response->statuses[j];
             res->subjects[res->count] = std::move(response->subjects[j]);
             res->subject_lens[res->count] = response->subject_lens[j];
@@ -163,7 +163,7 @@ static Transport::Response::BGet *range_server_bget(hxhim_t *hx, Transport::Requ
         delete response;
     }
 
-    for(std::size_t i = 0; i < hx->p->database_count; i++) {
+    for(std::size_t i = 0; i < hx->p->datastore_count; i++) {
         delete [] subjects[i];
         delete [] subject_lens[i];
         delete [] predicates[i];
@@ -183,7 +183,7 @@ static Transport::Response::BGet *range_server_bget(hxhim_t *hx, Transport::Requ
 
 /**
  * range_server_bgetop
- * Handles the bgetop message and getops data in the database
+ * Handles the bgetop message and getops data in the datastore
  *
  * @param hx        pointer to the main HXHIM struct
  * @param req       the request packet to operate on
@@ -195,12 +195,12 @@ static Transport::Response::BGetOp *range_server_bgetop(hxhim_t *hx, Transport::
     res->dst = req->src;
 
     for(std::size_t i = 0; i < req->count; i++) {
-        Transport::Response::BGetOp *response = hx->p->databases[i]->BGetOp(req->subjects[i], req->subject_lens[i],
+        Transport::Response::BGetOp *response = hx->p->datastores[i]->BGetOp(req->subjects[i], req->subject_lens[i],
                                                                            req->predicates[i], req->predicate_lens[i],
                                                                            req->object_types[i],
                                                                            req->num_recs[i], req->ops[i]);
         for(std::size_t j = 0; j < response->count; j++) {
-            res->db_offsets[res->count] = i;
+            res->ds_offsets[res->count] = i;
             res->statuses[res->count] = response->statuses[j];
             res->subjects[res->count] = std::move(response->subjects[j]);
             res->subject_lens[res->count] = response->subject_lens[j];
@@ -220,21 +220,21 @@ static Transport::Response::BGetOp *range_server_bgetop(hxhim_t *hx, Transport::
 
 /**
  * range_server_bdelete
- * Handles the bdelete message and deletes data in the database
+ * Handles the bdelete message and deletes data in the datastore
  *
  * @param hx        pointer to the main HXHIM struct
  * @param req       the request packet to operate on
  * @return          the response packet resulting from the request
  */
 static Transport::Response::BDelete *range_server_bdelete(hxhim_t *hx, Transport::Request::BDelete *req) {
-    void ***subjects = new void **[hx->p->database_count];
-    std::size_t **subject_lens = new std::size_t *[hx->p->database_count];
-    void ***predicates = new void **[hx->p->database_count];
-    std::size_t **predicate_lens = new std::size_t *[hx->p->database_count];
-    std::size_t *counters = new std::size_t[hx->p->database_count];
+    void ***subjects = new void **[hx->p->datastore_count];
+    std::size_t **subject_lens = new std::size_t *[hx->p->datastore_count];
+    void ***predicates = new void **[hx->p->datastore_count];
+    std::size_t **predicate_lens = new std::size_t *[hx->p->datastore_count];
+    std::size_t *counters = new std::size_t[hx->p->datastore_count];
 
-    // overallocate in case all of the requests go to one database
-    for(std::size_t i = 0; i < hx->p->database_count; i++) {
+    // overallocate in case all of the requests go to one datastore
+    for(std::size_t i = 0; i < hx->p->datastore_count; i++) {
         subjects[i] = new void *[req->count];
         subject_lens[i] = new std::size_t[req->count];
         predicates[i] = new void *[req->count];
@@ -242,16 +242,16 @@ static Transport::Response::BDelete *range_server_bdelete(hxhim_t *hx, Transport
         counters[i] = 0;
     }
 
-    // split up requests into specific databases
+    // split up requests into specific datastores
     for(std::size_t i = 0; i < req->count; i++) {
-        const int database = req->db_offsets[i];
-        std::size_t &index = counters[req->db_offsets[i]];
+        const int datastore = req->ds_offsets[i];
+        std::size_t &index = counters[req->ds_offsets[i]];
 
-        subjects[database][index] = req->subjects[i];
-        subject_lens[database][index] = req->subject_lens[i];
+        subjects[datastore][index] = req->subjects[i];
+        subject_lens[datastore][index] = req->subject_lens[i];
 
-        predicates[database][index] = req->predicates[i];
-        predicate_lens[database][index] = req->predicate_lens[i];
+        predicates[datastore][index] = req->predicates[i];
+        predicate_lens[datastore][index] = req->predicate_lens[i];
 
         index++;
     }
@@ -260,12 +260,12 @@ static Transport::Response::BDelete *range_server_bdelete(hxhim_t *hx, Transport
     res->src = req->dst;
     res->dst = req->src;
 
-    for(std::size_t i = 0; i < hx->p->database_count; i++) {
-        Transport::Response::BDelete *response = hx->p->databases[i]->BDelete(subjects[i], subject_lens[i],
+    for(std::size_t i = 0; i < hx->p->datastore_count; i++) {
+        Transport::Response::BDelete *response = hx->p->datastores[i]->BDelete(subjects[i], subject_lens[i],
                                                                              predicates[i], predicate_lens[i],
                                                                              counters[i]);
         for(std::size_t j = 0; j < response->count; j++) {
-            res->db_offsets[res->count] = i;
+            res->ds_offsets[res->count] = i;
             res->statuses[res->count] = response->statuses[j];
             res->count++;
         }
@@ -273,7 +273,7 @@ static Transport::Response::BDelete *range_server_bdelete(hxhim_t *hx, Transport
         delete response;
     }
 
-    for(std::size_t i = 0; i < hx->p->database_count; i++) {
+    for(std::size_t i = 0; i < hx->p->datastore_count; i++) {
         delete [] subjects[i];
         delete [] subject_lens[i];
         delete [] predicates[i];

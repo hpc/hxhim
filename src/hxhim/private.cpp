@@ -1,6 +1,6 @@
 #include <cfloat>
 
-#include "hxhim/backend/backends.hpp"
+#include "datastore/datastores.hpp"
 #include "hxhim/config.hpp"
 #include "hxhim/local_client.hpp"
 #include "hxhim/options_private.hpp"
@@ -17,8 +17,8 @@ hxhim_private::hxhim_private()
       gets(),
       getops(),
       deletes(),
-      databases(nullptr),
-      database_count(0),
+      datastores(nullptr),
+      datastore_count(0),
       async_put(),
       transport(nullptr),
       range_server_destroy(nullptr)
@@ -29,7 +29,7 @@ hxhim_private::hxhim_private()
 
 /**
  * put_core
- * The core functionality for putting a single batch of SPO triples into the database
+ * The core functionality for putting a single batch of SPO triples into the datastore
  *
  * @param hx      the HXHIM context
  * @param head    the head of the list of SPO triple batches to send
@@ -48,7 +48,7 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
     local.dst = hx->mpi.rank;
     local.count = 0;
 
-    Transport::Request::BPut **remote = new Transport::Request::BPut *[hx->mpi.size](); // list of destination servers (not databases) and messages to those destinations
+    Transport::Request::BPut **remote = new Transport::Request::BPut *[hx->mpi.size](); // list of destination servers (not datastores) and messages to those destinations
     for(std::size_t i = 0; i < hx->mpi.size; i++) {
         remote[i] = new Transport::Request::BPut(HXHIM_MAX_BULK_GET_OPS);
         remote[i]->src = hx->mpi.rank;
@@ -289,54 +289,54 @@ int hxhim::init::running(hxhim_t *hx, hxhim_options_t *opts) {
 }
 
 /**
- * database
- * Sets up and starts the database
+ * datastore
+ * Sets up and starts the datastore
  *
  * @param hx   the HXHIM instance
  * @param opts the HXHIM options
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int hxhim::init::database(hxhim_t *hx, hxhim_options_t *opts) {
+int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
     if (!valid(hx, opts)) {
         return HXHIM_ERROR;
     }
 
-    if (!(hx->p->database_count = opts->p->database_count)) {
+    if (!(hx->p->datastore_count = opts->p->datastore_count)) {
         return HXHIM_ERROR;
     }
 
-    if (!(hx->p->databases = new hxhim::backend::base *[hx->p->database_count])) {
+    if (!(hx->p->datastores = new hxhim::datastore::Datastore *[hx->p->datastore_count])) {
         return HXHIM_ERROR;
     }
 
-    for(std::size_t i = 0; i < hx->p->database_count; i++) {
-        // Start the database
-        switch (opts->p->database->type) {
-            case HXHIM_DATABASE_LEVELDB:
+    for(std::size_t i = 0; i < hx->p->datastore_count; i++) {
+        // Start the datastore
+        switch (opts->p->datastore->type) {
+            case HXHIM_DATASTORE_LEVELDB:
                 {
-                    hxhim_leveldb_config_t *config = static_cast<hxhim_leveldb_config_t *>(opts->p->database);
-                    hx->p->databases[i] = new hxhim::backend::leveldb(hx,
-                                                                      config->id,
-                                                                      opts->p->histogram.first_n,
-                                                                      opts->p->histogram.gen,
-                                                                      opts->p->histogram.args,
-                                                                      config->path, config->create_if_missing);
+                    hxhim_leveldb_config_t *config = static_cast<hxhim_leveldb_config_t *>(opts->p->datastore);
+                    hx->p->datastores[i] = new hxhim::datastore::leveldb(hx,
+                                                                        config->id,
+                                                                        opts->p->histogram.first_n,
+                                                                        opts->p->histogram.gen,
+                                                                        opts->p->histogram.args,
+                                                                        config->path, config->create_if_missing);
                 }
                 break;
-            case HXHIM_DATABASE_IN_MEMORY:
+            case HXHIM_DATASTORE_IN_MEMORY:
                 {
-                    hx->p->databases[i] = new hxhim::backend::InMemory(hx,
-                                                                       i,
-                                                                       opts->p->histogram.first_n,
-                                                                       opts->p->histogram.gen,
-                                                                       opts->p->histogram.args);
+                    hx->p->datastores[i] = new hxhim::datastore::InMemory(hx,
+                                                                         i,
+                                                                         opts->p->histogram.first_n,
+                                                                         opts->p->histogram.gen,
+                                                                         opts->p->histogram.args);
                 }
                 break;
             default:
                 break;
         }
 
-        if (!hx->p->databases[i]) {
+        if (!hx->p->datastores[i]) {
             return HXHIM_ERROR;
         }
     }
@@ -345,47 +345,47 @@ int hxhim::init::database(hxhim_t *hx, hxhim_options_t *opts) {
 }
 
 /**
- * one_database
- * Sets up and starts one database instance
+ * one_datastore
+ * Sets up and starts one datastore instance
  *
  * @param hx   the HXHIM instance
  * @param opts the HXHIM options
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int hxhim::init::one_database(hxhim_t *hx, hxhim_options_t *opts, const std::string &name) {
-    if (destroy::database(hx) != HXHIM_SUCCESS) {
+int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::string &name) {
+    if (destroy::datastore(hx) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
 
-    if ((hx->p->database_count = opts->p->database_count) != 1) {
+    if ((hx->p->datastore_count = opts->p->datastore_count) != 1) {
         return HXHIM_ERROR;
     }
 
-    if (!(hx->p->databases = new hxhim::backend::base *[hx->p->database_count])) {
+    if (!(hx->p->datastores = new hxhim::datastore::Datastore *[hx->p->datastore_count])) {
         return HXHIM_ERROR;
     }
 
-    // Start the database
-    switch (opts->p->database->type) {
-        case HXHIM_DATABASE_LEVELDB:
-            hx->p->databases[0] = new hxhim::backend::leveldb(hx,
-                                                              opts->p->histogram.first_n,
-                                                              opts->p->histogram.gen,
-                                                              opts->p->histogram.args,
-                                                              name);
+    // Start the datastore
+    switch (opts->p->datastore->type) {
+        case HXHIM_DATASTORE_LEVELDB:
+            hx->p->datastores[0] = new hxhim::datastore::leveldb(hx,
+                                                                opts->p->histogram.first_n,
+                                                                opts->p->histogram.gen,
+                                                                opts->p->histogram.args,
+                                                                name);
             break;
-        case HXHIM_DATABASE_IN_MEMORY:
-            hx->p->databases[0] = new hxhim::backend::InMemory(hx,
-                                                               0,
-                                                               opts->p->histogram.first_n,
-                                                               opts->p->histogram.gen,
-                                                               opts->p->histogram.args);
+        case HXHIM_DATASTORE_IN_MEMORY:
+            hx->p->datastores[0] = new hxhim::datastore::InMemory(hx,
+                                                                 0,
+                                                                 opts->p->histogram.first_n,
+                                                                 opts->p->histogram.gen,
+                                                                 opts->p->histogram.args);
             break;
         default:
             break;
     }
 
-    return hx->p->databases[0]?HXHIM_SUCCESS:HXHIM_ERROR;
+    return hx->p->datastores[0]?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 
 /**
@@ -434,8 +434,8 @@ int hxhim::init::hash(hxhim_t *hx, hxhim_options_t *opts) {
     if (opts->p->hash == RANK) {
         hx->p->hash_args = &hx->mpi.rank;
     }
-    else if (opts->p->hash == SUM_MOD_DATABASES) {
-        hx->p->hash_args = &hx->p->database_count;
+    else if (opts->p->hash == SUM_MOD_DATASTORES) {
+        hx->p->hash_args = &hx->p->datastore_count;
     }
     else {
         return HXHIM_ERROR;
@@ -712,28 +712,28 @@ int hxhim::destroy::async_put(hxhim_t *hx) {
 }
 
 /**
- * database
- * Cleans up the database
+ * datastore
+ * Cleans up the datastore
  *
  * @param hx   the HXHIM instance
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int hxhim::destroy::database(hxhim_t *hx) {
+int hxhim::destroy::datastore(hxhim_t *hx) {
     if (!valid(hx)) {
         return HXHIM_ERROR;
     }
 
-    if (hx->p->databases) {
-        for(std::size_t i = 0; i < hx->p->database_count; i++) {
-            if (hx->p->databases[i]) {
-                hx->p->databases[i]->Close();
-                delete hx->p->databases[i];
-                hx->p->databases[i] = nullptr;
+    if (hx->p->datastores) {
+        for(std::size_t i = 0; i < hx->p->datastore_count; i++) {
+            if (hx->p->datastores[i]) {
+                hx->p->datastores[i]->Close();
+                delete hx->p->datastores[i];
+                hx->p->datastores[i] = nullptr;
             }
         }
 
-        delete [] hx->p->databases;
-        hx->p->databases = nullptr;
+        delete [] hx->p->datastores;
+        hx->p->datastores = nullptr;
     }
 
     return HXHIM_SUCCESS;

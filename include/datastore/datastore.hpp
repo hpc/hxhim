@@ -1,5 +1,5 @@
-#ifndef HXHIM_BACKEND_BASE_HPP
-#define HXHIM_BACKEND_BASE_HPP
+#ifndef HXHIM_DATASTORE_HPP
+#define HXHIM_DATASTORE_HPP
 
 #include <mutex>
 
@@ -9,18 +9,18 @@
 #include "utils/elapsed.h"
 
 namespace hxhim {
-namespace backend {
+namespace datastore {
 
 /**
  * base
- * The base class for all backends used by HXHIM
+ * The base class for all datastores used by HXHIM
  */
-class base {
+class Datastore {
     public:
-        base(hxhim_t *hx,
+        Datastore(hxhim_t *hx,
              const int id,
              const std::size_t use_first_n, const Histogram::BucketGen::generator &generator, void *extra_args);
-        virtual ~base();
+        virtual ~Datastore();
 
         virtual void Close() {}
         virtual int Commit() = 0;

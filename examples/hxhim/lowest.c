@@ -38,12 +38,12 @@ static void print_double_results(hxhim_results_t *results) {
         int error;
         hxhim_results_error(results, &error);
 
-        int database;
-        hxhim_results_database(results, &database);
+        int datastore;
+        hxhim_results_datastore(results, &datastore);
 
         switch (type) {
             case HXHIM_RESULT_PUT:
-                printf("PUT returned %s from database %d", (error == HXHIM_SUCCESS)?"SUCCESS":"ERROR", database);
+                printf("PUT returned %s from datastore %d", (error == HXHIM_SUCCESS)?"SUCCESS":"ERROR", datastore);
                 break;
             case HXHIM_RESULT_GET:
                 printf("GET returned ");
@@ -69,10 +69,10 @@ static void print_double_results(hxhim_results_t *results) {
                     printf("ERROR");
                 }
 
-                printf("from database %d\n", database);
+                printf("from datastore %d\n", datastore);
                 break;
             case HXHIM_RESULT_DEL:
-                printf("DEL returned %s from database %d", (error == HXHIM_SUCCESS)?"SUCCESS":"ERROR", database);
+                printf("DEL returned %s from datastore %d", (error == HXHIM_SUCCESS)?"SUCCESS":"ERROR", datastore);
                 break;
             default:
                 break;

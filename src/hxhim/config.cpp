@@ -25,19 +25,19 @@ static int fill_options(hxhim_options_t *opts, const Config &config) {
         return HXHIM_ERROR;
     }
 
-    std::size_t databases = 0;
-    if ((get_value(config, HXHIM_DATABASES_PER_RANGE_SERVER, databases) == CONFIG_FOUND) &&
-        (hxhim_options_set_databases_per_range_server(opts, databases) != HXHIM_SUCCESS)) {
+    std::size_t datastores = 0;
+    if ((get_value(config, HXHIM_DATASTORES_PER_RANGE_SERVER, datastores) == CONFIG_FOUND) &&
+        (hxhim_options_set_datastores_per_range_server(opts, datastores) != HXHIM_SUCCESS)) {
         return HXHIM_ERROR;
     }
 
-    // Set the database
-    hxhim_database_t database;
-    if (get_from_map(config, HXHIM_DATABASE_TYPE, HXHIM_DATABASES, database) == CONFIG_FOUND) {
-        switch (database) {
-            case HXHIM_DATABASE_LEVELDB:
+    // Set the datastore
+    hxhim_datastore_t datastore;
+    if (get_from_map(config, HXHIM_DATASTORE_TYPE, HXHIM_DATASTORES, datastore) == CONFIG_FOUND) {
+        switch (datastore) {
+            case HXHIM_DATASTORE_LEVELDB:
                 {
-                    // get the leveldb database name prefix
+                    // get the leveldb datastore name prefix
                     Config_it name = config.find(HXHIM_LEVELDB_NAME);
                     if (name == config.end()) {
                         return HXHIM_ERROR;
@@ -48,12 +48,12 @@ static int fill_options(hxhim_options_t *opts, const Config &config) {
                         return HXHIM_ERROR;
                     }
 
-                    hxhim_options_set_database_leveldb(opts, opts->p->mpi.rank, name->second.c_str(), create_if_missing);
+                    hxhim_options_set_datastore_leveldb(opts, opts->p->mpi.rank, name->second.c_str(), create_if_missing);
                 }
                 break;
-            case HXHIM_DATABASE_IN_MEMORY:
+            case HXHIM_DATASTORE_IN_MEMORY:
                 {
-                    hxhim_options_set_database_in_memory(opts);
+                    hxhim_options_set_datastore_in_memory(opts);
                 }
                 break;
             default:

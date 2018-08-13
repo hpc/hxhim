@@ -65,7 +65,7 @@ int Packer::pack(const Request::Put *pm, std::string &buf) {
     }
 
     if (!s
-        .write((char *) &pm->db_offset, sizeof(pm->db_offset))
+        .write((char *) &pm->ds_offset, sizeof(pm->ds_offset))
         .write((char *) &pm->subject_len, sizeof(pm->subject_len))
         .write((char *) &pm->predicate_len, sizeof(pm->predicate_len))
         .write((char *) &pm->object_len, sizeof(pm->object_len))
@@ -87,7 +87,7 @@ int Packer::pack(const Request::Get *gm, std::string &buf) {
     }
 
     if (!s
-        .write((char *) &gm->db_offset, sizeof(gm->db_offset))
+        .write((char *) &gm->ds_offset, sizeof(gm->ds_offset))
         .write((char *) &gm->subject_len, sizeof(gm->subject_len))
         .write((char *) &gm->predicate_len, sizeof(gm->predicate_len))
         .write((char *) &gm->object_type, sizeof(gm->object_type))
@@ -107,7 +107,7 @@ int Packer::pack(const Request::Delete *dm, std::string &buf) {
     }
 
     if (!s
-        .write((char *) &dm->db_offset, sizeof(dm->db_offset))
+        .write((char *) &dm->ds_offset, sizeof(dm->ds_offset))
         .write((char *) &dm->subject_len, sizeof(dm->subject_len))
         .write((char *) &dm->predicate_len, sizeof(dm->predicate_len))
         .write((char *) dm->subject, dm->subject_len)
@@ -131,7 +131,7 @@ int Packer::pack(const Request::BPut *bpm, std::string &buf) {
 
     for(std::size_t i = 0; i < bpm->count; i++) {
         if (!s
-            .write((char *) &bpm->db_offsets[i], sizeof(bpm->db_offsets[i]))
+            .write((char *) &bpm->ds_offsets[i], sizeof(bpm->ds_offsets[i]))
             .write((char *) &bpm->subject_lens[i], sizeof(bpm->subject_lens[i]))
             .write((char *) &bpm->predicate_lens[i], sizeof(bpm->predicate_lens[i]))
             .write((char *) &bpm->object_lens[i], sizeof(bpm->object_lens[i]))
@@ -159,7 +159,7 @@ int Packer::pack(const Request::BGet *bgm, std::string &buf) {
 
     for(std::size_t i = 0; i < bgm->count; i++) {
         if (!s
-            .write((char *) &bgm->db_offsets[i], sizeof(bgm->db_offsets[i]))
+            .write((char *) &bgm->ds_offsets[i], sizeof(bgm->ds_offsets[i]))
             .write((char *) &bgm->subject_lens[i], sizeof(bgm->subject_lens[i]))
             .write((char *) &bgm->predicate_lens[i], sizeof(bgm->predicate_lens[i]))
             .write((char *) &bgm->object_types[i], sizeof(bgm->object_types[i]))
@@ -185,7 +185,7 @@ int Packer::pack(const Request::BGetOp *bgm, std::string &buf) {
 
     for(std::size_t i = 0; i < bgm->count; i++) {
         if (!s
-            .write((char *) &bgm->db_offsets[i], sizeof(bgm->db_offsets[i]))
+            .write((char *) &bgm->ds_offsets[i], sizeof(bgm->ds_offsets[i]))
             .write((char *) &bgm->subject_lens[i], sizeof(bgm->subject_lens[i]))
             .write((char *) &bgm->predicate_lens[i], sizeof(bgm->predicate_lens[i]))
             .write((char *) &bgm->object_types[i], sizeof(bgm->object_types[i]))
@@ -213,7 +213,7 @@ int Packer::pack(const Request::BDelete *bdm, std::string &buf) {
 
     for(std::size_t i = 0; i < bdm->count; i++) {
         if (!s
-            .write((char *) &bdm->db_offsets[i], sizeof(bdm->db_offsets[i]))
+            .write((char *) &bdm->ds_offsets[i], sizeof(bdm->ds_offsets[i]))
             .write((char *) &bdm->subject_lens[i], sizeof(bdm->subject_lens[i]))
             .write((char *) &bdm->predicate_lens[i], sizeof(bdm->predicate_lens[i]))
             .write((char *) bdm->subjects[i], bdm->subject_lens[i])
@@ -269,7 +269,7 @@ int Packer::pack(const Response::Put *pm, std::string &buf) {
 
     if (!s
         .write((char *) &pm->status, sizeof(pm->status))
-        .write((char *) &pm->db_offset, sizeof(pm->db_offset))) {
+        .write((char *) &pm->ds_offset, sizeof(pm->ds_offset))) {
         return TRANSPORT_ERROR;
     }
 
@@ -285,7 +285,7 @@ int Packer::pack(const Response::Get *gm, std::string &buf) {
 
     if (!s
         .write((char *) &gm->status, sizeof(gm->status))
-        .write((char *) &gm->db_offset, sizeof(gm->db_offset))) {
+        .write((char *) &gm->ds_offset, sizeof(gm->ds_offset))) {
         return TRANSPORT_ERROR;
     }
 
@@ -315,7 +315,7 @@ int Packer::pack(const Response::Delete *dm, std::string &buf) {
 
     if (!s
         .write((char *) &dm->status, sizeof(dm->status))
-        .write((char *) &dm->db_offset, sizeof(dm->db_offset))) {
+        .write((char *) &dm->ds_offset, sizeof(dm->ds_offset))) {
         return TRANSPORT_ERROR;
     }
 
@@ -332,7 +332,7 @@ int Packer::pack(const Response::BPut *bpm, std::string &buf) {
     if (!s
         .write((char *) &bpm->count, sizeof(bpm->count))
         .write((char *) bpm->statuses, sizeof(*bpm->statuses) * bpm->count)
-        .write((char *) bpm->db_offsets, sizeof(*bpm->db_offsets) * bpm->count)) {
+        .write((char *) bpm->ds_offsets, sizeof(*bpm->ds_offsets) * bpm->count)) {
         return TRANSPORT_ERROR;
     }
 
@@ -353,7 +353,7 @@ int Packer::pack(const Response::BGet *bgm, std::string &buf) {
     for(std::size_t i = 0; i < bgm->count; i++) {
         if (!s
             .write((char *) &bgm->statuses[i], sizeof(bgm->statuses[i]))
-            .write((char *) &bgm->db_offsets[i], sizeof(bgm->db_offsets[i]))) {
+            .write((char *) &bgm->ds_offsets[i], sizeof(bgm->ds_offsets[i]))) {
             return TRANSPORT_ERROR;
         }
 
@@ -387,7 +387,7 @@ int Packer::pack(const Response::BGetOp *bgm, std::string &buf) {
     for(std::size_t i = 0; i < bgm->count; i++) {
         if (!s
             .write((char *) &bgm->statuses[i], sizeof(bgm->statuses[i]))
-            .write((char *) &bgm->db_offsets[i], sizeof(bgm->db_offsets[i]))) {
+            .write((char *) &bgm->ds_offsets[i], sizeof(bgm->ds_offsets[i]))) {
             return TRANSPORT_ERROR;
         }
 
@@ -417,7 +417,7 @@ int Packer::pack(const Response::BDelete *bdm, std::string &buf) {
     if (!s
         .write((char *) &bdm->count, sizeof(bdm->count))
         .write((char *) bdm->statuses, sizeof(*bdm->statuses) * bdm->count)
-        .write((char *) bdm->db_offsets, sizeof(*bdm->db_offsets) * bdm->count)) {
+        .write((char *) bdm->ds_offsets, sizeof(*bdm->ds_offsets) * bdm->count)) {
         return TRANSPORT_ERROR;
     }
 

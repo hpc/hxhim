@@ -16,7 +16,7 @@ static void print_results(const int rank, hxhim::Results *results) {
         hxhim::Results::Result *curr = results->Curr();
         switch (curr->GetType()) {
             case HXHIM_RESULT_PUT:
-                std::cout << "PUT returned " << ((curr->GetStatus() == HXHIM_SUCCESS)?std::string("SUCCESS"):std::string("ERROR")) << " from database " << curr->GetDatabase() << std::endl;
+                std::cout << "PUT returned " << ((curr->GetStatus() == HXHIM_SUCCESS)?std::string("SUCCESS"):std::string("ERROR")) << " from datastore " << curr->GetDatastore() << std::endl;
                 break;
             case HXHIM_RESULT_GET:
                 std::cout << "GET returned ";
@@ -36,10 +36,10 @@ static void print_results(const int rank, hxhim::Results *results) {
                     std::cout << "ERROR";
                 }
 
-                std::cout << " from database " << curr->GetDatabase() << std::endl;
+                std::cout << " from datastore " << curr->GetDatastore() << std::endl;
                 break;
             case HXHIM_RESULT_DEL:
-                std::cout << "DEL returned " << ((curr->GetStatus() == HXHIM_SUCCESS)?std::string("SUCCESS"):std::string("ERROR")) << " from database " << curr->GetDatabase() << std::endl;
+                std::cout << "DEL returned " << ((curr->GetStatus() == HXHIM_SUCCESS)?std::string("SUCCESS"):std::string("ERROR")) << " from datastore " << curr->GetDatastore() << std::endl;
                 break;
             default:
                 std::cout << "Bad type: " << curr->GetType() << std::endl;

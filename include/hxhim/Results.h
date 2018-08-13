@@ -28,7 +28,7 @@ int hxhim_results_goto_next(hxhim_results_t *res);
 int hxhim_results_valid(hxhim_results_t *res);
 int hxhim_results_type(hxhim_results_t *res, enum hxhim_result_type *type);
 int hxhim_results_error(hxhim_results_t *res, int *error);
-int hxhim_results_database(hxhim_results_t *res, int *database);
+int hxhim_results_datastore(hxhim_results_t *res, int *datastore);
 // these accessor functions only work for GET results
 int hxhim_results_get_object_type(hxhim_results_t *res, enum hxhim_type_t *object_type);
 int hxhim_results_get_subject(hxhim_results_t *res, void **subject, size_t *subject_len);

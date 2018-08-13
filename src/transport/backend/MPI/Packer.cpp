@@ -64,7 +64,7 @@ int Packer::pack(const MPI_Comm comm, const Request::Put *pm, void **buf, std::s
         return TRANSPORT_ERROR;
     }
 
-    if ((MPI_Pack(&pm->db_offset, 1, MPI_INT, *buf, *bufsize, &position, comm)                              != MPI_SUCCESS) ||
+    if ((MPI_Pack(&pm->ds_offset, 1, MPI_INT, *buf, *bufsize, &position, comm)                              != MPI_SUCCESS) ||
         (MPI_Pack(&pm->subject_len, sizeof(pm->subject_len), MPI_CHAR, *buf, *bufsize, &position, comm)     != MPI_SUCCESS) ||
         (MPI_Pack(&pm->predicate_len, sizeof(pm->predicate_len), MPI_CHAR, *buf, *bufsize, &position, comm) != MPI_SUCCESS) ||
         (MPI_Pack(&pm->object_type, sizeof(pm->object_type), MPI_CHAR, *buf, *bufsize, &position, comm)     != MPI_SUCCESS) ||
@@ -87,7 +87,7 @@ int Packer::pack(const MPI_Comm comm, const Request::Get *gm, void **buf, std::s
         return TRANSPORT_ERROR;
     }
 
-    if ((MPI_Pack(&gm->db_offset, 1, MPI_INT, *buf, *bufsize, &position, comm)                              != MPI_SUCCESS) ||
+    if ((MPI_Pack(&gm->ds_offset, 1, MPI_INT, *buf, *bufsize, &position, comm)                              != MPI_SUCCESS) ||
         (MPI_Pack(&gm->subject_len, sizeof(gm->subject_len), MPI_CHAR, *buf, *bufsize, &position, comm)     != MPI_SUCCESS) ||
         (MPI_Pack(&gm->predicate_len, sizeof(gm->predicate_len), MPI_CHAR, *buf, *bufsize, &position, comm) != MPI_SUCCESS) ||
         (MPI_Pack(&gm->object_type, sizeof(gm->object_type), MPI_CHAR, *buf, *bufsize, &position, comm)     != MPI_SUCCESS) ||
@@ -108,7 +108,7 @@ int Packer::pack(const MPI_Comm comm, const Request::Delete *dm, void **buf, std
         return TRANSPORT_ERROR;
     }
 
-    if ((MPI_Pack(&dm->db_offset, 1, MPI_INT, *buf, *bufsize, &position, comm)                              != MPI_SUCCESS) ||
+    if ((MPI_Pack(&dm->ds_offset, 1, MPI_INT, *buf, *bufsize, &position, comm)                              != MPI_SUCCESS) ||
         (MPI_Pack(&dm->subject_len, sizeof(dm->subject_len), MPI_CHAR, *buf, *bufsize, &position, comm)     != MPI_SUCCESS) ||
         (MPI_Pack(&dm->predicate_len, sizeof(dm->predicate_len), MPI_CHAR, *buf, *bufsize, &position, comm) != MPI_SUCCESS) ||
         (MPI_Pack(dm->subject, dm->subject_len, MPI_CHAR, *buf, *bufsize, &position, comm)                  != MPI_SUCCESS) ||
@@ -135,7 +135,7 @@ int Packer::pack(const MPI_Comm comm, const Request::BPut *bpm, void **buf, std:
 
     for(std::size_t i = 0; i < bpm->count; i++) {
         if (
-            (MPI_Pack(&bpm->db_offsets[i], 1, MPI_INT, *buf, *bufsize, &position, comm)                                   != MPI_SUCCESS) ||
+            (MPI_Pack(&bpm->ds_offsets[i], 1, MPI_INT, *buf, *bufsize, &position, comm)                                   != MPI_SUCCESS) ||
             (MPI_Pack(&bpm->subject_lens[i], sizeof(bpm->subject_lens[i]), MPI_CHAR, *buf, *bufsize, &position, comm)     != MPI_SUCCESS) ||
             (MPI_Pack(&bpm->predicate_lens[i], sizeof(bpm->predicate_lens[i]), MPI_CHAR, *buf, *bufsize, &position, comm) != MPI_SUCCESS) ||
             (MPI_Pack(&bpm->object_types[i], sizeof(bpm->object_types[i]), MPI_CHAR, *buf, *bufsize, &position, comm)     != MPI_SUCCESS) ||
@@ -165,7 +165,7 @@ int Packer::pack(const MPI_Comm comm, const Request::BGet *bgm, void **buf, std:
     }
 
     for(std::size_t i = 0; i < bgm->count; i++) {
-        if ((MPI_Pack(&bgm->db_offsets[i], 1, MPI_INT, *buf, *bufsize, &position, comm)                                   != MPI_SUCCESS) ||
+        if ((MPI_Pack(&bgm->ds_offsets[i], 1, MPI_INT, *buf, *bufsize, &position, comm)                                   != MPI_SUCCESS) ||
             (MPI_Pack(&bgm->subject_lens[i], sizeof(bgm->subject_lens[i]), MPI_CHAR, *buf, *bufsize, &position, comm)     != MPI_SUCCESS) ||
             (MPI_Pack(&bgm->predicate_lens[i], sizeof(bgm->predicate_lens[i]), MPI_CHAR, *buf, *bufsize, &position, comm) != MPI_SUCCESS) ||
             (MPI_Pack(&bgm->object_types[i], sizeof(bgm->object_types[i]), MPI_CHAR, *buf, *bufsize, &position, comm)     != MPI_SUCCESS) ||
@@ -193,7 +193,7 @@ int Packer::pack(const MPI_Comm comm, const Request::BGetOp *bgm, void **buf, st
     }
 
     for(std::size_t i = 0; i < bgm->count; i++) {
-        if ((MPI_Pack(&bgm->db_offsets[i], 1, MPI_INT, *buf, *bufsize, &position, comm)                                   != MPI_SUCCESS) ||
+        if ((MPI_Pack(&bgm->ds_offsets[i], 1, MPI_INT, *buf, *bufsize, &position, comm)                                   != MPI_SUCCESS) ||
             (MPI_Pack(&bgm->subject_lens[i], sizeof(bgm->subject_lens[i]), MPI_CHAR, *buf, *bufsize, &position, comm)     != MPI_SUCCESS) ||
             (MPI_Pack(&bgm->predicate_lens[i], sizeof(bgm->predicate_lens[i]), MPI_CHAR, *buf, *bufsize, &position, comm) != MPI_SUCCESS) ||
             (MPI_Pack(&bgm->object_types[i], sizeof(bgm->object_types[i]), MPI_CHAR, *buf, *bufsize, &position, comm)     != MPI_SUCCESS) ||
@@ -223,7 +223,7 @@ int Packer::pack(const MPI_Comm comm, const Request::BDelete *bdm, void **buf, s
     }
 
     for(std::size_t i = 0; i < bdm->count; i++) {
-        if ((MPI_Pack(&bdm->db_offsets[i], 1, MPI_INT, *buf, *bufsize, &position, comm)                                   != MPI_SUCCESS) ||
+        if ((MPI_Pack(&bdm->ds_offsets[i], 1, MPI_INT, *buf, *bufsize, &position, comm)                                   != MPI_SUCCESS) ||
             (MPI_Pack(&bdm->subject_lens[i], sizeof(bdm->subject_lens[i]), MPI_CHAR, *buf, *bufsize, &position, comm)     != MPI_SUCCESS) ||
             (MPI_Pack(&bdm->predicate_lens[i], sizeof(bdm->predicate_lens[i]), MPI_CHAR, *buf, *bufsize, &position, comm) != MPI_SUCCESS) ||
             (MPI_Pack(bdm->subjects[i], bdm->subject_lens[i], MPI_CHAR, *buf, *bufsize, &position, comm)                  != MPI_SUCCESS) ||
@@ -279,7 +279,7 @@ int Packer::pack(const MPI_Comm comm, const Response::Put *pm, void **buf, std::
         return TRANSPORT_ERROR;
     }
 
-    if ((MPI_Pack(&pm->db_offset, 1, MPI_INT, *buf, *bufsize, &position, comm) != MPI_SUCCESS) ||
+    if ((MPI_Pack(&pm->ds_offset, 1, MPI_INT, *buf, *bufsize, &position, comm) != MPI_SUCCESS) ||
         (MPI_Pack(&pm->status, sizeof(pm->status), MPI_CHAR, *buf, *bufsize, &position, comm)       != MPI_SUCCESS)) {
         cleanup(buf, bufsize, fbp);
         return TRANSPORT_ERROR;
@@ -296,7 +296,7 @@ int Packer::pack(const MPI_Comm comm, const Response::Get *gm, void **buf, std::
         return TRANSPORT_ERROR;
     }
 
-    if ((MPI_Pack(&gm->db_offset, 1, MPI_INT, *buf, *bufsize, &position, comm)                              != MPI_SUCCESS) ||
+    if ((MPI_Pack(&gm->ds_offset, 1, MPI_INT, *buf, *bufsize, &position, comm)                              != MPI_SUCCESS) ||
         (MPI_Pack(&gm->status, sizeof(gm->status), MPI_CHAR, *buf, *bufsize, &position, comm)               != MPI_SUCCESS) ||
         (MPI_Pack(&gm->subject_len, sizeof(gm->subject_len), MPI_CHAR, *buf, *bufsize, &position, comm)     != MPI_SUCCESS) ||
         (MPI_Pack(&gm->predicate_len, sizeof(gm->predicate_len), MPI_CHAR, *buf, *bufsize, &position, comm) != MPI_SUCCESS) ||
@@ -320,7 +320,7 @@ int Packer::pack(const MPI_Comm comm, const Response::Delete *dm, void **buf, st
         return TRANSPORT_ERROR;
     }
 
-    if ((MPI_Pack(&dm->db_offset, 1, MPI_INT, *buf, *bufsize, &position, comm)                != MPI_SUCCESS) ||
+    if ((MPI_Pack(&dm->ds_offset, 1, MPI_INT, *buf, *bufsize, &position, comm)                != MPI_SUCCESS) ||
         (MPI_Pack(&dm->status, sizeof(dm->status), MPI_CHAR, *buf, *bufsize, &position, comm) != MPI_SUCCESS)) {
         cleanup(buf, bufsize, fbp);
         return TRANSPORT_ERROR;
@@ -343,7 +343,7 @@ int Packer::pack(const MPI_Comm comm, const Response::BPut *bpm, void **buf, std
     }
 
     for(std::size_t i = 0; i < bpm->count; i++) {
-        if ((MPI_Pack(&bpm->db_offsets[i], 1, MPI_INT, *buf, *bufsize, &position, comm)                           != MPI_SUCCESS) ||
+        if ((MPI_Pack(&bpm->ds_offsets[i], 1, MPI_INT, *buf, *bufsize, &position, comm)                           != MPI_SUCCESS) ||
             (MPI_Pack(&bpm->statuses[i], sizeof(bpm->statuses[i]), MPI_CHAR, *buf, *bufsize, &position, comm)     != MPI_SUCCESS)) {
             cleanup(buf, bufsize, fbp);
             return TRANSPORT_ERROR;
@@ -367,7 +367,7 @@ int Packer::pack(const MPI_Comm comm, const Response::BGet *bgm, void **buf, std
     }
 
     for(std::size_t i = 0; i < bgm->count; i++) {
-        if ((MPI_Pack(&bgm->db_offsets[i], 1, MPI_INT, *buf, *bufsize, &position, comm)                                   != MPI_SUCCESS) ||
+        if ((MPI_Pack(&bgm->ds_offsets[i], 1, MPI_INT, *buf, *bufsize, &position, comm)                                   != MPI_SUCCESS) ||
             (MPI_Pack(&bgm->statuses[i], sizeof(bgm->statuses[i]), MPI_CHAR, *buf, *bufsize, &position, comm)             != MPI_SUCCESS) ||
             (MPI_Pack(&bgm->subject_lens[i], sizeof(bgm->subject_lens[i]), MPI_CHAR, *buf, *bufsize, &position, comm)     != MPI_SUCCESS) ||
             (MPI_Pack(&bgm->predicate_lens[i], sizeof(bgm->predicate_lens[i]), MPI_CHAR, *buf, *bufsize, &position, comm) != MPI_SUCCESS) ||
@@ -398,7 +398,7 @@ int Packer::pack(const MPI_Comm comm, const Response::BGetOp *bgm, void **buf, s
     }
 
     for(std::size_t i = 0; i < bgm->count; i++) {
-        if ((MPI_Pack(&bgm->db_offsets[i], 1, MPI_INT, *buf, *bufsize, &position, comm)                                   != MPI_SUCCESS) ||
+        if ((MPI_Pack(&bgm->ds_offsets[i], 1, MPI_INT, *buf, *bufsize, &position, comm)                                   != MPI_SUCCESS) ||
             (MPI_Pack(&bgm->statuses[i], sizeof(bgm->statuses[i]), MPI_CHAR, *buf, *bufsize, &position, comm)             != MPI_SUCCESS) ||
             (MPI_Pack(&bgm->subject_lens[i], sizeof(bgm->subject_lens[i]), MPI_CHAR, *buf, *bufsize, &position, comm)     != MPI_SUCCESS) ||
             (MPI_Pack(&bgm->predicate_lens[i], sizeof(bgm->predicate_lens[i]), MPI_CHAR, *buf, *bufsize, &position, comm) != MPI_SUCCESS) ||
@@ -429,7 +429,7 @@ int Packer::pack(const MPI_Comm comm, const Response::BDelete *bdm, void **buf, 
     }
 
     for(std::size_t i = 0; i < bdm->count; i++) {
-        if ((MPI_Pack(&bdm->db_offsets[i], 1, MPI_INT, *buf, *bufsize, &position, comm)                       != MPI_SUCCESS) ||
+        if ((MPI_Pack(&bdm->ds_offsets[i], 1, MPI_INT, *buf, *bufsize, &position, comm)                       != MPI_SUCCESS) ||
             (MPI_Pack(&bdm->statuses[i], sizeof(bdm->statuses[i]), MPI_CHAR, *buf, *bufsize, &position, comm) != MPI_SUCCESS)) {
             cleanup(buf, bufsize, fbp);
             return TRANSPORT_ERROR;

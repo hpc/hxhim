@@ -23,9 +23,9 @@ int Put(hxhim_t *hx,
     const int backend_id = hx->p->hash(subject, subject_len, predicate, predicate_len, hx->p->hash_args);
 
     if (backend_id > -1) {
-        // split the backend id into destination rank and db_offset
+        // split the backend id into destination rank and ds_offset
         const int dst = backend_id;
-        const int db_offset = 0;
+        const int ds_offset = 0;
 
         // group local keys
         if (dst == hx->mpi.rank) {
@@ -33,7 +33,7 @@ int Put(hxhim_t *hx,
                 return -1;
             }
 
-            local->db_offsets[local->count] = db_offset;
+            local->ds_offsets[local->count] = ds_offset;
             local->subjects[local->count] = subject;
             local->subject_lens[local->count] = subject_len;
             local->predicates[local->count] = predicate;
@@ -58,7 +58,7 @@ int Put(hxhim_t *hx,
                 return -1;
             }
 
-            rem->db_offsets[rem->count] = db_offset;
+            rem->ds_offsets[rem->count] = ds_offset;
             rem->subjects[rem->count] = subject;
             rem->subject_lens[rem->count] = subject_len;
             rem->predicates[rem->count] = predicate;
@@ -90,13 +90,13 @@ int Get(hxhim_t *hx,
     const int backend_id = hx->p->hash(subject, subject_len, predicate, predicate_len, hx->p->hash_args);
 
     if (backend_id > -1) {
-        // split the backend id into destination rank and db_offset
+        // split the backend id into destination rank and ds_offset
         const int dst = backend_id;
-        const int db_offset = 0;
+        const int ds_offset = 0;
 
         // group local keys
         if (dst == hx->mpi.rank) {
-            local->db_offsets[local->count] = db_offset;
+            local->ds_offsets[local->count] = ds_offset;
             local->subjects[local->count] = subject;
             local->subject_lens[local->count] = subject_len;
             local->predicates[local->count] = predicate;
@@ -115,7 +115,7 @@ int Get(hxhim_t *hx,
                 rem->dst = dst;
             }
 
-            rem->db_offsets[rem->count] = db_offset;
+            rem->ds_offsets[rem->count] = ds_offset;
             rem->subjects[rem->count] = subject;
             rem->subject_lens[rem->count] = subject_len;
             rem->predicates[rem->count] = predicate;
@@ -146,13 +146,13 @@ int GetOp(hxhim_t *hx,
     const int backend_id = hx->p->hash(subject, subject_len, predicate, predicate_len, hx->p->hash_args);
 
     if (backend_id > -1) {
-        // split the backend id into destination rank and db_offset
+        // split the backend id into destination rank and ds_offset
         const int dst = backend_id;
-        const int db_offset = 0;
+        const int ds_offset = 0;
 
         // group local keys
         if (dst == hx->mpi.rank) {
-            local->db_offsets[local->count] = db_offset;
+            local->ds_offsets[local->count] = ds_offset;
             local->subjects[local->count] = subject;
             local->subject_lens[local->count] = subject_len;
             local->predicates[local->count] = predicate;
@@ -173,7 +173,7 @@ int GetOp(hxhim_t *hx,
                 rem->dst = dst;
             }
 
-            rem->db_offsets[rem->count] = db_offset;
+            rem->ds_offsets[rem->count] = ds_offset;
             rem->subjects[rem->count] = subject;
             rem->subject_lens[rem->count] = subject_len;
             rem->predicates[rem->count] = predicate;
@@ -204,9 +204,9 @@ int Delete(hxhim_t *hx,
     const int backend_id = hx->p->hash(subject, subject_len, predicate, predicate_len, hx->p->hash_args);
 
     if (backend_id > -1) {
-        // split the backend id into destination rank and db_offset
+        // split the backend id into destination rank and ds_offset
         const int dst = backend_id;
-        const int db_offset = 0;
+        const int ds_offset = 0;
 
         // group local keys
         if (dst == hx->mpi.rank) {
@@ -214,7 +214,7 @@ int Delete(hxhim_t *hx,
                 return -1;
             }
 
-            local->db_offsets[local->count] = db_offset;
+            local->ds_offsets[local->count] = ds_offset;
             local->subjects[local->count] = subject;
             local->subject_lens[local->count] = subject_len;
             local->predicates[local->count] = predicate;
@@ -236,7 +236,7 @@ int Delete(hxhim_t *hx,
                 return -1;
             }
 
-            rem->db_offsets[rem->count] = db_offset;
+            rem->ds_offsets[rem->count] = ds_offset;
             rem->subjects[rem->count] = subject;
             rem->subject_lens[rem->count] = subject_len;
             rem->predicates[rem->count] = predicate;

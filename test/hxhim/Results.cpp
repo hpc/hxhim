@@ -5,7 +5,7 @@
 #include "hxhim/Results.hpp"
 
 static const int STATUS = HXHIM_SUCCESS;
-static const int DATABASE = 1;
+static const int DATASTORE = 1;
 static const char *SUBJECT = "subject";
 static const std::size_t SUBJECT_LEN = strlen(SUBJECT);
 static const char *PREDICATE = "predicate";
@@ -20,7 +20,7 @@ class TestPut : public hxhim::Results::Result {
             : Result(HXHIM_RESULT_PUT)
         {
             status = stat;
-            database = db;
+            datastore = db;
         }
 };
 
@@ -41,7 +41,7 @@ class TestGet : public hxhim::Results::Result {
               obj_len(object_len)
         {
             status = stat;
-            database = db;
+            datastore = db;
         }
 
     private:
@@ -63,7 +63,7 @@ class TestDelete : public hxhim::Results::Result {
             : Result(HXHIM_RESULT_DEL)
         {
             status = stat;
-            database = db;
+            datastore = db;
         }
 };
 
@@ -76,7 +76,7 @@ TEST(Results, PUT_GET_DEL) {
     EXPECT_EQ(results.Valid(), false);
 
     // add some data
-    hxhim::Results::Result *put = results.Add(new TestPut(STATUS, DATABASE));
+    hxhim::Results::Result *put = results.Add(new TestPut(STATUS, DATASTORE));
     EXPECT_NE(put, nullptr);
 
     // pretend this data came from a backend
@@ -87,12 +87,12 @@ TEST(Results, PUT_GET_DEL) {
     void *object = ::operator new(OBJECT_LEN);
     memcpy(object, OBJECT, OBJECT_LEN);
 
-    hxhim::Results::Result *get = results.Add(new TestGet(STATUS, DATABASE,
+    hxhim::Results::Result *get = results.Add(new TestGet(STATUS, DATASTORE,
                                                           subject, SUBJECT_LEN,
                                                           predicate, PREDICATE_LEN,
                                                           HXHIM_BYTE_TYPE, object, OBJECT_LEN));
     EXPECT_NE(get, nullptr);
-    hxhim::Results::Result *del = results.Add(new TestDelete(STATUS, DATABASE));
+    hxhim::Results::Result *del = results.Add(new TestDelete(STATUS, DATASTORE));
     EXPECT_NE(del, nullptr);
 
     EXPECT_EQ(results.Valid(), false);  // still not valid because current result has not been set yet
@@ -108,7 +108,7 @@ TEST(Results, Loop) {
     // add some data
     const std::size_t puts = 10;
     for(std::size_t i = 0; i < puts; i++) {
-        hxhim::Results::Result *put = results.Add(new TestPut(STATUS, DATABASE));
+        hxhim::Results::Result *put = results.Add(new TestPut(STATUS, DATASTORE));
         EXPECT_NE(put, nullptr);
     }
 
@@ -126,7 +126,7 @@ TEST(Results, Append_Empty) {
     hxhim::Results results;
 
     // add some data
-    hxhim::Results::Result *put = results.Add(new TestPut(STATUS, DATABASE));
+    hxhim::Results::Result *put = results.Add(new TestPut(STATUS, DATASTORE));
     EXPECT_NE(put, nullptr);
 
     // pretend this data came from a backend
@@ -137,12 +137,12 @@ TEST(Results, Append_Empty) {
     void *object = ::operator new(OBJECT_LEN);
     memcpy(object, OBJECT, OBJECT_LEN);
 
-    hxhim::Results::Result *get = results.Add(new TestGet(STATUS, DATABASE,
+    hxhim::Results::Result *get = results.Add(new TestGet(STATUS, DATASTORE,
                                                           subject, SUBJECT_LEN,
                                                           predicate, PREDICATE_LEN,
                                                           HXHIM_BYTE_TYPE, object, OBJECT_LEN));
     EXPECT_NE(get, nullptr);
-    hxhim::Results::Result *del = results.Add(new TestDelete(STATUS, DATABASE));
+    hxhim::Results::Result *del = results.Add(new TestDelete(STATUS, DATASTORE));
     EXPECT_NE(del, nullptr);
 
     // append empty set of results
@@ -163,7 +163,7 @@ TEST(Results, Empty_Append) {
     hxhim::Results empty;
 
     // add some data to the non-empty results
-    hxhim::Results::Result *put = results.Add(new TestPut(STATUS, DATABASE));
+    hxhim::Results::Result *put = results.Add(new TestPut(STATUS, DATASTORE));
     EXPECT_NE(put, nullptr);
 
     // pretend this data came from a backend
@@ -174,12 +174,12 @@ TEST(Results, Empty_Append) {
     void *object = ::operator new(OBJECT_LEN);
     memcpy(object, OBJECT, OBJECT_LEN);
 
-    hxhim::Results::Result *get = results.Add(new TestGet(STATUS, DATABASE,
+    hxhim::Results::Result *get = results.Add(new TestGet(STATUS, DATASTORE,
                                                           subject, SUBJECT_LEN,
                                                           predicate, PREDICATE_LEN,
                                                           HXHIM_BYTE_TYPE, object, OBJECT_LEN));
     EXPECT_NE(get, nullptr);
-    hxhim::Results::Result *del = results.Add(new TestDelete(STATUS, DATABASE));
+    hxhim::Results::Result *del = results.Add(new TestDelete(STATUS, DATASTORE));
     EXPECT_NE(del, nullptr);
 
     empty.Append(&results);

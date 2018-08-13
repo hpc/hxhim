@@ -4,23 +4,23 @@
 
 #include "leveldb/write_batch.h"
 
-#include "hxhim/backend/leveldb.hpp"
+#include "datastore/leveldb.hpp"
 #include "hxhim/triplestore.hpp"
 
 namespace hxhim {
-namespace backend {
+namespace datastore {
 
 using namespace Transport;
 
 leveldb::leveldb(hxhim_t *hx,
                  const std::size_t use_first_n, const Histogram::BucketGen::generator &generator, void *extra_args,
                  const std::string &exact_name)
-    : base(hx, 0, use_first_n, generator, extra_args),
+    : Datastore(hx, 0, use_first_n, generator, extra_args),
       name(exact_name), create_if_missing(false),
       db(nullptr), options()
 {
     if (!::leveldb::DB::Open(options, exact_name, &db).ok()) {
-        throw std::runtime_error("Could not configure leveldb backend " + exact_name);
+        throw std::runtime_error("Could not configure leveldb datastore " + exact_name);
     }
 }
 
@@ -28,7 +28,7 @@ leveldb::leveldb(hxhim_t *hx,
                  const int id,
                  const std::size_t use_first_n, const Histogram::BucketGen::generator &generator, void *extra_args,
                  const std::string &name, const bool create_if_missing)
-    : base(hx, id, use_first_n, generator, extra_args),
+    : Datastore(hx, id, use_first_n, generator, extra_args),
       name(name), create_if_missing(create_if_missing),
       db(nullptr), options()
 {
@@ -38,7 +38,7 @@ leveldb::leveldb(hxhim_t *hx,
     options.create_if_missing = create_if_missing;
 
     if (!::leveldb::DB::Open(options, s.str(), &db).ok()) {
-        throw std::runtime_error("Could not configure leveldb backend " + s.str());
+        throw std::runtime_error("Could not configure leveldb datastore " + s.str());
     }
 }
 
