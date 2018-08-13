@@ -24,6 +24,6 @@ make install
 ```
 
 ### Usage Notes
-* The number of databases must remain the same across all runs. Remember to delete at least the manifest file if the number of databases change, but the name of the manifest file does not.
+* The number of databases must remain the same across all runs for the stored data to make sense.
 * All pointers that are passed into HXHIM are still owned by the caller.
 * All C++ pointers should be deleted. All C pointers must be freed through their 'destroy' functions.
