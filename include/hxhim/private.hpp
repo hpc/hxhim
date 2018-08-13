@@ -39,7 +39,7 @@ typedef struct hxhim_private {
     } async_put;
 
     // Transport variables
-    hxhim::hash::Func hash;                                    // the function used to determine which datastore should be used to perform an operation with
+    hxhim_hash_t hash;                                         // the function used to determine which datastore should be used to perform an operation with
     void *hash_args;
     Transport::Transport *transport;
     void (*range_server_destroy)();                            // Range server static variable cleanup

@@ -59,7 +59,7 @@ const std::string SUM_MOD_DATASTORES = "SUM_MOD_DATASTORES";
 /**
  * Set of predefined hash functions
  */
-const std::map<std::string, hxhim::hash::Func> HXHIM_HASHES = {
+const std::map<std::string, hxhim_hash_t> HXHIM_HASHES = {
     std::make_pair(RANK,               hxhim::hash::Rank),
     std::make_pair(SUM_MOD_DATASTORES, hxhim::hash::SumModDatastores),
 };

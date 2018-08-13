@@ -1,25 +1,18 @@
 #ifndef HXHIM_HASH_HPP
 #define HXHIM_HASH_HPP
 
-#include <functional>
+#include <cstdint>
 
 #include "hxhim/struct.h"
+#include "hxhim/hash.h"
 
 namespace hxhim {
-class hash {
-    public:
-        static void init(hxhim_t *hx);
-        static void destroy();
+namespace hash {
 
-        typedef std::function<int(void *, const std::size_t, void *, const std::size_t, void *)> Func;
+int Rank(hxhim_t *hx, void *subject, const std::size_t subject_len, void *predicate, const std::size_t predicate_len, void *args);
+int SumModDatastores(hxhim_t *hx, void *subject, const std::size_t subject_len, void *predicate, const std::size_t predicate_len, void *args);
 
-        static int Rank(void *subject, const std::size_t subject_len, void *predicate, const std::size_t predicate_len, void *args);
-        static int SumModDatastores(void *subject, const std::size_t subject_len, void *predicate, const std::size_t predicate_len, void *args);
-
-    private:
-        static hxhim_t *hx_;
-};
-
+}
 }
 
 #endif

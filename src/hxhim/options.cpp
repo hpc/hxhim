@@ -127,7 +127,7 @@ int hxhim_options_set_datastore_in_memory(hxhim_options_t *opts) {
 }
 
 /**
- * hxhim_options_set_hash
+ * hxhim_options_set_hash_name
  * Sets the hash function to use to determine where a key should go
  * This function takes the hash name instead of a function because
  * the extra arguments cannot always be determined before HXHIM starts (?).
@@ -136,16 +136,44 @@ int hxhim_options_set_datastore_in_memory(hxhim_options_t *opts) {
  * @param hash   the name of the hash function
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_options_set_hash(hxhim_options_t *opts, const char *hash) {
+int hxhim_options_set_hash_name(hxhim_options_t *opts, const char *hash) {
     if (!valid_opts(opts)) {
         return HXHIM_ERROR;
     }
 
-    if (HXHIM_HASHES.find(hash) == HXHIM_HASHES.end()) {
+    std::map<std::string, hxhim_hash_t>::const_iterator it = HXHIM_HASHES.find(hash);
+    if (it == HXHIM_HASHES.end()) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->hash = it->second;
+    opts->p->hash_args = nullptr;
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * hxhim_options_set_hash_function
+ * Sets the hash function to use to determine where a key should go
+ * This function takes the hash name instead of a function because
+ * the extra arguments cannot always be determined before HXHIM starts (?).
+ *
+ * @param opts   the set of options to be modified
+ * @param hash   the function to use as the hash function
+ * @param args   the exta arguments to pass into the hash function
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim_options_set_hash_function(hxhim_options_t *opts, hxhim_hash_t hash, void *args) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    if (!hash) {
         return HXHIM_ERROR;
     }
 
     opts->p->hash = hash;
+    opts->p->hash_args = nullptr;
 
     return HXHIM_SUCCESS;
 }

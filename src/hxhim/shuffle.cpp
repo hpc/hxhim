@@ -20,7 +20,7 @@ int Put(hxhim_t *hx,
         Transport::Request::BPut *local,
         Transport::Request::BPut **remote) {
     // get the destination backend id for the key
-    const int backend_id = hx->p->hash(subject, subject_len, predicate, predicate_len, hx->p->hash_args);
+    const int backend_id = hx->p->hash(hx, subject, subject_len, predicate, predicate_len, hx->p->hash_args);
 
     if (backend_id > -1) {
         // split the backend id into destination rank and ds_offset
@@ -87,7 +87,7 @@ int Get(hxhim_t *hx,
         Transport::Request::BGet *local,
         Transport::Request::BGet **remote) {
     // get the destination backend id for the key
-    const int backend_id = hx->p->hash(subject, subject_len, predicate, predicate_len, hx->p->hash_args);
+    const int backend_id = hx->p->hash(hx, subject, subject_len, predicate, predicate_len, hx->p->hash_args);
 
     if (backend_id > -1) {
         // split the backend id into destination rank and ds_offset
@@ -143,7 +143,7 @@ int GetOp(hxhim_t *hx,
           Transport::Request::BGetOp *local,
           Transport::Request::BGetOp **remote) {
     // get the destination backend id for the key
-    const int backend_id = hx->p->hash(subject, subject_len, predicate, predicate_len, hx->p->hash_args);
+    const int backend_id = hx->p->hash(hx, subject, subject_len, predicate, predicate_len, hx->p->hash_args);
 
     if (backend_id > -1) {
         // split the backend id into destination rank and ds_offset
@@ -201,7 +201,7 @@ int Delete(hxhim_t *hx,
            Transport::Request::BDelete *local,
            Transport::Request::BDelete **remote) {
     // get the destination backend id for the key
-    const int backend_id = hx->p->hash(subject, subject_len, predicate, predicate_len, hx->p->hash_args);
+    const int backend_id = hx->p->hash(hx, subject, subject_len, predicate, predicate_len, hx->p->hash_args);
 
     if (backend_id > -1) {
         // split the backend id into destination rank and ds_offset

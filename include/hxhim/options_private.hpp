@@ -53,7 +53,9 @@ typedef struct hxhim_options_private {
     hxhim_datastore_config_t *datastore;      // configuration options for the selected datastore
     std::size_t datastore_count;
 
-    std::string hash;
+    hxhim_hash_t hash;
+    void *hash_args;
+
     Transport::Options *transport;
 
     std::set<int> endpointgroup;

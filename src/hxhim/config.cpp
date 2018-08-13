@@ -64,7 +64,7 @@ static int fill_options(hxhim_options_t *opts, const Config &config) {
     // Get the hash function
     std::string hash;
     if ((get_value(config, HXHIM_HASH, hash) == CONFIG_FOUND) &&
-        (hxhim_options_set_hash(opts, hash.c_str()) != HXHIM_SUCCESS)) {
+        (hxhim_options_set_hash_name(opts, hash.c_str()) != HXHIM_SUCCESS)) {
         return HXHIM_ERROR;
     }
 

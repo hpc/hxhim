@@ -1,14 +1,5 @@
 #include "hxhim/hash.hpp"
-
-hxhim_t *hxhim::hash::hx_ = nullptr;
-
-void hxhim::hash::init(hxhim_t *hx) {
-    hx_ = hx;
-}
-
-void hxhim::hash::destroy() {
-    hx_ = nullptr;
-}
+#include "hxhim/private.hpp"
 
 /**
  * Rank
@@ -19,13 +10,12 @@ void hxhim::hash::destroy() {
  * @param args     a pointer to an int that contains the rank of the calling function
  * @return the destination datastore ID or -1 on error
  */
-int hxhim::hash::Rank(void *subject, const std::size_t subject_len, void *predicate, const std::size_t predicate_len, void *args) {
-    int *rank = static_cast<int *>(args);
+int hxhim::hash::Rank(hxhim_t *hx, void *subject, const std::size_t subject_len, void *predicate, const std::size_t predicate_len, void *args) {
     (void) subject;
     (void) subject_len;
     (void) predicate;
     (void) predicate_len;
-    return rank?*rank:-1;
+    return hx?hx->mpi.rank:-1;
 }
 
 /**
@@ -38,13 +28,12 @@ int hxhim::hash::Rank(void *subject, const std::size_t subject_len, void *predic
  * @param args     a pointer to an int that contains the number of datastores there are
  * @return the destination datastore ID or -1 on error
  */
-int hxhim::hash::SumModDatastores(void *subject, const std::size_t subject_len, void *predicate, const std::size_t predicate_len, void *args) {
-    int *datastores = static_cast<int *>(args);
-    if (!datastores || (*datastores < 0)) {
+int hxhim::hash::SumModDatastores(hxhim_t *hx, void *subject, const std::size_t subject_len, void *predicate, const std::size_t predicate_len, void *args) {
+    if (!hx || !hx->pp) {
         return -1;
     }
 
-    static const int mod = *datastores * hx_->mpi.size;
+    static const int mod = hx->p->datastore_count * hx->mpi.size;
 
     int dst = 0;
     for(std::size_t i = 0; i < subject_len; i++) {

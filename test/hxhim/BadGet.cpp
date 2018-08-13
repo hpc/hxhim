@@ -24,7 +24,7 @@ TEST(hxhim, BadGet) {
     ASSERT_EQ(hxhim_options_set_mpi_bootstrap(&opts, MPI_COMM_WORLD), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_datastore_in_memory(&opts), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_datastores_per_range_server(&opts, 1), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_hash(&opts, RANK.c_str()), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim_options_set_hash_name(&opts, RANK.c_str()), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_transport_thallium(&opts, "na+sm"), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_queued_bputs(&opts, 1), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_histogram_first_n(&opts, 10), HXHIM_SUCCESS);

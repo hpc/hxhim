@@ -11,9 +11,12 @@ install(FILES
   double.hpp
   float.h
   float.hpp
+  hash.h
+  hash.hpp
   hxhim.h
   hxhim.hpp
   options.h
+  private.hpp
   single_type.h
   single_type.hpp
   struct.h

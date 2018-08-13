@@ -429,19 +429,8 @@ int hxhim::init::hash(hxhim_t *hx, hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
-    hxhim::hash::init(hx);
-
-    if (opts->p->hash == RANK) {
-        hx->p->hash_args = &hx->mpi.rank;
-    }
-    else if (opts->p->hash == SUM_MOD_DATASTORES) {
-        hx->p->hash_args = &hx->p->datastore_count;
-    }
-    else {
-        return HXHIM_ERROR;
-    }
-
-    hx->p->hash = HXHIM_HASHES.at(opts->p->hash);
+    hx->p->hash = opts->p->hash;
+    hx->p->hash_args = opts->p->hash_args;
 
     return HXHIM_SUCCESS;
 }
@@ -665,8 +654,6 @@ int hxhim::destroy::hash(hxhim_t *hx) {
 
     hx->p->hash = nullptr;
     hx->p->hash_args = nullptr;
-
-    hxhim::hash::destroy();
 
     return HXHIM_SUCCESS;
 }
