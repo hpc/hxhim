@@ -301,12 +301,19 @@ int Packer::pack(const MPI_Comm comm, const Response::Get *gm, void **buf, std::
         (MPI_Pack(&gm->subject_len, sizeof(gm->subject_len), MPI_CHAR, *buf, *bufsize, &position, comm)     != MPI_SUCCESS) ||
         (MPI_Pack(&gm->predicate_len, sizeof(gm->predicate_len), MPI_CHAR, *buf, *bufsize, &position, comm) != MPI_SUCCESS) ||
         (MPI_Pack(&gm->object_type, sizeof(gm->object_type), MPI_CHAR, *buf, *bufsize, &position, comm)     != MPI_SUCCESS) ||
-        (MPI_Pack(&gm->object_len, sizeof(gm->object_len), MPI_CHAR, *buf, *bufsize, &position, comm)       != MPI_SUCCESS) ||
         (MPI_Pack(gm->subject, gm->subject_len, MPI_CHAR, *buf, *bufsize, &position, comm)                  != MPI_SUCCESS) ||
-        (MPI_Pack(gm->predicate, gm->predicate_len, MPI_CHAR, *buf, *bufsize, &position, comm)              != MPI_SUCCESS) ||
-        (MPI_Pack(gm->object, gm->object_len, MPI_CHAR, *buf, *bufsize, &position, comm)                    != MPI_SUCCESS)) {
+        (MPI_Pack(gm->predicate, gm->predicate_len, MPI_CHAR, *buf, *bufsize, &position, comm)              != MPI_SUCCESS)) {
         cleanup(buf, bufsize, fbp);
         return TRANSPORT_ERROR;
+    }
+
+    // only write object if the status is HXHIM_SUCCESS
+    if (gm->status == HXHIM_SUCCESS) {
+        if ((MPI_Pack(&gm->object_len, sizeof(gm->object_len), MPI_CHAR, *buf, *bufsize, &position, comm)   != MPI_SUCCESS) ||
+            (MPI_Pack(gm->object, gm->object_len, MPI_CHAR, *buf, *bufsize, &position, comm)                != MPI_SUCCESS)) {
+            cleanup(buf, bufsize, fbp);
+            return TRANSPORT_ERROR;
+        }
     }
 
     *bufsize = position;
@@ -372,12 +379,19 @@ int Packer::pack(const MPI_Comm comm, const Response::BGet *bgm, void **buf, std
             (MPI_Pack(&bgm->subject_lens[i], sizeof(bgm->subject_lens[i]), MPI_CHAR, *buf, *bufsize, &position, comm)     != MPI_SUCCESS) ||
             (MPI_Pack(&bgm->predicate_lens[i], sizeof(bgm->predicate_lens[i]), MPI_CHAR, *buf, *bufsize, &position, comm) != MPI_SUCCESS) ||
             (MPI_Pack(&bgm->object_types[i], sizeof(bgm->object_types[i]), MPI_CHAR, *buf, *bufsize, &position, comm)     != MPI_SUCCESS) ||
-            (MPI_Pack(&bgm->object_lens[i], sizeof(bgm->object_lens[i]), MPI_CHAR, *buf, *bufsize, &position, comm)       != MPI_SUCCESS) ||
             (MPI_Pack(bgm->subjects[i], bgm->subject_lens[i], MPI_CHAR, *buf, *bufsize, &position, comm)                  != MPI_SUCCESS) ||
-            (MPI_Pack(bgm->predicates[i], bgm->predicate_lens[i], MPI_CHAR, *buf, *bufsize, &position, comm)              != MPI_SUCCESS) ||
-            (MPI_Pack(bgm->objects[i], bgm->object_lens[i], MPI_CHAR, *buf, *bufsize, &position, comm)                    != MPI_SUCCESS)) {
+            (MPI_Pack(bgm->predicates[i], bgm->predicate_lens[i], MPI_CHAR, *buf, *bufsize, &position, comm)              != MPI_SUCCESS)) {
             cleanup(buf, bufsize, fbp);
             return TRANSPORT_ERROR;
+        }
+
+        // only write object if the status is HXHIM_SUCCESS
+        if (bgm->statuses[i] == HXHIM_SUCCESS) {
+            if ((MPI_Pack(&bgm->object_lens[i], sizeof(bgm->object_lens[i]), MPI_CHAR, *buf, *bufsize, &position, comm)   != MPI_SUCCESS) ||
+                (MPI_Pack(bgm->objects[i], bgm->object_lens[i], MPI_CHAR, *buf, *bufsize, &position, comm)                != MPI_SUCCESS)) {
+                cleanup(buf, bufsize, fbp);
+                return TRANSPORT_ERROR;
+            }
         }
     }
 
@@ -403,12 +417,19 @@ int Packer::pack(const MPI_Comm comm, const Response::BGetOp *bgm, void **buf, s
             (MPI_Pack(&bgm->subject_lens[i], sizeof(bgm->subject_lens[i]), MPI_CHAR, *buf, *bufsize, &position, comm)     != MPI_SUCCESS) ||
             (MPI_Pack(&bgm->predicate_lens[i], sizeof(bgm->predicate_lens[i]), MPI_CHAR, *buf, *bufsize, &position, comm) != MPI_SUCCESS) ||
             (MPI_Pack(&bgm->object_types[i], sizeof(bgm->object_types[i]), MPI_CHAR, *buf, *bufsize, &position, comm)     != MPI_SUCCESS) ||
-            (MPI_Pack(&bgm->object_lens[i], sizeof(bgm->object_lens[i]), MPI_CHAR, *buf, *bufsize, &position, comm)       != MPI_SUCCESS) ||
             (MPI_Pack(bgm->subjects[i], bgm->subject_lens[i], MPI_CHAR, *buf, *bufsize, &position, comm)                  != MPI_SUCCESS) ||
-            (MPI_Pack(bgm->predicates[i], bgm->predicate_lens[i], MPI_CHAR, *buf, *bufsize, &position, comm)              != MPI_SUCCESS) ||
-            (MPI_Pack(bgm->objects[i], bgm->object_lens[i], MPI_CHAR, *buf, *bufsize, &position, comm)                    != MPI_SUCCESS)) {
+            (MPI_Pack(bgm->predicates[i], bgm->predicate_lens[i], MPI_CHAR, *buf, *bufsize, &position, comm)              != MPI_SUCCESS)) {
             cleanup(buf, bufsize, fbp);
             return TRANSPORT_ERROR;
+        }
+
+        // only write object if the status is HXHIM_SUCCESS
+        if (bgm->statuses[i] == HXHIM_SUCCESS) {
+            if ((MPI_Pack(&bgm->object_lens[i], sizeof(bgm->object_lens[i]), MPI_CHAR, *buf, *bufsize, &position, comm)   != MPI_SUCCESS) ||
+                (MPI_Pack(bgm->objects[i], bgm->object_lens[i], MPI_CHAR, *buf, *bufsize, &position, comm)                != MPI_SUCCESS)) {
+                cleanup(buf, bufsize, fbp);
+                return TRANSPORT_ERROR;
+            }
         }
     }
 

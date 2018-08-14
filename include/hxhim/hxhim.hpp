@@ -3,6 +3,7 @@
 
 #include "hxhim/Results.hpp"
 #include "hxhim/config.h"
+#include "hxhim/config.hpp"
 #include "hxhim/constants.h"
 #include "hxhim/options.h"
 #include "hxhim/struct.h"
@@ -16,9 +17,6 @@ int OpenOne(hxhim_t *hx, hxhim_options_t *opts, const std::string &db_path);
 
 /** @description Stops an HXHIM instance */
 int Close(hxhim_t *hx);
-
-/** @description Commits all flushed data on local databases to disk */
-int Commit(hxhim_t *hx);
 
 /** @description Flushes the internal statistics */
 int StatFlush(hxhim_t *hx);

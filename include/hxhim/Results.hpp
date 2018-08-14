@@ -113,6 +113,13 @@ class Results {
                 virtual ~Delete();
         };
 
+        /** @description Convenience class for SYNC results */
+        class Sync : public Result {
+            public:
+                Sync(const int synced);
+                ~Sync();
+        };
+
     public:
         Results();
         ~Results();

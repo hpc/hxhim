@@ -5,7 +5,6 @@ Transport::Request::Sync::Sync()
       Single()
 {}
 
-
 std::size_t Transport::Request::Sync::size() const {
     return sizeof(ds_offset) + Request::size();
 }

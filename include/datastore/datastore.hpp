@@ -23,7 +23,6 @@ class Datastore {
         virtual ~Datastore();
 
         virtual void Close() {}
-        virtual int Commit() = 0;
         virtual int StatFlush() = 0;
         int GetStats(const int dst_rank,
                      const bool get_put_times, long double *put_times,
@@ -47,6 +46,8 @@ class Datastore {
                                               void **predicates, std::size_t *predicate_lens,
                                               std::size_t count);
 
+        int Sync();
+
         virtual std::ostream &print_config(std::ostream &stream) const = 0;
 
     protected:
@@ -65,6 +66,8 @@ class Datastore {
         virtual Transport::Response::BDelete *BDeleteImpl(void **subjects, std::size_t *subject_lens,
                                                           void **predicates, std::size_t *predicate_lens,
                                                           std::size_t count) = 0;
+
+        virtual int SyncImpl() = 0;
 
         int encode(const hxhim_type_t type, void *&ptr, std::size_t &len, bool &copied);
         int decode(const hxhim_type_t type, void *src, const std::size_t &src_len, void **dst, std::size_t *dst_len);

@@ -395,7 +395,7 @@ TEST(thallium_pack_unpack, ResponsePut) {
 
         src.ds_offset = 1;
 
-        src.status = TRANSPORT_SUCCESS;
+        src.status = HXHIM_SUCCESS;
     }
 
     EXPECT_EQ(src.direction, Message::RESPONSE);
@@ -432,7 +432,7 @@ TEST(thallium_pack_unpack, ResponseGet) {
 
         src.ds_offset = 1;
 
-        src.status = TRANSPORT_SUCCESS;
+        src.status = HXHIM_SUCCESS;
 
         src.subject = (void *) SUBJECT;
         src.subject_len = SUBJECT_LEN;
@@ -489,7 +489,7 @@ TEST(thallium_pack_unpack, ResponseDelete) {
 
         src.ds_offset = 1;
 
-        src.status = TRANSPORT_SUCCESS;
+        src.status = HXHIM_SUCCESS;
     }
 
     EXPECT_EQ(src.direction, Message::RESPONSE);
@@ -526,7 +526,7 @@ TEST(thallium_pack_unpack, ResponseBPut) {
 
         src.count = 1;
 
-        src.statuses[0] = TRANSPORT_SUCCESS;
+        src.statuses[0] = HXHIM_SUCCESS;
 
         src.ds_offsets[0] = 1;
     }
@@ -568,7 +568,7 @@ TEST(thallium_pack_unpack, ResponseBGet) {
 
         src.count = 1;
 
-        src.statuses[0] = TRANSPORT_SUCCESS;
+        src.statuses[0] = HXHIM_SUCCESS;
 
         src.ds_offsets[0] = 1;
 
@@ -630,7 +630,7 @@ TEST(thallium_pack_unpack, ResponseBGetOp) {
 
         src.count = 1;
 
-        src.statuses[0] = TRANSPORT_SUCCESS;
+        src.statuses[0] = HXHIM_SUCCESS;
 
         src.ds_offsets[0] = 1;
 
@@ -692,7 +692,7 @@ TEST(thallium_pack_unpack, ResponseBDelete) {
 
         src.count = 1;
 
-        src.statuses[0] = TRANSPORT_SUCCESS;
+        src.statuses[0] = HXHIM_SUCCESS;
 
         src.ds_offsets[0] = 1;
     }

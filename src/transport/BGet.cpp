@@ -31,12 +31,12 @@ int Transport::Request::BGet::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Bulk::alloc(max) != TRANSPORT_SUCCESS)  ||
-            !(subjects = new void *[max])            ||
-            !(subject_lens = new std::size_t[max])   ||
-            !(predicates = new void *[max])          ||
-            !(predicate_lens = new std::size_t[max]) ||
-            !(object_types = new hxhim_type_t[max]))  {
+        if ((Bulk::alloc(max) != TRANSPORT_SUCCESS)    ||
+            !(subjects = new void *[max]())            ||
+            !(subject_lens = new std::size_t[max]())   ||
+            !(predicates = new void *[max]())          ||
+            !(predicate_lens = new std::size_t[max]()) ||
+            !(object_types = new hxhim_type_t[max]()))  {
             cleanup();
             return TRANSPORT_ERROR;
         }
@@ -116,15 +116,15 @@ int Transport::Response::BGet::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Bulk::alloc(max) != TRANSPORT_SUCCESS)  ||
-            !(statuses = new int[max])               ||
-            !(subjects = new void *[max])            ||
-            !(subject_lens = new std::size_t[max])   ||
-            !(predicates = new void *[max])          ||
-            !(predicate_lens = new std::size_t[max]) ||
-            !(object_types = new hxhim_type_t[max])  ||
-            !(objects = new void *[max])             ||
-            !(object_lens = new std::size_t[max]))    {
+        if ((Bulk::alloc(max) != TRANSPORT_SUCCESS)    ||
+            !(statuses = new int[max]())               ||
+            !(subjects = new void *[max]())            ||
+            !(subject_lens = new std::size_t[max]())   ||
+            !(predicates = new void *[max]())          ||
+            !(predicate_lens = new std::size_t[max]()) ||
+            !(object_types = new hxhim_type_t[max]())  ||
+            !(objects = new void *[max]())             ||
+            !(object_lens = new std::size_t[max]()))    {
             cleanup();
             return TRANSPORT_SUCCESS;
         }

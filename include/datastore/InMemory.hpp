@@ -19,7 +19,6 @@ class InMemory : public Datastore {
         ~InMemory();
 
         void Close();
-        int Commit();
         int StatFlush();
 
     private:
@@ -38,6 +37,8 @@ class InMemory : public Datastore {
         Transport::Response::BDelete *BDeleteImpl(void **subjects, std::size_t *subject_lens,
                                                   void **predicates, std::size_t *predicate_lens,
                                                   std::size_t count);
+
+        int SyncImpl();
 
     public:
         std::ostream &print_config(std::ostream &stream) const;

@@ -15,6 +15,7 @@ typedef enum hxhim_result_type {
     HXHIM_RESULT_PUT,
     HXHIM_RESULT_GET,
     HXHIM_RESULT_DEL,
+    HXHIM_RESULT_SYNC,
 } hxhim_result_type_t;
 
 // Opaque C struct, since user will never create one themselves

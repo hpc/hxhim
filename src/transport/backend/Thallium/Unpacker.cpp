@@ -439,34 +439,45 @@ int Transport::Thallium::Unpacker::unpack(Response::Get **gm, const std::string 
     // read non array data
     if (!s
         .read((char *) &out->status, sizeof(out->status))
-        .read((char *) &out->ds_offset, sizeof(out->ds_offset))) {
+        .read((char *) &out->ds_offset, sizeof(out->ds_offset))
+        .read((char *) &out->subject_len, sizeof(out->subject_len))
+        .read((char *) &out->predicate_len, sizeof(out->predicate_len))
+        .read((char *) &out->object_type, sizeof(out->object_type))) {
+        delete out;
+        return TRANSPORT_ERROR;
+    }
+
+    // allocate arrays
+    if (!(out->subject = ::operator new(out->subject_len))     ||
+        !(out->predicate = ::operator new(out->predicate_len))) {
+        delete out;
+        return TRANSPORT_ERROR;
+    }
+
+    // read arrays
+    if (!s
+        .read((char *) out->subject, out->subject_len)
+        .read((char *) out->predicate, out->predicate_len)) {
         delete out;
         return TRANSPORT_ERROR;
     }
 
     // only read the rest of the data if the status is TRANSPORT_SUCCESS
-    if (out->status == TRANSPORT_SUCCESS) {
+    if (out->status == HXHIM_SUCCESS) {
         if (!s
-            .read((char *) &out->subject_len, sizeof(out->subject_len))
-            .read((char *) &out->predicate_len, sizeof(out->predicate_len))
-            .read((char *) &out->object_len, sizeof(out->object_len))
-            .read((char *) &out->object_type, sizeof(out->object_type))) {
+            .read((char *) &out->object_len, sizeof(out->object_len))) {
             delete out;
             return TRANSPORT_ERROR;
         }
 
         // allocate arrays
-        if (!(out->subject = ::operator new(out->subject_len))     ||
-            !(out->predicate = ::operator new(out->predicate_len)) ||
-            !(out->object = ::operator new(out->object_len)))       {
+        if (!(out->object = ::operator new(out->object_len))) {
             delete out;
             return TRANSPORT_ERROR;
         }
 
         // read arrays
         if (!s
-            .read((char *) out->subject, out->subject_len)
-            .read((char *) out->predicate, out->predicate_len)
             .read((char *) out->object, out->object_len)) {
             delete out;
             return TRANSPORT_ERROR;
@@ -552,35 +563,43 @@ int Transport::Thallium::Unpacker::unpack(Response::BGet **bgm, const std::strin
         return TRANSPORT_ERROR;
     }
 
-    // read arrays
     for(std::size_t i = 0; i < count; i++) {
         if (!s
+            .read((char *) &out->ds_offsets[i], sizeof(out->ds_offsets[i]))
             .read((char *) &out->statuses[i], sizeof(out->statuses[i]))
-            .read((char *) &out->ds_offsets[i], sizeof(out->ds_offsets[i]))) {
+            .read((char *) &out->subject_lens[i], sizeof(out->subject_lens[i]))
+            .read((char *) &out->predicate_lens[i], sizeof(out->predicate_lens[i]))
+            .read((char *) &out->object_types[i], sizeof(out->object_types[i]))) {
             delete out;
             return TRANSPORT_ERROR;
         }
 
-        if (out->statuses[i] == TRANSPORT_SUCCESS) {
+        if (!(out->subjects[i] = ::operator new(out->subject_lens[i]))     ||
+            !(out->predicates[i] = ::operator new(out->predicate_lens[i]))) {
+            delete out;
+            return TRANSPORT_ERROR;
+        }
+
+        if (!s
+            .read((char *) out->subjects[i], out->subject_lens[i])
+            .read((char *) out->predicates[i], out->predicate_lens[i])) {
+            delete out;
+            return TRANSPORT_ERROR;
+        }
+
+        if (out->statuses[i] == HXHIM_SUCCESS) {
             if (!s
-                .read((char *) &out->subject_lens[i], sizeof(out->subject_lens[i]))
-                .read((char *) &out->predicate_lens[i], sizeof(out->predicate_lens[i]))
-                .read((char *) &out->object_lens[i], sizeof(out->object_lens[i]))
-                .read((char *) &out->object_types[i], sizeof(out->object_types[i]))) {
+                .read((char *) &out->object_lens[i], sizeof(out->object_lens[i]))) {
                 delete out;
                 return TRANSPORT_ERROR;
             }
 
-            if (!(out->subjects[i] = ::operator new(out->subject_lens[i]))     ||
-                !(out->predicates[i] = ::operator new(out->predicate_lens[i])) ||
-                !(out->objects[i] = ::operator new(out->object_lens[i])))       {
+            if (!(out->objects[i] = ::operator new(out->object_lens[i]))) {
                 delete out;
                 return TRANSPORT_ERROR;
             }
 
             if (!s
-                .read((char *) out->subjects[i], out->subject_lens[i])
-                .read((char *) out->predicates[i], out->predicate_lens[i])
                 .read((char *) out->objects[i], out->object_lens[i])) {
                 delete out;
                 return TRANSPORT_ERROR;
@@ -615,35 +634,43 @@ int Transport::Thallium::Unpacker::unpack(Response::BGetOp **bgm, const std::str
         return TRANSPORT_ERROR;
     }
 
-    // read arrays
     for(std::size_t i = 0; i < count; i++) {
         if (!s
+            .read((char *) &out->ds_offsets[i], sizeof(out->ds_offsets[i]))
             .read((char *) &out->statuses[i], sizeof(out->statuses[i]))
-            .read((char *) &out->ds_offsets[i], sizeof(out->ds_offsets[i]))) {
+            .read((char *) &out->subject_lens[i], sizeof(out->subject_lens[i]))
+            .read((char *) &out->predicate_lens[i], sizeof(out->predicate_lens[i]))
+            .read((char *) &out->object_types[i], sizeof(out->object_types[i]))) {
             delete out;
             return TRANSPORT_ERROR;
         }
 
-        if (out->statuses[i] == TRANSPORT_SUCCESS) {
+        if (!(out->subjects[i] = ::operator new(out->subject_lens[i]))     ||
+            !(out->predicates[i] = ::operator new(out->predicate_lens[i]))) {
+            delete out;
+            return TRANSPORT_ERROR;
+        }
+
+        if (!s
+            .read((char *) out->subjects[i], out->subject_lens[i])
+            .read((char *) out->predicates[i], out->predicate_lens[i])) {
+            delete out;
+            return TRANSPORT_ERROR;
+        }
+
+        if (out->statuses[i] == HXHIM_SUCCESS) {
             if (!s
-                .read((char *) &out->subject_lens[i], sizeof(out->subject_lens[i]))
-                .read((char *) &out->predicate_lens[i], sizeof(out->predicate_lens[i]))
-                .read((char *) &out->object_lens[i], sizeof(out->object_lens[i]))
-                .read((char *) &out->object_types[i], sizeof(out->object_types[i]))) {
+                .read((char *) &out->object_lens[i], sizeof(out->object_lens[i]))) {
                 delete out;
                 return TRANSPORT_ERROR;
             }
 
-            if (!(out->subjects[i] = ::operator new(out->subject_lens[i]))     ||
-                !(out->predicates[i] = ::operator new(out->predicate_lens[i])) ||
-                !(out->objects[i] = ::operator new(out->object_lens[i])))       {
+            if (!(out->objects[i] = ::operator new(out->object_lens[i]))) {
                 delete out;
                 return TRANSPORT_ERROR;
             }
 
             if (!s
-                .read((char *) out->subjects[i], out->subject_lens[i])
-                .read((char *) out->predicates[i], out->predicate_lens[i])
                 .read((char *) out->objects[i], out->object_lens[i])) {
                 delete out;
                 return TRANSPORT_ERROR;

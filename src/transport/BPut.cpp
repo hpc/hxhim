@@ -118,7 +118,7 @@ int Transport::Response::BPut::alloc(const std::size_t max) {
 
     if (max) {
         if ((Bulk::alloc(max) != TRANSPORT_SUCCESS) ||
-            !(statuses = new int[max]))              {
+            !(statuses = new int[max]()))            {
             cleanup();
             return TRANSPORT_ERROR;
         }

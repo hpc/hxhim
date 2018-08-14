@@ -26,9 +26,6 @@ int hxhimOpenOne(hxhim_t *hx, hxhim_options_t *opts, const char *db_path, const 
 /** @description Stops an HXHIM instance */
 int hxhimClose(hxhim_t *hx);
 
-/** @description Commits all flushed data on local databases to disk */
-int hxhimCommit(hxhim_t *hx);
-
 /** @description Flushes the internal statistics */
 int hxhimStatFlush(hxhim_t *hx);
 

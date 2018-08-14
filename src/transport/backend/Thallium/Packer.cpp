@@ -285,19 +285,19 @@ int Packer::pack(const Response::Get *gm, std::string &buf) {
 
     if (!s
         .write((char *) &gm->status, sizeof(gm->status))
-        .write((char *) &gm->ds_offset, sizeof(gm->ds_offset))) {
+        .write((char *) &gm->ds_offset, sizeof(gm->ds_offset))
+        .write((char *) &gm->subject_len, sizeof(gm->subject_len))
+        .write((char *) &gm->predicate_len, sizeof(gm->predicate_len))
+        .write((char *) &gm->object_type, sizeof(gm->object_type))
+        .write((char *) gm->subject, gm->subject_len)
+        .write((char *) gm->predicate, gm->predicate_len)) {
         return TRANSPORT_ERROR;
     }
 
     // only write the rest of the data if it exists
-    if (gm->status == TRANSPORT_SUCCESS) {
+    if (gm->status == HXHIM_SUCCESS) {
         if (!s
-            .write((char *) &gm->subject_len, sizeof(gm->subject_len))
-            .write((char *) &gm->predicate_len, sizeof(gm->predicate_len))
             .write((char *) &gm->object_len, sizeof(gm->object_len))
-            .write((char *) &gm->object_type, sizeof(gm->object_type))
-            .write((char *) gm->subject, gm->subject_len)
-            .write((char *) gm->predicate, gm->predicate_len)
             .write((char *) gm->object, gm->object_len)) {
             return TRANSPORT_ERROR;
         }
@@ -352,19 +352,19 @@ int Packer::pack(const Response::BGet *bgm, std::string &buf) {
 
     for(std::size_t i = 0; i < bgm->count; i++) {
         if (!s
+            .write((char *) &bgm->ds_offsets[i], sizeof(bgm->ds_offsets[i]))
             .write((char *) &bgm->statuses[i], sizeof(bgm->statuses[i]))
-            .write((char *) &bgm->ds_offsets[i], sizeof(bgm->ds_offsets[i]))) {
+            .write((char *) &bgm->subject_lens[i], sizeof(bgm->subject_lens[i]))
+            .write((char *) &bgm->predicate_lens[i], sizeof(bgm->predicate_lens[i]))
+            .write((char *) &bgm->object_types[i], sizeof(bgm->object_types[i]))
+            .write((char *) bgm->subjects[i], bgm->subject_lens[i])
+            .write((char *) bgm->predicates[i], bgm->predicate_lens[i])) {
             return TRANSPORT_ERROR;
         }
 
-        if ((bgm->statuses[i] == TRANSPORT_SUCCESS) &&
+        if ((bgm->statuses[i] == HXHIM_SUCCESS) &&
             !s
-            .write((char *) &bgm->subject_lens[i], sizeof(bgm->subject_lens[i]))
-            .write((char *) &bgm->predicate_lens[i], sizeof(bgm->predicate_lens[i]))
             .write((char *) &bgm->object_lens[i], sizeof(bgm->object_lens[i]))
-            .write((char *) &bgm->object_types[i], sizeof(bgm->object_types[i]))
-            .write((char *) bgm->subjects[i], bgm->subject_lens[i])
-            .write((char *) bgm->predicates[i], bgm->predicate_lens[i])
             .write((char *) bgm->objects[i], bgm->object_lens[i])) {
             return TRANSPORT_ERROR;
         }
@@ -386,19 +386,19 @@ int Packer::pack(const Response::BGetOp *bgm, std::string &buf) {
 
     for(std::size_t i = 0; i < bgm->count; i++) {
         if (!s
+            .write((char *) &bgm->ds_offsets[i], sizeof(bgm->ds_offsets[i]))
             .write((char *) &bgm->statuses[i], sizeof(bgm->statuses[i]))
-            .write((char *) &bgm->ds_offsets[i], sizeof(bgm->ds_offsets[i]))) {
+            .write((char *) &bgm->subject_lens[i], sizeof(bgm->subject_lens[i]))
+            .write((char *) &bgm->predicate_lens[i], sizeof(bgm->predicate_lens[i]))
+            .write((char *) &bgm->object_types[i], sizeof(bgm->object_types[i]))
+            .write((char *) bgm->subjects[i], bgm->subject_lens[i])
+            .write((char *) bgm->predicates[i], bgm->predicate_lens[i])) {
             return TRANSPORT_ERROR;
         }
 
-        if ((bgm->statuses[i] == TRANSPORT_SUCCESS) &&
+        if ((bgm->statuses[i] == HXHIM_SUCCESS) &&
             !s
-            .write((char *) &bgm->subject_lens[i], sizeof(bgm->subject_lens[i]))
-            .write((char *) &bgm->predicate_lens[i], sizeof(bgm->predicate_lens[i]))
             .write((char *) &bgm->object_lens[i], sizeof(bgm->object_lens[i]))
-            .write((char *) &bgm->object_types[i], sizeof(bgm->object_types[i]))
-            .write((char *) bgm->subjects[i], bgm->subject_lens[i])
-            .write((char *) bgm->predicates[i], bgm->predicate_lens[i])
             .write((char *) bgm->objects[i], bgm->object_lens[i])) {
             return TRANSPORT_ERROR;
         }

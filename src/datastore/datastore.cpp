@@ -77,6 +77,11 @@ Transport::Response::BDelete *Datastore::BDelete(void **subjects, std::size_t *s
                        count);
 }
 
+int Datastore::Sync() {
+    std::lock_guard<std::mutex> lock(mutex);
+    return SyncImpl();
+}
+
 /**
  * GetStats
  * Collective operation

@@ -26,16 +26,6 @@ void InMemory::Close() {
 }
 
 /**
- * Commit
- * NOOP
- *
- * @return HXHIM_SUCCESS
- */
-int InMemory::Commit() {
-    return HXHIM_SUCCESS;
-}
-
-/**
  * StatFlush
  * NOOP
  *
@@ -86,6 +76,8 @@ Response::BPut *InMemory::BPutImpl(void **subjects, std::size_t *subject_lens,
         ret->statuses[i] = HXHIM_SUCCESS;
     }
 
+    ret->count = count;
+
     stats.put_times += nano(start, end);
 
     return ret;
@@ -128,16 +120,24 @@ Response::BGet *InMemory::BGetImpl(void **subjects, std::size_t *subject_lens,
         stats.get_times += nano(start, end);
 
         ret->statuses[i] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
+
+        ret->subject_lens[i] = subject_lens[i];
+        ret->subjects[i] = ::operator new(ret->subject_lens[i]);
+        memcpy(ret->subjects[i], subjects[i], ret->subject_lens[i]);
+
+        ret->predicate_lens[i] = predicate_lens[i];
+        ret->predicates[i] = ::operator new(ret->predicate_lens[i]);
+        memcpy(ret->predicates[i], predicates[i], ret->predicate_lens[i]);
+
+        ret->object_types[i] = object_types[i];
+
         if (ret->statuses[i] == HXHIM_SUCCESS) {
-            ret->subjects[i] = ::operator new(subject_lens[i]);
-            memcpy(ret->subjects[i], subjects[i], subject_lens[i]);
-            ret->predicates[i] = ::operator new(predicate_lens[i]);
-            memcpy(ret->predicates[i], predicates[i], predicate_lens[i]);
-            ret->object_types[i] = object_types[i];
             ret->objects[i] = ::operator new(it->second.size());
             memcpy(ret->objects[i], it->second.data(), it->second.size());
         }
     }
+
+    ret->count = count;
 
     return ret;
 }
@@ -214,6 +214,8 @@ Response::BGetOp *InMemory::BGetOpImpl(void *subject, std::size_t subject_len,
             stats.gets++;
             stats.get_times += nano(start, end);
         }
+
+        ret->count++;
     }
 
     return ret;
@@ -254,7 +256,19 @@ Response::BDelete *InMemory::BDeleteImpl(void **subjects, std::size_t *subject_l
         ::operator delete(key);
     }
 
+    ret->count = count;
+
     return ret;
+}
+
+/**
+ * Sync
+ * NOOP
+ *
+ * @return HXHIM_SUCCESS
+ */
+int InMemory::SyncImpl() {
+    return HXHIM_SUCCESS;
 }
 
 std::ostream &InMemory::print_config(std::ostream &stream) const {

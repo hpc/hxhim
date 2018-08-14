@@ -45,6 +45,12 @@ TEST(Histogram, normal_usage) {
 
     Histogram::Histogram *h = nullptr;
     EXPECT_EQ(hxhim::GetHistogram(&hx, &h), HXHIM_SUCCESS);
+
+    if (!h) {
+        EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
+        EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
+    }
+
     ASSERT_NE(h, nullptr);
     EXPECT_EQ(h->get().size(), 10);
 

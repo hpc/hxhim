@@ -5,10 +5,7 @@
 #include <gtest/gtest.h>
 #include <mpi.h>
 
-#include "datastore/InMemory.hpp"
-#include "hxhim/config.hpp"
 #include "hxhim/hxhim.hpp"
-#include "hxhim/private.hpp"
 
 typedef uint64_t Subject_t;
 typedef uint64_t Predicate_t;

@@ -144,38 +144,6 @@ int hxhimClose(hxhim_t *hx) {
 }
 
 /**
- * Commit
- * Commits all flushed data to disk
- *
- * @param hx the HXHIM session
- * @return HXHIM_SUCCESS or HXHIM_ERROR
- */
-int hxhim::Commit(hxhim_t *hx) {
-    if (!hx || !hx->p || !hx->p->datastores) {
-        return HXHIM_ERROR;
-    }
-
-    for(std::size_t i = 0; i < hx->p->datastore_count; i++) {
-        if (hx->p->datastores[i]->Commit() != HXHIM_SUCCESS) {
-            return HXHIM_ERROR;
-        }
-    }
-
-    return HXHIM_SUCCESS;
-}
-
-/**
- * hxhimCommit
- * Commits all flushed data to disk
- *
- * @param hx the HXHIM session
- * @return HXHIM_SUCCESS or HXHIM_ERROR
- */
-int hxhimCommit(hxhim_t *hx) {
-    return hxhim::Commit(hx);
-}
-
-/**
  * StatFlush
  * Flushes the MDHIM statistics
  * Mainly needed for BGetOp
@@ -684,18 +652,31 @@ hxhim_results_t *hxhimFlush(hxhim_t *hx) {
 
 /**
  * Sync
- * Add a SYNC into the work queue
+ * Force all queues to be emptied out and
+ * writes all data to the backing storage.
  *
  * @param hx the HXHIM session
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 hxhim::Results *hxhim::Sync(hxhim_t *hx) {
+    Results *res = Flush(hx);
 
+    MPI_Barrier(hx->p->bootstrap.comm);
+
+    // Sync local data stores
+    for(std::size_t i = 0; i < hx->p->datastore_count; i++) {
+        res->Add(new Results::Sync(hx->p->datastores[i]->Sync()));
+    }
+
+    MPI_Barrier(hx->p->bootstrap.comm);
+
+    return res;
 }
 
 /**
  * hxhimSync
- * Add a SYNC into the work queue
+ * Force all queues to be emptied out and
+ * writes all data to the backing storage.
  *
  * @param hx the HXHIM session
  * @return HXHIM_SUCCESS or HXHIM_ERROR

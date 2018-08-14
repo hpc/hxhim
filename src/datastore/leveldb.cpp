@@ -52,19 +52,6 @@ void leveldb::Close() {
 }
 
 /**
- * Commit
- * Syncs the database to disc
- *
- * @return HXHIM_SUCCESS or HXHIM_ERROR on error
- */
-int leveldb::Commit() {
-    ::leveldb::WriteBatch batch;
-    ::leveldb::WriteOptions options;
-    options.sync = true;
-    return db->Write(options, &batch).ok()?HXHIM_SUCCESS:HXHIM_ERROR;
-}
-
-/**
  * StatFlush
  * NOOP
  *
@@ -312,6 +299,19 @@ Response::BDelete *leveldb::BDeleteImpl(void **subjects, std::size_t *subject_le
     }
 
     return ret;
+}
+
+/**
+ * Sync
+ * Syncs the database to disc
+ *
+ * @return HXHIM_SUCCESS or HXHIM_ERROR on error
+ */
+int leveldb::SyncImpl() {
+    ::leveldb::WriteBatch batch;
+    ::leveldb::WriteOptions options;
+    options.sync = true;
+    return db->Write(options, &batch).ok()?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 
 std::ostream &leveldb::print_config(std::ostream &stream) const {

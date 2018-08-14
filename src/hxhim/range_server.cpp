@@ -58,13 +58,12 @@ static Transport::Response::BPut *range_server_bput(hxhim_t *hx, Transport::Requ
     Transport::Response::BPut *res = new Transport::Response::BPut(req->count);
     res->src = req->dst;
     res->dst = req->src;
-    res->count = 0; // reset counter, but keep allocated space
 
     for(std::size_t i = 0; i < hx->p->datastore_count; i++) {
         Transport::Response::BPut *response = hx->p->datastores[i]->BPut(subjects[i], subject_lens[i],
-                                                                        predicates[i], predicate_lens[i],
-                                                                        object_types[i], objects[i], object_lens[i],
-                                                                        counters[i]);
+                                                                         predicates[i], predicate_lens[i],
+                                                                         object_types[i], objects[i], object_lens[i],
+                                                                         counters[i]);
         for(std::size_t j = 0; j < response->count; j++) {
             res->ds_offsets[res->count] = i;
             res->statuses[res->count] = response->statuses[j];
@@ -144,9 +143,9 @@ static Transport::Response::BGet *range_server_bget(hxhim_t *hx, Transport::Requ
 
     for(std::size_t i = 0; i < hx->p->datastore_count; i++) {
         Transport::Response::BGet *response = hx->p->datastores[i]->BGet(subjects[i], subject_lens[i],
-                                                                       predicates[i], predicate_lens[i],
-                                                                       object_types[i],
-                                                                       counters[i]);
+                                                                         predicates[i], predicate_lens[i],
+                                                                         object_types[i],
+                                                                         counters[i]);
         for(std::size_t j = 0; j < response->count; j++) {
             res->ds_offsets[res->count] = i;
             res->statuses[res->count] = response->statuses[j];
@@ -155,8 +154,10 @@ static Transport::Response::BGet *range_server_bget(hxhim_t *hx, Transport::Requ
             res->predicates[res->count] = std::move(response->predicates[j]);
             res->predicate_lens[res->count] = response->predicate_lens[j];
             res->object_types[res->count] = std::move(response->object_types[j]);
-            res->objects[res->count] = std::move(response->objects[j]);
-            res->object_lens[res->count] = response->object_lens[j];
+            if (res->statuses[res->count] == HXHIM_SUCCESS) {
+                res->objects[res->count] = std::move(response->objects[j]);
+                res->object_lens[res->count] = response->object_lens[j];
+            }
             res->count++;
         }
 
@@ -196,9 +197,9 @@ static Transport::Response::BGetOp *range_server_bgetop(hxhim_t *hx, Transport::
 
     for(std::size_t i = 0; i < req->count; i++) {
         Transport::Response::BGetOp *response = hx->p->datastores[i]->BGetOp(req->subjects[i], req->subject_lens[i],
-                                                                           req->predicates[i], req->predicate_lens[i],
-                                                                           req->object_types[i],
-                                                                           req->num_recs[i], req->ops[i]);
+                                                                             req->predicates[i], req->predicate_lens[i],
+                                                                             req->object_types[i],
+                                                                             req->num_recs[i], req->ops[i]);
         for(std::size_t j = 0; j < response->count; j++) {
             res->ds_offsets[res->count] = i;
             res->statuses[res->count] = response->statuses[j];
@@ -207,8 +208,10 @@ static Transport::Response::BGetOp *range_server_bgetop(hxhim_t *hx, Transport::
             res->predicates[res->count] = std::move(response->predicates[j]);
             res->predicate_lens[res->count] = response->predicate_lens[j];
             res->object_types[res->count] = std::move(response->object_types[j]);
-            res->objects[res->count] = std::move(response->objects[j]);
-            res->object_lens[res->count] = response->object_lens[j];
+            if (res->statuses[res->count] == HXHIM_SUCCESS) {
+                res->objects[res->count] = std::move(response->objects[j]);
+                res->object_lens[res->count] = response->object_lens[j];
+            }
             res->count++;
         }
 
@@ -262,8 +265,8 @@ static Transport::Response::BDelete *range_server_bdelete(hxhim_t *hx, Transport
 
     for(std::size_t i = 0; i < hx->p->datastore_count; i++) {
         Transport::Response::BDelete *response = hx->p->datastores[i]->BDelete(subjects[i], subject_lens[i],
-                                                                             predicates[i], predicate_lens[i],
-                                                                             counters[i]);
+                                                                               predicates[i], predicate_lens[i],
+                                                                               counters[i]);
         for(std::size_t j = 0; j < response->count; j++) {
             res->ds_offsets[res->count] = i;
             res->statuses[res->count] = response->statuses[j];

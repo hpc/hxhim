@@ -515,8 +515,7 @@ int Unpacker::unpack(const MPI_Comm comm, Response::Get **gm, const void *buf, c
         (MPI_Unpack(buf, bufsize, &position, &out->status, sizeof(out->status), MPI_CHAR, comm)               != MPI_SUCCESS) ||
         (MPI_Unpack(buf, bufsize, &position, &out->subject_len, sizeof(out->subject_len), MPI_CHAR, comm)     != MPI_SUCCESS) ||
         (MPI_Unpack(buf, bufsize, &position, &out->predicate_len, sizeof(out->predicate_len), MPI_CHAR, comm) != MPI_SUCCESS) ||
-        (MPI_Unpack(buf, bufsize, &position, &out->object_type, sizeof(out->object_type), MPI_CHAR, comm)     != MPI_SUCCESS) ||
-        (MPI_Unpack(buf, bufsize, &position, &out->object_len, sizeof(out->object_len), MPI_CHAR, comm)       != MPI_SUCCESS)) {
+        (MPI_Unpack(buf, bufsize, &position, &out->object_type, sizeof(out->object_type), MPI_CHAR, comm)     != MPI_SUCCESS)) {
         delete out;
         return TRANSPORT_ERROR;
     }
@@ -545,15 +544,22 @@ int Unpacker::unpack(const MPI_Comm comm, Response::Get **gm, const void *buf, c
         }
     }
 
-    if (out->object_len) {
-        if (!(out->object = ::operator new (out->object_len))) {
+    if (out->status == HXHIM_SUCCESS) {
+        if (MPI_Unpack(buf, bufsize, &position, &out->object_len, sizeof(out->object_len), MPI_CHAR, comm)    != MPI_SUCCESS) {
             delete out;
             return TRANSPORT_ERROR;
         }
 
-        if (MPI_Unpack(buf, bufsize, &position, out->object, out->object_len, MPI_CHAR, comm)                 != MPI_SUCCESS) {
-            delete out;
-            return TRANSPORT_ERROR;
+        if (out->object_len) {
+            if (!(out->object = ::operator new (out->object_len))) {
+                delete out;
+                return TRANSPORT_ERROR;
+            }
+
+            if (MPI_Unpack(buf, bufsize, &position, out->object, out->object_len, MPI_CHAR, comm)             != MPI_SUCCESS) {
+                delete out;
+                return TRANSPORT_ERROR;
+            }
         }
     }
 
@@ -657,15 +663,22 @@ int Unpacker::unpack(const MPI_Comm comm, Response::BGet **bgm, const void *buf,
                 (MPI_Unpack(buf, bufsize, &position, &out->subject_lens[i], sizeof(out->subject_lens[i]), MPI_CHAR, comm)     != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, &out->predicate_lens[i], sizeof(out->predicate_lens[i]), MPI_CHAR, comm) != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, &out->object_types[i], sizeof(out->object_types[i]), MPI_CHAR, comm)     != MPI_SUCCESS) ||
-                (MPI_Unpack(buf, bufsize, &position, &out->object_lens[i], sizeof(out->object_lens[i]), MPI_CHAR, comm)       != MPI_SUCCESS) ||
                 (!(out->subjects[i] = ::operator new(out->subject_lens[i])))                                                                  ||
                 (MPI_Unpack(buf, bufsize, &position, out->subjects[i], out->subject_lens[i], MPI_CHAR, comm)                  != MPI_SUCCESS) ||
                 (!(out->predicates[i] = ::operator new(out->predicate_lens[i])))                                                              ||
-                (MPI_Unpack(buf, bufsize, &position, out->predicates[i], out->predicate_lens[i], MPI_CHAR, comm)              != MPI_SUCCESS) ||
-                (!(out->objects[i] = ::operator new(out->object_lens[i])))                                                                    ||
-                (MPI_Unpack(buf, bufsize, &position, out->objects[i], out->object_lens[i], MPI_CHAR, comm)                    != MPI_SUCCESS)) {
+                (MPI_Unpack(buf, bufsize, &position, out->predicates[i], out->predicate_lens[i], MPI_CHAR, comm)              != MPI_SUCCESS)) {
                 delete out;
                 return TRANSPORT_ERROR;
+            }
+
+            // only read object if status is HXHIM_SUCCESS
+            if (out->statuses[i] == HXHIM_SUCCESS) {
+                if ((MPI_Unpack(buf, bufsize, &position, &out->object_lens[i], sizeof(out->object_lens[i]), MPI_CHAR, comm)   != MPI_SUCCESS) ||
+                    (!(out->objects[i] = ::operator new(out->object_lens[i])))                                                                ||
+                    (MPI_Unpack(buf, bufsize, &position, out->objects[i], out->object_lens[i], MPI_CHAR, comm)                != MPI_SUCCESS)) {
+                    delete out;
+                    return TRANSPORT_ERROR;
+                }
             }
 
             out->count++;
@@ -708,15 +721,22 @@ int Unpacker::unpack(const MPI_Comm comm, Response::BGetOp **bgm, const void *bu
                 (MPI_Unpack(buf, bufsize, &position, &out->subject_lens[i], sizeof(out->subject_lens[i]), MPI_CHAR, comm)     != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, &out->predicate_lens[i], sizeof(out->predicate_lens[i]), MPI_CHAR, comm) != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, &out->object_types[i], sizeof(out->object_types[i]), MPI_CHAR, comm)     != MPI_SUCCESS) ||
-                (MPI_Unpack(buf, bufsize, &position, &out->object_lens[i], sizeof(out->object_lens[i]), MPI_CHAR, comm)       != MPI_SUCCESS) ||
                 (!(out->subjects[i] = ::operator new(out->subject_lens[i])))                                                                  ||
                 (MPI_Unpack(buf, bufsize, &position, out->subjects[i], out->subject_lens[i], MPI_CHAR, comm)                  != MPI_SUCCESS) ||
                 (!(out->predicates[i] = ::operator new(out->predicate_lens[i])))                                                              ||
-                (MPI_Unpack(buf, bufsize, &position, out->predicates[i], out->predicate_lens[i], MPI_CHAR, comm)              != MPI_SUCCESS) ||
-                (!(out->objects[i] = ::operator new(out->object_lens[i])))                                                                    ||
-                (MPI_Unpack(buf, bufsize, &position, out->objects[i], out->object_lens[i], MPI_CHAR, comm)                    != MPI_SUCCESS)) {
+                (MPI_Unpack(buf, bufsize, &position, out->predicates[i], out->predicate_lens[i], MPI_CHAR, comm)              != MPI_SUCCESS)) {
                 delete out;
                 return TRANSPORT_ERROR;
+            }
+
+            // only read object if status is HXHIM_SUCCESS
+            if (out->statuses[i] == HXHIM_SUCCESS) {
+                if ((MPI_Unpack(buf, bufsize, &position, &out->object_lens[i], sizeof(out->object_lens[i]), MPI_CHAR, comm)   != MPI_SUCCESS) ||
+                    (!(out->objects[i] = ::operator new(out->object_lens[i])))                                                                ||
+                    (MPI_Unpack(buf, bufsize, &position, out->objects[i], out->object_lens[i], MPI_CHAR, comm)                != MPI_SUCCESS)) {
+                    delete out;
+                    return TRANSPORT_ERROR;
+                }
             }
 
             out->count++;

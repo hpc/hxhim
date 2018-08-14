@@ -168,6 +168,14 @@ Results::Delete::Delete(Transport::Response::BDelete *bdel, const std::size_t i)
 
 Results::Delete::~Delete() {}
 
+Results::Sync::Sync(const int synced)
+    : Result(hxhim_result_type::HXHIM_RESULT_SYNC)
+{
+    status = synced;
+}
+
+Results::Sync::~Sync() {}
+
 Results::Results()
     : results(),
       curr(results.end())
