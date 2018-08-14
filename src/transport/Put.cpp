@@ -31,7 +31,7 @@ std::size_t Transport::Request::Put::size() const {
 Transport::Response::Put::Put()
     : Response(Message::PUT),
       Single(),
-      status(TRANSPORT_ERROR)
+      status(HXHIM_ERROR)
 {}
 
 Transport::Response::Put::~Put()

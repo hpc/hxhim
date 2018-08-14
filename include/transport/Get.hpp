@@ -4,7 +4,6 @@
 #include <cstddef>
 
 #include "hxhim/constants.h"
-#include "transport/Bulk.hpp"
 #include "transport/Request.hpp"
 #include "transport/Response.hpp"
 #include "transport/Single.hpp"

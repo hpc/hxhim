@@ -4,14 +4,62 @@
 #include "datastore/datastore.hpp"
 #include "hxhim/accessors.hpp"
 #include "utils/elen.hpp"
-#include "utils/reverse_bytes.h"
 
 namespace hxhim {
 namespace datastore {
 
+/**
+ * get_rank
+ *
+ * @param hx the HXHIM instance
+ * @param id the database ID to get the rank of
+ * @return the rank of the given ID or -1 on error
+ */
+int get_rank(hxhim_t *hx, const int id) {
+    std::size_t ds_count = 0;
+    if (hxhim::GetDatastoreCount(hx, &ds_count) != HXHIM_SUCCESS) {
+        return -1;
+    }
+
+    return id / ds_count;
+}
+
+/**
+ * get_offset
+ *
+ * @param hx the HXHIM instance
+ * @param id the database ID to get the offset of
+ * @return the offset of the given ID or -1 on error
+ */
+int get_offset(hxhim_t *hx, const int id) {
+    std::size_t ds_count = 0;
+    if (hxhim::GetDatastoreCount(hx, &ds_count) != HXHIM_SUCCESS) {
+        return -1;
+    }
+
+    return id % ds_count;
+}
+
+/**
+ * get_id
+ *
+ * @param hx   the HXHIM instance
+ * @param rank the destination rank
+ * @param id   the offset within the destination
+ * @return the mapping from the (rank, offset) to the database ID, or -1 on error
+ */
+int get_id(hxhim_t *hx, const int rank, const int offset) {
+    std::size_t ds_count = 0;
+    if (hxhim::GetDatastoreCount(hx, &ds_count) != HXHIM_SUCCESS) {
+        return -1;
+    }
+
+    return rank * ds_count + offset;
+}
+
 Datastore::Datastore(hxhim_t *hx,
-           const int id,
-           const std::size_t use_first_n, const Histogram::BucketGen::generator &generator, void *extra_args)
+                     const int id,
+                     const std::size_t use_first_n, const Histogram::BucketGen::generator &generator, void *extra_args)
     : hx(hx),
       id(id),
       hist(use_first_n, generator, extra_args),
@@ -25,25 +73,29 @@ Transport::Response::BPut *Datastore::BPut(void **subjects, std::size_t *subject
                                            void **predicates, std::size_t *predicate_lens,
                                            hxhim_type_t *object_types, void **objects, std::size_t *object_lens,
                                            std::size_t count) {
-    // add floating point values to the histogram
+    std::lock_guard<std::mutex> lock(mutex);
+    Transport::Response::BPut *res = BPutImpl(subjects, subject_lens,
+                                              predicates, predicate_lens,
+                                              object_types, objects, object_lens,
+                                              count);
+
+    // add successfully PUT floating point values to the histogram
     for(std::size_t i = 0; i < count; i++) {
-        switch (object_types[i]) {
-            case HXHIM_FLOAT_TYPE:
-                hist.add(* (float *) objects[i]);
-                break;
-            case HXHIM_DOUBLE_TYPE:
-                hist.add(* (double *) objects[i]);
-                break;
-            default:
-                break;
+        if (res->statuses[i] == HXHIM_SUCCESS) {
+            switch (object_types[i]) {
+                case HXHIM_FLOAT_TYPE:
+                    hist.add(* (float *) objects[i]);
+                    break;
+                case HXHIM_DOUBLE_TYPE:
+                    hist.add(* (double *) objects[i]);
+                    break;
+                default:
+                    break;
+            }
         }
     }
 
-    std::lock_guard<std::mutex> lock(mutex);
-    return BPutImpl(subjects, subject_lens,
-                    predicates, predicate_lens,
-                    object_types, objects, object_lens,
-                    count);
+    return res;
 }
 
 Transport::Response::BGet *Datastore::BGet(void **subjects, std::size_t *subject_lens,
@@ -165,6 +217,21 @@ int Datastore::GetStats(const int dst_rank,
 }
 
 /**
+ * Histogram
+ * Puts the histogram data into a transport packet for sending/processing
+ *
+ * @return a pointer to the transport packet containing the histogram data
+ */
+Transport::Response::Histogram *Datastore::Histogram() const {
+    std::lock_guard<std::mutex> lock(mutex);
+    Transport::Response::Histogram *ret = new Transport::Response::Histogram(hist.get());
+    if (ret) {
+        ret->status = HXHIM_SUCCESS;
+    }
+    return ret;
+}
+
+/**
  * encode
  * Converts the contents of a void * into another
  * format if the type is floating point.
@@ -205,14 +272,6 @@ int Datastore::encode(const hxhim_type_t type, void *&ptr, std::size_t &len, boo
         case HXHIM_INT_TYPE:
         case HXHIM_SIZE_TYPE:
         case HXHIM_INT64_TYPE:
-            {
-                // should only do this if little endian is detected
-                void *src = ptr;
-                ptr = ::operator new(len);
-                reverse_bytes(src, len, ptr);
-                copied = true;
-            }
-            break;
         case HXHIM_BYTE_TYPE:
             copied = false;
             break;
@@ -268,10 +327,6 @@ int Datastore::decode(const hxhim_type_t type, void *src, const std::size_t &src
         case HXHIM_INT_TYPE:
         case HXHIM_SIZE_TYPE:
         case HXHIM_INT64_TYPE:
-            *dst_len = src_len;
-            *dst = ::operator new(*dst_len);
-            reverse_bytes(src, src_len, *dst);
-            break;
         case HXHIM_BYTE_TYPE:
             *dst_len = src_len;
             *dst = ::operator new(*dst_len);

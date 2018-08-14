@@ -29,7 +29,7 @@ int hxhim_options_set_datastores_per_range_server(hxhim_options_t *opts, const s
 int hxhim_options_set_datastore_leveldb(hxhim_options_t *opts, const size_t id, const char *path, const int create_if_missing);
 int hxhim_options_set_datastore_in_memory(hxhim_options_t *opts);
 int hxhim_options_set_hash_name(hxhim_options_t *opts, const char *hash);
-int hxhim_options_set_hash_function(hxhim_options_t *opts, hxhim_hash_t *hash, void *args);
+int hxhim_options_set_hash_function(hxhim_options_t *opts, hxhim_hash_t hash, void *args);
 int hxhim_options_set_transport_mpi(hxhim_options_t *opts, const size_t memory_alloc_size, const size_t memory_regions, const size_t listeners);
 int hxhim_options_set_transport_thallium(hxhim_options_t *opts, const char *module);
 int hxhim_options_add_endpoint_to_group(hxhim_options_t *opts, const int id);

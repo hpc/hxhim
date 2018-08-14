@@ -71,7 +71,7 @@ void *RangeServer::listener_thread(void *data) {
         len = 0;
 
         // process request
-        Response::Response *response = range_server(hx_, request);
+        Response::Response *response = hxhim::range_server::range_server(hx_, request);
 
         // encode result
         Packer::pack(hx_->p->bootstrap.comm, response, &data, &len, fbp_);

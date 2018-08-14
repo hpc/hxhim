@@ -19,7 +19,7 @@ const std::string HXHIM_CONFIG_ENV                  = "HXHIM_CONFIG";
 const std::string HXHIM_DATASTORE_TYPE              = "DATASTORE";                 // See HXHIM_DATASTORE_TYPES
 const std::string HXHIM_DATASTORES_PER_RANGE_SERVER = "DATASTORES_PER_RS";         // positive integer
 
-/** LevelDB Datastore Options*/
+/** LevelDB Datastore Options */
 const std::string HXHIM_LEVELDB_NAME                = "LEVELDB_NAME";              // file path
 const std::string HXHIM_LEVELDB_CREATE_IF_MISSING   = "LEVELDB_CREATE_IF_MISSING"; // boolean
 

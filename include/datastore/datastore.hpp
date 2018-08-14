@@ -12,6 +12,17 @@ namespace hxhim {
 namespace datastore {
 
 /**
+ * Functions for converting between
+ * datastore IDs and (rank, offset) pairs
+ * get_id is the inverse of get_rank and get_offset
+ *
+ * These should probably be configurable by the user
+*/
+int get_rank(hxhim_t *hx, const int id);
+int get_offset(hxhim_t *hx, const int id);
+int get_id(hxhim_t *hx, const int rank, const int offset);
+
+/**
  * base
  * The base class for all datastores used by HXHIM
  */
@@ -23,12 +34,14 @@ class Datastore {
         virtual ~Datastore();
 
         virtual void Close() {}
-        virtual int StatFlush() = 0;
+
         int GetStats(const int dst_rank,
                      const bool get_put_times, long double *put_times,
                      const bool get_num_puts, std::size_t *num_puts,
                      const bool get_get_times, long double *get_times,
                      const bool get_num_gets, std::size_t *num_gets);
+
+        Transport::Response::Histogram *Histogram() const;
 
         Transport::Response::BPut *BPut(void **subjects, std::size_t *subject_lens,
                                         void **predicates, std::size_t *predicate_lens,
@@ -76,7 +89,7 @@ class Datastore {
         const int id;
         Histogram::Histogram hist;
 
-        std::mutex mutex;
+        mutable std::mutex mutex;
 
         struct {
             std::size_t puts;

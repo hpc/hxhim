@@ -8,6 +8,7 @@
 #include "transport/BGet.hpp"
 #include "transport/BGetOp.hpp"
 #include "transport/BDelete.hpp"
-#include "transport/Sync.hpp"
+#include "transport/Histogram.hpp"
+#include "transport/BHistogram.hpp"
 
 #endif

@@ -18,9 +18,9 @@ hxhim_private::hxhim_private()
       gets(),
       getops(),
       deletes(),
-      datastores(nullptr),
-      datastore_count(0),
+      datastore(),
       async_put(),
+      hash(),
       transport(nullptr),
       range_server_destroy(nullptr)
 {
@@ -42,7 +42,7 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
         return nullptr;
     }
 
-    const std::size_t total = HXHIM_PUT_MULTIPLER * count;                              // total number of triples that will be PUT
+    const std::size_t total = HXHIM_PUT_MULTIPLER * count;                                       // total number of triples that will be PUT
 
     Transport::Request::BPut local(HXHIM_MAX_BULK_GET_OPS);
     local.src = hx->p->bootstrap.rank;
@@ -105,7 +105,7 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
         Transport::Response::BPut *responses = hx->p->transport->BPut(hx->p->bootstrap.size, remote);
         for(Transport::Response::BPut *curr = responses; curr; curr = curr->next) {
             for(std::size_t i = 0; i < curr->count; i++) {
-                res->Add(new hxhim::Results::Put(curr, i));
+                res->Add(new hxhim::Results::Put(hx, curr, i));
             }
         }
         delete responses;
@@ -115,7 +115,7 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
         Transport::Response::BPut *responses = local_client_bput(hx, &local);
         for(Transport::Response::BPut *curr = responses; curr; curr = curr->next) {
             for(std::size_t i = 0; i < curr->count; i++) {
-                res->Add(new hxhim::Results::Put(curr, i));
+                res->Add(new hxhim::Results::Put(hx, curr, i));
             }
         }
         delete responses;
@@ -324,42 +324,42 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
-    if (!(hx->p->datastore_count = opts->p->datastore_count)) {
+    if (!(hx->p->datastore.count = opts->p->datastore_count)) {
         return HXHIM_ERROR;
     }
 
-    if (!(hx->p->datastores = new hxhim::datastore::Datastore *[hx->p->datastore_count])) {
+    if (!(hx->p->datastore.datastores = new hxhim::datastore::Datastore *[hx->p->datastore.count])) {
         return HXHIM_ERROR;
     }
 
-    for(std::size_t i = 0; i < hx->p->datastore_count; i++) {
+    for(std::size_t i = 0; i < hx->p->datastore.count; i++) {
         // Start the datastore
         switch (opts->p->datastore->type) {
             case HXHIM_DATASTORE_LEVELDB:
                 {
                     hxhim_leveldb_config_t *config = static_cast<hxhim_leveldb_config_t *>(opts->p->datastore);
-                    hx->p->datastores[i] = new hxhim::datastore::leveldb(hx,
-                                                                        config->id,
-                                                                        opts->p->histogram.first_n,
-                                                                        opts->p->histogram.gen,
-                                                                        opts->p->histogram.args,
-                                                                        config->path, config->create_if_missing);
+                    hx->p->datastore.datastores[i] = new hxhim::datastore::leveldb(hx,
+                                                                                   config->id,
+                                                                                   opts->p->histogram.first_n,
+                                                                                   opts->p->histogram.gen,
+                                                                                   opts->p->histogram.args,
+                                                                                   config->path, config->create_if_missing);
                 }
                 break;
             case HXHIM_DATASTORE_IN_MEMORY:
                 {
-                    hx->p->datastores[i] = new hxhim::datastore::InMemory(hx,
-                                                                         i,
-                                                                         opts->p->histogram.first_n,
-                                                                         opts->p->histogram.gen,
-                                                                         opts->p->histogram.args);
+                    hx->p->datastore.datastores[i] = new hxhim::datastore::InMemory(hx,
+                                                                                    i,
+                                                                                    opts->p->histogram.first_n,
+                                                                                    opts->p->histogram.gen,
+                                                                                    opts->p->histogram.args);
                 }
                 break;
             default:
                 break;
         }
 
-        if (!hx->p->datastores[i]) {
+        if (!hx->p->datastore.datastores[i]) {
             return HXHIM_ERROR;
         }
     }
@@ -380,35 +380,35 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
         return HXHIM_ERROR;
     }
 
-    if ((hx->p->datastore_count = opts->p->datastore_count) != 1) {
+    if ((hx->p->datastore.count = opts->p->datastore_count) != 1) {
         return HXHIM_ERROR;
     }
 
-    if (!(hx->p->datastores = new hxhim::datastore::Datastore *[hx->p->datastore_count])) {
+    if (!(hx->p->datastore.datastores = new hxhim::datastore::Datastore *[hx->p->datastore.count])) {
         return HXHIM_ERROR;
     }
 
     // Start the datastore
     switch (opts->p->datastore->type) {
         case HXHIM_DATASTORE_LEVELDB:
-            hx->p->datastores[0] = new hxhim::datastore::leveldb(hx,
-                                                                opts->p->histogram.first_n,
-                                                                opts->p->histogram.gen,
-                                                                opts->p->histogram.args,
-                                                                name);
+            hx->p->datastore.datastores[0] = new hxhim::datastore::leveldb(hx,
+                                                                           opts->p->histogram.first_n,
+                                                                           opts->p->histogram.gen,
+                                                                           opts->p->histogram.args,
+                                                                           name);
             break;
         case HXHIM_DATASTORE_IN_MEMORY:
-            hx->p->datastores[0] = new hxhim::datastore::InMemory(hx,
-                                                                 0,
-                                                                 opts->p->histogram.first_n,
-                                                                 opts->p->histogram.gen,
-                                                                 opts->p->histogram.args);
+            hx->p->datastore.datastores[0] = new hxhim::datastore::InMemory(hx,
+                                                                            0,
+                                                                            opts->p->histogram.first_n,
+                                                                            opts->p->histogram.gen,
+                                                                            opts->p->histogram.args);
             break;
         default:
             break;
     }
 
-    return hx->p->datastores[0]?HXHIM_SUCCESS:HXHIM_ERROR;
+    return hx->p->datastore.datastores[0]?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 
 /**
@@ -452,8 +452,8 @@ int hxhim::init::hash(hxhim_t *hx, hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
-    hx->p->hash = opts->p->hash;
-    hx->p->hash_args = opts->p->hash_args;
+    hx->p->hash.func = opts->p->hash;
+    hx->p->hash.args = opts->p->hash_args;
 
     return HXHIM_SUCCESS;
 }
@@ -694,8 +694,8 @@ int hxhim::destroy::hash(hxhim_t *hx) {
         return HXHIM_ERROR;
     }
 
-    hx->p->hash = nullptr;
-    hx->p->hash_args = nullptr;
+    hx->p->hash.func = nullptr;
+    hx->p->hash.args = nullptr;
 
     return HXHIM_SUCCESS;
 }
@@ -752,17 +752,17 @@ int hxhim::destroy::datastore(hxhim_t *hx) {
         return HXHIM_ERROR;
     }
 
-    if (hx->p->datastores) {
-        for(std::size_t i = 0; i < hx->p->datastore_count; i++) {
-            if (hx->p->datastores[i]) {
-                hx->p->datastores[i]->Close();
-                delete hx->p->datastores[i];
-                hx->p->datastores[i] = nullptr;
+    if (hx->p->datastore.datastores) {
+        for(std::size_t i = 0; i < hx->p->datastore.count; i++) {
+            if (hx->p->datastore.datastores[i]) {
+                hx->p->datastore.datastores[i]->Close();
+                delete hx->p->datastore.datastores[i];
+                hx->p->datastore.datastores[i] = nullptr;
             }
         }
 
-        delete [] hx->p->datastores;
-        hx->p->datastores = nullptr;
+        delete [] hx->p->datastore.datastores;
+        hx->p->datastore.datastores = nullptr;
     }
 
     return HXHIM_SUCCESS;

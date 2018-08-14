@@ -155,7 +155,6 @@ int main(int argc, char *argv[]) {
     hxhim_results_t *flush1 = hxhimFlush(&hx);
     hxhim_results_destroy(flush1);
 
-    hxhimStatFlush(&hx);
     hxhimBGetOp(&hx, (void *) &TEMP, strlen(TEMP), (void *) &lowest,  sizeof(lowest),  HXHIM_DOUBLE_TYPE, 10, HXHIM_GET_NEXT);
     hxhimBGetOp(&hx, (void *) &TEMP, strlen(TEMP), (void *) &highest, sizeof(highest), HXHIM_DOUBLE_TYPE, 10, HXHIM_GET_PREV);
 

@@ -69,6 +69,12 @@ int Delete(hxhim_t *hx,
            Transport::Request::BDelete *local,
            Transport::Request::BDelete **remote);
 
+int Histogram(hxhim_t *hx,
+              const std::size_t max,
+              const int ds_id,
+              Transport::Request::BHistogram *local,
+              Transport::Request::BHistogram **remote);
+
 }
 }
 

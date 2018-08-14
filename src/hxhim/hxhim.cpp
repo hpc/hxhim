@@ -144,40 +144,6 @@ int hxhimClose(hxhim_t *hx) {
 }
 
 /**
- * StatFlush
- * Flushes the MDHIM statistics
- * Mainly needed for BGetOp
- *
- * @param hx the HXHIM session
- * @return HXHIM_SUCCESS or HXHIM_ERROR
- */
-int hxhim::StatFlush(hxhim_t *hx) {
-    if (!hx || !hx->p || !hx->p->datastores) {
-        return HXHIM_ERROR;
-    }
-
-    for(std::size_t i = 0; i < hx->p->datastore_count; i++) {
-        if (hx->p->datastores[i]->StatFlush() != HXHIM_SUCCESS) {
-            return HXHIM_ERROR;
-        }
-    }
-
-    return HXHIM_SUCCESS;
-}
-
-/**
- * hxhimStatFlush
- * Flushes the MDHIM statistics
- * Mainly needed for BGetOp
- *
- * @param hx the HXHIM session
- * @return HXHIM_SUCCESS or HXHIM_ERROR
- */
-int hxhimStatFlush(hxhim_t *hx) {
-    return hxhim::StatFlush(hx);
-}
-
-/**
  * FlushPuts
  * Flushes all queued PUTs
  * The internal queue is cleared, even on error
@@ -258,7 +224,7 @@ static hxhim::Results *get_core(hxhim_t *hx,
         Transport::Response::BGet *responses = hx->p->transport->BGet(hx->p->bootstrap.size, remote);
         for(Transport::Response::BGet *curr = responses; curr; curr = curr->next) {
             for(std::size_t i = 0; i < curr->count; i++) {
-                res->Add(new hxhim::Results::Get(curr, i));
+                res->Add(new hxhim::Results::Get(hx, curr, i));
             }
         }
         delete responses;
@@ -268,7 +234,7 @@ static hxhim::Results *get_core(hxhim_t *hx,
         Transport::Response::BGet *responses = local_client_bget(hx, local);
         for(Transport::Response::BGet *curr = responses; curr; curr = curr->next) {
             for(std::size_t i = 0; i < curr->count; i++) {
-                res->Add(new hxhim::Results::Get(curr, i));
+                res->Add(new hxhim::Results::Get(hx, curr, i));
             }
         }
         delete responses;
@@ -389,7 +355,7 @@ static hxhim::Results *getop_core(hxhim_t *hx,
         Transport::Response::BGetOp *responses = hx->p->transport->BGetOp(hx->p->bootstrap.size, remote);
         for(Transport::Response::BGetOp *curr = responses; curr; curr = curr->next) {
             for(std::size_t i = 0; i < curr->count; i++) {
-                res->Add(new hxhim::Results::Get(curr, i));
+                res->Add(new hxhim::Results::Get(hx, curr, i));
             }
         }
         delete responses;
@@ -399,7 +365,7 @@ static hxhim::Results *getop_core(hxhim_t *hx,
         Transport::Response::BGetOp *responses = local_client_bget_op(hx, local);
         for(Transport::Response::BGetOp *curr = responses; curr; curr = curr->next) {
             for(std::size_t i = 0; i < curr->count; i++) {
-                res->Add(new hxhim::Results::Get(curr, i));
+                res->Add(new hxhim::Results::Get(hx, curr, i));
             }
         }
         delete responses;
@@ -521,7 +487,7 @@ static hxhim::Results *delete_core(hxhim_t *hx,
         Transport::Response::BDelete *responses = hx->p->transport->BDelete(hx->p->bootstrap.size, remote);
         for(Transport::Response::BDelete *curr = responses; curr; curr = curr->next) {
             for(std::size_t i = 0; i < curr->count; i++) {
-                res->Add(new hxhim::Results::Delete(curr, i));
+                res->Add(new hxhim::Results::Delete(hx, curr, i));
             }
         }
         delete responses;
@@ -531,7 +497,7 @@ static hxhim::Results *delete_core(hxhim_t *hx,
         Transport::Response::BDelete *responses = local_client_bdelete(hx, local);
         for(Transport::Response::BDelete *curr = responses; curr; curr = curr->next) {
             for(std::size_t i = 0; i < curr->count; i++) {
-                res->Add(new hxhim::Results::Delete(curr, i));
+                res->Add(new hxhim::Results::Delete(hx, curr, i));
             }
         }
         delete responses;
@@ -561,13 +527,13 @@ hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
         return HXHIM_SUCCESS;
     }
 
-    Transport::Request::BDelete local(HXHIM_MAX_BULK_GET_OPS);
+    Transport::Request::BDelete local(HXHIM_MAX_BULK_DEL_OPS);
     local.src = hx->p->bootstrap.rank;
     local.dst = hx->p->bootstrap.rank;
 
     Transport::Request::BDelete **remote = new Transport::Request::BDelete *[hx->p->bootstrap.size](); // list of destination servers (not datastores) and messages to those destinations
     for(std::size_t i = 0; i < hx->p->bootstrap.size; i++) {
-        remote[i] = new Transport::Request::BDelete(HXHIM_MAX_BULK_GET_OPS);
+        remote[i] = new Transport::Request::BDelete(HXHIM_MAX_BULK_DEL_OPS);
         remote[i]->src = hx->p->bootstrap.rank;
         remote[i]->dst = i;
     }
@@ -664,8 +630,8 @@ hxhim::Results *hxhim::Sync(hxhim_t *hx) {
     MPI_Barrier(hx->p->bootstrap.comm);
 
     // Sync local data stores
-    for(std::size_t i = 0; i < hx->p->datastore_count; i++) {
-        res->Add(new Results::Sync(hx->p->datastores[i]->Sync()));
+    for(std::size_t i = 0; i < hx->p->datastore.count; i++) {
+        res->Add(new Results::Sync(hx, i, hx->p->datastore.datastores[i]->Sync()));
     }
 
     MPI_Barrier(hx->p->bootstrap.comm);
@@ -1282,11 +1248,11 @@ int hxhim::GetStats(hxhim_t *hx, const int rank,
                     const bool get_num_puts, std::size_t *num_puts,
                     const bool get_get_times, long double *get_times,
                     const bool get_num_gets, std::size_t *num_gets) {
-    return hx->p->datastores[0]->GetStats(rank,
-                                        get_put_times, put_times,
-                                        get_num_puts, num_puts,
-                                        get_get_times, get_times,
-                                        get_num_gets, num_gets);
+    return hx->p->datastore.datastores[0]->GetStats(rank,
+                                                    get_put_times, put_times,
+                                                    get_num_puts, num_puts,
+                                                    get_get_times, get_times,
+                                                    get_num_gets, num_gets);
 }
 
 /**
@@ -1324,25 +1290,94 @@ int hxhimGetStats(hxhim_t *hx, const int rank,
  *
  * @param hx            the HXHIM session
  * @param histogram     variable to place the histogram pointer into
- * @return HXHIM_SUCCESS or HXHIM_ERROR
+ * @return
  */
-int hxhim::GetHistogram(hxhim_t *hx, Histogram::Histogram **histogram) {
-    if (!hx || !hx->p || !histogram) {
-        return HXHIM_ERROR;
+hxhim::Results *hxhim::GetHistogram(hxhim_t *hx, const int datastore) {
+    if (!hx || !hx->p || (datastore < 0)) {
+        return nullptr;
     }
 
-    return HXHIM_ERROR;
+    Transport::Request::Histogram request;
+    request.src = hx->p->bootstrap.rank;
+    request.dst = hxhim::datastore::get_rank(hx, datastore);
+    request.ds_offset = hxhim::datastore::get_offset(hx, datastore);;
+
+    Transport::Response::Histogram *response = nullptr;
+
+    // local
+    if (request.src == request.dst) {
+        response = local_client_histogram(hx, &request);
+    }
+    // remote
+    else {
+        response = hx->p->transport->Histogram(&request);
+    }
+
+    hxhim::Results *result = new hxhim::Results();
+    result->Add(new hxhim::Results::Histogram(hx, response));
+    delete response;
+    return result;
 }
 
 /**
- * hxhimgetHistogram
- * C version of hxhim::GetHistogram
- * Converts a Histogram::Histogram pointer into a histogram_t
+ * hxhimGetHistogram
+ * Get access to the histogram
  *
  * @param hx            the HXHIM session
  * @param histogram     variable to place the histogram pointer into
- * @return HXHIM_SUCCESS or HXHIM_ERROR
+ * @return
  */
-int hxhimGetHistogram(hxhim_t *hx, histogram_t *histogram) {
-    return hxhim::GetHistogram(hx, &histogram->histogram);
+hxhim_results_t *hxhimGetHistogram(hxhim_t *hx, const int datastore) {
+    return hxhim_results_init(hxhim::GetHistogram(hx, datastore));
+}
+
+hxhim::Results *hxhim::GetBHistogram(hxhim_t *hx, const int *datastores, const std::size_t count) {
+    Transport::Request::BHistogram local(count);
+    local.src = hx->p->bootstrap.rank;
+    local.dst = hx->p->bootstrap.rank;
+
+    Transport::Request::BHistogram **remote = new Transport::Request::BHistogram *[hx->p->bootstrap.size](); // list of destination servers (not datastores) and messages to those destinations
+    for(std::size_t i = 0; i < hx->p->bootstrap.size; i++) {
+        remote[i] = new Transport::Request::BHistogram(count);
+        remote[i]->src = hx->p->bootstrap.rank;
+        remote[i]->dst = i;
+    }
+
+    // move the data into the appropriate buffers
+    for(std::size_t i = 0; i < count; i++) {
+        hxhim::shuffle::Histogram(hx, HXHIM_MAX_BULK_GET_OPS,
+                                  datastores[i],
+                                  &local, remote);
+    }
+
+    hxhim::Results *res = new hxhim::Results();
+
+    // remote requests
+    if (hx->p->bootstrap.size > 1) {
+        Transport::Response::BHistogram *responses = hx->p->transport->BHistogram(hx->p->bootstrap.size, remote);
+        for(Transport::Response::BHistogram *curr = responses; curr; curr = curr->next) {
+            for(std::size_t i = 0; i < curr->count; i++) {
+                res->Add(new hxhim::Results::Histogram(hx, curr, i));
+            }
+        }
+        delete responses;
+    }
+
+    // local request
+    if (local.count) {
+        Transport::Response::BHistogram *responses = local_client_bhistogram(hx, &local);
+        for(Transport::Response::BHistogram *curr = responses; curr; curr = curr->next) {
+            for(std::size_t i = 0; i < curr->count; i++) {
+                res->Add(new hxhim::Results::Histogram(hx, curr, i));
+            }
+        }
+        delete responses;
+    }
+
+    for(std::size_t i = 0; i < hx->p->bootstrap.size; i++) {
+        delete remote[i];
+    }
+    delete [] remote;
+
+    return res;
 }

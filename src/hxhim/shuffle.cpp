@@ -20,12 +20,12 @@ int Put(hxhim_t *hx,
         Transport::Request::BPut *local,
         Transport::Request::BPut **remote) {
     // get the destination backend id for the key
-    const int backend_id = hx->p->hash(hx, subject, subject_len, predicate, predicate_len, hx->p->hash_args);
+    const int ds_id = hx->p->hash.func(hx, subject, subject_len, predicate, predicate_len, hx->p->hash.args);
 
-    if (backend_id > -1) {
+    if (ds_id > -1) {
         // split the backend id into destination rank and ds_offset
-        const int dst = backend_id;
-        const int ds_offset = 0;
+        const int dst = hxhim::datastore::get_rank(hx, ds_id);
+        const int ds_offset = hxhim::datastore::get_offset(hx, ds_id);
 
         // group local keys
         if (dst == hx->p->bootstrap.rank) {
@@ -70,7 +70,7 @@ int Put(hxhim_t *hx,
         }
     }
 
-    return backend_id;
+    return ds_id;
 }
 
 /**
@@ -87,12 +87,12 @@ int Get(hxhim_t *hx,
         Transport::Request::BGet *local,
         Transport::Request::BGet **remote) {
     // get the destination backend id for the key
-    const int backend_id = hx->p->hash(hx, subject, subject_len, predicate, predicate_len, hx->p->hash_args);
+    const int ds_id = hx->p->hash.func(hx, subject, subject_len, predicate, predicate_len, hx->p->hash.args);
 
-    if (backend_id > -1) {
+    if (ds_id > -1) {
         // split the backend id into destination rank and ds_offset
-        const int dst = backend_id;
-        const int ds_offset = 0;
+        const int dst = hxhim::datastore::get_rank(hx, ds_id);
+        const int ds_offset = hxhim::datastore::get_offset(hx, ds_id);
 
         // group local keys
         if (dst == hx->p->bootstrap.rank) {
@@ -125,7 +125,7 @@ int Get(hxhim_t *hx,
         }
     }
 
-    return backend_id;
+    return ds_id;
 }
 
 /**
@@ -143,12 +143,12 @@ int GetOp(hxhim_t *hx,
           Transport::Request::BGetOp *local,
           Transport::Request::BGetOp **remote) {
     // get the destination backend id for the key
-    const int backend_id = hx->p->hash(hx, subject, subject_len, predicate, predicate_len, hx->p->hash_args);
+    const int ds_id = hx->p->hash.func(hx, subject, subject_len, predicate, predicate_len, hx->p->hash.args);
 
-    if (backend_id > -1) {
+    if (ds_id > -1) {
         // split the backend id into destination rank and ds_offset
-        const int dst = backend_id;
-        const int ds_offset = 0;
+        const int dst = hxhim::datastore::get_rank(hx, ds_id);
+        const int ds_offset = hxhim::datastore::get_offset(hx, ds_id);
 
         // group local keys
         if (dst == hx->p->bootstrap.rank) {
@@ -185,7 +185,7 @@ int GetOp(hxhim_t *hx,
         }
     }
 
-    return backend_id;
+    return ds_id;
 }
 
 /**
@@ -201,12 +201,12 @@ int Delete(hxhim_t *hx,
            Transport::Request::BDelete *local,
            Transport::Request::BDelete **remote) {
     // get the destination backend id for the key
-    const int backend_id = hx->p->hash(hx, subject, subject_len, predicate, predicate_len, hx->p->hash_args);
+    const int ds_id = hx->p->hash.func(hx, subject, subject_len, predicate, predicate_len, hx->p->hash.args);
 
-    if (backend_id > -1) {
+    if (ds_id > -1) {
         // split the backend id into destination rank and ds_offset
-        const int dst = backend_id;
-        const int ds_offset = 0;
+        const int dst = hxhim::datastore::get_rank(hx, ds_id);
+        const int ds_offset = hxhim::datastore::get_offset(hx, ds_id);
 
         // group local keys
         if (dst == hx->p->bootstrap.rank) {
@@ -245,7 +245,53 @@ int Delete(hxhim_t *hx,
         }
     }
 
-    return backend_id;
+    return ds_id;
+}
+
+/**
+ * Histogram
+ * Places a Histogram request into the correct buffer for sending to a backend
+ */
+int Histogram(hxhim_t *hx,
+              const std::size_t max,
+              const int ds_id,
+              Transport::Request::BHistogram *local,
+              Transport::Request::BHistogram **remote) {
+    if (ds_id > -1) {
+        // split the backend id into destination rank and ds_offset
+        const int dst = hxhim::datastore::get_rank(hx, ds_id);
+        const int ds_offset = hxhim::datastore::get_offset(hx, ds_id);
+
+        // group local keys
+        if (dst == hx->p->bootstrap.rank) {
+            if (local->count >= max) {
+                return -1;
+            }
+
+            local->ds_offsets[local->count] = ds_offset;
+            local->count++;
+        }
+        // group remote keys
+        else {
+            Transport::Request::BHistogram *&rem = remote[dst];
+
+            // if there were no previous keys going to this destination, set the initial values
+            if (!rem) {
+                rem = new Transport::Request::BHistogram(max);
+                rem->src = hx->p->bootstrap.rank;
+                rem->dst = dst;
+            }
+
+            if (rem->count >= max) {
+                return -1;
+            }
+
+            rem->ds_offsets[rem->count] = ds_offset;
+            rem->count++;
+        }
+    }
+
+    return ds_id;
 }
 
 }

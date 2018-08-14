@@ -46,6 +46,9 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup, virtual public 
         /** @description Bulk Delete to multiple endpoints */
         Response::BDelete *BDelete(const std::size_t num_rangesrvs, Request::BDelete **bdm_list);
 
+        /** @description Bulk Histogram to multiple endpoints */
+        Response::BHistogram *BHistogram(const std::size_t num_rangesrvs, Request::BHistogram **bhist_list);
+
     private:
         /**
          * Functions that perform the actual MPI calls

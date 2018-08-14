@@ -34,7 +34,7 @@ int hxhim::hash::SumModDatastores(hxhim_t *hx, void *subject, const std::size_t 
         return -1;
     }
 
-    static const int mod = hx->p->datastore_count * hx->p->bootstrap.size;
+    static const int mod = hx->p->datastore.count * hx->p->bootstrap.size;
 
     int dst = 0;
     for(std::size_t i = 0; i < subject_len; i++) {

@@ -102,7 +102,7 @@ int hxhim::GetDatastoreCount(hxhim_t *hx, std::size_t *datastore_count) {
         return HXHIM_ERROR;
     }
 
-    *datastore_count = hx->p->datastore_count;
+    *datastore_count = hx->p->datastore.count;
     return HXHIM_SUCCESS;
 }
 

@@ -176,6 +176,25 @@ int Transport::Thallium::Unpacker::unpack(Request::Delete **dm, const std::strin
     return TRANSPORT_SUCCESS;
 }
 
+int Transport::Thallium::Unpacker::unpack(Request::Histogram **hist, const std::string &buf) {
+    Request::Histogram *out = new Request::Histogram();
+    std::stringstream s(buf);
+    if (unpack(static_cast<Request::Request *>(out), s) != TRANSPORT_SUCCESS) {
+        delete out;
+        return TRANSPORT_ERROR;
+    }
+
+    // read non array data
+    if (!s
+        .read((char *) &out->ds_offset, sizeof(out->ds_offset))) {
+        delete out;
+        return TRANSPORT_ERROR;
+    }
+
+    *hist = out;
+    return TRANSPORT_SUCCESS;
+}
+
 int Transport::Thallium::Unpacker::unpack(Request::BPut **bpm, const std::string &buf) {
     Request::BPut *out = new Request::BPut();
     std::stringstream s(buf);
@@ -384,6 +403,42 @@ int Transport::Thallium::Unpacker::unpack(Request::BDelete **bdm, const std::str
     return TRANSPORT_SUCCESS;
 }
 
+
+int Transport::Thallium::Unpacker::unpack(Request::BHistogram **bhist, const std::string &buf) {
+    Request::BHistogram *out = new Request::BHistogram();
+    std::stringstream s(buf);
+    if (unpack(static_cast<Request::Request *>(out), s) != TRANSPORT_SUCCESS) {
+        delete out;
+        return TRANSPORT_ERROR;
+    }
+
+    // read non array data
+    std::size_t count = 0;
+    if (!s.read((char *) &count, sizeof(out->count))) {
+        delete out;
+        return TRANSPORT_ERROR;
+    }
+
+    // allocate space
+    if (out->alloc(count) != TRANSPORT_SUCCESS) {
+        delete out;
+        return TRANSPORT_ERROR;
+    }
+
+    for(std::size_t i = 0; i < count; i++) {
+        if (!s
+            .read((char *) &out->ds_offsets[i], sizeof(out->ds_offsets[i]))) {
+            delete out;
+            return TRANSPORT_ERROR;
+        }
+
+        out->count++;
+    }
+
+    *bhist = out;
+    return TRANSPORT_SUCCESS;
+}
+
 int Transport::Thallium::Unpacker::unpack(Response::Response **res, const std::string &buf) {
     int ret = TRANSPORT_ERROR;
     if (!res) {
@@ -505,6 +560,46 @@ int Transport::Thallium::Unpacker::unpack(Response::Delete **dm, const std::stri
     }
 
     *dm = out;
+    return TRANSPORT_SUCCESS;
+}
+
+int Transport::Thallium::Unpacker::unpack(Response::Histogram **hist, const std::string &buf) {
+    Response::Histogram *out = new Response::Histogram();
+    std::stringstream s(buf);
+    if (unpack(static_cast<Response::Response *>(out), s) != TRANSPORT_SUCCESS) {
+        delete out;
+        return TRANSPORT_ERROR;
+    }
+
+    // read non array data
+    if (!s
+        .read((char *) &out->status, sizeof(out->status))
+        .read((char *) &out->ds_offset, sizeof(out->ds_offset))) {
+        delete out;
+        return TRANSPORT_ERROR;
+    }
+
+    std::size_t size = 0;
+    if (!s
+        .read((char *) &size, sizeof(size))) {
+        delete out;
+        return TRANSPORT_ERROR;
+    }
+
+    for(std::size_t i = 0; i < size; i++) {
+        double bucket;
+        std::size_t count;
+        if (!s
+            .read((char *) &bucket, sizeof(bucket))
+            .read((char *) &count, sizeof(count))) {
+            delete out;
+            return TRANSPORT_ERROR;
+        }
+
+        out->hist[bucket] = count;
+    }
+
+    *hist = out;
     return TRANSPORT_SUCCESS;
 }
 
@@ -718,6 +813,61 @@ int Transport::Thallium::Unpacker::unpack(Response::BDelete **bdm, const std::st
     return TRANSPORT_SUCCESS;
 }
 
+int Transport::Thallium::Unpacker::unpack(Response::BHistogram **bhist, const std::string &buf) {
+    Response::BHistogram *out = new Response::BHistogram();
+    std::stringstream s(buf);
+    if (unpack(static_cast<Response::Response *>(out), s) != TRANSPORT_SUCCESS) {
+        delete out;
+        return TRANSPORT_ERROR;
+    }
+
+    // read non array data
+    std::size_t count = 0;
+    if (!s.read((char *) &count, sizeof(out->count))) {
+        delete out;
+        return TRANSPORT_ERROR;
+    }
+
+    // allocate space
+    if (out->alloc(count) != TRANSPORT_SUCCESS) {
+        delete out;
+        return TRANSPORT_ERROR;
+    }
+
+    out->count = count;
+
+    // read arrays
+    if (!s
+        .read((char *) out->ds_offsets, sizeof(*out->ds_offsets) * out->count)
+        .read((char *) out->statuses, sizeof(*out->statuses) * out->count)) {
+        return TRANSPORT_ERROR;
+    }
+
+    for(std::size_t i = 0; i < out->count; i++) {
+        std::size_t size = 0;
+        if (!s
+            .read((char *) &size, sizeof(size))) {
+            return TRANSPORT_ERROR;
+        }
+
+        for(std::size_t j = 0; j < size; j++) {
+            double bucket;
+            std::size_t count;
+            if (!s
+                .read((char *) &bucket, sizeof(bucket))
+                .read((char *) &count, sizeof(count))) {
+                delete out;
+                return TRANSPORT_ERROR;
+            }
+
+            out->hists[i][bucket] = count;
+        }
+    }
+
+    *bhist = out;
+    return TRANSPORT_SUCCESS;
+}
+
 int Transport::Thallium::Unpacker::unpack(Message **msg, const std::string &buf) {
     if (!msg) {
         return TRANSPORT_ERROR;
@@ -776,6 +926,13 @@ int Transport::Thallium::Unpacker::unpack(Request::Request **req, const std::str
         case Message::DELETE:
             {
                 Request::Delete *out = nullptr;
+                ret = unpack(&out, buf);
+                *req = out;
+            }
+            break;
+        case Message::HISTOGRAM:
+            {
+                Request::Histogram *out = nullptr;
                 ret = unpack(&out, buf);
                 *req = out;
             }
@@ -841,6 +998,13 @@ int Transport::Thallium::Unpacker::unpack(Response::Response **res, const std::s
         case Message::DELETE:
             {
                 Response::Delete *out = nullptr;
+                ret = unpack(&out, buf);
+                *res = out;
+            }
+            break;
+        case Message::HISTOGRAM:
+            {
+                Response::Histogram *out = nullptr;
                 ret = unpack(&out, buf);
                 *res = out;
             }

@@ -40,6 +40,9 @@ class Endpoint : virtual public ::Transport::Endpoint, virtual public EndpointBa
         /** @description Send a Delete to this endpoint */
         Response::Delete *Delete(const Request::Delete *message);
 
+        /** @description Send a Histogram to this endpoint */
+        Response::Histogram *Histogram(const Request::Histogram *message);
+
     private:
         /**
          * Functions that perform the actual MPI calls

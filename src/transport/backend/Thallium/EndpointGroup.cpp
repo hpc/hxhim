@@ -168,6 +168,21 @@ Transport::Response::BDelete *Transport::Thallium::EndpointGroup::BDelete(const 
     return nullptr;
 }
 
+/**
+ * BHistogram
+ *
+ * @param num_rangesrvs the total number of range servers
+ * @param bdm_list the list of BDELETE messages to send
+ * @return a linked list of response messages, or nullptr
+ */
+Transport::Response::BHistogram *Transport::Thallium::EndpointGroup::BHistogram(const std::size_t num_rangesrvs, Request::BHistogram **bhist_list) {
+    // Message **messages = convert_to_base(num_rangesrvs, bhist_list);
+    // Transport::Response::BHistogram *ret = return_brm(num_rangesrvs, messages);
+    // delete [] messages;
+    // return ret;
+    return nullptr;
+}
+
 // /**
 //  * return_brm
 //  *

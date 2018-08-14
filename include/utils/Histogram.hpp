@@ -19,8 +19,7 @@ const int ERROR = -1;
 class BucketGen {
     public:
         // Alias of function type which takes in a list of values, the histogram variable to fill in, and extra arguments the function needs
-        typedef std::function<int(const std::list<double>&, std::map<double, std::size_t> &, void *)> generator;
-        // typedef int (*generator)(const std::list<double>&, std::map<double, std::size_t> &, void *);
+        typedef std::function<int(const std::list<double> &, std::map<double, std::size_t> &, void *)> generator;
 
         static int n_buckets                   (const std::list<double> &values, std::map<double, std::size_t> &histogram, void *extra);
         static int square_root_choice          (const std::list<double> &values, std::map<double, std::size_t> &histogram, void *extra);
@@ -39,7 +38,9 @@ class BucketGen {
  */
 class Histogram {
     public:
+        // Histogram(const std::map<double, std::size_t> &hist);
         Histogram(const std::size_t use_first_n, const BucketGen::generator &generator, void *extra_args);
+        virtual ~Histogram();
 
         // Add a value to the histogram
         int add(const double &value);

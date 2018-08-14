@@ -2,7 +2,6 @@
 #include <limits>
 #include <stdexcept>
 
-#include "utils/Histogram.h"
 #include "utils/Histogram.hpp"
 
 static int minmax(const std::list<double> &values, double &min, double &max) {
@@ -146,6 +145,8 @@ Histogram::Histogram(const std::size_t use_first_n, const BucketGen::generator &
     }
 }
 
+Histogram::~Histogram() {}
+
 /**
  * add
  * If there are not enough values (< limit), adds a value
@@ -210,48 +211,4 @@ int Histogram::insert(const double &value) {
     return SUCCESS;
 }
 
-}
-
-const int HISTOGRAM_SUCCESS = Histogram::SUCCESS;
-const int HISTOGRAM_ERROR   = Histogram::ERROR;
-
-/**
- * histogram_get_bucket_count
- * Gets the number of buckets there are in the histogram.
- * count will be set to 0 if there are not enough values in
- * the histogram yet.
- *
- * @param h      the histogram
- * @param count  address to fill with the number of buckets there are
- * @return       HISTOGRAM_SUCCESS or HISTOGRAM_ERROR
- */
-int histogram_get_bucket_count(histogram_t *histogram, size_t *count) {
-    if (!histogram || !count) {
-        return HISTOGRAM_ERROR;
-    }
-
-    *count = histogram->histogram->get().size();
-    return HISTOGRAM_SUCCESS;
-}
-
-/**
- * histogram_get_buckets
- * The buckets should be allocated by the caller
- *
- * @param h       the histogram
- * @param buckets preallocated array to place buckets into
- * @return        HISTOGRAM_SUCCESS or HISTOGRAM_ERROR
- */
-int histogram_get_buckets(histogram_t *histogram, histogram_bucket_t *buckets) {
-    if (!histogram || !buckets) {
-        return HISTOGRAM_ERROR;
-    }
-
-    for(std::pair<const double, std::size_t> bucket : histogram->histogram->get()) {
-        buckets->left = bucket.first;
-        buckets->count = bucket.second;
-        buckets++;
-    }
-
-    return HISTOGRAM_SUCCESS;
 }

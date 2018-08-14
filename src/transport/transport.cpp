@@ -99,6 +99,21 @@ Response::Delete *Transport::Delete(const Request::Delete *dm) {
 }
 
 /**
+ * Histogram
+ * Sends a histogram message onto the the underlying transport
+ *
+ * @param hist the HISTOGRAM message
+ * @return the response from the range server
+ */
+Response::Histogram *Transport::Histogram(const Request::Histogram *hist) {
+    if (!hist) {
+        return nullptr;
+    }
+    EndpointMapping_t::iterator it = endpoints_.find(hist->dst);
+    return (it == endpoints_.end())?nullptr:it->second->Histogram(hist);
+}
+
+/**
  * BPut
  * Bulk Put to multiple endpoints
  *
@@ -144,6 +159,18 @@ Response::BGetOp *Transport::BGetOp(const std::size_t num_rangesrvs, Request::BG
  */
 Response::BDelete *Transport::BDelete(const std::size_t num_rangesrvs, Request::BDelete **bdm_list) {
     return (bdm_list && endpointgroup_)?endpointgroup_->BDelete(num_rangesrvs, bdm_list):nullptr;
+}
+
+/**
+ * BHistogram
+ * Bulk Histogram to multiple endpoints
+ *
+ * @param num_rangesrvs the total number of range servers
+ * @param bdm_list a list of HISTOGRAM messages going to different servers
+ * @return the response from the range server
+ */
+Response::BHistogram *Transport::BHistogram(const std::size_t num_rangesrvs, Request::BHistogram **bdm_list) {
+    return (bdm_list && endpointgroup_)?endpointgroup_->BHistogram(num_rangesrvs, bdm_list):nullptr;
 }
 
 }

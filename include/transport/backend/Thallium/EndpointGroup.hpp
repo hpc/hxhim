@@ -44,13 +44,10 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup {
         /** @description Bulk Delete to multiple endpoints */
         Response::BDelete *BDelete(const std::size_t num_rangesrvs, Request::BDelete **bdm_list);
 
+        /** @description Bulk Histogram to multiple endpoints */
+        Response::BHistogram *BHistogram(const std::size_t num_rangesrvs, Request::BHistogram **bhist_list);
+
     private:
-        // /** @description Function used by BPUT and BDELETE for sending and receiving messages */
-        // TransportBRecvMessage *return_brm(const std::size_t num_rangesrvs, TransportMessage **messages);
-
-        // /** @description Function used by BGET for sending and receiving messages             */
-        // TransportBGetRecvMessage *return_bgrm(const std::size_t num_rangesrvs, TransportMessage **messages);
-
         RPC_t rpc_;
 
         std::map<int, Endpoint_t> endpoints_;

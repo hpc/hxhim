@@ -20,30 +20,34 @@ namespace Thallium {
  */
 class Packer {
     public:
-        static int any (const Message            *msg,  std::string &buf);
+        static int any (const Message              *msg,   std::string &buf);
 
-        static int pack(const Request::Request   *req,  std::string &buf);
-        static int pack(const Request::Put       *pm,   std::string &buf);
-        static int pack(const Request::Get       *gm,   std::string &buf);
-        static int pack(const Request::Delete    *dm,   std::string &buf);
-        static int pack(const Request::BPut      *bpm,  std::string &buf);
-        static int pack(const Request::BGet      *bgm,  std::string &buf);
-        static int pack(const Request::BGetOp    *bgm,  std::string &buf);
-        static int pack(const Request::BDelete   *bdm,  std::string &buf);
+        static int pack(const Request::Request     *req,   std::string &buf);
+        static int pack(const Request::Put         *pm,    std::string &buf);
+        static int pack(const Request::Get         *gm,    std::string &buf);
+        static int pack(const Request::Delete      *dm,    std::string &buf);
+        static int pack(const Request::Histogram   *hist,  std::string &buf);
+        static int pack(const Request::BPut        *bpm,   std::string &buf);
+        static int pack(const Request::BGet        *bgm,   std::string &buf);
+        static int pack(const Request::BGetOp      *bgm,   std::string &buf);
+        static int pack(const Request::BDelete     *bdm,   std::string &buf);
+        static int pack(const Request::BHistogram  *bhist, std::string &buf);
 
-        static int pack(const Response::Response *res,  std::string &buf);
-        static int pack(const Response::Put      *pm,   std::string &buf);
-        static int pack(const Response::Get      *gm,   std::string &buf);
-        static int pack(const Response::Delete   *dm,   std::string &buf);
-        static int pack(const Response::BPut     *bpm,  std::string &buf);
-        static int pack(const Response::BGet     *bgm,  std::string &buf);
-        static int pack(const Response::BGetOp   *bgm,  std::string &buf);
-        static int pack(const Response::BDelete  *bdm,  std::string &buf);
+        static int pack(const Response::Response   *res,   std::string &buf);
+        static int pack(const Response::Put        *pm,    std::string &buf);
+        static int pack(const Response::Get        *gm,    std::string &buf);
+        static int pack(const Response::Delete     *dm,    std::string &buf);
+        static int pack(const Response::Histogram  *hist,  std::string &buf);
+        static int pack(const Response::BPut       *bpm,   std::string &buf);
+        static int pack(const Response::BGet       *bgm,   std::string &buf);
+        static int pack(const Response::BGetOp     *bgm,   std::string &buf);
+        static int pack(const Response::BDelete    *bdm,   std::string &buf);
+        static int pack(const Response::BHistogram *bhist, std::string &buf);
 
     private:
-        static int pack(const Message            *msg, std::stringstream &s);
-        static int pack(const Request::Request   *req, std::stringstream &s);
-        static int pack(const Response::Response *res, std::stringstream &s);
+        static int pack(const Message              *msg,   std::stringstream &s);
+        static int pack(const Request::Request     *req,   std::stringstream &s);
+        static int pack(const Response::Response   *res,   std::stringstream &s);
 };
 
 }

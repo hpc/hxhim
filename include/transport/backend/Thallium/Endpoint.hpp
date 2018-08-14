@@ -36,6 +36,9 @@ class Endpoint : virtual public ::Transport::Endpoint {
         /** @description Send a Delete to this endpoint */
         Response::Delete *Delete(const Request::Delete *message);
 
+        /** @description Send a Histogram to this endpoint */
+        Response::Histogram *Histogram(const Request::Histogram *message);
+
     private:
         /**
          * do_operation

@@ -47,6 +47,17 @@ Response::Delete *Endpoint::Delete(const Request::Delete *message) {
     return do_operation<Request::Delete, Response::Delete>(message);
 }
 
+/**
+ * Histogram
+ * Sends a Request::Histogram to the other end of the endpoint
+ *
+ * @param request the initiating HISTOGRAM message
+ * @return a pointer to the response of the HISTOGRAM operation
+ */
+Response::Histogram *Endpoint::Histogram(const Request::Histogram *message) {
+    return do_operation<Request::Histogram, Response::Histogram>(message);
+}
+
 int Endpoint::send(void *data, const std::size_t len) {
     MPI_Request request;
 

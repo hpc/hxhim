@@ -78,5 +78,16 @@ Response::BDelete *EndpointGroup::BDelete(const std::size_t num_rangesrvs, Reque
     return return_msgs<Response::BDelete>(num_rangesrvs, bdm_list);
 }
 
+/**
+ * BHistogram
+ *
+ * @param num_rangesrvs the total number of range servers
+ * @param bdm_list the list of BDELETE messages to send
+ * @return a linked list of response messages, or nullptr
+ */
+Response::BHistogram *EndpointGroup::BHistogram(const std::size_t num_rangesrvs, Request::BHistogram **bhist_list) {
+    return return_msgs<Response::BHistogram>(num_rangesrvs, bhist_list);
+}
+
 }
 }

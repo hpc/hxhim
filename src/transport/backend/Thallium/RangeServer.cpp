@@ -23,7 +23,7 @@ void Transport::Thallium::RangeServer::process(const thallium::request &req, con
     }
 
     // process the message
-    Response::Response *response = range_server(hx_, request);
+    Response::Response *response = hxhim::range_server::range_server(hx_, request);
 
     // pack the response
     std::string str;

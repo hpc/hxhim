@@ -30,6 +30,7 @@ struct Message {
         BDELETE,
         SYNC,
         HISTOGRAM,
+        BHISTOGRAM,
     };
 
     Message(const Direction dir, const Type type);

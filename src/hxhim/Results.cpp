@@ -5,7 +5,6 @@
 #include "hxhim/Results_private.hpp"
 #include "hxhim/private.hpp"
 #include "utils/elen.hpp"
-#include "utils/reverse_bytes.h"
 
 namespace hxhim {
 
@@ -27,20 +26,20 @@ int Results::Result::GetStatus() const {
     return status;
 }
 
-Results::Put::Put(Transport::Response::Put *put)
+Results::Put::Put(hxhim_t *hx, Transport::Response::Put *put)
     : Result(hxhim_result_type::HXHIM_RESULT_PUT)
 {
     if (put) {
-        datastore = put->src + put->ds_offset;
+        datastore = hxhim::datastore::get_id(hx, put->src, put->ds_offset);
         status = put->status;
     }
 }
 
-Results::Put::Put(Transport::Response::BPut *bput, const std::size_t i)
+Results::Put::Put(hxhim_t *hx, Transport::Response::BPut *bput, const std::size_t i)
     : Result(hxhim_result_type::HXHIM_RESULT_PUT)
 {
     if (bput && (i < bput->count)) {
-        datastore = bput->src + bput->ds_offsets[i];
+        datastore = hxhim::datastore::get_id(hx, bput->src, bput->ds_offsets[i]);
         status = bput->statuses[i];
     }
 }
@@ -54,11 +53,11 @@ Results::Get::Get()
       obj_type(), obj(nullptr), obj_len(0)
 {}
 
-Results::Get::Get(Transport::Response::Get *get)
+Results::Get::Get(hxhim_t *hx, Transport::Response::Get *get)
     : Get()
 {
     if (get) {
-        datastore = get->src + get->ds_offset;
+        datastore = hxhim::datastore::get_id(hx, get->src, get->ds_offset);
         status = get->status;
         sub = get->subject;
         sub_len = get->subject_len;
@@ -70,11 +69,11 @@ Results::Get::Get(Transport::Response::Get *get)
     }
 }
 
-Results::Get::Get(Transport::Response::BGet *bget, const std::size_t i)
+Results::Get::Get(hxhim_t *hx, Transport::Response::BGet *bget, const std::size_t i)
     : Get()
 {
     if (bget && (i < bget->count)) {
-        datastore = bget->src + bget->ds_offsets[i];
+        datastore = hxhim::datastore::get_id(hx, bget->src, bget->ds_offsets[i]);
         status = bget->statuses[i];
         sub = std::move(bget->subjects[i]);
         sub_len = std::move(bget->subject_lens[i]);
@@ -86,11 +85,11 @@ Results::Get::Get(Transport::Response::BGet *bget, const std::size_t i)
     }
 }
 
-Results::Get::Get(Transport::Response::BGetOp *bgetop, const std::size_t i)
+Results::Get::Get(hxhim_t *hx, Transport::Response::BGetOp *bgetop, const std::size_t i)
     : Get()
 {
     if (bgetop && (i < bgetop->count)) {
-        datastore = bgetop->src + bgetop->ds_offsets[i];
+        datastore = hxhim::datastore::get_id(hx, bgetop->src, bgetop->ds_offsets[i]);
         status = bgetop->statuses[i];
         sub = std::move(bgetop->subjects[i]);
         sub_len = std::move(bgetop->subject_lens[i]);
@@ -148,33 +147,62 @@ int Results::Get::GetObject(void **object, std::size_t *object_len) const {
     return HXHIM_SUCCESS;
 }
 
-Results::Delete::Delete(Transport::Response::Delete *del)
+Results::Delete::Delete(hxhim_t *hx, Transport::Response::Delete *del)
     : Result(hxhim_result_type::HXHIM_RESULT_DEL)
 {
     if (del) {
-        datastore = del->src + del->ds_offset;
+        datastore = hxhim::datastore::get_id(hx, del->src, del->ds_offset);
         status = del->status;
     }
 }
 
-Results::Delete::Delete(Transport::Response::BDelete *bdel, const std::size_t i)
+Results::Delete::Delete(hxhim_t *hx, Transport::Response::BDelete *bdel, const std::size_t i)
     : Result(hxhim_result_type::HXHIM_RESULT_DEL)
 {
     if (bdel && (i < bdel->count)) {
-        datastore = bdel->src + bdel->ds_offsets[i];
+        datastore = hxhim::datastore::get_id(hx, bdel->src, bdel->ds_offsets[i]);
         status = bdel->statuses[i];
     }
 }
 
 Results::Delete::~Delete() {}
 
-Results::Sync::Sync(const int synced)
+Results::Sync::Sync(hxhim_t *hx, const int ds_offset, const int synced)
     : Result(hxhim_result_type::HXHIM_RESULT_SYNC)
 {
+    datastore = hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, ds_offset);
     status = synced;
 }
 
 Results::Sync::~Sync() {}
+
+Results::Histogram::Histogram(hxhim_t *hx, Transport::Response::Histogram *hist)
+    : Result(hxhim_result_type::HXHIM_RESULT_HISTOGRAM),
+      histogram()
+{
+    if (hist) {
+        datastore = hxhim::datastore::get_id(hx, hist->src, hist->ds_offset);
+        histogram = hist->hist;
+        status = hist->status;
+    }
+}
+
+Results::Histogram::Histogram(hxhim_t *hx, Transport::Response::BHistogram *bhist, const std::size_t i)
+    : Result(hxhim_result_type::HXHIM_RESULT_HISTOGRAM),
+      histogram()
+{
+    if (bhist && (i < bhist->count)) {
+        datastore = hxhim::datastore::get_id(hx, bhist->src, bhist->ds_offsets[i]);
+        histogram = bhist->hists[i];
+        status = bhist->statuses[i];
+    }
+}
+
+Results::Histogram::~Histogram() {}
+
+const std::map<double, std::size_t> &Results::Histogram::GetHistogram() const {
+    return histogram;
+}
 
 Results::Results()
     : results(),

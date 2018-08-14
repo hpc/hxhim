@@ -39,6 +39,9 @@ int Packer::pack(const MPI_Comm comm, const Request::Request *req, void **buf, s
         case Message::DELETE:
             ret = pack(comm, static_cast<const Request::Delete *>(req), buf, bufsize, fbp);
             break;
+        case Message::HISTOGRAM:
+            ret = pack(comm, static_cast<const Request::Histogram *>(req), buf, bufsize, fbp);
+            break;
         case Message::BPUT:
             ret = pack(comm, static_cast<const Request::BPut *>(req), buf, bufsize, fbp);
             break;
@@ -114,6 +117,21 @@ int Packer::pack(const MPI_Comm comm, const Request::Delete *dm, void **buf, std
         (MPI_Pack(dm->subject, dm->subject_len, MPI_CHAR, *buf, *bufsize, &position, comm)                  != MPI_SUCCESS) ||
         (MPI_Pack(dm->predicate, dm->predicate_len, MPI_CHAR, *buf, *bufsize, &position, comm)              != MPI_SUCCESS)) {
         cleanup(buf, bufsize, fbp);
+        return TRANSPORT_ERROR;
+    }
+
+    *bufsize = position;
+
+    return TRANSPORT_SUCCESS;
+}
+
+int Packer::pack(const MPI_Comm comm, const Request::Histogram *hist, void **buf, std::size_t *bufsize, FixedBufferPool *fbp) {
+    int position = 0;
+    if (pack(comm, static_cast<const Request::Request *>(hist), buf, bufsize, &position, fbp) != TRANSPORT_SUCCESS) {
+        return TRANSPORT_ERROR;
+    }
+
+    if (MPI_Pack(&hist->ds_offset, 1, MPI_INT, *buf, *bufsize, &position, comm)               != MPI_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
@@ -238,6 +256,29 @@ int Packer::pack(const MPI_Comm comm, const Request::BDelete *bdm, void **buf, s
     return TRANSPORT_SUCCESS;
 }
 
+int Packer::pack(const MPI_Comm comm, const Request::BHistogram *bhist, void **buf, std::size_t *bufsize, FixedBufferPool *fbp) {
+    int position = 0;
+    if (pack(comm, static_cast<const Request::Request *>(bhist), buf, bufsize, &position, fbp)   != TRANSPORT_SUCCESS) {
+        return TRANSPORT_ERROR;
+    }
+
+    if (MPI_Pack(&bhist->count, sizeof(bhist->count), MPI_CHAR, *buf, *bufsize, &position, comm) != MPI_SUCCESS) {
+        cleanup(buf, bufsize, fbp);
+        return TRANSPORT_ERROR;
+    }
+
+    for(std::size_t i = 0; i < bhist->count; i++) {
+        if (MPI_Pack(&bhist->ds_offsets[i], 1, MPI_INT, *buf, *bufsize, &position, comm)         != MPI_SUCCESS) {
+            cleanup(buf, bufsize, fbp);
+            return TRANSPORT_ERROR;
+        }
+    }
+
+    *bufsize = position;
+
+    return TRANSPORT_SUCCESS;
+}
+
 int Packer::pack(const MPI_Comm comm, const Response::Response *res, void **buf, std::size_t *bufsize, FixedBufferPool *fbp) {
     int ret = TRANSPORT_ERROR;
     if (!res) {
@@ -253,6 +294,9 @@ int Packer::pack(const MPI_Comm comm, const Response::Response *res, void **buf,
             break;
         case Message::DELETE:
             ret = pack(comm, static_cast<const Response::Delete *>(res), buf, bufsize, fbp);
+            break;
+        case Message::HISTOGRAM:
+            ret = pack(comm, static_cast<const Response::Histogram *>(res), buf, bufsize, fbp);
             break;
         case Message::BPUT:
             ret = pack(comm, static_cast<const Response::BPut *>(res), buf, bufsize, fbp);
@@ -331,6 +375,37 @@ int Packer::pack(const MPI_Comm comm, const Response::Delete *dm, void **buf, st
         (MPI_Pack(&dm->status, sizeof(dm->status), MPI_CHAR, *buf, *bufsize, &position, comm) != MPI_SUCCESS)) {
         cleanup(buf, bufsize, fbp);
         return TRANSPORT_ERROR;
+    }
+
+    *bufsize = position;
+
+    return TRANSPORT_SUCCESS;
+}
+
+int Packer::pack(const MPI_Comm comm, const Response::Histogram *hist, void **buf, std::size_t *bufsize, FixedBufferPool *fbp) {
+    int position = 0;
+    if (pack(comm, static_cast<const Response::Response *>(hist), buf, bufsize, &position, fbp)           != TRANSPORT_SUCCESS) {
+        return TRANSPORT_ERROR;
+    }
+
+    if ((MPI_Pack(&hist->ds_offset, 1, MPI_INT, *buf, *bufsize, &position, comm)                          != MPI_SUCCESS) ||
+        (MPI_Pack(&hist->status, sizeof(hist->status), MPI_CHAR, *buf, *bufsize, &position, comm)         != MPI_SUCCESS)) {
+        cleanup(buf, bufsize, fbp);
+        return TRANSPORT_ERROR;
+    }
+
+    const std::size_t size = hist->hist.size();
+    if (MPI_Pack(&size, sizeof(size), MPI_CHAR, *buf, *bufsize, &position, comm)                          != MPI_SUCCESS) {
+        cleanup(buf, bufsize, fbp);
+        return TRANSPORT_ERROR;
+    }
+
+    for(std::pair<const double, std::size_t> const &bucket : hist->hist) {
+        if ((MPI_Pack(&bucket.first, 1, MPI_DOUBLE, *buf, *bufsize, &position, comm)                      != MPI_SUCCESS) ||
+            (MPI_Pack(&bucket.second, sizeof(bucket.second), MPI_CHAR, *buf, *bufsize, &position, comm)   != MPI_SUCCESS)) {
+            cleanup(buf, bufsize, fbp);
+            return TRANSPORT_ERROR;
+        }
     }
 
     *bufsize = position;
@@ -462,6 +537,44 @@ int Packer::pack(const MPI_Comm comm, const Response::BDelete *bdm, void **buf, 
     return TRANSPORT_SUCCESS;
 }
 
+int Packer::pack(const MPI_Comm comm, const Response::BHistogram *bhist, void **buf, std::size_t *bufsize, FixedBufferPool *fbp) {
+    int position = 0;
+    if (pack(comm, static_cast<const Response::Response *>(bhist), buf, bufsize, &position, fbp)                  != TRANSPORT_SUCCESS) {
+        return TRANSPORT_ERROR;
+    }
+
+    if (MPI_Pack(&bhist->count, sizeof(bhist->count), MPI_CHAR, *buf, *bufsize, &position, comm)                  != MPI_SUCCESS) {
+        cleanup(buf, bufsize, fbp);
+        return TRANSPORT_ERROR;
+    }
+
+    for(std::size_t i = 0; i < bhist->count; i++) {
+        if ((MPI_Pack(&bhist->ds_offsets[i], 1, MPI_INT, *buf, *bufsize, &position, comm)                         != MPI_SUCCESS) ||
+            (MPI_Pack(&bhist->statuses[i], sizeof(bhist->statuses[i]), MPI_CHAR, *buf, *bufsize, &position, comm) != MPI_SUCCESS)) {
+            cleanup(buf, bufsize, fbp);
+            return TRANSPORT_ERROR;
+        }
+
+        const std::size_t size = bhist->hists[i].size();
+        if (MPI_Pack(&size, sizeof(size), MPI_CHAR, *buf, *bufsize, &position, comm)                              != MPI_SUCCESS) {
+            cleanup(buf, bufsize, fbp);
+            return TRANSPORT_ERROR;
+        }
+
+        for(std::pair<const double, std::size_t> const &bucket : bhist->hists[i]) {
+            if ((MPI_Pack(&bucket.first, 1, MPI_DOUBLE, *buf, *bufsize, &position, comm)                          != MPI_SUCCESS) ||
+                (MPI_Pack(&bucket.second, sizeof(bucket.second), MPI_CHAR, *buf, *bufsize, &position, comm)       != MPI_SUCCESS)) {
+                cleanup(buf, bufsize, fbp);
+                return TRANSPORT_ERROR;
+            }
+        }
+    }
+
+    *bufsize = position;
+
+    return TRANSPORT_SUCCESS;
+}
+
 int Packer::pack(const MPI_Comm comm, const Message *msg, void **buf, std::size_t *bufsize, int *position, FixedBufferPool *fbp) {
     // *bufsize should have been set
     if (!msg || !buf || !bufsize || !position) {
@@ -469,7 +582,7 @@ int Packer::pack(const MPI_Comm comm, const Message *msg, void **buf, std::size_
     }
 
     // Allocate the buffer
-    *bufsize = msg->size() + sizeof(*bufsize);
+    *bufsize = msg->size();
     if (!(*buf = fbp->acquire(*bufsize))) {
         return TRANSPORT_ERROR;
     }
@@ -477,7 +590,6 @@ int Packer::pack(const MPI_Comm comm, const Message *msg, void **buf, std::size_
     // Pack the comment fields
     if ((MPI_Pack(&msg->direction, sizeof(msg->direction), MPI_CHAR, *buf, *bufsize, position, comm) != MPI_SUCCESS) ||
         (MPI_Pack(&msg->type,      sizeof(msg->type),      MPI_CHAR, *buf, *bufsize, position, comm) != MPI_SUCCESS) ||
-        (MPI_Pack(bufsize,         sizeof(*bufsize),       MPI_CHAR, *buf, *bufsize, position, comm) != MPI_SUCCESS) ||
         (MPI_Pack(&msg->src,       1,                      MPI_INT,  *buf, *bufsize, position, comm) != MPI_SUCCESS) ||
         (MPI_Pack(&msg->dst,       1,                      MPI_INT,  *buf, *bufsize, position, comm) != MPI_SUCCESS)) {
         cleanup(buf, bufsize, fbp);

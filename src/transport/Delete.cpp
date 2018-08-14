@@ -26,7 +26,7 @@ std::size_t Transport::Request::Delete::size() const {
 Transport::Response::Delete::Delete()
     : Response(Message::DELETE),
       Single(),
-      status(TRANSPORT_ERROR)
+      status(HXHIM_ERROR)
 {}
 
 Transport::Response::Delete::~Delete()

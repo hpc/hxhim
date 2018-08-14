@@ -6,6 +6,7 @@
 #include "hxhim/config.hpp"
 #include "hxhim/constants.h"
 #include "hxhim/options.h"
+#include "hxhim/options.hpp"
 #include "hxhim/struct.h"
 #include "utils/Histogram.hpp"
 
@@ -17,9 +18,6 @@ int OpenOne(hxhim_t *hx, hxhim_options_t *opts, const std::string &db_path);
 
 /** @description Stops an HXHIM instance */
 int Close(hxhim_t *hx);
-
-/** @description Flushes the internal statistics */
-int StatFlush(hxhim_t *hx);
 
 /** @description Functions for flushing HXHIM queues */
 Results *FlushPuts(hxhim_t *hx);
@@ -76,7 +74,8 @@ int GetStats(hxhim_t *hx, const int rank,
              const bool get_get_times, long double *get_times,
              const bool get_num_gets, std::size_t *num_gets);
 
-int GetHistogram(hxhim_t *hx, Histogram::Histogram **histogram);
+hxhim::Results *GetHistogram(hxhim_t *hx, const int datastore);
+hxhim::Results *GetBHistogram(hxhim_t *hx, const int *datastores, const std::size_t count);
 
 }
 

@@ -33,8 +33,10 @@ typedef struct hxhim_private {
     hxhim::Unsent<hxhim::GetOpData> getops;
     hxhim::Unsent<hxhim::DeleteData> deletes;
 
-    hxhim::datastore::Datastore **datastores;                  // fixed array of datastores mapped by rank and index: f(rank, index) -> datastore ID
-    std::size_t datastore_count;                               // number of datastores in this process
+    struct {
+        hxhim::datastore::Datastore **datastores;              // fixed array of datastores mapped by rank and index: f(rank, index) -> datastore ID
+        std::size_t count;                                     // number of datastores in this process
+    } datastore;
 
     // asynchronous PUT data
     struct {
@@ -44,8 +46,10 @@ typedef struct hxhim_private {
         hxhim::Results *results;                               // the list of of PUT results
     } async_put;
 
-    hxhim_hash_t hash;                                         // the function used to determine which datastore should be used to perform an operation with
-    void *hash_args;                                           // extra arguments to pass into the hash function
+    struct {
+        hxhim_hash_t func;                                     // the function used to determine which datastore should be used to perform an operation with
+        void *args;                                            // extra arguments to pass into the hash function
+    } hash;
 
     // Transport variables
     Transport::Transport *transport;

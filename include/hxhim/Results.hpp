@@ -3,10 +3,12 @@
 
 #include <cstddef>
 #include <list>
+#include <map>
 #include <memory>
 
 #include "hxhim/Results.h"
 #include "hxhim/constants.h"
+#include "hxhim/struct.h"
 #include "transport/Messages.hpp"
 
 namespace hxhim {
@@ -71,17 +73,17 @@ class Results {
         /** @description Convenience class for PUT results */
         class Put : public Result {
             public:
-                Put(Transport::Response::Put *put);
-                Put(Transport::Response::BPut *bput, const std::size_t i);
+                Put(hxhim_t *hx, Transport::Response::Put *put);
+                Put(hxhim_t *hx, Transport::Response::BPut *bput, const std::size_t i);
                 virtual ~Put();
         };
 
         /** @description Convenience class for GET results */
         class Get : public Result {
             public:
-                Get(Transport::Response::Get *get);
-                Get(Transport::Response::BGet *bget, const std::size_t i);
-                Get(Transport::Response::BGetOp *bgetop, const std::size_t i);
+                Get(hxhim_t *hx, Transport::Response::Get *get);
+                Get(hxhim_t *hx, Transport::Response::BGet *bget, const std::size_t i);
+                Get(hxhim_t *hx, Transport::Response::BGetOp *bgetop, const std::size_t i);
                 virtual ~Get();
 
                 hxhim_type_t GetObjectType() const;
@@ -108,16 +110,29 @@ class Results {
         /** @description Convenience class for DEL results */
         class Delete : public Result {
             public:
-                Delete(Transport::Response::Delete *del);
-                Delete(Transport::Response::BDelete *bdel, const std::size_t i);
+                Delete(hxhim_t *hx, Transport::Response::Delete *del);
+                Delete(hxhim_t *hx, Transport::Response::BDelete *bdel, const std::size_t i);
                 virtual ~Delete();
         };
 
         /** @description Convenience class for SYNC results */
         class Sync : public Result {
             public:
-                Sync(const int synced);
+                Sync(hxhim_t *hx, const int ds_offset, const int synced);
                 ~Sync();
+        };
+
+        /** @description Convenience class for HISTOGRAM results */
+        class Histogram : public Result {
+            public:
+                Histogram(hxhim_t *hx, Transport::Response::Histogram *hist);
+                Histogram(hxhim_t *hx, Transport::Response::BHistogram *bhist, const std::size_t i);
+                ~Histogram();
+
+                const std::map<double, std::size_t> &GetHistogram() const;
+
+            private:
+                std::map<double, std::size_t> histogram;
         };
 
     public:

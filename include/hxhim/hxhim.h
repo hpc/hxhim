@@ -12,7 +12,6 @@
 #include "hxhim/constants.h"
 #include "hxhim/options.h"
 #include "hxhim/struct.h"
-#include "utils/Histogram.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -25,9 +24,6 @@ int hxhimOpenOne(hxhim_t *hx, hxhim_options_t *opts, const char *db_path, const 
 
 /** @description Stops an HXHIM instance */
 int hxhimClose(hxhim_t *hx);
-
-/** @description Flushes the internal statistics */
-int hxhimStatFlush(hxhim_t *hx);
 
 /** @description Functiosn for flushing HXHIM queues */
 hxhim_results_t *hxhimFlushPuts(hxhim_t *hx);
@@ -84,7 +80,7 @@ int hxhimGetStats(hxhim_t *hx, const int rank,
                   const int get_get_times, long double *get_times,
                   const int get_num_gets, size_t *num_gets);
 
-int hxhimGetHistogram(hxhim_t *hx, histogram_t *histogram);
+hxhim_results_t *hxhimGetHistogram(hxhim_t *hx, const int datastore);
 
 #ifdef __cplusplus
 }

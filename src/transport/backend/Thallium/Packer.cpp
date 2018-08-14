@@ -39,6 +39,9 @@ int Packer::pack(const Request::Request *req, std::string &buf) {
         case Message::DELETE:
             ret = pack(static_cast<const Request::Delete *>(req), buf);
             break;
+        case Message::HISTOGRAM:
+            ret = pack(static_cast<const Request::Histogram *>(req), buf);
+            break;
         case Message::BPUT:
             ret = pack(static_cast<const Request::BPut *>(req), buf);
             break;
@@ -112,6 +115,21 @@ int Packer::pack(const Request::Delete *dm, std::string &buf) {
         .write((char *) &dm->predicate_len, sizeof(dm->predicate_len))
         .write((char *) dm->subject, dm->subject_len)
         .write((char *) dm->predicate, dm->predicate_len)) {
+        return TRANSPORT_ERROR;
+    }
+
+    buf = s.str();
+    return TRANSPORT_SUCCESS;
+}
+
+int Packer::pack(const Request::Histogram *hist, std::string &buf) {
+    std::stringstream s;
+    if (pack(static_cast<const Request::Request *>(hist), s) != TRANSPORT_SUCCESS) {
+        return TRANSPORT_ERROR;
+    }
+
+    if (!s
+        .write((char *) &hist->ds_offset, sizeof(hist->ds_offset))) {
         return TRANSPORT_ERROR;
     }
 
@@ -226,6 +244,27 @@ int Packer::pack(const Request::BDelete *bdm, std::string &buf) {
     return TRANSPORT_SUCCESS;
 }
 
+int Packer::pack(const Request::BHistogram *bhist, std::string &buf) {
+    std::stringstream s;
+    if (pack(static_cast<const Request::Request *>(bhist), s) != TRANSPORT_SUCCESS) {
+        return TRANSPORT_ERROR;
+    }
+
+    if (!s.write((char *) &bhist->count, sizeof(bhist->count))) {
+        return TRANSPORT_ERROR;
+    }
+
+    for(std::size_t i = 0; i < bhist->count; i++) {
+        if (!s
+            .write((char *) &bhist->ds_offsets[i], sizeof(bhist->ds_offsets[i]))) {
+            return TRANSPORT_ERROR;
+        }
+    }
+
+    buf = s.str();
+    return TRANSPORT_SUCCESS;
+}
+
 int Packer::pack(const Response::Response *res, std::string &buf) {
     int ret = TRANSPORT_ERROR;
     if (!res) {
@@ -241,6 +280,9 @@ int Packer::pack(const Response::Response *res, std::string &buf) {
             break;
         case Message::DELETE:
             ret = pack(static_cast<const Response::Delete *>(res), buf);
+            break;
+        case Message::HISTOGRAM:
+            ret = pack(static_cast<const Response::Histogram *>(res), buf);
             break;
         case Message::BPUT:
             ret = pack(static_cast<const Response::BPut *>(res), buf);
@@ -317,6 +359,37 @@ int Packer::pack(const Response::Delete *dm, std::string &buf) {
         .write((char *) &dm->status, sizeof(dm->status))
         .write((char *) &dm->ds_offset, sizeof(dm->ds_offset))) {
         return TRANSPORT_ERROR;
+    }
+
+    buf = s.str();
+    return TRANSPORT_SUCCESS;
+}
+
+int Packer::pack(const Response::Histogram *hist, std::string &buf) {
+    std::stringstream s;
+    if (pack(static_cast<const Response::Response *>(hist), s) != TRANSPORT_SUCCESS) {
+        return TRANSPORT_ERROR;
+    }
+
+    if (!s
+        .write((char *) &hist->status, sizeof(hist->status))
+        .write((char *) &hist->ds_offset, sizeof(hist->ds_offset))) {
+        return TRANSPORT_ERROR;
+    }
+
+    const std::size_t size = hist->hist.size();
+
+    if (!s
+        .write((char *) &size, sizeof(size))) {
+        return TRANSPORT_ERROR;
+    }
+
+    for(std::pair<const double, std::size_t> const &bucket : hist->hist) {
+        if (!s
+            .write((char *) &bucket.first, sizeof(bucket.first))
+            .write((char *) &bucket.second, sizeof(bucket.second))) {
+            return TRANSPORT_ERROR;
+        }
     }
 
     buf = s.str();
@@ -419,6 +492,38 @@ int Packer::pack(const Response::BDelete *bdm, std::string &buf) {
         .write((char *) bdm->ds_offsets, sizeof(*bdm->ds_offsets) * bdm->count)
         .write((char *) bdm->statuses, sizeof(*bdm->statuses) * bdm->count)) {
         return TRANSPORT_ERROR;
+    }
+
+    buf = s.str();
+    return TRANSPORT_SUCCESS;
+}
+
+int Packer::pack(const Response::BHistogram *bhist, std::string &buf) {
+    std::stringstream s;
+    if (pack(static_cast<const Response::Response *>(bhist), s) != TRANSPORT_SUCCESS) {
+        return TRANSPORT_ERROR;
+    }
+
+    if (!s
+        .write((char *) &bhist->count, sizeof(bhist->count))
+        .write((char *) bhist->ds_offsets, sizeof(*bhist->ds_offsets) * bhist->count)
+        .write((char *) bhist->statuses, sizeof(*bhist->statuses) * bhist->count)) {
+        return TRANSPORT_ERROR;
+    }
+
+    for(std::size_t i = 0; i < bhist->count; i++) {
+        const std::size_t size = bhist->hists[i].size();
+        if (!s
+            .write((char *) &size, sizeof(size))) {
+            return TRANSPORT_ERROR;
+        }
+        for(std::pair<const double, std::size_t> const &bucket : bhist->hists[i]) {
+            if (!s
+                .write((char *) &bucket.first, sizeof(bucket.first))
+                .write((char *) &bucket.second, sizeof(bucket.second))) {
+                return TRANSPORT_ERROR;
+            }
+        }
     }
 
     buf = s.str();

@@ -4,6 +4,12 @@
 #include "hxhim/struct.h"
 #include "transport/Messages.hpp"
 
+namespace hxhim {
+namespace range_server {
+
 Transport::Response::Response *range_server(hxhim_t *hx, Transport::Request::Request *req);
+
+}
+}
 
 #endif

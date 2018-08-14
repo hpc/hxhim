@@ -31,6 +31,7 @@ std::size_t Transport::Request::Get::size() const {
 Transport::Response::Get::Get()
     : Response(Message::GET),
       Single(),
+      status(HXHIM_ERROR),
       subject(nullptr),
       subject_len(0),
       predicate(nullptr),

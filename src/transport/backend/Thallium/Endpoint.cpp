@@ -36,3 +36,7 @@ Transport::Response::Get *Transport::Thallium::Endpoint::Get(const Request::Get 
 Transport::Response::Delete *Transport::Thallium::Endpoint::Delete(const Request::Delete *message) {
     return do_operation<Request::Delete, Response::Delete>(message);
 }
+
+Transport::Response::Histogram *Transport::Thallium::Endpoint::Histogram(const Request::Histogram *message) {
+    return do_operation<Request::Histogram, Response::Histogram>(message);
+}

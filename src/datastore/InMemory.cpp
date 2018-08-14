@@ -26,16 +26,6 @@ void InMemory::Close() {
 }
 
 /**
- * StatFlush
- * NOOP
- *
- * @return HXHIM_ERROR
- */
-int InMemory::StatFlush() {
-    return HXHIM_ERROR;
-}
-
-/**
  * BPut
  * Performs a bulk PUT in
  *

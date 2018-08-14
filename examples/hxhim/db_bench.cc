@@ -850,7 +850,7 @@ class Benchmark {
     hxhim_results_t *ret = hxhimFlush(hx);
     thread->stats.FinishedSingleOp();
     if (write_options_.sync) {
-        delete hxhimSync(hx);
+        hxhim_results_destroy(hxhimSync(hx));
         thread->stats.FinishedSingleOp();
     }
 

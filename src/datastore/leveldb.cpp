@@ -52,16 +52,6 @@ void leveldb::Close() {
 }
 
 /**
- * StatFlush
- * NOOP
- *
- * @return HXHIM_ERROR
- */
-int leveldb::StatFlush() {
-    return HXHIM_ERROR;
-}
-
-/**
  * BPut
  * Performs a bulk PUT in leveldb
  *
@@ -156,25 +146,37 @@ Response::BGet *leveldb::BGetImpl(void **subjects, std::size_t *subject_lens,
         ::leveldb::Status status = db->Get(::leveldb::ReadOptions(), k, &value);
         clock_gettime(CLOCK_MONOTONIC, &end);
 
+        ::operator delete(key);
+
+        // need to copy subject
+        ret->subject_lens[i] = subject_lens[i];
+        ret->subjects[i] = ::operator new(ret->subject_lens[i]);
+        memcpy(ret->subjects[i], subjects[i], ret->subject_lens[i]);
+
+        // need to copy predicate
+        ret->predicate_lens[i] = predicate_lens[i];
+        ret->predicates[i] = ::operator new(ret->predicate_lens[i]);
+        memcpy(ret->predicates[i], predicates[i], ret->predicate_lens[i]);
+
         // add to results list
         if (status.ok()) {
             ret->statuses[i] = HXHIM_SUCCESS;
-            key_to_sp(key, key_len, &ret->subjects[i], &ret->subject_lens[i], &ret->predicates[i], &ret->predicate_lens[i]);
+
             ret->object_types[i] = object_types[i];
             ret->object_lens[i] = value.size();
             ret->objects[i] = ::operator new(ret->object_lens[i]);
-            memcpy(ret->objects, value.data(), ret->object_lens[i]);
+            memcpy(ret->objects[i], value.data(), ret->object_lens[i]);
         }
         else {
             ret->statuses[i] = HXHIM_ERROR;
         }
 
-        ::operator delete(key);
-
         // update stats
         stats.gets++;
         stats.get_times += nano(start, end);
     }
+
+    ret->count = count;
 
     return ret;
 }
@@ -229,11 +231,22 @@ Response::BGetOp *leveldb::BGetOpImpl(void *subject, std::size_t subject_len,
             // add to results list
             if (it->status().ok()) {
                 ret->statuses[i] = HXHIM_SUCCESS;
-                key_to_sp(k.data(), k.size(), &ret->subjects[i], &ret->subject_lens[i], &ret->predicates[i], &ret->predicate_lens[i]);
+
+                void *subject = nullptr, *predicate = nullptr;
+                key_to_sp(k.data(), k.size(), &subject, &ret->subject_lens[i], &predicate, &ret->predicate_lens[i]);
+
+                // need to copy subject out of the key
+                ret->subjects[i] = ::operator new(ret->subject_lens[i]);
+                memcpy(ret->subjects[i], subject, ret->subject_lens[i]);
+
+                // need to copy predicate out of the key
+                ret->predicates[i] = ::operator new(ret->predicate_lens[i]);
+                memcpy(ret->predicates[i], predicate, ret->predicate_lens[i]);
+
                 ret->object_types[i] = object_type;
                 ret->object_lens[i] = v.size();
                 ret->objects[i] = ::operator new(ret->object_lens[i]);
-                memcpy(ret->objects, v.data(), ret->object_lens[i]);
+                memcpy(ret->objects[i], v.data(), ret->object_lens[i]);
             }
             else {
                 ret->statuses[i] = HXHIM_ERROR;

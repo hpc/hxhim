@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <sstream>
 #include <unistd.h>
 
@@ -19,10 +20,10 @@ using namespace ::Transport::Thallium;
 TEST(thallium_pack_unpack, RequestPut) {
     Request::Put src;
     {
-        src.src = 1;
-        src.dst = 1;
+        src.src = rand();
+        src.dst = rand();
 
-        src.ds_offset = 1;
+        src.ds_offset = rand();
 
         src.subject = (void *) SUBJECT;
         src.subject_len = SUBJECT_LEN;
@@ -71,10 +72,10 @@ TEST(thallium_pack_unpack, RequestPut) {
 TEST(thallium_pack_unpack, RequestGet) {
     Request::Get src;
     {
-        src.src = 1;
-        src.dst = 1;
+        src.src = rand();
+        src.dst = rand();
 
-        src.ds_offset = 1;
+        src.ds_offset = rand();
 
         src.subject = (void *) SUBJECT;
         src.subject_len = SUBJECT_LEN;
@@ -119,10 +120,10 @@ TEST(thallium_pack_unpack, RequestGet) {
 TEST(thallium_pack_unpack, RequestDelete) {
     Request::Delete src;
     {
-        src.src = 1;
-        src.dst = 1;
+        src.src = rand();
+        src.dst = rand();
 
-        src.ds_offset = 1;
+        src.ds_offset = rand();
 
         src.subject = (void *) SUBJECT;
         src.subject_len = SUBJECT_LEN;
@@ -160,17 +161,49 @@ TEST(thallium_pack_unpack, RequestDelete) {
     delete dst;
 }
 
+TEST(thallium_pack_unpack, RequestHistogram) {
+    Request::Histogram src;
+    {
+        src.src = rand();
+        src.dst = rand();
+
+        src.ds_offset = rand();
+    }
+
+    EXPECT_EQ(src.direction, Message::REQUEST);
+    EXPECT_EQ(src.type, Message::HISTOGRAM);
+    EXPECT_EQ(src.clean, false);
+
+    std::string buf;
+    EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
+
+    Request::Histogram *dst = nullptr;
+    EXPECT_EQ(Unpacker::unpack(&dst, buf), TRANSPORT_SUCCESS);
+
+    ASSERT_NE(dst, nullptr);
+    EXPECT_EQ(src.direction, dst->direction);
+    EXPECT_EQ(src.type, dst->type);
+    EXPECT_EQ(src.src, dst->src);
+    EXPECT_EQ(src.dst, dst->dst);
+
+    EXPECT_EQ(dst->clean, true);
+
+    EXPECT_EQ(src.ds_offset, dst->ds_offset);
+
+    delete dst;
+}
+
 TEST(thallium_pack_unpack, RequestBPut) {
     Request::BPut src;
     ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
     {
 
-        src.src = 1;
-        src.dst = 1;
+        src.src = rand();
+        src.dst = rand();
 
         src.count = 1;
 
-        src.ds_offsets[0] = 1;
+        src.ds_offsets[0] = rand();
 
         src.subjects[0] = (void *) &SUBJECT;
         src.subject_lens[0] = SUBJECT_LEN;
@@ -224,12 +257,12 @@ TEST(thallium_pack_unpack, RequestBGet) {
     Request::BGet src;
     ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
     {
-        src.src = 1;
-        src.dst = 1;
+        src.src = rand();
+        src.dst = rand();
 
         src.count = 1;
 
-        src.ds_offsets[0] = 1;
+        src.ds_offsets[0] = rand();
 
         src.subjects[0] = (void *) &SUBJECT;
         src.subject_lens[0] = SUBJECT_LEN;
@@ -279,12 +312,12 @@ TEST(thallium_pack_unpack, RequestBGetOp) {
     Request::BGetOp src;
     ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
     {
-        src.src = 1;
-        src.dst = 1;
+        src.src = rand();
+        src.dst = rand();
 
         src.count = 1;
 
-        src.ds_offsets[0] = 1;
+        src.ds_offsets[0] = rand();
 
         src.subjects[0] = (void *) &SUBJECT;
         src.subject_lens[0] = SUBJECT_LEN;
@@ -294,7 +327,7 @@ TEST(thallium_pack_unpack, RequestBGetOp) {
 
         src.object_types[0] = OBJECT_TYPE;
 
-        src.num_recs[0] = 1;
+        src.num_recs[0] = rand();
         src.ops[0] = HXHIM_GET_EQ;
     }
 
@@ -340,12 +373,12 @@ TEST(thallium_pack_unpack, RequestBDelete) {
     Request::BDelete src;
     ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
     {
-        src.src = 1;
-        src.dst = 1;
+        src.src = rand();
+        src.dst = rand();
 
         src.count = 1;
 
-        src.ds_offsets[0] = 1;
+        src.ds_offsets[0] = rand();
 
         src.subjects[0] = (void *) &SUBJECT;
         src.subject_lens[0] = SUBJECT_LEN;
@@ -387,13 +420,52 @@ TEST(thallium_pack_unpack, RequestBDelete) {
     delete dst;
 }
 
+TEST(thallium_pack_unpack, RequestBHistogram) {
+    Request::BHistogram src;
+    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
+    {
+        src.src = rand();
+        src.dst = rand();
+
+        src.count = 1;
+
+        src.ds_offsets[0] = rand();
+    }
+
+    EXPECT_EQ(src.direction, Message::REQUEST);
+    EXPECT_EQ(src.type, Message::BHISTOGRAM);
+    EXPECT_EQ(src.clean, false);
+
+    std::string buf;
+    EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
+
+    Request::BHistogram *dst = nullptr;
+    EXPECT_EQ(Unpacker::unpack(&dst, buf), TRANSPORT_SUCCESS);
+
+    ASSERT_NE(dst, nullptr);
+    EXPECT_EQ(src.direction, dst->direction);
+    EXPECT_EQ(src.type, dst->type);
+    EXPECT_EQ(src.src, dst->src);
+    EXPECT_EQ(src.dst, dst->dst);
+
+    EXPECT_EQ(dst->clean, true);
+
+    EXPECT_EQ(src.count, dst->count);
+
+    for(std::size_t i = 0; i < dst->count; i++) {
+        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
+    }
+
+    delete dst;
+}
+
 TEST(thallium_pack_unpack, ResponsePut) {
     Response::Put src;
     {
-        src.src = 1;
-        src.dst = 1;
+        src.src = rand();
+        src.dst = rand();
 
-        src.ds_offset = 1;
+        src.ds_offset = rand();
 
         src.status = HXHIM_SUCCESS;
     }
@@ -427,10 +499,10 @@ TEST(thallium_pack_unpack, ResponsePut) {
 TEST(thallium_pack_unpack, ResponseGet) {
     Response::Get src;
     {
-        src.src = 1;
-        src.dst = 1;
+        src.src = rand();
+        src.dst = rand();
 
-        src.ds_offset = 1;
+        src.ds_offset = rand();
 
         src.status = HXHIM_SUCCESS;
 
@@ -484,10 +556,10 @@ TEST(thallium_pack_unpack, ResponseGet) {
 TEST(thallium_pack_unpack, ResponseDelete) {
     Response::Delete src;
     {
-        src.src = 1;
-        src.dst = 1;
+        src.src = rand();
+        src.dst = rand();
 
-        src.ds_offset = 1;
+        src.ds_offset = rand();
 
         src.status = HXHIM_SUCCESS;
     }
@@ -517,18 +589,68 @@ TEST(thallium_pack_unpack, ResponseDelete) {
     delete dst;
 }
 
+TEST(thallium_pack_unpack, ResponseHistogram) {
+    Response::Histogram src;
+    {
+        src.src = rand();
+        src.dst = rand();
+
+        src.ds_offset = rand();
+
+        src.status = HXHIM_SUCCESS;
+
+        const std::size_t count = rand() % 11;
+        for(std::size_t i = 0; i < count; i++) {
+            src.hist[i] = i * i;
+        }
+    }
+
+    EXPECT_EQ(src.direction, Message::RESPONSE);
+    EXPECT_EQ(src.type, Message::HISTOGRAM);
+    EXPECT_EQ(src.clean, false);
+
+    std::string buf;
+    EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
+
+    Response::Histogram *dst = nullptr;
+    EXPECT_EQ(Unpacker::unpack(&dst, buf), TRANSPORT_SUCCESS);
+
+    ASSERT_NE(dst, nullptr);
+    EXPECT_EQ(src.direction, dst->direction);
+    EXPECT_EQ(src.type, dst->type);
+    EXPECT_EQ(src.src, dst->src);
+    EXPECT_EQ(src.dst, dst->dst);
+
+    EXPECT_EQ(dst->clean, true);
+
+    EXPECT_EQ(src.ds_offset, dst->ds_offset);
+
+    EXPECT_EQ(src.status, dst->status);
+
+    EXPECT_EQ(src.hist.size(), dst->hist.size());
+
+    std::map<double, std::size_t>::const_iterator src_hist = src.hist.begin();
+    std::map<double, std::size_t>::const_iterator dst_hist = dst->hist.begin();
+    for(std::size_t i = 0; i < dst->hist.size(); i++) {
+        EXPECT_EQ(src_hist->first, dst_hist->first);
+        EXPECT_EQ(src_hist->second, dst_hist->second);
+    }
+
+    delete dst;
+}
+
 TEST(thallium_pack_unpack, ResponseBPut) {
     Response::BPut src;
     ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
     {
-        src.src = 1;
-        src.dst = 1;
+        src.src = rand();
+        src.dst = rand();
 
         src.count = 1;
 
         src.statuses[0] = HXHIM_SUCCESS;
 
-        src.ds_offsets[0] = 1;
+        src.ds_offsets[0] = rand();
     }
 
     EXPECT_EQ(src.direction, Message::RESPONSE);
@@ -563,14 +685,14 @@ TEST(thallium_pack_unpack, ResponseBGet) {
     Response::BGet src;
     ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
     {
-        src.src = 1;
-        src.dst = 1;
+        src.src = rand();
+        src.dst = rand();
 
         src.count = 1;
 
         src.statuses[0] = HXHIM_SUCCESS;
 
-        src.ds_offsets[0] = 1;
+        src.ds_offsets[0] = rand();
 
         src.subjects[0] = (void *) &SUBJECT;
         src.subject_lens[0] = SUBJECT_LEN;
@@ -625,14 +747,14 @@ TEST(thallium_pack_unpack, ResponseBGetOp) {
     Response::BGetOp src;
     ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
     {
-        src.src = 1;
-        src.dst = 1;
+        src.src = rand();
+        src.dst = rand();
 
         src.count = 1;
 
         src.statuses[0] = HXHIM_SUCCESS;
 
-        src.ds_offsets[0] = 1;
+        src.ds_offsets[0] = rand();
 
         src.subjects[0] = (void *) &SUBJECT;
         src.subject_lens[0] = SUBJECT_LEN;
@@ -687,14 +809,14 @@ TEST(thallium_pack_unpack, ResponseBDelete) {
     Response::BDelete src;
     ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
     {
-        src.src = 1;
-        src.dst = 1;
+        src.src = rand();
+        src.dst = rand();
 
         src.count = 1;
 
         src.statuses[0] = HXHIM_SUCCESS;
 
-        src.ds_offsets[0] = 1;
+        src.ds_offsets[0] = rand();
     }
 
     EXPECT_EQ(src.direction, Message::RESPONSE);
@@ -720,6 +842,58 @@ TEST(thallium_pack_unpack, ResponseBDelete) {
     for(std::size_t i = 0; i < dst->count; i++) {
         EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
         EXPECT_EQ(src.statuses[i], dst->statuses[i]);
+    }
+
+    delete dst;
+}
+
+TEST(thallium_pack_unpack, ResponseBHistogram) {
+    Response::BHistogram src;
+    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
+    {
+        src.src = rand();
+        src.dst = rand();
+
+        src.count = 1;
+
+        src.statuses[0] = HXHIM_SUCCESS;
+
+        src.ds_offsets[0] = rand();
+
+        const std::size_t count = rand() % 11;
+        for(std::size_t i = 0; i < count; i++) {
+            src.hists[0][i] = i * i;
+        }
+    }
+
+    EXPECT_EQ(src.direction, Message::RESPONSE);
+    EXPECT_EQ(src.type, Message::BHISTOGRAM);
+    EXPECT_EQ(src.clean, false);
+
+    std::string buf;
+    EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
+
+    Response::BHistogram *dst = nullptr;
+    EXPECT_EQ(Unpacker::unpack(&dst, buf), TRANSPORT_SUCCESS);
+
+    ASSERT_NE(dst, nullptr);
+    EXPECT_EQ(src.direction, dst->direction);
+    EXPECT_EQ(src.type, dst->type);
+    EXPECT_EQ(src.src, dst->src);
+    EXPECT_EQ(src.dst, dst->dst);
+
+    EXPECT_EQ(dst->clean, true);
+
+    EXPECT_EQ(src.count, dst->count);
+
+    for(std::size_t i = 0; i < dst->count; i++) {
+        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
+        EXPECT_EQ(src.statuses[i], dst->statuses[i]);
+
+        EXPECT_EQ(src.hists[i].size(), dst->hists[i].size());
+        for(std::pair<const double, std::size_t> const &bucket : dst->hists[i]) {
+            EXPECT_EQ(src.hists[i].at(bucket.first), bucket.second);
+        }
     }
 
     delete dst;

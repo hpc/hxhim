@@ -2,14 +2,13 @@
 // Created by bws on 8/24/17.
 //
 
-#ifndef MDHIM_TRANSPORT_HPP
-#define MDHIM_TRANSPORT_HPP
+#ifndef TRANSPORT_HPP
+#define TRANSPORT_HPP
 
 #include <cstdlib>
 #include <map>
 #include <type_traits>
 
-#include "hxhim/constants.h"
 #include "transport/Messages.hpp"
 #include "transport/constants.h"
 
@@ -30,6 +29,8 @@ class Endpoint {
 
         /** @description Send a Delete to this endpoint */
         virtual Response::Delete *Delete(const Request::Delete *message) = 0;
+
+        virtual Response::Histogram *Histogram(const Request::Histogram *message) = 0;
 
     protected:
         Endpoint() {}
@@ -55,6 +56,9 @@ class EndpointGroup {
 
         /** @description Bulk Delete to multiple endpoints */
         virtual Response::BDelete *BDelete(const std::size_t num_rangesrvs, Request::BDelete **bdm_list) = 0;
+
+        /** @description Bulk Histogram to multiple endpoints */
+        virtual Response::BHistogram *BHistogram(const std::size_t num_rangesrvs, Request::BHistogram **bhist_list) = 0;
 
    protected:
         EndpointGroup() {}
@@ -130,6 +134,9 @@ class Transport {
         /**  @description Deletes a message onto the the underlying transport */
         Response::Delete *Delete(const Request::Delete *dm);
 
+        /** @description Sends a histogram request onto the underlying transport */
+        Response::Histogram *Histogram(const Request::Histogram *hist);
+
         /** @description Bulk Put to multiple endpoints     */
         Response::BPut *BPut(const std::size_t num_rangesrvs, Request::BPut **bpm_list);
 
@@ -141,6 +148,9 @@ class Transport {
 
         /** @description Bulk Delete to multiple endpoints  */
         Response::BDelete *BDelete(const std::size_t num_rangesrvs, Request::BDelete **bdm_list);
+
+        /** @description Bulk Histogram to multiple endpoints  */
+        Response::BHistogram *BHistogram(const std::size_t num_rangesrvs, Request::BHistogram **bdm_list);
 
     private:
         typedef std::map<int, Endpoint *> EndpointMapping_t;
