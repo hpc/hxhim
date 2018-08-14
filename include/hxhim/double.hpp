@@ -1,7 +1,7 @@
 #ifndef HXHIM_DOUBLE_FUNCTIONS_HPP
 #define HXHIM_DOUBLE_FUNCTIONS_HPP
 
-#include <cstdint>
+#include <cstddef>
 
 #include "hxhim/constants.h"
 #include "hxhim/struct.h"

@@ -39,6 +39,9 @@ hxhim_results_t *hxhimFlushGetOps(hxhim_t *hx);
 hxhim_results_t *hxhimFlushDeletes(hxhim_t *hx);
 hxhim_results_t *hxhimFlush(hxhim_t *hx);
 
+/** @description Function that forces the datastores to flush to the underlying storage */
+hxhim_results_t *hxhimSync(hxhim_t *hx);
+
 /** @description Functions for queuing operations to perform on the underlying storage */
 int hxhimPut(hxhim_t *hx,
              void *subject, size_t subject_len,

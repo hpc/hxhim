@@ -1,7 +1,7 @@
 #ifndef HXHIM_HASH_H
 #define HXHIM_HASH_H
 
-#include <stdint.h>
+#include <stddef.h>
 
 #include "hxhim/struct.h"
 
@@ -14,7 +14,9 @@ extern "C"
  * hash function signature typedef that maps subject-predicate pairs to produce datastore IDs
  *
  * The args argument is somewhat redundant, as it can be accessed through hx->p->hash_args,
- * but is provided in order to allow for including "hxhim/private.hpp" to be optional.
+ * but is provided in order to allow for including "hxhim/private.hpp" to not be necessary.
+ * If private values are needed for hash functions defined outside of "hxhim/hashes.cpp",
+ * some accessor functions are provided in "hxhim/accessors.{h,hpp}".
  *
  * @param hx the HXHIM state
  * @param hx             the HXHIM session

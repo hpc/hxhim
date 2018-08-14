@@ -44,13 +44,7 @@ int hxhim_options_set_mpi_bootstrap(hxhim_options_t *opts, MPI_Comm comm) {
         return HXHIM_ERROR;
     }
 
-    if (((opts->p->mpi.comm = comm)                           == MPI_COMM_NULL) ||
-        (MPI_Comm_rank(opts->p->mpi.comm, &opts->p->mpi.rank) != MPI_SUCCESS)   ||
-        (MPI_Comm_size(opts->p->mpi.comm, &opts->p->mpi.size) != MPI_SUCCESS))   {
-        return HXHIM_ERROR;
-    }
-
-    return HXHIM_SUCCESS;
+    return ((opts->p->comm = comm) == MPI_COMM_NULL)?HXHIM_ERROR:HXHIM_SUCCESS;
 }
 
 int hxhim_options_set_datastores_per_range_server(hxhim_options_t *opts, const size_t count) {
@@ -214,7 +208,7 @@ int hxhim_options_set_transport_mpi(hxhim_options_t *opts, const size_t memory_a
         return HXHIM_ERROR;
     }
 
-    Transport::Options *config = new Transport::MPI::Options(opts->p->mpi.comm, memory_alloc_size, memory_regions, listeners);
+    Transport::Options *config = new Transport::MPI::Options(opts->p->comm, memory_alloc_size, memory_regions, listeners);
     if (!config) {
         return HXHIM_ERROR;
     }

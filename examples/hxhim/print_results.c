@@ -1,6 +1,7 @@
 #include <inttypes.h>
 
 #include "print_results.h"
+#include "hxhim/accessors.h"
 
 static void print_by_type(enum hxhim_type_t type, void *value, size_t value_len) {
     switch (type) {
@@ -32,7 +33,13 @@ void print_results(hxhim_t *hx, const int print_rank, hxhim_results_t *results) 
 
     for(hxhim_results_goto_head(results); hxhim_results_valid(results) == HXHIM_SUCCESS; hxhim_results_goto_next(results)) {
         if (print_rank) {
-            printf("Rank %d ", hx->mpi.rank);
+            int rank = -1;
+            if (hxhimGetMPIRank(hx, &rank) != HXHIM_SUCCESS) {
+                printf("Could not get rank\n");
+            }
+            else {
+                printf("Rank %d ", rank);
+            }
         }
 
         enum hxhim_result_type type;

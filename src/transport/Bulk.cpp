@@ -15,11 +15,13 @@ Transport::Bulk::~Bulk() {
 int Transport::Bulk::alloc(const std::size_t max) {
     Bulk::cleanup();
 
-    if ((count = max)) {
+    if (max) {
         if (!(ds_offsets = new int[max]())) {
             cleanup();
             return TRANSPORT_ERROR;
         }
+
+        count = 0;
     }
 
     return TRANSPORT_SUCCESS;

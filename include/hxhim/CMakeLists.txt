@@ -16,7 +16,6 @@ install(FILES
   hxhim.h
   hxhim.hpp
   options.h
-  private.hpp
   single_type.h
   single_type.hpp
   struct.h

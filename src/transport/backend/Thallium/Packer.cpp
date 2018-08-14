@@ -331,8 +331,8 @@ int Packer::pack(const Response::BPut *bpm, std::string &buf) {
 
     if (!s
         .write((char *) &bpm->count, sizeof(bpm->count))
-        .write((char *) bpm->statuses, sizeof(*bpm->statuses) * bpm->count)
-        .write((char *) bpm->ds_offsets, sizeof(*bpm->ds_offsets) * bpm->count)) {
+        .write((char *) bpm->ds_offsets, sizeof(*bpm->ds_offsets) * bpm->count)
+        .write((char *) bpm->statuses, sizeof(*bpm->statuses) * bpm->count)) {
         return TRANSPORT_ERROR;
     }
 
@@ -416,8 +416,8 @@ int Packer::pack(const Response::BDelete *bdm, std::string &buf) {
 
     if (!s
         .write((char *) &bdm->count, sizeof(bdm->count))
-        .write((char *) bdm->statuses, sizeof(*bdm->statuses) * bdm->count)
-        .write((char *) bdm->ds_offsets, sizeof(*bdm->ds_offsets) * bdm->count)) {
+        .write((char *) bdm->ds_offsets, sizeof(*bdm->ds_offsets) * bdm->count)
+        .write((char *) bdm->statuses, sizeof(*bdm->statuses) * bdm->count)) {
         return TRANSPORT_ERROR;
     }
 

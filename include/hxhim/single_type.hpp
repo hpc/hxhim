@@ -1,7 +1,7 @@
 #ifndef HXHIM_BULK_DATA_SINGLE_TYPE_HPP
 #define HXHIM_BULK_DATA_SINGLE_TYPE_HPP
 
-#include <cstdint>
+#include <cstddef>
 
 #include "hxhim/constants.h"
 #include "hxhim/struct.h"

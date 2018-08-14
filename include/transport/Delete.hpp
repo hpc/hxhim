@@ -1,7 +1,7 @@
 #ifndef TRANSPORT_DELETE_MESSAGE_HPP
 #define TRANSPORT_DELETE_MESSAGE_HPP
 
-#include <cstdint>
+#include <cstddef>
 
 #include "hxhim/constants.h"
 #include "transport/Request.hpp"

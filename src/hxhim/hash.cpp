@@ -1,3 +1,4 @@
+#include "hxhim/accessors.hpp"
 #include "hxhim/hash.hpp"
 #include "hxhim/private.hpp"
 
@@ -15,7 +16,7 @@ int hxhim::hash::Rank(hxhim_t *hx, void *subject, const std::size_t subject_len,
     (void) subject_len;
     (void) predicate;
     (void) predicate_len;
-    return hx?hx->mpi.rank:-1;
+    return (hx && hx->p)?hx->p->bootstrap.rank:-1;
 }
 
 /**
@@ -29,11 +30,11 @@ int hxhim::hash::Rank(hxhim_t *hx, void *subject, const std::size_t subject_len,
  * @return the destination datastore ID or -1 on error
  */
 int hxhim::hash::SumModDatastores(hxhim_t *hx, void *subject, const std::size_t subject_len, void *predicate, const std::size_t predicate_len, void *args) {
-    if (!hx || !hx->pp) {
+    if (!hx || !hx->p) {
         return -1;
     }
 
-    static const int mod = hx->p->datastore_count * hx->mpi.size;
+    static const int mod = hx->p->datastore_count * hx->p->bootstrap.size;
 
     int dst = 0;
     for(std::size_t i = 0; i < subject_len; i++) {

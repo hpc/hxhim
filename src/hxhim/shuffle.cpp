@@ -28,7 +28,7 @@ int Put(hxhim_t *hx,
         const int ds_offset = 0;
 
         // group local keys
-        if (dst == hx->mpi.rank) {
+        if (dst == hx->p->bootstrap.rank) {
             if (local->count >= max) {
                 return -1;
             }
@@ -50,7 +50,7 @@ int Put(hxhim_t *hx,
             // if there were no previous keys going to this destination, set the initial values
             if (!rem) {
                 rem = new Transport::Request::BPut(max);
-                rem->src = hx->mpi.rank;
+                rem->src = hx->p->bootstrap.rank;
                 rem->dst = dst;
             }
 
@@ -95,7 +95,7 @@ int Get(hxhim_t *hx,
         const int ds_offset = 0;
 
         // group local keys
-        if (dst == hx->mpi.rank) {
+        if (dst == hx->p->bootstrap.rank) {
             local->ds_offsets[local->count] = ds_offset;
             local->subjects[local->count] = subject;
             local->subject_lens[local->count] = subject_len;
@@ -111,7 +111,7 @@ int Get(hxhim_t *hx,
             // if there were no previous keys going to this destination, set the initial values
             if (!rem) {
                 rem = new Transport::Request::BGet(max);
-                rem->src = hx->mpi.rank;
+                rem->src = hx->p->bootstrap.rank;
                 rem->dst = dst;
             }
 
@@ -151,7 +151,7 @@ int GetOp(hxhim_t *hx,
         const int ds_offset = 0;
 
         // group local keys
-        if (dst == hx->mpi.rank) {
+        if (dst == hx->p->bootstrap.rank) {
             local->ds_offsets[local->count] = ds_offset;
             local->subjects[local->count] = subject;
             local->subject_lens[local->count] = subject_len;
@@ -169,7 +169,7 @@ int GetOp(hxhim_t *hx,
             // if there were no previous keys going to this destination, set the initial values
             if (!rem) {
                 rem = new Transport::Request::BGetOp(max);
-                rem->src = hx->mpi.rank;
+                rem->src = hx->p->bootstrap.rank;
                 rem->dst = dst;
             }
 
@@ -209,7 +209,7 @@ int Delete(hxhim_t *hx,
         const int ds_offset = 0;
 
         // group local keys
-        if (dst == hx->mpi.rank) {
+        if (dst == hx->p->bootstrap.rank) {
             if (local->count >= max) {
                 return -1;
             }
@@ -228,7 +228,7 @@ int Delete(hxhim_t *hx,
             // if there were no previous keys going to this destination, set the initial values
             if (!rem) {
                 rem = new Transport::Request::BDelete(max);
-                rem->src = hx->mpi.rank;
+                rem->src = hx->p->bootstrap.rank;
                 rem->dst = dst;
             }
 

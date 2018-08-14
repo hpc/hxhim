@@ -25,7 +25,7 @@ class Datastore {
         virtual void Close() {}
         virtual int Commit() = 0;
         virtual int StatFlush() = 0;
-        int GetStats(const int rank,
+        int GetStats(const int dst_rank,
                      const bool get_put_times, long double *put_times,
                      const bool get_num_puts, std::size_t *num_puts,
                      const bool get_get_times, long double *get_times,

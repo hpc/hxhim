@@ -19,7 +19,13 @@
 typedef struct hxhim_private {
     hxhim_private();
 
-    std::atomic_bool running;
+    struct {
+        MPI_Comm comm;
+        int rank;
+        int size;
+    } bootstrap;
+
+    std::atomic_bool running;                                  // whether or not HXHIM is running
 
     // unsent data queues
     hxhim::Unsent<hxhim::PutData> puts;
@@ -27,8 +33,8 @@ typedef struct hxhim_private {
     hxhim::Unsent<hxhim::GetOpData> getops;
     hxhim::Unsent<hxhim::DeleteData> deletes;
 
-    hxhim::datastore::Datastore **datastores;
-    std::size_t datastore_count;
+    hxhim::datastore::Datastore **datastores;                  // fixed array of datastores mapped by rank and index: f(rank, index) -> datastore ID
+    std::size_t datastore_count;                               // number of datastores in this process
 
     // asynchronous PUT data
     struct {
@@ -38,9 +44,10 @@ typedef struct hxhim_private {
         hxhim::Results *results;                               // the list of of PUT results
     } async_put;
 
-    // Transport variables
     hxhim_hash_t hash;                                         // the function used to determine which datastore should be used to perform an operation with
-    void *hash_args;
+    void *hash_args;                                           // extra arguments to pass into the hash function
+
+    // Transport variables
     Transport::Transport *transport;
     void (*range_server_destroy)();                            // Range server static variable cleanup
 } hxhim_private_t;
@@ -49,6 +56,7 @@ namespace hxhim {
 
 // HXHIM should (probably) be initialized in this order
 namespace init {
+int bootstrap    (hxhim_t *hx, hxhim_options_t *opts);
 int running      (hxhim_t *hx, hxhim_options_t *opts);
 int range_server (hxhim_t *hx, hxhim_options_t *opts);
 int datastore    (hxhim_t *hx, hxhim_options_t *opts);
@@ -60,6 +68,7 @@ int transport    (hxhim_t *hx, hxhim_options_t *opts);
 
 // HXHIM should (probably) be destroyed in this order
 namespace destroy {
+int bootstrap   (hxhim_t *hx);
 int running     (hxhim_t *hx);
 int transport   (hxhim_t *hx);
 int hash        (hxhim_t *hx);

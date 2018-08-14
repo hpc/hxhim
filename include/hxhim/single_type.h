@@ -1,6 +1,8 @@
 #ifndef HXHIM_BULK_DATA_SINGLE_TYPE_H
 #define HXHIM_BULK_DATA_SINGLE_TYPE_H
 
+#include <stddef.h>
+
 #include "hxhim/constants.h"
 #include "hxhim/struct.h"
 

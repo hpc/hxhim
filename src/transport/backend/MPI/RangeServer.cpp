@@ -65,7 +65,7 @@ void *RangeServer::listener_thread(void *data) {
 
         // decode request
         Request::Request *request = nullptr;
-        Unpacker::unpack(hx_->mpi.comm, &request, data, len);
+        Unpacker::unpack(hx_->p->bootstrap.comm, &request, data, len);
         ::operator delete(data);
         data = nullptr;
         len = 0;
@@ -74,7 +74,7 @@ void *RangeServer::listener_thread(void *data) {
         Response::Response *response = range_server(hx_, request);
 
         // encode result
-        Packer::pack(hx_->mpi.comm, response, &data, &len, fbp_);
+        Packer::pack(hx_->p->bootstrap.comm, response, &data, &len, fbp_);
 
         // send result
         if (send(response->dst, data, len) != TRANSPORT_SUCCESS) {
@@ -105,7 +105,7 @@ int RangeServer::recv(void **data, std::size_t *len) {
     MPI_Status status;
 
     // wait for the size of the data
-    if ((MPI_Irecv(len, sizeof(*len), MPI_CHAR, MPI_ANY_SOURCE, TRANSPORT_MPI_SIZE_REQUEST_TAG, hx_->mpi.comm, &request) != MPI_SUCCESS) ||
+    if ((MPI_Irecv(len, sizeof(*len), MPI_CHAR, MPI_ANY_SOURCE, TRANSPORT_MPI_SIZE_REQUEST_TAG, hx_->p->bootstrap.comm, &request) != MPI_SUCCESS) ||
         (Flush(request, status) != TRANSPORT_SUCCESS)) {
         return TRANSPORT_ERROR;
     }
@@ -115,7 +115,7 @@ int RangeServer::recv(void **data, std::size_t *len) {
     *data = ::operator new(*len);
 
     // wait for the data
-    if ((MPI_Irecv(*data, *len, MPI_CHAR, status.MPI_SOURCE, TRANSPORT_MPI_DATA_REQUEST_TAG, hx_->mpi.comm, &request) == MPI_SUCCESS) ||
+    if ((MPI_Irecv(*data, *len, MPI_CHAR, status.MPI_SOURCE, TRANSPORT_MPI_DATA_REQUEST_TAG, hx_->p->bootstrap.comm, &request) == MPI_SUCCESS) ||
         (Flush(request) != TRANSPORT_SUCCESS)) {
         return TRANSPORT_ERROR;
     }
@@ -138,13 +138,13 @@ int RangeServer::send(const int dst, void *data, const std::size_t len) {
     MPI_Request request;
 
     // send the size of the data
-    if ((MPI_Isend(&len, sizeof(len), MPI_CHAR, dst, TRANSPORT_MPI_SIZE_RESPONSE_TAG, hx_->mpi.comm, &request) == MPI_SUCCESS) ||
+    if ((MPI_Isend(&len, sizeof(len), MPI_CHAR, dst, TRANSPORT_MPI_SIZE_RESPONSE_TAG, hx_->p->bootstrap.comm, &request) == MPI_SUCCESS) ||
         (Flush(request) != TRANSPORT_SUCCESS)) {
         return TRANSPORT_ERROR;
     }
 
     // wait for the data
-    if ((MPI_Isend(data, len, MPI_CHAR, dst, TRANSPORT_MPI_DATA_RESPONSE_TAG, hx_->mpi.comm, &request) == MPI_SUCCESS) ||
+    if ((MPI_Isend(data, len, MPI_CHAR, dst, TRANSPORT_MPI_DATA_RESPONSE_TAG, hx_->p->bootstrap.comm, &request) == MPI_SUCCESS) ||
         (Flush(request) != TRANSPORT_SUCCESS)) {
         return TRANSPORT_ERROR;
     }

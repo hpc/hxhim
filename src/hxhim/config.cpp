@@ -11,17 +11,19 @@
 #include "utils/Histogram.hpp"
 
 static int fill_options(hxhim_options_t *opts, const Config &config) {
-    if (!opts || !opts->p ||
-        (opts->p->mpi.comm == MPI_COMM_NULL)) {
+    if (!opts || !opts->p                ||
+        (opts->p->comm == MPI_COMM_NULL)) {
         return HXHIM_ERROR;
     }
 
     // Set the bootstrap values
-    if (MPI_Comm_rank(opts->p->mpi.comm, &opts->p->mpi.rank) != MPI_SUCCESS) {
+    int rank = -1;
+    if (MPI_Comm_rank(opts->p->comm, &rank) != MPI_SUCCESS) {
         return HXHIM_ERROR;
     }
 
-    if (MPI_Comm_size(opts->p->mpi.comm, &opts->p->mpi.size) != MPI_SUCCESS) {
+    int size = -1;
+    if (MPI_Comm_size(opts->p->comm, &size) != MPI_SUCCESS) {
         return HXHIM_ERROR;
     }
 
@@ -48,7 +50,7 @@ static int fill_options(hxhim_options_t *opts, const Config &config) {
                         return HXHIM_ERROR;
                     }
 
-                    hxhim_options_set_datastore_leveldb(opts, opts->p->mpi.rank, name->second.c_str(), create_if_missing);
+                    hxhim_options_set_datastore_leveldb(opts, rank, name->second.c_str(), create_if_missing);
                 }
                 break;
             case HXHIM_DATASTORE_IN_MEMORY:
@@ -104,7 +106,7 @@ static int fill_options(hxhim_options_t *opts, const Config &config) {
     if (endpointgroup != config.end()) {
         hxhim_options_clear_endpoint_group(opts);
         if (endpointgroup->second == "ALL") {
-            for(int rank = 0; rank < opts->p->mpi.size; rank++) {
+            for(int rank = 0; rank < size; rank++) {
                 hxhim_options_add_endpoint_to_group(opts, rank);
             }
         }

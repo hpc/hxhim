@@ -6,7 +6,6 @@
 
 #include <mpi.h>
 
-#include "hxhim/bootstrap.h"
 #include "hxhim/constants.h"
 #include "hxhim/hash.hpp"
 #include "transport/options.hpp"
@@ -48,7 +47,7 @@ typedef struct hxhim_in_memory_config : hxhim_datastore_config_t {
  * The entire collection of configuration options
  */
 typedef struct hxhim_options_private {
-    bootstrap_t mpi;                          // bootstrap information
+    MPI_Comm comm;                            // bootstrap communicator
 
     hxhim_datastore_config_t *datastore;      // configuration options for the selected datastore
     std::size_t datastore_count;

@@ -12,7 +12,8 @@
 #include "utils/MemoryManagers.hpp"
 
 hxhim_private::hxhim_private()
-    : running(false),
+    : bootstrap(),
+      running(false),
       puts(),
       gets(),
       getops(),
@@ -44,14 +45,14 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
     const std::size_t total = HXHIM_PUT_MULTIPLER * count;                              // total number of triples that will be PUT
 
     Transport::Request::BPut local(HXHIM_MAX_BULK_GET_OPS);
-    local.src = hx->mpi.rank;
-    local.dst = hx->mpi.rank;
+    local.src = hx->p->bootstrap.rank;
+    local.dst = hx->p->bootstrap.rank;
     local.count = 0;
 
-    Transport::Request::BPut **remote = new Transport::Request::BPut *[hx->mpi.size](); // list of destination servers (not datastores) and messages to those destinations
-    for(std::size_t i = 0; i < hx->mpi.size; i++) {
+    Transport::Request::BPut **remote = new Transport::Request::BPut *[hx->p->bootstrap.size](); // list of destination servers (not datastores) and messages to those destinations
+    for(std::size_t i = 0; i < hx->p->bootstrap.size; i++) {
         remote[i] = new Transport::Request::BPut(HXHIM_MAX_BULK_GET_OPS);
-        remote[i]->src = hx->mpi.rank;
+        remote[i]->src = hx->p->bootstrap.rank;
         remote[i]->dst = i;
         remote[i]->count = 0;
     }
@@ -100,8 +101,8 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
     hxhim::Results *res = new hxhim::Results();
 
     // PUT the batch
-    if (hx->mpi.size > 1) {
-        Transport::Response::BPut *responses = hx->p->transport->BPut(hx->mpi.size, remote);
+    if (hx->p->bootstrap.size > 1) {
+        Transport::Response::BPut *responses = hx->p->transport->BPut(hx->p->bootstrap.size, remote);
         for(Transport::Response::BPut *curr = responses; curr; curr = curr->next) {
             for(std::size_t i = 0; i < curr->count; i++) {
                 res->Add(new hxhim::Results::Put(curr, i));
@@ -121,7 +122,7 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
     }
 
     // cleanup
-    for(std::size_t i = 0; i < hx->mpi.size; i++) {
+    for(std::size_t i = 0; i < hx->p->bootstrap.size; i++) {
         delete remote[i];
     }
     delete [] remote;
@@ -269,6 +270,28 @@ static void backgroundPUT(void *args) {
  */
 static bool valid(hxhim_t *hx, hxhim_options_t *opts) {
     return hx && hx->p && opts && opts->p;
+}
+
+/**
+ * bootstrap
+ * Sets up the MPI bootstrapping information
+ *
+ * @param hx   the HXHIM instance
+ * @param opts the HXHIM options
+ * @return HXHIM_SUCCESS on success or HXHIM_ERROR
+ */
+int hxhim::init::bootstrap(hxhim_t *hx, hxhim_options_t *opts) {
+    if (!valid(hx, opts)) {
+        return HXHIM_ERROR;
+    }
+
+    if (((hx->p->bootstrap.comm = opts->p->comm)                      == MPI_COMM_NULL) ||
+        (MPI_Comm_rank(hx->p->bootstrap.comm, &hx->p->bootstrap.rank) != MPI_SUCCESS)   ||
+        (MPI_Comm_size(hx->p->bootstrap.comm, &hx->p->bootstrap.size) != MPI_SUCCESS))   {
+        return HXHIM_ERROR;
+    }
+
+    return HXHIM_SUCCESS;
 }
 
 /**
@@ -450,7 +473,7 @@ static int init_transport_mpi(hxhim_t *hx, hxhim_options_t *opts) {
     using namespace Transport::MPI;
 
     // Do not allow MPI_COMM_NULL
-    if (opts->p->mpi.comm == MPI_COMM_NULL) {
+    if (hx->p->bootstrap.comm == MPI_COMM_NULL) {
         return TRANSPORT_ERROR;
     }
 
@@ -464,15 +487,15 @@ static int init_transport_mpi(hxhim_t *hx, hxhim_options_t *opts) {
     // give the range server access to the memory buffer
     RangeServer::init(hx, fbp, config->listeners);
 
-    EndpointGroup *eg = new EndpointGroup(opts->p->mpi.comm, fbp);
+    EndpointGroup *eg = new EndpointGroup(hx->p->bootstrap.comm, fbp);
     if (!eg) {
         return TRANSPORT_ERROR;
     }
 
     // create mapping between unique IDs and ranks
-    for(int i = 0; i < opts->p->mpi.size; i++) {
+    for(int i = 0; i < hx->p->bootstrap.size; i++) {
         // MPI ranks map 1:1 with the boostrap MPI rank
-        hx->p->transport->AddEndpoint(i, new Endpoint(opts->p->mpi.comm, i, fbp, hx->p->running));
+        hx->p->transport->AddEndpoint(i, new Endpoint(hx->p->bootstrap.comm, i, fbp, hx->p->running));
 
         // if the rank was specified as part of the endpoint group, add the rank to the endpoint group
         if (opts->p->endpointgroup.find(i) != opts->p->endpointgroup.end()) {
@@ -481,7 +504,7 @@ static int init_transport_mpi(hxhim_t *hx, hxhim_options_t *opts) {
     }
 
     // remove loopback endpoint
-    hx->p->transport->RemoveEndpoint(hx->mpi.rank);
+    hx->p->transport->RemoveEndpoint(hx->p->bootstrap.rank);
 
     hx->p->transport->SetEndpointGroup(eg);
     hx->p->range_server_destroy = RangeServer::destroy;
@@ -519,16 +542,16 @@ static int init_transport_thallium(hxhim_t *hx, hxhim_options_t *opts) {
     RangeServer::init(hx);
 
     // wait for every engine to start up
-    MPI_Barrier(opts->p->mpi.comm);
+    MPI_Barrier(hx->p->bootstrap.comm);
 
     // get a mapping of unique IDs to thallium addresses
     std::map<int, std::string> addrs;
-    if (get_addrs(opts->p->mpi.comm, engine, addrs) != TRANSPORT_SUCCESS) {
+    if (get_addrs(hx->p->bootstrap.comm, engine, addrs) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
     // remove the loopback endpoint
-    addrs.erase(opts->p->mpi.rank);
+    addrs.erase(hx->p->bootstrap.rank);
 
     EndpointGroup *eg = new EndpointGroup(rpc);
     if (!eg) {
@@ -598,6 +621,25 @@ int hxhim::init::transport(hxhim_t *hx, hxhim_options_t *opts) {
  */
 static bool valid(hxhim_t *hx) {
     return hx && hx->p;
+}
+
+/**
+ * bootstrap
+ * Invalidates the MPI bootstrapping information
+ *
+ * @param hx   the HXHIM instance
+ * @return HXHIM_SUCCESS on success or HXHIM_ERROR
+ */
+int hxhim::destroy::bootstrap(hxhim_t *hx) {
+    if (!valid(hx)) {
+        return HXHIM_ERROR;
+    }
+
+    hx->p->bootstrap.comm = MPI_COMM_NULL;
+    hx->p->bootstrap.rank = -1;
+    hx->p->bootstrap.size = -1;
+
+    return HXHIM_SUCCESS;
 }
 
 /**

@@ -1,7 +1,7 @@
 #ifndef HXHIM_SHUFFLE_HPP
 #define HXHIM_SHUFFLE_HPP
 
-#include <cstdint>
+#include <cstddef>
 
 #include "hxhim/constants.h"
 #include "hxhim/struct.h"

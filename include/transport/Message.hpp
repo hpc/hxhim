@@ -1,7 +1,7 @@
 #ifndef TRANSPORT_MESSAGE_BASE_HPP
 #define TRANSPORT_MESSAGE_BASE_HPP
 
-#include <cstdint>
+#include <cstddef>
 
 namespace Transport {
 

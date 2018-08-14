@@ -185,25 +185,19 @@ int Transport::Thallium::Unpacker::unpack(Request::BPut **bpm, const std::string
     }
 
     // read non array data
-    if (!s.read((char *) &out->count, sizeof(out->count))) {
+    std::size_t count = 0;
+    if (!s.read((char *) &count, sizeof(out->count))) {
         delete out;
         return TRANSPORT_ERROR;
     }
 
     // allocate space
-    if (!(out->ds_offsets    = new int[out->count])                ||
-        !(out->subject_lens   = new std::size_t[out->count])       ||
-        !(out->predicate_lens = new std::size_t[out->count])       ||
-        !(out->object_lens    = new std::size_t[out->count])       ||
-        !(out->object_types   = new hxhim_type_t[out->count])      ||
-        !(out->subjects       = new void *[out->count])            ||
-        !(out->predicates     = new void *[out->count])            ||
-        !(out->objects        = new void *[out->count]))            {
+    if (out->alloc(count) != TRANSPORT_SUCCESS) {
         delete out;
         return TRANSPORT_ERROR;
     }
 
-    for(std::size_t i = 0; i < out->count; i++) {
+    for(std::size_t i = 0; i < count; i++) {
         if (!s
             .read((char *) &out->ds_offsets[i], sizeof(out->ds_offsets[i]))
             .read((char *) &out->subject_lens[i], sizeof(out->subject_lens[i]))
@@ -228,6 +222,8 @@ int Transport::Thallium::Unpacker::unpack(Request::BPut **bpm, const std::string
             delete out;
             return TRANSPORT_ERROR;
         }
+
+        out->count++;
     }
 
     *bpm = out;
@@ -243,23 +239,19 @@ int Transport::Thallium::Unpacker::unpack(Request::BGet **bgm, const std::string
     }
 
     // read non array data
-    if (!s.read((char *) &out->count, sizeof(out->count))) {
+    std::size_t count = 0;
+    if (!s.read((char *) &count, sizeof(out->count))) {
         delete out;
         return TRANSPORT_ERROR;
     }
 
     // allocate space
-    if (!(out->ds_offsets     = new int[out->count])               ||
-        !(out->subject_lens   = new std::size_t[out->count])       ||
-        !(out->predicate_lens = new std::size_t[out->count])       ||
-        !(out->object_types   = new hxhim_type_t[out->count])      ||
-        !(out->subjects       = new void *[out->count])            ||
-        !(out->predicates     = new void *[out->count]))            {
+    if (out->alloc(count) != TRANSPORT_SUCCESS) {
         delete out;
         return TRANSPORT_ERROR;
     }
 
-    for(std::size_t i = 0; i < out->count; i++) {
+    for(std::size_t i = 0; i < count; i++) {
         if (!s
             .read((char *) &out->ds_offsets[i], sizeof(out->ds_offsets[i]))
             .read((char *) &out->subject_lens[i], sizeof(out->subject_lens[i]))
@@ -281,6 +273,8 @@ int Transport::Thallium::Unpacker::unpack(Request::BGet **bgm, const std::string
             delete out;
             return TRANSPORT_ERROR;
         }
+
+        out->count++;
     }
 
     *bgm = out;
@@ -296,25 +290,19 @@ int Transport::Thallium::Unpacker::unpack(Request::BGetOp **bgm, const std::stri
     }
 
     // read non array data
-    if (!s.read((char *) &out->count, sizeof(out->count))) {
+    std::size_t count = 0;
+    if (!s.read((char *) &count, sizeof(out->count))) {
         delete out;
         return TRANSPORT_ERROR;
     }
 
     // allocate space
-    if (!(out->ds_offsets     = new int[out->count])               ||
-        !(out->subject_lens   = new std::size_t[out->count])       ||
-        !(out->predicate_lens = new std::size_t[out->count])       ||
-        !(out->object_types   = new hxhim_type_t[out->count])      ||
-        !(out->num_recs       = new std::size_t[out->count])       ||
-        !(out->ops            = new hxhim_get_op_t[out->count])    ||
-        !(out->subjects       = new void *[out->count])            ||
-        !(out->predicates     = new void *[out->count]))            {
+    if (out->alloc(count) != TRANSPORT_SUCCESS) {
         delete out;
         return TRANSPORT_ERROR;
     }
 
-    for(std::size_t i = 0; i < out->count; i++) {
+    for(std::size_t i = 0; i < count; i++) {
         if (!s
             .read((char *) &out->ds_offsets[i], sizeof(out->ds_offsets[i]))
             .read((char *) &out->subject_lens[i], sizeof(out->subject_lens[i]))
@@ -338,6 +326,8 @@ int Transport::Thallium::Unpacker::unpack(Request::BGetOp **bgm, const std::stri
             delete out;
             return TRANSPORT_ERROR;
         }
+
+        out->count++;
     }
 
     *bgm = out;
@@ -353,22 +343,19 @@ int Transport::Thallium::Unpacker::unpack(Request::BDelete **bdm, const std::str
     }
 
     // read non array data
-    if (!s.read((char *) &out->count, sizeof(out->count))) {
+    std::size_t count = 0;
+    if (!s.read((char *) &count, sizeof(out->count))) {
         delete out;
         return TRANSPORT_ERROR;
     }
 
     // allocate space
-    if (!(out->ds_offsets    = new int[out->count])                ||
-        !(out->subject_lens   = new std::size_t[out->count])       ||
-        !(out->predicate_lens = new std::size_t[out->count])       ||
-        !(out->subjects       = new void *[out->count])            ||
-        !(out->predicates     = new void *[out->count]))            {
+    if (out->alloc(count) != TRANSPORT_SUCCESS) {
         delete out;
         return TRANSPORT_ERROR;
     }
 
-    for(std::size_t i = 0; i < out->count; i++) {
+    for(std::size_t i = 0; i < count; i++) {
         if (!s
             .read((char *) &out->ds_offsets[i], sizeof(out->ds_offsets[i]))
             .read((char *) &out->subject_lens[i], sizeof(out->subject_lens[i]))
@@ -389,6 +376,8 @@ int Transport::Thallium::Unpacker::unpack(Request::BDelete **bdm, const std::str
             delete out;
             return TRANSPORT_ERROR;
         }
+
+        out->count++;
     }
 
     *bdm = out;
@@ -517,23 +506,24 @@ int Transport::Thallium::Unpacker::unpack(Response::BPut **bpm, const std::strin
     }
 
     // read non array data
-    if (!s
-        .read((char *) &out->count, sizeof(out->count))) {
+    std::size_t count = 0;
+    if (!s.read((char *) &count, sizeof(out->count))) {
         delete out;
         return TRANSPORT_ERROR;
     }
 
-    // allocate arrays
-    if (!(out->statuses = new int[out->count])    ||
-        !(out->ds_offsets = new int[out->count])) {
+    // allocate space
+    if (out->alloc(count) != TRANSPORT_SUCCESS) {
         delete out;
         return TRANSPORT_ERROR;
     }
+
+    out->count = count;
 
     // read arrays
     if (!s
-        .read((char *) out->statuses, sizeof(*out->statuses) * out->count)
-        .read((char *) out->ds_offsets, sizeof(*out->ds_offsets) * out->count)) {
+        .read((char *) out->ds_offsets, sizeof(*out->ds_offsets) * out->count)
+        .read((char *) out->statuses, sizeof(*out->statuses) * out->count)) {
         return TRANSPORT_ERROR;
     }
 
@@ -550,28 +540,20 @@ int Transport::Thallium::Unpacker::unpack(Response::BGet **bgm, const std::strin
     }
 
     // read non array data
-    if (!s
-        .read((char *) &out->count, sizeof(out->count))) {
+    std::size_t count = 0;
+    if (!s.read((char *) &count, sizeof(out->count))) {
         delete out;
         return TRANSPORT_ERROR;
     }
 
-    // allocate arrays
-    if (!(out->statuses = ::new int[out->count]())                   ||
-        !(out->ds_offsets = ::new int[out->count]())                 ||
-        !(out->subject_lens = ::new std::size_t[out->count]())       ||
-        !(out->predicate_lens = ::new std::size_t[out->count]())     ||
-        !(out->object_lens = ::new std::size_t[out->count]())        ||
-        !(out->object_types = ::new hxhim_type_t[out->count]())      ||
-        !(out->subjects = ::new void *[out->count]())                ||
-        !(out->predicates = ::new void *[out->count]())              ||
-        !(out->objects = ::new void *[out->count]()))                 {
+    // allocate space
+    if (out->alloc(count) != TRANSPORT_SUCCESS) {
         delete out;
         return TRANSPORT_ERROR;
     }
 
     // read arrays
-    for(std::size_t i = 0; i < out->count; i++) {
+    for(std::size_t i = 0; i < count; i++) {
         if (!s
             .read((char *) &out->statuses[i], sizeof(out->statuses[i]))
             .read((char *) &out->ds_offsets[i], sizeof(out->ds_offsets[i]))) {
@@ -604,6 +586,8 @@ int Transport::Thallium::Unpacker::unpack(Response::BGet **bgm, const std::strin
                 return TRANSPORT_ERROR;
             }
         }
+
+        out->count++;
     }
 
     *bgm = out;
@@ -619,28 +603,20 @@ int Transport::Thallium::Unpacker::unpack(Response::BGetOp **bgm, const std::str
     }
 
     // read non array data
-    if (!s
-        .read((char *) &out->count, sizeof(out->count))) {
+    std::size_t count = 0;
+    if (!s.read((char *) &count, sizeof(out->count))) {
         delete out;
         return TRANSPORT_ERROR;
     }
 
-    // allocate arrays
-    if (!(out->statuses = ::new int[out->count]())                   ||
-        !(out->ds_offsets = ::new int[out->count]())                 ||
-        !(out->subject_lens = ::new std::size_t[out->count]())       ||
-        !(out->predicate_lens = ::new std::size_t[out->count]())     ||
-        !(out->object_lens = ::new std::size_t[out->count]())        ||
-        !(out->object_types = ::new hxhim_type_t[out->count]())      ||
-        !(out->subjects = ::new void *[out->count]())                ||
-        !(out->predicates = ::new void *[out->count]())              ||
-        !(out->objects = ::new void *[out->count]()))                 {
+    // allocate space
+    if (out->alloc(count) != TRANSPORT_SUCCESS) {
         delete out;
         return TRANSPORT_ERROR;
     }
 
     // read arrays
-    for(std::size_t i = 0; i < out->count; i++) {
+    for(std::size_t i = 0; i < count; i++) {
         if (!s
             .read((char *) &out->statuses[i], sizeof(out->statuses[i]))
             .read((char *) &out->ds_offsets[i], sizeof(out->ds_offsets[i]))) {
@@ -673,6 +649,8 @@ int Transport::Thallium::Unpacker::unpack(Response::BGetOp **bgm, const std::str
                 return TRANSPORT_ERROR;
             }
         }
+
+        out->count++;
     }
 
     *bgm = out;
@@ -688,23 +666,24 @@ int Transport::Thallium::Unpacker::unpack(Response::BDelete **bdm, const std::st
     }
 
     // read non array data
-    if (!s
-        .read((char *) &out->count, sizeof(out->count))) {
+    std::size_t count = 0;
+    if (!s.read((char *) &count, sizeof(out->count))) {
         delete out;
         return TRANSPORT_ERROR;
     }
 
-    // allocate arrays
-    if (!(out->statuses = new int[out->count])   ||
-        !(out->ds_offsets = new int[out->count])) {
+    // allocate space
+    if (out->alloc(count) != TRANSPORT_SUCCESS) {
         delete out;
         return TRANSPORT_ERROR;
     }
+
+    out->count = count;
 
     // read arrays
     if (!s
-        .read((char *) out->statuses, sizeof(*out->statuses) * out->count)
-        .read((char *) out->ds_offsets, sizeof(*out->ds_offsets) * out->count)) {
+        .read((char *) out->ds_offsets, sizeof(*out->ds_offsets) * out->count)
+        .read((char *) out->statuses, sizeof(*out->statuses) * out->count)) {
         return TRANSPORT_ERROR;
     }
 

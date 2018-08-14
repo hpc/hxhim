@@ -1,7 +1,7 @@
 #ifndef TRANSPORT_BULK_MESSAGE_HPP
 #define TRANSPORT_BULK_MESSAGE_HPP
 
-#include <cstdint>
+#include <cstddef>
 
 namespace Transport {
 

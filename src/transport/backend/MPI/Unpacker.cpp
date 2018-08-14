@@ -260,19 +260,20 @@ int Unpacker::unpack(const MPI_Comm comm, Request::BPut **bpm, const void *buf, 
         return TRANSPORT_ERROR;
     }
 
-    if (MPI_Unpack(buf, bufsize, &position, &out->count, sizeof(out->count), MPI_CHAR, comm)                                  != MPI_SUCCESS) {
+    std::size_t count = 0;
+    if (MPI_Unpack(buf, bufsize, &position, &count, sizeof(out->count), MPI_CHAR, comm)                                       != MPI_SUCCESS) {
         delete out;
         return TRANSPORT_ERROR;
     }
 
     // If there are keys/values, allocate space for them and unpack
-    if (out->count) {
-        if (out->alloc(out->count) != TRANSPORT_SUCCESS) {
+    if (count) {
+        if (out->alloc(count) != TRANSPORT_SUCCESS) {
             delete out;
             return TRANSPORT_ERROR;
         }
 
-        for(std::size_t i = 0; i < out->count; i++) {
+        for(std::size_t i = 0; i < count; i++) {
             if ((MPI_Unpack(buf, bufsize, &position, &out->ds_offsets[i], 1, MPI_INT, comm)                                   != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, &out->subject_lens[i], sizeof(out->subject_lens[i]), MPI_CHAR, comm)     != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, &out->predicate_lens[i], sizeof(out->predicate_lens[i]), MPI_CHAR, comm) != MPI_SUCCESS) ||
@@ -287,6 +288,8 @@ int Unpacker::unpack(const MPI_Comm comm, Request::BPut **bpm, const void *buf, 
                 delete out;
                 return TRANSPORT_ERROR;
             }
+
+            out->count++;
         }
     }
 
@@ -307,19 +310,20 @@ int Unpacker::unpack(const MPI_Comm comm, Request::BGet **bgm, const void *buf, 
         return TRANSPORT_ERROR;
     }
 
-    if (MPI_Unpack(buf, bufsize, &position, &out->count, sizeof(out->count), MPI_CHAR, comm)                                  != MPI_SUCCESS) {
+    std::size_t count = 0;
+    if (MPI_Unpack(buf, bufsize, &position, &count, sizeof(out->count), MPI_CHAR, comm)                                       != MPI_SUCCESS) {
         delete out;
         return TRANSPORT_ERROR;
     }
 
     // If there are keys/values, allocate space for them and unpack
-    if (out->count) {
-        if (out->alloc(out->count) != TRANSPORT_SUCCESS) {
+    if (count) {
+        if (out->alloc(count) != TRANSPORT_SUCCESS) {
             delete out;
             return TRANSPORT_ERROR;
         }
 
-        for(std::size_t i = 0; i < out->count; i++) {
+        for(std::size_t i = 0; i < count; i++) {
             if ((MPI_Unpack(buf, bufsize, &position, &out->ds_offsets[i], 1, MPI_INT, comm)                                   != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, &out->subject_lens[i], sizeof(out->subject_lens[i]), MPI_CHAR, comm)     != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, &out->predicate_lens[i], sizeof(out->predicate_lens[i]), MPI_CHAR, comm) != MPI_SUCCESS) ||
@@ -331,6 +335,8 @@ int Unpacker::unpack(const MPI_Comm comm, Request::BGet **bgm, const void *buf, 
                 delete out;
                 return TRANSPORT_ERROR;
             }
+
+            out->count++;
         }
     }
 
@@ -351,19 +357,20 @@ int Unpacker::unpack(const MPI_Comm comm, Request::BGetOp **bgm, const void *buf
         return TRANSPORT_ERROR;
     }
 
-    if (MPI_Unpack(buf, bufsize, &position, &out->count, sizeof(out->count), MPI_CHAR, comm)                                  != MPI_SUCCESS) {
+    std::size_t count = 0;
+    if (MPI_Unpack(buf, bufsize, &position, &count, sizeof(out->count), MPI_CHAR, comm)                                       != MPI_SUCCESS) {
         delete out;
         return TRANSPORT_ERROR;
     }
 
     // If there are keys/values, allocate space for them and unpack
-    if (out->count) {
-        if (out->alloc(out->count) != TRANSPORT_SUCCESS) {
+    if (count) {
+        if (out->alloc(count) != TRANSPORT_SUCCESS) {
             delete out;
             return TRANSPORT_ERROR;
         }
 
-        for(std::size_t i = 0; i < out->count; i++) {
+        for(std::size_t i = 0; i < count; i++) {
             if ((MPI_Unpack(buf, bufsize, &position, &out->ds_offsets[i], 1, MPI_INT, comm)                                   != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, &out->subject_lens[i], sizeof(out->subject_lens[i]), MPI_CHAR, comm)     != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, &out->predicate_lens[i], sizeof(out->predicate_lens[i]), MPI_CHAR, comm) != MPI_SUCCESS) ||
@@ -377,6 +384,8 @@ int Unpacker::unpack(const MPI_Comm comm, Request::BGetOp **bgm, const void *buf
                 delete out;
                 return TRANSPORT_ERROR;
             }
+
+            out->count++;
         }
     }
 
@@ -397,19 +406,20 @@ int Unpacker::unpack(const MPI_Comm comm, Request::BDelete **bdm, const void *bu
         return TRANSPORT_ERROR;
     }
 
-    if (MPI_Unpack(buf, bufsize, &position, &out->count, sizeof(out->count), MPI_CHAR, comm)                                  != MPI_SUCCESS) {
+    std::size_t count = 0;
+    if (MPI_Unpack(buf, bufsize, &position, &count, sizeof(out->count), MPI_CHAR, comm)                                       != MPI_SUCCESS) {
         delete out;
         return TRANSPORT_ERROR;
     }
 
     // If there are keys/values, allocate space for them and unpack
-    if (out->count) {
-        if (out->alloc(out->count) != TRANSPORT_SUCCESS) {
+    if (count) {
+        if (out->alloc(count) != TRANSPORT_SUCCESS) {
             delete out;
             return TRANSPORT_ERROR;
         }
 
-        for(std::size_t i = 0; i < out->count; i++) {
+        for(std::size_t i = 0; i < count; i++) {
             if ((MPI_Unpack(buf, bufsize, &position, &out->ds_offsets[i], 1, MPI_INT, comm)                                   != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, &out->subject_lens[i], sizeof(out->subject_lens[i]), MPI_CHAR, comm)     != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, &out->predicate_lens[i], sizeof(out->predicate_lens[i]), MPI_CHAR, comm) != MPI_SUCCESS) ||
@@ -420,6 +430,8 @@ int Unpacker::unpack(const MPI_Comm comm, Request::BDelete **bdm, const void *bu
                 delete out;
                 return TRANSPORT_ERROR;
             }
+
+            out->count++;
         }
     }
 
@@ -585,24 +597,27 @@ int Unpacker::unpack(const MPI_Comm comm, Response::BPut **bpm, const void *buf,
         return TRANSPORT_ERROR;
     }
 
-    if (MPI_Unpack(buf, bufsize, &position, &out->count, sizeof(out->count), MPI_CHAR, comm)                      != MPI_SUCCESS) {
+    std::size_t count = 0;
+    if (MPI_Unpack(buf, bufsize, &position, &count, sizeof(out->count), MPI_CHAR, comm)                                       != MPI_SUCCESS) {
         delete out;
         return TRANSPORT_ERROR;
     }
 
     // If there are keys/values, allocate space for them and unpack
-    if (out->count) {
-        if (out->alloc(out->count) != TRANSPORT_SUCCESS) {
+    if (count) {
+        if (out->alloc(count) != TRANSPORT_SUCCESS) {
             delete out;
             return TRANSPORT_ERROR;
         }
 
-        for(std::size_t i = 0; i < out->count; i++) {
+        for(std::size_t i = 0; i < count; i++) {
             if ((MPI_Unpack(buf, bufsize, &position, &out->ds_offsets[i], 1, MPI_INT, comm)                       != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, &out->statuses[i], sizeof(out->statuses[i]), MPI_CHAR, comm) != MPI_SUCCESS)) {
                 delete out;
                 return TRANSPORT_ERROR;
             }
+
+            out->count++;
         }
     }
 
@@ -623,19 +638,20 @@ int Unpacker::unpack(const MPI_Comm comm, Response::BGet **bgm, const void *buf,
         return TRANSPORT_ERROR;
     }
 
-    if (MPI_Unpack(buf, bufsize, &position, &out->count, sizeof(out->count), MPI_CHAR, comm)                                  != MPI_SUCCESS) {
+    std::size_t count = 0;
+    if (MPI_Unpack(buf, bufsize, &position, &count, sizeof(out->count), MPI_CHAR, comm)                                       != MPI_SUCCESS) {
         delete out;
         return TRANSPORT_ERROR;
     }
 
     // If there are keys/values, allocate space for them and unpack
-    if (out->count) {
-        if (out->alloc(out->count) != TRANSPORT_SUCCESS) {
+    if (count) {
+        if (out->alloc(count) != TRANSPORT_SUCCESS) {
             delete out;
             return TRANSPORT_ERROR;
         }
 
-        for(std::size_t i = 0; i < out->count; i++) {
+        for(std::size_t i = 0; i < count; i++) {
             if ((MPI_Unpack(buf, bufsize, &position, &out->ds_offsets[i], 1, MPI_INT, comm)                                   != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, &out->statuses[i], sizeof(out->statuses[i]), MPI_CHAR, comm)             != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, &out->subject_lens[i], sizeof(out->subject_lens[i]), MPI_CHAR, comm)     != MPI_SUCCESS) ||
@@ -651,6 +667,8 @@ int Unpacker::unpack(const MPI_Comm comm, Response::BGet **bgm, const void *buf,
                 delete out;
                 return TRANSPORT_ERROR;
             }
+
+            out->count++;
         }
     }
 
@@ -671,19 +689,20 @@ int Unpacker::unpack(const MPI_Comm comm, Response::BGetOp **bgm, const void *bu
         return TRANSPORT_ERROR;
     }
 
-    if (MPI_Unpack(buf, bufsize, &position, &out->count, sizeof(out->count), MPI_CHAR, comm)                                  != MPI_SUCCESS) {
+    std::size_t count = 0;
+    if (MPI_Unpack(buf, bufsize, &position, &count, sizeof(out->count), MPI_CHAR, comm)                                       != MPI_SUCCESS) {
         delete out;
         return TRANSPORT_ERROR;
     }
 
     // If there are keys/values, allocate space for them and unpack
-    if (out->count) {
-        if (out->alloc(out->count) != TRANSPORT_SUCCESS) {
+    if (count) {
+        if (out->alloc(count) != TRANSPORT_SUCCESS) {
             delete out;
             return TRANSPORT_ERROR;
         }
 
-        for(std::size_t i = 0; i < out->count; i++) {
+        for(std::size_t i = 0; i < count; i++) {
             if ((MPI_Unpack(buf, bufsize, &position, &out->ds_offsets[i], 1, MPI_INT, comm)                                   != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, &out->statuses[i], sizeof(out->statuses[i]), MPI_CHAR, comm)             != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, &out->subject_lens[i], sizeof(out->subject_lens[i]), MPI_CHAR, comm)     != MPI_SUCCESS) ||
@@ -699,6 +718,8 @@ int Unpacker::unpack(const MPI_Comm comm, Response::BGetOp **bgm, const void *bu
                 delete out;
                 return TRANSPORT_ERROR;
             }
+
+            out->count++;
         }
     }
 
@@ -719,24 +740,27 @@ int Unpacker::unpack(const MPI_Comm comm, Response::BDelete **bdm, const void *b
         return TRANSPORT_ERROR;
     }
 
-    if (MPI_Unpack(buf, bufsize, &position, &out->count, sizeof(out->count), MPI_CHAR, comm)                      != MPI_SUCCESS) {
+    std::size_t count = 0;
+    if (MPI_Unpack(buf, bufsize, &position, &count, sizeof(out->count), MPI_CHAR, comm)                                       != MPI_SUCCESS) {
         delete out;
         return TRANSPORT_ERROR;
     }
 
     // If there are keys/values, allocate space for them and unpack
-    if (out->count) {
-        if (out->alloc(out->count) != TRANSPORT_SUCCESS) {
+    if (count) {
+        if (out->alloc(count) != TRANSPORT_SUCCESS) {
             delete out;
             return TRANSPORT_ERROR;
         }
 
-        for(std::size_t i = 0; i < out->count; i++) {
+        for(std::size_t i = 0; i < count; i++) {
             if ((MPI_Unpack(buf, bufsize, &position, &out->ds_offsets[i], 1, MPI_INT, comm)                       != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, &out->statuses[i], sizeof(out->statuses[i]), MPI_CHAR, comm) != MPI_SUCCESS)) {
                 delete out;
                 return TRANSPORT_ERROR;
             }
+
+            out->count++;
         }
     }
 

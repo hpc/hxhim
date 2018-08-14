@@ -12,6 +12,6 @@ Transport::Response::BGet    *local_client_bget   (hxhim_t *hx, Transport::Reque
 Transport::Response::BGetOp  *local_client_bget_op(hxhim_t *hx, Transport::Request::BGetOp  *gm);
 Transport::Response::BDelete *local_client_bdelete(hxhim_t *hx, Transport::Request::BDelete *bdm);
 
-Transport::Response::Sync   *local_client_sync   (hxhim_t *hx, Transport::Request::Sync    *cm);
+Transport::Response::Sync    *local_client_sync   (hxhim_t *hx, Transport::Request::Sync    *cm);
 
 #endif

@@ -2,6 +2,7 @@
 #include <stdexcept>
 
 #include "datastore/datastore.hpp"
+#include "hxhim/accessors.hpp"
 #include "utils/elen.hpp"
 #include "utils/reverse_bytes.h"
 
@@ -81,7 +82,7 @@ Transport::Response::BDelete *Datastore::BDelete(void **subjects, std::size_t *s
  * Collective operation
  * Collects statistics from all HXHIM ranks
  *
- * @param rank           the rank to send to
+ * @param dst_rank       the rank to send to
  * @param get_put_times  whether or not to get put_times
  * @param put_times      the array of put times from each rank
  * @param get_num_puts   whether or not to get num_puts
@@ -92,59 +93,69 @@ Transport::Response::BDelete *Datastore::BDelete(void **subjects, std::size_t *s
  * @param num_gets       the array of number of gets from each rank
  * @return HXHIM_SUCCESS or HXHIM_ERROR on error
  */
-int Datastore::GetStats(const int rank,
+int Datastore::GetStats(const int dst_rank,
                         const bool get_put_times, long double *put_times,
                         const bool get_num_puts, std::size_t *num_puts,
                         const bool get_get_times, long double *get_times,
                         const bool get_num_gets, std::size_t *num_gets) {
-    MPI_Barrier(hx->mpi.comm);
+    MPI_Comm comm = MPI_COMM_NULL;
+    if (hxhim::GetMPIComm(hx, &comm) != HXHIM_SUCCESS) {
+        return HXHIM_ERROR;
+    }
+
+    int rank = -1;
+    if (hxhim::GetMPIRank(hx, &rank) != HXHIM_SUCCESS) {
+        return HXHIM_ERROR;
+    }
+
+    MPI_Barrier(comm);
 
     std::lock_guard<std::mutex> lock(mutex);
 
-    if (hx->mpi.rank == rank) {
+    if (rank == dst_rank) {
         if (get_put_times) {
             const std::size_t size = sizeof(stats.put_times);
-            MPI_Gather(&stats.put_times, size, MPI_CHAR, put_times, size, MPI_CHAR, rank, hx->mpi.comm);
+            MPI_Gather(&stats.put_times, size, MPI_CHAR, put_times, size, MPI_CHAR, dst_rank, comm);
         }
 
         if (get_num_puts) {
             const std::size_t size = sizeof(stats.puts);
-            MPI_Gather(&stats.puts, size, MPI_CHAR, num_puts, size, MPI_CHAR, rank, hx->mpi.comm);
+            MPI_Gather(&stats.puts, size, MPI_CHAR, num_puts, size, MPI_CHAR, dst_rank, comm);
         }
 
         if (get_get_times) {
             const std::size_t size = sizeof(stats.get_times);
-            MPI_Gather(&stats.get_times, size, MPI_CHAR, get_times, size, MPI_CHAR, rank, hx->mpi.comm);
+            MPI_Gather(&stats.get_times, size, MPI_CHAR, get_times, size, MPI_CHAR, dst_rank, comm);
         }
 
         if (get_num_gets) {
             const std::size_t size = sizeof(stats.gets);
-            MPI_Gather(&stats.gets, size, MPI_CHAR, num_gets, size, MPI_CHAR, rank, hx->mpi.comm);
+            MPI_Gather(&stats.gets, size, MPI_CHAR, num_gets, size, MPI_CHAR, dst_rank, comm);
         }
     }
     else {
         if (get_put_times) {
             const std::size_t size = sizeof(stats.put_times);
-            MPI_Gather(&stats.put_times, size, MPI_CHAR, nullptr, 0, MPI_CHAR, rank, hx->mpi.comm);
+            MPI_Gather(&stats.put_times, size, MPI_CHAR, nullptr, 0, MPI_CHAR, dst_rank, comm);
         }
 
         if (get_num_puts) {
             const std::size_t size = sizeof(stats.puts);
-            MPI_Gather(&stats.puts, size, MPI_CHAR, nullptr, 0, MPI_CHAR, rank, hx->mpi.comm);
+            MPI_Gather(&stats.puts, size, MPI_CHAR, nullptr, 0, MPI_CHAR, dst_rank, comm);
         }
 
         if (get_get_times) {
             const std::size_t size = sizeof(stats.get_times);
-            MPI_Gather(&stats.get_times, size, MPI_CHAR, nullptr, 0, MPI_CHAR, rank, hx->mpi.comm);
+            MPI_Gather(&stats.get_times, size, MPI_CHAR, nullptr, 0, MPI_CHAR, dst_rank, comm);
         }
 
         if (get_num_gets) {
             const std::size_t size = sizeof(stats.gets);
-            MPI_Gather(&stats.gets, size, MPI_CHAR, nullptr, 0, MPI_CHAR, rank, hx->mpi.comm);
+            MPI_Gather(&stats.gets, size, MPI_CHAR, nullptr, 0, MPI_CHAR, dst_rank, comm);
         }
     }
 
-    MPI_Barrier(hx->mpi.comm);
+    MPI_Barrier(comm);
     return HXHIM_SUCCESS;
 }
 

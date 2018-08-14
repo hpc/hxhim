@@ -23,12 +23,15 @@ int Commit(hxhim_t *hx);
 /** @description Flushes the internal statistics */
 int StatFlush(hxhim_t *hx);
 
-/** @description Functiosn for flushing HXHIM queues */
+/** @description Functions for flushing HXHIM queues */
 Results *FlushPuts(hxhim_t *hx);
 Results *FlushGets(hxhim_t *hx);
 Results *FlushGetOps(hxhim_t *hx);
 Results *FlushDeletes(hxhim_t *hx);
 Results *Flush(hxhim_t *hx);
+
+/** @description Function that forces the datastores to flush to the underlying storage */
+Results *Sync(hxhim_t *hx);
 
 /** @description Functions for queuing operations to perform on the underlying storage */
 int Put(hxhim_t *hx,

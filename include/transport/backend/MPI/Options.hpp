@@ -1,7 +1,7 @@
 #ifndef TRANSPORT_MPI_OPTIONS_HPP
 #define TRANSPORT_MPI_OPTIONS_HPP
 
-#include <cstdint>
+#include <cstddef>
 
 #include <mpi.h>
 

@@ -1,7 +1,7 @@
 #ifndef TRANSPORT_BDELETE_MESSAGE_HPP
 #define TRANSPORT_BDELETE_MESSAGE_HPP
 
-#include <cstdint>
+#include <cstddef>
 
 #include "transport/Bulk.hpp"
 #include "transport/Request.hpp"

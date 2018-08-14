@@ -1,7 +1,7 @@
 #ifndef TRANSPORT_BGETOP_MESSAGE_HPP
 #define TRANSPORT_BGETOP_MESSAGE_HPP
 
-#include <cstdint>
+#include <cstddef>
 
 #include "hxhim/constants.h"
 #include "transport/Bulk.hpp"

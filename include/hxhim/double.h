@@ -1,5 +1,7 @@
-#ifndef HXHIM_FLOAT_FUNCTIONS_H
-#define HXHIM_FLOAT_FUNCTIONS_H
+#ifndef HXHIM_DOUBLE_FUNCTIONS_H
+#define HXHIM_DOUBLE_FUNCTIONS_H
+
+#include <stddef.h>
 
 #include "hxhim/constants.h"
 #include "hxhim/struct.h"

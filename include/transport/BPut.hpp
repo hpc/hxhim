@@ -1,7 +1,7 @@
 #ifndef TRANSPORT_BPUT_MESSAGE_HPP
 #define TRANSPORT_BPUT_MESSAGE_HPP
 
-#include <cstdint>
+#include <cstddef>
 
 #include "hxhim/constants.h"
 #include "transport/Bulk.hpp"
