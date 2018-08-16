@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
     // BPUT the key value pairs into HXHIM
     hxhimBPutSingleType(&hx, subjects, subject_lens, predicates, predicate_lens, HXHIM_BYTE_TYPE, objects, object_lens, count);
     hxhim_results_t *flush_all_res = hxhimFlush(&hx);
-    hxhim_results_destroy(flush_all_res);
+    hxhim_results_destroy(&hx, flush_all_res);
     spo_clean(count, subjects, subject_lens, predicates, predicate_lens, objects, object_lens);
 
     MPI_Barrier(MPI_COMM_WORLD);

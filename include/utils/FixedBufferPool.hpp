@@ -9,8 +9,8 @@
 #include <mutex>
 #include <type_traits>
 
-#include "mlog2.h"
-#include "mlogfacs2.h"
+#include "utils/mlog2.h"
+#include "utils/mlogfacs2.h"
 
 /**
  * FixedBufferPool
@@ -21,41 +21,44 @@
 */
 class FixedBufferPool {
     public:
-        FixedBufferPool(const std::size_t alloc_size, const std::size_t regions);
+        FixedBufferPool(const std::size_t alloc_size, const std::size_t regions, const std::string &name = "FixedBufferPool");
         ~FixedBufferPool();
 
-        /* @description Returns the address of a unused fixed size memory region        */
-        template <typename T, typename = std::enable_if_t<!std::is_same<T, void>::value> >
-        T *acquire(const std::size_t count = 1);
+        /* @description Returns the address of a unused fixed size memory region           */
+        template <typename T, typename... Args, typename = std::enable_if_t<!std::is_same<T, void>::value> >
+        T *acquire(Args&... args);
         void *acquire(const std::size_t size);
 
-        /* @description Releases the given address back into the pool                   */
+        template <typename T, typename = std::enable_if_t<!std::is_same<T, void>::value> >
+        T *acquire_array(const std::size_t count = 1);
+
+        /* @description Releases the given address back into the pool                      */
         template <typename T, typename = std::enable_if_t<!std::is_same<T, void>::value> >
         void release(T *ptr);
         void release(void *ptr);
 
-        /* @description Utility function to get the total size of the memory pool       */
+        /* @description Utility function to get the total size of the memory pool          */
         std::size_t size() const;
 
-        /* @description Utility function to get the size of each region                 */
+        /* @description Utility function to get the size of each region                    */
         std::size_t alloc_size() const;
 
-        /* @description Utility function to get the total number of regions             */
+        /* @description Utility function to get the total number of regions                */
         std::size_t regions() const;
 
-        /* @description Utility function to get number of unused memory regions         */
+        /* @description Utility function to get number of unused memory regions            */
         std::size_t unused() const;
 
-        /* @description Utility function to get number of used memory regions           */
+        /* @description Utility function to get number of used memory regions              */
         std::size_t used() const;
 
-        /* @description Utility function to get starting address of memory pool         */
+        /* @description Utility function to get starting address of memory pool            */
         const void *const pool() const;
 
-        /* @description Utility function to dump the contents of a region               */
+        /* @description Utility function to dump the contents of a region                  */
         std::ostream &dump(const std::size_t region, std::ostream &stream = std::cout) const;
 
-        /* @description Utility function to dump the contents of the entire memory pool */
+        /* @description Utility function to dump the contents of the entire memory pool    */
         std::ostream &dump(std::ostream &stream = std::cout) const;
 
     private:
@@ -67,6 +70,8 @@ class FixedBufferPool {
 
         /* @description Private utility function to dump the contents of a region          */
         std::ostream &dump_region(const std::size_t region, std::ostream &stream = std::cout) const;
+
+        const std::string name_;
 
         /* @description A fixed count of how much memory is in a region of memory          */
         const std::size_t alloc_size_;
@@ -127,7 +132,33 @@ class FixedBufferPool {
 /**
  * acquire
  * Acquires a memory region from the pool for use.
- *   - If zero bytes are request, nullptr will be returned.
+ *   - If there is no region available, the function blocks
+ *     until one is available.
+ * The provided arguments will be used to call a constructor of
+ * type T is called once the memory location has been acquired.
+ *
+ * Note that void * pointers should not be allocated
+ * using the templated version of acquire.
+ *
+ * @param count the number of T objects that will be placed into the region
+ * @return A pointer to a memory region of size pool_size_
+ */
+template <typename T, typename... Args, typename>
+T *FixedBufferPool::acquire(Args&... args) {
+    void *addr = acquire(sizeof(T));
+    if (addr) {
+        mlog(MLOG_DBG, "FixedBufferPool %s: Acquired a buffer of size %zu", name_.c_str(), sizeof(T));
+        return new ((T *) addr) T(args...);
+    }
+
+    mlog(MLOG_CRIT, "FixedBufferPool %s: Failed to acquire a buffer of size %zu", name_.c_str(), sizeof(T));
+    return nullptr;
+}
+
+/**
+ * acquire_array
+ * Acquires a memory region from the pool for use.
+ *   - If zero bytes are requested, nullptr will be returned.
  *   - If the provided count results in too many bytes
  *     being requested, nullptr will be returned.
  *   - If there is no region available, the function blocks
@@ -141,12 +172,15 @@ class FixedBufferPool {
  * @param count the number of T objects that will be placed into the region
  * @return A pointer to a memory region of size pool_size_
  */
-template <typename T, typename IsNotVoid>
-T *FixedBufferPool::acquire(const std::size_t count) {
+template <typename T, typename>
+T *FixedBufferPool::acquire_array(const std::size_t count) {
     void *addr = acquire(sizeof(T) * count);
     if (addr) {
+        mlog(MLOG_DBG, "FixedBufferPool %s: Acquired array buffer of size %zu", name_.c_str(), sizeof(T) * count);
         return new ((T *) addr) T();
     }
+
+    mlog(MLOG_CRIT, "FixedBufferPool %s: Failed to acquire array buffer of size %zu", name_.c_str(), sizeof(T) * count);
     return nullptr;
 }
 
@@ -157,7 +191,7 @@ T *FixedBufferPool::acquire(const std::size_t count) {
  *
  * @tparam ptr T * acquired through FixedBufferPool::acquire
  */
-template <typename T, typename IsNotVoid>
+template <typename T, typename>
 void FixedBufferPool::release(T *ptr) {
     if (ptr) {
         // release underlying memory first

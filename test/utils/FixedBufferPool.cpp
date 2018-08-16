@@ -63,7 +63,7 @@ TEST(FixedBufferPool, dump) {
     char **ptrs = new char *[TEST_REGIONS]();
     for(std::size_t i = 0; i < TEST_REGIONS; i++) {
         // place src into the memory region
-        ptrs[i] = TEST_FBP.acquire<char>(4);
+        ptrs[i] = TEST_FBP.acquire_array<char>(4);
         ASSERT_NE(ptrs[i], nullptr);
         memcpy(ptrs[i], src.c_str() + (i * TEST_ALLOC_SIZE), TEST_ALLOC_SIZE);
 
@@ -95,7 +95,7 @@ TEST(FixedBufferPool, too_large_request) {
     EXPECT_EQ(TEST_FBP.acquire(TEST_ALLOC_SIZE + 1), nullptr);
 
     // acquire Test_t *
-    EXPECT_EQ(TEST_FBP.acquire<Test_t>(2), nullptr);
+    EXPECT_EQ(TEST_FBP.acquire_array<Test_t>(2), nullptr);
 
     // neither acquires should have used space
     EXPECT_EQ(TEST_FBP.used(), 0);
@@ -111,7 +111,7 @@ TEST(FixedBufferPool, request_zero) {
     EXPECT_EQ(TEST_FBP.acquire(0), nullptr);
 
     // acquire Test_t *
-    EXPECT_EQ(TEST_FBP.acquire<Test_t>(0), nullptr);
+    EXPECT_EQ(TEST_FBP.acquire_array<Test_t>(0), nullptr);
 
     // neither acquires should have used space
     EXPECT_EQ(TEST_FBP.used(), 0);

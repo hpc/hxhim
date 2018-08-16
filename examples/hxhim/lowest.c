@@ -153,14 +153,14 @@ int main(int argc, char *argv[]) {
     }
 
     hxhim_results_t *flush1 = hxhimFlush(&hx);
-    hxhim_results_destroy(flush1);
+    hxhim_results_destroy(&hx, flush1);
 
     hxhimBGetOp(&hx, (void *) &TEMP, strlen(TEMP), (void *) &lowest,  sizeof(lowest),  HXHIM_DOUBLE_TYPE, 10, HXHIM_GET_NEXT);
     hxhimBGetOp(&hx, (void *) &TEMP, strlen(TEMP), (void *) &highest, sizeof(highest), HXHIM_DOUBLE_TYPE, 10, HXHIM_GET_PREV);
 
     hxhim_results_t *flush2 = hxhimFlush(&hx);
     print_double_results(flush2);
-    hxhim_results_destroy(flush2);
+    hxhim_results_destroy(&hx, flush2);
 
     free(cells);
 

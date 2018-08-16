@@ -9,6 +9,7 @@
 #include "hxhim/options.hpp"
 #include "hxhim/struct.h"
 #include "utils/Histogram.hpp"
+#include "utils/FixedBufferPool.hpp"
 
 namespace hxhim {
 
@@ -76,6 +77,8 @@ int GetStats(hxhim_t *hx, const int rank,
 
 hxhim::Results *GetHistogram(hxhim_t *hx, const int datastore);
 hxhim::Results *GetBHistogram(hxhim_t *hx, const int *datastores, const std::size_t count);
+
+FixedBufferPool *GetKeyFBP(hxhim_t *hx);
 
 }
 

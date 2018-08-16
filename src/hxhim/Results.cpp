@@ -178,22 +178,26 @@ Results::Sync::~Sync() {}
 
 Results::Histogram::Histogram(hxhim_t *hx, Transport::Response::Histogram *hist)
     : Result(hxhim_result_type::HXHIM_RESULT_HISTOGRAM),
-      histogram()
+      histogram(nullptr)
 {
+    histogram = new std::map<double, std::size_t>();
+
     if (hist) {
         datastore = hxhim::datastore::get_id(hx, hist->src, hist->ds_offset);
-        histogram = hist->hist;
+        *histogram = hist->hist;
         status = hist->status;
     }
 }
 
 Results::Histogram::Histogram(hxhim_t *hx, Transport::Response::BHistogram *bhist, const std::size_t i)
     : Result(hxhim_result_type::HXHIM_RESULT_HISTOGRAM),
-      histogram()
+      histogram(nullptr)
 {
+    histogram = new std::map<double, std::size_t>();
+
     if (bhist && (i < bhist->count)) {
         datastore = hxhim::datastore::get_id(hx, bhist->src, bhist->ds_offsets[i]);
-        histogram = bhist->hists[i];
+        *histogram = bhist->hists[i];
         status = bhist->statuses[i];
     }
 }
@@ -201,18 +205,42 @@ Results::Histogram::Histogram(hxhim_t *hx, Transport::Response::BHistogram *bhis
 Results::Histogram::~Histogram() {}
 
 const std::map<double, std::size_t> &Results::Histogram::GetHistogram() const {
-    return histogram;
+    return *histogram;
 }
 
-Results::Results()
-    : results(),
+Results::Results(hxhim_t *hx)
+    : hx(hx),
+      results(),
       curr(results.end())
 {}
 
 Results::~Results() {
-    for(Result * res : results) {
-        delete res;
+    curr = results.end();
+
+    for(Result *res : results) {
+        switch (res->GetType()) {
+            case HXHIM_RESULT_PUT:
+                hx->p->memory_pools.result->release(static_cast<Put *>(res));
+                break;
+            case HXHIM_RESULT_GET:
+                hx->p->memory_pools.result->release(static_cast<Get *>(res));
+                break;
+            case HXHIM_RESULT_DEL:
+                hx->p->memory_pools.result->release(static_cast<Delete *>(res));
+                break;
+            case HXHIM_RESULT_SYNC:
+                hx->p->memory_pools.result->release(static_cast<Sync *>(res));
+                break;
+            case HXHIM_RESULT_HISTOGRAM:
+                hx->p->memory_pools.result->release(static_cast<Histogram *>(res));
+                break;
+            default:
+                delete res;
+                break;
+        }
     }
+
+    results.clear();
 }
 
 /**
@@ -516,14 +544,28 @@ int hxhim_results_get_object(hxhim_results_t *res, void **object, std::size_t *o
 }
 
 /**
+ * operator delete
+ * Destroys the results returned from an operation
+ *
+ * @param hx    the HXHIM session
+ * @param res   pointer to a set of results
+ */
+void hxhim_results_destroy(hxhim_t *hx, hxhim::Results *res) {
+    if (res) {
+        res->~Results();
+        hx->p->memory_pools.results->release(res);
+    }
+}
+
+/**
  * hxhim_results_destroy
  * Destroys the contents of a results struct and the object it is pointing to
  *
  * @param res A list of results
  */
-void hxhim_results_destroy(hxhim_results_t *res) {
+void hxhim_results_destroy(hxhim_t *hx, hxhim_results_t *res) {
     if (res) {
-        delete res->res;
+        hxhim_results_destroy(hx, res->res);
         delete res;
     }
 }

@@ -5,10 +5,12 @@
 #include <string>
 
 #include "hxhim/constants.h"
+#include "hxhim/hash.hpp"
 #include "transport/constants.h"
 #include "utils/Configuration.hpp"
 #include "utils/Histogram.hpp"
-#include "hxhim/hash.hpp"
+#include "utils/mlog2.h"
+#include "utils/mlogfacs2.h"
 
 /**
  * Constant locations where the configuration reader searches
@@ -16,8 +18,10 @@
 const std::string HXHIM_CONFIG_FILE                 = "hxhim.conf";
 const std::string HXHIM_CONFIG_ENV                  = "HXHIM_CONFIG";
 
-const std::string HXHIM_DATASTORE_TYPE              = "DATASTORE";                 // See HXHIM_DATASTORE_TYPES
+const std::string HXHIM_DEBUG_LEVEL                 = "DEBUG_LEVEL";               // See HXHIM_DEBUG_LEVELS
+
 const std::string HXHIM_DATASTORES_PER_RANGE_SERVER = "DATASTORES_PER_RS";         // positive integer
+const std::string HXHIM_DATASTORE_TYPE              = "DATASTORE";                 // See HXHIM_DATASTORE_TYPES
 
 /** LevelDB Datastore Options */
 const std::string HXHIM_LEVELDB_NAME                = "LEVELDB_NAME";              // file path
@@ -41,6 +45,24 @@ const std::string HXHIM_TRANSPORT_ENDPOINT_GROUP    = "ENDPOINT_GROUP";         
 /** Histogram Options */
 const std::string HXHIM_HISTOGRAM_FIRST_N           = "HISTOGRAM_FIRST_N";         // unsigned int
 const std::string HXHIM_HISTOGRAM_BUCKET_GEN_METHOD = "HISTOGRAM_BUCKET_METHOD";   // See HXHIM_BUCKET_GENERATORS
+
+/**
+ * Set of available debug levels
+ */
+const std::map<std::string, int> HXHIM_DEBUG_LEVELS = {
+    std::make_pair("EMERGENCY", MLOG_EMERG),
+    std::make_pair("ALERT",     MLOG_ALERT),
+    std::make_pair("CRITICAL",  MLOG_CRIT),
+    std::make_pair("ERROR",     MLOG_ERR),
+    std::make_pair("WARNING",   MLOG_WARN),
+    std::make_pair("NOTICE",    MLOG_NOTE),
+    std::make_pair("INFO",      MLOG_INFO),
+    std::make_pair("DEBUG",     MLOG_DBG),
+    std::make_pair("DEBUG0",    MLOG_DBG0),
+    std::make_pair("DEBUG1",    MLOG_DBG1),
+    std::make_pair("DEBUG2",    MLOG_DBG2),
+    std::make_pair("DEBUG3",    MLOG_DBG3),
+};
 
 /**
  * Set of allowed datastores for HXHIM
@@ -115,8 +137,9 @@ const std::map<std::string, void *> HXHIM_HISTOGRAM_BUCKET_GENERATOR_EXTRA_ARGS 
  * Default configuration
  */
 const Config HXHIM_DEFAULT_CONFIG = {
-    std::make_pair(HXHIM_DATASTORE_TYPE,                "LEVELDB"),
+    std::make_pair(HXHIM_DEBUG_LEVEL,                   "CRITICAL"),
     std::make_pair(HXHIM_DATASTORES_PER_RANGE_SERVER,   "1"),
+    std::make_pair(HXHIM_DATASTORE_TYPE,                "LEVELDB"),
     std::make_pair(HXHIM_LEVELDB_NAME,                  "leveldb"),
     std::make_pair(HXHIM_LEVELDB_CREATE_IF_MISSING,     "true"),
     std::make_pair(HXHIM_HASH,                          SUM_MOD_DATASTORES),

@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
     hxhim::Results *flush_get_res = hxhim::FlushGets(&hx);
     std::cout << "GET before flushing PUTs" << std::endl;
     print_results(rank, flush_get_res);
-    delete flush_get_res;
+    hxhim_results_destroy(&hx, flush_get_res);
 
     // GET again, but flush everything this time
     enum hxhim_type_t *bget_types = new hxhim_type_t[count];
@@ -102,7 +102,7 @@ int main(int argc, char *argv[]) {
     hxhim::Results *flush_all_res = hxhim::Flush(&hx);
     std::cout << "GET after flushing PUTs" << std::endl;
     print_results(rank, flush_all_res);
-    delete flush_all_res;
+    hxhim_results_destroy(&hx, flush_all_res);
 
     spo_clean(count, subjects, subject_lens, predicates, predicate_lens, objects, object_lens);
     delete [] bget_types;

@@ -26,4 +26,4 @@ make install
 ### Usage Notes
 * The number of databases must remain the same across all runs for the stored data to make sense.
 * All pointers that are passed into HXHIM are still owned by the caller.
-* All C++ pointers should be deleted. All C pointers must be freed through their 'destroy' functions.
+* All pointers that come from HXHIM must be freed through their 'hxhim_*_destroy' functions.

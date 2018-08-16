@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cfloat>
 
 #include "datastore/datastores.hpp"
@@ -6,24 +7,61 @@
 #include "hxhim/options_private.hpp"
 #include "hxhim/private.hpp"
 #include "hxhim/shuffle.hpp"
-#include "hxhim/triplestore.hpp"
 #include "transport/backend/backends.hpp"
 #include "transport/transport.hpp"
 #include "utils/MemoryManagers.hpp"
 
+static const std::size_t bulk_sizes[] = {
+    sizeof(hxhim::PutData),
+    sizeof(hxhim::GetData),
+    sizeof(hxhim::GetOpData),
+    sizeof(hxhim::DeleteData),
+};
+
+static const std::size_t request_sizes[] = {
+    sizeof(Transport::Request::BPut),
+    sizeof(Transport::Request::BGet),
+    sizeof(Transport::Request::BDelete),
+    sizeof(Transport::Request::Histogram),
+    sizeof(Transport::Request::BHistogram),
+};
+
+static const std::size_t response_sizes[] = {
+    sizeof(Transport::Response::BPut),
+    sizeof(Transport::Response::BGet),
+    sizeof(Transport::Response::BDelete),
+    sizeof(Transport::Response::Histogram),
+    sizeof(Transport::Response::BHistogram),
+};
+
+static const std::size_t result_sizes[] = {
+    sizeof(hxhim::Results::Put),
+    sizeof(hxhim::Results::Get),
+    sizeof(hxhim::Results::Delete),
+    sizeof(hxhim::Results::Sync),
+    sizeof(hxhim::Results::Histogram),
+};
+
 hxhim_private::hxhim_private()
     : bootstrap(),
       running(false),
-      puts(),
-      gets(),
-      getops(),
-      deletes(),
+      put_multiplier(1),
+      max_bulk_ops(),
+      queues(),
       datastore(),
       async_put(),
       hash(),
       transport(nullptr),
-      range_server_destroy(nullptr)
+      range_server_destroy(nullptr),
+      memory_pools()
 {
+    // these should be configurable
+    max_bulk_ops.max     = HXHIM_MAX_BULK_OPS;
+    max_bulk_ops.puts    = max_bulk_ops.max / put_multiplier;
+    max_bulk_ops.gets    = max_bulk_ops.max;
+    max_bulk_ops.getops  = max_bulk_ops.max;
+    max_bulk_ops.deletes = max_bulk_ops.max;
+
     async_put.max_queued = 0;
     async_put.results = nullptr;
 }
@@ -42,16 +80,16 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
         return nullptr;
     }
 
-    const std::size_t total = HXHIM_PUT_MULTIPLER * count;                                       // total number of triples that will be PUT
+    const std::size_t total = HXHIM_PUT_MULTIPLER * count;                                                    // total number of triples that will be PUT
 
     Transport::Request::BPut local(HXHIM_MAX_BULK_GET_OPS);
     local.src = hx->p->bootstrap.rank;
     local.dst = hx->p->bootstrap.rank;
     local.count = 0;
 
-    Transport::Request::BPut **remote = new Transport::Request::BPut *[hx->p->bootstrap.size](); // list of destination servers (not datastores) and messages to those destinations
+    Transport::Request::BPut **remote = hxhim::acquire_array<Transport::Request::BPut *>(hx, hx->p->bootstrap.size); // list of destination servers (not datastores) and messages to those destinations
     for(std::size_t i = 0; i < hx->p->bootstrap.size; i++) {
-        remote[i] = new Transport::Request::BPut(HXHIM_MAX_BULK_GET_OPS);
+        remote[i] = hx->p->memory_pools.requests->acquire<Transport::Request::BPut>(hx->p->max_bulk_ops.puts);
         remote[i]->src = hx->p->bootstrap.rank;
         remote[i]->dst = i;
         remote[i]->count = 0;
@@ -98,34 +136,34 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
         //                     &local, &remote);
     }
 
-    hxhim::Results *res = new hxhim::Results();
+    hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
 
     // PUT the batch
     if (hx->p->bootstrap.size > 1) {
         Transport::Response::BPut *responses = hx->p->transport->BPut(hx->p->bootstrap.size, remote);
         for(Transport::Response::BPut *curr = responses; curr; curr = curr->next) {
             for(std::size_t i = 0; i < curr->count; i++) {
-                res->Add(new hxhim::Results::Put(hx, curr, i));
+                res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Put>(hx, curr, i));
             }
         }
-        delete responses;
+        hx->p->memory_pools.results->release(responses);
     }
 
     if (local.count) {
         Transport::Response::BPut *responses = local_client_bput(hx, &local);
         for(Transport::Response::BPut *curr = responses; curr; curr = curr->next) {
             for(std::size_t i = 0; i < curr->count; i++) {
-                res->Add(new hxhim::Results::Put(hx, curr, i));
+                res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Put>(hx, curr, i));
             }
         }
-        delete responses;
+        hx->p->memory_pools.results->release(responses);
     }
 
     // cleanup
     for(std::size_t i = 0; i < hx->p->bootstrap.size; i++) {
-        delete remote[i];
+        hx->p->memory_pools.requests->release(remote[i]);
     }
-    delete [] remote;
+    hxhim::release_array(hx, remote);
 
     return res;
 }
@@ -151,7 +189,7 @@ static void backgroundPUT(void *args) {
 
         // hold unsent.mutex just long enough to move queued PUTs to send queue
         {
-            hxhim::Unsent<hxhim::PutData> &unsent = hx->p->puts;
+            hxhim::Unsent<hxhim::PutData> &unsent = hx->p->queues.puts;
             std::unique_lock<std::mutex> lock(unsent.mutex);
             while (hx->p->running && (unsent.full_batches < hx->p->async_put.max_queued) && !unsent.force) {
                 unsent.start_processing.wait(lock, [&]() -> bool { return !hx->p->running || (unsent.full_batches >= hx->p->async_put.max_queued) || unsent.force; });
@@ -221,7 +259,7 @@ static void backgroundPUT(void *args) {
 
             // go to the next batch
             hxhim::PutData *next = head->next;
-            delete head;
+            hx->p->memory_pools.bulks->release(head);
             head = next;
 
             {
@@ -229,7 +267,7 @@ static void backgroundPUT(void *args) {
                 hx->p->async_put.results->Append(res);
             }
 
-            delete res;
+            hx->p->memory_pools.results->release(res);
         }
 
         // if this flush was forced, notify FlushPuts
@@ -238,7 +276,7 @@ static void backgroundPUT(void *args) {
                 // process the batch
                 hxhim::Results *res = put_core(hx, last, last_count);
 
-                delete last;
+                hx->p->memory_pools.bulks->release(last);
                 last = nullptr;
 
                 {
@@ -246,10 +284,10 @@ static void backgroundPUT(void *args) {
                     hx->p->async_put.results->Append(res);
                 }
 
-                delete res;
+                hx->p->memory_pools.results->release(res);
             }
 
-            hxhim::Unsent<hxhim::PutData> &unsent = hx->p->puts;
+            hxhim::Unsent<hxhim::PutData> &unsent = hx->p->queues.puts;
             std::unique_lock<std::mutex> lock(unsent.mutex);
             unsent.done_processing.notify_all();
         }
@@ -312,6 +350,31 @@ int hxhim::init::running(hxhim_t *hx, hxhim_options_t *opts) {
 }
 
 /**
+ * memory
+ * Sets up the memory pools
+ * TODO: make these configurable
+ *
+ * @param hx   the HXHIM instance
+ * @param opts the HXHIM options
+ * @return HXHIM_SUCCESS on success or HXHIM_ERROR
+ */
+int hxhim::init::memory(hxhim_t *hx, hxhim_options_t *opts) {
+    if (!valid(hx, opts)) {
+        return HXHIM_ERROR;
+    }
+
+    hx->p->memory_pools.bulks     = Memory::FBP(*std::max_element(bulk_sizes,     bulk_sizes     + sizeof(bulk_sizes)     / sizeof(*bulk_sizes)),     10 * hx->p->max_bulk_ops.max, "Bulks");
+    hx->p->memory_pools.keys      = Memory::FBP(sizeof(char) * 1000, hx->p->max_bulk_ops.max, "Keys");
+    hx->p->memory_pools.arrays    = Memory::FBP(sizeof(void *) * hx->p->max_bulk_ops.max, 100, "Arrays");
+    hx->p->memory_pools.requests  = Memory::FBP(*std::max_element(request_sizes,  request_sizes  + sizeof(request_sizes)  / sizeof(*request_sizes)),  10 * hx->p->max_bulk_ops.max, "Requests");
+    hx->p->memory_pools.responses = Memory::FBP(*std::max_element(response_sizes, response_sizes + sizeof(response_sizes) / sizeof(*response_sizes)), 10 * hx->p->max_bulk_ops.max, "Responses");
+    hx->p->memory_pools.result    = Memory::FBP(*std::max_element(result_sizes,   result_sizes   + sizeof(result_sizes)   / sizeof(*result_sizes)),   10 * hx->p->max_bulk_ops.max, "Result");
+    hx->p->memory_pools.results   = Memory::FBP(sizeof(hxhim::Results), 5, "Results");
+
+    return HXHIM_SUCCESS;
+}
+
+/**
  * datastore
  * Sets up and starts the datastore
  *
@@ -328,7 +391,7 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
-    if (!(hx->p->datastore.datastores = new hxhim::datastore::Datastore *[hx->p->datastore.count])) {
+    if (!(hx->p->datastore.datastores = hxhim::acquire_array<hxhim::datastore::Datastore *>(hx, hx->p->datastore.count))) {
         return HXHIM_ERROR;
     }
 
@@ -384,7 +447,7 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
         return HXHIM_ERROR;
     }
 
-    if (!(hx->p->datastore.datastores = new hxhim::datastore::Datastore *[hx->p->datastore.count])) {
+    if (!(hx->p->datastore.datastores = hxhim::acquire_array<hxhim::datastore::Datastore *>(hx, 1))) {
         return HXHIM_ERROR;
     }
 
@@ -429,7 +492,7 @@ int hxhim::init::async_put(hxhim_t *hx, hxhim_options_t *opts) {
     }
 
     // Set up queued PUT results list
-    if (!(hx->p->async_put.results = new hxhim::Results())) {
+    if (!(hx->p->async_put.results = hx->p->memory_pools.results->acquire<hxhim::Results>(hx))) {
         return HXHIM_ERROR;
     }
 
@@ -479,7 +542,7 @@ static int init_transport_mpi(hxhim_t *hx, hxhim_options_t *opts) {
 
     // Get the memory pool used for storing messages
     Options *config = static_cast<Options *>(opts->p->transport);
-    FixedBufferPool *fbp = Memory::Pool(config->alloc_size, config->regions);
+    FixedBufferPool *fbp = Memory::FBP(config->alloc_size, config->regions);
     if (!fbp) {
         return TRANSPORT_ERROR;
     }
@@ -659,6 +722,27 @@ int hxhim::destroy::running(hxhim_t *hx) {
 }
 
 /**
+ * memory
+ * Removes the memory pools
+ *
+ * @param hx   the HXHIM instance
+ * @return HXHIM_SUCCESS on success or HXHIM_ERROR
+ */
+int hxhim::destroy::memory(hxhim_t *hx) {
+    if (!valid(hx)) {
+        return HXHIM_ERROR;
+    }
+
+    hx->p->memory_pools.arrays    = nullptr;
+    hx->p->memory_pools.requests  = nullptr;
+    hx->p->memory_pools.responses = nullptr;
+    hx->p->memory_pools.result    = nullptr;
+    hx->p->memory_pools.results   = nullptr;
+
+    return HXHIM_SUCCESS;
+}
+
+/**
  * transport
  * Cleans up the transport
  *
@@ -714,26 +798,26 @@ int hxhim::destroy::async_put(hxhim_t *hx) {
 
     // stop the thread
     destroy::running(hx);
-    hx->p->puts.start_processing.notify_all();
-    hx->p->puts.done_processing.notify_all();
+    hx->p->queues.puts.start_processing.notify_all();
+    hx->p->queues.puts.done_processing.notify_all();
 
     if (hx->p->async_put.thread.joinable()) {
         hx->p->async_put.thread.join();
     }
 
     // clear out unflushed work in the work queue
-    hxhim::clean(hx->p->puts.head);
-    hx->p->puts.head = nullptr;
-    hxhim::clean(hx->p->gets.head);
-    hx->p->gets.head = nullptr;
-    hxhim::clean(hx->p->getops.head);
-    hx->p->getops.head = nullptr;
-    hxhim::clean(hx->p->deletes.head);
-    hx->p->deletes.head = nullptr;
+    hxhim::clean(hx->p->queues.puts.head);
+    hx->p->queues.puts.head = nullptr;
+    hxhim::clean(hx->p->queues.gets.head);
+    hx->p->queues.gets.head = nullptr;
+    hxhim::clean(hx->p->queues.getops.head);
+    hx->p->queues.getops.head = nullptr;
+    hxhim::clean(hx->p->queues.deletes.head);
+    hx->p->queues.deletes.head = nullptr;
 
     {
         std::unique_lock<std::mutex>(hx->p->async_put.mutex);
-        delete hx->p->async_put.results;
+        hx->p->memory_pools.results->release(hx->p->async_put.results);
         hx->p->async_put.results = nullptr;
     }
 
@@ -761,7 +845,7 @@ int hxhim::destroy::datastore(hxhim_t *hx) {
             }
         }
 
-        delete [] hx->p->datastore.datastores;
+        hxhim::release_array(hx, hx->p->datastore.datastores);
         hx->p->datastore.datastores = nullptr;
     }
 

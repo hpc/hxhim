@@ -5,9 +5,11 @@
  *
  * @param alloc_size how much space a region contains
  * @param regions    how many regions there are
+ * @param name       the identifier to use when printing log messages
  */
-FixedBufferPool::FixedBufferPool(const std::size_t alloc_size, const std::size_t regions)
-  : alloc_size_(alloc_size),
+FixedBufferPool::FixedBufferPool(const std::size_t alloc_size, const std::size_t regions, const std::string &name)
+  : name_(name),
+    alloc_size_(alloc_size),
     regions_(regions),
     pool_size_(alloc_size_ * regions_),
     pool_(nullptr),
@@ -25,7 +27,7 @@ FixedBufferPool::FixedBufferPool(const std::size_t alloc_size, const std::size_t
         nodes_ = new Node[regions_]();
     }
     catch (...) {
-        mlog(MLOG_CRIT, "FixedBufferPool failed to allocate FixedBufferPool bookkeeping array");
+        mlog(MLOG_CRIT, "FixedBufferPool %s: Failed to allocate bookkeeping array", name_.c_str());
         ::operator delete(pool_);
         throw;
     }
@@ -87,27 +89,30 @@ FixedBufferPool::~FixedBufferPool() {
 void *FixedBufferPool::acquire(const std::size_t size) {
     // 0 bytes
     if (!size) {
-        mlog(MLOG_DBG, "Requested a 0 size buffer from FixedBufferPool");
+        mlog(MLOG_DBG, "FixedBufferPool %s: Got request for a size 0 buffer", name_.c_str());
         return nullptr;
     }
 
     // too big
     if (size > alloc_size_) {
-        mlog(MLOG_CRIT, "Requested a %zu size buffer from FixedBufferPool, which is greater than the size of a region (%zu)", size, alloc_size_);
+        mlog(MLOG_CRIT, "FixedBufferPool %s: Got request for a size %zu buffer, which is greater than the size of a region (%zu)", name_.c_str(), size, alloc_size_);
         return nullptr;
     }
 
     std::unique_lock<std::mutex> lock(mutex_);
+    mlog(MLOG_DBG, "FixedBufferPool %s: Got request for a size %zu buffer", name_.c_str(), size);
 
     // wait until a slot opens up
     while (!unused_) {
+        mlog(MLOG_DBG, "FixedBufferPool %s: Waiting for a size %zu buffer", name_.c_str(), size);
         cv_.wait(lock, [&]{ return unused_; });
     }
+
+    mlog(MLOG_DBG, "FixedBufferPool %s: A size %zu buffer is available", name_.c_str(), size);
 
     // set the return address to the head of the unused list
     // and clear the memory region
     void *ret = unused_->addr;
-    memset(ret, 0, alloc_size_);
 
     // move list of unused regions_ to the next region
     Node *next = unused_->next;
@@ -115,7 +120,7 @@ void *FixedBufferPool::acquire(const std::size_t size) {
     unused_ = next;
 
     used_++;
-    mlog(MLOG_DBG, "Acquired a %zu size buffer from FixedBufferPool. %zu regions left.", size, regions_ - used_);
+    mlog(MLOG_DBG, "FixedBufferPool %s: Acquired a size %zu buffer. %zu regions left.", name_.c_str(), size, regions_ - used_);
     return ret;
 }
 
@@ -128,7 +133,7 @@ void *FixedBufferPool::acquire(const std::size_t size) {
  */
 void FixedBufferPool::release(void *ptr) {
     if (!ptr) {
-        mlog(MLOG_DBG, "Attempted to free a nullptr");
+        mlog(MLOG_DBG, "FixedBufferPool %s: Attempted to free a nullptr", name_.c_str());
         return;
     }
 
@@ -137,7 +142,7 @@ void FixedBufferPool::release(void *ptr) {
     // if the pointer is not within the memory pool, do nothing
     if (((char *)ptr < (char *)pool_) ||
         (((char *)pool_ + pool_size_)) < (char *)ptr) {
-        mlog(MLOG_DBG, "Attempted to free a pointer not within the memory pool");
+        mlog(MLOG_DBG, "FixedBufferPool %s: Attempted to free a pointer not within the memory pool", name_.c_str());
         return;
     }
 
@@ -146,7 +151,7 @@ void FixedBufferPool::release(void *ptr) {
 
     // if the pointer isn't a multiple of the of the allocation size, do nothing
     if (offset % alloc_size_) {
-        mlog(MLOG_DBG, "Address being freed is not aligned to an allocation region");
+        mlog(MLOG_DBG, "FixedBufferPool %s: Address being freed is not aligned to an allocation region", name_.c_str());
     }
 
     // index of this pointer in the fixed size array
@@ -154,7 +159,7 @@ void FixedBufferPool::release(void *ptr) {
 
     // check for double frees (to prevent loops)
     if (nodes_[index].next) {
-        mlog(MLOG_DBG, "Address being freed has already been freed");
+        mlog(MLOG_DBG, "FixedBufferPool %s: Address being freed has already been freed", name_.c_str());
         return;
     }
 

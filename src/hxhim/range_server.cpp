@@ -1,7 +1,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <iostream>
 
 #include "hxhim/options.h"
 #include "hxhim/options_private.hpp"

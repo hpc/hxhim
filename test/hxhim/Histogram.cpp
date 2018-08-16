@@ -16,6 +16,7 @@ static const double      objects[]    = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
 TEST(hxhim, Histogram) {
     hxhim_options_t opts;
     ASSERT_EQ(hxhim_options_init(&opts), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim_options_set_debug_level(&opts, MLOG_DBG3), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_mpi_bootstrap(&opts, MPI_COMM_WORLD), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_datastore_in_memory(&opts), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_datastores_per_range_server(&opts, 1), HXHIM_SUCCESS);
@@ -40,7 +41,7 @@ TEST(hxhim, Histogram) {
     // Flush all queued items
     hxhim::Results *put_results = hxhim::Flush(&hx);
     ASSERT_NE(put_results, nullptr);
-    delete put_results;
+    hxhim_results_destroy(&hx, put_results);
 
     hxhim::Results *histogram = hxhim::GetHistogram(&hx, 0);
     if (!histogram) {
@@ -71,7 +72,7 @@ TEST(hxhim, Histogram) {
         EXPECT_EQ(it->second, 2);
     }
 
-    delete histogram;
+    hxhim_results_destroy(&hx, histogram);
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }
@@ -89,6 +90,7 @@ static Histogram::BucketGen::generator test_buckets = [](const std::list<double>
 TEST(hxhim, BHistogram) {
     hxhim_options_t opts;
     ASSERT_EQ(hxhim_options_init(&opts), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim_options_set_debug_level(&opts, MLOG_DBG3), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_mpi_bootstrap(&opts, MPI_COMM_WORLD), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_datastore_in_memory(&opts), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_datastores_per_range_server(&opts, 10), HXHIM_SUCCESS);
@@ -113,7 +115,7 @@ TEST(hxhim, BHistogram) {
     // Flush all queued items
     hxhim::Results *put_results = hxhim::Flush(&hx);
     ASSERT_NE(put_results, nullptr);
-    delete put_results;
+    hxhim_results_destroy(&hx, put_results);
 
     const int srcs[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
     const std::size_t src_count = sizeof(srcs) / sizeof(*srcs);
@@ -144,7 +146,7 @@ TEST(hxhim, BHistogram) {
 
     EXPECT_EQ(count, src_count);
 
-    delete bhistogram;
+    hxhim_results_destroy(&hx, bhistogram);
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }

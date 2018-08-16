@@ -132,11 +132,11 @@ class Results {
                 const std::map<double, std::size_t> &GetHistogram() const;
 
             private:
-                std::map<double, std::size_t> histogram;
+                std::map<double, std::size_t> *histogram;
         };
 
     public:
-        Results();
+        Results(hxhim_t *hx);
         ~Results();
 
         // Accessors (controls the "curr" pointer)
@@ -153,10 +153,13 @@ class Results {
         Results &Append(Results *other);
 
     private:
+        hxhim_t *hx;
         std::list <Result *> results;
         std::list<Result *>::iterator curr;
 };
 
 }
+
+void hxhim_results_destroy(hxhim_t *hx, hxhim::Results *res);
 
 #endif

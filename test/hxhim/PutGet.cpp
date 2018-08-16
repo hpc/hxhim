@@ -58,7 +58,7 @@ TEST(hxhim, PutGet) {
         put_count++;
     }
 
-    delete put_results;
+    hxhim_results_destroy(&hx, put_results);
     EXPECT_EQ(put_count, 1);
 
     // Add subject-predicate to get back
@@ -103,7 +103,7 @@ TEST(hxhim, PutGet) {
         get_count++;
     }
 
-    delete get_results;
+    hxhim_results_destroy(&hx, get_results);
     EXPECT_EQ(get_count, 1);
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);

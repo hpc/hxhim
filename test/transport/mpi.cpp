@@ -63,7 +63,7 @@ TEST(mpi_pack_unpack, RequestPut) {
     EXPECT_EQ(src.type, Message::PUT);
     EXPECT_EQ(src.clean, false);
 
-    FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
+    FixedBufferPool *fbp = Memory::FBP(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
     ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), HXHIM_SUCCESS);
@@ -116,7 +116,7 @@ TEST(mpi_pack_unpack, RequestGet) {
     EXPECT_EQ(src.type, Message::GET);
     EXPECT_EQ(src.clean, false);
 
-    FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
+    FixedBufferPool *fbp = Memory::FBP(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
     ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), HXHIM_SUCCESS);
@@ -165,7 +165,7 @@ TEST(mpi_pack_unpack, RequestDelete) {
     EXPECT_EQ(src.type, Message::DELETE);
     EXPECT_EQ(src.clean, false);
 
-    FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
+    FixedBufferPool *fbp = Memory::FBP(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
     ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), HXHIM_SUCCESS);
@@ -206,7 +206,7 @@ TEST(mpi_pack_unpack, RequestHistogram) {
     EXPECT_EQ(src.type, Message::HISTOGRAM);
     EXPECT_EQ(src.clean, false);
 
-    FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
+    FixedBufferPool *fbp = Memory::FBP(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
     ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), HXHIM_SUCCESS);
@@ -254,7 +254,7 @@ TEST(mpi_pack_unpack, RequestBPut) {
     EXPECT_EQ(src.type, Message::BPUT);
     EXPECT_EQ(src.clean, false);
 
-    FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
+    FixedBufferPool *fbp = Memory::FBP(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
     ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), HXHIM_SUCCESS);
@@ -314,7 +314,7 @@ TEST(mpi_pack_unpack, RequestBGet) {
     EXPECT_EQ(src.type, Message::BGET);
     EXPECT_EQ(src.clean, false);
 
-    FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
+    FixedBufferPool *fbp = Memory::FBP(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
     ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), HXHIM_SUCCESS);
@@ -375,7 +375,7 @@ TEST(mpi_pack_unpack, RequestBGetOp) {
     EXPECT_EQ(src.type, Message::BGETOP);
     EXPECT_EQ(src.clean, false);
 
-    FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
+    FixedBufferPool *fbp = Memory::FBP(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
     ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), HXHIM_SUCCESS);
@@ -434,7 +434,7 @@ TEST(mpi_pack_unpack, RequestBDelete) {
     EXPECT_EQ(src.type, Message::BDELETE);
     EXPECT_EQ(src.clean, false);
 
-    FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
+    FixedBufferPool *fbp = Memory::FBP(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
     ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), HXHIM_SUCCESS);
@@ -482,7 +482,7 @@ TEST(mpi_pack_unpack, RequestBHistogram) {
     EXPECT_EQ(src.type, Message::BHISTOGRAM);
     EXPECT_EQ(src.clean, false);
 
-    FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
+    FixedBufferPool *fbp = Memory::FBP(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
     ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), HXHIM_SUCCESS);
@@ -523,7 +523,7 @@ TEST(mpi_pack_unpack, ResponsePut) {
     EXPECT_EQ(src.type, Message::PUT);
     EXPECT_EQ(src.clean, false);
 
-    FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
+    FixedBufferPool *fbp = Memory::FBP(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
     ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), HXHIM_SUCCESS);
@@ -574,7 +574,7 @@ TEST(mpi_pack_unpack, ResponseGet) {
     EXPECT_EQ(src.type, Message::GET);
     EXPECT_EQ(src.clean, false);
 
-    FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
+    FixedBufferPool *fbp = Memory::FBP(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
     ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), HXHIM_SUCCESS);
@@ -623,7 +623,7 @@ TEST(mpi_pack_unpack, ResponseDelete) {
     EXPECT_EQ(src.type, Message::DELETE);
     EXPECT_EQ(src.clean, false);
 
-    FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
+    FixedBufferPool *fbp = Memory::FBP(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
     ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), HXHIM_SUCCESS);
@@ -667,7 +667,7 @@ TEST(mpi_pack_unpack, ResponseHistogram) {
     EXPECT_EQ(src.type, Message::HISTOGRAM);
     EXPECT_EQ(src.clean, false);
 
-    FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
+    FixedBufferPool *fbp = Memory::FBP(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
     ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), HXHIM_SUCCESS);
@@ -718,7 +718,7 @@ TEST(mpi_pack_unpack, ResponseBPut) {
     EXPECT_EQ(src.type, Message::BPUT);
     EXPECT_EQ(src.clean, false);
 
-    FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
+    FixedBufferPool *fbp = Memory::FBP(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
     ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), HXHIM_SUCCESS);
@@ -773,7 +773,7 @@ TEST(mpi_pack_unpack, ResponseBGet) {
     EXPECT_EQ(src.type, Message::BGET);
     EXPECT_EQ(src.clean, false);
 
-    FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
+    FixedBufferPool *fbp = Memory::FBP(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
     ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), HXHIM_SUCCESS);
@@ -838,7 +838,7 @@ TEST(mpi_pack_unpack, ResponseBGetOp) {
     EXPECT_EQ(src.type, Message::BGETOP);
     EXPECT_EQ(src.clean, false);
 
-    FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
+    FixedBufferPool *fbp = Memory::FBP(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
     ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), HXHIM_SUCCESS);
@@ -893,7 +893,7 @@ TEST(mpi_pack_unpack, ResponseBDelete) {
     EXPECT_EQ(src.type, Message::BDELETE);
     EXPECT_EQ(src.clean, false);
 
-    FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
+    FixedBufferPool *fbp = Memory::FBP(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
     ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), HXHIM_SUCCESS);
@@ -943,7 +943,7 @@ TEST(mpi_pack_unpack, ResponseBHistogram) {
     EXPECT_EQ(src.type, Message::BHISTOGRAM);
     EXPECT_EQ(src.clean, false);
 
-    FixedBufferPool *fbp = Memory::Pool(ALLOC_SIZE, REGIONS);
+    FixedBufferPool *fbp = Memory::FBP(ALLOC_SIZE, REGIONS);
     void *buf = nullptr;
     std::size_t bufsize;
     ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, fbp), HXHIM_SUCCESS);

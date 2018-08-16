@@ -49,6 +49,8 @@ typedef struct hxhim_in_memory_config : hxhim_datastore_config_t {
 typedef struct hxhim_options_private {
     MPI_Comm comm;                            // bootstrap communicator
 
+    int debug_level;
+
     hxhim_datastore_config_t *datastore;      // configuration options for the selected datastore
     std::size_t datastore_count;
 

@@ -1,6 +1,5 @@
 #include <sstream>
 #include <vector>
-#include <iostream>
 
 #include "hxhim/config.h"
 #include "hxhim/config.hpp"
@@ -13,6 +12,14 @@
 static int fill_options(hxhim_options_t *opts, const Config &config) {
     if (!opts || !opts->p                ||
         (opts->p->comm == MPI_COMM_NULL)) {
+        return HXHIM_ERROR;
+    }
+
+    // Set Debug Level
+    int debug_level;
+    int ret = get_from_map(config, HXHIM_DEBUG_LEVEL, HXHIM_DEBUG_LEVELS, debug_level);
+    if ((ret == CONFIG_ERROR)                                                                          ||
+        ((ret == CONFIG_FOUND) && (hxhim_options_set_debug_level(opts, debug_level) != HXHIM_SUCCESS))) {
         return HXHIM_ERROR;
     }
 

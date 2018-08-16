@@ -81,6 +81,7 @@ int hxhimGetStats(hxhim_t *hx, const int rank,
                   const int get_num_gets, size_t *num_gets);
 
 hxhim_results_t *hxhimGetHistogram(hxhim_t *hx, const int datastore);
+hxhim_results_t *hxhimBGetHistogram(hxhim_t *hx, const int *datastores, const size_t count);
 
 #ifdef __cplusplus
 }

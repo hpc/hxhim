@@ -162,7 +162,7 @@ int main(int argc, char *argv[]) {
                     print_results(&hx, 0, results);
                 }
 
-                hxhim_results_destroy(results);
+                hxhim_results_destroy(&hx, results);
 
                 // clean up user input
                 for(UserInput &input : inputs) {

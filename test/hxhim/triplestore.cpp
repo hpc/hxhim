@@ -60,10 +60,14 @@ TEST(triplestore, decode_unsigned) {
 }
 
 TEST(triplestore, sp_to_key) {
+    FixedBufferPool *fbp = new FixedBufferPool(SUBJECT_LEN + sizeof(std::size_t) +
+                                               PREDICATE_LEN + sizeof(std::size_t), 1);
+    ASSERT_NE(fbp, nullptr);
+
     void *key = nullptr;
     std::size_t key_len;
 
-    EXPECT_EQ(sp_to_key(SUBJECT, SUBJECT_LEN, PREDICATE, PREDICATE_LEN, &key, &key_len), HXHIM_SUCCESS);
+    EXPECT_EQ(sp_to_key(fbp, SUBJECT, SUBJECT_LEN, PREDICATE, PREDICATE_LEN, &key, &key_len), HXHIM_SUCCESS);
 
     char *curr = (char *) key;
     EXPECT_EQ(memcmp(curr, SUBJECT, SUBJECT_LEN), 0);
@@ -77,14 +81,20 @@ TEST(triplestore, sp_to_key) {
     curr += PREDICATE_LEN;
     EXPECT_EQ(memcmp(curr, PREDICATE_LEN_ENCODED(), sizeof(PREDICATE_LEN)), 0);
 
-    ::operator delete(key);
+    fbp->release(key);
+
+    delete fbp;
 }
 
 TEST(triplestore, key_to_sp) {
+    FixedBufferPool *fbp = new FixedBufferPool(SUBJECT_LEN + sizeof(std::size_t) +
+                                               PREDICATE_LEN + sizeof(std::size_t), 1);
+    ASSERT_NE(fbp, nullptr);
+
     void *key = nullptr;
     std::size_t key_len;
 
-    EXPECT_EQ(sp_to_key(SUBJECT, SUBJECT_LEN, PREDICATE, PREDICATE_LEN, &key, &key_len), HXHIM_SUCCESS);
+    EXPECT_EQ(sp_to_key(fbp, SUBJECT, SUBJECT_LEN, PREDICATE, PREDICATE_LEN, &key, &key_len), HXHIM_SUCCESS);
 
     void *subject = nullptr;
     std::size_t subject_len = 0;
@@ -97,5 +107,7 @@ TEST(triplestore, key_to_sp) {
     EXPECT_EQ(predicate_len, PREDICATE_LEN);
     EXPECT_EQ(memcmp(predicate, PREDICATE, predicate_len), 0);
 
-    ::operator delete(key);
+    fbp->release(key);
+
+    delete fbp;
 }

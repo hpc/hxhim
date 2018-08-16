@@ -37,6 +37,7 @@ static bool valid_opts(hxhim_options_t *opts) {
  * hxhim_options_set_mpi_bootstrap
  *
  * @param opts the set of options to be modified
+ * @param comm the MPI communicator HXHIM will use to bootstrap
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_set_mpi_bootstrap(hxhim_options_t *opts, MPI_Comm comm) {
@@ -47,6 +48,29 @@ int hxhim_options_set_mpi_bootstrap(hxhim_options_t *opts, MPI_Comm comm) {
     return ((opts->p->comm = comm) == MPI_COMM_NULL)?HXHIM_ERROR:HXHIM_SUCCESS;
 }
 
+/**
+ * hxhim_options_set_debug_level
+ *
+ * @param opts the set of options to be modified
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim_options_set_debug_level(hxhim_options_t *opts, const int level) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->debug_level = level;
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * hxhim_options_set_datastores_per_range_server
+ *
+ * @param opts  the set of options to be modified
+ * @param count the number of databases to open if this rank is a range server
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
 int hxhim_options_set_datastores_per_range_server(hxhim_options_t *opts, const size_t count) {
     if (!valid_opts(opts)) {
         return HXHIM_ERROR;

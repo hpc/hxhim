@@ -52,7 +52,7 @@ TEST(hxhim, BadGet) {
         count++;
     }
 
-    delete get_results;
+    hxhim_results_destroy(&hx, get_results);
     EXPECT_EQ(count, 1);
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);

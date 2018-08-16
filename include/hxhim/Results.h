@@ -4,6 +4,7 @@
 #include <stddef.h>
 
 #include "hxhim/constants.h"
+#include "hxhim/struct.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -37,7 +38,7 @@ int hxhim_results_get_subject(hxhim_results_t *res, void **subject, size_t *subj
 int hxhim_results_get_predicate(hxhim_results_t *res, void **predicate, size_t *predicate_len);
 int hxhim_results_get_object(hxhim_results_t *res, void **object, size_t *object_len);
 
-void hxhim_results_destroy(hxhim_results_t *res);
+void hxhim_results_destroy(hxhim_t *hx, hxhim_results_t *res);
 
 #ifdef __cplusplus
 }

@@ -850,11 +850,11 @@ class Benchmark {
     hxhim_results_t *ret = hxhimFlush(hx);
     thread->stats.FinishedSingleOp();
     if (write_options_.sync) {
-        hxhim_results_destroy(hxhimSync(hx));
+        hxhim_results_destroy(hx, hxhimSync(hx));
         thread->stats.FinishedSingleOp();
     }
 
-    hxhim_results_destroy(ret);
+    hxhim_results_destroy(hx, ret);
 
     for (int i = 0; i < entries_per_batch_; i++) {
       ::operator delete(subjects[i]);
@@ -936,7 +936,7 @@ class Benchmark {
           int error; hxhim_results_error(ret, &error);
           found += (error == HXHIM_SUCCESS);
       }
-      hxhim_results_destroy(ret);
+      hxhim_results_destroy(hx, ret);
 
       // char key[100];
       // const int k = thread->rand.Next() % FLAGS_num;
@@ -966,7 +966,7 @@ class Benchmark {
       hxhimGet(hx, (void *) subject, strlen(subject), (void *) predicate, strlen(predicate), HXHIM_BYTE_TYPE);
 
       hxhim_results_t *ret = hxhimFlush(hx);
-      hxhim_results_destroy(ret);
+      hxhim_results_destroy(hx, ret);
 
       // char key[100];
       // const int k = thread->rand.Next() % FLAGS_num;
@@ -992,7 +992,7 @@ class Benchmark {
       hxhimGet(hx, (void *) subject, strlen(subject), (void *) predicate, strlen(predicate), HXHIM_BYTE_TYPE);
       hxhim_results_t *ret = hxhimFlush(hx);
       thread->stats.FinishedSingleOp();
-      hxhim_results_destroy(ret);
+      hxhim_results_destroy(hx, ret);
 
       // char key[100];
       // const int k = thread->rand.Next() % range;
@@ -1045,7 +1045,7 @@ class Benchmark {
   //     }
 
   //     hxhim_results_t *ret = hxhimFlush(hx);
-  //     hxhim_results_destroy(ret);
+  //     hxhim_results_destroy(hx, ret);
   //   }
 
   //   for (int i = 0; i < entries_per_batch_; i++) {

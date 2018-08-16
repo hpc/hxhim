@@ -6,8 +6,6 @@
 #include "transport/backend/MPI/Unpacker.hpp"
 #include "transport/backend/MPI/constants.h"
 
-#include <iostream>
-
 namespace Transport {
 namespace MPI {
 

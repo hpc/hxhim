@@ -15,7 +15,7 @@ int hxhim::BPutSingleType(hxhim_t *hx,
     }
 
     if (count) {
-        hxhim::Unsent<hxhim::PutData> &puts = hx->p->puts;
+        hxhim::Unsent<hxhim::PutData> &puts = hx->p->queues.puts;
         std::lock_guard<std::mutex> lock(puts.mutex);
 
         // no previous batch
@@ -78,7 +78,7 @@ int hxhim::BGetSingleType(hxhim_t *hx,
     }
 
     if (count) {
-        hxhim::Unsent<hxhim::GetData> &gets = hx->p->gets;
+        hxhim::Unsent<hxhim::GetData> &gets = hx->p->queues.gets;
         std::lock_guard<std::mutex> lock(gets.mutex);
 
         // no previous batch

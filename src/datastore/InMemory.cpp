@@ -48,16 +48,17 @@ Response::BPut *InMemory::BPutImpl(void **subjects, std::size_t *subject_lens,
 
     struct timespec start, end;
 
+    FixedBufferPool *fbp = hxhim::GetKeyFBP(hx);
     for(std::size_t i = 0; i < count; i++) {
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &key, &key_len);
+        sp_to_key(fbp, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &key, &key_len);
 
         clock_gettime(CLOCK_MONOTONIC, &start);
         db[std::string((char *) key, key_len)] = std::string((char *) objects[i], object_lens[i]);
         clock_gettime(CLOCK_MONOTONIC, &end);
 
-        ::operator delete(key);
+        fbp->release(key);
 
         stats.puts++;
         stats.put_times += nano(start, end);
@@ -92,19 +93,20 @@ Response::BGet *InMemory::BGetImpl(void **subjects, std::size_t *subject_lens,
         return nullptr;
     }
 
+    FixedBufferPool *fbp = hxhim::GetKeyFBP(hx);
     for(std::size_t i = 0; i < count; i++) {
         struct timespec start, end;
         std::string value_str;
 
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &key, &key_len);
+        sp_to_key(fbp, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &key, &key_len);
 
         clock_gettime(CLOCK_MONOTONIC, &start);
         decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
         clock_gettime(CLOCK_MONOTONIC, &end);
 
-        ::operator delete(key);
+        fbp->release(key);
 
         stats.gets++;
         stats.get_times += nano(start, end);
@@ -155,16 +157,18 @@ Response::BGetOp *InMemory::BGetOpImpl(void *subject, std::size_t subject_len,
 
     struct timespec start, end;
 
+    FixedBufferPool *fbp = hxhim::GetKeyFBP(hx);
+
     void *key = nullptr;
     std::size_t key_len = 0;
-    sp_to_key(subject, subject_len, predicate, predicate_len, &key, &key_len);
+    sp_to_key(fbp, subject, subject_len, predicate, predicate_len, &key, &key_len);
 
     // add in the time to get the first key-value without adding to the counter
     clock_gettime(CLOCK_MONOTONIC, &start);
     decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
     clock_gettime(CLOCK_MONOTONIC, &end);
 
-    ::operator delete(key);
+    fbp->release(key);
 
     decltype(db)::const_reverse_iterator rit = std::make_reverse_iterator(it);
 
@@ -229,10 +233,11 @@ Response::BDelete *InMemory::BDeleteImpl(void **subjects, std::size_t *subject_l
         return nullptr;
     }
 
+    FixedBufferPool *fbp = hxhim::GetKeyFBP(hx);
     for(std::size_t i = 0; i < count; i++) {
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &key, &key_len);
+        sp_to_key(fbp, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &key, &key_len);
 
         decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
         if (it != db.end()) {
@@ -243,7 +248,7 @@ Response::BDelete *InMemory::BDeleteImpl(void **subjects, std::size_t *subject_l
             ret->statuses[i] = HXHIM_ERROR;
         }
 
-        ::operator delete(key);
+        fbp->release(key);
     }
 
     ret->count = count;

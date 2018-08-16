@@ -3,7 +3,7 @@
 
 #include <mutex>
 
-#include "hxhim/struct.h"
+#include "hxhim/hxhim.hpp"
 #include "transport/Messages.hpp"
 #include "utils/Histogram.hpp"
 #include "utils/elapsed.h"

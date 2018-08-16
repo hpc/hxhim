@@ -4,6 +4,7 @@
  * sp_to_key
  * Combines a subject and a predicate (if present) to form a key.
  *
+ * @param fbp            the FixedBufferPool to allocate from
  * @param subject        the subject of the triple
  * @param subject_len    the length of the subject
  * @param predicate      the predicate of the triple
@@ -12,10 +13,12 @@
  * @param key_len        address of the key length
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int sp_to_key(const void *subject, const std::size_t subject_len,
+int sp_to_key(FixedBufferPool *fbp,
+              const void *subject, const std::size_t subject_len,
               const void *predicate, const std::size_t predicate_len,
               void **key, std::size_t *key_len) {
-    if (!key       || !key_len     ||
+    if (!fbp       ||
+        !key       || !key_len     ||
         !subject   || !subject_len) {
         return HXHIM_ERROR;
     }
@@ -30,7 +33,7 @@ int sp_to_key(const void *subject, const std::size_t subject_len,
         return HXHIM_SUCCESS;
     }
 
-    if (!(*key = ::operator new (*key_len))) {
+    if (!(*key = fbp->acquire<char>(*key_len))) {
         *key_len = 0;
         return HXHIM_ERROR;
     }

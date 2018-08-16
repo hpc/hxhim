@@ -1,10 +1,12 @@
-#ifndef HXHIM_OPTIONS_HPP
-#define HXHIM_OPTIONS_HPP
+#ifndef HXHIM_OPTIONS_H
+#define HXHIM_OPTIONS_H
 
 #include <mpi.h>
 
 #include "hxhim/constants.h"
 #include "hxhim/hash.h"
+#include "utils/mlog2.h"
+#include "utils/mlogfacs2.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -25,6 +27,7 @@ int hxhim_options_init(hxhim_options_t *opts);
  * Functions for configuring HXHIM
  */
 int hxhim_options_set_mpi_bootstrap(hxhim_options_t *opts, MPI_Comm comm);
+int hxhim_options_set_debug_level(hxhim_options_t *opts, const int level);
 int hxhim_options_set_datastores_per_range_server(hxhim_options_t *opts, const size_t count);
 int hxhim_options_set_datastore_leveldb(hxhim_options_t *opts, const size_t id, const char *path, const int create_if_missing);
 int hxhim_options_set_datastore_in_memory(hxhim_options_t *opts);

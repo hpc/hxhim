@@ -1,5 +1,5 @@
-#ifndef MEMORY_ALLOCATORS
-#define MEMORY_ALLOCATORS
+#ifndef MEMORY_MANAGERS_HPP
+#define MEMORY_MANAGERS_HPP
 
 #include <map>
 
@@ -7,7 +7,7 @@
 
 class Memory {
     public:
-        static FixedBufferPool *Pool(const std::size_t alloc_size, const std::size_t regions);
+        static FixedBufferPool *FBP(const std::size_t alloc_size, const std::size_t regions, const std::string &name = "FixedBufferPool");
 
     private:
         Memory();
