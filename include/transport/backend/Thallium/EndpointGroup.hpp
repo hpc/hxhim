@@ -48,6 +48,12 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup {
         Response::BHistogram *BHistogram(const std::size_t num_rangesrvs, Request::BHistogram **bhist_list);
 
     private:
+        template <typename Recv_t, typename Send_t, typename = std::enable_if<std::is_base_of<Request::Request,   Send_t>::value &&
+                                                                              std::is_base_of<Bulk,               Send_t>::value &&
+                                                                              std::is_base_of<Response::Response, Recv_t>::value &&
+                                                                              std::is_base_of<Bulk,               Recv_t>::value> >
+        Recv_t *do_operation(const std::size_t num_rangesrvs, Send_t **messages);
+
         RPC_t rpc_;
 
         std::map<int, Endpoint_t> endpoints_;
@@ -55,5 +61,7 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup {
 
 }
 }
+
+#include "transport/backend/Thallium/EndpointGroup.tpp"
 
 #endif

@@ -26,17 +26,17 @@ Transport::Thallium::Endpoint::~Endpoint() {
 }
 
 Transport::Response::Put *Transport::Thallium::Endpoint::Put(const Request::Put *message) {
-    return do_operation<Request::Put, Response::Put>(message);
+    return do_operation<Response::Put>(message);
 }
 
 Transport::Response::Get *Transport::Thallium::Endpoint::Get(const Request::Get *message) {
-    return do_operation<Request::Get, Response::Get>(message);
+    return do_operation<Response::Get>(message);
 }
 
 Transport::Response::Delete *Transport::Thallium::Endpoint::Delete(const Request::Delete *message) {
-    return do_operation<Request::Delete, Response::Delete>(message);
+    return do_operation<Response::Delete>(message);
 }
 
 Transport::Response::Histogram *Transport::Thallium::Endpoint::Histogram(const Request::Histogram *message) {
-    return do_operation<Request::Histogram, Response::Histogram>(message);
+    return do_operation<Response::Histogram>(message);
 }

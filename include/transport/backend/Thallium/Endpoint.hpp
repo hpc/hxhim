@@ -47,7 +47,10 @@ class Endpoint : virtual public ::Transport::Endpoint {
          * @tparam message the message being sent
          * @treturn the response from the range server
          */
-        template <typename Send_t, typename Recv_t>
+        template <typename Recv_t, typename Send_t, typename = std::enable_if<std::is_base_of<Request::Request,   Send_t>::value &&
+                                                                              std::is_base_of<Single,             Send_t>::value &&
+                                                                              std::is_base_of<Response::Response, Recv_t>::value &&
+                                                                              std::is_base_of<Single,             Recv_t>::value> >
         Recv_t *do_operation(const Send_t *message) {
             std::lock_guard<std::mutex> lock(mutex_);
 

@@ -53,14 +53,18 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup, virtual public 
         /**
          * Functions that perform the actual MPI calls
          */
-        template <typename Send_t, typename = std::enable_if_t<std::is_base_of<Request::Request, Send_t>::value> >
+        template <typename Send_t, typename = std::enable_if_t<std::is_base_of<Request::Request, Send_t>::value &&
+                                                               std::is_base_of<Bulk,             Send_t>::value> >
         std::size_t parallel_send(const std::size_t num_srvs, Send_t **messages);          // send to range server
 
-        template <typename Recv_t, typename = std::enable_if_t<std::is_base_of<Response::Response, Recv_t>::value> >
+        template <typename Recv_t, typename = std::enable_if_t<std::is_base_of<Response::Response, Recv_t>::value &&
+                                                               std::is_base_of<Bulk,               Recv_t>::value> >
         std::size_t parallel_recv(const std::size_t nsrcs, int *srcs, Recv_t ***messages); // receive from range server
 
-        template<typename Recv_t, typename Send_t, typename = std::enable_if_t<std::is_base_of<Request::Request, Send_t>::value &&
-                                                                               std::is_base_of<Response::Response, Recv_t>::value> >
+        template <typename Recv_t, typename Send_t, typename = std::enable_if<std::is_base_of<Request::Request,   Send_t>::value &&
+                                                                              std::is_base_of<Bulk,               Send_t>::value &&
+                                                                              std::is_base_of<Response::Response, Recv_t>::value &&
+                                                                              std::is_base_of<Bulk,               Recv_t>::value> >
         Recv_t *return_msgs(const std::size_t num_rangesrvs, Send_t **messages);
 
         /** @description Mapping from unique ids to MPI ranks */
