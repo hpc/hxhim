@@ -4,8 +4,8 @@
 install(FILES
   Results.h
   Results.hpp
-  bootstrap.h
   config.h
+  config.hpp
   constants.h
   double.h
   double.hpp
@@ -16,6 +16,7 @@ install(FILES
   hxhim.h
   hxhim.hpp
   options.h
+  options.hpp
   single_type.h
   single_type.hpp
   struct.h

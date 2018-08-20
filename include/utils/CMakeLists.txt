@@ -2,7 +2,7 @@
 # Install headers and libraries
 #
 INSTALL(FILES
-  Histogram.h
+  Configuration.hpp
   Histogram.hpp
   mlog2.h
   mlogfacs2.h

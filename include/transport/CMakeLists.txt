@@ -1,0 +1,19 @@
+INSTALL(FILES
+  BDelete.hpp
+  BGet.hpp
+  BGetOp.hpp
+  BHistogram.hpp
+  BPut.hpp
+  Bulk.hpp
+  Delete.hpp
+  Get.hpp
+  Histogram.hpp
+  Message.hpp
+  Messages.hpp
+  Put.hpp
+  Request.hpp
+  Response.hpp
+  Single.hpp
+  constants.h
+  transport.hpp
+  DESTINATION include/transport)
