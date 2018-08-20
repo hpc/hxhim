@@ -1,3 +1,5 @@
+#if HXHIM_HAVE_THALLIUM
+
 #ifndef TRANSPORT_THALLIUM_RANGE_SERVER_HPP
 #define TRANSPORT_THALLIUM_RANGE_SERVER_HPP
 
@@ -28,5 +30,7 @@ class RangeServer {
 
 }
 }
+
+#endif
 
 #endif

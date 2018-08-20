@@ -5,7 +5,7 @@
 
 #include "hxhim/constants.h"
 #include "hxhim/struct.h"
-#include "transport/Messages.hpp"
+#include "transport/Messages/Messages.hpp"
 
 namespace hxhim {
 

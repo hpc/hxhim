@@ -13,19 +13,13 @@ namespace MPI {
 
 struct Options : ::Transport::Options {
     Options(MPI_Comm comm,
-            const std::size_t alloc_size,
-            const std::size_t regions,
             const std::size_t listeners)
         : ::Transport::Options(TRANSPORT_MPI),
         comm(comm),
-        alloc_size(alloc_size),
-        regions(regions),
         listeners(listeners)
     {}
 
     MPI_Comm comm;
-    const std::size_t alloc_size;
-    const std::size_t regions;
     const std::size_t listeners;
 };
 

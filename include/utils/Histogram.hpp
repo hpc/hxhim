@@ -1,33 +1,9 @@
 #ifndef HISTOGRAM_HPP
 #define HISTOGRAM_HPP
 
-#include <functional>
-#include <map>
-#include <list>
-#include <set>
-#include <type_traits>
+#include "utils/Histogram.h"
 
 namespace Histogram {
-
-const int SUCCESS = 0;
-const int ERROR = -1;
-
-/**
- * Predefined bucket generation functions
- * Some were taken from https://en.wikipedia.org/wiki/Histogram#Number_of_bins_and_width
- */
-class BucketGen {
-    public:
-        // Alias of function type which takes in a list of values, the histogram variable to fill in, and extra arguments the function needs
-        typedef std::function<int(const std::list<double> &, std::map<double, std::size_t> &, void *)> generator;
-
-        static int n_buckets                   (const std::list<double> &values, std::map<double, std::size_t> &histogram, void *extra);
-        static int square_root_choice          (const std::list<double> &values, std::map<double, std::size_t> &histogram, void *extra);
-        static int sturges_formula             (const std::list<double> &values, std::map<double, std::size_t> &histogram, void *extra);
-        static int rice_rule                   (const std::list<double> &values, std::map<double, std::size_t> &histogram, void *extra);
-        static int scotts_normal_reference_rule(const std::list<double> &values, std::map<double, std::size_t> &histogram, void *extra);
-        static int uniform_logn                (const std::list<double> &values, std::map<double, std::size_t> &histogram, void *extra);
-};
 
 /**
  * Histogram
@@ -39,28 +15,31 @@ class BucketGen {
 class Histogram {
     public:
         // Histogram(const std::map<double, std::size_t> &hist);
-        Histogram(const std::size_t use_first_n, const BucketGen::generator &generator, void *extra_args);
+        Histogram(const std::size_t use_first_n, const HistogramBucketGenerator_t &generator, void *extra_args);
         virtual ~Histogram();
 
         // Add a value to the histogram
         int add(const double &value);
 
-        // Returns the histogram data as a well known type
-        const std::map<double, std::size_t> &get() const;
+        // Returns the histogram data in arrays
+        int get(double **buckets, std::size_t **counts, std::size_t *size) const;
 
     private:
-        int generate_bins();
+        int gen_counts();
         int insert(const double &value);
 
         // set in constructor
         const std::size_t first_n;              // size of data before the buckets are generated
-        BucketGen::generator gen;               // the function to use to generate buckets
+        HistogramBucketGenerator_t gen;         // the function to use to generate buckets
         void *extra;                            // extra arguments needed by the bucket generator
 
         // state data
-        std::list <double> data;                // the data being used to generate the buckets
-        std::map<double, std::size_t> hist;     // the actual histogram
-        std::size_t count;                      // the number of values that have been added into this histogram
+        double *data;                           // the data being used to generate the buckets
+        std::size_t data_size;                  // the number of values that have been added into this histogram
+
+        double *buckets_;                       // the left end of the buckets
+        std::size_t *counts_;                   // the counts at the buckets
+        std::size_t size_;                      // the number of buckets
 };
 
 }

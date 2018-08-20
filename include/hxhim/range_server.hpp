@@ -2,7 +2,7 @@
 #define HXHIM_RANGE_SERVER_HPP
 
 #include "hxhim/struct.h"
-#include "transport/Messages.hpp"
+#include "transport/Messages/Messages.hpp"
 
 namespace hxhim {
 namespace range_server {

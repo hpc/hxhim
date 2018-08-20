@@ -58,15 +58,6 @@ namespace hxhim {
         Data *tail;
         bool force;
     };
-
-    template <typename Data, typename = std::is_base_of<SubjectPredicate, Data> >
-    void clean(Data *node) {
-        while (node) {
-            Data *next = node->next;
-            delete node;
-            node = next;
-        }
-    }
 }
 
 #endif

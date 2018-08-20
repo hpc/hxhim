@@ -9,7 +9,7 @@
 #include <map>
 #include <type_traits>
 
-#include "transport/Messages.hpp"
+#include "transport/Messages/Messages.hpp"
 #include "transport/constants.h"
 
 namespace Transport {

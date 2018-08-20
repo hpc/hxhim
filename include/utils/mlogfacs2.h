@@ -41,111 +41,180 @@
 #if defined(MLOG_FACSARRAY) || defined(MLOG_AFACSARRAY)
 static const char *mlog_facsarray[] = {
     "MLOG",          /* 0 -- MLOG default fac */
-    "MDHIM_CLIENT",  /* 1 */
-    "MDHIM_SERVER",  /* 2 */
-    "STORE",         /* 3 */
-    "MPI",           /* 4 */
-    0,               /* 5 */
+    "HXHIM_OPTIONS", /* 1 */
+    "HXHIM_CLIENT",  /* 2 */
+    "HXHIM_SERVER",  /* 3 */
+    "LEVELDB",       /* 4 */
+    "INMEMORY",      /* 5 */
+    "MPI",           /* 6 */
+    "THALLIUM",      /* 7 */
+    0,               /* 8 */
 };
 #endif /* MLOG_FACSARRAY || MLOG_AFACSARRAY */
 
 #if defined(MLOG_FACSARRAY) || defined(MLOG_LFACSARRAY)
 static const char *mlog_lfacsarray[] = {
     "MLOG",          /* 0 -- MLOG default fac */
-    "MDHIM client",  /* 1 */
-    "MDHIM range server", /* 2 */
-    "storage",       /* 3 */
-    "MPI",           /* 4 */
-    0,               /* 5 */
+    "HXHIM options", /* 1 */
+    "HXHIM client",  /* 2 */
+    "HXHIM range server", /* 3 */
+    "LevelDB Datastore", /* 4 */
+    "In-Memory Datastore", /* 5 */
+    "MPI Transport", /* 6 */
+    "Thallium Transport", /* 7 */
+    0,               /* 8 */
 };
 #endif /* MLOG_LFACSARRAY || MLOG_LFACSARRAY */
 
 /*
  * standard facility defines
  */
-#define MLOGFAC_MDHIM_CLIENT  1 /* MDHIM client */
-#define MLOGFAC_MDHIM_SERVER  2 /* MDHIM range server */
-#define MLOGFAC_STORE     3 /* storage */
-#define MLOGFAC_MPI       4 /* MPI */
+#define MLOGFAC_HXHIM_OPTIONS  1 /* HXHIM options */
+#define MLOGFAC_HXHIM_CLIENT  2 /* HXHIM client */
+#define MLOGFAC_HXHIM_SERVER  3 /* HXHIM range server */
+#define MLOGFAC_LEVELDB   4 /* LevelDB Datastore */
+#define MLOGFAC_INMEMORY  5 /* In-Memory Datastore */
+#define MLOGFAC_MPI       6 /* MPI Transport */
+#define MLOGFAC_THALLIUM  7 /* Thallium Transport */
 
 /*
- * MDHIM client MLOG levels
+ * HXHIM options MLOG levels
  */
-#define MDHIM_CLIENT_EMERG (1 | MLOG_EMERG)
-#define MDHIM_CLIENT_ALERT (1 | MLOG_ALERT)
-#define MDHIM_CLIENT_CRIT (1 | MLOG_CRIT)
-#define MDHIM_CLIENT_ERR (1 | MLOG_ERR)
-#define MDHIM_CLIENT_WARN (1 | MLOG_WARN)
-#define MDHIM_CLIENT_NOTE (1 | MLOG_NOTE)
-#define MDHIM_CLIENT_INFO (1 | MLOG_INFO)
-#define MDHIM_CLIENT_DBG (1 | MLOG_DBG)
-#define MDHIM_CLIENT_DBG0 (1 | MLOG_DBG0)
-#define MDHIM_CLIENT_DAPI  MDHIM_CLIENT_DBG0
-#define MDHIM_CLIENT_DBG1 (1 | MLOG_DBG1)
-#define MDHIM_CLIENT_DINTAPI  MDHIM_CLIENT_DBG1
-#define MDHIM_CLIENT_DBG2 (1 | MLOG_DBG2)
-#define MDHIM_CLIENT_DCOMMON  MDHIM_CLIENT_DBG2
-#define MDHIM_CLIENT_DBG3 (1 | MLOG_DBG3)
-#define MDHIM_CLIENT_DRARE  MDHIM_CLIENT_DBG3
+#define HXHIM_OPTIONS_EMERG (1 | MLOG_EMERG)
+#define HXHIM_OPTIONS_ALERT (1 | MLOG_ALERT)
+#define HXHIM_OPTIONS_CRIT (1 | MLOG_CRIT)
+#define HXHIM_OPTIONS_ERR (1 | MLOG_ERR)
+#define HXHIM_OPTIONS_WARN (1 | MLOG_WARN)
+#define HXHIM_OPTIONS_NOTE (1 | MLOG_NOTE)
+#define HXHIM_OPTIONS_INFO (1 | MLOG_INFO)
+#define HXHIM_OPTIONS_DBG (1 | MLOG_DBG)
+#define HXHIM_OPTIONS_DBG0 (1 | MLOG_DBG0)
+#define HXHIM_OPTIONS_DAPI  HXHIM_OPTIONS_DBG0
+#define HXHIM_OPTIONS_DBG1 (1 | MLOG_DBG1)
+#define HXHIM_OPTIONS_DINTAPI  HXHIM_OPTIONS_DBG1
+#define HXHIM_OPTIONS_DBG2 (1 | MLOG_DBG2)
+#define HXHIM_OPTIONS_DCOMMON  HXHIM_OPTIONS_DBG2
+#define HXHIM_OPTIONS_DBG3 (1 | MLOG_DBG3)
+#define HXHIM_OPTIONS_DRARE  HXHIM_OPTIONS_DBG3
 
 /*
- * MDHIM range server MLOG levels
+ * HXHIM client MLOG levels
  */
-#define MDHIM_SERVER_EMERG (2 | MLOG_EMERG)
-#define MDHIM_SERVER_ALERT (2 | MLOG_ALERT)
-#define MDHIM_SERVER_CRIT (2 | MLOG_CRIT)
-#define MDHIM_SERVER_ERR (2 | MLOG_ERR)
-#define MDHIM_SERVER_WARN (2 | MLOG_WARN)
-#define MDHIM_SERVER_NOTE (2 | MLOG_NOTE)
-#define MDHIM_SERVER_INFO (2 | MLOG_INFO)
-#define MDHIM_SERVER_DBG (2 | MLOG_DBG)
-#define MDHIM_SERVER_DBG0 (2 | MLOG_DBG0)
-#define MDHIM_SERVER_DAPI  MDHIM_SERVER_DBG0
-#define MDHIM_SERVER_DBG1 (2 | MLOG_DBG1)
-#define MDHIM_SERVER_DINTAPI  MDHIM_SERVER_DBG1
-#define MDHIM_SERVER_DBG2 (2 | MLOG_DBG2)
-#define MDHIM_SERVER_DCOMMON  MDHIM_SERVER_DBG2
-#define MDHIM_SERVER_DBG3 (2 | MLOG_DBG3)
-#define MDHIM_SERVER_DRARE  MDHIM_SERVER_DBG3
+#define HXHIM_CLIENT_EMERG (2 | MLOG_EMERG)
+#define HXHIM_CLIENT_ALERT (2 | MLOG_ALERT)
+#define HXHIM_CLIENT_CRIT (2 | MLOG_CRIT)
+#define HXHIM_CLIENT_ERR (2 | MLOG_ERR)
+#define HXHIM_CLIENT_WARN (2 | MLOG_WARN)
+#define HXHIM_CLIENT_NOTE (2 | MLOG_NOTE)
+#define HXHIM_CLIENT_INFO (2 | MLOG_INFO)
+#define HXHIM_CLIENT_DBG (2 | MLOG_DBG)
+#define HXHIM_CLIENT_DBG0 (2 | MLOG_DBG0)
+#define HXHIM_CLIENT_DAPI  HXHIM_CLIENT_DBG0
+#define HXHIM_CLIENT_DBG1 (2 | MLOG_DBG1)
+#define HXHIM_CLIENT_DINTAPI  HXHIM_CLIENT_DBG1
+#define HXHIM_CLIENT_DBG2 (2 | MLOG_DBG2)
+#define HXHIM_CLIENT_DCOMMON  HXHIM_CLIENT_DBG2
+#define HXHIM_CLIENT_DBG3 (2 | MLOG_DBG3)
+#define HXHIM_CLIENT_DRARE  HXHIM_CLIENT_DBG3
 
 /*
- * storage MLOG levels
+ * HXHIM range server MLOG levels
  */
-#define STORE_EMERG      (3 | MLOG_EMERG)
-#define STORE_ALERT      (3 | MLOG_ALERT)
-#define STORE_CRIT       (3 | MLOG_CRIT)
-#define STORE_ERR        (3 | MLOG_ERR)
-#define STORE_WARN       (3 | MLOG_WARN)
-#define STORE_NOTE       (3 | MLOG_NOTE)
-#define STORE_INFO       (3 | MLOG_INFO)
-#define STORE_DBG        (3 | MLOG_DBG)
-#define STORE_DBG0       (3 | MLOG_DBG0)
-#define STORE_DAPI        STORE_DBG0
-#define STORE_DBG1       (3 | MLOG_DBG1)
-#define STORE_DINTAPI     STORE_DBG1
-#define STORE_DBG2       (3 | MLOG_DBG2)
-#define STORE_DCOMMON     STORE_DBG2
-#define STORE_DBG3       (3 | MLOG_DBG3)
-#define STORE_DRARE       STORE_DBG3
+#define HXHIM_SERVER_EMERG (3 | MLOG_EMERG)
+#define HXHIM_SERVER_ALERT (3 | MLOG_ALERT)
+#define HXHIM_SERVER_CRIT (3 | MLOG_CRIT)
+#define HXHIM_SERVER_ERR (3 | MLOG_ERR)
+#define HXHIM_SERVER_WARN (3 | MLOG_WARN)
+#define HXHIM_SERVER_NOTE (3 | MLOG_NOTE)
+#define HXHIM_SERVER_INFO (3 | MLOG_INFO)
+#define HXHIM_SERVER_DBG (3 | MLOG_DBG)
+#define HXHIM_SERVER_DBG0 (3 | MLOG_DBG0)
+#define HXHIM_SERVER_DAPI  HXHIM_SERVER_DBG0
+#define HXHIM_SERVER_DBG1 (3 | MLOG_DBG1)
+#define HXHIM_SERVER_DINTAPI  HXHIM_SERVER_DBG1
+#define HXHIM_SERVER_DBG2 (3 | MLOG_DBG2)
+#define HXHIM_SERVER_DCOMMON  HXHIM_SERVER_DBG2
+#define HXHIM_SERVER_DBG3 (3 | MLOG_DBG3)
+#define HXHIM_SERVER_DRARE  HXHIM_SERVER_DBG3
 
 /*
- * MPI MLOG levels
+ * LevelDB Datastore MLOG levels
  */
-#define MPI_EMERG        (4 | MLOG_EMERG)
-#define MPI_ALERT        (4 | MLOG_ALERT)
-#define MPI_CRIT         (4 | MLOG_CRIT)
-#define MPI_ERR          (4 | MLOG_ERR)
-#define MPI_WARN         (4 | MLOG_WARN)
-#define MPI_NOTE         (4 | MLOG_NOTE)
-#define MPI_INFO         (4 | MLOG_INFO)
-#define MPI_DBG          (4 | MLOG_DBG)
-#define MPI_DBG0         (4 | MLOG_DBG0)
+#define LEVELDB_EMERG    (4 | MLOG_EMERG)
+#define LEVELDB_ALERT    (4 | MLOG_ALERT)
+#define LEVELDB_CRIT     (4 | MLOG_CRIT)
+#define LEVELDB_ERR      (4 | MLOG_ERR)
+#define LEVELDB_WARN     (4 | MLOG_WARN)
+#define LEVELDB_NOTE     (4 | MLOG_NOTE)
+#define LEVELDB_INFO     (4 | MLOG_INFO)
+#define LEVELDB_DBG      (4 | MLOG_DBG)
+#define LEVELDB_DBG0     (4 | MLOG_DBG0)
+#define LEVELDB_DAPI      LEVELDB_DBG0
+#define LEVELDB_DBG1     (4 | MLOG_DBG1)
+#define LEVELDB_DINTAPI   LEVELDB_DBG1
+#define LEVELDB_DBG2     (4 | MLOG_DBG2)
+#define LEVELDB_DCOMMON   LEVELDB_DBG2
+#define LEVELDB_DBG3     (4 | MLOG_DBG3)
+#define LEVELDB_DRARE     LEVELDB_DBG3
+
+/*
+ * In-Memory Datastore MLOG levels
+ */
+#define INMEMORY_EMERG   (5 | MLOG_EMERG)
+#define INMEMORY_ALERT   (5 | MLOG_ALERT)
+#define INMEMORY_CRIT    (5 | MLOG_CRIT)
+#define INMEMORY_ERR     (5 | MLOG_ERR)
+#define INMEMORY_WARN    (5 | MLOG_WARN)
+#define INMEMORY_NOTE    (5 | MLOG_NOTE)
+#define INMEMORY_INFO    (5 | MLOG_INFO)
+#define INMEMORY_DBG     (5 | MLOG_DBG)
+#define INMEMORY_DBG0    (5 | MLOG_DBG0)
+#define INMEMORY_DAPI     INMEMORY_DBG0
+#define INMEMORY_DBG1    (5 | MLOG_DBG1)
+#define INMEMORY_DINTAPI  INMEMORY_DBG1
+#define INMEMORY_DBG2    (5 | MLOG_DBG2)
+#define INMEMORY_DCOMMON  INMEMORY_DBG2
+#define INMEMORY_DBG3    (5 | MLOG_DBG3)
+#define INMEMORY_DRARE    INMEMORY_DBG3
+
+/*
+ * MPI Transport MLOG levels
+ */
+#define MPI_EMERG        (6 | MLOG_EMERG)
+#define MPI_ALERT        (6 | MLOG_ALERT)
+#define MPI_CRIT         (6 | MLOG_CRIT)
+#define MPI_ERR          (6 | MLOG_ERR)
+#define MPI_WARN         (6 | MLOG_WARN)
+#define MPI_NOTE         (6 | MLOG_NOTE)
+#define MPI_INFO         (6 | MLOG_INFO)
+#define MPI_DBG          (6 | MLOG_DBG)
+#define MPI_DBG0         (6 | MLOG_DBG0)
 #define MPI_DAPI          MPI_DBG0
-#define MPI_DBG1         (4 | MLOG_DBG1)
+#define MPI_DBG1         (6 | MLOG_DBG1)
 #define MPI_DINTAPI       MPI_DBG1
-#define MPI_DBG2         (4 | MLOG_DBG2)
+#define MPI_DBG2         (6 | MLOG_DBG2)
 #define MPI_DCOMMON       MPI_DBG2
-#define MPI_DBG3         (4 | MLOG_DBG3)
+#define MPI_DBG3         (6 | MLOG_DBG3)
 #define MPI_DRARE         MPI_DBG3
+
+/*
+ * Thallium Transport MLOG levels
+ */
+#define THALLIUM_EMERG   (7 | MLOG_EMERG)
+#define THALLIUM_ALERT   (7 | MLOG_ALERT)
+#define THALLIUM_CRIT    (7 | MLOG_CRIT)
+#define THALLIUM_ERR     (7 | MLOG_ERR)
+#define THALLIUM_WARN    (7 | MLOG_WARN)
+#define THALLIUM_NOTE    (7 | MLOG_NOTE)
+#define THALLIUM_INFO    (7 | MLOG_INFO)
+#define THALLIUM_DBG     (7 | MLOG_DBG)
+#define THALLIUM_DBG0    (7 | MLOG_DBG0)
+#define THALLIUM_DAPI     THALLIUM_DBG0
+#define THALLIUM_DBG1    (7 | MLOG_DBG1)
+#define THALLIUM_DINTAPI  THALLIUM_DBG1
+#define THALLIUM_DBG2    (7 | MLOG_DBG2)
+#define THALLIUM_DCOMMON  THALLIUM_DBG2
+#define THALLIUM_DBG3    (7 | MLOG_DBG3)
+#define THALLIUM_DRARE    THALLIUM_DBG3
 
 #endif /* _MLOGFACS_H_ */

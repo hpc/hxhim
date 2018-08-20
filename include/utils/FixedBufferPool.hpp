@@ -8,6 +8,7 @@
 #include <iostream>
 #include <mutex>
 #include <type_traits>
+#include <utility>
 
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
@@ -26,7 +27,7 @@ class FixedBufferPool {
 
         /* @description Returns the address of a unused fixed size memory region           */
         template <typename T, typename... Args, typename = std::enable_if_t<!std::is_same<T, void>::value> >
-        T *acquire(Args&... args);
+        T *acquire(Args&&... args);
         void *acquire(const std::size_t size);
 
         template <typename T, typename = std::enable_if_t<!std::is_same<T, void>::value> >
@@ -45,6 +46,9 @@ class FixedBufferPool {
 
         /* @description Utility function to get the total number of regions                */
         std::size_t regions() const;
+
+        /* @description Utility function to get the name of this FixedBufferPool           */
+        std::string name() const;
 
         /* @description Utility function to get number of unused memory regions            */
         std::size_t unused() const;
@@ -144,11 +148,11 @@ class FixedBufferPool {
  * @return A pointer to a memory region of size pool_size_
  */
 template <typename T, typename... Args, typename>
-T *FixedBufferPool::acquire(Args&... args) {
+T *FixedBufferPool::acquire(Args&&... args) {
     void *addr = acquire(sizeof(T));
     if (addr) {
         mlog(MLOG_DBG, "FixedBufferPool %s: Acquired a buffer of size %zu", name_.c_str(), sizeof(T));
-        return new ((T *) addr) T(args...);
+        return new ((T *) addr) T(std::forward<Args>(args)...);
     }
 
     mlog(MLOG_CRIT, "FixedBufferPool %s: Failed to acquire a buffer of size %zu", name_.c_str(), sizeof(T));

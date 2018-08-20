@@ -1,3 +1,5 @@
+#if HXHIM_HAVE_THALLIUM
+
 #ifndef TRANSPORT_THALLIUM_ENDPOINT_GROUP_HPP
 #define TRANSPORT_THALLIUM_ENDPOINT_GROUP_HPP
 
@@ -20,7 +22,8 @@ namespace Thallium {
  */
 class EndpointGroup : virtual public ::Transport::EndpointGroup {
     public:
-        EndpointGroup(const RPC_t &rpc);
+        EndpointGroup(const RPC_t &rpc,
+                      FixedBufferPool *fbp);
         ~EndpointGroup();
 
         /** @description Converts a string into an endpoint and adds it to the map_*/
@@ -57,11 +60,15 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup {
         RPC_t rpc_;
 
         std::map<int, Endpoint_t> endpoints_;
+
+        FixedBufferPool *fbp_;
 };
 
 }
 }
 
 #include "transport/backend/Thallium/EndpointGroup.tpp"
+
+#endif
 
 #endif

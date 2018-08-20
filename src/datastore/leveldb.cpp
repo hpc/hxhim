@@ -1,3 +1,5 @@
+#if HXHIM_HAVE_LEVELDB
+
 #include <ctime>
 #include <sstream>
 #include <stdexcept>
@@ -13,7 +15,7 @@ namespace datastore {
 using namespace Transport;
 
 leveldb::leveldb(hxhim_t *hx,
-                 const std::size_t use_first_n, const Histogram::BucketGen::generator &generator, void *extra_args,
+                 const std::size_t use_first_n, const HistogramBucketGenerator_t &generator, void *extra_args,
                  const std::string &exact_name)
     : Datastore(hx, 0, use_first_n, generator, extra_args),
       name(exact_name), create_if_missing(false),
@@ -26,7 +28,7 @@ leveldb::leveldb(hxhim_t *hx,
 
 leveldb::leveldb(hxhim_t *hx,
                  const int id,
-                 const std::size_t use_first_n, const Histogram::BucketGen::generator &generator, void *extra_args,
+                 const std::size_t use_first_n, const HistogramBucketGenerator_t &generator, void *extra_args,
                  const std::string &name, const bool create_if_missing)
     : Datastore(hx, id, use_first_n, generator, extra_args),
       name(name), create_if_missing(create_if_missing),
@@ -67,7 +69,7 @@ Response::BPut *leveldb::BPutImpl(void **subjects, std::size_t *subject_lens,
                                   void **predicates, std::size_t *predicate_lens,
                                   hxhim_type_t *object_types, void **objects, std::size_t *object_lens,
                                   std::size_t count) {
-    Response::BPut *ret = new Response::BPut(count);
+    Response::BPut *ret = alloc_bresponse<Response::BPut>(hx, count);
     if (!ret) {
         return nullptr;
     }
@@ -126,7 +128,7 @@ Response::BGet *leveldb::BGetImpl(void **subjects, std::size_t *subject_lens,
                                   void **predicates, std::size_t *predicate_lens,
                                   hxhim_type_t *object_types,
                                   std::size_t count) {
-    Response::BGet *ret = new Response::BGet(count);
+    Response::BGet *ret = alloc_bresponse<Response::BGet>(hx, count);
     if (!ret) {
         return nullptr;
     }
@@ -199,7 +201,7 @@ Response::BGetOp *leveldb::BGetOpImpl(void *subject, std::size_t subject_len,
                                       void *predicate, std::size_t predicate_len,
                                       hxhim_type_t object_type,
                                       std::size_t recs, enum hxhim_get_op_t op) {
-    Response::BGetOp *ret = new Response::BGetOp(recs);
+    Response::BGetOp *ret = alloc_bresponse<Response::BGetOp>(hx, recs);
     if (!ret) {
         return nullptr;
     }
@@ -294,7 +296,7 @@ Response::BGetOp *leveldb::BGetOpImpl(void *subject, std::size_t subject_len,
 Response::BDelete *leveldb::BDeleteImpl(void **subjects, std::size_t *subject_lens,
                                         void **predicates, std::size_t *predicate_lens,
                                         std::size_t count) {
-    Response::BDelete *ret = new Response::BDelete(count);
+    Response::BDelete *ret = alloc_bresponse<Response::BDelete>(hx, count);
     ::leveldb::WriteBatch batch;
 
     FixedBufferPool *fbp = hxhim::GetKeyFBP(hx);
@@ -342,3 +344,5 @@ std::ostream &leveldb::print_config(std::ostream &stream) const {
 
 }
 }
+
+#endif

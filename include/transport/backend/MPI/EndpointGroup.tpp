@@ -1,3 +1,5 @@
+#include "transport/backend/MPI/Packer.hpp"
+#include "transport/backend/MPI/Unpacker.hpp"
 #include "transport/backend/MPI/constants.h"
 
 /**
@@ -20,39 +22,39 @@ std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::size_t num_s
     void **bufs = new void *[num_srvs]();
     std::size_t *lens = new std::size_t[num_srvs]();
     int *dsts = new int[num_srvs]();
-    std::size_t packed = 0;
+    std::size_t pack_count = 0;
     for(std::size_t i = 0; i < num_srvs; i++) {
-        if (Packer::pack(comm_, messages[i], &bufs[packed], &lens[packed], fbp_) == TRANSPORT_SUCCESS) {
-            dsts[packed] = messages[i]->dst;
-            packed++;
+        if (Packer::pack(comm, messages[i], &bufs[pack_count], &lens[pack_count], packed) == TRANSPORT_SUCCESS) {
+            dsts[pack_count] = messages[i]->dst;
+            pack_count++;
         }
     }
 
     // send sizes and data in parallel
-    MPI_Request **size_reqs = new MPI_Request *[packed]();
-    MPI_Request **data_reqs = new MPI_Request *[packed]();
+    MPI_Request **size_reqs = new MPI_Request *[pack_count]();
+    MPI_Request **data_reqs = new MPI_Request *[pack_count]();
     std::size_t size_count = 0;
     std::size_t data_count = 0;
 
-    for(std::size_t i = 0; i < packed; i++) {
+    for(std::size_t i = 0; i < pack_count; i++) {
         // this should not be necessary
         if (!bufs[i]) {
             continue;
         }
 
-        std::map<int, int>::const_iterator dst_it = ranks_.find(dsts[i]);
-        if (dst_it == ranks_.end()) {
+        std::map<int, int>::const_iterator dst_it = ranks.find(dsts[i]);
+        if (dst_it == ranks.end()) {
             continue;
         }
 
         // send size
         size_reqs[i] = new MPI_Request();
-        if (MPI_Isend(&lens[i], sizeof(lens[i]), MPI_CHAR, dst_it->second, TRANSPORT_MPI_SIZE_REQUEST_TAG, comm_, size_reqs[i]) == MPI_SUCCESS) {
+        if (MPI_Isend(&lens[i], sizeof(lens[i]), MPI_CHAR, dst_it->second, TRANSPORT_MPI_SIZE_REQUEST_TAG, comm, size_reqs[i]) == MPI_SUCCESS) {
             size_count++;
 
             // send data
             data_reqs[i] = new MPI_Request();
-            if (MPI_Isend(bufs[i], lens[i], MPI_CHAR, dst_it->second, TRANSPORT_MPI_DATA_REQUEST_TAG, comm_, data_reqs[i]) == MPI_SUCCESS) {
+            if (MPI_Isend(bufs[i], lens[i], MPI_CHAR, dst_it->second, TRANSPORT_MPI_DATA_REQUEST_TAG, comm, data_reqs[i]) == MPI_SUCCESS) {
                 data_count++;
             }
             else {
@@ -67,8 +69,6 @@ std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::size_t num_s
     }
 
     //Wait for messages to complete
-    int rank;
-    MPI_Comm_rank(comm_, &rank);
     const std::size_t total_msgs = size_count + data_count;
     std::size_t done = 0;
     while (done != total_msgs) {
@@ -109,7 +109,7 @@ std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::size_t num_s
     delete [] data_reqs;
     delete [] size_reqs;
     delete [] dsts;
-    for(std::size_t i = 0; i < packed; i++) {
+    for(std::size_t i = 0; i < pack_count; i++) {
         ::operator delete(bufs[i]);
     }
     delete [] bufs;
@@ -140,12 +140,12 @@ std::size_t Transport::MPI::EndpointGroup::parallel_recv(const std::size_t nsrcs
     // use reqs to receive size messages from the servers in the list
     std::size_t size_req_count = 0;
     for(std::size_t i = 0; i < nsrcs; i++) {
-        std::map<int, int>::const_iterator src_it = ranks_.find(srcs[i]);
-        if (src_it != ranks_.end()) {
+        std::map<int, int>::const_iterator src_it = ranks.find(srcs[i]);
+        if (src_it != ranks.end()) {
             reqs[size_req_count] = new MPI_Request();
 
             if (MPI_Irecv(&sizebufs[i], sizeof(sizebufs[i]), MPI_CHAR,
-                          src_it->second, TRANSPORT_MPI_SIZE_RESPONSE_TAG, comm_, reqs[i]) == MPI_SUCCESS) {
+                          src_it->second, TRANSPORT_MPI_SIZE_RESPONSE_TAG, comm, reqs[i]) == MPI_SUCCESS) {
                 size_req_count++;
             }
             else {
@@ -181,20 +181,20 @@ std::size_t Transport::MPI::EndpointGroup::parallel_recv(const std::size_t nsrcs
     std::size_t data_req_count = 0;
     void **recvbufs = new void *[size_req_count]();
     for(std::size_t i = 0; i < size_req_count; i++) {
-        std::map<int, int>::const_iterator src_it = ranks_.find(srcs[i]);
-        if (src_it != ranks_.end()) {
+        std::map<int, int>::const_iterator src_it = ranks.find(srcs[i]);
+        if (src_it != ranks.end()) {
             // Receive a message from the servers in the list
-            recvbufs[data_req_count] = fbp_->acquire(sizebufs[data_req_count]);
+            recvbufs[data_req_count] = packed->acquire(sizebufs[data_req_count]);
             reqs[data_req_count] = new MPI_Request();
 
             if (MPI_Irecv(recvbufs[data_req_count], sizebufs[data_req_count], MPI_CHAR,
-                          src_it->second, TRANSPORT_MPI_DATA_RESPONSE_TAG, comm_, reqs[i]) == MPI_SUCCESS) {
+                          src_it->second, TRANSPORT_MPI_DATA_RESPONSE_TAG, comm, reqs[i]) == MPI_SUCCESS) {
                 data_req_count++;
             }
             else {
                 delete reqs[data_req_count];
                 reqs[data_req_count] = nullptr;
-                fbp_->release(recvbufs[data_req_count]);
+                packed->release(recvbufs[data_req_count]);
             }
         }
     }
@@ -228,7 +228,7 @@ std::size_t Transport::MPI::EndpointGroup::parallel_recv(const std::size_t nsrcs
     std::size_t valid = 0;
     *messages = new Recv_t *[data_req_count]();
     for(std::size_t i = 0; i < data_req_count; i++) {
-        if (Unpacker::unpack(comm_, &((*messages)[valid]), recvbufs[i], sizebufs[i]) == TRANSPORT_SUCCESS) {
+        if (Unpacker::unpack(comm, &((*messages)[valid]), recvbufs[i], sizebufs[i], buffers) == TRANSPORT_SUCCESS) {
             valid++;
         }
 

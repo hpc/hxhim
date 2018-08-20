@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include "generic_options.hpp"
 #include "hxhim/hxhim.hpp"
 #include "hxhim/private.hpp"
 
@@ -25,15 +26,7 @@ struct TestDelete : hxhim::Results::Result {
 
 TEST(Results, PUT_GET_DEL) {
     hxhim_options_t opts;
-    ASSERT_EQ(hxhim_options_init(&opts), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_mpi_bootstrap(&opts, MPI_COMM_WORLD),                    HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_datastore_in_memory(&opts),                              HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_datastores_per_range_server(&opts, 1),                   HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_hash_name(&opts, RANK.c_str()),                          HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_transport_thallium(&opts, "na+sm"),                      HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_queued_bputs(&opts, 1),                                  HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_histogram_first_n(&opts, 10),                            HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_histogram_bucket_gen_method(&opts, TEN_BUCKETS.c_str()), HXHIM_SUCCESS);
+    ASSERT_EQ(fill_options(&opts), true);
 
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
@@ -67,15 +60,7 @@ TEST(Results, PUT_GET_DEL) {
 
 TEST(Results, Loop) {
     hxhim_options_t opts;
-    ASSERT_EQ(hxhim_options_init(&opts), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_mpi_bootstrap(&opts, MPI_COMM_WORLD),                    HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_datastore_in_memory(&opts),                              HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_datastores_per_range_server(&opts, 1),                   HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_hash_name(&opts, RANK.c_str()),                          HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_transport_thallium(&opts, "na+sm"),                      HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_queued_bputs(&opts, 1),                                  HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_histogram_first_n(&opts, 10),                            HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_histogram_bucket_gen_method(&opts, TEN_BUCKETS.c_str()), HXHIM_SUCCESS);
+    ASSERT_EQ(fill_options(&opts), true);
 
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
@@ -106,15 +91,7 @@ TEST(Results, Loop) {
 
 TEST(Results, Append_Empty) {
     hxhim_options_t opts;
-    ASSERT_EQ(hxhim_options_init(&opts), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_mpi_bootstrap(&opts, MPI_COMM_WORLD),                    HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_datastore_in_memory(&opts),                              HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_datastores_per_range_server(&opts, 1),                   HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_hash_name(&opts, RANK.c_str()),                          HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_transport_thallium(&opts, "na+sm"),                      HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_queued_bputs(&opts, 1),                                  HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_histogram_first_n(&opts, 10),                            HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_histogram_bucket_gen_method(&opts, TEN_BUCKETS.c_str()), HXHIM_SUCCESS);
+    ASSERT_EQ(fill_options(&opts), true);
 
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
@@ -147,15 +124,7 @@ TEST(Results, Append_Empty) {
 
 TEST(Results, Empty_Append) {
     hxhim_options_t opts;
-    ASSERT_EQ(hxhim_options_init(&opts), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_mpi_bootstrap(&opts, MPI_COMM_WORLD),                    HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_datastore_in_memory(&opts),                              HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_datastores_per_range_server(&opts, 1),                   HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_hash_name(&opts, RANK.c_str()),                          HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_transport_thallium(&opts, "na+sm"),                      HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_queued_bputs(&opts, 1),                                  HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_histogram_first_n(&opts, 10),                            HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_histogram_bucket_gen_method(&opts, TEN_BUCKETS.c_str()), HXHIM_SUCCESS);
+    ASSERT_EQ(fill_options(&opts), true);
 
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);

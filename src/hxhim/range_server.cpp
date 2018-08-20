@@ -58,7 +58,7 @@ static Transport::Response::BPut *bput(hxhim_t *hx, Transport::Request::BPut *re
         index++;
     }
 
-    Transport::Response::BPut *res = new Transport::Response::BPut(req->count);
+    Transport::Response::BPut *res = new Transport::Response::BPut(nullptr, req->count);
     res->src = req->dst;
     res->dst = req->src;
 
@@ -74,7 +74,7 @@ static Transport::Response::BPut *bput(hxhim_t *hx, Transport::Request::BPut *re
                 res->count++;
             }
 
-            delete response;
+            hx->p->memory_pools.responses->release(response);
         }
     }
 
@@ -143,7 +143,7 @@ static Transport::Response::BGet *bget(hxhim_t *hx, Transport::Request::BGet *re
         index++;
     }
 
-    Transport::Response::BGet *res = new Transport::Response::BGet(req->count);
+    Transport::Response::BGet *res = new Transport::Response::BGet(nullptr, req->count);
     res->src = req->dst;
     res->dst = req->src;
 
@@ -168,7 +168,7 @@ static Transport::Response::BGet *bget(hxhim_t *hx, Transport::Request::BGet *re
                 res->count++;
             }
 
-            delete response;
+            hx->p->memory_pools.responses->release(response);
         }
     }
 
@@ -200,7 +200,7 @@ static Transport::Response::BGet *bget(hxhim_t *hx, Transport::Request::BGet *re
  * @return          the response packet resulting from the request
  */
 static Transport::Response::BGetOp *bgetop(hxhim_t *hx, Transport::Request::BGetOp *req) {
-    Transport::Response::BGetOp *res = new Transport::Response::BGetOp(req->count);
+    Transport::Response::BGetOp *res = new Transport::Response::BGetOp(nullptr, req->count);
     res->src = req->dst;
     res->dst = req->src;
 
@@ -225,7 +225,7 @@ static Transport::Response::BGetOp *bgetop(hxhim_t *hx, Transport::Request::BGet
                 res->count++;
             }
 
-            delete response;
+            hx->p->memory_pools.responses->release(response);
         }
     }
 
@@ -270,7 +270,7 @@ static Transport::Response::BDelete *bdelete(hxhim_t *hx, Transport::Request::BD
         index++;
     }
 
-    Transport::Response::BDelete *res = new Transport::Response::BDelete(req->count);
+    Transport::Response::BDelete *res = new Transport::Response::BDelete(nullptr, req->count);
     res->src = req->dst;
     res->dst = req->src;
 
@@ -285,7 +285,7 @@ static Transport::Response::BDelete *bdelete(hxhim_t *hx, Transport::Request::BD
                 res->count++;
             }
 
-            delete response;
+            hx->p->memory_pools.responses->release(response);
         }
     }
 
@@ -327,7 +327,7 @@ Transport::Response::Histogram *histogram(hxhim_t *hx, Transport::Request::Histo
  * @return          the response packet resulting from the request
  */
 Transport::Response::BHistogram *bhistogram(hxhim_t *hx, Transport::Request::BHistogram *bhist) {
-    Transport::Response::BHistogram *ret = new Transport::Response::BHistogram(bhist->count);
+    Transport::Response::BHistogram *ret = new Transport::Response::BHistogram(nullptr, bhist->count);
     ret->src = bhist->dst;
     ret->dst = bhist->src;
 
@@ -337,8 +337,10 @@ Transport::Response::BHistogram *bhistogram(hxhim_t *hx, Transport::Request::BHi
         Transport::Response::Histogram *res = hx->p->datastore.datastores[bhist->ds_offsets[i]]->Histogram();
         if (res) {
             ret->statuses[i] = res->status;
-            ret->hists[i] = res->hist;
-            delete res;
+            ret->hists[i].buckets = res->hist.buckets;
+            ret->hists[i].counts = res->hist.counts;
+            ret->hists[i].size = res->hist.size;
+            hxhim::GetResponseFBP(hx)->release(res);
         }
         else {
             ret->statuses[i] = HXHIM_ERROR;

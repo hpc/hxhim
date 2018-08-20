@@ -49,7 +49,7 @@ int Put(hxhim_t *hx,
 
             // if there were no previous keys going to this destination, set the initial values
             if (!rem) {
-                rem = new Transport::Request::BPut(max);
+                rem = new Transport::Request::BPut(nullptr, max);
                 rem->src = hx->p->bootstrap.rank;
                 rem->dst = dst;
             }
@@ -110,7 +110,7 @@ int Get(hxhim_t *hx,
 
             // if there were no previous keys going to this destination, set the initial values
             if (!rem) {
-                rem = new Transport::Request::BGet(max);
+                rem = new Transport::Request::BGet(nullptr, max);
                 rem->src = hx->p->bootstrap.rank;
                 rem->dst = dst;
             }
@@ -168,7 +168,7 @@ int GetOp(hxhim_t *hx,
 
             // if there were no previous keys going to this destination, set the initial values
             if (!rem) {
-                rem = new Transport::Request::BGetOp(max);
+                rem = new Transport::Request::BGetOp(nullptr, max);
                 rem->src = hx->p->bootstrap.rank;
                 rem->dst = dst;
             }
@@ -227,7 +227,7 @@ int Delete(hxhim_t *hx,
 
             // if there were no previous keys going to this destination, set the initial values
             if (!rem) {
-                rem = new Transport::Request::BDelete(max);
+                rem = new Transport::Request::BDelete(nullptr, max);
                 rem->src = hx->p->bootstrap.rank;
                 rem->dst = dst;
             }
@@ -277,7 +277,7 @@ int Histogram(hxhim_t *hx,
 
             // if there were no previous keys going to this destination, set the initial values
             if (!rem) {
-                rem = new Transport::Request::BHistogram(max);
+                rem = new Transport::Request::BHistogram(nullptr, max);
                 rem->src = hx->p->bootstrap.rank;
                 rem->dst = dst;
             }

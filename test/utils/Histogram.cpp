@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <cmath>
 #include <limits>
 #include <stdexcept>
 
@@ -10,92 +12,124 @@ TEST(Histogram, bad_generator) {
 }
 
 TEST(Histogram, not_enough_values) {
-    Histogram::Histogram h(100, [](const std::list<double> &, std::map<double, std::size_t> &histogram, void *) { return Histogram::ERROR; }, nullptr);
+    const int n = 10;
+    Histogram::Histogram h(n + 1, [](const double *, const std::size_t, double **, std::size_t *, void *) { return HISTOGRAM_ERROR; }, nullptr);
 
-    for(std::size_t i = 0; i < 10; i++) {
+    for(std::size_t i = 0; i < n; i++) {
         h.add(i);
     }
 
-    EXPECT_EQ(h.get().size(), 0);
+    std::size_t size = 0;
+
+    ASSERT_EQ(h.get(nullptr, nullptr, &size), HISTOGRAM_SUCCESS);
+    EXPECT_EQ(size, 0);
 }
 
-static int every_two(const std::list<double> &values, std::map<double, std::size_t> &histogram, void *) {
-    if (!values.size()) {
-        return Histogram::ERROR;
+static int every_two(const double *first_n, const std::size_t n, double **buckets, std::size_t *size, void *) {
+    if (!first_n || !n    ||
+        !buckets || !size) {
+        return HISTOGRAM_ERROR;
     }
 
     // get min and max
-    double min = std::numeric_limits<double>::max();
-    double max = std::numeric_limits<double>::min();
-    for(double const &value : values) {
-        if (value < min) {
-            min = value;
-        }
+    double min = *std::min_element(first_n, first_n + n);
+    double max = *std::max_element(first_n, first_n + n);
 
-        if (value > max) {
-            max = value;
-        }
+    *size = std::ceil((max - min) / 2);
+    *buckets = new double[*size];
+
+    for(std::size_t i = 0; i < *size; i++) {
+        (*buckets)[i] = min;
+        min += 2;
     }
 
-    histogram.clear();
-
-    for(double i = min; i < max; i += 2) {
-        histogram[i] = 0;
-    }
-
-    return Histogram::SUCCESS;
+    return HISTOGRAM_SUCCESS;
 }
 
 TEST(Histogram, every_two) {
-    Histogram::Histogram h(10, every_two, nullptr);
+    const int n = 10;
+    Histogram::Histogram h(n, every_two, nullptr);
 
     // fill the histogram
-    for(std::size_t i = 0; i < 10; i++) {
+    for(std::size_t i = 0; i < n; i++) {
         h.add(i);
     }
 
-    EXPECT_EQ(h.get().size(), 5);
-    for(std::pair<const double, std::size_t> const &bin : h.get()) {
-        EXPECT_EQ(bin.second, 2);
+    double *buckets = nullptr;
+    std::size_t *counts = nullptr;
+    std::size_t size = 0;
+
+    ASSERT_EQ(h.get(&buckets, &counts, &size), HISTOGRAM_SUCCESS);
+    EXPECT_EQ(size, n / 2);
+    for(std::size_t i = 0; i < size; i++) {
+        EXPECT_EQ(buckets[i], 2 * i);
+        EXPECT_EQ(counts[i], 2);
     }
 }
 
 TEST(Histogram, custom_nonuniform) {
-    Histogram::Histogram h(10,
-                             [](const std::list<double> &, std::map<double, std::size_t> &histogram, void *) {
-                                 histogram.clear();
+    const int n = 10;
+    Histogram::Histogram h(n,
+                             [](const double *, const std::size_t, double **buckets, std::size_t *size, void *) {
 
-                                 histogram[0] = 0;
-                                 histogram[5] = 0;
-                                 histogram[9] = 0;
+                                 if (!(*buckets = new double[3])) {
+                                     return HISTOGRAM_ERROR;
+                                 }
 
-                                 return Histogram::SUCCESS;
+                                 (*buckets)[0] = 0;
+                                 (*buckets)[1] = 5;
+                                 (*buckets)[2] = 9;
+
+                                 *size = 3;
+
+                                 return HISTOGRAM_SUCCESS;
                              },
                              nullptr);
 
-    for(std::size_t i = 0; i < 10; i++) {
+    for(std::size_t i = 0; i < n; i++) {
         h.add(i);
     }
 
-    EXPECT_EQ(h.get().at(0), 5); // 0, 1, 2, 3, 4
-    EXPECT_EQ(h.get().at(5), 4); // 5, 6, 7, 8
-    EXPECT_EQ(h.get().at(9), 1); // 9
+    double *buckets = nullptr;
+    std::size_t *counts = nullptr;
+    std::size_t size = 0;
+
+    ASSERT_EQ(h.get(&buckets, &counts, &size), HISTOGRAM_SUCCESS);
+    EXPECT_EQ(size, 3);
+
+    // 0: 0, 1, 2, 3, 4
+    EXPECT_EQ(buckets[0], 0);
+    EXPECT_EQ(counts[0], 5);
+
+    // 5: 5, 6, 7, 8
+    EXPECT_EQ(buckets[1], 5);
+    EXPECT_EQ(counts[1], 4);
+
+    // 9: 9
+    EXPECT_EQ(buckets[2], 9);
+    EXPECT_EQ(counts[2], 1);
 }
 
 TEST(Histogram, uniform_log10) {
     static const std::size_t ten = 10;
-    Histogram::Histogram h(10, Histogram::BucketGen::uniform_logn, (void *) &ten);
+    Histogram::Histogram h(ten, histogram_uniform_logn, (void *) &ten);
 
-    for(std::size_t i = 0; i < 10; i++) {
+    for(std::size_t i = 0; i < ten; i++) {
         h.add(i);
     }
 
-    for(std::pair<const double, std::size_t> const &bin : h.get()) {
-        EXPECT_EQ(bin.second, 1);
+    double *buckets = nullptr;
+    std::size_t *counts = nullptr;
+    std::size_t size = 0;
+
+    ASSERT_EQ(h.get(&buckets, &counts, &size), HISTOGRAM_SUCCESS);
+
+    for(std::size_t i = 0; i < size; i++) {
+        EXPECT_EQ(counts[i], 1);
     }
 
     // Add extra count to last bucket
     h.add(20);
 
-    EXPECT_EQ(h.get().rbegin()->second, 2);
+    EXPECT_EQ(counts[size - 1], 2);
 }

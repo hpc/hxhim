@@ -3,8 +3,8 @@
 
 #include <mpi.h>
 
-#include "transport/Messages.hpp"
-#include "utils/MemoryManagers.hpp"
+#include "transport/Messages/Messages.hpp"
+#include "utils/FixedBufferPool.hpp"
 
 namespace Transport {
 namespace MPI {

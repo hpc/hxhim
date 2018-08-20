@@ -59,7 +59,7 @@ int get_id(hxhim_t *hx, const int rank, const int offset) {
 
 Datastore::Datastore(hxhim_t *hx,
                      const int id,
-                     const std::size_t use_first_n, const Histogram::BucketGen::generator &generator, void *extra_args)
+                     const std::size_t use_first_n, const HistogramBucketGenerator_t &generator, void *extra_args)
     : hx(hx),
       id(id),
       hist(use_first_n, generator, extra_args),
@@ -224,9 +224,10 @@ int Datastore::GetStats(const int dst_rank,
  */
 Transport::Response::Histogram *Datastore::Histogram() const {
     std::lock_guard<std::mutex> lock(mutex);
-    Transport::Response::Histogram *ret = new Transport::Response::Histogram(hist.get());
+    Transport::Response::Histogram *ret = hxhim::GetResponseFBP(hx)->acquire<Transport::Response::Histogram>(hxhim::GetBufferFBP(hx));
     if (ret) {
         ret->status = HXHIM_SUCCESS;
+        hist.get(&ret->hist.buckets, &ret->hist.counts, &ret->hist.size);
     }
     return ret;
 }

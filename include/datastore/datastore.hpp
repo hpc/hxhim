@@ -3,8 +3,10 @@
 
 #include <mutex>
 
+#include "datastore/constants.h"
 #include "hxhim/hxhim.hpp"
-#include "transport/Messages.hpp"
+#include "hxhim/utils.hpp"
+#include "transport/Messages/Messages.hpp"
 #include "utils/Histogram.hpp"
 #include "utils/elapsed.h"
 
@@ -30,7 +32,7 @@ class Datastore {
     public:
         Datastore(hxhim_t *hx,
              const int id,
-             const std::size_t use_first_n, const Histogram::BucketGen::generator &generator, void *extra_args);
+             const std::size_t use_first_n, const HistogramBucketGenerator_t &generator, void *extra_args);
         virtual ~Datastore();
 
         virtual void Close() {}

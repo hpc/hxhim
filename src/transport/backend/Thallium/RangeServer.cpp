@@ -1,3 +1,5 @@
+#if HXHIM_HAVE_THALLIUM
+
 #include "hxhim/range_server.hpp"
 #include "transport/backend/Thallium/Packer.hpp"
 #include "transport/backend/Thallium/RangeServer.hpp"
@@ -17,7 +19,7 @@ void Transport::Thallium::RangeServer::destroy() {
 void Transport::Thallium::RangeServer::process(const thallium::request &req, const std::string &data) {
     // unpack the request
     Request::Request *request = nullptr;
-    if (Unpacker::unpack(&request, data) != TRANSPORT_SUCCESS) {
+    if (Unpacker::unpack(&request, data, nullptr) != TRANSPORT_SUCCESS) {
         req.respond(TRANSPORT_ERROR);
         return;
     }
@@ -32,3 +34,5 @@ void Transport::Thallium::RangeServer::process(const thallium::request &req, con
     // respond
     req.respond(str);
 }
+
+#endif

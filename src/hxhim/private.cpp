@@ -9,38 +9,23 @@
 #include "hxhim/shuffle.hpp"
 #include "transport/backend/backends.hpp"
 #include "transport/transport.hpp"
-#include "utils/MemoryManagers.hpp"
+#include "utils/MemoryManager.hpp"
 
-static const std::size_t bulk_sizes[] = {
-    sizeof(hxhim::PutData),
-    sizeof(hxhim::GetData),
-    sizeof(hxhim::GetOpData),
-    sizeof(hxhim::DeleteData),
-};
-
-static const std::size_t request_sizes[] = {
-    sizeof(Transport::Request::BPut),
-    sizeof(Transport::Request::BGet),
-    sizeof(Transport::Request::BDelete),
-    sizeof(Transport::Request::Histogram),
-    sizeof(Transport::Request::BHistogram),
-};
-
-static const std::size_t response_sizes[] = {
-    sizeof(Transport::Response::BPut),
-    sizeof(Transport::Response::BGet),
-    sizeof(Transport::Response::BDelete),
-    sizeof(Transport::Response::Histogram),
-    sizeof(Transport::Response::BHistogram),
-};
-
-static const std::size_t result_sizes[] = {
-    sizeof(hxhim::Results::Put),
-    sizeof(hxhim::Results::Get),
-    sizeof(hxhim::Results::Delete),
-    sizeof(hxhim::Results::Sync),
-    sizeof(hxhim::Results::Histogram),
-};
+/**
+ * clean
+ * Convenience function for cleaning up caches
+ *
+ * @param hx    the HXHIM instance
+ * @tparam node one node of the cache queue
+ */
+template <typename Data, typename = std::is_base_of<hxhim::SubjectPredicate, Data> >
+void clean(hxhim_t *hx, Data *node) {
+    while (node) {
+        Data *next = node->next;
+        hx->p->memory_pools.bulks->release(node);
+        node = next;
+    }
+}
 
 hxhim_private::hxhim_private()
     : bootstrap(),
@@ -80,16 +65,16 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
         return nullptr;
     }
 
-    const std::size_t total = HXHIM_PUT_MULTIPLER * count;                                                    // total number of triples that will be PUT
+    const std::size_t total = HXHIM_PUT_MULTIPLER * count;                                                           // total number of triples that will be PUT
 
-    Transport::Request::BPut local(HXHIM_MAX_BULK_GET_OPS);
+    Transport::Request::BPut local(hxhim::GetBufferFBP(hx), hx->p->max_bulk_ops.puts);
     local.src = hx->p->bootstrap.rank;
     local.dst = hx->p->bootstrap.rank;
     local.count = 0;
 
     Transport::Request::BPut **remote = hxhim::acquire_array<Transport::Request::BPut *>(hx, hx->p->bootstrap.size); // list of destination servers (not datastores) and messages to those destinations
     for(std::size_t i = 0; i < hx->p->bootstrap.size; i++) {
-        remote[i] = hx->p->memory_pools.requests->acquire<Transport::Request::BPut>(hx->p->max_bulk_ops.puts);
+        remote[i] = hx->p->memory_pools.requests->acquire<Transport::Request::BPut>(hxhim::GetBufferFBP(hx), hx->p->max_bulk_ops.puts);
         remote[i]->src = hx->p->bootstrap.rank;
         remote[i]->dst = i;
         remote[i]->count = 0;
@@ -146,7 +131,7 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
                 res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Put>(hx, curr, i));
             }
         }
-        hx->p->memory_pools.results->release(responses);
+        hx->p->memory_pools.responses->release(responses);
     }
 
     if (local.count) {
@@ -156,7 +141,7 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
                 res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Put>(hx, curr, i));
             }
         }
-        hx->p->memory_pools.results->release(responses);
+        hx->p->memory_pools.responses->release(responses);
     }
 
     // cleanup
@@ -293,8 +278,8 @@ static void backgroundPUT(void *args) {
         }
 
         // clean up in case previous loop stopped early
-        hxhim::clean(head);
-        delete last;
+        clean(hx, head);
+        hx->p->memory_pools.bulks->release(last);
     }
 }
 
@@ -363,15 +348,15 @@ int hxhim::init::memory(hxhim_t *hx, hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
-    hx->p->memory_pools.bulks     = Memory::FBP(*std::max_element(bulk_sizes,     bulk_sizes     + sizeof(bulk_sizes)     / sizeof(*bulk_sizes)),     10 * hx->p->max_bulk_ops.max, "Bulks");
-    hx->p->memory_pools.keys      = Memory::FBP(sizeof(char) * 1000, hx->p->max_bulk_ops.max, "Keys");
-    hx->p->memory_pools.arrays    = Memory::FBP(sizeof(void *) * hx->p->max_bulk_ops.max, 100, "Arrays");
-    hx->p->memory_pools.requests  = Memory::FBP(*std::max_element(request_sizes,  request_sizes  + sizeof(request_sizes)  / sizeof(*request_sizes)),  10 * hx->p->max_bulk_ops.max, "Requests");
-    hx->p->memory_pools.responses = Memory::FBP(*std::max_element(response_sizes, response_sizes + sizeof(response_sizes) / sizeof(*response_sizes)), 10 * hx->p->max_bulk_ops.max, "Responses");
-    hx->p->memory_pools.result    = Memory::FBP(*std::max_element(result_sizes,   result_sizes   + sizeof(result_sizes)   / sizeof(*result_sizes)),   10 * hx->p->max_bulk_ops.max, "Result");
-    hx->p->memory_pools.results   = Memory::FBP(sizeof(hxhim::Results), 5, "Results");
-
-    return HXHIM_SUCCESS;
+    return ((hx->p->memory_pools.packed    = MemoryManager::FBP(opts->p->packed.alloc_size,    opts->p->packed.regions,    opts->p->packed.name.c_str()))    &&
+            (hx->p->memory_pools.buffers   = MemoryManager::FBP(opts->p->buffers.alloc_size,   opts->p->buffers.regions,   opts->p->buffers.name.c_str()))   &&
+            (hx->p->memory_pools.bulks     = MemoryManager::FBP(opts->p->bulks.alloc_size,     opts->p->bulks.regions,     opts->p->bulks.name.c_str()))     &&
+            (hx->p->memory_pools.keys      = MemoryManager::FBP(opts->p->keys.alloc_size,      opts->p->keys.regions,      opts->p->keys.name.c_str()))      &&
+            (hx->p->memory_pools.arrays    = MemoryManager::FBP(opts->p->arrays.alloc_size,    opts->p->arrays.regions,    opts->p->arrays.name.c_str()))    &&
+            (hx->p->memory_pools.requests  = MemoryManager::FBP(opts->p->requests.alloc_size,  opts->p->requests.regions,  opts->p->requests.name.c_str()))  &&
+            (hx->p->memory_pools.responses = MemoryManager::FBP(opts->p->responses.alloc_size, opts->p->responses.regions, opts->p->responses.name.c_str())) &&
+            (hx->p->memory_pools.result    = MemoryManager::FBP(opts->p->result.alloc_size,    opts->p->result.regions,    opts->p->result.name.c_str()))    &&
+            (hx->p->memory_pools.results   = MemoryManager::FBP(opts->p->results.alloc_size,   opts->p->results.regions,   opts->p->results.name.c_str())))?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 
 /**
@@ -398,6 +383,7 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
     for(std::size_t i = 0; i < hx->p->datastore.count; i++) {
         // Start the datastore
         switch (opts->p->datastore->type) {
+            #if HXHIM_HAVE_LEVELDB
             case HXHIM_DATASTORE_LEVELDB:
                 {
                     hxhim_leveldb_config_t *config = static_cast<hxhim_leveldb_config_t *>(opts->p->datastore);
@@ -409,6 +395,7 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
                                                                                    config->path, config->create_if_missing);
                 }
                 break;
+            #endif
             case HXHIM_DATASTORE_IN_MEMORY:
                 {
                     hx->p->datastore.datastores[i] = new hxhim::datastore::InMemory(hx,
@@ -453,6 +440,7 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
 
     // Start the datastore
     switch (opts->p->datastore->type) {
+        #if HXHIM_HAVE_LEVELDB
         case HXHIM_DATASTORE_LEVELDB:
             hx->p->datastore.datastores[0] = new hxhim::datastore::leveldb(hx,
                                                                            opts->p->histogram.first_n,
@@ -460,6 +448,7 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
                                                                            opts->p->histogram.args,
                                                                            name);
             break;
+        #endif
         case HXHIM_DATASTORE_IN_MEMORY:
             hx->p->datastore.datastores[0] = new hxhim::datastore::InMemory(hx,
                                                                             0,
@@ -542,7 +531,7 @@ static int init_transport_mpi(hxhim_t *hx, hxhim_options_t *opts) {
 
     // Get the memory pool used for storing messages
     Options *config = static_cast<Options *>(opts->p->transport);
-    FixedBufferPool *fbp = Memory::FBP(config->alloc_size, config->regions);
+    FixedBufferPool *fbp = hx->p->memory_pools.buffers;
     if (!fbp) {
         return TRANSPORT_ERROR;
     }
@@ -550,7 +539,9 @@ static int init_transport_mpi(hxhim_t *hx, hxhim_options_t *opts) {
     // give the range server access to the memory buffer
     RangeServer::init(hx, fbp, config->listeners);
 
-    EndpointGroup *eg = new EndpointGroup(hx->p->bootstrap.comm, fbp);
+    EndpointGroup *eg = new EndpointGroup(hx->p->bootstrap.comm,
+                                          hx->p->memory_pools.packed,
+                                          hx->p->memory_pools.buffers);
     if (!eg) {
         return TRANSPORT_ERROR;
     }
@@ -558,7 +549,10 @@ static int init_transport_mpi(hxhim_t *hx, hxhim_options_t *opts) {
     // create mapping between unique IDs and ranks
     for(int i = 0; i < hx->p->bootstrap.size; i++) {
         // MPI ranks map 1:1 with the boostrap MPI rank
-        hx->p->transport->AddEndpoint(i, new Endpoint(hx->p->bootstrap.comm, i, fbp, hx->p->running));
+        hx->p->transport->AddEndpoint(i, new Endpoint(hx->p->bootstrap.comm, i,
+                                                      hx->p->memory_pools.packed,
+                                                      hx->p->memory_pools.buffers,
+                                                      hx->p->running));
 
         // if the rank was specified as part of the endpoint group, add the rank to the endpoint group
         if (opts->p->endpointgroup.find(i) != opts->p->endpointgroup.end()) {
@@ -574,6 +568,8 @@ static int init_transport_mpi(hxhim_t *hx, hxhim_options_t *opts) {
 
     return TRANSPORT_SUCCESS;
 }
+
+#if HXHIM_HAVE_THALLIUM
 
 /**
  * init_transport_thallium
@@ -616,7 +612,7 @@ static int init_transport_thallium(hxhim_t *hx, hxhim_options_t *opts) {
     // remove the loopback endpoint
     addrs.erase(hx->p->bootstrap.rank);
 
-    EndpointGroup *eg = new EndpointGroup(rpc);
+    EndpointGroup *eg = new EndpointGroup(rpc, hx->p->memory_pools.buffers);
     if (!eg) {
         return TRANSPORT_ERROR;
     }
@@ -626,7 +622,7 @@ static int init_transport_thallium(hxhim_t *hx, hxhim_options_t *opts) {
         Endpoint_t server(new thallium::endpoint(engine->lookup(addr.second)));
 
         // add the remote thallium endpoint to the tranport
-        Endpoint* ep = new Endpoint(engine, rpc, server);
+        Endpoint* ep = new Endpoint(engine, rpc, server, hx->p->memory_pools.buffers);
         hx->p->transport->AddEndpoint(addr.first, ep);
 
         // if the rank was specified as part of the endpoint group, add the thallium endpoint to the endpoint group
@@ -640,6 +636,8 @@ static int init_transport_thallium(hxhim_t *hx, hxhim_options_t *opts) {
 
     return TRANSPORT_SUCCESS;
 }
+
+#endif
 
 /**
  * transport
@@ -665,9 +663,11 @@ int hxhim::init::transport(hxhim_t *hx, hxhim_options_t *opts) {
         case Transport::TRANSPORT_MPI:
             ret = init_transport_mpi(hx, opts);
             break;
+        #if HXHIM_HAVE_THALLIUM
         case Transport::TRANSPORT_THALLIUM:
             ret = init_transport_thallium(hx, opts);
             break;
+        #endif
         default:
             break;
     }
@@ -806,13 +806,13 @@ int hxhim::destroy::async_put(hxhim_t *hx) {
     }
 
     // clear out unflushed work in the work queue
-    hxhim::clean(hx->p->queues.puts.head);
+    clean(hx, hx->p->queues.puts.head);
     hx->p->queues.puts.head = nullptr;
-    hxhim::clean(hx->p->queues.gets.head);
+    clean(hx, hx->p->queues.gets.head);
     hx->p->queues.gets.head = nullptr;
-    hxhim::clean(hx->p->queues.getops.head);
+    clean(hx, hx->p->queues.getops.head);
     hx->p->queues.getops.head = nullptr;
-    hxhim::clean(hx->p->queues.deletes.head);
+    clean(hx, hx->p->queues.deletes.head);
     hx->p->queues.deletes.head = nullptr;
 
     {

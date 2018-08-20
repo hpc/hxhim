@@ -178,34 +178,65 @@ Results::Sync::~Sync() {}
 
 Results::Histogram::Histogram(hxhim_t *hx, Transport::Response::Histogram *hist)
     : Result(hxhim_result_type::HXHIM_RESULT_HISTOGRAM),
-      histogram(nullptr)
+      buckets(nullptr),
+      counts(nullptr),
+      size(0)
 {
-    histogram = new std::map<double, std::size_t>();
-
     if (hist) {
         datastore = hxhim::datastore::get_id(hx, hist->src, hist->ds_offset);
-        *histogram = hist->hist;
+        buckets = hist->hist.buckets;
+        counts = hist->hist.counts;
+        size = hist->hist.size;
+
         status = hist->status;
     }
 }
 
 Results::Histogram::Histogram(hxhim_t *hx, Transport::Response::BHistogram *bhist, const std::size_t i)
     : Result(hxhim_result_type::HXHIM_RESULT_HISTOGRAM),
-      histogram(nullptr)
+      buckets(nullptr),
+      counts(nullptr),
+      size(0)
 {
-    histogram = new std::map<double, std::size_t>();
-
     if (bhist && (i < bhist->count)) {
         datastore = hxhim::datastore::get_id(hx, bhist->src, bhist->ds_offsets[i]);
-        *histogram = bhist->hists[i];
+        buckets = bhist->hists[i].buckets;
+        counts = bhist->hists[i].counts;
+        size = bhist->hists[i].size;
         status = bhist->statuses[i];
     }
 }
 
 Results::Histogram::~Histogram() {}
 
-const std::map<double, std::size_t> &Results::Histogram::GetHistogram() const {
-    return *histogram;
+int Results::Histogram::GetBuckets(double **b) const {
+    if (!b) {
+        return HXHIM_ERROR;
+    }
+
+    *b = buckets;
+
+    return HXHIM_SUCCESS;
+}
+
+int Results::Histogram::GetCounts(std::size_t **c) const {
+    if (!c) {
+        return HXHIM_ERROR;
+    }
+
+    *c = counts;
+
+    return HXHIM_SUCCESS;
+}
+
+int Results::Histogram::GetSize(std::size_t *s) const {
+    if (!s) {
+        return HXHIM_ERROR;
+    }
+
+    *s = size;
+
+    return HXHIM_SUCCESS;
 }
 
 Results::Results(hxhim_t *hx)
@@ -320,6 +351,10 @@ Results &Results::Append(Results *other) {
     }
 
     return *this;
+}
+
+std::size_t Results::size() const {
+    return results.size();
 }
 
 }

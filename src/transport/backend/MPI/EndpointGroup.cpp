@@ -4,10 +4,11 @@ namespace Transport {
 namespace MPI {
 
 EndpointGroup::EndpointGroup(const MPI_Comm comm,
-                                   FixedBufferPool *fbp)
+                             FixedBufferPool *packed,
+                             FixedBufferPool *buffers)
   : ::Transport::EndpointGroup(),
-    EndpointBase(comm, fbp),
-    ranks_()
+    EndpointBase(comm, packed, buffers),
+    ranks()
 {}
 
 EndpointGroup::~EndpointGroup() {}
@@ -20,7 +21,7 @@ EndpointGroup::~EndpointGroup() {}
  * @param rank the rank associated with the unique ID
  */
 void EndpointGroup::AddID(const int id, const int rank) {
-    ranks_[id] = rank;
+    ranks[id] = rank;
 }
 
 /**
@@ -31,7 +32,7 @@ void EndpointGroup::AddID(const int id, const int rank) {
  * @param id the unique ID to remove
  */
 void EndpointGroup::RemoveID(const int id) {
-    ranks_.erase(id);
+    ranks.erase(id);
 }
 
 /**

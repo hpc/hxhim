@@ -9,10 +9,8 @@
 #include <mpi.h>
 
 #include "transport/backend/MPI/EndpointBase.hpp"
-#include "transport/backend/MPI/Packer.hpp"
-#include "transport/backend/MPI/Unpacker.hpp"
 #include "transport/transport.hpp"
-#include "utils/MemoryManagers.hpp"
+#include "utils/FixedBufferPool.hpp"
 
 namespace Transport {
 namespace MPI {
@@ -24,7 +22,8 @@ namespace MPI {
 class EndpointGroup : virtual public ::Transport::EndpointGroup, virtual public EndpointBase {
     public:
         EndpointGroup(const MPI_Comm comm,
-                      FixedBufferPool *fbp);
+                      FixedBufferPool *packed,
+                      FixedBufferPool *buffers);
 
         ~EndpointGroup();
 
@@ -68,7 +67,7 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup, virtual public 
         Recv_t *return_msgs(const std::size_t num_rangesrvs, Send_t **messages);
 
         /** @description Mapping from unique ids to MPI ranks */
-        std::map<int, int> ranks_;
+        std::map<int, int> ranks;
 };
 
 }

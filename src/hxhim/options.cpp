@@ -1,6 +1,12 @@
+#include <cmath>
+#include <type_traits>
+
+#include "hxhim/Results.hpp"
+#include "hxhim/cache.hpp"
 #include "hxhim/config.hpp"
 #include "hxhim/options.h"
 #include "hxhim/options_private.hpp"
+#include "transport/Messages/Message.hpp"
 #include "transport/backend/MPI/Options.hpp"
 #include "transport/backend/Thallium/Options.hpp"
 
@@ -20,7 +26,7 @@ int hxhim_options_init(hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
-    return HXHIM_SUCCESS;
+    return hxhim_options_set_bulks_default_alloc_size(opts);
 }
 
 /**
@@ -30,7 +36,7 @@ int hxhim_options_init(hxhim_options_t *opts) {
  * @return whether or not opts and opts->p are both non NULL
  */
 static bool valid_opts(hxhim_options_t *opts) {
-    return (opts && opts->p);
+    return opts && opts->p;
 }
 
 /**
@@ -120,6 +126,7 @@ int hxhim_options_set_datastore_leveldb(hxhim_options_t *opts, const size_t id, 
         delete config;
         return HXHIM_ERROR;
     }
+
     return HXHIM_SUCCESS;
 }
 
@@ -141,6 +148,7 @@ int hxhim_options_set_datastore_in_memory(hxhim_options_t *opts) {
         delete config;
         return HXHIM_ERROR;
     }
+
     return HXHIM_SUCCESS;
 }
 
@@ -222,17 +230,15 @@ static int hxhim_options_set_transport(hxhim_options_t *opts, Transport::Options
  * Sets the values needed to set up a mpi Transport
  *
  * @param opts              the set of options to be modified
- * @param memory_alloc_size the size of each region of memory
- * @param memory_regions    the number of memory regions
  * @param listeners         the number of listeners
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_options_set_transport_mpi(hxhim_options_t *opts, const size_t memory_alloc_size, const size_t memory_regions, const size_t listeners) {
+int hxhim_options_set_transport_mpi(hxhim_options_t *opts, const size_t listeners) {
     if (!opts || !opts->p) {
         return HXHIM_ERROR;
     }
 
-    Transport::Options *config = new Transport::MPI::Options(opts->p->comm, memory_alloc_size, memory_regions, listeners);
+    Transport::Options *config = new Transport::MPI::Options(opts->p->comm, listeners);
     if (!config) {
         return HXHIM_ERROR;
     }
@@ -285,6 +291,7 @@ int hxhim_options_add_endpoint_to_group(hxhim_options_t *opts, const int id) {
     }
 
     opts->p->endpointgroup.insert(id);
+
     return HXHIM_SUCCESS;
 }
 
@@ -301,6 +308,7 @@ int hxhim_options_clear_endpoint_group(hxhim_options_t *opts) {
     }
 
     opts->p->endpointgroup.clear();
+
     return HXHIM_SUCCESS;
 }
 
@@ -383,7 +391,7 @@ int hxhim_options_set_histogram_bucket_gen_method(hxhim_options_t *opts, const c
  * @param args   arguments the custom function will use at runtime
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_options_set_histogram_bucket_gen_method(hxhim_options_t *opts, const Histogram::BucketGen::generator &gen, void *args) {
+int hxhim_options_set_histogram_bucket_gen_method(hxhim_options_t *opts, const HistogramBucketGenerator_t &gen, void *args) {
     if (!valid_opts(opts)) {
         return HXHIM_ERROR;
     }
@@ -394,6 +402,291 @@ int hxhim_options_set_histogram_bucket_gen_method(hxhim_options_t *opts, const H
 
     opts->p->histogram.gen = gen;
     opts->p->histogram.args = args;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_packed_alloc_size(hxhim_options_t *opts, const size_t alloc_size) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->packed.alloc_size = alloc_size;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_packed_regions(hxhim_options_t *opts, const size_t regions) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->packed.regions = regions;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_packed_name(hxhim_options_t *opts, const char *name) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->packed.name = name;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_buffers_alloc_size(hxhim_options_t *opts, const size_t alloc_size) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->buffers.alloc_size = alloc_size;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_buffers_regions(hxhim_options_t *opts, const size_t regions) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->buffers.regions = regions;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_buffers_name(hxhim_options_t *opts, const char *name) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->buffers.name = name;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_bulks_default_alloc_size(hxhim_options_t *opts) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    static const std::size_t bulk_sizes[] = {
+        sizeof(hxhim::PutData),
+        sizeof(hxhim::GetData),
+        sizeof(hxhim::GetOpData),
+        sizeof(hxhim::DeleteData),
+    };
+
+    return hxhim_options_set_bulks_alloc_size(opts, *std::max_element(std::begin(bulk_sizes), std::end(bulk_sizes)));
+}
+
+int hxhim_options_set_bulks_alloc_size(hxhim_options_t *opts, const size_t alloc_size) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->bulks.alloc_size = alloc_size;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_bulks_regions(hxhim_options_t *opts, const size_t regions) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->bulks.regions = regions;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_bulks_name(hxhim_options_t *opts, const char *name) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->bulks.name = name;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_keys_alloc_size(hxhim_options_t *opts, const size_t alloc_size) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->keys.alloc_size = alloc_size;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_keys_regions(hxhim_options_t *opts, const size_t regions) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->keys.regions = regions;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_keys_name(hxhim_options_t *opts, const char *name) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->keys.name = name;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_arrays_alloc_size(hxhim_options_t *opts, const size_t alloc_size) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->arrays.alloc_size = alloc_size;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_arrays_regions(hxhim_options_t *opts, const size_t regions) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->arrays.regions = regions;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_arrays_name(hxhim_options_t *opts, const char *name) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->arrays.name = name;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_requests_alloc_size(hxhim_options_t *opts, const size_t alloc_size) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->requests.alloc_size = alloc_size;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_requests_regions(hxhim_options_t *opts, const size_t regions) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->requests.regions = regions;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_requests_name(hxhim_options_t *opts, const char *name) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->requests.name = name;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_responses_alloc_size(hxhim_options_t *opts, const size_t alloc_size) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->responses.alloc_size = alloc_size;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_responses_regions(hxhim_options_t *opts, const size_t regions) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->responses.regions = regions;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_responses_name(hxhim_options_t *opts, const char *name) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->responses.name = name;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_result_alloc_size(hxhim_options_t *opts, const size_t alloc_size) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->result.alloc_size = alloc_size;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_result_regions(hxhim_options_t *opts, const size_t regions) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->result.regions = regions;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_result_name(hxhim_options_t *opts, const char *name) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->result.name = name;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_results_alloc_size(hxhim_options_t *opts, const size_t alloc_size) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->results.alloc_size = alloc_size;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_results_regions(hxhim_options_t *opts, const size_t regions) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->results.regions = regions;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_results_name(hxhim_options_t *opts, const char *name) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->results.name = name;
 
     return HXHIM_SUCCESS;
 }

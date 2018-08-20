@@ -5,13 +5,14 @@ namespace Transport {
 namespace MPI {
 
 Endpoint::Endpoint(const MPI_Comm comm,
-                         const int remote_rank,
-                         FixedBufferPool *fbp,
-                         volatile std::atomic_bool &running)
+                   const int remote_rank,
+                   FixedBufferPool *packed,
+                   FixedBufferPool *buffers,
+                   volatile std::atomic_bool &running)
   : ::Transport::Endpoint(),
-    EndpointBase(comm, fbp),
-    remote_rank_(remote_rank),
-    running_(running)
+    EndpointBase(comm, packed, buffers),
+    remote_rank(remote_rank),
+    running(running)
 {}
 
 /**
@@ -62,13 +63,13 @@ int Endpoint::send(void *data, const std::size_t len) {
     MPI_Request request;
 
     // send the size of the data
-    if ((MPI_Send(&len, sizeof(len), MPI_CHAR, remote_rank_, TRANSPORT_MPI_SIZE_REQUEST_TAG, comm_) == MPI_SUCCESS) ||
+    if ((MPI_Send(&len, sizeof(len), MPI_CHAR, remote_rank, TRANSPORT_MPI_SIZE_REQUEST_TAG, comm) == MPI_SUCCESS) ||
         (Flush(request) != TRANSPORT_SUCCESS)) {
         return TRANSPORT_ERROR;
     }
 
     // wait for the data
-    if ((MPI_Send(data, len, MPI_CHAR, remote_rank_, TRANSPORT_MPI_DATA_REQUEST_TAG, comm_) == MPI_SUCCESS) ||
+    if ((MPI_Send(data, len, MPI_CHAR, remote_rank, TRANSPORT_MPI_DATA_REQUEST_TAG, comm) == MPI_SUCCESS) ||
         (Flush(request) != TRANSPORT_SUCCESS)) {
         return TRANSPORT_ERROR;
     }
@@ -84,15 +85,15 @@ int Endpoint::recv(void **data, std::size_t *len) {
     MPI_Request request;
 
     // wait for the size of the data
-    if ((MPI_Irecv(len, sizeof(*len), MPI_CHAR, remote_rank_, TRANSPORT_MPI_SIZE_RESPONSE_TAG, comm_, &request) != MPI_SUCCESS) ||
+    if ((MPI_Irecv(len, sizeof(*len), MPI_CHAR, remote_rank, TRANSPORT_MPI_SIZE_RESPONSE_TAG, comm, &request) != MPI_SUCCESS) ||
         (Flush(request) != TRANSPORT_SUCCESS)) {
         return TRANSPORT_ERROR;
     }
 
-    *data = ::operator new(*len);
+    *data = packed->acquire(*len);
 
     // wait for the data
-    if ((MPI_Recv(*data, *len, MPI_CHAR, remote_rank_, TRANSPORT_MPI_DATA_RESPONSE_TAG, comm_, MPI_STATUS_IGNORE) == MPI_SUCCESS) ||
+    if ((MPI_Recv(*data, *len, MPI_CHAR, remote_rank, TRANSPORT_MPI_DATA_RESPONSE_TAG, comm, MPI_STATUS_IGNORE) == MPI_SUCCESS) ||
         (Flush(request) != TRANSPORT_SUCCESS)) {
         return TRANSPORT_ERROR;
     }
@@ -104,7 +105,7 @@ int Endpoint::Flush(MPI_Request &req) {
     int flag = 0;
     MPI_Status status;
 
-    while (!flag && running_) {
+    while (!flag && running) {
         MPI_Test(&req, &flag, &status);
     }
 

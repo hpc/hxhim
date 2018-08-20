@@ -1,6 +1,8 @@
+#if HXHIM_HAVE_THALLIUM
+
 #include "transport/backend/Thallium/Unpacker.hpp"
 
-int Transport::Thallium::Unpacker::any(Message **msg, const std::string &buf) {
+int Transport::Thallium::Unpacker::any(Message **msg, const std::string &buf, FixedBufferPool *fbp) {
     int ret = TRANSPORT_ERROR;
     if (!msg) {
         return ret;
@@ -8,7 +10,7 @@ int Transport::Thallium::Unpacker::any(Message **msg, const std::string &buf) {
 
     // partial unpacking
     Message *base = nullptr;
-    if (unpack(&base, buf) != TRANSPORT_SUCCESS) {
+    if (unpack(&base, buf, fbp) != TRANSPORT_SUCCESS) {
         delete base;
         return ret;
     }
@@ -18,14 +20,14 @@ int Transport::Thallium::Unpacker::any(Message **msg, const std::string &buf) {
         case Message::REQUEST:
             {
                 Request::Request *req = nullptr;
-                ret = unpack(&req, buf, base->type);
+                ret = unpack(&req, buf, base->type, fbp);
                 *msg = req;
             }
             break;
         case Message::RESPONSE:
             {
                 Response::Response *res = nullptr;
-                ret = unpack(&res, buf, base->type);
+                ret = unpack(&res, buf, base->type, fbp);
                 *msg = res;
             }
             break;
@@ -38,7 +40,7 @@ int Transport::Thallium::Unpacker::any(Message **msg, const std::string &buf) {
     return ret;
 }
 
-int Transport::Thallium::Unpacker::unpack(Request::Request **req, const std::string &buf) {
+int Transport::Thallium::Unpacker::unpack(Request::Request **req, const std::string &buf, FixedBufferPool *fbp) {
     int ret = TRANSPORT_ERROR;
     if (!req) {
         return ret;
@@ -46,7 +48,7 @@ int Transport::Thallium::Unpacker::unpack(Request::Request **req, const std::str
 
     // partial unpacking
     Message *base = nullptr;
-    if (unpack(&base, buf) != TRANSPORT_SUCCESS) {
+    if (unpack(&base, buf, fbp) != TRANSPORT_SUCCESS) {
         delete base;
         return ret;
     }
@@ -57,14 +59,14 @@ int Transport::Thallium::Unpacker::unpack(Request::Request **req, const std::str
         return ret;
     }
 
-    ret = unpack(req, buf, base->type);
+    ret = unpack(req, buf, base->type, fbp);
 
     delete base;
     return ret;
 }
 
-int Transport::Thallium::Unpacker::unpack(Request::Put **pm, const std::string &buf) {
-    Request::Put *out = new Request::Put();
+int Transport::Thallium::Unpacker::unpack(Request::Put **pm, const std::string &buf, FixedBufferPool *fbp) {
+    Request::Put *out = new Request::Put(fbp);
     std::stringstream s(buf);
     if (unpack(static_cast<Request::Request *>(out), s) != TRANSPORT_SUCCESS) {
         delete out;
@@ -103,8 +105,8 @@ int Transport::Thallium::Unpacker::unpack(Request::Put **pm, const std::string &
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Request::Get **gm, const std::string &buf) {
-    Request::Get *out = new Request::Get();
+int Transport::Thallium::Unpacker::unpack(Request::Get **gm, const std::string &buf, FixedBufferPool *fbp) {
+    Request::Get *out = new Request::Get(fbp);
     std::stringstream s(buf);
     if (unpack(static_cast<Request::Request *>(out), s) != TRANSPORT_SUCCESS) {
         delete out;
@@ -140,8 +142,8 @@ int Transport::Thallium::Unpacker::unpack(Request::Get **gm, const std::string &
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Request::Delete **dm, const std::string &buf) {
-    Request::Delete *out = new Request::Delete();
+int Transport::Thallium::Unpacker::unpack(Request::Delete **dm, const std::string &buf, FixedBufferPool *fbp) {
+    Request::Delete *out = new Request::Delete(fbp);
     std::stringstream s(buf);
     if (unpack(static_cast<Request::Request *>(out), s) != TRANSPORT_SUCCESS) {
         delete out;
@@ -176,8 +178,8 @@ int Transport::Thallium::Unpacker::unpack(Request::Delete **dm, const std::strin
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Request::Histogram **hist, const std::string &buf) {
-    Request::Histogram *out = new Request::Histogram();
+int Transport::Thallium::Unpacker::unpack(Request::Histogram **hist, const std::string &buf, FixedBufferPool *fbp) {
+    Request::Histogram *out = new Request::Histogram(fbp);
     std::stringstream s(buf);
     if (unpack(static_cast<Request::Request *>(out), s) != TRANSPORT_SUCCESS) {
         delete out;
@@ -195,8 +197,8 @@ int Transport::Thallium::Unpacker::unpack(Request::Histogram **hist, const std::
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Request::BPut **bpm, const std::string &buf) {
-    Request::BPut *out = new Request::BPut();
+int Transport::Thallium::Unpacker::unpack(Request::BPut **bpm, const std::string &buf, FixedBufferPool *fbp) {
+    Request::BPut *out = new Request::BPut(fbp);
     std::stringstream s(buf);
     if (unpack(static_cast<Request::Request *>(out), s) != TRANSPORT_SUCCESS) {
         delete out;
@@ -249,8 +251,8 @@ int Transport::Thallium::Unpacker::unpack(Request::BPut **bpm, const std::string
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Request::BGet **bgm, const std::string &buf) {
-    Request::BGet *out = new Request::BGet();
+int Transport::Thallium::Unpacker::unpack(Request::BGet **bgm, const std::string &buf, FixedBufferPool *fbp) {
+    Request::BGet *out = new Request::BGet(fbp);
     std::stringstream s(buf);
     if (unpack(static_cast<Request::Request *>(out), s) != TRANSPORT_SUCCESS) {
         delete out;
@@ -300,8 +302,8 @@ int Transport::Thallium::Unpacker::unpack(Request::BGet **bgm, const std::string
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Request::BGetOp **bgm, const std::string &buf) {
-    Request::BGetOp *out = new Request::BGetOp();
+int Transport::Thallium::Unpacker::unpack(Request::BGetOp **bgm, const std::string &buf, FixedBufferPool *fbp) {
+    Request::BGetOp *out = new Request::BGetOp(fbp);
     std::stringstream s(buf);
     if (unpack(static_cast<Request::Request *>(out), s) != TRANSPORT_SUCCESS) {
         delete out;
@@ -353,8 +355,8 @@ int Transport::Thallium::Unpacker::unpack(Request::BGetOp **bgm, const std::stri
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Request::BDelete **bdm, const std::string &buf) {
-    Request::BDelete *out = new Request::BDelete();
+int Transport::Thallium::Unpacker::unpack(Request::BDelete **bdm, const std::string &buf, FixedBufferPool *fbp) {
+    Request::BDelete *out = new Request::BDelete(fbp);
     std::stringstream s(buf);
     if (unpack(static_cast<Request::Request *>(out), s) != TRANSPORT_SUCCESS) {
         delete out;
@@ -404,8 +406,8 @@ int Transport::Thallium::Unpacker::unpack(Request::BDelete **bdm, const std::str
 }
 
 
-int Transport::Thallium::Unpacker::unpack(Request::BHistogram **bhist, const std::string &buf) {
-    Request::BHistogram *out = new Request::BHistogram();
+int Transport::Thallium::Unpacker::unpack(Request::BHistogram **bhist, const std::string &buf, FixedBufferPool *fbp) {
+    Request::BHistogram *out = new Request::BHistogram(fbp);
     std::stringstream s(buf);
     if (unpack(static_cast<Request::Request *>(out), s) != TRANSPORT_SUCCESS) {
         delete out;
@@ -439,7 +441,7 @@ int Transport::Thallium::Unpacker::unpack(Request::BHistogram **bhist, const std
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Response::Response **res, const std::string &buf) {
+int Transport::Thallium::Unpacker::unpack(Response::Response **res, const std::string &buf, FixedBufferPool *fbp) {
     int ret = TRANSPORT_ERROR;
     if (!res) {
         return ret;
@@ -447,7 +449,7 @@ int Transport::Thallium::Unpacker::unpack(Response::Response **res, const std::s
 
     // partial unpacking
     Message *base = nullptr;
-    if (unpack(&base, buf) != TRANSPORT_SUCCESS) {
+    if (unpack(&base, buf, fbp) != TRANSPORT_SUCCESS) {
         delete base;
         return ret;
     }
@@ -458,13 +460,13 @@ int Transport::Thallium::Unpacker::unpack(Response::Response **res, const std::s
         return ret;
     }
 
-    ret = unpack(res, buf, base->type);
+    ret = unpack(res, buf, base->type, fbp);
     delete base;
     return ret;
 }
 
-int Transport::Thallium::Unpacker::unpack(Response::Put **pm, const std::string &buf) {
-    Response::Put *out = new Response::Put();
+int Transport::Thallium::Unpacker::unpack(Response::Put **pm, const std::string &buf, FixedBufferPool *fbp) {
+    Response::Put *out = new Response::Put(fbp);
     std::stringstream s(buf);
     if (unpack(static_cast<Response::Response *>(out), s) != TRANSPORT_SUCCESS) {
         delete out;
@@ -483,8 +485,8 @@ int Transport::Thallium::Unpacker::unpack(Response::Put **pm, const std::string 
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Response::Get **gm, const std::string &buf) {
-    Response::Get *out = new Response::Get();
+int Transport::Thallium::Unpacker::unpack(Response::Get **gm, const std::string &buf, FixedBufferPool *fbp) {
+    Response::Get *out = new Response::Get(fbp);
     std::stringstream s(buf);
     if (unpack(static_cast<Response::Response *>(out), s) != TRANSPORT_SUCCESS) {
         delete out;
@@ -543,8 +545,8 @@ int Transport::Thallium::Unpacker::unpack(Response::Get **gm, const std::string 
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Response::Delete **dm, const std::string &buf) {
-    Response::Delete *out = new Response::Delete();
+int Transport::Thallium::Unpacker::unpack(Response::Delete **dm, const std::string &buf, FixedBufferPool *fbp) {
+    Response::Delete *out = new Response::Delete(fbp);
     std::stringstream s(buf);
     if (unpack(static_cast<Response::Response *>(out), s) != TRANSPORT_SUCCESS) {
         delete out;
@@ -563,8 +565,8 @@ int Transport::Thallium::Unpacker::unpack(Response::Delete **dm, const std::stri
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Response::Histogram **hist, const std::string &buf) {
-    Response::Histogram *out = new Response::Histogram();
+int Transport::Thallium::Unpacker::unpack(Response::Histogram **hist, const std::string &buf, FixedBufferPool *fbp) {
+    Response::Histogram *out = new Response::Histogram(fbp);
     std::stringstream s(buf);
     if (unpack(static_cast<Response::Response *>(out), s) != TRANSPORT_SUCCESS) {
         delete out;
@@ -579,32 +581,33 @@ int Transport::Thallium::Unpacker::unpack(Response::Histogram **hist, const std:
         return TRANSPORT_ERROR;
     }
 
-    std::size_t size = 0;
     if (!s
-        .read((char *) &size, sizeof(size))) {
+        .read((char *) &out->hist.size, sizeof(out->hist.size))) {
         delete out;
         return TRANSPORT_ERROR;
     }
 
-    for(std::size_t i = 0; i < size; i++) {
-        double bucket;
-        std::size_t count;
+    if (!(out->hist.buckets = new double[out->hist.size]())     ||
+        !(out->hist.counts = new std::size_t[out->hist.size]())) {
+        delete out;
+        return TRANSPORT_ERROR;
+    }
+
+    for(std::size_t i = 0; i < out->hist.size; i++) {
         if (!s
-            .read((char *) &bucket, sizeof(bucket))
-            .read((char *) &count, sizeof(count))) {
+            .read((char *) &out->hist.buckets[i], sizeof(out->hist.buckets[i]))
+            .read((char *) &out->hist.counts[i], sizeof(out->hist.counts[i]))) {
             delete out;
             return TRANSPORT_ERROR;
         }
-
-        out->hist[bucket] = count;
     }
 
     *hist = out;
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Response::BPut **bpm, const std::string &buf) {
-    Response::BPut *out = new Response::BPut();
+int Transport::Thallium::Unpacker::unpack(Response::BPut **bpm, const std::string &buf, FixedBufferPool *fbp) {
+    Response::BPut *out = new Response::BPut(fbp);
     std::stringstream s(buf);
     if (unpack(static_cast<Response::Response *>(out), s) != TRANSPORT_SUCCESS) {
         delete out;
@@ -637,8 +640,8 @@ int Transport::Thallium::Unpacker::unpack(Response::BPut **bpm, const std::strin
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Response::BGet **bgm, const std::string &buf) {
-    Response::BGet *out = new Response::BGet();
+int Transport::Thallium::Unpacker::unpack(Response::BGet **bgm, const std::string &buf, FixedBufferPool *fbp) {
+    Response::BGet *out = new Response::BGet(fbp);
     std::stringstream s(buf);
     if (unpack(static_cast<Response::Response *>(out), s) != TRANSPORT_SUCCESS) {
         delete out;
@@ -708,8 +711,8 @@ int Transport::Thallium::Unpacker::unpack(Response::BGet **bgm, const std::strin
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Response::BGetOp **bgm, const std::string &buf) {
-    Response::BGetOp *out = new Response::BGetOp();
+int Transport::Thallium::Unpacker::unpack(Response::BGetOp **bgm, const std::string &buf, FixedBufferPool *fbp) {
+    Response::BGetOp *out = new Response::BGetOp(fbp);
     std::stringstream s(buf);
     if (unpack(static_cast<Response::Response *>(out), s) != TRANSPORT_SUCCESS) {
         delete out;
@@ -779,8 +782,8 @@ int Transport::Thallium::Unpacker::unpack(Response::BGetOp **bgm, const std::str
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Response::BDelete **bdm, const std::string &buf) {
-    Response::BDelete *out = new Response::BDelete();
+int Transport::Thallium::Unpacker::unpack(Response::BDelete **bdm, const std::string &buf, FixedBufferPool *fbp) {
+    Response::BDelete *out = new Response::BDelete(fbp);
     std::stringstream s(buf);
     if (unpack(static_cast<Response::Response *>(out), s) != TRANSPORT_SUCCESS) {
         delete out;
@@ -813,8 +816,8 @@ int Transport::Thallium::Unpacker::unpack(Response::BDelete **bdm, const std::st
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Response::BHistogram **bhist, const std::string &buf) {
-    Response::BHistogram *out = new Response::BHistogram();
+int Transport::Thallium::Unpacker::unpack(Response::BHistogram **bhist, const std::string &buf, FixedBufferPool *fbp) {
+    Response::BHistogram *out = new Response::BHistogram(fbp);
     std::stringstream s(buf);
     if (unpack(static_cast<Response::Response *>(out), s) != TRANSPORT_SUCCESS) {
         delete out;
@@ -844,23 +847,24 @@ int Transport::Thallium::Unpacker::unpack(Response::BHistogram **bhist, const st
     }
 
     for(std::size_t i = 0; i < out->count; i++) {
-        std::size_t size = 0;
         if (!s
-            .read((char *) &size, sizeof(size))) {
+            .read((char *) &out->hists[i].size, sizeof(out->hists[i].size))) {
             return TRANSPORT_ERROR;
         }
 
-        for(std::size_t j = 0; j < size; j++) {
-            double bucket;
-            std::size_t count;
+        if (!(out->hists[i].buckets = new double[out->hists[i].size]())     ||
+            !(out->hists[i].counts = new std::size_t[out->hists[i].size]())) {
+            delete out;
+            return TRANSPORT_ERROR;
+        }
+
+        for(std::size_t j = 0; j < out->hists[i].size; j++) {
             if (!s
-                .read((char *) &bucket, sizeof(bucket))
-                .read((char *) &count, sizeof(count))) {
+                .read((char *) &out->hists[i].buckets[j], sizeof(out->hists[i].buckets[j]))
+                .read((char *) &out->hists[i].counts[j], sizeof(out->hists[i].counts[j]))) {
                 delete out;
                 return TRANSPORT_ERROR;
             }
-
-            out->hists[i][bucket] = count;
         }
     }
 
@@ -868,7 +872,7 @@ int Transport::Thallium::Unpacker::unpack(Response::BHistogram **bhist, const st
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Message **msg, const std::string &buf) {
+int Transport::Thallium::Unpacker::unpack(Message **msg, const std::string &buf, FixedBufferPool *fbp) {
     if (!msg) {
         return TRANSPORT_ERROR;
     }
@@ -876,7 +880,7 @@ int Transport::Thallium::Unpacker::unpack(Message **msg, const std::string &buf)
     *msg = nullptr;
 
     std::stringstream s(buf);
-    Message *out = new Message(Message::NONE, Message::INVALID);
+    Message *out = new Message(Message::NONE, Message::INVALID, fbp);
     if (unpack(out, s) != TRANSPORT_SUCCESS) {
         delete out;
         return TRANSPORT_ERROR;
@@ -900,7 +904,7 @@ int Transport::Thallium::Unpacker::unpack(Message *msg, std::stringstream &s) {
         .read((char *) &msg->dst, sizeof(msg->dst))?TRANSPORT_SUCCESS:TRANSPORT_ERROR;
 }
 
-int Transport::Thallium::Unpacker::unpack(Request::Request **req, const std::string &buf, const Message::Type type) {
+int Transport::Thallium::Unpacker::unpack(Request::Request **req, const std::string &buf, const Message::Type type, FixedBufferPool *fbp) {
     int ret = TRANSPORT_ERROR;
     if (!req) {
         return ret;
@@ -912,56 +916,56 @@ int Transport::Thallium::Unpacker::unpack(Request::Request **req, const std::str
         case Message::PUT:
             {
                 Request::Put *out = nullptr;
-                ret = unpack(&out, buf);
+                ret = unpack(&out, buf, fbp);
                 *req = out;
             }
             break;
         case Message::GET:
             {
                 Request::Get *out = nullptr;
-                ret = unpack(&out, buf);
+                ret = unpack(&out, buf, fbp);
                 *req = out;
             }
             break;
         case Message::DELETE:
             {
                 Request::Delete *out = nullptr;
-                ret = unpack(&out, buf);
+                ret = unpack(&out, buf, fbp);
                 *req = out;
             }
             break;
         case Message::HISTOGRAM:
             {
                 Request::Histogram *out = nullptr;
-                ret = unpack(&out, buf);
+                ret = unpack(&out, buf, fbp);
                 *req = out;
             }
             break;
         case Message::BPUT:
             {
                 Request::BPut *out = nullptr;
-                ret = unpack(&out, buf);
+                ret = unpack(&out, buf, fbp);
                 *req = out;
             }
             break;
         case Message::BGET:
             {
                 Request::BGet *out = nullptr;
-                ret = unpack(&out, buf);
+                ret = unpack(&out, buf, fbp);
                 *req = out;
             }
             break;
         case Message::BGETOP:
             {
                 Request::BGetOp *out = nullptr;
-                ret = unpack(&out, buf);
+                ret = unpack(&out, buf, fbp);
                 *req = out;
             }
             break;
         case Message::BDELETE:
             {
                 Request::BDelete *out = nullptr;
-                ret = unpack(&out, buf);
+                ret = unpack(&out, buf, fbp);
                 *req = out;
             }
             break;
@@ -972,7 +976,7 @@ int Transport::Thallium::Unpacker::unpack(Request::Request **req, const std::str
     return ret;
 }
 
-int Transport::Thallium::Unpacker::unpack(Response::Response **res, const std::string &buf, const Message::Type type) {
+int Transport::Thallium::Unpacker::unpack(Response::Response **res, const std::string &buf, const Message::Type type, FixedBufferPool *fbp) {
     int ret = TRANSPORT_ERROR;
     if (!res) {
         return ret;
@@ -984,56 +988,56 @@ int Transport::Thallium::Unpacker::unpack(Response::Response **res, const std::s
         case Message::PUT:
             {
                 Response::Put *out = nullptr;
-                ret = unpack(&out, buf);
+                ret = unpack(&out, buf, fbp);
                 *res = out;
             }
             break;
         case Message::GET:
             {
                 Response::Get *out = nullptr;
-                ret = unpack(&out, buf);
+                ret = unpack(&out, buf, fbp);
                 *res = out;
             }
             break;
         case Message::DELETE:
             {
                 Response::Delete *out = nullptr;
-                ret = unpack(&out, buf);
+                ret = unpack(&out, buf, fbp);
                 *res = out;
             }
             break;
         case Message::HISTOGRAM:
             {
                 Response::Histogram *out = nullptr;
-                ret = unpack(&out, buf);
+                ret = unpack(&out, buf, fbp);
                 *res = out;
             }
             break;
         case Message::BPUT:
             {
                 Response::BPut *out = nullptr;
-                ret = unpack(&out, buf);
+                ret = unpack(&out, buf, fbp);
                 *res = out;
             }
             break;
         case Message::BGET:
             {
                 Response::BGet *out = nullptr;
-                ret = unpack(&out, buf);
+                ret = unpack(&out, buf, fbp);
                 *res = out;
             }
             break;
         case Message::BGETOP:
             {
                 Response::BGetOp *out = nullptr;
-                ret = unpack(&out, buf);
+                ret = unpack(&out, buf, fbp);
                 *res = out;
             }
             break;
         case Message::BDELETE:
             {
                 Response::BDelete *out = nullptr;
-                ret = unpack(&out, buf);
+                ret = unpack(&out, buf, fbp);
                 *res = out;
             }
             break;
@@ -1043,3 +1047,5 @@ int Transport::Thallium::Unpacker::unpack(Response::Response **res, const std::s
 
     return ret;
 }
+
+#endif

@@ -34,55 +34,46 @@ find_package(PkgConfig REQUIRED)
 # External projects
 #
 find_package(MPI REQUIRED)
-if (MPI_FOUND)
-    message(STATUS "MPI_C_LIBRARIES=" ${MPI_C_LIBRARIES})
-    message(STATUS "MPI_C_LINK_FLAGS=" ${MPI_C_LINK_FLAGS})
-    message(STATUS "MPI_C_COMPILE_FLAGS=" ${MPI_C_COMPILE_FLAGS})
-    message(STATUS "MPI_CXX_LINK_FLAGS=" ${MPI_CXX_LINK_FLAGS})
-    message(STATUS "MPI_CXX_COMPILE_FLAGS=" ${MPI_CXX_COMPILE_FLAGS})
-    include_directories(SYSTEM ${MPI_INCLUDE_PATH})
-    add_definitions(-DHXHIM_USE_MPI)
-endif()
+message(STATUS "MPI_C_LIBRARIES=" ${MPI_C_LIBRARIES})
+message(STATUS "MPI_C_LINK_FLAGS=" ${MPI_C_LINK_FLAGS})
+message(STATUS "MPI_C_COMPILE_FLAGS=" ${MPI_C_COMPILE_FLAGS})
+message(STATUS "MPI_CXX_LINK_FLAGS=" ${MPI_CXX_LINK_FLAGS})
+message(STATUS "MPI_CXX_COMPILE_FLAGS=" ${MPI_CXX_COMPILE_FLAGS})
+include_directories(SYSTEM ${MPI_INCLUDE_PATH})
 
 # do not search for thallium with find_package
-pkg_search_module(THALLIUM REQUIRED thallium)
+pkg_search_module(THALLIUM thallium)
 if (THALLIUM_FOUND)
+    pkg_search_module(MERCURY REQUIRED mercury)
+    message(STATUS "MERCURY_INCLUDEDIR=" ${MERCURY_INCLUDEDIR})
+    message(STATUS "MERCURY_LIBDIR=" ${MERCURY_LIBDIR})
+    include_directories(AFTER SYSTEM ${MERCURY_INCLUDEDIR})
+    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath -Wl,${MERCURY_LIBDIR}")
+
+    pkg_search_module(ARGOBOTS REQUIRED argobots)
+    message(STATUS "ARGOBOTS_INCLUDEDIR=" ${ARGOBOTS_INCLUDEDIR})
+    message(STATUS "ARGOBOTS_LIBDIR=" ${ARGOBOTS_LIBDIR})
+    include_directories(AFTER SYSTEM ${ARGOBOTS_INCLUDEDIR})
+    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath -Wl,${ARGOBOTS_LIBDIR}")
+
+    pkg_search_module(MARGO REQUIRED margo)
+    message(STATUS "MARGO_INCLUDEDIR=" ${MARGO_INCLUDEDIR})
+    message(STATUS "MARGO_LIBDIR=" ${MARGO_LIBDIR})
+    include_directories(AFTER SYSTEM ${MARGO_INCLUDEDIR})
+    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath -Wl,${MARGO_LIBDIR}")
+
     message(STATUS "THALLIUM_INCLUDEDIR=" ${THALLIUM_INCLUDEDIR})
     message(STATUS "THALLIUM_LIBDIR=" ${THALLIUM_LIBDIR})
     include_directories(AFTER SYSTEM ${THALLIUM_INCLUDEDIR})
     string (REPLACE ";" " " THALLIUM_LDFLAGS  "${THALLIUM_LDFLAGS}")
     SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath -Wl,${THALLIUM_LIBDIR}")
-    add_definitions(-DHXHIM_USE_THALLIUM)
-
-    pkg_search_module(MERCURY REQUIRED mercury)
-    if (MERCURY_FOUND)
-      message(STATUS "MERCURY_INCLUDEDIR=" ${MERCURY_INCLUDEDIR})
-      message(STATUS "MERCURY_LIBDIR=" ${MERCURY_LIBDIR})
-      include_directories(AFTER SYSTEM ${MERCURY_INCLUDEDIR})
-      SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath -Wl,${MERCURY_LIBDIR}")
-    endif()
-
-    pkg_search_module(ARGOBOTS REQUIRED argobots)
-    if (ARGOBOTS_FOUND)
-      message(STATUS "ARGOBOTS_INCLUDEDIR=" ${ARGOBOTS_INCLUDEDIR})
-      message(STATUS "ARGOBOTS_LIBDIR=" ${ARGOBOTS_LIBDIR})
-      include_directories(AFTER SYSTEM ${ARGOBOTS_INCLUDEDIR})
-      SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath -Wl,${ARGOBOTS_LIBDIR}")
-    endif()
-
-    pkg_search_module(MARGO REQUIRED margo)
-    if (MARGO_FOUND)
-      message(STATUS "MARGO_INCLUDEDIR=" ${MARGO_INCLUDEDIR})
-      message(STATUS "MARGO_LIBDIR=" ${MARGO_LIBDIR})
-      include_directories(AFTER SYSTEM ${MARGO_INCLUDEDIR})
-      SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath -Wl,${MARGO_LIBDIR}")
-    endif()
+    add_definitions(-DHXHIM_HAVE_THALLIUM=1)
 endif()
 
 #
 # LevelDB Support
 #
-pkg_search_module(LEVELDB REQUIRED leveldb)
+pkg_search_module(LEVELDB leveldb)
 if(${LEVELDB_FOUND})
     message(STATUS "LevelDB Data Storage Module Enabled")
     message(STATUS "LEVELDB_LIBRARY_DIRS=" ${LEVELDB_LIBRARY_DIRS})
@@ -92,7 +83,7 @@ if(${LEVELDB_FOUND})
     #link_libraries(${LEVELDB_LIBRARIES})
     include_directories(AFTER SYSTEM ${LEVELDB_INCLUDE_DIRS})
     find_library(LEVELDB_LIBRARY NAMES leveldb HINTS ${LEVELDB_LIBRARY_DIRS})
-    add_definitions(-DHXHIM_USE_LEVELDB)
+    add_definitions(-DHXHIM_HAVE_LEVELDB=1)
 endif()
 
 #
@@ -132,7 +123,8 @@ add_subdirectory(config)
 #
 # Add demo executable
 #
-add_subdirectory(src/demo)
+include_directories(demo)
+add_subdirectory(demo)
 
 #
 # Add unit test executable

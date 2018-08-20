@@ -63,7 +63,7 @@ void *RangeServer::listener_thread(void *data) {
 
         // decode request
         Request::Request *request = nullptr;
-        Unpacker::unpack(hx_->p->bootstrap.comm, &request, data, len);
+        Unpacker::unpack(hx_->p->bootstrap.comm, &request, data, len, fbp_);
         ::operator delete(data);
         data = nullptr;
         len = 0;

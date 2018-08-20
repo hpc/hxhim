@@ -5,8 +5,7 @@
 #include <gtest/gtest.h>
 #include <mpi.h>
 
-#include "datastore/InMemory.hpp"
-#include "hxhim/config.hpp"
+#include "generic_options.hpp"
 #include "hxhim/hxhim.hpp"
 
 static const std::size_t subjects[]   = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
@@ -15,16 +14,7 @@ static const double      objects[]    = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
 
 TEST(hxhim, Histogram) {
     hxhim_options_t opts;
-    ASSERT_EQ(hxhim_options_init(&opts), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_debug_level(&opts, MLOG_DBG3), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_mpi_bootstrap(&opts, MPI_COMM_WORLD), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_datastore_in_memory(&opts), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_datastores_per_range_server(&opts, 1), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_hash_name(&opts, RANK.c_str()), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_transport_thallium(&opts, "na+sm"), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_queued_bputs(&opts, 1), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_histogram_first_n(&opts, 10), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_histogram_bucket_gen_method(&opts, TEN_BUCKETS.c_str()), HXHIM_SUCCESS);
+    ASSERT_EQ(fill_options(&opts), true);
 
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
@@ -59,17 +49,21 @@ TEST(hxhim, Histogram) {
 
         hxhim::Results::Histogram *h = static_cast<hxhim::Results::Histogram *>(res);
 
-        EXPECT_EQ(h->GetHistogram().size(), 10);
+        std::size_t size = 0;
+        EXPECT_EQ(h->GetSize(&size), HXHIM_SUCCESS);
+        EXPECT_EQ(size, 10);
+
+        std::size_t *counts = nullptr;
+        EXPECT_EQ(h->GetCounts(&counts), HXHIM_SUCCESS);
+        ASSERT_NE(counts, nullptr);
 
         // First 9 buckets have 1 value
-        std::map<double, std::size_t>::const_iterator it = h->GetHistogram().begin();
         for(std::size_t i = 0; i < 9; i++) {
-            EXPECT_EQ(it->second, 1);
-            it++;
+            EXPECT_EQ(counts[i], 1);
         }
 
         // Last bucket has 2 values
-        EXPECT_EQ(it->second, 2);
+        EXPECT_EQ(counts[9], 2);
     }
 
     hxhim_results_destroy(&hx, histogram);
@@ -82,21 +76,24 @@ static int test_hash(hxhim_t *, void *subject, const size_t, void *, const size_
     return (ds < 10)?ds:9;
 }
 
-static Histogram::BucketGen::generator test_buckets = [](const std::list<double> &, std::map<double, std::size_t> &histogram, void *) -> int {
-    histogram[0] = 0;
-    return Histogram::SUCCESS;
+static HistogramBucketGenerator_t test_buckets = [](const double *first_n, const size_t n,
+                                                    double **buckets, size_t *size,
+                                                    void *extra) -> int {
+    if (!buckets || !size) {
+        return HISTOGRAM_ERROR;
+    }
+
+    *size = 1;
+    *buckets = new double[*size]();
+
+    return HISTOGRAM_SUCCESS;
 };
 
 TEST(hxhim, BHistogram) {
     hxhim_options_t opts;
-    ASSERT_EQ(hxhim_options_init(&opts), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_debug_level(&opts, MLOG_DBG3), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_mpi_bootstrap(&opts, MPI_COMM_WORLD), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_datastore_in_memory(&opts), HXHIM_SUCCESS);
+    ASSERT_EQ(fill_options(&opts), true);
     ASSERT_EQ(hxhim_options_set_datastores_per_range_server(&opts, 10), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_hash_function(&opts, test_hash, nullptr), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_transport_thallium(&opts, "na+sm"), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_queued_bputs(&opts, 1), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_histogram_first_n(&opts, 1), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_histogram_bucket_gen_method(&opts, test_buckets, nullptr), HXHIM_SUCCESS);
 
@@ -138,13 +135,20 @@ TEST(hxhim, BHistogram) {
 
         hxhim::Results::Histogram *h = static_cast<hxhim::Results::Histogram *>(res);
 
-        EXPECT_EQ(h->GetHistogram().size(), 1);                                 // each histogram has 1 bucket
-        EXPECT_EQ(h->GetHistogram().begin()->second, expected_counts[count]);   // the buckets have different counts in them
+        std::size_t size = 0;
+        EXPECT_EQ(h->GetSize(&size), HXHIM_SUCCESS);
+        EXPECT_EQ(size, 1);                                  // each histogram has 1 bucket
+
+        std::size_t *counts = nullptr;
+        EXPECT_EQ(h->GetCounts(&counts), HXHIM_SUCCESS);
+        ASSERT_NE(counts, nullptr);
+
+        EXPECT_EQ(counts[0], expected_counts[count]);        // the buckets have different counts in them
 
         count++;
     }
 
-    EXPECT_EQ(count, src_count);
+    EXPECT_EQ(src_count, count);
 
     hxhim_results_destroy(&hx, bhistogram);
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);

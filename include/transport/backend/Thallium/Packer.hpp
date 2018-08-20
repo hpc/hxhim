@@ -1,11 +1,11 @@
+#if HXHIM_HAVE_THALLIUM
+
 #ifndef TRANSPORT_THALLIUM_PACKER_HPP
 #define TRANSPORT_THALLIUM_PACKER_HPP
 
 #include <sstream>
 
-#include <thallium.hpp>
-
-#include "transport/Messages.hpp"
+#include "transport/Messages/Messages.hpp"
 
 namespace Transport {
 namespace Thallium {
@@ -52,5 +52,7 @@ class Packer {
 
 }
 }
+
+#endif
 
 #endif

@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 #include <mpi.h>
 
+#include "generic_options.hpp"
 #include "hxhim/hxhim.hpp"
 
 typedef uint64_t Subject_t;
@@ -17,15 +18,7 @@ TEST(hxhim, BadGet) {
     const Predicate_t PREDICATE = (((Predicate_t) rand()) << 32) | rand();
 
     hxhim_options_t opts;
-    ASSERT_EQ(hxhim_options_init(&opts), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_mpi_bootstrap(&opts, MPI_COMM_WORLD), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_datastore_in_memory(&opts), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_datastores_per_range_server(&opts, 1), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_hash_name(&opts, RANK.c_str()), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_transport_thallium(&opts, "na+sm"), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_queued_bputs(&opts, 1), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_histogram_first_n(&opts, 10), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_histogram_bucket_gen_method(&opts, TEN_BUCKETS.c_str()), HXHIM_SUCCESS);
+    ASSERT_EQ(fill_options(&opts), true);
 
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
@@ -41,19 +34,16 @@ TEST(hxhim, BadGet) {
     ASSERT_NE(get_results, nullptr);
 
     // get the results and compare them with the original data
-    std::size_t count = 0;
+    EXPECT_EQ(get_results->size(), 1);
     for(get_results->GoToHead(); get_results->Valid(); get_results->GoToNext()) {
         hxhim::Results::Result *res = get_results->Curr();
         ASSERT_NE(res, nullptr);
 
         EXPECT_NE(res->GetStatus(), HXHIM_SUCCESS);
         EXPECT_EQ(res->GetType(), HXHIM_RESULT_GET);
-
-        count++;
     }
 
     hxhim_results_destroy(&hx, get_results);
-    EXPECT_EQ(count, 1);
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);

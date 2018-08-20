@@ -1,9 +1,13 @@
+#if HXHIM_HAVE_THALLIUM
+
 #include "transport/backend/Thallium/EndpointGroup.hpp"
 
-Transport::Thallium::EndpointGroup::EndpointGroup(const Thallium::RPC_t &rpc)
-    : ::Transport::EndpointGroup(),
-      rpc_(rpc),
-      endpoints_()
+Transport::Thallium::EndpointGroup::EndpointGroup(const Thallium::RPC_t &rpc,
+                                                  FixedBufferPool *fbp)
+  : ::Transport::EndpointGroup(),
+    rpc_(rpc),
+    endpoints_(),
+    fbp_(fbp)
 {}
 
 Transport::Thallium::EndpointGroup::~EndpointGroup() {}
@@ -120,3 +124,5 @@ Transport::Response::BDelete *Transport::Thallium::EndpointGroup::BDelete(const 
 Transport::Response::BHistogram *Transport::Thallium::EndpointGroup::BHistogram(const std::size_t num_rangesrvs, Request::BHistogram **bhist_list) {
     return do_operation<Response::BHistogram>(num_rangesrvs, bhist_list);
 }
+
+#endif

@@ -1,151 +1,185 @@
+#include <algorithm>
 #include <cmath>
+#include <iterator>
 #include <limits>
 #include <stdexcept>
+#include <iostream>
 
 #include "utils/Histogram.hpp"
 
-static int minmax(const std::list<double> &values, double &min, double &max) {
-    // get min and max
-    min = std::numeric_limits<double>::max();
-    max = std::numeric_limits<double>::min();
-    for(double const &value: values) {
-        if (value < min) {
-            min = value;
-        }
+static int minmax(const double *values, const std::size_t len, double &min, double &max) {
+    const double *min_it = std::min_element(values, values + len);
 
-        if (value > max) {
-            max = value;
-        }
+    if (min_it == (values + len)) {
+        min = std::numeric_limits<double>::max();
+    }
+    else {
+        min = *min_it;
     }
 
-    return Histogram::SUCCESS;
+    const double *max_it = std::max_element(values, values + len);
+
+    if (max_it == (values + len)) {
+        max = std::numeric_limits<double>::min();
+    }
+    else {
+        max = *max_it;
+    }
+
+    return HISTOGRAM_SUCCESS;
 }
 
-static int generate_using_bin_count(const double &min, const double &max, const std::size_t bins, std::map<double, std::size_t> &histogram) {
-    histogram.clear();
+static int generate_using_bin_count(const double &min, const double &max, const std::size_t bin_count, double **buckets, size_t *size) {
+    if (!buckets || !size) {
+        return HISTOGRAM_ERROR;
+    }
+
+    double *bins = new double[bin_count]();
+    if (!bins) {
+        return HISTOGRAM_ERROR;
+    }
 
     // generate the left ends of the buckets
-    const double step = ((double) (max - min)) / bins;
-    double bin = min;
-    for(std::size_t i = 0; i < bins; i++) {
-        histogram[bin] = 0;
-        bin += step;
+    const double step = ((double) (max - min)) / bin_count;
+    double left = min;
+    for(std::size_t i = 0; i < bin_count; i++) {
+        bins[i] = left;
+        left += step;
     }
-    return Histogram::SUCCESS;
+
+    *size = bin_count;
+    *buckets = bins;
+
+    return HISTOGRAM_SUCCESS;
+}
+
+int histogram_n_buckets(const double *first_n, const size_t n, double **buckets, size_t *size, void *extra) {
+    if (!first_n || !n              ||
+        !buckets || !size || !extra) {
+        return HISTOGRAM_ERROR;
+    }
+
+    *size = * (std::size_t *) extra;
+    if (!(*buckets = new double[*size]())) {
+        return HISTOGRAM_ERROR;
+    }
+
+    double min, max;
+    minmax(first_n, n, min, max);
+
+    const double width = std::ceil((max - min) / *size);
+    for(std::size_t i = 0; i < *size; i++) {
+        (*buckets)[i] = min;
+        min += width;
+    }
+
+    return HISTOGRAM_SUCCESS;
+}
+
+int histogram_square_root_choice(const double *first_n, const size_t n, double **buckets, size_t *size, void *) {
+    if (!first_n || !n    ||
+        !buckets || !size) {
+        return HISTOGRAM_ERROR;
+    }
+
+    double min, max;
+    minmax(first_n, n, min, max);
+
+    return generate_using_bin_count(min, max, std::sqrt(n), buckets, size);
+}
+
+int histogram_sturges_formula(const double *first_n, const size_t n, double **buckets, size_t *size, void *) {
+    if (!first_n || !n    ||
+        !buckets || !size) {
+        return HISTOGRAM_ERROR;
+    }
+
+    double min, max;
+    minmax(first_n, n, min, max);
+
+    return generate_using_bin_count(min, max, std::log2(n) + 2, buckets, size);
+}
+
+int histogram_rice_rule(const double *first_n, const size_t n, double **buckets, size_t *size, void *) {
+    if (!first_n || !n    ||
+        !buckets || !size) {
+        return HISTOGRAM_ERROR;
+    }
+
+    double min, max;
+    minmax(first_n, n, min, max);
+
+    return generate_using_bin_count(min, max, std::cbrt(n) + 2, buckets, size);
+}
+
+int histogram_scotts_normal_reference_rule(const double *first_n, const size_t n, double **buckets, size_t *size, void *) {
+    if (!first_n || !n    ||
+        !buckets || !size) {
+        return HISTOGRAM_ERROR;
+    }
+
+    double min, max;
+    minmax(first_n, n, min, max);
+
+    // calculate the standard deviation
+    double mean = 0;
+    for(std::size_t i = 0; i < n; i++) {
+        mean += first_n[i];
+    }
+    mean /= n;
+
+    double sumsqr = 0;
+    for(std::size_t i = 0; i < n; i++) {
+        const double diff = (first_n[i] - mean);
+        sumsqr += diff * diff;
+    }
+
+    const double stdev = std::sqrt(sumsqr / (n - 1));
+
+    // width of a bin
+    const double h = 3.5 * stdev / std::cbrt(n);
+
+    return generate_using_bin_count(min, max, (min - max) / h, buckets, size);
+}
+
+int histogram_uniform_logn(const double *first_n, const size_t n, double **buckets, size_t *size, void *extra) {
+    if (!first_n || !n              ||
+        !buckets || !size || !extra) {
+        return HISTOGRAM_ERROR;
+    }
+
+    double min, max;
+    minmax(first_n, n, min, max);
+
+    return generate_using_bin_count(min, max, std::ceil((max - min) * std::log(* (std::size_t *) extra) / std::log(max - min)), buckets, size);
 }
 
 namespace Histogram {
 
-int BucketGen::n_buckets(const std::list<double> &values, std::map<double, std::size_t> &histogram, void *extra) {
-    if (!values.size() | !extra) {
-        return ERROR;
-    }
-
-    double min, max;
-    minmax(values, min, max);
-
-    histogram.clear();
-
-    const std::size_t buckets = * (std::size_t *) extra;
-    const double width = std::ceil((max - min) / buckets);
-    for(std::size_t i = 0; i < buckets; i++) {
-        histogram[min] = 0;
-        min += width;
-    }
-
-    return SUCCESS;
-}
-
-int BucketGen::square_root_choice(const std::list<double> &values, std::map<double, std::size_t> &histogram, void *) {
-    if (!values.size()) {
-        return ERROR;
-    }
-
-    double min, max;
-    minmax(values, min, max);
-
-    return generate_using_bin_count(min, max, std::sqrt(values.size()), histogram);
-}
-
-int BucketGen::sturges_formula(const std::list<double> &values, std::map<double, std::size_t> &histogram, void *) {
-    if (!values.size()) {
-        return ERROR;
-    }
-
-    double min, max;
-    minmax(values, min, max);
-
-    return generate_using_bin_count(min, max, std::log2(values.size()) + 2, histogram);
-}
-
-int BucketGen::rice_rule(const std::list<double> &values, std::map<double, std::size_t> &histogram, void *) {
-    if (!values.size()) {
-        return ERROR;
-    }
-
-    double min, max;
-    minmax(values, min, max);
-
-    return generate_using_bin_count(min, max, std::cbrt(values.size()) + 2, histogram);
-}
-
-int BucketGen::scotts_normal_reference_rule(const std::list<double> &values, std::map<double, std::size_t> &histogram, void *) {
-    if (!values.size()) {
-        return ERROR;
-    }
-
-    double min, max;
-    minmax(values, min, max);
-
-    // calculate the standard deviation
-    double mean = 0;
-    for(double const &value: values) {
-        mean += value;
-    }
-    mean /= values.size();
-
-    double sumsqr = 0;
-    for(double const & value: values) {
-        const double diff = (value - mean);
-        sumsqr += diff * diff;
-    }
-
-    const double stdev = std::sqrt(sumsqr / (values.size() - 1));
-
-    // width of a bin
-    const double h = 3.5 * stdev / std::cbrt(values.size());
-
-    return generate_using_bin_count(min, max, (min - max) / h, histogram);
-}
-
-int BucketGen::uniform_logn(const std::list<double> &values, std::map<double, std::size_t> &histogram, void *extra) {
-    if (!values.size() || !extra) {
-        return ERROR;
-    }
-
-    double min, max;
-    minmax(values, min, max);
-
-    const std::size_t n = * (std::size_t *) extra;
-
-    return generate_using_bin_count(min, max, std::ceil((max - min) * std::log(n) / std::log(max - min)), histogram);
-}
-
-
-Histogram::Histogram(const std::size_t use_first_n, const BucketGen::generator &generator, void *extra_args)
+Histogram::Histogram(const std::size_t use_first_n, const HistogramBucketGenerator_t &generator, void *extra_args)
     : first_n(use_first_n),
       gen(generator),
       extra(extra_args),
-      data(),
-      hist(),
-      count(0)
+      data(nullptr),
+      data_size(0),
+      buckets_(nullptr),
+      counts_(nullptr),
+      size_(0)
 {
-    if (!generator) {
+    if (!gen) {
         throw std::runtime_error("Bad bucket generator function");
+    }
+
+    if (!(data = new double[first_n]())) {
+        throw std::runtime_error("Could not allocate space for first n values");
     }
 }
 
-Histogram::~Histogram() {}
+Histogram::~Histogram() {
+    delete [] data;
+    delete [] buckets_;
+    delete [] counts_;
+}
 
 /**
  * add
@@ -156,37 +190,83 @@ Histogram::~Histogram() {}
  * If (including the new value), there are more values
  * than the limit, adds a value to the histogram.
  *
- * @param value a pointer to a value of type T, typecasted to a void *
- * @return SUCCESS or ERROR
+ * @param value the value to insert
+ * @return HISTOGRAM_SUCCESS or HISTOGRAM_ERROR
  */
 int Histogram::add(const double &value) {
     // limit has not been hit
-    if (data.size() < first_n) {
-        data.push_back(value);
+    if (data_size < first_n) {
+        data[data_size] = value;
+    }
 
-        // if the limit has been hit with this new value
-        // generate and fill bins
-        if (data.size() == first_n) {
-            gen(data, hist, extra);
+    data_size++;
+
+    // insert into the buckets if the limit has been hit
+    if (data_size >= first_n) {
+        if (!buckets_) {
+            // generate the buckets and allocate space for the counts
+            if ((gen(data, data_size, &buckets_, &size_, extra) != HISTOGRAM_SUCCESS) ||
+                (gen_counts()                                   != HISTOGRAM_SUCCESS)) {
+                return HISTOGRAM_ERROR;
+            }
 
             // insert original data
-            for(double const &val : data) {
-                insert(val);
+            for(std::size_t i = 0; i < first_n; i++) {
+                insert(data[i]);
             }
         }
-    }
-    // do not insert into the histogram until the limit has been hit
-    else {
-        insert(value);
+        else {
+            insert(value);
+        }
     }
 
-    count++;
-
-    return SUCCESS;
+    return HISTOGRAM_SUCCESS;
 }
 
-const std::map<double, std::size_t> &Histogram::get() const {
-    return hist;
+/**
+ * get
+ * Accessor for the histogram data.
+ * The resulting pointers will be nullptr
+ * if the number of values required to generate
+ * the buckets has not been reached.
+ *
+ * @param buckets pointer to the buckets (optional)
+ * @param counts  pointer to the counts  (optional)
+ * @param size    pointer to the size    (optional)
+ * @return HISTOGRAM_SUCCESS
+ */
+int Histogram::get(double **buckets, std::size_t **counts, std::size_t *size) const {
+    if (buckets) {
+        *buckets = buckets_;
+    }
+
+    if (counts) {
+        *counts = counts_;
+    }
+
+    if (size) {
+        *size = size_;
+    }
+
+    return HISTOGRAM_SUCCESS;
+}
+
+/**
+ * gen_counts
+ * Allocates memory for the counts and zeros them
+ *
+ * @return HISTOGRAM_SUCCESS, or HISTOGRAM_ERROR on error
+ */
+int Histogram::gen_counts() {
+    if (data_size < first_n) {
+        return HISTOGRAM_ERROR;
+    }
+
+    if (size_) {
+        counts_ = new std::size_t[size_]();
+    }
+
+    return counts_?HISTOGRAM_SUCCESS:HISTOGRAM_ERROR;
 }
 
 /**
@@ -198,17 +278,18 @@ const std::map<double, std::size_t> &Histogram::get() const {
  * @param value the value whose bin should be incremented
  */
 int Histogram::insert(const double &value) {
-    if (!hist.size()) {
-        return ERROR;
+    if (!buckets_ || !counts_ || !size_) {
+        return HISTOGRAM_ERROR;
     }
 
-    std::map<double, std::size_t>::iterator it = hist.upper_bound(value);
-    if (it != hist.begin()) {
-        --it;
+    const std::size_t i = std::upper_bound(buckets_, buckets_ + size_, value) - buckets_ - 1;
+    if (i == (std::size_t) -1) {
+        return HISTOGRAM_ERROR;
     }
-    it->second++;
 
-    return SUCCESS;
+    counts_[i]++;
+
+    return HISTOGRAM_SUCCESS;
 }
 
 }

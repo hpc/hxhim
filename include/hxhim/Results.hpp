@@ -9,7 +9,7 @@
 #include "hxhim/Results.h"
 #include "hxhim/constants.h"
 #include "hxhim/struct.h"
-#include "transport/Messages.hpp"
+#include "transport/Messages/Messages.hpp"
 
 namespace hxhim {
 
@@ -129,10 +129,14 @@ class Results {
                 Histogram(hxhim_t *hx, Transport::Response::BHistogram *bhist, const std::size_t i);
                 ~Histogram();
 
-                const std::map<double, std::size_t> &GetHistogram() const;
+                int GetBuckets(double **b) const;
+                int GetCounts(std::size_t **c) const;
+                int GetSize(std::size_t *s) const;
 
             private:
-                std::map<double, std::size_t> *histogram;
+                double *buckets;
+                std::size_t *counts;
+                std::size_t size;
         };
 
     public:
@@ -151,6 +155,8 @@ class Results {
 
         // Moves and appends another set of results; the list being appended is emptied out
         Results &Append(Results *other);
+
+        std::size_t size() const;
 
     private:
         hxhim_t *hx;

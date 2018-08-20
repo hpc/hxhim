@@ -1,3 +1,5 @@
+#if HXHIM_HAVE_THALLIUM
+
 #include <map>
 
 #include "transport/backend/Thallium/Endpoint.hpp"
@@ -31,7 +33,7 @@ Recv_t *Transport::Thallium::EndpointGroup::do_operation(const std::size_t num_r
 
         // unpack the response
         Recv_t *response = nullptr;
-        if (Unpacker::unpack(&response, responsebuf) != TRANSPORT_SUCCESS) {
+        if (Unpacker::unpack(&response, responsebuf, fbp_) != TRANSPORT_SUCCESS) {
             continue;
         }
 
@@ -51,3 +53,5 @@ Recv_t *Transport::Thallium::EndpointGroup::do_operation(const std::size_t num_r
 
     return head;
 }
+
+#endif

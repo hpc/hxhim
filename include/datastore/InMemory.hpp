@@ -15,7 +15,7 @@ class InMemory : public Datastore {
     public:
         InMemory(hxhim_t *hx,
                  const int id,
-                 const std::size_t use_first_n, const Histogram::BucketGen::generator &generator, void *extra_args);
+                 const std::size_t use_first_n, const HistogramBucketGenerator_t &generator, void *extra_args);
         ~InMemory();
 
         void Close();

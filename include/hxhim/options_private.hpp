@@ -6,6 +6,7 @@
 
 #include <mpi.h>
 
+#include "datastore/constants.h"
 #include "hxhim/constants.h"
 #include "hxhim/hash.hpp"
 #include "transport/options.hpp"
@@ -43,6 +44,18 @@ typedef struct hxhim_in_memory_config : hxhim_datastore_config_t {
     {}
 } hxhim_in_memory_config_t;
 
+typedef struct hxhim_fbp_config {
+    hxhim_fbp_config(const std::size_t alloc_size = 0, const std::size_t regions = 0, const std::string &name = "")
+        : alloc_size(alloc_size),
+          regions(regions),
+          name(name)
+    {}
+
+    std::size_t alloc_size;
+    std::size_t regions;
+    std::string name;
+} hxhim_fbp_config_t;
+
 /**
  * The entire collection of configuration options
  */
@@ -65,9 +78,21 @@ typedef struct hxhim_options_private {
 
     struct {
         std::size_t first_n;                  // number of datapoints used to generate histogram buckets
-        Histogram::BucketGen::generator gen;  // string name of the histogram bucket generation method
+        HistogramBucketGenerator_t gen;       // string name of the histogram bucket generation method
         void *args;
     } histogram;
+
+    // settings for FixedBufferPool
+    hxhim_fbp_config_t packed;
+    hxhim_fbp_config_t buffers;
+    hxhim_fbp_config_t bulks;
+    hxhim_fbp_config_t keys;
+    hxhim_fbp_config_t arrays;
+    hxhim_fbp_config_t requests;
+    hxhim_fbp_config_t responses;
+    hxhim_fbp_config_t result;
+    hxhim_fbp_config_t results;
+
 } hxhim_options_private_t;
 
 #ifdef __cplusplus

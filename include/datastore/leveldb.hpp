@@ -1,3 +1,5 @@
+#if HXHIM_HAVE_LEVELDB
+
 #ifndef HXHIM_DATASTORE_LEVELDB_HPP
 #define HXHIM_DATASTORE_LEVELDB_HPP
 
@@ -13,11 +15,11 @@ namespace datastore {
 class leveldb : public Datastore {
     public:
         leveldb(hxhim_t *hx,
-                const std::size_t use_first_n, const Histogram::BucketGen::generator &generator, void *extra_args,
+                const std::size_t use_first_n, const HistogramBucketGenerator_t &generator, void *extra_args,
                 const std::string &exact_name);
         leveldb(hxhim_t *hx,
                 const int id,
-                const std::size_t use_first_n, const Histogram::BucketGen::generator &generator, void *extra_args,
+                const std::size_t use_first_n, const HistogramBucketGenerator_t &generator, void *extra_args,
                 const std::string &name, const bool create_if_missing);
         ~leveldb();
 
@@ -56,5 +58,7 @@ class leveldb : public Datastore {
 
 }
 }
+
+#endif
 
 #endif

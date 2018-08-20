@@ -10,7 +10,7 @@
 
 #include "hxhim/struct.h"
 #include "transport/transport.hpp"
-#include "utils/MemoryManagers.hpp"
+#include "utils/FixedBufferPool.hpp"
 
 namespace Transport {
 namespace MPI {

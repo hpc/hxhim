@@ -1,3 +1,5 @@
+#if HXHIM_HAVE_THALLIUM
+
 #include "transport/backend/Thallium/Utilities.hpp"
 
 /**
@@ -52,3 +54,5 @@ int Transport::Thallium::get_addrs(const MPI_Comm comm, const Engine_t &engine, 
 
     return TRANSPORT_SUCCESS;
 }
+
+#endif

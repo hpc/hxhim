@@ -1,3 +1,5 @@
+#if HXHIM_HAVE_THALLIUM
+
 #include "transport/backend/Thallium/Packer.hpp"
 
 namespace Transport {
@@ -377,17 +379,18 @@ int Packer::pack(const Response::Histogram *hist, std::string &buf) {
         return TRANSPORT_ERROR;
     }
 
-    const std::size_t size = hist->hist.size();
+    const std::size_t size = hist->hist.size;
 
     if (!s
         .write((char *) &size, sizeof(size))) {
         return TRANSPORT_ERROR;
     }
 
-    for(std::pair<const double, std::size_t> const &bucket : hist->hist) {
+    for(std::size_t i = 0; i < size; i++) {
+
         if (!s
-            .write((char *) &bucket.first, sizeof(bucket.first))
-            .write((char *) &bucket.second, sizeof(bucket.second))) {
+            .write((char *) &hist->hist.buckets[i], sizeof(hist->hist.buckets[i]))
+            .write((char *) &hist->hist.counts[i], sizeof(hist->hist.counts[i]))) {
             return TRANSPORT_ERROR;
         }
     }
@@ -512,15 +515,15 @@ int Packer::pack(const Response::BHistogram *bhist, std::string &buf) {
     }
 
     for(std::size_t i = 0; i < bhist->count; i++) {
-        const std::size_t size = bhist->hists[i].size();
+        const std::size_t size = bhist->hists[i].size;
         if (!s
             .write((char *) &size, sizeof(size))) {
             return TRANSPORT_ERROR;
         }
-        for(std::pair<const double, std::size_t> const &bucket : bhist->hists[i]) {
+        for(std::size_t j = 0; j < size; j++) {
             if (!s
-                .write((char *) &bucket.first, sizeof(bucket.first))
-                .write((char *) &bucket.second, sizeof(bucket.second))) {
+                .write((char *) &bhist->hists[i].buckets[j], sizeof(&bhist->hists[i].buckets[j]))
+                .write((char *) &bhist->hists[i].counts[j], sizeof(bhist->hists[i].counts[j]))) {
                 return TRANSPORT_ERROR;
             }
         }
@@ -560,3 +563,5 @@ int Packer::pack(const Response::Response *res, std::stringstream &s) {
 
 }
 }
+
+#endif

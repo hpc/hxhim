@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 
+#include "datastore/constants.h"
 #include "hxhim/constants.h"
 #include "hxhim/hash.hpp"
 #include "transport/constants.h"
@@ -33,8 +34,6 @@ const std::string HXHIM_HASH                        = "HASH";                   
 const std::string HXHIM_TRANSPORT                   = "TRANSPORT";                 // See HXHIM_TRANSPORTS
 
 /** MPI Options */
-const std::string HXHIM_MPI_MEMORY_ALLOC_SIZE       = "MEMORY_ALLOC_SIZE";         // positive integer
-const std::string HXHIM_MPI_MEMORY_REGIONS          = "MEMORY_REGIONS";            // positive integer
 const std::string HXHIM_MPI_LISTENERS               = "NUM_LISTENERS";             // positive integer
 
 /** Thallium Options */
@@ -45,6 +44,35 @@ const std::string HXHIM_TRANSPORT_ENDPOINT_GROUP    = "ENDPOINT_GROUP";         
 /** Histogram Options */
 const std::string HXHIM_HISTOGRAM_FIRST_N           = "HISTOGRAM_FIRST_N";         // unsigned int
 const std::string HXHIM_HISTOGRAM_BUCKET_GEN_METHOD = "HISTOGRAM_BUCKET_METHOD";   // See HXHIM_BUCKET_GENERATORS
+
+/** Memory Pool Options */
+const std::string HXHIM_PACKED_ALLOC_SIZE           = "PACKED_ALLOC_SIZE";         // positive integer
+const std::string HXHIM_PACKED_REGIONS              = "PACKED_REGIONS";            // positive integer
+const std::string HXHIM_PACKED_NAME                 = "PACKED_NAME";               // string
+const std::string HXHIM_BUFFERS_ALLOC_SIZE          = "BUFFERS_ALLOC_SIZE";        // positive integer
+const std::string HXHIM_BUFFERS_REGIONS             = "BUFFERS_REGIONS";           // positive integer
+const std::string HXHIM_BUFFERS_NAME                = "BUFFERS_NAME";              // string
+const std::string HXHIM_BULKS_ALLOC_SIZE            = "BULKS_ALLOC_SIZE";          // positive integer
+const std::string HXHIM_BULKS_REGIONS               = "BULKS_REGIONS";             // positive integer
+const std::string HXHIM_BULKS_NAME                  = "BULKS_NAME";                // string
+const std::string HXHIM_KEYS_ALLOC_SIZE             = "KEYS_ALLOC_SIZE";           // positive integer
+const std::string HXHIM_KEYS_REGIONS                = "KEYS_REGIONS";              // positive integer
+const std::string HXHIM_KEYS_NAME                   = "KEYS_NAME";                 // string
+const std::string HXHIM_ARRAYS_ALLOC_SIZE           = "ARRAYS_ALLOC_SIZE";         // positive integer
+const std::string HXHIM_ARRAYS_REGIONS              = "ARRAYS_REGIONS";            // positive integer
+const std::string HXHIM_ARRAYS_NAME                 = "ARRAYS_NAME";               // string
+const std::string HXHIM_REQUESTS_ALLOC_SIZE         = "REQUESTS_ALLOC_SIZE";       // positive integer
+const std::string HXHIM_REQUESTS_REGIONS            = "REQUESTS_REGIONS";          // positive integer
+const std::string HXHIM_REQUESTS_NAME               = "REQUESTS_NAME";             // string
+const std::string HXHIM_RESPONSES_ALLOC_SIZE        = "RESPONSES_ALLOC_SIZE";      // positive integer
+const std::string HXHIM_RESPONSES_REGIONS           = "RESPONSES_REGIONS";         // positive integer
+const std::string HXHIM_RESPONSES_NAME              = "RESPONSES_NAME";            // string
+const std::string HXHIM_RESULT_ALLOC_SIZE           = "RESULT_ALLOC_SIZE";         // positive integer
+const std::string HXHIM_RESULT_REGIONS              = "RESULT_REGIONS";            // positive integer
+const std::string HXHIM_RESULT_NAME                 = "RESULT_NAME";               // string
+const std::string HXHIM_RESULTS_ALLOC_SIZE          = "RESULTS_ALLOC_SIZE";        // positive integer
+const std::string HXHIM_RESULTS_REGIONS             = "RESULTS_REGIONS";           // positive integer
+const std::string HXHIM_RESULTS_NAME                = "RESULTS_NAME";              // string
 
 /**
  * Set of available debug levels
@@ -108,14 +136,14 @@ const std::string UNIFORM_LOG10                = "UNIFORM_LOG10";
 /**
  * Set of predefined histogram bucket generators
  */
-const std::map<std::string, Histogram::BucketGen::generator> HXHIM_HISTOGRAM_BUCKET_GENERATORS = {
-    std::make_pair(TEN_BUCKETS,                  Histogram::BucketGen::n_buckets),
-    std::make_pair(SQUARE_ROOT_CHOICE,           Histogram::BucketGen::square_root_choice),
-    std::make_pair(STURGES_FORMULA,              Histogram::BucketGen::sturges_formula),
-    std::make_pair(RICE_RULE,                    Histogram::BucketGen::rice_rule),
-    std::make_pair(SCOTTS_NORMAL_REFERENCE_RULE, Histogram::BucketGen::scotts_normal_reference_rule),
-    std::make_pair(UNIFORM_LOG2,                 Histogram::BucketGen::uniform_logn),
-    std::make_pair(UNIFORM_LOG10,                Histogram::BucketGen::uniform_logn),
+const std::map<std::string, HistogramBucketGenerator_t> HXHIM_HISTOGRAM_BUCKET_GENERATORS = {
+    std::make_pair(TEN_BUCKETS,                  histogram_n_buckets),
+    std::make_pair(SQUARE_ROOT_CHOICE,           histogram_square_root_choice),
+    std::make_pair(STURGES_FORMULA,              histogram_sturges_formula),
+    std::make_pair(RICE_RULE,                    histogram_rice_rule),
+    std::make_pair(SCOTTS_NORMAL_REFERENCE_RULE, histogram_scotts_normal_reference_rule),
+    std::make_pair(UNIFORM_LOG2,                 histogram_uniform_logn),
+    std::make_pair(UNIFORM_LOG10,                histogram_uniform_logn),
 };
 
 /**
@@ -149,6 +177,33 @@ const Config HXHIM_DEFAULT_CONFIG = {
     std::make_pair(HXHIM_TRANSPORT_ENDPOINT_GROUP,      "ALL"),
     std::make_pair(HXHIM_HISTOGRAM_FIRST_N,             "10"),
     std::make_pair(HXHIM_HISTOGRAM_BUCKET_GEN_METHOD,   TEN_BUCKETS),
+    std::make_pair(HXHIM_PACKED_ALLOC_SIZE,             "1000"),
+    std::make_pair(HXHIM_PACKED_REGIONS,                "1000"),
+    std::make_pair(HXHIM_PACKED_NAME,                   "Packed"),
+    std::make_pair(HXHIM_BUFFERS_ALLOC_SIZE,            "1000"),
+    std::make_pair(HXHIM_BUFFERS_REGIONS,               "1000"),
+    std::make_pair(HXHIM_BUFFERS_NAME,                  "Buffers"),
+    // std::make_pair(HXHIM_BULKS_ALLOC_SIZE,              "100000"),
+    std::make_pair(HXHIM_BULKS_REGIONS,                 "1000"),
+    std::make_pair(HXHIM_BULKS_NAME,                    "Bulks"),
+    std::make_pair(HXHIM_KEYS_ALLOC_SIZE,               "1000"),
+    std::make_pair(HXHIM_KEYS_REGIONS,                  "1000"),
+    std::make_pair(HXHIM_KEYS_NAME,                     "Keys"),
+    std::make_pair(HXHIM_ARRAYS_ALLOC_SIZE,             "1000"),
+    std::make_pair(HXHIM_ARRAYS_REGIONS,                "1000"),
+    std::make_pair(HXHIM_ARRAYS_NAME,                   "Arrays"),
+    std::make_pair(HXHIM_REQUESTS_ALLOC_SIZE,           "1000"),
+    std::make_pair(HXHIM_REQUESTS_REGIONS,              "1000"),
+    std::make_pair(HXHIM_REQUESTS_NAME,                 "Requests"),
+    std::make_pair(HXHIM_RESPONSES_ALLOC_SIZE,          "1000"),
+    std::make_pair(HXHIM_RESPONSES_REGIONS,             "1000"),
+    std::make_pair(HXHIM_RESPONSES_NAME,                "Responses"),
+    std::make_pair(HXHIM_RESULT_ALLOC_SIZE,             "1000"),
+    std::make_pair(HXHIM_RESULT_REGIONS,                "1000"),
+    std::make_pair(HXHIM_RESULT_NAME,                   "Result"),
+    std::make_pair(HXHIM_RESULTS_ALLOC_SIZE,            "1000"),
+    std::make_pair(HXHIM_RESULTS_REGIONS,               "1000"),
+    std::make_pair(HXHIM_RESULTS_NAME,                  "Results"),
 };
 
 #endif

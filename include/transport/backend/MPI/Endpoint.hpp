@@ -11,7 +11,7 @@
 #include "transport/backend/MPI/Packer.hpp"
 #include "transport/backend/MPI/Unpacker.hpp"
 #include "transport/transport.hpp"
-#include "utils/MemoryManagers.hpp"
+#include "utils/FixedBufferPool.hpp"
 
 namespace Transport {
 namespace MPI {
@@ -25,7 +25,8 @@ class Endpoint : virtual public ::Transport::Endpoint, virtual public EndpointBa
         /** Create a TransportEndpoint for a specified process rank */
         Endpoint(const MPI_Comm comm,
                  const int remote_rank,
-                 FixedBufferPool *fbp,
+                 FixedBufferPool *packed,
+                 FixedBufferPool *buffers,
                  volatile std::atomic_bool &running);
 
         /** Destructor */
@@ -72,20 +73,20 @@ class Endpoint : virtual public ::Transport::Endpoint, virtual public EndpointBa
             // the result of this series of function calls does not matter
             (void)
                 (
-                    (Packer::pack(comm_, message, &sendbuf, &sendsize, fbp_) == TRANSPORT_SUCCESS) &&  // pack the message
-                    (send(sendbuf, sendsize)                                 == TRANSPORT_SUCCESS) &&  // send the message
-                    (recv(&recvbuf, &recvsize)                               == TRANSPORT_SUCCESS) &&  // receive the response
-                    (Unpacker::unpack(comm_, &response, recvbuf, recvsize)   == TRANSPORT_SUCCESS)     // unpack the response
+                    (Packer::pack(comm, message, &sendbuf, &sendsize, packed)      == TRANSPORT_SUCCESS) &&  // pack the message
+                    (send(sendbuf, sendsize)                                       == TRANSPORT_SUCCESS) &&  // send the message
+                    (recv(&recvbuf, &recvsize)                                     == TRANSPORT_SUCCESS) &&  // receive the response
+                    (Unpacker::unpack(comm, &response, recvbuf, recvsize, buffers) == TRANSPORT_SUCCESS)     // unpack the response
                 );
 
-            fbp_->release(sendbuf);
-            fbp_->release(recvbuf);
+            packed->release(sendbuf);
+            packed->release(recvbuf);
 
             return dynamic_cast<Recv_t *>(response);
         }
 
-        const int remote_rank_;
-        volatile std::atomic_bool &running_;
+        const int remote_rank;
+        volatile std::atomic_bool &running;
 };
 
 }

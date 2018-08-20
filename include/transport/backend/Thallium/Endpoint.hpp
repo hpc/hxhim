@@ -1,3 +1,5 @@
+#if HXHIM_HAVE_THALLIUM
+
 #ifndef TRANSPORT_THALLIUM_ENDPOINT_HPP
 #define TRANSPORT_THALLIUM_ENDPOINT_HPP
 
@@ -24,7 +26,8 @@ class Endpoint : virtual public ::Transport::Endpoint {
     public:
         Endpoint(const Engine_t &engine,
                  const RPC_t &rpc,
-                 const Endpoint_t &ep);
+                 const Endpoint_t &ep,
+                 FixedBufferPool *fbp);
         ~Endpoint();
 
         /** @description Send a Put to this endpoint */
@@ -62,7 +65,7 @@ class Endpoint : virtual public ::Transport::Endpoint {
             const std::string response = rpc_->on(*ep_)(buf);
 
             Recv_t *ret = nullptr;
-            if (Unpacker::unpack(&ret, response) != TRANSPORT_SUCCESS) {
+            if (Unpacker::unpack(&ret, response, fbp_) != TRANSPORT_SUCCESS) {
                 return nullptr;
             }
 
@@ -74,9 +77,13 @@ class Endpoint : virtual public ::Transport::Endpoint {
         Engine_t engine_;          // declare engine first so it is destroyed last
         RPC_t rpc_;                // client to server RPC
         Endpoint_t ep_;            // the server the RPC will be called on
+
+        FixedBufferPool *fbp_;
 };
 
 }
 }
+
+#endif
 
 #endif

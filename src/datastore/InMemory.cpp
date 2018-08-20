@@ -12,7 +12,7 @@ using namespace Transport;
 
 InMemory::InMemory(hxhim_t *hx,
                    const int id,
-                   const std::size_t use_first_n, const Histogram::BucketGen::generator &generator, void *extra_args)
+                   const std::size_t use_first_n, const HistogramBucketGenerator_t &generator, void *extra_args)
     : Datastore(hx, id, use_first_n, generator, extra_args),
       db()
 {}
@@ -41,7 +41,7 @@ Response::BPut *InMemory::BPutImpl(void **subjects, std::size_t *subject_lens,
                                    void **predicates, std::size_t *predicate_lens,
                                    hxhim_type_t *object_types, void **objects, std::size_t *object_lens,
                                    std::size_t count) {
-    Response::BPut *ret = new Response::BPut(count);
+    Response::BPut *ret = alloc_bresponse<Response::BPut>(hx, count);
     if (!ret) {
         return nullptr;
     }
@@ -88,7 +88,7 @@ Response::BGet *InMemory::BGetImpl(void **subjects, std::size_t *subject_lens,
                                    void **predicates, std::size_t *predicate_lens,
                                    hxhim_type_t *object_types,
                                    std::size_t count) {
-    Response::BGet *ret = new Response::BGet(count);
+    Response::BGet *ret = alloc_bresponse<Response::BGet>(hx, count);
     if (!ret) {
         return nullptr;
     }
@@ -150,7 +150,7 @@ Response::BGetOp *InMemory::BGetOpImpl(void *subject, std::size_t subject_len,
                                        void *predicate, std::size_t predicate_len,
                                        hxhim_type_t object_type,
                                        std::size_t recs, enum hxhim_get_op_t op) {
-    Response::BGetOp *ret = new Response::BGetOp(recs);
+    Response::BGetOp *ret = alloc_bresponse<Response::BGetOp>(hx, recs);
     if (!ret) {
         return nullptr;
     }
@@ -228,7 +228,7 @@ Response::BGetOp *InMemory::BGetOpImpl(void *subject, std::size_t subject_len,
 Response::BDelete *InMemory::BDeleteImpl(void **subjects, std::size_t *subject_lens,
                                          void **predicates, std::size_t *predicate_lens,
                                          std::size_t count) {
-    Response::BDelete *ret = new Response::BDelete(count);
+    Response::BDelete *ret = alloc_bresponse<Response::BDelete>(hx, count);
     if (!ret) {
         return nullptr;
     }
