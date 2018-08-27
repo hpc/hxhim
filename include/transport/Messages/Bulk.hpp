@@ -3,17 +3,24 @@
 
 #include <cstddef>
 
+#include "utils/FixedBufferPool.hpp"
+
 namespace Transport {
 
 struct Bulk {
-    Bulk(const std::size_t max = 0);
-    virtual ~Bulk();
+    public:
+        Bulk(const std::size_t max = 0);
+        virtual ~Bulk();
 
-    virtual int alloc(const std::size_t max);
-    virtual int cleanup();
+        virtual int alloc(const std::size_t max) = 0;
+        virtual int cleanup() = 0;
 
-    int *ds_offsets;
-    std::size_t count;
+        int *ds_offsets;
+        std::size_t count;
+
+    protected:
+        int alloc(const std::size_t max, FixedBufferPool *fbp);
+        int cleanup(FixedBufferPool *fbp);
 };
 
 }

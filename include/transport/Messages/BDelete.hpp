@@ -6,14 +6,14 @@
 #include "transport/Messages/Bulk.hpp"
 #include "transport/Messages/Request.hpp"
 #include "transport/Messages/Response.hpp"
-#include "transport/constants.h"
+#include "transport/constants.hpp"
 
 namespace Transport {
 
 namespace Request {
 
 struct BDelete final : Request, Bulk {
-    BDelete(FixedBufferPool *fbp, const std::size_t max = 0);
+    BDelete(FixedBufferPool *arrays, FixedBufferPool *buffers, const std::size_t max = 0);
     ~BDelete();
 
     std::size_t size() const;
@@ -32,7 +32,7 @@ struct BDelete final : Request, Bulk {
 namespace Response {
 
 struct BDelete final : Response, Bulk {
-    BDelete(FixedBufferPool *fbp, const std::size_t max = 0);
+    BDelete(FixedBufferPool *arrays, FixedBufferPool *buffers, const std::size_t max = 0);
     ~BDelete();
 
     std::size_t size() const;

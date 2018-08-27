@@ -1,7 +1,7 @@
 #include "transport/Messages/BPut.hpp"
 
-Transport::Request::BPut::BPut(FixedBufferPool *fbp, const std::size_t max)
-    : Request(BPUT, fbp),
+Transport::Request::BPut::BPut(FixedBufferPool *arrays, FixedBufferPool *buffers, const std::size_t max)
+    : Request(BPUT, arrays, buffers),
       Bulk(),
       subjects(nullptr),
       subject_lens(nullptr),
@@ -33,14 +33,14 @@ int Transport::Request::BPut::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Bulk::alloc(max) != TRANSPORT_SUCCESS)    ||
-            !(subjects = new void *[max]())            ||
-            !(subject_lens = new std::size_t[max]())   ||
-            !(predicates = new void *[max]())          ||
-            !(predicate_lens = new std::size_t[max]()) ||
-            !(object_types = new hxhim_type_t[max]())  ||
-            !(objects = new void *[max]())             ||
-            !(object_lens = new std::size_t[max]()))    {
+        if ((Bulk::alloc(max, arrays) != TRANSPORT_SUCCESS)             ||
+            !(subjects = arrays->acquire_array<void *>(max))            ||
+            !(subject_lens = arrays->acquire_array<std::size_t>(max))   ||
+            !(predicates = arrays->acquire_array<void *>(max))          ||
+            !(predicate_lens = arrays->acquire_array<std::size_t>(max)) ||
+            !(object_types = arrays->acquire_array<hxhim_type_t>(max))  ||
+            !(objects = arrays->acquire_array<void *>(max))             ||
+            !(object_lens = arrays->acquire_array<std::size_t>(max)))    {
             cleanup();
             return TRANSPORT_ERROR;
         }
@@ -53,51 +53,51 @@ int Transport::Request::BPut::cleanup() {
     if (clean) {
         if (subjects) {
             for(std::size_t i = 0; i < count; i++) {
-                ::operator delete(subjects[i]);
+                buffers->release(subjects[i]);
             }
         }
 
         if (predicates) {
             for(std::size_t i = 0; i < count; i++) {
-                ::operator delete(predicates[i]);
+                buffers->release(predicates[i]);
             }
         }
 
         if (objects) {
             for(std::size_t i = 0; i < count; i++) {
-                ::operator delete(objects[i]);
+                buffers->release(objects[i]);
             }
         }
     }
 
-    delete [] subjects;
+    arrays->release_array(subjects, count);
     subjects = nullptr;
 
-    delete [] subject_lens;
+    arrays->release_array(subject_lens, count);
     subject_lens = nullptr;
 
-    delete [] predicates;
+    arrays->release_array(predicates, count);
     predicates = nullptr;
 
-    delete [] predicate_lens;
+    arrays->release_array(predicate_lens, count);
     predicate_lens = nullptr;
 
-    delete [] object_types;
+    arrays->release_array(object_types, count);
     object_types = nullptr;
 
-    delete [] objects;
+    arrays->release_array(objects, count);
     objects = nullptr;
 
-    delete [] object_lens;
+    arrays->release_array(object_lens, count);
     object_lens = nullptr;
 
-    Bulk::cleanup();
+    Bulk::cleanup(arrays);
 
     return TRANSPORT_SUCCESS;
 }
 
-Transport::Response::BPut::BPut(FixedBufferPool *fbp, const std::size_t max)
-    : Response(Message::BPUT, fbp),
+Transport::Response::BPut::BPut(FixedBufferPool *arrays, FixedBufferPool *buffers, const std::size_t max)
+    : Response(Message::BPUT, arrays, buffers),
       Bulk(),
       statuses(nullptr),
       next(nullptr)
@@ -117,8 +117,8 @@ int Transport::Response::BPut::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Bulk::alloc(max) != TRANSPORT_SUCCESS) ||
-            !(statuses = new int[max]()))            {
+        if ((Bulk::alloc(max, arrays) != TRANSPORT_SUCCESS) ||
+            !(statuses = arrays->acquire_array<int>(max)))   {
             cleanup();
             return TRANSPORT_ERROR;
         }
@@ -128,10 +128,10 @@ int Transport::Response::BPut::alloc(const std::size_t max) {
 }
 
 int Transport::Response::BPut::cleanup() {
-    delete [] statuses;
+    arrays->release_array(statuses, count);
     statuses = nullptr;
 
-    Bulk::cleanup();
+    Bulk::cleanup(arrays);
 
     return TRANSPORT_SUCCESS;
 }

@@ -6,13 +6,19 @@ namespace MPI {
 
 Endpoint::Endpoint(const MPI_Comm comm,
                    const int remote_rank,
+                   volatile std::atomic_bool &running,
                    FixedBufferPool *packed,
-                   FixedBufferPool *buffers,
-                   volatile std::atomic_bool &running)
+                   FixedBufferPool *responses,
+                   FixedBufferPool *arrays,
+                   FixedBufferPool *buffers)
   : ::Transport::Endpoint(),
-    EndpointBase(comm, packed, buffers),
+    EndpointBase(comm),
     remote_rank(remote_rank),
-    running(running)
+    running(running),
+    packed(packed),
+    responses(responses),
+    arrays(arrays),
+    buffers(buffers)
 {}
 
 /**

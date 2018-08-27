@@ -7,14 +7,14 @@
 #include "transport/Messages/Bulk.hpp"
 #include "transport/Messages/Request.hpp"
 #include "transport/Messages/Response.hpp"
-#include "transport/constants.h"
+#include "transport/constants.hpp"
 
 namespace Transport {
 
 namespace Request {
 
 struct BGet final : Request, Bulk {
-    BGet(FixedBufferPool *fbp, const std::size_t max = 0);
+    BGet(FixedBufferPool *arrays, FixedBufferPool *buffers, const std::size_t max = 0);
     ~BGet();
 
     std::size_t size() const;
@@ -34,7 +34,7 @@ struct BGet final : Request, Bulk {
 namespace Response {
 
 struct BGet final : Response, Bulk {
-    BGet(FixedBufferPool *fbp, const std::size_t max = 0);
+    BGet(FixedBufferPool *arrays, FixedBufferPool *buffers, const std::size_t max = 0);
     ~BGet();
 
     std::size_t size() const;

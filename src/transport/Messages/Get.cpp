@@ -1,7 +1,7 @@
 #include "transport/Messages/Get.hpp"
 
-Transport::Request::Get::Get(FixedBufferPool *fbp)
-    : Request(Message::GET, fbp),
+Transport::Request::Get::Get(FixedBufferPool * arrays, FixedBufferPool *buffers)
+    : Request(Message::GET, arrays, buffers),
       Single(),
       subject(nullptr),
       subject_len(0),
@@ -13,8 +13,8 @@ Transport::Request::Get::Get(FixedBufferPool *fbp)
 Transport::Request::Get::~Get()
 {
     if (clean) {
-        ::operator delete(subject);
-        ::operator delete(predicate);
+        buffers->release(subject);
+        buffers->release(predicate);
     }
 
     subject = nullptr;
@@ -28,8 +28,8 @@ std::size_t Transport::Request::Get::size() const {
         sizeof(object_type);
 }
 
-Transport::Response::Get::Get(FixedBufferPool *fbp)
-    : Response(Message::GET, fbp),
+Transport::Response::Get::Get(FixedBufferPool * arrays, FixedBufferPool *buffers)
+    : Response(Message::GET, arrays, buffers),
       Single(),
       status(HXHIM_ERROR),
       subject(nullptr),
@@ -44,9 +44,9 @@ Transport::Response::Get::Get(FixedBufferPool *fbp)
 Transport::Response::Get::~Get()
 {
     if (clean) {
-        ::operator delete(subject);
-        ::operator delete(predicate);
-        ::operator delete(object);
+        buffers->release(subject);
+        buffers->release(predicate);
+        buffers->release(object);
     }
 
     subject = nullptr;

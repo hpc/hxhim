@@ -39,7 +39,8 @@
      "LEVELDB"          => "LevelDB Datastore",
      "INMEMORY"         => "In-Memory Datastore",
      "MPI"              => "MPI Transport",
-     "THALLIUM"         => "Thallium Transport"
+     "THALLIUM"         => "Thallium Transport",
+     "FBP"              => "FixedBufferPool",
 );
 
 @mloglvls = (

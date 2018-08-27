@@ -5,7 +5,7 @@
 
 #include <mpi.h>
 
-#include "transport/constants.h"
+#include "transport/constants.hpp"
 #include "transport/options.hpp"
 
 namespace Transport {

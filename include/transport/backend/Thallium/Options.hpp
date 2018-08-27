@@ -5,9 +5,7 @@
 
 #include <string>
 
-#include <thallium.hpp>
-
-#include "transport/constants.h"
+#include "transport/constants.hpp"
 #include "transport/options.hpp"
 
 namespace Transport {

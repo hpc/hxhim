@@ -67,14 +67,14 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
 
     const std::size_t total = HXHIM_PUT_MULTIPLER * count;                                                           // total number of triples that will be PUT
 
-    Transport::Request::BPut local(hxhim::GetBufferFBP(hx), hx->p->max_bulk_ops.puts);
+    Transport::Request::BPut local(hxhim::GetArrayFBP(hx), hxhim::GetBufferFBP(hx), hx->p->max_bulk_ops.puts);
     local.src = hx->p->bootstrap.rank;
     local.dst = hx->p->bootstrap.rank;
     local.count = 0;
 
     Transport::Request::BPut **remote = hxhim::acquire_array<Transport::Request::BPut *>(hx, hx->p->bootstrap.size); // list of destination servers (not datastores) and messages to those destinations
     for(std::size_t i = 0; i < hx->p->bootstrap.size; i++) {
-        remote[i] = hx->p->memory_pools.requests->acquire<Transport::Request::BPut>(hxhim::GetBufferFBP(hx), hx->p->max_bulk_ops.puts);
+        remote[i] = hx->p->memory_pools.requests->acquire<Transport::Request::BPut>(hxhim::GetArrayFBP(hx), hxhim::GetBufferFBP(hx), hx->p->max_bulk_ops.puts);
         remote[i]->src = hx->p->bootstrap.rank;
         remote[i]->dst = i;
         remote[i]->count = 0;
@@ -97,7 +97,8 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
                             subject, subject_len,
                             predicate, predicate_len,
                             object_type, object, object_len,
-                            &local, remote);
+                            &local, remote,
+                            hx->p->memory_pools.requests);
 
         // // SO -> P
         // hxhim::shuffle::Put(hx, total,
@@ -529,18 +530,15 @@ static int init_transport_mpi(hxhim_t *hx, hxhim_options_t *opts) {
         return TRANSPORT_ERROR;
     }
 
-    // Get the memory pool used for storing messages
     Options *config = static_cast<Options *>(opts->p->transport);
-    FixedBufferPool *fbp = hx->p->memory_pools.buffers;
-    if (!fbp) {
-        return TRANSPORT_ERROR;
-    }
 
-    // give the range server access to the memory buffer
-    RangeServer::init(hx, fbp, config->listeners);
+    // give the range server access to the state
+    RangeServer::init(hx, config->listeners);
 
     EndpointGroup *eg = new EndpointGroup(hx->p->bootstrap.comm,
                                           hx->p->memory_pools.packed,
+                                          hx->p->memory_pools.responses,
+                                          hx->p->memory_pools.arrays,
                                           hx->p->memory_pools.buffers);
     if (!eg) {
         return TRANSPORT_ERROR;
@@ -550,9 +548,11 @@ static int init_transport_mpi(hxhim_t *hx, hxhim_options_t *opts) {
     for(int i = 0; i < hx->p->bootstrap.size; i++) {
         // MPI ranks map 1:1 with the boostrap MPI rank
         hx->p->transport->AddEndpoint(i, new Endpoint(hx->p->bootstrap.comm, i,
+                                                      hx->p->running,
                                                       hx->p->memory_pools.packed,
-                                                      hx->p->memory_pools.buffers,
-                                                      hx->p->running));
+                                                      hx->p->memory_pools.responses,
+                                                      hx->p->memory_pools.arrays,
+                                                      hx->p->memory_pools.buffers));
 
         // if the rank was specified as part of the endpoint group, add the rank to the endpoint group
         if (opts->p->endpointgroup.find(i) != opts->p->endpointgroup.end()) {
@@ -612,7 +612,7 @@ static int init_transport_thallium(hxhim_t *hx, hxhim_options_t *opts) {
     // remove the loopback endpoint
     addrs.erase(hx->p->bootstrap.rank);
 
-    EndpointGroup *eg = new EndpointGroup(rpc, hx->p->memory_pools.buffers);
+    EndpointGroup *eg = new EndpointGroup(rpc, hx->p->memory_pools.packed, hx->p->memory_pools.responses, hx->p->memory_pools.arrays, hx->p->memory_pools.buffers);
     if (!eg) {
         return TRANSPORT_ERROR;
     }
@@ -622,7 +622,7 @@ static int init_transport_thallium(hxhim_t *hx, hxhim_options_t *opts) {
         Endpoint_t server(new thallium::endpoint(engine->lookup(addr.second)));
 
         // add the remote thallium endpoint to the tranport
-        Endpoint* ep = new Endpoint(engine, rpc, server, hx->p->memory_pools.buffers);
+        Endpoint* ep = new Endpoint(engine, rpc, server, hx->p->memory_pools.packed, hx->p->memory_pools.responses, hx->p->memory_pools.arrays, hx->p->memory_pools.buffers);
         hx->p->transport->AddEndpoint(addr.first, ep);
 
         // if the rank was specified as part of the endpoint group, add the thallium endpoint to the endpoint group

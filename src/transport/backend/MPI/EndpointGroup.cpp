@@ -5,10 +5,16 @@ namespace MPI {
 
 EndpointGroup::EndpointGroup(const MPI_Comm comm,
                              FixedBufferPool *packed,
+                             FixedBufferPool *responses,
+                             FixedBufferPool *arrays,
                              FixedBufferPool *buffers)
   : ::Transport::EndpointGroup(),
-    EndpointBase(comm, packed, buffers),
-    ranks()
+    EndpointBase(comm),
+    ranks(),
+    packed(packed),
+    responses(responses),
+    arrays(arrays),
+    buffers(buffers)
 {}
 
 EndpointGroup::~EndpointGroup() {}

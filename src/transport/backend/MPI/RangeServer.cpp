@@ -13,15 +13,16 @@ hxhim_t *RangeServer::hx_ = nullptr;
 std::atomic_bool *RangeServer::running_ = nullptr;
 std::vector<pthread_t> RangeServer::listeners_ = {};
 pthread_mutex_t RangeServer::mutex_ = PTHREAD_MUTEX_INITIALIZER;
-FixedBufferPool *RangeServer::fbp_ = nullptr;
+FixedBufferPool *RangeServer::packed_ = nullptr;
+FixedBufferPool *RangeServer::arrays_ = nullptr;
+FixedBufferPool *RangeServer::buffers_ = nullptr;
 
-int RangeServer::init(hxhim_t *hx, FixedBufferPool *fbp, const std::size_t listener_count) {
-    if (!hx || !fbp || !listener_count) {
+int RangeServer::init(hxhim_t *hx, const std::size_t listener_count) {
+    if (!hx || !listener_count) {
         return TRANSPORT_ERROR;
     }
 
     hx_ = hx;
-    fbp_ = fbp;
     listeners_.resize(listener_count);
 
     //Initialize listener threads
@@ -40,7 +41,6 @@ void RangeServer::destroy() {
         pthread_join(pid, nullptr);
     }
 
-    fbp_ = nullptr;
     hx_ = nullptr;
 }
 
@@ -63,7 +63,7 @@ void *RangeServer::listener_thread(void *data) {
 
         // decode request
         Request::Request *request = nullptr;
-        Unpacker::unpack(hx_->p->bootstrap.comm, &request, data, len, fbp_);
+        Unpacker::unpack(hx_->p->bootstrap.comm, &request, data, len, hx_->p->memory_pools.requests, hx_->p->memory_pools.arrays, hx_->p->memory_pools.buffers);
         ::operator delete(data);
         data = nullptr;
         len = 0;
@@ -72,7 +72,7 @@ void *RangeServer::listener_thread(void *data) {
         Response::Response *response = hxhim::range_server::range_server(hx_, request);
 
         // encode result
-        Packer::pack(hx_->p->bootstrap.comm, response, &data, &len, fbp_);
+        Packer::pack(hx_->p->bootstrap.comm, response, &data, &len, hx_->p->memory_pools.packed);
 
         // send result
         if (send(response->dst, data, len) != TRANSPORT_SUCCESS) {
@@ -99,22 +99,17 @@ int RangeServer::recv(void **data, std::size_t *len) {
         return TRANSPORT_ERROR;
     }
 
-    MPI_Request request;
     MPI_Status status;
 
     // wait for the size of the data
-    if ((MPI_Irecv(len, sizeof(*len), MPI_CHAR, MPI_ANY_SOURCE, TRANSPORT_MPI_SIZE_REQUEST_TAG, hx_->p->bootstrap.comm, &request) != MPI_SUCCESS) ||
-        (Flush(request, status) != TRANSPORT_SUCCESS)) {
+    if (MPI_Recv(len, sizeof(*len), MPI_BYTE, MPI_ANY_SOURCE, TRANSPORT_MPI_SIZE_REQUEST_TAG, hx_->p->bootstrap.comm, &status) != MPI_SUCCESS) {
         return TRANSPORT_ERROR;
     }
-
-    std::cout << *len << std::endl;
 
     *data = ::operator new(*len);
 
     // wait for the data
-    if ((MPI_Irecv(*data, *len, MPI_CHAR, status.MPI_SOURCE, TRANSPORT_MPI_DATA_REQUEST_TAG, hx_->p->bootstrap.comm, &request) == MPI_SUCCESS) ||
-        (Flush(request) != TRANSPORT_SUCCESS)) {
+    if (MPI_Recv(*data, *len, MPI_CHAR, status.MPI_SOURCE, TRANSPORT_MPI_DATA_REQUEST_TAG, hx_->p->bootstrap.comm, &status) == MPI_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
@@ -133,60 +128,17 @@ int RangeServer::recv(void **data, std::size_t *len) {
  * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR on error
  */
 int RangeServer::send(const int dst, void *data, const std::size_t len) {
-    MPI_Request request;
-
     // send the size of the data
-    if ((MPI_Isend(&len, sizeof(len), MPI_CHAR, dst, TRANSPORT_MPI_SIZE_RESPONSE_TAG, hx_->p->bootstrap.comm, &request) == MPI_SUCCESS) ||
-        (Flush(request) != TRANSPORT_SUCCESS)) {
+    if (MPI_Send(&len, sizeof(len), MPI_CHAR, dst, TRANSPORT_MPI_SIZE_RESPONSE_TAG, hx_->p->bootstrap.comm) == MPI_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
     // wait for the data
-    if ((MPI_Isend(data, len, MPI_CHAR, dst, TRANSPORT_MPI_DATA_RESPONSE_TAG, hx_->p->bootstrap.comm, &request) == MPI_SUCCESS) ||
-        (Flush(request) != TRANSPORT_SUCCESS)) {
+    if (MPI_Send(data, len, MPI_CHAR, dst, TRANSPORT_MPI_DATA_RESPONSE_TAG, hx_->p->bootstrap.comm) == MPI_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
     return TRANSPORT_SUCCESS;
-}
-
-/**
- * Flush
- * Tests a request until it is completed.
- * This function can exit early if the
- * HXHIM instance stops first.
- *
- * @param req the request to test
- * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR on error
- */
-int RangeServer::Flush(MPI_Request &req) {
-    int flag = 0;
-
-    while (!flag && hx_->p->running) {
-        MPI_Test(&req, &flag, MPI_STATUS_IGNORE);
-    }
-
-    return flag?TRANSPORT_SUCCESS:TRANSPORT_ERROR;
-}
-
-/**
- * Flush
- * Tests a request until it is completed.
- * This function can exit early if the
- * HXHIM instance stops first.
- *
- * @param req    the request to test
- * @param status the status of the request
- * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR on error
- */
-int RangeServer::Flush(MPI_Request &req, MPI_Status &status) {
-    int flag = 0;
-
-    while (!flag && hx_->p->running) {
-        MPI_Test(&req, &flag, &status);
-    }
-
-    return flag?TRANSPORT_SUCCESS:TRANSPORT_ERROR;
 }
 
 }

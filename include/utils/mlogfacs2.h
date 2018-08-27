@@ -48,7 +48,8 @@ static const char *mlog_facsarray[] = {
     "INMEMORY",      /* 5 */
     "MPI",           /* 6 */
     "THALLIUM",      /* 7 */
-    0,               /* 8 */
+    "FBP",           /* 8 */
+    0,               /* 9 */
 };
 #endif /* MLOG_FACSARRAY || MLOG_AFACSARRAY */
 
@@ -62,7 +63,8 @@ static const char *mlog_lfacsarray[] = {
     "In-Memory Datastore", /* 5 */
     "MPI Transport", /* 6 */
     "Thallium Transport", /* 7 */
-    0,               /* 8 */
+    "FixedBufferPool", /* 8 */
+    0,               /* 9 */
 };
 #endif /* MLOG_LFACSARRAY || MLOG_LFACSARRAY */
 
@@ -76,6 +78,7 @@ static const char *mlog_lfacsarray[] = {
 #define MLOGFAC_INMEMORY  5 /* In-Memory Datastore */
 #define MLOGFAC_MPI       6 /* MPI Transport */
 #define MLOGFAC_THALLIUM  7 /* Thallium Transport */
+#define MLOGFAC_FBP       8 /* FixedBufferPool */
 
 /*
  * HXHIM options MLOG levels
@@ -216,5 +219,25 @@ static const char *mlog_lfacsarray[] = {
 #define THALLIUM_DCOMMON  THALLIUM_DBG2
 #define THALLIUM_DBG3    (7 | MLOG_DBG3)
 #define THALLIUM_DRARE    THALLIUM_DBG3
+
+/*
+ * FixedBufferPool MLOG levels
+ */
+#define FBP_EMERG        (8 | MLOG_EMERG)
+#define FBP_ALERT        (8 | MLOG_ALERT)
+#define FBP_CRIT         (8 | MLOG_CRIT)
+#define FBP_ERR          (8 | MLOG_ERR)
+#define FBP_WARN         (8 | MLOG_WARN)
+#define FBP_NOTE         (8 | MLOG_NOTE)
+#define FBP_INFO         (8 | MLOG_INFO)
+#define FBP_DBG          (8 | MLOG_DBG)
+#define FBP_DBG0         (8 | MLOG_DBG0)
+#define FBP_DAPI          FBP_DBG0
+#define FBP_DBG1         (8 | MLOG_DBG1)
+#define FBP_DINTAPI       FBP_DBG1
+#define FBP_DBG2         (8 | MLOG_DBG2)
+#define FBP_DCOMMON       FBP_DBG2
+#define FBP_DBG3         (8 | MLOG_DBG3)
+#define FBP_DRARE         FBP_DBG3
 
 #endif /* _MLOGFACS_H_ */

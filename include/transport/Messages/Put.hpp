@@ -7,14 +7,14 @@
 #include "transport/Messages/Request.hpp"
 #include "transport/Messages/Response.hpp"
 #include "transport/Messages/Single.hpp"
-#include "transport/constants.h"
+#include "transport/constants.hpp"
 
 namespace Transport {
 
 namespace Request {
 
 struct Put final : Request, Single {
-    Put(FixedBufferPool *fbp);
+    Put(FixedBufferPool *arrays, FixedBufferPool *buffers);
     ~Put();
 
     std::size_t size() const;
@@ -33,7 +33,7 @@ struct Put final : Request, Single {
 namespace Response {
 
 struct Put final : Response, Single {
-    Put(FixedBufferPool *fbp);
+    Put(FixedBufferPool *arrays, FixedBufferPool *buffers);
     ~Put();
 
     std::size_t size() const;

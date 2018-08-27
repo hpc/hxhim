@@ -10,7 +10,7 @@
 #include <type_traits>
 
 #include "transport/Messages/Messages.hpp"
-#include "transport/constants.h"
+#include "transport/constants.hpp"
 
 namespace Transport {
 
@@ -135,7 +135,7 @@ class Transport {
         Response::Delete *Delete(const Request::Delete *dm);
 
         /** @description Sends a histogram request onto the underlying transport */
-        Response::Histogram *Histogram(const Request::Histogram *hist);
+        Response::Histogram *Histogram(const Request::Histogram *hm);
 
         /** @description Bulk Put to multiple endpoints     */
         Response::BPut *BPut(const std::size_t num_rangesrvs, Request::BPut **bpm_list);
@@ -150,7 +150,7 @@ class Transport {
         Response::BDelete *BDelete(const std::size_t num_rangesrvs, Request::BDelete **bdm_list);
 
         /** @description Bulk Histogram to multiple endpoints  */
-        Response::BHistogram *BHistogram(const std::size_t num_rangesrvs, Request::BHistogram **bdm_list);
+        Response::BHistogram *BHistogram(const std::size_t num_rangesrvs, Request::BHistogram **bhm_list);
 
     private:
         typedef std::map<int, Endpoint *> EndpointMapping_t;

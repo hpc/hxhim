@@ -7,7 +7,7 @@
 #include "datastore/constants.h"
 #include "hxhim/constants.h"
 #include "hxhim/hash.hpp"
-#include "transport/constants.h"
+#include "transport/constants.hpp"
 #include "utils/Configuration.hpp"
 #include "utils/Histogram.hpp"
 #include "utils/mlog2.h"

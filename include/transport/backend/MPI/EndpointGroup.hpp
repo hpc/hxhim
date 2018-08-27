@@ -23,6 +23,8 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup, virtual public 
     public:
         EndpointGroup(const MPI_Comm comm,
                       FixedBufferPool *packed,
+                      FixedBufferPool *responses,
+                      FixedBufferPool *arrays,
                       FixedBufferPool *buffers);
 
         ~EndpointGroup();
@@ -68,6 +70,11 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup, virtual public 
 
         /** @description Mapping from unique ids to MPI ranks */
         std::map<int, int> ranks;
+
+        FixedBufferPool *packed;
+        FixedBufferPool *responses;
+        FixedBufferPool *arrays;
+        FixedBufferPool *buffers;
 };
 
 }

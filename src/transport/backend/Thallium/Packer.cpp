@@ -515,14 +515,14 @@ int Packer::pack(const Response::BHistogram *bhist, std::string &buf) {
     }
 
     for(std::size_t i = 0; i < bhist->count; i++) {
-        const std::size_t size = bhist->hists[i].size;
         if (!s
-            .write((char *) &size, sizeof(size))) {
+            .write((char *) &bhist->hists[i].size, sizeof(bhist->hists[i].size))) {
             return TRANSPORT_ERROR;
         }
-        for(std::size_t j = 0; j < size; j++) {
+
+        for(std::size_t j = 0; j < bhist->hists[i].size; j++) {
             if (!s
-                .write((char *) &bhist->hists[i].buckets[j], sizeof(&bhist->hists[i].buckets[j]))
+                .write((char *) &bhist->hists[i].buckets[j], sizeof(bhist->hists[i].buckets[j]))
                 .write((char *) &bhist->hists[i].counts[j], sizeof(bhist->hists[i].counts[j]))) {
                 return TRANSPORT_ERROR;
             }

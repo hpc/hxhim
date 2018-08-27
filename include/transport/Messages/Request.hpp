@@ -9,7 +9,7 @@ namespace Request {
 
 // messages sent by the client to the server
 struct Request : Message {
-    Request(Message::Type type, FixedBufferPool *fbp);
+    Request(Message::Type type, FixedBufferPool * arrays, FixedBufferPool * buffers);
     ~Request();
 
     virtual std::size_t size() const;

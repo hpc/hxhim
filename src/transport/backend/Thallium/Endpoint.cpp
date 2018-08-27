@@ -2,35 +2,53 @@
 
 #include "transport/backend/Thallium/Endpoint.hpp"
 
-std::mutex Transport::Thallium::Endpoint::mutex_ = {};
+std::mutex Transport::Thallium::Endpoint::mutex = {};
 
 Transport::Thallium::Endpoint::Endpoint(const Engine_t &engine,
                                         const RPC_t &rpc,
                                         const Endpoint_t &ep,
-                                        FixedBufferPool *fbp)
+                                        FixedBufferPool *packed,
+                                        FixedBufferPool *responses,
+                                        FixedBufferPool *arrays,
+                                        FixedBufferPool *buffers)
   : ::Transport::Endpoint(),
-    engine_(engine),
-    rpc_(rpc),
-    ep_(ep),
-    fbp_(fbp)
+    engine(engine),
+    rpc(rpc),
+    ep(ep),
+    packed(packed),
+    responses(responses),
+    arrays(arrays),
+    buffers(buffers)
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex);
 
-    if (!ep_) {
+    if (!ep) {
         throw std::runtime_error("thallium::endpoint in ThalliumEndpoint must not be nullptr");
     }
 
-    if (!rpc_) {
+    if (!rpc) {
         throw std::runtime_error("thallium::remote_procedure in ThalliumEndpoint must not be nullptr");
     }
 
-    if (!fbp_) {
+    if (!packed) {
+        throw std::runtime_error("FixedBufferPool in ThalliumEndpoint must not be nullptr");
+    }
+
+    if (!responses) {
+        throw std::runtime_error("FixedBufferPool in ThalliumEndpoint must not be nullptr");
+    }
+
+    if (!arrays) {
+        throw std::runtime_error("FixedBufferPool in ThalliumEndpoint must not be nullptr");
+    }
+
+    if (!buffers) {
         throw std::runtime_error("FixedBufferPool in ThalliumEndpoint must not be nullptr");
     }
 }
 
 Transport::Thallium::Endpoint::~Endpoint() {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex);
 }
 
 Transport::Response::Put *Transport::Thallium::Endpoint::Put(const Request::Put *message) {

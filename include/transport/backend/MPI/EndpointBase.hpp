@@ -20,9 +20,7 @@ namespace MPI {
  */
 class EndpointBase {
     public:
-        EndpointBase(const MPI_Comm comm,
-                     FixedBufferPool *packed,
-                     FixedBufferPool *buffers);
+        EndpointBase(const MPI_Comm comm);
         virtual ~EndpointBase();
 
         MPI_Comm Comm() const;
@@ -34,10 +32,6 @@ class EndpointBase {
         MPI_Comm comm;
         int rank;
         int size;
-
-        FixedBufferPool *packed;
-        FixedBufferPool *buffers;
-
 };
 
 }

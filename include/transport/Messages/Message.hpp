@@ -35,7 +35,8 @@ struct Message {
         BHISTOGRAM,
     };
 
-    Message(const Direction dir, const Type type, FixedBufferPool *fbp);
+    Message(const Direction dir, const Type type,
+            FixedBufferPool *arrays, FixedBufferPool *buffers);
     virtual ~Message();
 
     virtual std::size_t size() const;
@@ -50,7 +51,8 @@ struct Message {
     // This value is not sent across the transport.
     bool clean;
 
-    FixedBufferPool *fbp;
+    FixedBufferPool *arrays;
+    FixedBufferPool *buffers;
 };
 
 }

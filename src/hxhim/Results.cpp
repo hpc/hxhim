@@ -301,7 +301,9 @@ Results::Result *Results::GoToHead() {
  * @return the pointer to the next node in the list
  */
 Results::Result *Results::GoToNext() {
-    ++curr;
+    if (Valid()) {
+        ++curr;
+    }
     return Valid()?*curr:nullptr;;
 }
 

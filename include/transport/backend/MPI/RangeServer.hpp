@@ -17,7 +17,7 @@ namespace MPI {
 
 class RangeServer {
     public:
-        static int init(hxhim_t *hx, FixedBufferPool *fbp, const std::size_t listener_count);
+        static int init(hxhim_t *hx, const std::size_t listener_count);
         static void destroy();
 
         /**
@@ -28,14 +28,14 @@ class RangeServer {
     private:
         static int recv(void **data, std::size_t *len);
         static int send(const int dst, void *data, const std::size_t len);
-        static int Flush(MPI_Request &req);
-        static int Flush(MPI_Request &req, MPI_Status &status);
 
         static hxhim_t *hx_;
         static std::atomic_bool *running_;
         static std::vector<pthread_t> listeners_;
         static pthread_mutex_t mutex_;
-        static FixedBufferPool *fbp_;
+        static FixedBufferPool *packed_;
+        static FixedBufferPool *arrays_;
+        static FixedBufferPool *buffers_;
 };
 
 }

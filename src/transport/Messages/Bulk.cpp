@@ -1,22 +1,18 @@
 #include "transport/Messages/Bulk.hpp"
-#include "transport/constants.h"
+#include "transport/constants.hpp"
 
 Transport::Bulk::Bulk(const std::size_t max)
     : ds_offsets(nullptr),
       count(0)
-{
-    alloc(max);
-}
+{}
 
-Transport::Bulk::~Bulk() {
-    Bulk::cleanup();
-}
+Transport::Bulk::~Bulk() {}
 
-int Transport::Bulk::alloc(const std::size_t max) {
-    Bulk::cleanup();
+int Transport::Bulk::alloc(const std::size_t max, FixedBufferPool *arrays) {
+    Bulk::cleanup(arrays);
 
     if (max) {
-        if (!(ds_offsets = new int[max]())) {
+        if (!(ds_offsets = arrays->acquire_array<int>(max))) {
             cleanup();
             return TRANSPORT_ERROR;
         }
@@ -27,8 +23,8 @@ int Transport::Bulk::alloc(const std::size_t max) {
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Bulk::cleanup() {
-    delete [] ds_offsets;
+int Transport::Bulk::cleanup(FixedBufferPool *arrays) {
+    arrays->release_array(ds_offsets, count);
     ds_offsets = nullptr;
 
     count = 0;

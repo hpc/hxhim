@@ -18,7 +18,8 @@ int Put(hxhim_t *hx,
         void *object,
         std::size_t object_len,
         Transport::Request::BPut *local,
-        Transport::Request::BPut **remote) {
+        Transport::Request::BPut **remote,
+        FixedBufferPool *requests) {
     // get the destination backend id for the key
     const int ds_id = hx->p->hash.func(hx, subject, subject_len, predicate, predicate_len, hx->p->hash.args);
 
@@ -49,7 +50,7 @@ int Put(hxhim_t *hx,
 
             // if there were no previous keys going to this destination, set the initial values
             if (!rem) {
-                rem = new Transport::Request::BPut(nullptr, max);
+                rem = requests->acquire<Transport::Request::BPut>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, max);
                 rem->src = hx->p->bootstrap.rank;
                 rem->dst = dst;
             }
@@ -85,7 +86,8 @@ int Get(hxhim_t *hx,
         std::size_t predicate_len,
         hxhim_type_t object_type,
         Transport::Request::BGet *local,
-        Transport::Request::BGet **remote) {
+        Transport::Request::BGet **remote,
+        FixedBufferPool *requests) {
     // get the destination backend id for the key
     const int ds_id = hx->p->hash.func(hx, subject, subject_len, predicate, predicate_len, hx->p->hash.args);
 
@@ -110,7 +112,7 @@ int Get(hxhim_t *hx,
 
             // if there were no previous keys going to this destination, set the initial values
             if (!rem) {
-                rem = new Transport::Request::BGet(nullptr, max);
+                rem = requests->acquire<Transport::Request::BGet>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, max);
                 rem->src = hx->p->bootstrap.rank;
                 rem->dst = dst;
             }
@@ -141,7 +143,8 @@ int GetOp(hxhim_t *hx,
           hxhim_type_t object_type,
           const std::size_t recs, const hxhim_get_op_t op,
           Transport::Request::BGetOp *local,
-          Transport::Request::BGetOp **remote) {
+          Transport::Request::BGetOp **remote,
+        FixedBufferPool *requests) {
     // get the destination backend id for the key
     const int ds_id = hx->p->hash.func(hx, subject, subject_len, predicate, predicate_len, hx->p->hash.args);
 
@@ -168,7 +171,7 @@ int GetOp(hxhim_t *hx,
 
             // if there were no previous keys going to this destination, set the initial values
             if (!rem) {
-                rem = new Transport::Request::BGetOp(nullptr, max);
+                rem = requests->acquire<Transport::Request::BGetOp>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, max);
                 rem->src = hx->p->bootstrap.rank;
                 rem->dst = dst;
             }
@@ -199,7 +202,8 @@ int Delete(hxhim_t *hx,
            void *predicate,
            std::size_t predicate_len,
            Transport::Request::BDelete *local,
-           Transport::Request::BDelete **remote) {
+           Transport::Request::BDelete **remote,
+           FixedBufferPool *requests) {
     // get the destination backend id for the key
     const int ds_id = hx->p->hash.func(hx, subject, subject_len, predicate, predicate_len, hx->p->hash.args);
 
@@ -227,7 +231,7 @@ int Delete(hxhim_t *hx,
 
             // if there were no previous keys going to this destination, set the initial values
             if (!rem) {
-                rem = new Transport::Request::BDelete(nullptr, max);
+                rem = requests->acquire<Transport::Request::BDelete>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, max);
                 rem->src = hx->p->bootstrap.rank;
                 rem->dst = dst;
             }
@@ -256,7 +260,8 @@ int Histogram(hxhim_t *hx,
               const std::size_t max,
               const int ds_id,
               Transport::Request::BHistogram *local,
-              Transport::Request::BHistogram **remote) {
+              Transport::Request::BHistogram **remote,
+              FixedBufferPool *requests) {
     if (ds_id > -1) {
         // split the backend id into destination rank and ds_offset
         const int dst = hxhim::datastore::get_rank(hx, ds_id);
@@ -277,7 +282,7 @@ int Histogram(hxhim_t *hx,
 
             // if there were no previous keys going to this destination, set the initial values
             if (!rem) {
-                rem = new Transport::Request::BHistogram(nullptr, max);
+                rem = requests->acquire<Transport::Request::BHistogram>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, max);
                 rem->src = hx->p->bootstrap.rank;
                 rem->dst = dst;
             }

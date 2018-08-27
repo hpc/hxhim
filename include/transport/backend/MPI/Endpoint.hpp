@@ -7,6 +7,7 @@
 #include "utils/mlogfacs2.h"
 #include <mpi.h>
 
+#include "hxhim/utils.hpp"
 #include "transport/backend/MPI/EndpointBase.hpp"
 #include "transport/backend/MPI/Packer.hpp"
 #include "transport/backend/MPI/Unpacker.hpp"
@@ -25,9 +26,11 @@ class Endpoint : virtual public ::Transport::Endpoint, virtual public EndpointBa
         /** Create a TransportEndpoint for a specified process rank */
         Endpoint(const MPI_Comm comm,
                  const int remote_rank,
+                 volatile std::atomic_bool &running,
                  FixedBufferPool *packed,
-                 FixedBufferPool *buffers,
-                 volatile std::atomic_bool &running);
+                 FixedBufferPool *responses,
+                 FixedBufferPool *arrays,
+                 FixedBufferPool *buffers);
 
         /** Destructor */
         ~Endpoint() {}
@@ -76,7 +79,8 @@ class Endpoint : virtual public ::Transport::Endpoint, virtual public EndpointBa
                     (Packer::pack(comm, message, &sendbuf, &sendsize, packed)      == TRANSPORT_SUCCESS) &&  // pack the message
                     (send(sendbuf, sendsize)                                       == TRANSPORT_SUCCESS) &&  // send the message
                     (recv(&recvbuf, &recvsize)                                     == TRANSPORT_SUCCESS) &&  // receive the response
-                    (Unpacker::unpack(comm, &response, recvbuf, recvsize, buffers) == TRANSPORT_SUCCESS)     // unpack the response
+                    (Unpacker::unpack(comm, &response, recvbuf, recvsize,
+                                      responses, arrays, buffers)                  == TRANSPORT_SUCCESS)     // unpack the response
                 );
 
             packed->release(sendbuf);
@@ -87,6 +91,11 @@ class Endpoint : virtual public ::Transport::Endpoint, virtual public EndpointBa
 
         const int remote_rank;
         volatile std::atomic_bool &running;
+
+        FixedBufferPool *packed;
+        FixedBufferPool *responses;
+        FixedBufferPool *arrays;
+        FixedBufferPool *buffers;
 };
 
 }

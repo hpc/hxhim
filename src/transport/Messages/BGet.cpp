@@ -1,7 +1,7 @@
 #include "transport/Messages/BGet.hpp"
 
-Transport::Request::BGet::BGet(FixedBufferPool *fbp, const std::size_t max)
-    : Request(BGET, fbp),
+Transport::Request::BGet::BGet(FixedBufferPool *arrays, FixedBufferPool *buffers, const std::size_t max)
+    : Request(BGET, arrays, buffers),
       Bulk(),
       subjects(nullptr),
       subject_lens(nullptr),
@@ -31,12 +31,12 @@ int Transport::Request::BGet::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Bulk::alloc(max) != TRANSPORT_SUCCESS)    ||
-            !(subjects = new void *[max]())            ||
-            !(subject_lens = new std::size_t[max]())   ||
-            !(predicates = new void *[max]())          ||
-            !(predicate_lens = new std::size_t[max]()) ||
-            !(object_types = new hxhim_type_t[max]()))  {
+        if ((Bulk::alloc(max, arrays) != TRANSPORT_SUCCESS)             ||
+            !(subjects = arrays->acquire_array<void *>(max))            ||
+            !(subject_lens = arrays->acquire_array<std::size_t>(max))   ||
+            !(predicates = arrays->acquire_array<void *>(max))          ||
+            !(predicate_lens = arrays->acquire_array<std::size_t>(max)) ||
+            !(object_types = arrays->acquire_array<hxhim_type_t>(max)))  {
             cleanup();
             return TRANSPORT_ERROR;
         }
@@ -49,39 +49,39 @@ int Transport::Request::BGet::cleanup() {
     if (clean) {
         if (subjects) {
             for(std::size_t i = 0; i < count; i++) {
-                ::operator delete(subjects[i]);
+                buffers->release(subjects[i]);
             }
         }
 
         if (predicates) {
             for(std::size_t i = 0; i < count; i++) {
-                ::operator delete(predicates[i]);
+                buffers->release(predicates[i]);
             }
         }
     }
 
-    delete [] subjects;
+    arrays->release_array(subjects, count);
     subjects = nullptr;
 
-    delete [] subject_lens;
+    arrays->release_array(subject_lens, count);
     subject_lens = nullptr;
 
-    delete [] predicates;
+    arrays->release_array(predicates, count);
     predicates = nullptr;
 
-    delete [] predicate_lens;
+    arrays->release_array(predicate_lens, count);
     predicate_lens = nullptr;
 
-    delete [] object_types;
+    arrays->release_array(object_types, count);
     object_types = nullptr;
 
-    Bulk::cleanup();
+    Bulk::cleanup(arrays);
 
     return TRANSPORT_SUCCESS;
 }
 
-Transport::Response::BGet::BGet(FixedBufferPool *fbp, const std::size_t max)
-    : Response(BGET, fbp),
+Transport::Response::BGet::BGet(FixedBufferPool *arrays, FixedBufferPool *buffers, const std::size_t max)
+    : Response(BGET, arrays, buffers),
       Bulk(),
       statuses(nullptr),
       subjects(nullptr),
@@ -116,15 +116,15 @@ int Transport::Response::BGet::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Bulk::alloc(max) != TRANSPORT_SUCCESS)    ||
-            !(statuses = new int[max]())               ||
-            !(subjects = new void *[max]())            ||
-            !(subject_lens = new std::size_t[max]())   ||
-            !(predicates = new void *[max]())          ||
-            !(predicate_lens = new std::size_t[max]()) ||
-            !(object_types = new hxhim_type_t[max]())  ||
-            !(objects = new void *[max]())             ||
-            !(object_lens = new std::size_t[max]()))    {
+        if ((Bulk::alloc(max, arrays) != TRANSPORT_SUCCESS)             ||
+            !(statuses = arrays->acquire_array<int>(max))               ||
+            !(subjects = arrays->acquire_array<void *>(max))            ||
+            !(subject_lens = arrays->acquire_array<std::size_t>(max))   ||
+            !(predicates = arrays->acquire_array<void *>(max))          ||
+            !(predicate_lens = arrays->acquire_array<std::size_t>(max)) ||
+            !(object_types = arrays->acquire_array<hxhim_type_t>(max))  ||
+            !(objects = arrays->acquire_array<void *>(max))             ||
+            !(object_lens = arrays->acquire_array<std::size_t>(max)))    {
             cleanup();
             return TRANSPORT_SUCCESS;
         }
@@ -137,51 +137,48 @@ int Transport::Response::BGet::cleanup() {
     if (clean) {
         if (subjects) {
             for(std::size_t i = 0; i < count; i++) {
-                ::operator delete(subjects[i]);
+                buffers->release(subjects[i]);
             }
         }
 
         if (predicates) {
             for(std::size_t i = 0; i < count; i++) {
-                ::operator delete(predicates[i]);
+                buffers->release(predicates[i]);
             }
         }
 
         if (objects) {
             for(std::size_t i = 0; i < count; i++) {
-                ::operator delete(objects[i]);
+                buffers->release(objects[i]);
             }
         }
     }
 
-    delete [] statuses;
-    statuses = nullptr;
-
-    delete [] subjects;
+    arrays->release_array(subjects, count);
     subjects = nullptr;
 
-    delete [] subject_lens;
+    arrays->release_array(subject_lens, count);
     subject_lens = nullptr;
 
-    delete [] predicates;
+    arrays->release_array(predicates, count);
     predicates = nullptr;
 
-    delete [] predicate_lens;
+    arrays->release_array(predicate_lens, count);
     predicate_lens = nullptr;
 
-    delete [] object_types;
+    arrays->release_array(object_types, count);
     object_types = nullptr;
 
-    delete [] objects;
+    arrays->release_array(objects, count);
     objects = nullptr;
 
-    delete [] object_lens;
+    arrays->release_array(object_lens, count);
     object_lens = nullptr;
 
     delete next;
     next = nullptr;
 
-    Bulk::cleanup();
+    Bulk::cleanup(arrays);
 
     return TRANSPORT_SUCCESS;
 }

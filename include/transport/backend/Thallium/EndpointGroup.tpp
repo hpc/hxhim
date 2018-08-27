@@ -17,8 +17,8 @@ Recv_t *Transport::Thallium::EndpointGroup::do_operation(const std::size_t num_r
         }
 
         // figure out where to send the message
-        std::map<int, Endpoint_t>::const_iterator dst_it = endpoints_.find(messages[i]->dst);
-        if (dst_it == endpoints_.end()) {
+        std::map<int, Endpoint_t>::const_iterator dst_it = endpoints.find(messages[i]->dst);
+        if (dst_it == endpoints.end()) {
             continue;
         }
 
@@ -29,11 +29,11 @@ Recv_t *Transport::Thallium::EndpointGroup::do_operation(const std::size_t num_r
         }
 
         // send the message and get a response
-        const std::string responsebuf = rpc_->on(*dst_it->second)(requestbuf);
+        const std::string responsebuf = rpc->on(*dst_it->second)(requestbuf);
 
         // unpack the response
         Recv_t *response = nullptr;
-        if (Unpacker::unpack(&response, responsebuf, fbp_) != TRANSPORT_SUCCESS) {
+        if (Unpacker::unpack(&response, responsebuf, responses, arrays, buffers) != TRANSPORT_SUCCESS) {
             continue;
         }
 

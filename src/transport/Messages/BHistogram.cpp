@@ -1,7 +1,7 @@
 #include "transport/Messages/BHistogram.hpp"
 
-Transport::Request::BHistogram::BHistogram(FixedBufferPool *fbp, const std::size_t max)
-    : Request(Message::BHISTOGRAM, fbp),
+Transport::Request::BHistogram::BHistogram(FixedBufferPool *arrays, FixedBufferPool *buffers, const std::size_t max)
+    : Request(Message::BHISTOGRAM, arrays, buffers),
       Bulk()
 {
     alloc(max);
@@ -19,7 +19,7 @@ int Transport::Request::BHistogram::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if (Bulk::alloc(max) != TRANSPORT_SUCCESS) {
+        if (Bulk::alloc(max, arrays) != TRANSPORT_SUCCESS) {
             cleanup();
             return TRANSPORT_ERROR;
         }
@@ -29,13 +29,13 @@ int Transport::Request::BHistogram::alloc(const std::size_t max) {
 }
 
 int Transport::Request::BHistogram::cleanup() {
-    Bulk::cleanup();
+    Bulk::cleanup(arrays);
 
     return TRANSPORT_SUCCESS;
 }
 
-Transport::Response::BHistogram::BHistogram(FixedBufferPool *fbp, const std::size_t max)
-    : Response(Message::BHISTOGRAM, fbp),
+Transport::Response::BHistogram::BHistogram(FixedBufferPool *arrays, FixedBufferPool *buffers, const std::size_t max)
+    : Response(Message::BHISTOGRAM, arrays, buffers),
       Bulk(),
       statuses(nullptr),
       hists(nullptr),
@@ -61,9 +61,9 @@ int Transport::Response::BHistogram::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Bulk::alloc(max) != TRANSPORT_SUCCESS) ||
-            !(statuses = new int[max]())            ||
-            !(hists = new Histogram[max]()))         {
+        if ((Bulk::alloc(max, arrays) != TRANSPORT_SUCCESS)   ||
+            !(statuses = arrays->acquire_array<int>(max))     ||
+            !(hists = arrays->acquire_array<Histogram>(max)))  {
             cleanup();
             return TRANSPORT_ERROR;
         }
@@ -73,13 +73,20 @@ int Transport::Response::BHistogram::alloc(const std::size_t max) {
 }
 
 int Transport::Response::BHistogram::cleanup() {
-    delete [] statuses;
+    if (clean) {
+        for(std::size_t i = 0; i < count; i++) {
+            arrays->release_array(hists[i].buckets, hists[i].size);
+            arrays->release_array(hists[i].counts, hists[i].size);
+        }
+    }
+
+    arrays->release_array(statuses, count);
     statuses = nullptr;
 
-    delete [] hists;
+    arrays->release_array(hists, count);
     hists = nullptr;
 
-    Bulk::cleanup();
+    Bulk::cleanup(arrays);
 
     return TRANSPORT_SUCCESS;
 }

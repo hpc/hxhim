@@ -9,7 +9,7 @@
 #include <mpi.h>
 #include <thallium.hpp>
 
-#include "transport/constants.h"
+#include "transport/constants.hpp"
 
 namespace Transport {
 namespace Thallium {

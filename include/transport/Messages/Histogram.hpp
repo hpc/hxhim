@@ -8,7 +8,7 @@
 #include "transport/Messages/Request.hpp"
 #include "transport/Messages/Response.hpp"
 #include "transport/Messages/Single.hpp"
-#include "transport/constants.h"
+#include "transport/constants.hpp"
 #include "utils/Histogram.hpp"
 
 namespace Transport {
@@ -16,7 +16,7 @@ namespace Transport {
 namespace Request {
 
 struct Histogram final : Request, Single {
-    Histogram(FixedBufferPool *fbp);
+    Histogram(FixedBufferPool *arrays, FixedBufferPool *buffers);
     ~Histogram();
 
     std::size_t size() const;
@@ -27,7 +27,7 @@ struct Histogram final : Request, Single {
 namespace Response {
 
 struct Histogram final : Response, Single {
-    Histogram(FixedBufferPool *fbp);
+    Histogram(FixedBufferPool *arrays, FixedBufferPool *buffers);
     ~Histogram();
 
     std::size_t size() const;

@@ -38,6 +38,10 @@ class FixedBufferPool {
         void release(T *ptr);
         void release(void *ptr);
 
+        template <typename T, typename = std::enable_if_t<std::is_class<T>::value && std::is_destructible<T>::value> >
+        void release_array(T *ptr, const std::size_t count);
+        void release_array(void *ptr, const std::size_t count);
+
         /* @description Utility function to get the total size of the memory pool          */
         std::size_t size() const;
 
@@ -203,6 +207,23 @@ void FixedBufferPool::release(T *ptr) {
 
         // release ptr
         release((void *)ptr);
+    }
+}
+
+/**
+ * release_array
+ * Destructs each element and releases the array to back into the pool.
+ *
+ * @tparam ptr T * acquired through FixedBufferPool::acquire
+ */
+template <typename T, typename>
+void FixedBufferPool::release_array(T *ptr, const std::size_t count) {
+    if (ptr) {
+        for(std::size_t i = 0; i < count; i++) {
+            ptr[i].~T();
+        }
+
+        release((void *) ptr);
     }
 }
 

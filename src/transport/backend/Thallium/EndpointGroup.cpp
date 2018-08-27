@@ -3,11 +3,17 @@
 #include "transport/backend/Thallium/EndpointGroup.hpp"
 
 Transport::Thallium::EndpointGroup::EndpointGroup(const Thallium::RPC_t &rpc,
-                                                  FixedBufferPool *fbp)
+                                                  FixedBufferPool *packed,
+                                                  FixedBufferPool *responses,
+                                                  FixedBufferPool *arrays,
+                                                  FixedBufferPool *buffers)
   : ::Transport::EndpointGroup(),
-    rpc_(rpc),
-    endpoints_(),
-    fbp_(fbp)
+    rpc(rpc),
+    endpoints(),
+    packed(packed),
+    responses(responses),
+    arrays(arrays),
+    buffers(buffers)
 {}
 
 Transport::Thallium::EndpointGroup::~EndpointGroup() {}
@@ -55,7 +61,7 @@ int Transport::Thallium::EndpointGroup::AddID(const int id, const Thallium::Endp
         return TRANSPORT_ERROR;
     }
 
-    endpoints_[id] = ep;
+    endpoints[id] = ep;
     return TRANSPORT_SUCCESS;
 }
 
@@ -67,7 +73,7 @@ int Transport::Thallium::EndpointGroup::AddID(const int id, const Thallium::Endp
  * @param id the unique ID to remove
  */
 void Transport::Thallium::EndpointGroup::RemoveID(const int id) {
-    endpoints_.erase(id);
+    endpoints.erase(id);
 }
 
 /**

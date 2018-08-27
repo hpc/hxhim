@@ -19,24 +19,24 @@ namespace range_server {
  * @return          the response packet resulting from the request
  */
 static Transport::Response::BPut *bput(hxhim_t *hx, Transport::Request::BPut *req) {
-    void ***subjects = new void **[hx->p->datastore.count];
-    std::size_t **subject_lens = new std::size_t *[hx->p->datastore.count];
-    void ***predicates = new void **[hx->p->datastore.count];
-    std::size_t **predicate_lens = new std::size_t *[hx->p->datastore.count];
-    hxhim_type_t **object_types = new hxhim_type_t *[hx->p->datastore.count];
-    void ***objects = new void **[hx->p->datastore.count];
-    std::size_t **object_lens = new std::size_t *[hx->p->datastore.count];
-    std::size_t *counters = new std::size_t[hx->p->datastore.count];
+    void ***subjects = hx->p->memory_pools.arrays->acquire_array<void **>(hx->p->datastore.count);
+    std::size_t **subject_lens = hx->p->memory_pools.arrays->acquire_array<std::size_t *>(hx->p->datastore.count);
+    void ***predicates = hx->p->memory_pools.arrays->acquire_array<void **>(hx->p->datastore.count);
+    std::size_t **predicate_lens = hx->p->memory_pools.arrays->acquire_array<std::size_t *>(hx->p->datastore.count);
+    hxhim_type_t **object_types = hx->p->memory_pools.arrays->acquire_array<hxhim_type_t *>(hx->p->datastore.count);
+    void ***objects = hx->p->memory_pools.arrays->acquire_array<void **>(hx->p->datastore.count);
+    std::size_t **object_lens = hx->p->memory_pools.arrays->acquire_array<std::size_t *>(hx->p->datastore.count);
+    std::size_t *counters = hx->p->memory_pools.arrays->acquire_array<std::size_t>(hx->p->datastore.count);
 
     // overallocate in case all of the requests go to one datastore
     for(std::size_t i = 0; i < hx->p->datastore.count; i++) {
-        subjects[i] = new void *[req->count];
-        subject_lens[i] = new std::size_t[req->count];
-        predicates[i] = new void *[req->count];
-        predicate_lens[i] = new std::size_t[req->count];
-        object_types[i] = new hxhim_type_t[req->count];
-        objects[i] = new void *[req->count];
-        object_lens[i] = new std::size_t[req->count];
+        subjects[i] = hx->p->memory_pools.arrays->acquire_array<void *>(req->count);
+        subject_lens[i] = hx->p->memory_pools.arrays->acquire_array<std::size_t>(req->count);
+        predicates[i] = hx->p->memory_pools.arrays->acquire_array<void *>(req->count);
+        predicate_lens[i] = hx->p->memory_pools.arrays->acquire_array<std::size_t>(req->count);
+        object_types[i] = hx->p->memory_pools.arrays->acquire_array<hxhim_type_t>(req->count);
+        objects[i] = hx->p->memory_pools.arrays->acquire_array<void *>(req->count);
+        object_lens[i] = hx->p->memory_pools.arrays->acquire_array<std::size_t>(req->count);
         counters[i] = 0;
     }
 
@@ -58,7 +58,7 @@ static Transport::Response::BPut *bput(hxhim_t *hx, Transport::Request::BPut *re
         index++;
     }
 
-    Transport::Response::BPut *res = new Transport::Response::BPut(nullptr, req->count);
+    Transport::Response::BPut *res = hx->p->memory_pools.responses->acquire<Transport::Response::BPut>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, req->count);
     res->src = req->dst;
     res->dst = req->src;
 
@@ -80,23 +80,22 @@ static Transport::Response::BPut *bput(hxhim_t *hx, Transport::Request::BPut *re
 
     // clean up each datastore's input array
     for(std::size_t i = 0; i < hx->p->datastore.count; i++) {
-        delete [] subjects[i];
-        delete [] subject_lens[i];
-        delete [] predicates[i];
-        delete [] predicate_lens[i];
-        delete [] object_types[i];
-        delete [] objects[i];
-        delete [] object_lens[i];
+        hx->p->memory_pools.arrays->release_array(subjects[i], counters[i]);
+        hx->p->memory_pools.arrays->release_array(subject_lens[i], counters[i]);
+        hx->p->memory_pools.arrays->release_array(predicates[i], counters[i]);
+        hx->p->memory_pools.arrays->release_array(predicate_lens[i], counters[i]);
+        hx->p->memory_pools.arrays->release_array(object_types[i], counters[i]);
+        hx->p->memory_pools.arrays->release_array(objects[i], counters[i]);
+        hx->p->memory_pools.arrays->release_array(object_lens[i], counters[i]);
     }
-
-    delete [] subjects;
-    delete [] subject_lens;
-    delete [] predicates;
-    delete [] predicate_lens;
-    delete [] object_types;
-    delete [] objects;
-    delete [] object_lens;
-    delete [] counters;
+    hx->p->memory_pools.arrays->release_array(subjects, hx->p->datastore.count);
+    hx->p->memory_pools.arrays->release_array(subject_lens, hx->p->datastore.count);
+    hx->p->memory_pools.arrays->release_array(predicates, hx->p->datastore.count);
+    hx->p->memory_pools.arrays->release_array(predicate_lens, hx->p->datastore.count);
+    hx->p->memory_pools.arrays->release_array(object_types, hx->p->datastore.count);
+    hx->p->memory_pools.arrays->release_array(objects, hx->p->datastore.count);
+    hx->p->memory_pools.arrays->release_array(object_lens, hx->p->datastore.count);
+    hx->p->memory_pools.arrays->release_array(counters, hx->p->datastore.count);
 
     return res;
 }
@@ -110,20 +109,20 @@ static Transport::Response::BPut *bput(hxhim_t *hx, Transport::Request::BPut *re
  * @return          the response packet resulting from the request
  */
 static Transport::Response::BGet *bget(hxhim_t *hx, Transport::Request::BGet *req) {
-    void ***subjects = new void **[hx->p->datastore.count];
-    std::size_t **subject_lens = new std::size_t *[hx->p->datastore.count];
-    void ***predicates = new void **[hx->p->datastore.count];
-    std::size_t **predicate_lens = new std::size_t *[hx->p->datastore.count];
-    hxhim_type_t **object_types = new hxhim_type_t *[hx->p->datastore.count];
-    std::size_t *counters = new std::size_t[hx->p->datastore.count];
+    void ***subjects = hx->p->memory_pools.arrays->acquire_array<void **>(hx->p->datastore.count);
+    std::size_t **subject_lens = hx->p->memory_pools.arrays->acquire_array<std::size_t *>(hx->p->datastore.count);
+    void ***predicates = hx->p->memory_pools.arrays->acquire_array<void **>(hx->p->datastore.count);
+    std::size_t **predicate_lens = hx->p->memory_pools.arrays->acquire_array<std::size_t *>(hx->p->datastore.count);
+    hxhim_type_t **object_types = hx->p->memory_pools.arrays->acquire_array<hxhim_type_t *>(hx->p->datastore.count);
+    std::size_t *counters = hx->p->memory_pools.arrays->acquire_array<std::size_t>(hx->p->datastore.count);
 
     // overallocate in case all of the requests go to one datastore
     for(std::size_t i = 0; i < hx->p->datastore.count; i++) {
-        subjects[i] = new void *[req->count];
-        subject_lens[i] = new std::size_t[req->count];
-        predicates[i] = new void *[req->count];
-        predicate_lens[i] = new std::size_t[req->count];
-        object_types[i] = new hxhim_type_t[req->count];
+        subjects[i] = hx->p->memory_pools.arrays->acquire_array<void *>(req->count);
+        subject_lens[i] = hx->p->memory_pools.arrays->acquire_array<std::size_t>(req->count);
+        predicates[i] = hx->p->memory_pools.arrays->acquire_array<void *>(req->count);
+        predicate_lens[i] = hx->p->memory_pools.arrays->acquire_array<std::size_t>(req->count);
+        object_types[i] = hx->p->memory_pools.arrays->acquire_array<hxhim_type_t>(req->count);
         counters[i] = 0;
     }
 
@@ -143,7 +142,7 @@ static Transport::Response::BGet *bget(hxhim_t *hx, Transport::Request::BGet *re
         index++;
     }
 
-    Transport::Response::BGet *res = new Transport::Response::BGet(nullptr, req->count);
+    Transport::Response::BGet *res = hx->p->memory_pools.responses->acquire<Transport::Response::BGet>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, req->count);
     res->src = req->dst;
     res->dst = req->src;
 
@@ -174,19 +173,18 @@ static Transport::Response::BGet *bget(hxhim_t *hx, Transport::Request::BGet *re
 
     // clean up each datastore's input array
     for(std::size_t i = 0; i < hx->p->datastore.count; i++) {
-        delete [] subjects[i];
-        delete [] subject_lens[i];
-        delete [] predicates[i];
-        delete [] predicate_lens[i];
-        delete [] object_types[i];
+        hx->p->memory_pools.arrays->release_array(subjects[i], counters[i]);
+        hx->p->memory_pools.arrays->release_array(subject_lens[i], counters[i]);
+        hx->p->memory_pools.arrays->release_array(predicates[i], counters[i]);
+        hx->p->memory_pools.arrays->release_array(predicate_lens[i], counters[i]);
+        hx->p->memory_pools.arrays->release_array(object_types[i], counters[i]);
     }
-
-    delete [] subjects;
-    delete [] subject_lens;
-    delete [] predicates;
-    delete [] predicate_lens;
-    delete [] object_types;
-    delete [] counters;
+    hx->p->memory_pools.arrays->release_array(subjects, hx->p->datastore.count);
+    hx->p->memory_pools.arrays->release_array(subject_lens, hx->p->datastore.count);
+    hx->p->memory_pools.arrays->release_array(predicates, hx->p->datastore.count);
+    hx->p->memory_pools.arrays->release_array(predicate_lens, hx->p->datastore.count);
+    hx->p->memory_pools.arrays->release_array(object_types, hx->p->datastore.count);
+    hx->p->memory_pools.arrays->release_array(counters, hx->p->datastore.count);
 
     return res;
 }
@@ -200,7 +198,7 @@ static Transport::Response::BGet *bget(hxhim_t *hx, Transport::Request::BGet *re
  * @return          the response packet resulting from the request
  */
 static Transport::Response::BGetOp *bgetop(hxhim_t *hx, Transport::Request::BGetOp *req) {
-    Transport::Response::BGetOp *res = new Transport::Response::BGetOp(nullptr, req->count);
+    Transport::Response::BGetOp *res = hx->p->memory_pools.responses->acquire<Transport::Response::BGetOp>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, req->count);
     res->src = req->dst;
     res->dst = req->src;
 
@@ -241,18 +239,18 @@ static Transport::Response::BGetOp *bgetop(hxhim_t *hx, Transport::Request::BGet
  * @return          the response packet resulting from the request
  */
 static Transport::Response::BDelete *bdelete(hxhim_t *hx, Transport::Request::BDelete *req) {
-    void ***subjects = new void **[hx->p->datastore.count];
-    std::size_t **subject_lens = new std::size_t *[hx->p->datastore.count];
-    void ***predicates = new void **[hx->p->datastore.count];
-    std::size_t **predicate_lens = new std::size_t *[hx->p->datastore.count];
-    std::size_t *counters = new std::size_t[hx->p->datastore.count];
+    void ***subjects = hx->p->memory_pools.arrays->acquire_array<void **>(hx->p->datastore.count);
+    std::size_t **subject_lens = hx->p->memory_pools.arrays->acquire_array<std::size_t *>(hx->p->datastore.count);
+    void ***predicates = hx->p->memory_pools.arrays->acquire_array<void **>(hx->p->datastore.count);
+    std::size_t **predicate_lens = hx->p->memory_pools.arrays->acquire_array<std::size_t *>(hx->p->datastore.count);
+    std::size_t *counters = hx->p->memory_pools.arrays->acquire_array<std::size_t>(hx->p->datastore.count);
 
     // overallocate in case all of the requests go to one datastore
     for(std::size_t i = 0; i < hx->p->datastore.count; i++) {
-        subjects[i] = new void *[req->count];
-        subject_lens[i] = new std::size_t[req->count];
-        predicates[i] = new void *[req->count];
-        predicate_lens[i] = new std::size_t[req->count];
+        subjects[i] = hx->p->memory_pools.arrays->acquire_array<void *>(req->count);
+        subject_lens[i] = hx->p->memory_pools.arrays->acquire_array<std::size_t>(req->count);
+        predicates[i] = hx->p->memory_pools.arrays->acquire_array<void *>(req->count);
+        predicate_lens[i] = hx->p->memory_pools.arrays->acquire_array<std::size_t>(req->count);
         counters[i] = 0;
     }
 
@@ -270,7 +268,7 @@ static Transport::Response::BDelete *bdelete(hxhim_t *hx, Transport::Request::BD
         index++;
     }
 
-    Transport::Response::BDelete *res = new Transport::Response::BDelete(nullptr, req->count);
+    Transport::Response::BDelete *res = hx->p->memory_pools.responses->acquire<Transport::Response::BDelete>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, req->count);
     res->src = req->dst;
     res->dst = req->src;
 
@@ -291,17 +289,16 @@ static Transport::Response::BDelete *bdelete(hxhim_t *hx, Transport::Request::BD
 
     // clean up each datastore's input array
     for(std::size_t i = 0; i < hx->p->datastore.count; i++) {
-        delete [] subjects[i];
-        delete [] subject_lens[i];
-        delete [] predicates[i];
-        delete [] predicate_lens[i];
+        hx->p->memory_pools.arrays->release_array(subjects[i], counters[i]);
+        hx->p->memory_pools.arrays->release_array(subject_lens[i], counters[i]);
+        hx->p->memory_pools.arrays->release_array(predicates[i], counters[i]);
+        hx->p->memory_pools.arrays->release_array(predicate_lens[i], counters[i]);
     }
-
-    delete [] subjects;
-    delete [] subject_lens;
-    delete [] predicates;
-    delete [] predicate_lens;
-    delete [] counters;
+    hx->p->memory_pools.arrays->release_array(subjects, hx->p->datastore.count);
+    hx->p->memory_pools.arrays->release_array(subject_lens, hx->p->datastore.count);
+    hx->p->memory_pools.arrays->release_array(predicates, hx->p->datastore.count);
+    hx->p->memory_pools.arrays->release_array(predicate_lens, hx->p->datastore.count);
+    hx->p->memory_pools.arrays->release_array(counters, hx->p->datastore.count);
 
     return res;
 }
@@ -327,7 +324,7 @@ Transport::Response::Histogram *histogram(hxhim_t *hx, Transport::Request::Histo
  * @return          the response packet resulting from the request
  */
 Transport::Response::BHistogram *bhistogram(hxhim_t *hx, Transport::Request::BHistogram *bhist) {
-    Transport::Response::BHistogram *ret = new Transport::Response::BHistogram(nullptr, bhist->count);
+    Transport::Response::BHistogram *ret = hx->p->memory_pools.responses->acquire<Transport::Response::BHistogram>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, bhist->count);
     ret->src = bhist->dst;
     ret->dst = bhist->src;
 

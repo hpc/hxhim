@@ -1,7 +1,7 @@
 #ifndef TRANSPORT_OPTIONS_HPP
 #define TRANSPORT_OPTIONS_HPP
 
-#include "transport/constants.h"
+#include "transport/constants.hpp"
 
 namespace Transport {
 

@@ -102,15 +102,15 @@ Response::Delete *Transport::Delete(const Request::Delete *dm) {
  * Histogram
  * Sends a histogram message onto the the underlying transport
  *
- * @param hist the HISTOGRAM message
+ * @param hm the HISTOGRAM message
  * @return the response from the range server
  */
-Response::Histogram *Transport::Histogram(const Request::Histogram *hist) {
-    if (!hist) {
+Response::Histogram *Transport::Histogram(const Request::Histogram *hm) {
+    if (!hm) {
         return nullptr;
     }
-    EndpointMapping_t::iterator it = endpoints_.find(hist->dst);
-    return (it == endpoints_.end())?nullptr:it->second->Histogram(hist);
+    EndpointMapping_t::iterator it = endpoints_.find(hm->dst);
+    return (it == endpoints_.end())?nullptr:it->second->Histogram(hm);
 }
 
 /**
@@ -169,8 +169,8 @@ Response::BDelete *Transport::BDelete(const std::size_t num_rangesrvs, Request::
  * @param bdm_list a list of HISTOGRAM messages going to different servers
  * @return the response from the range server
  */
-Response::BHistogram *Transport::BHistogram(const std::size_t num_rangesrvs, Request::BHistogram **bdm_list) {
-    return (bdm_list && endpointgroup_)?endpointgroup_->BHistogram(num_rangesrvs, bdm_list):nullptr;
+Response::BHistogram *Transport::BHistogram(const std::size_t num_rangesrvs, Request::BHistogram **bhm_list) {
+    return (bhm_list && endpointgroup_)?endpointgroup_->BHistogram(num_rangesrvs, bhm_list):nullptr;
 }
 
 }

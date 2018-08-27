@@ -1,7 +1,7 @@
 #include "transport/Messages/Put.hpp"
 
-Transport::Request::Put::Put(FixedBufferPool *fbp)
-    : Request(Message::PUT, fbp),
+Transport::Request::Put::Put(FixedBufferPool * arrays, FixedBufferPool *buffers)
+    : Request(Message::PUT, arrays, buffers),
       Single(),
       subject(nullptr),
       subject_len(0),
@@ -15,9 +15,9 @@ Transport::Request::Put::Put(FixedBufferPool *fbp)
 Transport::Request::Put::~Put()
 {
     if (clean) {
-        ::operator delete(subject);
-        ::operator delete(predicate);
-        ::operator delete(object);
+        buffers->release(subject);
+        buffers->release(predicate);
+        buffers->release(object);
     }
 }
 
@@ -28,8 +28,8 @@ std::size_t Transport::Request::Put::size() const {
         sizeof(object_type) + object_len + sizeof(object_len);
 }
 
-Transport::Response::Put::Put(FixedBufferPool *fbp)
-    : Response(Message::PUT, fbp),
+Transport::Response::Put::Put(FixedBufferPool * arrays, FixedBufferPool *buffers)
+    : Response(Message::PUT, arrays, buffers),
       Single(),
       status(HXHIM_ERROR)
 {}

@@ -4,6 +4,22 @@
 namespace hxhim {
 
 /**
+ * GetPackedFBP
+ * Returns the FixedPackedPool used to allocate packeds
+ * This is a utility function only available in C++
+ *
+ * @param hx the HXHIM session
+ * @return a pointer to the FixedBufferPool used to allocate packeds, or nullptr
+ */
+FixedBufferPool *GetPackedFBP(hxhim_t *hx) {
+    if (!hx || !hx->p) {
+        return nullptr;
+    }
+
+    return hx->p->memory_pools.packed;
+}
+
+/**
  * GetBufferFBP
  * Returns the FixedBufferPool used to allocate buffers
  * This is a utility function only available in C++
@@ -33,6 +49,22 @@ FixedBufferPool *GetKeyFBP(hxhim_t *hx) {
     }
 
     return hx->p->memory_pools.keys;
+}
+
+/**
+ * GetArrayFBP
+ * Returns the FixedBufferPool used to allocate arrays
+ * This is a utility function only available in C++
+ *
+ * @param hx the HXHIM session
+ * @return a pointer to the FixedBufferPool used to allocate arrays, or nullptr
+ */
+FixedBufferPool *GetArrayFBP(hxhim_t *hx) {
+    if (!hx || !hx->p) {
+        return nullptr;
+    }
+
+    return hx->p->memory_pools.arrays;
 }
 
 /**

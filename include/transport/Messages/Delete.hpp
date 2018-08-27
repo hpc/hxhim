@@ -7,14 +7,14 @@
 #include "transport/Messages/Request.hpp"
 #include "transport/Messages/Response.hpp"
 #include "transport/Messages/Single.hpp"
-#include "transport/constants.h"
+#include "transport/constants.hpp"
 
 namespace Transport {
 
 namespace Request {
 
 struct Delete final : Request, Single {
-    Delete(FixedBufferPool *fbp);
+    Delete(FixedBufferPool *arrays, FixedBufferPool *buffers);
     ~Delete();
 
     std::size_t size() const;
@@ -30,7 +30,7 @@ struct Delete final : Request, Single {
 namespace Response {
 
 struct Delete final : Response, Single {
-    Delete(FixedBufferPool *fbp);
+    Delete(FixedBufferPool *arrays, FixedBufferPool *buffers);
     ~Delete();
 
     std::size_t size() const;

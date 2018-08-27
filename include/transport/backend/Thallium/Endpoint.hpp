@@ -27,7 +27,10 @@ class Endpoint : virtual public ::Transport::Endpoint {
         Endpoint(const Engine_t &engine,
                  const RPC_t &rpc,
                  const Endpoint_t &ep,
-                 FixedBufferPool *fbp);
+                 FixedBufferPool *packed,
+                 FixedBufferPool *responses,
+                 FixedBufferPool *arrays,
+                 FixedBufferPool *buffers);
         ~Endpoint();
 
         /** @description Send a Put to this endpoint */
@@ -55,30 +58,33 @@ class Endpoint : virtual public ::Transport::Endpoint {
                                                                               std::is_base_of<Response::Response, Recv_t>::value &&
                                                                               std::is_base_of<Single,             Recv_t>::value> >
         Recv_t *do_operation(const Send_t *message) {
-            std::lock_guard<std::mutex> lock(mutex_);
+            std::lock_guard<std::mutex> lock(mutex);
 
             std::string buf;
             if (Packer::pack(message, buf) != TRANSPORT_SUCCESS) {
                 return nullptr;
             }
 
-            const std::string response = rpc_->on(*ep_)(buf);
+            const std::string response = rpc->on(*ep)(buf);
 
             Recv_t *ret = nullptr;
-            if (Unpacker::unpack(&ret, response, fbp_) != TRANSPORT_SUCCESS) {
+            if (Unpacker::unpack(&ret, response, responses, arrays, buffers) != TRANSPORT_SUCCESS) {
                 return nullptr;
             }
 
             return ret;
         }
 
-        static std::mutex mutex_;  // mutex for engine_ and rpc_
+        static std::mutex mutex;  // mutex for engine_ and rpc_
 
-        Engine_t engine_;          // declare engine first so it is destroyed last
-        RPC_t rpc_;                // client to server RPC
-        Endpoint_t ep_;            // the server the RPC will be called on
+        Engine_t engine;          // declare engine first so it is destroyed last
+        RPC_t rpc;                // client to server RPC
+        Endpoint_t ep;            // the server the RPC will be called on
 
-        FixedBufferPool *fbp_;
+        FixedBufferPool *packed;
+        FixedBufferPool *responses;
+        FixedBufferPool *arrays;
+        FixedBufferPool *buffers;
 };
 
 }
