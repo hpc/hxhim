@@ -612,7 +612,7 @@ static int init_transport_thallium(hxhim_t *hx, hxhim_options_t *opts) {
     // remove the loopback endpoint
     addrs.erase(hx->p->bootstrap.rank);
 
-    EndpointGroup *eg = new EndpointGroup(rpc, hx->p->memory_pools.packed, hx->p->memory_pools.responses, hx->p->memory_pools.arrays, hx->p->memory_pools.buffers);
+    EndpointGroup *eg = new EndpointGroup(rpc, hx->p->memory_pools.responses, hx->p->memory_pools.arrays, hx->p->memory_pools.buffers);
     if (!eg) {
         return TRANSPORT_ERROR;
     }
@@ -622,7 +622,7 @@ static int init_transport_thallium(hxhim_t *hx, hxhim_options_t *opts) {
         Endpoint_t server(new thallium::endpoint(engine->lookup(addr.second)));
 
         // add the remote thallium endpoint to the tranport
-        Endpoint* ep = new Endpoint(engine, rpc, server, hx->p->memory_pools.packed, hx->p->memory_pools.responses, hx->p->memory_pools.arrays, hx->p->memory_pools.buffers);
+        Endpoint* ep = new Endpoint(engine, rpc, server, hx->p->memory_pools.responses, hx->p->memory_pools.arrays, hx->p->memory_pools.buffers);
         hx->p->transport->AddEndpoint(addr.first, ep);
 
         // if the rank was specified as part of the endpoint group, add the thallium endpoint to the endpoint group

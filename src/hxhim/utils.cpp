@@ -100,6 +100,22 @@ FixedBufferPool *GetResponseFBP(hxhim_t *hx) {
 }
 
 /**
+ * GetResultFBP
+ * Returns the FixedBufferPool used to allocate a result
+ * This is a utility function only available in C++
+ *
+ * @param hx the HXHIM session
+ * @return a pointer to the FixedBufferPool used to allocate results, or nullptr
+ */
+FixedBufferPool *GetResultFBP(hxhim_t *hx) {
+    if (!hx || !hx->p) {
+        return nullptr;
+    }
+
+    return hx->p->memory_pools.result;
+}
+
+/**
  * free_request
  * Frees a pointer from the request data FixedBufferPool
  *

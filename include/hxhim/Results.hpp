@@ -10,6 +10,7 @@
 #include "hxhim/constants.h"
 #include "hxhim/struct.h"
 #include "transport/Messages/Messages.hpp"
+#include "utils/FixedBufferPool.hpp"
 
 namespace hxhim {
 
@@ -55,7 +56,7 @@ class Results {
     public:
         class Result {
             public:
-                Result(hxhim_result_type_t t);
+                Result(hxhim_result_type_t t, FixedBufferPool *buffers);
                 virtual ~Result();
 
                 hxhim_result_type_t GetType() const;
@@ -68,6 +69,8 @@ class Results {
             protected:
                 int datastore;
                 int status;
+
+                FixedBufferPool *buffers;
         };
 
         /** @description Convenience class for PUT results */
@@ -94,7 +97,7 @@ class Results {
                 int GetObject(void **object, std::size_t *object_len) const;
 
             protected:
-                Get();
+                Get(hxhim_t *hx);
 
                 void *sub;
                 std::size_t sub_len;

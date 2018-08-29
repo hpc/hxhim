@@ -3,7 +3,6 @@
 #include <iterator>
 #include <limits>
 #include <stdexcept>
-#include <iostream>
 
 #include "utils/Histogram.hpp"
 

@@ -27,7 +27,6 @@ class Endpoint : virtual public ::Transport::Endpoint {
         Endpoint(const Engine_t &engine,
                  const RPC_t &rpc,
                  const Endpoint_t &ep,
-                 FixedBufferPool *packed,
                  FixedBufferPool *responses,
                  FixedBufferPool *arrays,
                  FixedBufferPool *buffers);
@@ -81,7 +80,6 @@ class Endpoint : virtual public ::Transport::Endpoint {
         RPC_t rpc;                // client to server RPC
         Endpoint_t ep;            // the server the RPC will be called on
 
-        FixedBufferPool *packed;
         FixedBufferPool *responses;
         FixedBufferPool *arrays;
         FixedBufferPool *buffers;

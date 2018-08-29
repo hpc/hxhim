@@ -23,7 +23,6 @@ namespace Thallium {
 class EndpointGroup : virtual public ::Transport::EndpointGroup {
     public:
         EndpointGroup(const RPC_t &rpc,
-                      FixedBufferPool *packed,
                       FixedBufferPool *responses,
                       FixedBufferPool *arrays,
                       FixedBufferPool *buffers);
@@ -64,7 +63,6 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup {
 
         std::map<int, Endpoint_t> endpoints;
 
-        FixedBufferPool *packed;
         FixedBufferPool *responses;
         FixedBufferPool *arrays;
         FixedBufferPool *buffers;

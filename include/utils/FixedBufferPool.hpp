@@ -1,12 +1,12 @@
-#ifndef FIXED_BUFFER_POOL_MEMORY_MANAGER
-#define FIXED_BUFFER_POOL_MEMORY_MANAGER
+#ifndef FIXED_BUFFER_POOL_HPP
+#define FIXED_BUFFER_POOL_HPP
 
 #include <condition_variable>
-#include <cstdint>
+#include <cstddef>
 #include <cstring>
 #include <iomanip>
-#include <iostream>
 #include <mutex>
+#include <ostream>
 #include <type_traits>
 #include <utility>
 
@@ -38,7 +38,7 @@ class FixedBufferPool {
         void release(T *ptr);
         void release(void *ptr);
 
-        template <typename T, typename = std::enable_if_t<std::is_class<T>::value && std::is_destructible<T>::value> >
+        template <typename T, typename = std::enable_if_t<std::is_same<T, void>::value> >
         void release_array(T *ptr, const std::size_t count);
         void release_array(void *ptr, const std::size_t count);
 
@@ -64,10 +64,10 @@ class FixedBufferPool {
         const void *const pool() const;
 
         /* @description Utility function to dump the contents of a region                  */
-        std::ostream &dump(const std::size_t region, std::ostream &stream = std::cout) const;
+        std::ostream &dump(const std::size_t region, std::ostream &stream) const;
 
         /* @description Utility function to dump the contents of the entire memory pool    */
-        std::ostream &dump(std::ostream &stream = std::cout) const;
+        std::ostream &dump(std::ostream &stream) const;
 
     private:
         FixedBufferPool(const FixedBufferPool& copy)            = delete;
@@ -77,7 +77,7 @@ class FixedBufferPool {
         FixedBufferPool& operator=(const FixedBufferPool&& rhs) = delete;
 
         /* @description Private utility function to dump the contents of a region          */
-        std::ostream &dump_region(const std::size_t region, std::ostream &stream = std::cout) const;
+        std::ostream &dump_region(const std::size_t region, std::ostream &stream) const;
 
         const std::string name_;
 
@@ -214,7 +214,8 @@ void FixedBufferPool::release(T *ptr) {
  * release_array
  * Destructs each element and releases the array to back into the pool.
  *
- * @tparam ptr T * acquired through FixedBufferPool::acquire
+ * @tparam ptr    T * acquired through FixedBufferPool::acquire
+ * @param  count  number of elements to destroy
  */
 template <typename T, typename>
 void FixedBufferPool::release_array(T *ptr, const std::size_t count) {

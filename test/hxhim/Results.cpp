@@ -4,23 +4,24 @@
 
 #include "generic_options.hpp"
 #include "hxhim/hxhim.hpp"
-#include "hxhim/private.hpp"
+#include "hxhim/utils.hpp"
+#include "utils/FixedBufferPool.hpp"
 
 struct TestPut : hxhim::Results::Result {
     TestPut()
-        : Result(HXHIM_RESULT_PUT)
+        : Result(HXHIM_RESULT_PUT, nullptr)
     {}
 };
 
 struct TestGet : hxhim::Results::Result {
     TestGet()
-        : Result(HXHIM_RESULT_GET)
+        : Result(HXHIM_RESULT_GET, nullptr)
     {}
 };
 
 struct TestDelete : hxhim::Results::Result {
     TestDelete()
-        : Result(HXHIM_RESULT_DEL)
+        : Result(HXHIM_RESULT_DEL, nullptr)
     {}
 };
 
@@ -31,6 +32,9 @@ TEST(Results, PUT_GET_DEL) {
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
 
+    FixedBufferPool *result = hxhim::GetResultFBP(&hx);
+    ASSERT_NE(result, nullptr);
+
     {
         hxhim::Results results(&hx);
 
@@ -40,11 +44,11 @@ TEST(Results, PUT_GET_DEL) {
         EXPECT_EQ(results.Valid(), false);
 
         // add some data
-        hxhim::Results::Result *put = results.Add(hx.p->memory_pools.result->acquire<TestPut>());
+        hxhim::Results::Result *put = results.Add(result->acquire<TestPut>());
         EXPECT_NE(put, nullptr);
-        hxhim::Results::Result *get = results.Add(hx.p->memory_pools.result->acquire<TestGet>());
+        hxhim::Results::Result *get = results.Add(result->acquire<TestGet>());
         EXPECT_NE(get, nullptr);
-        hxhim::Results::Result *del = results.Add(hx.p->memory_pools.result->acquire<TestDelete>());
+        hxhim::Results::Result *del = results.Add(result->acquire<TestDelete>());
         EXPECT_NE(del, nullptr);
 
         EXPECT_EQ(results.Valid(), false);  // still not valid because current result has not been set yet
@@ -65,13 +69,16 @@ TEST(Results, Loop) {
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
 
+    FixedBufferPool *result = hxhim::GetResultFBP(&hx);
+    ASSERT_NE(result, nullptr);
+
     {
         hxhim::Results results(&hx);
 
         // add some data
         const std::size_t puts = 10;
         for(std::size_t i = 0; i < puts; i++) {
-            hxhim::Results::Result *put = results.Add(hx.p->memory_pools.result->acquire<TestPut>());
+            hxhim::Results::Result *put = results.Add(result->acquire<TestPut>());
             EXPECT_NE(put, nullptr);
         }
 
@@ -96,15 +103,18 @@ TEST(Results, Append_Empty) {
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
 
+    FixedBufferPool *result = hxhim::GetResultFBP(&hx);
+    ASSERT_NE(result, nullptr);
+
     {
         hxhim::Results results(&hx);
 
         // add some data
-        hxhim::Results::Result *put = results.Add(hx.p->memory_pools.result->acquire<TestPut>());
+        hxhim::Results::Result *put = results.Add(result->acquire<TestPut>());
         EXPECT_NE(put, nullptr);
-        hxhim::Results::Result *get = results.Add(hx.p->memory_pools.result->acquire<TestGet>());
+        hxhim::Results::Result *get = results.Add(result->acquire<TestGet>());
         EXPECT_NE(get, nullptr);
-        hxhim::Results::Result *del = results.Add(hx.p->memory_pools.result->acquire<TestDelete>());
+        hxhim::Results::Result *del = results.Add(result->acquire<TestDelete>());
         EXPECT_NE(del, nullptr);
 
         // append empty set of results
@@ -129,15 +139,18 @@ TEST(Results, Empty_Append) {
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
 
+    FixedBufferPool *result = hxhim::GetResultFBP(&hx);
+    ASSERT_NE(result, nullptr);
+
     {
         hxhim::Results results(&hx);
 
         // add some data to the non-empty results
-        hxhim::Results::Result *put = results.Add(hx.p->memory_pools.result->acquire<TestPut>());
+        hxhim::Results::Result *put = results.Add(result->acquire<TestPut>());
         EXPECT_NE(put, nullptr);
-        hxhim::Results::Result *get = results.Add(hx.p->memory_pools.result->acquire<TestGet>());
+        hxhim::Results::Result *get = results.Add(result->acquire<TestGet>());
         EXPECT_NE(get, nullptr);
-        hxhim::Results::Result *del = results.Add(hx.p->memory_pools.result->acquire<TestDelete>());
+        hxhim::Results::Result *del = results.Add(result->acquire<TestDelete>());
         EXPECT_NE(del, nullptr);
 
         // empty append set of results

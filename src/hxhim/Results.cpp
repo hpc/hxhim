@@ -4,12 +4,12 @@
 #include "hxhim/Results.hpp"
 #include "hxhim/Results_private.hpp"
 #include "hxhim/private.hpp"
-#include "utils/elen.hpp"
 
 namespace hxhim {
 
-Results::Result::Result(hxhim_result_type t)
-    : type(t)
+Results::Result::Result(hxhim_result_type t, FixedBufferPool *buffers)
+    : type(t),
+      buffers(buffers)
 {}
 
 Results::Result::~Result() {}
@@ -27,7 +27,7 @@ int Results::Result::GetStatus() const {
 }
 
 Results::Put::Put(hxhim_t *hx, Transport::Response::Put *put)
-    : Result(hxhim_result_type::HXHIM_RESULT_PUT)
+    : Result(hxhim_result_type::HXHIM_RESULT_PUT, hx->p->memory_pools.buffers)
 {
     if (put) {
         datastore = hxhim::datastore::get_id(hx, put->src, put->ds_offset);
@@ -36,7 +36,7 @@ Results::Put::Put(hxhim_t *hx, Transport::Response::Put *put)
 }
 
 Results::Put::Put(hxhim_t *hx, Transport::Response::BPut *bput, const std::size_t i)
-    : Result(hxhim_result_type::HXHIM_RESULT_PUT)
+    : Result(hxhim_result_type::HXHIM_RESULT_PUT, hx->p->memory_pools.buffers)
 {
     if (bput && (i < bput->count)) {
         datastore = hxhim::datastore::get_id(hx, bput->src, bput->ds_offsets[i]);
@@ -46,65 +46,74 @@ Results::Put::Put(hxhim_t *hx, Transport::Response::BPut *bput, const std::size_
 
 Results::Put::~Put() {}
 
-Results::Get::Get()
-    : Result(HXHIM_RESULT_GET),
+Results::Get::Get(hxhim_t *hx)
+    : Result(HXHIM_RESULT_GET, hx->p->memory_pools.buffers),
       sub(nullptr), sub_len(0),
       pred(nullptr), pred_len(0),
       obj_type(), obj(nullptr), obj_len(0)
 {}
 
 Results::Get::Get(hxhim_t *hx, Transport::Response::Get *get)
-    : Get()
+    : Get(hx)
 {
     if (get) {
         datastore = hxhim::datastore::get_id(hx, get->src, get->ds_offset);
         status = get->status;
         sub = get->subject;
+        get->subject = nullptr;
         sub_len = get->subject_len;
         pred = get->predicate;
+        get->predicate = nullptr;
         pred_len = get->predicate_len;
         obj_type = get->object_type;
         obj = get->object;
+        get->object = nullptr;
         obj_len = get->object_len;
     }
 }
 
 Results::Get::Get(hxhim_t *hx, Transport::Response::BGet *bget, const std::size_t i)
-    : Get()
+    : Get(hx)
 {
     if (bget && (i < bget->count)) {
         datastore = hxhim::datastore::get_id(hx, bget->src, bget->ds_offsets[i]);
         status = bget->statuses[i];
         sub = std::move(bget->subjects[i]);
+        bget->subjects[i] = nullptr;
         sub_len = std::move(bget->subject_lens[i]);
         pred = std::move(bget->predicates[i]);
+        bget->predicates[i] = nullptr;
         pred_len = std::move(bget->predicate_lens[i]);
         obj_type = std::move(bget->object_types[i]);
         obj = std::move(bget->objects[i]);
+        bget->objects[i] = nullptr;
         obj_len = std::move(bget->object_lens[i]);
     }
 }
 
 Results::Get::Get(hxhim_t *hx, Transport::Response::BGetOp *bgetop, const std::size_t i)
-    : Get()
+    : Get(hx)
 {
     if (bgetop && (i < bgetop->count)) {
         datastore = hxhim::datastore::get_id(hx, bgetop->src, bgetop->ds_offsets[i]);
         status = bgetop->statuses[i];
         sub = std::move(bgetop->subjects[i]);
+        bgetop->subjects[i] = nullptr;
         sub_len = std::move(bgetop->subject_lens[i]);
         pred = std::move(bgetop->predicates[i]);
+        bgetop->predicates[i] = nullptr;
         pred_len = std::move(bgetop->predicate_lens[i]);
         obj_type = std::move(bgetop->object_types[i]);
         obj = std::move(bgetop->objects[i]);
+        bgetop->objects[i] = nullptr;
         obj_len = std::move(bgetop->object_lens[i]);
     }
 }
 
 Results::Get::~Get() {
-    ::operator delete(sub);
-    ::operator delete(pred);
-    ::operator delete(obj);
+    buffers->release(sub);
+    buffers->release(pred);
+    buffers->release(obj);
 }
 
 hxhim_type_t Results::Get::GetObjectType() const {
@@ -148,7 +157,7 @@ int Results::Get::GetObject(void **object, std::size_t *object_len) const {
 }
 
 Results::Delete::Delete(hxhim_t *hx, Transport::Response::Delete *del)
-    : Result(hxhim_result_type::HXHIM_RESULT_DEL)
+    : Result(hxhim_result_type::HXHIM_RESULT_DEL, hx->p->memory_pools.buffers)
 {
     if (del) {
         datastore = hxhim::datastore::get_id(hx, del->src, del->ds_offset);
@@ -157,7 +166,7 @@ Results::Delete::Delete(hxhim_t *hx, Transport::Response::Delete *del)
 }
 
 Results::Delete::Delete(hxhim_t *hx, Transport::Response::BDelete *bdel, const std::size_t i)
-    : Result(hxhim_result_type::HXHIM_RESULT_DEL)
+    : Result(hxhim_result_type::HXHIM_RESULT_DEL, hx->p->memory_pools.buffers)
 {
     if (bdel && (i < bdel->count)) {
         datastore = hxhim::datastore::get_id(hx, bdel->src, bdel->ds_offsets[i]);
@@ -168,7 +177,7 @@ Results::Delete::Delete(hxhim_t *hx, Transport::Response::BDelete *bdel, const s
 Results::Delete::~Delete() {}
 
 Results::Sync::Sync(hxhim_t *hx, const int ds_offset, const int synced)
-    : Result(hxhim_result_type::HXHIM_RESULT_SYNC)
+    : Result(hxhim_result_type::HXHIM_RESULT_SYNC, hx->p->memory_pools.buffers)
 {
     datastore = hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, ds_offset);
     status = synced;
@@ -177,7 +186,7 @@ Results::Sync::Sync(hxhim_t *hx, const int ds_offset, const int synced)
 Results::Sync::~Sync() {}
 
 Results::Histogram::Histogram(hxhim_t *hx, Transport::Response::Histogram *hist)
-    : Result(hxhim_result_type::HXHIM_RESULT_HISTOGRAM),
+    : Result(hxhim_result_type::HXHIM_RESULT_HISTOGRAM, hx->p->memory_pools.buffers),
       buckets(nullptr),
       counts(nullptr),
       size(0)
@@ -185,15 +194,18 @@ Results::Histogram::Histogram(hxhim_t *hx, Transport::Response::Histogram *hist)
     if (hist) {
         datastore = hxhim::datastore::get_id(hx, hist->src, hist->ds_offset);
         buckets = hist->hist.buckets;
+        hist->hist.buckets = nullptr;
         counts = hist->hist.counts;
+        hist->hist.counts = nullptr;
         size = hist->hist.size;
+        hist->hist.size = 0;
 
         status = hist->status;
     }
 }
 
 Results::Histogram::Histogram(hxhim_t *hx, Transport::Response::BHistogram *bhist, const std::size_t i)
-    : Result(hxhim_result_type::HXHIM_RESULT_HISTOGRAM),
+    : Result(hxhim_result_type::HXHIM_RESULT_HISTOGRAM, hx->p->memory_pools.buffers),
       buckets(nullptr),
       counts(nullptr),
       size(0)
@@ -367,8 +379,8 @@ std::size_t Results::size() const {
  * @param res A hxhim::Results instance
  * @return the pointer to the C structure containing the hxhim::Results
  */
-hxhim_results_t *hxhim_results_init(hxhim::Results *res) {
-    hxhim_results_t *ret = new hxhim_results_t();
+hxhim_results_t *hxhim_results_init(hxhim_t *hx, hxhim::Results *res) {
+    hxhim_results_t *ret = hx->p->memory_pools.buffers->acquire<hxhim_results_t>();
     ret->res = res;
     return ret;
 }

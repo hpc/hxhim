@@ -181,9 +181,10 @@ void FixedBufferPool::release(void *ptr) {
 
 /**
  * release_array
- * Destructs each element and releases the array to back into the pool.
+ * Releases the array to back into the pool without destructing the elements
  *
- * @tparam ptr T * acquired through FixedBufferPool::acquire
+ * @tparam ptr   T * acquired through FixedBufferPool::acquire
+ * @param  count number of elements (not used)
  */
 void FixedBufferPool::release_array(void *ptr, const std::size_t count) {
     if (ptr) {

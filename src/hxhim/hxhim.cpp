@@ -193,7 +193,7 @@ hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim_results_t *hxhimFlushPuts(hxhim_t *hx) {
-    return hxhim_results_init(hxhim::FlushPuts(hx));
+    return hxhim_results_init(hx, hxhim::FlushPuts(hx));
 }
 
 /**
@@ -323,7 +323,7 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim_results_t *hxhimFlushGets(hxhim_t *hx) {
-    return hxhim_results_init(hxhim::FlushGets(hx));
+    return hxhim_results_init(hx, hxhim::FlushGets(hx));
 }
 
 /**
@@ -459,7 +459,7 @@ hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim_results_t *hxhimFlushGetOps(hxhim_t *hx) {
-    return hxhim_results_init(hxhim::FlushGetOps(hx));
+    return hxhim_results_init(hx, hxhim::FlushGetOps(hx));
 }
 
 /**
@@ -594,7 +594,7 @@ hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim_results_t *hxhimFlushDeletes(hxhim_t *hx) {
-    return hxhim_results_init(hxhim::FlushDeletes(hx));
+    return hxhim_results_init(hx, hxhim::FlushDeletes(hx));
 }
 
 /**
@@ -630,7 +630,7 @@ hxhim::Results *hxhim::Flush(hxhim_t *hx) {
  * @return An array of results (3 values)
  */
 hxhim_results_t *hxhimFlush(hxhim_t *hx) {
-    return hxhim_results_init(hxhim::Flush(hx));
+    return hxhim_results_init(hx, hxhim::Flush(hx));
 }
 
 /**
@@ -666,7 +666,7 @@ hxhim::Results *hxhim::Sync(hxhim_t *hx) {
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 hxhim_results_t *hxhimSync(hxhim_t *hx) {
-    return hxhim_results_init(hxhim::Sync(hx));
+    return hxhim_results_init(hx, hxhim::Sync(hx));
 }
 
 /**
@@ -1346,7 +1346,7 @@ hxhim::Results *hxhim::GetHistogram(hxhim_t *hx, const int datastore) {
  * @return the histogram, inside a hxhim::Results structure
  */
 hxhim_results_t *hxhimGetHistogram(hxhim_t *hx, const int datastore) {
-    return hxhim_results_init(hxhim::GetHistogram(hx, datastore));
+    return hxhim_results_init(hx, hxhim::GetHistogram(hx, datastore));
 }
 
 /**
@@ -1421,5 +1421,5 @@ hxhim::Results *hxhim::GetBHistogram(hxhim_t *hx, const int *datastores, const s
  * @return the histogram, inside a hxhim::Results structure
  */
 hxhim_results_t *hxhimBGetHistogram(hxhim_t *hx, const int *datastores, const size_t count) {
-    return hxhim_results_init(hxhim::GetBHistogram(hx, datastores, count));
+    return hxhim_results_init(hx, hxhim::GetBHistogram(hx, datastores, count));
 }

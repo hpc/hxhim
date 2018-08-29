@@ -1,7 +1,8 @@
-#ifndef HXHIM_RESULTS_PREIVATE_HPP
-#define HXHIM_RESULTS_PREIVATE_HPP
+#ifndef HXHIM_RESULTS_PRIVATE_HPP
+#define HXHIM_RESULTS_PRIVATE_HPP
 
 #include "hxhim/Results.hpp"
+#include "hxhim/struct.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -16,6 +17,6 @@ typedef struct hxhim_results {
 }
 #endif
 
-hxhim_results_t *hxhim_results_init(hxhim::Results *res);
+hxhim_results_t *hxhim_results_init(hxhim_t *hx, hxhim::Results *res);
 
 #endif

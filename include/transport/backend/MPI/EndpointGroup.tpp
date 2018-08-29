@@ -18,7 +18,6 @@ std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::size_t num_s
         return 0;
     }
 
-    std::cout << "epg packing" << std::endl;
 
     // pack the data
     void **bufs = new void *[num_srvs]();
@@ -31,7 +30,6 @@ std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::size_t num_s
             pack_count++;
         }
     }
-    std::cout << "epg packed " << pack_count << std::endl;
 
     // send sizes and data in parallel
     MPI_Request *size_reqs = new MPI_Request[pack_count]();
@@ -42,7 +40,6 @@ std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::size_t num_s
     for(std::size_t i = 0; i < pack_count; i++) {
         std::map<int, int>::const_iterator dst_it = ranks.find(dsts[i]);
 
-        std::cout << "epg sending from " << rank << " to " << dst_it->second <<  std::endl;
         if (dst_it == ranks.end()) {
             continue;
         }
@@ -63,12 +60,10 @@ std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::size_t num_s
             size_reqs[size_count] = MPI_REQUEST_NULL;
         }
     }
-    std::cout << "epg sent all" << std::endl;
 
     // wait for messages to complete sending
     MPI_Waitall(size_count, size_reqs, MPI_STATUSES_IGNORE);
     MPI_Waitall(data_count, data_reqs, MPI_STATUSES_IGNORE);
-    std::cout << "epg wait done" << std::endl;
 
     delete [] data_reqs;
     delete [] size_reqs;
@@ -77,7 +72,6 @@ std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::size_t num_s
         packed->release(bufs[i]);
     }
     delete [] bufs;
-    std::cout << "epg cleanup" << std::endl;
 
     return data_count;
 }

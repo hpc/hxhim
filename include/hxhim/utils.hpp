@@ -18,6 +18,7 @@ FixedBufferPool *GetKeyFBP(hxhim_t *hx);
 FixedBufferPool *GetArrayFBP(hxhim_t *hx);
 FixedBufferPool *GetRequestFBP(hxhim_t *hx);
 FixedBufferPool *GetResponseFBP(hxhim_t *hx);
+FixedBufferPool *GetResultFBP(hxhim_t *hx);
 
 template <typename T, typename = std::enable_if_t<std::is_base_of<Transport::Request::Request, T>::value &&
                                                   std::is_base_of<Transport::Single, T>::value> >
