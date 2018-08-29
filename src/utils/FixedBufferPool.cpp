@@ -1,3 +1,6 @@
+#include "utils/mlog2.h"
+#include "utils/mlogfacs2.h"
+
 #include "utils/FixedBufferPool.hpp"
 
 /**
@@ -27,7 +30,7 @@ FixedBufferPool::FixedBufferPool(const std::size_t alloc_size, const std::size_t
         nodes_ = new Node[regions_]();
     }
     catch (...) {
-        mlog(FBP_CRIT, "%s: Failed to allocate bookkeeping array", name_.c_str());
+        mlog(FBP_CRIT, "%s (%zu bytes x %zu regions): Failed to allocate bookkeeping array", name_.c_str(), alloc_size, regions_);
         ::operator delete(pool_);
         throw;
     }
@@ -49,7 +52,7 @@ FixedBufferPool::FixedBufferPool(const std::size_t alloc_size, const std::size_t
     // first available region is the head of the list
     unused_ = nodes_;
 
-    mlog(FBP_DBG, "%s: Created pool of %zu bytes x %zu regions", name_.c_str(), alloc_size_, regions_);
+    mlog(FBP_INFO, "%s (%zu bytes x %zu regions): Created", name_.c_str(), alloc_size_, regions_);
 }
 
 /**
@@ -73,7 +76,7 @@ FixedBufferPool::~FixedBufferPool() {
     ::operator delete(pool_);
     pool_ = nullptr;
 
-    mlog(FBP_DBG, "%s: Destructed with %zu regions still in use", name_.c_str(), used_);
+    mlog(FBP_INFO, "%s (%zu bytes x %zu regions): Destructed with %zu regions still in use", name_.c_str(), alloc_size_, regions_, used_);
 }
 
 /**
@@ -93,26 +96,26 @@ FixedBufferPool::~FixedBufferPool() {
 void *FixedBufferPool::acquire(const std::size_t size) {
     // 0 bytes
     if (!size) {
-        mlog(FBP_WARN, "%s: Got request for a size 0 buffer", name_.c_str());
+        mlog(FBP_WARN, "%s (%zu bytes x %zu regions): Got request for a size 0 buffer", name_.c_str(), alloc_size_, regions_);
         return nullptr;
     }
 
     // too big
     if (size > alloc_size_) {
-        mlog(FBP_WARN, "%s: Got request for a size %zu buffer, which is greater than the size of a region (%zu)", name_.c_str(), size, alloc_size_);
+        mlog(FBP_WARN, "%s (%zu bytes x %zu regions): Got request for a size %zu buffer, which is greater than the size of a region (%zu)", name_.c_str(), alloc_size_, regions_, size, alloc_size_);
         return nullptr;
     }
 
     std::unique_lock<std::mutex> lock(mutex_);
-    mlog(FBP_DBG, "%s: Got request for a size %zu buffer", name_.c_str(), size);
+    mlog(FBP_DBG, "%s (%zu bytes x %zu regions): Got request for a size %zu buffer", name_.c_str(), alloc_size_, regions_, size);
 
     // wait until a slot opens up
     while (!unused_) {
-        mlog(FBP_DBG, "%s: Waiting for a size %zu buffer", name_.c_str(), size);
+        mlog(FBP_DBG, "%s (%zu bytes x %zu regions): Waiting for a size %zu buffer", name_.c_str(), alloc_size_, regions_, size);
         cv_.wait(lock, [&]{ return unused_; });
     }
 
-    mlog(FBP_DBG, "%s: A size %zu buffer is available", name_.c_str(), size);
+    mlog(FBP_DBG, "%s (%zu bytes x %zu regions): A size %zu buffer is available", name_.c_str(), alloc_size_, regions_, size);
 
     // set the return address to the head of the unused list
     // and clear the memory region
@@ -124,7 +127,14 @@ void *FixedBufferPool::acquire(const std::size_t size) {
     unused_ = next;
 
     used_++;
-    mlog(FBP_DBG, "%s: Acquired a size %zu buffer (%p). %zu regions left.", name_.c_str(), size, ret, regions_ - used_);
+
+    const std::size_t remaining = regions_ - used_;
+    mlog(FBP_DBG, "%s (%zu bytes x %zu regions): Acquired a size %zu buffer (%p). %zu regions remaining.", name_.c_str(), alloc_size_, regions_, size, ret, remaining);
+
+    if (!remaining) {
+        mlog(FBP_WARN, "%s (%zu bytes x %zu regions): 0 regions left.", name_.c_str(), alloc_size_, regions_);
+    }
+
     return ret;
 }
 
@@ -137,7 +147,7 @@ void *FixedBufferPool::acquire(const std::size_t size) {
  */
 void FixedBufferPool::release(void *ptr) {
     if (!ptr) {
-        mlog(FBP_WARN, "%s: Attempted to free a nullptr", name_.c_str());
+        mlog(FBP_WARN, "%s (%zu bytes x %zu regions): Attempted to free a nullptr", name_.c_str(), alloc_size_, regions_);
         return;
     }
 
@@ -146,7 +156,7 @@ void FixedBufferPool::release(void *ptr) {
     // if the pointer is not within the memory pool, do nothing
     if (((char *)ptr < (char *)pool_) ||
         (((char *)pool_ + pool_size_)) < (char *)ptr) {
-        mlog(FBP_ERR, "%s: Attempted to free address (%p) that is not within the memory pool", name_.c_str(), ptr);
+        mlog(FBP_ERR, "%s (%zu bytes x %zu regions): Attempted to free address (%p) that is not within the memory pool", name_.c_str(), alloc_size_, regions_, ptr);
         return;
     }
 
@@ -155,7 +165,7 @@ void FixedBufferPool::release(void *ptr) {
 
     // if the pointer isn't a multiple of the of the allocation size, do nothing
     if (offset % alloc_size_) {
-        mlog(FBP_WARN, "%s: Address being freed (%p) is not aligned to an allocation region", name_.c_str(), ptr);
+        mlog(FBP_WARN, "%s (%zu bytes x %zu regions): Address being freed (%p) is not aligned to an allocation region", name_.c_str(), alloc_size_, regions_, ptr);
     }
 
     // index of this pointer in the fixed size array
@@ -163,7 +173,7 @@ void FixedBufferPool::release(void *ptr) {
 
     // check for double frees (to prevent loops)
     if (nodes_[index].next) {
-        mlog(FBP_WARN, "%s: Address being freed (%p) has already been freed", name_.c_str(), ptr);
+        mlog(FBP_WARN, "%s (%zu bytes x %zu regions): Address being freed (%p) has already been freed", name_.c_str(), alloc_size_, regions_, ptr);
         return;
     }
 
@@ -176,7 +186,7 @@ void FixedBufferPool::release(void *ptr) {
 
     cv_.notify_all();
 
-    mlog(FBP_DBG, "%s: Freed %p. %zu regions left.", name_.c_str(), ptr, regions_ - used_);
+    mlog(FBP_DBG, "%s (%zu bytes x %zu regions): Freed %p. %zu regions available.", name_.c_str(), alloc_size_, regions_, ptr, regions_ - used_);
 }
 
 /**

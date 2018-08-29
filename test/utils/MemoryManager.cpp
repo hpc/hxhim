@@ -2,31 +2,21 @@
 
 #include "utils/MemoryManager.hpp"
 
-TEST(MemoryManager, different_alloc_size) {
-    FixedBufferPool *fbp1 = MemoryManager::FBP(128, 256);
+TEST(MemoryManager, different_names) {
+    FixedBufferPool *fbp1 = MemoryManager::FBP(128, 256, "FBP 1");
     EXPECT_NE(fbp1, nullptr);
 
-    FixedBufferPool *fbp2 = MemoryManager::FBP(129, 256);
+    FixedBufferPool *fbp2 = MemoryManager::FBP(128, 256, "FBP 2");
     EXPECT_NE(fbp2, nullptr);
 
     EXPECT_NE(fbp1, fbp2);
 }
 
-TEST(MemoryManager, different_regions) {
-    FixedBufferPool *fbp1 = MemoryManager::FBP(128, 256);
+TEST(MemoryManager, same_names) {
+    FixedBufferPool *fbp1 = MemoryManager::FBP(128, 256, "FBP 1");
     EXPECT_NE(fbp1, nullptr);
 
-    FixedBufferPool *fbp2 = MemoryManager::FBP(128, 257);
-    EXPECT_NE(fbp2, nullptr);
-
-    EXPECT_NE(fbp1, fbp2);
-}
-
-TEST(MemoryManager, duplicate) {
-    FixedBufferPool *fbp1 = MemoryManager::FBP(128, 256);
-    EXPECT_NE(fbp1, nullptr);
-
-    FixedBufferPool *fbp2 = MemoryManager::FBP(128, 256);
+    FixedBufferPool *fbp2 = MemoryManager::FBP(128, 256, "FBP 1");
     EXPECT_NE(fbp2, nullptr);
 
     EXPECT_EQ(fbp1, fbp2);

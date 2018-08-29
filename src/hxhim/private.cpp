@@ -344,6 +344,7 @@ int hxhim::init::running(hxhim_t *hx, hxhim_options_t *opts) {
  * @param opts the HXHIM options
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
+#include <iostream>
 int hxhim::init::memory(hxhim_t *hx, hxhim_options_t *opts) {
     if (!valid(hx, opts)) {
         return HXHIM_ERROR;
@@ -536,6 +537,7 @@ static int init_transport_mpi(hxhim_t *hx, hxhim_options_t *opts) {
     RangeServer::init(hx, config->listeners);
 
     EndpointGroup *eg = new EndpointGroup(hx->p->bootstrap.comm,
+                                          hx->p->running,
                                           hx->p->memory_pools.packed,
                                           hx->p->memory_pools.responses,
                                           hx->p->memory_pools.arrays,

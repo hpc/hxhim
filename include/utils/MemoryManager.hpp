@@ -5,6 +5,11 @@
 
 #include "FixedBufferPool.hpp"
 
+/**
+ * MemoryManager
+ * Returns a unique FixedBufferPool, given a name
+ * The FixedBufferPools are indexed by name, not alloc_size/regions
+ */
 class MemoryManager {
     public:
         static FixedBufferPool *FBP(const std::size_t alloc_size, const std::size_t regions, const std::string &name = "FixedBufferPool");
@@ -13,9 +18,7 @@ class MemoryManager {
         MemoryManager();
         ~MemoryManager();
 
-        typedef std::map<std::size_t, FixedBufferPool *> Pool;
-        typedef std::map<std::size_t, Pool> Pools;
-
+        typedef std::map<std::string, FixedBufferPool *> Pools;
         Pools pools;
 };
 

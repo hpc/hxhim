@@ -1,6 +1,7 @@
 #ifndef TRANSPORT_ENDPOINT_GROUP_HPP
 #define TRANSPORT_ENDPOINT_GROUP_HPP
 
+#include <atomic>
 #include <map>
 #include <pthread.h>
 
@@ -22,6 +23,7 @@ namespace MPI {
 class EndpointGroup : virtual public ::Transport::EndpointGroup, virtual public EndpointBase {
     public:
         EndpointGroup(const MPI_Comm comm,
+                      volatile std::atomic_bool &running,
                       FixedBufferPool *packed,
                       FixedBufferPool *responses,
                       FixedBufferPool *arrays,
@@ -70,6 +72,8 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup, virtual public 
 
         /** @description Mapping from unique ids to MPI ranks */
         std::map<int, int> ranks;
+
+        volatile std::atomic_bool &running;
 
         FixedBufferPool *packed;
         FixedBufferPool *responses;

@@ -44,13 +44,14 @@ class Unpacker {
         static int unpack(const MPI_Comm comm, Response::BHistogram **bhist, const void *buf, const std::size_t bufsize, FixedBufferPool *responses, FixedBufferPool *arrays, FixedBufferPool *buffers);
 
     private:
-        /** Unpackd into existing buffers */
+        /** Unpack into existing buffers */
         static int unpack(const MPI_Comm comm, Message              *msg,    const void *buf, const std::size_t bufsize, int *position);
         static int unpack(const MPI_Comm comm, Request::Request     *req,    const void *buf, const std::size_t bufsize, int *position);
         static int unpack(const MPI_Comm comm, Response::Response   *res,    const void *buf, const std::size_t bufsize, int *position);
 
-        /** Unpack into non-existant buffers with known types*/
+        /** Unpack the header */
         static int unpack(const MPI_Comm comm, Message              **msg,   const void *buf, const std::size_t bufsize, FixedBufferPool *requests, FixedBufferPool *arrays,   FixedBufferPool *buffers);
+        /** Unpack into non-existant buffers with known types*/
         static int unpack(const MPI_Comm comm, Request::Request     **req,   const void *buf, const std::size_t bufsize, const Message::Type type, FixedBufferPool *requests,  FixedBufferPool *arrays, FixedBufferPool *buffers);
         static int unpack(const MPI_Comm comm, Response::Response   **res,   const void *buf, const std::size_t bufsize, const Message::Type type, FixedBufferPool *responses, FixedBufferPool *arrays, FixedBufferPool *buffers);
 

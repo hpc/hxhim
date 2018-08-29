@@ -21,7 +21,68 @@ int Transport::Thallium::Unpacker::unpack(Request::Request **req, const std::str
         return ret;
     }
 
-    ret = unpack(req, buf, base->type, requests, arrays, buffers);
+    *req = nullptr;
+
+    switch (base->type) {
+        case Message::PUT:
+            {
+                Request::Put *out = nullptr;
+                ret = unpack(&out, buf, requests, arrays, buffers);
+                *req = out;
+            }
+            break;
+        case Message::GET:
+            {
+                Request::Get *out = nullptr;
+                ret = unpack(&out, buf, requests, arrays, buffers);
+                *req = out;
+            }
+            break;
+        case Message::DELETE:
+            {
+                Request::Delete *out = nullptr;
+                ret = unpack(&out, buf, requests, arrays, buffers);
+                *req = out;
+            }
+            break;
+        case Message::HISTOGRAM:
+            {
+                Request::Histogram *out = nullptr;
+                ret = unpack(&out, buf, requests, arrays, buffers);
+                *req = out;
+            }
+            break;
+        case Message::BPUT:
+            {
+                Request::BPut *out = nullptr;
+                ret = unpack(&out, buf, requests, arrays, buffers);
+                *req = out;
+            }
+            break;
+        case Message::BGET:
+            {
+                Request::BGet *out = nullptr;
+                ret = unpack(&out, buf, requests, arrays, buffers);
+                *req = out;
+            }
+            break;
+        case Message::BGETOP:
+            {
+                Request::BGetOp *out = nullptr;
+                ret = unpack(&out, buf, requests, arrays, buffers);
+                *req = out;
+            }
+            break;
+        case Message::BDELETE:
+            {
+                Request::BDelete *out = nullptr;
+                ret = unpack(&out, buf, requests, arrays, buffers);
+                *req = out;
+            }
+            break;
+        default:
+            break;
+    }
 
     delete base;
     return ret;
@@ -422,7 +483,69 @@ int Transport::Thallium::Unpacker::unpack(Response::Response **res, const std::s
         return ret;
     }
 
-    ret = unpack(res, buf, base->type, responses, arrays, buffers);
+    *res = nullptr;
+
+    switch (base->type) {
+        case Message::PUT:
+            {
+                Response::Put *out = nullptr;
+                ret = unpack(&out, buf, responses, arrays, buffers);
+                *res = out;
+            }
+            break;
+        case Message::GET:
+            {
+                Response::Get *out = nullptr;
+                ret = unpack(&out, buf, responses, arrays, buffers);
+                *res = out;
+            }
+            break;
+        case Message::DELETE:
+            {
+                Response::Delete *out = nullptr;
+                ret = unpack(&out, buf, responses, arrays, buffers);
+                *res = out;
+            }
+            break;
+        case Message::HISTOGRAM:
+            {
+                Response::Histogram *out = nullptr;
+                ret = unpack(&out, buf, responses, arrays, buffers);
+                *res = out;
+            }
+            break;
+        case Message::BPUT:
+            {
+                Response::BPut *out = nullptr;
+                ret = unpack(&out, buf, responses, arrays, buffers);
+                *res = out;
+            }
+            break;
+        case Message::BGET:
+            {
+                Response::BGet *out = nullptr;
+                ret = unpack(&out, buf, responses, arrays, buffers);
+                *res = out;
+            }
+            break;
+        case Message::BGETOP:
+            {
+                Response::BGetOp *out = nullptr;
+                ret = unpack(&out, buf, responses, arrays, buffers);
+                *res = out;
+            }
+            break;
+        case Message::BDELETE:
+            {
+                Response::BDelete *out = nullptr;
+                ret = unpack(&out, buf, responses, arrays, buffers);
+                *res = out;
+            }
+            break;
+        default:
+            break;
+    }
+
     delete base;
     return ret;
 }
@@ -864,150 +987,6 @@ int Transport::Thallium::Unpacker::unpack(Message *msg, std::stringstream &s) {
         .read((char *) &msg->type, sizeof(msg->type))
         .read((char *) &msg->src, sizeof(msg->src))
         .read((char *) &msg->dst, sizeof(msg->dst))?TRANSPORT_SUCCESS:TRANSPORT_ERROR;
-}
-
-int Transport::Thallium::Unpacker::unpack(Request::Request **req, const std::string &buf, const Message::Type type, FixedBufferPool *requests, FixedBufferPool *arrays, FixedBufferPool *buffers) {
-    int ret = TRANSPORT_ERROR;
-    if (!req) {
-        return ret;
-    }
-
-    *req = nullptr;
-
-    switch (type) {
-        case Message::PUT:
-            {
-                Request::Put *out = nullptr;
-                ret = unpack(&out, buf, requests, arrays, buffers);
-                *req = out;
-            }
-            break;
-        case Message::GET:
-            {
-                Request::Get *out = nullptr;
-                ret = unpack(&out, buf, requests, arrays, buffers);
-                *req = out;
-            }
-            break;
-        case Message::DELETE:
-            {
-                Request::Delete *out = nullptr;
-                ret = unpack(&out, buf, requests, arrays, buffers);
-                *req = out;
-            }
-            break;
-        case Message::HISTOGRAM:
-            {
-                Request::Histogram *out = nullptr;
-                ret = unpack(&out, buf, requests, arrays, buffers);
-                *req = out;
-            }
-            break;
-        case Message::BPUT:
-            {
-                Request::BPut *out = nullptr;
-                ret = unpack(&out, buf, requests, arrays, buffers);
-                *req = out;
-            }
-            break;
-        case Message::BGET:
-            {
-                Request::BGet *out = nullptr;
-                ret = unpack(&out, buf, requests, arrays, buffers);
-                *req = out;
-            }
-            break;
-        case Message::BGETOP:
-            {
-                Request::BGetOp *out = nullptr;
-                ret = unpack(&out, buf, requests, arrays, buffers);
-                *req = out;
-            }
-            break;
-        case Message::BDELETE:
-            {
-                Request::BDelete *out = nullptr;
-                ret = unpack(&out, buf, requests, arrays, buffers);
-                *req = out;
-            }
-            break;
-        default:
-            break;
-    }
-
-    return ret;
-}
-
-int Transport::Thallium::Unpacker::unpack(Response::Response **res, const std::string &buf, const Message::Type type, FixedBufferPool *responses, FixedBufferPool *arrays, FixedBufferPool *buffers) {
-    int ret = TRANSPORT_ERROR;
-    if (!res) {
-        return ret;
-    }
-
-    *res = nullptr;
-
-    switch (type) {
-        case Message::PUT:
-            {
-                Response::Put *out = nullptr;
-                ret = unpack(&out, buf, responses, arrays, buffers);
-                *res = out;
-            }
-            break;
-        case Message::GET:
-            {
-                Response::Get *out = nullptr;
-                ret = unpack(&out, buf, responses, arrays, buffers);
-                *res = out;
-            }
-            break;
-        case Message::DELETE:
-            {
-                Response::Delete *out = nullptr;
-                ret = unpack(&out, buf, responses, arrays, buffers);
-                *res = out;
-            }
-            break;
-        case Message::HISTOGRAM:
-            {
-                Response::Histogram *out = nullptr;
-                ret = unpack(&out, buf, responses, arrays, buffers);
-                *res = out;
-            }
-            break;
-        case Message::BPUT:
-            {
-                Response::BPut *out = nullptr;
-                ret = unpack(&out, buf, responses, arrays, buffers);
-                *res = out;
-            }
-            break;
-        case Message::BGET:
-            {
-                Response::BGet *out = nullptr;
-                ret = unpack(&out, buf, responses, arrays, buffers);
-                *res = out;
-            }
-            break;
-        case Message::BGETOP:
-            {
-                Response::BGetOp *out = nullptr;
-                ret = unpack(&out, buf, responses, arrays, buffers);
-                *res = out;
-            }
-            break;
-        case Message::BDELETE:
-            {
-                Response::BDelete *out = nullptr;
-                ret = unpack(&out, buf, responses, arrays, buffers);
-                *res = out;
-            }
-            break;
-        default:
-            break;
-    }
-
-    return ret;
 }
 
 #endif

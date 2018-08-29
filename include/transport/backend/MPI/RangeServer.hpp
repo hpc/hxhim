@@ -29,6 +29,9 @@ class RangeServer {
         static int recv(void **data, std::size_t *len);
         static int send(const int dst, void *data, const std::size_t len);
 
+        static int Flush(MPI_Request &req);
+        static int Flush(MPI_Request &req, MPI_Status &status);
+
         static hxhim_t *hx_;
         static std::atomic_bool *running_;
         static std::vector<pthread_t> listeners_;

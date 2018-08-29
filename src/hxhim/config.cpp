@@ -216,7 +216,7 @@ static bool parse_regions(hxhim_options_t *opts, const Config &config, const std
 
 static bool parse_name(hxhim_options_t *opts, const Config &config, const std::string &key, int (*set_name)(hxhim_options_t *, const char *)) {
     std::string name = "";
-    const int ret = get_value(config, HXHIM_PACKED_NAME, name);
+    const int ret = get_value(config, key, name);
     if ((ret == CONFIG_ERROR)                                                    ||
         ((ret == CONFIG_FOUND) && set_name(opts, name.c_str()) != HXHIM_SUCCESS)) {
         return false;
@@ -252,33 +252,33 @@ static int fill_options(hxhim_options_t *opts, const Config &config) {
         parse_queued_bputs(opts, config) &&
         parse_histogram_first_n(opts, config) &&
         parse_histogram_bucket_gen(opts, config) &&
-        parse_alloc_size(opts, config, HXHIM_PACKED_ALLOC_SIZE, hxhim_options_set_packed_alloc_size) &&
-        parse_regions(opts, config, HXHIM_PACKED_REGIONS, hxhim_options_set_packed_regions) &&
-        parse_name(opts, config, HXHIM_PACKED_NAME, hxhim_options_set_packed_name) &&
-        parse_alloc_size(opts, config, HXHIM_BUFFERS_ALLOC_SIZE, hxhim_options_set_buffers_alloc_size) &&
-        parse_regions(opts, config, HXHIM_BUFFERS_REGIONS, hxhim_options_set_buffers_regions) &&
-        parse_name(opts, config, HXHIM_BUFFERS_NAME, hxhim_options_set_buffers_name) &&
-        // parse_alloc_size(opts, config, HXHIM_BULKS_ALLOC_SIZE, hxhim_options_set_bulks_alloc_size) &&
-        parse_regions(opts, config, HXHIM_BULKS_REGIONS, hxhim_options_set_bulks_regions) &&
-        parse_name(opts, config, HXHIM_BULKS_NAME, hxhim_options_set_bulks_name) &&
-        parse_alloc_size(opts, config, HXHIM_KEYS_ALLOC_SIZE, hxhim_options_set_keys_alloc_size) &&
-        parse_regions(opts, config, HXHIM_KEYS_REGIONS, hxhim_options_set_keys_regions) &&
-        parse_name(opts, config, HXHIM_KEYS_NAME, hxhim_options_set_keys_name) &&
-        parse_alloc_size(opts, config, HXHIM_ARRAYS_ALLOC_SIZE, hxhim_options_set_arrays_alloc_size) &&
-        parse_regions(opts, config, HXHIM_ARRAYS_REGIONS, hxhim_options_set_arrays_regions) &&
-        parse_name(opts, config, HXHIM_ARRAYS_NAME, hxhim_options_set_arrays_name) &&
-        parse_alloc_size(opts, config, HXHIM_REQUESTS_ALLOC_SIZE, hxhim_options_set_requests_alloc_size) &&
-        parse_regions(opts, config, HXHIM_REQUESTS_REGIONS, hxhim_options_set_requests_regions) &&
-        parse_name(opts, config, HXHIM_REQUESTS_NAME, hxhim_options_set_requests_name) &&
+        parse_alloc_size(opts, config, HXHIM_PACKED_ALLOC_SIZE,    hxhim_options_set_packed_alloc_size) &&
+        parse_regions   (opts, config, HXHIM_PACKED_REGIONS,       hxhim_options_set_packed_regions) &&
+        parse_name      (opts, config, HXHIM_PACKED_NAME,          hxhim_options_set_packed_name) &&
+        parse_alloc_size(opts, config, HXHIM_BUFFERS_ALLOC_SIZE,   hxhim_options_set_buffers_alloc_size) &&
+        parse_regions   (opts, config, HXHIM_BUFFERS_REGIONS,      hxhim_options_set_buffers_regions) &&
+        parse_name      (opts, config, HXHIM_BUFFERS_NAME,         hxhim_options_set_buffers_name) &&
+        // parse_alloc_size(opts, config, HXHIM_BULKS_ALLOC_SIZE,     hxhim_options_set_bulks_alloc_size) &&
+        parse_regions   (opts, config, HXHIM_BULKS_REGIONS,        hxhim_options_set_bulks_regions) &&
+        parse_name      (opts, config, HXHIM_BULKS_NAME,           hxhim_options_set_bulks_name) &&
+        parse_alloc_size(opts, config, HXHIM_KEYS_ALLOC_SIZE,      hxhim_options_set_keys_alloc_size) &&
+        parse_regions   (opts, config, HXHIM_KEYS_REGIONS,         hxhim_options_set_keys_regions) &&
+        parse_name      (opts, config, HXHIM_KEYS_NAME,            hxhim_options_set_keys_name) &&
+        parse_alloc_size(opts, config, HXHIM_ARRAYS_ALLOC_SIZE,    hxhim_options_set_arrays_alloc_size) &&
+        parse_regions   (opts, config, HXHIM_ARRAYS_REGIONS,       hxhim_options_set_arrays_regions) &&
+        parse_name      (opts, config, HXHIM_ARRAYS_NAME,          hxhim_options_set_arrays_name) &&
+        parse_alloc_size(opts, config, HXHIM_REQUESTS_ALLOC_SIZE,  hxhim_options_set_requests_alloc_size) &&
+        parse_regions   (opts, config, HXHIM_REQUESTS_REGIONS,     hxhim_options_set_requests_regions) &&
+        parse_name      (opts, config, HXHIM_REQUESTS_NAME,        hxhim_options_set_requests_name) &&
         parse_alloc_size(opts, config, HXHIM_RESPONSES_ALLOC_SIZE, hxhim_options_set_responses_alloc_size) &&
-        parse_regions(opts, config, HXHIM_RESPONSES_REGIONS, hxhim_options_set_responses_regions) &&
-        parse_name(opts, config, HXHIM_RESPONSES_NAME, hxhim_options_set_responses_name) &&
-        parse_alloc_size(opts, config, HXHIM_RESULT_ALLOC_SIZE, hxhim_options_set_result_alloc_size) &&
-        parse_regions(opts, config, HXHIM_RESULT_REGIONS, hxhim_options_set_result_regions) &&
-        parse_name(opts, config, HXHIM_RESULT_NAME, hxhim_options_set_result_name) &&
-        parse_alloc_size(opts, config, HXHIM_RESULTS_ALLOC_SIZE, hxhim_options_set_results_alloc_size) &&
-        parse_regions(opts, config, HXHIM_RESULTS_REGIONS, hxhim_options_set_results_regions) &&
-        parse_name(opts, config, HXHIM_RESULTS_NAME, hxhim_options_set_results_name)?HXHIM_SUCCESS:HXHIM_ERROR;
+        parse_regions   (opts, config, HXHIM_RESPONSES_REGIONS,    hxhim_options_set_responses_regions) &&
+        parse_name      (opts, config, HXHIM_RESPONSES_NAME,       hxhim_options_set_responses_name) &&
+        parse_alloc_size(opts, config, HXHIM_RESULT_ALLOC_SIZE,    hxhim_options_set_result_alloc_size) &&
+        parse_regions   (opts, config, HXHIM_RESULT_REGIONS,       hxhim_options_set_result_regions) &&
+        parse_name      (opts, config, HXHIM_RESULT_NAME,          hxhim_options_set_result_name) &&
+        parse_alloc_size(opts, config, HXHIM_RESULTS_ALLOC_SIZE,   hxhim_options_set_results_alloc_size) &&
+        parse_regions   (opts, config, HXHIM_RESULTS_REGIONS,      hxhim_options_set_results_regions) &&
+        parse_name      (opts, config, HXHIM_RESULTS_NAME,         hxhim_options_set_results_name)?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 
 /**

@@ -9,7 +9,6 @@ hxhim@lanl.gov
 * C++14 Compiler
 * CMake 3
 * MPI
-* Perl
 * LevelDB: https://github.com/google/leveldb
 * thallium: https://xgitlab.cels.anl.gov/sds/thallium
 

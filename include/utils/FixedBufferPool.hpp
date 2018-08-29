@@ -10,9 +10,6 @@
 #include <type_traits>
 #include <utility>
 
-#include "utils/mlog2.h"
-#include "utils/mlogfacs2.h"
-
 /**
  * FixedBufferPool
  * This class distributes memory addresses from a fixed size pool of memory.
@@ -155,11 +152,9 @@ template <typename T, typename... Args, typename>
 T *FixedBufferPool::acquire(Args&&... args) {
     void *addr = acquire(sizeof(T));
     if (addr) {
-        mlog(MLOG_DBG, "FixedBufferPool %s: Acquired a buffer of size %zu", name_.c_str(), sizeof(T));
         return new ((T *) addr) T(std::forward<Args>(args)...);
     }
 
-    mlog(MLOG_CRIT, "FixedBufferPool %s: Failed to acquire a buffer of size %zu", name_.c_str(), sizeof(T));
     return nullptr;
 }
 
@@ -184,11 +179,9 @@ template <typename T, typename>
 T *FixedBufferPool::acquire_array(const std::size_t count) {
     void *addr = acquire(sizeof(T) * count);
     if (addr) {
-        mlog(MLOG_DBG, "FixedBufferPool %s: Acquired array buffer of size %zu", name_.c_str(), sizeof(T) * count);
         return new ((T *) addr) T();
     }
 
-    mlog(MLOG_CRIT, "FixedBufferPool %s: Failed to acquire array buffer of size %zu", name_.c_str(), sizeof(T) * count);
     return nullptr;
 }
 

@@ -958,8 +958,9 @@ int Unpacker::unpack(const MPI_Comm comm, Message **msg, const void *buf, const 
     }
 
     // unpack the header
-    Message *out = nullptr;
-    if (unpack(comm, &out, buf, bufsize, fbp, arrays, buffers) != TRANSPORT_SUCCESS) {
+    int position = 0;
+    Message *out = fbp->acquire<Message>(Message::NONE, Message::INVALID, arrays, buffers);
+    if (unpack(comm, out, buf, bufsize, &position) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 

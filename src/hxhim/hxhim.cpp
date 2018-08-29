@@ -12,6 +12,8 @@
 #include "hxhim/shuffle.hpp"
 #include "hxhim/utils.hpp"
 
+#include <iostream>
+
 /**
  * Open
  * Start a HXHIM session
@@ -123,6 +125,8 @@ int hxhim::Close(hxhim_t *hx) {
     if (!hx || !hx->p) {
         return HXHIM_ERROR;
     }
+
+    mlog(HXHIM_CLIENT_INFO, "Closing HXHIM");
 
     MPI_Barrier(hx->p->bootstrap.comm);
 

@@ -17,6 +17,7 @@ void Transport::Thallium::RangeServer::destroy() {
     hx_ = nullptr;
 }
 
+#include <iostream>
 void Transport::Thallium::RangeServer::process(const thallium::request &req, const std::string &data) {
     // unpack the request
     Request::Request *request = nullptr;

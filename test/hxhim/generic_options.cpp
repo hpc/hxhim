@@ -2,13 +2,9 @@
 #include "hxhim/config.hpp"
 
 bool fill_options(hxhim_options_t *opts) {
-    if (!opts) {
-        return false;
-    }
-
     return ((hxhim_options_init(opts)                                                      == HXHIM_SUCCESS) &&
             (hxhim_options_set_mpi_bootstrap(opts, MPI_COMM_WORLD)                         == HXHIM_SUCCESS) &&
-            (hxhim_options_set_debug_level(opts, MLOG_CRIT)                                == HXHIM_SUCCESS) &&
+            (hxhim_options_set_debug_level(opts, MLOG_INFO)                                == HXHIM_SUCCESS) &&
             (hxhim_options_set_datastore_in_memory(opts)                                   == HXHIM_SUCCESS) &&
             (hxhim_options_set_datastores_per_range_server(opts, 1)                        == HXHIM_SUCCESS) &&
             (hxhim_options_set_hash_name(opts, RANK.c_str())                               == HXHIM_SUCCESS) &&

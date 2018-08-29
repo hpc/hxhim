@@ -8,7 +8,7 @@
 TEST(FixedBufferPool, usage) {
     const std::size_t TEST_ALLOC_SIZE = 8;
     const std::size_t TEST_REGIONS = 16;
-    FixedBufferPool TEST_FBP(TEST_ALLOC_SIZE, TEST_REGIONS);
+    FixedBufferPool TEST_FBP(TEST_ALLOC_SIZE, TEST_REGIONS, "FixedBufferPool Usage Test");
 
     void **alloc = new void *[TEST_REGIONS]();
 
@@ -58,7 +58,7 @@ TEST(FixedBufferPool, dump) {
 
     const std::size_t TEST_ALLOC_SIZE = 4;
     const std::size_t TEST_REGIONS = 4;
-    FixedBufferPool TEST_FBP(TEST_ALLOC_SIZE, TEST_REGIONS);
+    FixedBufferPool TEST_FBP(TEST_ALLOC_SIZE, TEST_REGIONS, "FixedBufferPool Dump Contents Test");
 
     char **ptrs = new char *[TEST_REGIONS]();
     for(std::size_t i = 0; i < TEST_REGIONS; i++) {
@@ -89,7 +89,7 @@ TEST(FixedBufferPool, too_large_request) {
     typedef int Test_t;
     const std::size_t TEST_ALLOC_SIZE = sizeof(Test_t);
     const std::size_t TEST_REGIONS = 4;
-    FixedBufferPool TEST_FBP(TEST_ALLOC_SIZE, TEST_REGIONS);
+    FixedBufferPool TEST_FBP(TEST_ALLOC_SIZE, TEST_REGIONS, "FixedBufferPool Too Large Request Test");
 
     // acquire void *
     EXPECT_EQ(TEST_FBP.acquire(TEST_ALLOC_SIZE + 1), nullptr);
@@ -105,7 +105,7 @@ TEST(FixedBufferPool, request_zero) {
     typedef int Test_t;
     const std::size_t TEST_ALLOC_SIZE = sizeof(Test_t);
     const std::size_t TEST_REGIONS = 4;
-    FixedBufferPool TEST_FBP(TEST_ALLOC_SIZE, TEST_REGIONS);
+    FixedBufferPool TEST_FBP(TEST_ALLOC_SIZE, TEST_REGIONS, "FixedBufferPool Request 0 Test");
 
     // acquire void *
     EXPECT_EQ(TEST_FBP.acquire(0), nullptr);

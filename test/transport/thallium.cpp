@@ -21,11 +21,11 @@ static const std::size_t REGIONS = 256;
 using namespace ::Transport;
 using namespace ::Transport::Thallium;
 
-static FixedBufferPool *packed = MemoryManager::FBP(ALLOC_SIZE, REGIONS, "Thallium Pack/Unpack Test - Packed");
-static FixedBufferPool *requests = MemoryManager::FBP(ALLOC_SIZE, REGIONS, "Thallium Pack/Unpack Test - Requests");
+static FixedBufferPool *packed    = MemoryManager::FBP(ALLOC_SIZE, REGIONS, "Thallium Pack/Unpack Test - Packed");
+static FixedBufferPool *requests  = MemoryManager::FBP(ALLOC_SIZE, REGIONS, "Thallium Pack/Unpack Test - Requests");
 static FixedBufferPool *responses = MemoryManager::FBP(ALLOC_SIZE, REGIONS, "Thallium Pack/Unpack Test - Responses");
-static FixedBufferPool *arrays = MemoryManager::FBP(ALLOC_SIZE, REGIONS, "Thallium Pack/Unpack Test - Arrays");
-static FixedBufferPool *buffers = MemoryManager::FBP(ALLOC_SIZE, REGIONS, "Thallium Pack/Unpack Test - Buffers");
+static FixedBufferPool *arrays    = MemoryManager::FBP(ALLOC_SIZE, REGIONS, "Thallium Pack/Unpack Test - Arrays");
+static FixedBufferPool *buffers   = MemoryManager::FBP(ALLOC_SIZE, REGIONS, "Thallium Pack/Unpack Test - Buffers");
 
 TEST(thallium_pack_unpack, RequestPut) {
     Request::Put src(arrays, buffers);

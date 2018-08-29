@@ -4,6 +4,7 @@ namespace Transport {
 namespace MPI {
 
 EndpointGroup::EndpointGroup(const MPI_Comm comm,
+                             volatile std::atomic_bool &running,
                              FixedBufferPool *packed,
                              FixedBufferPool *responses,
                              FixedBufferPool *arrays,
@@ -11,6 +12,7 @@ EndpointGroup::EndpointGroup(const MPI_Comm comm,
   : ::Transport::EndpointGroup(),
     EndpointBase(comm),
     ranks(),
+    running(running),
     packed(packed),
     responses(responses),
     arrays(arrays),

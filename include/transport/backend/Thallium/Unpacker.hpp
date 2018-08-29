@@ -44,11 +44,11 @@ class Unpacker {
         static int unpack(Response::BHistogram **bhist,  const std::string &buf, FixedBufferPool *responses, FixedBufferPool *arrays, FixedBufferPool *buffers);
 
     private:
+        /** Allocates space for a temporary message and unpacks only the header */
         static int unpack(Message              **msg,    const std::string &buf, FixedBufferPool *fbp, FixedBufferPool *arrays,  FixedBufferPool *buffers);
-        static int unpack(Message              *msg,     std::stringstream &s);
 
-        static int unpack(Request::Request     **req,    const std::string &buf, const Message::Type type, FixedBufferPool *requests,  FixedBufferPool *arrays, FixedBufferPool *buffers);
-        static int unpack(Response::Response   **res,    const std::string &buf, const Message::Type type, FixedBufferPool *responses, FixedBufferPool *arrays, FixedBufferPool *buffers);
+        /** Unpacks the message header in a preallocated space */
+        static int unpack(Message              *msg,     std::stringstream &s);
 };
 
 }

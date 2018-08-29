@@ -615,6 +615,6 @@ void hxhim_results_destroy(hxhim_t *hx, hxhim::Results *res) {
 void hxhim_results_destroy(hxhim_t *hx, hxhim_results_t *res) {
     if (res) {
         hxhim_results_destroy(hx, res->res);
-        delete res;
+        hx->p->memory_pools.buffers->release(res);
     }
 }

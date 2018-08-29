@@ -5,6 +5,8 @@
 #include "transport/backend/MPI/RangeServer.hpp"
 #include "transport/backend/MPI/Unpacker.hpp"
 #include "transport/backend/MPI/constants.h"
+#include "utils/mlog2.h"
+#include "utils/mlogfacs2.h"
 
 namespace Transport {
 namespace MPI {
@@ -99,19 +101,29 @@ int RangeServer::recv(void **data, std::size_t *len) {
         return TRANSPORT_ERROR;
     }
 
+    MPI_Request request;
     MPI_Status status;
 
     // wait for the size of the data
-    if (MPI_Recv(len, sizeof(*len), MPI_BYTE, MPI_ANY_SOURCE, TRANSPORT_MPI_SIZE_REQUEST_TAG, hx_->p->bootstrap.comm, &status) != MPI_SUCCESS) {
+    mlog(MPI_DBG, "MPI Range Server waiting for size");
+    if ((MPI_Irecv(len, sizeof(*len), MPI_CHAR, MPI_ANY_SOURCE, TRANSPORT_MPI_SIZE_REQUEST_TAG, hx_->p->bootstrap.comm, &request) != MPI_SUCCESS) ||
+        (Flush(request, status) != TRANSPORT_SUCCESS)) {
+        mlog(MPI_DBG, "MPI Range Server errored while waiting for size");
         return TRANSPORT_ERROR;
     }
+    mlog(MPI_DBG, "MPI Range Server got size %zu", *len);
 
     *data = ::operator new(*len);
 
     // wait for the data
-    if (MPI_Recv(*data, *len, MPI_CHAR, status.MPI_SOURCE, TRANSPORT_MPI_DATA_REQUEST_TAG, hx_->p->bootstrap.comm, &status) == MPI_SUCCESS) {
+    mlog(MPI_DBG, "MPI Range Server waiting for data");
+    if ((MPI_Irecv(*data, *len, MPI_CHAR, status.MPI_SOURCE, TRANSPORT_MPI_DATA_REQUEST_TAG, hx_->p->bootstrap.comm, &request) != MPI_SUCCESS) ||
+        (Flush(request) != TRANSPORT_SUCCESS)) {
+        mlog(MPI_ERR, "MPI_Range Server errored while getting data of size %zu", *len);
         return TRANSPORT_ERROR;
     }
+
+    mlog(MPI_DBG, "MPI Range Server got data of size %zu", *len);
 
     return TRANSPORT_SUCCESS;
 }
@@ -128,17 +140,72 @@ int RangeServer::recv(void **data, std::size_t *len) {
  * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR on error
  */
 int RangeServer::send(const int dst, void *data, const std::size_t len) {
+    MPI_Request request;
+
     // send the size of the data
-    if (MPI_Send(&len, sizeof(len), MPI_CHAR, dst, TRANSPORT_MPI_SIZE_RESPONSE_TAG, hx_->p->bootstrap.comm) == MPI_SUCCESS) {
+    mlog(MPI_DBG, "MPI Range Server sending size %zu", len);
+    if ((MPI_Isend(&len, sizeof(len), MPI_CHAR, dst, TRANSPORT_MPI_SIZE_RESPONSE_TAG, hx_->p->bootstrap.comm, &request) != MPI_SUCCESS) ||
+        (Flush(request) != TRANSPORT_SUCCESS)) {
         return TRANSPORT_ERROR;
     }
 
     // wait for the data
-    if (MPI_Send(data, len, MPI_CHAR, dst, TRANSPORT_MPI_DATA_RESPONSE_TAG, hx_->p->bootstrap.comm) == MPI_SUCCESS) {
+    mlog(MPI_DBG, "MPI Range Server sending data");
+    if ((MPI_Isend(data, len, MPI_CHAR, dst, TRANSPORT_MPI_DATA_RESPONSE_TAG, hx_->p->bootstrap.comm, &request) != MPI_SUCCESS) ||
+        (Flush(request) != TRANSPORT_SUCCESS)) {
         return TRANSPORT_ERROR;
     }
 
     return TRANSPORT_SUCCESS;
+}
+
+/**
+ * Flush
+ * Tests a request until it is completed.
+ * This function can exit early if the
+ * HXHIM instance stops first.
+ *
+ * @param req the request to test
+ * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR on error
+ */
+int RangeServer::Flush(MPI_Request &req) {
+    int flag = 0;
+    while (!flag && hx_->p->running) {
+        MPI_Test(&req, &flag, MPI_STATUS_IGNORE);
+    }
+
+    if (flag) {
+        mlog(MPI_DBG, "MPI Range Server flush succeeded");
+        return TRANSPORT_SUCCESS;
+    }
+
+    mlog(MPI_DBG, "MPI Range Server flush failed (flag %d, running %d)", flag, hx_->p->running.load());
+    return TRANSPORT_ERROR;
+}
+
+ /**
+ * Flush
+ * Tests a request until it is completed.
+ * This function can exit early if the
+ * HXHIM instance stops first.
+ *
+ * @param req    the request to test
+ * @param status the status of the request
+ * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR on error
+ */
+int RangeServer::Flush(MPI_Request &req, MPI_Status &status) {
+    int flag = 0;
+    while (!flag && hx_->p->running) {
+        MPI_Test(&req, &flag, &status);
+    }
+
+    if (flag) {
+        mlog(MPI_DBG, "MPI Range Server flush succeeded");
+        return TRANSPORT_SUCCESS;
+    }
+
+    mlog(MPI_DBG, "MPI Range Server flush failed (flag %d, running %d)", flag, hx_->p->running.load());
+    return TRANSPORT_ERROR;
 }
 
 }
