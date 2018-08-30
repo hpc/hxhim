@@ -95,14 +95,18 @@ int main(int argc, char *argv[]) {
     // read the config
     hxhim_options_t opts;
     if (hxhim_default_config_reader(&opts, MPI_COMM_WORLD) != HXHIM_SUCCESS) {
-        fprintf(stderr, "Failed to read configuration");
+        if (rank == 0) {
+            fprintf(stderr, "Failed to read configuration\n");
+        }
         return 1;
     }
 
     // start hxhim
     hxhim_t hx;
     if (hxhimOpen(&hx, &opts) != HXHIM_SUCCESS) {
-        fprintf(stderr, "Failed to initialize hxhim\n");
+        if (rank == 0) {
+            fprintf(stderr, "Failed to initialize hxhim\n");
+        }
         hxhim_options_destroy(&opts);
         return 1;
     }

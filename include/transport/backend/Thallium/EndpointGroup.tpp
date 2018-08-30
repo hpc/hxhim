@@ -2,6 +2,8 @@
 
 #include <map>
 
+#include <thallium/serialization/stl/string.hpp>
+
 #include "transport/backend/Thallium/Endpoint.hpp"
 #include "transport/backend/Thallium/Packer.hpp"
 #include "transport/backend/Thallium/Unpacker.hpp"

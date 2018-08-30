@@ -189,9 +189,6 @@ int Transport::Response::BGetOp::cleanup() {
     arrays->release_array(object_lens, count);
     object_lens = nullptr;
 
-    delete next;
-    next = nullptr;
-
     Bulk::cleanup(arrays);
 
     return TRANSPORT_SUCCESS;

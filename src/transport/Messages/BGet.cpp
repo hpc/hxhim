@@ -154,6 +154,9 @@ int Transport::Response::BGet::cleanup() {
         }
     }
 
+    arrays->release_array(statuses, count);
+    statuses = nullptr;
+
     arrays->release_array(subjects, count);
     subjects = nullptr;
 
@@ -174,9 +177,6 @@ int Transport::Response::BGet::cleanup() {
 
     arrays->release_array(object_lens, count);
     object_lens = nullptr;
-
-    delete next;
-    next = nullptr;
 
     Bulk::cleanup(arrays);
 

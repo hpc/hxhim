@@ -80,6 +80,7 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
         remote[i]->count = 0;
     }
 
+    // place the input into destination buckets
     for(std::size_t i = 0; i < count; i++) {
         // alias the values
         void *subject = head->subjects[i];
@@ -344,21 +345,35 @@ int hxhim::init::running(hxhim_t *hx, hxhim_options_t *opts) {
  * @param opts the HXHIM options
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-#include <iostream>
 int hxhim::init::memory(hxhim_t *hx, hxhim_options_t *opts) {
     if (!valid(hx, opts)) {
         return HXHIM_ERROR;
     }
 
-    return ((hx->p->memory_pools.packed    = MemoryManager::FBP(opts->p->packed.alloc_size,    opts->p->packed.regions,    opts->p->packed.name.c_str()))    &&
-            (hx->p->memory_pools.buffers   = MemoryManager::FBP(opts->p->buffers.alloc_size,   opts->p->buffers.regions,   opts->p->buffers.name.c_str()))   &&
-            (hx->p->memory_pools.bulks     = MemoryManager::FBP(opts->p->bulks.alloc_size,     opts->p->bulks.regions,     opts->p->bulks.name.c_str()))     &&
-            (hx->p->memory_pools.keys      = MemoryManager::FBP(opts->p->keys.alloc_size,      opts->p->keys.regions,      opts->p->keys.name.c_str()))      &&
-            (hx->p->memory_pools.arrays    = MemoryManager::FBP(opts->p->arrays.alloc_size,    opts->p->arrays.regions,    opts->p->arrays.name.c_str()))    &&
-            (hx->p->memory_pools.requests  = MemoryManager::FBP(opts->p->requests.alloc_size,  opts->p->requests.regions,  opts->p->requests.name.c_str()))  &&
-            (hx->p->memory_pools.responses = MemoryManager::FBP(opts->p->responses.alloc_size, opts->p->responses.regions, opts->p->responses.name.c_str())) &&
-            (hx->p->memory_pools.result    = MemoryManager::FBP(opts->p->result.alloc_size,    opts->p->result.regions,    opts->p->result.name.c_str()))    &&
-            (hx->p->memory_pools.results   = MemoryManager::FBP(opts->p->results.alloc_size,   opts->p->results.regions,   opts->p->results.name.c_str())))?HXHIM_SUCCESS:HXHIM_ERROR;
+    if (!((hx->p->memory_pools.packed    = MemoryManager::FBP(opts->p->packed.alloc_size,    opts->p->packed.regions,    opts->p->packed.name.c_str()))    &&
+          (hx->p->memory_pools.buffers   = MemoryManager::FBP(opts->p->buffers.alloc_size,   opts->p->buffers.regions,   opts->p->buffers.name.c_str()))   &&
+          (hx->p->memory_pools.bulks     = MemoryManager::FBP(opts->p->bulks.alloc_size,     opts->p->bulks.regions,     opts->p->bulks.name.c_str()))     &&
+          (hx->p->memory_pools.keys      = MemoryManager::FBP(opts->p->keys.alloc_size,      opts->p->keys.regions,      opts->p->keys.name.c_str()))      &&
+          (hx->p->memory_pools.arrays    = MemoryManager::FBP(opts->p->arrays.alloc_size,    opts->p->arrays.regions,    opts->p->arrays.name.c_str()))    &&
+          (hx->p->memory_pools.requests  = MemoryManager::FBP(opts->p->requests.alloc_size,  opts->p->requests.regions,  opts->p->requests.name.c_str()))  &&
+          (hx->p->memory_pools.responses = MemoryManager::FBP(opts->p->responses.alloc_size, opts->p->responses.regions, opts->p->responses.name.c_str())) &&
+          (hx->p->memory_pools.result    = MemoryManager::FBP(opts->p->result.alloc_size,    opts->p->result.regions,    opts->p->result.name.c_str()))    &&
+          (hx->p->memory_pools.results   = MemoryManager::FBP(opts->p->results.alloc_size,   opts->p->results.regions,   opts->p->results.name.c_str())))) {
+        mlog(HXHIM_CLIENT_CRIT, "Could not preallocate all buffers");
+        return HXHIM_ERROR;
+    }
+
+    mlog(HXHIM_CLIENT_INFO, "Preallocated %zu bytes for HXHIM",
+         hx->p->memory_pools.packed->size() +
+         hx->p->memory_pools.buffers->size() +
+         hx->p->memory_pools.bulks->size() +
+         hx->p->memory_pools.keys->size() +
+         hx->p->memory_pools.arrays->size() +
+         hx->p->memory_pools.requests->size() +
+         hx->p->memory_pools.responses->size() +
+         hx->p->memory_pools.result->size() +
+         hx->p->memory_pools.results->size());
+    return HXHIM_SUCCESS;
 }
 
 /**
@@ -514,12 +529,14 @@ int hxhim::init::hash(hxhim_t *hx, hxhim_options_t *opts) {
 
 /**
  * init_transport_mpi
+ * Initializes MPI inside HXHIM
  *
  * @param hx             the HXHIM instance
  * @param opts           the HXHIM options
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
 static int init_transport_mpi(hxhim_t *hx, hxhim_options_t *opts) {
+    mlog(HXHIM_CLIENT_DBG, "Starting MPI Initialization");
     if (!valid(hx, opts) || !hx->p->transport) {
         return HXHIM_ERROR;
     }
@@ -568,6 +585,7 @@ static int init_transport_mpi(hxhim_t *hx, hxhim_options_t *opts) {
     hx->p->transport->SetEndpointGroup(eg);
     hx->p->range_server_destroy = RangeServer::destroy;
 
+    mlog(HXHIM_CLIENT_DBG, "Completed MPI Initialization");
     return TRANSPORT_SUCCESS;
 }
 
@@ -575,39 +593,46 @@ static int init_transport_mpi(hxhim_t *hx, hxhim_options_t *opts) {
 
 /**
  * init_transport_thallium
+ * Initializes Thallium inside HXHIM
  *
  * @param hx   the HXHIM instance
  * @param opts the HXHIM options
  * @param TRANSPORT_SUCCESS or TRANSPORT_ERROR
  */
 static int init_transport_thallium(hxhim_t *hx, hxhim_options_t *opts) {
+    mlog(HXHIM_CLIENT_DBG, "Starting Thallium Initialization");
     if (!valid(hx, opts)) {
         return HXHIM_ERROR;
     }
 
     using namespace Transport::Thallium;
 
-    // create the engine (only 1 instance per process)
     Options *config = static_cast<Options *>(opts->p->transport);
+
+    // create the engine (only 1 instance per process)
     Engine_t engine(new thallium::engine(config->module, THALLIUM_SERVER_MODE, true, -1),
-                                         [](thallium::engine *engine) {
-                                             engine->finalize();
-                                             delete engine;
+                    [](thallium::engine *engine) {
+                        engine->finalize();
+                        delete engine;
                     });
+
+    mlog(HXHIM_CLIENT_DBG, "Created Thallium engine %s", ((std::string) engine->self()).c_str());
+
+    // give the range server access to the mdhim_t data
+    RangeServer::init(hx);
 
     // create client to range server RPC
     RPC_t rpc(new thallium::remote_procedure(engine->define(RangeServer::CLIENT_TO_RANGE_SERVER_NAME,
                                                             RangeServer::process)));
 
-    // give the range server access to the mdhim_t data
-    RangeServer::init(hx);
+    mlog(HXHIM_CLIENT_DBG, "Created Thallium RPC");
 
     // wait for every engine to start up
     MPI_Barrier(hx->p->bootstrap.comm);
 
     // get a mapping of unique IDs to thallium addresses
     std::map<int, std::string> addrs;
-    if (get_addrs(hx->p->bootstrap.comm, engine, addrs) != TRANSPORT_SUCCESS) {
+    if (get_addrs(hx->p->bootstrap.comm, *engine, addrs) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
@@ -620,22 +645,26 @@ static int init_transport_thallium(hxhim_t *hx, hxhim_options_t *opts) {
     }
 
     // create mapping between unique IDs and ranks
-    for(std::pair<const int, std::string> const &addr : addrs) {
+    for(decltype(addrs)::value_type const &addr : addrs) {
         Endpoint_t server(new thallium::endpoint(engine->lookup(addr.second)));
+        mlog(HXHIM_CLIENT_DBG, "Created Thallium endpoint %s", addr.second.c_str());
 
         // add the remote thallium endpoint to the tranport
         Endpoint* ep = new Endpoint(engine, rpc, server, hx->p->memory_pools.responses, hx->p->memory_pools.arrays, hx->p->memory_pools.buffers);
         hx->p->transport->AddEndpoint(addr.first, ep);
+        mlog(HXHIM_CLIENT_DBG, "Created HXHIM endpoint from Thallium endpoint %s", addr.second.c_str());
 
         // if the rank was specified as part of the endpoint group, add the thallium endpoint to the endpoint group
         if (opts->p->endpointgroup.find(addr.first) != opts->p->endpointgroup.end()) {
             eg->AddID(addr.first, server);
+            mlog(HXHIM_CLIENT_DBG, "Added Thallium endpoint %s to the endpoint group", addr.second.c_str());
         }
     }
 
     hx->p->transport->SetEndpointGroup(eg);
     hx->p->range_server_destroy = RangeServer::destroy;
 
+    mlog(HXHIM_CLIENT_DBG, "Completed Thallium transport initialization");
     return TRANSPORT_SUCCESS;
 }
 
@@ -671,6 +700,7 @@ int hxhim::init::transport(hxhim_t *hx, hxhim_options_t *opts) {
             break;
         #endif
         default:
+            mlog(HXHIM_CLIENT_ERR, "Received bad transport type to initialize %d", opts->p->transport->type);
             break;
     }
 
@@ -817,6 +847,7 @@ int hxhim::destroy::async_put(hxhim_t *hx) {
     clean(hx, hx->p->queues.deletes.head);
     hx->p->queues.deletes.head = nullptr;
 
+    // release unproceesed results from asynchronous PUTs
     {
         std::unique_lock<std::mutex>(hx->p->async_put.mutex);
         hx->p->memory_pools.results->release(hx->p->async_put.results);

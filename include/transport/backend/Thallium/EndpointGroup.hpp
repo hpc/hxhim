@@ -5,11 +5,6 @@
 
 #include <map>
 
-#include "utils/mlog2.h"
-#include "utils/mlogfacs2.h"
-#include <thallium.hpp>
-#include <thallium/serialization/stl/string.hpp>
-
 #include "transport/backend/Thallium/Utilities.hpp"
 #include "transport/transport.hpp"
 

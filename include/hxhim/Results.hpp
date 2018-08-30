@@ -49,7 +49,7 @@ namespace hxhim {
  *                 break;
  *         }
  *     }
- *     delete res;
+ *     hxhim_results_destroy(res);
  *
  */
 class Results {

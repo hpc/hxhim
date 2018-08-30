@@ -58,14 +58,18 @@ int main(int argc, char *argv[]) {
     // read the config
     hxhim_options_t opts;
     if (hxhim_default_config_reader(&opts, MPI_COMM_WORLD) != HXHIM_SUCCESS) {
-        std::cerr << "Failed to read configuration" << std::endl;
+        if (rank == 0) {
+            std::cerr << "Failed to read configuration" << std::endl;
+        }
         return 1;
     }
 
     // start hxhim
     hxhim_t hx;
     if (hxhim::Open(&hx, &opts) != HXHIM_SUCCESS) {
-        std::cerr << "Failed to initialize hxhim" << std::endl;
+        if (rank == 0) {
+            std::cerr << "Failed to initialize hxhim" << std::endl;
+        }
         return 1;
     }
 

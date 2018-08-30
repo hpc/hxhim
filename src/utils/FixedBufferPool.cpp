@@ -1,7 +1,9 @@
+#include "utils/FixedBufferPool.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
-#include "utils/FixedBufferPool.hpp"
+/** @description wrapper for FixedBufferPool mlog statements */
+#define FBP_LOG(level, fmt, ...) mlog(level, "%s (%zu bytes x %zu regions): " fmt, name_.c_str(), alloc_size_, regions_, ##__VA_ARGS__)
 
 /**
  * FixedBufferPool Constructor
@@ -23,14 +25,20 @@ FixedBufferPool::FixedBufferPool(const std::size_t alloc_size, const std::size_t
     used_(0)
 {
     std::unique_lock<std::mutex> lock(mutex_);
-    pool_ = ::operator new(pool_size_);     // allocate memory at runtime
+    try {
+        pool_ = ::operator new(pool_size_);     // allocate memory at runtime
+    }
+    catch (...) {
+        FBP_LOG(FBP_CRIT, "Failed to allocate main memory pool");
+        throw;
+    }
 
     try {
         // allocate the array of nodes
         nodes_ = new Node[regions_]();
     }
     catch (...) {
-        mlog(FBP_CRIT, "%s (%zu bytes x %zu regions): Failed to allocate bookkeeping array", name_.c_str(), alloc_size, regions_);
+        FBP_LOG(FBP_CRIT, "Failed to allocate bookkeeping array");
         ::operator delete(pool_);
         throw;
     }
@@ -52,7 +60,7 @@ FixedBufferPool::FixedBufferPool(const std::size_t alloc_size, const std::size_t
     // first available region is the head of the list
     unused_ = nodes_;
 
-    mlog(FBP_INFO, "%s (%zu bytes x %zu regions): Created", name_.c_str(), alloc_size_, regions_);
+    FBP_LOG(FBP_INFO, "Created");
 }
 
 /**
@@ -76,7 +84,7 @@ FixedBufferPool::~FixedBufferPool() {
     ::operator delete(pool_);
     pool_ = nullptr;
 
-    mlog(FBP_INFO, "%s (%zu bytes x %zu regions): Destructed with %zu regions still in use", name_.c_str(), alloc_size_, regions_, used_);
+    FBP_LOG(FBP_INFO, "Destructed with %zu regions still in use", used_);
 }
 
 /**
@@ -96,26 +104,25 @@ FixedBufferPool::~FixedBufferPool() {
 void *FixedBufferPool::acquire(const std::size_t size) {
     // 0 bytes
     if (!size) {
-        mlog(FBP_WARN, "%s (%zu bytes x %zu regions): Got request for a size 0 buffer", name_.c_str(), alloc_size_, regions_);
+        FBP_LOG(FBP_WARN, "Got request for a size 0 buffer");
         return nullptr;
     }
 
     // too big
     if (size > alloc_size_) {
-        mlog(FBP_WARN, "%s (%zu bytes x %zu regions): Got request for a size %zu buffer, which is greater than the size of a region (%zu)", name_.c_str(), alloc_size_, regions_, size, alloc_size_);
+        FBP_LOG(FBP_WARN, "Got request for a size %zu buffer, which is greater than the size of a region (%zu)", size, alloc_size_);
         return nullptr;
     }
 
     std::unique_lock<std::mutex> lock(mutex_);
-    mlog(FBP_DBG, "%s (%zu bytes x %zu regions): Got request for a size %zu buffer", name_.c_str(), alloc_size_, regions_, size);
 
     // wait until a slot opens up
     while (!unused_) {
-        mlog(FBP_DBG, "%s (%zu bytes x %zu regions): Waiting for a size %zu buffer", name_.c_str(), alloc_size_, regions_, size);
+        FBP_LOG(FBP_DBG, "Waiting for a size %zu buffer", size);
         cv_.wait(lock, [&]{ return unused_; });
     }
 
-    mlog(FBP_DBG, "%s (%zu bytes x %zu regions): A size %zu buffer is available", name_.c_str(), alloc_size_, regions_, size);
+    FBP_LOG(FBP_DBG, "A size %zu buffer is available", size);
 
     // set the return address to the head of the unused list
     // and clear the memory region
@@ -129,10 +136,10 @@ void *FixedBufferPool::acquire(const std::size_t size) {
     used_++;
 
     const std::size_t remaining = regions_ - used_;
-    mlog(FBP_DBG, "%s (%zu bytes x %zu regions): Acquired a size %zu buffer (%p). %zu regions remaining.", name_.c_str(), alloc_size_, regions_, size, ret, remaining);
+    FBP_LOG(FBP_DBG, "Acquired a size %zu buffer (%p). %zu regions remaining.", size, ret, remaining);
 
     if (!remaining) {
-        mlog(FBP_WARN, "%s (%zu bytes x %zu regions): 0 regions left.", name_.c_str(), alloc_size_, regions_);
+        FBP_LOG(FBP_WARN, "0 regions left.");
     }
 
     return ret;
@@ -147,7 +154,7 @@ void *FixedBufferPool::acquire(const std::size_t size) {
  */
 void FixedBufferPool::release(void *ptr) {
     if (!ptr) {
-        mlog(FBP_WARN, "%s (%zu bytes x %zu regions): Attempted to free a nullptr", name_.c_str(), alloc_size_, regions_);
+        FBP_LOG(FBP_WARN, "Attempted to free a nullptr");
         return;
     }
 
@@ -156,7 +163,7 @@ void FixedBufferPool::release(void *ptr) {
     // if the pointer is not within the memory pool, do nothing
     if (((char *)ptr < (char *)pool_) ||
         (((char *)pool_ + pool_size_)) < (char *)ptr) {
-        mlog(FBP_ERR, "%s (%zu bytes x %zu regions): Attempted to free address (%p) that is not within the memory pool", name_.c_str(), alloc_size_, regions_, ptr);
+        FBP_LOG(FBP_ERR, "Attempted to free address (%p) that is not within the memory pool", ptr);
         return;
     }
 
@@ -165,7 +172,7 @@ void FixedBufferPool::release(void *ptr) {
 
     // if the pointer isn't a multiple of the of the allocation size, do nothing
     if (offset % alloc_size_) {
-        mlog(FBP_WARN, "%s (%zu bytes x %zu regions): Address being freed (%p) is not aligned to an allocation region", name_.c_str(), alloc_size_, regions_, ptr);
+        FBP_LOG(FBP_WARN, "Address being freed (%p) is not aligned to an allocation region", ptr);
     }
 
     // index of this pointer in the fixed size array
@@ -173,7 +180,7 @@ void FixedBufferPool::release(void *ptr) {
 
     // check for double frees (to prevent loops)
     if (nodes_[index].next) {
-        mlog(FBP_WARN, "%s (%zu bytes x %zu regions): Address being freed (%p) has already been freed", name_.c_str(), alloc_size_, regions_, ptr);
+        FBP_LOG(FBP_WARN, "Address being freed (%p) has already been freed", ptr);
         return;
     }
 
@@ -186,7 +193,7 @@ void FixedBufferPool::release(void *ptr) {
 
     cv_.notify_all();
 
-    mlog(FBP_DBG, "%s (%zu bytes x %zu regions): Freed %p. %zu regions available.", name_.c_str(), alloc_size_, regions_, ptr, regions_ - used_);
+    FBP_LOG(FBP_DBG, "Freed %p. %zu regions available.", ptr, regions_ - used_);
 }
 
 /**

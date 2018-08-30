@@ -10,7 +10,7 @@ Transport::Transport()
 Transport::~Transport() {
     delete endpointgroup_;
 
-    for(std::pair<const int, Endpoint *> const & ep : endpoints_) {
+    for(decltype(endpoints_)::value_type const & ep : endpoints_) {
         delete ep.second;
     }
 }

@@ -20,8 +20,6 @@ namespace Thallium {
  */
 class Packer {
     public:
-        static int any (const Message              *msg,   std::string &buf);
-
         static int pack(const Request::Request     *req,   std::string &buf);
         static int pack(const Request::Put         *pm,    std::string &buf);
         static int pack(const Request::Get         *gm,    std::string &buf);

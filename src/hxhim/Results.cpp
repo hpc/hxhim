@@ -4,6 +4,8 @@
 #include "hxhim/Results.hpp"
 #include "hxhim/Results_private.hpp"
 #include "hxhim/private.hpp"
+#include "utils/mlog2.h"
+#include "utils/mlogfacs2.h"
 
 namespace hxhim {
 
@@ -278,7 +280,7 @@ Results::~Results() {
                 hx->p->memory_pools.result->release(static_cast<Histogram *>(res));
                 break;
             default:
-                delete res;
+                hx->p->memory_pools.result->release(res);
                 break;
         }
     }
@@ -593,7 +595,7 @@ int hxhim_results_get_object(hxhim_results_t *res, void **object, std::size_t *o
 }
 
 /**
- * operator delete
+ * hxhim_results_destroy
  * Destroys the results returned from an operation
  *
  * @param hx    the HXHIM session

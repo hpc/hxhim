@@ -10,11 +10,7 @@
  * @param addrs the map that will be filled with the thallium addresses
  * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR
  */
-int Transport::Thallium::get_addrs(const MPI_Comm comm, const Engine_t &engine, std::map<int, std::string> &addrs) {
-    if (!engine) {
-        return TRANSPORT_ERROR;
-    }
-
+int Transport::Thallium::get_addrs(const MPI_Comm comm, const thallium::engine &engine, std::map<int, std::string> &addrs) {
     int rank;
     if (MPI_Comm_rank(comm, &rank) != MPI_SUCCESS) {
         return TRANSPORT_ERROR;
@@ -26,7 +22,7 @@ int Transport::Thallium::get_addrs(const MPI_Comm comm, const Engine_t &engine, 
     }
 
     // get local engine's address
-    const std::string self = static_cast<std::string>(engine->self());
+    const std::string self = static_cast<std::string>(engine.self());
 
     // get maximum size of all addresses
     const int self_len = self.size();

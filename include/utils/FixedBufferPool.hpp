@@ -10,6 +10,8 @@
 #include <type_traits>
 #include <utility>
 
+#include <map>
+
 /**
  * FixedBufferPool
  * This class distributes memory addresses from a fixed size pool of memory.

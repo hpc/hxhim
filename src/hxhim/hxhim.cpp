@@ -11,8 +11,8 @@
 #include "hxhim/private.hpp"
 #include "hxhim/shuffle.hpp"
 #include "hxhim/utils.hpp"
-
-#include <iostream>
+#include "utils/mlog2.h"
+#include "utils/mlogfacs2.h"
 
 /**
  * Open
@@ -31,6 +31,7 @@ int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
     mlog_open((char *) "hxhim", 0, opts->p->debug_level, opts->p->debug_level, nullptr, 0, MLOG_LOGPID, 0);
 
     if (!(hx->p = new hxhim_private_t())) {
+        mlog(HXHIM_CLIENT_ERR, "Failed to allocate space for private HXHIM data");
         return HXHIM_ERROR;
     }
 
@@ -43,10 +44,12 @@ int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
         (init::transport   (hx, opts) != HXHIM_SUCCESS)) {
         MPI_Barrier(hx->p->bootstrap.comm);
         Close(hx);
+        mlog(HXHIM_CLIENT_ERR, "Failed to initialize HXHIM");
         return HXHIM_ERROR;
     }
 
     MPI_Barrier(hx->p->bootstrap.comm);
+    mlog(HXHIM_CLIENT_INFO, "Successfully initialized HXHIM");
     return HXHIM_SUCCESS;
 }
 
@@ -82,6 +85,7 @@ int hxhim::OpenOne(hxhim_t *hx, hxhim_options_t *opts, const std::string &db_pat
     mlog_open((char *) "hxhim", 0, opts->p->debug_level, opts->p->debug_level, nullptr, 0, MLOG_LOGPID, 0);
 
     if (!(hx->p = new hxhim_private_t())) {
+        mlog(HXHIM_CLIENT_ERR, "Failed to allocate space for private HXHIM data");
         return HXHIM_ERROR;
     }
 
@@ -94,9 +98,11 @@ int hxhim::OpenOne(hxhim_t *hx, hxhim_options_t *opts, const std::string &db_pat
         (init::hash          (hx, opts)          != HXHIM_SUCCESS)) {
         MPI_Barrier(hx->p->bootstrap.comm);
         Close(hx);
+        mlog(HXHIM_CLIENT_ERR, "Failed to initialize HXHIM");
         return HXHIM_ERROR;
     }
 
+    mlog(HXHIM_CLIENT_INFO, "Successfully initialized HXHIM");
     MPI_Barrier(hx->p->bootstrap.comm);
     return HXHIM_SUCCESS;
 }
@@ -122,6 +128,7 @@ int hxhimOpenOne(hxhim_t *hx, hxhim_options_t *opts, const char *db_path, const 
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::Close(hxhim_t *hx) {
+    mlog(HXHIM_CLIENT_INFO, "Starting to shutdown HXHIM");
     if (!hx || !hx->p) {
         return HXHIM_ERROR;
     }
@@ -142,6 +149,7 @@ int hxhim::Close(hxhim_t *hx) {
     delete hx->p;
     hx->p = nullptr;
 
+    mlog(HXHIM_CLIENT_INFO, "HXHIM has been shutdown");
     return HXHIM_SUCCESS;
 }
 

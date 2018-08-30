@@ -1,6 +1,7 @@
 #include <cmath>
 #include <type_traits>
 
+#include "hxhim/MaxSize.hpp"
 #include "hxhim/Results.hpp"
 #include "hxhim/cache.hpp"
 #include "hxhim/config.hpp"
@@ -26,7 +27,15 @@ int hxhim_options_init(hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
-    return hxhim_options_set_bulks_default_alloc_size(opts);
+    // Set default values that the user should not change
+    if ((hxhim_options_set_bulks_alloc_size(opts, hxhim::MaxSize::Bulks())         != HXHIM_SUCCESS) ||
+        (hxhim_options_set_requests_alloc_size(opts, hxhim::MaxSize::Requests())   != HXHIM_SUCCESS) ||
+        (hxhim_options_set_responses_alloc_size(opts, hxhim::MaxSize::Responses()) != HXHIM_SUCCESS) ||
+        (hxhim_options_set_result_alloc_size(opts, hxhim::MaxSize::Result())       != HXHIM_SUCCESS)) {
+        return HXHIM_ERROR;
+    }
+
+    return HXHIM_SUCCESS;
 }
 
 /**
@@ -406,6 +415,16 @@ int hxhim_options_set_histogram_bucket_gen_method(hxhim_options_t *opts, const H
     return HXHIM_SUCCESS;
 }
 
+int hxhim_options_set_packed_name(hxhim_options_t *opts, const char *name) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->packed.name = name;
+
+    return HXHIM_SUCCESS;
+}
+
 int hxhim_options_set_packed_alloc_size(hxhim_options_t *opts, const size_t alloc_size) {
     if (!valid_opts(opts)) {
         return HXHIM_ERROR;
@@ -426,12 +445,12 @@ int hxhim_options_set_packed_regions(hxhim_options_t *opts, const size_t regions
     return HXHIM_SUCCESS;
 }
 
-int hxhim_options_set_packed_name(hxhim_options_t *opts, const char *name) {
+int hxhim_options_set_buffers_name(hxhim_options_t *opts, const char *name) {
     if (!valid_opts(opts)) {
         return HXHIM_ERROR;
     }
 
-    opts->p->packed.name = name;
+    opts->p->buffers.name = name;
 
     return HXHIM_SUCCESS;
 }
@@ -456,29 +475,14 @@ int hxhim_options_set_buffers_regions(hxhim_options_t *opts, const size_t region
     return HXHIM_SUCCESS;
 }
 
-int hxhim_options_set_buffers_name(hxhim_options_t *opts, const char *name) {
+int hxhim_options_set_bulks_name(hxhim_options_t *opts, const char *name) {
     if (!valid_opts(opts)) {
         return HXHIM_ERROR;
     }
 
-    opts->p->buffers.name = name;
+    opts->p->bulks.name = name;
 
     return HXHIM_SUCCESS;
-}
-
-int hxhim_options_set_bulks_default_alloc_size(hxhim_options_t *opts) {
-    if (!valid_opts(opts)) {
-        return HXHIM_ERROR;
-    }
-
-    static const std::size_t bulk_sizes[] = {
-        sizeof(hxhim::PutData),
-        sizeof(hxhim::GetData),
-        sizeof(hxhim::GetOpData),
-        sizeof(hxhim::DeleteData),
-    };
-
-    return hxhim_options_set_bulks_alloc_size(opts, *std::max_element(std::begin(bulk_sizes), std::end(bulk_sizes)));
 }
 
 int hxhim_options_set_bulks_alloc_size(hxhim_options_t *opts, const size_t alloc_size) {
@@ -501,12 +505,12 @@ int hxhim_options_set_bulks_regions(hxhim_options_t *opts, const size_t regions)
     return HXHIM_SUCCESS;
 }
 
-int hxhim_options_set_bulks_name(hxhim_options_t *opts, const char *name) {
+int hxhim_options_set_keys_name(hxhim_options_t *opts, const char *name) {
     if (!valid_opts(opts)) {
         return HXHIM_ERROR;
     }
 
-    opts->p->bulks.name = name;
+    opts->p->keys.name = name;
 
     return HXHIM_SUCCESS;
 }
@@ -531,12 +535,12 @@ int hxhim_options_set_keys_regions(hxhim_options_t *opts, const size_t regions) 
     return HXHIM_SUCCESS;
 }
 
-int hxhim_options_set_keys_name(hxhim_options_t *opts, const char *name) {
+int hxhim_options_set_arrays_name(hxhim_options_t *opts, const char *name) {
     if (!valid_opts(opts)) {
         return HXHIM_ERROR;
     }
 
-    opts->p->keys.name = name;
+    opts->p->arrays.name = name;
 
     return HXHIM_SUCCESS;
 }
@@ -561,12 +565,12 @@ int hxhim_options_set_arrays_regions(hxhim_options_t *opts, const size_t regions
     return HXHIM_SUCCESS;
 }
 
-int hxhim_options_set_arrays_name(hxhim_options_t *opts, const char *name) {
+int hxhim_options_set_requests_name(hxhim_options_t *opts, const char *name) {
     if (!valid_opts(opts)) {
         return HXHIM_ERROR;
     }
 
-    opts->p->arrays.name = name;
+    opts->p->requests.name = name;
 
     return HXHIM_SUCCESS;
 }
@@ -591,12 +595,12 @@ int hxhim_options_set_requests_regions(hxhim_options_t *opts, const size_t regio
     return HXHIM_SUCCESS;
 }
 
-int hxhim_options_set_requests_name(hxhim_options_t *opts, const char *name) {
+int hxhim_options_set_responses_name(hxhim_options_t *opts, const char *name) {
     if (!valid_opts(opts)) {
         return HXHIM_ERROR;
     }
 
-    opts->p->requests.name = name;
+    opts->p->responses.name = name;
 
     return HXHIM_SUCCESS;
 }
@@ -621,12 +625,12 @@ int hxhim_options_set_responses_regions(hxhim_options_t *opts, const size_t regi
     return HXHIM_SUCCESS;
 }
 
-int hxhim_options_set_responses_name(hxhim_options_t *opts, const char *name) {
+int hxhim_options_set_result_name(hxhim_options_t *opts, const char *name) {
     if (!valid_opts(opts)) {
         return HXHIM_ERROR;
     }
 
-    opts->p->responses.name = name;
+    opts->p->result.name = name;
 
     return HXHIM_SUCCESS;
 }
@@ -651,12 +655,12 @@ int hxhim_options_set_result_regions(hxhim_options_t *opts, const size_t regions
     return HXHIM_SUCCESS;
 }
 
-int hxhim_options_set_result_name(hxhim_options_t *opts, const char *name) {
+int hxhim_options_set_results_name(hxhim_options_t *opts, const char *name) {
     if (!valid_opts(opts)) {
         return HXHIM_ERROR;
     }
 
-    opts->p->result.name = name;
+    opts->p->results.name = name;
 
     return HXHIM_SUCCESS;
 }
@@ -677,16 +681,6 @@ int hxhim_options_set_results_regions(hxhim_options_t *opts, const size_t region
     }
 
     opts->p->results.regions = regions;
-
-    return HXHIM_SUCCESS;
-}
-
-int hxhim_options_set_results_name(hxhim_options_t *opts, const char *name) {
-    if (!valid_opts(opts)) {
-        return HXHIM_ERROR;
-    }
-
-    opts->p->results.name = name;
 
     return HXHIM_SUCCESS;
 }

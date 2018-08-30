@@ -1,29 +1,11 @@
 #if HXHIM_HAVE_THALLIUM
 
 #include "transport/backend/Thallium/Packer.hpp"
+#include "utils/mlog2.h"
+#include "utils/mlogfacs2.h"
 
 namespace Transport {
 namespace Thallium {
-
-int Packer::any(const Message *msg, std::string &buf) {
-    int ret = TRANSPORT_ERROR;
-    if (!msg) {
-        return ret;
-    }
-
-    switch (msg->direction) {
-        case Message::REQUEST:
-            ret = pack(static_cast<const Request::Request *>(msg), buf);
-            break;
-        case Message::RESPONSE:
-            ret = pack(static_cast<const Response::Response *>(msg), buf);
-            break;
-        default:
-            break;
-    }
-
-    return ret;
-}
 
 int Packer::pack(const Request::Request *req, std::string &buf) {
     int ret = TRANSPORT_ERROR;
@@ -31,6 +13,7 @@ int Packer::pack(const Request::Request *req, std::string &buf) {
         return ret;
     }
 
+    // mlog(THALLIUM_DBG, "Packing Request type %d", req->type);
     switch (req->type) {
         case Message::PUT:
             ret = pack(static_cast<const Request::Put *>(req), buf);
@@ -59,6 +42,8 @@ int Packer::pack(const Request::Request *req, std::string &buf) {
         default:
             break;
     }
+
+    // mlog(THALLIUM_DBG, "Done Packing Request type %d", req->type);
 
     return ret;
 }
@@ -273,6 +258,7 @@ int Packer::pack(const Response::Response *res, std::string &buf) {
         return ret;
     }
 
+    // mlog(THALLIUM_DBG, "Packing Response type %d", res->type);
     switch (res->type) {
         case Message::PUT:
             ret = pack(static_cast<const Response::Put *>(res), buf);
@@ -301,6 +287,8 @@ int Packer::pack(const Response::Response *res, std::string &buf) {
         default:
             break;
     }
+
+    // mlog(THALLIUM_DBG, "Done Packing Response type %d", res->type);
 
     return ret;
 }

@@ -263,11 +263,11 @@ int Unpacker::unpack(const MPI_Comm comm, Request::BPut **bpm, const void *buf, 
                 (MPI_Unpack(buf, bufsize, &position, &out->predicate_lens[i], sizeof(out->predicate_lens[i]), MPI_BYTE, comm) != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, &out->object_types[i], sizeof(out->object_types[i]), MPI_BYTE, comm)     != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, &out->object_lens[i], sizeof(out->object_lens[i]), MPI_BYTE, comm)       != MPI_SUCCESS) ||
-                (!(out->subjects[i] = ::operator new(out->subject_lens[i])))                                                                  ||
+                (!(out->subjects[i] = buffers->acquire(out->subject_lens[i])))                                                                ||
                 (MPI_Unpack(buf, bufsize, &position, out->subjects[i], out->subject_lens[i], MPI_BYTE, comm)                  != MPI_SUCCESS) ||
-                (!(out->predicates[i] = ::operator new(out->predicate_lens[i])))                                                              ||
+                (!(out->predicates[i] = buffers->acquire(out->predicate_lens[i])))                                                            ||
                 (MPI_Unpack(buf, bufsize, &position, out->predicates[i], out->predicate_lens[i], MPI_BYTE, comm)              != MPI_SUCCESS) ||
-                (!(out->objects[i] = ::operator new(out->object_lens[i])))                                                                    ||
+                (!(out->objects[i] = buffers->acquire(out->object_lens[i])))                                                                  ||
                 (MPI_Unpack(buf, bufsize, &position, out->objects[i], out->object_lens[i], MPI_BYTE, comm)                    != MPI_SUCCESS)) {
                 requests->release(out);
                 return TRANSPORT_ERROR;
@@ -289,7 +289,7 @@ int Unpacker::unpack(const MPI_Comm comm, Request::BGet **bgm, const void *buf, 
     }
 
     int position = 0;
-    if (unpack(comm, static_cast<Request::Request *>(out), buf, bufsize, &position)                                      != TRANSPORT_SUCCESS) {
+    if (unpack(comm, static_cast<Request::Request *>(out), buf, bufsize, &position)                                           != TRANSPORT_SUCCESS) {
         requests->release(out);
         return TRANSPORT_ERROR;
     }
@@ -312,9 +312,9 @@ int Unpacker::unpack(const MPI_Comm comm, Request::BGet **bgm, const void *buf, 
                 (MPI_Unpack(buf, bufsize, &position, &out->subject_lens[i], sizeof(out->subject_lens[i]), MPI_BYTE, comm)     != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, &out->predicate_lens[i], sizeof(out->predicate_lens[i]), MPI_BYTE, comm) != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, &out->object_types[i], sizeof(out->object_types[i]), MPI_BYTE, comm)     != MPI_SUCCESS) ||
-                (!(out->subjects[i] = ::operator new(out->subject_lens[i])))                                                                  ||
+                (!(out->subjects[i] = buffers->acquire(out->subject_lens[i])))                                                                ||
                 (MPI_Unpack(buf, bufsize, &position, out->subjects[i], out->subject_lens[i], MPI_BYTE, comm)                  != MPI_SUCCESS) ||
-                (!(out->predicates[i] = ::operator new(out->predicate_lens[i])))                                                              ||
+                (!(out->predicates[i] = buffers->acquire(out->predicate_lens[i])))                                                            ||
                 (MPI_Unpack(buf, bufsize, &position, out->predicates[i], out->predicate_lens[i], MPI_BYTE, comm)              != MPI_SUCCESS)) {
                 requests->release(out);
                 return TRANSPORT_ERROR;
@@ -336,7 +336,7 @@ int Unpacker::unpack(const MPI_Comm comm, Request::BGetOp **bgm, const void *buf
     }
 
     int position = 0;
-    if (unpack(comm, static_cast<Request::Request *>(out), buf, bufsize, &position)                                      != TRANSPORT_SUCCESS) {
+    if (unpack(comm, static_cast<Request::Request *>(out), buf, bufsize, &position)                                           != TRANSPORT_SUCCESS) {
         requests->release(out);
         return TRANSPORT_ERROR;
     }
@@ -361,9 +361,9 @@ int Unpacker::unpack(const MPI_Comm comm, Request::BGetOp **bgm, const void *buf
                 (MPI_Unpack(buf, bufsize, &position, &out->object_types[i], sizeof(out->object_types[i]), MPI_BYTE, comm)     != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, &out->num_recs[i], sizeof(out->num_recs[i]), MPI_BYTE, comm)             != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, &out->ops[i], sizeof(out->ops[i]), MPI_BYTE, comm)                       != MPI_SUCCESS) ||
-                (!(out->subjects[i] = ::operator new(out->subject_lens[i])))                                                                  ||
+                (!(out->subjects[i] = buffers->acquire(out->subject_lens[i])))                                                                ||
                 (MPI_Unpack(buf, bufsize, &position, out->subjects[i], out->subject_lens[i], MPI_BYTE, comm)                  != MPI_SUCCESS) ||
-                (!(out->predicates[i] = ::operator new(out->predicate_lens[i])))                                                              ||
+                (!(out->predicates[i] = buffers->acquire(out->predicate_lens[i])))                                                            ||
                 (MPI_Unpack(buf, bufsize, &position, out->predicates[i], out->predicate_lens[i], MPI_BYTE, comm)              != MPI_SUCCESS)) {
                 requests->release(out);
                 return TRANSPORT_ERROR;
@@ -385,7 +385,7 @@ int Unpacker::unpack(const MPI_Comm comm, Request::BDelete **bdm, const void *bu
     }
 
     int position = 0;
-    if (unpack(comm, static_cast<Request::Request *>(out), buf, bufsize, &position)                                      != TRANSPORT_SUCCESS) {
+    if (unpack(comm, static_cast<Request::Request *>(out), buf, bufsize, &position)                                           != TRANSPORT_SUCCESS) {
         requests->release(out);
         return TRANSPORT_ERROR;
     }
@@ -407,9 +407,9 @@ int Unpacker::unpack(const MPI_Comm comm, Request::BDelete **bdm, const void *bu
             if ((MPI_Unpack(buf, bufsize, &position, &out->ds_offsets[i], 1, MPI_INT, comm)                                   != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, &out->subject_lens[i], sizeof(out->subject_lens[i]), MPI_BYTE, comm)     != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, &out->predicate_lens[i], sizeof(out->predicate_lens[i]), MPI_BYTE, comm) != MPI_SUCCESS) ||
-                (!(out->subjects[i] = ::operator new(out->subject_lens[i])))                                                                  ||
+                (!(out->subjects[i] = buffers->acquire(out->subject_lens[i])))                                                                ||
                 (MPI_Unpack(buf, bufsize, &position, out->subjects[i], out->subject_lens[i], MPI_BYTE, comm)                  != MPI_SUCCESS) ||
-                (!(out->predicates[i] = ::operator new(out->predicate_lens[i])))                                                              ||
+                (!(out->predicates[i] = buffers->acquire(out->predicate_lens[i])))                                                            ||
                 (MPI_Unpack(buf, bufsize, &position, out->predicates[i], out->predicate_lens[i], MPI_BYTE, comm)              != MPI_SUCCESS)) {
                 requests->release(out);
                 return TRANSPORT_ERROR;
@@ -482,7 +482,7 @@ int Unpacker::unpack(const MPI_Comm comm, Response::Response **res, const void *
 
     // make sure the data represents a response
     if (basemsg->direction != Message::RESPONSE) {
-        delete basemsg;
+        responses->release(basemsg);
         return TRANSPORT_ERROR;
     }
 
@@ -492,10 +492,10 @@ int Unpacker::unpack(const MPI_Comm comm, Response::Response **res, const void *
         *res = response;
     }
     else {
-        delete response;
+        responses->release(response);
     }
 
-    delete basemsg;
+    responses->release(basemsg);
 
     return ret;
 }
@@ -733,9 +733,9 @@ int Unpacker::unpack(const MPI_Comm comm, Response::BGet **bgm, const void *buf,
                 (MPI_Unpack(buf, bufsize, &position, &out->subject_lens[i], sizeof(out->subject_lens[i]), MPI_BYTE, comm)     != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, &out->predicate_lens[i], sizeof(out->predicate_lens[i]), MPI_BYTE, comm) != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, &out->object_types[i], sizeof(out->object_types[i]), MPI_BYTE, comm)     != MPI_SUCCESS) ||
-                (!(out->subjects[i] = ::operator new(out->subject_lens[i])))                                                                  ||
+                (!(out->subjects[i] = buffers->acquire(out->subject_lens[i])))                                                                ||
                 (MPI_Unpack(buf, bufsize, &position, out->subjects[i], out->subject_lens[i], MPI_BYTE, comm)                  != MPI_SUCCESS) ||
-                (!(out->predicates[i] = ::operator new(out->predicate_lens[i])))                                                              ||
+                (!(out->predicates[i] = buffers->acquire(out->predicate_lens[i])))                                                            ||
                 (MPI_Unpack(buf, bufsize, &position, out->predicates[i], out->predicate_lens[i], MPI_BYTE, comm)              != MPI_SUCCESS)) {
                 responses->release(out);
                 return TRANSPORT_ERROR;
@@ -744,7 +744,7 @@ int Unpacker::unpack(const MPI_Comm comm, Response::BGet **bgm, const void *buf,
             // only read object if status is HXHIM_SUCCESS
             if (out->statuses[i] == HXHIM_SUCCESS) {
                 if ((MPI_Unpack(buf, bufsize, &position, &out->object_lens[i], sizeof(out->object_lens[i]), MPI_BYTE, comm)   != MPI_SUCCESS) ||
-                    (!(out->objects[i] = ::operator new(out->object_lens[i])))                                                                ||
+                    (!(out->objects[i] = buffers->acquire(out->object_lens[i])))                                                              ||
                     (MPI_Unpack(buf, bufsize, &position, out->objects[i], out->object_lens[i], MPI_BYTE, comm)                != MPI_SUCCESS)) {
                     responses->release(out);
                     return TRANSPORT_ERROR;
@@ -791,9 +791,9 @@ int Unpacker::unpack(const MPI_Comm comm, Response::BGetOp **bgm, const void *bu
                 (MPI_Unpack(buf, bufsize, &position, &out->subject_lens[i], sizeof(out->subject_lens[i]), MPI_BYTE, comm)     != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, &out->predicate_lens[i], sizeof(out->predicate_lens[i]), MPI_BYTE, comm) != MPI_SUCCESS) ||
                 (MPI_Unpack(buf, bufsize, &position, &out->object_types[i], sizeof(out->object_types[i]), MPI_BYTE, comm)     != MPI_SUCCESS) ||
-                (!(out->subjects[i] = ::operator new(out->subject_lens[i])))                                                                  ||
+                (!(out->subjects[i] = buffers->acquire(out->subject_lens[i])))                                                                ||
                 (MPI_Unpack(buf, bufsize, &position, out->subjects[i], out->subject_lens[i], MPI_BYTE, comm)                  != MPI_SUCCESS) ||
-                (!(out->predicates[i] = ::operator new(out->predicate_lens[i])))                                                              ||
+                (!(out->predicates[i] = buffers->acquire(out->predicate_lens[i])))                                                            ||
                 (MPI_Unpack(buf, bufsize, &position, out->predicates[i], out->predicate_lens[i], MPI_BYTE, comm)              != MPI_SUCCESS)) {
                 responses->release(out);
                 return TRANSPORT_ERROR;
@@ -802,7 +802,7 @@ int Unpacker::unpack(const MPI_Comm comm, Response::BGetOp **bgm, const void *bu
             // only read object if status is HXHIM_SUCCESS
             if (out->statuses[i] == HXHIM_SUCCESS) {
                 if ((MPI_Unpack(buf, bufsize, &position, &out->object_lens[i], sizeof(out->object_lens[i]), MPI_BYTE, comm)   != MPI_SUCCESS) ||
-                    (!(out->objects[i] = ::operator new(out->object_lens[i])))                                                                ||
+                    (!(out->objects[i] = buffers->acquire(out->object_lens[i])))                                                              ||
                     (MPI_Unpack(buf, bufsize, &position, out->objects[i], out->object_lens[i], MPI_BYTE, comm)                != MPI_SUCCESS)) {
                     responses->release(out);
                     return TRANSPORT_ERROR;

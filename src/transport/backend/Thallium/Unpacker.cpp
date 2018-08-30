@@ -1,28 +1,34 @@
 #if HXHIM_HAVE_THALLIUM
 
 #include "transport/backend/Thallium/Unpacker.hpp"
+#include "utils/mlog2.h"
+#include "utils/mlogfacs2.h"
 
 int Transport::Thallium::Unpacker::unpack(Request::Request **req, const std::string &buf, FixedBufferPool *requests, FixedBufferPool *arrays, FixedBufferPool *buffers) {
     int ret = TRANSPORT_ERROR;
     if (!req) {
+        // mlog(THALLIUM_WARN, "Bad address to pointer to unpack into");
         return ret;
     }
+
+    // mlog(THALLIUM_DBG, "%s", "Unpacking Request");
 
     // partial unpacking
     Message *base = nullptr;
     if (unpack(&base, buf, requests, arrays, buffers) != TRANSPORT_SUCCESS) {
-        delete base;
+        requests->release(base);
         return ret;
     }
 
     // make sure the data is for a request
     if (base->direction != Message::REQUEST) {
-        delete base;
+        requests->release(base);
         return ret;
     }
 
     *req = nullptr;
 
+    // mlog(THALLIUM_DBG, "Unpacking Request type %d", base->type);
     switch (base->type) {
         case Message::PUT:
             {
@@ -84,7 +90,9 @@ int Transport::Thallium::Unpacker::unpack(Request::Request **req, const std::str
             break;
     }
 
-    delete base;
+    requests->release(base);
+    // mlog(THALLIUM_DBG, "Done Unpacking Request type %d", base->type);
+
     return ret;
 }
 
@@ -470,21 +478,24 @@ int Transport::Thallium::Unpacker::unpack(Response::Response **res, const std::s
         return ret;
     }
 
+    // mlog(THALLIUM_DBG, "Done Unpacking Response");
+
     // partial unpacking
     Message *base = nullptr;
     if (unpack(&base, buf, responses, arrays, buffers) != TRANSPORT_SUCCESS) {
-        delete base;
+        responses->release(base);
         return ret;
     }
 
     // make sure the data is for a response
     if (base->direction != Message::RESPONSE) {
-        delete base;
+        responses->release(base);
         return ret;
     }
 
     *res = nullptr;
 
+    // mlog(THALLIUM_DBG, "Unpacking Response type %d", base->type);
     switch (base->type) {
         case Message::PUT:
             {
@@ -546,7 +557,9 @@ int Transport::Thallium::Unpacker::unpack(Response::Response **res, const std::s
             break;
     }
 
-    delete base;
+    responses->release(base);
+    // mlog(THALLIUM_DBG, "Done Unpacking Response type %d", base->type);
+
     return ret;
 }
 
