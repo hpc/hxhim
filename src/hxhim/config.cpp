@@ -277,8 +277,9 @@ static int fill_options(hxhim_options_t *opts, const Config &config) {
         // parse_alloc_size(opts, config, HXHIM_RESULT_ALLOC_SIZE,    hxhim_options_set_result_alloc_size) &&
         parse_regions   (opts, config, HXHIM_RESULT_REGIONS,       hxhim_options_set_result_regions) &&
         parse_name      (opts, config, HXHIM_RESULTS_NAME,         hxhim_options_set_results_name) &&
-        parse_alloc_size(opts, config, HXHIM_RESULTS_ALLOC_SIZE,   hxhim_options_set_results_alloc_size) &&
-        parse_regions   (opts, config, HXHIM_RESULTS_REGIONS,      hxhim_options_set_results_regions)?HXHIM_SUCCESS:HXHIM_ERROR;
+        // parse_alloc_size(opts, config, HXHIM_RESULTS_ALLOC_SIZE,   hxhim_options_set_results_alloc_size) &&
+        // parse_regions   (opts, config, HXHIM_RESULTS_REGIONS,      hxhim_options_set_results_regions) &&
+        true?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 
 /**

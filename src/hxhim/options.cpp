@@ -31,7 +31,9 @@ int hxhim_options_init(hxhim_options_t *opts) {
     if ((hxhim_options_set_bulks_alloc_size(opts, hxhim::MaxSize::Bulks())         != HXHIM_SUCCESS) ||
         (hxhim_options_set_requests_alloc_size(opts, hxhim::MaxSize::Requests())   != HXHIM_SUCCESS) ||
         (hxhim_options_set_responses_alloc_size(opts, hxhim::MaxSize::Responses()) != HXHIM_SUCCESS) ||
-        (hxhim_options_set_result_alloc_size(opts, hxhim::MaxSize::Result())       != HXHIM_SUCCESS)) {
+        (hxhim_options_set_result_alloc_size(opts, hxhim::MaxSize::Result())       != HXHIM_SUCCESS) ||
+        (hxhim_options_set_results_alloc_size(opts, sizeof(hxhim::Results))        != HXHIM_SUCCESS) ||
+        (hxhim_options_set_results_regions(opts, 3)                                != HXHIM_SUCCESS)) {
         return HXHIM_ERROR;
     }
 
