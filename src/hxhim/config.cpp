@@ -102,6 +102,9 @@ static bool parse_transport(hxhim_options_t *opts, const Config &config) {
 
     if (ret == CONFIG_FOUND) {
         switch (transport_type) {
+            case Transport::TRANSPORT_NULL:
+                return hxhim_options_set_hash_name(opts, "LOCAL");
+                break;
             case Transport::TRANSPORT_MPI:
                 {
                     std::size_t listeners;
@@ -109,7 +112,8 @@ static bool parse_transport(hxhim_options_t *opts, const Config &config) {
                         return false;
                     }
 
-                    return (hxhim_options_set_transport_mpi(opts, listeners) == HXHIM_SUCCESS);
+                    return ((hxhim_options_set_transport_mpi(opts, listeners) == HXHIM_SUCCESS) &&
+                            parse_hash(opts, config));
                 }
                 break;
             case Transport::TRANSPORT_THALLIUM:
@@ -119,7 +123,8 @@ static bool parse_transport(hxhim_options_t *opts, const Config &config) {
                         return false;
                     }
 
-                    return (hxhim_options_set_transport_thallium(opts, thallium_module->second.c_str()) == HXHIM_SUCCESS);
+                    return ((hxhim_options_set_transport_thallium(opts, thallium_module->second.c_str()) == HXHIM_SUCCESS) &&
+                            parse_hash(opts, config));
                 }
                 break;
             default:
@@ -246,7 +251,6 @@ static int fill_options(hxhim_options_t *opts, const Config &config) {
         parse_debug_level(opts, config) &&
         parse_datastore_count(opts, config) &&
         parse_datastore(opts, config) &&
-        parse_hash(opts, config) &&
         parse_transport(opts, config) &&
         parse_endpointgroup(opts, config) &&
         parse_queued_bputs(opts, config) &&

@@ -7,13 +7,13 @@
 namespace Transport {
 
 enum Type {
+    TRANSPORT_NULL,
     TRANSPORT_MPI,
 
     #if HXHIM_HAVE_THALLIUM
     TRANSPORT_THALLIUM,
     #endif
 
-    TRANSPORT_LOCAL,
 };
 
 }

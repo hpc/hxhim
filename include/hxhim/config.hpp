@@ -105,6 +105,7 @@ const std::map<std::string, hxhim_datastore_t> HXHIM_DATASTORES = {
  */
 const std::string RANK               = "RANK";
 const std::string SUM_MOD_DATASTORES = "SUM_MOD_DATASTORES";
+const std::string LOCAL              = "LOCAL";
 
 /**
  * Set of predefined hash functions
@@ -112,15 +113,16 @@ const std::string SUM_MOD_DATASTORES = "SUM_MOD_DATASTORES";
 const std::map<std::string, hxhim_hash_t> HXHIM_HASHES = {
     std::make_pair(RANK,               hxhim::hash::Rank),
     std::make_pair(SUM_MOD_DATASTORES, hxhim::hash::SumModDatastores),
+    std::make_pair(LOCAL,              hxhim::hash::Local),
 };
 
 /**
  * Set of available transports
  */
 const std::map<std::string, Transport::Type> HXHIM_TRANSPORTS = {
+    std::make_pair("NULL",     Transport::TRANSPORT_NULL),
     std::make_pair("MPI",      Transport::TRANSPORT_MPI),
     std::make_pair("THALLIUM", Transport::TRANSPORT_THALLIUM),
-    std::make_pair("LOCAL",    Transport::TRANSPORT_LOCAL),
 };
 
 /**

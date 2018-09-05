@@ -38,6 +38,6 @@ bool fill_options(hxhim_options_t *opts) {
             (hxhim_options_set_result_regions(opts, 256)                                   == HXHIM_SUCCESS) &&
             (hxhim_options_set_results_name(opts, "Results")                               == HXHIM_SUCCESS) &&
             // (hxhim_options_set_results_alloc_size(opts, 4096)                              == HXHIM_SUCCESS) &&
-            (hxhim_options_set_results_regions(opts, 5)                                    == HXHIM_SUCCESS) &&
+            (hxhim_options_set_results_regions(opts, 8)                                    == HXHIM_SUCCESS) &&
             true);
 }

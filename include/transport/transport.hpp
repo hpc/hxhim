@@ -19,21 +19,21 @@ namespace Transport {
  */
 class Endpoint {
     public:
-        virtual ~Endpoint() {}
+       virtual ~Endpoint();
 
         /** @description Send a Put to this endpoint */
-        virtual Response::Put *Put(const Request::Put *message) = 0;
+        virtual Response::Put *Put(const Request::Put *message);
 
         /** @description Send a Get to this endpoint */
-        virtual Response::Get *Get(const Request::Get *message) = 0;
+        virtual Response::Get *Get(const Request::Get *message);
 
         /** @description Send a Delete to this endpoint */
-        virtual Response::Delete *Delete(const Request::Delete *message) = 0;
+        virtual Response::Delete *Delete(const Request::Delete *message);
 
-        virtual Response::Histogram *Histogram(const Request::Histogram *message) = 0;
+        virtual Response::Histogram *Histogram(const Request::Histogram *message);
 
     protected:
-        Endpoint() {}
+        Endpoint();
         Endpoint(const Endpoint&  rhs) = delete;
         Endpoint(const Endpoint&& rhs) = delete;
 };
@@ -43,25 +43,25 @@ class Endpoint {
  */
 class EndpointGroup {
     public:
-        virtual ~EndpointGroup() {}
+        virtual ~EndpointGroup();
 
         /** @description Bulk Put to multiple endpoints    */
-        virtual Response::BPut *BPut(const std::size_t num_rangesrvs, Request::BPut **bpm_list) = 0;
+        virtual Response::BPut *BPut(const std::size_t num_rangesrvs, Request::BPut **bpm_list);
 
         /** @description Bulk Get from multiple endpoints  */
-        virtual Response::BGet *BGet(const std::size_t num_rangesrvs, Request::BGet **bgm_list) = 0;
+        virtual Response::BGet *BGet(const std::size_t num_rangesrvs, Request::BGet **bgm_list);
 
         /** @description Bulk Get from multiple endpoints  */
-        virtual Response::BGetOp *BGetOp(const std::size_t num_rangesrvs, Request::BGetOp **bgm_list) = 0;
+        virtual Response::BGetOp *BGetOp(const std::size_t num_rangesrvs, Request::BGetOp **bgm_list);
 
         /** @description Bulk Delete to multiple endpoints */
-        virtual Response::BDelete *BDelete(const std::size_t num_rangesrvs, Request::BDelete **bdm_list) = 0;
+        virtual Response::BDelete *BDelete(const std::size_t num_rangesrvs, Request::BDelete **bdm_list);
 
         /** @description Bulk Histogram to multiple endpoints */
-        virtual Response::BHistogram *BHistogram(const std::size_t num_rangesrvs, Request::BHistogram **bhist_list) = 0;
+        virtual Response::BHistogram *BHistogram(const std::size_t num_rangesrvs, Request::BHistogram **bhm_list);
 
    protected:
-        EndpointGroup() {}
+        EndpointGroup();
         EndpointGroup(const EndpointGroup&  rhs) = delete;
         EndpointGroup(const EndpointGroup&& rhs) = delete;
 

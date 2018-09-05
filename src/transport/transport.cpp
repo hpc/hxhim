@@ -2,6 +2,50 @@
 
 namespace Transport {
 
+Endpoint::Endpoint() {}
+
+Endpoint::~Endpoint() {}
+
+Response::Put *Endpoint::Put(const Request::Put *) {
+    return nullptr;
+}
+
+Response::Get *Endpoint::Get(const Request::Get *) {
+    return nullptr;
+}
+
+Response::Delete *Endpoint::Delete(const Request::Delete *) {
+    return nullptr;
+}
+
+Response::Histogram *Endpoint::Histogram(const Request::Histogram *) {
+    return nullptr;
+}
+
+EndpointGroup::EndpointGroup() {}
+
+EndpointGroup::~EndpointGroup() {}
+
+Response::BPut *EndpointGroup::BPut(const std::size_t, Request::BPut **) {
+    return nullptr;
+}
+
+Response::BGet *EndpointGroup::BGet(const std::size_t, Request::BGet **) {
+    return nullptr;
+}
+
+Response::BGetOp *EndpointGroup::BGetOp(const std::size_t, Request::BGetOp **) {
+    return nullptr;
+}
+
+Response::BDelete *EndpointGroup::BDelete(const std::size_t, Request::BDelete **) {
+    return nullptr;
+}
+
+Response::BHistogram *EndpointGroup::BHistogram(const std::size_t, Request::BHistogram **) {
+    return nullptr;
+}
+
 Transport::Transport()
     : endpoints_(),
       endpointgroup_(nullptr)

@@ -6,9 +6,12 @@
  * Rank
  * Returns the rank of the process as the target datastore
  *
- * @param data     the byte string to hash
- * @param data_len the length of the byte string
- * @param args     a pointer to an int that contains the rank of the calling function
+ * @param hx            the HXHIM instance
+ * @param subject       the subject to hash
+ * @param subject_len   the length of the subject
+ * @param predicate     the predicate to hash
+ * @param predicate_len the length of the predicate
+ * @param args          a pointer to an int that contains the rank of the calling function
  * @return the destination datastore ID or -1 on error
  */
 int hxhim::hash::Rank(hxhim_t *hx, void *subject, const std::size_t subject_len, void *predicate, const std::size_t predicate_len, void *args) {
@@ -24,9 +27,12 @@ int hxhim::hash::Rank(hxhim_t *hx, void *subject, const std::size_t subject_len,
  * Simple hash that sums the bytes of the data
  * and mods it by the number of datastores.
  *
- * @param data     the byte string to hash
- * @param data_len the length of the byte string
- * @param args     a pointer to an int that contains the number of datastores there are
+ * @param hx            the HXHIM instance
+ * @param subject       the subject to hash
+ * @param subject_len   the length of the subject
+ * @param predicate     the predicate to hash
+ * @param predicate_len the length of the predicate
+ * @param args          a pointer to an int that contains the number of datastores there are
  * @return the destination datastore ID or -1 on error
  */
 int hxhim::hash::SumModDatastores(hxhim_t *hx, void *subject, const std::size_t subject_len, void *predicate, const std::size_t predicate_len, void *args) {
@@ -46,4 +52,19 @@ int hxhim::hash::SumModDatastores(hxhim_t *hx, void *subject, const std::size_t 
     }
 
     return dst % mod;
+}
+
+/**
+ * Local
+ * Simple hash that sends all data to the local datastore
+ *
+ * @param hx            the HXHIM instance
+ * @return the destination datastore ID or -1 on error
+ */
+int hxhim::hash::Local(hxhim_t *hx, void *, const std::size_t, void *, const std::size_t, void *) {
+    if (!hx || !hx->p) {
+        return -1;
+    }
+
+    return hx->p->bootstrap.rank;
 }

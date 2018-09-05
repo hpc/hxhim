@@ -3,7 +3,6 @@
 #include <type_traits>
 
 #include <gtest/gtest.h>
-#include <mpi.h>
 
 #include "generic_options.hpp"
 #include "hxhim/hxhim.hpp"
