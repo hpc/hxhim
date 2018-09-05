@@ -291,7 +291,7 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
     local.src = hx->p->bootstrap.rank;
     local.dst = hx->p->bootstrap.rank;
 
-    Transport::Request::BGet **remote = hxhim::acquire_array<Transport::Request::BGet *>(hx, hx->p->bootstrap.size); // list of destination servers (not datastores) and messages to those destinations
+    Transport::Request::BGet **remote = hx->p->memory_pools.arrays->acquire_array<Transport::Request::BGet *>(hx->p->bootstrap.size); // list of destination servers (not datastores) and messages to those destinations
     for(int i = 0; i < hx->p->bootstrap.size; i++) {
         remote[i] = hx->p->memory_pools.requests->acquire<Transport::Request::BGet>(hxhim::GetArrayFBP(hx), hxhim::GetBufferFBP(hx), hx->p->max_bulk_ops.gets);
     }
@@ -319,7 +319,7 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
     for(int i = 0; i < hx->p->bootstrap.size; i++) {
         hx->p->memory_pools.requests->release(remote[i]);
     }
-    release_array(hx, remote);
+    hx->p->memory_pools.arrays->release_array(remote, hx->p->bootstrap.size);
 
     gets.head = gets.tail = nullptr;
 
@@ -423,7 +423,7 @@ hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
     local.src = hx->p->bootstrap.rank;
     local.dst = hx->p->bootstrap.rank;
 
-    Transport::Request::BGetOp **remote = hxhim::acquire_array<Transport::Request::BGetOp *>(hx, hx->p->bootstrap.size); // list of destination servers (not datastores) and messages to those destinations
+    Transport::Request::BGetOp **remote = hx->p->memory_pools.arrays->acquire_array<Transport::Request::BGetOp *>(hx->p->bootstrap.size); // list of destination servers (not datastores) and messages to those destinations
     for(int i = 0; i < hx->p->bootstrap.size; i++) {
         remote[i] = hx->p->memory_pools.requests->acquire<Transport::Request::BGetOp>(hxhim::GetArrayFBP(hx), hxhim::GetBufferFBP(hx), hx->p->max_bulk_ops.getops);
         remote[i]->src = hx->p->bootstrap.rank;
@@ -455,7 +455,7 @@ hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
     for(int i = 0; i < hx->p->bootstrap.size; i++) {
         hx->p->memory_pools.requests->release(remote[i]);
     }
-    release_array(hx, remote);
+    hx->p->memory_pools.arrays->release_array(remote, hx->p->bootstrap.size);
 
     getops.head = getops.tail = nullptr;
 
@@ -556,7 +556,7 @@ hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
     local.src = hx->p->bootstrap.rank;
     local.dst = hx->p->bootstrap.rank;
 
-    Transport::Request::BDelete **remote = hxhim::acquire_array<Transport::Request::BDelete *>(hx, hx->p->bootstrap.size); // list of destination servers (not datastores) and messages to those destinations
+    Transport::Request::BDelete **remote = hx->p->memory_pools.arrays->acquire_array<Transport::Request::BDelete *>(hx->p->bootstrap.size); // list of destination servers (not datastores) and messages to those destinations
     for(int i = 0; i < hx->p->bootstrap.size; i++) {
         remote[i] = hx->p->memory_pools.requests->acquire<Transport::Request::BDelete>(hxhim::GetArrayFBP(hx), hxhim::GetBufferFBP(hx), hx->p->max_bulk_ops.deletes);
         remote[i]->src = hx->p->bootstrap.rank;
@@ -590,7 +590,7 @@ hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
     for(int i = 0; i < hx->p->bootstrap.size; i++) {
         hx->p->memory_pools.requests->release(remote[i]);
     }
-    release_array(hx, remote);
+    hx->p->memory_pools.arrays->release_array(remote, hx->p->bootstrap.size);
 
     dels.head = dels.tail = nullptr;
 
@@ -708,14 +708,14 @@ int hxhim::Put(hxhim_t *hx,
 
     // no previous batch
     if (!puts.tail) {
-        puts.head       = hx->p->memory_pools.bulks->acquire<hxhim::PutData>();
+        puts.head       = hx->p->memory_pools.bulks->acquire<hxhim::PutData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.puts);
         puts.tail       = puts.head;
         puts.last_count = 0;
     }
 
     // filled the current batch
     if (puts.last_count == HXHIM_MAX_BULK_PUT_OPS) {
-        hxhim::PutData *next = hx->p->memory_pools.bulks->acquire<hxhim::PutData>();
+        hxhim::PutData *next = hx->p->memory_pools.bulks->acquire<hxhim::PutData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.puts);
         next->prev      = puts.tail;
         puts.tail->next = next;
         puts.tail       = next;
@@ -790,14 +790,14 @@ int hxhim::Get(hxhim_t *hx,
 
     // no previous batch
     if (!gets.tail) {
-        gets.head       = hx->p->memory_pools.bulks->acquire<hxhim::GetData>();
+        gets.head       = hx->p->memory_pools.bulks->acquire<hxhim::GetData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.gets);
         gets.tail       = gets.head;
         gets.last_count = 0;
     }
 
     // filled the current batch
     if (gets.last_count == HXHIM_MAX_BULK_GET_OPS) {
-        gets.tail->next = hx->p->memory_pools.bulks->acquire<hxhim::GetData>();
+        gets.tail->next = hx->p->memory_pools.bulks->acquire<hxhim::GetData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.gets);
         gets.tail       = gets.tail->next;
         gets.last_count = 0;
         gets.full_batches++;
@@ -863,14 +863,14 @@ int hxhim::Delete(hxhim_t *hx,
 
     // no previous batch
     if (!dels.tail) {
-        dels.head       = hx->p->memory_pools.bulks->acquire<hxhim::DeleteData>();
+        dels.head       = hx->p->memory_pools.bulks->acquire<hxhim::DeleteData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.deletes);
         dels.tail       = dels.head;
         dels.last_count = 0;
     }
 
     // filled the current batch
     if (dels.last_count == HXHIM_MAX_BULK_DEL_OPS) {
-        dels.tail->next = hx->p->memory_pools.bulks->acquire<hxhim::DeleteData>();
+        dels.tail->next = hx->p->memory_pools.bulks->acquire<hxhim::DeleteData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.deletes);
         dels.tail       = dels.tail->next;
         dels.last_count = 0;
         dels.full_batches++;
@@ -941,7 +941,7 @@ int hxhim::BPut(hxhim_t *hx,
 
         // no previous batch
         if (!puts.tail) {
-            puts.head       = hx->p->memory_pools.bulks->acquire<hxhim::PutData>();
+            puts.head       = hx->p->memory_pools.bulks->acquire<hxhim::PutData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.puts);
             puts.tail       = puts.head;
             puts.last_count = 0;
         }
@@ -949,7 +949,7 @@ int hxhim::BPut(hxhim_t *hx,
         for(std::size_t c = 0; c < count; c++) {
             // filled the current batch
             if (puts.last_count == HXHIM_MAX_BULK_PUT_OPS) {
-                hxhim::PutData *next = hx->p->memory_pools.bulks->acquire<hxhim::PutData>();
+                hxhim::PutData *next = hx->p->memory_pools.bulks->acquire<hxhim::PutData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.puts);
                 next->prev      = puts.tail;
                 puts.tail->next = next;
                 puts.tail       = next;
@@ -1035,7 +1035,7 @@ int hxhim::BGet(hxhim_t *hx,
 
         // no previous batch
         if (!gets.tail) {
-            gets.head       = hx->p->memory_pools.bulks->acquire<hxhim::GetData>();
+            gets.head       = hx->p->memory_pools.bulks->acquire<hxhim::GetData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.gets);
             gets.tail       = gets.head;
             gets.last_count = 0;
         }
@@ -1043,7 +1043,7 @@ int hxhim::BGet(hxhim_t *hx,
         for(std::size_t c = 0; c < count; c++) {
             // filled the current batch
             if (gets.last_count == HXHIM_MAX_BULK_GET_OPS) {
-                gets.tail->next = hx->p->memory_pools.bulks->acquire<hxhim::GetData>();
+                gets.tail->next = hx->p->memory_pools.bulks->acquire<hxhim::GetData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.gets);
                 gets.tail       = gets.tail->next;
                 gets.last_count = 0;
                 gets.full_batches++;
@@ -1118,14 +1118,14 @@ int hxhim::BGetOp(hxhim_t *hx,
 
     // no previous batch
     if (!getops.tail) {
-        getops.head       = hx->p->memory_pools.bulks->acquire<hxhim::GetOpData>();
+        getops.head       = hx->p->memory_pools.bulks->acquire<hxhim::GetOpData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.getops);
         getops.tail       = getops.head;
         getops.last_count = 0;
     }
 
     // filled the current batch
     if (getops.last_count == HXHIM_MAX_BULK_GET_OPS) {
-        getops.tail->next = hx->p->memory_pools.bulks->acquire<hxhim::GetOpData>();
+        getops.tail->next = hx->p->memory_pools.bulks->acquire<hxhim::GetOpData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.getops);
         getops.tail       = getops.tail->next;
         getops.last_count = 0;
         getops.full_batches++;
@@ -1204,7 +1204,7 @@ int hxhim::BDelete(hxhim_t *hx,
 
         // no previous batch
         if (!dels.tail) {
-            dels.head     = hx->p->memory_pools.bulks->acquire<hxhim::DeleteData>();
+            dels.head     = hx->p->memory_pools.bulks->acquire<hxhim::DeleteData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.deletes);
             dels.tail     = dels.head;
             dels.last_count = 0;
         }
@@ -1212,7 +1212,7 @@ int hxhim::BDelete(hxhim_t *hx,
         for(std::size_t c = 0; c < count; c++) {
             // filled the current batch
             if (dels.last_count == HXHIM_MAX_BULK_DEL_OPS) {
-                dels.tail->next = hx->p->memory_pools.bulks->acquire<hxhim::DeleteData>();
+                dels.tail->next = hx->p->memory_pools.bulks->acquire<hxhim::DeleteData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.deletes);
                 dels.tail       = dels.tail->next;
                 dels.last_count = 0;
                 dels.full_batches++;
@@ -1376,7 +1376,7 @@ hxhim::Results *hxhim::GetBHistogram(hxhim_t *hx, const int *datastores, const s
     local.dst = hx->p->bootstrap.rank;
 
     // list of destination servers (not datastores) and messages to those destinations
-    Transport::Request::BHistogram **remote = hxhim::acquire_array<Transport::Request::BHistogram *>(hx, hx->p->bootstrap.size);
+    Transport::Request::BHistogram **remote = hx->p->memory_pools.arrays->acquire_array<Transport::Request::BHistogram *>(hx->p->bootstrap.size);
     for(int i = 0; i < hx->p->bootstrap.size; i++) {
         remote[i] = hx->p->memory_pools.requests->acquire<Transport::Request::BHistogram>(hxhim::GetArrayFBP(hx), hxhim::GetBufferFBP(hx), count);
         remote[i]->src = hx->p->bootstrap.rank;
@@ -1418,7 +1418,7 @@ hxhim::Results *hxhim::GetBHistogram(hxhim_t *hx, const int *datastores, const s
     for(int i = 0; i < hx->p->bootstrap.size; i++) {
         hx->p->memory_pools.requests->release(remote[i]);
     }
-    release_array(hx, remote);
+    hx->p->memory_pools.arrays->release_array(remote, hx->p->bootstrap.size);
 
     return res;
 }

@@ -72,7 +72,7 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
     local.dst = hx->p->bootstrap.rank;
     local.count = 0;
 
-    Transport::Request::BPut **remote = hxhim::acquire_array<Transport::Request::BPut *>(hx, hx->p->bootstrap.size); // list of destination servers (not datastores) and messages to those destinations
+    Transport::Request::BPut **remote = hx->p->memory_pools.arrays->acquire_array<Transport::Request::BPut *>(hx->p->bootstrap.size); // list of destination servers (not datastores) and messages to those destinations
     for(std::size_t i = 0; i < hx->p->bootstrap.size; i++) {
         remote[i] = hx->p->memory_pools.requests->acquire<Transport::Request::BPut>(hxhim::GetArrayFBP(hx), hxhim::GetBufferFBP(hx), hx->p->max_bulk_ops.puts);
         remote[i]->src = hx->p->bootstrap.rank;
@@ -150,7 +150,7 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
     for(std::size_t i = 0; i < hx->p->bootstrap.size; i++) {
         hx->p->memory_pools.requests->release(remote[i]);
     }
-    hxhim::release_array(hx, remote);
+    hx->p->memory_pools.arrays->release_array(remote, hx->p->bootstrap.size);
 
     return res;
 }
@@ -393,7 +393,7 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
-    if (!(hx->p->datastore.datastores = hxhim::acquire_array<hxhim::datastore::Datastore *>(hx, hx->p->datastore.count))) {
+    if (!(hx->p->datastore.datastores = hx->p->memory_pools.arrays->acquire_array<hxhim::datastore::Datastore *>(hx->p->datastore.count))) {
         return HXHIM_ERROR;
     }
 
@@ -451,7 +451,7 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
         return HXHIM_ERROR;
     }
 
-    if (!(hx->p->datastore.datastores = hxhim::acquire_array<hxhim::datastore::Datastore *>(hx, 1))) {
+    if (!(hx->p->datastore.datastores = hx->p->memory_pools.arrays->acquire_array<hxhim::datastore::Datastore *>(1))) {
         return HXHIM_ERROR;
     }
 
@@ -878,7 +878,7 @@ int hxhim::destroy::datastore(hxhim_t *hx) {
             }
         }
 
-        hxhim::release_array(hx, hx->p->datastore.datastores);
+        hx->p->memory_pools.arrays->release_array(hx->p->datastore.datastores, hx->p->datastore.count);
         hx->p->datastore.datastores = nullptr;
     }
 

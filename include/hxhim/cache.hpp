@@ -1,49 +1,65 @@
-#ifndef HXHIM_CACHE
-#define HXHIM_CACHE
+#ifndef HXHIM_CACHE_HPP
+#define HXHIM_CACHE_HPP
 
 #include <condition_variable>
 #include <mutex>
 #include <type_traits>
 
 #include "hxhim/constants.h"
+#include "utils/FixedBufferPool.hpp"
 
 namespace hxhim {
     typedef struct SubjectPredicate {
-        void *subjects[HXHIM_MAX_BULK_OPS];
-        std::size_t subject_lens[HXHIM_MAX_BULK_OPS];
+        SubjectPredicate(FixedBufferPool *arrays, const std::size_t count);
+        virtual ~SubjectPredicate();
 
-        void *predicates[HXHIM_MAX_BULK_OPS];
-        std::size_t predicate_lens[HXHIM_MAX_BULK_OPS];
+        FixedBufferPool *arrays;
+        const std::size_t count;
+
+        void **subjects;
+        std::size_t *subject_lens;
+
+        void **predicates;
+        std::size_t *predicate_lens;
     } SP_t;
 
     typedef struct SubjectPredicateObject : SP_t {
-        hxhim_type_t object_types[HXHIM_MAX_BULK_OPS];
-        void *objects[HXHIM_MAX_BULK_OPS];
-        std::size_t object_lens[HXHIM_MAX_BULK_OPS];
+        SubjectPredicateObject(FixedBufferPool *arrays, const std::size_t count);
+        virtual ~SubjectPredicateObject();
+
+        hxhim_type_t *object_types;
+        void **objects;
+        std::size_t *object_lens;
     } SPO_t;
 
-    struct UnsafeOp {
-        int databases[HXHIM_MAX_BULK_OPS];
-    };
-
     struct PutData : SPO_t {
+        PutData(FixedBufferPool *arrays, const std::size_t count);
+
         PutData *prev;
         PutData *next;
     };
 
     struct GetData : SP_t {
-        hxhim_type_t object_types[HXHIM_MAX_BULK_OPS];
+        GetData(FixedBufferPool *arrays, const std::size_t count);
+        ~GetData();
+
+        hxhim_type_t *object_types;
         GetData *next;
     };
 
     struct GetOpData : SP_t {
-        hxhim_type_t object_types[HXHIM_MAX_BULK_OPS];
-        std::size_t num_recs[HXHIM_MAX_BULK_GET_OPS];
-        hxhim_get_op_t ops[HXHIM_MAX_BULK_GET_OPS];
+        GetOpData(FixedBufferPool *arrays, const std::size_t count);
+        ~GetOpData();
+
+        hxhim_type_t *object_types;
+        std::size_t *num_recs;
+        hxhim_get_op_t *ops;
         GetOpData *next;
     };
 
     struct DeleteData : SP_t {
+        DeleteData(FixedBufferPool *arrays, const std::size_t count);
+
         DeleteData *next;
     };
 

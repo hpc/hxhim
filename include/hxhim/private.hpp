@@ -82,6 +82,7 @@ typedef struct hxhim_private {
     Transport::Transport *transport;
     void (*range_server_destroy)();                            // Range server static variable cleanup
 
+    // Memory pools used to allocate space in HXHIM
     struct {
         FixedBufferPool *packed;                               // maximum size of a packed Transport::Message
         FixedBufferPool *buffers;                              // maximum size of smaller buffers (subjects, predicates, objects, etc)
@@ -121,16 +122,6 @@ int hash        (hxhim_t *hx);
 int async_put   (hxhim_t *hx);
 int datastore   (hxhim_t *hx);
 int range_server(hxhim_t *hx);
-}
-
-template <typename T>
-T *acquire_array(hxhim_t *hx, const std::size_t count) {
-    return static_cast<T *>(hx->p->memory_pools.arrays->acquire_array<T>(count));
-}
-
-template <typename T>
-void release_array(hxhim_t *hx, T *ptr) {
-    hx->p->memory_pools.arrays->release(ptr);
 }
 
 }
