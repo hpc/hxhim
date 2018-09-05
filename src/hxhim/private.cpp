@@ -670,6 +670,29 @@ static int init_transport_thallium(hxhim_t *hx, hxhim_options_t *opts) {
 
 #endif
 
+static int init_transport_local(hxhim_t *hx, hxhim_options_t *opts) {
+    mlog(HXHIM_CLIENT_DBG, "Starting Local Transport Initialization");
+
+    if (!valid(hx, opts)) {
+        return HXHIM_ERROR;
+    }
+
+    using namespace Transport::local;
+
+    RangeServer::init();
+
+    EndpointGroup *eg = new EndpointGroup(hx);
+    if (!eg) {
+        return TRANSPORT_ERROR;
+    }
+
+    hx->p->transport->SetEndpointGroup(eg);
+    hx->p->range_server_destroy = RangeServer::destroy;
+
+    mlog(HXHIM_CLIENT_DBG, "Completed Local Transport Initialization");
+    return TRANSPORT_SUCCESS;
+}
+
 /**
  * transport
  * Starts up the transport layer
@@ -699,6 +722,9 @@ int hxhim::init::transport(hxhim_t *hx, hxhim_options_t *opts) {
             ret = init_transport_thallium(hx, opts);
             break;
         #endif
+        case Transport::TRANSPORT_LOCAL:
+            ret = init_transport_local(hx, opts);
+            break;
         default:
             mlog(HXHIM_CLIENT_ERR, "Received bad transport type to initialize %d", opts->p->transport->type);
             break;

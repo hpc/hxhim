@@ -7,7 +7,7 @@
 namespace hxhim {
 namespace range_server {
 
-Transport::Response::Response *range_server(hxhim_t *hx, Transport::Request::Request *req);
+Transport::Response::Response *range_server(hxhim_t *hx, const Transport::Request::Request *req);
 
 }
 }

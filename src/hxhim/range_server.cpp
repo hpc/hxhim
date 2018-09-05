@@ -18,7 +18,7 @@ namespace range_server {
  * @param req       the request packet to operate on
  * @return          the response packet resulting from the request
  */
-static Transport::Response::BPut *bput(hxhim_t *hx, Transport::Request::BPut *req) {
+static Transport::Response::BPut *bput(hxhim_t *hx, const Transport::Request::BPut *req) {
     FixedBufferPool *responses = hx->p->memory_pools.responses;
     FixedBufferPool *arrays = hx->p->memory_pools.arrays;
     FixedBufferPool *buffers = hx->p->memory_pools.buffers;
@@ -112,7 +112,7 @@ static Transport::Response::BPut *bput(hxhim_t *hx, Transport::Request::BPut *re
  * @param req       the request packet to operate on
  * @return          the response packet resulting from the request
  */
-static Transport::Response::BGet *bget(hxhim_t *hx, Transport::Request::BGet *req) {
+static Transport::Response::BGet *bget(hxhim_t *hx, const Transport::Request::BGet *req) {
     FixedBufferPool *responses = hx->p->memory_pools.responses;
     FixedBufferPool *arrays = hx->p->memory_pools.arrays;
     FixedBufferPool *buffers = hx->p->memory_pools.buffers;
@@ -205,7 +205,7 @@ static Transport::Response::BGet *bget(hxhim_t *hx, Transport::Request::BGet *re
  * @param req       the request packet to operate on
  * @return          the response packet resulting from the request
  */
-static Transport::Response::BGetOp *bgetop(hxhim_t *hx, Transport::Request::BGetOp *req) {
+static Transport::Response::BGetOp *bgetop(hxhim_t *hx, const Transport::Request::BGetOp *req) {
     FixedBufferPool *responses = hx->p->memory_pools.responses;
     FixedBufferPool *arrays = hx->p->memory_pools.arrays;
     FixedBufferPool *buffers = hx->p->memory_pools.buffers;
@@ -250,7 +250,7 @@ static Transport::Response::BGetOp *bgetop(hxhim_t *hx, Transport::Request::BGet
  * @param req       the request packet to operate on
  * @return          the response packet resulting from the request
  */
-static Transport::Response::BDelete *bdelete(hxhim_t *hx, Transport::Request::BDelete *req) {
+static Transport::Response::BDelete *bdelete(hxhim_t *hx, const Transport::Request::BDelete *req) {
     FixedBufferPool *responses = hx->p->memory_pools.responses;
     FixedBufferPool *arrays = hx->p->memory_pools.arrays;
     FixedBufferPool *buffers = hx->p->memory_pools.buffers;
@@ -327,7 +327,7 @@ static Transport::Response::BDelete *bdelete(hxhim_t *hx, Transport::Request::BD
  * @param hist      the request packet to operate on
  * @return          the response packet resulting from the request
  */
-Transport::Response::Histogram *histogram(hxhim_t *hx, Transport::Request::Histogram *hist) {
+Transport::Response::Histogram *histogram(hxhim_t *hx, const Transport::Request::Histogram *hist) {
     return hx->p->datastore.datastores[hist->ds_offset]->Histogram();
 }
 
@@ -339,7 +339,7 @@ Transport::Response::Histogram *histogram(hxhim_t *hx, Transport::Request::Histo
  * @param bhist     the request packet to operate on
  * @return          the response packet resulting from the request
  */
-Transport::Response::BHistogram *bhistogram(hxhim_t *hx, Transport::Request::BHistogram *bhist) {
+Transport::Response::BHistogram *bhistogram(hxhim_t *hx, const Transport::Request::BHistogram *bhist) {
     FixedBufferPool *responses = hx->p->memory_pools.responses;
     FixedBufferPool *arrays = hx->p->memory_pools.arrays;
     FixedBufferPool *buffers = hx->p->memory_pools.buffers;
@@ -369,7 +369,7 @@ Transport::Response::BHistogram *bhistogram(hxhim_t *hx, Transport::Request::BHi
     return ret;
 }
 
-Transport::Response::Response *range_server(hxhim_t *hx, Transport::Request::Request *req) {
+Transport::Response::Response *range_server(hxhim_t *hx, const Transport::Request::Request *req) {
     using namespace Transport;
 
     Response::Response *res = nullptr;
@@ -377,22 +377,22 @@ Transport::Response::Response *range_server(hxhim_t *hx, Transport::Request::Req
     // Call the appropriate function depending on the message type
     switch(req->type) {
         case Message::BPUT:
-            res = bput(hx, dynamic_cast<Request::BPut *>(req));
+            res = bput(hx, dynamic_cast<const Request::BPut *>(req));
             break;
         case Message::BGET:
-            res = bget(hx, dynamic_cast<Request::BGet *>(req));
+            res = bget(hx, dynamic_cast<const Request::BGet *>(req));
             break;
         case Message::BGETOP:
-            res = bgetop(hx, dynamic_cast<Request::BGetOp *>(req));
+            res = bgetop(hx, dynamic_cast<const Request::BGetOp *>(req));
             break;
         case Message::BDELETE:
-            res = bdelete(hx, dynamic_cast<Request::BDelete *>(req));
+            res = bdelete(hx, dynamic_cast<const Request::BDelete *>(req));
             break;
         case Message::HISTOGRAM:
-            res = histogram(hx, dynamic_cast<Request::Histogram *>(req));
+            res = histogram(hx, dynamic_cast<const Request::Histogram *>(req));
             break;
         case Message::BHISTOGRAM:
-            res = bhistogram(hx, dynamic_cast<Request::BHistogram *>(req));
+            res = bhistogram(hx, dynamic_cast<const Request::BHistogram *>(req));
             break;
         default:
             break;

@@ -3,5 +3,6 @@
 
 #include "transport/backend/MPI/MPI.hpp"
 #include "transport/backend/Thallium/Thallium.hpp"
+#include "transport/backend/local/local.hpp"
 
 #endif
