@@ -697,12 +697,12 @@ int hxhim::init::transport(hxhim_t *hx, hxhim_options_t *opts) {
     }
 
     delete hx->p->transport;
-    hx->p->transport = nullptr;
     if (!(hx->p->transport = new Transport::Transport())) {
         return HXHIM_ERROR;
     }
 
     int ret = TRANSPORT_ERROR;
+
     switch (opts->p->transport->type) {
         case Transport::TRANSPORT_NULL:
             ret = init_transport_null(hx, opts);

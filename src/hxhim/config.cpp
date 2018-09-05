@@ -103,12 +103,15 @@ static bool parse_transport(hxhim_options_t *opts, const Config &config) {
     if (ret == CONFIG_FOUND) {
         switch (transport_type) {
             case Transport::TRANSPORT_NULL:
-                return hxhim_options_set_hash_name(opts, "LOCAL");
+                {
+                    return ((hxhim_options_set_transport_null(opts)     == HXHIM_SUCCESS) &&
+                            (hxhim_options_set_hash_name(opts, "LOCAL") == HXHIM_SUCCESS));
+                }
                 break;
             case Transport::TRANSPORT_MPI:
                 {
                     std::size_t listeners;
-                    if ((get_value(config, HXHIM_MPI_LISTENERS, listeners)                 != CONFIG_FOUND)) {
+                    if ((get_value(config, HXHIM_MPI_LISTENERS, listeners) != CONFIG_FOUND)) {
                         return false;
                     }
 

@@ -33,7 +33,7 @@ int hxhim_options_init(hxhim_options_t *opts) {
         (hxhim_options_set_responses_alloc_size(opts, hxhim::MaxSize::Responses()) != HXHIM_SUCCESS) ||
         (hxhim_options_set_result_alloc_size(opts, hxhim::MaxSize::Result())       != HXHIM_SUCCESS) ||
         (hxhim_options_set_results_alloc_size(opts, sizeof(hxhim::Results))        != HXHIM_SUCCESS) ||
-        (hxhim_options_set_results_regions(opts, 3)                                != HXHIM_SUCCESS)) {
+        (hxhim_options_set_results_regions(opts, 8)                                != HXHIM_SUCCESS)) {
         return HXHIM_ERROR;
     }
 
@@ -232,6 +232,32 @@ static int hxhim_options_set_transport(hxhim_options_t *opts, Transport::Options
     delete opts->p->transport;
 
     opts->p->transport = config;
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * hxhim_options_set_transport_null
+ * Sets the values needed to set up a null Transport
+ *
+ * @param opts              the set of options to be modified
+ * @param listeners         the number of listeners
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim_options_set_transport_null(hxhim_options_t *opts) {
+    if (!opts || !opts->p) {
+        return HXHIM_ERROR;
+    }
+
+    Transport::Options *config = new Transport::Options(Transport::TRANSPORT_NULL);
+    if (!config) {
+        return HXHIM_ERROR;
+    }
+
+    if (hxhim_options_set_transport(opts, config) != HXHIM_SUCCESS) {
+        delete config;
+        return HXHIM_ERROR;
+    }
 
     return HXHIM_SUCCESS;
 }
@@ -701,6 +727,7 @@ int hxhim_options_destroy(hxhim_options_t *opts) {
 
     hxhim_options_datastore_config_destroy(opts->p->datastore);
     delete opts->p->transport;
+    opts->p->transport = nullptr;
 
     delete opts->p;
     opts->p = nullptr;

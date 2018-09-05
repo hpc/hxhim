@@ -67,17 +67,22 @@ void *RangeServer::listener_thread(void *data) {
         Request::Request *request = nullptr;
         Unpacker::unpack(hx_->p->bootstrap.comm, &request, data, len, hx_->p->memory_pools.requests, hx_->p->memory_pools.arrays, hx_->p->memory_pools.buffers);
         ::operator delete(data);
+
         data = nullptr;
         len = 0;
 
         // process request
         Response::Response *response = hxhim::range_server::range_server(hx_, request);
+        hx_->p->memory_pools.requests->release(request);
 
         // encode result
         Packer::pack(hx_->p->bootstrap.comm, response, &data, &len, hx_->p->memory_pools.packed);
 
         // send result
-        if (send(response->dst, data, len) != TRANSPORT_SUCCESS) {
+        const int ret = send(response->dst, data, len);
+        hx_->p->memory_pools.responses->release(data);
+
+        if (ret != TRANSPORT_SUCCESS) {
             continue;
         }
     }

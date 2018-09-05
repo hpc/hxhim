@@ -173,9 +173,12 @@ int hxhimClose(hxhim_t *hx) {
  * @return results from sending the PUTs
  */
 hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
+    mlog(HXHIM_CLIENT_DBG, "Flushing PUTs");
     if (!hx || !hx->p) {
         return nullptr;
     }
+
+    mlog(HXHIM_CLIENT_DBG, "Emptying PUT queue");
 
     hxhim::Unsent<hxhim::PutData> &unsent = hx->p->queues.puts;
     std::unique_lock<std::mutex> lock(unsent.mutex);
@@ -184,14 +187,21 @@ hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
 
     // wait for flush to complete
     while (hx->p->running && unsent.force) {
+        mlog(HXHIM_CLIENT_DBG, "Waiting for PUT queue to be processed");
         unsent.done_processing.wait(lock, [&](){ return !hx->p->running || !unsent.force; });
     }
 
+    mlog(HXHIM_CLIENT_DBG, "Emptied out PUT queue");
+
     std::unique_lock<std::mutex> results_lock(hx->p->async_put.mutex);
+
+    mlog(HXHIM_CLIENT_DBG, "Processing PUT results");
 
     // return PUT results and allocate space for new PUT results
     hxhim::Results *res = hx->p->async_put.results;
     hx->p->async_put.results = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
+
+    mlog(HXHIM_CLIENT_DBG, "PUTs Flushed");
 
     return res;
 }

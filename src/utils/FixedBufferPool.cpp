@@ -3,7 +3,7 @@
 #include "utils/mlogfacs2.h"
 
 /** @description wrapper for FixedBufferPool mlog statements */
-#define FBP_LOG(level, fmt, ...) mlog(level, "%s (%zu bytes x %zu regions): " fmt, name_.c_str(), alloc_size_, regions_, ##__VA_ARGS__)
+#define FBP_LOG(level, fmt, ...) mlog(level, "%s (%zu bytes x %zu/%zu regions free): " fmt, name_.c_str(), alloc_size_, regions_ - used_, regions_, ##__VA_ARGS__)
 
 /**
  * FixedBufferPool Constructor
@@ -84,7 +84,7 @@ FixedBufferPool::~FixedBufferPool() {
     ::operator delete(pool_);
     pool_ = nullptr;
 
-    FBP_LOG(FBP_INFO, "Destructed with %zu regions still in use", used_);
+    FBP_LOG(FBP_INFO, "Destructed");
 }
 
 /**
@@ -104,13 +104,13 @@ FixedBufferPool::~FixedBufferPool() {
 void *FixedBufferPool::acquire(const std::size_t size) {
     // 0 bytes
     if (!size) {
-        FBP_LOG(FBP_WARN, "Got request for a size 0 buffer");
+        FBP_LOG(FBP_DBG, "Got request for a size 0 buffer");
         return nullptr;
     }
 
     // too big
     if (size > alloc_size_) {
-        FBP_LOG(FBP_WARN, "Got request for a size %zu buffer, which is greater than the size of a region (%zu)", size, alloc_size_);
+        FBP_LOG(FBP_WARN, "Requested allocation size too big: %zu bytes", size);
         return nullptr;
     }
 
@@ -136,7 +136,7 @@ void *FixedBufferPool::acquire(const std::size_t size) {
     used_++;
 
     const std::size_t remaining = regions_ - used_;
-    FBP_LOG(FBP_DBG, "Acquired a size %zu buffer (%p). %zu regions remaining.", size, ret, remaining);
+    FBP_LOG(FBP_DBG, "Acquired a size %zu buffer (%p)", size, ret);
 
     if (!remaining) {
         FBP_LOG(FBP_WARN, "0 regions left.");
@@ -193,7 +193,7 @@ void FixedBufferPool::release(void *ptr) {
 
     cv_.notify_all();
 
-    FBP_LOG(FBP_DBG, "Freed %p. %zu regions available.", ptr, regions_ - used_);
+    FBP_LOG(FBP_DBG, "Freed %p", ptr);
 }
 
 /**

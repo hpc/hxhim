@@ -12,7 +12,7 @@ extern "C"
 #endif
 
 // clean up generated SPOs
-void spo_clean(const size_t count,
+int spo_clean(const size_t count,
                void **subjects, size_t *subject_lens,
                void **predicates, size_t *predicate_lens,
                void **objects, size_t *object_lens) {
@@ -48,6 +48,8 @@ void spo_clean(const size_t count,
     if (objects) {
         free(object_lens);
     }
+
+    return 0;
 }
 
 // Generate some subject predicate pairs
@@ -72,16 +74,14 @@ int spo_gen_fixed(const size_t count, const size_t bufsize,
     if (!*subjects   || !*subject_lens   ||
         !*predicates || !*predicate_lens ||
         !*objects    || !*object_lens)    {
-        spo_clean(count, *subjects, *subject_lens, *predicates, *predicate_lens, *objects, *object_lens);
-        return 0;
+        return spo_clean(count, *subjects, *subject_lens, *predicates, *predicate_lens, *objects, *object_lens);
     }
 
     for(size_t i = 0; i < count; i++) {
         if (!((*subjects)[i] = calloc(bufsize, sizeof(char)))   ||
             !((*predicates)[i] = calloc(bufsize, sizeof(char))) ||
             !((*objects)[i] = calloc(bufsize, sizeof(char))))    {
-            spo_clean(count, *subjects, *subject_lens, *predicates, *predicate_lens, *objects, *object_lens);
-            return 0;
+            return spo_clean(count, *subjects, *subject_lens, *predicates, *predicate_lens, *objects, *object_lens);
         }
 
         (*subject_lens)[i] = snprintf((char *) (*subjects)[i], bufsize, "subject%d%zu", rank, i);
@@ -118,25 +118,18 @@ int spo_gen_random(const size_t count,
     if (!*subjects   || !*subject_lens   ||
         !*predicates || !*predicate_lens ||
         !*objects    || !*object_lens)    {
-        spo_clean(count, *subjects, *subject_lens, *predicates, *predicate_lens, *objects, *object_lens);
-        return 0;
+        return spo_clean(count, *subjects, *subject_lens, *predicates, *predicate_lens, *objects, *object_lens);
     }
 
     for(size_t i = 0; i < count; i++) {
         (*subject_lens)[i] = (rand() % (subject_max_size - subject_min_size + 1)) + subject_min_size;
-        (*subjects)[i] = calloc((*subject_lens)[i] , sizeof(char));
-
         (*predicate_lens)[i] = (rand() % (predicate_max_size - predicate_min_size + 1)) + predicate_min_size;
-        (*predicates)[i] = calloc((*predicate_lens)[i] , sizeof(char));
-
         (*object_lens)[i] = (rand() % (object_max_size - object_min_size + 1)) + object_min_size;
-        (*objects)[i] = calloc((*object_lens)[i] , sizeof(char));
 
-        if (!((*subjects)[i] = calloc((*subject_lens)[i], sizeof(char)))   ||
+        if (!((*subjects)[i] = calloc((*subject_lens)[i], sizeof(char)))     ||
             !((*predicates)[i] = calloc((*predicate_lens)[i], sizeof(char))) ||
-            !((*objects)[i] = calloc((*object_lens)[i], sizeof(char))))    {
-            spo_clean(count, *subjects, *subject_lens, *predicates, *predicate_lens, *objects, *object_lens);
-            return 0;
+            !((*objects)[i] = calloc((*object_lens)[i], sizeof(char))))       {
+            return spo_clean(i, *subjects, *subject_lens, *predicates, *predicate_lens, *objects, *object_lens);
         }
 
         for(size_t j = 0; j < (*subject_lens)[i]; j++) {

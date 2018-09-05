@@ -101,19 +101,12 @@ const std::map<std::string, hxhim_datastore_t> HXHIM_DATASTORES = {
 };
 
 /**
- * String representations of predefined hash algorithms
- */
-const std::string RANK               = "RANK";
-const std::string SUM_MOD_DATASTORES = "SUM_MOD_DATASTORES";
-const std::string LOCAL              = "LOCAL";
-
-/**
  * Set of predefined hash functions
  */
 const std::map<std::string, hxhim_hash_t> HXHIM_HASHES = {
-    std::make_pair(RANK,               hxhim::hash::Rank),
-    std::make_pair(SUM_MOD_DATASTORES, hxhim::hash::SumModDatastores),
-    std::make_pair(LOCAL,              hxhim::hash::Local),
+    std::make_pair("RANK",               hxhim::hash::Rank),
+    std::make_pair("SUM_MOD_DATASTORES", hxhim::hash::SumModDatastores),
+    std::make_pair("LOCAL",              hxhim::hash::Local),
 };
 
 /**
@@ -126,27 +119,16 @@ const std::map<std::string, Transport::Type> HXHIM_TRANSPORTS = {
 };
 
 /**
- * String representations of predefined histogram bucket generators
- */
-const std::string TEN_BUCKETS                  = "10_BUCKETS";
-const std::string SQUARE_ROOT_CHOICE           = "SQUARE_ROOT_CHOICE";
-const std::string STURGES_FORMULA              = "STURGES_FORMULA";
-const std::string RICE_RULE                    = "RICE_RULE";
-const std::string SCOTTS_NORMAL_REFERENCE_RULE = "SCOTTS_NORMAL_REFERENCE_RULE";
-const std::string UNIFORM_LOG2                 = "UNIFORM_LOG2";
-const std::string UNIFORM_LOG10                = "UNIFORM_LOG10";
-
-/**
  * Set of predefined histogram bucket generators
  */
 const std::map<std::string, HistogramBucketGenerator_t> HXHIM_HISTOGRAM_BUCKET_GENERATORS = {
-    std::make_pair(TEN_BUCKETS,                  histogram_n_buckets),
-    std::make_pair(SQUARE_ROOT_CHOICE,           histogram_square_root_choice),
-    std::make_pair(STURGES_FORMULA,              histogram_sturges_formula),
-    std::make_pair(RICE_RULE,                    histogram_rice_rule),
-    std::make_pair(SCOTTS_NORMAL_REFERENCE_RULE, histogram_scotts_normal_reference_rule),
-    std::make_pair(UNIFORM_LOG2,                 histogram_uniform_logn),
-    std::make_pair(UNIFORM_LOG10,                histogram_uniform_logn),
+    std::make_pair("10_BUCKETS",                   histogram_n_buckets),
+    std::make_pair("SQUARE_ROOT_CHOICE",           histogram_square_root_choice),
+    std::make_pair("STURGES_FORMULA",              histogram_sturges_formula),
+    std::make_pair("RICE_RULE",                    histogram_rice_rule),
+    std::make_pair("SCOTTS_NORMAL_REFERENCE_RULE", histogram_scotts_normal_reference_rule),
+    std::make_pair("UNIFORM_LOG2",                 histogram_uniform_logn),
+    std::make_pair("UNIFORM_LOG10",                histogram_uniform_logn),
 };
 
 /**
@@ -155,13 +137,13 @@ const std::map<std::string, HistogramBucketGenerator_t> HXHIM_HISTOGRAM_BUCKET_G
 const std::size_t two = 2;
 const std::size_t ten = 10;
 const std::map<std::string, void *> HXHIM_HISTOGRAM_BUCKET_GENERATOR_EXTRA_ARGS = {
-    std::make_pair(TEN_BUCKETS,                  (void *) &ten),
-    std::make_pair(SQUARE_ROOT_CHOICE,           nullptr),
-    std::make_pair(STURGES_FORMULA,              nullptr),
-    std::make_pair(RICE_RULE,                    nullptr),
-    std::make_pair(SCOTTS_NORMAL_REFERENCE_RULE, nullptr),
-    std::make_pair(UNIFORM_LOG2,                 (void *) &two),
-    std::make_pair(UNIFORM_LOG10,                (void *) &ten),
+    std::make_pair("10_BUCKETS",                   (void *) &ten),
+    std::make_pair("SQUARE_ROOT_CHOICE",           nullptr),
+    std::make_pair("STURGES_FORMULA",              nullptr),
+    std::make_pair("RICE_RULE",                    nullptr),
+    std::make_pair("SCOTTS_NORMAL_REFERENCE_RULE", nullptr),
+    std::make_pair("UNIFORM_LOG2",                 (void *) &two),
+    std::make_pair("UNIFORM_LOG10",                (void *) &ten),
 };
 
 /**
@@ -173,13 +155,12 @@ const Config HXHIM_DEFAULT_CONFIG = {
     std::make_pair(HXHIM_DATASTORE_TYPE,                "LEVELDB"),
     std::make_pair(HXHIM_LEVELDB_NAME,                  "leveldb"),
     std::make_pair(HXHIM_LEVELDB_CREATE_IF_MISSING,     "true"),
-    std::make_pair(HXHIM_HASH,                          SUM_MOD_DATASTORES),
     std::make_pair(HXHIM_QUEUED_BULK_PUTS,              "5"),
-    std::make_pair(HXHIM_TRANSPORT,                     "THALLIUM"),
-    std::make_pair(HXHIM_THALLIUM_MODULE,               "na+sm"),
+    std::make_pair(HXHIM_TRANSPORT,                     "NULL"),
+    std::make_pair(HXHIM_HASH,                          "LOCAL"),
     std::make_pair(HXHIM_TRANSPORT_ENDPOINT_GROUP,      "ALL"),
     std::make_pair(HXHIM_HISTOGRAM_FIRST_N,             "10"),
-    std::make_pair(HXHIM_HISTOGRAM_BUCKET_GEN_METHOD,   TEN_BUCKETS),
+    std::make_pair(HXHIM_HISTOGRAM_BUCKET_GEN_METHOD,   "10_BUCKETS"),
     std::make_pair(HXHIM_PACKED_NAME,                   "Packed"),
     std::make_pair(HXHIM_PACKED_ALLOC_SIZE,             "1000"),
     std::make_pair(HXHIM_PACKED_REGIONS,                "1000"),
