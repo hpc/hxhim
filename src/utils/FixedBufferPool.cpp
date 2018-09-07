@@ -3,7 +3,7 @@
 #include "utils/mlogfacs2.h"
 
 /** @description wrapper for FixedBufferPool mlog statements */
-#define FBP_LOG(level, fmt, ...) mlog(level, "%s (%zu bytes x %zu/%zu regions free): " fmt, name_.c_str(), alloc_size_, regions_ - used_, regions_, ##__VA_ARGS__);
+#define FBP_LOG(level, fmt, ...) mlog(level, "%s (%zu bytes x %zu/%zu regions free): " fmt, name_.c_str(), alloc_size_, regions_ - used_, regions_, ##__VA_ARGS__)
 
 /**
  * FixedBufferPool Constructor
@@ -163,7 +163,7 @@ void FixedBufferPool::release(void *ptr) {
     // if the pointer is not within the memory pool, do nothing
     if (((char *)ptr < (char *)pool_) ||
         (((char *)pool_ + pool_size_)) < (char *)ptr) {
-        FBP_LOG(FBP_ERR, "Attempted to free address (%p) that is not within the memory pool", ptr);
+        FBP_LOG(FBP_ERR, "Attempted to free address (%p) that is not within the memory pool [%p, %p)", ptr, pool_, (char *)pool_ + pool_size_);
         return;
     }
 

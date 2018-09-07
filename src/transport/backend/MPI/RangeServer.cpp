@@ -27,6 +27,8 @@ int RangeServer::init(hxhim_t *hx, const std::size_t listener_count) {
     hx_ = hx;
     listeners_.resize(listener_count);
 
+    mlog(HXHIM_SERVER_INFO, "Starting up %zu listeners", listener_count);
+
     //Initialize listener threads
     for(pthread_t & pid : listeners_) {
         if (pthread_create(&pid, nullptr,
@@ -57,18 +59,18 @@ void *RangeServer::listener_thread(void *data) {
 
     while (hx_->p->running){
         // wait for request
-        void *data = nullptr;
+        void *req = nullptr;
         std::size_t len = 0;
-        if (recv(&data, &len) != TRANSPORT_SUCCESS) {
+        if (recv(&req, &len) != TRANSPORT_SUCCESS) {
             continue;
         }
 
         // decode request
         Request::Request *request = nullptr;
-        Unpacker::unpack(hx_->p->bootstrap.comm, &request, data, len, hx_->p->memory_pools.requests, hx_->p->memory_pools.arrays, hx_->p->memory_pools.buffers);
-        ::operator delete(data);
+        Unpacker::unpack(hx_->p->bootstrap.comm, &request, req, len, hx_->p->memory_pools.requests, hx_->p->memory_pools.arrays, hx_->p->memory_pools.buffers);
+        ::operator delete(req);
 
-        data = nullptr;
+        void *res = nullptr;
         len = 0;
 
         // process request
@@ -76,11 +78,11 @@ void *RangeServer::listener_thread(void *data) {
         hx_->p->memory_pools.requests->release(request);
 
         // encode result
-        Packer::pack(hx_->p->bootstrap.comm, response, &data, &len, hx_->p->memory_pools.packed);
+        Packer::pack(hx_->p->bootstrap.comm, response, &res, &len, hx_->p->memory_pools.packed);
 
         // send result
-        const int ret = send(response->dst, data, len);
-        hx_->p->memory_pools.responses->release(data);
+        const int ret = send(response->dst, res, len);
+        hx_->p->memory_pools.packed->release(res);
 
         if (ret != TRANSPORT_SUCCESS) {
             continue;
@@ -110,25 +112,25 @@ int RangeServer::recv(void **data, std::size_t *len) {
     MPI_Status status;
 
     // wait for the size of the data
-    mlog(MPI_DBG, "MPI Range Server waiting for size");
+    // mlog(MPI_DBG, "MPI Range Server waiting for size");
     if ((MPI_Irecv(len, sizeof(*len), MPI_CHAR, MPI_ANY_SOURCE, TRANSPORT_MPI_SIZE_REQUEST_TAG, hx_->p->bootstrap.comm, &request) != MPI_SUCCESS) ||
         (Flush(request, status) != TRANSPORT_SUCCESS)) {
-        mlog(MPI_DBG, "MPI Range Server errored while waiting for size");
+        // mlog(MPI_DBG, "MPI Range Server errored while waiting for size");
         return TRANSPORT_ERROR;
     }
-    mlog(MPI_DBG, "MPI Range Server got size %zu", *len);
+    // mlog(MPI_DBG, "MPI Range Server got size %zu", *len);
 
     *data = ::operator new(*len);
 
     // wait for the data
-    mlog(MPI_DBG, "MPI Range Server waiting for data");
+    // mlog(MPI_DBG, "MPI Range Server waiting for data");
     if ((MPI_Irecv(*data, *len, MPI_CHAR, status.MPI_SOURCE, TRANSPORT_MPI_DATA_REQUEST_TAG, hx_->p->bootstrap.comm, &request) != MPI_SUCCESS) ||
         (Flush(request) != TRANSPORT_SUCCESS)) {
-        mlog(MPI_ERR, "MPI_Range Server errored while getting data of size %zu", *len);
+        // mlog(MPI_ERR, "MPI_Range Server errored while getting data of size %zu", *len);
         return TRANSPORT_ERROR;
     }
 
-    mlog(MPI_DBG, "MPI Range Server got data of size %zu", *len);
+    // mlog(MPI_DBG, "MPI Range Server got data of size %zu", *len);
 
     return TRANSPORT_SUCCESS;
 }
@@ -148,14 +150,14 @@ int RangeServer::send(const int dst, void *data, const std::size_t len) {
     MPI_Request request;
 
     // send the size of the data
-    mlog(MPI_DBG, "MPI Range Server sending size %zu", len);
+    // mlog(MPI_DBG, "MPI Range Server sending size %zu", len);
     if ((MPI_Isend(&len, sizeof(len), MPI_CHAR, dst, TRANSPORT_MPI_SIZE_RESPONSE_TAG, hx_->p->bootstrap.comm, &request) != MPI_SUCCESS) ||
         (Flush(request) != TRANSPORT_SUCCESS)) {
         return TRANSPORT_ERROR;
     }
 
     // wait for the data
-    mlog(MPI_DBG, "MPI Range Server sending data");
+    // mlog(MPI_DBG, "MPI Range Server sending data");
     if ((MPI_Isend(data, len, MPI_CHAR, dst, TRANSPORT_MPI_DATA_RESPONSE_TAG, hx_->p->bootstrap.comm, &request) != MPI_SUCCESS) ||
         (Flush(request) != TRANSPORT_SUCCESS)) {
         return TRANSPORT_ERROR;
@@ -180,11 +182,11 @@ int RangeServer::Flush(MPI_Request &req) {
     }
 
     if (flag) {
-        mlog(MPI_DBG, "MPI Range Server flush succeeded");
+        // mlog(MPI_DBG, "MPI Range Server flush succeeded");
         return TRANSPORT_SUCCESS;
     }
 
-    mlog(MPI_DBG, "MPI Range Server flush failed (flag %d, running %d)", flag, hx_->p->running.load());
+    // mlog(MPI_DBG, "MPI Range Server flush failed (flag %d, running %d)", flag, hx_->p->running.load());
     return TRANSPORT_ERROR;
 }
 
@@ -205,11 +207,11 @@ int RangeServer::Flush(MPI_Request &req, MPI_Status &status) {
     }
 
     if (flag) {
-        mlog(MPI_DBG, "MPI Range Server flush succeeded");
+        // mlog(MPI_DBG, "MPI Range Server flush succeeded");
         return TRANSPORT_SUCCESS;
     }
 
-    mlog(MPI_DBG, "MPI Range Server flush failed (flag %d, running %d)", flag, hx_->p->running.load());
+    // mlog(MPI_DBG, "MPI Range Server flush failed (flag %d, running %d)", flag, hx_->p->running.load());
     return TRANSPORT_ERROR;
 }
 

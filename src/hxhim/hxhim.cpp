@@ -175,7 +175,7 @@ int hxhimClose(hxhim_t *hx) {
  * @return results from sending the PUTs
  */
 hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
-    mlog(HXHIM_CLIENT_DBG, "Flushing PUTs");
+    mlog(HXHIM_CLIENT_INFO, "Flushing PUTs");
     if (!hx || !hx->p) {
         return nullptr;
     }
@@ -187,9 +187,11 @@ hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
     unsent.force = true;
     unsent.start_processing.notify_all();
 
+    mlog(HXHIM_CLIENT_DBG, "Forcing flush %d", unsent.force);
+
     // wait for flush to complete
     while (hx->p->running && unsent.force) {
-        mlog(HXHIM_CLIENT_DBG, "Waiting for PUT queue to be processed");
+        mlog(HXHIM_CLIENT_DBG, "Waiting for PUT queue to be processed %d", unsent.force);
         unsent.done_processing.wait(lock, [&](){ return !hx->p->running || !unsent.force; });
     }
 
@@ -203,7 +205,7 @@ hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
     hxhim::Results *res = hx->p->async_put.results;
     hx->p->async_put.results = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
 
-    mlog(HXHIM_CLIENT_DBG, "PUTs Flushed");
+    mlog(HXHIM_CLIENT_INFO, "PUTs Flushed");
 
     return res;
 }
@@ -647,7 +649,7 @@ hxhim_results_t *hxhimFlushDeletes(hxhim_t *hx) {
  *     4. Do all DELs
  *
  * @param hx
- * @return An array of results (3 values)
+ * @return A list of results
  */
 hxhim::Results *hxhim::Flush(hxhim_t *hx) {
     hxhim::Results *res    = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);

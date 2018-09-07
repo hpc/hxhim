@@ -63,6 +63,8 @@ hxhim_private::hxhim_private()
  * @return Pointer to return value wrapper
  */
 static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::size_t count) {
+    mlog(HXHIM_CLIENT_DBG, "Start put_core");
+
     if (!count) {
         return nullptr;
     }
@@ -129,10 +131,13 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
         //                     &local, &remote);
     }
 
+    mlog(HXHIM_CLIENT_DBG, "Shuffled PUTs");
+
     hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
 
     // PUT the batch
     if (hx->p->bootstrap.size > 1) {
+        mlog(HXHIM_CLIENT_DBG, "Start remote PUTs");
         Transport::Response::BPut *responses = hx->p->transport->BPut(hx->p->bootstrap.size, remote);
         for(Transport::Response::BPut *curr = responses; curr; curr = curr->next) {
             for(std::size_t i = 0; i < curr->count; i++) {
@@ -140,9 +145,11 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
             }
         }
         hx->p->memory_pools.responses->release(responses);
+        mlog(HXHIM_CLIENT_DBG, "Completed remote PUTs");
     }
 
     if (local.count) {
+        mlog(HXHIM_CLIENT_DBG, "Start local PUTs");
         Transport::Response::BPut *responses = local_client_bput(hx, &local);
         for(Transport::Response::BPut *curr = responses; curr; curr = curr->next) {
             for(std::size_t i = 0; i < curr->count; i++) {
@@ -150,6 +157,7 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
             }
         }
         hx->p->memory_pools.responses->release(responses);
+        mlog(HXHIM_CLIENT_DBG, "Completed remote PUTs");
     }
 
     // cleanup
@@ -157,6 +165,8 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
         hx->p->memory_pools.requests->release(remote[i]);
     }
     hx->p->memory_pools.arrays->release_array(remote, hx->p->bootstrap.size);
+
+    mlog(HXHIM_CLIENT_DBG, "Completed put_core");
 
     return res;
 }
@@ -168,12 +178,12 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
  * @param args   hx typecast to void *
  */
 static void backgroundPUT(void *args) {
-    mlog(HXHIM_CLIENT_INFO, "Started background PUT thread");
-
     hxhim_t *hx = (hxhim_t *) args;
     if (!hx || !hx->p) {
         return;
     }
+
+    mlog(HXHIM_CLIENT_INFO, "Started background PUT thread");
 
     while (hx->p->running) {
         hxhim::PutData *head = nullptr;    // the first batch of PUTs to process
@@ -191,7 +201,7 @@ static void backgroundPUT(void *args) {
                 unsent.start_processing.wait(lock, [&]() -> bool { return !hx->p->running || (unsent.full_batches >= hx->p->async_put.max_queued) || unsent.force; });
             }
 
-            mlog(HXHIM_CLIENT_DBG, "Moving queued %zu PUTs into send queue for processing", unsent.full_batches);
+            mlog(HXHIM_CLIENT_DBG, "Moving %zu queued bulk PUTs into send queue for processing %zu %zu %d", unsent.full_batches, unsent.full_batches, hx->p->async_put.max_queued, unsent.force);
 
             // record whether or not this loop was forced, since the lock is not held
             force = unsent.force;
@@ -517,6 +527,9 @@ int hxhim::init::async_put(hxhim_t *hx, hxhim_options_t *opts) {
     if (init::running(hx, opts) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
+
+    // Set number of bulk puts to queue up before sending
+    hx->p->async_put.max_queued = opts->p->queued_bputs;
 
     // Set up queued PUT results list
     if (!(hx->p->async_put.results = hx->p->memory_pools.results->acquire<hxhim::Results>(hx))) {

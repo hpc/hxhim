@@ -64,44 +64,6 @@ class EndpointGroup {
         EndpointGroup();
         EndpointGroup(const EndpointGroup&  rhs) = delete;
         EndpointGroup(const EndpointGroup&& rhs) = delete;
-
-        /**
-         * get_num_srsv
-         * get the number of servers that will be sent work, and need to be waited on
-         *
-         * @param messages      the messages that are to be sent
-         * @param num_rangesrvs the total number of range servers
-         * @param srvs          address of an array that will be created and filled with unique range server IDs
-         * @return the          number of unique IDs in *srvs
-         */
-        template <typename T, typename = std::enable_if_t<std::is_convertible<T, Transport::Message>::value> >
-        std::size_t get_num_srvs(T **messages, const std::size_t num_rangesrvs, int **srvs) {
-            if (!messages || !srvs) {
-                return 0;
-            }
-
-            *srvs = nullptr;
-
-            // get the actual number of servers
-            int num_srvs = 0;
-            *srvs = new int[num_rangesrvs]();
-            for (std::size_t i = 0; i < num_rangesrvs; i++) {
-                if (!messages[i]) {
-                    continue;
-                }
-
-                // store server IDs to receive frome
-                (*srvs)[num_srvs] = messages[i]->dst;
-                num_srvs++;
-            }
-
-            if (!num_srvs) {
-                delete [] *srvs;
-                *srvs = nullptr;
-            }
-
-            return num_srvs;
-        }
 };
 
 /**

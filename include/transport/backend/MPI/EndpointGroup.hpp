@@ -58,11 +58,11 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup, virtual public 
          */
         template <typename Send_t, typename = std::enable_if_t<std::is_base_of<Request::Request, Send_t>::value &&
                                                                std::is_base_of<Bulk,             Send_t>::value> >
-        std::size_t parallel_send(const std::size_t num_srvs, Send_t **messages);          // send to range server
+        std::size_t parallel_send(const std::size_t num_srvs, Send_t **messages, int **dsts);    // send to range server
 
         template <typename Recv_t, typename = std::enable_if_t<std::is_base_of<Response::Response, Recv_t>::value &&
                                                                std::is_base_of<Bulk,               Recv_t>::value> >
-        std::size_t parallel_recv(const std::size_t nsrcs, int *srcs, Recv_t ***messages); // receive from range server
+        std::size_t parallel_recv(const std::size_t nsrcs, int *srcs, Recv_t ***messages);       // receive from range server
 
         template <typename Recv_t, typename Send_t, typename = std::enable_if<std::is_base_of<Request::Request,   Send_t>::value &&
                                                                               std::is_base_of<Bulk,               Send_t>::value &&
