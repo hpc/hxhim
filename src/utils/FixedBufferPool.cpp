@@ -3,7 +3,7 @@
 #include "utils/mlogfacs2.h"
 
 /** @description wrapper for FixedBufferPool mlog statements */
-#define FBP_LOG(level, fmt, ...) mlog(level, "%s (%zu bytes x %zu/%zu regions free): " fmt, name_.c_str(), alloc_size_, regions_ - used_, regions_, ##__VA_ARGS__)
+#define FBP_LOG(level, fmt, ...) mlog(level, "%s (%zu bytes x %zu/%zu regions free): " fmt, name_.c_str(), alloc_size_, regions_ - used_, regions_, ##__VA_ARGS__);
 
 /**
  * FixedBufferPool Constructor

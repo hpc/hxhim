@@ -10,6 +10,8 @@
 #include "transport/backend/backends.hpp"
 #include "transport/transport.hpp"
 #include "utils/MemoryManager.hpp"
+#include "utils/mlog2.h"
+#include "utils/mlogfacs2.h"
 
 /**
  * clean
@@ -79,6 +81,10 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
         remote[i]->dst = i;
         remote[i]->count = 0;
     }
+
+    // zero out local message in remote messages
+    hx->p->memory_pools.requests->release(remote[hx->p->bootstrap.rank]);
+    remote[hx->p->bootstrap.rank] = nullptr;
 
     // place the input into destination buckets
     for(std::size_t i = 0; i < count; i++) {
@@ -162,6 +168,8 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
  * @param args   hx typecast to void *
  */
 static void backgroundPUT(void *args) {
+    mlog(HXHIM_CLIENT_INFO, "Started background PUT thread");
+
     hxhim_t *hx = (hxhim_t *) args;
     if (!hx || !hx->p) {
         return;
@@ -179,8 +187,11 @@ static void backgroundPUT(void *args) {
             hxhim::Unsent<hxhim::PutData> &unsent = hx->p->queues.puts;
             std::unique_lock<std::mutex> lock(unsent.mutex);
             while (hx->p->running && (unsent.full_batches < hx->p->async_put.max_queued) && !unsent.force) {
+                mlog(HXHIM_CLIENT_DBG, "Waiting for %zu bulk puts (currently have %zu)", hx->p->async_put.max_queued, unsent.full_batches);
                 unsent.start_processing.wait(lock, [&]() -> bool { return !hx->p->running || (unsent.full_batches >= hx->p->async_put.max_queued) || unsent.force; });
             }
+
+            mlog(HXHIM_CLIENT_DBG, "Moving queued %zu PUTs into send queue for processing", unsent.full_batches);
 
             // record whether or not this loop was forced, since the lock is not held
             force = unsent.force;
@@ -240,6 +251,7 @@ static void backgroundPUT(void *args) {
         }
 
         // process the queued PUTs
+        mlog(HXHIM_CLIENT_DBG, "Processing queued PUTs");
         while (hx->p->running && head) {
             // process the batch and save the results
             hxhim::Results *res = put_core(hx, head, HXHIM_MAX_BULK_PUT_OPS);
@@ -256,10 +268,15 @@ static void backgroundPUT(void *args) {
 
             hx->p->memory_pools.results->release(res);
         }
+        mlog(HXHIM_CLIENT_DBG, "Done processing queued PUTs");
 
         // if this flush was forced, notify FlushPuts
         if (force) {
+            mlog(HXHIM_CLIENT_DBG, "Forcing flush in backgroud PUT thread");
+
             if (hx->p->running) {
+                mlog(HXHIM_CLIENT_DBG, "Force processing queued PUTs");
+
                 // process the batch
                 hxhim::Results *res = put_core(hx, last, last_count);
 
@@ -272,6 +289,8 @@ static void backgroundPUT(void *args) {
                 }
 
                 hx->p->memory_pools.results->release(res);
+
+                mlog(HXHIM_CLIENT_DBG, "Done force Processing queued PUTs");
             }
 
             hxhim::Unsent<hxhim::PutData> &unsent = hx->p->queues.puts;
@@ -283,6 +302,8 @@ static void backgroundPUT(void *args) {
         clean(hx, head);
         hx->p->memory_pools.bulks->release(last);
     }
+
+    mlog(HXHIM_CLIENT_INFO, "Background PUT thread stopping");
 }
 
 /**

@@ -30,6 +30,8 @@ int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
     //Open mlog - stolen from plfs
     mlog_open((char *) "hxhim", 0, opts->p->debug_level, opts->p->debug_level, nullptr, 0, MLOG_LOGPID, 0);
 
+    mlog(HXHIM_CLIENT_INFO, "Initializing HXHIM");
+
     if (!(hx->p = new hxhim_private_t())) {
         mlog(HXHIM_CLIENT_ERR, "Failed to allocate space for private HXHIM data");
         return HXHIM_ERROR;
@@ -237,7 +239,9 @@ static hxhim::Results *get_core(hxhim_t *hx,
     // reset buffers without deallocating (BGet::clean should be false)
     local->count = 0;
     for(int i = 0; i < hx->p->bootstrap.size; i++) {
-        remote[i]->count = 0;
+        if (remote[i]) {
+            remote[i]->count = 0;
+        }
     }
 
     // move the data into the appropriate buffers
@@ -306,6 +310,10 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
         remote[i] = hx->p->memory_pools.requests->acquire<Transport::Request::BGet>(hxhim::GetArrayFBP(hx), hxhim::GetBufferFBP(hx), hx->p->max_bulk_ops.gets);
     }
 
+    // zero out local message in remote messages
+    hx->p->memory_pools.requests->release(remote[hx->p->bootstrap.rank]);
+    remote[hx->p->bootstrap.rank] = nullptr;
+
     // write complete batches
     hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
     while (curr->next) {
@@ -367,7 +375,9 @@ static hxhim::Results *getop_core(hxhim_t *hx,
     // reset buffers without deallocating (BGetOp::clean should be false)
     local->count = 0;
     for(int i = 0; i < hx->p->bootstrap.size; i++) {
-        remote[i]->count = 0;
+        if (remote[i]) {
+            remote[i]->count = 0;
+        }
     }
 
     // move the data into the appropriate buffers
@@ -440,6 +450,10 @@ hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
         remote[i]->dst = i;
     }
 
+    // zero out local message in remote messages
+    hx->p->memory_pools.requests->release(remote[hx->p->bootstrap.rank]);
+    remote[hx->p->bootstrap.rank] = nullptr;
+
     hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
 
     // write complete batches
@@ -503,7 +517,9 @@ static hxhim::Results *delete_core(hxhim_t *hx,
     // reset buffers without deallocating (BDelete::clean should be false)
     local->count = 0;
     for(int i = 0; i < hx->p->bootstrap.size; i++) {
-        remote[i]->count = 0;
+        if (remote[i]) {
+            remote[i]->count = 0;
+        }
     }
 
     // move the data into the appropriate buffers
@@ -572,6 +588,10 @@ hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
         remote[i]->src = hx->p->bootstrap.rank;
         remote[i]->dst = i;
     }
+
+    // zero out local message in remote messages
+    hx->p->memory_pools.requests->release(remote[hx->p->bootstrap.rank]);
+    remote[hx->p->bootstrap.rank] = nullptr;
 
     hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
 
@@ -1392,6 +1412,10 @@ hxhim::Results *hxhim::GetBHistogram(hxhim_t *hx, const int *datastores, const s
         remote[i]->src = hx->p->bootstrap.rank;
         remote[i]->dst = i;
     }
+
+    // zero out local message in remote messages
+    hx->p->memory_pools.requests->release(remote[hx->p->bootstrap.rank]);
+    remote[hx->p->bootstrap.rank] = nullptr;
 
     // move the data into the appropriate buffers
     for(std::size_t i = 0; i < count; i++) {

@@ -982,7 +982,7 @@ int Transport::Thallium::Unpacker::unpack(Message **msg, const std::string &buf,
     if (unpack(out, s) != TRANSPORT_SUCCESS) {
         fbp->release(out);
         return TRANSPORT_ERROR;
-    }
+   }
 
     *msg = out;
     return TRANSPORT_SUCCESS;
