@@ -436,7 +436,7 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
                 {
                     hxhim_leveldb_config_t *config = static_cast<hxhim_leveldb_config_t *>(opts->p->datastore);
                     hx->p->datastore.datastores[i] = new hxhim::datastore::leveldb(hx,
-                                                                                   config->id,
+                                                                                   hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, i),
                                                                                    opts->p->histogram.first_n,
                                                                                    opts->p->histogram.gen,
                                                                                    opts->p->histogram.args,
@@ -447,7 +447,7 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
             case HXHIM_DATASTORE_IN_MEMORY:
                 {
                     hx->p->datastore.datastores[i] = new hxhim::datastore::InMemory(hx,
-                                                                                    i,
+                                                                                    hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, i),
                                                                                     opts->p->histogram.first_n,
                                                                                     opts->p->histogram.gen,
                                                                                     opts->p->histogram.args);
