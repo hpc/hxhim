@@ -48,15 +48,16 @@ Results::Put::Put(hxhim_t *hx, Transport::Response::BPut *bput, const std::size_
 
 Results::Put::~Put() {}
 
-Results::Get::Get(hxhim_t *hx)
+Results::Get::Get(hxhim_t *hx, const bool clean)
     : Result(HXHIM_RESULT_GET, hx->p->memory_pools.buffers),
+      clean(clean),
       sub(nullptr), sub_len(0),
       pred(nullptr), pred_len(0),
       obj_type(), obj(nullptr), obj_len(0)
 {}
 
-Results::Get::Get(hxhim_t *hx, Transport::Response::Get *get)
-    : Get(hx)
+Results::Get::Get(hxhim_t *hx, Transport::Response::Get *get, const bool clean)
+    : Get(hx, clean)
 {
     if (get) {
         datastore = hxhim::datastore::get_id(hx, get->src, get->ds_offset);
@@ -74,8 +75,8 @@ Results::Get::Get(hxhim_t *hx, Transport::Response::Get *get)
     }
 }
 
-Results::Get::Get(hxhim_t *hx, Transport::Response::BGet *bget, const std::size_t i)
-    : Get(hx)
+Results::Get::Get(hxhim_t *hx, Transport::Response::BGet *bget, const std::size_t i, const bool clean)
+    : Get(hx, clean)
 {
     if (bget && (i < bget->count)) {
         datastore = hxhim::datastore::get_id(hx, bget->src, bget->ds_offsets[i]);
@@ -93,8 +94,8 @@ Results::Get::Get(hxhim_t *hx, Transport::Response::BGet *bget, const std::size_
     }
 }
 
-Results::Get::Get(hxhim_t *hx, Transport::Response::BGetOp *bgetop, const std::size_t i)
-    : Get(hx)
+Results::Get::Get(hxhim_t *hx, Transport::Response::BGetOp *bgetop, const std::size_t i, const bool clean)
+    : Get(hx, clean)
 {
     if (bgetop && (i < bgetop->count)) {
         datastore = hxhim::datastore::get_id(hx, bgetop->src, bgetop->ds_offsets[i]);
@@ -113,9 +114,11 @@ Results::Get::Get(hxhim_t *hx, Transport::Response::BGetOp *bgetop, const std::s
 }
 
 Results::Get::~Get() {
-    buffers->release(sub);
-    buffers->release(pred);
-    buffers->release(obj);
+    if (clean) {
+        buffers->release(sub);
+        buffers->release(pred);
+        buffers->release(obj);
+    }
 }
 
 hxhim_type_t Results::Get::GetObjectType() const {

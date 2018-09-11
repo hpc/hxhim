@@ -187,11 +187,8 @@ int main(int argc, char *argv[]) {
                 void *prefix = nullptr;
                 std::size_t prefix_len = 0;
                 int count = 0;
-                int ret = HXHIM_SUCCESS;
-
                 std::string subject;
                 if (!(s >> subject >> count)) {
-                    ret = HXHIM_ERROR;
                     std::cerr << "Bad BGetOp input: " << line << std::endl;
                     continue;
                 }
@@ -304,7 +301,7 @@ int main(int argc, char *argv[]) {
         std::size_t gets = 0;
         long double get_rate = 0;
 
-        for(std::size_t i = 0; i < size; i++) {
+        for(int i = 0; i < size; i++) {
             if (num_puts[i]) {
                 put_rate += num_puts[i] / put_times[i];
                 puts++;

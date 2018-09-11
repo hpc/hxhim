@@ -32,7 +32,7 @@ T *alloc_brequest(hxhim_t *hx, const std::size_t count) {
     return hxhim::GetRequestFBP(hx)->acquire<T>(hxhim::GetArrayFBP(hx), hxhim::GetBufferFBP(hx), count);
 }
 
-void free_request(hxhim_t *hx, void *ptr);
+void free_request(hxhim_t *hx, Transport::Request::Request *ptr);
 
 template <typename T, typename = std::enable_if_t<std::is_base_of<Transport::Response::Response, T>::value &&
                                                   std::is_base_of<Transport::Single, T>::value> >
@@ -46,7 +46,7 @@ T *alloc_bresponse(hxhim_t *hx, const std::size_t count) {
     return hxhim::GetResponseFBP(hx)->acquire<T>(hxhim::GetArrayFBP(hx), hxhim::GetBufferFBP(hx), count);
 }
 
-void free_response(hxhim_t *hx, void *ptr);
+void free_response(hxhim_t *hx, Transport::Response::Response *ptr);
 
 }
 

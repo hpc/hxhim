@@ -154,7 +154,7 @@ void *FixedBufferPool::acquire(const std::size_t size) {
  */
 void FixedBufferPool::release(void *ptr) {
     if (!ptr) {
-        FBP_LOG(FBP_WARN, "Attempted to free a nullptr");
+        FBP_LOG(FBP_DBG1, "Attempted to free a nullptr");
         return;
     }
 

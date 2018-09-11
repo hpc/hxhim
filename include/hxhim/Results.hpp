@@ -84,9 +84,9 @@ class Results {
         /** @description Convenience class for GET results */
         class Get : public Result {
             public:
-                Get(hxhim_t *hx, Transport::Response::Get *get);
-                Get(hxhim_t *hx, Transport::Response::BGet *bget, const std::size_t i);
-                Get(hxhim_t *hx, Transport::Response::BGetOp *bgetop, const std::size_t i);
+                Get(hxhim_t *hx, Transport::Response::Get *get, const bool clean);
+                Get(hxhim_t *hx, Transport::Response::BGet *bget, const std::size_t i, const bool clean);
+                Get(hxhim_t *hx, Transport::Response::BGetOp *bgetop, const std::size_t i, const bool clean);
                 virtual ~Get();
 
                 hxhim_type_t GetObjectType() const;
@@ -97,7 +97,9 @@ class Results {
                 int GetObject(void **object, std::size_t *object_len) const;
 
             protected:
-                Get(hxhim_t *hx);
+                Get(hxhim_t *hx, const bool clean);
+
+                const bool clean;
 
                 void *sub;
                 std::size_t sub_len;

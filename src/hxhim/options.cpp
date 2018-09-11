@@ -288,6 +288,7 @@ int hxhim_options_set_transport_mpi(hxhim_options_t *opts, const size_t listener
     return HXHIM_SUCCESS;
 }
 
+#if HXHIM_HAVE_THALLIUM
 /**
  * hxhim_options_set_transport_thallium
  * Sets the values needed to set up a thallium Transport
@@ -309,6 +310,7 @@ int hxhim_options_set_transport_thallium(hxhim_options_t *opts, const char *modu
 
     return HXHIM_SUCCESS;
 }
+#endif
 
 /**
  * hxhim_options_add_endpoint_to_group
@@ -735,6 +737,7 @@ int hxhim_options_destroy(hxhim_options_t *opts) {
     return HXHIM_SUCCESS;
 }
 
+#if HXHIM_HAVE_LEVELDB
 /**
  * hxhim_options_create_leveldb_config
  *
@@ -751,6 +754,7 @@ hxhim_datastore_config_t *hxhim_options_create_leveldb_config(const size_t id, c
     }
     return config;
 }
+#endif
 
 /**
  * hxhim_options_create_in_memory_config

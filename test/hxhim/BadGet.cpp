@@ -4,6 +4,7 @@
 
 #include <gtest/gtest.h>
 
+#include "check_memory.hpp"
 #include "generic_options.hpp"
 #include "hxhim/hxhim.hpp"
 
@@ -43,6 +44,8 @@ TEST(hxhim, BadGet) {
     }
 
     hxhim_results_destroy(&hx, get_results);
+
+    CHECK_MEMORY(&hx);
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);

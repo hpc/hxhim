@@ -96,7 +96,9 @@ const std::map<std::string, int> HXHIM_DEBUG_LEVELS = {
  * Set of allowed datastores for HXHIM
  */
 const std::map<std::string, hxhim_datastore_t> HXHIM_DATASTORES = {
+    #if HXHIM_HAVE_LEVELDB
     std::make_pair("LEVELDB",   HXHIM_DATASTORE_LEVELDB),
+    #endif
     std::make_pair("IN_MEMORY", HXHIM_DATASTORE_IN_MEMORY),
 };
 
@@ -115,7 +117,9 @@ const std::map<std::string, hxhim_hash_t> HXHIM_HASHES = {
 const std::map<std::string, Transport::Type> HXHIM_TRANSPORTS = {
     std::make_pair("NULL",     Transport::TRANSPORT_NULL),
     std::make_pair("MPI",      Transport::TRANSPORT_MPI),
+    #if HXHIM_HAVE_THALLIUM
     std::make_pair("THALLIUM", Transport::TRANSPORT_THALLIUM),
+    #endif
 };
 
 /**

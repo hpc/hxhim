@@ -122,7 +122,7 @@ FixedBufferPool *GetResultFBP(hxhim_t *hx) {
  * @param hx the HXHIM session
  * @param ptr a pointer from the request data FixedBufferPool
  */
-void free_request(hxhim_t *hx, void *ptr) {
+void free_request(hxhim_t *hx, Transport::Request::Request *ptr) {
     return GetRequestFBP(hx)->release(ptr);
 }
 
@@ -133,7 +133,7 @@ void free_request(hxhim_t *hx, void *ptr) {
  * @param hx the HXHIM session
  * @param ptr a pointer from the response data FixedBufferPool
  */
-void free_response(hxhim_t *hx, void *ptr) {
+void free_response(hxhim_t *hx, Transport::Response::Response *ptr) {
     return GetResponseFBP(hx)->release(ptr);
 }
 

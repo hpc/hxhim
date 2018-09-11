@@ -69,15 +69,17 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
         return nullptr;
     }
 
-    const std::size_t total = HXHIM_PUT_MULTIPLER * count;                                                           // total number of triples that will be PUT
+    // total number of triples that will be PUT
+    const std::size_t total = HXHIM_PUT_MULTIPLER * count;
 
     Transport::Request::BPut local(hxhim::GetArrayFBP(hx), hxhim::GetBufferFBP(hx), hx->p->max_bulk_ops.puts);
     local.src = hx->p->bootstrap.rank;
     local.dst = hx->p->bootstrap.rank;
     local.count = 0;
 
-    Transport::Request::BPut **remote = hx->p->memory_pools.arrays->acquire_array<Transport::Request::BPut *>(hx->p->bootstrap.size); // list of destination servers (not datastores) and messages to those destinations
-    for(std::size_t i = 0; i < hx->p->bootstrap.size; i++) {
+    // list of destination servers (not datastores) and messages to those destinations
+    Transport::Request::BPut **remote = hx->p->memory_pools.arrays->acquire_array<Transport::Request::BPut *>(hx->p->bootstrap.size);
+    for(int i = 0; i < hx->p->bootstrap.size; i++) {
         remote[i] = hx->p->memory_pools.requests->acquire<Transport::Request::BPut>(hxhim::GetArrayFBP(hx), hxhim::GetBufferFBP(hx), hx->p->max_bulk_ops.puts);
         remote[i]->src = hx->p->bootstrap.rank;
         remote[i]->dst = i;

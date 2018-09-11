@@ -53,6 +53,7 @@ static bool parse_datastore(hxhim_options_t *opts, const Config &config) {
 
     if (ret == CONFIG_FOUND) {
         switch (datastore) {
+            #if HXHIM_HAVE_LEVELDB
             case HXHIM_DATASTORE_LEVELDB:
                 {
                     // get the leveldb datastore name prefix
@@ -72,6 +73,8 @@ static bool parse_datastore(hxhim_options_t *opts, const Config &config) {
                     }
                     return (hxhim_options_set_datastore_leveldb(opts, rank, name->second.c_str(), create_if_missing) == HXHIM_SUCCESS);
                 }
+                break;
+            #endif
             case HXHIM_DATASTORE_IN_MEMORY:
                 return (hxhim_options_set_datastore_in_memory(opts) == HXHIM_SUCCESS);
             default:
@@ -119,6 +122,7 @@ static bool parse_transport(hxhim_options_t *opts, const Config &config) {
                             parse_hash(opts, config));
                 }
                 break;
+            #if HXHIM_HAVE_THALLIUM
             case Transport::TRANSPORT_THALLIUM:
                 {
                     Config_it thallium_module = config.find(HXHIM_THALLIUM_MODULE);
@@ -130,6 +134,7 @@ static bool parse_transport(hxhim_options_t *opts, const Config &config) {
                             parse_hash(opts, config));
                 }
                 break;
+            #endif
             default:
                 break;
         }

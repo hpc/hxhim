@@ -28,6 +28,7 @@ typedef struct hxhim_datastore_config {
     const hxhim_datastore_t type;
 } hxhim_datastore_config_t;
 
+#if HXHIM_HAVE_LEVELDB
 typedef struct hxhim_leveldb_config : hxhim_datastore_config_t {
     hxhim_leveldb_config()
         : hxhim_datastore_config_t(HXHIM_DATASTORE_LEVELDB)
@@ -37,6 +38,7 @@ typedef struct hxhim_leveldb_config : hxhim_datastore_config_t {
     std::string path;
     bool create_if_missing;
 } hxhim_leveldb_config_t;
+#endif
 
 typedef struct hxhim_in_memory_config : hxhim_datastore_config_t {
     hxhim_in_memory_config()

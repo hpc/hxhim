@@ -263,17 +263,17 @@ static hxhim::Results *get_core(hxhim_t *hx,
         Transport::Response::BGet *responses = hx->p->transport->BGet(hx->p->bootstrap.size, remote);
         for(Transport::Response::BGet *curr = responses; curr; curr = curr->next) {
             for(std::size_t i = 0; i < curr->count; i++) {
-                res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Get>(hx, curr, i));
+                res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Get>(hx, curr, i, true));
             }
         }
         hxhim::free_response(hx, responses);
     }
 
     if (local->count) {
-        Transport::Response::BGet *responses = local_client_bget(hx, local);
+       Transport::Response::BGet *responses = local_client_bget(hx, local);
         for(Transport::Response::BGet *curr = responses; curr; curr = curr->next) {
             for(std::size_t i = 0; i < curr->count; i++) {
-                res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Get>(hx, curr, i));
+                res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Get>(hx, curr, i, false));
             }
         }
         hxhim::free_response(hx, responses);
@@ -291,6 +291,7 @@ static hxhim::Results *get_core(hxhim_t *hx,
  * @return Pointer to return value wrapper
  */
 hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
+    mlog(HXHIM_CLIENT_INFO, "Flushing GETs");
     if (!hx || !hx->p) {
         return nullptr;
     }
@@ -300,6 +301,7 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
 
     hxhim::GetData *curr = gets.head;
     if (!curr) {
+        mlog(HXHIM_CLIENT_INFO, "No GETs to flush");
         return HXHIM_SUCCESS;
     }
 
@@ -318,7 +320,9 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
 
     // write complete batches
     hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
+
     while (curr->next) {
+        mlog(HXHIM_CLIENT_INFO, "Processing %d GETs", HXHIM_MAX_BULK_GET_OPS);
         hxhim::Results *ret = get_core(hx, curr, HXHIM_MAX_BULK_GET_OPS, &local, remote);
         res->Append(ret);
         hx->p->memory_pools.results->release(ret);
@@ -329,6 +333,8 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
         curr = next;
     }
 
+
+    mlog(HXHIM_CLIENT_INFO, "Processing final batch with %zu GETs", gets.last_count);
     hxhim::Results *ret = get_core(hx, curr, gets.last_count, &local, remote);
     res->Append(ret);
     hx->p->memory_pools.results->release(ret);
@@ -343,6 +349,7 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
 
     gets.head = gets.tail = nullptr;
 
+    mlog(HXHIM_CLIENT_INFO, "Done Flushing GETs");
     return res;
 }
 
@@ -401,7 +408,7 @@ static hxhim::Results *getop_core(hxhim_t *hx,
         Transport::Response::BGetOp *responses = hx->p->transport->BGetOp(hx->p->bootstrap.size, remote);
         for(Transport::Response::BGetOp *curr = responses; curr; curr = curr->next) {
             for(std::size_t i = 0; i < curr->count; i++) {
-                res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Get>(hx, curr, i));
+                res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Get>(hx, curr, i, true));
             }
         }
         hxhim::free_response(hx, responses);
@@ -411,7 +418,7 @@ static hxhim::Results *getop_core(hxhim_t *hx,
         Transport::Response::BGetOp *responses = local_client_bget_op(hx, local);
         for(Transport::Response::BGetOp *curr = responses; curr; curr = curr->next) {
             for(std::size_t i = 0; i < curr->count; i++) {
-                res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Get>(hx, curr, i));
+                res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Get>(hx, curr, i, false));
             }
         }
         hxhim::free_response(hx, responses);

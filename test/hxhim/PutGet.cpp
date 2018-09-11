@@ -3,6 +3,7 @@
 
 #include <gtest/gtest.h>
 
+#include "check_memory.hpp"
 #include "generic_options.hpp"
 #include "hxhim/hxhim.hpp"
 
@@ -31,7 +32,7 @@ TEST(hxhim, PutGet) {
               HXHIM_SUCCESS);
 
     // Flush all queued items
-    hxhim::Results *put_results = hxhim::Flush(&hx);
+    hxhim::Results *put_results = hxhim::FlushPuts(&hx);
     ASSERT_NE(put_results, nullptr);
 
     // Make sure put succeeded
@@ -53,7 +54,7 @@ TEST(hxhim, PutGet) {
               HXHIM_SUCCESS);
 
     // Flush all queued items
-    hxhim::Results *get_results = hxhim::Flush(&hx);
+    hxhim::Results *get_results = hxhim::FlushGets(&hx);
     ASSERT_NE(get_results, nullptr);
 
     // get the results and compare them with the original data
@@ -87,6 +88,8 @@ TEST(hxhim, PutGet) {
     }
 
     hxhim_results_destroy(&hx, get_results);
+
+    CHECK_MEMORY(&hx);
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);

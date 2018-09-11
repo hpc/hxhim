@@ -30,12 +30,15 @@ hxhim::SubjectPredicateObject::~SubjectPredicateObject() {
 }
 
 hxhim::PutData::PutData(FixedBufferPool *arrays, const std::size_t count)
-    : SPO_t(arrays, count)
+    : SPO_t(arrays, count),
+      prev(nullptr),
+      next(nullptr)
 {}
 
 hxhim::GetData::GetData(FixedBufferPool *arrays, const std::size_t count)
     : SP_t(arrays, count),
-      object_types(arrays->acquire_array<hxhim_type_t>(count))
+      object_types(arrays->acquire_array<hxhim_type_t>(count)),
+      next(nullptr)
 {}
 
 hxhim::GetData::~GetData() {
@@ -46,7 +49,8 @@ hxhim::GetOpData::GetOpData(FixedBufferPool *arrays, const std::size_t count)
     : SP_t(arrays, count),
       object_types(arrays->acquire_array<hxhim_type_t>(count)),
       num_recs(arrays->acquire_array<std::size_t>(count)),
-      ops(arrays->acquire_array<hxhim_get_op_t>(count))
+      ops(arrays->acquire_array<hxhim_get_op_t>(count)),
+      next(nullptr)
 {}
 
 hxhim::GetOpData::~GetOpData() {
@@ -56,5 +60,6 @@ hxhim::GetOpData::~GetOpData() {
 }
 
 hxhim::DeleteData::DeleteData(FixedBufferPool *arrays, const std::size_t count)
-    : SP_t(arrays, count)
+    : SP_t(arrays, count),
+      next(nullptr)
 {}

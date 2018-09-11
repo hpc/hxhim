@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 #include <mpi.h>
 
+#include "check_memory.hpp"
 #include "generic_options.hpp"
 #include "hxhim/hxhim.hpp"
 
@@ -67,6 +68,9 @@ TEST(hxhim, Histogram) {
     }
 
     hxhim_results_destroy(&hx, histogram);
+
+    CHECK_MEMORY(&hx);
+
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }
@@ -151,6 +155,9 @@ TEST(hxhim, BHistogram) {
     EXPECT_EQ(src_count, count);
 
     hxhim_results_destroy(&hx, bhistogram);
+
+    CHECK_MEMORY(&hx);
+
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }

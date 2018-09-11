@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 #include <mpi.h>
 
+#include "check_memory.hpp"
 #include "generic_options.hpp"
 #include "hxhim/hxhim.hpp"
 
@@ -15,6 +16,8 @@ TEST(transport, MPI) {
 
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
+
+    CHECK_MEMORY(&hx);
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
@@ -28,6 +31,8 @@ TEST(transport, thallium_na_sm) {
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
 
+    CHECK_MEMORY(&hx);
+
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }
@@ -39,6 +44,8 @@ TEST(transport, thallium_tcp) {
 
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
+
+    CHECK_MEMORY(&hx);
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);

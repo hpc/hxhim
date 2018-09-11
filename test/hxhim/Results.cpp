@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include "check_memory.hpp"
 #include "generic_options.hpp"
 #include "hxhim/hxhim.hpp"
 #include "hxhim/utils.hpp"
@@ -58,6 +59,8 @@ TEST(Results, PUT_GET_DEL) {
         EXPECT_EQ(results.GoToNext(), del);
     }
 
+    CHECK_MEMORY(&hx);
+
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }
@@ -91,6 +94,8 @@ TEST(Results, Loop) {
 
         EXPECT_EQ(count, puts);
     }
+
+    CHECK_MEMORY(&hx);
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
@@ -127,6 +132,8 @@ TEST(Results, Append_Empty) {
         EXPECT_EQ(results.GoToNext(), nullptr); // next result does not exist
         EXPECT_EQ(results.Valid(), false);
     }
+
+    CHECK_MEMORY(&hx);
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
@@ -166,6 +173,8 @@ TEST(Results, Empty_Append) {
         // appending moves the contents of the result list
         EXPECT_EQ(results.GoToHead(), nullptr);
     }
+
+    CHECK_MEMORY(&hx);
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
