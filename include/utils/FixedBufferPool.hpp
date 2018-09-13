@@ -144,6 +144,9 @@ class FixedBufferPool {
          * are unused)
          */
         std::size_t used_;
+
+        std::size_t requested;
+        std::size_t count;
 };
 
 /**
