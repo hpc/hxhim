@@ -75,6 +75,7 @@ TEST(mpi_pack_unpack, RequestPut) {
 
     Request::Put *dst = nullptr;
     EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, requests, arrays, buffers), HXHIM_SUCCESS);
+    packed->release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -127,6 +128,7 @@ TEST(mpi_pack_unpack, RequestGet) {
 
     Request::Get *dst = nullptr;
     EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, requests, arrays, buffers), HXHIM_SUCCESS);
+    packed->release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -175,6 +177,7 @@ TEST(mpi_pack_unpack, RequestDelete) {
 
     Request::Delete *dst = nullptr;
     EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, requests, arrays, buffers), HXHIM_SUCCESS);
+    packed->release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -215,6 +218,7 @@ TEST(mpi_pack_unpack, RequestHistogram) {
 
     Request::Histogram *dst = nullptr;
     EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, requests, arrays, buffers), HXHIM_SUCCESS);
+    packed->release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -262,6 +266,7 @@ TEST(mpi_pack_unpack, RequestBPut) {
 
     Request::BPut *dst = nullptr;
     EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, requests, arrays, buffers), HXHIM_SUCCESS);
+    packed->release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -321,6 +326,7 @@ TEST(mpi_pack_unpack, RequestBGet) {
 
     Request::BGet *dst = nullptr;
     EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, requests, arrays, buffers), HXHIM_SUCCESS);
+    packed->release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -381,6 +387,7 @@ TEST(mpi_pack_unpack, RequestBGetOp) {
 
     Request::BGetOp *dst = nullptr;
     EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, requests, arrays, buffers), HXHIM_SUCCESS);
+    packed->release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -439,6 +446,7 @@ TEST(mpi_pack_unpack, RequestBDelete) {
 
     Request::BDelete *dst = nullptr;
     EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, requests, arrays, buffers), HXHIM_SUCCESS);
+    packed->release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -486,6 +494,7 @@ TEST(mpi_pack_unpack, RequestBHistogram) {
 
     Request::BHistogram *dst = nullptr;
     EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, requests, arrays, buffers), HXHIM_SUCCESS);
+    packed->release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -526,6 +535,7 @@ TEST(mpi_pack_unpack, ResponsePut) {
 
     Response::Put *dst = nullptr;
     EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, responses, arrays, buffers), HXHIM_SUCCESS);
+    packed->release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -575,6 +585,7 @@ TEST(mpi_pack_unpack, ResponseGet) {
 
     Response::Get *dst = nullptr;
     EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, responses, arrays, buffers), HXHIM_SUCCESS);
+    packed->release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -623,6 +634,7 @@ TEST(mpi_pack_unpack, ResponseDelete) {
 
     Response::Delete *dst = nullptr;
     EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, responses, arrays, buffers), HXHIM_SUCCESS);
+    packed->release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -670,6 +682,7 @@ TEST(mpi_pack_unpack, ResponseHistogram) {
 
     Response::Histogram *dst = nullptr;
     EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, responses, arrays, buffers), HXHIM_SUCCESS);
+    packed->release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -717,6 +730,7 @@ TEST(mpi_pack_unpack, ResponseBPut) {
 
     Response::BPut *dst = nullptr;
     EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, responses, arrays, buffers), HXHIM_SUCCESS);
+    packed->release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -771,6 +785,7 @@ TEST(mpi_pack_unpack, ResponseBGet) {
 
     Response::BGet *dst = nullptr;
     EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, responses, arrays, buffers), HXHIM_SUCCESS);
+    packed->release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -835,6 +850,7 @@ TEST(mpi_pack_unpack, ResponseBGetOp) {
 
     Response::BGetOp *dst = nullptr;
     EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, responses, arrays, buffers), HXHIM_SUCCESS);
+    packed->release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -889,6 +905,7 @@ TEST(mpi_pack_unpack, ResponseBDelete) {
 
     Response::BDelete *dst = nullptr;
     EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, responses, arrays, buffers), HXHIM_SUCCESS);
+    packed->release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -942,6 +959,7 @@ TEST(mpi_pack_unpack, ResponseBHistogram) {
 
     Response::BHistogram *dst = nullptr;
     EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, responses, arrays, buffers), HXHIM_SUCCESS);
+    packed->release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);

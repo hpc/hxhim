@@ -8,6 +8,7 @@
 
 #include "datastore/leveldb.hpp"
 #include "hxhim/triplestore.hpp"
+#include "hxhim/private.hpp"
 
 namespace hxhim {
 namespace datastore {
@@ -69,7 +70,7 @@ Response::BPut *leveldb::BPutImpl(void **subjects, std::size_t *subject_lens,
                                   void **predicates, std::size_t *predicate_lens,
                                   hxhim_type_t *object_types, void **objects, std::size_t *object_lens,
                                   std::size_t count) {
-    Response::BPut *ret = alloc_bresponse<Response::BPut>(hx, count);
+    Response::BPut *ret = hx->p->memory_pools.responses->acquire<Response::BPut>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, count);
     if (!ret) {
         return nullptr;
     }
@@ -77,7 +78,7 @@ Response::BPut *leveldb::BPutImpl(void **subjects, std::size_t *subject_lens,
     struct timespec start, end;
     ::leveldb::WriteBatch batch;
 
-    FixedBufferPool *fbp = hxhim::GetKeyFBP(hx);
+    FixedBufferPool *fbp = hx->p->memory_pools.keys;
     for(std::size_t i = 0; i < count; i++) {
         void *key = nullptr;
         std::size_t key_len = 0;
@@ -87,7 +88,7 @@ Response::BPut *leveldb::BPutImpl(void **subjects, std::size_t *subject_lens,
         batch.Put(::leveldb::Slice((char *) key, key_len), ::leveldb::Slice((char *) objects[i], object_lens[i]));
         clock_gettime(CLOCK_MONOTONIC, &end);
 
-        fbp->release(key);
+        fbp->release(key, key_len);
 
         stats.puts++;
         stats.put_times += nano(start, end);
@@ -128,12 +129,12 @@ Response::BGet *leveldb::BGetImpl(void **subjects, std::size_t *subject_lens,
                                   void **predicates, std::size_t *predicate_lens,
                                   hxhim_type_t *object_types,
                                   std::size_t count) {
-    Response::BGet *ret = alloc_bresponse<Response::BGet>(hx, count);
+    Response::BGet *ret = hx->p->memory_pools.responses->acquire<Response::BGet>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, count);
     if (!ret) {
         return nullptr;
     }
 
-    FixedBufferPool *fbp = hxhim::GetKeyFBP(hx);
+    FixedBufferPool *fbp = hx->p->memory_pools.keys;
     for(std::size_t i = 0; i < count; i++) {
         struct timespec start, end;
         std::string value;
@@ -150,7 +151,7 @@ Response::BGet *leveldb::BGetImpl(void **subjects, std::size_t *subject_lens,
         ::leveldb::Status status = db->Get(::leveldb::ReadOptions(), k, &value);
         clock_gettime(CLOCK_MONOTONIC, &end);
 
-        fbp->release(key);
+        fbp->release(key, key_len);
 
         // need to copy subject
         ret->subject_lens[i] = subject_lens[i];
@@ -201,7 +202,7 @@ Response::BGetOp *leveldb::BGetOpImpl(void *subject, std::size_t subject_len,
                                       void *predicate, std::size_t predicate_len,
                                       hxhim_type_t object_type,
                                       std::size_t recs, enum hxhim_get_op_t op) {
-    Response::BGetOp *ret = alloc_bresponse<Response::BGetOp>(hx, recs);
+    Response::BGetOp *ret = hx->p->memory_pools.responses->acquire<Response::BGetOp>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, recs);
     if (!ret) {
         return nullptr;
     }
@@ -209,7 +210,7 @@ Response::BGetOp *leveldb::BGetOpImpl(void *subject, std::size_t subject_len,
     ::leveldb::Iterator *it = db->NewIterator(::leveldb::ReadOptions());
     struct timespec start, end;
 
-    FixedBufferPool *fbp = hxhim::GetKeyFBP(hx);
+    FixedBufferPool *fbp = hx->p->memory_pools.keys;
 
     void *key = nullptr;
     std::size_t key_len = 0;
@@ -219,7 +220,7 @@ Response::BGetOp *leveldb::BGetOpImpl(void *subject, std::size_t subject_len,
     it->Seek(::leveldb::Slice((char *) key, key_len));
     clock_gettime(CLOCK_MONOTONIC, &end);
 
-    fbp->release(key);
+    fbp->release(key, key_len);
 
     // add in the time to get the first key-value without adding to the counter
     stats.get_times += nano(start, end);
@@ -296,10 +297,10 @@ Response::BGetOp *leveldb::BGetOpImpl(void *subject, std::size_t subject_len,
 Response::BDelete *leveldb::BDeleteImpl(void **subjects, std::size_t *subject_lens,
                                         void **predicates, std::size_t *predicate_lens,
                                         std::size_t count) {
-    Response::BDelete *ret = alloc_bresponse<Response::BDelete>(hx, count);
+    Response::BDelete *ret = hx->p->memory_pools.responses->acquire<Response::BDelete>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, count);
     ::leveldb::WriteBatch batch;
 
-    FixedBufferPool *fbp = hxhim::GetKeyFBP(hx);
+    FixedBufferPool *fbp = hx->p->memory_pools.keys;
 
     // batch delete
     for(std::size_t i = 0; i < count; i++) {
@@ -309,7 +310,7 @@ Response::BDelete *leveldb::BDeleteImpl(void **subjects, std::size_t *subject_le
 
         batch.Delete(::leveldb::Slice((char *) key, key_len));
 
-        fbp->release(key);
+        fbp->release(key, key_len);
     }
 
     // create responses

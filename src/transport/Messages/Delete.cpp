@@ -12,8 +12,8 @@ Transport::Request::Delete::Delete(FixedBufferPool *arrays, FixedBufferPool *buf
 Transport::Request::Delete::~Delete()
 {
     if (clean) {
-        buffers->release(subject);
-        buffers->release(predicate);
+        buffers->release(subject, subject_len);
+        buffers->release(predicate, predicate_len);
     }
 }
 

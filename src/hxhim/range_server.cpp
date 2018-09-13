@@ -357,7 +357,7 @@ Transport::Response::BHistogram *bhistogram(hxhim_t *hx, const Transport::Reques
             ret->hists[i].buckets = res->hist.buckets;
             ret->hists[i].counts = res->hist.counts;
             ret->hists[i].size = res->hist.size;
-            hxhim::GetResponseFBP(hx)->release(res);
+            hx->p->memory_pools.responses->release(res);
         }
         else {
             ret->statuses[i] = HXHIM_ERROR;

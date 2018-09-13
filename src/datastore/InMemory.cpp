@@ -4,6 +4,7 @@
 
 #include "datastore/InMemory.hpp"
 #include "hxhim/triplestore.hpp"
+#include "hxhim/private.hpp"
 
 namespace hxhim {
 namespace datastore {
@@ -41,14 +42,14 @@ Response::BPut *InMemory::BPutImpl(void **subjects, std::size_t *subject_lens,
                                    void **predicates, std::size_t *predicate_lens,
                                    hxhim_type_t *object_types, void **objects, std::size_t *object_lens,
                                    std::size_t count) {
-    Response::BPut *ret = alloc_bresponse<Response::BPut>(hx, count);
+    Response::BPut *ret = hx->p->memory_pools.responses->acquire<Response::BPut>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, count);
     if (!ret) {
         return nullptr;
     }
 
     struct timespec start, end;
 
-    FixedBufferPool *fbp = hxhim::GetKeyFBP(hx);
+    FixedBufferPool *fbp = hx->p->memory_pools.keys;
     for(std::size_t i = 0; i < count; i++) {
         void *key = nullptr;
         std::size_t key_len = 0;
@@ -58,7 +59,7 @@ Response::BPut *InMemory::BPutImpl(void **subjects, std::size_t *subject_lens,
         db[std::string((char *) key, key_len)] = std::string((char *) objects[i], object_lens[i]);
         clock_gettime(CLOCK_MONOTONIC, &end);
 
-        fbp->release(key);
+        fbp->release(key, key_len);
 
         stats.puts++;
         stats.put_times += nano(start, end);
@@ -88,12 +89,12 @@ Response::BGet *InMemory::BGetImpl(void **subjects, std::size_t *subject_lens,
                                    void **predicates, std::size_t *predicate_lens,
                                    hxhim_type_t *object_types,
                                    std::size_t count) {
-    Response::BGet *ret = alloc_bresponse<Response::BGet>(hx, count);
+    Response::BGet *ret = hx->p->memory_pools.responses->acquire<Response::BGet>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, count);
     if (!ret) {
         return nullptr;
     }
 
-    FixedBufferPool *fbp = hxhim::GetKeyFBP(hx);
+    FixedBufferPool *fbp = hx->p->memory_pools.keys;
     for(std::size_t i = 0; i < count; i++) {
         struct timespec start, end;
         std::string value_str;
@@ -106,7 +107,7 @@ Response::BGet *InMemory::BGetImpl(void **subjects, std::size_t *subject_lens,
         decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
         clock_gettime(CLOCK_MONOTONIC, &end);
 
-        fbp->release(key);
+        fbp->release(key, key_len);
 
         stats.gets++;
         stats.get_times += nano(start, end);
@@ -150,14 +151,14 @@ Response::BGetOp *InMemory::BGetOpImpl(void *subject, std::size_t subject_len,
                                        void *predicate, std::size_t predicate_len,
                                        hxhim_type_t object_type,
                                        std::size_t recs, enum hxhim_get_op_t op) {
-    Response::BGetOp *ret = alloc_bresponse<Response::BGetOp>(hx, recs);
+    Response::BGetOp *ret = hx->p->memory_pools.responses->acquire<Response::BGetOp>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, recs);
     if (!ret) {
         return nullptr;
     }
 
     struct timespec start, end;
 
-    FixedBufferPool *fbp = hxhim::GetKeyFBP(hx);
+    FixedBufferPool *fbp = hx->p->memory_pools.keys;
 
     void *key = nullptr;
     std::size_t key_len = 0;
@@ -168,7 +169,7 @@ Response::BGetOp *InMemory::BGetOpImpl(void *subject, std::size_t subject_len,
     decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
     clock_gettime(CLOCK_MONOTONIC, &end);
 
-    fbp->release(key);
+    fbp->release(key, key_len);
 
     decltype(db)::const_reverse_iterator rit = std::make_reverse_iterator(it);
 
@@ -228,12 +229,12 @@ Response::BGetOp *InMemory::BGetOpImpl(void *subject, std::size_t subject_len,
 Response::BDelete *InMemory::BDeleteImpl(void **subjects, std::size_t *subject_lens,
                                          void **predicates, std::size_t *predicate_lens,
                                          std::size_t count) {
-    Response::BDelete *ret = alloc_bresponse<Response::BDelete>(hx, count);
+    Response::BDelete *ret = hx->p->memory_pools.responses->acquire<Response::BDelete>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, count);
     if (!ret) {
         return nullptr;
     }
 
-    FixedBufferPool *fbp = hxhim::GetKeyFBP(hx);
+    FixedBufferPool *fbp = hx->p->memory_pools.keys;
     for(std::size_t i = 0; i < count; i++) {
         void *key = nullptr;
         std::size_t key_len = 0;
@@ -248,7 +249,7 @@ Response::BDelete *InMemory::BDeleteImpl(void **subjects, std::size_t *subject_l
             ret->statuses[i] = HXHIM_ERROR;
         }
 
-        fbp->release(key);
+        fbp->release(key, key_len);
     }
 
     ret->count = count;

@@ -81,7 +81,7 @@ TEST(triplestore, sp_to_key) {
     curr += PREDICATE_LEN;
     EXPECT_EQ(memcmp(curr, PREDICATE_LEN_ENCODED(), sizeof(PREDICATE_LEN)), 0);
 
-    fbp->release(key);
+    fbp->release(key, key_len);
 
     delete fbp;
 }
@@ -107,7 +107,7 @@ TEST(triplestore, key_to_sp) {
     EXPECT_EQ(predicate_len, PREDICATE_LEN);
     EXPECT_EQ(memcmp(predicate, PREDICATE, predicate_len), 0);
 
-    fbp->release(key);
+    fbp->release(key, key_len);
 
     delete fbp;
 }

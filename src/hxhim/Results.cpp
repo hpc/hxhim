@@ -115,9 +115,9 @@ Results::Get::Get(hxhim_t *hx, Transport::Response::BGetOp *bgetop, const std::s
 
 Results::Get::~Get() {
     if (clean) {
-        buffers->release(sub);
-        buffers->release(pred);
-        buffers->release(obj);
+        buffers->release(sub, sub_len);
+        buffers->release(pred, pred_len);
+        buffers->release(obj, obj_len);
     }
 }
 

@@ -26,7 +26,7 @@ TEST(FixedBufferPool, usage) {
 
         // release some regions
         for(std::size_t i = 0; i < release; i++) {
-            TEST_FBP.release(alloc[i]);
+            TEST_FBP.release(alloc[i], TEST_ALLOC_SIZE);
         }
 
         // check for leaks (some)
@@ -35,7 +35,7 @@ TEST(FixedBufferPool, usage) {
 
         // cleanup
         for(std::size_t i = release; i < TEST_REGIONS; i++) {
-            TEST_FBP.release(alloc[i]);
+            TEST_FBP.release(alloc[i], TEST_ALLOC_SIZE);
         }
 
         // check for leaks (none)
@@ -63,7 +63,7 @@ TEST(FixedBufferPool, dump) {
     char **ptrs = new char *[TEST_REGIONS]();
     for(std::size_t i = 0; i < TEST_REGIONS; i++) {
         // place src into the memory region
-        ptrs[i] = TEST_FBP.acquire_array<char>(4);
+        ptrs[i] = TEST_FBP.acquire_array<char>(TEST_ALLOC_SIZE);
         ASSERT_NE(ptrs[i], nullptr);
         memcpy(ptrs[i], src.c_str() + (i * TEST_ALLOC_SIZE), TEST_ALLOC_SIZE);
 
@@ -80,7 +80,7 @@ TEST(FixedBufferPool, dump) {
 
     // cleanup
     for(std::size_t i = 0; i < TEST_REGIONS; i++) {
-        TEST_FBP.release(ptrs[i]);
+        TEST_FBP.release_array(ptrs[i], TEST_ALLOC_SIZE);
     }
     delete [] ptrs;
 }

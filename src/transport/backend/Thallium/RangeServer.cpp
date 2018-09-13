@@ -1,7 +1,7 @@
 #if HXHIM_HAVE_THALLIUM
 
 #include "hxhim/range_server.hpp"
-#include "hxhim/utils.hpp"
+#include "hxhim/private.hpp"
 #include "transport/backend/Thallium/Packer.hpp"
 #include "transport/backend/Thallium/RangeServer.hpp"
 #include "transport/backend/Thallium/Unpacker.hpp"
@@ -25,7 +25,7 @@ void Transport::Thallium::RangeServer::process(const thallium::request &req, con
 
     // unpack the request
     Request::Request *request = nullptr;
-    if (Unpacker::unpack(&request, data, hxhim::GetRequestFBP(hx_), hxhim::GetArrayFBP(hx_), hxhim::GetBufferFBP(hx_)) != TRANSPORT_SUCCESS) {
+    if (Unpacker::unpack(&request, data, hx_->p->memory_pools.requests, hx_->p->memory_pools.arrays, hx_->p->memory_pools.buffers) != TRANSPORT_SUCCESS) {
         req.respond(TRANSPORT_ERROR);
         return;
     }
@@ -38,7 +38,7 @@ void Transport::Thallium::RangeServer::process(const thallium::request &req, con
     mlog(THALLIUM_DBG, "Responding with message of type %d", response->type);
 
     // release the requests
-    hxhim::GetRequestFBP(hx_)->release(request);
+    hx_->p->memory_pools.requests->release(request);
 
     // pack the response
     std::string str;
@@ -47,7 +47,7 @@ void Transport::Thallium::RangeServer::process(const thallium::request &req, con
     mlog(THALLIUM_DBG, "Packed response into %zu byte string", str.size());
 
     // release the responses
-    hxhim::GetResponseFBP(hx_)->release(response);
+    hx_->p->memory_pools.responses->release(response);
 
     // respond
     req.respond(str);

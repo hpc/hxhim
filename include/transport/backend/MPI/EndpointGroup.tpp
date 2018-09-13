@@ -135,7 +135,7 @@ std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::size_t num_s
     delete [] data_reqs;
     delete [] size_reqs;
     for(std::size_t i = 0; i < pack_count; i++) {
-        packed->release(bufs[i]);
+        packed->release(bufs[i], lens[i]);
     }
     delete [] dsts;
     delete [] lens;
@@ -242,7 +242,7 @@ std::size_t Transport::MPI::EndpointGroup::parallel_recv(const std::size_t nsrcs
             else {
                 delete reqs[data_req_count];
                 reqs[data_req_count] = nullptr;
-                packed->release(recvbufs[data_req_count]);
+                packed->release(recvbufs[data_req_count], sizebufs[data_req_count]);
             }
         }
     }
@@ -286,7 +286,7 @@ std::size_t Transport::MPI::EndpointGroup::parallel_recv(const std::size_t nsrcs
             valid++;
         }
 
-        packed->release(recvbufs[i]);
+        packed->release(recvbufs[i], sizebufs[i]);
     }
 
     delete [] sizebufs;

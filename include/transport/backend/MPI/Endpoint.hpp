@@ -2,12 +2,12 @@
 #define TRANSPORT_MPI_ENDPOINT_HPP
 
 #include <atomic>
+#include <type_traits>
 
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 #include <mpi.h>
 
-#include "hxhim/utils.hpp"
 #include "transport/backend/MPI/EndpointBase.hpp"
 #include "transport/backend/MPI/Packer.hpp"
 #include "transport/backend/MPI/Unpacker.hpp"
@@ -83,8 +83,8 @@ class Endpoint : virtual public ::Transport::Endpoint, virtual public EndpointBa
                                       responses, arrays, buffers)                  == TRANSPORT_SUCCESS)     // unpack the response
                 );
 
-            packed->release(sendbuf);
-            packed->release(recvbuf);
+            packed->release(sendbuf, sendsize);
+            packed->release(recvbuf, recvsize);
 
             return dynamic_cast<Recv_t *>(response);
         }

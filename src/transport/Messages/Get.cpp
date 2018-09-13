@@ -13,8 +13,8 @@ Transport::Request::Get::Get(FixedBufferPool * arrays, FixedBufferPool *buffers)
 Transport::Request::Get::~Get()
 {
     if (clean) {
-        buffers->release(subject);
-        buffers->release(predicate);
+        buffers->release(subject, subject_len);
+        buffers->release(predicate, predicate_len);
     }
 
     subject = nullptr;
@@ -44,9 +44,9 @@ Transport::Response::Get::Get(FixedBufferPool * arrays, FixedBufferPool *buffers
 Transport::Response::Get::~Get()
 {
     if (clean) {
-        buffers->release(subject);
-        buffers->release(predicate);
-        buffers->release(object);
+        buffers->release(subject, subject_len);
+        buffers->release(predicate, predicate_len);
+        buffers->release(object, object_len);
     }
 
     subject = nullptr;

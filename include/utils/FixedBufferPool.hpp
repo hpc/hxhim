@@ -33,11 +33,10 @@ class FixedBufferPool {
         /* @description Releases the given address back into the pool                      */
         template <typename T, typename = std::enable_if_t<!std::is_same<T, void>::value> >
         void release(T *ptr);
-        void release(void *ptr);
+        void release(void *ptr, const std::size_t size);
 
-        template <typename T, typename = std::enable_if_t<std::is_same<T, void>::value> >
+        template <typename T, typename = std::enable_if_t<!std::is_same<T, void>::value> >
         void release_array(T *ptr, const std::size_t count);
-        void release_array(void *ptr, const std::size_t count);
 
         /* @description Utility function to get the total size of the memory pool          */
         std::size_t size() const;
@@ -58,7 +57,7 @@ class FixedBufferPool {
         std::size_t used() const;
 
         /* @description Utility function to get starting address of memory pool            */
-        const void *const pool() const;
+        const void *pool() const;
 
         /* @description Utility function to dump the contents of a region                  */
         std::ostream &dump(const std::size_t region, std::ostream &stream) const;
@@ -110,13 +109,26 @@ class FixedBufferPool {
          *
          */
         struct Node {
+            enum Type {
+                UNUSED,
+                SINGLE,
+                ARRAY,
+            };
+
+            std::size_t size;
             void *addr;
             Node *next;
 
-            Node(void *ptr = nullptr, Node* node = nullptr)
-                : addr(ptr), next(node)
+            Node(const std::size_t size = UNUSED, void *ptr = nullptr, Node* node = nullptr)
+                : size(size), addr(ptr), next(node)
             {}
         };
+
+        /** @description The actual acquire function */
+        void *acquireImpl(const std::size_t size);
+
+        /** @description The actual release function */
+        void releaseImpl(void *ptr, const std::size_t rec_size);
 
         /* @description An array of nodes that are allocated in the constructor            */
         Node *nodes_;
@@ -150,7 +162,7 @@ class FixedBufferPool {
  */
 template <typename T, typename... Args, typename>
 T *FixedBufferPool::acquire(Args&&... args) {
-    void *addr = acquire(sizeof(T));
+    void *addr = acquireImpl(sizeof(T));
     if (addr) {
         return new ((T *) addr) T(std::forward<Args>(args)...);
     }
@@ -177,7 +189,7 @@ T *FixedBufferPool::acquire(Args&&... args) {
  */
 template <typename T, typename>
 T *FixedBufferPool::acquire_array(const std::size_t count) {
-    void *addr = acquire(sizeof(T) * count);
+    void *addr = acquireImpl(sizeof(T) * count);
     if (addr) {
         return new ((T *) addr) T();
     }
@@ -199,7 +211,7 @@ void FixedBufferPool::release(T *ptr) {
         ptr->~T();
 
         // release ptr
-        release((void *)ptr);
+        releaseImpl((void *) ptr, sizeof(T));
     }
 }
 
@@ -217,7 +229,7 @@ void FixedBufferPool::release_array(T *ptr, const std::size_t count) {
             ptr[i].~T();
         }
 
-        release((void *) ptr);
+        releaseImpl((void *) ptr, sizeof(T) * count);
     }
 }
 

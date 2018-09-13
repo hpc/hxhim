@@ -596,14 +596,9 @@ int Packer::pack(const MPI_Comm comm, const Response::Response *res, void **buf,
 }
 
 void Packer::cleanup(void **buf, std::size_t *bufsize, FixedBufferPool *packed) {
-    if (buf) {
-        packed->release(*buf);
-        *buf = nullptr;
-    }
-
-    if (bufsize) {
-        *bufsize = 0;
-    }
+    packed->release(*buf, *bufsize);
+    *buf = nullptr;
+    *bufsize = 0;
 }
 
 }

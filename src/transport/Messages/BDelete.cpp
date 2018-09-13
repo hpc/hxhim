@@ -47,13 +47,13 @@ int Transport::Request::BDelete::cleanup() {
     if (clean) {
         if (subjects) {
             for(std::size_t i = 0; i < count; i++) {
-                buffers->release(subjects[i]);
+                buffers->release(subjects[i], subject_lens[i]);
             }
         }
 
         if (predicates) {
             for(std::size_t i = 0; i < count; i++) {
-                buffers->release(predicates[i]);
+                buffers->release(predicates[i], predicate_lens[i]);
             }
         }
     }

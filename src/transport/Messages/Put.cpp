@@ -15,9 +15,9 @@ Transport::Request::Put::Put(FixedBufferPool * arrays, FixedBufferPool *buffers)
 Transport::Request::Put::~Put()
 {
     if (clean) {
-        buffers->release(subject);
-        buffers->release(predicate);
-        buffers->release(object);
+        buffers->release(subject, subject_len);
+        buffers->release(predicate, predicate_len);
+        buffers->release(object, object_len);
     }
 }
 

@@ -5,7 +5,7 @@
 #include "check_memory.hpp"
 #include "generic_options.hpp"
 #include "hxhim/hxhim.hpp"
-#include "hxhim/utils.hpp"
+#include "hxhim/private.hpp"
 #include "utils/FixedBufferPool.hpp"
 
 struct TestPut : hxhim::Results::Result {
@@ -33,7 +33,7 @@ TEST(Results, PUT_GET_DEL) {
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
 
-    FixedBufferPool *result = hxhim::GetResultFBP(&hx);
+    FixedBufferPool *result = hx.p->memory_pools.result;
     ASSERT_NE(result, nullptr);
 
     {
@@ -72,7 +72,7 @@ TEST(Results, Loop) {
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
 
-    FixedBufferPool *result = hxhim::GetResultFBP(&hx);
+    FixedBufferPool *result = hx.p->memory_pools.result;
     ASSERT_NE(result, nullptr);
 
     {
@@ -108,7 +108,7 @@ TEST(Results, Append_Empty) {
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
 
-    FixedBufferPool *result = hxhim::GetResultFBP(&hx);
+    FixedBufferPool *result = hx.p->memory_pools.result;
     ASSERT_NE(result, nullptr);
 
     {
@@ -146,7 +146,7 @@ TEST(Results, Empty_Append) {
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
 
-    FixedBufferPool *result = hxhim::GetResultFBP(&hx);
+    FixedBufferPool *result = hx.p->memory_pools.result;
     ASSERT_NE(result, nullptr);
 
     {

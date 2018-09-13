@@ -3,6 +3,7 @@
 
 #include "datastore/datastore.hpp"
 #include "hxhim/accessors.hpp"
+#include "hxhim/private.hpp"
 #include "utils/elen.hpp"
 
 namespace hxhim {
@@ -224,7 +225,7 @@ int Datastore::GetStats(const int dst_rank,
  */
 Transport::Response::Histogram *Datastore::Histogram() const {
     std::lock_guard<std::mutex> lock(mutex);
-    Transport::Response::Histogram *ret = hxhim::GetResponseFBP(hx)->acquire<Transport::Response::Histogram>(hxhim::GetArrayFBP(hx), hxhim::GetBufferFBP(hx));
+    Transport::Response::Histogram *ret = hx->p->memory_pools.responses->acquire<Transport::Response::Histogram>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers);
     if (ret) {
         ret->status = HXHIM_SUCCESS;
         hist.get(&ret->hist.buckets, &ret->hist.counts, &ret->hist.size);

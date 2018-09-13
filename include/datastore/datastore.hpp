@@ -5,7 +5,6 @@
 
 #include "datastore/constants.h"
 #include "hxhim/hxhim.hpp"
-#include "hxhim/utils.hpp"
 #include "transport/Messages/Messages.hpp"
 #include "utils/Histogram.hpp"
 #include "utils/elapsed.h"

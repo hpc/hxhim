@@ -5,6 +5,7 @@
 
 #include "transport/backend/Thallium/Endpoint.hpp"
 #include "transport/backend/Thallium/EndpointGroup.hpp"
+#include "transport/backend/Thallium/Init.hpp"
 #include "transport/backend/Thallium/Options.hpp"
 #include "transport/backend/Thallium/Packer.hpp"
 #include "transport/backend/Thallium/RangeServer.hpp"

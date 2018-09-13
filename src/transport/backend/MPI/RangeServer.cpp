@@ -82,7 +82,7 @@ void *RangeServer::listener_thread(void *data) {
 
         // send result
         const int ret = send(response->dst, res, len);
-        hx_->p->memory_pools.packed->release(res);
+        hx_->p->memory_pools.packed->release(res, len);
 
         if (ret != TRANSPORT_SUCCESS) {
             continue;

@@ -7,8 +7,7 @@
 #include "hxhim/options_private.hpp"
 #include "hxhim/private.hpp"
 #include "hxhim/shuffle.hpp"
-#include "transport/backend/backends.hpp"
-#include "transport/transport.hpp"
+#include "transport/transports.hpp"
 #include "utils/MemoryManager.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
@@ -72,7 +71,7 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
     // total number of triples that will be PUT
     const std::size_t total = HXHIM_PUT_MULTIPLER * count;
 
-    Transport::Request::BPut local(hxhim::GetArrayFBP(hx), hxhim::GetBufferFBP(hx), hx->p->max_bulk_ops.puts);
+    Transport::Request::BPut local(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, hx->p->max_bulk_ops.puts);
     local.src = hx->p->bootstrap.rank;
     local.dst = hx->p->bootstrap.rank;
     local.count = 0;
@@ -80,7 +79,7 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
     // list of destination servers (not datastores) and messages to those destinations
     Transport::Request::BPut **remote = hx->p->memory_pools.arrays->acquire_array<Transport::Request::BPut *>(hx->p->bootstrap.size);
     for(int i = 0; i < hx->p->bootstrap.size; i++) {
-        remote[i] = hx->p->memory_pools.requests->acquire<Transport::Request::BPut>(hxhim::GetArrayFBP(hx), hxhim::GetBufferFBP(hx), hx->p->max_bulk_ops.puts);
+        remote[i] = hx->p->memory_pools.requests->acquire<Transport::Request::BPut>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, hx->p->max_bulk_ops.puts);
         remote[i]->src = hx->p->bootstrap.rank;
         remote[i]->dst = i;
         remote[i]->count = 0;
@@ -576,148 +575,6 @@ static int init_transport_null(hxhim_t *hx, hxhim_options_t *opts) {
     return TRANSPORT_SUCCESS;
 }
 
-/**
- * init_transport_mpi
- * Initializes MPI inside HXHIM
- *
- * @param hx             the HXHIM instance
- * @param opts           the HXHIM options
- * @return HXHIM_SUCCESS on success or HXHIM_ERROR
- */
-static int init_transport_mpi(hxhim_t *hx, hxhim_options_t *opts) {
-    mlog(HXHIM_CLIENT_DBG, "Starting MPI Initialization");
-    if (!valid(hx, opts) || !hx->p->transport) {
-        return HXHIM_ERROR;
-    }
-
-    using namespace Transport::MPI;
-
-    // Do not allow MPI_COMM_NULL
-    if (hx->p->bootstrap.comm == MPI_COMM_NULL) {
-        return TRANSPORT_ERROR;
-    }
-
-    Options *config = static_cast<Options *>(opts->p->transport);
-
-    // give the range server access to the state
-    RangeServer::init(hx, config->listeners);
-
-    EndpointGroup *eg = new EndpointGroup(hx->p->bootstrap.comm,
-                                          hx->p->running,
-                                          hx->p->memory_pools.packed,
-                                          hx->p->memory_pools.responses,
-                                          hx->p->memory_pools.arrays,
-                                          hx->p->memory_pools.buffers);
-    if (!eg) {
-        return TRANSPORT_ERROR;
-    }
-
-    // create mapping between unique IDs and ranks
-    for(int i = 0; i < hx->p->bootstrap.size; i++) {
-        // MPI ranks map 1:1 with the boostrap MPI rank
-        hx->p->transport->AddEndpoint(i, new Endpoint(hx->p->bootstrap.comm, i,
-                                                      hx->p->running,
-                                                      hx->p->memory_pools.packed,
-                                                      hx->p->memory_pools.responses,
-                                                      hx->p->memory_pools.arrays,
-                                                      hx->p->memory_pools.buffers));
-
-        // if the rank was specified as part of the endpoint group, add the rank to the endpoint group
-        if (opts->p->endpointgroup.find(i) != opts->p->endpointgroup.end()) {
-            eg->AddID(i, i);
-        }
-    }
-
-    // remove loopback endpoint
-    hx->p->transport->RemoveEndpoint(hx->p->bootstrap.rank);
-
-    hx->p->transport->SetEndpointGroup(eg);
-    hx->p->range_server_destroy = RangeServer::destroy;
-
-    mlog(HXHIM_CLIENT_DBG, "Completed MPI Initialization");
-    return TRANSPORT_SUCCESS;
-}
-
-#if HXHIM_HAVE_THALLIUM
-
-/**
- * init_transport_thallium
- * Initializes Thallium inside HXHIM
- *
- * @param hx   the HXHIM instance
- * @param opts the HXHIM options
- * @param TRANSPORT_SUCCESS or TRANSPORT_ERROR
- */
-static int init_transport_thallium(hxhim_t *hx, hxhim_options_t *opts) {
-    mlog(HXHIM_CLIENT_DBG, "Starting Thallium Initialization");
-    if (!valid(hx, opts)) {
-        return HXHIM_ERROR;
-    }
-
-    using namespace Transport::Thallium;
-
-    Options *config = static_cast<Options *>(opts->p->transport);
-
-    // create the engine (only 1 instance per process)
-    Engine_t engine(new thallium::engine(config->module, THALLIUM_SERVER_MODE, true, -1),
-                    [](thallium::engine *engine) {
-                        engine->finalize();
-                        delete engine;
-                    });
-
-    mlog(HXHIM_CLIENT_DBG, "Created Thallium engine %s", ((std::string) engine->self()).c_str());
-
-    // give the range server access to the mdhim_t data
-    RangeServer::init(hx);
-
-    // create client to range server RPC
-    RPC_t rpc(new thallium::remote_procedure(engine->define(RangeServer::CLIENT_TO_RANGE_SERVER_NAME,
-                                                            RangeServer::process)));
-
-    mlog(HXHIM_CLIENT_DBG, "Created Thallium RPC");
-
-    // wait for every engine to start up
-    MPI_Barrier(hx->p->bootstrap.comm);
-
-    // get a mapping of unique IDs to thallium addresses
-    std::map<int, std::string> addrs;
-    if (get_addrs(hx->p->bootstrap.comm, *engine, addrs) != TRANSPORT_SUCCESS) {
-        return TRANSPORT_ERROR;
-    }
-
-    // remove the loopback endpoint
-    addrs.erase(hx->p->bootstrap.rank);
-
-    EndpointGroup *eg = new EndpointGroup(rpc, hx->p->memory_pools.responses, hx->p->memory_pools.arrays, hx->p->memory_pools.buffers);
-    if (!eg) {
-        return TRANSPORT_ERROR;
-    }
-
-    // create mapping between unique IDs and ranks
-    for(decltype(addrs)::value_type const &addr : addrs) {
-        Endpoint_t server(new thallium::endpoint(engine->lookup(addr.second)));
-        mlog(HXHIM_CLIENT_DBG, "Created Thallium endpoint %s", addr.second.c_str());
-
-        // add the remote thallium endpoint to the tranport
-        Endpoint* ep = new Endpoint(engine, rpc, server, hx->p->memory_pools.responses, hx->p->memory_pools.arrays, hx->p->memory_pools.buffers);
-        hx->p->transport->AddEndpoint(addr.first, ep);
-        mlog(HXHIM_CLIENT_DBG, "Created HXHIM endpoint from Thallium endpoint %s", addr.second.c_str());
-
-        // if the rank was specified as part of the endpoint group, add the thallium endpoint to the endpoint group
-        if (opts->p->endpointgroup.find(addr.first) != opts->p->endpointgroup.end()) {
-            eg->AddID(addr.first, server);
-            mlog(HXHIM_CLIENT_DBG, "Added Thallium endpoint %s to the endpoint group", addr.second.c_str());
-        }
-    }
-
-    hx->p->transport->SetEndpointGroup(eg);
-    hx->p->range_server_destroy = RangeServer::destroy;
-
-    mlog(HXHIM_CLIENT_DBG, "Completed Thallium transport initialization");
-    return TRANSPORT_SUCCESS;
-}
-
-#endif
 
 /**
  * transport
@@ -744,11 +601,11 @@ int hxhim::init::transport(hxhim_t *hx, hxhim_options_t *opts) {
             ret = init_transport_null(hx, opts);
             break;
         case Transport::TRANSPORT_MPI:
-            ret = init_transport_mpi(hx, opts);
+            ret = Transport::MPI::init(hx, opts);
             break;
         #if HXHIM_HAVE_THALLIUM
         case Transport::TRANSPORT_THALLIUM:
-            ret = init_transport_thallium(hx, opts);
+            ret = Transport::Thallium::init(hx, opts);
             break;
         #endif
         default:

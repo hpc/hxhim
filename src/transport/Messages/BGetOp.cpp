@@ -54,13 +54,13 @@ int Transport::Request::BGetOp::cleanup() {
     if (clean) {
         if (subjects) {
             for(std::size_t i = 0; i < count; i++) {
-                buffers->release(subjects[i]);
+                buffers->release(subjects[i], subject_lens[i]);
             }
         }
 
         if (predicates) {
             for(std::size_t i = 0; i < count; i++) {
-                buffers->release(predicates[i]);
+                buffers->release(predicates[i], predicate_lens[i]);
             }
         }
     }
@@ -148,19 +148,19 @@ int Transport::Response::BGetOp::cleanup() {
     if (clean) {
         if (subjects) {
             for(std::size_t i = 0; i < count; i++) {
-                buffers->release(subjects[i]);
+                buffers->release(subjects[i], subject_lens[i]);
             }
         }
 
         if (predicates) {
             for(std::size_t i = 0; i < count; i++) {
-                buffers->release(predicates[i]);
+                buffers->release(predicates[i], predicate_lens[i]);
             }
         }
 
         if (objects) {
             for(std::size_t i = 0; i < count; i++) {
-                buffers->release(objects[i]);
+                buffers->release(objects[i], object_lens[i]);
             }
         }
     }

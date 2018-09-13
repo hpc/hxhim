@@ -69,12 +69,12 @@ FixedBufferPool::FixedBufferPool(const std::size_t alloc_size, const std::size_t
 FixedBufferPool::~FixedBufferPool() {
     std::unique_lock<std::mutex> lock(mutex_);
 
+    FBP_LOG(FBP_INFO, "Destructing with %zu memory regions still in use:", used_);
     for(std::size_t i = 1; i < regions_; i++) {
-        nodes_[i - i].addr = nullptr;
-        nodes_[i - 1].next = &nodes_[i];
+        if (nodes_[i].size) {
+            FBP_LOG(FBP_DBG, "    Address %p still allocated with %zu bytes", nodes_[i].addr, nodes_[i].size);
+        }
     }
-    nodes_[regions_ - 1].addr = nullptr;
-    nodes_[regions_ - 1].next = nullptr;
 
     delete [] nodes_;
     nodes_ = nullptr;
@@ -83,130 +83,27 @@ FixedBufferPool::~FixedBufferPool() {
 
     ::operator delete(pool_);
     pool_ = nullptr;
-
-    FBP_LOG(FBP_INFO, "Destructed");
 }
 
 /**
  * acquire
- * Acquires a memory region from the pool for use.
- *   - If zero bytes are request, nullptr will be returned.
- *   - If the too many bytes are requested, nullptr
- *     will be returned.
- *   - If there is no region available, the function blocks
- *     until one is available.
- * The default constructor of type T is called once
- * the memory location has been acquired.
+ * Acquires a memory region from the pool for use
  *
  * @param size the total number of bytes requested
  * @return A pointer to a memory region of size pool_size_
  */
 void *FixedBufferPool::acquire(const std::size_t size) {
-    // 0 bytes
-    if (!size) {
-        FBP_LOG(FBP_DBG, "Got request for a size 0 buffer");
-        return nullptr;
-    }
-
-    // too big
-    if (size > alloc_size_) {
-        FBP_LOG(FBP_WARN, "Requested allocation size too big: %zu bytes", size);
-        return nullptr;
-    }
-
-    std::unique_lock<std::mutex> lock(mutex_);
-
-    // wait until a slot opens up
-    while (!unused_) {
-        FBP_LOG(FBP_DBG, "Waiting for a size %zu buffer", size);
-        cv_.wait(lock, [&]{ return unused_; });
-    }
-
-    FBP_LOG(FBP_DBG, "A size %zu buffer is available", size);
-
-    // set the return address to the head of the unused list
-    // and clear the memory region
-    void *ret = unused_->addr;
-
-    // move list of unused regions_ to the next region
-    Node *next = unused_->next;
-    unused_->next = nullptr;
-    unused_ = next;
-
-    used_++;
-
-    const std::size_t remaining = regions_ - used_;
-    FBP_LOG(FBP_DBG, "Acquired a size %zu buffer (%p)", size, ret);
-
-    if (!remaining) {
-        FBP_LOG(FBP_WARN, "0 regions left.");
-    }
-
-    return ret;
+    return acquireImpl(size);
 }
 
 /**
  * release
- * Releases the memory region pointed to back into the pool. If
- * the pointer does not belong to the pool, nothing will happen.
+ * Releases the memory region pointed to back into the pool
  *
  * @param ptr A void * acquired through FixedBufferPool::acquire
  */
-void FixedBufferPool::release(void *ptr) {
-    if (!ptr) {
-        FBP_LOG(FBP_DBG1, "Attempted to free a nullptr");
-        return;
-    }
-
-    std::unique_lock<std::mutex> lock(mutex_);
-
-    // if the pointer is not within the memory pool, do nothing
-    if (((char *)ptr < (char *)pool_) ||
-        (((char *)pool_ + pool_size_)) < (char *)ptr) {
-        FBP_LOG(FBP_ERR, "Attempted to free address (%p) that is not within the memory pool [%p, %p)", ptr, pool_, (char *)pool_ + pool_size_);
-        return;
-    }
-
-    // offset of the pointer from the front of the pool
-    const std::size_t offset = (char *)ptr - (char *)pool_;
-
-    // if the pointer isn't a multiple of the of the allocation size, do nothing
-    if (offset % alloc_size_) {
-        FBP_LOG(FBP_WARN, "Address being freed (%p) is not aligned to an allocation region", ptr);
-    }
-
-    // index of this pointer in the fixed size array
-    const std::size_t index = offset / alloc_size_;
-
-    // check for double frees (to prevent loops)
-    if (nodes_[index].next) {
-        FBP_LOG(FBP_WARN, "Address being freed (%p) has already been freed", ptr);
-        return;
-    }
-
-    // add the address to the front of available spots
-    Node *front = &nodes_[index];
-    front->next = unused_;
-    unused_ = front;
-
-    used_--;
-
-    cv_.notify_all();
-
-    FBP_LOG(FBP_DBG, "Freed %p", ptr);
-}
-
-/**
- * release_array
- * Releases the array to back into the pool without destructing the elements
- *
- * @tparam ptr   T * acquired through FixedBufferPool::acquire
- * @param  count number of elements (not used)
- */
-void FixedBufferPool::release_array(void *ptr, const std::size_t count) {
-    if (ptr) {
-        release((void *) ptr);
-    }
+void FixedBufferPool::release(void *ptr, const std::size_t size) {
+    releaseImpl(ptr, size);
 }
 
 /**
@@ -270,7 +167,7 @@ std::size_t FixedBufferPool::used() const {
  *
  * @return starting address of the memory pool
  */
-const void * const FixedBufferPool::pool() const {
+const void *FixedBufferPool::pool() const {
     std::unique_lock<std::mutex> lock(mutex_);
     return pool_;
 }
@@ -325,4 +222,124 @@ std::ostream &FixedBufferPool::dump_region(const std::size_t region, std::ostrea
 
     stream.flags(orig);
     return stream;
+}
+
+/**
+ * acquire
+ * Acquires a memory region from the pool for use.
+ *   - If zero bytes are request, nullptr will be returned.
+ *   - If the too many bytes are requested, nullptr
+ *     will be returned.
+ *   - If there is no region available, the function blocks
+ *     until one is available.
+ * The default constructor of type T is called once
+ * the memory location has been acquired.
+ *
+ * @param size     The total number of bytes requested
+ * @return A pointer to a memory region of size pool_size_
+ */
+void *FixedBufferPool::acquireImpl(const std::size_t size) {
+    // 0 bytes
+    if (!size) {
+        FBP_LOG(FBP_DBG, "Got request for a size 0 buffer");
+        return nullptr;
+    }
+
+    // too big
+    if (size > alloc_size_) {
+        FBP_LOG(FBP_WARN, "Requested allocation size too big: %zu bytes", size);
+        return nullptr;
+    }
+
+    std::unique_lock<std::mutex> lock(mutex_);
+
+    // wait until a slot opens up
+    while (!unused_) {
+        FBP_LOG(FBP_DBG, "Waiting for a size %zu buffer", size);
+        cv_.wait(lock, [&]{ return unused_; });
+    }
+
+    FBP_LOG(FBP_DBG, "A size %zu buffer is available", size);
+
+    // set the return address to the head of the unused list
+    void *ret = unused_->addr;
+
+    // store the allocation size
+    unused_->size = size;
+
+    // move list of unused regions_ to the next region
+    Node *next = unused_->next;
+    unused_->next = nullptr;
+    unused_ = next;
+
+    used_++;
+
+    const std::size_t remaining = regions_ - used_;
+    FBP_LOG(FBP_DBG, "Acquired a size %zu buffer (%p)", size, ret);
+
+    if (!remaining) {
+        FBP_LOG(FBP_WARN, "0 regions left.");
+    }
+
+    return ret;
+}
+
+/**
+ * releaseImpl
+ * Releases the memory region pointed to back into the pool. If
+ * the pointer does not belong to the pool, nothing will happen.
+ *
+ * @param ptr   A void * acquired through FixedBufferPool::acquire
+ * @param size  The size being deallocated
+ */
+void FixedBufferPool::releaseImpl(void *ptr, const std::size_t size) {
+    if (!ptr) {
+        FBP_LOG(FBP_DBG1, "Attempted to free a nullptr");
+        return;
+    }
+
+    std::unique_lock<std::mutex> lock(mutex_);
+
+    // if the pointer is not within the memory pool, do nothing
+    if (((char *)ptr < (char *)pool_) ||
+        (((char *)pool_ + pool_size_)) < (char *)ptr) {
+        FBP_LOG(FBP_ERR, "Attempted to free address (%p) that is not within the memory pool [%p, %p)", ptr, pool_, (char *)pool_ + pool_size_);
+        return;
+    }
+
+    // offset of the pointer from the front of the pool
+    const std::size_t offset = (char *)ptr - (char *)pool_;
+
+    // if the pointer isn't a multiple of the of the allocation size, do nothing
+    if (offset % alloc_size_) {
+        FBP_LOG(FBP_WARN, "Address being freed (%p) is not aligned to an allocation region", ptr);
+    }
+
+    // index of this pointer in the fixed size array
+    const std::size_t index = offset / alloc_size_;
+
+    // check for double frees (to prevent loops)
+    if (nodes_[index].next) {
+        FBP_LOG(FBP_WARN, "Address being freed (%p) has already been freed", ptr);
+        return;
+    }
+
+    // if the release size does not match the allocation size, warn
+    if (nodes_[index].size != size) {
+        FBP_LOG(FBP_DBG, "Release size of %p (%zu) does not match allocation size (%zu)", ptr, nodes_[index].size, size);
+    }
+
+    // reset size of allocation at that node
+    nodes_[index].size = 0;
+
+    // add the address to the front of available spots
+    Node *front = &nodes_[index];
+    front->next = unused_;
+    unused_ = front;
+
+    used_--;
+
+    cv_.notify_all();
+
+    FBP_LOG(FBP_DBG, "Freed %p", ptr);
 }

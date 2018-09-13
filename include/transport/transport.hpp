@@ -5,9 +5,8 @@
 #ifndef TRANSPORT_HPP
 #define TRANSPORT_HPP
 
-#include <cstdlib>
+#include <cstddef>
 #include <map>
-#include <type_traits>
 
 #include "transport/Messages/Messages.hpp"
 #include "transport/constants.hpp"
