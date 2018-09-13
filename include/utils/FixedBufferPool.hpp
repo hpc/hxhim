@@ -58,7 +58,7 @@ class FixedBufferPool {
         std::size_t used() const;
 
         /* @description Utility function to get starting address of memory pool            */
-        const void *const pool() const;
+        const void *pool() const;
 
         /* @description Utility function to dump the contents of a region                  */
         std::ostream &dump(const std::size_t region, std::ostream &stream) const;
@@ -132,6 +132,9 @@ class FixedBufferPool {
          * are unused)
          */
         std::size_t used_;
+
+        std::size_t requested;
+        std::size_t count;
 };
 
 /**
