@@ -1,5 +1,19 @@
 #include "transport/Messages/Message.hpp"
 
+const char * Transport::Message::TypeStr[]  = {
+    "INVALID",
+    "PUT",
+    "GET",
+    "DELETE",
+    "BPUT",
+    "BGET",
+    "BGETOP",
+    "BDELETE",
+    "SYNC",
+    "HISTOGRAM",
+    "BHISTOGRAM",
+};
+
 Transport::Message::Message(const Message::Direction dir, const Message::Type type, FixedBufferPool * arrays, FixedBufferPool *buffers)
     : direction(dir),
       type(type),

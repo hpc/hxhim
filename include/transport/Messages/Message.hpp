@@ -35,6 +35,9 @@ struct Message {
         BHISTOGRAM,
     };
 
+    // String prepresentation of Types
+    static const char *TypeStr[];
+
     Message(const Direction dir, const Type type,
             FixedBufferPool *arrays, FixedBufferPool *buffers);
     virtual ~Message();

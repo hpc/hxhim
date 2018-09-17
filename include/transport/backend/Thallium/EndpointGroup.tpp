@@ -15,7 +15,7 @@ Recv_t *Transport::Thallium::EndpointGroup::do_operation(const std::size_t num_r
     Recv_t *head = nullptr;
     Recv_t *tail = nullptr;
 
-    mlog(THALLIUM_INFO, "Processing Messages in %zu buffers", num_rangesrvs);
+    mlog(THALLIUM_DBG, "Processing Messages in %zu buffers", num_rangesrvs);
 
     for(std::size_t i = 0; i < num_rangesrvs; i++) {
         mlog(THALLIUM_DBG, "Processing Message[%zu]", i);
@@ -68,7 +68,7 @@ Recv_t *Transport::Thallium::EndpointGroup::do_operation(const std::size_t num_r
         mlog(THALLIUM_DBG, "Done processing Message[%zu]", i);
     }
 
-    mlog(THALLIUM_INFO, "Done processing Messages");
+    mlog(THALLIUM_DBG, "Done processing Messages");
 
     return head;
 }

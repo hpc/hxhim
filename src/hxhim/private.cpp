@@ -184,7 +184,7 @@ static void backgroundPUT(void *args) {
         return;
     }
 
-    mlog(HXHIM_CLIENT_INFO, "Started background PUT thread");
+    mlog(HXHIM_CLIENT_DBG, "Started background PUT thread");
 
     while (hx->p->running) {
         hxhim::PutData *head = nullptr;    // the first batch of PUTs to process
@@ -314,7 +314,7 @@ static void backgroundPUT(void *args) {
         hx->p->memory_pools.bulks->release(last);
     }
 
-    mlog(HXHIM_CLIENT_INFO, "Background PUT thread stopping");
+    mlog(HXHIM_CLIENT_DBG, "Background PUT thread stopping");
 }
 
 /**
@@ -391,11 +391,11 @@ int hxhim::init::memory(hxhim_t *hx, hxhim_options_t *opts) {
           (hx->p->memory_pools.responses = MemoryManager::FBP(opts->p->responses.alloc_size, opts->p->responses.regions, opts->p->responses.name.c_str())) &&
           (hx->p->memory_pools.result    = MemoryManager::FBP(opts->p->result.alloc_size,    opts->p->result.regions,    opts->p->result.name.c_str()))    &&
           (hx->p->memory_pools.results   = MemoryManager::FBP(opts->p->results.alloc_size,   opts->p->results.regions,   opts->p->results.name.c_str())))) {
-        mlog(HXHIM_CLIENT_CRIT, "Could not preallocate all buffers");
+        mlog(HXHIM_CLIENT_ERR, "Could not preallocate all buffers");
         return HXHIM_ERROR;
     }
 
-    mlog(HXHIM_CLIENT_INFO, "Preallocated %zu bytes for HXHIM",
+    mlog(HXHIM_CLIENT_INFO, "Preallocated %zu bytes of memory for HXHIM",
          hx->p->memory_pools.packed->size()    +
          hx->p->memory_pools.buffers->size()   +
          hx->p->memory_pools.bulks->size()     +
@@ -445,6 +445,7 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
                                                                                    hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, i),
                                                                                    hist,
                                                                                    hx->p->hash.name, config->create_if_missing);
+                    mlog(HXHIM_CLIENT_INFO, "Initialized LevelDB in datastore[%zu]", i);
                 }
                 break;
             #endif
@@ -455,6 +456,7 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
                                                                                     hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, i),
                                                                                     hist,
                                                                                     hx->p->hash.name);
+                    mlog(HXHIM_CLIENT_INFO, "Initialized In-Memory in datastore[%zu]", i);
                 }
                 break;
             default:
@@ -501,6 +503,7 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
             hx->p->datastore.datastores[0] = new hxhim::datastore::leveldb(hx,
                                                                            hist,
                                                                            name);
+            mlog(HXHIM_CLIENT_INFO, "Initialized single LevelDB datastore");
             break;
         #endif
         case HXHIM_DATASTORE_IN_MEMORY:
@@ -508,6 +511,7 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
                                                                             0,
                                                                             hist,
                                                                             name);
+            mlog(HXHIM_CLIENT_INFO, "Initialized single In-Memory datastore");
             break;
         default:
             break;
@@ -564,22 +568,10 @@ int hxhim::init::hash(hxhim_t *hx, hxhim_options_t *opts) {
     hx->p->hash.func = opts->p->hash.func;
     hx->p->hash.args = opts->p->hash.args;
 
+    mlog(HXHIM_CLIENT_INFO, "Initialized hash function with name %s", hx->p->hash.name.c_str());
+
     return HXHIM_SUCCESS;
 }
-
-static int init_transport_null(hxhim_t *hx, hxhim_options_t *opts) {
-    mlog(HXHIM_CLIENT_DBG, "Starting NULL Transport Initialization");
-
-    if (!valid(hx, opts)) {
-        return HXHIM_ERROR;
-    }
-
-    hx->p->range_server_destroy = nullptr;
-
-    mlog(HXHIM_CLIENT_DBG, "Completed NULL Transport Initialization");
-    return TRANSPORT_SUCCESS;
-}
-
 
 /**
  * transport
@@ -603,7 +595,7 @@ int hxhim::init::transport(hxhim_t *hx, hxhim_options_t *opts) {
 
     switch (opts->p->transport->type) {
         case Transport::TRANSPORT_NULL:
-            ret = init_transport_null(hx, opts);
+            hx->p->range_server_destroy = nullptr;
             break;
         case Transport::TRANSPORT_MPI:
             ret = Transport::MPI::init(hx, opts);

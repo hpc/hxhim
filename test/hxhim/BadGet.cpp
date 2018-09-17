@@ -43,7 +43,7 @@ TEST(hxhim, BadGet) {
         EXPECT_EQ(res->GetType(), HXHIM_RESULT_GET);
     }
 
-    hxhim_results_destroy(&hx, get_results);
+    hxhim::Results::Destroy(&hx, get_results);
 
     CHECK_MEMORY(&hx);
 

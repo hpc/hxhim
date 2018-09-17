@@ -144,6 +144,12 @@ class FixedBufferPool {
          * are unused)
          */
         std::size_t used_;
+
+        /** @description statistics */
+        struct {
+            std::size_t max_size;
+            std::size_t max_used;
+        } stats;
 };
 
 /**

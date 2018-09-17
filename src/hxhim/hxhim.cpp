@@ -36,13 +36,13 @@ int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
-    if ((init::bootstrap   (hx, opts) != HXHIM_SUCCESS) ||
-        (init::running     (hx, opts) != HXHIM_SUCCESS) ||
-        (init::memory      (hx, opts) != HXHIM_SUCCESS) ||
-        (init::hash        (hx, opts) != HXHIM_SUCCESS) ||
-        (init::datastore   (hx, opts) != HXHIM_SUCCESS) ||
-        (init::async_put   (hx, opts) != HXHIM_SUCCESS) ||
-        (init::transport   (hx, opts) != HXHIM_SUCCESS)) {
+    if ((init::bootstrap(hx, opts) != HXHIM_SUCCESS) ||
+        (init::running  (hx, opts) != HXHIM_SUCCESS) ||
+        (init::memory   (hx, opts) != HXHIM_SUCCESS) ||
+        (init::hash     (hx, opts) != HXHIM_SUCCESS) ||
+        (init::datastore(hx, opts) != HXHIM_SUCCESS) ||
+        (init::async_put(hx, opts) != HXHIM_SUCCESS) ||
+        (init::transport(hx, opts) != HXHIM_SUCCESS)) {
         MPI_Barrier(hx->p->bootstrap.comm);
         Close(hx);
         mlog(HXHIM_CLIENT_ERR, "Failed to initialize HXHIM");
@@ -50,7 +50,7 @@ int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
     }
 
     MPI_Barrier(hx->p->bootstrap.comm);
-    mlog(HXHIM_CLIENT_INFO, "Successfully initialized HXHIM");
+    mlog(HXHIM_CLIENT_INFO, "Successfully initialized HXHIM on rank %d/%d", hx->p->bootstrap.rank, hx->p->bootstrap.size);
     return HXHIM_SUCCESS;
 }
 
@@ -90,7 +90,7 @@ int hxhim::OpenOne(hxhim_t *hx, hxhim_options_t *opts, const std::string &db_pat
         return HXHIM_ERROR;
     }
 
-    if ((init::bootstrap(hx, opts)               != HXHIM_SUCCESS) ||
+    if ((init::bootstrap     (hx, opts)          != HXHIM_SUCCESS) ||
         (hx->p->bootstrap.size                   != 1)             || // Only allow for 1 rank
         (init::running       (hx, opts)          != HXHIM_SUCCESS) ||
         (init::memory        (hx, opts)          != HXHIM_SUCCESS) ||
@@ -135,7 +135,7 @@ int hxhim::Close(hxhim_t *hx) {
         return HXHIM_ERROR;
     }
 
-    hxhim::Sync(hx);
+    Results::Destroy(hx, hxhim::Sync(hx));
     mlog(HXHIM_CLIENT_INFO, "Closing HXHIM");
 
     MPI_Barrier(hx->p->bootstrap.comm);
@@ -176,7 +176,7 @@ int hxhimClose(hxhim_t *hx) {
  * @return results from sending the PUTs
  */
 hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
-    mlog(HXHIM_CLIENT_INFO, "Flushing PUTs");
+    mlog(HXHIM_CLIENT_DBG, "Flushing PUTs");
     if (!hx || !hx->p) {
         return nullptr;
     }
@@ -206,7 +206,7 @@ hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
     hxhim::Results *res = hx->p->async_put.results;
     hx->p->async_put.results = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
 
-    mlog(HXHIM_CLIENT_INFO, "PUTs Flushed");
+    mlog(HXHIM_CLIENT_DBG, "PUTs Flushed");
 
     return res;
 }
@@ -292,7 +292,7 @@ static hxhim::Results *get_core(hxhim_t *hx,
  * @return Pointer to return value wrapper
  */
 hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
-    mlog(HXHIM_CLIENT_INFO, "Flushing GETs");
+    mlog(HXHIM_CLIENT_DBG, "Flushing GETs");
     if (!hx || !hx->p) {
         return nullptr;
     }
@@ -302,7 +302,7 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
 
     hxhim::GetData *curr = gets.head;
     if (!curr) {
-        mlog(HXHIM_CLIENT_INFO, "No GETs to flush");
+        mlog(HXHIM_CLIENT_DBG, "No GETs to flush");
         return HXHIM_SUCCESS;
     }
 
@@ -323,7 +323,7 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
     hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
 
     while (curr->next) {
-        mlog(HXHIM_CLIENT_INFO, "Processing %d GETs", HXHIM_MAX_BULK_GET_OPS);
+        mlog(HXHIM_CLIENT_DBG, "Processing %d GETs", HXHIM_MAX_BULK_GET_OPS);
         hxhim::Results *ret = get_core(hx, curr, HXHIM_MAX_BULK_GET_OPS, &local, remote);
         res->Append(ret);
         hx->p->memory_pools.results->release(ret);
@@ -350,7 +350,7 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
 
     gets.head = gets.tail = nullptr;
 
-    mlog(HXHIM_CLIENT_INFO, "Done Flushing GETs");
+    mlog(HXHIM_CLIENT_DBG, "Done Flushing GETs");
     return res;
 }
 
@@ -660,6 +660,7 @@ hxhim_results_t *hxhimFlushDeletes(hxhim_t *hx) {
  * @return A list of results
  */
 hxhim::Results *hxhim::Flush(hxhim_t *hx) {
+    mlog(HXHIM_CLIENT_DBG, "Flushing HXHIM");
     hxhim::Results *res    = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
     hxhim::Results *puts   = FlushPuts(hx);
     hxhim::Results *gets   = FlushGets(hx);
@@ -671,6 +672,7 @@ hxhim::Results *hxhim::Flush(hxhim_t *hx) {
     res->Append(getops);   hx->p->memory_pools.results->release(getops);
     res->Append(dels);     hx->p->memory_pools.results->release(dels);
 
+    mlog(HXHIM_CLIENT_DBG, "Completed Flushing HXHIM");
     return res;
 }
 

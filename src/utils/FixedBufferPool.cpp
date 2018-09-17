@@ -22,7 +22,8 @@ FixedBufferPool::FixedBufferPool(const std::size_t alloc_size, const std::size_t
     cv_(),
     nodes_(nullptr),
     unused_(nullptr),
-    used_(0)
+    used_(0),
+    stats()
 {
     std::unique_lock<std::mutex> lock(mutex_);
     try {
@@ -60,7 +61,7 @@ FixedBufferPool::FixedBufferPool(const std::size_t alloc_size, const std::size_t
     // first available region is the head of the list
     unused_ = nodes_;
 
-    FBP_LOG(FBP_INFO, "Created");
+    FBP_LOG(FBP_DBG, "Created");
 }
 
 /**
@@ -69,12 +70,15 @@ FixedBufferPool::FixedBufferPool(const std::size_t alloc_size, const std::size_t
 FixedBufferPool::~FixedBufferPool() {
     std::unique_lock<std::mutex> lock(mutex_);
 
-    FBP_LOG(FBP_INFO, "Destructing with %zu memory regions still in use:", used_);
-    for(std::size_t i = 1; i < regions_; i++) {
+    FBP_LOG(FBP_INFO, "Destructing with %zu memory regions still in use", used_);
+    for(std::size_t i = 0; i < regions_; i++) {
         if (nodes_[i].size) {
-            FBP_LOG(FBP_DBG, "    Address %p still allocated with %zu bytes", nodes_[i].addr, nodes_[i].size);
+            FBP_LOG(FBP_DBG, "    Address %p (index %zu) still allocated with %zu bytes", nodes_[i].addr, i, nodes_[i].size);
         }
     }
+
+    FBP_LOG(FBP_INFO, "Maximum Granted Allocation Size: %zu", stats.max_size);
+    FBP_LOG(FBP_INFO, "Maximum Number of Regions Used: %zu", stats.max_used);
 
     delete [] nodes_;
     nodes_ = nullptr;
@@ -247,7 +251,7 @@ void *FixedBufferPool::acquireImpl(const std::size_t size) {
 
     // too big
     if (size > alloc_size_) {
-        FBP_LOG(FBP_WARN, "Requested allocation size too big: %zu bytes", size);
+        FBP_LOG(FBP_ERR, "Requested allocation size too big: %zu bytes", size);
         return nullptr;
     }
 
@@ -255,7 +259,7 @@ void *FixedBufferPool::acquireImpl(const std::size_t size) {
 
     // wait until a slot opens up
     while (!unused_) {
-        FBP_LOG(FBP_DBG, "Waiting for a size %zu buffer", size);
+        FBP_LOG(FBP_CRIT, "Waiting for a size %zu buffer", size);
         cv_.wait(lock, [&]{ return unused_; });
     }
 
@@ -274,12 +278,15 @@ void *FixedBufferPool::acquireImpl(const std::size_t size) {
 
     used_++;
 
-    const std::size_t remaining = regions_ - used_;
-    FBP_LOG(FBP_DBG, "Acquired a size %zu buffer (%p)", size, ret);
-
-    if (!remaining) {
-        FBP_LOG(FBP_WARN, "0 regions left.");
+    if (size > stats.max_size) {
+        stats.max_size = size;
     }
+
+    if (used_ > stats.max_used) {
+        stats.max_used = used_;
+    }
+
+    FBP_LOG(FBP_DBG, "Acquired a size %zu buffer (%p)", size, ret);
 
     return ret;
 }

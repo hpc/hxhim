@@ -27,7 +27,7 @@ int RangeServer::init(hxhim_t *hx, const std::size_t listener_count) {
     hx_ = hx;
     listeners_.resize(listener_count);
 
-    mlog(HXHIM_SERVER_INFO, "Starting up %zu listeners", listener_count);
+    mlog(HXHIM_SERVER_DBG, "Starting up %zu listeners", listener_count);
 
     //Initialize listener threads
     for(pthread_t & pid : listeners_) {
@@ -70,15 +70,15 @@ void *RangeServer::listener_thread(void *) {
         Unpacker::unpack(hx_->p->bootstrap.comm, &request, req, len, hx_->p->memory_pools.requests, hx_->p->memory_pools.arrays, hx_->p->memory_pools.buffers);
         ::operator delete(req);
 
-        void *res = nullptr;
-        len = 0;
-
         // process request
         Response::Response *response = hxhim::range_server::range_server(hx_, request);
         hx_->p->memory_pools.requests->release(request);
 
         // encode result
+        void *res = nullptr;
+        len = 0;
         Packer::pack(hx_->p->bootstrap.comm, response, &res, &len, hx_->p->memory_pools.packed);
+        hx_->p->memory_pools.responses->release(response);
 
         // send result
         const int ret = send(response->dst, res, len);
@@ -163,6 +163,7 @@ int RangeServer::send(const int dst, void *data, const std::size_t len) {
         return TRANSPORT_ERROR;
     }
 
+    // mlog(MPI_DBG, "MPI Range Server send done");
     return TRANSPORT_SUCCESS;
 }
 

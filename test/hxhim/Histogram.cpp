@@ -32,7 +32,7 @@ TEST(hxhim, Histogram) {
     // Flush all queued items
     hxhim::Results *put_results = hxhim::Flush(&hx);
     ASSERT_NE(put_results, nullptr);
-    hxhim_results_destroy(&hx, put_results);
+    hxhim::Results::Destroy(&hx, put_results);
 
     hxhim::Results *histogram = hxhim::GetHistogram(&hx, 0);
     if (!histogram) {
@@ -67,7 +67,7 @@ TEST(hxhim, Histogram) {
         EXPECT_EQ(counts[9], 2);
     }
 
-    hxhim_results_destroy(&hx, histogram);
+    hxhim::Results::Destroy(&hx, histogram);
 
     CHECK_MEMORY(&hx);
 
@@ -116,7 +116,7 @@ TEST(hxhim, BHistogram) {
     // Flush all queued items
     hxhim::Results *put_results = hxhim::Flush(&hx);
     ASSERT_NE(put_results, nullptr);
-    hxhim_results_destroy(&hx, put_results);
+    hxhim::Results::Destroy(&hx, put_results);
 
     const int srcs[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
     const std::size_t src_count = sizeof(srcs) / sizeof(*srcs);
@@ -154,7 +154,7 @@ TEST(hxhim, BHistogram) {
 
     EXPECT_EQ(src_count, count);
 
-    hxhim_results_destroy(&hx, bhistogram);
+    hxhim::Results::Destroy(&hx, bhistogram);
 
     CHECK_MEMORY(&hx);
 

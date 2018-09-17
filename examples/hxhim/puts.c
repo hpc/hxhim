@@ -41,6 +41,8 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    /* printf("%d initialized HXHIM\n", rank); */
+
     // Generate some subject-predicate-object triples
     const size_t count = HXHIM_MAX_BULK_PUT_OPS * 100;
     void **subjects = NULL, **predicates = NULL, **objects = NULL;

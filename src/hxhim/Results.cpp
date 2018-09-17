@@ -292,6 +292,21 @@ Results::~Results() {
 }
 
 /**
+ * Destroy
+ * Destroys the results returned from an operation
+ *
+ * @param hx    the HXHIM session
+ * @param res   pointer to a set of results
+ */
+void Results::Destroy(hxhim_t *hx, Results *res) {
+    mlog(HXHIM_CLIENT_DBG, "Destroying hxhim::Results %p", res);
+    if (res) {
+        hx->p->memory_pools.results->release(res);
+    }
+    mlog(HXHIM_CLIENT_DBG, "Destroying hxhim:Results %p", res);
+}
+
+/**
  * Valid
  *
  * @return Whether or not the current node is a valid pointer
@@ -385,8 +400,10 @@ std::size_t Results::size() const {
  * @return the pointer to the C structure containing the hxhim::Results
  */
 hxhim_results_t *hxhim_results_init(hxhim_t *hx, hxhim::Results *res) {
+    mlog(HXHIM_CLIENT_DBG, "Creating hxhim_results_t using %p", res);
     hxhim_results_t *ret = hx->p->memory_pools.buffers->acquire<hxhim_results_t>();
     ret->res = res;
+    mlog(HXHIM_CLIENT_DBG, "Created hxhim_results_t %p with %p inside", ret, res);
     return ret;
 }
 
@@ -599,27 +616,16 @@ int hxhim_results_get_object(hxhim_results_t *res, void **object, std::size_t *o
 
 /**
  * hxhim_results_destroy
- * Destroys the results returned from an operation
- *
- * @param hx    the HXHIM session
- * @param res   pointer to a set of results
- */
-void hxhim_results_destroy(hxhim_t *hx, hxhim::Results *res) {
-    if (res) {
-        res->~Results();
-        hx->p->memory_pools.results->release(res);
-    }
-}
-
-/**
- * hxhim_results_destroy
  * Destroys the contents of a results struct and the object it is pointing to
  *
  * @param res A list of results
  */
 void hxhim_results_destroy(hxhim_t *hx, hxhim_results_t *res) {
+    mlog(HXHIM_CLIENT_DBG, "Destroying hxhim_results_t %p", res);
     if (res) {
-        hxhim_results_destroy(hx, res->res);
+        mlog(HXHIM_CLIENT_DBG, "Destroying res->res %p", res->res);
+        hxhim::Results::Destroy(hx, res->res);
         hx->p->memory_pools.buffers->release(res);
     }
+    mlog(HXHIM_CLIENT_DBG, "Destroyed hxhim_results_t %p", res);
 }

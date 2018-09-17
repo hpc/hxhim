@@ -148,6 +148,8 @@ class Results {
         Results(hxhim_t *hx);
         ~Results();
 
+        static void Destroy(hxhim_t *hx, Results *res);
+
         // Accessors (controls the "curr" pointer)
         bool Valid() const;
         Result *GoToHead();
@@ -170,7 +172,5 @@ class Results {
 };
 
 }
-
-void hxhim_results_destroy(hxhim_t *hx, hxhim::Results *res);
 
 #endif

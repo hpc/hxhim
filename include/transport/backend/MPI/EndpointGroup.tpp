@@ -16,7 +16,8 @@
  */
 template <typename Send_t, typename>
 std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::size_t num_srvs, Send_t **messages, int **srvs) {
-    mlog(MPI_INFO, "Attempting to send %zu messages", num_srvs);
+    // This value is 1 too many since local sends will not happen
+    mlog(MPI_DBG, "Attempting to send %zu messages", num_srvs - 1);
 
     if (!num_srvs || !messages) {
         mlog(MPI_ERR, "No messages to send");
@@ -35,13 +36,20 @@ std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::size_t num_s
     std::size_t pack_count = 0;
     for(std::size_t i = 0; i < num_srvs; i++) {
         Send_t *msg = messages[i];
+        if (!msg) {
+            mlog(MPI_DBG, "No message to pack at index %zu", i);
+            continue;
+        }
+
+        mlog(MPI_DBG, "Attempting to pack message[%zu] (type %s, size %zu, %d -> %d)", i, Message::TypeStr[msg->type], msg->size(), msg->src, msg->dst);
+
         if (Packer::pack(comm, msg, &bufs[pack_count], &lens[pack_count], packed) == TRANSPORT_SUCCESS) {
             dsts[pack_count] = msg->dst;
             pack_count++;
-            mlog(MPI_DBG, "Successfully packed message[%zu] (type %d, size %zu, %d -> %d)", i, msg->type, msg->size(), msg->src, msg->dst);
+            mlog(MPI_DBG, "Successfully packed message[%zu] (type %s, size %zu, %d -> %d)", i, Message::TypeStr[msg->type], msg->size(), msg->src, msg->dst);
         }
         else {
-            mlog(MPI_DBG, "Failed to pack message[%zu] = %p", i, msg);
+            mlog(MPI_ERR, "Failed to pack message[%zu] (type %s, size %zu, %d -> %d)", i, Message::TypeStr[msg->type], msg->size(), msg->src, msg->dst);
         }
     }
 
@@ -65,6 +73,10 @@ std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::size_t num_s
 
         // send size
         size_reqs[size_count] = new MPI_Request();
+
+
+        mlog(MPI_DBG, "Attempting to send packed message[%zu] (size %zu, %d -> %d)", i, lens[i], rank, dst_it->second);
+
         if (MPI_Isend(&lens[i], sizeof(lens[i]), MPI_CHAR, dst_it->second, TRANSPORT_MPI_SIZE_REQUEST_TAG, comm, size_reqs[size_count]) == MPI_SUCCESS) {
             mlog(MPI_DBG, "Successfully started sending size %zu to server %d", lens[i], dst_it->second);
 
@@ -78,13 +90,13 @@ std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::size_t num_s
                 data_count++;
             }
             else {
-                mlog(MPI_DBG, "Errored while sending data of size %zu to server %d", lens[i], dst_it->second);
+                mlog(MPI_ERR, "Errored while sending data of size %zu to server %d", lens[i], dst_it->second);
                 delete data_reqs[data_count];
                 data_reqs[data_count] = nullptr;
             }
         }
         else {
-            mlog(MPI_DBG, "Errored while sending size %zu to server %d", lens[i], dst_it->second);
+            mlog(MPI_ERR, "Errored while sending size %zu to server %d", lens[i], dst_it->second);
             delete size_reqs[size_count];
             size_reqs[size_count] = nullptr;
         }
@@ -92,6 +104,7 @@ std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::size_t num_s
     mlog(MPI_DBG, "Done sending messages asynchronously");
 
     mlog(MPI_DBG, "Waiting for messages to complete");
+
     //Wait for messages to complete
     int rank;
     MPI_Comm_rank(comm, &rank);
@@ -141,7 +154,7 @@ std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::size_t num_s
     delete [] lens;
     delete [] bufs;
 
-    mlog(MPI_INFO, "Messages completed %zu", data_count);
+    mlog(MPI_DBG, "Messages completed: %zu", data_count);
 
     return data_count;
 }
@@ -194,7 +207,6 @@ std::size_t Transport::MPI::EndpointGroup::parallel_recv(const std::size_t nsrcs
             }
         }
     }
-
 
     // Wait for size messages to complete
     mlog(MPI_DBG, "Waiting for size to be received");
@@ -319,7 +331,7 @@ Recv_t *Transport::MPI::EndpointGroup::return_msgs(const std::size_t num_rangesr
         mlog(MPI_DBG, "    Server %d", srvs[i]);
     }
 
-    mlog(MPI_DBG, "Waiting for response");
+    mlog(MPI_DBG, "Waiting for %zu responses", sent);
 
     // wait for responses
     Recv_t **recv_list = nullptr;

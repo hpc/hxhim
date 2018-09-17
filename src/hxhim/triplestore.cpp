@@ -33,7 +33,7 @@ int sp_to_key(FixedBufferPool *fbp,
         return HXHIM_SUCCESS;
     }
 
-    if (!(*key = fbp->acquire<char>(*key_len))) {
+    if (!(*key = fbp->acquire(*key_len))) {
         *key_len = 0;
         return HXHIM_ERROR;
     }

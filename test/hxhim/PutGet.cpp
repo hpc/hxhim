@@ -45,7 +45,7 @@ TEST(hxhim, PutGet) {
         EXPECT_EQ(res->GetType(), HXHIM_RESULT_PUT);
     }
 
-    hxhim_results_destroy(&hx, put_results);
+    hxhim::Results::Destroy(&hx, put_results);
 
     // Add subject-predicate to get back
     EXPECT_EQ(hxhim::GetDouble(&hx,
@@ -87,7 +87,7 @@ TEST(hxhim, PutGet) {
         }
     }
 
-    hxhim_results_destroy(&hx, get_results);
+    hxhim::Results::Destroy(&hx, get_results);
 
     CHECK_MEMORY(&hx);
 
