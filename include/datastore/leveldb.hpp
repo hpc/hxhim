@@ -15,11 +15,11 @@ namespace datastore {
 class leveldb : public Datastore {
     public:
         leveldb(hxhim_t *hx,
-                const std::size_t use_first_n, const HistogramBucketGenerator_t &generator, void *extra_args,
+                Histogram::Histogram *hist,
                 const std::string &exact_name);
         leveldb(hxhim_t *hx,
                 const int id,
-                const std::size_t use_first_n, const HistogramBucketGenerator_t &generator, void *extra_args,
+                Histogram::Histogram *hist,
                 const std::string &name, const bool create_if_missing);
         ~leveldb();
 

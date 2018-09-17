@@ -60,15 +60,17 @@ int get_id(hxhim_t *hx, const int rank, const int offset) {
 
 Datastore::Datastore(hxhim_t *hx,
                      const int id,
-                     const std::size_t use_first_n, const HistogramBucketGenerator_t &generator, void *extra_args)
+                     Histogram::Histogram *hist)
     : hx(hx),
       id(id),
-      hist(use_first_n, generator, extra_args),
+      hist(hist),
       mutex(),
       stats()
 {}
 
-Datastore::~Datastore() {}
+Datastore::~Datastore() {
+    delete hist;
+}
 
 Transport::Response::BPut *Datastore::BPut(void **subjects, std::size_t *subject_lens,
                                            void **predicates, std::size_t *predicate_lens,
@@ -80,18 +82,20 @@ Transport::Response::BPut *Datastore::BPut(void **subjects, std::size_t *subject
                                               object_types, objects, object_lens,
                                               count);
 
-    // add successfully PUT floating point values to the histogram
-    for(std::size_t i = 0; i < count; i++) {
-        if (res->statuses[i] == HXHIM_SUCCESS) {
-            switch (object_types[i]) {
-                case HXHIM_FLOAT_TYPE:
-                    hist.add(* (float *) objects[i]);
-                    break;
-                case HXHIM_DOUBLE_TYPE:
-                    hist.add(* (double *) objects[i]);
-                    break;
-                default:
-                    break;
+    if (hist) {
+        // add successfully PUT floating point values to the histogram
+        for(std::size_t i = 0; i < count; i++) {
+            if (res->statuses[i] == HXHIM_SUCCESS) {
+                switch (object_types[i]) {
+                    case HXHIM_FLOAT_TYPE:
+                        hist->add(* (float *) objects[i]);
+                        break;
+                    case HXHIM_DOUBLE_TYPE:
+                        hist->add(* (double *) objects[i]);
+                        break;
+                    default:
+                        break;
+                }
             }
         }
     }
@@ -228,7 +232,7 @@ Transport::Response::Histogram *Datastore::Histogram() const {
     Transport::Response::Histogram *ret = hx->p->memory_pools.responses->acquire<Transport::Response::Histogram>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers);
     if (ret) {
         ret->status = HXHIM_SUCCESS;
-        hist.get(&ret->hist.buckets, &ret->hist.counts, &ret->hist.size);
+        hist->get(&ret->hist.buckets, &ret->hist.counts, &ret->hist.size);
     }
     return ret;
 }

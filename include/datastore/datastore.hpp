@@ -30,8 +30,8 @@ int get_id(hxhim_t *hx, const int rank, const int offset);
 class Datastore {
     public:
         Datastore(hxhim_t *hx,
-             const int id,
-             const std::size_t use_first_n, const HistogramBucketGenerator_t &generator, void *extra_args);
+                  const int id,
+                  Histogram::Histogram *hist); // Datastore takes ownership of hist
         virtual ~Datastore();
 
         virtual void Close() {}
@@ -87,8 +87,8 @@ class Datastore {
         int decode(const hxhim_type_t type, void *src, const std::size_t &src_len, void **dst, std::size_t *dst_len);
 
         hxhim_t *hx;
-        const int id;
-        Histogram::Histogram hist;
+        int id;
+        Histogram::Histogram *hist;
 
         mutable std::mutex mutex;
 

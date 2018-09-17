@@ -13,8 +13,8 @@ using namespace Transport;
 
 InMemory::InMemory(hxhim_t *hx,
                    const int id,
-                   const std::size_t use_first_n, const HistogramBucketGenerator_t &generator, void *extra_args)
-    : Datastore(hx, id, use_first_n, generator, extra_args),
+                   Histogram::Histogram *hist)
+    : Datastore(hx, id, hist),
       db()
 {}
 

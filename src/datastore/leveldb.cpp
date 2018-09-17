@@ -16,9 +16,9 @@ namespace datastore {
 using namespace Transport;
 
 leveldb::leveldb(hxhim_t *hx,
-                 const std::size_t use_first_n, const HistogramBucketGenerator_t &generator, void *extra_args,
+                 Histogram::Histogram *hist,
                  const std::string &exact_name)
-    : Datastore(hx, 0, use_first_n, generator, extra_args),
+    : Datastore(hx, 0, hist),
       name(exact_name), create_if_missing(false),
       db(nullptr), options()
 {
@@ -29,9 +29,9 @@ leveldb::leveldb(hxhim_t *hx,
 
 leveldb::leveldb(hxhim_t *hx,
                  const int id,
-                 const std::size_t use_first_n, const HistogramBucketGenerator_t &generator, void *extra_args,
+                 Histogram::Histogram *hist,
                  const std::string &name, const bool create_if_missing)
-    : Datastore(hx, id, use_first_n, generator, extra_args),
+    : Datastore(hx, id, hist),
       name(name), create_if_missing(create_if_missing),
       db(nullptr), options()
 {

@@ -11,8 +11,6 @@ extern "C"
 #define HISTOGRAM_SUCCESS  0
 #define HISTOGRAM_ERROR   -1
 
-typedef struct histogram histogram_t;
-
 /**
  * HistogramBucketGenerator_t
  * Typedef of function type which takes in

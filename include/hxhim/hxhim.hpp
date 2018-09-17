@@ -5,6 +5,7 @@
 #include "hxhim/config.h"
 #include "hxhim/config.hpp"
 #include "hxhim/constants.h"
+#include "hxhim/hash.h"
 #include "hxhim/options.h"
 #include "hxhim/options.hpp"
 #include "hxhim/struct.h"
@@ -28,6 +29,9 @@ Results *Flush(hxhim_t *hx);
 
 /** @description Function that forces the datastores to flush to the underlying storage */
 Results *Sync(hxhim_t *hx);
+
+/** @description Function that opens new datastores */
+Results *ChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t func, void *args);
 
 /** @description Functions for queuing operations to perform on the underlying storage */
 int Put(hxhim_t *hx,

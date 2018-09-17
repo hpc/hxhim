@@ -430,6 +430,10 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
     }
 
     for(std::size_t i = 0; i < hx->p->datastore.count; i++) {
+        Histogram::Histogram *hist = new Histogram::Histogram(opts->p->histogram.first_n,
+                                                              opts->p->histogram.gen,
+                                                              opts->p->histogram.args);
+
         // Start the datastore
         switch (opts->p->datastore->type) {
             #if HXHIM_HAVE_LEVELDB
@@ -438,9 +442,7 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
                     hxhim_leveldb_config_t *config = static_cast<hxhim_leveldb_config_t *>(opts->p->datastore);
                     hx->p->datastore.datastores[i] = new hxhim::datastore::leveldb(hx,
                                                                                    hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, i),
-                                                                                   opts->p->histogram.first_n,
-                                                                                   opts->p->histogram.gen,
-                                                                                   opts->p->histogram.args,
+                                                                                   hist,
                                                                                    config->path, config->create_if_missing);
                 }
                 break;
@@ -449,9 +451,7 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
                 {
                     hx->p->datastore.datastores[i] = new hxhim::datastore::InMemory(hx,
                                                                                     hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, i),
-                                                                                    opts->p->histogram.first_n,
-                                                                                    opts->p->histogram.gen,
-                                                                                    opts->p->histogram.args);
+                                                                                    hist);
                 }
                 break;
             default:
@@ -487,23 +487,23 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
         return HXHIM_ERROR;
     }
 
+    Histogram::Histogram *hist = new Histogram::Histogram(opts->p->histogram.first_n,
+                                                          opts->p->histogram.gen,
+                                                          opts->p->histogram.args);
+
     // Start the datastore
     switch (opts->p->datastore->type) {
         #if HXHIM_HAVE_LEVELDB
         case HXHIM_DATASTORE_LEVELDB:
             hx->p->datastore.datastores[0] = new hxhim::datastore::leveldb(hx,
-                                                                           opts->p->histogram.first_n,
-                                                                           opts->p->histogram.gen,
-                                                                           opts->p->histogram.args,
+                                                                           hist,
                                                                            name);
             break;
         #endif
         case HXHIM_DATASTORE_IN_MEMORY:
             hx->p->datastore.datastores[0] = new hxhim::datastore::InMemory(hx,
                                                                             0,
-                                                                            opts->p->histogram.first_n,
-                                                                            opts->p->histogram.gen,
-                                                                            opts->p->histogram.args);
+                                                                            hist);
             break;
         default:
             break;

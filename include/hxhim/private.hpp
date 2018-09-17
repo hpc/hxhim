@@ -74,6 +74,7 @@ typedef struct hxhim_private {
     } async_put;
 
     struct {
+        const char *name;                                      // name of the hash function used; used to name the datastore
         hxhim_hash_t func;                                     // the function used to determine which datastore should be used to perform an operation with
         void *args;                                            // extra arguments to pass into the hash function
     } hash;
