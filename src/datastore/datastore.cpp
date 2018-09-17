@@ -72,6 +72,17 @@ Datastore::~Datastore() {
     delete hist;
 }
 
+bool Datastore::Open(const std::string &new_name) {
+    Close();
+    return OpenImpl(new_name);
+}
+
+void Datastore::Close() {
+    hist->clear();
+    CloseImpl();
+    return;
+}
+
 Transport::Response::BPut *Datastore::BPut(void **subjects, std::size_t *subject_lens,
                                            void **predicates, std::size_t *predicate_lens,
                                            hxhim_type_t *object_types, void **objects, std::size_t *object_lens,

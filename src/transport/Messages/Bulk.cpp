@@ -1,7 +1,7 @@
 #include "transport/Messages/Bulk.hpp"
 #include "transport/constants.hpp"
 
-Transport::Bulk::Bulk(const std::size_t max)
+Transport::Bulk::Bulk()
     : ds_offsets(nullptr),
       count(0)
 {}

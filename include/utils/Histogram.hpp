@@ -24,6 +24,9 @@ class Histogram {
         // Returns the histogram data in arrays
         int get(double **buckets, std::size_t **counts, std::size_t *size) const;
 
+        // removes all datapoints, including the first_n values
+        void clear();
+
     private:
         int gen_counts();
         int insert(const double &value);

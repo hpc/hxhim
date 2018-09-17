@@ -34,7 +34,8 @@ class Datastore {
                   Histogram::Histogram *hist); // Datastore takes ownership of hist
         virtual ~Datastore();
 
-        virtual void Close() {}
+        bool Open(const std::string &new_name);
+        void Close();
 
         int GetStats(const int dst_rank,
                      const bool get_put_times, long double *put_times,
@@ -62,9 +63,10 @@ class Datastore {
 
         int Sync();
 
-        virtual std::ostream &print_config(std::ostream &stream) const = 0;
-
     protected:
+        virtual bool OpenImpl(const std::string &new_name) = 0;
+        virtual void CloseImpl() = 0;
+
         virtual Transport::Response::BPut *BPutImpl(void **subjects, std::size_t *subject_lens,
                                                     void **predicates, std::size_t *predicate_lens,
                                                     hxhim_type_t *object_types, void **objects, std::size_t *object_lens,

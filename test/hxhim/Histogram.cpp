@@ -80,9 +80,9 @@ static int test_hash(hxhim_t *, void *subject, const size_t, void *, const size_
     return (ds < 10)?ds:9;
 }
 
-static HistogramBucketGenerator_t test_buckets = [](const double *first_n, const size_t n,
+static HistogramBucketGenerator_t test_buckets = [](const double *, const size_t,
                                                     double **buckets, size_t *size,
-                                                    void *extra) -> int {
+                                                    void *) -> int {
     if (!buckets || !size) {
         return HISTOGRAM_ERROR;
     }
@@ -97,7 +97,7 @@ TEST(hxhim, BHistogram) {
     hxhim_options_t opts;
     ASSERT_EQ(fill_options(&opts), true);
     ASSERT_EQ(hxhim_options_set_datastores_per_range_server(&opts, 10), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_hash_function(&opts, test_hash, nullptr), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim_options_set_hash_function(&opts, "", test_hash, nullptr), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_histogram_first_n(&opts, 1), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_histogram_bucket_gen_method(&opts, test_buckets, nullptr), HXHIM_SUCCESS);
 

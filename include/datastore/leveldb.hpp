@@ -23,10 +23,12 @@ class leveldb : public Datastore {
                 const std::string &name, const bool create_if_missing);
         ~leveldb();
 
-        void Close();
         int StatFlush();
 
     private:
+        bool OpenImpl(const std::string &name_name);
+        void CloseImpl();
+
         Transport::Response::BPut *BPutImpl(void **subjects, std::size_t *subject_lens,
                                             void **predicates, std::size_t *predicate_lens,
                                             hxhim_type_t *object_types, void **objects, std::size_t *object_lens,
@@ -45,12 +47,8 @@ class leveldb : public Datastore {
 
         int SyncImpl();
 
-    public:
-        std::ostream &print_config(std::ostream &stream) const;
-
     private:
-        const std::string name;
-        const bool create_if_missing;
+        bool create_if_missing;
 
         ::leveldb::DB *db;
         ::leveldb::Options options;

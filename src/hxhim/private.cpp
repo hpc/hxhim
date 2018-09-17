@@ -162,7 +162,7 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
     }
 
     // cleanup
-    for(std::size_t i = 0; i < hx->p->bootstrap.size; i++) {
+    for(int i = 0; i < hx->p->bootstrap.size; i++) {
         hx->p->memory_pools.requests->release(remote[i]);
     }
     hx->p->memory_pools.arrays->release_array(remote, hx->p->bootstrap.size);
@@ -396,14 +396,14 @@ int hxhim::init::memory(hxhim_t *hx, hxhim_options_t *opts) {
     }
 
     mlog(HXHIM_CLIENT_INFO, "Preallocated %zu bytes for HXHIM",
-         hx->p->memory_pools.packed->size() +
-         hx->p->memory_pools.buffers->size() +
-         hx->p->memory_pools.bulks->size() +
-         hx->p->memory_pools.keys->size() +
-         hx->p->memory_pools.arrays->size() +
-         hx->p->memory_pools.requests->size() +
+         hx->p->memory_pools.packed->size()    +
+         hx->p->memory_pools.buffers->size()   +
+         hx->p->memory_pools.bulks->size()     +
+         hx->p->memory_pools.keys->size()      +
+         hx->p->memory_pools.arrays->size()    +
+         hx->p->memory_pools.requests->size()  +
          hx->p->memory_pools.responses->size() +
-         hx->p->memory_pools.result->size() +
+         hx->p->memory_pools.result->size()    +
          hx->p->memory_pools.results->size());
     return HXHIM_SUCCESS;
 }
@@ -440,18 +440,21 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
             case HXHIM_DATASTORE_LEVELDB:
                 {
                     hxhim_leveldb_config_t *config = static_cast<hxhim_leveldb_config_t *>(opts->p->datastore);
+                    hx->p->datastore.prefix = config->prefix;
                     hx->p->datastore.datastores[i] = new hxhim::datastore::leveldb(hx,
                                                                                    hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, i),
                                                                                    hist,
-                                                                                   config->path, config->create_if_missing);
+                                                                                   hx->p->hash.name, config->create_if_missing);
                 }
                 break;
             #endif
             case HXHIM_DATASTORE_IN_MEMORY:
                 {
+                    hx->p->datastore.prefix = "";
                     hx->p->datastore.datastores[i] = new hxhim::datastore::InMemory(hx,
                                                                                     hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, i),
-                                                                                    hist);
+                                                                                    hist,
+                                                                                    hx->p->hash.name);
                 }
                 break;
             default:
@@ -503,7 +506,8 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
         case HXHIM_DATASTORE_IN_MEMORY:
             hx->p->datastore.datastores[0] = new hxhim::datastore::InMemory(hx,
                                                                             0,
-                                                                            hist);
+                                                                            hist,
+                                                                            name);
             break;
         default:
             break;
@@ -556,8 +560,9 @@ int hxhim::init::hash(hxhim_t *hx, hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
-    hx->p->hash.func = opts->p->hash;
-    hx->p->hash.args = opts->p->hash_args;
+    hx->p->hash.name = opts->p->hash.name;
+    hx->p->hash.func = opts->p->hash.func;
+    hx->p->hash.args = opts->p->hash.args;
 
     return HXHIM_SUCCESS;
 }

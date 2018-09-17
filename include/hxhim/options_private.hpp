@@ -35,7 +35,7 @@ typedef struct hxhim_leveldb_config : hxhim_datastore_config_t {
     {}
 
     std::size_t id;
-    std::string path;
+    std::string prefix;
     bool create_if_missing;
 } hxhim_leveldb_config_t;
 #endif
@@ -69,8 +69,11 @@ typedef struct hxhim_options_private {
     hxhim_datastore_config_t *datastore;      // configuration options for the selected datastore
     std::size_t datastore_count;
 
-    hxhim_hash_t hash;
-    void *hash_args;
+    struct {
+        std::string name;
+        hxhim_hash_t func;
+        void *args;
+    } hash;
 
     Transport::Options *transport;
 

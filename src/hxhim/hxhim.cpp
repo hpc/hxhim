@@ -39,9 +39,9 @@ int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
     if ((init::bootstrap   (hx, opts) != HXHIM_SUCCESS) ||
         (init::running     (hx, opts) != HXHIM_SUCCESS) ||
         (init::memory      (hx, opts) != HXHIM_SUCCESS) ||
+        (init::hash        (hx, opts) != HXHIM_SUCCESS) ||
         (init::datastore   (hx, opts) != HXHIM_SUCCESS) ||
         (init::async_put   (hx, opts) != HXHIM_SUCCESS) ||
-        (init::hash        (hx, opts) != HXHIM_SUCCESS) ||
         (init::transport   (hx, opts) != HXHIM_SUCCESS)) {
         MPI_Barrier(hx->p->bootstrap.comm);
         Close(hx);
@@ -94,9 +94,9 @@ int hxhim::OpenOne(hxhim_t *hx, hxhim_options_t *opts, const std::string &db_pat
         (hx->p->bootstrap.size                   != 1)             || // Only allow for 1 rank
         (init::running       (hx, opts)          != HXHIM_SUCCESS) ||
         (init::memory        (hx, opts)          != HXHIM_SUCCESS) ||
+        (init::hash          (hx, opts)          != HXHIM_SUCCESS) ||
         (init::one_datastore (hx, opts, db_path) != HXHIM_SUCCESS) ||
-        (init::async_put     (hx, opts)          != HXHIM_SUCCESS) ||
-        (init::hash          (hx, opts)          != HXHIM_SUCCESS)) {
+        (init::async_put     (hx, opts)          != HXHIM_SUCCESS)) {
         MPI_Barrier(hx->p->bootstrap.comm);
         Close(hx);
         mlog(HXHIM_CLIENT_ERR, "Failed to initialize HXHIM");
@@ -131,9 +131,11 @@ int hxhimOpenOne(hxhim_t *hx, hxhim_options_t *opts, const char *db_path, const 
 int hxhim::Close(hxhim_t *hx) {
     mlog(HXHIM_CLIENT_INFO, "Starting to shutdown HXHIM");
     if (!hx || !hx->p) {
+        mlog(HXHIM_CLIENT_ERR, "Bad HXHIM instance");
         return HXHIM_ERROR;
     }
 
+    hxhim::Sync(hx);
     mlog(HXHIM_CLIENT_INFO, "Closing HXHIM");
 
     MPI_Barrier(hx->p->bootstrap.comm);
@@ -654,7 +656,7 @@ hxhim_results_t *hxhimFlushDeletes(hxhim_t *hx) {
  *     3. Do all GET_OPs
  *     4. Do all DELs
  *
- * @param hx
+ * @param hx the HXHIM session
  * @return A list of results
  */
 hxhim::Results *hxhim::Flush(hxhim_t *hx) {
@@ -692,7 +694,7 @@ hxhim_results_t *hxhimFlush(hxhim_t *hx) {
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 hxhim::Results *hxhim::Sync(hxhim_t *hx) {
-    Results *res = Flush(hx);
+    hxhim::Results *res = Flush(hx);
 
     MPI_Barrier(hx->p->bootstrap.comm);
 
@@ -717,6 +719,59 @@ hxhim::Results *hxhim::Sync(hxhim_t *hx) {
  */
 hxhim_results_t *hxhimSync(hxhim_t *hx) {
     return hxhim_results_init(hx, hxhim::Sync(hx));
+}
+
+/**
+ * ChangeHash
+ * Changes the hash function and associated
+ * datastores.
+ *     - This function is a collective.
+ *     - Previously queued operations are flushed
+ *     - The datastores are synced before the hash is switched.
+ *
+ * @param hx   the HXHIM session
+ * @param name the name of the new hash function
+ * @param func the new hash function
+ * @param args the extra args that are used in the hash function
+ * @return A list of results
+ */
+hxhim::Results *hxhim::ChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t func, void *args) {
+    hxhim::Results *res = Sync(hx);
+
+    MPI_Barrier(hx->p->bootstrap.comm);
+
+    // change hashes
+    hx->p->hash.func = func;
+    hx->p->hash.args = args;
+
+    // change datastores
+    for(std::size_t i = 0; i < hx->p->datastore.count; i++) {
+        std::stringstream s;
+        s << name << "-" << hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, i);
+        hx->p->datastore.datastores[i]->Open(s.str());
+    }
+
+    MPI_Barrier(hx->p->bootstrap.comm);
+
+    return res;
+}
+
+/**
+ * ChangeHash
+ * Changes the hash function and associated
+ * datastores.
+ *     - This function is a collective.
+ *     - Previously queued operations are flushed
+ *     - The datastores are synced before the hash is switched.
+ *
+ * @param hx   the HXHIM session
+ * @param name the name of the new hash function
+ * @param func the new hash function
+ * @param args the extra args that are used in the hash function
+ * @return A list of results
+ */
+hxhim_results_t *hxhimChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t func, void *args) {
+    return hxhim_results_init(hx, hxhim::ChangeHash(hx, name, func, args));
 }
 
 /**

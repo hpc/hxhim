@@ -52,7 +52,7 @@ void RangeServer::destroy() {
  * listener_thread
  * Function for the thread that listens for new messages
  */
-void *RangeServer::listener_thread(void *data) {
+void *RangeServer::listener_thread(void *) {
     //Mlog statements could cause a deadlock on range_server_stop due to canceling of threads
     pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, nullptr);
     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, nullptr);

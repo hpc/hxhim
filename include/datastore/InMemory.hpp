@@ -14,14 +14,20 @@ namespace datastore {
 class InMemory : public Datastore {
     public:
         InMemory(hxhim_t *hx,
+                 Histogram::Histogram *hist,
+                 const std::string &exact_name);
+        InMemory(hxhim_t *hx,
                  const int id,
-                 Histogram::Histogram *hist);
+                 Histogram::Histogram *hist,
+                 const std::string &name);
         ~InMemory();
 
-        void Close();
         int StatFlush();
 
     private:
+        bool OpenImpl(const std::string &name_name);
+        void CloseImpl();
+
         Transport::Response::BPut *BPutImpl(void **subjects, std::size_t *subject_lens,
                                             void **predicates, std::size_t *predicate_lens,
                                             hxhim_type_t *object_types, void **objects, std::size_t *object_lens,
@@ -39,9 +45,6 @@ class InMemory : public Datastore {
                                                   std::size_t count);
 
         int SyncImpl();
-
-    public:
-        std::ostream &print_config(std::ostream &stream) const;
 
     private:
         int Open(MPI_Comm comm, const std::string &config);

@@ -175,9 +175,8 @@ Histogram::Histogram(const std::size_t use_first_n, const HistogramBucketGenerat
 }
 
 Histogram::~Histogram() {
+    clear();
     delete [] data;
-    delete [] buckets_;
-    delete [] counts_;
 }
 
 /**
@@ -248,6 +247,23 @@ int Histogram::get(double **buckets, std::size_t **counts, std::size_t *size) co
     }
 
     return HISTOGRAM_SUCCESS;
+}
+
+/**
+ * clear
+ * Clears all existing data, including
+ * the first n values.
+ */
+void Histogram::clear() {
+    data_size = 0;
+
+    delete buckets_;
+    buckets_ = nullptr;
+
+    delete counts_;
+    counts_ = nullptr;
+
+    size_ = 0;
 }
 
 /**

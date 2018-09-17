@@ -9,7 +9,7 @@ namespace Transport {
 
 struct Bulk {
     public:
-        Bulk(const std::size_t max = 0);
+        Bulk();
         virtual ~Bulk();
 
         virtual int alloc(const std::size_t max) = 0;

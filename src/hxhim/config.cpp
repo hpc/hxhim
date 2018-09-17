@@ -56,9 +56,9 @@ static bool parse_datastore(hxhim_options_t *opts, const Config &config) {
             #if HXHIM_HAVE_LEVELDB
             case HXHIM_DATASTORE_LEVELDB:
                 {
-                    // get the leveldb datastore name prefix
-                    Config_it name = config.find(HXHIM_LEVELDB_NAME);
-                    if (name == config.end()) {
+                    // get the leveldb datastore prefix prefix
+                    Config_it prefix = config.find(HXHIM_LEVELDB_PREFIX);
+                    if (prefix == config.end()) {
                         return false;
                     }
 
@@ -71,7 +71,7 @@ static bool parse_datastore(hxhim_options_t *opts, const Config &config) {
                     if (MPI_Comm_rank(opts->p->comm, &rank) != MPI_SUCCESS) {
                         return false;
                     }
-                    return (hxhim_options_set_datastore_leveldb(opts, rank, name->second.c_str(), create_if_missing) == HXHIM_SUCCESS);
+                    return (hxhim_options_set_datastore_leveldb(opts, rank, prefix->second.c_str(), create_if_missing) == HXHIM_SUCCESS);
                 }
                 break;
             #endif
@@ -108,7 +108,7 @@ static bool parse_transport(hxhim_options_t *opts, const Config &config) {
             case Transport::TRANSPORT_NULL:
                 {
                     return ((hxhim_options_set_transport_null(opts)     == HXHIM_SUCCESS) &&
-                            (hxhim_options_set_hash_name(opts, "LOCAL") == HXHIM_SUCCESS));
+                            (hxhim_options_set_hash_name(opts, "RANK") == HXHIM_SUCCESS));
                 }
                 break;
             case Transport::TRANSPORT_MPI:

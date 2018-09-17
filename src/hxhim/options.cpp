@@ -119,6 +119,7 @@ static int hxhim_options_set_datastore(hxhim_options_t *opts, hxhim_datastore_co
     return HXHIM_SUCCESS;
 }
 
+#if HXHIM_HAVE_LEVELDB
 /**
  * hxhim_options_set_datastore_leveldb
  * Sets up the values needed for a leveldb datastore
@@ -127,8 +128,8 @@ static int hxhim_options_set_datastore(hxhim_options_t *opts, hxhim_datastore_co
  * @param path the name prefix for each datastore
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_options_set_datastore_leveldb(hxhim_options_t *opts, const size_t id, const char *path, const int create_if_missing) {
-    hxhim_datastore_config_t *config = hxhim_options_create_leveldb_config(id, path, create_if_missing);
+int hxhim_options_set_datastore_leveldb(hxhim_options_t *opts, const size_t id, const char *prefix, const int create_if_missing) {
+    hxhim_datastore_config_t *config = hxhim_options_create_leveldb_config(id, prefix, create_if_missing);
     if (!config) {
         return HXHIM_ERROR;
     }
@@ -140,6 +141,7 @@ int hxhim_options_set_datastore_leveldb(hxhim_options_t *opts, const size_t id, 
 
     return HXHIM_SUCCESS;
 }
+#endif
 
 /**
  * hxhim_options_set_datastore_in_memory
@@ -173,18 +175,20 @@ int hxhim_options_set_datastore_in_memory(hxhim_options_t *opts) {
  * @param hash   the name of the hash function
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_options_set_hash_name(hxhim_options_t *opts, const char *hash) {
+int hxhim_options_set_hash_name(hxhim_options_t *opts, const char *name) {
     if (!valid_opts(opts)) {
         return HXHIM_ERROR;
     }
 
-    std::map<std::string, hxhim_hash_t>::const_iterator it = HXHIM_HASHES.find(hash);
+    const std::string hash_name = name;
+    std::map<std::string, hxhim_hash_t>::const_iterator it = HXHIM_HASHES.find(hash_name);
     if (it == HXHIM_HASHES.end()) {
         return HXHIM_ERROR;
     }
 
-    opts->p->hash = it->second;
-    opts->p->hash_args = nullptr;
+    opts->p->hash.name = std::move(hash_name);
+    opts->p->hash.func = it->second;
+    opts->p->hash.args = nullptr;
 
     return HXHIM_SUCCESS;
 }
@@ -200,17 +204,18 @@ int hxhim_options_set_hash_name(hxhim_options_t *opts, const char *hash) {
  * @param args   the exta arguments to pass into the hash function
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_options_set_hash_function(hxhim_options_t *opts, hxhim_hash_t hash, void *args) {
+int hxhim_options_set_hash_function(hxhim_options_t *opts, const char *name, hxhim_hash_t func, void *args) {
     if (!valid_opts(opts)) {
         return HXHIM_ERROR;
     }
 
-    if (!hash) {
+    if (!func) {
         return HXHIM_ERROR;
     }
 
-    opts->p->hash = hash;
-    opts->p->hash_args = nullptr;
+    opts->p->hash.name = name;
+    opts->p->hash.func = func;
+    opts->p->hash.args = args;
 
     return HXHIM_SUCCESS;
 }
@@ -745,11 +750,11 @@ int hxhim_options_destroy(hxhim_options_t *opts) {
  * @param create_if_missing  whether or not leveldb should create new datastores if the datastores do not already exist
  * @return a pointer to the configuration data, or a nullptr
  */
-hxhim_datastore_config_t *hxhim_options_create_leveldb_config(const size_t id, const char *path, const int create_if_missing) {
+hxhim_datastore_config_t *hxhim_options_create_leveldb_config(const size_t id, const char *prefix, const int create_if_missing) {
     hxhim_leveldb_config_t *config = new hxhim_leveldb_config_t();
     if (config) {
         config->id = id;
-        config->path = path;
+        config->prefix = prefix;
         config->create_if_missing = create_if_missing;
     }
     return config;

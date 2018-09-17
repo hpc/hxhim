@@ -14,11 +14,7 @@
  * @param args          a pointer to an int that contains the rank of the calling function
  * @return the destination datastore ID or -1 on error
  */
-int hxhim::hash::Rank(hxhim_t *hx, void *subject, const std::size_t subject_len, void *predicate, const std::size_t predicate_len, void *args) {
-    (void) subject;
-    (void) subject_len;
-    (void) predicate;
-    (void) predicate_len;
+int hxhim::hash::Rank(hxhim_t *hx, void *, const std::size_t, void *, const std::size_t, void *) {
     return (hx && hx->p)?hx->p->bootstrap.rank:-1;
 }
 
@@ -35,7 +31,7 @@ int hxhim::hash::Rank(hxhim_t *hx, void *subject, const std::size_t subject_len,
  * @param args          a pointer to an int that contains the number of datastores there are
  * @return the destination datastore ID or -1 on error
  */
-int hxhim::hash::SumModDatastores(hxhim_t *hx, void *subject, const std::size_t subject_len, void *predicate, const std::size_t predicate_len, void *args) {
+int hxhim::hash::SumModDatastores(hxhim_t *hx, void *subject, const std::size_t subject_len, void *predicate, const std::size_t predicate_len, void *) {
     if (!hx || !hx->p) {
         return -1;
     }
@@ -52,19 +48,4 @@ int hxhim::hash::SumModDatastores(hxhim_t *hx, void *subject, const std::size_t 
     }
 
     return dst % mod;
-}
-
-/**
- * Local
- * Simple hash that sends all data to the local datastore
- *
- * @param hx            the HXHIM instance
- * @return the destination datastore ID or -1 on error
- */
-int hxhim::hash::Local(hxhim_t *hx, void *, const std::size_t, void *, const std::size_t, void *) {
-    if (!hx || !hx->p) {
-        return -1;
-    }
-
-    return hx->p->bootstrap.rank;
 }

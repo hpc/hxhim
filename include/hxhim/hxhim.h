@@ -8,6 +8,7 @@
 #include <ctype.h>
 
 #include "hxhim/Results.h"
+#include "hxhim/accessors.h"
 #include "hxhim/config.h"
 #include "hxhim/constants.h"
 #include "hxhim/options.h"
@@ -34,6 +35,9 @@ hxhim_results_t *hxhimFlush(hxhim_t *hx);
 
 /** @description Function that forces the datastores to flush to the underlying storage */
 hxhim_results_t *hxhimSync(hxhim_t *hx);
+
+/** @description Function that opens new datastores */
+hxhim_results_t *hxhimChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t func, void *args);
 
 /** @description Functions for queuing operations to perform on the underlying storage */
 int hxhimPut(hxhim_t *hx,

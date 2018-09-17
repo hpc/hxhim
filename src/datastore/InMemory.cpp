@@ -12,17 +12,33 @@ namespace datastore {
 using namespace Transport;
 
 InMemory::InMemory(hxhim_t *hx,
+                   Histogram::Histogram *hist,
+                   const std::string &exact_name)
+    : Datastore(hx, 0, hist),
+      db()
+{
+    Datastore::Open(exact_name);
+}
+
+InMemory::InMemory(hxhim_t *hx,
                    const int id,
-                   Histogram::Histogram *hist)
+                   Histogram::Histogram *hist,
+                   const std::string &basename)
     : Datastore(hx, id, hist),
       db()
-{}
+{
+    Datastore::Open(basename);
+}
 
 InMemory::~InMemory() {
     Close();
 }
 
-void InMemory::Close() {
+bool InMemory::OpenImpl(const std::string &) {
+    return true;
+}
+
+void InMemory::CloseImpl() {
     db.clear();
 }
 
@@ -40,7 +56,7 @@ void InMemory::Close() {
  */
 Response::BPut *InMemory::BPutImpl(void **subjects, std::size_t *subject_lens,
                                    void **predicates, std::size_t *predicate_lens,
-                                   hxhim_type_t *object_types, void **objects, std::size_t *object_lens,
+                                   hxhim_type_t *, void **objects, std::size_t *object_lens,
                                    std::size_t count) {
     Response::BPut *ret = hx->p->memory_pools.responses->acquire<Response::BPut>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, count);
     if (!ret) {
@@ -265,10 +281,6 @@ Response::BDelete *InMemory::BDeleteImpl(void **subjects, std::size_t *subject_l
  */
 int InMemory::SyncImpl() {
     return HXHIM_SUCCESS;
-}
-
-std::ostream &InMemory::print_config(std::ostream &stream) const {
-    return stream;
 }
 
 }

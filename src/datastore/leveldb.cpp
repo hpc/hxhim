@@ -19,10 +19,10 @@ leveldb::leveldb(hxhim_t *hx,
                  Histogram::Histogram *hist,
                  const std::string &exact_name)
     : Datastore(hx, 0, hist),
-      name(exact_name), create_if_missing(false),
+      create_if_missing(false),
       db(nullptr), options()
 {
-    if (!::leveldb::DB::Open(options, exact_name, &db).ok()) {
+    if (!Datastore::Open(exact_name)) {
         throw std::runtime_error("Could not configure leveldb datastore " + exact_name);
     }
 }
@@ -30,18 +30,19 @@ leveldb::leveldb(hxhim_t *hx,
 leveldb::leveldb(hxhim_t *hx,
                  const int id,
                  Histogram::Histogram *hist,
-                 const std::string &name, const bool create_if_missing)
+                 const std::string &basename, const bool create_if_missing)
     : Datastore(hx, id, hist),
-      name(name), create_if_missing(create_if_missing),
+      create_if_missing(create_if_missing),
       db(nullptr), options()
 {
     std::stringstream s;
-    s << name << "-" << id;
+    s << basename << "-" << id;
+    const std::string name = s.str();
 
     options.create_if_missing = create_if_missing;
 
-    if (!::leveldb::DB::Open(options, s.str(), &db).ok()) {
-        throw std::runtime_error("Could not configure leveldb datastore " + s.str());
+    if (!Datastore::Open(name)) {
+        throw std::runtime_error("Could not configure leveldb datastore " + name);
     }
 }
 
@@ -49,7 +50,14 @@ leveldb::~leveldb() {
     Close();
 }
 
-void leveldb::Close() {
+bool leveldb::OpenImpl(const std::string &new_name) {
+    std::stringstream s;
+    s << hx->p->datastore.prefix << "/" << new_name;
+
+    return ::leveldb::DB::Open(options, s.str(), &db).ok();
+}
+
+void leveldb::CloseImpl() {
     delete db;
     db = nullptr;
 }
@@ -68,7 +76,7 @@ void leveldb::Close() {
  */
 Response::BPut *leveldb::BPutImpl(void **subjects, std::size_t *subject_lens,
                                   void **predicates, std::size_t *predicate_lens,
-                                  hxhim_type_t *object_types, void **objects, std::size_t *object_lens,
+                                  hxhim_type_t *, void **objects, std::size_t *object_lens,
                                   std::size_t count) {
     Response::BPut *ret = hx->p->memory_pools.responses->acquire<Response::BPut>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, count);
     if (!ret) {
@@ -334,13 +342,6 @@ int leveldb::SyncImpl() {
     ::leveldb::WriteOptions options;
     options.sync = true;
     return db->Write(options, &batch).ok()?HXHIM_SUCCESS:HXHIM_ERROR;
-}
-
-std::ostream &leveldb::print_config(std::ostream &stream) const {
-    return stream
-        << "leveldb" << std::endl
-        << "    name: " << name << std::endl
-        << "    create_if_missing: " << std::boolalpha << create_if_missing << std::endl;
 }
 
 }

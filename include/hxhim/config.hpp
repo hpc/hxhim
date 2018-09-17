@@ -25,7 +25,7 @@ const std::string HXHIM_DATASTORES_PER_RANGE_SERVER = "DATASTORES_PER_RS";      
 const std::string HXHIM_DATASTORE_TYPE              = "DATASTORE";                 // See HXHIM_DATASTORE_TYPES
 
 /** LevelDB Datastore Options */
-const std::string HXHIM_LEVELDB_NAME                = "LEVELDB_NAME";              // file path
+const std::string HXHIM_LEVELDB_PREFIX              = "LEVELDB_PREFIX";            // string
 const std::string HXHIM_LEVELDB_CREATE_IF_MISSING   = "LEVELDB_CREATE_IF_MISSING"; // boolean
 
 const std::string HXHIM_QUEUED_BULK_PUTS            = "QUEUED_BULK_PUTS";          // nonnegative integer
@@ -108,7 +108,6 @@ const std::map<std::string, hxhim_datastore_t> HXHIM_DATASTORES = {
 const std::map<std::string, hxhim_hash_t> HXHIM_HASHES = {
     std::make_pair("RANK",               hxhim::hash::Rank),
     std::make_pair("SUM_MOD_DATASTORES", hxhim::hash::SumModDatastores),
-    std::make_pair("LOCAL",              hxhim::hash::Local),
 };
 
 /**
@@ -157,7 +156,7 @@ const Config HXHIM_DEFAULT_CONFIG = {
     std::make_pair(HXHIM_DEBUG_LEVEL,                   "CRITICAL"),
     std::make_pair(HXHIM_DATASTORES_PER_RANGE_SERVER,   "1"),
     std::make_pair(HXHIM_DATASTORE_TYPE,                "LEVELDB"),
-    std::make_pair(HXHIM_LEVELDB_NAME,                  "leveldb"),
+    std::make_pair(HXHIM_LEVELDB_PREFIX,                "."),
     std::make_pair(HXHIM_LEVELDB_CREATE_IF_MISSING,     "true"),
     std::make_pair(HXHIM_QUEUED_BULK_PUTS,              "5"),
     std::make_pair(HXHIM_TRANSPORT,                     "NULL"),

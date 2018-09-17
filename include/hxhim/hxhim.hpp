@@ -2,6 +2,7 @@
 #define HXHIM_HPP
 
 #include "hxhim/Results.hpp"
+#include "hxhim/accessors.hpp"
 #include "hxhim/config.h"
 #include "hxhim/config.hpp"
 #include "hxhim/constants.h"

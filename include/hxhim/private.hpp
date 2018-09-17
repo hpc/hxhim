@@ -61,6 +61,7 @@ typedef struct hxhim_private {
     } queues;
 
     struct {
+        std::string prefix;                                    // the datastore path name prefix
         hxhim::datastore::Datastore **datastores;              // fixed array of datastores mapped by rank and index: f(rank, index) -> datastore ID
         std::size_t count;                                     // number of datastores in this process
     } datastore;
@@ -74,7 +75,7 @@ typedef struct hxhim_private {
     } async_put;
 
     struct {
-        const char *name;                                      // name of the hash function used; used to name the datastore
+        std::string name;
         hxhim_hash_t func;                                     // the function used to determine which datastore should be used to perform an operation with
         void *args;                                            // extra arguments to pass into the hash function
     } hash;
