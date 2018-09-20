@@ -10,7 +10,6 @@
 #include "hxhim/options.h"
 #include "hxhim/options.hpp"
 #include "hxhim/struct.h"
-#include "utils/Histogram.hpp"
 
 namespace hxhim {
 

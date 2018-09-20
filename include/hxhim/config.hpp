@@ -9,7 +9,7 @@
 #include "hxhim/hash.hpp"
 #include "transport/constants.hpp"
 #include "utils/Configuration.hpp"
-#include "utils/Histogram.hpp"
+#include "utils/Histogram.h"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 

@@ -6,7 +6,6 @@
 #include "hxhim/constants.h"
 #include "hxhim/options.h"
 #include "hxhim/options_private.hpp"
-#include "utils/Configuration.hpp"
 #include "utils/Histogram.hpp"
 
 /**

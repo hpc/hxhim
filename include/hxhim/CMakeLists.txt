@@ -4,6 +4,8 @@
 install(FILES
   Results.h
   Results.hpp
+  accessors.h
+  accessors.hpp
   config.h
   config.hpp
   constants.h
