@@ -15,7 +15,7 @@
  * @return the number of messages successfully sent
  */
 template <typename Send_t, typename>
-std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::size_t num_srvs, Send_t **messages, int **srvs) {
+std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::size_t num_srvs, Send_t **messages) {
     // This value is 1 too many since local sends will not happen
     mlog(MPI_DBG, "Attempting to send %zu messages", num_srvs - 1);
 
@@ -30,9 +30,7 @@ std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::size_t num_s
     }
 
     // pack the data
-    void **bufs = new void *[num_srvs]();
-    std::size_t *lens = new std::size_t[num_srvs]();
-    int *dsts = new int[num_srvs]();
+    void **bufs = ptrs->acquire_array<void *>(num_srvs);
     std::size_t pack_count = 0;
     for(std::size_t i = 0; i < num_srvs; i++) {
         Send_t *msg = messages[i];
@@ -54,11 +52,10 @@ std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::size_t num_s
     }
 
     mlog(MPI_DBG, "Successfully packed %zu messages", pack_count);
-    *srvs = new int[pack_count];
 
     // send sizes and data in parallel
-    MPI_Request **size_reqs = new MPI_Request *[pack_count]();
-    MPI_Request **data_reqs = new MPI_Request *[pack_count]();
+    MPI_Request **size_reqs = ptrs->acquire_array<MPI_Request *>(pack_count);
+    MPI_Request **data_reqs = ptrs->acquire_array<MPI_Request *>(pack_count);
     std::size_t size_count = 0;
     std::size_t data_count = 0;
 
@@ -72,8 +69,7 @@ std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::size_t num_s
         }
 
         // send size
-        size_reqs[size_count] = new MPI_Request();
-
+        size_reqs[size_count] = mpi_requests->acquire<MPI_Request>();
 
         mlog(MPI_DBG, "Attempting to send packed message[%zu] (size %zu, %d -> %d)", i, lens[i], rank, dst_it->second);
 
@@ -83,21 +79,21 @@ std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::size_t num_s
             size_count++;
 
             // send data
-            data_reqs[data_count] = new MPI_Request();
+            data_reqs[data_count] = mpi_requests->acquire<MPI_Request>();
             if (MPI_Isend(bufs[i], lens[i], MPI_CHAR, dst_it->second, TRANSPORT_MPI_DATA_REQUEST_TAG, comm, data_reqs[data_count]) == MPI_SUCCESS) {
                 mlog(MPI_DBG, "Successfully started data of size %zu to server %d", lens[i], dst_it->second);
-                (*srvs)[data_count] = dst_it->second;
+                srvs[data_count] = dst_it->second;
                 data_count++;
             }
             else {
                 mlog(MPI_ERR, "Errored while sending data of size %zu to server %d", lens[i], dst_it->second);
-                delete data_reqs[data_count];
+                mpi_requests->release(data_reqs[i]);
                 data_reqs[data_count] = nullptr;
             }
         }
         else {
             mlog(MPI_ERR, "Errored while sending size %zu to server %d", lens[i], dst_it->second);
-            delete size_reqs[size_count];
+            mpi_requests->release(size_reqs[i]);
             size_reqs[size_count] = nullptr;
         }
     }
@@ -121,7 +117,7 @@ std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::size_t num_s
             MPI_Test(size_reqs[i], &flag, &status);
 
             if (flag) {
-                delete size_reqs[i];
+                mpi_requests->release(size_reqs[i]);
                 size_reqs[i] = nullptr;
                 done++;
             }
@@ -138,21 +134,34 @@ std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::size_t num_s
             MPI_Test(data_reqs[i], &flag, &status);
 
             if (flag) {
-                delete data_reqs[i];
+                mpi_requests->release(data_reqs[i]);
                 data_reqs[i] = nullptr;
                 done++;
             }
         }
     }
 
-    delete [] data_reqs;
-    delete [] size_reqs;
+    // Free any remaining requests
+    for(std::size_t i = 0; i < size_count; i++) {
+        if (size_reqs[i]) {
+            MPI_Request_free(size_reqs[i]);
+            mpi_requests->release(size_reqs[i]);
+        }
+    }
+
+    for(std::size_t i = 0; i < data_count; i++) {
+        if (data_reqs[i]) {
+            MPI_Request_free(data_reqs[i]);
+            mpi_requests->release(data_reqs[i]);
+        }
+    }
+
+    ptrs->release_array(data_reqs, pack_count);
+    ptrs->release_array(size_reqs, pack_count);
     for(std::size_t i = 0; i < pack_count; i++) {
         packed->release(bufs[i], lens[i]);
     }
-    delete [] dsts;
-    delete [] lens;
-    delete [] bufs;
+    ptrs->release_array(bufs, num_srvs);
 
     mlog(MPI_DBG, "Messages completed: %zu", data_count);
 
@@ -184,8 +193,7 @@ std::size_t Transport::MPI::EndpointGroup::parallel_recv(const std::size_t nsrcs
 
     mlog(MPI_DBG, "Waiting to receive %zu messages", nsrcs);
 
-    MPI_Request **reqs = new MPI_Request *[nsrcs]();
-    std::size_t *sizebufs = new std::size_t[nsrcs]();
+    MPI_Request **reqs = ptrs->acquire_array<MPI_Request *>(nsrcs);
 
     // use reqs to receive size messages from the servers in the list
     std::size_t size_req_count = 0;
@@ -194,15 +202,15 @@ std::size_t Transport::MPI::EndpointGroup::parallel_recv(const std::size_t nsrcs
         std::map<int, int>::const_iterator src_it = ranks.find(srcs[i]);
 
         if (src_it != ranks.end()) {
-            reqs[size_req_count] = new MPI_Request();
-            if (MPI_Irecv(&sizebufs[i], sizeof(sizebufs[i]), MPI_CHAR,
+            reqs[size_req_count] = mpi_requests->acquire<MPI_Request>();
+            if (MPI_Irecv(&lens[i], sizeof(lens[i]), MPI_CHAR,
                           src_it->second, TRANSPORT_MPI_SIZE_RESPONSE_TAG, comm, reqs[size_req_count]) == MPI_SUCCESS) {
                 mlog(MPI_DBG, "Receiving size[%zu] from %d %d", i, src_it->second, srcs[i]);
                 size_req_count++;
             }
             else {
                 mlog(MPI_DBG, "Failed to start receiving size[%zu]", i);
-                delete reqs[size_req_count];
+                mpi_requests->release(reqs[size_req_count]);
                 reqs[size_req_count] = nullptr;
             }
         }
@@ -210,7 +218,7 @@ std::size_t Transport::MPI::EndpointGroup::parallel_recv(const std::size_t nsrcs
 
     // Wait for size messages to complete
     mlog(MPI_DBG, "Waiting for size to be received");
-    // Wait for size messages to complete
+
     std::size_t done = 0;
     while (running && (done != size_req_count)) {
         for(std::size_t i = 0; i < size_req_count; i++) {
@@ -225,36 +233,44 @@ std::size_t Transport::MPI::EndpointGroup::parallel_recv(const std::size_t nsrcs
                 // if the request completed, add 1
                 if (flag) {
                     // mlog(MPI_DBG, "size received: %zu", i);
-                    delete reqs[i];
+                    mpi_requests->release(reqs[i]);
                     reqs[i] = nullptr;
                     done++;
                 }
                 else {
-                    // mlog(MPI_DBG, "size[%zu] not completed yet %zu", i, sizeof(sizebufs[i]));
+                    // mlog(MPI_DBG, "size[%zu] not completed yet %zu", i, sizeof(lens[i]));
                 }
             }
         }
     }
 
-    mlog(MPI_DBG, "Receiving %zu sizes", done);
+    // Free any remaining requests
+    for(std::size_t i = 0; i < size_req_count; i++) {
+        if (reqs[i]) {
+            MPI_Request_free(reqs[i]);
+            mpi_requests->release(reqs[i]);
+        }
+    }
+
+    mlog(MPI_DBG, "Received %zu sizes", done);
 
     // reuse reqs to receive data messages from the servers
     std::size_t data_req_count = 0;
-    void **recvbufs = new void *[size_req_count]();
+    void **recvbufs = ptrs->acquire_array<void *>(size_req_count);
     for(std::size_t i = 0; i < size_req_count; i++) {
         std::map<int, int>::const_iterator src_it = ranks.find(srcs[i]);
         if (src_it != ranks.end()) {
             // Receive a message from the servers in the list
-            reqs[data_req_count] = new MPI_Request();
-            recvbufs[data_req_count] = packed->acquire(sizebufs[i]);
-            if (MPI_Irecv(recvbufs[data_req_count], sizebufs[i], MPI_CHAR,
+            reqs[data_req_count] = mpi_requests->acquire<MPI_Request>();
+            recvbufs[data_req_count] = packed->acquire(lens[i]);
+            if (MPI_Irecv(recvbufs[data_req_count], lens[i], MPI_CHAR,
                           src_it->second, TRANSPORT_MPI_DATA_RESPONSE_TAG, comm, reqs[data_req_count]) == MPI_SUCCESS) {
                 data_req_count++;
             }
             else {
-                delete reqs[data_req_count];
+                mpi_requests->release(reqs[data_req_count]);
                 reqs[data_req_count] = nullptr;
-                packed->release(recvbufs[data_req_count], sizebufs[data_req_count]);
+                packed->release(recvbufs[data_req_count], lens[data_req_count]);
             }
         }
     }
@@ -263,7 +279,7 @@ std::size_t Transport::MPI::EndpointGroup::parallel_recv(const std::size_t nsrcs
 
     // Wait for messages to complete
     mlog(MPI_DBG, "Waiting for data to be received");
-    //Wait for messages to complete
+
     done = 0;
     while (running && (done != data_req_count)) {
         for(std::size_t i = 0; i < data_req_count; i++) {
@@ -280,7 +296,7 @@ std::size_t Transport::MPI::EndpointGroup::parallel_recv(const std::size_t nsrcs
                 continue;
             }
 
-            delete reqs[i];
+            mpi_requests->release(reqs[i]);
             reqs[i] = nullptr;
             done++;
         }
@@ -288,21 +304,28 @@ std::size_t Transport::MPI::EndpointGroup::parallel_recv(const std::size_t nsrcs
 
     mlog(MPI_DBG, "Data received");
 
-    delete [] reqs;
+    // Free any remaining requests
+    for(std::size_t i = 0; i < data_req_count; i++) {
+        if (reqs[i]) {
+            MPI_Request_free(reqs[i]);
+            mpi_requests->release(reqs[i]);
+        }
+    }
+
+    ptrs->release_array(reqs, nsrcs);
 
     // unpack the data
     std::size_t valid = 0;
-    *messages = new Recv_t *[data_req_count]();
+    *messages = arrays->acquire_array<Recv_t *>(data_req_count);
     for(std::size_t i = 0; i < data_req_count; i++) {
-        if (Unpacker::unpack(comm, &((*messages)[valid]), recvbufs[i], sizebufs[i], responses, arrays, buffers) == TRANSPORT_SUCCESS) {
+        if (Unpacker::unpack(comm, &((*messages)[valid]), recvbufs[i], lens[i], responses, arrays, buffers) == TRANSPORT_SUCCESS) {
             valid++;
         }
 
-        packed->release(recvbufs[i], sizebufs[i]);
+        packed->release(recvbufs[i], lens[i]);
     }
 
-    delete [] sizebufs;
-    delete [] recvbufs;
+    ptrs->release_array(recvbufs, size_req_count);
 
     // return how many messages were successfully unpacked
     return valid;
@@ -321,10 +344,8 @@ template<typename Recv_t, typename Send_t, typename>
 Recv_t *Transport::MPI::EndpointGroup::return_msgs(const std::size_t num_rangesrvs, Send_t **messages) {
     mlog(MPI_DBG, "Maximum number of messages: %zu", num_rangesrvs);
 
-    int *srvs = nullptr;
-
     // return value here is not useful
-    const std::size_t sent = parallel_send(num_rangesrvs, messages, &srvs);
+    const std::size_t sent = parallel_send(num_rangesrvs, messages);
 
     mlog(MPI_DBG, "Sent to %zu servers:", sent);
     for(std::size_t i = 0; i < sent; i++) {
@@ -337,8 +358,6 @@ Recv_t *Transport::MPI::EndpointGroup::return_msgs(const std::size_t num_rangesr
     Recv_t **recv_list = nullptr;
     const std::size_t recvd = parallel_recv(sent, srvs, &recv_list);
     mlog(MPI_DBG, "Received from %zu servers", recvd);
-
-    delete [] srvs;
 
     // convert the responses into a list
     Recv_t *head = nullptr;
@@ -358,7 +377,7 @@ Recv_t *Transport::MPI::EndpointGroup::return_msgs(const std::size_t num_rangesr
         }
     }
 
-    delete [] recv_list;
+    arrays->release_array(recv_list, recvd);
 
     mlog(MPI_DBG, "Completed return_msgs");
 

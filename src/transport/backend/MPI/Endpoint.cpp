@@ -115,7 +115,12 @@ int Endpoint::Flush(MPI_Request &req) {
         MPI_Test(&req, &flag, &status);
     }
 
-    return flag?TRANSPORT_SUCCESS:TRANSPORT_ERROR;
+    if (flag) {
+        return TRANSPORT_SUCCESS;
+    }
+
+    MPI_Request_free(&req);
+    return TRANSPORT_ERROR;
 }
 
 }

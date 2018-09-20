@@ -131,7 +131,6 @@ int RangeServer::recv(void **data, std::size_t *len) {
     }
 
     // mlog(MPI_DBG, "MPI Range Server got data of size %zu", *len);
-
     return TRANSPORT_SUCCESS;
 }
 
@@ -188,6 +187,7 @@ int RangeServer::Flush(MPI_Request &req) {
     }
 
     // mlog(MPI_DBG, "MPI Range Server flush failed (flag %d, running %d)", flag, hx_->p->running.load());
+    MPI_Request_free(&req);
     return TRANSPORT_ERROR;
 }
 
@@ -213,6 +213,7 @@ int RangeServer::Flush(MPI_Request &req, MPI_Status &status) {
     }
 
     // mlog(MPI_DBG, "MPI Range Server flush failed (flag %d, running %d)", flag, hx_->p->running.load());
+    MPI_Request_free(&req);
     return TRANSPORT_ERROR;
 }
 

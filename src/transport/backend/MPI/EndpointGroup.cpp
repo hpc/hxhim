@@ -1,4 +1,5 @@
 #include "transport/backend/MPI/EndpointGroup.hpp"
+#include "utils/MemoryManager.hpp"
 
 namespace Transport {
 namespace MPI {
@@ -13,13 +14,22 @@ EndpointGroup::EndpointGroup(const MPI_Comm comm,
     EndpointBase(comm),
     ranks(),
     running(running),
+    mpi_requests(MemoryManager::FBP(sizeof(MPI_Request), (size - 1) * 2, "MPI_Request")),
+    ptrs(MemoryManager::FBP(sizeof(void *) * size, 3, "MPI Pointers")),
+    lens(new std::size_t[size]),
+    dsts(new int[size]),
+    srvs(new int[size]),
     packed(packed),
     responses(responses),
     arrays(arrays),
     buffers(buffers)
 {}
 
-EndpointGroup::~EndpointGroup() {}
+EndpointGroup::~EndpointGroup() {
+    delete [] srvs;
+    delete [] dsts;
+    delete [] lens;
+}
 
 /**
  * AddID

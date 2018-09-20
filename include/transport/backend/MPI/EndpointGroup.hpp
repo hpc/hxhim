@@ -53,12 +53,10 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup, virtual public 
         Response::BHistogram *BHistogram(const std::size_t num_rangesrvs, Request::BHistogram **bhist_list);
 
     private:
-        /**
-         * Functions that perform the actual MPI calls
-         */
+        /** @escription Functions that perform the actual MPI calls */
         template <typename Send_t, typename = std::enable_if_t<std::is_base_of<Request::Request, Send_t>::value &&
                                                                std::is_base_of<Bulk,             Send_t>::value> >
-        std::size_t parallel_send(const std::size_t num_srvs, Send_t **messages, int **dsts);    // send to range server
+        std::size_t parallel_send(const std::size_t num_srvs, Send_t **messages);                // send to range server
 
         template <typename Recv_t, typename = std::enable_if_t<std::is_base_of<Response::Response, Recv_t>::value &&
                                                                std::is_base_of<Bulk,               Recv_t>::value> >
@@ -75,6 +73,17 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup, virtual public 
 
         volatile std::atomic_bool &running;
 
+        /** MPI Specific Allocators */
+        FixedBufferPool *mpi_requests;
+        FixedBufferPool *ptrs;
+
+        /** Memory that is only allocated once during the lifetime of EndpointGroup
+            and is only used by one function at a time */
+        std::size_t *lens;
+        int *dsts;
+        int *srvs;
+
+        /** Allocators from HXHIM */
         FixedBufferPool *packed;
         FixedBufferPool *responses;
         FixedBufferPool *arrays;
