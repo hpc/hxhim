@@ -77,8 +77,8 @@ FixedBufferPool::~FixedBufferPool() {
         }
     }
 
-    FBP_LOG(FBP_INFO, "Maximum Granted Allocation Size: %zu", stats.max_size);
-    FBP_LOG(FBP_INFO, "Maximum Number of Regions Used: %zu", stats.max_used);
+    FBP_LOG(FBP_INFO, "Maximum granted allocation size: %zu", stats.max_size);
+    FBP_LOG(FBP_INFO, "Maximum number of regions used at once: %zu", stats.max_used);
 
     delete [] nodes_;
     nodes_ = nullptr;

@@ -16,7 +16,7 @@ static const char *OBJECT = "OBJECT";
 static const std::size_t OBJECT_LEN = strlen(OBJECT);
 
 static const std::size_t ALLOC_SIZE = 192;
-static const std::size_t REGIONS = 256;
+static const std::size_t REGIONS = 32;
 
 using namespace ::Transport;
 using namespace ::Transport::Thallium;

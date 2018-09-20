@@ -18,7 +18,7 @@ static const char *OBJECT = "OBJECT";
 static const std::size_t OBJECT_LEN = strlen(OBJECT);
 
 static const std::size_t ALLOC_SIZE = 192;
-static const std::size_t REGIONS = 256;
+static const std::size_t REGIONS = 32;
 
 using namespace ::Transport;
 using namespace ::Transport::MPI;
@@ -39,11 +39,11 @@ TEST(MPIInstance, WorldSize) {
     EXPECT_EQ(Instance::instance().WorldSize(), 1);
 }
 
-static FixedBufferPool *packed = MemoryManager::FBP(ALLOC_SIZE, REGIONS, "MPI Pack/Unpack Test - Packed");
-static FixedBufferPool *requests = MemoryManager::FBP(ALLOC_SIZE, REGIONS, "MPI Pack/Unpack Test - Requests");
+static FixedBufferPool *packed    = MemoryManager::FBP(ALLOC_SIZE, REGIONS, "MPI Pack/Unpack Test - Packed");
+static FixedBufferPool *requests  = MemoryManager::FBP(ALLOC_SIZE, REGIONS, "MPI Pack/Unpack Test - Requests");
 static FixedBufferPool *responses = MemoryManager::FBP(ALLOC_SIZE, REGIONS, "MPI Pack/Unpack Test - Responses");
-static FixedBufferPool *arrays = MemoryManager::FBP(ALLOC_SIZE, REGIONS, "MPI Pack/Unpack Test - Arrays");
-static FixedBufferPool *buffers = MemoryManager::FBP(ALLOC_SIZE, REGIONS, "MPI Pack/Unpack Test - Buffers");
+static FixedBufferPool *arrays    = MemoryManager::FBP(ALLOC_SIZE, REGIONS, "MPI Pack/Unpack Test - Arrays");
+static FixedBufferPool *buffers   = MemoryManager::FBP(ALLOC_SIZE, REGIONS, "MPI Pack/Unpack Test - Buffers");
 
 TEST(mpi_pack_unpack, RequestPut) {
     const MPI_Comm comm = Instance::instance().Comm();
