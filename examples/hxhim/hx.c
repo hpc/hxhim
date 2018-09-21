@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
     // PUT the key value pairs into MDHIM
     for(size_t i = 0; i < count; i++) {
         hxhimPut(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_BYTE_TYPE, objects[i], object_lens[i]);
-        printf("Rank %d PUT {%.*s, %.*s} -> %.*s\n", rank, (int) subject_lens[i], subjects[i], (int) predicate_lens[i], predicates[i], (int) object_lens[i], objects[i]);
+        printf("Rank %d PUT {%.*s, %.*s} -> %.*s\n", rank, (int) subject_lens[i], (char *) subjects[i], (int) predicate_lens[i], (char *) predicates[i], (int) object_lens[i], (char *) objects[i]);
     }
 
     // GET them back, flushing only the GETs

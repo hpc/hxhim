@@ -5,13 +5,11 @@
 # repositories are installed. yum/rpm repostories are only
 # checked for, not installed.
 #
-# clang is used instead of gcc because gcc generates the
-# C++11 ABI even through C++14 is specified in thallium.
+# CC and CXX can be set to change the compiler
 #
 # Packages:
 #     autoconf/automake/libtool
 #     boost-devel
-#     clang
 #     cmake (3+)
 #     libev-devel
 #     libtool-ltdl-devel
@@ -49,10 +47,6 @@ function check_autoconf() {
     check_package autoconf
 }
 
-function check_clang() {
-    check_package clang
-}
-
 function check_cmake() {
     check_package cmake
 }
@@ -74,7 +68,7 @@ function NA_BMI() {
     mkdir -p build
     cd build
     install_dir=$PREFIX/$name
-    CC=clang CXX=clang++ PKG_CONFIG_PATH=$PKG_CONFIG_PATH ../configure --prefix=$PREFIX/$name --enable-shared --enable-bmi-only
+    PKG_CONFIG_PATH=$PKG_CONFIG_PATH ../configure --prefix=$PREFIX/$name --enable-shared --enable-bmi-only
     make -j ${PROCS}
     make -j ${PROCS} install
     cd ../..
@@ -97,7 +91,7 @@ function NA_CCI() {
     mkdir -p build
     cd build
     install_dir=$PREFIX/$name
-    CC=clang CXX=clang++ PKG_CONFIG_PATH=$PKG_CONFIG_PATH ../configure --prefix=$install_dir
+    PKG_CONFIG_PATH=$PKG_CONFIG_PATH ../configure --prefix=$install_dir
     make -j ${PROCS}
     make -j ${PROCS} install
     cd ../..
@@ -143,7 +137,7 @@ function mercury() {
     mkdir -p build
     cd build
     install_dir=$PREFIX/$name
-    CC=clang CXX=clang++ PKG_CONFIG_PATH=$PKG_CONFIG_PATH cmake -DCMAKE_INSTALL_PREFIX=$install_dir -DMERCURY_USE_BOOST_PP:BOOL=ON -DMERCURY_USE_SYSTEM_BOOST:BOOL=ON -DBUILD_SHARED_LIBS:BOOL=ON $(echo "$cmake_options") ..
+    PKG_CONFIG_PATH=$PKG_CONFIG_PATH cmake -DCMAKE_INSTALL_PREFIX=$install_dir -DMERCURY_USE_BOOST_PP:BOOL=ON -DMERCURY_USE_SYSTEM_BOOST:BOOL=ON -DBUILD_SHARED_LIBS:BOOL=ON $(echo "$cmake_options") ..
     make -j ${PROCS}
     make -j ${PROCS} install
     cd ../..
@@ -158,7 +152,7 @@ function check_libev() {
 
 function argobots() {
     check_autoconf
-    check_libev
+    # check_libev
 
     name=argobots
     if [[ ! -d "$name" ]]; then
@@ -170,7 +164,7 @@ function argobots() {
     mkdir -p build
     cd build
     install_dir=$PREFIX/$name
-    CC=clang CXX=clang++ PKG_CONFIG_PATH=$PKG_CONFIG_PATH ../configure --prefix=$install_dir
+    PKG_CONFIG_PATH=$PKG_CONFIG_PATH ../configure --prefix=$install_dir
     make -j ${PROCS}
     make -j ${PROCS} install
     cd ../..
@@ -184,7 +178,7 @@ function check_libtool_ltdl() {
 
 function margo() {
     check_autoconf
-    check_libtool_ltdl
+    # check_libtool_ltdl
 
     argobots
     mercury
@@ -199,7 +193,7 @@ function margo() {
     ./prepare.sh
     cd build
     install_dir=$PREFIX/$name
-    CC=clang CXX=clang++ PKG_CONFIG_PATH=$PKG_CONFIG_PATH PKG_CONFIG_PATH=$PKG_CONFIG_PATH ../configure --prefix=$install_dir
+    PKG_CONFIG_PATH=$PKG_CONFIG_PATH PKG_CONFIG_PATH=$PKG_CONFIG_PATH ../configure --prefix=$install_dir
     make -j ${PROCS}
     make -j ${PROCS} install
     cd ../..
@@ -221,7 +215,7 @@ function thallium() {
     mkdir -p build
     cd build
     install_dir=$PREFIX/$name
-    CC=clang CXX=clang++ PKG_CONFIG_PATH=$PKG_CONFIG_PATH mercury_DIR=$MERCURY_DIR cmake -DCMAKE_INSTALL_PREFIX=$install_dir -DCMAKE_CXX_EXTENSIONS:BOOL=OFF ..
+    PKG_CONFIG_PATH=$PKG_CONFIG_PATH mercury_DIR=$MERCURY_DIR cmake -DCMAKE_INSTALL_PREFIX=$install_dir -DCMAKE_CXX_EXTENSIONS:BOOL=OFF ..
     make -j ${PROCS}
     make -j ${PROCS} install
     cd ../..
@@ -259,7 +253,7 @@ function leveldb() {
     mkdir -p build
     cd build
     install_dir=$PREFIX/$name
-    CC=clang CXX=clang++ PKG_CONFIG_PATH=$PKG_CONFIG_PATH cmake -DCMAKE_INSTALL_PREFIX=$install_dir ..
+    PKG_CONFIG_PATH=$PKG_CONFIG_PATH cmake -DCMAKE_INSTALL_PREFIX=$install_dir ..
     make -j ${PROCS}
     make -j ${PROCS} install
     cd ../..
@@ -311,7 +305,6 @@ PKG_CONFIG_PATH=
 mkdir -p $WORKING_DIR
 cd $WORKING_DIR
 
-check_clang
 thallium
 leveldb
 

@@ -338,6 +338,7 @@ static bool valid(hxhim_t *hx, hxhim_options_t *opts) {
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
 int hxhim::init::bootstrap(hxhim_t *hx, hxhim_options_t *opts) {
+    mlog(HXHIM_CLIENT_INFO, "Starting MPI Bootstrap Initialization");
     if (!valid(hx, opts)) {
         return HXHIM_ERROR;
     }
@@ -345,8 +346,11 @@ int hxhim::init::bootstrap(hxhim_t *hx, hxhim_options_t *opts) {
     if (((hx->p->bootstrap.comm = opts->p->comm)                      == MPI_COMM_NULL) ||
         (MPI_Comm_rank(hx->p->bootstrap.comm, &hx->p->bootstrap.rank) != MPI_SUCCESS)   ||
         (MPI_Comm_size(hx->p->bootstrap.comm, &hx->p->bootstrap.size) != MPI_SUCCESS))   {
+        mlog(HXHIM_CLIENT_ERR, "Failed MPI Bootstrap Initialization");
         return HXHIM_ERROR;
     }
+
+    mlog(HXHIM_CLIENT_INFO, "Completed MPI Bootstrap Intialization");
 
     return HXHIM_SUCCESS;
 }
@@ -378,6 +382,7 @@ int hxhim::init::running(hxhim_t *hx, hxhim_options_t *opts) {
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
 int hxhim::init::memory(hxhim_t *hx, hxhim_options_t *opts) {
+    mlog(HXHIM_CLIENT_INFO, "Starting Memory Initialization");
     if (!valid(hx, opts)) {
         return HXHIM_ERROR;
     }
@@ -560,6 +565,7 @@ int hxhim::init::async_put(hxhim_t *hx, hxhim_options_t *opts) {
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
 int hxhim::init::hash(hxhim_t *hx, hxhim_options_t *opts) {
+    mlog(HXHIM_CLIENT_INFO, "Starting Hash Initalization");
     if (!valid(hx, opts)) {
         return HXHIM_ERROR;
     }
@@ -568,8 +574,7 @@ int hxhim::init::hash(hxhim_t *hx, hxhim_options_t *opts) {
     hx->p->hash.func = opts->p->hash.func;
     hx->p->hash.args = opts->p->hash.args;
 
-    mlog(HXHIM_CLIENT_INFO, "Initialized hash function with name %s", hx->p->hash.name.c_str());
-
+    mlog(HXHIM_CLIENT_INFO, "Completed Hash Initalization");
     return HXHIM_SUCCESS;
 }
 
@@ -582,6 +587,7 @@ int hxhim::init::hash(hxhim_t *hx, hxhim_options_t *opts) {
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
 int hxhim::init::transport(hxhim_t *hx, hxhim_options_t *opts) {
+    mlog(HXHIM_CLIENT_INFO, "Starting Transport Initialization");
     if (!valid(hx, opts)) {
         return HXHIM_ERROR;
     }
@@ -610,6 +616,7 @@ int hxhim::init::transport(hxhim_t *hx, hxhim_options_t *opts) {
             break;
     }
 
+    mlog(HXHIM_CLIENT_INFO, "Completed Transport Initialization");
     return (ret == TRANSPORT_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 

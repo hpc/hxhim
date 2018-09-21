@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "hxhim/Results_private.hpp"
+#include "hxhim/config.hpp"
 #include "hxhim/hxhim.h"
 #include "hxhim/hxhim.hpp"
 #include "hxhim/local_client.hpp"
@@ -39,9 +40,9 @@ int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
     if ((init::bootstrap(hx, opts) != HXHIM_SUCCESS) ||
         (init::running  (hx, opts) != HXHIM_SUCCESS) ||
         (init::memory   (hx, opts) != HXHIM_SUCCESS) ||
-        (init::hash     (hx, opts) != HXHIM_SUCCESS) ||
         (init::datastore(hx, opts) != HXHIM_SUCCESS) ||
         (init::async_put(hx, opts) != HXHIM_SUCCESS) ||
+        (init::hash     (hx, opts) != HXHIM_SUCCESS) ||
         (init::transport(hx, opts) != HXHIM_SUCCESS)) {
         MPI_Barrier(hx->p->bootstrap.comm);
         Close(hx);
@@ -49,8 +50,10 @@ int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
+    mlog(HXHIM_CLIENT_INFO, "Waiting for everyone to complete initialization");
     MPI_Barrier(hx->p->bootstrap.comm);
     mlog(HXHIM_CLIENT_INFO, "Successfully initialized HXHIM on rank %d/%d", hx->p->bootstrap.rank, hx->p->bootstrap.size);
+
     return HXHIM_SUCCESS;
 }
 

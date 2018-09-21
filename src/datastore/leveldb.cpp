@@ -9,6 +9,8 @@
 #include "datastore/leveldb.hpp"
 #include "hxhim/triplestore.hpp"
 #include "hxhim/private.hpp"
+#include "utils/mlog2.h"
+#include "utils/mlogfacs2.h"
 
 namespace hxhim {
 namespace datastore {
@@ -25,6 +27,8 @@ leveldb::leveldb(hxhim_t *hx,
     if (!Datastore::Open(exact_name)) {
         throw std::runtime_error("Could not configure leveldb datastore " + exact_name);
     }
+
+    mlog(LEVELDB_INFO, "Opened leveldb with name: %s", exact_name.c_str());
 }
 
 leveldb::leveldb(hxhim_t *hx,
@@ -44,6 +48,8 @@ leveldb::leveldb(hxhim_t *hx,
     if (!Datastore::Open(name)) {
         throw std::runtime_error("Could not configure leveldb datastore " + name);
     }
+
+    mlog(LEVELDB_INFO, "Opened leveldb with name: %s", s.str().c_str());
 }
 
 leveldb::~leveldb() {
