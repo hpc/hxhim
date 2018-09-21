@@ -72,7 +72,7 @@ void print_results(hxhim_t *hx, const int print_rank, hxhim_results_t *results) 
                     size_t object_len = 0;
                     hxhim_results_get_object(results, &object, &object_len);
 
-                    printf("{%.*s, %.*s} -> ", (int) subject_len, subject, (int) predicate_len, predicate);
+                    printf("{%.*s, %.*s} -> ", (int) subject_len, (char *) subject, (int) predicate_len, (char *) predicate);
                     print_by_type(object_type, object, object_len);
                 }
                 else {

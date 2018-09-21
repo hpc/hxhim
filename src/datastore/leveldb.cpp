@@ -40,7 +40,7 @@ leveldb::leveldb(hxhim_t *hx,
       db(nullptr), options()
 {
     std::stringstream s;
-    s << basename << "-" << id;
+    s << hx->p->datastore.prefix << "/" << basename << "-" << id;
     const std::string name = s.str();
 
     options.create_if_missing = create_if_missing;
@@ -57,10 +57,7 @@ leveldb::~leveldb() {
 }
 
 bool leveldb::OpenImpl(const std::string &new_name) {
-    std::stringstream s;
-    s << hx->p->datastore.prefix << "/" << new_name;
-
-    return ::leveldb::DB::Open(options, s.str(), &db).ok();
+    return ::leveldb::DB::Open(options, new_name, &db).ok();
 }
 
 void leveldb::CloseImpl() {

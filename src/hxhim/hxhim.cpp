@@ -40,9 +40,9 @@ int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
     if ((init::bootstrap(hx, opts) != HXHIM_SUCCESS) ||
         (init::running  (hx, opts) != HXHIM_SUCCESS) ||
         (init::memory   (hx, opts) != HXHIM_SUCCESS) ||
+        (init::hash     (hx, opts) != HXHIM_SUCCESS) ||
         (init::datastore(hx, opts) != HXHIM_SUCCESS) ||
         (init::async_put(hx, opts) != HXHIM_SUCCESS) ||
-        (init::hash     (hx, opts) != HXHIM_SUCCESS) ||
         (init::transport(hx, opts) != HXHIM_SUCCESS)) {
         MPI_Barrier(hx->p->bootstrap.comm);
         Close(hx);

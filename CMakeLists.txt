@@ -35,6 +35,12 @@ find_package(PkgConfig REQUIRED)
 # External projects
 #
 find_package(MPI REQUIRED)
+
+if (CMAKE_SYSTEM_NAME STREQUAL "CrayLinuxEnvironment")
+    set(MPI_C_COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS} -dynamic -craympich-mt")
+    set(MPI_CXX_COMPILE_FLAGS "${MPI_CXX_COMPILE_FLAGS} -dynamic -craympich-mt")
+endif()
+
 message(STATUS "MPI_C_LIBRARIES=" ${MPI_C_LIBRARIES})
 message(STATUS "MPI_C_LINK_FLAGS=" ${MPI_C_LINK_FLAGS})
 message(STATUS "MPI_C_COMPILE_FLAGS=" ${MPI_C_COMPILE_FLAGS})
@@ -99,12 +105,20 @@ file(GLOB_RECURSE UTILS src/utils/*.c*)
 set(LIBHXHIM_SOURCES ${BASE} ${DATASTORE} ${HXHIM} ${TRANSPORT} ${UTILS})
 list(REMOVE_ITEM LIBHXHIM_SOURCES **.tpp)
 message(STATUS "LIBHXHIM_SOURCES: " ${LIBHXHIM_SOURCES})
+
 add_library(hxhim OBJECT ${LIBHXHIM_SOURCES})
-set_target_properties(hxhim PROPERTIES POSITION_INDEPENDENT_CODE ON)
-add_library(hxhim.a  STATIC $<TARGET_OBJECTS:hxhim>)
-set_target_properties(hxhim.a  PROPERTIES OUTPUT_NAME hxhim)
-add_library(hxhim.so SHARED $<TARGET_OBJECTS:hxhim>)
-set_target_properties(hxhim.so PROPERTIES OUTPUT_NAME hxhim)
+add_library(hxhim.a STATIC $<TARGET_OBJECTS:hxhim>)
+set_target_properties(hxhim.a PROPERTIES OUTPUT_NAME hxhim)
+
+if (NOT CMAKE_SYSTEM_NAME STREQUAL "CrayLinuxEnvironment")
+   set_target_properties(hxhim PROPERTIES POSITION_INDEPENDENT_CODE ON)
+   add_library(hxhim.so SHARED $<TARGET_OBJECTS:hxhim>)
+   set_target_properties(hxhim.so PROPERTIES OUTPUT_NAME hxhim)
+
+   INSTALL(TARGETS
+     hxhim.so
+     DESTINATION lib)
+endif()
 
 #
 # Install headers and libraries
@@ -113,7 +127,6 @@ add_subdirectory(include)
 
 INSTALL(TARGETS
   hxhim.a
-  hxhim.so
   DESTINATION lib)
 
 #
