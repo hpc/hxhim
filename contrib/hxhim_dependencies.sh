@@ -152,7 +152,7 @@ function check_libev() {
 
 function argobots() {
     check_autoconf
-    # check_libev
+    check_libev
 
     name=argobots
     if [[ ! -d "$name" ]]; then
@@ -178,7 +178,7 @@ function check_libtool_ltdl() {
 
 function margo() {
     check_autoconf
-    # check_libtool_ltdl
+    check_libtool_ltdl
 
     argobots
     mercury
