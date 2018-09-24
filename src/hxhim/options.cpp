@@ -29,6 +29,7 @@ int hxhim_options_init(hxhim_options_t *opts) {
 
     // Set default values that the user should not change
     if ((hxhim_options_set_bulks_alloc_size(opts, hxhim::MaxSize::Bulks())         != HXHIM_SUCCESS) ||
+        (hxhim_options_set_keys_regions(opts, 1)                                   != HXHIM_SUCCESS) ||
         (hxhim_options_set_requests_alloc_size(opts, hxhim::MaxSize::Requests())   != HXHIM_SUCCESS) ||
         (hxhim_options_set_responses_alloc_size(opts, hxhim::MaxSize::Responses()) != HXHIM_SUCCESS) ||
         (hxhim_options_set_result_alloc_size(opts, hxhim::MaxSize::Result())       != HXHIM_SUCCESS) ||

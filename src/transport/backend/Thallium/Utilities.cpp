@@ -32,18 +32,25 @@ int Transport::Thallium::get_addrs(const MPI_Comm comm, const thallium::engine &
     }
     max_len++; // nullptr terminate
 
+    // copy the address string and ensure the string is null terminated
+    char *copy = new char[max_len]();
+    memcpy(copy, self.c_str(), self_len);
+
     // get addresses
     char *buf = new char[max_len * size]();
-    if (MPI_Allgather(self.c_str(), self.size(), MPI_CHAR, buf, max_len, MPI_CHAR, MPI_COMM_WORLD) != MPI_SUCCESS) {
+    if (MPI_Allgather(copy, max_len, MPI_CHAR, buf, max_len, MPI_CHAR, MPI_COMM_WORLD) != MPI_SUCCESS) {
+        delete [] copy;
         delete [] buf;
         return TRANSPORT_ERROR;
     }
+
+    delete [] copy;
 
     // copy the addresses into strings
     // and map the strings to unique IDs
     for(int i = 0; i < size; i++) {
         const char *remote = &buf[max_len * i];
-        addrs[i].assign(remote, strlen(remote));
+        addrs[i] = std::string(remote, strlen(remote));
     }
 
     delete [] buf;
