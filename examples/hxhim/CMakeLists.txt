@@ -5,12 +5,6 @@ cmake_minimum_required(VERSION 2.8)
 
 set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${LEVELDB_LIBRARY_DIRS})
 
-add_executable(get_addr get_addr.cpp)
-target_link_libraries(get_addr hxhim.a ${MPI_CXX_LIBRARIES} ${THALLIUM_LDFLAGS} pthread m stdc++)
-set_target_properties(get_addr PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
-set_target_properties(get_addr PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
-INSTALL(TARGETS get_addr DESTINATION bin/hxhim)
-
 add_executable(hx-c hx.c print_results.c)
 target_link_libraries(hx-c hxhim.a ${LEVELDB_LIBRARY} ${MPI_CXX_LIBRARIES} ${THALLIUM_LDFLAGS} pthread m stdc++)
 set_target_properties(hx-c PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")

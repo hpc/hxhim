@@ -175,7 +175,7 @@ const Config HXHIM_DEFAULT_CONFIG = {
     std::make_pair(HXHIM_BULKS_REGIONS,                 "1000"),
     std::make_pair(HXHIM_KEYS_NAME,                     "Keys"),
     std::make_pair(HXHIM_KEYS_ALLOC_SIZE,               "1000"),
-    std::make_pair(HXHIM_KEYS_REGIONS,                  "1000"),
+    // std::make_pair(HXHIM_KEYS_REGIONS,                  "1000"),
     std::make_pair(HXHIM_ARRAYS_NAME,                   "Arrays"),
     std::make_pair(HXHIM_ARRAYS_ALLOC_SIZE,             "1000"),
     std::make_pair(HXHIM_ARRAYS_REGIONS,                "1000"),
