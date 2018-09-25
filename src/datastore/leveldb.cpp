@@ -309,6 +309,10 @@ Response::BDelete *leveldb::BDeleteImpl(void **subjects, std::size_t *subject_le
                                         void **predicates, std::size_t *predicate_lens,
                                         std::size_t count) {
     Response::BDelete *ret = hx->p->memory_pools.responses->acquire<Response::BDelete>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, count);
+    if (!ret) {
+        return nullptr;
+    }
+
     ::leveldb::WriteBatch batch;
 
     FixedBufferPool *fbp = hx->p->memory_pools.keys;

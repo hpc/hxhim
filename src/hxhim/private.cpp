@@ -144,8 +144,8 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
             for(std::size_t i = 0; i < curr->count; i++) {
                 res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Put>(hx, curr, i));
             }
+            hx->p->memory_pools.responses->release(curr);
         }
-        hx->p->memory_pools.responses->release(responses);
         mlog(HXHIM_CLIENT_DBG, "Completed remote PUTs");
     }
 
@@ -156,9 +156,9 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
             for(std::size_t i = 0; i < curr->count; i++) {
                 res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Put>(hx, curr, i));
             }
+            hx->p->memory_pools.responses->release(curr);
         }
-        hx->p->memory_pools.responses->release(responses);
-        mlog(HXHIM_CLIENT_DBG, "Completed remote PUTs");
+        mlog(HXHIM_CLIENT_DBG, "Completed local PUTs");
     }
 
     // cleanup
@@ -375,7 +375,6 @@ int hxhim::init::running(hxhim_t *hx, hxhim_options_t *opts) {
 /**
  * memory
  * Sets up the memory pools
- * TODO: make these configurable
  *
  * @param hx   the HXHIM instance
  * @param opts the HXHIM options

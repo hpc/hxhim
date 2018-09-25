@@ -269,8 +269,8 @@ static hxhim::Results *get_core(hxhim_t *hx,
             for(std::size_t i = 0; i < curr->count; i++) {
                 res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Get>(hx, curr, i, true));
             }
+            hx->p->memory_pools.responses->release(curr);
         }
-        hx->p->memory_pools.responses->release(responses);
     }
 
     if (local->count) {
@@ -279,8 +279,8 @@ static hxhim::Results *get_core(hxhim_t *hx,
             for(std::size_t i = 0; i < curr->count; i++) {
                 res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Get>(hx, curr, i, false));
             }
+            hx->p->memory_pools.responses->release(curr);
         }
-        hx->p->memory_pools.responses->release(responses);
     }
 
     return res;
@@ -414,8 +414,8 @@ static hxhim::Results *getop_core(hxhim_t *hx,
             for(std::size_t i = 0; i < curr->count; i++) {
                 res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Get>(hx, curr, i, true));
             }
+            hx->p->memory_pools.responses->release(curr);
         }
-        hx->p->memory_pools.responses->release(responses);
     }
 
     if (local->count) {
@@ -424,8 +424,8 @@ static hxhim::Results *getop_core(hxhim_t *hx,
             for(std::size_t i = 0; i < curr->count; i++) {
                 res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Get>(hx, curr, i, false));
             }
+            hx->p->memory_pools.responses->release(curr);
         }
-        hx->p->memory_pools.responses->release(responses);
     }
 
     return res;
@@ -553,8 +553,8 @@ static hxhim::Results *delete_core(hxhim_t *hx,
             for(std::size_t i = 0; i < curr->count; i++) {
                 res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Delete>(hx, curr, i));
             }
+            hx->p->memory_pools.responses->release(curr);
         }
-        hx->p->memory_pools.responses->release(responses);
     }
 
     if (local->count) {
@@ -563,8 +563,8 @@ static hxhim::Results *delete_core(hxhim_t *hx,
             for(std::size_t i = 0; i < curr->count; i++) {
                 res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Delete>(hx, curr, i));
             }
+            hx->p->memory_pools.responses->release(curr);
         }
-        hx->p->memory_pools.responses->release(responses);
     }
 
     return res;

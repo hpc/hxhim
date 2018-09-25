@@ -4,7 +4,6 @@
 #include <condition_variable>
 #include <cstddef>
 #include <cstring>
-#include <iomanip>
 #include <mutex>
 #include <ostream>
 #include <type_traits>
@@ -93,6 +92,12 @@ class FixedBufferPool {
         mutable std::mutex mutex_;
         mutable std::condition_variable cv_;
 
+        /** @description The actual acquire function */
+        void *acquireImpl(const std::size_t size);
+
+        /** @description The actual release function */
+        void releaseImpl(void *ptr, const std::size_t rec_size);
+
         /*
          * Node
          *
@@ -123,12 +128,6 @@ class FixedBufferPool {
                 : size(size), addr(ptr), next(node)
             {}
         };
-
-        /** @description The actual acquire function */
-        void *acquireImpl(const std::size_t size);
-
-        /** @description The actual release function */
-        void releaseImpl(void *ptr, const std::size_t rec_size);
 
         /* @description An array of nodes that are allocated in the constructor            */
         Node *nodes_;

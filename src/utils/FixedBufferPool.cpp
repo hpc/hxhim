@@ -1,3 +1,5 @@
+#include <iomanip>
+
 #include "utils/FixedBufferPool.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
