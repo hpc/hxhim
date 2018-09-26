@@ -1,25 +1,26 @@
+#include <cmath>
+
 #include "transport/backend/MPI/EndpointGroup.hpp"
-#include "utils/MemoryManager.hpp"
+#include "utils/FixedBufferPool.hpp"
 
 namespace Transport {
 namespace MPI {
 
 EndpointGroup::EndpointGroup(const MPI_Comm comm,
                              volatile std::atomic_bool &running,
-                             FixedBufferPool *packed,
+                             std::shared_ptr<FixedBufferPool> packed,
                              FixedBufferPool *responses,
                              FixedBufferPool *arrays,
                              FixedBufferPool *buffers)
   : ::Transport::EndpointGroup(),
-    EndpointBase(comm),
+    EndpointBase(comm, packed),
     ranks(),
     running(running),
-    mpi_requests(MemoryManager::FBP(sizeof(MPI_Request), (size - 1) * 2, "MPI_Request")),
-    ptrs(MemoryManager::FBP(sizeof(void *) * size, 3, "MPI Pointers")),
+    mpi_requests(new FixedBufferPool(sizeof(MPI_Request), std::max((size - 1) * 2, 1), "MPI_Request")),
+    ptrs(new FixedBufferPool(sizeof(void *) * size, 3, "MPI Pointers")),
     lens(new std::size_t[size]),
     dsts(new int[size]),
     srvs(new int[size]),
-    packed(packed),
     responses(responses),
     arrays(arrays),
     buffers(buffers)

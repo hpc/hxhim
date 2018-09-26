@@ -325,8 +325,8 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
     hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
 
     while (curr->next) {
-        mlog(HXHIM_CLIENT_DBG, "Processing %d GETs", HXHIM_MAX_BULK_GET_OPS);
-        hxhim::Results *ret = get_core(hx, curr, HXHIM_MAX_BULK_GET_OPS, &local, remote);
+        mlog(HXHIM_CLIENT_DBG, "Processing %zu GETs", hx->p->max_bulk_ops.gets);
+        hxhim::Results *ret = get_core(hx, curr, hx->p->max_bulk_ops.gets, &local, remote);
         res->Append(ret);
         hx->p->memory_pools.results->release(ret);
 
@@ -468,7 +468,7 @@ hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
 
     // write complete batches
     while (curr->next) {
-        hxhim::Results *ret = getop_core(hx, curr, HXHIM_MAX_BULK_GET_OPS, &local, remote);
+        hxhim::Results *ret = getop_core(hx, curr, hx->p->max_bulk_ops.getops, &local, remote);
         res->Append(ret);
         hx->p->memory_pools.results->release(ret);
 
@@ -606,7 +606,7 @@ hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
     // write complete batches
     while (curr->next) {
         // move the data into the appropriate buffers
-        hxhim::Results *ret = delete_core(hx, curr, HXHIM_MAX_BULK_DEL_OPS, &local, remote);
+        hxhim::Results *ret = delete_core(hx, curr, hx->p->max_bulk_ops.deletes, &local, remote);
         res->Append(ret);
         hx->p->memory_pools.results->release(ret);
 
@@ -807,7 +807,7 @@ int hxhim::Put(hxhim_t *hx,
     }
 
     // filled the current batch
-    if (puts.last_count == HXHIM_MAX_BULK_PUT_OPS) {
+    if (puts.last_count == hx->p->max_bulk_ops.puts) {
         hxhim::PutData *next = hx->p->memory_pools.bulks->acquire<hxhim::PutData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.puts);
         next->prev      = puts.tail;
         puts.tail->next = next;
@@ -889,7 +889,7 @@ int hxhim::Get(hxhim_t *hx,
     }
 
     // filled the current batch
-    if (gets.last_count == HXHIM_MAX_BULK_GET_OPS) {
+    if (gets.last_count == hx->p->max_bulk_ops.gets) {
         gets.tail->next = hx->p->memory_pools.bulks->acquire<hxhim::GetData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.gets);
         gets.tail       = gets.tail->next;
         gets.last_count = 0;
@@ -962,7 +962,7 @@ int hxhim::Delete(hxhim_t *hx,
     }
 
     // filled the current batch
-    if (dels.last_count == HXHIM_MAX_BULK_DEL_OPS) {
+    if (dels.last_count == hx->p->max_bulk_ops.deletes) {
         dels.tail->next = hx->p->memory_pools.bulks->acquire<hxhim::DeleteData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.deletes);
         dels.tail       = dels.tail->next;
         dels.last_count = 0;
@@ -1028,44 +1028,48 @@ int hxhim::BPut(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
-    if (count) {
-        hxhim::Unsent<hxhim::PutData> &puts = hx->p->queues.puts;
-        std::lock_guard<std::mutex> lock(puts.mutex);
-
-        // no previous batch
-        if (!puts.tail) {
-            puts.head       = hx->p->memory_pools.bulks->acquire<hxhim::PutData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.puts);
-            puts.tail       = puts.head;
-            puts.last_count = 0;
-        }
-
-        for(std::size_t c = 0; c < count; c++) {
-            // filled the current batch
-            if (puts.last_count == HXHIM_MAX_BULK_PUT_OPS) {
-                hxhim::PutData *next = hx->p->memory_pools.bulks->acquire<hxhim::PutData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.puts);
-                next->prev      = puts.tail;
-                puts.tail->next = next;
-                puts.tail       = next;
-                puts.last_count = 0;
-                puts.full_batches++;
-                puts.start_processing.notify_one();
-            }
-
-            std::size_t &i = puts.last_count;
-
-            puts.tail->subjects[i] = subjects[c];
-            puts.tail->subject_lens[i] = subject_lens[c];
-
-            puts.tail->predicates[i] = predicates[c];
-            puts.tail->predicate_lens[i] = predicate_lens[c];
-
-            puts.tail->object_types[i] = object_types[c];
-            puts.tail->objects[i] = objects[c];
-            puts.tail->object_lens[i] = object_lens[c];
-
-            i++;
-        }
+    for(std::size_t i = 0; i < count; i++) {
+        Put(hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], object_types[i], objects[i], object_lens[i]);
     }
+
+    // if (count) {
+    //     hxhim::Unsent<hxhim::PutData> &puts = hx->p->queues.puts;
+    //     std::lock_guard<std::mutex> lock(puts.mutex);
+
+    //     // no previous batch
+    //     if (!puts.tail) {
+    //         puts.head       = hx->p->memory_pools.bulks->acquire<hxhim::PutData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.puts);
+    //         puts.tail       = puts.head;
+    //         puts.last_count = 0;
+    //     }
+
+    //     for(std::size_t c = 0; c < count; c++) {
+    //         // filled the current batch
+    //         if (puts.last_count == HXHIM_MAX_BULK_PUT_OPS) {
+    //             hxhim::PutData *next = hx->p->memory_pools.bulks->acquire<hxhim::PutData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.puts);
+    //             next->prev      = puts.tail;
+    //             puts.tail->next = next;
+    //             puts.tail       = next;
+    //             puts.last_count = 0;
+    //             puts.full_batches++;
+    //             puts.start_processing.notify_one();
+    //         }
+
+    //         std::size_t &i = puts.last_count;
+
+    //         puts.tail->subjects[i] = subjects[c];
+    //         puts.tail->subject_lens[i] = subject_lens[c];
+
+    //         puts.tail->predicates[i] = predicates[c];
+    //         puts.tail->predicate_lens[i] = predicate_lens[c];
+
+    //         puts.tail->object_types[i] = object_types[c];
+    //         puts.tail->objects[i] = objects[c];
+    //         puts.tail->object_lens[i] = object_lens[c];
+
+    //         i++;
+    //     }
+    // }
 
     return HXHIM_SUCCESS;
 }
@@ -1135,7 +1139,7 @@ int hxhim::BGet(hxhim_t *hx,
 
         for(std::size_t c = 0; c < count; c++) {
             // filled the current batch
-            if (gets.last_count == HXHIM_MAX_BULK_GET_OPS) {
+            if (gets.last_count == hx->p->max_bulk_ops.gets) {
                 gets.tail->next = hx->p->memory_pools.bulks->acquire<hxhim::GetData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.gets);
                 gets.tail       = gets.tail->next;
                 gets.last_count = 0;
@@ -1217,7 +1221,7 @@ int hxhim::BGetOp(hxhim_t *hx,
     }
 
     // filled the current batch
-    if (getops.last_count == HXHIM_MAX_BULK_GET_OPS) {
+    if (getops.last_count == hx->p->max_bulk_ops.getops) {
         getops.tail->next = hx->p->memory_pools.bulks->acquire<hxhim::GetOpData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.getops);
         getops.tail       = getops.tail->next;
         getops.last_count = 0;
@@ -1304,7 +1308,7 @@ int hxhim::BDelete(hxhim_t *hx,
 
         for(std::size_t c = 0; c < count; c++) {
             // filled the current batch
-            if (dels.last_count == HXHIM_MAX_BULK_DEL_OPS) {
+            if (dels.last_count == hx->p->max_bulk_ops.deletes) {
                 dels.tail->next = hx->p->memory_pools.bulks->acquire<hxhim::DeleteData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.deletes);
                 dels.tail       = dels.tail->next;
                 dels.last_count = 0;
@@ -1482,7 +1486,7 @@ hxhim::Results *hxhim::GetBHistogram(hxhim_t *hx, const int *datastores, const s
 
     // move the data into the appropriate buffers
     for(std::size_t i = 0; i < count; i++) {
-        hxhim::shuffle::Histogram(hx, HXHIM_MAX_BULK_GET_OPS,
+        hxhim::shuffle::Histogram(hx, hx->p->max_bulk_ops.gets,
                                   datastores[i],
                                   &local, remote,
                                   hx->p->memory_pools.requests);

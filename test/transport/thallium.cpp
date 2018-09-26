@@ -5,7 +5,7 @@
 #include "gtest/gtest.h"
 
 #include "transport/backend/Thallium/Thallium.hpp"
-#include "utils/MemoryManager.hpp"
+#include "utils/FixedBufferPool.hpp"
 
 static const char *SUBJECT = "SUBJECT";
 static const std::size_t SUBJECT_LEN = strlen(SUBJECT);
@@ -21,14 +21,13 @@ static const std::size_t REGIONS = 32;
 using namespace ::Transport;
 using namespace ::Transport::Thallium;
 
-static FixedBufferPool *packed    = MemoryManager::FBP(ALLOC_SIZE, REGIONS, "Thallium Pack/Unpack Test - Packed");
-static FixedBufferPool *requests  = MemoryManager::FBP(ALLOC_SIZE, REGIONS, "Thallium Pack/Unpack Test - Requests");
-static FixedBufferPool *responses = MemoryManager::FBP(ALLOC_SIZE, REGIONS, "Thallium Pack/Unpack Test - Responses");
-static FixedBufferPool *arrays    = MemoryManager::FBP(ALLOC_SIZE, REGIONS, "Thallium Pack/Unpack Test - Arrays");
-static FixedBufferPool *buffers   = MemoryManager::FBP(ALLOC_SIZE, REGIONS, "Thallium Pack/Unpack Test - Buffers");
+static FixedBufferPool requests (ALLOC_SIZE, REGIONS, "Thallium Pack/Unpack Test - Requests");
+static FixedBufferPool responses(ALLOC_SIZE, REGIONS, "Thallium Pack/Unpack Test - Responses");
+static FixedBufferPool arrays   (ALLOC_SIZE, REGIONS, "Thallium Pack/Unpack Test - Arrays");
+static FixedBufferPool buffers  (ALLOC_SIZE, REGIONS, "Thallium Pack/Unpack Test - Buffers");
 
 TEST(thallium_pack_unpack, RequestPut) {
-    Request::Put src(arrays, buffers);
+    Request::Put src(&arrays, &buffers);
     {
         src.src = rand();
         src.dst = rand();
@@ -54,7 +53,7 @@ TEST(thallium_pack_unpack, RequestPut) {
     EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
 
     Request::Put *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, requests, arrays, buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, &requests, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -76,11 +75,11 @@ TEST(thallium_pack_unpack, RequestPut) {
     EXPECT_EQ(src.object_len, dst->object_len);
     EXPECT_EQ(memcmp(src.object, dst->object, dst->object_len), 0);
 
-    requests->release(dst);
+    requests.release(dst);
 }
 
 TEST(thallium_pack_unpack, RequestGet) {
-    Request::Get src(arrays, buffers);
+    Request::Get src(&arrays, &buffers);
     {
         src.src = rand();
         src.dst = rand();
@@ -104,7 +103,7 @@ TEST(thallium_pack_unpack, RequestGet) {
     EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
 
     Request::Get *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, requests, arrays, buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, &requests, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -124,11 +123,11 @@ TEST(thallium_pack_unpack, RequestGet) {
 
     EXPECT_EQ(src.object_type, dst->object_type);
 
-    requests->release(dst);
+    requests.release(dst);
 }
 
 TEST(thallium_pack_unpack, RequestDelete) {
-    Request::Delete src(arrays, buffers);
+    Request::Delete src(&arrays, &buffers);
     {
         src.src = rand();
         src.dst = rand();
@@ -150,7 +149,7 @@ TEST(thallium_pack_unpack, RequestDelete) {
     EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
 
     Request::Delete *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, requests, arrays, buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, &requests, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -168,11 +167,11 @@ TEST(thallium_pack_unpack, RequestDelete) {
     EXPECT_EQ(src.predicate_len, dst->predicate_len);
     EXPECT_EQ(memcmp(src.predicate, dst->predicate, dst->predicate_len), 0);
 
-    requests->release(dst);
+    requests.release(dst);
 }
 
 TEST(thallium_pack_unpack, RequestHistogram) {
-    Request::Histogram src(arrays, buffers);
+    Request::Histogram src(&arrays, &buffers);
     {
         src.src = rand();
         src.dst = rand();
@@ -188,7 +187,7 @@ TEST(thallium_pack_unpack, RequestHistogram) {
     EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
 
     Request::Histogram *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, requests, arrays, buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, &requests, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -200,11 +199,11 @@ TEST(thallium_pack_unpack, RequestHistogram) {
 
     EXPECT_EQ(src.ds_offset, dst->ds_offset);
 
-    requests->release(dst);
+    requests.release(dst);
 }
 
 TEST(thallium_pack_unpack, RequestBPut) {
-    Request::BPut src(arrays, buffers);
+    Request::BPut src(&arrays, &buffers);
     ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
     {
 
@@ -234,7 +233,7 @@ TEST(thallium_pack_unpack, RequestBPut) {
     EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
 
     Request::BPut *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, requests, arrays, buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, &requests, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -260,11 +259,11 @@ TEST(thallium_pack_unpack, RequestBPut) {
         EXPECT_EQ(memcmp(src.objects[i], dst->objects[i], dst->object_lens[i]), 0);
     }
 
-    requests->release(dst);
+    requests.release(dst);
 }
 
 TEST(thallium_pack_unpack, RequestBGet) {
-    Request::BGet src(arrays, buffers);
+    Request::BGet src(&arrays, &buffers);
     ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
     {
         src.src = rand();
@@ -291,7 +290,7 @@ TEST(thallium_pack_unpack, RequestBGet) {
     EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
 
     Request::BGet *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, requests, arrays, buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, &requests, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -315,11 +314,11 @@ TEST(thallium_pack_unpack, RequestBGet) {
         EXPECT_EQ(src.object_types[i], dst->object_types[i]);
     }
 
-    requests->release(dst);
+    requests.release(dst);
 }
 
 TEST(thallium_pack_unpack, RequestBGetOp) {
-    Request::BGetOp src(arrays, buffers);
+    Request::BGetOp src(&arrays, &buffers);
     ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
     {
         src.src = rand();
@@ -349,7 +348,7 @@ TEST(thallium_pack_unpack, RequestBGetOp) {
     EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
 
     Request::BGetOp *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, requests, arrays, buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, &requests, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -376,11 +375,11 @@ TEST(thallium_pack_unpack, RequestBGetOp) {
         EXPECT_EQ(src.ops[i], dst->ops[i]);
     }
 
-    requests->release(dst);
+    requests.release(dst);
 }
 
 TEST(thallium_pack_unpack, RequestBDelete) {
-    Request::BDelete src(arrays, buffers);
+    Request::BDelete src(&arrays, &buffers);
     ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
     {
         src.src = rand();
@@ -405,7 +404,7 @@ TEST(thallium_pack_unpack, RequestBDelete) {
     EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
 
     Request::BDelete *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, requests, arrays, buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, &requests, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -427,11 +426,11 @@ TEST(thallium_pack_unpack, RequestBDelete) {
         EXPECT_EQ(memcmp(src.predicates[i], dst->predicates[i], dst->predicate_lens[i]), 0);
     }
 
-    requests->release(dst);
+    requests.release(dst);
 }
 
 TEST(thallium_pack_unpack, RequestBHistogram) {
-    Request::BHistogram src(arrays, buffers);
+    Request::BHistogram src(&arrays, &buffers);
     ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
     {
         src.src = rand();
@@ -450,7 +449,7 @@ TEST(thallium_pack_unpack, RequestBHistogram) {
     EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
 
     Request::BHistogram *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, requests, arrays, buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, &requests, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -466,11 +465,11 @@ TEST(thallium_pack_unpack, RequestBHistogram) {
         EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
     }
 
-    requests->release(dst);
+    requests.release(dst);
 }
 
 TEST(thallium_pack_unpack, ResponsePut) {
-    Response::Put src(arrays, buffers);
+    Response::Put src(&arrays, &buffers);
     {
         src.src = rand();
         src.dst = rand();
@@ -488,7 +487,7 @@ TEST(thallium_pack_unpack, ResponsePut) {
     EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
 
     Response::Put *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, responses, arrays, buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -502,11 +501,11 @@ TEST(thallium_pack_unpack, ResponsePut) {
 
     EXPECT_EQ(src.status, dst->status);
 
-    responses->release(dst);
+    responses.release(dst);
 }
 
 TEST(thallium_pack_unpack, ResponseGet) {
-    Response::Get src(arrays, buffers);
+    Response::Get src(&arrays, &buffers);
     {
         src.src = rand();
         src.dst = rand();
@@ -535,7 +534,7 @@ TEST(thallium_pack_unpack, ResponseGet) {
     EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
 
     Response::Get *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, responses, arrays, buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -559,11 +558,11 @@ TEST(thallium_pack_unpack, ResponseGet) {
     EXPECT_EQ(src.object_len, dst->object_len);
     EXPECT_EQ(memcmp(src.object, dst->object, dst->object_len), 0);
 
-    responses->release(dst);
+    responses.release(dst);
 }
 
 TEST(thallium_pack_unpack, ResponseDelete) {
-    Response::Delete src(arrays, buffers);
+    Response::Delete src(&arrays, &buffers);
     {
         src.src = rand();
         src.dst = rand();
@@ -581,7 +580,7 @@ TEST(thallium_pack_unpack, ResponseDelete) {
     EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
 
     Response::Delete *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, responses, arrays, buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -595,11 +594,11 @@ TEST(thallium_pack_unpack, ResponseDelete) {
 
     EXPECT_EQ(src.status, dst->status);
 
-    responses->release(dst);
+    responses.release(dst);
 }
 
 TEST(thallium_pack_unpack, ResponseHistogram) {
-    Response::Histogram src(arrays, buffers);
+    Response::Histogram src(&arrays, &buffers);
     {
         src.src = rand();
         src.dst = rand();
@@ -626,7 +625,7 @@ TEST(thallium_pack_unpack, ResponseHistogram) {
     EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
 
     Response::Histogram *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, responses, arrays, buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -646,11 +645,11 @@ TEST(thallium_pack_unpack, ResponseHistogram) {
         EXPECT_EQ(src.hist.counts[i], dst->hist.counts[i]);
     }
 
-    responses->release(dst);
+    responses.release(dst);
 }
 
 TEST(thallium_pack_unpack, ResponseBPut) {
-    Response::BPut src(arrays, buffers);
+    Response::BPut src(&arrays, &buffers);
     ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
     {
         src.src = rand();
@@ -671,7 +670,7 @@ TEST(thallium_pack_unpack, ResponseBPut) {
     EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
 
     Response::BPut *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, responses, arrays, buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -688,11 +687,11 @@ TEST(thallium_pack_unpack, ResponseBPut) {
         EXPECT_EQ(src.statuses[i], dst->statuses[i]);
     }
 
-    responses->release(dst);
+    responses.release(dst);
 }
 
 TEST(thallium_pack_unpack, ResponseBGet) {
-    Response::BGet src(arrays, buffers);
+    Response::BGet src(&arrays, &buffers);
     ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
     {
         src.src = rand();
@@ -723,7 +722,7 @@ TEST(thallium_pack_unpack, ResponseBGet) {
     EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
 
     Response::BGet *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, responses, arrays, buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -750,11 +749,11 @@ TEST(thallium_pack_unpack, ResponseBGet) {
         EXPECT_EQ(memcmp(src.objects[i], dst->objects[i], dst->object_lens[i]), 0);
     }
 
-    responses->release(dst);
+    responses.release(dst);
 }
 
 TEST(thallium_pack_unpack, ResponseBGetOp) {
-    Response::BGetOp src(arrays, buffers);
+    Response::BGetOp src(&arrays, &buffers);
     ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
     {
         src.src = rand();
@@ -785,7 +784,7 @@ TEST(thallium_pack_unpack, ResponseBGetOp) {
     EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
 
     Response::BGetOp *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, responses, arrays, buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -812,11 +811,11 @@ TEST(thallium_pack_unpack, ResponseBGetOp) {
         EXPECT_EQ(memcmp(src.objects[i], dst->objects[i], dst->object_lens[i]), 0);
     }
 
-    responses->release(dst);
+    responses.release(dst);
 }
 
 TEST(thallium_pack_unpack, ResponseBDelete) {
-    Response::BDelete src(arrays, buffers);
+    Response::BDelete src(&arrays, &buffers);
     ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
     {
         src.src = rand();
@@ -837,7 +836,7 @@ TEST(thallium_pack_unpack, ResponseBDelete) {
     EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
 
     Response::BDelete *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, responses, arrays, buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -854,11 +853,11 @@ TEST(thallium_pack_unpack, ResponseBDelete) {
         EXPECT_EQ(src.statuses[i], dst->statuses[i]);
     }
 
-    responses->release(dst);
+    responses.release(dst);
 }
 
 TEST(thallium_pack_unpack, ResponseBHistogram) {
-    Response::BHistogram src(arrays, buffers);
+    Response::BHistogram src(&arrays, &buffers);
     ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
     {
         src.src = rand();
@@ -888,7 +887,7 @@ TEST(thallium_pack_unpack, ResponseBHistogram) {
     EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
 
     Response::BHistogram *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, responses, arrays, buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -911,5 +910,5 @@ TEST(thallium_pack_unpack, ResponseBHistogram) {
         }
     }
 
-    responses->release(dst);
+    responses.release(dst);
 }

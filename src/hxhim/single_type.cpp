@@ -27,7 +27,7 @@ int hxhim::BPutSingleType(hxhim_t *hx,
 
         for(std::size_t c = 0; c < count; c++) {
             // filled the current batch
-            if (puts.last_count == HXHIM_MAX_BULK_PUT_OPS) {
+            if (puts.last_count == hx->p->max_bulk_ops.puts) {
                 hxhim::PutData *next = hx->p->memory_pools.bulks->acquire<hxhim::PutData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.puts);
                 next->prev      = puts.tail;
                 puts.tail->next = next;
@@ -90,7 +90,7 @@ int hxhim::BGetSingleType(hxhim_t *hx,
 
         for(std::size_t c = 0; c < count; c++) {
             // filled the current batch
-            if (gets.last_count == HXHIM_MAX_BULK_GET_OPS) {
+            if (gets.last_count == hx->p->max_bulk_ops.gets) {
                 gets.tail->next = hx->p->memory_pools.bulks->acquire<hxhim::GetData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.gets);
                 gets.tail       = gets.tail->next;
                 gets.last_count = 0;

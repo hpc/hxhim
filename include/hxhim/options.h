@@ -42,10 +42,11 @@ int hxhim_options_set_transport_thallium(hxhim_options_t *opts, const char *modu
 #endif
 int hxhim_options_add_endpoint_to_group(hxhim_options_t *opts, const int id);
 int hxhim_options_clear_endpoint_group(hxhim_options_t *opts);
-int hxhim_options_set_queued_bputs(hxhim_options_t *opts, const size_t count);
-int hxhim_options_set_histogram_first_n(hxhim_options_t *opts, const size_t count);
-int hxhim_options_set_histogram_bucket_gen_method(hxhim_options_t *opts, const char *method);
+int hxhim_options_set_ops_per_bulk(hxhim_options_t *opts, const size_t count);
 
+int hxhim_options_set_keys_name(hxhim_options_t *opts, const char *name);
+int hxhim_options_set_keys_alloc_size(hxhim_options_t *opts, const size_t alloc_size);
+int hxhim_options_set_keys_regions(hxhim_options_t *opts, const size_t regions);
 int hxhim_options_set_packed_name(hxhim_options_t *opts, const char *name);
 int hxhim_options_set_packed_alloc_size(hxhim_options_t *opts, const size_t alloc_size);
 int hxhim_options_set_packed_regions(hxhim_options_t *opts, const size_t regions);
@@ -55,9 +56,6 @@ int hxhim_options_set_buffers_regions(hxhim_options_t *opts, const size_t region
 int hxhim_options_set_bulks_name(hxhim_options_t *opts, const char *name);
 int hxhim_options_set_bulks_alloc_size(hxhim_options_t *opts, const size_t alloc_size);
 int hxhim_options_set_bulks_regions(hxhim_options_t *opts, const size_t regions);
-int hxhim_options_set_keys_name(hxhim_options_t *opts, const char *name);
-int hxhim_options_set_keys_alloc_size(hxhim_options_t *opts, const size_t alloc_size);
-int hxhim_options_set_keys_regions(hxhim_options_t *opts, const size_t regions);
 int hxhim_options_set_arrays_name(hxhim_options_t *opts, const char *name);
 int hxhim_options_set_arrays_alloc_size(hxhim_options_t *opts, const size_t alloc_size);
 int hxhim_options_set_arrays_regions(hxhim_options_t *opts, const size_t regions);
@@ -73,6 +71,12 @@ int hxhim_options_set_result_regions(hxhim_options_t *opts, const size_t regions
 int hxhim_options_set_results_name(hxhim_options_t *opts, const char *name);
 int hxhim_options_set_results_alloc_size(hxhim_options_t *opts, const size_t alloc_size);
 int hxhim_options_set_results_regions(hxhim_options_t *opts, const size_t regions);
+
+int hxhim_options_set_maximum_queued_bulk_ops(hxhim_options_t *opts, const size_t count);
+int hxhim_options_set_start_async_bput_at(hxhim_options_t *opts, const size_t count);
+
+int hxhim_options_set_histogram_first_n(hxhim_options_t *opts, const size_t count);
+int hxhim_options_set_histogram_bucket_gen_method(hxhim_options_t *opts, const char *method);
 
 // Cleans up memory allocated inside opts, but not the opts variable itself
 int hxhim_options_destroy(hxhim_options_t *opts);

@@ -3,7 +3,7 @@
 
 #include <mutex>
 
-#include "datastore/constants.h"
+#include "datastore/constants.hpp"
 #include "hxhim/hxhim.hpp"
 #include "transport/Messages/Messages.hpp"
 #include "utils/Histogram.hpp"

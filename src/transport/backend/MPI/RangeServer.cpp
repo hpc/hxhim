@@ -15,17 +15,18 @@ hxhim_t *RangeServer::hx_ = nullptr;
 std::atomic_bool *RangeServer::running_ = nullptr;
 std::vector<pthread_t> RangeServer::listeners_ = {};
 pthread_mutex_t RangeServer::mutex_ = PTHREAD_MUTEX_INITIALIZER;
-FixedBufferPool *RangeServer::packed_ = nullptr;
+std::shared_ptr<FixedBufferPool> RangeServer::packed_ = {};
 FixedBufferPool *RangeServer::arrays_ = nullptr;
 FixedBufferPool *RangeServer::buffers_ = nullptr;
 
-int RangeServer::init(hxhim_t *hx, const std::size_t listener_count) {
+int RangeServer::init(hxhim_t *hx, const std::size_t listener_count, const std::shared_ptr<FixedBufferPool> &packed) {
     mlog(HXHIM_SERVER_INFO, "Initializing MPI Range Server");
-    if (!hx || !listener_count) {
+    if (!hx || !listener_count || !packed) {
         return TRANSPORT_ERROR;
     }
 
     hx_ = hx;
+    packed_ = packed;
     listeners_.resize(listener_count);
 
     mlog(HXHIM_SERVER_DBG, "Starting up %zu listeners", listener_count);
@@ -85,12 +86,12 @@ void *RangeServer::listener_thread(void *) {
         // encode result
         void *res = nullptr;
         len = 0;
-        Packer::pack(hx_->p->bootstrap.comm, response, &res, &len, hx_->p->memory_pools.packed);
+        Packer::pack(hx_->p->bootstrap.comm, response, &res, &len, packed_.get());
 
         // send result
         const int ret = send(response->dst, res, len);
         hx_->p->memory_pools.responses->release(response);
-        hx_->p->memory_pools.packed->release(res, len);
+        packed_->release(res, len);
 
         if (ret != TRANSPORT_SUCCESS) {
             continue;

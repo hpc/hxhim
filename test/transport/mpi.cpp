@@ -7,7 +7,7 @@
 #include "gtest/gtest.h"
 
 #include "transport/backend/MPI/MPI.hpp"
-#include "utils/MemoryManager.hpp"
+#include "utils/FixedBufferPool.hpp"
 
 static const char *SUBJECT = "SUBJECT";
 static const std::size_t SUBJECT_LEN = strlen(SUBJECT);
@@ -39,15 +39,15 @@ TEST(MPIInstance, WorldSize) {
     EXPECT_EQ(Instance::instance().WorldSize(), 1);
 }
 
-static FixedBufferPool *packed    = MemoryManager::FBP(ALLOC_SIZE, REGIONS, "MPI Pack/Unpack Test - Packed");
-static FixedBufferPool *requests  = MemoryManager::FBP(ALLOC_SIZE, REGIONS, "MPI Pack/Unpack Test - Requests");
-static FixedBufferPool *responses = MemoryManager::FBP(ALLOC_SIZE, REGIONS, "MPI Pack/Unpack Test - Responses");
-static FixedBufferPool *arrays    = MemoryManager::FBP(ALLOC_SIZE, REGIONS, "MPI Pack/Unpack Test - Arrays");
-static FixedBufferPool *buffers   = MemoryManager::FBP(ALLOC_SIZE, REGIONS, "MPI Pack/Unpack Test - Buffers");
+static FixedBufferPool packed   (ALLOC_SIZE, REGIONS, "MPI Pack/Unpack Test - Packed");
+static FixedBufferPool requests (ALLOC_SIZE, REGIONS, "MPI Pack/Unpack Test - Requests");
+static FixedBufferPool responses(ALLOC_SIZE, REGIONS, "MPI Pack/Unpack Test - Responses");
+static FixedBufferPool arrays   (ALLOC_SIZE, REGIONS, "MPI Pack/Unpack Test - Arrays");
+static FixedBufferPool buffers  (ALLOC_SIZE, REGIONS, "MPI Pack/Unpack Test - Buffers");
 
 TEST(mpi_pack_unpack, RequestPut) {
     const MPI_Comm comm = Instance::instance().Comm();
-    Request::Put src(arrays, buffers);
+    Request::Put src(&arrays, &buffers);
     {
         src.src = rand();
         src.dst = rand();
@@ -71,11 +71,11 @@ TEST(mpi_pack_unpack, RequestPut) {
 
     void *buf = nullptr;
     std::size_t bufsize;
-    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, packed), HXHIM_SUCCESS);
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, &packed), HXHIM_SUCCESS);
 
     Request::Put *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, requests, arrays, buffers), HXHIM_SUCCESS);
-    packed->release(buf, bufsize);
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, &requests, &arrays, &buffers), HXHIM_SUCCESS);
+    packed.release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -97,12 +97,12 @@ TEST(mpi_pack_unpack, RequestPut) {
     EXPECT_EQ(src.object_len, dst->object_len);
     EXPECT_EQ(memcmp(src.object, dst->object, dst->object_len), 0);
 
-    requests->release(dst);
+    requests.release(dst);
 }
 
 TEST(mpi_pack_unpack, RequestGet) {
     const MPI_Comm comm = Instance::instance().Comm();
-    Request::Get src(arrays, buffers);
+    Request::Get src(&arrays, &buffers);
     {
         src.src = rand();
         src.dst = rand();
@@ -124,11 +124,11 @@ TEST(mpi_pack_unpack, RequestGet) {
 
     void *buf = nullptr;
     std::size_t bufsize;
-    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, packed), HXHIM_SUCCESS);
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, &packed), HXHIM_SUCCESS);
 
     Request::Get *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, requests, arrays, buffers), HXHIM_SUCCESS);
-    packed->release(buf, bufsize);
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, &requests, &arrays, &buffers), HXHIM_SUCCESS);
+    packed.release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -148,12 +148,12 @@ TEST(mpi_pack_unpack, RequestGet) {
 
     EXPECT_EQ(src.object_type, dst->object_type);
 
-    requests->release(dst);
+    requests.release(dst);
 }
 
 TEST(mpi_pack_unpack, RequestDelete) {
     const MPI_Comm comm = Instance::instance().Comm();
-    Request::Delete src(arrays, buffers);
+    Request::Delete src(&arrays, &buffers);
     {
         src.src = rand();
         src.dst = rand();
@@ -173,11 +173,11 @@ TEST(mpi_pack_unpack, RequestDelete) {
 
     void *buf = nullptr;
     std::size_t bufsize;
-    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, packed), HXHIM_SUCCESS);
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, &packed), HXHIM_SUCCESS);
 
     Request::Delete *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, requests, arrays, buffers), HXHIM_SUCCESS);
-    packed->release(buf, bufsize);
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, &requests, &arrays, &buffers), HXHIM_SUCCESS);
+    packed.release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -195,12 +195,12 @@ TEST(mpi_pack_unpack, RequestDelete) {
     EXPECT_EQ(src.predicate_len, dst->predicate_len);
     EXPECT_EQ(memcmp(src.predicate, dst->predicate, dst->predicate_len), 0);
 
-    requests->release(dst);
+    requests.release(dst);
 }
 
 TEST(mpi_pack_unpack, RequestHistogram) {
     const MPI_Comm comm = Instance::instance().Comm();
-    Request::Histogram src(arrays, buffers);
+    Request::Histogram src(&arrays, &buffers);
     {
         src.src = rand();
         src.dst = rand();
@@ -214,11 +214,11 @@ TEST(mpi_pack_unpack, RequestHistogram) {
 
     void *buf = nullptr;
     std::size_t bufsize;
-    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, packed), HXHIM_SUCCESS);
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, &packed), HXHIM_SUCCESS);
 
     Request::Histogram *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, requests, arrays, buffers), HXHIM_SUCCESS);
-    packed->release(buf, bufsize);
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, &requests, &arrays, &buffers), HXHIM_SUCCESS);
+    packed.release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -230,12 +230,12 @@ TEST(mpi_pack_unpack, RequestHistogram) {
 
     EXPECT_EQ(src.ds_offset, dst->ds_offset);
 
-    requests->release(dst);
+    requests.release(dst);
 }
 
 TEST(mpi_pack_unpack, RequestBPut) {
     const MPI_Comm comm = Instance::instance().Comm();
-    Request::BPut src(arrays, buffers);
+    Request::BPut src(&arrays, &buffers);
     ASSERT_EQ(src.alloc(1), HXHIM_SUCCESS);
     {
         src.src = rand();
@@ -262,11 +262,11 @@ TEST(mpi_pack_unpack, RequestBPut) {
 
     void *buf = nullptr;
     std::size_t bufsize;
-    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, packed), HXHIM_SUCCESS);
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, &packed), HXHIM_SUCCESS);
 
     Request::BPut *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, requests, arrays, buffers), HXHIM_SUCCESS);
-    packed->release(buf, bufsize);
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, &requests, &arrays, &buffers), HXHIM_SUCCESS);
+    packed.release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -292,12 +292,12 @@ TEST(mpi_pack_unpack, RequestBPut) {
         EXPECT_EQ(memcmp(src.objects[i], dst->objects[i], dst->object_lens[i]), 0);
     }
 
-    requests->release(dst);
+    requests.release(dst);
 }
 
 TEST(mpi_pack_unpack, RequestBGet) {
     const MPI_Comm comm = Instance::instance().Comm();
-    Request::BGet src(arrays, buffers);
+    Request::BGet src(&arrays, &buffers);
     ASSERT_EQ(src.alloc(1), HXHIM_SUCCESS);
     {
         src.src = rand();
@@ -322,11 +322,11 @@ TEST(mpi_pack_unpack, RequestBGet) {
 
     void *buf = nullptr;
     std::size_t bufsize;
-    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, packed), HXHIM_SUCCESS);
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, &packed), HXHIM_SUCCESS);
 
     Request::BGet *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, requests, arrays, buffers), HXHIM_SUCCESS);
-    packed->release(buf, bufsize);
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, &requests, &arrays, &buffers), HXHIM_SUCCESS);
+    packed.release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -350,12 +350,12 @@ TEST(mpi_pack_unpack, RequestBGet) {
         EXPECT_EQ(src.object_types[i], dst->object_types[i]);
     }
 
-    requests->release(dst);
+    requests.release(dst);
 }
 
 TEST(mpi_pack_unpack, RequestBGetOp) {
     const MPI_Comm comm = Instance::instance().Comm();
-    Request::BGetOp src(arrays, buffers);
+    Request::BGetOp src(&arrays, &buffers);
     ASSERT_EQ(src.alloc(1), HXHIM_SUCCESS);
     {
         src.src = rand();
@@ -383,11 +383,11 @@ TEST(mpi_pack_unpack, RequestBGetOp) {
 
     void *buf = nullptr;
     std::size_t bufsize;
-    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, packed), HXHIM_SUCCESS);
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, &packed), HXHIM_SUCCESS);
 
     Request::BGetOp *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, requests, arrays, buffers), HXHIM_SUCCESS);
-    packed->release(buf, bufsize);
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, &requests, &arrays, &buffers), HXHIM_SUCCESS);
+    packed.release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -414,12 +414,12 @@ TEST(mpi_pack_unpack, RequestBGetOp) {
         EXPECT_EQ(src.ops[i], dst->ops[i]);
     }
 
-    requests->release(dst);
+    requests.release(dst);
 }
 
 TEST(mpi_pack_unpack, RequestBDelete) {
     const MPI_Comm comm = Instance::instance().Comm();
-    Request::BDelete src(arrays, buffers);
+    Request::BDelete src(&arrays, &buffers);
     ASSERT_EQ(src.alloc(1), HXHIM_SUCCESS);
     {
         src.src = rand();
@@ -442,11 +442,11 @@ TEST(mpi_pack_unpack, RequestBDelete) {
 
     void *buf = nullptr;
     std::size_t bufsize;
-    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, packed), HXHIM_SUCCESS);
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, &packed), HXHIM_SUCCESS);
 
     Request::BDelete *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, requests, arrays, buffers), HXHIM_SUCCESS);
-    packed->release(buf, bufsize);
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, &requests, &arrays, &buffers), HXHIM_SUCCESS);
+    packed.release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -468,12 +468,12 @@ TEST(mpi_pack_unpack, RequestBDelete) {
         EXPECT_EQ(memcmp(src.predicates[i], dst->predicates[i], dst->predicate_lens[i]), 0);
     }
 
-    requests->release(dst);
+    requests.release(dst);
 }
 
 TEST(mpi_pack_unpack, RequestBHistogram) {
     const MPI_Comm comm = Instance::instance().Comm();
-    Request::BHistogram src(arrays, buffers);
+    Request::BHistogram src(&arrays, &buffers);
     ASSERT_EQ(src.alloc(1), HXHIM_SUCCESS);
     {
         src.src = rand();
@@ -490,11 +490,11 @@ TEST(mpi_pack_unpack, RequestBHistogram) {
 
     void *buf = nullptr;
     std::size_t bufsize;
-    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, packed), HXHIM_SUCCESS);
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, &packed), HXHIM_SUCCESS);
 
     Request::BHistogram *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, requests, arrays, buffers), HXHIM_SUCCESS);
-    packed->release(buf, bufsize);
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, &requests, &arrays, &buffers), HXHIM_SUCCESS);
+    packed.release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -510,12 +510,12 @@ TEST(mpi_pack_unpack, RequestBHistogram) {
         EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
     }
 
-    requests->release(dst);
+    requests.release(dst);
 }
 
 TEST(mpi_pack_unpack, ResponsePut) {
     const MPI_Comm comm = Instance::instance().Comm();
-    Response::Put src(arrays, buffers);
+    Response::Put src(&arrays, &buffers);
     {
         src.src = rand();
         src.dst = rand();
@@ -531,11 +531,11 @@ TEST(mpi_pack_unpack, ResponsePut) {
 
     void *buf = nullptr;
     std::size_t bufsize;
-    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, packed), HXHIM_SUCCESS);
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, &packed), HXHIM_SUCCESS);
 
     Response::Put *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, responses, arrays, buffers), HXHIM_SUCCESS);
-    packed->release(buf, bufsize);
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, &responses, &arrays, &buffers), HXHIM_SUCCESS);
+    packed.release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -549,12 +549,12 @@ TEST(mpi_pack_unpack, ResponsePut) {
 
     EXPECT_EQ(src.status, dst->status);
 
-    responses->release(dst);
+    responses.release(dst);
 }
 
 TEST(mpi_pack_unpack, ResponseGet) {
     const MPI_Comm comm = Instance::instance().Comm();
-    Response::Get src(arrays, buffers);
+    Response::Get src(&arrays, &buffers);
     {
         src.src = rand();
         src.dst = rand();
@@ -581,11 +581,11 @@ TEST(mpi_pack_unpack, ResponseGet) {
 
     void *buf = nullptr;
     std::size_t bufsize;
-    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, packed), HXHIM_SUCCESS);
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, &packed), HXHIM_SUCCESS);
 
     Response::Get *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, responses, arrays, buffers), HXHIM_SUCCESS);
-    packed->release(buf, bufsize);
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, &responses, &arrays, &buffers), HXHIM_SUCCESS);
+    packed.release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -609,12 +609,12 @@ TEST(mpi_pack_unpack, ResponseGet) {
     EXPECT_EQ(src.object_len, dst->object_len);
     EXPECT_EQ(memcmp(src.object, dst->object, dst->object_len), 0);
 
-    responses->release(dst);
+    responses.release(dst);
 }
 
 TEST(mpi_pack_unpack, ResponseDelete) {
     const MPI_Comm comm = Instance::instance().Comm();
-    Response::Delete src(arrays, buffers);
+    Response::Delete src(&arrays, &buffers);
     {
         src.src = rand();
         src.dst = rand();
@@ -630,11 +630,11 @@ TEST(mpi_pack_unpack, ResponseDelete) {
 
     void *buf = nullptr;
     std::size_t bufsize;
-    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, packed), HXHIM_SUCCESS);
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, &packed), HXHIM_SUCCESS);
 
     Response::Delete *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, responses, arrays, buffers), HXHIM_SUCCESS);
-    packed->release(buf, bufsize);
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, &responses, &arrays, &buffers), HXHIM_SUCCESS);
+    packed.release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -648,12 +648,12 @@ TEST(mpi_pack_unpack, ResponseDelete) {
 
     EXPECT_EQ(src.status, dst->status);
 
-    responses->release(dst);
+    responses.release(dst);
 }
 
 TEST(mpi_pack_unpack, ResponseHistogram) {
     const MPI_Comm comm = Instance::instance().Comm();
-    Response::Histogram src(arrays, buffers);
+    Response::Histogram src(&arrays, &buffers);
     {
         src.src = rand();
         src.dst = rand();
@@ -678,11 +678,11 @@ TEST(mpi_pack_unpack, ResponseHistogram) {
 
     void *buf = nullptr;
     std::size_t bufsize;
-    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, packed), HXHIM_SUCCESS);
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, &packed), HXHIM_SUCCESS);
 
     Response::Histogram *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, responses, arrays, buffers), HXHIM_SUCCESS);
-    packed->release(buf, bufsize);
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, &responses, &arrays, &buffers), HXHIM_SUCCESS);
+    packed.release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -702,12 +702,12 @@ TEST(mpi_pack_unpack, ResponseHistogram) {
         EXPECT_EQ(src.hist.counts[i], dst->hist.counts[i]);
     }
 
-    responses->release(dst);
+    responses.release(dst);
 }
 
 TEST(mpi_pack_unpack, ResponseBPut) {
     const MPI_Comm comm = Instance::instance().Comm();
-    Response::BPut src(arrays, buffers);
+    Response::BPut src(&arrays, &buffers);
     ASSERT_EQ(src.alloc(1), HXHIM_SUCCESS);
     {
         src.src = rand();
@@ -726,11 +726,11 @@ TEST(mpi_pack_unpack, ResponseBPut) {
 
     void *buf = nullptr;
     std::size_t bufsize;
-    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, packed), HXHIM_SUCCESS);
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, &packed), HXHIM_SUCCESS);
 
     Response::BPut *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, responses, arrays, buffers), HXHIM_SUCCESS);
-    packed->release(buf, bufsize);
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, &responses, &arrays, &buffers), HXHIM_SUCCESS);
+    packed.release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -747,12 +747,12 @@ TEST(mpi_pack_unpack, ResponseBPut) {
         EXPECT_EQ(src.statuses[i], dst->statuses[i]);
     }
 
-    responses->release(dst);
+    responses.release(dst);
 }
 
 TEST(mpi_pack_unpack, ResponseBGet) {
     const MPI_Comm comm = Instance::instance().Comm();
-    Response::BGet src(arrays, buffers);
+    Response::BGet src(&arrays, &buffers);
     ASSERT_EQ(src.alloc(1), HXHIM_SUCCESS);
     {
         src.src = rand();
@@ -781,11 +781,11 @@ TEST(mpi_pack_unpack, ResponseBGet) {
 
     void *buf = nullptr;
     std::size_t bufsize;
-    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, packed), HXHIM_SUCCESS);
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, &packed), HXHIM_SUCCESS);
 
     Response::BGet *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, responses, arrays, buffers), HXHIM_SUCCESS);
-    packed->release(buf, bufsize);
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, &responses, &arrays, &buffers), HXHIM_SUCCESS);
+    packed.release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -812,12 +812,12 @@ TEST(mpi_pack_unpack, ResponseBGet) {
         EXPECT_EQ(memcmp(src.objects[i], dst->objects[i], dst->object_lens[i]), 0);
     }
 
-    responses->release(dst);
+    responses.release(dst);
 }
 
 TEST(mpi_pack_unpack, ResponseBGetOp) {
     const MPI_Comm comm = Instance::instance().Comm();
-    Response::BGetOp src(arrays, buffers);
+    Response::BGetOp src(&arrays, &buffers);
     ASSERT_EQ(src.alloc(1), HXHIM_SUCCESS);
     {
         src.src = rand();
@@ -846,11 +846,11 @@ TEST(mpi_pack_unpack, ResponseBGetOp) {
 
     void *buf = nullptr;
     std::size_t bufsize;
-    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, packed), HXHIM_SUCCESS);
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, &packed), HXHIM_SUCCESS);
 
     Response::BGetOp *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, responses, arrays, buffers), HXHIM_SUCCESS);
-    packed->release(buf, bufsize);
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, &responses, &arrays, &buffers), HXHIM_SUCCESS);
+    packed.release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -877,12 +877,12 @@ TEST(mpi_pack_unpack, ResponseBGetOp) {
         EXPECT_EQ(memcmp(src.objects[i], dst->objects[i], dst->object_lens[i]), 0);
     }
 
-    responses->release(dst);
+    responses.release(dst);
 }
 
 TEST(mpi_pack_unpack, ResponseBDelete) {
     const MPI_Comm comm = Instance::instance().Comm();
-    Response::BDelete src(arrays, buffers);
+    Response::BDelete src(&arrays, &buffers);
     ASSERT_EQ(src.alloc(1), HXHIM_SUCCESS);
     {
         src.src = rand();
@@ -901,11 +901,11 @@ TEST(mpi_pack_unpack, ResponseBDelete) {
 
     void *buf = nullptr;
     std::size_t bufsize;
-    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, packed), HXHIM_SUCCESS);
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, &packed), HXHIM_SUCCESS);
 
     Response::BDelete *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, responses, arrays, buffers), HXHIM_SUCCESS);
-    packed->release(buf, bufsize);
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, &responses, &arrays, &buffers), HXHIM_SUCCESS);
+    packed.release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -922,12 +922,12 @@ TEST(mpi_pack_unpack, ResponseBDelete) {
         EXPECT_EQ(src.statuses[i], dst->statuses[i]);
     }
 
-    responses->release(dst);
+    responses.release(dst);
 }
 
 TEST(mpi_pack_unpack, ResponseBHistogram) {
     const MPI_Comm comm = Instance::instance().Comm();
-    Response::BHistogram src(arrays, buffers);
+    Response::BHistogram src(&arrays, &buffers);
     ASSERT_EQ(src.alloc(1), HXHIM_SUCCESS);
     {
         src.src = rand();
@@ -955,11 +955,11 @@ TEST(mpi_pack_unpack, ResponseBHistogram) {
 
     void *buf = nullptr;
     std::size_t bufsize;
-    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, packed), HXHIM_SUCCESS);
+    ASSERT_EQ(Packer::pack(comm, &src, &buf, &bufsize, &packed), HXHIM_SUCCESS);
 
     Response::BHistogram *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, responses, arrays, buffers), HXHIM_SUCCESS);
-    packed->release(buf, bufsize);
+    EXPECT_EQ(Unpacker::unpack(comm, &dst, buf, bufsize, &responses, &arrays, &buffers), HXHIM_SUCCESS);
+    packed.release(buf, bufsize);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -982,5 +982,5 @@ TEST(mpi_pack_unpack, ResponseBHistogram) {
         }
     }
 
-    responses->release(dst);
+    responses.release(dst);
 }

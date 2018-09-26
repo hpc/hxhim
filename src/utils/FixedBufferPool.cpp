@@ -27,7 +27,7 @@ FixedBufferPool::FixedBufferPool(const std::size_t alloc_size, const std::size_t
     stats()
 {
     std::unique_lock<std::mutex> lock(mutex_);
-    FBP_LOG(FBP_INFO, "Attempting to initialize");
+    FBP_LOG(FBP_DBG, "Attempting to initialize");
 
     if (!regions_) {
         FBP_LOG(FBP_CRIT, "There must be at least 1 region of size %zu", alloc_size_);
@@ -69,7 +69,7 @@ FixedBufferPool::FixedBufferPool(const std::size_t alloc_size, const std::size_t
     // first available region is the head of the list
     unused_ = nodes_;
 
-    FBP_LOG(FBP_DBG, "Created");
+    FBP_LOG(FBP_INFO, "Created");
 }
 
 /**
@@ -258,7 +258,7 @@ std::ostream &FixedBufferPool::dump_region(const std::size_t region, std::ostrea
 void *FixedBufferPool::acquireImpl(const std::size_t size) {
     // 0 bytes
     if (!size) {
-        FBP_LOG(FBP_DBG, "Got request for a size 0 buffer");
+        FBP_LOG(FBP_ERR, "Got request for a size 0 buffer");
         return nullptr;
     }
 

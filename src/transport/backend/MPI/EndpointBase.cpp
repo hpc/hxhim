@@ -3,12 +3,11 @@
 namespace Transport {
 namespace MPI {
 
-pthread_mutex_t EndpointBase::mutex = PTHREAD_MUTEX_INITIALIZER;
-
-EndpointBase::EndpointBase(const MPI_Comm comm)
+EndpointBase::EndpointBase(const MPI_Comm comm, std::shared_ptr<FixedBufferPool> packed)
     : comm(comm),
       rank(-1),
-      size(-1)
+      size(-1),
+      packed(packed)
 {
     if (comm == MPI_COMM_NULL) {
         throw std::runtime_error("Received MPI_COMM_NULL as communicator");
@@ -20,6 +19,10 @@ EndpointBase::EndpointBase(const MPI_Comm comm)
 
     if (MPI_Comm_size(comm, &size) != MPI_SUCCESS) {
         throw std::runtime_error("Failed to get the size of the MPI communicator");
+    }
+
+    if (!packed) {
+        throw std::runtime_error("Got bad FixedBufferPool");
     }
 }
 

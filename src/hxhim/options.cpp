@@ -23,22 +23,7 @@ int hxhim_options_init(hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
-    if (!(opts->p = new hxhim_options_private_t())) {
-        return HXHIM_ERROR;
-    }
-
-    // Set default values that the user should not change
-    if ((hxhim_options_set_bulks_alloc_size(opts, hxhim::MaxSize::Bulks())         != HXHIM_SUCCESS) ||
-        (hxhim_options_set_keys_regions(opts, 1)                                   != HXHIM_SUCCESS) ||
-        (hxhim_options_set_requests_alloc_size(opts, hxhim::MaxSize::Requests())   != HXHIM_SUCCESS) ||
-        (hxhim_options_set_responses_alloc_size(opts, hxhim::MaxSize::Responses()) != HXHIM_SUCCESS) ||
-        (hxhim_options_set_result_alloc_size(opts, hxhim::MaxSize::Result())       != HXHIM_SUCCESS) ||
-        (hxhim_options_set_results_alloc_size(opts, sizeof(hxhim::Results))        != HXHIM_SUCCESS) ||
-        (hxhim_options_set_results_regions(opts, 8)                                != HXHIM_SUCCESS)) {
-        return HXHIM_ERROR;
-    }
-
-    return HXHIM_SUCCESS;
+    return (opts->p = new hxhim_options_private_t())?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 
 /**
@@ -182,8 +167,8 @@ int hxhim_options_set_hash_name(hxhim_options_t *opts, const char *name) {
     }
 
     const std::string hash_name = name;
-    std::map<std::string, hxhim_hash_t>::const_iterator it = HXHIM_HASHES.find(hash_name);
-    if (it == HXHIM_HASHES.end()) {
+    std::map<std::string, hxhim_hash_t>::const_iterator it = hxhim::config::HASHES.find(hash_name);
+    if (it == hxhim::config::HASHES.end()) {
         return HXHIM_ERROR;
     }
 
@@ -358,95 +343,49 @@ int hxhim_options_clear_endpoint_group(hxhim_options_t *opts) {
 }
 
 /**
- * hxhim_options_set_queued_puts
- * Set the number of bulk PUTs to queue up before flushing in the background thread
+ * hxhim_options_set_ops_per_bulks
+ * Set the number of operations a single bulk operation can contain
  *
  * @param opts  the set of options to be modified
  * @param count the number of PUTs
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_options_set_queued_bputs(hxhim_options_t *opts, const std::size_t count) {
+int hxhim_options_set_ops_per_bulk(hxhim_options_t *opts, const std::size_t count) {
     if (!valid_opts(opts)) {
         return HXHIM_ERROR;
     }
 
-    opts->p->queued_bputs = count;
+    opts->p->bulk_op_size = count;
 
     return HXHIM_SUCCESS;
 }
 
-/**
- * hxhim_options_set_histogram_first_n
- * Set the number of datapoints to use to generate the histogram buckets
- *
- * @param opts  the set of options to be modified
- * @param count the number of datapoints
- * @return HXHIM_SUCCESS or HXHIM_ERROR
- */
-int hxhim_options_set_histogram_first_n(hxhim_options_t *opts, const std::size_t count) {
+int hxhim_options_set_keys_name(hxhim_options_t *opts, const char *name) {
     if (!valid_opts(opts)) {
         return HXHIM_ERROR;
     }
 
-    opts->p->histogram.first_n = count;
+    opts->p->keys.name = name;
 
     return HXHIM_SUCCESS;
 }
 
-/**
- * hxhim_options_set_histogram_bucket_gen_method
- * Set the name of the bucket generation method.
- * This function only allows for predefined functions
- * because the function signature uses C++ objects
- *
- * @param opts   the set of options to be modified
- * @param method the name of the method
- * @return HXHIM_SUCCESS or HXHIM_ERROR
- */
-int hxhim_options_set_histogram_bucket_gen_method(hxhim_options_t *opts, const char *method) {
+int hxhim_options_set_keys_alloc_size(hxhim_options_t *opts, const size_t alloc_size) {
     if (!valid_opts(opts)) {
         return HXHIM_ERROR;
     }
 
-    decltype(HXHIM_HISTOGRAM_BUCKET_GENERATORS)::const_iterator gen_it = HXHIM_HISTOGRAM_BUCKET_GENERATORS.find(method);
-    if (gen_it == HXHIM_HISTOGRAM_BUCKET_GENERATORS.end()) {
-        return HXHIM_ERROR;
-    }
-
-    decltype(HXHIM_HISTOGRAM_BUCKET_GENERATOR_EXTRA_ARGS)::const_iterator args_it = HXHIM_HISTOGRAM_BUCKET_GENERATOR_EXTRA_ARGS.find(method);
-    if (args_it == HXHIM_HISTOGRAM_BUCKET_GENERATOR_EXTRA_ARGS.end()) {
-        return HXHIM_ERROR;
-    }
-
-    opts->p->histogram.gen = gen_it->second;
-    opts->p->histogram.args = args_it->second;
+    opts->p->keys.alloc_size = alloc_size;
 
     return HXHIM_SUCCESS;
 }
 
-/**
- * hxhim_options_set_histogram_bucket_gen_method
- * Set the name of the bucket generation method.
- * This function allows for arbitrary functions
- * that match the histogram bucket generator function
- * signature to be used.
- *
- * @param opts   the set of options to be modified
- * @param gen    the custom function for generating buckets
- * @param args   arguments the custom function will use at runtime
- * @return HXHIM_SUCCESS or HXHIM_ERROR
- */
-int hxhim_options_set_histogram_bucket_gen_method(hxhim_options_t *opts, const HistogramBucketGenerator_t &gen, void *args) {
+int hxhim_options_set_keys_regions(hxhim_options_t *opts, const size_t regions) {
     if (!valid_opts(opts)) {
         return HXHIM_ERROR;
     }
 
-    if (!gen) {
-        return HXHIM_ERROR;
-    }
-
-    opts->p->histogram.gen = gen;
-    opts->p->histogram.args = args;
+    opts->p->keys.regions = regions;
 
     return HXHIM_SUCCESS;
 }
@@ -537,36 +476,6 @@ int hxhim_options_set_bulks_regions(hxhim_options_t *opts, const size_t regions)
     }
 
     opts->p->bulks.regions = regions;
-
-    return HXHIM_SUCCESS;
-}
-
-int hxhim_options_set_keys_name(hxhim_options_t *opts, const char *name) {
-    if (!valid_opts(opts)) {
-        return HXHIM_ERROR;
-    }
-
-    opts->p->keys.name = name;
-
-    return HXHIM_SUCCESS;
-}
-
-int hxhim_options_set_keys_alloc_size(hxhim_options_t *opts, const size_t alloc_size) {
-    if (!valid_opts(opts)) {
-        return HXHIM_ERROR;
-    }
-
-    opts->p->keys.alloc_size = alloc_size;
-
-    return HXHIM_SUCCESS;
-}
-
-int hxhim_options_set_keys_regions(hxhim_options_t *opts, const size_t regions) {
-    if (!valid_opts(opts)) {
-        return HXHIM_ERROR;
-    }
-
-    opts->p->keys.regions = regions;
 
     return HXHIM_SUCCESS;
 }
@@ -717,6 +626,132 @@ int hxhim_options_set_results_regions(hxhim_options_t *opts, const size_t region
     }
 
     opts->p->results.regions = regions;
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * hxhim_options_set_maximum_queued_puts
+ * Set the number of bulk PUTs to queue up before flushing in the background thread
+ *
+ * @param opts  the set of options to be modified
+ * @param count the number of PUTs
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim_options_set_maximum_queued_bulk_ops(hxhim_options_t *opts, const std::size_t count) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->bulks.regions = count;
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * hxhim_options_set_queued_puts
+ * Set the number of bulk PUTs to queue up before flushing in the background thread
+ *
+ * @param opts  the set of options to be modified
+ * @param count the number of PUTs
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim_options_set_start_async_bput_at(hxhim_options_t *opts, const std::size_t count) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->start_async_bput_at = count;
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * hxhim_options_set_histogram_first_n
+ * Set the number of datapoints to use to generate the histogram buckets
+ *
+ * @param opts  the set of options to be modified
+ * @param count the number of datapoints
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim_options_set_histogram_first_n(hxhim_options_t *opts, const std::size_t count) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->histogram.first_n = count;
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * hxhim_options_set_histogram_bucket_gen_method
+ * Set the name of the bucket generation method.
+ * This function only allows for predefined functions
+ * because the function signature uses C++ objects
+ *
+ * @param opts   the set of options to be modified
+ * @param method the name of the method
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim_options_set_histogram_bucket_gen_method(hxhim_options_t *opts, const char *method) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    decltype(hxhim::config::HISTOGRAM_BUCKET_GENERATORS)::const_iterator gen_it = hxhim::config::HISTOGRAM_BUCKET_GENERATORS.find(method);
+    if (gen_it == hxhim::config::HISTOGRAM_BUCKET_GENERATORS.end()) {
+        return HXHIM_ERROR;
+    }
+
+    decltype(hxhim::config::HISTOGRAM_BUCKET_GENERATOR_EXTRA_ARGS)::const_iterator args_it = hxhim::config::HISTOGRAM_BUCKET_GENERATOR_EXTRA_ARGS.find(method);
+    if (args_it == hxhim::config::HISTOGRAM_BUCKET_GENERATOR_EXTRA_ARGS.end()) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->histogram.gen = gen_it->second;
+    opts->p->histogram.args = args_it->second;
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * hxhim_options_set_histogram_bucket_gen_method
+ * Set the name of the bucket generation method.
+ * This function only allows for predefined functions
+ * because the function signature uses C++ objects
+ *
+ * @param opts   the set of options to be modified
+ * @param method the name of the method
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim_options_set_histogram_bucket_gen_method(hxhim_options_t *opts, const std::string &method) {
+    return hxhim_options_set_histogram_bucket_gen_method(opts, method.c_str());
+}
+
+/**
+ * hxhim_options_set_histogram_bucket_gen_method
+ * Set the name of the bucket generation method.
+ * This function allows for arbitrary functions
+ * that match the histogram bucket generator function
+ * signature to be used.
+ *
+ * @param opts   the set of options to be modified
+ * @param gen    the custom function for generating buckets
+ * @param args   arguments the custom function will use at runtime
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim_options_set_histogram_bucket_gen_method(hxhim_options_t *opts, const HistogramBucketGenerator_t &gen, void *args) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    if (!gen) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->histogram.gen = gen;
+    opts->p->histogram.args = args;
 
     return HXHIM_SUCCESS;
 }

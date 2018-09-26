@@ -159,10 +159,11 @@ class FixedBufferPool {
         Node *unused_;
 
         #else
+        /** @description A set containing all of the pointers currently allocated          */
         std::set <void *> addrs_;
         #endif
 
-        /* @description a counter for keeping track of the number of regions used (instead
+        /* @description A counter for keeping track of the number of regions used (instead
          * of iterating through the entire list of unused_ to figure out how many nodes
          * are unused)
          */

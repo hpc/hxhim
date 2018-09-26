@@ -2,6 +2,7 @@
 #define TRANSPORT_MPI_RANGE_SERVER_HPP
 
 #include <atomic>
+#include <memory>
 #include <pthread.h>
 #include <unistd.h>
 #include <vector>
@@ -17,7 +18,7 @@ namespace MPI {
 
 class RangeServer {
     public:
-        static int init(hxhim_t *hx, const std::size_t listener_count);
+        static int init(hxhim_t *hx, const std::size_t listener_count, const std::shared_ptr<FixedBufferPool> &packed);
         static void destroy();
 
         /**
@@ -36,7 +37,7 @@ class RangeServer {
         static std::atomic_bool *running_;
         static std::vector<pthread_t> listeners_;
         static pthread_mutex_t mutex_;
-        static FixedBufferPool *packed_;
+        static std::shared_ptr<FixedBufferPool> packed_;
         static FixedBufferPool *arrays_;
         static FixedBufferPool *buffers_;
 };

@@ -22,14 +22,14 @@ FixedBufferPool::FixedBufferPool(const std::size_t alloc_size, const std::size_t
     stats()
 {
     std::unique_lock<std::mutex> lock(mutex_);
-    FBP_LOG(FBP_INFO, "Attempting to initialize");
+    FBP_LOG(FBP_DBG, "Attempting to initialize");
 
     if (!regions_) {
         FBP_LOG(FBP_CRIT, "There must be at least 1 region of size %zu", alloc_size_);
         throw std::runtime_error("There must be at least 1 region of size " + std::to_string(alloc_size_));
     }
 
-    FBP_LOG(FBP_DBG, "Created");
+    FBP_LOG(FBP_INFO, "Created");
 }
 
 /**
@@ -39,7 +39,7 @@ FixedBufferPool::~FixedBufferPool() {
     std::unique_lock<std::mutex> lock(mutex_);
 
     if (used_) {
-        FBP_LOG(FBP_INFO, "Destructing with %zu memory regions still in use", used_);
+        FBP_LOG(FBP_CRIT, "Destructing with %zu memory regions still in use", used_);
         for(void *addr : addrs_) {
             FBP_LOG(FBP_DBG, "    Address %p still allocated", addr);
             // do not delete pointers here to allow for valgrind to see leaks
@@ -53,6 +53,8 @@ FixedBufferPool::~FixedBufferPool() {
 /**
  * acquire
  * Returns a pointer obtained with ::operator new
+ * Unlike the non-debug version of acquireImpl, the
+ * debug version does not block.
  *
  * @param size     The total number of bytes requested
  * @return A pointer
@@ -60,7 +62,7 @@ FixedBufferPool::~FixedBufferPool() {
 void *FixedBufferPool::acquireImpl(const std::size_t size) {
     // 0 bytes
     if (!size) {
-        FBP_LOG(FBP_DBG, "Got request for a size 0 buffer");
+        FBP_LOG(FBP_ERR, "Got request for a size 0 buffer");
         return nullptr;
     }
 

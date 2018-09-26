@@ -1,14 +1,16 @@
 #include <algorithm>
 #include <cfloat>
+#include <cmath>
 
 #include "datastore/datastores.hpp"
+#include "hxhim/MaxSize.hpp"
 #include "hxhim/config.hpp"
 #include "hxhim/local_client.hpp"
 #include "hxhim/options_private.hpp"
 #include "hxhim/private.hpp"
 #include "hxhim/shuffle.hpp"
 #include "transport/transports.hpp"
-#include "utils/MemoryManager.hpp"
+#include "utils/FixedBufferPool.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
@@ -41,12 +43,7 @@ hxhim_private::hxhim_private()
       range_server_destroy(nullptr),
       memory_pools()
 {
-    // these should be configurable
-    max_bulk_ops.max     = HXHIM_MAX_BULK_OPS;
-    max_bulk_ops.puts    = max_bulk_ops.max / put_multiplier;
-    max_bulk_ops.gets    = max_bulk_ops.max;
-    max_bulk_ops.getops  = max_bulk_ops.max;
-    max_bulk_ops.deletes = max_bulk_ops.max;
+    memset(&max_bulk_ops, 0, sizeof(max_bulk_ops));
 
     async_put.max_queued = 0;
     async_put.results = nullptr;
@@ -263,7 +260,7 @@ static void backgroundPUT(void *args) {
         mlog(HXHIM_CLIENT_DBG, "Processing queued PUTs");
         while (hx->p->running && head) {
             // process the batch and save the results
-            hxhim::Results *res = put_core(hx, head, HXHIM_MAX_BULK_PUT_OPS);
+            hxhim::Results *res = put_core(hx, head, hx->p->max_bulk_ops.puts);
 
             // go to the next batch
             hxhim::PutData *next = head->next;
@@ -372,7 +369,7 @@ int hxhim::init::running(hxhim_t *hx, hxhim_options_t *opts) {
 
 /**
  * memory
- * Sets up the memory pools
+ * Sets up the memory related variables
  *
  * @param hx   the HXHIM instance
  * @param opts the HXHIM options
@@ -384,24 +381,30 @@ int hxhim::init::memory(hxhim_t *hx, hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
-    if (!((hx->p->memory_pools.packed    = MemoryManager::FBP(opts->p->packed.alloc_size,    opts->p->packed.regions,    opts->p->packed.name.c_str()))    &&
-          (hx->p->memory_pools.buffers   = MemoryManager::FBP(opts->p->buffers.alloc_size,   opts->p->buffers.regions,   opts->p->buffers.name.c_str()))   &&
-          (hx->p->memory_pools.bulks     = MemoryManager::FBP(opts->p->bulks.alloc_size,     opts->p->bulks.regions,     opts->p->bulks.name.c_str()))     &&
-          (hx->p->memory_pools.keys      = MemoryManager::FBP(opts->p->keys.alloc_size,      opts->p->keys.regions,      opts->p->keys.name.c_str()))      &&
-          (hx->p->memory_pools.arrays    = MemoryManager::FBP(opts->p->arrays.alloc_size,    opts->p->arrays.regions,    opts->p->arrays.name.c_str()))    &&
-          (hx->p->memory_pools.requests  = MemoryManager::FBP(opts->p->requests.alloc_size,  opts->p->requests.regions,  opts->p->requests.name.c_str()))  &&
-          (hx->p->memory_pools.responses = MemoryManager::FBP(opts->p->responses.alloc_size, opts->p->responses.regions, opts->p->responses.name.c_str())) &&
-          (hx->p->memory_pools.result    = MemoryManager::FBP(opts->p->result.alloc_size,    opts->p->result.regions,    opts->p->result.name.c_str()))    &&
-          (hx->p->memory_pools.results   = MemoryManager::FBP(opts->p->results.alloc_size,   opts->p->results.regions,   opts->p->results.name.c_str())))) {
+    // size of each set of queued messages
+    hx->p->max_bulk_ops.max     = opts->p->bulk_op_size;
+    hx->p->max_bulk_ops.puts    = opts->p->bulk_op_size / HXHIM_PUT_MULTIPLER;
+    hx->p->max_bulk_ops.gets    = opts->p->bulk_op_size;
+    hx->p->max_bulk_ops.getops  = opts->p->bulk_op_size;
+    hx->p->max_bulk_ops.deletes = opts->p->bulk_op_size;
+
+    // set up the memory pools
+    if (!((hx->p->memory_pools.keys      = new FixedBufferPool(opts->p->keys.alloc_size,      opts->p->keys.regions,      opts->p->keys.name))      &&
+          (hx->p->memory_pools.buffers   = new FixedBufferPool(opts->p->buffers.alloc_size,   opts->p->buffers.regions,   opts->p->buffers.name))   &&
+          (hx->p->memory_pools.bulks     = new FixedBufferPool(opts->p->bulks.alloc_size,     opts->p->bulks.regions,     opts->p->bulks.name))     &&
+          (hx->p->memory_pools.arrays    = new FixedBufferPool(opts->p->arrays.alloc_size,    opts->p->arrays.regions,    opts->p->arrays.name))    &&
+          (hx->p->memory_pools.requests  = new FixedBufferPool(opts->p->requests.alloc_size,  opts->p->requests.regions,  opts->p->requests.name))  &&
+          (hx->p->memory_pools.responses = new FixedBufferPool(opts->p->responses.alloc_size, opts->p->responses.regions, opts->p->responses.name)) &&
+          (hx->p->memory_pools.result    = new FixedBufferPool(opts->p->result.alloc_size,    opts->p->result.regions,    opts->p->result.name))    &&
+          (hx->p->memory_pools.results   = new FixedBufferPool(opts->p->results.alloc_size,   opts->p->results.regions,   opts->p->results.name)))) {
         mlog(HXHIM_CLIENT_ERR, "Could not preallocate all buffers");
         return HXHIM_ERROR;
     }
 
     mlog(HXHIM_CLIENT_INFO, "Preallocated %zu bytes of memory for HXHIM",
-         hx->p->memory_pools.packed->size()    +
+         hx->p->memory_pools.keys->size()      +
          hx->p->memory_pools.buffers->size()   +
          hx->p->memory_pools.bulks->size()     +
-         hx->p->memory_pools.keys->size()      +
          hx->p->memory_pools.arrays->size()    +
          hx->p->memory_pools.requests->size()  +
          hx->p->memory_pools.responses->size() +
@@ -439,7 +442,7 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
         // Start the datastore
         switch (opts->p->datastore->type) {
             #if HXHIM_HAVE_LEVELDB
-            case HXHIM_DATASTORE_LEVELDB:
+            case hxhim::datastore::LEVELDB:
                 {
                     hxhim_leveldb_config_t *config = static_cast<hxhim_leveldb_config_t *>(opts->p->datastore);
                     hx->p->datastore.prefix = config->prefix;
@@ -451,7 +454,7 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
                 }
                 break;
             #endif
-            case HXHIM_DATASTORE_IN_MEMORY:
+            case hxhim::datastore::IN_MEMORY:
                 {
                     hx->p->datastore.prefix = "";
                     hx->p->datastore.datastores[i] = new hxhim::datastore::InMemory(hx,
@@ -501,14 +504,14 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
     // Start the datastore
     switch (opts->p->datastore->type) {
         #if HXHIM_HAVE_LEVELDB
-        case HXHIM_DATASTORE_LEVELDB:
+        case hxhim::datastore::LEVELDB:
             hx->p->datastore.datastores[0] = new hxhim::datastore::leveldb(hx,
                                                                            hist,
                                                                            name);
             mlog(HXHIM_CLIENT_INFO, "Initialized single LevelDB datastore");
             break;
         #endif
-        case HXHIM_DATASTORE_IN_MEMORY:
+        case hxhim::datastore::IN_MEMORY:
             hx->p->datastore.datastores[0] = new hxhim::datastore::InMemory(hx,
                                                                             0,
                                                                             hist,
@@ -540,7 +543,7 @@ int hxhim::init::async_put(hxhim_t *hx, hxhim_options_t *opts) {
     }
 
     // Set number of bulk puts to queue up before sending
-    hx->p->async_put.max_queued = opts->p->queued_bputs;
+    hx->p->async_put.max_queued = opts->p->start_async_bput_at;
 
     // Set up queued PUT results list
     if (!(hx->p->async_put.results = hx->p->memory_pools.results->acquire<hxhim::Results>(hx))) {
@@ -675,6 +678,19 @@ int hxhim::destroy::memory(hxhim_t *hx) {
         return HXHIM_ERROR;
     }
 
+    delete hx->p->memory_pools.keys;
+    delete hx->p->memory_pools.buffers;
+    delete hx->p->memory_pools.bulks;
+    delete hx->p->memory_pools.arrays;
+    delete hx->p->memory_pools.requests;
+    delete hx->p->memory_pools.responses;
+    delete hx->p->memory_pools.result;
+    delete hx->p->memory_pools.results;
+
+    hx->p->memory_pools.keys      = nullptr;
+    hx->p->memory_pools.buffers   = nullptr;
+    hx->p->memory_pools.bulks     = nullptr;
+    hx->p->memory_pools.arrays    = nullptr;
     hx->p->memory_pools.arrays    = nullptr;
     hx->p->memory_pools.requests  = nullptr;
     hx->p->memory_pools.responses = nullptr;

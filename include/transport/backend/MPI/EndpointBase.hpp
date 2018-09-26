@@ -1,6 +1,7 @@
 #ifndef TRANSPORT_MPI_ENDPOINT_BASE_HPP
 #define TRANSPORT_MPI_ENDPOINT_BASE_HPP
 
+#include <memory>
 #include <pthread.h>
 #include <stdexcept>
 #include <unistd.h>
@@ -20,7 +21,7 @@ namespace MPI {
  */
 class EndpointBase {
     public:
-        EndpointBase(const MPI_Comm comm);
+        EndpointBase(const MPI_Comm comm, const std::shared_ptr<FixedBufferPool> packed);
         virtual ~EndpointBase();
 
         MPI_Comm Comm() const;
@@ -28,10 +29,10 @@ class EndpointBase {
         int Size() const;
 
     protected:
-        static pthread_mutex_t mutex;
         MPI_Comm comm;
         int rank;
         int size;
+        std::shared_ptr<FixedBufferPool> packed;
 };
 
 }

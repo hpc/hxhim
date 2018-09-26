@@ -24,7 +24,7 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup, virtual public 
     public:
         EndpointGroup(const MPI_Comm comm,
                       volatile std::atomic_bool &running,
-                      FixedBufferPool *packed,
+                      std::shared_ptr<FixedBufferPool> packed,
                       FixedBufferPool *responses,
                       FixedBufferPool *arrays,
                       FixedBufferPool *buffers);
@@ -84,7 +84,6 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup, virtual public 
         int *srvs;
 
         /** Allocators from HXHIM */
-        FixedBufferPool *packed;
         FixedBufferPool *responses;
         FixedBufferPool *arrays;
         FixedBufferPool *buffers;

@@ -19,10 +19,9 @@
  * @param hx A pointer to the HXHIM instance
  */
 #define CHECK_MEMORY(hx) do {                                   \
-        EXPECT_EQ((hx)->p->memory_pools.packed->used(),    0);  \
+        EXPECT_EQ((hx)->p->memory_pools.keys->used(),      0);  \
         EXPECT_EQ((hx)->p->memory_pools.buffers->used(),   0);  \
         EXPECT_EQ((hx)->p->memory_pools.bulks->used(),     0);  \
-        EXPECT_EQ((hx)->p->memory_pools.keys->used(),      0);  \
         EXPECT_EQ((hx)->p->memory_pools.arrays->used(),    1);  \
         EXPECT_EQ((hx)->p->memory_pools.requests->used(),  0);  \
         EXPECT_EQ((hx)->p->memory_pools.responses->used(), 0);  \

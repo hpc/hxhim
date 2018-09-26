@@ -86,10 +86,9 @@ typedef struct hxhim_private {
 
     // Memory pools used to allocate space in HXHIM
     struct {
-        FixedBufferPool *packed;                               // maximum size of a packed Transport::Message
+        FixedBufferPool *keys;                                 // at least (subject_len + sizeof(std::size_t) + predicate_len + sizeof(std::size_t))
         FixedBufferPool *buffers;                              // maximum size of smaller buffers (subjects, predicates, objects, etc)
         FixedBufferPool *bulks;                                // number of queues (4) * maximum number of bulk operations
-        FixedBufferPool *keys;                                 // at least (subject_len + sizeof(std::size_t) + predicate_len + sizeof(std::size_t))
         FixedBufferPool *arrays;                               // should have enough space for max(sizeof(T) * length)
         FixedBufferPool *requests;                             // should have enough space to allow for maximum number of requests queued before flushing
         FixedBufferPool *responses;                            // should have enough space to allow for responses from all queued requests

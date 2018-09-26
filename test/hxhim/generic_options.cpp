@@ -9,7 +9,6 @@ bool fill_options(hxhim_options_t *opts) {
             (hxhim_options_set_datastores_per_range_server(opts, 1)              == HXHIM_SUCCESS) &&
             (hxhim_options_set_hash_name(opts, "RANK")                           == HXHIM_SUCCESS) &&
             (hxhim_options_set_transport_thallium(opts, "na+sm")                 == HXHIM_SUCCESS) &&
-            (hxhim_options_set_queued_bputs(opts, 1)                             == HXHIM_SUCCESS) &&
             (hxhim_options_set_histogram_first_n(opts, 10)                       == HXHIM_SUCCESS) &&
             (hxhim_options_set_histogram_bucket_gen_method(opts, "10_BUCKETS")   == HXHIM_SUCCESS) &&
             (hxhim_options_set_packed_name(opts, "Packed")                       == HXHIM_SUCCESS) &&

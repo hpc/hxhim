@@ -5,6 +5,8 @@
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
+#include <iostream>
+
 namespace Transport {
 namespace MPI {
 
@@ -31,12 +33,15 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
 
     Options *config = static_cast<Options *>(opts->p->transport);
 
+    // Create the shared memory pool used in MPI
+    std::shared_ptr<FixedBufferPool> packed = std::make_shared<FixedBufferPool>(hx->p->max_bulk_ops.max * 9, hx->p->bootstrap.size, opts->p->packed.name);
+
     // give the range server access to the state
-    RangeServer::init(hx, config->listeners);
+    RangeServer::init(hx, config->listeners, packed);
 
     EndpointGroup *eg = new EndpointGroup(hx->p->bootstrap.comm,
                                           hx->p->running,
-                                          hx->p->memory_pools.packed,
+                                          packed,
                                           hx->p->memory_pools.responses,
                                           hx->p->memory_pools.arrays,
                                           hx->p->memory_pools.buffers);
@@ -49,7 +54,7 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
         // MPI ranks map 1:1 with the boostrap MPI rank
         hx->p->transport->AddEndpoint(i, new Endpoint(hx->p->bootstrap.comm, i,
                                                       hx->p->running,
-                                                      hx->p->memory_pools.packed,
+                                                      packed,
                                                       hx->p->memory_pools.responses,
                                                       hx->p->memory_pools.arrays,
                                                       hx->p->memory_pools.buffers));

@@ -1,8 +1,10 @@
 #include <algorithm>
 
+#include "datastore/datastore.hpp"
 #include "hxhim/MaxSize.hpp"
 #include "hxhim/Results.hpp"
 #include "hxhim/cache.hpp"
+#include "hxhim/constants.h"
 #include "transport/Messages/Messages.hpp"
 
 std::size_t hxhim::MaxSize::Bulks() {
@@ -14,6 +16,30 @@ std::size_t hxhim::MaxSize::Bulks() {
     };
 
     static const std::size_t max_size = *std::max_element(std::begin(bulk_sizes), std::end(bulk_sizes));
+
+    return max_size;
+}
+
+std::size_t hxhim::MaxSize::Arrays() {
+    static const std::size_t array_sizes[] =  {
+        sizeof(void *),
+        sizeof(void **),
+        sizeof(int),
+        sizeof(std::size_t),
+        sizeof(hxhim_type_t),
+        sizeof(Transport::Request::Put *),
+        sizeof(Transport::Request::Get *),
+        sizeof(Transport::Request::Delete *),
+        sizeof(Transport::Request::Histogram *),
+        sizeof(Transport::Request::BPut *),
+        sizeof(Transport::Request::BGet *),
+        sizeof(Transport::Request::BGetOp *),
+        sizeof(Transport::Request::BDelete *),
+        sizeof(Transport::Request::BHistogram *),
+        sizeof(hxhim::datastore::Datastore *),
+    };
+
+    static const std::size_t max_size = *std::max_element(std::begin(array_sizes), std::end(array_sizes));
 
     return max_size;
 }

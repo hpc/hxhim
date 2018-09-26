@@ -6,7 +6,7 @@
 
 #include <mpi.h>
 
-#include "datastore/constants.h"
+#include "datastore/constants.hpp"
 #include "hxhim/constants.h"
 #include "hxhim/hash.hpp"
 #include "transport/options.hpp"
@@ -21,17 +21,17 @@ extern "C"
  * Structures for holding datastore configurations
  */
 typedef struct hxhim_datastore_config {
-    hxhim_datastore_config(const hxhim_datastore_t datastore)
+    hxhim_datastore_config(const hxhim::datastore::Type datastore)
         : type(datastore)
     {}
 
-    const hxhim_datastore_t type;
+    const hxhim::datastore::Type type;
 } hxhim_datastore_config_t;
 
 #if HXHIM_HAVE_LEVELDB
 typedef struct hxhim_leveldb_config : hxhim_datastore_config_t {
     hxhim_leveldb_config()
-        : hxhim_datastore_config_t(HXHIM_DATASTORE_LEVELDB)
+        : hxhim_datastore_config_t(hxhim::datastore::LEVELDB)
     {}
 
     std::size_t id;
@@ -42,7 +42,7 @@ typedef struct hxhim_leveldb_config : hxhim_datastore_config_t {
 
 typedef struct hxhim_in_memory_config : hxhim_datastore_config_t {
     hxhim_in_memory_config()
-        : hxhim_datastore_config_t(HXHIM_DATASTORE_IN_MEMORY)
+        : hxhim_datastore_config_t(hxhim::datastore::IN_MEMORY)
     {}
 } hxhim_in_memory_config_t;
 
@@ -69,6 +69,10 @@ typedef struct hxhim_options_private {
     hxhim_datastore_config_t *datastore;      // configuration options for the selected datastore
     std::size_t datastore_count;
 
+    std::size_t bulk_op_size;                 // the number of messages that are in a single set of bulk data to process
+
+    std::size_t start_async_bput_at;          // number of batches to hold before sending PUTs asynchronously
+
     struct {
         std::string name;
         hxhim_hash_t func;
@@ -78,8 +82,6 @@ typedef struct hxhim_options_private {
     Transport::Options *transport;
 
     std::set<int> endpointgroup;
-
-    std::size_t queued_bputs;                 // number of batches to hold before sending PUTs asynchronously
 
     struct {
         std::size_t first_n;                  // number of datapoints used to generate histogram buckets

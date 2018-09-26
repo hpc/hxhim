@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Generate some subject-predicate-object triples
-    const size_t count = HXHIM_MAX_BULK_PUT_OPS * 100;
+    const size_t count = 5000;
     void **subjects = NULL, **predicates = NULL, **objects = NULL;
     size_t *subject_lens = NULL, *predicate_lens = NULL, *object_lens = NULL;
     /* if (spo_gen_fixed(count, 100, rank, */

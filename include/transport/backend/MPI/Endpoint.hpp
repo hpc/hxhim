@@ -4,8 +4,6 @@
 #include <atomic>
 #include <type_traits>
 
-#include "utils/mlog2.h"
-#include "utils/mlogfacs2.h"
 #include <mpi.h>
 
 #include "transport/backend/MPI/EndpointBase.hpp"
@@ -13,6 +11,8 @@
 #include "transport/backend/MPI/Unpacker.hpp"
 #include "transport/transport.hpp"
 #include "utils/FixedBufferPool.hpp"
+#include "utils/mlog2.h"
+#include "utils/mlogfacs2.h"
 
 namespace Transport {
 namespace MPI {
@@ -27,7 +27,7 @@ class Endpoint : virtual public ::Transport::Endpoint, virtual public EndpointBa
         Endpoint(const MPI_Comm comm,
                  const int remote_rank,
                  volatile std::atomic_bool &running,
-                 FixedBufferPool *packed,
+                 std::shared_ptr<FixedBufferPool> packed,
                  FixedBufferPool *responses,
                  FixedBufferPool *arrays,
                  FixedBufferPool *buffers);
@@ -76,11 +76,11 @@ class Endpoint : virtual public ::Transport::Endpoint, virtual public EndpointBa
             // the result of this series of function calls does not matter
             (void)
                 (
-                    (Packer::pack(comm, message, &sendbuf, &sendsize, packed)      == TRANSPORT_SUCCESS) &&  // pack the message
-                    (send(sendbuf, sendsize)                                       == TRANSPORT_SUCCESS) &&  // send the message
-                    (recv(&recvbuf, &recvsize)                                     == TRANSPORT_SUCCESS) &&  // receive the response
+                    (Packer::pack(comm, message, &sendbuf, &sendsize, packed.get()) == TRANSPORT_SUCCESS) &&  // pack the message
+                    (send(sendbuf, sendsize)                                        == TRANSPORT_SUCCESS) &&  // send the message
+                    (recv(&recvbuf, &recvsize)                                      == TRANSPORT_SUCCESS) &&  // receive the response
                     (Unpacker::unpack(comm, &response, recvbuf, recvsize,
-                                      responses, arrays, buffers)                  == TRANSPORT_SUCCESS)     // unpack the response
+                                      responses, arrays, buffers)                   == TRANSPORT_SUCCESS)     // unpack the response
                 );
 
             packed->release(sendbuf, sendsize);
@@ -92,7 +92,6 @@ class Endpoint : virtual public ::Transport::Endpoint, virtual public EndpointBa
         const int remote_rank;
         volatile std::atomic_bool &running;
 
-        FixedBufferPool *packed;
         FixedBufferPool *responses;
         FixedBufferPool *arrays;
         FixedBufferPool *buffers;
