@@ -4,8 +4,7 @@
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
-/** @description wrapper for FixedBufferPool mlog statements */
-#define FBP_LOG(level, fmt, ...) mlog(level, "%s (%zu bytes x %zu/%zu regions free): " fmt, name_.c_str(), alloc_size_, regions_ - used_, regions_, ##__VA_ARGS__)
+#ifndef DEBUG
 
 /**
  * FixedBufferPool Constructor
@@ -19,9 +18,9 @@ FixedBufferPool::FixedBufferPool(const std::size_t alloc_size, const std::size_t
     alloc_size_(alloc_size),
     regions_(regions),
     pool_size_(alloc_size_ * regions_),
-    pool_(nullptr),
     mutex_(),
     cv_(),
+    pool_(nullptr),
     nodes_(nullptr),
     unused_(nullptr),
     used_(0),
@@ -79,10 +78,12 @@ FixedBufferPool::FixedBufferPool(const std::size_t alloc_size, const std::size_t
 FixedBufferPool::~FixedBufferPool() {
     std::unique_lock<std::mutex> lock(mutex_);
 
-    FBP_LOG(FBP_INFO, "Destructing with %zu memory regions still in use", used_);
-    for(std::size_t i = 0; i < regions_; i++) {
-        if (nodes_[i].size) {
-            FBP_LOG(FBP_DBG, "    Address %p (index %zu) still allocated with %zu bytes", nodes_[i].addr, i, nodes_[i].size);
+    if (used_) {
+        FBP_LOG(FBP_INFO, "Destructing with %zu memory regions still in use", used_);
+        for(std::size_t i = 0; i < regions_; i++) {
+            if (nodes_[i].size) {
+                FBP_LOG(FBP_DBG, "    Address %p (index %zu) still allocated with %zu bytes", nodes_[i].addr, i, nodes_[i].size);
+            }
         }
     }
 
@@ -97,6 +98,8 @@ FixedBufferPool::~FixedBufferPool() {
     ::operator delete(pool_);
     pool_ = nullptr;
 }
+
+#endif
 
 /**
  * acquire
@@ -175,6 +178,7 @@ std::size_t FixedBufferPool::used() const {
     return used_;
 }
 
+#ifndef DEBUG
 /**
  * pool
  *
@@ -359,3 +363,5 @@ void FixedBufferPool::releaseImpl(void *ptr, const std::size_t size) {
 
     FBP_LOG(FBP_DBG, "Freed %p", ptr);
 }
+
+#endif

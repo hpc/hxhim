@@ -156,6 +156,7 @@ int hxhim::Close(hxhim_t *hx) {
     hx->p = nullptr;
 
     mlog(HXHIM_CLIENT_INFO, "HXHIM has been shutdown");
+    // mlog_close();
     return HXHIM_SUCCESS;
 }
 
@@ -265,21 +266,19 @@ static hxhim::Results *get_core(hxhim_t *hx,
     // GET the batch
     if (hx->p->bootstrap.size > 1) {
         Transport::Response::BGet *responses = hx->p->transport->BGet(hx->p->bootstrap.size, remote);
-        for(Transport::Response::BGet *curr = responses; curr; curr = curr->next) {
+        for(Transport::Response::BGet *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
             for(std::size_t i = 0; i < curr->count; i++) {
                 res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Get>(hx, curr, i, true));
             }
-            hx->p->memory_pools.responses->release(curr);
         }
     }
 
     if (local->count) {
        Transport::Response::BGet *responses = local_client_bget(hx, local);
-        for(Transport::Response::BGet *curr = responses; curr; curr = curr->next) {
+        for(Transport::Response::BGet *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
             for(std::size_t i = 0; i < curr->count; i++) {
                 res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Get>(hx, curr, i, false));
             }
-            hx->p->memory_pools.responses->release(curr);
         }
     }
 
@@ -410,21 +409,19 @@ static hxhim::Results *getop_core(hxhim_t *hx,
     // GET the batch
     if (hx->p->bootstrap.size > 1) {
         Transport::Response::BGetOp *responses = hx->p->transport->BGetOp(hx->p->bootstrap.size, remote);
-        for(Transport::Response::BGetOp *curr = responses; curr; curr = curr->next) {
+        for(Transport::Response::BGetOp *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
             for(std::size_t i = 0; i < curr->count; i++) {
                 res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Get>(hx, curr, i, true));
             }
-            hx->p->memory_pools.responses->release(curr);
         }
     }
 
     if (local->count) {
         Transport::Response::BGetOp *responses = local_client_bget_op(hx, local);
-        for(Transport::Response::BGetOp *curr = responses; curr; curr = curr->next) {
+        for(Transport::Response::BGetOp *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
             for(std::size_t i = 0; i < curr->count; i++) {
                 res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Get>(hx, curr, i, false));
             }
-            hx->p->memory_pools.responses->release(curr);
         }
     }
 
@@ -549,21 +546,19 @@ static hxhim::Results *delete_core(hxhim_t *hx,
     // DELETE the batch
     if (hx->p->bootstrap.size > 1) {
         Transport::Response::BDelete *responses = hx->p->transport->BDelete(hx->p->bootstrap.size, remote);
-        for(Transport::Response::BDelete *curr = responses; curr; curr = curr->next) {
+        for(Transport::Response::BDelete *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
             for(std::size_t i = 0; i < curr->count; i++) {
                 res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Delete>(hx, curr, i));
             }
-            hx->p->memory_pools.responses->release(curr);
         }
     }
 
     if (local->count) {
         Transport::Response::BDelete *responses = local_client_bdelete(hx, local);
-        for(Transport::Response::BDelete *curr = responses; curr; curr = curr->next) {
+        for(Transport::Response::BDelete *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
             for(std::size_t i = 0; i < curr->count; i++) {
                 res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Delete>(hx, curr, i));
             }
-            hx->p->memory_pools.responses->release(curr);
         }
     }
 

@@ -9,6 +9,19 @@
 #include <type_traits>
 #include <utility>
 
+#ifndef DEBUG
+
+/** @description wrapper for FixedBufferPool mlog statements */
+#define FBP_LOG(level, fmt, ...) mlog(level, "%s (%zu bytes x %zu/%zu regions free): " fmt, name_.c_str(), alloc_size_, regions_ - used_, regions_, ##__VA_ARGS__)
+
+#else
+#include <set>
+
+/** @description wrapper for Debug FixedBufferPool mlog statements */
+#define FBP_LOG(level, fmt, ...) mlog(level, "Debug %s (%zu bytes x %zu/%zu regions free): " fmt, name_.c_str(), alloc_size_, regions_ - used_, regions_, ##__VA_ARGS__)
+
+#endif
+
 /**
  * FixedBufferPool
  * This class distributes memory addresses from a fixed size pool of memory.
@@ -55,6 +68,7 @@ class FixedBufferPool {
         /* @description Utility function to get number of used memory regions              */
         std::size_t used() const;
 
+        #ifndef DEBUG
         /* @description Utility function to get starting address of memory pool            */
         const void *pool() const;
 
@@ -63,6 +77,7 @@ class FixedBufferPool {
 
         /* @description Utility function to dump the contents of the entire memory pool    */
         std::ostream &dump(std::ostream &stream) const;
+        #endif
 
     private:
         FixedBufferPool(const FixedBufferPool& copy)            = delete;
@@ -71,8 +86,17 @@ class FixedBufferPool {
         FixedBufferPool& operator=(const FixedBufferPool& rhs)  = delete;
         FixedBufferPool& operator=(const FixedBufferPool&& rhs) = delete;
 
+        #ifndef DEBUG
         /* @description Private utility function to dump the contents of a region          */
         std::ostream &dump_region(const std::size_t region, std::ostream &stream) const;
+
+        #endif
+
+        /** @description The actual acquire function */
+        void *acquireImpl(const std::size_t size);
+
+        /** @description The actual release function */
+        void releaseImpl(void *ptr, const std::size_t rec_size);
 
         const std::string name_;
 
@@ -85,18 +109,14 @@ class FixedBufferPool {
         /* @description The totoal amount of memory available in the memory pool           */
         const std::size_t pool_size_;
 
-        /* Memory pool where pointers returned from acquire will come from                 */
-        void *pool_;
-
         /* Concurrency Variables                                                           */
         mutable std::mutex mutex_;
+
+        #ifndef DEBUG
         mutable std::condition_variable cv_;
 
-        /** @description The actual acquire function */
-        void *acquireImpl(const std::size_t size);
-
-        /** @description The actual release function */
-        void releaseImpl(void *ptr, const std::size_t rec_size);
+        /* Memory pool where pointers returned from acquire will come from                 */
+        void *pool_;
 
         /*
          * Node
@@ -137,6 +157,10 @@ class FixedBufferPool {
          * and use that address to push_front on unused_.
          */
         Node *unused_;
+
+        #else
+        std::set <void *> addrs_;
+        #endif
 
         /* @description a counter for keeping track of the number of regions used (instead
          * of iterating through the entire list of unused_ to figure out how many nodes

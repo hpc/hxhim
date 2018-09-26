@@ -62,15 +62,18 @@ static Transport::Response::BPut *bput(hxhim_t *hx, const Transport::Request::BP
         index++;
     }
 
+    // set up output variable
     Transport::Response::BPut *res = responses->acquire<Transport::Response::BPut>(arrays, buffers, req->count);
     res->src = req->dst;
     res->dst = req->src;
 
+    // BPUT to each datastore
     for(std::size_t i = 0; i < hx->p->datastore.count; i++) {
         Transport::Response::BPut *response = hx->p->datastore.datastores[i]->BPut(subjects[i], subject_lens[i],
                                                                                    predicates[i], predicate_lens[i],
                                                                                    object_types[i], objects[i], object_lens[i],
                                                                                    counters[i]);
+        // if there were responses, copy them into the output variable
         if (response) {
             for(std::size_t j = 0; j < response->count; j++) {
                 res->ds_offsets[res->count] = i;

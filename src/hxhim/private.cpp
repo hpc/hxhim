@@ -140,11 +140,10 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
     if (hx->p->bootstrap.size > 1) {
         mlog(HXHIM_CLIENT_DBG, "Start remote PUTs");
         Transport::Response::BPut *responses = hx->p->transport->BPut(hx->p->bootstrap.size, remote);
-        for(Transport::Response::BPut *curr = responses; curr; curr = curr->next) {
+        for(Transport::Response::BPut *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
             for(std::size_t i = 0; i < curr->count; i++) {
                 res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Put>(hx, curr, i));
             }
-            hx->p->memory_pools.responses->release(curr);
         }
         mlog(HXHIM_CLIENT_DBG, "Completed remote PUTs");
     }
@@ -152,11 +151,10 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
     if (local.count) {
         mlog(HXHIM_CLIENT_DBG, "Start local PUTs");
         Transport::Response::BPut *responses = local_client_bput(hx, &local);
-        for(Transport::Response::BPut *curr = responses; curr; curr = curr->next) {
+        for(Transport::Response::BPut *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
             for(std::size_t i = 0; i < curr->count; i++) {
                 res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Put>(hx, curr, i));
             }
-            hx->p->memory_pools.responses->release(curr);
         }
         mlog(HXHIM_CLIENT_DBG, "Completed local PUTs");
     }

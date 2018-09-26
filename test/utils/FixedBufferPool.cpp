@@ -46,6 +46,7 @@ TEST(FixedBufferPool, usage) {
     delete [] alloc;
 }
 
+#ifndef DEBUG
 TEST(FixedBufferPool, dump) {
     const std::string src = "ABCDEFGHIJKLMNOP";
 
@@ -84,6 +85,7 @@ TEST(FixedBufferPool, dump) {
     }
     delete [] ptrs;
 }
+#endif
 
 TEST(FixedBufferPool, too_large_request) {
     typedef int Test_t;

@@ -14,8 +14,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 #
 # Enable extra compiler flags
 #
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -Wextra -O0 -g3")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra -O0 -g3 -D_GLIBCXX_DEBUG")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra -O0 -g3 -D_GLIBCXX_DEBUG -DDEBUG")
 
 #
 # Add additional cmake files
