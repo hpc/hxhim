@@ -111,10 +111,9 @@ class FixedBufferPool {
 
         /* Concurrency Variables                                                           */
         mutable std::mutex mutex_;
-
-        #ifndef DEBUG
         mutable std::condition_variable cv_;
 
+        #ifndef DEBUG
         /* Memory pool where pointers returned from acquire will come from                 */
         void *pool_;
 

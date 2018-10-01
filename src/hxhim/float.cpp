@@ -114,7 +114,7 @@ int hxhim::BPutFloat(hxhim_t *hx,
     const int ret = hxhim::BPutSingleType(hx,
                                           subjects, subject_lens,
                                           predicates, predicate_lens,
-                                          HXHIM_DOUBLE_TYPE, (void **) objects, lens,
+                                          HXHIM_FLOAT_TYPE, (void **) objects, lens,
                                           count);
     delete [] lens;
     return ret;
@@ -165,7 +165,7 @@ int hxhim::BGetFloat(hxhim_t *hx,
     return hxhim::BGetSingleType(hx,
                                  subjects, subject_lens,
                                  predicates, predicate_lens,
-                                 HXHIM_DOUBLE_TYPE,
+                                 HXHIM_FLOAT_TYPE,
                                  count);
 }
 

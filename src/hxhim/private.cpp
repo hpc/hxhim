@@ -37,7 +37,7 @@ hxhim_private::hxhim_private()
       max_bulk_ops(),
       queues(),
       datastore(),
-      async_put(),
+      async_bput(),
       hash(),
       transport(nullptr),
       range_server_destroy(nullptr),
@@ -45,8 +45,8 @@ hxhim_private::hxhim_private()
 {
     memset(&max_bulk_ops, 0, sizeof(max_bulk_ops));
 
-    async_put.max_queued = 0;
-    async_put.results = nullptr;
+    async_bput.max_queued = 0;
+    async_bput.results = nullptr;
 }
 
 /**
@@ -192,12 +192,12 @@ static void backgroundPUT(void *args) {
         {
             hxhim::Unsent<hxhim::PutData> &unsent = hx->p->queues.puts;
             std::unique_lock<std::mutex> lock(unsent.mutex);
-            while (hx->p->running && (unsent.full_batches < hx->p->async_put.max_queued) && !unsent.force) {
-                mlog(HXHIM_CLIENT_DBG, "Waiting for %zu bulk puts (currently have %zu)", hx->p->async_put.max_queued, unsent.full_batches);
-                unsent.start_processing.wait(lock, [&]() -> bool { return !hx->p->running || (unsent.full_batches >= hx->p->async_put.max_queued) || unsent.force; });
+            while (hx->p->running && (unsent.full_batches < hx->p->async_bput.max_queued) && !unsent.force) {
+                mlog(HXHIM_CLIENT_DBG, "Waiting for %zu bulk puts (currently have %zu)", hx->p->async_bput.max_queued, unsent.full_batches);
+                unsent.start_processing.wait(lock, [&]() -> bool { return !hx->p->running || (unsent.full_batches >= hx->p->async_bput.max_queued) || unsent.force; });
             }
 
-            mlog(HXHIM_CLIENT_DBG, "Moving %zu queued bulk PUTs into send queue for processing %zu %zu %d", unsent.full_batches, unsent.full_batches, hx->p->async_put.max_queued, unsent.force);
+            mlog(HXHIM_CLIENT_DBG, "Moving %zu queued bulk PUTs into send queue for processing", unsent.full_batches);
 
             // record whether or not this loop was forced, since the lock is not held
             force = unsent.force;
@@ -268,12 +268,13 @@ static void backgroundPUT(void *args) {
             head = next;
 
             {
-                std::unique_lock<std::mutex> lock(hx->p->async_put.mutex);
-                hx->p->async_put.results->Append(res);
+                std::unique_lock<std::mutex> lock(hx->p->async_bput.mutex);
+                hx->p->async_bput.results->Append(res);
             }
 
             hx->p->memory_pools.results->release(res);
         }
+
         mlog(HXHIM_CLIENT_DBG, "Done processing queued PUTs");
 
         // if this flush was forced, notify FlushPuts
@@ -290,8 +291,8 @@ static void backgroundPUT(void *args) {
                 last = nullptr;
 
                 {
-                    std::unique_lock<std::mutex> lock(hx->p->async_put.mutex);
-                    hx->p->async_put.results->Append(res);
+                    std::unique_lock<std::mutex> lock(hx->p->async_bput.mutex);
+                    hx->p->async_bput.results->Append(res);
                 }
 
                 hx->p->memory_pools.results->release(res);
@@ -526,14 +527,14 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
 }
 
 /**
- * async_put
+ * async_bput
  * Starts up the background thread that does asynchronous PUTs.
  *
  * @param hx   the HXHIM instance
  * @param opts the HXHIM options
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int hxhim::init::async_put(hxhim_t *hx, hxhim_options_t *opts) {
+int hxhim::init::async_bput(hxhim_t *hx, hxhim_options_t *opts) {
     if (!valid(hx, opts)) {
         return HXHIM_ERROR;
     }
@@ -543,15 +544,15 @@ int hxhim::init::async_put(hxhim_t *hx, hxhim_options_t *opts) {
     }
 
     // Set number of bulk puts to queue up before sending
-    hx->p->async_put.max_queued = opts->p->start_async_bput_at;
+    hx->p->async_bput.max_queued = opts->p->start_async_bput_at;
 
     // Set up queued PUT results list
-    if (!(hx->p->async_put.results = hx->p->memory_pools.results->acquire<hxhim::Results>(hx))) {
+    if (!(hx->p->async_bput.results = hx->p->memory_pools.results->acquire<hxhim::Results>(hx))) {
         return HXHIM_ERROR;
     }
 
     // Start the background thread
-    hx->p->async_put.thread = std::thread(backgroundPUT, hx);
+    hx->p->async_bput.thread = std::thread(backgroundPUT, hx);
 
     return HXHIM_SUCCESS;
 }
@@ -743,13 +744,13 @@ int hxhim::destroy::hash(hxhim_t *hx) {
 }
 
 /**
- * async_put
+ * async_bput
  * Stops the background thread and cleans up the variables used by it
  *
  * @param hx   the HXHIM instance
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int hxhim::destroy::async_put(hxhim_t *hx) {
+int hxhim::destroy::async_bput(hxhim_t *hx) {
     if (!valid(hx)) {
         return HXHIM_ERROR;
     }
@@ -759,8 +760,8 @@ int hxhim::destroy::async_put(hxhim_t *hx) {
     hx->p->queues.puts.start_processing.notify_all();
     hx->p->queues.puts.done_processing.notify_all();
 
-    if (hx->p->async_put.thread.joinable()) {
-        hx->p->async_put.thread.join();
+    if (hx->p->async_bput.thread.joinable()) {
+        hx->p->async_bput.thread.join();
     }
 
     // clear out unflushed work in the work queue
@@ -775,9 +776,9 @@ int hxhim::destroy::async_put(hxhim_t *hx) {
 
     // release unproceesed results from asynchronous PUTs
     {
-        std::unique_lock<std::mutex>(hx->p->async_put.mutex);
-        hx->p->memory_pools.results->release(hx->p->async_put.results);
-        hx->p->async_put.results = nullptr;
+        std::unique_lock<std::mutex>(hx->p->async_bput.mutex);
+        hx->p->memory_pools.results->release(hx->p->async_bput.results);
+        hx->p->async_bput.results = nullptr;
     }
 
     return HXHIM_SUCCESS;
@@ -807,6 +808,162 @@ int hxhim::destroy::datastore(hxhim_t *hx) {
         hx->p->memory_pools.arrays->release_array(hx->p->datastore.datastores, hx->p->datastore.count);
         hx->p->datastore.datastores = nullptr;
     }
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * PutImpl
+ * Add a PUT into the work queue
+ * The mutex should be locked before this function is called.
+ * hx and hx->p are not checked because they must have been
+ * valid for this function to be called.
+ *
+ * @param hx             the HXHIM session
+ * @param subject        the subject to put
+ * @param subject_len    the length of the subject to put
+ * @param predicate      the prediate to put
+ * @param predicate_len  the length of the prediate to put
+ * @param object_type    the type of the object
+ * @param object         the object to put
+ * @param object_len     the length of the object
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim::PutImpl(hxhim_t *hx,
+                   void *subject, std::size_t subject_len,
+                   void *predicate, std::size_t predicate_len,
+                   enum hxhim_type_t object_type, void *object, std::size_t object_len) {
+    hxhim::Unsent<hxhim::PutData> &puts = hx->p->queues.puts;
+
+    // no previous batch
+    if (!puts.tail) {
+        puts.head       = hx->p->memory_pools.bulks->acquire<hxhim::PutData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.puts);
+        puts.tail       = puts.head;
+        puts.last_count = 0;
+    }
+
+    // filled the current batch
+    if (puts.last_count == hx->p->max_bulk_ops.puts) {
+        hxhim::PutData *next = hx->p->memory_pools.bulks->acquire<hxhim::PutData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.puts);
+        next->prev      = puts.tail;
+        puts.tail->next = next;
+        puts.tail       = next;
+        puts.last_count = 0;
+        puts.full_batches++;
+        puts.start_processing.notify_one();
+    }
+
+    std::size_t &i = puts.last_count;
+
+    puts.tail->subjects[i] = subject;
+    puts.tail->subject_lens[i] = subject_len;
+
+    puts.tail->predicates[i] = predicate;
+    puts.tail->predicate_lens[i] = predicate_len;
+
+    puts.tail->object_types[i] = object_type;
+    puts.tail->objects[i] = object;
+    puts.tail->object_lens[i] = object_len;
+
+    i++;
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * GetImpl
+ * Add a GET into the work queue
+ * The mutex should be locked before this function is called.
+ * hx and hx->p are not checked because they must have been
+ * valid for this function to be called.
+ *
+ * @param hx             the HXHIM session
+ * @param subject        the subject to put
+ * @param subject_len    the length of the subject to put
+ * @param predicate      the prediate to put
+ * @param predicate_len  the length of the prediate to put
+ * @param object_type    the type of the object
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim::GetImpl(hxhim_t *hx,
+                   void *subject, std::size_t subject_len,
+                   void *predicate, std::size_t predicate_len,
+                   enum hxhim_type_t object_type) {
+    hxhim::Unsent<hxhim::GetData> &gets = hx->p->queues.gets;
+
+    // no previous batch
+    if (!gets.tail) {
+        gets.head       = hx->p->memory_pools.bulks->acquire<hxhim::GetData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.gets);
+        gets.tail       = gets.head;
+        gets.last_count = 0;
+    }
+
+    // filled the current batch
+    if (gets.last_count == hx->p->max_bulk_ops.gets) {
+        gets.tail->next = hx->p->memory_pools.bulks->acquire<hxhim::GetData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.gets);
+        gets.tail       = gets.tail->next;
+        gets.last_count = 0;
+        gets.full_batches++;
+    }
+
+    std::size_t &i = gets.last_count;
+
+    gets.tail->subjects[i] = subject;
+    gets.tail->subject_lens[i] = subject_len;
+
+    gets.tail->predicates[i] = predicate;
+    gets.tail->predicate_lens[i] = predicate_len;
+
+    gets.tail->object_types[i] = object_type;
+
+    i++;
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * DeleteImpl
+ * Add a DELETE into the work queue
+ * The mutex should be locked before this function is called.
+ * hx and hx->p are not checked because they must have been
+ * valid for this function to be called.
+ *
+ * @param hx           the HXHIM session
+ * @param subject      the subject to delete
+ * @param subject_len  the length of the subject to delete
+ * @param prediate     the prediate to delete
+ * @param prediate_len the length of the prediate to delete
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim::DeleteImpl(hxhim_t *hx,
+                      void *subject, std::size_t subject_len,
+                      void *predicate, std::size_t predicate_len) {
+    hxhim::Unsent<hxhim::DeleteData> &dels = hx->p->queues.deletes;
+
+    // no previous batch
+    if (!dels.tail) {
+        dels.head       = hx->p->memory_pools.bulks->acquire<hxhim::DeleteData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.deletes);
+        dels.tail       = dels.head;
+        dels.last_count = 0;
+    }
+
+    // filled the current batch
+    if (dels.last_count == hx->p->max_bulk_ops.deletes) {
+        dels.tail->next = hx->p->memory_pools.bulks->acquire<hxhim::DeleteData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.deletes);
+        dels.tail       = dels.tail->next;
+        dels.last_count = 0;
+        dels.full_batches++;
+    }
+
+    std::size_t &i = dels.last_count;
+
+    dels.tail->subjects[i] = subject;
+    dels.tail->subject_lens[i] = subject_len;
+
+    dels.tail->predicates[i] = predicate;
+    dels.tail->predicate_lens[i] = predicate_len;
+
+    i++;
 
     return HXHIM_SUCCESS;
 }

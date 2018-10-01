@@ -34,7 +34,7 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
     Options *config = static_cast<Options *>(opts->p->transport);
 
     // Create the shared memory pool used in MPI
-    std::shared_ptr<FixedBufferPool> packed = std::make_shared<FixedBufferPool>(hx->p->max_bulk_ops.max * 9, hx->p->bootstrap.size, opts->p->packed.name);
+    std::shared_ptr<FixedBufferPool> packed = std::make_shared<FixedBufferPool>(hx->p->max_bulk_ops.max * 10, hx->p->bootstrap.size, opts->p->packed.name);
 
     // give the range server access to the state
     RangeServer::init(hx, config->listeners, packed);

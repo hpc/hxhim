@@ -17,6 +17,7 @@ FixedBufferPool::FixedBufferPool(const std::size_t alloc_size, const std::size_t
     regions_(regions),
     pool_size_(alloc_size_ * regions_),
     mutex_(),
+    cv_(),
     addrs_(),
     used_(0),
     stats()
@@ -53,8 +54,6 @@ FixedBufferPool::~FixedBufferPool() {
 /**
  * acquire
  * Returns a pointer obtained with ::operator new
- * Unlike the non-debug version of acquireImpl, the
- * debug version does not block.
  *
  * @param size     The total number of bytes requested
  * @return A pointer
@@ -74,9 +73,17 @@ void *FixedBufferPool::acquireImpl(const std::size_t size) {
 
     std::unique_lock<std::mutex> lock(mutex_);
 
+    // wait until a slot opens up
+    while (!(regions_ - used_)) {
+        FBP_LOG(FBP_CRIT, "Waiting for a size %zu buffer", size);
+        cv_.wait(lock, [&]{ return regions_ - used_; });
+    }
+
+    FBP_LOG(FBP_DBG, "A size %zu buffer is available", size);
+
     // set the return address to the head of the unused list
     void *ret = ::operator new(size);
-    addrs_.insert(ret);
+
     used_++;
 
     if (size > stats.max_size) {

@@ -66,13 +66,13 @@ typedef struct hxhim_private {
         std::size_t count;                                     // number of datastores in this process
     } datastore;
 
-    // asynchronous PUT data
+    // asynchronous BPUT data
     struct {
         std::size_t max_queued;                                // number of batches to hold before sending PUTs asynchronously
         std::thread thread;                                    // the thread that pushes PUTs off the PUT queue asynchronously
         std::mutex mutex;                                      // mutex to the list of results from asynchronous PUT operations
         hxhim::Results *results;                               // the list of of PUT results
-    } async_put;
+    } async_bput;
 
     struct {
         std::string name;
@@ -108,7 +108,7 @@ int memory       (hxhim_t *hx, hxhim_options_t *opts);
 int range_server (hxhim_t *hx, hxhim_options_t *opts);
 int datastore    (hxhim_t *hx, hxhim_options_t *opts);
 int one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::string &name);
-int async_put    (hxhim_t *hx, hxhim_options_t *opts);
+int async_bput    (hxhim_t *hx, hxhim_options_t *opts);
 int hash         (hxhim_t *hx, hxhim_options_t *opts);
 int transport    (hxhim_t *hx, hxhim_options_t *opts);
 }
@@ -120,11 +120,24 @@ int running     (hxhim_t *hx);
 int memory      (hxhim_t *hx);
 int transport   (hxhim_t *hx);
 int hash        (hxhim_t *hx);
-int async_put   (hxhim_t *hx);
+int async_bput  (hxhim_t *hx);
 int datastore   (hxhim_t *hx);
 int range_server(hxhim_t *hx);
 }
 
+int PutImpl(hxhim_t *hx,
+            void *subject, std::size_t subject_len,
+            void *predicate, std::size_t predicate_len,
+            enum hxhim_type_t object_type, void *object, std::size_t object_len);
+
+int GetImpl(hxhim_t *hx,
+            void *subject, std::size_t subject_len,
+            void *predicate, std::size_t predicate_len,
+            enum hxhim_type_t object_type);
+
+int DeleteImpl(hxhim_t *hx,
+               void *subject, std::size_t subject_len,
+               void *predicate, std::size_t predicate_len);
 }
 
 #endif

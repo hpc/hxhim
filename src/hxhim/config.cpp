@@ -253,7 +253,7 @@ static int default_runtime_config(hxhim_options_t *opts) {
     hxhim_options_set_responses_alloc_size(opts, hxhim::MaxSize::Responses());
     hxhim_options_set_responses_regions(opts, size * 2);
     hxhim_options_set_result_alloc_size(opts, hxhim::MaxSize::Result());
-    hxhim_options_set_result_regions(opts, 4);
+    hxhim_options_set_result_regions(opts, 1024);
     hxhim_options_set_results_alloc_size(opts, sizeof(hxhim::Results));
     hxhim_options_set_results_regions(opts, 8);
 
@@ -285,6 +285,7 @@ static int fill_options(hxhim_options_t *opts, const Config &config) {
         parse_endpointgroup(opts, config) &&
         parse_value(opts, config, hxhim::config::OPS_PER_BULK,                 hxhim_options_set_ops_per_bulk) &&
         parse_value(opts, config, hxhim::config::MAXIMUM_QUEUED_BULK_OPS,      hxhim_options_set_maximum_queued_bulk_ops) &&
+        parse_value(opts, config, hxhim::config::START_ASYNC_BPUT_AT,          hxhim_options_set_start_async_bput_at) &&
         parse_value(opts, config, hxhim::config::HISTOGRAM_FIRST_N,            hxhim_options_set_histogram_first_n) &&
         parse_value(opts, config, hxhim::config::HISTOGRAM_BUCKET_GEN_METHOD,  hxhim_options_set_histogram_bucket_gen_method) &&
         parse_value(opts, config, hxhim::config::KEYS_NAME,                    hxhim_options_set_keys_name) &&
