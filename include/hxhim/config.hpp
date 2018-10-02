@@ -43,7 +43,7 @@ const std::string THALLIUM_MODULE             = "THALLIUM_MODULE";           // 
 const std::string TRANSPORT_ENDPOINT_GROUP    = "ENDPOINT_GROUP";            // list of ranks or "ALL"
 
 /** Memory Pool Options */
-const std::string OPS_PER_BULK                = "BULK_OP_SIZE";              // positive integer >= 512
+const std::string OPS_PER_BULK                = "OPS_PER_BULK";              // positive integer >= 64
 const std::string KEYS_NAME                   = "KEYS_NAME";                 // string
 const std::string KEYS_ALLOC_SIZE             = "KEYS_ALLOC_SIZE";           // positive integer
 const std::string KEYS_REGIONS                = "KEYS_REGIONS";              // positive integer

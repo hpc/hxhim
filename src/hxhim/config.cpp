@@ -12,6 +12,75 @@
 #include "utils/Histogram.hpp"
 
 /**
+ * parse_value
+ * This function template is a helper function
+ * for parsing and setting simple values
+ *
+ * @param opts        the options struct being built
+ * @param config      the configuration
+ * @param key         the key within the configuration to look for
+ * @param set_option  the function to do the setting of the option
+ * @param true, or false on error
+ */
+template <typename T, typename = std::enable_if_t <!std::is_reference<T>::value> >
+bool parse_value(hxhim_options_t *opts, const Config &config, const std::string &key, int (*set_option)(hxhim_options_t *, const T)) {
+    T value = {};
+    const int ret = get_value(config, key, value);
+    if ((ret == CONFIG_ERROR)                                                 ||
+        ((ret == CONFIG_FOUND) && (set_option(opts, value) != HXHIM_SUCCESS))) {
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * parse_value
+ * This function template is a helper function for
+ * parsing and setting char * configuration values
+ *
+ * @param opts        the options struct being built
+ * @param config      the configuration
+ * @param key         the key within the configuration to look for
+ * @param set_option  the function to do the setting of the option
+ * @param true, or false on error
+ */
+static bool parse_value(hxhim_options_t *opts, const Config &config, const std::string &key, int (*set_option)(hxhim_options_t *, const char *)) {
+    std::string value;
+    const int ret = get_value(config, key, value);
+    if ((ret == CONFIG_ERROR)                                                         ||
+        ((ret == CONFIG_FOUND) && (set_option(opts, value.c_str()) != HXHIM_SUCCESS))) {
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * parse_map_value
+ * This function template is a helper function
+ * for parsing and setting values that are mapped
+ *
+ * @param opts        the options struct being built
+ * @param config      the configuration
+ * @param key         the key within the configuration to look for
+ * @param map         the map to search the key for
+ * @param set_option  the function to do the setting of the option
+ * @param true, or false on error
+ */
+template <typename T, typename = std::enable_if_t <!std::is_reference<T>::value> >
+bool parse_map_value(hxhim_options_t *opts, const Config &config, const std::string &key, const std::map<std::string, T> &map, int (*set_option)(hxhim_options_t *, const T)) {
+    T value = {};
+    const int ret = get_from_map(config, key, map, value);
+    if ((ret == CONFIG_ERROR)                                                 ||
+        ((ret == CONFIG_FOUND) && (set_option(opts, value) != HXHIM_SUCCESS))) {
+        return false;
+    }
+
+    return true;
+}
+
+/**
  * Individual functions for reading and parsing configuration values
  * They should be able to be run in any order without issue. If there
  * are config variable dependencies, they should all be handled within
@@ -20,31 +89,9 @@
  * This was done to clean up the fill_options function.
  *
  * @param opts the options to fill
- * @param the configuration to use
+ * @param config the configuration to use
  * @return a boolean indicating whether or not an error was encountered
  */
-static bool parse_debug_level(hxhim_options_t *opts, const Config &config) {
-    int debug_level;
-    const int ret = get_from_map(config, hxhim::config::DEBUG_LEVEL, hxhim::config::DEBUG_LEVELS, debug_level);
-    if ((ret == CONFIG_ERROR)                                                                          ||
-        ((ret == CONFIG_FOUND) && (hxhim_options_set_debug_level(opts, debug_level) != HXHIM_SUCCESS))) {
-        return false;
-    }
-
-    return true;
-}
-
-static bool parse_datastore_count(hxhim_options_t *opts, const Config &config) {
-    std::size_t datastores = 0;
-    const int ret = get_value(config, hxhim::config::DATASTORES_PER_RANGE_SERVER, datastores);
-    if ((ret == CONFIG_ERROR)                                                                                         ||
-        ((ret == CONFIG_FOUND) && (hxhim_options_set_datastores_per_range_server(opts, datastores) != HXHIM_SUCCESS))) {
-        return false;
-    }
-
-    return true;
-}
-
 static bool parse_datastore(hxhim_options_t *opts, const Config &config) {
     hxhim::datastore::Type datastore;
 
@@ -88,14 +135,7 @@ static bool parse_datastore(hxhim_options_t *opts, const Config &config) {
 }
 
 static bool parse_hash(hxhim_options_t *opts, const Config &config) {
-    std::string hash;
-    const int ret = get_value(config, hxhim::config::HASH, hash);
-    if ((ret == CONFIG_ERROR)                                                                         ||
-        ((ret == CONFIG_FOUND) && (hxhim_options_set_hash_name(opts, hash.c_str()) != HXHIM_SUCCESS))) {
-        return false;
-    }
-
-    return true;
+    return parse_value(opts, config, hxhim::config::HASH, hxhim_options_set_hash_name);
 }
 
 static bool parse_transport(hxhim_options_t *opts, const Config &config) {
@@ -175,57 +215,11 @@ static bool parse_endpointgroup(hxhim_options_t *opts, const Config &config) {
 }
 
 /**
- * parse_value
- * This function template is a helper function
- * for parsing and setting simple values
- *
- * @param opts        the options struct being built
- * @param config      the configuration
- * @param key         the key within the configuration to look for
- * @param set_option  the function to do the setting of the option
- * @param true, or false on error
- */
-template <typename T, typename = std::enable_if_t <!std::is_reference<T>::value> >
-bool parse_value(hxhim_options_t *opts, const Config &config, const std::string &key, int (*set_option)(hxhim_options_t *, const T)) {
-
-    T value = {};
-    const int ret = get_value(config, key, value);
-    if ((ret == CONFIG_ERROR)                                                 ||
-        ((ret == CONFIG_FOUND) && (set_option(opts, value) != HXHIM_SUCCESS))) {
-        return false;
-    }
-
-    return true;
-}
-
-/**
- * parse_value
- * This function template is a helper function for
- * parsing and setting char * configuration values
- *
- * @param opts        the options struct being built
- * @param config      the configuration
- * @param key         the key within the configuration to look for
- * @param set_option  the function to do the setting of the option
- * @param true, or false on error
- */
-static bool parse_value(hxhim_options_t *opts, const Config &config, const std::string &key, int (*set_option)(hxhim_options_t *, const char *)) {
-    std::string value;
-    const int ret = get_value(config, key, value);
-    if ((ret == CONFIG_ERROR)                                                         ||
-        ((ret == CONFIG_FOUND) && (set_option(opts, value.c_str()) != HXHIM_SUCCESS))) {
-        return false;
-    }
-
-    return true;
-}
-
-/**
  * default_runtime_config
  * Sets up default connfiguration values
  * that have to be calculated at runtime.
  *
- * All other fields are expected to have
+ * All non memory fields are expected to have
  * been filled before calling this function
  *
  * @param opts the options to fill in
@@ -246,8 +240,8 @@ static int default_runtime_config(hxhim_options_t *opts) {
     hxhim_options_set_buffers_regions(opts, 2048);
     hxhim_options_set_bulks_alloc_size(opts, hxhim::MaxSize::Bulks());
     hxhim_options_set_bulks_regions(opts, opts->p->bulks.regions);
-    hxhim_options_set_arrays_alloc_size(opts, hxhim::MaxSize::Arrays() * opts->p->bulk_op_size);
-    hxhim_options_set_arrays_regions(opts, 256 * size);
+    hxhim_options_set_arrays_alloc_size(opts, opts->p->bulk_op_size * sizeof(void *));
+    hxhim_options_set_arrays_regions(opts, 1024);
     hxhim_options_set_requests_alloc_size(opts, hxhim::MaxSize::Requests());
     hxhim_options_set_requests_regions(opts, size * 2);
     hxhim_options_set_responses_alloc_size(opts, hxhim::MaxSize::Responses());
@@ -277,44 +271,47 @@ static int fill_options(hxhim_options_t *opts, const Config &config) {
         return HXHIM_ERROR;
     }
 
+    using namespace hxhim::config;
+
     return
-        parse_debug_level(opts, config) &&
-        parse_datastore_count(opts, config) &&
+        parse_map_value(opts, config, DEBUG_LEVEL, DEBUG_LEVELS, hxhim_options_set_debug_level) &&
+        parse_value(opts, config, DATASTORES_PER_RANGE_SERVER,   hxhim_options_set_datastores_per_range_server) &&
         parse_datastore(opts, config) &&
         parse_transport(opts, config) &&
         parse_endpointgroup(opts, config) &&
-        parse_value(opts, config, hxhim::config::OPS_PER_BULK,                 hxhim_options_set_ops_per_bulk) &&
-        parse_value(opts, config, hxhim::config::MAXIMUM_QUEUED_BULK_OPS,      hxhim_options_set_maximum_queued_bulk_ops) &&
-        parse_value(opts, config, hxhim::config::START_ASYNC_BPUT_AT,          hxhim_options_set_start_async_bput_at) &&
-        parse_value(opts, config, hxhim::config::HISTOGRAM_FIRST_N,            hxhim_options_set_histogram_first_n) &&
-        parse_value(opts, config, hxhim::config::HISTOGRAM_BUCKET_GEN_METHOD,  hxhim_options_set_histogram_bucket_gen_method) &&
-        parse_value(opts, config, hxhim::config::KEYS_NAME,                    hxhim_options_set_keys_name) &&
-        parse_value(opts, config, hxhim::config::KEYS_ALLOC_SIZE,              hxhim_options_set_keys_alloc_size) &&
-        parse_value(opts, config, hxhim::config::KEYS_REGIONS,                 hxhim_options_set_keys_regions) &&
-        parse_value(opts, config, hxhim::config::PACKED_NAME,                  hxhim_options_set_packed_name) &&
-        parse_value(opts, config, hxhim::config::PACKED_ALLOC_SIZE,            hxhim_options_set_packed_alloc_size) &&
-        parse_value(opts, config, hxhim::config::PACKED_REGIONS,               hxhim_options_set_packed_regions) &&
-        parse_value(opts, config, hxhim::config::BUFFERS_NAME,                 hxhim_options_set_buffers_name) &&
-        parse_value(opts, config, hxhim::config::BUFFERS_ALLOC_SIZE,           hxhim_options_set_buffers_alloc_size) &&
-        parse_value(opts, config, hxhim::config::BUFFERS_REGIONS,              hxhim_options_set_buffers_regions) &&
-        parse_value(opts, config, hxhim::config::BULKS_NAME,                   hxhim_options_set_bulks_name) &&
-        parse_value(opts, config, hxhim::config::BULKS_ALLOC_SIZE,             hxhim_options_set_bulks_alloc_size) &&
-        parse_value(opts, config, hxhim::config::BULKS_REGIONS,                hxhim_options_set_bulks_regions) &&
-        parse_value(opts, config, hxhim::config::ARRAYS_NAME,                  hxhim_options_set_arrays_name) &&
-        parse_value(opts, config, hxhim::config::ARRAYS_ALLOC_SIZE,            hxhim_options_set_arrays_alloc_size) &&
-        parse_value(opts, config, hxhim::config::ARRAYS_REGIONS,               hxhim_options_set_arrays_regions) &&
-        parse_value(opts, config, hxhim::config::REQUESTS_NAME,                hxhim_options_set_requests_name) &&
-        parse_value(opts, config, hxhim::config::REQUESTS_ALLOC_SIZE,          hxhim_options_set_requests_alloc_size) &&
-        parse_value(opts, config, hxhim::config::REQUESTS_REGIONS,             hxhim_options_set_requests_regions) &&
-        parse_value(opts, config, hxhim::config::RESPONSES_NAME,               hxhim_options_set_responses_name) &&
-        parse_value(opts, config, hxhim::config::RESPONSES_ALLOC_SIZE,         hxhim_options_set_responses_alloc_size) &&
-        parse_value(opts, config, hxhim::config::RESPONSES_REGIONS,            hxhim_options_set_responses_regions) &&
-        parse_value(opts, config, hxhim::config::RESULT_NAME,                  hxhim_options_set_result_name) &&
-        parse_value(opts, config, hxhim::config::RESULT_ALLOC_SIZE,            hxhim_options_set_result_alloc_size) &&
-        parse_value(opts, config, hxhim::config::RESULT_REGIONS,               hxhim_options_set_result_regions) &&
-        parse_value(opts, config, hxhim::config::RESULTS_NAME,                 hxhim_options_set_results_name) &&
-        parse_value(opts, config, hxhim::config::RESULTS_ALLOC_SIZE,           hxhim_options_set_results_alloc_size) &&
-        parse_value(opts, config, hxhim::config::RESULTS_REGIONS,              hxhim_options_set_results_regions) &&
+        parse_value(opts, config, OPS_PER_BULK,                  hxhim_options_set_ops_per_bulk) &&
+        parse_value(opts, config, MAXIMUM_QUEUED_BULK_OPS,       hxhim_options_set_maximum_queued_bulk_ops) &&
+        parse_value(opts, config, START_ASYNC_BPUT_AT,           hxhim_options_set_start_async_bput_at) &&
+        parse_value(opts, config, HISTOGRAM_FIRST_N,             hxhim_options_set_histogram_first_n) &&
+        parse_value(opts, config, HISTOGRAM_BUCKET_GEN_METHOD,   hxhim_options_set_histogram_bucket_gen_method) &&
+        (default_runtime_config(opts) == HXHIM_SUCCESS) &&
+        parse_value(opts, config, KEYS_NAME,                     hxhim_options_set_keys_name) &&
+        parse_value(opts, config, KEYS_ALLOC_SIZE,               hxhim_options_set_keys_alloc_size) &&
+        parse_value(opts, config, KEYS_REGIONS,                  hxhim_options_set_keys_regions) &&
+        parse_value(opts, config, PACKED_NAME,                   hxhim_options_set_packed_name) &&
+        parse_value(opts, config, PACKED_ALLOC_SIZE,             hxhim_options_set_packed_alloc_size) &&
+        parse_value(opts, config, PACKED_REGIONS,                hxhim_options_set_packed_regions) &&
+        parse_value(opts, config, BUFFERS_NAME,                  hxhim_options_set_buffers_name) &&
+        parse_value(opts, config, BUFFERS_ALLOC_SIZE,            hxhim_options_set_buffers_alloc_size) &&
+        parse_value(opts, config, BUFFERS_REGIONS,               hxhim_options_set_buffers_regions) &&
+        parse_value(opts, config, BULKS_NAME,                    hxhim_options_set_bulks_name) &&
+        parse_value(opts, config, BULKS_ALLOC_SIZE,              hxhim_options_set_bulks_alloc_size) &&
+        parse_value(opts, config, BULKS_REGIONS,                 hxhim_options_set_bulks_regions) &&
+        parse_value(opts, config, ARRAYS_NAME,                   hxhim_options_set_arrays_name) &&
+        parse_value(opts, config, ARRAYS_ALLOC_SIZE,             hxhim_options_set_arrays_alloc_size) &&
+        parse_value(opts, config, ARRAYS_REGIONS,                hxhim_options_set_arrays_regions) &&
+        parse_value(opts, config, REQUESTS_NAME,                 hxhim_options_set_requests_name) &&
+        parse_value(opts, config, REQUESTS_ALLOC_SIZE,           hxhim_options_set_requests_alloc_size) &&
+        parse_value(opts, config, REQUESTS_REGIONS,              hxhim_options_set_requests_regions) &&
+        parse_value(opts, config, RESPONSES_NAME,                hxhim_options_set_responses_name) &&
+        parse_value(opts, config, RESPONSES_ALLOC_SIZE,          hxhim_options_set_responses_alloc_size) &&
+        parse_value(opts, config, RESPONSES_REGIONS,             hxhim_options_set_responses_regions) &&
+        parse_value(opts, config, RESULT_NAME,                   hxhim_options_set_result_name) &&
+        parse_value(opts, config, RESULT_ALLOC_SIZE,             hxhim_options_set_result_alloc_size) &&
+        parse_value(opts, config, RESULT_REGIONS,                hxhim_options_set_result_regions) &&
+        parse_value(opts, config, RESULTS_NAME,                  hxhim_options_set_results_name) &&
+        parse_value(opts, config, RESULTS_ALLOC_SIZE,            hxhim_options_set_results_alloc_size) &&
+        parse_value(opts, config, RESULTS_REGIONS,               hxhim_options_set_results_regions) &&
         true?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 
@@ -386,7 +383,6 @@ int hxhim_default_config_reader(hxhim_options_t *opts, MPI_Comm comm) {
     hxhim_options_set_mpi_bootstrap(opts, comm);
 
     if ((fill_options(opts, hxhim::config::DEFAULT_CONFIG)      != HXHIM_SUCCESS) || // fill in the options with default values
-        (default_runtime_config(opts)                           != HXHIM_SUCCESS) || // fill in default values that are calculated
         (process_config_and_fill_options(opts, config_sequence) != HXHIM_SUCCESS)) { // read the configuration and overwrite default values
         ret = HXHIM_ERROR;
     }

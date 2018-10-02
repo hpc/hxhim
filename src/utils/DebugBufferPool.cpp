@@ -61,7 +61,7 @@ FixedBufferPool::~FixedBufferPool() {
 void *FixedBufferPool::acquireImpl(const std::size_t size) {
     // 0 bytes
     if (!size) {
-        FBP_LOG(FBP_ERR, "Got request for a size 0 buffer");
+        FBP_LOG(FBP_WARN, "Got request for a size 0 buffer");
         return nullptr;
     }
 
