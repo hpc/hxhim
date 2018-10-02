@@ -63,7 +63,8 @@ Response::BPut *InMemory::BPutImpl(void **subjects, std::size_t *subject_lens,
         return nullptr;
     }
 
-    struct timespec start, end;
+    struct timespec start = {};
+    struct timespec end = {};
 
     FixedBufferPool *fbp = hx->p->memory_pools.keys;
     for(std::size_t i = 0; i < count; i++) {
@@ -112,7 +113,8 @@ Response::BGet *InMemory::BGetImpl(void **subjects, std::size_t *subject_lens,
 
     FixedBufferPool *fbp = hx->p->memory_pools.keys;
     for(std::size_t i = 0; i < count; i++) {
-        struct timespec start, end;
+        struct timespec start = {};
+        struct timespec end = {};
         std::string value_str;
 
         void *key = nullptr;
@@ -172,7 +174,8 @@ Response::BGetOp *InMemory::BGetOpImpl(void *subject, std::size_t subject_len,
         return nullptr;
     }
 
-    struct timespec start, end;
+    struct timespec start = {};
+    struct timespec end = {};
 
     FixedBufferPool *fbp = hx->p->memory_pools.keys;
 

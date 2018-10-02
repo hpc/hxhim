@@ -314,7 +314,10 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
 
     Transport::Request::BGet **remote = hx->p->memory_pools.arrays->acquire_array<Transport::Request::BGet *>(hx->p->bootstrap.size); // list of destination servers (not datastores) and messages to those destinations
     for(int i = 0; i < hx->p->bootstrap.size; i++) {
-        remote[i] = hx->p->memory_pools.requests->acquire<Transport::Request::BGet>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, hx->p->max_bulk_ops.gets);
+        if ((remote[i] = hx->p->memory_pools.requests->acquire<Transport::Request::BGet>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, hx->p->max_bulk_ops.gets))) {
+            remote[i]->src = hx->p->bootstrap.rank;
+            remote[i]->dst = i;
+        }
     }
 
     // zero out local message in remote messages
@@ -455,9 +458,10 @@ hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
 
     Transport::Request::BGetOp **remote = hx->p->memory_pools.arrays->acquire_array<Transport::Request::BGetOp *>(hx->p->bootstrap.size); // list of destination servers (not datastores) and messages to those destinations
     for(int i = 0; i < hx->p->bootstrap.size; i++) {
-        remote[i] = hx->p->memory_pools.requests->acquire<Transport::Request::BGetOp>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, hx->p->max_bulk_ops.getops);
-        remote[i]->src = hx->p->bootstrap.rank;
-        remote[i]->dst = i;
+        if ((remote[i] = hx->p->memory_pools.requests->acquire<Transport::Request::BGetOp>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, hx->p->max_bulk_ops.getops))) {
+            remote[i]->src = hx->p->bootstrap.rank;
+            remote[i]->dst = i;
+        }
     }
 
     // zero out local message in remote messages
@@ -592,9 +596,10 @@ hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
 
     Transport::Request::BDelete **remote = hx->p->memory_pools.arrays->acquire_array<Transport::Request::BDelete *>(hx->p->bootstrap.size); // list of destination servers (not datastores) and messages to those destinations
     for(int i = 0; i < hx->p->bootstrap.size; i++) {
-        remote[i] = hx->p->memory_pools.requests->acquire<Transport::Request::BDelete>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, hx->p->max_bulk_ops.deletes);
-        remote[i]->src = hx->p->bootstrap.rank;
-        remote[i]->dst = i;
+        if ((remote[i] = hx->p->memory_pools.requests->acquire<Transport::Request::BDelete>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, hx->p->max_bulk_ops.deletes))) {
+            remote[i]->src = hx->p->bootstrap.rank;
+            remote[i]->dst = i;
+        }
     }
 
     // zero out local message in remote messages

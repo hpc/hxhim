@@ -863,8 +863,11 @@ class Benchmark {
     }
 
     delete [] subjects;
+    delete [] subject_lens;
     delete [] predicates;
+    delete [] predicate_lens;
     delete [] objects;
+    delete [] object_lens;
 
     // WriteBatch batch;
     // Status s;
