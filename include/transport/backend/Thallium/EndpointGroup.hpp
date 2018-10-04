@@ -33,26 +33,26 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup {
         void RemoveID(const int id);
 
         /** @description Bulk Put to multiple endpoints    */
-        Response::BPut *BPut(const std::size_t num_rangesrvs, Request::BPut **bpm_list);
+        Response::BPut *BPut(const std::map<int, Request::BPut *> &bpm_list);
 
         /** @description Bulk Get from multiple endpoints  */
-        Response::BGet *BGet(const std::size_t num_rangesrvs, Request::BGet **bgm_list);
+        Response::BGet *BGet(const std::map<int, Request::BGet *> &bgm_list);
 
         /** @description Bulk Get from multiple endpoints  */
-        Response::BGetOp *BGetOp(const std::size_t num_rangesrvs, Request::BGetOp **bgm_list);
+        Response::BGetOp *BGetOp(const std::map<int, Request::BGetOp *> &bgm_list);
 
         /** @description Bulk Delete to multiple endpoints */
-        Response::BDelete *BDelete(const std::size_t num_rangesrvs, Request::BDelete **bdm_list);
+        Response::BDelete *BDelete(const std::map<int, Request::BDelete *> &bdm_list);
 
         /** @description Bulk Histogram to multiple endpoints */
-        Response::BHistogram *BHistogram(const std::size_t num_rangesrvs, Request::BHistogram **bhist_list);
+        Response::BHistogram *BHistogram(const std::map<int, Request::BHistogram *> &bhist_list);
 
     private:
         template <typename Recv_t, typename Send_t, typename = std::enable_if<std::is_base_of<Request::Request,   Send_t>::value &&
                                                                               std::is_base_of<Bulk,               Send_t>::value &&
                                                                               std::is_base_of<Response::Response, Recv_t>::value &&
                                                                               std::is_base_of<Bulk,               Recv_t>::value> >
-        Recv_t *do_operation(const std::size_t num_rangesrvs, Send_t **messages);
+        Recv_t *do_operation(const std::map<int, Send_t *> &messages);
 
         RPC_t rpc;
 

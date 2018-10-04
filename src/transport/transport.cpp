@@ -26,23 +26,23 @@ EndpointGroup::EndpointGroup() {}
 
 EndpointGroup::~EndpointGroup() {}
 
-Response::BPut *EndpointGroup::BPut(const std::size_t, Request::BPut **) {
+Response::BPut *EndpointGroup::BPut(const std::map<int, Request::BPut *> &) {
     return nullptr;
 }
 
-Response::BGet *EndpointGroup::BGet(const std::size_t, Request::BGet **) {
+Response::BGet *EndpointGroup::BGet(const std::map<int, Request::BGet *> &) {
     return nullptr;
 }
 
-Response::BGetOp *EndpointGroup::BGetOp(const std::size_t, Request::BGetOp **) {
+Response::BGetOp *EndpointGroup::BGetOp(const std::map<int, Request::BGetOp *> &) {
     return nullptr;
 }
 
-Response::BDelete *EndpointGroup::BDelete(const std::size_t, Request::BDelete **) {
+Response::BDelete *EndpointGroup::BDelete(const std::map<int, Request::BDelete *> &) {
     return nullptr;
 }
 
-Response::BHistogram *EndpointGroup::BHistogram(const std::size_t, Request::BHistogram **) {
+ Response::BHistogram *EndpointGroup::BHistogram(const std::map<int, Request::BHistogram *> &) {
     return nullptr;
 }
 
@@ -165,8 +165,8 @@ Response::Histogram *Transport::Histogram(const Request::Histogram *hm) {
  * @param bpm_list a list of PUT messages going to different servers
  * @return the response from the range server
  */
-Response::BPut *Transport::BPut(const std::size_t num_rangesrvs, Request::BPut **bpm_list) {
-    return (bpm_list && endpointgroup_)?endpointgroup_->BPut(num_rangesrvs, bpm_list):nullptr;
+Response::BPut *Transport::BPut(const std::map<int, Request::BPut *> &bpm_list) {
+    return (bpm_list.size() && endpointgroup_)?endpointgroup_->BPut(bpm_list):nullptr;
 }
 
 /**
@@ -177,8 +177,8 @@ Response::BPut *Transport::BPut(const std::size_t num_rangesrvs, Request::BPut *
  * @param bgm_list a list of GET messages going to different servers
  * @return the response from the range server
  */
-Response::BGet *Transport::BGet(const std::size_t num_rangesrvs, Request::BGet **bgm_list) {
-    return (bgm_list && endpointgroup_)?endpointgroup_->BGet(num_rangesrvs, bgm_list):nullptr;
+Response::BGet *Transport::BGet(const std::map<int, Request::BGet *> &bgm_list) {
+    return (bgm_list.size() && endpointgroup_)?endpointgroup_->BGet(bgm_list):nullptr;
 }
 
 /**
@@ -189,8 +189,8 @@ Response::BGet *Transport::BGet(const std::size_t num_rangesrvs, Request::BGet *
  * @param bgm_list a list of GET messages going to different servers
  * @return the response from the range server
  */
-Response::BGetOp *Transport::BGetOp(const std::size_t num_rangesrvs, Request::BGetOp **bgm_list) {
-    return (bgm_list && endpointgroup_)?endpointgroup_->BGetOp(num_rangesrvs, bgm_list):nullptr;
+Response::BGetOp *Transport::BGetOp(const std::map<int, Request::BGetOp *> &bgm_list) {
+    return (bgm_list.size() && endpointgroup_)?endpointgroup_->BGetOp(bgm_list):nullptr;
 }
 
 /**
@@ -201,8 +201,8 @@ Response::BGetOp *Transport::BGetOp(const std::size_t num_rangesrvs, Request::BG
  * @param bdm_list a list of DELETE messages going to different servers
  * @return the response from the range server
  */
-Response::BDelete *Transport::BDelete(const std::size_t num_rangesrvs, Request::BDelete **bdm_list) {
-    return (bdm_list && endpointgroup_)?endpointgroup_->BDelete(num_rangesrvs, bdm_list):nullptr;
+Response::BDelete *Transport::BDelete(const std::map<int, Request::BDelete *> &bdm_list) {
+    return (bdm_list.size() && endpointgroup_)?endpointgroup_->BDelete(bdm_list):nullptr;
 }
 
 /**
@@ -213,8 +213,8 @@ Response::BDelete *Transport::BDelete(const std::size_t num_rangesrvs, Request::
  * @param bdm_list a list of HISTOGRAM messages going to different servers
  * @return the response from the range server
  */
-Response::BHistogram *Transport::BHistogram(const std::size_t num_rangesrvs, Request::BHistogram **bhm_list) {
-    return (bhm_list && endpointgroup_)?endpointgroup_->BHistogram(num_rangesrvs, bhm_list):nullptr;
+Response::BHistogram *Transport::BHistogram(const std::map<int, Request::BHistogram *> &bhm_list) {
+    return (bhm_list.size() && endpointgroup_)?endpointgroup_->BHistogram(bhm_list):nullptr;
 }
 
 }

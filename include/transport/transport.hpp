@@ -45,19 +45,19 @@ class EndpointGroup {
         virtual ~EndpointGroup();
 
         /** @description Bulk Put to multiple endpoints    */
-        virtual Response::BPut *BPut(const std::size_t num_rangesrvs, Request::BPut **bpm_list);
+        virtual Response::BPut *BPut(const std::map<int, Request::BPut *> &bpm_list);
 
         /** @description Bulk Get from multiple endpoints  */
-        virtual Response::BGet *BGet(const std::size_t num_rangesrvs, Request::BGet **bgm_list);
+        virtual Response::BGet *BGet(const std::map<int, Request::BGet *> &bgm_list);
 
         /** @description Bulk Get from multiple endpoints  */
-        virtual Response::BGetOp *BGetOp(const std::size_t num_rangesrvs, Request::BGetOp **bgm_list);
+        virtual Response::BGetOp *BGetOp(const std::map<int, Request::BGetOp *> &bgm_list);
 
         /** @description Bulk Delete to multiple endpoints */
-        virtual Response::BDelete *BDelete(const std::size_t num_rangesrvs, Request::BDelete **bdm_list);
+        virtual Response::BDelete *BDelete(const std::map<int, Request::BDelete *> &bdm_list);
 
         /** @description Bulk Histogram to multiple endpoints */
-        virtual Response::BHistogram *BHistogram(const std::size_t num_rangesrvs, Request::BHistogram **bhm_list);
+        virtual Response::BHistogram *BHistogram(const std::map<int, Request::BHistogram *> &bhm_list);
 
    protected:
         EndpointGroup();
@@ -99,19 +99,19 @@ class Transport {
         Response::Histogram *Histogram(const Request::Histogram *hm);
 
         /** @description Bulk Put to multiple endpoints     */
-        Response::BPut *BPut(const std::size_t num_rangesrvs, Request::BPut **bpm_list);
+        Response::BPut *BPut(const std::map<int, Request::BPut *> &bpm_list);
 
         /** @description Bulk Get from multiple endpoints   */
-        Response::BGet *BGet(const std::size_t num_rangesrvs, Request::BGet **bgm_list);
+        Response::BGet *BGet(const std::map<int, Request::BGet *> &bgm_list);
 
         /** @description Bulk Get from multiple endpoints   */
-        Response::BGetOp *BGetOp(const std::size_t num_rangesrvs, Request::BGetOp **bgm_list);
+        Response::BGetOp *BGetOp(const std::map<int, Request::BGetOp *> &bgm_list);
 
         /** @description Bulk Delete to multiple endpoints  */
-        Response::BDelete *BDelete(const std::size_t num_rangesrvs, Request::BDelete **bdm_list);
+        Response::BDelete *BDelete(const std::map<int, Request::BDelete *> &bdm_list);
 
         /** @description Bulk Histogram to multiple endpoints  */
-        Response::BHistogram *BHistogram(const std::size_t num_rangesrvs, Request::BHistogram **bhm_list);
+        Response::BHistogram *BHistogram(const std::map<int, Request::BHistogram *> &bhm_list);
 
     private:
         typedef std::map<int, Endpoint *> EndpointMapping_t;

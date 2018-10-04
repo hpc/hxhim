@@ -2,11 +2,11 @@
 #define HXHIM_SHUFFLE_HPP
 
 #include <cstddef>
+#include <map>
 
 #include "hxhim/constants.h"
 #include "hxhim/struct.h"
 #include "transport/Messages/Messages.hpp"
-#include "utils/FixedBufferPool.hpp"
 
 namespace hxhim {
 
@@ -38,8 +38,7 @@ int Put(hxhim_t *hx,
         void *object,
         std::size_t object_len,
         Transport::Request::BPut *local,
-        Transport::Request::BPut **remote,
-        FixedBufferPool *requests);
+        std::map<int, Transport::Request::BPut *> &remote);
 
 int Get(hxhim_t *hx,
         const std::size_t max,
@@ -49,8 +48,7 @@ int Get(hxhim_t *hx,
         std::size_t predicate_len,
         hxhim_type_t object_type,
         Transport::Request::BGet *local,
-        Transport::Request::BGet **remote,
-        FixedBufferPool *requests);
+        std::map<int, Transport::Request::BGet *> &remote);
 
 int GetOp(hxhim_t *hx,
           const std::size_t max,
@@ -61,8 +59,7 @@ int GetOp(hxhim_t *hx,
           hxhim_type_t object_type,
           const std::size_t recs, const hxhim_get_op_t op,
           Transport::Request::BGetOp *local,
-          Transport::Request::BGetOp **remote,
-        FixedBufferPool *requests);
+          std::map<int, Transport::Request::BGetOp *> &remote);
 
 int Delete(hxhim_t *hx,
            const std::size_t max,
@@ -71,15 +68,13 @@ int Delete(hxhim_t *hx,
            void *predicate,
            std::size_t predicate_len,
            Transport::Request::BDelete *local,
-           Transport::Request::BDelete **remote,
-           FixedBufferPool *requests);
+           std::map<int, Transport::Request::BDelete *> &remote);
 
 int Histogram(hxhim_t *hx,
               const std::size_t max,
               const int ds_id,
               Transport::Request::BHistogram *local,
-              Transport::Request::BHistogram **remote,
-              FixedBufferPool *requests);
+              std::map<int, Transport::Request::BHistogram *> &remote);
 
 }
 }

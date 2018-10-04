@@ -355,7 +355,7 @@ int hxhim_options_set_ops_per_bulk(hxhim_options_t *opts, const std::size_t coun
         return HXHIM_ERROR;
     }
 
-    opts->p->bulk_op_size = count;
+    opts->p->ops_per_bulk = count;
 
     return HXHIM_SUCCESS;
 }
@@ -386,36 +386,6 @@ int hxhim_options_set_keys_regions(hxhim_options_t *opts, const size_t regions) 
     }
 
     opts->p->keys.regions = regions;
-
-    return HXHIM_SUCCESS;
-}
-
-int hxhim_options_set_packed_name(hxhim_options_t *opts, const char *name) {
-    if (!valid_opts(opts)) {
-        return HXHIM_ERROR;
-    }
-
-    opts->p->packed.name = name;
-
-    return HXHIM_SUCCESS;
-}
-
-int hxhim_options_set_packed_alloc_size(hxhim_options_t *opts, const size_t alloc_size) {
-    if (!valid_opts(opts)) {
-        return HXHIM_ERROR;
-    }
-
-    opts->p->packed.alloc_size = alloc_size;
-
-    return HXHIM_SUCCESS;
-}
-
-int hxhim_options_set_packed_regions(hxhim_options_t *opts, const size_t regions) {
-    if (!valid_opts(opts)) {
-        return HXHIM_ERROR;
-    }
-
-    opts->p->packed.regions = regions;
 
     return HXHIM_SUCCESS;
 }
@@ -538,6 +508,15 @@ int hxhim_options_set_requests_regions(hxhim_options_t *opts, const size_t regio
     opts->p->requests.regions = regions;
 
     return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_requests_regions_in_config(hxhim_options_t *opts, const size_t regions) {
+    if (hxhim_options_set_requests_regions(opts, regions) != HXHIM_SUCCESS) {
+        return HXHIM_ERROR;
+    }
+
+    // arrays needs about 32 times the number of regions requests uses
+    return hxhim_options_set_arrays_regions(opts, regions * 32);
 }
 
 int hxhim_options_set_responses_name(hxhim_options_t *opts, const char *name) {

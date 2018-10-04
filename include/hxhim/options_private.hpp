@@ -9,6 +9,7 @@
 #include "datastore/constants.hpp"
 #include "hxhim/constants.h"
 #include "hxhim/hash.hpp"
+#include "hxhim/options.h"
 #include "transport/options.hpp"
 #include "utils/Histogram.hpp"
 
@@ -69,7 +70,7 @@ typedef struct hxhim_options_private {
     hxhim_datastore_config_t *datastore;      // configuration options for the selected datastore
     std::size_t datastore_count;
 
-    std::size_t bulk_op_size;                 // the number of messages that are in a single set of bulk data to process
+    std::size_t ops_per_bulk;                 // the number of messages that are in a single set of bulk data to process
 
     std::size_t start_async_bput_at;          // number of batches to hold before sending PUTs asynchronously
 
@@ -90,10 +91,9 @@ typedef struct hxhim_options_private {
     } histogram;
 
     // settings for FixedBufferPool
-    hxhim_fbp_config_t packed;
+    hxhim_fbp_config_t keys;
     hxhim_fbp_config_t buffers;
     hxhim_fbp_config_t bulks;
-    hxhim_fbp_config_t keys;
     hxhim_fbp_config_t arrays;
     hxhim_fbp_config_t requests;
     hxhim_fbp_config_t responses;
@@ -106,5 +106,7 @@ typedef struct hxhim_options_private {
 }
 #endif
 
+// Private functions for setting options that have side effects
+int hxhim_options_set_requests_regions_in_config(hxhim_options_t *opts, const size_t regions);
 
 #endif

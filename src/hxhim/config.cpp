@@ -161,7 +161,7 @@ static bool parse_transport(hxhim_options_t *opts, const Config &config) {
                     }
 
                     return ((hxhim_options_set_transport_mpi(opts, listeners) == HXHIM_SUCCESS) &&
-                            parse_hash(opts, config));
+                           parse_hash(opts, config));
                 }
                 break;
             #if HXHIM_HAVE_THALLIUM
@@ -219,8 +219,8 @@ static bool parse_endpointgroup(hxhim_options_t *opts, const Config &config) {
  * Sets up default connfiguration values
  * that have to be calculated at runtime.
  *
- * All non memory fields are expected to have
- * been filled before calling this function
+ * All values before BUFFERS_NAME (see fill_options) are
+ * expected to have been filled before calling this function.
  *
  * @param opts the options to fill in
  * @return HXHIM_SUCCESS or HXHIM_ERROR on error
@@ -236,20 +236,20 @@ static int default_runtime_config(hxhim_options_t *opts) {
     }
 
     hxhim_options_set_keys_regions(opts, opts->p->datastore_count);
-    hxhim_options_set_buffers_alloc_size(opts, opts->p->keys.alloc_size);
-    hxhim_options_set_buffers_regions(opts, 2048);
+    hxhim_options_set_buffers_alloc_size(opts, opts->p->keys.alloc_size * 2);
+    hxhim_options_set_buffers_regions(opts, 256);
     hxhim_options_set_bulks_alloc_size(opts, hxhim::MaxSize::Bulks());
-    hxhim_options_set_bulks_regions(opts, opts->p->bulks.regions);
-    hxhim_options_set_arrays_alloc_size(opts, opts->p->bulk_op_size * sizeof(void *));
-    hxhim_options_set_arrays_regions(opts, 1024);
+    // hxhim_options_set_bulks_regions(opts, );
     hxhim_options_set_requests_alloc_size(opts, hxhim::MaxSize::Requests());
-    hxhim_options_set_requests_regions(opts, size * 2);
+    hxhim_options_set_requests_regions_in_config(opts, 32);
+    hxhim_options_set_arrays_alloc_size(opts, opts->p->ops_per_bulk * sizeof(void *));
+    hxhim_options_set_arrays_regions(opts, opts->p->bulks.regions * 32);
     hxhim_options_set_responses_alloc_size(opts, hxhim::MaxSize::Responses());
-    hxhim_options_set_responses_regions(opts, size * 2);
+    hxhim_options_set_responses_regions(opts, opts->p->requests.regions * 2);
     hxhim_options_set_result_alloc_size(opts, hxhim::MaxSize::Result());
-    hxhim_options_set_result_regions(opts, 1024);
+    hxhim_options_set_result_regions(opts, 1);
     hxhim_options_set_results_alloc_size(opts, sizeof(hxhim::Results));
-    hxhim_options_set_results_regions(opts, 8);
+    hxhim_options_set_results_regions(opts, 4);
 
     return HXHIM_SUCCESS;
 }
@@ -284,13 +284,10 @@ static int fill_options(hxhim_options_t *opts, const Config &config) {
         parse_value(opts, config, START_ASYNC_BPUT_AT,           hxhim_options_set_start_async_bput_at) &&
         parse_value(opts, config, HISTOGRAM_FIRST_N,             hxhim_options_set_histogram_first_n) &&
         parse_value(opts, config, HISTOGRAM_BUCKET_GEN_METHOD,   hxhim_options_set_histogram_bucket_gen_method) &&
-        (default_runtime_config(opts) == HXHIM_SUCCESS) &&
         parse_value(opts, config, KEYS_NAME,                     hxhim_options_set_keys_name) &&
         parse_value(opts, config, KEYS_ALLOC_SIZE,               hxhim_options_set_keys_alloc_size) &&
         parse_value(opts, config, KEYS_REGIONS,                  hxhim_options_set_keys_regions) &&
-        parse_value(opts, config, PACKED_NAME,                   hxhim_options_set_packed_name) &&
-        parse_value(opts, config, PACKED_ALLOC_SIZE,             hxhim_options_set_packed_alloc_size) &&
-        parse_value(opts, config, PACKED_REGIONS,                hxhim_options_set_packed_regions) &&
+        (default_runtime_config(opts) == HXHIM_SUCCESS) &&
         parse_value(opts, config, BUFFERS_NAME,                  hxhim_options_set_buffers_name) &&
         parse_value(opts, config, BUFFERS_ALLOC_SIZE,            hxhim_options_set_buffers_alloc_size) &&
         parse_value(opts, config, BUFFERS_REGIONS,               hxhim_options_set_buffers_regions) &&
@@ -302,7 +299,7 @@ static int fill_options(hxhim_options_t *opts, const Config &config) {
         parse_value(opts, config, ARRAYS_REGIONS,                hxhim_options_set_arrays_regions) &&
         parse_value(opts, config, REQUESTS_NAME,                 hxhim_options_set_requests_name) &&
         parse_value(opts, config, REQUESTS_ALLOC_SIZE,           hxhim_options_set_requests_alloc_size) &&
-        parse_value(opts, config, REQUESTS_REGIONS,              hxhim_options_set_requests_regions) &&
+        parse_value(opts, config, REQUESTS_REGIONS,              hxhim_options_set_requests_regions_in_config) &&
         parse_value(opts, config, RESPONSES_NAME,                hxhim_options_set_responses_name) &&
         parse_value(opts, config, RESPONSES_ALLOC_SIZE,          hxhim_options_set_responses_alloc_size) &&
         parse_value(opts, config, RESPONSES_REGIONS,             hxhim_options_set_responses_regions) &&

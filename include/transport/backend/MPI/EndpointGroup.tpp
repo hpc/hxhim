@@ -1,6 +1,7 @@
 #include "transport/backend/MPI/Packer.hpp"
 #include "transport/backend/MPI/Unpacker.hpp"
 #include "transport/backend/MPI/constants.h"
+#include "utils/macros.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
@@ -15,39 +16,33 @@
  * @return the number of messages successfully sent
  */
 template <typename Send_t, typename>
-std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::size_t num_srvs, Send_t **messages) {
-    // This value is 1 too many since local sends will not happen
-    mlog(MPI_DBG, "Attempting to send %zu messages", num_srvs - 1);
+std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::map<int, Send_t *> &messages) {
+    mlog(MPI_DBG, "Attempting to send %zu messages", messages.size());
 
-    if (!num_srvs || !messages) {
+    if (!messages.size()) {
         mlog(MPI_ERR, "No messages to send");
         return 0;
     }
 
-    if (!srvs) {
-        mlog(MPI_ERR, "Nowhere to store srvs");
-        return 0;
-    }
-
     // pack the data
-    void **bufs = ptrs->acquire_array<void *>(num_srvs);
+    void **bufs = ptrs->acquire_array<void *>(messages.size());
     std::size_t pack_count = 0;
-    for(std::size_t i = 0; i < num_srvs; i++) {
-        Send_t *msg = messages[i];
+    for(REF(messages)::value_type const &message : messages) {
+        Send_t *msg = message.second;
         if (!msg) {
-            mlog(MPI_DBG, "No message to pack at index %zu", i);
+            mlog(MPI_DBG, "No message to pack for destination %d", message.first);
             continue;
         }
 
-        mlog(MPI_DBG, "Attempting to pack message[%zu] (type %s, size %zu, %d -> %d)", i, Message::TypeStr[msg->type], msg->size(), msg->src, msg->dst);
+        mlog(MPI_DBG, "Attempting to pack message (type %s, size %zu, %d -> %d)", Message::TypeStr[msg->type], msg->size(), msg->src, msg->dst);
 
         if (Packer::pack(comm, msg, &bufs[pack_count], &lens[pack_count], packed.get()) == TRANSPORT_SUCCESS) {
             dsts[pack_count] = msg->dst;
             pack_count++;
-            mlog(MPI_DBG, "Successfully packed message[%zu] (type %s, size %zu, %d -> %d)", i, Message::TypeStr[msg->type], msg->size(), msg->src, msg->dst);
+            mlog(MPI_DBG, "Successfully packed message (type %s, size %zu, %d -> %d)", Message::TypeStr[msg->type], msg->size(), msg->src, msg->dst);
         }
         else {
-            mlog(MPI_ERR, "Failed to pack message[%zu] (type %s, size %zu, %d -> %d)", i, Message::TypeStr[msg->type], msg->size(), msg->src, msg->dst);
+            mlog(MPI_ERR, "Failed to pack message (type %s, size %zu, %d -> %d)", Message::TypeStr[msg->type], msg->size(), msg->src, msg->dst);
         }
     }
 
@@ -161,7 +156,7 @@ std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::size_t num_s
     for(std::size_t i = 0; i < pack_count; i++) {
         packed->release(bufs[i], lens[i]);
     }
-    ptrs->release_array(bufs, num_srvs);
+    ptrs->release_array(bufs, messages.size());
 
     mlog(MPI_DBG, "Messages completed: %zu", data_count);
 
@@ -341,11 +336,11 @@ std::size_t Transport::MPI::EndpointGroup::parallel_recv(const std::size_t nsrcs
  * @treturn a linked list of return messages
  */
 template<typename Recv_t, typename Send_t, typename>
-Recv_t *Transport::MPI::EndpointGroup::return_msgs(const std::size_t num_rangesrvs, Send_t **messages) {
-    mlog(MPI_DBG, "Maximum number of messages: %zu", num_rangesrvs);
+Recv_t *Transport::MPI::EndpointGroup::return_msgs(const std::map<int, Send_t *> &messages) {
+    mlog(MPI_DBG, "Maximum number of messages: %zu", messages.size());
 
     // return value here is not useful
-    const std::size_t sent = parallel_send(num_rangesrvs, messages);
+    const std::size_t sent = parallel_send(messages);
 
     mlog(MPI_DBG, "Sent to %zu servers:", sent);
     for(std::size_t i = 0; i < sent; i++) {

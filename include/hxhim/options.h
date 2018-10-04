@@ -44,12 +44,12 @@ int hxhim_options_add_endpoint_to_group(hxhim_options_t *opts, const int id);
 int hxhim_options_clear_endpoint_group(hxhim_options_t *opts);
 int hxhim_options_set_ops_per_bulk(hxhim_options_t *opts, const size_t count);
 
+/**
+ * Functions for configuring HXHIM memory buffers
+ */
 int hxhim_options_set_keys_name(hxhim_options_t *opts, const char *name);
 int hxhim_options_set_keys_alloc_size(hxhim_options_t *opts, const size_t alloc_size);
 int hxhim_options_set_keys_regions(hxhim_options_t *opts, const size_t regions);
-int hxhim_options_set_packed_name(hxhim_options_t *opts, const char *name);
-int hxhim_options_set_packed_alloc_size(hxhim_options_t *opts, const size_t alloc_size);
-int hxhim_options_set_packed_regions(hxhim_options_t *opts, const size_t regions);
 int hxhim_options_set_buffers_name(hxhim_options_t *opts, const char *name);
 int hxhim_options_set_buffers_alloc_size(hxhim_options_t *opts, const size_t alloc_size);
 int hxhim_options_set_buffers_regions(hxhim_options_t *opts, const size_t regions);

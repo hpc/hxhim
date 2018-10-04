@@ -14,9 +14,6 @@ int hxhim::BPutSingleType(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
-    hxhim::Unsent<hxhim::PutData> &puts = hx->p->queues.puts;
-    std::lock_guard<std::mutex> lock(puts.mutex);
-
     for(std::size_t i = 0; i < count; i++) {
         hxhim::PutImpl(hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], object_type, objects[i], object_lens[i]);
     }
@@ -46,9 +43,6 @@ int hxhim::BGetSingleType(hxhim_t *hx,
         !predicates || !predicate_lens) {
         return HXHIM_ERROR;
     }
-
-    hxhim::Unsent<hxhim::GetData> &gets = hx->p->queues.gets;
-    std::lock_guard<std::mutex> lock(gets.mutex);
 
     for(std::size_t i = 0; i < count; i++) {
         hxhim::GetImpl(hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], object_type);

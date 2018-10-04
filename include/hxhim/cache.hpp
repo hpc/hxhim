@@ -34,6 +34,7 @@ namespace hxhim {
 
     struct PutData : SPO_t {
         PutData(FixedBufferPool *arrays, const std::size_t count);
+        ~PutData() = default;
 
         PutData *prev;
         PutData *next;
@@ -59,6 +60,7 @@ namespace hxhim {
 
     struct DeleteData : SP_t {
         DeleteData(FixedBufferPool *arrays, const std::size_t count);
+        ~DeleteData() = default;
 
         DeleteData *next;
     };

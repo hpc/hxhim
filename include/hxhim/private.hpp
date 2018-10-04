@@ -89,7 +89,7 @@ typedef struct hxhim_private {
         FixedBufferPool *keys;                                 // at least (subject_len + sizeof(std::size_t) + predicate_len + sizeof(std::size_t))
         FixedBufferPool *buffers;                              // maximum size of smaller buffers (subjects, predicates, objects, etc)
         FixedBufferPool *bulks;                                // number of queues (4) * maximum number of bulk operations
-        FixedBufferPool *arrays;                               // should have enough space for max(sizeof(T) * length)
+        FixedBufferPool *arrays;                               // storage for bulk message internal arrays; size is max_bulk_ops.max * sizeof(void *)
         FixedBufferPool *requests;                             // should have enough space to allow for maximum number of requests queued before flushing
         FixedBufferPool *responses;                            // should have enough space to allow for responses from all queued requests
         FixedBufferPool *result;                               // should have enough space to allow for results from all returned responses
@@ -108,7 +108,7 @@ int memory       (hxhim_t *hx, hxhim_options_t *opts);
 int range_server (hxhim_t *hx, hxhim_options_t *opts);
 int datastore    (hxhim_t *hx, hxhim_options_t *opts);
 int one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::string &name);
-int async_bput    (hxhim_t *hx, hxhim_options_t *opts);
+int async_bput   (hxhim_t *hx, hxhim_options_t *opts);
 int hash         (hxhim_t *hx, hxhim_options_t *opts);
 int transport    (hxhim_t *hx, hxhim_options_t *opts);
 }
