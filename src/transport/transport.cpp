@@ -42,7 +42,7 @@ Response::BDelete *EndpointGroup::BDelete(const std::map<int, Request::BDelete *
     return nullptr;
 }
 
- Response::BHistogram *EndpointGroup::BHistogram(const std::map<int, Request::BHistogram *> &) {
+Response::BHistogram *EndpointGroup::BHistogram(const std::map<int, Request::BHistogram *> &) {
     return nullptr;
 }
 
@@ -52,7 +52,7 @@ Transport::Transport()
 {}
 
 Transport::~Transport() {
-    delete endpointgroup_;
+    SetEndpointGroup(nullptr);
 
     for(decltype(endpoints_)::value_type const & ep : endpoints_) {
         delete ep.second;

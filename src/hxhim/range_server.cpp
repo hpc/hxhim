@@ -11,6 +11,23 @@ namespace hxhim {
 namespace range_server {
 
 /**
+ * is_range_server
+ *
+ * @param rank              the rank of the process
+ * @param client_ratio      the client portion of the client to server ratio
+ * @param server_ratio      the server portion of the client to server ratio
+ * @param true or false
+ */
+bool is_range_server(const int rank, const std::size_t client_ratio, const std::size_t server_ratio) {
+    if (!client_ratio ||
+        !server_ratio) {
+        return false;
+    }
+
+    return ((rank % client_ratio) < server_ratio);
+}
+
+/**
  * bput
  * Handles the bput message and puts data in the datastore
  *

@@ -1,9 +1,11 @@
+#include <cmath>
 #include <cstring>
 #include <stdexcept>
 
 #include "datastore/datastore.hpp"
 #include "hxhim/accessors.hpp"
 #include "hxhim/private.hpp"
+#include "hxhim/range_server.hpp"
 #include "utils/elen.hpp"
 
 namespace hxhim {
@@ -17,12 +19,27 @@ namespace datastore {
  * @return the rank of the given ID or -1 on error
  */
 int get_rank(hxhim_t *hx, const int id) {
-    std::size_t ds_count = 0;
-    if (hxhim::GetDatastoreCount(hx, &ds_count) != HXHIM_SUCCESS) {
+    if (!valid(hx)) {
         return -1;
     }
 
-    return id / ds_count;
+    const std::div_t qr = std::div(get_server(hx, id), hx->p->range_server.server_ratio);
+    return hx->p->range_server.client_ratio * qr.quot + qr.rem;
+}
+
+/**
+ * get_server
+ *
+ * @param hx the HXHIM instance
+ * @param id the database ID to get the server number of
+ * @return the server number of the given ID or -1 on error
+ */
+int get_server(hxhim_t *hx, const int id) {
+    if (!valid(hx)) {
+        return -1;
+    }
+
+    return id / hx->p->datastore.count;
 }
 
 /**
@@ -32,13 +49,12 @@ int get_rank(hxhim_t *hx, const int id) {
  * @param id the database ID to get the offset of
  * @return the offset of the given ID or -1 on error
  */
-int get_offset(hxhim_t *hx, const int id) {
-    std::size_t ds_count = 0;
-    if (hxhim::GetDatastoreCount(hx, &ds_count) != HXHIM_SUCCESS) {
+std::size_t get_offset(hxhim_t *hx, const int id) {
+    if (!valid(hx)) {
         return -1;
     }
 
-    return id % ds_count;
+    return id % hx->p->datastore.count;
 }
 
 /**
@@ -49,13 +65,21 @@ int get_offset(hxhim_t *hx, const int id) {
  * @param id   the offset within the destination
  * @return the mapping from the (rank, offset) to the database ID, or -1 on error
  */
-int get_id(hxhim_t *hx, const int rank, const int offset) {
-    std::size_t ds_count = 0;
-    if (hxhim::GetDatastoreCount(hx, &ds_count) != HXHIM_SUCCESS) {
+int get_id(hxhim_t *hx, const int rank, const std::size_t offset) {
+    if (!valid(hx)) {
         return -1;
     }
 
-    return rank * ds_count + offset;
+    if (offset >= hx->p->datastore.count) {
+        return -1;
+    }
+
+    if (!hxhim::range_server::is_range_server(rank, hx->p->range_server.client_ratio, hx->p->range_server.server_ratio)) {
+        return -1;
+    }
+
+    const std::div_t qr = std::div(rank, hx->p->range_server.client_ratio);
+    return (qr.quot * hx->p->range_server.server_ratio + qr.rem) * hx->p->datastore.count + offset;
 }
 
 Datastore::Datastore(hxhim_t *hx,
@@ -171,15 +195,8 @@ int Datastore::GetStats(const int dst_rank,
                         const bool get_num_puts, std::size_t *num_puts,
                         const bool get_get_times, long double *get_times,
                         const bool get_num_gets, std::size_t *num_gets) {
-    MPI_Comm comm = MPI_COMM_NULL;
-    if (hxhim::GetMPIComm(hx, &comm) != HXHIM_SUCCESS) {
-        return HXHIM_ERROR;
-    }
-
-    int rank = -1;
-    if (hxhim::GetMPIRank(hx, &rank) != HXHIM_SUCCESS) {
-        return HXHIM_ERROR;
-    }
+    MPI_Comm comm = hx->p->bootstrap.comm;
+    int rank = hx->p->bootstrap.rank;
 
     MPI_Barrier(comm);
 

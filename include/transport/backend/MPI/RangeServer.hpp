@@ -1,10 +1,8 @@
 #ifndef TRANSPORT_MPI_RANGE_SERVER_HPP
 #define TRANSPORT_MPI_RANGE_SERVER_HPP
 
-#include <atomic>
 #include <memory>
-#include <pthread.h>
-#include <unistd.h>
+#include <thread>
 #include <vector>
 
 #include <mpi.h>
@@ -24,7 +22,7 @@ class RangeServer {
         /**
          * Function that will be used to listen for MPI messages
          */
-        static void *listener_thread(void *data);
+        static void listener_thread();
 
     private:
         static int recv(void **data, std::size_t *len);
@@ -34,12 +32,8 @@ class RangeServer {
         static int Flush(MPI_Request &req, MPI_Status &status);
 
         static hxhim_t *hx_;
-        static std::atomic_bool *running_;
-        static std::vector<pthread_t> listeners_;
-        static pthread_mutex_t mutex_;
+        static std::vector<std::thread> listeners_;
         static std::shared_ptr<FixedBufferPool> packed_;
-        static FixedBufferPool *arrays_;
-        static FixedBufferPool *buffers_;
 };
 
 }

@@ -19,7 +19,7 @@ struct Options : ::Transport::Options {
         listeners(listeners)
     {}
 
-    MPI_Comm comm;
+    const MPI_Comm comm;
     const std::size_t listeners;
 };
 

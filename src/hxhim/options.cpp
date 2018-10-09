@@ -1,13 +1,9 @@
 #include <cmath>
-#include <type_traits>
 
 #include "hxhim/MaxSize.hpp"
-#include "hxhim/Results.hpp"
-#include "hxhim/cache.hpp"
 #include "hxhim/config.hpp"
 #include "hxhim/options.h"
 #include "hxhim/options_private.hpp"
-#include "transport/Messages/Message.hpp"
 #include "transport/backend/MPI/Options.hpp"
 #include "transport/backend/Thallium/Options.hpp"
 
@@ -54,7 +50,8 @@ int hxhim_options_set_mpi_bootstrap(hxhim_options_t *opts, MPI_Comm comm) {
 /**
  * hxhim_options_set_debug_level
  *
- * @param opts the set of options to be modified
+ * @param opts   the set of options to be modified
+ * @param level  the mlog level
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_set_debug_level(hxhim_options_t *opts, const int level) {
@@ -68,6 +65,48 @@ int hxhim_options_set_debug_level(hxhim_options_t *opts, const int level) {
 }
 
 /**
+ * hxhim_options_set_client_ratio
+ *
+ * @param opts   the set of options to be modified
+ * @param count  the ratio of clients
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim_options_set_client_ratio(hxhim_options_t *opts, const size_t ratio) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    if (ratio < 1) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->client_ratio = ratio;
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * hxhim_options_set_server_ratio
+ *
+ * @param opts   the set of options to be modified
+ * @param ratio  the ratio of servers
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim_options_set_server_ratio(hxhim_options_t *opts, const size_t ratio) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    if (ratio < 1) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->server_ratio = ratio;
+
+    return HXHIM_SUCCESS;
+}
+
+/**
  * hxhim_options_set_datastores_per_range_server
  *
  * @param opts  the set of options to be modified
@@ -76,6 +115,10 @@ int hxhim_options_set_debug_level(hxhim_options_t *opts, const int level) {
  */
 int hxhim_options_set_datastores_per_range_server(hxhim_options_t *opts, const size_t count) {
     if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    if (count < 1) {
         return HXHIM_ERROR;
     }
 
@@ -343,6 +386,18 @@ int hxhim_options_clear_endpoint_group(hxhim_options_t *opts) {
 }
 
 /**
+ * count_check
+ * Checks if opts is valid and count > 0
+ *
+ * @param opts  the set of options to be modified
+ * @param count a configuration value that should be greater than 0
+ * @param
+ */
+static bool count_check(hxhim_options_t *opts, const std::size_t count) {
+    return valid_opts(opts) && (count > 0);
+}
+
+/**
  * hxhim_options_set_ops_per_bulks
  * Set the number of operations a single bulk operation can contain
  *
@@ -351,7 +406,7 @@ int hxhim_options_clear_endpoint_group(hxhim_options_t *opts) {
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_set_ops_per_bulk(hxhim_options_t *opts, const std::size_t count) {
-    if (!valid_opts(opts)) {
+    if (!count_check(opts, count)) {
         return HXHIM_ERROR;
     }
 
@@ -371,7 +426,7 @@ int hxhim_options_set_keys_name(hxhim_options_t *opts, const char *name) {
 }
 
 int hxhim_options_set_keys_alloc_size(hxhim_options_t *opts, const size_t alloc_size) {
-    if (!valid_opts(opts)) {
+    if (!count_check(opts, alloc_size)) {
         return HXHIM_ERROR;
     }
 
@@ -381,7 +436,7 @@ int hxhim_options_set_keys_alloc_size(hxhim_options_t *opts, const size_t alloc_
 }
 
 int hxhim_options_set_keys_regions(hxhim_options_t *opts, const size_t regions) {
-    if (!valid_opts(opts)) {
+    if (!count_check(opts, regions)) {
         return HXHIM_ERROR;
     }
 
@@ -401,7 +456,7 @@ int hxhim_options_set_buffers_name(hxhim_options_t *opts, const char *name) {
 }
 
 int hxhim_options_set_buffers_alloc_size(hxhim_options_t *opts, const size_t alloc_size) {
-    if (!valid_opts(opts)) {
+    if (!count_check(opts, alloc_size)) {
         return HXHIM_ERROR;
     }
 
@@ -411,7 +466,7 @@ int hxhim_options_set_buffers_alloc_size(hxhim_options_t *opts, const size_t all
 }
 
 int hxhim_options_set_buffers_regions(hxhim_options_t *opts, const size_t regions) {
-    if (!valid_opts(opts)) {
+    if (!count_check(opts, regions)) {
         return HXHIM_ERROR;
     }
 
@@ -431,7 +486,7 @@ int hxhim_options_set_bulks_name(hxhim_options_t *opts, const char *name) {
 }
 
 int hxhim_options_set_bulks_alloc_size(hxhim_options_t *opts, const size_t alloc_size) {
-    if (!valid_opts(opts)) {
+    if (!count_check(opts, alloc_size)) {
         return HXHIM_ERROR;
     }
 
@@ -441,7 +496,7 @@ int hxhim_options_set_bulks_alloc_size(hxhim_options_t *opts, const size_t alloc
 }
 
 int hxhim_options_set_bulks_regions(hxhim_options_t *opts, const size_t regions) {
-    if (!valid_opts(opts)) {
+    if (!count_check(opts, regions)) {
         return HXHIM_ERROR;
     }
 
@@ -461,7 +516,7 @@ int hxhim_options_set_arrays_name(hxhim_options_t *opts, const char *name) {
 }
 
 int hxhim_options_set_arrays_alloc_size(hxhim_options_t *opts, const size_t alloc_size) {
-    if (!valid_opts(opts)) {
+    if (!count_check(opts, alloc_size)) {
         return HXHIM_ERROR;
     }
 
@@ -471,7 +526,7 @@ int hxhim_options_set_arrays_alloc_size(hxhim_options_t *opts, const size_t allo
 }
 
 int hxhim_options_set_arrays_regions(hxhim_options_t *opts, const size_t regions) {
-    if (!valid_opts(opts)) {
+    if (!count_check(opts, regions)) {
         return HXHIM_ERROR;
     }
 
@@ -491,7 +546,7 @@ int hxhim_options_set_requests_name(hxhim_options_t *opts, const char *name) {
 }
 
 int hxhim_options_set_requests_alloc_size(hxhim_options_t *opts, const size_t alloc_size) {
-    if (!valid_opts(opts)) {
+    if (!count_check(opts, alloc_size)) {
         return HXHIM_ERROR;
     }
 
@@ -501,7 +556,7 @@ int hxhim_options_set_requests_alloc_size(hxhim_options_t *opts, const size_t al
 }
 
 int hxhim_options_set_requests_regions(hxhim_options_t *opts, const size_t regions) {
-    if (!valid_opts(opts)) {
+    if (!count_check(opts, regions)) {
         return HXHIM_ERROR;
     }
 
@@ -530,7 +585,7 @@ int hxhim_options_set_responses_name(hxhim_options_t *opts, const char *name) {
 }
 
 int hxhim_options_set_responses_alloc_size(hxhim_options_t *opts, const size_t alloc_size) {
-    if (!valid_opts(opts)) {
+    if (!count_check(opts, alloc_size)) {
         return HXHIM_ERROR;
     }
 
@@ -540,7 +595,7 @@ int hxhim_options_set_responses_alloc_size(hxhim_options_t *opts, const size_t a
 }
 
 int hxhim_options_set_responses_regions(hxhim_options_t *opts, const size_t regions) {
-    if (!valid_opts(opts)) {
+    if (!count_check(opts, regions)) {
         return HXHIM_ERROR;
     }
 
@@ -560,7 +615,7 @@ int hxhim_options_set_result_name(hxhim_options_t *opts, const char *name) {
 }
 
 int hxhim_options_set_result_alloc_size(hxhim_options_t *opts, const size_t alloc_size) {
-    if (!valid_opts(opts)) {
+    if (!count_check(opts, alloc_size)) {
         return HXHIM_ERROR;
     }
 
@@ -570,7 +625,7 @@ int hxhim_options_set_result_alloc_size(hxhim_options_t *opts, const size_t allo
 }
 
 int hxhim_options_set_result_regions(hxhim_options_t *opts, const size_t regions) {
-    if (!valid_opts(opts)) {
+    if (!count_check(opts, regions)) {
         return HXHIM_ERROR;
     }
 
@@ -590,7 +645,7 @@ int hxhim_options_set_results_name(hxhim_options_t *opts, const char *name) {
 }
 
 int hxhim_options_set_results_alloc_size(hxhim_options_t *opts, const size_t alloc_size) {
-    if (!valid_opts(opts)) {
+    if (!count_check(opts, alloc_size)) {
         return HXHIM_ERROR;
     }
 
@@ -600,7 +655,7 @@ int hxhim_options_set_results_alloc_size(hxhim_options_t *opts, const size_t all
 }
 
 int hxhim_options_set_results_regions(hxhim_options_t *opts, const size_t regions) {
-    if (!valid_opts(opts)) {
+    if (!count_check(opts, regions)) {
         return HXHIM_ERROR;
     }
 

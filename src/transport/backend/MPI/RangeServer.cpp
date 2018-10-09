@@ -12,15 +12,11 @@ namespace Transport {
 namespace MPI {
 
 hxhim_t *RangeServer::hx_ = nullptr;
-std::atomic_bool *RangeServer::running_ = nullptr;
-std::vector<pthread_t> RangeServer::listeners_ = {};
-pthread_mutex_t RangeServer::mutex_ = PTHREAD_MUTEX_INITIALIZER;
+std::vector<std::thread> RangeServer::listeners_ = {};
 std::shared_ptr<FixedBufferPool> RangeServer::packed_ = {};
-FixedBufferPool *RangeServer::arrays_ = nullptr;
-FixedBufferPool *RangeServer::buffers_ = nullptr;
 
 int RangeServer::init(hxhim_t *hx, const std::size_t listener_count, const std::shared_ptr<FixedBufferPool> &packed) {
-    mlog(HXHIM_SERVER_INFO, "Initializing MPI Range Server");
+    mlog(MPI_INFO, "Initializing MPI Range Server");
     if (!hx || !listener_count || !packed) {
         return TRANSPORT_ERROR;
     }
@@ -29,42 +25,36 @@ int RangeServer::init(hxhim_t *hx, const std::size_t listener_count, const std::
     packed_ = packed;
     listeners_.resize(listener_count);
 
-    mlog(HXHIM_SERVER_DBG, "Starting up %zu listeners", listener_count);
+    mlog(MPI_DBG, "Starting up %zu listeners", listener_count);
 
     //Initialize listener threads
-    for(pthread_t & tid : listeners_) {
-        if (pthread_create(&tid, nullptr,
-                           listener_thread, nullptr) != 0) {
-            mlog(HXHIM_SERVER_ERR, "Failed to start listener thread for MPI Range Server");
-            return TRANSPORT_ERROR;
-        }
-        mlog(HXHIM_SERVER_DBG, "MPI Range Server Thread %lu Started", tid);
+    for(std::size_t i = 0; i < listener_count; i++) {
+        listeners_[i] = std::thread(listener_thread);
+        mlog(MPI_DBG, "MPI Range Server Thread %lu Started", i);
     }
 
-    mlog(HXHIM_SERVER_INFO, "Completed MPI Range Server Initialization");
+    mlog(MPI_INFO, "Completed MPI Range Server Initialization");
     return TRANSPORT_SUCCESS;
 }
 
 void RangeServer::destroy() {
-    mlog(HXHIM_SERVER_INFO, "Stopping MPI Range Server");
-    mlog(HXHIM_SERVER_DBG, "Waiting for MPI Range Server threads");
-    for(pthread_t & tid : listeners_) {
-        pthread_join(tid, nullptr);
-        mlog(HXHIM_SERVER_DBG, "MPI Range Server Thread %lu Stopped", tid);
+    mlog(MPI_INFO, "Stopping MPI Range Server");
+    mlog(MPI_DBG, "Waiting for MPI Range Server threads");
+    for(std::size_t i = 0; i < listeners_.size(); i++) {
+        listeners_[i].join();
+        mlog(MPI_DBG, "MPI Range Server Thread %lu Stopped", i);
     }
 
     hx_ = nullptr;
-    mlog(HXHIM_SERVER_INFO, "MPI Range Server stopped");
+    mlog(MPI_INFO, "MPI Range Server stopped");
 }
 
 /*
  * listener_thread
  * Function for the thread that listens for new messages
  */
-void *RangeServer::listener_thread(void *) {
+void RangeServer::listener_thread() {
     //Mlog statements could cause a deadlock on range_server_stop due to canceling of threads
-    pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, nullptr);
-    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, nullptr);
 
     while (hx_->p->running){
         // wait for request
@@ -97,8 +87,6 @@ void *RangeServer::listener_thread(void *) {
             continue;
         }
     }
-
-    return nullptr;
 }
 
 /**

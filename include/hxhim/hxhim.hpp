@@ -72,7 +72,7 @@ int BDelete(hxhim_t *hx,
             std::size_t count);
 
 /** @description Utility Functions */
-int GetStats(hxhim_t *hx, const int rank,
+int GetStats(hxhim_t *hx, const int dst_rank,
              const bool get_put_times, long double *put_times,
              const bool get_num_puts, std::size_t *num_puts,
              const bool get_get_times, long double *get_times,

@@ -5,8 +5,9 @@
 #ifndef TRANSPORT_HPP
 #define TRANSPORT_HPP
 
-#include <cstddef>
+#include <atomic>
 #include <map>
+#include <vector>
 
 #include "transport/Messages/Messages.hpp"
 #include "transport/constants.hpp"
@@ -70,7 +71,8 @@ class EndpointGroup {
  * The endpoints and endpoint group do not have to
  * use the same underlying transport protocols.
  *
- * Transport takes ownership of the EP and EG pointers
+ * Transport takes ownership of the endpoints,
+ * endpointgroup and range server.
  */
 class Transport {
     public:
@@ -86,13 +88,13 @@ class Transport {
         /** @description Takes ownership of an endpoint group, deallocating the previous one */
         void SetEndpointGroup(EndpointGroup *eg);
 
-        /**  @description Puts a message onto the the underlying transport    */
+        /** @description Puts a message onto the the underlying transport    */
         Response::Put *Put(const Request::Put *pm);
 
-        /**  @description Gets a message onto the the underlying transport    */
+        /** @description Gets a message onto the the underlying transport    */
         Response::Get *Get(const Request::Get *gm);
 
-        /**  @description Deletes a message onto the the underlying transport */
+        /** @description Deletes a message onto the the underlying transport */
         Response::Delete *Delete(const Request::Delete *dm);
 
         /** @description Sends a histogram request onto the underlying transport */

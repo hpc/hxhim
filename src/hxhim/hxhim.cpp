@@ -10,6 +10,7 @@
 #include "hxhim/local_client.hpp"
 #include "hxhim/options_private.hpp"
 #include "hxhim/private.hpp"
+#include "hxhim/range_server.hpp"
 #include "hxhim/shuffle.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
@@ -37,13 +38,13 @@ int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
-    if ((init::bootstrap(hx, opts) != HXHIM_SUCCESS) ||
-        (init::running  (hx, opts) != HXHIM_SUCCESS) ||
-        (init::memory   (hx, opts) != HXHIM_SUCCESS) ||
-        (init::hash     (hx, opts) != HXHIM_SUCCESS) ||
-        (init::datastore(hx, opts) != HXHIM_SUCCESS) ||
-        (init::async_bput(hx, opts) != HXHIM_SUCCESS) ||
-        (init::transport(hx, opts) != HXHIM_SUCCESS)) {
+    if ((init::bootstrap  (hx, opts) != HXHIM_SUCCESS) ||
+        (init::running    (hx, opts) != HXHIM_SUCCESS) ||
+        (init::memory     (hx, opts) != HXHIM_SUCCESS) ||
+        (init::hash       (hx, opts) != HXHIM_SUCCESS) ||
+        (init::datastore  (hx, opts) != HXHIM_SUCCESS) ||
+        (init::async_bput (hx, opts) != HXHIM_SUCCESS) ||
+        (init::transport  (hx, opts) != HXHIM_SUCCESS)) {
         MPI_Barrier(hx->p->bootstrap.comm);
         Close(hx);
         mlog(HXHIM_CLIENT_ERR, "Failed to initialize HXHIM");
@@ -99,7 +100,7 @@ int hxhim::OpenOne(hxhim_t *hx, hxhim_options_t *opts, const std::string &db_pat
         (init::memory        (hx, opts)          != HXHIM_SUCCESS) ||
         (init::hash          (hx, opts)          != HXHIM_SUCCESS) ||
         (init::one_datastore (hx, opts, db_path) != HXHIM_SUCCESS) ||
-        (init::async_bput     (hx, opts)          != HXHIM_SUCCESS)) {
+        (init::async_bput    (hx, opts)          != HXHIM_SUCCESS)) {
         MPI_Barrier(hx->p->bootstrap.comm);
         Close(hx);
         mlog(HXHIM_CLIENT_ERR, "Failed to initialize HXHIM");
@@ -133,7 +134,7 @@ int hxhimOpenOne(hxhim_t *hx, hxhim_options_t *opts, const char *db_path, const 
  */
 int hxhim::Close(hxhim_t *hx) {
     mlog(HXHIM_CLIENT_INFO, "Starting to shutdown HXHIM");
-    if (!hx || !hx->p) {
+    if (!valid(hx)) {
         mlog(HXHIM_CLIENT_ERR, "Bad HXHIM instance");
         return HXHIM_ERROR;
     }
@@ -182,7 +183,7 @@ int hxhimClose(hxhim_t *hx) {
  */
 hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
     mlog(HXHIM_CLIENT_DBG, "Flushing PUTs");
-    if (!hx || !hx->p) {
+    if (!valid(hx)) {
         return nullptr;
     }
 
@@ -313,7 +314,7 @@ static hxhim::Results *get_core(hxhim_t *hx,
  */
 hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
     mlog(HXHIM_CLIENT_DBG, "Flushing GETs");
-    if (!hx || !hx->p) {
+    if (!valid(hx)) {
         return nullptr;
     }
 
@@ -458,7 +459,7 @@ static hxhim::Results *getop_core(hxhim_t *hx,
  * @return Pointer to return value wrapper
  */
 hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
-    if (!hx || !hx->p) {
+    if (!valid(hx)) {
         return nullptr;
     }
 
@@ -596,7 +597,7 @@ static hxhim::Results *delete_core(hxhim_t *hx,
  * @return Pointer to return value wrapper
  */
 hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
-    if (!hx || !hx->p) {
+    if (!valid(hx)) {
         return nullptr;
     }
 
@@ -707,10 +708,12 @@ hxhim::Results *hxhim::Sync(hxhim_t *hx) {
 
     MPI_Barrier(hx->p->bootstrap.comm);
 
-    // Sync local data stores
-    for(std::size_t i = 0; i < hx->p->datastore.count; i++) {
-        const int synced = hx->p->datastore.datastores[i]->Sync();
-        res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Sync>(hx, i, synced));
+    if (hxhim::range_server::is_range_server(hx->p->bootstrap.rank, hx->p->range_server.client_ratio, hx->p->range_server.server_ratio)) {
+        // Sync local data stores
+        for(std::size_t i = 0; i < hx->p->datastore.count; i++) {
+            const int synced = hx->p->datastore.datastores[i]->Sync();
+            res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Sync>(hx, i, synced));
+        }
     }
 
     MPI_Barrier(hx->p->bootstrap.comm);
@@ -801,7 +804,7 @@ int hxhim::Put(hxhim_t *hx,
                void *subject, std::size_t subject_len,
                void *predicate, std::size_t predicate_len,
                enum hxhim_type_t object_type, void *object, std::size_t object_len) {
-    if (!hx || !hx->p) {
+    if (!valid(hx)) {
         return HXHIM_ERROR;
     }
 
@@ -851,7 +854,7 @@ int hxhim::Get(hxhim_t *hx,
                void *subject, std::size_t subject_len,
                void *predicate, std::size_t predicate_len,
                enum hxhim_type_t object_type) {
-    if (!hx || !hx->p) {
+    if (!valid(hx)) {
         return HXHIM_ERROR;
     }
 
@@ -897,7 +900,7 @@ int hxhimGet(hxhim_t *hx,
 int hxhim::Delete(hxhim_t *hx,
                   void *subject, std::size_t subject_len,
                   void *predicate, std::size_t predicate_len) {
-    if (!hx || !hx->p) {
+    if (!valid(hx)) {
         return HXHIM_ERROR;
     }
 
@@ -945,7 +948,7 @@ int hxhim::BPut(hxhim_t *hx,
                 void **predicates, std::size_t *predicate_lens,
                 enum hxhim_type_t *object_types, void **objects, std::size_t *object_lens,
                 std::size_t count) {
-    if (!hx         || !hx->p          ||
+    if (!valid(hx)  ||
         !subjects   || !subject_lens   ||
         !predicates || !predicate_lens ||
         !objects    || !object_lens) {
@@ -1005,7 +1008,7 @@ int hxhim::BGet(hxhim_t *hx,
                 void **predicates, std::size_t *predicate_lens,
                 hxhim_type_t *object_types,
                 std::size_t count) {
-    if (!hx         || !hx->p          ||
+    if (!valid(hx)  ||
         !subjects   || !subject_lens   ||
         !predicates || !predicate_lens) {
         return HXHIM_ERROR;
@@ -1060,7 +1063,7 @@ int hxhim::BGetOp(hxhim_t *hx,
                   void *predicate, size_t predicate_len,
                   enum hxhim_type_t object_type,
                   std::size_t num_records, enum hxhim_get_op_t op) {
-    if (!hx      || !hx->p       ||
+    if (!valid(hx)  ||
         !subject || !subject_len) {
         return HXHIM_ERROR;
     }
@@ -1144,7 +1147,7 @@ int hxhim::BDelete(hxhim_t *hx,
                    void **subjects, size_t *subject_lens,
                    void **predicates, size_t *predicate_lens,
                    std::size_t count) {
-    if (!hx         || !hx->p          ||
+    if (!valid(hx)  ||
         !subjects   || !subject_lens   ||
         !predicates || !predicate_lens) {
         return HXHIM_ERROR;
@@ -1186,7 +1189,7 @@ int hxhimBDelete(hxhim_t *hx,
  * Each desired pointer should be preallocated with space for md->size values
  *
  * @param hx             the HXHIM session
- * @param rank           the rank that is collecting the data
+ * @param dst_rank       the rank that is collecting the data
  * @param get_put_times  whether or not to get put_times
  * @param put_times      the array of put times from each rank
  * @param get_num_puts   whether or not to get num_puts
@@ -1197,16 +1200,18 @@ int hxhimBDelete(hxhim_t *hx,
  * @param num_gets       the array of number of gets from each rank
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim::GetStats(hxhim_t *hx, const int rank,
+int hxhim::GetStats(hxhim_t *hx, const int dst_rank,
                     const bool get_put_times, long double *put_times,
                     const bool get_num_puts, std::size_t *num_puts,
                     const bool get_get_times, long double *get_times,
                     const bool get_num_gets, std::size_t *num_gets) {
-    return hx->p->datastore.datastores[0]->GetStats(rank,
+    #warning this needs to change to send stats from all datastores
+    return hx->p->datastore.datastores[0]->GetStats(dst_rank,
                                                     get_put_times, put_times,
                                                     get_num_puts, num_puts,
                                                     get_get_times, get_times,
                                                     get_num_gets, num_gets);
+
 }
 
 /**
@@ -1215,7 +1220,7 @@ int hxhim::GetStats(hxhim_t *hx, const int rank,
  * Each desired pointer should be preallocated with space for md->size values
  *
  * @param hx             the HXHIM session
- * @param rank           the rank that is collecting the data
+ * @param dst_rank       the rank that is collecting the data
  * @param get_put_times  whether or not to get put_times
  * @param put_times      the array of put times from each rank
  * @param get_num_puts   whether or not to get num_puts
@@ -1226,12 +1231,12 @@ int hxhim::GetStats(hxhim_t *hx, const int rank,
  * @param num_gets       the array of number of gets from each rank
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhimGetStats(hxhim_t *hx, const int rank,
+int hxhimGetStats(hxhim_t *hx, const int dst_rank,
                   const int get_put_times, long double *put_times,
                   const int get_num_puts, std::size_t *num_puts,
                   const int get_get_times, long double *get_times,
                   const int get_num_gets, std::size_t *num_gets) {
-    return hxhim::GetStats(hx, rank,
+    return hxhim::GetStats(hx, dst_rank,
                            get_put_times, put_times,
                            get_num_puts, num_puts,
                            get_get_times, get_times,
@@ -1247,7 +1252,7 @@ int hxhimGetStats(hxhim_t *hx, const int rank,
  * @return the histogram, inside a hxhim::Results structure
  */
 hxhim::Results *hxhim::GetHistogram(hxhim_t *hx, const int datastore) {
-    if (!hx || !hx->p || (datastore < 0)) {
+    if (!valid(hx) || (datastore < 0)) {
         return nullptr;
     }
 

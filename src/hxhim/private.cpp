@@ -8,6 +8,7 @@
 #include "hxhim/local_client.hpp"
 #include "hxhim/options_private.hpp"
 #include "hxhim/private.hpp"
+#include "hxhim/range_server.hpp"
 #include "hxhim/shuffle.hpp"
 #include "transport/transports.hpp"
 #include "utils/FixedBufferPool.hpp"
@@ -33,14 +34,13 @@ void clean(hxhim_t *hx, Data *node) {
 hxhim_private::hxhim_private()
     : bootstrap(),
       running(false),
-      put_multiplier(1),
       max_bulk_ops(),
       queues(),
       datastore(),
       async_bput(),
       hash(),
       transport(nullptr),
-      range_server_destroy(nullptr),
+      range_server(),
       memory_pools()
 {}
 
@@ -60,24 +60,30 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
         return nullptr;
     }
 
-    // total number of triples that will be PUT
-    const std::size_t total = HXHIM_PUT_MULTIPLER * count;
+    // max number of triples that will be PUT per destination
+    const std::size_t max = HXHIM_PUT_MULTIPLER * count;
 
+    // returned results
     hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
 
+    // declare local PUT requests here to not reallocate every loop
     Transport::Request::BPut local(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, hx->p->max_bulk_ops.puts);
     local.src = hx->p->bootstrap.rank;
     local.dst = hx->p->bootstrap.rank;
-    local.count = 0;
 
     // keep processing until there are no more PUTs
     std::size_t processed = 0;
     while (processed < count) {
         // current set of remote destinations to send to
-        // size is capped
         std::map<int, Transport::Request::BPut *> remote;
 
-        while ((remote.size() < hx->p->memory_pools.requests->regions()) && (processed < count)) {
+        // reset local without deallocating memory
+        local.count = 0;
+
+        // size of remote is capped
+        static std::size_t max_remote = hx->p->memory_pools.requests->regions() / 2;
+
+        while ((remote.size() < max_remote) && hx->p->memory_pools.requests->unused() && (processed < count)) {
             for(std::size_t i = 0; i < count; i++) {
                 // alias the values
                 void *&subject = head->subjects[i];
@@ -93,38 +99,41 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::si
                 // if there is something to shuffle
                 if (subject || predicate) {
                     // TODO: this will need to be fixed so that partial failures cannot happen
-                    // SP -> O
-                    hxhim::shuffle::Put(hx, total,
-                                        subject, subject_len,
-                                        predicate, predicate_len,
-                                        object_type, object, object_len,
-                                        &local, remote);
-                    // // SO -> P
-                    // hxhim::shuffle::Put(hx, total,
-                    //                     subject, subject_len,
-                    //                     object, object_len,
-                    //                     HXHIM_BYTE_TYPE, predicate, predicate_len,
-                    //                     &local, &remote);
+                    if (
+                        // SP -> O
+                        (hxhim::shuffle::Put(hx, max,
+                                             subject, subject_len,
+                                             predicate, predicate_len,
+                                             object_type, object, object_len,
+                                             &local, remote) > -1)
+                        // // SO -> P
+                        // hxhim::shuffle::Put(hx, max,
+                        //                     subject, subject_len,
+                        //                     object, object_len,
+                        //                     HXHIM_BYTE_TYPE, predicate, predicate_len,
+                        //                     &local, &remote);
 
-                    // // PO -> S
-                    // hxhim::shuffle::Put(hx, total,
-                    //                     predicate, predicate_len,
-                    //                     object, object_len,
-                    //                     HXHIM_BYTE_TYPE, subject, subject_len,
-                    //                     &local, &remote);
+                        // // PO -> S
+                        // hxhim::shuffle::Put(hx, max,
+                        //                     predicate, predicate_len,
+                        //                     object, object_len,
+                        //                     HXHIM_BYTE_TYPE, subject, subject_len,
+                        //                     &local, &remote);
 
-                    // // PS -> O
-                    // hxhim::shuffle::Put(hx, total,
-                    //                     predicate, predicate_len,
-                    //                     subject, subject_len,
-                    //                     object_type, object, object_len,
-                    //                     &local, &remote);
-                    // if the shuffle succeeded, mark the data as processed
-                    subject = nullptr;
-                    subject_len = 0;
-                    predicate = nullptr;
-                    predicate_len = 0;
-                    processed++;
+                        // // PS -> O
+                        // hxhim::shuffle::Put(hx, max,
+                        //                     predicate, predicate_len,
+                        //                     subject, subject_len,
+                        //                     object_type, object, object_len,
+                        //                     &local, &remote);
+                        ) {
+                        // if the shuffle succeeded, mark the data as processed
+                        subject = nullptr;
+                        subject_len = 0;
+                        predicate = nullptr;
+                        predicate_len = 0;
+                        processed++;
+                    }
                 }
             }
         }
@@ -188,7 +197,7 @@ static void backgroundPUT(hxhim_t *hx) {
             hxhim::Unsent<hxhim::PutData> &unsent = hx->p->queues.puts;
             std::unique_lock<std::mutex> lock(unsent.mutex);
             while (hx->p->running && (unsent.full_batches < hx->p->async_bput.max_queued) && !unsent.force) {
-                mlog(HXHIM_CLIENT_DBG, "Waiting for %zu bulk puts (currently have %zu) %d %d", hx->p->async_bput.max_queued, unsent.full_batches, hx->p->running.load(), unsent.force);
+                mlog(HXHIM_CLIENT_DBG, "Waiting for %zu bulk puts (currently have %zu)", hx->p->async_bput.max_queued, unsent.full_batches);
                 unsent.start_processing.wait(lock, [&]() -> bool { return !hx->p->running || (unsent.full_batches >= hx->p->async_bput.max_queued) || unsent.force; });
             }
 
@@ -311,14 +320,36 @@ static void backgroundPUT(hxhim_t *hx) {
 
 /**
  * valid
+ * Checks if hx is valid
+ *
+ * @param hx   the HXHIM instance
+ * @param true if ready, else false
+ */
+bool hxhim::valid(hxhim_t *hx) {
+    return hx && hx->p;
+}
+
+/**
+ * valid
+ * Checks if opts are valid
+ *
+ * @param opts the HXHIM options
+ * @param true if ready, else false
+ */
+bool hxhim::valid(hxhim_options_t *opts) {
+    return opts && opts->p;
+}
+
+/**
+ * valid
  * Checks if hx and opts are ready to be used
  *
  * @param hx   the HXHIM instance
  * @param opts the HXHIM options
  * @param true if ready, else false
  */
-static bool valid(hxhim_t *hx, hxhim_options_t *opts) {
-    return hx && hx->p && opts && opts->p;
+bool hxhim::valid(hxhim_t *hx, hxhim_options_t *opts) {
+    return valid(hx) && valid(opts);
 }
 
 /**
@@ -419,57 +450,54 @@ int hxhim::init::memory(hxhim_t *hx, hxhim_options_t *opts) {
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
 int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
+    mlog(HXHIM_CLIENT_INFO, "Starting Datastore Initialization");
     if (!valid(hx, opts)) {
         return HXHIM_ERROR;
     }
 
+    hx->p->range_server.client_ratio = opts->p->client_ratio;
+    hx->p->range_server.server_ratio = opts->p->server_ratio;
+
+    // there must be more than 0 datastores
     if (!(hx->p->datastore.count = opts->p->datastore_count)) {
         return HXHIM_ERROR;
     }
 
+    // allocate pointers
     if (!(hx->p->datastore.datastores = hx->p->memory_pools.arrays->acquire_array<hxhim::datastore::Datastore *>(hx->p->datastore.count))) {
         return HXHIM_ERROR;
     }
 
+    const bool is_rs = hxhim::range_server::is_range_server(hx->p->bootstrap.rank, opts->p->client_ratio, opts->p->server_ratio);
+
+    // create datastores
     for(std::size_t i = 0; i < hx->p->datastore.count; i++) {
         Histogram::Histogram *hist = new Histogram::Histogram(opts->p->histogram.first_n,
                                                               opts->p->histogram.gen,
                                                               opts->p->histogram.args);
-
-        // Start the datastore
-        switch (opts->p->datastore->type) {
-            #if HXHIM_HAVE_LEVELDB
-            case hxhim::datastore::LEVELDB:
-                {
-                    hxhim_leveldb_config_t *config = static_cast<hxhim_leveldb_config_t *>(opts->p->datastore);
-                    hx->p->datastore.prefix = config->prefix;
-                    hx->p->datastore.datastores[i] = new hxhim::datastore::leveldb(hx,
-                                                                                   hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, i),
-                                                                                   hist,
-                                                                                   hx->p->hash.name, config->create_if_missing);
-                    mlog(HXHIM_CLIENT_INFO, "Initialized LevelDB in datastore[%zu]", i);
-                }
-                break;
-            #endif
-            case hxhim::datastore::IN_MEMORY:
-                {
-                    hx->p->datastore.prefix = "";
-                    hx->p->datastore.datastores[i] = new hxhim::datastore::InMemory(hx,
-                                                                                    hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, i),
-                                                                                    hist,
-                                                                                    hx->p->hash.name);
-                    mlog(HXHIM_CLIENT_INFO, "Initialized In-Memory in datastore[%zu]", i);
-                }
-                break;
-            default:
-                break;
+        if ((opts->p->datastore->type == hxhim::datastore::IN_MEMORY) ||
+            !is_rs) { // create unused datastores if this rank is not a range server
+            hx->p->datastore.prefix = "";
+            hx->p->datastore.datastores[i] = new hxhim::datastore::InMemory(hx,
+                                                                            hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, i),
+                                                                            hist,
+                                                                            hx->p->hash.name);
+            mlog(HXHIM_CLIENT_INFO, "Initialized In-Memory in datastore[%zu]", i);
         }
-
-        if (!hx->p->datastore.datastores[i]) {
-            return HXHIM_ERROR;
+        #if HXHIM_HAVE_LEVELDB
+        else if (opts->p->datastore->type == hxhim::datastore::LEVELDB) {
+            hxhim_leveldb_config_t *config = static_cast<hxhim_leveldb_config_t *>(opts->p->datastore);
+            hx->p->datastore.prefix = config->prefix;
+            hx->p->datastore.datastores[i] = new hxhim::datastore::leveldb(hx,
+                                                                           hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, i),
+                                                                           hist,
+                                                                           hx->p->hash.name, config->create_if_missing);
+            mlog(HXHIM_CLIENT_INFO, "Initialized LevelDB in datastore[%zu]", i);
         }
+        #endif
     }
 
+    mlog(HXHIM_CLIENT_INFO, "Completed Datastore Initialization");
     return HXHIM_SUCCESS;
 }
 
@@ -490,7 +518,7 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
         return HXHIM_ERROR;
     }
 
-    if (!(hx->p->datastore.datastores = hx->p->memory_pools.arrays->acquire_array<hxhim::datastore::Datastore *>(1))) {
+    if (!(hx->p->datastore.datastores = hx->p->memory_pools.arrays->acquire_array<hxhim::datastore::Datastore *>(hx->p->datastore.count))) {
         return HXHIM_ERROR;
     }
 
@@ -595,10 +623,9 @@ int hxhim::init::transport(hxhim_t *hx, hxhim_options_t *opts) {
     }
 
     int ret = TRANSPORT_ERROR;
-
     switch (opts->p->transport->type) {
         case Transport::TRANSPORT_NULL:
-            hx->p->range_server_destroy = nullptr;
+            ret = TRANSPORT_SUCCESS;
             break;
         case Transport::TRANSPORT_MPI:
             ret = Transport::MPI::init(hx, opts);
@@ -615,17 +642,6 @@ int hxhim::init::transport(hxhim_t *hx, hxhim_options_t *opts) {
 
     mlog(HXHIM_CLIENT_INFO, "Completed Transport Initialization");
     return (ret == TRANSPORT_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
-}
-
-/**
- * valid
- * Checks if hx can be closed
- *
- * @param hx   the HXHIM instance
- * @param true if ready, else false
- */
-static bool valid(hxhim_t *hx) {
-    return hx && hx->p;
 }
 
 /**
@@ -709,8 +725,8 @@ int hxhim::destroy::transport(hxhim_t *hx) {
         return HXHIM_ERROR;
     }
 
-    if (hx->p->range_server_destroy) {
-        hx->p->range_server_destroy();
+    if (hx->p->range_server.destroy) {
+        hx->p->range_server.destroy();
     }
 
     if (hx->p->transport) {

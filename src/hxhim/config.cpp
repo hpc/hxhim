@@ -156,7 +156,7 @@ static bool parse_transport(hxhim_options_t *opts, const Config &config) {
             case Transport::TRANSPORT_MPI:
                 {
                     std::size_t listeners;
-                    if ((get_value(config, hxhim::config::MPI_LISTENERS, listeners) != CONFIG_FOUND)) {
+                    if (get_value(config, hxhim::config::MPI_LISTENERS, listeners) != CONFIG_FOUND) {
                         return false;
                     }
 
@@ -275,6 +275,8 @@ static int fill_options(hxhim_options_t *opts, const Config &config) {
 
     return
         parse_map_value(opts, config, DEBUG_LEVEL, DEBUG_LEVELS, hxhim_options_set_debug_level) &&
+        parse_value(opts, config, CLIENT_RATIO,                  hxhim_options_set_client_ratio) &&
+        parse_value(opts, config, SERVER_RATIO,                  hxhim_options_set_server_ratio) &&
         parse_value(opts, config, DATASTORES_PER_RANGE_SERVER,   hxhim_options_set_datastores_per_range_server) &&
         parse_datastore(opts, config) &&
         parse_transport(opts, config) &&

@@ -7,7 +7,7 @@ int hxhim::BPutSingleType(hxhim_t *hx,
                           void **predicates, std::size_t *predicate_lens,
                           enum hxhim_type_t object_type, void **objects, std::size_t *object_lens,
                           std::size_t count) {
-    if (!hx         || !hx->p          ||
+    if (!valid(hx)  ||
         !subjects   || !subject_lens   ||
         !predicates || !predicate_lens ||
         !objects    || !object_lens)    {
@@ -38,7 +38,7 @@ int hxhim::BGetSingleType(hxhim_t *hx,
                           void **predicates, std::size_t *predicate_lens,
                           enum hxhim_type_t object_type,
                           std::size_t count) {
-    if (!hx         || !hx->p          ||
+    if (!valid(hx)  ||
         !subjects   || !subject_lens   ||
         !predicates || !predicate_lens) {
         return HXHIM_ERROR;

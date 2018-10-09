@@ -11,7 +11,7 @@
  * @return HXHIM_SUCCESS or HXHIM_ERROR on error
  */
 int hxhim::GetMPIComm(hxhim_t *hx, MPI_Comm *comm) {
-    if (!hx || !hx->p || !comm) {
+    if (!valid(hx) || !comm) {
         return HXHIM_ERROR;
     }
 
@@ -40,7 +40,7 @@ int hxhimGetMPIComm(hxhim_t *hx, MPI_Comm *comm) {
  * @return HXHIM_SUCCESS or HXHIM_ERROR on error
  */
 int hxhim::GetMPIRank(hxhim_t *hx, int *rank) {
-    if (!hx || !hx->p || !rank) {
+    if (!valid(hx) || !rank) {
         return HXHIM_ERROR;
     }
 
@@ -69,7 +69,7 @@ int hxhimGetMPIRank(hxhim_t *hx, int *rank) {
  * @return HXHIM_SUCCESS or HXHIM_ERROR on error
  */
 int hxhim::GetMPISize(hxhim_t *hx, int *size) {
-    if (!hx || !hx->p || !size) {
+    if (!valid(hx) || !size) {
         return HXHIM_ERROR;
     }
 
@@ -90,15 +90,15 @@ int hxhimGetMPISize(hxhim_t *hx, int *size) {
 }
 
 /**
- * GetDatastoreCount
+ * GetDatastoresPerRangeServer
  * Gets the number of datastores inside this process of the HXHIM instance
  *
  * @param hx              the HXHIM instance
  * @param datastore_count where to copy the count into
  * @return HXHIM_SUCCESS or HXHIM_ERROR on error
  */
-int hxhim::GetDatastoreCount(hxhim_t *hx, std::size_t *datastore_count) {
-    if (!hx || !hx->p || !datastore_count) {
+int hxhim::GetDatastoresPerRangeServer(hxhim_t *hx, std::size_t *datastore_count) {
+    if (!valid(hx) || !datastore_count) {
         return HXHIM_ERROR;
     }
 
@@ -107,13 +107,51 @@ int hxhim::GetDatastoreCount(hxhim_t *hx, std::size_t *datastore_count) {
 }
 
 /**
- * hxhimGetDatastoreCount
+ * hxhimGetDatastoresPerRangeServer
  * Gets the number of datastores inside this process of the HXHIM instance
  *
  * @param hx              the HXHIM instance
  * @param datastore_count where to copy the count into
  * @return HXHIM_SUCCESS or HXHIM_ERROR on error
  */
-int hxhimGetDatastoreCount(hxhim_t *hx, std::size_t *datastore_count) {
-    return hxhim::GetDatastoreCount(hx, datastore_count);
+int hxhimGetDatastoresPerRangeServer(hxhim_t *hx, std::size_t *datastore_count) {
+    return hxhim::GetDatastoresPerRangeServer(hx, datastore_count);
+}
+
+/**
+ * GetDatastoreClientToServerRatio
+ * Gets the ratio of clients to servers
+ *
+ * @param hx              the HXHIM instance
+ * @param client          the client portion of the ratio
+ * @param server          the server portion of the ratio
+ * @return HXHIM_SUCCESS or HXHIM_ERROR on error
+ */
+int hxhim::GetDatastoreClientToServerRatio(hxhim_t *hx, std::size_t *client, std::size_t *server) {
+    if (!valid(hx)) {
+        return HXHIM_ERROR;
+    }
+
+    if (client) {
+        *client = hx->p->range_server.client_ratio;
+    }
+
+    if (server) {
+        *server = hx->p->range_server.server_ratio;
+    }
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * hxhimGetDatastoreClientToServerRatio
+ * Gets the ratio of clients to servers
+ *
+ * @param hx              the HXHIM instance
+ * @param client          the client portion of the ratio
+ * @param server          the server portion of the ratio
+ * @return HXHIM_SUCCESS or HXHIM_ERROR on error
+ */
+int hxhimGetDatastoreClientToServerRatio(hxhim_t *hx, std::size_t *client, std::size_t *server) {
+    return hxhim::GetDatastoreClientToServerRatio(hx, client, server);
 }

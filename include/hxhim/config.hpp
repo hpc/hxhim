@@ -24,6 +24,9 @@ const std::string CONFIG_ENV                  = "HXHIM_CONFIG";
 
 const std::string DEBUG_LEVEL                 = "DEBUG_LEVEL";               // See DEBUG_LEVELS
 
+const std::string CLIENT_RATIO                = "CLIENT_RATIO";              // positive integer
+const std::string SERVER_RATIO                = "SERVER_RATIO";              // positive integer
+
 const std::string DATASTORES_PER_RANGE_SERVER = "DATASTORES_PER_RS";         // positive integer
 const std::string DATASTORE_TYPE              = "DATASTORE";                 // See DATASTORE_TYPES
 
@@ -32,6 +35,7 @@ const std::string LEVELDB_PREFIX              = "LEVELDB_PREFIX";            // 
 const std::string LEVELDB_CREATE_IF_MISSING   = "LEVELDB_CREATE_IF_MISSING"; // boolean
 
 const std::string HASH                        = "HASH";                      // See HASHES
+
 const std::string TRANSPORT                   = "TRANSPORT";                 // See TRANSPORTS
 
 /** MPI Options */
@@ -109,8 +113,9 @@ const std::map<std::string, datastore::Type> DATASTORES = {
  * Set of predefined hash functions
  */
 const std::map<std::string, hxhim_hash_t> HASHES = {
-    std::make_pair("RANK",               hash::Rank),
-    std::make_pair("SUM_MOD_DATASTORES", hash::SumModDatastores),
+    std::make_pair("RANK",                hash::Rank),
+    std::make_pair("RANK_MOD_DATASTORES", hash::RankModDatastores),
+    std::make_pair("SUM_MOD_DATASTORES",  hash::SumModDatastores),
 };
 
 /**
@@ -157,6 +162,8 @@ const std::map<std::string, void *> HISTOGRAM_BUCKET_GENERATOR_EXTRA_ARGS = {
  */
 const Config DEFAULT_CONFIG = {
     std::make_pair(DEBUG_LEVEL,                   "CRITICAL"),
+    std::make_pair(CLIENT_RATIO,                  "2"),
+    std::make_pair(SERVER_RATIO,                  "1"),
     std::make_pair(DATASTORES_PER_RANGE_SERVER,   "1"),
     std::make_pair(DATASTORE_TYPE,                "LEVELDB"),
     std::make_pair(LEVELDB_PREFIX,                "."),

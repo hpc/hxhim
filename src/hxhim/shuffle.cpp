@@ -1,6 +1,8 @@
 #include "hxhim/private.hpp"
 #include "hxhim/shuffle.hpp"
 #include "utils/macros.hpp"
+#include "utils/mlog2.h"
+#include "utils/mlogfacs2.h"
 
 namespace hxhim {
 namespace shuffle {
@@ -22,62 +24,76 @@ int Put(hxhim_t *hx,
         std::map<int, Transport::Request::BPut *> &remote) {
     // get the destination backend id for the key
     const int ds_id = hx->p->hash.func(hx, subject, subject_len, predicate, predicate_len, hx->p->hash.args);
+    mlog(HXHIM_CLIENT_DBG, "Shuffle Put into datastore %d", ds_id);
 
     if (ds_id > -1) {
         // split the backend id into destination rank and ds_offset
-        const int dst = hxhim::datastore::get_rank(hx, ds_id);
+        const int ds_rank = hxhim::datastore::get_rank(hx, ds_id);
         const int ds_offset = hxhim::datastore::get_offset(hx, ds_id);
 
         // group local keys
-        if (dst == hx->p->bootstrap.rank) {
+        if (ds_rank == hx->p->bootstrap.rank) {
+            std::size_t &i = local->count;
+
             // only add the key if there is space
-            if (local->count < max) {
-                local->ds_offsets[local->count] = ds_offset;
-                local->subjects[local->count] = subject;
-                local->subject_lens[local->count] = subject_len;
-                local->predicates[local->count] = predicate;
-                local->predicate_lens[local->count] = predicate_len;
-                local->object_types[local->count] = object_type;
-                local->objects[local->count] = object;
-                local->object_lens[local->count] = object_len;
-                local->count++;
+            if (i < max) {
+                mlog(HXHIM_CLIENT_DBG, "Shuffle Local Put into index %zu", i);
+                local->ds_offsets[i] = ds_offset;
+                local->subjects[i] = subject;
+                local->subject_lens[i] = subject_len;
+                local->predicates[i] = predicate;
+                local->predicate_lens[i] = predicate_len;
+                local->object_types[i] = object_type;
+                local->objects[i] = object;
+                local->object_lens[i] = object_len;
+                i++;
             }
             // else, return a bad destination datastore
             else {
+                mlog(HXHIM_CLIENT_DBG, "Shuffle Local Put Could not add to packet");
                 return -1;
             }
         }
         // group remote keys
         else {
             // try to find the destination first
-            REF(remote)::iterator it = remote.find(dst);
+            REF(remote)::iterator it = remote.find(ds_rank);
 
             // if the destination is not found, check if there is space for another one
             if (it == remote.end()) {
+                mlog(HXHIM_CLIENT_DBG, "Shuffle Remote Put could not find destination rank %d", ds_rank);
+
+                static std::size_t max_remote = hx->p->memory_pools.requests->regions() / 2;
+
                 // if there is space for a new destination, insert it
-                if (remote.size() < (hx->p->memory_pools.requests->regions() / 2)) {
-                    it = remote.insert(std::make_pair(dst, hx->p->memory_pools.requests->acquire<Transport::Request::BPut>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, max))).first;
+                if ((remote.size() < max_remote) && hx->p->memory_pools.requests->unused()) {
+                    mlog(HXHIM_CLIENT_DBG, "Shuffle Remote Put adding destination rank %d", ds_rank);
+
+                    it = remote.insert(std::make_pair(ds_rank, hx->p->memory_pools.requests->acquire<Transport::Request::BPut>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, max))).first;
                     it->second->src = hx->p->bootstrap.rank;
-                    it->second->dst = dst;
+                    it->second->dst = ds_rank;
                 }
                 else {
+                    mlog(HXHIM_CLIENT_DBG, "Shuffle Remote Put could not add destination %d %zu %zu", ds_id, remote.size(), max_remote);
                     return -1;
                 }
             }
 
             Transport::Request::BPut *rem = it->second;
+            std::size_t &i = rem->count;
 
             // if there is space in the request packet, insert
-            if (rem->count < max) {
-                rem->ds_offsets[rem->count] = ds_offset;
-                rem->subjects[rem->count] = subject;
-                rem->subject_lens[rem->count] = subject_len;
-                rem->predicates[rem->count] = predicate;
-                rem->predicate_lens[rem->count] = predicate_len;
-                rem->object_types[rem->count] = object_type;
-                rem->objects[rem->count] = object;
-                rem->object_lens[rem->count] = object_len;
-                rem->count++;
+            if (i < max) {
+                mlog(HXHIM_CLIENT_DBG, "Shuffle Remote Put into index %zu of rank %d", i, ds_rank);
+                rem->ds_offsets[i] = ds_offset;
+                rem->subjects[i] = subject;
+                rem->subject_lens[i] = subject_len;
+                rem->predicates[i] = predicate;
+                rem->predicate_lens[i] = predicate_len;
+                rem->object_types[i] = object_type;
+                rem->objects[i] = object;
+                rem->object_lens[i] = object_len;
+                i++;
             }
             else {
                 return -1;
@@ -106,11 +122,11 @@ int Get(hxhim_t *hx,
 
     if (ds_id > -1) {
         // split the backend id into destination rank and ds_offset
-        const int dst = hxhim::datastore::get_rank(hx, ds_id);
+        const int ds_rank = hxhim::datastore::get_rank(hx, ds_id);
         const int ds_offset = hxhim::datastore::get_offset(hx, ds_id);
 
         // group local keys
-        if (dst == hx->p->bootstrap.rank) {
+        if (ds_rank == hx->p->bootstrap.rank) {
             // only add the key if there is space
             if (local->count < max) {
                 local->ds_offsets[local->count] = ds_offset;
@@ -129,15 +145,15 @@ int Get(hxhim_t *hx,
         // group remote keys
         else {
             // try to find the destination first
-            REF(remote)::iterator it = remote.find(dst);
+            REF(remote)::iterator it = remote.find(ds_rank);
 
             // if the destination is not found, check if there is space for another one
             if (it == remote.end()) {
                 // if there is space for a new destination, insert it
                 if (remote.size() < (hx->p->memory_pools.requests->regions() / 2)) {
-                    it = remote.insert(std::make_pair(dst, hx->p->memory_pools.requests->acquire<Transport::Request::BGet>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, max))).first;
+                    it = remote.insert(std::make_pair(ds_rank, hx->p->memory_pools.requests->acquire<Transport::Request::BGet>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, max))).first;
                     it->second->src = hx->p->bootstrap.rank;
-                    it->second->dst = dst;
+                    it->second->dst = ds_rank;
                 }
                 else {
                     return -1;
@@ -184,11 +200,11 @@ int GetOp(hxhim_t *hx,
 
     if (ds_id > -1) {
         // split the backend id into destination rank and ds_offset
-        const int dst = hxhim::datastore::get_rank(hx, ds_id);
+        const int ds_rank = hxhim::datastore::get_rank(hx, ds_id);
         const int ds_offset = hxhim::datastore::get_offset(hx, ds_id);
 
         // group local keys
-        if (dst == hx->p->bootstrap.rank) {
+        if (ds_rank == hx->p->bootstrap.rank) {
             // only add the key if there is space
             if (local->count < max) {
                 local->ds_offsets[local->count] = ds_offset;
@@ -209,15 +225,15 @@ int GetOp(hxhim_t *hx,
         // group remote keys
         else {
             // try to find the destination first
-            REF(remote)::iterator it = remote.find(dst);
+            REF(remote)::iterator it = remote.find(ds_rank);
 
             // if the destination is not found, check if there is space for another one
             if (it == remote.end()) {
                 // if there is space for a new destination, insert it
                 if (remote.size() < (hx->p->memory_pools.requests->regions() / 2)) {
-                    it = remote.insert(std::make_pair(dst, hx->p->memory_pools.requests->acquire<Transport::Request::BGetOp>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, max))).first;
+                    it = remote.insert(std::make_pair(ds_rank, hx->p->memory_pools.requests->acquire<Transport::Request::BGetOp>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, max))).first;
                     it->second->src = hx->p->bootstrap.rank;
-                    it->second->dst = dst;
+                    it->second->dst = ds_rank;
                 }
                 else {
                     return -1;
@@ -264,11 +280,11 @@ int Delete(hxhim_t *hx,
 
     if (ds_id > -1) {
         // split the backend id into destination rank and ds_offset
-        const int dst = hxhim::datastore::get_rank(hx, ds_id);
+        const int ds_rank = hxhim::datastore::get_rank(hx, ds_id);
         const int ds_offset = hxhim::datastore::get_offset(hx, ds_id);
 
         // group local keys
-        if (dst == hx->p->bootstrap.rank) {
+        if (ds_rank == hx->p->bootstrap.rank) {
             // only add the key if there is space
             if (local->count < max) {
                 local->ds_offsets[local->count] = ds_offset;
@@ -286,15 +302,15 @@ int Delete(hxhim_t *hx,
         // group remote keys
         else {
             // try to find the destination first
-            REF(remote)::iterator it = remote.find(dst);
+            REF(remote)::iterator it = remote.find(ds_rank);
 
             // if the destination is not found, check if there is space for another one
             if (it == remote.end()) {
                 // if there is space for a new destination, insert it
                 if (remote.size() < (hx->p->memory_pools.requests->regions() / 2)) {
-                    it = remote.insert(std::make_pair(dst, hx->p->memory_pools.requests->acquire<Transport::Request::BDelete>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, max))).first;
+                    it = remote.insert(std::make_pair(ds_rank, hx->p->memory_pools.requests->acquire<Transport::Request::BDelete>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, max))).first;
                     it->second->src = hx->p->bootstrap.rank;
-                    it->second->dst = dst;
+                    it->second->dst = ds_rank;
                 }
                 else {
                     return -1;
@@ -332,11 +348,11 @@ int Histogram(hxhim_t *hx,
               std::map<int, Transport::Request::BHistogram *> &remote) {
     if (ds_id > -1) {
         // split the backend id into destination rank and ds_offset
-        const int dst = hxhim::datastore::get_rank(hx, ds_id);
+        const int ds_rank = hxhim::datastore::get_rank(hx, ds_id);
         const int ds_offset = hxhim::datastore::get_offset(hx, ds_id);
 
         // group local keys
-        if (dst == hx->p->bootstrap.rank) {
+        if (ds_rank == hx->p->bootstrap.rank) {
             // only add the destination if there is space
             if (local->count < max) {
                 local->ds_offsets[local->count] = ds_offset;
@@ -350,15 +366,15 @@ int Histogram(hxhim_t *hx,
         // group remote keys
         else {
             // try to find the destination first
-            REF(remote)::iterator it = remote.find(dst);
+            REF(remote)::iterator it = remote.find(ds_rank);
 
             // if the destination is not found, check if there is space for another one
             if (it == remote.end()) {
                 // if there is space for a new destination, insert it
                 if (remote.size() < (hx->p->memory_pools.requests->regions() / 2)) {
-                    it = remote.insert(std::make_pair(dst, hx->p->memory_pools.requests->acquire<Transport::Request::BHistogram>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, max))).first;
+                    it = remote.insert(std::make_pair(ds_rank, hx->p->memory_pools.requests->acquire<Transport::Request::BHistogram>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, max))).first;
                     it->second->src = hx->p->bootstrap.rank;
-                    it->second->dst = dst;
+                    it->second->dst = ds_rank;
                 }
                 else {
                     return -1;

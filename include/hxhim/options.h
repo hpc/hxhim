@@ -28,6 +28,8 @@ int hxhim_options_init(hxhim_options_t *opts);
  */
 int hxhim_options_set_mpi_bootstrap(hxhim_options_t *opts, MPI_Comm comm);
 int hxhim_options_set_debug_level(hxhim_options_t *opts, const int level);
+int hxhim_options_set_client_ratio(hxhim_options_t *opts, const size_t ratio);
+int hxhim_options_set_server_ratio(hxhim_options_t *opts, const size_t ratio);
 int hxhim_options_set_datastores_per_range_server(hxhim_options_t *opts, const size_t count);
 #if HXHIM_HAVE_LEVELDB
 int hxhim_options_set_datastore_leveldb(hxhim_options_t *opts, const size_t id, const char *prefix, const int create_if_missing);

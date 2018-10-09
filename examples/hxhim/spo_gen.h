@@ -84,9 +84,9 @@ int spo_gen_fixed(const size_t count, const size_t bufsize,
             return spo_clean(count, *subjects, *subject_lens, *predicates, *predicate_lens, *objects, *object_lens);
         }
 
-        (*subject_lens)[i] = snprintf((char *) (*subjects)[i], bufsize, "subject%d%zu", rank, i);
-        (*predicate_lens)[i] = snprintf((char *) (*predicates)[i], bufsize, "predicate%d%zu", rank, i);
-        (*object_lens)[i] = snprintf((char *) (*objects)[i], bufsize, "object%d%zu", rank, i);
+        (*subject_lens)[i] = snprintf((char *) (*subjects)[i], bufsize, "subject-%d-%zu", rank, i);
+        (*predicate_lens)[i] = snprintf((char *) (*predicates)[i], bufsize, "predicate-%d-%zu", rank, i);
+        (*object_lens)[i] = snprintf((char *) (*objects)[i], bufsize, "object-%d-%zu", rank, i);
     }
 
     return count;

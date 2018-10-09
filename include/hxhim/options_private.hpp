@@ -67,6 +67,10 @@ typedef struct hxhim_options_private {
 
     int debug_level;
 
+    // client:server
+    std::size_t client_ratio;
+    std::size_t server_ratio;
+
     hxhim_datastore_config_t *datastore;      // configuration options for the selected datastore
     std::size_t datastore_count;
 

@@ -1,6 +1,4 @@
 #include "transport/backend/MPI/Packer.hpp"
-#include "utils/mlog2.h"
-#include "utils/mlogfacs2.h"
 
 namespace Transport {
 namespace MPI {
@@ -11,7 +9,6 @@ int Packer::pack(const MPI_Comm comm, const Request::Request *req, void **buf, s
         return ret;
     }
 
-    mlog(MPI_DBG, "Packing %s Request using MPI", Message::TypeStr[req->type]);
     switch (req->type) {
         case Message::PUT:
             ret = pack(comm, static_cast<const Request::Put *>(req), buf, bufsize, packed);
@@ -114,7 +111,7 @@ int Packer::pack(const MPI_Comm comm, const Request::Histogram *hist, void **buf
         return TRANSPORT_ERROR;
     }
 
-    if (MPI_Pack(&hist->ds_offset, 1, MPI_INT, *buf, *bufsize, &position, comm)               != MPI_SUCCESS) {
+    if (MPI_Pack(&hist->ds_offset, 1, MPI_INT, *buf, *bufsize, &position, comm)                  != MPI_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
@@ -268,7 +265,6 @@ int Packer::pack(const MPI_Comm comm, const Response::Response *res, void **buf,
         return ret;
     }
 
-    mlog(MPI_DBG, "Packing %s Response using MPI", Message::TypeStr[res->type]);
     switch (res->type) {
         case Message::PUT:
             ret = pack(comm, static_cast<const Response::Put *>(res), buf, bufsize, packed);

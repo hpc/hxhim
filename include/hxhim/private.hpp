@@ -42,8 +42,6 @@ typedef struct hxhim_private {
 
     std::atomic_bool running;                                  // whether or not HXHIM is running
 
-    std::size_t put_multiplier;
-
     struct {
         std::size_t max;
         std::size_t puts;
@@ -82,7 +80,13 @@ typedef struct hxhim_private {
 
     // Transport variables
     Transport::Transport *transport;
-    void (*range_server_destroy)();                            // Range server static variable cleanup
+
+    // Range Server
+    struct {
+        std::size_t client_ratio;                              // client portion of client:server ratio
+        std::size_t server_ratio;                              // server portion of client:server ratio
+        void (*destroy)();                                     // Range server static variable cleanup
+    } range_server;
 
     // Memory pools used to allocate space in HXHIM
     struct {
@@ -100,12 +104,15 @@ typedef struct hxhim_private {
 
 namespace hxhim {
 
+bool valid(hxhim_t *hx);
+bool valid(hxhim_options_t *opts);
+bool valid(hxhim_t *hx, hxhim_options_t *opts);
+
 // HXHIM should (probably) be initialized in this order
 namespace init {
 int bootstrap    (hxhim_t *hx, hxhim_options_t *opts);
 int running      (hxhim_t *hx, hxhim_options_t *opts);
 int memory       (hxhim_t *hx, hxhim_options_t *opts);
-int range_server (hxhim_t *hx, hxhim_options_t *opts);
 int datastore    (hxhim_t *hx, hxhim_options_t *opts);
 int one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::string &name);
 int async_bput   (hxhim_t *hx, hxhim_options_t *opts);
@@ -122,7 +129,6 @@ int transport   (hxhim_t *hx);
 int hash        (hxhim_t *hx);
 int async_bput  (hxhim_t *hx);
 int datastore   (hxhim_t *hx);
-int range_server(hxhim_t *hx);
 }
 
 int PutImpl(hxhim_t *hx,

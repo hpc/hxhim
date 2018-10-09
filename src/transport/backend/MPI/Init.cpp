@@ -1,11 +1,10 @@
 #include "hxhim/options_private.hpp"
 #include "hxhim/private.hpp"
+#include "hxhim/range_server.hpp"
 #include "transport/backend/MPI/MPI.hpp"
 #include "transport/transport.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
-
-#include <iostream>
 
 namespace Transport {
 namespace MPI {
@@ -20,9 +19,8 @@ namespace MPI {
  */
 int init(hxhim_t *hx, hxhim_options_t *opts) {
     mlog(HXHIM_CLIENT_DBG, "Starting MPI Initialization");
-    if (!hx || !hx->p     ||
-        !opts || !opts->p ||
-        !hx->p->transport) {
+    if (!hxhim::valid(hx, opts) ||
+        !hx->p->transport)       {
         return HXHIM_ERROR;
     }
 
@@ -36,8 +34,12 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
     // Create the shared memory pool used in MPI
     std::shared_ptr<FixedBufferPool> packed = std::make_shared<FixedBufferPool>(opts->p->buffers.alloc_size * opts->p->ops_per_bulk, opts->p->requests.regions / 2 + 1, "MPI Packed");
 
-    // give the range server access to the state
-    RangeServer::init(hx, config->listeners, packed);
+    // create a range server
+    if (hxhim::range_server::is_range_server(hx->p->bootstrap.rank, opts->p->client_ratio, opts->p->server_ratio)) {
+        RangeServer::init(hx, config->listeners, packed);
+        hx->p->range_server.destroy = RangeServer::destroy;
+        mlog(MPI_INFO, "Created MPI Range Server on rank %d", hx->p->bootstrap.rank);
+    }
 
     EndpointGroup *eg = new EndpointGroup(hx->p->bootstrap.comm,
                                           hx->p->running,
@@ -45,31 +47,30 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
                                           hx->p->memory_pools.responses,
                                           hx->p->memory_pools.arrays,
                                           hx->p->memory_pools.buffers);
-    if (!eg) {
-        return TRANSPORT_ERROR;
-    }
 
     // create mapping between unique IDs and ranks
     for(int i = 0; i < hx->p->bootstrap.size; i++) {
-        // MPI ranks map 1:1 with the boostrap MPI rank
-        hx->p->transport->AddEndpoint(i, new Endpoint(hx->p->bootstrap.comm, i,
-                                                      hx->p->running,
-                                                      packed,
-                                                      hx->p->memory_pools.responses,
-                                                      hx->p->memory_pools.arrays,
-                                                      hx->p->memory_pools.buffers));
+        if (hxhim::range_server::is_range_server(i, opts->p->client_ratio, opts->p->server_ratio)) {
+            // MPI ranks map 1:1 with the boostrap MPI rank
+            hx->p->transport->AddEndpoint(i, new Endpoint(hx->p->bootstrap.comm, i,
+                                                          hx->p->running,
+                                                          packed,
+                                                          hx->p->memory_pools.responses,
+                                                          hx->p->memory_pools.arrays,
+                                                          hx->p->memory_pools.buffers));
 
-        // if the rank was specified as part of the endpoint group, add the rank to the endpoint group
-        if (opts->p->endpointgroup.find(i) != opts->p->endpointgroup.end()) {
-            eg->AddID(i, i);
+            // if the rank was specified as part of the endpoint group, add the rank to the endpoint group
+            if (opts->p->endpointgroup.find(i) != opts->p->endpointgroup.end()) {
+                eg->AddID(i, i);
+            }
         }
     }
 
     // remove loopback endpoint
     hx->p->transport->RemoveEndpoint(hx->p->bootstrap.rank);
 
+    // set the endpoint group
     hx->p->transport->SetEndpointGroup(eg);
-    hx->p->range_server_destroy = RangeServer::destroy;
 
     mlog(HXHIM_CLIENT_DBG, "Completed MPI Initialization");
     return TRANSPORT_SUCCESS;

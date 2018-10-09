@@ -17,11 +17,18 @@ namespace datastore {
  * datastore IDs and (rank, offset) pairs
  * get_id is the inverse of get_rank and get_offset
  *
+ * Client : Server = 5 : 3
+ * Datastores per range server: 4
+ * MPI Rank:     |     0   |     1   |    2      | 3 | 4 |      5      |       6     |      7      | 8 | 9 |
+ * Range Server: |     0   |     1   |    2      |   |   |      3      |       4     |      5      |   |   |
+ * Datastore     | 0 1 2 3 | 4 5 6 7 | 8 9 10 11 |   |   | 12 13 14 15 | 16 17 18 19 | 20 21 22 23 |   |   |
+ *
  * These should probably be configurable by the user
 */
 int get_rank(hxhim_t *hx, const int id);
-int get_offset(hxhim_t *hx, const int id);
-int get_id(hxhim_t *hx, const int rank, const int offset);
+int get_server(hxhim_t *hx, const int id);
+std::size_t get_offset(hxhim_t *hx, const int id);
+int get_id(hxhim_t *hx, const int rank, const std::size_t offset);
 
 /**
  * base

@@ -78,7 +78,7 @@ int hxhimBDelete(hxhim_t *hx,
                  size_t count);
 
 /** @description Utility Functions */
-int hxhimGetStats(hxhim_t *hx, const int rank,
+int hxhimGetStats(hxhim_t *hx, const int dst_rank,
                   const int get_put_times, long double *put_times,
                   const int get_num_puts, size_t *num_puts,
                   const int get_get_times, long double *get_times,
