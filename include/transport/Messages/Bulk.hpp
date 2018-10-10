@@ -17,6 +17,7 @@ struct Bulk {
 
         int *ds_offsets;
         std::size_t count;
+        std::size_t max_count;
 
     protected:
         int alloc(const std::size_t max, FixedBufferPool *fbp);

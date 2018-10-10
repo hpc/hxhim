@@ -12,6 +12,7 @@
 #include "hxhim/private.hpp"
 #include "hxhim/range_server.hpp"
 #include "hxhim/shuffle.hpp"
+#include "utils/macros.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
@@ -1300,6 +1301,10 @@ hxhim_results_t *hxhimGetHistogram(hxhim_t *hx, const int datastore) {
  * @return the histogram, inside a hxhim::Results structure
  */
 hxhim::Results *hxhim::GetBHistogram(hxhim_t *hx, const int *datastores, const std::size_t count) {
+    if (!hxhim::valid(hx)) {
+        return nullptr;
+    }
+
     Transport::Request::BHistogram local(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, count);
     local.src = hx->p->bootstrap.rank;
     local.dst = hx->p->bootstrap.rank;
@@ -1355,4 +1360,196 @@ hxhim::Results *hxhim::GetBHistogram(hxhim_t *hx, const int *datastores, const s
  */
 hxhim_results_t *hxhimBGetHistogram(hxhim_t *hx, const int *datastores, const size_t count) {
     return hxhim_results_init(hx, hxhim::GetBHistogram(hx, datastores, count));
+}
+
+/**
+ * GetTransportMinFilled
+ * Collective operation
+ * Collects transport statistics from all ranks in the communicator
+ *
+ * @param comm        the MPI communicator
+ * @param rank        the rank of this instance of Transport
+ * @param dst_rank    the rank to send to
+ * @param get_bput    whether or not to get bput
+ * @param bput        the array of bput from each rank
+ * @param get_bget    whether or not to get bget
+ * @param bget        the array of bget from each rank
+ * @param get_bgetop  whether or not to get bgetop
+ * @param bgetop      the array of bgetop from each rank
+ * @param get_bdel    whether or not to get bdel
+ * @param bdel        the array of bdel from each rank
+ * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR on error
+ */
+int hxhim::GetTransportMinFilled(hxhim_t *hx, const int dst_rank,
+                                 const bool get_bput, long double *bput,
+                                 const bool get_bget, long double *bget,
+                                 const bool get_bgetop, long double *bgetop,
+                                 const bool get_bdel, long double *bdel) {
+    if (!hxhim::valid(hx)) {
+        return HXHIM_ERROR;
+    }
+
+    return (hx->p->transport->GetMinFilled(hx->p->bootstrap.comm, hx->p->bootstrap.rank, dst_rank,
+                                               get_bput, bput,
+                                               get_bget, bget,
+                                               get_bgetop, bgetop,
+                                               get_bdel, bdel) == TRANSPORT_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
+}
+
+/**
+ * hxhimTransportGetMinFilled
+ * Collective operation
+ * Collects transport statistics from all ranks in the communicator
+ *
+ * @param comm        the MPI communicator
+ * @param rank        the rank of this instance of Transport
+ * @param dst_rank    the rank to send to
+ * @param get_bput    whether or not to get bput
+ * @param bput        the array of bput from each rank
+ * @param get_bget    whether or not to get bget
+ * @param bget        the array of bget from each rank
+ * @param get_bgetop  whether or not to get bgetop
+ * @param bgetop      the array of bgetop from each rank
+ * @param get_bdel    whether or not to get bdel
+ * @param bdel        the array of bdel from each rank
+ * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR on error
+ */
+int hxhimGetTransportMinFilled(hxhim_t *hx, const int dst_rank,
+                               const int get_bput, long double *bput,
+                               const int get_bget, long double *bget,
+                               const int get_bgetop, long double *bgetop,
+                               const int get_bdel, long double *bdel) {
+    return hxhim::GetTransportMinFilled(hx, dst_rank,
+                                        get_bput, bput,
+                                        get_bget, bget,
+                                        get_bgetop, bgetop,
+                                        get_bdel, bdel);
+}
+
+/**
+ * GetTransportAverageFilled
+ * Collective operation
+ * Collects transport statistics from all ranks in the communicator
+ *
+ * @param comm        the MPI communicator
+ * @param rank        the rank of this instance of Transport
+ * @param dst_rank    the rank to send to
+ * @param get_bput    whether or not to get bput
+ * @param bput        the array of bput from each rank
+ * @param get_bget    whether or not to get bget
+ * @param bget        the array of bget from each rank
+ * @param get_bgetop  whether or not to get bgetop
+ * @param bgetop      the array of bgetop from each rank
+ * @param get_bdel    whether or not to get bdel
+ * @param bdel        the array of bdel from each rank
+ * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR on error
+ */
+int hxhim::GetTransportAverageFilled(hxhim_t *hx, const int dst_rank,
+                                     const bool get_bput, long double *bput,
+                                     const bool get_bget, long double *bget,
+                                     const bool get_bgetop, long double *bgetop,
+                                     const bool get_bdel, long double *bdel) {
+    if (!hxhim::valid(hx)) {
+        return HXHIM_ERROR;
+    }
+
+    return (hx->p->transport->GetAverageFilled(hx->p->bootstrap.comm, hx->p->bootstrap.rank, dst_rank,
+                                               get_bput, bput,
+                                               get_bget, bget,
+                                               get_bgetop, bgetop,
+                                               get_bdel, bdel) == TRANSPORT_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
+}
+
+/**
+ * hxhimGetTransportAverageFilled
+ * Collective operation
+ * Collects transport statistics from all ranks in the communicator
+ *
+ * @param comm        the MPI communicator
+ * @param rank        the rank of this instance of Transport
+ * @param dst_rank    the rank to send to
+ * @param get_bput    whether or not to get bput
+ * @param bput        the array of bput from each rank
+ * @param get_bget    whether or not to get bget
+ * @param bget        the array of bget from each rank
+ * @param get_bgetop  whether or not to get bgetop
+ * @param bgetop      the array of bgetop from each rank
+ * @param get_bdel    whether or not to get bdel
+ * @param bdel        the array of bdel from each rank
+ * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR on error
+ */
+int hxhimGetTransportAverageFilled(hxhim_t *hx, const int dst_rank,
+                                   const int get_bput, long double *bput,
+                                   const int get_bget, long double *bget,
+                                   const int get_bgetop, long double *bgetop,
+                                   const int get_bdel, long double *bdel) {
+    return hxhim::GetTransportAverageFilled(hx, dst_rank,
+                                            get_bput, bput,
+                                            get_bget, bget,
+                                            get_bgetop, bgetop,
+                                            get_bdel, bdel);
+}
+
+/**
+ * GetTransportMaxFilled
+ * Collective operation
+ * Collects transport statistics from all ranks in the communicator
+ *
+ * @param comm        the MPI communicator
+ * @param rank        the rank of this instance of Transport
+ * @param dst_rank    the rank to send to
+ * @param get_bput    whether or not to get bput
+ * @param bput        the array of bput from each rank
+ * @param get_bget    whether or not to get bget
+ * @param bget        the array of bget from each rank
+ * @param get_bgetop  whether or not to get bgetop
+ * @param bgetop      the array of bgetop from each rank
+ * @param get_bdel    whether or not to get bdel
+ * @param bdel        the array of bdel from each rank
+ * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR on error
+ */
+int hxhim::GetTransportMaxFilled(hxhim_t *hx, const int dst_rank,
+                                 const bool get_bput, long double *bput,
+                                 const bool get_bget, long double *bget,
+                                 const bool get_bgetop, long double *bgetop,
+                                 const bool get_bdel, long double *bdel) {
+    if (!hxhim::valid(hx)) {
+        return HXHIM_ERROR;
+    }
+
+    return (hx->p->transport->GetMaxFilled(hx->p->bootstrap.comm, hx->p->bootstrap.rank, dst_rank,
+                                               get_bput, bput,
+                                               get_bget, bget,
+                                               get_bgetop, bgetop,
+                                               get_bdel, bdel) == TRANSPORT_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
+}
+
+/**
+ * hxhimGetTransportMaxFilled
+ * Collective operation
+ * Collects transport statistics from all ranks in the communicator
+ *
+ * @param comm        the MPI communicator
+ * @param rank        the rank of this instance of Transport
+ * @param dst_rank    the rank to send to
+ * @param get_bput    whether or not to get bput
+ * @param bput        the array of bput from each rank
+ * @param get_bget    whether or not to get bget
+ * @param bget        the array of bget from each rank
+ * @param get_bgetop  whether or not to get bgetop
+ * @param bgetop      the array of bgetop from each rank
+ * @param get_bdel    whether or not to get bdel
+ * @param bdel        the array of bdel from each rank
+ * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR on error
+ */
+int hxhimGetTransportMaxFilled(hxhim_t *hx, const int dst_rank,
+                               const int get_bput, long double *bput,
+                               const int get_bget, long double *bget,
+                               const int get_bgetop, long double *bgetop,
+                               const int get_bdel, long double *bdel) {
+    return hxhim::GetTransportMaxFilled(hx, dst_rank,
+                                        get_bput, bput,
+                                        get_bget, bget,
+                                        get_bgetop, bgetop,
+                                        get_bdel, bdel);
 }

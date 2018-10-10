@@ -3,7 +3,8 @@
 
 Transport::Bulk::Bulk()
     : ds_offsets(nullptr),
-      count(0)
+      count(0),
+      max_count(0)
 {}
 
 Transport::Bulk::~Bulk() {}
@@ -11,7 +12,7 @@ Transport::Bulk::~Bulk() {}
 int Transport::Bulk::alloc(const std::size_t max, FixedBufferPool *arrays) {
     Bulk::cleanup(arrays);
 
-    if (max) {
+    if ((max_count = max)) {
         if (!(ds_offsets = arrays->acquire_array<int>(max))) {
             cleanup();
             return TRANSPORT_ERROR;

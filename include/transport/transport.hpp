@@ -6,8 +6,12 @@
 #define TRANSPORT_HPP
 
 #include <atomic>
+#include <list>
 #include <map>
+#include <mutex>
 #include <vector>
+
+#include <mpi.h>
 
 #include "transport/Messages/Messages.hpp"
 #include "transport/constants.hpp"
@@ -88,38 +92,104 @@ class Transport {
         /** @description Takes ownership of an endpoint group, deallocating the previous one */
         void SetEndpointGroup(EndpointGroup *eg);
 
-        /** @description Puts a message onto the the underlying transport    */
+        /** @description Puts a message onto the the underlying transport        */
         Response::Put *Put(const Request::Put *pm);
 
-        /** @description Gets a message onto the the underlying transport    */
+        /** @description Gets a message onto the the underlying transport        */
         Response::Get *Get(const Request::Get *gm);
 
-        /** @description Deletes a message onto the the underlying transport */
+        /** @description Deletes a message onto the the underlying transport     */
         Response::Delete *Delete(const Request::Delete *dm);
 
         /** @description Sends a histogram request onto the underlying transport */
         Response::Histogram *Histogram(const Request::Histogram *hm);
 
-        /** @description Bulk Put to multiple endpoints     */
+        /** @description Bulk Put to multiple endpoints        */
         Response::BPut *BPut(const std::map<int, Request::BPut *> &bpm_list);
 
-        /** @description Bulk Get from multiple endpoints   */
+        /** @description Bulk Get from multiple endpoints      */
         Response::BGet *BGet(const std::map<int, Request::BGet *> &bgm_list);
 
-        /** @description Bulk Get from multiple endpoints   */
+        /** @description Bulk Get from multiple endpoints      */
         Response::BGetOp *BGetOp(const std::map<int, Request::BGetOp *> &bgm_list);
 
-        /** @description Bulk Delete to multiple endpoints  */
+        /** @description Bulk Delete to multiple endpoints     */
         Response::BDelete *BDelete(const std::map<int, Request::BDelete *> &bdm_list);
 
         /** @description Bulk Histogram to multiple endpoints  */
         Response::BHistogram *BHistogram(const std::map<int, Request::BHistogram *> &bhm_list);
+
+        /** @decription Statistics for an instance of Transport */
+        struct  Stats {
+            struct Op {
+                /** @description Statistics on percentage of each packet filled */
+                struct Filled {
+                    Filled(const int dst, const long double percent)
+                        : dst(dst),
+                          percent(percent)
+                    {}
+
+                    Filled(const Filled &filled)
+                        : dst(filled.dst),
+                          percent(filled.percent)
+                    {}
+
+                    Filled(const Filled &&filled)
+                        : dst(std::move(filled.dst)),
+                          percent(std::move(filled.percent))
+                    {}
+
+                    Filled &operator=(const Filled &filled) {
+                        dst = filled.dst;
+                        percent = filled.percent;
+                        return *this;
+                    }
+
+                    Filled &operator==(const Filled &&filled) {
+                        dst = std::move(filled.dst);
+                        percent = std::move(filled.percent);
+                        return *this;
+                    }
+
+                    int dst;
+                    long double percent;
+                };
+
+                std::list<Filled> filled;
+                mutable std::mutex mutex;
+            };
+
+            Op bput;
+            Op bget;
+            Op bgetop;
+            Op bdel;
+        };
+
+        int GetAverageFilled(MPI_Comm comm, const int rank, const int dst_rank,
+                             const bool get_bput, long double *bput,
+                             const bool get_bget, long double *bget,
+                             const bool get_bgetop, long double *bgetop,
+                             const bool get_bdel, long double *bdel) const;
+
+        int GetMinFilled(MPI_Comm comm, const int rank, const int dst_rank,
+                         const bool get_bput, long double *bput,
+                         const bool get_bget, long double *bget,
+                         const bool get_bgetop, long double *bgetop,
+                         const bool get_bdel, long double *bdel) const;
+
+        int GetMaxFilled(MPI_Comm comm, const int rank, const int dst_rank,
+                         const bool get_bput, long double *bput,
+                         const bool get_bget, long double *bget,
+                         const bool get_bgetop, long double *bgetop,
+                         const bool get_bdel, long double *bdel) const;
 
     private:
         typedef std::map<int, Endpoint *> EndpointMapping_t;
 
         EndpointMapping_t endpoints_;
         EndpointGroup *endpointgroup_;
+
+        Stats stats;
 };
 
 }
