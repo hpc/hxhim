@@ -29,7 +29,7 @@ namespace hxhim {
 namespace shuffle {
 
 int Put(hxhim_t *hx,
-        const std::size_t max,
+        const std::size_t max_per_dst,
         void *subject,
         std::size_t subject_len,
         void *predicate,
@@ -38,20 +38,22 @@ int Put(hxhim_t *hx,
         void *object,
         std::size_t object_len,
         Transport::Request::BPut *local,
-        std::map<int, Transport::Request::BPut *> &remote);
+        std::map<int, Transport::Request::BPut *> &remote,
+        const std::size_t max_remote);
 
 int Get(hxhim_t *hx,
-        const std::size_t max,
+        const std::size_t max_per_dst,
         void *subject,
         std::size_t subject_len,
         void *predicate,
         std::size_t predicate_len,
         hxhim_type_t object_type,
         Transport::Request::BGet *local,
-        std::map<int, Transport::Request::BGet *> &remote);
+        std::map<int, Transport::Request::BGet *> &remote,
+        const std::size_t max_remote);
 
 int GetOp(hxhim_t *hx,
-          const std::size_t max,
+          const std::size_t max_per_dst,
           void *subject,
           std::size_t subject_len,
           void *predicate,
@@ -59,22 +61,25 @@ int GetOp(hxhim_t *hx,
           hxhim_type_t object_type,
           const std::size_t recs, const hxhim_get_op_t op,
           Transport::Request::BGetOp *local,
-          std::map<int, Transport::Request::BGetOp *> &remote);
+          std::map<int, Transport::Request::BGetOp *> &remote,
+          const std::size_t max_remote);
 
 int Delete(hxhim_t *hx,
-           const std::size_t max,
+           const std::size_t max_per_dst,
            void *subject,
            std::size_t subject_len,
            void *predicate,
            std::size_t predicate_len,
            Transport::Request::BDelete *local,
-           std::map<int, Transport::Request::BDelete *> &remote);
+           std::map<int, Transport::Request::BDelete *> &remote,
+           const std::size_t max_remote);
 
 int Histogram(hxhim_t *hx,
-              const std::size_t max,
+              const std::size_t max_per_dst,
               const int ds_id,
               Transport::Request::BHistogram *local,
-              std::map<int, Transport::Request::BHistogram *> &remote);
+              std::map<int, Transport::Request::BHistogram *> &remote,
+              const std::size_t max_remote);
 
 }
 }

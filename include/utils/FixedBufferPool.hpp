@@ -15,7 +15,8 @@
 #define FBP_LOG(level, fmt, ...) mlog(level, "%s (%zu bytes x %zu/%zu regions free): " fmt, name_.c_str(), alloc_size_, regions_ - used_, regions_, ##__VA_ARGS__)
 
 #else
-#include <set>
+
+#include <map>
 
 /** @description wrapper for Debug FixedBufferPool mlog statements */
 #define FBP_LOG(level, fmt, ...) mlog(level, "Debug %s (%zu bytes x %zu/%zu regions free): " fmt, name_.c_str(), alloc_size_, regions_ - used_, regions_, ##__VA_ARGS__)
@@ -159,7 +160,7 @@ class FixedBufferPool {
 
         #else
         /** @description A set containing all of the pointers currently allocated          */
-        std::set <void *> addrs_;
+        std::map<void *, std::size_t> addrs_;
         #endif
 
         /* @description A counter for keeping track of the number of regions used (instead

@@ -397,24 +397,6 @@ static bool count_check(hxhim_options_t *opts, const std::size_t count) {
     return valid_opts(opts) && (count > 0);
 }
 
-/**
- * hxhim_options_set_ops_per_bulks
- * Set the number of operations a single bulk operation can contain
- *
- * @param opts  the set of options to be modified
- * @param count the number of PUTs
- * @return HXHIM_SUCCESS or HXHIM_ERROR
- */
-int hxhim_options_set_ops_per_bulk(hxhim_options_t *opts, const std::size_t count) {
-    if (!count_check(opts, count)) {
-        return HXHIM_ERROR;
-    }
-
-    opts->p->ops_per_bulk = count;
-
-    return HXHIM_SUCCESS;
-}
-
 int hxhim_options_set_keys_name(hxhim_options_t *opts, const char *name) {
     if (!valid_opts(opts)) {
         return HXHIM_ERROR;
@@ -475,32 +457,32 @@ int hxhim_options_set_buffers_regions(hxhim_options_t *opts, const size_t region
     return HXHIM_SUCCESS;
 }
 
-int hxhim_options_set_bulks_name(hxhim_options_t *opts, const char *name) {
+int hxhim_options_set_ops_cache_name(hxhim_options_t *opts, const char *name) {
     if (!valid_opts(opts)) {
         return HXHIM_ERROR;
     }
 
-    opts->p->bulks.name = name;
+    opts->p->ops_cache.name = name;
 
     return HXHIM_SUCCESS;
 }
 
-int hxhim_options_set_bulks_alloc_size(hxhim_options_t *opts, const size_t alloc_size) {
+int hxhim_options_set_ops_cache_alloc_size(hxhim_options_t *opts, const size_t alloc_size) {
     if (!count_check(opts, alloc_size)) {
         return HXHIM_ERROR;
     }
 
-    opts->p->bulks.alloc_size = alloc_size;
+    opts->p->ops_cache.alloc_size = alloc_size;
 
     return HXHIM_SUCCESS;
 }
 
-int hxhim_options_set_bulks_regions(hxhim_options_t *opts, const size_t regions) {
+int hxhim_options_set_ops_cache_regions(hxhim_options_t *opts, const size_t regions) {
     if (!count_check(opts, regions)) {
         return HXHIM_ERROR;
     }
 
-    opts->p->bulks.regions = regions;
+    opts->p->ops_cache.regions = regions;
 
     return HXHIM_SUCCESS;
 }
@@ -571,7 +553,7 @@ int hxhim_options_set_requests_regions_in_config(hxhim_options_t *opts, const si
     }
 
     // arrays needs about 32 times the number of regions requests uses
-    return hxhim_options_set_arrays_regions(opts, regions * 32);
+    return hxhim_options_set_arrays_regions(opts, regions * 64);
 }
 
 int hxhim_options_set_responses_name(hxhim_options_t *opts, const char *name) {
@@ -665,37 +647,37 @@ int hxhim_options_set_results_regions(hxhim_options_t *opts, const size_t region
 }
 
 /**
- * hxhim_options_set_maximum_queued_puts
- * Set the number of bulk PUTs to queue up before flushing in the background thread
+ * hxhim_options_set_maximum_ops_per_send
+ * Set the number of operations to queue up before flushing in the background thread
  *
  * @param opts  the set of options to be modified
  * @param count the number of PUTs
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_options_set_maximum_queued_bulk_ops(hxhim_options_t *opts, const std::size_t count) {
+int hxhim_options_set_maximum_ops_per_send(hxhim_options_t *opts, const std::size_t count) {
     if (!valid_opts(opts)) {
         return HXHIM_ERROR;
     }
 
-    opts->p->bulks.regions = count;
+    opts->p->max_ops_per_send = count;
 
     return HXHIM_SUCCESS;
 }
 
 /**
- * hxhim_options_set_queued_puts
+ * hxhim_options_set_start_async_put_at
  * Set the number of bulk PUTs to queue up before flushing in the background thread
  *
  * @param opts  the set of options to be modified
  * @param count the number of PUTs
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_options_set_start_async_bput_at(hxhim_options_t *opts, const std::size_t count) {
+int hxhim_options_set_start_async_put_at(hxhim_options_t *opts, const std::size_t count) {
     if (!valid_opts(opts)) {
         return HXHIM_ERROR;
     }
 
-    opts->p->start_async_bput_at = count;
+    opts->p->start_async_put_at = count;
 
     return HXHIM_SUCCESS;
 }

@@ -69,18 +69,19 @@ int main(int argc, char *argv[]) {
 
     if (rank == 0) {
         long double *put_times = calloc(size, sizeof(long double));
-        size_t *num_puts = calloc(size, sizeof(size_t));
-        long double *min_bput = calloc(size, sizeof(long double));
-        long double *avg_bput = calloc(size, sizeof(long double));
-        long double *max_bput = calloc(size, sizeof(long double));
+        size_t *num_puts       = calloc(size, sizeof(size_t));
+        long double *min_bput  = calloc(size, sizeof(long double));
+        long double *avg_bput  = calloc(size, sizeof(long double));
+        long double *max_bput  = calloc(size, sizeof(long double));
 
         hxhimGetStats                 (&hx, 0, 1, put_times, 1, num_puts, 0, NULL, 0, NULL);
         hxhimGetTransportMinFilled    (&hx, 0, 1, min_bput,  0, NULL,     0, NULL, 0, NULL);
         hxhimGetTransportAverageFilled(&hx, 0, 1, avg_bput,  0, NULL,     0, NULL, 0, NULL);
         hxhimGetTransportMaxFilled    (&hx, 0, 1, max_bput,  0, NULL,     0, NULL, 0, NULL);
 
-        size_t total_puts = 0;       // total number of PUTs across all ranks
-        long double put_rates = 0;   // sum of all PUT rates
+        size_t num_srvs        = 0;   // the number of server that actually did PUTs
+        size_t total_puts      = 0;   // total number of PUTs across all ranks
+        long double put_rates  = 0;   // sum of all PUT rates
         long double min_filled = 0;
         long double avg_filled = 0;
         long double max_filled = 0;
@@ -90,12 +91,14 @@ int main(int argc, char *argv[]) {
         for(int i = 0; i < size; i++) {
             printf("%*d %zu %Lf\n", (int) ceil(log10(size)), i, num_puts[i], put_times[i]);
 
-            total_puts += num_puts[i];
-            put_rates += num_puts[i] / put_times[i];
-
-            min_filled += min_bput[i];
-            avg_filled += avg_bput[i];
-            max_filled += max_bput[i];
+            if (num_puts[i]) {
+                num_srvs++;
+                total_puts += num_puts[i];
+                put_rates  += num_puts[i] / put_times[i];
+                min_filled += min_bput[i];
+                avg_filled += avg_bput[i];
+                max_filled += max_bput[i];
+            }
         }
 
         free(put_times);
@@ -104,11 +107,12 @@ int main(int argc, char *argv[]) {
         free(avg_bput);
         free(max_bput);
 
-        printf("Total:               %zu PUTs\n", total_puts);
-        printf("Average:             %Lf PUTs/sec\n", put_rates);
-        printf("BPUT Minimum Filled: %.2Lf%%\n", min_filled * 100 / size);
-        printf("BPUT Average Filled: %.2Lf%%\n", avg_filled * 100 / size);
-        printf("BPUT Maximum FIlled: %.2Lf%%\n", max_filled * 100 / size);
+        printf("Total:   %zu PUTs\n", total_puts);
+        printf("Average: %Lf PUTs/sec\n", put_rates);
+        printf("Number of server that did work: %zu\n", num_srvs);
+        printf("BPUT Minimum Filled: %.2Lf%%\n", min_filled * 100 / num_srvs);
+        printf("BPUT Average Filled: %.2Lf%%\n", avg_filled * 100 / num_srvs);
+        printf("BPUT Maximum Filled: %.2Lf%%\n", max_filled * 100 / num_srvs);
     }
     else {
         hxhimGetStats                 (&hx, 0, 1, NULL, 1, NULL, 0, NULL, 0, NULL);

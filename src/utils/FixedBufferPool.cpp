@@ -346,7 +346,7 @@ void FixedBufferPool::releaseImpl(void *ptr, const std::size_t size) {
 
     // if the release size does not match the allocation size, warn
     if (nodes_[index].size != size) {
-        FBP_LOG(FBP_DBG, "Release size of %p (%zu) does not match allocation size (%zu)", ptr, nodes_[index].size, size);
+        FBP_LOG(FBP_DBG, "Release size of %p (%zu) does not match allocation size (%zu)", ptr, size, nodes_[index].size);
     }
 
     // reset size of allocation at that node

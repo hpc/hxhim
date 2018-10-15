@@ -44,7 +44,7 @@ int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
         (init::memory     (hx, opts) != HXHIM_SUCCESS) ||
         (init::hash       (hx, opts) != HXHIM_SUCCESS) ||
         (init::datastore  (hx, opts) != HXHIM_SUCCESS) ||
-        (init::async_bput (hx, opts) != HXHIM_SUCCESS) ||
+        (init::async_put  (hx, opts) != HXHIM_SUCCESS) ||
         (init::transport  (hx, opts) != HXHIM_SUCCESS)) {
         MPI_Barrier(hx->p->bootstrap.comm);
         Close(hx);
@@ -101,7 +101,7 @@ int hxhim::OpenOne(hxhim_t *hx, hxhim_options_t *opts, const std::string &db_pat
         (init::memory        (hx, opts)          != HXHIM_SUCCESS) ||
         (init::hash          (hx, opts)          != HXHIM_SUCCESS) ||
         (init::one_datastore (hx, opts, db_path) != HXHIM_SUCCESS) ||
-        (init::async_bput    (hx, opts)          != HXHIM_SUCCESS)) {
+        (init::async_put     (hx, opts)          != HXHIM_SUCCESS)) {
         MPI_Barrier(hx->p->bootstrap.comm);
         Close(hx);
         mlog(HXHIM_CLIENT_ERR, "Failed to initialize HXHIM");
@@ -149,7 +149,7 @@ int hxhim::Close(hxhim_t *hx) {
 
     destroy::transport(hx);
     destroy::hash(hx);
-    destroy::async_bput(hx);
+    destroy::async_put(hx);
     destroy::datastore(hx);
     destroy::memory(hx);
     destroy::bootstrap(hx);
@@ -191,13 +191,16 @@ hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
     mlog(HXHIM_CLIENT_DBG, "Emptying PUT queue");
 
     hxhim::Unsent<hxhim::PutData> &unsent = hx->p->queues.puts;
-    std::unique_lock<std::mutex> lock(unsent.mutex);
-    unsent.force = true;
+    {
+        std::unique_lock<std::mutex> lock(unsent.mutex);
+        unsent.force = true;
+    }
     unsent.start_processing.notify_all();
 
     mlog(HXHIM_CLIENT_DBG, "Forcing flush %d", unsent.force);
 
     // wait for flush to complete
+    std::unique_lock<std::mutex> lock(unsent.mutex);
     while (hx->p->running && unsent.force) {
         mlog(HXHIM_CLIENT_DBG, "Waiting for PUT queue to be processed %d", unsent.force);
         unsent.done_processing.wait(lock, [&](){ return !hx->p->running || !unsent.force; });
@@ -205,13 +208,13 @@ hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
 
     mlog(HXHIM_CLIENT_DBG, "Emptied out PUT queue");
 
-    std::unique_lock<std::mutex> results_lock(hx->p->async_bput.mutex);
+    std::unique_lock<std::mutex> results_lock(hx->p->async_put.mutex);
 
     mlog(HXHIM_CLIENT_DBG, "Processing PUT results");
 
     // return PUT results and allocate space for new PUT results
-    hxhim::Results *res = hx->p->async_bput.results;
-    hx->p->async_bput.results = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
+    hxhim::Results *res = hx->p->async_put.results;
+    hx->p->async_put.results = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
 
     mlog(HXHIM_CLIENT_DBG, "PUTs Flushed");
 
@@ -242,39 +245,57 @@ hxhim_results_t *hxhimFlushPuts(hxhim_t *hx) {
  * @return results from sending the GETs
  */
 static hxhim::Results *get_core(hxhim_t *hx,
-                                hxhim::GetData *curr,
-                                const std::size_t count,
+                                hxhim::GetData *head,
                                 Transport::Request::BGet *local) {
-    // reset buffers without deallocating (BGet::clean should be false)
-    local->count = 0;
-
     // serialized results
     hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
 
-    // keep processing until there are no more GETs
-    std::size_t processed = 0;
-    while (processed < count) {
+    // maximum number of remote destinations allowed at any time
+    static const std::size_t max_remote = hx->p->memory_pools.requests->regions() / 2;
+
+    while (head) {
         // current set of remote destinations to send to
-        // size is capped
         std::map<int, Transport::Request::BGet *> remote;
 
-        while ((remote.size() < hx->p->memory_pools.requests->regions()) && (processed < count)) {
-            for(std::size_t i = 0; i < count; i++) {
-                // if there is something to shuffle
-                if (curr->subjects[i] || curr->predicates[i]) {
-                    // if the shuffle succeeded, mark the data as processed
-                    if (hxhim::shuffle::Get(hx, count,
-                                            curr->subjects[i], curr->subject_lens[i],
-                                            curr->predicates[i], curr->predicate_lens[i],
-                                            curr->object_types[i],
-                                            local, remote) > -1) {
-                        curr->subjects[i] = nullptr;
-                        curr->subject_lens[i] = 0;
-                        curr->predicates[i] = nullptr;
-                        curr->predicate_lens[i] = 0;
-                        processed++;
-                    }
+        // reset local without deallocating memory
+        local->count = 0;
+
+        hxhim::GetData *curr = head;
+
+        while (curr) {
+            if (hxhim::shuffle::Get(hx, hx->p->max_ops_per_send.gets,
+                                    curr->subject, curr->subject_len,
+                                    curr->predicate, curr->predicate_len,
+                                    curr->object_type,
+                                    local,
+                                    remote,
+                                    max_remote) == HXHIM_SUCCESS) {
+                // head node
+                if (curr == head) {
+                    head = curr->next;
                 }
+
+                // there is a node before the current one
+                if (curr->prev) {
+                    curr->prev->next = curr->next;
+                }
+
+                // there is a node after the current one
+                if (curr->next) {
+                    curr->next->prev = curr->prev;
+                }
+
+                hxhim::GetData *next = curr->next;
+
+                curr->prev = nullptr;
+                curr->next = nullptr;
+
+                // deallocate current node
+                hx->p->memory_pools.ops_cache->release(curr);
+                curr = next;
+            }
+            else {
+                curr = curr->next;
             }
         }
 
@@ -329,32 +350,11 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
     }
 
     // create space to store local requests that is alive for the entire function
-    Transport::Request::BGet local(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, hx->p->max_bulk_ops.gets);
+    Transport::Request::BGet local(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, hx->p->max_ops_per_send.gets);
     local.src = hx->p->bootstrap.rank;
     local.dst = hx->p->bootstrap.rank;
 
-    // write complete batches
-    hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
-
-    while (curr->next) {
-        mlog(HXHIM_CLIENT_DBG, "Processing %zu GETs", hx->p->max_bulk_ops.gets);
-        hxhim::Results *ret = get_core(hx, curr, hx->p->max_bulk_ops.gets, &local);
-        res->Append(ret);
-        hx->p->memory_pools.results->release(ret);
-
-        // go to the next batch
-        hxhim::GetData *next = curr->next;
-        hx->p->memory_pools.bulks->release(curr);
-        curr = next;
-    }
-
-    mlog(HXHIM_CLIENT_INFO, "Processing final batch with %zu GETs", gets.last_count);
-    hxhim::Results *ret = get_core(hx, curr, gets.last_count, &local);
-    res->Append(ret);
-    hx->p->memory_pools.results->release(ret);
-
-    // delete the last batch
-    hx->p->memory_pools.bulks->release(curr);
+    hxhim::Results *res = get_core(hx, curr, &local);
 
     gets.head = gets.tail = nullptr;
 
@@ -386,41 +386,58 @@ hxhim_results_t *hxhimFlushGets(hxhim_t *hx) {
  * @return results from sending the GETOPs
  */
 static hxhim::Results *getop_core(hxhim_t *hx,
-                                  hxhim::GetOpData *curr,
-                                  const std::size_t count,
+                                  hxhim::GetOpData *head,
                                   Transport::Request::BGetOp *local) {
-    // reset buffers without deallocating (BGet::clean should be false)
-    local->count = 0;
-
     // serialized results
     hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
 
-    // keep processing until there are no more GETs
-    std::size_t processed = 0;
-    while (processed < count) {
+    // maximum number of remote destinations allowed at any time
+    static const std::size_t max_remote = hx->p->memory_pools.requests->regions() / 2;
+
+    while (head) {
         // current set of remote destinations to send to
-        // size is capped
         std::map<int, Transport::Request::BGetOp *> remote;
 
-        while ((remote.size() < hx->p->memory_pools.requests->regions()) && (processed < count)) {
-            for(std::size_t i = 0; i < count; i++) {
-                // if there is something to shuffle
-                if (curr->subjects[i] || curr->predicates[i]) {
-                    // if the shuffle succeeded, mark the data as processed
-                    if (hxhim::shuffle::GetOp(hx, count,
-                                              curr->subjects[i], curr->subject_lens[i],
-                                              curr->predicates[i], curr->predicate_lens[i],
-                                              curr->object_types[i],
-                                              curr->num_recs[i],
-                                              curr->ops[i],
-                                              local, remote) > -1) {
-                        curr->subjects[i] = nullptr;
-                        curr->subject_lens[i] = 0;
-                        curr->predicates[i] = nullptr;
-                        curr->predicate_lens[i] = 0;
-                        processed++;
-                    }
+        // reset local without deallocating memory
+        local->count = 0;
+
+        hxhim::GetOpData *curr = head;
+
+        while (curr) {
+            if (hxhim::shuffle::GetOp(hx, hx->p->max_ops_per_send.gets,
+                                      curr->subject, curr->subject_len,
+                                      curr->predicate, curr->predicate_len,
+                                      curr->object_type,
+                                      curr->num_recs, curr->op,
+                                      local,
+                                      remote,
+                                      max_remote) == HXHIM_SUCCESS) {
+                // head node
+                if (curr == head) {
+                    head = curr->next;
                 }
+
+                // there is a node before the current one
+                if (curr->prev) {
+                    curr->prev->next = curr->next;
+                }
+
+                // there is a node after the current one
+                if (curr->next) {
+                    curr->next->prev = curr->prev;
+                }
+
+                hxhim::GetOpData *next = curr->next;
+
+                curr->prev = nullptr;
+                curr->next = nullptr;
+
+                // deallocate current node
+                hx->p->memory_pools.ops_cache->release(curr);
+                curr = next;
+            }
+            else {
+                curr = curr->next;
             }
         }
 
@@ -472,31 +489,11 @@ hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
         return HXHIM_SUCCESS;
     }
 
-    Transport::Request::BGetOp local(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, hx->p->max_bulk_ops.getops);
+    Transport::Request::BGetOp local(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, hx->p->max_ops_per_send.getops);
     local.src = hx->p->bootstrap.rank;
     local.dst = hx->p->bootstrap.rank;
 
-    hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
-
-    // write complete batches
-    while (curr->next) {
-        hxhim::Results *ret = getop_core(hx, curr, hx->p->max_bulk_ops.getops, &local);
-        res->Append(ret);
-        hx->p->memory_pools.results->release(ret);
-
-        // go to the next batch
-        hxhim::GetOpData *next = curr->next;
-        hx->p->memory_pools.bulks->release(curr);
-        curr = next;
-    }
-
-    // write final (possibly incomplete) batch
-    hxhim::Results *ret = getop_core(hx, curr, getops.last_count, &local);
-    res->Append(ret);
-    hx->p->memory_pools.results->release(ret);
-
-    // delete the last batch
-    hx->p->memory_pools.bulks->release(curr);
+    hxhim::Results *res = getop_core(hx, curr, &local);
 
     getops.head = getops.tail = nullptr;
 
@@ -527,38 +524,56 @@ hxhim_results_t *hxhimFlushGetOps(hxhim_t *hx) {
  * @return results from sending the DELs
  */
 static hxhim::Results *delete_core(hxhim_t *hx,
-                                   hxhim::DeleteData *curr,
-                                   const std::size_t count,
+                                   hxhim::DeleteData *head,
                                    Transport::Request::BDelete *local) {
-    // reset buffers without deallocating (BGet::clean should be false)
-    local->count = 0;
-
     // serialized results
     hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
 
-    // keep processing until there are no more DELETEs
-    std::size_t processed = 0;
-    while (processed < count) {
+    // maximum number of remote destinations allowed at any time
+    static const std::size_t max_remote = hx->p->memory_pools.requests->regions() / 2;
+
+    while (head) {
         // current set of remote destinations to send to
-        // size is capped
         std::map<int, Transport::Request::BDelete *> remote;
 
-        while ((remote.size() < hx->p->memory_pools.requests->regions()) && (processed < count)) {
-            for(std::size_t i = 0; i < count; i++) {
-                // if there is something to shuffle
-                if (curr->subjects[i] || curr->predicates[i]) {
-                    // if the shuffle succeeded, mark the data as processed
-                    if (hxhim::shuffle::Delete(hx, count,
-                                               curr->subjects[i], curr->subject_lens[i],
-                                               curr->predicates[i], curr->predicate_lens[i],
-                                               local, remote) > -1) {
-                        curr->subjects[i] = nullptr;
-                        curr->subject_lens[i] = 0;
-                        curr->predicates[i] = nullptr;
-                        curr->predicate_lens[i] = 0;
-                        processed++;
-                    }
+        // reset local without deallocating memory
+        local->count = 0;
+
+        hxhim::DeleteData *curr = head;
+
+        while (curr) {
+            if (hxhim::shuffle::Delete(hx, hx->p->max_ops_per_send.deletes,
+                                    curr->subject, curr->subject_len,
+                                    curr->predicate, curr->predicate_len,
+                                    local,
+                                    remote,
+                                    max_remote) == HXHIM_SUCCESS) {
+                // head node
+                if (curr == head) {
+                    head = curr->next;
                 }
+
+                // there is a node before the current one
+                if (curr->prev) {
+                    curr->prev->next = curr->next;
+                }
+
+                // there is a node after the current one
+                if (curr->next) {
+                    curr->next->prev = curr->prev;
+                }
+
+                hxhim::DeleteData *next = curr->next;
+
+                curr->prev = nullptr;
+                curr->next = nullptr;
+
+                // deallocate current node
+                hx->p->memory_pools.ops_cache->release(curr);
+                curr = next;
+            }
+            else {
+                curr = curr->next;
             }
         }
 
@@ -610,33 +625,11 @@ hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
         return HXHIM_SUCCESS;
     }
 
-    Transport::Request::BDelete local(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, hx->p->max_bulk_ops.deletes);
+    Transport::Request::BDelete local(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, hx->p->max_ops_per_send.deletes);
     local.src = hx->p->bootstrap.rank;
     local.dst = hx->p->bootstrap.rank;
 
-    hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
-
-    // write complete batches
-    while (curr->next) {
-        // move the data into the appropriate buffers
-        hxhim::Results *ret = delete_core(hx, curr, hx->p->max_bulk_ops.deletes, &local);
-        res->Append(ret);
-        hx->p->memory_pools.results->release(ret);
-
-        // go to the next batch
-        hxhim::DeleteData *next = curr->next;
-        hx->p->memory_pools.bulks->release(curr);
-        curr = next;
-    }
-
-    // write final (possibly incomplete) batch
-    // move the data into the appropriate buffers
-    hxhim::Results *ret = delete_core(hx, curr, dels.last_count, &local);
-    res->Append(ret);
-    hx->p->memory_pools.results->release(ret);
-
-    // delete the last batch
-    hx->p->memory_pools.bulks->release(curr);
+    hxhim::Results *res = delete_core(hx, curr, &local);
 
     dels.head = dels.tail = nullptr;
 
@@ -1069,38 +1062,21 @@ int hxhim::BGetOp(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
+    hxhim::GetOpData *getop = hx->p->memory_pools.ops_cache->acquire<hxhim::GetOpData>();
+    getop->subject = subject;
+    getop->subject_len = subject_len;
+    getop->predicate = predicate;
+    getop->predicate_len = predicate_len;
+    getop->object_type = object_type;
+    getop->num_recs = num_records;
+    getop->op = op;
+
     hxhim::Unsent<hxhim::GetOpData> &getops = hx->p->queues.getops;
-    std::lock_guard<std::mutex> lock(getops.mutex);
-
-    // no previous batch
-    if (!getops.tail) {
-        getops.head       = hx->p->memory_pools.bulks->acquire<hxhim::GetOpData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.getops);
-        getops.tail       = getops.head;
-        getops.last_count = 0;
+    {
+        std::lock_guard<std::mutex> lock(getops.mutex);
+        getops.insert(getop);
     }
-
-    // filled the current batch
-    if (getops.last_count == hx->p->max_bulk_ops.getops) {
-        getops.tail->next = hx->p->memory_pools.bulks->acquire<hxhim::GetOpData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.getops);
-        getops.tail       = getops.tail->next;
-        getops.last_count = 0;
-        getops.full_batches++;
-    }
-
-    std::size_t &i = getops.last_count;
-
-    getops.tail->subjects[i] = subject;
-    getops.tail->subject_lens[i] = subject_len;
-
-    getops.tail->predicates[i] = predicate;
-    getops.tail->predicate_lens[i] = predicate_len;
-
-    getops.tail->object_types[i] = object_type;
-
-    getops.tail->num_recs[i] = num_records;
-    getops.tail->ops[i] = op;
-
-    i++;
+    getops.start_processing.notify_one();
 
     return HXHIM_SUCCESS;
 }
@@ -1309,15 +1285,18 @@ hxhim::Results *hxhim::GetBHistogram(hxhim_t *hx, const int *datastores, const s
     local.src = hx->p->bootstrap.rank;
     local.dst = hx->p->bootstrap.rank;
 
+    // maximum number of remote destinations allowed at any time
+    static const std::size_t max_remote = hx->p->memory_pools.requests->regions() / 2;
+
     // current set of remote destinations to send to
-    // size is capped
     std::map<int, Transport::Request::BHistogram *> remote;
 
     // move the data into the appropriate buffers
     for(std::size_t i = 0; i < count; i++) {
-        hxhim::shuffle::Histogram(hx, hx->p->max_bulk_ops.gets,
+        hxhim::shuffle::Histogram(hx, hx->p->max_ops_per_send.gets,
                                   datastores[i],
-                                  &local, remote);
+                                  &local, remote,
+                                  max_remote);
     }
 
     hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);

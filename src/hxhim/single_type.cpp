@@ -1,12 +1,17 @@
 #include "hxhim/single_type.h"
 #include "hxhim/single_type.hpp"
 #include "hxhim/private.hpp"
+#include "utils/mlog2.h"
+#include "utils/mlogfacs2.h"
 
 int hxhim::BPutSingleType(hxhim_t *hx,
                           void **subjects, std::size_t *subject_lens,
                           void **predicates, std::size_t *predicate_lens,
                           enum hxhim_type_t object_type, void **objects, std::size_t *object_lens,
                           std::size_t count) {
+
+    mlog(HXHIM_CLIENT_DBG, "Started %zu PUTs of type %d", count, object_type);
+
     if (!valid(hx)  ||
         !subjects   || !subject_lens   ||
         !predicates || !predicate_lens ||
@@ -18,6 +23,7 @@ int hxhim::BPutSingleType(hxhim_t *hx,
         hxhim::PutImpl(hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], object_type, objects[i], object_lens[i]);
     }
 
+    mlog(HXHIM_CLIENT_DBG, "Completed %zu PUTs of type %d", count, object_type);
     return HXHIM_SUCCESS;
 }
 
@@ -38,6 +44,8 @@ int hxhim::BGetSingleType(hxhim_t *hx,
                           void **predicates, std::size_t *predicate_lens,
                           enum hxhim_type_t object_type,
                           std::size_t count) {
+    mlog(HXHIM_CLIENT_DBG, "Started %zu GETs of type %d", count, object_type);
+
     if (!valid(hx)  ||
         !subjects   || !subject_lens   ||
         !predicates || !predicate_lens) {
@@ -48,6 +56,7 @@ int hxhim::BGetSingleType(hxhim_t *hx,
         hxhim::GetImpl(hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], object_type);
     }
 
+    mlog(HXHIM_CLIENT_DBG, "Completed %zu GETs of type %d", count, object_type);
     return HXHIM_SUCCESS;
 }
 

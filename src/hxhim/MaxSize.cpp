@@ -7,15 +7,15 @@
 #include "hxhim/constants.h"
 #include "transport/Messages/Messages.hpp"
 
-std::size_t hxhim::MaxSize::Bulks() {
-    static const std::size_t bulk_sizes[] = {
+std::size_t hxhim::MaxSize::OpsCache() {
+    static const std::size_t ops_cache_sizes[] = {
         sizeof(hxhim::PutData),
         sizeof(hxhim::GetData),
         sizeof(hxhim::GetOpData),
         sizeof(hxhim::DeleteData),
     };
 
-    static const std::size_t max_size = *std::max_element(std::begin(bulk_sizes), std::end(bulk_sizes));
+    static const std::size_t max_size = *std::max_element(std::begin(ops_cache_sizes), std::end(ops_cache_sizes));
 
     return max_size;
 }

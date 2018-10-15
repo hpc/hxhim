@@ -10,30 +10,27 @@
 
 namespace hxhim {
     typedef struct SubjectPredicate {
-        SubjectPredicate(FixedBufferPool *arrays, const std::size_t count);
+        SubjectPredicate();
         virtual ~SubjectPredicate();
 
-        FixedBufferPool *arrays;
-        const std::size_t count;
+        void *subject;
+        std::size_t subject_len;
 
-        void **subjects;
-        std::size_t *subject_lens;
-
-        void **predicates;
-        std::size_t *predicate_lens;
+        void *predicate;
+        std::size_t predicate_len;
     } SP_t;
 
     typedef struct SubjectPredicateObject : SP_t {
-        SubjectPredicateObject(FixedBufferPool *arrays, const std::size_t count);
+        SubjectPredicateObject();
         virtual ~SubjectPredicateObject();
 
-        hxhim_type_t *object_types;
-        void **objects;
-        std::size_t *object_lens;
+        hxhim_type_t object_type;
+        void *object;
+        std::size_t object_len;
     } SPO_t;
 
     struct PutData : SPO_t {
-        PutData(FixedBufferPool *arrays, const std::size_t count);
+        PutData();
         ~PutData() = default;
 
         PutData *prev;
@@ -41,39 +38,63 @@ namespace hxhim {
     };
 
     struct GetData : SP_t {
-        GetData(FixedBufferPool *arrays, const std::size_t count);
+        GetData();
         ~GetData();
 
-        hxhim_type_t *object_types;
+        hxhim_type_t object_type;
+        GetData *prev;
         GetData *next;
     };
 
     struct GetOpData : SP_t {
-        GetOpData(FixedBufferPool *arrays, const std::size_t count);
+        GetOpData();
         ~GetOpData();
 
-        hxhim_type_t *object_types;
-        std::size_t *num_recs;
-        hxhim_get_op_t *ops;
+        hxhim_type_t object_type;
+        std::size_t num_recs;
+        hxhim_get_op_t op;
+        GetOpData *prev;
         GetOpData *next;
     };
 
     struct DeleteData : SP_t {
-        DeleteData(FixedBufferPool *arrays, const std::size_t count);
+        DeleteData();
         ~DeleteData() = default;
 
+        DeleteData *prev;
         DeleteData *next;
     };
 
-    template <typename Data, typename = std::is_base_of<SubjectPredicate, Data> >
+    template <typename Data, typename = std::enable_if_t<std::is_base_of<SubjectPredicate, Data>::value> >
     struct Unsent {
+        void insert(Data *node) {
+            if (!node) {
+                return;
+            }
+
+            std::lock_guard<std::mutex> lock(mutex);
+
+            if (head) {
+                tail->next = node;
+                node->prev = tail;
+            }
+            else {
+                head = node;
+                node->prev = nullptr;
+            }
+
+            tail = node;
+            node->next = nullptr;
+            count++;
+        }
+
+        FixedBufferPool *cache_nodes;
         std::mutex mutex;
         std::condition_variable start_processing;
         std::condition_variable done_processing;
-        std::size_t full_batches;
-        std::size_t last_count;
         Data *head;
         Data *tail;
+        std::size_t count;
         bool force;
     };
 }

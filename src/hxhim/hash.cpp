@@ -11,13 +11,22 @@ static std::size_t num_datastores(hxhim_t *hx) {
 }
 
 /**
- * Rank
+ * RankZero
+ *
+ * @return 0
+ */
+int hxhim::hash::RankZero(hxhim_t *, void *, const std::size_t, void *, const std::size_t, void *) {
+    return 0;
+}
+
+/**
+ * MyRank
  * Returns the rank of the process as the target datastore
  *
  * @param hx            the HXHIM instance
  * @return the destination datastore ID or -1 on error
  */
-int hxhim::hash::Rank(hxhim_t *hx, void *, const std::size_t, void *, const std::size_t, void *) {
+int hxhim::hash::MyRank(hxhim_t *hx, void *, const std::size_t, void *, const std::size_t, void *) {
     if (!hxhim::valid(hx)) {
         return -1;
     }

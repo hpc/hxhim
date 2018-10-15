@@ -74,9 +74,8 @@ typedef struct hxhim_options_private {
     hxhim_datastore_config_t *datastore;      // configuration options for the selected datastore
     std::size_t datastore_count;
 
-    std::size_t ops_per_bulk;                 // the number of messages that are in a single set of bulk data to process
-
-    std::size_t start_async_bput_at;          // number of batches to hold before sending PUTs asynchronously
+    std::size_t max_ops_per_send;             // the maximum number of operations that can be sent in one packet
+    std::size_t start_async_put_at;           // number of PUTs to hold before sending PUTs asynchronously
 
     struct {
         std::string name;
@@ -97,7 +96,7 @@ typedef struct hxhim_options_private {
     // settings for FixedBufferPool
     hxhim_fbp_config_t keys;
     hxhim_fbp_config_t buffers;
-    hxhim_fbp_config_t bulks;
+    hxhim_fbp_config_t ops_cache;
     hxhim_fbp_config_t arrays;
     hxhim_fbp_config_t requests;
     hxhim_fbp_config_t responses;

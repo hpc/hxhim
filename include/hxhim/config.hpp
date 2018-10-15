@@ -47,16 +47,15 @@ const std::string THALLIUM_MODULE             = "THALLIUM_MODULE";           // 
 const std::string TRANSPORT_ENDPOINT_GROUP    = "ENDPOINT_GROUP";            // list of ranks or "ALL"
 
 /** Memory Pool Options */
-const std::string OPS_PER_BULK                = "OPS_PER_BULK";              // positive integer >= 64
 const std::string KEYS_NAME                   = "KEYS_NAME";                 // string
 const std::string KEYS_ALLOC_SIZE             = "KEYS_ALLOC_SIZE";           // positive integer
 const std::string KEYS_REGIONS                = "KEYS_REGIONS";              // positive integer
 const std::string BUFFERS_NAME                = "BUFFERS_NAME";              // string
 const std::string BUFFERS_ALLOC_SIZE          = "BUFFERS_ALLOC_SIZE";        // positive integer
 const std::string BUFFERS_REGIONS             = "BUFFERS_REGIONS";           // positive integer
-const std::string BULKS_NAME                  = "BULKS_NAME";                // string
-const std::string BULKS_ALLOC_SIZE            = "BULKS_ALLOC_SIZE";          // positive integer
-const std::string BULKS_REGIONS               = "BULKS_REGIONS";             // positive integer
+const std::string OPS_CACHE_NAME              = "OPS_CACHE_NAME";            // string
+const std::string OPS_CACHE_ALLOC_SIZE        = "OPS_CACHE_ALLOC_SIZE";      // positive integer
+const std::string OPS_CACHE_REGIONS           = "OPS_CACHE_REGIONS";         // positive integer
 const std::string ARRAYS_NAME                 = "ARRAYS_NAME";               // string
 const std::string ARRAYS_ALLOC_SIZE           = "ARRAYS_ALLOC_SIZE";         // positive integer
 const std::string ARRAYS_REGIONS              = "ARRAYS_REGIONS";            // positive integer
@@ -73,9 +72,10 @@ const std::string RESULTS_NAME                = "RESULTS_NAME";              // 
 const std::string RESULTS_ALLOC_SIZE          = "RESULTS_ALLOC_SIZE";        // positive integer
 const std::string RESULTS_REGIONS             = "RESULTS_REGIONS";           // positive integer
 
+const std::string MAXIMUM_OPS_PER_SEND        = "MAXIMUM_OPS_PER_SEND";      // positive integer
+
 /** Asynchronous PUT Settings */
-const std::string MAXIMUM_QUEUED_BULK_OPS     = "MAXIMUM_QUEUED_BULK_OPS";   // positive integer
-const std::string START_ASYNC_BPUT_AT         = "START_ASYNC_BPUT_AT";       // nonnegative integer
+const std::string START_ASYNC_PUT_AT          = "START_ASYNC_PUT_AT";        // nonnegative integer
 
 /** Histogram Options */
 const std::string HISTOGRAM_FIRST_N           = "HISTOGRAM_FIRST_N";         // unsigned int
@@ -113,7 +113,8 @@ const std::map<std::string, datastore::Type> DATASTORES = {
  * Set of predefined hash functions
  */
 const std::map<std::string, hxhim_hash_t> HASHES = {
-    std::make_pair("RANK",                hash::Rank),
+    std::make_pair("RANK_0",              hash::RankZero),
+    std::make_pair("MY_RANK",             hash::MyRank),
     std::make_pair("RANK_MOD_DATASTORES", hash::RankModDatastores),
     std::make_pair("SUM_MOD_DATASTORES",  hash::SumModDatastores),
 };
@@ -169,20 +170,20 @@ const Config DEFAULT_CONFIG = {
     std::make_pair(LEVELDB_PREFIX,                "."),
     std::make_pair(LEVELDB_CREATE_IF_MISSING,     "true"),
     std::make_pair(TRANSPORT,                     "NULL"),
-    std::make_pair(HASH,                          "LOCAL"),
+    std::make_pair(HASH,                          "MY_RANK"),
     std::make_pair(TRANSPORT_ENDPOINT_GROUP,      "ALL"),
-    std::make_pair(OPS_PER_BULK,                  "512"),
     std::make_pair(KEYS_NAME,                     "Keys"),
     std::make_pair(KEYS_ALLOC_SIZE,               "128"),
     std::make_pair(BUFFERS_NAME,                  "Buffers"),
-    std::make_pair(BULKS_NAME,                    "Bulks"),
+    std::make_pair(OPS_CACHE_NAME,                "OpsCache"),
+    std::make_pair(OPS_CACHE_REGIONS,             "2048"),
     std::make_pair(ARRAYS_NAME,                   "Arrays"),
     std::make_pair(REQUESTS_NAME,                 "Requests"),
     std::make_pair(RESPONSES_NAME,                "Responses"),
     std::make_pair(RESULT_NAME,                   "Result"),
     std::make_pair(RESULTS_NAME,                  "Results"),
-    std::make_pair(MAXIMUM_QUEUED_BULK_OPS,       "128"),
-    std::make_pair(START_ASYNC_BPUT_AT,           "5"),
+    std::make_pair(MAXIMUM_OPS_PER_SEND,          "128"),
+    std::make_pair(START_ASYNC_PUT_AT,            "256"),
     std::make_pair(HISTOGRAM_FIRST_N,             "10"),
     std::make_pair(HISTOGRAM_BUCKET_GEN_METHOD,   "10_BUCKETS"),
 };

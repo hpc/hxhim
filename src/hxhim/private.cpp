@@ -14,6 +14,7 @@
 #include "utils/FixedBufferPool.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
+#include "utils/macros.hpp"
 
 /**
  * clean
@@ -26,7 +27,7 @@ template <typename Data, typename = std::is_base_of<hxhim::SubjectPredicate, Dat
 void clean(hxhim_t *hx, Data *node) {
     while (node) {
         Data *next = node->next;
-        hx->p->memory_pools.bulks->release(node);
+        hx->p->memory_pools.ops_cache->release(node);
         node = next;
     }
 }
@@ -34,15 +35,71 @@ void clean(hxhim_t *hx, Data *node) {
 hxhim_private::hxhim_private()
     : bootstrap(),
       running(false),
-      max_bulk_ops(),
+      max_ops_per_send(),
       queues(),
       datastore(),
-      async_bput(),
+      async_put(),
       hash(),
       transport(nullptr),
       range_server(),
       memory_pools()
 {}
+
+int insert(hxhim_t *hx,
+           const std::size_t max_per_dst,
+           void *&subject, std::size_t &subject_len,
+           void *&predicate, std::size_t &predicate_len,
+           hxhim_type_t &object_type, void *&object, std::size_t &object_len,
+           Transport::Request::BPut &local,
+           std::map<int, Transport::Request::BPut *> &remote,
+           const std::size_t &max_remote) {
+    // TODO: this will need to be fixed so that partial failures cannot happen
+    if (
+        // SP -> O
+        (hxhim::shuffle::Put(hx, max_per_dst,
+                             subject, subject_len,
+                             predicate, predicate_len,
+                             object_type, object, object_len,
+                             &local,
+                             remote,
+                             max_remote) > -1)
+        // // SO -> P
+        // hxhim::shuffle::Put(hx, max_per_dst,
+        //                     subject, subject_len,
+        //                     object, object_len,
+        //                     HXHIM_BYTE_TYPE, predicate, predicate_len,
+        //                     &local,
+        //                     &remote,
+        //                     max_remote);
+
+        // // PO -> S
+        // hxhim::shuffle::Put(hx, max_per_dst,
+        //                     predicate, predicate_len,
+        //                     object, object_len,
+        //                     HXHIM_BYTE_TYPE, subject, subject_len,
+        //                     &local,
+        //                     &remote,
+        //                     max_remote
+
+        // // PS -> O
+        // hxhim::shuffle::Put(hx, max_per_dst,
+        //                     predicate, predicate_len,
+        //                     subject, subject_len,
+        //                     object_type, object, object_len,
+        //                     &local,
+        //                     &remote,
+        //                     max_remote);
+        ) {
+        // if the shuffle succeeded, mark the data as processed
+        subject = nullptr;
+        subject_len = 0;
+        predicate = nullptr;
+        predicate_len = 0;
+        return HXHIM_SUCCESS;
+    }
+
+    return HXHIM_ERROR;
+}
 
 /**
  * put_core
@@ -50,91 +107,71 @@ hxhim_private::hxhim_private()
  *
  * @param hx      the HXHIM context
  * @param head    the head of the list of SPO triple batches to send
- * @param count   the number of triples in each batch
  * @return Pointer to return value wrapper
  */
-static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *head, const std::size_t count) {
+static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *&head) {
     mlog(HXHIM_CLIENT_DBG, "Start put_core");
 
-    if (!count) {
+    if (!head) {
         return nullptr;
     }
 
     // max number of triples that will be PUT per destination
-    const std::size_t max = HXHIM_PUT_MULTIPLER * count;
+    const std::size_t max_puts = HXHIM_PUT_MULTIPLER * hx->p->max_ops_per_send.puts;
 
     // returned results
     hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
 
     // declare local PUT requests here to not reallocate every loop
-    Transport::Request::BPut local(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, hx->p->max_bulk_ops.puts);
+    Transport::Request::BPut local(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, max_puts);
     local.src = hx->p->bootstrap.rank;
     local.dst = hx->p->bootstrap.rank;
 
-    // keep processing until there are no more PUTs
-    std::size_t processed = 0;
-    while (processed < count) {
+    // maximum number of remote destinations allowed at any time
+    static const std::size_t max_remote = hx->p->memory_pools.requests->regions() / 2;
+
+    while (head) {
         // current set of remote destinations to send to
         std::map<int, Transport::Request::BPut *> remote;
 
         // reset local without deallocating memory
         local.count = 0;
 
-        // size of remote is capped
-        static std::size_t max_remote = hx->p->memory_pools.requests->regions() / 2;
-
-        while ((remote.size() < max_remote) && hx->p->memory_pools.requests->unused() && (processed < count)) {
-            for(std::size_t i = 0; i < count; i++) {
-                // alias the values
-                void *&subject = head->subjects[i];
-                std::size_t &subject_len = head->subject_lens[i];
-
-                void *&predicate = head->predicates[i];
-                std::size_t &predicate_len = head->predicate_lens[i];
-
-                hxhim_type_t &object_type = head->object_types[i];
-                void *&object = head->objects[i];
-                std::size_t &object_len = head->object_lens[i];
-
-                // if there is something to shuffle
-                if (subject || predicate) {
-                    // TODO: this will need to be fixed so that partial failures cannot happen
-                    if (
-                        // SP -> O
-                        (hxhim::shuffle::Put(hx, max,
-                                             subject, subject_len,
-                                             predicate, predicate_len,
-                                             object_type, object, object_len,
-                                             &local, remote) > -1)
-                        // // SO -> P
-                        // hxhim::shuffle::Put(hx, max,
-                        //                     subject, subject_len,
-                        //                     object, object_len,
-                        //                     HXHIM_BYTE_TYPE, predicate, predicate_len,
-                        //                     &local, &remote);
-
-                        // // PO -> S
-                        // hxhim::shuffle::Put(hx, max,
-                        //                     predicate, predicate_len,
-                        //                     object, object_len,
-                        //                     HXHIM_BYTE_TYPE, subject, subject_len,
-                        //                     &local, &remote);
-
-                        // // PS -> O
-                        // hxhim::shuffle::Put(hx, max,
-                        //                     predicate, predicate_len,
-                        //                     subject, subject_len,
-                        //                     object_type, object, object_len,
-                        //                     &local, &remote);
-                        ) {
-                        // if the shuffle succeeded, mark the data as processed
-                        subject = nullptr;
-                        subject_len = 0;
-                        predicate = nullptr;
-                        predicate_len = 0;
-                        processed++;
-                    }
+        hxhim::PutData *curr = head;
+        while (curr) {
+            if (insert(hx, max_puts,
+                       curr->subject, curr->subject_len,
+                       curr->predicate, curr->predicate_len,
+                       curr->object_type, curr->object, curr->object_len,
+                       local,
+                       remote,
+                       max_remote) == HXHIM_SUCCESS) {
+                // head node
+                if (curr == head) {
+                    head = curr->next;
                 }
+
+                // there is a node before the current one
+                if (curr->prev) {
+                    curr->prev->next = curr->next;
+                }
+
+                // there is a node after the current one
+                if (curr->next) {
+                    curr->next->prev = curr->prev;
+                }
+
+                hxhim::PutData *next = curr->next;
+
+                curr->prev = nullptr;
+                curr->next = nullptr;
+
+                // deallocate current node
+                hx->p->memory_pools.ops_cache->release(curr);
+                curr = next;
+            }
+            else {
+                curr = curr->next;
             }
         }
 
@@ -186,94 +223,45 @@ static void backgroundPUT(hxhim_t *hx) {
     mlog(HXHIM_CLIENT_DBG, "Started background PUT thread");
 
     while (hx->p->running) {
-        hxhim::PutData *head = nullptr;    // the first batch of PUTs to process
-
+        hxhim::PutData *head = nullptr;    // the first PUT to process
         bool force = false;                // whether or not FlushPuts was called
-        hxhim::PutData *tail = nullptr;    // the last batch of PUTs to process; last_count is not necessarily hx->p->max_bulk_ops.puts
-        std::size_t last_count = 0;        // number of SPO triples in the last batch
 
         // hold unsent.mutex just long enough to move queued PUTs to send queue
         {
             hxhim::Unsent<hxhim::PutData> &unsent = hx->p->queues.puts;
+
+            // Wait until any of the following is true
+            //    1. HXHIM is no longer running
+            //    2. The number of queued PUTs passes the threshold
+            //    3. The PUTs are being forced to flush
             std::unique_lock<std::mutex> lock(unsent.mutex);
-            while (hx->p->running && (unsent.full_batches < hx->p->async_bput.max_queued) && !unsent.force) {
-                mlog(HXHIM_CLIENT_DBG, "Waiting for %zu bulk puts (currently have %zu)", hx->p->async_bput.max_queued, unsent.full_batches);
-                unsent.start_processing.wait(lock, [&]() -> bool { return !hx->p->running || (unsent.full_batches >= hx->p->async_bput.max_queued) || unsent.force; });
+            while (hx->p->running && (unsent.count < hx->p->async_put.max_queued) && !unsent.force) {
+                mlog(HXHIM_CLIENT_DBG, "Waiting for %zu PUTs (currently have %zu)", hx->p->async_put.max_queued, unsent.count);
+                unsent.start_processing.wait(lock, [&]() -> bool { return !hx->p->running || (unsent.count >= hx->p->async_put.max_queued) || unsent.force; });
             }
+
+            mlog(HXHIM_CLIENT_DBG, "Moving %zu queued PUTs into process queue", unsent.count);
+
+            // move all PUTs into this thread for processing
+            head = unsent.head;
+            unsent.head = nullptr;
+            unsent.tail = nullptr;
+            unsent.count = 0;
 
             // record whether or not this loop was forced, since the lock is not held
             force = unsent.force;
-
-            mlog(HXHIM_CLIENT_DBG, "Moving %zu queued bulk PUTs into send queue for processing", unsent.full_batches + force);
-
-            if (hx->p->running) {
-                unsent.full_batches = 0;
-
-                // nothing to do
-                if (!unsent.head) {
-                    if (force) {
-                        unsent.force = false;
-                        unsent.done_processing.notify_all();
-                    }
-                    continue;
-                }
-
-                if (force) {
-                    // current batch is not the last one
-                    if (unsent.head->next) {
-                        head = unsent.head;
-                        tail = unsent.tail;
-
-                        // disconnect the tail from the previous batches
-                        tail->prev->next = nullptr;
-                    }
-                    // current batch is the last one
-                    else {
-                        head = nullptr;
-                        tail = unsent.head;
-                    }
-
-                    // keep track of the size of the last batch
-                    last_count = unsent.last_count;
-                    unsent.last_count = 0;
-                    unsent.force = false;
-
-                    // remove all of the PUTs from the queue
-                    unsent.head = nullptr;
-                    unsent.tail = nullptr;
-                }
-                // not forced
-                else {
-                    // current batch is not the last one
-                    if (unsent.head->next) {
-                        head = unsent.head;
-                        unsent.head = unsent.tail;
-
-                        // disconnect the tail from the previous batches
-                        unsent.tail->prev->next = nullptr;
-                    }
-                    // current batch is the last one
-                    else {
-                        continue;
-                    }
-                }
-            }
+            unsent.force = false;
         }
 
         // process the queued PUTs
         mlog(HXHIM_CLIENT_DBG, "Processing queued PUTs");
-        while (hx->p->running && head) {
+        {
             // process the batch and save the results
-            hxhim::Results *res = put_core(hx, head, hx->p->max_bulk_ops.puts);
-
-            // go to the next batch
-            hxhim::PutData *next = head->next;
-            hx->p->memory_pools.bulks->release(head);
-            head = next;
+            hxhim::Results *res = put_core(hx, head);
 
             {
-                std::unique_lock<std::mutex> lock(hx->p->async_bput.mutex);
-                hx->p->async_bput.results->Append(res);
+                std::unique_lock<std::mutex> lock(hx->p->async_put.mutex);
+                hx->p->async_put.results->Append(res);
             }
 
             hx->p->memory_pools.results->release(res);
@@ -282,29 +270,6 @@ static void backgroundPUT(hxhim_t *hx) {
 
         // if this flush was forced, notify FlushPuts
         if (force) {
-            mlog(HXHIM_CLIENT_DBG, "Forcing flush in backgroud PUT thread");
-
-            if (hx->p->running) {
-                mlog(HXHIM_CLIENT_DBG, "Force processing queued PUTs");
-
-                // process the last batch
-                hxhim::Results *res = put_core(hx, tail, last_count);
-
-                mlog(HXHIM_CLIENT_DBG, "Force processed last batch");
-
-                hx->p->memory_pools.bulks->release(tail);
-                tail = nullptr;
-
-                {
-                    std::unique_lock<std::mutex> lock(hx->p->async_bput.mutex);
-                    hx->p->async_bput.results->Append(res);
-                }
-
-                hx->p->memory_pools.results->release(res);
-
-                mlog(HXHIM_CLIENT_DBG, "Done force Processing queued PUTs");
-            }
-
             hxhim::Unsent<hxhim::PutData> &unsent = hx->p->queues.puts;
             std::unique_lock<std::mutex> lock(unsent.mutex);
             unsent.done_processing.notify_all();
@@ -312,7 +277,6 @@ static void backgroundPUT(hxhim_t *hx) {
 
         // clean up in case previous loop stopped early
         clean(hx, head);
-        hx->p->memory_pools.bulks->release(tail);
     }
 
     mlog(HXHIM_CLIENT_DBG, "Background PUT thread stopping");
@@ -410,21 +374,21 @@ int hxhim::init::memory(hxhim_t *hx, hxhim_options_t *opts) {
     }
 
     // size of each set of queued messages
-    hx->p->max_bulk_ops.max     = opts->p->ops_per_bulk;
-    hx->p->max_bulk_ops.puts    = opts->p->ops_per_bulk / HXHIM_PUT_MULTIPLER;
-    hx->p->max_bulk_ops.gets    = opts->p->ops_per_bulk;
-    hx->p->max_bulk_ops.getops  = opts->p->ops_per_bulk;
-    hx->p->max_bulk_ops.deletes = opts->p->ops_per_bulk;
+    hx->p->max_ops_per_send.max     = opts->p->max_ops_per_send;
+    hx->p->max_ops_per_send.puts    = opts->p->max_ops_per_send / HXHIM_PUT_MULTIPLER;
+    hx->p->max_ops_per_send.gets    = opts->p->max_ops_per_send;
+    hx->p->max_ops_per_send.getops  = opts->p->max_ops_per_send;
+    hx->p->max_ops_per_send.deletes = opts->p->max_ops_per_send;
 
     // set up the memory pools
-    if (!((hx->p->memory_pools.keys      = new FixedBufferPool(opts->p->keys.alloc_size,      opts->p->keys.regions,      opts->p->keys.name))      &&
-          (hx->p->memory_pools.buffers   = new FixedBufferPool(opts->p->buffers.alloc_size,   opts->p->buffers.regions,   opts->p->buffers.name))   &&
-          (hx->p->memory_pools.bulks     = new FixedBufferPool(opts->p->bulks.alloc_size,     opts->p->bulks.regions,     opts->p->bulks.name))     &&
-          (hx->p->memory_pools.arrays    = new FixedBufferPool(opts->p->arrays.alloc_size,    opts->p->arrays.regions,    opts->p->arrays.name))    &&
-          (hx->p->memory_pools.requests  = new FixedBufferPool(opts->p->requests.alloc_size,  opts->p->requests.regions,  opts->p->requests.name))  &&
-          (hx->p->memory_pools.responses = new FixedBufferPool(opts->p->responses.alloc_size, opts->p->responses.regions, opts->p->responses.name)) &&
-          (hx->p->memory_pools.result    = new FixedBufferPool(opts->p->result.alloc_size,    opts->p->result.regions,    opts->p->result.name))    &&
-          (hx->p->memory_pools.results   = new FixedBufferPool(opts->p->results.alloc_size,   opts->p->results.regions,   opts->p->results.name)))) {
+    if (!((hx->p->memory_pools.keys       = new FixedBufferPool(opts->p->keys.alloc_size,      opts->p->keys.regions,      opts->p->keys.name))      &&
+          (hx->p->memory_pools.buffers    = new FixedBufferPool(opts->p->buffers.alloc_size,   opts->p->buffers.regions,   opts->p->buffers.name))   &&
+          (hx->p->memory_pools.ops_cache  = new FixedBufferPool(opts->p->ops_cache.alloc_size, opts->p->ops_cache.regions, opts->p->ops_cache.name)) &&
+          (hx->p->memory_pools.arrays     = new FixedBufferPool(opts->p->arrays.alloc_size,    opts->p->arrays.regions,    opts->p->arrays.name))    &&
+          (hx->p->memory_pools.requests   = new FixedBufferPool(opts->p->requests.alloc_size,  opts->p->requests.regions,  opts->p->requests.name))  &&
+          (hx->p->memory_pools.responses  = new FixedBufferPool(opts->p->responses.alloc_size, opts->p->responses.regions, opts->p->responses.name)) &&
+          (hx->p->memory_pools.result     = new FixedBufferPool(opts->p->result.alloc_size,    opts->p->result.regions,    opts->p->result.name))    &&
+          (hx->p->memory_pools.results    = new FixedBufferPool(opts->p->results.alloc_size,   opts->p->results.regions,   opts->p->results.name))))  {
         mlog(HXHIM_CLIENT_ERR, "Could not preallocate all buffers");
         return HXHIM_ERROR;
     }
@@ -432,7 +396,7 @@ int hxhim::init::memory(hxhim_t *hx, hxhim_options_t *opts) {
     mlog(HXHIM_CLIENT_INFO, "Preallocated %zu bytes of memory for HXHIM",
          hx->p->memory_pools.keys->size()      +
          hx->p->memory_pools.buffers->size()   +
-         hx->p->memory_pools.bulks->size()     +
+         hx->p->memory_pools.ops_cache->size() +
          hx->p->memory_pools.arrays->size()    +
          hx->p->memory_pools.requests->size()  +
          hx->p->memory_pools.responses->size() +
@@ -551,14 +515,14 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
 }
 
 /**
- * async_bput
+ * async_put
  * Starts up the background thread that does asynchronous PUTs.
  *
  * @param hx   the HXHIM instance
  * @param opts the HXHIM options
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int hxhim::init::async_bput(hxhim_t *hx, hxhim_options_t *opts) {
+int hxhim::init::async_put(hxhim_t *hx, hxhim_options_t *opts) {
     if (!valid(hx, opts)) {
         return HXHIM_ERROR;
     }
@@ -568,15 +532,15 @@ int hxhim::init::async_bput(hxhim_t *hx, hxhim_options_t *opts) {
     }
 
     // Set number of bulk puts to queue up before sending
-    hx->p->async_bput.max_queued = opts->p->start_async_bput_at;
+    hx->p->async_put.max_queued = opts->p->start_async_put_at;
 
     // Set up queued PUT results list
-    if (!(hx->p->async_bput.results = hx->p->memory_pools.results->acquire<hxhim::Results>(hx))) {
+    if (!(hx->p->async_put.results = hx->p->memory_pools.results->acquire<hxhim::Results>(hx))) {
         return HXHIM_ERROR;
     }
 
     // Start the background thread
-    hx->p->async_bput.thread = std::thread(backgroundPUT, hx);
+    hx->p->async_put.thread = std::thread(backgroundPUT, hx);
 
     return HXHIM_SUCCESS;
 }
@@ -693,7 +657,7 @@ int hxhim::destroy::memory(hxhim_t *hx) {
 
     delete hx->p->memory_pools.keys;
     delete hx->p->memory_pools.buffers;
-    delete hx->p->memory_pools.bulks;
+    delete hx->p->memory_pools.ops_cache;
     delete hx->p->memory_pools.arrays;
     delete hx->p->memory_pools.requests;
     delete hx->p->memory_pools.responses;
@@ -702,7 +666,7 @@ int hxhim::destroy::memory(hxhim_t *hx) {
 
     hx->p->memory_pools.keys      = nullptr;
     hx->p->memory_pools.buffers   = nullptr;
-    hx->p->memory_pools.bulks     = nullptr;
+    hx->p->memory_pools.ops_cache = nullptr;
     hx->p->memory_pools.arrays    = nullptr;
     hx->p->memory_pools.arrays    = nullptr;
     hx->p->memory_pools.requests  = nullptr;
@@ -756,13 +720,13 @@ int hxhim::destroy::hash(hxhim_t *hx) {
 }
 
 /**
- * async_bput
+ * async_put
  * Stops the background thread and cleans up the variables used by it
  *
  * @param hx   the HXHIM instance
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int hxhim::destroy::async_bput(hxhim_t *hx) {
+int hxhim::destroy::async_put(hxhim_t *hx) {
     if (!valid(hx)) {
         return HXHIM_ERROR;
     }
@@ -772,8 +736,8 @@ int hxhim::destroy::async_bput(hxhim_t *hx) {
     hx->p->queues.puts.start_processing.notify_all();
     hx->p->queues.puts.done_processing.notify_all();
 
-    if (hx->p->async_bput.thread.joinable()) {
-        hx->p->async_bput.thread.join();
+    if (hx->p->async_put.thread.joinable()) {
+        hx->p->async_put.thread.join();
     }
 
     // clear out unflushed work in the work queue
@@ -788,9 +752,9 @@ int hxhim::destroy::async_bput(hxhim_t *hx) {
 
     // release unproceesed results from asynchronous PUTs
     {
-        std::unique_lock<std::mutex>(hx->p->async_bput.mutex);
-        hx->p->memory_pools.results->release(hx->p->async_bput.results);
-        hx->p->async_bput.results = nullptr;
+        std::unique_lock<std::mutex>(hx->p->async_put.mutex);
+        hx->p->memory_pools.results->release(hx->p->async_put.results);
+        hx->p->async_put.results = nullptr;
     }
 
     return HXHIM_SUCCESS;
@@ -845,45 +809,18 @@ int hxhim::PutImpl(hxhim_t *hx,
                    void *subject, std::size_t subject_len,
                    void *predicate, std::size_t predicate_len,
                    enum hxhim_type_t object_type, void *object, std::size_t object_len) {
+    hxhim::PutData *put = hx->p->memory_pools.ops_cache->acquire<hxhim::PutData>();
+    put->subject = subject;
+    put->subject_len = subject_len;
+    put->predicate = predicate;
+    put->predicate_len = predicate_len;
+    put->object_type = object_type;
+    put->object = object;
+    put->object_len = object_len;
+
     hxhim::Unsent<hxhim::PutData> &puts = hx->p->queues.puts;
-
-    // no previous batch
-    if (!puts.tail) {
-        hxhim::PutData *head = hx->p->memory_pools.bulks->acquire<hxhim::PutData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.puts);
-        std::lock_guard<std::mutex> lock(puts.mutex);
-        puts.head         = head;
-        puts.tail         = puts.head;
-        puts.last_count   = 0;
-        puts.full_batches = 0;
-        puts.start_processing.notify_one();
-    }
-
-    // filled the current batch
-    if (puts.last_count == hx->p->max_bulk_ops.puts) {
-        hxhim::PutData *next = hx->p->memory_pools.bulks->acquire<hxhim::PutData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.puts);
-        std::lock_guard<std::mutex> lock(puts.mutex);
-        next->prev         = puts.tail;
-        puts.tail->next    = next;
-        puts.tail          = next;
-        puts.last_count    = 0;
-        puts.full_batches++;
-        puts.start_processing.notify_one();
-    }
-
-    std::lock_guard<std::mutex> lock(puts.mutex);
-    std::size_t &i = puts.last_count;
-
-    puts.tail->subjects[i] = subject;
-    puts.tail->subject_lens[i] = subject_len;
-
-    puts.tail->predicates[i] = predicate;
-    puts.tail->predicate_lens[i] = predicate_len;
-
-    puts.tail->object_types[i] = object_type;
-    puts.tail->objects[i] = object;
-    puts.tail->object_lens[i] = object_len;
-
-    i++;
+    puts.insert(put);
+    puts.start_processing.notify_one();
 
     return HXHIM_SUCCESS;
 }
@@ -907,42 +844,16 @@ int hxhim::GetImpl(hxhim_t *hx,
                    void *subject, std::size_t subject_len,
                    void *predicate, std::size_t predicate_len,
                    enum hxhim_type_t object_type) {
+    hxhim::GetData *get = hx->p->memory_pools.ops_cache->acquire<hxhim::GetData>();
+    get->subject = subject;
+    get->subject_len = subject_len;
+    get->predicate = predicate;
+    get->predicate_len = predicate_len;
+    get->object_type = object_type;
+
     hxhim::Unsent<hxhim::GetData> &gets = hx->p->queues.gets;
-
-    // no previous batch
-    if (!gets.tail) {
-        hxhim::GetData *head = hx->p->memory_pools.bulks->acquire<hxhim::GetData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.gets);
-        std::lock_guard<std::mutex> lock(gets.mutex);
-        gets.head         = head;
-        gets.tail         = gets.head;
-        gets.last_count   = 0;
-        gets.full_batches = 0;
-        gets.start_processing.notify_one();
-    }
-
-    // filled the current batch
-    if (gets.last_count == hx->p->max_bulk_ops.gets) {
-        hxhim::GetData *next = hx->p->memory_pools.bulks->acquire<hxhim::GetData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.gets);
-        std::lock_guard<std::mutex> lock(gets.mutex);
-        gets.tail->next    = next;
-        gets.tail          = next;
-        gets.last_count    = 0;
-        gets.full_batches++;
-        gets.start_processing.notify_one();
-    }
-
-    std::lock_guard<std::mutex> lock(gets.mutex);
-    std::size_t &i = gets.last_count;
-
-    gets.tail->subjects[i] = subject;
-    gets.tail->subject_lens[i] = subject_len;
-
-    gets.tail->predicates[i] = predicate;
-    gets.tail->predicate_lens[i] = predicate_len;
-
-    gets.tail->object_types[i] = object_type;
-
-    i++;
+    gets.insert(get);
+    gets.start_processing.notify_one();
 
     return HXHIM_SUCCESS;
 }
@@ -964,40 +875,15 @@ int hxhim::GetImpl(hxhim_t *hx,
 int hxhim::DeleteImpl(hxhim_t *hx,
                       void *subject, std::size_t subject_len,
                       void *predicate, std::size_t predicate_len) {
+    hxhim::DeleteData *del = hx->p->memory_pools.ops_cache->acquire<hxhim::DeleteData>();
+    del->subject = subject;
+    del->subject_len = subject_len;
+    del->predicate = predicate;
+    del->predicate_len = predicate_len;
+
     hxhim::Unsent<hxhim::DeleteData> &dels = hx->p->queues.deletes;
-
-    // no previous batch
-    if (!dels.tail) {
-        hxhim::DeleteData *head = hx->p->memory_pools.bulks->acquire<hxhim::DeleteData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.deletes);
-        std::lock_guard<std::mutex> lock(dels.mutex);
-        dels.head         = head;
-        dels.tail         = dels.head;
-        dels.last_count   = 0;
-        dels.full_batches = 0;
-        dels.start_processing.notify_one();
-    }
-
-    // filled the current batch
-    if (dels.last_count == hx->p->max_bulk_ops.deletes) {
-        hxhim::DeleteData *next = hx->p->memory_pools.bulks->acquire<hxhim::DeleteData>(hx->p->memory_pools.arrays, hx->p->max_bulk_ops.deletes);
-        std::lock_guard<std::mutex> lock(dels.mutex);
-        dels.tail->next    = next;
-        dels.tail          = next;
-        dels.last_count    = 0;
-        dels.full_batches++;
-        dels.start_processing.notify_one();
-    }
-
-    std::lock_guard<std::mutex> lock(dels.mutex);
-    std::size_t &i = dels.last_count;
-
-    dels.tail->subjects[i] = subject;
-    dels.tail->subject_lens[i] = subject_len;
-
-    dels.tail->predicates[i] = predicate;
-    dels.tail->predicate_lens[i] = predicate_len;
-
-    i++;
+    dels.insert(del);
+    dels.start_processing.notify_one();
 
     return HXHIM_SUCCESS;
 }

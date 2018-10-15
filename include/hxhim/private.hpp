@@ -48,7 +48,7 @@ typedef struct hxhim_private {
         std::size_t gets;
         std::size_t getops;
         std::size_t deletes;
-    } max_bulk_ops;
+    } max_ops_per_send;
 
     // unsent data queues
     struct {
@@ -70,7 +70,7 @@ typedef struct hxhim_private {
         std::thread thread;                                    // the thread that pushes PUTs off the PUT queue asynchronously
         std::mutex mutex;                                      // mutex to the list of results from asynchronous PUT operations
         hxhim::Results *results;                               // the list of of PUT results
-    } async_bput;
+    } async_put;
 
     struct {
         std::string name;
@@ -92,7 +92,7 @@ typedef struct hxhim_private {
     struct {
         FixedBufferPool *keys;                                 // at least (subject_len + sizeof(std::size_t) + predicate_len + sizeof(std::size_t))
         FixedBufferPool *buffers;                              // maximum size of smaller buffers (subjects, predicates, objects, etc)
-        FixedBufferPool *bulks;                                // number of queues (4) * maximum number of bulk operations
+        FixedBufferPool *ops_cache;                            // internal staging area of individual operations waiting to be packed and sent
         FixedBufferPool *arrays;                               // storage for bulk message internal arrays; size is max_bulk_ops.max * sizeof(void *)
         FixedBufferPool *requests;                             // should have enough space to allow for maximum number of requests queued before flushing
         FixedBufferPool *responses;                            // should have enough space to allow for responses from all queued requests
@@ -115,7 +115,7 @@ int running      (hxhim_t *hx, hxhim_options_t *opts);
 int memory       (hxhim_t *hx, hxhim_options_t *opts);
 int datastore    (hxhim_t *hx, hxhim_options_t *opts);
 int one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::string &name);
-int async_bput   (hxhim_t *hx, hxhim_options_t *opts);
+int async_put    (hxhim_t *hx, hxhim_options_t *opts);
 int hash         (hxhim_t *hx, hxhim_options_t *opts);
 int transport    (hxhim_t *hx, hxhim_options_t *opts);
 }
@@ -127,7 +127,7 @@ int running     (hxhim_t *hx);
 int memory      (hxhim_t *hx);
 int transport   (hxhim_t *hx);
 int hash        (hxhim_t *hx);
-int async_bput  (hxhim_t *hx);
+int async_put   (hxhim_t *hx);
 int datastore   (hxhim_t *hx);
 }
 

@@ -27,7 +27,7 @@ FixedBufferPool::FixedBufferPool(const std::size_t alloc_size, const std::size_t
 
     if (!regions_) {
         FBP_LOG(FBP_CRIT, "There must be at least 1 region of size %zu", alloc_size_);
-        throw std::runtime_error(name_ + "There must be at least 1 region of size " + std::to_string(alloc_size_));
+        throw std::runtime_error(name_ + " There must be at least 1 region of size " + std::to_string(alloc_size_));
     }
 
     FBP_LOG(FBP_INFO, "Created");
@@ -41,8 +41,8 @@ FixedBufferPool::~FixedBufferPool() {
 
     if (used_) {
         FBP_LOG(FBP_CRIT, "Destructing with %zu memory regions still in use", used_);
-        for(void *addr : addrs_) {
-            FBP_LOG(FBP_DBG, "    Address %p still allocated", addr);
+        for(decltype(addrs_)::value_type const &addr : addrs_) {
+            FBP_LOG(FBP_DBG, "    Address %p (%zu bytes) still allocated", addr.first, addr.second);
             // do not delete pointers here to allow for valgrind to see leaks
         }
     }
@@ -85,6 +85,7 @@ void *FixedBufferPool::acquireImpl(const std::size_t size) {
     void *ret = ::operator new(size);
     memset(ret, 0, size);
 
+    addrs_[ret] = size;
     used_++;
 
     if (size > stats.max_size) {
@@ -106,7 +107,7 @@ void *FixedBufferPool::acquireImpl(const std::size_t size) {
  *
  * @param ptr   A void * acquired through FixedBufferPool::acquire
  */
-void FixedBufferPool::releaseImpl(void *ptr, const std::size_t) {
+void FixedBufferPool::releaseImpl(void *ptr, const std::size_t size) {
     if (!ptr) {
         FBP_LOG(FBP_DBG1, "Attempted to free a nullptr");
         return;
@@ -114,13 +115,21 @@ void FixedBufferPool::releaseImpl(void *ptr, const std::size_t) {
 
     std::unique_lock<std::mutex> lock(mutex_);
 
-    ::operator delete(ptr);
-    addrs_.erase(ptr);
-    used_--;
+    decltype(addrs_)::const_iterator it = addrs_.find(ptr);
+    if (it == addrs_.end()) {
+        FBP_LOG(FBP_ERR, "Attempted to free address (%p) that was not allocated by %s", ptr, name_.c_str());
+    }
+    else {
+        if (it->second != size) {
+            FBP_LOG(FBP_DBG, "Release size of %p (%zu) does not match allocation size (%zu)", ptr, size, it->second);
+        }
 
-    cv_.notify_all();
-
-    FBP_LOG(FBP_DBG, "Freed %p", ptr);
+        addrs_.erase(it);
+        ::operator delete(ptr);
+        used_--;
+        cv_.notify_all();
+        FBP_LOG(FBP_DBG, "Freed %p", ptr);
+    }
 }
 
 #endif

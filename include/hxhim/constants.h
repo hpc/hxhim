@@ -20,6 +20,7 @@ extern "C"
  * The types of data tha can be passed into HXHIM
  */
 enum hxhim_type_t {
+    HXHIM_INVALID_TYPE,
     HXHIM_INT_TYPE,
     HXHIM_SIZE_TYPE,
     HXHIM_INT64_TYPE,
