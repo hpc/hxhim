@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Generate some subject-predicate-object triples
-    const size_t count = 50000;
+    const size_t count = 500000;
     void **subjects = NULL, **predicates = NULL, **objects = NULL;
     size_t *subject_lens = NULL, *predicate_lens = NULL, *object_lens = NULL;
     /* if (spo_gen_fixed(count, 100, rank, */
@@ -69,7 +69,7 @@ int main(int argc, char *argv[]) {
 
     if (rank == 0) {
         long double *put_times = calloc(size, sizeof(long double));
-        size_t *num_puts       = calloc(size, sizeof(size_t));
+        size_t      *num_puts  = calloc(size, sizeof(size_t));
         long double *min_bput  = calloc(size, sizeof(long double));
         long double *avg_bput  = calloc(size, sizeof(long double));
         long double *max_bput  = calloc(size, sizeof(long double));

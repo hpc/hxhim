@@ -174,6 +174,7 @@ const Config DEFAULT_CONFIG = {
     std::make_pair(TRANSPORT_ENDPOINT_GROUP,      "ALL"),
     std::make_pair(KEYS_NAME,                     "Keys"),
     std::make_pair(KEYS_ALLOC_SIZE,               "128"),
+    std::make_pair(KEYS_REGIONS,                  "1"),
     std::make_pair(BUFFERS_NAME,                  "Buffers"),
     std::make_pair(OPS_CACHE_NAME,                "OpsCache"),
     std::make_pair(OPS_CACHE_REGIONS,             "2048"),

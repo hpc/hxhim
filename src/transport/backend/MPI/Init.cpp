@@ -32,7 +32,7 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
     Options *config = static_cast<Options *>(opts->p->transport);
 
     // Create the shared memory pool used in MPI
-    std::shared_ptr<FixedBufferPool> packed = std::make_shared<FixedBufferPool>(16384, opts->p->requests.regions / 2 + 1, "MPI Packed");
+    std::shared_ptr<FixedBufferPool> packed = std::make_shared<FixedBufferPool>(opts->p->max_ops_per_send * 128, opts->p->requests.regions / 2 + 1, "MPI Packed");
 
     // create a range server
     if (hxhim::range_server::is_range_server(hx->p->bootstrap.rank, opts->p->client_ratio, opts->p->server_ratio)) {

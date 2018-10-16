@@ -393,7 +393,7 @@ int hxhim::init::memory(hxhim_t *hx, hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
-    mlog(HXHIM_CLIENT_INFO, "Preallocated %zu bytes of memory for HXHIM",
+    mlog(HXHIM_CLIENT_CRIT, "Preallocated %zu bytes of memory for HXHIM",
          hx->p->memory_pools.keys->size()      +
          hx->p->memory_pools.buffers->size()   +
          hx->p->memory_pools.ops_cache->size() +

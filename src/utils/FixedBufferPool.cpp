@@ -29,6 +29,11 @@ FixedBufferPool::FixedBufferPool(const std::size_t alloc_size, const std::size_t
     std::unique_lock<std::mutex> lock(mutex_);
     FBP_LOG(FBP_DBG, "Attempting to initialize");
 
+    if (!alloc_size_) {
+        FBP_LOG(FBP_CRIT, "Each allocation should be at least 1 byte");
+        throw std::runtime_error(name_ + ": Each allocation should be at least 1 byte");
+    }
+
     if (!regions_) {
         FBP_LOG(FBP_CRIT, "There must be at least 1 region of size %zu", alloc_size_);
         throw std::runtime_error(name_ + ": There must be at least 1 region of size " + std::to_string(alloc_size_));
