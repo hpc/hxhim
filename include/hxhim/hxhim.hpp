@@ -81,23 +81,23 @@ int GetStats(hxhim_t *hx, const int dst_rank,
 hxhim::Results *GetHistogram(hxhim_t *hx, const int datastore);
 hxhim::Results *GetBHistogram(hxhim_t *hx, const int *datastores, const std::size_t count);
 
-int GetTransportMinFilled(hxhim_t *hx, const int dst_rank,
-                          const bool get_bput, long double *bput,
-                          const bool get_bget, long double *bget,
-                          const bool get_bgetop, long double *bgetop,
-                          const bool get_bdel, long double *bdel);
+int GetMinFilled(hxhim_t *hx, const int dst_rank,
+                 const bool get_bput, long double *bput,
+                 const bool get_bget, long double *bget,
+                 const bool get_bgetop, long double *bgetop,
+                 const bool get_bdel, long double *bdel);
 
-int GetTransportAverageFilled(hxhim_t *hx, const int dst_rank,
-                              const bool get_bput, long double *bput,
-                              const bool get_bget, long double *bget,
-                              const bool get_bgetop, long double *bgetop,
-                              const bool get_bdel, long double *bdel);
+int GetAverageFilled(hxhim_t *hx, const int dst_rank,
+                     const bool get_bput, long double *bput,
+                     const bool get_bget, long double *bget,
+                     const bool get_bgetop, long double *bgetop,
+                     const bool get_bdel, long double *bdel);
 
-int GetTransportMaxFilled(hxhim_t *hx, const int dst_rank,
-                          const bool get_bput, long double *bput,
-                          const bool get_bget, long double *bget,
-                          const bool get_bgetop, long double *bgetop,
-                          const bool get_bdel, long double *bdel);
+int GetMaxFilled(hxhim_t *hx, const int dst_rank,
+                 const bool get_bput, long double *bput,
+                 const bool get_bget, long double *bget,
+                 const bool get_bgetop, long double *bgetop,
+                 const bool get_bdel, long double *bdel);
 
 }
 

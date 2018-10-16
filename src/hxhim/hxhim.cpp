@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cfloat>
 #include <cmath>
 #include <cstring>
 #include <memory>
@@ -301,6 +302,7 @@ static hxhim::Results *get_core(hxhim_t *hx,
 
         // GET the batch
         if (remote.size()) {
+            hxhim::collect_fill_stats(remote, hx->p->stats.bget);
             Transport::Response::BGet *responses = hx->p->transport->BGet(remote);
             for(Transport::Response::BGet *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
@@ -314,6 +316,7 @@ static hxhim::Results *get_core(hxhim_t *hx,
         }
 
         if (local->count) {
+            hxhim::collect_fill_stats(local, hx->p->stats.bget);
             Transport::Response::BGet *responses = local_client_bget(hx, local);
             for(Transport::Response::BGet *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
@@ -443,6 +446,7 @@ static hxhim::Results *getop_core(hxhim_t *hx,
 
         // GET the batch
         if (remote.size()) {
+            hxhim::collect_fill_stats(remote, hx->p->stats.bgetop);
             Transport::Response::BGetOp *responses = hx->p->transport->BGetOp(remote);
             for(Transport::Response::BGetOp *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
@@ -456,6 +460,7 @@ static hxhim::Results *getop_core(hxhim_t *hx,
         }
 
         if (local->count) {
+            hxhim::collect_fill_stats(local, hx->p->stats.bgetop);
             Transport::Response::BGetOp *responses = local_client_bget_op(hx, local);
             for(Transport::Response::BGetOp *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
@@ -579,6 +584,7 @@ static hxhim::Results *delete_core(hxhim_t *hx,
 
         // DELETE the batch
         if (remote.size()) {
+            hxhim::collect_fill_stats(remote, hx->p->stats.bdel);
             Transport::Response::BDelete *responses = hx->p->transport->BDelete(remote);
             for(Transport::Response::BDelete *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
@@ -592,6 +598,7 @@ static hxhim::Results *delete_core(hxhim_t *hx,
         }
 
         if (local->count) {
+            hxhim::collect_fill_stats(local, hx->p->stats.bdel);
             Transport::Response::BDelete *responses = local_client_bdelete(hx, local);
             for(Transport::Response::BDelete *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
@@ -1342,9 +1349,9 @@ hxhim_results_t *hxhimBGetHistogram(hxhim_t *hx, const int *datastores, const si
 }
 
 /**
- * GetTransportMinFilled
+ * GetFilled
  * Collective operation
- * Collects transport statistics from all ranks in the communicator
+ * Collects statistics from all ranks in the communicator
  *
  * @param comm        the MPI communicator
  * @param rank        the rank of this instance of Transport
@@ -1357,26 +1364,103 @@ hxhim_results_t *hxhimBGetHistogram(hxhim_t *hx, const int *datastores, const si
  * @param bgetop      the array of bgetop from each rank
  * @param get_bdel    whether or not to get bdel
  * @param bdel        the array of bdel from each rank
+ * @param calc        the function to use to calculate some statistic using the input data
  * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR on error
  */
-int hxhim::GetTransportMinFilled(hxhim_t *hx, const int dst_rank,
-                                 const bool get_bput, long double *bput,
-                                 const bool get_bget, long double *bget,
-                                 const bool get_bgetop, long double *bgetop,
-                                 const bool get_bdel, long double *bdel) {
-    if (!hxhim::valid(hx)) {
-        return HXHIM_ERROR;
+static int GetFilled(MPI_Comm comm, const int rank, const int dst_rank,
+                     const bool get_bput, long double *bput,
+                     const bool get_bget, long double *bget,
+                     const bool get_bgetop, long double *bgetop,
+                     const bool get_bdel, long double *bdel,
+                     const hxhim_private_t::Stats &stats,
+                     const std::function<long double(const hxhim_private_t::Stats::Op &)> &calc) {
+    MPI_Barrier(comm);
+
+    if (rank == dst_rank) {
+        if (get_bput) {
+            const long double filled = calc(stats.bput);
+            MPI_Gather(&filled, 1, MPI_LONG_DOUBLE, bput, 1, MPI_LONG_DOUBLE, dst_rank, comm);
+        }
+        if (get_bget) {
+            const long double filled = calc(stats.bget);
+            MPI_Gather(&filled, 1, MPI_LONG_DOUBLE, bget, 1, MPI_LONG_DOUBLE, dst_rank, comm);
+        }
+        if (get_bgetop) {
+            const long double filled = calc(stats.bgetop);
+            MPI_Gather(&filled, 1, MPI_LONG_DOUBLE, bgetop, 1, MPI_LONG_DOUBLE, dst_rank, comm);
+        }
+        if (get_bdel) {
+            const long double filled = calc(stats.bdel);
+            MPI_Gather(&filled, 1, MPI_LONG_DOUBLE, bdel, 1, MPI_LONG_DOUBLE, dst_rank, comm);
+        }
+    }
+    else {
+        if (get_bput) {
+            const long double filled = calc(stats.bput);
+            MPI_Gather(&filled, 1, MPI_LONG_DOUBLE, nullptr, 0, MPI_LONG_DOUBLE, dst_rank, comm);
+        }
+        if (get_bget) {
+            const long double filled = calc(stats.bget);
+            MPI_Gather(&filled, 1, MPI_LONG_DOUBLE, nullptr, 0, MPI_LONG_DOUBLE, dst_rank, comm);
+        }
+        if (get_bgetop) {
+            const long double filled = calc(stats.bgetop);
+            MPI_Gather(&filled, 1, MPI_LONG_DOUBLE, nullptr, 0, MPI_LONG_DOUBLE, dst_rank, comm);
+        }
+        if (get_bdel) {
+            const long double filled = calc(stats.bdel);
+            MPI_Gather(&filled, 1, MPI_LONG_DOUBLE, nullptr, 0, MPI_LONG_DOUBLE, dst_rank, comm);
+        }
     }
 
-    return (hx->p->transport->GetMinFilled(hx->p->bootstrap.comm, hx->p->bootstrap.rank, dst_rank,
-                                               get_bput, bput,
-                                               get_bget, bget,
-                                               get_bgetop, bgetop,
-                                               get_bdel, bdel) == TRANSPORT_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
+    MPI_Barrier(comm);
+
+    return HXHIM_SUCCESS;
 }
 
 /**
- * hxhimTransportGetMinFilled
+ * GetMinFilled
+ * Collective operation
+ * Collects statistics from all ranks in the communicator
+ *
+ * @param comm        the MPI communicator
+ * @param dst_rank    the rank to send to
+ * @param get_bput    whether or not to get bput
+ * @param bput        the array of bput from each rank
+ * @param get_bget    whether or not to get bget
+ * @param bget        the array of bget from each rank
+ * @param get_bgetop  whether or not to get bgetop
+ * @param bgetop      the array of bgetop from each rank
+ * @param get_bdel    whether or not to get bdel
+ * @param bdel        the array of bdel from each rank
+ * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR on error
+ */
+int hxhim::GetMinFilled(hxhim_t *hx, const int dst_rank,
+                        const bool get_bput, long double *bput,
+                        const bool get_bget, long double *bget,
+                        const bool get_bgetop, long double *bgetop,
+                        const bool get_bdel, long double *bdel) {
+    auto min_filled = [](const hxhim_private_t::Stats::Op &op) -> long double {
+        std::lock_guard<std::mutex> lock(op.mutex);
+        long double min = op.filled.size()?LDBL_MAX:0;
+        for(REF(op.filled)::value_type const &filled : op.filled) {
+            min = std::min(min, filled.percent);
+        }
+
+        return min;
+    };
+
+    return GetFilled(hx->p->bootstrap.comm, hx->p->bootstrap.rank, dst_rank,
+                     get_bput, bput,
+                     get_bget, bget,
+                     get_bgetop, bgetop,
+                     get_bdel, bdel,
+                     hx->p->stats,
+                     min_filled);
+}
+
+/**
+ * hxhimGetMinFilled
  * Collective operation
  * Collects transport statistics from all ranks in the communicator
  *
@@ -1393,20 +1477,61 @@ int hxhim::GetTransportMinFilled(hxhim_t *hx, const int dst_rank,
  * @param bdel        the array of bdel from each rank
  * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR on error
  */
-int hxhimGetTransportMinFilled(hxhim_t *hx, const int dst_rank,
+int hxhimGetMinFilled(hxhim_t *hx, const int dst_rank,
                                const int get_bput, long double *bput,
                                const int get_bget, long double *bget,
                                const int get_bgetop, long double *bgetop,
                                const int get_bdel, long double *bdel) {
-    return hxhim::GetTransportMinFilled(hx, dst_rank,
-                                        get_bput, bput,
-                                        get_bget, bget,
-                                        get_bgetop, bgetop,
-                                        get_bdel, bdel);
+    return hxhim::GetMinFilled(hx, dst_rank,
+                               get_bput, bput,
+                               get_bget, bget,
+                               get_bgetop, bgetop,
+                               get_bdel, bdel);
 }
 
 /**
- * GetTransportAverageFilled
+ * GetAverageFilled
+ * Collective operation
+ * Collects statistics from all ranks in the communicator
+ *
+ * @param comm        the MPI communicator
+ * @param dst_rank    the rank to send to
+ * @param get_bput    whether or not to get bput
+ * @param bput        the array of bput from each rank
+ * @param get_bget    whether or not to get bget
+ * @param bget        the array of bget from each rank
+ * @param get_bgetop  whether or not to get bgetop
+ * @param bgetop      the array of bgetop from each rank
+ * @param get_bdel    whether or not to get bdel
+ * @param bdel        the array of bdel from each rank
+ * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR on error
+ */
+int hxhim::GetAverageFilled(hxhim_t *hx, const int dst_rank,
+                            const bool get_bput, long double *bput,
+                            const bool get_bget, long double *bget,
+                            const bool get_bgetop, long double *bgetop,
+                            const bool get_bdel, long double *bdel) {
+    auto average_filled = [](const hxhim_private_t::Stats::Op &op) -> long double {
+        std::lock_guard<std::mutex> lock(op.mutex);
+        long double sum = 0;
+        for(REF(op.filled)::value_type const &filled : op.filled) {
+            sum += filled.percent;
+        }
+
+        return op.filled.size()?(sum / op.filled.size()):0;
+    };
+
+    return GetFilled(hx->p->bootstrap.comm, hx->p->bootstrap.rank, dst_rank,
+                     get_bput, bput,
+                     get_bget, bget,
+                     get_bgetop, bgetop,
+                     get_bdel, bdel,
+                     hx->p->stats,
+                     average_filled);
+}
+
+/**
+ * hxhimGetAverageFilled
  * Collective operation
  * Collects transport statistics from all ranks in the communicator
  *
@@ -1423,24 +1548,61 @@ int hxhimGetTransportMinFilled(hxhim_t *hx, const int dst_rank,
  * @param bdel        the array of bdel from each rank
  * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR on error
  */
-int hxhim::GetTransportAverageFilled(hxhim_t *hx, const int dst_rank,
-                                     const bool get_bput, long double *bput,
-                                     const bool get_bget, long double *bget,
-                                     const bool get_bgetop, long double *bgetop,
-                                     const bool get_bdel, long double *bdel) {
-    if (!hxhim::valid(hx)) {
-        return HXHIM_ERROR;
-    }
-
-    return (hx->p->transport->GetAverageFilled(hx->p->bootstrap.comm, hx->p->bootstrap.rank, dst_rank,
-                                               get_bput, bput,
-                                               get_bget, bget,
-                                               get_bgetop, bgetop,
-                                               get_bdel, bdel) == TRANSPORT_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
+int hxhimGetAverageFilled(hxhim_t *hx, const int dst_rank,
+                          const int get_bput, long double *bput,
+                          const int get_bget, long double *bget,
+                          const int get_bgetop, long double *bgetop,
+                          const int get_bdel, long double *bdel) {
+    return hxhim::GetAverageFilled(hx, dst_rank,
+                                   get_bput, bput,
+                                   get_bget, bget,
+                                   get_bgetop, bgetop,
+                                   get_bdel, bdel);
 }
 
 /**
- * hxhimGetTransportAverageFilled
+ * GetMaxFilled
+ * Collective operation
+ * Collects statistics from all ranks in the communicator
+ *
+ * @param comm        the MPI communicator
+ * @param dst_rank    the rank to send to
+ * @param get_bput    whether or not to get bput
+ * @param bput        the array of bput from each rank
+ * @param get_bget    whether or not to get bget
+ * @param bget        the array of bget from each rank
+ * @param get_bgetop  whether or not to get bgetop
+ * @param bgetop      the array of bgetop from each rank
+ * @param get_bdel    whether or not to get bdel
+ * @param bdel        the array of bdel from each rank
+ * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR on error
+ */
+int hxhim::GetMaxFilled(hxhim_t *hx, const int dst_rank,
+                        const bool get_bput, long double *bput,
+                        const bool get_bget, long double *bget,
+                        const bool get_bgetop, long double *bgetop,
+                        const bool get_bdel, long double *bdel) {
+    auto max_filled = [](const hxhim_private_t::Stats::Op &op) -> long double {
+        std::lock_guard<std::mutex> lock(op.mutex);
+        long double max = 0;
+        for(REF(op.filled)::value_type const &filled : op.filled) {
+            max = std::max(max, filled.percent);
+        }
+
+        return max;
+    };
+
+    return GetFilled(hx->p->bootstrap.comm, hx->p->bootstrap.rank, dst_rank,
+                     get_bput, bput,
+                     get_bget, bget,
+                     get_bgetop, bgetop,
+                     get_bdel, bdel,
+                     hx->p->stats,
+                     max_filled);
+}
+
+/**
+ * hxhimGetMaxFilled
  * Collective operation
  * Collects transport statistics from all ranks in the communicator
  *
@@ -1457,78 +1619,14 @@ int hxhim::GetTransportAverageFilled(hxhim_t *hx, const int dst_rank,
  * @param bdel        the array of bdel from each rank
  * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR on error
  */
-int hxhimGetTransportAverageFilled(hxhim_t *hx, const int dst_rank,
-                                   const int get_bput, long double *bput,
-                                   const int get_bget, long double *bget,
-                                   const int get_bgetop, long double *bgetop,
-                                   const int get_bdel, long double *bdel) {
-    return hxhim::GetTransportAverageFilled(hx, dst_rank,
-                                            get_bput, bput,
-                                            get_bget, bget,
-                                            get_bgetop, bgetop,
-                                            get_bdel, bdel);
-}
-
-/**
- * GetTransportMaxFilled
- * Collective operation
- * Collects transport statistics from all ranks in the communicator
- *
- * @param comm        the MPI communicator
- * @param rank        the rank of this instance of Transport
- * @param dst_rank    the rank to send to
- * @param get_bput    whether or not to get bput
- * @param bput        the array of bput from each rank
- * @param get_bget    whether or not to get bget
- * @param bget        the array of bget from each rank
- * @param get_bgetop  whether or not to get bgetop
- * @param bgetop      the array of bgetop from each rank
- * @param get_bdel    whether or not to get bdel
- * @param bdel        the array of bdel from each rank
- * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR on error
- */
-int hxhim::GetTransportMaxFilled(hxhim_t *hx, const int dst_rank,
-                                 const bool get_bput, long double *bput,
-                                 const bool get_bget, long double *bget,
-                                 const bool get_bgetop, long double *bgetop,
-                                 const bool get_bdel, long double *bdel) {
-    if (!hxhim::valid(hx)) {
-        return HXHIM_ERROR;
-    }
-
-    return (hx->p->transport->GetMaxFilled(hx->p->bootstrap.comm, hx->p->bootstrap.rank, dst_rank,
-                                               get_bput, bput,
-                                               get_bget, bget,
-                                               get_bgetop, bgetop,
-                                               get_bdel, bdel) == TRANSPORT_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
-}
-
-/**
- * hxhimGetTransportMaxFilled
- * Collective operation
- * Collects transport statistics from all ranks in the communicator
- *
- * @param comm        the MPI communicator
- * @param rank        the rank of this instance of Transport
- * @param dst_rank    the rank to send to
- * @param get_bput    whether or not to get bput
- * @param bput        the array of bput from each rank
- * @param get_bget    whether or not to get bget
- * @param bget        the array of bget from each rank
- * @param get_bgetop  whether or not to get bgetop
- * @param bgetop      the array of bgetop from each rank
- * @param get_bdel    whether or not to get bdel
- * @param bdel        the array of bdel from each rank
- * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR on error
- */
-int hxhimGetTransportMaxFilled(hxhim_t *hx, const int dst_rank,
-                               const int get_bput, long double *bput,
-                               const int get_bget, long double *bget,
-                               const int get_bgetop, long double *bgetop,
-                               const int get_bdel, long double *bdel) {
-    return hxhim::GetTransportMaxFilled(hx, dst_rank,
-                                        get_bput, bput,
-                                        get_bget, bget,
-                                        get_bgetop, bgetop,
-                                        get_bdel, bdel);
+int hxhimGetMaxFilled(hxhim_t *hx, const int dst_rank,
+                      const int get_bput, long double *bput,
+                      const int get_bget, long double *bget,
+                      const int get_bgetop, long double *bgetop,
+                      const int get_bdel, long double *bdel) {
+    return hxhim::GetMaxFilled(hx, dst_rank,
+                               get_bput, bput,
+                               get_bget, bget,
+                               get_bgetop, bgetop,
+                               get_bdel, bdel);
 }

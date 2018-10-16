@@ -74,8 +74,8 @@ int hxhim_options_set_results_alloc_size(hxhim_options_t *opts, const size_t all
 int hxhim_options_set_results_regions(hxhim_options_t *opts, const size_t regions);
 
 int hxhim_options_set_maximum_queued_ops(hxhim_options_t *opts, const size_t count);
-int hxhim_options_set_maximum_ops_per_send(hxhim_options_t *opts, const size_t count);
 int hxhim_options_set_start_async_put_at(hxhim_options_t *opts, const size_t count);
+int hxhim_options_set_maximum_ops_per_send(hxhim_options_t *opts, const size_t count);
 
 int hxhim_options_set_histogram_first_n(hxhim_options_t *opts, const size_t count);
 int hxhim_options_set_histogram_bucket_gen_method(hxhim_options_t *opts, const char *method);

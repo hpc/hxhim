@@ -87,23 +87,23 @@ int hxhimGetStats(hxhim_t *hx, const int dst_rank,
 hxhim_results_t *hxhimGetHistogram(hxhim_t *hx, const int datastore);
 hxhim_results_t *hxhimBGetHistogram(hxhim_t *hx, const int *datastores, const size_t count);
 
-int hxhimGetTransportMinFilled(hxhim_t *hx, const int dst_rank,
-                               const int get_bput, long double *bput,
-                               const int get_bget, long double *bget,
-                               const int get_bgetop, long double *bgetop,
-                               const int get_bdel, long double *bdel);
+int hxhimGetMinFilled(hxhim_t *hx, const int dst_rank,
+                      const int get_bput, long double *bput,
+                      const int get_bget, long double *bget,
+                      const int get_bgetop, long double *bgetop,
+                      const int get_bdel, long double *bdel);
 
-int hxhimGetTransportAverageFilled(hxhim_t *hx, const int dst_rank,
-                                   const int get_bput, long double *bput,
-                                   const int get_bget, long double *bget,
-                                   const int get_bgetop, long double *bgetop,
-                                   const int get_bdel, long double *bdel);
+int hxhimGetAverageFilled(hxhim_t *hx, const int dst_rank,
+                          const int get_bput, long double *bput,
+                          const int get_bget, long double *bget,
+                          const int get_bgetop, long double *bgetop,
+                          const int get_bdel, long double *bdel);
 
-int hxhimGetTransportMaxFilled(hxhim_t *hx, const int dst_rank,
-                               const int get_bput, long double *bput,
-                               const int get_bget, long double *bget,
-                               const int get_bgetop, long double *bgetop,
-                               const int get_bdel, long double *bdel);
+int hxhimGetMaxFilled(hxhim_t *hx, const int dst_rank,
+                      const int get_bput, long double *bput,
+                      const int get_bget, long double *bget,
+                      const int get_bgetop, long double *bgetop,
+                      const int get_bdel, long double *bdel);
 
 #ifdef __cplusplus
 }

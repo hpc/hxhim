@@ -16,6 +16,7 @@
 #include "hxhim/struct.h"
 #include "transport/transport.hpp"
 #include "utils/FixedBufferPool.hpp"
+#include "utils/macros.hpp"
 
 /**
  * hxhim_private
@@ -100,6 +101,54 @@ typedef struct hxhim_private {
         FixedBufferPool *results;                              // should have enough space to allow for maximum number of valid results at once
     } memory_pools;
 
+    /** @decription Statistics for an instance of Transport */
+    struct Stats {
+        struct Op {
+            /** @description Statistics on percentage of each packet filled */
+            struct Filled {
+                Filled(const int dst, const long double percent)
+                    : dst(dst),
+                      percent(percent)
+                    {}
+
+                Filled(const Filled &filled)
+                    : dst(filled.dst),
+                      percent(filled.percent)
+                    {}
+
+                Filled(const Filled &&filled)
+                    : dst(std::move(filled.dst)),
+                      percent(std::move(filled.percent))
+                    {}
+
+                Filled &operator=(const Filled &filled) {
+                    dst = filled.dst;
+                    percent = filled.percent;
+                    return *this;
+                }
+
+                Filled &operator==(const Filled &&filled) {
+                    dst = std::move(filled.dst);
+                    percent = std::move(filled.percent);
+                    return *this;
+                }
+
+                int dst;
+                long double percent;
+            };
+
+            std::list<Filled> filled;
+            mutable std::mutex mutex;
+        };
+
+        Op bput;
+        Op bget;
+        Op bgetop;
+        Op bdel;
+    };
+
+    Stats stats;
+
 } hxhim_private_t;
 
 namespace hxhim {
@@ -129,6 +178,42 @@ int transport   (hxhim_t *hx);
 int hash        (hxhim_t *hx);
 int async_put   (hxhim_t *hx);
 int datastore   (hxhim_t *hx);
+}
+
+/**
+ * collect_fill_stats
+ * Collects statistics on how much of a bulk packet was used before being sent into the transport
+ *
+ * @tparam msg  a single message
+ * @param  op   the statistics structure for an operation (PUT, GET, GETOP, DEL)
+ */
+template <typename T, typename = std::enable_if<std::is_base_of<Transport::Bulk,             T>::value &&
+                                                std::is_base_of<Transport::Request::Request, T>::value> >
+void collect_fill_stats(T *msg, hxhim_private_t::Stats::Op &op) {
+    if (msg) {
+        // Collect packet filled percentage
+        std::lock_guard<std::mutex> lock(op.mutex);
+        op.filled.emplace_back(hxhim_private_t::Stats::Op::Filled(msg->dst, (double) msg->count / (double) msg->max_count));
+    }
+}
+
+/**
+ * collect_fill_stats
+ * Collects statistics on how much of a bulk packet was used before being sent into the transport
+ *
+ * @param msgs the list (really map) of messages
+ * @param op   the statistics structure for an operation (PUT, GET, GETOP, DEL)
+ */
+template <typename T, typename = std::enable_if<std::is_base_of<Transport::Bulk,             T>::value &&
+                                                std::is_base_of<Transport::Request::Request, T>::value> >
+void collect_fill_stats(const std::map<int, T *> &msgs, hxhim_private_t::Stats::Op &op) {
+    // Collect packet filled percentage
+    std::lock_guard<std::mutex> lock(op.mutex);
+    for(REF(msgs)::value_type const & msg : msgs) {
+        if (msg.second) {
+            op.filled.emplace_back(hxhim_private_t::Stats::Op::Filled(msg.first, (double) msg.second->count / (double) msg.second->max_count));
+        }
+    }
 }
 
 int PutImpl(hxhim_t *hx,

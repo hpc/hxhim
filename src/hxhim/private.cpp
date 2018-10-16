@@ -178,6 +178,7 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *&head) {
         // PUT the batch
         if (remote.size()) {
             mlog(HXHIM_CLIENT_DBG, "Start remote PUTs");
+            hxhim::collect_fill_stats(remote, hx->p->stats.bput);
             Transport::Response::BPut *responses = hx->p->transport->BPut(remote);
             for(Transport::Response::BPut *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
@@ -194,6 +195,7 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *&head) {
 
         if (local.count) {
             mlog(HXHIM_CLIENT_DBG, "Start local PUTs");
+            hxhim::collect_fill_stats(&local, hx->p->stats.bput);
             Transport::Response::BPut *responses = local_client_bput(hx, &local);
             for(Transport::Response::BPut *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
@@ -393,7 +395,7 @@ int hxhim::init::memory(hxhim_t *hx, hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
-    mlog(HXHIM_CLIENT_CRIT, "Preallocated %zu bytes of memory for HXHIM",
+    mlog(HXHIM_CLIENT_INFO, "Preallocated %zu bytes of memory for HXHIM",
          hx->p->memory_pools.keys->size()      +
          hx->p->memory_pools.buffers->size()   +
          hx->p->memory_pools.ops_cache->size() +

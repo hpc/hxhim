@@ -74,10 +74,10 @@ int main(int argc, char *argv[]) {
         long double *avg_bput  = calloc(size, sizeof(long double));
         long double *max_bput  = calloc(size, sizeof(long double));
 
-        hxhimGetStats                 (&hx, 0, 1, put_times, 1, num_puts, 0, NULL, 0, NULL);
-        hxhimGetTransportMinFilled    (&hx, 0, 1, min_bput,  0, NULL,     0, NULL, 0, NULL);
-        hxhimGetTransportAverageFilled(&hx, 0, 1, avg_bput,  0, NULL,     0, NULL, 0, NULL);
-        hxhimGetTransportMaxFilled    (&hx, 0, 1, max_bput,  0, NULL,     0, NULL, 0, NULL);
+        hxhimGetStats        (&hx, 0, 1, put_times, 1, num_puts, 0, NULL, 0, NULL);
+        hxhimGetMinFilled    (&hx, 0, 1, min_bput,  0, NULL,     0, NULL, 0, NULL);
+        hxhimGetAverageFilled(&hx, 0, 1, avg_bput,  0, NULL,     0, NULL, 0, NULL);
+        hxhimGetMaxFilled    (&hx, 0, 1, max_bput,  0, NULL,     0, NULL, 0, NULL);
 
         size_t num_srvs        = 0;   // the number of server that actually did PUTs
         size_t total_puts      = 0;   // total number of PUTs across all ranks
@@ -109,16 +109,16 @@ int main(int argc, char *argv[]) {
 
         printf("Total:   %zu PUTs\n", total_puts);
         printf("Average: %Lf PUTs/sec\n", put_rates);
-        printf("Number of server that did work: %zu\n", num_srvs);
-        printf("BPUT Minimum Filled: %.2Lf%%\n", min_filled * 100 / num_srvs);
-        printf("BPUT Average Filled: %.2Lf%%\n", avg_filled * 100 / num_srvs);
-        printf("BPUT Maximum Filled: %.2Lf%%\n", max_filled * 100 / num_srvs);
+        printf("Number of servers that did work: %zu\n", num_srvs);
+        printf("BPUT Average Minimum Filled: %.2Lf%%\n", min_filled * 100 / num_srvs);
+        printf("BPUT Average Average Filled: %.2Lf%%\n", avg_filled * 100 / num_srvs);
+        printf("BPUT Average Maximum Filled: %.2Lf%%\n", max_filled * 100 / num_srvs);
     }
     else {
-        hxhimGetStats                 (&hx, 0, 1, NULL, 1, NULL, 0, NULL, 0, NULL);
-        hxhimGetTransportMinFilled    (&hx, 0, 1, NULL, 0, NULL, 0, NULL, 0, NULL);
-        hxhimGetTransportAverageFilled(&hx, 0, 1, NULL, 0, NULL, 0, NULL, 0, NULL);
-        hxhimGetTransportMaxFilled    (&hx, 0, 1, NULL, 0, NULL, 0, NULL, 0, NULL);
+        hxhimGetStats        (&hx, 0, 1, NULL, 1, NULL, 0, NULL, 0, NULL);
+        hxhimGetMinFilled    (&hx, 0, 1, NULL, 0, NULL, 0, NULL, 0, NULL);
+        hxhimGetAverageFilled(&hx, 0, 1, NULL, 0, NULL, 0, NULL, 0, NULL);
+        hxhimGetMaxFilled    (&hx, 0, 1, NULL, 0, NULL, 0, NULL, 0, NULL);
     }
 
     hxhimClose(&hx);

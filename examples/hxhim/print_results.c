@@ -23,6 +23,10 @@ static void print_by_type(enum hxhim_type_t type, void *value, size_t value_len)
         case HXHIM_BYTE_TYPE:
             printf("%.*s", (int) value_len, (char *) value);
             break;
+        case HXHIM_INVALID_TYPE:
+        default:
+            printf("Invalid Type (%zu bytes)", value_len);
+            break;
     }
 }
 

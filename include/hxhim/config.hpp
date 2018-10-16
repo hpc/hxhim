@@ -72,10 +72,9 @@ const std::string RESULTS_NAME                = "RESULTS_NAME";              // 
 const std::string RESULTS_ALLOC_SIZE          = "RESULTS_ALLOC_SIZE";        // positive integer
 const std::string RESULTS_REGIONS             = "RESULTS_REGIONS";           // positive integer
 
-const std::string MAXIMUM_OPS_PER_SEND        = "MAXIMUM_OPS_PER_SEND";      // positive integer
-
 /** Asynchronous PUT Settings */
 const std::string START_ASYNC_PUT_AT          = "START_ASYNC_PUT_AT";        // nonnegative integer
+const std::string MAXIMUM_OPS_PER_SEND        = "MAXIMUM_OPS_PER_SEND";      // positive integer
 
 /** Histogram Options */
 const std::string HISTOGRAM_FIRST_N           = "HISTOGRAM_FIRST_N";         // unsigned int
@@ -183,8 +182,8 @@ const Config DEFAULT_CONFIG = {
     std::make_pair(RESPONSES_NAME,                "Responses"),
     std::make_pair(RESULT_NAME,                   "Result"),
     std::make_pair(RESULTS_NAME,                  "Results"),
-    std::make_pair(MAXIMUM_OPS_PER_SEND,          "128"),
     std::make_pair(START_ASYNC_PUT_AT,            "256"),
+    std::make_pair(MAXIMUM_OPS_PER_SEND,          "128"),
     std::make_pair(HISTOGRAM_FIRST_N,             "10"),
     std::make_pair(HISTOGRAM_BUCKET_GEN_METHOD,   "10_BUCKETS"),
 };

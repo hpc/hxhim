@@ -647,24 +647,6 @@ int hxhim_options_set_results_regions(hxhim_options_t *opts, const size_t region
 }
 
 /**
- * hxhim_options_set_maximum_ops_per_send
- * Set the number of operations to queue up before flushing in the background thread
- *
- * @param opts  the set of options to be modified
- * @param count the number of PUTs
- * @return HXHIM_SUCCESS or HXHIM_ERROR
- */
-int hxhim_options_set_maximum_ops_per_send(hxhim_options_t *opts, const std::size_t count) {
-    if (!valid_opts(opts)) {
-        return HXHIM_ERROR;
-    }
-
-    opts->p->max_ops_per_send = count;
-
-    return HXHIM_SUCCESS;
-}
-
-/**
  * hxhim_options_set_start_async_put_at
  * Set the number of bulk PUTs to queue up before flushing in the background thread
  *
@@ -678,6 +660,24 @@ int hxhim_options_set_start_async_put_at(hxhim_options_t *opts, const std::size_
     }
 
     opts->p->start_async_put_at = count;
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * hxhim_options_set_maximum_ops_per_send
+ * Set the number of operations to queue up before flushing in the background thread
+ *
+ * @param opts  the set of options to be modified
+ * @param count the number of PUTs
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim_options_set_maximum_ops_per_send(hxhim_options_t *opts, const std::size_t count) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->max_ops_per_send = count;
 
     return HXHIM_SUCCESS;
 }
