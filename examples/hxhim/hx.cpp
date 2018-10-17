@@ -14,35 +14,29 @@ static void print_results(const int rank, hxhim::Results *results) {
     for(results->GoToHead(); results->Valid(); results->GoToNext()) {
         std::cout << "Rank " << rank << " ";
         hxhim::Results::Result *curr = results->Curr();
-        switch (curr->GetType()) {
+        switch (curr->type) {
             case HXHIM_RESULT_PUT:
-                std::cout << "PUT returned " << ((curr->GetStatus() == HXHIM_SUCCESS)?std::string("SUCCESS"):std::string("ERROR")) << " from datastore " << curr->GetDatastore() << std::endl;
+                std::cout << "PUT returned " << ((curr->status == HXHIM_SUCCESS)?std::string("SUCCESS"):std::string("ERROR")) << " from datastore " << curr->datastore << std::endl;
                 break;
             case HXHIM_RESULT_GET:
                 std::cout << "GET returned ";
-                if (curr->GetStatus() == HXHIM_SUCCESS) {
+                if (curr->status == HXHIM_SUCCESS) {
                     hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(curr);
-                    void *subject; std::size_t subject_len;
-                    void *predicate; std::size_t predicate_len;
-                    void *object; std::size_t object_len;
-                    get->GetSubject(&subject, &subject_len);
-                    get->GetPredicate(&predicate, &predicate_len);
-                    get->GetObject(&object, &object_len);
-                   std::cout << "{" << std::string((char *) subject, subject_len)
-                              << ", " << std::string((char *) predicate, predicate_len)
-                              << "} -> " << std::string((char *) object, object_len);
+                    std::cout << "{" << std::string((char *) get->subject, get->subject_len)
+                              << ", " << std::string((char *) get->predicate, get->predicate_len)
+                              << "} -> " << std::string((char *) get->object, get->object_len);
                 }
                 else {
                     std::cout << "ERROR";
                 }
 
-                std::cout << " from datastore " << curr->GetDatastore() << std::endl;
+                std::cout << " from datastore " << curr->datastore << std::endl;
                 break;
             case HXHIM_RESULT_DEL:
-                std::cout << "DEL returned " << ((curr->GetStatus() == HXHIM_SUCCESS)?std::string("SUCCESS"):std::string("ERROR")) << " from datastore " << curr->GetDatastore() << std::endl;
+                std::cout << "DEL returned " << ((curr->status == HXHIM_SUCCESS)?std::string("SUCCESS"):std::string("ERROR")) << " from datastore " << curr->datastore << std::endl;
                 break;
             default:
-                std::cout << "Bad type: " << curr->GetType() << std::endl;
+                std::cout << "Bad type: " << curr->type << std::endl;
                 break;
         }
     }

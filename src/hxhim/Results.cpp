@@ -9,251 +9,208 @@
 
 namespace hxhim {
 
-Results::Result::Result(hxhim_result_type t, FixedBufferPool *buffers)
-    : type(t),
-      buffers(buffers)
-{}
-
 Results::Result::~Result() {}
 
-hxhim_result_type_t Results::Result::GetType() const {
-    return type;
+void Result::destroy(hxhim_t *hx, Results::Result *res) {
+    hx->p->memory_pools.result->release(res);
 }
 
-int Results::Result::GetDatastore() const {
-    return datastore;
-}
-
-int Results::Result::GetStatus() const {
-    return status;
-}
-
-Results::Put::Put(hxhim_t *hx, Transport::Response::Put *put)
-    : Result(hxhim_result_type::HXHIM_RESULT_PUT, hx->p->memory_pools.buffers)
-{
-    if (put) {
-        datastore = hxhim::datastore::get_id(hx, put->src, put->ds_offset);
-        status = put->status;
-    }
-}
-
-Results::Put::Put(hxhim_t *hx, Transport::Response::BPut *bput, const std::size_t i)
-    : Result(hxhim_result_type::HXHIM_RESULT_PUT, hx->p->memory_pools.buffers)
-{
-    if (bput && (i < bput->count)) {
-        datastore = hxhim::datastore::get_id(hx, bput->src, bput->ds_offsets[i]);
-        status = bput->statuses[i];
-    }
-}
-
-Results::Put::~Put() {}
-
-Results::Get::Get(hxhim_t *hx, const bool clean)
-    : Result(HXHIM_RESULT_GET, hx->p->memory_pools.buffers),
-      clean(clean),
-      sub(nullptr), sub_len(0),
-      pred(nullptr), pred_len(0),
-      obj_type(), obj(nullptr), obj_len(0)
-{}
-
-Results::Get::Get(hxhim_t *hx, Transport::Response::Get *get, const bool clean)
-    : Get(hx, clean)
-{
-    if (get) {
-        datastore = hxhim::datastore::get_id(hx, get->src, get->ds_offset);
-        status = get->status;
-        sub = get->subject;
-        get->subject = nullptr;
-        sub_len = get->subject_len;
-        pred = get->predicate;
-        get->predicate = nullptr;
-        pred_len = get->predicate_len;
-        obj_type = get->object_type;
-        obj = get->object;
-        get->object = nullptr;
-        obj_len = get->object_len;
-    }
-}
-
-Results::Get::Get(hxhim_t *hx, Transport::Response::BGet *bget, const std::size_t i, const bool clean)
-    : Get(hx, clean)
-{
-    if (bget && (i < bget->count)) {
-        datastore = hxhim::datastore::get_id(hx, bget->src, bget->ds_offsets[i]);
-        status = bget->statuses[i];
-        sub = std::move(bget->subjects[i]);
-        bget->subjects[i] = nullptr;
-        sub_len = std::move(bget->subject_lens[i]);
-        pred = std::move(bget->predicates[i]);
-        bget->predicates[i] = nullptr;
-        pred_len = std::move(bget->predicate_lens[i]);
-        obj_type = std::move(bget->object_types[i]);
-        obj = std::move(bget->objects[i]);
-        bget->objects[i] = nullptr;
-        obj_len = std::move(bget->object_lens[i]);
-    }
-}
-
-Results::Get::Get(hxhim_t *hx, Transport::Response::BGetOp *bgetop, const std::size_t i, const bool clean)
-    : Get(hx, clean)
-{
-    if (bgetop && (i < bgetop->count)) {
-        datastore = hxhim::datastore::get_id(hx, bgetop->src, bgetop->ds_offsets[i]);
-        status = bgetop->statuses[i];
-        sub = std::move(bgetop->subjects[i]);
-        bgetop->subjects[i] = nullptr;
-        sub_len = std::move(bgetop->subject_lens[i]);
-        pred = std::move(bgetop->predicates[i]);
-        bgetop->predicates[i] = nullptr;
-        pred_len = std::move(bgetop->predicate_lens[i]);
-        obj_type = std::move(bgetop->object_types[i]);
-        obj = std::move(bgetop->objects[i]);
-        bgetop->objects[i] = nullptr;
-        obj_len = std::move(bgetop->object_lens[i]);
-    }
-}
-
-Results::Get::~Get() {
-    if (clean) {
-        buffers->release(sub, sub_len);
-        buffers->release(pred, pred_len);
-        buffers->release(obj, obj_len);
-    }
-}
-
-hxhim_type_t Results::Get::GetObjectType() const {
-    return obj_type;
-}
-
-int Results::Get::GetSubject(void **subject, std::size_t *subject_len) const {
-    if (subject) {
-        *subject = sub;
+Results::Put *Result::init(hxhim_t *hx, Transport::Response::Put *put) {
+    if (!valid(hx) || !put) {
+        return nullptr;
     }
 
-    if (subject_len) {
-        *subject_len = sub_len;
-    }
-
-    return HXHIM_SUCCESS;
+    Results::Put *out = hx->p->memory_pools.result->acquire<Results::Put>();
+    out->type = hxhim_result_type::HXHIM_RESULT_PUT;
+    out->buffers = hx->p->memory_pools.buffers;
+    out->datastore = hxhim::datastore::get_id(hx, put->src, put->ds_offset);
+    out->status = put->status;
+    return out;
 }
 
-int Results::Get::GetPredicate(void **predicate, std::size_t *predicate_len) const {
-    if (predicate) {
-        *predicate = pred;
+Results::Put *Result::init(hxhim_t *hx, Transport::Response::BPut *bput, const std::size_t i) {
+    if (!valid(hx) || !bput || (i >= bput->count)) {
+        return nullptr;
     }
 
-    if (predicate_len) {
-        *predicate_len = pred_len;
-    }
-
-    return HXHIM_SUCCESS;
+    Results::Put *out = hx->p->memory_pools.result->acquire<Results::Put>();
+    out->type = hxhim_result_type::HXHIM_RESULT_PUT;
+    out->buffers = hx->p->memory_pools.buffers;
+    out->datastore = hxhim::datastore::get_id(hx, bput->src, bput->ds_offsets[i]);
+    out->status = bput->statuses[i];
+    return out;
 }
 
-int Results::Get::GetObject(void **object, std::size_t *object_len) const {
-    if (object) {
-        *object = obj;
-    }
-
-    if (object_len) {
-        *object_len = obj_len;
-    }
-
-    return HXHIM_SUCCESS;
+void Result::destroy(hxhim_t *hx, Results::Put *put) {
+    hx->p->memory_pools.result->release(put);
 }
 
-Results::Delete::Delete(hxhim_t *hx, Transport::Response::Delete *del)
-    : Result(hxhim_result_type::HXHIM_RESULT_DEL, hx->p->memory_pools.buffers)
-{
-    if (del) {
-        datastore = hxhim::datastore::get_id(hx, del->src, del->ds_offset);
-        status = del->status;
-    }
-}
-
-Results::Delete::Delete(hxhim_t *hx, Transport::Response::BDelete *bdel, const std::size_t i)
-    : Result(hxhim_result_type::HXHIM_RESULT_DEL, hx->p->memory_pools.buffers)
-{
-    if (bdel && (i < bdel->count)) {
-        datastore = hxhim::datastore::get_id(hx, bdel->src, bdel->ds_offsets[i]);
-        status = bdel->statuses[i];
-    }
-}
-
-Results::Delete::~Delete() {}
-
-Results::Sync::Sync(hxhim_t *hx, const int ds_offset, const int synced)
-    : Result(hxhim_result_type::HXHIM_RESULT_SYNC, hx->p->memory_pools.buffers)
-{
-    datastore = hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, ds_offset);
-    status = synced;
-}
-
-Results::Sync::~Sync() {}
-
-Results::Histogram::Histogram(hxhim_t *hx, Transport::Response::Histogram *hist)
-    : Result(hxhim_result_type::HXHIM_RESULT_HISTOGRAM, hx->p->memory_pools.buffers),
-      buckets(nullptr),
-      counts(nullptr),
-      size(0)
-{
-    if (hist) {
-        datastore = hxhim::datastore::get_id(hx, hist->src, hist->ds_offset);
-        buckets = hist->hist.buckets;
-        hist->hist.buckets = nullptr;
-        counts = hist->hist.counts;
-        hist->hist.counts = nullptr;
-        size = hist->hist.size;
-        hist->hist.size = 0;
-
-        status = hist->status;
-    }
-}
-
-Results::Histogram::Histogram(hxhim_t *hx, Transport::Response::BHistogram *bhist, const std::size_t i)
-    : Result(hxhim_result_type::HXHIM_RESULT_HISTOGRAM, hx->p->memory_pools.buffers),
-      buckets(nullptr),
-      counts(nullptr),
-      size(0)
-{
-    if (bhist && (i < bhist->count)) {
-        datastore = hxhim::datastore::get_id(hx, bhist->src, bhist->ds_offsets[i]);
-        buckets = bhist->hists[i].buckets;
-        counts = bhist->hists[i].counts;
-        size = bhist->hists[i].size;
-        status = bhist->statuses[i];
-    }
-}
-
-Results::Histogram::~Histogram() {}
-
-int Results::Histogram::GetBuckets(double **b) const {
-    if (!b) {
-        return HXHIM_ERROR;
+Results::Get *Result::init(hxhim_t *hx, Transport::Response::Get *get, const bool clean) {
+    if (!valid(hx) || !get) {
+        return nullptr;
     }
 
-    *b = buckets;
-
-    return HXHIM_SUCCESS;
+    Results::Get *out = hx->p->memory_pools.result->acquire<Results::Get>();
+    out->type = hxhim_result_type::HXHIM_RESULT_GET;
+    out->buffers = hx->p->memory_pools.buffers;
+    out->clean = clean;
+    out->datastore = hxhim::datastore::get_id(hx, get->src, get->ds_offset);
+    out->status = get->status;
+    out->subject = get->subject;
+    get->subject = nullptr;
+    out->subject_len = get->subject_len;
+    out->predicate = get->predicate;
+    get->predicate = nullptr;
+    out->predicate_len = get->predicate_len;
+    out->object_type = get->object_type;
+    out->object = get->object;
+    get->object = nullptr;
+    out->object_len = get->object_len;
+    return out;
 }
 
-int Results::Histogram::GetCounts(std::size_t **c) const {
-    if (!c) {
-        return HXHIM_ERROR;
+Results::Get *Result::init(hxhim_t *hx, Transport::Response::BGet *bget, const std::size_t i, const bool clean) {
+    if (!valid(hx) || !bget || (i >= bget->count)) {
+        return nullptr;
     }
 
-    *c = counts;
-
-    return HXHIM_SUCCESS;
+    Results::Get *out = hx->p->memory_pools.result->acquire<Results::Get>();
+    out->type = hxhim_result_type::HXHIM_RESULT_GET;
+    out->buffers = hx->p->memory_pools.buffers;
+    out->clean = clean;
+    out->datastore = hxhim::datastore::get_id(hx, bget->src, bget->ds_offsets[i]);
+    out->status = bget->statuses[i];
+    out->subject = std::move(bget->subjects[i]);
+    bget->subjects[i] = nullptr;
+    out->subject_len = std::move(bget->subject_lens[i]);
+    out->predicate = std::move(bget->predicates[i]);
+    bget->predicates[i] = nullptr;
+    out->predicate_len = std::move(bget->predicate_lens[i]);
+    out->object_type = std::move(bget->object_types[i]);
+    out->object = std::move(bget->objects[i]);
+    bget->objects[i] = nullptr;
+    out->object_len = std::move(bget->object_lens[i]);
+    return out;
 }
 
-int Results::Histogram::GetSize(std::size_t *s) const {
-    if (!s) {
-        return HXHIM_ERROR;
+Results::Get *Result::init(hxhim_t *hx, Transport::Response::BGetOp *bgetop, const std::size_t i, const bool clean) {
+    if (!valid(hx) || !bgetop || (i >= bgetop->count)) {
+        return nullptr;
     }
 
-    *s = size;
+    Results::Get *out = hx->p->memory_pools.result->acquire<Results::Get>();
+    out->type = hxhim_result_type::HXHIM_RESULT_GET;
+    out->buffers = hx->p->memory_pools.buffers;
+    out->clean = clean;
+    out->datastore = hxhim::datastore::get_id(hx, bgetop->src, bgetop->ds_offsets[i]);
+    out->status = bgetop->statuses[i];
+    out->subject = std::move(bgetop->subjects[i]);
+    bgetop->subjects[i] = nullptr;
+    out->subject_len = std::move(bgetop->subject_lens[i]);
+    out->predicate = std::move(bgetop->predicates[i]);
+    bgetop->predicates[i] = nullptr;
+    out->predicate_len = std::move(bgetop->predicate_lens[i]);
+    out->object_type = std::move(bgetop->object_types[i]);
+    out->object = std::move(bgetop->objects[i]);
+    bgetop->objects[i] = nullptr;
+    out->object_len = std::move(bgetop->object_lens[i]);
+    return out;
+}
 
-    return HXHIM_SUCCESS;
+void Result::destroy(hxhim_t *hx, Results::Get *get) {
+    if (get && get->clean) {
+        get->buffers->release(get->subject, get->subject_len);
+        get->buffers->release(get->predicate, get->predicate_len);
+        get->buffers->release(get->object, get->object_len);
+    }
+
+    hx->p->memory_pools.result->release(get);
+}
+
+Results::Delete *Result::init(hxhim_t *hx, Transport::Response::Delete *del) {
+    if (!valid(hx) || !del) {
+        return nullptr;
+    }
+
+    Results::Delete *out = hx->p->memory_pools.result->acquire<Results::Delete>();
+    out->type = hxhim_result_type::HXHIM_RESULT_DEL;
+    out->buffers = hx->p->memory_pools.buffers;
+    out->datastore = hxhim::datastore::get_id(hx, del->src, del->ds_offset);
+    out->status = del->status;
+    return out;
+}
+
+Results::Delete *Result::init(hxhim_t *hx, Transport::Response::BDelete *bdel, const std::size_t i) {
+    if (!valid(hx) || !bdel || (i >= bdel->count)) {
+        return nullptr;
+    }
+
+    Results::Delete *out = hx->p->memory_pools.result->acquire<Results::Delete>();
+    out->type = hxhim_result_type::HXHIM_RESULT_DEL;
+    out->buffers = hx->p->memory_pools.buffers;
+    out->datastore = hxhim::datastore::get_id(hx, bdel->src, bdel->ds_offsets[i]);
+    out->status = bdel->statuses[i];
+    return out;
+}
+
+void Result::destroy(hxhim_t *hx, Results::Delete *del) {
+    hx->p->memory_pools.result->release(del);
+}
+
+Results::Sync *Result::init(hxhim_t *hx, const int ds_offset, const int synced) {
+    if (!valid(hx)) {
+        return nullptr;
+    }
+
+    Results::Sync *out = hx->p->memory_pools.result->acquire<Results::Sync>();
+    out->type = hxhim_result_type::HXHIM_RESULT_SYNC;
+    out->buffers = hx->p->memory_pools.buffers;
+    out->datastore = hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, ds_offset);
+    out->status = synced;
+    return out;
+}
+
+void Result::destroy(hxhim_t *hx, Results::Sync *sync) {
+    hx->p->memory_pools.result->release(sync);
+}
+
+Results::Histogram *Result::init(hxhim_t *hx, Transport::Response::Histogram *hist) {
+    if (!valid(hx) || !hist) {
+        return nullptr;
+    }
+
+    Results::Histogram *out = hx->p->memory_pools.result->acquire<Results::Histogram>();
+    out->type = hxhim_result_type::HXHIM_RESULT_HISTOGRAM;
+    out->buffers = hx->p->memory_pools.buffers;
+    out->datastore = hxhim::datastore::get_id(hx, hist->src, hist->ds_offset);
+    out->buckets = hist->hist.buckets;
+    hist->hist.buckets = nullptr;
+    out->counts = hist->hist.counts;
+    hist->hist.counts = nullptr;
+    out->size = hist->hist.size;
+    hist->hist.size = 0;
+    out->status = hist->status;
+    return out;
+}
+
+Results::Histogram *Result::init(hxhim_t *hx, Transport::Response::BHistogram *bhist, const std::size_t i) {
+    if (!valid(hx) || !bhist || (i >= bhist->count)) {
+        return nullptr;
+    }
+
+    Results::Histogram *out = hx->p->memory_pools.result->acquire<Results::Histogram>();
+    out->type = hxhim_result_type::HXHIM_RESULT_HISTOGRAM;
+    out->buffers = hx->p->memory_pools.buffers;
+    out->datastore = hxhim::datastore::get_id(hx, bhist->src, bhist->ds_offsets[i]);
+    out->buckets = bhist->hists[i].buckets;
+    out->counts = bhist->hists[i].counts;
+    out->size = bhist->hists[i].size;
+    out->status = bhist->statuses[i];
+    return out;
+}
+
+void Result::destroy(hxhim_t *hx, Results::Histogram *hist) {
+    hx->p->memory_pools.result->release(hist);
 }
 
 Results::Results(hxhim_t *hx)
@@ -266,24 +223,24 @@ Results::~Results() {
     curr = results.end();
 
     for(Result *res : results) {
-        switch (res->GetType()) {
+        switch (res->type) {
             case HXHIM_RESULT_PUT:
-                hx->p->memory_pools.result->release(static_cast<Put *>(res));
+                hxhim::Result::destroy(hx, static_cast<Put *>(res));
                 break;
             case HXHIM_RESULT_GET:
-                hx->p->memory_pools.result->release(static_cast<Get *>(res));
+                hxhim::Result::destroy(hx, static_cast<Get *>(res));
                 break;
             case HXHIM_RESULT_DEL:
-                hx->p->memory_pools.result->release(static_cast<Delete *>(res));
+                hxhim::Result::destroy(hx, static_cast<Delete *>(res));
                 break;
             case HXHIM_RESULT_SYNC:
-                hx->p->memory_pools.result->release(static_cast<Sync *>(res));
+                hxhim::Result::destroy(hx, static_cast<Sync *>(res));
                 break;
             case HXHIM_RESULT_HISTOGRAM:
-                hx->p->memory_pools.result->release(static_cast<Histogram *>(res));
+                hxhim::Result::destroy(hx, static_cast<Histogram *>(res));
                 break;
             default:
-                hx->p->memory_pools.result->release(res);
+                hxhim::Result::destroy(hx, res);
                 break;
         }
     }
@@ -468,7 +425,7 @@ int hxhim_results_type(hxhim_results_t *res, enum hxhim_result_type *type) {
     }
 
     if (type) {
-        *type = curr->GetType();
+        *type = curr->type;
     }
 
     return HXHIM_SUCCESS;
@@ -493,7 +450,7 @@ int hxhim_results_error(hxhim_results_t *res, int *error) {
     }
 
     if (error) {
-        *error = curr->GetStatus();
+        *error = curr->status;
     }
 
     return HXHIM_SUCCESS;
@@ -518,7 +475,7 @@ int hxhim_results_datastore(hxhim_results_t *res, int *datastore) {
     }
 
     if (datastore) {
-        *datastore = curr->GetDatastore();
+        *datastore = curr->datastore;
     }
 
     return HXHIM_SUCCESS;
@@ -538,9 +495,9 @@ int hxhim_results_get_object_type(hxhim_results_t *res, hxhim_type_t *object_typ
     }
 
     hxhim::Results::Result *curr = res->res->Curr();
-    if (curr->GetType() == hxhim_result_type::HXHIM_RESULT_GET) {
+    if (curr->type == hxhim_result_type::HXHIM_RESULT_GET) {
         if (object_type) {
-            *object_type = static_cast<hxhim::Results::Get *>(curr)->GetObjectType();
+            *object_type = static_cast<hxhim::Results::Get *>(curr)->object_type;
             return HXHIM_SUCCESS;
         }
     }
@@ -563,8 +520,15 @@ int hxhim_results_get_subject(hxhim_results_t *res, void **subject, std::size_t 
     }
 
     hxhim::Results::Result *curr = res->res->Curr();
-    if (curr->GetType() == hxhim_result_type::HXHIM_RESULT_GET) {
-        return static_cast<hxhim::Results::Get *>(curr)->GetSubject(subject, subject_len);
+    if (curr->type == hxhim_result_type::HXHIM_RESULT_GET) {
+        hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(curr);
+        if (subject) {
+            *subject = get->subject;
+        }
+
+        if (subject_len) {
+            *subject_len = get->subject_len;
+        }
     }
 
     return HXHIM_ERROR;
@@ -585,8 +549,15 @@ int hxhim_results_get_predicate(hxhim_results_t *res, void **predicate, std::siz
     }
 
     hxhim::Results::Result *curr = res->res->Curr();
-    if (curr->GetType() == hxhim_result_type::HXHIM_RESULT_GET) {
-        return static_cast<hxhim::Results::Get *>(curr)->GetPredicate(predicate, predicate_len);
+    if (curr->type == hxhim_result_type::HXHIM_RESULT_GET) {
+        hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(curr);
+        if (predicate) {
+            *predicate = get->predicate;
+        }
+
+        if (predicate_len) {
+            *predicate_len = get->predicate_len;
+        }
     }
 
     return HXHIM_ERROR;
@@ -607,8 +578,15 @@ int hxhim_results_get_object(hxhim_results_t *res, void **object, std::size_t *o
     }
 
     hxhim::Results::Result *curr = res->res->Curr();
-    if (curr->GetType() == hxhim_result_type::HXHIM_RESULT_GET) {
-        return static_cast<hxhim::Results::Get *>(curr)->GetObject(object, object_len);
+    if (curr->type == hxhim_result_type::HXHIM_RESULT_GET) {
+        hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(curr);
+        if (object) {
+            *object = get->object;
+        }
+
+        if (object_len) {
+            *object_len = get->object_len;
+        }
     }
 
     return HXHIM_ERROR;

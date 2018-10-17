@@ -9,21 +9,21 @@
 #include "utils/FixedBufferPool.hpp"
 
 struct TestPut : hxhim::Results::Result {
-    TestPut()
-        : Result(HXHIM_RESULT_PUT, nullptr)
-    {}
+    TestPut() {
+        type = HXHIM_RESULT_PUT;
+    }
 };
 
 struct TestGet : hxhim::Results::Result {
-    TestGet()
-        : Result(HXHIM_RESULT_GET, nullptr)
-    {}
+    TestGet() {
+        type = HXHIM_RESULT_GET;
+    }
 };
 
 struct TestDelete : hxhim::Results::Result {
-    TestDelete()
-        : Result(HXHIM_RESULT_DEL, nullptr)
-    {}
+    TestDelete() {
+        type = HXHIM_RESULT_DEL;
+    }
 };
 
 TEST(Results, PUT_GET_DEL) {
@@ -88,7 +88,7 @@ TEST(Results, Loop) {
         // check the data
         std::size_t count = 0;
         for(results.GoToHead(); results.Valid(); results.GoToNext()) {
-            EXPECT_EQ(results.Curr()->GetType(), HXHIM_RESULT_PUT);
+            EXPECT_EQ(results.Curr()->type, HXHIM_RESULT_PUT);
             count++;
         }
 

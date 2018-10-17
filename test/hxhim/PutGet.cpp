@@ -1,5 +1,4 @@
 #include <cstdlib>
-#include <ctime>
 
 #include <gtest/gtest.h>
 
@@ -12,8 +11,6 @@ typedef uint64_t Predicate_t;
 typedef double   Object_t;
 
 TEST(hxhim, PutGet) {
-    srand(time(NULL));
-
     const Subject_t SUBJECT     = (((Subject_t) rand()) << 32) | rand();
     const Predicate_t PREDICATE = (((Predicate_t) rand()) << 32) | rand();
     const Object_t OBJECT       = (((Object_t) SUBJECT) * ((Object_t) SUBJECT)) / (((Object_t) PREDICATE) * ((Object_t) PREDICATE));
@@ -41,8 +38,8 @@ TEST(hxhim, PutGet) {
         hxhim::Results::Result *res = put_results->Curr();
         ASSERT_NE(res, nullptr);
 
-        EXPECT_EQ(res->GetStatus(), HXHIM_SUCCESS);
-        EXPECT_EQ(res->GetType(), HXHIM_RESULT_PUT);
+        EXPECT_EQ(res->status, HXHIM_SUCCESS);
+        EXPECT_EQ(res->type, HXHIM_RESULT_PUT);
     }
 
     hxhim::Results::Destroy(&hx, put_results);
@@ -63,21 +60,18 @@ TEST(hxhim, PutGet) {
         hxhim::Results::Result *res = get_results->Curr();
         ASSERT_NE(res, nullptr);
 
-        ASSERT_EQ(res->GetStatus(), HXHIM_SUCCESS);
-        ASSERT_EQ(res->GetType(), HXHIM_RESULT_GET);
+        ASSERT_EQ(res->status, HXHIM_SUCCESS);
+        ASSERT_EQ(res->type, HXHIM_RESULT_GET);
 
         hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(get_results->Curr());
 
-        Subject_t *subject = nullptr;
-        EXPECT_EQ(get->GetSubject((void **) &subject, nullptr), HXHIM_SUCCESS);
+        Subject_t *subject = (Subject_t *) get->subject;
         EXPECT_EQ(*subject, SUBJECT);
 
-        Predicate_t *predicate = nullptr;
-        EXPECT_EQ(get->GetPredicate((void **) &predicate, nullptr), HXHIM_SUCCESS);
+        Predicate_t *predicate = (Predicate_t *) get->predicate;
         EXPECT_EQ(*predicate, PREDICATE);
 
-        Object_t *object = nullptr;
-        EXPECT_EQ(get->GetObject((void **) &object, nullptr), HXHIM_SUCCESS);
+        Object_t *object = (Object_t *) get->object;
         ASSERT_NE(object, nullptr);
         if (std::is_same<float, Object_t>::value) {
             EXPECT_FLOAT_EQ(*object, OBJECT);

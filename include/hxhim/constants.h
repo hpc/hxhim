@@ -13,7 +13,7 @@ extern "C"
 #define HXHIM_ERROR 1
 
 /** How many different ways a SPO triple will be PUT into HXHIM per PUT */
-#define HXHIM_PUT_MULTIPLER 1
+#define HXHIM_PUT_MULTIPLIER 1
 
 /**
  * hxhim_type_t

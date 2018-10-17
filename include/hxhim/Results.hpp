@@ -9,7 +9,6 @@
 #include "hxhim/Results.h"
 #include "hxhim/constants.h"
 #include "hxhim/struct.h"
-#include "transport/Messages/Messages.hpp"
 #include "utils/FixedBufferPool.hpp"
 
 namespace hxhim {
@@ -54,94 +53,46 @@ namespace hxhim {
  */
 class Results {
     public:
-        class Result {
-            public:
-                Result(hxhim_result_type_t t, FixedBufferPool *buffers);
-                virtual ~Result();
+        struct Result {
+            virtual ~Result();
 
-                hxhim_result_type_t GetType() const;
-                int GetDatastore() const;
-                int GetStatus() const;
+            hxhim_result_type_t type;
 
-            private:
-                const hxhim_result_type_t type;
+            int datastore;
+            int status;
 
-            protected:
-                int datastore;
-                int status;
-
-                FixedBufferPool *buffers;
+            FixedBufferPool *buffers;
         };
 
-        /** @description Convenience class for PUT results */
-        class Put : public Result {
-            public:
-                Put(hxhim_t *hx, Transport::Response::Put *put);
-                Put(hxhim_t *hx, Transport::Response::BPut *bput, const std::size_t i);
-                virtual ~Put();
+        /** @description Convenience struct for PUT results */
+        struct Put : public Result {};
+
+        /** @description Convenience struct for GET results */
+        struct Get : public Result {
+            bool clean;
+
+            void *subject;
+            std::size_t subject_len;
+
+            void *predicate;
+            std::size_t predicate_len;
+
+            hxhim_type_t object_type;
+            void *object;
+            std::size_t object_len;
         };
 
-        /** @description Convenience class for GET results */
-        class Get : public Result {
-            public:
-                Get(hxhim_t *hx, Transport::Response::Get *get, const bool clean);
-                Get(hxhim_t *hx, Transport::Response::BGet *bget, const std::size_t i, const bool clean);
-                Get(hxhim_t *hx, Transport::Response::BGetOp *bgetop, const std::size_t i, const bool clean);
-                virtual ~Get();
+        /** @description Convenience struct for DEL results */
+        struct Delete : public Result {};
 
-                hxhim_type_t GetObjectType() const;
+        /** @description Convenience struct for SYNC results */
+        struct Sync : public Result {};
 
-                /** Users should not deallocate the pointers returned by these functions */
-                int GetSubject(void **subject, std::size_t *subject_len) const;
-                int GetPredicate(void **predicate, std::size_t *predicate_len) const;
-                int GetObject(void **object, std::size_t *object_len) const;
-
-            protected:
-                Get(hxhim_t *hx, const bool clean);
-
-                const bool clean;
-
-                void *sub;
-                std::size_t sub_len;
-
-                void *pred;
-                std::size_t pred_len;
-
-                hxhim_type_t obj_type;
-                void *obj;
-                std::size_t obj_len;
-        };
-
-        /** @description Convenience class for DEL results */
-        class Delete : public Result {
-            public:
-                Delete(hxhim_t *hx, Transport::Response::Delete *del);
-                Delete(hxhim_t *hx, Transport::Response::BDelete *bdel, const std::size_t i);
-                virtual ~Delete();
-        };
-
-        /** @description Convenience class for SYNC results */
-        class Sync : public Result {
-            public:
-                Sync(hxhim_t *hx, const int ds_offset, const int synced);
-                ~Sync();
-        };
-
-        /** @description Convenience class for HISTOGRAM results */
-        class Histogram : public Result {
-            public:
-                Histogram(hxhim_t *hx, Transport::Response::Histogram *hist);
-                Histogram(hxhim_t *hx, Transport::Response::BHistogram *bhist, const std::size_t i);
-                ~Histogram();
-
-                int GetBuckets(double **b) const;
-                int GetCounts(std::size_t **c) const;
-                int GetSize(std::size_t *s) const;
-
-            private:
-                double *buckets;
-                std::size_t *counts;
-                std::size_t size;
+        /** @description Convenience struct for HISTOGRAM results */
+        struct Histogram : public Result {
+            double *buckets;
+            std::size_t *counts;
+            std::size_t size;
         };
 
     public:
@@ -170,6 +121,24 @@ class Results {
         std::list <Result *> results;
         std::list<Result *>::iterator curr;
 };
+
+/**
+ * Contructors for hxhim::Results::Result are kept separate
+ * in order to not have to include transport/Messages/Messages.hpp
+ * They also allocate the objects.
+ *
+ * Destructors for hxhim::Results::Result are kept separate
+ * in order to be symmetric with the constructors and allow
+ * for deallocation of the object.
+ */
+namespace Result {
+    void destroy(hxhim_t *hx, Results::Result    *res);
+    void destroy(hxhim_t *hx, Results::Put       *put);
+    void destroy(hxhim_t *hx, Results::Get       *get);
+    void destroy(hxhim_t *hx, Results::Delete    *del);
+    void destroy(hxhim_t *hx, Results::Sync      *sync);
+    void destroy(hxhim_t *hx, Results::Histogram *hist);
+}
 
 }
 

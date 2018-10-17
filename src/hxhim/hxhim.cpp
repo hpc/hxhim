@@ -142,15 +142,15 @@ int hxhim::Close(hxhim_t *hx) {
     }
 
     destroy::running(hx);
-
     Results::Destroy(hx, hxhim::Sync(hx));
-    mlog(HXHIM_CLIENT_INFO, "Closing HXHIM");
+    destroy::async_put(hx);
 
+    mlog(HXHIM_CLIENT_DBG, "Waiting for all ranks to complete syncing");
     MPI_Barrier(hx->p->bootstrap.comm);
+    mlog(HXHIM_CLIENT_DBG, "Closing HXHIM");
 
     destroy::transport(hx);
     destroy::hash(hx);
-    destroy::async_put(hx);
     destroy::datastore(hx);
     destroy::memory(hx);
     destroy::bootstrap(hx);
@@ -160,7 +160,7 @@ int hxhim::Close(hxhim_t *hx) {
     hx->p = nullptr;
 
     mlog(HXHIM_CLIENT_INFO, "HXHIM has been shutdown");
-    // mlog_close();
+    mlog_close();
     return HXHIM_SUCCESS;
 }
 
@@ -218,7 +218,6 @@ hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
     hx->p->async_put.results = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
 
     mlog(HXHIM_CLIENT_DBG, "PUTs Flushed");
-
     return res;
 }
 
@@ -252,9 +251,9 @@ static hxhim::Results *get_core(hxhim_t *hx,
     hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
 
     // maximum number of remote destinations allowed at any time
-    static const std::size_t max_remote = hx->p->memory_pools.requests->regions() / 2;
+    static const std::size_t max_remote = std::max(hx->p->memory_pools.requests->regions() / 2, (std::size_t) 1);
 
-    while (head) {
+    while (hx->p->running && head) {
         // current set of remote destinations to send to
         std::map<int, Transport::Request::BGet *> remote;
 
@@ -263,7 +262,7 @@ static hxhim::Results *get_core(hxhim_t *hx,
 
         hxhim::GetData *curr = head;
 
-        while (curr) {
+        while (hx->p->running && curr) {
             if (hxhim::shuffle::Get(hx, hx->p->max_ops_per_send.gets,
                                     curr->subject, curr->subject_len,
                                     curr->predicate, curr->predicate_len,
@@ -301,26 +300,26 @@ static hxhim::Results *get_core(hxhim_t *hx,
         }
 
         // GET the batch
-        if (remote.size()) {
+        if (hx->p->running && remote.size()) {
             hxhim::collect_fill_stats(remote, hx->p->stats.bget);
             Transport::Response::BGet *responses = hx->p->transport->BGet(remote);
             for(Transport::Response::BGet *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
-                    res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Get>(hx, curr, i, true));
+                    res->Add(hxhim::Result::init(hx, curr, i, true));
                 }
-            }
-
-            for(decltype(remote)::value_type const &dst : remote) {
-                hx->p->memory_pools.requests->release(dst.second);
             }
         }
 
-        if (local->count) {
+        for(decltype(remote)::value_type const &dst : remote) {
+            hx->p->memory_pools.requests->release(dst.second);
+        }
+
+        if (hx->p->running && local->count) {
             hxhim::collect_fill_stats(local, hx->p->stats.bget);
             Transport::Response::BGet *responses = local_client_bget(hx, local);
             for(Transport::Response::BGet *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
-                    res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Get>(hx, curr, i, false));
+                    res->Add(hxhim::Result::init(hx, curr, i, false));
                 }
             }
         }
@@ -395,9 +394,9 @@ static hxhim::Results *getop_core(hxhim_t *hx,
     hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
 
     // maximum number of remote destinations allowed at any time
-    static const std::size_t max_remote = hx->p->memory_pools.requests->regions() / 2;
+    static const std::size_t max_remote = std::max(hx->p->memory_pools.requests->regions() / 2, (std::size_t) 1);
 
-    while (head) {
+    while (hx->p->running && head) {
         // current set of remote destinations to send to
         std::map<int, Transport::Request::BGetOp *> remote;
 
@@ -406,7 +405,7 @@ static hxhim::Results *getop_core(hxhim_t *hx,
 
         hxhim::GetOpData *curr = head;
 
-        while (curr) {
+        while (hx->p->running && curr) {
             if (hxhim::shuffle::GetOp(hx, hx->p->max_ops_per_send.gets,
                                       curr->subject, curr->subject_len,
                                       curr->predicate, curr->predicate_len,
@@ -445,26 +444,26 @@ static hxhim::Results *getop_core(hxhim_t *hx,
         }
 
         // GET the batch
-        if (remote.size()) {
+        if (hx->p->running && remote.size()) {
             hxhim::collect_fill_stats(remote, hx->p->stats.bgetop);
             Transport::Response::BGetOp *responses = hx->p->transport->BGetOp(remote);
             for(Transport::Response::BGetOp *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
-                    res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Get>(hx, curr, i, true));
+                    res->Add(hxhim::Result::init(hx, curr, i, true));
                 }
-            }
-
-            for(decltype(remote)::value_type const &dst : remote) {
-                hx->p->memory_pools.requests->release(dst.second);
             }
         }
 
-        if (local->count) {
+        for(decltype(remote)::value_type const &dst : remote) {
+            hx->p->memory_pools.requests->release(dst.second);
+        }
+
+        if (hx->p->running && local->count) {
             hxhim::collect_fill_stats(local, hx->p->stats.bgetop);
             Transport::Response::BGetOp *responses = local_client_bget_op(hx, local);
             for(Transport::Response::BGetOp *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
-                    res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Get>(hx, curr, i, false));
+                    res->Add(hxhim::Result::init(hx, curr, i, false));
                 }
             }
         }
@@ -535,9 +534,9 @@ static hxhim::Results *delete_core(hxhim_t *hx,
     hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
 
     // maximum number of remote destinations allowed at any time
-    static const std::size_t max_remote = hx->p->memory_pools.requests->regions() / 2;
+    static const std::size_t max_remote = std::max(hx->p->memory_pools.requests->regions() / 2, (std::size_t) 1);
 
-    while (head) {
+    while (hx->p->running && head) {
         // current set of remote destinations to send to
         std::map<int, Transport::Request::BDelete *> remote;
 
@@ -546,7 +545,7 @@ static hxhim::Results *delete_core(hxhim_t *hx,
 
         hxhim::DeleteData *curr = head;
 
-        while (curr) {
+        while (hx->p->running && curr) {
             if (hxhim::shuffle::Delete(hx, hx->p->max_ops_per_send.deletes,
                                     curr->subject, curr->subject_len,
                                     curr->predicate, curr->predicate_len,
@@ -583,26 +582,26 @@ static hxhim::Results *delete_core(hxhim_t *hx,
         }
 
         // DELETE the batch
-        if (remote.size()) {
+        if (hx->p->running && remote.size()) {
             hxhim::collect_fill_stats(remote, hx->p->stats.bdel);
             Transport::Response::BDelete *responses = hx->p->transport->BDelete(remote);
             for(Transport::Response::BDelete *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
-                    res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Delete>(hx, curr, i));
+                    res->Add(hxhim::Result::init(hx, curr, i));
                 }
-            }
-
-            for(decltype(remote)::value_type const &dst : remote) {
-                hx->p->memory_pools.requests->release(dst.second);
             }
         }
 
-        if (local->count) {
+        for(decltype(remote)::value_type const &dst : remote) {
+            hx->p->memory_pools.requests->release(dst.second);
+        }
+
+        if (hx->p->running && local->count) {
             hxhim::collect_fill_stats(local, hx->p->stats.bdel);
             Transport::Response::BDelete *responses = local_client_bdelete(hx, local);
             for(Transport::Response::BDelete *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
-                    res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Delete>(hx, curr, i));
+                    res->Add(hxhim::Result::init(hx, curr, i));
                 }
             }
         }
@@ -713,7 +712,7 @@ hxhim::Results *hxhim::Sync(hxhim_t *hx) {
         // Sync local data stores
         for(std::size_t i = 0; i < hx->p->datastore.count; i++) {
             const int synced = hx->p->datastore.datastores[i]->Sync();
-            res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Sync>(hx, i, synced));
+            res->Add(hxhim::Result::init(hx, i, synced));
         }
     }
 
@@ -1257,7 +1256,7 @@ hxhim::Results *hxhim::GetHistogram(hxhim_t *hx, const int datastore) {
     }
 
     hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
-    res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Histogram>(hx, response));
+    res->Add(hxhim::Result::init(hx, response));
     hx->p->memory_pools.responses->release(response);
     return res;
 }
@@ -1293,41 +1292,48 @@ hxhim::Results *hxhim::GetBHistogram(hxhim_t *hx, const int *datastores, const s
     local.dst = hx->p->bootstrap.rank;
 
     // maximum number of remote destinations allowed at any time
-    static const std::size_t max_remote = hx->p->memory_pools.requests->regions() / 2;
+    static const std::size_t max_remote = std::max(hx->p->memory_pools.requests->regions() / 2, (std::size_t) 1);
 
-    // current set of remote destinations to send to
-    std::map<int, Transport::Request::BHistogram *> remote;
-
-    // move the data into the appropriate buffers
-    for(std::size_t i = 0; i < count; i++) {
-        hxhim::shuffle::Histogram(hx, hx->p->max_ops_per_send.gets,
-                                  datastores[i],
-                                  &local, remote,
-                                  max_remote);
-    }
 
     hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
 
-    // remote requests
-    if (hx->p->bootstrap.size > 1) {
-        Transport::Response::BHistogram *responses = hx->p->transport->BHistogram(remote);
-        for(Transport::Response::BHistogram *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
-            for(std::size_t i = 0; i < curr->count; i++) {
-                res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Histogram>(hx, curr, i));
+    std::size_t i = 0;
+    while (i < count) {
+        // current set of remote destinations to send to
+        std::map<int, Transport::Request::BHistogram *> remote;
+
+        // reset local without deallocating memory
+        local.count = 0;
+
+        // move the data into the appropriate buffers
+        while ((i < count) && (hxhim::shuffle::Histogram(hx, hx->p->max_ops_per_send.max,
+                                                         datastores[i],
+                                                         &local, remote,
+                                                         max_remote) > -1)) {
+            i++;
+        }
+
+        // remote requests
+        if (remote.size()) {
+            Transport::Response::BHistogram *responses = hx->p->transport->BHistogram(remote);
+            for(Transport::Response::BHistogram *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
+                for(std::size_t j = 0; j < curr->count; j++) {
+                    res->Add(hxhim::Result::init(hx, curr, j));
+                }
+            }
+
+            for(decltype(remote)::value_type const &dst : remote) {
+                hx->p->memory_pools.requests->release(dst.second);
             }
         }
 
-        for(decltype(remote)::value_type const &dst : remote) {
-            hx->p->memory_pools.requests->release(dst.second);
-        }
-    }
-
-    // local request
-    if (local.count) {
-        Transport::Response::BHistogram *responses = local_client_bhistogram(hx, &local);
-        for(Transport::Response::BHistogram *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
-            for(std::size_t i = 0; i < curr->count; i++) {
-                res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Histogram>(hx, curr, i));
+        // local request
+        if (local.count) {
+            Transport::Response::BHistogram *responses = local_client_bhistogram(hx, &local);
+            for(Transport::Response::BHistogram *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
+                for(std::size_t j = 0; j < curr->count; j++) {
+                    res->Add(hxhim::Result::init(hx, curr, j));
+                }
             }
         }
     }

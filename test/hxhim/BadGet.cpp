@@ -1,5 +1,3 @@
-#include <cstdlib>
-#include <ctime>
 #include <type_traits>
 
 #include <gtest/gtest.h>
@@ -12,10 +10,10 @@ typedef uint64_t Subject_t;
 typedef uint64_t Predicate_t;
 
 TEST(hxhim, BadGet) {
-    srand(time(NULL));
-
-    const Subject_t SUBJECT     = (((Subject_t) rand()) << 32) | rand();
-    const Predicate_t PREDICATE = (((Predicate_t) rand()) << 32) | rand();
+    // const Subject_t SUBJECT     = (((Subject_t) rand()) << 32) | rand();
+    // const Predicate_t PREDICATE = (((Predicate_t) rand()) << 32) | rand();
+    const Subject_t SUBJECT     = 1;
+    const Predicate_t PREDICATE = 2;
 
     hxhim_options_t opts;
     ASSERT_EQ(fill_options(&opts), true);
@@ -39,8 +37,8 @@ TEST(hxhim, BadGet) {
         hxhim::Results::Result *res = get_results->Curr();
         ASSERT_NE(res, nullptr);
 
-        EXPECT_NE(res->GetStatus(), HXHIM_SUCCESS);
-        EXPECT_EQ(res->GetType(), HXHIM_RESULT_GET);
+        EXPECT_NE(res->status, HXHIM_SUCCESS);
+        EXPECT_EQ(res->type, HXHIM_RESULT_GET);
     }
 
     hxhim::Results::Destroy(&hx, get_results);

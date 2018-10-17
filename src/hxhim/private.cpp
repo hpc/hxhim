@@ -4,6 +4,7 @@
 
 #include "datastore/datastores.hpp"
 #include "hxhim/MaxSize.hpp"
+#include "hxhim/Results_private.hpp"
 #include "hxhim/config.hpp"
 #include "hxhim/local_client.hpp"
 #include "hxhim/options_private.hpp"
@@ -12,9 +13,9 @@
 #include "hxhim/shuffle.hpp"
 #include "transport/transports.hpp"
 #include "utils/FixedBufferPool.hpp"
+#include "utils/macros.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
-#include "utils/macros.hpp"
 
 /**
  * clean
@@ -117,7 +118,7 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *&head) {
     }
 
     // max number of triples that will be PUT per destination
-    const std::size_t max_puts = HXHIM_PUT_MULTIPLER * hx->p->max_ops_per_send.puts;
+    const std::size_t max_puts = HXHIM_PUT_MULTIPLIER * hx->p->max_ops_per_send.puts;
 
     // returned results
     hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
@@ -128,9 +129,9 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *&head) {
     local.dst = hx->p->bootstrap.rank;
 
     // maximum number of remote destinations allowed at any time
-    static const std::size_t max_remote = hx->p->memory_pools.requests->regions() / 2;
+    static const std::size_t max_remote = std::max(hx->p->memory_pools.requests->regions() / 2, (std::size_t) 1);
 
-    while (head) {
+    while (hx->p->running && head) {
         // current set of remote destinations to send to
         std::map<int, Transport::Request::BPut *> remote;
 
@@ -138,7 +139,7 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *&head) {
         local.count = 0;
 
         hxhim::PutData *curr = head;
-        while (curr) {
+        while (hx->p->running && curr) {
             if (insert(hx, max_puts,
                        curr->subject, curr->subject_len,
                        curr->predicate, curr->predicate_len,
@@ -176,30 +177,30 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *&head) {
         }
 
         // PUT the batch
-        if (remote.size()) {
+        if (hx->p->running && remote.size()) {
             mlog(HXHIM_CLIENT_DBG, "Start remote PUTs");
             hxhim::collect_fill_stats(remote, hx->p->stats.bput);
             Transport::Response::BPut *responses = hx->p->transport->BPut(remote);
             for(Transport::Response::BPut *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
-                    res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Put>(hx, curr, i));
+                    res->Add(hxhim::Result::init(hx, curr, i));
                 }
-            }
-
-            for(decltype(remote)::value_type const &dst : remote) {
-                hx->p->memory_pools.requests->release(dst.second);
             }
 
             mlog(HXHIM_CLIENT_DBG, "Completed remote PUTs");
         }
 
-        if (local.count) {
+        for(decltype(remote)::value_type const &dst : remote) {
+            hx->p->memory_pools.requests->release(dst.second);
+        }
+
+        if (hx->p->running && local.count) {
             mlog(HXHIM_CLIENT_DBG, "Start local PUTs");
             hxhim::collect_fill_stats(&local, hx->p->stats.bput);
             Transport::Response::BPut *responses = local_client_bput(hx, &local);
             for(Transport::Response::BPut *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
-                    res->Add(hx->p->memory_pools.result->acquire<hxhim::Results::Put>(hx, curr, i));
+                    res->Add(hxhim::Result::init(hx, curr, i));
                 }
             }
             mlog(HXHIM_CLIENT_DBG, "Completed local PUTs");
@@ -375,9 +376,14 @@ int hxhim::init::memory(hxhim_t *hx, hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
+    if (opts->p->max_ops_per_send < HXHIM_PUT_MULTIPLIER) {
+        mlog(HXHIM_CLIENT_ERR, "There should be at least %d operations per send", HXHIM_PUT_MULTIPLIER);
+        return HXHIM_SUCCESS;
+    }
+
     // size of each set of queued messages
     hx->p->max_ops_per_send.max     = opts->p->max_ops_per_send;
-    hx->p->max_ops_per_send.puts    = opts->p->max_ops_per_send / HXHIM_PUT_MULTIPLER;
+    hx->p->max_ops_per_send.puts    = opts->p->max_ops_per_send / HXHIM_PUT_MULTIPLIER;
     hx->p->max_ops_per_send.gets    = opts->p->max_ops_per_send;
     hx->p->max_ops_per_send.getops  = opts->p->max_ops_per_send;
     hx->p->max_ops_per_send.deletes = opts->p->max_ops_per_send;
@@ -580,6 +586,16 @@ int hxhim::init::hash(hxhim_t *hx, hxhim_options_t *opts) {
 int hxhim::init::transport(hxhim_t *hx, hxhim_options_t *opts) {
     mlog(HXHIM_CLIENT_INFO, "Starting Transport Initialization");
     if (!valid(hx, opts)) {
+        return HXHIM_ERROR;
+    }
+
+    if (!opts->p->client_ratio) {
+        mlog(HXHIM_CLIENT_ERR, "Client ratio must be at least 1");
+        return HXHIM_ERROR;
+    }
+
+    if (!opts->p->server_ratio) {
+        mlog(HXHIM_SERVER_ERR, "Server ratio must be at least 1");
         return HXHIM_ERROR;
     }
 
