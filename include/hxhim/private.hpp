@@ -16,6 +16,7 @@
 #include "hxhim/struct.h"
 #include "transport/transport.hpp"
 #include "utils/FixedBufferPool.hpp"
+#include "utils/enable_if_t.hpp"
 #include "utils/macros.hpp"
 
 /**
@@ -187,8 +188,8 @@ int datastore   (hxhim_t *hx);
  * @tparam msg  a single message
  * @param  op   the statistics structure for an operation (PUT, GET, GETOP, DEL)
  */
-template <typename T, typename = std::enable_if<std::is_base_of<Transport::Bulk,             T>::value &&
-                                                std::is_base_of<Transport::Request::Request, T>::value> >
+template <typename T, typename = enable_if_t<std::is_base_of<Transport::Bulk,             T>::value &&
+                                             std::is_base_of<Transport::Request::Request, T>::value> >
 void collect_fill_stats(T *msg, hxhim_private_t::Stats::Op &op) {
     if (msg) {
         // Collect packet filled percentage
@@ -204,8 +205,8 @@ void collect_fill_stats(T *msg, hxhim_private_t::Stats::Op &op) {
  * @param msgs the list (really map) of messages
  * @param op   the statistics structure for an operation (PUT, GET, GETOP, DEL)
  */
-template <typename T, typename = std::enable_if<std::is_base_of<Transport::Bulk,             T>::value &&
-                                                std::is_base_of<Transport::Request::Request, T>::value> >
+template <typename T, typename = enable_if_t<std::is_base_of<Transport::Bulk,             T>::value &&
+                                             std::is_base_of<Transport::Request::Request, T>::value> >
 void collect_fill_stats(const std::map<int, T *> &msgs, hxhim_private_t::Stats::Op &op) {
     // Collect packet filled percentage
     std::lock_guard<std::mutex> lock(op.mutex);

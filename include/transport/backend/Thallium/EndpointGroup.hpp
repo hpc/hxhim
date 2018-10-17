@@ -7,6 +7,7 @@
 
 #include "transport/backend/Thallium/Utilities.hpp"
 #include "transport/transport.hpp"
+#include "utils/enable_if_t.hpp"
 
 namespace Transport {
 namespace Thallium {
@@ -48,10 +49,10 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup {
         Response::BHistogram *BHistogram(const std::map<int, Request::BHistogram *> &bhist_list);
 
     private:
-        template <typename Recv_t, typename Send_t, typename = std::enable_if<std::is_base_of<Request::Request,   Send_t>::value &&
-                                                                              std::is_base_of<Bulk,               Send_t>::value &&
-                                                                              std::is_base_of<Response::Response, Recv_t>::value &&
-                                                                              std::is_base_of<Bulk,               Recv_t>::value> >
+        template <typename Recv_t, typename Send_t, typename = enable_if_t<std::is_base_of<Request::Request,   Send_t>::value &&
+                                                                           std::is_base_of<Bulk,               Send_t>::value &&
+                                                                           std::is_base_of<Response::Response, Recv_t>::value &&
+                                                                           std::is_base_of<Bulk,               Recv_t>::value> >
         Recv_t *do_operation(const std::map<int, Send_t *> &messages);
 
         RPC_t rpc;

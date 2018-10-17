@@ -9,6 +9,7 @@
 #include "hxhim/options.h"
 #include "hxhim/options.hpp"
 #include "hxhim/options_private.hpp"
+#include "utils/enable_if_t.hpp"
 #include "utils/Histogram.hpp"
 
 /**
@@ -22,7 +23,7 @@
  * @param set_option  the function to do the setting of the option
  * @param true, or false on error
  */
-template <typename T, typename = std::enable_if_t <!std::is_reference<T>::value> >
+template <typename T, typename = enable_if_t <!std::is_reference<T>::value> >
 bool parse_value(hxhim_options_t *opts, const Config &config, const std::string &key, int (*set_option)(hxhim_options_t *, const T)) {
     T value = {};
     const int ret = get_value(config, key, value);
@@ -68,7 +69,7 @@ static bool parse_value(hxhim_options_t *opts, const Config &config, const std::
  * @param set_option  the function to do the setting of the option
  * @param true, or false on error
  */
-template <typename T, typename = std::enable_if_t <!std::is_reference<T>::value> >
+template <typename T, typename = enable_if_t <!std::is_reference<T>::value> >
 bool parse_map_value(hxhim_options_t *opts, const Config &config, const std::string &key, const std::map<std::string, T> &map, int (*set_option)(hxhim_options_t *, const T)) {
     T value = {};
     const int ret = get_from_map(config, key, map, value);

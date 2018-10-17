@@ -7,6 +7,7 @@
 
 #include "hxhim/constants.h"
 #include "utils/FixedBufferPool.hpp"
+#include "utils/enable_if_t.hpp"
 
 namespace hxhim {
     typedef struct SubjectPredicate {
@@ -65,7 +66,7 @@ namespace hxhim {
         DeleteData *next;
     };
 
-    template <typename Data, typename = std::enable_if_t<std::is_base_of<SubjectPredicate, Data>::value> >
+    template <typename Data, typename = enable_if_t<std::is_base_of<SubjectPredicate, Data>::value> >
     struct Unsent {
         void insert(Data *node) {
             if (!node) {

@@ -11,6 +11,7 @@
 #include "transport/backend/MPI/Unpacker.hpp"
 #include "transport/transport.hpp"
 #include "utils/FixedBufferPool.hpp"
+#include "utils/enable_if_t.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
@@ -62,10 +63,10 @@ class Endpoint : virtual public ::Transport::Endpoint, virtual public EndpointBa
          * @tparam message the message being sent
          * @treturn the response from the range server
          */
-        template <typename Send_t, typename Recv_t, typename = std::enable_if<std::is_base_of<Request::Request,   Send_t>::value &&
-                                                                              std::is_base_of<Single,             Send_t>::value &&
-                                                                              std::is_base_of<Response::Response, Recv_t>::value &&
-                                                                              std::is_base_of<Single,             Recv_t>::value> >
+        template <typename Send_t, typename Recv_t, typename = enable_if_t<std::is_base_of<Request::Request,   Send_t>::value &&
+                                                                           std::is_base_of<Single,             Send_t>::value &&
+                                                                           std::is_base_of<Response::Response, Recv_t>::value &&
+                                                                           std::is_base_of<Single,             Recv_t>::value> >
         Recv_t *do_operation(const Send_t *message) {
             void *sendbuf = nullptr;
             std::size_t sendsize = 0;

@@ -8,6 +8,7 @@
 #include <string>
 #include <sstream>
 
+
 /** @description The underlying configuration type */
 typedef std::map<std::string, std::string> Config;
 typedef Config::const_iterator Config_it;
@@ -148,7 +149,7 @@ int get_bool(const Config &config, const std::string &config_key, bool &b);
  * @tparam value     the value of the configuration
  * @return CONFIG_FOUND if the configuration value was good, CONFIG_NOT_FOUND if the configuration key was not found, or CONFIG_ERROR if the configuration value was bad
  */
-template<typename T, typename = std::enable_if <std::is_arithmetic<T>::value> >
+template<typename T >
 int get_value(const Config &config, const std::string &config_key, T &v) {
     // find the key
     Config_it in_config = config.find(config_key);

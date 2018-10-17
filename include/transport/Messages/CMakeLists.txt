@@ -1,0 +1,19 @@
+install(FILES
+  Messages.hpp
+  Message.hpp
+  BDelete.hpp
+  BGet.hpp
+  BGetOp.hpp
+  BHistogram.hpp
+  BPut.hpp
+  Bulk.hpp
+  Delete.hpp
+  Get.hpp
+  Histogram.hpp
+  Message.hpp
+  Messages.hpp
+  Put.hpp
+  Request.hpp
+  Response.hpp
+  Single.hpp
+  DESTINATION include/transport/Messages)

@@ -9,6 +9,7 @@
 #include "transport/backend/MPI/EndpointBase.hpp"
 #include "transport/transport.hpp"
 #include "utils/FixedBufferPool.hpp"
+#include "utils/enable_if_t.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
@@ -53,18 +54,18 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup, virtual public 
 
     private:
         /** @escription Functions that perform the actual MPI calls */
-        template <typename Send_t, typename = std::enable_if_t<std::is_base_of<Request::Request, Send_t>::value &&
-                                                               std::is_base_of<Bulk,             Send_t>::value> >
-        std::size_t parallel_send(const std::map<int, Send_t *> &messages);                // send to range server
+        template <typename Send_t, typename = enable_if_t<std::is_base_of<Request::Request, Send_t>::value &&
+                                                          std::is_base_of<Bulk,             Send_t>::value> >
+        std::size_t parallel_send(const std::map<int, Send_t *> &messages);                      // send to range server
 
-        template <typename Recv_t, typename = std::enable_if_t<std::is_base_of<Response::Response, Recv_t>::value &&
-                                                               std::is_base_of<Bulk,               Recv_t>::value> >
+        template <typename Recv_t, typename = enable_if_t<std::is_base_of<Response::Response, Recv_t>::value &&
+                                                          std::is_base_of<Bulk,               Recv_t>::value> >
         std::size_t parallel_recv(const std::size_t nsrcs, int *srcs, Recv_t ***messages);       // receive from range server
 
-        template <typename Recv_t, typename Send_t, typename = std::enable_if<std::is_base_of<Request::Request,   Send_t>::value &&
-                                                                              std::is_base_of<Bulk,               Send_t>::value &&
-                                                                              std::is_base_of<Response::Response, Recv_t>::value &&
-                                                                              std::is_base_of<Bulk,               Recv_t>::value> >
+        template <typename Recv_t, typename Send_t, typename = enable_if_t<std::is_base_of<Request::Request,   Send_t>::value &&
+                                                                           std::is_base_of<Bulk,               Send_t>::value &&
+                                                                           std::is_base_of<Response::Response, Recv_t>::value &&
+                                                                           std::is_base_of<Bulk,               Recv_t>::value> >
         Recv_t *return_msgs(const std::map<int, Send_t *> &messages);
 
         /** @description Mapping from unique ids to MPI ranks */

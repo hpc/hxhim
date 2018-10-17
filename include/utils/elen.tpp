@@ -1,3 +1,5 @@
+#include "utils/enable_if_t.hpp"
+
 namespace elen {
 
 // negatives get their digits flipped (9 - digit)
@@ -14,7 +16,7 @@ namespace encode {
 // Chapter 2.3 Uniqueness
 template <const char neg = '0' - 1, const char pos = '9' + 1,
           typename T,
-          typename Cond = std::enable_if_t<(neg < '0') && (pos > '9') && std::is_integral<T>::value> >
+          typename Cond = enable_if_t<(neg < '0') && (pos > '9') && std::is_integral<T>::value> >
 static std::string unique(const T value, const char prefix) {
     if (value == 0) {
         return "0";
@@ -55,7 +57,7 @@ std::string integers(const T value) {
 
 template <const char neg = '0' - 1, const char pos = '9' + 1,
           typename T,
-          typename Cond = std::enable_if_t<(neg < '0') && (pos > '9') && std::is_floating_point<T>::value> >
+          typename Cond = enable_if_t<(neg < '0') && (pos > '9') && std::is_floating_point<T>::value> >
 static std::string small_decimals_digits(const T value, const int precision) {
     if (value == 0) {
         return "0";
@@ -144,7 +146,7 @@ std::string large_decimals(const T value, const int precision) {
 }
 
 // https://stackoverflow.com/a/29583280
-template <typename R, typename Z, typename = std::enable_if_t<std::is_arithmetic<R>::value &&
+template <typename R, typename Z, typename = enable_if_t<std::is_arithmetic<R>::value &&
                                                               std::is_integral<Z>::value> >
 static R frexp10(const R arg, Z *exp) {
     *exp = (arg == 0) ? 0 : (Z)(1 + std::round(std::log10(std::fabs(arg))));
@@ -198,7 +200,7 @@ std::string floating_point(const T value, const int precision) {
 namespace decode {
 
 template <const char neg = '0' - 1, const char pos = '9' + 1,
-          typename = std::enable_if_t<(neg < '0') && (pos > '9')> >
+          typename = enable_if_t<(neg < '0') && (pos > '9')> >
 static std::size_t get_prefix_count(const char prefix, const std::string &str) {
     if (str[0] == '0') {
         return 0;
@@ -229,7 +231,7 @@ static std::size_t get_prefix_count(const char prefix, const std::string &str) {
 
 template <typename T,
           const char neg = '0' - 1, const char pos = '9' + 1,
-          typename = std::enable_if_t<std::is_integral<T>::value && (neg < '0') && (pos > '9')> >
+          typename = enable_if_t<std::is_integral<T>::value && (neg < '0') && (pos > '9')> >
 static T next(const char prefix, const std::string &str, std::size_t &position, const T &len) {
     // read the next series of digits
     std::string str_len = str.substr(position, len);

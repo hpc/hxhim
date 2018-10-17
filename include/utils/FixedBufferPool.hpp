@@ -9,6 +9,8 @@
 #include <type_traits>
 #include <utility>
 
+#include "utils/enable_if_t.hpp"
+
 #ifndef DEBUG
 
 /** @description wrapper for FixedBufferPool mlog statements */
@@ -36,19 +38,19 @@ class FixedBufferPool {
         ~FixedBufferPool();
 
         /* @description Returns the address of a unused fixed size memory region           */
-        template <typename T, typename... Args, typename = std::enable_if_t<!std::is_same<T, void>::value> >
+        template <typename T, typename... Args, typename = enable_if_t<!std::is_same<T, void>::value> >
         T *acquire(Args&&... args);
         void *acquire(const std::size_t size);
 
-        template <typename T, typename = std::enable_if_t<!std::is_same<T, void>::value> >
+        template <typename T, typename = enable_if_t<!std::is_same<T, void>::value> >
         T *acquire_array(const std::size_t count = 1);
 
         /* @description Releases the given address back into the pool                      */
-        template <typename T, typename = std::enable_if_t<!std::is_same<T, void>::value> >
+        template <typename T, typename = enable_if_t<!std::is_same<T, void>::value> >
         void release(T *ptr);
         void release(void *ptr, const std::size_t size);
 
-        template <typename T, typename = std::enable_if_t<!std::is_same<T, void>::value> >
+        template <typename T, typename = enable_if_t<!std::is_same<T, void>::value> >
         void release_array(T *ptr, const std::size_t count);
 
         /* @description Utility function to get the total size of the memory pool          */

@@ -12,8 +12,8 @@
 #include "transport/Messages/BDelete.hpp"
 #include "transport/Messages/Histogram.hpp"
 #include "transport/Messages/BHistogram.hpp"
-
 #include "utils/FixedBufferPool.hpp"
+#include "utils/enable_if_t.hpp"
 
 namespace Transport {
 
@@ -26,7 +26,7 @@ namespace Transport {
  * @param  fbp  The FixedBufferPool the message should be deallocated from
  * @return the next message in the chain
  */
-template <typename Msg, typename = std::enable_if_t <std::is_base_of<Transport::Bulk, Msg>::value> >
+template <typename Msg, typename = enable_if_t <std::is_base_of<Transport::Bulk, Msg>::value> >
 Msg *next(Msg *curr, FixedBufferPool *fbp) {
     if (!curr) {
         return nullptr;
