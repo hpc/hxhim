@@ -6,11 +6,11 @@
 hxhim@lanl.gov
 
 ### Dependencies
-* C++14 Compiler
+* C++11 Compiler
 * CMake 3
 * MPI
 * (optional) LevelDB: https://github.com/google/leveldb
-* (optional) thallium: https://xgitlab.cels.anl.gov/sds/thallium
+* (optional, requires C++14) thallium: https://xgitlab.cels.anl.gov/sds/thallium
 
 LevelDB and thallium can be installed through the `contrib/hxhim_dependencies.sh` script. `PKG_CONFIG_PATH` will need to be modified (specified in the script output)
 

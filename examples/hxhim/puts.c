@@ -41,29 +41,33 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // Generate some subject-predicate-object triples
-    const size_t count = 500000;
-    void **subjects = NULL, **predicates = NULL, **objects = NULL;
-    size_t *subject_lens = NULL, *predicate_lens = NULL, *object_lens = NULL;
-    /* if (spo_gen_fixed(count, 100, rank, */
-    /*                   &subjects, &subject_lens, */
-    /*                   &predicates, &predicate_lens, */
-    /*                   &objects, &object_lens) != count) { */
-    if (spo_gen_random(count,
-                       8, 8, &subjects, &subject_lens,
-                       sizeof(int), sizeof(int), &predicates, &predicate_lens,
-                       3 * sizeof(double), 3 * sizeof(double), &objects, &object_lens) != count) {
-        printf("Could not generate triples\n");
-        return -1;
+    // number of times to PUT count triples
+    const size_t times = 2;
+    const size_t count = 1024 * 512;
+
+    // do PUTs
+    for(size_t i = 0; i < times; i++) {
+        // Generate some subject-predicate-object triples
+        void **subjects = NULL, **predicates = NULL, **objects = NULL;
+        size_t *subject_lens = NULL, *predicate_lens = NULL, *object_lens = NULL;
+        /* if (spo_gen_fixed(count, 100, rank, */
+        /*                   &subjects, &subject_lens, */
+        /*                   &predicates, &predicate_lens, */
+        /*                   &objects, &object_lens) != count) { */
+        if (spo_gen_random(count,
+                           8, 8, &subjects, &subject_lens,
+                           sizeof(int), sizeof(int), &predicates, &predicate_lens,
+                           3 * sizeof(double), 3 * sizeof(double), &objects, &object_lens) != count) {
+            printf("Could not generate triples\n");
+            return -1;
+        }
+
+        // BPUT the key value pairs into HXHIM
+        hxhimBPutSingleType(&hx, subjects, subject_lens, predicates, predicate_lens, HXHIM_BYTE_TYPE, objects, object_lens, count);
+        hxhim_results_t *flush_all_res = hxhimFlush(&hx);
+        hxhim_results_destroy(&hx, flush_all_res);
+        spo_clean(count, subjects, subject_lens, predicates, predicate_lens, objects, object_lens);
     }
-
-    MPI_Barrier(MPI_COMM_WORLD);
-
-    // BPUT the key value pairs into HXHIM
-    hxhimBPutSingleType(&hx, subjects, subject_lens, predicates, predicate_lens, HXHIM_BYTE_TYPE, objects, object_lens, count);
-    hxhim_results_t *flush_all_res = hxhimFlush(&hx);
-    hxhim_results_destroy(&hx, flush_all_res);
-    spo_clean(count, subjects, subject_lens, predicates, predicate_lens, objects, object_lens);
 
     MPI_Barrier(MPI_COMM_WORLD);
 
@@ -107,8 +111,8 @@ int main(int argc, char *argv[]) {
         free(avg_bput);
         free(max_bput);
 
-        printf("Total:   %zu PUTs\n", total_puts);
-        printf("Average: %Lf PUTs/sec\n", put_rates);
+        printf("Total: %zu PUTs\n", total_puts);
+        printf("Rate:  %Lf PUTs/sec\n", put_rates);
         printf("Number of servers that did work: %zu\n", num_srvs);
         printf("BPUT Average Minimum Filled: %.2Lf%%\n", min_filled * 100 / num_srvs);
         printf("BPUT Average Average Filled: %.2Lf%%\n", avg_filled * 100 / num_srvs);

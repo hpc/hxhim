@@ -257,10 +257,8 @@ Results::~Results() {
  */
 void Results::Destroy(hxhim_t *hx, Results *res) {
     mlog(HXHIM_CLIENT_DBG, "Destroying hxhim::Results %p", res);
-    if (res) {
-        hx->p->memory_pools.results->release(res);
-    }
-    mlog(HXHIM_CLIENT_DBG, "Destroying hxhim:Results %p", res);
+    hx->p->memory_pools.results->release(res);
+    mlog(HXHIM_CLIENT_DBG, "Destroyed hxhim:Results %p", res);
 }
 
 /**
@@ -529,6 +527,8 @@ int hxhim_results_get_subject(hxhim_results_t *res, void **subject, std::size_t 
         if (subject_len) {
             *subject_len = get->subject_len;
         }
+
+        return HXHIM_SUCCESS;
     }
 
     return HXHIM_ERROR;
@@ -558,6 +558,8 @@ int hxhim_results_get_predicate(hxhim_results_t *res, void **predicate, std::siz
         if (predicate_len) {
             *predicate_len = get->predicate_len;
         }
+
+        return HXHIM_SUCCESS;
     }
 
     return HXHIM_ERROR;
@@ -587,6 +589,8 @@ int hxhim_results_get_object(hxhim_results_t *res, void **object, std::size_t *o
         if (object_len) {
             *object_len = get->object_len;
         }
+
+        return HXHIM_SUCCESS;
     }
 
     return HXHIM_ERROR;

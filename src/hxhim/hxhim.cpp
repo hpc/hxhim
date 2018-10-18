@@ -245,10 +245,14 @@ hxhim_results_t *hxhimFlushPuts(hxhim_t *hx) {
  * @return results from sending the GETs
  */
 static hxhim::Results *get_core(hxhim_t *hx,
-                                hxhim::GetData *head,
-                                Transport::Request::BGet *local) {
+                                hxhim::GetData *head) {
     // serialized results
     hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
+
+    // declare local GET requests here to not reallocate every loop
+    Transport::Request::BGet local(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, hx->p->max_ops_per_send.gets);
+    local.src = hx->p->bootstrap.rank;
+    local.dst = hx->p->bootstrap.rank;
 
     // maximum number of remote destinations allowed at any time
     static const std::size_t max_remote = std::max(hx->p->memory_pools.requests->regions() / 2, (std::size_t) 1);
@@ -258,7 +262,7 @@ static hxhim::Results *get_core(hxhim_t *hx,
         std::map<int, Transport::Request::BGet *> remote;
 
         // reset local without deallocating memory
-        local->count = 0;
+        local.count = 0;
 
         hxhim::GetData *curr = head;
 
@@ -267,9 +271,9 @@ static hxhim::Results *get_core(hxhim_t *hx,
                                     curr->subject, curr->subject_len,
                                     curr->predicate, curr->predicate_len,
                                     curr->object_type,
-                                    local,
+                                    &local,
                                     remote,
-                                    max_remote) == HXHIM_SUCCESS) {
+                                    max_remote) > -1) {
                 // head node
                 if (curr == head) {
                     head = curr->next;
@@ -314,9 +318,9 @@ static hxhim::Results *get_core(hxhim_t *hx,
             hx->p->memory_pools.requests->release(dst.second);
         }
 
-        if (hx->p->running && local->count) {
-            hxhim::collect_fill_stats(local, hx->p->stats.bget);
-            Transport::Response::BGet *responses = local_client_bget(hx, local);
+        if (hx->p->running && local.count) {
+            hxhim::collect_fill_stats(&local, hx->p->stats.bget);
+            Transport::Response::BGet *responses = local_client_bget(hx, &local);
             for(Transport::Response::BGet *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
                     res->Add(hxhim::Result::init(hx, curr, i, false));
@@ -346,22 +350,10 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
     std::lock_guard<std::mutex> lock(gets.mutex);
 
     hxhim::GetData *curr = gets.head;
-    if (!curr) {
-        mlog(HXHIM_CLIENT_DBG, "No GETs to flush");
-        return HXHIM_SUCCESS;
-    }
+    gets.head = nullptr;
+    gets.tail = nullptr;
 
-    // create space to store local requests that is alive for the entire function
-    Transport::Request::BGet local(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, hx->p->max_ops_per_send.gets);
-    local.src = hx->p->bootstrap.rank;
-    local.dst = hx->p->bootstrap.rank;
-
-    hxhim::Results *res = get_core(hx, curr, &local);
-
-    gets.head = gets.tail = nullptr;
-
-    mlog(HXHIM_CLIENT_DBG, "Done Flushing GETs");
-    return res;
+    return get_core(hx, curr);
 }
 
 /**
@@ -388,10 +380,14 @@ hxhim_results_t *hxhimFlushGets(hxhim_t *hx) {
  * @return results from sending the GETOPs
  */
 static hxhim::Results *getop_core(hxhim_t *hx,
-                                  hxhim::GetOpData *head,
-                                  Transport::Request::BGetOp *local) {
+                                  hxhim::GetOpData *head) {
     // serialized results
     hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
+
+    // declare local GETOP requests here to not reallocate every loop
+    Transport::Request::BGetOp local(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, hx->p->max_ops_per_send.getops);
+    local.src = hx->p->bootstrap.rank;
+    local.dst = hx->p->bootstrap.rank;
 
     // maximum number of remote destinations allowed at any time
     static const std::size_t max_remote = std::max(hx->p->memory_pools.requests->regions() / 2, (std::size_t) 1);
@@ -401,7 +397,7 @@ static hxhim::Results *getop_core(hxhim_t *hx,
         std::map<int, Transport::Request::BGetOp *> remote;
 
         // reset local without deallocating memory
-        local->count = 0;
+        local.count = 0;
 
         hxhim::GetOpData *curr = head;
 
@@ -411,9 +407,9 @@ static hxhim::Results *getop_core(hxhim_t *hx,
                                       curr->predicate, curr->predicate_len,
                                       curr->object_type,
                                       curr->num_recs, curr->op,
-                                      local,
+                                      &local,
                                       remote,
-                                      max_remote) == HXHIM_SUCCESS) {
+                                      max_remote) > -1) {
                 // head node
                 if (curr == head) {
                     head = curr->next;
@@ -458,9 +454,9 @@ static hxhim::Results *getop_core(hxhim_t *hx,
             hx->p->memory_pools.requests->release(dst.second);
         }
 
-        if (hx->p->running && local->count) {
-            hxhim::collect_fill_stats(local, hx->p->stats.bgetop);
-            Transport::Response::BGetOp *responses = local_client_bget_op(hx, local);
+        if (hx->p->running && local.count) {
+            hxhim::collect_fill_stats(&local, hx->p->stats.bgetop);
+            Transport::Response::BGetOp *responses = local_client_bget_op(hx, &local);
             for(Transport::Response::BGetOp *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
                     res->Add(hxhim::Result::init(hx, curr, i, false));
@@ -489,19 +485,10 @@ hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
     std::lock_guard<std::mutex> lock(getops.mutex);
 
     hxhim::GetOpData *curr = getops.head;
-    if (!curr) {
-        return HXHIM_SUCCESS;
-    }
+    getops.head = nullptr;
+    getops.tail = nullptr;
 
-    Transport::Request::BGetOp local(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, hx->p->max_ops_per_send.getops);
-    local.src = hx->p->bootstrap.rank;
-    local.dst = hx->p->bootstrap.rank;
-
-    hxhim::Results *res = getop_core(hx, curr, &local);
-
-    getops.head = getops.tail = nullptr;
-
-    return res;
+    return getop_core(hx, curr);
 }
 
 /**
@@ -528,10 +515,14 @@ hxhim_results_t *hxhimFlushGetOps(hxhim_t *hx) {
  * @return results from sending the DELs
  */
 static hxhim::Results *delete_core(hxhim_t *hx,
-                                   hxhim::DeleteData *head,
-                                   Transport::Request::BDelete *local) {
+                                   hxhim::DeleteData *head) {
     // serialized results
     hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
+
+    // declare local DELETE requests here to not reallocate every loop
+    Transport::Request::BDelete local(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, hx->p->max_ops_per_send.gets);
+    local.src = hx->p->bootstrap.rank;
+    local.dst = hx->p->bootstrap.rank;
 
     // maximum number of remote destinations allowed at any time
     static const std::size_t max_remote = std::max(hx->p->memory_pools.requests->regions() / 2, (std::size_t) 1);
@@ -541,7 +532,7 @@ static hxhim::Results *delete_core(hxhim_t *hx,
         std::map<int, Transport::Request::BDelete *> remote;
 
         // reset local without deallocating memory
-        local->count = 0;
+        local.count = 0;
 
         hxhim::DeleteData *curr = head;
 
@@ -549,9 +540,9 @@ static hxhim::Results *delete_core(hxhim_t *hx,
             if (hxhim::shuffle::Delete(hx, hx->p->max_ops_per_send.deletes,
                                     curr->subject, curr->subject_len,
                                     curr->predicate, curr->predicate_len,
-                                    local,
+                                    &local,
                                     remote,
-                                    max_remote) == HXHIM_SUCCESS) {
+                                    max_remote) > -1) {
                 // head node
                 if (curr == head) {
                     head = curr->next;
@@ -596,9 +587,9 @@ static hxhim::Results *delete_core(hxhim_t *hx,
             hx->p->memory_pools.requests->release(dst.second);
         }
 
-        if (hx->p->running && local->count) {
-            hxhim::collect_fill_stats(local, hx->p->stats.bdel);
-            Transport::Response::BDelete *responses = local_client_bdelete(hx, local);
+        if (hx->p->running && local.count) {
+            hxhim::collect_fill_stats(&local, hx->p->stats.bdel);
+            Transport::Response::BDelete *responses = local_client_bdelete(hx, &local);
             for(Transport::Response::BDelete *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
                     res->Add(hxhim::Result::init(hx, curr, i));
@@ -627,19 +618,10 @@ hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
     std::lock_guard<std::mutex> lock(dels.mutex);
 
     hxhim::DeleteData *curr = dels.head;
-    if (!curr) {
-        return HXHIM_SUCCESS;
-    }
+    dels.head = nullptr;
+    dels.tail = nullptr;
 
-    Transport::Request::BDelete local(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, hx->p->max_ops_per_send.deletes);
-    local.src = hx->p->bootstrap.rank;
-    local.dst = hx->p->bootstrap.rank;
-
-    hxhim::Results *res = delete_core(hx, curr, &local);
-
-    dels.head = dels.tail = nullptr;
-
-    return res;
+    return delete_core(hx, curr);
 }
 
 /**

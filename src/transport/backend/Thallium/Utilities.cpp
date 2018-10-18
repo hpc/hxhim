@@ -30,7 +30,7 @@ int Transport::Thallium::get_addrs(const MPI_Comm comm, const thallium::engine &
     if (MPI_Allreduce(&self_len, &max_len, 1, MPI_INT, MPI_MAX, comm) != MPI_SUCCESS) {
         return TRANSPORT_ERROR;
     }
-    max_len++; // nullptr terminate
+    max_len++; // null terminate
 
     // copy the address string and ensure the string is null terminated
     char *copy = new char[max_len]();
@@ -38,7 +38,7 @@ int Transport::Thallium::get_addrs(const MPI_Comm comm, const thallium::engine &
 
     // get addresses
     char *buf = new char[max_len * size]();
-    if (MPI_Allgather(copy, max_len, MPI_CHAR, buf, max_len, MPI_CHAR, MPI_COMM_WORLD) != MPI_SUCCESS) {
+    if (MPI_Allgather(copy, max_len, MPI_CHAR, buf, max_len, MPI_CHAR, comm) != MPI_SUCCESS) {
         delete [] copy;
         delete [] buf;
         return TRANSPORT_ERROR;

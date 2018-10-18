@@ -16,7 +16,7 @@ std::vector<std::thread> RangeServer::listeners_ = {};
 std::shared_ptr<FixedBufferPool> RangeServer::packed_ = {};
 
 int RangeServer::init(hxhim_t *hx, const std::size_t listener_count, const std::shared_ptr<FixedBufferPool> &packed) {
-    mlog(MPI_INFO, "Initializing MPI Range Server");
+    mlog(MPI_INFO, "Started MPI Range Server Initialization");
     if (!hx || !listener_count || !packed) {
         return TRANSPORT_ERROR;
     }
@@ -55,7 +55,7 @@ void RangeServer::destroy() {
  */
 void RangeServer::listener_thread() {
     //Mlog statements could cause a deadlock on range_server_stop due to canceling of threads
-
+    mlog(MPI_INFO, "MPI Range Server Thread Started");
     while (hx_->p->running){
         // wait for request
         void *req = nullptr;
@@ -87,6 +87,7 @@ void RangeServer::listener_thread() {
             continue;
         }
     }
+    mlog(MPI_INFO, "MPI Range Server Thread Stopped");
 }
 
 /**
@@ -105,17 +106,17 @@ int RangeServer::recv(void **data, std::size_t *len) {
         return TRANSPORT_ERROR;
     }
 
-    MPI_Request request;
-    MPI_Status status;
+    MPI_Request request = {};
+    MPI_Status status = {};
 
     // wait for the size of the data
-    // mlog(MPI_DBG, "MPI Range Server waiting for size");
+    mlog(MPI_DBG, "MPI Range Server waiting for size");
     if ((MPI_Irecv(len, sizeof(*len), MPI_CHAR, MPI_ANY_SOURCE, TRANSPORT_MPI_SIZE_REQUEST_TAG, hx_->p->bootstrap.comm, &request) != MPI_SUCCESS) ||
         (Flush(request, status) != TRANSPORT_SUCCESS)) {
-        // mlog(MPI_DBG, "MPI Range Server errored while waiting for size");
+        mlog(MPI_DBG, "MPI Range Server errored while waiting for size");
         return TRANSPORT_ERROR;
     }
-    // mlog(MPI_DBG, "MPI Range Server got size %zu", *len);
+    mlog(MPI_DBG, "MPI Range Server got size %zu", *len);
 
     *data = ::operator new(*len);
 
@@ -143,7 +144,7 @@ int RangeServer::recv(void **data, std::size_t *len) {
  * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR on error
  */
 int RangeServer::send(const int dst, void *data, const std::size_t len) {
-    MPI_Request request;
+    MPI_Request request = {};
 
     // send the size of the data
     // mlog(MPI_DBG, "MPI Range Server sending size %zu", len);

@@ -48,9 +48,7 @@ hxhim_private::hxhim_private()
 
 int insert(hxhim_t *hx,
            const std::size_t max_per_dst,
-           void *&subject, std::size_t &subject_len,
-           void *&predicate, std::size_t &predicate_len,
-           hxhim_type_t &object_type, void *&object, std::size_t &object_len,
+           hxhim::PutData *put,
            Transport::Request::BPut &local,
            std::map<int, Transport::Request::BPut *> &remote,
            const std::size_t &max_remote) {
@@ -58,9 +56,9 @@ int insert(hxhim_t *hx,
     if (
         // SP -> O
         (hxhim::shuffle::Put(hx, max_per_dst,
-                             subject, subject_len,
-                             predicate, predicate_len,
-                             object_type, object, object_len,
+                             put->subject, put->subject_len,
+                             put->predicate, put->predicate_len,
+                             put->object_type, put->object, put->object_len,
                              &local,
                              remote,
                              max_remote) > -1)
@@ -92,10 +90,10 @@ int insert(hxhim_t *hx,
         //                     max_remote);
         ) {
         // if the shuffle succeeded, mark the data as processed
-        subject = nullptr;
-        subject_len = 0;
-        predicate = nullptr;
-        predicate_len = 0;
+        put->subject = nullptr;
+        put->subject_len = 0;
+        put->predicate = nullptr;
+        put->predicate_len = 0;
         return HXHIM_SUCCESS;
     }
 
@@ -134,6 +132,7 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *&head) {
     while (hx->p->running && head) {
         // current set of remote destinations to send to
         std::map<int, Transport::Request::BPut *> remote;
+        std::map<void *, int> hashed;
 
         // reset local without deallocating memory
         local.count = 0;
@@ -141,9 +140,7 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *&head) {
         hxhim::PutData *curr = head;
         while (hx->p->running && curr) {
             if (insert(hx, max_puts,
-                       curr->subject, curr->subject_len,
-                       curr->predicate, curr->predicate_len,
-                       curr->object_type, curr->object, curr->object_len,
+                       curr,
                        local,
                        remote,
                        max_remote) == HXHIM_SUCCESS) {
@@ -827,6 +824,7 @@ int hxhim::PutImpl(hxhim_t *hx,
                    void *subject, std::size_t subject_len,
                    void *predicate, std::size_t predicate_len,
                    enum hxhim_type_t object_type, void *object, std::size_t object_len) {
+    mlog(HXHIM_CLIENT_DBG, "PUT Start");
     hxhim::PutData *put = hx->p->memory_pools.ops_cache->acquire<hxhim::PutData>();
     put->subject = subject;
     put->subject_len = subject_len;
@@ -836,10 +834,12 @@ int hxhim::PutImpl(hxhim_t *hx,
     put->object = object;
     put->object_len = object_len;
 
+    mlog(HXHIM_CLIENT_DBG, "Put Insert into queue");
     hxhim::Unsent<hxhim::PutData> &puts = hx->p->queues.puts;
     puts.insert(put);
     puts.start_processing.notify_one();
 
+    mlog(HXHIM_CLIENT_DBG, "PUT Completed");
     return HXHIM_SUCCESS;
 }
 
@@ -862,6 +862,7 @@ int hxhim::GetImpl(hxhim_t *hx,
                    void *subject, std::size_t subject_len,
                    void *predicate, std::size_t predicate_len,
                    enum hxhim_type_t object_type) {
+    mlog(HXHIM_CLIENT_DBG, "GET Start");
     hxhim::GetData *get = hx->p->memory_pools.ops_cache->acquire<hxhim::GetData>();
     get->subject = subject;
     get->subject_len = subject_len;
@@ -869,10 +870,12 @@ int hxhim::GetImpl(hxhim_t *hx,
     get->predicate_len = predicate_len;
     get->object_type = object_type;
 
+    mlog(HXHIM_CLIENT_DBG, "GET Insert into queue");
     hxhim::Unsent<hxhim::GetData> &gets = hx->p->queues.gets;
     gets.insert(get);
     gets.start_processing.notify_one();
 
+    mlog(HXHIM_CLIENT_DBG, "GET Completed");
     return HXHIM_SUCCESS;
 }
 
@@ -893,15 +896,18 @@ int hxhim::GetImpl(hxhim_t *hx,
 int hxhim::DeleteImpl(hxhim_t *hx,
                       void *subject, std::size_t subject_len,
                       void *predicate, std::size_t predicate_len) {
+    mlog(HXHIM_CLIENT_DBG, "DELETE Start");
     hxhim::DeleteData *del = hx->p->memory_pools.ops_cache->acquire<hxhim::DeleteData>();
     del->subject = subject;
     del->subject_len = subject_len;
     del->predicate = predicate;
     del->predicate_len = predicate_len;
 
+    mlog(HXHIM_CLIENT_DBG, "DELETE Insert into queue");
     hxhim::Unsent<hxhim::DeleteData> &dels = hx->p->queues.deletes;
     dels.insert(del);
     dels.start_processing.notify_one();
 
+    mlog(HXHIM_CLIENT_DBG, "Delete Completed");
     return HXHIM_SUCCESS;
 }

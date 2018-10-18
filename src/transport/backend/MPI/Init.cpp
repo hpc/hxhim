@@ -18,7 +18,7 @@ namespace MPI {
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
 int init(hxhim_t *hx, hxhim_options_t *opts) {
-    mlog(HXHIM_CLIENT_DBG, "Starting MPI Initialization");
+    mlog(MPI_INFO, "Starting MPI Initialization");
     if (!hxhim::valid(hx, opts) ||
         !hx->p->transport)       {
         return HXHIM_ERROR;
@@ -72,7 +72,7 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
     // set the endpoint group
     hx->p->transport->SetEndpointGroup(eg);
 
-    mlog(HXHIM_CLIENT_DBG, "Completed MPI Initialization");
+    mlog(MPI_INFO, "Completed MPI Initialization");
     return TRANSPORT_SUCCESS;
 }
 
