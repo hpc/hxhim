@@ -49,7 +49,7 @@ int get_server(hxhim_t *hx, const int id) {
  * @param id the database ID to get the offset of
  * @return the offset of the given ID or -1 on error
  */
-std::size_t get_offset(hxhim_t *hx, const int id) {
+int get_offset(hxhim_t *hx, const int id) {
     if (!valid(hx)) {
         return -1;
     }

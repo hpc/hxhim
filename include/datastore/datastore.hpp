@@ -27,7 +27,7 @@ namespace datastore {
 */
 int get_rank(hxhim_t *hx, const int id);
 int get_server(hxhim_t *hx, const int id);
-std::size_t get_offset(hxhim_t *hx, const int id);
+int get_offset(hxhim_t *hx, const int id);
 int get_id(hxhim_t *hx, const int rank, const std::size_t offset);
 
 /**
