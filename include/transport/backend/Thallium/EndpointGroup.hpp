@@ -18,7 +18,9 @@ namespace Thallium {
  */
 class EndpointGroup : virtual public ::Transport::EndpointGroup {
     public:
-        EndpointGroup(const RPC_t &rpc,
+        EndpointGroup(const Engine_t &engine,
+                      const RPC_t &rpc,
+                      FixedBufferPool *packed,
                       FixedBufferPool *responses,
                       FixedBufferPool *arrays,
                       FixedBufferPool *buffers);
@@ -55,10 +57,12 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup {
                                                                            std::is_base_of<Bulk,               Recv_t>::value> >
         Recv_t *do_operation(const std::map<int, Send_t *> &messages);
 
+        Engine_t engine;
         RPC_t rpc;
 
         std::map<int, Endpoint_t> endpoints;
 
+        FixedBufferPool *packed;
         FixedBufferPool *responses;
         FixedBufferPool *arrays;
         FixedBufferPool *buffers;

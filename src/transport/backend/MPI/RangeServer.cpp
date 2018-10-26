@@ -13,16 +13,14 @@ namespace MPI {
 
 hxhim_t *RangeServer::hx_ = nullptr;
 std::vector<std::thread> RangeServer::listeners_ = {};
-std::shared_ptr<FixedBufferPool> RangeServer::packed_ = {};
 
-int RangeServer::init(hxhim_t *hx, const std::size_t listener_count, const std::shared_ptr<FixedBufferPool> &packed) {
+int RangeServer::init(hxhim_t *hx, const std::size_t listener_count) {
     mlog(MPI_INFO, "Started MPI Range Server Initialization");
-    if (!hx || !listener_count || !packed) {
+    if (!hx || !hx->p || !listener_count) {
         return TRANSPORT_ERROR;
     }
 
     hx_ = hx;
-    packed_ = packed;
     listeners_.resize(listener_count);
 
     mlog(MPI_DBG, "Starting up %zu listeners", listener_count);
@@ -76,12 +74,12 @@ void RangeServer::listener_thread() {
         // encode result
         void *res = nullptr;
         len = 0;
-        Packer::pack(hx_->p->bootstrap.comm, response, &res, &len, packed_.get());
+        Packer::pack(hx_->p->bootstrap.comm, response, &res, &len, hx_->p->memory_pools.packed);
 
         // send result
         const int ret = send(response->dst, res, len);
         hx_->p->memory_pools.responses->release(response);
-        packed_->release(res, len);
+        hx_->p->memory_pools.packed->release(res, len);
 
         if (ret != TRANSPORT_SUCCESS) {
             continue;

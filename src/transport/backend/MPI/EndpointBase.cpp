@@ -3,7 +3,7 @@
 namespace Transport {
 namespace MPI {
 
-EndpointBase::EndpointBase(const MPI_Comm comm, std::shared_ptr<FixedBufferPool> packed)
+EndpointBase::EndpointBase(const MPI_Comm comm, FixedBufferPool *packed)
     : comm(comm),
       rank(-1),
       size(-1),

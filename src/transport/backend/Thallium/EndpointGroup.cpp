@@ -2,19 +2,27 @@
 
 #include "transport/backend/Thallium/EndpointGroup.hpp"
 
-Transport::Thallium::EndpointGroup::EndpointGroup(const Thallium::RPC_t &rpc,
+Transport::Thallium::EndpointGroup::EndpointGroup(const Thallium::Engine_t &engine,
+                                                  const Thallium::RPC_t &rpc,
+                                                  FixedBufferPool *packed,
                                                   FixedBufferPool *responses,
                                                   FixedBufferPool *arrays,
                                                   FixedBufferPool *buffers)
   : ::Transport::EndpointGroup(),
+    engine(engine),
     rpc(rpc),
     endpoints(),
+    packed(packed),
     responses(responses),
     arrays(arrays),
     buffers(buffers)
 {
     if (!rpc) {
         throw std::runtime_error("thallium::remote_procedure in Thallium Endpoint Group must not be nullptr");
+    }
+
+    if (!packed) {
+        throw std::runtime_error("FixedBufferPool in Thallium Endpoint Group must not be nullptr");
     }
 
     if (!responses) {

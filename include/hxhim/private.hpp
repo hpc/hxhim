@@ -97,6 +97,7 @@ typedef struct hxhim_private {
         FixedBufferPool *ops_cache;                            // internal staging area of individual operations waiting to be packed and sent
         FixedBufferPool *arrays;                               // storage for bulk message internal arrays; size is max_bulk_ops.max * sizeof(void *)
         FixedBufferPool *requests;                             // should have enough space to allow for maximum number of requests queued before flushing
+        FixedBufferPool *packed;                               // storage for packed requests/responses being transported
         FixedBufferPool *responses;                            // should have enough space to allow for responses from all queued requests
         FixedBufferPool *result;                               // should have enough space to allow for results from all returned responses
         FixedBufferPool *results;                              // should have enough space to allow for maximum number of valid results at once

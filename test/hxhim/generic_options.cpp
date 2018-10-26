@@ -28,6 +28,9 @@ bool fill_options(hxhim_options_t *opts) {
             (hxhim_options_set_requests_name(opts, "Requests")                            == HXHIM_SUCCESS) &&
             (hxhim_options_set_requests_alloc_size(opts, hxhim::MaxSize::Requests())      == HXHIM_SUCCESS) &&
             (hxhim_options_set_requests_regions(opts, 2)                                  == HXHIM_SUCCESS) &&
+            (hxhim_options_set_packed_name(opts, "Packed")                                == HXHIM_SUCCESS) &&
+            (hxhim_options_set_packed_alloc_size(opts, 128)                               == HXHIM_SUCCESS) &&
+            (hxhim_options_set_packed_regions(opts, 2)                                    == HXHIM_SUCCESS) &&
             (hxhim_options_set_responses_name(opts, "Responses")                          == HXHIM_SUCCESS) &&
             (hxhim_options_set_responses_alloc_size(opts, hxhim::MaxSize::Responses())    == HXHIM_SUCCESS) &&
             (hxhim_options_set_responses_regions(opts, 2)                                 == HXHIM_SUCCESS) &&

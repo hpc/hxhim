@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
 
     // number of times to PUT count triples
     const size_t times = 2;
-    const size_t count = 1024 * 512;
+    const size_t count = 1000 * 500;
 
     // do PUTs
     for(size_t i = 0; i < times; i++) {

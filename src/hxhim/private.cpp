@@ -391,6 +391,7 @@ int hxhim::init::memory(hxhim_t *hx, hxhim_options_t *opts) {
           (hx->p->memory_pools.ops_cache  = new FixedBufferPool(opts->p->ops_cache.alloc_size, opts->p->ops_cache.regions, opts->p->ops_cache.name)) &&
           (hx->p->memory_pools.arrays     = new FixedBufferPool(opts->p->arrays.alloc_size,    opts->p->arrays.regions,    opts->p->arrays.name))    &&
           (hx->p->memory_pools.requests   = new FixedBufferPool(opts->p->requests.alloc_size,  opts->p->requests.regions,  opts->p->requests.name))  &&
+          (hx->p->memory_pools.packed     = new FixedBufferPool(opts->p->packed.alloc_size,    opts->p->packed.regions,     opts->p->packed.name))   &&
           (hx->p->memory_pools.responses  = new FixedBufferPool(opts->p->responses.alloc_size, opts->p->responses.regions, opts->p->responses.name)) &&
           (hx->p->memory_pools.result     = new FixedBufferPool(opts->p->result.alloc_size,    opts->p->result.regions,    opts->p->result.name))    &&
           (hx->p->memory_pools.results    = new FixedBufferPool(opts->p->results.alloc_size,   opts->p->results.regions,   opts->p->results.name))))  {
@@ -404,6 +405,7 @@ int hxhim::init::memory(hxhim_t *hx, hxhim_options_t *opts) {
          hx->p->memory_pools.ops_cache->size() +
          hx->p->memory_pools.arrays->size()    +
          hx->p->memory_pools.requests->size()  +
+         hx->p->memory_pools.packed->size()    +
          hx->p->memory_pools.responses->size() +
          hx->p->memory_pools.result->size()    +
          hx->p->memory_pools.results->size());
@@ -675,6 +677,7 @@ int hxhim::destroy::memory(hxhim_t *hx) {
     delete hx->p->memory_pools.ops_cache;
     delete hx->p->memory_pools.arrays;
     delete hx->p->memory_pools.requests;
+    delete hx->p->memory_pools.packed;
     delete hx->p->memory_pools.responses;
     delete hx->p->memory_pools.result;
     delete hx->p->memory_pools.results;
@@ -683,8 +686,8 @@ int hxhim::destroy::memory(hxhim_t *hx) {
     hx->p->memory_pools.buffers   = nullptr;
     hx->p->memory_pools.ops_cache = nullptr;
     hx->p->memory_pools.arrays    = nullptr;
-    hx->p->memory_pools.arrays    = nullptr;
     hx->p->memory_pools.requests  = nullptr;
+    hx->p->memory_pools.packed    = nullptr;
     hx->p->memory_pools.responses = nullptr;
     hx->p->memory_pools.result    = nullptr;
     hx->p->memory_pools.results   = nullptr;

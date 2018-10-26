@@ -6,8 +6,6 @@
 #include <stdexcept>
 #include <unistd.h>
 
-#include "utils/mlog2.h"
-#include "utils/mlogfacs2.h"
 #include <mpi.h>
 
 #include "utils/FixedBufferPool.hpp"
@@ -21,7 +19,7 @@ namespace MPI {
  */
 class EndpointBase {
     public:
-        EndpointBase(const MPI_Comm comm, const std::shared_ptr<FixedBufferPool> packed);
+        EndpointBase(const MPI_Comm comm, FixedBufferPool *packed);
         virtual ~EndpointBase();
 
         MPI_Comm Comm() const;
@@ -32,7 +30,7 @@ class EndpointBase {
         MPI_Comm comm;
         int rank;
         int size;
-        std::shared_ptr<FixedBufferPool> packed;
+        FixedBufferPool *packed;
 };
 
 }

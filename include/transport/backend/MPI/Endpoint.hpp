@@ -28,7 +28,7 @@ class Endpoint : virtual public ::Transport::Endpoint, virtual public EndpointBa
         Endpoint(const MPI_Comm comm,
                  const int remote_rank,
                  volatile std::atomic_bool &running,
-                 std::shared_ptr<FixedBufferPool> packed,
+                 FixedBufferPool *packed,
                  FixedBufferPool *responses,
                  FixedBufferPool *arrays,
                  FixedBufferPool *buffers);
@@ -77,7 +77,7 @@ class Endpoint : virtual public ::Transport::Endpoint, virtual public EndpointBa
             // the result of this series of function calls does not matter
             (void)
                 (
-                    (Packer::pack(comm, message, &sendbuf, &sendsize, packed.get()) == TRANSPORT_SUCCESS) &&  // pack the message
+                    (Packer::pack(comm, message, &sendbuf, &sendsize, packed) == TRANSPORT_SUCCESS) &&  // pack the message
                     (send(sendbuf, sendsize)                                        == TRANSPORT_SUCCESS) &&  // send the message
                     (recv(&recvbuf, &recvsize)                                      == TRANSPORT_SUCCESS) &&  // receive the response
                     (Unpacker::unpack(comm, &response, recvbuf, recvsize,

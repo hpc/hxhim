@@ -31,19 +31,16 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
 
     Options *config = static_cast<Options *>(opts->p->transport);
 
-    // Create the shared memory pool used in MPI
-    std::shared_ptr<FixedBufferPool> packed = std::make_shared<FixedBufferPool>(opts->p->max_ops_per_send * 128, opts->p->requests.regions / 2 + 1, "MPI Packed");
-
     // create a range server
     if (hxhim::range_server::is_range_server(hx->p->bootstrap.rank, opts->p->client_ratio, opts->p->server_ratio)) {
-        RangeServer::init(hx, config->listeners, packed);
+        RangeServer::init(hx, config->listeners);
         hx->p->range_server.destroy = RangeServer::destroy;
         mlog(MPI_INFO, "Created MPI Range Server on rank %d", hx->p->bootstrap.rank);
     }
 
     EndpointGroup *eg = new EndpointGroup(hx->p->bootstrap.comm,
                                           hx->p->running,
-                                          packed,
+                                          hx->p->memory_pools.packed,
                                           hx->p->memory_pools.responses,
                                           hx->p->memory_pools.arrays,
                                           hx->p->memory_pools.buffers);
@@ -54,7 +51,7 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
             // MPI ranks map 1:1 with the boostrap MPI rank
             hx->p->transport->AddEndpoint(i, new Endpoint(hx->p->bootstrap.comm, i,
                                                           hx->p->running,
-                                                          packed,
+                                                          hx->p->memory_pools.packed,
                                                           hx->p->memory_pools.responses,
                                                           hx->p->memory_pools.arrays,
                                                           hx->p->memory_pools.buffers));

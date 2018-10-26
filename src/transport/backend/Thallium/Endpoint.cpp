@@ -7,6 +7,7 @@ std::mutex Transport::Thallium::Endpoint::mutex = {};
 Transport::Thallium::Endpoint::Endpoint(const Engine_t &engine,
                                         const RPC_t &rpc,
                                         const Endpoint_t &ep,
+                                        FixedBufferPool *packed,
                                         FixedBufferPool *responses,
                                         FixedBufferPool *arrays,
                                         FixedBufferPool *buffers)
@@ -14,6 +15,7 @@ Transport::Thallium::Endpoint::Endpoint(const Engine_t &engine,
     engine(engine),
     rpc(rpc),
     ep(ep),
+    packed(packed),
     responses(responses),
     arrays(arrays),
     buffers(buffers)
@@ -26,6 +28,10 @@ Transport::Thallium::Endpoint::Endpoint(const Engine_t &engine,
 
     if (!rpc) {
         throw std::runtime_error("thallium::remote_procedure in ThalliumEndpoint must not be nullptr");
+    }
+
+    if (!packed) {
+        throw std::runtime_error("FixedBufferPool in ThalliumEndpoint must not be nullptr");
     }
 
     if (!responses) {

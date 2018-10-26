@@ -1,10 +1,12 @@
 #if HXHIM_HAVE_THALLIUM
 
+#include <cstring>
+
 #include "transport/backend/Thallium/Unpacker.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
-int Transport::Thallium::Unpacker::unpack(Request::Request **req, const std::string &buf, FixedBufferPool *requests, FixedBufferPool *arrays, FixedBufferPool *buffers) {
+int Transport::Thallium::Unpacker::unpack(Request::Request **req, void *buf, const std::size_t bufsize, FixedBufferPool *requests, FixedBufferPool *arrays, FixedBufferPool *buffers) {
     int ret = TRANSPORT_ERROR;
     if (!req) {
         // mlog(THALLIUM_WARN, "Bad address to pointer to unpack into");
@@ -15,7 +17,7 @@ int Transport::Thallium::Unpacker::unpack(Request::Request **req, const std::str
 
     // partial unpacking
     Message *base = nullptr;
-    if (unpack(&base, buf, requests, arrays, buffers) != TRANSPORT_SUCCESS) {
+    if (unpack(&base, buf, bufsize, requests, arrays, buffers) != TRANSPORT_SUCCESS) {
         requests->release(base);
         return ret;
     }
@@ -33,56 +35,56 @@ int Transport::Thallium::Unpacker::unpack(Request::Request **req, const std::str
         case Message::PUT:
             {
                 Request::Put *out = nullptr;
-                ret = unpack(&out, buf, requests, arrays, buffers);
+                ret = unpack(&out, buf, bufsize, requests, arrays, buffers);
                 *req = out;
             }
             break;
         case Message::GET:
             {
                 Request::Get *out = nullptr;
-                ret = unpack(&out, buf, requests, arrays, buffers);
+                ret = unpack(&out, buf, bufsize, requests, arrays, buffers);
                 *req = out;
             }
             break;
         case Message::DELETE:
             {
                 Request::Delete *out = nullptr;
-                ret = unpack(&out, buf, requests, arrays, buffers);
+                ret = unpack(&out, buf, bufsize, requests, arrays, buffers);
                 *req = out;
             }
             break;
         case Message::HISTOGRAM:
             {
                 Request::Histogram *out = nullptr;
-                ret = unpack(&out, buf, requests, arrays, buffers);
+                ret = unpack(&out, buf, bufsize, requests, arrays, buffers);
                 *req = out;
             }
             break;
         case Message::BPUT:
             {
                 Request::BPut *out = nullptr;
-                ret = unpack(&out, buf, requests, arrays, buffers);
+                ret = unpack(&out, buf, bufsize, requests, arrays, buffers);
                 *req = out;
             }
             break;
         case Message::BGET:
             {
                 Request::BGet *out = nullptr;
-                ret = unpack(&out, buf, requests, arrays, buffers);
+                ret = unpack(&out, buf, bufsize, requests, arrays, buffers);
                 *req = out;
             }
             break;
         case Message::BGETOP:
             {
                 Request::BGetOp *out = nullptr;
-                ret = unpack(&out, buf, requests, arrays, buffers);
+                ret = unpack(&out, buf, bufsize, requests, arrays, buffers);
                 *req = out;
             }
             break;
         case Message::BDELETE:
             {
                 Request::BDelete *out = nullptr;
-                ret = unpack(&out, buf, requests, arrays, buffers);
+                ret = unpack(&out, buf, bufsize, requests, arrays, buffers);
                 *req = out;
             }
             break;
@@ -96,24 +98,29 @@ int Transport::Thallium::Unpacker::unpack(Request::Request **req, const std::str
     return ret;
 }
 
-int Transport::Thallium::Unpacker::unpack(Request::Put **pm, const std::string &buf, FixedBufferPool *requests, FixedBufferPool *arrays, FixedBufferPool *buffers) {
+int Transport::Thallium::Unpacker::unpack(Request::Put **pm, void *buf, const std::size_t bufsize, FixedBufferPool *requests, FixedBufferPool *arrays, FixedBufferPool *buffers) {
     Request::Put *out = requests->acquire<Request::Put>(arrays, buffers);
-    std::stringstream s(buf);
-    if (unpack(static_cast<Request::Request *>(out), s) != TRANSPORT_SUCCESS) {
+    char *curr = nullptr;
+    if (unpack(static_cast<Request::Request *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         requests->release(out);
         return TRANSPORT_ERROR;
     }
 
     // read non array data
-    if (!s
-        .read((char *) &out->ds_offset, sizeof(out->ds_offset))
-        .read((char *) &out->subject_len, sizeof(out->subject_len))
-        .read((char *) &out->predicate_len, sizeof(out->predicate_len))
-        .read((char *) &out->object_len, sizeof(out->object_len))
-        .read((char *) &out->object_type, sizeof(out->object_type))) {
-        requests->release(out);
-        return TRANSPORT_ERROR;
-    }
+    memcpy(&out->ds_offset, curr, sizeof(out->ds_offset));
+    curr += sizeof(out->ds_offset);
+
+    memcpy(&out->subject_len, curr, sizeof(out->subject_len));
+    curr += sizeof(out->subject_len);
+
+    memcpy(&out->predicate_len, curr, sizeof(out->predicate_len));
+    curr += sizeof(out->predicate_len);
+
+    memcpy(&out->object_len, curr, sizeof(out->object_len));
+    curr += sizeof(out->object_len);
+
+    memcpy(&out->object_type, curr, sizeof(out->object_type));
+    curr += sizeof(out->object_type);
 
     // allocate arrays
     if (!(out->subject = buffers->acquire(out->subject_len))     ||
@@ -124,35 +131,39 @@ int Transport::Thallium::Unpacker::unpack(Request::Put **pm, const std::string &
     }
 
     // read arrays
-    if (!s
-        .read((char *) out->subject, out->subject_len)
-        .read((char *) out->predicate, out->predicate_len)
-        .read((char *) out->object, out->object_len)) {
-        requests->release(out);
-        return TRANSPORT_ERROR;
-    }
+    memcpy(out->subject, curr, out->subject_len);
+    curr += out->subject_len;
+
+    memcpy(out->predicate, curr, out->predicate_len);
+    curr += out->predicate_len;
+
+    memcpy(out->object, curr, out->object_len);
+    // curr += out->object_len;
 
     *pm = out;
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Request::Get **gm, const std::string &buf, FixedBufferPool *requests, FixedBufferPool *arrays, FixedBufferPool *buffers) {
+int Transport::Thallium::Unpacker::unpack(Request::Get **gm, void *buf, const std::size_t bufsize, FixedBufferPool *requests, FixedBufferPool *arrays, FixedBufferPool *buffers) {
     Request::Get *out = requests->acquire<Request::Get>(arrays, buffers);
-    std::stringstream s(buf);
-    if (unpack(static_cast<Request::Request *>(out), s) != TRANSPORT_SUCCESS) {
+    char *curr = nullptr;
+    if (unpack(static_cast<Request::Request *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         requests->release(out);
         return TRANSPORT_ERROR;
     }
 
     // read non array data
-    if (!s
-        .read((char *) &out->ds_offset, sizeof(out->ds_offset))
-        .read((char *) &out->subject_len, sizeof(out->subject_len))
-        .read((char *) &out->predicate_len, sizeof(out->predicate_len))
-        .read((char *) &out->object_type, sizeof(out->object_type))) {
-        requests->release(out);
-        return TRANSPORT_ERROR;
-    }
+    memcpy(&out->ds_offset, curr, sizeof(out->ds_offset));
+    curr += sizeof(out->ds_offset);
+
+    memcpy(&out->subject_len, curr, sizeof(out->subject_len));
+    curr += sizeof(out->subject_len);
+
+    memcpy(&out->predicate_len, curr, sizeof(out->predicate_len));
+    curr += sizeof(out->predicate_len);
+
+    memcpy(&out->object_type, curr, sizeof(out->object_type));
+    curr += sizeof(out->object_type);
 
     // allocate arrays
     if (!(out->subject = buffers->acquire(out->subject_len))     ||
@@ -162,33 +173,33 @@ int Transport::Thallium::Unpacker::unpack(Request::Get **gm, const std::string &
     }
 
     // read arrays
-    if (!s
-        .read((char *) out->subject, out->subject_len)
-        .read((char *) out->predicate, out->predicate_len)) {
-        requests->release(out);
-        return TRANSPORT_ERROR;
-    }
+    memcpy(out->subject, curr, out->subject_len);
+    curr += out->subject_len;
+
+    memcpy(out->predicate, curr, out->predicate_len);
+    // curr += out->predicate_len;
 
     *gm = out;
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Request::Delete **dm, const std::string &buf, FixedBufferPool *requests, FixedBufferPool *arrays, FixedBufferPool *buffers) {
+int Transport::Thallium::Unpacker::unpack(Request::Delete **dm, void *buf, const std::size_t bufsize, FixedBufferPool *requests, FixedBufferPool *arrays, FixedBufferPool *buffers) {
     Request::Delete *out = requests->acquire<Request::Delete>(arrays, buffers);
-    std::stringstream s(buf);
-    if (unpack(static_cast<Request::Request *>(out), s) != TRANSPORT_SUCCESS) {
+    char *curr = nullptr;
+    if (unpack(static_cast<Request::Request *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         requests->release(out);
         return TRANSPORT_ERROR;
     }
 
     // read non array data
-    if (!s
-        .read((char *) &out->ds_offset, sizeof(out->ds_offset))
-        .read((char *) &out->subject_len, sizeof(out->subject_len))
-        .read((char *) &out->predicate_len, sizeof(out->predicate_len))) {
-        requests->release(out);
-        return TRANSPORT_ERROR;
-    }
+    memcpy(&out->ds_offset, curr, sizeof(out->ds_offset));
+    curr += sizeof(out->ds_offset);
+
+    memcpy(&out->subject_len, curr, sizeof(out->subject_len));
+    curr += sizeof(out->subject_len);
+
+    memcpy(&out->predicate_len, curr, sizeof(out->predicate_len));
+    curr += sizeof(out->predicate_len);
 
     // allocate arrays
     if (!(out->subject = buffers->acquire(out->subject_len))     ||
@@ -198,50 +209,44 @@ int Transport::Thallium::Unpacker::unpack(Request::Delete **dm, const std::strin
     }
 
     // read arrays
-    if (!s
-        .read((char *) out->subject, out->subject_len)
-        .read((char *) out->predicate, out->predicate_len)) {
-        requests->release(out);
-        return TRANSPORT_ERROR;
-    }
+    memcpy(out->subject, curr, out->subject_len);
+    curr += out->subject_len;
+
+    memcpy(out->predicate, curr, out->predicate_len);
+    // curr += out->predicate_len;
 
     *dm = out;
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Request::Histogram **hist, const std::string &buf, FixedBufferPool *requests, FixedBufferPool *arrays, FixedBufferPool *buffers) {
+int Transport::Thallium::Unpacker::unpack(Request::Histogram **hist, void *buf, const std::size_t bufsize, FixedBufferPool *requests, FixedBufferPool *arrays, FixedBufferPool *buffers) {
     Request::Histogram *out = requests->acquire<Request::Histogram>(arrays, buffers);
-    std::stringstream s(buf);
-    if (unpack(static_cast<Request::Request *>(out), s) != TRANSPORT_SUCCESS) {
+    char *curr = nullptr;
+    if (unpack(static_cast<Request::Request *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         requests->release(out);
         return TRANSPORT_ERROR;
     }
 
     // read non array data
-    if (!s
-        .read((char *) &out->ds_offset, sizeof(out->ds_offset))) {
-        requests->release(out);
-        return TRANSPORT_ERROR;
-    }
+    memcpy(&out->ds_offset, curr, sizeof(out->ds_offset));
+    // curr += sizeof(out->ds_offset);
 
     *hist = out;
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Request::BPut **bpm, const std::string &buf, FixedBufferPool *requests, FixedBufferPool *arrays, FixedBufferPool *buffers) {
+int Transport::Thallium::Unpacker::unpack(Request::BPut **bpm, void *buf, const std::size_t bufsize, FixedBufferPool *requests, FixedBufferPool *arrays, FixedBufferPool *buffers) {
     Request::BPut *out = requests->acquire<Request::BPut>(arrays, buffers);
-    std::stringstream s(buf);
-    if (unpack(static_cast<Request::Request *>(out), s) != TRANSPORT_SUCCESS) {
+    char *curr = nullptr;
+    if (unpack(static_cast<Request::Request *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         requests->release(out);
         return TRANSPORT_ERROR;
     }
 
     // read non array data
     std::size_t count = 0;
-    if (!s.read((char *) &count, sizeof(out->count))) {
-        requests->release(out);
-        return TRANSPORT_ERROR;
-    }
+    memcpy(&count, curr, sizeof(out->count));
+    curr += sizeof(out->count);
 
     // allocate space
     if (out->alloc(count) != TRANSPORT_SUCCESS) {
@@ -250,15 +255,20 @@ int Transport::Thallium::Unpacker::unpack(Request::BPut **bpm, const std::string
     }
 
     for(std::size_t i = 0; i < count; i++) {
-        if (!s
-            .read((char *) &out->ds_offsets[i], sizeof(out->ds_offsets[i]))
-            .read((char *) &out->subject_lens[i], sizeof(out->subject_lens[i]))
-            .read((char *) &out->predicate_lens[i], sizeof(out->predicate_lens[i]))
-            .read((char *) &out->object_lens[i], sizeof(out->object_lens[i]))
-            .read((char *) &out->object_types[i], sizeof(out->object_types[i]))) {
-            requests->release(out);
-            return TRANSPORT_ERROR;
-        }
+        memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
+        curr += sizeof(out->ds_offsets[i]);
+
+        memcpy(&out->subject_lens[i], curr, sizeof(out->subject_lens[i]));
+        curr += sizeof(out->subject_lens[i]);
+
+        memcpy(&out->predicate_lens[i], curr, sizeof(out->predicate_lens[i]));
+        curr += sizeof(out->predicate_lens[i]);
+
+        memcpy(&out->object_lens[i], curr, sizeof(out->object_lens[i]));
+        curr += sizeof(out->object_lens[i]);
+
+        memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
+        curr += sizeof(out->object_types[i]);
 
         if (!(out->subjects[i]   = buffers->acquire(out->subject_lens[i]))   ||
             !(out->predicates[i] = buffers->acquire(out->predicate_lens[i])) ||
@@ -267,13 +277,14 @@ int Transport::Thallium::Unpacker::unpack(Request::BPut **bpm, const std::string
             return TRANSPORT_ERROR;
         }
 
-        if (!s
-            .read((char *) out->subjects[i], out->subject_lens[i])
-            .read((char *) out->predicates[i], out->predicate_lens[i])
-            .read((char *) out->objects[i], out->object_lens[i])) {
-            requests->release(out);
-            return TRANSPORT_ERROR;
-        }
+        memcpy(out->subjects[i], curr, out->subject_lens[i]);
+        curr += out->subject_lens[i];
+
+        memcpy(out->predicates[i], curr, out->predicate_lens[i]);
+        curr += out->predicate_lens[i];
+
+        memcpy(out->objects[i], curr, out->object_lens[i]);
+        curr += out->object_lens[i];
 
         out->count++;
     }
@@ -282,20 +293,18 @@ int Transport::Thallium::Unpacker::unpack(Request::BPut **bpm, const std::string
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Request::BGet **bgm, const std::string &buf, FixedBufferPool *requests, FixedBufferPool *arrays, FixedBufferPool *buffers) {
+int Transport::Thallium::Unpacker::unpack(Request::BGet **bgm, void *buf, const std::size_t bufsize, FixedBufferPool *requests, FixedBufferPool *arrays, FixedBufferPool *buffers) {
     Request::BGet *out = requests->acquire<Request::BGet>(arrays, buffers);
-    std::stringstream s(buf);
-    if (unpack(static_cast<Request::Request *>(out), s) != TRANSPORT_SUCCESS) {
+    char *curr = nullptr;
+    if (unpack(static_cast<Request::Request *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         requests->release(out);
         return TRANSPORT_ERROR;
     }
 
     // read non array data
     std::size_t count = 0;
-    if (!s.read((char *) &count, sizeof(out->count))) {
-        requests->release(out);
-        return TRANSPORT_ERROR;
-    }
+    memcpy(&count, curr, sizeof(out->count));
+    curr += sizeof(out->count);
 
     // allocate space
     if (out->alloc(count) != TRANSPORT_SUCCESS) {
@@ -304,14 +313,17 @@ int Transport::Thallium::Unpacker::unpack(Request::BGet **bgm, const std::string
     }
 
     for(std::size_t i = 0; i < count; i++) {
-        if (!s
-            .read((char *) &out->ds_offsets[i], sizeof(out->ds_offsets[i]))
-            .read((char *) &out->subject_lens[i], sizeof(out->subject_lens[i]))
-            .read((char *) &out->predicate_lens[i], sizeof(out->predicate_lens[i]))
-            .read((char *) &out->object_types[i], sizeof(out->object_types[i]))) {
-            requests->release(out);
-            return TRANSPORT_ERROR;
-        }
+        memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
+        curr += sizeof(out->ds_offsets[i]);
+
+        memcpy(&out->subject_lens[i], curr, sizeof(out->subject_lens[i]));
+        curr += sizeof(out->subject_lens[i]);
+
+        memcpy(&out->predicate_lens[i], curr, sizeof(out->predicate_lens[i]));
+        curr += sizeof(out->predicate_lens[i]);
+
+        memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
+        curr += sizeof(out->object_types[i]);
 
         if (!(out->subjects[i]   = buffers->acquire(out->subject_lens[i]))   ||
             !(out->predicates[i] = buffers->acquire(out->predicate_lens[i]))) {
@@ -319,12 +331,11 @@ int Transport::Thallium::Unpacker::unpack(Request::BGet **bgm, const std::string
             return TRANSPORT_ERROR;
         }
 
-        if (!s
-            .read((char *) out->subjects[i], out->subject_lens[i])
-            .read((char *) out->predicates[i], out->predicate_lens[i])) {
-            requests->release(out);
-            return TRANSPORT_ERROR;
-        }
+        memcpy(out->subjects[i], curr, out->subject_lens[i]);
+        curr += out->subject_lens[i];
+
+        memcpy(out->predicates[i], curr, out->predicate_lens[i]);
+        curr += out->predicate_lens[i];
 
         out->count++;
     }
@@ -333,20 +344,18 @@ int Transport::Thallium::Unpacker::unpack(Request::BGet **bgm, const std::string
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Request::BGetOp **bgm, const std::string &buf, FixedBufferPool *requests, FixedBufferPool *arrays, FixedBufferPool *buffers) {
+int Transport::Thallium::Unpacker::unpack(Request::BGetOp **bgm, void *buf, const std::size_t bufsize, FixedBufferPool *requests, FixedBufferPool *arrays, FixedBufferPool *buffers) {
     Request::BGetOp *out = requests->acquire<Request::BGetOp>(arrays, buffers);
-    std::stringstream s(buf);
-    if (unpack(static_cast<Request::Request *>(out), s) != TRANSPORT_SUCCESS) {
+    char *curr = nullptr;
+    if (unpack(static_cast<Request::Request *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         requests->release(out);
         return TRANSPORT_ERROR;
     }
 
     // read non array data
     std::size_t count = 0;
-    if (!s.read((char *) &count, sizeof(out->count))) {
-        requests->release(out);
-        return TRANSPORT_ERROR;
-    }
+    memcpy(&count, curr, sizeof(out->count));
+    curr += sizeof(out->count);
 
     // allocate space
     if (out->alloc(count) != TRANSPORT_SUCCESS) {
@@ -355,16 +364,23 @@ int Transport::Thallium::Unpacker::unpack(Request::BGetOp **bgm, const std::stri
     }
 
     for(std::size_t i = 0; i < count; i++) {
-        if (!s
-            .read((char *) &out->ds_offsets[i], sizeof(out->ds_offsets[i]))
-            .read((char *) &out->subject_lens[i], sizeof(out->subject_lens[i]))
-            .read((char *) &out->predicate_lens[i], sizeof(out->predicate_lens[i]))
-            .read((char *) &out->object_types[i], sizeof(out->object_types[i]))
-            .read((char *) &out->num_recs[i], sizeof(out->num_recs[i]))
-            .read((char *) &out->ops[i], sizeof(out->ops[i]))) {
-            requests->release(out);
-            return TRANSPORT_ERROR;
-        }
+        memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
+        curr += sizeof(out->ds_offsets[i]);
+
+        memcpy(&out->subject_lens[i], curr, sizeof(out->subject_lens[i]));
+        curr += sizeof(out->subject_lens[i]);
+
+        memcpy(&out->predicate_lens[i], curr, sizeof(out->predicate_lens[i]));
+        curr += sizeof(out->predicate_lens[i]);
+
+        memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
+        curr += sizeof(out->object_types[i]);
+
+        memcpy(&out->num_recs[i], curr, sizeof(out->num_recs[i]));
+        curr += sizeof(out->num_recs[i]);
+
+        memcpy(&out->ops[i], curr, sizeof(out->ops[i]));
+        curr += sizeof(out->ops[i]);
 
         if (!(out->subjects[i]   = buffers->acquire(out->subject_lens[i]))   ||
             !(out->predicates[i] = buffers->acquire(out->predicate_lens[i]))) {
@@ -372,12 +388,11 @@ int Transport::Thallium::Unpacker::unpack(Request::BGetOp **bgm, const std::stri
             return TRANSPORT_ERROR;
         }
 
-        if (!s
-            .read((char *) out->subjects[i], out->subject_lens[i])
-            .read((char *) out->predicates[i], out->predicate_lens[i])) {
-            requests->release(out);
-            return TRANSPORT_ERROR;
-        }
+        memcpy(out->subjects[i], curr, out->subject_lens[i]);
+        curr += out->subject_lens[i];
+
+        memcpy(out->predicates[i], curr, out->predicate_lens[i]);
+        curr += out->predicate_lens[i];
 
         out->count++;
     }
@@ -386,20 +401,19 @@ int Transport::Thallium::Unpacker::unpack(Request::BGetOp **bgm, const std::stri
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Request::BDelete **bdm, const std::string &buf, FixedBufferPool *requests, FixedBufferPool *arrays, FixedBufferPool *buffers) {
+int Transport::Thallium::Unpacker::unpack(Request::BDelete **bdm, void *buf, const std::size_t bufsize, FixedBufferPool *requests, FixedBufferPool *arrays, FixedBufferPool *buffers) {
     Request::BDelete *out = requests->acquire<Request::BDelete>(arrays, buffers);
-    std::stringstream s(buf);
-    if (unpack(static_cast<Request::Request *>(out), s) != TRANSPORT_SUCCESS) {
+    char *curr = nullptr;
+    if (unpack(static_cast<Request::Request *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         requests->release(out);
         return TRANSPORT_ERROR;
     }
 
     // read non array data
     std::size_t count = 0;
-    if (!s.read((char *) &count, sizeof(out->count))) {
-        requests->release(out);
-        return TRANSPORT_ERROR;
-    }
+    memcpy(&count, curr, sizeof(out->count));
+    curr += sizeof(out->count);
+
 
     // allocate space
     if (out->alloc(count) != TRANSPORT_SUCCESS) {
@@ -408,26 +422,26 @@ int Transport::Thallium::Unpacker::unpack(Request::BDelete **bdm, const std::str
     }
 
     for(std::size_t i = 0; i < count; i++) {
-        if (!s
-            .read((char *) &out->ds_offsets[i], sizeof(out->ds_offsets[i]))
-            .read((char *) &out->subject_lens[i], sizeof(out->subject_lens[i]))
-            .read((char *) &out->predicate_lens[i], sizeof(out->predicate_lens[i]))) {
-            requests->release(out);
-            return TRANSPORT_ERROR;
-        }
+        memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
+        curr += sizeof(out->ds_offsets[i]);
 
+        memcpy(&out->subject_lens[i], curr, sizeof(out->subject_lens[i]));
+        curr += sizeof(out->subject_lens[i]);
+
+        memcpy(&out->predicate_lens[i], curr, sizeof(out->predicate_lens[i]));
+        curr += sizeof(out->predicate_lens[i]);
 
         if (!(out->subjects[i]   = buffers->acquire(out->subject_lens[i]))   ||
             !(out->predicates[i] = buffers->acquire(out->predicate_lens[i]))) {
             requests->release(out);
             return TRANSPORT_ERROR;
         }
-        if (!s
-            .read((char *) out->subjects[i], out->subject_lens[i])
-            .read((char *) out->predicates[i], out->predicate_lens[i])) {
-            requests->release(out);
-            return TRANSPORT_ERROR;
-        }
+
+        memcpy(out->subjects[i], curr, out->subject_lens[i]);
+        curr += out->subject_lens[i];
+
+        memcpy(out->predicates[i], curr, out->predicate_lens[i]);
+        curr += out->predicate_lens[i];
 
         out->count++;
     }
@@ -437,20 +451,18 @@ int Transport::Thallium::Unpacker::unpack(Request::BDelete **bdm, const std::str
 }
 
 
-int Transport::Thallium::Unpacker::unpack(Request::BHistogram **bhist, const std::string &buf, FixedBufferPool *requests, FixedBufferPool *arrays, FixedBufferPool *buffers) {
+int Transport::Thallium::Unpacker::unpack(Request::BHistogram **bhist, void *buf, const std::size_t bufsize, FixedBufferPool *requests, FixedBufferPool *arrays, FixedBufferPool *buffers) {
     Request::BHistogram *out = requests->acquire<Request::BHistogram>(arrays, buffers);
-    std::stringstream s(buf);
-    if (unpack(static_cast<Request::Request *>(out), s) != TRANSPORT_SUCCESS) {
+    char *curr = nullptr;
+    if (unpack(static_cast<Request::Request *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         requests->release(out);
         return TRANSPORT_ERROR;
     }
 
     // read non array data
     std::size_t count = 0;
-    if (!s.read((char *) &count, sizeof(out->count))) {
-        requests->release(out);
-        return TRANSPORT_ERROR;
-    }
+    memcpy(&count, curr, sizeof(out->count));
+    curr += sizeof(out->count);
 
     // allocate space
     if (out->alloc(count) != TRANSPORT_SUCCESS) {
@@ -459,11 +471,8 @@ int Transport::Thallium::Unpacker::unpack(Request::BHistogram **bhist, const std
     }
 
     for(std::size_t i = 0; i < count; i++) {
-        if (!s
-            .read((char *) &out->ds_offsets[i], sizeof(out->ds_offsets[i]))) {
-            requests->release(out);
-            return TRANSPORT_ERROR;
-        }
+        memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
+        curr += sizeof(out->ds_offsets[i]);
 
         out->count++;
     }
@@ -472,7 +481,7 @@ int Transport::Thallium::Unpacker::unpack(Request::BHistogram **bhist, const std
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Response::Response **res, const std::string &buf, FixedBufferPool *responses, FixedBufferPool *arrays, FixedBufferPool *buffers) {
+int Transport::Thallium::Unpacker::unpack(Response::Response **res, void *buf, const std::size_t bufsize, FixedBufferPool *responses, FixedBufferPool *arrays, FixedBufferPool *buffers) {
     int ret = TRANSPORT_ERROR;
     if (!res) {
         return ret;
@@ -482,7 +491,7 @@ int Transport::Thallium::Unpacker::unpack(Response::Response **res, const std::s
 
     // partial unpacking
     Message *base = nullptr;
-    if (unpack(&base, buf, responses, arrays, buffers) != TRANSPORT_SUCCESS) {
+    if (unpack(&base, buf, bufsize, responses, arrays, buffers) != TRANSPORT_SUCCESS) {
         responses->release(base);
         return ret;
     }
@@ -500,56 +509,56 @@ int Transport::Thallium::Unpacker::unpack(Response::Response **res, const std::s
         case Message::PUT:
             {
                 Response::Put *out = nullptr;
-                ret = unpack(&out, buf, responses, arrays, buffers);
+                ret = unpack(&out, buf, bufsize, responses, arrays, buffers);
                 *res = out;
             }
             break;
         case Message::GET:
             {
                 Response::Get *out = nullptr;
-                ret = unpack(&out, buf, responses, arrays, buffers);
+                ret = unpack(&out, buf, bufsize, responses, arrays, buffers);
                 *res = out;
             }
             break;
         case Message::DELETE:
             {
                 Response::Delete *out = nullptr;
-                ret = unpack(&out, buf, responses, arrays, buffers);
+                ret = unpack(&out, buf, bufsize, responses, arrays, buffers);
                 *res = out;
             }
             break;
         case Message::HISTOGRAM:
             {
                 Response::Histogram *out = nullptr;
-                ret = unpack(&out, buf, responses, arrays, buffers);
+                ret = unpack(&out, buf, bufsize, responses, arrays, buffers);
                 *res = out;
             }
             break;
         case Message::BPUT:
             {
                 Response::BPut *out = nullptr;
-                ret = unpack(&out, buf, responses, arrays, buffers);
+                ret = unpack(&out, buf, bufsize, responses, arrays, buffers);
                 *res = out;
             }
             break;
         case Message::BGET:
             {
                 Response::BGet *out = nullptr;
-                ret = unpack(&out, buf, responses, arrays, buffers);
+                ret = unpack(&out, buf, bufsize, responses, arrays, buffers);
                 *res = out;
             }
             break;
         case Message::BGETOP:
             {
                 Response::BGetOp *out = nullptr;
-                ret = unpack(&out, buf, responses, arrays, buffers);
+                ret = unpack(&out, buf, bufsize, responses, arrays, buffers);
                 *res = out;
             }
             break;
         case Message::BDELETE:
             {
                 Response::BDelete *out = nullptr;
-                ret = unpack(&out, buf, responses, arrays, buffers);
+                ret = unpack(&out, buf, bufsize, responses, arrays, buffers);
                 *res = out;
             }
             break;
@@ -563,44 +572,48 @@ int Transport::Thallium::Unpacker::unpack(Response::Response **res, const std::s
     return ret;
 }
 
-int Transport::Thallium::Unpacker::unpack(Response::Put **pm, const std::string &buf, FixedBufferPool *responses, FixedBufferPool *arrays, FixedBufferPool *buffers) {
+int Transport::Thallium::Unpacker::unpack(Response::Put **pm, void *buf, const std::size_t bufsize, FixedBufferPool *responses, FixedBufferPool *arrays, FixedBufferPool *buffers) {
     Response::Put *out = responses->acquire<Response::Put>(arrays, buffers);
-    std::stringstream s(buf);
-    if (unpack(static_cast<Response::Response *>(out), s) != TRANSPORT_SUCCESS) {
+    char *curr = nullptr;
+    if (unpack(static_cast<Response::Response *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         responses->release(out);
         return TRANSPORT_ERROR;
     }
 
     // read non array data
-    if (!s
-        .read((char *) &out->status, sizeof(out->status))
-        .read((char *) &out->ds_offset, sizeof(out->ds_offset))) {
-        responses->release(out);
-        return TRANSPORT_ERROR;
-    }
+    memcpy(&out->status, curr, sizeof(out->status));
+    curr += sizeof(out->status);
+
+    memcpy(&out->ds_offset, curr, sizeof(out->ds_offset));
+    curr += sizeof(out->ds_offset);
 
     *pm = out;
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Response::Get **gm, const std::string &buf, FixedBufferPool *responses, FixedBufferPool *arrays, FixedBufferPool *buffers) {
+int Transport::Thallium::Unpacker::unpack(Response::Get **gm, void *buf, const std::size_t bufsize, FixedBufferPool *responses, FixedBufferPool *arrays, FixedBufferPool *buffers) {
     Response::Get *out = responses->acquire<Response::Get>(arrays, buffers);
-    std::stringstream s(buf);
-    if (unpack(static_cast<Response::Response *>(out), s) != TRANSPORT_SUCCESS) {
+    char *curr = nullptr;
+    if (unpack(static_cast<Response::Response *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         responses->release(out);
         return TRANSPORT_ERROR;
     }
 
     // read non array data
-    if (!s
-        .read((char *) &out->status, sizeof(out->status))
-        .read((char *) &out->ds_offset, sizeof(out->ds_offset))
-        .read((char *) &out->subject_len, sizeof(out->subject_len))
-        .read((char *) &out->predicate_len, sizeof(out->predicate_len))
-        .read((char *) &out->object_type, sizeof(out->object_type))) {
-        responses->release(out);
-        return TRANSPORT_ERROR;
-    }
+    memcpy(&out->status, curr, sizeof(out->status));
+    curr += sizeof(out->status);
+
+    memcpy(&out->ds_offset, curr, sizeof(out->ds_offset));
+    curr += sizeof(out->ds_offset);
+
+    memcpy(&out->subject_len, curr, sizeof(out->subject_len));
+    curr += sizeof(out->subject_len);
+
+    memcpy(&out->predicate_len, curr, sizeof(out->predicate_len));
+    curr += sizeof(out->predicate_len);
+
+    memcpy(&out->object_type, curr, sizeof(out->object_type));
+    curr += sizeof(out->object_type);
 
     // allocate arrays
     if (!(out->subject = buffers->acquire(out->subject_len))     ||
@@ -610,20 +623,16 @@ int Transport::Thallium::Unpacker::unpack(Response::Get **gm, const std::string 
     }
 
     // read arrays
-    if (!s
-        .read((char *) out->subject, out->subject_len)
-        .read((char *) out->predicate, out->predicate_len)) {
-        responses->release(out);
-        return TRANSPORT_ERROR;
-    }
+    memcpy(out->subject, curr, out->subject_len);
+    curr += out->subject_len;
+
+    memcpy(out->predicate, curr, out->predicate_len);
+    curr += out->predicate_len;
 
     // only read the rest of the data if the status is TRANSPORT_SUCCESS
     if (out->status == HXHIM_SUCCESS) {
-        if (!s
-            .read((char *) &out->object_len, sizeof(out->object_len))) {
-            responses->release(out);
-            return TRANSPORT_ERROR;
-        }
+        memcpy(&out->object_len, curr, sizeof(out->object_len));
+        curr += sizeof(out->object_len);
 
         // allocate arrays
         if (!(out->object = buffers->acquire(out->object_len))) {
@@ -632,58 +641,50 @@ int Transport::Thallium::Unpacker::unpack(Response::Get **gm, const std::string 
         }
 
         // read arrays
-        if (!s
-            .read((char *) out->object, out->object_len)) {
-            responses->release(out);
-            return TRANSPORT_ERROR;
-        }
+        memcpy(out->object, curr, out->object_len);
+        curr += out->object_len;
     }
 
     *gm = out;
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Response::Delete **dm, const std::string &buf, FixedBufferPool *responses, FixedBufferPool *arrays, FixedBufferPool *buffers) {
+int Transport::Thallium::Unpacker::unpack(Response::Delete **dm, void *buf, const std::size_t bufsize, FixedBufferPool *responses, FixedBufferPool *arrays, FixedBufferPool *buffers) {
     Response::Delete *out = responses->acquire<Response::Delete>(arrays, buffers);
-    std::stringstream s(buf);
-    if (unpack(static_cast<Response::Response *>(out), s) != TRANSPORT_SUCCESS) {
+    char *curr = nullptr;
+    if (unpack(static_cast<Response::Response *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         responses->release(out);
         return TRANSPORT_ERROR;
     }
 
     // read non array data
-    if (!s
-        .read((char *) &out->status, sizeof(out->status))
-        .read((char *) &out->ds_offset, sizeof(out->ds_offset))) {
-        responses->release(out);
-        return TRANSPORT_ERROR;
-    }
+    memcpy(&out->status, curr, sizeof(out->status));
+    curr += sizeof(out->status);
+
+    memcpy(&out->ds_offset, curr, sizeof(out->ds_offset));
+    curr += sizeof(out->ds_offset);
 
     *dm = out;
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Response::Histogram **hist, const std::string &buf, FixedBufferPool *responses, FixedBufferPool *arrays, FixedBufferPool *buffers) {
+int Transport::Thallium::Unpacker::unpack(Response::Histogram **hist, void *buf, const std::size_t bufsize, FixedBufferPool *responses, FixedBufferPool *arrays, FixedBufferPool *buffers) {
     Response::Histogram *out = responses->acquire<Response::Histogram>(arrays, buffers);
-    std::stringstream s(buf);
-    if (unpack(static_cast<Response::Response *>(out), s) != TRANSPORT_SUCCESS) {
+    char *curr = nullptr;
+    if (unpack(static_cast<Response::Response *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         responses->release(out);
         return TRANSPORT_ERROR;
     }
 
     // read non array data
-    if (!s
-        .read((char *) &out->status, sizeof(out->status))
-        .read((char *) &out->ds_offset, sizeof(out->ds_offset))) {
-        responses->release(out);
-        return TRANSPORT_ERROR;
-    }
+    memcpy(&out->status, curr, sizeof(out->status));
+    curr += sizeof(out->status);
 
-    if (!s
-        .read((char *) &out->hist.size, sizeof(out->hist.size))) {
-        responses->release(out);
-        return TRANSPORT_ERROR;
-    }
+    memcpy(&out->ds_offset, curr, sizeof(out->ds_offset));
+    curr += sizeof(out->ds_offset);
+
+    memcpy(&out->hist.size, curr, sizeof(out->hist.size));
+    curr += sizeof(out->hist.size);
 
     if (!(out->hist.buckets = arrays->acquire_array<double>(out->hist.size))     ||
         !(out->hist.counts = arrays->acquire_array<std::size_t>(out->hist.size))) {
@@ -692,32 +693,29 @@ int Transport::Thallium::Unpacker::unpack(Response::Histogram **hist, const std:
     }
 
     for(std::size_t i = 0; i < out->hist.size; i++) {
-        if (!s
-            .read((char *) &out->hist.buckets[i], sizeof(out->hist.buckets[i]))
-            .read((char *) &out->hist.counts[i], sizeof(out->hist.counts[i]))) {
-            responses->release(out);
-            return TRANSPORT_ERROR;
-        }
+        memcpy(&out->hist.buckets[i], curr, sizeof(out->hist.buckets[i]));
+        curr += sizeof(out->hist.buckets[i]);
+
+        memcpy(&out->hist.counts[i], curr, sizeof(out->hist.counts[i]));
+        curr += sizeof(out->hist.counts[i]);
     }
 
     *hist = out;
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Response::BPut **bpm, const std::string &buf, FixedBufferPool *responses, FixedBufferPool *arrays, FixedBufferPool *buffers) {
+int Transport::Thallium::Unpacker::unpack(Response::BPut **bpm, void *buf, const std::size_t bufsize, FixedBufferPool *responses, FixedBufferPool *arrays, FixedBufferPool *buffers) {
     Response::BPut *out = responses->acquire<Response::BPut>(arrays, buffers);
-    std::stringstream s(buf);
-    if (unpack(static_cast<Response::Response *>(out), s) != TRANSPORT_SUCCESS) {
+    char *curr = nullptr;
+    if (unpack(static_cast<Response::Response *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         responses->release(out);
         return TRANSPORT_ERROR;
     }
 
     // read non array data
     std::size_t count = 0;
-    if (!s.read((char *) &count, sizeof(out->count))) {
-        responses->release(out);
-        return TRANSPORT_ERROR;
-    }
+    memcpy(&count, curr, sizeof(out->count));
+    curr += sizeof(out->count);
 
     // allocate space
     if (out->alloc(count) != TRANSPORT_SUCCESS) {
@@ -728,30 +726,28 @@ int Transport::Thallium::Unpacker::unpack(Response::BPut **bpm, const std::strin
     out->count = count;
 
     // read arrays
-    if (!s
-        .read((char *) out->ds_offsets, sizeof(*out->ds_offsets) * out->count)
-        .read((char *) out->statuses, sizeof(*out->statuses) * out->count)) {
-        return TRANSPORT_ERROR;
-    }
+    memcpy(out->ds_offsets, curr, sizeof(*out->ds_offsets) * out->count);
+    curr += sizeof(*out->ds_offsets) * out->count;
+
+    memcpy(out->statuses, curr, sizeof(*out->statuses) * out->count);
+    // curr += sizeof(*out->statuses) * out->count);
 
     *bpm = out;
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Response::BGet **bgm, const std::string &buf, FixedBufferPool *responses, FixedBufferPool *arrays, FixedBufferPool *buffers) {
+int Transport::Thallium::Unpacker::unpack(Response::BGet **bgm, void *buf, const std::size_t bufsize, FixedBufferPool *responses, FixedBufferPool *arrays, FixedBufferPool *buffers) {
     Response::BGet *out = responses->acquire<Response::BGet>(arrays, buffers);
-    std::stringstream s(buf);
-    if (unpack(static_cast<Response::Response *>(out), s) != TRANSPORT_SUCCESS) {
+    char *curr = nullptr;
+    if (unpack(static_cast<Response::Response *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         responses->release(out);
         return TRANSPORT_ERROR;
     }
 
     // read non array data
     std::size_t count = 0;
-    if (!s.read((char *) &count, sizeof(out->count))) {
-        responses->release(out);
-        return TRANSPORT_ERROR;
-    }
+    memcpy(&count, curr, sizeof(out->count));
+    curr += sizeof(out->count);
 
     // allocate space
     if (out->alloc(count) != TRANSPORT_SUCCESS) {
@@ -760,15 +756,20 @@ int Transport::Thallium::Unpacker::unpack(Response::BGet **bgm, const std::strin
     }
 
     for(std::size_t i = 0; i < count; i++) {
-        if (!s
-            .read((char *) &out->ds_offsets[i], sizeof(out->ds_offsets[i]))
-            .read((char *) &out->statuses[i], sizeof(out->statuses[i]))
-            .read((char *) &out->subject_lens[i], sizeof(out->subject_lens[i]))
-            .read((char *) &out->predicate_lens[i], sizeof(out->predicate_lens[i]))
-            .read((char *) &out->object_types[i], sizeof(out->object_types[i]))) {
-            responses->release(out);
-            return TRANSPORT_ERROR;
-        }
+        memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
+        curr += sizeof(out->ds_offsets[i]);
+
+        memcpy(&out->statuses[i], curr, sizeof(out->statuses[i]));
+        curr += sizeof(out->statuses[i]);
+
+        memcpy(&out->subject_lens[i], curr, sizeof(out->subject_lens[i]));
+        curr += sizeof(out->subject_lens[i]);
+
+        memcpy(&out->predicate_lens[i], curr, sizeof(out->predicate_lens[i]));
+        curr += sizeof(out->predicate_lens[i]);
+
+        memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
+        curr += sizeof(out->object_types[i]);
 
         if (!(out->subjects[i] = buffers->acquire(out->subject_lens[i]))     ||
             !(out->predicates[i] = buffers->acquire(out->predicate_lens[i]))) {
@@ -776,30 +777,23 @@ int Transport::Thallium::Unpacker::unpack(Response::BGet **bgm, const std::strin
             return TRANSPORT_ERROR;
         }
 
-        if (!s
-            .read((char *) out->subjects[i], out->subject_lens[i])
-            .read((char *) out->predicates[i], out->predicate_lens[i])) {
-            responses->release(out);
-            return TRANSPORT_ERROR;
-        }
+        memcpy(out->subjects[i], curr, out->subject_lens[i]);
+        curr += out->subject_lens[i];
+
+        memcpy(out->predicates[i], curr, out->predicate_lens[i]);
+        curr += out->predicate_lens[i];
 
         if (out->statuses[i] == HXHIM_SUCCESS) {
-            if (!s
-                .read((char *) &out->object_lens[i], sizeof(out->object_lens[i]))) {
-                responses->release(out);
-                return TRANSPORT_ERROR;
-            }
+            memcpy(&out->object_lens[i], curr, sizeof(out->object_lens[i]));
+            curr += sizeof(out->subject_lens[i]);
 
             if (!(out->objects[i] = buffers->acquire(out->object_lens[i]))) {
                 responses->release(out);
                 return TRANSPORT_ERROR;
             }
 
-            if (!s
-                .read((char *) out->objects[i], out->object_lens[i])) {
-                responses->release(out);
-                return TRANSPORT_ERROR;
-            }
+            memcpy(out->objects[i], curr, out->object_lens[i]);
+            curr += out->object_lens[i];
         }
 
         out->count++;
@@ -809,20 +803,18 @@ int Transport::Thallium::Unpacker::unpack(Response::BGet **bgm, const std::strin
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Response::BGetOp **bgm, const std::string &buf, FixedBufferPool *responses, FixedBufferPool *arrays, FixedBufferPool *buffers) {
+int Transport::Thallium::Unpacker::unpack(Response::BGetOp **bgm, void *buf, const std::size_t bufsize, FixedBufferPool *responses, FixedBufferPool *arrays, FixedBufferPool *buffers) {
     Response::BGetOp *out = responses->acquire<Response::BGetOp>(arrays, buffers);
-    std::stringstream s(buf);
-    if (unpack(static_cast<Response::Response *>(out), s) != TRANSPORT_SUCCESS) {
+    char *curr = nullptr;
+    if (unpack(static_cast<Response::Response *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         responses->release(out);
         return TRANSPORT_ERROR;
     }
 
     // read non array data
     std::size_t count = 0;
-    if (!s.read((char *) &count, sizeof(out->count))) {
-        responses->release(out);
-        return TRANSPORT_ERROR;
-    }
+    memcpy(&count, curr, sizeof(out->count));
+    curr += sizeof(out->count);
 
     // allocate space
     if (out->alloc(count) != TRANSPORT_SUCCESS) {
@@ -831,15 +823,20 @@ int Transport::Thallium::Unpacker::unpack(Response::BGetOp **bgm, const std::str
     }
 
     for(std::size_t i = 0; i < count; i++) {
-        if (!s
-            .read((char *) &out->ds_offsets[i], sizeof(out->ds_offsets[i]))
-            .read((char *) &out->statuses[i], sizeof(out->statuses[i]))
-            .read((char *) &out->subject_lens[i], sizeof(out->subject_lens[i]))
-            .read((char *) &out->predicate_lens[i], sizeof(out->predicate_lens[i]))
-            .read((char *) &out->object_types[i], sizeof(out->object_types[i]))) {
-            responses->release(out);
-            return TRANSPORT_ERROR;
-        }
+        memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
+        curr += sizeof(out->ds_offsets[i]);
+
+        memcpy(&out->statuses[i], curr, sizeof(out->statuses[i]));
+        curr += sizeof(out->statuses[i]);
+
+        memcpy(&out->subject_lens[i], curr, sizeof(out->subject_lens[i]));
+        curr += sizeof(out->subject_lens[i]);
+
+        memcpy(&out->predicate_lens[i], curr, sizeof(out->predicate_lens[i]));
+        curr += sizeof(out->predicate_lens[i]);
+
+        memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
+        curr += sizeof(out->object_types[i]);
 
         if (!(out->subjects[i] = buffers->acquire(out->subject_lens[i]))     ||
             !(out->predicates[i] = buffers->acquire(out->predicate_lens[i]))) {
@@ -847,30 +844,23 @@ int Transport::Thallium::Unpacker::unpack(Response::BGetOp **bgm, const std::str
             return TRANSPORT_ERROR;
         }
 
-        if (!s
-            .read((char *) out->subjects[i], out->subject_lens[i])
-            .read((char *) out->predicates[i], out->predicate_lens[i])) {
-            responses->release(out);
-            return TRANSPORT_ERROR;
-        }
+        memcpy(out->subjects[i], curr, out->subject_lens[i]);
+        curr += out->subject_lens[i];
+
+        memcpy(out->predicates[i], curr, out->predicate_lens[i]);
+        curr += out->predicate_lens[i];
 
         if (out->statuses[i] == HXHIM_SUCCESS) {
-            if (!s
-                .read((char *) &out->object_lens[i], sizeof(out->object_lens[i]))) {
-                responses->release(out);
-                return TRANSPORT_ERROR;
-            }
+            memcpy(&out->object_lens[i], curr, sizeof(out->object_lens[i]));
+            curr += sizeof(out->object_lens[i]);
 
             if (!(out->objects[i] = buffers->acquire(out->object_lens[i]))) {
                 responses->release(out);
                 return TRANSPORT_ERROR;
             }
 
-            if (!s
-                .read((char *) out->objects[i], out->object_lens[i])) {
-                responses->release(out);
-                return TRANSPORT_ERROR;
-            }
+            memcpy(out->objects[i], curr, out->object_lens[i]);
+            curr += out->object_lens[i];
         }
 
         out->count++;
@@ -880,20 +870,18 @@ int Transport::Thallium::Unpacker::unpack(Response::BGetOp **bgm, const std::str
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Response::BDelete **bdm, const std::string &buf, FixedBufferPool *responses, FixedBufferPool *arrays, FixedBufferPool *buffers) {
+int Transport::Thallium::Unpacker::unpack(Response::BDelete **bdm, void *buf, const std::size_t bufsize, FixedBufferPool *responses, FixedBufferPool *arrays, FixedBufferPool *buffers) {
     Response::BDelete *out = responses->acquire<Response::BDelete>(arrays, buffers);
-    std::stringstream s(buf);
-    if (unpack(static_cast<Response::Response *>(out), s) != TRANSPORT_SUCCESS) {
+    char *curr = nullptr;
+    if (unpack(static_cast<Response::Response *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         responses->release(out);
         return TRANSPORT_ERROR;
     }
 
     // read non array data
     std::size_t count = 0;
-    if (!s.read((char *) &count, sizeof(out->count))) {
-        responses->release(out);
-        return TRANSPORT_ERROR;
-    }
+    memcpy(&count, curr, sizeof(out->count));
+    curr += sizeof(out->count);
 
     // allocate space
     if (out->alloc(count) != TRANSPORT_SUCCESS) {
@@ -904,30 +892,28 @@ int Transport::Thallium::Unpacker::unpack(Response::BDelete **bdm, const std::st
     out->count = count;
 
     // read arrays
-    if (!s
-        .read((char *) out->ds_offsets, sizeof(*out->ds_offsets) * out->count)
-        .read((char *) out->statuses, sizeof(*out->statuses) * out->count)) {
-        return TRANSPORT_ERROR;
-    }
+    memcpy(out->ds_offsets, curr, sizeof(*out->ds_offsets) * out->count);
+    curr += sizeof(*out->ds_offsets) * out->count;
+
+    memcpy(out->statuses, curr, sizeof(*out->statuses) * out->count);
+    curr += sizeof(*out->statuses) * out->count;
 
     *bdm = out;
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Response::BHistogram **bhist, const std::string &buf, FixedBufferPool *responses, FixedBufferPool *arrays, FixedBufferPool *buffers) {
+int Transport::Thallium::Unpacker::unpack(Response::BHistogram **bhist, void *buf, const std::size_t bufsize, FixedBufferPool *responses, FixedBufferPool *arrays, FixedBufferPool *buffers) {
     Response::BHistogram *out = responses->acquire<Response::BHistogram>(arrays, buffers);
-    std::stringstream s(buf);
-    if (unpack(static_cast<Response::Response *>(out), s) != TRANSPORT_SUCCESS) {
+    char *curr = nullptr;
+    if (unpack(static_cast<Response::Response *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         responses->release(out);
         return TRANSPORT_ERROR;
     }
 
     // read non array data
     std::size_t count = 0;
-    if (!s.read((char *) &count, sizeof(out->count))) {
-        responses->release(out);
-        return TRANSPORT_ERROR;
-    }
+    memcpy(&count, curr, sizeof(out->count));
+    curr += sizeof(out->count);
 
     // allocate space
     if (out->alloc(count) != TRANSPORT_SUCCESS) {
@@ -936,17 +922,15 @@ int Transport::Thallium::Unpacker::unpack(Response::BHistogram **bhist, const st
     }
 
     // read arrays
-    if (!s
-        .read((char *) out->ds_offsets, sizeof(*out->ds_offsets) * count)
-        .read((char *) out->statuses, sizeof(*out->statuses) * count)) {
-        return TRANSPORT_ERROR;
-    }
+    memcpy(out->ds_offsets, curr, sizeof(*out->ds_offsets) * count);
+    curr += sizeof(*out->ds_offsets) * count;
+
+    memcpy(out->statuses, curr, sizeof(*out->statuses) * count);
+    curr += sizeof(*out->statuses) * count;
 
     for(std::size_t i = 0; i < count; i++) {
-        if (!s
-            .read((char *) &out->hists[i].size, sizeof(out->hists[i].size))) {
-            return TRANSPORT_ERROR;
-        }
+        memcpy(&out->hists[i].size, curr, sizeof(out->hists[i].size));
+        curr += sizeof(out->hists[i].size);
 
         if (!(out->hists[i].buckets = arrays->acquire_array<double>(out->hists[i].size))     ||
             !(out->hists[i].counts = arrays->acquire_array<std::size_t>(out->hists[i].size))) {
@@ -955,12 +939,11 @@ int Transport::Thallium::Unpacker::unpack(Response::BHistogram **bhist, const st
         }
 
         for(std::size_t j = 0; j < out->hists[i].size; j++) {
-            if (!s
-                .read((char *) &out->hists[i].buckets[j], sizeof(out->hists[i].buckets[j]))
-                .read((char *) &out->hists[i].counts[j], sizeof(out->hists[i].counts[j]))) {
-                responses->release(out);
-                return TRANSPORT_ERROR;
-            }
+            memcpy(&out->hists[i].buckets[j], curr, sizeof(out->hists[i].buckets[j]));
+            curr += sizeof(out->hists[i].buckets[j]);
+
+            memcpy(&out->hists[i].counts[j], curr, sizeof(out->hists[i].counts[j]));
+            curr += sizeof(out->hists[i].counts[j]);
         }
 
         out->count++;
@@ -970,17 +953,17 @@ int Transport::Thallium::Unpacker::unpack(Response::BHistogram **bhist, const st
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Message **msg, const std::string &buf, FixedBufferPool *fbp, FixedBufferPool *arrays, FixedBufferPool *buffers) {
+int Transport::Thallium::Unpacker::unpack(Message **msg, void *buf, const std::size_t bufsize, FixedBufferPool *responses, FixedBufferPool *arrays, FixedBufferPool *buffers) {
     if (!msg) {
         return TRANSPORT_ERROR;
     }
 
     *msg = nullptr;
 
-    std::stringstream s(buf);
-    Message *out = fbp->acquire<Message>(Message::NONE, Message::INVALID, arrays, buffers);
-    if (unpack(out, s) != TRANSPORT_SUCCESS) {
-        fbp->release(out);
+    Message *out = responses->acquire<Message>(Message::NONE, Message::INVALID, arrays, buffers);
+    char *curr = nullptr;
+    if (unpack(out, buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
+        responses->release(out);
         return TRANSPORT_ERROR;
    }
 
@@ -988,18 +971,28 @@ int Transport::Thallium::Unpacker::unpack(Message **msg, const std::string &buf,
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Thallium::Unpacker::unpack(Message *msg, std::stringstream &s) {
-    if (!msg) {
+int Transport::Thallium::Unpacker::unpack(Message *msg, void *buf, const std::size_t, char **curr) {
+    if (!msg || !buf || !curr) {
         return TRANSPORT_ERROR;
     }
 
     msg->clean = true;
 
-    return s
-        .read((char *) &msg->direction, sizeof(msg->direction))
-        .read((char *) &msg->type, sizeof(msg->type))
-        .read((char *) &msg->src, sizeof(msg->src))
-        .read((char *) &msg->dst, sizeof(msg->dst))?TRANSPORT_SUCCESS:TRANSPORT_ERROR;
+    *curr = (char *) buf;
+
+    memcpy(&msg->direction, *curr, sizeof(msg->direction));
+    *curr += sizeof(msg->direction);
+
+    memcpy(&msg->type, *curr, sizeof(msg->type));
+    *curr += sizeof(msg->type);
+
+    memcpy(&msg->src, *curr, sizeof(msg->src));
+    *curr += sizeof(msg->src);
+
+    memcpy(&msg->dst, *curr, sizeof(msg->dst));
+    *curr += sizeof(msg->dst);
+
+    return TRANSPORT_SUCCESS;
 }
 
 #endif

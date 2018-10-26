@@ -27,6 +27,7 @@ class Endpoint : virtual public ::Transport::Endpoint {
         Endpoint(const Engine_t &engine,
                  const RPC_t &rpc,
                  const Endpoint_t &ep,
+                 FixedBufferPool *packed,
                  FixedBufferPool *responses,
                  FixedBufferPool *arrays,
                  FixedBufferPool *buffers);
@@ -59,18 +60,19 @@ class Endpoint : virtual public ::Transport::Endpoint {
         Recv_t *do_operation(const Send_t *message) {
             std::lock_guard<std::mutex> lock(mutex);
 
-            std::string buf;
-            if (Packer::pack(message, buf) != TRANSPORT_SUCCESS) {
+            void *buf = nullptr;
+            std::size_t bufsize = 0;
+            if (Packer::pack(message, &buf, &bufsize, packed) != TRANSPORT_SUCCESS) {
                 return nullptr;
             }
 
-            const std::string response = rpc->on(*ep)(buf);
+            std::vector<std::pair<void *, std::size_t> > segments = {std::make_pair(buf, bufsize)};
+            thallium::bulk bulk = engine->expose(segments, thallium::bulk_mode::read_write);
+            const std::size_t response_size = rpc->on(*ep)(bulk);
 
             Recv_t *ret = nullptr;
-            if (Unpacker::unpack(&ret, response, responses, arrays, buffers) != TRANSPORT_SUCCESS) {
-                return nullptr;
-            }
-
+            Unpacker::unpack(&ret, buf, response_size, responses, arrays, buffers); // no need to check return value
+            packed->release(buf, bufsize);
             return ret;
         }
 
@@ -80,6 +82,7 @@ class Endpoint : virtual public ::Transport::Endpoint {
         RPC_t rpc;                // client to server RPC
         Endpoint_t ep;            // the server the RPC will be called on
 
+        FixedBufferPool *packed;
         FixedBufferPool *responses;
         FixedBufferPool *arrays;
         FixedBufferPool *buffers;

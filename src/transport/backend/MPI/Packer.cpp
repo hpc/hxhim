@@ -564,6 +564,7 @@ int Packer::pack(const MPI_Comm comm, const Message *msg, void **buf, std::size_
     // Allocate the buffer
     *bufsize = msg->size();
     if (!(*buf = packed->acquire(*bufsize))) {
+        *bufsize = 0;
         return TRANSPORT_ERROR;
     }
 

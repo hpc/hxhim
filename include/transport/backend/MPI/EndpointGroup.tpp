@@ -36,7 +36,7 @@ std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::map<int, Sen
 
         mlog(MPI_DBG, "Attempting to pack message (type %s, size %zu, %d -> %d)", Message::TypeStr[msg->type], msg->size(), msg->src, msg->dst);
 
-        if (Packer::pack(comm, msg, &bufs[pack_count], &lens[pack_count], packed.get()) == TRANSPORT_SUCCESS) {
+        if (Packer::pack(comm, msg, &bufs[pack_count], &lens[pack_count], packed) == TRANSPORT_SUCCESS) {
             dsts[pack_count] = msg->dst;
             pack_count++;
             mlog(MPI_DBG, "Successfully packed message (type %s, size %zu, %d -> %d)", Message::TypeStr[msg->type], msg->size(), msg->src, msg->dst);

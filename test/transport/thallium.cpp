@@ -15,13 +15,14 @@ static const hxhim_type_t OBJECT_TYPE = HXHIM_BYTE_TYPE;
 static const char *OBJECT = "OBJECT";
 static const std::size_t OBJECT_LEN = strlen(OBJECT);
 
-static const std::size_t ALLOC_SIZE = 192;
+static const std::size_t ALLOC_SIZE = 256;
 static const std::size_t REGIONS = 32;
 
 using namespace ::Transport;
 using namespace ::Transport::Thallium;
 
 static FixedBufferPool requests (ALLOC_SIZE, REGIONS, "Thallium Pack/Unpack Test - Requests");
+static FixedBufferPool packed   (ALLOC_SIZE, REGIONS, "Thallium Pack/Unpack Test - Packed");
 static FixedBufferPool responses(ALLOC_SIZE, REGIONS, "Thallium Pack/Unpack Test - Responses");
 static FixedBufferPool arrays   (ALLOC_SIZE, REGIONS, "Thallium Pack/Unpack Test - Arrays");
 static FixedBufferPool buffers  (ALLOC_SIZE, REGIONS, "Thallium Pack/Unpack Test - Buffers");
@@ -49,11 +50,12 @@ TEST(thallium_pack_unpack, RequestPut) {
     EXPECT_EQ(src.type, Message::PUT);
     EXPECT_EQ(src.clean, false);
 
-    std::string buf;
-    EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
+    void *buf = nullptr;
+    std::size_t size = 0;
+    EXPECT_EQ(Packer::pack(&src, &buf, &size, &packed), TRANSPORT_SUCCESS);
 
     Request::Put *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, &requests, &arrays, &buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size, &requests, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -99,11 +101,12 @@ TEST(thallium_pack_unpack, RequestGet) {
     EXPECT_EQ(src.type, Message::GET);
     EXPECT_EQ(src.clean, false);
 
-    std::string buf;
-    EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
+    void *buf = nullptr;
+    std::size_t size = 0;
+    EXPECT_EQ(Packer::pack(&src, &buf, &size, &packed), TRANSPORT_SUCCESS);
 
     Request::Get *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, &requests, &arrays, &buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size, &requests, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -145,11 +148,12 @@ TEST(thallium_pack_unpack, RequestDelete) {
     EXPECT_EQ(src.type, Message::DELETE);
     EXPECT_EQ(src.clean, false);
 
-    std::string buf;
-    EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
+    void *buf = nullptr;
+    std::size_t size = 0;
+    EXPECT_EQ(Packer::pack(&src, &buf, &size, &packed), TRANSPORT_SUCCESS);
 
     Request::Delete *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, &requests, &arrays, &buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size, &requests, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -183,11 +187,12 @@ TEST(thallium_pack_unpack, RequestHistogram) {
     EXPECT_EQ(src.type, Message::HISTOGRAM);
     EXPECT_EQ(src.clean, false);
 
-    std::string buf;
-    EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
+    void *buf = nullptr;
+    std::size_t size = 0;
+    EXPECT_EQ(Packer::pack(&src, &buf, &size, &packed), TRANSPORT_SUCCESS);
 
     Request::Histogram *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, &requests, &arrays, &buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size, &requests, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -229,11 +234,12 @@ TEST(thallium_pack_unpack, RequestBPut) {
     EXPECT_EQ(src.type, Message::BPUT);
     EXPECT_EQ(src.clean, false);
 
-    std::string buf;
-    EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
+    void *buf = nullptr;
+    std::size_t size = 0;
+    EXPECT_EQ(Packer::pack(&src, &buf, &size, &packed), TRANSPORT_SUCCESS);
 
     Request::BPut *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, &requests, &arrays, &buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size, &requests, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -286,11 +292,12 @@ TEST(thallium_pack_unpack, RequestBGet) {
     EXPECT_EQ(src.type, Message::BGET);
     EXPECT_EQ(src.clean, false);
 
-    std::string buf;
-    EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
+    void *buf = nullptr;
+    std::size_t size = 0;
+    EXPECT_EQ(Packer::pack(&src, &buf, &size, &packed), TRANSPORT_SUCCESS);
 
     Request::BGet *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, &requests, &arrays, &buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size, &requests, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -344,11 +351,12 @@ TEST(thallium_pack_unpack, RequestBGetOp) {
     EXPECT_EQ(src.type, Message::BGETOP);
     EXPECT_EQ(src.clean, false);
 
-    std::string buf;
-    EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
+    void *buf = nullptr;
+    std::size_t size = 0;
+    EXPECT_EQ(Packer::pack(&src, &buf, &size, &packed), TRANSPORT_SUCCESS);
 
     Request::BGetOp *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, &requests, &arrays, &buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size, &requests, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -400,11 +408,12 @@ TEST(thallium_pack_unpack, RequestBDelete) {
     EXPECT_EQ(src.type, Message::BDELETE);
     EXPECT_EQ(src.clean, false);
 
-    std::string buf;
-    EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
+    void *buf = nullptr;
+    std::size_t size = 0;
+    EXPECT_EQ(Packer::pack(&src, &buf, &size, &packed), TRANSPORT_SUCCESS);
 
     Request::BDelete *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, &requests, &arrays, &buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size, &requests, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -445,11 +454,12 @@ TEST(thallium_pack_unpack, RequestBHistogram) {
     EXPECT_EQ(src.type, Message::BHISTOGRAM);
     EXPECT_EQ(src.clean, false);
 
-    std::string buf;
-    EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
+    void *buf = nullptr;
+    std::size_t size = 0;
+    EXPECT_EQ(Packer::pack(&src, &buf, &size, &packed), TRANSPORT_SUCCESS);
 
     Request::BHistogram *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, &requests, &arrays, &buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size, &requests, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -483,11 +493,12 @@ TEST(thallium_pack_unpack, ResponsePut) {
     EXPECT_EQ(src.type, Message::PUT);
     EXPECT_EQ(src.clean, false);
 
-    std::string buf;
-    EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
+    void *buf = nullptr;
+    std::size_t size = 0;
+    EXPECT_EQ(Packer::pack(&src, &buf, &size, &packed), TRANSPORT_SUCCESS);
 
     Response::Put *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -530,11 +541,12 @@ TEST(thallium_pack_unpack, ResponseGet) {
     EXPECT_EQ(src.type, Message::GET);
     EXPECT_EQ(src.clean, false);
 
-    std::string buf;
-    EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
+    void *buf = nullptr;
+    std::size_t size = 0;
+    EXPECT_EQ(Packer::pack(&src, &buf, &size, &packed), TRANSPORT_SUCCESS);
 
     Response::Get *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -576,11 +588,12 @@ TEST(thallium_pack_unpack, ResponseDelete) {
     EXPECT_EQ(src.type, Message::DELETE);
     EXPECT_EQ(src.clean, false);
 
-    std::string buf;
-    EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
+    void *buf = nullptr;
+    std::size_t size = 0;
+    EXPECT_EQ(Packer::pack(&src, &buf, &size, &packed), TRANSPORT_SUCCESS);
 
     Response::Delete *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -621,11 +634,12 @@ TEST(thallium_pack_unpack, ResponseHistogram) {
     EXPECT_EQ(src.type, Message::HISTOGRAM);
     EXPECT_EQ(src.clean, false);
 
-    std::string buf;
-    EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
+    void *buf = nullptr;
+    std::size_t size = 0;
+    EXPECT_EQ(Packer::pack(&src, &buf, &size, &packed), TRANSPORT_SUCCESS);
 
     Response::Histogram *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -666,11 +680,12 @@ TEST(thallium_pack_unpack, ResponseBPut) {
     EXPECT_EQ(src.type, Message::BPUT);
     EXPECT_EQ(src.clean, false);
 
-    std::string buf;
-    EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
+    void *buf = nullptr;
+    std::size_t size = 0;
+    EXPECT_EQ(Packer::pack(&src, &buf, &size, &packed), TRANSPORT_SUCCESS);
 
     Response::BPut *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -718,11 +733,12 @@ TEST(thallium_pack_unpack, ResponseBGet) {
     EXPECT_EQ(src.type, Message::BGET);
     EXPECT_EQ(src.clean, false);
 
-    std::string buf;
-    EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
+    void *buf = nullptr;
+    std::size_t size = 0;
+    EXPECT_EQ(Packer::pack(&src, &buf, &size, &packed), TRANSPORT_SUCCESS);
 
     Response::BGet *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -780,11 +796,12 @@ TEST(thallium_pack_unpack, ResponseBGetOp) {
     EXPECT_EQ(src.type, Message::BGETOP);
     EXPECT_EQ(src.clean, false);
 
-    std::string buf;
-    EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
+    void *buf = nullptr;
+    std::size_t size = 0;
+    EXPECT_EQ(Packer::pack(&src, &buf, &size, &packed), TRANSPORT_SUCCESS);
 
     Response::BGetOp *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -832,11 +849,12 @@ TEST(thallium_pack_unpack, ResponseBDelete) {
     EXPECT_EQ(src.type, Message::BDELETE);
     EXPECT_EQ(src.clean, false);
 
-    std::string buf;
-    EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
+    void *buf = nullptr;
+    std::size_t size = 0;
+    EXPECT_EQ(Packer::pack(&src, &buf, &size, &packed), TRANSPORT_SUCCESS);
 
     Response::BDelete *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -883,11 +901,12 @@ TEST(thallium_pack_unpack, ResponseBHistogram) {
     EXPECT_EQ(src.type, Message::BHISTOGRAM);
     EXPECT_EQ(src.clean, false);
 
-    std::string buf;
-    EXPECT_EQ(Packer::pack(&src, buf), TRANSPORT_SUCCESS);
+    void *buf = nullptr;
+    std::size_t size = 0;
+    EXPECT_EQ(Packer::pack(&src, &buf, &size, &packed), TRANSPORT_SUCCESS);
 
     Response::BHistogram *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
@@ -905,7 +924,7 @@ TEST(thallium_pack_unpack, ResponseBHistogram) {
 
         EXPECT_EQ(src.hists[i].size, dst->hists[i].size);
         for(std::size_t j = 0; j < dst->hists[j].size; j++) {
-            EXPECT_DOUBLE_EQ(src.hists[i].buckets[j], dst->hists[i].buckets[j]);
+            EXPECT_NEAR(src.hists[i].buckets[j], dst->hists[i].buckets[j], 1e-7);
             EXPECT_EQ(src.hists[i].counts[j], dst->hists[i].counts[j]);
         }
     }

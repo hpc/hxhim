@@ -24,7 +24,7 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup, virtual public 
     public:
         EndpointGroup(const MPI_Comm comm,
                       volatile std::atomic_bool &running,
-                      std::shared_ptr<FixedBufferPool> packed,
+                      FixedBufferPool *packed,
                       FixedBufferPool *responses,
                       FixedBufferPool *arrays,
                       FixedBufferPool *buffers);

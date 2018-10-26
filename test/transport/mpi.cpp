@@ -17,7 +17,7 @@ static const hxhim_type_t OBJECT_TYPE = HXHIM_BYTE_TYPE;
 static const char *OBJECT = "OBJECT";
 static const std::size_t OBJECT_LEN = strlen(OBJECT);
 
-static const std::size_t ALLOC_SIZE = 192;
+static const std::size_t ALLOC_SIZE = 256;
 static const std::size_t REGIONS = 32;
 
 using namespace ::Transport;
@@ -977,7 +977,7 @@ TEST(mpi_pack_unpack, ResponseBHistogram) {
 
         EXPECT_EQ(src.hists[i].size, dst->hists[i].size);
         for(std::size_t j = 0; j < dst->hists[j].size; j++) {
-            EXPECT_DOUBLE_EQ(src.hists[i].buckets[j], dst->hists[i].buckets[j]);
+            EXPECT_NEAR(src.hists[i].buckets[j], dst->hists[i].buckets[j], 1e-7);
             EXPECT_EQ(src.hists[i].counts[j], dst->hists[i].counts[j]);
         }
     }

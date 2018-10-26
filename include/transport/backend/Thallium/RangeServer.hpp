@@ -4,10 +4,10 @@
 #define TRANSPORT_THALLIUM_RANGE_SERVER_HPP
 
 #include <thallium.hpp>
-#include <thallium/serialization/stl/string.hpp>
 
 #include "hxhim/struct.h"
 #include "transport/transport.hpp"
+#include "transport/backend/Thallium/Utilities.hpp"
 
 namespace Transport {
 namespace Thallium {
@@ -19,13 +19,15 @@ class RangeServer {
          */
         static const std::string CLIENT_TO_RANGE_SERVER_NAME;
 
-        static void init(hxhim_t *hx);
+        static void init(hxhim_t *hx, const Engine_t &engine);
         static void destroy();
 
         static void process(const thallium::request &req, const std::string &data);
+        // static void process(const thallium::request &req, thallium::bulk &bulk);
 
     private:
         static hxhim_t *hx_;
+        static Engine_t engine_;
 };
 
 }

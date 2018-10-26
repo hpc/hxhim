@@ -99,6 +99,7 @@ typedef struct hxhim_options_private {
     hxhim_fbp_config_t ops_cache;
     hxhim_fbp_config_t arrays;
     hxhim_fbp_config_t requests;
+    hxhim_fbp_config_t packed;
     hxhim_fbp_config_t responses;
     hxhim_fbp_config_t result;
     hxhim_fbp_config_t results;
