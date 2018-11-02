@@ -22,8 +22,7 @@ class RangeServer {
         static void init(hxhim_t *hx, const Engine_t &engine);
         static void destroy();
 
-        static void process(const thallium::request &req, const std::string &data);
-        // static void process(const thallium::request &req, thallium::bulk &bulk);
+        static void process(const thallium::request &req, thallium::bulk &bulk);
 
     private:
         static hxhim_t *hx_;
