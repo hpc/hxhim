@@ -561,12 +561,17 @@ int Packer::pack(const MPI_Comm comm, const Message *msg, void **buf, std::size_
         return TRANSPORT_ERROR;
     }
 
-    // Allocate the buffer
-    *bufsize = msg->size();
-    if (!(*buf = packed->acquire(*bufsize))) {
-        *bufsize = 0;
-        return TRANSPORT_ERROR;
+    const std::size_t minsize = msg->size();
+
+    // only allocate space if a nullptr is provided; otherwise, assume *buf has enough space
+    if (!*buf) {
+        if (!(*buf = packed->acquire(minsize))) {
+            *bufsize = 0;
+            return TRANSPORT_ERROR;
+        }
     }
+
+    *bufsize = minsize;
 
     // Pack the comment fields
     if ((MPI_Pack(&msg->direction, sizeof(msg->direction), MPI_BYTE, *buf, *bufsize, position, comm) != MPI_SUCCESS) ||

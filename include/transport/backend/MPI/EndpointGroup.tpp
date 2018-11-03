@@ -1,3 +1,5 @@
+#include <unordered_map>
+
 #include "transport/backend/MPI/Packer.hpp"
 #include "transport/backend/MPI/Unpacker.hpp"
 #include "transport/backend/MPI/constants.h"
@@ -16,7 +18,7 @@
  * @return the number of messages successfully sent
  */
 template <typename Send_t, typename>
-std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::map<int, Send_t *> &messages) {
+std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::unordered_map<int, Send_t *> &messages) {
     mlog(MPI_DBG, "Attempting to send %zu messages", messages.size());
 
     if (!messages.size()) {
@@ -57,7 +59,7 @@ std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::map<int, Sen
     mlog(MPI_DBG, "Starting to send messages asynchronously");
     for(std::size_t i = 0; i < pack_count; i++) {
         // this is not really necessary
-        std::map<int, int>::const_iterator dst_it = ranks.find(dsts[i]);
+        std::unordered_map<int, int>::const_iterator dst_it = ranks.find(dsts[i]);
 
         if (dst_it == ranks.end()) {
             continue;
@@ -194,7 +196,7 @@ std::size_t Transport::MPI::EndpointGroup::parallel_recv(const std::size_t nsrcs
     std::size_t size_req_count = 0;
     for(std::size_t i = 0; i < nsrcs; i++) {
         //this is not really necessary
-        std::map<int, int>::const_iterator src_it = ranks.find(srcs[i]);
+        std::unordered_map<int, int>::const_iterator src_it = ranks.find(srcs[i]);
 
         if (src_it != ranks.end()) {
             reqs[size_req_count] = mpi_requests->acquire<MPI_Request>();
@@ -253,7 +255,7 @@ std::size_t Transport::MPI::EndpointGroup::parallel_recv(const std::size_t nsrcs
     std::size_t data_req_count = 0;
     void **recvbufs = ptrs->acquire_array<void *>(size_req_count);
     for(std::size_t i = 0; i < size_req_count; i++) {
-        std::map<int, int>::const_iterator src_it = ranks.find(srcs[i]);
+        std::unordered_map<int, int>::const_iterator src_it = ranks.find(srcs[i]);
         if (src_it != ranks.end()) {
             // Receive a message from the servers in the list
             reqs[data_req_count] = mpi_requests->acquire<MPI_Request>();
@@ -336,7 +338,7 @@ std::size_t Transport::MPI::EndpointGroup::parallel_recv(const std::size_t nsrcs
  * @treturn a linked list of return messages
  */
 template<typename Recv_t, typename Send_t, typename>
-Recv_t *Transport::MPI::EndpointGroup::return_msgs(const std::map<int, Send_t *> &messages) {
+Recv_t *Transport::MPI::EndpointGroup::return_msgs(const std::unordered_map<int, Send_t *> &messages) {
     mlog(MPI_DBG, "Maximum number of messages: %zu", messages.size());
 
     // return value here is not useful

@@ -598,14 +598,21 @@ int Packer::pack(const Message *msg, void **buf, std::size_t *bufsize, FixedBuff
         return TRANSPORT_ERROR;
     }
 
-    *bufsize = msg->size();
-    if (!(*buf = packed->acquire(*bufsize))) {
-        *bufsize = 0;
-        return TRANSPORT_ERROR;
+    const std::size_t minsize = msg->size();
+
+    // only allocate space if a nullptr is provided; otherwise, assume *buf has enough space
+    if (!*buf) {
+        if (!(*buf = packed->acquire(minsize))) {
+            *bufsize = 0;
+            return TRANSPORT_ERROR;
+        }
     }
+
+    *bufsize = minsize;
 
     *curr = (char *) *buf;
 
+    // copy header into *buf
     memcpy(*curr, (char *)&msg->direction, sizeof(msg->direction));
     *curr += sizeof(msg->direction);
 

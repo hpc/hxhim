@@ -238,11 +238,12 @@ static int default_runtime_config(hxhim_options_t *opts) {
     hxhim_options_set_requests_alloc_size(opts, hxhim::MaxSize::Requests());
     hxhim_options_set_arrays_alloc_size(opts, opts->p->max_ops_per_send * opts->p->requests.regions / 4);
     hxhim_options_set_packed_alloc_size(opts, opts->p->max_ops_per_send * 128);
-    hxhim_options_set_packed_regions(opts, opts->p->requests.regions);
+    // hxhim_options_set_packed_regions(opts, opts->p->requests.regions);
+    hxhim_options_set_packed_regions(opts, 32);
     hxhim_options_set_responses_alloc_size(opts, hxhim::MaxSize::Responses());
     hxhim_options_set_responses_regions(opts, opts->p->requests.regions);
     hxhim_options_set_result_alloc_size(opts, hxhim::MaxSize::Result());
-    hxhim_options_set_result_regions(opts, 4);
+    hxhim_options_set_result_regions(opts, opts->p->max_ops_per_send * 128);
     hxhim_options_set_results_alloc_size(opts, sizeof(hxhim::Results));
     hxhim_options_set_results_regions(opts, 4);
 

@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstring>
 #include <memory>
+#include <unordered_map>
 
 #include "hxhim/Results_private.hpp"
 #include "hxhim/config.hpp"
@@ -259,7 +260,7 @@ static hxhim::Results *get_core(hxhim_t *hx,
 
     while (hx->p->running && head) {
         // current set of remote destinations to send to
-        std::map<int, Transport::Request::BGet *> remote;
+        std::unordered_map<int, Transport::Request::BGet *> remote;
 
         // reset local without deallocating memory
         local.count = 0;
@@ -394,7 +395,7 @@ static hxhim::Results *getop_core(hxhim_t *hx,
 
     while (hx->p->running && head) {
         // current set of remote destinations to send to
-        std::map<int, Transport::Request::BGetOp *> remote;
+        std::unordered_map<int, Transport::Request::BGetOp *> remote;
 
         // reset local without deallocating memory
         local.count = 0;
@@ -529,7 +530,7 @@ static hxhim::Results *delete_core(hxhim_t *hx,
 
     while (hx->p->running && head) {
         // current set of remote destinations to send to
-        std::map<int, Transport::Request::BDelete *> remote;
+        std::unordered_map<int, Transport::Request::BDelete *> remote;
 
         // reset local without deallocating memory
         local.count = 0;
@@ -1282,7 +1283,7 @@ hxhim::Results *hxhim::GetBHistogram(hxhim_t *hx, const int *datastores, const s
     std::size_t i = 0;
     while (i < count) {
         // current set of remote destinations to send to
-        std::map<int, Transport::Request::BHistogram *> remote;
+        std::unordered_map<int, Transport::Request::BHistogram *> remote;
 
         // reset local without deallocating memory
         local.count = 0;

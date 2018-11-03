@@ -1,7 +1,7 @@
 #if HXHIM_HAVE_THALLIUM
 
-#include <map>
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
 #include <thallium/serialization/stl/string.hpp>
@@ -14,7 +14,7 @@
 #include "utils/mlogfacs2.h"
 
 template <typename Recv_t, typename Send_t, typename>
-Recv_t *Transport::Thallium::EndpointGroup::do_operation(const std::map<int, Send_t *> &messages) {
+Recv_t *Transport::Thallium::EndpointGroup::do_operation(const std::unordered_map<int, Send_t *> &messages) {
     Recv_t *head = nullptr;
     Recv_t *tail = nullptr;
 
@@ -31,7 +31,7 @@ Recv_t *Transport::Thallium::EndpointGroup::do_operation(const std::map<int, Sen
         // mlog(THALLIUM_DBG, "Message is going to range server %d", msg->dst);
 
         // figure out where to send the message
-        std::map<int, Endpoint_t>::const_iterator dst_it = endpoints.find(msg->dst);
+        std::unordered_map<int, Endpoint_t>::const_iterator dst_it = endpoints.find(msg->dst);
         if (dst_it == endpoints.end()) {
             // mlog(THALLIUM_ERR, "Could not find endpoint for destination rank %d", msg->dst);
             continue;

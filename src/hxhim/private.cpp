@@ -50,7 +50,7 @@ int insert(hxhim_t *hx,
            const std::size_t max_per_dst,
            hxhim::PutData *put,
            Transport::Request::BPut &local,
-           std::map<int, Transport::Request::BPut *> &remote,
+           std::unordered_map<int, Transport::Request::BPut *> &remote,
            const std::size_t &max_remote) {
     // TODO: this will need to be fixed so that partial failures cannot happen
     if (
@@ -131,8 +131,8 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *&head) {
 
     while (hx->p->running && head) {
         // current set of remote destinations to send to
-        std::map<int, Transport::Request::BPut *> remote;
-        std::map<void *, int> hashed;
+        std::unordered_map<int, Transport::Request::BPut *> remote;
+        std::unordered_map<void *, int> hashed;
 
         // reset local without deallocating memory
         local.count = 0;
