@@ -54,7 +54,7 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
     // mlog(THALLIUM_DBG, "Created Thallium RPC");
 
     // get a mapping of unique IDs to thallium addresses
-    std::map<int, std::string> addrs;
+    std::unordered_map<int, std::string> addrs;
     if (get_addrs(hx->p->bootstrap.comm, *engine, addrs) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }

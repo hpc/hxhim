@@ -1,8 +1,8 @@
 #ifndef HXHIM_CONFIG_HPP
 #define HXHIM_CONFIG_HPP
 
-#include <map>
 #include <string>
+#include <unordered_map>
 
 #include "datastore/constants.hpp"
 #include "hxhim/constants.h"
@@ -86,7 +86,7 @@ const std::string HISTOGRAM_BUCKET_GEN_METHOD = "HISTOGRAM_BUCKET_METHOD";   // 
 /**
  * Set of available debug levels
  */
-const std::map<std::string, int> DEBUG_LEVELS = {
+const std::unordered_map<std::string, int> DEBUG_LEVELS = {
     std::make_pair("EMERGENCY", MLOG_EMERG),
     std::make_pair("ALERT",     MLOG_ALERT),
     std::make_pair("CRITICAL",  MLOG_CRIT),
@@ -104,7 +104,7 @@ const std::map<std::string, int> DEBUG_LEVELS = {
 /**
  * Set of allowed datastores for HXHIM
  */
-const std::map<std::string, datastore::Type> DATASTORES = {
+const std::unordered_map<std::string, datastore::Type> DATASTORES = {
     #if HXHIM_HAVE_LEVELDB
     std::make_pair("LEVELDB",   datastore::LEVELDB),
     #endif
@@ -114,7 +114,7 @@ const std::map<std::string, datastore::Type> DATASTORES = {
 /**
  * Set of predefined hash functions
  */
-const std::map<std::string, hxhim_hash_t> HASHES = {
+const std::unordered_map<std::string, hxhim_hash_t> HASHES = {
     std::make_pair("RANK_0",              hash::RankZero),
     std::make_pair("MY_RANK",             hash::MyRank),
     std::make_pair("RANK_MOD_DATASTORES", hash::RankModDatastores),
@@ -124,7 +124,7 @@ const std::map<std::string, hxhim_hash_t> HASHES = {
 /**
  * Set of available transports
  */
-const std::map<std::string, Transport::Type> TRANSPORTS = {
+const std::unordered_map<std::string, Transport::Type> TRANSPORTS = {
     std::make_pair("NULL",     Transport::TRANSPORT_NULL),
     std::make_pair("MPI",      Transport::TRANSPORT_MPI),
     #if HXHIM_HAVE_THALLIUM
@@ -135,7 +135,7 @@ const std::map<std::string, Transport::Type> TRANSPORTS = {
 /**
  * Set of predefined histogram bucket generators
  */
-const std::map<std::string, HistogramBucketGenerator_t> HISTOGRAM_BUCKET_GENERATORS = {
+const std::unordered_map<std::string, HistogramBucketGenerator_t> HISTOGRAM_BUCKET_GENERATORS = {
     std::make_pair("10_BUCKETS",                   histogram_n_buckets),
     std::make_pair("SQUARE_ROOT_CHOICE",           histogram_square_root_choice),
     std::make_pair("STURGES_FORMULA",              histogram_sturges_formula),
@@ -150,7 +150,7 @@ const std::map<std::string, HistogramBucketGenerator_t> HISTOGRAM_BUCKET_GENERAT
  */
 const std::size_t two = 2;
 const std::size_t ten = 10;
-const std::map<std::string, void *> HISTOGRAM_BUCKET_GENERATOR_EXTRA_ARGS = {
+const std::unordered_map<std::string, void *> HISTOGRAM_BUCKET_GENERATOR_EXTRA_ARGS = {
     std::make_pair("10_BUCKETS",                   (void *) &ten),
     std::make_pair("SQUARE_ROOT_CHOICE",           nullptr),
     std::make_pair("STURGES_FORMULA",              nullptr),

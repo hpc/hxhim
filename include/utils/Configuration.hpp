@@ -4,13 +4,13 @@
 #include <algorithm>
 #include <cmath>
 #include <list>
-#include <map>
-#include <string>
 #include <sstream>
+#include <string>
+#include <unordered_map>
 
 
 /** @description The underlying configuration type */
-typedef std::map<std::string, std::string> Config;
+typedef std::unordered_map<std::string, std::string> Config;
 typedef Config::const_iterator Config_it;
 
 /**
@@ -172,13 +172,13 @@ int get_value(const Config &config, const std::string &config_key, T &v) {
  */
 template<typename T>
 int get_from_map(const Config &config, const std::string &config_key,
-                 const std::map<std::string, T> &map, T &value) {
+                 const std::unordered_map<std::string, T> &map, T &value) {
     // find key in configuration
     Config_it in_config = config.find(config_key);
 
     if (in_config != config.end()) {
         // use value to get internal value from map
-        typename std::map<std::string, T>::const_iterator in_map = map.find(in_config->second);
+        typename std::unordered_map<std::string, T>::const_iterator in_map = map.find(in_config->second);
         if (in_map == map.end()) {
             return CONFIG_ERROR;
         }

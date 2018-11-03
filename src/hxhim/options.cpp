@@ -210,7 +210,7 @@ int hxhim_options_set_hash_name(hxhim_options_t *opts, const char *name) {
     }
 
     const std::string hash_name = name;
-    std::map<std::string, hxhim_hash_t>::const_iterator it = hxhim::config::HASHES.find(hash_name);
+    std::unordered_map<std::string, hxhim_hash_t>::const_iterator it = hxhim::config::HASHES.find(hash_name);
     if (it == hxhim::config::HASHES.end()) {
         return HXHIM_ERROR;
     }

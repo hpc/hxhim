@@ -70,7 +70,7 @@ static bool parse_value(hxhim_options_t *opts, const Config &config, const std::
  * @param true, or false on error
  */
 template <typename T, typename = enable_if_t <!std::is_reference<T>::value> >
-bool parse_map_value(hxhim_options_t *opts, const Config &config, const std::string &key, const std::map<std::string, T> &map, int (*set_option)(hxhim_options_t *, const T)) {
+bool parse_map_value(hxhim_options_t *opts, const Config &config, const std::string &key, const std::unordered_map<std::string, T> &map, int (*set_option)(hxhim_options_t *, const T)) {
     T value = {};
     const int ret = get_from_map(config, key, map, value);
     if ((ret == CONFIG_ERROR)                                                 ||
