@@ -79,12 +79,16 @@ void *FixedBufferPool::acquireImpl(const std::size_t size) {
     std::unique_lock<std::mutex> lock(mutex_);
 
     // wait until a slot opens up
+    bool waited = false;
     while (!(regions_ - used_)) {
+        waited = true;
         FBP_LOG(FBP_WARN, "Waiting for a size %zu buffer", size);
         cv_.wait(lock, [&]{ return regions_ - used_; });
     }
 
-    FBP_LOG(FBP_DBG, "A size %zu buffer is available", size);
+    if (waited) {
+        FBP_LOG(FBP_DBG, "A size %zu buffer is available", size);
+    }
 
     // set the return address to the head of the unused list
     void *ret = ::operator new(size);
@@ -133,7 +137,7 @@ void FixedBufferPool::releaseImpl(void *ptr, const std::size_t size) {
         ::operator delete(ptr);
         used_--;
         cv_.notify_all();
-        FBP_LOG(FBP_DBG, "Freed %p", ptr);
+        FBP_LOG(FBP_DBG, "Freed %zu bytes at %p", it->second, ptr);
     }
 }
 

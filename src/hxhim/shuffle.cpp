@@ -21,7 +21,7 @@ int Put(hxhim_t *hx,
         void *object,
         std::size_t object_len,
         Transport::Request::BPut *local,
-        std::map<int, Transport::Request::BPut *> &remote,
+        std::unordered_map<int, Transport::Request::BPut *> &remote,
         const std::size_t max_remote) {
     // get the destination backend id for the key
     const int ds_id = hx->p->hash.func(hx, subject, subject_len, predicate, predicate_len, hx->p->hash.args);
@@ -119,7 +119,7 @@ int Get(hxhim_t *hx,
         std::size_t predicate_len,
         hxhim_type_t object_type,
         Transport::Request::BGet *local,
-        std::map<int, Transport::Request::BGet *> &remote,
+        std::unordered_map<int, Transport::Request::BGet *> &remote,
         const std::size_t max_remote) {
     // get the destination backend id for the key
     const int ds_id = hx->p->hash.func(hx, subject, subject_len, predicate, predicate_len, hx->p->hash.args);
@@ -202,7 +202,7 @@ int GetOp(hxhim_t *hx,
           hxhim_type_t object_type,
           const std::size_t recs, const hxhim_get_op_t op,
           Transport::Request::BGetOp *local,
-          std::map<int, Transport::Request::BGetOp *> &remote,
+          std::unordered_map<int, Transport::Request::BGetOp *> &remote,
           const std::size_t max_remote) {
     // get the destination backend id for the key
     const int ds_id = hx->p->hash.func(hx, subject, subject_len, predicate, predicate_len, hx->p->hash.args);
@@ -287,7 +287,7 @@ int Delete(hxhim_t *hx,
            void *predicate,
            std::size_t predicate_len,
            Transport::Request::BDelete *local,
-           std::map<int, Transport::Request::BDelete *> &remote,
+           std::unordered_map<int, Transport::Request::BDelete *> &remote,
            const std::size_t max_remote) {
     // get the destination backend id for the key
     const int ds_id = hx->p->hash.func(hx, subject, subject_len, predicate, predicate_len, hx->p->hash.args);
@@ -363,7 +363,7 @@ int Histogram(hxhim_t *hx,
               const std::size_t max_per_dst,
               const int ds_id,
               Transport::Request::BHistogram *local,
-              std::map<int, Transport::Request::BHistogram *> &remote,
+              std::unordered_map<int, Transport::Request::BHistogram *> &remote,
               const std::size_t max_remote) {
     if (ds_id < 0) {
         mlog(HXHIM_CLIENT_WARN, "Bad Histogram source: %d", ds_id);

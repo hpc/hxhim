@@ -50,7 +50,7 @@ int insert(hxhim_t *hx,
            const std::size_t max_per_dst,
            hxhim::PutData *put,
            Transport::Request::BPut &local,
-           std::map<int, Transport::Request::BPut *> &remote,
+           std::unordered_map<int, Transport::Request::BPut *> &remote,
            const std::size_t &max_remote) {
     // TODO: this will need to be fixed so that partial failures cannot happen
     if (
@@ -131,12 +131,14 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *&head) {
 
     while (hx->p->running && head) {
         // current set of remote destinations to send to
-        std::map<int, Transport::Request::BPut *> remote;
-        std::map<void *, int> hashed;
+        std::unordered_map<int, Transport::Request::BPut *> remote;
+        std::unordered_map<void *, int> hashed;
 
         // reset local without deallocating memory
         local.count = 0;
 
+        // attempt to stuff as many triples into the buffers before sending
+        mlog(HXHIM_CLIENT_DBG, "Inserting PUT triples into bulk packets for sending");
         hxhim::PutData *curr = head;
         while (hx->p->running && curr) {
             if (insert(hx, max_puts,
@@ -169,9 +171,11 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *&head) {
                 curr = next;
             }
             else {
-                curr = curr->next;
+                break;
+                // curr = curr->next;
             }
         }
+        mlog(HXHIM_CLIENT_DBG, "Inserted %zu remote PUTs and %zu local PUTs for sending", remote.size(), local.size());
 
         // PUT the batch
         if (hx->p->running && remote.size()) {
@@ -837,7 +841,7 @@ int hxhim::PutImpl(hxhim_t *hx,
     put->object = object;
     put->object_len = object_len;
 
-    mlog(HXHIM_CLIENT_DBG, "Put Insert into queue");
+    mlog(HXHIM_CLIENT_DBG, "PUT Insert into queue");
     hxhim::Unsent<hxhim::PutData> &puts = hx->p->queues.puts;
     puts.insert(put);
     puts.start_processing.notify_one();

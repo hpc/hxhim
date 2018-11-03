@@ -4,6 +4,7 @@
 #include <atomic>
 #include <mutex>
 #include <thread>
+#include <unordered_map>
 
 #include <mpi.h>
 
@@ -208,7 +209,7 @@ void collect_fill_stats(T *msg, hxhim_private_t::Stats::Op &op) {
  */
 template <typename T, typename = enable_if_t<std::is_base_of<Transport::Bulk,             T>::value &&
                                              std::is_base_of<Transport::Request::Request, T>::value> >
-void collect_fill_stats(const std::map<int, T *> &msgs, hxhim_private_t::Stats::Op &op) {
+void collect_fill_stats(const std::unordered_map<int, T *> &msgs, hxhim_private_t::Stats::Op &op) {
     // Collect packet filled percentage
     std::lock_guard<std::mutex> lock(op.mutex);
     for(REF(msgs)::value_type const & msg : msgs) {

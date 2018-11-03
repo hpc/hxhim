@@ -106,7 +106,7 @@ void Transport::Thallium::EndpointGroup::RemoveID(const int id) {
  * @param bpm_list the list of BPUT messages to send
  * @return a linked list of response messages, or nullptr
  */
-Transport::Response::BPut *Transport::Thallium::EndpointGroup::BPut(const std::map<int, Request::BPut *> &bpm_list) {
+Transport::Response::BPut *Transport::Thallium::EndpointGroup::BPut(const std::unordered_map<int, Request::BPut *> &bpm_list) {
     return do_operation<Response::BPut>(bpm_list);
 }
 
@@ -117,7 +117,7 @@ Transport::Response::BPut *Transport::Thallium::EndpointGroup::BPut(const std::m
  * @param bgm_list the list of BGET messages to send
  * @return a linked list of response messages, or nullptr
  */
-Transport::Response::BGet *Transport::Thallium::EndpointGroup::BGet(const std::map<int, Request::BGet *> &bgm_list) {
+Transport::Response::BGet *Transport::Thallium::EndpointGroup::BGet(const std::unordered_map<int, Request::BGet *> &bgm_list) {
     return do_operation<Response::BGet>(bgm_list);
 }
 
@@ -128,7 +128,7 @@ Transport::Response::BGet *Transport::Thallium::EndpointGroup::BGet(const std::m
  * @param bgm_list the list of BGETOP messages to send
  * @return a linked list of response messages, or nullptr
  */
-Transport::Response::BGetOp *Transport::Thallium::EndpointGroup::BGetOp(const std::map<int, Request::BGetOp *> &bgm_list) {
+Transport::Response::BGetOp *Transport::Thallium::EndpointGroup::BGetOp(const std::unordered_map<int, Request::BGetOp *> &bgm_list) {
     return do_operation<Response::BGetOp>(bgm_list);
 }
 
@@ -139,7 +139,7 @@ Transport::Response::BGetOp *Transport::Thallium::EndpointGroup::BGetOp(const st
  * @param bdm_list the list of BDELETE messages to send
  * @return a linked list of response messages, or nullptr
  */
-Transport::Response::BDelete *Transport::Thallium::EndpointGroup::BDelete(const std::map<int, Request::BDelete *> &bdm_list) {
+Transport::Response::BDelete *Transport::Thallium::EndpointGroup::BDelete(const std::unordered_map<int, Request::BDelete *> &bdm_list) {
     return do_operation<Response::BDelete>(bdm_list);
 }
 
@@ -150,7 +150,7 @@ Transport::Response::BDelete *Transport::Thallium::EndpointGroup::BDelete(const 
  * @param bdm_list the list of BDELETE messages to send
  * @return a linked list of response messages, or nullptr
  */
-Transport::Response::BHistogram *Transport::Thallium::EndpointGroup::BHistogram(const std::map<int, Request::BHistogram *> &bhist_list) {
+Transport::Response::BHistogram *Transport::Thallium::EndpointGroup::BHistogram(const std::unordered_map<int, Request::BHistogram *> &bhist_list) {
     return do_operation<Response::BHistogram>(bhist_list);
 }
 

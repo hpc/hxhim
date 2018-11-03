@@ -355,6 +355,7 @@ void FixedBufferPool::releaseImpl(void *ptr, const std::size_t size) {
     }
 
     // reset size of allocation at that node
+    const std::size_t actual_size = nodes_[index].size;
     nodes_[index].size = 0;
 
     // add the address to the front of available spots
@@ -366,7 +367,7 @@ void FixedBufferPool::releaseImpl(void *ptr, const std::size_t size) {
 
     cv_.notify_all();
 
-    FBP_LOG(FBP_DBG, "Freed %p", ptr);
+    FBP_LOG(FBP_DBG, "Freed %zu bytes at %p", actual_size, ptr);
 }
 
 #endif

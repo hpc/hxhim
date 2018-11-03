@@ -28,23 +28,23 @@ EndpointGroup::EndpointGroup() {}
 
 EndpointGroup::~EndpointGroup() {}
 
-Response::BPut *EndpointGroup::BPut(const std::map<int, Request::BPut *> &) {
+Response::BPut *EndpointGroup::BPut(const std::unordered_map<int, Request::BPut *> &) {
     return nullptr;
 }
 
-Response::BGet *EndpointGroup::BGet(const std::map<int, Request::BGet *> &) {
+Response::BGet *EndpointGroup::BGet(const std::unordered_map<int, Request::BGet *> &) {
     return nullptr;
 }
 
-Response::BGetOp *EndpointGroup::BGetOp(const std::map<int, Request::BGetOp *> &) {
+Response::BGetOp *EndpointGroup::BGetOp(const std::unordered_map<int, Request::BGetOp *> &) {
     return nullptr;
 }
 
-Response::BDelete *EndpointGroup::BDelete(const std::map<int, Request::BDelete *> &) {
+Response::BDelete *EndpointGroup::BDelete(const std::unordered_map<int, Request::BDelete *> &) {
     return nullptr;
 }
 
-Response::BHistogram *EndpointGroup::BHistogram(const std::map<int, Request::BHistogram *> &) {
+Response::BHistogram *EndpointGroup::BHistogram(const std::unordered_map<int, Request::BHistogram *> &) {
     return nullptr;
 }
 
@@ -79,7 +79,7 @@ void Transport::AddEndpoint(const int id, Endpoint *ep) {
  * @param id the ID of the endpoint
  */
 void Transport::RemoveEndpoint(const int id) {
-    EndpointMapping_t::iterator it = endpoints_.find(id);
+    EndpointUnordered_Mapping_t::iterator it = endpoints_.find(id);
     if (it != endpoints_.end()) {
         delete it->second;
         endpoints_.erase(id);
@@ -110,7 +110,7 @@ Response::Put *Transport::Put(const Request::Put *pm) {
     if (!pm) {
         return nullptr;
     }
-    EndpointMapping_t::iterator it = endpoints_.find(pm->dst);
+    EndpointUnordered_Mapping_t::iterator it = endpoints_.find(pm->dst);
     return (it == endpoints_.end())?nullptr:it->second->Put(pm);
 }
 
@@ -125,7 +125,7 @@ Response::Get *Transport::Get(const Request::Get *get) {
     if (!get) {
         return nullptr;
     }
-    EndpointMapping_t::iterator it = endpoints_.find(get->dst);
+    EndpointUnordered_Mapping_t::iterator it = endpoints_.find(get->dst);
     return (it == endpoints_.end())?nullptr:it->second->Get(get);
 }
 
@@ -140,7 +140,7 @@ Response::Delete *Transport::Delete(const Request::Delete *dm) {
     if (!dm) {
         return nullptr;
     }
-    EndpointMapping_t::iterator it = endpoints_.find(dm->dst);
+    EndpointUnordered_Mapping_t::iterator it = endpoints_.find(dm->dst);
     return (it == endpoints_.end())?nullptr:it->second->Delete(dm);
 }
 
@@ -155,7 +155,7 @@ Response::Histogram *Transport::Histogram(const Request::Histogram *hm) {
     if (!hm) {
         return nullptr;
     }
-    EndpointMapping_t::iterator it = endpoints_.find(hm->dst);
+    EndpointUnordered_Mapping_t::iterator it = endpoints_.find(hm->dst);
     return (it == endpoints_.end())?nullptr:it->second->Histogram(hm);
 }
 
@@ -167,7 +167,7 @@ Response::Histogram *Transport::Histogram(const Request::Histogram *hm) {
  * @param bpm_list a list of PUT messages going to different servers
  * @return the response from the range server
  */
-Response::BPut *Transport::BPut(const std::map<int, Request::BPut *> &bpm_list) {
+Response::BPut *Transport::BPut(const std::unordered_map<int, Request::BPut *> &bpm_list) {
     return (bpm_list.size() && endpointgroup_)?endpointgroup_->BPut(bpm_list):nullptr;
 }
 
@@ -179,7 +179,7 @@ Response::BPut *Transport::BPut(const std::map<int, Request::BPut *> &bpm_list) 
  * @param bgm_list a list of GET messages going to different servers
  * @return the response from the range server
  */
-Response::BGet *Transport::BGet(const std::map<int, Request::BGet *> &bgm_list) {
+Response::BGet *Transport::BGet(const std::unordered_map<int, Request::BGet *> &bgm_list) {
     return (bgm_list.size() && endpointgroup_)?endpointgroup_->BGet(bgm_list):nullptr;
 }
 
@@ -191,7 +191,7 @@ Response::BGet *Transport::BGet(const std::map<int, Request::BGet *> &bgm_list) 
  * @param bgm_list a list of GET messages going to different servers
  * @return the response from the range server
  */
-Response::BGetOp *Transport::BGetOp(const std::map<int, Request::BGetOp *> &bgm_list) {
+Response::BGetOp *Transport::BGetOp(const std::unordered_map<int, Request::BGetOp *> &bgm_list) {
     return (bgm_list.size() && endpointgroup_)?endpointgroup_->BGetOp(bgm_list):nullptr;
 }
 
@@ -203,7 +203,7 @@ Response::BGetOp *Transport::BGetOp(const std::map<int, Request::BGetOp *> &bgm_
  * @param bdm_list a list of DELETE messages going to different servers
  * @return the response from the range server
  */
-Response::BDelete *Transport::BDelete(const std::map<int, Request::BDelete *> &bdm_list) {
+Response::BDelete *Transport::BDelete(const std::unordered_map<int, Request::BDelete *> &bdm_list) {
     return (bdm_list.size() && endpointgroup_)?endpointgroup_->BDelete(bdm_list):nullptr;
 }
 
@@ -215,7 +215,7 @@ Response::BDelete *Transport::BDelete(const std::map<int, Request::BDelete *> &b
  * @param bdm_list a list of HISTOGRAM messages going to different servers
  * @return the response from the range server
  */
-Response::BHistogram *Transport::BHistogram(const std::map<int, Request::BHistogram *> &bhm_list) {
+Response::BHistogram *Transport::BHistogram(const std::unordered_map<int, Request::BHistogram *> &bhm_list) {
     return (bhm_list.size() && endpointgroup_)?endpointgroup_->BHistogram(bhm_list):nullptr;
 }
 

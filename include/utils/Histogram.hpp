@@ -14,7 +14,6 @@ namespace Histogram {
  */
 class Histogram {
     public:
-        // Histogram(const std::map<double, std::size_t> &hist);
         Histogram(const std::size_t use_first_n, const HistogramBucketGenerator_t &generator, void *extra_args);
         virtual ~Histogram();
 

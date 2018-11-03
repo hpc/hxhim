@@ -70,7 +70,7 @@ static bool parse_value(hxhim_options_t *opts, const Config &config, const std::
  * @param true, or false on error
  */
 template <typename T, typename = enable_if_t <!std::is_reference<T>::value> >
-bool parse_map_value(hxhim_options_t *opts, const Config &config, const std::string &key, const std::map<std::string, T> &map, int (*set_option)(hxhim_options_t *, const T)) {
+bool parse_map_value(hxhim_options_t *opts, const Config &config, const std::string &key, const std::unordered_map<std::string, T> &map, int (*set_option)(hxhim_options_t *, const T)) {
     T value = {};
     const int ret = get_from_map(config, key, map, value);
     if ((ret == CONFIG_ERROR)                                                 ||
@@ -231,18 +231,19 @@ static int default_runtime_config(hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
-    hxhim_options_set_keys_regions(opts, opts->p->datastore_count);
+    hxhim_options_set_keys_regions(opts, opts->p->datastore_count * 2);
     hxhim_options_set_buffers_alloc_size(opts, opts->p->keys.alloc_size * 2);
     hxhim_options_set_buffers_regions(opts, opts->p->max_ops_per_send * 3);
     hxhim_options_set_ops_cache_alloc_size(opts, hxhim::MaxSize::OpsCache());
     hxhim_options_set_requests_alloc_size(opts, hxhim::MaxSize::Requests());
     hxhim_options_set_arrays_alloc_size(opts, opts->p->max_ops_per_send * opts->p->requests.regions / 4);
     hxhim_options_set_packed_alloc_size(opts, opts->p->max_ops_per_send * 128);
-    hxhim_options_set_packed_regions(opts, opts->p->requests.regions);
+    // hxhim_options_set_packed_regions(opts, opts->p->requests.regions);
+    hxhim_options_set_packed_regions(opts, 32);
     hxhim_options_set_responses_alloc_size(opts, hxhim::MaxSize::Responses());
     hxhim_options_set_responses_regions(opts, opts->p->requests.regions);
     hxhim_options_set_result_alloc_size(opts, hxhim::MaxSize::Result());
-    hxhim_options_set_result_regions(opts, 4);
+    hxhim_options_set_result_regions(opts, opts->p->max_ops_per_send * 128);
     hxhim_options_set_results_alloc_size(opts, sizeof(hxhim::Results));
     hxhim_options_set_results_regions(opts, 4);
 

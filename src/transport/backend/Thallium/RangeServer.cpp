@@ -43,7 +43,7 @@ void Transport::Thallium::RangeServer::process(const thallium::request &req, tha
     // unpack the request
     Request::Request *request = nullptr;
     const int ret = Unpacker::unpack(&request, buf, bufsize, hx_->p->memory_pools.requests, hx_->p->memory_pools.arrays, hx_->p->memory_pools.buffers);
-    hx_->p->memory_pools.packed->release(buf, bufsize);
+    // hx_->p->memory_pools.packed->release(buf, bufsize);
 
     if (ret != TRANSPORT_SUCCESS) {
         req.respond((std::size_t) 0);
@@ -60,23 +60,22 @@ void Transport::Thallium::RangeServer::process(const thallium::request &req, tha
     // mlog(THALLIUM_DBG, "Responding with %s message", Message::TypeStr[response->type]);
 
     // pack the response
-    void *res = nullptr;
     std::size_t ressize = 0;
-    Packer::pack(response, &res, &ressize, hx_->p->memory_pools.packed); // do not check for error
+    Packer::pack(response, &buf, &ressize, hx_->p->memory_pools.packed); // do not check for error
     hx_->p->memory_pools.responses->release(response);
 
     // mlog(THALLIUM_DBG, "Packed response into %zu byte string", ressize);
 
     // send the response
     {
-        std::vector<std::pair<void *, std::size_t> > segments = {std::make_pair(res, ressize)};
+        std::vector<std::pair<void *, std::size_t> > segments = {std::make_pair(buf, ressize)};
         thallium::bulk local = engine_->expose(segments, thallium::bulk_mode::read_only);
         bulk.on(ep) << local(0, ressize);
     }
 
     // respond
     req.respond(ressize);
-    hx_->p->memory_pools.packed->release(res, ressize);
+    hx_->p->memory_pools.packed->release(buf, bufsize);
 
     // mlog(THALLIUM_DBG, "Done processing data");
 }
