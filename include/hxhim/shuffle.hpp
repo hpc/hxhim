@@ -2,6 +2,7 @@
 #define HXHIM_SHUFFLE_HPP
 
 #include <cstddef>
+#include <map>
 #include <unordered_map>
 
 #include "hxhim/constants.h"
@@ -22,7 +23,7 @@ namespace hxhim {
  * The arguments are not checked in order to reduce branch predictions.
  *
  * The local buffer is a single bulk op, with all data going to one rank (but possibly multiple backends)
- * The remote buffer should be an array, with all data in each element going to one rank (but possibly multiple backends)
+ * The remote buffer should be a map of destination rank to bulk op, with all data in each bulk op going to one rank (but possibly multiple backends)
  *
  */
 
@@ -39,7 +40,8 @@ int Put(hxhim_t *hx,
         std::size_t object_len,
         Transport::Request::BPut *local,
         std::unordered_map<int, Transport::Request::BPut *> &remote,
-        const std::size_t max_remote);
+        const std::size_t max_remote,
+        std::map<std::pair<void *, void *>, int> &hashed);
 
 int Get(hxhim_t *hx,
         const std::size_t max_per_dst,

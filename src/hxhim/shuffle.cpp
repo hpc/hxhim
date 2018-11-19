@@ -22,9 +22,25 @@ int Put(hxhim_t *hx,
         std::size_t object_len,
         Transport::Request::BPut *local,
         std::unordered_map<int, Transport::Request::BPut *> &remote,
-        const std::size_t max_remote) {
+        const std::size_t max_remote,
+        std::map<std::pair<void *, void *>, int> &hashed) {
+
+    // destination datastore
+    int ds_id = -1;
+
+    // find the destination datastore
+    const std::pair<void *, void *> sp = std::make_pair(subject, predicate);
+    std::map<std::pair<void *, void *>, int>::const_iterator h = hashed.find(sp);
+    // not found, so hash
+    if (h == hashed.end()) {
+        ds_id = hx->p->hash.func(hx, subject, subject_len, predicate, predicate_len, hx->p->hash.args);
+    }
+    // use found value
+    else {
+        ds_id = h->second;
+    }
+
     // get the destination backend id for the key
-    const int ds_id = hx->p->hash.func(hx, subject, subject_len, predicate, predicate_len, hx->p->hash.args);
     if (ds_id < 0) {
         mlog(HXHIM_CLIENT_WARN, "Hash returned bad target datastore: %d", ds_id);
         return -1;
@@ -56,6 +72,9 @@ int Put(hxhim_t *hx,
         // else, return a bad destination datastore
         else {
             mlog(HXHIM_CLIENT_DBG, "Shuffle Local Put Could not add to packet");
+            if (h == hashed.end()) {
+                hashed[sp] = ds_id;
+            }
             return -1;
         }
     }
@@ -100,6 +119,9 @@ int Put(hxhim_t *hx,
         }
         else {
             mlog(HXHIM_CLIENT_DBG, "Shuffle Remote Put Could not add to packet");
+            if (h == hashed.end()) {
+                hashed[sp] = ds_id;
+            }
             return -1;
         }
     }

@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cfloat>
 #include <cmath>
+#include <map>
 
 #include "datastore/datastores.hpp"
 #include "hxhim/MaxSize.hpp"
@@ -51,7 +52,8 @@ int insert(hxhim_t *hx,
            hxhim::PutData *put,
            Transport::Request::BPut &local,
            std::unordered_map<int, Transport::Request::BPut *> &remote,
-           const std::size_t &max_remote) {
+           const std::size_t &max_remote,
+           std::map<std::pair<void *, void *>, int> &hashed) {
     // TODO: this will need to be fixed so that partial failures cannot happen
     if (
         // SP -> O
@@ -61,7 +63,8 @@ int insert(hxhim_t *hx,
                              put->object_type, put->object, put->object_len,
                              &local,
                              remote,
-                             max_remote) > -1)
+                             max_remote,
+                             hashed) > -1)
         // // SO -> P
         // hxhim::shuffle::Put(hx, max_per_dst,
         //                     subject, subject_len,
@@ -132,7 +135,7 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *&head) {
     while (hx->p->running && head) {
         // current set of remote destinations to send to
         std::unordered_map<int, Transport::Request::BPut *> remote;
-        std::unordered_map<void *, int> hashed;
+        std::map<std::pair<void *, void *>, int> hashed;
 
         // reset local without deallocating memory
         local.count = 0;
@@ -145,7 +148,8 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *&head) {
                        curr,
                        local,
                        remote,
-                       max_remote) == HXHIM_SUCCESS) {
+                       max_remote,
+                       hashed) == HXHIM_SUCCESS) {
                 // head node
                 if (curr == head) {
                     head = curr->next;
@@ -171,8 +175,7 @@ static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *&head) {
                 curr = next;
             }
             else {
-                break;
-                // curr = curr->next;
+                curr = curr->next;
             }
         }
         mlog(HXHIM_CLIENT_DBG, "Inserted %zu remote PUTs and %zu local PUTs for sending", remote.size(), local.size());

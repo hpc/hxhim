@@ -1,8 +1,6 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <time.h>
 #include <unistd.h>
 
 #include <mpi.h>
@@ -11,6 +9,21 @@
 #include "spo_gen.h"
 
 int main(int argc, char *argv[]) {
+    size_t count = 1000 * 500;
+    size_t times = 2;
+
+    if (argc > 1) {
+        if (!(count = atoi(argv[1]))) {
+            return 1;
+        }
+    }
+
+    if (argc > 2) {
+        if (!(times = atoi(argv[2]))) {
+            return 1;
+        }
+    }
+
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 
@@ -41,10 +54,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // number of times to PUT count triples
-    const size_t times = 2;
-    const size_t count = 1000 * 500;
-
     // do PUTs
     for(size_t i = 0; i < times; i++) {
         // Generate some subject-predicate-object triples
@@ -59,7 +68,7 @@ int main(int argc, char *argv[]) {
                            sizeof(int), sizeof(int), &predicates, &predicate_lens,
                            3 * sizeof(double), 3 * sizeof(double), &objects, &object_lens) != count) {
             printf("Could not generate triples\n");
-            return -1;
+            return 1;
         }
 
         // BPUT the key value pairs into HXHIM
