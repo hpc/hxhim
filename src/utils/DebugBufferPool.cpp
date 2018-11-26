@@ -87,7 +87,7 @@ void *FixedBufferPool::acquireImpl(const std::size_t size) {
     }
 
     if (waited) {
-        FBP_LOG(FBP_DBG, "A size %zu buffer is available", size);
+        FBP_LOG(FBP_WARN, "A size %zu buffer is available", size);
     }
 
     // set the return address to the head of the unused list
@@ -106,7 +106,6 @@ void *FixedBufferPool::acquireImpl(const std::size_t size) {
     }
 
     FBP_LOG(FBP_DBG, "Acquired a size %zu buffer (%p)", size, ret);
-
     return ret;
 }
 

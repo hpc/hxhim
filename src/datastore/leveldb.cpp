@@ -121,6 +121,7 @@ Response::BPut *leveldb::BPutImpl(void **subjects, std::size_t *subject_lens,
         }
     }
 
+    ret->count = count;
     stats.put_times += nano(start, end);
 
     return ret;
@@ -269,6 +270,7 @@ Response::BGetOp *leveldb::BGetOpImpl(void *subject, std::size_t subject_len,
             else {
                 ret->statuses[i] = HXHIM_ERROR;
             }
+            ret->count++;
 
             // move to next iterator according to operation
             switch (op) {
@@ -334,6 +336,8 @@ Response::BDelete *leveldb::BDeleteImpl(void **subjects, std::size_t *subject_le
     for(std::size_t i = 0; i < count; i++) {
         ret->statuses[i] = stat;
     }
+
+    ret->count = count;
 
     return ret;
 }

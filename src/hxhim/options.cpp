@@ -552,8 +552,8 @@ int hxhim_options_set_requests_regions_in_config(hxhim_options_t *opts, const si
         return HXHIM_ERROR;
     }
 
-    // arrays needs about 6 times the number of regions requests uses
-    return hxhim_options_set_arrays_regions(opts, regions * 6);
+    // arrays needs about 8 times the number of regions requests uses
+    return hxhim_options_set_arrays_regions(opts, regions * 8);
 }
 
 int hxhim_options_set_packed_name(hxhim_options_t *opts, const char *name) {

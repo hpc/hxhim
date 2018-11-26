@@ -65,6 +65,7 @@ int insert(hxhim_t *hx,
                              remote,
                              max_remote,
                              hashed) > -1)
+
         // // SO -> P
         // hxhim::shuffle::Put(hx, max_per_dst,
         //                     subject, subject_len,
@@ -398,7 +399,7 @@ int hxhim::init::memory(hxhim_t *hx, hxhim_options_t *opts) {
           (hx->p->memory_pools.ops_cache  = new FixedBufferPool(opts->p->ops_cache.alloc_size, opts->p->ops_cache.regions, opts->p->ops_cache.name)) &&
           (hx->p->memory_pools.arrays     = new FixedBufferPool(opts->p->arrays.alloc_size,    opts->p->arrays.regions,    opts->p->arrays.name))    &&
           (hx->p->memory_pools.requests   = new FixedBufferPool(opts->p->requests.alloc_size,  opts->p->requests.regions,  opts->p->requests.name))  &&
-          (hx->p->memory_pools.packed     = new FixedBufferPool(opts->p->packed.alloc_size,    opts->p->packed.regions,     opts->p->packed.name))   &&
+          (hx->p->memory_pools.packed     = new FixedBufferPool(opts->p->packed.alloc_size,    opts->p->packed.regions,    opts->p->packed.name))    &&
           (hx->p->memory_pools.responses  = new FixedBufferPool(opts->p->responses.alloc_size, opts->p->responses.regions, opts->p->responses.name)) &&
           (hx->p->memory_pools.result     = new FixedBufferPool(opts->p->result.alloc_size,    opts->p->result.regions,    opts->p->result.name))    &&
           (hx->p->memory_pools.results    = new FixedBufferPool(opts->p->results.alloc_size,   opts->p->results.regions,   opts->p->results.name))))  {

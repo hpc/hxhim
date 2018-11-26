@@ -12,14 +12,16 @@ int main(int argc, char *argv[]) {
     size_t count = 1000 * 500;
     size_t times = 2;
 
+    // if an argument is provided, use it as the count
     if (argc > 1) {
-        if (!(count = atoi(argv[1]))) {
+        if (sscanf(argv[1], "%zu", &count) != 1) {
             return 1;
         }
     }
 
+    // if another argument is provided, use it as the times to loop
     if (argc > 2) {
-        if (!(times = atoi(argv[2]))) {
+        if (sscanf(argv[1], "%zu", &times) != 1) {
             return 1;
         }
     }
@@ -92,7 +94,7 @@ int main(int argc, char *argv[]) {
         hxhimGetAverageFilled(&hx, 0, 1, avg_bput,  0, NULL,     0, NULL, 0, NULL);
         hxhimGetMaxFilled    (&hx, 0, 1, max_bput,  0, NULL,     0, NULL, 0, NULL);
 
-        size_t num_srvs        = 0;   // the number of server that actually did PUTs
+        size_t num_srvs        = 0;   // the number of servers that actually did PUTs
         size_t total_puts      = 0;   // total number of PUTs across all ranks
         long double put_rates  = 0;   // sum of all PUT rates
         long double min_filled = 0;

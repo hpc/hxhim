@@ -13,9 +13,9 @@ extern "C"
 
 // clean up generated SPOs
 int spo_clean(const size_t count,
-               void **subjects, size_t *subject_lens,
-               void **predicates, size_t *predicate_lens,
-               void **objects, size_t *object_lens) {
+              void **subjects, size_t *subject_lens,
+              void **predicates, size_t *predicate_lens,
+              void **objects, size_t *object_lens) {
     if (subjects) {
         for(size_t i = 0; i < count; i++) {
             free(subjects[i]);
@@ -23,7 +23,7 @@ int spo_clean(const size_t count,
         free(subjects);
     }
 
-    if (subjects) {
+    if (subject_lens) {
         free(subject_lens);
     }
 
@@ -34,7 +34,7 @@ int spo_clean(const size_t count,
         free(predicates);
     }
 
-    if (predicates) {
+    if (predicate_lens) {
         free(predicate_lens);
     }
 
@@ -45,7 +45,7 @@ int spo_clean(const size_t count,
         free(objects);
     }
 
-    if (objects) {
+    if (object_lens) {
         free(object_lens);
     }
 

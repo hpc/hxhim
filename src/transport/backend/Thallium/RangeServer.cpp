@@ -42,10 +42,7 @@ void Transport::Thallium::RangeServer::process(const thallium::request &req, tha
 
     // unpack the request
     Request::Request *request = nullptr;
-    const int ret = Unpacker::unpack(&request, buf, bufsize, hx_->p->memory_pools.requests, hx_->p->memory_pools.arrays, hx_->p->memory_pools.buffers);
-    // hx_->p->memory_pools.packed->release(buf, bufsize);
-
-    if (ret != TRANSPORT_SUCCESS) {
+    if (Unpacker::unpack(&request, buf, bufsize, hx_->p->memory_pools.requests, hx_->p->memory_pools.arrays, hx_->p->memory_pools.buffers) != TRANSPORT_SUCCESS) {
         req.respond((std::size_t) 0);
         // mlog(THALLIUM_DBG, "Could not unpack data");
         return;
