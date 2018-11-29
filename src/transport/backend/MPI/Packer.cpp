@@ -565,7 +565,7 @@ int Packer::pack(const MPI_Comm comm, const Message *msg, void **buf, std::size_
 
     // only allocate space if a nullptr is provided; otherwise, assume *buf has enough space
     if (!*buf) {
-        if (!(*buf = packed->acquire(minsize))) {
+        if (!packed || !(*buf = packed->acquire(minsize))) {
             *bufsize = 0;
             return TRANSPORT_ERROR;
         }

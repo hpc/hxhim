@@ -63,9 +63,12 @@ int hxhim_options_set_arrays_regions(hxhim_options_t *opts, const size_t regions
 int hxhim_options_set_requests_name(hxhim_options_t *opts, const char *name);
 int hxhim_options_set_requests_alloc_size(hxhim_options_t *opts, const size_t alloc_size);
 int hxhim_options_set_requests_regions(hxhim_options_t *opts, const size_t regions);
-int hxhim_options_set_packed_name(hxhim_options_t *opts, const char *name);
-int hxhim_options_set_packed_alloc_size(hxhim_options_t *opts, const size_t alloc_size);
-int hxhim_options_set_packed_regions(hxhim_options_t *opts, const size_t regions);
+int hxhim_options_set_client_packed_name(hxhim_options_t *opts, const char *name);
+int hxhim_options_set_client_packed_alloc_size(hxhim_options_t *opts, const size_t alloc_size);
+int hxhim_options_set_client_packed_regions(hxhim_options_t *opts, const size_t regions);
+int hxhim_options_set_rs_packed_name(hxhim_options_t *opts, const char *name);
+int hxhim_options_set_rs_packed_alloc_size(hxhim_options_t *opts, const size_t alloc_size);
+int hxhim_options_set_rs_packed_regions(hxhim_options_t *opts, const size_t regions);
 int hxhim_options_set_responses_name(hxhim_options_t *opts, const char *name);
 int hxhim_options_set_responses_alloc_size(hxhim_options_t *opts, const size_t alloc_size);
 int hxhim_options_set_responses_regions(hxhim_options_t *opts, const size_t regions);

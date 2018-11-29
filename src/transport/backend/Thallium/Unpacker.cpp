@@ -18,7 +18,6 @@ int Transport::Thallium::Unpacker::unpack(Request::Request **req, void *buf, con
     // partial unpacking
     Message *base = nullptr;
     if (unpack(&base, buf, bufsize, requests, arrays, buffers) != TRANSPORT_SUCCESS) {
-        requests->release(base);
         return ret;
     }
 
@@ -965,7 +964,7 @@ int Transport::Thallium::Unpacker::unpack(Message **msg, void *buf, const std::s
     if (unpack(out, buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         responses->release(out);
         return TRANSPORT_ERROR;
-   }
+    }
 
     *msg = out;
     return TRANSPORT_SUCCESS;

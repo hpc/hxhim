@@ -62,9 +62,12 @@ const std::string ARRAYS_REGIONS              = "ARRAYS_REGIONS";            // 
 const std::string REQUESTS_NAME               = "REQUESTS_NAME";             // string
 const std::string REQUESTS_ALLOC_SIZE         = "REQUESTS_ALLOC_SIZE";       // positive integer
 const std::string REQUESTS_REGIONS            = "REQUESTS_REGIONS";          // positive integer
-const std::string PACKED_NAME                 = "PACKED_NAME";               // string
-const std::string PACKED_ALLOC_SIZE           = "PACKED_ALLOC_SIZE";         // positive integer
-const std::string PACKED_REGIONS              = "PACKED_REGIONS";            // positive integer
+const std::string CLIENT_PACKED_NAME          = "CLIENT_PACKED_NAME";        // string
+const std::string CLIENT_PACKED_ALLOC_SIZE    = "CLIENT_PACKED_ALLOC_SIZE";  // positive integer
+const std::string CLIENT_PACKED_REGIONS       = "CLIENT_PACKED_REGIONS";     // positive integer
+const std::string RS_PACKED_NAME              = "RS_PACKED_NAME";            // string
+const std::string RS_PACKED_ALLOC_SIZE        = "RS_PACKED_ALLOC_SIZE";      // positive integer
+const std::string RS_PACKED_REGIONS           = "RS_PACKED_REGIONS";         // positive integer
 const std::string RESPONSES_NAME              = "RESPONSES_NAME";            // string
 const std::string RESPONSES_ALLOC_SIZE        = "RESPONSES_ALLOC_SIZE";      // positive integer
 const std::string RESPONSES_REGIONS           = "RESPONSES_REGIONS";         // positive integer
@@ -178,11 +181,14 @@ const Config DEFAULT_CONFIG = {
     std::make_pair(KEYS_ALLOC_SIZE,               "128"),
     std::make_pair(KEYS_REGIONS,                  "1"),
     std::make_pair(BUFFERS_NAME,                  "Buffers"),
-    std::make_pair(OPS_CACHE_NAME,                "OpsCache"),
+    std::make_pair(OPS_CACHE_NAME,                "Ops_Cache"),
     std::make_pair(OPS_CACHE_REGIONS,             "2048"),
     std::make_pair(ARRAYS_NAME,                   "Arrays"),
     std::make_pair(REQUESTS_NAME,                 "Requests"),
-    std::make_pair(PACKED_NAME,                   "Packed"),
+    std::make_pair(CLIENT_PACKED_NAME,            "Client_Packed"),
+    std::make_pair(CLIENT_PACKED_REGIONS,         "2"),
+    std::make_pair(RS_PACKED_NAME,                "RS_Packed"),
+    std::make_pair(RS_PACKED_REGIONS,             "2"),
     std::make_pair(RESPONSES_NAME,                "Responses"),
     std::make_pair(RESULT_NAME,                   "Result"),
     std::make_pair(RESULTS_NAME,                  "Results"),

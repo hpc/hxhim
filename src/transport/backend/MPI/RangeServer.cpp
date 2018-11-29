@@ -74,12 +74,12 @@ void RangeServer::listener_thread() {
         // encode result
         void *res = nullptr;
         len = 0;
-        Packer::pack(hx_->p->bootstrap.comm, response, &res, &len, hx_->p->memory_pools.packed);
+        Packer::pack(hx_->p->bootstrap.comm, response, &res, &len, hx_->p->memory_pools.rs_packed);
 
         // send result
         const int ret = send(response->dst, res, len);
         hx_->p->memory_pools.responses->release(response);
-        hx_->p->memory_pools.packed->release(res, len);
+        hx_->p->memory_pools.rs_packed->release(res, len);
 
         if (ret != TRANSPORT_SUCCESS) {
             continue;

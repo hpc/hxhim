@@ -48,9 +48,8 @@ Recv_t *Transport::Thallium::EndpointGroup::do_operation(const std::unordered_ma
 
         // mlog(THALLIUM_DBG, "Sending message to %d packed into a buffer of size %zu", msg->dst, bufsize);
 
-        // create the bulk message, send it, and get the size in response
-        // the response data is in buf
-        std::vector<std::pair<void *, std::size_t> > segments = {std::make_pair(buf, bufsize)};
+        // create the bulk message, send it, and get the size in response the response data is in buf
+        std::vector<std::pair<void *, std::size_t> > segments = {std::make_pair(buf, packed->alloc_size())};
         thallium::bulk bulk = engine->expose(segments, thallium::bulk_mode::read_write);
         const std::size_t response_size = rpc->on(*dst_it->second)(bulk);
         // mlog(THALLIUM_DBG, "Received %zu byte response from %d", response_size, msg->dst);

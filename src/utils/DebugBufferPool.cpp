@@ -90,10 +90,11 @@ void *FixedBufferPool::acquireImpl(const std::size_t size) {
         FBP_LOG(FBP_WARN, "A size %zu buffer is available", size);
     }
 
-    // set the return address to the head of the unused list
-    void *ret = ::operator new(size);
-    memset(ret, 0, size);
+    // use alloc_size_ instead of size in order to replicate what FixedBufferPool does
+    void *ret = ::operator new(alloc_size_);
+    memset(ret, 0, alloc_size_);
 
+    // store the allocation in a map
     addrs_[ret] = size;
     used_++;
 
@@ -136,6 +137,7 @@ void FixedBufferPool::releaseImpl(void *ptr, const std::size_t size) {
         ::operator delete(ptr);
         used_--;
         cv_.notify_all();
+
         FBP_LOG(FBP_DBG, "Freed %zu bytes at %p", it->second, ptr);
     }
 }

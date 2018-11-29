@@ -63,7 +63,7 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
     addrs.erase(hx->p->bootstrap.rank);
 
     EndpointGroup *eg = new EndpointGroup(engine, rpc,
-                                          hx->p->memory_pools.packed,
+                                          hx->p->memory_pools.client_packed,
                                           hx->p->memory_pools.responses,
                                           hx->p->memory_pools.arrays,
                                           hx->p->memory_pools.buffers);
@@ -76,7 +76,7 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
 
             // add the remote thallium endpoint to the tranport
             Endpoint* ep = new Endpoint(engine, rpc, server,
-                                        hx->p->memory_pools.packed,
+                                        hx->p->memory_pools.client_packed,
                                         hx->p->memory_pools.responses,
                                         hx->p->memory_pools.arrays,
                                         hx->p->memory_pools.buffers);

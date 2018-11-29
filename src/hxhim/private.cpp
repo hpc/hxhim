@@ -394,28 +394,30 @@ int hxhim::init::memory(hxhim_t *hx, hxhim_options_t *opts) {
     hx->p->max_ops_per_send.deletes = opts->p->max_ops_per_send;
 
     // set up the memory pools
-    if (!((hx->p->memory_pools.keys       = new FixedBufferPool(opts->p->keys.alloc_size,      opts->p->keys.regions,      opts->p->keys.name))      &&
-          (hx->p->memory_pools.buffers    = new FixedBufferPool(opts->p->buffers.alloc_size,   opts->p->buffers.regions,   opts->p->buffers.name))   &&
-          (hx->p->memory_pools.ops_cache  = new FixedBufferPool(opts->p->ops_cache.alloc_size, opts->p->ops_cache.regions, opts->p->ops_cache.name)) &&
-          (hx->p->memory_pools.arrays     = new FixedBufferPool(opts->p->arrays.alloc_size,    opts->p->arrays.regions,    opts->p->arrays.name))    &&
-          (hx->p->memory_pools.requests   = new FixedBufferPool(opts->p->requests.alloc_size,  opts->p->requests.regions,  opts->p->requests.name))  &&
-          (hx->p->memory_pools.packed     = new FixedBufferPool(opts->p->packed.alloc_size,    opts->p->packed.regions,    opts->p->packed.name))    &&
-          (hx->p->memory_pools.responses  = new FixedBufferPool(opts->p->responses.alloc_size, opts->p->responses.regions, opts->p->responses.name)) &&
-          (hx->p->memory_pools.result     = new FixedBufferPool(opts->p->result.alloc_size,    opts->p->result.regions,    opts->p->result.name))    &&
-          (hx->p->memory_pools.results    = new FixedBufferPool(opts->p->results.alloc_size,   opts->p->results.regions,   opts->p->results.name))))  {
+    if (!((hx->p->memory_pools.keys          = new FixedBufferPool(opts->p->keys.alloc_size,          opts->p->keys.regions,          opts->p->keys.name))          &&
+          (hx->p->memory_pools.buffers       = new FixedBufferPool(opts->p->buffers.alloc_size,       opts->p->buffers.regions,       opts->p->buffers.name))       &&
+          (hx->p->memory_pools.ops_cache     = new FixedBufferPool(opts->p->ops_cache.alloc_size,     opts->p->ops_cache.regions,     opts->p->ops_cache.name))     &&
+          (hx->p->memory_pools.arrays        = new FixedBufferPool(opts->p->arrays.alloc_size,        opts->p->arrays.regions,        opts->p->arrays.name))        &&
+          (hx->p->memory_pools.requests      = new FixedBufferPool(opts->p->requests.alloc_size,      opts->p->requests.regions,      opts->p->requests.name))      &&
+          (hx->p->memory_pools.client_packed = new FixedBufferPool(opts->p->client_packed.alloc_size, opts->p->client_packed.regions, opts->p->client_packed.name)) &&
+          (hx->p->memory_pools.rs_packed     = new FixedBufferPool(opts->p->rs_packed.alloc_size,     opts->p->rs_packed.regions,     opts->p->rs_packed.name))     &&
+          (hx->p->memory_pools.responses     = new FixedBufferPool(opts->p->responses.alloc_size,     opts->p->responses.regions,     opts->p->responses.name))     &&
+          (hx->p->memory_pools.result        = new FixedBufferPool(opts->p->result.alloc_size,        opts->p->result.regions,        opts->p->result.name))        &&
+          (hx->p->memory_pools.results       = new FixedBufferPool(opts->p->results.alloc_size,       opts->p->results.regions,       opts->p->results.name))))  {
         mlog(HXHIM_CLIENT_ERR, "Could not preallocate all buffers");
         return HXHIM_ERROR;
     }
 
-    mlog(HXHIM_CLIENT_INFO, "Preallocated %zu bytes of memory for HXHIM",
-         hx->p->memory_pools.keys->size()      +
-         hx->p->memory_pools.buffers->size()   +
-         hx->p->memory_pools.ops_cache->size() +
-         hx->p->memory_pools.arrays->size()    +
-         hx->p->memory_pools.requests->size()  +
-         hx->p->memory_pools.packed->size()    +
-         hx->p->memory_pools.responses->size() +
-         hx->p->memory_pools.result->size()    +
+    mlog(HXHIM_CLIENT_CRIT, "Preallocated %zu bytes of memory for HXHIM",
+         hx->p->memory_pools.keys->size()          +
+         hx->p->memory_pools.buffers->size()       +
+         hx->p->memory_pools.ops_cache->size()     +
+         hx->p->memory_pools.arrays->size()        +
+         hx->p->memory_pools.requests->size()      +
+         hx->p->memory_pools.client_packed->size() +
+         hx->p->memory_pools.rs_packed->size()     +
+         hx->p->memory_pools.responses->size()     +
+         hx->p->memory_pools.result->size()        +
          hx->p->memory_pools.results->size());
     return HXHIM_SUCCESS;
 }
@@ -685,20 +687,22 @@ int hxhim::destroy::memory(hxhim_t *hx) {
     delete hx->p->memory_pools.ops_cache;
     delete hx->p->memory_pools.arrays;
     delete hx->p->memory_pools.requests;
-    delete hx->p->memory_pools.packed;
+    delete hx->p->memory_pools.client_packed;
+    delete hx->p->memory_pools.rs_packed;
     delete hx->p->memory_pools.responses;
     delete hx->p->memory_pools.result;
     delete hx->p->memory_pools.results;
 
-    hx->p->memory_pools.keys      = nullptr;
-    hx->p->memory_pools.buffers   = nullptr;
-    hx->p->memory_pools.ops_cache = nullptr;
-    hx->p->memory_pools.arrays    = nullptr;
-    hx->p->memory_pools.requests  = nullptr;
-    hx->p->memory_pools.packed    = nullptr;
-    hx->p->memory_pools.responses = nullptr;
-    hx->p->memory_pools.result    = nullptr;
-    hx->p->memory_pools.results   = nullptr;
+    hx->p->memory_pools.keys          = nullptr;
+    hx->p->memory_pools.buffers       = nullptr;
+    hx->p->memory_pools.ops_cache     = nullptr;
+    hx->p->memory_pools.arrays        = nullptr;
+    hx->p->memory_pools.requests      = nullptr;
+    hx->p->memory_pools.client_packed = nullptr;
+    hx->p->memory_pools.rs_packed     = nullptr;
+    hx->p->memory_pools.responses     = nullptr;
+    hx->p->memory_pools.result        = nullptr;
+    hx->p->memory_pools.results       = nullptr;
 
     return HXHIM_SUCCESS;
 }

@@ -40,7 +40,7 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
 
     EndpointGroup *eg = new EndpointGroup(hx->p->bootstrap.comm,
                                           hx->p->running,
-                                          hx->p->memory_pools.packed,
+                                          hx->p->memory_pools.client_packed,
                                           hx->p->memory_pools.responses,
                                           hx->p->memory_pools.arrays,
                                           hx->p->memory_pools.buffers);
@@ -51,7 +51,7 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
             // MPI ranks map 1:1 with the boostrap MPI rank
             hx->p->transport->AddEndpoint(i, new Endpoint(hx->p->bootstrap.comm, i,
                                                           hx->p->running,
-                                                          hx->p->memory_pools.packed,
+                                                          hx->p->memory_pools.client_packed,
                                                           hx->p->memory_pools.responses,
                                                           hx->p->memory_pools.arrays,
                                                           hx->p->memory_pools.buffers));

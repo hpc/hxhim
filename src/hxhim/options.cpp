@@ -556,32 +556,62 @@ int hxhim_options_set_requests_regions_in_config(hxhim_options_t *opts, const si
     return hxhim_options_set_arrays_regions(opts, regions * 8);
 }
 
-int hxhim_options_set_packed_name(hxhim_options_t *opts, const char *name) {
+int hxhim_options_set_client_packed_name(hxhim_options_t *opts, const char *name) {
     if (!valid_opts(opts)) {
         return HXHIM_ERROR;
     }
 
-    opts->p->packed.name = name;
+    opts->p->client_packed.name = name;
 
     return HXHIM_SUCCESS;
 }
 
-int hxhim_options_set_packed_alloc_size(hxhim_options_t *opts, const size_t alloc_size) {
+int hxhim_options_set_client_packed_alloc_size(hxhim_options_t *opts, const size_t alloc_size) {
     if (!count_check(opts, alloc_size)) {
         return HXHIM_ERROR;
     }
 
-    opts->p->packed.alloc_size = alloc_size;
+    opts->p->client_packed.alloc_size = alloc_size;
 
     return HXHIM_SUCCESS;
 }
 
-int hxhim_options_set_packed_regions(hxhim_options_t *opts, const size_t regions) {
+int hxhim_options_set_client_packed_regions(hxhim_options_t *opts, const size_t regions) {
     if (!count_check(opts, regions)) {
         return HXHIM_ERROR;
     }
 
-    opts->p->packed.regions = regions;
+    opts->p->client_packed.regions = regions;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_rs_packed_name(hxhim_options_t *opts, const char *name) {
+    if (!valid_opts(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->rs_packed.name = name;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_rs_packed_alloc_size(hxhim_options_t *opts, const size_t alloc_size) {
+    if (!count_check(opts, alloc_size)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->rs_packed.alloc_size = alloc_size;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_rs_packed_regions(hxhim_options_t *opts, const size_t regions) {
+    if (!count_check(opts, regions)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->rs_packed.regions = regions;
 
     return HXHIM_SUCCESS;
 }

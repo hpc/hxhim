@@ -594,7 +594,7 @@ int Packer::pack(const Response::BHistogram *bhist, void **buf, std::size_t *buf
 }
 
 int Packer::pack(const Message *msg, void **buf, std::size_t *bufsize, FixedBufferPool *packed, char **curr) {
-    if (!msg || !buf || !bufsize || !packed || !curr) {
+    if (!msg || !buf || !bufsize || !curr) {
         return TRANSPORT_ERROR;
     }
 
@@ -602,7 +602,7 @@ int Packer::pack(const Message *msg, void **buf, std::size_t *bufsize, FixedBuff
 
     // only allocate space if a nullptr is provided; otherwise, assume *buf has enough space
     if (!*buf) {
-        if (!(*buf = packed->acquire(minsize))) {
+        if (!packed || !(*buf = packed->acquire(minsize))) {
             *bufsize = 0;
             return TRANSPORT_ERROR;
         }

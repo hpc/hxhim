@@ -29,8 +29,8 @@ void Transport::Thallium::RangeServer::destroy() {
 void Transport::Thallium::RangeServer::process(const thallium::request &req, thallium::bulk &bulk) {
     thallium::endpoint ep = req.get_endpoint();
 
-    std::size_t bufsize = hx_->p->memory_pools.packed->alloc_size();
-    void *buf = hx_->p->memory_pools.packed->acquire(bufsize);
+    std::size_t bufsize = hx_->p->memory_pools.rs_packed->alloc_size();
+    void *buf = hx_->p->memory_pools.rs_packed->acquire(bufsize);
 
     // receive request
     {
@@ -38,11 +38,13 @@ void Transport::Thallium::RangeServer::process(const thallium::request &req, tha
         thallium::bulk local = engine_->expose(segments, thallium::bulk_mode::write_only);
         bulk.on(ep) >> local(0, bufsize);
     }
+
     // mlog(THALLIUM_DBG, "Processing %zu bytes of data", bufsize);
 
     // unpack the request
     Request::Request *request = nullptr;
     if (Unpacker::unpack(&request, buf, bufsize, hx_->p->memory_pools.requests, hx_->p->memory_pools.arrays, hx_->p->memory_pools.buffers) != TRANSPORT_SUCCESS) {
+        hx_->p->memory_pools.rs_packed->release(buf, bufsize);
         req.respond((std::size_t) 0);
         // mlog(THALLIUM_DBG, "Could not unpack data");
         return;
@@ -58,7 +60,7 @@ void Transport::Thallium::RangeServer::process(const thallium::request &req, tha
 
     // pack the response
     std::size_t ressize = 0;
-    Packer::pack(response, &buf, &ressize, hx_->p->memory_pools.packed); // do not check for error
+    Packer::pack(response, &buf, &ressize, NULL);     // do not check for error
     hx_->p->memory_pools.responses->release(response);
 
     // mlog(THALLIUM_DBG, "Packed response into %zu byte string", ressize);
@@ -71,8 +73,8 @@ void Transport::Thallium::RangeServer::process(const thallium::request &req, tha
     }
 
     // respond
+    hx_->p->memory_pools.rs_packed->release(buf, bufsize);
     req.respond(ressize);
-    hx_->p->memory_pools.packed->release(buf, bufsize);
 
     // mlog(THALLIUM_DBG, "Done processing data");
 }
