@@ -99,7 +99,12 @@ typedef struct hxhim_private {
         FixedBufferPool *arrays;                               // storage for bulk message internal arrays; size is max_bulk_ops.max * sizeof(void *)
         FixedBufferPool *requests;                             // should have enough space to allow for maximum number of requests queued before flushing
         FixedBufferPool *client_packed;                        // storage for packed requests/responses being sent by the client
-        FixedBufferPool *rs_packed;                            // storage for packed requests/responses being sent by the range server
+        // the real rs_packed is not instantiated here
+        struct {
+            std::size_t alloc_size;
+            std::size_t regions;
+            std::string name;
+        } rs_packed;                                           // storage for packed requests/responses being sent by the range server
         FixedBufferPool *responses;                            // should have enough space to allow for responses from all queued requests
         FixedBufferPool *result;                               // should have enough space to allow for results from all returned responses
         FixedBufferPool *results;                              // should have enough space to allow for maximum number of valid results at once

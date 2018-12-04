@@ -188,7 +188,7 @@ const Config DEFAULT_CONFIG = {
     std::make_pair(CLIENT_PACKED_NAME,            "Client_Packed"),
     std::make_pair(CLIENT_PACKED_REGIONS,         "2"),
     std::make_pair(RS_PACKED_NAME,                "RS_Packed"),
-    std::make_pair(RS_PACKED_REGIONS,             "2"),
+    std::make_pair(RS_PACKED_REGIONS,             "16"),
     std::make_pair(RESPONSES_NAME,                "Responses"),
     std::make_pair(RESULT_NAME,                   "Result"),
     std::make_pair(RESULTS_NAME,                  "Results"),

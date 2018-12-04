@@ -33,7 +33,7 @@
  *     - If there are no available regions, acquire will block.
  *
  * The Mutex_t and Cond_t templates allow for the mutex and condition variable
- * types to be swapped out in case a differentmutex type is needed.
+ * types to be swapped out in case different mutex/condition variable types are needed.
 */
 template <typename Mutex_t = std::mutex, typename Cond_t = std::condition_variable>
 class FixedBufferPoolImpl {
@@ -186,6 +186,6 @@ class FixedBufferPoolImpl {
 #include "DebugBufferPoolImpl.tpp"
 
 /** Convenience typedef */
-typedef FixedBufferPoolImpl <> FixedBufferPool;
+typedef FixedBufferPoolImpl <std::mutex, std::condition_variable> FixedBufferPool;
 
 #endif

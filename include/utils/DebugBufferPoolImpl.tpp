@@ -85,11 +85,13 @@ void *FixedBufferPoolImpl <Mutex_t, Cond_t>::acquireImpl(const std::size_t size)
     bool waited = false;
     while (!(regions_ - used_)) {
         waited = true;
+        printf("%s %zu/%zu: Waiting for a size %zu buffer\n", name_, regions_ - used_, regions_, size);
         FBP_LOG(FBP_WARN, "Waiting for a size %zu buffer", size);
         cv_.wait(lock, [&]{ return regions_ - used_; });
     }
 
     if (waited) {
+        printf("%s %zu/%zu: A size %zu buffer is available\n", name_, regions_ - used_, regions_, size);
         FBP_LOG(FBP_WARN, "A size %zu buffer is available", size);
     }
 

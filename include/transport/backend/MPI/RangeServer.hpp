@@ -7,6 +7,7 @@
 #include <mpi.h>
 
 #include "hxhim/struct.h"
+#include "hxhim/options.h"
 #include "transport/transport.hpp"
 #include "utils/FixedBufferPool.hpp"
 
@@ -32,6 +33,7 @@ class RangeServer {
 
         static hxhim_t *hx_;
         static std::vector<std::thread> listeners_;
+        static FixedBufferPool *rs_packed;
 };
 
 }

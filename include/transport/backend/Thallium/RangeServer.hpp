@@ -6,8 +6,10 @@
 #include <thallium.hpp>
 
 #include "hxhim/struct.h"
+#include "hxhim/options.h"
 #include "transport/transport.hpp"
 #include "transport/backend/Thallium/Utilities.hpp"
+#include "utils/FixedBufferPool.hpp"
 
 namespace Transport {
 namespace Thallium {
@@ -27,6 +29,7 @@ class RangeServer {
     private:
         static hxhim_t *hx_;
         static Engine_t engine_;
+        static FixedBufferPoolImpl <thallium::mutex, thallium::condition_variable> *rs_packed;
 };
 
 }

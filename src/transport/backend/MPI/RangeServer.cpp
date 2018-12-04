@@ -13,6 +13,7 @@ namespace MPI {
 
 hxhim_t *RangeServer::hx_ = nullptr;
 std::vector<std::thread> RangeServer::listeners_ = {};
+FixedBufferPool *RangeServer::rs_packed = nullptr;
 
 int RangeServer::init(hxhim_t *hx, const std::size_t listener_count) {
     mlog(MPI_INFO, "Started MPI Range Server Initialization");
@@ -22,6 +23,7 @@ int RangeServer::init(hxhim_t *hx, const std::size_t listener_count) {
 
     hx_ = hx;
     listeners_.resize(listener_count);
+    rs_packed = new FixedBufferPool(hx->p->memory_pools.rs_packed.alloc_size, hx->p->memory_pools.rs_packed.regions, hx->p->memory_pools.rs_packed.name);
 
     mlog(MPI_DBG, "Starting up %zu listeners", listener_count);
 
@@ -43,6 +45,8 @@ void RangeServer::destroy() {
         mlog(MPI_DBG, "MPI Range Server Thread %lu Stopped", i);
     }
 
+    delete rs_packed;
+    rs_packed = nullptr;
     hx_ = nullptr;
     mlog(MPI_INFO, "MPI Range Server stopped");
 }
@@ -74,12 +78,12 @@ void RangeServer::listener_thread() {
         // encode result
         void *res = nullptr;
         len = 0;
-        Packer::pack(hx_->p->bootstrap.comm, response, &res, &len, hx_->p->memory_pools.rs_packed);
+        Packer::pack(hx_->p->bootstrap.comm, response, &res, &len, rs_packed);
 
         // send result
         const int ret = send(response->dst, res, len);
         hx_->p->memory_pools.responses->release(response);
-        hx_->p->memory_pools.rs_packed->release(res, len);
+        rs_packed->release(res, len);
 
         if (ret != TRANSPORT_SUCCESS) {
             continue;

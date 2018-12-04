@@ -13,24 +13,29 @@
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
-const std::string Transport::Thallium::RangeServer::CLIENT_TO_RANGE_SERVER_NAME = "process";
-hxhim_t *Transport::Thallium::RangeServer::hx_ = nullptr;
-Transport::Thallium::Engine_t Transport::Thallium::RangeServer::engine_ = {};
+namespace Transport {
+namespace Thallium {
 
-void Transport::Thallium::RangeServer::init(hxhim_t *hx, const Engine_t &engine) {
+const std::string RangeServer::CLIENT_TO_RANGE_SERVER_NAME = "process";
+hxhim_t *RangeServer::hx_ = nullptr;
+Engine_t RangeServer::engine_ = {};
+FixedBufferPoolImpl <thallium::mutex, thallium::condition_variable> *RangeServer::rs_packed = nullptr;
+
+void RangeServer::init(hxhim_t *hx, const Engine_t &engine) {
     hx_ = hx;
     engine_ = engine;
+    rs_packed = new FixedBufferPoolImpl <thallium::mutex, thallium::condition_variable>(hx->p->memory_pools.rs_packed.alloc_size, hx->p->memory_pools.rs_packed.regions, hx->p->memory_pools.rs_packed.name);
 }
 
-void Transport::Thallium::RangeServer::destroy() {
+void RangeServer::destroy() {
     hx_ = nullptr;
 }
 
-void Transport::Thallium::RangeServer::process(const thallium::request &req, thallium::bulk &bulk) {
+void RangeServer::process(const thallium::request &req, thallium::bulk &bulk) {
     thallium::endpoint ep = req.get_endpoint();
 
-    std::size_t bufsize = hx_->p->memory_pools.rs_packed->alloc_size();
-    void *buf = hx_->p->memory_pools.rs_packed->acquire(bufsize);
+    std::size_t bufsize = rs_packed->alloc_size();
+    void *buf = rs_packed->acquire(bufsize);
 
     // receive request
     {
@@ -44,7 +49,7 @@ void Transport::Thallium::RangeServer::process(const thallium::request &req, tha
     // unpack the request
     Request::Request *request = nullptr;
     if (Unpacker::unpack(&request, buf, bufsize, hx_->p->memory_pools.requests, hx_->p->memory_pools.arrays, hx_->p->memory_pools.buffers) != TRANSPORT_SUCCESS) {
-        hx_->p->memory_pools.rs_packed->release(buf, bufsize);
+        rs_packed->release(buf, bufsize);
         req.respond((std::size_t) 0);
         // mlog(THALLIUM_DBG, "Could not unpack data");
         return;
@@ -73,10 +78,13 @@ void Transport::Thallium::RangeServer::process(const thallium::request &req, tha
     }
 
     // respond
-    hx_->p->memory_pools.rs_packed->release(buf, bufsize);
+    rs_packed->release(buf, bufsize);
     req.respond(ressize);
 
     // mlog(THALLIUM_DBG, "Done processing data");
+}
+
+}
 }
 
 #endif
