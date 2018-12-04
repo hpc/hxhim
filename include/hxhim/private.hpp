@@ -131,7 +131,7 @@ typedef struct hxhim_private {
                     return *this;
                 }
 
-                Filled &operator==(const Filled &&filled) {
+                Filled &operator=(const Filled &&filled) {
                     dst = std::move(filled.dst);
                     percent = std::move(filled.percent);
                     return *this;

@@ -26,16 +26,20 @@
 #endif
 
 /**
- * FixedBufferPool
+ * FixedBufferPoolImpl
  * This class distributes memory addresses from a fixed size pool of memory.
  *     - If zero bytes are requested, acquire will return nullptr
  *     - If too many bytes are requested, acquire will return nullptr
  *     - If there are no available regions, acquire will block.
+ *
+ * The Mutex_t and Cond_t templates allow for the mutex and condition variable
+ * types to be swapped out in case a differentmutex type is needed.
 */
-class FixedBufferPool {
+template <typename Mutex_t = std::mutex, typename Cond_t = std::condition_variable>
+class FixedBufferPoolImpl {
     public:
-        FixedBufferPool(const std::size_t alloc_size, const std::size_t regions, const std::string &name = "FixedBufferPool");
-        ~FixedBufferPool();
+        FixedBufferPoolImpl(const std::size_t alloc_size, const std::size_t regions, const std::string &name = "FixedBufferPool");
+        ~FixedBufferPoolImpl();
 
         /* @description Returns the address of a unused fixed size memory region           */
         template <typename T, typename... Args, typename = enable_if_t<!std::is_same<T, void>::value> >
@@ -83,11 +87,11 @@ class FixedBufferPool {
         #endif
 
     private:
-        FixedBufferPool(const FixedBufferPool& copy)            = delete;
-        FixedBufferPool(const FixedBufferPool&& copy)           = delete;
+        FixedBufferPoolImpl(const FixedBufferPoolImpl& copy)            = delete;
+        FixedBufferPoolImpl(const FixedBufferPoolImpl&& copy)           = delete;
 
-        FixedBufferPool& operator=(const FixedBufferPool& rhs)  = delete;
-        FixedBufferPool& operator=(const FixedBufferPool&& rhs) = delete;
+        FixedBufferPoolImpl& operator=(const FixedBufferPoolImpl& rhs)  = delete;
+        FixedBufferPoolImpl& operator=(const FixedBufferPoolImpl&& rhs) = delete;
 
         #ifndef DEBUG
         /* @description Private utility function to dump the contents of a region          */
@@ -113,8 +117,8 @@ class FixedBufferPool {
         const std::size_t pool_size_;
 
         /* Concurrency Variables                                                           */
-        mutable std::mutex mutex_;
-        mutable std::condition_variable cv_;
+        mutable Mutex_t mutex_;
+        mutable Cond_t cv_;
 
         #ifndef DEBUG
         /* Memory pool where pointers returned from acquire will come from                 */
@@ -178,91 +182,10 @@ class FixedBufferPool {
         } stats;
 };
 
-/**
- * acquire
- * Acquires a memory region from the pool for use.
- *   - If there is no region available, the function blocks
- *     until one is available.
- * The provided arguments will be used to call a constructor of
- * type T is called once the memory location has been acquired.
- *
- * Note that void * pointers should not be allocated
- * using the templated version of acquire.
- *
- * @param count the number of T objects that will be placed into the region
- * @return A pointer to a memory region of size pool_size_
- */
-template <typename T, typename... Args, typename>
-T *FixedBufferPool::acquire(Args&&... args) {
-    void *addr = acquireImpl(sizeof(T));
-    if (addr) {
-        return new ((T *) addr) T(std::forward<Args>(args)...);
-    }
+#include "FixedBufferPoolImpl.tpp"
+#include "DebugBufferPoolImpl.tpp"
 
-    return nullptr;
-}
-
-/**
- * acquire_array
- * Acquires a memory region from the pool for use.
- *   - If zero bytes are requested, nullptr will be returned.
- *   - If the provided count results in too many bytes
- *     being requested, nullptr will be returned.
- *   - If there is no region available, the function blocks
- *     until one is available.
- * The default constructor of type T is called once
- * the memory location has been acquired.
- *
- * Note that void * pointers should not be allocated
- * using the templated version of acquire.
- *
- * @param count the number of T objects that will be placed into the region
- * @return A pointer to a memory region of size pool_size_
- */
-template <typename T, typename>
-T *FixedBufferPool::acquire_array(const std::size_t count) {
-    void *addr = acquireImpl(sizeof(T) * count);
-    if (addr) {
-        return new ((T *) addr) T();
-    }
-
-    return nullptr;
-}
-
-/**
- * release
- * Releases the memory region pointed to back into the pool. If
- * the pointer does not belong to the pool, nothing will happen.
- *
- * @tparam ptr T * acquired through FixedBufferPool::acquire
- */
-template <typename T, typename>
-void FixedBufferPool::release(T *ptr) {
-    if (ptr) {
-        // release underlying memory first
-        ptr->~T();
-
-        // release ptr
-        releaseImpl((void *) ptr, sizeof(T));
-    }
-}
-
-/**
- * release_array
- * Destructs each element and releases the array to back into the pool.
- *
- * @tparam ptr    T * acquired through FixedBufferPool::acquire
- * @param  count  number of elements to destroy
- */
-template <typename T, typename>
-void FixedBufferPool::release_array(T *ptr, const std::size_t count) {
-    if (ptr) {
-        for(std::size_t i = 0; i < count; i++) {
-            ptr[i].~T();
-        }
-
-        releaseImpl((void *) ptr, sizeof(T) * count);
-    }
-}
+/** Convenience typedef */
+typedef FixedBufferPoolImpl <> FixedBufferPool;
 
 #endif

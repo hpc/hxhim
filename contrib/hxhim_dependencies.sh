@@ -193,7 +193,7 @@ function margo() {
     ./prepare.sh
     cd build
     install_dir=$PREFIX/$name
-    PKG_CONFIG_PATH=$PKG_CONFIG_PATH PKG_CONFIG_PATH=$PKG_CONFIG_PATH ../configure --prefix=$install_dir
+    PKG_CONFIG_PATH=$PKG_CONFIG_PATH ../configure --prefix=$install_dir
     make -j ${PROCS}
     make -j ${PROCS} install
     cd ../..

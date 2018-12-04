@@ -5,9 +5,9 @@ cmake_minimum_required (VERSION 3.6.3)
 project (HXHIM LANGUAGES C CXX)
 
 #
-# Enable C++14
+# Enable C++11
 #
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -50,6 +50,9 @@ include_directories(SYSTEM ${MPI_INCLUDE_PATH})
 # do not search for thallium with find_package
 pkg_search_module(THALLIUM thallium)
 if (THALLIUM_FOUND)
+    # thallium needs C++14
+    set(CMAKE_CXX_STANDARD 14)
+
     pkg_search_module(MERCURY REQUIRED mercury)
     message(STATUS "MERCURY_INCLUDEDIR=" ${MERCURY_INCLUDEDIR})
     message(STATUS "MERCURY_LIBDIR=" ${MERCURY_LIBDIR})

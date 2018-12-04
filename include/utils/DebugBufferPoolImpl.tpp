@@ -5,13 +5,14 @@
 #include "utils/mlogfacs2.h"
 
 /**
- * FixedBufferPool Constructor
+ * FixedBufferPoolImpl Constructor
  *
  * @param alloc_size how much space a region contains
  * @param regions    how many regions there are
  * @param name       the identifier to use when printing log messages
  */
-FixedBufferPool::FixedBufferPool(const std::size_t alloc_size, const std::size_t regions, const std::string &name)
+template <typename Mutex_t, typename Cond_t>
+FixedBufferPoolImpl <Mutex_t, Cond_t>::FixedBufferPoolImpl(const std::size_t alloc_size, const std::size_t regions, const std::string &name)
   : name_(name),
     alloc_size_(alloc_size),
     regions_(regions),
@@ -22,7 +23,7 @@ FixedBufferPool::FixedBufferPool(const std::size_t alloc_size, const std::size_t
     used_(0),
     stats()
 {
-    std::unique_lock<std::mutex> lock(mutex_);
+    std::unique_lock<Mutex_t> lock(mutex_);
     FBP_LOG(FBP_DBG, "Attempting to initialize");
 
     if (!alloc_size_) {
@@ -39,14 +40,15 @@ FixedBufferPool::FixedBufferPool(const std::size_t alloc_size, const std::size_t
 }
 
 /**
- * FixedBufferPool Destructor
+ * FixedBufferPoolImpl Destructor
  */
-FixedBufferPool::~FixedBufferPool() {
-    std::unique_lock<std::mutex> lock(mutex_);
+template <typename Mutex_t, typename Cond_t>
+FixedBufferPoolImpl <Mutex_t, Cond_t>::~FixedBufferPoolImpl() {
+    std::unique_lock<Mutex_t> lock(mutex_);
 
     if (used_) {
         FBP_LOG(FBP_CRIT, "Destructing with %zu memory regions still in use", used_);
-        for(decltype(addrs_)::value_type const &addr : addrs_) {
+        for(typename decltype(addrs_)::value_type const &addr : addrs_) {
             FBP_LOG(FBP_DBG, "    Address %p (%zu bytes) still allocated", addr.first, addr.second);
             // do not delete pointers here to allow for valgrind to see leaks
         }
@@ -63,7 +65,8 @@ FixedBufferPool::~FixedBufferPool() {
  * @param size     The total number of bytes requested
  * @return A pointer
  */
-void *FixedBufferPool::acquireImpl(const std::size_t size) {
+template <typename Mutex_t, typename Cond_t>
+void *FixedBufferPoolImpl <Mutex_t, Cond_t>::acquireImpl(const std::size_t size) {
     // 0 bytes
     if (!size) {
         FBP_LOG(FBP_WARN, "Got request for a size 0 buffer");
@@ -76,7 +79,7 @@ void *FixedBufferPool::acquireImpl(const std::size_t size) {
         return nullptr;
     }
 
-    std::unique_lock<std::mutex> lock(mutex_);
+    std::unique_lock<Mutex_t> lock(mutex_);
 
     // wait until a slot opens up
     bool waited = false;
@@ -90,7 +93,7 @@ void *FixedBufferPool::acquireImpl(const std::size_t size) {
         FBP_LOG(FBP_WARN, "A size %zu buffer is available", size);
     }
 
-    // use alloc_size_ instead of size in order to replicate what FixedBufferPool does
+    // use alloc_size_ instead of size in order to replicate what FixedBufferPoolImpl does
     void *ret = ::operator new(alloc_size_);
     memset(ret, 0, alloc_size_);
 
@@ -114,17 +117,18 @@ void *FixedBufferPool::acquireImpl(const std::size_t size) {
  * releaseImpl
  * Calls ::operator delete
  *
- * @param ptr   A void * acquired through FixedBufferPool::acquire
+ * @param ptr   A void * acquired through FixedBufferPoolImpl <Mutex_t, Cond_t>::acquire
  */
-void FixedBufferPool::releaseImpl(void *ptr, const std::size_t size) {
+template <typename Mutex_t, typename Cond_t>
+void FixedBufferPoolImpl <Mutex_t, Cond_t>::releaseImpl(void *ptr, const std::size_t size) {
     if (!ptr) {
         FBP_LOG(FBP_DBG1, "Attempted to free a nullptr");
         return;
     }
 
-    std::unique_lock<std::mutex> lock(mutex_);
+    std::unique_lock<Mutex_t> lock(mutex_);
 
-    decltype(addrs_)::const_iterator it = addrs_.find(ptr);
+    typename decltype(addrs_)::const_iterator it = addrs_.find(ptr);
     if (it == addrs_.end()) {
         FBP_LOG(FBP_ERR, "Attempted to free address (%p) that was not allocated by %s", ptr, name_.c_str());
     }
