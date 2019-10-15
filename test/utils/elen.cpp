@@ -151,12 +151,12 @@ TEST(elen, random_small_decimals) {
 TEST(elen, encode_large_decimals) {
     EXPECT_EQ((elen::encode::large_decimals<'-', '+', float, std::true_type>(-100.5, 4)),     "--68994+");
     EXPECT_EQ((elen::encode::large_decimals<'-', '+', float, std::true_type>(-10.5, 3)),      "--7894+");
-    EXPECT_EQ((elen::encode::large_decimals<'-', '+', float, std::true_type>(-3.145, 4)),     "-6854+"); // -3854+
-    EXPECT_EQ((elen::encode::large_decimals<'-', '+', float, std::true_type>(-3.14, 3)),      "-685+");  // -385+
-    EXPECT_EQ((elen::encode::large_decimals<'-', '+', float, std::true_type>(-1.01, 3)),      "-898+");  // -198+
-    EXPECT_EQ((elen::encode::large_decimals<'-', '+', float, std::true_type>(-1, 1)),         "-8+");    // -1+
-    EXPECT_EQ((elen::encode::large_decimals<'-', '+', float, std::true_type>(-0.0001233, 7)), "-09998766+");
-    EXPECT_EQ((elen::encode::large_decimals<'-', '+', float, std::true_type>(-0.000123, 6)),  "-0999876+");
+    EXPECT_EQ((elen::encode::large_decimals<'-', '+', float, std::true_type>(-3.145, 4)),     "-6854+");     // -3854+
+    EXPECT_EQ((elen::encode::large_decimals<'-', '+', float, std::true_type>(-3.14, 3)),      "-685+");      // -385+
+    EXPECT_EQ((elen::encode::large_decimals<'-', '+', float, std::true_type>(-1.01, 3)),      "-898+");      // -198+
+    EXPECT_EQ((elen::encode::large_decimals<'-', '+', float, std::true_type>(-1, 1)),         "-8+");        // -1+
+    EXPECT_EQ((elen::encode::large_decimals<'-', '+', float, std::true_type>(-0.0001233, 7)), "-99998766+"); // -09998766+
+    EXPECT_EQ((elen::encode::large_decimals<'-', '+', float, std::true_type>(-0.000123, 6)),  "-9999876+");  // -0999876+
     EXPECT_EQ((elen::encode::large_decimals<'-', '+', float, std::true_type>(0, 0)),           "0");
     EXPECT_EQ((elen::encode::large_decimals<'-', '+', float, std::true_type>(+0.000123, 6)),  "+0000123-");
     EXPECT_EQ((elen::encode::large_decimals<'-', '+', float, std::true_type>(+0.0001233, 7)), "+00001233-");
@@ -172,12 +172,12 @@ TEST(elen, encode_large_decimals) {
 TEST(elen, decode_large_decimals) {
     EXPECT_FLOAT_EQ((elen::decode::large_decimals<float, '-', '+', std::true_type>("--68994+")),   -100.5);
     EXPECT_FLOAT_EQ((elen::decode::large_decimals<float, '-', '+', std::true_type>("--7894+")),    -10.5);
-    EXPECT_FLOAT_EQ((elen::decode::large_decimals<float, '-', '+', std::true_type>("-6854+")),     -3.145); // -3854+
-    EXPECT_FLOAT_EQ((elen::decode::large_decimals<float, '-', '+', std::true_type>("-685+")),      -3.14);  // -385+
-    EXPECT_FLOAT_EQ((elen::decode::large_decimals<float, '-', '+', std::true_type>("-898+")),      -1.01);  // -198+
-    EXPECT_FLOAT_EQ((elen::decode::large_decimals<float, '-', '+', std::true_type>("-8+")),        -1);     // -1+
-    EXPECT_FLOAT_EQ((elen::decode::large_decimals<float, '-', '+', std::true_type>("-09998766+")), -0.0001233);
-    EXPECT_FLOAT_EQ((elen::decode::large_decimals<float, '-', '+', std::true_type>("-0999876+")),  -0.000123);
+    EXPECT_FLOAT_EQ((elen::decode::large_decimals<float, '-', '+', std::true_type>("-6854+")),     -3.145);     // -3854+
+    EXPECT_FLOAT_EQ((elen::decode::large_decimals<float, '-', '+', std::true_type>("-685+")),      -3.14);      // -385+
+    EXPECT_FLOAT_EQ((elen::decode::large_decimals<float, '-', '+', std::true_type>("-898+")),      -1.01);      // -198+
+    EXPECT_FLOAT_EQ((elen::decode::large_decimals<float, '-', '+', std::true_type>("-8+")),        -1);         // -1+
+    EXPECT_FLOAT_EQ((elen::decode::large_decimals<float, '-', '+', std::true_type>("-99998766+")), -0.0001233); // -09998766+
+    EXPECT_FLOAT_EQ((elen::decode::large_decimals<float, '-', '+', std::true_type>("-9999876+")),  -0.000123);  // -0999876+
     EXPECT_FLOAT_EQ((elen::decode::large_decimals<float, '-', '+', std::true_type>("0")),           0);
     EXPECT_FLOAT_EQ((elen::decode::large_decimals<float, '-', '+', std::true_type>("+0000123-")),  +0.000123);
     EXPECT_FLOAT_EQ((elen::decode::large_decimals<float, '-', '+', std::true_type>("+00001233-")), +0.0001233);

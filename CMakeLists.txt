@@ -145,6 +145,7 @@ add_subdirectory(demo)
 #
 # Add unit test executable
 #
+enable_testing()
 add_subdirectory(test)
 
 #

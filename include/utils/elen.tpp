@@ -125,7 +125,7 @@ std::string large_decimals(const T value, const int precision) {
     }
     else {
         if (value < 0) {
-            out = std::string(1, neg) + "0";
+            out = std::string(1, neg) + "9";
         }
         else {
             out = std::string(1, pos) + "0";
@@ -362,26 +362,18 @@ T large_decimals(const std::string &str) {
     const std::size_t prefix_count = get_prefix_count<neg, pos, std::true_type>(prefix, str);
     std::size_t position = prefix_count;
 
-    // only decode integer portion if the integer is not 0
-    if (str[position] != '0') {
-        // read the encoded lengths
-        position = prefix_count;
-        std::size_t len = 1;
-        for(std::size_t i = 0; i < prefix_count - 1; i++) {
-            len = next<std::size_t, neg, pos, std::true_type>(prefix, str, position, len);
-        }
+    std::size_t len = 1;
+    for(std::size_t i = 0; i < prefix_count - 1; i++) {
+        len = next<std::size_t, neg, pos, std::true_type>(prefix, str, position, len);
+    }
 
-        // the final section is the integral value
-        integer = next<int, neg, pos, std::true_type>(prefix, str, position, len);
-        if (prefix == neg) {
-            integer = -integer;
-        }
-    }
-    else {
-        position++;
-    }
+    // the final section is the integral value
+    integer = next<int, neg, pos, std::true_type>(prefix, str, position, len);
 
     T out = integer;
+    if (prefix == neg) {
+        out = -out;
+    }
 
     // read the decimal part, if there is one
     if (position != str.size() - 1) {
