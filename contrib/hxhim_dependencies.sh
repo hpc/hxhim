@@ -9,7 +9,6 @@
 #
 # Packages:
 #     autoconf/automake/libtool
-#     boost-devel
 #     cmake (3+)
 #     libev-devel
 #     libtool-ltdl-devel
@@ -48,22 +47,19 @@ function check_autoconf() {
 }
 
 function check_cmake() {
-    check_package cmake
-}
-
-function check_boost() {
-    check_package boost-devel
+    check_package cmake3
 }
 
 function NA_BMI() {
     check_autoconf
 
     name=bmi
-    if [[ ! -d "$name" ]]; then
-        git clone http://git.mcs.anl.gov/bmi.git $name
+    download_dir=$WORKING_DIR/$name
+    if [[ ! -d "$download_dir" ]]; then
+        git clone http://git.mcs.anl.gov/bmi.git $download_dir
     fi
 
-    cd $name
+    cd $download_dir
     ./prepare
     mkdir -p build
     cd build
@@ -82,11 +78,12 @@ function NA_CCI() {
     check_autoconf
 
     name=cci
-    if [[ ! -d "$name" ]]; then
-        git clone https://github.com/CCI/cci.git $name
+    download_dir=$WORKING_DIR/$name
+    if [[ ! -d "$download_dir" ]]; then
+        git clone https://github.com/CCI/cci.git $download_dir
     fi
 
-    cd $name
+    cd $download_dir
     ./autogen.pl
     mkdir -p build
     cd build
@@ -107,7 +104,6 @@ function NA_SM() {
 
 function mercury() {
     check_cmake
-    check_boost
 
     cmake_options=
     if [[ ! -z ${USE_NA_BMI+false} ]]; then
@@ -129,15 +125,17 @@ function mercury() {
     fi
 
     name=mercury
-    if [[ ! -d "$name" ]]; then
-        git clone --recurse-submodules https://github.com/mercury-hpc/mercury.git $name
+    download_dir=$WORKING_DIR/$name
+    if [[ ! -d "$download_dir" ]]; then
+        git clone --recurse-submodules https://github.com/mercury-hpc/mercury.git $download_dir
+        git submodule init && git submodule update
     fi
 
-    cd $name
+    cd $download_dir
     mkdir -p build
     cd build
     install_dir=$PREFIX/$name
-    PKG_CONFIG_PATH=$PKG_CONFIG_PATH cmake -DCMAKE_INSTALL_PREFIX=$install_dir -DMERCURY_USE_BOOST_PP:BOOL=ON -DMERCURY_USE_SYSTEM_BOOST:BOOL=ON -DBUILD_SHARED_LIBS:BOOL=ON $(echo "$cmake_options") ..
+    PKG_CONFIG_PATH=$PKG_CONFIG_PATH cmake -DCMAKE_INSTALL_PREFIX=$install_dir -DMERCURY_USE_BOOST_PP:BOOL=ON -DBUILD_SHARED_LIBS:BOOL=ON $(echo "$cmake_options") ..
     make -j ${PROCS}
     make -j ${PROCS} install
     cd ../..
@@ -155,11 +153,12 @@ function argobots() {
     check_libev
 
     name=argobots
-    if [[ ! -d "$name" ]]; then
-        git clone https://github.com/pmodels/argobots.git $name
+    download_dir=$WORKING_DIR/$name
+    if [[ ! -d "$download_dir" ]]; then
+        git clone https://github.com/pmodels/argobots.git $download_dir
     fi
 
-    cd $name
+    cd $download_dir
     ./autogen.sh
     mkdir -p build
     cd build
@@ -184,11 +183,12 @@ function margo() {
     mercury
 
     name=margo
-    if [[ ! -d "$name" ]]; then
-        git clone https://xgitlab.cels.anl.gov/sds/margo.git $name
+    download_dir=$WORKING_DIR/$name
+    if [[ ! -d "$download_dir" ]]; then
+        git clone https://xgitlab.cels.anl.gov/sds/margo.git $download_dir
     fi
 
-    cd $name
+    cd $download_dir
     mkdir -p build
     ./prepare.sh
     cd build
@@ -207,11 +207,12 @@ function thallium() {
     margo
 
     name=thallium
-    if [[ ! -d "$name" ]]; then
-        git clone https://xgitlab.cels.anl.gov/sds/thallium.git $name
+    download_dir=$WORKING_DIR/$name
+    if [[ ! -d "$download_dir" ]]; then
+        git clone https://xgitlab.cels.anl.gov/sds/thallium.git $download_dir
     fi
 
-    cd $name
+    cd $download_dir
     mkdir -p build
     cd build
     install_dir=$PREFIX/$name
@@ -245,11 +246,12 @@ function leveldb_pkgconfig {
 
 function leveldb() {
     name=leveldb
-    if [[ ! -d "$name" ]]; then
-        git clone https://github.com/google/leveldb.git $name
+    download_dir=$WORKING_DIR/$name
+    if [[ ! -d "$download_dir" ]]; then
+        git clone https://github.com/google/leveldb.git $download_dir
     fi
 
-    cd $name
+    cd $download_dir
     mkdir -p build
     cd build
     install_dir=$PREFIX/$name
@@ -304,6 +306,14 @@ PKG_CONFIG_PATH=
 
 mkdir -p $WORKING_DIR
 cd $WORKING_DIR
+
+if [[ -z "${CC}" ]]; then
+    CC="cc"
+fi
+
+if [[ -z "${CXX}" ]]; then
+    CXX="c++"
+fi
 
 thallium
 leveldb
