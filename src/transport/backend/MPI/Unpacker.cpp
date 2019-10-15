@@ -642,8 +642,9 @@ int Unpacker::unpack(const MPI_Comm comm, Response::Histogram **hist, const void
         return TRANSPORT_ERROR;
     }
 
-    if (!(out->hist.buckets = arrays->acquire_array<double>(out->hist.size))     ||
-        !(out->hist.counts = arrays->acquire_array<std::size_t>(out->hist.size))) {
+    if (out->hist.size &&
+        (!(out->hist.buckets = arrays->acquire_array<double>(out->hist.size))      ||
+         !(out->hist.counts = arrays->acquire_array<std::size_t>(out->hist.size)))) {
         responses->release(out);
         return TRANSPORT_ERROR;
     }
@@ -896,8 +897,9 @@ int Unpacker::unpack(const MPI_Comm comm, Response::BHistogram **bhist, const vo
                 return TRANSPORT_ERROR;
             }
 
-            if (!(out->hists[i].buckets = arrays->acquire_array<double>(out->hists[i].size))     ||
-                !(out->hists[i].counts = arrays->acquire_array<std::size_t>(out->hists[i].size))) {
+            if (out->hists[i].size &&
+                (!(out->hists[i].buckets = arrays->acquire_array<double>(out->hists[i].size))      ||
+                 !(out->hists[i].counts = arrays->acquire_array<std::size_t>(out->hists[i].size)))) {
                 responses->release(out);
                 return TRANSPORT_ERROR;
             }

@@ -16,7 +16,7 @@ static const char *OBJECT = "OBJECT";
 static const std::size_t OBJECT_LEN = strlen(OBJECT);
 
 static const std::size_t ALLOC_SIZE = 256;
-static const std::size_t REGIONS = 32;
+static const std::size_t REGIONS = 64;
 
 using namespace ::Transport;
 using namespace ::Transport::Thallium;
@@ -611,55 +611,56 @@ TEST(thallium_pack_unpack, ResponseDelete) {
 }
 
 TEST(thallium_pack_unpack, ResponseHistogram) {
-    Response::Histogram src(&arrays, &buffers);
-    {
-        src.src = rand();
-        src.dst = rand();
+    for(std::size_t count = 0; count < 10; count++) {
+        Response::Histogram src(&arrays, &buffers);
+        {
+            src.src = rand();
+            src.dst = rand();
 
-        src.ds_offset = rand();
+            src.ds_offset = rand();
 
-        src.status = HXHIM_SUCCESS;
+            src.status = HXHIM_SUCCESS;
 
-        const std::size_t count = rand() % 11;
-        src.hist.buckets = new double[count]();
-        src.hist.counts = new std::size_t[count]();
-        src.hist.size = count;
-        for(std::size_t i = 0; i < count; i++) {
-            src.hist.buckets[i] = i;
-            src.hist.counts[i] = i * i;
+            src.hist.buckets = new double[count]();
+            src.hist.counts = new std::size_t[count]();
+            src.hist.size = count;
+            for(std::size_t i = 0; i < count; i++) {
+                src.hist.buckets[i] = i;
+                src.hist.counts[i] = i * i;
+            }
         }
+
+        EXPECT_EQ(src.direction, Message::RESPONSE);
+        EXPECT_EQ(src.type, Message::HISTOGRAM);
+        EXPECT_EQ(src.clean, false);
+
+        void *buf = nullptr;
+        std::size_t size = 0;
+        EXPECT_EQ(Packer::pack(&src, &buf, &size, &packed), TRANSPORT_SUCCESS);
+
+        Response::Histogram *dst = nullptr;
+        EXPECT_EQ(Unpacker::unpack(&dst, buf, size, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
+
+        ASSERT_TRUE(dst);
+        EXPECT_EQ(src.direction, dst->direction);
+        EXPECT_EQ(src.type, dst->type);
+        EXPECT_EQ(src.src, dst->src);
+        EXPECT_EQ(src.dst, dst->dst);
+
+        EXPECT_EQ(dst->clean, true);
+
+        EXPECT_EQ(src.ds_offset, dst->ds_offset);
+
+        EXPECT_EQ(src.status, dst->status);
+
+        EXPECT_EQ(src.hist.size, dst->hist.size);
+        for(std::size_t i = 0; i < dst->hist.size; i++) {
+            EXPECT_DOUBLE_EQ(src.hist.buckets[i], dst->hist.buckets[i]);
+            EXPECT_EQ(src.hist.counts[i], dst->hist.counts[i]);
+        }
+
+        responses.release(dst);
     }
-
-    EXPECT_EQ(src.direction, Message::RESPONSE);
-    EXPECT_EQ(src.type, Message::HISTOGRAM);
-    EXPECT_EQ(src.clean, false);
-
-    void *buf = nullptr;
-    std::size_t size = 0;
-    EXPECT_EQ(Packer::pack(&src, &buf, &size, &packed), TRANSPORT_SUCCESS);
-
-    Response::Histogram *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, size, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
-
-    ASSERT_NE(dst, nullptr);
-    EXPECT_EQ(src.direction, dst->direction);
-    EXPECT_EQ(src.type, dst->type);
-    EXPECT_EQ(src.src, dst->src);
-    EXPECT_EQ(src.dst, dst->dst);
-
-    EXPECT_EQ(dst->clean, true);
-
-    EXPECT_EQ(src.ds_offset, dst->ds_offset);
-
-    EXPECT_EQ(src.status, dst->status);
-
-    EXPECT_EQ(src.hist.size, dst->hist.size);
-    for(std::size_t i = 0; i < dst->hist.size; i++) {
-        EXPECT_DOUBLE_EQ(src.hist.buckets[i], dst->hist.buckets[i]);
-        EXPECT_EQ(src.hist.counts[i], dst->hist.counts[i]);
-    }
-
-    responses.release(dst);
 }
 
 TEST(thallium_pack_unpack, ResponseBPut) {
@@ -875,59 +876,60 @@ TEST(thallium_pack_unpack, ResponseBDelete) {
 }
 
 TEST(thallium_pack_unpack, ResponseBHistogram) {
-    Response::BHistogram src(&arrays, &buffers);
-    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
-    {
-        src.src = rand();
-        src.dst = rand();
+    for(std::size_t count = 0; count < 10; count++) {
+        Response::BHistogram src(&arrays, &buffers);
+        ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
+        {
+            src.src = rand();
+            src.dst = rand();
 
-        src.count = 1;
+            src.count = 1;
 
-        src.statuses[0] = HXHIM_SUCCESS;
+            src.statuses[0] = HXHIM_SUCCESS;
 
-        src.ds_offsets[0] = rand();
+            src.ds_offsets[0] = rand();
 
-        const std::size_t count = rand() % 11;
-        src.hists[0].buckets = new double[count]();
-        src.hists[0].counts = new std::size_t[count]();
-        src.hists[0].size = count;
-        for(std::size_t i = 0; i < count; i++) {
-            src.hists[0].buckets[i] = i;
-            src.hists[0].counts[i] = i * i;
+            src.hists[0].buckets = new double[count]();
+            src.hists[0].counts = new std::size_t[count]();
+            src.hists[0].size = count;
+            for(std::size_t i = 0; i < count; i++) {
+                src.hists[0].buckets[i] = i;
+                src.hists[0].counts[i] = i * i;
+            }
         }
-    }
 
-    EXPECT_EQ(src.direction, Message::RESPONSE);
-    EXPECT_EQ(src.type, Message::BHISTOGRAM);
-    EXPECT_EQ(src.clean, false);
+        EXPECT_EQ(src.direction, Message::RESPONSE);
+        EXPECT_EQ(src.type, Message::BHISTOGRAM);
+        EXPECT_EQ(src.clean, false);
 
-    void *buf = nullptr;
-    std::size_t size = 0;
-    EXPECT_EQ(Packer::pack(&src, &buf, &size, &packed), TRANSPORT_SUCCESS);
+        void *buf = nullptr;
+        std::size_t size = 0;
+        EXPECT_EQ(Packer::pack(&src, &buf, &size, &packed), TRANSPORT_SUCCESS);
 
-    Response::BHistogram *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, size, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
+        Response::BHistogram *dst = nullptr;
+        EXPECT_EQ(Unpacker::unpack(&dst, buf, size, &responses, &arrays, &buffers), TRANSPORT_SUCCESS);
 
-    ASSERT_NE(dst, nullptr);
-    EXPECT_EQ(src.direction, dst->direction);
-    EXPECT_EQ(src.type, dst->type);
-    EXPECT_EQ(src.src, dst->src);
-    EXPECT_EQ(src.dst, dst->dst);
+        ASSERT_TRUE(dst);
+        EXPECT_EQ(src.direction, dst->direction);
+        EXPECT_EQ(src.type, dst->type);
+        EXPECT_EQ(src.src, dst->src);
+        EXPECT_EQ(src.dst, dst->dst);
 
-    EXPECT_EQ(dst->clean, true);
+        EXPECT_EQ(dst->clean, true);
 
-    EXPECT_EQ(src.count, dst->count);
+        EXPECT_EQ(src.count, dst->count);
 
-    for(std::size_t i = 0; i < dst->count; i++) {
-        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
-        EXPECT_EQ(src.statuses[i], dst->statuses[i]);
+        for(std::size_t i = 0; i < dst->count; i++) {
+            EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
+            EXPECT_EQ(src.statuses[i], dst->statuses[i]);
 
-        EXPECT_EQ(src.hists[i].size, dst->hists[i].size);
-        for(std::size_t j = 0; j < dst->hists[j].size; j++) {
-            EXPECT_NEAR(src.hists[i].buckets[j], dst->hists[i].buckets[j], 1e-7);
-            EXPECT_EQ(src.hists[i].counts[j], dst->hists[i].counts[j]);
+            EXPECT_EQ(src.hists[i].size, dst->hists[i].size);
+            for(std::size_t j = 0; j < dst->hists[j].size; j++) {
+                EXPECT_NEAR(src.hists[i].buckets[j], dst->hists[i].buckets[j], 1e-7);
+                EXPECT_EQ(src.hists[i].counts[j], dst->hists[i].counts[j]);
+            }
         }
-    }
 
-    responses.release(dst);
+        responses.release(dst);
+    }
 }

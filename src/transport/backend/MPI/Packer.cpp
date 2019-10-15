@@ -303,7 +303,7 @@ int Packer::pack(const MPI_Comm comm, const Response::Put *pm, void **buf, std::
         return TRANSPORT_ERROR;
     }
 
-    if ((MPI_Pack(&pm->ds_offset, 1, MPI_INT, *buf, *bufsize, &position, comm) != MPI_SUCCESS) ||
+    if ((MPI_Pack(&pm->ds_offset, 1, MPI_INT, *buf, *bufsize, &position, comm) != MPI_SUCCESS)                      ||
         (MPI_Pack(&pm->status, sizeof(pm->status), MPI_BYTE, *buf, *bufsize, &position, comm)       != MPI_SUCCESS)) {
         cleanup(buf, bufsize, packed);
         return TRANSPORT_ERROR;

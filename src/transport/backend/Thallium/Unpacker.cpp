@@ -122,9 +122,9 @@ int Transport::Thallium::Unpacker::unpack(Request::Put **pm, void *buf, const st
     curr += sizeof(out->object_type);
 
     // allocate arrays
-    if (!(out->subject = buffers->acquire(out->subject_len))     ||
-        !(out->predicate = buffers->acquire(out->predicate_len)) ||
-        !(out->object = buffers->acquire(out->object_len)))       {
+    if ((out->subject_len && !(out->subject = buffers->acquire(out->subject_len)))       ||
+        (out->predicate_len && !(out->predicate = buffers->acquire(out->predicate_len))) ||
+        (out->object_len && !(out->object = buffers->acquire(out->object_len))))          {
         requests->release(out);
         return TRANSPORT_ERROR;
     }
@@ -165,8 +165,8 @@ int Transport::Thallium::Unpacker::unpack(Request::Get **gm, void *buf, const st
     curr += sizeof(out->object_type);
 
     // allocate arrays
-    if (!(out->subject = buffers->acquire(out->subject_len))     ||
-        !(out->predicate = buffers->acquire(out->predicate_len))) {
+    if ((out->subject_len && !(out->subject = buffers->acquire(out->subject_len)))       ||
+        (out->predicate_len && !(out->predicate = buffers->acquire(out->predicate_len)))) {
         requests->release(out);
         return TRANSPORT_ERROR;
     }
@@ -201,8 +201,8 @@ int Transport::Thallium::Unpacker::unpack(Request::Delete **dm, void *buf, const
     curr += sizeof(out->predicate_len);
 
     // allocate arrays
-    if (!(out->subject = buffers->acquire(out->subject_len))     ||
-        !(out->predicate = buffers->acquire(out->predicate_len))) {
+    if ((out->subject_len && !(out->subject = buffers->acquire(out->subject_len)))       ||
+        (out->predicate_len && !(out->predicate = buffers->acquire(out->predicate_len)))) {
         requests->release(out);
         return TRANSPORT_ERROR;
     }
@@ -269,9 +269,9 @@ int Transport::Thallium::Unpacker::unpack(Request::BPut **bpm, void *buf, const 
         memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
         curr += sizeof(out->object_types[i]);
 
-        if (!(out->subjects[i]   = buffers->acquire(out->subject_lens[i]))   ||
-            !(out->predicates[i] = buffers->acquire(out->predicate_lens[i])) ||
-            !(out->objects[i]    = buffers->acquire(out->object_lens[i])))    {
+        if ((out->subject_lens[i]   && !(out->subjects[i]   = buffers->acquire(out->subject_lens[i])))   ||
+            (out->predicate_lens[i] && !(out->predicates[i] = buffers->acquire(out->predicate_lens[i]))) ||
+            (out->object_lens[i]    && !(out->objects[i]    = buffers->acquire(out->object_lens[i]))))    {
             requests->release(out);
             return TRANSPORT_ERROR;
         }
@@ -324,8 +324,8 @@ int Transport::Thallium::Unpacker::unpack(Request::BGet **bgm, void *buf, const 
         memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
         curr += sizeof(out->object_types[i]);
 
-        if (!(out->subjects[i]   = buffers->acquire(out->subject_lens[i]))   ||
-            !(out->predicates[i] = buffers->acquire(out->predicate_lens[i]))) {
+        if ((out->subject_lens[i]   && !(out->subjects[i]   = buffers->acquire(out->subject_lens[i])))   ||
+            (out->predicate_lens[i] && !(out->predicates[i] = buffers->acquire(out->predicate_lens[i])))) {
             requests->release(out);
             return TRANSPORT_ERROR;
         }
@@ -381,8 +381,8 @@ int Transport::Thallium::Unpacker::unpack(Request::BGetOp **bgm, void *buf, cons
         memcpy(&out->ops[i], curr, sizeof(out->ops[i]));
         curr += sizeof(out->ops[i]);
 
-        if (!(out->subjects[i]   = buffers->acquire(out->subject_lens[i]))   ||
-            !(out->predicates[i] = buffers->acquire(out->predicate_lens[i]))) {
+        if ((out->subject_lens[i]   && !(out->subjects[i]   = buffers->acquire(out->subject_lens[i])))   ||
+            (out->predicate_lens[i] && !(out->predicates[i] = buffers->acquire(out->predicate_lens[i])))) {
             requests->release(out);
             return TRANSPORT_ERROR;
         }
@@ -430,8 +430,8 @@ int Transport::Thallium::Unpacker::unpack(Request::BDelete **bdm, void *buf, con
         memcpy(&out->predicate_lens[i], curr, sizeof(out->predicate_lens[i]));
         curr += sizeof(out->predicate_lens[i]);
 
-        if (!(out->subjects[i]   = buffers->acquire(out->subject_lens[i]))   ||
-            !(out->predicates[i] = buffers->acquire(out->predicate_lens[i]))) {
+        if ((out->subject_lens[i]   && !(out->subjects[i]   = buffers->acquire(out->subject_lens[i])))   ||
+            (out->predicate_lens[i] && !(out->predicates[i] = buffers->acquire(out->predicate_lens[i])))) {
             requests->release(out);
             return TRANSPORT_ERROR;
         }
@@ -448,7 +448,6 @@ int Transport::Thallium::Unpacker::unpack(Request::BDelete **bdm, void *buf, con
     *bdm = out;
     return TRANSPORT_SUCCESS;
 }
-
 
 int Transport::Thallium::Unpacker::unpack(Request::BHistogram **bhist, void *buf, const std::size_t bufsize, FixedBufferPool *requests, FixedBufferPool *arrays, FixedBufferPool *buffers) {
     Request::BHistogram *out = requests->acquire<Request::BHistogram>(arrays, buffers);
@@ -615,8 +614,8 @@ int Transport::Thallium::Unpacker::unpack(Response::Get **gm, void *buf, const s
     curr += sizeof(out->object_type);
 
     // allocate arrays
-    if (!(out->subject = buffers->acquire(out->subject_len))     ||
-        !(out->predicate = buffers->acquire(out->predicate_len))) {
+    if ((out->subject_len && !(out->subject = buffers->acquire(out->subject_len)))       ||
+        (out->predicate_len && !(out->predicate = buffers->acquire(out->predicate_len)))) {
         responses->release(out);
         return TRANSPORT_ERROR;
     }
@@ -634,7 +633,7 @@ int Transport::Thallium::Unpacker::unpack(Response::Get **gm, void *buf, const s
         curr += sizeof(out->object_len);
 
         // allocate arrays
-        if (!(out->object = buffers->acquire(out->object_len))) {
+        if ((out->object_len && !(out->object = buffers->acquire(out->object_len)))) {
             responses->release(out);
             return TRANSPORT_ERROR;
         }
@@ -685,8 +684,9 @@ int Transport::Thallium::Unpacker::unpack(Response::Histogram **hist, void *buf,
     memcpy(&out->hist.size, curr, sizeof(out->hist.size));
     curr += sizeof(out->hist.size);
 
-    if (!(out->hist.buckets = arrays->acquire_array<double>(out->hist.size))     ||
-        !(out->hist.counts = arrays->acquire_array<std::size_t>(out->hist.size))) {
+    if (out->hist.size &&
+        (!(out->hist.buckets = arrays->acquire_array<double>(out->hist.size))      ||
+         !(out->hist.counts = arrays->acquire_array<std::size_t>(out->hist.size)))) {
         responses->release(out);
         return TRANSPORT_ERROR;
     }
@@ -770,8 +770,8 @@ int Transport::Thallium::Unpacker::unpack(Response::BGet **bgm, void *buf, const
         memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
         curr += sizeof(out->object_types[i]);
 
-        if (!(out->subjects[i] = buffers->acquire(out->subject_lens[i]))     ||
-            !(out->predicates[i] = buffers->acquire(out->predicate_lens[i]))) {
+        if ((out->subject_lens[i] && !(out->subjects[i] = buffers->acquire(out->subject_lens[i])))       ||
+            (out->predicate_lens[i] && !(out->predicates[i] = buffers->acquire(out->predicate_lens[i])))) {
             responses->release(out);
             return TRANSPORT_ERROR;
         }
@@ -837,8 +837,8 @@ int Transport::Thallium::Unpacker::unpack(Response::BGetOp **bgm, void *buf, con
         memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
         curr += sizeof(out->object_types[i]);
 
-        if (!(out->subjects[i] = buffers->acquire(out->subject_lens[i]))     ||
-            !(out->predicates[i] = buffers->acquire(out->predicate_lens[i]))) {
+        if ((out->subject_lens[i] && !(out->subjects[i] = buffers->acquire(out->subject_lens[i])))       ||
+            (out->predicate_lens[i] && !(out->predicates[i] = buffers->acquire(out->predicate_lens[i])))) {
             responses->release(out);
             return TRANSPORT_ERROR;
         }
@@ -931,8 +931,9 @@ int Transport::Thallium::Unpacker::unpack(Response::BHistogram **bhist, void *bu
         memcpy(&out->hists[i].size, curr, sizeof(out->hists[i].size));
         curr += sizeof(out->hists[i].size);
 
-        if (!(out->hists[i].buckets = arrays->acquire_array<double>(out->hists[i].size))     ||
-            !(out->hists[i].counts = arrays->acquire_array<std::size_t>(out->hists[i].size))) {
+        if (out->hists[i].size &&
+            (!(out->hists[i].buckets = arrays->acquire_array<double>(out->hists[i].size))      ||
+             !(out->hists[i].counts = arrays->acquire_array<std::size_t>(out->hists[i].size)))) {
             responses->release(out);
             return TRANSPORT_ERROR;
         }

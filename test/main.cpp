@@ -1,6 +1,3 @@
-#include <cstdlib>
-#include <ctime>
-
 #include <gtest/gtest.h>
 #include <mpi.h>
 
