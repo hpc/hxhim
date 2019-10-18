@@ -56,7 +56,7 @@ function NA_BMI() {
     name=bmi
     download_dir=$WORKING_DIR/$name
     if [[ ! -d "$download_dir" ]]; then
-        git clone http://git.mcs.anl.gov/bmi.git $download_dir
+        git clone --depth 1 http://git.mcs.anl.gov/bmi.git $download_dir
     fi
 
     cd $download_dir
@@ -80,7 +80,7 @@ function NA_CCI() {
     name=cci
     download_dir=$WORKING_DIR/$name
     if [[ ! -d "$download_dir" ]]; then
-        git clone https://github.com/CCI/cci.git $download_dir
+        git clone --depth 1 https://github.com/CCI/cci.git $download_dir
     fi
 
     cd $download_dir
@@ -127,7 +127,7 @@ function mercury() {
     name=mercury
     download_dir=$WORKING_DIR/$name
     if [[ ! -d "$download_dir" ]]; then
-        git clone --recurse-submodules https://github.com/mercury-hpc/mercury.git $download_dir
+        git clone --depth 1 --recurse-submodules https://github.com/mercury-hpc/mercury.git $download_dir
         git submodule init && git submodule update
     fi
 
@@ -155,7 +155,7 @@ function argobots() {
     name=argobots
     download_dir=$WORKING_DIR/$name
     if [[ ! -d "$download_dir" ]]; then
-        git clone https://github.com/pmodels/argobots.git $download_dir
+        git clone --depth 1 https://github.com/pmodels/argobots.git $download_dir
     fi
 
     cd $download_dir
@@ -185,7 +185,7 @@ function margo() {
     name=margo
     download_dir=$WORKING_DIR/$name
     if [[ ! -d "$download_dir" ]]; then
-        git clone https://xgitlab.cels.anl.gov/sds/margo.git $download_dir
+        git clone --depth 1 https://xgitlab.cels.anl.gov/sds/margo.git $download_dir
     fi
 
     cd $download_dir
@@ -209,7 +209,7 @@ function thallium() {
     name=thallium
     download_dir=$WORKING_DIR/$name
     if [[ ! -d "$download_dir" ]]; then
-        git clone https://xgitlab.cels.anl.gov/sds/thallium.git $download_dir
+        git clone --depth 1 https://xgitlab.cels.anl.gov/sds/thallium.git $download_dir
     fi
 
     cd $download_dir
@@ -248,7 +248,7 @@ function leveldb() {
     name=leveldb
     download_dir=$WORKING_DIR/$name
     if [[ ! -d "$download_dir" ]]; then
-        git clone https://github.com/google/leveldb.git $download_dir
+        git clone --depth 1 https://github.com/google/leveldb.git $download_dir
     fi
 
     cd $download_dir
@@ -297,7 +297,7 @@ set -- "${POSITIONAL[@]}" # restore positional parameters
 
 if [[ "$#" -ne 2 ]]; then
     usage
-    exit 0
+    exit 1
 fi
 
 WORKING_DIR=$1
