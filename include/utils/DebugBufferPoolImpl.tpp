@@ -1,5 +1,3 @@
-#ifdef DEBUG
-
 #include "utils/FixedBufferPool.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
@@ -147,5 +145,3 @@ void FixedBufferPoolImpl <Mutex_t, Cond_t>::releaseImpl(void *ptr, const std::si
         FBP_LOG(FBP_DBG, "Freed %zu bytes at %p", it->second, ptr);
     }
 }
-
-#endif
