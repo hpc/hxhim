@@ -16,11 +16,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 #
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra -O0 -g3 -DDEBUG") # -D_GLIBCXX_DEBUG
 
-#
-# Project wide include stuff
-#
-include_directories(BEFORE include)
-
 # Include CMake modules
 find_package(PkgConfig REQUIRED)
 
@@ -35,7 +30,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "CrayLinuxEnvironment")
 endif()
 
 set(PC_CFLAGS "-I${CMAKE_INSTALL_PREFIX}/include")
-set(PC_LIBS "-L${CMAKE_INSTALL_PREFIX}/lib -lhxhim")
+set(PC_LIBS   "-L${CMAKE_INSTALL_PREFIX}/lib -lhxhim")
 
 message(STATUS "MPI_C_LIBRARIES=" ${MPI_C_LIBRARIES})
 message(STATUS "MPI_C_LINK_FLAGS=" ${MPI_C_LINK_FLAGS})
@@ -77,7 +72,7 @@ if (THALLIUM_FOUND)
     add_definitions(-DHXHIM_HAVE_THALLIUM=1)
 
     set(PC_CFLAGS "${PC_CFLAGS} -DHXHIM_HAVE_THALLIUM=1")
-    set(PC_LIBS "${PC_LIBS} ${THALLIUM_LDFLAGS}")
+    set(PC_LIBS   "${PC_LIBS} ${THALLIUM_LDFLAGS}")
 endif()
 
 #
@@ -100,40 +95,14 @@ if(${LEVELDB_FOUND})
 endif()
 
 #
-# Create library
+# build library
 #
-file(GLOB_RECURSE BASE src/base/*.c*)
-file(GLOB_RECURSE DATASTORE src/datastore/*.c*)
-file(GLOB_RECURSE HXHIM src/hxhim/*.c*)
-file(GLOB_RECURSE TRANSPORT src/transport/*.c*)
-file(GLOB_RECURSE UTILS src/utils/*.c*)
-
-set(LIBHXHIM_SOURCES ${BASE} ${DATASTORE} ${HXHIM} ${TRANSPORT} ${UTILS})
-list(REMOVE_ITEM LIBHXHIM_SOURCES **.tpp)
-message(STATUS "LIBHXHIM_SOURCES: " ${LIBHXHIM_SOURCES})
-
-add_library(hxhim OBJECT ${LIBHXHIM_SOURCES})
-add_library(hxhim.a STATIC $<TARGET_OBJECTS:hxhim>)
-set_target_properties(hxhim.a PROPERTIES OUTPUT_NAME hxhim)
-
-if (NOT CMAKE_SYSTEM_NAME STREQUAL "CrayLinuxEnvironment")
-   set_target_properties(hxhim PROPERTIES POSITION_INDEPENDENT_CODE ON)
-   add_library(hxhim.so SHARED $<TARGET_OBJECTS:hxhim>)
-   set_target_properties(hxhim.so PROPERTIES OUTPUT_NAME hxhim)
-
-   INSTALL(TARGETS
-     hxhim.so
-     DESTINATION lib)
-endif()
+add_subdirectory(src)
 
 #
 # Install headers and libraries
 #
 add_subdirectory(include)
-
-INSTALL(TARGETS
-  hxhim.a
-  DESTINATION lib)
 
 #
 # Add configuration files

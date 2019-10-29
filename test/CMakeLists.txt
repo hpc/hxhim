@@ -23,6 +23,8 @@ endif()
 # settings on Windows
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
+set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+
 # Add googletest directly to our build. This defines
 # the gtest and gtest_main targets.
 add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
@@ -32,11 +34,11 @@ message( STATUS "GTest source dir: " ${gtest_SOURCE_DIR})
 
 include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
-file(GLOB_RECURSE HXHIM_TESTS hxhim/*.c*)
-file(GLOB_RECURSE TRANSPORT_TESTS transport/*.c*)
-file(GLOB_RECURSE UTIL_TESTS utils/*.c*)
+add_subdirectory(hxhim)
+add_subdirectory(transport)
+add_subdirectory(utils)
 
-add_executable(googletests main.cpp ${HXHIM_TESTS} ${TRANSPORT_TESTS} ${UTIL_TESTS})
-set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${LEVELDB_LIBRARY_DIRS})
-target_link_libraries(googletests hxhim.a gtest ${LEVELDB_LIBRARY} ${MPI_CXX_LIBRARIES} ${THALLIUM_LDFLAGS} pthread m)
+add_executable(googletests main.cpp ${HXHIM_TEST_SRC} ${TRANSPORT_TEST_SRC} ${UTIL_TEST_SRC})
+target_include_directories(googletests SYSTEM BEFORE PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_link_libraries(googletests hxhim.a gtest ${MPI_CXX_LIBRARIES} ${THALLIUM_LDFLAGS} ${LEVELDB_LDFLAGS} pthread m)
 add_test(googletest ./googletests)
