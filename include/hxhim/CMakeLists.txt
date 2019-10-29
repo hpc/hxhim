@@ -2,6 +2,7 @@
 # Install headers and libraries
 #
 install(FILES
+  MaxSize.hpp
   Results.h
   Results.hpp
   accessors.h

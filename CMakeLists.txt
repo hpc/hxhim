@@ -17,12 +17,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra -O0 -g3 -DDEBUG") # -D_GLIBCXX_DEBUG
 
 #
-# Add additional cmake files
-#
-set(HXHIM_CMAKE_MODULE_DIR ./CMake)
-set(CMAKE_MODULE_PATH $PCMAKE_MODULE_PATH} ${HXHIM_CMAKE_MODULE_DIR})
-
-#
 # Project wide include stuff
 #
 include_directories(BEFORE include)
@@ -40,11 +34,15 @@ if (CMAKE_SYSTEM_NAME STREQUAL "CrayLinuxEnvironment")
     set(MPI_CXX_COMPILE_FLAGS "${MPI_CXX_COMPILE_FLAGS} -dynamic -craympich-mt")
 endif()
 
+set(PC_CFLAGS "-I${CMAKE_INSTALL_PREFIX}/include")
+set(PC_LIBS "-L${CMAKE_INSTALL_PREFIX}/lib -lhxhim")
+
 message(STATUS "MPI_C_LIBRARIES=" ${MPI_C_LIBRARIES})
 message(STATUS "MPI_C_LINK_FLAGS=" ${MPI_C_LINK_FLAGS})
 message(STATUS "MPI_C_COMPILE_FLAGS=" ${MPI_C_COMPILE_FLAGS})
 message(STATUS "MPI_CXX_LINK_FLAGS=" ${MPI_CXX_LINK_FLAGS})
 message(STATUS "MPI_CXX_COMPILE_FLAGS=" ${MPI_CXX_COMPILE_FLAGS})
+set(PC_LIBS "${PC_LIBS} ${MPI_C_LINK_FLAGS} ${MPI_CXX_LINK_FLAGS}")
 include_directories(SYSTEM ${MPI_INCLUDE_PATH})
 
 # do not search for thallium with find_package
@@ -77,6 +75,9 @@ if (THALLIUM_FOUND)
     string (REPLACE ";" " " THALLIUM_LDFLAGS  "${THALLIUM_LDFLAGS}")
     SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath -Wl,${THALLIUM_LIBDIR}")
     add_definitions(-DHXHIM_HAVE_THALLIUM=1)
+
+    set(PC_CFLAGS "${PC_CFLAGS} -DHXHIM_HAVE_THALLIUM=1")
+    set(PC_LIBS "${PC_LIBS} ${THALLIUM_LDFLAGS}")
 endif()
 
 #
@@ -93,6 +94,9 @@ if(${LEVELDB_FOUND})
     include_directories(AFTER SYSTEM ${LEVELDB_INCLUDE_DIRS})
     find_library(LEVELDB_LIBRARY NAMES leveldb HINTS ${LEVELDB_LIBRARY_DIRS})
     add_definitions(-DHXHIM_HAVE_LEVELDB=1)
+
+    set(PC_CFLAGS "${PC_CFLAGS} -DHXHIM_HAVE_LEVELDB=1")
+    set(PC_LIBS   "${PC_LIBS} -L${LEVELDB_LIBRARY_DIRS} -lleveldb")
 endif()
 
 #

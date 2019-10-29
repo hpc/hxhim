@@ -2,6 +2,7 @@
 #include <cfloat>
 #include <cmath>
 #include <cstring>
+#include <functional>
 #include <memory>
 #include <unordered_map>
 

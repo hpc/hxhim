@@ -3,7 +3,9 @@
 #
 INSTALL(FILES
   Configuration.hpp
+  DebugBufferPoolImpl.tpp
   FixedBufferPool.hpp
+  FixedBufferPoolImpl.tpp
   Histogram.h
   Histogram.hpp
   enable_if_t.hpp

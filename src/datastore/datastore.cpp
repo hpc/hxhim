@@ -60,9 +60,9 @@ int get_offset(hxhim_t *hx, const int id) {
 /**
  * get_id
  *
- * @param hx   the HXHIM instance
- * @param rank the destination rank
- * @param id   the offset within the destination
+ * @param hx      the HXHIM instance
+ * @param rank    the destination rank
+ * @param offset  the offset within the destination
  * @return the mapping from the (rank, offset) to the database ID, or -1 on error
  */
 int get_id(hxhim_t *hx, const int rank, const std::size_t offset) {
