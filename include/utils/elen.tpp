@@ -14,10 +14,10 @@ static inline void flip(std::string &str) {
 namespace encode {
 
 // Chapter 2.3 Uniqueness
-template <const char neg = '0' - 1, const char pos = '9' + 1,
+template <const char neg = N, const char pos = P,
           typename T,
           typename Cond = enable_if_t<(neg < '0') && (pos > '9') && std::is_integral<T>::value> >
-static std::string unique(const T value, const char prefix) {
+std::string unique(const T value, const char prefix) {
     if (value == 0) {
         return "0";
     }
@@ -55,10 +55,10 @@ std::string integers(const T value) {
     return "0";
 }
 
-template <const char neg = '0' - 1, const char pos = '9' + 1,
+template <const char neg = N, const char pos = P,
           typename T,
           typename Cond = enable_if_t<(neg < '0') && (pos > '9') && std::is_floating_point<T>::value> >
-static std::string small_decimals_digits(const T value, const int precision) {
+std::string small_decimals_digits(const T value, const int precision) {
     if (value == 0) {
         return "0";
     }
@@ -147,8 +147,8 @@ std::string large_decimals(const T value, const int precision) {
 
 // https://stackoverflow.com/a/29583280
 template <typename R, typename Z, typename = enable_if_t<std::is_arithmetic<R>::value &&
-                                                              std::is_integral<Z>::value> >
-static R frexp10(const R arg, Z *exp) {
+                                                         std::is_integral<Z>::value> >
+R frexp10(const R arg, Z *exp) {
     *exp = (arg == 0) ? 0 : (Z)(1 + std::round(std::log10(std::fabs(arg))));
     return arg * pow(10 , -(*exp));
 }
@@ -199,9 +199,9 @@ std::string floating_point(const T value, const int precision) {
 
 namespace decode {
 
-template <const char neg = '0' - 1, const char pos = '9' + 1,
+template <const char neg = N, const char pos = P,
           typename = enable_if_t<(neg < '0') && (pos > '9')> >
-static std::size_t get_prefix_count(const char prefix, const std::string &str) {
+std::size_t get_prefix_count(const char prefix, const std::string &str) {
     if (str[0] == '0') {
         return 0;
     }
@@ -230,9 +230,9 @@ static std::size_t get_prefix_count(const char prefix, const std::string &str) {
 }
 
 template <typename T,
-          const char neg = '0' - 1, const char pos = '9' + 1,
+          const char neg = N, const char pos = P,
           typename = enable_if_t<std::is_integral<T>::value && (neg < '0') && (pos > '9')> >
-static T next(const char prefix, const std::string &str, std::size_t &position, const T &len) {
+T next(const char prefix, const std::string &str, std::size_t &position, const T &len) {
     // read the next series of digits
     std::string str_len = str.substr(position, len);
 
@@ -464,6 +464,6 @@ T floating_point(const std::string &str) {
  * @param rhs the string on the right hand side
  * @return whether or not lhs comes before rhs
  */
-[[maybe_unused]] static bool lex_comp(const std::string &lhs, const std::string &rhs) {
+bool lex_comp(const std::string &lhs, const std::string &rhs) {
     return std::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
 }
