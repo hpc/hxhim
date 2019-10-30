@@ -15,7 +15,7 @@ list(REMOVE_ITEM LIBHXHIM_SOURCES **.tpp)
 message(STATUS "LIBHXHIM_SOURCES: " ${LIBHXHIM_SOURCES})
 
 add_library(hxhim OBJECT ${LIBHXHIM_SOURCES})
-target_include_directories(hxhim PUBLIC ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(hxhim PUBLIC ${CMAKE_BINARY_DIR}/include ${CMAKE_SOURCE_DIR}/include)
 
 # create the static library
 add_library(hxhim.a STATIC $<TARGET_OBJECTS:hxhim>)
@@ -30,7 +30,7 @@ if (NOT CMAKE_SYSTEM_NAME STREQUAL "CrayLinuxEnvironment")
    add_library(hxhim.so SHARED $<TARGET_OBJECTS:hxhim>)
    set_target_properties(hxhim.so PROPERTIES OUTPUT_NAME hxhim)
 
-   INSTALL(TARGETS
+   install(TARGETS
      hxhim.so
      DESTINATION lib)
 endif()

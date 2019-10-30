@@ -182,10 +182,8 @@ class FixedBufferPoolImpl {
         } stats;
 };
 
-#include "FixedBufferPoolImpl.tpp"
-#ifdef DEBUG
-#include "DebugBufferPoolImpl.tpp"
-#endif
+#include "utils/FixedBufferPoolImpl.tpp"
+@DEBUGBUFFERPOOLIMPL@
 
 /** Convenience typedef */
 typedef FixedBufferPoolImpl <std::mutex, std::condition_variable> FixedBufferPool;
