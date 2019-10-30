@@ -23,30 +23,28 @@ TEST(transport, MPI) {
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }
 
-TEST(transport, thallium_na_sm) {
-    hxhim_options_t opts;
-    ASSERT_EQ(fill_options(&opts), true);
-    ASSERT_EQ(hxhim_options_set_transport_thallium(&opts, "na+sm"), HXHIM_SUCCESS);
+#define TEST_THALLIUM_TRANSPORT(plugin, protocol)                                                      \
+    TEST(transport, thallium_ ##plugin ##_ ##protocol) {                                               \
+        hxhim_options_t opts;                                                                          \
+        ASSERT_EQ(fill_options(&opts), true);                                                          \
+        ASSERT_EQ(hxhim_options_set_transport_thallium(&opts, #plugin "+" #protocol), HXHIM_SUCCESS);  \
+                                                                                                       \
+        hxhim_t hx;                                                                                    \
+        ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);                                             \
+                                                                                                       \
+        CHECK_MEMORY(&hx);                                                                             \
+                                                                                                       \
+        EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);                                                   \
+        EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);                                        \
+    }                                                                                                  \
 
-    hxhim_t hx;
-    ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
+TEST_THALLIUM_TRANSPORT(na, sm)
 
-    CHECK_MEMORY(&hx);
+// #ifdef BMI
+TEST_THALLIUM_TRANSPORT(bmi, tcp)
+// #endif
 
-    EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
-    EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
-}
-
-TEST(transport, thallium_tcp) {
-    hxhim_options_t opts;
-    ASSERT_EQ(fill_options(&opts), true);
-    ASSERT_EQ(hxhim_options_set_transport_thallium(&opts, "tcp"), HXHIM_SUCCESS);
-
-    hxhim_t hx;
-    ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
-
-    CHECK_MEMORY(&hx);
-
-    EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
-    EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
-}
+// #ifdef CCI
+TEST_THALLIUM_TRANSPORT(cci, tcp)
+TEST_THALLIUM_TRANSPORT(cci, sm)
+// #endif
