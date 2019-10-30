@@ -29,9 +29,6 @@ if (CMAKE_SYSTEM_NAME STREQUAL "CrayLinuxEnvironment")
     set(MPI_CXX_COMPILE_FLAGS "${MPI_CXX_COMPILE_FLAGS} -dynamic -craympich-mt")
 endif()
 
-set(PC_CFLAGS "-I${CMAKE_INSTALL_PREFIX}/include")
-set(PC_LIBS   "-L${CMAKE_INSTALL_PREFIX}/lib -lhxhim")
-
 message(STATUS "MPI_C_LIBRARIES=" ${MPI_C_LIBRARIES})
 message(STATUS "MPI_C_LINK_FLAGS=" ${MPI_C_LINK_FLAGS})
 message(STATUS "MPI_C_COMPILE_FLAGS=" ${MPI_C_COMPILE_FLAGS})
