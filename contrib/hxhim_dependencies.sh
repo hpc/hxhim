@@ -56,7 +56,7 @@ function NA_BMI() {
     name=bmi
     download_dir=$WORKING_DIR/$name
     if [[ ! -d "$download_dir" ]]; then
-        git clone --depth 1 http://git.mcs.anl.gov/bmi.git $download_dir
+        git clone --depth 1 https://xgitlab.cels.anl.gov/sds/bmi.git $download_dir
     fi
 
     cd $download_dir
