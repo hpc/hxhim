@@ -1,6 +1,7 @@
 #include <cmath>
 
 #include "hxhim/MaxSize.hpp"
+#include "hxhim/Results.hpp"
 #include "hxhim/config.hpp"
 #include "hxhim/options.h"
 #include "hxhim/options_private.hpp"
@@ -19,7 +20,26 @@ int hxhim_options_init(hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
-    return (opts->p = new hxhim_options_private_t())?HXHIM_SUCCESS:HXHIM_ERROR;
+    if (!(opts->p = new hxhim_options_private_t())) {
+        return HXHIM_ERROR;
+    }
+
+    /* set some default values */
+    return ((hxhim_options_set_keys_name(opts, "Keys")                                    == HXHIM_SUCCESS) &&
+            (hxhim_options_set_buffers_name(opts, "Buffers")                              == HXHIM_SUCCESS) &&
+            (hxhim_options_set_ops_cache_name(opts, "OpsCache")                           == HXHIM_SUCCESS) &&
+            (hxhim_options_set_ops_cache_alloc_size(opts, hxhim::MaxSize::OpsCache())     == HXHIM_SUCCESS) &&
+            (hxhim_options_set_arrays_name(opts, "Arrays")                                == HXHIM_SUCCESS) &&
+            (hxhim_options_set_requests_name(opts, "Requests")                            == HXHIM_SUCCESS) &&
+            (hxhim_options_set_requests_alloc_size(opts, hxhim::MaxSize::Requests())      == HXHIM_SUCCESS) &&
+            (hxhim_options_set_client_packed_name(opts, "Client_Packed")                  == HXHIM_SUCCESS) &&
+            (hxhim_options_set_rs_packed_name(opts, "RS_Packed")                          == HXHIM_SUCCESS) &&
+            (hxhim_options_set_responses_name(opts, "Responses")                          == HXHIM_SUCCESS) &&
+            (hxhim_options_set_responses_alloc_size(opts, hxhim::MaxSize::Responses())    == HXHIM_SUCCESS) &&
+            (hxhim_options_set_result_name(opts, "Result")                                == HXHIM_SUCCESS) &&
+            (hxhim_options_set_result_alloc_size(opts, hxhim::MaxSize::Result())          == HXHIM_SUCCESS) &&
+            (hxhim_options_set_results_name(opts, "Results")                              == HXHIM_SUCCESS) &&
+            (hxhim_options_set_results_alloc_size(opts, sizeof(hxhim::Results))           == HXHIM_SUCCESS))?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 
 /**

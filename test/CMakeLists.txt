@@ -5,7 +5,7 @@
 cmake_minimum_required(VERSION 3.6.3)
 
 # GoogleTest
-configure_file(${CMAKE_SOURCE_DIR}/contrib/CMakeLists.txt.in ../googletest-download/CMakeLists.txt)
+configure_file(${CMAKE_SOURCE_DIR}/contrib/googletest.txt.in ../googletest-download/CMakeLists.txt)
 execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
   RESULT_VARIABLE result
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/googletest-download )

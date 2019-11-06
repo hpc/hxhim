@@ -107,6 +107,11 @@ add_subdirectory(include)
 add_subdirectory(config)
 
 #
+# Add extra files
+#
+add_subdirectory(contrib)
+
+#
 # Add demo executable
 #
 include_directories(demo)
