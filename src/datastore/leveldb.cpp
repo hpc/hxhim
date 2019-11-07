@@ -1,8 +1,10 @@
 #if HXHIM_HAVE_LEVELDB
 
+#include <cerrno>
 #include <ctime>
 #include <sstream>
 #include <stdexcept>
+#include <sys/stat.h>
 
 #include "leveldb/write_batch.h"
 
@@ -17,6 +19,40 @@ namespace datastore {
 
 using namespace Transport;
 
+static int recursive_mkdir(const std::string & path, const mode_t mode, const char sep = '/') {
+    char * copy = new char[path.size() + 1]();
+    memcpy(copy, path.c_str(), path.size());
+    copy[path.size()] = '\0';
+
+    size_t i = 1;
+    while (i < path.size()) {
+        while ((i < path.size()) &&
+               (copy[i] != sep)) {
+            i++;
+        }
+
+        copy[i] = '\0';
+
+        // build current path
+        if (mkdir(copy, mode) != 0) {
+            const int err = errno;
+
+            // ignore existing directories
+            if (err != EEXIST) {
+                free(copy);
+                return err;
+            }
+        }
+
+        copy[i] = sep;
+        i++;
+    }
+
+    free(copy);
+
+    return 0;
+}
+
 leveldb::leveldb(hxhim_t *hx,
                  Histogram::Histogram *hist,
                  const std::string &exact_name)
@@ -24,6 +60,8 @@ leveldb::leveldb(hxhim_t *hx,
       create_if_missing(false),
       db(nullptr), options()
 {
+    recursive_mkdir(hx->p->datastore.prefix, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+
     if (!Datastore::Open(exact_name)) {
         throw std::runtime_error("Could not configure leveldb datastore " + exact_name);
     }
@@ -39,6 +77,8 @@ leveldb::leveldb(hxhim_t *hx,
       create_if_missing(create_if_missing),
       db(nullptr), options()
 {
+    recursive_mkdir(hx->p->datastore.prefix, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+
     std::stringstream s;
     s << hx->p->datastore.prefix << "/" << basename << "-" << id;
     const std::string name = s.str();
