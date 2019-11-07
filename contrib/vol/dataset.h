@@ -2,6 +2,7 @@
 #define HXHIM_HXF5_VOL_DATASET_H
 
 #include "hxhim_vol.h"
+#include "structs.h"
 
 /* H5D routines */
 void *H5VL_hxhim_dataset_create(void *obj, const H5VL_loc_params_t *loc_params, const char *name,

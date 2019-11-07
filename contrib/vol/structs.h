@@ -1,11 +1,15 @@
 #ifndef HXHIM_HXF5_VOL_STRUCTS_H
 #define HXHIM_HXF5_VOL_STRUCTS_H
 
+#include <stdio.h>
+
 #include "hxhim_vol.h"
 
 /* holds arguments converted for use by the file_* callbacks */
 struct file_info_t {
-    hxhim_t * hx;
+    FILE * file;
+    hxhim_options_t opts;
+    hxhim_t hx;
     hid_t id;
     void * info;
 };
