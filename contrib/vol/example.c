@@ -10,7 +10,16 @@ extern int errno;
 
 #define COUNT 10
 
-int main() {
+int main(int argc, char * argv[]) {
+    int provided;
+    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    int size;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+
     /* not registered yet */
     printf("%d\n", H5VLis_connector_registered(HXHIM_VOL_CONNECTOR_NAME));
 
@@ -19,19 +28,16 @@ int main() {
 
     /* data associated with the vol */
     hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
-    struct file_info_t under_vol;
-    H5Pget_vol_id(fapl, &under_vol.id);
-    H5Pget_vol_info(fapl, &under_vol.info);
-    H5Pset_vol(fapl, vol_id, &under_vol);
+    H5Pset_vol(fapl, vol_id, NULL);
 
     hid_t float3_id = H5VL_hxhim_create_float3_type();
 
     hsize_t dims = COUNT;
     struct float3_t floats[COUNT];
     for(hsize_t i = 0; i < dims; i++) {
-        floats[i].subject   = 1 * i;
-        floats[i].predicate = 2 * i;
-        floats[i].object    = 3 * i;
+        floats[i].subject   = '0' + rank;
+        floats[i].predicate = i;
+        floats[i].object    = i * i;
     }
 
     hid_t file_id = H5Fcreate("/tmp/hxhim", H5F_ACC_TRUNC, H5P_DEFAULT, fapl);
@@ -65,6 +71,8 @@ int main() {
     /* unregister hxhim */
     H5VLunregister_connector(vol_id);
     printf("%d\n", H5VLis_connector_registered(HXHIM_VOL_CONNECTOR_NAME));
+
+    MPI_Finalize();
 
     return 0;
 }

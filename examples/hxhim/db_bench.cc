@@ -964,7 +964,7 @@ class Benchmark {
 
       const int pred = 0;//thread->rand.Next() % FLAGS_num;
       char predicate[100];
-      snprintf(predicate, 17, "%016d.", pred);
+      snprintf(predicate, 18, "%016d.", pred);
 
       hxhimGet(hx, (void *) subject, strlen(subject), (void *) predicate, strlen(predicate), HXHIM_BYTE_TYPE);
 

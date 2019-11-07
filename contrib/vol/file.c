@@ -37,24 +37,39 @@ static bool fill_options(hxhim_options_t *opts, const char * name) {
             true);
 }
 
+struct file_info_t * H5VL_hxhim_file(const char * name) {
+    /* store values into state variable that is passed around */
+    struct file_info_t * file_info = malloc(sizeof(struct file_info_t));
+
+    if (!fill_options(&file_info->opts, name)) {
+        fprintf(stderr, "%d %s fill_options\n", __LINE__, __func__);
+        hxhim_options_destroy(&file_info->opts);
+        free(file_info);
+        return NULL;
+    }
+
+    /* start up hxhim */
+    if (hxhimOpen(&file_info->hx, &file_info->opts) != HXHIM_SUCCESS) {
+        fprintf(stderr, "%d %s hxhimOpen error\n", __LINE__, __func__);
+        hxhimClose(&file_info->hx);
+        hxhim_options_destroy(&file_info->opts);
+        free(file_info);
+        return NULL;
+    }
+
+    return file_info;
+}
+
 /* H5F routines */
-void *H5VL_hxhim_file_create(const char *name, unsigned flags, hid_t fcpl_id,
-                             hid_t fapl_id, hid_t dxpl_id, void **req){
+void *H5VL_hxhim_file_create(const char *name, unsigned flags, hid_t fcpl_id, hid_t fapl_id, hid_t dxpl_id, void **req){
     /* struct info_t info; */
     /* if (H5Pget_vol_info(fapl_id, (void **)&info) < 0) { */
     /*     fprintf(stderr, "could not get info\n"); */
     /*     return NULL; */
     /* } */
 
-    struct file_info_t * info = malloc(sizeof(struct file_info_t));
-    if (!fill_options(&info->opts, name)                     ||
-        (hxhimOpen(&info->hx, &info->opts) != HXHIM_SUCCESS)) {
-        fprintf(stderr, "%d %s error\n", __LINE__, __func__);
-        return NULL;
-    }
-
     fprintf(stderr, "%d %s %p\n", __LINE__, __func__, name);
-    return info;
+    return H5VL_hxhim_file(name);
 }
 
 void *H5VL_hxhim_file_open(const char *name, unsigned flags, hid_t fapl_id, hid_t dxpl_id, void **req){
@@ -64,21 +79,15 @@ void *H5VL_hxhim_file_open(const char *name, unsigned flags, hid_t fapl_id, hid_
     /*     return NULL; */
     /* } */
 
-    struct file_info_t * info = malloc(sizeof(struct file_info_t));
-    if ((fill_options(&info->opts, name)   != HXHIM_SUCCESS) ||
-        (hxhimOpen(&info->hx, &info->opts) != HXHIM_SUCCESS)) {
-        fprintf(stderr, "%d %s error\n", __LINE__, __func__);
-        return NULL;
-    }
-
     fprintf(stderr, "%d %s %p\n", __LINE__, __func__, name);
-    return info;
+    return H5VL_hxhim_file(name);
 }
 
 herr_t H5VL_hxhim_file_close(void *file, hid_t dxpl_id, void **req){
-    struct file_info_t * info = file;
-    hxhimClose(&info->hx);
-    hxhim_options_destroy(&info->opts);
+    struct file_info_t * file_info = file;
+    hxhimClose(&file_info->hx);
+    hxhim_options_destroy(&file_info->opts);
+    free(file_info);
     fprintf(stderr, "%d %s %p\n", __LINE__, __func__, file);
     return 0;
 }

@@ -7,16 +7,13 @@
 
 /* holds arguments converted for use by the file_* callbacks */
 struct file_info_t {
-    FILE * file;
     hxhim_options_t opts;
     hxhim_t hx;
-    hid_t id;
-    void * info;
 };
 
 /* holds arguments converted for use by the dataset_* callbacks */
 struct dataset_info_t {
-    hxhim_t * hx;
+    hxhim_t *hx;
     hid_t type_id;
     hid_t space_id;
 };

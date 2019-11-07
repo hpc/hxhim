@@ -26,7 +26,7 @@ class leveldb : public Datastore {
         int StatFlush();
 
     private:
-        bool OpenImpl(const std::string &name_name);
+        bool OpenImpl(const std::string &new_name);
         void CloseImpl();
 
         Transport::Response::BPut *BPutImpl(void **subjects, std::size_t *subject_lens,

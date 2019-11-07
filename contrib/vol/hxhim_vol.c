@@ -1,7 +1,6 @@
 #include "hxhim_vol.h"
 
-#include "initialize.h"
-#include "terminate.h"
+#include "init_term.h"
 #include "info.h"
 #include "dataset.h"
 #include "file.h"

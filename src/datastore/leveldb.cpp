@@ -19,7 +19,7 @@ namespace datastore {
 
 using namespace Transport;
 
-static int recursive_mkdir(const std::string & path, const mode_t mode, const char sep = '/') {
+static int mkdir_p(const std::string & path, const mode_t mode, const char sep = '/') {
     char * copy = new char[path.size() + 1]();
     memcpy(copy, path.c_str(), path.size());
     copy[path.size()] = '\0';
@@ -37,7 +37,7 @@ static int recursive_mkdir(const std::string & path, const mode_t mode, const ch
         if (mkdir(copy, mode) != 0) {
             const int err = errno;
 
-            // ignore existing directories
+            // if the error was not caused by the path existing, error
             if (err != EEXIST) {
                 free(copy);
                 return err;
@@ -60,7 +60,7 @@ leveldb::leveldb(hxhim_t *hx,
       create_if_missing(false),
       db(nullptr), options()
 {
-    recursive_mkdir(hx->p->datastore.prefix, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    mkdir_p(hx->p->datastore.prefix, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
     if (!Datastore::Open(exact_name)) {
         throw std::runtime_error("Could not configure leveldb datastore " + exact_name);
@@ -77,7 +77,7 @@ leveldb::leveldb(hxhim_t *hx,
       create_if_missing(create_if_missing),
       db(nullptr), options()
 {
-    recursive_mkdir(hx->p->datastore.prefix, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    mkdir_p(hx->p->datastore.prefix, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
     std::stringstream s;
     s << hx->p->datastore.prefix << "/" << basename << "-" << id;

@@ -6,13 +6,21 @@ message(STATUS "HDF5_LIBRARIES=" ${HDF5_LIBRARIES})
 
 set(VOL_SOURCES
   dataset.c
+  dataset.h
   double3.c
+  double3.h
+  example.c
   file.c
+  file.h
   float3.c
+  float3.h
   hxhim_vol.c
+  hxhim_vol.h
   info.c
-  initialize.c
-  terminate.c
+  info.h
+  init_term.c
+  init_term.h
+  structs.h
 )
 
 INSTALL(FILES hxhim_vol.h DESTINATION include/vol)
