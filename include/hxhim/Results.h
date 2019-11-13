@@ -11,6 +11,38 @@ extern "C"
 {
 #endif
 
+/**
+ * Results
+ * This structure holds a linked list of all results waiting to be used by a user.
+ * A single result node contains exactly 1 set of data. Results of bulk operations
+ * are flattened when they are stored.
+ *
+ * Each result takes ownership of the pointers passed into the constructor.
+ *
+ * Usage:
+ *
+ *     hxhim_results_t *res = hxhimFlush(hx);
+ *     for(hxhim_results_goto_head(res); hxhim_results_valid(res) == HXHIM_SUCCESS; hxhim_results_goto_next(res)) {
+ *         hxhim_result_type_t type;
+ *         hxhim_results_type(res, &type);
+ *         switch (type) {
+ *             case HXHIM_RESULT_PUT:
+ *                 break;
+ *             case HXHIM_RESULT_GET:
+ *                 {
+ *                     // do stuff with get
+ *                 }
+ *                 break;
+ *             case HXHIM_RESULT_DEL:
+ *                 break;
+ *             default:
+ *                 break;
+ *         }
+ *     }
+ *     hxhim_results_destroy(res);
+ *
+ */
+
 typedef enum hxhim_result_type {
     HXHIM_RESULT_NONE,
     HXHIM_RESULT_PUT,

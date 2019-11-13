@@ -21,13 +21,13 @@ herr_t H5VL_hxhim_initialize(hid_t vipl_id) {
 
     /* make sure MPI_THREAD_MULTIPLE was provided */
     if (provided != MPI_THREAD_MULTIPLE) {
-        fprintf(stderr, "%d %s no MPI_THREAD_MULTIPLE\n", __LINE__, __func__);
+        fprintf(stderr, "%4d %s no MPI_THREAD_MULTIPLE\n", __LINE__, __func__);
         MPI_Finalize();
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    fprintf(stderr, "%d %s %d\n", __LINE__, __func__, preinitialized);
+    fprintf(stderr, "%4d %s %d\n", __LINE__, __func__, preinitialized);
     return 0;
 }
 
@@ -39,6 +39,6 @@ herr_t H5VL_hxhim_terminate(void) {
         MPI_Finalize();
     }
 
-    fprintf(stderr, "%d %s\n", __LINE__, __func__);
+    fprintf(stderr, "%4d %s\n", __LINE__, __func__);
     return 0;
 }

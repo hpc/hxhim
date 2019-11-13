@@ -12,6 +12,6 @@ void * H5VL_hxhim_info_copy(const void *info){
 
 herr_t H5VL_hxhim_info_free(void *info){
     free(info);
-    fprintf(stderr, "%d %s %p\n", __LINE__, __func__, info);
+    fprintf(stderr, "%4d %s %p\n", __LINE__, __func__, info);
     return 0;
 }

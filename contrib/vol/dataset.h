@@ -14,6 +14,8 @@ herr_t H5VL_hxhim_dataset_read(void *dset, hid_t mem_type_id, hid_t mem_space_id
                              hid_t xfer_plist_id, void * buf, void **req);
 herr_t H5VL_hxhim_dataset_write(void *dset, hid_t mem_type_id, hid_t mem_space_id, hid_t file_space_id,
                               hid_t xfer_plist_id, const void * buf, void **req);
+herr_t H5VL_hxhim_dataset_get(void *obj, H5VL_dataset_get_t get_type, hid_t dxpl_id,
+                              void **req, va_list arguments);
 herr_t H5VL_hxhim_dataset_close(void *dset, hid_t dxpl_id, void **req);
 
 #endif

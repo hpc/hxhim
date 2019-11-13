@@ -5,17 +5,33 @@
 
 #include "hxhim_vol.h"
 
+struct under_info_t {
+    hid_t id;
+};
+
 /* holds arguments converted for use by the file_* callbacks */
 struct file_info_t {
+    struct under_info_t * under_vol;
+    hid_t fapl_id;
+    hid_t dxpl_id;
+
     hxhim_options_t opts;
     hxhim_t hx;
 };
 
 /* holds arguments converted for use by the dataset_* callbacks */
 struct dataset_info_t {
-    hxhim_t *hx;
+    struct file_info_t * file;
+    char * group;
+    size_t group_len;
+    char * dataset;
+    size_t dataset_len;
+    hid_t lcpl_id;
     hid_t type_id;
     hid_t space_id;
+    hid_t dcpl_id;
+    hid_t dapl_id;
+    hid_t dxpl_id;
 };
 
 struct float3_t {

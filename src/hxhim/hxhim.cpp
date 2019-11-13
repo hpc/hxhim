@@ -248,6 +248,12 @@ hxhim_results_t *hxhimFlushPuts(hxhim_t *hx) {
  */
 static hxhim::Results *get_core(hxhim_t *hx,
                                 hxhim::GetData *head) {
+    mlog(HXHIM_CLIENT_DBG, "Start get_core");
+
+    if (!head) {
+        return nullptr;
+    }
+
     // serialized results
     hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
 
@@ -383,6 +389,12 @@ hxhim_results_t *hxhimFlushGets(hxhim_t *hx) {
  */
 static hxhim::Results *getop_core(hxhim_t *hx,
                                   hxhim::GetOpData *head) {
+    mlog(HXHIM_CLIENT_DBG, "Start getopt_core");
+
+    if (!head) {
+        return nullptr;
+    }
+
     // serialized results
     hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
 
@@ -518,6 +530,12 @@ hxhim_results_t *hxhimFlushGetOps(hxhim_t *hx) {
  */
 static hxhim::Results *delete_core(hxhim_t *hx,
                                    hxhim::DeleteData *head) {
+    mlog(HXHIM_CLIENT_DBG, "Start delete_core");
+
+    if (!head) {
+        return nullptr;
+    }
+
     // serialized results
     hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
 

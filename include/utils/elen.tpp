@@ -55,7 +55,7 @@ std::string integers(const T value, const char neg, const char pos) {
 
 template <typename T,
           typename Cond = enable_if_t<std::is_floating_point<T>::value> >
-std::string small_decimals_digits(const T value, const int precision, const char neg, const char pos) {
+std::string small_decimals_digits(const T value, const int precision) {
     if (value == 0) {
         return "0";
     }
@@ -83,7 +83,7 @@ std::string small_decimals_digits(const T value, const int precision, const char
 template <typename T,
           typename Cond>
 std::string small_decimals(const T value, const int precision, const char neg, const char pos) {
-    std::string out = small_decimals_digits<T, std::true_type>(value, precision, neg, pos);
+    std::string out = small_decimals_digits<T, std::true_type>(value, precision);
 
     if (value < 0) {
         out = neg + out + pos;
@@ -127,7 +127,7 @@ std::string large_decimals(const T value, const int precision, const char neg, c
         }
     }
     if (decimal != 0){
-        out += small_decimals_digits<T, std::true_type>(decimal, precision, neg, pos);
+        out += small_decimals_digits<T, std::true_type>(decimal, precision);
     }
 
     if (value < 0) {
@@ -176,7 +176,7 @@ std::string floating_point(const T value, const int precision, const char neg, c
     }
 
     if (mantissa != 0) {
-        out += small_decimals_digits<T, std::true_type>(mantissa, precision, neg, pos);
+        out += small_decimals_digits<T, std::true_type>(mantissa, precision);
     }
 
     if (value < 0) {
@@ -223,7 +223,7 @@ static std::size_t get_prefix_count(const char prefix, const std::string &str, c
 
 template <typename T,
           typename = enable_if_t<std::is_integral<T>::value> >
-T next(const char prefix, const std::string &str, std::size_t &position, const T &len, const char neg, const char pos) {
+T next(const char prefix, const std::string &str, std::size_t &position, const T &len, const char neg) {
     // read the next series of digits
     std::string str_len = str.substr(position, len);
 
@@ -270,7 +270,7 @@ T integers(const std::string &str, std::size_t* prefix_len, const char neg, cons
     std::size_t position = prefix_count;
     std::size_t len = 1;
     for(std::size_t i = 0; i < prefix_count - 1; i++) {
-        len = next<std::size_t, std::true_type>(prefix, str, position, len, neg, pos);
+        len = next<std::size_t, std::true_type>(prefix, str, position, len, neg);
     }
 
     if (prefix_len) {
@@ -278,7 +278,7 @@ T integers(const std::string &str, std::size_t* prefix_len, const char neg, cons
     }
 
     // read the final value
-    T out = next<T, std::true_type>(prefix, str, position, len, neg, pos);
+    T out = next<T, std::true_type>(prefix, str, position, len, neg);
     if (prefix == neg) {
         out = -out;
     }
@@ -352,11 +352,11 @@ T large_decimals(const std::string &str, const char neg, const char pos) {
 
     std::size_t len = 1;
     for(std::size_t i = 0; i < prefix_count - 1; i++) {
-        len = next<std::size_t, std::true_type>(prefix, str, position, len, neg, pos);
+        len = next<std::size_t, std::true_type>(prefix, str, position, len, neg);
     }
 
     // the final section is the integral value
-    integer = next<int, std::true_type>(prefix, str, position, len, neg, pos);
+    integer = next<int, std::true_type>(prefix, str, position, len, neg);
 
     T out = integer;
     if (prefix == neg) {
@@ -416,11 +416,11 @@ T floating_point(const std::string &str, const char neg, const char pos) {
         position = prefix_count;
         std::size_t len = 1;
         for(std::size_t i = 0; i < prefix_count - 1; i++) {
-            len = next<std::size_t, std::true_type>(prefix, wo_sign, position, len, neg, pos);
+            len = next<std::size_t, std::true_type>(prefix, wo_sign, position, len, neg);
         }
 
         // the final section is the integral exponent value
-        exp = next<int, std::true_type>(prefix, wo_sign, position, len, neg, pos);
+        exp = next<int, std::true_type>(prefix, wo_sign, position, len, neg);
         if (prefix == neg) {
             exp = -exp;
         }

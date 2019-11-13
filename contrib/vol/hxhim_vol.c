@@ -43,7 +43,7 @@ static const H5VL_class_t hxhim_vol_g = {
         H5VL_hxhim_dataset_open,                    /* open         */
         H5VL_hxhim_dataset_read,                    /* read         */
         H5VL_hxhim_dataset_write,                   /* write        */
-        NULL,                                       /* get          */
+        H5VL_hxhim_dataset_get,                     /* get          */
         NULL,                                       /* specific     */
         NULL,                                       /* optional     */
         H5VL_hxhim_dataset_close                    /* close        */
@@ -60,7 +60,7 @@ static const H5VL_class_t hxhim_vol_g = {
         H5VL_hxhim_file_create,                     /* create       */
         H5VL_hxhim_file_open,                       /* open         */
         NULL,                                       /* get          */
-        NULL,                                       /* specific     */
+        H5VL_hxhim_file_specific,                   /* specific     */
         NULL,                                       /* optional     */
         H5VL_hxhim_file_close                       /* close        */
     },

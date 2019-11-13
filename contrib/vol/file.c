@@ -37,12 +37,12 @@ static bool fill_options(hxhim_options_t *opts, const char * name) {
             true);
 }
 
-struct file_info_t * H5VL_hxhim_file(const char * name) {
+struct file_info_t * H5VL_hxhim_file(const char * name, struct under_info_t * info, hid_t fapl_id, hid_t dxpl_id) {
     /* store values into state variable that is passed around */
     struct file_info_t * file_info = malloc(sizeof(struct file_info_t));
 
     if (!fill_options(&file_info->opts, name)) {
-        fprintf(stderr, "%d %s fill_options\n", __LINE__, __func__);
+        fprintf(stderr, "%4d %s fill_options\n", __LINE__, __func__);
         hxhim_options_destroy(&file_info->opts);
         free(file_info);
         return NULL;
@@ -50,44 +50,83 @@ struct file_info_t * H5VL_hxhim_file(const char * name) {
 
     /* start up hxhim */
     if (hxhimOpen(&file_info->hx, &file_info->opts) != HXHIM_SUCCESS) {
-        fprintf(stderr, "%d %s hxhimOpen error\n", __LINE__, __func__);
+        fprintf(stderr, "%4d %s hxhimOpen error\n", __LINE__, __func__);
         hxhimClose(&file_info->hx);
         hxhim_options_destroy(&file_info->opts);
         free(file_info);
         return NULL;
     }
 
+    file_info->under_vol = info;
+    file_info->fapl_id = fapl_id;
+    file_info->dxpl_id = dxpl_id;
+
     return file_info;
 }
 
 /* H5F routines */
-void *H5VL_hxhim_file_create(const char *name, unsigned flags, hid_t fcpl_id, hid_t fapl_id, hid_t dxpl_id, void **req){
-    /* struct info_t info; */
-    /* if (H5Pget_vol_info(fapl_id, (void **)&info) < 0) { */
-    /*     fprintf(stderr, "could not get info\n"); */
-    /*     return NULL; */
-    /* } */
+void *H5VL_hxhim_file_create(const char *name, unsigned flags, hid_t fcpl_id, hid_t fapl_id, hid_t dxpl_id, void **req) {
+    struct under_info_t * info = NULL;
+    if (H5Pget_vol_info(fapl_id, (void **)&info) < 0) {
+        fprintf(stderr, "could not get info\n");
+        return NULL;
+    }
 
-    fprintf(stderr, "%d %s %p\n", __LINE__, __func__, name);
-    return H5VL_hxhim_file(name);
+    struct file_info_t * ret = H5VL_hxhim_file(name, info, fapl_id, dxpl_id);
+    fprintf(stderr, "%4d %s    %p %s %d\n", __LINE__, __func__, ret, name, info->id);
+    return ret;
 }
 
-void *H5VL_hxhim_file_open(const char *name, unsigned flags, hid_t fapl_id, hid_t dxpl_id, void **req){
-    /* struct file_info_t info; */
-    /* if (H5Pget_vol_info(fapl_id, (void **)&info) < 0) { */
-    /*     fprintf(stderr, "could not get info\n"); */
-    /*     return NULL; */
-    /* } */
+void *H5VL_hxhim_file_open(const char *name, unsigned flags, hid_t fapl_id, hid_t dxpl_id, void **req) {
+    struct under_info_t * info = NULL;
+    if (H5Pget_vol_info(fapl_id, (void **)&info) < 0) {
+        fprintf(stderr, "could not get info\n");
+        return NULL;
+    }
 
-    fprintf(stderr, "%d %s %p\n", __LINE__, __func__, name);
-    return H5VL_hxhim_file(name);
+    void * ret = H5VL_hxhim_file(name, info, fapl_id, dxpl_id);
+    fprintf(stderr, "%4d %s      %p %s %d\n", __LINE__, __func__, ret, name, info->id);
+    return ret;
 }
 
-herr_t H5VL_hxhim_file_close(void *file, hid_t dxpl_id, void **req){
+herr_t H5VL_hxhim_file_specific(void *obj, H5VL_file_specific_t specific_type, hid_t dxpl_id, void **req, va_list arguments) {
+    fprintf(stderr, "%4d %s  %p\n", __LINE__, __func__, obj);
+
+    struct file_info_t * file_info = obj;
+
+    switch (specific_type) {
+        case H5VL_FILE_POST_OPEN:                    /* Adjust file after open: with wrapping context */
+            fprintf(stderr, "         post open\n");
+            break;
+        case H5VL_FILE_FLUSH:                        /* Flush file                       */
+            hxhimFlush(&file_info->hx);
+            fprintf(stderr, "         flush\n");
+            break;
+        case H5VL_FILE_REOPEN:                       /* Reopen the file                  */
+            fprintf(stderr, "         reopen\n");
+            break;
+        case H5VL_FILE_MOUNT:                        /* Mount a file                     */
+            fprintf(stderr, "         mount\n");
+            break;
+        case H5VL_FILE_UNMOUNT:                      /* Unmount a file                   */
+            fprintf(stderr, "         unmount\n");
+            break;
+        case H5VL_FILE_IS_ACCESSIBLE:                /* Check if a file is accessible    */
+            fprintf(stderr, "         is_accessible\n");
+            break;
+        case H5VL_FILE_DELETE:                       /* Delete a file                    */
+            fprintf(stderr, "         delete\n");
+            break;
+    }
+
+    return 0;
+}
+
+herr_t H5VL_hxhim_file_close(void *file, hid_t dxpl_id, void **req) {
     struct file_info_t * file_info = file;
     hxhimClose(&file_info->hx);
     hxhim_options_destroy(&file_info->opts);
     free(file_info);
-    fprintf(stderr, "%d %s %p\n", __LINE__, __func__, file);
+    fprintf(stderr, "%4d %s     %p\n", __LINE__, __func__, file);
     return 0;
 }
