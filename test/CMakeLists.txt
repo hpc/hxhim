@@ -38,7 +38,7 @@ add_subdirectory(hxhim)
 add_subdirectory(transport)
 add_subdirectory(utils)
 
-add_executable(googletests main.cpp ${HXHIM_TEST_SRC} ${TRANSPORT_TEST_SRC} ${UTIL_TEST_SRC})
+add_executable(googletests main.cpp ${HXHIM_TEST_SRC} ${TRANSPORT_TEST_SRC} ${UTILS_TEST_SRC})
 target_include_directories(googletests SYSTEM BEFORE PRIVATE ${CMAKE_BINARY_DIR}/include ${CMAKE_SOURCE_DIR}/include)
 target_link_libraries(googletests hxhim.a gtest ${MPI_CXX_LIBRARIES} ${THALLIUM_LDFLAGS} ${LEVELDB_LDFLAGS} pthread m)
 add_test(googletest ./googletests)

@@ -14,10 +14,9 @@ static inline void flip(std::string &str) {
 namespace encode {
 
 // Chapter 2.3 Uniqueness
-template <const char neg = N, const char pos = P,
-          typename T,
-          typename Cond = enable_if_t<(neg < '0') && (pos > '9') && std::is_integral<T>::value> >
-std::string unique(const T value, const char prefix) {
+template <typename T,
+          typename Cond = enable_if_t<std::is_integral<T>::value> >
+std::string unique(const T value, const char prefix, const char neg, const char pos) {
     if (value == 0) {
         return "0";
     }
@@ -29,7 +28,7 @@ std::string unique(const T value, const char prefix) {
 
     std::string str = std::to_string(value);
     if (str.size() > 1) {
-        out += unique<neg, pos, T, Cond>(str.size(), prefix);
+        out += unique<T, Cond>(str.size(), prefix, neg, pos);
     }
 
     // negatives get their digits flipped
@@ -41,24 +40,22 @@ std::string unique(const T value, const char prefix) {
 }
 
 // Chapter 3 Integers
-template <const char neg, const char pos,
-          typename T,
+template <typename T,
           typename Cond>
-std::string integers(const T value) {
+std::string integers(const T value, const char neg, const char pos) {
     if (value < 0) {
-        return unique<neg, pos, T, Cond>(-value, neg);
+        return unique<T, Cond>(-value, neg, neg, pos);
     }
     else if (value > 0) {
-        return unique<neg, pos, T, Cond>(value, pos);
+        return unique<T, Cond>(value, pos, neg, pos);
     }
 
     return "0";
 }
 
-template <const char neg = N, const char pos = P,
-          typename T,
-          typename Cond = enable_if_t<(neg < '0') && (pos > '9') && std::is_floating_point<T>::value> >
-std::string small_decimals_digits(const T value, const int precision) {
+template <typename T,
+          typename Cond = enable_if_t<std::is_floating_point<T>::value> >
+std::string small_decimals_digits(const T value, const int precision, const char neg, const char pos) {
     if (value == 0) {
         return "0";
     }
@@ -83,11 +80,10 @@ std::string small_decimals_digits(const T value, const int precision) {
 }
 
 // Chapter 4 Small Decimals
-template <const char neg, const char pos,
-          typename T,
+template <typename T,
           typename Cond>
-std::string small_decimals(const T value, const int precision) {
-    std::string out = small_decimals_digits<neg, pos, T, std::true_type>(value, precision);
+std::string small_decimals(const T value, const int precision, const char neg, const char pos) {
+    std::string out = small_decimals_digits<T, std::true_type>(value, precision, neg, pos);
 
     if (value < 0) {
         out = neg + out + pos;
@@ -100,10 +96,9 @@ std::string small_decimals(const T value, const int precision) {
 }
 
 // Chapter 5 Large Decimals
-template <const char neg, const char pos,
-          typename T,
+template <typename T,
           typename Cond>
-std::string large_decimals(const T value, const int precision) {
+std::string large_decimals(const T value, const int precision, const char neg, const char pos) {
     if (value == 0) {
         return "0";
     }
@@ -121,7 +116,7 @@ std::string large_decimals(const T value, const int precision) {
 
     std::string out;
     if (integer != 0) {
-        out = integers<neg, pos, int, std::true_type>(integer);
+        out = integers<int, std::true_type>(integer, neg, pos);
     }
     else {
         if (value < 0) {
@@ -132,7 +127,7 @@ std::string large_decimals(const T value, const int precision) {
         }
     }
     if (decimal != 0){
-        out += small_decimals_digits<neg, pos, T, std::true_type>(decimal, precision);
+        out += small_decimals_digits<T, std::true_type>(decimal, precision, neg, pos);
     }
 
     if (value < 0) {
@@ -154,10 +149,9 @@ R frexp10(const R arg, Z *exp) {
 }
 
 // Chapter 6 Floating Pointer Numbers
-template <const char neg, const char pos,
-          typename T,
+template <typename T,
           typename Cond>
-std::string floating_point(const T value, const int precision) {
+std::string floating_point(const T value, const int precision, const char neg, const char pos) {
     if (value == 0) {
         return "0";
     }
@@ -175,14 +169,14 @@ std::string floating_point(const T value, const int precision) {
     }
 
     if (exp != 0) {
-        out += integers<neg, pos, int, std::true_type>(exp);
+        out += integers<int, std::true_type>(exp, neg, pos);
     }
     else {
         out += "0";
     }
 
     if (mantissa != 0) {
-        out += small_decimals_digits<neg, pos, T, std::true_type>(mantissa, precision);
+        out += small_decimals_digits<T, std::true_type>(mantissa, precision, neg, pos);
     }
 
     if (value < 0) {
@@ -199,9 +193,7 @@ std::string floating_point(const T value, const int precision) {
 
 namespace decode {
 
-template <const char neg = N, const char pos = P,
-          typename = enable_if_t<(neg < '0') && (pos > '9')> >
-std::size_t get_prefix_count(const char prefix, const std::string &str) {
+static std::size_t get_prefix_count(const char prefix, const std::string &str, const char neg, const char pos) {
     if (str[0] == '0') {
         return 0;
     }
@@ -230,9 +222,8 @@ std::size_t get_prefix_count(const char prefix, const std::string &str) {
 }
 
 template <typename T,
-          const char neg = N, const char pos = P,
-          typename = enable_if_t<std::is_integral<T>::value && (neg < '0') && (pos > '9')> >
-T next(const char prefix, const std::string &str, std::size_t &position, const T &len) {
+          typename = enable_if_t<std::is_integral<T>::value> >
+T next(const char prefix, const std::string &str, std::size_t &position, const T &len, const char neg, const char pos) {
     // read the next series of digits
     std::string str_len = str.substr(position, len);
 
@@ -257,9 +248,8 @@ T next(const char prefix, const std::string &str, std::size_t &position, const T
 
 // Chapter 3 Integers
 template <typename T,
-          const char neg, const char pos,
           typename Cond>
-T integers(const std::string &str, std::size_t* prefix_len) {
+T integers(const std::string &str, std::size_t* prefix_len, const char neg, const char pos) {
     if (str.size() == 0) {
         throw std::runtime_error("Empty string");
     }
@@ -274,13 +264,13 @@ T integers(const std::string &str, std::size_t* prefix_len) {
     }
 
     const char prefix = str[0];
-    const std::size_t prefix_count = get_prefix_count<pos, neg, std::true_type>(prefix, str);
+    const std::size_t prefix_count = get_prefix_count(prefix, str, pos, neg);
 
     // read the encoded lengths
     std::size_t position = prefix_count;
     std::size_t len = 1;
     for(std::size_t i = 0; i < prefix_count - 1; i++) {
-        len = next<std::size_t, neg, pos, std::true_type>(prefix, str, position, len);
+        len = next<std::size_t, std::true_type>(prefix, str, position, len, neg, pos);
     }
 
     if (prefix_len) {
@@ -288,7 +278,7 @@ T integers(const std::string &str, std::size_t* prefix_len) {
     }
 
     // read the final value
-    T out = next<T, neg, pos, std::true_type>(prefix, str, position, len);
+    T out = next<T, std::true_type>(prefix, str, position, len, neg, pos);
     if (prefix == neg) {
         out = -out;
     }
@@ -298,9 +288,8 @@ T integers(const std::string &str, std::size_t* prefix_len) {
 
 // Chapter 4 Small Decimals
 template <typename T,
-          const char neg, const char pos,
           typename Cond>
-T small_decimals(const std::string &str) {
+T small_decimals(const std::string &str, const char neg, const char pos) {
     if (str.size() == 0) {
         throw std::runtime_error("Empty string");
     }
@@ -337,9 +326,8 @@ T small_decimals(const std::string &str) {
 
 // Chapter 5 Large Decimals
 template <typename T,
-          const char neg, const char pos,
           typename Cond>
-T large_decimals(const std::string &str) {
+T large_decimals(const std::string &str, const char neg, const char pos) {
     if (str.size() == 0) {
         throw std::runtime_error("Empty string");
     }
@@ -359,16 +347,16 @@ T large_decimals(const std::string &str) {
 
     int integer = 0;
     const char prefix = str[0];
-    const std::size_t prefix_count = get_prefix_count<neg, pos, std::true_type>(prefix, str);
+    const std::size_t prefix_count = get_prefix_count(prefix, str, neg, pos);
     std::size_t position = prefix_count;
 
     std::size_t len = 1;
     for(std::size_t i = 0; i < prefix_count - 1; i++) {
-        len = next<std::size_t, neg, pos, std::true_type>(prefix, str, position, len);
+        len = next<std::size_t, std::true_type>(prefix, str, position, len, neg, pos);
     }
 
     // the final section is the integral value
-    integer = next<int, neg, pos, std::true_type>(prefix, str, position, len);
+    integer = next<int, std::true_type>(prefix, str, position, len, neg, pos);
 
     T out = integer;
     if (prefix == neg) {
@@ -377,7 +365,7 @@ T large_decimals(const std::string &str) {
 
     // read the decimal part, if there is one
     if (position != str.size() - 1) {
-        out += small_decimals<T, neg, pos, std::true_type>(prefix + str.substr(position, str.size() - position));
+        out += small_decimals<T, std::true_type>(prefix + str.substr(position, str.size() - position), neg, pos);
     }
 
     return out;
@@ -385,9 +373,8 @@ T large_decimals(const std::string &str) {
 
 // Chapter 6 Floating Pointer Numbers
 template <typename T,
-          const char neg, const char pos,
           typename Cond>
-T floating_point(const std::string &str) {
+T floating_point(const std::string &str, const char neg, const char pos) {
     if (str.size() == 0) {
         throw std::runtime_error("Empty string");
     }
@@ -420,7 +407,7 @@ T floating_point(const std::string &str) {
     int exp = 0;
     const std::string wo_sign = str.substr(1, str.size() - 1);
     const char prefix = wo_sign[0];
-    const std::size_t prefix_count = get_prefix_count<neg, pos, std::true_type>(prefix, wo_sign);
+    const std::size_t prefix_count = get_prefix_count(prefix, wo_sign, neg, pos);
     std::size_t position = prefix_count;
 
     // only decode exponent portion if the exponent is not 0
@@ -429,11 +416,11 @@ T floating_point(const std::string &str) {
         position = prefix_count;
         std::size_t len = 1;
         for(std::size_t i = 0; i < prefix_count - 1; i++) {
-            len = next<std::size_t, neg, pos, std::true_type>(prefix, wo_sign, position, len);
+            len = next<std::size_t, std::true_type>(prefix, wo_sign, position, len, neg, pos);
         }
 
         // the final section is the integral exponent value
-        exp = next<int, neg, pos, std::true_type>(prefix, wo_sign, position, len);
+        exp = next<int, std::true_type>(prefix, wo_sign, position, len, neg, pos);
         if (prefix == neg) {
             exp = -exp;
         }
@@ -446,7 +433,7 @@ T floating_point(const std::string &str) {
 
     // read the decimal part, if there is one
     if (position != str.size() - 1) {
-        mantissa = small_decimals<T, neg, pos, std::true_type>(sign + wo_sign.substr(position, wo_sign.size() - position));
+        mantissa = small_decimals<T, std::true_type>(sign + wo_sign.substr(position, wo_sign.size() - position), neg, pos);
     }
 
     return std::pow(10, ((sign == neg)?-1:1) * exp) * mantissa;
@@ -454,16 +441,4 @@ T floating_point(const std::string &str) {
 
 }
 
-}
-
-/**
- * lex_comp::operator()
- * Helper function for std::lexicographical_compare.
- *
- * @param lhs the string on the left hand side
- * @param rhs the string on the right hand side
- * @return whether or not lhs comes before rhs
- */
-bool lex_comp(const std::string &lhs, const std::string &rhs) {
-    return std::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
 }

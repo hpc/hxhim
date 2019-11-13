@@ -1,11 +1,10 @@
-#ifndef EFFICIENT_LEXICOGRAPHIC_ENCODING_OF_NUMBERS
-#define EFFICIENT_LEXICOGRAPHIC_ENCODING_OF_NUMBERS
+#ifndef EFFICIENT_LEXICOGRAPHIC_ENCODING_OF_NUMBERS_HPP
+#define EFFICIENT_LEXICOGRAPHIC_ENCODING_OF_NUMBERS_HPP
 
 // Efficient Lexicographic Encoding of Numbers
 // Peter Seymour
 // https://github.com/jordanorelli/lexnum
 
-#include <algorithm>
 #include <cmath>
 #include <iomanip>
 #include <sstream>
@@ -24,54 +23,46 @@ namespace elen {
 
     namespace encode {
         // Chapter 3 Integers
-        template <const char neg = N, const char pos = P,
-                  typename T,
-                  typename = enable_if_t<(neg < '0') && (pos > '9') && std::is_integral<T>::value> >
-        std::string integers(const T value);
+        template <typename T,
+                  typename = enable_if_t<std::is_integral<T>::value> >
+        std::string integers(const T value, const char neg = N, const char pos = P);
 
         // Chapter 4 Small Decimals
-        template <const char neg = N, const char pos = P,
-                  typename T,
-                  typename = enable_if_t<(neg < '0') && (pos > '9') && std::is_floating_point<T>::value> >
-        std::string small_decimals(const T value, const int precision = 2 * sizeof(T));
+        template <typename T,
+                  typename = enable_if_t<std::is_floating_point<T>::value> >
+        std::string small_decimals(const T value, const int precision = 2 * sizeof(T), const char neg = N, const char pos = P);
 
         // Chapter 5 Large Decimals
-        template <const char neg = N, const char pos = P,
-                  typename T,
-                  typename = enable_if_t<(neg < '0') && (pos > '9') && std::is_floating_point<T>::value> >
-        std::string large_decimals(const T value, const int precision = 2 * sizeof(T));
+        template <typename T,
+                  typename = enable_if_t<std::is_floating_point<T>::value> >
+        std::string large_decimals(const T value, const int precision = 2 * sizeof(T), const char neg = N, const char pos = P);
 
         // Chapter 6 Floating Pointer Numbers
-        template <const char neg = N, const char pos = P,
-                  typename T,
-                  typename = enable_if_t<(neg < '0') && (pos > '9') && std::is_floating_point<T>::value> >
-        std::string floating_point(const T value, const int precision = 2 * sizeof(T));
+        template <typename T,
+                  typename = enable_if_t<std::is_floating_point<T>::value> >
+        std::string floating_point(const T value, const int precision = 2 * sizeof(T), const char neg = N, const char pos = P);
     }
 
     namespace decode {
         // Chapter 3 Integers
         template <typename T,
-                  const char neg = N, const char pos = P,
-                  typename = enable_if_t<std::is_integral<T>::value && (neg < '0') && (pos > '9')> >
-        T integers(const std::string &str, std::size_t* prefix_len = nullptr);
+                  typename = enable_if_t<std::is_integral<T>::value> >
+        T integers(const std::string &str, std::size_t* prefix_len = nullptr, const char neg = N, const char pos = P);
 
         // Chapter 4 Small Decimals
         template <typename T,
-                  const char neg = N, const char pos = P,
-                  typename = enable_if_t<std::is_floating_point<T>::value && (neg < '0') && (pos > '9')> >
-        T small_decimals(const std::string &str);
+                  typename = enable_if_t<std::is_floating_point<T>::value> >
+        T small_decimals(const std::string &str, const char neg = N, const char pos = P);
 
         // Chapter 5 Large Decimals
         template <typename T,
-                  const char neg = N, const char pos = P,
-                  typename = enable_if_t<std::is_floating_point<T>::value && (neg < '0') && (pos > '9')> >
-        T large_decimals(const std::string &str);
+                  typename = enable_if_t<std::is_floating_point<T>::value> >
+        T large_decimals(const std::string &str, const char neg = N, const char pos = P);
 
         // Chapter 6 Floating Pointer Numbers
         template <typename T,
-                  const char neg = N, const char pos = P,
-                  typename = enable_if_t<std::is_floating_point<T>::value && (neg < '0') && (pos > '9')> >
-        T floating_point(const std::string &str);
+                  typename = enable_if_t<std::is_floating_point<T>::value> >
+        T floating_point(const std::string &str, const char neg = N, const char pos = P);
     }
 }
 

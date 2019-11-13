@@ -6,6 +6,7 @@ set(HEADERS
   FixedBufferPoolImpl.tpp
   Histogram.h
   Histogram.hpp
+  elen.h
   elen.hpp
   elen.tpp
   enable_if_t.hpp
