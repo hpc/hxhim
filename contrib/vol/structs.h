@@ -22,16 +22,15 @@ struct file_info_t {
 /* holds arguments converted for use by the dataset_* callbacks */
 struct dataset_info_t {
     struct file_info_t * file;
-    char * group;
-    size_t group_len;
-    char * dataset;
-    size_t dataset_len;
-    hid_t lcpl_id;
+    /* subject is just the full path of the dataset */
+    char * subject;
+    size_t subject_len;
+    // hid_t lcpl_id;
     hid_t type_id;
     hid_t space_id;
-    hid_t dcpl_id;
-    hid_t dapl_id;
-    hid_t dxpl_id;
+    // hid_t dcpl_id;
+    // hid_t dapl_id;
+    // hid_t dxpl_id;
 };
 
 struct float3_t {

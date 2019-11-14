@@ -15,7 +15,7 @@ static bool fill_options(hxhim_options_t *opts, const char * name) {
             (hxhim_options_set_datastore_leveldb(opts, rank, name, 1)             == HXHIM_SUCCESS) &&
             (hxhim_options_set_transport_thallium(opts, "na+sm")                  == HXHIM_SUCCESS) &&
             (hxhim_options_set_hash_name(opts, "MY_RANK")                         == HXHIM_SUCCESS) &&
-            (hxhim_options_set_keys_alloc_size(opts, 32)                          == HXHIM_SUCCESS) &&
+            (hxhim_options_set_keys_alloc_size(opts, 64)                          == HXHIM_SUCCESS) &&
             (hxhim_options_set_keys_regions(opts, 1)                              == HXHIM_SUCCESS) &&
             (hxhim_options_set_buffers_alloc_size(opts, 16)                       == HXHIM_SUCCESS) &&
             (hxhim_options_set_buffers_regions(opts, 1)                           == HXHIM_SUCCESS) &&

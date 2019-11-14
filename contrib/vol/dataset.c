@@ -5,45 +5,47 @@
 #include <stdlib.h>
 #include <string.h>
 
-static int find_components(struct dataset_info_t * dataset_info, const char * name, const char sep) {
-    if (!dataset_info || !name) {
-        return -1;
+static char PREFIX[] = "HDF5_DS_";
+static size_t PREFIX_LEN = (sizeof(PREFIX) - 1);
+
+const char * get_type_name(hid_t type_id) {
+    char * out = NULL;
+    switch (H5Tget_class(type_id)) {
+        case H5T_INTEGER:
+            out = "H5T_INTEGER";
+            break;
+        case H5T_FLOAT:
+            out = "H5T_FLOAT";
+            break;
+        case H5T_STRING:
+            out = "H5T_STRING";
+            break;
+        case H5T_BITFIELD:
+            out = "H5T_BITFIELD";
+            break;
+        case H5T_OPAQUE:
+            out = "H5T_OPAQUE";
+            break;
+        case H5T_COMPOUND:
+            out = "H5T_COMPOUND";
+            break;
+        case H5T_REFERENCE:
+            out = "H5T_REFERENCE";
+            break;
+        case H5T_ENUM:
+            out = "H5T_ENUM";
+            break;
+        case H5T_VLEN:
+            out = "H5T_VLEN";
+            break;
+        case H5T_ARRAY:
+            out = "H5T_ARRAY";
+            break;
+        default:
+            out = "other class";
+            break;
     }
-
-    const size_t len = strlen(name);
-
-    /* ignore trailing separators */
-    size_t i = len;
-    while (i && (name[i] == sep)) {
-        i--;
-    }
-
-    if (!i) {
-        return -1;
-    }
-
-    /* find next separator */
-    while (i && (name[i] != sep)) {
-        i--;
-    }
-
-    /* copy out the group name */
-    if (!(dataset_info->group = malloc(i + 1))) {
-        return -1;
-    }
-    dataset_info->group_len = i;
-    memcpy(dataset_info->group, name, dataset_info->group_len);
-    dataset_info->group[dataset_info->group_len] = '\0';
-
-    /* copy out the dataset name */
-    i++;
-    if (!(dataset_info->dataset = malloc(len - i + 1))) {
-        return -1;
-    }
-    dataset_info->dataset_len = len - i;
-    memcpy(dataset_info->dataset, &name[i], dataset_info->dataset_len);
-
-    return 0;
+    return out;
 }
 
 /* H5D routines */
@@ -55,59 +57,24 @@ void *H5VL_hxhim_dataset_create(void *obj, const H5VL_loc_params_t *loc_params, 
     /* store values into state variable that is passed around */
     struct dataset_info_t * dataset_info = malloc(sizeof(struct dataset_info_t));
     dataset_info->file = obj;
-    find_components(dataset_info, name, '/');
-    dataset_info->lcpl_id = lcpl_id;
-    dataset_info->type_id = type_id;
-    dataset_info->space_id = space_id;
-    dataset_info->dcpl_id = dcpl_id;
-    dataset_info->dapl_id = dapl_id;
-    dataset_info->dxpl_id = dxpl_id;
-
+    dataset_info->subject_len = PREFIX_LEN + strlen(name);
+    dataset_info->subject = malloc(dataset_info->subject_len + 1);
+    snprintf(dataset_info->subject, dataset_info->subject_len + 1, "%s%s", PREFIX, name);
+    /* dataset_info->lcpl_id = lcpl_id; */
     /* dataset_info->type_id = type_id; */
+    /* dataset_info->space_id = space_id; */
+    /* dataset_info->dcpl_id = dcpl_id; */
+    /* dataset_info->dapl_id = dapl_id; */
+    /* dataset_info->dxpl_id = dxpl_id; */
+
+    dataset_info->type_id = type_id;
     dataset_info->space_id = space_id;
 
     const hsize_t dims = H5Sget_simple_extent_ndims(space_id);
     hsize_t * maxdims = malloc(dims * sizeof(hsize_t));
     H5Sget_simple_extent_dims(space_id, NULL, maxdims);
 
-    fprintf(stderr, "%4d %s %p %s ", __LINE__, __func__, dataset_info, name);
-
-    switch (H5Tget_class(type_id)) {
-        case H5T_INTEGER:
-            fprintf(stderr, "H5T_INTEGER");
-            break;
-        case H5T_FLOAT:
-            fprintf(stderr, "H5T_FLOAT");
-            break;
-        case H5T_STRING:
-            fprintf(stderr, "H5T_STRING");
-            break;
-        case H5T_BITFIELD:
-            fprintf(stderr, "H5T_BITFIELD");
-            break;
-        case H5T_OPAQUE:
-            fprintf(stderr, "H5T_OPAQUE");
-            break;
-        case H5T_COMPOUND:
-            fprintf(stderr, "H5T_COMPOUND");
-            break;
-        case H5T_REFERENCE:
-            fprintf(stderr, "H5T_REFERENCE");
-            break;
-        case H5T_ENUM:
-            fprintf(stderr, "H5T_ENUM");
-            break;
-        case H5T_VLEN:
-            fprintf(stderr, "H5T_VLEN");
-            break;
-        case H5T_ARRAY:
-            fprintf(stderr, "H5T_ARRAY");
-            break;
-        default:
-            fprintf(stderr, "other class");
-            break;
-    }
-
+    fprintf(stderr, "%4d %s %p %s %s ", __LINE__, __func__, dataset_info, name, get_type_name(type_id));
     fprintf(stderr, " (%zu bytes) dims: %lld [ ", H5Tget_size(type_id), dims);
     for(hsize_t i = 0; i < dims; i++) {
         fprintf(stderr, "%lld ", maxdims[i]);
@@ -122,7 +89,9 @@ void *H5VL_hxhim_dataset_open(void *obj, const H5VL_loc_params_t *loc_params, co
                               hid_t dapl_id, hid_t dxpl_id, void **req){
     struct dataset_info_t * dataset_info = malloc(sizeof(struct dataset_info_t));
     dataset_info->file = obj;
-    find_components(dataset_info, name, '/');
+    dataset_info->subject_len = PREFIX_LEN + strlen(name);
+    dataset_info->subject = malloc(dataset_info->subject_len + 1);
+    snprintf(dataset_info->subject, dataset_info->subject_len + 1, "%s%s", PREFIX, name);
 
     fprintf(stderr, "%4d %s   %p %s %p %d\n", __LINE__, __func__, obj, name, dataset_info, dataset_info->file->under_vol->id);
     return dataset_info;
@@ -175,19 +144,19 @@ herr_t H5VL_hxhim_dataset_read(void *dset, hid_t mem_type_id, hid_t mem_space_id
     /*     free(dims); */
     /* } */
 
+    const char * predicate = get_type_name(mem_type_id);
+    const size_t predicate_len = strlen(predicate);
+
     hxhimGet(&dataset_info->file->hx,
-             dataset_info->group, dataset_info->group_len,
-             dataset_info->dataset, dataset_info->dataset_len,
+             dataset_info->subject, dataset_info->subject_len,
+             (void *) predicate, predicate_len,
              HXHIM_BYTE_TYPE);
 
-    hxhim_results_t *res = hxhimFlush(&dataset_info->file->hx);
-    hxhim_results_goto_head(res);
+    hxhim_results_t *res = hxhimFlushGets(&dataset_info->file->hx);
     for(hxhim_results_goto_head(res); hxhim_results_valid(res) == HXHIM_SUCCESS; hxhim_results_goto_next(res)) {
         hxhim_result_type_t type;
         hxhim_results_type(res, &type);
         switch (type) {
-            case HXHIM_RESULT_PUT:
-                break;
             case HXHIM_RESULT_GET:
                 {
                     void * object = NULL;
@@ -195,8 +164,6 @@ herr_t H5VL_hxhim_dataset_read(void *dset, hid_t mem_type_id, hid_t mem_space_id
                     hxhim_results_get_object(res, &object, &object_len);
                     memcpy(buf, object, object_len);
                 }
-                break;
-            case HXHIM_RESULT_DEL:
                 break;
             default:
                 break;
@@ -212,11 +179,14 @@ herr_t H5VL_hxhim_dataset_write(void *dset, hid_t mem_type_id, hid_t mem_space_i
     struct dataset_info_t * dataset_info = dset;
     const size_t size = H5Tget_size(mem_type_id);
     const hssize_t count = H5Sget_select_npoints(dataset_info->space_id);
-    fprintf(stderr, "%4d %s  %p [%s] [%s] size: %zu count: %lld\n", __LINE__, __func__, dset, dataset_info->group, dataset_info->dataset, size, count);
+    fprintf(stderr, "%4d %s  %p buf:%p [%s] size: %zu count: %lld\n", __LINE__, __func__, dset, buf, dataset_info->subject, size, count);
+
+    const char * predicate = get_type_name(mem_type_id);
+    const size_t predicate_len = strlen(predicate);
 
     hxhimPut(&dataset_info->file->hx,
-             dataset_info->group, strlen(dataset_info->group),
-             dataset_info->dataset, strlen(dataset_info->dataset),
+             dataset_info->subject, dataset_info->subject_len,
+             (void *) predicate, predicate_len,
              HXHIM_BYTE_TYPE, (void *) buf, size * count);
 
     hxhim_results_t *put_results = hxhimFlushPuts(&dataset_info->file->hx);
@@ -240,20 +210,20 @@ herr_t H5VL_hxhim_dataset_get(void *obj, H5VL_dataset_get_t get_type, hid_t dxpl
             {
                 fprintf(stderr, "         get dapl\n");
                 hid_t *ret_id = va_arg(arguments, hid_t *);
-                if ((*ret_id = H5Pcopy(dataset_info->dapl_id)) < 0) {
-                    fprintf(stderr, "can't get dapl\n");
-                    ret = -1;
-                }
+                /* if ((*ret_id = H5Pcopy(dataset_info->dapl_id)) < 0) { */
+                /*     fprintf(stderr, "can't get dapl\n"); */
+                /*     ret = -1; */
+                /* } */
             }
             break;
         case H5VL_DATASET_GET_DCPL:                  /* creation property list              */
             {
                 fprintf(stderr, "         get dcpl\n");
                 hid_t *ret_id = va_arg(arguments, hid_t *);
-                if ((*ret_id = H5Pcopy(dataset_info->dcpl_id)) < 0) {
-                    fprintf(stderr, "can't get dcpl\n");
-                    ret = -1;
-                }
+                /* if ((*ret_id = H5Pcopy(dataset_info->dcpl_id)) < 0) { */
+                /*     fprintf(stderr, "can't get dcpl\n"); */
+                /*     ret = -1; */
+                /* } */
             }
             break;
         case H5VL_DATASET_GET_OFFSET:                /* offset                              */
@@ -301,8 +271,7 @@ herr_t H5VL_hxhim_dataset_get(void *obj, H5VL_dataset_get_t get_type, hid_t dxpl
 
 herr_t H5VL_hxhim_dataset_close(void *dset, hid_t dxpl_id, void **req){
     struct dataset_info_t * dataset_info = dset;
-    free(dataset_info->dataset);
-    free(dataset_info->group);
+    free(dataset_info->subject);
     free(dataset_info);
 
     fprintf(stderr, "%4d %s  %p\n", __LINE__, __func__, dset);
