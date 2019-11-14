@@ -60,15 +60,6 @@ void *H5VL_hxhim_dataset_create(void *obj, const H5VL_loc_params_t *loc_params, 
     dataset_info->subject_len = PREFIX_LEN + strlen(name);
     dataset_info->subject = malloc(dataset_info->subject_len + 1);
     snprintf(dataset_info->subject, dataset_info->subject_len + 1, "%s%s", PREFIX, name);
-    /* dataset_info->lcpl_id = lcpl_id; */
-    /* dataset_info->type_id = type_id; */
-    /* dataset_info->space_id = space_id; */
-    /* dataset_info->dcpl_id = dcpl_id; */
-    /* dataset_info->dapl_id = dapl_id; */
-    /* dataset_info->dxpl_id = dxpl_id; */
-
-    dataset_info->type_id = type_id;
-    dataset_info->space_id = space_id;
 
     const hsize_t dims = H5Sget_simple_extent_ndims(space_id);
     hsize_t * maxdims = malloc(dims * sizeof(hsize_t));
@@ -93,24 +84,25 @@ void *H5VL_hxhim_dataset_open(void *obj, const H5VL_loc_params_t *loc_params, co
     dataset_info->subject = malloc(dataset_info->subject_len + 1);
     snprintf(dataset_info->subject, dataset_info->subject_len + 1, "%s%s", PREFIX, name);
 
-    fprintf(stderr, "%4d %s   %p %s %p %d\n", __LINE__, __func__, obj, name, dataset_info, dataset_info->file->under_vol->id);
+    fprintf(stderr, "%4d %s   %p %s %p\n", __LINE__, __func__, obj, name, dataset_info);
     return dataset_info;
 }
 
 herr_t H5VL_hxhim_dataset_read(void *dset, hid_t mem_type_id, hid_t mem_space_id, hid_t file_space_id,
                                hid_t xfer_plist_id, void * buf, void **req){
-    fprintf(stderr, "%4d %s   %p buf: %p\n", __LINE__, __func__, dset, buf);
+    /* fprintf(stderr, "%4d %s   %p buf: %p\n", __LINE__, __func__, dset, buf); */
     struct dataset_info_t * dataset_info = dset;
     const size_t size = H5Tget_size(mem_type_id);
+    const hssize_t count = H5Sget_select_npoints(file_space_id);
 
     /* if (mem_space_id == H5S_ALL) { */
     /*     fprintf(stderr, "cannot extract values from mem space with H5S_ALL\n"); */
     /*     return -1; */
     /* } */
-    /* if (file_space_id == H5S_ALL) { */
-    /*     fprintf(stderr, "cannot extract values from file space with H5S_ALL\n"); */
-    /*     return -1; */
-    /* } */
+    if (file_space_id == H5S_ALL) {
+        fprintf(stderr, "cannot extract values from file space with H5S_ALL\n");
+        return -1;
+    }
     /* { */
     /*     /\* const hssize_t count = H5Sget_select_npoints(mem_space_id); *\/ */
     /*     const htri_t is_simple = H5Sis_simple(mem_space_id); */
@@ -127,22 +119,22 @@ herr_t H5VL_hxhim_dataset_read(void *dset, hid_t mem_type_id, hid_t mem_space_id
     /*     free(start); */
     /*     free(dims); */
     /* } */
-    /* { */
-    /*     /\* const hssize_t count = H5Sget_select_npoints(file_space_id); *\/ */
-    /*     const htri_t is_simple = H5Sis_simple(file_space_id); */
-    /*     const int ranks = H5Sget_simple_extent_ndims(file_space_id); */
+    {
+        /* const hssize_t count = H5Sget_select_npoints(file_space_id); */
+        const htri_t is_simple = H5Sis_simple(file_space_id);
+        const int ranks = H5Sget_simple_extent_ndims(file_space_id);
 
-    /*     hsize_t * dims = malloc(ranks * sizeof(hsize_t)); */
-    /*     H5Sget_simple_extent_dims(file_space_id, dims, NULL); */
+        hsize_t * dims = malloc(ranks * sizeof(hsize_t));
+        H5Sget_simple_extent_dims(file_space_id, dims, NULL);
 
-    /*     hsize_t * start = malloc(ranks * sizeof(hsize_t)); */
-    /*     hsize_t * end = malloc(ranks * sizeof(hsize_t)); */
-    /*     H5Sget_select_bounds(file_space_id, start, end); */
-    /*     fprintf(stderr, "%4d %s   %p %d %d (%zu x %zu) [%zu %zu]\n", __LINE__, __func__, dset, H5S_ALL, file_space_id, size, dims[0], start[0], end[0]); */
-    /*     free(end); */
-    /*     free(start); */
-    /*     free(dims); */
-    /* } */
+        hsize_t * start = malloc(ranks * sizeof(hsize_t));
+        hsize_t * end = malloc(ranks * sizeof(hsize_t));
+        H5Sget_select_bounds(file_space_id, start, end);
+        fprintf(stderr, "%4d %s   %p buf: %p %d %d (%zu x %zu) [%zu %zu]\n", __LINE__, __func__, dset, buf, H5S_ALL, file_space_id, size, dims[0], start[0], end[0]);
+        free(end);
+        free(start);
+        free(dims);
+    }
 
     const char * predicate = get_type_name(mem_type_id);
     const size_t predicate_len = strlen(predicate);
@@ -176,9 +168,21 @@ herr_t H5VL_hxhim_dataset_read(void *dset, hid_t mem_type_id, hid_t mem_space_id
 
 herr_t H5VL_hxhim_dataset_write(void *dset, hid_t mem_type_id, hid_t mem_space_id, hid_t file_space_id,
                                 hid_t xfer_plist_id, const void * buf, void **req){
+
+    /* if (mem_space_id == H5S_ALL) { */
+    /*     fprintf(stderr, "%d %s cannot write values to mem space with H5S_ALL\n", __LINE__, __func__); */
+    /*     return -1; */
+    /* } */
+
+    if (file_space_id == H5S_ALL) {
+        fprintf(stderr, "%d %s cannot write values to file space with H5S_ALL\n", __LINE__, __func__);
+        return -1;
+    }
+
     struct dataset_info_t * dataset_info = dset;
     const size_t size = H5Tget_size(mem_type_id);
-    const hssize_t count = H5Sget_select_npoints(dataset_info->space_id);
+    const hssize_t count = H5Sget_select_npoints(file_space_id);
+    /* const hssize_t count = H5Sget_select_npoints(dataset_info->space_id); */
     fprintf(stderr, "%4d %s  %p buf:%p [%s] size: %zu count: %lld\n", __LINE__, __func__, dset, buf, dataset_info->subject, size, count);
 
     const char * predicate = get_type_name(mem_type_id);
@@ -236,10 +240,10 @@ herr_t H5VL_hxhim_dataset_get(void *obj, H5VL_dataset_get_t get_type, hid_t dxpl
             {
                 fprintf(stderr, "         get space\n");
                 hid_t *ret_id = va_arg(arguments, hid_t *);
-                if ((*ret_id = H5Pcopy(dataset_info->space_id)) < 0) {
-                    fprintf(stderr, "can't get space\n");
-                    ret = -1;
-                }
+                /* if ((*ret_id = H5Pcopy(dataset_info->space_id)) < 0) { */
+                /*     fprintf(stderr, "can't get space\n"); */
+                /*     ret = -1; */
+                /* } */
             }
             break;
         case H5VL_DATASET_GET_SPACE_STATUS:          /* space status                        */
@@ -258,10 +262,10 @@ herr_t H5VL_hxhim_dataset_get(void *obj, H5VL_dataset_get_t get_type, hid_t dxpl
             {
                 fprintf(stderr, "         get type\n");
                 hid_t *ret_id = va_arg(arguments, hid_t *);
-                if ((*ret_id = H5Pcopy(dataset_info->type_id)) < 0) {
-                    fprintf(stderr, "can't get type\n");
-                    ret = -1;
-                }
+                /* if ((*ret_id = H5Pcopy(dataset_info->type_id)) < 0) { */
+                /*     fprintf(stderr, "can't get type\n"); */
+                /*     ret = -1; */
+                /* } */
             }
             break;
     }

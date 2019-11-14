@@ -25,12 +25,6 @@ struct dataset_info_t {
     /* subject is just the full path of the dataset */
     char * subject;
     size_t subject_len;
-    // hid_t lcpl_id;
-    hid_t type_id;
-    hid_t space_id;
-    // hid_t dcpl_id;
-    // hid_t dapl_id;
-    // hid_t dxpl_id;
 };
 
 struct float3_t {
