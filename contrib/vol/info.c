@@ -5,13 +5,17 @@
 
 void * H5VL_hxhim_info_copy(const void *info){
     const struct info_t * old_info = info;
-    struct info_t * new_info = malloc(sizeof(struct file_info_t));
-    memcpy(new_info, old_info, sizeof(struct file_info_t));
+    struct info_t * new_info = NULL;
+    if (old_info) {
+        new_info = malloc(sizeof(struct file_info_t));
+        memcpy(new_info, old_info, sizeof(struct file_info_t));
+    }
+    fprintf(stderr, "%4d %s      %p -> %p\n", __LINE__, __func__, old_info, new_info);
     return new_info;
 }
 
 herr_t H5VL_hxhim_info_free(void *info){
     free(info);
-    fprintf(stderr, "%4d %s %p\n", __LINE__, __func__, info);
+    fprintf(stderr, "%4d %s      %p\n", __LINE__, __func__, info);
     return 0;
 }

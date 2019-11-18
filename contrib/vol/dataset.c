@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static char PREFIX[] = "HDF5_DS_";
+static char PREFIX[] = "HDF5_DS:";
 static size_t PREFIX_LEN = (sizeof(PREFIX) - 1);
 
 const char * get_type_name(hid_t type_id) {
@@ -48,6 +48,12 @@ const char * get_type_name(hid_t type_id) {
     return out;
 }
 
+void create_subject(const char * name, char ** subject, size_t * len) {
+    *len = PREFIX_LEN + strlen(name);
+    *subject = malloc(*len + 1);
+    snprintf(*subject, *len + 1, "%s%s", PREFIX, name);
+}
+
 /* H5D routines */
 void *H5VL_hxhim_dataset_create(void *obj, const H5VL_loc_params_t *loc_params, const char *name,
                                 hid_t lcpl_id, hid_t type_id, hid_t space_id, hid_t dcpl_id,
@@ -57,9 +63,7 @@ void *H5VL_hxhim_dataset_create(void *obj, const H5VL_loc_params_t *loc_params, 
     /* store values into state variable that is passed around */
     struct dataset_info_t * dataset_info = malloc(sizeof(struct dataset_info_t));
     dataset_info->file = obj;
-    dataset_info->subject_len = PREFIX_LEN + strlen(name);
-    dataset_info->subject = malloc(dataset_info->subject_len + 1);
-    snprintf(dataset_info->subject, dataset_info->subject_len + 1, "%s%s", PREFIX, name);
+    create_subject(name, &dataset_info->subject, &dataset_info->subject_len);
 
     const hsize_t dims = H5Sget_simple_extent_ndims(space_id);
     hsize_t * maxdims = malloc(dims * sizeof(hsize_t));
@@ -80,9 +84,7 @@ void *H5VL_hxhim_dataset_open(void *obj, const H5VL_loc_params_t *loc_params, co
                               hid_t dapl_id, hid_t dxpl_id, void **req){
     struct dataset_info_t * dataset_info = malloc(sizeof(struct dataset_info_t));
     dataset_info->file = obj;
-    dataset_info->subject_len = PREFIX_LEN + strlen(name);
-    dataset_info->subject = malloc(dataset_info->subject_len + 1);
-    snprintf(dataset_info->subject, dataset_info->subject_len + 1, "%s%s", PREFIX, name);
+    create_subject(name, &dataset_info->subject, &dataset_info->subject_len);
 
     fprintf(stderr, "%4d %s   %p %s %p\n", __LINE__, __func__, obj, name, dataset_info);
     return dataset_info;
@@ -90,51 +92,26 @@ void *H5VL_hxhim_dataset_open(void *obj, const H5VL_loc_params_t *loc_params, co
 
 herr_t H5VL_hxhim_dataset_read(void *dset, hid_t mem_type_id, hid_t mem_space_id, hid_t file_space_id,
                                hid_t xfer_plist_id, void * buf, void **req){
-    /* fprintf(stderr, "%4d %s   %p buf: %p\n", __LINE__, __func__, dset, buf); */
     struct dataset_info_t * dataset_info = dset;
-    const size_t size = H5Tget_size(mem_type_id);
-    const hssize_t count = H5Sget_select_npoints(file_space_id);
+    /* const size_t size = H5Tget_size(mem_type_id); */
+    /* const hssize_t count = H5Sget_select_npoints(file_space_id); */
 
-    /* if (mem_space_id == H5S_ALL) { */
-    /*     fprintf(stderr, "cannot extract values from mem space with H5S_ALL\n"); */
-    /*     return -1; */
-    /* } */
-    if (file_space_id == H5S_ALL) {
-        fprintf(stderr, "cannot extract values from file space with H5S_ALL\n");
-        return -1;
-    }
     /* { */
-    /*     /\* const hssize_t count = H5Sget_select_npoints(mem_space_id); *\/ */
-    /*     const htri_t is_simple = H5Sis_simple(mem_space_id); */
-    /*     const int ranks = H5Sget_simple_extent_ndims(mem_space_id); */
+    /*     /\* const hssize_t count = H5Sget_select_npoints(file_space_id); *\/ */
+    /*     const htri_t is_simple = H5Sis_simple(file_space_id); */
+    /*     const int ranks = H5Sget_simple_extent_ndims(file_space_id); */
 
     /*     hsize_t * dims = malloc(ranks * sizeof(hsize_t)); */
-    /*     H5Sget_simple_extent_dims(mem_space_id, dims, NULL); */
+    /*     H5Sget_simple_extent_dims(file_space_id, dims, NULL); */
 
     /*     hsize_t * start = malloc(ranks * sizeof(hsize_t)); */
     /*     hsize_t * end = malloc(ranks * sizeof(hsize_t)); */
-    /*     H5Sget_select_bounds(mem_space_id, start, end); */
-    /*     fprintf(stderr, "%4d %s   %p %d %d (%zu x %zu) [%zu %zu]\n", __LINE__, __func__, dset, H5S_ALL, mem_space_id, size, dims[0], start[0], end[0]); */
+    /*     H5Sget_select_bounds(file_space_id, start, end); */
+    /*     fprintf(stderr, "%4d %s   %p buf: %p %d %d (%zu x %zu) [%zu %zu]\n", __LINE__, __func__, dset, buf, H5S_ALL, file_space_id, size, dims[0], start[0], end[0]); */
     /*     free(end); */
     /*     free(start); */
     /*     free(dims); */
     /* } */
-    {
-        /* const hssize_t count = H5Sget_select_npoints(file_space_id); */
-        const htri_t is_simple = H5Sis_simple(file_space_id);
-        const int ranks = H5Sget_simple_extent_ndims(file_space_id);
-
-        hsize_t * dims = malloc(ranks * sizeof(hsize_t));
-        H5Sget_simple_extent_dims(file_space_id, dims, NULL);
-
-        hsize_t * start = malloc(ranks * sizeof(hsize_t));
-        hsize_t * end = malloc(ranks * sizeof(hsize_t));
-        H5Sget_select_bounds(file_space_id, start, end);
-        fprintf(stderr, "%4d %s   %p buf: %p %d %d (%zu x %zu) [%zu %zu]\n", __LINE__, __func__, dset, buf, H5S_ALL, file_space_id, size, dims[0], start[0], end[0]);
-        free(end);
-        free(start);
-        free(dims);
-    }
 
     const char * predicate = get_type_name(mem_type_id);
     const size_t predicate_len = strlen(predicate);
@@ -153,8 +130,22 @@ herr_t H5VL_hxhim_dataset_read(void *dset, hid_t mem_type_id, hid_t mem_space_id
                 {
                     void * object = NULL;
                     size_t object_len = 0;
-                    hxhim_results_get_object(res, &object, &object_len);
-                    memcpy(buf, object, object_len);
+                    const int rc = hxhim_results_get_object(res, &object, &object_len);
+
+                    /*
+                       cannot read directly into buf
+                       - need to cut data for hyperslabs
+                       - hxhim allocates memory from its buffers, not from global memory space
+                           - destroyed when hxhim_results_destroy is called
+                           - if not destroyed, user would have to pass in double pointer to buf, and manually clean up
+                    */
+
+                    if (file_space_id == H5S_ALL) {
+                        memcpy(buf, object, object_len);
+                    }
+                    else {
+                        /* process hyperslab */
+                    }
                 }
                 break;
             default:
@@ -162,13 +153,13 @@ herr_t H5VL_hxhim_dataset_read(void *dset, hid_t mem_type_id, hid_t mem_space_id
         }
     }
     hxhim_results_destroy(&dataset_info->file->hx, res);
+    fprintf(stderr, "%4d %s   %p (%s, %s) -> %p %d %d %p\n", __LINE__, __func__, dset, dataset_info->subject, predicate, buf, mem_space_id, file_space_id, req);
 
     return 0;
 }
 
 herr_t H5VL_hxhim_dataset_write(void *dset, hid_t mem_type_id, hid_t mem_space_id, hid_t file_space_id,
                                 hid_t xfer_plist_id, const void * buf, void **req){
-
     /* if (mem_space_id == H5S_ALL) { */
     /*     fprintf(stderr, "%d %s cannot write values to mem space with H5S_ALL\n", __LINE__, __func__); */
     /*     return -1; */
@@ -182,22 +173,23 @@ herr_t H5VL_hxhim_dataset_write(void *dset, hid_t mem_type_id, hid_t mem_space_i
     struct dataset_info_t * dataset_info = dset;
     const size_t size = H5Tget_size(mem_type_id);
     const hssize_t count = H5Sget_select_npoints(file_space_id);
-    /* const hssize_t count = H5Sget_select_npoints(dataset_info->space_id); */
-    fprintf(stderr, "%4d %s  %p buf:%p [%s] size: %zu count: %lld\n", __LINE__, __func__, dset, buf, dataset_info->subject, size, count);
 
     const char * predicate = get_type_name(mem_type_id);
     const size_t predicate_len = strlen(predicate);
 
+    fprintf(stderr, "%s [%s %s]\n", __func__, dataset_info->subject, predicate);
     hxhimPut(&dataset_info->file->hx,
              dataset_info->subject, dataset_info->subject_len,
              (void *) predicate, predicate_len,
              HXHIM_BYTE_TYPE, (void *) buf, size * count);
 
-    hxhim_results_t *put_results = hxhimFlushPuts(&dataset_info->file->hx);
-    if (!put_results) {
-        fprintf(stderr, "failed to put\n");
-    }
-    hxhim_results_destroy(&dataset_info->file->hx, put_results);
+    /* hxhim_results_t *put_results = hxhimFlushPuts(&dataset_info->file->hx); */
+    /* if (!put_results) { */
+    /*     fprintf(stderr, "failed to put\n"); */
+    /* } */
+    /* hxhim_results_destroy(&dataset_info->file->hx, put_results); */
+
+    fprintf(stderr, "%4d %s  %p (%s, %s, %p) size: %zu count: %lld\n", __LINE__, __func__, dset, dataset_info->subject, predicate, buf, size, count);
 
     return 0;
 }

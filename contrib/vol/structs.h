@@ -5,6 +5,7 @@
 
 #include "hxhim_vol.h"
 
+/* holds external values to be made accessible to the VOL */
 struct under_info_t {
     hid_t id;
 };
@@ -12,8 +13,9 @@ struct under_info_t {
 /* holds arguments converted for use by the file_* callbacks */
 struct file_info_t {
     struct under_info_t * under_vol;
+    char * name;
+    unsigned flags;
     hid_t fapl_id;
-    hid_t dxpl_id;
 
     hxhim_options_t opts;
     hxhim_t hx;

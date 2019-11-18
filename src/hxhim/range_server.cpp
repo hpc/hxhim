@@ -181,20 +181,23 @@ static Transport::Response::BGet *bget(hxhim_t *hx, const Transport::Request::BG
                                                                                    counters[i]);
         if (response) {
             for(std::size_t j = 0; j < response->count; j++) {
-                res->ds_offsets[res->count] = i;
-                res->statuses[res->count] = response->statuses[j];
-                std::swap(res->subjects[res->count], response->subjects[j]);
-                res->subject_lens[res->count] = response->subject_lens[j];
-                std::swap(res->predicates[res->count], response->predicates[j]);
-                res->predicate_lens[res->count] = response->predicate_lens[j];
-                std::swap(res->object_types[res->count], response->object_types[j]);
-                if (res->statuses[res->count] == HXHIM_SUCCESS) {
-                    std::swap(res->objects[res->count], response->objects[j]);
-                    res->object_lens[res->count] = response->object_lens[j];
-                }
-                res->count++;
-            }
+                size_t &count = res->count;
+                res->ds_offsets[count] = i;
+                res->statuses[count] = response->statuses[j];
 
+                std::swap(res->subjects[count], response->subjects[j]);
+                res->subject_lens[count] = response->subject_lens[j];
+
+                std::swap(res->predicates[count], response->predicates[j]);
+                res->predicate_lens[count] = response->predicate_lens[j];
+
+                std::swap(res->object_types[count], response->object_types[j]);
+                if (res->statuses[count] == HXHIM_SUCCESS) {
+                    std::swap(res->objects[count], response->objects[j]);
+                    res->object_lens[count] = response->object_lens[j];
+                }
+                count++;
+            }
             responses->release(response);
         }
     }

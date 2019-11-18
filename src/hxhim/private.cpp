@@ -47,7 +47,7 @@ hxhim_private::hxhim_private()
       memory_pools()
 {}
 
-int insert(hxhim_t *hx,
+static int insert(hxhim_t *hx,
            const std::size_t max_per_dst,
            hxhim::PutData *put,
            Transport::Request::BPut &local,

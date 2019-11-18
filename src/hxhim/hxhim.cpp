@@ -317,7 +317,7 @@ static hxhim::Results *get_core(hxhim_t *hx,
             Transport::Response::BGet *responses = hx->p->transport->BGet(remote);
             for(Transport::Response::BGet *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
-                    res->Add(hxhim::Result::init(hx, curr, i, true));
+                    res->Add(hxhim::Result::init(hx, curr, i));
                 }
             }
         }
@@ -331,7 +331,7 @@ static hxhim::Results *get_core(hxhim_t *hx,
             Transport::Response::BGet *responses = local_client_bget(hx, &local);
             for(Transport::Response::BGet *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
-                    res->Add(hxhim::Result::init(hx, curr, i, false));
+                    res->Add(hxhim::Result::init(hx, curr, i));
                 }
             }
         }
@@ -355,11 +355,13 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
     }
 
     hxhim::Unsent<hxhim::GetData> &gets = hx->p->queues.gets;
-    std::lock_guard<std::mutex> lock(gets.mutex);
-
-    hxhim::GetData *curr = gets.head;
-    gets.head = nullptr;
-    gets.tail = nullptr;
+    hxhim::GetData *curr = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(gets.mutex);
+        curr = gets.head;
+        gets.head = nullptr;
+        gets.tail = nullptr;
+    }
 
     return get_core(hx, curr);
 }
@@ -459,7 +461,7 @@ static hxhim::Results *getop_core(hxhim_t *hx,
             Transport::Response::BGetOp *responses = hx->p->transport->BGetOp(remote);
             for(Transport::Response::BGetOp *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
-                    res->Add(hxhim::Result::init(hx, curr, i, true));
+                    res->Add(hxhim::Result::init(hx, curr, i));
                 }
             }
         }
@@ -473,7 +475,7 @@ static hxhim::Results *getop_core(hxhim_t *hx,
             Transport::Response::BGetOp *responses = local_client_bget_op(hx, &local);
             for(Transport::Response::BGetOp *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
-                    res->Add(hxhim::Result::init(hx, curr, i, false));
+                    res->Add(hxhim::Result::init(hx, curr, i));
                 }
             }
         }

@@ -69,8 +69,6 @@ class Results {
 
         /** @description Convenience struct for GET results */
         struct Get : public Result {
-            bool clean;
-
             void *subject;
             std::size_t subject_len;
 
