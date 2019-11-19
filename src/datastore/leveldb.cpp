@@ -190,7 +190,7 @@ Response::BGet *leveldb::BGetImpl(void **subjects, std::size_t *subject_lens,
     FixedBufferPool *keys = hx->p->memory_pools.keys;
     for(std::size_t i = 0; i < count; i++) {
         struct timespec start, end;
-        std::string value;
+        ::leveldb::Slice value; // read gotten value into a Slice instead of a std::string to save a few copies
 
         void *key = nullptr;
         std::size_t key_len = 0;
@@ -201,7 +201,7 @@ Response::BGet *leveldb::BGetImpl(void **subjects, std::size_t *subject_lens,
 
         // get the value
         clock_gettime(CLOCK_MONOTONIC, &start);
-        ::leveldb::Status status = db->Get(::leveldb::ReadOptions(), k, &value);
+        ::leveldb::Status status = db->Get(::leveldb::ReadOptions(), k, value);
         clock_gettime(CLOCK_MONOTONIC, &end);
 
         keys->release(key, key_len);

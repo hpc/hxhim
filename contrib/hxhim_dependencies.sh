@@ -25,6 +25,8 @@
 #     MPI
 #
 
+SOURCE="$(dirname $(realpath $BASH_SOURCE[0]))"
+
 set -e
 
 function usage() {
@@ -252,6 +254,7 @@ function leveldb() {
     fi
 
     cd $download_dir
+    git apply ${SOURCE}/leveldb.patch
     mkdir -p build
     cd build
     install_dir=$PREFIX/$name

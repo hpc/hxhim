@@ -1,0 +1,176 @@
+diff --git a/db/db_impl.cc b/db/db_impl.cc
+index 4754ba3..5955dcd 100644
+--- a/db/db_impl.cc
++++ b/db/db_impl.cc
+@@ -1110,6 +1110,14 @@ int64_t DBImpl::TEST_MaxNextLevelOverlappingBytes() {
+ 
+ Status DBImpl::Get(const ReadOptions& options, const Slice& key,
+                    std::string* value) {
++  Slice slice;
++  Status s = Get(options, key, slice);
++  value->assign(slice.data(), slice.size());
++  return s;
++}
++
++Status DBImpl::Get(const ReadOptions& options, const Slice& key,
++                   Slice& value) {
+   Status s;
+   MutexLock l(&mutex_);
+   SequenceNumber snapshot;
+@@ -1149,6 +1157,7 @@ Status DBImpl::Get(const ReadOptions& options, const Slice& key,
+   if (have_stat_update && current->UpdateStats(stats)) {
+     MaybeScheduleCompaction();
+   }
++
+   mem->Unref();
+   if (imm != nullptr) imm->Unref();
+   current->Unref();
+diff --git a/db/db_impl.h b/db/db_impl.h
+index 685735c..302fe9e 100644
+--- a/db/db_impl.h
++++ b/db/db_impl.h
+@@ -42,6 +42,8 @@ class DBImpl : public DB {
+   Status Write(const WriteOptions& options, WriteBatch* updates) override;
+   Status Get(const ReadOptions& options, const Slice& key,
+              std::string* value) override;
++  Status Get(const ReadOptions& options, const Slice& key,
++             Slice& value) override;
+   Iterator* NewIterator(const ReadOptions&) override;
+   const Snapshot* GetSnapshot() override;
+   void ReleaseSnapshot(const Snapshot* snapshot) override;
+diff --git a/db/db_test.cc b/db/db_test.cc
+index 9a8faf1..614df97 100644
+--- a/db/db_test.cc
++++ b/db/db_test.cc
+@@ -2033,6 +2033,13 @@ class ModelDB : public DB {
+   }
+   Status Get(const ReadOptions& options, const Slice& key,
+              std::string* value) override {
++    Slice slice;
++    Status s = Get(options, key, slice);
++    value->assign(slice.data(), slice.size());
++    return s;
++  }
++  Status Get(const ReadOptions& options, const Slice& key,
++             Slice& value) override {
+     assert(false);  // Not implemented
+     return Status::NotFound(key);
+   }
+diff --git a/db/memtable.cc b/db/memtable.cc
+index 00931d4..85afe37 100644
+--- a/db/memtable.cc
++++ b/db/memtable.cc
+@@ -99,6 +99,13 @@ void MemTable::Add(SequenceNumber s, ValueType type, const Slice& key,
+ }
+ 
+ bool MemTable::Get(const LookupKey& key, std::string* value, Status* s) {
++  Slice slice;
++  const bool ret = Get(key, slice, s);
++  value->assign(slice.data(), slice.size());
++  return ret;
++}
++
++bool MemTable::Get(const LookupKey& key, Slice &v, Status* s) {
+   Slice memkey = key.memtable_key();
+   Table::Iterator iter(&table_);
+   iter.Seek(memkey.data());
+@@ -121,8 +128,7 @@ bool MemTable::Get(const LookupKey& key, std::string* value, Status* s) {
+       const uint64_t tag = DecodeFixed64(key_ptr + key_length - 8);
+       switch (static_cast<ValueType>(tag & 0xff)) {
+         case kTypeValue: {
+-          Slice v = GetLengthPrefixedSlice(key_ptr + key_length);
+-          value->assign(v.data(), v.size());
++          v = GetLengthPrefixedSlice(key_ptr + key_length);
+           return true;
+         }
+         case kTypeDeletion:
+@@ -134,4 +140,5 @@ bool MemTable::Get(const LookupKey& key, std::string* value, Status* s) {
+   return false;
+ }
+ 
++
+ }  // namespace leveldb
+diff --git a/db/memtable.h b/db/memtable.h
+index 9d986b1..9b7f159 100644
+--- a/db/memtable.h
++++ b/db/memtable.h
+@@ -61,6 +61,7 @@ class MemTable {
+   // in *status and return true.
+   // Else, return false.
+   bool Get(const LookupKey& key, std::string* value, Status* s);
++  bool Get(const LookupKey& key, Slice& value, Status* s);
+ 
+  private:
+   friend class MemTableIterator;
+diff --git a/db/version_set.cc b/db/version_set.cc
+index fd5e3ab..a52b6da 100644
+--- a/db/version_set.cc
++++ b/db/version_set.cc
+@@ -257,7 +257,7 @@ struct Saver {
+   SaverState state;
+   const Comparator* ucmp;
+   Slice user_key;
+-  std::string* value;
++  Slice *value;
+ };
+ }  // namespace
+ static void SaveValue(void* arg, const Slice& ikey, const Slice& v) {
+@@ -269,7 +269,7 @@ static void SaveValue(void* arg, const Slice& ikey, const Slice& v) {
+     if (s->ucmp->Compare(parsed_key.user_key, s->user_key) == 0) {
+       s->state = (parsed_key.type == kTypeValue) ? kFound : kDeleted;
+       if (s->state == kFound) {
+-        s->value->assign(v.data(), v.size());
++        *(s->value) = v;
+       }
+     }
+   }
+@@ -324,6 +324,14 @@ void Version::ForEachOverlapping(Slice user_key, Slice internal_key, void* arg,
+ 
+ Status Version::Get(const ReadOptions& options, const LookupKey& k,
+                     std::string* value, GetStats* stats) {
++  Slice slice;
++  Status s = Get(options, k, slice, stats);
++  value->assign(slice.data(), slice.size());
++  return s;
++}
++
++Status Version::Get(const ReadOptions& options, const LookupKey& k,
++                    Slice& value, GetStats* stats) {
+   stats->seek_file = nullptr;
+   stats->seek_file_level = -1;
+ 
+@@ -389,7 +397,7 @@ Status Version::Get(const ReadOptions& options, const LookupKey& k,
+   state.saver.state = kNotFound;
+   state.saver.ucmp = vset_->icmp_.user_comparator();
+   state.saver.user_key = k.user_key();
+-  state.saver.value = value;
++  state.saver.value = &value;
+ 
+   ForEachOverlapping(state.saver.user_key, state.ikey, &state, &State::Match);
+ 
+diff --git a/db/version_set.h b/db/version_set.h
+index 69f3d70..02a8f0e 100644
+--- a/db/version_set.h
++++ b/db/version_set.h
+@@ -74,6 +74,8 @@ class Version {
+ 
+   Status Get(const ReadOptions&, const LookupKey& key, std::string* val,
+              GetStats* stats);
++  Status Get(const ReadOptions&, const LookupKey& key, Slice& val,
++             GetStats* stats);
+ 
+   // Adds "stats" into the current state.  Returns true if a new
+   // compaction may need to be triggered, false otherwise.
+diff --git a/include/leveldb/db.h b/include/leveldb/db.h
+index b73014a..52d9394 100644
+--- a/include/leveldb/db.h
++++ b/include/leveldb/db.h
+@@ -86,6 +86,8 @@ class LEVELDB_EXPORT DB {
+   // May return some other Status on an error.
+   virtual Status Get(const ReadOptions& options, const Slice& key,
+                      std::string* value) = 0;
++  virtual Status Get(const ReadOptions& options, const Slice& key,
++                     Slice& value) = 0;
+ 
+   // Return a heap-allocated iterator over the contents of the database.
+   // The result of NewIterator() is initially invalid (caller must
