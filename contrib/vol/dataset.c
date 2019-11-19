@@ -69,7 +69,7 @@ void *H5VL_hxhim_dataset_create(void *obj, const H5VL_loc_params_t *loc_params, 
     hsize_t * maxdims = malloc(dims * sizeof(hsize_t));
     H5Sget_simple_extent_dims(space_id, NULL, maxdims);
 
-    fprintf(stderr, "%4d %s %p %s %s ", __LINE__, __func__, dataset_info, name, get_type_name(type_id));
+    fprintf(stderr, "%4d %s %p %p %s %s ", __LINE__, __func__, obj, dataset_info, name, get_type_name(type_id));
     fprintf(stderr, " (%zu bytes) dims: %lld [ ", H5Tget_size(type_id), dims);
     for(hsize_t i = 0; i < dims; i++) {
         fprintf(stderr, "%lld ", maxdims[i]);
@@ -86,7 +86,7 @@ void *H5VL_hxhim_dataset_open(void *obj, const H5VL_loc_params_t *loc_params, co
     dataset_info->file = obj;
     create_subject(name, &dataset_info->subject, &dataset_info->subject_len);
 
-    fprintf(stderr, "%4d %s   %p %s %p\n", __LINE__, __func__, obj, name, dataset_info);
+    fprintf(stderr, "%4d %s   %p %p %s\n", __LINE__, __func__, obj, dataset_info, name);
     return dataset_info;
 }
 

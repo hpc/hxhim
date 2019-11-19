@@ -48,7 +48,7 @@ int main(int argc, char * argv[]) {
         int write_ints[COUNT] = {0, 1, 4, 9, 16, 25, 36, 49, 64, 81};
         /* hid_t dataset_id = H5Dcreate(file_id, "/ints", H5T_NATIVE_INT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); */
         /* H5Dwrite(dataset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, write_ints); */
-        hid_t write_ints_dataset_id = H5Dopen(file_id, "/ints", H5P_DEFAULT);
+        hid_t write_ints_dataset_id = H5Dcreate(file_id, "/ints", H5T_NATIVE_INT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         H5Dwrite(write_ints_dataset_id, H5T_NATIVE_INT, H5S_ALL, dataspace_id, H5P_DEFAULT, write_ints);
 
         double write_doubles[COUNT] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
