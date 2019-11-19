@@ -56,48 +56,54 @@ function NA_BMI() {
     check_autoconf
 
     name=bmi
-    download_dir=$WORKING_DIR/$name
-    if [[ ! -d "$download_dir" ]]; then
-        git clone --depth 1 https://xgitlab.cels.anl.gov/sds/bmi.git $download_dir
+    download_dir=${WORKING_DIR}/${name}
+    if [[ ! -d "${download_dir}" ]]; then
+        git clone --depth 1 https://xgitlab.cels.anl.gov/sds/bmi.git ${download_dir}
     fi
 
-    cd $download_dir
-    ./prepare
+    cd ${download_dir}
+    git pull
+    if [[ ! -d build ]]; then
+        ./prepare
+    fi
     mkdir -p build
     cd build
-    install_dir=$PREFIX/$name
-    PKG_CONFIG_PATH=$PKG_CONFIG_PATH ../configure --prefix=$PREFIX/$name --enable-shared --enable-bmi-only
+    install_dir=${PREFIX}/${name}
+    PKG_CONFIG_PATH=${PKG_CONFIG_PATH} ../configure --prefix=${PREFIX}/${name} --enable-shared --enable-bmi-only
     make -j ${PROCS}
     make -j ${PROCS} install
     cd ../..
 
-    BMI_INCLUDE_DIR=$install_dir/include
-    BMI_LIBRARY=$install_dir/lib/libbmi.so
-    PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$install_dir/lib/pkgconfig
+    BMI_INCLUDE_DIR=${install_dir}/include
+    BMI_LIBRARY=${install_dir}/lib/libbmi.so
+    PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${install_dir}/lib/pkgconfig
 }
 
 function NA_CCI() {
     check_autoconf
 
     name=cci
-    download_dir=$WORKING_DIR/$name
-    if [[ ! -d "$download_dir" ]]; then
-        git clone --depth 1 https://github.com/CCI/cci.git $download_dir
+    download_dir=${WORKING_DIR}/${name}
+    if [[ ! -d "${download_dir}" ]]; then
+        git clone --depth 1 https://github.com/CCI/cci.git ${download_dir}
     fi
 
-    cd $download_dir
-    ./autogen.pl
+    cd ${download_dir}
+    git pull
+    if [[ ! -d build ]]; then
+        ./autogen.pl
+    fi
     mkdir -p build
     cd build
-    install_dir=$PREFIX/$name
-    PKG_CONFIG_PATH=$PKG_CONFIG_PATH ../configure --prefix=$install_dir
+    install_dir=${PREFIX}/${name}
+    PKG_CONFIG_PATH=${PKG_CONFIG_PATH} ../configure --prefix=${install_dir}
     make -j ${PROCS}
     make -j ${PROCS} install
     cd ../..
 
-    CCI_INCLUDE_DIR=$install_dir/include
-    CCI_LIBRARY=$install_dir/lib/libcci.so
-    PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$install_dir/lib/pkgconfig
+    CCI_INCLUDE_DIR=${install_dir}/include
+    CCI_LIBRARY=${install_dir}/lib/libcci.so
+    PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${install_dir}/lib/pkgconfig
 }
 
 function NA_SM() {
@@ -127,23 +133,24 @@ function mercury() {
     fi
 
     name=mercury
-    download_dir=$WORKING_DIR/$name
-    if [[ ! -d "$download_dir" ]]; then
-        git clone --depth 1 --recurse-submodules https://github.com/mercury-hpc/mercury.git $download_dir
+    download_dir=${WORKING_DIR}/${name}
+    if [[ ! -d "${download_dir}" ]]; then
+        git clone --depth 1 --recurse-submodules https://github.com/mercury-hpc/mercury.git ${download_dir}
         git submodule init && git submodule update
     fi
 
-    cd $download_dir
+    cd ${download_dir}
+    git pull
     mkdir -p build
     cd build
-    install_dir=$PREFIX/$name
-    PKG_CONFIG_PATH=$PKG_CONFIG_PATH cmake -DCMAKE_INSTALL_PREFIX=$install_dir -DMERCURY_USE_BOOST_PP:BOOL=ON -DBUILD_SHARED_LIBS:BOOL=ON $(echo "$cmake_options") ..
+    install_dir=${PREFIX}/${name}
+    PKG_CONFIG_PATH=${PKG_CONFIG_PATH} cmake -DCMAKE_INSTALL_PREFIX=${install_dir} -DMERCURY_USE_BOOST_PP:BOOL=ON -DBUILD_SHARED_LIBS:BOOL=ON $(echo "$cmake_options") ..
     make -j ${PROCS}
     make -j ${PROCS} install
     cd ../..
 
-    MERCURY_DIR=$install_dir
-    PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$install_dir/lib/pkgconfig
+    MERCURY_DIR=${install_dir}
+    PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${install_dir}/lib/pkgconfig
 }
 
 function check_libev() {
@@ -155,22 +162,25 @@ function argobots() {
     check_libev
 
     name=argobots
-    download_dir=$WORKING_DIR/$name
-    if [[ ! -d "$download_dir" ]]; then
-        git clone --depth 1 https://github.com/pmodels/argobots.git $download_dir
+    download_dir=${WORKING_DIR}/${name}
+    if [[ ! -d "${download_dir}" ]]; then
+        git clone --depth 1 https://github.com/pmodels/argobots.git ${download_dir}
     fi
 
-    cd $download_dir
-    ./autogen.sh
+    cd ${download_dir}
+    git pull
+    if [[ ! -d build ]]; then
+        ./autogen.sh
+    fi
     mkdir -p build
     cd build
-    install_dir=$PREFIX/$name
-    PKG_CONFIG_PATH=$PKG_CONFIG_PATH ../configure --prefix=$install_dir
+    install_dir=${PREFIX}/${name}
+    PKG_CONFIG_PATH=${PKG_CONFIG_PATH} ../configure --prefix=${install_dir}
     make -j ${PROCS}
     make -j ${PROCS} install
     cd ../..
 
-    PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$install_dir/lib/pkgconfig
+    PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${install_dir}/lib/pkgconfig
 }
 
 function check_libtool_ltdl() {
@@ -185,22 +195,25 @@ function margo() {
     mercury
 
     name=margo
-    download_dir=$WORKING_DIR/$name
-    if [[ ! -d "$download_dir" ]]; then
-        git clone --depth 1 https://xgitlab.cels.anl.gov/sds/margo.git $download_dir
+    download_dir=${WORKING_DIR}/${name}
+    if [[ ! -d "${download_dir}" ]]; then
+        git clone --depth 1 https://xgitlab.cels.anl.gov/sds/margo.git ${download_dir}
     fi
 
-    cd $download_dir
+    cd ${download_dir}
+    git pull
+    if [[ ! -d build ]]; then
+        ./prepare.sh
+    fi
     mkdir -p build
-    ./prepare.sh
     cd build
-    install_dir=$PREFIX/$name
-    PKG_CONFIG_PATH=$PKG_CONFIG_PATH ../configure --prefix=$install_dir
+    install_dir=${PREFIX}/${name}
+    PKG_CONFIG_PATH=${PKG_CONFIG_PATH} ../configure --prefix=${install_dir}
     make -j ${PROCS}
     make -j ${PROCS} install
     cd ../..
 
-    PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$install_dir/lib/pkgconfig
+    PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${install_dir}/lib/pkgconfig
 }
 
 function thallium() {
@@ -209,29 +222,30 @@ function thallium() {
     margo
 
     name=thallium
-    download_dir=$WORKING_DIR/$name
-    if [[ ! -d "$download_dir" ]]; then
-        git clone --depth 1 https://xgitlab.cels.anl.gov/sds/thallium.git $download_dir
+    download_dir=${WORKING_DIR}/${name}
+    if [[ ! -d "${download_dir}" ]]; then
+        git clone --depth 1 https://xgitlab.cels.anl.gov/sds/thallium.git ${download_dir}
     fi
 
-    cd $download_dir
+    cd ${download_dir}
+    git pull
     mkdir -p build
     cd build
-    install_dir=$PREFIX/$name
-    PKG_CONFIG_PATH=$PKG_CONFIG_PATH mercury_DIR=$MERCURY_DIR cmake -DCMAKE_INSTALL_PREFIX=$install_dir -DCMAKE_CXX_EXTENSIONS:BOOL=OFF ..
+    install_dir=${PREFIX}/${name}
+    PKG_CONFIG_PATH=${PKG_CONFIG_PATH} mercury_DIR=$MERCURY_DIR cmake -DCMAKE_INSTALL_PREFIX=${install_dir} -DCMAKE_CXX_EXTENSIONS:BOOL=OFF ..
     make -j ${PROCS}
     make -j ${PROCS} install
     cd ../..
 
-    PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$install_dir/lib/pkgconfig
+    PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${install_dir}/lib/pkgconfig
 }
 
 function leveldb_pkgconfig {
     install_dir=$1
-    pc="$install_dir/lib64/leveldb.pc"
+    pc="${install_dir}/lib64/leveldb.pc"
 
     (
-        echo "prefix=$install_dir"
+        echo "prefix=${install_dir}"
         echo "exec_prefix=\${prefix}"
         echo "includedir=\${prefix}/include"
         echo "libdir=\${prefix}/lib64"
@@ -243,27 +257,28 @@ function leveldb_pkgconfig {
         echo "Libs: -L\${libdir} -lleveldb"
     ) > $pc
 
-    PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$install_dir/lib64
+    PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${install_dir}/lib64
 }
 
 function leveldb() {
     name=leveldb
-    download_dir=$WORKING_DIR/$name
-    if [[ ! -d "$download_dir" ]]; then
-        git clone --depth 1 https://github.com/google/leveldb.git $download_dir
+    download_dir=${WORKING_DIR}/${name}
+    if [[ ! -d "${download_dir}" ]]; then
+        git clone --depth 1 https://github.com/google/leveldb.git ${download_dir}
     fi
 
-    cd $download_dir
-    git apply ${SOURCE}/leveldb.patch
+    cd ${download_dir}
+    git pull
+    git apply ${SOURCE}/leveldb.patch || true
     mkdir -p build
     cd build
-    install_dir=$PREFIX/$name
-    PKG_CONFIG_PATH=$PKG_CONFIG_PATH cmake -DCMAKE_INSTALL_PREFIX=$install_dir ..
+    install_dir=${PREFIX}/${name}
+    PKG_CONFIG_PATH=${PKG_CONFIG_PATH} cmake -DCMAKE_INSTALL_PREFIX=${install_dir} ..
     make -j ${PROCS}
     make -j ${PROCS} install
     cd ../..
 
-    leveldb_pkgconfig $install_dir
+    leveldb_pkgconfig ${install_dir}
 }
 
 # Parse command line arguments
@@ -307,8 +322,8 @@ WORKING_DIR=$1
 PREFIX=$2
 PKG_CONFIG_PATH=
 
-mkdir -p $WORKING_DIR
-cd $WORKING_DIR
+mkdir -p ${WORKING_DIR}
+cd ${WORKING_DIR}
 
 if [[ -z "${CC}" ]]; then
     CC="cc"
@@ -321,4 +336,4 @@ fi
 thallium
 leveldb
 
-echo -e "Please add this to your PKG_CONFIG_PATH:\n$PKG_CONFIG_PATH"
+echo -e "Please add this to your PKG_CONFIG_PATH:\n${PKG_CONFIG_PATH}"
