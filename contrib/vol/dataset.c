@@ -177,7 +177,6 @@ herr_t H5VL_hxhim_dataset_write(void *dset, hid_t mem_type_id, hid_t mem_space_i
     const char * predicate = get_type_name(mem_type_id);
     const size_t predicate_len = strlen(predicate);
 
-    fprintf(stderr, "%s [%s %s]\n", __func__, dataset_info->subject, predicate);
     hxhimPut(&dataset_info->file->hx,
              dataset_info->subject, dataset_info->subject_len,
              (void *) predicate, predicate_len,

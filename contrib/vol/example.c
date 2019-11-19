@@ -55,9 +55,14 @@ int main(int argc, char * argv[]) {
         hid_t write_doubles_dataset_id = H5Dcreate(file_id, "/doubles", H5T_NATIVE_DOUBLE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         H5Dwrite(write_doubles_dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, dataspace_id, H5P_DEFAULT, write_doubles);
 
+        /* noop */
+        hid_t group_id = H5Gcreate(file_id, "/group", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
         const char write_str[] = "ABCDEF";
-        hid_t write_str_dataset_id = H5Dcreate(file_id, "/string", H5T_C_S1, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        hid_t write_str_dataset_id = H5Dcreate(group_id, "/group/string", H5T_C_S1, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         H5Dwrite(write_str_dataset_id, H5T_C_S1, H5S_ALL, dataspace_id, H5P_DEFAULT, write_str);
+
+        H5Gclose(group_id);
 
         H5Fflush(file_id, H5F_SCOPE_GLOBAL);
         for(hsize_t i = 0; i < dims; i++) {
@@ -104,7 +109,7 @@ int main(int argc, char * argv[]) {
             H5Dclose(dataset_id);
         }
         {
-            hid_t dataset_id = H5Dopen(file_id, "/string", H5P_DEFAULT);
+            hid_t dataset_id = H5Dopen(file_id, "/group/string", H5P_DEFAULT);
 
             char read_str[1024];
             H5Dread(dataset_id, H5T_C_S1, H5S_ALL, H5S_ALL, H5P_DEFAULT, read_str);

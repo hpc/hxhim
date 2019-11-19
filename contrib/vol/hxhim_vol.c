@@ -4,6 +4,7 @@
 #include "info.h"
 #include "dataset.h"
 #include "file.h"
+#include "group.h"
 
 static const H5VL_class_t hxhim_vol_g = {
     0,                                              /* version      */
@@ -65,12 +66,13 @@ static const H5VL_class_t hxhim_vol_g = {
         H5VL_hxhim_file_close                       /* close        */
     },
     {   /* group_cls */
-        NULL,                                       /* create       */
-        NULL,                                       /* open         */
-        NULL,                                       /* get          */
-        NULL,                                       /* specific     */
-        NULL,                                       /* optional     */
-        NULL                                        /* close        */
+        /* (noops)   */
+        H5VL_hxhim_group_create,                    /* create       */
+        H5VL_hxhim_group_open,                      /* open         */
+        H5VL_hxhim_group_get,                       /* get          */
+        H5VL_hxhim_group_specific,                  /* specific     */
+        H5VL_hxhim_group_optional,                  /* optional     */
+        H5VL_hxhim_group_close                      /* close        */
     },
     {   /* link_cls */
         NULL,                                       /* create       */

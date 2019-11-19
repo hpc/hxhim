@@ -14,6 +14,8 @@ set(VOL_SOURCES
   file.h
   float3.c
   float3.h
+  group.c
+  group.h
   hxhim_vol.c
   hxhim_vol.h
   info.c
