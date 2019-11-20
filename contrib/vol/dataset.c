@@ -93,7 +93,7 @@ void *H5VL_hxhim_dataset_open(void *obj, const H5VL_loc_params_t *loc_params, co
 herr_t H5VL_hxhim_dataset_read(void *dset, hid_t mem_type_id, hid_t mem_space_id, hid_t file_space_id,
                                hid_t xfer_plist_id, void * buf, void **req){
     if (file_space_id == H5S_ALL) {
-        fprintf(stderr, "%d %s cannot write values to file space with H5S_ALL\n", __LINE__, __func__);
+        fprintf(stderr, "%d %s cannot read values from file space with H5S_ALL\n", __LINE__, __func__);
         return -1;
     }
 

@@ -15,6 +15,12 @@ void Result::destroy(hxhim_t *hx, Results::Result *res) {
     hx->p->memory_pools.result->release(res);
 }
 
+Results::Get::~Get() {
+    buffers->release(subject, subject_len);
+    buffers->release(predicate, predicate_len);
+    buffers->release(object, object_len);
+}
+
 Results::Put *Result::init(hxhim_t *hx, Transport::Response::Put *put) {
     if (!valid(hx) || !put) {
         return nullptr;
@@ -42,6 +48,10 @@ Results::Put *Result::init(hxhim_t *hx, Transport::Response::BPut *bput, const s
 }
 
 void Result::destroy(hxhim_t *hx, Results::Put *put) {
+    if (!valid(hx)) {
+        return;
+    }
+
     hx->p->memory_pools.result->release(put);
 }
 
@@ -79,13 +89,6 @@ Results::Get2 *Result::init(hxhim_t *hx, Transport::Response::Get2 *get) {
     out->buffers = hx->p->memory_pools.buffers;
     out->datastore = hxhim::datastore::get_id(hx, get->src, get->ds_offset);
     out->status = get->status;
-    out->subject = get->subject;
-    out->subject_len = get->subject_len;
-    out->predicate = get->predicate;
-    out->predicate_len = get->predicate_len;
-    out->object_type = get->object_type;
-    out->object = get->object;
-    out->object_len = get->object_len;
 
     get->subject = nullptr;
     get->predicate = nullptr;
@@ -127,13 +130,6 @@ Results::Get2 *Result::init(hxhim_t *hx, Transport::Response::BGet2 *bget, const
     out->buffers = hx->p->memory_pools.buffers;
     out->datastore = hxhim::datastore::get_id(hx, bget->src, bget->ds_offsets[i]);
     out->status = bget->statuses[i];
-    out->subject = bget->subjects[i];
-    out->subject_len = bget->subject_lens[i];
-    out->predicate = bget->predicates[i];
-    out->predicate_len = bget->predicate_lens[i];
-    out->object_type = bget->object_types[i];
-    out->object = bget->objects[i];
-    out->object_len = bget->object_lens[i];
 
     bget->subjects[i] = nullptr;
     bget->predicates[i] = nullptr;
@@ -166,9 +162,17 @@ Results::Get *Result::init(hxhim_t *hx, Transport::Response::BGetOp *bgetop, con
 }
 
 void Result::destroy(hxhim_t *hx, Results::Get *get) {
-    get->buffers->release(get->subject, get->subject_len);
-    get->buffers->release(get->predicate, get->predicate_len);
-    get->buffers->release(get->object, get->object_len);
+    if (!valid(hx)) {
+        return;
+    }
+
+    hx->p->memory_pools.result->release(get);
+}
+
+void Result::destroy(hxhim_t *hx, Results::Get2 *get) {
+    if (!valid(hx)) {
+        return;
+    }
 
     hx->p->memory_pools.result->release(get);
 }
@@ -200,6 +204,10 @@ Results::Delete *Result::init(hxhim_t *hx, Transport::Response::BDelete *bdel, c
 }
 
 void Result::destroy(hxhim_t *hx, Results::Delete *del) {
+    if (!valid(hx)) {
+        return;
+    }
+
     hx->p->memory_pools.result->release(del);
 }
 
@@ -217,6 +225,10 @@ Results::Sync *Result::init(hxhim_t *hx, const int ds_offset, const int synced) 
 }
 
 void Result::destroy(hxhim_t *hx, Results::Sync *sync) {
+    if (!valid(hx)) {
+        return;
+    }
+
     hx->p->memory_pools.result->release(sync);
 }
 
@@ -256,6 +268,10 @@ Results::Histogram *Result::init(hxhim_t *hx, Transport::Response::BHistogram *b
 }
 
 void Result::destroy(hxhim_t *hx, Results::Histogram *hist) {
+    if (!valid(hx)) {
+        return;
+    }
+
     hx->p->memory_pools.result->release(hist);
 }
 

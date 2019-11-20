@@ -69,6 +69,8 @@ class Results {
 
         /** @description Convenience struct for GET results */
         struct Get : public Result {
+            ~Get();
+
             void *subject;
             std::size_t subject_len;
 
@@ -80,17 +82,11 @@ class Results {
             std::size_t object_len;
         };
 
-        struct Get2 : public Result {
-            void *subject;
-            std::size_t subject_len;
-
-            void *predicate;
-            std::size_t predicate_len;
-
-            hxhim_type_t object_type;
-            void *object;
-            std::size_t *object_len;
-        };
+        /** @description Convenience struct for GET2 results    */
+        /** Does not contain any SPO information because user   */
+        /** buffers were used to store them instead of internal */
+        /** buffers                                             */
+        struct Get2 : public Result {};
 
         /** @description Convenience struct for DEL results */
         struct Delete : public Result {};
@@ -129,7 +125,7 @@ class Results {
     private:
         hxhim_t *hx;
         std::list <Result *> results;
-        std::list<Result *>::iterator curr;
+        std::list <Result *>::iterator curr;
 };
 
 /**
@@ -145,6 +141,7 @@ namespace Result {
     void destroy(hxhim_t *hx, Results::Result    *res);
     void destroy(hxhim_t *hx, Results::Put       *put);
     void destroy(hxhim_t *hx, Results::Get       *get);
+    void destroy(hxhim_t *hx, Results::Get2      *get);
     void destroy(hxhim_t *hx, Results::Delete    *del);
     void destroy(hxhim_t *hx, Results::Sync      *sync);
     void destroy(hxhim_t *hx, Results::Histogram *hist);
