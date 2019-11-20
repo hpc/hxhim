@@ -128,6 +128,9 @@ herr_t H5VL_hxhim_file_specific(void *obj, H5VL_file_specific_t specific_type, h
                     case HXHIM_RESULT_GET:
                         /* need to use req/arguments to get pointers to write to */
                         break;
+                    case HXHIM_RESULT_GET2:
+                        /* need to use req/arguments to get pointers to write to */
+                        break;
                     default:
                         break;
                 }

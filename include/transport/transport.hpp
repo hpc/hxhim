@@ -31,6 +31,9 @@ class Endpoint {
         /** @description Send a Get to this endpoint */
         virtual Response::Get *Get(const Request::Get *message);
 
+        /** @description Send a Get to this endpoint */
+        virtual Response::Get2 *Get2(const Request::Get2 *message);
+
         /** @description Send a Delete to this endpoint */
         virtual Response::Delete *Delete(const Request::Delete *message);
 
@@ -54,6 +57,9 @@ class EndpointGroup {
 
         /** @description Bulk Get from multiple endpoints  */
         virtual Response::BGet *BGet(const std::unordered_map<int, Request::BGet *> &bgm_list);
+
+        /** @description Bulk Get from multiple endpoints  */
+        virtual Response::BGet2 *BGet2(const std::unordered_map<int, Request::BGet2 *> &bgm_list);
 
         /** @description Bulk Get from multiple endpoints  */
         virtual Response::BGetOp *BGetOp(const std::unordered_map<int, Request::BGetOp *> &bgm_list);
@@ -98,6 +104,9 @@ class Transport {
         /** @description Gets a message onto the the underlying transport        */
         Response::Get *Get(const Request::Get *gm);
 
+        /** @description Get2s a message onto the the underlying transport        */
+        Response::Get2 *Get2(const Request::Get2 *gm);
+
         /** @description Deletes a message onto the the underlying transport     */
         Response::Delete *Delete(const Request::Delete *dm);
 
@@ -109,6 +118,9 @@ class Transport {
 
         /** @description Bulk Get from multiple endpoints      */
         Response::BGet *BGet(const std::unordered_map<int, Request::BGet *> &bgm_list);
+
+        /** @description Bulk Get2 from multiple endpoints      */
+        Response::BGet2 *BGet2(const std::unordered_map<int, Request::BGet2 *> &bgm_list);
 
         /** @description Bulk Get from multiple endpoints      */
         Response::BGetOp *BGetOp(const std::unordered_map<int, Request::BGetOp *> &bgm_list);

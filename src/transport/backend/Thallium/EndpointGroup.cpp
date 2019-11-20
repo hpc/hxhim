@@ -122,6 +122,17 @@ Transport::Response::BGet *Transport::Thallium::EndpointGroup::BGet(const std::u
 }
 
 /**
+ * BGet2
+ *
+ * @param num_rangesrvs the total number of range servers
+ * @param bgm_list the list of BGET messages to send
+ * @return a linked list of response messages, or nullptr
+ */
+Transport::Response::BGet2 *Transport::Thallium::EndpointGroup::BGet2(const std::unordered_map<int, Request::BGet2 *> &bgm_list) {
+    return nullptr;
+}
+
+/**
  * BGetOp
  *
  * @param num_rangesrvs the total number of range servers

@@ -60,6 +60,12 @@ class Datastore {
                                         void **predicates, std::size_t *predicate_lens,
                                         hxhim_type_t *object_types,
                                         std::size_t count);
+        // each pointer argument should be the address of the array being passed in
+        // so that this function can steal the pointers
+        Transport::Response::BGet2 *BGet2(void ***subjects, std::size_t **subject_lens,
+                                          void ***predicates, std::size_t **predicate_lens,
+                                          hxhim_type_t **object_types, void ***objects, std::size_t ***object_lens,
+                                          std::size_t count);
         Transport::Response::BGetOp *BGetOp(void *subject, std::size_t subject_len,
                                             void *predicate, std::size_t predicate_len,
                                             hxhim_type_t object_type,
@@ -82,6 +88,10 @@ class Datastore {
                                                     void **predicates, std::size_t *predicate_lens,
                                                     hxhim_type_t *object_types,
                                                     std::size_t count) = 0;
+        virtual Transport::Response::BGet2 *BGetImpl2(void ***subjects, std::size_t **subject_lens,
+                                                      void ***predicates, std::size_t **predicate_lens,
+                                                      hxhim_type_t **object_types, void ***objects, std::size_t ***object_lens,
+                                                      std::size_t count) = 0;
         virtual Transport::Response::BGetOp *BGetOpImpl(void *subject, std::size_t subject_len,
                                                         void *predicate, std::size_t predicate_len,
                                                         hxhim_type_t object_type,

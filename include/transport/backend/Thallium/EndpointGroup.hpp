@@ -42,6 +42,9 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup {
         Response::BGet *BGet(const std::unordered_map<int, Request::BGet *> &bgm_list);
 
         /** @description Bulk Get from multiple endpoints  */
+        Response::BGet2 *BGet2(const std::unordered_map<int, Request::BGet2 *> &bgm_list);
+
+        /** @description Bulk Get from multiple endpoints  */
         Response::BGetOp *BGetOp(const std::unordered_map<int, Request::BGetOp *> &bgm_list);
 
         /** @description Bulk Delete to multiple endpoints */

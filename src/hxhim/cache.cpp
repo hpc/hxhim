@@ -33,6 +33,17 @@ hxhim::GetData::GetData()
 
 hxhim::GetData::~GetData() {}
 
+hxhim::GetData2::GetData2()
+    : SP_t(),
+      object_type(HXHIM_INVALID_TYPE),
+      object(nullptr),
+      object_len(nullptr),
+      prev(nullptr),
+      next(nullptr)
+{}
+
+hxhim::GetData2::~GetData2() {}
+
 hxhim::GetOpData::GetOpData()
     : SP_t(),
       object_type(HXHIM_INVALID_TYPE),

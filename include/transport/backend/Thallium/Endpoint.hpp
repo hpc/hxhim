@@ -39,6 +39,9 @@ class Endpoint : virtual public ::Transport::Endpoint {
         /** @description Send a Get to this endpoint */
         Response::Get *Get(const Request::Get *message);
 
+        /** @description Send a Get2 to this endpoint */
+        Response::Get2 *Get2(const Request::Get2 *message);
+
         /** @description Send a Delete to this endpoint */
         Response::Delete *Delete(const Request::Delete *message);
 

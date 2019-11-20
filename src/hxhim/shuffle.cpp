@@ -72,9 +72,9 @@ int Put(hxhim_t *hx,
         // else, return a bad destination datastore
         else {
             mlog(HXHIM_CLIENT_DBG, "Shuffle Local Put Could not add to packet");
-            if (h == hashed.end()) {
-                hashed[sp] = ds_id;
-            }
+            // if (h == hashed.end()) {
+            //     hashed[sp] = ds_id;
+            // }
             return -1;
         }
     }
@@ -119,9 +119,9 @@ int Put(hxhim_t *hx,
         }
         else {
             mlog(HXHIM_CLIENT_DBG, "Shuffle Remote Put Could not add to packet");
-            if (h == hashed.end()) {
-                hashed[sp] = ds_id;
-            }
+            // if (h == hashed.end()) {
+            //     hashed[sp] = ds_id;
+            // }
             return -1;
         }
     }
@@ -201,6 +201,94 @@ int Get(hxhim_t *hx,
             rem->predicates[rem->count] = predicate;
             rem->predicate_lens[rem->count] = predicate_len;
             rem->object_types[rem->count] = object_type;
+            rem->count++;
+        }
+        else {
+            return -1;
+        }
+    }
+
+    return ds_id;
+}
+
+/**
+ * Get
+ * Places a set of Get data into the correct buffer for sending to a backend
+ */
+int Get2(hxhim_t *hx,
+         const std::size_t max_per_dst,
+         void *subject,
+         std::size_t subject_len,
+         void *predicate,
+         std::size_t predicate_len,
+         hxhim_type_t object_type,
+         void *object,
+         std::size_t *object_len,
+         Transport::Request::BGet2 *local,
+         std::unordered_map<int, Transport::Request::BGet2 *> &remote,
+         const std::size_t max_remote) {
+    // get the destination backend id for the key
+    const int ds_id = hx->p->hash.func(hx, subject, subject_len, predicate, predicate_len, hx->p->hash.args);
+    if (ds_id < 0) {
+        mlog(HXHIM_CLIENT_WARN, "Hash returned bad target datastore: %d", ds_id);
+        return -1;
+    }
+
+    mlog(HXHIM_CLIENT_DBG, "Shuffle Get from datastore %d", ds_id);
+
+    // split the backend id into destination rank and ds_offset
+    const int ds_rank = hxhim::datastore::get_rank(hx, ds_id);
+    const int ds_offset = hxhim::datastore::get_offset(hx, ds_id);
+
+    // group local keys
+    if (ds_rank == hx->p->bootstrap.rank) {
+        // only add the key if there is space
+        if (local->count < max_per_dst) {
+            local->ds_offsets[local->count] = ds_offset;
+            local->subjects[local->count] = subject;
+            local->subject_lens[local->count] = subject_len;
+            local->predicates[local->count] = predicate;
+            local->predicate_lens[local->count] = predicate_len;
+            local->object_types[local->count] = object_type;
+            local->objects[local->count] = object;
+            local->object_lens[local->count] = object_len;
+            local->count++;
+        }
+        // else, return a bad destination datastore
+        else {
+            return -1;
+        }
+    }
+    // group remote keys
+    else {
+        // try to find the destination first
+        REF(remote)::iterator it = remote.find(ds_rank);
+
+        // if the destination is not found, check if there is space for another one
+        if (it == remote.end()) {
+            // if there is space for a new destination, insert it
+            if (remote.size() < max_remote) {
+                it = remote.insert(std::make_pair(ds_rank, hx->p->memory_pools.requests->acquire<Transport::Request::BGet2>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, max_per_dst))).first;
+                it->second->src = hx->p->bootstrap.rank;
+                it->second->dst = ds_rank;
+            }
+            else {
+                return -1;
+            }
+        }
+
+        Transport::Request::BGet2 *rem = it->second;
+
+        // if there is space in the request packet, insert
+        if (rem->count < max_per_dst) {
+            rem->ds_offsets[rem->count] = ds_offset;
+            rem->subjects[rem->count] = subject;
+            rem->subject_lens[rem->count] = subject_len;
+            rem->predicates[rem->count] = predicate;
+            rem->predicate_lens[rem->count] = predicate_len;
+            rem->object_types[rem->count] = object_type;
+            rem->objects[rem->count] = object;
+            rem->object_lens[rem->count] = object_len;
             rem->count++;
         }
         else {

@@ -43,6 +43,17 @@ Transport::Response::Get *local_client_get(hxhim_t *hx, const Transport::Request
 }
 
 /**
+ * Send get to range server
+ *
+ * @param hx main HXHIM struct
+ * @param gm pointer to get message
+ * @return return_message structure with ->status = HXHIM_SUCCESS or HXHIM_ERROR
+ */
+Transport::Response::Get2 *local_client_get2(hxhim_t *hx, const Transport::Request::Get2 *gm) {
+    return local_client<Transport::Response::Get2>(hx, gm);
+}
+
+/**
  * Send delete to range server
  *
  * @param hx main HXHIM struct
@@ -73,6 +84,17 @@ Transport::Response::BPut *local_client_bput(hxhim_t *hx, const Transport::Reque
  */
 Transport::Response::BGet *local_client_bget(hxhim_t *hx, const Transport::Request::BGet *bgm) {
     return local_client<Transport::Response::BGet>(hx, bgm);
+}
+
+/**
+ * Send bulk get to range server
+ *
+ * @param hx main HXHIM struct
+ * @param bgm pointer to get message
+ * @return return_message structure with ->status = HXHIM_SUCCESS or HXHIM_ERROR
+ */
+Transport::Response::BGet2 *local_client_bget2(hxhim_t *hx, const Transport::Request::BGet2 *bgm) {
+    return local_client<Transport::Response::BGet2>(hx, bgm);
 }
 
 /**

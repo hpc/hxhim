@@ -16,6 +16,10 @@ Response::Get *Endpoint::Get(const Request::Get *) {
     return nullptr;
 }
 
+Response::Get2 *Endpoint::Get2(const Request::Get2 *) {
+    return nullptr;
+}
+
 Response::Delete *Endpoint::Delete(const Request::Delete *) {
     return nullptr;
 }
@@ -33,6 +37,10 @@ Response::BPut *EndpointGroup::BPut(const std::unordered_map<int, Request::BPut 
 }
 
 Response::BGet *EndpointGroup::BGet(const std::unordered_map<int, Request::BGet *> &) {
+    return nullptr;
+}
+
+Response::BGet2 *EndpointGroup::BGet2(const std::unordered_map<int, Request::BGet2 *> &) {
     return nullptr;
 }
 
@@ -130,6 +138,21 @@ Response::Get *Transport::Get(const Request::Get *get) {
 }
 
 /**
+ * Get
+ * Gets a message onto the the underlying transport
+ *
+ * @param gm the message to GET
+ * @return the response from the range server
+ */
+Response::Get2 *Transport::Get2(const Request::Get2 *get) {
+    if (!get) {
+        return nullptr;
+    }
+    EndpointUnordered_Mapping_t::iterator it = endpoints_.find(get->dst);
+    return (it == endpoints_.end())?nullptr:it->second->Get2(get);
+}
+
+/**
  * Delete
  * Deletes a message onto the the underlying transport
  *
@@ -181,6 +204,18 @@ Response::BPut *Transport::BPut(const std::unordered_map<int, Request::BPut *> &
  */
 Response::BGet *Transport::BGet(const std::unordered_map<int, Request::BGet *> &bgm_list) {
     return (bgm_list.size() && endpointgroup_)?endpointgroup_->BGet(bgm_list):nullptr;
+}
+
+/**
+ * BGet2
+ * Bulk Get2 to multiple endpoints
+ *
+ * @param num_rangesrvs the total number of range servers
+ * @param bgm_list a list of GET messages going to different servers
+ * @return the response from the range server
+ */
+Response::BGet2 *Transport::BGet2(const std::unordered_map<int, Request::BGet2 *> &bgm_list) {
+    return (bgm_list.size() && endpointgroup_)?endpointgroup_->BGet2(bgm_list):nullptr;
 }
 
 /**

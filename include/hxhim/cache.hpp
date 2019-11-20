@@ -47,6 +47,17 @@ namespace hxhim {
         GetData *next;
     };
 
+    struct GetData2 : SP_t {
+        GetData2();
+        ~GetData2();
+
+        hxhim_type_t object_type;
+        void *object;
+        std::size_t *object_len;
+        GetData2 *prev;
+        GetData2 *next;
+    };
+
     struct GetOpData : SP_t {
         GetOpData();
         ~GetOpData();

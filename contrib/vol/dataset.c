@@ -92,9 +92,14 @@ void *H5VL_hxhim_dataset_open(void *obj, const H5VL_loc_params_t *loc_params, co
 
 herr_t H5VL_hxhim_dataset_read(void *dset, hid_t mem_type_id, hid_t mem_space_id, hid_t file_space_id,
                                hid_t xfer_plist_id, void * buf, void **req){
+    if (file_space_id == H5S_ALL) {
+        fprintf(stderr, "%d %s cannot write values to file space with H5S_ALL\n", __LINE__, __func__);
+        return -1;
+    }
+
     struct dataset_info_t * dataset_info = dset;
-    /* const size_t size = H5Tget_size(mem_type_id); */
-    /* const hssize_t count = H5Sget_select_npoints(file_space_id); */
+    const size_t size = H5Tget_size(mem_type_id);
+    const hssize_t count = H5Sget_select_npoints(file_space_id);
 
     /* { */
     /*     /\* const hssize_t count = H5Sget_select_npoints(file_space_id); *\/ */
@@ -116,46 +121,17 @@ herr_t H5VL_hxhim_dataset_read(void *dset, hid_t mem_type_id, hid_t mem_space_id
     const char * predicate = get_type_name(mem_type_id);
     const size_t predicate_len = strlen(predicate);
 
-    hxhimGet(&dataset_info->file->hx,
-             dataset_info->subject, dataset_info->subject_len,
-             (void *) predicate, predicate_len,
-             HXHIM_BYTE_TYPE);
+    size_t * object_len = malloc(sizeof(size_t)); // need to clean
+    *object_len = size * count;
 
-    hxhim_results_t *res = hxhimFlushGets(&dataset_info->file->hx);
-    for(hxhim_results_goto_head(res); hxhim_results_valid(res) == HXHIM_SUCCESS; hxhim_results_goto_next(res)) {
-        hxhim_result_type_t type;
-        hxhim_results_type(res, &type);
-        switch (type) {
-            case HXHIM_RESULT_GET:
-                {
-                    void * object = NULL;
-                    size_t object_len = 0;
-                    const int rc = hxhim_results_get_object(res, &object, &object_len);
+    const int rc = (hxhimGet2(&dataset_info->file->hx,
+                              dataset_info->subject, dataset_info->subject_len,
+                              (void *) predicate, predicate_len,
+                              HXHIM_BYTE_TYPE, buf, object_len) == HXHIM_SUCCESS);
 
-                    /*
-                       cannot read directly into buf
-                       - need to cut data for hyperslabs
-                       - hxhim allocates memory from its buffers, not from global memory space
-                           - destroyed when hxhim_results_destroy is called
-                           - if not destroyed, user would have to pass in double pointer to buf, and manually clean up
-                    */
-
-                    if (file_space_id == H5S_ALL) {
-                        memcpy(buf, object, object_len);
-                    }
-                    else {
-                        /* process hyperslab */
-                    }
-                }
-                break;
-            default:
-                break;
-        }
-    }
-    hxhim_results_destroy(&dataset_info->file->hx, res);
     fprintf(stderr, "%4d %s   %p (%s, %s) -> %p %d %d %p\n", __LINE__, __func__, dset, dataset_info->subject, predicate, buf, mem_space_id, file_space_id, req);
 
-    return 0;
+    return !rc;
 }
 
 herr_t H5VL_hxhim_dataset_write(void *dset, hid_t mem_type_id, hid_t mem_space_id, hid_t file_space_id,
@@ -177,20 +153,14 @@ herr_t H5VL_hxhim_dataset_write(void *dset, hid_t mem_type_id, hid_t mem_space_i
     const char * predicate = get_type_name(mem_type_id);
     const size_t predicate_len = strlen(predicate);
 
-    hxhimPut(&dataset_info->file->hx,
-             dataset_info->subject, dataset_info->subject_len,
-             (void *) predicate, predicate_len,
-             HXHIM_BYTE_TYPE, (void *) buf, size * count);
-
-    /* hxhim_results_t *put_results = hxhimFlushPuts(&dataset_info->file->hx); */
-    /* if (!put_results) { */
-    /*     fprintf(stderr, "failed to put\n"); */
-    /* } */
-    /* hxhim_results_destroy(&dataset_info->file->hx, put_results); */
+    const int rc = (hxhimPut(&dataset_info->file->hx,
+                             dataset_info->subject, dataset_info->subject_len,
+                             (void *) predicate, predicate_len,
+                             HXHIM_BYTE_TYPE, (void *) buf, size * count) == HXHIM_SUCCESS);
 
     fprintf(stderr, "%4d %s  %p (%s, %s, %p) size: %zu count: %lld\n", __LINE__, __func__, dset, dataset_info->subject, predicate, buf, size, count);
 
-    return 0;
+    return !rc;
 }
 
 herr_t H5VL_hxhim_dataset_get(void *obj, H5VL_dataset_get_t get_type, hid_t dxpl_id,

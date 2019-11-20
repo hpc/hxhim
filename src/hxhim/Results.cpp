@@ -69,6 +69,30 @@ Results::Get *Result::init(hxhim_t *hx, Transport::Response::Get *get) {
     return out;
 }
 
+Results::Get2 *Result::init(hxhim_t *hx, Transport::Response::Get2 *get) {
+    if (!valid(hx) || !get) {
+        return nullptr;
+    }
+
+    Results::Get2 *out = hx->p->memory_pools.result->acquire<Results::Get2>();
+    out->type = hxhim_result_type::HXHIM_RESULT_GET2;
+    out->buffers = hx->p->memory_pools.buffers;
+    out->datastore = hxhim::datastore::get_id(hx, get->src, get->ds_offset);
+    out->status = get->status;
+    out->subject = get->subject;
+    out->subject_len = get->subject_len;
+    out->predicate = get->predicate;
+    out->predicate_len = get->predicate_len;
+    out->object_type = get->object_type;
+    out->object = get->object;
+    out->object_len = get->object_len;
+
+    get->subject = nullptr;
+    get->predicate = nullptr;
+    get->object = nullptr;
+    return out;
+}
+
 Results::Get *Result::init(hxhim_t *hx, Transport::Response::BGet *bget, const std::size_t i) {
     if (!valid(hx) || !bget || (i >= bget->count)) {
         return nullptr;
@@ -76,6 +100,30 @@ Results::Get *Result::init(hxhim_t *hx, Transport::Response::BGet *bget, const s
 
     Results::Get *out = hx->p->memory_pools.result->acquire<Results::Get>();
     out->type = hxhim_result_type::HXHIM_RESULT_GET;
+    out->buffers = hx->p->memory_pools.buffers;
+    out->datastore = hxhim::datastore::get_id(hx, bget->src, bget->ds_offsets[i]);
+    out->status = bget->statuses[i];
+    out->subject = bget->subjects[i];
+    out->subject_len = bget->subject_lens[i];
+    out->predicate = bget->predicates[i];
+    out->predicate_len = bget->predicate_lens[i];
+    out->object_type = bget->object_types[i];
+    out->object = bget->objects[i];
+    out->object_len = bget->object_lens[i];
+
+    bget->subjects[i] = nullptr;
+    bget->predicates[i] = nullptr;
+    bget->objects[i] = nullptr;
+    return out;
+}
+
+Results::Get2 *Result::init(hxhim_t *hx, Transport::Response::BGet2 *bget, const std::size_t i) {
+    if (!valid(hx) || !bget || (i >= bget->count)) {
+        return nullptr;
+    }
+
+    Results::Get2 *out = hx->p->memory_pools.result->acquire<Results::Get2>();
+    out->type = hxhim_result_type::HXHIM_RESULT_GET2;
     out->buffers = hx->p->memory_pools.buffers;
     out->datastore = hxhim::datastore::get_id(hx, bget->src, bget->ds_offsets[i]);
     out->status = bget->statuses[i];
@@ -227,6 +275,9 @@ Results::~Results() {
                 break;
             case HXHIM_RESULT_GET:
                 hxhim::Result::destroy(hx, static_cast<Get *>(res));
+                break;
+            case HXHIM_RESULT_GET2:
+                hxhim::Result::destroy(hx, static_cast<Get2 *>(res));
                 break;
             case HXHIM_RESULT_DEL:
                 hxhim::Result::destroy(hx, static_cast<Delete *>(res));

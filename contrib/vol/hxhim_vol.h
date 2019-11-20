@@ -2,7 +2,6 @@
 #define HXHIM_HDF5_VOL_CONNECTOR_H
 
 #include <hdf5.h>
-#include <mpi.h>
 
 #include "hxhim/hxhim.h"
 #include "structs.h"

@@ -341,6 +341,111 @@ static hxhim::Results *get_core(hxhim_t *hx,
 }
 
 /**
+ * get_core
+ * The core set of function calls that are needed to send Gets to datastores and receive responses
+ *
+ * @param hx        the HXHIM session
+ * @param curr      the current set of data to process
+ * @param count     the number of elements in this set of data
+ * @param local     the buffer for local data  (not a local variable in order to avoid allocations)
+ * @param remote    the buffer for remote data (not a local variable in order to avoid allocations)
+ * @return results from sending the GETs
+ */
+static hxhim::Results *get2_core(hxhim_t *hx,
+                                hxhim::GetData2 *head) {
+    mlog(HXHIM_CLIENT_DBG, "Start get2_core");
+
+    if (!head) {
+        return nullptr;
+    }
+
+    // serialized results
+    hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
+
+    // declare local GET requests here to not reallocate every loop
+    Transport::Request::BGet2 local(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, hx->p->max_ops_per_send.gets);
+    local.src = hx->p->bootstrap.rank;
+    local.dst = hx->p->bootstrap.rank;
+
+    // maximum number of remote destinations allowed at any time
+    static const std::size_t max_remote = std::max(hx->p->memory_pools.requests->regions() / 2, (std::size_t) 1);
+
+    while (hx->p->running && head) {
+        // current set of remote destinations to send to
+        std::unordered_map<int, Transport::Request::BGet2 *> remote;
+
+        // reset local without deallocating memory
+        local.count = 0;
+
+        hxhim::GetData2 *curr = head;
+
+        while (hx->p->running && curr) {
+            if (hxhim::shuffle::Get2(hx, hx->p->max_ops_per_send.gets,
+                                     curr->subject, curr->subject_len,
+                                     curr->predicate, curr->predicate_len,
+                                     curr->object_type, curr->object, curr->object_len,
+                                     &local,
+                                     remote,
+                                     max_remote) > -1) {
+                // head node
+                if (curr == head) {
+                    head = curr->next;
+                }
+
+                // there is a node before the current one
+                if (curr->prev) {
+                    curr->prev->next = curr->next;
+                }
+
+                // there is a node after the current one
+                if (curr->next) {
+                    curr->next->prev = curr->prev;
+                }
+
+                hxhim::GetData2 *next = curr->next;
+
+                curr->prev = nullptr;
+                curr->next = nullptr;
+
+                // deallocate current node
+                hx->p->memory_pools.ops_cache->release(curr);
+                curr = next;
+            }
+            else {
+                curr = curr->next;
+            }
+        }
+
+        // // GET the batch
+        // if (hx->p->running && remote.size()) {
+        //     hxhim::collect_fill_stats(remote, hx->p->stats.bget);
+        //     Transport::Response::BGet2 *responses = hx->p->transport->BGet2(remote);
+        //     for(Transport::Response::BGet2 *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
+        //         for(std::size_t i = 0; i < curr->count; i++) {
+        //             res->Add(hxhim::Result::init(hx, curr, i));
+        //         }
+        //     }
+        // }
+
+        // for(decltype(remote)::value_type const &dst : remote) {
+        //     hx->p->memory_pools.requests->release(dst.second);
+        // }
+
+        if (hx->p->running && local.count) {
+            hxhim::collect_fill_stats(&local, hx->p->stats.bget);
+            Transport::Response::BGet2 *responses = local_client_bget2(hx, &local);
+            for(Transport::Response::BGet2 *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
+                for(std::size_t i = 0; i < curr->count; i++) {
+                    res->Add(hxhim::Result::init(hx, curr, i));
+                }
+            }
+        }
+    }
+
+    return res;
+}
+
+/**
  * FlushGets
  * Flushes all queued GETs
  * The internal queue is cleared, even on error
@@ -376,6 +481,44 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
  */
 hxhim_results_t *hxhimFlushGets(hxhim_t *hx) {
     return hxhim_results_init(hx, hxhim::FlushGets(hx));
+}
+
+/**
+ * FlushGets
+ * Flushes all queued GETs
+ * The internal queue is cleared, even on error
+ *
+ * @param hx the HXHIM session
+ * @return Pointer to return value wrapper
+ */
+hxhim::Results *hxhim::FlushGets2(hxhim_t *hx) {
+    mlog(HXHIM_CLIENT_DBG, "Flushing GETs");
+    if (!valid(hx)) {
+        return nullptr;
+    }
+
+    hxhim::Unsent<hxhim::GetData2> &gets = hx->p->queues.gets2;
+    hxhim::GetData2 *curr = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(gets.mutex);
+        curr = gets.head;
+        gets.head = nullptr;
+        gets.tail = nullptr;
+    }
+
+    return get2_core(hx, curr);
+}
+
+/**
+ * hxhimFlushGets
+ * Flushes all queued GETs
+ * The internal queue is cleared, even on error
+ *
+ * @param hx the HXHIM session
+ * @return Pointer to return value wrapper
+ */
+hxhim_results_t *hxhimFlushGets2(hxhim_t *hx) {
+    return hxhim_results_init(hx, hxhim::FlushGets2(hx));
 }
 
 /**
@@ -678,6 +821,9 @@ hxhim::Results *hxhim::Flush(hxhim_t *hx) {
     hxhim::Results *gets   = FlushGets(hx);
     res->Append(gets);     hx->p->memory_pools.results->release(gets);
 
+    hxhim::Results *gets2  = FlushGets2(hx);
+    res->Append(gets2);    hx->p->memory_pools.results->release(gets2);
+
     hxhim::Results *getops = FlushGetOps(hx);
     res->Append(getops);   hx->p->memory_pools.results->release(getops);
 
@@ -891,6 +1037,58 @@ int hxhimGet(hxhim_t *hx,
 }
 
 /**
+ * Get
+ * Add a GET into the work queue
+ *
+ * @param hx             the HXHIM session
+ * @param subject        the subject to put
+ * @param subject_len    the length of the subject to put
+ * @param predicate      the prediate to put
+ * @param predicate_len  the length of the prediate to put
+ * @param object_type    the type of the object
+ * @param object         the prediate to put
+ * @param object_len     the length of the prediate to put
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim::Get2(hxhim_t *hx,
+                void *subject, std::size_t subject_len,
+                void *predicate, std::size_t predicate_len,
+                enum hxhim_type_t object_type, void *object, std::size_t *object_len) {
+    if (!valid(hx)) {
+        return HXHIM_ERROR;
+    }
+
+    return hxhim::GetImpl2(hx,
+                           subject, subject_len,
+                           predicate, predicate_len,
+                           object_type, object, object_len);
+}
+
+/**
+ * Get
+ * Add a GET into the work queue
+ *
+ * @param hx             the HXHIM session
+ * @param subject        the subject to put
+ * @param subject_len    the length of the subject to put
+ * @param predicate      the prediate to put
+ * @param predicate_len  the length of the prediate to put
+ * @param object_type    the type of the object
+ * @param object         the prediate to put
+ * @param object_len     the length of the prediate to put
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhimGet2(hxhim_t *hx,
+              void *subject, size_t subject_len,
+              void *predicate, size_t predicate_len,
+              enum hxhim_type_t object_type, void *object, size_t *object_len) {
+    return hxhim::Get2(hx,
+                       subject, subject_len,
+                       predicate, predicate_len,
+                       object_type, object, object_len);
+}
+
+/**
  * Delete
  * Add a DELETE into the work queue
  *
@@ -997,14 +1195,14 @@ int hxhimBPut(hxhim_t *hx,
  * BGet
  * Add a BGET into the work queue
  *
- * @param hx            the HXHIM session
- * @param hx            the HXHIM session
- * @param subjects      the subjects to get
- * @param subject_lens  the lengths of the subjects to get
- * @param prediates     the prediates to get
- * @param prediate_lens the lengths of the prediates to get
- * @param object_types  the types of the objects
- * @param count         the number of inputs
+ * @param hx             the HXHIM session
+ * @param hx             the HXHIM session
+ * @param subjects       the subjects to get
+ * @param subject_lens   the lengths of the subjects to get
+ * @param predicates     the prediates to get
+ * @param predicate_lens the lengths of the prediates to get
+ * @param object_types   the types of the objects
+ * @param count          the number of inputs
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::BGet(hxhim_t *hx,
@@ -1029,13 +1227,13 @@ int hxhim::BGet(hxhim_t *hx,
  * hxhimBGet
  * Add a BGET into the work queue
  *
- * @param hx            the HXHIM session
- * @param subjects      the subjects to get
- * @param subject_lens  the lengths of the subjects to get
- * @param prediates     the prediates to get
- * @param prediate_lens the lengths of the prediates to get
- * @param object_types  the types of the objects
- * @param count         the number of inputs
+ * @param hx             the HXHIM session
+ * @param subjects       the subjects to get
+ * @param subject_lens   the lengths of the subjects to get
+ * @param predicates     the prediates to get
+ * @param predicate_lens the lengths of the prediates to get
+ * @param object_types   the types of the objects
+ * @param count          the number of inputs
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimBGet(hxhim_t *hx,
@@ -1048,6 +1246,66 @@ int hxhimBGet(hxhim_t *hx,
                        predicates, predicate_lens,
                        object_types,
                        count);
+}
+
+/**
+ * BGet
+ * Add a BGET into the work queue
+ *
+ * @param hx             the HXHIM session
+ * @param hx             the HXHIM session
+ * @param subjects       the subjects to get
+ * @param subject_lens   the lengths of the subjects to get
+ * @param predicates     the prediates to get
+ * @param predicate_lens the lengths of the prediates to get
+ * @param object_types   the types of the objects
+ * @param count          the number of inputs
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim::BGet2(hxhim_t *hx,
+                 void **subjects, std::size_t *subject_lens,
+                 void **predicates, std::size_t *predicate_lens,
+                 hxhim_type_t *object_types, void **objects, std::size_t **object_lens,
+                 std::size_t count) {
+    if (!valid(hx)  ||
+        !subjects   || !subject_lens   ||
+        !predicates || !predicate_lens ||
+        !objects    || !object_lens) {
+        return HXHIM_ERROR;
+    }
+
+    for(std::size_t i = 0; i < count; i++) {
+        hxhim::GetImpl2(hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], object_types[i], objects[i], object_lens[i]);
+    }
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * hxhimBGet
+ * Add a BGET into the work queue
+ *
+ * @param hx             the HXHIM session
+ * @param subjects       the subjects to get
+ * @param subject_lens   the lengths of the subjects to get
+ * @param predicates     the prediates to get
+ * @param predicate_lens the lengths of the prediates to get
+ * @param object_types   the types of the objects
+ * @param objects        the prediates to get
+ * @param object_lens    the lengths of the prediates to get
+ * @param count          the number of inputs
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhimBGet2(hxhim_t *hx,
+               void **subjects, std::size_t *subject_lens,
+               void **predicates, std::size_t *predicate_lens,
+               enum hxhim_type_t *object_types, void **objects, std::size_t **object_lens,
+               std::size_t count) {
+    return hxhim::BGet2(hx,
+                        subjects, subject_lens,
+                        predicates, predicate_lens,
+                        object_types, objects, object_lens,
+                        count);
 }
 
 /**

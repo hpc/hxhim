@@ -221,6 +221,113 @@ static Transport::Response::BGet *bget(hxhim_t *hx, const Transport::Request::BG
 }
 
 /**
+ * bget
+ * Handles the bget message and gets data in the datastore
+ *
+ * @param hx        pointer to the main HXHIM struct
+ * @param req       the request packet to operate on
+ * @return          the response packet resulting from the request
+ */
+static Transport::Response::BGet2 *bget2(hxhim_t *hx, const Transport::Request::BGet2 *req) {
+    FixedBufferPool *responses = hx->p->memory_pools.responses;
+    FixedBufferPool *arrays = hx->p->memory_pools.arrays;
+    FixedBufferPool *buffers = hx->p->memory_pools.buffers;
+
+    // allocate arrays for each datastore
+    void ***subjects = arrays->acquire_array<void **>(hx->p->datastore.count);
+    std::size_t **subject_lens = arrays->acquire_array<std::size_t *>(hx->p->datastore.count);
+    void ***predicates = arrays->acquire_array<void **>(hx->p->datastore.count);
+    std::size_t **predicate_lens = arrays->acquire_array<std::size_t *>(hx->p->datastore.count);
+    hxhim_type_t **object_types = arrays->acquire_array<hxhim_type_t *>(hx->p->datastore.count);
+    void ***objects = arrays->acquire_array<void **>(hx->p->datastore.count);
+    std::size_t ***object_lens = arrays->acquire_array<std::size_t **>(hx->p->datastore.count);
+    std::size_t *counters = arrays->acquire_array<std::size_t>(hx->p->datastore.count);
+
+    // each datastore array is overallocated in case
+    // all of the requests go to one datastore
+    for(std::size_t ds = 0; ds < hx->p->datastore.count; ds++) {
+        subjects[ds] = arrays->acquire_array<void *>(req->count);
+        subject_lens[ds] = arrays->acquire_array<std::size_t>(req->count);
+        predicates[ds] = arrays->acquire_array<void *>(req->count);
+        predicate_lens[ds] = arrays->acquire_array<std::size_t>(req->count);
+        object_types[ds] = arrays->acquire_array<hxhim_type_t>(req->count);
+        objects[ds] = arrays->acquire_array<void *>(req->count);
+        object_lens[ds] = arrays->acquire_array<std::size_t *>(req->count);
+        counters[ds] = 0;
+    }
+
+    // split up requests into specific datastores
+    for(std::size_t i = 0; i < req->count; i++) {
+        const int datastore = req->ds_offsets[i];
+        std::size_t &index = counters[req->ds_offsets[i]];
+
+        subjects[datastore][index] = req->subjects[i];
+        subject_lens[datastore][index] = req->subject_lens[i];
+
+        predicates[datastore][index] = req->predicates[i];
+        predicate_lens[datastore][index] = req->predicate_lens[i];
+
+        object_types[datastore][index] = req->object_types[i];
+        objects[datastore][index] = req->objects[i];
+        object_lens[datastore][index] = req->object_lens[i];
+
+        index++;
+    }
+
+    // returned responses
+    Transport::Response::BGet2 *res = responses->acquire<Transport::Response::BGet2>(arrays, buffers, req->count);
+    res->src = req->dst;
+    res->dst = req->src;
+
+    for(std::size_t ds = 0; ds < hx->p->datastore.count; ds++) {
+        Transport::Response::BGet2 *response = hx->p->datastore.datastores[ds]->BGet2(&subjects[ds], &subject_lens[ds],
+                                                                                      &predicates[ds], &predicate_lens[ds],
+                                                                                      &object_types[ds], &objects[ds], &object_lens[ds],
+                                                                                      counters[ds]);
+
+        if (response) {
+            for(std::size_t j = 0; j < response->count; j++) {
+                size_t &count = res->count;
+                res->ds_offsets[count] = ds;
+                res->statuses[count] = response->statuses[j];
+
+                std::swap(res->subjects[count], response->subjects[j]);
+                response->subjects[j] = nullptr;
+                res->subject_lens[count] = response->subject_lens[j];
+
+                std::swap(res->predicates[count], response->predicates[j]);
+                response->predicates[j] = nullptr;
+                res->predicate_lens[count] = response->predicate_lens[j];
+
+                std::swap(res->object_types[count], response->object_types[j]);
+                if (res->statuses[count] == HXHIM_SUCCESS) {
+                    std::swap(res->objects[count], response->objects[j]);
+                    response->objects[j] = nullptr;
+                    res->object_lens[count] = response->object_lens[j];
+                }
+
+                count++;
+            }
+            responses->release(response);
+        }
+    }
+
+    // don't clean up each datastore's arrays
+    // they were cleaned up by responses
+
+    arrays->release_array(subjects, hx->p->datastore.count);
+    arrays->release_array(subject_lens, hx->p->datastore.count);
+    arrays->release_array(predicates, hx->p->datastore.count);
+    arrays->release_array(predicate_lens, hx->p->datastore.count);
+    arrays->release_array(object_types, hx->p->datastore.count);
+    arrays->release_array(objects, hx->p->datastore.count);
+    arrays->release_array(object_lens, hx->p->datastore.count);
+    arrays->release_array(counters, hx->p->datastore.count);
+
+    return res;
+}
+
+/**
  * bgetop
  * Handles the bgetop message and getops data in the datastore
  *
@@ -404,6 +511,9 @@ Transport::Response::Response *range_server(hxhim_t *hx, const Transport::Reques
             break;
         case Message::BGET:
             res = bget(hx, dynamic_cast<const Request::BGet *>(req));
+            break;
+        case Message::BGET2:
+            res = bget2(hx, dynamic_cast<const Request::BGet2 *>(req));
             break;
         case Message::BGETOP:
             res = bgetop(hx, dynamic_cast<const Request::BGetOp *>(req));

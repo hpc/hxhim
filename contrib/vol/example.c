@@ -86,38 +86,35 @@ int main(int argc, char * argv[]) {
     /* read */
     {
         hid_t file_id = H5Fopen("/tmp/hxhim", H5F_ACC_RDWR, fapl);
-        {
-            hid_t dataset_id = H5Dopen(file_id, "/ints", H5P_DEFAULT);
+        hid_t dataspace_id = H5Screate_simple(1, &dims, NULL);
 
-            int read_ints[COUNT];
-            H5Dread(dataset_id, H5T_NATIVE_INT, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT, read_ints);
-            for(hsize_t i = 0; i < COUNT; i++) {
-                printf("     read %d\n", read_ints[i]);
-            }
+        hid_t read_ints_dataset_id = H5Dopen(file_id, "/ints", H5P_DEFAULT);
+        int read_ints[COUNT];
+        H5Dread(read_ints_dataset_id, H5T_NATIVE_INT, H5S_ALL, dataspace_id, H5P_DEFAULT, read_ints);
 
-            H5Dclose(dataset_id);
+        hid_t read_doubles_dataset_id = H5Dopen(file_id, "/doubles", H5P_DEFAULT);
+        double read_doubles[COUNT];
+        H5Dread(read_doubles_dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, dataspace_id, H5P_DEFAULT, read_doubles);
+
+
+        hid_t read_str_dataset_id = H5Dopen(file_id, "/group/string", H5P_DEFAULT);
+        char read_str[1024];
+        H5Dread(read_str_dataset_id, H5T_C_S1, H5S_ALL, dataspace_id, H5P_DEFAULT, read_str);
+
+        H5Fflush(file_id, H5F_SCOPE_GLOBAL);
+        for(hsize_t i = 0; i < COUNT; i++) {
+            printf("     read %d\n", read_ints[i]);
         }
-        {
-            hid_t dataset_id = H5Dopen(file_id, "/doubles", H5P_DEFAULT);
-
-            double read_doubles[COUNT];
-            H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, read_doubles);
-            for(hsize_t i = 0; i < COUNT; i++) {
-                printf("     read %f\n", read_doubles[i]);
-            }
-
-            H5Dclose(dataset_id);
+        for(hsize_t i = 0; i < COUNT; i++) {
+            printf("     read %f\n", read_doubles[i]);
         }
-        {
-            hid_t dataset_id = H5Dopen(file_id, "/group/string", H5P_DEFAULT);
+        printf("     read %s\n", read_str);
 
-            char read_str[1024];
-            H5Dread(dataset_id, H5T_C_S1, H5S_ALL, H5S_ALL, H5P_DEFAULT, read_str);
-            printf("     read %s\n", read_str);
+        H5Dclose(read_ints_dataset_id);
+        H5Dclose(read_doubles_dataset_id);
+        H5Dclose(read_str_dataset_id);
 
-            H5Dclose(dataset_id);
-        }
-
+        H5Sclose(dataspace_id);
         H5Fclose(file_id);
     }
 

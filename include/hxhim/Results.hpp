@@ -80,6 +80,18 @@ class Results {
             std::size_t object_len;
         };
 
+        struct Get2 : public Result {
+            void *subject;
+            std::size_t subject_len;
+
+            void *predicate;
+            std::size_t predicate_len;
+
+            hxhim_type_t object_type;
+            void *object;
+            std::size_t *object_len;
+        };
+
         /** @description Convenience struct for DEL results */
         struct Delete : public Result {};
 

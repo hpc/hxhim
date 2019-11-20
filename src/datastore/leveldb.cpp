@@ -240,6 +240,86 @@ Response::BGet *leveldb::BGetImpl(void **subjects, std::size_t *subject_lens,
 }
 
 /**
+ * BGet
+ * Performs a bulk GET in leveldb
+ *
+ * @param subjects      the subjects to put
+ * @param subject_lens  the lengths of the subjects to put
+ * @param prediates     the prediates to put
+ * @param prediate_lens the lengths of the prediates to put
+ * @return pointer to a list of results
+ */
+Response::BGet2 *leveldb::BGetImpl2(void ***subjects, std::size_t **subject_lens,
+                                    void ***predicates, std::size_t **predicate_lens,
+                                    hxhim_type_t **object_types, void ***objects, std::size_t ***object_lens,
+                                    std::size_t count) {
+    FixedBufferPool *arrays = hx->p->memory_pools.arrays;
+    FixedBufferPool *buffers = hx->p->memory_pools.buffers;
+    Response::BGet2 *ret = hx->p->memory_pools.responses->acquire<Response::BGet2>(arrays, buffers, 0);
+    if (!ret) {
+        return nullptr;
+    }
+
+    // statuses was not createed because the provided size was 0
+    ret->statuses = arrays->acquire<int>(count);
+
+    // move request data into the response
+    // instead of doing memcopy of each SPO
+    ret->subjects = *subjects;
+    ret->subject_lens = *subject_lens;
+    ret->predicates = *predicates;
+    ret->predicate_lens = *predicate_lens;
+    ret->object_types = *object_types;
+    ret->objects = *objects;
+    ret->object_lens = *object_lens;
+    ret->count = count;
+
+    FixedBufferPool *keys = hx->p->memory_pools.keys;
+    for(std::size_t i = 0; i < count; i++) {
+        struct timespec start, end;
+
+        void *key = nullptr;
+        std::size_t key_len = 0;
+        sp_to_key(keys, (*subjects)[i], (*subject_lens)[i], (*predicates)[i], (*predicate_lens)[i], &key, &key_len);
+
+        // create the key
+        const ::leveldb::Slice k((char *) key, key_len);
+
+        // get the value
+        clock_gettime(CLOCK_MONOTONIC, &start);
+        ::leveldb::Slice value; // read gotten value into a Slice instead of a std::string to save a few copies
+        ::leveldb::Status status = db->Get(::leveldb::ReadOptions(), k, value);
+        clock_gettime(CLOCK_MONOTONIC, &end);
+
+        keys->release(key, key_len);
+
+        // add to results list
+        if (status.ok()) {
+            ret->statuses[i] = HXHIM_SUCCESS;
+            *(ret->object_lens[i]) = value.size();
+            memcpy(ret->objects[i], value.data(), *(ret->object_lens[i]));
+        }
+        else {
+            ret->statuses[i] = HXHIM_ERROR;
+        }
+
+        // update stats
+        stats.gets++;
+        stats.get_times += nano(start, end);
+    }
+
+    *subjects = nullptr;
+    *subject_lens = nullptr;
+    *predicates = nullptr;
+    *predicate_lens = nullptr;
+    *object_types = nullptr;
+    *objects = nullptr;
+    *object_lens = nullptr;
+
+    return ret;
+}
+
+/**
  * BGetOp
  * Performs a GetOp in leveldb
  *

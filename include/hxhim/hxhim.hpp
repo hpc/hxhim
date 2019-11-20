@@ -24,6 +24,7 @@ int Close(hxhim_t *hx);
 /** @description Functions for flushing HXHIM queues */
 Results *FlushPuts(hxhim_t *hx);
 Results *FlushGets(hxhim_t *hx);
+Results *FlushGets2(hxhim_t *hx);
 Results *FlushGetOps(hxhim_t *hx);
 Results *FlushDeletes(hxhim_t *hx);
 Results *Flush(hxhim_t *hx);
@@ -35,6 +36,7 @@ Results *Sync(hxhim_t *hx);
 Results *ChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t func, void *args);
 
 /** @description Functions for queuing operations to perform on the underlying storage */
+/*  all buffers are user buffers */
 int Put(hxhim_t *hx,
         void *subject, std::size_t subject_len,
         void *predicate, std::size_t predicate_len,
@@ -44,6 +46,11 @@ int Get(hxhim_t *hx,
         void *subject, std::size_t subject_len,
         void *predicate, std::size_t predicate_len,
         hxhim_type_t object_type);
+
+int Get2(hxhim_t *hx,
+         void *subject, std::size_t subject_len,
+         void *predicate, std::size_t predicate_len,
+         hxhim_type_t object_type, void *object, std::size_t *object_len);
 
 int Delete(hxhim_t *hx,
            void *subject, std::size_t subject_len,
@@ -60,6 +67,12 @@ int BGet(hxhim_t *hx,
          void **predicates, std::size_t *predicate_lens,
          hxhim_type_t *object_types,
          std::size_t count);
+
+int BGet2(hxhim_t *hx,
+          void **subjects, std::size_t *subject_lens,
+          void **predicates, std::size_t *predicate_lens,
+          hxhim_type_t *object_types, void **objects, std::size_t **object_lens,
+          std::size_t count);
 
 int BGetOp(hxhim_t *hx,
            void *subject, std::size_t subject_len,

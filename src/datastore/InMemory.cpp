@@ -127,9 +127,6 @@ Response::BGet *InMemory::BGetImpl(void **subjects, std::size_t *subject_lens,
 
         fbp->release(key, key_len);
 
-        stats.gets++;
-        stats.get_times += nano(start, end);
-
         ret->statuses[i] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
 
         ret->subject_lens[i] = subject_lens[i];
@@ -140,15 +137,83 @@ Response::BGet *InMemory::BGetImpl(void **subjects, std::size_t *subject_lens,
         ret->predicates[i] = ::operator new(ret->predicate_lens[i]);
         memcpy(ret->predicates[i], predicates[i], ret->predicate_lens[i]);
 
-        ret->object_types[i] = object_types[i];
-
         if (ret->statuses[i] == HXHIM_SUCCESS) {
+            ret->object_types[i] = object_types[i];
+            ret->object_lens[i] = it->second.size();
             ret->objects[i] = ::operator new(it->second.size());
-            memcpy(ret->objects[i], it->second.data(), it->second.size());
+            memcpy(ret->objects[i], it->second.data(), ret->object_lens[i]);
         }
+
+        stats.gets++;
+        stats.get_times += nano(start, end);
     }
 
     ret->count = count;
+
+    return ret;
+}
+
+/**
+ * BGet
+ * Performs a bulk GET in InMemory
+ *
+ * @param subjects      the subjects to put
+ * @param subject_lens  the lengths of the subjects to put
+ * @param prediates     the prediates to put
+ * @param prediate_lens the lengths of the prediates to put
+ * @return pointer to a list of results
+ */
+Response::BGet2 *InMemory::BGetImpl2(void ***subjects, std::size_t **subject_lens,
+                                     void ***predicates, std::size_t **predicate_lens,
+                                     hxhim_type_t **object_types, void ***objects, std::size_t ***object_lens,
+                                     std::size_t count) {
+    FixedBufferPool *arrays = hx->p->memory_pools.arrays;
+    FixedBufferPool *buffers = hx->p->memory_pools.buffers;
+    Response::BGet2 *ret = hx->p->memory_pools.responses->acquire<Response::BGet2>(arrays, buffers, 0);
+    if (!ret) {
+        return nullptr;
+    }
+
+    // statuses was not createed because the provided size was 0
+    ret->statuses = arrays->acquire<int>(count);
+
+    // move request data into the response
+    // instead of doing memcopy of each SPO
+    ret->subjects = *subjects;
+    ret->subject_lens = *subject_lens;
+    ret->predicates = *predicates;
+    ret->predicate_lens = *predicate_lens;
+    ret->object_types = *object_types;
+    ret->objects = *objects;
+    ret->object_lens = *object_lens;
+    ret->count = count;
+
+    FixedBufferPool *keys = hx->p->memory_pools.keys;
+    for(std::size_t i = 0; i < count; i++) {
+        struct timespec start = {};
+        struct timespec end = {};
+        std::string value_str;
+
+        void *key = nullptr;
+        std::size_t key_len = 0;
+        sp_to_key(keys, (*subjects)[i], (*subject_lens)[i], (*predicates)[i], (*predicate_lens)[i], &key, &key_len);
+
+        clock_gettime(CLOCK_MONOTONIC, &start);
+        decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
+        clock_gettime(CLOCK_MONOTONIC, &end);
+
+        keys->release(key, key_len);
+
+        ret->statuses[i] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
+
+        if (ret->statuses[i] == HXHIM_SUCCESS) {
+            *(ret->object_lens[i]) = it->second.size();
+            memcpy(ret->objects[i], it->second.data(), *(ret->object_lens[i]));
+        }
+
+        stats.gets++;
+        stats.get_times += nano(start, end);
+    }
 
     return ret;
 }

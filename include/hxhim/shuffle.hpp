@@ -54,6 +54,19 @@ int Get(hxhim_t *hx,
         std::unordered_map<int, Transport::Request::BGet *> &remote,
         const std::size_t max_remote);
 
+int Get2(hxhim_t *hx,
+         const std::size_t max_per_dst,
+         void *subject,
+         std::size_t subject_len,
+         void *predicate,
+         std::size_t predicate_len,
+         hxhim_type_t object_type,
+         void *object,
+         std::size_t *object_len,
+         Transport::Request::BGet2 *local,
+         std::unordered_map<int, Transport::Request::BGet2 *> &remote,
+         const std::size_t max_remote);
+
 int GetOp(hxhim_t *hx,
           const std::size_t max_per_dst,
           void *subject,
