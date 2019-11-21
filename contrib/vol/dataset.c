@@ -124,7 +124,7 @@ herr_t H5VL_hxhim_dataset_read(void *dset, hid_t mem_type_id, hid_t mem_space_id
     size_t * object_len = malloc(sizeof(size_t)); // need to clean
     *object_len = size * count;
 
-    const int rc = (hxhimGet2(&dataset_info->file->hx,
+    const int rc = (hxhimGet2(&dataset_info->file->under_vol->hx,
                               dataset_info->subject, dataset_info->subject_len,
                               (void *) predicate, predicate_len,
                               HXHIM_BYTE_TYPE, buf, object_len) == HXHIM_SUCCESS);
@@ -153,7 +153,7 @@ herr_t H5VL_hxhim_dataset_write(void *dset, hid_t mem_type_id, hid_t mem_space_i
     const char * predicate = get_type_name(mem_type_id);
     const size_t predicate_len = strlen(predicate);
 
-    const int rc = (hxhimPut(&dataset_info->file->hx,
+    const int rc = (hxhimPut(&dataset_info->file->under_vol->hx,
                              dataset_info->subject, dataset_info->subject_len,
                              (void *) predicate, predicate_len,
                              HXHIM_BYTE_TYPE, (void *) buf, size * count) == HXHIM_SUCCESS);

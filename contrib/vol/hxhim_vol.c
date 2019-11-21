@@ -1,5 +1,7 @@
 #include "hxhim_vol.h"
 
+#include <stdlib.h>
+
 #include "init_term.h"
 #include "info.h"
 #include "dataset.h"
@@ -108,4 +110,125 @@ H5PLget_plugin_type(void) {
 const void *
 H5PLget_plugin_info(void) {
     return &hxhim_vol_g;
+}
+
+static bool fill_options(MPI_Comm comm, hxhim_options_t *opts, const char * name) {
+    int rank;
+    MPI_Comm_rank(comm, &rank);
+
+    return ((hxhim_options_init(opts)                                             == HXHIM_SUCCESS) &&
+            (hxhim_options_set_mpi_bootstrap(opts, comm)                          == HXHIM_SUCCESS) &&
+            (hxhim_options_set_debug_level(opts, MLOG_ERR)                        == HXHIM_SUCCESS) &&
+            (hxhim_options_set_client_ratio(opts, 1)                              == HXHIM_SUCCESS) &&
+            (hxhim_options_set_server_ratio(opts, 1)                              == HXHIM_SUCCESS) &&
+            (hxhim_options_set_datastores_per_range_server(opts, 1)               == HXHIM_SUCCESS) &&
+            (hxhim_options_set_datastore_leveldb(opts, rank, name, 1)             == HXHIM_SUCCESS) &&
+            (hxhim_options_set_transport_thallium(opts, "na+sm")                  == HXHIM_SUCCESS) &&
+            (hxhim_options_set_hash_name(opts, "SUM_MOD_DATASTORES")              == HXHIM_SUCCESS) &&
+            (hxhim_options_set_keys_alloc_size(opts, 128)                         == HXHIM_SUCCESS) &&
+            (hxhim_options_set_keys_regions(opts, 64)                             == HXHIM_SUCCESS) &&
+            (hxhim_options_set_buffers_alloc_size(opts, 128)                      == HXHIM_SUCCESS) &&
+            (hxhim_options_set_buffers_regions(opts, 4)                           == HXHIM_SUCCESS) &&
+            (hxhim_options_set_ops_cache_regions(opts, 4)                         == HXHIM_SUCCESS) &&
+            (hxhim_options_set_arrays_alloc_size(opts, 32 * sizeof(void *))       == HXHIM_SUCCESS) &&
+            (hxhim_options_set_arrays_regions(opts, 128)                          == HXHIM_SUCCESS) &&
+            (hxhim_options_set_requests_regions(opts, 2)                          == HXHIM_SUCCESS) &&
+            (hxhim_options_set_client_packed_alloc_size(opts, 128)                == HXHIM_SUCCESS) &&
+            (hxhim_options_set_client_packed_regions(opts, 2)                     == HXHIM_SUCCESS) &&
+            (hxhim_options_set_rs_packed_alloc_size(opts, 128)                    == HXHIM_SUCCESS) &&
+            (hxhim_options_set_rs_packed_regions(opts, 2)                         == HXHIM_SUCCESS) &&
+            (hxhim_options_set_responses_regions(opts, 2)                         == HXHIM_SUCCESS) &&
+            (hxhim_options_set_result_regions(opts, 16)                           == HXHIM_SUCCESS) &&
+            (hxhim_options_set_results_regions(opts, 4)                           == HXHIM_SUCCESS) &&
+            (hxhim_options_set_start_async_put_at(opts, 0)                        == HXHIM_SUCCESS) &&
+            (hxhim_options_set_maximum_ops_per_send(opts, 1)                      == HXHIM_SUCCESS) &&
+            (hxhim_options_set_histogram_first_n(opts, 10)                        == HXHIM_SUCCESS) &&
+            (hxhim_options_set_histogram_bucket_gen_method(opts, "10_BUCKETS")    == HXHIM_SUCCESS) &&
+            true);
+}
+
+hid_t hxhim_vol_init(const char *name, MPI_Comm comm, const int comm_dup) {
+    struct under_info_t * under_info = malloc(sizeof(struct under_info_t));
+    if (!under_info) {
+        fprintf(stderr, "%4d %s failed to malloc under_info\n", __LINE__, __func__);
+        return -1;
+    }
+
+    if ((under_info->comm_dup = comm_dup)) {
+        MPI_Comm_dup(comm, &under_info->comm);
+    }
+    else {
+        under_info->comm = comm;
+    }
+
+    /* fill in hxhim options */
+    if (!fill_options(under_info->comm, &under_info->opts, name)) {
+        fprintf(stderr, "%4d %s fill_options\n", __LINE__, __func__);
+        hxhim_options_destroy(&under_info->opts);
+        if (under_info->comm_dup) {
+            MPI_Comm_free(&under_info->comm);
+        }
+        free(under_info);
+        return -1;
+    }
+
+    /* start up hxhim */
+    if (hxhimOpen(&under_info->hx, &under_info->opts) != HXHIM_SUCCESS) {
+        fprintf(stderr, "%4d %s hxhimOpen error\n", __LINE__, __func__);
+        hxhimClose(&under_info->hx);
+        hxhim_options_destroy(&under_info->opts);
+        if (under_info->comm_dup) {
+            MPI_Comm_free(&under_info->comm);
+        }
+        free(under_info);
+        return -1;
+    }
+
+    printf("%4d %s            %p\n", __LINE__, __func__, under_info);
+
+    /* register vol */
+    hid_t vol_id = H5VLregister_connector(H5PLget_plugin_info(), H5P_DEFAULT);
+    if (vol_id < 0) {
+        fprintf(stderr, "%4d %s register vol error\n", __LINE__, __func__);
+        hxhimClose(&under_info->hx);
+        hxhim_options_destroy(&under_info->opts);
+        if (under_info->comm_dup) {
+            MPI_Comm_free(&under_info->comm);
+        }
+        H5VLunregister_connector(under_info->id);
+        free(under_info);
+        return -1;
+    }
+
+    under_info->id = vol_id;
+
+    hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
+    H5Pset_vol(fapl, vol_id, under_info);
+
+    return fapl;
+}
+
+int hxhim_vol_finalize(hid_t fapl) {
+    struct under_info_t * under_info = NULL;
+    if (H5Pget_vol_info(fapl, (void **)&under_info) < 0) {
+        fprintf(stderr, "could not get info\n");
+        return -1;
+    }
+
+    MPI_Barrier(under_info->comm);
+
+    H5Pclose(fapl);
+
+    /* unregister vol */
+    H5VLunregister_connector(under_info->id);
+
+    /* clean up hxhim */
+    hxhimClose(&under_info->hx);
+    hxhim_options_destroy(&under_info->opts);
+    if (under_info->comm_dup) {
+        MPI_Comm_free(&under_info->comm);
+    }
+    free(under_info);
+
+    return 0;
 }
