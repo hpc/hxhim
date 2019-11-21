@@ -46,6 +46,9 @@ struct Message {
 
     virtual std::size_t size() const;
 
+    // any special cleanup to do on the server (database) side
+    virtual void server_side_cleanup(void *args = nullptr);
+
     Direction direction;
     Type type;
     int src;                   // range server ID, not backend ID

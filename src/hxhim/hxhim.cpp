@@ -352,7 +352,7 @@ static hxhim::Results *get_core(hxhim_t *hx,
  * @return results from sending the GETs
  */
 static hxhim::Results *get2_core(hxhim_t *hx,
-                                hxhim::GetData2 *head) {
+                                 hxhim::GetData2 *head) {
     mlog(HXHIM_CLIENT_DBG, "Start get2_core");
 
     if (!head) {
@@ -387,6 +387,9 @@ static hxhim::Results *get2_core(hxhim_t *hx,
                                      &local,
                                      remote,
                                      max_remote) > -1) {
+                // remove the current operation from the list of
+                // operations queued up and continue processing
+
                 // head node
                 if (curr == head) {
                     head = curr->next;
@@ -416,20 +419,20 @@ static hxhim::Results *get2_core(hxhim_t *hx,
             }
         }
 
-        // // GET the batch
-        // if (hx->p->running && remote.size()) {
-        //     hxhim::collect_fill_stats(remote, hx->p->stats.bget);
-        //     Transport::Response::BGet2 *responses = hx->p->transport->BGet2(remote);
-        //     for(Transport::Response::BGet2 *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
-        //         for(std::size_t i = 0; i < curr->count; i++) {
-        //             res->Add(hxhim::Result::init(hx, curr, i));
-        //         }
-        //     }
-        // }
+        // GET the batch
+        if (hx->p->running && remote.size()) {
+            hxhim::collect_fill_stats(remote, hx->p->stats.bget);
+            Transport::Response::BGet2 *responses = hx->p->transport->BGet2(remote);
+            for(Transport::Response::BGet2 *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
+                for(std::size_t i = 0; i < curr->count; i++) {
+                    res->Add(hxhim::Result::init(hx, curr, i));
+                }
+            }
+        }
 
-        // for(decltype(remote)::value_type const &dst : remote) {
-        //     hx->p->memory_pools.requests->release(dst.second);
-        // }
+        for(decltype(remote)::value_type const &dst : remote) {
+            hx->p->memory_pools.requests->release(dst.second);
+        }
 
         if (hx->p->running && local.count) {
             hxhim::collect_fill_stats(&local, hx->p->stats.bget);
@@ -498,15 +501,15 @@ hxhim::Results *hxhim::FlushGets2(hxhim_t *hx) {
     }
 
     hxhim::Unsent<hxhim::GetData2> &gets = hx->p->queues.gets2;
-    hxhim::GetData2 *curr = nullptr;
+    hxhim::GetData2 *head = nullptr;
     {
         std::lock_guard<std::mutex> lock(gets.mutex);
-        curr = gets.head;
+        head = gets.head;
         gets.head = nullptr;
         gets.tail = nullptr;
     }
 
-    return get2_core(hx, curr);
+    return get2_core(hx, head);
 }
 
 /**

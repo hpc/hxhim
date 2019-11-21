@@ -930,8 +930,9 @@ int hxhim::GetImpl2(hxhim_t *hx,
     mlog(HXHIM_CLIENT_DBG, "GET Insert into queue");
     hxhim::Unsent<hxhim::GetData2> &gets = hx->p->queues.gets2;
     gets.insert(get);
-    gets.start_processing.notify_one();
-
+    if (gets.count > 10) {
+        gets.start_processing.notify_one();
+    }
     mlog(HXHIM_CLIENT_DBG, "GET Completed");
     return HXHIM_SUCCESS;
 }

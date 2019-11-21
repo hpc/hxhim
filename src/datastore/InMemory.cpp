@@ -166,6 +166,7 @@ Response::BGet *InMemory::BGetImpl(void **subjects, std::size_t *subject_lens,
 Response::BGet2 *InMemory::BGetImpl2(void ***subjects, std::size_t **subject_lens,
                                      void ***predicates, std::size_t **predicate_lens,
                                      hxhim_type_t **object_types, void ***objects, std::size_t ***object_lens,
+                                     void ***src_objects, std::size_t ***src_object_lens,
                                      std::size_t count) {
     FixedBufferPool *arrays = hx->p->memory_pools.arrays;
     FixedBufferPool *buffers = hx->p->memory_pools.buffers;
@@ -186,6 +187,8 @@ Response::BGet2 *InMemory::BGetImpl2(void ***subjects, std::size_t **subject_len
     ret->object_types = *object_types;
     ret->objects = *objects;
     ret->object_lens = *object_lens;
+    ret->src_objects = *src_objects;
+    ret->src_object_lens = *src_object_lens;
     ret->count = count;
 
     FixedBufferPool *keys = hx->p->memory_pools.keys;

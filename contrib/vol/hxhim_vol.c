@@ -128,20 +128,22 @@ static bool fill_options(MPI_Comm comm, hxhim_options_t *opts, const char * name
             (hxhim_options_set_keys_alloc_size(opts, 128)                         == HXHIM_SUCCESS) &&
             (hxhim_options_set_keys_regions(opts, 64)                             == HXHIM_SUCCESS) &&
             (hxhim_options_set_buffers_alloc_size(opts, 128)                      == HXHIM_SUCCESS) &&
-            (hxhim_options_set_buffers_regions(opts, 4)                           == HXHIM_SUCCESS) &&
+            (hxhim_options_set_buffers_regions(opts, 12)                          == HXHIM_SUCCESS) &&
             (hxhim_options_set_ops_cache_regions(opts, 4)                         == HXHIM_SUCCESS) &&
             (hxhim_options_set_arrays_alloc_size(opts, 32 * sizeof(void *))       == HXHIM_SUCCESS) &&
             (hxhim_options_set_arrays_regions(opts, 128)                          == HXHIM_SUCCESS) &&
-            (hxhim_options_set_requests_regions(opts, 2)                          == HXHIM_SUCCESS) &&
-            (hxhim_options_set_client_packed_alloc_size(opts, 128)                == HXHIM_SUCCESS) &&
+            (hxhim_options_set_requests_alloc_size(opts, 256)                     == HXHIM_SUCCESS) &&
+            (hxhim_options_set_requests_regions(opts, 16)                         == HXHIM_SUCCESS) &&
+            (hxhim_options_set_client_packed_alloc_size(opts, 1024)               == HXHIM_SUCCESS) &&
             (hxhim_options_set_client_packed_regions(opts, 2)                     == HXHIM_SUCCESS) &&
-            (hxhim_options_set_rs_packed_alloc_size(opts, 128)                    == HXHIM_SUCCESS) &&
+            (hxhim_options_set_rs_packed_alloc_size(opts, 1024)                   == HXHIM_SUCCESS) &&
             (hxhim_options_set_rs_packed_regions(opts, 2)                         == HXHIM_SUCCESS) &&
+            (hxhim_options_set_responses_alloc_size(opts, 1024)                   == HXHIM_SUCCESS) &&
             (hxhim_options_set_responses_regions(opts, 2)                         == HXHIM_SUCCESS) &&
             (hxhim_options_set_result_regions(opts, 16)                           == HXHIM_SUCCESS) &&
             (hxhim_options_set_results_regions(opts, 4)                           == HXHIM_SUCCESS) &&
             (hxhim_options_set_start_async_put_at(opts, 0)                        == HXHIM_SUCCESS) &&
-            (hxhim_options_set_maximum_ops_per_send(opts, 1)                      == HXHIM_SUCCESS) &&
+            (hxhim_options_set_maximum_ops_per_send(opts, 8)                      == HXHIM_SUCCESS) &&
             (hxhim_options_set_histogram_first_n(opts, 10)                        == HXHIM_SUCCESS) &&
             (hxhim_options_set_histogram_bucket_gen_method(opts, "10_BUCKETS")    == HXHIM_SUCCESS) &&
             true);

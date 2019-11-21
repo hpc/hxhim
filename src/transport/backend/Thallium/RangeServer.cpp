@@ -28,13 +28,14 @@ void RangeServer::init(hxhim_t *hx, const Engine_t &engine) {
 }
 
 void RangeServer::destroy() {
+    delete rs_packed;
     hx_ = nullptr;
 }
 
 void RangeServer::process(const thallium::request &req, thallium::bulk &bulk) {
     thallium::endpoint ep = req.get_endpoint();
 
-    std::size_t bufsize = rs_packed->alloc_size();
+    const std::size_t bufsize = rs_packed->alloc_size();
     void *buf = rs_packed->acquire(bufsize);
 
     // receive request
@@ -66,6 +67,7 @@ void RangeServer::process(const thallium::request &req, thallium::bulk &bulk) {
     // pack the response
     std::size_t ressize = 0;
     Packer::pack(response, &buf, &ressize, NULL);     // do not check for error
+    response->server_side_cleanup();
     hx_->p->memory_pools.responses->release(response);
 
     // mlog(THALLIUM_DBG, "Packed response into %zu byte string", ressize);

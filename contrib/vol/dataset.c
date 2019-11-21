@@ -124,6 +124,8 @@ herr_t H5VL_hxhim_dataset_read(void *dset, hid_t mem_type_id, hid_t mem_space_id
     size_t * object_len = malloc(sizeof(size_t)); // need to clean
     *object_len = size * count;
 
+    fprintf(stderr, "%4d %s   %p %p\n", __LINE__, __func__, buf, object_len);
+
     const int rc = (hxhimGet2(&dataset_info->file->under_vol->hx,
                               dataset_info->subject, dataset_info->subject_len,
                               (void *) predicate, predicate_len,

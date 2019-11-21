@@ -39,6 +39,7 @@ class InMemory : public Datastore {
         Transport::Response::BGet2 *BGetImpl2(void ***subjects, std::size_t **subject_lens,
                                               void ***predicates, std::size_t **predicate_lens,
                                               hxhim_type_t **object_types, void ***objects, std::size_t ***object_lens,
+                                              void ***src_objects, std::size_t ***src_object_lens,
                                               std::size_t count);
         Transport::Response::BGetOp *BGetOpImpl(void *subject, std::size_t subject_len,
                                                 void *predicate, std::size_t predicate_len,

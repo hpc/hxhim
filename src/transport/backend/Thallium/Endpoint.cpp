@@ -60,7 +60,7 @@ Transport::Response::Get *Transport::Thallium::Endpoint::Get(const Request::Get 
 }
 
 Transport::Response::Get2 *Transport::Thallium::Endpoint::Get2(const Request::Get2 *message) {
-    return nullptr;
+    return do_operation<Response::Get2>(message);
 }
 
 Transport::Response::Delete *Transport::Thallium::Endpoint::Delete(const Request::Delete *message) {

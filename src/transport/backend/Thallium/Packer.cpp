@@ -24,6 +24,9 @@ int Packer::pack(const Request::Request *req, void **buf, std::size_t *bufsize, 
         case Message::GET:
             ret = pack(static_cast<const Request::Get *>(req), buf, bufsize, packed);
             break;
+        case Message::GET2:
+            ret = pack(static_cast<const Request::Get2 *>(req), buf, bufsize, packed);
+            break;
         case Message::DELETE:
             ret = pack(static_cast<const Request::Delete *>(req), buf, bufsize, packed);
             break;
@@ -35,6 +38,9 @@ int Packer::pack(const Request::Request *req, void **buf, std::size_t *bufsize, 
             break;
         case Message::BGET:
             ret = pack(static_cast<const Request::BGet *>(req), buf, bufsize, packed);
+            break;
+        case Message::BGET2:
+            ret = pack(static_cast<const Request::BGet2 *>(req), buf, bufsize, packed);
             break;
         case Message::BGETOP:
             ret = pack(static_cast<const Request::BGetOp *>(req), buf, bufsize, packed);
@@ -101,6 +107,45 @@ int Packer::pack(const Request::Get *gm, void **buf, std::size_t *bufsize, Fixed
 
     memcpy(curr, &gm->object_type, sizeof(gm->object_type));
     curr += sizeof(gm->object_type);
+
+    memcpy(curr, gm->subject, gm->subject_len);
+    curr += gm->subject_len;
+
+    memcpy(curr, gm->predicate, gm->predicate_len);
+    // curr += gm->predicate_len;
+
+    return TRANSPORT_SUCCESS;
+}
+
+int Packer::pack(const Request::Get2 *gm, void **buf, std::size_t *bufsize, FixedBufferPool *packed) {
+    char *curr = nullptr;
+    if (pack(static_cast<const Request::Request *>(gm), buf, bufsize, packed, &curr) != TRANSPORT_SUCCESS) {
+        return TRANSPORT_ERROR;
+    }
+
+    memcpy(curr, &gm->ds_offset, sizeof(gm->ds_offset));
+    curr += sizeof(gm->ds_offset);
+
+    memcpy(curr, &gm->subject_len, sizeof(gm->subject_len));
+    curr += sizeof(gm->subject_len);
+
+    memcpy(curr, &gm->predicate_len, sizeof(gm->predicate_len));
+    curr += sizeof(gm->predicate_len);
+
+    memcpy(curr, &gm->object_type, sizeof(gm->object_type));
+    curr += sizeof(gm->object_type);
+
+    // send the address of object
+    memcpy(curr, &gm->object, sizeof(gm->object));
+    curr += sizeof(gm->object);
+
+    // send the address of object_len
+    memcpy(curr, &gm->object_len, sizeof(gm->object_len));
+    curr += sizeof(gm->object_len);
+
+    // send the object_len
+    memcpy(curr, gm->object_len, sizeof(*(gm->object_len)));
+    curr += sizeof(*(gm->object_len));
 
     memcpy(curr, gm->subject, gm->subject_len);
     curr += gm->subject_len;
@@ -217,6 +262,46 @@ int Packer::pack(const Request::BGet *bgm, void **buf, std::size_t *bufsize, Fix
     return TRANSPORT_SUCCESS;
 }
 
+int Packer::pack(const Request::BGet2 *bgm, void **buf, std::size_t *bufsize, FixedBufferPool *packed) {
+    char *curr = nullptr;
+    if (pack(static_cast<const Request::Request *>(bgm), buf, bufsize, packed, &curr) != TRANSPORT_SUCCESS) {
+        return TRANSPORT_ERROR;
+    }
+
+    memcpy(curr, &bgm->count, sizeof(bgm->count));
+    curr += sizeof(bgm->count);
+
+    for(std::size_t i = 0; i < bgm->count; i++) {
+        memcpy(curr, &bgm->ds_offsets[i], sizeof(bgm->ds_offsets[i]));
+        curr += sizeof(bgm->ds_offsets[i]);
+
+        memcpy(curr, &bgm->subject_lens[i], sizeof(bgm->subject_lens[i]));
+        curr += sizeof(bgm->subject_lens[i]);
+
+        memcpy(curr, &bgm->predicate_lens[i], sizeof(bgm->predicate_lens[i]));
+        curr += sizeof(bgm->predicate_lens[i]);
+
+        memcpy(curr, &bgm->object_types[i], sizeof(bgm->object_types[i]));
+        curr += sizeof(bgm->object_types[i]);
+
+        // send the address stored at objects[i];
+        memcpy(curr, &(bgm->objects[i]), sizeof(bgm->objects[i]));
+        curr += sizeof(bgm->objects[i]);
+
+        // send the address stored at object_lens[i];
+        memcpy(curr, &(bgm->object_lens[i]), sizeof(bgm->object_lens[i]));
+        curr += sizeof(bgm->object_lens[i]);
+
+        memcpy(curr, bgm->subjects[i], bgm->subject_lens[i]);
+        curr += bgm->subject_lens[i];
+
+        memcpy(curr, bgm->predicates[i], bgm->predicate_lens[i]);
+        curr += bgm->predicate_lens[i];
+    }
+
+    return TRANSPORT_SUCCESS;
+}
+
 int Packer::pack(const Request::BGetOp *bgm, void **buf, std::size_t *bufsize, FixedBufferPool *packed) {
     char *curr = nullptr;
     if (pack(static_cast<const Request::Request *>(bgm), buf, bufsize, packed, &curr) != TRANSPORT_SUCCESS) {
@@ -316,6 +401,9 @@ int Packer::pack(const Response::Response *res, void **buf, std::size_t *bufsize
         case Message::GET:
             ret = pack(static_cast<const Response::Get *>(res), buf, bufsize, packed);
             break;
+        case Message::GET2:
+            ret = pack(static_cast<const Response::Get2 *>(res), buf, bufsize, packed);
+            break;
         case Message::DELETE:
             ret = pack(static_cast<const Response::Delete *>(res), buf, bufsize, packed);
             break;
@@ -327,6 +415,9 @@ int Packer::pack(const Response::Response *res, void **buf, std::size_t *bufsize
             break;
         case Message::BGET:
             ret = pack(static_cast<const Response::BGet *>(res), buf, bufsize, packed);
+            break;
+        case Message::BGET2:
+            ret = pack(static_cast<const Response::BGet2 *>(res), buf, bufsize, packed);
             break;
         case Message::BGETOP:
             ret = pack(static_cast<const Response::BGetOp *>(res), buf, bufsize, packed);
@@ -393,6 +484,56 @@ int Packer::pack(const Response::Get *gm, void **buf, std::size_t *bufsize, Fixe
 
         memcpy(curr, gm->object, gm->object_len);
         // curr += gm->object_len;
+    }
+
+    return TRANSPORT_SUCCESS;
+}
+
+int Packer::pack(const Response::Get2 *gm, void **buf, std::size_t *bufsize, FixedBufferPool *packed) {
+    char *curr = nullptr;
+    if (pack(static_cast<const Response::Response *>(gm), buf, bufsize, packed, &curr) != TRANSPORT_SUCCESS) {
+        return TRANSPORT_ERROR;
+    }
+
+    memcpy(curr, &gm->status, sizeof(gm->status));
+    curr += sizeof(gm->status);
+
+    memcpy(curr, &gm->ds_offset, sizeof(gm->ds_offset));
+    curr += sizeof(gm->ds_offset);
+
+    memcpy(curr, &gm->subject_len, sizeof(gm->subject_len));
+    curr += sizeof(gm->subject_len);
+
+    memcpy(curr, &gm->predicate_len, sizeof(gm->predicate_len));
+    curr += sizeof(gm->predicate_len);
+
+    memcpy(curr, &gm->object_type, sizeof(gm->object_type));
+    curr += sizeof(gm->object_type);
+
+    memcpy(curr, gm->subject, gm->subject_len);
+    curr += gm->subject_len;
+
+    memcpy(curr, gm->predicate, gm->predicate_len);
+
+    // only write the rest of the data if it exists
+    if (gm->status == HXHIM_SUCCESS) {
+        curr += gm->predicate_len;
+
+        // write the address of the object the other side should use
+        memcpy(curr, &gm->src_object, sizeof(gm->src_object));
+        curr += sizeof(gm->src_object);
+
+        // write the address of the object_len the other side should use
+        memcpy(curr, &gm->src_object_len, sizeof(gm->src_object_len));
+        curr += sizeof(gm->src_object_len);
+
+        // write the actual object_len
+        memcpy(curr, gm->object_len, sizeof(*(gm->object_len)));
+        curr += sizeof(*(gm->object_len));
+
+        // write the actual object
+        memcpy(curr, gm->object, *(gm->object_len));
+        // curr += *(gm->object_len);
     }
 
     return TRANSPORT_SUCCESS;
@@ -495,6 +636,58 @@ int Packer::pack(const Response::BGet *bgm, void **buf, std::size_t *bufsize, Fi
 
             memcpy(curr, bgm->objects[i], bgm->object_lens[i]);
             curr += bgm->object_lens[i];
+        }
+    }
+
+    return TRANSPORT_SUCCESS;
+}
+
+int Packer::pack(const Response::BGet2 *bgm, void **buf, std::size_t *bufsize, FixedBufferPool *packed) {
+    char *curr = nullptr;
+
+    if (pack(static_cast<const Response::Response *>(bgm), buf, bufsize, packed, &curr) != TRANSPORT_SUCCESS) {
+        return TRANSPORT_ERROR;
+    }
+
+    memcpy(curr, &bgm->count, sizeof(bgm->count));
+    curr += sizeof(bgm->count);
+
+    for(std::size_t i = 0; i < bgm->count; i++) {
+        memcpy(curr, &bgm->ds_offsets[i], sizeof(bgm->ds_offsets[i]));
+        curr += sizeof(bgm->ds_offsets[i]);
+
+        memcpy(curr, &bgm->statuses[i], sizeof(bgm->statuses[i]));
+        curr += sizeof(bgm->statuses[i]);
+
+        memcpy(curr, &bgm->subject_lens[i], sizeof(bgm->subject_lens[i]));
+        curr += sizeof(bgm->subject_lens[i]);
+
+        memcpy(curr, &bgm->predicate_lens[i], sizeof(bgm->predicate_lens[i]));
+        curr += sizeof(bgm->predicate_lens[i]);
+
+        memcpy(curr, &bgm->object_types[i], sizeof(bgm->object_types[i]));
+        curr += sizeof(bgm->object_types[i]);
+
+        // write the address of the object the other side should use
+        memcpy(curr, &bgm->src_objects[i], sizeof(bgm->src_objects[i]));
+        curr += sizeof(bgm->src_objects[i]);
+
+        // write the address of the object_len the other side should use
+        memcpy(curr, &bgm->src_object_lens[i], sizeof(bgm->src_object_lens[i]));
+        curr += sizeof(bgm->src_object_lens[i]);
+
+        memcpy(curr, bgm->subjects[i], bgm->subject_lens[i]);
+        curr += bgm->subject_lens[i];
+
+        memcpy(curr, bgm->predicates[i], bgm->predicate_lens[i]);
+        curr += bgm->predicate_lens[i];
+
+        if (bgm->statuses[i] == HXHIM_SUCCESS) {
+            memcpy(curr, bgm->object_lens[i], sizeof(*(bgm->object_lens[i])));
+            curr += sizeof(*(bgm->object_lens[i]));
+
+            memcpy(curr, bgm->objects[i], *(bgm->object_lens[i]));
+            curr += *(bgm->object_lens[i]);
         }
     }
 

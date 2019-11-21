@@ -25,6 +25,10 @@ struct Get2 final : Request, Single {
     hxhim_type_t object_type;
     void *object;
     std::size_t *object_len;
+
+    void *src_object;
+    size_t *src_object_len;
+    std::size_t dst_len;
 };
 
 }
@@ -46,6 +50,9 @@ struct Get2 final : Response, Single {
     hxhim_type_t object_type;
     void *object;
     std::size_t *object_len;
+
+    void *src_object;
+    size_t *src_object_len;
 };
 
 }

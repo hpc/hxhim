@@ -75,6 +75,8 @@ class FixedBufferPoolImpl {
         /* @description Utility function to get number of used memory regions              */
         std::size_t used() const;
 
+        bool within(void * ptr) const;
+
         #ifndef DEBUG
         /* @description Utility function to get starting address of memory pool            */
         const void *pool() const;

@@ -31,3 +31,5 @@ Transport::Message::~Message() {}
 std::size_t Transport::Message::Message::size() const {
     return sizeof(direction) + sizeof(type) + sizeof(src) + sizeof(dst);
 }
+
+void Transport::Message::Message::server_side_cleanup(void *) {}

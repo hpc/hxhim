@@ -66,6 +66,7 @@ herr_t H5VL_hxhim_file_specific(void *obj, H5VL_file_specific_t specific_type, h
                 hxhim_results_type(res, &type);
                 switch (type) {
                     case HXHIM_RESULT_PUT:
+                    case HXHIM_RESULT_GET2:
                     case HXHIM_RESULT_DEL:
                         {
                             int error = 0;
@@ -76,9 +77,6 @@ herr_t H5VL_hxhim_file_specific(void *obj, H5VL_file_specific_t specific_type, h
                         }
                         break;
                     case HXHIM_RESULT_GET:
-                        /* need to use req/arguments to get pointers to write to */
-                        break;
-                    case HXHIM_RESULT_GET2:
                         /* need to use req/arguments to get pointers to write to */
                         break;
                     default:

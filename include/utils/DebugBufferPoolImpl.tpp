@@ -47,7 +47,7 @@ FixedBufferPoolImpl <Mutex_t, Cond_t>::~FixedBufferPoolImpl() {
     if (used_) {
         FBP_LOG(FBP_CRIT, "Destructing with %zu memory regions still in use", used_);
         for(typename decltype(addrs_)::value_type const &addr : addrs_) {
-            FBP_LOG(FBP_DBG, "    Address %p (%zu bytes) still allocated", addr.first, addr.second);
+            FBP_LOG(FBP_CRIT, "    Address %p (%zu bytes) still allocated", addr.first, addr.second);
             // do not delete pointers here to allow for valgrind to see leaks
         }
     }

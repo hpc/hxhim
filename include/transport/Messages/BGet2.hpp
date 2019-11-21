@@ -29,6 +29,9 @@ struct BGet2 final : Request, Bulk {
     hxhim_type_t *object_types;
     void **objects;
     std::size_t **object_lens;
+
+    void **src_objects;
+    size_t **src_object_lens;
 };
 
 }
@@ -38,6 +41,8 @@ namespace Response {
 struct BGet2 final : Response, Bulk {
     BGet2(FixedBufferPool *arrays, FixedBufferPool *buffers, const std::size_t max = 0);
     ~BGet2();
+
+    void server_side_cleanup(void * args = nullptr);
 
     std::size_t size() const;
 
@@ -53,6 +58,9 @@ struct BGet2 final : Response, Bulk {
     hxhim_type_t *object_types;
     void **objects;
     std::size_t **object_lens;
+
+    void **src_objects;
+    size_t **src_object_lens;
 
     BGet2 *next;
 };

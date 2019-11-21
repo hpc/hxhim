@@ -16,9 +16,15 @@ void Result::destroy(hxhim_t *hx, Results::Result *res) {
 }
 
 Results::Get::~Get() {
+    // buffers->release(subject, subject_len);
+    // buffers->release(predicate, predicate_len);
+    buffers->release(object, object_len);
+}
+
+Results::Get2::~Get2() {
     buffers->release(subject, subject_len);
     buffers->release(predicate, predicate_len);
-    buffers->release(object, object_len);
+    // object and object_len came from user space
 }
 
 Results::Put *Result::init(hxhim_t *hx, Transport::Response::Put *put) {
@@ -130,6 +136,13 @@ Results::Get2 *Result::init(hxhim_t *hx, Transport::Response::BGet2 *bget, const
     out->buffers = hx->p->memory_pools.buffers;
     out->datastore = hxhim::datastore::get_id(hx, bget->src, bget->ds_offsets[i]);
     out->status = bget->statuses[i];
+    out->subject = bget->subjects[i];
+    out->subject_len = bget->subject_lens[i];
+    out->predicate = bget->predicates[i];
+    out->predicate_len = bget->predicate_lens[i];
+    out->object_type = bget->object_types[i];
+    out->object = bget->objects[i];
+    out->object_len = bget->object_lens[i];
 
     bget->subjects[i] = nullptr;
     bget->predicates[i] = nullptr;
@@ -558,7 +571,7 @@ int hxhim_results_get_object_type(hxhim_results_t *res, hxhim_type_t *object_typ
     }
 
     hxhim::Results::Result *curr = res->res->Curr();
-    if (curr->type == hxhim_result_type::HXHIM_RESULT_GET) {
+    if ((curr->type == hxhim_result_type::HXHIM_RESULT_GET) || (curr->type == hxhim_result_type::HXHIM_RESULT_GET2)) {
         if (object_type) {
             *object_type = static_cast<hxhim::Results::Get *>(curr)->object_type;
             return HXHIM_SUCCESS;
@@ -583,7 +596,7 @@ int hxhim_results_get_subject(hxhim_results_t *res, void **subject, std::size_t 
     }
 
     hxhim::Results::Result *curr = res->res->Curr();
-    if (curr->type == hxhim_result_type::HXHIM_RESULT_GET) {
+    if ((curr->type == hxhim_result_type::HXHIM_RESULT_GET) || (curr->type == hxhim_result_type::HXHIM_RESULT_GET2)) {
         hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(curr);
         if (subject) {
             *subject = get->subject;
@@ -614,7 +627,7 @@ int hxhim_results_get_predicate(hxhim_results_t *res, void **predicate, std::siz
     }
 
     hxhim::Results::Result *curr = res->res->Curr();
-    if (curr->type == hxhim_result_type::HXHIM_RESULT_GET) {
+    if ((curr->type == hxhim_result_type::HXHIM_RESULT_GET) || (curr->type == hxhim_result_type::HXHIM_RESULT_GET2)) {
         hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(curr);
         if (predicate) {
             *predicate = get->predicate;
@@ -645,7 +658,7 @@ int hxhim_results_get_object(hxhim_results_t *res, void **object, std::size_t *o
     }
 
     hxhim::Results::Result *curr = res->res->Curr();
-    if (curr->type == hxhim_result_type::HXHIM_RESULT_GET) {
+    if ((curr->type == hxhim_result_type::HXHIM_RESULT_GET) || (curr->type == hxhim_result_type::HXHIM_RESULT_GET2)) {
         hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(curr);
         if (object) {
             *object = get->object;

@@ -22,9 +22,7 @@ namespace datastore {
  * MPI Rank:     |     0   |     1   |    2      | 3 | 4 |      5      |       6     |      7      | 8 | 9 |
  * Range Server: |     0   |     1   |    2      |   |   |      3      |       4     |      5      |   |   |
  * Datastore     | 0 1 2 3 | 4 5 6 7 | 8 9 10 11 |   |   | 12 13 14 15 | 16 17 18 19 | 20 21 22 23 |   |   |
- *
- * These should probably be configurable by the user
-*/
+ */
 int get_rank(hxhim_t *hx, const int id);
 int get_server(hxhim_t *hx, const int id);
 int get_offset(hxhim_t *hx, const int id);
@@ -65,6 +63,7 @@ class Datastore {
         Transport::Response::BGet2 *BGet2(void ***subjects, std::size_t **subject_lens,
                                           void ***predicates, std::size_t **predicate_lens,
                                           hxhim_type_t **object_types, void ***objects, std::size_t ***object_lens,
+                                          void ***src_objects, std::size_t ***src_object_lens,
                                           std::size_t count);
         Transport::Response::BGetOp *BGetOp(void *subject, std::size_t subject_len,
                                             void *predicate, std::size_t predicate_len,
@@ -91,6 +90,7 @@ class Datastore {
         virtual Transport::Response::BGet2 *BGetImpl2(void ***subjects, std::size_t **subject_lens,
                                                       void ***predicates, std::size_t **predicate_lens,
                                                       hxhim_type_t **object_types, void ***objects, std::size_t ***object_lens,
+                                                      void ***src_objects, std::size_t ***src_object_lens,
                                                       std::size_t count) = 0;
         virtual Transport::Response::BGetOp *BGetOpImpl(void *subject, std::size_t subject_len,
                                                         void *predicate, std::size_t predicate_len,

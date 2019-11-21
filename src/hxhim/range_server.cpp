@@ -241,6 +241,8 @@ static Transport::Response::BGet2 *bget2(hxhim_t *hx, const Transport::Request::
     hxhim_type_t **object_types = arrays->acquire_array<hxhim_type_t *>(hx->p->datastore.count);
     void ***objects = arrays->acquire_array<void **>(hx->p->datastore.count);
     std::size_t ***object_lens = arrays->acquire_array<std::size_t **>(hx->p->datastore.count);
+    void ***src_objects = arrays->acquire_array<void **>(hx->p->datastore.count);
+    std::size_t ***src_object_lens = arrays->acquire_array<std::size_t **>(hx->p->datastore.count);
     std::size_t *counters = arrays->acquire_array<std::size_t>(hx->p->datastore.count);
 
     // each datastore array is overallocated in case
@@ -253,23 +255,28 @@ static Transport::Response::BGet2 *bget2(hxhim_t *hx, const Transport::Request::
         object_types[ds] = arrays->acquire_array<hxhim_type_t>(req->count);
         objects[ds] = arrays->acquire_array<void *>(req->count);
         object_lens[ds] = arrays->acquire_array<std::size_t *>(req->count);
+        src_objects[ds] = arrays->acquire_array<void *>(req->count);
+        src_object_lens[ds] = arrays->acquire_array<std::size_t *>(req->count);
         counters[ds] = 0;
     }
 
     // split up requests into specific datastores
     for(std::size_t i = 0; i < req->count; i++) {
-        const int datastore = req->ds_offsets[i];
+        const int ds = req->ds_offsets[i];
         std::size_t &index = counters[req->ds_offsets[i]];
 
-        subjects[datastore][index] = req->subjects[i];
-        subject_lens[datastore][index] = req->subject_lens[i];
+        subjects[ds][index] = req->subjects[i];
+        subject_lens[ds][index] = req->subject_lens[i];
 
-        predicates[datastore][index] = req->predicates[i];
-        predicate_lens[datastore][index] = req->predicate_lens[i];
+        predicates[ds][index] = req->predicates[i];
+        predicate_lens[ds][index] = req->predicate_lens[i];
 
-        object_types[datastore][index] = req->object_types[i];
-        objects[datastore][index] = req->objects[i];
-        object_lens[datastore][index] = req->object_lens[i];
+        object_types[ds][index] = req->object_types[i];
+        objects[ds][index] = req->objects[i];
+        object_lens[ds][index] = req->object_lens[i];
+
+        src_objects[ds][index] = req->src_objects[i];
+        src_object_lens[ds][index] = req->src_object_lens[i];
 
         index++;
     }
@@ -283,6 +290,7 @@ static Transport::Response::BGet2 *bget2(hxhim_t *hx, const Transport::Request::
         Transport::Response::BGet2 *response = hx->p->datastore.datastores[ds]->BGet2(&subjects[ds], &subject_lens[ds],
                                                                                       &predicates[ds], &predicate_lens[ds],
                                                                                       &object_types[ds], &objects[ds], &object_lens[ds],
+                                                                                      &src_objects[ds], &src_object_lens[ds],
                                                                                       counters[ds]);
 
         if (response) {
@@ -306,6 +314,10 @@ static Transport::Response::BGet2 *bget2(hxhim_t *hx, const Transport::Request::
                     res->object_lens[count] = response->object_lens[j];
                 }
 
+                std::swap(res->src_objects[count], response->src_objects[j]);
+                response->src_objects[j] = nullptr;
+                res->src_object_lens[count] = response->src_object_lens[j];
+
                 count++;
             }
             responses->release(response);
@@ -322,6 +334,8 @@ static Transport::Response::BGet2 *bget2(hxhim_t *hx, const Transport::Request::
     arrays->release_array(object_types, hx->p->datastore.count);
     arrays->release_array(objects, hx->p->datastore.count);
     arrays->release_array(object_lens, hx->p->datastore.count);
+    arrays->release_array(src_objects, hx->p->datastore.count);
+    arrays->release_array(src_object_lens, hx->p->datastore.count);
     arrays->release_array(counters, hx->p->datastore.count);
 
     return res;

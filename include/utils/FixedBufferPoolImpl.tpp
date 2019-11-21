@@ -4,6 +4,20 @@
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
+template <typename Mutex_t, typename Cond_t>
+bool FixedBufferPoolImpl <Mutex_t, Cond_t>::within(void * ptr) const {
+    #ifndef DEBUG
+    for(Node * n = nodes_; n; n = n->next) {
+        if (n->addr == ptr) {
+            return true;
+        }
+    }
+    return false;
+    #else
+    return (addrs_.find(ptr) != addrs_.end());
+#endif
+}
+
 #ifndef DEBUG
 
 /**

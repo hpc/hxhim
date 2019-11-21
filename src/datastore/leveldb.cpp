@@ -252,6 +252,7 @@ Response::BGet *leveldb::BGetImpl(void **subjects, std::size_t *subject_lens,
 Response::BGet2 *leveldb::BGetImpl2(void ***subjects, std::size_t **subject_lens,
                                     void ***predicates, std::size_t **predicate_lens,
                                     hxhim_type_t **object_types, void ***objects, std::size_t ***object_lens,
+                                    void ***src_objects, std::size_t ***src_object_lens,
                                     std::size_t count) {
     FixedBufferPool *arrays = hx->p->memory_pools.arrays;
     FixedBufferPool *buffers = hx->p->memory_pools.buffers;
@@ -272,6 +273,8 @@ Response::BGet2 *leveldb::BGetImpl2(void ***subjects, std::size_t **subject_lens
     ret->object_types = *object_types;
     ret->objects = *objects;
     ret->object_lens = *object_lens;
+    ret->src_objects = *src_objects;
+    ret->src_object_lens = *src_object_lens;
     ret->count = count;
 
     FixedBufferPool *keys = hx->p->memory_pools.keys;
@@ -296,7 +299,10 @@ Response::BGet2 *leveldb::BGetImpl2(void ***subjects, std::size_t **subject_lens
         // add to results list
         if (status.ok()) {
             ret->statuses[i] = HXHIM_SUCCESS;
+            // need to allocate space here since object_lens[i] is a pointer, not the actual value
+            ret->object_lens[i] = buffers->acquire<size_t>(sizeof(*(ret->object_lens[i])));
             *(ret->object_lens[i]) = value.size();
+            ret->objects[i] = buffers->acquire(*(ret->object_lens[i]));
             memcpy(ret->objects[i], value.data(), *(ret->object_lens[i]));
         }
         else {
@@ -308,6 +314,7 @@ Response::BGet2 *leveldb::BGetImpl2(void ***subjects, std::size_t **subject_lens
         stats.get_times += nano(start, end);
     }
 
+    // remove ownership from input
     *subjects = nullptr;
     *subject_lens = nullptr;
     *predicates = nullptr;
@@ -315,6 +322,8 @@ Response::BGet2 *leveldb::BGetImpl2(void ***subjects, std::size_t **subject_lens
     *object_types = nullptr;
     *objects = nullptr;
     *object_lens = nullptr;
+    *src_objects = nullptr;
+    *src_object_lens = nullptr;
 
     return ret;
 }

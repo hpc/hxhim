@@ -29,7 +29,7 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
     // create the engine (only 1 instance per process)
     Engine_t engine(new thallium::engine(config->module, THALLIUM_SERVER_MODE, true, -1),
                     [](thallium::engine *engine) {
-                        const std::string addr = static_cast<std::string>(engine->self());
+                        // const std::string addr = static_cast<std::string>(engine->self());
                         engine->finalize();
                         delete engine;
                         // mlog(THALLIUM_DBG, "Stopped Thallium engine %s", addr.c_str());
@@ -85,7 +85,7 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
             // mlog(THALLIUM_DBG, "Created HXHIM endpoint from Thallium endpoint %s", addr.second.c_str());
 
             // if the rank was specified as part of the endpoint group, add the thallium endpoint to the endpoint group
-            if (opts->p->endpointgroup.find(addr.first) != opts->p->endpointgroup.end()) {
+            if (!opts->p->endpointgroup.size() || (opts->p->endpointgroup.find(addr.first) != opts->p->endpointgroup.end())) {
                 eg->AddID(addr.first, server);
                 // mlog(THALLIUM_DBG, "Added Thallium endpoint %s to the endpoint group", addr.second.c_str());
             }
