@@ -34,19 +34,19 @@ class Endpoint : virtual public ::Transport::Endpoint {
         ~Endpoint();
 
         /** @description Send a Put to this endpoint */
-        Response::Put *Put(const Request::Put *message);
+        Response::Put *communicate(const Request::Put *message);
 
         /** @description Send a Get to this endpoint */
-        Response::Get *Get(const Request::Get *message);
+        Response::Get *communicate(const Request::Get *message);
 
         /** @description Send a Get2 to this endpoint */
-        Response::Get2 *Get2(const Request::Get2 *message);
+        Response::Get2 *communicate(const Request::Get2 *message);
 
         /** @description Send a Delete to this endpoint */
-        Response::Delete *Delete(const Request::Delete *message);
+        Response::Delete *communicate(const Request::Delete *message);
 
         /** @description Send a Histogram to this endpoint */
-        Response::Histogram *Histogram(const Request::Histogram *message);
+        Response::Histogram *communicate(const Request::Histogram *message);
 
     private:
         /**

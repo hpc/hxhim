@@ -38,19 +38,19 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup, virtual public 
         void RemoveID(const int id);
 
         /** @description Bulk Put to multiple endpoints    */
-        Response::BPut *BPut(const std::unordered_map<int, Request::BPut *> &bpm_list);
+        Response::BPut *communicate(const std::unordered_map<int, Request::BPut *> &bpm_list);
 
         /** @description Bulk Get from multiple endpoints  */
-        Response::BGet *BGet(const std::unordered_map<int, Request::BGet *> &bgm_list);
+        Response::BGet *communicate(const std::unordered_map<int, Request::BGet *> &bgm_list);
 
         /** @description Bulk Get from multiple endpoints  */
-        Response::BGetOp *BGetOp(const std::unordered_map<int, Request::BGetOp *> &bgm_list);
+        Response::BGetOp *communicate(const std::unordered_map<int, Request::BGetOp *> &bgm_list);
 
         /** @description Bulk Delete to multiple endpoints */
-        Response::BDelete *BDelete(const std::unordered_map<int, Request::BDelete *> &bdm_list);
+        Response::BDelete *communicate(const std::unordered_map<int, Request::BDelete *> &bdm_list);
 
         /** @description Bulk Histogram to multiple endpoints */
-        Response::BHistogram *BHistogram(const std::unordered_map<int, Request::BHistogram *> &bhist_list);
+        Response::BHistogram *communicate(const std::unordered_map<int, Request::BHistogram *> &bhist_list);
 
     private:
         /** @escription Functions that perform the actual MPI calls */

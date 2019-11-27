@@ -51,23 +51,23 @@ Transport::Thallium::Endpoint::~Endpoint() {
     std::lock_guard<std::mutex> lock(mutex);
 }
 
-Transport::Response::Put *Transport::Thallium::Endpoint::Put(const Request::Put *message) {
+Transport::Response::Put *Transport::Thallium::Endpoint::communicate(const Request::Put *message) {
     return do_operation<Response::Put>(message);
 }
 
-Transport::Response::Get *Transport::Thallium::Endpoint::Get(const Request::Get *message) {
+Transport::Response::Get *Transport::Thallium::Endpoint::communicate(const Request::Get *message) {
     return do_operation<Response::Get>(message);
 }
 
-Transport::Response::Get2 *Transport::Thallium::Endpoint::Get2(const Request::Get2 *message) {
+Transport::Response::Get2 *Transport::Thallium::Endpoint::communicate(const Request::Get2 *message) {
     return do_operation<Response::Get2>(message);
 }
 
-Transport::Response::Delete *Transport::Thallium::Endpoint::Delete(const Request::Delete *message) {
+Transport::Response::Delete *Transport::Thallium::Endpoint::communicate(const Request::Delete *message) {
     return do_operation<Response::Delete>(message);
 }
 
-Transport::Response::Histogram *Transport::Thallium::Endpoint::Histogram(const Request::Histogram *message) {
+Transport::Response::Histogram *Transport::Thallium::Endpoint::communicate(const Request::Histogram *message) {
     return do_operation<Response::Histogram>(message);
 }
 

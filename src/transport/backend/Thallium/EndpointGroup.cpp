@@ -224,7 +224,7 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
  * @param bpm_list the list of BPUT messages to send
  * @return a linked list of response messages, or nullptr
  */
-Response::BPut *EndpointGroup::BPut(const std::unordered_map<int, Request::BPut *> &bpm_list) {
+Response::BPut *EndpointGroup::communicate(const std::unordered_map<int, Request::BPut *> &bpm_list) {
     return do_operation<Response::BPut>(bpm_list, engine, rpc, endpoints, packed, responses, arrays, buffers);
 }
 
@@ -235,7 +235,7 @@ Response::BPut *EndpointGroup::BPut(const std::unordered_map<int, Request::BPut 
  * @param bgm_list the list of BGET messages to send
  * @return a linked list of response messages, or nullptr
  */
-Response::BGet *EndpointGroup::BGet(const std::unordered_map<int, Request::BGet *> &bgm_list) {
+Response::BGet *EndpointGroup::communicate(const std::unordered_map<int, Request::BGet *> &bgm_list) {
     return do_operation<Response::BGet>(bgm_list, engine, rpc, endpoints, packed, responses, arrays, buffers);
 }
 
@@ -246,7 +246,7 @@ Response::BGet *EndpointGroup::BGet(const std::unordered_map<int, Request::BGet 
  * @param bgm_list the list of BGET messages to send
  * @return a linked list of response messages, or nullptr
  */
-Response::BGet2 *EndpointGroup::BGet2(const std::unordered_map<int, Request::BGet2 *> &bgm_list) {
+Response::BGet2 *EndpointGroup::communicate(const std::unordered_map<int, Request::BGet2 *> &bgm_list) {
     return do_operation<Response::BGet2>(bgm_list, engine, rpc, endpoints, packed, responses, arrays, buffers);
 }
 
@@ -257,7 +257,7 @@ Response::BGet2 *EndpointGroup::BGet2(const std::unordered_map<int, Request::BGe
  * @param bgm_list the list of BGETOP messages to send
  * @return a linked list of response messages, or nullptr
  */
-Response::BGetOp *EndpointGroup::BGetOp(const std::unordered_map<int, Request::BGetOp *> &bgm_list) {
+Response::BGetOp *EndpointGroup::communicate(const std::unordered_map<int, Request::BGetOp *> &bgm_list) {
     return do_operation<Response::BGetOp>(bgm_list, engine, rpc, endpoints, packed, responses, arrays, buffers);
 }
 
@@ -268,7 +268,7 @@ Response::BGetOp *EndpointGroup::BGetOp(const std::unordered_map<int, Request::B
  * @param bdm_list the list of BDELETE messages to send
  * @return a linked list of response messages, or nullptr
  */
-Response::BDelete *EndpointGroup::BDelete(const std::unordered_map<int, Request::BDelete *> &bdm_list) {
+Response::BDelete *EndpointGroup::communicate(const std::unordered_map<int, Request::BDelete *> &bdm_list) {
     return do_operation<Response::BDelete>(bdm_list, engine, rpc, endpoints, packed, responses, arrays, buffers);
 }
 
@@ -279,7 +279,7 @@ Response::BDelete *EndpointGroup::BDelete(const std::unordered_map<int, Request:
  * @param bdm_list the list of BDELETE messages to send
  * @return a linked list of response messages, or nullptr
  */
-Response::BHistogram *EndpointGroup::BHistogram(const std::unordered_map<int, Request::BHistogram *> &bhist_list) {
+Response::BHistogram *EndpointGroup::communicate(const std::unordered_map<int, Request::BHistogram *> &bhist_list) {
     return do_operation<Response::BHistogram>(bhist_list, engine, rpc, endpoints, packed, responses, arrays, buffers);
 }
 

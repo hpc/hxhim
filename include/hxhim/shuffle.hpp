@@ -2,10 +2,10 @@
 #define HXHIM_SHUFFLE_HPP
 
 #include <cstddef>
-#include <map>
 #include <unordered_map>
 
 #include "hxhim/constants.h"
+#include "hxhim/private.hpp"
 #include "hxhim/struct.h"
 #include "transport/Messages/Messages.hpp"
 
@@ -20,83 +20,73 @@ namespace hxhim {
  *     2. Packs the data into either the local or remote buffer
  *
  * All arguments passed into these functions should be defined.
- * The arguments are not checked in order to reduce branch predictions.
  *
  * The local buffer is a single bulk op, with all data going to one rank (but possibly multiple backends)
  * The remote buffer should be a map of destination rank to bulk op, with all data in each bulk op going to one rank (but possibly multiple backends)
  *
  */
+template <typename SRC_t, typename DST_t>
+int shuffle(hxhim_t *hx,
+            const std::size_t max_per_dst,
+            SRC_t *src,
+            DST_t *local,
+            std::unordered_map<int, DST_t *> &remote) {
+    // get the destination backend id for the key
+    const int ds_id = hx->p->hash.func(hx, src->subject, src->subject_len, src->predicate, src->predicate_len, hx->p->hash.args);
+    if (ds_id < 0) {
+        mlog(HXHIM_CLIENT_WARN, "Hash returned bad target datastore: %d", ds_id);
+        return -1;
+    }
 
-namespace shuffle {
+    mlog(HXHIM_CLIENT_DBG, "Shuffle got datastore %d", ds_id);
 
-int Put(hxhim_t *hx,
-        const std::size_t max_per_dst,
-        void *subject,
-        std::size_t subject_len,
-        void *predicate,
-        std::size_t predicate_len,
-        hxhim_type_t object_type,
-        void *object,
-        std::size_t object_len,
-        Transport::Request::BPut *local,
-        std::unordered_map<int, Transport::Request::BPut *> &remote,
-        const std::size_t max_remote,
-        std::map<std::pair<void *, void *>, int> &hashed);
+    // split the backend id into destination rank and ds_offset
+    const int ds_rank = hxhim::datastore::get_rank(hx, ds_id);
+    const int ds_offset = hxhim::datastore::get_offset(hx, ds_id);
 
-int Get(hxhim_t *hx,
-        const std::size_t max_per_dst,
-        void *subject,
-        std::size_t subject_len,
-        void *predicate,
-        std::size_t predicate_len,
-        hxhim_type_t object_type,
-        Transport::Request::BGet *local,
-        std::unordered_map<int, Transport::Request::BGet *> &remote,
-        const std::size_t max_remote);
+    // group local keys
+    if (ds_rank == hx->p->bootstrap.rank) {
+        // only add the key if there is space
+        if (local->count < max_per_dst) {
+            src->moveto(local, ds_offset);
+        }
+        // else, return a bad destination datastore
+        else {
+            return -1;
+        }
+    }
+    // group remote keys
+    else {
+        // try to find the destination first
+        REF(remote)::iterator it = remote.find(ds_rank);
 
-int Get2(hxhim_t *hx,
-         const std::size_t max_per_dst,
-         void *subject,
-         std::size_t subject_len,
-         void *predicate,
-         std::size_t predicate_len,
-         hxhim_type_t object_type,
-         void *object,
-         std::size_t *object_len,
-         Transport::Request::BGet2 *local,
-         std::unordered_map<int, Transport::Request::BGet2 *> &remote,
-         const std::size_t max_remote);
+        // if the destination is not found, check if there is space for another one
+        if (it == remote.end()) {
+            // if there is space for a new destination, insert it
+            if (remote.size() < max_per_dst) {
+                it = remote.insert(std::make_pair(ds_rank, hx->p->memory_pools.requests->acquire<DST_t>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, max_per_dst))).first;
+                it->second->src = hx->p->bootstrap.rank;
+                it->second->dst = ds_rank;
+            }
+            else {
+                return -1;
+            }
+        }
 
-int GetOp(hxhim_t *hx,
-          const std::size_t max_per_dst,
-          void *subject,
-          std::size_t subject_len,
-          void *predicate,
-          std::size_t predicate_len,
-          hxhim_type_t object_type,
-          const std::size_t recs, const hxhim_get_op_t op,
-          Transport::Request::BGetOp *local,
-          std::unordered_map<int, Transport::Request::BGetOp *> &remote,
-          const std::size_t max_remote);
+        DST_t *rem = it->second;
 
-int Delete(hxhim_t *hx,
-           const std::size_t max_per_dst,
-           void *subject,
-           std::size_t subject_len,
-           void *predicate,
-           std::size_t predicate_len,
-           Transport::Request::BDelete *local,
-           std::unordered_map<int, Transport::Request::BDelete *> &remote,
-           const std::size_t max_remote);
+        // if there is space in the request packet, insert
+        if (rem->count < max_per_dst) {
+            src->moveto(rem, ds_offset);
+        }
+        else {
+            return -1;
+        }
+    }
 
-int Histogram(hxhim_t *hx,
-              const std::size_t max_per_dst,
-              const int ds_id,
-              Transport::Request::BHistogram *local,
-              std::unordered_map<int, Transport::Request::BHistogram *> &remote,
-              const std::size_t max_remote);
-
+    return ds_id;
 }
+
 }
 
 #endif

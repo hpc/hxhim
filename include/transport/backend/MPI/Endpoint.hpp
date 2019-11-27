@@ -37,16 +37,16 @@ class Endpoint : virtual public ::Transport::Endpoint, virtual public EndpointBa
         ~Endpoint() {}
 
         /** @description Send a Put to this endpoint */
-        Response::Put *Put(const Request::Put *message);
+        Response::Put *communicate(const Request::Put *message);
 
         /** @description Send a Get to this endpoint */
-        Response::Get *Get(const Request::Get *message);
+        Response::Get *communicate(const Request::Get *message);
 
         /** @description Send a Delete to this endpoint */
-        Response::Delete *Delete(const Request::Delete *message);
+        Response::Delete *communicate(const Request::Delete *message);
 
         /** @description Send a Histogram to this endpoint */
-        Response::Histogram *Histogram(const Request::Histogram *message);
+        Response::Histogram *communicate(const Request::Histogram *message);
 
     private:
         /**
@@ -78,10 +78,10 @@ class Endpoint : virtual public ::Transport::Endpoint, virtual public EndpointBa
             (void)
                 (
                     (Packer::pack(comm, message, &sendbuf, &sendsize, packed) == TRANSPORT_SUCCESS) &&  // pack the message
-                    (send(sendbuf, sendsize)                                        == TRANSPORT_SUCCESS) &&  // send the message
-                    (recv(&recvbuf, &recvsize)                                      == TRANSPORT_SUCCESS) &&  // receive the response
+                    (send(sendbuf, sendsize)                                  == TRANSPORT_SUCCESS) &&  // send the message
+                    (recv(&recvbuf, &recvsize)                                == TRANSPORT_SUCCESS) &&  // receive the response
                     (Unpacker::unpack(comm, &response, recvbuf, recvsize,
-                                      responses, arrays, buffers)                   == TRANSPORT_SUCCESS)     // unpack the response
+                                      responses, arrays, buffers)             == TRANSPORT_SUCCESS)     // unpack the response
                 );
 
             packed->release(sendbuf, sendsize);

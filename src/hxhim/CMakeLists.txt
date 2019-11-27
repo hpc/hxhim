@@ -15,7 +15,6 @@ set(HXHIM_SRC
   ${CMAKE_CURRENT_SOURCE_DIR}/private.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/range_server.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/Results.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/shuffle.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/single_type.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/triplestore.cpp
 

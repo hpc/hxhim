@@ -27,7 +27,7 @@ Endpoint::Endpoint(const MPI_Comm comm,
  * @param request the initiating PUT message
  * @return a pointer to the response of the PUT operation
  */
-Response::Put *Endpoint::Put(const Request::Put *message) {
+Response::Put *Endpoint::communicate(const Request::Put *message) {
     return do_operation<Request::Put, Response::Put>(message);
 }
 
@@ -38,7 +38,7 @@ Response::Put *Endpoint::Put(const Request::Put *message) {
  * @param request the initiating GET message
  * @return a pointer to the response of the GET operation
  */
-Response::Get *Endpoint::Get(const Request::Get *message) {
+Response::Get *Endpoint::communicate(const Request::Get *message) {
     return do_operation<Request::Get, Response::Get>(message);
 }
 
@@ -49,7 +49,7 @@ Response::Get *Endpoint::Get(const Request::Get *message) {
  * @param request the initiating DELETE message
  * @return a pointer to the response of the DELETE operation
  */
-Response::Delete *Endpoint::Delete(const Request::Delete *message) {
+Response::Delete *Endpoint::communicate(const Request::Delete *message) {
     return do_operation<Request::Delete, Response::Delete>(message);
 }
 
@@ -60,7 +60,7 @@ Response::Delete *Endpoint::Delete(const Request::Delete *message) {
  * @param request the initiating HISTOGRAM message
  * @return a pointer to the response of the HISTOGRAM operation
  */
-Response::Histogram *Endpoint::Histogram(const Request::Histogram *message) {
+Response::Histogram *Endpoint::communicate(const Request::Histogram *message) {
     return do_operation<Request::Histogram, Response::Histogram>(message);
 }
 

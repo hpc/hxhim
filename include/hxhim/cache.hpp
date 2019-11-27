@@ -6,11 +6,16 @@
 #include <type_traits>
 
 #include "hxhim/constants.h"
+#include "transport/Messages/Messages.hpp"
 #include "utils/FixedBufferPool.hpp"
 #include "utils/enable_if_t.hpp"
 
 namespace hxhim {
-    typedef struct SubjectPredicate {
+    struct UserData {
+        virtual ~UserData();
+    };
+
+    typedef struct SubjectPredicate : UserData {
         SubjectPredicate();
         virtual ~SubjectPredicate();
 
@@ -33,6 +38,7 @@ namespace hxhim {
     struct PutData : SPO_t {
         PutData();
         ~PutData() = default;
+        int moveto(Transport::Request::BPut *bput, const int ds_offset) const;
 
         PutData *prev;
         PutData *next;
@@ -41,6 +47,7 @@ namespace hxhim {
     struct GetData : SP_t {
         GetData();
         ~GetData();
+        int moveto(Transport::Request::BGet *bget, const int ds_offset) const;
 
         hxhim_type_t object_type;
         GetData *prev;
@@ -50,6 +57,7 @@ namespace hxhim {
     struct GetData2 : SP_t {
         GetData2();
         ~GetData2();
+        int moveto(Transport::Request::BGet2 *bget, const int ds_offset) const;
 
         hxhim_type_t object_type;
         void *object;
@@ -61,6 +69,7 @@ namespace hxhim {
     struct GetOpData : SP_t {
         GetOpData();
         ~GetOpData();
+        int moveto(Transport::Request::BGetOp *bgetop, const int ds_offset) const;
 
         hxhim_type_t object_type;
         std::size_t num_recs;
@@ -72,9 +81,15 @@ namespace hxhim {
     struct DeleteData : SP_t {
         DeleteData();
         ~DeleteData() = default;
+        int moveto(Transport::Request::BDelete *bdelete, const int ds_offset) const;
 
         DeleteData *prev;
         DeleteData *next;
+    };
+
+    struct BHistogramData : UserData {
+        BHistogramData();
+        int moveto(Transport::Request::BHistogram *bhist, const int ds_offset) const;
     };
 
     template <typename Data, typename = enable_if_t<std::is_base_of<SubjectPredicate, Data>::value> >

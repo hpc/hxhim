@@ -10,8 +10,10 @@
 #include "hxhim/local_client.hpp"
 #include "hxhim/options_private.hpp"
 #include "hxhim/private.hpp"
+#include "hxhim/process.hpp"
 #include "hxhim/range_server.hpp"
 #include "hxhim/shuffle.hpp"
+#include "transport/Messages/Messages.hpp"
 #include "transport/transports.hpp"
 #include "utils/FixedBufferPool.hpp"
 #include "utils/macros.hpp"
@@ -46,176 +48,6 @@ hxhim_private::hxhim_private()
       range_server(),
       memory_pools()
 {}
-
-static int insert(hxhim_t *hx,
-           const std::size_t max_per_dst,
-           hxhim::PutData *put,
-           Transport::Request::BPut &local,
-           std::unordered_map<int, Transport::Request::BPut *> &remote,
-           const std::size_t &max_remote,
-           std::map<std::pair<void *, void *>, int> &hashed) {
-    // TODO: this will need to be fixed so that partial failures cannot happen
-    if (
-        // SP -> O
-        (hxhim::shuffle::Put(hx, max_per_dst,
-                             put->subject, put->subject_len,
-                             put->predicate, put->predicate_len,
-                             put->object_type, put->object, put->object_len,
-                             &local,
-                             remote,
-                             max_remote,
-                             hashed) > -1)
-
-        // // SO -> P
-        // hxhim::shuffle::Put(hx, max_per_dst,
-        //                     subject, subject_len,
-        //                     object, object_len,
-        //                     HXHIM_BYTE_TYPE, predicate, predicate_len,
-        //                     &local,
-        //                     &remote,
-        //                     max_remote);
-
-        // // PO -> S
-        // hxhim::shuffle::Put(hx, max_per_dst,
-        //                     predicate, predicate_len,
-        //                     object, object_len,
-        //                     HXHIM_BYTE_TYPE, subject, subject_len,
-        //                     &local,
-        //                     &remote,
-        //                     max_remote
-
-        // // PS -> O
-        // hxhim::shuffle::Put(hx, max_per_dst,
-        //                     predicate, predicate_len,
-        //                     subject, subject_len,
-        //                     object_type, object, object_len,
-        //                     &local,
-        //                     &remote,
-        //                     max_remote);
-        ) {
-        // if the shuffle succeeded, mark the data as processed
-        put->subject = nullptr;
-        put->subject_len = 0;
-        put->predicate = nullptr;
-        put->predicate_len = 0;
-        return HXHIM_SUCCESS;
-    }
-
-    return HXHIM_ERROR;
-}
-
-/**
- * put_core
- * The core functionality for putting a single batch of SPO triples into the datastore
- *
- * @param hx      the HXHIM context
- * @param head    the head of the list of SPO triple batches to send
- * @return Pointer to return value wrapper
- */
-static hxhim::Results *put_core(hxhim_t *hx, hxhim::PutData *&head) {
-    mlog(HXHIM_CLIENT_DBG, "Start put_core");
-
-    if (!head) {
-        return nullptr;
-    }
-
-    // max number of triples that will be PUT per destination
-    const std::size_t max_puts = HXHIM_PUT_MULTIPLIER * hx->p->max_ops_per_send.puts;
-
-    // returned results
-    hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
-
-    // declare local PUT requests here to not reallocate every loop
-    Transport::Request::BPut local(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, max_puts);
-    local.src = hx->p->bootstrap.rank;
-    local.dst = hx->p->bootstrap.rank;
-
-    // maximum number of remote destinations allowed at any time
-    static const std::size_t max_remote = std::max(hx->p->memory_pools.requests->regions() / 2, (std::size_t) 1);
-
-    while (hx->p->running && head) {
-        // current set of remote destinations to send to
-        std::unordered_map<int, Transport::Request::BPut *> remote;
-        std::map<std::pair<void *, void *>, int> hashed;
-
-        // reset local without deallocating memory
-        local.count = 0;
-
-        // attempt to stuff as many triples into the buffers before sending
-        mlog(HXHIM_CLIENT_DBG, "Inserting PUT triples into bulk packets for sending");
-        hxhim::PutData *curr = head;
-        while (hx->p->running && curr) {
-            if (insert(hx, max_puts,
-                       curr,
-                       local,
-                       remote,
-                       max_remote,
-                       hashed) == HXHIM_SUCCESS) {
-                // head node
-                if (curr == head) {
-                    head = curr->next;
-                }
-
-                // there is a node before the current one
-                if (curr->prev) {
-                    curr->prev->next = curr->next;
-                }
-
-                // there is a node after the current one
-                if (curr->next) {
-                    curr->next->prev = curr->prev;
-                }
-
-                hxhim::PutData *next = curr->next;
-
-                curr->prev = nullptr;
-                curr->next = nullptr;
-
-                // deallocate current node
-                hx->p->memory_pools.ops_cache->release(curr);
-                curr = next;
-            }
-            else {
-                curr = curr->next;
-            }
-        }
-        mlog(HXHIM_CLIENT_DBG, "Inserted %zu remote PUTs and %zu local PUTs for sending", remote.size(), local.size());
-
-        // PUT the batch
-        if (hx->p->running && remote.size()) {
-            mlog(HXHIM_CLIENT_DBG, "Start remote PUTs");
-            hxhim::collect_fill_stats(remote, hx->p->stats.bput);
-            Transport::Response::BPut *responses = hx->p->transport->BPut(remote);
-            for(Transport::Response::BPut *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
-                for(std::size_t i = 0; i < curr->count; i++) {
-                    res->Add(hxhim::Result::init(hx, curr, i));
-                }
-            }
-
-            mlog(HXHIM_CLIENT_DBG, "Completed remote PUTs");
-        }
-
-        for(decltype(remote)::value_type const &dst : remote) {
-            hx->p->memory_pools.requests->release(dst.second);
-        }
-
-        if (hx->p->running && local.count) {
-            mlog(HXHIM_CLIENT_DBG, "Start local PUTs");
-            hxhim::collect_fill_stats(&local, hx->p->stats.bput);
-            Transport::Response::BPut *responses = local_client_bput(hx, &local);
-            for(Transport::Response::BPut *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
-                for(std::size_t i = 0; i < curr->count; i++) {
-                    res->Add(hxhim::Result::init(hx, curr, i));
-                }
-            }
-            mlog(HXHIM_CLIENT_DBG, "Completed local PUTs");
-        }
-    }
-
-    mlog(HXHIM_CLIENT_DBG, "Completed put_core");
-
-    return res;
-}
 
 /**
  * backgroundPUT
@@ -265,7 +97,7 @@ static void backgroundPUT(hxhim_t *hx) {
         mlog(HXHIM_CLIENT_DBG, "Processing queued PUTs");
         {
             // process the batch and save the results
-            hxhim::Results *res = put_core(hx, head);
+            hxhim::Results *res = process<Transport::Request::BPut, Transport::Response::BPut>(hx, head, hx->p->max_ops_per_send.puts);
 
             {
                 std::unique_lock<std::mutex> lock(hx->p->async_put.mutex);
@@ -842,18 +674,98 @@ int hxhim::PutImpl(hxhim_t *hx,
                    void *predicate, std::size_t predicate_len,
                    enum hxhim_type_t object_type, void *object, std::size_t object_len) {
     mlog(HXHIM_CLIENT_DBG, "PUT Start");
-    hxhim::PutData *put = hx->p->memory_pools.ops_cache->acquire<hxhim::PutData>();
-    put->subject = subject;
-    put->subject_len = subject_len;
-    put->predicate = predicate;
-    put->predicate_len = predicate_len;
-    put->object_type = object_type;
-    put->object = object;
-    put->object_len = object_len;
-
-    mlog(HXHIM_CLIENT_DBG, "PUT Insert into queue");
     hxhim::Unsent<hxhim::PutData> &puts = hx->p->queues.puts;
-    puts.insert(put);
+
+    // SPO
+    {
+        hxhim::PutData *put = hx->p->memory_pools.ops_cache->acquire<hxhim::PutData>();
+        put->subject = subject;
+        put->subject_len = subject_len;
+        put->predicate = predicate;
+        put->predicate_len = predicate_len;
+        put->object_type = object_type;
+        put->object = object;
+        put->object_len = object_len;
+
+        mlog(HXHIM_CLIENT_DBG, "PUT Insert SPO into queue");
+        puts.insert(put);
+    }
+
+    // SOP
+    {
+        hxhim::PutData *put = hx->p->memory_pools.ops_cache->acquire<hxhim::PutData>();
+        put->subject = subject;
+        put->subject_len = subject_len;
+        put->predicate = object;
+        put->predicate_len = object_len;
+        put->object_type = HXHIM_BYTE_TYPE;
+        put->object = predicate;
+        put->object_len = predicate_len;
+
+        mlog(HXHIM_CLIENT_DBG, "PUT Insert SOP into queue");
+        puts.insert(put);
+    }
+
+    // PSO
+    {
+        hxhim::PutData *put = hx->p->memory_pools.ops_cache->acquire<hxhim::PutData>();
+        put->subject = predicate;
+        put->subject_len = predicate_len;
+        put->predicate = subject;
+        put->predicate_len = subject_len;
+        put->object_type = object_type;
+        put->object = object;
+        put->object_len = object_len;
+
+        mlog(HXHIM_CLIENT_DBG, "PUT Insert PSO into queue");
+        puts.insert(put);
+    }
+
+    // POS
+    {
+        hxhim::PutData *put = hx->p->memory_pools.ops_cache->acquire<hxhim::PutData>();
+        put->subject = predicate;
+        put->subject_len = predicate_len;
+        put->predicate = object;
+        put->predicate_len = object_len;
+        put->object_type = HXHIM_BYTE_TYPE;
+        put->object = subject;
+        put->object_len = subject_len;
+
+        mlog(HXHIM_CLIENT_DBG, "PUT Insert POS into queue");
+        puts.insert(put);
+    }
+
+    // OSP
+    {
+        hxhim::PutData *put = hx->p->memory_pools.ops_cache->acquire<hxhim::PutData>();
+        put->subject = object;
+        put->subject_len = object_len;
+        put->predicate = subject;
+        put->predicate_len = subject_len;
+        put->object_type = HXHIM_BYTE_TYPE;
+        put->object = predicate;
+        put->object_len = predicate_len;
+
+        mlog(HXHIM_CLIENT_DBG, "PUT Insert OSP into queue");
+        puts.insert(put);
+    }
+
+    // OPS
+    {
+        hxhim::PutData *put = hx->p->memory_pools.ops_cache->acquire<hxhim::PutData>();
+        put->subject = object;
+        put->subject_len = object_len;
+        put->predicate = predicate;
+        put->predicate_len = predicate_len;
+        put->object_type = HXHIM_BYTE_TYPE;
+        put->object = subject;
+        put->object_len = subject_len;
+
+        mlog(HXHIM_CLIENT_DBG, "PUT Insert OPS into queue");
+        puts.insert(put);
+    }
+
     puts.start_processing.notify_one();
 
     mlog(HXHIM_CLIENT_DBG, "PUT Completed");
@@ -930,9 +842,7 @@ int hxhim::GetImpl2(hxhim_t *hx,
     mlog(HXHIM_CLIENT_DBG, "GET Insert into queue");
     hxhim::Unsent<hxhim::GetData2> &gets = hx->p->queues.gets2;
     gets.insert(get);
-    if (gets.count > 10) {
-        gets.start_processing.notify_one();
-    }
+    gets.start_processing.notify_one();
     mlog(HXHIM_CLIENT_DBG, "GET Completed");
     return HXHIM_SUCCESS;
 }
