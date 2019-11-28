@@ -115,8 +115,8 @@ static void backgroundPUT(hxhim_t *hx) {
             unsent.done_processing.notify_all();
         }
 
-        // clean up in case previous loop stopped early
-        clean(hx, head);
+        // // clean up in case previous loop stopped early
+        // clean(hx, head);
     }
 
     mlog(HXHIM_CLIENT_DBG, "Background PUT thread stopping");

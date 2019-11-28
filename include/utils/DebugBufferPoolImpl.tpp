@@ -47,7 +47,7 @@ FixedBufferPoolImpl <Mutex_t, Cond_t>::~FixedBufferPoolImpl() {
     if (used_) {
         FBP_LOG(FBP_CRIT, "Destructing with %zu memory regions still in use", used_);
         for(typename decltype(addrs_)::value_type const &addr : addrs_) {
-            FBP_LOG(FBP_CRIT, "    Address %p (%zu bytes) still allocated", addr.first, addr.second);
+            FBP_LOG(FBP_DBG, "    Address %p (%zu bytes) still allocated", addr.first, addr.second);
             // do not delete pointers here to allow for valgrind to see leaks
         }
     }
@@ -83,13 +83,11 @@ void *FixedBufferPoolImpl <Mutex_t, Cond_t>::acquireImpl(const std::size_t size)
     bool waited = false;
     while (!(regions_ - used_)) {
         waited = true;
-        printf("%s %zu/%zu: Waiting for a size %zu buffer\n", name_.c_str(), regions_ - used_, regions_, size);
         FBP_LOG(FBP_WARN, "Waiting for a size %zu buffer", size);
         cv_.wait(lock, [&]{ return regions_ - used_; });
     }
 
     if (waited) {
-        printf("%s %zu/%zu: A size %zu buffer is available\n", name_.c_str(), regions_ - used_, regions_, size);
         FBP_LOG(FBP_WARN, "A size %zu buffer is available", size);
     }
 

@@ -75,6 +75,7 @@ class FixedBufferPoolImpl {
         /* @description Utility function to get number of used memory regions              */
         std::size_t used() const;
 
+        /* @description Check if pointer was allocated by this FixedBufferPool             */
         bool within(void * ptr) const;
 
         #ifndef DEBUG

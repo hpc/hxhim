@@ -4,6 +4,7 @@
 #include "hxhim/hxhim.hpp"
 #include "hxhim/private.hpp"
 #include "hxhim/shuffle.hpp"
+#include "hxhim/Results.hpp"
 
 /**
  * process
