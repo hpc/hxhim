@@ -30,7 +30,8 @@ int shuffle(hxhim_t *hx,
             const std::size_t max_per_dst,
             SRC_t *src,
             DST_t *local,
-            std::unordered_map<int, DST_t *> &remote) {
+            std::unordered_map<int, DST_t *> &remote,
+            const std::size_t max_remote) {
     // get the destination backend id for the key
     const int ds_id = hx->p->hash.func(hx, src->subject, src->subject_len, src->predicate, src->predicate_len, hx->p->hash.args);
     if (ds_id < 0) {
@@ -63,12 +64,13 @@ int shuffle(hxhim_t *hx,
         // if the destination is not found, check if there is space for another one
         if (it == remote.end()) {
             // if there is space for a new destination, insert it
-            if (remote.size() < max_per_dst) {
+            if (remote.size() < max_remote) {
                 it = remote.insert(std::make_pair(ds_rank, hx->p->memory_pools.requests->acquire<DST_t>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, max_per_dst))).first;
                 it->second->src = hx->p->bootstrap.rank;
                 it->second->dst = ds_rank;
             }
             else {
+                mlog(HXHIM_CLIENT_DBG, "Shuffle Remote Put could not add destination %d %zu %zu", ds_id, remote.size(), max_remote);
                 return -1;
             }
         }
@@ -76,7 +78,7 @@ int shuffle(hxhim_t *hx,
         DST_t *rem = it->second;
 
         // if there is space in the request packet, insert
-        if (rem->count < max_per_dst) {
+        if (rem->count < max_remote) {
             src->moveto(rem, ds_offset);
         }
         else {
