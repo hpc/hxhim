@@ -250,7 +250,7 @@ hxhim_results_t *hxhimFlushPuts(hxhim_t *hx) {
  * @return results of flushing the queue
  */
 template <typename Send_t, typename Recv_t, typename UserData_t>
-hxhim::Results *Flush(hxhim_t *hx, hxhim::Unsent<UserData_t> &unsent, const std::size_t max_ops_per_send) {
+hxhim::Results *FlushImpl(hxhim_t *hx, hxhim::Unsent<UserData_t> &unsent, const std::size_t max_ops_per_send) {
     mlog(HXHIM_CLIENT_DBG, "Flushing");
 
     if (!hxhim::valid(hx)) {
@@ -277,7 +277,7 @@ hxhim::Results *Flush(hxhim_t *hx, hxhim::Unsent<UserData_t> &unsent, const std:
  * @return Pointer to return value wrapper
  */
 hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
-    return ::Flush<Transport::Request::BGet, Transport::Response::BGet>(hx, hx->p->queues.gets, hx->p->max_ops_per_send.gets);
+    return FlushImpl<Transport::Request::BGet, Transport::Response::BGet>(hx, hx->p->queues.gets, hx->p->max_ops_per_send.gets);
 }
 
 /**
@@ -301,7 +301,7 @@ hxhim_results_t *hxhimFlushGets(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Results *hxhim::FlushGets2(hxhim_t *hx) {
-    return ::Flush<Transport::Request::BGet2, Transport::Response::BGet2>(hx, hx->p->queues.gets2, hx->p->max_ops_per_send.gets);
+    return FlushImpl<Transport::Request::BGet2, Transport::Response::BGet2>(hx, hx->p->queues.gets2, hx->p->max_ops_per_send.gets);
 }
 
 /**
@@ -325,7 +325,7 @@ hxhim_results_t *hxhimFlushGets2(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
-    return ::Flush<Transport::Request::BGetOp, Transport::Response::BGetOp>(hx, hx->p->queues.getops, hx->p->max_ops_per_send.getops);
+    return FlushImpl<Transport::Request::BGetOp, Transport::Response::BGetOp>(hx, hx->p->queues.getops, hx->p->max_ops_per_send.getops);
 }
 
 /**
@@ -349,7 +349,7 @@ hxhim_results_t *hxhimFlushGetOps(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
-    return ::Flush<Transport::Request::BDelete, Transport::Response::BDelete>(hx, hx->p->queues.deletes, hx->p->max_ops_per_send.deletes);
+    return FlushImpl<Transport::Request::BDelete, Transport::Response::BDelete>(hx, hx->p->queues.deletes, hx->p->max_ops_per_send.deletes);
 }
 
 /**
