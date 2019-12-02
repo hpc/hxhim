@@ -66,18 +66,24 @@ herr_t H5VL_hxhim_file_specific(void *obj, H5VL_file_specific_t specific_type, h
                 hxhim_results_type(res, &type);
                 switch (type) {
                     case HXHIM_RESULT_PUT:
-                    case HXHIM_RESULT_GET2:
                     case HXHIM_RESULT_DEL:
+                        /* user is responsible for subject and predicate, so don't do anything */
+                        break;
+                    case HXHIM_RESULT_GET:
+                        /* need to use req/arguments to get pointers to write to */
+                        break;
+                    case HXHIM_RESULT_GET2:
                         {
                             int error = 0;
                             hxhim_results_error(res, &error);
                             if (error != HXHIM_SUCCESS) {
                                 rc = -1;
                             }
+
+                            size_t *object_len = NULL;
+                            hxhim_results_get2_object(res, NULL, &object_len);
+                            free(object_len);
                         }
-                        break;
-                    case HXHIM_RESULT_GET:
-                        /* need to use req/arguments to get pointers to write to */
                         break;
                     default:
                         break;

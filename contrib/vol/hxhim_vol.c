@@ -151,6 +151,7 @@ static bool fill_options(MPI_Comm comm, hxhim_options_t *opts, const char * name
 
 hid_t hxhim_vol_init(const char *name, MPI_Comm comm, const int comm_dup) {
     struct under_info_t * under_info = malloc(sizeof(struct under_info_t));
+
     if (!under_info) {
         fprintf(stderr, "%4d %s failed to malloc under_info\n", __LINE__, __func__);
         return -1;
@@ -212,7 +213,7 @@ hid_t hxhim_vol_init(const char *name, MPI_Comm comm, const int comm_dup) {
 
 int hxhim_vol_finalize(hid_t fapl) {
     struct under_info_t * under_info = NULL;
-    if (H5Pget_vol_info(fapl, (void **)&under_info) < 0) {
+    if (H5Pget_vol_info(fapl, (void **) &under_info) < 0) {
         fprintf(stderr, "could not get info\n");
         return -1;
     }

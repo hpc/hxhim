@@ -52,7 +52,8 @@ hxhim::Results *process(hxhim_t *hx,
             if (hxhim::shuffle(hx, max_ops_per_send,
                                curr,
                                &local,
-                               remote) > -1) {
+                               remote,
+                               max_remote) > -1) {
                 // remove the current operation from the list of
                 // operations queued up and continue processing
 

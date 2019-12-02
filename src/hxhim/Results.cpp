@@ -590,7 +590,7 @@ int hxhim_results_get_object_type(hxhim_results_t *res, hxhim_type_t *object_typ
  * @param subject_len  (optional) the subject_len of the current result, only valid if this function returns HXHIM_SUCCESS
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim_results_get_subject(hxhim_results_t *res, void **subject, std::size_t *subject_len) {
+int hxhim_results_get_subject(hxhim_results_t *res, void **subject, size_t *subject_len) {
     if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
@@ -621,7 +621,7 @@ int hxhim_results_get_subject(hxhim_results_t *res, void **subject, std::size_t 
  * @param predicate_len  (optional) the predicate_len of the current result, only valid if this function returns HXHIM_SUCCESS
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim_results_get_predicate(hxhim_results_t *res, void **predicate, std::size_t *predicate_len) {
+int hxhim_results_get_predicate(hxhim_results_t *res, void **predicate, size_t *predicate_len) {
     if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
@@ -652,7 +652,7 @@ int hxhim_results_get_predicate(hxhim_results_t *res, void **predicate, std::siz
  * @param object_len  (optional) the object_len of the current result, only valid if this function returns HXHIM_SUCCESS
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim_results_get_object(hxhim_results_t *res, void **object, std::size_t *object_len) {
+int hxhim_results_get_object(hxhim_results_t *res, void **object, size_t *object_len) {
     if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
@@ -660,6 +660,37 @@ int hxhim_results_get_object(hxhim_results_t *res, void **object, std::size_t *o
     hxhim::Results::Result *curr = res->res->Curr();
     if ((curr->type == hxhim_result_type::HXHIM_RESULT_GET) || (curr->type == hxhim_result_type::HXHIM_RESULT_GET2)) {
         hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(curr);
+        if (object) {
+            *object = get->object;
+        }
+
+        if (object_len) {
+            *object_len = get->object_len;
+        }
+
+        return HXHIM_SUCCESS;
+    }
+
+    return HXHIM_ERROR;
+}
+
+/**
+ * hxhim_results_get_object
+ * Gets the object and length from the current result node, if the result node contains data from a GET
+ *
+ * @param res         A list of results
+ * @param object      (optional) the object of the current result, only valid if this function returns HXHIM_SUCCESS
+ * @param object_len  (optional) the object_len of the current result, only valid if this function returns HXHIM_SUCCESS
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
+ */
+int hxhim_results_get2_object(hxhim_results_t *res, void **object, size_t **object_len) {
+    if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
+        return HXHIM_ERROR;
+    }
+
+    hxhim::Results::Result *curr = res->res->Curr();
+    if (curr->type == hxhim_result_type::HXHIM_RESULT_GET2) {
+        hxhim::Results::Get2 *get = static_cast<hxhim::Results::Get2 *>(curr);
         if (object) {
             *object = get->object;
         }
