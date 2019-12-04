@@ -14,7 +14,6 @@
 #include "transport/Messages/BDelete.hpp"
 #include "transport/Messages/Histogram.hpp"
 #include "transport/Messages/BHistogram.hpp"
-#include "utils/FixedBufferPool.hpp"
 #include "utils/enable_if_t.hpp"
 
 namespace Transport {
@@ -30,13 +29,13 @@ namespace Transport {
  */
 template <typename Msg, typename = enable_if_t <std::is_base_of<Transport::Bulk,    Msg>::value &&
                                                 std::is_base_of<Transport::Message, Msg>::value> >
-Msg *next(Msg *curr, FixedBufferPool *fbp) {
+Msg *next(Msg *curr) {
     if (!curr) {
         return nullptr;
     }
 
     Msg *next = curr->next;
-    fbp->release(curr);
+    delete curr;
     return next;
 }
 

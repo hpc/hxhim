@@ -4,7 +4,6 @@
 #include <map>
 
 #include "datastore/datastores.hpp"
-#include "hxhim/MaxSize.hpp"
 #include "hxhim/Results_private.hpp"
 #include "hxhim/config.hpp"
 #include "hxhim/local_client.hpp"
@@ -15,8 +14,8 @@
 #include "hxhim/shuffle.hpp"
 #include "transport/Messages/Messages.hpp"
 #include "transport/transports.hpp"
-#include "utils/FixedBufferPool.hpp"
 #include "utils/macros.hpp"
+#include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
@@ -28,10 +27,10 @@
  * @tparam node one node of the cache queue
  */
 template <typename Data, typename = std::is_base_of<hxhim::SubjectPredicate, Data> >
-void clean(hxhim_t *hx, Data *node) {
+void clean(hxhim_t *, Data *node) {
     while (node) {
         Data *next = node->next;
-        hx->p->memory_pools.ops_cache->release(node);
+        destruct(node);
         node = next;
     }
 }
@@ -45,8 +44,7 @@ hxhim_private::hxhim_private()
       async_put(),
       hash(),
       transport(nullptr),
-      range_server(),
-      memory_pools()
+      range_server()
 {}
 
 /**
@@ -104,7 +102,7 @@ static void backgroundPUT(hxhim_t *hx) {
                 hx->p->async_put.results->Append(res);
             }
 
-            hx->p->memory_pools.results->release(res);
+            destruct(res);
         }
         mlog(HXHIM_CLIENT_DBG, "Done processing queued PUTs");
 
@@ -212,7 +210,6 @@ int hxhim::init::memory(hxhim_t *hx, hxhim_options_t *opts) {
     if (!valid(hx, opts)) {
         return HXHIM_ERROR;
     }
-
     if (opts->p->max_ops_per_send < HXHIM_PUT_MULTIPLIER) {
         mlog(HXHIM_CLIENT_ERR, "There should be at least %d operations per send", HXHIM_PUT_MULTIPLIER);
         return HXHIM_SUCCESS;
@@ -225,36 +222,6 @@ int hxhim::init::memory(hxhim_t *hx, hxhim_options_t *opts) {
     hx->p->max_ops_per_send.getops  = opts->p->max_ops_per_send;
     hx->p->max_ops_per_send.deletes = opts->p->max_ops_per_send;
 
-    // set up the memory pools
-    if (!((hx->p->memory_pools.keys          = new FixedBufferPool(opts->p->keys.alloc_size,          opts->p->keys.regions,          opts->p->keys.name))          &&
-          (hx->p->memory_pools.buffers       = new FixedBufferPool(opts->p->buffers.alloc_size,       opts->p->buffers.regions,       opts->p->buffers.name))       &&
-          (hx->p->memory_pools.ops_cache     = new FixedBufferPool(opts->p->ops_cache.alloc_size,     opts->p->ops_cache.regions,     opts->p->ops_cache.name))     &&
-          (hx->p->memory_pools.arrays        = new FixedBufferPool(opts->p->arrays.alloc_size,        opts->p->arrays.regions,        opts->p->arrays.name))        &&
-          (hx->p->memory_pools.requests      = new FixedBufferPool(opts->p->requests.alloc_size,      opts->p->requests.regions,      opts->p->requests.name))      &&
-          (hx->p->memory_pools.client_packed = new FixedBufferPool(opts->p->client_packed.alloc_size, opts->p->client_packed.regions, opts->p->client_packed.name)) &&
-          (hx->p->memory_pools.responses     = new FixedBufferPool(opts->p->responses.alloc_size,     opts->p->responses.regions,     opts->p->responses.name))     &&
-          (hx->p->memory_pools.result        = new FixedBufferPool(opts->p->result.alloc_size,        opts->p->result.regions,        opts->p->result.name))        &&
-          (hx->p->memory_pools.results       = new FixedBufferPool(opts->p->results.alloc_size,       opts->p->results.regions,       opts->p->results.name))))      {
-        mlog(HXHIM_CLIENT_ERR, "Could not preallocate all buffers");
-        return HXHIM_ERROR;
-    }
-
-    hx->p->memory_pools.rs_packed.alloc_size = opts->p->rs_packed.alloc_size;
-    hx->p->memory_pools.rs_packed.regions = opts->p->rs_packed.regions;
-    hx->p->memory_pools.rs_packed.name = opts->p->rs_packed.name;
-
-    mlog(HXHIM_CLIENT_INFO, "Preallocated %zu bytes of memory for HXHIM",
-         hx->p->memory_pools.keys->size()          +
-         hx->p->memory_pools.buffers->size()       +
-         hx->p->memory_pools.ops_cache->size()     +
-         hx->p->memory_pools.arrays->size()        +
-         hx->p->memory_pools.requests->size()      +
-         hx->p->memory_pools.client_packed->size() +
-         (hx->p->memory_pools.rs_packed.alloc_size *
-          hx->p->memory_pools.rs_packed.regions)   +
-         hx->p->memory_pools.responses->size()     +
-         hx->p->memory_pools.result->size()        +
-         hx->p->memory_pools.results->size());
     return HXHIM_SUCCESS;
 }
 
@@ -281,9 +248,7 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
     }
 
     // allocate pointers
-    if (!(hx->p->datastore.datastores = hx->p->memory_pools.arrays->acquire_array<hxhim::datastore::Datastore *>(hx->p->datastore.count))) {
-        return HXHIM_ERROR;
-    }
+    hx->p->datastore.datastores = alloc_array<hxhim::datastore::Datastore *>(hx->p->datastore.count);
 
     const bool is_rs = hxhim::range_server::is_range_server(hx->p->bootstrap.rank, opts->p->client_ratio, opts->p->server_ratio);
 
@@ -335,9 +300,7 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
         return HXHIM_ERROR;
     }
 
-    if (!(hx->p->datastore.datastores = hx->p->memory_pools.arrays->acquire_array<hxhim::datastore::Datastore *>(hx->p->datastore.count))) {
-        return HXHIM_ERROR;
-    }
+    hx->p->datastore.datastores = alloc_array<hxhim::datastore::Datastore *>(hx->p->datastore.count);
 
     Histogram::Histogram *hist = new Histogram::Histogram(opts->p->histogram.first_n,
                                                           opts->p->histogram.gen,
@@ -388,9 +351,7 @@ int hxhim::init::async_put(hxhim_t *hx, hxhim_options_t *opts) {
     hx->p->async_put.max_queued = opts->p->start_async_put_at;
 
     // Set up queued PUT results list
-    if (!(hx->p->async_put.results = hx->p->memory_pools.results->acquire<hxhim::Results>(hx))) {
-        return HXHIM_ERROR;
-    }
+    hx->p->async_put.results = construct<hxhim::Results>();
 
     // Start the background thread
     hx->p->async_put.thread = std::thread(backgroundPUT, hx);
@@ -518,26 +479,6 @@ int hxhim::destroy::memory(hxhim_t *hx) {
         return HXHIM_ERROR;
     }
 
-    delete hx->p->memory_pools.keys;
-    delete hx->p->memory_pools.buffers;
-    delete hx->p->memory_pools.ops_cache;
-    delete hx->p->memory_pools.arrays;
-    delete hx->p->memory_pools.requests;
-    delete hx->p->memory_pools.client_packed;
-    delete hx->p->memory_pools.responses;
-    delete hx->p->memory_pools.result;
-    delete hx->p->memory_pools.results;
-
-    hx->p->memory_pools.keys          = nullptr;
-    hx->p->memory_pools.buffers       = nullptr;
-    hx->p->memory_pools.ops_cache     = nullptr;
-    hx->p->memory_pools.arrays        = nullptr;
-    hx->p->memory_pools.requests      = nullptr;
-    hx->p->memory_pools.client_packed = nullptr;
-    hx->p->memory_pools.responses     = nullptr;
-    hx->p->memory_pools.result        = nullptr;
-    hx->p->memory_pools.results       = nullptr;
-
     return HXHIM_SUCCESS;
 }
 
@@ -582,7 +523,6 @@ int hxhim::destroy::hash(hxhim_t *hx) {
 
     return HXHIM_SUCCESS;
 }
-
 /**
  * async_put
  * Stops the background thread and cleans up the variables used by it
@@ -617,7 +557,7 @@ int hxhim::destroy::async_put(hxhim_t *hx) {
     // release unproceesed results from asynchronous PUTs
     {
         std::unique_lock<std::mutex>(hx->p->async_put.mutex);
-        hx->p->memory_pools.results->release(hx->p->async_put.results);
+        destruct(hx->p->async_put.results);
         hx->p->async_put.results = nullptr;
     }
 
@@ -645,7 +585,7 @@ int hxhim::destroy::datastore(hxhim_t *hx) {
             }
         }
 
-        hx->p->memory_pools.arrays->release_array(hx->p->datastore.datastores, hx->p->datastore.count);
+        dealloc_array(hx->p->datastore.datastores, hx->p->datastore.count);
         hx->p->datastore.datastores = nullptr;
     }
 
@@ -673,12 +613,12 @@ int hxhim::PutImpl(hxhim_t *hx,
                    void *subject, std::size_t subject_len,
                    void *predicate, std::size_t predicate_len,
                    enum hxhim_type_t object_type, void *object, std::size_t object_len) {
-    mlog(HXHIM_CLIENT_DBG, "PUT Start");
+    mlog(HXHIM_CLIENT_INFO, "Foreground PUT Start (%s, %s, %s)", (char *) subject, (char *) predicate, (char *) object);
     hxhim::Unsent<hxhim::PutData> &puts = hx->p->queues.puts;
 
     // SPO
     {
-        hxhim::PutData *put = hx->p->memory_pools.ops_cache->acquire<hxhim::PutData>();
+        hxhim::PutData *put = construct<hxhim::PutData>();
         put->subject = subject;
         put->subject_len = subject_len;
         put->predicate = predicate;
@@ -687,13 +627,13 @@ int hxhim::PutImpl(hxhim_t *hx,
         put->object = object;
         put->object_len = object_len;
 
-        mlog(HXHIM_CLIENT_DBG, "PUT Insert SPO into queue");
+        mlog(HXHIM_CLIENT_DBG, "Foreground PUT Insert SPO into queue");
         puts.insert(put);
     }
 
     // SOP
     {
-        hxhim::PutData *put = hx->p->memory_pools.ops_cache->acquire<hxhim::PutData>();
+        hxhim::PutData *put = construct<hxhim::PutData>();
         put->subject = subject;
         put->subject_len = subject_len;
         put->predicate = object;
@@ -702,13 +642,13 @@ int hxhim::PutImpl(hxhim_t *hx,
         put->object = predicate;
         put->object_len = predicate_len;
 
-        mlog(HXHIM_CLIENT_DBG, "PUT Insert SOP into queue");
+        mlog(HXHIM_CLIENT_DBG, "Foreground PUT Insert SOP into queue");
         puts.insert(put);
     }
 
     // PSO
     {
-        hxhim::PutData *put = hx->p->memory_pools.ops_cache->acquire<hxhim::PutData>();
+        hxhim::PutData *put = construct<hxhim::PutData>();
         put->subject = predicate;
         put->subject_len = predicate_len;
         put->predicate = subject;
@@ -717,13 +657,13 @@ int hxhim::PutImpl(hxhim_t *hx,
         put->object = object;
         put->object_len = object_len;
 
-        mlog(HXHIM_CLIENT_DBG, "PUT Insert PSO into queue");
+        mlog(HXHIM_CLIENT_DBG, "Foreground PUT Insert PSO into queue");
         puts.insert(put);
     }
 
     // POS
     {
-        hxhim::PutData *put = hx->p->memory_pools.ops_cache->acquire<hxhim::PutData>();
+        hxhim::PutData *put = construct<hxhim::PutData>();
         put->subject = predicate;
         put->subject_len = predicate_len;
         put->predicate = object;
@@ -732,13 +672,13 @@ int hxhim::PutImpl(hxhim_t *hx,
         put->object = subject;
         put->object_len = subject_len;
 
-        mlog(HXHIM_CLIENT_DBG, "PUT Insert POS into queue");
+        mlog(HXHIM_CLIENT_DBG, "Foreground PUT Insert POS into queue");
         puts.insert(put);
     }
 
     // OSP
     {
-        hxhim::PutData *put = hx->p->memory_pools.ops_cache->acquire<hxhim::PutData>();
+        hxhim::PutData *put = construct<hxhim::PutData>();
         put->subject = object;
         put->subject_len = object_len;
         put->predicate = subject;
@@ -747,13 +687,13 @@ int hxhim::PutImpl(hxhim_t *hx,
         put->object = predicate;
         put->object_len = predicate_len;
 
-        mlog(HXHIM_CLIENT_DBG, "PUT Insert OSP into queue");
+        mlog(HXHIM_CLIENT_DBG, "Foreground PUT Insert OSP into queue");
         puts.insert(put);
     }
 
     // OPS
     {
-        hxhim::PutData *put = hx->p->memory_pools.ops_cache->acquire<hxhim::PutData>();
+        hxhim::PutData *put = construct<hxhim::PutData>();
         put->subject = object;
         put->subject_len = object_len;
         put->predicate = predicate;
@@ -762,13 +702,13 @@ int hxhim::PutImpl(hxhim_t *hx,
         put->object = subject;
         put->object_len = subject_len;
 
-        mlog(HXHIM_CLIENT_DBG, "PUT Insert OPS into queue");
+        mlog(HXHIM_CLIENT_DBG, "Foreground PUT Insert OPS into queue");
         puts.insert(put);
     }
 
     puts.start_processing.notify_one();
 
-    mlog(HXHIM_CLIENT_DBG, "PUT Completed");
+    mlog(HXHIM_CLIENT_DBG, "Foreground PUT Completed");
     return HXHIM_SUCCESS;
 }
 
@@ -792,7 +732,7 @@ int hxhim::GetImpl(hxhim_t *hx,
                    void *predicate, std::size_t predicate_len,
                    enum hxhim_type_t object_type) {
     mlog(HXHIM_CLIENT_DBG, "GET Start");
-    hxhim::GetData *get = hx->p->memory_pools.ops_cache->acquire<hxhim::GetData>();
+    hxhim::GetData *get = construct<hxhim::GetData>();
     get->subject = subject;
     get->subject_len = subject_len;
     get->predicate = predicate;
@@ -830,7 +770,7 @@ int hxhim::GetImpl2(hxhim_t *hx,
                     void *predicate, std::size_t predicate_len,
                     enum hxhim_type_t object_type, void *object, std::size_t *object_len) {
     mlog(HXHIM_CLIENT_DBG, "GET Start");
-    hxhim::GetData2 *get = hx->p->memory_pools.ops_cache->acquire<hxhim::GetData2>();
+    hxhim::GetData2 *get = construct<hxhim::GetData2>();
     get->subject = subject;
     get->subject_len = subject_len;
     get->predicate = predicate;
@@ -865,7 +805,7 @@ int hxhim::DeleteImpl(hxhim_t *hx,
                       void *subject, std::size_t subject_len,
                       void *predicate, std::size_t predicate_len) {
     mlog(HXHIM_CLIENT_DBG, "DELETE Start");
-    hxhim::DeleteData *del = hx->p->memory_pools.ops_cache->acquire<hxhim::DeleteData>();
+    hxhim::DeleteData *del = construct<hxhim::DeleteData>();
     del->subject = subject;
     del->subject_len = subject_len;
     del->predicate = predicate;

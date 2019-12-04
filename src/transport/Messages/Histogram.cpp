@@ -1,7 +1,8 @@
 #include "transport/Messages/Histogram.hpp"
+#include "utils/memory.hpp"
 
-Transport::Request::Histogram::Histogram(FixedBufferPool * arrays, FixedBufferPool *buffers)
-    : Request(Message::HISTOGRAM, arrays, buffers),
+Transport::Request::Histogram::Histogram()
+    : Request(HISTOGRAM),
       Single()
 {}
 
@@ -12,8 +13,8 @@ std::size_t Transport::Request::Histogram::size() const {
     return Request::size() + sizeof(ds_offset);
 }
 
-Transport::Response::Histogram::Histogram(FixedBufferPool * arrays, FixedBufferPool *buffers)
-    : Response(Message::HISTOGRAM, arrays, buffers),
+Transport::Response::Histogram::Histogram()
+    : Response(HISTOGRAM),
       Single(),
       status(HXHIM_ERROR),
       hist()
@@ -22,8 +23,8 @@ Transport::Response::Histogram::Histogram(FixedBufferPool * arrays, FixedBufferP
 Transport::Response::Histogram::~Histogram()
 {
     if (clean) {
-        arrays->release_array(hist.buckets, hist.size);
-        arrays->release_array(hist.counts, hist.size);
+        dealloc_array(hist.buckets, hist.size);
+        dealloc_array(hist.counts, hist.size);
     }
 }
 

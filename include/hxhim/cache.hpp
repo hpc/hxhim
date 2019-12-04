@@ -7,7 +7,6 @@
 
 #include "hxhim/constants.h"
 #include "transport/Messages/Messages.hpp"
-#include "utils/FixedBufferPool.hpp"
 #include "utils/enable_if_t.hpp"
 
 namespace hxhim {
@@ -115,7 +114,6 @@ namespace hxhim {
             count++;
         }
 
-        FixedBufferPool *cache_nodes;
         std::mutex mutex;
         std::condition_variable start_processing;
         std::condition_variable done_processing;

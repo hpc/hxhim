@@ -14,7 +14,7 @@ namespace Transport {
 namespace Request {
 
 struct Delete final : Request, Single {
-    Delete(FixedBufferPool *arrays, FixedBufferPool *buffers);
+    Delete();
     ~Delete();
 
     std::size_t size() const;
@@ -30,7 +30,7 @@ struct Delete final : Request, Single {
 namespace Response {
 
 struct Delete final : Response, Single {
-    Delete(FixedBufferPool *arrays, FixedBufferPool *buffers);
+    Delete();
     ~Delete();
 
     std::size_t size() const;

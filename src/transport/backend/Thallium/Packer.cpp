@@ -3,13 +3,14 @@
 #include <cstring>
 
 #include "transport/backend/Thallium/Packer.hpp"
+#include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
 namespace Transport {
 namespace Thallium {
 
-int Packer::pack(const Request::Request *req, void **buf, std::size_t *bufsize, FixedBufferPool *packed) {
+int Packer::pack(const Request::Request *req, void **buf, std::size_t *bufsize) {
     int ret = TRANSPORT_ERROR;
     if (!req) {
         return ret;
@@ -19,34 +20,34 @@ int Packer::pack(const Request::Request *req, void **buf, std::size_t *bufsize, 
 
     switch (req->type) {
         case Message::PUT:
-            ret = pack(static_cast<const Request::Put *>(req), buf, bufsize, packed);
+            ret = pack(static_cast<const Request::Put *>(req), buf, bufsize);
             break;
         case Message::GET:
-            ret = pack(static_cast<const Request::Get *>(req), buf, bufsize, packed);
+            ret = pack(static_cast<const Request::Get *>(req), buf, bufsize);
             break;
         case Message::GET2:
-            ret = pack(static_cast<const Request::Get2 *>(req), buf, bufsize, packed);
+            ret = pack(static_cast<const Request::Get2 *>(req), buf, bufsize);
             break;
         case Message::DELETE:
-            ret = pack(static_cast<const Request::Delete *>(req), buf, bufsize, packed);
+            ret = pack(static_cast<const Request::Delete *>(req), buf, bufsize);
             break;
         case Message::HISTOGRAM:
-            ret = pack(static_cast<const Request::Histogram *>(req), buf, bufsize, packed);
+            ret = pack(static_cast<const Request::Histogram *>(req), buf, bufsize);
             break;
         case Message::BPUT:
-            ret = pack(static_cast<const Request::BPut *>(req), buf, bufsize, packed);
+            ret = pack(static_cast<const Request::BPut *>(req), buf, bufsize);
             break;
         case Message::BGET:
-            ret = pack(static_cast<const Request::BGet *>(req), buf, bufsize, packed);
+            ret = pack(static_cast<const Request::BGet *>(req), buf, bufsize);
             break;
         case Message::BGET2:
-            ret = pack(static_cast<const Request::BGet2 *>(req), buf, bufsize, packed);
+            ret = pack(static_cast<const Request::BGet2 *>(req), buf, bufsize);
             break;
         case Message::BGETOP:
-            ret = pack(static_cast<const Request::BGetOp *>(req), buf, bufsize, packed);
+            ret = pack(static_cast<const Request::BGetOp *>(req), buf, bufsize);
             break;
         case Message::BDELETE:
-            ret = pack(static_cast<const Request::BDelete *>(req), buf, bufsize, packed);
+            ret = pack(static_cast<const Request::BDelete *>(req), buf, bufsize);
             break;
         default:
             break;
@@ -57,9 +58,9 @@ int Packer::pack(const Request::Request *req, void **buf, std::size_t *bufsize, 
     return ret;
 }
 
-int Packer::pack(const Request::Put *pm, void **buf, std::size_t *bufsize, FixedBufferPool *packed) {
+int Packer::pack(const Request::Put *pm, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
-    if (pack(static_cast<const Request::Request *>(pm), buf, bufsize, packed, &curr) != TRANSPORT_SUCCESS) {
+    if (pack(static_cast<const Request::Request *>(pm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
@@ -90,9 +91,9 @@ int Packer::pack(const Request::Put *pm, void **buf, std::size_t *bufsize, Fixed
     return TRANSPORT_SUCCESS;
 }
 
-int Packer::pack(const Request::Get *gm, void **buf, std::size_t *bufsize, FixedBufferPool *packed) {
+int Packer::pack(const Request::Get *gm, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
-    if (pack(static_cast<const Request::Request *>(gm), buf, bufsize, packed, &curr) != TRANSPORT_SUCCESS) {
+    if (pack(static_cast<const Request::Request *>(gm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
@@ -117,9 +118,9 @@ int Packer::pack(const Request::Get *gm, void **buf, std::size_t *bufsize, Fixed
     return TRANSPORT_SUCCESS;
 }
 
-int Packer::pack(const Request::Get2 *gm, void **buf, std::size_t *bufsize, FixedBufferPool *packed) {
+int Packer::pack(const Request::Get2 *gm, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
-    if (pack(static_cast<const Request::Request *>(gm), buf, bufsize, packed, &curr) != TRANSPORT_SUCCESS) {
+    if (pack(static_cast<const Request::Request *>(gm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
@@ -156,9 +157,9 @@ int Packer::pack(const Request::Get2 *gm, void **buf, std::size_t *bufsize, Fixe
     return TRANSPORT_SUCCESS;
 }
 
-int Packer::pack(const Request::Delete *dm, void **buf, std::size_t *bufsize, FixedBufferPool *packed) {
+int Packer::pack(const Request::Delete *dm, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
-    if (pack(static_cast<const Request::Request *>(dm), buf, bufsize, packed, &curr) != TRANSPORT_SUCCESS) {
+    if (pack(static_cast<const Request::Request *>(dm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
@@ -180,9 +181,9 @@ int Packer::pack(const Request::Delete *dm, void **buf, std::size_t *bufsize, Fi
     return TRANSPORT_SUCCESS;
 }
 
-int Packer::pack(const Request::Histogram *hist, void **buf, std::size_t *bufsize, FixedBufferPool *packed) {
+int Packer::pack(const Request::Histogram *hist, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
-    if (pack(static_cast<const Request::Request *>(hist), buf, bufsize, packed, &curr) != TRANSPORT_SUCCESS) {
+    if (pack(static_cast<const Request::Request *>(hist), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
@@ -192,9 +193,9 @@ int Packer::pack(const Request::Histogram *hist, void **buf, std::size_t *bufsiz
     return TRANSPORT_SUCCESS;
 }
 
-int Packer::pack(const Request::BPut *bpm, void **buf, std::size_t *bufsize, FixedBufferPool *packed) {
+int Packer::pack(const Request::BPut *bpm, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
-    if (pack(static_cast<const Request::Request *>(bpm), buf, bufsize, packed, &curr) != TRANSPORT_SUCCESS) {
+    if (pack(static_cast<const Request::Request *>(bpm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
@@ -230,9 +231,9 @@ int Packer::pack(const Request::BPut *bpm, void **buf, std::size_t *bufsize, Fix
     return TRANSPORT_SUCCESS;
 }
 
-int Packer::pack(const Request::BGet *bgm, void **buf, std::size_t *bufsize, FixedBufferPool *packed) {
+int Packer::pack(const Request::BGet *bgm, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
-    if (pack(static_cast<const Request::Request *>(bgm), buf, bufsize, packed, &curr) != TRANSPORT_SUCCESS) {
+    if (pack(static_cast<const Request::Request *>(bgm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
@@ -262,9 +263,9 @@ int Packer::pack(const Request::BGet *bgm, void **buf, std::size_t *bufsize, Fix
     return TRANSPORT_SUCCESS;
 }
 
-int Packer::pack(const Request::BGet2 *bgm, void **buf, std::size_t *bufsize, FixedBufferPool *packed) {
+int Packer::pack(const Request::BGet2 *bgm, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
-    if (pack(static_cast<const Request::Request *>(bgm), buf, bufsize, packed, &curr) != TRANSPORT_SUCCESS) {
+    if (pack(static_cast<const Request::Request *>(bgm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
@@ -302,9 +303,9 @@ int Packer::pack(const Request::BGet2 *bgm, void **buf, std::size_t *bufsize, Fi
     return TRANSPORT_SUCCESS;
 }
 
-int Packer::pack(const Request::BGetOp *bgm, void **buf, std::size_t *bufsize, FixedBufferPool *packed) {
+int Packer::pack(const Request::BGetOp *bgm, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
-    if (pack(static_cast<const Request::Request *>(bgm), buf, bufsize, packed, &curr) != TRANSPORT_SUCCESS) {
+    if (pack(static_cast<const Request::Request *>(bgm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
@@ -340,9 +341,9 @@ int Packer::pack(const Request::BGetOp *bgm, void **buf, std::size_t *bufsize, F
     return TRANSPORT_SUCCESS;
 }
 
-int Packer::pack(const Request::BDelete *bdm, void **buf, std::size_t *bufsize, FixedBufferPool *packed) {
+int Packer::pack(const Request::BDelete *bdm, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
-    if (pack(static_cast<const Request::Request *>(bdm), buf, bufsize, packed, &curr) != TRANSPORT_SUCCESS) {
+    if (pack(static_cast<const Request::Request *>(bdm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
@@ -369,9 +370,9 @@ int Packer::pack(const Request::BDelete *bdm, void **buf, std::size_t *bufsize, 
     return TRANSPORT_SUCCESS;
 }
 
-int Packer::pack(const Request::BHistogram *bhist, void **buf, std::size_t *bufsize, FixedBufferPool *packed) {
+int Packer::pack(const Request::BHistogram *bhist, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
-    if (pack(static_cast<const Request::Request *>(bhist), buf, bufsize, packed, &curr) != TRANSPORT_SUCCESS) {
+    if (pack(static_cast<const Request::Request *>(bhist), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
@@ -386,7 +387,7 @@ int Packer::pack(const Request::BHistogram *bhist, void **buf, std::size_t *bufs
     return TRANSPORT_SUCCESS;
 }
 
-int Packer::pack(const Response::Response *res, void **buf, std::size_t *bufsize, FixedBufferPool *packed) {
+int Packer::pack(const Response::Response *res, void **buf, std::size_t *bufsize) {
     int ret = TRANSPORT_ERROR;
     if (!res) {
         return ret;
@@ -396,34 +397,34 @@ int Packer::pack(const Response::Response *res, void **buf, std::size_t *bufsize
 
     switch (res->type) {
         case Message::PUT:
-            ret = pack(static_cast<const Response::Put *>(res), buf, bufsize, packed);
+            ret = pack(static_cast<const Response::Put *>(res), buf, bufsize);
             break;
         case Message::GET:
-            ret = pack(static_cast<const Response::Get *>(res), buf, bufsize, packed);
+            ret = pack(static_cast<const Response::Get *>(res), buf, bufsize);
             break;
         case Message::GET2:
-            ret = pack(static_cast<const Response::Get2 *>(res), buf, bufsize, packed);
+            ret = pack(static_cast<const Response::Get2 *>(res), buf, bufsize);
             break;
         case Message::DELETE:
-            ret = pack(static_cast<const Response::Delete *>(res), buf, bufsize, packed);
+            ret = pack(static_cast<const Response::Delete *>(res), buf, bufsize);
             break;
         case Message::HISTOGRAM:
-            ret = pack(static_cast<const Response::Histogram *>(res), buf, bufsize, packed);
+            ret = pack(static_cast<const Response::Histogram *>(res), buf, bufsize);
             break;
         case Message::BPUT:
-            ret = pack(static_cast<const Response::BPut *>(res), buf, bufsize, packed);
+            ret = pack(static_cast<const Response::BPut *>(res), buf, bufsize);
             break;
         case Message::BGET:
-            ret = pack(static_cast<const Response::BGet *>(res), buf, bufsize, packed);
+            ret = pack(static_cast<const Response::BGet *>(res), buf, bufsize);
             break;
         case Message::BGET2:
-            ret = pack(static_cast<const Response::BGet2 *>(res), buf, bufsize, packed);
+            ret = pack(static_cast<const Response::BGet2 *>(res), buf, bufsize);
             break;
         case Message::BGETOP:
-            ret = pack(static_cast<const Response::BGetOp *>(res), buf, bufsize, packed);
+            ret = pack(static_cast<const Response::BGetOp *>(res), buf, bufsize);
             break;
         case Message::BDELETE:
-            ret = pack(static_cast<const Response::BDelete *>(res), buf, bufsize, packed);
+            ret = pack(static_cast<const Response::BDelete *>(res), buf, bufsize);
             break;
         default:
             break;
@@ -434,9 +435,9 @@ int Packer::pack(const Response::Response *res, void **buf, std::size_t *bufsize
     return ret;
 }
 
-int Packer::pack(const Response::Put *pm, void **buf, std::size_t *bufsize, FixedBufferPool *packed) {
+int Packer::pack(const Response::Put *pm, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
-    if (pack(static_cast<const Response::Response *>(pm), buf, bufsize, packed, &curr) != TRANSPORT_SUCCESS) {
+    if (pack(static_cast<const Response::Response *>(pm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
@@ -449,9 +450,9 @@ int Packer::pack(const Response::Put *pm, void **buf, std::size_t *bufsize, Fixe
     return TRANSPORT_SUCCESS;
 }
 
-int Packer::pack(const Response::Get *gm, void **buf, std::size_t *bufsize, FixedBufferPool *packed) {
+int Packer::pack(const Response::Get *gm, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
-    if (pack(static_cast<const Response::Response *>(gm), buf, bufsize, packed, &curr) != TRANSPORT_SUCCESS) {
+    if (pack(static_cast<const Response::Response *>(gm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
@@ -489,9 +490,9 @@ int Packer::pack(const Response::Get *gm, void **buf, std::size_t *bufsize, Fixe
     return TRANSPORT_SUCCESS;
 }
 
-int Packer::pack(const Response::Get2 *gm, void **buf, std::size_t *bufsize, FixedBufferPool *packed) {
+int Packer::pack(const Response::Get2 *gm, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
-    if (pack(static_cast<const Response::Response *>(gm), buf, bufsize, packed, &curr) != TRANSPORT_SUCCESS) {
+    if (pack(static_cast<const Response::Response *>(gm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
@@ -539,9 +540,9 @@ int Packer::pack(const Response::Get2 *gm, void **buf, std::size_t *bufsize, Fix
     return TRANSPORT_SUCCESS;
 }
 
-int Packer::pack(const Response::Delete *dm, void **buf, std::size_t *bufsize, FixedBufferPool *packed) {
+int Packer::pack(const Response::Delete *dm, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
-    if (pack(static_cast<const Response::Response *>(dm), buf, bufsize, packed, &curr) != TRANSPORT_SUCCESS) {
+    if (pack(static_cast<const Response::Response *>(dm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
@@ -554,9 +555,9 @@ int Packer::pack(const Response::Delete *dm, void **buf, std::size_t *bufsize, F
     return TRANSPORT_SUCCESS;
 }
 
-int Packer::pack(const Response::Histogram *hist, void **buf, std::size_t *bufsize, FixedBufferPool *packed) {
+int Packer::pack(const Response::Histogram *hist, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
-    if (pack(static_cast<const Response::Response *>(hist), buf, bufsize, packed, &curr) != TRANSPORT_SUCCESS) {
+    if (pack(static_cast<const Response::Response *>(hist), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
@@ -581,9 +582,9 @@ int Packer::pack(const Response::Histogram *hist, void **buf, std::size_t *bufsi
     return TRANSPORT_SUCCESS;
 }
 
-int Packer::pack(const Response::BPut *bpm, void **buf, std::size_t *bufsize, FixedBufferPool *packed) {
+int Packer::pack(const Response::BPut *bpm, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
-    if (pack(static_cast<const Response::Response *>(bpm), buf, bufsize, packed, &curr) != TRANSPORT_SUCCESS) {
+    if (pack(static_cast<const Response::Response *>(bpm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
@@ -599,9 +600,9 @@ int Packer::pack(const Response::BPut *bpm, void **buf, std::size_t *bufsize, Fi
     return TRANSPORT_SUCCESS;
 }
 
-int Packer::pack(const Response::BGet *bgm, void **buf, std::size_t *bufsize, FixedBufferPool *packed) {
+int Packer::pack(const Response::BGet *bgm, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
-    if (pack(static_cast<const Response::Response *>(bgm), buf, bufsize, packed, &curr) != TRANSPORT_SUCCESS) {
+    if (pack(static_cast<const Response::Response *>(bgm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
@@ -642,10 +643,10 @@ int Packer::pack(const Response::BGet *bgm, void **buf, std::size_t *bufsize, Fi
     return TRANSPORT_SUCCESS;
 }
 
-int Packer::pack(const Response::BGet2 *bgm, void **buf, std::size_t *bufsize, FixedBufferPool *packed) {
+int Packer::pack(const Response::BGet2 *bgm, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
 
-    if (pack(static_cast<const Response::Response *>(bgm), buf, bufsize, packed, &curr) != TRANSPORT_SUCCESS) {
+    if (pack(static_cast<const Response::Response *>(bgm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
@@ -694,9 +695,9 @@ int Packer::pack(const Response::BGet2 *bgm, void **buf, std::size_t *bufsize, F
     return TRANSPORT_SUCCESS;
 }
 
-int Packer::pack(const Response::BGetOp *bgm, void **buf, std::size_t *bufsize, FixedBufferPool *packed) {
+int Packer::pack(const Response::BGetOp *bgm, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
-    if (pack(static_cast<const Response::Response *>(bgm), buf, bufsize, packed, &curr) != TRANSPORT_SUCCESS) {
+    if (pack(static_cast<const Response::Response *>(bgm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
@@ -737,9 +738,9 @@ int Packer::pack(const Response::BGetOp *bgm, void **buf, std::size_t *bufsize, 
     return TRANSPORT_SUCCESS;
 }
 
-int Packer::pack(const Response::BDelete *bdm, void **buf, std::size_t *bufsize, FixedBufferPool *packed) {
+int Packer::pack(const Response::BDelete *bdm, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
-    if (pack(static_cast<const Response::Response *>(bdm), buf, bufsize, packed, &curr) != TRANSPORT_SUCCESS) {
+    if (pack(static_cast<const Response::Response *>(bdm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
@@ -755,9 +756,9 @@ int Packer::pack(const Response::BDelete *bdm, void **buf, std::size_t *bufsize,
     return TRANSPORT_SUCCESS;
 }
 
-int Packer::pack(const Response::BHistogram *bhist, void **buf, std::size_t *bufsize, FixedBufferPool *packed) {
+int Packer::pack(const Response::BHistogram *bhist, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
-    if (pack(static_cast<const Response::Response *>(bhist), buf, bufsize, packed, &curr) != TRANSPORT_SUCCESS) {
+    if (pack(static_cast<const Response::Response *>(bhist), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
@@ -786,7 +787,7 @@ int Packer::pack(const Response::BHistogram *bhist, void **buf, std::size_t *buf
     return TRANSPORT_SUCCESS;
 }
 
-int Packer::pack(const Message *msg, void **buf, std::size_t *bufsize, FixedBufferPool *packed, char **curr) {
+int Packer::pack(const Message *msg, void **buf, std::size_t *bufsize, char **curr) {
     if (!msg || !buf || !bufsize || !curr) {
         return TRANSPORT_ERROR;
     }
@@ -795,7 +796,7 @@ int Packer::pack(const Message *msg, void **buf, std::size_t *bufsize, FixedBuff
 
     // only allocate space if a nullptr is provided; otherwise, assume *buf has enough space
     if (!*buf) {
-        if (!packed || !(*buf = packed->acquire(minsize))) {
+        if (!(*buf = alloc(minsize))) {
             *bufsize = 0;
             return TRANSPORT_ERROR;
         }
@@ -821,12 +822,12 @@ int Packer::pack(const Message *msg, void **buf, std::size_t *bufsize, FixedBuff
     return TRANSPORT_SUCCESS;
 }
 
-int Packer::pack(const Request::Request *req, void **buf, std::size_t *bufsize, FixedBufferPool *packed, char **curr) {
-    return pack(static_cast<const Message *>(req), buf, bufsize, packed, curr);
+int Packer::pack(const Request::Request *req, void **buf, std::size_t *bufsize, char **curr) {
+    return pack(static_cast<const Message *>(req), buf, bufsize, curr);
 }
 
-int Packer::pack(const Response::Response *res, void **buf, std::size_t *bufsize, FixedBufferPool *packed, char **curr) {
-    return pack(static_cast<const Message *>(res), buf, bufsize, packed, curr);
+int Packer::pack(const Response::Response *res, void **buf, std::size_t *bufsize, char **curr) {
+    return pack(static_cast<const Message *>(res), buf, bufsize, curr);
 }
 
 }

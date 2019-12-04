@@ -1,7 +1,8 @@
 #include "transport/Messages/BDelete.hpp"
+#include "utils/memory.hpp"
 
-Transport::Request::BDelete::BDelete(FixedBufferPool *arrays, FixedBufferPool *buffers, const std::size_t max)
-    : Request(BDELETE, arrays, buffers),
+Transport::Request::BDelete::BDelete(const std::size_t max)
+    : Request(BDELETE),
       Bulk(),
       subjects(nullptr),
       subject_lens(nullptr),
@@ -30,11 +31,11 @@ int Transport::Request::BDelete::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Bulk::alloc(max, arrays) != TRANSPORT_SUCCESS)             ||
-            !(subjects = arrays->acquire_array<void *>(max))            ||
-            !(subject_lens = arrays->acquire_array<std::size_t>(max))   ||
-            !(predicates = arrays->acquire_array<void *>(max))          ||
-            !(predicate_lens = arrays->acquire_array<std::size_t>(max))) {
+        if ((Bulk::alloc(max) != TRANSPORT_SUCCESS)           ||
+            !(subjects = alloc_array<void *>(max))            ||
+            !(subject_lens = alloc_array<std::size_t>(max))   ||
+            !(predicates = alloc_array<void *>(max))          ||
+            !(predicate_lens = alloc_array<std::size_t>(max))) {
             cleanup();
             return TRANSPORT_SUCCESS;
         }
@@ -47,36 +48,36 @@ int Transport::Request::BDelete::cleanup() {
     if (clean) {
         if (subjects) {
             for(std::size_t i = 0; i < count; i++) {
-                buffers->release(subjects[i], subject_lens[i]);
+                dealloc(subjects[i]);
             }
         }
 
         if (predicates) {
             for(std::size_t i = 0; i < count; i++) {
-                buffers->release(predicates[i], predicate_lens[i]);
+                dealloc(predicates[i]);
             }
         }
     }
 
-    arrays->release_array(subjects, count);
+    dealloc_array(subjects, count);
     subjects = nullptr;
 
-    arrays->release_array(subject_lens, count);
+    dealloc_array(subject_lens, count);
     subject_lens = nullptr;
 
-    arrays->release_array(predicates, count);
+    dealloc_array(predicates, count);
     predicates = nullptr;
 
-    arrays->release_array(predicate_lens, count);
+    dealloc_array(predicate_lens, count);
     predicate_lens = nullptr;
 
-    Bulk::cleanup(arrays);
+    Bulk::cleanup();
 
     return TRANSPORT_SUCCESS;
 }
 
-Transport::Response::BDelete::BDelete(FixedBufferPool *arrays, FixedBufferPool *buffers, const std::size_t max)
-    : Response(BDELETE, arrays, buffers),
+Transport::Response::BDelete::BDelete(const std::size_t max)
+    : Response(BDELETE),
       Bulk(),
       statuses(nullptr),
       next(nullptr)
@@ -94,8 +95,8 @@ std::size_t Transport::Response::BDelete::size() const {
 
 int Transport::Response::BDelete::alloc(const std::size_t max) {
     if (max) {
-        if ((Bulk::alloc(max, arrays) != TRANSPORT_SUCCESS) ||
-            !(statuses = arrays->acquire_array<int>(max)))   {
+        if ((Bulk::alloc(max) != TRANSPORT_SUCCESS) ||
+            !(statuses = alloc_array<int>(max)))     {
             cleanup();
             return TRANSPORT_ERROR;
         }
@@ -105,10 +106,10 @@ int Transport::Response::BDelete::alloc(const std::size_t max) {
 }
 
 int Transport::Response::BDelete::cleanup() {
-    arrays->release_array(statuses, count);
+    dealloc_array(statuses, count);
     statuses = nullptr;
 
-    Bulk::cleanup(arrays);
+    Bulk::cleanup();
 
     return TRANSPORT_SUCCESS;
 }

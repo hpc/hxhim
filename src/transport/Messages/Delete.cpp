@@ -1,7 +1,8 @@
 #include "transport/Messages/Delete.hpp"
+#include "utils/memory.hpp"
 
-Transport::Request::Delete::Delete(FixedBufferPool *arrays, FixedBufferPool *buffers)
-    : Request(Message::DELETE, arrays, buffers),
+Transport::Request::Delete::Delete()
+    : Request(DELETE),
       Single(),
       subject(nullptr),
       subject_len(0),
@@ -12,8 +13,8 @@ Transport::Request::Delete::Delete(FixedBufferPool *arrays, FixedBufferPool *buf
 Transport::Request::Delete::~Delete()
 {
     if (clean) {
-        buffers->release(subject, subject_len);
-        buffers->release(predicate, predicate_len);
+        dealloc(subject);
+        dealloc(predicate);
     }
 }
 
@@ -23,8 +24,8 @@ std::size_t Transport::Request::Delete::size() const {
         predicate_len + sizeof(predicate_len);
 }
 
-Transport::Response::Delete::Delete(FixedBufferPool *arrays, FixedBufferPool *buffers)
-    : Response(Message::DELETE, arrays, buffers),
+Transport::Response::Delete::Delete()
+    : Response(DELETE),
       Single(),
       status(HXHIM_ERROR)
 {}

@@ -14,7 +14,7 @@ namespace Transport {
 namespace Request {
 
 struct Put final : Request, Single {
-    Put(FixedBufferPool *arrays, FixedBufferPool *buffers);
+    Put();
     ~Put();
 
     std::size_t size() const;
@@ -33,7 +33,7 @@ struct Put final : Request, Single {
 namespace Response {
 
 struct Put final : Response, Single {
-    Put(FixedBufferPool *arrays, FixedBufferPool *buffers);
+    Put();
     ~Put();
 
     std::size_t size() const;

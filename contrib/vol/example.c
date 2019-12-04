@@ -16,10 +16,7 @@ int main(int argc, char * argv[]) {
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    int size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-
-    hid_t fapl = hxhim_vol_init("/tmp/hxhim", MPI_COMM_WORLD, 1);
+    hid_t fapl = hxhim_vol_init(MPI_COMM_WORLD, 1);
 
     hsize_t dims = COUNT;
 
@@ -46,12 +43,12 @@ int main(int argc, char * argv[]) {
 
         H5Fflush(file_id, H5F_SCOPE_GLOBAL);
         for(hsize_t i = 0; i < dims; i++) {
-            printf("     write %d\n", write_ints[i]);
+            printf("     %d write %d\n", rank, write_ints[i]);
         }
         for(hsize_t i = 0; i < dims; i++) {
-            printf("     write %f\n", write_doubles[i]);
+            printf("     %d write %f\n", rank, write_doubles[i]);
         }
-        printf("     write %s\n", write_str);
+        printf("     %d write %s\n", rank, write_str);
 
         H5Dclose(write_str_dataset_id);
         H5Gclose(group_id);
@@ -84,12 +81,12 @@ int main(int argc, char * argv[]) {
 
         H5Fflush(file_id, H5F_SCOPE_GLOBAL);
         for(hsize_t i = 0; i < COUNT; i++) {
-            printf("     read %d\n", read_ints[i]);
+            printf("     %d read %d\n", rank, read_ints[i]);
         }
         for(hsize_t i = 0; i < COUNT; i++) {
-            printf("     read %f\n", read_doubles[i]);
+            printf("     %d read %f\n", rank, read_doubles[i]);
         }
-        printf("     read %s\n", read_str);
+        printf("     %d read %s\n", rank, read_str);
 
         H5Dclose(read_str_dataset_id);
         H5Dclose(read_doubles_dataset_id);

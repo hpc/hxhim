@@ -4,6 +4,7 @@
 #include "hxhim/Results.hpp"
 #include "hxhim/Results_private.hpp"
 #include "hxhim/private.hpp"
+#include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
@@ -11,19 +12,19 @@ namespace hxhim {
 
 Results::Result::~Result() {}
 
-void Result::destroy(hxhim_t *hx, Results::Result *res) {
-    hx->p->memory_pools.result->release(res);
+void Result::destroy(Results::Result *res) {
+    destruct(res);
 }
 
 Results::Get::~Get() {
-    // buffers->release(subject, subject_len);
-    // buffers->release(predicate, predicate_len);
-    buffers->release(object, object_len);
+    // dealloc(subject);
+    // dealloc(predicate);
+    dealloc(object);
 }
 
 Results::Get2::~Get2() {
-    buffers->release(subject, subject_len);
-    buffers->release(predicate, predicate_len);
+    dealloc(subject);
+    dealloc(predicate);
     // object and object_len came from user space
 }
 
@@ -32,9 +33,8 @@ Results::Put *Result::init(hxhim_t *hx, Transport::Response::Put *put) {
         return nullptr;
     }
 
-    Results::Put *out = hx->p->memory_pools.result->acquire<Results::Put>();
+    Results::Put *out = construct<Results::Put>();
     out->type = hxhim_result_type::HXHIM_RESULT_PUT;
-    out->buffers = hx->p->memory_pools.buffers;
     out->datastore = hxhim::datastore::get_id(hx, put->src, put->ds_offset);
     out->status = put->status;
     return out;
@@ -45,20 +45,15 @@ Results::Put *Result::init(hxhim_t *hx, Transport::Response::BPut *bput, const s
         return nullptr;
     }
 
-    Results::Put *out = hx->p->memory_pools.result->acquire<Results::Put>();
+    Results::Put *out = construct<Results::Put>();
     out->type = hxhim_result_type::HXHIM_RESULT_PUT;
-    out->buffers = hx->p->memory_pools.buffers;
     out->datastore = hxhim::datastore::get_id(hx, bput->src, bput->ds_offsets[i]);
     out->status = bput->statuses[i];
     return out;
 }
 
-void Result::destroy(hxhim_t *hx, Results::Put *put) {
-    if (!valid(hx)) {
-        return;
-    }
-
-    hx->p->memory_pools.result->release(put);
+void Result::destroy(Results::Put *put) {
+    destruct(put);
 }
 
 Results::Get *Result::init(hxhim_t *hx, Transport::Response::Get *get) {
@@ -66,9 +61,8 @@ Results::Get *Result::init(hxhim_t *hx, Transport::Response::Get *get) {
         return nullptr;
     }
 
-    Results::Get *out = hx->p->memory_pools.result->acquire<Results::Get>();
+    Results::Get *out = construct<Results::Get>();
     out->type = hxhim_result_type::HXHIM_RESULT_GET;
-    out->buffers = hx->p->memory_pools.buffers;
     out->datastore = hxhim::datastore::get_id(hx, get->src, get->ds_offset);
     out->status = get->status;
     out->subject = get->subject;
@@ -90,9 +84,8 @@ Results::Get2 *Result::init(hxhim_t *hx, Transport::Response::Get2 *get) {
         return nullptr;
     }
 
-    Results::Get2 *out = hx->p->memory_pools.result->acquire<Results::Get2>();
+    Results::Get2 *out = construct<Results::Get2>();
     out->type = hxhim_result_type::HXHIM_RESULT_GET2;
-    out->buffers = hx->p->memory_pools.buffers;
     out->datastore = hxhim::datastore::get_id(hx, get->src, get->ds_offset);
     out->status = get->status;
 
@@ -107,9 +100,8 @@ Results::Get *Result::init(hxhim_t *hx, Transport::Response::BGet *bget, const s
         return nullptr;
     }
 
-    Results::Get *out = hx->p->memory_pools.result->acquire<Results::Get>();
+    Results::Get *out = construct<Results::Get>();
     out->type = hxhim_result_type::HXHIM_RESULT_GET;
-    out->buffers = hx->p->memory_pools.buffers;
     out->datastore = hxhim::datastore::get_id(hx, bget->src, bget->ds_offsets[i]);
     out->status = bget->statuses[i];
     out->subject = bget->subjects[i];
@@ -131,9 +123,8 @@ Results::Get2 *Result::init(hxhim_t *hx, Transport::Response::BGet2 *bget, const
         return nullptr;
     }
 
-    Results::Get2 *out = hx->p->memory_pools.result->acquire<Results::Get2>();
+    Results::Get2 *out = construct<Results::Get2>();
     out->type = hxhim_result_type::HXHIM_RESULT_GET2;
-    out->buffers = hx->p->memory_pools.buffers;
     out->datastore = hxhim::datastore::get_id(hx, bget->src, bget->ds_offsets[i]);
     out->status = bget->statuses[i];
     out->subject = bget->subjects[i];
@@ -155,9 +146,8 @@ Results::Get *Result::init(hxhim_t *hx, Transport::Response::BGetOp *bgetop, con
         return nullptr;
     }
 
-    Results::Get *out = hx->p->memory_pools.result->acquire<Results::Get>();
+    Results::Get *out = construct<Results::Get>();
     out->type = hxhim_result_type::HXHIM_RESULT_GET;
-    out->buffers = hx->p->memory_pools.buffers;
     out->datastore = hxhim::datastore::get_id(hx, bgetop->src, bgetop->ds_offsets[i]);
     out->status = bgetop->statuses[i];
     out->subject = bgetop->subjects[i];
@@ -174,20 +164,12 @@ Results::Get *Result::init(hxhim_t *hx, Transport::Response::BGetOp *bgetop, con
     return out;
 }
 
-void Result::destroy(hxhim_t *hx, Results::Get *get) {
-    if (!valid(hx)) {
-        return;
-    }
-
-    hx->p->memory_pools.result->release(get);
+void Result::destroy(Results::Get *get) {
+    destruct(get);
 }
 
-void Result::destroy(hxhim_t *hx, Results::Get2 *get) {
-    if (!valid(hx)) {
-        return;
-    }
-
-    hx->p->memory_pools.result->release(get);
+void Result::destroy(Results::Get2 *get) {
+    destruct(get);
 }
 
 Results::Delete *Result::init(hxhim_t *hx, Transport::Response::Delete *del) {
@@ -195,9 +177,8 @@ Results::Delete *Result::init(hxhim_t *hx, Transport::Response::Delete *del) {
         return nullptr;
     }
 
-    Results::Delete *out = hx->p->memory_pools.result->acquire<Results::Delete>();
+    Results::Delete *out = construct<Results::Delete>();
     out->type = hxhim_result_type::HXHIM_RESULT_DEL;
-    out->buffers = hx->p->memory_pools.buffers;
     out->datastore = hxhim::datastore::get_id(hx, del->src, del->ds_offset);
     out->status = del->status;
     return out;
@@ -208,20 +189,15 @@ Results::Delete *Result::init(hxhim_t *hx, Transport::Response::BDelete *bdel, c
         return nullptr;
     }
 
-    Results::Delete *out = hx->p->memory_pools.result->acquire<Results::Delete>();
+    Results::Delete *out = construct<Results::Delete>();
     out->type = hxhim_result_type::HXHIM_RESULT_DEL;
-    out->buffers = hx->p->memory_pools.buffers;
     out->datastore = hxhim::datastore::get_id(hx, bdel->src, bdel->ds_offsets[i]);
     out->status = bdel->statuses[i];
     return out;
 }
 
-void Result::destroy(hxhim_t *hx, Results::Delete *del) {
-    if (!valid(hx)) {
-        return;
-    }
-
-    hx->p->memory_pools.result->release(del);
+void Result::destroy(Results::Delete *del) {
+    destruct(del);
 }
 
 Results::Sync *Result::init(hxhim_t *hx, const int ds_offset, const int synced) {
@@ -229,20 +205,15 @@ Results::Sync *Result::init(hxhim_t *hx, const int ds_offset, const int synced) 
         return nullptr;
     }
 
-    Results::Sync *out = hx->p->memory_pools.result->acquire<Results::Sync>();
+    Results::Sync *out = construct<Results::Sync>();
     out->type = hxhim_result_type::HXHIM_RESULT_SYNC;
-    out->buffers = hx->p->memory_pools.buffers;
     out->datastore = hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, ds_offset);
     out->status = synced;
     return out;
 }
 
-void Result::destroy(hxhim_t *hx, Results::Sync *sync) {
-    if (!valid(hx)) {
-        return;
-    }
-
-    hx->p->memory_pools.result->release(sync);
+void Result::destroy(Results::Sync *sync) {
+    destruct(sync);
 }
 
 Results::Histogram *Result::init(hxhim_t *hx, Transport::Response::Histogram *hist) {
@@ -250,9 +221,8 @@ Results::Histogram *Result::init(hxhim_t *hx, Transport::Response::Histogram *hi
         return nullptr;
     }
 
-    Results::Histogram *out = hx->p->memory_pools.result->acquire<Results::Histogram>();
+    Results::Histogram *out = construct<Results::Histogram>();
     out->type = hxhim_result_type::HXHIM_RESULT_HISTOGRAM;
-    out->buffers = hx->p->memory_pools.buffers;
     out->datastore = hxhim::datastore::get_id(hx, hist->src, hist->ds_offset);
     out->buckets = hist->hist.buckets;
     hist->hist.buckets = nullptr;
@@ -269,9 +239,8 @@ Results::Histogram *Result::init(hxhim_t *hx, Transport::Response::BHistogram *b
         return nullptr;
     }
 
-    Results::Histogram *out = hx->p->memory_pools.result->acquire<Results::Histogram>();
+    Results::Histogram *out = construct<Results::Histogram>();
     out->type = hxhim_result_type::HXHIM_RESULT_HISTOGRAM;
-    out->buffers = hx->p->memory_pools.buffers;
     out->datastore = hxhim::datastore::get_id(hx, bhist->src, bhist->ds_offsets[i]);
     out->buckets = bhist->hists[i].buckets;
     out->counts = bhist->hists[i].counts;
@@ -280,17 +249,12 @@ Results::Histogram *Result::init(hxhim_t *hx, Transport::Response::BHistogram *b
     return out;
 }
 
-void Result::destroy(hxhim_t *hx, Results::Histogram *hist) {
-    if (!valid(hx)) {
-        return;
-    }
-
-    hx->p->memory_pools.result->release(hist);
+void Result::destroy(Results::Histogram *hist) {
+    destruct(hist);
 }
 
-Results::Results(hxhim_t *hx)
-    : hx(hx),
-      results(),
+Results::Results()
+    : results(),
       curr(results.end())
 {}
 
@@ -300,25 +264,25 @@ Results::~Results() {
     for(Result *res : results) {
         switch (res->type) {
             case HXHIM_RESULT_PUT:
-                hxhim::Result::destroy(hx, static_cast<Put *>(res));
+                hxhim::Result::destroy(static_cast<Put *>(res));
                 break;
             case HXHIM_RESULT_GET:
-                hxhim::Result::destroy(hx, static_cast<Get *>(res));
+                hxhim::Result::destroy(static_cast<Get *>(res));
                 break;
             case HXHIM_RESULT_GET2:
-                hxhim::Result::destroy(hx, static_cast<Get2 *>(res));
+                hxhim::Result::destroy(static_cast<Get2 *>(res));
                 break;
             case HXHIM_RESULT_DEL:
-                hxhim::Result::destroy(hx, static_cast<Delete *>(res));
+                hxhim::Result::destroy(static_cast<Delete *>(res));
                 break;
             case HXHIM_RESULT_SYNC:
-                hxhim::Result::destroy(hx, static_cast<Sync *>(res));
+                hxhim::Result::destroy(static_cast<Sync *>(res));
                 break;
             case HXHIM_RESULT_HISTOGRAM:
-                hxhim::Result::destroy(hx, static_cast<Histogram *>(res));
+                hxhim::Result::destroy(static_cast<Histogram *>(res));
                 break;
             default:
-                hxhim::Result::destroy(hx, res);
+                hxhim::Result::destroy(res);
                 break;
         }
     }
@@ -333,9 +297,9 @@ Results::~Results() {
  * @param hx    the HXHIM session
  * @param res   pointer to a set of results
  */
-void Results::Destroy(hxhim_t *hx, Results *res) {
+void Results::Destroy(Results *res) {
     mlog(HXHIM_CLIENT_DBG, "Destroying hxhim::Results %p", res);
-    hx->p->memory_pools.results->release(res);
+    destruct(res);
     mlog(HXHIM_CLIENT_DBG, "Destroyed hxhim:Results %p", res);
 }
 
@@ -410,7 +374,7 @@ Results::Result *Results::Add(Results::Result *res) {
  * Moves and appends the contents of another hxhim::Results into this one.
  * The other list is emptied out;
  *
- * @return the pointer to the new node
+ * @return the pointer to the construct<node
  */
 Results &Results::Append(Results *other) {
     if (other) {
@@ -432,9 +396,9 @@ std::size_t Results::size() const {
  * @param res A hxhim::Results instance
  * @return the pointer to the C structure containing the hxhim::Results
  */
-hxhim_results_t *hxhim_results_init(hxhim_t *hx, hxhim::Results *res) {
+hxhim_results_t *hxhim_results_init(hxhim::Results *res) {
     mlog(HXHIM_CLIENT_DBG, "Creating hxhim_results_t using %p", res);
-    hxhim_results_t *ret = hx->p->memory_pools.buffers->acquire<hxhim_results_t>();
+    hxhim_results_t *ret = construct<hxhim_results_t>();
     ret->res = res;
     mlog(HXHIM_CLIENT_DBG, "Created hxhim_results_t %p with %p inside", ret, res);
     return ret;
@@ -711,12 +675,12 @@ int hxhim_results_get2_object(hxhim_results_t *res, void **object, size_t **obje
  *
  * @param res A list of results
  */
-void hxhim_results_destroy(hxhim_t *hx, hxhim_results_t *res) {
+void hxhim_results_destroy(hxhim_results_t *res) {
     mlog(HXHIM_CLIENT_DBG, "Destroying hxhim_results_t %p", res);
     if (res) {
         mlog(HXHIM_CLIENT_DBG, "Destroying res->res %p", res->res);
-        hxhim::Results::Destroy(hx, res->res);
-        hx->p->memory_pools.buffers->release(res);
+        hxhim::Results::Destroy(res->res);
+        destruct(res);
     }
     mlog(HXHIM_CLIENT_DBG, "Destroyed hxhim_results_t %p", res);
 }

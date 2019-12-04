@@ -18,11 +18,7 @@ namespace Thallium {
 class EndpointGroup : virtual public ::Transport::EndpointGroup {
     public:
         EndpointGroup(const Engine_t &engine,
-                      const RPC_t &rpc,
-                      FixedBufferPool *packed,
-                      FixedBufferPool *responses,
-                      FixedBufferPool *arrays,
-                      FixedBufferPool *buffers);
+                      const RPC_t &rpc);
         ~EndpointGroup();
 
         /** @description Converts a string into an endpoint and adds it to the map_*/
@@ -57,11 +53,6 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup {
         RPC_t rpc;
 
         std::unordered_map<int, Endpoint_t> endpoints;
-
-        FixedBufferPool *packed;
-        FixedBufferPool *responses;
-        FixedBufferPool *arrays;
-        FixedBufferPool *buffers;
 };
 
 }

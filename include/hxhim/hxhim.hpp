@@ -1,7 +1,6 @@
 #ifndef HXHIM_HPP
 #define HXHIM_HPP
 
-#include "hxhim/MaxSize.hpp"
 #include "hxhim/Results.hpp"
 #include "hxhim/accessors.hpp"
 #include "hxhim/config.h"

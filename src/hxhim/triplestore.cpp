@@ -13,12 +13,10 @@
  * @param key_len        address of the key length
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int sp_to_key(FixedBufferPool *fbp,
-              const void *subject, const std::size_t subject_len,
+int sp_to_key(const void *subject, const std::size_t subject_len,
               const void *predicate, const std::size_t predicate_len,
               void **key, std::size_t *key_len) {
-    if (!fbp       ||
-        !key       || !key_len     ||
+    if (!key       || !key_len     ||
         !subject   || !subject_len) {
         return HXHIM_ERROR;
     }
@@ -33,12 +31,9 @@ int sp_to_key(FixedBufferPool *fbp,
         return HXHIM_SUCCESS;
     }
 
-    if (!(*key = fbp->acquire(*key_len))) {
-        *key_len = 0;
-        return HXHIM_ERROR;
-    }
+    *key = alloc(*key_len);
 
-    char *curr = (char *) *key;
+    char *curr = static_cast<char *>(*key);
 
     if (subject && subject_len) {
         // copy the subject value

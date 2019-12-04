@@ -281,6 +281,24 @@ function leveldb() {
     leveldb_pkgconfig ${install_dir}
 }
 
+function jemalloc() {
+    name=jemalloc
+    download_dir=${WORKING_DIR}/${name}
+    if [[ ! -d "${download_dir}" ]]; then
+        git clone --depth 1 https://github.com/jemalloc/jemalloc.git ${download_dir}
+    fi
+
+    cd ${download_dir}
+    git pull
+    mkdir -p build
+    cd build
+    install_dir=${PREFIX}/${name}
+    PKG_CONFIG_PATH=${PKG_CONFIG_PATH} cmake -DCMAKE_INSTALL_PREFIX=${install_dir} ..
+    make -j ${PROCS}
+    make -j ${PROCS} install
+    cd ../..
+}
+
 # Parse command line arguments
 # https://stackoverflow.com/a/14203146
 POSITIONAL=()
@@ -335,5 +353,6 @@ fi
 
 thallium
 leveldb
+jemalloc
 
 echo -e "Please add this to your PKG_CONFIG_PATH:\n${PKG_CONFIG_PATH}"

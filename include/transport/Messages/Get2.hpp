@@ -13,7 +13,7 @@ namespace Transport {
 namespace Request {
 
 struct Get2 final : Request, Single {
-    Get2(FixedBufferPool *arrays, FixedBufferPool *buffers);
+    Get2();
     ~Get2();
 
     std::size_t size() const;
@@ -36,7 +36,7 @@ struct Get2 final : Request, Single {
 namespace Response {
 
 struct Get2 final : Response, Single {
-    Get2(FixedBufferPool *arrays, FixedBufferPool *buffers);
+    Get2();
     ~Get2();
 
     std::size_t size() const;

@@ -72,7 +72,7 @@ int hxhim_results_get_predicate(hxhim_results_t *res, void **predicate, size_t *
 int hxhim_results_get_object(hxhim_results_t *res, void **object, size_t *object_len);
 int hxhim_results_get2_object(hxhim_results_t *res, void **object, size_t **object_len);
 
-void hxhim_results_destroy(hxhim_t *hx, hxhim_results_t *res);
+void hxhim_results_destroy(hxhim_results_t *res);
 
 #ifdef __cplusplus
 }

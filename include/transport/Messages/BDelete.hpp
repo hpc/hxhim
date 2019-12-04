@@ -13,7 +13,7 @@ namespace Transport {
 namespace Request {
 
 struct BDelete final : Request, Bulk {
-    BDelete(FixedBufferPool *arrays, FixedBufferPool *buffers, const std::size_t max = 0);
+    BDelete(const std::size_t max = 0);
     ~BDelete();
 
     std::size_t size() const;
@@ -32,7 +32,7 @@ struct BDelete final : Request, Bulk {
 namespace Response {
 
 struct BDelete final : Response, Bulk {
-    BDelete(FixedBufferPool *arrays, FixedBufferPool *buffers, const std::size_t max = 0);
+    BDelete(const std::size_t max = 0);
     ~BDelete();
 
     std::size_t size() const;

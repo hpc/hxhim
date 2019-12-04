@@ -1,7 +1,8 @@
 #include "transport/Messages/Request.hpp"
+#include "utils/memory.hpp"
 
-Transport::Request::Request::Request(Message::Type type, FixedBufferPool * arrays, FixedBufferPool * buffers)
-    : Message(Message::REQUEST, type, arrays, buffers)
+Transport::Request::Request::Request(Message::Type type)
+    : Message(Message::REQUEST, type)
 {}
 
 Transport::Request::Request::~Request()

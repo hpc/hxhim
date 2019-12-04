@@ -1,7 +1,8 @@
 #include "transport/Messages/Response.hpp"
+#include "utils/memory.hpp"
 
-Transport::Response::Response::Response(Message::Type type, FixedBufferPool *arrays, FixedBufferPool *buffers)
-    : Message(Message::RESPONSE, type, arrays, buffers)
+Transport::Response::Response::Response(Message::Type type)
+    : Message(Message::RESPONSE, type)
 {}
 
 Transport::Response::Response::~Response()

@@ -1,7 +1,8 @@
 #include "transport/Messages/Get2.hpp"
+#include "utils/memory.hpp"
 
-Transport::Request::Get2::Get2(FixedBufferPool * arrays, FixedBufferPool *buffers)
-    : Request(Message::GET2, arrays, buffers),
+Transport::Request::Get2::Get2()
+    : Request(GET2),
       Single(),
       subject(nullptr),
       subject_len(0),
@@ -27,8 +28,8 @@ std::size_t Transport::Request::Get2::size() const {
         sizeof(object_type) + *object_len + sizeof(object_len);
 }
 
-Transport::Response::Get2::Get2(FixedBufferPool * arrays, FixedBufferPool *buffers)
-    : Response(Message::GET2, arrays, buffers),
+Transport::Response::Get2::Get2()
+    : Response(GET2),
       Single(),
       status(HXHIM_ERROR),
       subject(nullptr),

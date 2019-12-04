@@ -1,23 +1,17 @@
 #include "transport/backend/MPI/Endpoint.hpp"
 #include "transport/backend/MPI/constants.h"
+#include "utils/memory.hpp"
 
 namespace Transport {
 namespace MPI {
 
 Endpoint::Endpoint(const MPI_Comm comm,
                    const int remote_rank,
-                   volatile std::atomic_bool &running,
-                   FixedBufferPool *packed,
-                   FixedBufferPool *responses,
-                   FixedBufferPool *arrays,
-                   FixedBufferPool *buffers)
+                   volatile std::atomic_bool &running)
   : ::Transport::Endpoint(),
-    EndpointBase(comm, packed),
+    EndpointBase(comm),
     remote_rank(remote_rank),
-    running(running),
-    responses(responses),
-    arrays(arrays),
-    buffers(buffers)
+    running(running)
 {}
 
 /**
@@ -41,6 +35,17 @@ Response::Put *Endpoint::communicate(const Request::Put *message) {
 Response::Get *Endpoint::communicate(const Request::Get *message) {
     return do_operation<Request::Get, Response::Get>(message);
 }
+
+// /**
+//  * get2
+//  * Sends a Request::Get2 to the other end of the endpoint
+//  *
+//  * @param request the initiating GET2 message
+//  * @return a pointer to the response of the GET2 operation
+//  */
+// Response::Get2 *Endpoint::communicate(const Request::Get2 *message) {
+//     return do_operation<Request::Get2, Response::Get2>(message);
+// }
 
 /**
  * Delete
@@ -95,7 +100,7 @@ int Endpoint::recv(void **data, std::size_t *len) {
         return TRANSPORT_ERROR;
     }
 
-    *data = packed->acquire(*len);
+    *data = alloc(*len);
 
     // wait for the data
     if ((MPI_Recv(*data, *len, MPI_CHAR, remote_rank, TRANSPORT_MPI_DATA_RESPONSE_TAG, comm, MPI_STATUS_IGNORE) == MPI_SUCCESS) ||

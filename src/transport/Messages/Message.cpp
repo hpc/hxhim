@@ -1,4 +1,5 @@
 #include "transport/Messages/Message.hpp"
+#include "utils/memory.hpp"
 
 const char * Transport::Message::TypeStr[]  = {
     "INVALID",
@@ -16,14 +17,12 @@ const char * Transport::Message::TypeStr[]  = {
     "BHISTOGRAM",
 };
 
-Transport::Message::Message(const Message::Direction dir, const Message::Type type, FixedBufferPool * arrays, FixedBufferPool *buffers)
+Transport::Message::Message(const Message::Direction dir, const Message::Type type)
     : direction(dir),
       type(type),
       src(-1),
       dst(-1),
-      clean(false),
-      arrays(arrays),
-      buffers(buffers)
+      clean(false)
 {}
 
 Transport::Message::~Message() {}

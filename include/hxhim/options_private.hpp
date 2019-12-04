@@ -92,19 +92,6 @@ typedef struct hxhim_options_private {
         HistogramBucketGenerator_t gen;       // string name of the histogram bucket generation method
         void *args;
     } histogram;
-
-    // settings for FixedBufferPool
-    hxhim_fbp_config_t keys;
-    hxhim_fbp_config_t buffers;
-    hxhim_fbp_config_t ops_cache;
-    hxhim_fbp_config_t arrays;
-    hxhim_fbp_config_t requests;
-    hxhim_fbp_config_t client_packed;
-    hxhim_fbp_config_t rs_packed;
-    hxhim_fbp_config_t responses;
-    hxhim_fbp_config_t result;
-    hxhim_fbp_config_t results;
-
 } hxhim_options_private_t;
 
 #ifdef __cplusplus

@@ -45,48 +45,17 @@ int hxhim_options_set_transport_thallium(hxhim_options_t *opts, const char *modu
 int hxhim_options_add_endpoint_to_group(hxhim_options_t *opts, const int id);
 int hxhim_options_clear_endpoint_group(hxhim_options_t *opts);
 
-/**
- * Functions for configuring HXHIM memory buffers
- */
-int hxhim_options_set_keys_name(hxhim_options_t *opts, const char *name);
-int hxhim_options_set_keys_alloc_size(hxhim_options_t *opts, const size_t alloc_size);
-int hxhim_options_set_keys_regions(hxhim_options_t *opts, const size_t regions);
-int hxhim_options_set_buffers_name(hxhim_options_t *opts, const char *name);
-int hxhim_options_set_buffers_alloc_size(hxhim_options_t *opts, const size_t alloc_size);
-int hxhim_options_set_buffers_regions(hxhim_options_t *opts, const size_t regions);
-int hxhim_options_set_ops_cache_name(hxhim_options_t *opts, const char *name);
-int hxhim_options_set_ops_cache_alloc_size(hxhim_options_t *opts, const size_t alloc_size);
-int hxhim_options_set_ops_cache_regions(hxhim_options_t *opts, const size_t regions);
-int hxhim_options_set_arrays_name(hxhim_options_t *opts, const char *name);
-int hxhim_options_set_arrays_alloc_size(hxhim_options_t *opts, const size_t alloc_size);
-int hxhim_options_set_arrays_regions(hxhim_options_t *opts, const size_t regions);
-int hxhim_options_set_requests_name(hxhim_options_t *opts, const char *name);
-int hxhim_options_set_requests_alloc_size(hxhim_options_t *opts, const size_t alloc_size);
-int hxhim_options_set_requests_regions(hxhim_options_t *opts, const size_t regions);
-int hxhim_options_set_client_packed_name(hxhim_options_t *opts, const char *name);
-int hxhim_options_set_client_packed_alloc_size(hxhim_options_t *opts, const size_t alloc_size);
-int hxhim_options_set_client_packed_regions(hxhim_options_t *opts, const size_t regions);
-int hxhim_options_set_rs_packed_name(hxhim_options_t *opts, const char *name);
-int hxhim_options_set_rs_packed_alloc_size(hxhim_options_t *opts, const size_t alloc_size);
-int hxhim_options_set_rs_packed_regions(hxhim_options_t *opts, const size_t regions);
-int hxhim_options_set_responses_name(hxhim_options_t *opts, const char *name);
-int hxhim_options_set_responses_alloc_size(hxhim_options_t *opts, const size_t alloc_size);
-int hxhim_options_set_responses_regions(hxhim_options_t *opts, const size_t regions);
-int hxhim_options_set_result_name(hxhim_options_t *opts, const char *name);
-int hxhim_options_set_result_alloc_size(hxhim_options_t *opts, const size_t alloc_size);
-int hxhim_options_set_result_regions(hxhim_options_t *opts, const size_t regions);
-int hxhim_options_set_results_name(hxhim_options_t *opts, const char *name);
-int hxhim_options_set_results_alloc_size(hxhim_options_t *opts, const size_t alloc_size);
-int hxhim_options_set_results_regions(hxhim_options_t *opts, const size_t regions);
-
+/** Asynchronous PUT Settings */
 int hxhim_options_set_maximum_queued_ops(hxhim_options_t *opts, const size_t count);
 int hxhim_options_set_start_async_put_at(hxhim_options_t *opts, const size_t count);
+
+/* maximum size of any buffer being sent to a single destination */
 int hxhim_options_set_maximum_ops_per_send(hxhim_options_t *opts, const size_t count);
 
 int hxhim_options_set_histogram_first_n(hxhim_options_t *opts, const size_t count);
 int hxhim_options_set_histogram_bucket_gen_method(hxhim_options_t *opts, const char *method);
 
-// Cleans up memory allocated inside opts, but not the opts variable itself
+/* Cleans up memory allocated inside opts, but not the opts variable itself */
 int hxhim_options_destroy(hxhim_options_t *opts);
 
 /**
@@ -95,7 +64,7 @@ int hxhim_options_destroy(hxhim_options_t *opts);
 hxhim_datastore_config_t *hxhim_options_create_leveldb_config(const size_t id, const char *prefix, const int create_if_missing);
 hxhim_datastore_config_t *hxhim_options_create_in_memory_config();
 
-// Cleans up datastore config memory, including the config variable itself because the user will never be able to create their own config
+/* Cleans up datastore config memory, including the config variable itself because the user will never be able to create their own config */
 void hxhim_options_datastore_config_destroy(hxhim_datastore_config_t *config);
 
 #ifdef __cplusplus

@@ -38,7 +38,7 @@ void *H5VL_hxhim_file_open(const char *name, unsigned flags, hid_t fapl_id, hid_
     }
 
     void * ret = H5VL_hxhim_file(name, under_info, flags, fapl_id);
-    fprintf(stderr, "%4d %s      %p %s %p\n", __LINE__, __func__, ret, name);
+    fprintf(stderr, "%4d %s      %p %s\n", __LINE__, __func__, ret, name);
     return ret;
 }
 
@@ -89,7 +89,7 @@ herr_t H5VL_hxhim_file_specific(void *obj, H5VL_file_specific_t specific_type, h
                         break;
                 }
             }
-            hxhim_results_destroy(&file_info->under_vol->hx, res);
+            hxhim_results_destroy(res);
 
             break;
         case H5VL_FILE_REOPEN:                       /* Reopen the file                  */

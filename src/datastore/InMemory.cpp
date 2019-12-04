@@ -3,8 +3,9 @@
 #include <stdexcept>
 
 #include "datastore/InMemory.hpp"
-#include "hxhim/triplestore.hpp"
 #include "hxhim/private.hpp"
+#include "hxhim/triplestore.hpp"
+#include "utils/memory.hpp"
 
 namespace hxhim {
 namespace datastore {
@@ -58,25 +59,21 @@ Response::BPut *InMemory::BPutImpl(void **subjects, std::size_t *subject_lens,
                                    void **predicates, std::size_t *predicate_lens,
                                    hxhim_type_t *, void **objects, std::size_t *object_lens,
                                    std::size_t count) {
-    Response::BPut *ret = hx->p->memory_pools.responses->acquire<Response::BPut>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, count);
-    if (!ret) {
-        return nullptr;
-    }
+    Response::BPut *ret = construct<Response::BPut>(count);
 
     struct timespec start = {};
     struct timespec end = {};
 
-    FixedBufferPool *fbp = hx->p->memory_pools.keys;
     for(std::size_t i = 0; i < count; i++) {
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(fbp, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &key, &key_len);
+        sp_to_key(subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &key, &key_len);
 
         clock_gettime(CLOCK_MONOTONIC, &start);
         db[std::string((char *) key, key_len)] = std::string((char *) objects[i], object_lens[i]);
         clock_gettime(CLOCK_MONOTONIC, &end);
 
-        fbp->release(key, key_len);
+        ::operator delete(key);
 
         stats.puts++;
         stats.put_times += nano(start, end);
@@ -106,12 +103,8 @@ Response::BGet *InMemory::BGetImpl(void **subjects, std::size_t *subject_lens,
                                    void **predicates, std::size_t *predicate_lens,
                                    hxhim_type_t *object_types,
                                    std::size_t count) {
-    Response::BGet *ret = hx->p->memory_pools.responses->acquire<Response::BGet>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, count);
-    if (!ret) {
-        return nullptr;
-    }
+    Response::BGet *ret = construct<Response::BGet>(count);
 
-    FixedBufferPool *fbp = hx->p->memory_pools.keys;
     for(std::size_t i = 0; i < count; i++) {
         struct timespec start = {};
         struct timespec end = {};
@@ -119,28 +112,28 @@ Response::BGet *InMemory::BGetImpl(void **subjects, std::size_t *subject_lens,
 
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(fbp, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &key, &key_len);
+        sp_to_key(subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &key, &key_len);
 
         clock_gettime(CLOCK_MONOTONIC, &start);
         decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
         clock_gettime(CLOCK_MONOTONIC, &end);
 
-        fbp->release(key, key_len);
+        ::operator delete(key);
 
         ret->statuses[i] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
 
         ret->subject_lens[i] = subject_lens[i];
-        ret->subjects[i] = ::operator new(ret->subject_lens[i]);
+        ret->subjects[i] = alloc(ret->subject_lens[i]);
         memcpy(ret->subjects[i], subjects[i], ret->subject_lens[i]);
 
         ret->predicate_lens[i] = predicate_lens[i];
-        ret->predicates[i] = ::operator new(ret->predicate_lens[i]);
+        ret->predicates[i] = alloc(ret->predicate_lens[i]);
         memcpy(ret->predicates[i], predicates[i], ret->predicate_lens[i]);
 
         if (ret->statuses[i] == HXHIM_SUCCESS) {
             ret->object_types[i] = object_types[i];
             ret->object_lens[i] = it->second.size();
-            ret->objects[i] = ::operator new(it->second.size());
+            ret->objects[i] = alloc(it->second.size());
             memcpy(ret->objects[i], it->second.data(), ret->object_lens[i]);
         }
 
@@ -168,15 +161,10 @@ Response::BGet2 *InMemory::BGetImpl2(void ***subjects, std::size_t **subject_len
                                      hxhim_type_t **object_types, void ***objects, std::size_t ***object_lens,
                                      void ***src_objects, std::size_t ***src_object_lens,
                                      std::size_t count) {
-    FixedBufferPool *arrays = hx->p->memory_pools.arrays;
-    FixedBufferPool *buffers = hx->p->memory_pools.buffers;
-    Response::BGet2 *ret = hx->p->memory_pools.responses->acquire<Response::BGet2>(arrays, buffers, 0);
-    if (!ret) {
-        return nullptr;
-    }
+    Response::BGet2 *ret = construct<Response::BGet2>(0);
 
     // statuses was not createed because the provided size was 0
-    ret->statuses = arrays->acquire<int>(count);
+    ret->statuses = new int[count];
 
     // move request data into the response
     // instead of doing memcopy of each SPO
@@ -191,7 +179,6 @@ Response::BGet2 *InMemory::BGetImpl2(void ***subjects, std::size_t **subject_len
     ret->src_object_lens = *src_object_lens;
     ret->count = count;
 
-    FixedBufferPool *keys = hx->p->memory_pools.keys;
     for(std::size_t i = 0; i < count; i++) {
         struct timespec start = {};
         struct timespec end = {};
@@ -199,13 +186,13 @@ Response::BGet2 *InMemory::BGetImpl2(void ***subjects, std::size_t **subject_len
 
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(keys, (*subjects)[i], (*subject_lens)[i], (*predicates)[i], (*predicate_lens)[i], &key, &key_len);
+        sp_to_key((*subjects)[i], (*subject_lens)[i], (*predicates)[i], (*predicate_lens)[i], &key, &key_len);
 
         clock_gettime(CLOCK_MONOTONIC, &start);
         decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
         clock_gettime(CLOCK_MONOTONIC, &end);
 
-        keys->release(key, key_len);
+        ::operator delete(key);
 
         ret->statuses[i] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
 
@@ -237,26 +224,22 @@ Response::BGetOp *InMemory::BGetOpImpl(void *subject, std::size_t subject_len,
                                        void *predicate, std::size_t predicate_len,
                                        hxhim_type_t object_type,
                                        std::size_t recs, enum hxhim_get_op_t op) {
-    Response::BGetOp *ret = hx->p->memory_pools.responses->acquire<Response::BGetOp>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, recs);
-    if (!ret) {
-        return nullptr;
-    }
+    Response::BGetOp *ret = construct<Response::BGetOp>(recs);
 
     struct timespec start = {};
     struct timespec end = {};
 
-    FixedBufferPool *fbp = hx->p->memory_pools.keys;
 
     void *key = nullptr;
     std::size_t key_len = 0;
-    sp_to_key(fbp, subject, subject_len, predicate, predicate_len, &key, &key_len);
+    sp_to_key(subject, subject_len, predicate, predicate_len, &key, &key_len);
 
     // add in the time to get the first key-value without adding to the counter
     clock_gettime(CLOCK_MONOTONIC, &start);
     decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
     clock_gettime(CLOCK_MONOTONIC, &end);
 
-    fbp->release(key, key_len);
+    ::operator delete(key);
 
     decltype(db)::const_reverse_iterator rit = std::make_reverse_iterator(it);
 
@@ -268,7 +251,7 @@ Response::BGetOp *InMemory::BGetOpImpl(void *subject, std::size_t subject_len,
             if (ret->statuses[i] == HXHIM_SUCCESS) {
                 key_to_sp((void *) it->first.data(), it->first.size(), &ret->subjects[i], &ret->subject_lens[i], &ret->predicates[i], &ret->predicate_lens[i]);
                 ret->object_types[i] = object_type;
-                ret->objects[i] = ::operator new(it->second.size());
+                ret->objects[i] = alloc(it->second.size());
                 memcpy(ret->objects[i], it->second.data(), it->second.size());
             }
 
@@ -316,16 +299,12 @@ Response::BGetOp *InMemory::BGetOpImpl(void *subject, std::size_t subject_len,
 Response::BDelete *InMemory::BDeleteImpl(void **subjects, std::size_t *subject_lens,
                                          void **predicates, std::size_t *predicate_lens,
                                          std::size_t count) {
-    Response::BDelete *ret = hx->p->memory_pools.responses->acquire<Response::BDelete>(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, count);
-    if (!ret) {
-        return nullptr;
-    }
+    Response::BDelete *ret = construct<Response::BDelete>(count);
 
-    FixedBufferPool *fbp = hx->p->memory_pools.keys;
     for(std::size_t i = 0; i < count; i++) {
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(fbp, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &key, &key_len);
+        sp_to_key(subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &key, &key_len);
 
         decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
         if (it != db.end()) {
@@ -336,7 +315,7 @@ Response::BDelete *InMemory::BDeleteImpl(void **subjects, std::size_t *subject_l
             ret->statuses[i] = HXHIM_ERROR;
         }
 
-        fbp->release(key, key_len);
+        ::operator delete(key);
     }
 
     ret->count = count;

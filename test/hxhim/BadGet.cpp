@@ -1,8 +1,5 @@
-#include <type_traits>
-
 #include <gtest/gtest.h>
 
-#include "check_memory.hpp"
 #include "generic_options.hpp"
 #include "hxhim/hxhim.hpp"
 
@@ -41,9 +38,7 @@ TEST(hxhim, BadGet) {
         EXPECT_EQ(res->type, HXHIM_RESULT_GET);
     }
 
-    hxhim::Results::Destroy(&hx, get_results);
-
-    CHECK_MEMORY(&hx);
+    hxhim::Results::Destroy(get_results);
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);

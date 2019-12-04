@@ -1,9 +1,7 @@
 #ifndef TRANSPORT_MESSAGE_BASE_HPP
 #define TRANSPORT_MESSAGE_BASE_HPP
 
-#include <cstddef>
-
-#include "utils/FixedBufferPool.hpp"
+#include <cstdint>
 
 namespace Transport {
 
@@ -40,8 +38,7 @@ struct Message {
     // String prepresentation of Types
     static const char *TypeStr[];
 
-    Message(const Direction dir, const Type type,
-            FixedBufferPool *arrays, FixedBufferPool *buffers);
+    Message(const Direction dir, const Type type);
     virtual ~Message();
 
     virtual std::size_t size() const;
@@ -58,9 +55,6 @@ struct Message {
     // It should be set when a packet is being unpacked.
     // This value is not sent across the transport.
     bool clean;
-
-    FixedBufferPool *arrays;
-    FixedBufferPool *buffers;
 };
 
 }

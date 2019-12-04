@@ -15,7 +15,7 @@ namespace Transport {
 namespace Request {
 
 struct BHistogram final : Request, Bulk {
-    BHistogram(FixedBufferPool *arrays, FixedBufferPool *buffers, const std::size_t max = 0);
+    BHistogram(const std::size_t max = 0);
     ~BHistogram();
 
     std::size_t size() const;
@@ -29,7 +29,7 @@ struct BHistogram final : Request, Bulk {
 namespace Response {
 
 struct BHistogram final : Response, Bulk {
-    BHistogram(FixedBufferPool *arrays, FixedBufferPool *buffers, const std::size_t max = 0);
+    BHistogram(const std::size_t max = 0);
     ~BHistogram();
 
     std::size_t size() const;

@@ -16,7 +16,7 @@ namespace Transport {
 namespace Request {
 
 struct Histogram final : Request, Single {
-    Histogram(FixedBufferPool *arrays, FixedBufferPool *buffers);
+    Histogram();
     ~Histogram();
 
     std::size_t size() const;
@@ -27,7 +27,7 @@ struct Histogram final : Request, Single {
 namespace Response {
 
 struct Histogram final : Response, Single {
-    Histogram(FixedBufferPool *arrays, FixedBufferPool *buffers);
+    Histogram();
     ~Histogram();
 
     std::size_t size() const;

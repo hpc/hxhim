@@ -3,11 +3,10 @@
 namespace Transport {
 namespace MPI {
 
-EndpointBase::EndpointBase(const MPI_Comm comm, FixedBufferPool *packed)
+EndpointBase::EndpointBase(const MPI_Comm comm)
     : comm(comm),
       rank(-1),
-      size(-1),
-      packed(packed)
+      size(-1)
 {
     if (comm == MPI_COMM_NULL) {
         throw std::runtime_error("Received MPI_COMM_NULL as communicator");
@@ -19,10 +18,6 @@ EndpointBase::EndpointBase(const MPI_Comm comm, FixedBufferPool *packed)
 
     if (MPI_Comm_size(comm, &size) != MPI_SUCCESS) {
         throw std::runtime_error("Failed to get the size of the MPI communicator");
-    }
-
-    if (!packed) {
-        throw std::runtime_error("Got bad FixedBufferPool");
     }
 }
 

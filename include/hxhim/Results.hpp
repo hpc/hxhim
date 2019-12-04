@@ -10,7 +10,6 @@
 #include "hxhim/constants.h"
 #include "hxhim/struct.h"
 #include "transport/Messages/Messages.hpp"
-#include "utils/FixedBufferPool.hpp"
 
 namespace hxhim {
 
@@ -61,8 +60,6 @@ class Results {
 
             int datastore;
             int status;
-
-            FixedBufferPool *buffers;
         };
 
         /** @description Convenience struct for PUT results */
@@ -112,10 +109,10 @@ class Results {
         };
 
     public:
-        Results(hxhim_t *hx);
+        Results();
         ~Results();
 
-        static void Destroy(hxhim_t *hx, Results *res);
+        static void Destroy(Results *res);
 
         // Accessors (controls the "curr" pointer)
         bool Valid() const;
@@ -133,7 +130,6 @@ class Results {
         std::size_t size() const;
 
     private:
-        hxhim_t *hx;
         std::list <Result *> results;
         std::list <Result *>::iterator curr;
 };
@@ -148,13 +144,13 @@ class Results {
  * for deallocation of the object.
  */
 namespace Result {
-    void destroy(hxhim_t *hx, Results::Result    *res);
-    void destroy(hxhim_t *hx, Results::Put       *put);
-    void destroy(hxhim_t *hx, Results::Get       *get);
-    void destroy(hxhim_t *hx, Results::Get2      *get);
-    void destroy(hxhim_t *hx, Results::Delete    *del);
-    void destroy(hxhim_t *hx, Results::Sync      *sync);
-    void destroy(hxhim_t *hx, Results::Histogram *hist);
+    void destroy(Results::Result    *res);
+    void destroy(Results::Put       *put);
+    void destroy(Results::Get       *get);
+    void destroy(Results::Get2      *get);
+    void destroy(Results::Delete    *del);
+    void destroy(Results::Sync      *sync);
+    void destroy(Results::Histogram *hist);
 }
 
 }

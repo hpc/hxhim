@@ -14,6 +14,7 @@
 #include "transport/backend/Thallium/Unpacker.hpp"
 #include "transport/backend/Thallium/Utilities.hpp"
 #include "transport/transport.hpp"
+#include "utils/memory.hpp"
 
 namespace Transport {
 namespace Thallium {
@@ -26,11 +27,7 @@ class Endpoint : virtual public ::Transport::Endpoint {
     public:
         Endpoint(const Engine_t &engine,
                  const RPC_t &rpc,
-                 const Endpoint_t &ep,
-                 FixedBufferPool *packed,
-                 FixedBufferPool *responses,
-                 FixedBufferPool *arrays,
-                 FixedBufferPool *buffers);
+                 const Endpoint_t &ep);
         ~Endpoint();
 
         /** @description Send a Put to this endpoint */
@@ -65,7 +62,7 @@ class Endpoint : virtual public ::Transport::Endpoint {
 
             void *buf = nullptr;
             std::size_t bufsize = 0;
-            if (Packer::pack(message, &buf, &bufsize, packed) != TRANSPORT_SUCCESS) {
+            if (Packer::pack(message, &buf, &bufsize) != TRANSPORT_SUCCESS) {
                 return nullptr;
             }
 
@@ -74,8 +71,8 @@ class Endpoint : virtual public ::Transport::Endpoint {
             const std::size_t response_size = rpc->on(*ep)(bulk);
 
             Recv_t *ret = nullptr;
-            Unpacker::unpack(&ret, buf, response_size, responses, arrays, buffers); // no need to check return value
-            packed->release(buf, bufsize);
+            Unpacker::unpack(&ret, buf, response_size); // no need to check return value
+            dealloc(buf);
             return ret;
         }
 
@@ -84,11 +81,6 @@ class Endpoint : virtual public ::Transport::Endpoint {
         Engine_t engine;          // declare engine first so it is destroyed last
         RPC_t rpc;                // client to server RPC
         Endpoint_t ep;            // the server the RPC will be called on
-
-        FixedBufferPool *packed;
-        FixedBufferPool *responses;
-        FixedBufferPool *arrays;
-        FixedBufferPool *buffers;
 };
 
 }

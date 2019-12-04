@@ -1,7 +1,8 @@
 #include "transport/Messages/Get.hpp"
+#include "utils/memory.hpp"
 
-Transport::Request::Get::Get(FixedBufferPool * arrays, FixedBufferPool *buffers)
-    : Request(Message::GET, arrays, buffers),
+Transport::Request::Get::Get()
+    : Request(GET),
       Single(),
       subject(nullptr),
       subject_len(0),
@@ -13,8 +14,8 @@ Transport::Request::Get::Get(FixedBufferPool * arrays, FixedBufferPool *buffers)
 Transport::Request::Get::~Get()
 {
     if (clean) {
-        buffers->release(subject, subject_len);
-        buffers->release(predicate, predicate_len);
+        dealloc(subject);
+        dealloc(predicate);
     }
 
     subject = nullptr;
@@ -28,8 +29,8 @@ std::size_t Transport::Request::Get::size() const {
         sizeof(object_type);
 }
 
-Transport::Response::Get::Get(FixedBufferPool * arrays, FixedBufferPool *buffers)
-    : Response(Message::GET, arrays, buffers),
+Transport::Response::Get::Get()
+    : Response(GET),
       Single(),
       status(HXHIM_ERROR),
       subject(nullptr),
@@ -44,9 +45,9 @@ Transport::Response::Get::Get(FixedBufferPool * arrays, FixedBufferPool *buffers
 Transport::Response::Get::~Get()
 {
     if (clean) {
-        buffers->release(subject, subject_len);
-        buffers->release(predicate, predicate_len);
-        buffers->release(object, object_len);
+        dealloc(subject);
+        dealloc(predicate);
+        dealloc(object);
     }
 
     subject = nullptr;

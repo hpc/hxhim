@@ -1,29 +1,20 @@
 #include <cmath>
 
 #include "transport/backend/MPI/EndpointGroup.hpp"
-#include "utils/FixedBufferPool.hpp"
+#include "utils/memory.hpp"
 
 namespace Transport {
 namespace MPI {
 
 EndpointGroup::EndpointGroup(const MPI_Comm comm,
-                             volatile std::atomic_bool &running,
-                             FixedBufferPool *packed,
-                             FixedBufferPool *responses,
-                             FixedBufferPool *arrays,
-                             FixedBufferPool *buffers)
+                             volatile std::atomic_bool &running)
   : ::Transport::EndpointGroup(),
-    EndpointBase(comm, packed),
+    EndpointBase(comm),
     ranks(),
     running(running),
-    mpi_requests(new FixedBufferPool(sizeof(MPI_Request), std::max((size - 1) * 2, 1), "MPI_Request")),
-    ptrs(new FixedBufferPool(sizeof(void *) * size, 3, "MPI Pointers")),
     lens(new std::size_t[size]),
     dsts(new int[size]),
-    srvs(new int[size]),
-    responses(responses),
-    arrays(arrays),
-    buffers(buffers)
+    srvs(new int[size])
 {}
 
 EndpointGroup::~EndpointGroup() {
@@ -75,6 +66,17 @@ Response::BPut *EndpointGroup::communicate(const std::unordered_map<int, Request
 Response::BGet *EndpointGroup::communicate(const std::unordered_map<int, Request::BGet *> &bgm_list) {
     return return_msgs<Response::BGet>(bgm_list);
 }
+
+// /**
+//  * BGet2
+//  *
+//  * @param num_rangesrvs the total number of range servers
+//  * @param bgm_list the list of BGET2 messages to send
+//  * @return a linked list of response messages, or nullptr
+//  */
+// Response::BGet2 *EndpointGroup::communicate(const std::unordered_map<int, Request::BGet2 *> &bgm_list) {
+//     return return_msgs<Response::BGet2>(bgm_list);
+// }
 
 /**
  * BGetOp

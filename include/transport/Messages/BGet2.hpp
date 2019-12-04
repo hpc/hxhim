@@ -14,7 +14,7 @@ namespace Transport {
 namespace Request {
 
 struct BGet2 final : Request, Bulk {
-    BGet2(FixedBufferPool *arrays, FixedBufferPool *buffers, const std::size_t max = 0);
+    BGet2(const std::size_t max = 0);
     ~BGet2();
 
     std::size_t size() const;
@@ -39,7 +39,7 @@ struct BGet2 final : Request, Bulk {
 namespace Response {
 
 struct BGet2 final : Response, Bulk {
-    BGet2(FixedBufferPool *arrays, FixedBufferPool *buffers, const std::size_t max = 0);
+    BGet2(const std::size_t max = 0);
     ~BGet2();
 
     void server_side_cleanup(void * args = nullptr);

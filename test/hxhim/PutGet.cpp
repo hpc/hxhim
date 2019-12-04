@@ -1,8 +1,5 @@
-#include <cstdlib>
-
 #include <gtest/gtest.h>
 
-#include "check_memory.hpp"
 #include "generic_options.hpp"
 #include "hxhim/hxhim.hpp"
 
@@ -42,7 +39,7 @@ TEST(hxhim, PutGet) {
         EXPECT_EQ(res->type, HXHIM_RESULT_PUT);
     }
 
-    hxhim::Results::Destroy(&hx, put_results);
+    hxhim::Results::Destroy(put_results);
 
     // Add subject-predicate to get back
     EXPECT_EQ(hxhim::GetDouble(&hx,
@@ -81,9 +78,7 @@ TEST(hxhim, PutGet) {
         }
     }
 
-    hxhim::Results::Destroy(&hx, get_results);
-
-    CHECK_MEMORY(&hx);
+    hxhim::Results::Destroy(get_results);
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);

@@ -16,7 +16,6 @@
 #include "hxhim/options.h"
 #include "hxhim/struct.h"
 #include "transport/transport.hpp"
-#include "utils/FixedBufferPool.hpp"
 #include "utils/enable_if_t.hpp"
 #include "utils/macros.hpp"
 
@@ -91,25 +90,6 @@ typedef struct hxhim_private {
         std::size_t server_ratio;                              // server portion of client:server ratio
         void (*destroy)();                                     // Range server static variable cleanup
     } range_server;
-
-    // Memory pools used to allocate space in HXHIM
-    struct {
-        FixedBufferPool *keys;                                 // at least (subject_len + sizeof(std::size_t) + predicate_len + sizeof(std::size_t))
-        FixedBufferPool *buffers;                              // maximum size of smaller buffers (subjects, predicates, objects, etc)
-        FixedBufferPool *ops_cache;                            // internal staging area of individual operations waiting to be packed and sent
-        FixedBufferPool *arrays;                               // storage for bulk message internal arrays; size is max_bulk_ops.max * sizeof(void *)
-        FixedBufferPool *requests;                             // should have enough space to allow for maximum number of requests queued before flushing
-        FixedBufferPool *client_packed;                        // storage for packed requests/responses being sent by the client
-        // the real rs_packed is not instantiated here
-        struct {
-            std::size_t alloc_size;
-            std::size_t regions;
-            std::string name;
-        } rs_packed;                                           // storage for packed requests/responses being sent by the range server
-        FixedBufferPool *responses;                            // should have enough space to allow for responses from all queued requests
-        FixedBufferPool *result;                               // should have enough space to allow for results from all returned responses
-        FixedBufferPool *results;                              // should have enough space to allow for maximum number of valid results at once
-    } memory_pools;
 
     /** @decription Statistics for an instance of Transport */
     struct Stats {

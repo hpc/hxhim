@@ -6,44 +6,20 @@ std::mutex Transport::Thallium::Endpoint::mutex = {};
 
 Transport::Thallium::Endpoint::Endpoint(const Engine_t &engine,
                                         const RPC_t &rpc,
-                                        const Endpoint_t &ep,
-                                        FixedBufferPool *packed,
-                                        FixedBufferPool *responses,
-                                        FixedBufferPool *arrays,
-                                        FixedBufferPool *buffers)
+                                        const Endpoint_t &ep)
   : ::Transport::Endpoint(),
     engine(engine),
     rpc(rpc),
-    ep(ep),
-    packed(packed),
-    responses(responses),
-    arrays(arrays),
-    buffers(buffers)
+    ep(ep)
 {
     std::lock_guard<std::mutex> lock(mutex);
-
-    if (!ep) {
-        throw std::runtime_error("thallium::endpoint in ThalliumEndpoint must not be nullptr");
-    }
 
     if (!rpc) {
         throw std::runtime_error("thallium::remote_procedure in ThalliumEndpoint must not be nullptr");
     }
 
-    if (!packed) {
-        throw std::runtime_error("FixedBufferPool in ThalliumEndpoint must not be nullptr");
-    }
-
-    if (!responses) {
-        throw std::runtime_error("FixedBufferPool in ThalliumEndpoint must not be nullptr");
-    }
-
-    if (!arrays) {
-        throw std::runtime_error("FixedBufferPool in ThalliumEndpoint must not be nullptr");
-    }
-
-    if (!buffers) {
-        throw std::runtime_error("FixedBufferPool in ThalliumEndpoint must not be nullptr");
+    if (!ep) {
+        throw std::runtime_error("thallium::endpoint in ThalliumEndpoint must not be nullptr");
     }
 }
 

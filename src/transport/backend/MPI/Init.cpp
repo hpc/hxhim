@@ -39,22 +39,14 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
     }
 
     EndpointGroup *eg = new EndpointGroup(hx->p->bootstrap.comm,
-                                          hx->p->running,
-                                          hx->p->memory_pools.client_packed,
-                                          hx->p->memory_pools.responses,
-                                          hx->p->memory_pools.arrays,
-                                          hx->p->memory_pools.buffers);
+                                          hx->p->running);
 
     // create mapping between unique IDs and ranks
     for(int i = 0; i < hx->p->bootstrap.size; i++) {
         if (hxhim::range_server::is_range_server(i, opts->p->client_ratio, opts->p->server_ratio)) {
             // MPI ranks map 1:1 with the boostrap MPI rank
             hx->p->transport->AddEndpoint(i, new Endpoint(hx->p->bootstrap.comm, i,
-                                                          hx->p->running,
-                                                          hx->p->memory_pools.client_packed,
-                                                          hx->p->memory_pools.responses,
-                                                          hx->p->memory_pools.arrays,
-                                                          hx->p->memory_pools.buffers));
+                                                          hx->p->running));
 
             // if the rank was specified as part of the endpoint group, add the rank to the endpoint group
             if (opts->p->endpointgroup.find(i) != opts->p->endpointgroup.end()) {

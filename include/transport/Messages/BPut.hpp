@@ -14,7 +14,7 @@ namespace Transport {
 namespace Request {
 
 struct BPut final : Request, Bulk {
-    BPut(FixedBufferPool *arrays, FixedBufferPool *buffers, const std::size_t max = 0);
+    BPut(const std::size_t max = 0);
     ~BPut();
 
     std::size_t size() const;
@@ -36,7 +36,7 @@ struct BPut final : Request, Bulk {
 namespace Response {
 
 struct BPut final : Response, Bulk {
-    BPut(FixedBufferPool *arrays, FixedBufferPool *buffers, const std::size_t max = 0);
+    BPut(const std::size_t max = 0);
     ~BPut();
 
     std::size_t size() const;

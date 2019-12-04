@@ -5,8 +5,8 @@
 #include <type_traits>
 
 #include "hxhim/constants.h"
-#include "utils/FixedBufferPool.hpp"
 #include "utils/enable_if_t.hpp"
+#include "utils/memory.hpp"
 
 /** @description encoding of unsigned integral types into big endian */
 template <typename Z, typename = enable_if_t<std::is_unsigned<Z>::value> >
@@ -40,8 +40,7 @@ int decode_unsigned(void *buf, Z &val, std::size_t len = sizeof(Z)) {
 }
 
 /** @description Combines a subject and predicate into a key */
-int sp_to_key(FixedBufferPool *fbp,
-              const void *subject, const std::size_t subject_len,
+int sp_to_key(const void *subject, const std::size_t subject_len,
               const void *predicate, const std::size_t predicate_len,
               void **key, std::size_t *key_len);
 

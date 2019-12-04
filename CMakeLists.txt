@@ -16,8 +16,20 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 #
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra -O0 -g3 -DDEBUG") # -D_GLIBCXX_DEBUG
 
+#
 # Include CMake modules
+#
 find_package(PkgConfig REQUIRED)
+
+#
+# Need pthread
+#
+find_package(Threads REQUIRED)
+
+#
+# List of common linker flags
+#
+set(COMMON_LDFLAGS Threads::Threads m)
 
 #
 # External projects
@@ -37,6 +49,13 @@ message(STATUS "MPI_CXX_COMPILE_FLAGS=" ${MPI_CXX_COMPILE_FLAGS})
 set(PC_LIBS "${PC_LIBS} ${MPI_C_LINK_FLAGS} ${MPI_CXX_LINK_FLAGS}")
 include_directories(SYSTEM ${MPI_INCLUDE_PATH})
 
+set(COMMON_LDFLAGS ${COMMON_LDFLAGS} ${MPI_C_LIBRARIES})
+
+if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+  pkg_search_module(JEMALLOC REQUIRED jemalloc)
+  set(COMMON_LDFLAGS ${COMMON_LDFLAGS} ${JEMALLOC_LDFLAGS})
+endif()
+
 # do not search for thallium with find_package
 pkg_search_module(THALLIUM thallium)
 if (THALLIUM_FOUND)
@@ -46,27 +65,24 @@ if (THALLIUM_FOUND)
     pkg_search_module(MERCURY REQUIRED mercury)
     message(STATUS "MERCURY_INCLUDEDIR=" ${MERCURY_INCLUDEDIR})
     message(STATUS "MERCURY_LIBDIR=" ${MERCURY_LIBDIR})
-    include_directories(AFTER SYSTEM ${MERCURY_INCLUDEDIR})
-    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath -Wl,${MERCURY_LIBDIR}")
+    include_directories(AFTER SYSTEM ${MERCURY_INCLUDE_DIRS})
 
     pkg_search_module(ARGOBOTS REQUIRED argobots)
     message(STATUS "ARGOBOTS_INCLUDEDIR=" ${ARGOBOTS_INCLUDEDIR})
     message(STATUS "ARGOBOTS_LIBDIR=" ${ARGOBOTS_LIBDIR})
-    include_directories(AFTER SYSTEM ${ARGOBOTS_INCLUDEDIR})
-    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath -Wl,${ARGOBOTS_LIBDIR}")
+    include_directories(AFTER SYSTEM ${ARGOBOTS_INCLUDE_DIRS})
 
     pkg_search_module(MARGO REQUIRED margo)
     message(STATUS "MARGO_INCLUDEDIR=" ${MARGO_INCLUDEDIR})
     message(STATUS "MARGO_LIBDIR=" ${MARGO_LIBDIR})
-    include_directories(AFTER SYSTEM ${MARGO_INCLUDEDIR})
-    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath -Wl,${MARGO_LIBDIR}")
+    include_directories(AFTER SYSTEM ${MARGO_INCLUDE_DIRS})
 
     message(STATUS "THALLIUM_INCLUDEDIR=" ${THALLIUM_INCLUDEDIR})
     message(STATUS "THALLIUM_LIBDIR=" ${THALLIUM_LIBDIR})
-    include_directories(AFTER SYSTEM ${THALLIUM_INCLUDEDIR})
-    string (REPLACE ";" " " THALLIUM_LDFLAGS  "${THALLIUM_LDFLAGS}")
-    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath -Wl,${THALLIUM_LIBDIR}")
+    include_directories(AFTER SYSTEM ${THALLIUM_INCLUDE_DIRS})
     add_definitions(-DHXHIM_HAVE_THALLIUM=1)
+
+    set(COMMON_LDFLAGS ${COMMON_LDFLAGS} ${THALLIUM_LDFLAGS})
 
     set(PC_CFLAGS "${PC_CFLAGS} -DHXHIM_HAVE_THALLIUM=1")
     set(PC_LIBS   "${PC_LIBS} ${THALLIUM_LDFLAGS}")
@@ -78,17 +94,15 @@ endif()
 pkg_search_module(LEVELDB leveldb)
 if(${LEVELDB_FOUND})
     message(STATUS "LevelDB Data Storage Module Enabled")
-    message(STATUS "LEVELDB_LIBRARY_DIRS=" ${LEVELDB_LIBRARY_DIRS})
-    message(STATUS "LEVELDB_LIBRARIES=" ${LEVELDB_LIBRARIES})
-    link_directories(${LEVELDB_LIBRARY_DIRS})
-    set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${LEVELDB_LIBRARY_DIRS})
-    #link_libraries(${LEVELDB_LIBRARIES})
+    message(STATUS "LEVELDB_INCLUDEDIR=" ${LEVELDB_INCLUDEDIR})
+    message(STATUS "LEVELDB_LIBDIR=" ${LEVELDB_LIBDIR})
     include_directories(AFTER SYSTEM ${LEVELDB_INCLUDE_DIRS})
-    find_library(LEVELDB_LIBRARY NAMES leveldb HINTS ${LEVELDB_LIBRARY_DIRS})
     add_definitions(-DHXHIM_HAVE_LEVELDB=1)
 
+    set(COMMON_LDFLAGS ${COMMON_LDFLAGS} ${LEVELDB_LDFLAGS})
+
     set(PC_CFLAGS "${PC_CFLAGS} -DHXHIM_HAVE_LEVELDB=1")
-    set(PC_LIBS   "${PC_LIBS} -L${LEVELDB_LIBRARY_DIRS} -lleveldb")
+    set(PC_LIBS   "${PC_LIBS} ${LEVELDB_LDFLAGS}")
 endif()
 
 #

@@ -35,6 +35,6 @@ typedef struct hxhim_results {
 }
 #endif
 
-hxhim_results_t *hxhim_results_init(hxhim_t *hx, hxhim::Results *res);
+hxhim_results_t *hxhim_results_init(hxhim::Results *res);
 
 #endif

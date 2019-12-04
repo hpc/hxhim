@@ -54,7 +54,7 @@ int main(int argc, char *argv[]) {
     hxhim_results_t *flush_get_res = hxhimFlushGets(&hx);
     printf("GET before flushing PUTs\n");
     print_results(&hx, 1, flush_get_res);
-    hxhim_results_destroy(&hx, flush_get_res);
+    hxhim_results_destroy(flush_get_res);
 
     // GET again, but flush everything this time
     enum hxhim_type_t *bget_types = malloc(count * sizeof(enum hxhim_type_t));
@@ -66,7 +66,7 @@ int main(int argc, char *argv[]) {
     hxhim_results_t *flush_all_res = hxhimFlush(&hx);
     printf("GET after flushing PUTs\n");
     print_results(&hx, 1, flush_all_res);
-    hxhim_results_destroy(&hx, flush_all_res);
+    hxhim_results_destroy(flush_all_res);
 
     spo_clean(count, subjects, subject_lens, predicates, predicate_lens, objects, object_lens);
     free(bget_types);

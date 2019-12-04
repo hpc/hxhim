@@ -8,7 +8,6 @@
 
 #include "transport/backend/MPI/EndpointBase.hpp"
 #include "transport/transport.hpp"
-#include "utils/FixedBufferPool.hpp"
 #include "utils/enable_if_t.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
@@ -23,11 +22,7 @@ namespace MPI {
 class EndpointGroup : virtual public ::Transport::EndpointGroup, virtual public EndpointBase {
     public:
         EndpointGroup(const MPI_Comm comm,
-                      volatile std::atomic_bool &running,
-                      FixedBufferPool *packed,
-                      FixedBufferPool *responses,
-                      FixedBufferPool *arrays,
-                      FixedBufferPool *buffers);
+                      volatile std::atomic_bool &running);
 
         ~EndpointGroup();
 
@@ -42,6 +37,9 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup, virtual public 
 
         /** @description Bulk Get from multiple endpoints  */
         Response::BGet *communicate(const std::unordered_map<int, Request::BGet *> &bgm_list);
+
+        // /** @description Bulk Get2 from multiple endpoints  */
+        // Response::BGet2 *communicate(const std::unordered_map<int, Request::BGet2 *> &bgm_list);
 
         /** @description Bulk Get from multiple endpoints  */
         Response::BGetOp *communicate(const std::unordered_map<int, Request::BGetOp *> &bgm_list);
@@ -73,20 +71,11 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup, virtual public 
 
         volatile std::atomic_bool &running;
 
-        /** MPI Specific Allocators */
-        FixedBufferPool *mpi_requests;
-        FixedBufferPool *ptrs;
-
         /** Memory that is only allocated once during the lifetime of EndpointGroup
             and is only used by one function at a time */
         std::size_t *lens; // buffer lengths
         int *dsts;         // request destination servers
         int *srvs;         // response source servers
-
-        /** Allocators from HXHIM */
-        FixedBufferPool *responses;
-        FixedBufferPool *arrays;
-        FixedBufferPool *buffers;
 };
 
 }

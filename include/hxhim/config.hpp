@@ -46,38 +46,6 @@ const std::string THALLIUM_MODULE             = "THALLIUM_MODULE";           // 
 
 const std::string TRANSPORT_ENDPOINT_GROUP    = "ENDPOINT_GROUP";            // list of ranks or "ALL"
 
-/** Memory Pool Options */
-const std::string KEYS_NAME                   = "KEYS_NAME";                 // string
-const std::string KEYS_ALLOC_SIZE             = "KEYS_ALLOC_SIZE";           // positive integer
-const std::string KEYS_REGIONS                = "KEYS_REGIONS";              // positive integer
-const std::string BUFFERS_NAME                = "BUFFERS_NAME";              // string
-const std::string BUFFERS_ALLOC_SIZE          = "BUFFERS_ALLOC_SIZE";        // positive integer
-const std::string BUFFERS_REGIONS             = "BUFFERS_REGIONS";           // positive integer
-const std::string OPS_CACHE_NAME              = "OPS_CACHE_NAME";            // string
-const std::string OPS_CACHE_ALLOC_SIZE        = "OPS_CACHE_ALLOC_SIZE";      // positive integer
-const std::string OPS_CACHE_REGIONS           = "OPS_CACHE_REGIONS";         // positive integer
-const std::string ARRAYS_NAME                 = "ARRAYS_NAME";               // string
-const std::string ARRAYS_ALLOC_SIZE           = "ARRAYS_ALLOC_SIZE";         // positive integer
-const std::string ARRAYS_REGIONS              = "ARRAYS_REGIONS";            // positive integer
-const std::string REQUESTS_NAME               = "REQUESTS_NAME";             // string
-const std::string REQUESTS_ALLOC_SIZE         = "REQUESTS_ALLOC_SIZE";       // positive integer
-const std::string REQUESTS_REGIONS            = "REQUESTS_REGIONS";          // positive integer
-const std::string CLIENT_PACKED_NAME          = "CLIENT_PACKED_NAME";        // string
-const std::string CLIENT_PACKED_ALLOC_SIZE    = "CLIENT_PACKED_ALLOC_SIZE";  // positive integer
-const std::string CLIENT_PACKED_REGIONS       = "CLIENT_PACKED_REGIONS";     // positive integer
-const std::string RS_PACKED_NAME              = "RS_PACKED_NAME";            // string
-const std::string RS_PACKED_ALLOC_SIZE        = "RS_PACKED_ALLOC_SIZE";      // positive integer
-const std::string RS_PACKED_REGIONS           = "RS_PACKED_REGIONS";         // positive integer
-const std::string RESPONSES_NAME              = "RESPONSES_NAME";            // string
-const std::string RESPONSES_ALLOC_SIZE        = "RESPONSES_ALLOC_SIZE";      // positive integer
-const std::string RESPONSES_REGIONS           = "RESPONSES_REGIONS";         // positive integer
-const std::string RESULT_NAME                 = "RESULT_NAME";               // string
-const std::string RESULT_ALLOC_SIZE           = "RESULT_ALLOC_SIZE";         // positive integer
-const std::string RESULT_REGIONS              = "RESULT_REGIONS";            // positive integer
-const std::string RESULTS_NAME                = "RESULTS_NAME";              // string
-const std::string RESULTS_ALLOC_SIZE          = "RESULTS_ALLOC_SIZE";        // positive integer
-const std::string RESULTS_REGIONS             = "RESULTS_REGIONS";           // positive integer
-
 /** Asynchronous PUT Settings */
 const std::string START_ASYNC_PUT_AT          = "START_ASYNC_PUT_AT";        // nonnegative integer
 const std::string MAXIMUM_OPS_PER_SEND        = "MAXIMUM_OPS_PER_SEND";      // positive integer
@@ -177,21 +145,6 @@ const Config DEFAULT_CONFIG = {
     std::make_pair(TRANSPORT,                     "NULL"),
     std::make_pair(HASH,                          "MY_RANK"),
     std::make_pair(TRANSPORT_ENDPOINT_GROUP,      "ALL"),
-    std::make_pair(KEYS_NAME,                     "Keys"),
-    std::make_pair(KEYS_ALLOC_SIZE,               "128"),
-    std::make_pair(KEYS_REGIONS,                  "1"),
-    std::make_pair(BUFFERS_NAME,                  "Buffers"),
-    std::make_pair(OPS_CACHE_NAME,                "Ops_Cache"),
-    std::make_pair(OPS_CACHE_REGIONS,             "2048"),
-    std::make_pair(ARRAYS_NAME,                   "Arrays"),
-    std::make_pair(REQUESTS_NAME,                 "Requests"),
-    std::make_pair(CLIENT_PACKED_NAME,            "Client_Packed"),
-    std::make_pair(CLIENT_PACKED_REGIONS,         "2"),
-    std::make_pair(RS_PACKED_NAME,                "RS_Packed"),
-    std::make_pair(RS_PACKED_REGIONS,             "16"),
-    std::make_pair(RESPONSES_NAME,                "Responses"),
-    std::make_pair(RESULT_NAME,                   "Result"),
-    std::make_pair(RESULTS_NAME,                  "Results"),
     std::make_pair(START_ASYNC_PUT_AT,            "256"),
     std::make_pair(MAXIMUM_OPS_PER_SEND,          "128"),
     std::make_pair(HISTOGRAM_FIRST_N,             "10"),

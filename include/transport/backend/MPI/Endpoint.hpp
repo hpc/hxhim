@@ -10,8 +10,8 @@
 #include "transport/backend/MPI/Packer.hpp"
 #include "transport/backend/MPI/Unpacker.hpp"
 #include "transport/transport.hpp"
-#include "utils/FixedBufferPool.hpp"
 #include "utils/enable_if_t.hpp"
+#include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
@@ -27,11 +27,7 @@ class Endpoint : virtual public ::Transport::Endpoint, virtual public EndpointBa
         /** Create a TransportEndpoint for a specified process rank */
         Endpoint(const MPI_Comm comm,
                  const int remote_rank,
-                 volatile std::atomic_bool &running,
-                 FixedBufferPool *packed,
-                 FixedBufferPool *responses,
-                 FixedBufferPool *arrays,
-                 FixedBufferPool *buffers);
+                 volatile std::atomic_bool &running);
 
         /** Destructor */
         ~Endpoint() {}
@@ -41,6 +37,9 @@ class Endpoint : virtual public ::Transport::Endpoint, virtual public EndpointBa
 
         /** @description Send a Get to this endpoint */
         Response::Get *communicate(const Request::Get *message);
+
+        // /** @description Send a Get2 to this endpoint */
+        // Response::Get2 *communicate(const Request::Get2 *message);
 
         /** @description Send a Delete to this endpoint */
         Response::Delete *communicate(const Request::Delete *message);
@@ -77,25 +76,20 @@ class Endpoint : virtual public ::Transport::Endpoint, virtual public EndpointBa
             // the result of this series of function calls does not matter
             (void)
                 (
-                    (Packer::pack(comm, message, &sendbuf, &sendsize, packed) == TRANSPORT_SUCCESS) &&  // pack the message
-                    (send(sendbuf, sendsize)                                  == TRANSPORT_SUCCESS) &&  // send the message
-                    (recv(&recvbuf, &recvsize)                                == TRANSPORT_SUCCESS) &&  // receive the response
-                    (Unpacker::unpack(comm, &response, recvbuf, recvsize,
-                                      responses, arrays, buffers)             == TRANSPORT_SUCCESS)     // unpack the response
+                    (Packer::pack(comm, message, &sendbuf, &sendsize)     == TRANSPORT_SUCCESS) &&  // pack the message
+                    (send(sendbuf, sendsize)                              == TRANSPORT_SUCCESS) &&  // send the message
+                    (recv(&recvbuf, &recvsize)                            == TRANSPORT_SUCCESS) &&  // receive the response
+                    (Unpacker::unpack(comm, &response, recvbuf, recvsize) == TRANSPORT_SUCCESS)     // unpack the response
                 );
 
-            packed->release(sendbuf, sendsize);
-            packed->release(recvbuf, recvsize);
+            dealloc(sendbuf);
+            dealloc(recvbuf);
 
             return dynamic_cast<Recv_t *>(response);
         }
 
         const int remote_rank;
         volatile std::atomic_bool &running;
-
-        FixedBufferPool *responses;
-        FixedBufferPool *arrays;
-        FixedBufferPool *buffers;
 };
 
 }

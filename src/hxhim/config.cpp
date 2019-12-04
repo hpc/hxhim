@@ -1,7 +1,6 @@
 #include <sstream>
 #include <vector>
 
-#include "hxhim/MaxSize.hpp"
 #include "hxhim/Results.hpp"
 #include "hxhim/config.h"
 #include "hxhim/config.hpp"
@@ -216,40 +215,6 @@ static bool parse_endpointgroup(hxhim_options_t *opts, const Config &config) {
 }
 
 /**
- * default_runtime_config
- * Sets up default connfiguration values
- * that have to be calculated at runtime.
- *
- * All values before BUFFERS_NAME (see fill_options) are
- * expected to have been filled before calling this function.
- *
- * @param opts the options to fill in
- * @return HXHIM_SUCCESS or HXHIM_ERROR on error
- */
-static int default_runtime_config(hxhim_options_t *opts) {
-    if (!opts || !opts->p) {
-        return HXHIM_ERROR;
-    }
-
-    hxhim_options_set_keys_regions(opts, opts->p->datastore_count * 2);
-    hxhim_options_set_buffers_alloc_size(opts, opts->p->keys.alloc_size * 2);
-    hxhim_options_set_buffers_regions(opts, opts->p->max_ops_per_send * 4);
-    hxhim_options_set_ops_cache_alloc_size(opts, hxhim::MaxSize::OpsCache());
-    hxhim_options_set_requests_alloc_size(opts, hxhim::MaxSize::Requests());
-    hxhim_options_set_arrays_alloc_size(opts, opts->p->max_ops_per_send * opts->p->requests.regions / 4);
-    hxhim_options_set_client_packed_alloc_size(opts, opts->p->max_ops_per_send * 128);
-    hxhim_options_set_rs_packed_alloc_size(opts, opts->p->max_ops_per_send * 128);
-    hxhim_options_set_responses_alloc_size(opts, hxhim::MaxSize::Responses());
-    hxhim_options_set_responses_regions(opts, opts->p->requests.regions);
-    hxhim_options_set_result_alloc_size(opts, hxhim::MaxSize::Result());
-    hxhim_options_set_result_regions(opts, opts->p->ops_cache.regions);
-    hxhim_options_set_results_alloc_size(opts, sizeof(hxhim::Results));
-    hxhim_options_set_results_regions(opts, 4);
-
-    return HXHIM_SUCCESS;
-}
-
-/**
  * fill_options
  * Fills up opts as best it can using config.
  * The config can be incomplete, so long as each
@@ -269,48 +234,17 @@ static int fill_options(hxhim_options_t *opts, const Config &config) {
     using namespace hxhim::config;
 
     return
-        parse_map_value(opts, config, DEBUG_LEVEL, DEBUG_LEVELS, hxhim_options_set_debug_level) &&
-        parse_value(opts, config, CLIENT_RATIO,                  hxhim_options_set_client_ratio) &&
-        parse_value(opts, config, SERVER_RATIO,                  hxhim_options_set_server_ratio) &&
+        parse_map_value(opts, config, DEBUG_LEVEL, DEBUG_LEVELS, hxhim_options_set_debug_level)                 &&
+        parse_value(opts, config, CLIENT_RATIO,                  hxhim_options_set_client_ratio)                &&
+        parse_value(opts, config, SERVER_RATIO,                  hxhim_options_set_server_ratio)                &&
         parse_value(opts, config, DATASTORES_PER_RANGE_SERVER,   hxhim_options_set_datastores_per_range_server) &&
-        parse_datastore(opts, config) &&
-        parse_transport(opts, config) &&
-        parse_endpointgroup(opts, config) &&
-        parse_value(opts, config, START_ASYNC_PUT_AT,            hxhim_options_set_start_async_put_at) &&
-        parse_value(opts, config, MAXIMUM_OPS_PER_SEND,          hxhim_options_set_maximum_ops_per_send) &&
-        parse_value(opts, config, HISTOGRAM_FIRST_N,             hxhim_options_set_histogram_first_n) &&
+        parse_datastore(opts, config)                                                                           &&
+        parse_transport(opts, config)                                                                           &&
+        parse_endpointgroup(opts, config)                                                                       &&
+        parse_value(opts, config, START_ASYNC_PUT_AT,            hxhim_options_set_start_async_put_at)          &&
+        parse_value(opts, config, MAXIMUM_OPS_PER_SEND,          hxhim_options_set_maximum_ops_per_send)        &&
+        parse_value(opts, config, HISTOGRAM_FIRST_N,             hxhim_options_set_histogram_first_n)           &&
         parse_value(opts, config, HISTOGRAM_BUCKET_GEN_METHOD,   hxhim_options_set_histogram_bucket_gen_method) &&
-        parse_value(opts, config, KEYS_NAME,                     hxhim_options_set_keys_name) &&
-        parse_value(opts, config, KEYS_ALLOC_SIZE,               hxhim_options_set_keys_alloc_size) &&
-        parse_value(opts, config, KEYS_REGIONS,                  hxhim_options_set_keys_regions) &&
-        parse_value(opts, config, OPS_CACHE_NAME,                hxhim_options_set_ops_cache_name) &&
-        parse_value(opts, config, OPS_CACHE_ALLOC_SIZE,          hxhim_options_set_ops_cache_alloc_size) &&
-        parse_value(opts, config, OPS_CACHE_REGIONS,             hxhim_options_set_ops_cache_regions) &&
-        parse_value(opts, config, CLIENT_PACKED_NAME,            hxhim_options_set_client_packed_name) &&
-        parse_value(opts, config, CLIENT_PACKED_ALLOC_SIZE,      hxhim_options_set_client_packed_alloc_size) &&
-        parse_value(opts, config, CLIENT_PACKED_REGIONS,         hxhim_options_set_client_packed_regions) &&
-        parse_value(opts, config, RS_PACKED_NAME,                hxhim_options_set_rs_packed_name) &&
-        parse_value(opts, config, RS_PACKED_ALLOC_SIZE,          hxhim_options_set_rs_packed_alloc_size) &&
-        parse_value(opts, config, RS_PACKED_REGIONS,             hxhim_options_set_rs_packed_regions) &&
-        parse_value(opts, config, REQUESTS_NAME,                 hxhim_options_set_requests_name) &&
-        parse_value(opts, config, REQUESTS_ALLOC_SIZE,           hxhim_options_set_requests_alloc_size) &&
-        parse_value(opts, config, REQUESTS_REGIONS,              hxhim_options_set_requests_regions_in_config) &&
-        (default_runtime_config(opts) == HXHIM_SUCCESS) &&
-        parse_value(opts, config, BUFFERS_NAME,                  hxhim_options_set_buffers_name) &&
-        parse_value(opts, config, BUFFERS_ALLOC_SIZE,            hxhim_options_set_buffers_alloc_size) &&
-        parse_value(opts, config, BUFFERS_REGIONS,               hxhim_options_set_buffers_regions) &&
-        parse_value(opts, config, ARRAYS_NAME,                   hxhim_options_set_arrays_name) &&
-        parse_value(opts, config, ARRAYS_ALLOC_SIZE,             hxhim_options_set_arrays_alloc_size) &&
-        parse_value(opts, config, ARRAYS_REGIONS,                hxhim_options_set_arrays_regions) &&
-        parse_value(opts, config, RESPONSES_NAME,                hxhim_options_set_responses_name) &&
-        parse_value(opts, config, RESPONSES_ALLOC_SIZE,          hxhim_options_set_responses_alloc_size) &&
-        parse_value(opts, config, RESPONSES_REGIONS,             hxhim_options_set_responses_regions) &&
-        parse_value(opts, config, RESULT_NAME,                   hxhim_options_set_result_name) &&
-        parse_value(opts, config, RESULT_ALLOC_SIZE,             hxhim_options_set_result_alloc_size) &&
-        parse_value(opts, config, RESULT_REGIONS,                hxhim_options_set_result_regions) &&
-        parse_value(opts, config, RESULTS_NAME,                  hxhim_options_set_results_name) &&
-        parse_value(opts, config, RESULTS_ALLOC_SIZE,            hxhim_options_set_results_alloc_size) &&
-        parse_value(opts, config, RESULTS_REGIONS,               hxhim_options_set_results_regions) &&
         true?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 

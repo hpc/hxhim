@@ -5,6 +5,7 @@
 #include "transport/backend/MPI/RangeServer.hpp"
 #include "transport/backend/MPI/Unpacker.hpp"
 #include "transport/backend/MPI/constants.h"
+#include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
@@ -13,7 +14,6 @@ namespace MPI {
 
 hxhim_t *RangeServer::hx_ = nullptr;
 std::vector<std::thread> RangeServer::listeners_ = {};
-FixedBufferPool *RangeServer::rs_packed = nullptr;
 
 int RangeServer::init(hxhim_t *hx, const std::size_t listener_count) {
     mlog(MPI_INFO, "Started MPI Range Server Initialization");
@@ -23,7 +23,6 @@ int RangeServer::init(hxhim_t *hx, const std::size_t listener_count) {
 
     hx_ = hx;
     listeners_.resize(listener_count);
-    rs_packed = new FixedBufferPool(hx->p->memory_pools.rs_packed.alloc_size, hx->p->memory_pools.rs_packed.regions, hx->p->memory_pools.rs_packed.name);
 
     mlog(MPI_DBG, "Starting up %zu listeners", listener_count);
 
@@ -45,8 +44,6 @@ void RangeServer::destroy() {
         mlog(MPI_DBG, "MPI Range Server Thread %lu Stopped", i);
     }
 
-    delete rs_packed;
-    rs_packed = nullptr;
     hx_ = nullptr;
     mlog(MPI_INFO, "MPI Range Server stopped");
 }
@@ -68,22 +65,22 @@ void RangeServer::listener_thread() {
 
         // decode request
         Request::Request *request = nullptr;
-        Unpacker::unpack(hx_->p->bootstrap.comm, &request, req, len, hx_->p->memory_pools.requests, hx_->p->memory_pools.arrays, hx_->p->memory_pools.buffers);
+        Unpacker::unpack(hx_->p->bootstrap.comm, &request, req, len);
         ::operator delete(req);
 
         // process request
         Response::Response *response = hxhim::range_server::range_server(hx_, request);
-        hx_->p->memory_pools.requests->release(request);
+        dealloc(request);
 
         // encode result
         void *res = nullptr;
         len = 0;
-        Packer::pack(hx_->p->bootstrap.comm, response, &res, &len, rs_packed);
+        Packer::pack(hx_->p->bootstrap.comm, response, &res, &len);
 
         // send result
         const int ret = send(response->dst, res, len);
-        hx_->p->memory_pools.responses->release(response);
-        rs_packed->release(res, len);
+        dealloc(response);
+        dealloc(res);
 
         if (ret != TRANSPORT_SUCCESS) {
             continue;
