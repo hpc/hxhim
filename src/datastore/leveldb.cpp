@@ -11,6 +11,7 @@
 #include "datastore/leveldb.hpp"
 #include "hxhim/private.hpp"
 #include "hxhim/triplestore.hpp"
+#include "utils/macros.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
@@ -128,8 +129,7 @@ Response::BPut *leveldb::BPutImpl(void **subjects, std::size_t *subject_lens,
     struct timespec start, end;
     ::leveldb::WriteBatch batch;
 
-        for(std::size_t i = 0; i < count; i++) {
-        mlog(LEVELDB_INFO, "LevelDB write (%s %s %s)", (char *) subjects[i], (char *) predicates[i], (char *) objects[i]);
+    for(std::size_t i = 0; i < count; i++) {
         void *key = nullptr;
         std::size_t key_len = 0;
         sp_to_key(subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &key, &key_len);
@@ -269,7 +269,7 @@ Response::BGet2 *leveldb::BGetImpl2(void ***subjects, std::size_t **subject_lens
     ret->src_object_lens = *src_object_lens;
     ret->count = count;
 
-        for(std::size_t i = 0; i < count; i++) {
+    for(std::size_t i = 0; i < count; i++) {
         struct timespec start, end;
 
         void *key = nullptr;
@@ -291,7 +291,7 @@ Response::BGet2 *leveldb::BGetImpl2(void ***subjects, std::size_t **subject_lens
         if (status.ok()) {
             ret->statuses[i] = HXHIM_SUCCESS;
             // need to allocate space here since object_lens[i] is a pointer, not the actual value
-            ret->object_lens[i] = new size_t[sizeof(*(ret->object_lens[i]))];
+            ret->object_lens[i] = construct<REF(*(ret->object_lens[i]))>();
             *(ret->object_lens[i]) = value.size();
             ret->objects[i] = alloc(*(ret->object_lens[i]));
             memcpy(ret->objects[i], value.data(), *(ret->object_lens[i]));

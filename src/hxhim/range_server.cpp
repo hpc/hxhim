@@ -286,6 +286,7 @@ static Transport::Response::BGet2 *bget2(hxhim_t *hx, const Transport::Request::
                                                                                       counters[ds]);
 
         if (response) {
+            // move the response into a bulk packet for sending
             for(std::size_t j = 0; j < response->count; j++) {
                 size_t &count = res->count;
                 res->ds_offsets[count] = ds;
@@ -312,6 +313,7 @@ static Transport::Response::BGet2 *bget2(hxhim_t *hx, const Transport::Request::
 
                 count++;
             }
+
             destruct(response);
         }
     }
@@ -498,35 +500,29 @@ Transport::Response::Response *range_server(hxhim_t *hx, const Transport::Reques
     using namespace Transport;
 
     Response::Response *res = nullptr;
+    mlog(HXHIM_SERVER_INFO, "Range server got a %s", Message::TypeStr[req->type]);
 
     // Call the appropriate function depending on the message type
     switch(req->type) {
         case Message::BPUT:
-            mlog(HXHIM_SERVER_INFO, "Range server got a BPUT");
             res = bput(hx, dynamic_cast<const Request::BPut *>(req));
             break;
         case Message::BGET:
-            mlog(HXHIM_SERVER_INFO, "Range server got a BGET");
             res = bget(hx, dynamic_cast<const Request::BGet *>(req));
             break;
         case Message::BGET2:
-            mlog(HXHIM_SERVER_INFO, "Range server got a BGET2");
             res = bget2(hx, dynamic_cast<const Request::BGet2 *>(req));
             break;
         case Message::BGETOP:
-            mlog(HXHIM_SERVER_INFO, "Range server got a BGETOP");
             res = bgetop(hx, dynamic_cast<const Request::BGetOp *>(req));
             break;
         case Message::BDELETE:
-            mlog(HXHIM_SERVER_INFO, "Range server got a BDELETE");
             res = bdelete(hx, dynamic_cast<const Request::BDelete *>(req));
             break;
         case Message::HISTOGRAM:
-            mlog(HXHIM_SERVER_INFO, "Range server got a HISTOGRAM");
             res = histogram(hx, dynamic_cast<const Request::Histogram *>(req));
             break;
         case Message::BHISTOGRAM:
-            mlog(HXHIM_SERVER_INFO, "Range server got a BHISTOGRAM");
             res = bhistogram(hx, dynamic_cast<const Request::BHistogram *>(req));
             break;
         default:

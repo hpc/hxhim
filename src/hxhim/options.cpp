@@ -335,8 +335,8 @@ int hxhim_options_set_transport_mpi(hxhim_options_t *opts, const size_t listener
  * @param module   the name of the thallium module to use
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_options_set_transport_thallium(hxhim_options_t *opts, const char *module) {
-    Transport::Options *config = new Transport::Thallium::Options(module);
+int hxhim_options_set_transport_thallium(hxhim_options_t *opts, const char *module, const size_t buffer_size) {
+    Transport::Options *config = new Transport::Thallium::Options(module, buffer_size);
     if (!config) {
         return HXHIM_ERROR;
     }

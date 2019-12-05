@@ -47,18 +47,6 @@ typedef struct hxhim_in_memory_config : hxhim_datastore_config_t {
     {}
 } hxhim_in_memory_config_t;
 
-typedef struct hxhim_fbp_config {
-    hxhim_fbp_config(const std::size_t alloc_size = 0, const std::size_t regions = 0, const std::string &name = "")
-        : alloc_size(alloc_size),
-          regions(regions),
-          name(name)
-    {}
-
-    std::size_t alloc_size;
-    std::size_t regions;
-    std::string name;
-} hxhim_fbp_config_t;
-
 /**
  * The entire collection of configuration options
  */

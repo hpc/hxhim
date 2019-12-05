@@ -188,6 +188,6 @@ void Transport::Response::BGet2::server_side_cleanup(void *) {
         dealloc(subjects[i]);
         dealloc(predicates[i]);
         dealloc(objects[i]);
-        dealloc(object_lens[i]);
+        destruct(object_lens[i]);
     }
 }

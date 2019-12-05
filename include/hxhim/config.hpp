@@ -103,6 +103,10 @@ const std::unordered_map<std::string, Transport::Type> TRANSPORTS = {
     #endif
 };
 
+#if HXHIM_HAVE_THALLIUM
+const std::string THALLIUM_BUFFER_SIZE = "THALLIUM_BUFFER_SIZE";
+#endif
+
 /**
  * Set of predefined histogram bucket generators
  */

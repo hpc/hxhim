@@ -62,7 +62,7 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
     // remove the loopback endpoint
     addrs.erase(hx->p->bootstrap.rank);
 
-    EndpointGroup *eg = new EndpointGroup(engine, rpc);
+    EndpointGroup *eg = new EndpointGroup(engine, rpc, config->buffer_size);
 
     // create mapping between unique IDs and ranks
     for(decltype(addrs)::value_type const &addr : addrs) {
@@ -71,7 +71,7 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
             // mlog(THALLIUM_DBG, "Created Thallium endpoint %s", addr.second.c_str());
 
             // add the remote thallium endpoint to the tranport
-            Endpoint* ep = new Endpoint(engine, rpc, server);
+            Endpoint* ep = new Endpoint(engine, rpc, config->buffer_size, server);
 
             hx->p->transport->AddEndpoint(addr.first, ep);
             // mlog(THALLIUM_DBG, "Created HXHIM endpoint from Thallium endpoint %s", addr.second.c_str());

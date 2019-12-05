@@ -40,7 +40,7 @@ int hxhim_options_set_hash_function(hxhim_options_t *opts, const char *name, hxh
 int hxhim_options_set_transport_null(hxhim_options_t *opts);
 int hxhim_options_set_transport_mpi(hxhim_options_t *opts, const size_t listeners);
 #if HXHIM_HAVE_THALLIUM
-int hxhim_options_set_transport_thallium(hxhim_options_t *opts, const char *module);
+int hxhim_options_set_transport_thallium(hxhim_options_t *opts, const char *module, const size_t buffer_size);
 #endif
 int hxhim_options_add_endpoint_to_group(hxhim_options_t *opts, const int id);
 int hxhim_options_clear_endpoint_group(hxhim_options_t *opts);

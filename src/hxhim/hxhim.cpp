@@ -264,8 +264,7 @@ hxhim::Results *FlushImpl(hxhim_t *hx, hxhim::Unsent<UserData_t> &unsent, const 
         unsent.tail = nullptr;
     }
 
-    hxhim::Results *res = process<Send_t, Recv_t>(hx, head, max_ops_per_send);
-    return res;
+    return process<Send_t, Recv_t>(hx, head, max_ops_per_send);
 }
 
 /**

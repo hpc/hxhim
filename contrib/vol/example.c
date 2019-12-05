@@ -17,6 +17,11 @@ int main(int argc, char * argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     hid_t fapl = hxhim_vol_init(MPI_COMM_WORLD, 1);
+    if (fapl < 0) {
+        MPI_Finalize();
+        fprintf(stderr, "Failed to initialize HXHIM VOL\n");
+        return -1;
+    }
 
     hsize_t dims = COUNT;
 
@@ -42,6 +47,7 @@ int main(int argc, char * argv[]) {
         H5Dwrite(write_str_dataset_id, H5T_C_S1, H5S_ALL, dataspace_id, H5P_DEFAULT, write_str);
 
         H5Fflush(file_id, H5F_SCOPE_GLOBAL);
+
         for(hsize_t i = 0; i < dims; i++) {
             printf("     %d write %d\n", rank, write_ints[i]);
         }
@@ -80,6 +86,7 @@ int main(int argc, char * argv[]) {
         H5Dread(read_str_dataset_id, H5T_C_S1, H5S_ALL, dataspace_id, H5P_DEFAULT, read_str);
 
         H5Fflush(file_id, H5F_SCOPE_GLOBAL);
+
         for(hsize_t i = 0; i < COUNT; i++) {
             printf("     %d read %d\n", rank, read_ints[i]);
         }

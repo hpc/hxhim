@@ -6,19 +6,25 @@
 #include "hxhim/shuffle.hpp"
 #include "hxhim/Results.hpp"
 #include "utils/memory.hpp"
+#include "utils/enable_if_t.hpp"
 
 /**
  * process
  * The core set of function calls that are needed to send requests and receive responses
  *
- * @tparam Send_t      the transport request type
- * @tparam Recv_t      the transport response type
- * @tparam UserData_t  unsorted hxhim user data
- * @param hx           the HXHIM session
- * @param head         the head of the list of requests to send
+ * @tparam Send_t          Transport::Request::*
+ * @tparam Recv_t          Transport::Response::*
+ * @tparam UserData_t      unsorted hxhim user data type
+ * @param hx               the HXHIM session
+ * @param head             the head of the list of requests to send
+ * @param max_ops_per_send the maximum number of sets of data that can be processed in a single packet
  * @return results from sending requests
  */
-template <typename Send_t, typename Recv_t, typename UserData_t>
+template <typename Send_t, typename Recv_t, typename UserData_t,
+          typename = enable_if_t <std::is_base_of <Transport::Request::Request,   Send_t>::value && !std::is_same   <Transport::Request::Request,   Send_t>::value &&
+                                  std::is_base_of <Transport::Response::Response, Recv_t>::value && !std::is_same   <Transport::Response::Response, Recv_t>::value &&
+                                  std::is_base_of <hxhim::UserData,           UserData_t>::value && !std::is_same   <hxhim::UserData,           UserData_t>::value>
+          >
 hxhim::Results *process(hxhim_t *hx,
                         UserData_t *head,
                         const std::size_t max_ops_per_send) {
@@ -44,9 +50,7 @@ hxhim::Results *process(hxhim_t *hx,
         // reset local without deallocating memory
         local.count = 0;
 
-        UserData_t *curr = head;
-
-        while (hx->p->running && curr) {
+        for(UserData_t *curr = head; hx->p->running && curr;) {
             mlog(HXHIM_CLIENT_DBG, "Preparing to shuffle %p (%p)", curr, curr->next);
             if (hxhim::shuffle(hx, max_ops_per_send,
                                curr,

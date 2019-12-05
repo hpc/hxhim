@@ -32,6 +32,7 @@ void RangeServer::destroy() {
 
 void RangeServer::process(const thallium::request &req, thallium::bulk &bulk) {
     thallium::endpoint ep = req.get_endpoint();
+    mlog(THALLIUM_DBG, "Starting to process data from %s", ((std::string) ep).c_str());
 
     const std::size_t bufsize = 1024;
 
@@ -45,7 +46,7 @@ void RangeServer::process(const thallium::request &req, thallium::bulk &bulk) {
         bulk.on(ep) >> local(0, bufsize);
     }
 
-    // mlog(THALLIUM_DBG, "Processing %zu bytes of data", bufsize);
+    mlog(THALLIUM_DBG, "Processing %zu bytes of data", bufsize);
 
     // unpack the request
     Request::Request *request = nullptr;
@@ -56,21 +57,23 @@ void RangeServer::process(const thallium::request &req, thallium::bulk &bulk) {
         return;
     }
 
-    // mlog(THALLIUM_DBG, "Unpacked %s data", Message::TypeStr[request->type]);
+    mlog(THALLIUM_WARN, "Unpacked %zu bytes of %s data", bufsize, Message::TypeStr[request->type]);
 
     // process the request
     Response::Response *response = hxhim::range_server::range_server(hx_, request);
     dealloc(request);
 
-    // mlog(THALLIUM_DBG, "Responding with %s message", Message::TypeStr[response->type]);
+    mlog(THALLIUM_WARN, "Datastore responded with %s message", Message::TypeStr[response->type]);
 
     // pack the response
     std::size_t ressize = 0;
     Packer::pack(response, &buf, &ressize);     // do not check for error
+    mlog(THALLIUM_WARN, "Responding with %zu byte %s message", ressize, Message::TypeStr[response->type]);
+
     response->server_side_cleanup();
     dealloc(response);
 
-    // mlog(THALLIUM_DBG, "Packed response into %zu byte string", ressize);
+    mlog(THALLIUM_WARN, "Packed response into %zu byte string", ressize);
 
     // send the response
     {
@@ -79,11 +82,13 @@ void RangeServer::process(const thallium::request &req, thallium::bulk &bulk) {
         bulk.on(ep) << local(0, ressize);
     }
 
+    mlog(THALLIUM_DBG, "Done sending %zu byte packed response", ressize);
+
     // respond
     dealloc(buf);
     req.respond(ressize);
 
-    // mlog(THALLIUM_DBG, "Done processing data");
+    mlog(THALLIUM_DBG, "Done processing request from %s and sending response", ((std::string) ep).c_str());
 }
 
 }

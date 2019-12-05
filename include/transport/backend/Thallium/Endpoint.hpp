@@ -27,6 +27,7 @@ class Endpoint : virtual public ::Transport::Endpoint {
     public:
         Endpoint(const Engine_t &engine,
                  const RPC_t &rpc,
+                 const std::size_t buffer_size,
                  const Endpoint_t &ep);
         ~Endpoint();
 
@@ -46,41 +47,12 @@ class Endpoint : virtual public ::Transport::Endpoint {
         Response::Histogram *communicate(const Request::Histogram *message);
 
     private:
-        /**
-         * do_operation
-         * A function containing the common calls used by Put, Get, and Delete
-         *
-         * @tparam message the message being sent
-         * @treturn the response from the range server
-         */
-        template <typename Recv_t, typename Send_t, typename = std::enable_if<std::is_base_of<Request::Request,   Send_t>::value &&
-                                                                              std::is_base_of<Single,             Send_t>::value &&
-                                                                              std::is_base_of<Response::Response, Recv_t>::value &&
-                                                                              std::is_base_of<Single,             Recv_t>::value> >
-        Recv_t *do_operation(const Send_t *message) {
-            std::lock_guard<std::mutex> lock(mutex);
+        static std::mutex mutex;          // mutex for engine_ and rpc_
 
-            void *buf = nullptr;
-            std::size_t bufsize = 0;
-            if (Packer::pack(message, &buf, &bufsize) != TRANSPORT_SUCCESS) {
-                return nullptr;
-            }
-
-            std::vector<std::pair<void *, std::size_t> > segments = {std::make_pair(buf, bufsize)};
-            thallium::bulk bulk = engine->expose(segments, thallium::bulk_mode::read_write);
-            const std::size_t response_size = rpc->on(*ep)(bulk);
-
-            Recv_t *ret = nullptr;
-            Unpacker::unpack(&ret, buf, response_size); // no need to check return value
-            dealloc(buf);
-            return ret;
-        }
-
-        static std::mutex mutex;  // mutex for engine_ and rpc_
-
-        Engine_t engine;          // declare engine first so it is destroyed last
-        RPC_t rpc;                // client to server RPC
-        Endpoint_t ep;            // the server the RPC will be called on
+        Engine_t engine;                  // declare engine first so it is destroyed last
+        RPC_t rpc;                        // client to server RPC
+        const std::size_t buffer_size;    // size of the rpc buffer
+        Endpoint_t ep;                    // the server the RPC will be called on
 };
 
 }
