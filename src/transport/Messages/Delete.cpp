@@ -1,5 +1,4 @@
 #include "transport/Messages/Delete.hpp"
-#include "utils/memory.hpp"
 
 Transport::Request::Delete::Delete()
     : Request(DELETE),

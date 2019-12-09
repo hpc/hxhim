@@ -23,7 +23,7 @@ template <typename Send_t, typename Recv_t, typename = std::enable_if<std::is_ba
 
     void *buf = nullptr;
     std::size_t bufsize = 0;
-    if (Transport::Thallium::Packer::pack(message, &buf, &bufsize) != TRANSPORT_SUCCESS) {
+    if (Transport::Packer::pack(message, &buf, &bufsize) != TRANSPORT_SUCCESS) {
         return nullptr;
     }
 
@@ -32,7 +32,7 @@ template <typename Send_t, typename Recv_t, typename = std::enable_if<std::is_ba
     const std::size_t response_size = rpc->on(*ep)(bulk);
 
     Recv_t *ret = nullptr;
-    Transport::Thallium::Unpacker::unpack(&ret, buf, response_size); // no need to check return value
+    Transport::Unpacker::unpack(&ret, buf, response_size); // no need to check return value
     dealloc(buf);
     return ret;
 }

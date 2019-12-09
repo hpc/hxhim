@@ -30,7 +30,7 @@ TEST(hxhim, PutGet) {
     ASSERT_NE(put_results, nullptr);
 
     // Make sure put succeeded
-    EXPECT_EQ(put_results->size(), 1);
+    EXPECT_EQ(put_results->size(), 6);
     for(put_results->GoToHead(); put_results->Valid(); put_results->GoToNext()) {
         hxhim::Results::Result *res = put_results->Curr();
         ASSERT_NE(res, nullptr);

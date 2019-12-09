@@ -3,6 +3,9 @@
 
 #include <cstdint>
 
+#include "transport/constants.hpp"
+#include "utils/memory.hpp"
+
 namespace Transport {
 
 struct Message {

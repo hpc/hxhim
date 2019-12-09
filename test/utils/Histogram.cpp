@@ -36,7 +36,7 @@ static int every_two(const double *first_n, const std::size_t n, double **bucket
     double max = *std::max_element(first_n, first_n + n);
 
     *size = std::ceil((max - min) / 2);
-    *buckets = new double[*size];
+    *buckets = alloc_array<double>(*size);
 
     for(std::size_t i = 0; i < *size; i++) {
         (*buckets)[i] = min;
@@ -72,7 +72,7 @@ TEST(Histogram, custom_nonuniform) {
     Histogram::Histogram h(n,
                              [](const double *, const std::size_t, double **buckets, std::size_t *size, void *) {
 
-                                 if (!(*buckets = new double[3])) {
+                               if (!(*buckets = alloc_array<double>(3))) {
                                      return HISTOGRAM_ERROR;
                                  }
 

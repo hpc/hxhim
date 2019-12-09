@@ -1,5 +1,4 @@
 #include "transport/Messages/BPut.hpp"
-#include "utils/memory.hpp"
 
 Transport::Request::BPut::BPut(const std::size_t max)
     : Request(BPUT),
@@ -34,14 +33,14 @@ int Transport::Request::BPut::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Bulk::alloc(max) != TRANSPORT_SUCCESS)           ||
-            !(subjects = alloc_array<void *>(max))            ||
-            !(subject_lens = alloc_array<std::size_t>(max))   ||
-            !(predicates = alloc_array<void *>(max))          ||
-            !(predicate_lens = alloc_array<std::size_t>(max)) ||
-            !(object_types = alloc_array<hxhim_type_t>(max))  ||
-            !(objects = alloc_array<void *>(max))             ||
-            !(object_lens = alloc_array<std::size_t>(max)))    {
+        if ((Bulk::alloc(max) != TRANSPORT_SUCCESS)              ||
+            !(subjects         = alloc_array<void *>      (max)) ||
+            !(subject_lens     = alloc_array<std::size_t> (max)) ||
+            !(predicates       = alloc_array<void *>      (max)) ||
+            !(predicate_lens   = alloc_array<std::size_t> (max)) ||
+            !(object_types     = alloc_array<hxhim_type_t>(max)) ||
+            !(objects          = alloc_array<void *>      (max)) ||
+            !(object_lens      = alloc_array<std::size_t> (max))) {
             cleanup();
             return TRANSPORT_ERROR;
         }
@@ -92,8 +91,6 @@ int Transport::Request::BPut::cleanup() {
     dealloc_array(object_lens, count);
     object_lens = nullptr;
 
-    Bulk::cleanup();
-
     return TRANSPORT_SUCCESS;
 }
 
@@ -118,8 +115,8 @@ int Transport::Response::BPut::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Bulk::alloc(max) != TRANSPORT_SUCCESS) ||
-            !(statuses = alloc_array<int>(max)))     {
+        if ((Bulk::alloc(max) != TRANSPORT_SUCCESS)     ||
+            !(statuses         = alloc_array<int>(max))) {
             cleanup();
             return TRANSPORT_ERROR;
         }
@@ -131,8 +128,6 @@ int Transport::Response::BPut::alloc(const std::size_t max) {
 int Transport::Response::BPut::cleanup() {
     dealloc_array(statuses, count);
     statuses = nullptr;
-
-    Bulk::cleanup();
 
     return TRANSPORT_SUCCESS;
 }

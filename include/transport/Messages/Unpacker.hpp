@@ -1,12 +1,10 @@
-#if HXHIM_HAVE_THALLIUM
-
-#ifndef TRANSPORT_THALLIUM_UNPACKER_HPP
-#define TRANSPORT_THALLIUM_UNPACKER_HPP
+#ifndef TRANSPORT_UNPACKER_HPP
+#define TRANSPORT_UNPACKER_HPP
 
 #include "transport/Messages/Messages.hpp"
+#include "utils/memory.hpp"
 
 namespace Transport {
-namespace Thallium {
 
 /**
  * Unpacker
@@ -53,8 +51,5 @@ class Unpacker {
 };
 
 }
-}
-
-#endif
 
 #endif

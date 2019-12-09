@@ -1,5 +1,4 @@
 #include "transport/Messages/BGetOp.hpp"
-#include "utils/memory.hpp"
 
 Transport::Request::BGetOp::BGetOp(const std::size_t max)
     : Request(BGETOP),
@@ -87,7 +86,6 @@ int Transport::Request::BGetOp::cleanup() {
     dealloc_array(ops, count);
     ops = nullptr;
 
-    Bulk::cleanup();
 
     return TRANSPORT_SUCCESS;
 }
@@ -190,7 +188,6 @@ int Transport::Response::BGetOp::cleanup() {
     dealloc_array(object_lens, count);
     object_lens = nullptr;
 
-    Bulk::cleanup();
 
     return TRANSPORT_SUCCESS;
 }

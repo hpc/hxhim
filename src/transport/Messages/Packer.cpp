@@ -1,14 +1,8 @@
-#if HXHIM_HAVE_THALLIUM
-
 #include <cstring>
 
-#include "transport/backend/Thallium/Packer.hpp"
-#include "utils/memory.hpp"
-#include "utils/mlog2.h"
-#include "utils/mlogfacs2.h"
+#include "transport/Messages/Packer.hpp"
 
 namespace Transport {
-namespace Thallium {
 
 int Packer::pack(const Request::Request *req, void **buf, std::size_t *bufsize) {
     int ret = TRANSPORT_ERROR;
@@ -441,11 +435,11 @@ int Packer::pack(const Response::Put *pm, void **buf, std::size_t *bufsize) {
         return TRANSPORT_ERROR;
     }
 
-    memcpy(curr, &pm->status, sizeof(pm->status));
-    curr += sizeof(pm->status);
-
     memcpy(curr, &pm->ds_offset, sizeof(pm->ds_offset));
-    // curr += sizeof(pm->ds_offset);
+    curr += sizeof(pm->ds_offset);
+
+    memcpy(curr, &pm->status, sizeof(pm->status));
+    // curr += sizeof(pm->status);
 
     return TRANSPORT_SUCCESS;
 }
@@ -456,11 +450,11 @@ int Packer::pack(const Response::Get *gm, void **buf, std::size_t *bufsize) {
         return TRANSPORT_ERROR;
     }
 
-    memcpy(curr, &gm->status, sizeof(gm->status));
-    curr += sizeof(gm->status);
-
     memcpy(curr, &gm->ds_offset, sizeof(gm->ds_offset));
     curr += sizeof(gm->ds_offset);
+
+    memcpy(curr, &gm->status, sizeof(gm->status));
+    curr += sizeof(gm->status);
 
     memcpy(curr, &gm->subject_len, sizeof(gm->subject_len));
     curr += sizeof(gm->subject_len);
@@ -496,11 +490,11 @@ int Packer::pack(const Response::Get2 *gm, void **buf, std::size_t *bufsize) {
         return TRANSPORT_ERROR;
     }
 
-    memcpy(curr, &gm->status, sizeof(gm->status));
-    curr += sizeof(gm->status);
-
     memcpy(curr, &gm->ds_offset, sizeof(gm->ds_offset));
     curr += sizeof(gm->ds_offset);
+
+    memcpy(curr, &gm->status, sizeof(gm->status));
+    curr += sizeof(gm->status);
 
     memcpy(curr, &gm->subject_len, sizeof(gm->subject_len));
     curr += sizeof(gm->subject_len);
@@ -546,11 +540,11 @@ int Packer::pack(const Response::Delete *dm, void **buf, std::size_t *bufsize) {
         return TRANSPORT_ERROR;
     }
 
-    memcpy(curr, &dm->status, sizeof(dm->status));
-    curr += sizeof(dm->status);
-
     memcpy(curr, &dm->ds_offset, sizeof(dm->ds_offset));
-    // curr += sizeof(dm->ds_offset);
+    curr += sizeof(dm->ds_offset);
+
+    memcpy(curr, &dm->status, sizeof(dm->status));
+    // curr += sizeof(dm->status);
 
     return TRANSPORT_SUCCESS;
 }
@@ -561,11 +555,11 @@ int Packer::pack(const Response::Histogram *hist, void **buf, std::size_t *bufsi
         return TRANSPORT_ERROR;
     }
 
-    memcpy(curr, &hist->status, sizeof(hist->status));
-    curr += sizeof(hist->status);
-
     memcpy(curr, &hist->ds_offset, sizeof(hist->ds_offset));
     curr += sizeof(hist->ds_offset);
+
+    memcpy(curr, &hist->status, sizeof(hist->status));
+    curr += sizeof(hist->status);
 
     const std::size_t size = hist->hist.size;
     memcpy(curr, &size, sizeof(size));
@@ -669,14 +663,6 @@ int Packer::pack(const Response::BGet2 *bgm, void **buf, std::size_t *bufsize) {
         memcpy(curr, &bgm->object_types[i], sizeof(bgm->object_types[i]));
         curr += sizeof(bgm->object_types[i]);
 
-        // write the address of the object the other side should use
-        memcpy(curr, &bgm->src_objects[i], sizeof(bgm->src_objects[i]));
-        curr += sizeof(bgm->src_objects[i]);
-
-        // write the address of the object_len the other side should use
-        memcpy(curr, &bgm->src_object_lens[i], sizeof(bgm->src_object_lens[i]));
-        curr += sizeof(bgm->src_object_lens[i]);
-
         memcpy(curr, bgm->subjects[i], bgm->subject_lens[i]);
         curr += bgm->subject_lens[i];
 
@@ -684,6 +670,14 @@ int Packer::pack(const Response::BGet2 *bgm, void **buf, std::size_t *bufsize) {
         curr += bgm->predicate_lens[i];
 
         if (bgm->statuses[i] == HXHIM_SUCCESS) {
+            // write the address of the object the other side should use
+            memcpy(curr, &bgm->src_objects[i], sizeof(bgm->src_objects[i]));
+            curr += sizeof(bgm->src_objects[i]);
+
+            // write the address of the object_len the other side should use
+            memcpy(curr, &bgm->src_object_lens[i], sizeof(bgm->src_object_lens[i]));
+            curr += sizeof(bgm->src_object_lens[i]);
+
             memcpy(curr, bgm->object_lens[i], sizeof(*(bgm->object_lens[i])));
             curr += sizeof(*(bgm->object_lens[i]));
 
@@ -758,6 +752,7 @@ int Packer::pack(const Response::BDelete *bdm, void **buf, std::size_t *bufsize)
 
 int Packer::pack(const Response::BHistogram *bhist, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
+
     if (pack(static_cast<const Response::Response *>(bhist), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
@@ -792,17 +787,15 @@ int Packer::pack(const Message *msg, void **buf, std::size_t *bufsize, char **cu
         return TRANSPORT_ERROR;
     }
 
-    const std::size_t minsize = msg->size();
+    *bufsize = msg->size();
 
     // only allocate space if a nullptr is provided; otherwise, assume *buf has enough space
     if (!*buf) {
-        if (!(*buf = alloc(minsize))) {
+        if (!(*buf = alloc(*bufsize))) {
             *bufsize = 0;
             return TRANSPORT_ERROR;
         }
     }
-
-    *bufsize = minsize;
 
     *curr = (char *) *buf;
 
@@ -831,6 +824,3 @@ int Packer::pack(const Response::Response *res, void **buf, std::size_t *bufsize
 }
 
 }
-}
-
-#endif

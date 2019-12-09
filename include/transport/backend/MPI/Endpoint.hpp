@@ -7,8 +7,6 @@
 #include <mpi.h>
 
 #include "transport/backend/MPI/EndpointBase.hpp"
-#include "transport/backend/MPI/Packer.hpp"
-#include "transport/backend/MPI/Unpacker.hpp"
 #include "transport/transport.hpp"
 #include "utils/enable_if_t.hpp"
 #include "utils/memory.hpp"
@@ -38,8 +36,8 @@ class Endpoint : virtual public ::Transport::Endpoint, virtual public EndpointBa
         /** @description Send a Get to this endpoint */
         Response::Get *communicate(const Request::Get *message);
 
-        // /** @description Send a Get2 to this endpoint */
-        // Response::Get2 *communicate(const Request::Get2 *message);
+        /** @description Send a Get2 to this endpoint */
+        Response::Get2 *communicate(const Request::Get2 *message);
 
         /** @description Send a Delete to this endpoint */
         Response::Delete *communicate(const Request::Delete *message);
@@ -76,10 +74,10 @@ class Endpoint : virtual public ::Transport::Endpoint, virtual public EndpointBa
             // the result of this series of function calls does not matter
             (void)
                 (
-                    (Packer::pack(comm, message, &sendbuf, &sendsize)     == TRANSPORT_SUCCESS) &&  // pack the message
-                    (send(sendbuf, sendsize)                              == TRANSPORT_SUCCESS) &&  // send the message
-                    (recv(&recvbuf, &recvsize)                            == TRANSPORT_SUCCESS) &&  // receive the response
-                    (Unpacker::unpack(comm, &response, recvbuf, recvsize) == TRANSPORT_SUCCESS)     // unpack the response
+                    (Packer::pack(message, &sendbuf, &sendsize)     == TRANSPORT_SUCCESS) &&  // pack the message
+                    (send(sendbuf, sendsize)                        == TRANSPORT_SUCCESS) &&  // send the message
+                    (recv(&recvbuf, &recvsize)                      == TRANSPORT_SUCCESS) &&  // receive the response
+                    (Unpacker::unpack(&response, recvbuf, recvsize) == TRANSPORT_SUCCESS)     // unpack the response
                 );
 
             dealloc(sendbuf);

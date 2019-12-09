@@ -1,5 +1,4 @@
 #include "transport/Messages/BDelete.hpp"
-#include "utils/memory.hpp"
 
 Transport::Request::BDelete::BDelete(const std::size_t max)
     : Request(BDELETE),
@@ -71,8 +70,6 @@ int Transport::Request::BDelete::cleanup() {
     dealloc_array(predicate_lens, count);
     predicate_lens = nullptr;
 
-    Bulk::cleanup();
-
     return TRANSPORT_SUCCESS;
 }
 
@@ -108,8 +105,6 @@ int Transport::Response::BDelete::alloc(const std::size_t max) {
 int Transport::Response::BDelete::cleanup() {
     dealloc_array(statuses, count);
     statuses = nullptr;
-
-    Bulk::cleanup();
 
     return TRANSPORT_SUCCESS;
 }

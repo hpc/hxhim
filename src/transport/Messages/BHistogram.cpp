@@ -1,5 +1,4 @@
 #include "transport/Messages/BHistogram.hpp"
-#include "utils/memory.hpp"
 
 Transport::Request::BHistogram::BHistogram(const std::size_t max)
     : Request(BHISTOGRAM),
@@ -30,8 +29,6 @@ int Transport::Request::BHistogram::alloc(const std::size_t max) {
 }
 
 int Transport::Request::BHistogram::cleanup() {
-    Bulk::cleanup();
-
     return TRANSPORT_SUCCESS;
 }
 
@@ -81,13 +78,11 @@ int Transport::Response::BHistogram::cleanup() {
         }
     }
 
-    dealloc_array(statuses, count);
-    statuses = nullptr;
-
     dealloc_array(hists, count);
     hists = nullptr;
 
-    Bulk::cleanup();
+    dealloc_array(statuses, count);
+    statuses = nullptr;
 
     return TRANSPORT_SUCCESS;
 }

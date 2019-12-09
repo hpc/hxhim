@@ -1,7 +1,5 @@
 #include <unordered_map>
 
-#include "transport/backend/MPI/Packer.hpp"
-#include "transport/backend/MPI/Unpacker.hpp"
 #include "transport/backend/MPI/constants.h"
 #include "utils/macros.hpp"
 #include "utils/memory.hpp"
@@ -39,7 +37,7 @@ std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::unordered_ma
 
         mlog(MPI_DBG, "Attempting to pack message (type %s, size %zu, %d -> %d)", Message::TypeStr[msg->type], msg->size(), msg->src, msg->dst);
 
-        if (Packer::pack(comm, msg, &bufs[pack_count], &lens[pack_count]) == TRANSPORT_SUCCESS) {
+        if (Packer::pack(msg, &bufs[pack_count], &lens[pack_count]) == TRANSPORT_SUCCESS) {
             dsts[pack_count] = msg->dst;
             pack_count++;
             mlog(MPI_DBG, "Successfully packed message (type %s, size %zu, %d -> %d)", Message::TypeStr[msg->type], msg->size(), msg->src, msg->dst);
@@ -316,7 +314,7 @@ std::size_t Transport::MPI::EndpointGroup::parallel_recv(const std::size_t nsrcs
     std::size_t valid = 0;
     *messages = alloc_array<Recv_t *>(data_req_count);
     for(std::size_t i = 0; i < data_req_count; i++) {
-        if (Unpacker::unpack(comm, &((*messages)[valid]), recvbufs[i], lens[i]) == TRANSPORT_SUCCESS) {
+        if (Unpacker::unpack(&((*messages)[valid]), recvbufs[i], lens[i]) == TRANSPORT_SUCCESS) {
             valid++;
         }
 

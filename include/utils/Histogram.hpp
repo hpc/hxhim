@@ -1,6 +1,7 @@
 #ifndef HISTOGRAM_HPP
 #define HISTOGRAM_HPP
 
+#include "utils/memory.hpp"
 #include "utils/Histogram.h"
 
 namespace Histogram {

@@ -1,5 +1,4 @@
 #include "transport/Messages/Message.hpp"
-#include "utils/memory.hpp"
 
 const char * Transport::Message::TypeStr[]  = {
     "INVALID",

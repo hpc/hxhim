@@ -1,5 +1,4 @@
 #include "transport/Messages/Histogram.hpp"
-#include "utils/memory.hpp"
 
 Transport::Request::Histogram::Histogram()
     : Request(HISTOGRAM),

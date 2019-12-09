@@ -1,5 +1,4 @@
 #include "transport/Messages/Get2.hpp"
-#include "utils/memory.hpp"
 
 Transport::Request::Get2::Get2()
     : Request(GET2),

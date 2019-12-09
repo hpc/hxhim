@@ -67,16 +67,16 @@ Response::BGet *EndpointGroup::communicate(const std::unordered_map<int, Request
     return return_msgs<Response::BGet>(bgm_list);
 }
 
-// /**
-//  * BGet2
-//  *
-//  * @param num_rangesrvs the total number of range servers
-//  * @param bgm_list the list of BGET2 messages to send
-//  * @return a linked list of response messages, or nullptr
-//  */
-// Response::BGet2 *EndpointGroup::communicate(const std::unordered_map<int, Request::BGet2 *> &bgm_list) {
-//     return return_msgs<Response::BGet2>(bgm_list);
-// }
+/**
+ * BGet2
+ *
+ * @param num_rangesrvs the total number of range servers
+ * @param bgm_list the list of BGET2 messages to send
+ * @return a linked list of response messages, or nullptr
+ */
+Response::BGet2 *EndpointGroup::communicate(const std::unordered_map<int, Request::BGet2 *> &bgm_list) {
+    return return_msgs<Response::BGet2>(bgm_list);
+}
 
 /**
  * BGetOp

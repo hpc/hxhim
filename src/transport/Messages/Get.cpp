@@ -1,5 +1,4 @@
 #include "transport/Messages/Get.hpp"
-#include "utils/memory.hpp"
 
 Transport::Request::Get::Get()
     : Request(GET),

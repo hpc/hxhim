@@ -42,7 +42,7 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
 
     // create a range server
     if (hxhim::range_server::is_range_server(hx->p->bootstrap.rank, opts->p->client_ratio, opts->p->server_ratio)) {
-        RangeServer::init(hx, engine);
+        RangeServer::init(hx, engine, config->buffer_size);
         hx->p->range_server.destroy = RangeServer::destroy;
         // mlog(THALLIUM_INFO, "Created Thallium Range Server on rank %d", hx->p->bootstrap.rank);
     }

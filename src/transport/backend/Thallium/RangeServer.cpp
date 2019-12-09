@@ -7,9 +7,7 @@
 
 #include "hxhim/private.hpp"
 #include "hxhim/range_server.hpp"
-#include "transport/backend/Thallium/Packer.hpp"
 #include "transport/backend/Thallium/RangeServer.hpp"
-#include "transport/backend/Thallium/Unpacker.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
@@ -20,10 +18,12 @@ namespace Thallium {
 const std::string RangeServer::CLIENT_TO_RANGE_SERVER_NAME = "process";
 hxhim_t *RangeServer::hx_ = nullptr;
 Engine_t RangeServer::engine_ = {};
+std::size_t RangeServer::bufsize_ = 0;
 
-void RangeServer::init(hxhim_t *hx, const Engine_t &engine) {
+void RangeServer::init(hxhim_t *hx, const Engine_t &engine, const std::size_t buffer_size) {
     hx_ = hx;
     engine_ = engine;
+    bufsize_ = buffer_size;
 }
 
 void RangeServer::destroy() {
@@ -34,30 +34,27 @@ void RangeServer::process(const thallium::request &req, thallium::bulk &bulk) {
     thallium::endpoint ep = req.get_endpoint();
     mlog(THALLIUM_DBG, "Starting to process data from %s", ((std::string) ep).c_str());
 
-    const std::size_t bufsize = 1024;
-
-    #warning need to get buf size programatically
-    void *buf = alloc(bufsize);
+    void *buf = alloc(bufsize_);
 
     // receive request
     {
-        std::vector<std::pair<void *, std::size_t> > segments = {std::make_pair(buf, bufsize)};
+        std::vector<std::pair<void *, std::size_t> > segments = {std::make_pair(buf, bufsize_)};
         thallium::bulk local = engine_->expose(segments, thallium::bulk_mode::write_only);
-        bulk.on(ep) >> local(0, bufsize);
+        bulk.on(ep) >> local(0, bufsize_);
     }
 
-    mlog(THALLIUM_DBG, "Processing %zu bytes of data", bufsize);
+    mlog(THALLIUM_DBG, "Processing %zu bytes of data", bufsize_);
 
     // unpack the request
     Request::Request *request = nullptr;
-    if (Unpacker::unpack(&request, buf, bufsize) != TRANSPORT_SUCCESS) {
+    if (Unpacker::unpack(&request, buf, bufsize_) != TRANSPORT_SUCCESS) {
         dealloc(buf);
         req.respond((std::size_t) 0);
         // mlog(THALLIUM_DBG, "Could not unpack data");
         return;
     }
 
-    mlog(THALLIUM_WARN, "Unpacked %zu bytes of %s data", bufsize, Message::TypeStr[request->type]);
+    mlog(THALLIUM_WARN, "Unpacked %zu bytes of %s data", bufsize_, Message::TypeStr[request->type]);
 
     // process the request
     Response::Response *response = hxhim::range_server::range_server(hx_, request);

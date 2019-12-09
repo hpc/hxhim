@@ -1,5 +1,4 @@
 #include "transport/Messages/Response.hpp"
-#include "utils/memory.hpp"
 
 Transport::Response::Response::Response(Message::Type type)
     : Message(Message::RESPONSE, type)

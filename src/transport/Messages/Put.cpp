@@ -1,5 +1,4 @@
 #include "transport/Messages/Put.hpp"
-#include "utils/memory.hpp"
 
 Transport::Request::Put::Put()
     : Request(PUT),

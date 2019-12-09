@@ -6,8 +6,6 @@ set(MPI_SRC
   ${CMAKE_CURRENT_SOURCE_DIR}/EndpointGroup.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/Init.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/Instance.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/Packer.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/RangeServer.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/Unpacker.cpp
 
   PARENT_SCOPE)

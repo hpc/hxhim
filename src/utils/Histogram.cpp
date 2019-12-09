@@ -33,7 +33,7 @@ static int generate_using_bin_count(const double &min, const double &max, const 
         return HISTOGRAM_ERROR;
     }
 
-    double *bins = new double[bin_count]();
+    double *bins = alloc_array<double>(bin_count);
     if (!bins) {
         return HISTOGRAM_ERROR;
     }
@@ -59,7 +59,7 @@ int histogram_n_buckets(const double *first_n, const size_t n, double **buckets,
     }
 
     *size = * (std::size_t *) extra;
-    if (!(*buckets = new double[*size]())) {
+    if (!(*buckets = alloc_array<double>(*size))) {
         return HISTOGRAM_ERROR;
     }
 
@@ -257,10 +257,10 @@ int Histogram::get(double **buckets, std::size_t **counts, std::size_t *size) co
 void Histogram::clear() {
     data_size = 0;
 
-    delete buckets_;
+    dealloc_array(buckets_, size_);
     buckets_ = nullptr;
 
-    delete counts_;
+    dealloc_array(counts_, size_);
     counts_ = nullptr;
 
     size_ = 0;
@@ -278,7 +278,7 @@ int Histogram::gen_counts() {
     }
 
     if (size_) {
-        counts_ = new std::size_t[size_]();
+        counts_ = alloc_array<std::size_t>(size_);
     }
 
     return counts_?HISTOGRAM_SUCCESS:HISTOGRAM_ERROR;

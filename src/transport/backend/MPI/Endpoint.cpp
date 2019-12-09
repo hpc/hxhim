@@ -36,16 +36,16 @@ Response::Get *Endpoint::communicate(const Request::Get *message) {
     return do_operation<Request::Get, Response::Get>(message);
 }
 
-// /**
-//  * get2
-//  * Sends a Request::Get2 to the other end of the endpoint
-//  *
-//  * @param request the initiating GET2 message
-//  * @return a pointer to the response of the GET2 operation
-//  */
-// Response::Get2 *Endpoint::communicate(const Request::Get2 *message) {
-//     return do_operation<Request::Get2, Response::Get2>(message);
-// }
+/**
+ * get2
+ * Sends a Request::Get2 to the other end of the endpoint
+ *
+ * @param request the initiating GET2 message
+ * @return a pointer to the response of the GET2 operation
+ */
+Response::Get2 *Endpoint::communicate(const Request::Get2 *message) {
+    return do_operation<Request::Get2, Response::Get2>(message);
+}
 
 /**
  * Delete

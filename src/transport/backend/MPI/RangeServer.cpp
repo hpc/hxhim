@@ -1,9 +1,7 @@
 #include "hxhim/private.hpp"
 #include "hxhim/range_server.hpp"
 #include "hxhim/struct.h"
-#include "transport/backend/MPI/Packer.hpp"
 #include "transport/backend/MPI/RangeServer.hpp"
-#include "transport/backend/MPI/Unpacker.hpp"
 #include "transport/backend/MPI/constants.h"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
@@ -65,7 +63,7 @@ void RangeServer::listener_thread() {
 
         // decode request
         Request::Request *request = nullptr;
-        Unpacker::unpack(hx_->p->bootstrap.comm, &request, req, len);
+        Unpacker::unpack(&request, req, len);
         ::operator delete(req);
 
         // process request
@@ -75,7 +73,7 @@ void RangeServer::listener_thread() {
         // encode result
         void *res = nullptr;
         len = 0;
-        Packer::pack(hx_->p->bootstrap.comm, response, &res, &len);
+        Packer::pack(response, &res, &len);
 
         // send result
         const int ret = send(response->dst, res, len);

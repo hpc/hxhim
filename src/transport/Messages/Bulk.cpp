@@ -1,6 +1,4 @@
 #include "transport/Messages/Bulk.hpp"
-#include "transport/constants.hpp"
-#include "utils/memory.hpp"
 
 Transport::Bulk::Bulk()
     : ds_offsets(nullptr),
@@ -8,7 +6,9 @@ Transport::Bulk::Bulk()
       max_count(0)
 {}
 
-Transport::Bulk::~Bulk() {}
+Transport::Bulk::~Bulk() {
+    cleanup();
+}
 
 int Transport::Bulk::alloc(const std::size_t max) {
     Bulk::cleanup();

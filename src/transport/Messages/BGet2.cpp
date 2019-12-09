@@ -1,5 +1,4 @@
 #include "transport/Messages/BGet2.hpp"
-#include "utils/memory.hpp"
 
 Transport::Request::BGet2::BGet2(const std::size_t max)
     : Request(BGET2),
@@ -83,7 +82,6 @@ int Transport::Request::BGet2::cleanup() {
     dealloc_array(src_object_lens, count);
     src_object_lens = nullptr;
 
-    Bulk::cleanup();
 
     return TRANSPORT_SUCCESS;
 }
@@ -178,7 +176,6 @@ int Transport::Response::BGet2::cleanup() {
     dealloc_array(src_object_lens, count);
     src_object_lens = nullptr;
 
-    Bulk::cleanup();
 
     return TRANSPORT_SUCCESS;
 }

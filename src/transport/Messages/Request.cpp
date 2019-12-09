@@ -1,5 +1,4 @@
 #include "transport/Messages/Request.hpp"
-#include "utils/memory.hpp"
 
 Transport::Request::Request::Request(Message::Type type)
     : Message(Message::REQUEST, type)
