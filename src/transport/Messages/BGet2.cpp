@@ -124,9 +124,7 @@ std::size_t Transport::Response::BGet2::size() const {
             sizeof(statuses[i]) +
             sizeof(subject_lens[i]) +
             sizeof(predicate_lens[i]) +
-            sizeof(object_types[i]) +
-            (*object_lens)[i] +
-            sizeof((*object_lens)[i]) +
+            sizeof(object_types[i]) + *(object_lens[i]) + sizeof((*object_lens)[i]) +
             sizeof(orig.subjects[i]) +
             sizeof(orig.predicates[i]) +
             sizeof(orig.objects[i]) + sizeof(orig.object_lens[i]);

@@ -299,7 +299,6 @@ static Transport::Response::BGet2 *bget2(hxhim_t *hx, const Transport::Request::
                                                                                       orig_objects[ds], orig_object_lens[ds],
                                                                                       counters[ds], req->src == req->dst);
 
-        (void) response->size();
         if (response) {
             // merge the responses into one message to respond with
             res->merge(response, ds);
