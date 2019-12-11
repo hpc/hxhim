@@ -122,6 +122,10 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
 
     mlog(THALLIUM_DBG, "Processing Messages in %zu buffers", messages.size());
 
+    // buffer used for rdma
+    void *buf = alloc(buffer_size);
+    memset(buf, 0, buffer_size);
+
     for(REF(messages)::value_type const &message : messages) {
         Send_t *req = message.second;
 
@@ -140,9 +144,6 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
             continue;
         }
 
-        // buffer used for rdma
-        void *buf = nullptr;
-
         // pack the request
         // doing some bad stuff here: the actual allocated buffer should be large enough to allow for responses
         std::size_t req_size = 0;
@@ -152,8 +153,6 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
         }
 
         mlog(THALLIUM_WARN, "Sending message to %d packed into a buffer of size %zu", req->dst, req_size);
-
-        buf = realloc(buf, buffer_size);
 
         // create the bulk message, send it, and get the size in response the response data is in buf
         std::vector<std::pair<void *, std::size_t> > segments = {std::make_pair(buf, buffer_size)};
@@ -170,8 +169,6 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
             mlog(THALLIUM_WARN, "Unable to unpack message");
             continue;
         }
-
-        dealloc(buf);
 
         mlog(THALLIUM_DBG, "Unpacked %zu byte response from %d", response_size, req->dst);
 
@@ -190,6 +187,8 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
 
         mlog(THALLIUM_DBG, "Done processing message to %d", req->dst);
     }
+
+    dealloc(buf);
 
     mlog(THALLIUM_DBG, "Done processing messages");
 
