@@ -42,6 +42,7 @@ struct BGetOp final : Response, Bulk {
     std::size_t size() const;
 
     int alloc(const std::size_t max);
+    int merge(BGetOp *bgetop);
     int cleanup();
 
     int *statuses;

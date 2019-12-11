@@ -23,9 +23,11 @@ Results::Get::~Get() {
 }
 
 Results::Get2::~Get2() {
-    dealloc(subject);
-    dealloc(predicate);
-    // object and object_len came from user space
+    if (!local) {
+        dealloc(subject);
+        dealloc(predicate);
+        // dealloc(object);
+   }
 }
 
 Results::Put *Result::init(hxhim_t *hx, Transport::Response::Put *put) {
@@ -88,6 +90,7 @@ Results::Get2 *Result::init(hxhim_t *hx, Transport::Response::Get2 *get) {
     out->type = hxhim_result_type::HXHIM_RESULT_GET2;
     out->datastore = hxhim::datastore::get_id(hx, get->src, get->ds_offset);
     out->status = get->status;
+    out->local = (get->src == get->dst);
 
     get->subject = nullptr;
     get->predicate = nullptr;
@@ -127,17 +130,19 @@ Results::Get2 *Result::init(hxhim_t *hx, Transport::Response::BGet2 *bget, const
     out->type = hxhim_result_type::HXHIM_RESULT_GET2;
     out->datastore = hxhim::datastore::get_id(hx, bget->src, bget->ds_offsets[i]);
     out->status = bget->statuses[i];
-    out->subject = bget->subjects[i];
+    out->subject = bget->orig.subjects[i];
     out->subject_len = bget->subject_lens[i];
-    out->predicate = bget->predicates[i];
+    out->predicate = bget->orig.predicates[i];
     out->predicate_len = bget->predicate_lens[i];
     out->object_type = bget->object_types[i];
     out->object = bget->objects[i];
     out->object_len = bget->object_lens[i];
+    out->local = (bget->src == bget->dst);
 
     bget->subjects[i] = nullptr;
     bget->predicates[i] = nullptr;
     bget->objects[i] = nullptr;
+
     return out;
 }
 
@@ -622,7 +627,7 @@ int hxhim_results_get_object(hxhim_results_t *res, void **object, size_t *object
     }
 
     hxhim::Results::Result *curr = res->res->Curr();
-    if ((curr->type == hxhim_result_type::HXHIM_RESULT_GET) || (curr->type == hxhim_result_type::HXHIM_RESULT_GET2)) {
+    if (curr->type == hxhim_result_type::HXHIM_RESULT_GET) {
         hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(curr);
         if (object) {
             *object = get->object;

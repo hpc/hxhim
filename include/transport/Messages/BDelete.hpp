@@ -38,6 +38,7 @@ struct BDelete final : Response, Bulk {
     std::size_t size() const;
 
     int alloc(const std::size_t max);
+    int merge(BDelete *bdel);
     int cleanup();
 
     int *statuses;

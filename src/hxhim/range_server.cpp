@@ -231,10 +231,10 @@ static Transport::Response::BGet2 *bget2(hxhim_t *hx, const Transport::Request::
     void ***predicates = alloc_array<void **>(hx->p->datastore.count);
     std::size_t **predicate_lens = alloc_array<std::size_t *>(hx->p->datastore.count);
     hxhim_type_t **object_types = alloc_array<hxhim_type_t *>(hx->p->datastore.count);
-    void ***objects = alloc_array<void **>(hx->p->datastore.count);
-    std::size_t ***object_lens = alloc_array<std::size_t **>(hx->p->datastore.count);
-    void ***src_objects = alloc_array<void **>(hx->p->datastore.count);
-    std::size_t ***src_object_lens = alloc_array<std::size_t **>(hx->p->datastore.count);
+    void ***orig_subjects = alloc_array<void **>(hx->p->datastore.count);
+    void ***orig_predicates = alloc_array<void **>(hx->p->datastore.count);
+    void ***orig_objects = alloc_array<void **>(hx->p->datastore.count);
+    std::size_t ***orig_object_lens = alloc_array<std::size_t **>(hx->p->datastore.count);
     std::size_t *counters = alloc_array<std::size_t>(hx->p->datastore.count);
 
     // each datastore array is overallocated in case
@@ -245,10 +245,10 @@ static Transport::Response::BGet2 *bget2(hxhim_t *hx, const Transport::Request::
         predicates[ds] = alloc_array<void *>(req->count);
         predicate_lens[ds] = alloc_array<std::size_t>(req->count);
         object_types[ds] = alloc_array<hxhim_type_t>(req->count);
-        objects[ds] = alloc_array<void *>(req->count);
-        object_lens[ds] = alloc_array<std::size_t *>(req->count);
-        src_objects[ds] = alloc_array<void *>(req->count);
-        src_object_lens[ds] = alloc_array<std::size_t *>(req->count);
+        orig_subjects[ds] = alloc_array<void *>(req->count);
+        orig_predicates[ds] = alloc_array<void *>(req->count);
+        orig_objects[ds] = alloc_array<void *>(req->count);
+        orig_object_lens[ds] = alloc_array<std::size_t *>(req->count);
         counters[ds] = 0;
     }
 
@@ -264,11 +264,23 @@ static Transport::Response::BGet2 *bget2(hxhim_t *hx, const Transport::Request::
         predicate_lens[ds][index] = req->predicate_lens[i];
 
         object_types[ds][index] = req->object_types[i];
-        objects[ds][index] = req->objects[i];
-        object_lens[ds][index] = req->object_lens[i];
 
-        src_objects[ds][index] = req->src_objects[i];
-        src_object_lens[ds][index] = req->src_object_lens[i];
+        if (req->src != req->dst) {
+            orig_subjects[ds][index] = req->orig.subjects[i];
+
+            orig_predicates[ds][index] = req->orig.predicates[i];
+
+            orig_objects[ds][index] = req->orig.objects[i];
+            orig_object_lens[ds][index] = req->orig.object_lens[i];
+        }
+        else {
+            orig_subjects[ds][index] = req->subjects[i];
+
+            orig_predicates[ds][index] = req->predicates[i];
+
+            orig_objects[ds][index] = req->objects[i];
+            orig_object_lens[ds][index] = req->object_lens[i];
+        }
 
         index++;
     }
@@ -279,57 +291,44 @@ static Transport::Response::BGet2 *bget2(hxhim_t *hx, const Transport::Request::
     res->dst = req->src;
 
     for(std::size_t ds = 0; ds < hx->p->datastore.count; ds++) {
-        Transport::Response::BGet2 *response = hx->p->datastore.datastores[ds]->BGet2(&subjects[ds], &subject_lens[ds],
-                                                                                      &predicates[ds], &predicate_lens[ds],
-                                                                                      &object_types[ds], &objects[ds], &object_lens[ds],
-                                                                                      &src_objects[ds], &src_object_lens[ds],
-                                                                                      counters[ds]);
+        Transport::Response::BGet2 *response = hx->p->datastore.datastores[ds]->BGet2(subjects[ds], subject_lens[ds],
+                                                                                      predicates[ds], predicate_lens[ds],
+                                                                                      object_types[ds],
+                                                                                      orig_subjects[ds],
+                                                                                      orig_predicates[ds],
+                                                                                      orig_objects[ds], orig_object_lens[ds],
+                                                                                      counters[ds], req->src == req->dst);
 
+        (void) response->size();
         if (response) {
-            // move the response into a bulk packet for sending
-            for(std::size_t j = 0; j < response->count; j++) {
-                size_t &count = res->count;
-                res->ds_offsets[count] = ds;
-                res->statuses[count] = response->statuses[j];
-
-                std::swap(res->subjects[count], response->subjects[j]);
-                response->subjects[j] = nullptr;
-                res->subject_lens[count] = response->subject_lens[j];
-
-                std::swap(res->predicates[count], response->predicates[j]);
-                response->predicates[j] = nullptr;
-                res->predicate_lens[count] = response->predicate_lens[j];
-
-                std::swap(res->object_types[count], response->object_types[j]);
-                if (res->statuses[count] == HXHIM_SUCCESS) {
-                    std::swap(res->objects[count], response->objects[j]);
-                    response->objects[j] = nullptr;
-                    res->object_lens[count] = response->object_lens[j];
-                }
-
-                std::swap(res->src_objects[count], response->src_objects[j]);
-                response->src_objects[j] = nullptr;
-                res->src_object_lens[count] = response->src_object_lens[j];
-
-                count++;
-            }
-
+            // merge the responses into one message to respond with
+            res->merge(response, ds);
             destruct(response);
         }
+
+        // clean up datastore arrays, but not the data contained in them, since they are copied
+        dealloc_array(subjects[ds], hx->p->datastore.count);
+        dealloc_array(subject_lens[ds], hx->p->datastore.count);
+        dealloc_array(predicates[ds], hx->p->datastore.count);
+        dealloc_array(predicate_lens[ds], hx->p->datastore.count);
+        dealloc_array(object_types[ds], hx->p->datastore.count);
+        dealloc_array(orig_subjects[ds], hx->p->datastore.count);
+        dealloc_array(orig_predicates[ds], hx->p->datastore.count);
+        dealloc_array(orig_objects[ds], hx->p->datastore.count);
+        dealloc_array(orig_object_lens[ds], hx->p->datastore.count);
     }
 
-    // don't clean up each datastore's arrays
-    // they were cleaned up by responses
-
+    // clean up the arrays of datastore arrays, but
+    // not all of the individual datastore data
     dealloc_array(subjects, hx->p->datastore.count);
     dealloc_array(subject_lens, hx->p->datastore.count);
     dealloc_array(predicates, hx->p->datastore.count);
     dealloc_array(predicate_lens, hx->p->datastore.count);
     dealloc_array(object_types, hx->p->datastore.count);
-    dealloc_array(objects, hx->p->datastore.count);
-    dealloc_array(object_lens, hx->p->datastore.count);
-    dealloc_array(src_objects, hx->p->datastore.count);
-    dealloc_array(src_object_lens, hx->p->datastore.count);
+    dealloc_array(orig_subjects, hx->p->datastore.count);
+    dealloc_array(orig_predicates, hx->p->datastore.count);
+    dealloc_array(orig_objects, hx->p->datastore.count);
+    dealloc_array(orig_object_lens, hx->p->datastore.count);
     dealloc_array(counters, hx->p->datastore.count);
 
     return res;

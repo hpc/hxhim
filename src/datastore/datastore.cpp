@@ -149,17 +149,21 @@ Transport::Response::BGet *Datastore::BGet(void **subjects, std::size_t *subject
                     count);
 }
 
-Transport::Response::BGet2 *Datastore::BGet2(void ***subjects, std::size_t **subject_lens,
-                                             void ***predicates, std::size_t **predicate_lens,
-                                             hxhim_type_t **object_types, void ***objects, std::size_t ***object_lens,
-                                             void ***src_objects, std::size_t ***src_object_lens,
-                                             std::size_t count) {
+Transport::Response::BGet2 *Datastore::BGet2(void **subjects, std::size_t *subject_lens,
+                                             void **predicates, std::size_t *predicate_lens,
+                                             hxhim_type_t *object_types,
+                                             void **src_subjects,
+                                             void **src_predicates,
+                                             void **src_objects, std::size_t **src_object_lens,
+                                             std::size_t count, const bool local) {
     std::lock_guard<std::mutex> lock(mutex);
     return BGetImpl2(subjects, subject_lens,
                      predicates, predicate_lens,
-                     object_types, objects, object_lens,
+                     object_types,
+                     src_subjects,
+                     src_predicates,
                      src_objects, src_object_lens,
-                     count);
+                     count, local);
 }
 
 Transport::Response::BGetOp *Datastore::BGetOp(void *subject, std::size_t subject_len,

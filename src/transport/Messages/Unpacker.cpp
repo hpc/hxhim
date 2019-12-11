@@ -433,34 +433,39 @@ int Unpacker::unpack(Request::BGet2 **bgm, void *buf, const std::size_t bufsize)
         memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
         curr += sizeof(out->ds_offsets[i]);
 
+        // subject len, data, data addr
         memcpy(&out->subject_lens[i], curr, sizeof(out->subject_lens[i]));
         curr += sizeof(out->subject_lens[i]);
 
-        memcpy(&out->predicate_lens[i], curr, sizeof(out->predicate_lens[i]));
-        curr += sizeof(out->predicate_lens[i]);
-
-        memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
-        curr += sizeof(out->object_types[i]);
-
-        // read the value of objects[i] (address)
-        memcpy(&out->src_objects[i], curr, sizeof(out->src_objects[i]));
-        curr += sizeof(out->src_objects[i]);
-
-        // read the value of object_lens[i] (address)
-        memcpy(&out->src_object_lens[i], curr, sizeof(out->src_object_lens[i]));
-        curr += sizeof(out->src_object_lens[i]);
-
-        if ((out->subject_lens[i]   && !(out->subjects[i]   = alloc(out->subject_lens[i])))   ||
-            (out->predicate_lens[i] && !(out->predicates[i] = alloc(out->predicate_lens[i])))) {
-            destruct(out);
-            return TRANSPORT_ERROR;
-        }
-
+        out->subjects[i] = alloc(out->subject_lens[i]);        // errors will throw, so don't bother checking
         memcpy(out->subjects[i], curr, out->subject_lens[i]);
         curr += out->subject_lens[i];
 
+        memcpy(&out->orig.subjects[i], curr, sizeof(out->orig.subjects[i]));
+        curr += sizeof(out->orig.subjects[i]);
+
+
+        // predicate len, data, data addr
+        memcpy(&out->predicate_lens[i], curr, sizeof(out->predicate_lens[i]));
+        curr += sizeof(out->predicate_lens[i]);
+
+        out->predicates[i] = alloc(out->predicate_lens[i]);        // errors will throw, so don't bother checking
         memcpy(out->predicates[i], curr, out->predicate_lens[i]);
         curr += out->predicate_lens[i];
+
+        memcpy(&out->orig.predicates[i], curr, sizeof(out->orig.predicates[i]));
+        curr += sizeof(out->orig.predicates[i]);
+
+
+        // object type, addr, len addr
+        memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
+        curr += sizeof(out->object_types[i]);
+
+        memcpy(&out->orig.objects[i], curr, sizeof(out->orig.objects[i]));
+        curr += sizeof(out->orig.objects[i]);
+
+        memcpy(&out->orig.object_lens[i], curr, sizeof(out->orig.object_lens[i]));
+        curr += sizeof(out->orig.object_lens[i]);
 
         out->count++;
     }
@@ -1029,36 +1034,35 @@ int Unpacker::unpack(Response::BGet2 **bgm, void *buf, const std::size_t bufsize
         memcpy(&out->statuses[i], curr, sizeof(out->statuses[i]));
         curr += sizeof(out->statuses[i]);
 
+        // subject len
         memcpy(&out->subject_lens[i], curr, sizeof(out->subject_lens[i]));
         curr += sizeof(out->subject_lens[i]);
 
+        // subject addr
+        memcpy(&out->subjects[i], curr, sizeof(out->subjects[i]));
+        curr += sizeof(out->subjects[i]);
+
+        // predicate len
         memcpy(&out->predicate_lens[i], curr, sizeof(out->predicate_lens[i]));
         curr += sizeof(out->predicate_lens[i]);
 
+        // predicate addr
+        memcpy(&out->predicates[i], curr, sizeof(out->predicates[i]));
+        curr += sizeof(out->predicates[i]);
+
+        // object type
         memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
         curr += sizeof(out->object_types[i]);
 
-        if ((out->subject_lens[i] && !(out->subjects[i] = alloc(out->subject_lens[i])))       ||
-            (out->predicate_lens[i] && !(out->predicates[i] = alloc(out->predicate_lens[i])))) {
-            destruct(out);
-            return TRANSPORT_ERROR;
-        }
+        // orig.object_lens[i] on the other side
+        memcpy(&out->object_lens[i], curr, sizeof(out->object_lens[i]));
+        curr += sizeof(out->object_lens[i]);
 
-        memcpy(out->subjects[i], curr, out->subject_lens[i]);
-        curr += out->subject_lens[i];
-
-        memcpy(out->predicates[i], curr, out->predicate_lens[i]);
-        curr += out->predicate_lens[i];
+        // orig.objects[i] on the other side
+        memcpy(&out->objects[i], curr, sizeof(out->objects[i]));
+        curr += sizeof(out->objects[i]);
 
         if (out->statuses[i] == HXHIM_SUCCESS) {
-            // read the address of the object (should still be valid)
-            memcpy(&out->objects[i], curr, sizeof(out->objects[i]));
-            curr += sizeof(out->objects[i]);
-
-            // read the address of the object_len (should still be valid)
-            memcpy(&out->object_lens[i], curr, sizeof(out->object_lens[i]));
-            curr += sizeof(out->object_lens[i]);
-
             memcpy(out->object_lens[i], curr, sizeof(*(out->object_lens[i])));
             curr += sizeof(*(out->object_lens[i]));
 

@@ -22,16 +22,24 @@ struct BGet2 final : Request, Bulk {
     int alloc(const std::size_t max);
     int cleanup();
 
+    // used by src
     void **subjects;
     std::size_t *subject_lens;
     void **predicates;
     std::size_t *predicate_lens;
     hxhim_type_t *object_types;
+
+    // used by dst
     void **objects;
     std::size_t **object_lens;
 
-    void **src_objects;
-    size_t **src_object_lens;
+    // filled in by src, to be sent back to src
+    struct {
+        void **subjects;
+        void **predicates;
+        void **objects;
+        std::size_t **object_lens;
+    } orig;
 };
 
 }
@@ -47,20 +55,29 @@ struct BGet2 final : Response, Bulk {
     std::size_t size() const;
 
     int alloc(const std::size_t max);
+    int merge(BGet2 *bget, const int ds);
     int cleanup();
 
     int *statuses;
 
+    // used by dst
     void **subjects;
     std::size_t *subject_lens;
     void **predicates;
     std::size_t *predicate_lens;
     hxhim_type_t *object_types;
+
+    // used by src
     void **objects;
     std::size_t **object_lens;
 
-    void **src_objects;
-    size_t **src_object_lens;
+    // filled by src, to be sent to the dst
+    struct {
+        void **subjects;
+        void **predicates;
+        void **objects;
+        std::size_t **object_lens;
+    } orig;
 
     BGet2 *next;
 };

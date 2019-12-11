@@ -37,7 +37,7 @@ Msg *next(Msg *curr) {
     }
 
     Msg *next = curr->next;
-    delete curr;
+    dealloc(curr);
     return next;
 }
 

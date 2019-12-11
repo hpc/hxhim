@@ -93,6 +93,8 @@ class Results {
             hxhim_type_t object_type;
             void *object;
             std::size_t *object_len;
+
+            bool local;
         };
 
         /** @description Convenience struct for DEL results */

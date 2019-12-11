@@ -68,7 +68,7 @@ int main(int argc, char * argv[]) {
     MPI_Barrier(MPI_COMM_WORLD);
 
     /* read */
-    if (rank == 1)
+    /* if (rank != 0) */
     {
         hid_t file_id = H5Fopen("/tmp/hxhim", H5F_ACC_RDWR, fapl);
         hid_t dataspace_id = H5Screate_simple(1, &dims, NULL);
@@ -84,6 +84,8 @@ int main(int argc, char * argv[]) {
         hid_t read_str_dataset_id = H5Dopen(file_id, "/group/string", H5P_DEFAULT);
         char read_str[1024] = {};
         H5Dread(read_str_dataset_id, H5T_C_S1, H5S_ALL, dataspace_id, H5P_DEFAULT, read_str);
+
+        printf("%p %p %p\n", read_ints, read_doubles, read_str);
 
         H5Fflush(file_id, H5F_SCOPE_GLOBAL);
 

@@ -270,28 +270,38 @@ int Packer::pack(const Request::BGet2 *bgm, void **buf, std::size_t *bufsize) {
         memcpy(curr, &bgm->ds_offsets[i], sizeof(bgm->ds_offsets[i]));
         curr += sizeof(bgm->ds_offsets[i]);
 
+
+        // subject len, data, data addr
         memcpy(curr, &bgm->subject_lens[i], sizeof(bgm->subject_lens[i]));
         curr += sizeof(bgm->subject_lens[i]);
-
-        memcpy(curr, &bgm->predicate_lens[i], sizeof(bgm->predicate_lens[i]));
-        curr += sizeof(bgm->predicate_lens[i]);
-
-        memcpy(curr, &bgm->object_types[i], sizeof(bgm->object_types[i]));
-        curr += sizeof(bgm->object_types[i]);
-
-        // send the address stored at objects[i];
-        memcpy(curr, &(bgm->objects[i]), sizeof(bgm->objects[i]));
-        curr += sizeof(bgm->objects[i]);
-
-        // send the address stored at object_lens[i];
-        memcpy(curr, &(bgm->object_lens[i]), sizeof(bgm->object_lens[i]));
-        curr += sizeof(bgm->object_lens[i]);
 
         memcpy(curr, bgm->subjects[i], bgm->subject_lens[i]);
         curr += bgm->subject_lens[i];
 
+        memcpy(curr, &bgm->subjects[i], sizeof(bgm->subjects[i]));
+        curr += sizeof(bgm->subjects[i]);
+
+
+        // predicate len, data, data addr
+        memcpy(curr, &bgm->predicate_lens[i], sizeof(bgm->predicate_lens[i]));
+        curr += sizeof(bgm->predicate_lens[i]);
+
         memcpy(curr, bgm->predicates[i], bgm->predicate_lens[i]);
         curr += bgm->predicate_lens[i];
+
+        memcpy(curr, &bgm->predicates[i], sizeof(bgm->predicates[i]));
+        curr += sizeof(bgm->predicates[i]);
+
+
+        // object type, addr, len addr
+        memcpy(curr, &bgm->object_types[i], sizeof(bgm->object_types[i]));
+        curr += sizeof(bgm->object_types[i]);
+
+        memcpy(curr, &(bgm->objects[i]), sizeof(bgm->objects[i]));
+        curr += sizeof(bgm->objects[i]);
+
+        memcpy(curr, &(bgm->object_lens[i]), sizeof(bgm->object_lens[i]));
+        curr += sizeof(bgm->object_lens[i]);
     }
 
     return TRANSPORT_SUCCESS;
@@ -654,30 +664,35 @@ int Packer::pack(const Response::BGet2 *bgm, void **buf, std::size_t *bufsize) {
         memcpy(curr, &bgm->statuses[i], sizeof(bgm->statuses[i]));
         curr += sizeof(bgm->statuses[i]);
 
+        // subject len
         memcpy(curr, &bgm->subject_lens[i], sizeof(bgm->subject_lens[i]));
         curr += sizeof(bgm->subject_lens[i]);
 
+        // subject addr
+        memcpy(curr, &bgm->orig.subjects[i], sizeof(bgm->orig.subjects[i]));
+        curr += sizeof(bgm->orig.subjects[i]);
+
+        // predicate len
         memcpy(curr, &bgm->predicate_lens[i], sizeof(bgm->predicate_lens[i]));
         curr += sizeof(bgm->predicate_lens[i]);
 
+        // predicate addr
+        memcpy(curr, &bgm->orig.predicates[i], sizeof(bgm->orig.predicates[i]));
+        curr += sizeof(bgm->orig.predicates[i]);
+
+        // object type
         memcpy(curr, &bgm->object_types[i], sizeof(bgm->object_types[i]));
         curr += sizeof(bgm->object_types[i]);
 
-        memcpy(curr, bgm->subjects[i], bgm->subject_lens[i]);
-        curr += bgm->subject_lens[i];
+        // object len addr
+        memcpy(curr, &bgm->orig.object_lens[i], sizeof(bgm->orig.object_lens[i]));
+        curr += sizeof(bgm->orig.object_lens[i]);
 
-        memcpy(curr, bgm->predicates[i], bgm->predicate_lens[i]);
-        curr += bgm->predicate_lens[i];
+        // object addr
+        memcpy(curr, &bgm->orig.objects[i], sizeof(bgm->orig.objects[i]));
+        curr += sizeof(bgm->orig.objects[i]);
 
         if (bgm->statuses[i] == HXHIM_SUCCESS) {
-            // write the address of the object the other side should use
-            memcpy(curr, &bgm->src_objects[i], sizeof(bgm->src_objects[i]));
-            curr += sizeof(bgm->src_objects[i]);
-
-            // write the address of the object_len the other side should use
-            memcpy(curr, &bgm->src_object_lens[i], sizeof(bgm->src_object_lens[i]));
-            curr += sizeof(bgm->src_object_lens[i]);
-
             memcpy(curr, bgm->object_lens[i], sizeof(*(bgm->object_lens[i])));
             curr += sizeof(*(bgm->object_lens[i]));
 

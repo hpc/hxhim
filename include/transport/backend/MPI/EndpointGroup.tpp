@@ -26,7 +26,7 @@ std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::unordered_ma
     }
 
     // pack the data
-    void **bufs = alloc_array<void *>(messages.size());
+    void **bufs = alloc_array<void *>(messages.size(), nullptr);
     std::size_t pack_count = 0;
     for(REF(messages)::value_type const &message : messages) {
         Send_t *msg = message.second;

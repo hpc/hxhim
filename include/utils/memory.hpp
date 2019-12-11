@@ -24,11 +24,11 @@ void destruct(T *ptr) {
     dealloc(ptr);
 }
 
-template <typename T>
-T *alloc_array(const std::size_t count) {
+template <typename T, typename... Args>
+T *alloc_array(const std::size_t count, Args&&... args) {
     T *array = static_cast<T *>(alloc(sizeof(T) * count));
     for(std::size_t i = 0; i < count; i++) {
-        new (&(array[i])) T();
+        new (&(array[i])) T(std::forward<Args>(args)...);
     }
 
     return array;

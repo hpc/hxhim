@@ -138,7 +138,7 @@ Response::BPut *leveldb::BPutImpl(void **subjects, std::size_t *subject_lens,
         batch.Put(::leveldb::Slice((char *) key, key_len), ::leveldb::Slice((char *) objects[i], object_lens[i]));
         clock_gettime(CLOCK_MONOTONIC, &end);
 
-        ::operator delete(key);
+        dealloc(key);
 
         stats.puts++;
         stats.put_times += nano(start, end);
@@ -201,7 +201,7 @@ Response::BGet *leveldb::BGetImpl(void **subjects, std::size_t *subject_lens,
         ::leveldb::Status status = db->Get(::leveldb::ReadOptions(), k, value);
         clock_gettime(CLOCK_MONOTONIC, &end);
 
-        ::operator delete(key);
+        dealloc(key);
 
         // need to copy subject
         ret->subject_lens[i] = subject_lens[i];
@@ -246,27 +246,14 @@ Response::BGet *leveldb::BGetImpl(void **subjects, std::size_t *subject_lens,
  * @param prediate_lens the lengths of the prediates to put
  * @return pointer to a list of results
  */
-Response::BGet2 *leveldb::BGetImpl2(void ***subjects, std::size_t **subject_lens,
-                                    void ***predicates, std::size_t **predicate_lens,
-                                    hxhim_type_t **object_types, void ***objects, std::size_t ***object_lens,
-                                    void ***src_objects, std::size_t ***src_object_lens,
-                                    std::size_t count) {
-    Response::BGet2 *ret = construct<Response::BGet2>(0);
-
-    // statuses was not createed because the provided size was 0
-    ret->statuses = new int[count];
-
-    // move request data into the response
-    // instead of doing memcopy of each SPO
-    ret->subjects = *subjects;
-    ret->subject_lens = *subject_lens;
-    ret->predicates = *predicates;
-    ret->predicate_lens = *predicate_lens;
-    ret->object_types = *object_types;
-    ret->objects = *objects;
-    ret->object_lens = *object_lens;
-    ret->src_objects = *src_objects;
-    ret->src_object_lens = *src_object_lens;
+Response::BGet2 *leveldb::BGetImpl2(void **subjects, std::size_t *subject_lens,
+                                    void **predicates, std::size_t *predicate_lens,
+                                    hxhim_type_t *object_types,
+                                    void **orig_subjects,
+                                    void **orig_predicates,
+                                    void **orig_objects, std::size_t **orig_object_lens,
+                                    std::size_t count, const bool local) {
+    Response::BGet2 *ret = construct<Response::BGet2>(count);
     ret->count = count;
 
     for(std::size_t i = 0; i < count; i++) {
@@ -274,7 +261,7 @@ Response::BGet2 *leveldb::BGetImpl2(void ***subjects, std::size_t **subject_lens
 
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key((*subjects)[i], (*subject_lens)[i], (*predicates)[i], (*predicate_lens)[i], &key, &key_len);
+        sp_to_key(subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &key, &key_len);
 
         // create the key
         const ::leveldb::Slice k((char *) key, key_len);
@@ -285,15 +272,27 @@ Response::BGet2 *leveldb::BGetImpl2(void ***subjects, std::size_t **subject_lens
         ::leveldb::Status status = db->Get(::leveldb::ReadOptions(), k, value);
         clock_gettime(CLOCK_MONOTONIC, &end);
 
-        ::operator delete(key);
+        dealloc(key);
 
-        // add to results list
+        // move data into ret
+        ret->subjects[i] = subjects[i];
+        ret->subject_lens[i] = subject_lens[i];
+        ret->predicates[i] = predicates[i];
+        ret->predicate_lens[i] = predicate_lens[i];
+        ret->object_types[i] = object_types[i];
+
+        // copy requester addresses
+        ret->orig.subjects[i] = orig_subjects[i];
+        ret->orig.predicates[i] = orig_predicates[i];
+        ret->orig.objects[i] = orig_objects[i];
+        ret->orig.object_lens[i] = orig_object_lens[i];
+
+        // copy object
         if (status.ok()) {
             ret->statuses[i] = HXHIM_SUCCESS;
-            // need to allocate space here since object_lens[i] is a pointer, not the actual value
-            ret->object_lens[i] = construct<REF(*(ret->object_lens[i]))>();
+            ret->object_lens[i] = local?orig_object_lens[i]:(construct<std::size_t>());
             *(ret->object_lens[i]) = value.size();
-            ret->objects[i] = alloc(*(ret->object_lens[i]));
+            ret->objects[i] = local?orig_objects[i]:alloc(*(ret->object_lens[i]));
             memcpy(ret->objects[i], value.data(), *(ret->object_lens[i]));
         }
         else {
@@ -304,17 +303,6 @@ Response::BGet2 *leveldb::BGetImpl2(void ***subjects, std::size_t **subject_lens
         stats.gets++;
         stats.get_times += nano(start, end);
     }
-
-    // remove ownership from input
-    *subjects = nullptr;
-    *subject_lens = nullptr;
-    *predicates = nullptr;
-    *predicate_lens = nullptr;
-    *object_types = nullptr;
-    *objects = nullptr;
-    *object_lens = nullptr;
-    *src_objects = nullptr;
-    *src_object_lens = nullptr;
 
     return ret;
 }
@@ -348,7 +336,7 @@ Response::BGetOp *leveldb::BGetOpImpl(void *subject, std::size_t subject_len,
     it->Seek(::leveldb::Slice((char *) key, key_len));
     clock_gettime(CLOCK_MONOTONIC, &end);
 
-    ::operator delete(key);
+    dealloc(key);
 
     // add in the time to get the first key-value without adding to the counter
     stats.get_times += nano(start, end);
@@ -438,7 +426,7 @@ Response::BDelete *leveldb::BDeleteImpl(void **subjects, std::size_t *subject_le
 
         batch.Delete(::leveldb::Slice((char *) key, key_len));
 
-        ::operator delete(key);
+        dealloc(key);
     }
 
     // create responses
