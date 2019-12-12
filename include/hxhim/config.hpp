@@ -41,8 +41,11 @@ const std::string TRANSPORT                   = "TRANSPORT";                 // 
 /** MPI Options */
 const std::string MPI_LISTENERS               = "NUM_LISTENERS";             // positive integer
 
+#if HXHIM_HAVE_THALLIUM
 /** Thallium Options */
 const std::string THALLIUM_MODULE             = "THALLIUM_MODULE";           // See mercury documentation
+const std::string THALLIUM_BUFFER_SIZE        = "THALLIUM_BUFFER_SIZE";      // size of rdma buffer
+#endif
 
 const std::string TRANSPORT_ENDPOINT_GROUP    = "ENDPOINT_GROUP";            // list of ranks or "ALL"
 
@@ -102,10 +105,6 @@ const std::unordered_map<std::string, Transport::Type> TRANSPORTS = {
     std::make_pair("THALLIUM", Transport::TRANSPORT_THALLIUM),
     #endif
 };
-
-#if HXHIM_HAVE_THALLIUM
-const std::string THALLIUM_BUFFER_SIZE = "THALLIUM_BUFFER_SIZE";
-#endif
 
 /**
  * Set of predefined histogram bucket generators

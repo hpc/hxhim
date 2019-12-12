@@ -1,9 +1,6 @@
 #ifndef HXHIM_HXF5_VOL_STRUCTS_H
 #define HXHIM_HXF5_VOL_STRUCTS_H
 
-#include <pthread.h>
-#include <stdio.h>
-
 #include "hxhim_vol.h"
 
 /* holds external values to be made accessible to the VOL */
