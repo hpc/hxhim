@@ -5,45 +5,12 @@
 #ifndef TRANSPORT_HPP
 #define TRANSPORT_HPP
 
-#include <atomic>
-#include <list>
 #include <unordered_map>
-#include <mutex>
-#include <vector>
 
-#include <mpi.h>
-
-#include "transport/Messages/Messages.hpp"
+#include "transport/messages/Messages.hpp"
 #include "transport/constants.hpp"
 
 namespace Transport {
-
-/**
- * @ An abstract communication endpoint
- */
-class Endpoint {
-    public:
-       virtual ~Endpoint();
-
-        /** @description Send a Put to this endpoint */
-        virtual Response::Put *communicate(const Request::Put *message);
-
-        /** @description Send a Get to this endpoint */
-        virtual Response::Get *communicate(const Request::Get *message);
-
-        /** @description Send a Get to this endpoint */
-        virtual Response::Get2 *communicate(const Request::Get2 *message);
-
-        /** @description Send a Delete to this endpoint */
-        virtual Response::Delete *communicate(const Request::Delete *message);
-
-        virtual Response::Histogram *communicate(const Request::Histogram *message);
-
-    protected:
-        Endpoint();
-        Endpoint(const Endpoint&  rhs) = delete;
-        Endpoint(const Endpoint&& rhs) = delete;
-};
 
 /**
  * An abstract group of communication endpoints
@@ -59,16 +26,13 @@ class EndpointGroup {
         virtual Response::BGet *communicate(const std::unordered_map<int, Request::BGet *> &bgm_list);
 
         /** @description Bulk Get from multiple endpoints  */
-        virtual Response::BGet2 *communicate(const std::unordered_map<int, Request::BGet2 *> &bgm_list);
-
-        /** @description Bulk Get from multiple endpoints  */
         virtual Response::BGetOp *communicate(const std::unordered_map<int, Request::BGetOp *> &bgm_list);
 
         /** @description Bulk Delete to multiple endpoints */
         virtual Response::BDelete *communicate(const std::unordered_map<int, Request::BDelete *> &bdm_list);
 
-        /** @description Bulk Histogram to multiple endpoints */
-        virtual Response::BHistogram *communicate(const std::unordered_map<int, Request::BHistogram *> &bhm_list);
+        // /** @description Bulk Histogram to multiple endpoints */
+        // virtual Response::BHistogram *communicate(const std::unordered_map<int, Request::BHistogram *> &bhm_list);
 
    protected:
         EndpointGroup();
@@ -89,29 +53,8 @@ class Transport {
         Transport();
         ~Transport();
 
-        /** @description Takes ownership of an endpoint and associates it with a unique id   */
-        void AddEndpoint(const int id, Endpoint *ep);
-
-        /** @description Deallocates and removes the endpoint from the transport             */
-        void RemoveEndpoint(const int id);
-
         /** @description Takes ownership of an endpoint group, deallocating the previous one */
         void SetEndpointGroup(EndpointGroup *eg);
-
-        /** @description Puts a message onto the the underlying transport        */
-        Response::Put *communicate(const Request::Put *pm);
-
-        /** @description Gets a message onto the the underlying transport        */
-        Response::Get *communicate(const Request::Get *gm);
-
-        /** @description Get2s a message onto the the underlying transport        */
-        Response::Get2 *communicate(const Request::Get2 *gm);
-
-        /** @description Deletes a message onto the the underlying transport     */
-        Response::Delete *communicate(const Request::Delete *dm);
-
-        /** @description Sends a histogram request onto the underlying transport */
-        Response::Histogram *communicate(const Request::Histogram *hm);
 
         /** @description Bulk Put to multiple endpoints        */
         Response::BPut *communicate(const std::unordered_map<int, Request::BPut *> &bpm_list);
@@ -119,22 +62,16 @@ class Transport {
         /** @description Bulk Get from multiple endpoints      */
         Response::BGet *communicate(const std::unordered_map<int, Request::BGet *> &bgm_list);
 
-        /** @description Bulk Get2 from multiple endpoints      */
-        Response::BGet2 *communicate(const std::unordered_map<int, Request::BGet2 *> &bgm_list);
-
         /** @description Bulk Get from multiple endpoints      */
         Response::BGetOp *communicate(const std::unordered_map<int, Request::BGetOp *> &bgm_list);
 
         /** @description Bulk Delete to multiple endpoints     */
         Response::BDelete *communicate(const std::unordered_map<int, Request::BDelete *> &bdm_list);
 
-        /** @description Bulk Histogram to multiple endpoints  */
-        Response::BHistogram *communicate(const std::unordered_map<int, Request::BHistogram *> &bhm_list);
+        // /** @description Bulk Histogram to multiple endpoints  */
+        // Response::BHistogram *communicate(const std::unordered_map<int, Request::BHistogram *> &bhm_list);
 
     private:
-        typedef std::unordered_map<int, Endpoint *> EndpointUnordered_Mapping_t;
-
-        EndpointUnordered_Mapping_t endpoints_;
         EndpointGroup *endpointgroup_;
 };
 

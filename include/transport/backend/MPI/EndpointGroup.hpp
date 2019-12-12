@@ -54,7 +54,7 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup, virtual public 
         /** @escription Functions that perform the actual MPI calls */
         template <typename Send_t, typename = enable_if_t<std::is_base_of<Request::Request, Send_t>::value &&
                                                           std::is_base_of<Bulk,             Send_t>::value> >
-        std::size_t parallel_send(const std::unordered_map<int, Send_t *> &messages);                      // send to range server
+        std::size_t parallel_send(const std::unordered_map<int, Send_t *> &messages);            // send to range server
 
         template <typename Recv_t, typename = enable_if_t<std::is_base_of<Response::Response, Recv_t>::value &&
                                                           std::is_base_of<Bulk,               Recv_t>::value> >

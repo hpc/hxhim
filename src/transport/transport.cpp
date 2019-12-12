@@ -4,30 +4,6 @@
 
 namespace Transport {
 
-Endpoint::Endpoint() {}
-
-Endpoint::~Endpoint() {}
-
-Response::Put *Endpoint::communicate(const Request::Put *) {
-    return nullptr;
-}
-
-Response::Get *Endpoint::communicate(const Request::Get *) {
-    return nullptr;
-}
-
-Response::Get2 *Endpoint::communicate(const Request::Get2 *) {
-    return nullptr;
-}
-
-Response::Delete *Endpoint::communicate(const Request::Delete *) {
-    return nullptr;
-}
-
-Response::Histogram *Endpoint::communicate(const Request::Histogram *) {
-    return nullptr;
-}
-
 EndpointGroup::EndpointGroup() {}
 
 EndpointGroup::~EndpointGroup() {}
@@ -57,40 +33,12 @@ Response::BHistogram *EndpointGroup::communicate(const std::unordered_map<int, R
 }
 
 Transport::Transport()
-    : endpoints_(),
-      endpointgroup_(nullptr)
+    : endpointgroup_(nullptr)
 {}
 
 Transport::~Transport() {
-    SetEndpointGroup(nullptr);
-
     for(decltype(endpoints_)::value_type const & ep : endpoints_) {
         delete ep.second;
-    }
-}
-
-/**
- * AddEndpoint
- * Takes ownership of an endpoint and associates it with a unique id
- *
- * @param id the ID that the given endpoint is associated with
- * @param ep the endpoint containing the transport functionality to send and receive data
- */
-void Transport::AddEndpoint(const int id, Endpoint *ep) {
-    endpoints_[id] = ep;
-}
-
-/**
- * RemoveEndpoint
- * Deallocates and removes the endpoint from the transport
- *
- * @param id the ID of the endpoint
- */
-void Transport::RemoveEndpoint(const int id) {
-    EndpointUnordered_Mapping_t::iterator it = endpoints_.find(id);
-    if (it != endpoints_.end()) {
-        delete it->second;
-        endpoints_.erase(id);
     }
 }
 
@@ -105,81 +53,6 @@ void Transport::SetEndpointGroup(EndpointGroup *eg) {
         delete endpointgroup_;
     }
     endpointgroup_ = eg;
-}
-
-/**
- * Put
- * Puts a message onto the the underlying transport
- *
- * @param pm the message to PUT
- * @return the response from the range server
- */
-Response::Put *Transport::communicate(const Request::Put *pm) {
-    if (!pm) {
-        return nullptr;
-    }
-    EndpointUnordered_Mapping_t::iterator it = endpoints_.find(pm->dst);
-    return (it == endpoints_.end())?nullptr:it->second->communicate(pm);
-}
-
-/**
- * Get
- * Gets a message onto the the underlying transport
- *
- * @param gm the message to GET
- * @return the response from the range server
- */
-Response::Get *Transport::communicate(const Request::Get *get) {
-    if (!get) {
-        return nullptr;
-    }
-    EndpointUnordered_Mapping_t::iterator it = endpoints_.find(get->dst);
-    return (it == endpoints_.end())?nullptr:it->second->communicate(get);
-}
-
-/**
- * Get
- * Gets a message onto the the underlying transport
- *
- * @param gm the message to GET
- * @return the response from the range server
- */
-Response::Get2 *Transport::communicate(const Request::Get2 *get) {
-    if (!get) {
-        return nullptr;
-    }
-    EndpointUnordered_Mapping_t::iterator it = endpoints_.find(get->dst);
-    return (it == endpoints_.end())?nullptr:it->second->communicate(get);
-}
-
-/**
- * Delete
- * Deletes a message onto the the underlying transport
- *
- * @param dm the message to DELETE
- * @return the response from the range server
- */
-Response::Delete *Transport::communicate(const Request::Delete *dm) {
-    if (!dm) {
-        return nullptr;
-    }
-    EndpointUnordered_Mapping_t::iterator it = endpoints_.find(dm->dst);
-    return (it == endpoints_.end())?nullptr:it->second->communicate(dm);
-}
-
-/**
- * Histogram
- * Sends a histogram message onto the the underlying transport
- *
- * @param hm the HISTOGRAM message
- * @return the response from the range server
- */
-Response::Histogram *Transport::communicate(const Request::Histogram *hm) {
-    if (!hm) {
-        return nullptr;
-    }
-    EndpointUnordered_Mapping_t::iterator it = endpoints_.find(hm->dst);
-    return (it == endpoints_.end())?nullptr:it->second->communicate(hm);
 }
 
 /**

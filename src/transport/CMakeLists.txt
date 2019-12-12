@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.6.3)
 
-add_subdirectory(Messages)
+add_subdirectory(messages)
 add_subdirectory(backend)
 
 set(TRANSPORT_SRC
