@@ -16,6 +16,7 @@
 # Git Repositories:
 #     BMI (optional)
 #     CCI (optional)
+#     OFI (optional)
 #     mercury
 #     argobots
 #     margo
@@ -35,6 +36,7 @@ function usage() {
     echo "    Options:"
     echo "        --BMI  build the BMI module for mercury"
     echo "        --CCI  build the CCI module for mercury"
+    echo "        --OFI  build the OFI module for mercury"
     echo "        --SM   build the SM  module for mercury"
 }
 
@@ -106,6 +108,33 @@ function NA_CCI() {
     PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${install_dir}/lib/pkgconfig
 }
 
+function NA_OFI() {
+    check_autoconf
+
+    name=libfabric
+    download_dir=${WORKING_DIR}/${name}
+    if [[ ! -d "${download_dir}" ]]; then
+        git clone --depth 1 https://github.com/ofiwg/libfabric.git ${download_dir}
+    fi
+
+    cd ${download_dir}
+    git pull
+    if [[ ! -d build ]]; then
+        ./autogen.sh
+    fi
+    mkdir -p build
+    cd build
+    install_dir=${PREFIX}/${name}
+    PKG_CONFIG_PATH=${PKG_CONFIG_PATH} ../configure --prefix=${install_dir}
+    make -j ${PROCS}
+    make -j ${PROCS} install
+    cd ../..
+
+    OFI_INCLUDE_DIR=${install_dir}/include
+    OFI_LIBRARY=${install_dir}/lib/libfabric.so
+    PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${install_dir}/lib/pkgconfig
+}
+
 function NA_SM() {
     return
 }
@@ -117,13 +146,19 @@ function mercury() {
     if [[ ! -z ${USE_NA_BMI+false} ]]; then
         echo BMI
         NA_BMI
-        cmake_options="$cmake_options -DNA_USE_BMI:BOOL=ON -DBMI_INCLUDE_DIR=$BMI_INCLUDE_DIR -DBMI_LIBRARY=$BMI_LIBRARY"
+        cmake_options="$cmake_options -DNA_USE_BMI:BOOL=ON -DBMI_INCLUDE_DIR=${BMI_INCLUDE_DIR} -DBMI_LIBRARY=${BMI_LIBRARY}"
     fi
 
     if [[ ! -z ${USE_NA_CCI+false} ]]; then
         echo CCI
         NA_CCI
-        cmake_options="$cmake_options -DNA_USE_CCI:BOOL=ON -DCCI_INCLUDE_DIR=$CCI_INCLUDE_DIR -DCCI_LIBRARY=$CCI_LIBRARY"
+        cmake_options="$cmake_options -DNA_USE_CCI:BOOL=ON -DCCI_INCLUDE_DIR=${CCI_INCLUDE_DIR} -DCCI_LIBRARY=${CCI_LIBRARY}"
+    fi
+
+    if [[ ! -z ${USE_NA_OFI+false} ]]; then
+        echo OFI
+        NA_OFI
+        cmake_options="$cmake_options -DNA_USE_OFI:BOOL=ON -DOFI_INCLUDE_DIR=${OFI_INCLUDE_DIR} -DOFI_LIBRARY=${OFI_LIBRARY}"
     fi
 
     if [[ ! -z ${USE_NA_SM+false} ]]; then
@@ -317,6 +352,10 @@ case $key in
     ;;
     --CCI)
     USE_NA_CCI=
+    shift # past argument
+    ;;
+    --OFI)
+    USE_NA_OFI=
     shift # past argument
     ;;
     --SM)
