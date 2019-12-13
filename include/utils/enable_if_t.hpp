@@ -12,4 +12,10 @@ template <bool B, typename t = void>
 using enable_if_t = typename std::enable_if<B, t>::type;
 #endif
 
+// check if Derived is a strict child of Base
+template <class Base, class Derived>
+struct is_child_of : public std::conditional_t <std::is_base_of <Base, Derived>::value && !std::is_same <Base, Derived>::value,
+                                                std::true_type,
+                                                std::false_type> {};
+
 #endif

@@ -1,9 +1,7 @@
-#ifndef HXHIM_TRANSPORT_BPUT_HPP
-#define HXHIM_TRANSPORT_BPUT_HPP
+#ifndef TRANSPORT_BPUT_HPP
+#define TRANSPORT_BPUT_HPP
 
-#include <stdexcept>
-
-#include "hxhim/constants.h"
+#include "transport/messages/constants.hpp"
 #include "transport/messages/SPO.hpp"
 #include "transport/messages/SP.hpp"
 #include "transport/messages/Message.hpp"

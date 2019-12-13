@@ -1,5 +1,5 @@
-#ifndef HXHIM_TRANSPORT_SPO_HPP
-#define HXHIM_TRANSPORT_SPO_HPP
+#ifndef TRANSPORT_SPO_HPP
+#define TRANSPORT_SPO_HPP
 
 #include "transport/messages/Blob.hpp"
 
@@ -18,15 +18,15 @@ struct SPO {
     }
 
     int pack(void *&buf, std::size_t &bufsize) const {
-        return ((subject.serialize(buf, bufsize)   == HXHIM_SUCCESS) &&
-                (predicate.serialize(buf, bufsize) == HXHIM_SUCCESS) &&
-                (object.serialize(buf, bufsize)    == HXHIM_SUCCESS))?HXHIM_SUCCESS:HXHIM_ERROR;
+        return ((subject.serialize(buf, bufsize)   == TRANSPORT_SUCCESS) &&
+                (predicate.serialize(buf, bufsize) == TRANSPORT_SUCCESS) &&
+                (object.serialize(buf, bufsize)    == TRANSPORT_SUCCESS))?TRANSPORT_SUCCESS:TRANSPORT_ERROR;
     }
 
     int unpack(void *&buf, std::size_t &bufsize) {
-        return ((subject.deserialize(buf, bufsize)   == HXHIM_SUCCESS) &&
-                (predicate.deserialize(buf, bufsize) == HXHIM_SUCCESS) &&
-                (object.deserialize(buf, bufsize)    == HXHIM_SUCCESS))?HXHIM_SUCCESS:HXHIM_ERROR;
+        return ((subject.deserialize(buf, bufsize)   == TRANSPORT_SUCCESS) &&
+                (predicate.deserialize(buf, bufsize) == TRANSPORT_SUCCESS) &&
+                (object.deserialize(buf, bufsize)    == TRANSPORT_SUCCESS))?TRANSPORT_SUCCESS:TRANSPORT_ERROR;
     }
 };
 

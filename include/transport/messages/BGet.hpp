@@ -1,9 +1,6 @@
-#ifndef HXHIM_TRANSPORT_BGET_HPP
-#define HXHIM_TRANSPORT_BGET_HPP
+#ifndef TRANSPORT_BGET_HPP
+#define TRANSPORT_BGET_HPP
 
-#include <stdexcept>
-
-#include "hxhim/constants.h"
 #include "transport/messages/SPO.hpp"
 #include "transport/messages/SP.hpp"
 #include "transport/messages/Message.hpp"

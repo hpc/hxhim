@@ -56,7 +56,6 @@ typedef struct hxhim_private {
     struct {
         hxhim::Unsent<hxhim::PutData> puts;
         hxhim::Unsent<hxhim::GetData> gets;
-        hxhim::Unsent<hxhim::GetData2> gets2;
         hxhim::Unsent<hxhim::GetOpData> getops;
         hxhim::Unsent<hxhim::DeleteData> deletes;
     } queues;
@@ -177,8 +176,7 @@ int datastore   (hxhim_t *hx);
  * @tparam msg  a single message
  * @param  op   the statistics structure for an operation (PUT, GET, GETOP, DEL)
  */
-template <typename T, typename = enable_if_t<std::is_base_of<Transport::Bulk,             T>::value &&
-                                             std::is_base_of<Transport::Request::Request, T>::value> >
+template <typename T>
 void collect_fill_stats(T *msg, hxhim_private_t::Stats::Op &op) {
     if (msg) {
         // Collect packet filled percentage
@@ -194,8 +192,7 @@ void collect_fill_stats(T *msg, hxhim_private_t::Stats::Op &op) {
  * @param msgs the list (really map) of messages
  * @param op   the statistics structure for an operation (PUT, GET, GETOP, DEL)
  */
-template <typename T, typename = enable_if_t<std::is_base_of<Transport::Bulk,             T>::value &&
-                                             std::is_base_of<Transport::Request::Request, T>::value> >
+template <typename T>
 void collect_fill_stats(const std::unordered_map<int, T *> &msgs, hxhim_private_t::Stats::Op &op) {
     // Collect packet filled percentage
     std::lock_guard<std::mutex> lock(op.mutex);
@@ -215,11 +212,6 @@ int GetImpl(hxhim_t *hx,
             void *subject, std::size_t subject_len,
             void *predicate, std::size_t predicate_len,
             enum hxhim_type_t object_type);
-
-int GetImpl2(hxhim_t *hx,
-             void *subject, std::size_t subject_len,
-             void *predicate, std::size_t predicate_len,
-             enum hxhim_type_t object_type, void *object, std::size_t *object_len);
 
 int DeleteImpl(hxhim_t *hx,
                void *subject, std::size_t subject_len,

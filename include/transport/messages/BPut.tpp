@@ -1,6 +1,6 @@
 template <typename Blob_t>
 Transport::Request::BPut <Blob_t>::BPut(const std::size_t max_count)
-    : Message <Transport::SPO <Blob_t> > (Type::BPUT, Direction::REQUEST, max_count)
+    : Message <Transport::SPO <Blob_t> > (MessageType::BPUT, Direction::REQUEST, max_count)
 {}
 
 // type and direction should already be known when calling this function
@@ -13,7 +13,7 @@ Transport::Request::BPut <Blob_t>::BPut(void *buf, std::size_t bufsize)
 
 template <typename Blob_t>
 Transport::Response::BPut <Blob_t>::BPut(const std::size_t max_count)
-    : Message <Transport::SP <Blob_t> >(Type::BPUT, Direction::REQUEST, max_count)
+    : Message <Transport::SP <Blob_t> >(MessageType::BPUT, Direction::REQUEST, max_count)
 {}
 
 // type and direction should already be known when calling this function

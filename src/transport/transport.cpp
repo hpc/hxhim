@@ -8,27 +8,27 @@ EndpointGroup::EndpointGroup() {}
 
 EndpointGroup::~EndpointGroup() {}
 
-Response::BPut *EndpointGroup::communicate(const std::unordered_map<int, Request::BPut *> &) {
+Response::RecvBPut *EndpointGroup::communicate(const std::unordered_map<int, Request::SendBPut *> &) {
     return nullptr;
 }
 
-Response::BGet *EndpointGroup::communicate(const std::unordered_map<int, Request::BGet *> &) {
+Response::RecvBGet *EndpointGroup::communicate(const std::unordered_map<int, Request::SendBGet *> &) {
     return nullptr;
 }
 
-Response::BGet2 *EndpointGroup::communicate(const std::unordered_map<int, Request::BGet2 *> &) {
+Response::RecvBGet2 *EndpointGroup::communicate(const std::unordered_map<int, Request::SendBGet2 *> &) {
     return nullptr;
 }
 
-Response::BGetOp *EndpointGroup::communicate(const std::unordered_map<int, Request::BGetOp *> &) {
+Response::RecvBGetOp *EndpointGroup::communicate(const std::unordered_map<int, Request::SendBGetOp *> &) {
     return nullptr;
 }
 
-Response::BDelete *EndpointGroup::communicate(const std::unordered_map<int, Request::BDelete *> &) {
+Response::RecvBDelete *EndpointGroup::communicate(const std::unordered_map<int, Request::SendBDelete *> &) {
     return nullptr;
 }
 
-Response::BHistogram *EndpointGroup::communicate(const std::unordered_map<int, Request::BHistogram *> &) {
+Response::RecvBHistogram *EndpointGroup::communicate(const std::unordered_map<int, Request::SendBHistogram *> &) {
     return nullptr;
 }
 
@@ -63,7 +63,7 @@ void Transport::SetEndpointGroup(EndpointGroup *eg) {
  * @param bpm_list a list of PUT messages going to different servers
  * @return the response from the range server
  */
-Response::BPut *Transport::communicate(const std::unordered_map<int, Request::BPut *> &bpm_list) {
+Response::RecvBPut *Transport::communicate(const std::unordered_map<int, Request::SendBPut *> &bpm_list) {
     return (bpm_list.size() && endpointgroup_)?endpointgroup_->communicate(bpm_list):nullptr;
 }
 
@@ -75,7 +75,7 @@ Response::BPut *Transport::communicate(const std::unordered_map<int, Request::BP
  * @param bgm_list a list of GET messages going to different servers
  * @return the response from the range server
  */
-Response::BGet *Transport::communicate(const std::unordered_map<int, Request::BGet *> &bgm_list) {
+Response::RecvBGet *Transport::communicate(const std::unordered_map<int, Request::SendBGet *> &bgm_list) {
     return (bgm_list.size() && endpointgroup_)?endpointgroup_->communicate(bgm_list):nullptr;
 }
 
@@ -87,7 +87,7 @@ Response::BGet *Transport::communicate(const std::unordered_map<int, Request::BG
  * @param bgm_list a list of GET messages going to different servers
  * @return the response from the range server
  */
-Response::BGet2 *Transport::communicate(const std::unordered_map<int, Request::BGet2 *> &bgm_list) {
+Response::RecvBGet2 *Transport::communicate(const std::unordered_map<int, Request::SendBGet2 *> &bgm_list) {
     return (bgm_list.size() && endpointgroup_)?endpointgroup_->communicate(bgm_list):nullptr;
 }
 
@@ -99,7 +99,7 @@ Response::BGet2 *Transport::communicate(const std::unordered_map<int, Request::B
  * @param bgm_list a list of GET messages going to different servers
  * @return the response from the range server
  */
-Response::BGetOp *Transport::communicate(const std::unordered_map<int, Request::BGetOp *> &bgm_list) {
+Response::RecvBGetOp *Transport::communicate(const std::unordered_map<int, Request::SendBGetOp *> &bgm_list) {
     return (bgm_list.size() && endpointgroup_)?endpointgroup_->communicate(bgm_list):nullptr;
 }
 
@@ -111,7 +111,7 @@ Response::BGetOp *Transport::communicate(const std::unordered_map<int, Request::
  * @param bdm_list a list of DELETE messages going to different servers
  * @return the response from the range server
  */
-Response::BDelete *Transport::communicate(const std::unordered_map<int, Request::BDelete *> &bdm_list) {
+Response::RecvBDelete *Transport::communicate(const std::unordered_map<int, Request::SendBDelete *> &bdm_list) {
     return (bdm_list.size() && endpointgroup_)?endpointgroup_->communicate(bdm_list):nullptr;
 }
 
@@ -123,7 +123,7 @@ Response::BDelete *Transport::communicate(const std::unordered_map<int, Request:
  * @param bdm_list a list of HISTOGRAM messages going to different servers
  * @return the response from the range server
  */
-Response::BHistogram *Transport::communicate(const std::unordered_map<int, Request::BHistogram *> &bhm_list) {
+Response::RecvBHistogram *Transport::communicate(const std::unordered_map<int, Request::SendBHistogram *> &bhm_list) {
     return (bhm_list.size() && endpointgroup_)?endpointgroup_->communicate(bhm_list):nullptr;
 }
 

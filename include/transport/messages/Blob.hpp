@@ -1,10 +1,10 @@
-#ifndef HXHIM_TRANSPORT_BLOB_HPP
-#define HXHIM_TRANSPORT_BLOB_HPP
+#ifndef TRANSPORT_BLOB_HPP
+#define TRANSPORT_BLOB_HPP
 
 #include <iostream>
 #include <cstring>
 
-#include "hxhim/constants.h"
+#include "transport/constants.hpp"
 #include "utils/memory.hpp"
 
 namespace Transport {
@@ -33,16 +33,16 @@ class Blob {
          *
          * @param buf     the target buffer          - position is updated
          * @param bufsize the length of the buffer   - value is updated
-         * @return HXHIM_SUCCESS or HXHIM_ERROR
+         * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR
          */
          int serialize(void *&buf, std::size_t &bufsize) const {
             if (!buf || !ptr) {
-                return HXHIM_ERROR;
+                return TRANSPORT_ERROR;
             }
 
             const std::size_t total = total_size();
             if (total > bufsize) {
-                return HXHIM_ERROR;
+                return TRANSPORT_ERROR;
             }
 
             memcpy(buf, &len, sizeof(len));
@@ -51,7 +51,7 @@ class Blob {
             (char *&) buf += len;
 
             bufsize -= total;
-            return HXHIM_SUCCESS;
+            return TRANSPORT_SUCCESS;
         }
 
         /**
@@ -59,21 +59,21 @@ class Blob {
          *
          * @param buf  the source buffer (encoded length + data)                   - position is updated
          * @param bufsize the length of the buffer (not the length of the data)    - value is updated
-         * @return HXHIM_SUCCESS or HXHIM_ERROR
+         * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR
          */
         virtual int deserialize(void *&buf, std::size_t &bufsize) {
             if (!buf || !ptr) {
-                return HXHIM_ERROR;
+                return TRANSPORT_ERROR;
             }
 
             if (bufsize < sizeof(len)) {
-                return HXHIM_ERROR;
+                return TRANSPORT_ERROR;
             }
 
             // get the length of the following data
             memcpy(&len, buf, sizeof(len));
             if (total_size() > bufsize) {
-                return HXHIM_ERROR;
+                return TRANSPORT_ERROR;
             }
 
             bufsize -= sizeof(len);
@@ -83,7 +83,7 @@ class Blob {
             bufsize -= len;
             (char *&) buf += len;
 
-            return HXHIM_SUCCESS;
+            return TRANSPORT_SUCCESS;
         }
 
         std::size_t total_size() const {

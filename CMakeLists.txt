@@ -14,7 +14,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 #
 # Enable extra compiler flags
 #
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra -O0 -g3 -DDEBUG") # -D_GLIBCXX_DEBUG
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra -fmax-errors=1 -O0 -g3 -DDEBUG") # -D_GLIBCXX_DEBUG
 
 #
 # Include CMake modules
@@ -65,17 +65,14 @@ if (THALLIUM_FOUND)
     pkg_search_module(MERCURY REQUIRED mercury)
     message(STATUS "MERCURY_INCLUDEDIR=" ${MERCURY_INCLUDEDIR})
     message(STATUS "MERCURY_LIBDIR=" ${MERCURY_LIBDIR})
-    include_directories(AFTER SYSTEM ${MERCURY_INCLUDE_DIRS})
 
     pkg_search_module(ARGOBOTS REQUIRED argobots)
     message(STATUS "ARGOBOTS_INCLUDEDIR=" ${ARGOBOTS_INCLUDEDIR})
     message(STATUS "ARGOBOTS_LIBDIR=" ${ARGOBOTS_LIBDIR})
-    include_directories(AFTER SYSTEM ${ARGOBOTS_INCLUDE_DIRS})
 
     pkg_search_module(MARGO REQUIRED margo)
     message(STATUS "MARGO_INCLUDEDIR=" ${MARGO_INCLUDEDIR})
     message(STATUS "MARGO_LIBDIR=" ${MARGO_LIBDIR})
-    include_directories(AFTER SYSTEM ${MARGO_INCLUDE_DIRS})
 
     message(STATUS "THALLIUM_INCLUDEDIR=" ${THALLIUM_INCLUDEDIR})
     message(STATUS "THALLIUM_LIBDIR=" ${THALLIUM_LIBDIR})
@@ -105,9 +102,12 @@ if(${LEVELDB_FOUND})
     set(PC_LIBS   "${PC_LIBS} ${LEVELDB_LDFLAGS}")
 endif()
 
+
+
 #
 # build library
 #
+include_directories(include)
 add_subdirectory(src)
 
 #

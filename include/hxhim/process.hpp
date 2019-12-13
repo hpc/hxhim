@@ -10,10 +10,22 @@
 
 /**
  * process
- * The core set of function calls that are needed to send requests and receive responses
+ * The core set of function calls that are needed to
+ * send requests and receive responses on the client
  *
- * @tparam Send_t          Transport::Request::*
- * @tparam Recv_t          Transport::Response::*
+ * Sequence of events:
+ *     create a single local request packet to send
+ *     create an array of remote request packets to send
+ *     distributes UserData into local and remote arrays
+ *         for each remote request
+ *             send request, wait for response
+ *         send local request
+ *         (a single run might not process all requests, so the sends are looped)
+ *
+ *     All responses get chained together and returned
+ *
+ * @tparam Send_t          Transport::Request::SendB*  (arrays of references)
+ * @tparam Recv_t          Transport::Response::RecvB* (arrays of deep copies)
  * @tparam UserData_t      unsorted hxhim user data type
  * @param hx               the HXHIM session
  * @param head             the head of the list of requests to send
@@ -21,10 +33,11 @@
  * @return results from sending requests
  */
 template <typename Send_t, typename Recv_t, typename UserData_t,
-          typename = enable_if_t <std::is_base_of <Transport::Request::Request,   Send_t>::value && !std::is_same   <Transport::Request::Request,   Send_t>::value &&
-                                  std::is_base_of <Transport::Response::Response, Recv_t>::value && !std::is_same   <Transport::Response::Response, Recv_t>::value &&
-                                  std::is_base_of <hxhim::UserData,           UserData_t>::value && !std::is_same   <hxhim::UserData,           UserData_t>::value>
-          >
+          typename = enable_if_t <std::is_child_of <Transport::Send,             Send_t>::value &&
+                                  std::is_child_of <Transport::Request::Request, Send_t>::value &&
+                                  std::is_child_of <Transport::Recv,             Recv_t>::value &&
+                                  std::is_child_of <Transport::Request::Request, Recv_t>::value &&
+                                  std::is_child_of <Transport::UserData      UserData_t>::value>
 hxhim::Results *process(hxhim_t *hx,
                         UserData_t *head,
                         const std::size_t max_ops_per_send) {

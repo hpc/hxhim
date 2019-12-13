@@ -1,9 +1,6 @@
-#ifndef HXHIM_TRANSPORT_BDELETE_HPP
-#define HXHIM_TRANSPORT_BDELETE_HPP
+#ifndef TRANSPORT_BDELETE_HPP
+#define TRANSPORT_BDELETE_HPP
 
-#include <stdexcept>
-
-#include "hxhim/constants.h"
 #include "transport/messages/SP.hpp"
 #include "transport/messages/Message.hpp"
 
