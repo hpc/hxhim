@@ -4,7 +4,6 @@
 #include <cstddef>
 
 #include "hxhim/constants.h"
-#include "transport/Messages/Bulk.hpp"
 #include "transport/Messages/Request.hpp"
 #include "transport/Messages/Response.hpp"
 #include "transport/constants.hpp"
@@ -13,8 +12,8 @@ namespace Transport {
 
 namespace Request {
 
-struct BGetOp final : Request, Bulk {
-    BGetOp(FixedBufferPool *arrays, FixedBufferPool *buffers, const std::size_t max = 0);
+struct BGetOp final : Request {
+    BGetOp(const std::size_t max = 0);
     ~BGetOp();
 
     std::size_t size() const;
@@ -35,13 +34,14 @@ struct BGetOp final : Request, Bulk {
 
 namespace Response {
 
-struct BGetOp final : Response, Bulk {
-    BGetOp(FixedBufferPool *arrays, FixedBufferPool *buffers, const std::size_t max = 0);
+struct BGetOp final : Response {
+    BGetOp(const std::size_t max = 0);
     ~BGetOp();
 
     std::size_t size() const;
 
     int alloc(const std::size_t max);
+    int merge(BGetOp *bgetop);
     int cleanup();
 
     int *statuses;

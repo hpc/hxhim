@@ -1,8 +1,7 @@
 #include "transport/Messages/BHistogram.hpp"
 
 Transport::Request::BHistogram::BHistogram(const std::size_t max)
-    : Request(BHISTOGRAM),
-      Bulk()
+    : Request(BHISTOGRAM)
 {
     alloc(max);
 }
@@ -19,7 +18,7 @@ int Transport::Request::BHistogram::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if (Bulk::alloc(max) != TRANSPORT_SUCCESS) {
+        if (Message::alloc(max) != TRANSPORT_SUCCESS) {
             cleanup();
             return TRANSPORT_ERROR;
         }
@@ -34,7 +33,6 @@ int Transport::Request::BHistogram::cleanup() {
 
 Transport::Response::BHistogram::BHistogram(const std::size_t max)
     : Response(BHISTOGRAM),
-      Bulk(),
       statuses(nullptr),
       hists(nullptr),
       next(nullptr)
@@ -59,7 +57,7 @@ int Transport::Response::BHistogram::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Bulk::alloc(max) != TRANSPORT_SUCCESS) ||
+        if ((Message::alloc(max) != TRANSPORT_SUCCESS) ||
             !(statuses = alloc_array<int>(max))     ||
             !(hists = alloc_array<Histogram>(max)))  {
             cleanup();

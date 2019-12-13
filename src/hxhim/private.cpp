@@ -6,7 +6,6 @@
 #include "datastore/datastores.hpp"
 #include "hxhim/Results_private.hpp"
 #include "hxhim/config.hpp"
-#include "hxhim/local_client.hpp"
 #include "hxhim/options_private.hpp"
 #include "hxhim/private.hpp"
 #include "hxhim/process.hpp"
@@ -95,7 +94,7 @@ static void backgroundPUT(hxhim_t *hx) {
         mlog(HXHIM_CLIENT_DBG, "Processing queued PUTs");
         {
             // process the batch and save the results
-            hxhim::Results *res = process<Transport::Request::SendBPut, Transport::Response::RecvBPut>(hx, head, hx->p->max_ops_per_send.puts);
+            hxhim::Results *res = hxhim::process<Transport::Request::BPut>(hx, head, hx->p->max_ops_per_send.puts);
 
             {
                 std::unique_lock<std::mutex> lock(hx->p->async_put.mutex);
@@ -744,6 +743,45 @@ int hxhim::GetImpl(hxhim_t *hx,
     gets.insert(get);
     gets.start_processing.notify_one();
 
+    mlog(HXHIM_CLIENT_DBG, "GET Completed");
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * GetImpl
+ * Add a GET into the work queue
+ * The mutex should be locked before this function is called.
+ * hx and hx->p are not checked because they must have been
+ * valid for this function to be called.
+ *
+ * @param hx             the HXHIM session
+ * @param subject        the subject to put
+ * @param subject_len    the length of the subject to put
+ * @param predicate      the prediate to put
+ * @param predicate_len  the length of the prediate to put
+ * @param object_type    the type of the object
+ * @param object         the prediate to put
+ * @param object_len     the length of the prediate to put
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim::GetImpl2(hxhim_t *hx,
+                    void *subject, std::size_t subject_len,
+                    void *predicate, std::size_t predicate_len,
+                    enum hxhim_type_t object_type, void *object, std::size_t *object_len) {
+    mlog(HXHIM_CLIENT_DBG, "GET Start");
+    hxhim::GetData2 *get = construct<hxhim::GetData2>();
+    get->subject = subject;
+    get->subject_len = subject_len;
+    get->predicate = predicate;
+    get->predicate_len = predicate_len;
+    get->object_type = object_type;
+    get->object = object;
+    get->object_len = object_len;
+
+    mlog(HXHIM_CLIENT_DBG, "GET Insert into queue");
+    hxhim::Unsent<hxhim::GetData2> &gets = hx->p->queues.gets2;
+    gets.insert(get);
+    gets.start_processing.notify_one();
     mlog(HXHIM_CLIENT_DBG, "GET Completed");
     return HXHIM_SUCCESS;
 }

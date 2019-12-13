@@ -1,7 +1,7 @@
 #include "transport/Messages/Request.hpp"
 
 Transport::Request::Request::Request(Message::Type type)
-    : Message(Message::REQUEST, type)
+    : Message(Message::REQUEST, type, 0)
 {}
 
 Transport::Request::Request::~Request()

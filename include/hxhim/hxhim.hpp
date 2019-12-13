@@ -23,6 +23,7 @@ int Close(hxhim_t *hx);
 /** @description Functions for flushing HXHIM queues */
 Results *FlushPuts(hxhim_t *hx);
 Results *FlushGets(hxhim_t *hx);
+Results *FlushGets2(hxhim_t *hx);
 Results *FlushGetOps(hxhim_t *hx);
 Results *FlushDeletes(hxhim_t *hx);
 Results *Flush(hxhim_t *hx);
@@ -45,6 +46,11 @@ int Get(hxhim_t *hx,
         void *predicate, std::size_t predicate_len,
         hxhim_type_t object_type);
 
+int Get2(hxhim_t *hx,
+         void *subject, std::size_t subject_len,
+         void *predicate, std::size_t predicate_len,
+         hxhim_type_t object_type, void *object, std::size_t *object_len);
+
 int Delete(hxhim_t *hx,
            void *subject, std::size_t subject_len,
            void *predicate, std::size_t predicate_len);
@@ -60,6 +66,12 @@ int BGet(hxhim_t *hx,
          void **predicates, std::size_t *predicate_lens,
          hxhim_type_t *object_types,
          std::size_t count);
+
+int BGet2(hxhim_t *hx,
+          void **subjects, std::size_t *subject_lens,
+          void **predicates, std::size_t *predicate_lens,
+          hxhim_type_t *object_types, void **objects, std::size_t **object_lens,
+          std::size_t count);
 
 int BGetOp(hxhim_t *hx,
            void *subject, std::size_t subject_len,

@@ -266,21 +266,21 @@ int Datastore::GetStats(const int dst_rank,
     return HXHIM_SUCCESS;
 }
 
-/**
- * Histogram
- * Puts the histogram data into a transport packet for sending/processing
- *
- * @return a pointer to the transport packet containing the histogram data
- */
-Transport::Response::Histogram *Datastore::Histogram() const {
-    std::lock_guard<std::mutex> lock(mutex);
-    Transport::Response::Histogram *ret = new Transport::Response::Histogram();
-    if (ret) {
-        ret->status = HXHIM_SUCCESS;
-        hist->get(&ret->hist.buckets, &ret->hist.counts, &ret->hist.size);
-    }
-    return ret;
-}
+// /**
+//  * Histogram
+//  * Puts the histogram data into a transport packet for sending/processing
+//  *
+//  * @return a pointer to the transport packet containing the histogram data
+//  */
+// Transport::Response::Histogram *Datastore::Histogram() const {
+//     std::lock_guard<std::mutex> lock(mutex);
+//     Transport::Response::Histogram *ret = new Transport::Response::Histogram();
+//     if (ret) {
+//         ret->status = HXHIM_SUCCESS;
+//         hist->get(&ret->hist.buckets, &ret->hist.counts, &ret->hist.size);
+//     }
+//     return ret;
+// }
 
 /**
  * encode

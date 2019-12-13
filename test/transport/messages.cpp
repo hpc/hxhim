@@ -4,125 +4,570 @@
 
 #include "gtest/gtest.h"
 
-#include "transport/messages/Messages.hpp"
+#include "transport/Messages/Messages.hpp"
 
 static const char *SUBJECT = "SUBJECT";
 static const std::size_t SUBJECT_LEN = strlen(SUBJECT);
 static const char *PREDICATE = "PREDICATE";
 static const std::size_t PREDICATE_LEN = strlen(PREDICATE);
+static const hxhim_type_t OBJECT_TYPE = HXHIM_BYTE_TYPE;
 static const char *OBJECT = "OBJECT";
 static const std::size_t OBJECT_LEN = strlen(OBJECT);
 
 static const std::size_t ALLOC_SIZE = 256;
 static const std::size_t REGIONS = 64;
 
-TEST(SendRequestBPut, pack_unpack) {
-    Transport::Request::BPut<Transport::ReferenceBlob> src(1);
+using namespace ::Transport;
 
-    Transport::SPO <Transport::ReferenceBlob> * spo = construct <Transport::SPO <Transport::ReferenceBlob> > ();
-    spo->subject = Transport::ReferenceBlob(sub, sub_len);
-    spo->predicate = Transport::ReferenceBlob(pred, pred_len);
-    spo->object = Transport::ReferenceBlob(obj, obj_len);
-    src.add(spo);
+TEST(Request, BPut) {
+    Request::BPut src;
+    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
+    {
 
-    const std::size_t size = src.size();
-    void * packed = ::operator new(size);
-    memset(packed, 0, size);
-    src.pack(packed, size);
+        src.src = rand();
+        src.dst = rand();
 
-    EXPECT_NO_THROW(
+        src.count = 1;
+
+        src.ds_offsets[0] = rand();
+
+        src.subjects[0] = (void *) &SUBJECT;
+        src.subject_lens[0] = SUBJECT_LEN;
+
+        src.predicates[0] = (void *) &PREDICATE;
+        src.predicate_lens[0] = PREDICATE_LEN;
+
+        src.object_types[0] = OBJECT_TYPE;
+        src.objects[0] = (void *) &OBJECT;
+        src.object_lens[0] = OBJECT_LEN;
+    }
+
+    EXPECT_EQ(src.direction, Message::REQUEST);
+    EXPECT_EQ(src.type, Message::BPUT);
+    EXPECT_EQ(src.clean, false);
+
+    void *buf = nullptr;
+    std::size_t size = 0;
+    EXPECT_EQ(Packer::pack(&src, &buf, &size), TRANSPORT_SUCCESS);
+
+    Request::BPut *dst = nullptr;
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size), TRANSPORT_SUCCESS);
+    dealloc(buf);
+
+    ASSERT_NE(dst, nullptr);
+    EXPECT_EQ(src.direction, dst->direction);
+    EXPECT_EQ(src.type, dst->type);
+    EXPECT_EQ(src.src, dst->src);
+    EXPECT_EQ(src.dst, dst->dst);
+
+    EXPECT_EQ(dst->clean, true);
+
+    EXPECT_EQ(src.count, dst->count);
+
+    for(std::size_t i = 0; i < dst->count; i++) {
+        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
+
+        EXPECT_EQ(src.subject_lens[i], dst->subject_lens[i]);
+        EXPECT_EQ(memcmp(src.subjects[i], dst->subjects[i], dst->subject_lens[i]), 0);
+
+        EXPECT_EQ(src.predicate_lens[i], dst->predicate_lens[i]);
+        EXPECT_EQ(memcmp(src.predicates[i], dst->predicates[i], dst->predicate_lens[i]), 0);
+
+        EXPECT_EQ(src.object_types[i], dst->object_types[i]);
+        EXPECT_EQ(src.object_lens[i], dst->object_lens[i]);
+        EXPECT_EQ(memcmp(src.objects[i], dst->objects[i], dst->object_lens[i]), 0);
+    }
+
+    destruct(dst);
+}
+
+TEST(Request, BGet) {
+    Request::BGet src;
+    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
+    {
+        src.src = rand();
+        src.dst = rand();
+
+        src.count = 1;
+
+        src.ds_offsets[0] = rand();
+
+        src.subjects[0] = (void *) &SUBJECT;
+        src.subject_lens[0] = SUBJECT_LEN;
+
+        src.predicates[0] = (void *) &PREDICATE;
+        src.predicate_lens[0] = PREDICATE_LEN;
+
+        src.object_types[0] = OBJECT_TYPE;
+    }
+
+    EXPECT_EQ(src.direction, Message::REQUEST);
+    EXPECT_EQ(src.type, Message::BGET);
+    EXPECT_EQ(src.clean, false);
+
+    void *buf = nullptr;
+    std::size_t size = 0;
+    EXPECT_EQ(Packer::pack(&src, &buf, &size), TRANSPORT_SUCCESS);
+
+    Request::BGet *dst = nullptr;
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size), TRANSPORT_SUCCESS);
+    dealloc(buf);
+
+    ASSERT_NE(dst, nullptr);
+    EXPECT_EQ(src.direction, dst->direction);
+    EXPECT_EQ(src.type, dst->type);
+    EXPECT_EQ(src.src, dst->src);
+    EXPECT_EQ(src.dst, dst->dst);
+
+    EXPECT_EQ(dst->clean, true);
+
+    EXPECT_EQ(src.count, dst->count);
+
+    for(std::size_t i = 0; i < dst->count; i++) {
+        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
+
+        EXPECT_EQ(src.subject_lens[i], dst->subject_lens[i]);
+        EXPECT_EQ(memcmp(src.subjects[i], dst->subjects[i], dst->subject_lens[i]), 0);
+
+        EXPECT_EQ(src.predicate_lens[i], dst->predicate_lens[i]);
+        EXPECT_EQ(memcmp(src.predicates[i], dst->predicates[i], dst->predicate_lens[i]), 0);
+
+        EXPECT_EQ(src.object_types[i], dst->object_types[i]);
+    }
+
+    destruct(dst);
+}
+
+TEST(Request, BGetOp) {
+    Request::BGetOp src;
+    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
+    {
+        src.src = rand();
+        src.dst = rand();
+
+        src.count = 1;
+
+        src.ds_offsets[0] = rand();
+
+        src.subjects[0] = (void *) &SUBJECT;
+        src.subject_lens[0] = SUBJECT_LEN;
+
+        src.predicates[0] = (void *) &PREDICATE;
+        src.predicate_lens[0] = PREDICATE_LEN;
+
+        src.object_types[0] = OBJECT_TYPE;
+
+        src.num_recs[0] = rand();
+        src.ops[0] = HXHIM_GET_EQ;
+    }
+
+    EXPECT_EQ(src.direction, Message::REQUEST);
+    EXPECT_EQ(src.type, Message::BGETOP);
+    EXPECT_EQ(src.clean, false);
+
+    void *buf = nullptr;
+    std::size_t size = 0;
+    EXPECT_EQ(Packer::pack(&src, &buf, &size), TRANSPORT_SUCCESS);
+
+    Request::BGetOp *dst = nullptr;
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size), TRANSPORT_SUCCESS);
+    dealloc(buf);
+
+    ASSERT_NE(dst, nullptr);
+    EXPECT_EQ(src.direction, dst->direction);
+    EXPECT_EQ(src.type, dst->type);
+    EXPECT_EQ(src.src, dst->src);
+    EXPECT_EQ(src.dst, dst->dst);
+
+    EXPECT_EQ(dst->clean, true);
+
+    EXPECT_EQ(src.count, dst->count);
+
+    for(std::size_t i = 0; i < dst->count; i++) {
+        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
+
+        EXPECT_EQ(src.subject_lens[i], dst->subject_lens[i]);
+        EXPECT_EQ(memcmp(src.subjects[i], dst->subjects[i], dst->subject_lens[i]), 0);
+
+        EXPECT_EQ(src.predicate_lens[i], dst->predicate_lens[i]);
+        EXPECT_EQ(memcmp(src.predicates[i], dst->predicates[i], dst->predicate_lens[i]), 0);
+
+        EXPECT_EQ(src.object_types[i], dst->object_types[i]);
+
+        EXPECT_EQ(src.num_recs[i], dst->num_recs[i]);
+        EXPECT_EQ(src.ops[i], dst->ops[i]);
+    }
+
+    destruct(dst);
+}
+
+TEST(Request, BDelete) {
+    Request::BDelete src;
+    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
+    {
+        src.src = rand();
+        src.dst = rand();
+
+        src.count = 1;
+
+        src.ds_offsets[0] = rand();
+
+        src.subjects[0] = (void *) &SUBJECT;
+        src.subject_lens[0] = SUBJECT_LEN;
+
+        src.predicates[0] = (void *) &PREDICATE;
+        src.predicate_lens[0] = PREDICATE_LEN;
+    }
+
+    EXPECT_EQ(src.direction, Message::REQUEST);
+    EXPECT_EQ(src.type, Message::BDELETE);
+    EXPECT_EQ(src.clean, false);
+
+    void *buf = nullptr;
+    std::size_t size = 0;
+    EXPECT_EQ(Packer::pack(&src, &buf, &size), TRANSPORT_SUCCESS);
+
+    Request::BDelete *dst = nullptr;
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size), TRANSPORT_SUCCESS);
+    dealloc(buf);
+
+    ASSERT_NE(dst, nullptr);
+    EXPECT_EQ(src.direction, dst->direction);
+    EXPECT_EQ(src.type, dst->type);
+    EXPECT_EQ(src.src, dst->src);
+    EXPECT_EQ(src.dst, dst->dst);
+
+    EXPECT_EQ(dst->clean, true);
+
+    EXPECT_EQ(src.count, dst->count);
+
+    for(std::size_t i = 0; i < dst->count; i++) {
+        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
+
+        EXPECT_EQ(src.subject_lens[i], dst->subject_lens[i]);
+        EXPECT_EQ(memcmp(src.subjects[i], dst->subjects[i], dst->subject_lens[i]), 0);
+
+        EXPECT_EQ(src.predicate_lens[i], dst->predicate_lens[i]);
+        EXPECT_EQ(memcmp(src.predicates[i], dst->predicates[i], dst->predicate_lens[i]), 0);
+    }
+
+    destruct(dst);
+}
+
+TEST(Request, BHistogram) {
+    Request::BHistogram src;
+    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
+    {
+        src.src = rand();
+        src.dst = rand();
+
+        src.count = 1;
+
+        src.ds_offsets[0] = rand();
+    }
+
+    EXPECT_EQ(src.direction, Message::REQUEST);
+    EXPECT_EQ(src.type, Message::BHISTOGRAM);
+    EXPECT_EQ(src.clean, false);
+
+    void *buf = nullptr;
+    std::size_t size = 0;
+    EXPECT_EQ(Packer::pack(&src, &buf, &size), TRANSPORT_SUCCESS);
+
+    Request::BHistogram *dst = nullptr;
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size), TRANSPORT_SUCCESS);
+    dealloc(buf);
+
+    ASSERT_NE(dst, nullptr);
+    EXPECT_EQ(src.direction, dst->direction);
+    EXPECT_EQ(src.type, dst->type);
+    EXPECT_EQ(src.src, dst->src);
+    EXPECT_EQ(src.dst, dst->dst);
+
+    EXPECT_EQ(dst->clean, true);
+
+    EXPECT_EQ(src.count, dst->count);
+
+    for(std::size_t i = 0; i < dst->count; i++) {
+        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
+    }
+
+    destruct(dst);
+}
+
+TEST(Response, BPut) {
+    Response::BPut src;
+    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
+    {
+        src.src = rand();
+        src.dst = rand();
+
+        src.count = 1;
+
+        src.statuses[0] = HXHIM_SUCCESS;
+
+        src.ds_offsets[0] = rand();
+    }
+
+    EXPECT_EQ(src.direction, Message::RESPONSE);
+    EXPECT_EQ(src.type, Message::BPUT);
+    EXPECT_EQ(src.clean, false);
+
+    void *buf = nullptr;
+    std::size_t size = 0;
+    EXPECT_EQ(Packer::pack(&src, &buf, &size), TRANSPORT_SUCCESS);
+
+    Response::BPut *dst = nullptr;
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size), TRANSPORT_SUCCESS);
+    dealloc(buf);
+
+    ASSERT_NE(dst, nullptr);
+    EXPECT_EQ(src.direction, dst->direction);
+    EXPECT_EQ(src.type, dst->type);
+    EXPECT_EQ(src.src, dst->src);
+    EXPECT_EQ(src.dst, dst->dst);
+
+    EXPECT_EQ(dst->clean, true);
+
+    EXPECT_EQ(src.count, dst->count);
+
+    for(std::size_t i = 0; i < dst->count; i++) {
+        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
+        EXPECT_EQ(src.statuses[i], dst->statuses[i]);
+    }
+
+    destruct(dst);
+}
+
+TEST(Response, BGet) {
+    Response::BGet src;
+    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
+    {
+        src.src = rand();
+        src.dst = rand();
+
+        src.count = 1;
+
+        src.statuses[0] = HXHIM_SUCCESS;
+
+        src.ds_offsets[0] = rand();
+
+        src.subjects[0] = (void *) &SUBJECT;
+        src.subject_lens[0] = SUBJECT_LEN;
+
+        src.predicates[0] = (void *) &PREDICATE;
+        src.predicate_lens[0] = PREDICATE_LEN;
+
+        src.object_types[0] = OBJECT_TYPE;
+        src.objects[0] = (void *) &OBJECT;
+        src.object_lens[0] = OBJECT_LEN;
+    }
+
+    EXPECT_EQ(src.direction, Message::RESPONSE);
+    EXPECT_EQ(src.type, Message::BGET);
+    EXPECT_EQ(src.clean, false);
+
+    void *buf = nullptr;
+    std::size_t size = 0;
+    EXPECT_EQ(Packer::pack(&src, &buf, &size), TRANSPORT_SUCCESS);
+
+    Response::BGet *dst = nullptr;
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size), TRANSPORT_SUCCESS);
+    dealloc(buf);
+
+    ASSERT_NE(dst, nullptr);
+    EXPECT_EQ(src.direction, dst->direction);
+    EXPECT_EQ(src.type, dst->type);
+    EXPECT_EQ(src.src, dst->src);
+    EXPECT_EQ(src.dst, dst->dst);
+
+    EXPECT_EQ(dst->clean, true);
+
+    EXPECT_EQ(src.count, dst->count);
+
+    for(std::size_t i = 0; i < dst->count; i++) {
+        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
+        EXPECT_EQ(src.statuses[i], dst->statuses[i]);
+
+        EXPECT_EQ(src.subject_lens[i], dst->subject_lens[i]);
+        EXPECT_EQ(memcmp(src.subjects[i], dst->subjects[i], dst->subject_lens[i]), 0);
+
+        EXPECT_EQ(src.predicate_lens[i], dst->predicate_lens[i]);
+        EXPECT_EQ(memcmp(src.predicates[i], dst->predicates[i], dst->predicate_lens[i]), 0);
+
+        EXPECT_EQ(src.object_types[i], dst->object_types[i]);
+        EXPECT_EQ(src.object_lens[i], dst->object_lens[i]);
+        EXPECT_EQ(memcmp(src.objects[i], dst->objects[i], dst->object_lens[i]), 0);
+    }
+
+    destruct(dst);
+}
+
+TEST(Response, BGetOp) {
+    Response::BGetOp src;
+    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
+    {
+        src.src = rand();
+        src.dst = rand();
+
+        src.count = 1;
+
+        src.statuses[0] = HXHIM_SUCCESS;
+
+        src.ds_offsets[0] = rand();
+
+        src.subjects[0] = (void *) &SUBJECT;
+        src.subject_lens[0] = SUBJECT_LEN;
+
+        src.predicates[0] = (void *) &PREDICATE;
+        src.predicate_lens[0] = PREDICATE_LEN;
+
+        src.object_types[0] = OBJECT_TYPE;
+        src.objects[0] = (void *) &OBJECT;
+        src.object_lens[0] = OBJECT_LEN;
+    }
+
+    EXPECT_EQ(src.direction, Message::RESPONSE);
+    EXPECT_EQ(src.type, Message::BGETOP);
+    EXPECT_EQ(src.clean, false);
+
+    void *buf = nullptr;
+    std::size_t size = 0;
+    EXPECT_EQ(Packer::pack(&src, &buf, &size), TRANSPORT_SUCCESS);
+
+    Response::BGetOp *dst = nullptr;
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size), TRANSPORT_SUCCESS);
+    dealloc(buf);
+
+    ASSERT_NE(dst, nullptr);
+    EXPECT_EQ(src.direction, dst->direction);
+    EXPECT_EQ(src.type, dst->type);
+    EXPECT_EQ(src.src, dst->src);
+    EXPECT_EQ(src.dst, dst->dst);
+
+    EXPECT_EQ(dst->clean, true);
+
+    EXPECT_EQ(src.count, dst->count);
+
+    for(std::size_t i = 0; i < dst->count; i++) {
+        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
+        EXPECT_EQ(src.statuses[i], dst->statuses[i]);
+
+        EXPECT_EQ(src.subject_lens[i], dst->subject_lens[i]);
+        EXPECT_EQ(memcmp(src.subjects[i], dst->subjects[i], dst->subject_lens[i]), 0);
+
+        EXPECT_EQ(src.predicate_lens[i], dst->predicate_lens[i]);
+        EXPECT_EQ(memcmp(src.predicates[i], dst->predicates[i], dst->predicate_lens[i]), 0);
+
+        EXPECT_EQ(src.object_types[i], dst->object_types[i]);
+        EXPECT_EQ(src.object_lens[i], dst->object_lens[i]);
+        EXPECT_EQ(memcmp(src.objects[i], dst->objects[i], dst->object_lens[i]), 0);
+    }
+
+    destruct(dst);
+}
+
+TEST(Response, BDelete) {
+    Response::BDelete src;
+    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
+    {
+        src.src = rand();
+        src.dst = rand();
+
+        src.count = 1;
+
+        src.statuses[0] = HXHIM_SUCCESS;
+
+        src.ds_offsets[0] = rand();
+    }
+
+    EXPECT_EQ(src.direction, Message::RESPONSE);
+    EXPECT_EQ(src.type, Message::BDELETE);
+    EXPECT_EQ(src.clean, false);
+
+    void *buf = nullptr;
+    std::size_t size = 0;
+    EXPECT_EQ(Packer::pack(&src, &buf, &size), TRANSPORT_SUCCESS);
+
+    Response::BDelete *dst = nullptr;
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size), TRANSPORT_SUCCESS);
+    dealloc(buf);
+
+    ASSERT_NE(dst, nullptr);
+    EXPECT_EQ(src.direction, dst->direction);
+    EXPECT_EQ(src.type, dst->type);
+    EXPECT_EQ(src.src, dst->src);
+    EXPECT_EQ(src.dst, dst->dst);
+
+    EXPECT_EQ(dst->clean, true);
+
+    EXPECT_EQ(src.count, dst->count);
+
+    for(std::size_t i = 0; i < dst->count; i++) {
+        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
+        EXPECT_EQ(src.statuses[i], dst->statuses[i]);
+    }
+
+    destruct(dst);
+}
+
+TEST(Response, BHistogram) {
+    for(std::size_t count = 0; count < 10; count++) {
+        Response::BHistogram src;
+        ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
         {
-            Transport::Request::BPut<Transport::DeepCopyBlob> b(packed, size);
+            src.src = rand();
+            src.dst = rand();
+
+            src.count = 1;
+
+            src.statuses[0] = HXHIM_SUCCESS;
+
+            src.ds_offsets[0] = rand();
+
+            src.hists[0].buckets = alloc_array<double>(count);
+            src.hists[0].counts = alloc_array<std::size_t>(count);
+            src.hists[0].size = count;
+            for(std::size_t i = 0; i < count; i++) {
+                src.hists[0].buckets[i] = i;
+                src.hists[0].counts[i] = i * i;
+            }
         }
-    );
 
-    delete [] packed;
-}
+        EXPECT_EQ(src.direction, Message::RESPONSE);
+        EXPECT_EQ(src.type, Message::BHISTOGRAM);
+        EXPECT_EQ(src.clean, false);
+        src.clean = true;
 
-TEST(SendRequestBPut, add) {
-    Transport::Request::BPut<Transport::ReferenceBlob> src(1);
+        void *buf = nullptr;
+        std::size_t size = 0;
+        EXPECT_EQ(Packer::pack(&src, &buf, &size), TRANSPORT_SUCCESS);
 
-    Transport::SPO <Transport::ReferenceBlob> * spo1 = construct <Transport::SPO <Transport::ReferenceBlob> > ();
-    spo->subject = Transport::ReferenceBlob(sub, sub_len);
-    spo->predicate = Transport::ReferenceBlob(pred, pred_len);
-    spo->object = Transport::ReferenceBlob(obj, obj_len);
-    EXPECT_EQ(src.add(spo1), HXHIM_SUCCESS);
+        Response::BHistogram *dst = nullptr;
+        EXPECT_EQ(Unpacker::unpack(&dst, buf, size), TRANSPORT_SUCCESS);
+        dealloc(buf);
 
-    Transport::SPO <Transport::ReferenceBlob> * spo2 = construct <Transport::SPO <Transport::ReferenceBlob> > ();
-    spo->subject = Transport::ReferenceBlob(sub, sub_len);
-    spo->predicate = Transport::ReferenceBlob(pred, pred_len);
-    spo->object = Transport::ReferenceBlob(obj, obj_len);
-    EXPECT_EQ(src.add(spo2), HXHIM_ERROR);
-}
+        ASSERT_TRUE(dst);
+        EXPECT_EQ(src.direction, dst->direction);
+        EXPECT_EQ(src.type, dst->type);
+        EXPECT_EQ(src.src, dst->src);
+        EXPECT_EQ(src.dst, dst->dst);
 
-TEST(SendRequestBGet, pack_unpack) {
-    Transport::Request::BGet<Transport::ReferenceBlob> src(1);
+        EXPECT_EQ(dst->clean, true);
 
-    Transport::SP <Transport::ReferenceBlob> * sp = construct <Transport::SP <Transport::ReferenceBlob> > ();
-    sp->subject = Transport::ReferenceBlob(sub, sub_len);
-    sp->predicate = Transport::ReferenceBlob(pred, pred_len);
-    src.add(sp);
+        EXPECT_EQ(src.count, dst->count);
 
-    const std::size_t size = src.size();
-    void * packed = ::operator new(size);
-    memset(packed, 0, size);
-    src.pack(packed, size);
+        for(std::size_t i = 0; i < dst->count; i++) {
+            EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
+            EXPECT_EQ(src.statuses[i], dst->statuses[i]);
 
-    EXPECT_NO_THROW(
-        {
-            Transport::Request::BGet<Transport::DeepCopyBlob> b(packed, size);
+            EXPECT_EQ(src.hists[i].size, dst->hists[i].size);
+            for(std::size_t j = 0; j < dst->hists[i].size; j++) {
+                EXPECT_NEAR(src.hists[i].buckets[j], dst->hists[i].buckets[j], 1e-7);
+                EXPECT_EQ(src.hists[i].counts[j], dst->hists[i].counts[j]);
+            }
         }
-    );
 
-    delete [] packed;
-}
-
-TEST(SendRequestBGet, add) {
-    Transport::Request::BGet<Transport::ReferenceBlob> src(1);
-
-    Transport::SP <Transport::ReferenceBlob> * sp1 = construct <Transport::SP <Transport::ReferenceBlob> > ();
-    sp->subject = Transport::ReferenceBlob(sub, sub_len);
-    sp->predicate = Transport::ReferenceBlob(pred, pred_len);
-    EXPECT_EQ(src.add(sp1), HXHIM_SUCCESS);
-
-    Transport::SP <Transport::ReferenceBlob> * sp2 = construct <Transport::SP <Transport::ReferenceBlob> > ();
-    sp->subject = Transport::ReferenceBlob(sub, sub_len);
-    sp->predicate = Transport::ReferenceBlob(pred, pred_len);
-    EXPECT_EQ(src.add(sp2), HXHIM_ERROR);
-}
-
-TEST(SendRequestBDelete, pack_unpack) {
-    Transport::Request::BDelete<Transport::ReferenceBlob> src(1);
-
-    Transport::SP <Transport::ReferenceBlob> * sp = construct <Transport::SP <Transport::ReferenceBlob> > ();
-    sp->subject = Transport::ReferenceBlob(sub, sub_len);
-    sp->predicate = Transport::ReferenceBlob(pred, pred_len);
-    src.add(sp);
-
-    const std::size_t size = src.size();
-    void * packed = ::operator new(size);
-    memset(packed, 0, size);
-    src.pack(packed, size);
-
-    EXPECT_NO_THROW(
-        {
-            Transport::Request::BDelete<Transport::DeepCopyBlob> b(packed, size);
-        }
-    );
-
-    delete [] packed;
-}
-
-TEST(SendRequestBDelete, add) {
-    Transport::Request::BDelete<Transport::ReferenceBlob> src(1);
-
-    Transport::SP <Transport::ReferenceBlob> * sp1 = construct <Transport::SP <Transport::ReferenceBlob> > ();
-    sp->subject = Transport::ReferenceBlob(sub, sub_len);
-    sp->predicate = Transport::ReferenceBlob(pred, pred_len);
-    EXPECT_EQ(src.add(sp1), HXHIM_SUCCESS);
-
-    Transport::SP <Transport::ReferenceBlob> * sp2 = construct <Transport::SP <Transport::ReferenceBlob> > ();
-    sp->subject = Transport::ReferenceBlob(sub, sub_len);
-    sp->predicate = Transport::ReferenceBlob(pred, pred_len);
-    EXPECT_EQ(src.add(sp2), HXHIM_ERROR);
+        destruct(dst);
+    }
 }

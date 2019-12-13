@@ -447,51 +447,39 @@ static Transport::Response::BDelete *bdelete(hxhim_t *hx, const Transport::Reque
     return res;
 }
 
-/**
- * histogram
- * Gets the histogram from the selected datastore
- *
- * @param hx        pointer to the main HXHIM struct
- * @param hist      the request packet to operate on
- * @return          the response packet resulting from the request
- */
-Transport::Response::Histogram *histogram(hxhim_t *hx, const Transport::Request::Histogram *hist) {
-    return hx->p->datastore.datastores[hist->ds_offset]->Histogram();
-}
+// /**
+//  * histogram
+//  * Gets the histograms from the selected datastores
+//  *
+//  * @param hx        pointer to the main HXHIM struct
+//  * @param bhist     the request packet to operate on
+//  * @return          the response packet resulting from the request
+//  */
+// Transport::Response::BHistogram *bhistogram(hxhim_t *hx, const Transport::Request::BHistogram *bhist) {
+//     Transport::Response::BHistogram *ret = construct<Transport::Response::BHistogram>(bhist->count);
+//     ret->src = bhist->dst;
+//     ret->dst = bhist->src;
 
-/**
- * histogram
- * Gets the histograms from the selected datastores
- *
- * @param hx        pointer to the main HXHIM struct
- * @param bhist     the request packet to operate on
- * @return          the response packet resulting from the request
- */
-Transport::Response::BHistogram *bhistogram(hxhim_t *hx, const Transport::Request::BHistogram *bhist) {
-    Transport::Response::BHistogram *ret = construct<Transport::Response::BHistogram>(bhist->count);
-    ret->src = bhist->dst;
-    ret->dst = bhist->src;
+//     for(std::size_t i = 0; i < bhist->count; i++) {
+//         ret->ds_offsets[i] = bhist->ds_offsets[i];
 
-    for(std::size_t i = 0; i < bhist->count; i++) {
-        ret->ds_offsets[i] = bhist->ds_offsets[i];
+//         Transport::Response::Histogram *res = hx->p->datastore.datastores[bhist->ds_offsets[i]]->Histogram();
+//         if (res) {
+//             ret->statuses[i] = res->status;
+//             ret->hists[i].buckets = res->hist.buckets;
+//             ret->hists[i].counts = res->hist.counts;
+//             ret->hists[i].size = res->hist.size;
+//             destruct(res);
+//         }
+//         else {
+//             ret->statuses[i] = HXHIM_ERROR;
+//         }
 
-        Transport::Response::Histogram *res = hx->p->datastore.datastores[bhist->ds_offsets[i]]->Histogram();
-        if (res) {
-            ret->statuses[i] = res->status;
-            ret->hists[i].buckets = res->hist.buckets;
-            ret->hists[i].counts = res->hist.counts;
-            ret->hists[i].size = res->hist.size;
-            destruct(res);
-        }
-        else {
-            ret->statuses[i] = HXHIM_ERROR;
-        }
+//         ret->count++;
+//     }
 
-        ret->count++;
-    }
-
-    return ret;
-}
+//     return ret;
+// }
 
 Transport::Response::Response *range_server(hxhim_t *hx, const Transport::Request::Request *req) {
     mlog(HXHIM_SERVER_INFO, "Range server started");
@@ -517,12 +505,9 @@ Transport::Response::Response *range_server(hxhim_t *hx, const Transport::Reques
         case Message::BDELETE:
             res = bdelete(hx, dynamic_cast<const Request::BDelete *>(req));
             break;
-        case Message::HISTOGRAM:
-            res = histogram(hx, dynamic_cast<const Request::Histogram *>(req));
-            break;
-        case Message::BHISTOGRAM:
-            res = bhistogram(hx, dynamic_cast<const Request::BHistogram *>(req));
-            break;
+        // case Message::BHISTOGRAM:
+        //     res = bhistogram(hx, dynamic_cast<const Request::BHistogram *>(req));
+        //     break;
         default:
             break;
     }

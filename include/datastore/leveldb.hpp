@@ -29,19 +29,26 @@ class leveldb : public Datastore {
         bool OpenImpl(const std::string &new_name);
         void CloseImpl();
 
-        Transport::Response::SendBPut *BPutImpl(void **subjects, std::size_t *subject_lens,
+        Transport::Response::BPut *BPutImpl(void **subjects, std::size_t *subject_lens,
                                             void **predicates, std::size_t *predicate_lens,
                                             hxhim_type_t *object_types, void **objects, std::size_t *object_lens,
                                             std::size_t count);
-        Transport::Response::SendBGet *BGetImpl(void **subjects, std::size_t *subject_lens,
+        Transport::Response::BGet *BGetImpl(void **subjects, std::size_t *subject_lens,
                                             void **predicates, std::size_t *predicate_lens,
                                             hxhim_type_t *object_types,
                                             std::size_t count);
-        Transport::Response::SendBGetOp *BGetOpImpl(void *subject, std::size_t subject_len,
+        Transport::Response::BGet2 *BGetImpl2(void **subjects, std::size_t *subject_lens,
+                                              void **predicates, std::size_t *predicate_lens,
+                                              hxhim_type_t *object_types,
+                                              void **orig_subjects,
+                                              void **orig_predicates,
+                                              void **orig_objects, std::size_t **orig_object_lens,
+                                              std::size_t count, const bool local);
+        Transport::Response::BGetOp *BGetOpImpl(void *subject, std::size_t subject_len,
                                                 void *predicate, std::size_t predicate_len,
                                                 hxhim_type_t object_type,
                                                 std::size_t recs, enum hxhim_get_op_t op);
-        Transport::Response::SendBDelete *BDeleteImpl(void **subjects, std::size_t *subject_lens,
+        Transport::Response::BDelete *BDeleteImpl(void **subjects, std::size_t *subject_lens,
                                                   void **predicates, std::size_t *predicate_lens,
                                                   std::size_t count);
 

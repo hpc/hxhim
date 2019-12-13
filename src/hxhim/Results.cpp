@@ -4,6 +4,7 @@
 #include "hxhim/Results.hpp"
 #include "hxhim/Results_private.hpp"
 #include "hxhim/private.hpp"
+#include "transport/Messages/Messages.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
@@ -30,16 +31,29 @@ Results::Get2::~Get2() {
    }
 }
 
-Results::Put *Result::init(hxhim_t *hx, Transport::Response::Put *put) {
-    if (!valid(hx) || !put) {
-        return nullptr;
+Results::Result *Result::init(hxhim_t *hx, Transport::Response::Response *res, const std::size_t i) {
+    Results::Result *ret = nullptr;
+    switch (res->type) {
+        case Transport::Message::BPUT:
+            ret = init(hx, static_cast<Transport::Response::BPut *>(res), i);
+            break;
+        case Transport::Message::BGET:
+            ret = init(hx, static_cast<Transport::Response::BGet *>(res), i);
+            break;
+        case Transport::Message::BGET2:
+            ret = init(hx, static_cast<Transport::Response::BGet2 *>(res), i);
+            break;
+        case Transport::Message::BGETOP:
+            ret = init(hx, static_cast<Transport::Response::BGetOp *>(res), i);
+            break;
+        case Transport::Message::BDELETE:
+            ret = init(hx, static_cast<Transport::Response::BDelete *>(res), i);
+            break;
+        default:
+            break;
     }
 
-    Results::Put *out = construct<Results::Put>();
-    out->type = hxhim_result_type::HXHIM_RESULT_PUT;
-    out->datastore = hxhim::datastore::get_id(hx, put->src, put->ds_offset);
-    out->status = put->status;
-    return out;
+    return ret;
 }
 
 Results::Put *Result::init(hxhim_t *hx, Transport::Response::BPut *bput, const std::size_t i) {
@@ -56,46 +70,6 @@ Results::Put *Result::init(hxhim_t *hx, Transport::Response::BPut *bput, const s
 
 void Result::destroy(Results::Put *put) {
     destruct(put);
-}
-
-Results::Get *Result::init(hxhim_t *hx, Transport::Response::Get *get) {
-    if (!valid(hx) || !get) {
-        return nullptr;
-    }
-
-    Results::Get *out = construct<Results::Get>();
-    out->type = hxhim_result_type::HXHIM_RESULT_GET;
-    out->datastore = hxhim::datastore::get_id(hx, get->src, get->ds_offset);
-    out->status = get->status;
-    out->subject = get->subject;
-    out->subject_len = get->subject_len;
-    out->predicate = get->predicate;
-    out->predicate_len = get->predicate_len;
-    out->object_type = get->object_type;
-    out->object = get->object;
-    out->object_len = get->object_len;
-
-    get->subject = nullptr;
-    get->predicate = nullptr;
-    get->object = nullptr;
-    return out;
-}
-
-Results::Get2 *Result::init(hxhim_t *hx, Transport::Response::Get2 *get) {
-    if (!valid(hx) || !get) {
-        return nullptr;
-    }
-
-    Results::Get2 *out = construct<Results::Get2>();
-    out->type = hxhim_result_type::HXHIM_RESULT_GET2;
-    out->datastore = hxhim::datastore::get_id(hx, get->src, get->ds_offset);
-    out->status = get->status;
-    out->local = (get->src == get->dst);
-
-    get->subject = nullptr;
-    get->predicate = nullptr;
-    get->object = nullptr;
-    return out;
 }
 
 Results::Get *Result::init(hxhim_t *hx, Transport::Response::BGet *bget, const std::size_t i) {
@@ -177,18 +151,6 @@ void Result::destroy(Results::Get2 *get) {
     destruct(get);
 }
 
-Results::Delete *Result::init(hxhim_t *hx, Transport::Response::Delete *del) {
-    if (!valid(hx) || !del) {
-        return nullptr;
-    }
-
-    Results::Delete *out = construct<Results::Delete>();
-    out->type = hxhim_result_type::HXHIM_RESULT_DEL;
-    out->datastore = hxhim::datastore::get_id(hx, del->src, del->ds_offset);
-    out->status = del->status;
-    return out;
-}
-
 Results::Delete *Result::init(hxhim_t *hx, Transport::Response::BDelete *bdel, const std::size_t i) {
     if (!valid(hx) || !bdel || (i >= bdel->count)) {
         return nullptr;
@@ -219,24 +181,6 @@ Results::Sync *Result::init(hxhim_t *hx, const int ds_offset, const int synced) 
 
 void Result::destroy(Results::Sync *sync) {
     destruct(sync);
-}
-
-Results::Histogram *Result::init(hxhim_t *hx, Transport::Response::Histogram *hist) {
-    if (!valid(hx) || !hist) {
-        return nullptr;
-    }
-
-    Results::Histogram *out = construct<Results::Histogram>();
-    out->type = hxhim_result_type::HXHIM_RESULT_HISTOGRAM;
-    out->datastore = hxhim::datastore::get_id(hx, hist->src, hist->ds_offset);
-    out->buckets = hist->hist.buckets;
-    hist->hist.buckets = nullptr;
-    out->counts = hist->hist.counts;
-    hist->hist.counts = nullptr;
-    out->size = hist->hist.size;
-    hist->hist.size = 0;
-    out->status = hist->status;
-    return out;
 }
 
 Results::Histogram *Result::init(hxhim_t *hx, Transport::Response::BHistogram *bhist, const std::size_t i) {

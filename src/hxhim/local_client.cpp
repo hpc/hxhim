@@ -1,142 +1,48 @@
-#include <condition_variable>
-#include <cstdlib>
-#include <mutex>
-
 #include "hxhim/local_client.hpp"
-#include "hxhim/private.hpp"
+
 #include "hxhim/range_server.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
 /**
- * Process a message with the range server function
- *
- * @param hx main HXHIM struct
- * @tparam msg pointer to the message
- * @treturn return_message structure with ->status = HXHIM_SUCCESS or HXHIM_ERROR
+ * local_transport
+ * force a copy of the data in order to maintain the
+ * same ownership semantics when processing local data
  */
-template<typename Recv_t, typename Send_t>
-static Recv_t *local_client_impl(hxhim_t *hx, Send_t *msg) {
-    return dynamic_cast<Recv_t *>(hxhim::range_server::range_server(hx, msg));
+static Transport::Request::Request *local_transport(const Transport::Request::Request *orig) {
+    void *buf = nullptr;
+    std::size_t size = 0;
+
+    // pack the request
+    if (Transport::Packer::pack(orig, &buf, &size) != TRANSPORT_SUCCESS) {
+        dealloc(buf);
+        mlog(THALLIUM_WARN, "Unable to pack message");
+        return nullptr;
+    }
+
+    // unpack the request
+    Transport::Request::Request *copy = nullptr;
+    if (Transport::Unpacker::unpack(&copy, buf, size) != TRANSPORT_SUCCESS) {
+        dealloc(buf);
+        mlog(THALLIUM_DBG, "Could not unpack message");
+        return nullptr;
+    }
+
+    dealloc(buf);
+
+    return copy;
 }
 
 /**
- * Send put to range server
+ * Send a message to the local range server
  *
- * @param hx main HXHIM struct
- * @param pm pointer to put message
- * @return return_message structure with ->status = HXHIM_SUCCESS or HXHIM_ERROR
+ * @param hx    main HXHIM struct
+ * @param msg   pointer to the message
+ * @return return_message structure with status = HXHIM_SUCCESS or HXHIM_ERROR
  */
-Transport::Response::Put *local_client(hxhim_t *hx, const Transport::Request::Put *pm) {
-    return local_client_impl<Transport::Response::Put>(hx, pm);
+Transport::Response::Response *hxhim::local_client(hxhim_t *hx, const Transport::Request::Request *req) {
+    Transport::Request::Request *copy = local_transport(req);
+    Transport::Response::Response *res = static_cast<Transport::Response::Response *>(hxhim::range_server::range_server(hx, copy));
+    destruct(copy);
+    return res;
 }
-
-/**
- * Send get to range server
- *
- * @param hx main HXHIM struct
- * @param gm pointer to get message
- * @return return_message structure with ->status = HXHIM_SUCCESS or HXHIM_ERROR
- */
-Transport::Response::Get *local_client(hxhim_t *hx, const Transport::Request::Get *gm) {
-    return local_client_impl<Transport::Response::Get>(hx, gm);
-}
-
-/**
- * Send get to range server
- *
- * @param hx main HXHIM struct
- * @param gm pointer to get message
- * @return return_message structure with ->status = HXHIM_SUCCESS or HXHIM_ERROR
- */
-Transport::Response::Get2 *local_client(hxhim_t *hx, const Transport::Request::Get2 *gm) {
-    return local_client_impl<Transport::Response::Get2>(hx, gm);
-}
-
-/**
- * Send delete to range server
- *
- * @param hx main HXHIM struct
- * @param dm pointer to delete message
- * @return return_message structure with ->status = HXHIM_SUCCESS or HXHIM_ERROR
- */
-Transport::Response::Delete *local_client(hxhim_t *hx, const Transport::Request::Delete *dm) {
-    return local_client_impl<Transport::Response::Delete>(hx, dm);
-}
-
-/**
- * Send bulk put to range server
- *
- * @param hx main HXHIM struct
- * @param bpm pointer to bulk put message
- * @return return_message structure with ->status = HXHIM_SUCCESS or HXHIM_ERROR
-*/
-Transport::Response::BPut *local_client(hxhim_t *hx, const Transport::Request::BPut *bpm) {
-    return local_client_impl<Transport::Response::BPut>(hx, bpm);
-}
-
-/**
- * Send bulk get to range server
- *
- * @param hx main HXHIM struct
- * @param bgm pointer to get message
- * @return return_message structure with ->status = HXHIM_SUCCESS or HXHIM_ERROR
- */
-Transport::Response::BGet *local_client(hxhim_t *hx, const Transport::Request::BGet *bgm) {
-    return local_client_impl<Transport::Response::BGet>(hx, bgm);
-}
-
-/**
- * Send bulk get to range server
- *
- * @param hx main HXHIM struct
- * @param bgm pointer to get message
- * @return return_message structure with ->status = HXHIM_SUCCESS or HXHIM_ERROR
- */
-Transport::Response::BGet2 *local_client(hxhim_t *hx, const Transport::Request::BGet2 *bgm) {
-    return local_client_impl<Transport::Response::BGet2>(hx, bgm);
-}
-
-/**
- * Send get with an op and number of records greater than 1 to range server
- *
- * @param hx main HXHIM struct
- * @param gm pointer to get message
- * @return return_message structure with ->status = HXHIM_SUCCESS or HXHIM_ERROR
- */
-Transport::Response::BGetOp *local_client(hxhim_t *hx, const Transport::Request::BGetOp *gm) {
-    return local_client_impl<Transport::Response::BGetOp>(hx, gm);
-}
-
-/**
- * Send bulk delete to HXHIM
- *
- * @param hx main HXHIM struct
- * @param bdm pointer to bulk delete message
- * @return return_message structure with ->status = HXHIM_SUCCESS or HXHIM_ERROR
- */
-Transport::Response::BDelete *local_client(hxhim_t *hx, const Transport::Request::BDelete *bdm) {
-    return local_client_impl<Transport::Response::BDelete>(hx, bdm);
-}
-
-// /**
-//  * Send histogram request to HXHIM
-//  *
-//  * @param hx main HXHIM struct
-//  * @param hist pointer to histogram message
-//  * @return return_message structure with ->status = HXHIM_SUCCESS or HXHIM_ERROR
-//  */
-// Transport::Response::Histogram *local_client(hxhim_t *hx, const Transport::Request::Histogram *hist) {
-//     return local_client_impl<Transport::Response::Histogram>(hx, hist);
-// }
-
-// /**
-//  * Send bhistogram request to HXHIM
-//  *
-//  * @param hx main HXHIM struct
-//  * @param bhist pointer to bhistogram message
-//  * @return return_message structure with ->status = HXHIM_SUCCESS or HXHIM_ERROR
-//  */
-// Transport::Response::BHistogram *local_client(hxhim_t *hx, const Transport::Request::BHistogram *bhist) {
-//     return local_client_impl<Transport::Response::BHistogram>(hx, bhist);
-// }

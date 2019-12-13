@@ -5,7 +5,6 @@
 #include <map>
 
 #include "hxhim/constants.h"
-#include "transport/Messages/Bulk.hpp"
 #include "transport/Messages/Request.hpp"
 #include "transport/Messages/Response.hpp"
 #include "transport/constants.hpp"
@@ -14,7 +13,7 @@ namespace Transport {
 
 namespace Request {
 
-struct BHistogram final : Request, Bulk {
+struct BHistogram final : Request {
     BHistogram(const std::size_t max = 0);
     ~BHistogram();
 
@@ -28,7 +27,7 @@ struct BHistogram final : Request, Bulk {
 
 namespace Response {
 
-struct BHistogram final : Response, Bulk {
+struct BHistogram final : Response {
     BHistogram(const std::size_t max = 0);
     ~BHistogram();
 

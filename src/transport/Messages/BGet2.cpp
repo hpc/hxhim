@@ -3,7 +3,6 @@
 
 Transport::Request::BGet2::BGet2(const std::size_t max)
     : Request(BGET2),
-      Bulk(),
       subjects(nullptr),
       subject_lens(nullptr),
       predicates(nullptr),
@@ -39,7 +38,7 @@ int Transport::Request::BGet2::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Bulk::alloc(max) != TRANSPORT_SUCCESS)                  ||
+        if ((Message::alloc(max) != TRANSPORT_SUCCESS)                  ||
             !(subjects = alloc_array<void *>(max))                   ||
             !(subject_lens = alloc_array<std::size_t>(max))          ||
             !(predicates = alloc_array<void *>(max))                 ||
@@ -98,7 +97,6 @@ int Transport::Request::BGet2::cleanup() {
 
 Transport::Response::BGet2::BGet2(const std::size_t max)
     : Response(BGET2),
-      Bulk(),
       statuses(nullptr),
       subjects(nullptr),
       subject_lens(nullptr),
@@ -149,7 +147,7 @@ int Transport::Response::BGet2::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Bulk::alloc(max) != TRANSPORT_SUCCESS)                  ||
+        if ((Message::alloc(max) != TRANSPORT_SUCCESS)                  ||
             !(statuses = alloc_array<int>(max))                      ||
             !(subjects = alloc_array<void *>(max))                   ||
             !(subject_lens = alloc_array<std::size_t>(max))          ||
@@ -238,6 +236,7 @@ int Transport::Response::BGet2::cleanup() {
     dealloc_array(object_lens, count);
     object_lens = nullptr;
 
+    // the pointers in these arrays don't belong to the server
     dealloc_array(orig.subjects, count);
     orig.subjects = nullptr;
 
@@ -254,6 +253,7 @@ int Transport::Response::BGet2::cleanup() {
 }
 
 void Transport::Response::BGet2::server_side_cleanup(void *) {
+    // only clean up server side copies of the SPO, not the client side
     dealloc_array(subject_lens, count);
     dealloc_array(predicate_lens, count);
     for(std::size_t i = 0; i < count; i++) {

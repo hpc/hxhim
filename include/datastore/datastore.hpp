@@ -50,21 +50,28 @@ class Datastore {
 
         // Transport::Response::Histogram *Histogram() const;
 
-        Transport::Response::SendBPut *BPut(void **subjects, std::size_t *subject_lens,
-                                            void **predicates, std::size_t *predicate_lens,
-                                            hxhim_type_t *object_types, void **objects, std::size_t *object_lens,
-                                            std::size_t count);
-        Transport::Response::SendBGet *BGet(void **subjects, std::size_t *subject_lens,
-                                            void **predicates, std::size_t *predicate_lens,
-                                            hxhim_type_t *object_types,
-                                            std::size_t count);
-        Transport::Response::SendBGetOp *BGetOp(void *subject, std::size_t subject_len,
-                                                void *predicate, std::size_t predicate_len,
-                                                hxhim_type_t object_type,
-                                                std::size_t recs, enum hxhim_get_op_t op);
-        Transport::Response::SendBDelete *BDelete(void **subjects, std::size_t *subject_lens,
-                                                  void **predicates, std::size_t *predicate_lens,
-                                                  std::size_t count);
+        Transport::Response::BPut *BPut(void **subjects, std::size_t *subject_lens,
+                                        void **predicates, std::size_t *predicate_lens,
+                                        hxhim_type_t *object_types, void **objects, std::size_t *object_lens,
+                                        std::size_t count);
+        Transport::Response::BGet *BGet(void **subjects, std::size_t *subject_lens,
+                                        void **predicates, std::size_t *predicate_lens,
+                                        hxhim_type_t *object_types,
+                                        std::size_t count);
+        Transport::Response::BGet2 *BGet2(void **subjects, std::size_t *subject_lens,
+                                          void **predicates, std::size_t *predicate_lens,
+                                          hxhim_type_t *object_types,
+                                          void **orig_subjects,
+                                          void **orig_predicates,
+                                          void **orig_objects, std::size_t **orig_object_lens,
+                                          std::size_t count, const bool local);
+        Transport::Response::BGetOp *BGetOp(void *subject, std::size_t subject_len,
+                                            void *predicate, std::size_t predicate_len,
+                                            hxhim_type_t object_type,
+                                            std::size_t recs, enum hxhim_get_op_t op);
+        Transport::Response::BDelete *BDelete(void **subjects, std::size_t *subject_lens,
+                                              void **predicates, std::size_t *predicate_lens,
+                                              std::size_t count);
 
         int Sync();
 
@@ -72,21 +79,28 @@ class Datastore {
         virtual bool OpenImpl(const std::string &new_name) = 0;
         virtual void CloseImpl() = 0;
 
-        virtual Transport::Response::SendBPut *BPutImpl(void **subjects, std::size_t *subject_lens,
-                                                        void **predicates, std::size_t *predicate_lens,
-                                                        hxhim_type_t *object_types, void **objects, std::size_t *object_lens,
-                                                        std::size_t count) = 0;
-        virtual Transport::Response::SendBGet *BGetImpl(void **subjects, std::size_t *subject_lens,
-                                                        void **predicates, std::size_t *predicate_lens,
-                                                        hxhim_type_t *object_types,
-                                                        std::size_t count) = 0;
-        virtual Transport::Response::SendBGetOp *BGetOpImpl(void *subject, std::size_t subject_len,
-                                                            void *predicate, std::size_t predicate_len,
-                                                            hxhim_type_t object_type,
-                                                            std::size_t recs, enum hxhim_get_op_t op) = 0;
-        virtual Transport::Response::SendBDelete *BDeleteImpl(void **subjects, std::size_t *subject_lens,
-                                                              void **predicates, std::size_t *predicate_lens,
-                                                              std::size_t count) = 0;
+        virtual Transport::Response::BPut *BPutImpl(void **subjects, std::size_t *subject_lens,
+                                                    void **predicates, std::size_t *predicate_lens,
+                                                    hxhim_type_t *object_types, void **objects, std::size_t *object_lens,
+                                                    std::size_t count) = 0;
+        virtual Transport::Response::BGet *BGetImpl(void **subjects, std::size_t *subject_lens,
+                                                    void **predicates, std::size_t *predicate_lens,
+                                                    hxhim_type_t *object_types,
+                                                    std::size_t count) = 0;
+        virtual Transport::Response::BGet2 *BGetImpl2(void **subjects, std::size_t *subject_lens,
+                                                      void **predicates, std::size_t *predicate_lens,
+                                                      hxhim_type_t *object_types,
+                                                      void **orig_subjects,
+                                                      void **orig_predicates,
+                                                      void **orig_objects, std::size_t **orig_object_lens,
+                                                      std::size_t count, const bool local) = 0;
+        virtual Transport::Response::BGetOp *BGetOpImpl(void *subject, std::size_t subject_len,
+                                                        void *predicate, std::size_t predicate_len,
+                                                        hxhim_type_t object_type,
+                                                        std::size_t recs, enum hxhim_get_op_t op) = 0;
+        virtual Transport::Response::BDelete *BDeleteImpl(void **subjects, std::size_t *subject_lens,
+                                                          void **predicates, std::size_t *predicate_lens,
+                                                          std::size_t count) = 0;
 
         virtual int SyncImpl() = 0;
 

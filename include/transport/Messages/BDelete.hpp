@@ -3,7 +3,6 @@
 
 #include <cstddef>
 
-#include "transport/Messages/Bulk.hpp"
 #include "transport/Messages/Request.hpp"
 #include "transport/Messages/Response.hpp"
 #include "transport/constants.hpp"
@@ -12,7 +11,7 @@ namespace Transport {
 
 namespace Request {
 
-struct BDelete final : Request, Bulk {
+struct BDelete final : Request {
     BDelete(const std::size_t max = 0);
     ~BDelete();
 
@@ -31,7 +30,7 @@ struct BDelete final : Request, Bulk {
 
 namespace Response {
 
-struct BDelete final : Response, Bulk {
+struct BDelete final : Response {
     BDelete(const std::size_t max = 0);
     ~BDelete();
 

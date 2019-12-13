@@ -4,7 +4,6 @@
 #include <cstddef>
 
 #include "hxhim/constants.h"
-#include "transport/Messages/Bulk.hpp"
 #include "transport/Messages/Request.hpp"
 #include "transport/Messages/Response.hpp"
 #include "transport/constants.hpp"
@@ -13,7 +12,7 @@ namespace Transport {
 
 namespace Request {
 
-struct BGet final : Request, Bulk {
+struct BGet final : Request {
     BGet(const std::size_t max = 0);
     ~BGet();
 
@@ -33,7 +32,7 @@ struct BGet final : Request, Bulk {
 
 namespace Response {
 
-struct BGet final : Response, Bulk {
+struct BGet final : Response {
     BGet(const std::size_t max = 0);
     ~BGet();
 

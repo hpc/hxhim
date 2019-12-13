@@ -2,42 +2,31 @@
 #define HXHIM_PROCESS_HPP
 
 #include "hxhim/hxhim.hpp"
+#include "hxhim/local_client.hpp"
 #include "hxhim/private.hpp"
 #include "hxhim/shuffle.hpp"
 #include "hxhim/Results.hpp"
 #include "utils/memory.hpp"
 #include "utils/enable_if_t.hpp"
 
+namespace hxhim {
+
 /**
  * process
- * The core set of function calls that are needed to
- * send requests and receive responses on the client
+ * The core set of function calls that are needed to send requests and receive responses
  *
- * Sequence of events:
- *     create a single local request packet to send
- *     create an array of remote request packets to send
- *     distributes UserData into local and remote arrays
- *         for each remote request
- *             send request, wait for response
- *         send local request
- *         (a single run might not process all requests, so the sends are looped)
- *
- *     All responses get chained together and returned
- *
- * @tparam Send_t          Transport::Request::SendB*  (arrays of references)
- * @tparam Recv_t          Transport::Response::RecvB* (arrays of deep copies)
+ * @tparam Send_t          Transport::Request::*
+ * @tparam Recv_t          Transport::Response::*
  * @tparam UserData_t      unsorted hxhim user data type
  * @param hx               the HXHIM session
  * @param head             the head of the list of requests to send
  * @param max_ops_per_send the maximum number of sets of data that can be processed in a single packet
  * @return results from sending requests
  */
-template <typename Send_t, typename Recv_t, typename UserData_t,
-          typename = enable_if_t <std::is_child_of <Transport::Send,             Send_t>::value &&
-                                  std::is_child_of <Transport::Request::Request, Send_t>::value &&
-                                  std::is_child_of <Transport::Recv,             Recv_t>::value &&
-                                  std::is_child_of <Transport::Request::Request, Recv_t>::value &&
-                                  std::is_child_of <Transport::UserData      UserData_t>::value>
+template <typename Send_t, typename UserData_t,
+          typename = enable_if_t <std::is_base_of <Transport::Request::Request,   Send_t>::value && !std::is_same   <Transport::Request::Request,   Send_t>::value &&
+                                  std::is_base_of <hxhim::UserData,           UserData_t>::value && !std::is_same   <hxhim::UserData,           UserData_t>::value>
+          >
 hxhim::Results *process(hxhim_t *hx,
                         UserData_t *head,
                         const std::size_t max_ops_per_send) {
@@ -107,8 +96,8 @@ hxhim::Results *process(hxhim_t *hx,
         // process remote data
         if (hx->p->running && remote.size()) {
             // hxhim::collect_fill_stats(remote, hx->p->stats.bget);
-            Recv_t *responses = hx->p->transport->communicate(remote);
-            for(Recv_t *curr = responses; curr; curr = Transport::next(curr)) {
+            Transport::Response::Response *responses = hx->p->transport->communicate(remote);
+            for(Transport::Response::Response *curr = responses; curr; curr = Transport::next(curr)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
                     res->Add(hxhim::Result::init(hx, curr, i));
                 }
@@ -121,8 +110,8 @@ hxhim::Results *process(hxhim_t *hx,
 
         if (hx->p->running && local.count) {
             hxhim::collect_fill_stats(&local, hx->p->stats.bget);
-            Recv_t *responses = local_client(hx, &local);
-            for(Recv_t *curr = responses; curr; curr = Transport::next(curr)) {
+            Transport::Response::Response *responses = local_client(hx, &local);
+            for(Transport::Response::Response *curr = responses; curr; curr = Transport::next(curr)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
                     res->Add(hxhim::Result::init(hx, curr, i));
                 }
@@ -131,6 +120,8 @@ hxhim::Results *process(hxhim_t *hx,
     }
 
     return res;
+}
+
 }
 
 #endif

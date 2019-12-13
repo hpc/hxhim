@@ -2,7 +2,6 @@
 
 Transport::Request::BDelete::BDelete(const std::size_t max)
     : Request(BDELETE),
-      Bulk(),
       subjects(nullptr),
       subject_lens(nullptr),
       predicates(nullptr),
@@ -30,7 +29,7 @@ int Transport::Request::BDelete::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Bulk::alloc(max) != TRANSPORT_SUCCESS)           ||
+        if ((Message::alloc(max) != TRANSPORT_SUCCESS)           ||
             !(subjects = alloc_array<void *>(max))            ||
             !(subject_lens = alloc_array<std::size_t>(max))   ||
             !(predicates = alloc_array<void *>(max))          ||
@@ -75,7 +74,6 @@ int Transport::Request::BDelete::cleanup() {
 
 Transport::Response::BDelete::BDelete(const std::size_t max)
     : Response(BDELETE),
-      Bulk(),
       statuses(nullptr),
       next(nullptr)
 {
@@ -92,7 +90,7 @@ std::size_t Transport::Response::BDelete::size() const {
 
 int Transport::Response::BDelete::alloc(const std::size_t max) {
     if (max) {
-        if ((Bulk::alloc(max) != TRANSPORT_SUCCESS) ||
+        if ((Message::alloc(max) != TRANSPORT_SUCCESS) ||
             !(statuses = alloc_array<int>(max)))     {
             cleanup();
             return TRANSPORT_ERROR;

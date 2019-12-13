@@ -2,7 +2,6 @@
 
 Transport::Request::BPut::BPut(const std::size_t max)
     : Request(BPUT),
-      Bulk(),
       subjects(nullptr),
       subject_lens(nullptr),
       predicates(nullptr),
@@ -33,7 +32,7 @@ int Transport::Request::BPut::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Bulk::alloc(max) != TRANSPORT_SUCCESS)              ||
+        if ((Message::alloc(max) != TRANSPORT_SUCCESS)              ||
             !(subjects         = alloc_array<void *>      (max)) ||
             !(subject_lens     = alloc_array<std::size_t> (max)) ||
             !(predicates       = alloc_array<void *>      (max)) ||
@@ -96,7 +95,6 @@ int Transport::Request::BPut::cleanup() {
 
 Transport::Response::BPut::BPut(const std::size_t max)
     : Response(Message::BPUT),
-      Bulk(),
       statuses(nullptr),
       next(nullptr)
 {
@@ -115,7 +113,7 @@ int Transport::Response::BPut::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Bulk::alloc(max) != TRANSPORT_SUCCESS)     ||
+        if ((Message::alloc(max) != TRANSPORT_SUCCESS)     ||
             !(statuses         = alloc_array<int>(max))) {
             cleanup();
             return TRANSPORT_ERROR;

@@ -2,7 +2,6 @@
 
 Transport::Request::BGet::BGet(const std::size_t max)
     : Request(BGET),
-      Bulk(),
       subjects(nullptr),
       subject_lens(nullptr),
       predicates(nullptr),
@@ -31,7 +30,7 @@ int Transport::Request::BGet::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Bulk::alloc(max) != TRANSPORT_SUCCESS)           ||
+        if ((Message::alloc(max) != TRANSPORT_SUCCESS)           ||
             !(subjects = alloc_array<void *>(max))            ||
             !(subject_lens = alloc_array<std::size_t>(max))   ||
             !(predicates = alloc_array<void *>(max))          ||
@@ -80,7 +79,6 @@ int Transport::Request::BGet::cleanup() {
 
 Transport::Response::BGet::BGet(const std::size_t max)
     : Response(BGET),
-      Bulk(),
       statuses(nullptr),
       subjects(nullptr),
       subject_lens(nullptr),
@@ -114,7 +112,7 @@ int Transport::Response::BGet::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Bulk::alloc(max) != TRANSPORT_SUCCESS)           ||
+        if ((Message::alloc(max) != TRANSPORT_SUCCESS)           ||
             !(statuses = alloc_array<int>(max))               ||
             !(subjects = alloc_array<void *>(max))            ||
             !(subject_lens = alloc_array<std::size_t>(max))   ||

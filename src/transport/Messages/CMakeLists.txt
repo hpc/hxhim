@@ -1,31 +1,20 @@
 cmake_minimum_required (VERSION 3.6.3)
 
 set(MESSAGES_SRC
-  Message.cpp
-  Send.cpp
-  Recv.cpp
-  Bulk.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/Message.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/Messages.cpp
 
-  Request.cpp
-  Response.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/Request.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/Response.cpp
 
-  SendBPut.cpp
-  SendBGet.cpp
-  SendBGet2.cpp
-  SendBGetOp.cpp
-  SendBDelete.cpp
-  SendBHistogram.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/BPut.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/BGet.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/BGet2.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/BGetOp.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/BDelete.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/BHistogram.cpp
 
-  RecvBPut.cpp
-  RecvBGet.cpp
-  RecvBGet2.cpp
-  RecvBGetOp.cpp
-  RecvBDelete.cpp
-  RecvBHistogram.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/Packer.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/Unpacker.cpp
 
-  Packer.cpp
-  Unpacker.cpp
-)
-
-add_library(MESSAGES OBJECT ${MESSAGES_SRC})
-set(MESSAGESS ${MESSAGESS} $<TARGET_OBJECTS:MESSAGES> PARENT_SCOPE)
+  PARENT_SCOPE)

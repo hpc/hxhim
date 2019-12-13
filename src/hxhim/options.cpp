@@ -4,8 +4,8 @@
 #include "hxhim/config.hpp"
 #include "hxhim/options.h"
 #include "hxhim/options_private.hpp"
-#include "transport/MPI/Options.hpp"
-#include "transport/Thallium/Options.hpp"
+#include "transport/backend/MPI/Options.hpp"
+#include "transport/backend/Thallium/Options.hpp"
 
 /**
  * hxhim_options_init

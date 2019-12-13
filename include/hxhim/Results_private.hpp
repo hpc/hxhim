@@ -7,17 +7,13 @@
 
 namespace hxhim {
     namespace Result {
-        Results::Put       *init(hxhim_t *hx, Transport::Response::Put *put);
+        Results::Result    *init(hxhim_t *hx, Transport::Response::Response *res, const std::size_t i);
         Results::Put       *init(hxhim_t *hx, Transport::Response::BPut *bput, const std::size_t i);
-        Results::Get       *init(hxhim_t *hx, Transport::Response::Get *get);
-        Results::Get2      *init(hxhim_t *hx, Transport::Response::Get2 *get);
         Results::Get       *init(hxhim_t *hx, Transport::Response::BGet *bget, const std::size_t i);
         Results::Get2      *init(hxhim_t *hx, Transport::Response::BGet2 *bget, const std::size_t i);
         Results::Get       *init(hxhim_t *hx, Transport::Response::BGetOp *bgetop, const std::size_t i);
-        Results::Delete    *init(hxhim_t *hx, Transport::Response::Delete *del);
         Results::Delete    *init(hxhim_t *hx, Transport::Response::BDelete *bdel, const std::size_t i);
         Results::Sync      *init(hxhim_t *hx, const int ds_offset, const int synced);
-        Results::Histogram *init(hxhim_t *hx, Transport::Response::Histogram *hist);
         Results::Histogram *init(hxhim_t *hx, Transport::Response::BHistogram *bhist, const std::size_t i);
     }
 }

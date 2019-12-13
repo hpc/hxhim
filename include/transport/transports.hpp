@@ -1,7 +1,7 @@
 #ifndef TRANSPORTS_HPP
 #define TRANSPORTS_HPP
 
-#include "transport/MPI/MPI.hpp"
-#include "transport/Thallium.hpp"
+#include "transport/transport.hpp"
+#include "transport/backend/backends.hpp"
 
 #endif

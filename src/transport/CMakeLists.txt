@@ -1,18 +1,11 @@
 cmake_minimum_required (VERSION 3.6.3)
 
-set(TRANSPORT "")
-
 add_subdirectory(Messages)
-add_subdirectory(MPI)
-add_subdirectory(Thallium)
+add_subdirectory(backend)
 
 set(TRANSPORT_SRC
-  transport.cpp
-)
+  ${MESSAGES_SRC}
+  ${BACKEND_SRC}
+  ${CMAKE_CURRENT_SOURCE_DIR}/transport.cpp
 
-add_library(TRANSPORT_OBJ OBJECT ${TRANSPORT_SRC})
-
-add_library(TRANSPORT INTERFACE)
-target_sources(TRANSPORT INTERFACE $<TARGET_OBJECTS:TRANSPORT_OBJ> $<TARGET_OBJECTS:TRANSPORT_MPI> $<TARGET_OBJECTS:TRANSPORT_THALLIUM>)
-
-set(TRANSPORT ${TRANSPORTS} $<TARGET_OBJECTS:TRANSPORT> PARENT_SCOPE)
+  PARENT_SCOPE)
