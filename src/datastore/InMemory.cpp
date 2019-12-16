@@ -122,13 +122,20 @@ Response::BGet *InMemory::BGetImpl(void **subjects, std::size_t *subject_lens,
 
         ret->statuses[i] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
 
-        ret->subjects[i]->len = subject_lens[i];
-        ret->subjects[i]->ptr = alloc(ret->subjects[i]->len);
-        memcpy(ret->subjects[i]->ptr, subjects[i], ret->subjects[i]->len);
+        ret->subjects[i] = construct<RealBlob>(subjects[i], subject_lens[i]);
+        subjects[i] = nullptr;
+        subject_lens[i] = 0;
+        ret->predicates[i] = construct<RealBlob>(predicates[i], predicate_lens[i]);
+        predicates[i] = nullptr;
+        predicate_lens[i] = 0;
 
-        ret->predicates[i]->len = predicate_lens[i];
-        ret->predicates[i]->ptr = alloc(ret->predicates[i]->len);
-        memcpy(ret->predicates[i]->ptr, predicates[i], ret->predicates[i]->len);
+        // ret->subjects[i]->len = subject_lens[i];
+        // ret->subjects[i]->ptr = alloc(ret->subjects[i]->len);
+        // memcpy(ret->subjects[i]->ptr, subjects[i], ret->subjects[i]->len);
+
+        // ret->predicates[i]->len = predicate_lens[i];
+        // ret->predicates[i]->ptr = alloc(ret->predicates[i]->len);
+        // memcpy(ret->predicates[i]->ptr, predicates[i], ret->predicates[i]->len);
 
         if (ret->statuses[i] == HXHIM_SUCCESS) {
             ret->object_types[i] = object_types[i];

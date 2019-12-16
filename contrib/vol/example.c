@@ -68,7 +68,7 @@ int main(int argc, char * argv[]) {
     MPI_Barrier(MPI_COMM_WORLD);
 
     /* read */
-    if (rank != 0)
+    /* if (rank != 0) */
     {
         hid_t file_id = H5Fopen("/tmp/hxhim", H5F_ACC_RDWR, fapl);
         hid_t dataspace_id = H5Screate_simple(1, &dims, NULL);

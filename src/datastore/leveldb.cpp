@@ -273,10 +273,10 @@ Response::BGet2 *leveldb::BGetImpl2(void **subjects, std::size_t *subject_lens,
         dealloc(key);
 
         // move data into ret
-        ret->subjects[i]->ptr = construct<RealBlob>(subjects[i], subject_lens[i]);
+        ret->subjects[i] = construct<RealBlob>(subjects[i], subject_lens[i]);
         subjects[i] = nullptr;
         subject_lens[i] = 0;
-        ret->predicates[i]->ptr = construct<RealBlob>(predicates[i], predicate_lens[i]);
+        ret->predicates[i] = construct<RealBlob>(predicates[i], predicate_lens[i]);
         predicates[i] = nullptr;
         predicate_lens[i] = 0;
         ret->object_types[i] = object_types[i];

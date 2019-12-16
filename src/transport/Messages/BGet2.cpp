@@ -102,10 +102,14 @@ std::size_t Transport::Response::BGet2::size() const {
     for(std::size_t i = 0; i < count; i++) {
         total += subjects[i]->len + sizeof(subjects[i]->len) +
                  predicates[i]->len + sizeof(predicates[i]->len) +
-                 sizeof(object_types[i]) + objects[i]->len + sizeof(objects[i]->len) +
+                 sizeof(object_types[i]) +
                  sizeof(orig.subjects[i]) +
                  sizeof(orig.predicates[i]) +
                  sizeof(orig.objects[i]) + sizeof(orig.object_lens[i]);
+
+        if (statuses[i] == TRANSPORT_SUCCESS) {
+            total += objects[i]->len + sizeof(objects[i]->len);
+        }
     }
 
     return total;
