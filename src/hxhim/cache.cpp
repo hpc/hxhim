@@ -33,13 +33,10 @@ int hxhim::PutData::moveto(Transport::Request::BPut *bput, const int ds_offset) 
     }
 
     bput->ds_offsets[bput->count] = ds_offset;
-    bput->subjects[bput->count] = subject;
-    bput->subject_lens[bput->count] = subject_len;
-    bput->predicates[bput->count] = predicate;
-    bput->predicate_lens[bput->count] = predicate_len;
+    bput->subjects[bput->count] = construct<ReferenceBlob>(subject, subject_len);
+    bput->predicates[bput->count] = construct<ReferenceBlob>(predicate, predicate_len);
     bput->object_types[bput->count] = object_type;
-    bput->objects[bput->count] = object;
-    bput->object_lens[bput->count] = object_len;
+    bput->objects[bput->count] = construct<ReferenceBlob>(object, object_len);
     bput->count++;
 
     return HXHIM_SUCCESS;
@@ -60,10 +57,10 @@ int hxhim::GetData::moveto(Transport::Request::BGet *bget, const int ds_offset) 
     }
 
     bget->ds_offsets[bget->count] = ds_offset;
-    bget->subjects[bget->count] = subject;
-    bget->subject_lens[bget->count] = subject_len;
-    bget->predicates[bget->count] = predicate;
-    bget->predicate_lens[bget->count] = predicate_len;
+    bget->subjects[bget->count]->ptr = subject;
+    bget->subjects[bget->count]->len = subject_len;
+    bget->predicates[bget->count]->ptr = predicate;
+    bget->predicates[bget->count]->len = predicate_len;
     bget->object_types[bget->count] = object_type;
     bget->count++;
 
@@ -87,12 +84,8 @@ int hxhim::GetData2::moveto(Transport::Request::BGet2 *bget, const int ds_offset
     }
 
     bget->ds_offsets[bget->count] = ds_offset;
-    bget->subjects[bget->count] = construct<ReferenceBlob>();
-    bget->subjects[bget->count]->ptr = subject;
-    bget->subjects[bget->count]->len = subject_len;
-    bget->predicates[bget->count] = construct<ReferenceBlob>();
-    bget->predicates[bget->count]->ptr = predicate;
-    bget->predicates[bget->count]->len = predicate_len;
+    bget->subjects[bget->count] = construct<ReferenceBlob>(subject, subject_len);
+    bget->predicates[bget->count] = construct<ReferenceBlob>(predicate, predicate_len);
     bget->object_types[bget->count] = object_type;
     bget->objects[bget->count] = construct<ReferenceBlob>();
     // bget->objects[bget->count]->ptr = object;
@@ -125,10 +118,10 @@ int hxhim::GetOpData::moveto(Transport::Request::BGetOp *bgetop, const int ds_of
     }
 
     bgetop->ds_offsets[bgetop->count] = ds_offset;
-    bgetop->subjects[bgetop->count] = subject;
-    bgetop->subject_lens[bgetop->count] = subject_len;
-    bgetop->predicates[bgetop->count] = predicate;
-    bgetop->predicate_lens[bgetop->count] = predicate_len;
+    bgetop->subjects[bgetop->count]->ptr = subject;
+    bgetop->subjects[bgetop->count]->len = subject_len;
+    bgetop->predicates[bgetop->count]->ptr = predicate;
+    bgetop->predicates[bgetop->count]->len = predicate_len;
     bgetop->object_types[bgetop->count] = object_type;
     bgetop->num_recs[bgetop->count] = num_recs;
     bgetop->ops[bgetop->count] = op;
@@ -149,10 +142,10 @@ int hxhim::DeleteData::moveto(Transport::Request::BDelete *bdel, const int ds_of
     }
 
     bdel->ds_offsets[bdel->count] = ds_offset;
-    bdel->subjects[bdel->count] = subject;
-    bdel->subject_lens[bdel->count] = subject_len;
-    bdel->predicates[bdel->count] = predicate;
-    bdel->predicate_lens[bdel->count] = predicate_len;
+    bdel->subjects[bdel->count]->ptr = subject;
+    bdel->subjects[bdel->count]->len = subject_len;
+    bdel->predicates[bdel->count]->ptr = predicate;
+    bdel->predicates[bdel->count]->len = predicate_len;
     bdel->count++;
 
     return HXHIM_SUCCESS;

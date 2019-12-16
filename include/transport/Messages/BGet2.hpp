@@ -4,7 +4,7 @@
 #include <cstddef>
 
 #include "hxhim/constants.h"
-#include "transport/Messages/Blob.hpp"
+#include "utils/Blob.hpp"
 #include "transport/Messages/Request.hpp"
 #include "transport/Messages/Response.hpp"
 #include "transport/constants.hpp"

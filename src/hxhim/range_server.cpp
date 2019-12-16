@@ -65,15 +65,21 @@ static Transport::Response::BPut *bput(hxhim_t *hx, const Transport::Request::BP
         const int datastore = req->ds_offsets[i];
         std::size_t &index = counters[req->ds_offsets[i]];
 
-        subjects[datastore][index] = req->subjects[i];
-        subject_lens[datastore][index] = req->subject_lens[i];
+        subjects[datastore][index] = req->subjects[i]->ptr;
+        req->subjects[i]->ptr = nullptr;
+        subject_lens[datastore][index] = req->subjects[i]->len;
+        req->subjects[i]->len = 0;
 
-        predicates[datastore][index] = req->predicates[i];
-        predicate_lens[datastore][index] = req->predicate_lens[i];
+        predicates[datastore][index] = req->predicates[i]->ptr;
+        req->predicates[i]->ptr = nullptr;
+        predicate_lens[datastore][index] = req->predicates[i]->len;
+        req->predicates[i]->len = 0;
 
         object_types[datastore][index] = req->object_types[i];
-        objects[datastore][index] = req->objects[i];
-        object_lens[datastore][index] = req->object_lens[i];
+        objects[datastore][index] = req->objects[i]->ptr;
+        req->objects[i]->ptr = nullptr;
+        object_lens[datastore][index] = req->objects[i]->len;
+        req->objects[i]->len = 0;
 
         index++;
     }
@@ -156,10 +162,10 @@ static Transport::Response::BGet *bget(hxhim_t *hx, const Transport::Request::BG
         std::size_t &index = counters[req->ds_offsets[i]];
 
         subjects[datastore][index] = req->subjects[i];
-        subject_lens[datastore][index] = req->subject_lens[i];
+        subject_lens[datastore][index] = req->subjects[i]->len;
 
         predicates[datastore][index] = req->predicates[i];
-        predicate_lens[datastore][index] = req->predicate_lens[i];
+        predicate_lens[datastore][index] = req->predicates[i]->len;
 
         object_types[datastore][index] = req->object_types[i];
 
@@ -181,16 +187,16 @@ static Transport::Response::BGet *bget(hxhim_t *hx, const Transport::Request::BG
                 res->ds_offsets[count] = i;
                 res->statuses[count] = response->statuses[j];
 
-                std::swap(res->subjects[count], response->subjects[j]);
-                res->subject_lens[count] = response->subject_lens[j];
+                std::swap(res->subjects[count]->ptr, response->subjects[j]->ptr);
+                res->subjects[count]->len = response->subjects[j]->len;
 
-                std::swap(res->predicates[count], response->predicates[j]);
-                res->predicate_lens[count] = response->predicate_lens[j];
+                std::swap(res->predicates[count]->ptr, response->predicates[j]->ptr);
+                res->predicates[count]->len = response->predicates[j]->len;
 
                 std::swap(res->object_types[count], response->object_types[j]);
                 if (res->statuses[count] == HXHIM_SUCCESS) {
-                    std::swap(res->objects[count], response->objects[j]);
-                    res->object_lens[count] = response->object_lens[j];
+                    std::swap(res->objects[count]->ptr, response->objects[j]->ptr);
+                    res->objects[count]->len = response->objects[j]->len;
                 }
                 count++;
             }
@@ -281,7 +287,6 @@ static Transport::Response::BGet2 *bget2(hxhim_t *hx, const Transport::Request::
     Transport::Response::BGet2 *res = construct<Transport::Response::BGet2>(req->count);
     res->src = req->dst;
     res->dst = req->src;
-    res->clean = true;
 
     for(std::size_t ds = 0; ds < hx->p->datastore.count; ds++) {
         Transport::Response::BGet2 *response = hx->p->datastore.datastores[ds]->BGet2(subjects[ds], subject_lens[ds],
@@ -341,8 +346,8 @@ static Transport::Response::BGetOp *bgetop(hxhim_t *hx, const Transport::Request
     res->dst = req->src;
 
     for(std::size_t i = 0; i < req->count; i++) {
-        Transport::Response::BGetOp *response = hx->p->datastore.datastores[i]->BGetOp(req->subjects[i], req->subject_lens[i],
-                                                                                       req->predicates[i], req->predicate_lens[i],
+        Transport::Response::BGetOp *response = hx->p->datastore.datastores[i]->BGetOp(req->subjects[i], req->subjects[i]->len,
+                                                                                       req->predicates[i], req->predicates[i]->len,
                                                                                        req->object_types[i],
                                                                                        req->num_recs[i], req->ops[i]);
         if (response) {
@@ -350,13 +355,13 @@ static Transport::Response::BGetOp *bgetop(hxhim_t *hx, const Transport::Request
                 res->ds_offsets[res->count] = i;
                 res->statuses[res->count] = response->statuses[j];
                 std::swap(res->subjects[res->count], response->subjects[j]);
-                res->subject_lens[res->count] = response->subject_lens[j];
+                res->subjects[res->count]->len = response->subjects[j]->len;
                 std::swap(res->predicates[res->count], response->predicates[j]);
-                res->predicate_lens[res->count] = response->predicate_lens[j];
+                res->predicates[res->count]->len = response->predicates[j]->len;
                 std::swap(res->object_types[res->count], response->object_types[j]);
                 if (res->statuses[res->count] == HXHIM_SUCCESS) {
                     std::swap(res->objects[res->count], response->objects[j]);
-                    res->object_lens[res->count] = response->object_lens[j];
+                    res->objects[res->count]->len = response->objects[j]->len;
                 }
                 res->count++;
             }
@@ -398,10 +403,10 @@ static Transport::Response::BDelete *bdelete(hxhim_t *hx, const Transport::Reque
         std::size_t &index = counters[req->ds_offsets[i]];
 
         subjects[datastore][index] = req->subjects[i];
-        subject_lens[datastore][index] = req->subject_lens[i];
+        subject_lens[datastore][index] = req->subjects[i]->len;
 
         predicates[datastore][index] = req->predicates[i];
-        predicate_lens[datastore][index] = req->predicate_lens[i];
+        predicate_lens[datastore][index] = req->predicates[i]->len;
 
         index++;
     }

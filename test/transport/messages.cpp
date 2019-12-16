@@ -31,20 +31,14 @@ TEST(Request, BPut) {
 
         src.ds_offsets[0] = rand();
 
-        src.subjects[0] = (void *) &SUBJECT;
-        src.subject_lens[0] = SUBJECT_LEN;
-
-        src.predicates[0] = (void *) &PREDICATE;
-        src.predicate_lens[0] = PREDICATE_LEN;
-
+        src.subjects[0] = construct<ReferenceBlob>(&SUBJECT, SUBJECT_LEN);
+        src.predicates[0] = construct<ReferenceBlob>(&PREDICATE, PREDICATE_LEN);
         src.object_types[0] = OBJECT_TYPE;
-        src.objects[0] = (void *) &OBJECT;
-        src.object_lens[0] = OBJECT_LEN;
+        src.objects[0] = construct<ReferenceBlob>(&OBJECT, OBJECT_LEN);
     }
 
     EXPECT_EQ(src.direction, Message::REQUEST);
     EXPECT_EQ(src.type, Message::BPUT);
-    EXPECT_EQ(src.clean, false);
 
     void *buf = nullptr;
     std::size_t size = 0;
@@ -60,22 +54,21 @@ TEST(Request, BPut) {
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
 
-    EXPECT_EQ(dst->clean, true);
 
     EXPECT_EQ(src.count, dst->count);
 
     for(std::size_t i = 0; i < dst->count; i++) {
         EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
 
-        EXPECT_EQ(src.subject_lens[i], dst->subject_lens[i]);
-        EXPECT_EQ(memcmp(src.subjects[i], dst->subjects[i], dst->subject_lens[i]), 0);
+        EXPECT_EQ(src.subjects[i]->len, dst->subjects[i]->len);
+        EXPECT_EQ(memcmp(src.subjects[i]->ptr, dst->subjects[i]->ptr, dst->subjects[i]->len), 0);
 
-        EXPECT_EQ(src.predicate_lens[i], dst->predicate_lens[i]);
-        EXPECT_EQ(memcmp(src.predicates[i], dst->predicates[i], dst->predicate_lens[i]), 0);
+        EXPECT_EQ(src.predicates[i]->len, dst->predicates[i]->len);
+        EXPECT_EQ(memcmp(src.predicates[i]->ptr, dst->predicates[i]->ptr, dst->predicates[i]->len), 0);
 
         EXPECT_EQ(src.object_types[i], dst->object_types[i]);
-        EXPECT_EQ(src.object_lens[i], dst->object_lens[i]);
-        EXPECT_EQ(memcmp(src.objects[i], dst->objects[i], dst->object_lens[i]), 0);
+        EXPECT_EQ(src.objects[i]->len, dst->objects[i]->len);
+        EXPECT_EQ(memcmp(src.objects[i]->ptr, dst->objects[i]->ptr, dst->objects[i]->len), 0);
     }
 
     destruct(dst);
@@ -92,18 +85,13 @@ TEST(Request, BGet) {
 
         src.ds_offsets[0] = rand();
 
-        src.subjects[0] = (void *) &SUBJECT;
-        src.subject_lens[0] = SUBJECT_LEN;
-
-        src.predicates[0] = (void *) &PREDICATE;
-        src.predicate_lens[0] = PREDICATE_LEN;
-
+        src.subjects[0] = construct<ReferenceBlob>(&SUBJECT, SUBJECT_LEN);
+        src.predicates[0] = construct<ReferenceBlob>(&PREDICATE, PREDICATE_LEN);
         src.object_types[0] = OBJECT_TYPE;
     }
 
     EXPECT_EQ(src.direction, Message::REQUEST);
     EXPECT_EQ(src.type, Message::BGET);
-    EXPECT_EQ(src.clean, false);
 
     void *buf = nullptr;
     std::size_t size = 0;
@@ -119,18 +107,16 @@ TEST(Request, BGet) {
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
 
-    EXPECT_EQ(dst->clean, true);
-
     EXPECT_EQ(src.count, dst->count);
 
     for(std::size_t i = 0; i < dst->count; i++) {
         EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
 
-        EXPECT_EQ(src.subject_lens[i], dst->subject_lens[i]);
-        EXPECT_EQ(memcmp(src.subjects[i], dst->subjects[i], dst->subject_lens[i]), 0);
+        EXPECT_EQ(src.subjects[i]->len, dst->subjects[i]->len);
+        EXPECT_EQ(memcmp(src.subjects[i]->ptr, dst->subjects[i]->ptr, dst->subjects[i]->len), 0);
 
-        EXPECT_EQ(src.predicate_lens[i], dst->predicate_lens[i]);
-        EXPECT_EQ(memcmp(src.predicates[i], dst->predicates[i], dst->predicate_lens[i]), 0);
+        EXPECT_EQ(src.predicates[i]->len, dst->predicates[i]->len);
+        EXPECT_EQ(memcmp(src.predicates[i]->ptr, dst->predicates[i]->ptr, dst->predicates[i]->len), 0);
 
         EXPECT_EQ(src.object_types[i], dst->object_types[i]);
     }
@@ -149,21 +135,15 @@ TEST(Request, BGetOp) {
 
         src.ds_offsets[0] = rand();
 
-        src.subjects[0] = (void *) &SUBJECT;
-        src.subject_lens[0] = SUBJECT_LEN;
-
-        src.predicates[0] = (void *) &PREDICATE;
-        src.predicate_lens[0] = PREDICATE_LEN;
-
+        src.subjects[0] = construct<ReferenceBlob>(&SUBJECT, SUBJECT_LEN);
+        src.predicates[0] = construct<ReferenceBlob>(&PREDICATE, PREDICATE_LEN);
         src.object_types[0] = OBJECT_TYPE;
-
         src.num_recs[0] = rand();
         src.ops[0] = HXHIM_GET_EQ;
     }
 
     EXPECT_EQ(src.direction, Message::REQUEST);
     EXPECT_EQ(src.type, Message::BGETOP);
-    EXPECT_EQ(src.clean, false);
 
     void *buf = nullptr;
     std::size_t size = 0;
@@ -179,18 +159,16 @@ TEST(Request, BGetOp) {
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
 
-    EXPECT_EQ(dst->clean, true);
-
     EXPECT_EQ(src.count, dst->count);
 
     for(std::size_t i = 0; i < dst->count; i++) {
         EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
 
-        EXPECT_EQ(src.subject_lens[i], dst->subject_lens[i]);
-        EXPECT_EQ(memcmp(src.subjects[i], dst->subjects[i], dst->subject_lens[i]), 0);
+        EXPECT_EQ(src.subjects[i]->len, dst->subjects[i]->len);
+        EXPECT_EQ(memcmp(src.subjects[i]->ptr, dst->subjects[i]->ptr, dst->subjects[i]->len), 0);
 
-        EXPECT_EQ(src.predicate_lens[i], dst->predicate_lens[i]);
-        EXPECT_EQ(memcmp(src.predicates[i], dst->predicates[i], dst->predicate_lens[i]), 0);
+        EXPECT_EQ(src.predicates[i]->len, dst->predicates[i]->len);
+        EXPECT_EQ(memcmp(src.predicates[i]->ptr, dst->predicates[i]->ptr, dst->predicates[i]->len), 0);
 
         EXPECT_EQ(src.object_types[i], dst->object_types[i]);
 
@@ -212,16 +190,12 @@ TEST(Request, BDelete) {
 
         src.ds_offsets[0] = rand();
 
-        src.subjects[0] = (void *) &SUBJECT;
-        src.subject_lens[0] = SUBJECT_LEN;
-
-        src.predicates[0] = (void *) &PREDICATE;
-        src.predicate_lens[0] = PREDICATE_LEN;
+        src.subjects[0] = construct<ReferenceBlob>(&SUBJECT, SUBJECT_LEN);
+        src.predicates[0] = construct<ReferenceBlob>(&PREDICATE, PREDICATE_LEN);
     }
 
     EXPECT_EQ(src.direction, Message::REQUEST);
     EXPECT_EQ(src.type, Message::BDELETE);
-    EXPECT_EQ(src.clean, false);
 
     void *buf = nullptr;
     std::size_t size = 0;
@@ -237,18 +211,17 @@ TEST(Request, BDelete) {
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
 
-    EXPECT_EQ(dst->clean, true);
 
     EXPECT_EQ(src.count, dst->count);
 
     for(std::size_t i = 0; i < dst->count; i++) {
         EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
 
-        EXPECT_EQ(src.subject_lens[i], dst->subject_lens[i]);
-        EXPECT_EQ(memcmp(src.subjects[i], dst->subjects[i], dst->subject_lens[i]), 0);
+        EXPECT_EQ(src.subjects[i]->len, dst->subjects[i]->len);
+        EXPECT_EQ(memcmp(src.subjects[i]->ptr, dst->subjects[i]->ptr, dst->subjects[i]->len), 0);
 
-        EXPECT_EQ(src.predicate_lens[i], dst->predicate_lens[i]);
-        EXPECT_EQ(memcmp(src.predicates[i], dst->predicates[i], dst->predicate_lens[i]), 0);
+        EXPECT_EQ(src.predicates[i]->len, dst->predicates[i]->len);
+        EXPECT_EQ(memcmp(src.predicates[i]->ptr, dst->predicates[i]->ptr, dst->predicates[i]->len), 0);
     }
 
     destruct(dst);
@@ -268,7 +241,6 @@ TEST(Request, BHistogram) {
 
     EXPECT_EQ(src.direction, Message::REQUEST);
     EXPECT_EQ(src.type, Message::BHISTOGRAM);
-    EXPECT_EQ(src.clean, false);
 
     void *buf = nullptr;
     std::size_t size = 0;
@@ -283,8 +255,6 @@ TEST(Request, BHistogram) {
     EXPECT_EQ(src.type, dst->type);
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
-
-    EXPECT_EQ(dst->clean, true);
 
     EXPECT_EQ(src.count, dst->count);
 
@@ -311,7 +281,6 @@ TEST(Response, BPut) {
 
     EXPECT_EQ(src.direction, Message::RESPONSE);
     EXPECT_EQ(src.type, Message::BPUT);
-    EXPECT_EQ(src.clean, false);
 
     void *buf = nullptr;
     std::size_t size = 0;
@@ -326,8 +295,6 @@ TEST(Response, BPut) {
     EXPECT_EQ(src.type, dst->type);
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
-
-    EXPECT_EQ(dst->clean, true);
 
     EXPECT_EQ(src.count, dst->count);
 
@@ -352,20 +319,14 @@ TEST(Response, BGet) {
 
         src.ds_offsets[0] = rand();
 
-        src.subjects[0] = (void *) &SUBJECT;
-        src.subject_lens[0] = SUBJECT_LEN;
-
-        src.predicates[0] = (void *) &PREDICATE;
-        src.predicate_lens[0] = PREDICATE_LEN;
-
+        src.subjects[0] = construct<ReferenceBlob>(&SUBJECT, SUBJECT_LEN);
+        src.predicates[0] = construct<ReferenceBlob>(&PREDICATE, PREDICATE_LEN);
         src.object_types[0] = OBJECT_TYPE;
-        src.objects[0] = (void *) &OBJECT;
-        src.object_lens[0] = OBJECT_LEN;
+        src.objects[0] = construct<ReferenceBlob>(&OBJECT, OBJECT_LEN);
     }
 
     EXPECT_EQ(src.direction, Message::RESPONSE);
     EXPECT_EQ(src.type, Message::BGET);
-    EXPECT_EQ(src.clean, false);
 
     void *buf = nullptr;
     std::size_t size = 0;
@@ -381,23 +342,21 @@ TEST(Response, BGet) {
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
 
-    EXPECT_EQ(dst->clean, true);
-
     EXPECT_EQ(src.count, dst->count);
 
     for(std::size_t i = 0; i < dst->count; i++) {
         EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
         EXPECT_EQ(src.statuses[i], dst->statuses[i]);
 
-        EXPECT_EQ(src.subject_lens[i], dst->subject_lens[i]);
-        EXPECT_EQ(memcmp(src.subjects[i], dst->subjects[i], dst->subject_lens[i]), 0);
+        EXPECT_EQ(src.subjects[i]->len, dst->subjects[i]->len);
+        EXPECT_EQ(memcmp(src.subjects[i]->ptr, dst->subjects[i]->ptr, dst->subjects[i]->len), 0);
 
-        EXPECT_EQ(src.predicate_lens[i], dst->predicate_lens[i]);
-        EXPECT_EQ(memcmp(src.predicates[i], dst->predicates[i], dst->predicate_lens[i]), 0);
+        EXPECT_EQ(src.predicates[i]->len, dst->predicates[i]->len);
+        EXPECT_EQ(memcmp(src.predicates[i]->ptr, dst->predicates[i]->ptr, dst->predicates[i]->len), 0);
 
         EXPECT_EQ(src.object_types[i], dst->object_types[i]);
-        EXPECT_EQ(src.object_lens[i], dst->object_lens[i]);
-        EXPECT_EQ(memcmp(src.objects[i], dst->objects[i], dst->object_lens[i]), 0);
+        EXPECT_EQ(src.objects[i]->len, dst->objects[i]->len);
+        EXPECT_EQ(memcmp(src.objects[i]->ptr, dst->objects[i]->ptr, dst->objects[i]->len), 0);
     }
 
     destruct(dst);
@@ -416,20 +375,14 @@ TEST(Response, BGetOp) {
 
         src.ds_offsets[0] = rand();
 
-        src.subjects[0] = (void *) &SUBJECT;
-        src.subject_lens[0] = SUBJECT_LEN;
-
-        src.predicates[0] = (void *) &PREDICATE;
-        src.predicate_lens[0] = PREDICATE_LEN;
-
+        src.subjects[0] = construct<ReferenceBlob>(&SUBJECT, SUBJECT_LEN);
+        src.predicates[0] = construct<ReferenceBlob>(&PREDICATE, PREDICATE_LEN);
         src.object_types[0] = OBJECT_TYPE;
-        src.objects[0] = (void *) &OBJECT;
-        src.object_lens[0] = OBJECT_LEN;
+        src.objects[0] = construct<ReferenceBlob>(&OBJECT, OBJECT_LEN);
     }
 
     EXPECT_EQ(src.direction, Message::RESPONSE);
     EXPECT_EQ(src.type, Message::BGETOP);
-    EXPECT_EQ(src.clean, false);
 
     void *buf = nullptr;
     std::size_t size = 0;
@@ -445,7 +398,6 @@ TEST(Response, BGetOp) {
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
 
-    EXPECT_EQ(dst->clean, true);
 
     EXPECT_EQ(src.count, dst->count);
 
@@ -453,15 +405,15 @@ TEST(Response, BGetOp) {
         EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
         EXPECT_EQ(src.statuses[i], dst->statuses[i]);
 
-        EXPECT_EQ(src.subject_lens[i], dst->subject_lens[i]);
-        EXPECT_EQ(memcmp(src.subjects[i], dst->subjects[i], dst->subject_lens[i]), 0);
+        EXPECT_EQ(src.subjects[i]->len, dst->subjects[i]->len);
+        EXPECT_EQ(memcmp(src.subjects[i]->ptr, dst->subjects[i]->ptr, dst->subjects[i]->len), 0);
 
-        EXPECT_EQ(src.predicate_lens[i], dst->predicate_lens[i]);
-        EXPECT_EQ(memcmp(src.predicates[i], dst->predicates[i], dst->predicate_lens[i]), 0);
+        EXPECT_EQ(src.predicates[i]->len, dst->predicates[i]->len);
+        EXPECT_EQ(memcmp(src.predicates[i]->ptr, dst->predicates[i]->ptr, dst->predicates[i]->len), 0);
 
         EXPECT_EQ(src.object_types[i], dst->object_types[i]);
-        EXPECT_EQ(src.object_lens[i], dst->object_lens[i]);
-        EXPECT_EQ(memcmp(src.objects[i], dst->objects[i], dst->object_lens[i]), 0);
+        EXPECT_EQ(src.objects[i]->len, dst->objects[i]->len);
+        EXPECT_EQ(memcmp(src.objects[i]->ptr, dst->objects[i]->ptr, dst->objects[i]->len), 0);
     }
 
     destruct(dst);
@@ -483,7 +435,6 @@ TEST(Response, BDelete) {
 
     EXPECT_EQ(src.direction, Message::RESPONSE);
     EXPECT_EQ(src.type, Message::BDELETE);
-    EXPECT_EQ(src.clean, false);
 
     void *buf = nullptr;
     std::size_t size = 0;
@@ -498,8 +449,6 @@ TEST(Response, BDelete) {
     EXPECT_EQ(src.type, dst->type);
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
-
-    EXPECT_EQ(dst->clean, true);
 
     EXPECT_EQ(src.count, dst->count);
 
@@ -536,8 +485,6 @@ TEST(Response, BHistogram) {
 
         EXPECT_EQ(src.direction, Message::RESPONSE);
         EXPECT_EQ(src.type, Message::BHISTOGRAM);
-        EXPECT_EQ(src.clean, false);
-        src.clean = true;
 
         void *buf = nullptr;
         std::size_t size = 0;
@@ -553,7 +500,6 @@ TEST(Response, BHistogram) {
         EXPECT_EQ(src.src, dst->src);
         EXPECT_EQ(src.dst, dst->dst);
 
-        EXPECT_EQ(dst->clean, true);
 
         EXPECT_EQ(src.count, dst->count);
 

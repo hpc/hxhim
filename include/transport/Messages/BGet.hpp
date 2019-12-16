@@ -4,6 +4,7 @@
 #include <cstddef>
 
 #include "hxhim/constants.h"
+#include "utils/Blob.hpp"
 #include "transport/Messages/Request.hpp"
 #include "transport/Messages/Response.hpp"
 #include "transport/constants.hpp"
@@ -21,10 +22,8 @@ struct BGet final : Request {
     int alloc(const std::size_t max);
     int cleanup();
 
-    void **subjects;
-    std::size_t *subject_lens;
-    void **predicates;
-    std::size_t *predicate_lens;
+    Blob **subjects;
+    Blob **predicates;
     hxhim_type_t *object_types;
 };
 
@@ -42,13 +41,10 @@ struct BGet final : Response {
     int merge(BGet *bget);
     int cleanup();
 
-    void **subjects;
-    std::size_t *subject_lens;
-    void **predicates;
-    std::size_t *predicate_lens;
+    Blob **subjects;
+    Blob **predicates;
     hxhim_type_t *object_types;
-    void **objects;
-    std::size_t *object_lens;
+    Blob **objects;
 
     BGet *next;
 };

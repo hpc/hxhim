@@ -50,26 +50,11 @@ int Packer::pack(const Request::BPut *bpm, void **buf, std::size_t *bufsize) {
         memcpy(curr, &bpm->ds_offsets[i], sizeof(bpm->ds_offsets[i]));
         curr += sizeof(bpm->ds_offsets[i]);
 
-        memcpy(curr, &bpm->subject_lens[i], sizeof(bpm->subject_lens[i]));
-        curr += sizeof(bpm->subject_lens[i]);
-
-        memcpy(curr, &bpm->predicate_lens[i], sizeof(bpm->predicate_lens[i]));
-        curr += sizeof(bpm->predicate_lens[i]);
-
-        memcpy(curr, &bpm->object_lens[i], sizeof(bpm->object_lens[i]));
-        curr += sizeof(bpm->object_lens[i]);
-
+        bpm->subjects[i]->pack(curr);
+        bpm->predicates[i]->pack(curr);
         memcpy(curr, &bpm->object_types[i], sizeof(bpm->object_types[i]));
         curr += sizeof(bpm->object_types[i]);
-
-        memcpy(curr, bpm->subjects[i], bpm->subject_lens[i]);
-        curr += bpm->subject_lens[i];
-
-        memcpy(curr, bpm->predicates[i], bpm->predicate_lens[i]);
-        curr += bpm->predicate_lens[i];
-
-        memcpy(curr, bpm->objects[i], bpm->object_lens[i]);
-        curr += bpm->object_lens[i];
+        bpm->objects[i]->pack(curr);
     }
 
     return TRANSPORT_SUCCESS;
@@ -88,20 +73,11 @@ int Packer::pack(const Request::BGet *bgm, void **buf, std::size_t *bufsize) {
         memcpy(curr, &bgm->ds_offsets[i], sizeof(bgm->ds_offsets[i]));
         curr += sizeof(bgm->ds_offsets[i]);
 
-        memcpy(curr, &bgm->subject_lens[i], sizeof(bgm->subject_lens[i]));
-        curr += sizeof(bgm->subject_lens[i]);
-
-        memcpy(curr, &bgm->predicate_lens[i], sizeof(bgm->predicate_lens[i]));
-        curr += sizeof(bgm->predicate_lens[i]);
+        bgm->subjects[i]->pack(curr);
+        bgm->predicates[i]->pack(curr);
 
         memcpy(curr, &bgm->object_types[i], sizeof(bgm->object_types[i]));
         curr += sizeof(bgm->object_types[i]);
-
-        memcpy(curr, bgm->subjects[i], bgm->subject_lens[i]);
-        curr += bgm->subject_lens[i];
-
-        memcpy(curr, bgm->predicates[i], bgm->predicate_lens[i]);
-        curr += bgm->predicate_lens[i];
     }
 
     return TRANSPORT_SUCCESS;
@@ -120,28 +96,15 @@ int Packer::pack(const Request::BGet2 *bgm, void **buf, std::size_t *bufsize) {
         memcpy(curr, &bgm->ds_offsets[i], sizeof(bgm->ds_offsets[i]));
         curr += sizeof(bgm->ds_offsets[i]);
 
-
         // subject len, data, data addr
-        memcpy(curr, &bgm->subjects[i]->len, sizeof(bgm->subjects[i]->len));
-        curr += sizeof(bgm->subjects[i]->len);
-
-        memcpy(curr, bgm->subjects[i]->ptr, bgm->subjects[i]->len);
-        curr += bgm->subjects[i]->len;
-
+        bgm->subjects[i]->pack(curr);
         memcpy(curr, &bgm->subjects[i]->ptr, sizeof(bgm->subjects[i]->ptr));
         curr += sizeof(bgm->subjects[i]->ptr);
 
-
         // predicate len, data, data addr
-        memcpy(curr, &bgm->predicates[i]->len, sizeof(bgm->predicates[i]->len));
-        curr += sizeof(bgm->predicates[i]->len);
-
-        memcpy(curr, bgm->predicates[i]->ptr, bgm->predicates[i]->len);
-        curr += bgm->predicates[i]->len;
-
+        bgm->predicates[i]->pack(curr);
         memcpy(curr, &bgm->predicates[i]->ptr, sizeof(bgm->predicates[i]->ptr));
         curr += sizeof(bgm->predicates[i]->ptr);
-
 
         // object type, addr, len addr
         memcpy(curr, &bgm->object_types[i], sizeof(bgm->object_types[i]));
@@ -170,11 +133,8 @@ int Packer::pack(const Request::BGetOp *bgm, void **buf, std::size_t *bufsize) {
         memcpy(curr, &bgm->ds_offsets[i], sizeof(bgm->ds_offsets[i]));
         curr += sizeof(bgm->ds_offsets[i]);
 
-        memcpy(curr, &bgm->subject_lens[i], sizeof(bgm->subject_lens[i]));
-        curr += sizeof(bgm->subject_lens[i]);
-
-        memcpy(curr, &bgm->predicate_lens[i], sizeof(bgm->predicate_lens[i]));
-        curr += sizeof(bgm->predicate_lens[i]);
+        bgm->subjects[i]->pack(curr);
+        bgm->predicates[i]->pack(curr);
 
         memcpy(curr, &bgm->object_types[i], sizeof(bgm->object_types[i]));
         curr += sizeof(bgm->object_types[i]);
@@ -184,12 +144,6 @@ int Packer::pack(const Request::BGetOp *bgm, void **buf, std::size_t *bufsize) {
 
         memcpy(curr, &bgm->ops[i], sizeof(bgm->ops[i]));
         curr += sizeof(bgm->ops[i]);
-
-        memcpy(curr, bgm->subjects[i], bgm->subject_lens[i]);
-        curr += bgm->subject_lens[i];
-
-        memcpy(curr, bgm->predicates[i], bgm->predicate_lens[i]);
-        curr += bgm->predicate_lens[i];
     }
 
     return TRANSPORT_SUCCESS;
@@ -208,17 +162,8 @@ int Packer::pack(const Request::BDelete *bdm, void **buf, std::size_t *bufsize) 
         memcpy(curr, &bdm->ds_offsets[i], sizeof(bdm->ds_offsets[i]));
         curr += sizeof(bdm->ds_offsets[i]);
 
-        memcpy(curr, &bdm->subject_lens[i], sizeof(bdm->subject_lens[i]));
-        curr += sizeof(bdm->subject_lens[i]);
-
-        memcpy(curr, &bdm->predicate_lens[i], sizeof(bdm->predicate_lens[i]));
-        curr += sizeof(bdm->predicate_lens[i]);
-
-        memcpy(curr, bdm->subjects[i], bdm->subject_lens[i]);
-        curr += bdm->subject_lens[i];
-
-        memcpy(curr, bdm->predicates[i], bdm->predicate_lens[i]);
-        curr += bdm->predicate_lens[i];
+        bdm->subjects[i]->pack(curr);
+        bdm->predicates[i]->pack(curr);
     }
 
     return TRANSPORT_SUCCESS;
@@ -308,27 +253,14 @@ int Packer::pack(const Response::BGet *bgm, void **buf, std::size_t *bufsize) {
         memcpy(curr, &bgm->statuses[i], sizeof(bgm->statuses[i]));
         curr += sizeof(bgm->statuses[i]);
 
-        memcpy(curr, &bgm->subject_lens[i], sizeof(bgm->subject_lens[i]));
-        curr += sizeof(bgm->subject_lens[i]);
-
-        memcpy(curr, &bgm->predicate_lens[i], sizeof(bgm->predicate_lens[i]));
-        curr += sizeof(bgm->predicate_lens[i]);
+        bgm->subjects[i]->pack(curr);
+        bgm->predicates[i]->pack(curr);
 
         memcpy(curr, &bgm->object_types[i], sizeof(bgm->object_types[i]));
         curr += sizeof(bgm->object_types[i]);
 
-        memcpy(curr, bgm->subjects[i], bgm->subject_lens[i]);
-        curr += bgm->subject_lens[i];
-
-        memcpy(curr, bgm->predicates[i], bgm->predicate_lens[i]);
-        curr += bgm->predicate_lens[i];
-
         if (bgm->statuses[i] == HXHIM_SUCCESS) {
-            memcpy(curr, &bgm->object_lens[i], sizeof(bgm->object_lens[i]));
-            curr += sizeof(bgm->object_lens[i]);
-
-            memcpy(curr, bgm->objects[i], bgm->object_lens[i]);
-            curr += bgm->object_lens[i];
+            bgm->objects[i]->pack(curr);
         }
     }
 
@@ -352,19 +284,15 @@ int Packer::pack(const Response::BGet2 *bgm, void **buf, std::size_t *bufsize) {
         memcpy(curr, &bgm->statuses[i], sizeof(bgm->statuses[i]));
         curr += sizeof(bgm->statuses[i]);
 
-        // subject
         bgm->subjects[i]->pack(curr);
         bgm->predicates[i]->pack(curr);
 
-        // object type
         memcpy(curr, &bgm->object_types[i], sizeof(bgm->object_types[i]));
         curr += sizeof(bgm->object_types[i]);
 
-        // object len addr
         memcpy(curr, &bgm->orig.object_lens[i], sizeof(bgm->orig.object_lens[i]));
         curr += sizeof(bgm->orig.object_lens[i]);
 
-        // object addr
         memcpy(curr, &bgm->orig.objects[i], sizeof(bgm->orig.objects[i]));
         curr += sizeof(bgm->orig.objects[i]);
 
@@ -392,27 +320,14 @@ int Packer::pack(const Response::BGetOp *bgm, void **buf, std::size_t *bufsize) 
         memcpy(curr, &bgm->statuses[i], sizeof(bgm->statuses[i]));
         curr += sizeof(bgm->statuses[i]);
 
-        memcpy(curr, &bgm->subject_lens[i], sizeof(bgm->subject_lens[i]));
-        curr += sizeof(bgm->subject_lens[i]);
-
-        memcpy(curr, &bgm->predicate_lens[i], sizeof(bgm->predicate_lens[i]));
-        curr += sizeof(bgm->predicate_lens[i]);
+        bgm->subjects[i]->pack(curr);
+        bgm->predicates[i]->pack(curr);
 
         memcpy(curr, &bgm->object_types[i], sizeof(bgm->object_types[i]));
         curr += sizeof(bgm->object_types[i]);
 
-        memcpy(curr, bgm->subjects[i], bgm->subject_lens[i]);
-        curr += bgm->subject_lens[i];
-
-        memcpy(curr, bgm->predicates[i], bgm->predicate_lens[i]);
-        curr += bgm->predicate_lens[i];
-
         if (bgm->statuses[i] == HXHIM_SUCCESS) {
-            memcpy(curr, &bgm->object_lens[i], sizeof(bgm->object_lens[i]));
-            curr += sizeof(bgm->object_lens[i]);
-
-            memcpy(curr, bgm->objects[i], bgm->object_lens[i]);
-            curr += bgm->object_lens[i];
+            bgm->objects[i]->pack(curr);
         }
     }
 

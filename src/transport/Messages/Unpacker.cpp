@@ -97,33 +97,13 @@ int Unpacker::unpack(Request::BPut **bpm, void *buf, const std::size_t bufsize) 
         memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
         curr += sizeof(out->ds_offsets[i]);
 
-        memcpy(&out->subject_lens[i], curr, sizeof(out->subject_lens[i]));
-        curr += sizeof(out->subject_lens[i]);
-
-        memcpy(&out->predicate_lens[i], curr, sizeof(out->predicate_lens[i]));
-        curr += sizeof(out->predicate_lens[i]);
-
-        memcpy(&out->object_lens[i], curr, sizeof(out->object_lens[i]));
-        curr += sizeof(out->object_lens[i]);
+        out->subjects[i] = construct<RealBlob>(curr);
+        out->predicates[i] = construct<RealBlob>(curr);
 
         memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
         curr += sizeof(out->object_types[i]);
 
-        if ((out->subject_lens[i]   && !(out->subjects[i]   = alloc(out->subject_lens[i])))   ||
-            (out->predicate_lens[i] && !(out->predicates[i] = alloc(out->predicate_lens[i]))) ||
-            (out->object_lens[i]    && !(out->objects[i]    = alloc(out->object_lens[i]))))    {
-            destruct(out);
-            return TRANSPORT_ERROR;
-        }
-
-        memcpy(out->subjects[i], curr, out->subject_lens[i]);
-        curr += out->subject_lens[i];
-
-        memcpy(out->predicates[i], curr, out->predicate_lens[i]);
-        curr += out->predicate_lens[i];
-
-        memcpy(out->objects[i], curr, out->object_lens[i]);
-        curr += out->object_lens[i];
+        out->objects[i] = construct<RealBlob>(curr);
 
         out->count++;
     }
@@ -155,26 +135,11 @@ int Unpacker::unpack(Request::BGet **bgm, void *buf, const std::size_t bufsize) 
         memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
         curr += sizeof(out->ds_offsets[i]);
 
-        memcpy(&out->subject_lens[i], curr, sizeof(out->subject_lens[i]));
-        curr += sizeof(out->subject_lens[i]);
-
-        memcpy(&out->predicate_lens[i], curr, sizeof(out->predicate_lens[i]));
-        curr += sizeof(out->predicate_lens[i]);
+        out->subjects[i] = construct<RealBlob>(curr);
+        out->predicates[i] = construct<RealBlob>(curr);
 
         memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
         curr += sizeof(out->object_types[i]);
-
-        if ((out->subject_lens[i]   && !(out->subjects[i]   = alloc(out->subject_lens[i])))   ||
-            (out->predicate_lens[i] && !(out->predicates[i] = alloc(out->predicate_lens[i])))) {
-            destruct(out);
-            return TRANSPORT_ERROR;
-        }
-
-        memcpy(out->subjects[i], curr, out->subject_lens[i]);
-        curr += out->subject_lens[i];
-
-        memcpy(out->predicates[i], curr, out->predicate_lens[i]);
-        curr += out->predicate_lens[i];
 
         out->count++;
     }
@@ -261,11 +226,8 @@ int Unpacker::unpack(Request::BGetOp **bgm, void *buf, const std::size_t bufsize
         memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
         curr += sizeof(out->ds_offsets[i]);
 
-        memcpy(&out->subject_lens[i], curr, sizeof(out->subject_lens[i]));
-        curr += sizeof(out->subject_lens[i]);
-
-        memcpy(&out->predicate_lens[i], curr, sizeof(out->predicate_lens[i]));
-        curr += sizeof(out->predicate_lens[i]);
+        out->subjects[i] = construct<RealBlob>(curr);
+        out->predicates[i] = construct<RealBlob>(curr);
 
         memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
         curr += sizeof(out->object_types[i]);
@@ -275,18 +237,6 @@ int Unpacker::unpack(Request::BGetOp **bgm, void *buf, const std::size_t bufsize
 
         memcpy(&out->ops[i], curr, sizeof(out->ops[i]));
         curr += sizeof(out->ops[i]);
-
-        if ((out->subject_lens[i]   && !(out->subjects[i]   = alloc(out->subject_lens[i])))   ||
-            (out->predicate_lens[i] && !(out->predicates[i] = alloc(out->predicate_lens[i])))) {
-            destruct(out);
-            return TRANSPORT_ERROR;
-        }
-
-        memcpy(out->subjects[i], curr, out->subject_lens[i]);
-        curr += out->subject_lens[i];
-
-        memcpy(out->predicates[i], curr, out->predicate_lens[i]);
-        curr += out->predicate_lens[i];
 
         out->count++;
     }
@@ -319,23 +269,8 @@ int Unpacker::unpack(Request::BDelete **bdm, void *buf, const std::size_t bufsiz
         memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
         curr += sizeof(out->ds_offsets[i]);
 
-        memcpy(&out->subject_lens[i], curr, sizeof(out->subject_lens[i]));
-        curr += sizeof(out->subject_lens[i]);
-
-        memcpy(&out->predicate_lens[i], curr, sizeof(out->predicate_lens[i]));
-        curr += sizeof(out->predicate_lens[i]);
-
-        if ((out->subject_lens[i]   && !(out->subjects[i]   = alloc(out->subject_lens[i])))   ||
-            (out->predicate_lens[i] && !(out->predicates[i] = alloc(out->predicate_lens[i])))) {
-            destruct(out);
-            return TRANSPORT_ERROR;
-        }
-
-        memcpy(out->subjects[i], curr, out->subject_lens[i]);
-        curr += out->subject_lens[i];
-
-        memcpy(out->predicates[i], curr, out->predicate_lens[i]);
-        curr += out->predicate_lens[i];
+        out->subjects[i] = construct<RealBlob>(curr);
+        out->predicates[i] = construct<RealBlob>(curr);
 
         out->count++;
     }
@@ -502,38 +437,14 @@ int Unpacker::unpack(Response::BGet **bgm, void *buf, const std::size_t bufsize)
         memcpy(&out->statuses[i], curr, sizeof(out->statuses[i]));
         curr += sizeof(out->statuses[i]);
 
-        memcpy(&out->subject_lens[i], curr, sizeof(out->subject_lens[i]));
-        curr += sizeof(out->subject_lens[i]);
-
-        memcpy(&out->predicate_lens[i], curr, sizeof(out->predicate_lens[i]));
-        curr += sizeof(out->predicate_lens[i]);
+        out->subjects[i] = construct<RealBlob>(curr);
+        out->predicates[i] = construct<RealBlob>(curr);
 
         memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
         curr += sizeof(out->object_types[i]);
 
-        if ((out->subject_lens[i] && !(out->subjects[i] = alloc(out->subject_lens[i])))       ||
-            (out->predicate_lens[i] && !(out->predicates[i] = alloc(out->predicate_lens[i])))) {
-            destruct(out);
-            return TRANSPORT_ERROR;
-        }
-
-        memcpy(out->subjects[i], curr, out->subject_lens[i]);
-        curr += out->subject_lens[i];
-
-        memcpy(out->predicates[i], curr, out->predicate_lens[i]);
-        curr += out->predicate_lens[i];
-
         if (out->statuses[i] == HXHIM_SUCCESS) {
-            memcpy(&out->object_lens[i], curr, sizeof(out->object_lens[i]));
-            curr += sizeof(out->subject_lens[i]);
-
-            if (!(out->objects[i] = alloc(out->object_lens[i]))) {
-                destruct(out);
-                return TRANSPORT_ERROR;
-            }
-
-            memcpy(out->objects[i], curr, out->object_lens[i]);
-            curr += out->object_lens[i];
+            out->objects[i] = construct<RealBlob>(curr);
         }
 
         out->count++;
@@ -624,38 +535,14 @@ int Unpacker::unpack(Response::BGetOp **bgm, void *buf, const std::size_t bufsiz
         memcpy(&out->statuses[i], curr, sizeof(out->statuses[i]));
         curr += sizeof(out->statuses[i]);
 
-        memcpy(&out->subject_lens[i], curr, sizeof(out->subject_lens[i]));
-        curr += sizeof(out->subject_lens[i]);
-
-        memcpy(&out->predicate_lens[i], curr, sizeof(out->predicate_lens[i]));
-        curr += sizeof(out->predicate_lens[i]);
+        out->subjects[i] = construct<RealBlob>(curr);
+        out->predicates[i] = construct<RealBlob>(curr);
 
         memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
         curr += sizeof(out->object_types[i]);
 
-        if ((out->subject_lens[i] && !(out->subjects[i] = alloc(out->subject_lens[i])))       ||
-            (out->predicate_lens[i] && !(out->predicates[i] = alloc(out->predicate_lens[i])))) {
-            destruct(out);
-            return TRANSPORT_ERROR;
-        }
-
-        memcpy(out->subjects[i], curr, out->subject_lens[i]);
-        curr += out->subject_lens[i];
-
-        memcpy(out->predicates[i], curr, out->predicate_lens[i]);
-        curr += out->predicate_lens[i];
-
         if (out->statuses[i] == HXHIM_SUCCESS) {
-            memcpy(&out->object_lens[i], curr, sizeof(out->object_lens[i]));
-            curr += sizeof(out->object_lens[i]);
-
-            if (!(out->objects[i] = alloc(out->object_lens[i]))) {
-                destruct(out);
-                return TRANSPORT_ERROR;
-            }
-
-            memcpy(out->objects[i], curr, out->object_lens[i]);
-            curr += out->object_lens[i];
+            out->objects[i] = construct<RealBlob>(curr);
         }
 
         out->count++;
@@ -771,8 +658,6 @@ int Unpacker::unpack(Message *msg, void *buf, const std::size_t, char **curr) {
     if (!msg || !buf || !curr) {
         return TRANSPORT_ERROR;
     }
-
-    msg->clean = true;
 
     *curr = (char *) buf;
 

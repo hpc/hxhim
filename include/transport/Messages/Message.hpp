@@ -51,11 +51,6 @@ struct Message {
     std::size_t max_count;
     std::size_t count;
     int *ds_offsets;           // datastore id on the dst range server
-
-    // This value indicates whether or not the values in arrays should be deallocated.
-    // It should be set when a packet is being unpacked.
-    // This value is not sent across the transport.
-    bool clean;
 };
 
 }

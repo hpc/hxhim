@@ -1,5 +1,5 @@
-#ifndef HXHIM_PROCESS_HPP
-#define HXHIM_PROCESS_HPP
+#ifndef HXHIM_PROCESS_TPP
+#define HXHIM_PROCESS_TPP
 
 #include "hxhim/hxhim.hpp"
 #include "hxhim/local_client.hpp"

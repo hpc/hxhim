@@ -4,6 +4,7 @@
 #include <cstddef>
 
 #include "hxhim/constants.h"
+#include "utils/Blob.hpp"
 #include "transport/Messages/Request.hpp"
 #include "transport/Messages/Response.hpp"
 #include "transport/constants.hpp"
@@ -21,10 +22,8 @@ struct BGetOp final : Request {
     int alloc(const std::size_t max);
     int cleanup();
 
-    void **subjects;
-    std::size_t *subject_lens;
-    void **predicates;
-    std::size_t *predicate_lens;
+    Blob **subjects;
+    Blob **predicates;
     hxhim_type_t *object_types;
     std::size_t *num_recs;            // number of records to get back
     hxhim_get_op_t *ops;
@@ -44,13 +43,10 @@ struct BGetOp final : Response {
     int merge(BGetOp *bgetop);
     int cleanup();
 
-    void **subjects;
-    std::size_t *subject_lens;
-    void **predicates;
-    std::size_t *predicate_lens;
+    Blob **subjects;
+    Blob **predicates;
     hxhim_type_t *object_types;
-    void **objects;
-    std::size_t *object_lens;
+    Blob **objects;
 
     BGetOp *next;
 };

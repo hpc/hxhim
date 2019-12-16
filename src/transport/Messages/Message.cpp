@@ -18,8 +18,7 @@ Transport::Message::Message(const Message::Direction dir, const Message::Type ty
       dst(-1),
       max_count(max_count),
       count(0),
-      ds_offsets(nullptr),
-      clean(false)
+      ds_offsets(nullptr)
 {
     Message::alloc(max_count);
 }

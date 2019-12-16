@@ -204,23 +204,23 @@ Response::BGet *leveldb::BGetImpl(void **subjects, std::size_t *subject_lens,
         dealloc(key);
 
         // need to copy subject
-        ret->subject_lens[i] = subject_lens[i];
-        ret->subjects[i] = alloc(ret->subject_lens[i]);
-        memcpy(ret->subjects[i], subjects[i], ret->subject_lens[i]);
+        ret->subjects[i]->len = subject_lens[i];
+        ret->subjects[i]->ptr = alloc(ret->subjects[i]->len);
+        memcpy(ret->subjects[i]->ptr, subjects[i], ret->subjects[i]->len);
 
         // need to copy predicate
-        ret->predicate_lens[i] = predicate_lens[i];
-        ret->predicates[i] = alloc(ret->predicate_lens[i]);
-        memcpy(ret->predicates[i], predicates[i], ret->predicate_lens[i]);
+        ret->predicates[i]->len = predicate_lens[i];
+        ret->predicates[i]->ptr = alloc(ret->predicates[i]->len);
+        memcpy(ret->predicates[i]->ptr, predicates[i], ret->predicates[i]->len);
 
         // add to results list
         if (status.ok()) {
             ret->statuses[i] = HXHIM_SUCCESS;
 
             ret->object_types[i] = object_types[i];
-            ret->object_lens[i] = value.size();
-            ret->objects[i] = alloc(ret->object_lens[i]);
-            memcpy(ret->objects[i], value.data(), ret->object_lens[i]);
+            ret->objects[i]->len = value.size();
+            ret->objects[i]->ptr = alloc(ret->objects[i]->len);
+            memcpy(ret->objects[i]->ptr, value.data(), ret->objects[i]->len);
         }
         else {
             ret->statuses[i] = HXHIM_ERROR;
@@ -273,10 +273,10 @@ Response::BGet2 *leveldb::BGetImpl2(void **subjects, std::size_t *subject_lens,
         dealloc(key);
 
         // move data into ret
-        ret->subjects[i] = construct<RealBlob>(subjects[i], subject_lens[i]);
+        ret->subjects[i]->ptr = construct<RealBlob>(subjects[i], subject_lens[i]);
         subjects[i] = nullptr;
         subject_lens[i] = 0;
-        ret->predicates[i] = construct<RealBlob>(predicates[i], predicate_lens[i]);
+        ret->predicates[i]->ptr = construct<RealBlob>(predicates[i], predicate_lens[i]);
         predicates[i] = nullptr;
         predicate_lens[i] = 0;
         ret->object_types[i] = object_types[i];
@@ -359,20 +359,20 @@ Response::BGetOp *leveldb::BGetOpImpl(void *subject, std::size_t subject_len,
                 ret->statuses[i] = HXHIM_SUCCESS;
 
                 void *subject = nullptr, *predicate = nullptr;
-                key_to_sp(k.data(), k.size(), &subject, &ret->subject_lens[i], &predicate, &ret->predicate_lens[i]);
+                key_to_sp(k.data(), k.size(), &subject, &ret->subjects[i]->len, &predicate, &ret->predicates[i]->len);
 
                 // need to copy subject out of the key
-                ret->subjects[i] = alloc(ret->subject_lens[i]);
-                memcpy(ret->subjects[i], subject, ret->subject_lens[i]);
+                ret->subjects[i]->ptr = alloc(ret->subjects[i]->len);
+                memcpy(ret->subjects[i]->ptr, subject, ret->subjects[i]->len);
 
                 // need to copy predicate out of the key
-                ret->predicates[i] = alloc(ret->predicate_lens[i]);
-                memcpy(ret->predicates[i], predicate, ret->predicate_lens[i]);
+                ret->predicates[i]->ptr = alloc(ret->predicates[i]->len);
+                memcpy(ret->predicates[i]->ptr, predicate, ret->predicates[i]->len);
 
                 ret->object_types[i] = object_type;
-                ret->object_lens[i] = v.size();
-                ret->objects[i] = alloc(ret->object_lens[i]);
-                memcpy(ret->objects[i], v.data(), ret->object_lens[i]);
+                ret->objects[i]->len = v.size();
+                ret->objects[i]->ptr = alloc(ret->objects[i]->len);
+                memcpy(ret->objects[i]->ptr, v.data(), ret->objects[i]->len);
             }
             else {
                 ret->statuses[i] = HXHIM_ERROR;

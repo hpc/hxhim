@@ -122,19 +122,19 @@ Response::BGet *InMemory::BGetImpl(void **subjects, std::size_t *subject_lens,
 
         ret->statuses[i] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
 
-        ret->subject_lens[i] = subject_lens[i];
-        ret->subjects[i] = alloc(ret->subject_lens[i]);
-        memcpy(ret->subjects[i], subjects[i], ret->subject_lens[i]);
+        ret->subjects[i]->len = subject_lens[i];
+        ret->subjects[i]->ptr = alloc(ret->subjects[i]->len);
+        memcpy(ret->subjects[i]->ptr, subjects[i], ret->subjects[i]->len);
 
-        ret->predicate_lens[i] = predicate_lens[i];
-        ret->predicates[i] = alloc(ret->predicate_lens[i]);
-        memcpy(ret->predicates[i], predicates[i], ret->predicate_lens[i]);
+        ret->predicates[i]->len = predicate_lens[i];
+        ret->predicates[i]->ptr = alloc(ret->predicates[i]->len);
+        memcpy(ret->predicates[i]->ptr, predicates[i], ret->predicates[i]->len);
 
         if (ret->statuses[i] == HXHIM_SUCCESS) {
             ret->object_types[i] = object_types[i];
-            ret->object_lens[i] = it->second.size();
-            ret->objects[i] = alloc(it->second.size());
-            memcpy(ret->objects[i], it->second.data(), ret->object_lens[i]);
+            ret->objects[i]->len = it->second.size();
+            ret->objects[i]->ptr = alloc(it->second.size());
+            memcpy(ret->objects[i]->ptr, it->second.data(), ret->objects[i]->len);
         }
 
         stats.gets++;
@@ -253,10 +253,10 @@ Response::BGetOp *InMemory::BGetOpImpl(void *subject, std::size_t subject_len,
         for(std::size_t i = 0; i < recs && (it != db.end()) && (rit != db.rend()); i++) {
             ret->statuses[i] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
             if (ret->statuses[i] == HXHIM_SUCCESS) {
-                key_to_sp((void *) it->first.data(), it->first.size(), &ret->subjects[i], &ret->subject_lens[i], &ret->predicates[i], &ret->predicate_lens[i]);
+                key_to_sp((void *) it->first.data(), it->first.size(), &ret->subjects[i]->ptr, &ret->subjects[i]->len, &ret->predicates[i]->ptr, &ret->predicates[i]->len);
                 ret->object_types[i] = object_type;
-                ret->objects[i] = alloc(it->second.size());
-                memcpy(ret->objects[i], it->second.data(), it->second.size());
+                ret->objects[i]->ptr = alloc(it->second.size());
+                memcpy(ret->objects[i]->ptr, it->second.data(), it->second.size());
             }
 
             clock_gettime(CLOCK_MONOTONIC, &start);

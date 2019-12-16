@@ -5,6 +5,7 @@
 #include <map>
 
 #include "hxhim/constants.h"
+#include "utils/Blob.hpp"
 #include "transport/Messages/Request.hpp"
 #include "transport/Messages/Response.hpp"
 #include "transport/constants.hpp"
