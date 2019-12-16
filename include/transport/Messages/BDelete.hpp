@@ -40,8 +40,6 @@ struct BDelete final : Response {
     int merge(BDelete *bdel);
     int cleanup();
 
-    int *statuses;
-
     BDelete *next;
 };
 

@@ -26,6 +26,8 @@ typedef struct hxhim_datastore_config {
         : type(datastore)
     {}
 
+    virtual ~hxhim_datastore_config() {}
+
     const hxhim::datastore::Type type;
 } hxhim_datastore_config_t;
 

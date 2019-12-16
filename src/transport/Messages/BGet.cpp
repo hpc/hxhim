@@ -16,12 +16,11 @@ Transport::Request::BGet::~BGet() {
 }
 
 std::size_t Transport::Request::BGet::size() const {
-    std::size_t total = Request::size() + sizeof(count);
+    std::size_t total = Request::size();
     for(std::size_t i = 0; i < count; i++) {
-        total += sizeof(ds_offsets[i]) +
-            subject_lens[i] + sizeof(subject_lens[i]) +
-            predicate_lens[i] + sizeof(predicate_lens[i]) +
-            sizeof(object_types[i]);
+        total += subject_lens[i] + sizeof(subject_lens[i]) +
+                 predicate_lens[i] + sizeof(predicate_lens[i]) +
+                 sizeof(object_types[i]);
     }
     return total;
 }
@@ -30,7 +29,7 @@ int Transport::Request::BGet::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Message::alloc(max) != TRANSPORT_SUCCESS)           ||
+        if ((Request::alloc(max) != TRANSPORT_SUCCESS)        ||
             !(subjects = alloc_array<void *>(max))            ||
             !(subject_lens = alloc_array<std::size_t>(max))   ||
             !(predicates = alloc_array<void *>(max))          ||
@@ -74,12 +73,11 @@ int Transport::Request::BGet::cleanup() {
     dealloc_array(object_types, count);
     object_types = nullptr;
 
-    return TRANSPORT_SUCCESS;
+    return Request::cleanup();
 }
 
 Transport::Response::BGet::BGet(const std::size_t max)
     : Response(BGET),
-      statuses(nullptr),
       subjects(nullptr),
       subject_lens(nullptr),
       predicates(nullptr),
@@ -97,13 +95,11 @@ Transport::Response::BGet::~BGet() {
 }
 
 std::size_t Transport::Response::BGet::size() const {
-    std::size_t total = Response::size() + sizeof(count);
+    std::size_t total = Response::size();
     for(std::size_t i = 0; i < count; i++) {
-        total += sizeof(ds_offsets[i]) +
-            sizeof(statuses[i]) +
-            subject_lens[i] + sizeof(subject_lens[i]) +
-            predicate_lens[i] + sizeof(predicate_lens[i]) +
-            sizeof(object_types[i]) + object_lens[i] + sizeof(object_lens[i]);
+        total += subject_lens[i] + sizeof(subject_lens[i]) +
+                 predicate_lens[i] + sizeof(predicate_lens[i]) +
+                 sizeof(object_types[i]) + object_lens[i] + sizeof(object_lens[i]);
     }
     return total;
 }
@@ -112,8 +108,7 @@ int Transport::Response::BGet::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Message::alloc(max) != TRANSPORT_SUCCESS)           ||
-            !(statuses = alloc_array<int>(max))               ||
+        if ((Response::alloc(max) != TRANSPORT_SUCCESS)       ||
             !(subjects = alloc_array<void *>(max))            ||
             !(subject_lens = alloc_array<std::size_t>(max))   ||
             !(predicates = alloc_array<void *>(max))          ||
@@ -122,7 +117,7 @@ int Transport::Response::BGet::alloc(const std::size_t max) {
             !(objects = alloc_array<void *>(max))             ||
             !(object_lens = alloc_array<std::size_t>(max)))    {
             cleanup();
-            return TRANSPORT_SUCCESS;
+            return TRANSPORT_ERROR;
         }
     }
 
@@ -150,9 +145,6 @@ int Transport::Response::BGet::cleanup() {
         }
     }
 
-    dealloc_array(statuses, count);
-    statuses = nullptr;
-
     dealloc_array(subjects, count);
     subjects = nullptr;
 
@@ -174,5 +166,5 @@ int Transport::Response::BGet::cleanup() {
     dealloc_array(object_lens, count);
     object_lens = nullptr;
 
-    return TRANSPORT_SUCCESS;
+    return Response::cleanup();
 }

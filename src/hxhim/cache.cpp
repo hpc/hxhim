@@ -87,13 +87,21 @@ int hxhim::GetData2::moveto(Transport::Request::BGet2 *bget, const int ds_offset
     }
 
     bget->ds_offsets[bget->count] = ds_offset;
-    bget->subjects[bget->count] = subject;
-    bget->subject_lens[bget->count] = subject_len;
-    bget->predicates[bget->count] = predicate;
-    bget->predicate_lens[bget->count] = predicate_len;
+    bget->subjects[bget->count] = construct<ReferenceBlob>();
+    bget->subjects[bget->count]->ptr = subject;
+    bget->subjects[bget->count]->len = subject_len;
+    bget->predicates[bget->count] = construct<ReferenceBlob>();
+    bget->predicates[bget->count]->ptr = predicate;
+    bget->predicates[bget->count]->len = predicate_len;
     bget->object_types[bget->count] = object_type;
-    bget->objects[bget->count] = object;
-    bget->object_lens[bget->count] = object_len;
+    bget->objects[bget->count] = construct<ReferenceBlob>();
+    // bget->objects[bget->count]->ptr = object;
+    // bget->objects[bget->count]->len = *object_len;
+
+    // save a copy of the object and object_len pointer
+    bget->orig.objects[bget->count] = object;
+    bget->orig.object_lens[bget->count] = object_len;
+
     bget->count++;
 
     return HXHIM_SUCCESS;

@@ -37,8 +37,6 @@ struct BHistogram final : Response {
     int merge(BHistogram *bhist);
     int cleanup();
 
-    int *statuses;
-
     struct Histogram {
         double *buckets;
         std::size_t *counts;

@@ -44,8 +44,6 @@ struct BPut final : Response {
     int merge(BPut *bput);
     int cleanup();
 
-    int *statuses;
-
     BPut *next;
 };
 

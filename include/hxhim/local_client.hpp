@@ -6,7 +6,7 @@
 
 namespace hxhim {
 
-Transport::Response::Response *local_client(hxhim_t *hx, const Transport::Request::Request *req);
+Transport::Response::Response *local_client(hxhim_t *hx, Transport::Request::Request *req);
 
 }
 

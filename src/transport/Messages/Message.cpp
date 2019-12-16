@@ -16,18 +16,20 @@ Transport::Message::Message(const Message::Direction dir, const Message::Type ty
       type(type),
       src(-1),
       dst(-1),
-      ds_offsets(nullptr),
-      count(0),
       max_count(max_count),
+      count(0),
+      ds_offsets(nullptr),
       clean(false)
 {
     Message::alloc(max_count);
 }
 
-Transport::Message::~Message() {}
+Transport::Message::~Message() {
+    cleanup();
+}
 
 std::size_t Transport::Message::Message::size() const {
-    return sizeof(direction) + sizeof(type) + sizeof(src) + sizeof(dst);
+    return sizeof(direction) + sizeof(type) + sizeof(src) + sizeof(dst) + (count * sizeof(*ds_offsets)) + sizeof(count);
 }
 
 int Transport::Message::alloc(const std::size_t max) {
@@ -53,5 +55,3 @@ int Transport::Message::cleanup() {
 
     return TRANSPORT_SUCCESS;
 }
-
-void Transport::Message::Message::server_side_cleanup(void *) {}

@@ -13,7 +13,7 @@
 #include "hxhim/local_client.hpp"
 #include "hxhim/options_private.hpp"
 #include "hxhim/private.hpp"
-#include "hxhim/process.hpp"
+#include "hxhim/process.tpp"
 #include "hxhim/range_server.hpp"
 #include "hxhim/shuffle.hpp"
 #include "transport/Messages/Messages.hpp"

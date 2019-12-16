@@ -42,8 +42,6 @@ struct BGet final : Response {
     int merge(BGet *bget);
     int cleanup();
 
-    int *statuses;
-
     void **subjects;
     std::size_t *subject_lens;
     void **predicates;

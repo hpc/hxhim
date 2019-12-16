@@ -92,9 +92,14 @@ class Results {
 
             hxhim_type_t object_type;
             void *object;
-            std::size_t *object_len;
+            std::size_t object_len;
 
-            bool local;
+            struct {
+                void *subject;
+                void *predicate;
+                void *object;
+                std::size_t *object_len;
+            } orig;
         };
 
         /** @description Convenience struct for DEL results */

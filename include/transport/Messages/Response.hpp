@@ -13,6 +13,11 @@ struct Response : Message {
     ~Response();
 
     virtual std::size_t size() const;
+
+    virtual int alloc(const std::size_t max);
+    virtual int cleanup();
+
+    int *statuses;
 };
 
 }

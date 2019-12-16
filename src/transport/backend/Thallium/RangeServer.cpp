@@ -66,8 +66,6 @@ void RangeServer::process(const thallium::request &req, thallium::bulk &bulk) {
     std::size_t ressize = 0;
     Packer::pack(response, &buf, &ressize);     // do not check for error
     mlog(THALLIUM_WARN, "Responding with %zu byte %s message", ressize, Message::TypeStr[response->type]);
-
-    response->server_side_cleanup();
     dealloc(response);
 
     mlog(THALLIUM_WARN, "Packed response into %zu byte string", ressize);

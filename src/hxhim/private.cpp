@@ -8,7 +8,7 @@
 #include "hxhim/config.hpp"
 #include "hxhim/options_private.hpp"
 #include "hxhim/private.hpp"
-#include "hxhim/process.hpp"
+#include "hxhim/process.tpp"
 #include "hxhim/range_server.hpp"
 #include "hxhim/shuffle.hpp"
 #include "transport/Messages/Messages.hpp"
@@ -81,6 +81,7 @@ static void backgroundPUT(hxhim_t *hx) {
 
             // move all PUTs into this thread for processing
             head = unsent.head;
+
             unsent.head = nullptr;
             unsent.tail = nullptr;
             unsent.count = 0;
@@ -627,81 +628,6 @@ int hxhim::PutImpl(hxhim_t *hx,
         put->object_len = object_len;
 
         mlog(HXHIM_CLIENT_DBG, "Foreground PUT Insert SPO into queue");
-        puts.insert(put);
-    }
-
-    // SOP
-    {
-        hxhim::PutData *put = construct<hxhim::PutData>();
-        put->subject = subject;
-        put->subject_len = subject_len;
-        put->predicate = object;
-        put->predicate_len = object_len;
-        put->object_type = HXHIM_BYTE_TYPE;
-        put->object = predicate;
-        put->object_len = predicate_len;
-
-        mlog(HXHIM_CLIENT_DBG, "Foreground PUT Insert SOP into queue");
-        puts.insert(put);
-    }
-
-    // PSO
-    {
-        hxhim::PutData *put = construct<hxhim::PutData>();
-        put->subject = predicate;
-        put->subject_len = predicate_len;
-        put->predicate = subject;
-        put->predicate_len = subject_len;
-        put->object_type = object_type;
-        put->object = object;
-        put->object_len = object_len;
-
-        mlog(HXHIM_CLIENT_DBG, "Foreground PUT Insert PSO into queue");
-        puts.insert(put);
-    }
-
-    // POS
-    {
-        hxhim::PutData *put = construct<hxhim::PutData>();
-        put->subject = predicate;
-        put->subject_len = predicate_len;
-        put->predicate = object;
-        put->predicate_len = object_len;
-        put->object_type = HXHIM_BYTE_TYPE;
-        put->object = subject;
-        put->object_len = subject_len;
-
-        mlog(HXHIM_CLIENT_DBG, "Foreground PUT Insert POS into queue");
-        puts.insert(put);
-    }
-
-    // OSP
-    {
-        hxhim::PutData *put = construct<hxhim::PutData>();
-        put->subject = object;
-        put->subject_len = object_len;
-        put->predicate = subject;
-        put->predicate_len = subject_len;
-        put->object_type = HXHIM_BYTE_TYPE;
-        put->object = predicate;
-        put->object_len = predicate_len;
-
-        mlog(HXHIM_CLIENT_DBG, "Foreground PUT Insert OSP into queue");
-        puts.insert(put);
-    }
-
-    // OPS
-    {
-        hxhim::PutData *put = construct<hxhim::PutData>();
-        put->subject = object;
-        put->subject_len = object_len;
-        put->predicate = predicate;
-        put->predicate_len = predicate_len;
-        put->object_type = HXHIM_BYTE_TYPE;
-        put->object = subject;
-        put->object_len = subject_len;
-
-        mlog(HXHIM_CLIENT_DBG, "Foreground PUT Insert OPS into queue");
         puts.insert(put);
     }
 

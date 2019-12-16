@@ -35,7 +35,7 @@ T *alloc_array(const std::size_t count, Args&&... args) {
 }
 
 template <typename T>
-void dealloc_array(T *ptr, const std::size_t count) {
+void dealloc_array(T *ptr, const std::size_t count = 0) {
     if (ptr) {
         for(std::size_t i = 0; i < count; i++) {
             ptr[i].~T();

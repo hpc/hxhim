@@ -44,16 +44,13 @@ struct Message {
     virtual int alloc(const std::size_t max);
     virtual int cleanup();
 
-    // any special cleanup to do on the server (database) side
-    virtual void server_side_cleanup(void *args = nullptr);
-
     Direction direction;
     Type type;
     int src;                   // range server ID, not backend ID
     int dst;                   // range server ID, not backend ID
-    int *ds_offsets;           // datastore id on the dst range server
-    std::size_t count;
     std::size_t max_count;
+    std::size_t count;
+    int *ds_offsets;           // datastore id on the dst range server
 
     // This value indicates whether or not the values in arrays should be deallocated.
     // It should be set when a packet is being unpacked.

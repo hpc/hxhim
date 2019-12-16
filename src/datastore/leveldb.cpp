@@ -252,10 +252,8 @@ Response::BGet2 *leveldb::BGetImpl2(void **subjects, std::size_t *subject_lens,
                                     void **orig_subjects,
                                     void **orig_predicates,
                                     void **orig_objects, std::size_t **orig_object_lens,
-                                    std::size_t count, const bool local) {
+                                    std::size_t count) {
     Response::BGet2 *ret = construct<Response::BGet2>(count);
-    ret->count = count;
-
     for(std::size_t i = 0; i < count; i++) {
         struct timespec start, end;
 
@@ -275,29 +273,34 @@ Response::BGet2 *leveldb::BGetImpl2(void **subjects, std::size_t *subject_lens,
         dealloc(key);
 
         // move data into ret
-        ret->subjects[i] = subjects[i];
-        ret->subject_lens[i] = subject_lens[i];
-        ret->predicates[i] = predicates[i];
-        ret->predicate_lens[i] = predicate_lens[i];
+        ret->subjects[i] = construct<RealBlob>(subjects[i], subject_lens[i]);
+        subjects[i] = nullptr;
+        subject_lens[i] = 0;
+        ret->predicates[i] = construct<RealBlob>(predicates[i], predicate_lens[i]);
+        predicates[i] = nullptr;
+        predicate_lens[i] = 0;
         ret->object_types[i] = object_types[i];
 
-        // copy requester addresses
+        // move client addresses
         ret->orig.subjects[i] = orig_subjects[i];
         ret->orig.predicates[i] = orig_predicates[i];
         ret->orig.objects[i] = orig_objects[i];
         ret->orig.object_lens[i] = orig_object_lens[i];
 
+        ret->objects[i] = construct<RealBlob>();
+
         // copy object
         if (status.ok()) {
             ret->statuses[i] = HXHIM_SUCCESS;
-            ret->object_lens[i] = local?orig_object_lens[i]:(construct<std::size_t>());
-            *(ret->object_lens[i]) = value.size();
-            ret->objects[i] = local?orig_objects[i]:alloc(*(ret->object_lens[i]));
-            memcpy(ret->objects[i], value.data(), *(ret->object_lens[i]));
+            ret->objects[i]->len = value.size();
+            ret->objects[i]->ptr = alloc(ret->objects[i]->len);
+            memcpy(ret->objects[i]->ptr, value.data(), ret->objects[i]->len);
         }
         else {
             ret->statuses[i] = HXHIM_ERROR;
         }
+
+        ret->count ++;
 
         // update stats
         stats.gets++;

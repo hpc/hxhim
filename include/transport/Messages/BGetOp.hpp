@@ -44,8 +44,6 @@ struct BGetOp final : Response {
     int merge(BGetOp *bgetop);
     int cleanup();
 
-    int *statuses;
-
     void **subjects;
     std::size_t *subject_lens;
     void **predicates;

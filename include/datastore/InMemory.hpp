@@ -42,7 +42,7 @@ class InMemory : public Datastore {
                                               void **orig_subjects,
                                               void **orig_predicates,
                                               void **orig_objects, std::size_t **orig_object_lens,
-                                              std::size_t count, const bool local);
+                                              std::size_t count);
         Transport::Response::BGetOp *BGetOpImpl(void *subject, std::size_t subject_len,
                                                 void *predicate, std::size_t predicate_len,
                                                 hxhim_type_t object_type,

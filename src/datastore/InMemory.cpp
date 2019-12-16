@@ -162,7 +162,7 @@ Response::BGet2 *InMemory::BGetImpl2(void **subjects, std::size_t *subject_lens,
                                      void **orig_subjects,
                                      void **orig_predicates,
                                      void **orig_objects, std::size_t **orig_object_lens,
-                                     std::size_t count, const bool local) {
+                                     std::size_t count) {
     // initialize to count of 0 in order to reuse arrays
     Response::BGet2 *ret = construct<Response::BGet2>(count);
 
@@ -182,10 +182,12 @@ Response::BGet2 *InMemory::BGetImpl2(void **subjects, std::size_t *subject_lens,
         dealloc(key);
 
         // move data into ret
-        ret->subjects[i] = subjects[i];
-        ret->subject_lens[i] = subject_lens[i];
-        ret->predicates[i] = predicates[i];
-        ret->predicate_lens[i] = predicate_lens[i];
+        ret->subjects[i] = construct<RealBlob>(subjects[i], subject_lens[i]);
+        subjects[i] = nullptr;
+        subject_lens[i] = 0;
+        ret->predicates[i] = construct<RealBlob>(predicates[i], predicate_lens[i]);
+        predicates[i] = nullptr;
+        predicate_lens[i] = 0;
         ret->object_types[i] = object_types[i];
 
         // copy requester addresses
@@ -197,9 +199,10 @@ Response::BGet2 *InMemory::BGetImpl2(void **subjects, std::size_t *subject_lens,
         ret->statuses[i] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
 
         if (ret->statuses[i] == HXHIM_SUCCESS) {
-            ret->object_lens[i] = local?orig_object_lens[i]:(construct<std::size_t>());
-            *(ret->object_lens[i]) = it->second.size();
-            memcpy(ret->objects[i], it->second.data(), *(ret->object_lens[i]));
+            ret->objects[i] = construct<RealBlob>();
+            ret->objects[i]->len = it->second.size();
+            ret->objects[i]->ptr = alloc(ret->objects[i]->len);
+            memcpy(ret->objects[i]->ptr, it->second.data(), ret->objects[i]->len);
         }
 
         stats.gets++;

@@ -18,17 +18,15 @@ void Result::destroy(Results::Result *res) {
 }
 
 Results::Get::~Get() {
-    // dealloc(subject);
-    // dealloc(predicate);
+    dealloc(subject);
+    dealloc(predicate);
     dealloc(object);
 }
 
 Results::Get2::~Get2() {
-    if (!local) {
-        dealloc(subject);
-        dealloc(predicate);
-        // dealloc(object);
-   }
+    dealloc(subject);
+    dealloc(predicate);
+    dealloc(object);
 }
 
 Results::Result *Result::init(hxhim_t *hx, Transport::Response::Response *res, const std::size_t i) {
@@ -104,18 +102,28 @@ Results::Get2 *Result::init(hxhim_t *hx, Transport::Response::BGet2 *bget, const
     out->type = hxhim_result_type::HXHIM_RESULT_GET2;
     out->datastore = hxhim::datastore::get_id(hx, bget->src, bget->ds_offsets[i]);
     out->status = bget->statuses[i];
-    out->subject = bget->orig.subjects[i];
-    out->subject_len = bget->subject_lens[i];
-    out->predicate = bget->orig.predicates[i];
-    out->predicate_len = bget->predicate_lens[i];
+    out->subject = bget->subjects[i]->ptr;
+    out->subject_len = bget->subjects[i]->len;
+    // out->subject = bget->orig.subjects[i]->ptr;
+    // out->subject_len = bget->subjects[i]->len;
+    out->predicate = bget->predicates[i]->ptr;
+    out->predicate_len = bget->predicates[i]->len;
+    // out->predicate = bget->orig.predicates[i];
+    // out->predicate_len = bget->predicate_lens[i];
     out->object_type = bget->object_types[i];
-    out->object = bget->objects[i];
-    out->object_len = bget->object_lens[i];
-    out->local = (bget->src == bget->dst);
+    out->object = bget->objects[i]->ptr;
+    out->object_len = bget->objects[i]->len;
+    // out->object = bget->objects[i];
+    // out->object_len = bget->object_lens[i];
+    out->orig.object = bget->orig.objects[i];
+    out->orig.object_len = bget->orig.object_lens[i];
 
-    bget->subjects[i] = nullptr;
-    bget->predicates[i] = nullptr;
-    bget->objects[i] = nullptr;
+    bget->subjects[i]->ptr = nullptr;
+    bget->subjects[i]->len = 0;
+    bget->predicates[i]->ptr = nullptr;
+    bget->predicates[i]->len = 0;
+    bget->objects[i]->ptr = nullptr;
+    bget->objects[i]->len = 0;
 
     return out;
 }
@@ -510,6 +518,7 @@ int hxhim_results_get_subject(hxhim_results_t *res, void **subject, size_t *subj
 
     hxhim::Results::Result *curr = res->res->Curr();
     if ((curr->type == hxhim_result_type::HXHIM_RESULT_GET) || (curr->type == hxhim_result_type::HXHIM_RESULT_GET2)) {
+
         hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(curr);
         if (subject) {
             *subject = get->subject;
@@ -604,12 +613,19 @@ int hxhim_results_get2_object(hxhim_results_t *res, void **object, size_t **obje
     hxhim::Results::Result *curr = res->res->Curr();
     if (curr->type == hxhim_result_type::HXHIM_RESULT_GET2) {
         hxhim::Results::Get2 *get = static_cast<hxhim::Results::Get2 *>(curr);
+
+        void *orig_object = get->orig.object;
+        memcpy(orig_object, get->object, get->object_len);
+
+        std::size_t *orig_object_len = get->orig.object_len;
+        *orig_object_len = get->object_len;
+
         if (object) {
-            *object = get->object;
+            *object = orig_object;
         }
 
         if (object_len) {
-            *object_len = get->object_len;
+            *object_len = orig_object_len;
         }
 
         return HXHIM_SUCCESS;

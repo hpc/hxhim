@@ -18,12 +18,11 @@ Transport::Request::BPut::~BPut() {
 }
 
 std::size_t Transport::Request::BPut::size() const {
-    std::size_t total = Request::size() + sizeof(count);
+    std::size_t total = Request::size();
     for(std::size_t i = 0; i < count; i++) {
-        total += sizeof(ds_offsets[i]) +
-            subject_lens[i] + sizeof(subject_lens[i]) +
-            predicate_lens[i] + sizeof(predicate_lens[i]) +
-            sizeof(object_types[i]) + object_lens[i] + sizeof(object_lens[i]);
+        total += subject_lens[i] + sizeof(subject_lens[i]) +
+                 predicate_lens[i] + sizeof(predicate_lens[i]) +
+                 sizeof(object_types[i]) + object_lens[i] + sizeof(object_lens[i]);
     }
     return total;
 }
@@ -32,7 +31,7 @@ int Transport::Request::BPut::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Message::alloc(max) != TRANSPORT_SUCCESS)              ||
+        if ((Request::alloc(max) != TRANSPORT_SUCCESS)           ||
             !(subjects         = alloc_array<void *>      (max)) ||
             !(subject_lens     = alloc_array<std::size_t> (max)) ||
             !(predicates       = alloc_array<void *>      (max)) ||
@@ -90,12 +89,11 @@ int Transport::Request::BPut::cleanup() {
     dealloc_array(object_lens, count);
     object_lens = nullptr;
 
-    return TRANSPORT_SUCCESS;
+    return Request::cleanup();
 }
 
 Transport::Response::BPut::BPut(const std::size_t max)
     : Response(Message::BPUT),
-      statuses(nullptr),
       next(nullptr)
 {
     alloc(max);
@@ -106,26 +104,14 @@ Transport::Response::BPut::~BPut() {
 }
 
 std::size_t Transport::Response::BPut::size() const {
-    return Response::size() + sizeof(count) + (sizeof(*ds_offsets) * count) + (sizeof(*statuses) * count);
+    return Response::size();
 }
 
 int Transport::Response::BPut::alloc(const std::size_t max) {
     cleanup();
-
-    if (max) {
-        if ((Message::alloc(max) != TRANSPORT_SUCCESS)     ||
-            !(statuses         = alloc_array<int>(max))) {
-            cleanup();
-            return TRANSPORT_ERROR;
-        }
-    }
-
-    return TRANSPORT_SUCCESS;
+    return Response::alloc(max);
 }
 
 int Transport::Response::BPut::cleanup() {
-    dealloc_array(statuses, count);
-    statuses = nullptr;
-
-    return TRANSPORT_SUCCESS;
+    return Response::cleanup();
 }

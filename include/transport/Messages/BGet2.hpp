@@ -4,6 +4,7 @@
 #include <cstddef>
 
 #include "hxhim/constants.h"
+#include "transport/Messages/Blob.hpp"
 #include "transport/Messages/Request.hpp"
 #include "transport/Messages/Response.hpp"
 #include "transport/constants.hpp"
@@ -21,19 +22,17 @@ struct BGet2 final : Request {
     int alloc(const std::size_t max);
     int cleanup();
 
-    // used by src
-    void **subjects;
-    std::size_t *subject_lens;
-    void **predicates;
+    // used by src (client)
+    Blob **subjects;
+    Blob **predicates;
     std::size_t *predicate_lens;
     hxhim_type_t *object_types;
 
-    // used by dst
-    void **objects;
-    std::size_t **object_lens;
+    // used by dst (server)
+    Blob **objects;
 
-    // filled in by src, to be sent back to src
     struct {
+        // arrays of references - do not deallocate individual pointers
         void **subjects;
         void **predicates;
         void **objects;
@@ -49,29 +48,22 @@ struct BGet2 final : Response {
     BGet2(const std::size_t max = 0);
     ~BGet2();
 
-    void server_side_cleanup(void * args = nullptr);
-
     std::size_t size() const;
 
     int alloc(const std::size_t max);
     int merge(BGet2 *bget, const int ds);
     int cleanup();
 
-    int *statuses;
-
-    // used by dst
-    void **subjects;
-    std::size_t *subject_lens;
-    void **predicates;
-    std::size_t *predicate_lens;
+    // used by dst (client)
+    Blob **subjects;
+    Blob **predicates;
     hxhim_type_t *object_types;
 
-    // used by src
-    void **objects;
-    std::size_t **object_lens;
+    // filled by dst (server)
+    Blob **objects;
 
-    // filled by src, to be sent to the dst
     struct {
+        // arrays of references - do not deallocate individual pointers
         void **subjects;
         void **predicates;
         void **objects;
