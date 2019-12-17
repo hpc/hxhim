@@ -7,10 +7,8 @@ typedef uint64_t Subject_t;
 typedef uint64_t Predicate_t;
 
 TEST(hxhim, BadGet) {
-    // const Subject_t SUBJECT     = (((Subject_t) rand()) << 32) | rand();
-    // const Predicate_t PREDICATE = (((Predicate_t) rand()) << 32) | rand();
-    const Subject_t SUBJECT     = 1;
-    const Predicate_t PREDICATE = 2;
+    const Subject_t SUBJECT     = (((Subject_t) rand()) << 32) | rand();
+    const Predicate_t PREDICATE = (((Predicate_t) rand()) << 32) | rand();
 
     hxhim_options_t opts;
     ASSERT_EQ(fill_options(&opts), true);

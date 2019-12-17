@@ -216,11 +216,8 @@ Response::BGet *leveldb::BGetImpl(void **subjects, std::size_t *subject_lens,
         // add to results list
         if (status.ok()) {
             ret->statuses[i] = HXHIM_SUCCESS;
-
             ret->object_types[i] = object_types[i];
-            ret->objects[i]->len = value.size();
-            ret->objects[i]->ptr = alloc(ret->objects[i]->len);
-            memcpy(ret->objects[i]->ptr, value.data(), ret->objects[i]->len);
+            ret->objects[i] = construct<RealBlob>(value.size(), value.data());
         }
         else {
             ret->statuses[i] = HXHIM_ERROR;
@@ -287,14 +284,11 @@ Response::BGet2 *leveldb::BGetImpl2(void **subjects, std::size_t *subject_lens,
         ret->orig.objects[i] = orig_objects[i];
         ret->orig.object_lens[i] = orig_object_lens[i];
 
-        ret->objects[i] = construct<RealBlob>();
 
         // copy object
         if (status.ok()) {
             ret->statuses[i] = HXHIM_SUCCESS;
-            ret->objects[i]->len = value.size();
-            ret->objects[i]->ptr = alloc(ret->objects[i]->len);
-            memcpy(ret->objects[i]->ptr, value.data(), ret->objects[i]->len);
+            ret->objects[i] = construct<RealBlob>(value.size(), value.data());
         }
         else {
             ret->statuses[i] = HXHIM_ERROR;

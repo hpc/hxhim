@@ -76,6 +76,7 @@ static Transport::Response::BPut *bput(hxhim_t *hx, const Transport::Request::BP
         req->predicates[i]->len = 0;
 
         object_types[datastore][index] = req->object_types[i];
+
         objects[datastore][index] = req->objects[i]->ptr;
         req->objects[i]->ptr = nullptr;
         object_lens[datastore][index] = req->objects[i]->len;
@@ -161,11 +162,17 @@ static Transport::Response::BGet *bget(hxhim_t *hx, const Transport::Request::BG
         const int datastore = req->ds_offsets[i];
         std::size_t &index = counters[req->ds_offsets[i]];
 
-        subjects[datastore][index] = req->subjects[i];
-        subject_lens[datastore][index] = req->subjects[i]->len;
+        subjects[datastore][index] = req->subjects[i]->ptr;
+        req->subjects[i]->ptr = nullptr;
 
-        predicates[datastore][index] = req->predicates[i];
+        subject_lens[datastore][index] = req->subjects[i]->len;
+        req->subjects[i]->len = 0;
+
+        predicates[datastore][index] = req->predicates[i]->ptr;
+        req->predicates[i]->ptr = nullptr;
+
         predicate_lens[datastore][index] = req->predicates[i]->len;
+        req->predicates[i]->len = 0;
 
         object_types[datastore][index] = req->object_types[i];
 
@@ -182,24 +189,8 @@ static Transport::Response::BGet *bget(hxhim_t *hx, const Transport::Request::BG
                                                                                    object_types[i],
                                                                                    counters[i]);
         if (response) {
-            for(std::size_t j = 0; j < response->count; j++) {
-                size_t &count = res->count;
-                res->ds_offsets[count] = i;
-                res->statuses[count] = response->statuses[j];
-
-                std::swap(res->subjects[count]->ptr, response->subjects[j]->ptr);
-                res->subjects[count]->len = response->subjects[j]->len;
-
-                std::swap(res->predicates[count]->ptr, response->predicates[j]->ptr);
-                res->predicates[count]->len = response->predicates[j]->len;
-
-                std::swap(res->object_types[count], response->object_types[j]);
-                if (res->statuses[count] == HXHIM_SUCCESS) {
-                    std::swap(res->objects[count]->ptr, response->objects[j]->ptr);
-                    res->objects[count]->len = response->objects[j]->len;
-                }
-                count++;
-            }
+            // merge the responses into one message to respond with
+            res->merge(response, i);
             destruct(response);
         }
     }

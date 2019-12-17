@@ -616,20 +616,17 @@ int hxhim::PutImpl(hxhim_t *hx,
     mlog(HXHIM_CLIENT_INFO, "Foreground PUT Start (%s, %s, %s)", (char *) subject, (char *) predicate, (char *) object);
     hxhim::Unsent<hxhim::PutData> &puts = hx->p->queues.puts;
 
-    // SPO
-    {
-        hxhim::PutData *put = construct<hxhim::PutData>();
-        put->subject = subject;
-        put->subject_len = subject_len;
-        put->predicate = predicate;
-        put->predicate_len = predicate_len;
-        put->object_type = object_type;
-        put->object = object;
-        put->object_len = object_len;
+    hxhim::PutData *put = construct<hxhim::PutData>();
+    put->subject = subject;
+    put->subject_len = subject_len;
+    put->predicate = predicate;
+    put->predicate_len = predicate_len;
+    put->object_type = object_type;
+    put->object = object;
+    put->object_len = object_len;
 
-        mlog(HXHIM_CLIENT_DBG, "Foreground PUT Insert SPO into queue");
-        puts.insert(put);
-    }
+    mlog(HXHIM_CLIENT_DBG, "Foreground PUT Insert SPO into queue");
+    puts.insert(put);
 
     puts.start_processing.notify_one();
 

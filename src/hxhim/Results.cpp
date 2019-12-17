@@ -79,14 +79,15 @@ Results::Get *Result::init(hxhim_t *hx, Transport::Response::BGet *bget, const s
     out->type = hxhim_result_type::HXHIM_RESULT_GET;
     out->datastore = hxhim::datastore::get_id(hx, bget->src, bget->ds_offsets[i]);
     out->status = bget->statuses[i];
-    out->subject = bget->subjects[i];
+    out->subject = bget->subjects[i]->ptr;
     out->subject_len = bget->subjects[i]->len;
-    out->predicate = bget->predicates[i];
+    out->predicate = bget->predicates[i]->ptr;
     out->predicate_len = bget->predicates[i]->len;
     out->object_type = bget->object_types[i];
-    out->object = bget->objects[i];
-    out->object_len = bget->objects[i]->len;
-
+    if (out->status == TRANSPORT_SUCCESS) {
+        out->object = bget->objects[i]->ptr;
+        out->object_len = bget->objects[i]->len;
+    }
     bget->subjects[i] = nullptr;
     bget->predicates[i] = nullptr;
     bget->objects[i] = nullptr;
@@ -104,17 +105,14 @@ Results::Get2 *Result::init(hxhim_t *hx, Transport::Response::BGet2 *bget, const
     out->status = bget->statuses[i];
     out->subject = bget->subjects[i]->ptr;
     out->subject_len = bget->subjects[i]->len;
-    // out->subject = bget->orig.subjects[i]->ptr;
-    // out->subject_len = bget->subjects[i]->len;
     out->predicate = bget->predicates[i]->ptr;
     out->predicate_len = bget->predicates[i]->len;
-    // out->predicate = bget->orig.predicates[i];
-    // out->predicate_len = bget->predicates[i]->len;
     out->object_type = bget->object_types[i];
-    out->object = bget->objects[i]->ptr;
-    out->object_len = bget->objects[i]->len;
-    // out->object = bget->objects[i];
-    // out->object_len = bget->objects[i]->len;
+    if (out->status == TRANSPORT_SUCCESS) {
+        out->object = bget->objects[i]->ptr;
+        out->object_len = bget->objects[i]->len;
+    }
+
     out->orig.object = bget->orig.objects[i];
     out->orig.object_len = bget->orig.object_lens[i];
 
@@ -137,14 +135,15 @@ Results::Get *Result::init(hxhim_t *hx, Transport::Response::BGetOp *bgetop, con
     out->type = hxhim_result_type::HXHIM_RESULT_GET;
     out->datastore = hxhim::datastore::get_id(hx, bgetop->src, bgetop->ds_offsets[i]);
     out->status = bgetop->statuses[i];
-    out->subject = bgetop->subjects[i];
+    out->subject = bgetop->subjects[i]->ptr;
     out->subject_len = bgetop->subjects[i]->len;
-    out->predicate = bgetop->predicates[i];
+    out->predicate = bgetop->predicates[i]->ptr;
     out->predicate_len = bgetop->predicates[i]->len;
     out->object_type = bgetop->object_types[i];
-    out->object = bgetop->objects[i];
-    out->object_len = bgetop->objects[i]->len;
-
+    if (out->status == TRANSPORT_SUCCESS) {
+        out->object = bgetop->objects[i]->ptr;
+        out->object_len = bgetop->objects[i]->len;
+    }
     bgetop->subjects[i] = nullptr;
     bgetop->predicates[i] = nullptr;
     bgetop->objects[i] = nullptr;

@@ -5,6 +5,7 @@
 #include "datastore/InMemory.hpp"
 #include "hxhim/private.hpp"
 #include "hxhim/triplestore.hpp"
+#include "utils/Blob.hpp"
 #include "utils/memory.hpp"
 
 namespace hxhim {
@@ -120,8 +121,6 @@ Response::BGet *InMemory::BGetImpl(void **subjects, std::size_t *subject_lens,
 
         dealloc(key);
 
-        ret->statuses[i] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
-
         ret->subjects[i] = construct<RealBlob>(subjects[i], subject_lens[i]);
         subjects[i] = nullptr;
         subject_lens[i] = 0;
@@ -129,19 +128,11 @@ Response::BGet *InMemory::BGetImpl(void **subjects, std::size_t *subject_lens,
         predicates[i] = nullptr;
         predicate_lens[i] = 0;
 
-        // ret->subjects[i]->len = subject_lens[i];
-        // ret->subjects[i]->ptr = alloc(ret->subjects[i]->len);
-        // memcpy(ret->subjects[i]->ptr, subjects[i], ret->subjects[i]->len);
-
-        // ret->predicates[i]->len = predicate_lens[i];
-        // ret->predicates[i]->ptr = alloc(ret->predicates[i]->len);
-        // memcpy(ret->predicates[i]->ptr, predicates[i], ret->predicates[i]->len);
+        ret->statuses[i] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
 
         if (ret->statuses[i] == HXHIM_SUCCESS) {
             ret->object_types[i] = object_types[i];
-            ret->objects[i]->len = it->second.size();
-            ret->objects[i]->ptr = alloc(it->second.size());
-            memcpy(ret->objects[i]->ptr, it->second.data(), ret->objects[i]->len);
+            ret->objects[i] = construct<RealBlob>(it->second.size(), it->second.data());
         }
 
         stats.gets++;
@@ -206,10 +197,7 @@ Response::BGet2 *InMemory::BGetImpl2(void **subjects, std::size_t *subject_lens,
         ret->statuses[i] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
 
         if (ret->statuses[i] == HXHIM_SUCCESS) {
-            ret->objects[i] = construct<RealBlob>();
-            ret->objects[i]->len = it->second.size();
-            ret->objects[i]->ptr = alloc(ret->objects[i]->len);
-            memcpy(ret->objects[i]->ptr, it->second.data(), ret->objects[i]->len);
+            ret->objects[i] = construct<RealBlob>(it->second.size(), it->second.data());
         }
 
         stats.gets++;

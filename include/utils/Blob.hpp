@@ -49,10 +49,13 @@ typedef Blob ReferenceBlob;
  * Overwriting old values does not deallocate them.
  */
 struct RealBlob : Blob {
-    RealBlob(void * ptr = nullptr, const std::size_t len = 0)
+    // take ownership of ptr
+    RealBlob(void *ptr = nullptr, const std::size_t len = 0)
         : Blob(ptr, len)
     {}
 
+    // read from a blob of memory and create a deep copy
+    // (length is not known)
     RealBlob(char *&blob)
         : Blob(nullptr, 0)
     {
@@ -66,6 +69,15 @@ struct RealBlob : Blob {
         ptr = alloc(len);
         memcpy(ptr, blob, len);
         blob += len;
+    }
+
+    // length is known, but data needs to be copied
+    RealBlob(const std::size_t len, const void *blob = nullptr)
+        : Blob(alloc(len), len)
+    {
+        if (blob) {
+            memcpy(ptr, blob, len);
+        }
     }
 
     ~RealBlob() {

@@ -35,11 +35,15 @@ TEST(transport, MPI) {
 
 TEST_THALLIUM_TRANSPORT(na, sm)
 
+// #ifdef OFI
+TEST_THALLIUM_TRANSPORT(ofi, tcp)
+// #endif
+
 // #ifdef BMI
 // TEST_THALLIUM_TRANSPORT(bmi, tcp)
 // #endif
 
 // #ifdef CCI
-TEST_THALLIUM_TRANSPORT(cci, tcp)
-TEST_THALLIUM_TRANSPORT(cci, sm)
+// TEST_THALLIUM_TRANSPORT(cci, tcp)
+// TEST_THALLIUM_TRANSPORT(cci, sm)
 // #endif

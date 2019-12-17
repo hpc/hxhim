@@ -38,7 +38,7 @@ struct BGet final : Response {
     std::size_t size() const;
 
     int alloc(const std::size_t max);
-    int merge(BGet *bget);
+    int merge(BGet *bget, const int ds);
     int cleanup();
 
     Blob **subjects;
