@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "transport/backend/Thallium/Utilities.hpp"
-#include "utils/enable_if_t.hpp"
+#include "utils/type_traits.hpp"
 #include "utils/macros.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"

@@ -47,6 +47,32 @@ int Transport::Request::BGet2::alloc(const std::size_t max) {
     return TRANSPORT_SUCCESS;
 }
 
+int Transport::Request::BGet2::steal(Transport::Request::BGet2 *from, const std::size_t i) {
+    if (Request::steal(from, i) != TRANSPORT_SUCCESS) {
+        return TRANSPORT_ERROR;
+    }
+
+    subjects[count]           = from->subjects[i];
+    predicates[count]         = from->predicates[i];
+    object_types[count]       = from->object_types[i];
+    objects[count]            = from->objects[i];
+    orig.subjects[count]      = from->orig.subjects[i];
+    orig.predicates[count]    = from->orig.predicates[i];
+    orig.objects[count]       = from->orig.objects[i];
+    orig.object_lens[count]   = from->orig.object_lens[i];
+    count++;
+
+    from->subjects[i]         = nullptr;
+    from->predicates[i]       = nullptr;
+    from->objects[i]          = nullptr;
+    from->orig.subjects[i]    = nullptr;
+    from->orig.predicates[i]  = nullptr;
+    from->orig.objects[i]     = nullptr;
+    from->orig.object_lens[i] = nullptr;
+
+    return TRANSPORT_SUCCESS;
+}
+
 int Transport::Request::BGet2::cleanup() {
     for(std::size_t i = 0; i < count; i++) {
         destruct(subjects[i]);
@@ -136,19 +162,12 @@ int Transport::Response::BGet2::alloc(const std::size_t max) {
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Response::BGet2::merge(Transport::Response::BGet2 *bget, const int ds) {
-    if (!bget) {
-        return HXHIM_ERROR;
-    }
-
-    // cannot copy all
-    if ((count + bget->count) > max_count) {
-        return HXHIM_ERROR;
+int Transport::Response::BGet2::steal(Transport::Response::BGet2 *bget, const int ds) {
+    if (Response::steal(bget, ds) != TRANSPORT_SUCCESS) {
+        return TRANSPORT_ERROR;
     }
 
     for(std::size_t i = 0; i < bget->count; i++) {
-        ds_offsets[count] = ds;
-        statuses[count] = bget->statuses[i];
         subjects[count] = bget->subjects[i];
         predicates[count] = bget->predicates[i];
         object_types[count] = bget->object_types[i];
@@ -172,7 +191,7 @@ int Transport::Response::BGet2::merge(Transport::Response::BGet2 *bget, const in
 
     bget->count = 0;
 
-    return HXHIM_SUCCESS;
+    return TRANSPORT_SUCCESS;
 }
 
 int Transport::Response::BGet2::cleanup() {

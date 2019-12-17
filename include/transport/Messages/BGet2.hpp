@@ -20,6 +20,7 @@ struct BGet2 final : Request {
     std::size_t size() const;
 
     int alloc(const std::size_t max);
+    int steal(BGet2 *from, const std::size_t i);
     int cleanup();
 
     // used by src (client)
@@ -51,7 +52,7 @@ struct BGet2 final : Response {
     std::size_t size() const;
 
     int alloc(const std::size_t max);
-    int merge(BGet2 *bget, const int ds);
+    int steal(BGet2 *bget, const int ds);
     int cleanup();
 
     // used by dst (client)

@@ -3,11 +3,10 @@
 
 #include <condition_variable>
 #include <mutex>
-#include <type_traits>
 
 #include "hxhim/constants.h"
 #include "transport/Messages/Messages.hpp"
-#include "utils/enable_if_t.hpp"
+#include "utils/type_traits.hpp"
 
 namespace hxhim {
     struct UserData {

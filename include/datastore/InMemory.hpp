@@ -6,7 +6,6 @@
 #include <mpi.h>
 
 #include "datastore/datastore.hpp"
-#include "hxhim/struct.h"
 
 namespace hxhim {
 namespace datastore {
@@ -28,28 +27,11 @@ class InMemory : public Datastore {
         bool OpenImpl(const std::string &name_name);
         void CloseImpl();
 
-        Transport::Response::BPut *BPutImpl(void **subjects, std::size_t *subject_lens,
-                                            void **predicates, std::size_t *predicate_lens,
-                                            hxhim_type_t *object_types, void **objects, std::size_t *object_lens,
-                                            std::size_t count);
-        Transport::Response::BGet *BGetImpl(void **subjects, std::size_t *subject_lens,
-                                            void **predicates, std::size_t *predicate_lens,
-                                            hxhim_type_t *object_types,
-                                            std::size_t count);
-        Transport::Response::BGet2 *BGetImpl2(void **subjects, std::size_t *subject_lens,
-                                              void **predicates, std::size_t *predicate_lens,
-                                              hxhim_type_t *object_types,
-                                              void **orig_subjects,
-                                              void **orig_predicates,
-                                              void **orig_objects, std::size_t **orig_object_lens,
-                                              std::size_t count);
-        Transport::Response::BGetOp *BGetOpImpl(void *subject, std::size_t subject_len,
-                                                void *predicate, std::size_t predicate_len,
-                                                hxhim_type_t object_type,
-                                                std::size_t recs, enum hxhim_get_op_t op);
-        Transport::Response::BDelete *BDeleteImpl(void **subjects, std::size_t *subject_lens,
-                                                  void **predicates, std::size_t *predicate_lens,
-                                                  std::size_t count);
+        Transport::Response::BPut    *BPutImpl   (Transport::Request::BPut    *req);
+        Transport::Response::BGet    *BGetImpl   (Transport::Request::BGet    *req);
+        Transport::Response::BGet2   *BGetImpl2  (Transport::Request::BGet2   *req);
+        Transport::Response::BGetOp  *BGetOpImpl (Transport::Request::BGetOp  *req);
+        Transport::Response::BDelete *BDeleteImpl(Transport::Request::BDelete *req);
 
         int SyncImpl();
 

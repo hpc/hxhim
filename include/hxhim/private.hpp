@@ -16,7 +16,7 @@
 #include "hxhim/options.h"
 #include "hxhim/struct.h"
 #include "transport/transport.hpp"
-#include "utils/enable_if_t.hpp"
+#include "utils/type_traits.hpp"
 #include "utils/macros.hpp"
 
 /**

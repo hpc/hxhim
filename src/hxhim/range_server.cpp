@@ -2,10 +2,9 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "hxhim/options.h"
-#include "hxhim/options_private.hpp"
 #include "hxhim/private.hpp"
 #include "hxhim/range_server.hpp"
+#include "utils/Blob.hpp"
 #include "utils/memory.hpp"
 
 namespace hxhim {
@@ -28,415 +27,6 @@ bool is_range_server(const int rank, const std::size_t client_ratio, const std::
     return ((rank % client_ratio) < server_ratio);
 }
 
-/**
- * bput
- * Handles the bput message and puts data in the datastore
- *
- * @param hx        pointer to the main HXHIM struct
- * @param req       the request packet to operate on
- * @return          the response packet resulting from the request
- */
-static Transport::Response::BPut *bput(hxhim_t *hx, const Transport::Request::BPut *req) {
-    mlog(HXHIM_SERVER_INFO, "Range server BPUT %zu", req->count);
-
-    void ***subjects = alloc_array<void **>(hx->p->datastore.count);
-    std::size_t **subject_lens = alloc_array<std::size_t *>(hx->p->datastore.count);
-    void ***predicates = alloc_array<void **>(hx->p->datastore.count);
-    std::size_t **predicate_lens = alloc_array<std::size_t *>(hx->p->datastore.count);
-    hxhim_type_t **object_types = alloc_array<hxhim_type_t *>(hx->p->datastore.count);
-    void ***objects = alloc_array<void **>(hx->p->datastore.count);
-    std::size_t **object_lens = alloc_array<std::size_t *>(hx->p->datastore.count);
-    std::size_t *counters = alloc_array<std::size_t>(hx->p->datastore.count);
-
-    // overallocate in case all of the requests go to one datastore
-    for(std::size_t i = 0; i < hx->p->datastore.count; i++) {
-        subjects[i] = alloc_array<void *>(req->count);
-        subject_lens[i] = alloc_array<std::size_t>(req->count);
-        predicates[i] = alloc_array<void *>(req->count);
-        predicate_lens[i] = alloc_array<std::size_t>(req->count);
-        object_types[i] = alloc_array<hxhim_type_t>(req->count);
-        objects[i] = alloc_array<void *>(req->count);
-        object_lens[i] = alloc_array<std::size_t>(req->count);
-        counters[i] = 0;
-    }
-
-    // split up requests into datastores
-    for(std::size_t i = 0; i < req->count; i++) {
-        const int datastore = req->ds_offsets[i];
-        std::size_t &index = counters[req->ds_offsets[i]];
-
-        subjects[datastore][index] = req->subjects[i]->ptr;
-        req->subjects[i]->ptr = nullptr;
-        subject_lens[datastore][index] = req->subjects[i]->len;
-        req->subjects[i]->len = 0;
-
-        predicates[datastore][index] = req->predicates[i]->ptr;
-        req->predicates[i]->ptr = nullptr;
-        predicate_lens[datastore][index] = req->predicates[i]->len;
-        req->predicates[i]->len = 0;
-
-        object_types[datastore][index] = req->object_types[i];
-
-        objects[datastore][index] = req->objects[i]->ptr;
-        req->objects[i]->ptr = nullptr;
-        object_lens[datastore][index] = req->objects[i]->len;
-        req->objects[i]->len = 0;
-
-        index++;
-    }
-
-    // set up output variable
-    Transport::Response::BPut *res = construct<Transport::Response::BPut>(req->count);
-    res->src = req->dst;
-    res->dst = req->src;
-
-    // BPUT to each datastore
-    for(std::size_t i = 0; i < hx->p->datastore.count; i++) {
-        Transport::Response::BPut *response = hx->p->datastore.datastores[i]->BPut(subjects[i], subject_lens[i],
-                                                                                   predicates[i], predicate_lens[i],
-                                                                                   object_types[i], objects[i], object_lens[i],
-                                                                                   counters[i]);
-        // if there were responses, copy them into the output variable
-        if (response) {
-            for(std::size_t j = 0; j < response->count; j++) {
-                res->ds_offsets[res->count] = i;
-                res->statuses[res->count] = response->statuses[j];
-                res->count++;
-            }
-
-            destruct(response);
-        }
-    }
-
-    // clean up each datastore's input array
-    for(std::size_t i = 0; i < hx->p->datastore.count; i++) {
-        dealloc_array(subjects[i], counters[i]);
-        dealloc_array(subject_lens[i], counters[i]);
-        dealloc_array(predicates[i], counters[i]);
-        dealloc_array(predicate_lens[i], counters[i]);
-        dealloc_array(object_types[i], counters[i]);
-        dealloc_array(objects[i], counters[i]);
-        dealloc_array(object_lens[i], counters[i]);
-    }
-    dealloc_array(subjects, hx->p->datastore.count);
-    dealloc_array(subject_lens, hx->p->datastore.count);
-    dealloc_array(predicates, hx->p->datastore.count);
-    dealloc_array(predicate_lens, hx->p->datastore.count);
-    dealloc_array(object_types, hx->p->datastore.count);
-    dealloc_array(objects, hx->p->datastore.count);
-    dealloc_array(object_lens, hx->p->datastore.count);
-    dealloc_array(counters, hx->p->datastore.count);
-
-    mlog(HXHIM_SERVER_INFO, "Range server BPUT completed");
-    return res;
-}
-
-/**
- * bget
- * Handles the bget message and gets data in the datastore
- *
- * @param hx        pointer to the main HXHIM struct
- * @param req       the request packet to operate on
- * @return          the response packet resulting from the request
- */
-static Transport::Response::BGet *bget(hxhim_t *hx, const Transport::Request::BGet *req) {
-    void ***subjects = alloc_array<void **>(hx->p->datastore.count);
-    std::size_t **subject_lens = alloc_array<std::size_t *>(hx->p->datastore.count);
-    void ***predicates = alloc_array<void **>(hx->p->datastore.count);
-    std::size_t **predicate_lens = alloc_array<std::size_t *>(hx->p->datastore.count);
-    hxhim_type_t **object_types = alloc_array<hxhim_type_t *>(hx->p->datastore.count);
-    std::size_t *counters = alloc_array<std::size_t>(hx->p->datastore.count);
-
-    // overallocate in case all of the requests go to one datastore
-    for(std::size_t i = 0; i < hx->p->datastore.count; i++) {
-        subjects[i] = alloc_array<void *>(req->count);
-        subject_lens[i] = alloc_array<std::size_t>(req->count);
-        predicates[i] = alloc_array<void *>(req->count);
-        predicate_lens[i] = alloc_array<std::size_t>(req->count);
-        object_types[i] = alloc_array<hxhim_type_t>(req->count);
-        counters[i] = 0;
-    }
-
-    // split up requests into specific datastores
-    for(std::size_t i = 0; i < req->count; i++) {
-        const int datastore = req->ds_offsets[i];
-        std::size_t &index = counters[req->ds_offsets[i]];
-
-        subjects[datastore][index] = req->subjects[i]->ptr;
-        req->subjects[i]->ptr = nullptr;
-
-        subject_lens[datastore][index] = req->subjects[i]->len;
-        req->subjects[i]->len = 0;
-
-        predicates[datastore][index] = req->predicates[i]->ptr;
-        req->predicates[i]->ptr = nullptr;
-
-        predicate_lens[datastore][index] = req->predicates[i]->len;
-        req->predicates[i]->len = 0;
-
-        object_types[datastore][index] = req->object_types[i];
-
-        index++;
-    }
-
-    Transport::Response::BGet *res = construct<Transport::Response::BGet>(req->count);
-    res->src = req->dst;
-    res->dst = req->src;
-
-    for(std::size_t i = 0; i < hx->p->datastore.count; i++) {
-        Transport::Response::BGet *response = hx->p->datastore.datastores[i]->BGet(subjects[i], subject_lens[i],
-                                                                                   predicates[i], predicate_lens[i],
-                                                                                   object_types[i],
-                                                                                   counters[i]);
-        if (response) {
-            // merge the responses into one message to respond with
-            res->merge(response, i);
-            destruct(response);
-        }
-    }
-
-    // clean up each datastore's input array
-    for(std::size_t i = 0; i < hx->p->datastore.count; i++) {
-        dealloc_array(subjects[i], counters[i]);
-        dealloc_array(subject_lens[i], counters[i]);
-        dealloc_array(predicates[i], counters[i]);
-        dealloc_array(predicate_lens[i], counters[i]);
-        dealloc_array(object_types[i], counters[i]);
-    }
-    dealloc_array(subjects, hx->p->datastore.count);
-    dealloc_array(subject_lens, hx->p->datastore.count);
-    dealloc_array(predicates, hx->p->datastore.count);
-    dealloc_array(predicate_lens, hx->p->datastore.count);
-    dealloc_array(object_types, hx->p->datastore.count);
-    dealloc_array(counters, hx->p->datastore.count);
-
-    return res;
-}
-
-/**
- * bget
- * Handles the bget message and gets data in the datastore
- *
- * @param hx        pointer to the main HXHIM struct
- * @param req       the request packet to operate on
- * @return          the response packet resulting from the request
- */
-static Transport::Response::BGet2 *bget2(hxhim_t *hx, const Transport::Request::BGet2 *req) {
-    // allocate arrays for each datastore
-    void ***subjects = alloc_array<void **>(hx->p->datastore.count);
-    std::size_t **subject_lens = alloc_array<std::size_t *>(hx->p->datastore.count);
-    void ***predicates = alloc_array<void **>(hx->p->datastore.count);
-    std::size_t **predicate_lens = alloc_array<std::size_t *>(hx->p->datastore.count);
-    hxhim_type_t **object_types = alloc_array<hxhim_type_t *>(hx->p->datastore.count);
-    void ***orig_subjects = alloc_array<void **>(hx->p->datastore.count);
-    void ***orig_predicates = alloc_array<void **>(hx->p->datastore.count);
-    void ***orig_objects = alloc_array<void **>(hx->p->datastore.count);
-    std::size_t ***orig_object_lens = alloc_array<std::size_t **>(hx->p->datastore.count);
-    std::size_t *counters = alloc_array<std::size_t>(hx->p->datastore.count);
-
-    // each datastore array is overallocated in case
-    // all of the requests go to one datastore
-    for(std::size_t ds = 0; ds < hx->p->datastore.count; ds++) {
-        subjects[ds] = alloc_array<void *>(req->count);
-        subject_lens[ds] = alloc_array<std::size_t>(req->count);
-        predicates[ds] = alloc_array<void *>(req->count);
-        predicate_lens[ds] = alloc_array<std::size_t>(req->count);
-        object_types[ds] = alloc_array<hxhim_type_t>(req->count);
-        orig_subjects[ds] = alloc_array<void *>(req->count);
-        orig_predicates[ds] = alloc_array<void *>(req->count);
-        orig_objects[ds] = alloc_array<void *>(req->count);
-        orig_object_lens[ds] = alloc_array<std::size_t *>(req->count);
-        counters[ds] = 0;
-    }
-
-    // split up requests into specific datastores
-    for(std::size_t i = 0; i < req->count; i++) {
-        const int ds = req->ds_offsets[i];
-        std::size_t &index = counters[req->ds_offsets[i]];
-
-        subjects[ds][index] = req->subjects[i]->ptr;
-        req->subjects[i]->ptr = nullptr;
-        subject_lens[ds][index] = req->subjects[i]->len;
-        req->subjects[i]->len = 0;
-
-        predicates[ds][index] = req->predicates[i]->ptr;
-        req->predicates[i]->ptr = nullptr;
-        predicate_lens[ds][index] = req->predicates[i]->len;
-        req->predicates[i]->len = 0;
-
-        object_types[ds][index] = req->object_types[i];
-
-        orig_subjects[ds][index] = req->orig.subjects[i];
-        orig_predicates[ds][index] = req->orig.predicates[i];
-        orig_objects[ds][index] = req->orig.objects[i];
-        orig_object_lens[ds][index] = req->orig.object_lens[i];
-
-        index++;
-    }
-
-    // returned responses
-    Transport::Response::BGet2 *res = construct<Transport::Response::BGet2>(req->count);
-    res->src = req->dst;
-    res->dst = req->src;
-
-    for(std::size_t ds = 0; ds < hx->p->datastore.count; ds++) {
-        Transport::Response::BGet2 *response = hx->p->datastore.datastores[ds]->BGet2(subjects[ds], subject_lens[ds],
-                                                                                      predicates[ds], predicate_lens[ds],
-                                                                                      object_types[ds],
-                                                                                      orig_subjects[ds],
-                                                                                      orig_predicates[ds],
-                                                                                      orig_objects[ds], orig_object_lens[ds],
-                                                                                      counters[ds]);
-
-        if (response) {
-            // merge the responses into one message to respond with
-            res->merge(response, ds);
-            destruct(response);
-        }
-
-        // clean up datastore arrays, but not the data contained
-        // in them, since they are moved into the response
-        dealloc_array(subjects[ds]);
-        dealloc_array(subject_lens[ds]);
-        dealloc_array(predicates[ds]);
-        dealloc_array(predicate_lens[ds]);
-        dealloc_array(object_types[ds]);
-        dealloc_array(orig_subjects[ds]);
-        dealloc_array(orig_predicates[ds]);
-        dealloc_array(orig_objects[ds]);
-        dealloc_array(orig_object_lens[ds]);
-    }
-
-    // clean up the arrays of datastore arrays, but
-    // not all of the individual datastore data
-    dealloc_array(subjects);
-    dealloc_array(subject_lens);
-    dealloc_array(predicates);
-    dealloc_array(predicate_lens);
-    dealloc_array(object_types);
-    dealloc_array(orig_subjects);
-    dealloc_array(orig_predicates);
-    dealloc_array(orig_objects);
-    dealloc_array(orig_object_lens);
-    dealloc_array(counters);
-
-    return res;
-}
-
-/**
- * bgetop
- * Handles the bgetop message and getops data in the datastore
- *
- * @param hx        pointer to the main HXHIM struct
- * @param req       the request packet to operate on
- * @return          the response packet resulting from the request
- */
-static Transport::Response::BGetOp *bgetop(hxhim_t *hx, const Transport::Request::BGetOp *req) {
-    Transport::Response::BGetOp *res = construct<Transport::Response::BGetOp>(req->count);
-    res->src = req->dst;
-    res->dst = req->src;
-
-    for(std::size_t i = 0; i < req->count; i++) {
-        Transport::Response::BGetOp *response = hx->p->datastore.datastores[i]->BGetOp(req->subjects[i], req->subjects[i]->len,
-                                                                                       req->predicates[i], req->predicates[i]->len,
-                                                                                       req->object_types[i],
-                                                                                       req->num_recs[i], req->ops[i]);
-        if (response) {
-            for(std::size_t j = 0; j < response->count; j++) {
-                res->ds_offsets[res->count] = i;
-                res->statuses[res->count] = response->statuses[j];
-                std::swap(res->subjects[res->count], response->subjects[j]);
-                res->subjects[res->count]->len = response->subjects[j]->len;
-                std::swap(res->predicates[res->count], response->predicates[j]);
-                res->predicates[res->count]->len = response->predicates[j]->len;
-                std::swap(res->object_types[res->count], response->object_types[j]);
-                if (res->statuses[res->count] == HXHIM_SUCCESS) {
-                    std::swap(res->objects[res->count], response->objects[j]);
-                    res->objects[res->count]->len = response->objects[j]->len;
-                }
-                res->count++;
-            }
-
-            destruct(response);
-        }
-    }
-
-    return res;
-}
-
-/**
- * bdelete
- * Handles the bdelete message and deletes data in the datastore
- *
- * @param hx        pointer to the main HXHIM struct
- * @param req       the request packet to operate on
- * @return          the response packet resulting from the request
- */
-static Transport::Response::BDelete *bdelete(hxhim_t *hx, const Transport::Request::BDelete *req) {
-    void ***subjects = alloc_array<void **>(hx->p->datastore.count);
-    std::size_t **subject_lens = alloc_array<std::size_t *>(hx->p->datastore.count);
-    void ***predicates = alloc_array<void **>(hx->p->datastore.count);
-    std::size_t **predicate_lens = alloc_array<std::size_t *>(hx->p->datastore.count);
-    std::size_t *counters = alloc_array<std::size_t>(hx->p->datastore.count);
-
-    // overallocate in case all of the requests go to one datastore
-    for(std::size_t i = 0; i < hx->p->datastore.count; i++) {
-        subjects[i] = alloc_array<void *>(req->count);
-        subject_lens[i] = alloc_array<std::size_t>(req->count);
-        predicates[i] = alloc_array<void *>(req->count);
-        predicate_lens[i] = alloc_array<std::size_t>(req->count);
-        counters[i] = 0;
-    }
-
-    // split up requests into specific datastores
-    for(std::size_t i = 0; i < req->count; i++) {
-        const int datastore = req->ds_offsets[i];
-        std::size_t &index = counters[req->ds_offsets[i]];
-
-        subjects[datastore][index] = req->subjects[i];
-        subject_lens[datastore][index] = req->subjects[i]->len;
-
-        predicates[datastore][index] = req->predicates[i];
-        predicate_lens[datastore][index] = req->predicates[i]->len;
-
-        index++;
-    }
-
-    Transport::Response::BDelete *res = construct<Transport::Response::BDelete>(req->count);
-    res->src = req->dst;
-    res->dst = req->src;
-
-    for(std::size_t i = 0; i < hx->p->datastore.count; i++) {
-        Transport::Response::BDelete *response = hx->p->datastore.datastores[i]->BDelete(subjects[i], subject_lens[i],
-                                                                                         predicates[i], predicate_lens[i],
-                                                                                         counters[i]);
-        if (response) {
-            for(std::size_t j = 0; j < response->count; j++) {
-                res->ds_offsets[res->count] = i;
-                res->statuses[res->count] = response->statuses[j];
-                res->count++;
-            }
-
-            destruct(response);
-        }
-    }
-
-    // clean up each datastore's input array
-    for(std::size_t i = 0; i < hx->p->datastore.count; i++) {
-        dealloc_array(subjects[i], counters[i]);
-        dealloc_array(subject_lens[i], counters[i]);
-        dealloc_array(predicates[i], counters[i]);
-        dealloc_array(predicate_lens[i], counters[i]);
-    }
-    dealloc_array(subjects, hx->p->datastore.count);
-    dealloc_array(subject_lens, hx->p->datastore.count);
-    dealloc_array(predicates, hx->p->datastore.count);
-    dealloc_array(predicate_lens, hx->p->datastore.count);
-    dealloc_array(counters, hx->p->datastore.count);
-
-    return res;
-}
-
 // /**
 //  * histogram
 //  * Gets the histograms from the selected datastores
@@ -445,7 +35,7 @@ static Transport::Response::BDelete *bdelete(hxhim_t *hx, const Transport::Reque
 //  * @param bhist     the request packet to operate on
 //  * @return          the response packet resulting from the request
 //  */
-// Transport::Response::BHistogram *bhistogram(hxhim_t *hx, const Transport::Request::BHistogram *bhist) {
+// Transport::Response::BHistogram *bhistogram(hxhim_t *hx, Transport::Request::BHistogram *bhist) {
 //     Transport::Response::BHistogram *ret = construct<Transport::Response::BHistogram>(bhist->count);
 //     ret->src = bhist->dst;
 //     ret->dst = bhist->src;
@@ -471,7 +61,7 @@ static Transport::Response::BDelete *bdelete(hxhim_t *hx, const Transport::Reque
 //     return ret;
 // }
 
-Transport::Response::Response *range_server(hxhim_t *hx, const Transport::Request::Request *req) {
+Transport::Response::Response *range_server(hxhim_t *hx, Transport::Request::Request *req) {
     mlog(HXHIM_SERVER_INFO, "Range server started");
     using namespace Transport;
 
@@ -481,22 +71,22 @@ Transport::Response::Response *range_server(hxhim_t *hx, const Transport::Reques
     // Call the appropriate function depending on the message type
     switch(req->type) {
         case Message::BPUT:
-            res = bput(hx, dynamic_cast<const Request::BPut *>(req));
+            res = range_server<Response::BPut>(hx, static_cast<Request::BPut *>(req));
             break;
         case Message::BGET:
-            res = bget(hx, dynamic_cast<const Request::BGet *>(req));
+            res = range_server<Response::BGet>(hx, static_cast<Request::BGet *>(req));
             break;
         case Message::BGET2:
-            res = bget2(hx, dynamic_cast<const Request::BGet2 *>(req));
+            res = range_server<Response::BGet2>(hx, static_cast<Request::BGet2 *>(req));
             break;
         case Message::BGETOP:
-            res = bgetop(hx, dynamic_cast<const Request::BGetOp *>(req));
+            res = range_server<Response::BGetOp>(hx, static_cast<Request::BGetOp *>(req));
             break;
         case Message::BDELETE:
-            res = bdelete(hx, dynamic_cast<const Request::BDelete *>(req));
+            res = range_server<Response::BDelete>(hx, static_cast<Request::BDelete *>(req));
             break;
         // case Message::BHISTOGRAM:
-        //     res = bhistogram(hx, dynamic_cast<const Request::BHistogram *>(req));
+        //     res = range_server<Response::BHistogram>(hx, static_cast<Request::BHistogram *>(req));
         //     break;
         default:
             break;

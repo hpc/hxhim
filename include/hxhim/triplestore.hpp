@@ -5,7 +5,7 @@
 #include <type_traits>
 
 #include "hxhim/constants.h"
-#include "utils/enable_if_t.hpp"
+#include "utils/type_traits.hpp"
 #include "utils/memory.hpp"
 
 /** @description encoding of unsigned integral types into big endian */

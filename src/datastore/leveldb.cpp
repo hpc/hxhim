@@ -11,6 +11,8 @@
 #include "datastore/leveldb.hpp"
 #include "hxhim/private.hpp"
 #include "hxhim/triplestore.hpp"
+#include "utils/Blob.hpp"
+#include "utils/elapsed.h"
 #include "utils/macros.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
@@ -119,23 +121,20 @@ void leveldb::CloseImpl() {
  * @param object_lens   the lengths of the objects
  * @return pointer to a list of results
  */
-Response::BPut *leveldb::BPutImpl(void **subjects, std::size_t *subject_lens,
-                                  void **predicates, std::size_t *predicate_lens,
-                                  hxhim_type_t *, void **objects, std::size_t *object_lens,
-                                  std::size_t count) {
+Response::BPut *leveldb::BPutImpl(Transport::Request::BPut *req) {
     mlog(LEVELDB_INFO, "LevelDB BPut");
-    Response::BPut *ret = construct<Response::BPut>(count);
+    Response::BPut *res = construct<Response::BPut>(req->count);
 
     struct timespec start, end;
     ::leveldb::WriteBatch batch;
 
-    for(std::size_t i = 0; i < count; i++) {
+    for(std::size_t i = 0; i < req->count; i++) {
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &key, &key_len);
+        sp_to_key(req->subjects[i]->ptr, req->subjects[i]->len, req->predicates[i]->ptr, req->predicates[i]->len, &key, &key_len);
 
         clock_gettime(CLOCK_MONOTONIC, &start);
-        batch.Put(::leveldb::Slice((char *) key, key_len), ::leveldb::Slice((char *) objects[i], object_lens[i]));
+        batch.Put(::leveldb::Slice((char *) key, key_len), ::leveldb::Slice((char *) req->objects[i]->ptr, req->objects[i]->len));
         clock_gettime(CLOCK_MONOTONIC, &end);
 
         dealloc(key);
@@ -150,23 +149,23 @@ Response::BPut *leveldb::BPutImpl(void **subjects, std::size_t *subject_lens,
     clock_gettime(CLOCK_MONOTONIC, &end);
 
     if (status.ok()) {
-        for(std::size_t i = 0; i < count; i++) {
-            ret->statuses[i] = HXHIM_SUCCESS;
+        for(std::size_t i = 0; i < req->count; i++) {
+            res->statuses[i] = HXHIM_SUCCESS;
         }
         mlog(LEVELDB_INFO, "LevelDB write success");
     }
     else {
-        for(std::size_t i = 0; i < count; i++) {
-            ret->statuses[i] = HXHIM_ERROR;
+        for(std::size_t i = 0; i < req->count; i++) {
+            res->statuses[i] = HXHIM_ERROR;
         }
         mlog(LEVELDB_INFO, "LevelDB write error");
     }
 
-    ret->count = count;
+    res->count = req->count;
     stats.put_times += nano(start, end);
 
     mlog(LEVELDB_INFO, "LevelDB BPut Completed");
-    return ret;
+    return res;
 }
 
 /**
@@ -179,19 +178,16 @@ Response::BPut *leveldb::BPutImpl(void **subjects, std::size_t *subject_lens,
  * @param prediate_lens the lengths of the prediates to put
  * @return pointer to a list of results
  */
-Response::BGet *leveldb::BGetImpl(void **subjects, std::size_t *subject_lens,
-                                  void **predicates, std::size_t *predicate_lens,
-                                  hxhim_type_t *object_types,
-                                  std::size_t count) {
-    Response::BGet *ret = construct<Response::BGet>(count);
+Response::BGet *leveldb::BGetImpl(Transport::Request::BGet *req) {
+    Response::BGet *res = construct<Response::BGet>(req->count);
 
-    for(std::size_t i = 0; i < count; i++) {
+    for(std::size_t i = 0; i < req->count; i++) {
         struct timespec start, end;
         ::leveldb::Slice value; // read gotten value into a Slice instead of a std::string to save a few copies
 
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &key, &key_len);
+        sp_to_key(req->subjects[i]->ptr, req->subjects[i]->len, req->predicates[i]->ptr, req->predicates[i]->len, &key, &key_len);
 
         // create the key
         const ::leveldb::Slice k((char *) key, key_len);
@@ -203,24 +199,22 @@ Response::BGet *leveldb::BGetImpl(void **subjects, std::size_t *subject_lens,
 
         dealloc(key);
 
-        // need to copy subject
-        ret->subjects[i]->len = subject_lens[i];
-        ret->subjects[i]->ptr = alloc(ret->subjects[i]->len);
-        memcpy(ret->subjects[i]->ptr, subjects[i], ret->subjects[i]->len);
-
-        // need to copy predicate
-        ret->predicates[i]->len = predicate_lens[i];
-        ret->predicates[i]->ptr = alloc(ret->predicates[i]->len);
-        memcpy(ret->predicates[i]->ptr, predicates[i], ret->predicates[i]->len);
+        // move data into res
+        res->subjects[i] = construct<RealBlob>(req->subjects[i]->ptr, req->subjects[i]->len);
+        req->subjects[i]->ptr = nullptr;
+        req->subjects[i]->len = 0;
+        res->predicates[i] = construct<RealBlob>(req->predicates[i]->ptr, req->predicates[i]->len);
+        req->predicates[i]->ptr = nullptr;
+        req->predicates[i]->len = 0;
 
         // add to results list
         if (status.ok()) {
-            ret->statuses[i] = HXHIM_SUCCESS;
-            ret->object_types[i] = object_types[i];
-            ret->objects[i] = construct<RealBlob>(value.size(), value.data());
+            res->statuses[i] = HXHIM_SUCCESS;
+            res->object_types[i] = req->object_types[i];
+            res->objects[i] = construct<RealBlob>(value.size(), value.data());
         }
         else {
-            ret->statuses[i] = HXHIM_ERROR;
+            res->statuses[i] = HXHIM_ERROR;
         }
 
         // update stats
@@ -228,9 +222,9 @@ Response::BGet *leveldb::BGetImpl(void **subjects, std::size_t *subject_lens,
         stats.get_times += nano(start, end);
     }
 
-    ret->count = count;
+    res->count = req->count;
 
-    return ret;
+    return res;
 }
 
 /**
@@ -243,20 +237,14 @@ Response::BGet *leveldb::BGetImpl(void **subjects, std::size_t *subject_lens,
  * @param prediate_lens the lengths of the prediates to put
  * @return pointer to a list of results
  */
-Response::BGet2 *leveldb::BGetImpl2(void **subjects, std::size_t *subject_lens,
-                                    void **predicates, std::size_t *predicate_lens,
-                                    hxhim_type_t *object_types,
-                                    void **orig_subjects,
-                                    void **orig_predicates,
-                                    void **orig_objects, std::size_t **orig_object_lens,
-                                    std::size_t count) {
-    Response::BGet2 *ret = construct<Response::BGet2>(count);
-    for(std::size_t i = 0; i < count; i++) {
+Response::BGet2 *leveldb::BGetImpl2(Transport::Request::BGet2 *req) {
+    Response::BGet2 *res = construct<Response::BGet2>(req->count);
+    for(std::size_t i = 0; i < req->count; i++) {
         struct timespec start, end;
 
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &key, &key_len);
+        sp_to_key(req->subjects[i]->ptr, req->subjects[i]->len, req->predicates[i]->ptr, req->predicates[i]->len, &key, &key_len);
 
         // create the key
         const ::leveldb::Slice k((char *) key, key_len);
@@ -269,39 +257,36 @@ Response::BGet2 *leveldb::BGetImpl2(void **subjects, std::size_t *subject_lens,
 
         dealloc(key);
 
-        // move data into ret
-        ret->subjects[i] = construct<RealBlob>(subjects[i], subject_lens[i]);
-        subjects[i] = nullptr;
-        subject_lens[i] = 0;
-        ret->predicates[i] = construct<RealBlob>(predicates[i], predicate_lens[i]);
-        predicates[i] = nullptr;
-        predicate_lens[i] = 0;
-        ret->object_types[i] = object_types[i];
+        // move data into res
+        res->subjects[i] = req->subjects[i];
+        req->subjects[i] = nullptr;
+        res->predicates[i] = req->predicates[i];
+        req->predicates[i] = nullptr;
+        res->object_types[i] = req->object_types[i];
 
         // move client addresses
-        ret->orig.subjects[i] = orig_subjects[i];
-        ret->orig.predicates[i] = orig_predicates[i];
-        ret->orig.objects[i] = orig_objects[i];
-        ret->orig.object_lens[i] = orig_object_lens[i];
-
+        res->orig.subjects[i] = req->orig.subjects[i];
+        res->orig.predicates[i] = req->orig.predicates[i];
+        res->orig.objects[i] = req->orig.objects[i];
+        res->orig.object_lens[i] = req->orig.object_lens[i];
 
         // copy object
         if (status.ok()) {
-            ret->statuses[i] = HXHIM_SUCCESS;
-            ret->objects[i] = construct<RealBlob>(value.size(), value.data());
+            res->statuses[i] = HXHIM_SUCCESS;
+            res->objects[i] = construct<RealBlob>(value.size(), value.data());
         }
         else {
-            ret->statuses[i] = HXHIM_ERROR;
+            res->statuses[i] = HXHIM_ERROR;
         }
 
-        ret->count ++;
+        res->count ++;
 
         // update stats
         stats.gets++;
         stats.get_times += nano(start, end);
     }
 
-    return ret;
+    return res;
 }
 
 /**
@@ -316,86 +301,89 @@ Response::BGet2 *leveldb::BGetImpl2(void **subjects, std::size_t *subject_lens,
  * @param object_lens   the lengths of the objects
  * @return pointer to a list of results
  */
-Response::BGetOp *leveldb::BGetOpImpl(void *subject, std::size_t subject_len,
-                                      void *predicate, std::size_t predicate_len,
-                                      hxhim_type_t object_type,
-                                      std::size_t recs, enum hxhim_get_op_t op) {
-    Response::BGetOp *ret = construct<Response::BGetOp>(recs);
+Response::BGetOp *leveldb::BGetOpImpl(Transport::Request::BGetOp *req) {
+    Response::BGetOp *res = construct<Response::BGetOp>(0);
+    Response::BGetOp *curr = res;
 
-    ::leveldb::Iterator *it = db->NewIterator(::leveldb::ReadOptions());
-    struct timespec start, end;
+    for(std::size_t i = 0; i < req->count; i++) {
+        Response::BGetOp *response = construct<Response::BGetOp>(req->num_recs[i]);
 
-    void *key = nullptr;
-    std::size_t key_len = 0;
-    sp_to_key(subject, subject_len, predicate, predicate_len, &key, &key_len);
+        ::leveldb::Iterator *it = db->NewIterator(::leveldb::ReadOptions());
+        struct timespec start, end;
 
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    it->Seek(::leveldb::Slice((char *) key, key_len));
-    clock_gettime(CLOCK_MONOTONIC, &end);
+        void *key = nullptr;
+        std::size_t key_len = 0;
+        sp_to_key(req->subjects[i]->ptr, req->subjects[i]->len, req->predicates[i]->ptr, req->predicates[i]->len, &key, &key_len);
 
-    dealloc(key);
+        clock_gettime(CLOCK_MONOTONIC, &start);
+        it->Seek(::leveldb::Slice((char *) key, key_len));
+        clock_gettime(CLOCK_MONOTONIC, &end);
 
-    // add in the time to get the first key-value without adding to the counter
-    stats.get_times += nano(start, end);
+        dealloc(key);
 
-    if (it->status().ok()) {
-        for(std::size_t i = 0; i < recs && it->Valid(); i++) {
-            clock_gettime(CLOCK_MONOTONIC, &start);
-            const ::leveldb::Slice k = it->key();
-            const ::leveldb::Slice v = it->value();
-            clock_gettime(CLOCK_MONOTONIC, &end);
+        // add in the time to get the first key-value without adding to the counter
+        stats.get_times += nano(start, end);
 
-            stats.gets++;
-            stats.get_times += nano(start, end);
+        if (it->status().ok()) {
+            for(std::size_t j = 0; j < req->num_recs[i] && it->Valid(); j++) {
+                clock_gettime(CLOCK_MONOTONIC, &start);
+                const ::leveldb::Slice k = it->key();
+                const ::leveldb::Slice v = it->value();
+                clock_gettime(CLOCK_MONOTONIC, &end);
 
-            // add to results list
-            if (it->status().ok()) {
-                ret->statuses[i] = HXHIM_SUCCESS;
+                stats.gets++;
+                stats.get_times += nano(start, end);
 
-                void *subject = nullptr, *predicate = nullptr;
-                key_to_sp(k.data(), k.size(), &subject, &ret->subjects[i]->len, &predicate, &ret->predicates[i]->len);
+                // add to results list
+                if (it->status().ok()) {
+                    response->statuses[j] = HXHIM_SUCCESS;
 
-                // need to copy subject out of the key
-                ret->subjects[i]->ptr = alloc(ret->subjects[i]->len);
-                memcpy(ret->subjects[i]->ptr, subject, ret->subjects[i]->len);
+                    void *subject = nullptr, *predicate = nullptr;
+                    key_to_sp(k.data(), k.size(), &subject, &response->subjects[j]->len, &predicate, &response->predicates[j]->len);
 
-                // need to copy predicate out of the key
-                ret->predicates[i]->ptr = alloc(ret->predicates[i]->len);
-                memcpy(ret->predicates[i]->ptr, predicate, ret->predicates[i]->len);
+                    // need to copy subject out of the key
+                    response->subjects[j] = construct<RealBlob>(response->subjects[j]->len, subject);
 
-                ret->object_types[i] = object_type;
-                ret->objects[i]->len = v.size();
-                ret->objects[i]->ptr = alloc(ret->objects[i]->len);
-                memcpy(ret->objects[i]->ptr, v.data(), ret->objects[i]->len);
+                    // need to copy predicate out of the key
+                    response->predicates[j] = construct<RealBlob>(response->predicates[j]->len, predicate);
+
+                    response->object_types[j] = req->object_types[i];
+                    response->objects[j]->len = v.size();
+                    response->objects[j]->ptr = alloc(response->objects[j]->len);
+                    memcpy(response->objects[j]->ptr, v.data(), response->objects[j]->len);
+                }
+                else {
+                    response->statuses[j] = HXHIM_ERROR;
+                }
+                response->count++;
+
+                // move to next iterator according to operation
+                switch (req->ops[i]) {
+                    case hxhim_get_op_t::HXHIM_GET_NEXT:
+                        it->Next();
+                        break;
+                    case hxhim_get_op_t::HXHIM_GET_PREV:
+                        it->Prev();
+                        break;
+                    case hxhim_get_op_t::HXHIM_GET_FIRST:
+                        it->Next();
+                        break;
+                    case hxhim_get_op_t::HXHIM_GET_LAST:
+                        it->Prev();
+                        break;
+                    default:
+                        break;
+                }
             }
-            else {
-                ret->statuses[i] = HXHIM_ERROR;
-            }
-            ret->count++;
 
-            // move to next iterator according to operation
-            switch (op) {
-                case hxhim_get_op_t::HXHIM_GET_NEXT:
-                    it->Next();
-                    break;
-                case hxhim_get_op_t::HXHIM_GET_PREV:
-                    it->Prev();
-                    break;
-                case hxhim_get_op_t::HXHIM_GET_FIRST:
-                    it->Next();
-                    break;
-                case hxhim_get_op_t::HXHIM_GET_LAST:
-                    it->Prev();
-                    break;
-                default:
-                    break;
-            }
+            curr = (curr->next = response);
         }
+
+        delete it;
     }
 
-    delete it;
-
-    return ret;
+    // first result is empty
+    return res->next;
 }
 
 /**
@@ -408,18 +396,16 @@ Response::BGetOp *leveldb::BGetOpImpl(void *subject, std::size_t subject_len,
  * @param prediate_lens the lengths of the prediates to put
  * @return pointer to a list of results
  */
-Response::BDelete *leveldb::BDeleteImpl(void **subjects, std::size_t *subject_lens,
-                                        void **predicates, std::size_t *predicate_lens,
-                                        std::size_t count) {
-    Response::BDelete *ret = construct<Response::BDelete>(count);
+Response::BDelete *leveldb::BDeleteImpl(Transport::Request::BDelete *req) {
+    Response::BDelete *res = construct<Response::BDelete>(req->count);
 
     ::leveldb::WriteBatch batch;
 
     // batch delete
-    for(std::size_t i = 0; i < count; i++) {
+    for(std::size_t i = 0; i < req->count; i++) {
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &key, &key_len);
+        sp_to_key(req->subjects[i]->ptr, req->subjects[i]->len, req->predicates[i]->ptr, req->predicates[i]->len, &key, &key_len);
 
         batch.Delete(::leveldb::Slice((char *) key, key_len));
 
@@ -429,13 +415,13 @@ Response::BDelete *leveldb::BDeleteImpl(void **subjects, std::size_t *subject_le
     // create responses
     ::leveldb::Status status = db->Write(::leveldb::WriteOptions(), &batch);
     const int stat = status.ok()?HXHIM_SUCCESS:HXHIM_ERROR;
-    for(std::size_t i = 0; i < count; i++) {
-        ret->statuses[i] = stat;
+    for(std::size_t i = 0; i < req->count; i++) {
+        res->statuses[i] = stat;
     }
 
-    ret->count = count;
+    res->count = req->count;
 
-    return ret;
+    return res;
 }
 
 /**

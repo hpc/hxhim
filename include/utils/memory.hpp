@@ -5,8 +5,6 @@
 #include <new>
 #include <utility>
 
-#include "utils/enable_if_t.hpp"
-
 void *alloc(const std::size_t size);
 void dealloc(void *ptr);
 

@@ -22,9 +22,9 @@ static void print_results(const int rank, hxhim::Results *results) {
                 std::cout << "GET returned ";
                 if (curr->status == HXHIM_SUCCESS) {
                     hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(curr);
-                    std::cout << "{" << std::string((char *) get->subject, get->subject_len)
-                              << ", " << std::string((char *) get->predicate, get->predicate_len)
-                              << "} -> " << std::string((char *) get->object, get->object_len);
+                    std::cout << "{" << std::string((char *) get->subject->ptr, get->subject->len)
+                              << ", " << std::string((char *) get->predicate->ptr, get->predicate->len)
+                              << "} -> " << std::string((char *) get->object->ptr, get->object->len);
                 }
                 else {
                     std::cout << "ERROR";

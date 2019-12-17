@@ -9,7 +9,7 @@
 #include "transport/Messages/BHistogram.hpp"
 #include "transport/Messages/Packer.hpp"
 #include "transport/Messages/Unpacker.hpp"
-#include "utils/enable_if_t.hpp"
+#include "utils/type_traits.hpp"
 
 namespace Transport {
 

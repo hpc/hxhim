@@ -20,6 +20,7 @@ struct BGet final : Request {
     std::size_t size() const;
 
     int alloc(const std::size_t max);
+    int steal(BGet *from, const std::size_t i);
     int cleanup();
 
     Blob **subjects;
@@ -38,7 +39,7 @@ struct BGet final : Response {
     std::size_t size() const;
 
     int alloc(const std::size_t max);
-    int merge(BGet *bget, const int ds);
+    int steal(BGet *bget, const int ds);
     int cleanup();
 
     Blob **subjects;

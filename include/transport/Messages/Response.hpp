@@ -18,6 +18,9 @@ struct Response : Message {
     virtual int cleanup();
 
     int *statuses;
+
+  protected:
+    int steal(Response *from, const int i);
 };
 
 }

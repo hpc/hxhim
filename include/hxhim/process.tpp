@@ -2,30 +2,33 @@
 #define HXHIM_PROCESS_TPP
 
 #include "hxhim/hxhim.hpp"
-#include "hxhim/local_client.hpp"
+#include "hxhim/local_client.tpp"
 #include "hxhim/private.hpp"
 #include "hxhim/shuffle.hpp"
 #include "hxhim/Results.hpp"
 #include "utils/memory.hpp"
-#include "utils/enable_if_t.hpp"
+#include "utils/type_traits.hpp"
 
 namespace hxhim {
 
 /**
  * process
  * The core set of function calls that are needed to send requests and receive responses
+ * Converts a UserData_t into Request_ts for transport
+ * The Request_ts are converted to Response_ts upon completion of the operation and returned
  *
- * @tparam Send_t          Transport::Request::*
- * @tparam Recv_t          Transport::Response::*
  * @tparam UserData_t      unsorted hxhim user data type
+ * @tparam Response_t      Transport::Response::*
+ * @tparam Request_t       Transport::Request::*
  * @param hx               the HXHIM session
  * @param head             the head of the list of requests to send
  * @param max_ops_per_send the maximum number of sets of data that can be processed in a single packet
  * @return results from sending requests
  */
-template <typename Send_t, typename UserData_t,
-          typename = enable_if_t <std::is_base_of <Transport::Request::Request,   Send_t>::value && !std::is_same   <Transport::Request::Request,   Send_t>::value &&
-                                  std::is_base_of <hxhim::UserData,           UserData_t>::value && !std::is_same   <hxhim::UserData,           UserData_t>::value>
+template <typename UserData_t, typename Request_t, typename Response_t,
+          typename = enable_if_t <is_child_of <hxhim::UserData,               UserData_t>::value &&
+                                  is_child_of <Transport::Request::Request,   Request_t> ::value &&
+                                  is_child_of <Transport::Response::Response, Response_t>::value  >
           >
 hxhim::Results *process(hxhim_t *hx,
                         UserData_t *head,
@@ -40,14 +43,14 @@ hxhim::Results *process(hxhim_t *hx,
     hxhim::Results *res = construct<hxhim::Results>();
 
     // declare local requests here to not reallocate every loop
-    Send_t local(max_ops_per_send);
+    Request_t local(max_ops_per_send);
     local.src = hx->p->bootstrap.rank;
     local.dst = hx->p->bootstrap.rank;
 
     // a round might not send every request, so keep running until out of requests
     while (hx->p->running && head) {
         // current set of remote destinations to send to
-        std::unordered_map<int, Send_t *> remote;
+        std::unordered_map<int, Request_t *> remote;
 
         // reset local without deallocating memory
         local.count = 0;
@@ -108,9 +111,10 @@ hxhim::Results *process(hxhim_t *hx,
             destruct(dst.second);
         }
 
+        // process local data
         if (hx->p->running && local.count) {
             hxhim::collect_fill_stats(&local, hx->p->stats.bget);
-            Transport::Response::Response *responses = local_client(hx, &local);
+            Response_t *responses = local_client<Request_t, Response_t>(hx, &local);
             for(Transport::Response::Response *curr = responses; curr; curr = Transport::next(curr)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
                     res->Add(hxhim::Result::init(hx, curr, i));

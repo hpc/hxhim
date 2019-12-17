@@ -95,7 +95,7 @@ static void backgroundPUT(hxhim_t *hx) {
         mlog(HXHIM_CLIENT_DBG, "Processing queued PUTs");
         {
             // process the batch and save the results
-            hxhim::Results *res = hxhim::process<Transport::Request::BPut>(hx, head, hx->p->max_ops_per_send.puts);
+            hxhim::Results *res = hxhim::process<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, head, hx->p->max_ops_per_send.puts);
 
             {
                 std::unique_lock<std::mutex> lock(hx->p->async_put.mutex);

@@ -3,13 +3,13 @@
 
 #include <cstddef>
 #include <list>
-#include <map>
 #include <memory>
 
 #include "hxhim/Results.h"
 #include "hxhim/constants.h"
 #include "hxhim/struct.h"
 #include "transport/Messages/Messages.hpp"
+#include "utils/Blob.hpp"
 
 namespace hxhim {
 
@@ -19,7 +19,7 @@ namespace hxhim {
  * A single result node contains exactly 1 set of data. Results of bulk operations
  * are flattened when they are stored.
  *
- * Each result takes ownership of the pointers passed into the constructor.
+ * Each result takes ownership of the pointers passed into its constructor.
  *
  * Usage:
  *
@@ -63,36 +63,28 @@ class Results {
         };
 
         /** @description Convenience struct for PUT results */
-        struct Put : public Result {};
+        struct Put final : public Result {};
 
         /** @description Convenience struct for GET results */
-        struct Get : public Result {
+        struct Get final : public Result {
+            Get();
             ~Get();
 
-            void *subject;
-            std::size_t subject_len;
-
-            void *predicate;
-            std::size_t predicate_len;
-
+            Blob *subject;
+            Blob *predicate;
             hxhim_type_t object_type;
-            void *object;
-            std::size_t object_len;
+            Blob *object;
         };
 
         /** @description Convenience struct for GET2 results    */
-        struct Get2 : public Result {
+        struct Get2 final : public Result {
+            Get2();
             ~Get2();
 
-            void *subject;
-            std::size_t subject_len;
-
-            void *predicate;
-            std::size_t predicate_len;
-
+            Blob *subject;
+            Blob *predicate;
             hxhim_type_t object_type;
-            void *object;
-            std::size_t object_len;
+            Blob *object;
 
             struct {
                 void *subject;
@@ -103,13 +95,13 @@ class Results {
         };
 
         /** @description Convenience struct for DEL results */
-        struct Delete : public Result {};
+        struct Delete final : public Result {};
 
         /** @description Convenience struct for SYNC results */
-        struct Sync : public Result {};
+        struct Sync final : public Result {};
 
         /** @description Convenience struct for HISTOGRAM results */
-        struct Histogram : public Result {
+        struct Histogram final : public Result {
             double *buckets;
             std::size_t *counts;
             std::size_t size;
@@ -140,25 +132,6 @@ class Results {
         std::list <Result *> results;
         std::list <Result *>::iterator curr;
 };
-
-/**
- * Contructors for hxhim::Results::Result are kept separate
- * in order to not have to include transport/Messages/Messages.hpp
- * They also allocate the objects.
- *
- * Destructors for hxhim::Results::Result are kept separate
- * in order to be symmetric with the constructors and allow
- * for deallocation of the object.
- */
-namespace Result {
-    void destroy(Results::Result    *res);
-    void destroy(Results::Put       *put);
-    void destroy(Results::Get       *get);
-    void destroy(Results::Get2      *get);
-    void destroy(Results::Delete    *del);
-    void destroy(Results::Sync      *sync);
-    void destroy(Results::Histogram *hist);
-}
 
 }
 

@@ -20,6 +20,7 @@ struct BGetOp final : Request {
     std::size_t size() const;
 
     int alloc(const std::size_t max);
+    int steal(BGetOp *from, const std::size_t i);
     int cleanup();
 
     Blob **subjects;
@@ -40,7 +41,7 @@ struct BGetOp final : Response {
     std::size_t size() const;
 
     int alloc(const std::size_t max);
-    int merge(BGetOp *bgetop);
+    int steal(BGetOp *bgetop, const int ds);
     int cleanup();
 
     Blob **subjects;

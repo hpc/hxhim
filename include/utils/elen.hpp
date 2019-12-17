@@ -10,9 +10,8 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include <type_traits>
 
-#include "utils/enable_if_t.hpp"
+#include "utils/type_traits.hpp"
 
 // Intentionally set default precision too high for floating point values
 // Do not use std::numeric_limits<T>::digits10

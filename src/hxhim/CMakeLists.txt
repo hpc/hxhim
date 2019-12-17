@@ -8,7 +8,6 @@ set(HXHIM_SRC
   ${CMAKE_CURRENT_SOURCE_DIR}/float.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/hash.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/hxhim.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/local_client.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/options.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/private.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/range_server.cpp

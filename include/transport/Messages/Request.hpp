@@ -16,6 +16,9 @@ struct Request : Message {
 
     virtual int alloc(const std::size_t max);
     virtual int cleanup();
+
+  protected:
+    int steal(Request *from, const std::size_t i);
 };
 
 }

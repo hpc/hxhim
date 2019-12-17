@@ -8,7 +8,7 @@
 #include "hxhim/options.h"
 #include "hxhim/options.hpp"
 #include "hxhim/options_private.hpp"
-#include "utils/enable_if_t.hpp"
+#include "utils/type_traits.hpp"
 #include "utils/Histogram.hpp"
 
 /**

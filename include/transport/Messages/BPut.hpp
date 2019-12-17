@@ -20,6 +20,7 @@ struct BPut final : Request {
     std::size_t size() const;
 
     int alloc(const std::size_t max);
+    int steal(BPut *from, const std::size_t i);
     int cleanup();
 
     Blob **subjects;
@@ -39,7 +40,7 @@ struct BPut final : Response {
     std::size_t size() const;
 
     int alloc(const std::size_t max);
-    int merge(BPut *bput);
+    int steal(BPut *bput, const int ds);
     int cleanup();
 
     BPut *next;

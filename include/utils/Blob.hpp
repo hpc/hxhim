@@ -80,8 +80,27 @@ struct RealBlob : Blob {
         }
     }
 
+    RealBlob(const RealBlob &) = delete;
+    RealBlob(RealBlob &&blob)
+        : Blob(blob.ptr, blob.len)
+    {
+        blob.ptr = nullptr;
+        blob.len = 0;
+    }
+
     ~RealBlob() {
         dealloc(ptr);
+    }
+
+    RealBlob &operator=(const RealBlob &) = delete;
+    RealBlob &operator=(RealBlob &&blob) {
+        ptr = blob.ptr;
+        len = blob.len;
+
+        blob.ptr = nullptr;
+        blob.len = 0;
+
+        return *this;
     }
 };
 

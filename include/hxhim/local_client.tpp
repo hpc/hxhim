@@ -1,17 +1,20 @@
-#include "hxhim/local_client.hpp"
+#ifndef HXHIM_LOCAL_TRANSPORT_TPP
+#define HXHIM_LOCAL_TRANSPORT_TPP
 
 #include "hxhim/range_server.hpp"
 #include "hxhim/struct.h"
+#include "transport/transport.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
+namespace hxhim {
 /**
  * local_transport
  * force a copy of the data in order to maintain the
  * same ownership semantics when processing local data
  */
 template <typename Msg_t>
-static Msg_t *local_transport(Msg_t *src) {
+Msg_t *local_transport(Msg_t *src) {
     void *buf = nullptr;
     std::size_t size = 0;
 
@@ -31,6 +34,12 @@ static Msg_t *local_transport(Msg_t *src) {
     }
 
     dealloc(buf);
+
+    // Msg_t *copy = construct<Msg_t>();
+    // for(std::size_t i = 0; i < src->count; i++) {
+    //     copy->steal(src, i);
+    // }
+
     return copy;
 }
 
@@ -43,18 +52,24 @@ static Msg_t *local_transport(Msg_t *src) {
  * @param msg   pointer to the message
  * @return return_message structure with status = HXHIM_SUCCESS or HXHIM_ERROR
  */
-Transport::Response::Response *hxhim::local_client(hxhim_t *hx, Transport::Request::Request *req) {
+template <typename Request_t, typename Response_t, typename = enable_if_t <is_child_of<Transport::Request::Request,   Request_t> ::value &&
+                                                                           is_child_of<Transport::Response::Response, Response_t>::value> >
+Response_t *local_client(hxhim_t *hx, Request_t *req) {
     // send to "server"
-    Transport::Request::Request *remote_req = local_transport(req);
+    Request_t *remote_req = local_transport(req);
     // do not destruct req here since it was not created here
 
     // process
-    Transport::Response::Response *remote_res = hxhim::range_server::range_server(hx, remote_req);
+    Response_t *remote_res = hxhim::range_server::range_server<Response_t>(hx, remote_req);
     destruct(remote_req);
 
     // send to "client"
-    Transport::Response::Response *res = local_transport(remote_res);
+    Response_t *res = local_transport(remote_res);
     destruct(remote_res);
 
     return res;
 }
+
+}
+
+#endif

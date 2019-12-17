@@ -107,26 +107,20 @@ void Datastore::Close() {
     return;
 }
 
-Transport::Response::BPut *Datastore::BPut(void **subjects, std::size_t *subject_lens,
-                                           void **predicates, std::size_t *predicate_lens,
-                                           hxhim_type_t *object_types, void **objects, std::size_t *object_lens,
-                                           std::size_t count) {
+Transport::Response::BPut *Datastore::operate(Transport::Request::BPut *req) {
     std::lock_guard<std::mutex> lock(mutex);
-    Transport::Response::BPut *res = BPutImpl(subjects, subject_lens,
-                                              predicates, predicate_lens,
-                                              object_types, objects, object_lens,
-                                              count);
+    Transport::Response::BPut *res = BPutImpl(req);
 
     if (hist) {
         // add successfully PUT floating point values to the histogram
-        for(std::size_t i = 0; i < count; i++) {
+        for(std::size_t i = 0; i < req->count; i++) {
             if (res->statuses[i] == HXHIM_SUCCESS) {
-                switch (object_types[i]) {
+                switch (req->object_types[i]) {
                     case HXHIM_FLOAT_TYPE:
-                        hist->add(* (float *) objects[i]);
+                        hist->add(* (float *) req->objects[i]->ptr);
                         break;
                     case HXHIM_DOUBLE_TYPE:
-                        hist->add(* (double *) objects[i]);
+                        hist->add(* (double *) req->objects[i]->ptr);
                         break;
                     default:
                         break;
@@ -138,52 +132,24 @@ Transport::Response::BPut *Datastore::BPut(void **subjects, std::size_t *subject
     return res;
 }
 
-Transport::Response::BGet *Datastore::BGet(void **subjects, std::size_t *subject_lens,
-                                           void **predicates, std::size_t *predicate_lens,
-                                           hxhim_type_t *object_types,
-                                           std::size_t count) {
+Transport::Response::BGet *Datastore::operate(Transport::Request::BGet *req) {
     std::lock_guard<std::mutex> lock(mutex);
-    return BGetImpl(subjects, subject_lens,
-                    predicates, predicate_lens,
-                    object_types,
-                    count);
+    return BGetImpl(req);
 }
 
-Transport::Response::BGet2 *Datastore::BGet2(void **subjects, std::size_t *subject_lens,
-                                             void **predicates, std::size_t *predicate_lens,
-                                             hxhim_type_t *object_types,
-                                             void **src_subjects,
-                                             void **src_predicates,
-                                             void **src_objects, std::size_t **src_object_lens,
-                                             std::size_t count) {
+Transport::Response::BGet2 *Datastore::operate(Transport::Request::BGet2 *req) {
     std::lock_guard<std::mutex> lock(mutex);
-    return BGetImpl2(subjects, subject_lens,
-                     predicates, predicate_lens,
-                     object_types,
-                     src_subjects,
-                     src_predicates,
-                     src_objects, src_object_lens,
-                     count);
+    return BGetImpl2(req);
 }
 
-Transport::Response::BGetOp *Datastore::BGetOp(void *subject, std::size_t subject_len,
-                                               void *predicate, std::size_t predicate_len,
-                                               hxhim_type_t object_type,
-                                               std::size_t recs, enum hxhim_get_op_t op) {
+Transport::Response::BGetOp *Datastore::operate(Transport::Request::BGetOp *req) {
     std::lock_guard<std::mutex> lock(mutex);
-    return BGetOpImpl(subject, subject_len,
-                      predicate, predicate_len,
-                      object_type,
-                      recs, op);
+    return BGetOpImpl(req);
 }
 
-Transport::Response::BDelete *Datastore::BDelete(void **subjects, std::size_t *subject_lens,
-                                                 void **predicates, std::size_t *predicate_lens,
-                                                 std::size_t count) {
+Transport::Response::BDelete *Datastore::operate(Transport::Request::BDelete *req) {
     std::lock_guard<std::mutex> lock(mutex);
-    return BDeleteImpl(subjects, subject_lens,
-                       predicates, predicate_lens,
-                       count);
+    return BDeleteImpl(req);
 }
 
 int Datastore::Sync() {

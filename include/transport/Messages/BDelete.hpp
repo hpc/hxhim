@@ -20,6 +20,7 @@ struct BDelete final : Request {
     std::size_t size() const;
 
     int alloc(const std::size_t max);
+    int steal(BDelete *from, const std::size_t i);
     int cleanup();
 
     Blob **subjects;
@@ -37,7 +38,7 @@ struct BDelete final : Response {
     std::size_t size() const;
 
     int alloc(const std::size_t max);
-    int merge(BDelete *bdel);
+    int steal(BDelete *bdel, const int ds);
     int cleanup();
 
     BDelete *next;

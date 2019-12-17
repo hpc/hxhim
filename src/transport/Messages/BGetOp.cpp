@@ -44,6 +44,25 @@ int Transport::Request::BGetOp::alloc(const std::size_t max) {
     return TRANSPORT_SUCCESS;
 }
 
+int Transport::Request::BGetOp::steal(Transport::Request::BGetOp *from, const std::size_t i) {
+    if (Request::steal(from, i) != TRANSPORT_SUCCESS) {
+        return TRANSPORT_ERROR;
+    }
+
+    subjects[count]          = from->subjects[i];
+    predicates[count]        = from->predicates[i];
+    object_types[count]      = from->object_types[i];
+    num_recs[count]          = from->num_recs[i];
+    ops[count]               = from->ops[i];
+
+    count++;
+
+    from->subjects[i]        = nullptr;
+    from->predicates[i]      = nullptr;
+
+    return TRANSPORT_SUCCESS;
+}
+
 int Transport::Request::BGetOp::cleanup() {
     for(std::size_t i = 0; i < count; i++) {
         destruct(subjects[i]);
@@ -112,6 +131,31 @@ int Transport::Response::BGetOp::alloc(const std::size_t max) {
     }
 
     return TRANSPORT_SUCCESS;
+}
+
+int Transport::Response::BGetOp::steal(Transport::Response::BGetOp *bget, const int ds) {
+    if (Response::steal(bget, ds) != TRANSPORT_SUCCESS) {
+        return TRANSPORT_ERROR;
+    }
+
+    for(std::size_t i = 0; i < bget->count; i++) {
+        subjects[count] = bget->subjects[i];
+        predicates[count] = bget->predicates[i];
+        object_types[count] = bget->object_types[i];
+        objects[count] = bget->objects[i];
+
+        // remove ownership
+        bget->subjects[i] = nullptr;
+        bget->predicates[i] = nullptr;
+        bget->object_types[i] = HXHIM_INVALID_TYPE;
+        bget->objects[i] = nullptr;
+
+        count++;
+    }
+
+    bget->count = 0;
+
+    return HXHIM_SUCCESS;
 }
 
 int Transport::Response::BGetOp::cleanup() {

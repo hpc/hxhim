@@ -6,6 +6,7 @@
 #include "hxhim/private.hpp"
 #include "hxhim/triplestore.hpp"
 #include "utils/Blob.hpp"
+#include "utils/elapsed.h"
 #include "utils/memory.hpp"
 
 namespace hxhim {
@@ -56,22 +57,19 @@ void InMemory::CloseImpl() {
  * @param object_lens   the lengths of the objects
  * @return pointer to a list of results
  */
-Response::BPut *InMemory::BPutImpl(void **subjects, std::size_t *subject_lens,
-                                   void **predicates, std::size_t *predicate_lens,
-                                   hxhim_type_t *, void **objects, std::size_t *object_lens,
-                                   std::size_t count) {
-    Response::BPut *ret = construct<Response::BPut>(count);
+Response::BPut *InMemory::BPutImpl(Transport::Request::BPut *req) {
+    Response::BPut *res = construct<Response::BPut>(req->count);
 
     struct timespec start = {};
     struct timespec end = {};
 
-    for(std::size_t i = 0; i < count; i++) {
+    for(std::size_t i = 0; i < req->count; i++) {
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &key, &key_len);
+        sp_to_key(req->subjects[i]->ptr, req->subjects[i]->len, req->predicates[i]->ptr, req->predicates[i]->len, &key, &key_len);
 
         clock_gettime(CLOCK_MONOTONIC, &start);
-        db[std::string((char *) key, key_len)] = std::string((char *) objects[i], object_lens[i]);
+        db[std::string((char *) key, key_len)] = std::string((char *) req->objects[i]->ptr, req->objects[i]->len);
         clock_gettime(CLOCK_MONOTONIC, &end);
 
         dealloc(key);
@@ -80,14 +78,14 @@ Response::BPut *InMemory::BPutImpl(void **subjects, std::size_t *subject_lens,
         stats.put_times += nano(start, end);
 
         // always successful
-        ret->statuses[i] = HXHIM_SUCCESS;
+        res->statuses[i] = HXHIM_SUCCESS;
     }
 
-    ret->count = count;
+    res->count = req->count;
 
     stats.put_times += nano(start, end);
 
-    return ret;
+    return res;
 }
 
 /**
@@ -100,20 +98,17 @@ Response::BPut *InMemory::BPutImpl(void **subjects, std::size_t *subject_lens,
  * @param prediate_lens the lengths of the prediates to put
  * @return pointer to a list of results
  */
-Response::BGet *InMemory::BGetImpl(void **subjects, std::size_t *subject_lens,
-                                   void **predicates, std::size_t *predicate_lens,
-                                   hxhim_type_t *object_types,
-                                   std::size_t count) {
-    Response::BGet *ret = construct<Response::BGet>(count);
+Response::BGet *InMemory::BGetImpl(Transport::Request::BGet *req) {
+    Response::BGet *res = construct<Response::BGet>(req->count);
 
-    for(std::size_t i = 0; i < count; i++) {
+    for(std::size_t i = 0; i < req->count; i++) {
         struct timespec start = {};
         struct timespec end = {};
         std::string value_str;
 
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &key, &key_len);
+        sp_to_key(req->subjects[i]->ptr, req->subjects[i]->len, req->predicates[i]->ptr, req->predicates[i]->len, &key, &key_len);
 
         clock_gettime(CLOCK_MONOTONIC, &start);
         decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
@@ -121,27 +116,27 @@ Response::BGet *InMemory::BGetImpl(void **subjects, std::size_t *subject_lens,
 
         dealloc(key);
 
-        ret->subjects[i] = construct<RealBlob>(subjects[i], subject_lens[i]);
-        subjects[i] = nullptr;
-        subject_lens[i] = 0;
-        ret->predicates[i] = construct<RealBlob>(predicates[i], predicate_lens[i]);
-        predicates[i] = nullptr;
-        predicate_lens[i] = 0;
+        res->subjects[i] = construct<RealBlob>(req->subjects[i]->ptr, req->subjects[i]->len);
+        req->subjects[i]->ptr = nullptr;
+        req->subjects[i]->len = 0;
+        res->predicates[i] = construct<RealBlob>(req->predicates[i]->ptr, req->predicates[i]->len);
+        req->predicates[i]->ptr = nullptr;
+        req->predicates[i]->len = 0;
 
-        ret->statuses[i] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
+        res->statuses[i] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
 
-        if (ret->statuses[i] == HXHIM_SUCCESS) {
-            ret->object_types[i] = object_types[i];
-            ret->objects[i] = construct<RealBlob>(it->second.size(), it->second.data());
+        if (res->statuses[i] == HXHIM_SUCCESS) {
+            res->object_types[i] = req->object_types[i];
+            res->objects[i] = construct<RealBlob>(it->second.size(), it->second.data());
         }
 
         stats.gets++;
         stats.get_times += nano(start, end);
     }
 
-    ret->count = count;
+    res->count = req->count;
 
-    return ret;
+    return res;
 }
 
 /**
@@ -154,24 +149,18 @@ Response::BGet *InMemory::BGetImpl(void **subjects, std::size_t *subject_lens,
  * @param prediate_lens the lengths of the prediates to put
  * @return pointer to a list of results
  */
-Response::BGet2 *InMemory::BGetImpl2(void **subjects, std::size_t *subject_lens,
-                                     void **predicates, std::size_t *predicate_lens,
-                                     hxhim_type_t *object_types,
-                                     void **orig_subjects,
-                                     void **orig_predicates,
-                                     void **orig_objects, std::size_t **orig_object_lens,
-                                     std::size_t count) {
+Response::BGet2 *InMemory::BGetImpl2(Transport::Request::BGet2 *req) {
     // initialize to count of 0 in order to reuse arrays
-    Response::BGet2 *ret = construct<Response::BGet2>(count);
+    Response::BGet2 *res = construct<Response::BGet2>(req->count);
 
-    for(std::size_t i = 0; i < count; i++) {
+    for(std::size_t i = 0; i < req->count; i++) {
         struct timespec start = {};
         struct timespec end = {};
         std::string value_str;
 
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &key, &key_len);
+        sp_to_key(req->subjects[i]->ptr, req->subjects[i]->len, req->predicates[i]->ptr, req->predicates[i]->len, &key, &key_len);
 
         clock_gettime(CLOCK_MONOTONIC, &start);
         decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
@@ -179,32 +168,32 @@ Response::BGet2 *InMemory::BGetImpl2(void **subjects, std::size_t *subject_lens,
 
         dealloc(key);
 
-        // move data into ret
-        ret->subjects[i] = construct<RealBlob>(subjects[i], subject_lens[i]);
-        subjects[i] = nullptr;
-        subject_lens[i] = 0;
-        ret->predicates[i] = construct<RealBlob>(predicates[i], predicate_lens[i]);
-        predicates[i] = nullptr;
-        predicate_lens[i] = 0;
-        ret->object_types[i] = object_types[i];
+        // move data into res
+        res->subjects[i] = construct<RealBlob>(req->subjects[i]->ptr, req->subjects[i]->len);
+        req->subjects[i]->ptr = nullptr;
+        req->subjects[i]->len = 0;
+        res->predicates[i] = construct<RealBlob>(req->predicates[i]->ptr, req->predicates[i]->len);
+        req->predicates[i]->ptr = nullptr;
+        req->predicates[i]->len = 0;
+        res->object_types[i] = req->object_types[i];
 
         // copy requester addresses
-        ret->orig.subjects[i] = orig_subjects[i];
-        ret->orig.predicates[i] = orig_predicates[i];
-        ret->orig.objects[i] = orig_objects[i];
-        ret->orig.object_lens[i] = orig_object_lens[i];
+        res->orig.subjects[i] = req->orig.subjects[i];
+        res->orig.predicates[i] = req->orig.predicates[i];
+        res->orig.objects[i] = req->orig.objects[i];
+        res->orig.object_lens[i] = req->orig.object_lens[i];
 
-        ret->statuses[i] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
+        res->statuses[i] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
 
-        if (ret->statuses[i] == HXHIM_SUCCESS) {
-            ret->objects[i] = construct<RealBlob>(it->second.size(), it->second.data());
+        if (res->statuses[i] == HXHIM_SUCCESS) {
+            res->objects[i] = construct<RealBlob>(it->second.size(), it->second.data());
         }
 
         stats.gets++;
         stats.get_times += nano(start, end);
     }
 
-    return ret;
+    return res;
 }
 
 /**
@@ -219,70 +208,73 @@ Response::BGet2 *InMemory::BGetImpl2(void **subjects, std::size_t *subject_lens,
  * @param object_lens   the lengths of the objects
  * @return pointer to a list of results
  */
-Response::BGetOp *InMemory::BGetOpImpl(void *subject, std::size_t subject_len,
-                                       void *predicate, std::size_t predicate_len,
-                                       hxhim_type_t object_type,
-                                       std::size_t recs, enum hxhim_get_op_t op) {
-    Response::BGetOp *ret = construct<Response::BGetOp>(recs);
+Response::BGetOp *InMemory::BGetOpImpl(Transport::Request::BGetOp *req) {
+    Response::BGetOp *res = construct<Response::BGetOp>(0);
+    Response::BGetOp *curr = res;
 
-    struct timespec start = {};
-    struct timespec end = {};
+    for(std::size_t i = 0; i < req->count; i++) {
+        Response::BGetOp *response = construct<Response::BGetOp>(req->num_recs[i]);
 
+        struct timespec start = {};
+        struct timespec end = {};
 
-    void *key = nullptr;
-    std::size_t key_len = 0;
-    sp_to_key(subject, subject_len, predicate, predicate_len, &key, &key_len);
+        void *key = nullptr;
+        std::size_t key_len = 0;
+        sp_to_key(req->subjects[i]->ptr, req->subjects[i]->len, req->predicates[i]->ptr, req->predicates[i]->len, &key, &key_len);
 
-    // add in the time to get the first key-value without adding to the counter
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
-    clock_gettime(CLOCK_MONOTONIC, &end);
+        // add in the time to get the first key-value without adding to the counter
+        clock_gettime(CLOCK_MONOTONIC, &start);
+        decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
+        clock_gettime(CLOCK_MONOTONIC, &end);
 
-    dealloc(key);
+        dealloc(key);
 
-    decltype(db)::const_reverse_iterator rit = std::make_reverse_iterator(it);
+        decltype(db)::const_reverse_iterator rit = std::make_reverse_iterator(it);
 
-    stats.get_times += nano(start, end);
+        stats.get_times += nano(start, end);
 
-    if (it != db.end()) {
-        for(std::size_t i = 0; i < recs && (it != db.end()) && (rit != db.rend()); i++) {
-            ret->statuses[i] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
-            if (ret->statuses[i] == HXHIM_SUCCESS) {
-                key_to_sp((void *) it->first.data(), it->first.size(), &ret->subjects[i]->ptr, &ret->subjects[i]->len, &ret->predicates[i]->ptr, &ret->predicates[i]->len);
-                ret->object_types[i] = object_type;
-                ret->objects[i]->ptr = alloc(it->second.size());
-                memcpy(ret->objects[i]->ptr, it->second.data(), it->second.size());
+        if (it != db.end()) {
+            for(std::size_t j = 0; j < req->num_recs[i] && (it != db.end()) && (rit != db.rend()); j++) {
+                response->statuses[j] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
+                if (response->statuses[j] == HXHIM_SUCCESS) {
+                    key_to_sp((void *) it->first.data(), it->first.size(), &response->subjects[j]->ptr, &response->subjects[j]->len, &response->predicates[j]->ptr, &response->predicates[j]->len);
+                    response->object_types[j] = req->object_types[i];
+                    response->objects[j]->ptr = alloc(it->second.size());
+                    memcpy(response->objects[j]->ptr, it->second.data(), it->second.size());
+                }
+
+                clock_gettime(CLOCK_MONOTONIC, &start);
+                response->count++;
+
+                // move to next iterator according to operation
+                switch (req->ops[i]) {
+                    case hxhim_get_op_t::HXHIM_GET_NEXT:
+                        it++;
+                        break;
+                    case hxhim_get_op_t::HXHIM_GET_PREV:
+                        it--;
+                        break;
+                    case hxhim_get_op_t::HXHIM_GET_FIRST:
+                        it++;
+                        break;
+                    case hxhim_get_op_t::HXHIM_GET_LAST:
+                        it--;
+                        break;
+                    default:
+                        break;
+                }
+
+                clock_gettime(CLOCK_MONOTONIC, &end);
+                stats.gets++;
+                stats.get_times += nano(start, end);
             }
 
-            clock_gettime(CLOCK_MONOTONIC, &start);
-
-            // move to next iterator according to operation
-            switch (op) {
-                case hxhim_get_op_t::HXHIM_GET_NEXT:
-                    it++;
-                    break;
-                case hxhim_get_op_t::HXHIM_GET_PREV:
-                    it--;
-                    break;
-                case hxhim_get_op_t::HXHIM_GET_FIRST:
-                    it++;
-                    break;
-                case hxhim_get_op_t::HXHIM_GET_LAST:
-                    it--;
-                    break;
-                default:
-                    break;
-            }
-
-            clock_gettime(CLOCK_MONOTONIC, &end);
-            stats.gets++;
-            stats.get_times += nano(start, end);
+            curr = (curr->next = response);
         }
-
-        ret->count++;
     }
 
-    return ret;
+    // first result is empty
+    return res->next;
 }
 
 /**
@@ -295,31 +287,29 @@ Response::BGetOp *InMemory::BGetOpImpl(void *subject, std::size_t subject_len,
  * @param prediate_lens the lengths of the prediates to put
  * @return pointer to a list of results
  */
-Response::BDelete *InMemory::BDeleteImpl(void **subjects, std::size_t *subject_lens,
-                                         void **predicates, std::size_t *predicate_lens,
-                                         std::size_t count) {
-    Response::BDelete *ret = construct<Response::BDelete>(count);
+Response::BDelete *InMemory::BDeleteImpl(Transport::Request::BDelete *req) {
+    Response::BDelete *res = construct<Response::BDelete>(req->count);
 
-    for(std::size_t i = 0; i < count; i++) {
+    for(std::size_t i = 0; i < req->count; i++) {
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &key, &key_len);
+        sp_to_key(req->subjects[i]->ptr, req->subjects[i]->len, req->predicates[i]->ptr, req->predicates[i]->len, &key, &key_len);
 
         decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
         if (it != db.end()) {
             db.erase(it);
-            ret->statuses[i] = HXHIM_SUCCESS;
+            res->statuses[i] = HXHIM_SUCCESS;
         }
         else {
-            ret->statuses[i] = HXHIM_ERROR;
+            res->statuses[i] = HXHIM_ERROR;
         }
 
         dealloc(key);
     }
 
-    ret->count = count;
+    res->count = req->count;
 
-    return ret;
+    return res;
 }
 
 /**

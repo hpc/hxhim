@@ -10,7 +10,7 @@
 #include "hxhim/config.hpp"
 #include "hxhim/hxhim.h"
 #include "hxhim/hxhim.hpp"
-#include "hxhim/local_client.hpp"
+#include "hxhim/local_client.tpp"
 #include "hxhim/options_private.hpp"
 #include "hxhim/private.hpp"
 #include "hxhim/process.tpp"
@@ -241,15 +241,18 @@ hxhim_results_t *hxhimFlushPuts(hxhim_t *hx) {
 /**
  * Flush
  * Generic flush function
+ * Converts a UserData_t into Request_ts for transport
+ * The Request_ts are converted to Response_ts upon completion of the operation and returned
  *
- * @tparam Send_t          the transport request type
  * @tparam UserData_t      unsorted hxhim user data
+ * @tparam Request_t       the transport request type
+ * @tparam Response_t      the transport response type
  * @param hx               the HXHIM session
  * @param unsent           queue of unsent requests
  * @param max_ops_per_send maximum operations per send
  * @return results of flushing the queue
  */
-template <typename Send_t, typename UserData_t>
+template <typename UserData_t, typename Request_t, typename Response_t>
 hxhim::Results *FlushImpl(hxhim_t *hx, hxhim::Unsent<UserData_t> &unsent, const std::size_t max_ops_per_send) {
     if (!hxhim::valid(hx)) {
         return nullptr;
@@ -263,7 +266,7 @@ hxhim::Results *FlushImpl(hxhim_t *hx, hxhim::Unsent<UserData_t> &unsent, const 
         unsent.tail = nullptr;
     }
 
-    return hxhim::process<Send_t>(hx, head, max_ops_per_send);
+    return hxhim::process<UserData_t, Request_t, Response_t>(hx, head, max_ops_per_send);
 }
 
 /**
@@ -276,7 +279,7 @@ hxhim::Results *FlushImpl(hxhim_t *hx, hxhim::Unsent<UserData_t> &unsent, const 
  */
 hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
     mlog(HXHIM_CLIENT_INFO, "Flushing GETs");
-    hxhim::Results *res = FlushImpl<Transport::Request::BGet>(hx, hx->p->queues.gets, hx->p->max_ops_per_send.gets);
+    hxhim::Results *res = FlushImpl<hxhim::GetData, Transport::Request::BGet, Transport::Response::BGet>(hx, hx->p->queues.gets, hx->p->max_ops_per_send.gets);
     mlog(HXHIM_CLIENT_INFO, "Done Flushing GETs");
     return res;
 }
@@ -303,7 +306,7 @@ hxhim_results_t *hxhimFlushGets(hxhim_t *hx) {
  */
 hxhim::Results *hxhim::FlushGets2(hxhim_t *hx) {
     mlog(HXHIM_CLIENT_INFO, "Flushing GET2s");
-    hxhim::Results *res = FlushImpl<Transport::Request::BGet2>(hx, hx->p->queues.gets2, hx->p->max_ops_per_send.gets);
+    hxhim::Results *res = FlushImpl<hxhim::GetData2, Transport::Request::BGet2, Transport::Response::BGet2>(hx, hx->p->queues.gets2, hx->p->max_ops_per_send.gets);
     mlog(HXHIM_CLIENT_INFO, "Done Flushing Get2s");
     return res;
 }
@@ -330,7 +333,7 @@ hxhim_results_t *hxhimFlushGets2(hxhim_t *hx) {
  */
 hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
     mlog(HXHIM_CLIENT_INFO, "Flushing GETOPs");
-    hxhim::Results *res = FlushImpl<Transport::Request::BGetOp>(hx, hx->p->queues.getops, hx->p->max_ops_per_send.getops);
+    hxhim::Results *res = FlushImpl<hxhim::GetOpData, Transport::Request::BGetOp, Transport::Response::BGetOp>(hx, hx->p->queues.getops, hx->p->max_ops_per_send.getops);
     mlog(HXHIM_CLIENT_INFO, "Done Flushing GETOPs");
     return res;
 }
@@ -357,7 +360,7 @@ hxhim_results_t *hxhimFlushGetOps(hxhim_t *hx) {
  */
 hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
     mlog(HXHIM_CLIENT_INFO, "Flushing DELETEs");
-    hxhim::Results *res = FlushImpl<Transport::Request::BDelete>(hx, hx->p->queues.deletes, hx->p->max_ops_per_send.deletes);
+    hxhim::Results *res = FlushImpl<hxhim::DeleteData, Transport::Request::BDelete, Transport::Response::BDelete>(hx, hx->p->queues.deletes, hx->p->max_ops_per_send.deletes);
     mlog(HXHIM_CLIENT_INFO, "Done Flushing DELETEs");
     return res;
 }

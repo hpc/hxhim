@@ -41,6 +41,24 @@ int Transport::Request::BPut::alloc(const std::size_t max) {
     return TRANSPORT_SUCCESS;
 }
 
+int Transport::Request::BPut::steal(Transport::Request::BPut *from, const std::size_t i) {
+    if (Request::steal(from, i) != TRANSPORT_SUCCESS) {
+        return TRANSPORT_ERROR;
+    }
+
+    subjects[count]       = from->subjects[i];
+    predicates[count]     = from->predicates[i];
+    object_types[count]   = from->object_types[i];
+    objects[count]        = from->objects[i];
+    count++;
+
+    from->subjects[i]     = nullptr;
+    from->predicates[i]   = nullptr;
+    from->objects[i]      = nullptr;
+
+    return TRANSPORT_SUCCESS;
+}
+
 int Transport::Request::BPut::cleanup() {
     for(std::size_t i = 0; i < count; i++) {
         destruct(subjects[i]);
@@ -81,6 +99,20 @@ std::size_t Transport::Response::BPut::size() const {
 int Transport::Response::BPut::alloc(const std::size_t max) {
     cleanup();
     return Response::alloc(max);
+}
+
+int Transport::Response::BPut::steal(Transport::Response::BPut *bput, const int ds) {
+    if (Response::steal(bput, ds) != TRANSPORT_SUCCESS) {
+        return TRANSPORT_ERROR;
+    }
+
+    for(std::size_t i = 0; i < bput->count; i++) {
+        count++;
+    }
+
+    bput->count = 0;
+
+    return TRANSPORT_SUCCESS;
 }
 
 int Transport::Response::BPut::cleanup() {

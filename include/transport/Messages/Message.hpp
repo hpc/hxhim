@@ -44,6 +44,7 @@ struct Message {
     virtual int alloc(const std::size_t max);
     virtual int cleanup();
 
+  public:
     Direction direction;
     Type type;
     int src;                   // range server ID, not backend ID
