@@ -133,27 +133,23 @@ int Transport::Response::BGetOp::alloc(const std::size_t max) {
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Response::BGetOp::steal(Transport::Response::BGetOp *bget, const int ds) {
-    if (Response::steal(bget, ds) != TRANSPORT_SUCCESS) {
+int Transport::Response::BGetOp::steal(Transport::Response::BGetOp *bget, const std::size_t i) {
+    if (Response::steal(bget, i) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
-    for(std::size_t i = 0; i < bget->count; i++) {
-        subjects[count] = bget->subjects[i];
-        predicates[count] = bget->predicates[i];
-        object_types[count] = bget->object_types[i];
-        objects[count] = bget->objects[i];
+    subjects[count] = bget->subjects[i];
+    predicates[count] = bget->predicates[i];
+    object_types[count] = bget->object_types[i];
+    objects[count] = bget->objects[i];
 
-        // remove ownership
-        bget->subjects[i] = nullptr;
-        bget->predicates[i] = nullptr;
-        bget->object_types[i] = HXHIM_INVALID_TYPE;
-        bget->objects[i] = nullptr;
+    // remove ownership
+    bget->subjects[i] = nullptr;
+    bget->predicates[i] = nullptr;
+    bget->object_types[i] = HXHIM_INVALID_TYPE;
+    bget->objects[i] = nullptr;
 
-        count++;
-    }
-
-    bget->count = 0;
+    count++;
 
     return HXHIM_SUCCESS;
 }

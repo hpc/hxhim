@@ -15,7 +15,8 @@ int PutFloat(hxhim_t *hx,
 
 int GetFloat(hxhim_t *hx,
              void *subject, std::size_t subject_len,
-             void *predicate, std::size_t predicate_len);
+             void *predicate, std::size_t predicate_len,
+             float *objects);
 
 int BPutFloat(hxhim_t *hx,
               void **subjects, std::size_t *subject_lens,
@@ -26,6 +27,7 @@ int BPutFloat(hxhim_t *hx,
 int BGetFloat(hxhim_t *hx,
               void **subjects, std::size_t *subject_lens,
               void **predicates, std::size_t *predicate_lens,
+              float **objects,
               std::size_t count);
 
 int BGetOpFloat(hxhim_t *hx,

@@ -69,9 +69,6 @@ herr_t H5VL_hxhim_file_specific(void *obj, H5VL_file_specific_t specific_type, h
                     case HXHIM_RESULT_DEL:
                         /* user is responsible for subject and predicate, so don't do anything */
                         break;
-                    case HXHIM_RESULT_GET:
-                        /* need to use req/arguments to get pointers to write to */
-                        break;
                     case HXHIM_RESULT_GET2:
                         {
                             int error = 0;

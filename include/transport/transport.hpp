@@ -29,9 +29,6 @@ class EndpointGroup {
         virtual Response::BPut *communicate(const std::unordered_map<int, Request::BPut *> &bpm_list);
 
         /** @description Bulk Get from multiple endpoints  */
-        virtual Response::BGet *communicate(const std::unordered_map<int, Request::BGet *> &bgm_list);
-
-        /** @description Bulk Get from multiple endpoints  */
         virtual Response::BGet2 *communicate(const std::unordered_map<int, Request::BGet2 *> &bgm_list);
 
         /** @description Bulk Get from multiple endpoints  */
@@ -67,9 +64,6 @@ class Transport {
 
         /** @description Bulk Put to multiple endpoints        */
         Response::BPut *communicate(const std::unordered_map<int, Request::BPut *> &bpm_list);
-
-        /** @description Bulk Get from multiple endpoints      */
-        Response::BGet *communicate(const std::unordered_map<int, Request::BGet *> &bgm_list);
 
         /** @description Bulk Get2 from multiple endpoints      */
         Response::BGet2 *communicate(const std::unordered_map<int, Request::BGet2 *> &bgm_list);

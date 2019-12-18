@@ -57,17 +57,6 @@ Response::BPut *EndpointGroup::communicate(const std::unordered_map<int, Request
 }
 
 /**
- * BGet
- *
- * @param num_rangesrvs the total number of range servers
- * @param bgm_list the list of BGET messages to send
- * @return a linked list of response messages, or nullptr
- */
-Response::BGet *EndpointGroup::communicate(const std::unordered_map<int, Request::BGet *> &bgm_list) {
-    return return_msgs<Response::BGet>(bgm_list);
-}
-
-/**
  * BGet2
  *
  * @param num_rangesrvs the total number of range servers

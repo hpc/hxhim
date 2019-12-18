@@ -19,7 +19,8 @@ TEST(hxhim, BadGet) {
     // Add nonexistant subject-predicate to get
     EXPECT_EQ(hxhim::GetDouble(&hx,
                                (void *)&SUBJECT, sizeof(SUBJECT),
-                               (void *)&PREDICATE, sizeof(PREDICATE)),
+                               (void *)&PREDICATE, sizeof(PREDICATE),
+                               nullptr),
               HXHIM_SUCCESS);
 
     // Flush all queued items
@@ -33,7 +34,7 @@ TEST(hxhim, BadGet) {
         ASSERT_NE(res, nullptr);
 
         EXPECT_NE(res->status, HXHIM_SUCCESS);
-        EXPECT_EQ(res->type, HXHIM_RESULT_GET);
+        EXPECT_EQ(res->type, HXHIM_RESULT_GET2);
     }
 
     hxhim::Results::Destroy(get_results);

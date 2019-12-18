@@ -162,34 +162,29 @@ int Transport::Response::BGet2::alloc(const std::size_t max) {
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Response::BGet2::steal(Transport::Response::BGet2 *bget, const int ds) {
-    if (Response::steal(bget, ds) != TRANSPORT_SUCCESS) {
+int Transport::Response::BGet2::steal(Transport::Response::BGet2 *bget, const std::size_t i) {
+    if (Response::steal(bget, i) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
-    for(std::size_t i = 0; i < bget->count; i++) {
-        subjects[count] = bget->subjects[i];
-        predicates[count] = bget->predicates[i];
-        object_types[count] = bget->object_types[i];
-        objects[count] = bget->objects[i];
-        orig.subjects[count] = bget->orig.subjects[i];
-        orig.predicates[count] = bget->orig.predicates[i];
-        orig.objects[count] = bget->orig.objects[i];
-        orig.object_lens[count] = bget->orig.object_lens[i];
+    subjects[count]           = bget->subjects[i];
+    predicates[count]         = bget->predicates[i];
+    object_types[count]       = bget->object_types[i];
+    objects[count]            = bget->objects[i];
+    orig.subjects[count]      = bget->orig.subjects[i];
+    orig.predicates[count]    = bget->orig.predicates[i];
+    orig.objects[count]       = bget->orig.objects[i];
+    orig.object_lens[count]   = bget->orig.object_lens[i];
+    count++;
 
-        // remove ownership
-        bget->subjects[i] = nullptr;
-        bget->predicates[i] = nullptr;
-        bget->objects[i] = nullptr;
-        bget->orig.subjects[i] = nullptr;
-        bget->orig.predicates[i] = nullptr;
-        bget->orig.objects[i] = nullptr;
-        bget->orig.object_lens[i] = nullptr;
-
-        count++;
-    }
-
-    bget->count = 0;
+    // remove ownership
+    bget->subjects[i]         = nullptr;
+    bget->predicates[i]       = nullptr;
+    bget->objects[i]          = nullptr;
+    bget->orig.subjects[i]    = nullptr;
+    bget->orig.predicates[i]  = nullptr;
+    bget->orig.objects[i]     = nullptr;
+    bget->orig.object_lens[i] = nullptr;
 
     return TRANSPORT_SUCCESS;
 }

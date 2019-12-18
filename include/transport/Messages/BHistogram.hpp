@@ -36,7 +36,7 @@ struct BHistogram final : Response {
     std::size_t size() const;
 
     int alloc(const std::size_t max);
-    int steal(BHistogram *bhist);
+    int steal(BHistogram *bhist, std::size_t i);
     int cleanup();
 
     struct Histogram {

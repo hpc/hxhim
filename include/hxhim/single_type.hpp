@@ -17,7 +17,7 @@ int BPutSingleType(hxhim_t *hx,
 int BGetSingleType(hxhim_t *hx,
                    void **subjects, std::size_t *subject_lens,
                    void **predicates, std::size_t *predicate_lens,
-                   enum hxhim_type_t object_type,
+                   enum hxhim_type_t object_type, void **objects, std::size_t object_len,
                    std::size_t count);
 
 }

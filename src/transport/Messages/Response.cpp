@@ -26,22 +26,17 @@ int Transport::Response::Response::alloc(const std::size_t max) {
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Response::Response::steal(Transport::Response::Response *res, const int ds) {
+int Transport::Response::Response::steal(Transport::Response::Response *res, const std::size_t i) {
     if (!res) {
         return TRANSPORT_ERROR;
     }
 
-    // cannot copy all
-    if ((count + res->count) > max_count) {
+    if (count >= max_count) {
         return TRANSPORT_ERROR;
     }
 
-    for(std::size_t i = 0; i < res->count; i++) {
-        ds_offsets[count] = ds;
-        statuses[count] = res->statuses[i];
-
-        res->statuses[i] = -1;
-    }
+    ds_offsets[count] = res->ds_offsets[i];
+    statuses[count] = res->statuses[i];
 
     return TRANSPORT_SUCCESS;
 }

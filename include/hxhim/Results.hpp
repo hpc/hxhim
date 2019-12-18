@@ -65,17 +65,6 @@ class Results {
         /** @description Convenience struct for PUT results */
         struct Put final : public Result {};
 
-        /** @description Convenience struct for GET results */
-        struct Get final : public Result {
-            Get();
-            ~Get();
-
-            Blob *subject;
-            Blob *predicate;
-            hxhim_type_t object_type;
-            Blob *object;
-        };
-
         /** @description Convenience struct for GET2 results    */
         struct Get2 final : public Result {
             Get2();

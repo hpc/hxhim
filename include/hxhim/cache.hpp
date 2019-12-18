@@ -42,16 +42,6 @@ namespace hxhim {
         PutData *next;
     };
 
-    struct GetData : SP_t {
-        GetData();
-        ~GetData();
-        int moveto(Transport::Request::BGet *bget, const int ds_offset) const;
-
-        hxhim_type_t object_type;
-        GetData *prev;
-        GetData *next;
-    };
-
     struct GetData2 : SP_t {
         GetData2();
         ~GetData2();

@@ -36,13 +36,6 @@ int Unpacker::unpack(Request::Request **req, void *buf, const std::size_t bufsiz
                 *req = out;
             }
             break;
-        case Message::BGET:
-            {
-                Request::BGet *out = nullptr;
-                ret = unpack(&out, buf, bufsize);
-                *req = out;
-            }
-            break;
         case Message::BGET2:
             {
                 Request::BGet2 *out = nullptr;
@@ -112,42 +105,6 @@ int Unpacker::unpack(Request::BPut **bpm, void *buf, const std::size_t bufsize) 
     return TRANSPORT_SUCCESS;
 }
 
-int Unpacker::unpack(Request::BGet **bgm, void *buf, const std::size_t bufsize) {
-    Request::BGet *out = construct<Request::BGet>();
-    char *curr = nullptr;
-    if (unpack(static_cast<Request::Request *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
-        destruct(out);
-        return TRANSPORT_ERROR;
-    }
-
-    // read non array data
-    std::size_t count = 0;
-    memcpy(&count, curr, sizeof(out->count));
-    curr += sizeof(out->count);
-
-    // allocate space
-    if (out->alloc(count) != TRANSPORT_SUCCESS) {
-        destruct(out);
-        return TRANSPORT_ERROR;
-    }
-
-    for(std::size_t i = 0; i < count; i++) {
-        memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
-        curr += sizeof(out->ds_offsets[i]);
-
-        out->subjects[i] = construct<RealBlob>(curr);
-        out->predicates[i] = construct<RealBlob>(curr);
-
-        memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
-        curr += sizeof(out->object_types[i]);
-
-        out->count++;
-    }
-
-    *bgm = out;
-    return TRANSPORT_SUCCESS;
-}
-
 int Unpacker::unpack(Request::BGet2 **bgm, void *buf, const std::size_t bufsize) {
     Request::BGet2 *out = construct<Request::BGet2>();
     char *curr = nullptr;
@@ -171,28 +128,29 @@ int Unpacker::unpack(Request::BGet2 **bgm, void *buf, const std::size_t bufsize)
         memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
         curr += sizeof(out->ds_offsets[i]);
 
-        // subject + addr
+        // subject
         out->subjects[i] = construct<RealBlob>(curr);
 
+        // subject addr
         memcpy(&out->orig.subjects[i], curr, sizeof(out->orig.subjects[i]));
         curr += sizeof(out->orig.subjects[i]);
 
-        // predicate + addr
+        // predicate
         out->predicates[i] = construct<RealBlob>(curr);
 
+        // predicate addr
         memcpy(&out->orig.predicates[i], curr, sizeof(out->orig.predicates[i]));
         curr += sizeof(out->orig.predicates[i]);
 
-        // object type, addr, len addr
+        // object type
         memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
         curr += sizeof(out->object_types[i]);
 
-        out->objects[i] = construct<RealBlob>();
+        // object
         memcpy(&out->orig.objects[i], curr, sizeof(out->orig.objects[i]));
         curr += sizeof(out->orig.objects[i]);
 
-        // get the address of the source object_len pointer, but don't deallocate it
-        // since the pointer doesn't belong to the server
+        // object len addr
         memcpy(&out->orig.object_lens[i], curr, sizeof(out->orig.object_lens[i]));
         curr += sizeof(out->orig.object_lens[i]);
 
@@ -341,13 +299,6 @@ int Unpacker::unpack(Response::Response **res, void *buf, const std::size_t bufs
                 *res = out;
             }
             break;
-        case Message::BGET:
-            {
-                Response::BGet *out = nullptr;
-                ret = unpack(&out, buf, bufsize);
-                *res = out;
-            }
-            break;
         case Message::BGET2:
             {
                 Response::BGet2 *out = nullptr;
@@ -411,49 +362,6 @@ int Unpacker::unpack(Response::BPut **bpm, void *buf, const std::size_t bufsize)
     return TRANSPORT_SUCCESS;
 }
 
-int Unpacker::unpack(Response::BGet **bgm, void *buf, const std::size_t bufsize) {
-    Response::BGet *out = construct<Response::BGet>();
-    char *curr = nullptr;
-    if (unpack(static_cast<Response::Response *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
-        destruct(out);
-        return TRANSPORT_ERROR;
-    }
-
-    // read non array data
-    std::size_t count = 0;
-    memcpy(&count, curr, sizeof(out->count));
-    curr += sizeof(out->count);
-
-    // allocate space
-    if (out->alloc(count) != TRANSPORT_SUCCESS) {
-        destruct(out);
-        return TRANSPORT_ERROR;
-    }
-
-    for(std::size_t i = 0; i < count; i++) {
-        memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
-        curr += sizeof(out->ds_offsets[i]);
-
-        memcpy(&out->statuses[i], curr, sizeof(out->statuses[i]));
-        curr += sizeof(out->statuses[i]);
-
-        out->subjects[i] = construct<RealBlob>(curr);
-        out->predicates[i] = construct<RealBlob>(curr);
-
-        memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
-        curr += sizeof(out->object_types[i]);
-
-        if (out->statuses[i] == HXHIM_SUCCESS) {
-            out->objects[i] = construct<RealBlob>(curr);
-        }
-
-        out->count++;
-    }
-
-    *bgm = out;
-    return TRANSPORT_SUCCESS;
-}
-
 int Unpacker::unpack(Response::BGet2 **bgm, void *buf, const std::size_t bufsize) {
     Response::BGet2 *out = construct<Response::BGet2>();
     char *curr = nullptr;
@@ -483,12 +391,14 @@ int Unpacker::unpack(Response::BGet2 **bgm, void *buf, const std::size_t bufsize
         // subject
         out->subjects[i] = construct<RealBlob>(curr);
 
+        // original subject addr
         memcpy(&out->orig.subjects[i], curr, sizeof(out->orig.subjects[i]));
         curr += sizeof(out->orig.subjects[i]);
 
         // predicate
         out->predicates[i] = construct<RealBlob>(curr);
 
+        // original predicate addr
         memcpy(&out->orig.predicates[i], curr, sizeof(out->orig.predicates[i]));
         curr += sizeof(out->orig.predicates[i]);
 
@@ -504,8 +414,28 @@ int Unpacker::unpack(Response::BGet2 **bgm, void *buf, const std::size_t bufsize
         memcpy(&out->orig.objects[i], curr, sizeof(out->orig.objects[i]));
         curr += sizeof(out->orig.objects[i]);
 
+        // object
+        // unpack into user pointers
         if (out->statuses[i] == HXHIM_SUCCESS) {
-            out->objects[i] = construct<RealBlob>(curr);
+            // get the length returned
+            std::size_t get_len = 0;
+            memcpy(&get_len, curr, sizeof(get_len));
+            curr += sizeof(get_len);
+
+            // get maximum amount of data that can be read or fit in the buffer
+            const std::size_t max_data = (get_len > *(out->orig.object_lens[i]))?get_len:*(out->orig.object_lens[i]);
+            out->objects[i] = construct<ReferenceBlob>(out->orig.objects[i], max_data);
+
+            if (out->orig.object_lens[i]) {
+                *(out->orig.object_lens[i]) = max_data;
+            }
+
+            if (out->orig.objects[i]) {
+                memcpy(out->orig.objects[i], curr, max_data);
+            }
+
+            // move past all data, not just data that was placed into the buffer
+            curr += get_len;
         }
 
         out->count++;

@@ -18,10 +18,10 @@ static void print_results(const int rank, hxhim::Results *results) {
             case HXHIM_RESULT_PUT:
                 std::cout << "PUT returned " << ((curr->status == HXHIM_SUCCESS)?std::string("SUCCESS"):std::string("ERROR")) << " from datastore " << curr->datastore << std::endl;
                 break;
-            case HXHIM_RESULT_GET:
+            case HXHIM_RESULT_GET2:
                 std::cout << "GET returned ";
                 if (curr->status == HXHIM_SUCCESS) {
-                    hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(curr);
+                    hxhim::Results::Get2 *get = static_cast<hxhim::Results::Get2 *>(curr);
                     std::cout << "{" << std::string((char *) get->subject->ptr, get->subject->len)
                               << ", " << std::string((char *) get->predicate->ptr, get->predicate->len)
                               << "} -> " << std::string((char *) get->object->ptr, get->object->len);
@@ -41,6 +41,9 @@ static void print_results(const int rank, hxhim::Results *results) {
         }
     }
 }
+
+const std::size_t count = 10;
+const std::size_t bufsize = 100;
 
 int main(int argc, char *argv[]) {
     int provided;
@@ -68,10 +71,9 @@ int main(int argc, char *argv[]) {
     }
 
     // Generate some subject-predicate-object triples
-    const std::size_t count = 10;
     void **subjects = NULL, **predicates = NULL, **objects = NULL;
     std::size_t *subject_lens = NULL, *predicate_lens = NULL, *object_lens = NULL;
-    if (spo_gen_fixed(count, 100, rank, &subjects, &subject_lens, &predicates, &predicate_lens, &objects, &object_lens) != count) {
+    if (spo_gen_fixed(count, bufsize, rank, &subjects, &subject_lens, &predicates, &predicate_lens, &objects, &object_lens) != count) {
         return 1;
     }
 
@@ -82,25 +84,36 @@ int main(int argc, char *argv[]) {
     }
 
     // GET them back, flushing only the GETs
+    void **get_objects = new void *[count];
+    std::size_t **get_object_lens = new std::size_t *[count];
     for(std::size_t i = 0; i < count; i++) {
-        hxhim::Get(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_BYTE_TYPE);
+        get_objects[i] = ::operator new(bufsize);
+        get_object_lens[i] = new std::size_t(bufsize);
+        hxhim::Get2(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_BYTE_TYPE, get_objects[i], get_object_lens[i]);
     }
-    hxhim::Results *flush_get_res = hxhim::FlushGets(&hx);
+    hxhim::Results *flush_get_res = hxhim::FlushGets2(&hx);
     std::cout << "GET before flushing PUTs" << std::endl;
     print_results(rank, flush_get_res);
     hxhim::Results::Destroy(flush_get_res);
 
     // GET again, but flush everything this time
     enum hxhim_type_t *bget_types = new hxhim_type_t[count];
-    for(size_t i = 0; i < count; i++) {
+    for(std::size_t i = 0; i < count; i++) {
         bget_types[i] = HXHIM_BYTE_TYPE;
     }
 
-    hxhim::BGet(&hx, subjects, subject_lens, predicates, predicate_lens, bget_types, count);
+    hxhim::BGet2(&hx, subjects, subject_lens, predicates, predicate_lens, bget_types, get_objects, get_object_lens, count);
     hxhim::Results *flush_all_res = hxhim::Flush(&hx);
     std::cout << "GET after flushing PUTs" << std::endl;
     print_results(rank, flush_all_res);
     hxhim::Results::Destroy(flush_all_res);
+
+    for(std::size_t i = 0; i < count; i++) {
+        ::operator delete(get_objects[i]);
+        delete get_object_lens[i];
+    }
+    delete [] get_objects;
+    delete [] get_object_lens;
 
     spo_clean(count, subjects, subject_lens, predicates, predicate_lens, objects, object_lens);
     delete [] bget_types;

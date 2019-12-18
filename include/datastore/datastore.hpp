@@ -50,7 +50,6 @@ class Datastore {
         // Transport::Response::Histogram *Histogram() const;
 
         Transport::Response::BPut    *operate(Transport::Request::BPut    *req);
-        Transport::Response::BGet    *operate(Transport::Request::BGet    *req);
         Transport::Response::BGet2   *operate(Transport::Request::BGet2   *req);
         Transport::Response::BGetOp  *operate(Transport::Request::BGetOp  *req);
         Transport::Response::BDelete *operate(Transport::Request::BDelete *req);
@@ -62,7 +61,6 @@ class Datastore {
         virtual void CloseImpl() = 0;
 
         virtual Transport::Response::BPut    *BPutImpl   (Transport::Request::BPut    *req) = 0;
-        virtual Transport::Response::BGet    *BGetImpl   (Transport::Request::BGet    *req) = 0;
         virtual Transport::Response::BGet2   *BGetImpl2  (Transport::Request::BGet2   *req) = 0;
         virtual Transport::Response::BGetOp  *BGetOpImpl (Transport::Request::BGetOp  *req) = 0;
         virtual Transport::Response::BDelete *BDeleteImpl(Transport::Request::BDelete *req) = 0;

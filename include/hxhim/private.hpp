@@ -55,7 +55,6 @@ typedef struct hxhim_private {
     // unsent data queues
     struct {
         hxhim::Unsent<hxhim::PutData> puts;
-        hxhim::Unsent<hxhim::GetData> gets;
         hxhim::Unsent<hxhim::GetData2> gets2;
         hxhim::Unsent<hxhim::GetOpData> getops;
         hxhim::Unsent<hxhim::DeleteData> deletes;

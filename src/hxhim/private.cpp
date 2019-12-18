@@ -547,8 +547,8 @@ int hxhim::destroy::async_put(hxhim_t *hx) {
     // clear out unflushed work in the work queue
     clean(hx, hx->p->queues.puts.head);
     hx->p->queues.puts.head = nullptr;
-    clean(hx, hx->p->queues.gets.head);
-    hx->p->queues.gets.head = nullptr;
+    clean(hx, hx->p->queues.gets2.head);
+    hx->p->queues.gets2.head = nullptr;
     clean(hx, hx->p->queues.getops.head);
     hx->p->queues.getops.head = nullptr;
     clean(hx, hx->p->queues.deletes.head);
@@ -631,42 +631,6 @@ int hxhim::PutImpl(hxhim_t *hx,
     puts.start_processing.notify_one();
 
     mlog(HXHIM_CLIENT_DBG, "Foreground PUT Completed");
-    return HXHIM_SUCCESS;
-}
-
-/**
- * GetImpl
- * Add a GET into the work queue
- * The mutex should be locked before this function is called.
- * hx and hx->p are not checked because they must have been
- * valid for this function to be called.
- *
- * @param hx             the HXHIM session
- * @param subject        the subject to put
- * @param subject_len    the length of the subject to put
- * @param predicate      the prediate to put
- * @param predicate_len  the length of the prediate to put
- * @param object_type    the type of the object
- * @return HXHIM_SUCCESS or HXHIM_ERROR
- */
-int hxhim::GetImpl(hxhim_t *hx,
-                   void *subject, std::size_t subject_len,
-                   void *predicate, std::size_t predicate_len,
-                   enum hxhim_type_t object_type) {
-    mlog(HXHIM_CLIENT_DBG, "GET Start");
-    hxhim::GetData *get = construct<hxhim::GetData>();
-    get->subject = subject;
-    get->subject_len = subject_len;
-    get->predicate = predicate;
-    get->predicate_len = predicate_len;
-    get->object_type = object_type;
-
-    mlog(HXHIM_CLIENT_DBG, "GET Insert into queue");
-    hxhim::Unsent<hxhim::GetData> &gets = hx->p->queues.gets;
-    gets.insert(get);
-    gets.start_processing.notify_one();
-
-    mlog(HXHIM_CLIENT_DBG, "GET Completed");
     return HXHIM_SUCCESS;
 }
 

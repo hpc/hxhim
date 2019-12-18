@@ -101,16 +101,12 @@ int Transport::Response::BPut::alloc(const std::size_t max) {
     return Response::alloc(max);
 }
 
-int Transport::Response::BPut::steal(Transport::Response::BPut *bput, const int ds) {
-    if (Response::steal(bput, ds) != TRANSPORT_SUCCESS) {
+int Transport::Response::BPut::steal(Transport::Response::BPut *bput, const std::size_t i) {
+    if (Response::steal(bput, i) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
-    for(std::size_t i = 0; i < bput->count; i++) {
-        count++;
-    }
-
-    bput->count = 0;
+    count++;
 
     return TRANSPORT_SUCCESS;
 }

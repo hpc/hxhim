@@ -57,15 +57,18 @@ int hxhimPutFloat(hxhim_t *hx,
  * @param subject_len    the length of the subject to put
  * @param predicate      the prediate to put
  * @param predicate_len  the length of the prediate to put
+ * @param object         address of where to place the float
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::GetFloat(hxhim_t *hx,
                     void *subject, size_t subject_len,
-                    void *predicate, size_t predicate_len) {
-    return hxhim::Get(hx,
-                      subject, subject_len,
-                      predicate, predicate_len,
-                      HXHIM_FLOAT_TYPE);
+                    void *predicate, size_t predicate_len,
+                    float *object) {
+    static std::size_t float_len = sizeof(float);
+    return hxhim::Get2(hx,
+                       subject, subject_len,
+                       predicate, predicate_len,
+                       HXHIM_FLOAT_TYPE, object, &float_len);
 }
 
 /**
@@ -77,15 +80,17 @@ int hxhim::GetFloat(hxhim_t *hx,
  * @param subject_len    the length of the subject to put
  * @param predicate      the prediate to put
  * @param predicate_len  the length of the prediate to put
+ * @param object         address of where to place the float
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimGetFloat(hxhim_t *hx,
                   void *subject, size_t subject_len,
-                  void *predicate, size_t predicate_len) {
-    return hxhim::Get(hx,
-                      subject, subject_len,
-                      predicate, predicate_len,
-                      HXHIM_FLOAT_TYPE);
+                  void *predicate, size_t predicate_len,
+                  float *object) {
+    return hxhim::GetFloat(hx,
+                           subject, subject_len,
+                           predicate, predicate_len,
+                           object);
 }
 
 /**
@@ -161,11 +166,12 @@ int hxhimBPutFloat(hxhim_t *hx,
 int hxhim::BGetFloat(hxhim_t *hx,
                      void **subjects, size_t *subject_lens,
                      void **predicates, size_t *predicate_lens,
+                     float **objects,
                      std::size_t count) {
     return hxhim::BGetSingleType(hx,
                                  subjects, subject_lens,
                                  predicates, predicate_lens,
-                                 HXHIM_FLOAT_TYPE,
+                                 HXHIM_FLOAT_TYPE, (void **) objects, sizeof(float),
                                  count);
 }
 
@@ -185,10 +191,12 @@ int hxhim::BGetFloat(hxhim_t *hx,
 int hxhimBGetFloat(hxhim_t *hx,
                    void **subjects, size_t *subject_lens,
                    void **predicates, size_t *predicate_lens,
+                   float **objects,
                    size_t count) {
     return hxhim::BGetFloat(hx,
                             subjects, subject_lens,
                             predicates, predicate_lens,
+                            objects,
                             count);
 }
 

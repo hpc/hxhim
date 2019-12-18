@@ -88,16 +88,12 @@ int Transport::Response::BDelete::alloc(const std::size_t max) {
     return Response::alloc(max);
 }
 
-int Transport::Response::BDelete::steal(Transport::Response::BDelete *bdelete, const int ds) {
-    if (Response::steal(bdelete, ds) != TRANSPORT_SUCCESS) {
+int Transport::Response::BDelete::steal(Transport::Response::BDelete *bdelete, const std::size_t i) {
+    if (Response::steal(bdelete, i) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
-    for(std::size_t i = 0; i < bdelete->count; i++) {
-        count++;
-    }
-
-    bdelete->count = 0;
+    count++;
 
     return HXHIM_SUCCESS;
 }

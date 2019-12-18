@@ -178,65 +178,6 @@ Response::BPut *leveldb::BPutImpl(Transport::Request::BPut *req) {
  * @param prediate_lens the lengths of the prediates to put
  * @return pointer to a list of results
  */
-Response::BGet *leveldb::BGetImpl(Transport::Request::BGet *req) {
-    Response::BGet *res = construct<Response::BGet>(req->count);
-
-    for(std::size_t i = 0; i < req->count; i++) {
-        struct timespec start, end;
-        ::leveldb::Slice value; // read gotten value into a Slice instead of a std::string to save a few copies
-
-        void *key = nullptr;
-        std::size_t key_len = 0;
-        sp_to_key(req->subjects[i]->ptr, req->subjects[i]->len, req->predicates[i]->ptr, req->predicates[i]->len, &key, &key_len);
-
-        // create the key
-        const ::leveldb::Slice k((char *) key, key_len);
-
-        // get the value
-        clock_gettime(CLOCK_MONOTONIC, &start);
-        ::leveldb::Status status = db->Get(::leveldb::ReadOptions(), k, value);
-        clock_gettime(CLOCK_MONOTONIC, &end);
-
-        dealloc(key);
-
-        // move data into res
-        res->subjects[i] = construct<RealBlob>(req->subjects[i]->ptr, req->subjects[i]->len);
-        req->subjects[i]->ptr = nullptr;
-        req->subjects[i]->len = 0;
-        res->predicates[i] = construct<RealBlob>(req->predicates[i]->ptr, req->predicates[i]->len);
-        req->predicates[i]->ptr = nullptr;
-        req->predicates[i]->len = 0;
-
-        // add to results list
-        if (status.ok()) {
-            res->statuses[i] = HXHIM_SUCCESS;
-            res->object_types[i] = req->object_types[i];
-            res->objects[i] = construct<RealBlob>(value.size(), value.data());
-        }
-        else {
-            res->statuses[i] = HXHIM_ERROR;
-        }
-
-        // update stats
-        stats.gets++;
-        stats.get_times += nano(start, end);
-    }
-
-    res->count = req->count;
-
-    return res;
-}
-
-/**
- * BGet
- * Performs a bulk GET in leveldb
- *
- * @param subjects      the subjects to put
- * @param subject_lens  the lengths of the subjects to put
- * @param prediates     the prediates to put
- * @param prediate_lens the lengths of the prediates to put
- * @return pointer to a list of results
- */
 Response::BGet2 *leveldb::BGetImpl2(Transport::Request::BGet2 *req) {
     Response::BGet2 *res = construct<Response::BGet2>(req->count);
     for(std::size_t i = 0; i < req->count; i++) {
@@ -256,6 +197,8 @@ Response::BGet2 *leveldb::BGetImpl2(Transport::Request::BGet2 *req) {
         clock_gettime(CLOCK_MONOTONIC, &end);
 
         dealloc(key);
+
+        res->ds_offsets[i] = req->ds_offsets[i];
 
         // move data into res
         res->subjects[i] = req->subjects[i];

@@ -20,7 +20,7 @@ struct Response : Message {
     int *statuses;
 
   protected:
-    int steal(Response *from, const int i);
+    int steal(Response *from, const std::size_t i);
 };
 
 }

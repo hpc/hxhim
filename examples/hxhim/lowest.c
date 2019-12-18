@@ -45,25 +45,25 @@ static void print_double_results(hxhim_results_t *results) {
             case HXHIM_RESULT_PUT:
                 printf("PUT returned %s from datastore %d", (error == HXHIM_SUCCESS)?"SUCCESS":"ERROR", datastore);
                 break;
-            case HXHIM_RESULT_GET:
+            case HXHIM_RESULT_GET2:
                 printf("GET returned ");
                 if (error == HXHIM_SUCCESS) {
-                    void *subject;
+                    void *subject = NULL;
                     size_t subject_len = 0;
                     hxhim_results_get_subject(results, &subject, &subject_len);
 
-                    void *predicate;
+                    void *predicate = NULL;
                     size_t predicate_len = 0;
                     hxhim_results_get_predicate(results, &predicate, &predicate_len);
 
-                    void *object;
-                    size_t object_len = 0;
-                    hxhim_results_get_object(results, &object, &object_len);
+                    void *object = NULL;
+                    size_t *object_len = NULL;
+                    hxhim_results_get2_object(results, &object, &object_len);
 
                     printf("{%.*s, %f} -> %.*s",
                            (int) subject_len, (char *) subject,
                            * (double *) predicate,
-                           (int) object_len, (char *) object);
+                           (int) *object_len, (char *) object);
                 }
                 else {
                     printf("ERROR");

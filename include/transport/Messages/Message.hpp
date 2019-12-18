@@ -25,7 +25,6 @@ struct Message {
     enum Type {
         INVALID,
         BPUT,
-        BGET,
         BGET2,
         BGETOP,
         BDELETE,

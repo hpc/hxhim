@@ -42,13 +42,15 @@ TEST(hxhim, PutGet) {
     hxhim::Results::Destroy(put_results);
 
     // Add subject-predicate to get back
+    Object_t object = 0;
     EXPECT_EQ(hxhim::GetDouble(&hx,
                                (void *)&SUBJECT, sizeof(SUBJECT),
-                               (void *)&PREDICATE, sizeof(PREDICATE)),
+                               (void *)&PREDICATE, sizeof(PREDICATE),
+                               &object),
               HXHIM_SUCCESS);
 
     // Flush all queued items
-    hxhim::Results *get_results = hxhim::FlushGets(&hx);
+    hxhim::Results *get_results = hxhim::FlushGets2(&hx);
     ASSERT_NE(get_results, nullptr);
 
     // get the results and compare them with the original data
@@ -58,9 +60,9 @@ TEST(hxhim, PutGet) {
         ASSERT_NE(res, nullptr);
 
         ASSERT_EQ(res->status, HXHIM_SUCCESS);
-        ASSERT_EQ(res->type, HXHIM_RESULT_GET);
+        ASSERT_EQ(res->type, HXHIM_RESULT_GET2);
 
-        hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(get_results->Curr());
+        hxhim::Results::Get2 *get = static_cast<hxhim::Results::Get2 *>(get_results->Curr());
 
         Subject_t *subject = (Subject_t *) get->subject->ptr;
         EXPECT_EQ(*subject, SUBJECT);

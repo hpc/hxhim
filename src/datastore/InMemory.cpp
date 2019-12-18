@@ -98,59 +98,7 @@ Response::BPut *InMemory::BPutImpl(Transport::Request::BPut *req) {
  * @param prediate_lens the lengths of the prediates to put
  * @return pointer to a list of results
  */
-Response::BGet *InMemory::BGetImpl(Transport::Request::BGet *req) {
-    Response::BGet *res = construct<Response::BGet>(req->count);
-
-    for(std::size_t i = 0; i < req->count; i++) {
-        struct timespec start = {};
-        struct timespec end = {};
-        std::string value_str;
-
-        void *key = nullptr;
-        std::size_t key_len = 0;
-        sp_to_key(req->subjects[i]->ptr, req->subjects[i]->len, req->predicates[i]->ptr, req->predicates[i]->len, &key, &key_len);
-
-        clock_gettime(CLOCK_MONOTONIC, &start);
-        decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
-        clock_gettime(CLOCK_MONOTONIC, &end);
-
-        dealloc(key);
-
-        res->subjects[i] = construct<RealBlob>(req->subjects[i]->ptr, req->subjects[i]->len);
-        req->subjects[i]->ptr = nullptr;
-        req->subjects[i]->len = 0;
-        res->predicates[i] = construct<RealBlob>(req->predicates[i]->ptr, req->predicates[i]->len);
-        req->predicates[i]->ptr = nullptr;
-        req->predicates[i]->len = 0;
-
-        res->statuses[i] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
-
-        if (res->statuses[i] == HXHIM_SUCCESS) {
-            res->object_types[i] = req->object_types[i];
-            res->objects[i] = construct<RealBlob>(it->second.size(), it->second.data());
-        }
-
-        stats.gets++;
-        stats.get_times += nano(start, end);
-    }
-
-    res->count = req->count;
-
-    return res;
-}
-
-/**
- * BGet
- * Performs a bulk GET in InMemory
- *
- * @param subjects      the subjects to put
- * @param subject_lens  the lengths of the subjects to put
- * @param prediates     the prediates to put
- * @param prediate_lens the lengths of the prediates to put
- * @return pointer to a list of results
- */
 Response::BGet2 *InMemory::BGetImpl2(Transport::Request::BGet2 *req) {
-    // initialize to count of 0 in order to reuse arrays
     Response::BGet2 *res = construct<Response::BGet2>(req->count);
 
     for(std::size_t i = 0; i < req->count; i++) {
@@ -192,6 +140,8 @@ Response::BGet2 *InMemory::BGetImpl2(Transport::Request::BGet2 *req) {
         stats.gets++;
         stats.get_times += nano(start, end);
     }
+
+    res->count = req->count;
 
     return res;
 }

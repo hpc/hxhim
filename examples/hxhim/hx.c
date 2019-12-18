@@ -8,6 +8,9 @@
 #include "print_results.h"
 #include "spo_gen.h"
 
+const size_t count = 1;
+const size_t bufsize = 100;
+
 int main(int argc, char *argv[]) {
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
@@ -34,10 +37,9 @@ int main(int argc, char *argv[]) {
     }
 
     // Generate some subject-predicate-object triples
-    const size_t count = 1;
     void **subjects = NULL, **predicates = NULL, **objects = NULL;
     size_t *subject_lens = NULL, *predicate_lens = NULL, *object_lens = NULL;
-    if (spo_gen_fixed(count, 100, rank, &subjects, &subject_lens, &predicates, &predicate_lens, &objects, &object_lens) != count) {
+    if (spo_gen_fixed(count, bufsize, rank, &subjects, &subject_lens, &predicates, &predicate_lens, &objects, &object_lens) != count) {
         return -1;
     }
 
@@ -48,10 +50,15 @@ int main(int argc, char *argv[]) {
     }
 
     // GET them back, flushing only the GETs
+    void **get_objects = malloc(count * sizeof(void *));
+    size_t **get_object_lens = malloc(count * sizeof(size_t *));
     for(size_t i = 0; i < count; i++) {
-        hxhimGet(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_BYTE_TYPE);
+        get_objects[i] = malloc(bufsize);
+        get_object_lens[i] = malloc(sizeof(size_t));
+        *(get_object_lens[i]) = bufsize;
+        hxhimGet2(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_BYTE_TYPE, get_objects[i], get_object_lens[i]);
     }
-    hxhim_results_t *flush_get_res = hxhimFlushGets(&hx);
+    hxhim_results_t *flush_get_res = hxhimFlushGets2(&hx);
     printf("GET before flushing PUTs\n");
     print_results(&hx, 1, flush_get_res);
     hxhim_results_destroy(flush_get_res);
@@ -62,11 +69,18 @@ int main(int argc, char *argv[]) {
         bget_types[i] = HXHIM_BYTE_TYPE;
     }
 
-    hxhimBGet(&hx, subjects, subject_lens, predicates, predicate_lens, bget_types, count);
+    hxhimBGet2(&hx, subjects, subject_lens, predicates, predicate_lens, bget_types, get_objects, get_object_lens, count);
     hxhim_results_t *flush_all_res = hxhimFlush(&hx);
     printf("GET after flushing PUTs\n");
     print_results(&hx, 1, flush_all_res);
     hxhim_results_destroy(flush_all_res);
+
+    for(size_t i = 0; i < count; i++) {
+        free(get_objects[i]);
+        free(get_object_lens[i]);
+    }
+    free(get_objects);
+    free(get_object_lens);
 
     spo_clean(count, subjects, subject_lens, predicates, predicate_lens, objects, object_lens);
     free(bget_types);

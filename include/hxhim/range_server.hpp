@@ -46,20 +46,23 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
     res->src = req->dst;
     res->dst = req->src;
 
-    // BPUT to each datastore
-    for(std::size_t i = 0; i < hx->p->datastore.count; i++) {
-        Response_t *response = hx->p->datastore.datastores[i]->operate(&dsts[i]);
+    // send to each datastore
+    for(std::size_t ds = 0; ds < hx->p->datastore.count; ds++) {
+        Response_t *response = hx->p->datastore.datastores[ds]->operate(&dsts[ds]);
 
         // if there were responses, copy them into the output variable
         if (response) {
-            res->steal(response, i);
+            for(std::size_t i = 0; i < response->count; i++) {
+                res->steal(response, i);
+            }
+            response->count = 0;
             destruct(response);
         }
     }
 
     dealloc_array(dsts, hx->p->datastore.count);
 
-    mlog(HXHIM_SERVER_INFO, "Range server BPUT completed");
+    mlog(HXHIM_SERVER_INFO, "Range server %s completed", Transport::Message::TypeStr[req->type]);
     return res;
 }
 

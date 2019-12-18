@@ -59,7 +59,7 @@ void print_results(hxhim_t *hx, const int print_rank, hxhim_results_t *results) 
             case HXHIM_RESULT_PUT:
                 printf("PUT returned %s from datastore %d\n", (error == HXHIM_SUCCESS)?"SUCCESS":"ERROR", datastore);
                 break;
-            case HXHIM_RESULT_GET:
+            case HXHIM_RESULT_GET2:
                 printf("GET returned ");
                 if (error == HXHIM_SUCCESS) {
                     void *subject = NULL;
@@ -73,11 +73,11 @@ void print_results(hxhim_t *hx, const int print_rank, hxhim_results_t *results) 
                     enum hxhim_type_t object_type;
                     hxhim_results_get_object_type(results, &object_type);
                     void *object = NULL;
-                    size_t object_len = 0;
-                    hxhim_results_get_object(results, &object, &object_len);
+                    size_t *object_len = NULL;
+                    hxhim_results_get2_object(results, &object, &object_len);
 
                     printf("{%.*s, %.*s} -> ", (int) subject_len, (char *) subject, (int) predicate_len, (char *) predicate);
-                    print_by_type(object_type, object, object_len);
+                    print_by_type(object_type, object, *object_len);
                 }
                 else {
                     printf("ERROR");

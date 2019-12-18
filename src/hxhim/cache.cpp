@@ -42,29 +42,6 @@ int hxhim::PutData::moveto(Transport::Request::BPut *bput, const int ds_offset) 
     return HXHIM_SUCCESS;
 }
 
-hxhim::GetData::GetData()
-    : SP_t(),
-      object_type(HXHIM_INVALID_TYPE),
-      prev(nullptr),
-      next(nullptr)
-{}
-
-hxhim::GetData::~GetData() {}
-
-int hxhim::GetData::moveto(Transport::Request::BGet *bget, const int ds_offset) const {
-    if (!bget) {
-        return HXHIM_ERROR;
-    }
-
-    bget->ds_offsets[bget->count] = ds_offset;
-    bget->subjects[bget->count] = construct<ReferenceBlob>(subject, subject_len);
-    bget->predicates[bget->count] = construct<ReferenceBlob>(predicate, predicate_len);
-    bget->object_types[bget->count] = object_type;
-    bget->count++;
-
-    return HXHIM_SUCCESS;
-}
-
 hxhim::GetData2::GetData2()
     : SP_t(),
       object_type(HXHIM_INVALID_TYPE),
@@ -86,10 +63,12 @@ int hxhim::GetData2::moveto(Transport::Request::BGet2 *bget, const int ds_offset
     bget->predicates[bget->count] = construct<ReferenceBlob>(predicate, predicate_len);
     bget->object_types[bget->count] = object_type;
     bget->objects[bget->count] = construct<ReferenceBlob>();
-    // bget->objects[bget->count]->ptr = object;
-    // bget->objects[bget->count]->len = *object_len;
 
     // save a copy of the object and object_len pointer
+    // bget->orig.subjects[bget->count] = subject;
+    // bget->orig.subject_lens[bget->count] = subject_len;
+    // bget->orig.predicates[bget->count] = predicate;
+    // bget->orig.predicate_lens[bget->count] = predicate_len;
     bget->orig.objects[bget->count] = object;
     bget->orig.object_lens[bget->count] = object_len;
 

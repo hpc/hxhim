@@ -40,7 +40,7 @@ struct BPut final : Response {
     std::size_t size() const;
 
     int alloc(const std::size_t max);
-    int steal(BPut *bput, const int ds);
+    int steal(BPut *bput, const std::size_t i);
     int cleanup();
 
     BPut *next;

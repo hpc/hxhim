@@ -35,10 +35,12 @@ Msg_t *local_transport(Msg_t *src) {
 
     dealloc(buf);
 
-    // Msg_t *copy = construct<Msg_t>();
+    // Msg_t *copy = construct<Msg_t>(src->count);
     // for(std::size_t i = 0; i < src->count; i++) {
     //     copy->steal(src, i);
     // }
+
+    // src->count = 0;
 
     return copy;
 }
@@ -65,6 +67,7 @@ Response_t *local_client(hxhim_t *hx, Request_t *req) {
 
     // send to "client"
     Response_t *res = local_transport(remote_res);
+    mlog(HXHIM_SERVER_INFO, "Range server %s %zu", Transport::Message::TypeStr[req->type], req->count);
     destruct(remote_res);
 
     return res;

@@ -75,7 +75,7 @@ TEST(Request, BPut) {
 }
 
 TEST(Request, BGet) {
-    Request::BGet src;
+    Request::BGet2 src;
     ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
     {
         src.src = rand();
@@ -91,13 +91,13 @@ TEST(Request, BGet) {
     }
 
     EXPECT_EQ(src.direction, Message::REQUEST);
-    EXPECT_EQ(src.type, Message::BGET);
+    EXPECT_EQ(src.type, Message::BGET2);
 
     void *buf = nullptr;
     std::size_t size = 0;
     EXPECT_EQ(Packer::pack(&src, &buf, &size), TRANSPORT_SUCCESS);
 
-    Request::BGet *dst = nullptr;
+    Request::BGet2 *dst = nullptr;
     EXPECT_EQ(Unpacker::unpack(&dst, buf, size), TRANSPORT_SUCCESS);
     dealloc(buf);
 
@@ -307,7 +307,7 @@ TEST(Response, BPut) {
 }
 
 TEST(Response, BGet) {
-    Response::BGet src;
+    Response::BGet2 src;
     ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
     {
         src.src = rand();
@@ -323,16 +323,21 @@ TEST(Response, BGet) {
         src.predicates[0] = construct<ReferenceBlob>(&PREDICATE, PREDICATE_LEN);
         src.object_types[0] = OBJECT_TYPE;
         src.objects[0] = construct<ReferenceBlob>(&OBJECT, OBJECT_LEN);
+
+        src.orig.subjects[0] = src.subjects[0]->ptr;
+        src.orig.predicates[0] = src.predicates[0]->ptr;
+        src.orig.objects[0] = src.objects[0]->ptr;
+        src.orig.object_lens[0] = construct<std::size_t>(OBJECT_LEN);
     }
 
     EXPECT_EQ(src.direction, Message::RESPONSE);
-    EXPECT_EQ(src.type, Message::BGET);
+    EXPECT_EQ(src.type, Message::BGET2);
 
     void *buf = nullptr;
     std::size_t size = 0;
     EXPECT_EQ(Packer::pack(&src, &buf, &size), TRANSPORT_SUCCESS);
 
-    Response::BGet *dst = nullptr;
+    Response::BGet2 *dst = nullptr;
     EXPECT_EQ(Unpacker::unpack(&dst, buf, size), TRANSPORT_SUCCESS);
     dealloc(buf);
 
@@ -357,6 +362,14 @@ TEST(Response, BGet) {
         EXPECT_EQ(src.object_types[i], dst->object_types[i]);
         EXPECT_EQ(src.objects[i]->len, dst->objects[i]->len);
         EXPECT_EQ(memcmp(src.objects[i]->ptr, dst->objects[i]->ptr, dst->objects[i]->len), 0);
+
+        EXPECT_EQ(src.orig.subjects[i], dst->orig.subjects[i]);
+        EXPECT_EQ(src.orig.predicates[i], dst->orig.predicates[i]);
+        EXPECT_EQ(src.orig.objects[i], dst->orig.objects[i]);
+        EXPECT_EQ(src.orig.object_lens[i], dst->orig.object_lens[i]);
+        EXPECT_EQ(*src.orig.object_lens[i], *dst->orig.object_lens[i]);
+
+        destruct(src.orig.object_lens[i]);
     }
 
     destruct(dst);

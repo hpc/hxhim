@@ -38,7 +38,7 @@ struct BDelete final : Response {
     std::size_t size() const;
 
     int alloc(const std::size_t max);
-    int steal(BDelete *bdel, const int ds);
+    int steal(BDelete *bdel, const std::size_t i);
     int cleanup();
 
     BDelete *next;

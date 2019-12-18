@@ -41,7 +41,7 @@ struct BGetOp final : Response {
     std::size_t size() const;
 
     int alloc(const std::size_t max);
-    int steal(BGetOp *bgetop, const int ds);
+    int steal(BGetOp *bgetop, const std::size_t i);
     int cleanup();
 
     Blob **subjects;
