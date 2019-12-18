@@ -285,7 +285,14 @@ int Packer::pack(const Response::BGet2 *bgm, void **buf, std::size_t *bufsize) {
         curr += sizeof(bgm->statuses[i]);
 
         bgm->subjects[i]->pack(curr);
+
+        memcpy(curr, &bgm->orig.subjects[i], sizeof(bgm->orig.subjects[i]));
+        curr += sizeof(bgm->orig.subjects[i]);
+
         bgm->predicates[i]->pack(curr);
+
+        memcpy(curr, &bgm->orig.predicates[i], sizeof(bgm->orig.predicates[i]));
+        curr += sizeof(bgm->orig.predicates[i]);
 
         memcpy(curr, &bgm->object_types[i], sizeof(bgm->object_types[i]));
         curr += sizeof(bgm->object_types[i]);

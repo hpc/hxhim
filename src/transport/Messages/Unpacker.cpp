@@ -483,8 +483,14 @@ int Unpacker::unpack(Response::BGet2 **bgm, void *buf, const std::size_t bufsize
         // subject
         out->subjects[i] = construct<RealBlob>(curr);
 
+        memcpy(&out->orig.subjects[i], curr, sizeof(out->orig.subjects[i]));
+        curr += sizeof(out->orig.subjects[i]);
+
         // predicate
         out->predicates[i] = construct<RealBlob>(curr);
+
+        memcpy(&out->orig.predicates[i], curr, sizeof(out->orig.predicates[i]));
+        curr += sizeof(out->orig.predicates[i]);
 
         // object type
         memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
