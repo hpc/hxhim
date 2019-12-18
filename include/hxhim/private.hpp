@@ -55,7 +55,7 @@ typedef struct hxhim_private {
     // unsent data queues
     struct {
         hxhim::Unsent<hxhim::PutData> puts;
-        hxhim::Unsent<hxhim::GetData2> gets2;
+        hxhim::Unsent<hxhim::GetData> gets;
         hxhim::Unsent<hxhim::GetOpData> getops;
         hxhim::Unsent<hxhim::DeleteData> deletes;
     } queues;
@@ -213,7 +213,7 @@ int GetImpl(hxhim_t *hx,
             void *predicate, std::size_t predicate_len,
             enum hxhim_type_t object_type);
 
-int GetImpl2(hxhim_t *hx,
+int GetImpl(hxhim_t *hx,
              void *subject, std::size_t subject_len,
              void *predicate, std::size_t predicate_len,
              enum hxhim_type_t object_type, void *object, std::size_t *object_len);

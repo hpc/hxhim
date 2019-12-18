@@ -15,7 +15,7 @@ struct TestPut : hxhim::Results::Result {
 
 struct TestGet : hxhim::Results::Result {
     TestGet() {
-        type = HXHIM_RESULT_GET2;
+        type = HXHIM_RESULT_GET;
     }
 };
 

@@ -16,8 +16,8 @@ int Packer::pack(const Request::Request *req, void **buf, std::size_t *bufsize) 
         case Message::BPUT:
             ret = pack(static_cast<const Request::BPut *>(req), buf, bufsize);
             break;
-        case Message::BGET2:
-            ret = pack(static_cast<const Request::BGet2 *>(req), buf, bufsize);
+        case Message::BGET:
+            ret = pack(static_cast<const Request::BGet *>(req), buf, bufsize);
             break;
         case Message::BGETOP:
             ret = pack(static_cast<const Request::BGetOp *>(req), buf, bufsize);
@@ -57,7 +57,7 @@ int Packer::pack(const Request::BPut *bpm, void **buf, std::size_t *bufsize) {
     return TRANSPORT_SUCCESS;
 }
 
-int Packer::pack(const Request::BGet2 *bgm, void **buf, std::size_t *bufsize) {
+int Packer::pack(const Request::BGet *bgm, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
     if (pack(static_cast<const Request::Request *>(bgm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
@@ -178,8 +178,8 @@ int Packer::pack(const Response::Response *res, void **buf, std::size_t *bufsize
         case Message::BPUT:
             ret = pack(static_cast<const Response::BPut *>(res), buf, bufsize);
             break;
-        case Message::BGET2:
-            ret = pack(static_cast<const Response::BGet2 *>(res), buf, bufsize);
+        case Message::BGET:
+            ret = pack(static_cast<const Response::BGet *>(res), buf, bufsize);
             break;
         case Message::BGETOP:
             ret = pack(static_cast<const Response::BGetOp *>(res), buf, bufsize);
@@ -214,7 +214,7 @@ int Packer::pack(const Response::BPut *bpm, void **buf, std::size_t *bufsize) {
     return TRANSPORT_SUCCESS;
 }
 
-int Packer::pack(const Response::BGet2 *bgm, void **buf, std::size_t *bufsize) {
+int Packer::pack(const Response::BGet *bgm, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
 
     if (pack(static_cast<const Response::Response *>(bgm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {

@@ -42,7 +42,7 @@ int hxhim::PutData::moveto(Transport::Request::BPut *bput, const int ds_offset) 
     return HXHIM_SUCCESS;
 }
 
-hxhim::GetData2::GetData2()
+hxhim::GetData::GetData()
     : SP_t(),
       object_type(HXHIM_INVALID_TYPE),
       object(nullptr),
@@ -51,9 +51,9 @@ hxhim::GetData2::GetData2()
       next(nullptr)
 {}
 
-hxhim::GetData2::~GetData2() {}
+hxhim::GetData::~GetData() {}
 
-int hxhim::GetData2::moveto(Transport::Request::BGet2 *bget, const int ds_offset) const {
+int hxhim::GetData::moveto(Transport::Request::BGet *bget, const int ds_offset) const {
     if (!bget) {
         return HXHIM_ERROR;
     }

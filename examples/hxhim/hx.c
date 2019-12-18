@@ -56,9 +56,9 @@ int main(int argc, char *argv[]) {
         get_objects[i] = malloc(bufsize);
         get_object_lens[i] = malloc(sizeof(size_t));
         *(get_object_lens[i]) = bufsize;
-        hxhimGet2(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_BYTE_TYPE, get_objects[i], get_object_lens[i]);
+        hxhimGet(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_BYTE_TYPE, get_objects[i], get_object_lens[i]);
     }
-    hxhim_results_t *flush_get_res = hxhimFlushGets2(&hx);
+    hxhim_results_t *flush_get_res = hxhimFlushGets(&hx);
     printf("GET before flushing PUTs\n");
     print_results(&hx, 1, flush_get_res);
     hxhim_results_destroy(flush_get_res);
@@ -69,7 +69,7 @@ int main(int argc, char *argv[]) {
         bget_types[i] = HXHIM_BYTE_TYPE;
     }
 
-    hxhimBGet2(&hx, subjects, subject_lens, predicates, predicate_lens, bget_types, get_objects, get_object_lens, count);
+    hxhimBGet(&hx, subjects, subject_lens, predicates, predicate_lens, bget_types, get_objects, get_object_lens, count);
     hxhim_results_t *flush_all_res = hxhimFlush(&hx);
     printf("GET after flushing PUTs\n");
     print_results(&hx, 1, flush_all_res);

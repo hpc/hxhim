@@ -50,7 +50,7 @@ TEST(hxhim, PutGet) {
               HXHIM_SUCCESS);
 
     // Flush all queued items
-    hxhim::Results *get_results = hxhim::FlushGets2(&hx);
+    hxhim::Results *get_results = hxhim::FlushGets(&hx);
     ASSERT_NE(get_results, nullptr);
 
     // get the results and compare them with the original data
@@ -60,9 +60,9 @@ TEST(hxhim, PutGet) {
         ASSERT_NE(res, nullptr);
 
         ASSERT_EQ(res->status, HXHIM_SUCCESS);
-        ASSERT_EQ(res->type, HXHIM_RESULT_GET2);
+        ASSERT_EQ(res->type, HXHIM_RESULT_GET);
 
-        hxhim::Results::Get2 *get = static_cast<hxhim::Results::Get2 *>(get_results->Curr());
+        hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(get_results->Curr());
 
         Subject_t *subject = (Subject_t *) get->subject->ptr;
         EXPECT_EQ(*subject, SUBJECT);

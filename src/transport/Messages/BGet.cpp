@@ -1,8 +1,8 @@
-#include "transport/Messages/BGet2.hpp"
+#include "transport/Messages/BGet.hpp"
 #include <cstdio>
 
-Transport::Request::BGet2::BGet2(const std::size_t max)
-    : Request(BGET2),
+Transport::Request::BGet::BGet(const std::size_t max)
+    : Request(BGET),
       subjects(nullptr),
       predicates(nullptr),
       object_types(nullptr),
@@ -12,11 +12,11 @@ Transport::Request::BGet2::BGet2(const std::size_t max)
     alloc(max);
 }
 
-Transport::Request::BGet2::~BGet2() {
+Transport::Request::BGet::~BGet() {
     cleanup();
 }
 
-std::size_t Transport::Request::BGet2::size() const {
+std::size_t Transport::Request::BGet::size() const {
     std::size_t total = Request::size();
     for(std::size_t i = 0; i < count; i++) {
         total += subjects[i]->len + sizeof(subjects[i]->len) + sizeof(orig.subjects[i]) +
@@ -26,7 +26,7 @@ std::size_t Transport::Request::BGet2::size() const {
     return total;
 }
 
-int Transport::Request::BGet2::alloc(const std::size_t max) {
+int Transport::Request::BGet::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
@@ -47,7 +47,7 @@ int Transport::Request::BGet2::alloc(const std::size_t max) {
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Request::BGet2::steal(Transport::Request::BGet2 *from, const std::size_t i) {
+int Transport::Request::BGet::steal(Transport::Request::BGet *from, const std::size_t i) {
     if (Request::steal(from, i) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
@@ -73,7 +73,7 @@ int Transport::Request::BGet2::steal(Transport::Request::BGet2 *from, const std:
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Request::BGet2::cleanup() {
+int Transport::Request::BGet::cleanup() {
     for(std::size_t i = 0; i < count; i++) {
         destruct(subjects[i]);
         destruct(predicates[i]);
@@ -107,8 +107,8 @@ int Transport::Request::BGet2::cleanup() {
     return Request::cleanup();
 }
 
-Transport::Response::BGet2::BGet2(const std::size_t max)
-    : Response(BGET2),
+Transport::Response::BGet::BGet(const std::size_t max)
+    : Response(BGET),
       subjects(nullptr),
       predicates(nullptr),
       object_types(nullptr),
@@ -119,11 +119,11 @@ Transport::Response::BGet2::BGet2(const std::size_t max)
     alloc(max);
 }
 
-Transport::Response::BGet2::~BGet2() {
+Transport::Response::BGet::~BGet() {
     cleanup();
 }
 
-std::size_t Transport::Response::BGet2::size() const {
+std::size_t Transport::Response::BGet::size() const {
     std::size_t total = Response::size();
     for(std::size_t i = 0; i < count; i++) {
         total += subjects[i]->len + sizeof(subjects[i]->len) +
@@ -141,7 +141,7 @@ std::size_t Transport::Response::BGet2::size() const {
     return total;
 }
 
-int Transport::Response::BGet2::alloc(const std::size_t max) {
+int Transport::Response::BGet::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
@@ -162,7 +162,7 @@ int Transport::Response::BGet2::alloc(const std::size_t max) {
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Response::BGet2::steal(Transport::Response::BGet2 *bget, const std::size_t i) {
+int Transport::Response::BGet::steal(Transport::Response::BGet *bget, const std::size_t i) {
     if (Response::steal(bget, i) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
@@ -189,7 +189,7 @@ int Transport::Response::BGet2::steal(Transport::Response::BGet2 *bget, const st
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Response::BGet2::cleanup() {
+int Transport::Response::BGet::cleanup() {
     for(std::size_t i = 0; i < count; i++) {
         destruct(subjects[i]);
         destruct(predicates[i]);

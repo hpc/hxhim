@@ -12,7 +12,7 @@ Response::BPut *EndpointGroup::communicate(const std::unordered_map<int, Request
     return nullptr;
 }
 
-Response::BGet2 *EndpointGroup::communicate(const std::unordered_map<int, Request::BGet2 *> &) {
+Response::BGet *EndpointGroup::communicate(const std::unordered_map<int, Request::BGet *> &) {
     return nullptr;
 }
 
@@ -62,14 +62,14 @@ Response::BPut *Transport::communicate(const std::unordered_map<int, Request::BP
 }
 
 /**
- * BGet2
- * Bulk Get2 to multiple endpoints
+ * BGet
+ * Bulk Get to multiple endpoints
  *
  * @param num_rangesrvs the total number of range servers
  * @param bgm_list a list of GET messages going to different servers
  * @return the response from the range server
  */
-Response::BGet2 *Transport::communicate(const std::unordered_map<int, Request::BGet2 *> &bgm_list) {
+Response::BGet *Transport::communicate(const std::unordered_map<int, Request::BGet *> &bgm_list) {
     return (bgm_list.size() && endpointgroup_)?endpointgroup_->communicate(bgm_list):nullptr;
 }
 

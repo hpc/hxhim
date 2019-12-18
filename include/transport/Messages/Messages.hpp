@@ -2,7 +2,7 @@
 #define HXHIM_MESSAGE_STRUCTS_HPP
 
 #include "transport/Messages/BPut.hpp"
-#include "transport/Messages/BGet2.hpp"
+#include "transport/Messages/BGet.hpp"
 #include "transport/Messages/BGetOp.hpp"
 #include "transport/Messages/BDelete.hpp"
 #include "transport/Messages/BHistogram.hpp"

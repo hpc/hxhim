@@ -69,7 +69,7 @@ herr_t H5VL_hxhim_file_specific(void *obj, H5VL_file_specific_t specific_type, h
                     case HXHIM_RESULT_DEL:
                         /* user is responsible for subject and predicate, so don't do anything */
                         break;
-                    case HXHIM_RESULT_GET2:
+                    case HXHIM_RESULT_GET:
                         {
                             int error = 0;
                             hxhim_results_error(res, &error);
@@ -78,7 +78,7 @@ herr_t H5VL_hxhim_file_specific(void *obj, H5VL_file_specific_t specific_type, h
                             }
 
                             size_t *object_len = NULL;
-                            hxhim_results_get2_object(res, NULL, &object_len);
+                            hxhim_results_get_object(res, NULL, &object_len);
                             free(object_len);
                         }
                         break;

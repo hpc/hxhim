@@ -4,7 +4,6 @@
 #define HXHIM_DATASTORE_LEVELDB_HPP
 
 #include <leveldb/db.h>
-#include <mpi.h>
 
 #include "datastore/datastore.hpp"
 
@@ -29,7 +28,7 @@ class leveldb : public Datastore {
         void CloseImpl();
 
         Transport::Response::BPut    *BPutImpl   (Transport::Request::BPut    *req);
-        Transport::Response::BGet2   *BGetImpl2  (Transport::Request::BGet2   *req);
+        Transport::Response::BGet    *BGetImpl   (Transport::Request::BGet    *req);
         Transport::Response::BGetOp  *BGetOpImpl (Transport::Request::BGetOp  *req);
         Transport::Response::BDelete *BDeleteImpl(Transport::Request::BDelete *req);
 

@@ -75,7 +75,7 @@ TEST(Request, BPut) {
 }
 
 TEST(Request, BGet) {
-    Request::BGet2 src;
+    Request::BGet src;
     ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
     {
         src.src = rand();
@@ -91,13 +91,13 @@ TEST(Request, BGet) {
     }
 
     EXPECT_EQ(src.direction, Message::REQUEST);
-    EXPECT_EQ(src.type, Message::BGET2);
+    EXPECT_EQ(src.type, Message::BGET);
 
     void *buf = nullptr;
     std::size_t size = 0;
     EXPECT_EQ(Packer::pack(&src, &buf, &size), TRANSPORT_SUCCESS);
 
-    Request::BGet2 *dst = nullptr;
+    Request::BGet *dst = nullptr;
     EXPECT_EQ(Unpacker::unpack(&dst, buf, size), TRANSPORT_SUCCESS);
     dealloc(buf);
 
@@ -307,7 +307,7 @@ TEST(Response, BPut) {
 }
 
 TEST(Response, BGet) {
-    Response::BGet2 src;
+    Response::BGet src;
     ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
     {
         src.src = rand();
@@ -331,13 +331,13 @@ TEST(Response, BGet) {
     }
 
     EXPECT_EQ(src.direction, Message::RESPONSE);
-    EXPECT_EQ(src.type, Message::BGET2);
+    EXPECT_EQ(src.type, Message::BGET);
 
     void *buf = nullptr;
     std::size_t size = 0;
     EXPECT_EQ(Packer::pack(&src, &buf, &size), TRANSPORT_SUCCESS);
 
-    Response::BGet2 *dst = nullptr;
+    Response::BGet *dst = nullptr;
     EXPECT_EQ(Unpacker::unpack(&dst, buf, size), TRANSPORT_SUCCESS);
     dealloc(buf);
 

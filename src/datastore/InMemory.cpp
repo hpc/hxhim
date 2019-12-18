@@ -98,8 +98,8 @@ Response::BPut *InMemory::BPutImpl(Transport::Request::BPut *req) {
  * @param prediate_lens the lengths of the prediates to put
  * @return pointer to a list of results
  */
-Response::BGet2 *InMemory::BGetImpl2(Transport::Request::BGet2 *req) {
-    Response::BGet2 *res = construct<Response::BGet2>(req->count);
+Response::BGet *InMemory::BGetImpl(Transport::Request::BGet *req) {
+    Response::BGet *res = construct<Response::BGet>(req->count);
 
     for(std::size_t i = 0; i < req->count; i++) {
         struct timespec start = {};

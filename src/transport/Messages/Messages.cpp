@@ -10,8 +10,8 @@ Transport::Response::Response *Transport::next(Transport::Response::Response *cu
         case Transport::Message::BPUT:
             next = static_cast<Transport::Response::BPut *>(curr)->next;
             break;
-        case Transport::Message::BGET2:
-            next = static_cast<Transport::Response::BGet2 *>(curr)->next;
+        case Transport::Message::BGET:
+            next = static_cast<Transport::Response::BGet *>(curr)->next;
             break;
         case Transport::Message::BGETOP:
             next = static_cast<Transport::Response::BGetOp *>(curr)->next;

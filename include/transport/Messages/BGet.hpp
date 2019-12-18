@@ -1,5 +1,5 @@
-#ifndef TRANSPORT_BGET2_MESSAGE_HPP
-#define TRANSPORT_BGET2_MESSAGE_HPP
+#ifndef TRANSPORT_BGET_MESSAGE_HPP
+#define TRANSPORT_BGET_MESSAGE_HPP
 
 #include <cstddef>
 
@@ -13,14 +13,14 @@ namespace Transport {
 
 namespace Request {
 
-struct BGet2 final : Request {
-    BGet2(const std::size_t max = 0);
-    ~BGet2();
+struct BGet final : Request {
+    BGet(const std::size_t max = 0);
+    ~BGet();
 
     std::size_t size() const;
 
     int alloc(const std::size_t max);
-    int steal(BGet2 *from, const std::size_t i);
+    int steal(BGet *from, const std::size_t i);
     int cleanup();
 
     // used by src (client)
@@ -45,14 +45,14 @@ struct BGet2 final : Request {
 
 namespace Response {
 
-struct BGet2 final : Response {
-    BGet2(const std::size_t max = 0);
-    ~BGet2();
+struct BGet final : Response {
+    BGet(const std::size_t max = 0);
+    ~BGet();
 
     std::size_t size() const;
 
     int alloc(const std::size_t max);
-    int steal(BGet2 *bget, const std::size_t i);
+    int steal(BGet *bget, const std::size_t i);
     int cleanup();
 
     // used by dst (client)
@@ -71,7 +71,7 @@ struct BGet2 final : Response {
         std::size_t **object_lens;
     } orig;
 
-    BGet2 *next;
+    BGet *next;
 };
 
 }

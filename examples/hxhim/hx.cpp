@@ -18,10 +18,10 @@ static void print_results(const int rank, hxhim::Results *results) {
             case HXHIM_RESULT_PUT:
                 std::cout << "PUT returned " << ((curr->status == HXHIM_SUCCESS)?std::string("SUCCESS"):std::string("ERROR")) << " from datastore " << curr->datastore << std::endl;
                 break;
-            case HXHIM_RESULT_GET2:
+            case HXHIM_RESULT_GET:
                 std::cout << "GET returned ";
                 if (curr->status == HXHIM_SUCCESS) {
-                    hxhim::Results::Get2 *get = static_cast<hxhim::Results::Get2 *>(curr);
+                    hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(curr);
                     std::cout << "{" << std::string((char *) get->subject->ptr, get->subject->len)
                               << ", " << std::string((char *) get->predicate->ptr, get->predicate->len)
                               << "} -> " << std::string((char *) get->object->ptr, get->object->len);
@@ -89,9 +89,9 @@ int main(int argc, char *argv[]) {
     for(std::size_t i = 0; i < count; i++) {
         get_objects[i] = ::operator new(bufsize);
         get_object_lens[i] = new std::size_t(bufsize);
-        hxhim::Get2(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_BYTE_TYPE, get_objects[i], get_object_lens[i]);
+        hxhim::Get(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_BYTE_TYPE, get_objects[i], get_object_lens[i]);
     }
-    hxhim::Results *flush_get_res = hxhim::FlushGets2(&hx);
+    hxhim::Results *flush_get_res = hxhim::FlushGets(&hx);
     std::cout << "GET before flushing PUTs" << std::endl;
     print_results(rank, flush_get_res);
     hxhim::Results::Destroy(flush_get_res);
@@ -102,7 +102,7 @@ int main(int argc, char *argv[]) {
         bget_types[i] = HXHIM_BYTE_TYPE;
     }
 
-    hxhim::BGet2(&hx, subjects, subject_lens, predicates, predicate_lens, bget_types, get_objects, get_object_lens, count);
+    hxhim::BGet(&hx, subjects, subject_lens, predicates, predicate_lens, bget_types, get_objects, get_object_lens, count);
     hxhim::Results *flush_all_res = hxhim::Flush(&hx);
     std::cout << "GET after flushing PUTs" << std::endl;
     print_results(rank, flush_all_res);

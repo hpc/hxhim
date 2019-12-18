@@ -29,7 +29,7 @@ int hxhimClose(hxhim_t *hx);
 /** @description Functiosn for flushing HXHIM queues */
 hxhim_results_t *hxhimFlushPuts(hxhim_t *hx);
 hxhim_results_t *hxhimFlushGets(hxhim_t *hx);
-hxhim_results_t *hxhimFlushGets2(hxhim_t *hx);
+hxhim_results_t *hxhimFlushGets(hxhim_t *hx);
 hxhim_results_t *hxhimFlushGetOps(hxhim_t *hx);
 hxhim_results_t *hxhimFlushDeletes(hxhim_t *hx);
 hxhim_results_t *hxhimFlush(hxhim_t *hx);
@@ -46,10 +46,10 @@ int hxhimPut(hxhim_t *hx,
              void *predicate, size_t predicate_len,
              enum hxhim_type_t object_type, void *object, size_t object_len);
 
-int hxhimGet2(hxhim_t *hx,
-              void *subject, size_t subject_len,
-              void *predicate, size_t predicate_len,
-              enum hxhim_type_t object_type, void *object, size_t *object_len);
+int hxhimGet(hxhim_t *hx,
+             void *subject, size_t subject_len,
+             void *predicate, size_t predicate_len,
+             enum hxhim_type_t object_type, void *object, size_t *object_len);
 
 int hxhimDelete(hxhim_t *hx,
                 void *subject, size_t subject_len,
@@ -61,11 +61,11 @@ int hxhimBPut(hxhim_t *hx,
               void **objects, size_t *object_lens,
               size_t count);
 
-int hxhimBGet2(hxhim_t *hx,
-               void **subjects, size_t *subject_lens,
-               void **predicates, size_t *predicate_lens,
-               enum hxhim_type_t *object_types, void **objects, size_t **object_lens,
-               size_t count);
+int hxhimBGet(hxhim_t *hx,
+              void **subjects, size_t *subject_lens,
+              void **predicates, size_t *predicate_lens,
+              enum hxhim_type_t *object_types, void **objects, size_t **object_lens,
+              size_t count);
 
 int hxhimBGetOp(hxhim_t *hx,
                 void *subject, size_t subject_len,

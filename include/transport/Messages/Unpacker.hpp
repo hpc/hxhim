@@ -18,14 +18,14 @@ class Unpacker {
     public:
         static int unpack(Request::Request     **req,    void *buf, const std::size_t bufsize);
         static int unpack(Request::BPut        **bpm,    void *buf, const std::size_t bufsize);
-        static int unpack(Request::BGet2       **bgm,    void *buf, const std::size_t bufsize);
+        static int unpack(Request::BGet        **bgm,    void *buf, const std::size_t bufsize);
         static int unpack(Request::BGetOp      **bgm,    void *buf, const std::size_t bufsize);
         static int unpack(Request::BDelete     **bdm,    void *buf, const std::size_t bufsize);
         static int unpack(Request::BHistogram  **bhist,  void *buf, const std::size_t bufsize);
 
         static int unpack(Response::Response   **res,    void *buf, const std::size_t bufsize);
         static int unpack(Response::BPut       **bpm,    void *buf, const std::size_t bufsize);
-        static int unpack(Response::BGet2      **bgm,    void *buf, const std::size_t bufsize);
+        static int unpack(Response::BGet       **bgm,    void *buf, const std::size_t bufsize);
         static int unpack(Response::BGetOp     **bgm,    void *buf, const std::size_t bufsize);
         static int unpack(Response::BDelete    **bdm,    void *buf, const std::size_t bufsize);
         static int unpack(Response::BHistogram **bhist,  void *buf, const std::size_t bufsize);

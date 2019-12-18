@@ -36,9 +36,9 @@ int Unpacker::unpack(Request::Request **req, void *buf, const std::size_t bufsiz
                 *req = out;
             }
             break;
-        case Message::BGET2:
+        case Message::BGET:
             {
-                Request::BGet2 *out = nullptr;
+                Request::BGet *out = nullptr;
                 ret = unpack(&out, buf, bufsize);
                 *req = out;
             }
@@ -105,8 +105,8 @@ int Unpacker::unpack(Request::BPut **bpm, void *buf, const std::size_t bufsize) 
     return TRANSPORT_SUCCESS;
 }
 
-int Unpacker::unpack(Request::BGet2 **bgm, void *buf, const std::size_t bufsize) {
-    Request::BGet2 *out = construct<Request::BGet2>();
+int Unpacker::unpack(Request::BGet **bgm, void *buf, const std::size_t bufsize) {
+    Request::BGet *out = construct<Request::BGet>();
     char *curr = nullptr;
     if (unpack(static_cast<Request::Request *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         destruct(out);
@@ -299,9 +299,9 @@ int Unpacker::unpack(Response::Response **res, void *buf, const std::size_t bufs
                 *res = out;
             }
             break;
-        case Message::BGET2:
+        case Message::BGET:
             {
-                Response::BGet2 *out = nullptr;
+                Response::BGet *out = nullptr;
                 ret = unpack(&out, buf, bufsize);
                 *res = out;
             }
@@ -362,8 +362,8 @@ int Unpacker::unpack(Response::BPut **bpm, void *buf, const std::size_t bufsize)
     return TRANSPORT_SUCCESS;
 }
 
-int Unpacker::unpack(Response::BGet2 **bgm, void *buf, const std::size_t bufsize) {
-    Response::BGet2 *out = construct<Response::BGet2>();
+int Unpacker::unpack(Response::BGet **bgm, void *buf, const std::size_t bufsize) {
+    Response::BGet *out = construct<Response::BGet>();
     char *curr = nullptr;
     if (unpack(static_cast<Response::Response *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         destruct(out);

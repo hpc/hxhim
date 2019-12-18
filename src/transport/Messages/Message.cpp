@@ -3,7 +3,7 @@
 const char * Transport::Message::TypeStr[]  = {
     "INVALID",
     "BPUT",
-    "BGET2",
+    "BGET",
     "BGETOP",
     "BDELETE",
     "SYNC",

@@ -132,9 +132,9 @@ Transport::Response::BPut *Datastore::operate(Transport::Request::BPut *req) {
     return res;
 }
 
-Transport::Response::BGet2 *Datastore::operate(Transport::Request::BGet2 *req) {
+Transport::Response::BGet *Datastore::operate(Transport::Request::BGet *req) {
     std::lock_guard<std::mutex> lock(mutex);
-    return BGetImpl2(req);
+    return BGetImpl(req);
 }
 
 Transport::Response::BGetOp *Datastore::operate(Transport::Request::BGetOp *req) {

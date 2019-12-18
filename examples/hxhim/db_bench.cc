@@ -932,7 +932,7 @@ class Benchmark {
       char object[100];
       std::size_t object_len = sizeof(object);
 
-      hxhimGet2(hx, (void *) subject, subject_len, (void *) predicate, predicate_len, HXHIM_BYTE_TYPE, (void *) object, &object_len);
+      hxhimGet(hx, (void *) subject, subject_len, (void *) predicate, predicate_len, HXHIM_BYTE_TYPE, (void *) object, &object_len);
 
       hxhim_results_t *ret = hxhimFlush(hx);
       thread->stats.FinishedSingleOp();
@@ -970,7 +970,7 @@ class Benchmark {
       char object[100];
       std::size_t object_len = sizeof(object);
 
-      hxhimGet2(hx, (void *) subject, strlen(subject), (void *) predicate, strlen(predicate), HXHIM_BYTE_TYPE, (void *) object, &object_len);
+      hxhimGet(hx, (void *) subject, strlen(subject), (void *) predicate, strlen(predicate), HXHIM_BYTE_TYPE, (void *) object, &object_len);
 
       hxhim_results_t *ret = hxhimFlush(hx);
       hxhim_results_destroy(ret);
@@ -998,7 +998,7 @@ class Benchmark {
       char object[100];
       std::size_t object_len = sizeof(object);
 
-      hxhimGet2(hx, (void *) subject, strlen(subject), (void *) predicate, strlen(predicate), HXHIM_BYTE_TYPE, (void *) object, &object_len);
+      hxhimGet(hx, (void *) subject, strlen(subject), (void *) predicate, strlen(predicate), HXHIM_BYTE_TYPE, (void *) object, &object_len);
       hxhim_results_t *ret = hxhimFlush(hx);
       thread->stats.FinishedSingleOp();
       hxhim_results_destroy(ret);

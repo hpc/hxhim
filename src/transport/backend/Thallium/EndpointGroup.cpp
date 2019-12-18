@@ -204,14 +204,14 @@ Response::BPut *EndpointGroup::communicate(const std::unordered_map<int, Request
 }
 
 /**
- * BGet2
+ * BGet
  *
  * @param num_rangesrvs the total number of range servers
  * @param bgm_list the list of BGET messages to send
  * @return a linked list of response messages, or nullptr
  */
-Response::BGet2 *EndpointGroup::communicate(const std::unordered_map<int, Request::BGet2 *> &bgm_list) {
-    return do_operation<Response::BGet2>(bgm_list, engine, rpc, buffer_size, endpoints);
+Response::BGet *EndpointGroup::communicate(const std::unordered_map<int, Request::BGet *> &bgm_list) {
+    return do_operation<Response::BGet>(bgm_list, engine, rpc, buffer_size, endpoints);
 }
 
 /**

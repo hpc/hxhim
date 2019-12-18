@@ -277,10 +277,10 @@ hxhim::Results *FlushImpl(hxhim_t *hx, hxhim::Unsent<UserData_t> &unsent, const 
  * @param hx the HXHIM session
  * @return Pointer to return value wrapper
  */
-hxhim::Results *hxhim::FlushGets2(hxhim_t *hx) {
-    mlog(HXHIM_CLIENT_INFO, "Flushing GET2s");
-    hxhim::Results *res = FlushImpl<hxhim::GetData2, Transport::Request::BGet2, Transport::Response::BGet2>(hx, hx->p->queues.gets2, hx->p->max_ops_per_send.gets);
-    mlog(HXHIM_CLIENT_INFO, "Done Flushing Get2s");
+hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
+    mlog(HXHIM_CLIENT_INFO, "Flushing GETs");
+    hxhim::Results *res = FlushImpl<hxhim::GetData, Transport::Request::BGet, Transport::Response::BGet>(hx, hx->p->queues.gets, hx->p->max_ops_per_send.gets);
+    mlog(HXHIM_CLIENT_INFO, "Done Flushing Gets");
     return res;
 }
 
@@ -292,8 +292,8 @@ hxhim::Results *hxhim::FlushGets2(hxhim_t *hx) {
  * @param hx the HXHIM session
  * @return Pointer to return value wrapper
  */
-hxhim_results_t *hxhimFlushGets2(hxhim_t *hx) {
-    return hxhim_results_init(hxhim::FlushGets2(hx));
+hxhim_results_t *hxhimFlushGets(hxhim_t *hx) {
+    return hxhim_results_init(hxhim::FlushGets(hx));
 }
 
 /**
@@ -367,8 +367,8 @@ hxhim::Results *hxhim::Flush(hxhim_t *hx) {
     hxhim::Results *puts   = FlushPuts(hx);
     res->Append(puts);     destruct(puts);
 
-    hxhim::Results *gets2  = FlushGets2(hx);
-    res->Append(gets2);    destruct(gets2);
+    hxhim::Results *gets  = FlushGets(hx);
+    res->Append(gets);    destruct(gets);
 
     hxhim::Results *getops = FlushGetOps(hx);
     res->Append(getops);   destruct(getops);
@@ -547,15 +547,15 @@ int hxhimPut(hxhim_t *hx,
  * @param object_len     the length of the prediate to put
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim::Get2(hxhim_t *hx,
-                void *subject, std::size_t subject_len,
-                void *predicate, std::size_t predicate_len,
-                enum hxhim_type_t object_type, void *object, std::size_t *object_len) {
+int hxhim::Get(hxhim_t *hx,
+               void *subject, std::size_t subject_len,
+               void *predicate, std::size_t predicate_len,
+               enum hxhim_type_t object_type, void *object, std::size_t *object_len) {
     if (!valid(hx)) {
         return HXHIM_ERROR;
     }
 
-    return hxhim::BGet2(hx,
+    return hxhim::BGet(hx,
                         &subject, &subject_len,
                         &predicate, &predicate_len,
                         &object_type, &object, &object_len,
@@ -576,11 +576,11 @@ int hxhim::Get2(hxhim_t *hx,
  * @param object_len     the length of the prediate to put
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhimGet2(hxhim_t *hx,
-              void *subject, size_t subject_len,
-              void *predicate, size_t predicate_len,
-              enum hxhim_type_t object_type, void *object, size_t *object_len) {
-    return hxhim::Get2(hx,
+int hxhimGet(hxhim_t *hx,
+             void *subject, size_t subject_len,
+             void *predicate, size_t predicate_len,
+             enum hxhim_type_t object_type, void *object, size_t *object_len) {
+    return hxhim::Get(hx,
                        subject, subject_len,
                        predicate, predicate_len,
                        object_type, object, object_len);
@@ -705,11 +705,11 @@ int hxhimBPut(hxhim_t *hx,
  * @param count          the number of inputs
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim::BGet2(hxhim_t *hx,
-                 void **subjects, std::size_t *subject_lens,
-                 void **predicates, std::size_t *predicate_lens,
-                 hxhim_type_t *object_types, void **objects, std::size_t **object_lens,
-                 std::size_t count) {
+int hxhim::BGet(hxhim_t *hx,
+                void **subjects, std::size_t *subject_lens,
+                void **predicates, std::size_t *predicate_lens,
+                hxhim_type_t *object_types, void **objects, std::size_t **object_lens,
+                std::size_t count) {
     if (!valid(hx)  ||
         !subjects   || !subject_lens   ||
         !predicates || !predicate_lens ||
@@ -718,7 +718,7 @@ int hxhim::BGet2(hxhim_t *hx,
     }
 
     for(std::size_t i = 0; i < count; i++) {
-        hxhim::GetImpl2(hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], object_types[i], objects[i], object_lens[i]);
+        hxhim::GetImpl(hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], object_types[i], objects[i], object_lens[i]);
     }
 
     return HXHIM_SUCCESS;
@@ -739,12 +739,12 @@ int hxhim::BGet2(hxhim_t *hx,
  * @param count          the number of inputs
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhimBGet2(hxhim_t *hx,
-               void **subjects, std::size_t *subject_lens,
-               void **predicates, std::size_t *predicate_lens,
-               enum hxhim_type_t *object_types, void **objects, std::size_t **object_lens,
-               std::size_t count) {
-    return hxhim::BGet2(hx,
+int hxhimBGet(hxhim_t *hx,
+              void **subjects, std::size_t *subject_lens,
+              void **predicates, std::size_t *predicate_lens,
+              enum hxhim_type_t *object_types, void **objects, std::size_t **object_lens,
+              std::size_t count) {
+    return hxhim::BGet(hx,
                         subjects, subject_lens,
                         predicates, predicate_lens,
                         object_types, objects, object_lens,

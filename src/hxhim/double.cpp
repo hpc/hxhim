@@ -65,7 +65,7 @@ int hxhim::GetDouble(hxhim_t *hx,
                      void *predicate, size_t predicate_len,
                      double *object) {
     static std::size_t double_len = sizeof(double);
-    return hxhim::Get2(hx,
+    return hxhim::Get(hx,
                        subject, subject_len,
                        predicate, predicate_len,
                        HXHIM_DOUBLE_TYPE,

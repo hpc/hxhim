@@ -65,7 +65,7 @@ int hxhim::GetFloat(hxhim_t *hx,
                     void *predicate, size_t predicate_len,
                     float *object) {
     static std::size_t float_len = sizeof(float);
-    return hxhim::Get2(hx,
+    return hxhim::Get(hx,
                        subject, subject_len,
                        predicate, predicate_len,
                        HXHIM_FLOAT_TYPE, object, &float_len);

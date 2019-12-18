@@ -73,8 +73,8 @@ Transport::Response::Response *range_server(hxhim_t *hx, Transport::Request::Req
         case Message::BPUT:
             res = range_server<Response::BPut>(hx, static_cast<Request::BPut *>(req));
             break;
-        case Message::BGET2:
-            res = range_server<Response::BGet2>(hx, static_cast<Request::BGet2 *>(req));
+        case Message::BGET:
+            res = range_server<Response::BGet>(hx, static_cast<Request::BGet *>(req));
             break;
         case Message::BGETOP:
             res = range_server<Response::BGetOp>(hx, static_cast<Request::BGetOp *>(req));
