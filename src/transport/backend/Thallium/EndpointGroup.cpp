@@ -94,17 +94,14 @@ void EndpointGroup::RemoveID(const int id) {
  * Does the client side of a remote send/receive operation
  * All arguments after messages are members of Thallium::EndpointGroup
  *
- * @tparam Recv_t    Recieve type; listed first to allow for Send_t to be deduced by the compiler
- * @tparam Send_t    Send type
- * @tparam (unnamed) test to make sure the rest of the template makes sense
- * @param messages   the list of messages to send
- * @param engine     the thallium engine
- * @param rpc        the thallium rpc
- * @param endpoints  list of endpoints
- * @param packed     memory pool to allocate packed messages from
- * @param responses  memory pool to allocate responses from
- * @param arrays     memory pool to allocate arrays from
- * @param buffers    memory pool to allocate buffers from
+ * @tparam Recv_t      Recieve type; listed first to allow for Send_t to be deduced by the compiler
+ * @tparam Send_t      Send type
+ * @tparam (unnamed)   test to make sure the rest of the template makes sense
+ * @param messages     the list of messages to send
+ * @param engine       the thallium engine
+ * @param rpc          the thallium rpc
+ * @param buffer_size  the size of the buffer allocated for sending and receiving packets
+ * @param endpoints    list of endpoints
  * @return The list of responses received
  */
 template <typename Recv_t, typename Send_t, typename = enable_if_t<std::is_base_of<Request::Request,   Send_t>::value &&
@@ -117,7 +114,7 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
     Recv_t *head = nullptr;
     Recv_t *tail = nullptr;
 
-    mlog(THALLIUM_DBG, "Processing Messages in %zu buffers", messages.size());
+    mlog(THALLIUM_INFO, "Processing Messages in %zu buffers", messages.size());
 
     // buffer used for rdma
     void *buf = alloc(buffer_size);
@@ -149,7 +146,7 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
             continue;
         }
 
-        mlog(THALLIUM_WARN, "Sending message to %d packed into a buffer of size %zu", req->dst, req_size);
+        mlog(THALLIUM_DBG, "Sending message to %d packed into a buffer of size %zu", req->dst, req_size);
 
         // create the bulk message, send it, and get the size in response the response data is in buf
         std::vector<std::pair<void *, std::size_t> > segments = {std::make_pair(buf, buffer_size)};
@@ -159,7 +156,7 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
         mlog(THALLIUM_DBG, "Received %zu byte response from %d", response_size, req->dst);
 
         // unpack the response
-        mlog(THALLIUM_WARN, "Unpacking %zu byte response from %d", response_size, req->dst);
+        mlog(THALLIUM_DBG, "Unpacking %zu byte response from %d", response_size, req->dst);
 
         Recv_t *response = nullptr;
         if (Unpacker::unpack(&response, buf, response_size) != TRANSPORT_SUCCESS) {
@@ -187,7 +184,7 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
 
     dealloc(buf);
 
-    mlog(THALLIUM_DBG, "Done processing messages");
+    mlog(THALLIUM_INFO, "Done processing messages");
 
     return head;
 }

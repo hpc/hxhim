@@ -55,7 +55,7 @@ herr_t H5VL_hxhim_file_specific(void *obj, H5VL_file_specific_t specific_type, h
             break;
         case H5VL_FILE_FLUSH:                        /* Flush file                       */
             fprintf(stderr, "         flush\n");
-            hxhim_results_t * res = hxhimFlush(&file_info->under_vol->hx);
+            hxhim_results_t *res = hxhimFlush(&file_info->under_vol->hx);
             if (!res) {
                 fprintf(stderr, "Could not flush HXHIM context\n");
                 rc = -1;
@@ -74,7 +74,9 @@ herr_t H5VL_hxhim_file_specific(void *obj, H5VL_file_specific_t specific_type, h
                             int error = 0;
                             hxhim_results_error(res, &error);
                             if (error != HXHIM_SUCCESS) {
+                                fprintf(stderr, "GET error\n");
                                 rc = -1;
+                                continue;
                             }
 
                             size_t *object_len = NULL;

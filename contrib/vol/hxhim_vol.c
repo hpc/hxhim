@@ -171,6 +171,7 @@ hid_t hxhim_vol_init(MPI_Comm comm, const int comm_dup) {
     hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
     H5Pset_vol(fapl, vol_id, under_info);
 
+    printf("%4d %s            vol %d\n", __LINE__, __func__, fapl);
     return fapl;
 }
 

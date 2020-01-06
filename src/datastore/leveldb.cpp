@@ -18,11 +18,6 @@
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
-namespace hxhim {
-namespace datastore {
-
-using namespace Transport;
-
 static int mkdir_p(const std::string & path, const mode_t mode, const char sep = '/') {
     char * copy = new char[path.size() + 1]();
     memcpy(copy, path.c_str(), path.size());
@@ -57,9 +52,9 @@ static int mkdir_p(const std::string & path, const mode_t mode, const char sep =
     return 0;
 }
 
-leveldb::leveldb(hxhim_t *hx,
-                 Histogram::Histogram *hist,
-                 const std::string &exact_name)
+hxhim::datastore::leveldb::leveldb(hxhim_t *hx,
+                                   Histogram::Histogram *hist,
+                                   const std::string &exact_name)
     : Datastore(hx, 0, hist),
       create_if_missing(false),
       db(nullptr), options()
@@ -73,10 +68,10 @@ leveldb::leveldb(hxhim_t *hx,
     mlog(LEVELDB_INFO, "Opened leveldb with name: %s", exact_name.c_str());
 }
 
-leveldb::leveldb(hxhim_t *hx,
-                 const int id,
-                 Histogram::Histogram *hist,
-                 const std::string &basename, const bool create_if_missing)
+hxhim::datastore::leveldb::leveldb(hxhim_t *hx,
+                                   const int id,
+                                   Histogram::Histogram *hist,
+                                   const std::string &basename, const bool create_if_missing)
     : Datastore(hx, id, hist),
       create_if_missing(create_if_missing),
       db(nullptr), options()
@@ -96,15 +91,15 @@ leveldb::leveldb(hxhim_t *hx,
     mlog(LEVELDB_INFO, "Opened leveldb with name: %s", s.str().c_str());
 }
 
-leveldb::~leveldb() {
+hxhim::datastore::leveldb::~leveldb() {
     Close();
 }
 
-bool leveldb::OpenImpl(const std::string &new_name) {
+bool hxhim::datastore::leveldb::OpenImpl(const std::string &new_name) {
     return ::leveldb::DB::Open(options, new_name, &db).ok();
 }
 
-void leveldb::CloseImpl() {
+void hxhim::datastore::leveldb::CloseImpl() {
     delete db;
     db = nullptr;
 }
@@ -121,9 +116,9 @@ void leveldb::CloseImpl() {
  * @param object_lens   the lengths of the objects
  * @return pointer to a list of results
  */
-Response::BPut *leveldb::BPutImpl(Transport::Request::BPut *req) {
+Transport::Response::BPut *hxhim::datastore::leveldb::BPutImpl(Transport::Request::BPut *req) {
     mlog(LEVELDB_INFO, "LevelDB BPut");
-    Response::BPut *res = construct<Response::BPut>(req->count);
+    Transport::Response::BPut *res = construct<Transport::Response::BPut>(req->count);
 
     struct timespec start, end;
     ::leveldb::WriteBatch batch;
@@ -178,8 +173,8 @@ Response::BPut *leveldb::BPutImpl(Transport::Request::BPut *req) {
  * @param prediate_lens the lengths of the prediates to put
  * @return pointer to a list of results
  */
-Response::BGet *leveldb::BGetImpl(Transport::Request::BGet *req) {
-    Response::BGet *res = construct<Response::BGet>(req->count);
+Transport::Response::BGet *hxhim::datastore::leveldb::BGetImpl(Transport::Request::BGet *req) {
+    Transport::Response::BGet *res = construct<Transport::Response::BGet>(req->count);
     for(std::size_t i = 0; i < req->count; i++) {
         struct timespec start, end;
 
@@ -219,6 +214,7 @@ Response::BGet *leveldb::BGetImpl(Transport::Request::BGet *req) {
             res->objects[i] = construct<RealBlob>(value.size(), value.data());
         }
         else {
+            mlog(LEVELDB_WARN, "LevelDB error: %s", status.ToString().c_str());
             res->statuses[i] = HXHIM_ERROR;
         }
 
@@ -244,12 +240,12 @@ Response::BGet *leveldb::BGetImpl(Transport::Request::BGet *req) {
  * @param object_lens   the lengths of the objects
  * @return pointer to a list of results
  */
-Response::BGetOp *leveldb::BGetOpImpl(Transport::Request::BGetOp *req) {
-    Response::BGetOp *res = construct<Response::BGetOp>(0);
-    Response::BGetOp *curr = res;
+Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Request::BGetOp *req) {
+    Transport::Response::BGetOp *res = construct<Transport::Response::BGetOp>(0);
+    Transport::Response::BGetOp *curr = res;
 
     for(std::size_t i = 0; i < req->count; i++) {
-        Response::BGetOp *response = construct<Response::BGetOp>(req->num_recs[i]);
+        Transport::Response::BGetOp *response = construct<Transport::Response::BGetOp>(req->num_recs[i]);
 
         ::leveldb::Iterator *it = db->NewIterator(::leveldb::ReadOptions());
         struct timespec start, end;
@@ -339,8 +335,8 @@ Response::BGetOp *leveldb::BGetOpImpl(Transport::Request::BGetOp *req) {
  * @param prediate_lens the lengths of the prediates to put
  * @return pointer to a list of results
  */
-Response::BDelete *leveldb::BDeleteImpl(Transport::Request::BDelete *req) {
-    Response::BDelete *res = construct<Response::BDelete>(req->count);
+Transport::Response::BDelete *hxhim::datastore::leveldb::BDeleteImpl(Transport::Request::BDelete *req) {
+    Transport::Response::BDelete *res = construct<Transport::Response::BDelete>(req->count);
 
     ::leveldb::WriteBatch batch;
 
@@ -373,14 +369,11 @@ Response::BDelete *leveldb::BDeleteImpl(Transport::Request::BDelete *req) {
  *
  * @return HXHIM_SUCCESS or HXHIM_ERROR on error
  */
-int leveldb::SyncImpl() {
+int hxhim::datastore::leveldb::SyncImpl() {
     ::leveldb::WriteBatch batch;
     ::leveldb::WriteOptions options;
     options.sync = true;
     return db->Write(options, &batch).ok()?HXHIM_SUCCESS:HXHIM_ERROR;
-}
-
-}
 }
 
 #endif

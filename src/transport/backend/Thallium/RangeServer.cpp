@@ -24,15 +24,19 @@ void RangeServer::init(hxhim_t *hx, const Engine_t &engine, const std::size_t bu
     hx_ = hx;
     engine_ = engine;
     bufsize_ = buffer_size;
+
+    mlog(THALLIUM_INFO, "Initialized Thallium Range Server on rank %d", hx_->p->bootstrap.rank);
 }
 
 void RangeServer::destroy() {
+    const int rank = hx_->p->bootstrap.rank;
     hx_ = nullptr;
+    mlog(THALLIUM_INFO, "Stopped Thallium Range Server on rank %d", rank);
 }
 
 void RangeServer::process(const thallium::request &req, thallium::bulk &bulk) {
     thallium::endpoint ep = req.get_endpoint();
-    mlog(THALLIUM_DBG, "Starting to process data from %s", ((std::string) ep).c_str());
+    mlog(THALLIUM_INFO, "Starting to process data from %s", ((std::string) ep).c_str());
 
     void *buf = alloc(bufsize_);
 
@@ -50,25 +54,25 @@ void RangeServer::process(const thallium::request &req, thallium::bulk &bulk) {
     if (Unpacker::unpack(&request, buf, bufsize_) != TRANSPORT_SUCCESS) {
         dealloc(buf);
         req.respond((std::size_t) 0);
-        // mlog(THALLIUM_DBG, "Could not unpack data");
+        mlog(THALLIUM_WARN, "Could not unpack data");
         return;
     }
 
-    mlog(THALLIUM_WARN, "Unpacked %zu bytes of %s data", bufsize_, Message::TypeStr[request->type]);
+    mlog(THALLIUM_DBG, "Unpacked %zu bytes of %s data", bufsize_, Message::TypeStr[request->type]);
 
     // process the request
     Response::Response *response = hxhim::range_server::range_server(hx_, request);
     dealloc(request);
 
-    mlog(THALLIUM_WARN, "Datastore responded with %s message", Message::TypeStr[response->type]);
+    mlog(THALLIUM_DBG, "Datastore responded with %s message", Message::TypeStr[response->type]);
 
     // pack the response
     std::size_t ressize = 0;
     Packer::pack(response, &buf, &ressize);     // do not check for error
-    mlog(THALLIUM_WARN, "Responding with %zu byte %s message", ressize, Message::TypeStr[response->type]);
+    mlog(THALLIUM_DBG, "Responding with %zu byte %s message", ressize, Message::TypeStr[response->type]);
     dealloc(response);
 
-    mlog(THALLIUM_WARN, "Packed response into %zu byte string", ressize);
+    mlog(THALLIUM_DBG, "Packed response into %zu byte string", ressize);
 
     // send the response
     {
@@ -83,7 +87,7 @@ void RangeServer::process(const thallium::request &req, thallium::bulk &bulk) {
     dealloc(buf);
     req.respond(ressize);
 
-    mlog(THALLIUM_DBG, "Done processing request from %s and sending response", ((std::string) ep).c_str());
+    mlog(THALLIUM_INFO, "Done processing request from %s and sending response", ((std::string) ep).c_str());
 }
 
 }

@@ -9,21 +9,16 @@
 #include "utils/elapsed.h"
 #include "utils/memory.hpp"
 
-namespace hxhim {
-namespace datastore {
-
-using namespace Transport;
-
-InMemory::InMemory(hxhim_t *hx,
-                   Histogram::Histogram *hist,
-                   const std::string &exact_name)
+hxhim::datastore::InMemory::InMemory(hxhim_t *hx,
+                                     Histogram::Histogram *hist,
+                                     const std::string &exact_name)
     : Datastore(hx, 0, hist),
       db()
 {
     Datastore::Open(exact_name);
 }
 
-InMemory::InMemory(hxhim_t *hx,
+hxhim::datastore::InMemory::InMemory(hxhim_t *hx,
                    const int id,
                    Histogram::Histogram *hist,
                    const std::string &basename)
@@ -33,15 +28,15 @@ InMemory::InMemory(hxhim_t *hx,
     Datastore::Open(basename);
 }
 
-InMemory::~InMemory() {
+hxhim::datastore::InMemory::~InMemory() {
     Close();
 }
 
-bool InMemory::OpenImpl(const std::string &) {
+bool hxhim::datastore::InMemory::OpenImpl(const std::string &) {
     return true;
 }
 
-void InMemory::CloseImpl() {
+void hxhim::datastore::InMemory::CloseImpl() {
     db.clear();
 }
 
@@ -57,8 +52,8 @@ void InMemory::CloseImpl() {
  * @param object_lens   the lengths of the objects
  * @return pointer to a list of results
  */
-Response::BPut *InMemory::BPutImpl(Transport::Request::BPut *req) {
-    Response::BPut *res = construct<Response::BPut>(req->count);
+Transport::Response::BPut *hxhim::datastore::InMemory::BPutImpl(Transport::Request::BPut *req) {
+    Transport::Response::BPut *res = construct<Transport::Response::BPut>(req->count);
 
     struct timespec start = {};
     struct timespec end = {};
@@ -98,8 +93,8 @@ Response::BPut *InMemory::BPutImpl(Transport::Request::BPut *req) {
  * @param prediate_lens the lengths of the prediates to put
  * @return pointer to a list of results
  */
-Response::BGet *InMemory::BGetImpl(Transport::Request::BGet *req) {
-    Response::BGet *res = construct<Response::BGet>(req->count);
+Transport::Response::BGet *hxhim::datastore::InMemory::BGetImpl(Transport::Request::BGet *req) {
+    Transport::Response::BGet *res = construct<Transport::Response::BGet>(req->count);
 
     for(std::size_t i = 0; i < req->count; i++) {
         struct timespec start = {};
@@ -158,12 +153,12 @@ Response::BGet *InMemory::BGetImpl(Transport::Request::BGet *req) {
  * @param object_lens   the lengths of the objects
  * @return pointer to a list of results
  */
-Response::BGetOp *InMemory::BGetOpImpl(Transport::Request::BGetOp *req) {
-    Response::BGetOp *res = construct<Response::BGetOp>(0);
-    Response::BGetOp *curr = res;
+Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::Request::BGetOp *req) {
+    Transport::Response::BGetOp *res = construct<Transport::Response::BGetOp>(0);
+    Transport::Response::BGetOp *curr = res;
 
     for(std::size_t i = 0; i < req->count; i++) {
-        Response::BGetOp *response = construct<Response::BGetOp>(req->num_recs[i]);
+        Transport::Response::BGetOp *response = construct<Transport::Response::BGetOp>(req->num_recs[i]);
 
         struct timespec start = {};
         struct timespec end = {};
@@ -237,8 +232,8 @@ Response::BGetOp *InMemory::BGetOpImpl(Transport::Request::BGetOp *req) {
  * @param prediate_lens the lengths of the prediates to put
  * @return pointer to a list of results
  */
-Response::BDelete *InMemory::BDeleteImpl(Transport::Request::BDelete *req) {
-    Response::BDelete *res = construct<Response::BDelete>(req->count);
+Transport::Response::BDelete *hxhim::datastore::InMemory::BDeleteImpl(Transport::Request::BDelete *req) {
+    Transport::Response::BDelete *res = construct<Transport::Response::BDelete>(req->count);
 
     for(std::size_t i = 0; i < req->count; i++) {
         void *key = nullptr;
@@ -268,9 +263,6 @@ Response::BDelete *InMemory::BDeleteImpl(Transport::Request::BDelete *req) {
  *
  * @return HXHIM_SUCCESS
  */
-int InMemory::SyncImpl() {
+int hxhim::datastore::InMemory::SyncImpl() {
     return HXHIM_SUCCESS;
-}
-
-}
 }

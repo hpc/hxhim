@@ -19,7 +19,7 @@ namespace Thallium {
  * @param TRANSPORT_SUCCESS or TRANSPORT_ERROR
  */
 int init(hxhim_t *hx, hxhim_options_t *opts) {
-    // mlog(THALLIUM_INFO, "Starting Thallium Initialization");
+    mlog(THALLIUM_INFO, "Starting Thallium Initialization");
     if (!hxhim::valid(hx, opts)) {
         return HXHIM_ERROR;
     }
@@ -79,7 +79,7 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
 
     hx->p->transport->SetEndpointGroup(eg);
 
-    // mlog(THALLIUM_INFO, "Completed Thallium transport initialization");
+    mlog(THALLIUM_INFO, "Completed Thallium transport initialization");
     return TRANSPORT_SUCCESS;
 }
 
