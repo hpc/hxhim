@@ -13,6 +13,10 @@
  * These structs do not own any of the data they hold.
  * They are all references, and will not be cleaned up
  * by the destructor.
+ *
+ * These structs are meant to be used as nodes of an
+ * Unsent which are destructed when they areremoved.
+ * Unsent does not destruct the nodes.
  */
 namespace hxhim {
     struct UserData {
@@ -86,6 +90,16 @@ namespace hxhim {
 
     template <typename Data, typename = enable_if_t<std::is_base_of<SubjectPredicate, Data>::value> >
     struct Unsent {
+        Unsent()
+            : mutex(),
+              start_processing(),
+              done_processing(),
+              head(nullptr),
+              tail(nullptr),
+              count(0),
+              force(false)
+        {}
+
         void insert(Data *node) {
             if (!node) {
                 return;

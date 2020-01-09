@@ -663,7 +663,7 @@ int hxhim::BPut(hxhim_t *hx,
 
     mlog(HXHIM_CLIENT_DBG, "%s %s:%d", __FILE__, __func__, __LINE__);
     for(std::size_t i = 0; i < count; i++) {
-        hxhim::PutImpl(hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], object_types[i], objects[i], object_lens[i]);
+        hxhim::PutImpl(hx->p->queues.puts, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], object_types[i], objects[i], object_lens[i]);
     }
 
     return HXHIM_SUCCESS;
@@ -723,7 +723,7 @@ int hxhim::BGet(hxhim_t *hx,
     }
 
     for(std::size_t i = 0; i < count; i++) {
-        hxhim::GetImpl(hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], object_types[i], objects[i], object_lens[i]);
+        hxhim::GetImpl(hx->p->queues.gets, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], object_types[i], objects[i], object_lens[i]);
     }
 
     return HXHIM_SUCCESS;
@@ -750,10 +750,10 @@ int hxhimBGet(hxhim_t *hx,
               enum hxhim_type_t *object_types, void **objects, std::size_t **object_lens,
               std::size_t count) {
     return hxhim::BGet(hx,
-                        subjects, subject_lens,
-                        predicates, predicate_lens,
-                        object_types, objects, object_lens,
-                        count);
+                       subjects, subject_lens,
+                       predicates, predicate_lens,
+                       object_types, objects, object_lens,
+                       count);
 }
 
 /**
@@ -773,26 +773,17 @@ int hxhim::BGetOp(hxhim_t *hx,
                   void *predicate, size_t predicate_len,
                   enum hxhim_type_t object_type,
                   std::size_t num_records, enum hxhim_get_op_t op) {
-    if (!valid(hx)  ||
-        !subject || !subject_len) {
+    if (!valid(hx) ||
+        !subject   || !subject_len   ||
+        !predicate || !predicate_len) {
         return HXHIM_ERROR;
     }
 
-    hxhim::GetOpData *getop = construct<hxhim::GetOpData>();
-    getop->subject = construct<ReferenceBlob>(subject, subject_len);
-    getop->predicate = construct<ReferenceBlob>(predicate, predicate_len);
-    getop->object_type = object_type;
-    getop->num_recs = num_records;
-    getop->op = op;
-
-    hxhim::Unsent<hxhim::GetOpData> &getops = hx->p->queues.getops;
-    {
-        std::lock_guard<std::mutex> lock(getops.mutex);
-        getops.insert(getop);
-    }
-    getops.start_processing.notify_one();
-
-    return HXHIM_SUCCESS;
+    return hxhim::GetOpImpl(hx->p->queues.getops,
+                            subject, subject_len,
+                            predicate, predicate_len,
+                            object_type,
+                            num_records, op);
 }
 
 /**
@@ -845,7 +836,7 @@ int hxhim::BDelete(hxhim_t *hx,
     }
 
     for(std::size_t i = 0; i < count; i++) {
-        hxhim::DeleteImpl(hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i]);
+        hxhim::DeleteImpl(hx->p->queues.deletes, subjects[i], subject_lens[i], predicates[i], predicate_lens[i]);
     }
 
     return HXHIM_SUCCESS;
