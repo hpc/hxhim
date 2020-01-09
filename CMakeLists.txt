@@ -59,50 +59,55 @@ endif()
 # do not search for thallium with find_package
 pkg_search_module(THALLIUM thallium)
 if (THALLIUM_FOUND)
-    # thallium needs C++14
-    set(CMAKE_CXX_STANDARD 14)
+  # thallium needs C++14
+  set(CMAKE_CXX_STANDARD 14)
 
-    pkg_search_module(MERCURY REQUIRED mercury)
-    message(STATUS "MERCURY_INCLUDEDIR=" ${MERCURY_INCLUDEDIR})
-    message(STATUS "MERCURY_LIBDIR=" ${MERCURY_LIBDIR})
+  pkg_search_module(MERCURY REQUIRED mercury)
+  message(STATUS "MERCURY_INCLUDEDIR=" ${MERCURY_INCLUDEDIR})
+  message(STATUS "MERCURY_LIBDIR=" ${MERCURY_LIBDIR})
 
-    pkg_search_module(ARGOBOTS REQUIRED argobots)
-    message(STATUS "ARGOBOTS_INCLUDEDIR=" ${ARGOBOTS_INCLUDEDIR})
-    message(STATUS "ARGOBOTS_LIBDIR=" ${ARGOBOTS_LIBDIR})
+  pkg_search_module(ARGOBOTS REQUIRED argobots)
+  message(STATUS "ARGOBOTS_INCLUDEDIR=" ${ARGOBOTS_INCLUDEDIR})
+  message(STATUS "ARGOBOTS_LIBDIR=" ${ARGOBOTS_LIBDIR})
 
-    pkg_search_module(MARGO REQUIRED margo)
-    message(STATUS "MARGO_INCLUDEDIR=" ${MARGO_INCLUDEDIR})
-    message(STATUS "MARGO_LIBDIR=" ${MARGO_LIBDIR})
+  pkg_search_module(MARGO REQUIRED margo)
+  message(STATUS "MARGO_INCLUDEDIR=" ${MARGO_INCLUDEDIR})
+  message(STATUS "MARGO_LIBDIR=" ${MARGO_LIBDIR})
 
-    message(STATUS "THALLIUM_INCLUDEDIR=" ${THALLIUM_INCLUDEDIR})
-    message(STATUS "THALLIUM_LIBDIR=" ${THALLIUM_LIBDIR})
-    include_directories(AFTER SYSTEM ${THALLIUM_INCLUDE_DIRS})
-    add_definitions(-DHXHIM_HAVE_THALLIUM=1)
+  message(STATUS "THALLIUM_INCLUDEDIR=" ${THALLIUM_INCLUDEDIR})
+  message(STATUS "THALLIUM_LIBDIR=" ${THALLIUM_LIBDIR})
+  include_directories(AFTER SYSTEM ${THALLIUM_INCLUDE_DIRS})
+  add_definitions(-DHXHIM_HAVE_THALLIUM=1)
 
-    set(COMMON_LDFLAGS ${COMMON_LDFLAGS} ${THALLIUM_LDFLAGS})
+  set(COMMON_LDFLAGS ${COMMON_LDFLAGS} ${THALLIUM_LDFLAGS})
 
-    set(PC_CFLAGS "${PC_CFLAGS} -DHXHIM_HAVE_THALLIUM=1")
-    set(PC_LIBS   "${PC_LIBS} ${THALLIUM_LDFLAGS}")
+  set(PC_CFLAGS "${PC_CFLAGS} -DHXHIM_HAVE_THALLIUM=1")
+  set(PC_LIBS   "${PC_LIBS} ${THALLIUM_LDFLAGS}")
 endif()
 
 #
 # LevelDB Support
 #
 pkg_search_module(LEVELDB leveldb)
-if(${LEVELDB_FOUND})
-    message(STATUS "LevelDB Data Storage Module Enabled")
-    message(STATUS "LEVELDB_INCLUDEDIR=" ${LEVELDB_INCLUDEDIR})
-    message(STATUS "LEVELDB_LIBDIR=" ${LEVELDB_LIBDIR})
-    include_directories(AFTER SYSTEM ${LEVELDB_INCLUDE_DIRS})
-    add_definitions(-DHXHIM_HAVE_LEVELDB=1)
+if(LEVELDB_FOUND)
+  message(STATUS "LevelDB Data Storage Module Enabled")
+  message(STATUS "LEVELDB_INCLUDEDIR=" ${LEVELDB_INCLUDEDIR})
+  message(STATUS "LEVELDB_LIBDIR=" ${LEVELDB_LIBDIR})
+  include_directories(AFTER SYSTEM ${LEVELDB_INCLUDE_DIRS})
+  add_definitions(-DHXHIM_HAVE_LEVELDB=1)
 
-    set(COMMON_LDFLAGS ${COMMON_LDFLAGS} ${LEVELDB_LDFLAGS})
+  set(COMMON_LDFLAGS ${COMMON_LDFLAGS} ${LEVELDB_LDFLAGS})
 
-    set(PC_CFLAGS "${PC_CFLAGS} -DHXHIM_HAVE_LEVELDB=1")
-    set(PC_LIBS   "${PC_LIBS} ${LEVELDB_LDFLAGS}")
+  set(PC_CFLAGS "${PC_CFLAGS} -DHXHIM_HAVE_LEVELDB=1")
+  set(PC_LIBS   "${PC_LIBS} ${LEVELDB_LDFLAGS}")
 endif()
 
-
+find_package(HDF5)
+if (HDF5_FOUND)
+  message(STATUS "HDF5 found")
+  message(STATUS "HDF5_INCLUDE_DIRS=" ${HDF5_INCLUDE_DIRS})
+  message(STATUS "HDF5_LIBRARIES=" ${HDF5_LIBRARIES})
+endif()
 
 #
 # build library
