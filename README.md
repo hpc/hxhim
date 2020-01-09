@@ -14,7 +14,7 @@ hxhim@lanl.gov
 
 ### Build
 ```
-contrib/hxhim_dependencies.sh --{BMI,CCI,SM} download_dir install_dir
+contrib/hxhim_dependencies.sh --{BMI,CCI,OFI,SM} download_dir install_dir
 PKG_CONFIG_PATH=<output from script>:$PKG_CONFIG_PATH
 mkdir bld
 cd bld
@@ -23,8 +23,8 @@ make
 make install
 ```
 
-`contrib/hxhim_dependencies` should be run first in order to allow for
-CMake to be able to discover them.  If `contrib/hxhim_dependencies` is
+`contrib/hxhim_dependencies.sh` should be run first in order to allow for
+CMake to be able to discover them.  If `contrib/hxhim_dependencies.sh` is
 not run, the leveldb source must be available on the system (One of
 the CMake targets requires files from leveldb that are not built into
 the library).
