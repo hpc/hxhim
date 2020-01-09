@@ -4,8 +4,9 @@ Transport::Request::Request::Request(Message::Type type)
     : Message(Message::REQUEST, type, 0)
 {}
 
-Transport::Request::Request::~Request()
-{}
+Transport::Request::Request::~Request() {
+    cleanup();
+}
 
 std::size_t Transport::Request::Request::size() const {
     return Message::size();

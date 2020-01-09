@@ -25,14 +25,15 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
     }
 
     Options *config = static_cast<Options *>(opts->p->transport);
+    mlog(THALLIUM_INFO, "Configuring Thallium with %s", config->module.c_str());
 
     // create the engine (only 1 instance per process)
     Engine_t engine(new thallium::engine(config->module, THALLIUM_SERVER_MODE, true, -1),
                     [](thallium::engine *engine) {
-                        // const std::string addr = static_cast<std::string>(engine->self());
+                        const std::string addr = static_cast<std::string>(engine->self());
                         engine->finalize();
                         delete engine;
-                        // mlog(THALLIUM_DBG, "Stopped Thallium engine %s", addr.c_str());
+                        mlog(THALLIUM_INFO, "Stopped Thallium engine %s", addr.c_str());
                     });
 
     // mlog(THALLIUM_DBG, "Created Thallium engine %s", static_cast<std::string>(engine->self()).c_str());

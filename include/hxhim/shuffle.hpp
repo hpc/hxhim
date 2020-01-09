@@ -11,6 +11,10 @@
 #include "utils/memory.hpp"
 
 namespace hxhim {
+namespace shuffle {
+
+const int ERROR = -2;
+const int NOSPACE = -1;
 
 /**
  * shuffle
@@ -36,10 +40,8 @@ int shuffle(hxhim_t *hx,
     const int ds_id = hx->p->hash.func(hx, src->subject, src->subject_len, src->predicate, src->predicate_len, hx->p->hash.args);
     if (ds_id < 0) {
         mlog(HXHIM_CLIENT_WARN, "Hash returned bad target datastore: %d", ds_id);
-        return -1;
+        return ERROR;
     }
-
-    mlog(HXHIM_CLIENT_DBG, "Sending %p to datastore %d", src, ds_id);
 
     // split the backend id into destination rank and ds_offset
     const int ds_rank = hxhim::datastore::get_rank(hx, ds_id);
@@ -47,52 +49,50 @@ int shuffle(hxhim_t *hx,
 
     // group local keys
     if (ds_rank == hx->p->bootstrap.rank) {
-        mlog(HXHIM_CLIENT_DBG, "Sending %p to local datastore %d (%zu already packed; %zu max)", src, ds_id, local->count, max_per_dst);
+        mlog(HXHIM_CLIENT_INFO, "Sending %p to local datastore %d on rank %d (%zu already packed; %zu max)", src, ds_id, ds_rank, local->count, max_per_dst);
 
-        // only add the key if there is space
-        if (local->count < max_per_dst) {
-            src->moveto(local, ds_offset);
+        if (local->count >= max_per_dst) {
+            mlog(HXHIM_CLIENT_WARN, "Cannot add to packet going to local datastore");
+            return NOSPACE;
         }
-        // else, return a bad destination datastore
-        else {
-            return -1;
-        }
+
+        src->moveto(local, ds_offset);
+        mlog(HXHIM_CLIENT_INFO, "Added %p to local datastore packet (%zu packed; %zu max)", src, local->count, max_per_dst);
     }
     // group remote keys
     else {
+        mlog(HXHIM_CLIENT_INFO, "Sending %p to remote datastore %d on rank %d", src, ds_id, ds_rank);
+
         // try to find the destination first
         REF(remote)::iterator it = remote.find(ds_rank);
 
-        // if the destination is not found, check if there is space for another one
+        // if the destination is not found, add one
         if (it == remote.end()) {
-            // if there is space for a new destination, insert it
-            if (remote.size() < max_per_dst) {
-                it = remote.insert(std::make_pair(ds_rank, construct<DST_t>(max_per_dst))).first;
-                it->second->src = hx->p->bootstrap.rank;
-                it->second->dst = ds_rank;
-            }
-            else {
-                mlog(HXHIM_CLIENT_DBG, "Shuffle Remote Put could not add destination %d %zu %zu", ds_id, remote.size(), max_per_dst);
-                return -1;
-            }
+            mlog(HXHIM_CLIENT_DBG, "Adding packet going to rank %d", ds_rank);
+
+            it = remote.insert(std::make_pair(ds_rank, construct<DST_t>(max_per_dst))).first;
+            it->second->src = hx->p->bootstrap.rank;
+            it->second->dst = ds_rank;
         }
 
         DST_t *rem = it->second;
 
-        mlog(HXHIM_CLIENT_DBG, "Sending %p to remote datastore %d (%zu already packed; %zu max)", src, ds_id, rem->count, max_per_dst);
+        mlog(HXHIM_CLIENT_DBG, "Packet going to rank %d currently has %zu entries", ds_rank, rem->count);
 
-        // if there is space in the request packet, insert
-        if (rem->count < max_per_dst) {
-            src->moveto(rem, ds_offset);
+        // packet is full
+        if (rem->count >= max_per_dst) {
+            mlog(HXHIM_CLIENT_WARN, "Cannot add to packet going to rank %d", ds_rank);
+            return NOSPACE;
         }
-        else {
-            return -1;
-        }
+
+        src->moveto(rem, ds_offset);
+        mlog(HXHIM_CLIENT_INFO, "Added %p to rank %d packet (%zu packed; %zu max)", src, ds_id, rem->count, max_per_dst);
     }
 
     return ds_id;
 }
 
+}
 }
 
 #endif

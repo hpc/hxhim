@@ -41,7 +41,7 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
         dst.steal(req, i);
     }
 
-    // output variable
+    // response variable
     Response_t *res = construct<Response_t>(req->count);
     res->src = req->dst;
     res->dst = req->src;

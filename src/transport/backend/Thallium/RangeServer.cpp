@@ -47,32 +47,32 @@ void RangeServer::process(const thallium::request &req, thallium::bulk &bulk) {
         bulk.on(ep) >> local(0, bufsize_);
     }
 
-    mlog(THALLIUM_DBG, "Processing %zu bytes of data", bufsize_);
+    mlog(THALLIUM_DBG, "Receieved %zu byte request", bufsize_);
 
     // unpack the request
     Request::Request *request = nullptr;
     if (Unpacker::unpack(&request, buf, bufsize_) != TRANSPORT_SUCCESS) {
         dealloc(buf);
         req.respond((std::size_t) 0);
-        mlog(THALLIUM_WARN, "Could not unpack data");
+        mlog(THALLIUM_WARN, "Could not unpack request");
         return;
     }
 
-    mlog(THALLIUM_DBG, "Unpacked %zu bytes of %s data", bufsize_, Message::TypeStr[request->type]);
+    mlog(THALLIUM_DBG, "Unpacked %zu bytes of %s request", bufsize_, Message::TypeStr[request->type]);
 
     // process the request
     Response::Response *response = hxhim::range_server::range_server(hx_, request);
     dealloc(request);
 
-    mlog(THALLIUM_DBG, "Datastore responded with %s message", Message::TypeStr[response->type]);
+    mlog(THALLIUM_DBG, "Datastore responded with %s response", Message::TypeStr[response->type]);
 
     // pack the response
     std::size_t ressize = 0;
     Packer::pack(response, &buf, &ressize);     // do not check for error
-    mlog(THALLIUM_DBG, "Responding with %zu byte %s message", ressize, Message::TypeStr[response->type]);
+    mlog(THALLIUM_DBG, "Responding with %zu byte %s response", ressize, Message::TypeStr[response->type]);
     dealloc(response);
 
-    mlog(THALLIUM_DBG, "Packed response into %zu byte string", ressize);
+    mlog(THALLIUM_DBG, "Packed response into %zu byte buffer", ressize);
 
     // send the response
     {

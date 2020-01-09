@@ -49,7 +49,7 @@ int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
         (init::memory   (hx, opts) != HXHIM_SUCCESS) ||
         (init::hash     (hx, opts) != HXHIM_SUCCESS) ||
         (init::datastore(hx, opts) != HXHIM_SUCCESS) ||
-        (init::async_put(hx, opts) != HXHIM_SUCCESS) ||
+        // (init::async_put(hx, opts) != HXHIM_SUCCESS) ||
         (init::transport(hx, opts) != HXHIM_SUCCESS)) {
         MPI_Barrier(hx->p->bootstrap.comm);
         Close(hx);
@@ -105,8 +105,9 @@ int hxhim::OpenOne(hxhim_t *hx, hxhim_options_t *opts, const std::string &db_pat
         (init::running       (hx, opts)          != HXHIM_SUCCESS) ||
         (init::memory        (hx, opts)          != HXHIM_SUCCESS) ||
         (init::hash          (hx, opts)          != HXHIM_SUCCESS) ||
-        (init::one_datastore (hx, opts, db_path) != HXHIM_SUCCESS) ||
-        (init::async_put     (hx, opts)          != HXHIM_SUCCESS)) {
+        (init::one_datastore (hx, opts, db_path) != HXHIM_SUCCESS) //||
+        // (init::async_put     (hx, opts)          != HXHIM_SUCCESS)
+        ) {
         MPI_Barrier(hx->p->bootstrap.comm);
         Close(hx);
         mlog(HXHIM_CLIENT_ERR, "Failed to initialize HXHIM");
@@ -147,7 +148,7 @@ int hxhim::Close(hxhim_t *hx) {
 
     destroy::running(hx);
     Results::Destroy(hxhim::Sync(hx));
-    destroy::async_put(hx);
+    // destroy::async_put(hx);
 
     mlog(HXHIM_CLIENT_DBG, "Waiting for all ranks to complete syncing");
     MPI_Barrier(hx->p->bootstrap.comm);
@@ -180,65 +181,6 @@ int hxhimClose(hxhim_t *hx) {
 }
 
 /**
- * FlushPuts
- * Flushes all queued PUTs
- * The internal queue is cleared, even on error
- *
- * @param hx the HXHIM session
- * @return results from sending the PUTs
- */
-hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
-    mlog(HXHIM_CLIENT_INFO, "Flushing PUTs");
-    if (!valid(hx)) {
-        return nullptr;
-    }
-
-    mlog(HXHIM_CLIENT_DBG, "Emptying PUT queue");
-
-    hxhim::Unsent<hxhim::PutData> &unsent = hx->p->queues.puts;
-    {
-        std::unique_lock<std::mutex> lock(unsent.mutex);
-        unsent.force = true;
-    }
-    unsent.start_processing.notify_all();
-
-    mlog(HXHIM_CLIENT_DBG, "Forcing flush %d", unsent.force);
-
-    // wait for flush to complete
-    std::unique_lock<std::mutex> lock(unsent.mutex);
-    while (hx->p->running && unsent.force) {
-        mlog(HXHIM_CLIENT_DBG, "Waiting for PUT queue to be processed %d", unsent.force);
-        unsent.done_processing.wait(lock, [&](){ return !hx->p->running || !unsent.force; });
-    }
-
-    mlog(HXHIM_CLIENT_DBG, "Emptied out PUT queue");
-
-    std::unique_lock<std::mutex> results_lock(hx->p->async_put.mutex);
-
-    mlog(HXHIM_CLIENT_DBG, "Processing PUT results");
-
-    // return PUT results and allocate space for new PUT results
-    hxhim::Results *res = hx->p->async_put.results;
-    hx->p->async_put.results = construct<hxhim::Results>();
-
-    mlog(HXHIM_CLIENT_INFO, "PUTs Flushed");
-
-    return res;
-}
-
-/**
- * hxhimFlushPuts
- * Flushes all queued PUTs
- * The internal queue is cleared, even on error
- *
- * @param hx the HXHIM session
- * @return Pointer to return value wrapper
- */
-hxhim_results_t *hxhimFlushPuts(hxhim_t *hx) {
-    return hxhim_results_init(hxhim::FlushPuts(hx));
-}
-
-/**
  * Flush
  * Generic flush function
  * Converts a UserData_t into Request_ts for transport
@@ -267,6 +209,69 @@ hxhim::Results *FlushImpl(hxhim_t *hx, hxhim::Unsent<UserData_t> &unsent, const 
     }
 
     return hxhim::process<UserData_t, Request_t, Response_t>(hx, head, max_ops_per_send);
+}
+
+/**
+ * FlushPuts
+ * Flushes all queued PUTs
+ * The internal queue is cleared, even on error
+ *
+ * @param hx the HXHIM session
+ * @return results from sending the PUTs
+ */
+hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
+    mlog(HXHIM_CLIENT_INFO, "Flushing PUTs");
+    hxhim::Results *res = FlushImpl<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, hx->p->queues.puts, hx->p->max_ops_per_send.puts);
+    mlog(HXHIM_CLIENT_INFO, "Done Flushing Puts");
+    return res;
+    // mlog(HXHIM_CLIENT_INFO, "Flushing PUTs");
+    // if (!valid(hx)) {
+    //     return nullptr;
+    // }
+
+    // mlog(HXHIM_CLIENT_DBG, "Emptying PUT queue");
+
+    // hxhim::Unsent<hxhim::PutData> &unsent = hx->p->queues.puts;
+    // {
+    //     std::unique_lock<std::mutex> lock(unsent.mutex);
+    //     unsent.force = true;
+    // }
+    // unsent.start_processing.notify_all();
+
+    // mlog(HXHIM_CLIENT_DBG, "Forcing flush %d", unsent.force);
+
+    // // wait for flush to complete
+    // std::unique_lock<std::mutex> lock(unsent.mutex);
+    // while (hx->p->running && unsent.force) {
+    //     mlog(HXHIM_CLIENT_DBG, "Waiting for PUT queue to be processed %d", unsent.force);
+    //     unsent.done_processing.wait(lock, [&](){ return !hx->p->running || !unsent.force; });
+    // }
+
+    // mlog(HXHIM_CLIENT_DBG, "Emptied out PUT queue");
+
+    // std::unique_lock<std::mutex> results_lock(hx->p->async_put.mutex);
+
+    // mlog(HXHIM_CLIENT_DBG, "Processing PUT results");
+
+    // // return PUT results and allocate space for new PUT results
+    // hxhim::Results *res = hx->p->async_put.results;
+    // hx->p->async_put.results = construct<hxhim::Results>();
+
+    // mlog(HXHIM_CLIENT_INFO, "PUTs Flushed");
+
+    // return res;
+}
+
+/**
+ * hxhimFlushPuts
+ * Flushes all queued PUTs
+ * The internal queue is cleared, even on error
+ *
+ * @param hx the HXHIM session
+ * @return Pointer to return value wrapper
+ */
+hxhim_results_t *hxhimFlushPuts(hxhim_t *hx) {
+    return hxhim_results_init(hxhim::FlushPuts(hx));
 }
 
 /**

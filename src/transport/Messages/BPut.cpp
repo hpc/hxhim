@@ -60,12 +60,6 @@ int Transport::Request::BPut::steal(Transport::Request::BPut *from, const std::s
 }
 
 int Transport::Request::BPut::cleanup() {
-    for(std::size_t i = 0; i < count; i++) {
-        destruct(subjects[i]);
-        destruct(predicates[i]);
-        destruct(objects[i]);
-    }
-
     dealloc_array(subjects, count);
     subjects = nullptr;
 

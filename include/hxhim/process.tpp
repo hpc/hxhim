@@ -36,6 +36,12 @@ hxhim::Results *process(hxhim_t *hx,
     mlog(HXHIM_CLIENT_DBG, "Start processing");
 
     if (!head) {
+        mlog(HXHIM_CLIENT_WARN, "Nothing to process");
+        return nullptr;
+    }
+
+    if (!hx->p->running) {
+        mlog(HXHIM_CLIENT_CRIT, "HXHIM has stopped. Not processing requests.");
         return nullptr;
     }
 
@@ -48,7 +54,7 @@ hxhim::Results *process(hxhim_t *hx,
     local.dst = hx->p->bootstrap.rank;
 
     // a round might not send every request, so keep running until out of requests
-    while (hx->p->running && head) {
+    while (head) {
         // current set of remote destinations to send to
         std::unordered_map<int, Request_t *> remote;
 
@@ -57,48 +63,58 @@ hxhim::Results *process(hxhim_t *hx,
 
         for(UserData_t *curr = head; hx->p->running && curr;) {
             mlog(HXHIM_CLIENT_DBG, "Preparing to shuffle %p (%p)", curr, curr->next);
-            if (hxhim::shuffle(hx, max_ops_per_send,
-                               curr,
-                               &local,
-                               remote) > -1) {
-                // remove the current operation from the list of
-                // operations queued up and continue processing
 
-                mlog(HXHIM_CLIENT_DBG, "Successfully shuffled %p (%p)", curr, curr->next);
+            UserData_t *next = curr->next;
+            const int dst_ds = hxhim::shuffle::shuffle(hx, max_ops_per_send, curr, &local, remote);
+            switch (dst_ds) {
+                case hxhim::shuffle::ERROR:
+                    mlog(HXHIM_CLIENT_WARN, "Request %p could not be shuffled", curr);
+                    // destroy this request
+                    curr->prev = nullptr;
+                    curr->next = nullptr;
+                    destruct(curr);
+                    break;
+                case hxhim::shuffle::NOSPACE:
+                    // go to the next request; will come back later
+                    mlog(HXHIM_CLIENT_WARN, "Not enough space to place %p", curr);
+                    break;
+                default:
+                    // remove the current request from the list and destroy it
 
-                // head node
-                if (curr == head) {
-                    head = curr->next;
-                }
+                    mlog(HXHIM_CLIENT_DBG, "%p will go to range server %d", curr, dst_ds);
 
-                // there is a node before the current one
-                if (curr->prev) {
-                    curr->prev->next = curr->next;
-                }
+                    // remove the current operation from the list of
+                    // operations queued up and continue processing
 
-                // there is a node after the current one
-                if (curr->next) {
-                    curr->next->prev = curr->prev;
-                }
+                    // replace head node, since it is about to be destructed
+                    if (curr == head) {
+                        head = curr->next;
+                    }
 
-                UserData_t *next = curr->next;
+                    // there is a node before the current one
+                    if (curr->prev) {
+                        curr->prev->next = curr->next;
+                    }
 
-                curr->prev = nullptr;
-                curr->next = nullptr;
+                    // there is a node after the current one
+                    if (curr->next) {
+                        curr->next->prev = curr->prev;
+                    }
 
-                // deallocate current node
-                destruct(curr);
-                curr = next;
+                    // deallocate current node
+                    curr->prev = nullptr;
+                    curr->next = nullptr;
+                    destruct(curr);
+
+                    break;
             }
-            else {
-                mlog(HXHIM_CLIENT_DBG, "Failed to shuffle %p (%p)", curr, curr->next);
-                curr = curr->next;
-            }
+
+            curr = next;
         }
 
         // process remote data
-        if (hx->p->running && remote.size()) {
-            // hxhim::collect_fill_stats(remote, hx->p->stats.bget);
+        if (remote.size()) {
+            hxhim::collect_fill_stats(remote, hx->p->stats.bget);
             Transport::Response::Response *responses = hx->p->transport->communicate(remote);
             for(Transport::Response::Response *curr = responses; curr; curr = Transport::next(curr)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
@@ -107,12 +123,12 @@ hxhim::Results *process(hxhim_t *hx,
             }
         }
 
-        for(typename decltype(remote)::value_type const &dst : remote) {
+        for(REF(remote)::value_type &dst : remote) {
             destruct(dst.second);
         }
 
         // process local data
-        if (hx->p->running && local.count) {
+        if (local.count) {
             hxhim::collect_fill_stats(&local, hx->p->stats.bget);
             Response_t *responses = local_client<Request_t, Response_t>(hx, &local);
             for(Transport::Response::Response *curr = responses; curr; curr = Transport::next(curr)) {

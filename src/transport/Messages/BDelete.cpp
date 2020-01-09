@@ -42,23 +42,18 @@ int Transport::Request::BDelete::steal(Transport::Request::BDelete *from, const 
         return TRANSPORT_ERROR;
     }
 
-    subjects[count]          = from->subjects[i];
-    predicates[count]        = from->predicates[i];
+    subjects[count]     = from->subjects[i];
+    predicates[count]   = from->predicates[i];
 
     count++;
 
-    from->subjects[i]        = nullptr;
-    from->predicates[i]      = nullptr;
+    from->subjects[i]   = nullptr;
+    from->predicates[i] = nullptr;
 
     return TRANSPORT_SUCCESS;
 }
 
 int Transport::Request::BDelete::cleanup() {
-    for(std::size_t i = 0; i < count; i++) {
-        destruct(subjects[i]);
-        destruct(predicates[i]);
-    }
-
     dealloc_array(subjects, count);
     subjects = nullptr;
 

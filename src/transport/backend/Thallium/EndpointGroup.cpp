@@ -114,7 +114,7 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
     Recv_t *head = nullptr;
     Recv_t *tail = nullptr;
 
-    mlog(THALLIUM_INFO, "Processing Messages in %zu buffers", messages.size());
+    mlog(THALLIUM_INFO, "Sending requests in %zu buffers", messages.size());
 
     // buffer used for rdma
     void *buf = alloc(buffer_size);
@@ -124,29 +124,30 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
         Send_t *req = message.second;
 
         if (!req) {
-            mlog(THALLIUM_WARN, "Message going to %d does not exist", message.first);
+            mlog(THALLIUM_WARN, "Request going to %d does not exist", message.first);
             continue;
         }
 
-        mlog(THALLIUM_DBG, "Message is going to range server %d", req->dst);
+        mlog(THALLIUM_DBG, "Request is going to range server %d", req->dst);
 
         // figure out where to send the message
         std::unordered_map<int, Endpoint_t>::const_iterator dst_it = endpoints.find(req->dst);
-
         if (dst_it == endpoints.end()) {
             mlog(THALLIUM_WARN, "Could not find endpoint for destination rank %d", req->dst);
             continue;
         }
 
+        mlog(THALLIUM_DBG, "Packing request going to range server %d", req->dst);
+
         // pack the request
-        // doing some bad stuff here: the actual allocated buffer should be large enough to allow for responses
+        // since the buf pointer is provided, pack will not allocate a new memory address, so the actual buffer size should be large enough to hold a request and a response
         std::size_t req_size = 0;
         if (Packer::pack(req, &buf, &req_size) != TRANSPORT_SUCCESS) {
             mlog(THALLIUM_WARN, "Unable to pack message");
             continue;
         }
 
-        mlog(THALLIUM_DBG, "Sending message to %d packed into a buffer of size %zu", req->dst, req_size);
+        mlog(THALLIUM_DBG, "Sending packed request (%zu / %zu bytes) to %d", req_size, buffer_size, req->dst);
 
         // create the bulk message, send it, and get the size in response the response data is in buf
         std::vector<std::pair<void *, std::size_t> > segments = {std::make_pair(buf, buffer_size)};
@@ -179,12 +180,12 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
             tail = response;
         }
 
-        mlog(THALLIUM_DBG, "Done processing message to %d", req->dst);
+        mlog(THALLIUM_DBG, "Done sending request to %d", req->dst);
     }
 
     dealloc(buf);
 
-    mlog(THALLIUM_INFO, "Done processing messages");
+    mlog(THALLIUM_INFO, "Done sending requests and receiving responses");
 
     return head;
 }
