@@ -779,10 +779,8 @@ int hxhim::BGetOp(hxhim_t *hx,
     }
 
     hxhim::GetOpData *getop = construct<hxhim::GetOpData>();
-    getop->subject = subject;
-    getop->subject_len = subject_len;
-    getop->predicate = predicate;
-    getop->predicate_len = predicate_len;
+    getop->subject = construct<ReferenceBlob>(subject, subject_len);
+    getop->predicate = construct<ReferenceBlob>(predicate, predicate_len);
     getop->object_type = object_type;
     getop->num_recs = num_records;
     getop->op = op;

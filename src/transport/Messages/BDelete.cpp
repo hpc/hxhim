@@ -54,6 +54,11 @@ int Transport::Request::BDelete::steal(Transport::Request::BDelete *from, const 
 }
 
 int Transport::Request::BDelete::cleanup() {
+    for(std::size_t i = 0; i < count; i++) {
+        destruct(subjects[i]);
+        destruct(predicates[i]);
+    }
+
     dealloc_array(subjects, count);
     subjects = nullptr;
 

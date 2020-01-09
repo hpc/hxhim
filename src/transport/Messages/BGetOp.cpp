@@ -64,6 +64,11 @@ int Transport::Request::BGetOp::steal(Transport::Request::BGetOp *from, const st
 }
 
 int Transport::Request::BGetOp::cleanup() {
+    for(std::size_t i = 0; i < count; i++) {
+        destruct(subjects[i]);
+        destruct(predicates[i]);
+    }
+
     dealloc_array(subjects, count);
     subjects = nullptr;
 
@@ -150,6 +155,12 @@ int Transport::Response::BGetOp::steal(Transport::Response::BGetOp *bget, const 
 }
 
 int Transport::Response::BGetOp::cleanup() {
+    for(std::size_t i = 0; i < count; i++) {
+        destruct(subjects[i]);
+        destruct(predicates[i]);
+        destruct(objects[i]);
+    }
+
     dealloc_array(subjects, count);
     subjects = nullptr;
 

@@ -6,8 +6,14 @@
 
 #include "hxhim/constants.h"
 #include "transport/Messages/Messages.hpp"
+#include "utils/Blob.hpp"
 #include "utils/type_traits.hpp"
 
+/*
+ * These structs do not own any of the data they hold.
+ * They are all references, and will not be cleaned up
+ * by the destructor.
+ */
 namespace hxhim {
     struct UserData {
         virtual ~UserData();
@@ -17,11 +23,8 @@ namespace hxhim {
         SubjectPredicate();
         virtual ~SubjectPredicate();
 
-        void *subject;
-        std::size_t subject_len;
-
-        void *predicate;
-        std::size_t predicate_len;
+        Blob *subject;
+        Blob *predicate;
     } SP_t;
 
     typedef struct SubjectPredicateObject : SP_t {
@@ -29,14 +32,13 @@ namespace hxhim {
         virtual ~SubjectPredicateObject();
 
         hxhim_type_t object_type;
-        void *object;
-        std::size_t object_len;
+        Blob *object;
     } SPO_t;
 
     struct PutData : SPO_t {
         PutData();
         ~PutData() = default;
-        int moveto(Transport::Request::BPut *bput, const int ds_offset) const;
+        int moveto(Transport::Request::BPut *bput, const int ds_offset);
 
         PutData *prev;
         PutData *next;
@@ -45,11 +47,12 @@ namespace hxhim {
     struct GetData : SP_t {
         GetData();
         ~GetData();
-        int moveto(Transport::Request::BGet *bget, const int ds_offset) const;
+        int moveto(Transport::Request::BGet *bget, const int ds_offset);
 
         hxhim_type_t object_type;
         void *object;
         std::size_t *object_len;
+
         GetData *prev;
         GetData *next;
     };
@@ -57,11 +60,12 @@ namespace hxhim {
     struct GetOpData : SP_t {
         GetOpData();
         ~GetOpData();
-        int moveto(Transport::Request::BGetOp *bgetop, const int ds_offset) const;
+        int moveto(Transport::Request::BGetOp *bgetop, const int ds_offset);
 
         hxhim_type_t object_type;
         std::size_t num_recs;
         hxhim_get_op_t op;
+
         GetOpData *prev;
         GetOpData *next;
     };
@@ -69,7 +73,7 @@ namespace hxhim {
     struct DeleteData : SP_t {
         DeleteData();
         ~DeleteData() = default;
-        int moveto(Transport::Request::BDelete *bdelete, const int ds_offset) const;
+        int moveto(Transport::Request::BDelete *bdelete, const int ds_offset);
 
         DeleteData *prev;
         DeleteData *next;
@@ -77,7 +81,7 @@ namespace hxhim {
 
     struct BHistogramData : UserData {
         BHistogramData();
-        int moveto(Transport::Request::BHistogram *bhist, const int ds_offset) const;
+        int moveto(Transport::Request::BHistogram *bhist, const int ds_offset);
     };
 
     template <typename Data, typename = enable_if_t<std::is_base_of<SubjectPredicate, Data>::value> >

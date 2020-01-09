@@ -5,9 +5,7 @@ hxhim::UserData::~UserData() {}
 hxhim::SubjectPredicate::SubjectPredicate()
     : UserData(),
       subject(nullptr),
-      subject_len(0),
-      predicate(nullptr),
-      predicate_len(0)
+      predicate(nullptr)
 {}
 
 hxhim::SubjectPredicate::~SubjectPredicate() {}
@@ -15,8 +13,7 @@ hxhim::SubjectPredicate::~SubjectPredicate() {}
 hxhim::SubjectPredicateObject::SubjectPredicateObject()
     : SP_t(),
       object_type(HXHIM_INVALID_TYPE),
-      object(nullptr),
-      object_len(0)
+      object()
 {}
 
 hxhim::SubjectPredicateObject::~SubjectPredicateObject() {}
@@ -27,16 +24,16 @@ hxhim::PutData::PutData()
       next(nullptr)
 {}
 
-int hxhim::PutData::moveto(Transport::Request::BPut *bput, const int ds_offset) const {
+int hxhim::PutData::moveto(Transport::Request::BPut *bput, const int ds_offset) {
     if (!bput) {
         return HXHIM_ERROR;
     }
 
     bput->ds_offsets[bput->count] = ds_offset;
-    bput->subjects[bput->count] = construct<ReferenceBlob>(subject, subject_len);
-    bput->predicates[bput->count] = construct<ReferenceBlob>(predicate, predicate_len);
+    bput->subjects[bput->count] = subject; subject = nullptr;
+    bput->predicates[bput->count] = predicate; predicate = nullptr;
     bput->object_types[bput->count] = object_type;
-    bput->objects[bput->count] = construct<ReferenceBlob>(object, object_len);
+    bput->objects[bput->count] = object; object = nullptr;
     bput->count++;
 
     return HXHIM_SUCCESS;
@@ -53,14 +50,14 @@ hxhim::GetData::GetData()
 
 hxhim::GetData::~GetData() {}
 
-int hxhim::GetData::moveto(Transport::Request::BGet *bget, const int ds_offset) const {
+int hxhim::GetData::moveto(Transport::Request::BGet *bget, const int ds_offset) {
     if (!bget) {
         return HXHIM_ERROR;
     }
 
     bget->ds_offsets[bget->count] = ds_offset;
-    bget->subjects[bget->count] = construct<ReferenceBlob>(subject, subject_len);
-    bget->predicates[bget->count] = construct<ReferenceBlob>(predicate, predicate_len);
+    bget->subjects[bget->count] = subject; subject = nullptr;
+    bget->predicates[bget->count] = predicate; predicate = nullptr;
     bget->object_types[bget->count] = object_type;
     bget->objects[bget->count] = construct<ReferenceBlob>();
 
@@ -89,14 +86,14 @@ hxhim::GetOpData::GetOpData()
 
 hxhim::GetOpData::~GetOpData() {}
 
-int hxhim::GetOpData::moveto(Transport::Request::BGetOp *bgetop, const int ds_offset) const {
+int hxhim::GetOpData::moveto(Transport::Request::BGetOp *bgetop, const int ds_offset) {
     if (!bgetop) {
         return HXHIM_ERROR;
     }
 
     bgetop->ds_offsets[bgetop->count] = ds_offset;
-    bgetop->subjects[bgetop->count] = construct<ReferenceBlob>(subject, subject_len);
-    bgetop->predicates[bgetop->count] = construct<ReferenceBlob>(predicate, predicate_len);
+    bgetop->subjects[bgetop->count] = subject; subject = nullptr;
+    bgetop->predicates[bgetop->count] = predicate; predicate = nullptr;
     bgetop->object_types[bgetop->count] = object_type;
     bgetop->num_recs[bgetop->count] = num_recs;
     bgetop->ops[bgetop->count] = op;
@@ -111,14 +108,14 @@ hxhim::DeleteData::DeleteData()
       next(nullptr)
 {}
 
-int hxhim::DeleteData::moveto(Transport::Request::BDelete *bdel, const int ds_offset) const {
+int hxhim::DeleteData::moveto(Transport::Request::BDelete *bdel, const int ds_offset) {
     if (!bdel) {
         return HXHIM_ERROR;
     }
 
     bdel->ds_offsets[bdel->count] = ds_offset;
-    bdel->subjects[bdel->count] = construct<ReferenceBlob>(subject, subject_len);
-    bdel->predicates[bdel->count] = construct<ReferenceBlob>(predicate, predicate_len);
+    bdel->subjects[bdel->count] = subject; subject = nullptr;
+    bdel->predicates[bdel->count] = predicate; predicate = nullptr;
     bdel->count++;
 
     return HXHIM_SUCCESS;
@@ -129,7 +126,7 @@ hxhim::BHistogramData::BHistogramData()
     : UserData()
 {}
 
-int hxhim::BHistogramData::moveto(Transport::Request::BHistogram *bhist, const int ds_offset) const {
+int hxhim::BHistogramData::moveto(Transport::Request::BHistogram *bhist, const int ds_offset) {
     if (!bhist) {
         return HXHIM_ERROR;
     }

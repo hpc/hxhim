@@ -54,7 +54,6 @@ TEST(Request, BPut) {
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
 
-
     EXPECT_EQ(src.count, dst->count);
 
     for(std::size_t i = 0; i < dst->count; i++) {

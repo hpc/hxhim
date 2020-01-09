@@ -37,7 +37,7 @@ int shuffle(hxhim_t *hx,
             DST_t *local,
             std::unordered_map<int, DST_t *> &remote) {
     // get the destination backend id for the key
-    const int ds_id = hx->p->hash.func(hx, src->subject, src->subject_len, src->predicate, src->predicate_len, hx->p->hash.args);
+    const int ds_id = hx->p->hash.func(hx, src->subject->ptr, src->subject->len, src->predicate->ptr, src->predicate->len, hx->p->hash.args);
     if (ds_id < 0) {
         mlog(HXHIM_CLIENT_WARN, "Hash returned bad target datastore: %d", ds_id);
         return ERROR;
