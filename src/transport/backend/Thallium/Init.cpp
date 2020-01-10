@@ -36,7 +36,7 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
                         mlog(THALLIUM_INFO, "Stopped Thallium engine %s", addr.c_str());
                     });
 
-    // mlog(THALLIUM_DBG, "Created Thallium engine %s", static_cast<std::string>(engine->self()).c_str());
+    mlog(THALLIUM_INFO, "Created Thallium engine %s", static_cast<std::string>(engine->self()).c_str());
 
     // wait for every engine to start up
     MPI_Barrier(hx->p->bootstrap.comm);
@@ -45,14 +45,14 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
     if (hxhim::range_server::is_range_server(hx->p->bootstrap.rank, opts->p->client_ratio, opts->p->server_ratio)) {
         RangeServer::init(hx, engine, config->buffer_size);
         hx->p->range_server.destroy = RangeServer::destroy;
-        // mlog(THALLIUM_INFO, "Created Thallium Range Server on rank %d", hx->p->bootstrap.rank);
+        mlog(THALLIUM_INFO, "Created Thallium Range Server on rank %d", hx->p->bootstrap.rank);
     }
 
     // create client to range server RPC
     RPC_t rpc(new thallium::remote_procedure(engine->define(RangeServer::CLIENT_TO_RANGE_SERVER_NAME,
                                                             RangeServer::process)));
 
-    // mlog(THALLIUM_DBG, "Created Thallium RPC");
+    mlog(THALLIUM_DBG, "Created Thallium RPC");
 
     // get a mapping of unique IDs to thallium addresses
     std::unordered_map<int, std::string> addrs;
@@ -73,7 +73,7 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
             // if the rank was specified as part of the endpoint group, add the thallium endpoint to the endpoint group
             if (!opts->p->endpointgroup.size() || (opts->p->endpointgroup.find(addr.first) != opts->p->endpointgroup.end())) {
                 eg->AddID(addr.first, server);
-                // mlog(THALLIUM_DBG, "Added Thallium endpoint %s to the endpoint group", addr.second.c_str());
+                mlog(THALLIUM_DBG, "Added Thallium endpoint %s to the endpoint group", addr.second.c_str());
             }
         }
     }

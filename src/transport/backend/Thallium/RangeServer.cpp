@@ -30,6 +30,8 @@ void RangeServer::init(hxhim_t *hx, const Engine_t &engine, const std::size_t bu
 
 void RangeServer::destroy() {
     const int rank = hx_->p->bootstrap.rank;
+    bufsize_ = 0;
+    engine_ = nullptr;
     hx_ = nullptr;
     mlog(THALLIUM_INFO, "Stopped Thallium Range Server on rank %d", rank);
 }
