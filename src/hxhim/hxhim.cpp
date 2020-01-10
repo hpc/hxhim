@@ -49,7 +49,7 @@ int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
         (init::memory   (hx, opts) != HXHIM_SUCCESS) ||
         (init::hash     (hx, opts) != HXHIM_SUCCESS) ||
         (init::datastore(hx, opts) != HXHIM_SUCCESS) ||
-        // (init::async_put(hx, opts) != HXHIM_SUCCESS) ||
+        (init::async_put(hx, opts) != HXHIM_SUCCESS) ||
         (init::transport(hx, opts) != HXHIM_SUCCESS)) {
         MPI_Barrier(hx->p->bootstrap.comm);
         Close(hx);
@@ -105,9 +105,8 @@ int hxhim::OpenOne(hxhim_t *hx, hxhim_options_t *opts, const std::string &db_pat
         (init::running       (hx, opts)          != HXHIM_SUCCESS) ||
         (init::memory        (hx, opts)          != HXHIM_SUCCESS) ||
         (init::hash          (hx, opts)          != HXHIM_SUCCESS) ||
-        (init::one_datastore (hx, opts, db_path) != HXHIM_SUCCESS) //||
-        // (init::async_put     (hx, opts)          != HXHIM_SUCCESS)
-        ) {
+        (init::one_datastore (hx, opts, db_path) != HXHIM_SUCCESS) ||
+        (init::async_put     (hx, opts)          != HXHIM_SUCCESS)) {
         MPI_Barrier(hx->p->bootstrap.comm);
         Close(hx);
         mlog(HXHIM_CLIENT_ERR, "Failed to initialize HXHIM");
@@ -148,7 +147,7 @@ int hxhim::Close(hxhim_t *hx) {
 
     destroy::running(hx);
     Results::Destroy(hxhim::Sync(hx));
-    // destroy::async_put(hx);
+    destroy::async_put(hx);
 
     mlog(HXHIM_CLIENT_DBG, "Waiting for all ranks to complete syncing");
     MPI_Barrier(hx->p->bootstrap.comm);
@@ -222,6 +221,17 @@ hxhim::Results *FlushImpl(hxhim_t *hx, hxhim::Unsent<UserData_t> &unsent, const 
 hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
     mlog(HXHIM_CLIENT_INFO, "Flushing PUTs");
     hxhim::Results *res = FlushImpl<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, hx->p->queues.puts, hx->p->max_ops_per_send.puts);
+
+    // TODO: Remove this when the background thread is restored
+    // if PUTs flushed when calling Put/BPut, return those results as well
+    std::unique_lock<std::mutex> lock(hx->p->async_put.mutex);
+    if (hx->p->async_put.results) {
+        hx->p->async_put.results->Append(res);
+        destruct(res);
+        res = hx->p->async_put.results;
+        hx->p->async_put.results = nullptr;
+    }
+
     mlog(HXHIM_CLIENT_INFO, "Done Flushing Puts");
     return res;
     // mlog(HXHIM_CLIENT_INFO, "Flushing PUTs");
@@ -661,9 +671,33 @@ int hxhim::BPut(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
-    mlog(HXHIM_CLIENT_DBG, "%s %s:%d", __FILE__, __func__, __LINE__);
     for(std::size_t i = 0; i < count; i++) {
         hxhim::PutImpl(hx->p->queues.puts, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], object_types[i], objects[i], object_lens[i]);
+    }
+
+    // TODO: replace this with background thread
+    if (hx->p->queues.puts.count > hx->p->async_put.max_queued) {
+        // remove the list from the context
+        hxhim::PutData* head = nullptr;
+        {
+            std::unique_lock<std::mutex> lock(hx->p->queues.puts.mutex);
+            head = hx->p->queues.puts.head;
+            hx->p->queues.puts.head = nullptr;
+            hx->p->queues.puts.tail = nullptr;
+        }
+
+        // process the batch and save the results
+        hxhim::Results *res = hxhim::process<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, head, hx->p->max_ops_per_send.puts);
+        {
+            std::unique_lock<std::mutex> lock(hx->p->async_put.mutex);
+            if (hx->p->async_put.results) {
+                hx->p->async_put.results->Append(res);
+                destruct(res);
+            }
+            else {
+                hx->p->async_put.results = res;
+            }
+        }
     }
 
     return HXHIM_SUCCESS;

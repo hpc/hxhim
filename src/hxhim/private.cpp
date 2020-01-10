@@ -351,10 +351,10 @@ int hxhim::init::async_put(hxhim_t *hx, hxhim_options_t *opts) {
     hx->p->async_put.max_queued = opts->p->start_async_put_at;
 
     // Set up queued PUT results list
-    hx->p->async_put.results = construct<hxhim::Results>();
+    hx->p->async_put.results = nullptr;
 
-    // Start the background thread
-    hx->p->async_put.thread = std::thread(backgroundPUT, hx);
+    // // Start the background thread
+    // hx->p->async_put.thread = std::thread(backgroundPUT, hx);
 
     return HXHIM_SUCCESS;
 }
@@ -540,9 +540,9 @@ int hxhim::destroy::async_put(hxhim_t *hx) {
     hx->p->queues.puts.start_processing.notify_all();
     hx->p->queues.puts.done_processing.notify_all();
 
-    if (hx->p->async_put.thread.joinable()) {
-        hx->p->async_put.thread.join();
-    }
+    // if (hx->p->async_put.thread.joinable()) {
+    //     hx->p->async_put.thread.join();
+    // }
 
     // clear out unflushed work in the work queue
     clean(hx, hx->p->queues.puts.head);
@@ -595,7 +595,6 @@ int hxhim::destroy::datastore(hxhim_t *hx) {
 /**
  * PutImpl
  * Add a PUT into the work queue
- * The mutex should be locked before this function is called.
  * hx and hx->p are not checked because they must have been
  * valid for this function to be called.
  *
