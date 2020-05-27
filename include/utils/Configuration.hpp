@@ -130,17 +130,6 @@ class ConfigVarEnvironment : public ConfigReader {
 #define CONFIG_ERROR     2
 
 /**
- * get_bool
- * Helper function for reading booleans from the configuration
- *
- * @param config     the configuration
- * @param config_key the entry in the configuraion to read
- * @param b          the value of the configuration
- * @return CONFIG_FOUND if the configuration value was good, CONFIG_NOT_FOUND if the configuration key was not found, or CONFIG_ERROR if the configuration value was bad
- */
-int get_bool(const Config &config, const std::string &config_key, bool &b);
-
-/**
  * get_value
  * Helper function for reading numeric values from the configuration
  *
@@ -149,7 +138,7 @@ int get_bool(const Config &config, const std::string &config_key, bool &b);
  * @tparam value     the value of the configuration
  * @return CONFIG_FOUND if the configuration value was good, CONFIG_NOT_FOUND if the configuration key was not found, or CONFIG_ERROR if the configuration value was bad
  */
-template<typename T >
+template <typename T>
 int get_value(const Config &config, const std::string &config_key, T &v) {
     // find the key
     Config_it in_config = config.find(config_key);
@@ -161,6 +150,17 @@ int get_value(const Config &config, const std::string &config_key, T &v) {
 }
 
 /**
+ * get_value <bool> overload
+ * Helper function for reading booleans from the configuration
+ *
+ * @param config     the configuration
+ * @param config_key the entry in the configuraion to read
+ * @param b          the value of the configuration
+ * @return CONFIG_FOUND if the configuration value was good, CONFIG_NOT_FOUND if the configuration key was not found, or CONFIG_ERROR if the configuration value was bad
+ */
+int get_value(const Config &config, const std::string &config_key, bool &b);
+
+/**
  * get_from_map
  * Helper function for getting values from a map with the value read from the configuration
  *
@@ -170,7 +170,7 @@ int get_value(const Config &config, const std::string &config_key, T &v) {
  * @tparam value     the value of the configuration
  * @return CONFIG_FOUND if the configuration value was good, CONFIG_NOT_FOUND if the configuration key was not found, or CONFIG_ERROR if the configuration value was bad
  */
-template<typename T>
+template <typename T>
 int get_from_map(const Config &config, const std::string &config_key,
                  const std::unordered_map<std::string, T> &map, T &value) {
     // find key in configuration

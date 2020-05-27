@@ -130,7 +130,7 @@ bool ConfigVarEnvironment::process(Config &config) const {
 }
 
 /**
- * get_bool
+ * get_value <bool> overload
  * Helper function for reading booleans from the configuration
  *
  * @param config     the configuration
@@ -138,7 +138,7 @@ bool ConfigVarEnvironment::process(Config &config) const {
  * @param b          the value of the configuration
  * @return CONFIG_FOUND if the configuration value was good, CONFIG_NOT_FOUND if the configuration key was not found, or CONFIG_ERROR if the configuration value was bad
  */
-int get_bool(const Config &config, const std::string &config_key, bool &b) {
+int get_value(const Config &config, const std::string &config_key, bool &b) {
     // find the key
     Config_it in_config = config.find(config_key);
     if (in_config != config.end()) {

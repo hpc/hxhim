@@ -112,7 +112,7 @@ static bool parse_datastore(hxhim_options_t *opts, const Config &config) {
                     }
 
                     bool create_if_missing = true; // default to true; do not error if not found
-                    if (get_bool(config, hxhim::config::LEVELDB_CREATE_IF_MISSING, create_if_missing) == CONFIG_ERROR) {
+                    if (get_value(config, hxhim::config::LEVELDB_CREATE_IF_MISSING, create_if_missing) == CONFIG_ERROR) {
                         return false;
                     }
 
