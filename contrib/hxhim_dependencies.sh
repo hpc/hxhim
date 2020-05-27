@@ -1,19 +1,21 @@
 #!/usr/bin/env bash
 # HXHIM Dependency Installer
 #
-# This script checks for the files needed by HXHIM. Git
-# repositories are installed. yum/rpm repostories are only
-# checked for, not installed.
+# This script checks for the files needed by HXHIM.
 #
 # CC and CXX can be set to change the compiler
 #
-# Packages:
+# Executables (only checked for):
 #     autoconf/automake/libtool
-#     cmake (3+)
-#     libev-devel
-#     libtool-ltdl-devel
+#     CMake (3.6.3+)
+#     mpi (mpicc, mpicxx, mpirun, mpiexec)
 #
-# Git Repositories:
+# Libraries (only checked for):
+#     libev-devel (libev.*)
+#     libtool-ltdl-devel (libltdl.*)
+#     mpi (libmpi.*)
+#
+# Git Repositories (checks and installs):
 #     BMI (optional)
 #     CCI (optional)
 #     OFI (optional)
@@ -22,16 +24,13 @@
 #     margo
 #     thallium
 #
-# Not Checked/Installed:
-#     MPI
-#
 
 SOURCE="$(dirname $(realpath $BASH_SOURCE[0]))"
 
 set -e
 
 function usage() {
-    echo "Usage: $0 [Options] download_dir install_dir"
+    echo "Usage: $0 [Options] download_dir install_dir [PROCS]"
     echo ""
     echo "    Options:"
     echo "        --BMI  build the BMI module for mercury"
@@ -40,23 +39,41 @@ function usage() {
     echo "        --SM   build the SM  module for mercury"
 }
 
-# Check that a package is installed; if not, print the name of the package and exit
-function check_package() {
-    package_name=$1
-    rpm -q ${package_name} &> /dev/null || (echo "Package ${package_name} not installed"; exit 1)
+# Check that an executable is available; if not, print the name and exit
+function check_executable() {
+    executable="$@"
+    command -v ${executable} > /dev/null 2>&1 || (echo "${executable} not found"; exit 1)
 }
 
 function check_autoconf() {
-    check_package autoconf
+    check_executable autoconf
+    check_executable automake
+    check_executable libtool
 }
 
 function check_cmake() {
-    check_package cmake3
+    check_executable cmake
+
+    # make sure CMake's version is at least 3.6.3
+    cmake_version=$(cmake --version | head -n 1 | awk '{ print $3 }')
+    [ "3.6.3" = $(echo -e "3.6.3\n${cmake_version}" | sort -V | head -n 1) ] || exit 1
+}
+
+# Check that a library is found; if not, print the library name and exit
+function check_library() {
+    library=$1
+    ldconfig -N -v $(echo "${LD_LIBRARY_PATH}" | sed 's/:/ /g') 2> /dev/null | grep ${library} > /dev/null || (echo "Library ${library} not found"; exit 1)
+}
+
+function check_mpi() {
+    check_executable mpicc
+    check_executable mpicxx
+    check_executable mpirun
+    check_executable mpiexec
+    check_library    "libmpi\\..*"
 }
 
 function NA_BMI() {
-    check_autoconf
-
     name=bmi
     download_dir=${WORKING_DIR}/${name}
     if [[ ! -d "${download_dir}" ]]; then
@@ -65,7 +82,7 @@ function NA_BMI() {
 
     cd ${download_dir}
     git pull
-    if [[ ! -d build ]]; then
+    if [[ ! (-f configure && -x configure) ]]; then
         ./prepare
     fi
     mkdir -p build
@@ -82,8 +99,6 @@ function NA_BMI() {
 }
 
 function NA_CCI() {
-    check_autoconf
-
     name=cci
     download_dir=${WORKING_DIR}/${name}
     if [[ ! -d "${download_dir}" ]]; then
@@ -92,7 +107,7 @@ function NA_CCI() {
 
     cd ${download_dir}
     git pull
-    if [[ ! -d build ]]; then
+    if [[ ! (-f configure && -x configure) ]]; then
         ./autogen.pl
     fi
     mkdir -p build
@@ -109,8 +124,6 @@ function NA_CCI() {
 }
 
 function NA_OFI() {
-    check_autoconf
-
     name=libfabric
     download_dir=${WORKING_DIR}/${name}
     if [[ ! -d "${download_dir}" ]]; then
@@ -119,7 +132,7 @@ function NA_OFI() {
 
     cd ${download_dir}
     git pull
-    if [[ ! -d build ]]; then
+    if [[ ! (-f configure && -x configure) ]]; then
         ./autogen.sh
     fi
     mkdir -p build
@@ -178,6 +191,7 @@ function mercury() {
     git pull
     mkdir -p build
     cd build
+    rm -rf *
     install_dir=${PREFIX}/${name}
     PKG_CONFIG_PATH=${PKG_CONFIG_PATH} cmake -DCMAKE_INSTALL_PREFIX=${install_dir} -DMERCURY_USE_BOOST_PP:BOOL=ON -DBUILD_SHARED_LIBS:BOOL=ON $(echo "$cmake_options") ..
     make -j ${PROCS}
@@ -188,13 +202,9 @@ function mercury() {
     PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${install_dir}/lib/pkgconfig
 }
 
-function check_libev() {
-    check_package libev-devel
-}
-
 function argobots() {
-    check_autoconf
-    check_libev
+    # libev-devel
+    check_library "libev\\..*"
 
     name=argobots
     download_dir=${WORKING_DIR}/${name}
@@ -204,7 +214,7 @@ function argobots() {
 
     cd ${download_dir}
     git pull
-    if [[ ! -d build ]]; then
+    if [[ ! (-f configure && -x configure) ]]; then
         ./autogen.sh
     fi
     mkdir -p build
@@ -218,13 +228,9 @@ function argobots() {
     PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${install_dir}/lib/pkgconfig
 }
 
-function check_libtool_ltdl() {
-    check_package libtool-ltdl-devel
-}
-
 function margo() {
-    check_autoconf
-    check_libtool_ltdl
+    # libtool-ltdl-devel
+    check_library "libltdl\\..*"
 
     argobots
     mercury
@@ -237,7 +243,7 @@ function margo() {
 
     cd ${download_dir}
     git pull
-    if [[ ! -d build ]]; then
+    if [[ ! (-f configure && -x configure) ]]; then
         ./prepare.sh
     fi
     mkdir -p build
@@ -266,6 +272,7 @@ function thallium() {
     git pull
     mkdir -p build
     cd build
+    rm -rf *
     install_dir=${PREFIX}/${name}
     PKG_CONFIG_PATH=${PKG_CONFIG_PATH} mercury_DIR=$MERCURY_DIR cmake -DCMAKE_INSTALL_PREFIX=${install_dir} -DCMAKE_CXX_EXTENSIONS:BOOL=OFF ..
     make -j ${PROCS}
@@ -307,6 +314,7 @@ function leveldb() {
     git apply ${SOURCE}/leveldb.patch || true
     mkdir -p build
     cd build
+    rm -rf *
     install_dir=${PREFIX}/${name}
     PKG_CONFIG_PATH=${PKG_CONFIG_PATH} cmake -DCMAKE_INSTALL_PREFIX=${install_dir} ..
     make -j ${PROCS}
@@ -325,13 +333,19 @@ function jemalloc() {
 
     cd ${download_dir}
     git pull
+
+    if [[ ! (-f configure && -x configure) ]]; then
+        ./autogen.sh
+    fi
     mkdir -p build
     cd build
     install_dir=${PREFIX}/${name}
-    PKG_CONFIG_PATH=${PKG_CONFIG_PATH} cmake -DCMAKE_INSTALL_PREFIX=${install_dir} ..
+    PKG_CONFIG_PATH=${PKG_CONFIG_PATH} ../configure --prefix=${install_dir}
     make -j ${PROCS}
     make -j ${PROCS} install
     cd ../..
+
+    PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${install_dir}/lib/pkgconfig
 }
 
 # Parse command line arguments
@@ -377,6 +391,7 @@ fi
 
 WORKING_DIR=$1
 PREFIX=$2
+PROCS=$3 # number of processes make should use
 PKG_CONFIG_PATH=
 
 mkdir -p ${WORKING_DIR}
@@ -390,6 +405,15 @@ if [[ -z "${CXX}" ]]; then
     CXX="c++"
 fi
 
+# check only
+check_executable ${CC}
+check_executable ${CXX}
+check_executable make
+check_autoconf
+check_cmake
+check_mpi
+
+# check and/or install
 thallium
 leveldb
 jemalloc
