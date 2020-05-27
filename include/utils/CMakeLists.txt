@@ -10,8 +10,8 @@ install(FILES
   elen.h
   elen.hpp
   elen.tpp
-  enable_if_t.hpp
   memory.hpp
   mlog2.h
   mlogfacs2.h
+  type_traits.hpp
   DESTINATION include/utils)
