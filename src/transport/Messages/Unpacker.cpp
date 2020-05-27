@@ -417,21 +417,24 @@ int Unpacker::unpack(Response::BGet **bgm, void *buf, const std::size_t bufsize)
         // object
         // unpack into user pointers
         if (out->statuses[i] == HXHIM_SUCCESS) {
-            // get the length returned
+            // get the length found in the packet
             std::size_t get_len = 0;
             memcpy(&get_len, curr, sizeof(get_len));
             curr += sizeof(get_len);
 
-            // get maximum amount of data that can be read or fit in the buffer
-            const std::size_t max_data = (get_len > *(out->orig.object_lens[i]))?get_len:*(out->orig.object_lens[i]);
-            out->objects[i] = construct<ReferenceBlob>(out->orig.objects[i], max_data);
+            // the available space for storing the object is set in object_lens by the caller
+            const std::size_t buffer_len = *(out->orig.object_lens[i]);
+
+            // get the maximum amount of data to copy
+            const std::size_t copy_len = (get_len < buffer_len)?get_len:buffer_len;
+            out->objects[i] = construct<ReferenceBlob>(out->orig.objects[i], copy_len);
 
             if (out->orig.object_lens[i]) {
-                *(out->orig.object_lens[i]) = max_data;
+                *(out->orig.object_lens[i]) = copy_len;
             }
 
             if (out->orig.objects[i]) {
-                memcpy(out->orig.objects[i], curr, max_data);
+                memcpy(out->orig.objects[i], curr, copy_len);
             }
 
             // move past all data, not just data that was placed into the buffer
