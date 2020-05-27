@@ -8,8 +8,18 @@
 #include "print_results.h"
 #include "spo_gen.h"
 
-const size_t count = 1;
+const size_t count = 5;
 const size_t bufsize = 100;
+
+void ordered_print(MPI_Comm comm, const int rank, const int size, hxhim_t * hx, hxhim_results_t *res) {
+    for(int i = 0; i < size; i++) {
+        MPI_Barrier(comm);
+        if (i == rank) {
+            print_results(hx, 1, res);
+        }
+        MPI_Barrier(comm);
+    }
+}
 
 int main(int argc, char *argv[]) {
     int provided;
@@ -17,6 +27,9 @@ int main(int argc, char *argv[]) {
 
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    int size;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
 
     // read the config
     hxhim_options_t opts;
@@ -43,13 +56,29 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    // PUT the key value pairs into MDHIM
+    MPI_Barrier(MPI_COMM_WORLD);
+    if (rank == 0) {
+        printf("PUT key value pairs\n");
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    // PUT the key value pairs into HXHIM
     for(size_t i = 0; i < count; i++) {
         hxhimPut(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_BYTE_TYPE, objects[i], object_lens[i]);
-        printf("Rank %d PUT {%.*s, %.*s} -> %.*s\n", rank, (int) subject_lens[i], (char *) subjects[i], (int) predicate_lens[i], (char *) predicates[i], (int) object_lens[i], (char *) objects[i]);
+        printf("Rank %d PUT {%.*s, %.*s} -> %.*s\n", rank,
+               (int) subject_lens[i],   (char *) subjects[i],
+               (int) predicate_lens[i], (char *) predicates[i],
+               (int) object_lens[i],    (char *) objects[i]);
     }
 
+    MPI_Barrier(MPI_COMM_WORLD);
+    if (rank == 0) {
+        printf("GET before flushing PUTs\n");
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+
     // GET them back, flushing only the GETs
+    // this will likely return errors, since not all of the PUTs will have completed
     void **get_objects = malloc(count * sizeof(void *));
     size_t **get_object_lens = malloc(count * sizeof(size_t *));
     for(size_t i = 0; i < count; i++) {
@@ -58,23 +87,43 @@ int main(int argc, char *argv[]) {
         *(get_object_lens[i]) = bufsize;
         hxhimGet(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_BYTE_TYPE, get_objects[i], get_object_lens[i]);
     }
-    hxhim_results_t *flush_get_res = hxhimFlushGets(&hx);
-    printf("GET before flushing PUTs\n");
-    print_results(&hx, 1, flush_get_res);
-    hxhim_results_destroy(flush_get_res);
 
-    // GET again, but flush everything this time
+    hxhim_results_t *flush_gets_early = hxhimFlushGets(&hx);
+    ordered_print(MPI_COMM_WORLD, rank, size, &hx, flush_gets_early);
+    hxhim_results_destroy(flush_gets_early);
+
+    // flush PUTs
+    MPI_Barrier(MPI_COMM_WORLD);
+    if (rank == 0) {
+        printf("Flush PUTs\n");
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    hxhim_results_t *flush_puts = hxhimFlush(&hx);
+    ordered_print(MPI_COMM_WORLD, rank, size, &hx, flush_puts);
+    hxhim_results_destroy(flush_puts);
+
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    // GET again, now that all PUTs have completed
     enum hxhim_type_t *bget_types = malloc(count * sizeof(enum hxhim_type_t));
     for(size_t i = 0; i < count; i++) {
         bget_types[i] = HXHIM_BYTE_TYPE;
     }
 
     hxhimBGet(&hx, subjects, subject_lens, predicates, predicate_lens, bget_types, get_objects, get_object_lens, count);
-    hxhim_results_t *flush_all_res = hxhimFlush(&hx);
-    printf("GET after flushing PUTs\n");
-    print_results(&hx, 1, flush_all_res);
-    hxhim_results_destroy(flush_all_res);
 
+    MPI_Barrier(MPI_COMM_WORLD);
+    if (rank == 0) {
+        printf("GET after flushing PUTs\n");
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    hxhim_results_t *flush_gets = hxhimFlush(&hx);
+    ordered_print(MPI_COMM_WORLD, rank, size, &hx, flush_gets);
+    hxhim_results_destroy(flush_gets);
+
+    // clean up
     for(size_t i = 0; i < count; i++) {
         free(get_objects[i]);
         free(get_object_lens[i]);
