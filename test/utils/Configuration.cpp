@@ -32,16 +32,16 @@ TEST(ConfigSequence, usage) {
 
     // add to first config reader
     ConfigOnePair first("KEY VALUE1");
-    EXPECT_EQ(config_sequence.add(&first), 1);
+    EXPECT_EQ(config_sequence.add(&first), (std::size_t) 1);
 
     // add to second config reader (overwrites first)
     ConfigOnePair second("KEY VALUE2");
-    EXPECT_EQ(config_sequence.add(&second), 2);
+    EXPECT_EQ(config_sequence.add(&second), (std::size_t) 2);
 
     // read the configuration
     Config config;
 
     config_sequence.process(config);
-    EXPECT_EQ(config.size(), 1);
+    EXPECT_EQ(config.size(), (std::size_t) 1);
     EXPECT_EQ(config.at("KEY"), "VALUE2");
 }

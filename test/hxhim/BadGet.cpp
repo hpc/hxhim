@@ -28,7 +28,7 @@ TEST(hxhim, BadGet) {
     ASSERT_NE(get_results, nullptr);
 
     // get the results and compare them with the original data
-    EXPECT_EQ(get_results->size(), 1);
+    EXPECT_EQ(get_results->size(), (std::size_t) 1);
     for(get_results->GoToHead(); get_results->Valid(); get_results->GoToNext()) {
         hxhim::Results::Result *res = get_results->Curr();
         ASSERT_NE(res, nullptr);

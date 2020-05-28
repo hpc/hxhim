@@ -22,7 +22,7 @@ TEST(Histogram, not_enough_values) {
     std::size_t size = 0;
 
     ASSERT_EQ(h.get(nullptr, nullptr, &size), HISTOGRAM_SUCCESS);
-    EXPECT_EQ(size, 0);
+    EXPECT_EQ(size, (std::size_t) 0);
 }
 
 static int every_two(const double *first_n, const std::size_t n, double **buckets, std::size_t *size, void *) {
@@ -60,10 +60,10 @@ TEST(Histogram, every_two) {
     std::size_t size = 0;
 
     ASSERT_EQ(h.get(&buckets, &counts, &size), HISTOGRAM_SUCCESS);
-    EXPECT_EQ(size, n / 2);
+    EXPECT_EQ(size, (std::size_t) (n / 2));
     for(std::size_t i = 0; i < size; i++) {
-        EXPECT_EQ(buckets[i], 2 * i);
-        EXPECT_EQ(counts[i], 2);
+        EXPECT_EQ(buckets[i], (std::size_t) (2 * i));
+        EXPECT_EQ(counts[i], (std::size_t) 2);
     }
 }
 
@@ -95,19 +95,19 @@ TEST(Histogram, custom_nonuniform) {
     std::size_t size = 0;
 
     ASSERT_EQ(h.get(&buckets, &counts, &size), HISTOGRAM_SUCCESS);
-    EXPECT_EQ(size, 3);
+    EXPECT_EQ(size, (std::size_t) 3);
 
     // 0: 0, 1, 2, 3, 4
-    EXPECT_EQ(buckets[0], 0);
-    EXPECT_EQ(counts[0], 5);
+    EXPECT_EQ(buckets[0], (double) 0);
+    EXPECT_EQ(counts[0], (std::size_t) 5);
 
     // 5: 5, 6, 7, 8
-    EXPECT_EQ(buckets[1], 5);
-    EXPECT_EQ(counts[1], 4);
+    EXPECT_EQ(buckets[1], (double) 5);
+    EXPECT_EQ(counts[1], (std::size_t) 4);
 
     // 9: 9
-    EXPECT_EQ(buckets[2], 9);
-    EXPECT_EQ(counts[2], 1);
+    EXPECT_EQ(buckets[2], (double) 9);
+    EXPECT_EQ(counts[2], (std::size_t) 1);
 }
 
 TEST(Histogram, uniform_log10) {
@@ -125,11 +125,11 @@ TEST(Histogram, uniform_log10) {
     ASSERT_EQ(h.get(&buckets, &counts, &size), HISTOGRAM_SUCCESS);
 
     for(std::size_t i = 0; i < size; i++) {
-        EXPECT_EQ(counts[i], 1);
+        EXPECT_EQ(counts[i], (std::size_t) 1);
     }
 
     // Add extra count to last bucket
     h.add(20);
 
-    EXPECT_EQ(counts[size - 1], 2);
+    EXPECT_EQ(counts[size - 1], (std::size_t) 2);
 }

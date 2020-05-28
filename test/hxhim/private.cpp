@@ -20,13 +20,13 @@ TEST(Enqueue, PUT) {
     hxhim::Unsent<hxhim::PutData> puts;
     EXPECT_EQ(puts.head, nullptr);
     EXPECT_EQ(puts.tail, nullptr);
-    EXPECT_EQ(puts.count, 0);
+    EXPECT_EQ(puts.count, (std::size_t) 0);
 
     // enqueue one PUT
     EXPECT_EQ(hxhim::PutImpl(puts, (char *) SUBJECT1, strlen(SUBJECT1), (char *) PREDICATE1, strlen(PREDICATE1), TYPE, (char *) OBJECT1, strlen(OBJECT1)), HXHIM_SUCCESS);
     ASSERT_NE(puts.head, nullptr);
     EXPECT_EQ(puts.head, puts.tail);
-    EXPECT_EQ(puts.count, 1);
+    EXPECT_EQ(puts.count, (std::size_t) 1);
 
     {
         hxhim::PutData *head = puts.head;
@@ -46,7 +46,7 @@ TEST(Enqueue, PUT) {
     EXPECT_EQ(puts.head->next, puts.tail);
     ASSERT_NE(puts.tail, nullptr);
     EXPECT_EQ(puts.tail->next, nullptr);
-    EXPECT_EQ(puts.count, 2);
+    EXPECT_EQ(puts.count, (std::size_t) 2);
 
     {
         hxhim::PutData *head = puts.head;
@@ -87,13 +87,13 @@ TEST(Enqueue, GET) {
     hxhim::Unsent<hxhim::GetData> gets;
     EXPECT_EQ(gets.head, nullptr);
     EXPECT_EQ(gets.tail, nullptr);
-    EXPECT_EQ(gets.count, 0);
+    EXPECT_EQ(gets.count, (std::size_t) 0);
 
     // enqueue one GET
     EXPECT_EQ(hxhim::GetImpl(gets, (char *) SUBJECT1, strlen(SUBJECT1), (char *) PREDICATE1, strlen(PREDICATE1), TYPE, (char *) OBJECT1, &len1), HXHIM_SUCCESS);
     ASSERT_NE(gets.head, nullptr);
     EXPECT_EQ(gets.head, gets.tail);
-    EXPECT_EQ(gets.count, 1);
+    EXPECT_EQ(gets.count, (std::size_t) 1);
 
     {
         hxhim::GetData *head = gets.head;
@@ -113,7 +113,7 @@ TEST(Enqueue, GET) {
     EXPECT_EQ(gets.head->next, gets.tail);
     ASSERT_NE(gets.tail, nullptr);
     EXPECT_EQ(gets.tail->next, nullptr);
-    EXPECT_EQ(gets.count, 2);
+    EXPECT_EQ(gets.count, (std::size_t) 2);
 
     {
         hxhim::GetData *head = gets.head;
@@ -152,13 +152,13 @@ TEST(Enqueue, GETOP) {
     hxhim::Unsent<hxhim::GetOpData> getops;
     EXPECT_EQ(getops.head, nullptr);
     EXPECT_EQ(getops.tail, nullptr);
-    EXPECT_EQ(getops.count, 0);
+    EXPECT_EQ(getops.count, (std::size_t) 0);
 
     // enqueue one GETOP
     EXPECT_EQ(hxhim::GetOpImpl(getops, (char *) SUBJECT1, strlen(SUBJECT1), (char *) PREDICATE1, strlen(PREDICATE1), TYPE, num_recs, op), HXHIM_SUCCESS);
     ASSERT_NE(getops.head, nullptr);
     EXPECT_EQ(getops.head, getops.tail);
-    EXPECT_EQ(getops.count, 1);
+    EXPECT_EQ(getops.count, (std::size_t) 1);
 
     {
         hxhim::GetOpData *head = getops.head;
@@ -178,7 +178,7 @@ TEST(Enqueue, GETOP) {
     EXPECT_EQ(getops.head->next, getops.tail);
     ASSERT_NE(getops.tail, nullptr);
     EXPECT_EQ(getops.tail->next, nullptr);
-    EXPECT_EQ(getops.count, 2);
+    EXPECT_EQ(getops.count, (std::size_t) 2);
 
     {
         hxhim::GetOpData *head = getops.head;
@@ -214,13 +214,13 @@ TEST(Enqueue, DELETE) {
     hxhim::Unsent<hxhim::DeleteData> deletes;
     EXPECT_EQ(deletes.head, nullptr);
     EXPECT_EQ(deletes.tail, nullptr);
-    EXPECT_EQ(deletes.count, 0);
+    EXPECT_EQ(deletes.count, (std::size_t) 0);
 
     // enqueue one DELETE
     EXPECT_EQ(hxhim::DeleteImpl(deletes, (char *) SUBJECT1, strlen(SUBJECT1), (char *) PREDICATE1, strlen(PREDICATE1)), HXHIM_SUCCESS);
     ASSERT_NE(deletes.head, nullptr);
     EXPECT_EQ(deletes.head, deletes.tail);
-    EXPECT_EQ(deletes.count, 1);
+    EXPECT_EQ(deletes.count, (std::size_t) 1);
 
     {
         hxhim::DeleteData *head = deletes.head;
@@ -237,7 +237,7 @@ TEST(Enqueue, DELETE) {
     EXPECT_EQ(deletes.head->next, deletes.tail);
     ASSERT_NE(deletes.tail, nullptr);
     EXPECT_EQ(deletes.tail->next, nullptr);
-    EXPECT_EQ(deletes.count, 2);
+    EXPECT_EQ(deletes.count, (std::size_t) 2);
 
     {
         hxhim::DeleteData *head = deletes.head;

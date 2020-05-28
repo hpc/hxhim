@@ -14,7 +14,7 @@ TEST(ReferenceBlob, null) {
     {
         ReferenceBlob nullblob(nullptr, 0);
         EXPECT_EQ(nullblob.ptr, nullptr);
-        EXPECT_EQ(nullblob.len, 0);
+        EXPECT_EQ(nullblob.len, (std::size_t) 0);
 
         char *ptr = nullptr;
         EXPECT_EQ(nullblob.pack(ptr), nullptr);
@@ -71,7 +71,7 @@ TEST(RealBlob, null) {
     {
         RealBlob nullblob(nullptr, 0);
         EXPECT_EQ(nullblob.ptr, nullptr);
-        EXPECT_EQ(nullblob.len, 0);
+        EXPECT_EQ(nullblob.len, (std::size_t) 0);
 
         char *ptr = nullptr;
         EXPECT_EQ(nullblob.pack(ptr), nullptr);
@@ -149,13 +149,13 @@ TEST(RealBlob, move) {
     RealBlob move_constructor(std::move(src));
 
     EXPECT_EQ(src.ptr, nullptr);
-    EXPECT_EQ(src.len, 0);
+    EXPECT_EQ(src.len, (std::size_t) 0);
     EXPECT_EQ(move_constructor.ptr, ptr);
     EXPECT_EQ(move_constructor.len, len);
 
     RealBlob move_assignment;
     EXPECT_EQ(move_assignment.ptr, nullptr);
-    EXPECT_EQ(move_assignment.len, 0);
+    EXPECT_EQ(move_assignment.len, (std::size_t) 0);
     move_assignment = std::move(move_constructor);
     EXPECT_EQ(move_assignment.ptr, ptr);
     EXPECT_EQ(move_assignment.len, len);
