@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.6.3)
 
-set(UTILS_SRC
+target_sources(hxhim PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/Blob.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/Configuration.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/Histogram.cpp
@@ -8,5 +8,4 @@ set(UTILS_SRC
   ${CMAKE_CURRENT_SOURCE_DIR}/elen.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/memory.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/mlog2.c
-
-  PARENT_SCOPE)
+)

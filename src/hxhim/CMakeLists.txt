@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.6.3)
 
-set(HXHIM_SRC
+target_sources(hxhim PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/accessors.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/cache.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/config.cpp
@@ -14,5 +14,4 @@ set(HXHIM_SRC
   ${CMAKE_CURRENT_SOURCE_DIR}/Results.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/single_type.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/triplestore.cpp
-
-  PARENT_SCOPE)
+)

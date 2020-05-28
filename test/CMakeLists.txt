@@ -34,11 +34,10 @@ message( STATUS "GTest source dir: " ${gtest_SOURCE_DIR})
 
 include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
+add_executable(googletest main.cpp)
+target_include_directories(googletest SYSTEM BEFORE PRIVATE ${CMAKE_SOURCE_DIR}/include)
 add_subdirectory(hxhim)
 add_subdirectory(transport)
 add_subdirectory(utils)
-
-add_executable(googletests main.cpp ${HXHIM_TEST_SRC} ${TRANSPORT_TEST_SRC} ${UTILS_TEST_SRC})
-target_include_directories(googletests SYSTEM BEFORE PRIVATE ${CMAKE_BINARY_DIR}/include ${CMAKE_SOURCE_DIR}/include)
-target_link_libraries(googletests hxhim.a gtest ${MPI_CXX_LIBRARIES} ${THALLIUM_LDFLAGS} ${LEVELDB_LDFLAGS} pthread m)
-add_test(googletest ./googletests)
+target_link_libraries(googletest hxhim.a gtest ${MPI_CXX_LIBRARIES} ${THALLIUM_LDFLAGS} ${LEVELDB_LDFLAGS} pthread m)
+add_test(googletest googletest)

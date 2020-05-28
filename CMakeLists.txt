@@ -34,6 +34,9 @@ set(COMMON_LDFLAGS Threads::Threads m)
 #
 # External projects
 #
+if(POLICY CMP0074)
+  cmake_policy(SET CMP0074 OLD)
+endif()
 find_package(MPI REQUIRED)
 
 if (CMAKE_SYSTEM_NAME STREQUAL "CrayLinuxEnvironment")
@@ -115,7 +118,6 @@ endif()
 #
 # build library
 #
-include_directories(include)
 add_subdirectory(src)
 
 #
@@ -136,7 +138,6 @@ add_subdirectory(contrib)
 #
 # Add demo executable
 #
-include_directories(demo)
 add_subdirectory(demo)
 
 #

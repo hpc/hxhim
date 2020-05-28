@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.6.3)
 
-set(MESSAGES_SRC
+target_sources(hxhim PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/Message.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/Messages.cpp
 
@@ -15,5 +15,4 @@ set(MESSAGES_SRC
 
   ${CMAKE_CURRENT_SOURCE_DIR}/Packer.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/Unpacker.cpp
-
-  PARENT_SCOPE)
+)

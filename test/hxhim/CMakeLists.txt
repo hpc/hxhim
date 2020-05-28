@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.6.3)
 
-set(HXHIM_TEST_SRC
+target_sources(googletest PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/BadGet.cpp
   # ${CMAKE_CURRENT_SOURCE_DIR}/Histogram.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/OpenClose.cpp
@@ -11,5 +11,4 @@ set(HXHIM_TEST_SRC
   ${CMAKE_CURRENT_SOURCE_DIR}/private.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/transport.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/triplestore.cpp
-
-  PARENT_SCOPE)
+)
