@@ -33,10 +33,14 @@ function usage() {
     echo "Usage: $0 [Options] download_dir install_dir [PROCS]"
     echo ""
     echo "    Options:"
-    echo "        --BMI  build the BMI module for mercury"
-    echo "        --CCI  build the CCI module for mercury"
-    echo "        --OFI  build the OFI module for mercury"
-    echo "        --SM   build the SM  module for mercury"
+    echo "        --BMI      build the BMI module for mercury"
+    echo "        --CCI      build the CCI module for mercury"
+    echo "        --OFI      build the OFI module for mercury"
+    echo "        --SM       build the SM  module for mercury"
+    echo
+    echo "        --NO_DL    do not download repositories"
+    echo "        --DL_ONLY  stop after downloading repositories (only effective if NO_DL is not specified)"
+    echo "        --PULL     run git pull if repository was downloaded"
 }
 
 # Check that an executable is available; if not, print the name and exit
@@ -55,8 +59,8 @@ function check_cmake() {
     check_executable cmake
 
     # make sure CMake's version is at least 3.6.3
-    cmake_version=$(cmake --version | head -n 1 | awk '{ print $3 }')
-    [ "3.6.3" = $(echo -e "3.6.3\n${cmake_version}" | sort -V | head -n 1) ] || exit 1
+    version=$(cmake --version | head -n 1 | awk '{ print $3 }')
+    [ "3.6.3" = $(echo -e "3.6.3\n${version}" | sort -V | head -n 1) ] || (echo "Need CMake 3.6.3+. Have ${version}."; exit 1)
 }
 
 # Check that a library is found; if not, print the library name and exit
@@ -80,13 +84,29 @@ function check_mpi() {
 
 function NA_BMI() {
     name=bmi
+
     download_dir=${WORKING_DIR}/${name}
-    if [[ ! -d "${download_dir}" ]]; then
-        git clone --depth 1 https://xgitlab.cels.anl.gov/sds/bmi.git ${download_dir}
+    if [[ "${NO_DL}" -eq "0" ]]
+    then
+        if [[ ! -d "${download_dir}" ]]; then
+            git clone --depth 1 https://xgitlab.cels.anl.gov/sds/bmi.git ${download_dir}
+
+        fi
+
+        if [[ "${PULL}" -eq "1" ]]
+        then
+            cd ${download_dir}
+            git pull
+            cd ..
+        fi
+
+        if [[ "${DL_ONLY}" -ne "0" ]]
+        then
+            return 0
+        fi
     fi
 
     cd ${download_dir}
-    git pull
     if [[ ! (-f configure && -x configure) ]]; then
         ./prepare
     fi
@@ -106,12 +126,26 @@ function NA_BMI() {
 function NA_CCI() {
     name=cci
     download_dir=${WORKING_DIR}/${name}
-    if [[ ! -d "${download_dir}" ]]; then
-        git clone --depth 1 https://github.com/CCI/cci.git ${download_dir}
+    if [[ "${NO_DL}" -eq "0" ]]
+    then
+        if [[ ! -d "${download_dir}" ]]; then
+            git clone --depth 1 https://github.com/CCI/cci.git ${download_dir}
+        fi
+
+        if [[ "${PULL}" -eq "1" ]]
+        then
+            cd ${download_dir}
+            git pull
+            cd ..
+        fi
+
+        if [[ "${DL_ONLY}" -ne "0" ]]
+        then
+            return 0
+        fi
     fi
 
     cd ${download_dir}
-    git pull
     if [[ ! (-f configure && -x configure) ]]; then
         ./autogen.pl
     fi
@@ -131,12 +165,27 @@ function NA_CCI() {
 function NA_OFI() {
     name=libfabric
     download_dir=${WORKING_DIR}/${name}
-    if [[ ! -d "${download_dir}" ]]; then
-        git clone --depth 1 https://github.com/ofiwg/libfabric.git ${download_dir}
+    download_dir=${WORKING_DIR}/${name}
+    if [[ "${NO_DL}" -eq "0" ]]
+    then
+        if [[ ! -d "${download_dir}" ]]; then
+            git clone --depth 1 https://github.com/ofiwg/libfabric.git ${download_dir}
+        fi
+
+        if [[ "${PULL}" -eq "1" ]]
+        then
+            cd ${download_dir}
+            git pull
+            cd ..
+        fi
+
+        if [[ "${DL_ONLY}" -ne "0" ]]
+        then
+            return 0
+        fi
     fi
 
     cd ${download_dir}
-    git pull
     if [[ ! (-f configure && -x configure) ]]; then
         ./autogen.sh
     fi
@@ -187,13 +236,27 @@ function mercury() {
 
     name=mercury
     download_dir=${WORKING_DIR}/${name}
-    if [[ ! -d "${download_dir}" ]]; then
-        git clone --depth 1 --recurse-submodules https://github.com/mercury-hpc/mercury.git ${download_dir}
-        git submodule init && git submodule update
+    if [[ "${NO_DL}" -eq "0" ]]
+    then
+        if [[ ! -d "${download_dir}" ]]; then
+            git clone --depth 1 --recurse-submodules https://github.com/mercury-hpc/mercury.git ${download_dir}
+            git submodule init && git submodule update
+        fi
+
+        if [[ "${PULL}" -eq "1" ]]
+        then
+            cd ${download_dir}
+            git pull
+            cd ..
+        fi
+
+        if [[ "${DL_ONLY}" -ne "0" ]]
+        then
+            return 0
+        fi
     fi
 
     cd ${download_dir}
-    git pull
     mkdir -p build
     cd build
     rm -rf *
@@ -216,12 +279,26 @@ function libev() {
 
     name=libev
     download_dir=${WORKING_DIR}/${name}
-    if [[ ! -d "${download_dir}" ]]; then
-        git clone --depth 1 https://github.com/enki/libev.git ${download_dir}
+    if [[ "${NO_DL}" -eq "0" ]]
+    then
+        if [[ ! -d "${download_dir}" ]]; then
+            git clone --depth 1 https://github.com/enki/libev.git ${download_dir}
+        fi
+
+        if [[ "${PULL}" -eq "1" ]]
+        then
+            cd ${download_dir}
+            git pull
+            cd ..
+        fi
+
+        if [[ "${DL_ONLY}" -ne "0" ]]
+        then
+            return 0
+        fi
     fi
 
     cd ${download_dir}
-    git pull
     if [[ ! (-f configure && -x configure) ]]; then
         ./autogen.sh
     fi
@@ -241,15 +318,27 @@ function argobots() {
 
     name=argobots
     download_dir=${WORKING_DIR}/${name}
-    if [[ ! -d "${download_dir}" ]]; then
-        git clone --depth 1 https://github.com/pmodels/argobots.git ${download_dir}
+    if [[ "${NO_DL}" -eq "0" ]]
+    then
+        if [[ ! -d "${download_dir}" ]]; then
+            git clone --depth 1 https://github.com/pmodels/argobots.git ${download_dir}
+        fi
+
+        if [[ "${PULL}" -eq "1" ]]
+        then
+            cd ${download_dir}
+            git pull
+            cd ..
+        fi
+
+        if [[ "${DL_ONLY}" -ne "0" ]]
+        then
+            return 0
+        fi
     fi
 
     cd ${download_dir}
-    git pull
-    if [[ ! (-f configure && -x configure) ]]; then
-        ./autogen.sh
-    fi
+    ./autogen.sh # always run
     mkdir -p build
     cd build
     install_dir=${PREFIX}/${name}
@@ -274,12 +363,26 @@ function margo() {
 
     name=margo
     download_dir=${WORKING_DIR}/${name}
-    if [[ ! -d "${download_dir}" ]]; then
-        git clone --depth 1 https://xgitlab.cels.anl.gov/sds/margo.git ${download_dir}
+    if [[ "${NO_DL}" -eq "0" ]]
+    then
+        if [[ ! -d "${download_dir}" ]]; then
+            git clone --depth 1 https://xgitlab.cels.anl.gov/sds/margo.git ${download_dir}
+        fi
+
+        if [[ "${PULL}" -eq "1" ]]
+        then
+            cd ${download_dir}
+            git pull
+            cd ..
+        fi
+
+        if [[ "${DL_ONLY}" -ne "0" ]]
+        then
+            return 0
+        fi
     fi
 
     cd ${download_dir}
-    git pull
     if [[ ! (-f configure && -x configure) ]]; then
         ./prepare.sh
     fi
@@ -301,12 +404,26 @@ function thallium() {
 
     name=thallium
     download_dir=${WORKING_DIR}/${name}
-    if [[ ! -d "${download_dir}" ]]; then
-        git clone --depth 1 https://xgitlab.cels.anl.gov/sds/thallium.git ${download_dir}
+    if [[ "${NO_DL}" -eq "0" ]]
+    then
+        if [[ ! -d "${download_dir}" ]]; then
+            git clone --depth 1 https://xgitlab.cels.anl.gov/sds/thallium.git ${download_dir}
+        fi
+
+        if [[ "${PULL}" -eq "1" ]]
+        then
+            cd ${download_dir}
+            git pull
+            cd ..
+        fi
+
+        if [[ "${DL_ONLY}" -ne "0" ]]
+        then
+            return 0
+        fi
     fi
 
     cd ${download_dir}
-    git pull
     mkdir -p build
     cd build
     rm -rf *
@@ -342,12 +459,32 @@ function leveldb_pkgconfig {
 function leveldb() {
     name=leveldb
     download_dir=${WORKING_DIR}/${name}
-    if [[ ! -d "${download_dir}" ]]; then
-        git clone --depth 1 https://github.com/google/leveldb.git ${download_dir}
+    if [[ "${NO_DL}" -eq "0" ]]
+    then
+        if [[ ! -d "${download_dir}" ]]; then
+            git clone --depth 1 https://github.com/google/leveldb.git ${download_dir}
+        fi
+
+        cd ${download_dir}
+        git submodule update --init --recursive
+        cd ..
+
+        if [[ "${PULL}" -eq "1" ]]
+        then
+            cd ${download_dir}
+            git reset --hard HEAD
+            git pull
+            cd ..
+        fi
+
+        if [[ "${DL_ONLY}" -ne "0" ]]
+        then
+            return 0
+        fi
     fi
 
     cd ${download_dir}
-    git pull
+    git reset --hard HEAD
     git apply ${SOURCE}/leveldb.patch || true
     mkdir -p build
     cd build
@@ -364,13 +501,26 @@ function leveldb() {
 function jemalloc() {
     name=jemalloc
     download_dir=${WORKING_DIR}/${name}
-    if [[ ! -d "${download_dir}" ]]; then
-        git clone --depth 1 https://github.com/jemalloc/jemalloc.git ${download_dir}
+    if [[ "${NO_DL}" -eq "0" ]]
+    then
+        if [[ ! -d "${download_dir}" ]]; then
+            git clone --depth 1 https://github.com/jemalloc/jemalloc.git ${download_dir}
+        fi
+
+        if [[ "${PULL}" -eq "1" ]]
+        then
+            cd ${download_dir}
+            git pull
+            cd ..
+        fi
+
+        if [[ "${DL_ONLY}" -ne "0" ]]
+        then
+            return 0
+        fi
     fi
 
     cd ${download_dir}
-    git pull
-
     if [[ ! (-f configure && -x configure) ]]; then
         ./autogen.sh
     fi
@@ -384,6 +534,11 @@ function jemalloc() {
 
     PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${install_dir}/lib/pkgconfig
 }
+
+
+NO_DL=0
+DL_ONLY=0
+PULL=0
 
 # Parse command line arguments
 # https://stackoverflow.com/a/14203146
@@ -411,6 +566,18 @@ case $key in
     ;;
     --SM)
     USE_NA_SM=
+    shift # past argument
+    ;;
+    --NO_DL)
+    NO_DL=1
+    shift # past argument
+    ;;
+    --DL_ONLY)
+    DL_ONLY=1
+    shift # past argument
+    ;;
+    --PULL)
+    PULL=1
     shift # past argument
     ;;
     *)    # unknown option
@@ -455,4 +622,7 @@ thallium
 leveldb
 jemalloc
 
-echo -e "Please add this to your PKG_CONFIG_PATH:\n${PKG_CONFIG_PATH}"
+if [[ "${DL_ONLY}" -eq "0" ]]
+then
+    echo -e "Please add this to your PKG_CONFIG_PATH:\n${PKG_CONFIG_PATH}"
+fi
