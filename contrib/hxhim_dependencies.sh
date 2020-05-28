@@ -11,7 +11,6 @@
 #     mpi (mpicc, mpicxx, mpirun, mpiexec)
 #
 # Libraries (only checked for):
-#     libev-devel (libev.*)
 #     libtool-ltdl-devel (libltdl.*)
 #     mpi (libmpi.*)
 #
@@ -20,6 +19,7 @@
 #     CCI (optional)
 #     OFI (optional)
 #     mercury
+#     libev-devel (libev.*)
 #     argobots
 #     margo
 #     thallium
@@ -62,7 +62,8 @@ function check_cmake() {
 # Check that a library is found; if not, print the library name and exit
 function check_library() {
     library=$1
-    ldconfig -N -v $(echo "${LD_LIBRARY_PATH}" | sed 's/:/ /g') 2> /dev/null | grep ${library} > /dev/null || (echo "Library ${library} not found"; exit 1)
+    ldconfig -N -v $(echo "${LD_LIBRARY_PATH}" | sed 's/:/ /g') 2> /dev/null | grep ${library} > /dev/null
+    echo "$?"
 }
 
 function check_mpi() {
@@ -70,7 +71,11 @@ function check_mpi() {
     check_executable mpicxx
     check_executable mpirun
     check_executable mpiexec
-    check_library    "libmpi\\..*"
+    if [[ $(check_library "libmpi\\..*") -ne 0 ]]
+    then
+        echo "mpi library not found"
+        exit 1
+    fi
 }
 
 function NA_BMI() {
@@ -202,9 +207,37 @@ function mercury() {
     PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${install_dir}/lib/pkgconfig
 }
 
-function argobots() {
+function libev() {
     # libev-devel
-    check_library "libev\\..*"
+    if [[ $(check_library "libev\\..*") -eq 0 ]]
+    then
+        return 0;
+    fi
+
+    name=libev
+    download_dir=${WORKING_DIR}/${name}
+    if [[ ! -d "${download_dir}" ]]; then
+        git clone --depth 1 https://github.com/enki/libev.git ${download_dir}
+    fi
+
+    cd ${download_dir}
+    git pull
+    if [[ ! (-f configure && -x configure) ]]; then
+        ./autogen.sh
+    fi
+    mkdir -p build
+    cd build
+    install_dir=${PREFIX}/${name}
+    PKG_CONFIG_PATH=${PKG_CONFIG_PATH} ../configure --prefix=${install_dir}
+    make -j ${PROCS}
+    make -j ${PROCS} install
+    cd ../..
+
+    PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${install_dir}/lib/pkgconfig
+}
+
+function argobots() {
+    libev
 
     name=argobots
     download_dir=${WORKING_DIR}/${name}
@@ -230,7 +263,11 @@ function argobots() {
 
 function margo() {
     # libtool-ltdl-devel
-    check_library "libltdl\\..*"
+    if [[ $(check_library "libltdl\\..*") -ne 0 ]]
+    then
+        echo "libtool-ltdl not found"
+        exit 1
+    fi
 
     argobots
     mercury
