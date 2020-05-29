@@ -30,7 +30,7 @@ SOURCE="$(dirname $(realpath $BASH_SOURCE[0]))"
 set -e
 
 function usage() {
-    echo "Usage: $0 [Options] download_dir install_dir [PROCS]"
+    echo "Usage: $0 [Options] download_dir build_name install_dir [PROCS]"
     echo ""
     echo "    Options:"
     echo "        --BMI      build the BMI module for mercury"
@@ -75,7 +75,7 @@ function check_mpi() {
     check_executable mpicxx
     check_executable mpirun
     check_executable mpiexec
-    if [[ $(check_library "libmpi\\..*") -ne 0 ]]
+    if [[ $(check_library "libmpi.*") -ne 0 ]]
     then
         echo "mpi library not found"
         exit 1
@@ -107,11 +107,9 @@ function NA_BMI() {
     fi
 
     cd ${download_dir}
-    if [[ ! (-f configure && -x configure) ]]; then
-        ./prepare
-    fi
-    mkdir -p build
-    cd build
+    ./prepare
+    mkdir -p ${BUILD}
+    cd ${BUILD}
     install_dir=${PREFIX}/${name}
     PKG_CONFIG_PATH=${PKG_CONFIG_PATH} ../configure --prefix=${PREFIX}/${name} --enable-shared --enable-bmi-only
     make -j ${PROCS}
@@ -146,11 +144,9 @@ function NA_CCI() {
     fi
 
     cd ${download_dir}
-    if [[ ! (-f configure && -x configure) ]]; then
-        ./autogen.pl
-    fi
-    mkdir -p build
-    cd build
+    ./autogen.pl
+    mkdir -p ${BUILD}
+    cd ${BUILD}
     install_dir=${PREFIX}/${name}
     PKG_CONFIG_PATH=${PKG_CONFIG_PATH} ../configure --prefix=${install_dir}
     make -j ${PROCS}
@@ -186,11 +182,9 @@ function NA_OFI() {
     fi
 
     cd ${download_dir}
-    if [[ ! (-f configure && -x configure) ]]; then
-        ./autogen.sh
-    fi
-    mkdir -p build
-    cd build
+    ./autogen.sh
+    mkdir -p ${BUILD}
+    cd ${BUILD}
     install_dir=${PREFIX}/${name}
     PKG_CONFIG_PATH=${PKG_CONFIG_PATH} ../configure --prefix=${install_dir}
     make -j ${PROCS}
@@ -257,8 +251,8 @@ function mercury() {
     fi
 
     cd ${download_dir}
-    mkdir -p build
-    cd build
+    mkdir -p ${BUILD}
+    cd ${BUILD}
     rm -rf *
     install_dir=${PREFIX}/${name}
     PKG_CONFIG_PATH=${PKG_CONFIG_PATH} cmake -DCMAKE_INSTALL_PREFIX=${install_dir} -DMERCURY_USE_BOOST_PP:BOOL=ON -DBUILD_SHARED_LIBS:BOOL=ON $(echo "$cmake_options") ..
@@ -299,11 +293,10 @@ function libev() {
     fi
 
     cd ${download_dir}
-    if [[ ! (-f configure && -x configure) ]]; then
-        ./autogen.sh
-    fi
-    mkdir -p build
-    cd build
+    chmod +x ./autogen.sh
+    ./autogen.sh
+    mkdir -p ${BUILD}
+    cd ${BUILD}
     install_dir=${PREFIX}/${name}
     PKG_CONFIG_PATH=${PKG_CONFIG_PATH} ../configure --prefix=${install_dir}
     make -j ${PROCS}
@@ -338,9 +331,9 @@ function argobots() {
     fi
 
     cd ${download_dir}
-    ./autogen.sh # always run
-    mkdir -p build
-    cd build
+    ./autogen.sh
+    mkdir -p ${BUILD}
+    cd ${BUILD}
     install_dir=${PREFIX}/${name}
     PKG_CONFIG_PATH=${PKG_CONFIG_PATH} ../configure --prefix=${install_dir}
     make -j ${PROCS}
@@ -383,11 +376,9 @@ function margo() {
     fi
 
     cd ${download_dir}
-    if [[ ! (-f configure && -x configure) ]]; then
-        ./prepare.sh
-    fi
-    mkdir -p build
-    cd build
+    ./prepare.sh
+    mkdir -p ${BUILD}
+    cd ${BUILD}
     install_dir=${PREFIX}/${name}
     PKG_CONFIG_PATH=${PKG_CONFIG_PATH} ../configure --prefix=${install_dir}
     make -j ${PROCS}
@@ -424,8 +415,8 @@ function thallium() {
     fi
 
     cd ${download_dir}
-    mkdir -p build
-    cd build
+    mkdir -p ${BUILD}
+    cd ${BUILD}
     rm -rf *
     install_dir=${PREFIX}/${name}
     PKG_CONFIG_PATH=${PKG_CONFIG_PATH} mercury_DIR=$MERCURY_DIR cmake -DCMAKE_INSTALL_PREFIX=${install_dir} -DCMAKE_CXX_EXTENSIONS:BOOL=OFF ..
@@ -438,7 +429,7 @@ function thallium() {
 
 function leveldb_pkgconfig {
     install_dir=$1
-    pc="${install_dir}/lib64/leveldb.pc"
+    pc="${install_dir}/lib64/pkgconfig/leveldb.pc"
 
     (
         echo "prefix=${install_dir}"
@@ -450,7 +441,7 @@ function leveldb_pkgconfig {
         echo "Description: The leveldb library"
         echo "Version: Git Master"
         echo "Cflags: -I\${includedir}"
-        echo "Libs: -L\${libdir} -lleveldb"
+        echo "Libs: -L\${libdir} -lleveldb -lsnappy"
     ) > $pc
 
     PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${install_dir}/lib64
@@ -486,8 +477,8 @@ function leveldb() {
     cd ${download_dir}
     git reset --hard HEAD
     git apply ${SOURCE}/leveldb.patch || true
-    mkdir -p build
-    cd build
+    mkdir -p ${BUILD}
+    cd ${BUILD}
     rm -rf *
     install_dir=${PREFIX}/${name}
     PKG_CONFIG_PATH=${PKG_CONFIG_PATH} cmake -DCMAKE_INSTALL_PREFIX=${install_dir} ..
@@ -524,12 +515,12 @@ function jemalloc() {
     if [[ ! (-f configure && -x configure) ]]; then
         ./autogen.sh
     fi
-    mkdir -p build
-    cd build
+    mkdir -p ${BUILD}
+    cd ${BUILD}
     install_dir=${PREFIX}/${name}
     PKG_CONFIG_PATH=${PKG_CONFIG_PATH} ../configure --prefix=${install_dir}
     make -j ${PROCS}
-    make -j ${PROCS} install
+    make -ij ${PROCS} install
     cd ../..
 
     PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${install_dir}/lib/pkgconfig
@@ -588,14 +579,15 @@ esac
 done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
-if [[ "$#" -ne 2 ]]; then
+if [[ "$#" -ne 3 ]]; then
     usage
     exit 1
 fi
 
-WORKING_DIR=$1
-PREFIX=$2
-PROCS=$3 # number of processes make should use
+WORKING_DIR="$1"
+BUILD="$2"
+PREFIX="$3"
+PROCS="$4" # number of processes make should use
 PKG_CONFIG_PATH=
 
 mkdir -p ${WORKING_DIR}
