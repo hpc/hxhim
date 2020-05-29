@@ -4,6 +4,7 @@ cmake_minimum_required (VERSION 3.6.3)
 # Install headers
 #
 install(FILES
+  Blob.hpp
   Configuration.hpp
   Histogram.h
   Histogram.hpp

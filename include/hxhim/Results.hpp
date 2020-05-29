@@ -8,7 +8,6 @@
 #include "hxhim/Results.h"
 #include "hxhim/constants.h"
 #include "hxhim/struct.h"
-#include "transport/Messages/Messages.hpp"
 #include "utils/Blob.hpp"
 
 namespace hxhim {
