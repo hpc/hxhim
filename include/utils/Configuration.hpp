@@ -100,13 +100,13 @@ class ConfigDirectory : public ConfigReader {
  */
 class ConfigFileEnvironment : public ConfigReader {
     public:
-       ConfigFileEnvironment(const std::string& filename);
+       ConfigFileEnvironment(const std::string& key);
        ~ConfigFileEnvironment();
 
        bool process(Config &config) const;
 
     private:
-       const std::string filename_;
+       const std::string key_;
 };
 
 /**

@@ -97,15 +97,15 @@ bool ConfigFile::process(Config &config) const {
     return parse_kv_stream(config, f);
 }
 
-ConfigFileEnvironment::ConfigFileEnvironment(const std::string& filename)
+ConfigFileEnvironment::ConfigFileEnvironment(const std::string& key)
   : ConfigReader(),
-    filename_(filename)
+    key_(key)
 {}
 
 ConfigFileEnvironment::~ConfigFileEnvironment() {}
 
 bool ConfigFileEnvironment::process(Config &config) const {
-    char *env = getenv(filename_.c_str());
+    char *env = getenv(key_.c_str());
     if (env) {
         std::ifstream f(env);
         return parse_kv_stream(config, f);
