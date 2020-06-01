@@ -161,7 +161,6 @@ function NA_CCI() {
 function NA_OFI() {
     name=libfabric
     download_dir=${WORKING_DIR}/${name}
-    download_dir=${WORKING_DIR}/${name}
     if [[ "${NO_DL}" -eq "0" ]]
     then
         if [[ ! -d "${download_dir}" ]]; then
@@ -205,27 +204,23 @@ function mercury() {
 
     cmake_options=
     if [[ ! -z ${USE_NA_BMI+false} ]]; then
-        echo BMI
         NA_BMI
-        cmake_options="$cmake_options -DNA_USE_BMI:BOOL=ON -DBMI_INCLUDE_DIR=${BMI_INCLUDE_DIR} -DBMI_LIBRARY=${BMI_LIBRARY}"
+        cmake_options="${cmake_options} -DNA_USE_BMI:BOOL=ON -DBMI_INCLUDE_DIR=${BMI_INCLUDE_DIR} -DBMI_LIBRARY=${BMI_LIBRARY}"
     fi
 
     if [[ ! -z ${USE_NA_CCI+false} ]]; then
-        echo CCI
         NA_CCI
-        cmake_options="$cmake_options -DNA_USE_CCI:BOOL=ON -DCCI_INCLUDE_DIR=${CCI_INCLUDE_DIR} -DCCI_LIBRARY=${CCI_LIBRARY}"
+        cmake_options="${cmake_options} -DNA_USE_CCI:BOOL=ON -DCCI_INCLUDE_DIR=${CCI_INCLUDE_DIR} -DCCI_LIBRARY=${CCI_LIBRARY}"
     fi
 
     if [[ ! -z ${USE_NA_OFI+false} ]]; then
-        echo OFI
         NA_OFI
-        cmake_options="$cmake_options -DNA_USE_OFI:BOOL=ON -DOFI_INCLUDE_DIR=${OFI_INCLUDE_DIR} -DOFI_LIBRARY=${OFI_LIBRARY}"
+        cmake_options="${cmake_options} -DNA_USE_OFI:BOOL=ON -DOFI_INCLUDE_DIR=${OFI_INCLUDE_DIR} -DOFI_LIBRARY=${OFI_LIBRARY}"
     fi
 
     if [[ ! -z ${USE_NA_SM+false} ]]; then
-        echo SM
         NA_SM
-        cmake_options="$cmake_options -DNA_USE_SM:BOOL=ON"
+        cmake_options="${cmake_options} -DNA_USE_SM:BOOL=ON"
     fi
 
     name=mercury
@@ -255,7 +250,8 @@ function mercury() {
     cd ${BUILD}
     rm -rf *
     install_dir=${PREFIX}/${name}
-    PKG_CONFIG_PATH=${PKG_CONFIG_PATH} cmake -DCMAKE_INSTALL_PREFIX=${install_dir} -DMERCURY_USE_BOOST_PP:BOOL=ON -DBUILD_SHARED_LIBS:BOOL=ON $(echo "$cmake_options") ..
+
+    PKG_CONFIG_PATH=${PKG_CONFIG_PATH} cmake -DCMAKE_INSTALL_PREFIX=${install_dir} -DMERCURY_USE_BOOST_PP:BOOL=ON -DBUILD_SHARED_LIBS:BOOL=ON ${cmake_options} ..
     make -j ${PROCS}
     make -j ${PROCS} install
     cd ../..
