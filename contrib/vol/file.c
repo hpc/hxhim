@@ -50,9 +50,9 @@ herr_t H5VL_hxhim_file_specific(void *obj, H5VL_file_specific_t specific_type, h
     int rc = 0;
 
     switch (specific_type) {
-        case H5VL_FILE_POST_OPEN:                    /* Adjust file after open: with wrapping context */
-            fprintf(stderr, "         post open\n");
-            break;
+        /* case H5VL_FILE_POST_OPEN:                    /\* Adjust file after open: with wrapping context *\/ */
+        /*     fprintf(stderr, "         post open\n"); */
+        /*     break; */
         case H5VL_FILE_FLUSH:                        /* Flush file                       */
             fprintf(stderr, "         flush\n");
             hxhim_results_t *res = hxhimFlush(&file_info->under_vol->hx);

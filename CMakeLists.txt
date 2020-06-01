@@ -102,6 +102,9 @@ if(LEVELDB_FOUND)
   set(PC_LIBS   "${PC_LIBS} ${LEVELDB_LDFLAGS}")
 endif()
 
+option(ENABLE_HDF5 "Use HDF5 if found" On)
+
+# always look for HDF5
 find_package(HDF5)
 if (HDF5_FOUND)
   message(STATUS "HDF5 found")

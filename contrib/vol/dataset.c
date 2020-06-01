@@ -193,12 +193,12 @@ herr_t H5VL_hxhim_dataset_get(void *obj, H5VL_dataset_get_t get_type, hid_t dxpl
                 /* } */
             }
             break;
-        case H5VL_DATASET_GET_OFFSET:                /* offset                              */
-            {
-                fprintf(stderr, "         get offset\n");
-                hid_t *ret_id = va_arg(arguments, hid_t *);
-            }
-            break;
+        /* case H5VL_DATASET_GET_OFFSET:                /\* offset                              *\/ */
+        /*     { */
+        /*         fprintf(stderr, "         get offset\n"); */
+        /*         hid_t *ret_id = va_arg(arguments, hid_t *); */
+        /*     } */
+        /*     break; */
         case H5VL_DATASET_GET_SPACE:                 /* dataspace                           */
             {
                 fprintf(stderr, "         get space\n");
