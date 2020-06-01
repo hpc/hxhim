@@ -174,7 +174,7 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
 
         dealloc(key);
 
-        decltype(db)::const_reverse_iterator rit = std::make_reverse_iterator(it);
+        decltype(db)::const_reverse_iterator rit(it);
 
         stats.get_times += nano(start, end);
 
