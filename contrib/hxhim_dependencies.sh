@@ -67,7 +67,6 @@ function check_cmake() {
 function check_library() {
     library=$1
     ldconfig -N -v $(echo "${LD_LIBRARY_PATH}" | sed 's/:/ /g') 2> /dev/null | grep ${library} > /dev/null
-    echo "$?"
 }
 
 function check_mpi() {
@@ -75,7 +74,7 @@ function check_mpi() {
     check_executable mpicxx
     check_executable mpirun
     check_executable mpiexec
-    if [[ $(check_library "libmpi.*") -ne 0 ]]
+    if ! check_library "libmpi.*"
     then
         echo "mpi library not found"
         exit 1
@@ -84,6 +83,11 @@ function check_mpi() {
 
 function NA_BMI() {
     name=bmi
+
+    cmake_options="${cmake_options} -DNA_USE_BMI:BOOL=On"
+
+    # check for installed bmi
+    check_library ${name} && return
 
     download_dir=${WORKING_DIR}/${name}
     if [[ "${NO_DL}" -eq "0" ]]
@@ -111,18 +115,25 @@ function NA_BMI() {
     mkdir -p ${BUILD}
     cd ${BUILD}
     install_dir=${PREFIX}/${name}
-    PKG_CONFIG_PATH=${PKG_CONFIG_PATH} ../configure --prefix=${PREFIX}/${name} --enable-shared --enable-bmi-only
+    PKG_CONFIG_PATH=${pkg_config_path}:${PKG_CONFIG_PATH} ../configure --prefix=${PREFIX}/${name} --enable-shared --enable-bmi-only
     make -j ${PROCS}
     make -j ${PROCS} install
     cd ../..
 
     BMI_INCLUDE_DIR=${install_dir}/include
     BMI_LIBRARY=${install_dir}/lib/libbmi.so
-    PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${install_dir}/lib/pkgconfig
+    cmake_options="${cmake_options} -DBMI_INCLUDE_DIR=${BMI_INCLUDE_DIR} -DBMI_LIBRARY=${BMI_LIBRARY}"
+    pkg_config_path=${pkg_config_path}:${install_dir}/lib/pkgconfig
 }
 
 function NA_CCI() {
     name=cci
+
+    cmake_options="${cmake_options} -DNA_USE_CCI:BOOL=On"
+
+    # check for installed cci
+    check_library ${name} && return
+
     download_dir=${WORKING_DIR}/${name}
     if [[ "${NO_DL}" -eq "0" ]]
     then
@@ -148,18 +159,25 @@ function NA_CCI() {
     mkdir -p ${BUILD}
     cd ${BUILD}
     install_dir=${PREFIX}/${name}
-    PKG_CONFIG_PATH=${PKG_CONFIG_PATH} ../configure --prefix=${install_dir}
+    PKG_CONFIG_PATH=${pkg_config_path}:${PKG_CONFIG_PATH} ../configure --prefix=${install_dir}
     make -j ${PROCS}
     make -j ${PROCS} install
     cd ../..
 
     CCI_INCLUDE_DIR=${install_dir}/include
     CCI_LIBRARY=${install_dir}/lib/libcci.so
-    PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${install_dir}/lib/pkgconfig
+    cmake_options="${cmake_options} -DCCI_INCLUDE_DIR=${CCI_INCLUDE_DIR} -DCCI_LIBRARY=${CCI_LIBRARY}"
+    pkg_config_path=${pkg_config_path}:${install_dir}/lib/pkgconfig
 }
 
 function NA_OFI() {
     name=libfabric
+
+    cmake_options="${cmake_options} -DNA_USE_OFI:BOOL=On"
+
+    # check for installed libfabric
+    check_library ${name} && return
+
     download_dir=${WORKING_DIR}/${name}
     if [[ "${NO_DL}" -eq "0" ]]
     then
@@ -185,43 +203,29 @@ function NA_OFI() {
     mkdir -p ${BUILD}
     cd ${BUILD}
     install_dir=${PREFIX}/${name}
-    PKG_CONFIG_PATH=${PKG_CONFIG_PATH} ../configure --prefix=${install_dir}
+    PKG_CONFIG_PATH=${pkg_config_path}:${PKG_CONFIG_PATH} ../configure --prefix=${install_dir}
     make -j ${PROCS}
     make -j ${PROCS} install
     cd ../..
 
     OFI_INCLUDE_DIR=${install_dir}/include
     OFI_LIBRARY=${install_dir}/lib/libfabric.so
-    PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${install_dir}/lib/pkgconfig
+    cmake_options="${cmake_options} -DOFI_INCLUDE_DIR=${OFI_INCLUDE_DIR} -DOFI_LIBRARY=${OFI_LIBRARY}"
+    pkg_config_path=${pkg_config_path}:${install_dir}/lib/pkgconfig
 }
 
 function NA_SM() {
-    return
+    cmake_options="${cmake_options} -DNA_USE_SM:BOOL=ON"
 }
 
 function mercury() {
     check_cmake
 
     cmake_options=
-    if [[ ! -z ${USE_NA_BMI+false} ]]; then
-        NA_BMI
-        cmake_options="${cmake_options} -DNA_USE_BMI:BOOL=ON -DBMI_INCLUDE_DIR=${BMI_INCLUDE_DIR} -DBMI_LIBRARY=${BMI_LIBRARY}"
-    fi
-
-    if [[ ! -z ${USE_NA_CCI+false} ]]; then
-        NA_CCI
-        cmake_options="${cmake_options} -DNA_USE_CCI:BOOL=ON -DCCI_INCLUDE_DIR=${CCI_INCLUDE_DIR} -DCCI_LIBRARY=${CCI_LIBRARY}"
-    fi
-
-    if [[ ! -z ${USE_NA_OFI+false} ]]; then
-        NA_OFI
-        cmake_options="${cmake_options} -DNA_USE_OFI:BOOL=ON -DOFI_INCLUDE_DIR=${OFI_INCLUDE_DIR} -DOFI_LIBRARY=${OFI_LIBRARY}"
-    fi
-
-    if [[ ! -z ${USE_NA_SM+false} ]]; then
-        NA_SM
-        cmake_options="${cmake_options} -DNA_USE_SM:BOOL=ON"
-    fi
+    if [[ ! -z ${USE_NA_BMI+false} ]]; then NA_BMI; fi
+    if [[ ! -z ${USE_NA_CCI+false} ]]; then NA_CCI; fi
+    if [[ ! -z ${USE_NA_OFI+false} ]]; then NA_OFI; fi
+    if [[ ! -z ${USE_NA_SM+false}  ]]; then NA_SM;  fi
 
     name=mercury
     download_dir=${WORKING_DIR}/${name}
@@ -251,18 +255,18 @@ function mercury() {
     rm -rf *
     install_dir=${PREFIX}/${name}
 
-    PKG_CONFIG_PATH=${PKG_CONFIG_PATH} cmake -DCMAKE_INSTALL_PREFIX=${install_dir} -DMERCURY_USE_BOOST_PP:BOOL=ON -DBUILD_SHARED_LIBS:BOOL=ON ${cmake_options} ..
+    PKG_CONFIG_PATH=${pkg_config_path}:${PKG_CONFIG_PATH} cmake -DCMAKE_INSTALL_PREFIX=${install_dir} -DMERCURY_USE_BOOST_PP:BOOL=ON -DBUILD_SHARED_LIBS:BOOL=ON ${cmake_options} ..
     make -j ${PROCS}
     make -j ${PROCS} install
     cd ../..
 
     MERCURY_DIR=${install_dir}
-    PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${install_dir}/lib/pkgconfig
+    pkg_config_path=${pkg_config_path}:${install_dir}/lib/pkgconfig
 }
 
 function libev() {
     # libev-devel
-    if [[ $(check_library "libev\\..*") -eq 0 ]]
+    if ! check_library "libev\\..*"
     then
         return 0;
     fi
@@ -294,12 +298,12 @@ function libev() {
     mkdir -p ${BUILD}
     cd ${BUILD}
     install_dir=${PREFIX}/${name}
-    PKG_CONFIG_PATH=${PKG_CONFIG_PATH} ../configure --prefix=${install_dir}
+    PKG_CONFIG_PATH=${pkg_config_path}:${PKG_CONFIG_PATH} ../configure --prefix=${install_dir}
     make -j ${PROCS}
     make -j ${PROCS} install
     cd ../..
 
-    PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${install_dir}/lib/pkgconfig
+    pkg_config_path=${pkg_config_path}:${install_dir}/lib/pkgconfig
 }
 
 function argobots() {
@@ -331,17 +335,17 @@ function argobots() {
     mkdir -p ${BUILD}
     cd ${BUILD}
     install_dir=${PREFIX}/${name}
-    PKG_CONFIG_PATH=${PKG_CONFIG_PATH} ../configure --prefix=${install_dir}
+    PKG_CONFIG_PATH=${pkg_config_path}:${PKG_CONFIG_PATH} ../configure --prefix=${install_dir}
     make -j ${PROCS}
     make -j ${PROCS} install
     cd ../..
 
-    PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${install_dir}/lib/pkgconfig
+    pkg_config_path=${pkg_config_path}:${install_dir}/lib/pkgconfig
 }
 
 function margo() {
     # libtool-ltdl-devel
-    if [[ $(check_library "libltdl\\..*") -ne 0 ]]
+    if ! check_library "libltdl\\..*"
     then
         echo "libtool-ltdl not found"
         exit 1
@@ -376,12 +380,12 @@ function margo() {
     mkdir -p ${BUILD}
     cd ${BUILD}
     install_dir=${PREFIX}/${name}
-    PKG_CONFIG_PATH=${PKG_CONFIG_PATH} ../configure --prefix=${install_dir}
+    PKG_CONFIG_PATH=${pkg_config_path}:${PKG_CONFIG_PATH} ../configure --prefix=${install_dir}
     make -j ${PROCS}
     make -j ${PROCS} install
     cd ../..
 
-    PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${install_dir}/lib/pkgconfig
+    pkg_config_path=${pkg_config_path}:${install_dir}/lib/pkgconfig
 }
 
 function thallium() {
@@ -415,12 +419,12 @@ function thallium() {
     cd ${BUILD}
     rm -rf *
     install_dir=${PREFIX}/${name}
-    PKG_CONFIG_PATH=${PKG_CONFIG_PATH} mercury_DIR=$MERCURY_DIR cmake -DCMAKE_INSTALL_PREFIX=${install_dir} -DCMAKE_CXX_EXTENSIONS:BOOL=OFF ..
+    PKG_CONFIG_PATH=${pkg_config_path}:${PKG_CONFIG_PATH} mercury_DIR=$MERCURY_DIR cmake -DCMAKE_INSTALL_PREFIX=${install_dir} -DCMAKE_CXX_EXTENSIONS:BOOL=OFF ..
     make -j ${PROCS}
     make -j ${PROCS} install
     cd ../..
 
-    PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${install_dir}/lib/pkgconfig
+    pkg_config_path=${pkg_config_path}:${install_dir}/lib/pkgconfig
 }
 
 function leveldb_pkgconfig {
@@ -439,8 +443,6 @@ function leveldb_pkgconfig {
         echo "Cflags: -I\${includedir}"
         echo "Libs: -L\${libdir} -lleveldb -lsnappy"
     ) > $pc
-
-    PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${install_dir}/lib64
 }
 
 function leveldb() {
@@ -477,12 +479,14 @@ function leveldb() {
     cd ${BUILD}
     rm -rf *
     install_dir=${PREFIX}/${name}
-    PKG_CONFIG_PATH=${PKG_CONFIG_PATH} cmake -DCMAKE_INSTALL_PREFIX=${install_dir} ..
+    PKG_CONFIG_PATH=${pkg_config_path}:${PKG_CONFIG_PATH} cmake -DCMAKE_INSTALL_PREFIX=${install_dir} ..
     make -j ${PROCS}
     make -j ${PROCS} install
     cd ../..
 
     leveldb_pkgconfig ${install_dir}
+
+    pkg_config_path=${pkg_config_path}:${install_dir}/lib64
 }
 
 function jemalloc() {
@@ -514,12 +518,12 @@ function jemalloc() {
     mkdir -p ${BUILD}
     cd ${BUILD}
     install_dir=${PREFIX}/${name}
-    PKG_CONFIG_PATH=${PKG_CONFIG_PATH} ../configure --prefix=${install_dir}
+    PKG_CONFIG_PATH=${pkg_config_path}:${PKG_CONFIG_PATH} ../configure --prefix=${install_dir}
     make -j ${PROCS}
     make -ij ${PROCS} install
     cd ../..
 
-    PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${install_dir}/lib/pkgconfig
+    pkg_config_path=${pkg_config_path}:${install_dir}/lib/pkgconfig
 }
 
 
@@ -583,8 +587,8 @@ fi
 WORKING_DIR="$1"
 BUILD="$2"
 PREFIX="$3"
-PROCS="$4" # number of processes make should use
-PKG_CONFIG_PATH=
+PROCS="$4"       # number of processes make should use
+pkg_config_path= # internal PKG_CONFIG_PATH so available paths are not hidden
 
 mkdir -p ${WORKING_DIR}
 cd ${WORKING_DIR}
@@ -612,5 +616,5 @@ jemalloc
 
 if [[ "${DL_ONLY}" -eq "0" ]]
 then
-    echo -e "Please add this to your PKG_CONFIG_PATH:\n${PKG_CONFIG_PATH}"
+    echo -e "Please add this to your PKG_CONFIG_PATH:\n${pkg_config_path}"
 fi
