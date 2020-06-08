@@ -26,13 +26,15 @@ add_executable(lowest lowest.c)
 target_link_libraries(lowest hxhim.a ${COMMON_LDFLAGS} stdc++)
 INSTALL(TARGETS lowest DESTINATION bin/hxhim)
 
-include(TestBigEndian)
-test_big_endian(LEVELDB_IS_BIG_ENDIAN)
-set(LEVELDB_ROOT $ENV{HOME}/leveldb)
-add_executable(db_bench db_bench.cc ${LEVELDB_ROOT}/util/histogram.cc ${LEVELDB_ROOT}/util/testutil.cc)
-target_link_libraries(db_bench hxhim.a ${COMMON_LDFLAGS} stdc++)
-set_target_properties(db_bench PROPERTIES COMPILE_FLAGS "-I${LEVELDB_ROOT} -DLEVELDB_PLATFORM_POSIX -DLEVELDB_IS_BIG_ENDIAN=${LEVELDB_IS_BIG_ENDIAN}")
-INSTALL(TARGETS db_bench DESTINATION bin/hxhim)
+if (LEVELDB_FOUND AND ENABLE_LEVELDB)
+  include(TestBigEndian)
+  test_big_endian(LEVELDB_IS_BIG_ENDIAN)
+  set(LEVELDB_ROOT $ENV{HOME}/leveldb)
+  add_executable(db_bench db_bench.cc ${LEVELDB_ROOT}/util/histogram.cc ${LEVELDB_ROOT}/util/testutil.cc)
+  target_link_libraries(db_bench hxhim.a ${COMMON_LDFLAGS} stdc++)
+  set_target_properties(db_bench PROPERTIES COMPILE_FLAGS "-I${LEVELDB_ROOT} -DLEVELDB_PLATFORM_POSIX -DLEVELDB_IS_BIG_ENDIAN=${LEVELDB_IS_BIG_ENDIAN}")
+  INSTALL(TARGETS db_bench DESTINATION bin/hxhim)
+endif()
 
 # Scripts
 # generate_commands.sh requires generate_spo.sh

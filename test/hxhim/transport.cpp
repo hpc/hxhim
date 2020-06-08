@@ -20,6 +20,7 @@ TEST(transport, MPI) {
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }
 
+#ifdef HXHIM_HAVE_THALLIUM
 #define TEST_THALLIUM_TRANSPORT(plugin, protocol)                                                           \
     TEST(transport, thallium_ ##plugin ##_ ##protocol) {                                                    \
         hxhim_options_t opts;                                                                               \
@@ -47,3 +48,4 @@ TEST_THALLIUM_TRANSPORT(ofi, tcp)
 // TEST_THALLIUM_TRANSPORT(cci, tcp)
 // TEST_THALLIUM_TRANSPORT(cci, sm)
 // #endif
+#endif
