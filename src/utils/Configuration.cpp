@@ -38,6 +38,9 @@ std::size_t ConfigSequence::reset() {
 /**
  * Process
  * Try each source, overwriting previously set values.
+ * The return value of each seq->process() is ignored
+ * so that config sources can not exist and not break
+ * this function.
  *
  * @param config the configuration that will be used by the user
  */
@@ -113,15 +116,16 @@ bool ConfigFileEnvironment::process(Config &config) const {
     return false;
 }
 
-ConfigVarEnvironment::ConfigVarEnvironment(const std::string &key)
+ConfigVarEnvironment::ConfigVarEnvironment(const std::string &env, const std::string &key)
   : ConfigReader(),
+    env_(env),
     key_(key)
 {}
 
 ConfigVarEnvironment::~ConfigVarEnvironment() {}
 
 bool ConfigVarEnvironment::process(Config &config) const {
-    char *env = getenv(key_.c_str());
+    char *env = getenv(env_.c_str());
     if (env) {
         config[key_] = env;
         return true;

@@ -115,13 +115,13 @@ class ConfigFileEnvironment : public ConfigReader {
  */
 class ConfigVarEnvironment : public ConfigReader {
     public:
-       ConfigVarEnvironment(const std::string &key);
+       ConfigVarEnvironment(const std::string & env, const std::string &key);
        ~ConfigVarEnvironment();
 
        bool process(Config &config) const;
 
     private:
-
+       const std::string env_;
        const std::string key_;
 };
 

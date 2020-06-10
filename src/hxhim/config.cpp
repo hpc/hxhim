@@ -8,8 +8,8 @@
 #include "hxhim/options.h"
 #include "hxhim/options.hpp"
 #include "hxhim/options_private.hpp"
-#include "utils/type_traits.hpp"
 #include "utils/Histogram.hpp"
+#include "utils/type_traits.hpp"
 
 /**
  * parse_value
@@ -120,6 +120,7 @@ static bool parse_datastore(hxhim_options_t *opts, const Config &config) {
                     if (MPI_Comm_rank(opts->p->comm, &rank) != MPI_SUCCESS) {
                         return false;
                     }
+
                     return (hxhim_options_set_datastore_leveldb(opts, rank, prefix->second.c_str(), create_if_missing) == HXHIM_SUCCESS);
                 }
                 break;
@@ -127,7 +128,7 @@ static bool parse_datastore(hxhim_options_t *opts, const Config &config) {
             case hxhim::datastore::IN_MEMORY:
                 return (hxhim_options_set_datastore_in_memory(opts) == HXHIM_SUCCESS);
             default:
-                break;
+                return false;
         }
     }
 
@@ -300,17 +301,18 @@ int hxhim_default_config_reader(hxhim_options_t *opts, MPI_Comm comm) {
 
     ConfigSequence config_sequence;
 
-    // add default search locations in order of preference: default filename, file environment variable, environment variable overrides
+    // try to find the default configuration file first
     ConfigFile file(hxhim::config::CONFIG_FILE);
     config_sequence.add(&file);
 
+    // overwrite values with the file pointed to by CONFIG_ENV
     ConfigFileEnvironment fileenv(hxhim::config::CONFIG_ENV);
     config_sequence.add(&fileenv);
 
-    // get the environment variables from the default configuration
+    // overwite values with individual environment variables
     std::vector<ConfigVarEnvironment *> vars;
     for(decltype(hxhim::config::DEFAULT_CONFIG)::value_type const &default_config : hxhim::config::DEFAULT_CONFIG) {
-        ConfigVarEnvironment *var = new ConfigVarEnvironment(default_config.first);
+        ConfigVarEnvironment *var = new ConfigVarEnvironment(hxhim::config::HXHIM_ENV_NAMESPACE + default_config.first, default_config.first);
         config_sequence.add(var);
         vars.push_back(var);
     }

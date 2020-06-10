@@ -16,12 +16,22 @@
 namespace hxhim {
 namespace config {
 
-/**
- * Constant locations where the configuration reader searches
- */
+/** Constant location where the configuration reader searches */
 const std::string CONFIG_FILE                 = "hxhim.conf";
+
+/** A file pointed to by HXHIM_CONFIG will overwrite duplicate values found in CONFIG_FILE (hxhim.conf) */
 const std::string CONFIG_ENV                  = "HXHIM_CONFIG";
 
+/**
+ * This string prefixes environment variables of respective configuration settings
+ * e.g. set the environment variable HXHIM_DEBUG_LEVEL to set the DEBUG_LEVEL value
+ * Environment variables are parsed last to allow for easy overwriting of values
+ * set by the hard coded configuration file CONFIG_FILE and the configuration file
+ * pointed to by HXHIM_CONFIG.
+ */
+const std::string HXHIM_ENV_NAMESPACE         = "HXHIM_";
+
+/** Configuration Variables */
 const std::string DEBUG_LEVEL                 = "DEBUG_LEVEL";               // See DEBUG_LEVELS
 
 const std::string CLIENT_RATIO                = "CLIENT_RATIO";              // positive integer
