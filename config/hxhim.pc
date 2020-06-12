@@ -8,3 +8,4 @@ Description: The Hexadimensional Hashing Indexing Middleware
 Version: Git Master
 Cflags: -I${includedir} @PC_CFLAGS@
 Libs: -L${libdir} -lhxhim @PC_LIBS@
+Libs.private: @PC_STATIC_LIBS@

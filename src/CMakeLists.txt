@@ -22,6 +22,7 @@ INSTALL(TARGETS
 if (NOT CMAKE_SYSTEM_NAME STREQUAL "CrayLinuxEnvironment")
    set_target_properties(hxhim PROPERTIES POSITION_INDEPENDENT_CODE ON)
    add_library(hxhim.so SHARED $<TARGET_OBJECTS:hxhim>)
+   target_link_libraries(hxhim.so ${PC_STATIC_LIBS})
    set_target_properties(hxhim.so PROPERTIES OUTPUT_NAME hxhim)
 
    install(TARGETS

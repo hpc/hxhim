@@ -24,6 +24,7 @@ endif()
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
 set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+set(BUILD_GMOCK   OFF CACHE BOOL "" FORCE)
 
 # Add googletest directly to our build. This defines
 # the gtest and gtest_main targets.
@@ -39,5 +40,5 @@ target_include_directories(googletest SYSTEM BEFORE PRIVATE ${CMAKE_SOURCE_DIR}/
 add_subdirectory(hxhim)
 add_subdirectory(transport)
 add_subdirectory(utils)
-target_link_libraries(googletest hxhim.a gtest ${MPI_CXX_LIBRARIES} ${THALLIUM_LDFLAGS} ${LEVELDB_LDFLAGS} pthread m)
+target_link_libraries(googletest hxhim.a gtest ${EXEC_LDFLAGS})
 add_test(googletest googletest)

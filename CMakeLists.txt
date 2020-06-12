@@ -17,6 +17,18 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra -fmax-errors=1 -O0 -g3 -DDEBUG") # -D_GLIBCXX_DEBUG
 
 #
+# linker flags used internally
+#
+set(EXEC_LDFLAGS)
+
+#
+# pkg-config flags
+#
+set(PC_CFLAGS)
+set(PC_LIBS)        # flags required no matter which hxhim library is being linked against
+set(PC_STATIC_LIBS) # normally linked to by shared library, so only used when linking with libhxhim.a
+
+#
 # Include CMake modules
 #
 find_package(PkgConfig REQUIRED)
@@ -29,7 +41,8 @@ find_package(Threads REQUIRED)
 #
 # List of common linker flags
 #
-set(COMMON_LDFLAGS Threads::Threads m)
+list(APPEND EXEC_LDFLAGS Threads::Threads m)
+list(APPEND PC_STATIC_LIBS ${CMAKE_THREAD_LIBS_INIT} -lm)
 
 #
 # External projects
@@ -47,16 +60,18 @@ endif()
 message(STATUS "MPI_C_LIBRARIES=" ${MPI_C_LIBRARIES})
 message(STATUS "MPI_C_LINK_FLAGS=" ${MPI_C_LINK_FLAGS})
 message(STATUS "MPI_C_COMPILE_FLAGS=" ${MPI_C_COMPILE_FLAGS})
-message(STATUS "MPI_CXX_LINK_FLAGS=" ${MPI_CXX_LINK_FLAGS})
-message(STATUS "MPI_CXX_COMPILE_FLAGS=" ${MPI_CXX_COMPILE_FLAGS})
-set(PC_LIBS "${PC_LIBS} ${MPI_C_LINK_FLAGS} ${MPI_CXX_LINK_FLAGS}")
 include_directories(SYSTEM ${MPI_INCLUDE_PATH})
 
-set(COMMON_LDFLAGS ${COMMON_LDFLAGS} ${MPI_C_LIBRARIES})
+list(APPEND EXEC_LDFLAGS ${MPI_C_LIBRARIES})
+list(APPEND PC_STATIC_LIBS ${MPI_C_LIBRARIES})
 
-if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
-  pkg_search_module(JEMALLOC REQUIRED jemalloc)
-  set(COMMON_LDFLAGS ${COMMON_LDFLAGS} ${JEMALLOC_LDFLAGS})
+# jemalloc is nice to have but not necessary
+pkg_search_module(JEMALLOC jemalloc)
+if (JEMALLOC_FOUND)
+  message(STATUS "JEMALLOC_INCLUDEDIR=" ${JEMALLOC_INCLUDEDIR})
+  message(STATUS "JEMALLOC_LIBDIR=" ${JEMALLOC_LIBDIR})
+  list(APPEND EXEC_LDFLAGS ${JEMALLOC_LDFLAGS})
+  list(APPEND PC_STATIC_LIBS ${JEMALLOC_LDFLAGS})
 endif()
 
 # do not search for thallium with find_package
@@ -84,17 +99,17 @@ if (THALLIUM_FOUND)
     include_directories(AFTER SYSTEM ${THALLIUM_INCLUDE_DIRS})
     add_definitions(-DHXHIM_HAVE_THALLIUM=1)
 
-    set(COMMON_LDFLAGS ${COMMON_LDFLAGS} ${THALLIUM_LDFLAGS})
+    list(APPEND EXEC_LDFLAGS ${THALLIUM_LDFLAGS})
 
-    set(PC_CFLAGS "${PC_CFLAGS} -DHXHIM_HAVE_THALLIUM=1")
-    set(PC_LIBS   "${PC_LIBS} ${THALLIUM_LDFLAGS}")
+    list(APPEND PC_CFLAGS -DHXHIM_HAVE_THALLIUM=1)
+    list(APPEND PC_LIBS ${THALLIUM_LDFLAGS})
   else ()
     message(STATUS "Thallium found but not used")
   endif()
 endif()
 
 #
-# LevelDB Support#
+# LevelDB Support
 #
 pkg_search_module(LEVELDB leveldb)
 option(ENABLE_LEVELDB "Use LevelDB if found" On)
@@ -106,10 +121,10 @@ if(LEVELDB_FOUND)
     include_directories(AFTER SYSTEM ${LEVELDB_INCLUDE_DIRS})
     add_definitions(-DHXHIM_HAVE_LEVELDB=1)
 
-    set(COMMON_LDFLAGS ${COMMON_LDFLAGS} ${LEVELDB_LDFLAGS})
+    list(APPEND EXEC_LDFLAGS ${LEVELDB_LDFLAGS})
 
-    set(PC_CFLAGS "${PC_CFLAGS} -DHXHIM_HAVE_LEVELDB=1")
-    set(PC_LIBS   "${PC_LIBS} ${LEVELDB_LDFLAGS}")
+    list(APPEND PC_CFLAGS -DHXHIM_HAVE_LEVELDB=1)
+    list(APPEND PC_LIBS ${LEVELDB_LDFLAGS})
   else()
     message(STATUS "LevelDB found but not used")
   endif()
