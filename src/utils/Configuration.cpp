@@ -63,6 +63,7 @@ void ConfigSequence::process(Config &config) const {
 static bool parse_kv_stream(Config &config, std::istream& stream) {
     // parsing should not cross line boundaries
     std::string line;
+    size_t count = 0;
     while (std::getline(stream, line)) {
         std::stringstream s(line);
         std::string key, value;
@@ -81,10 +82,11 @@ static bool parse_kv_stream(Config &config, std::istream& stream) {
             }
 
             config[key] = value.substr(0, i);
+            count++;
         }
     }
 
-    return config.size();
+    return !!count;
 }
 
 ConfigFile::ConfigFile(const std::string &filename)
