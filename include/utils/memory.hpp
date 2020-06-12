@@ -1,30 +1,32 @@
 #ifndef HXHIM_MEMORY_HPP
 #define HXHIM_MEMORY_HPP
 
-#include <cstdlib>
 #include <new>
-#include <utility>
+
+// Simple wrappers around ::new and ::delete to reduce typing.
+// Allows for the actual allocation/deallocation functions to be
+// replaced without having to modify every file that calls them.
+
+// These calls to new/delete end up being replaced by jemalloc, if it is available
 
 void *alloc(const std::size_t size);
 void dealloc(void *ptr);
 
 template <typename T, typename... Args>
 T *construct(Args&&... args) {
-    T *ptr = static_cast<T *>(alloc(sizeof(T)));
-    return new (ptr) T(std::forward<Args>(args)...);
+    return new T(std::forward<Args>(args)...);
 }
 
 template <typename T>
 void destruct(T *ptr) {
-    if (ptr) {
-        ptr->~T();
-    }
-    dealloc(ptr);
+    delete ptr;
 }
 
+// wraps initialzing each element of an array
+// basically std::vector<T>::vector(size, value) without having to involve std::move
 template <typename T, typename... Args>
 T *alloc_array(const std::size_t count, Args&&... args) {
-    T *array = static_cast<T *>(alloc(sizeof(T) * count));
+    T *array = new T[count];
     for(std::size_t i = 0; i < count; i++) {
         new (&(array[i])) T(std::forward<Args>(args)...);
     }
@@ -38,8 +40,8 @@ void dealloc_array(T *ptr, const std::size_t count = 0) {
         for(std::size_t i = 0; i < count; i++) {
             ptr[i].~T();
         }
+        delete [] ptr;
     }
-    dealloc(ptr);
 }
 
 #endif
