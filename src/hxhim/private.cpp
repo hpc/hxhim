@@ -9,7 +9,6 @@
 #include "hxhim/options_private.hpp"
 #include "hxhim/private.hpp"
 #include "hxhim/process.tpp"
-#include "hxhim/shuffle.hpp"
 #include "transport/transports.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"

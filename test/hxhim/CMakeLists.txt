@@ -9,6 +9,7 @@ target_sources(googletest PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/generic_options.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/generic_options.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/private.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/shuffle.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/transport.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/triplestore.cpp
 )
