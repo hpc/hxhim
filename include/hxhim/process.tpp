@@ -1,11 +1,14 @@
-#ifndef HXHIM_PROCESS_TPP
-#define HXHIM_PROCESS_TPP
+#ifndef TRANSPORT_BACKEND_LOCAL_PROCESS_TPP
+#define TRANSPORT_BACKEND_LOCAL_PROCESS_TPP
 
-#include "hxhim/hxhim.hpp"
-#include "hxhim/local_client.tpp"
+#include <unordered_map>
+
+#include "transport/backend/local/local_client.tpp"
+
+#include "hxhim/Results_private.hpp"
 #include "hxhim/private.hpp"
 #include "hxhim/shuffle.hpp"
-#include "hxhim/Results.hpp"
+#include "utils/is_range_server.hpp"
 #include "utils/memory.hpp"
 #include "utils/type_traits.hpp"
 
@@ -49,9 +52,9 @@ hxhim::Results *process(hxhim_t *hx,
     hxhim::Results *res = construct<hxhim::Results>();
 
     // declare local requests here to not reallocate every loop
-    Request_t local(max_ops_per_send);
-    local.src = hx->p->bootstrap.rank;
-    local.dst = hx->p->bootstrap.rank;
+    Request_t local_req(max_ops_per_send);
+    local_req.src = hx->p->bootstrap.rank;
+    local_req.dst = hx->p->bootstrap.rank;
 
     // a round might not send every request, so keep running until out of requests
     while (head) {
@@ -59,29 +62,20 @@ hxhim::Results *process(hxhim_t *hx,
         std::unordered_map<int, Request_t *> remote;
 
         // reset local without deallocating memory
-        local.count = 0;
+        local_req.count = 0;
 
         for(UserData_t *curr = head; hx->p->running && curr;) {
             mlog(HXHIM_CLIENT_DBG, "Preparing to shuffle %p (%p)", curr, curr->next);
 
             UserData_t *next = curr->next;
-            const int dst_ds = hxhim::shuffle::shuffle(hx, max_ops_per_send, curr, &local, remote);
+            const int dst_ds = hxhim::shuffle::shuffle(hx, max_ops_per_send, curr, &local_req, remote);
             switch (dst_ds) {
-                case hxhim::shuffle::ERROR:
-                    mlog(HXHIM_CLIENT_WARN, "Request %p could not be shuffled", curr);
-                    // destroy this request
-                    curr->prev = nullptr;
-                    curr->next = nullptr;
-                    destruct(curr);
-                    break;
                 case hxhim::shuffle::NOSPACE:
                     // go to the next request; will come back later
-                    mlog(HXHIM_CLIENT_WARN, "Not enough space to place %p", curr);
                     break;
+                case hxhim::shuffle::ERROR:
                 default:
                     // remove the current request from the list and destroy it
-
-                    mlog(HXHIM_CLIENT_DBG, "%p will go to range server %d", curr, dst_ds);
 
                     // remove the current operation from the list of
                     // operations queued up and continue processing
@@ -116,7 +110,7 @@ hxhim::Results *process(hxhim_t *hx,
         if (remote.size()) {
             hxhim::collect_fill_stats(remote, hx->p->stats.bget);
             Transport::Response::Response *responses = hx->p->transport->communicate(remote);
-            for(Transport::Response::Response *curr = responses; curr; curr = Transport::next(curr)) {
+            for(Transport::Response::Response *curr = responses; curr; curr = next(curr)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
                     res->Add(hxhim::Result::init(hx, curr, i));
                 }
@@ -128,10 +122,10 @@ hxhim::Results *process(hxhim_t *hx,
         }
 
         // process local data
-        if (local.count) {
-            hxhim::collect_fill_stats(&local, hx->p->stats.bget);
-            Response_t *responses = local_client<Request_t, Response_t>(hx, &local);
-            for(Transport::Response::Response *curr = responses; curr; curr = Transport::next(curr)) {
+        if (local_req.count) {
+            hxhim::collect_fill_stats(&local_req, hx->p->stats.bget);
+            Response_t *responses = Transport::local::client<Request_t, Response_t>(hx, &local_req);
+            for(Transport::Response::Response *curr = responses; curr; curr = next(curr)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
                     res->Add(hxhim::Result::init(hx, curr, i));
                 }

@@ -13,7 +13,6 @@
 #include "hxhim/triplestore.hpp"
 #include "utils/Blob.hpp"
 #include "utils/elapsed.h"
-#include "utils/macros.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"

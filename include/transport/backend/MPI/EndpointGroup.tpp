@@ -1,4 +1,5 @@
 #include <unordered_map>
+#include <vector>
 
 #include "transport/backend/MPI/constants.h"
 #include "utils/macros.hpp"
@@ -26,7 +27,8 @@ std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::unordered_ma
     }
 
     // pack the data
-    void **bufs = alloc_array<void *>(messages.size(), nullptr);
+    // packs might fail - use pack_count to keep track of successful packs
+    std::vector<void *> bufs(messages.size(), nullptr);
     std::size_t pack_count = 0;
     for(REF(messages)::value_type const &message : messages) {
         Send_t *msg = message.second;
@@ -50,8 +52,8 @@ std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::unordered_ma
     mlog(MPI_DBG, "Successfully packed %zu messages", pack_count);
 
     // send sizes and data in parallel
-    MPI_Request **size_reqs = alloc_array<MPI_Request *>(pack_count);
-    MPI_Request **data_reqs = alloc_array<MPI_Request *>(pack_count);
+    std::vector<MPI_Request *> size_reqs(pack_count);
+    std::vector<MPI_Request *> data_reqs(pack_count);
     std::size_t size_count = 0;
     std::size_t data_count = 0;
 
@@ -152,12 +154,9 @@ std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::unordered_ma
         }
     }
 
-    dealloc_array(data_reqs, pack_count);
-    dealloc_array(size_reqs, pack_count);
     for(std::size_t i = 0; i < pack_count; i++) {
         dealloc(bufs[i]);
     }
-    dealloc_array(bufs, messages.size());
 
     mlog(MPI_DBG, "Messages completed: %zu", data_count);
 
@@ -189,7 +188,7 @@ std::size_t Transport::MPI::EndpointGroup::parallel_recv(const std::size_t nsrcs
 
     mlog(MPI_DBG, "Waiting to receive %zu messages", nsrcs);
 
-    MPI_Request **reqs = alloc_array<MPI_Request *>(nsrcs);
+    std::vector<MPI_Request *> reqs(nsrcs);
 
     // use reqs to receive size messages from the servers in the list
     std::size_t size_req_count = 0;
@@ -252,7 +251,7 @@ std::size_t Transport::MPI::EndpointGroup::parallel_recv(const std::size_t nsrcs
 
     // reuse reqs to receive data messages from the servers
     std::size_t data_req_count = 0;
-    void **recvbufs = alloc_array<void *>(size_req_count);
+    std::vector<void *> recvbufs(size_req_count);
     for(std::size_t i = 0; i < size_req_count; i++) {
         std::unordered_map<int, int>::const_iterator src_it = ranks.find(srcs[i]);
         if (src_it != ranks.end()) {
@@ -308,8 +307,6 @@ std::size_t Transport::MPI::EndpointGroup::parallel_recv(const std::size_t nsrcs
         }
     }
 
-    dealloc_array(reqs, nsrcs);
-
     // unpack the data
     std::size_t valid = 0;
     *messages = alloc_array<Recv_t *>(data_req_count);
@@ -320,8 +317,6 @@ std::size_t Transport::MPI::EndpointGroup::parallel_recv(const std::size_t nsrcs
 
         dealloc(recvbufs[i]);
     }
-
-    dealloc_array(recvbufs, size_req_count);
 
     // return how many messages were successfully unpacked
     return valid;

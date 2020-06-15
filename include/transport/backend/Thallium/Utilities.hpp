@@ -1,5 +1,3 @@
-#if HXHIM_HAVE_THALLIUM
-
 #ifndef TRANSPORT_THALLIUM_UTILITIES_HPP
 #define TRANSPORT_THALLIUM_UTILITIES_HPP
 
@@ -23,7 +21,5 @@ int get_addrs(const MPI_Comm comm, const thallium::engine &engine, std::unordere
 
 }
 }
-
-#endif
 
 #endif

@@ -1,9 +1,7 @@
-#if HXHIM_HAVE_THALLIUM
-
 #include "hxhim/options_private.hpp"
 #include "hxhim/private.hpp"
-#include "hxhim/range_server.hpp"
 #include "transport/backend/Thallium/Thallium.hpp"
+#include "utils/is_range_server.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
@@ -42,7 +40,7 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
     MPI_Barrier(hx->p->bootstrap.comm);
 
     // create a range server
-    if (hxhim::range_server::is_range_server(hx->p->bootstrap.rank, opts->p->client_ratio, opts->p->server_ratio)) {
+    if (is_range_server(hx->p->bootstrap.rank, opts->p->client_ratio, opts->p->server_ratio)) {
         RangeServer::init(hx, engine, config->buffer_size);
         hx->p->range_server.destroy = RangeServer::destroy;
         mlog(THALLIUM_INFO, "Created Thallium Range Server on rank %d", hx->p->bootstrap.rank);
@@ -67,7 +65,7 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
 
     // create mapping between unique IDs and ranks
     for(decltype(addrs)::value_type const &addr : addrs) {
-        if (hxhim::range_server::is_range_server(addr.first, opts->p->client_ratio, opts->p->server_ratio)) {
+        if (is_range_server(addr.first, opts->p->client_ratio, opts->p->server_ratio)) {
             Endpoint_t server(new thallium::endpoint(engine->lookup(addr.second)));
 
             // if the rank was specified as part of the endpoint group, add the thallium endpoint to the endpoint group
@@ -86,5 +84,3 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
 
 }
 }
-
-#endif

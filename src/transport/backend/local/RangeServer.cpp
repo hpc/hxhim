@@ -2,30 +2,15 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "hxhim/hxhim.hpp"
 #include "hxhim/private.hpp"
-#include "hxhim/range_server.hpp"
+#include "transport/backend/local/RangeServer.hpp"
+#include "transport/backend/local/local_client.tpp"
 #include "utils/Blob.hpp"
 #include "utils/memory.hpp"
 
-namespace hxhim {
-namespace range_server {
-
-/**
- * is_range_server
- *
- * @param rank              the rank of the process
- * @param client_ratio      the client portion of the client to server ratio
- * @param server_ratio      the server portion of the client to server ratio
- * @param true or false
- */
-bool is_range_server(const int rank, const std::size_t client_ratio, const std::size_t server_ratio) {
-    if (!client_ratio ||
-        !server_ratio) {
-        return false;
-    }
-
-    return ((rank % client_ratio) < server_ratio);
-}
+namespace Transport {
+namespace local {
 
 // /**
 //  * histogram
@@ -61,9 +46,8 @@ bool is_range_server(const int rank, const std::size_t client_ratio, const std::
 //     return ret;
 // }
 
-Transport::Response::Response *range_server(hxhim_t *hx, Transport::Request::Request *req) {
+Response::Response *range_server(hxhim_t *hx, Request::Request *req) {
     mlog(HXHIM_SERVER_INFO, "Range server started");
-    using namespace Transport;
 
     Response::Response *res = nullptr;
     mlog(HXHIM_SERVER_INFO, "Range server got a %s", Message::TypeStr[req->type]);

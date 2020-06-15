@@ -1,5 +1,3 @@
-#if HXHIM_HAVE_THALLIUM
-
 #ifndef TRANSPORT_THALLIUM_ENDPOINT_GROUP_HPP
 #define TRANSPORT_THALLIUM_ENDPOINT_GROUP_HPP
 
@@ -56,7 +54,5 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup {
 
 }
 }
-
-#endif
 
 #endif

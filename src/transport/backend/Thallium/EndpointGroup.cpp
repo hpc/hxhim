@@ -1,5 +1,3 @@
-#if HXHIM_HAVE_THALLIUM
-
 #include "transport/backend/Thallium/EndpointGroup.hpp"
 
 #include <memory>
@@ -247,5 +245,3 @@ Response::BHistogram *EndpointGroup::communicate(const std::unordered_map<int, R
 
 }
 }
-
-#endif

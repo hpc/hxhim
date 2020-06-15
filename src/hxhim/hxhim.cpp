@@ -10,14 +10,11 @@
 #include "hxhim/config.hpp"
 #include "hxhim/hxhim.h"
 #include "hxhim/hxhim.hpp"
-#include "hxhim/local_client.tpp"
 #include "hxhim/options_private.hpp"
 #include "hxhim/private.hpp"
 #include "hxhim/process.tpp"
-#include "hxhim/range_server.hpp"
-#include "hxhim/shuffle.hpp"
-#include "transport/Messages/Messages.hpp"
-#include "utils/macros.hpp"
+#include "transport/transports.hpp"
+#include "utils/is_range_server.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
@@ -419,7 +416,7 @@ hxhim::Results *hxhim::Sync(hxhim_t *hx) {
 
     MPI_Barrier(hx->p->bootstrap.comm);
 
-    if (hxhim::range_server::is_range_server(hx->p->bootstrap.rank, hx->p->range_server.client_ratio, hx->p->range_server.server_ratio)) {
+    if (is_range_server(hx->p->bootstrap.rank, hx->p->range_server.client_ratio, hx->p->range_server.server_ratio)) {
         // Sync local data stores
         for(std::size_t i = 0; i < hx->p->datastore.count; i++) {
             const int synced = hx->p->datastore.datastores[i]->Sync();
@@ -671,6 +668,7 @@ int hxhim::BPut(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
+    // append these spo triples into the list of unsent PUTs
     for(std::size_t i = 0; i < count; i++) {
         hxhim::PutImpl(hx->p->queues.puts, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], object_types[i], objects[i], object_lens[i]);
     }

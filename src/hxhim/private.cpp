@@ -9,11 +9,8 @@
 #include "hxhim/options_private.hpp"
 #include "hxhim/private.hpp"
 #include "hxhim/process.tpp"
-#include "hxhim/range_server.hpp"
 #include "hxhim/shuffle.hpp"
-#include "transport/Messages/Messages.hpp"
 #include "transport/transports.hpp"
-#include "utils/macros.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
@@ -250,7 +247,7 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
     // allocate pointers
     hx->p->datastore.datastores = alloc_array<hxhim::datastore::Datastore *>(hx->p->datastore.count);
 
-    const bool is_rs = hxhim::range_server::is_range_server(hx->p->bootstrap.rank, opts->p->client_ratio, opts->p->server_ratio);
+    const bool is_rs = is_range_server(hx->p->bootstrap.rank, opts->p->client_ratio, opts->p->server_ratio);
 
     // create datastores
     for(std::size_t i = 0; i < hx->p->datastore.count; i++) {

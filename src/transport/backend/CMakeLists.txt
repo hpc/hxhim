@@ -1,4 +1,8 @@
 cmake_minimum_required (VERSION 3.6.3)
 
+add_subdirectory(local)
 add_subdirectory(MPI)
-add_subdirectory(Thallium)
+
+if (THALLIUM_FOUND AND ENABLE_THALLIUM)
+  add_subdirectory(Thallium)
+endif()

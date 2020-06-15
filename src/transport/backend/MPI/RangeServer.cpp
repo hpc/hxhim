@@ -1,8 +1,8 @@
+#include "hxhim/hxhim.hpp"
 #include "hxhim/private.hpp"
-#include "hxhim/range_server.hpp"
-#include "hxhim/struct.h"
 #include "transport/backend/MPI/RangeServer.hpp"
 #include "transport/backend/MPI/constants.h"
+#include "transport/backend/local/RangeServer.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
@@ -67,7 +67,7 @@ void RangeServer::listener_thread() {
         ::operator delete(req);
 
         // process request
-        Response::Response *response = hxhim::range_server::range_server(hx_, request);
+        Response::Response *response = local::range_server(hx_, request);
         dealloc(request);
 
         // encode result

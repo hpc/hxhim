@@ -1,25 +1,27 @@
-#ifndef HXHIM_LOCAL_TRANSPORT_TPP
-#define HXHIM_LOCAL_TRANSPORT_TPP
+#ifndef TRANSPORT_BACKEND_LOCAL_CLIENT_TPP
+#define TRANSPORT_BACKEND_LOCAL_CLIENT_TPP
 
-#include "hxhim/range_server.hpp"
-#include "hxhim/struct.h"
-#include "transport/transport.hpp"
+#include "hxhim/private.hpp"
+#include "transport/Messages/Messages.hpp"
+#include "transport/backend/local/RangeServer.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
-namespace hxhim {
+namespace Transport {
+namespace local {
+
 /**
  * local_transport
  * force a copy of the data in order to maintain the
  * same ownership semantics when processing local data
  */
 template <typename Msg_t>
-Msg_t *local_transport(Msg_t *src) {
+Msg_t *transport(Msg_t *src) {
     void *buf = nullptr;
     std::size_t size = 0;
 
     // pack the message
-    if (Transport::Packer::pack(src, &buf, &size) != TRANSPORT_SUCCESS) {
+    if (Packer::pack(src, &buf, &size) != TRANSPORT_SUCCESS) {
         dealloc(buf);
         mlog(THALLIUM_WARN, "Unable to pack message");
         return nullptr;
@@ -27,7 +29,7 @@ Msg_t *local_transport(Msg_t *src) {
 
     // unpack the message
     Msg_t *copy = nullptr;
-    if (Transport::Unpacker::unpack(&copy, buf, size) != TRANSPORT_SUCCESS) {
+    if (Unpacker::unpack(&copy, buf, size) != TRANSPORT_SUCCESS) {
         dealloc(buf);
         mlog(THALLIUM_DBG, "Could not unpack message");
         return nullptr;
@@ -54,25 +56,27 @@ Msg_t *local_transport(Msg_t *src) {
  * @param msg   pointer to the message
  * @return return_message structure with status = HXHIM_SUCCESS or HXHIM_ERROR
  */
-template <typename Request_t, typename Response_t, typename = enable_if_t <is_child_of<Transport::Request::Request,   Request_t> ::value &&
-                                                                           is_child_of<Transport::Response::Response, Response_t>::value> >
-Response_t *local_client(hxhim_t *hx, Request_t *req) {
+template <typename Request_t, typename Response_t,
+          typename = enable_if_t <is_child_of<Request::Request,   Request_t> ::value &&
+                                  is_child_of<Response::Response, Response_t>::value> >
+Response_t *client(hxhim_t *hx, Request_t *req) {
     // send to "server"
-    Request_t *remote_req = local_transport(req);
+    Request_t *remote_req = transport(req);
     // do not destruct req here since it was not created here
 
     // process
-    Response_t *remote_res = hxhim::range_server::range_server<Response_t>(hx, remote_req);
+    Response_t *remote_res = range_server<Response_t>(hx, remote_req);
     destruct(remote_req);
 
     // send to "client"
-    Response_t *res = local_transport(remote_res);
-    mlog(HXHIM_SERVER_INFO, "Range server %s %zu", Transport::Message::TypeStr[req->type], req->count);
+    Response_t *res = transport(remote_res);
+    mlog(HXHIM_SERVER_INFO, "Range server %s %zu", Message::TypeStr[req->type], req->count);
     destruct(remote_res);
 
     return res;
 }
 
+}
 }
 
 #endif

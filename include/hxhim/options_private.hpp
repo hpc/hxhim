@@ -10,7 +10,7 @@
 #include "hxhim/constants.h"
 #include "hxhim/hash.hpp"
 #include "hxhim/options.h"
-#include "transport/options.hpp"
+#include "transport/Options.hpp"
 #include "utils/Histogram.hpp"
 
 #ifdef __cplusplus

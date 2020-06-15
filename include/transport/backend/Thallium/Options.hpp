@@ -1,12 +1,10 @@
-#if HXHIM_HAVE_THALLIUM
-
 #ifndef TRANSPORT_THALLIUM_OPTIONS_HPP
 #define TRANSPORT_THALLIUM_OPTIONS_HPP
 
 #include <string>
 
 #include "transport/constants.hpp"
-#include "transport/options.hpp"
+#include "transport/Options.hpp"
 
 namespace Transport {
 namespace Thallium {
@@ -24,7 +22,5 @@ struct Options : ::Transport::Options {
 
 }
 }
-
-#endif
 
 #endif

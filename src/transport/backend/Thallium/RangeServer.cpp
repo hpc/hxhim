@@ -1,13 +1,12 @@
-#if HXHIM_HAVE_THALLIUM
-
 #include <memory>
 #include <vector>
 
 #include <thallium/serialization/stl/string.hpp>
 
+#include "hxhim/hxhim.hpp"
 #include "hxhim/private.hpp"
-#include "hxhim/range_server.hpp"
 #include "transport/backend/Thallium/RangeServer.hpp"
+#include "transport/backend/local/RangeServer.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
@@ -63,7 +62,7 @@ void RangeServer::process(const thallium::request &req, thallium::bulk &bulk) {
     mlog(THALLIUM_DBG, "Unpacked %zu bytes of %s request", bufsize_, Message::TypeStr[request->type]);
 
     // process the request
-    Response::Response *response = hxhim::range_server::range_server(hx_, request);
+    Response::Response *response = local::range_server(hx_, request);
     dealloc(request);
 
     mlog(THALLIUM_DBG, "Datastore responded with %s response", Message::TypeStr[response->type]);
@@ -94,5 +93,3 @@ void RangeServer::process(const thallium::request &req, thallium::bulk &bulk) {
 
 }
 }
-
-#endif

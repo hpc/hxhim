@@ -5,8 +5,8 @@
 #include "datastore/datastore.hpp"
 #include "hxhim/accessors.hpp"
 #include "hxhim/private.hpp"
-#include "hxhim/range_server.hpp"
 #include "utils/elen.hpp"
+#include "utils/is_range_server.hpp"
 
 namespace hxhim {
 namespace datastore {
@@ -74,7 +74,7 @@ int get_id(hxhim_t *hx, const int rank, const std::size_t offset) {
         return -1;
     }
 
-    if (!hxhim::range_server::is_range_server(rank, hx->p->range_server.client_ratio, hx->p->range_server.server_ratio)) {
+    if (!is_range_server(rank, hx->p->range_server.client_ratio, hx->p->range_server.server_ratio)) {
         return -1;
     }
 

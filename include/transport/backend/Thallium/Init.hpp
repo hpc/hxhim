@@ -1,5 +1,3 @@
-#if HXHIM_HAVE_THALLIUM
-
 #ifndef TRANSPORT_THALLIUM_INIT_HPP
 #define TRANSPORT_THALLIUM_INIT_HPP
 
@@ -13,7 +11,5 @@ int init(hxhim_t *hx, hxhim_options_t *opts);
 
 }
 }
-
-#endif
 
 #endif
