@@ -6,7 +6,6 @@
 
 #include "hxhim/constants.h"
 #include "transport/Messages/Messages.hpp"
-#include "utils/Blob.hpp"
 #include "utils/type_traits.hpp"
 
 /*
@@ -31,18 +30,13 @@ namespace hxhim {
         Blob *predicate;
     } SP_t;
 
-    typedef struct SubjectPredicateObject : SP_t {
-        SubjectPredicateObject();
-        virtual ~SubjectPredicateObject();
-
-        hxhim_type_t object_type;
-        Blob *object;
-    } SPO_t;
-
-    struct PutData : SPO_t {
+    struct PutData : SP_t {
         PutData();
         ~PutData() = default;
         int moveto(Transport::Request::BPut *bput, const int ds_offset);
+
+        hxhim_type_t object_type;
+        Blob *object;
 
         PutData *prev;
         PutData *next;

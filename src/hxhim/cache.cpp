@@ -1,4 +1,5 @@
 #include "hxhim/cache.hpp"
+#include "utils/Blob.hpp"
 
 hxhim::UserData::~UserData() {}
 
@@ -10,16 +11,10 @@ hxhim::SubjectPredicate::SubjectPredicate()
 
 hxhim::SubjectPredicate::~SubjectPredicate() {}
 
-hxhim::SubjectPredicateObject::SubjectPredicateObject()
+hxhim::PutData::PutData()
     : SP_t(),
       object_type(HXHIM_INVALID_TYPE),
-      object()
-{}
-
-hxhim::SubjectPredicateObject::~SubjectPredicateObject() {}
-
-hxhim::PutData::PutData()
-    : SPO_t(),
+      object(nullptr),
       prev(nullptr),
       next(nullptr)
 {}
