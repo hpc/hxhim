@@ -13,13 +13,14 @@
  */
 struct Blob {
     Blob(void *ptr = nullptr, const std::size_t len = 0);
+    Blob(Blob * blob);
 
     virtual ~Blob();
 
     // read to a blob of memory
     // the blob argument is assumed to be defined and large enough to fit the data
     // (length is not known)
-    char *pack(char *&blob);
+    char *pack(char *&dst);
 
     void *ptr;
     std::size_t len;
@@ -44,6 +45,8 @@ struct RealBlob : Blob {
     RealBlob(const std::size_t len, const void *blob);
 
     RealBlob(const RealBlob &) = delete;
+    RealBlob(RealBlob *) = delete;
+
     RealBlob(RealBlob &&blob);
 
     ~RealBlob();

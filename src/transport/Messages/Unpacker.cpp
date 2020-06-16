@@ -388,19 +388,21 @@ int Unpacker::unpack(Response::BGet **bgm, void *buf, const std::size_t bufsize)
         memcpy(&out->statuses[i], curr, sizeof(out->statuses[i]));
         curr += sizeof(out->statuses[i]);
 
-        // subject
-        out->subjects[i] = construct<RealBlob>(curr);
+        // original subject addr + len
+        out->orig.subjects[i] = construct<ReferenceBlob>();
+        memcpy(&out->orig.subjects[i]->ptr, curr, sizeof(out->orig.subjects[i]->ptr));
+        curr += sizeof(out->orig.subjects[i]->ptr);
 
-        // original subject addr
-        memcpy(&out->orig.subjects[i], curr, sizeof(out->orig.subjects[i]));
-        curr += sizeof(out->orig.subjects[i]);
+        memcpy(&out->orig.subjects[i]->len, curr, sizeof(out->orig.subjects[i]->len));
+        curr += sizeof(out->orig.subjects[i]->len);
 
-        // predicate
-        out->predicates[i] = construct<RealBlob>(curr);
+        // original predicate addr + len
+        out->orig.predicates[i] = construct<ReferenceBlob>();
+        memcpy(&out->orig.predicates[i]->ptr, curr, sizeof(out->orig.predicates[i]->ptr));
+        curr += sizeof(out->orig.predicates[i]->ptr);
 
-        // original predicate addr
-        memcpy(&out->orig.predicates[i], curr, sizeof(out->orig.predicates[i]));
-        curr += sizeof(out->orig.predicates[i]);
+        memcpy(&out->orig.predicates[i]->len, curr, sizeof(out->orig.predicates[i]->len));
+        curr += sizeof(out->orig.predicates[i]->len);
 
         // object type
         memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
@@ -427,7 +429,6 @@ int Unpacker::unpack(Response::BGet **bgm, void *buf, const std::size_t bufsize)
 
             // get the maximum amount of data to copy
             const std::size_t copy_len = (get_len < buffer_len)?get_len:buffer_len;
-            out->objects[i] = construct<ReferenceBlob>(out->orig.objects[i], copy_len);
 
             if (out->orig.object_lens[i]) {
                 *(out->orig.object_lens[i]) = copy_len;
@@ -436,6 +437,8 @@ int Unpacker::unpack(Response::BGet **bgm, void *buf, const std::size_t bufsize)
             if (out->orig.objects[i]) {
                 memcpy(out->orig.objects[i], curr, copy_len);
             }
+
+            out->objects[i] = construct<ReferenceBlob>(out->orig.objects[i], *(out->orig.object_lens[i]));
 
             // move past all data, not just data that was placed into the buffer
             curr += get_len;

@@ -11,21 +11,25 @@ Blob::Blob(void *ptr, const std::size_t len)
 
 Blob::~Blob() {}
 
+Blob::Blob(Blob * blob)
+    : Blob(blob->ptr, blob->len)
+{}
+
 // read to a blob of memory
 // the blob argument is assumed to be defined and large enough to fit the data
 // (length is not known)
-char *Blob::pack(char *&blob) {
-    if (!blob || !ptr) {
+char *Blob::pack(char *&dst) {
+    if (!dst || !ptr) {
         return nullptr;
     }
 
-    memcpy(blob, &len, sizeof(len));
-    blob += sizeof(len);
+    memcpy(dst, &len, sizeof(len));
+    dst += sizeof(len);
 
-    memcpy(blob, ptr, len);
-    blob += len;
+    memcpy(dst, ptr, len);
+    dst += len;
 
-    return blob;
+    return dst;
 }
 
 // take ownership of ptr

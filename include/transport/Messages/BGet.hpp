@@ -29,16 +29,17 @@ struct BGet final : Request {
     std::size_t *predicate_lens;
     hxhim_type_t *object_types;
 
-    // used by dst (server)
-    Blob **objects;
-
     struct {
-        // arrays of references - do not deallocate individual pointers
+        // arrays of addresses from client
+        // used by server when unpacking, and are sent back with response - otherwise not used
+        // do not deallocate individual pointers
         void **subjects;
         void **predicates;
         void **objects;
         std::size_t **object_lens;
     } orig;
+
+    void *ptr;
 };
 
 }
@@ -55,18 +56,18 @@ struct BGet final : Response {
     int steal(BGet *bget, const std::size_t i);
     int cleanup();
 
-    // used by dst (client)
-    Blob **subjects;
-    Blob **predicates;
+    // used by client
     hxhim_type_t *object_types;
 
-    // filled by dst (server)
-    Blob **objects;
+    // filled by server
+    ReferenceBlob **objects;
 
     struct {
-        // arrays of references - do not deallocate individual pointers
-        void **subjects;
-        void **predicates;
+        // arrays of addresses from client
+        // used by server when unpacking, and are sent back with response - otherwise not used
+        // do not deallocate individual pointers
+        ReferenceBlob **subjects;
+        ReferenceBlob **predicates;
         void **objects;
         std::size_t **object_lens;
     } orig;

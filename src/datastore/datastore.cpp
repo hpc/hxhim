@@ -102,7 +102,9 @@ bool Datastore::Open(const std::string &new_name) {
 }
 
 void Datastore::Close() {
-    hist->clear();
+    if (hist) {
+        hist->clear();
+    }
     CloseImpl();
     return;
 }

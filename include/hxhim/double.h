@@ -30,7 +30,7 @@ int hxhimBPutDouble(hxhim_t *hx,
 int hxhimBGetDouble(hxhim_t *hx,
                     void **subjects, size_t *subject_lens,
                     void **predicates, size_t *predicate_lens,
-                    double **obejcts,
+                    double **objects,
                     size_t count);
 
 int hxhimBGetOpDouble(hxhim_t *hx,

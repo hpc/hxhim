@@ -68,7 +68,7 @@ int hxhim_results_datastore(hxhim_results_t *res, int *datastore);
 int hxhim_results_get_object_type(hxhim_results_t *res, enum hxhim_type_t *object_type);
 int hxhim_results_get_subject(hxhim_results_t *res, void **subject, size_t *subject_len);
 int hxhim_results_get_predicate(hxhim_results_t *res, void **predicate, size_t *predicate_len);
-int hxhim_results_get_object(hxhim_results_t *res, void **object, size_t **object_len);
+int hxhim_results_get_object(hxhim_results_t *res, void **object, size_t *object_len);
 
 void hxhim_results_destroy(hxhim_results_t *res);
 

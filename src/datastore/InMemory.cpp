@@ -111,23 +111,20 @@ Transport::Response::BGet *hxhim::datastore::InMemory::BGetImpl(Transport::Reque
 
         dealloc(key);
 
-        // move data into res
-        res->subjects[i] = construct<RealBlob>(req->subjects[i]->ptr, req->subjects[i]->len);
-        req->subjects[i]->ptr = nullptr;
-        req->subjects[i]->len = 0;
-        res->predicates[i] = construct<RealBlob>(req->predicates[i]->ptr, req->predicates[i]->len);
-        req->predicates[i]->ptr = nullptr;
-        req->predicates[i]->len = 0;
-        res->object_types[i] = req->object_types[i];
+        res->ds_offsets[i]       = req->ds_offsets[i];
 
-        // copy requester addresses
-        res->orig.subjects[i] = req->orig.subjects[i];
-        res->orig.predicates[i] = req->orig.predicates[i];
-        res->orig.objects[i] = req->orig.objects[i];
+        // object type was stored as a value, not address, so copy it to the response
+        res->object_types[i]     = req->object_types[i];
+
+        // save requesting addresses for sending back
+        res->orig.subjects[i]    = construct<ReferenceBlob>(req->orig.subjects[i], req->subjects[i]->len);
+        res->orig.predicates[i]  = construct<ReferenceBlob>(req->orig.predicates[i], req->predicates[i]->len);
+        res->orig.objects[i]     = req->orig.objects[i];
         res->orig.object_lens[i] = req->orig.object_lens[i];
 
         res->statuses[i] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
 
+        // copy the object into the response
         if (res->statuses[i] == HXHIM_SUCCESS) {
             res->objects[i] = construct<RealBlob>(it->second.size(), it->second.data());
         }

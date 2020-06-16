@@ -54,15 +54,14 @@ int hxhim::GetData::moveto(Transport::Request::BGet *bget, const int ds_offset) 
     bget->subjects[bget->count] = subject; subject = nullptr;
     bget->predicates[bget->count] = predicate; predicate = nullptr;
     bget->object_types[bget->count] = object_type;
-    bget->objects[bget->count] = construct<ReferenceBlob>();
 
-    // save a copy of the object and object_len pointer
-    // bget->orig.subjects[bget->count] = subject;
-    // bget->orig.subject_lens[bget->count] = subject_len;
-    // bget->orig.predicates[bget->count] = predicate;
-    // bget->orig.predicate_lens[bget->count] = predicate_len;
-    bget->orig.objects[bget->count] = object;
-    bget->orig.object_lens[bget->count] = object_len;
+    // save original addresses
+    // subject and predicate need to be saved in order for calls into local databases to work
+    // since remote sends will result in the original address being copied into the orig.* variables
+    bget->orig.subjects[bget->count] = bget->subjects[bget->count]->ptr;
+    bget->orig.predicates[bget->count] = bget->predicates[bget->count]->ptr;
+    bget->orig.objects[bget->count] = object;         // void *
+    bget->orig.object_lens[bget->count] = object_len; // std::size_t *
 
     bget->count++;
 

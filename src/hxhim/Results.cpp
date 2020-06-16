@@ -15,8 +15,8 @@ hxhim::Results::Get::Get()
     : subject(nullptr),
       predicate(nullptr),
       object_type(HXHIM_INVALID_TYPE),
-      object(nullptr),
-      orig()
+      object(nullptr)//,
+      // orig()
 {}
 
 hxhim::Results::Get::~Get() {
@@ -68,17 +68,11 @@ hxhim::Results::Get *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGet 
     out->type = hxhim_result_type::HXHIM_RESULT_GET;
     out->datastore = hxhim::datastore::get_id(hx, bget->src, bget->ds_offsets[i]);
     out->status = bget->statuses[i];
-    out->subject = bget->subjects[i];
-    out->predicate = bget->predicates[i];
+
+    out->subject = bget->orig.subjects[i];
+    out->predicate = bget->orig.predicates[i];
     out->object_type = bget->object_types[i];
     out->object = bget->objects[i];
-
-    out->orig.object = bget->orig.objects[i];
-    out->orig.object_len = bget->orig.object_lens[i];
-
-    bget->subjects[i] = nullptr;
-    bget->predicates[i] = nullptr;
-    bget->objects[i] = nullptr;
 
     return out;
 }
@@ -482,7 +476,7 @@ int hxhim_results_get_predicate(hxhim_results_t *res, void **predicate, size_t *
  * @param object_len  (optional) the object_len of the current result, only valid if this function returns HXHIM_SUCCESS
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim_results_get_object(hxhim_results_t *res, void **object, size_t **object_len) {
+int hxhim_results_get_object(hxhim_results_t *res, void **object, size_t *object_len) {
     if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
@@ -492,10 +486,10 @@ int hxhim_results_get_object(hxhim_results_t *res, void **object, size_t **objec
         hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(curr);
 
         if (object) {
-            *object = get->orig.object;
+            *object = get->object->ptr;
         }
         if (object_len) {
-            *object_len = get->orig.object_len;
+            *object_len = get->object->len;
         }
 
         // void *orig_object = get->orig.object;

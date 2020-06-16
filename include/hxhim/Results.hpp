@@ -73,13 +73,6 @@ class Results {
             Blob *predicate;
             hxhim_type_t object_type;
             Blob *object;
-
-            struct {
-                void *subject;
-                void *predicate;
-                void *object;
-                std::size_t *object_len;
-            } orig;
         };
 
         /** @description Convenience struct for DEL results */

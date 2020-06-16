@@ -231,19 +231,19 @@ int Packer::pack(const Response::BGet *bgm, void **buf, std::size_t *bufsize) {
         memcpy(curr, &bgm->statuses[i], sizeof(bgm->statuses[i]));
         curr += sizeof(bgm->statuses[i]);
 
-        // subject
-        bgm->subjects[i]->pack(curr);
+        // original subject addr + len
+        memcpy(curr, &bgm->orig.subjects[i]->ptr, sizeof(bgm->orig.subjects[i]->ptr));
+        curr += sizeof(bgm->orig.subjects[i]->ptr);
 
-        // original subject addr
-        memcpy(curr, &bgm->orig.subjects[i], sizeof(bgm->orig.subjects[i]));
-        curr += sizeof(bgm->orig.subjects[i]);
+        memcpy(curr, &bgm->orig.subjects[i]->len, sizeof(bgm->orig.subjects[i]->len));
+        curr += sizeof(bgm->orig.subjects[i]->len);
 
-        // predicate
-        bgm->predicates[i]->pack(curr);
+        // original predicate addr + len
+        memcpy(curr, &bgm->orig.predicates[i]->ptr, sizeof(bgm->orig.predicates[i]->ptr));
+        curr += sizeof(bgm->orig.predicates[i]->ptr);
 
-        // original predicate addr
-        memcpy(curr, &bgm->orig.predicates[i], sizeof(bgm->orig.predicates[i]));
-        curr += sizeof(bgm->orig.predicates[i]);
+        memcpy(curr, &bgm->orig.predicates[i]->len, sizeof(bgm->orig.predicates[i]->len));
+        curr += sizeof(bgm->orig.predicates[i]->len);
 
         // object type
         memcpy(curr, &bgm->object_types[i], sizeof(bgm->object_types[i]));

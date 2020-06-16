@@ -8,7 +8,7 @@
 #include "print_results.h"
 #include "spo_gen.h"
 
-const size_t count = 5;
+const size_t count = 1;
 const size_t bufsize = 100;
 
 void ordered_print(MPI_Comm comm, const int rank, const int size, hxhim_t * hx, hxhim_results_t *res) {
