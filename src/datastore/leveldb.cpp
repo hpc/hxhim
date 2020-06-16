@@ -1,5 +1,3 @@
-#if HXHIM_HAVE_LEVELDB
-
 #include <cerrno>
 #include <ctime>
 #include <sstream>
@@ -192,22 +190,18 @@ Transport::Response::BGet *hxhim::datastore::leveldb::BGetImpl(Transport::Reques
 
         dealloc(key);
 
-        res->ds_offsets[i] = req->ds_offsets[i];
+        res->ds_offsets[i]       = req->ds_offsets[i];
 
-        // move data into res
-        res->subjects[i] = req->subjects[i];
-        req->subjects[i] = nullptr;
-        res->predicates[i] = req->predicates[i];
-        req->predicates[i] = nullptr;
-        res->object_types[i] = req->object_types[i];
+        // object type was stored as a value, not address, so copy it to the response
+        res->object_types[i]     = req->object_types[i];
 
-        // move client addresses
-        res->orig.subjects[i] = req->orig.subjects[i];
-        res->orig.predicates[i] = req->orig.predicates[i];
-        res->orig.objects[i] = req->orig.objects[i];
+        // save requesting addresses for sending back
+        res->orig.subjects[i]    = construct<ReferenceBlob>(req->orig.subjects[i], req->subjects[i]->len);
+        res->orig.predicates[i]  = construct<ReferenceBlob>(req->orig.predicates[i], req->predicates[i]->len);
+        res->orig.objects[i]     = req->orig.objects[i];
         res->orig.object_lens[i] = req->orig.object_lens[i];
 
-        // copy object
+        // put object into response
         if (status.ok()) {
             res->statuses[i] = HXHIM_SUCCESS;
             res->objects[i] = construct<RealBlob>(value.size(), value.data());
@@ -217,7 +211,7 @@ Transport::Response::BGet *hxhim::datastore::leveldb::BGetImpl(Transport::Reques
             res->statuses[i] = HXHIM_ERROR;
         }
 
-        res->count ++;
+        res->count++;
 
         // update stats
         stats.gets++;
@@ -374,5 +368,3 @@ int hxhim::datastore::leveldb::SyncImpl() {
     options.sync = true;
     return db->Write(options, &batch).ok()?HXHIM_SUCCESS:HXHIM_ERROR;
 }
-
-#endif

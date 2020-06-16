@@ -1,5 +1,3 @@
-#if HXHIM_HAVE_LEVELDB
-
 #ifndef HXHIM_DATASTORE_LEVELDB_HPP
 #define HXHIM_DATASTORE_LEVELDB_HPP
 
@@ -43,7 +41,5 @@ class leveldb : public Datastore {
 
 }
 }
-
-#endif
 
 #endif
