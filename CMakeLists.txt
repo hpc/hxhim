@@ -76,8 +76,9 @@ endif()
 
 # do not search for thallium with find_package
 pkg_search_module(THALLIUM thallium)
-option(ENABLE_THALLIUM "Use Thallium if found" On)
 if (THALLIUM_FOUND)
+  option(ENABLE_THALLIUM "Use Thallium if found" On)
+
   if (ENABLE_THALLIUM)
     # thallium needs C++14
     set(CMAKE_CXX_STANDARD 14)
@@ -112,8 +113,9 @@ endif()
 # LevelDB Support
 #
 pkg_search_module(LEVELDB leveldb)
-option(ENABLE_LEVELDB "Use LevelDB if found" On)
 if(LEVELDB_FOUND)
+  option(ENABLE_LEVELDB "Use LevelDB if found" On)
+
   if (ENABLE_LEVELDB)
     message(STATUS "LevelDB Data Storage Module Enabled")
     message(STATUS "LEVELDB_INCLUDEDIR=" ${LEVELDB_INCLUDEDIR})

@@ -5,7 +5,6 @@
 #include "hxhim/hxhim.hpp"
 #include "hxhim/private.hpp"
 #include "transport/backend/local/RangeServer.hpp"
-#include "transport/backend/local/local_client.tpp"
 #include "utils/Blob.hpp"
 #include "utils/memory.hpp"
 

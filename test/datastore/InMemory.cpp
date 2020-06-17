@@ -8,7 +8,6 @@
 
 #include "datastore/InMemory.hpp"
 #include "hxhim/triplestore.hpp"
-#include "transport/backend/local/local_client.tpp"
 #include "utils/memory.hpp"
 
 static const char *subs[]         = {"sub1",          "sub2"};

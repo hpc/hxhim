@@ -55,9 +55,6 @@ int hxhim::GetData::moveto(Transport::Request::BGet *bget, const int ds_offset) 
     bget->predicates[bget->count] = predicate; predicate = nullptr;
     bget->object_types[bget->count] = object_type;
 
-    // save original addresses
-    // subject and predicate need to be saved in order for calls into local databases to work
-    // since remote sends will result in the original address being copied into the orig.* variables
     bget->orig.subjects[bget->count] = bget->subjects[bget->count]->ptr;
     bget->orig.predicates[bget->count] = bget->predicates[bget->count]->ptr;
     bget->orig.objects[bget->count] = object;         // void *

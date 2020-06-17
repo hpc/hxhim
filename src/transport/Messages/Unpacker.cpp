@@ -146,7 +146,7 @@ int Unpacker::unpack(Request::BGet **bgm, void *buf, const std::size_t bufsize) 
         memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
         curr += sizeof(out->object_types[i]);
 
-        // object
+        // object addr
         memcpy(&out->orig.objects[i], curr, sizeof(out->orig.objects[i]));
         curr += sizeof(out->orig.objects[i]);
 

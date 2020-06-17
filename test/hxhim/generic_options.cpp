@@ -1,5 +1,4 @@
 #include "generic_options.hpp"
-#include "hxhim/Results.hpp"
 #include "hxhim/config.hpp"
 
 bool fill_options(hxhim_options_t *opts) {

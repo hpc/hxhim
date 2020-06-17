@@ -15,8 +15,7 @@ hxhim::Results::Get::Get()
     : subject(nullptr),
       predicate(nullptr),
       object_type(HXHIM_INVALID_TYPE),
-      object(nullptr)//,
-      // orig()
+      object(nullptr)
 {}
 
 hxhim::Results::Get::~Get() {
@@ -72,7 +71,23 @@ hxhim::Results::Get *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGet 
     out->subject = bget->orig.subjects[i];
     out->predicate = bget->orig.predicates[i];
     out->object_type = bget->object_types[i];
-    out->object = bget->objects[i];
+
+    // unpack copies into the original pointer, so it should be done here as well
+    if (bget->objects[i]) {
+        if (bget->objects[i]->ptr != bget->orig.objects[i]) {
+            *(bget->orig.object_lens[i]) = (*(bget->orig.object_lens[i]) < bget->objects[i]->len)?*(bget->orig.object_lens[i]):bget->objects[i]->len;
+            memcpy(bget->orig.objects[i], bget->objects[i]->ptr, *(bget->orig.object_lens[i]));
+        }
+    }
+
+    // point the object to the user's memory
+    out->object = construct<ReferenceBlob>(bget->orig.objects[i], *(bget->orig.object_lens[i]));
+
+    bget->orig.subjects[i] = nullptr;
+    bget->orig.predicates[i] = nullptr;
+    bget->orig.objects[i] = nullptr;
+    bget->orig.object_lens[i] = nullptr;
+    bget->objects[i] = nullptr;
 
     return out;
 }

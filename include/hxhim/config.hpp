@@ -40,9 +40,11 @@ const std::string SERVER_RATIO                = "SERVER_RATIO";              // 
 const std::string DATASTORES_PER_RANGE_SERVER = "DATASTORES_PER_RS";         // positive integer
 const std::string DATASTORE_TYPE              = "DATASTORE";                 // See DATASTORE_TYPES
 
+#if HXHIM_HAVE_LEVELDB
 /** LevelDB Datastore Options */
 const std::string LEVELDB_PREFIX              = "LEVELDB_PREFIX";            // string
 const std::string LEVELDB_CREATE_IF_MISSING   = "LEVELDB_CREATE_IF_MISSING"; // boolean
+#endif
 
 const std::string HASH                        = "HASH";                      // See HASHES
 
@@ -89,10 +91,10 @@ const std::unordered_map<std::string, int> DEBUG_LEVELS = {
  * Set of allowed datastores for HXHIM
  */
 const std::unordered_map<std::string, datastore::Type> DATASTORES = {
+    std::make_pair("IN_MEMORY", datastore::IN_MEMORY),
     #if HXHIM_HAVE_LEVELDB
     std::make_pair("LEVELDB",   datastore::LEVELDB),
     #endif
-    std::make_pair("IN_MEMORY", datastore::IN_MEMORY),
 };
 
 /**
@@ -152,9 +154,13 @@ const Config DEFAULT_CONFIG = {
     std::make_pair(CLIENT_RATIO,                  "2"),
     std::make_pair(SERVER_RATIO,                  "1"),
     std::make_pair(DATASTORES_PER_RANGE_SERVER,   "1"),
+#if HXHIM_HAVE_LEVELDB
     std::make_pair(DATASTORE_TYPE,                "LEVELDB"),
     std::make_pair(LEVELDB_PREFIX,                "."),
     std::make_pair(LEVELDB_CREATE_IF_MISSING,     "true"),
+#else
+    std::make_pair(DATASTORE_TYPE,                "IN_MEMORY"),
+#endif
     std::make_pair(TRANSPORT,                     "NULL"),
     std::make_pair(HASH,                          "MY_RANK"),
     std::make_pair(TRANSPORT_ENDPOINT_GROUP,      "ALL"),

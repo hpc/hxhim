@@ -3,11 +3,10 @@
 
 #include <unordered_map>
 
-#include "transport/backend/local/local_client.tpp"
-
 #include "hxhim/Results_private.hpp"
 #include "hxhim/private.hpp"
 #include "hxhim/shuffle.hpp"
+#include "transport/backend/local/RangeServer.hpp"
 #include "utils/is_range_server.hpp"
 #include "utils/memory.hpp"
 #include "utils/type_traits.hpp"
@@ -52,9 +51,9 @@ hxhim::Results *process(hxhim_t *hx,
     hxhim::Results *res = construct<hxhim::Results>();
 
     // declare local requests here to not reallocate every loop
-    Request_t local_req(max_ops_per_send);
-    local_req.src = hx->p->bootstrap.rank;
-    local_req.dst = hx->p->bootstrap.rank;
+    Request_t local(max_ops_per_send);
+    local.src = hx->p->bootstrap.rank;
+    local.dst = hx->p->bootstrap.rank;
 
     // a round might not send every request, so keep running until out of requests
     while (head) {
@@ -62,13 +61,13 @@ hxhim::Results *process(hxhim_t *hx,
         std::unordered_map<int, Request_t *> remote;
 
         // reset local without deallocating memory
-        local_req.count = 0;
+        local.count = 0;
 
         for(UserData_t *curr = head; hx->p->running && curr;) {
             mlog(HXHIM_CLIENT_DBG, "Preparing to shuffle %p (%p)", curr, curr->next);
 
             UserData_t *next = curr->next;
-            const int dst_ds = hxhim::shuffle::shuffle(hx, max_ops_per_send, curr, &local_req, remote);
+            const int dst_ds = hxhim::shuffle::shuffle(hx, max_ops_per_send, curr, &local, remote);
             switch (dst_ds) {
                 case hxhim::shuffle::NOSPACE:
                     // go to the next request; will come back later
@@ -122,9 +121,9 @@ hxhim::Results *process(hxhim_t *hx,
         }
 
         // process local data
-        if (local_req.count) {
-            hxhim::collect_fill_stats(&local_req, hx->p->stats.bget);
-            Response_t *responses = Transport::local::client<Request_t, Response_t>(hx, &local_req);
+        if (local.count) {
+            hxhim::collect_fill_stats(&local, hx->p->stats.bget);
+            Response_t *responses = Transport::local::range_server<Response_t, Request_t>(hx, &local);
             for(Transport::Response::Response *curr = responses; curr; curr = next(curr)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
                     res->Add(hxhim::Result::init(hx, curr, i));
