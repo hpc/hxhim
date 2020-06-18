@@ -29,7 +29,6 @@ int hxhimClose(hxhim_t *hx);
 /** @description Functiosn for flushing HXHIM queues */
 hxhim_results_t *hxhimFlushPuts(hxhim_t *hx);
 hxhim_results_t *hxhimFlushGets(hxhim_t *hx);
-hxhim_results_t *hxhimFlushGets(hxhim_t *hx);
 hxhim_results_t *hxhimFlushGetOps(hxhim_t *hx);
 hxhim_results_t *hxhimFlushDeletes(hxhim_t *hx);
 hxhim_results_t *hxhimFlush(hxhim_t *hx);

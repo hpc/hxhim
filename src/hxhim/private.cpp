@@ -292,6 +292,9 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
         return HXHIM_ERROR;
     }
 
+    hx->p->range_server.client_ratio = 1;
+    hx->p->range_server.server_ratio = 1;
+
     if ((hx->p->datastore.count = opts->p->datastore_count) != 1) {
         return HXHIM_ERROR;
     }
@@ -301,6 +304,11 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
     Histogram::Histogram *hist = new Histogram::Histogram(opts->p->histogram.first_n,
                                                           opts->p->histogram.gen,
                                                           opts->p->histogram.args);
+
+    // ignore configuration hash - everything goes into here
+    hx->p->hash.name = "local";
+    hx->p->hash.func = hash::RankZero;
+    hx->p->hash.args = nullptr;
 
     // Start the datastore
     switch (opts->p->datastore->type) {
