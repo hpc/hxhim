@@ -5,6 +5,7 @@
 
 #include "generic_options.hpp"
 #include "hxhim/cache.hpp"
+#include "hxhim/hxhim.hpp"
 #include "hxhim/options.hpp"
 #include "hxhim/shuffle.hpp"
 #include "transport/Messages/Messages.hpp"

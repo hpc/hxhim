@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <unordered_map>
 
+#include "hxhim/accessors.hpp"
 #include "hxhim/constants.h"
 #include "hxhim/private.hpp"
 #include "hxhim/struct.h"
@@ -36,6 +37,9 @@ int shuffle(hxhim_t *hx,
             SRC_t *src,
             DST_t *local,
             std::unordered_map<int, DST_t *> &remote) {
+    int rank = -1;
+    hxhim::GetMPIRank(hx, &rank);
+
     // get the destination backend id for the key
     const int ds_id = hx->p->hash.func(hx, src->subject->ptr, src->subject->len, src->predicate->ptr, src->predicate->len, hx->p->hash.args);
     if (ds_id < 0) {
@@ -48,8 +52,8 @@ int shuffle(hxhim_t *hx,
     const int ds_offset = hxhim::datastore::get_offset(hx, ds_id);
 
     // group local keys
-    if (ds_rank == hx->p->bootstrap.rank) {
-        mlog(HXHIM_CLIENT_INFO, "Sending %p to local datastore %d on rank %d (%zu already packed; %zu max)", src, ds_id, ds_rank, local->count, max_per_dst);
+    if (ds_rank == rank) {
+        mlog(HXHIM_CLIENT_INFO, "Shuffled %p to local datastore %d on rank %d (%zu already packed; %zu max)", src, ds_id, ds_rank, local->count, max_per_dst);
 
         if (local->count >= max_per_dst) {
             mlog(HXHIM_CLIENT_WARN, "Cannot add to packet going to local datastore");
@@ -61,17 +65,17 @@ int shuffle(hxhim_t *hx,
     }
     // group remote keys
     else {
-        mlog(HXHIM_CLIENT_INFO, "Sending %p to remote datastore %d on rank %d", src, ds_id, ds_rank);
+        mlog(HXHIM_CLIENT_INFO, "Shuffled %p to remote datastore %d on rank %d", src, ds_id, ds_rank);
 
         // try to find the destination first
         REF(remote)::iterator it = remote.find(ds_rank);
 
         // if the destination is not found, add one
         if (it == remote.end()) {
-            mlog(HXHIM_CLIENT_DBG, "Adding packet going to rank %d", ds_rank);
+            mlog(HXHIM_CLIENT_DBG, "Creating new packet going to rank %d", ds_rank);
 
             it = remote.insert(std::make_pair(ds_rank, construct<DST_t>(max_per_dst))).first;
-            it->second->src = hx->p->bootstrap.rank;
+            it->second->src = rank;
             it->second->dst = ds_rank;
         }
 
@@ -81,12 +85,12 @@ int shuffle(hxhim_t *hx,
 
         // packet is full
         if (rem->count >= max_per_dst) {
-            mlog(HXHIM_CLIENT_WARN, "Cannot add to packet going to rank %d", ds_rank);
+            mlog(HXHIM_CLIENT_WARN, "Cannot add to packet going to rank %d (no space)", ds_rank);
             return NOSPACE;
         }
 
         src->moveto(rem, ds_offset);
-        mlog(HXHIM_CLIENT_INFO, "Added %p to rank %d packet (%zu packed; %zu max)", src, ds_id, rem->count, max_per_dst);
+        mlog(HXHIM_CLIENT_INFO, "Added %p to rank %d packet (%zu / %zu)", src, ds_id, rem->count, max_per_dst);
     }
 
     return ds_id;

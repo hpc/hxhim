@@ -6,8 +6,8 @@
 
 #include "leveldb/write_batch.h"
 
+#include "hxhim/accessors.hpp"
 #include "datastore/leveldb.hpp"
-#include "hxhim/private.hpp"
 #include "hxhim/triplestore.hpp"
 #include "utils/Blob.hpp"
 #include "utils/elapsed.h"
@@ -56,8 +56,6 @@ hxhim::datastore::leveldb::leveldb(hxhim_t *hx,
       create_if_missing(false),
       db(nullptr), options()
 {
-    mkdir_p(hx->p->datastore.prefix, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-
     if (!Datastore::Open(exact_name)) {
         throw std::runtime_error("Could not configure leveldb datastore " + exact_name);
     }
@@ -68,15 +66,16 @@ hxhim::datastore::leveldb::leveldb(hxhim_t *hx,
 hxhim::datastore::leveldb::leveldb(hxhim_t *hx,
                                    const int id,
                                    Histogram::Histogram *hist,
+                                   const std::string &prefix,
                                    const std::string &basename, const bool create_if_missing)
     : Datastore(hx, id, hist),
       create_if_missing(create_if_missing),
       db(nullptr), options()
 {
-    mkdir_p(hx->p->datastore.prefix, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    mkdir_p(prefix, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
     std::stringstream s;
-    s << hx->p->datastore.prefix << "/" << basename << "-" << id;
+    s << prefix << "/" << basename << "-" << id;
     const std::string name = s.str();
 
     options.create_if_missing = create_if_missing;
@@ -171,8 +170,13 @@ Transport::Response::BPut *hxhim::datastore::leveldb::BPutImpl(Transport::Reques
  * @return pointer to a list of results
  */
 Transport::Response::BGet *hxhim::datastore::leveldb::BGetImpl(Transport::Request::BGet *req) {
+    int rank = -1;
+    hxhim::GetMPIRank(hx, &rank);
+
+    mlog(LEVELDB_INFO, "Rank %d LevelDB GET processing %zu item in %ps", rank, req->count, req);
     Transport::Response::BGet *res = construct<Transport::Response::BGet>(req->count);
     for(std::size_t i = 0; i < req->count; i++) {
+        mlog(LEVELDB_INFO, "Rank %d LevelDB GET processing %p[%zu] = {%p, %p}", rank, req, i, req->subjects[i], req->predicates[i]);
         struct timespec start, end;
 
         void *key = nullptr;
@@ -203,11 +207,12 @@ Transport::Response::BGet *hxhim::datastore::leveldb::BGetImpl(Transport::Reques
 
         // put object into response
         if (status.ok()) {
+            mlog(LEVELDB_INFO, "Rank %d LevelDB GET success", rank);
             res->statuses[i] = HXHIM_SUCCESS;
             res->objects[i] = construct<RealBlob>(value.size(), value.data());
         }
         else {
-            mlog(LEVELDB_WARN, "LevelDB error: %s", status.ToString().c_str());
+            mlog(LEVELDB_WARN, "Rank %d LevelDB GET error: %s", rank, status.ToString().c_str());
             res->statuses[i] = HXHIM_ERROR;
         }
 
@@ -218,6 +223,7 @@ Transport::Response::BGet *hxhim::datastore::leveldb::BGetImpl(Transport::Reques
         stats.get_times += nano(start, end);
     }
 
+    mlog(LEVELDB_INFO, "Rank %d LevelDB GET done processing %p", rank, req);
     return res;
 }
 

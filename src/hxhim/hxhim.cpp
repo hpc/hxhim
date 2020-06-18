@@ -136,20 +136,25 @@ int hxhimOpenOne(hxhim_t *hx, hxhim_options_t *opts, const char *db_path, const 
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::Close(hxhim_t *hx) {
-    mlog(HXHIM_CLIENT_INFO, "Starting to shutdown HXHIM");
     if (!valid(hx)) {
         mlog(HXHIM_CLIENT_ERR, "Bad HXHIM instance");
         return HXHIM_ERROR;
     }
 
+    int rank = -1;
+    hxhim::GetMPIRank(hx, &rank);
+
+    mlog(HXHIM_CLIENT_INFO, "Rank %d Starting to shutdown HXHIM", rank);
+
+    mlog(HXHIM_CLIENT_DBG, "Rank %d No longer accepting user input", rank);
     destroy::running(hx);
+
+    mlog(HXHIM_CLIENT_DBG, "Rank %d Waiting for all ranks to complete syncing", rank);
     Results::Destroy(hxhim::Sync(hx));
-    destroy::async_put(hx);
-
-    mlog(HXHIM_CLIENT_DBG, "Waiting for all ranks to complete syncing");
     MPI_Barrier(hx->p->bootstrap.comm);
-    mlog(HXHIM_CLIENT_DBG, "Closing HXHIM");
+    mlog(HXHIM_CLIENT_DBG, "Rank %d Closing HXHIM", rank);
 
+    destroy::async_put(hx);
     destroy::transport(hx);
     destroy::hash(hx);
     destroy::datastore(hx);
@@ -160,7 +165,7 @@ int hxhim::Close(hxhim_t *hx) {
     delete hx->p;
     hx->p = nullptr;
 
-    mlog(HXHIM_CLIENT_INFO, "HXHIM has been shutdown");
+    mlog(HXHIM_CLIENT_INFO, "Rank %d HXHIM has been shutdown", rank);
     mlog_close();
     return HXHIM_SUCCESS;
 }
@@ -216,7 +221,10 @@ hxhim::Results *FlushImpl(hxhim_t *hx, hxhim::Unsent<UserData_t> &unsent, const 
  * @return results from sending the PUTs
  */
 hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
-    mlog(HXHIM_CLIENT_INFO, "Flushing PUTs");
+    int rank = -1;
+    hxhim::GetMPIRank(hx, &rank);
+
+    mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing PUTs", rank);
     hxhim::Results *res = FlushImpl<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, hx->p->queues.puts, hx->p->max_ops_per_send.puts);
 
     // TODO: Remove this when the background thread is restored
@@ -229,7 +237,7 @@ hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
         hx->p->async_put.results = nullptr;
     }
 
-    mlog(HXHIM_CLIENT_INFO, "Done Flushing Puts");
+    mlog(HXHIM_CLIENT_INFO, "Rank %d Done Flushing Puts", rank);
     return res;
     // mlog(HXHIM_CLIENT_INFO, "Flushing PUTs");
     // if (!valid(hx)) {
@@ -278,7 +286,7 @@ hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim_results_t *hxhimFlushPuts(hxhim_t *hx) {
-    return hxhim_results_init(hxhim::FlushPuts(hx));
+    return hxhim_results_init(hx, hxhim::FlushPuts(hx));
 }
 
 /**
@@ -290,9 +298,12 @@ hxhim_results_t *hxhimFlushPuts(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
-    mlog(HXHIM_CLIENT_INFO, "Flushing GETs");
+    int rank = -1;
+    hxhim::GetMPIRank(hx, &rank);
+
+    mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing GETs", rank);
     hxhim::Results *res = FlushImpl<hxhim::GetData, Transport::Request::BGet, Transport::Response::BGet>(hx, hx->p->queues.gets, hx->p->max_ops_per_send.gets);
-    mlog(HXHIM_CLIENT_INFO, "Done Flushing Gets");
+    mlog(HXHIM_CLIENT_INFO, "Rank %d Done Flushing Gets %p", rank, res);
     return res;
 }
 
@@ -305,7 +316,7 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim_results_t *hxhimFlushGets(hxhim_t *hx) {
-    return hxhim_results_init(hxhim::FlushGets(hx));
+    return hxhim_results_init(hx, hxhim::FlushGets(hx));
 }
 
 /**
@@ -317,9 +328,12 @@ hxhim_results_t *hxhimFlushGets(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
-    mlog(HXHIM_CLIENT_INFO, "Flushing GETOPs");
+    int rank = -1;
+    hxhim::GetMPIRank(hx, &rank);
+
+    mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing GETOPs", rank);
     hxhim::Results *res = FlushImpl<hxhim::GetOpData, Transport::Request::BGetOp, Transport::Response::BGetOp>(hx, hx->p->queues.getops, hx->p->max_ops_per_send.getops);
-    mlog(HXHIM_CLIENT_INFO, "Done Flushing GETOPs");
+    mlog(HXHIM_CLIENT_INFO, "Rank %d Done Flushing GETOPs %p", rank, res);
     return res;
 }
 
@@ -332,7 +346,7 @@ hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim_results_t *hxhimFlushGetOps(hxhim_t *hx) {
-    return hxhim_results_init(hxhim::FlushGetOps(hx));
+    return hxhim_results_init(hx, hxhim::FlushGetOps(hx));
 }
 
 /**
@@ -344,9 +358,12 @@ hxhim_results_t *hxhimFlushGetOps(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
-    mlog(HXHIM_CLIENT_INFO, "Flushing DELETEs");
+    int rank = -1;
+    hxhim::GetMPIRank(hx, &rank);
+
+    mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing DELETEs", rank);
     hxhim::Results *res = FlushImpl<hxhim::DeleteData, Transport::Request::BDelete, Transport::Response::BDelete>(hx, hx->p->queues.deletes, hx->p->max_ops_per_send.deletes);
-    mlog(HXHIM_CLIENT_INFO, "Done Flushing DELETEs");
+    mlog(HXHIM_CLIENT_INFO, "Rank %d Done Flushing DELETEs", rank);
     return res;
 }
 
@@ -359,7 +376,7 @@ hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim_results_t *hxhimFlushDeletes(hxhim_t *hx) {
-    return hxhim_results_init(hxhim::FlushDeletes(hx));
+    return hxhim_results_init(hx, hxhim::FlushDeletes(hx));
 }
 
 /**
@@ -373,8 +390,11 @@ hxhim_results_t *hxhimFlushDeletes(hxhim_t *hx) {
  * @return A list of results
  */
 hxhim::Results *hxhim::Flush(hxhim_t *hx) {
-    mlog(HXHIM_CLIENT_INFO, "Flushing HXHIM");
-    hxhim::Results *res    = construct<hxhim::Results>();
+    int rank = -1;
+    hxhim::GetMPIRank(hx, &rank);
+
+    mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing", rank);
+    hxhim::Results *res    = construct<hxhim::Results>(hx);
 
     hxhim::Results *puts   = FlushPuts(hx);
     res->Append(puts);     destruct(puts);
@@ -388,7 +408,7 @@ hxhim::Results *hxhim::Flush(hxhim_t *hx) {
     hxhim::Results *dels   = FlushDeletes(hx);
     res->Append(dels);     destruct(dels);
 
-    mlog(HXHIM_CLIENT_INFO, "Completed Flushing HXHIM");
+    mlog(HXHIM_CLIENT_INFO, "Rank %d Completed Flushing", rank);
     return res;
 }
 
@@ -400,7 +420,7 @@ hxhim::Results *hxhim::Flush(hxhim_t *hx) {
  * @return An array of results (3 values)
  */
 hxhim_results_t *hxhimFlush(hxhim_t *hx) {
-    return hxhim_results_init(hxhim::Flush(hx));
+    return hxhim_results_init(hx, hxhim::Flush(hx));
 }
 
 /**
@@ -438,7 +458,7 @@ hxhim::Results *hxhim::Sync(hxhim_t *hx) {
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 hxhim_results_t *hxhimSync(hxhim_t *hx) {
-    return hxhim_results_init(hxhim::Sync(hx));
+    return hxhim_results_init(hx, hxhim::Sync(hx));
 }
 
 /**
@@ -491,7 +511,7 @@ hxhim::Results *hxhim::ChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t fu
  * @return A list of results
  */
 hxhim_results_t *hxhimChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t func, void *args) {
-    return hxhim_results_init(hxhim::ChangeHash(hx, name, func, args));
+    return hxhim_results_init(hx, hxhim::ChangeHash(hx, name, func, args));
 }
 
 /**
@@ -563,10 +583,6 @@ int hxhim::Get(hxhim_t *hx,
                void *subject, std::size_t subject_len,
                void *predicate, std::size_t predicate_len,
                enum hxhim_type_t object_type, void *object, std::size_t *object_len) {
-    if (!valid(hx)) {
-        return HXHIM_ERROR;
-    }
-
     return hxhim::BGet(hx,
                         &subject, &subject_len,
                         &predicate, &predicate_len,
@@ -612,10 +628,6 @@ int hxhimGet(hxhim_t *hx,
 int hxhim::Delete(hxhim_t *hx,
                   void *subject, std::size_t subject_len,
                   void *predicate, std::size_t predicate_len) {
-    if (!valid(hx)) {
-        return HXHIM_ERROR;
-    }
-
     return hxhim::BDelete(hx,
                        &subject, &subject_len,
                        &predicate, &predicate_len,
@@ -661,7 +673,7 @@ int hxhim::BPut(hxhim_t *hx,
                 void **predicates, std::size_t *predicate_lens,
                 enum hxhim_type_t *object_types, void **objects, std::size_t *object_lens,
                 std::size_t count) {
-    if (!valid(hx)  ||
+    if (!valid(hx)  || !hx->p->running ||
         !subjects   || !subject_lens   ||
         !predicates || !predicate_lens ||
         !objects    || !object_lens) {
@@ -747,7 +759,7 @@ int hxhim::BGet(hxhim_t *hx,
                 void **predicates, std::size_t *predicate_lens,
                 hxhim_type_t *object_types, void **objects, std::size_t **object_lens,
                 std::size_t count) {
-    if (!valid(hx)  ||
+    if (!valid(hx)  || !hx->p->running ||
         !subjects   || !subject_lens   ||
         !predicates || !predicate_lens ||
         !objects    || !object_lens) {
@@ -805,9 +817,9 @@ int hxhim::BGetOp(hxhim_t *hx,
                   void *predicate, size_t predicate_len,
                   enum hxhim_type_t object_type,
                   std::size_t num_records, enum hxhim_get_op_t op) {
-    if (!valid(hx) ||
-        !subject   || !subject_len   ||
-        !predicate || !predicate_len) {
+    if (!valid(hx) || !hx->p->running ||
+        !subject   || !subject_len    ||
+        !predicate || !predicate_len)  {
         return HXHIM_ERROR;
     }
 
@@ -861,7 +873,7 @@ int hxhim::BDelete(hxhim_t *hx,
                    void **subjects, size_t *subject_lens,
                    void **predicates, size_t *predicate_lens,
                    std::size_t count) {
-    if (!valid(hx)  ||
+    if (!valid(hx)  || !hx->p->running ||
         !subjects   || !subject_lens   ||
         !predicates || !predicate_lens) {
         return HXHIM_ERROR;

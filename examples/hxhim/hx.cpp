@@ -24,7 +24,7 @@ static void print_results(const int rank, hxhim::Results *results) {
                     hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(curr);
                     std::cout << "{" << std::string((char *) get->subject->ptr, get->subject->len)
                               << ", " << std::string((char *) get->predicate->ptr, get->predicate->len)
-                              << "} -> " << std::string((char *) get->object->ptr, get->object->len);
+                              << "} -> " << std::string((char *) get->object, *(get->object_len));
                 }
                 else {
                     std::cout << "ERROR";

@@ -55,6 +55,7 @@ class Results {
         struct Result {
             virtual ~Result();
 
+            hxhim_t *hx;
             hxhim_result_type_t type;
 
             int datastore;
@@ -72,7 +73,8 @@ class Results {
             Blob *subject;
             Blob *predicate;
             hxhim_type_t object_type;
-            Blob *object;
+            void *object;
+            std::size_t *object_len;
         };
 
         /** @description Convenience struct for DEL results */
@@ -89,7 +91,7 @@ class Results {
         };
 
     public:
-        Results();
+        Results(hxhim_t *hx);
         ~Results();
 
         static void Destroy(Results *res);
@@ -110,6 +112,7 @@ class Results {
         std::size_t size() const;
 
     private:
+        hxhim_t *hx;
         std::list <Result *> results;
         std::list <Result *>::iterator curr;
 };

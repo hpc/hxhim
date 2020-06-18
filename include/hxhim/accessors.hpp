@@ -5,6 +5,7 @@
 
 #include <mpi.h>
 
+#include "datastore/datastore.hpp"
 #include "hxhim/constants.h"
 #include "hxhim/struct.h"
 
@@ -15,6 +16,9 @@ int GetMPIRank(hxhim_t *hx, int *rank);
 int GetMPISize(hxhim_t *hx, int *size);
 int GetDatastoresPerRangeServer(hxhim_t *hx, std::size_t *datastore_count);
 int GetDatastoreClientToServerRatio(hxhim_t *hx, std::size_t *client, std::size_t *server);
+
+/** C++ only */
+int GetDatastores(hxhim_t *hx, datastore::Datastore ***datastores);
 
 }
 

@@ -70,7 +70,7 @@ TEST(hxhim, PutGet) {
         Predicate_t *predicate = (Predicate_t *) get->predicate->ptr;
         EXPECT_EQ(*predicate, PREDICATE);
 
-        Object_t *object = (Object_t *) get->object->ptr;
+        Object_t *object = (Object_t *) get->object;
         ASSERT_NE(object, nullptr);
         if (std::is_same<float, Object_t>::value) {
             EXPECT_FLOAT_EQ(*object, OBJECT);

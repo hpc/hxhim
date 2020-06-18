@@ -2,8 +2,8 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "hxhim/accessors.hpp"
 #include "hxhim/hxhim.hpp"
-#include "hxhim/private.hpp"
 #include "transport/backend/local/RangeServer.hpp"
 #include "utils/Blob.hpp"
 #include "utils/memory.hpp"
@@ -46,10 +46,12 @@ namespace local {
 // }
 
 Response::Response *range_server(hxhim_t *hx, Request::Request *req) {
-    mlog(HXHIM_SERVER_INFO, "Range server started");
+    int rank = -1;
+    hxhim::GetMPIRank(hx, &rank);
+
+    mlog(HXHIM_SERVER_INFO, "Rank %d Local RangeServer got a %s", rank, Message::TypeStr[req->type]);
 
     Response::Response *res = nullptr;
-    mlog(HXHIM_SERVER_INFO, "Range server got a %s", Message::TypeStr[req->type]);
 
     // Call the appropriate function depending on the message type
     switch(req->type) {
@@ -72,7 +74,7 @@ Response::Response *range_server(hxhim_t *hx, Request::Request *req) {
             break;
     }
 
-    mlog(HXHIM_SERVER_INFO, "Range server stopping");
+    mlog(HXHIM_SERVER_INFO, "Rank %d Local RangeServer done processing request", rank);
     return res;
 }
 

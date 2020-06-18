@@ -3,6 +3,7 @@
 
 #include <unordered_map>
 
+#include "hxhim/accessors.hpp"
 #include "hxhim/Results_private.hpp"
 #include "hxhim/private.hpp"
 #include "hxhim/shuffle.hpp"
@@ -10,6 +11,8 @@
 #include "utils/is_range_server.hpp"
 #include "utils/memory.hpp"
 #include "utils/type_traits.hpp"
+#include "utils/mlog2.h"
+#include "utils/mlogfacs2.h"
 
 namespace hxhim {
 
@@ -35,25 +38,23 @@ template <typename UserData_t, typename Request_t, typename Response_t,
 hxhim::Results *process(hxhim_t *hx,
                         UserData_t *head,
                         const std::size_t max_ops_per_send) {
-    mlog(HXHIM_CLIENT_DBG, "Start processing");
+    int rank = -1;
+    hxhim::GetMPIRank(hx, &rank);
+
+    mlog(HXHIM_CLIENT_DBG, "Rank %d Start processing", rank);
 
     if (!head) {
-        mlog(HXHIM_CLIENT_WARN, "Nothing to process");
-        return nullptr;
-    }
-
-    if (!hx->p->running) {
-        mlog(HXHIM_CLIENT_CRIT, "HXHIM has stopped. Not processing requests.");
+        mlog(HXHIM_CLIENT_WARN, "Rank %d Nothing to process", rank);
         return nullptr;
     }
 
     // serialized results
-    hxhim::Results *res = construct<hxhim::Results>();
+    hxhim::Results *res = construct<hxhim::Results>(hx);
 
     // declare local requests here to not reallocate every loop
     Request_t local(max_ops_per_send);
-    local.src = hx->p->bootstrap.rank;
-    local.dst = hx->p->bootstrap.rank;
+    local.src = rank;
+    local.dst = rank;
 
     // a round might not send every request, so keep running until out of requests
     while (head) {
@@ -63,11 +64,12 @@ hxhim::Results *process(hxhim_t *hx,
         // reset local without deallocating memory
         local.count = 0;
 
-        for(UserData_t *curr = head; hx->p->running && curr;) {
-            mlog(HXHIM_CLIENT_DBG, "Preparing to shuffle %p (%p)", curr, curr->next);
+        for(UserData_t *curr = head; curr;) {
+            mlog(HXHIM_CLIENT_DBG, "Rank %d Client preparing to shuffle %p (next: %p)", rank, curr, curr->next);
 
             UserData_t *next = curr->next;
             const int dst_ds = hxhim::shuffle::shuffle(hx, max_ops_per_send, curr, &local, remote);
+
             switch (dst_ds) {
                 case hxhim::shuffle::NOSPACE:
                     // go to the next request; will come back later
@@ -105,6 +107,8 @@ hxhim::Results *process(hxhim_t *hx,
             curr = next;
         }
 
+        mlog(HXHIM_CLIENT_DBG, "Rank %d Client packed together requests destined for %zu remote servers", rank, remote.size());
+
         // process remote data
         if (remote.size()) {
             hxhim::collect_fill_stats(remote, hx->p->stats.bget);
@@ -120,6 +124,8 @@ hxhim::Results *process(hxhim_t *hx,
             destruct(dst.second);
         }
 
+        mlog(HXHIM_CLIENT_DBG, "Rank %d Client sending %zu local requests", rank, local.count);
+
         // process local data
         if (local.count) {
             hxhim::collect_fill_stats(&local, hx->p->stats.bget);
@@ -130,6 +136,8 @@ hxhim::Results *process(hxhim_t *hx,
                 }
             }
         }
+
+        mlog(HXHIM_CLIENT_DBG, "Rank %d Client received %zu responses", rank, res->size());
     }
 
     return res;

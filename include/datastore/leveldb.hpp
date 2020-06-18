@@ -16,7 +16,9 @@ class leveldb : public Datastore {
         leveldb(hxhim_t *hx,
                 const int id,
                 Histogram::Histogram *hist,
-                const std::string &name, const bool create_if_missing);
+                const std::string &prefix,
+                const std::string &name,
+                const bool create_if_missing);
         ~leveldb();
 
         int StatFlush();

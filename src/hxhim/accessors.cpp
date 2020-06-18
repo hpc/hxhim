@@ -155,3 +155,20 @@ int hxhim::GetDatastoreClientToServerRatio(hxhim_t *hx, std::size_t *client, std
 int hxhimGetDatastoreClientToServerRatio(hxhim_t *hx, std::size_t *client, std::size_t *server) {
     return hxhim::GetDatastoreClientToServerRatio(hx, client, server);
 }
+
+/**
+ * GetDatastores
+ * Gets the datastores from this HXHIM instance
+ *
+ * @param hx              the HXHIM instance
+ * @param datastores      pointer to put the datastores array address
+ * @return HXHIM_SUCCESS or HXHIM_ERROR on error
+ */
+int hxhim::GetDatastores(hxhim_t *hx, hxhim::datastore::Datastore ***datastores) {
+    if (!valid(hx) || !datastores) {
+        return HXHIM_ERROR;
+    }
+
+    *datastores = hx->p->datastore.datastores;
+    return HXHIM_SUCCESS;
+}

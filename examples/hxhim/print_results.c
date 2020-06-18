@@ -73,11 +73,11 @@ void print_results(hxhim_t *hx, const int print_rank, hxhim_results_t *results) 
                     enum hxhim_type_t object_type;
                     hxhim_results_get_object_type(results, &object_type);
                     void *object = NULL;
-                    size_t object_len = 0;
+                    size_t *object_len = NULL;
                     hxhim_results_get_object(results, &object, &object_len);
 
                     printf("{%.*s, %.*s} -> ", (int) subject_len, (char *) subject, (int) predicate_len, (char *) predicate);
-                    print_by_type(object_type, object, object_len);
+                    print_by_type(object_type, object, *object_len);
                 }
                 else {
                     printf("ERROR");

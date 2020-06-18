@@ -189,10 +189,10 @@ std::size_t run_commands(hxhim_t * hx, const UserInput &commands) {
                 case HXHIM_RESULT_GET:
                     {
                         char *object = nullptr;
-                        size_t object_len = 0; // memory leak
+                        size_t *object_len = nullptr;
                         hxhim_results_get_object(res, (void **) &object, &object_len);
                         delete [] object;
-                        // delete object_len;
+                        delete object_len;
                     }
                     break;
                 default:

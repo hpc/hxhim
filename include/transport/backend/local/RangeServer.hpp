@@ -1,11 +1,13 @@
 #ifndef HXHIM_RANGE_SERVER_HPP
 #define HXHIM_RANGE_SERVER_HPP
 
+#include "datastore/datastore.hpp"
+#include "hxhim/accessors.hpp"
 #include "hxhim/private.hpp"
 #include "transport/Messages/Messages.hpp"
-#include "utils/type_traits.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
+#include "utils/type_traits.hpp"
 
 namespace Transport {
 namespace local {
@@ -26,10 +28,15 @@ template <typename Response_t, typename Request_t,
           typename = enable_if_t <is_child_of<Request::Request,   Request_t> ::value &&
                                   is_child_of<Response::Response, Response_t>::value> >
 Response_t *range_server(hxhim_t *hx, Request_t *req) {
-    mlog(HXHIM_SERVER_INFO, "Range server %s %zu", Message::TypeStr[req->type], req->count);
+    int rank = -1;
+    hxhim::GetMPIRank(hx, &rank);
+
+    mlog(HXHIM_SERVER_INFO, "Rank %d Local RangeServer recevied %s request", rank, Message::TypeStr[req->type]);
 
     // overallocate in case all of the requests go to one datastore
-    Request_t *dsts = alloc_array<Request_t>(hx->p->datastore.count, req->count);
+    std::size_t datastore_count = 0;
+    hxhim::GetDatastoresPerRangeServer(hx, &datastore_count);
+    Request_t *dsts = alloc_array<Request_t>(datastore_count, req->count);
 
     // split up requests into datastores
     // pointers are now owned by the database inputs, not by the server request
@@ -44,9 +51,12 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
     res->src = req->dst;
     res->dst = req->src;
 
+    hxhim::datastore::Datastore **datastores = nullptr;
+    hxhim::GetDatastores(hx, &datastores);
+
     // send to each datastore
-    for(std::size_t ds = 0; ds < hx->p->datastore.count; ds++) {
-        Response_t *response = hx->p->datastore.datastores[ds]->operate(&dsts[ds]);
+    for(std::size_t ds = 0; ds < datastore_count; ds++) {
+        Response_t *response = datastores[ds]->operate(&dsts[ds]);
 
         // if there were responses, copy them into the output variable
         if (response) {
@@ -58,9 +68,9 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
         }
     }
 
-    dealloc_array(dsts, hx->p->datastore.count);
+    dealloc_array(dsts, datastore_count);
 
-    mlog(HXHIM_SERVER_INFO, "Range server %s completed", Message::TypeStr[req->type]);
+    mlog(HXHIM_SERVER_INFO, "Rank %d Local RangeServer done processing %s", rank, Message::TypeStr[req->type]);
     return res;
 }
 

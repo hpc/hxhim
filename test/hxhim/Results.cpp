@@ -1,10 +1,6 @@
-#include <cstring>
-
 #include <gtest/gtest.h>
 
-#include "generic_options.hpp"
-#include "hxhim/hxhim.hpp"
-#include "hxhim/private.hpp"
+#include "hxhim/Results.hpp"
 #include "utils/memory.hpp"
 
 struct TestPut : hxhim::Results::Result {
@@ -26,7 +22,7 @@ struct TestDelete : hxhim::Results::Result {
 };
 
 TEST(Results, PUT_GET_DEL) {
-    hxhim::Results results;
+    hxhim::Results results(nullptr);
 
     // nothing works yet since there is no data
     EXPECT_EQ(results.GoToHead(), nullptr);
@@ -49,7 +45,7 @@ TEST(Results, PUT_GET_DEL) {
 }
 
 TEST(Results, Loop) {
-    hxhim::Results results;
+    hxhim::Results results(nullptr);
 
     // add some data
     const std::size_t puts = 10;
@@ -69,7 +65,7 @@ TEST(Results, Loop) {
 }
 
 TEST(Results, Append_Empty) {
-    hxhim::Results results;
+    hxhim::Results results(nullptr);
 
     // add some data
     hxhim::Results::Result *put = results.Add(construct<TestPut>());
@@ -80,7 +76,7 @@ TEST(Results, Append_Empty) {
     EXPECT_NE(del, nullptr);
 
     // append empty set of results
-    hxhim::Results empty;
+    hxhim::Results empty(nullptr);
     results.Append(&empty);
 
     EXPECT_EQ(results.GoToHead(), put);     // first result is PUT
@@ -91,7 +87,7 @@ TEST(Results, Append_Empty) {
 }
 
 TEST(Results, Empty_Append) {
-    hxhim::Results results;
+    hxhim::Results results(nullptr);
 
     // add some data to the non-empty results
     hxhim::Results::Result *put = results.Add(construct<TestPut>());
@@ -102,7 +98,7 @@ TEST(Results, Empty_Append) {
     EXPECT_NE(del, nullptr);
 
     // empty append set of results
-    hxhim::Results empty;
+    hxhim::Results empty(nullptr);
     empty.Append(&results);
 
     EXPECT_EQ(empty.GoToHead(), put);     // first result is PUT

@@ -61,7 +61,6 @@ typedef struct hxhim_private {
     } queues;
 
     struct {
-        std::string prefix;                                    // the datastore path name prefix
         hxhim::datastore::Datastore **datastores;              // fixed array of datastores mapped by rank and index: f(rank, index) -> datastore ID
         std::size_t count;                                     // number of datastores in this process
     } datastore;

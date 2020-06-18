@@ -1,9 +1,10 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "datastore/datastores.hpp"
 #include "hxhim/Results.hpp"
 #include "hxhim/Results_private.hpp"
-#include "hxhim/private.hpp"
+#include "hxhim/accessors.hpp"
 #include "transport/Messages/Messages.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
@@ -21,10 +22,26 @@ hxhim::Results::Get::Get()
 hxhim::Results::Get::~Get() {
     destruct(subject);
     destruct(predicate);
-    destruct(object);
 }
 
 hxhim::Results::Result *hxhim::Result::init(hxhim_t *hx, Transport::Response::Response *res, const std::size_t i) {
+    // hx should have been checked earlier
+
+    int rank = -1;
+    hxhim::GetMPIRank(hx, &rank);
+
+    mlog(HXHIM_CLIENT_DBG, "Rank %d Creating hxhim::Results::Result using %p[%zu]", rank, res, i);
+
+    if (!res) {
+        mlog(HXHIM_CLIENT_WARN, "Rank %d Could not extract result at index %zu from %p", rank, i, res);
+        return nullptr;
+    }
+
+    if (i >= res->count) {
+        mlog(HXHIM_CLIENT_WARN, "Rank %d Could not extract result at index %zu from %p which has %zu items", rank, i, res, res->count);
+        return nullptr;
+    }
+
     Results::Result *ret = nullptr;
     switch (res->type) {
         case Transport::Message::BPUT:
@@ -42,15 +59,12 @@ hxhim::Results::Result *hxhim::Result::init(hxhim_t *hx, Transport::Response::Re
         default:
             break;
     }
+    mlog(HXHIM_CLIENT_DBG, "Rank %d Created hxhim::Results::Result %p using %p[%zu]", rank, ret, res, i);
 
     return ret;
 }
 
 hxhim::Results::Put *hxhim::Result::init(hxhim_t *hx, Transport::Response::BPut *bput, const std::size_t i) {
-    if (!valid(hx) || !bput || (i >= bput->count)) {
-        return nullptr;
-    }
-
     hxhim::Results::Put *out = construct<hxhim::Results::Put>();
     out->type = hxhim_result_type::HXHIM_RESULT_PUT;
     out->datastore = hxhim::datastore::get_id(hx, bput->src, bput->ds_offsets[i]);
@@ -59,10 +73,6 @@ hxhim::Results::Put *hxhim::Result::init(hxhim_t *hx, Transport::Response::BPut 
 }
 
 hxhim::Results::Get *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGet *bget, const std::size_t i) {
-    if (!valid(hx) || !bget || (i >= bget->count)) {
-        return nullptr;
-    }
-
     hxhim::Results::Get *out = construct<hxhim::Results::Get>();
     out->type = hxhim_result_type::HXHIM_RESULT_GET;
     out->datastore = hxhim::datastore::get_id(hx, bget->src, bget->ds_offsets[i]);
@@ -81,7 +91,9 @@ hxhim::Results::Get *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGet 
     }
 
     // point the object to the user's memory
-    out->object = construct<ReferenceBlob>(bget->orig.objects[i], *(bget->orig.object_lens[i]));
+    // out->object = construct<ReferenceBlob>(bget->orig.objects[i], *(bget->orig.object_lens[i]));
+    out->object = bget->orig.objects[i];
+    out->object_len = bget->orig.object_lens[i];
 
     bget->orig.subjects[i] = nullptr;
     bget->orig.predicates[i] = nullptr;
@@ -93,10 +105,6 @@ hxhim::Results::Get *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGet 
 }
 
 hxhim::Results::Get *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGetOp *bgetop, const std::size_t i) {
-    if (!valid(hx) || !bgetop || (i >= bgetop->count)) {
-        return nullptr;
-    }
-
     hxhim::Results::Get *out = construct<hxhim::Results::Get>();
     out->type = hxhim_result_type::HXHIM_RESULT_GET;
     out->datastore = hxhim::datastore::get_id(hx, bgetop->src, bgetop->ds_offsets[i]);
@@ -113,10 +121,6 @@ hxhim::Results::Get *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGetO
 }
 
 hxhim::Results::Delete *hxhim::Result::init(hxhim_t *hx, Transport::Response::BDelete *bdel, const std::size_t i) {
-    if (!valid(hx) || !bdel || (i >= bdel->count)) {
-        return nullptr;
-    }
-
     hxhim::Results::Delete *out = construct<hxhim::Results::Delete>();
     out->type = hxhim_result_type::HXHIM_RESULT_DEL;
     out->datastore = hxhim::datastore::get_id(hx, bdel->src, bdel->ds_offsets[i]);
@@ -125,22 +129,17 @@ hxhim::Results::Delete *hxhim::Result::init(hxhim_t *hx, Transport::Response::BD
 }
 
 hxhim::Results::Sync *hxhim::Result::init(hxhim_t *hx, const int ds_offset, const int synced) {
-    if (!valid(hx)) {
-        return nullptr;
-    }
+    int rank = -1;
+    hxhim::GetMPIRank(hx, &rank);
 
     hxhim::Results::Sync *out = construct<hxhim::Results::Sync>();
     out->type = hxhim_result_type::HXHIM_RESULT_SYNC;
-    out->datastore = hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, ds_offset);
+    out->datastore = hxhim::datastore::get_id(hx, rank, ds_offset);
     out->status = synced;
     return out;
 }
 
 hxhim::Results::Histogram *hxhim::Result::init(hxhim_t *hx, Transport::Response::BHistogram *bhist, const std::size_t i) {
-    if (!valid(hx) || !bhist || (i >= bhist->count)) {
-        return nullptr;
-    }
-
     hxhim::Results::Histogram *out = construct<hxhim::Results::Histogram>();
     out->type = hxhim_result_type::HXHIM_RESULT_HISTOGRAM;
     out->datastore = hxhim::datastore::get_id(hx, bhist->src, bhist->ds_offsets[i]);
@@ -151,8 +150,9 @@ hxhim::Results::Histogram *hxhim::Result::init(hxhim_t *hx, Transport::Response:
     return out;
 }
 
-hxhim::Results::Results()
-    : results(),
+hxhim::Results::Results(hxhim_t *hx)
+    : hx(hx),
+      results(),
       curr(results.end())
 {}
 
@@ -174,9 +174,14 @@ hxhim::Results::~Results() {
  * @param res   pointer to a set of results
  */
 void hxhim::Results::Destroy(Results *res) {
-    mlog(HXHIM_CLIENT_DBG, "Destroying hxhim::Results %p", res);
-    destruct(res);
-    mlog(HXHIM_CLIENT_DBG, "Destroyed hxhim:Results %p", res);
+    if (res) {
+        int rank = -1;
+        hxhim::GetMPIRank(res->hx, &rank);
+
+        mlog(HXHIM_CLIENT_DBG, "Rank %d Destroying hxhim::Results %p", rank, res);
+        destruct(res);
+        mlog(HXHIM_CLIENT_DBG, "Rank %d Destroyed hxhim:Results %p", rank, res);
+    }
 }
 
 /**
@@ -270,11 +275,15 @@ std::size_t hxhim::Results::size() const {
  * @param res A hxhim::Results instance
  * @return the pointer to the C structure containing the hxhim::Results
  */
-hxhim_results_t *hxhim_results_init(hxhim::Results *res) {
-    mlog(HXHIM_CLIENT_DBG, "Creating hxhim_results_t using %p", res);
+hxhim_results_t *hxhim_results_init(hxhim_t * hx, hxhim::Results *res) {
+    int rank = -1;
+    hxhim::GetMPIRank(hx, &rank);
+
+    mlog(HXHIM_CLIENT_DBG, "Rank %d Creating hxhim_results_t using %p", rank, res);
     hxhim_results_t *ret = construct<hxhim_results_t>();
+    ret->hx = hx;
     ret->res = res;
-    mlog(HXHIM_CLIENT_DBG, "Created hxhim_results_t %p with %p inside", ret, res);
+    mlog(HXHIM_CLIENT_DBG, "Rank %d Created hxhim_results_t %p with %p inside", rank, ret, res);
     return ret;
 }
 
@@ -491,7 +500,7 @@ int hxhim_results_get_predicate(hxhim_results_t *res, void **predicate, size_t *
  * @param object_len  (optional) the object_len of the current result, only valid if this function returns HXHIM_SUCCESS
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim_results_get_object(hxhim_results_t *res, void **object, size_t *object_len) {
+int hxhim_results_get_object(hxhim_results_t *res, void **object, size_t **object_len) {
     if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
@@ -501,10 +510,10 @@ int hxhim_results_get_object(hxhim_results_t *res, void **object, size_t *object
         hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(curr);
 
         if (object) {
-            *object = get->object->ptr;
+            *object = get->object;
         }
         if (object_len) {
-            *object_len = get->object->len;
+            *object_len = get->object_len;
         }
 
         // void *orig_object = get->orig.object;
@@ -538,11 +547,13 @@ int hxhim_results_get_object(hxhim_results_t *res, void **object, size_t *object
  * @param res A list of results
  */
 void hxhim_results_destroy(hxhim_results_t *res) {
-    mlog(HXHIM_CLIENT_DBG, "Destroying hxhim_results_t %p", res);
     if (res) {
-        mlog(HXHIM_CLIENT_DBG, "Destroying res->res %p", res->res);
+        int rank = -1;
+        hxhim::GetMPIRank(res->hx, &rank);
+
+        mlog(HXHIM_CLIENT_DBG, "Rank %d Destroying hxhim_results_t %p", rank, res);
         hxhim::Results::Destroy(res->res);
         destruct(res);
+        mlog(HXHIM_CLIENT_DBG, "Rank %d Destroyed hxhim_results_t %p", rank, res);
     }
-    mlog(HXHIM_CLIENT_DBG, "Destroyed hxhim_results_t %p", res);
 }

@@ -218,6 +218,7 @@ int hxhim::init::memory(hxhim_t *hx, hxhim_options_t *opts) {
     hx->p->max_ops_per_send.getops  = opts->p->max_ops_per_send;
     hx->p->max_ops_per_send.deletes = opts->p->max_ops_per_send;
 
+    mlog(HXHIM_CLIENT_INFO, "Completed Memory Initialization");
     return HXHIM_SUCCESS;
 }
 
@@ -255,7 +256,6 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
                                                               opts->p->histogram.args);
         if ((opts->p->datastore->type == hxhim::datastore::IN_MEMORY) ||
             !is_rs) { // create unused datastores if this rank is not a range server
-            hx->p->datastore.prefix = "";
             hx->p->datastore.datastores[i] = new hxhim::datastore::InMemory(hx,
                                                                             hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, i),
                                                                             hist,
@@ -265,11 +265,12 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
         #if HXHIM_HAVE_LEVELDB
         else if (opts->p->datastore->type == hxhim::datastore::LEVELDB) {
             hxhim_leveldb_config_t *config = static_cast<hxhim_leveldb_config_t *>(opts->p->datastore);
-            hx->p->datastore.prefix = config->prefix;
             hx->p->datastore.datastores[i] = new hxhim::datastore::leveldb(hx,
                                                                            hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, i),
                                                                            hist,
-                                                                           hx->p->hash.name, config->create_if_missing);
+                                                                           config->prefix,
+                                                                           hx->p->hash.name,
+                                                                           config->create_if_missing);
             mlog(HXHIM_CLIENT_INFO, "Initialized LevelDB in datastore[%zu]", i);
         }
         #endif
@@ -312,6 +313,13 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
 
     // Start the datastore
     switch (opts->p->datastore->type) {
+        case hxhim::datastore::IN_MEMORY:
+            hx->p->datastore.datastores[0] = new hxhim::datastore::InMemory(hx,
+                                                                            0,
+                                                                            hist,
+                                                                            name);
+            mlog(HXHIM_CLIENT_INFO, "Initialized single In-Memory datastore");
+            break;
         #if HXHIM_HAVE_LEVELDB
         case hxhim::datastore::LEVELDB:
             hx->p->datastore.datastores[0] = new hxhim::datastore::leveldb(hx,
@@ -320,13 +328,6 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
             mlog(HXHIM_CLIENT_INFO, "Initialized single LevelDB datastore");
             break;
         #endif
-        case hxhim::datastore::IN_MEMORY:
-            hx->p->datastore.datastores[0] = new hxhim::datastore::InMemory(hx,
-                                                                            0,
-                                                                            hist,
-                                                                            name);
-            mlog(HXHIM_CLIENT_INFO, "Initialized single In-Memory datastore");
-            break;
         default:
             break;
     }
@@ -502,10 +503,8 @@ int hxhim::destroy::transport(hxhim_t *hx) {
         hx->p->range_server.destroy();
     }
 
-    if (hx->p->transport) {
-        delete hx->p->transport;
-        hx->p->transport = nullptr;
-    }
+    delete hx->p->transport;
+    hx->p->transport = nullptr;
 
     return HXHIM_SUCCESS;
 }

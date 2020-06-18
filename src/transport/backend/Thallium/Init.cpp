@@ -1,3 +1,4 @@
+#include "hxhim/accessors.hpp"
 #include "hxhim/options_private.hpp"
 #include "hxhim/private.hpp"
 #include "transport/backend/Thallium/Thallium.hpp"
@@ -17,40 +18,44 @@ namespace Thallium {
  * @param TRANSPORT_SUCCESS or TRANSPORT_ERROR
  */
 int init(hxhim_t *hx, hxhim_options_t *opts) {
-    mlog(THALLIUM_INFO, "Starting Thallium Initialization");
+    int rank = -1;
+    hxhim::GetMPIRank(hx, &rank);
+
+    mlog(THALLIUM_INFO, "Rank %d Starting Thallium Initialization", rank);
     if (!hxhim::valid(hx, opts)) {
         return HXHIM_ERROR;
     }
 
     Options *config = static_cast<Options *>(opts->p->transport);
-    mlog(THALLIUM_INFO, "Configuring Thallium with %s", config->module.c_str());
+    mlog(THALLIUM_INFO, "Rank %d Configuring Thallium with %s", rank, config->module.c_str());
 
     // create the engine (only 1 instance per process)
     Engine_t engine(new thallium::engine(config->module, THALLIUM_SERVER_MODE, true, -1),
                     [](thallium::engine *engine) {
                         const std::string addr = static_cast<std::string>(engine->self());
+                        mlog(THALLIUM_DBG, "Stopping Thallium engine %s", addr.c_str());
                         engine->finalize();
                         delete engine;
                         mlog(THALLIUM_INFO, "Stopped Thallium engine %s", addr.c_str());
                     });
 
-    mlog(THALLIUM_INFO, "Created Thallium engine %s", static_cast<std::string>(engine->self()).c_str());
+    mlog(THALLIUM_INFO, "Rank %d Created Thallium engine %s", rank, static_cast<std::string>(engine->self()).c_str());
 
     // wait for every engine to start up
     MPI_Barrier(hx->p->bootstrap.comm);
 
     // create a range server
-    if (is_range_server(hx->p->bootstrap.rank, opts->p->client_ratio, opts->p->server_ratio)) {
+    if (is_range_server(rank, opts->p->client_ratio, opts->p->server_ratio)) {
         RangeServer::init(hx, engine, config->buffer_size);
         hx->p->range_server.destroy = RangeServer::destroy;
-        mlog(THALLIUM_INFO, "Created Thallium Range Server on rank %d", hx->p->bootstrap.rank);
+        mlog(THALLIUM_INFO, "Rank %d Created Thallium Range Server", rank);
     }
 
     // create client to range server RPC
     RPC_t rpc(new thallium::remote_procedure(engine->define(RangeServer::CLIENT_TO_RANGE_SERVER_NAME,
                                                             RangeServer::process)));
 
-    mlog(THALLIUM_DBG, "Created Thallium RPC");
+    mlog(THALLIUM_DBG, "Rank %d Created Thallium RPC", rank);
 
     // get a mapping of unique IDs to thallium addresses
     std::unordered_map<int, std::string> addrs;
@@ -59,7 +64,7 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
     }
 
     // remove the loopback endpoint
-    addrs.erase(hx->p->bootstrap.rank);
+    addrs.erase(rank);
 
     EndpointGroup *eg = new EndpointGroup(engine, rpc, config->buffer_size);
 
@@ -78,7 +83,7 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
 
     hx->p->transport->SetEndpointGroup(eg);
 
-    mlog(THALLIUM_INFO, "Completed Thallium transport initialization");
+    mlog(THALLIUM_INFO, "Rank %d Completed Thallium transport initialization", rank);
     return TRANSPORT_SUCCESS;
 }
 
