@@ -20,6 +20,9 @@ std::ostream &help(char *self, std::ostream &stream = std::cout) {
                   << "    BPUT N <SUBJECT_1> <PREDICATE_1> <OBJECT_1> ... <SUBJECT_N> <PREDICATE_N> <OBJECT_N>" << std::endl
                   << "    BGET N <SUBJECT_1> <PREDICATE_1> ... <SUBJECT_N> <PREDICATE_N>" << std::endl
                   << "    BDEL N <SUBJECT_1> <PREDICATE_1> ... <SUBJECT_N> <PREDICATE_N>" << std::endl
+                  << "    FLUSHPUTS" << std::endl
+                  << "    FLUSHGETS" << std::endl
+                  << "    FLUSHDELS" << std::endl
                   << "    FLUSH" << std::endl
                   << std::endl
                   << "Data is currently expected to all be strings" << std::endl;
@@ -231,14 +234,16 @@ int main(int argc, char * argv[]) {
         if ((args == "-h")|| (args == "--help")) {
             if (rank == 0) {
                 help(argv[0], std::cerr);
-                return 0;
             }
+            MPI_Finalize();
+            return 0;
         }
 
         if (args == "--ds") {
             // --ds implies a single rank, but a single rank does not imply --ds
             if (size != 1) {
                 std::cerr << "Error: The --ds flag implies 1 rank. Have " << size << std::endl;
+                MPI_Finalize();
                 return 1;
             }
 
