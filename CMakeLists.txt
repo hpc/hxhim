@@ -107,6 +107,8 @@ if (THALLIUM_FOUND)
   else ()
     message(STATUS "Thallium found but not used")
   endif()
+else()
+  message(STATUS "Thallium not found")
 endif()
 
 #
@@ -130,18 +132,23 @@ if(LEVELDB_FOUND)
   else()
     message(STATUS "LevelDB found but not used")
   endif()
+else()
+  message(STATUS "LevelDB not found")
 endif()
 
 # always look for HDF5
 find_package(HDF5)
-option(ENABLE_HDF5 "Use HDF5 if found" On)
 if (HDF5_FOUND)
+  option(ENABLE_HDF5 "Use HDF5 if found" On)
+
   if (ENABLE_HDF5)
     message(STATUS "HDF5_INCLUDE_DIRS=" ${HDF5_INCLUDE_DIRS})
     message(STATUS "HDF5_LIBRARIES=" ${HDF5_LIBRARIES})
   else()
     message(STATUS "HDF5 found but not used")
   endif()
+else()
+  message(STATUS "HDF5 not found")
 endif()
 
 #
