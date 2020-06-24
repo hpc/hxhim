@@ -47,8 +47,21 @@ int Packer::pack(const Request::BPut *bpm, void **buf, std::size_t *bufsize) {
         memcpy(curr, &bpm->ds_offsets[i], sizeof(bpm->ds_offsets[i]));
         curr += sizeof(bpm->ds_offsets[i]);
 
+        // subject + len
         bpm->subjects[i]->pack(curr);
+
+        // subject addr
+        memcpy(curr, &bpm->subjects[i]->ptr, sizeof(bpm->subjects[i]->ptr));
+        curr += sizeof(bpm->subjects[i]->ptr);
+
+        // predicate + len
         bpm->predicates[i]->pack(curr);
+
+        // predicate addr
+        memcpy(curr, &bpm->predicates[i]->ptr, sizeof(bpm->predicates[i]->ptr));
+        curr += sizeof(bpm->predicates[i]->ptr);
+
+        // object type + object + len
         memcpy(curr, &bpm->object_types[i], sizeof(bpm->object_types[i]));
         curr += sizeof(bpm->object_types[i]);
         bpm->objects[i]->pack(curr);
@@ -142,8 +155,19 @@ int Packer::pack(const Request::BDelete *bdm, void **buf, std::size_t *bufsize) 
         memcpy(curr, &bdm->ds_offsets[i], sizeof(bdm->ds_offsets[i]));
         curr += sizeof(bdm->ds_offsets[i]);
 
+        // subject
         bdm->subjects[i]->pack(curr);
+
+        // subject addr
+        memcpy(curr, &bdm->subjects[i]->ptr, sizeof(bdm->subjects[i]->ptr));
+        curr += sizeof(bdm->subjects[i]->ptr);
+
+        // predicate
         bdm->predicates[i]->pack(curr);
+
+        // predicate addr
+        memcpy(curr, &bdm->predicates[i]->ptr, sizeof(bdm->predicates[i]->ptr));
+        curr += sizeof(bdm->predicates[i]->ptr);
     }
 
     return TRANSPORT_SUCCESS;
@@ -205,11 +229,27 @@ int Packer::pack(const Response::BPut *bpm, void **buf, std::size_t *bufsize) {
     memcpy(curr, &bpm->count, sizeof(bpm->count));
     curr += sizeof(bpm->count);
 
-    memcpy(curr, bpm->ds_offsets, sizeof(*bpm->ds_offsets) * bpm->count);
-    curr += sizeof(*bpm->ds_offsets) * bpm->count;
+    for(std::size_t i = 0; i < bpm->count; i++) {
+        memcpy(curr, &bpm->ds_offsets[i], sizeof(bpm->ds_offsets[i]));
+        curr += sizeof(bpm->ds_offsets[i]);
 
-    memcpy(curr, bpm->statuses, sizeof(*bpm->statuses) * bpm->count);
-    // curr += sizeof(*bpm->statuses) * bpm->count;
+        memcpy(curr, &bpm->statuses[i], sizeof(bpm->statuses[i]));
+        curr += sizeof(bpm->statuses[i]);
+
+        // original subject addr + len
+        memcpy(curr, &bpm->orig.subjects[i]->ptr, sizeof(bpm->orig.subjects[i]->ptr));
+        curr += sizeof(bpm->orig.subjects[i]->ptr);
+
+        memcpy(curr, &bpm->orig.subjects[i]->len, sizeof(bpm->orig.subjects[i]->len));
+        curr += sizeof(bpm->orig.subjects[i]->len);
+
+        // original predicate addr + len
+        memcpy(curr, &bpm->orig.predicates[i]->ptr, sizeof(bpm->orig.predicates[i]->ptr));
+        curr += sizeof(bpm->orig.predicates[i]->ptr);
+
+        memcpy(curr, &bpm->orig.predicates[i]->len, sizeof(bpm->orig.predicates[i]->len));
+        curr += sizeof(bpm->orig.predicates[i]->len);
+    }
 
     return TRANSPORT_SUCCESS;
 }
@@ -305,11 +345,27 @@ int Packer::pack(const Response::BDelete *bdm, void **buf, std::size_t *bufsize)
     memcpy(curr, &bdm->count, sizeof(bdm->count));
     curr += sizeof(bdm->count);
 
-    memcpy(curr, bdm->ds_offsets, sizeof(*bdm->ds_offsets) * bdm->count);
-    curr += sizeof(*bdm->ds_offsets) * bdm->count;
+    for(std::size_t i = 0; i < bdm->count; i++) {
+        memcpy(curr, &bdm->ds_offsets[i], sizeof(bdm->ds_offsets[i]));
+        curr += sizeof(bdm->ds_offsets[i]);
 
-    memcpy(curr, bdm->statuses, sizeof(*bdm->statuses) * bdm->count);
-    // curr += sizeof(*bdm->statuses) * bdm->count;
+        memcpy(curr, &bdm->statuses[i], sizeof(bdm->statuses[i]));
+        curr += sizeof(bdm->statuses[i]);
+
+        // original subject addr + len
+        memcpy(curr, &bdm->orig.subjects[i]->ptr, sizeof(bdm->orig.subjects[i]->ptr));
+        curr += sizeof(bdm->orig.subjects[i]->ptr);
+
+        memcpy(curr, &bdm->orig.subjects[i]->len, sizeof(bdm->orig.subjects[i]->len));
+        curr += sizeof(bdm->orig.subjects[i]->len);
+
+        // original predicate addr + len
+        memcpy(curr, &bdm->orig.predicates[i]->ptr, sizeof(bdm->orig.predicates[i]->ptr));
+        curr += sizeof(bdm->orig.predicates[i]->ptr);
+
+        memcpy(curr, &bdm->orig.predicates[i]->len, sizeof(bdm->orig.predicates[i]->len));
+        curr += sizeof(bdm->orig.predicates[i]->len);
+    }
 
     return TRANSPORT_SUCCESS;
 }

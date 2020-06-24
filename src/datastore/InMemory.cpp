@@ -67,6 +67,9 @@ Transport::Response::BPut *hxhim::datastore::InMemory::BPutImpl(Transport::Reque
         db[std::string((char *) key, key_len)] = std::string((char *) req->objects[i]->ptr, req->objects[i]->len);
         clock_gettime(CLOCK_MONOTONIC, &end);
 
+        res->orig.subjects[i]   = construct<ReferenceBlob>(req->orig.subjects[i], req->subjects[i]->len);
+        res->orig.predicates[i] = construct<ReferenceBlob>(req->orig.predicates[i], req->predicates[i]->len);
+
         dealloc(key);
 
         stats.puts++;
@@ -116,7 +119,6 @@ Transport::Response::BGet *hxhim::datastore::InMemory::BGetImpl(Transport::Reque
         // object type was stored as a value, not address, so copy it to the response
         res->object_types[i]     = req->object_types[i];
 
-        // save requesting addresses for sending back
         res->orig.subjects[i]    = construct<ReferenceBlob>(req->orig.subjects[i], req->subjects[i]->len);
         res->orig.predicates[i]  = construct<ReferenceBlob>(req->orig.predicates[i], req->predicates[i]->len);
         res->orig.objects[i]     = req->orig.objects[i];
@@ -245,6 +247,9 @@ Transport::Response::BDelete *hxhim::datastore::InMemory::BDeleteImpl(Transport:
         else {
             res->statuses[i] = HXHIM_ERROR;
         }
+
+        res->orig.subjects[i]   = construct<ReferenceBlob>(req->orig.subjects[i], req->subjects[i]->len);
+        res->orig.predicates[i] = construct<ReferenceBlob>(req->orig.predicates[i], req->predicates[i]->len);
 
         dealloc(key);
     }

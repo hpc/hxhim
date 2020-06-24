@@ -90,12 +90,23 @@ int Unpacker::unpack(Request::BPut **bpm, void *buf, const std::size_t bufsize) 
         memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
         curr += sizeof(out->ds_offsets[i]);
 
+        // subject + len
         out->subjects[i] = construct<RealBlob>(curr);
+
+        // subject addr
+        memcpy(&out->orig.subjects[i], curr, sizeof(out->orig.subjects[i]));
+        curr += sizeof(out->orig.subjects[i]);
+
+        // predicate + len
         out->predicates[i] = construct<RealBlob>(curr);
 
+        // predicate addr
+        memcpy(&out->orig.predicates[i], curr, sizeof(out->orig.predicates[i]));
+        curr += sizeof(out->orig.predicates[i]);
+
+        // object type + object + len
         memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
         curr += sizeof(out->object_types[i]);
-
         out->objects[i] = construct<RealBlob>(curr);
 
         out->count++;
@@ -227,8 +238,19 @@ int Unpacker::unpack(Request::BDelete **bdm, void *buf, const std::size_t bufsiz
         memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
         curr += sizeof(out->ds_offsets[i]);
 
+        // subject
         out->subjects[i] = construct<RealBlob>(curr);
+
+        // subject addr
+        memcpy(&out->orig.subjects[i], curr, sizeof(out->orig.subjects[i]));
+        curr += sizeof(out->orig.subjects[i]);
+
+        // predicate
         out->predicates[i] = construct<RealBlob>(curr);
+
+        // predicate addr
+        memcpy(&out->orig.predicates[i], curr, sizeof(out->orig.predicates[i]));
+        curr += sizeof(out->orig.predicates[i]);
 
         out->count++;
     }
@@ -349,14 +371,31 @@ int Unpacker::unpack(Response::BPut **bpm, void *buf, const std::size_t bufsize)
         return TRANSPORT_ERROR;
     }
 
-    out->count = count;
+    for(std::size_t i = 0; i < count; i++) {
+        memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
+        curr += sizeof(out->ds_offsets[i]);
 
-    // read arrays
-    memcpy(out->ds_offsets, curr, sizeof(*out->ds_offsets) * out->count);
-    curr += sizeof(*out->ds_offsets) * out->count;
+        memcpy(&out->statuses[i], curr, sizeof(out->statuses[i]));
+        curr += sizeof(out->statuses[i]);
 
-    memcpy(out->statuses, curr, sizeof(*out->statuses) * out->count);
-    // curr += sizeof(*out->statuses) * out->count);
+        // original subject addr + len
+        out->orig.subjects[i] = construct<ReferenceBlob>();
+        memcpy(&out->orig.subjects[i]->ptr, curr, sizeof(out->orig.subjects[i]->ptr));
+        curr += sizeof(out->orig.subjects[i]->ptr);
+
+        memcpy(&out->orig.subjects[i]->len, curr, sizeof(out->orig.subjects[i]->len));
+        curr += sizeof(out->orig.subjects[i]->len);
+
+        // original predicate addr + len
+        out->orig.predicates[i] = construct<ReferenceBlob>();
+        memcpy(&out->orig.predicates[i]->ptr, curr, sizeof(out->orig.predicates[i]->ptr));
+        curr += sizeof(out->orig.predicates[i]->ptr);
+
+        memcpy(&out->orig.predicates[i]->len, curr, sizeof(out->orig.predicates[i]->len));
+        curr += sizeof(out->orig.predicates[i]->len);
+
+        out->count++;
+    }
 
     *bpm = out;
     return TRANSPORT_SUCCESS;
@@ -513,14 +552,31 @@ int Unpacker::unpack(Response::BDelete **bdm, void *buf, const std::size_t bufsi
         return TRANSPORT_ERROR;
     }
 
-    out->count = count;
+    for(std::size_t i = 0; i < count; i++) {
+        memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
+        curr += sizeof(out->ds_offsets[i]);
 
-    // read arrays
-    memcpy(out->ds_offsets, curr, sizeof(*out->ds_offsets) * out->count);
-    curr += sizeof(*out->ds_offsets) * out->count;
+        memcpy(&out->statuses[i], curr, sizeof(out->statuses[i]));
+        curr += sizeof(out->statuses[i]);
 
-    memcpy(out->statuses, curr, sizeof(*out->statuses) * out->count);
-    curr += sizeof(*out->statuses) * out->count;
+        // original subject addr + len
+        out->orig.subjects[i] = construct<ReferenceBlob>();
+        memcpy(&out->orig.subjects[i]->ptr, curr, sizeof(out->orig.subjects[i]->ptr));
+        curr += sizeof(out->orig.subjects[i]->ptr);
+
+        memcpy(&out->orig.subjects[i]->len, curr, sizeof(out->orig.subjects[i]->len));
+        curr += sizeof(out->orig.subjects[i]->len);
+
+        // original predicate addr + len
+        out->orig.predicates[i] = construct<ReferenceBlob>();
+        memcpy(&out->orig.predicates[i]->ptr, curr, sizeof(out->orig.predicates[i]->ptr));
+        curr += sizeof(out->orig.predicates[i]->ptr);
+
+        memcpy(&out->orig.predicates[i]->len, curr, sizeof(out->orig.predicates[i]->len));
+        curr += sizeof(out->orig.predicates[i]->len);
+
+        out->count++;
+    }
 
     *bdm = out;
     return TRANSPORT_SUCCESS;

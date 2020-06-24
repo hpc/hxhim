@@ -53,6 +53,8 @@ namespace hxhim {
 class Results {
     public:
         struct Result {
+            Result(hxhim_t *hx, const hxhim_result_type type,
+                   const int datastore, const int status);
             virtual ~Result();
 
             hxhim_t *hx;
@@ -62,29 +64,43 @@ class Results {
             int status;
         };
 
+        struct SubjectPredicate : public Result {
+            SubjectPredicate(hxhim_t *hx, const hxhim_result_type type,
+                             const int datastore, const int status);
+            virtual ~SubjectPredicate();
+
+            ReferenceBlob *subject;
+            ReferenceBlob *predicate;
+        };
+
         /** @description Convenience struct for PUT results */
-        struct Put final : public Result {};
+        struct Put final : public SubjectPredicate {
+            Put(hxhim_t *hx, const int datastore, const int status);
+        };
 
         /** @description Convenience struct for GET results    */
-        struct Get final : public Result {
-            Get();
-            ~Get();
+        struct Get final : public SubjectPredicate {
+            Get(hxhim_t *hx, const int datastore, const int status);
 
-            Blob *subject;
-            Blob *predicate;
             hxhim_type_t object_type;
             void *object;
             std::size_t *object_len;
         };
 
         /** @description Convenience struct for DEL results */
-        struct Delete final : public Result {};
+        struct Delete final : public SubjectPredicate {
+            Delete(hxhim_t *hx, const int datastore, const int status);
+        };
 
         /** @description Convenience struct for SYNC results */
-        struct Sync final : public Result {};
+        struct Sync final : public Result {
+            Sync(hxhim_t *hx, const int datastore, const int status);
+        };
 
         /** @description Convenience struct for HISTOGRAM results */
         struct Histogram final : public Result {
+            Histogram(hxhim_t *hx, const int datastore, const int status);
+
             double *buckets;
             std::size_t *counts;
             std::size_t size;

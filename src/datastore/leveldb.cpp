@@ -128,6 +128,10 @@ Transport::Response::BPut *hxhim::datastore::leveldb::BPutImpl(Transport::Reques
         batch.Put(::leveldb::Slice((char *) key, key_len), ::leveldb::Slice((char *) req->objects[i]->ptr, req->objects[i]->len));
         clock_gettime(CLOCK_MONOTONIC, &end);
 
+        // save requesting addresses for sending back
+        res->orig.subjects[i]   = construct<ReferenceBlob>(req->orig.subjects[i], req->subjects[i]->len);
+        res->orig.predicates[i] = construct<ReferenceBlob>(req->orig.predicates[i], req->predicates[i]->len);
+
         dealloc(key);
 
         stats.puts++;
@@ -280,10 +284,10 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
                     key_to_sp(k.data(), k.size(), &subject, &response->subjects[j]->len, &predicate, &response->predicates[j]->len);
 
                     // need to copy subject out of the key
-                    response->subjects[j] = construct<RealBlob>(response->subjects[j]->len, subject);
+                    response->subjects[j] = construct<RealBlob>(subject, response->subjects[j]->len);
 
                     // need to copy predicate out of the key
-                    response->predicates[j] = construct<RealBlob>(response->predicates[j]->len, predicate);
+                    response->predicates[j] = construct<RealBlob>(predicate, response->predicates[j]->len);
 
                     response->object_types[j] = req->object_types[i];
                     response->objects[j]->len = v.size();
@@ -346,6 +350,9 @@ Transport::Response::BDelete *hxhim::datastore::leveldb::BDeleteImpl(Transport::
         sp_to_key(req->subjects[i]->ptr, req->subjects[i]->len, req->predicates[i]->ptr, req->predicates[i]->len, &key, &key_len);
 
         batch.Delete(::leveldb::Slice((char *) key, key_len));
+
+        res->orig.subjects[i]   = construct<ReferenceBlob>(req->orig.subjects[i], req->subjects[i]->len);
+        res->orig.predicates[i] = construct<ReferenceBlob>(req->orig.predicates[i], req->predicates[i]->len);
 
         dealloc(key);
     }

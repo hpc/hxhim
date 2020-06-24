@@ -4,19 +4,25 @@
 #include "utils/memory.hpp"
 
 struct TestPut : hxhim::Results::Result {
-    TestPut() {
+    TestPut()
+        : Result(nullptr, hxhim_result_type::HXHIM_RESULT_NONE, -1, HXHIM_SUCCESS)
+    {
         type = HXHIM_RESULT_PUT;
     }
 };
 
 struct TestGet : hxhim::Results::Result {
-    TestGet() {
+    TestGet()
+        : Result(nullptr, hxhim_result_type::HXHIM_RESULT_NONE, -1, HXHIM_SUCCESS)
+    {
         type = HXHIM_RESULT_GET;
     }
 };
 
 struct TestDelete : hxhim::Results::Result {
-    TestDelete() {
+    TestDelete()
+        : Result(nullptr, hxhim_result_type::HXHIM_RESULT_NONE, -1, HXHIM_SUCCESS)
+    {
         type = HXHIM_RESULT_DEL;
     }
 };
