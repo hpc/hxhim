@@ -30,12 +30,12 @@ int Transport::Request::BGetOp::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Request::alloc(max) != TRANSPORT_SUCCESS)        ||
-            !(subjects = alloc_array<Blob *>(max))            ||
-            !(predicates = alloc_array<Blob *>(max))          ||
-            !(object_types = alloc_array<hxhim_type_t>(max))  ||
-            !(num_recs = alloc_array<std::size_t>(max))       ||
-            !(ops = alloc_array<hxhim_get_op_t>(max)))         {
+        if ((Request::alloc(max) != TRANSPORT_SUCCESS)                ||
+            !(subjects            = alloc_array<Blob *>(max))         ||
+            !(predicates          = alloc_array<Blob *>(max))         ||
+            !(object_types        = alloc_array<hxhim_type_t>(max))   ||
+            !(num_recs            = alloc_array<std::size_t>(max))    ||
+            !(ops                 = alloc_array<hxhim_get_op_t>(max))) {
             cleanup();
             return TRANSPORT_ERROR;
         }
@@ -49,16 +49,16 @@ int Transport::Request::BGetOp::steal(Transport::Request::BGetOp *from, const st
         return TRANSPORT_ERROR;
     }
 
-    subjects[count]          = from->subjects[i];
-    predicates[count]        = from->predicates[i];
-    object_types[count]      = from->object_types[i];
-    num_recs[count]          = from->num_recs[i];
-    ops[count]               = from->ops[i];
+    subjects[count]           = from->subjects[i];
+    predicates[count]         = from->predicates[i];
+    object_types[count]       = from->object_types[i];
+    num_recs[count]           = from->num_recs[i];
+    ops[count]                = from->ops[i];
 
     count++;
 
-    from->subjects[i]        = nullptr;
-    from->predicates[i]      = nullptr;
+    from->subjects[i]         = nullptr;
+    from->predicates[i]       = nullptr;
 
     return TRANSPORT_SUCCESS;
 }
@@ -89,9 +89,10 @@ int Transport::Request::BGetOp::cleanup() {
 
 Transport::Response::BGetOp::BGetOp(const std::size_t max)
     : Response(BGETOP),
+      object_types(nullptr),
+      num_recs(nullptr),
       subjects(nullptr),
       predicates(nullptr),
-      object_types(nullptr),
       objects(nullptr),
       next(nullptr)
 {
@@ -105,12 +106,15 @@ Transport::Response::BGetOp::~BGetOp() {
 std::size_t Transport::Response::BGetOp::size() const {
     std::size_t total = Response::size();
     for(std::size_t i = 0; i < count; i++) {
-        total += subjects[i]->len + sizeof(subjects[i]->len) +
-                 predicates[i]->len + sizeof(predicates[i]->len) +
-                 sizeof(object_types[i]);
+        total += sizeof(object_types[i]) + sizeof(num_recs[i]);
+        for(std::size_t j = 0; j < num_recs[i]; j++) {
+            total += subjects[i][j]->len + sizeof(subjects[i][j]->len) +
+                     predicates[i][j]->len + sizeof(predicates[i][j]);
 
-        if (statuses[i] == TRANSPORT_SUCCESS) {
-            total += objects[i]->len + sizeof(objects[i]->len);
+            // all records from response[i] share the same status
+            if (statuses[i] == TRANSPORT_SUCCESS) {
+                total += objects[i][j]->len + sizeof(objects[i][j]->len);
+            }
         }
     }
     return total;
@@ -120,11 +124,12 @@ int Transport::Response::BGetOp::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Response::alloc(max) != TRANSPORT_SUCCESS)      ||
-            !(subjects = alloc_array<Blob *>(max))           ||
-            !(predicates = alloc_array<Blob *>(max))         ||
-            !(object_types = alloc_array<hxhim_type_t>(max)) ||
-            !(objects = alloc_array<Blob *>(max)))            {
+        if ((Response::alloc(max) != TRANSPORT_SUCCESS)              ||
+            !(object_types         = alloc_array<hxhim_type_t>(max)) ||
+            !(num_recs             = alloc_array<std::size_t>(max))  ||
+            !(subjects             = alloc_array<Blob **>(max))      ||
+            !(predicates           = alloc_array<Blob **>(max))      ||
+            !(objects              = alloc_array<Blob **>(max)))      {
             cleanup();
             return TRANSPORT_ERROR;
         }
@@ -133,42 +138,67 @@ int Transport::Response::BGetOp::alloc(const std::size_t max) {
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Response::BGetOp::steal(Transport::Response::BGetOp *bget, const std::size_t i) {
-    if (Response::steal(bget, i) != TRANSPORT_SUCCESS) {
+int Transport::Response::BGetOp::steal(Transport::Response::BGetOp *from, const std::size_t i) {
+    if (Response::steal(from, i) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
-    subjects[count] = bget->subjects[i];
-    predicates[count] = bget->predicates[i];
-    object_types[count] = bget->object_types[i];
-    objects[count] = bget->objects[i];
-
-    // remove ownership
-    bget->subjects[i] = nullptr;
-    bget->predicates[i] = nullptr;
-    bget->object_types[i] = HXHIM_INVALID_TYPE;
-    bget->objects[i] = nullptr;
+    object_types[count]   = from->object_types[i];
+    num_recs[count]       = from->num_recs[i];
+    subjects[count]       = from->subjects[i];
+    predicates[count]     = from->predicates[i];
+    objects[count]        = from->objects[i];
 
     count++;
+
+    // remove ownership
+    from->subjects[i]     = nullptr;
+    from->predicates[i]   = nullptr;
+    from->objects[i]      = nullptr;
 
     return HXHIM_SUCCESS;
 }
 
 int Transport::Response::BGetOp::cleanup() {
     for(std::size_t i = 0; i < count; i++) {
-        destruct(subjects[i]);
-        destruct(predicates[i]);
-        destruct(objects[i]);
+        for(std::size_t j = 0; j < num_recs[i]; j++) {
+            if (subjects[i]) {
+                destruct(subjects[i][j]);
+            }
+
+            if (predicates[i]) {
+                destruct(predicates[i][j]);
+            }
+
+            if (objects[i]) {
+                destruct(objects[i][j]);
+            }
+        }
+
+        if (subjects) {
+            dealloc_array(subjects[i]);
+        }
+
+        if (predicates) {
+            dealloc_array(predicates[i]);
+        }
+
+        if (objects) {
+            dealloc_array(objects[i]);
+        }
     }
+
+    dealloc_array(object_types, count);
+    object_types = nullptr;
+
+    dealloc_array(num_recs, count);
+    num_recs = nullptr;
 
     dealloc_array(subjects, count);
     subjects = nullptr;
 
     dealloc_array(predicates, count);
     predicates = nullptr;
-
-    dealloc_array(object_types, count);
-    object_types = nullptr;
 
     dealloc_array(objects, count);
     objects = nullptr;

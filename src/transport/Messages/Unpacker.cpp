@@ -195,15 +195,21 @@ int Unpacker::unpack(Request::BGetOp **bgm, void *buf, const std::size_t bufsize
         memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
         curr += sizeof(out->ds_offsets[i]);
 
+        // subject
         out->subjects[i] = construct<RealBlob>(curr);
+
+        // predicate
         out->predicates[i] = construct<RealBlob>(curr);
 
+        // object type
         memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
         curr += sizeof(out->object_types[i]);
 
+        // number of records to get back
         memcpy(&out->num_recs[i], curr, sizeof(out->num_recs[i]));
         curr += sizeof(out->num_recs[i]);
 
+        // operation to run
         memcpy(&out->ops[i], curr, sizeof(out->ops[i]));
         curr += sizeof(out->ops[i]);
 
@@ -516,14 +522,31 @@ int Unpacker::unpack(Response::BGetOp **bgm, void *buf, const std::size_t bufsiz
         memcpy(&out->statuses[i], curr, sizeof(out->statuses[i]));
         curr += sizeof(out->statuses[i]);
 
-        out->subjects[i] = construct<RealBlob>(curr);
-        out->predicates[i] = construct<RealBlob>(curr);
-
+        // object type
         memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
         curr += sizeof(out->object_types[i]);
 
+        // num_recs
+        memcpy(&out->num_recs[i], curr, sizeof(out->num_recs[i]));
+        curr += sizeof(out->num_recs[i]);
+
+        out->subjects[i]    = alloc_array<Blob *>(out->num_recs[i]);
+        out->predicates[i]  = alloc_array<Blob *>(out->num_recs[i]);
         if (out->statuses[i] == HXHIM_SUCCESS) {
-            out->objects[i] = construct<RealBlob>(curr);
+            out->objects[i] = alloc_array<Blob *>(out->num_recs[i]);
+        }
+
+        for(std::size_t j = 0; j < out->num_recs[i]; j++) {
+            // subject
+            out->subjects[i][j] = construct<RealBlob>(curr);
+
+            // predicate
+            out->predicates[i][j] = construct<RealBlob>(curr);
+
+            if (out->statuses[i] == HXHIM_SUCCESS) {
+                // object
+                out->objects[i][j] = construct<RealBlob>(curr);
+            }
         }
 
         out->count++;

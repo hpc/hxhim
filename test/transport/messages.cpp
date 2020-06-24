@@ -386,14 +386,20 @@ TEST(Response, BGetOp) {
 
         src.count = 1;
 
-        src.statuses[0] = HXHIM_SUCCESS;
+        src.statuses[0]      = HXHIM_SUCCESS;
 
-        src.ds_offsets[0] = rand();
+        src.ds_offsets[0]    = rand();
 
-        src.subjects[0] = construct<ReferenceBlob>(&SUBJECT, SUBJECT_LEN);
-        src.predicates[0] = construct<ReferenceBlob>(&PREDICATE, PREDICATE_LEN);
-        src.object_types[0] = OBJECT_TYPE;
-        src.objects[0] = construct<ReferenceBlob>(&OBJECT, OBJECT_LEN);
+        src.object_types[0]  = OBJECT_TYPE;
+        src.num_recs[0]      = 1;
+
+        src.subjects[0]      = alloc_array<Blob *>(src.num_recs[0]);
+        src.predicates[0]    = alloc_array<Blob *>(src.num_recs[0]);
+        src.objects[0]       = alloc_array<Blob *>(src.num_recs[0]);
+
+        src.subjects[0][0]   = construct<ReferenceBlob>(&SUBJECT, SUBJECT_LEN);
+        src.predicates[0][0] = construct<ReferenceBlob>(&PREDICATE, PREDICATE_LEN);
+        src.objects[0][0]    = construct<ReferenceBlob>(&OBJECT, OBJECT_LEN);
     }
 
     EXPECT_EQ(src.direction, Message::RESPONSE);
@@ -413,22 +419,45 @@ TEST(Response, BGetOp) {
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
 
-
     EXPECT_EQ(src.count, dst->count);
+
+    ASSERT_NE(dst->object_types, nullptr);
+    ASSERT_NE(dst->num_recs, nullptr);
+    ASSERT_NE(dst->subjects, nullptr);
+    ASSERT_NE(dst->predicates, nullptr);
+    ASSERT_NE(dst->objects, nullptr);
 
     for(std::size_t i = 0; i < dst->count; i++) {
         EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
         EXPECT_EQ(src.statuses[i], dst->statuses[i]);
 
-        EXPECT_EQ(src.subjects[i]->len, dst->subjects[i]->len);
-        EXPECT_EQ(memcmp(src.subjects[i]->ptr, dst->subjects[i]->ptr, dst->subjects[i]->len), 0);
-
-        EXPECT_EQ(src.predicates[i]->len, dst->predicates[i]->len);
-        EXPECT_EQ(memcmp(src.predicates[i]->ptr, dst->predicates[i]->ptr, dst->predicates[i]->len), 0);
-
         EXPECT_EQ(src.object_types[i], dst->object_types[i]);
-        EXPECT_EQ(src.objects[i]->len, dst->objects[i]->len);
-        EXPECT_EQ(memcmp(src.objects[i]->ptr, dst->objects[i]->ptr, dst->objects[i]->len), 0);
+        EXPECT_EQ(src.num_recs[i], dst->num_recs[i]);
+
+        ASSERT_NE(dst->subjects[i], nullptr);
+        ASSERT_NE(dst->predicates[i], nullptr);
+        ASSERT_NE(dst->objects[i], nullptr);
+
+        for(std::size_t j = 0; j < dst->num_recs[i]; j++) {
+            ASSERT_NE(dst->subjects[i][j], nullptr);
+            ASSERT_NE(dst->predicates[i][j], nullptr);
+            ASSERT_NE(dst->objects[i][j], nullptr);
+
+            EXPECT_EQ(src.subjects[i][j]->len, dst->subjects[i][j]->len);
+            EXPECT_EQ(memcmp(src.subjects[i][j]->ptr,
+                             dst->subjects[i][j]->ptr,
+                             dst->subjects[i][j]->len), 0);
+
+            EXPECT_EQ(src.predicates[i][j]->len, dst->predicates[i][j]->len);
+            EXPECT_EQ(memcmp(src.predicates[i][j]->ptr,
+                             dst->predicates[i][j]->ptr,
+                             dst->predicates[i][j]->len), 0);
+
+            EXPECT_EQ(src.objects[i][j]->len, dst->objects[i][j]->len);
+            EXPECT_EQ(memcmp(src.objects[i][j]->ptr,
+                             dst->objects[i][j]->ptr,
+                             dst->objects[i][j]->len), 0);
+        }
     }
 
     destruct(dst);

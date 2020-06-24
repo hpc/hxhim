@@ -126,15 +126,21 @@ int Packer::pack(const Request::BGetOp *bgm, void **buf, std::size_t *bufsize) {
         memcpy(curr, &bgm->ds_offsets[i], sizeof(bgm->ds_offsets[i]));
         curr += sizeof(bgm->ds_offsets[i]);
 
+        // subject
         bgm->subjects[i]->pack(curr);
+
+        // predicate
         bgm->predicates[i]->pack(curr);
 
+        // object type
         memcpy(curr, &bgm->object_types[i], sizeof(bgm->object_types[i]));
         curr += sizeof(bgm->object_types[i]);
 
+        // number of records to get back
         memcpy(curr, &bgm->num_recs[i], sizeof(bgm->num_recs[i]));
         curr += sizeof(bgm->num_recs[i]);
 
+        // operation to run
         memcpy(curr, &bgm->ops[i], sizeof(bgm->ops[i]));
         curr += sizeof(bgm->ops[i]);
     }
@@ -322,14 +328,25 @@ int Packer::pack(const Response::BGetOp *bgm, void **buf, std::size_t *bufsize) 
         memcpy(curr, &bgm->statuses[i], sizeof(bgm->statuses[i]));
         curr += sizeof(bgm->statuses[i]);
 
-        bgm->subjects[i]->pack(curr);
-        bgm->predicates[i]->pack(curr);
-
+        // object type
         memcpy(curr, &bgm->object_types[i], sizeof(bgm->object_types[i]));
         curr += sizeof(bgm->object_types[i]);
 
-        if (bgm->statuses[i] == HXHIM_SUCCESS) {
-            bgm->objects[i]->pack(curr);
+        // num_recs
+        memcpy(curr, &bgm->num_recs[i], sizeof(bgm->num_recs[i]));
+        curr += sizeof(bgm->num_recs[i]);
+
+        for(std::size_t j = 0; j < bgm->num_recs[i]; j++) {
+            // subject
+            bgm->subjects[i][j]->pack(curr);
+
+            // predicate
+            bgm->predicates[i][j]->pack(curr);
+
+            // object
+            if (bgm->statuses[i] == HXHIM_SUCCESS) {
+                bgm->objects[i][j]->pack(curr);
+            }
         }
     }
 

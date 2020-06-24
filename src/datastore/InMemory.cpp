@@ -154,11 +154,8 @@ Transport::Response::BGet *hxhim::datastore::InMemory::BGetImpl(Transport::Reque
  */
 Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::Request::BGetOp *req) {
     Transport::Response::BGetOp *res = construct<Transport::Response::BGetOp>(0);
-    Transport::Response::BGetOp *curr = res;
 
     for(std::size_t i = 0; i < req->count; i++) {
-        Transport::Response::BGetOp *response = construct<Transport::Response::BGetOp>(req->num_recs[i]);
-
         struct timespec start = {};
         struct timespec end = {};
 
@@ -166,59 +163,65 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
         std::size_t key_len = 0;
         sp_to_key(req->subjects[i]->ptr, req->subjects[i]->len, req->predicates[i]->ptr, req->predicates[i]->len, &key, &key_len);
 
-        // add in the time to get the first key-value without adding to the counter
         clock_gettime(CLOCK_MONOTONIC, &start);
         decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
         clock_gettime(CLOCK_MONOTONIC, &end);
 
-        dealloc(key);
-
-        decltype(db)::const_reverse_iterator rit(it);
-
+        // add in the time to get the first key-value without adding to the counter
         stats.get_times += nano(start, end);
 
-        if (it != db.end()) {
-            for(std::size_t j = 0; j < req->num_recs[i] && (it != db.end()) && (rit != db.rend()); j++) {
-                response->statuses[j] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
-                if (response->statuses[j] == HXHIM_SUCCESS) {
-                    key_to_sp((void *) it->first.data(), it->first.size(), &response->subjects[j]->ptr, &response->subjects[j]->len, &response->predicates[j]->ptr, &response->predicates[j]->len);
-                    response->object_types[j] = req->object_types[i];
-                    response->objects[j]->ptr = alloc(it->second.size());
-                    memcpy(response->objects[j]->ptr, it->second.data(), it->second.size());
-                }
+        dealloc(key);
 
-                clock_gettime(CLOCK_MONOTONIC, &start);
-                response->count++;
+        // all responses for this Op share a status
+        res->statuses[i]     = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
+        res->object_types[i] = req->object_types[i];
+        res->num_recs[i]     = 0;
+        res->subjects[i]     = alloc_array<Blob *>(res->num_recs[i]);
+        res->predicates[i]   = alloc_array<Blob *>(res->num_recs[i]);
+        res->objects[i]      = alloc_array<Blob *>(res->num_recs[i]);
 
-                // move to next iterator according to operation
-                switch (req->ops[i]) {
-                    case hxhim_get_op_t::HXHIM_GET_NEXT:
-                        it++;
-                        break;
-                    case hxhim_get_op_t::HXHIM_GET_PREV:
-                        it--;
-                        break;
-                    case hxhim_get_op_t::HXHIM_GET_FIRST:
-                        it++;
-                        break;
-                    case hxhim_get_op_t::HXHIM_GET_LAST:
-                        it--;
-                        break;
-                    default:
-                        break;
-                }
+        for(std::size_t j = 0; (j < req->num_recs[i]) && (it != db.end()); j++) {
+            const std::string &k = it->first;
+            const std::string &v = it->second;
 
-                clock_gettime(CLOCK_MONOTONIC, &end);
-                stats.gets++;
-                stats.get_times += nano(start, end);
+            // get subject and predicate for sending back
+            void *sub = nullptr, *pred = nullptr;
+            std::size_t sub_len = 0, pred_len = 0;
+            key_to_sp(k.data(), k.size(), &sub, &sub_len, &pred, &pred_len);
+            res->subjects[i][j] = construct<RealBlob>(sub, sub_len);
+            res->predicates[i][j] = construct<RealBlob>(pred, pred_len);
+
+            res->objects[i][j] = construct<RealBlob>();
+            res->objects[i][j]->len = v.size();
+            res->objects[i][j]->ptr = alloc(res->objects[i][j]->len);
+            memcpy(res->objects[i][j]->ptr, v.data(), v.size());
+
+            // move to next iterator according to operation
+            switch (req->ops[i]) {
+                case hxhim_get_op_t::HXHIM_GET_NEXT:
+                    it++;
+                    break;
+                case hxhim_get_op_t::HXHIM_GET_PREV:
+                    it--;
+                    break;
+                case hxhim_get_op_t::HXHIM_GET_FIRST:
+                    it++;
+                    break;
+                case hxhim_get_op_t::HXHIM_GET_LAST:
+                    it--;
+                    break;
+                default:
+                    break;
             }
 
-            curr = (curr->next = response);
+            clock_gettime(CLOCK_MONOTONIC, &end);
+            stats.gets++;
+            stats.get_times += nano(start, end);
         }
+
     }
 
-    // first result is empty
-    return res->next;
+    return res;
 }
 
 /**

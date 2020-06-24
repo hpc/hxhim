@@ -41,7 +41,16 @@ hxhim::Results::Get::Get(hxhim_t *hx,
                          const int datastore, const int status)
     : SubjectPredicate(hx, hxhim_result_type::HXHIM_RESULT_GET, datastore, status),
       object_type(HXHIM_INVALID_TYPE),
-      object(nullptr)
+      object(nullptr),
+      next(nullptr)
+{}
+
+hxhim::Results::GetOp::GetOp(hxhim_t *hx,
+                             const int datastore, const int status)
+    : SubjectPredicate(hx, hxhim_result_type::HXHIM_RESULT_GETOP, datastore, status),
+      object_type(HXHIM_INVALID_TYPE),
+      object(nullptr),
+      next(nullptr)
 {}
 
 hxhim::Results::Delete::Delete(hxhim_t *hx,
@@ -129,6 +138,7 @@ hxhim::Results::Get *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGet 
     // out->object = construct<ReferenceBlob>(bget->orig.objects[i], *(bget->orig.object_lens[i]));
     out->object = bget->orig.objects[i];
     out->object_len = bget->orig.object_lens[i];
+    out->next = nullptr;
 
     bget->orig.subjects[i] = nullptr;
     bget->orig.predicates[i] = nullptr;
@@ -138,19 +148,35 @@ hxhim::Results::Get *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGet 
     return out;
 }
 
-hxhim::Results::Get *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGetOp *bgetop, const std::size_t i) {
-    hxhim::Results::Get *out = construct<hxhim::Results::Get>(hx, hxhim::datastore::get_id(hx, bgetop->src, bgetop->ds_offsets[i]), bgetop->statuses[i]);
-    out->datastore = hxhim::datastore::get_id(hx, bgetop->src, bgetop->ds_offsets[i]);
+hxhim::Results::GetOp *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGetOp *bgetop, const std::size_t i) {
+    const int id = hxhim::datastore::get_id(hx, bgetop->src, bgetop->ds_offsets[i]);
+    const int status = bgetop->statuses[i];
 
-    out->subject = bgetop->subjects[i];
-    out->predicate = bgetop->predicates[i];
-    out->object_type = bgetop->object_types[i];
-    out->object = bgetop->objects[i];
+    hxhim::Results::GetOp *top = construct<hxhim::Results::GetOp>(hx, id, status);
 
-    bgetop->subjects[i] = nullptr;
-    bgetop->predicates[i] = nullptr;
-    bgetop->objects[i] = nullptr;
-    return out;
+    hxhim::Results::GetOp *prev = nullptr;
+    hxhim::Results::GetOp *curr = top;
+    for(std::size_t j = 0; i < bgetop->num_recs[i]; j++) {
+        curr->object_type      = bgetop->object_types[i];
+
+        curr->subject          = bgetop->subjects[i][j];
+        curr->predicate        = bgetop->predicates[i][j];
+        curr->object           = bgetop->objects[i][j];
+
+        bgetop->subjects[i][j]   = nullptr;
+        bgetop->predicates[i][j] = nullptr;
+        bgetop->objects[i][j]    = nullptr;
+
+        prev = curr;
+        curr = construct<hxhim::Results::GetOp>(hx, id, status);
+        prev->next = curr;
+    }
+
+    // drop last item (empty)
+    prev->next = nullptr;
+    destruct(curr);
+
+    return top;
 }
 
 hxhim::Results::Delete *hxhim::Result::init(hxhim_t *hx, Transport::Response::BDelete *bdel, const std::size_t i) {
@@ -275,7 +301,20 @@ hxhim::Results::Result *hxhim::Results::Next() const {
  */
 hxhim::Results::Result *hxhim::Results::Add(hxhim::Results::Result *res) {
     if (res) {
-        results.push_back(res);
+        // serialize GetOps
+        if (res->type == hxhim_result_type_t::HXHIM_RESULT_GETOP) {
+            hxhim::Results::GetOp *get = static_cast<hxhim::Results::GetOp *>(res);
+            while (get) {
+                results.push_back(get);
+
+                hxhim::Results::GetOp *curr = get;
+                get = curr->next;
+                curr->next = nullptr;
+            }
+        }
+        else {
+            results.push_back(res);
+        }
     }
     std::list<hxhim::Results::Result *>::reverse_iterator it = results.rbegin();
     return (it != results.rend())?*it:nullptr;

@@ -44,10 +44,13 @@ struct BGetOp final : Response {
     int steal(BGetOp *bgetop, const std::size_t i);
     int cleanup();
 
-    Blob **subjects;
-    Blob **predicates;
     hxhim_type_t *object_types;
-    Blob **objects;
+    std::size_t *num_recs;
+
+    // array of array of results
+    Blob ***subjects;
+    Blob ***predicates;
+    Blob ***objects;
 
     BGetOp *next;
 };

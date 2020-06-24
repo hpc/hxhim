@@ -85,6 +85,18 @@ class Results {
             hxhim_type_t object_type;
             void *object;
             std::size_t *object_len;
+
+            struct Get *next;
+        };
+
+        /** @description Convenience struct for GETOP results    */
+        struct GetOp final : public SubjectPredicate {
+            GetOp(hxhim_t *hx, const int datastore, const int status);
+
+            hxhim_type_t object_type;
+            Blob *object;
+
+            struct GetOp *next;
         };
 
         /** @description Convenience struct for DEL results */

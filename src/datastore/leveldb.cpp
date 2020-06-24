@@ -244,15 +244,13 @@ Transport::Response::BGet *hxhim::datastore::leveldb::BGetImpl(Transport::Reques
  * @return pointer to a list of results
  */
 Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Request::BGetOp *req) {
-    Transport::Response::BGetOp *res = construct<Transport::Response::BGetOp>(0);
-    Transport::Response::BGetOp *curr = res;
+    Transport::Response::BGetOp *res = construct<Transport::Response::BGetOp>(req->count);
 
     for(std::size_t i = 0; i < req->count; i++) {
-        Transport::Response::BGetOp *response = construct<Transport::Response::BGetOp>(req->num_recs[i]);
-
         ::leveldb::Iterator *it = db->NewIterator(::leveldb::ReadOptions());
         struct timespec start, end;
 
+        // find starting point
         void *key = nullptr;
         std::size_t key_len = 0;
         sp_to_key(req->subjects[i]->ptr, req->subjects[i]->len, req->predicates[i]->ptr, req->predicates[i]->len, &key, &key_len);
@@ -261,71 +259,79 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
         it->Seek(::leveldb::Slice((char *) key, key_len));
         clock_gettime(CLOCK_MONOTONIC, &end);
 
-        dealloc(key);
-
         // add in the time to get the first key-value without adding to the counter
         stats.get_times += nano(start, end);
 
-        if (it->status().ok()) {
-            for(std::size_t j = 0; j < req->num_recs[i] && it->Valid(); j++) {
-                clock_gettime(CLOCK_MONOTONIC, &start);
-                const ::leveldb::Slice k = it->key();
-                const ::leveldb::Slice v = it->value();
-                clock_gettime(CLOCK_MONOTONIC, &end);
+        dealloc(key);
 
-                stats.gets++;
-                stats.get_times += nano(start, end);
+        // set up this Op's response
+        res->statuses[i]     = HXHIM_SUCCESS;
+        res->object_types[i] = req->object_types[i];
+        res->num_recs[i]     = 0;
+        res->subjects[i]     = alloc_array<Blob *>(res->num_recs[i]);
+        res->predicates[i]   = alloc_array<Blob *>(res->num_recs[i]);
+        res->objects[i]      = alloc_array<Blob *>(res->num_recs[i]);
 
-                // add to results list
-                if (it->status().ok()) {
-                    response->statuses[j] = HXHIM_SUCCESS;
+        for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid(); j++) {
+            clock_gettime(CLOCK_MONOTONIC, &start);
+            const ::leveldb::Slice k = it->key();
+            const ::leveldb::Slice v = it->value();
+            clock_gettime(CLOCK_MONOTONIC, &end);
 
-                    void *subject = nullptr, *predicate = nullptr;
-                    key_to_sp(k.data(), k.size(), &subject, &response->subjects[j]->len, &predicate, &response->predicates[j]->len);
+            stats.gets++;
+            stats.get_times += nano(start, end);
 
-                    // need to copy subject out of the key
-                    response->subjects[j] = construct<RealBlob>(subject, response->subjects[j]->len);
+            // add to results list
+            if (it->status().ok()) {
+                // all responses for this Op share a status
+                res->statuses[i] = HXHIM_SUCCESS;
 
-                    // need to copy predicate out of the key
-                    response->predicates[j] = construct<RealBlob>(predicate, response->predicates[j]->len);
+                // get subject and predicate for sending back
+                void *sub = nullptr, *pred = nullptr;
+                std::size_t sub_len = 0, pred_len = 0;
+                key_to_sp(k.data(), k.size(), &sub, &sub_len, &pred, &pred_len);
+                res->subjects[i][j] = construct<RealBlob>(sub, sub_len);
+                res->predicates[i][j] = construct<RealBlob>(pred, pred_len);
 
-                    response->object_types[j] = req->object_types[i];
-                    response->objects[j]->len = v.size();
-                    response->objects[j]->ptr = alloc(response->objects[j]->len);
-                    memcpy(response->objects[j]->ptr, v.data(), response->objects[j]->len);
-                }
-                else {
-                    response->statuses[j] = HXHIM_ERROR;
-                }
-                response->count++;
-
-                // move to next iterator according to operation
-                switch (req->ops[i]) {
-                    case hxhim_get_op_t::HXHIM_GET_NEXT:
-                        it->Next();
-                        break;
-                    case hxhim_get_op_t::HXHIM_GET_PREV:
-                        it->Prev();
-                        break;
-                    case hxhim_get_op_t::HXHIM_GET_FIRST:
-                        it->Next();
-                        break;
-                    case hxhim_get_op_t::HXHIM_GET_LAST:
-                        it->Prev();
-                        break;
-                    default:
-                        break;
-                }
+                res->objects[i][j] = construct<RealBlob>();
+                res->objects[i][j]->len = v.size();
+                res->objects[i][j]->ptr = alloc(res->objects[i][j]->len);
+                memcpy(res->objects[i][j]->ptr, v.data(), v.size());
+            }
+            else {
+                // all responses for this Op share a status
+                res->statuses[i] = HXHIM_ERROR;
+                break;
             }
 
-            curr = (curr->next = response);
+            // move to next iterator according to operation
+            switch (req->ops[i]) {
+                case hxhim_get_op_t::HXHIM_GET_NEXT:
+                    it->Next();
+                    break;
+                case hxhim_get_op_t::HXHIM_GET_PREV:
+                    it->Prev();
+                    break;
+                case hxhim_get_op_t::HXHIM_GET_FIRST:
+                    it->Next();
+                    break;
+                case hxhim_get_op_t::HXHIM_GET_LAST:
+                    it->Prev();
+                    break;
+                default:
+                    break;
+            }
+
+            // response num_recs might be less than requested
+            res->num_recs[i]++;
         }
+
+        res->count++;
 
         delete it;
     }
 
-    // first result is empty
-    return res->next;
+    return res;
 }
 
 /**
