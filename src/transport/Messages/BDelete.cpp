@@ -16,8 +16,8 @@ Transport::Request::BDelete::~BDelete() {
 std::size_t Transport::Request::BDelete::size() const {
     std::size_t total = Request::size();
     for(std::size_t i = 0; i < count; i++) {
-        total += subjects[i]->len + sizeof(subjects[i]->len) + sizeof(orig.subjects[i]) +
-                 predicates[i]->len + sizeof(predicates[i]->len) + sizeof(orig.predicates[i]);
+        total += subjects[i]->pack_size() + sizeof(orig.subjects[i]) +
+                 predicates[i]->pack_size() + sizeof(orig.predicates[i]);
     }
 
     return total;
@@ -98,8 +98,8 @@ Transport::Response::BDelete::~BDelete() {
 std::size_t Transport::Response::BDelete::size() const {
     std::size_t total = Response::size();
     for(std::size_t i = 0; i < count; i++) {
-        total += sizeof(orig.subjects[i]->ptr) + sizeof(orig.subjects[i]->len) +
-                 sizeof(orig.predicates[i]->ptr) + sizeof(orig.predicates[i]->len);
+        total += orig.subjects[i]->pack_ref_size() +
+                 orig.predicates[i]->pack_ref_size();
     }
 
     return total;

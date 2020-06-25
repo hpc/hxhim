@@ -18,8 +18,8 @@ Transport::Request::BGetOp::~BGetOp() {
 std::size_t Transport::Request::BGetOp::size() const {
     std::size_t total = Request::size();
     for(std::size_t i = 0; i < count; i++) {
-        total += subjects[i]->len + sizeof(subjects[i]->len) +
-                 predicates[i]->len + sizeof(predicates[i]->len) +
+        total += subjects[i]->pack_size() +
+                 predicates[i]->pack_size() +
                  sizeof(object_types[i]) +
                  sizeof(num_recs[i]) + sizeof(ops[i]);
     }
@@ -108,12 +108,12 @@ std::size_t Transport::Response::BGetOp::size() const {
     for(std::size_t i = 0; i < count; i++) {
         total += sizeof(object_types[i]) + sizeof(num_recs[i]);
         for(std::size_t j = 0; j < num_recs[i]; j++) {
-            total += subjects[i][j]->len + sizeof(subjects[i][j]->len) +
-                     predicates[i][j]->len + sizeof(predicates[i][j]);
+            total += subjects[i][j]->pack_size() +
+                     predicates[i][j]->pack_size();
 
             // all records from response[i] share the same status
             if (statuses[i] == TRANSPORT_SUCCESS) {
-                total += objects[i][j]->len + sizeof(objects[i][j]->len);
+                total += objects[i][j]->pack_size();
             }
         }
     }

@@ -93,8 +93,8 @@ TEST(InMemory, BGet) {
     for(std::size_t i = 0; i < count; i++) {
         EXPECT_EQ(res->statuses[i], HXHIM_SUCCESS);
         ASSERT_NE(res->objects[i], nullptr);
-        EXPECT_EQ(res->objects[i]->len, strlen(objs[i]));
-        EXPECT_EQ(std::memcmp(objs[i], res->objects[i]->ptr, res->objects[i]->len), 0);
+        EXPECT_EQ(res->objects[i]->size(), strlen(objs[i]));
+        EXPECT_EQ(std::memcmp(objs[i], res->objects[i]->data(), res->objects[i]->size()), 0);
     }
 
     EXPECT_EQ(res->statuses[count], HXHIM_ERROR);

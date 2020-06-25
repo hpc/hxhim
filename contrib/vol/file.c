@@ -81,7 +81,7 @@ herr_t H5VL_hxhim_file_specific(void *obj, H5VL_file_specific_t specific_type, h
 
                             void *object = NULL;
                             size_t object_len = 0;
-                            hxhim_results_get_object(res, &object, &object_len);
+                            hxhim_results_object(res, &object, &object_len);
                             /* need to copy object to somewhere */
                             /* memcpy(dst, object, object_len); */
                         }

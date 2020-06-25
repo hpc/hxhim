@@ -61,14 +61,14 @@ Transport::Response::BPut *hxhim::datastore::InMemory::BPutImpl(Transport::Reque
     for(std::size_t i = 0; i < req->count; i++) {
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(req->subjects[i]->ptr, req->subjects[i]->len, req->predicates[i]->ptr, req->predicates[i]->len, &key, &key_len);
+        sp_to_key(req->subjects[i]->data(), req->subjects[i]->size(), req->predicates[i]->data(), req->predicates[i]->size(), &key, &key_len);
 
         clock_gettime(CLOCK_MONOTONIC, &start);
-        db[std::string((char *) key, key_len)] = std::string((char *) req->objects[i]->ptr, req->objects[i]->len);
+        db[std::string((char *) key, key_len)] = std::string((char *) req->objects[i]->data(), req->objects[i]->size());
         clock_gettime(CLOCK_MONOTONIC, &end);
 
-        res->orig.subjects[i]   = construct<ReferenceBlob>(req->orig.subjects[i], req->subjects[i]->len);
-        res->orig.predicates[i] = construct<ReferenceBlob>(req->orig.predicates[i], req->predicates[i]->len);
+        res->orig.subjects[i]   = construct<ReferenceBlob>(req->orig.subjects[i], req->subjects[i]->size());
+        res->orig.predicates[i] = construct<ReferenceBlob>(req->orig.predicates[i], req->predicates[i]->size());
 
         dealloc(key);
 
@@ -106,7 +106,7 @@ Transport::Response::BGet *hxhim::datastore::InMemory::BGetImpl(Transport::Reque
 
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(req->subjects[i]->ptr, req->subjects[i]->len, req->predicates[i]->ptr, req->predicates[i]->len, &key, &key_len);
+        sp_to_key(req->subjects[i]->data(), req->subjects[i]->size(), req->predicates[i]->data(), req->predicates[i]->size(), &key, &key_len);
 
         clock_gettime(CLOCK_MONOTONIC, &start);
         decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
@@ -119,8 +119,8 @@ Transport::Response::BGet *hxhim::datastore::InMemory::BGetImpl(Transport::Reque
         // object type was stored as a value, not address, so copy it to the response
         res->object_types[i]    = req->object_types[i];
 
-        res->orig.subjects[i]   = construct<ReferenceBlob>(req->orig.subjects[i], req->subjects[i]->len);
-        res->orig.predicates[i] = construct<ReferenceBlob>(req->orig.predicates[i], req->predicates[i]->len);
+        res->orig.subjects[i]   = construct<ReferenceBlob>(req->orig.subjects[i], req->subjects[i]->size());
+        res->orig.predicates[i] = construct<ReferenceBlob>(req->orig.predicates[i], req->predicates[i]->size());
 
         res->statuses[i] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
 
@@ -159,7 +159,7 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
 
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(req->subjects[i]->ptr, req->subjects[i]->len, req->predicates[i]->ptr, req->predicates[i]->len, &key, &key_len);
+        sp_to_key(req->subjects[i]->data(), req->subjects[i]->size(), req->predicates[i]->data(), req->predicates[i]->size(), &key, &key_len);
 
         clock_gettime(CLOCK_MONOTONIC, &start);
         decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
@@ -189,10 +189,8 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
             res->subjects[i][j] = construct<RealBlob>(sub, sub_len);
             res->predicates[i][j] = construct<RealBlob>(pred, pred_len);
 
-            res->objects[i][j] = construct<RealBlob>();
-            res->objects[i][j]->len = v.size();
-            res->objects[i][j]->ptr = alloc(res->objects[i][j]->len);
-            memcpy(res->objects[i][j]->ptr, v.data(), v.size());
+            res->objects[i][j] = construct<RealBlob>(alloc(v.size()), v.size());
+            memcpy(res->objects[i][j]->data(), v.data(), v.size());
 
             // move to next iterator according to operation
             switch (req->ops[i]) {
@@ -238,7 +236,7 @@ Transport::Response::BDelete *hxhim::datastore::InMemory::BDeleteImpl(Transport:
     for(std::size_t i = 0; i < req->count; i++) {
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(req->subjects[i]->ptr, req->subjects[i]->len, req->predicates[i]->ptr, req->predicates[i]->len, &key, &key_len);
+        sp_to_key(req->subjects[i]->data(), req->subjects[i]->size(), req->predicates[i]->data(), req->predicates[i]->size(), &key, &key_len);
 
         decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
         if (it != db.end()) {
@@ -249,8 +247,8 @@ Transport::Response::BDelete *hxhim::datastore::InMemory::BDeleteImpl(Transport:
             res->statuses[i] = HXHIM_ERROR;
         }
 
-        res->orig.subjects[i]   = construct<ReferenceBlob>(req->orig.subjects[i], req->subjects[i]->len);
-        res->orig.predicates[i] = construct<ReferenceBlob>(req->orig.predicates[i], req->predicates[i]->len);
+        res->orig.subjects[i]   = construct<ReferenceBlob>(req->orig.subjects[i], req->subjects[i]->size());
+        res->orig.predicates[i] = construct<ReferenceBlob>(req->orig.predicates[i], req->predicates[i]->size());
 
         dealloc(key);
     }

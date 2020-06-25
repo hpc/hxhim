@@ -62,13 +62,13 @@ int Packer::pack(const Request::BPut *bpm, void **buf, std::size_t *bufsize) {
         bpm->subjects[i]->pack(curr);
 
         // subject addr
-        pack_addr(curr, bpm->subjects[i]->ptr);
+        pack_addr(curr, bpm->subjects[i]->data());
 
         // predicate + len
         bpm->predicates[i]->pack(curr);
 
         // predicate addr
-        pack_addr(curr, bpm->predicates[i]->ptr);
+        pack_addr(curr, bpm->predicates[i]->data());
 
         // object type
         memcpy(curr, &bpm->object_types[i], sizeof(bpm->object_types[i]));
@@ -98,13 +98,13 @@ int Packer::pack(const Request::BGet *bgm, void **buf, std::size_t *bufsize) {
         bgm->subjects[i]->pack(curr);
 
         // subject addr
-        pack_addr(curr, bgm->subjects[i]->ptr);
+        pack_addr(curr, bgm->subjects[i]->data());
 
         // predicate
         bgm->predicates[i]->pack(curr);
 
         // predicate addr
-        pack_addr(curr, bgm->predicates[i]->ptr);
+        pack_addr(curr, bgm->predicates[i]->data());
 
         // object type
         memcpy(curr, &bgm->object_types[i], sizeof(bgm->object_types[i]));
@@ -166,13 +166,13 @@ int Packer::pack(const Request::BDelete *bdm, void **buf, std::size_t *bufsize) 
         bdm->subjects[i]->pack(curr);
 
         // subject addr
-        pack_addr(curr, bdm->subjects[i]->ptr);
+        pack_addr(curr, bdm->subjects[i]->data());
 
         // predicate
         bdm->predicates[i]->pack(curr);
 
         // predicate addr
-        pack_addr(curr, bdm->predicates[i]->ptr);
+        pack_addr(curr, bdm->predicates[i]->data());
     }
 
     return TRANSPORT_SUCCESS;

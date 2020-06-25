@@ -119,10 +119,10 @@ Transport::Response::BPut *Datastore::operate(Transport::Request::BPut *req) {
             if (res->statuses[i] == HXHIM_SUCCESS) {
                 switch (req->object_types[i]) {
                     case HXHIM_FLOAT_TYPE:
-                        hist->add(* (float *) req->objects[i]->ptr);
+                        hist->add(* (float *) req->objects[i]->data());
                         break;
                     case HXHIM_DOUBLE_TYPE:
-                        hist->add(* (double *) req->objects[i]->ptr);
+                        hist->add(* (double *) req->objects[i]->data());
                         break;
                     default:
                         break;

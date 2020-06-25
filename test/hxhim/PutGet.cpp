@@ -62,13 +62,13 @@ TEST(hxhim, PutGet) {
 
         hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(get_results->Curr());
 
-        Subject_t *subject = static_cast<Subject_t *>(get->subject->ptr);
+        Subject_t *subject = static_cast<Subject_t *>(get->subject->data());
         EXPECT_EQ(*subject, SUBJECT);
 
-        Predicate_t *predicate = static_cast<Predicate_t *>(get->predicate->ptr);
+        Predicate_t *predicate = static_cast<Predicate_t *>(get->predicate->data());
         EXPECT_EQ(*predicate, PREDICATE);
 
-        Object_t *object = static_cast<Object_t *>(get->object->ptr);
+        Object_t *object = static_cast<Object_t *>(get->object->data());
         ASSERT_NE(object, nullptr);
         if (std::is_same<float, Object_t>::value) {
             EXPECT_FLOAT_EQ(*object, OBJECT);

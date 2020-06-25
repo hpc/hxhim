@@ -30,13 +30,13 @@ TEST(Enqueue, PUT) {
 
     {
         hxhim::PutData *head = puts.head;
-        EXPECT_EQ(head->subject->ptr, SUBJECT1);
-        EXPECT_EQ(head->subject->len, strlen(SUBJECT1));
-        EXPECT_EQ(head->predicate->ptr, PREDICATE1);
-        EXPECT_EQ(head->predicate->len, strlen(PREDICATE1));
+        EXPECT_EQ(head->subject->data(), SUBJECT1);
+        EXPECT_EQ(head->subject->size(), strlen(SUBJECT1));
+        EXPECT_EQ(head->predicate->data(), PREDICATE1);
+        EXPECT_EQ(head->predicate->size(), strlen(PREDICATE1));
         EXPECT_EQ(head->object_type, TYPE);
-        EXPECT_EQ(head->object->ptr, OBJECT1);
-        EXPECT_EQ(head->object->len, strlen(OBJECT2));
+        EXPECT_EQ(head->object->data(), OBJECT1);
+        EXPECT_EQ(head->object->size(), strlen(OBJECT2));
     }
 
     // enqueue a second PUT
@@ -50,24 +50,24 @@ TEST(Enqueue, PUT) {
 
     {
         hxhim::PutData *head = puts.head;
-        EXPECT_EQ(head->subject->ptr, SUBJECT1);
-        EXPECT_EQ(head->subject->len, strlen(SUBJECT1));
-        EXPECT_EQ(head->predicate->ptr, PREDICATE1);
-        EXPECT_EQ(head->predicate->len, strlen(PREDICATE1));
+        EXPECT_EQ(head->subject->data(), SUBJECT1);
+        EXPECT_EQ(head->subject->size(), strlen(SUBJECT1));
+        EXPECT_EQ(head->predicate->data(), PREDICATE1);
+        EXPECT_EQ(head->predicate->size(), strlen(PREDICATE1));
         EXPECT_EQ(head->object_type, TYPE);
-        EXPECT_EQ(head->object->ptr, OBJECT1);
-        EXPECT_EQ(head->object->len, strlen(OBJECT1));
+        EXPECT_EQ(head->object->data(), OBJECT1);
+        EXPECT_EQ(head->object->size(), strlen(OBJECT1));
     }
 
     {
         hxhim::PutData *tail = puts.tail;
-        EXPECT_EQ(tail->subject->ptr, SUBJECT2);
-        EXPECT_EQ(tail->subject->len, strlen(SUBJECT2));
-        EXPECT_EQ(tail->predicate->ptr, PREDICATE2);
-        EXPECT_EQ(tail->predicate->len, strlen(PREDICATE2));
+        EXPECT_EQ(tail->subject->data(), SUBJECT2);
+        EXPECT_EQ(tail->subject->size(), strlen(SUBJECT2));
+        EXPECT_EQ(tail->predicate->data(), PREDICATE2);
+        EXPECT_EQ(tail->predicate->size(), strlen(PREDICATE2));
         EXPECT_EQ(tail->object_type, TYPE);
-        EXPECT_EQ(tail->object->ptr, OBJECT2);
-        EXPECT_EQ(tail->object->len, strlen(OBJECT2));
+        EXPECT_EQ(tail->object->data(), OBJECT2);
+        EXPECT_EQ(tail->object->size(), strlen(OBJECT2));
     }
 
     destruct(puts.head->subject);
@@ -94,10 +94,10 @@ TEST(Enqueue, GET) {
 
     {
         hxhim::GetData *head = gets.head;
-        EXPECT_EQ(head->subject->ptr, SUBJECT1);
-        EXPECT_EQ(head->subject->len, strlen(SUBJECT1));
-        EXPECT_EQ(head->predicate->ptr, PREDICATE1);
-        EXPECT_EQ(head->predicate->len, strlen(PREDICATE1));
+        EXPECT_EQ(head->subject->data(), SUBJECT1);
+        EXPECT_EQ(head->subject->size(), strlen(SUBJECT1));
+        EXPECT_EQ(head->predicate->data(), PREDICATE1);
+        EXPECT_EQ(head->predicate->size(), strlen(PREDICATE1));
         EXPECT_EQ(head->object_type, TYPE);
     }
 
@@ -112,19 +112,19 @@ TEST(Enqueue, GET) {
 
     {
         hxhim::GetData *head = gets.head;
-        EXPECT_EQ(head->subject->ptr, SUBJECT1);
-        EXPECT_EQ(head->subject->len, strlen(SUBJECT1));
-        EXPECT_EQ(head->predicate->ptr, PREDICATE1);
-        EXPECT_EQ(head->predicate->len, strlen(PREDICATE1));
+        EXPECT_EQ(head->subject->data(), SUBJECT1);
+        EXPECT_EQ(head->subject->size(), strlen(SUBJECT1));
+        EXPECT_EQ(head->predicate->data(), PREDICATE1);
+        EXPECT_EQ(head->predicate->size(), strlen(PREDICATE1));
         EXPECT_EQ(head->object_type, TYPE);
     }
 
     {
         hxhim::GetData *tail = gets.tail;
-        EXPECT_EQ(tail->subject->ptr, SUBJECT2);
-        EXPECT_EQ(tail->subject->len, strlen(SUBJECT2));
-        EXPECT_EQ(tail->predicate->ptr, PREDICATE2);
-        EXPECT_EQ(tail->predicate->len, strlen(PREDICATE2));
+        EXPECT_EQ(tail->subject->data(), SUBJECT2);
+        EXPECT_EQ(tail->subject->size(), strlen(SUBJECT2));
+        EXPECT_EQ(tail->predicate->data(), PREDICATE2);
+        EXPECT_EQ(tail->predicate->size(), strlen(PREDICATE2));
         EXPECT_EQ(tail->object_type, TYPE);
     }
 
@@ -153,10 +153,10 @@ TEST(Enqueue, GETOP) {
 
     {
         hxhim::GetOpData *head = getops.head;
-        EXPECT_EQ(head->subject->ptr, SUBJECT1);
-        EXPECT_EQ(head->subject->len, strlen(SUBJECT1));
-        EXPECT_EQ(head->predicate->ptr, PREDICATE1);
-        EXPECT_EQ(head->predicate->len, strlen(PREDICATE1));
+        EXPECT_EQ(head->subject->data(), SUBJECT1);
+        EXPECT_EQ(head->subject->size(), strlen(SUBJECT1));
+        EXPECT_EQ(head->predicate->data(), PREDICATE1);
+        EXPECT_EQ(head->predicate->size(), strlen(PREDICATE1));
         EXPECT_EQ(head->object_type, TYPE);
         EXPECT_EQ(head->num_recs, num_recs);
         EXPECT_EQ(head->op, op);
@@ -173,10 +173,10 @@ TEST(Enqueue, GETOP) {
 
     {
         hxhim::GetOpData *head = getops.head;
-        EXPECT_EQ(head->subject->ptr, SUBJECT1);
-        EXPECT_EQ(head->subject->len, strlen(SUBJECT1));
-        EXPECT_EQ(head->predicate->ptr, PREDICATE1);
-        EXPECT_EQ(head->predicate->len, strlen(PREDICATE1));
+        EXPECT_EQ(head->subject->data(), SUBJECT1);
+        EXPECT_EQ(head->subject->size(), strlen(SUBJECT1));
+        EXPECT_EQ(head->predicate->data(), PREDICATE1);
+        EXPECT_EQ(head->predicate->size(), strlen(PREDICATE1));
         EXPECT_EQ(head->object_type, TYPE);
         EXPECT_EQ(head->num_recs, num_recs);
         EXPECT_EQ(head->op, op);
@@ -184,10 +184,10 @@ TEST(Enqueue, GETOP) {
 
     {
         hxhim::GetOpData *tail = getops.tail;
-        EXPECT_EQ(tail->subject->ptr, SUBJECT2);
-        EXPECT_EQ(tail->subject->len, strlen(SUBJECT2));
-        EXPECT_EQ(tail->predicate->ptr, PREDICATE2);
-        EXPECT_EQ(tail->predicate->len, strlen(PREDICATE2));
+        EXPECT_EQ(tail->subject->data(), SUBJECT2);
+        EXPECT_EQ(tail->subject->size(), strlen(SUBJECT2));
+        EXPECT_EQ(tail->predicate->data(), PREDICATE2);
+        EXPECT_EQ(tail->predicate->size(), strlen(PREDICATE2));
         EXPECT_EQ(tail->object_type, TYPE);
         EXPECT_EQ(tail->num_recs, num_recs);
         EXPECT_EQ(tail->op, op);
@@ -215,10 +215,10 @@ TEST(Enqueue, DELETE) {
 
     {
         hxhim::DeleteData *head = deletes.head;
-        EXPECT_EQ(head->subject->ptr, SUBJECT1);
-        EXPECT_EQ(head->subject->len, strlen(SUBJECT1));
-        EXPECT_EQ(head->predicate->ptr, PREDICATE1);
-        EXPECT_EQ(head->predicate->len, strlen(PREDICATE1));
+        EXPECT_EQ(head->subject->data(), SUBJECT1);
+        EXPECT_EQ(head->subject->size(), strlen(SUBJECT1));
+        EXPECT_EQ(head->predicate->data(), PREDICATE1);
+        EXPECT_EQ(head->predicate->size(), strlen(PREDICATE1));
     }
 
     // enqueue a second DELETE
@@ -232,18 +232,18 @@ TEST(Enqueue, DELETE) {
 
     {
         hxhim::DeleteData *head = deletes.head;
-        EXPECT_EQ(head->subject->ptr, SUBJECT1);
-        EXPECT_EQ(head->subject->len, strlen(SUBJECT1));
-        EXPECT_EQ(head->predicate->ptr, PREDICATE1);
-        EXPECT_EQ(head->predicate->len, strlen(PREDICATE1));
+        EXPECT_EQ(head->subject->data(), SUBJECT1);
+        EXPECT_EQ(head->subject->size(), strlen(SUBJECT1));
+        EXPECT_EQ(head->predicate->data(), PREDICATE1);
+        EXPECT_EQ(head->predicate->size(), strlen(PREDICATE1));
     }
 
     {
         hxhim::DeleteData *tail = deletes.tail;
-        EXPECT_EQ(tail->subject->ptr, SUBJECT2);
-        EXPECT_EQ(tail->subject->len, strlen(SUBJECT2));
-        EXPECT_EQ(tail->predicate->ptr, PREDICATE2);
-        EXPECT_EQ(tail->predicate->len, strlen(PREDICATE2));
+        EXPECT_EQ(tail->subject->data(), SUBJECT2);
+        EXPECT_EQ(tail->subject->size(), strlen(SUBJECT2));
+        EXPECT_EQ(tail->predicate->data(), PREDICATE2);
+        EXPECT_EQ(tail->predicate->size(), strlen(PREDICATE2));
     }
 
     destruct(deletes.head->subject);

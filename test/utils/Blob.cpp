@@ -13,8 +13,8 @@ TEST(ReferenceBlob, null) {
     // nullptr, zero len
     {
         ReferenceBlob nullblob(nullptr, 0);
-        EXPECT_EQ(nullblob.ptr, nullptr);
-        EXPECT_EQ(nullblob.len, (std::size_t) 0);
+        EXPECT_EQ(nullblob.data(), nullptr);
+        EXPECT_EQ(nullblob.size(), (std::size_t) 0);
 
         char *ptr = nullptr;
         EXPECT_EQ(nullblob.pack(ptr), nullptr);
@@ -26,8 +26,8 @@ TEST(ReferenceBlob, null) {
     // nullptr, non-zero len
     {
         ReferenceBlob nullblob_with_len(nullptr, len);
-        EXPECT_EQ(nullblob_with_len.ptr, nullptr);
-        EXPECT_EQ(nullblob_with_len.len, len);
+        EXPECT_EQ(nullblob_with_len.data(), nullptr);
+        EXPECT_EQ(nullblob_with_len.size(), len);
 
         char *ptr = nullptr;
         EXPECT_EQ(nullblob_with_len.pack(ptr), nullptr);
@@ -42,8 +42,8 @@ TEST(ReferenceBlob, has_data) {
     memset(ptr, 0, len);
 
     ReferenceBlob refblob(ptr, len);
-    EXPECT_EQ(refblob.ptr, ptr);
-    EXPECT_EQ(refblob.len, len);
+    EXPECT_EQ(refblob.data(), ptr);
+    EXPECT_EQ(refblob.size(), len);
 
     // pack into a nullptr
     {
@@ -67,11 +67,9 @@ TEST(ReferenceBlob, has_data) {
 }
 
 TEST(ReferenceBlob, reference) {
-    ReferenceBlob src;
-    src.ptr = &src;
-    src.len = rand();
+    ReferenceBlob src(&src, rand());
 
-    const std::size_t buf_size = sizeof(src.ptr) + sizeof(src.len);
+    const std::size_t buf_size = sizeof(src.data()) + sizeof(src.size());
     char *buf = new char[buf_size];
     char *curr = buf;
 
@@ -81,8 +79,8 @@ TEST(ReferenceBlob, reference) {
 
     ReferenceBlob dst;
     EXPECT_EQ(dst.unpack_ref(curr), buf + buf_size);
-    EXPECT_EQ(src.ptr, dst.ptr);
-    EXPECT_EQ(src.len, dst.len);
+    EXPECT_EQ(src.data(), dst.data());
+    EXPECT_EQ(src.size(), dst.size());
 
     delete [] buf;
 }
@@ -91,8 +89,8 @@ TEST(RealBlob, null) {
     // nullptr, zero len
     {
         RealBlob nullblob(nullptr, 0);
-        EXPECT_EQ(nullblob.ptr, nullptr);
-        EXPECT_EQ(nullblob.len, (std::size_t) 0);
+        EXPECT_EQ(nullblob.data(), nullptr);
+        EXPECT_EQ(nullblob.size(), (std::size_t) 0);
 
         char *ptr = nullptr;
         EXPECT_EQ(nullblob.pack(ptr), nullptr);
@@ -104,8 +102,8 @@ TEST(RealBlob, null) {
     // nullptr, non-zero len
     {
         RealBlob nullblob_with_len(nullptr, len);
-        EXPECT_EQ(nullblob_with_len.ptr, nullptr);
-        EXPECT_EQ(nullblob_with_len.len, len);
+        EXPECT_EQ(nullblob_with_len.data(), nullptr);
+        EXPECT_EQ(nullblob_with_len.size(), len);
 
         char *ptr = nullptr;
         EXPECT_EQ(nullblob_with_len.pack(ptr), nullptr);
@@ -120,8 +118,8 @@ TEST(RealBlob, has_data) {
     memset(ptr, 0, len);
 
     RealBlob realblob(ptr, len);
-    EXPECT_EQ(realblob.ptr, ptr);
-    EXPECT_EQ(realblob.len, len);
+    EXPECT_EQ(realblob.data(), ptr);
+    EXPECT_EQ(realblob.size(), len);
 
     // pack into a nullptr
     {
@@ -140,10 +138,10 @@ TEST(RealBlob, has_data) {
         {
             char *curr = (char *) packed;
             RealBlob unknown_len(curr);
-            EXPECT_EQ(curr, ((char *) packed) + len + sizeof(len));                 // pointer shifted
-            EXPECT_EQ(unknown_len.len, realblob.len);                               // length matches
-            EXPECT_NE(unknown_len.ptr, realblob.ptr);                               // not a reference
-            EXPECT_EQ(memcmp(realblob.ptr, unknown_len.ptr, unknown_len.len), 0);   // data matches
+            EXPECT_EQ(curr, ((char *) packed) + len + sizeof(len));                        // pointer shifted
+            EXPECT_EQ(unknown_len.size(), realblob.size());                                // length matches
+            EXPECT_NE(unknown_len.data(), realblob.data());                                // not a reference
+            EXPECT_EQ(memcmp(realblob.data(), unknown_len.data(), unknown_len.size()), 0); // data matches
         }
 
         dealloc(packed);
@@ -153,10 +151,10 @@ TEST(RealBlob, has_data) {
     {
         char *curr = (char *) ptr;
         RealBlob copy(len, curr);
-        EXPECT_EQ(curr, ((char *) ptr));                                            // pointer did not shift
-        EXPECT_EQ(copy.len, len);                                                   // length matches
-        EXPECT_NE(copy.ptr, ptr);                                                   // not a reference
-        EXPECT_EQ(memcmp(ptr, copy.ptr, copy.len), 0);                              // data matches
+        EXPECT_EQ(curr, ((char *) ptr));                       // pointer did not shift
+        EXPECT_EQ(copy.size(), len);                           // length matches
+        EXPECT_NE(copy.data(), ptr);                           // not a reference
+        EXPECT_EQ(memcmp(ptr, copy.data(), copy.size()), 0);   // data matches
     }
 
     // do not deallocate ptr, since realblob took ownership
@@ -169,15 +167,15 @@ TEST(RealBlob, move) {
     RealBlob src(ptr, len);
     RealBlob move_constructor(std::move(src));
 
-    EXPECT_EQ(src.ptr, nullptr);
-    EXPECT_EQ(src.len, (std::size_t) 0);
-    EXPECT_EQ(move_constructor.ptr, ptr);
-    EXPECT_EQ(move_constructor.len, len);
+    EXPECT_EQ(src.data(), nullptr);
+    EXPECT_EQ(src.size(), (std::size_t) 0);
+    EXPECT_EQ(move_constructor.data(), ptr);
+    EXPECT_EQ(move_constructor.size(), len);
 
     RealBlob move_assignment;
-    EXPECT_EQ(move_assignment.ptr, nullptr);
-    EXPECT_EQ(move_assignment.len, (std::size_t) 0);
+    EXPECT_EQ(move_assignment.data(), nullptr);
+    EXPECT_EQ(move_assignment.size(), (std::size_t) 0);
     move_assignment = std::move(move_constructor);
-    EXPECT_EQ(move_assignment.ptr, ptr);
-    EXPECT_EQ(move_assignment.len, len);
+    EXPECT_EQ(move_assignment.data(), ptr);
+    EXPECT_EQ(move_assignment.size(), len);
 }

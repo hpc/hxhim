@@ -20,6 +20,9 @@ namespace hxhim {
  *
  * Each result takes ownership of the pointers passed into its constructor.
  *
+ * To access the data, cast the result to the appropriate type, select the
+ * variable, and extract the values with the data() and size() member functions.
+ *
  * Usage:
  *
  *     hxhim::Results *res = Flush(hx);
@@ -48,7 +51,7 @@ namespace hxhim {
  *                 break;
  *         }
  *     }
- *     hxhim_results_destroy(res);
+ *     hxhim::Results::Destroy(res);
  *
  */
 class Results {

@@ -18,7 +18,7 @@ Blob::Blob(Blob * blob)
 // read to a blob of memory
 // the blob argument is assumed to be defined and large enough to fit the data
 // (length is not known)
-char *Blob::pack(char *&dst) {
+char *Blob::pack(char *&dst) const {
     if (!dst || !ptr) {
         return nullptr;
     }
@@ -32,8 +32,12 @@ char *Blob::pack(char *&dst) {
     return dst;
 }
 
+std::size_t Blob::pack_size() const {
+    return len + sizeof(len);
+}
+
 // pack the ptr address and length
-char *Blob::pack_ref(char *&dst) {
+char *Blob::pack_ref(char *&dst) const {
     if (!dst) {
         return nullptr;
     }
@@ -45,6 +49,18 @@ char *Blob::pack_ref(char *&dst) {
     dst += sizeof(len);
 
     return dst;
+}
+
+std::size_t Blob::pack_ref_size() const {
+    return sizeof(ptr) + sizeof(len);
+}
+
+void *Blob::data() const {
+    return ptr;
+}
+
+std::size_t Blob::size() const {
+    return len;
 }
 
 ReferenceBlob::ReferenceBlob(void *ptr, const std::size_t len)

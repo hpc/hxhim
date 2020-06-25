@@ -50,15 +50,15 @@ static void print_double_results(hxhim_results_t *results) {
                 if (error == HXHIM_SUCCESS) {
                     void *subject = NULL;
                     size_t subject_len = 0;
-                    hxhim_results_get_subject(results, &subject, &subject_len);
+                    hxhim_results_subject(results, &subject, &subject_len);
 
                     void *predicate = NULL;
                     size_t predicate_len = 0;
-                    hxhim_results_get_predicate(results, &predicate, &predicate_len);
+                    hxhim_results_predicate(results, &predicate, &predicate_len);
 
                     void *object = NULL;
                     size_t object_len = 0;
-                    hxhim_results_get_object(results, &object, &object_len);
+                    hxhim_results_object(results, &object, &object_len);
 
                     printf("{%.*s, %f} -> %.*s",
                            (int) subject_len, (char *) subject,

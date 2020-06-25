@@ -18,8 +18,8 @@ Transport::Request::BGet::~BGet() {
 std::size_t Transport::Request::BGet::size() const {
     std::size_t total = Request::size();
     for(std::size_t i = 0; i < count; i++) {
-        total += subjects[i]->len + sizeof(subjects[i]->len) + sizeof(subjects[i]->ptr) +
-                 predicates[i]->len + sizeof(predicates[i]->len) + sizeof(predicates[i]->ptr) +
+        total += subjects[i]->pack_size() + sizeof(subjects[i]->data()) +
+                 predicates[i]->pack_size() + sizeof(predicates[i]->data()) +
                  sizeof(object_types[i]);
     }
     return total;
@@ -104,14 +104,12 @@ Transport::Response::BGet::~BGet() {
 std::size_t Transport::Response::BGet::size() const {
     std::size_t total = Response::size();
     for(std::size_t i = 0; i < count; i++) {
-        total += sizeof(orig.subjects[i]->ptr) + sizeof(orig.subjects[i]->len) +
-                 sizeof(orig.predicates[i]->ptr) + sizeof(orig.predicates[i]->len) +
-                 sizeof(object_types[i]) +
-                 sizeof(orig.subjects[i]) +
-                 sizeof(orig.predicates[i]);
+        total += orig.subjects[i]->pack_ref_size() +
+                 orig.predicates[i]->pack_ref_size() +
+                 sizeof(object_types[i]);
 
         if (statuses[i] == TRANSPORT_SUCCESS) {
-            total += objects[i]->len + sizeof(objects[i]->len);
+            total += objects[i]->pack_size();
         }
     }
 

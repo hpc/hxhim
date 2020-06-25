@@ -122,15 +122,15 @@ Transport::Response::BPut *hxhim::datastore::leveldb::BPutImpl(Transport::Reques
     for(std::size_t i = 0; i < req->count; i++) {
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(req->subjects[i]->ptr, req->subjects[i]->len, req->predicates[i]->ptr, req->predicates[i]->len, &key, &key_len);
+        sp_to_key(req->subjects[i]->data(), req->subjects[i]->size(), req->predicates[i]->data(), req->predicates[i]->size(), &key, &key_len);
 
         clock_gettime(CLOCK_MONOTONIC, &start);
-        batch.Put(::leveldb::Slice((char *) key, key_len), ::leveldb::Slice((char *) req->objects[i]->ptr, req->objects[i]->len));
+        batch.Put(::leveldb::Slice((char *) key, key_len), ::leveldb::Slice((char *) req->objects[i]->data(), req->objects[i]->size()));
         clock_gettime(CLOCK_MONOTONIC, &end);
 
         // save requesting addresses for sending back
-        res->orig.subjects[i]   = construct<ReferenceBlob>(req->orig.subjects[i], req->subjects[i]->len);
-        res->orig.predicates[i] = construct<ReferenceBlob>(req->orig.predicates[i], req->predicates[i]->len);
+        res->orig.subjects[i]   = construct<ReferenceBlob>(req->orig.subjects[i], req->subjects[i]->size());
+        res->orig.predicates[i] = construct<ReferenceBlob>(req->orig.predicates[i], req->predicates[i]->size());
 
         dealloc(key);
 
@@ -185,7 +185,7 @@ Transport::Response::BGet *hxhim::datastore::leveldb::BGetImpl(Transport::Reques
 
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(req->subjects[i]->ptr, req->subjects[i]->len, req->predicates[i]->ptr, req->predicates[i]->len, &key, &key_len);
+        sp_to_key(req->subjects[i]->data(), req->subjects[i]->size(), req->predicates[i]->data(), req->predicates[i]->size(), &key, &key_len);
 
         // create the key
         const ::leveldb::Slice k((char *) key, key_len);
@@ -204,8 +204,8 @@ Transport::Response::BGet *hxhim::datastore::leveldb::BGetImpl(Transport::Reques
         res->object_types[i]    = req->object_types[i];
 
         // save requesting addresses for sending back
-        res->orig.subjects[i]   = construct<ReferenceBlob>(req->orig.subjects[i], req->subjects[i]->len);
-        res->orig.predicates[i] = construct<ReferenceBlob>(req->orig.predicates[i], req->predicates[i]->len);
+        res->orig.subjects[i]   = construct<ReferenceBlob>(req->orig.subjects[i], req->subjects[i]->size());
+        res->orig.predicates[i] = construct<ReferenceBlob>(req->orig.predicates[i], req->predicates[i]->size());
         // put object into response
         if (status.ok()) {
             mlog(LEVELDB_INFO, "Rank %d LevelDB GET success", rank);
@@ -250,7 +250,7 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
         // find starting point
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(req->subjects[i]->ptr, req->subjects[i]->len, req->predicates[i]->ptr, req->predicates[i]->len, &key, &key_len);
+        sp_to_key(req->subjects[i]->data(), req->subjects[i]->size(), req->predicates[i]->data(), req->predicates[i]->size(), &key, &key_len);
 
         clock_gettime(CLOCK_MONOTONIC, &start);
         it->Seek(::leveldb::Slice((char *) key, key_len));
@@ -290,10 +290,8 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
                 res->subjects[i][j] = construct<RealBlob>(sub, sub_len);
                 res->predicates[i][j] = construct<RealBlob>(pred, pred_len);
 
-                res->objects[i][j] = construct<RealBlob>();
-                res->objects[i][j]->len = v.size();
-                res->objects[i][j]->ptr = alloc(res->objects[i][j]->len);
-                memcpy(res->objects[i][j]->ptr, v.data(), v.size());
+                res->objects[i][j] = construct<RealBlob>(alloc(v.size()), v.size());
+                memcpy(res->objects[i][j]->data(), v.data(), v.size());
             }
             else {
                 // all responses for this Op share a status
@@ -350,12 +348,12 @@ Transport::Response::BDelete *hxhim::datastore::leveldb::BDeleteImpl(Transport::
     for(std::size_t i = 0; i < req->count; i++) {
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(req->subjects[i]->ptr, req->subjects[i]->len, req->predicates[i]->ptr, req->predicates[i]->len, &key, &key_len);
+        sp_to_key(req->subjects[i]->data(), req->subjects[i]->size(), req->predicates[i]->data(), req->predicates[i]->size(), &key, &key_len);
 
         batch.Delete(::leveldb::Slice((char *) key, key_len));
 
-        res->orig.subjects[i]   = construct<ReferenceBlob>(req->orig.subjects[i], req->subjects[i]->len);
-        res->orig.predicates[i] = construct<ReferenceBlob>(req->orig.predicates[i], req->predicates[i]->len);
+        res->orig.subjects[i]   = construct<ReferenceBlob>(req->orig.subjects[i], req->subjects[i]->size());
+        res->orig.predicates[i] = construct<ReferenceBlob>(req->orig.predicates[i], req->predicates[i]->size());
 
         dealloc(key);
     }

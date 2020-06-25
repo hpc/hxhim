@@ -187,7 +187,7 @@ std::size_t run_commands(hxhim_t * hx, const UserInput &commands) {
                     {
                         char *object = nullptr;
                         size_t object_len = 0;
-                        hxhim_results_get_object(res, (void **) &object, &object_len);
+                        hxhim_results_object(res, (void **) &object, &object_len);
                     }
                     break;
                 default:

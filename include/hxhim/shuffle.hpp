@@ -41,7 +41,10 @@ int shuffle(hxhim_t *hx,
     hxhim::GetMPIRank(hx, &rank);
 
     // get the destination backend id for the key
-    const int ds_id = hx->p->hash.func(hx, src->subject->ptr, src->subject->len, src->predicate->ptr, src->predicate->len, hx->p->hash.args);
+    const int ds_id = hx->p->hash.func(hx,
+                                       src->subject->data(), src->subject->size(),
+                                       src->predicate->data(), src->predicate->size(),
+                                       hx->p->hash.args);
     if (ds_id < 0) {
         mlog(HXHIM_CLIENT_WARN, "Hash returned bad target datastore: %d", ds_id);
         return ERROR;

@@ -53,8 +53,8 @@ int hxhim::GetData::moveto(Transport::Request::BGet *bget, const int ds_offset) 
     bget->predicates[bget->count] = predicate; predicate = nullptr;
     bget->object_types[bget->count] = object_type;
 
-    bget->orig.subjects[bget->count] = bget->subjects[bget->count]->ptr;
-    bget->orig.predicates[bget->count] = bget->predicates[bget->count]->ptr;
+    bget->orig.subjects[bget->count] = bget->subjects[bget->count]->data();
+    bget->orig.predicates[bget->count] = bget->predicates[bget->count]->data();
 
     bget->count++;
 

@@ -445,14 +445,94 @@ int hxhim_results_datastore(hxhim_results_t *res, int *datastore) {
 }
 
 /**
- * hxhim_results_get_object_type
+ * hxhim_results_subject
+ * Gets the subject and length from the current result node, if the result node contains data from a GET
+ *
+ * @param res          A list of results
+ * @param subject      (optional) the subject of the current result, only valid if this function returns HXHIM_SUCCESS
+ * @param subject_len  (optional) the subject_len of the current result, only valid if this function returns HXHIM_SUCCESS
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
+ */
+int hxhim_results_subject(hxhim_results_t *res, void **subject, size_t *subject_len) {
+    if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
+        return HXHIM_ERROR;
+    }
+
+    int rc = HXHIM_ERROR;
+
+    hxhim::Results::Result *curr = res->res->Curr();
+    switch (curr->type) {
+        case hxhim_result_type::HXHIM_RESULT_PUT:
+        case hxhim_result_type::HXHIM_RESULT_GET:
+        case hxhim_result_type::HXHIM_RESULT_DEL:
+            {
+                hxhim::Results::SubjectPredicate *sp = static_cast<hxhim::Results::SubjectPredicate *>(curr);
+
+                if (subject) {
+                    *subject = sp->subject->data();
+                }
+
+                if (subject_len) {
+                    *subject_len = sp->subject->size();
+                }
+            }
+            break;
+        default:
+            break;
+    }
+
+    return rc;
+}
+
+/**
+ * hxhim_results_predicate
+ * Gets the predicate and length from the current result node, if the result node contains data from a GET
+ *
+ * @param res            A list of results
+ * @param predicate      (optional) the predicate of the current result, only valid if this function returns HXHIM_SUCCESS
+ * @param predicate_len  (optional) the predicate_len of the current result, only valid if this function returns HXHIM_SUCCESS
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
+ */
+int hxhim_results_predicate(hxhim_results_t *res, void **predicate, size_t *predicate_len) {
+    if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
+        return HXHIM_ERROR;
+    }
+
+    int rc = HXHIM_ERROR;
+
+    hxhim::Results::Result *curr = res->res->Curr();
+    switch (curr->type) {
+        case hxhim_result_type::HXHIM_RESULT_PUT:
+        case hxhim_result_type::HXHIM_RESULT_GET:
+        case hxhim_result_type::HXHIM_RESULT_DEL:
+            {
+                hxhim::Results::SubjectPredicate *sp = static_cast<hxhim::Results::SubjectPredicate *>(curr);
+
+                if (predicate) {
+                    *predicate = sp->predicate->data();
+                }
+
+                if (predicate_len) {
+                    *predicate_len = sp->predicate->size();
+                }
+            }
+            break;
+        default:
+            break;
+    }
+
+    return rc;
+}
+
+/**
+ * hxhim_results_object_type
  * Gets the object and length from the current result node, if the result node contains data from a GET
  *
  * @param res         A list of results
  * @param object_type (optional) the object type of the current result, only valid if this function returns HXHIM_SUCCESS
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim_results_get_object_type(hxhim_results_t *res, hxhim_type_t *object_type) {
+int hxhim_results_object_type(hxhim_results_t *res, hxhim_type_t *object_type) {
     if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
@@ -469,87 +549,7 @@ int hxhim_results_get_object_type(hxhim_results_t *res, hxhim_type_t *object_typ
 }
 
 /**
- * hxhim_results_get_subject
- * Gets the subject and length from the current result node, if the result node contains data from a GET
- *
- * @param res          A list of results
- * @param subject      (optional) the subject of the current result, only valid if this function returns HXHIM_SUCCESS
- * @param subject_len  (optional) the subject_len of the current result, only valid if this function returns HXHIM_SUCCESS
- * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
- */
-int hxhim_results_get_subject(hxhim_results_t *res, void **subject, size_t *subject_len) {
-    if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
-        return HXHIM_ERROR;
-    }
-
-    int rc = HXHIM_ERROR;
-
-    hxhim::Results::Result *curr = res->res->Curr();
-    switch (curr->type) {
-        case hxhim_result_type::HXHIM_RESULT_PUT:
-        case hxhim_result_type::HXHIM_RESULT_GET:
-        case hxhim_result_type::HXHIM_RESULT_DEL:
-            {
-                hxhim::Results::SubjectPredicate *sp = static_cast<hxhim::Results::SubjectPredicate *>(curr);
-
-                if (subject) {
-                    *subject = sp->subject->ptr;
-                }
-
-                if (subject_len) {
-                    *subject_len = sp->subject->len;
-                }
-            }
-            break;
-        default:
-            break;
-    }
-
-    return rc;
-}
-
-/**
- * hxhim_results_get_predicate
- * Gets the predicate and length from the current result node, if the result node contains data from a GET
- *
- * @param res            A list of results
- * @param predicate      (optional) the predicate of the current result, only valid if this function returns HXHIM_SUCCESS
- * @param predicate_len  (optional) the predicate_len of the current result, only valid if this function returns HXHIM_SUCCESS
- * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
- */
-int hxhim_results_get_predicate(hxhim_results_t *res, void **predicate, size_t *predicate_len) {
-    if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
-        return HXHIM_ERROR;
-    }
-
-    int rc = HXHIM_ERROR;
-
-    hxhim::Results::Result *curr = res->res->Curr();
-    switch (curr->type) {
-        case hxhim_result_type::HXHIM_RESULT_PUT:
-        case hxhim_result_type::HXHIM_RESULT_GET:
-        case hxhim_result_type::HXHIM_RESULT_DEL:
-            {
-                hxhim::Results::SubjectPredicate *sp = static_cast<hxhim::Results::SubjectPredicate *>(curr);
-
-                if (predicate) {
-                    *predicate = sp->predicate->ptr;
-                }
-
-                if (predicate_len) {
-                    *predicate_len = sp->predicate->len;
-                }
-            }
-            break;
-        default:
-            break;
-    }
-
-    return rc;
-}
-
-/**
- * hxhim_results_get_object
+ * hxhim_results_object
  * Gets the object and length from the current result node, if the result node contains data from a GET
  *
  * @param res         A list of results
@@ -557,7 +557,7 @@ int hxhim_results_get_predicate(hxhim_results_t *res, void **predicate, size_t *
  * @param object_len  (optional) the object_len of the current result, only valid if this function returns HXHIM_SUCCESS
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim_results_get_object(hxhim_results_t *res, void **object, size_t *object_len) {
+int hxhim_results_object(hxhim_results_t *res, void **object, size_t *object_len) {
     if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
@@ -567,11 +567,11 @@ int hxhim_results_get_object(hxhim_results_t *res, void **object, size_t *object
         hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(curr);
 
         if (object) {
-            *object = get->object->ptr;
+            *object = get->object->data();
         }
 
         if (object_len) {
-            *object_len = get->object->len;
+            *object_len = get->object->size();
         }
 
         return HXHIM_SUCCESS;
