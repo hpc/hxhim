@@ -57,13 +57,13 @@ static void print_double_results(hxhim_results_t *results) {
                     hxhim_results_get_predicate(results, &predicate, &predicate_len);
 
                     void *object = NULL;
-                    size_t *object_len = NULL;
+                    size_t object_len = 0;
                     hxhim_results_get_object(results, &object, &object_len);
 
                     printf("{%.*s, %f} -> %.*s",
                            (int) subject_len, (char *) subject,
                            * (double *) predicate,
-                           (int) *object_len, (char *) object);
+                           (int) object_len, (char *) object);
                 }
                 else {
                     printf("ERROR");
