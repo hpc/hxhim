@@ -96,8 +96,6 @@ Transport::Response::BDelete::~BDelete() {
 }
 
 std::size_t Transport::Response::BDelete::size() const {
-    return Response::size();
-
     std::size_t total = Response::size();
     for(std::size_t i = 0; i < count; i++) {
         total += sizeof(orig.subjects[i]->ptr) + sizeof(orig.subjects[i]->len) +

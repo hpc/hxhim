@@ -4,6 +4,18 @@
 
 namespace Transport {
 
+static char *unpack_addr(void **dst, char *&src) {
+    // // skip check
+    // if (!dst || !src) {
+    //     return nullptr;
+    // }
+
+    const std::size_t len = sizeof(*dst);
+    memcpy(dst, src, len);
+    src += len;
+    return src;
+}
+
 int Unpacker::unpack(Request::Request **req, void *buf, const std::size_t bufsize) {
     int ret = TRANSPORT_ERROR;
     if (!req) {
@@ -143,15 +155,13 @@ int Unpacker::unpack(Request::BGet **bgm, void *buf, const std::size_t bufsize) 
         out->subjects[i] = construct<RealBlob>(curr);
 
         // subject addr
-        memcpy(&out->orig.subjects[i], curr, sizeof(out->orig.subjects[i]));
-        curr += sizeof(out->orig.subjects[i]);
+        unpack_addr(&out->orig.subjects[i], curr);
 
         // predicate
         out->predicates[i] = construct<RealBlob>(curr);
 
         // predicate addr
-        memcpy(&out->orig.predicates[i], curr, sizeof(out->orig.predicates[i]));
-        curr += sizeof(out->orig.predicates[i]);
+        unpack_addr(&out->orig.predicates[i], curr);
 
         // object type
         memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
@@ -240,15 +250,13 @@ int Unpacker::unpack(Request::BDelete **bdm, void *buf, const std::size_t bufsiz
         out->subjects[i] = construct<RealBlob>(curr);
 
         // subject addr
-        memcpy(&out->orig.subjects[i], curr, sizeof(out->orig.subjects[i]));
-        curr += sizeof(out->orig.subjects[i]);
+        unpack_addr(&out->orig.subjects[i], curr);
 
         // predicate
         out->predicates[i] = construct<RealBlob>(curr);
 
         // predicate addr
-        memcpy(&out->orig.predicates[i], curr, sizeof(out->orig.predicates[i]));
-        curr += sizeof(out->orig.predicates[i]);
+        unpack_addr(&out->orig.predicates[i], curr);
 
         out->count++;
     }
@@ -378,19 +386,11 @@ int Unpacker::unpack(Response::BPut **bpm, void *buf, const std::size_t bufsize)
 
         // original subject addr + len
         out->orig.subjects[i] = construct<ReferenceBlob>();
-        memcpy(&out->orig.subjects[i]->ptr, curr, sizeof(out->orig.subjects[i]->ptr));
-        curr += sizeof(out->orig.subjects[i]->ptr);
-
-        memcpy(&out->orig.subjects[i]->len, curr, sizeof(out->orig.subjects[i]->len));
-        curr += sizeof(out->orig.subjects[i]->len);
+        out->orig.subjects[i]->unpack_ref(curr);
 
         // original predicate addr + len
         out->orig.predicates[i] = construct<ReferenceBlob>();
-        memcpy(&out->orig.predicates[i]->ptr, curr, sizeof(out->orig.predicates[i]->ptr));
-        curr += sizeof(out->orig.predicates[i]->ptr);
-
-        memcpy(&out->orig.predicates[i]->len, curr, sizeof(out->orig.predicates[i]->len));
-        curr += sizeof(out->orig.predicates[i]->len);
+        out->orig.predicates[i]->unpack_ref(curr);
 
         out->count++;
     }
@@ -427,19 +427,11 @@ int Unpacker::unpack(Response::BGet **bgm, void *buf, const std::size_t bufsize)
 
         // original subject addr + len
         out->orig.subjects[i] = construct<ReferenceBlob>();
-        memcpy(&out->orig.subjects[i]->ptr, curr, sizeof(out->orig.subjects[i]->ptr));
-        curr += sizeof(out->orig.subjects[i]->ptr);
-
-        memcpy(&out->orig.subjects[i]->len, curr, sizeof(out->orig.subjects[i]->len));
-        curr += sizeof(out->orig.subjects[i]->len);
+        out->orig.subjects[i]->unpack_ref(curr);
 
         // original predicate addr + len
         out->orig.predicates[i] = construct<ReferenceBlob>();
-        memcpy(&out->orig.predicates[i]->ptr, curr, sizeof(out->orig.predicates[i]->ptr));
-        curr += sizeof(out->orig.predicates[i]->ptr);
-
-        memcpy(&out->orig.predicates[i]->len, curr, sizeof(out->orig.predicates[i]->len));
-        curr += sizeof(out->orig.predicates[i]->len);
+        out->orig.predicates[i]->unpack_ref(curr);
 
         // object type
         memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
@@ -546,19 +538,11 @@ int Unpacker::unpack(Response::BDelete **bdm, void *buf, const std::size_t bufsi
 
         // original subject addr + len
         out->orig.subjects[i] = construct<ReferenceBlob>();
-        memcpy(&out->orig.subjects[i]->ptr, curr, sizeof(out->orig.subjects[i]->ptr));
-        curr += sizeof(out->orig.subjects[i]->ptr);
-
-        memcpy(&out->orig.subjects[i]->len, curr, sizeof(out->orig.subjects[i]->len));
-        curr += sizeof(out->orig.subjects[i]->len);
+        out->orig.subjects[i]->unpack_ref(curr);
 
         // original predicate addr + len
         out->orig.predicates[i] = construct<ReferenceBlob>();
-        memcpy(&out->orig.predicates[i]->ptr, curr, sizeof(out->orig.predicates[i]->ptr));
-        curr += sizeof(out->orig.predicates[i]->ptr);
-
-        memcpy(&out->orig.predicates[i]->len, curr, sizeof(out->orig.predicates[i]->len));
-        curr += sizeof(out->orig.predicates[i]->len);
+        out->orig.predicates[i]->unpack_ref(curr);
 
         out->count++;
     }

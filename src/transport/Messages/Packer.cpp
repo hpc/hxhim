@@ -4,6 +4,17 @@
 
 namespace Transport {
 
+static char *pack_addr(char *&dst, void *ptr) {
+    // // skip check
+    // if (!dst) {
+    //     return nullptr;
+    // }
+
+    memcpy(dst, &ptr, sizeof(ptr));
+    dst += sizeof(ptr);
+    return dst;
+}
+
 int Packer::pack(const Request::Request *req, void **buf, std::size_t *bufsize) {
     int ret = TRANSPORT_ERROR;
     if (!req) {
@@ -51,19 +62,19 @@ int Packer::pack(const Request::BPut *bpm, void **buf, std::size_t *bufsize) {
         bpm->subjects[i]->pack(curr);
 
         // subject addr
-        memcpy(curr, &bpm->subjects[i]->ptr, sizeof(bpm->subjects[i]->ptr));
-        curr += sizeof(bpm->subjects[i]->ptr);
+        pack_addr(curr, bpm->subjects[i]->ptr);
 
         // predicate + len
         bpm->predicates[i]->pack(curr);
 
         // predicate addr
-        memcpy(curr, &bpm->predicates[i]->ptr, sizeof(bpm->predicates[i]->ptr));
-        curr += sizeof(bpm->predicates[i]->ptr);
+        pack_addr(curr, bpm->predicates[i]->ptr);
 
-        // object type + object + len
+        // object type
         memcpy(curr, &bpm->object_types[i], sizeof(bpm->object_types[i]));
         curr += sizeof(bpm->object_types[i]);
+
+        // object + len
         bpm->objects[i]->pack(curr);
     }
 
@@ -87,15 +98,13 @@ int Packer::pack(const Request::BGet *bgm, void **buf, std::size_t *bufsize) {
         bgm->subjects[i]->pack(curr);
 
         // subject addr
-        memcpy(curr, &bgm->subjects[i]->ptr, sizeof(bgm->subjects[i]->ptr));
-        curr += sizeof(bgm->subjects[i]->ptr);
+        pack_addr(curr, bgm->subjects[i]->ptr);
 
         // predicate
         bgm->predicates[i]->pack(curr);
 
         // predicate addr
-        memcpy(curr, &bgm->predicates[i]->ptr, sizeof(bgm->predicates[i]->ptr));
-        curr += sizeof(bgm->predicates[i]->ptr);
+        pack_addr(curr, bgm->predicates[i]->ptr);
 
         // object type
         memcpy(curr, &bgm->object_types[i], sizeof(bgm->object_types[i]));
@@ -157,15 +166,13 @@ int Packer::pack(const Request::BDelete *bdm, void **buf, std::size_t *bufsize) 
         bdm->subjects[i]->pack(curr);
 
         // subject addr
-        memcpy(curr, &bdm->subjects[i]->ptr, sizeof(bdm->subjects[i]->ptr));
-        curr += sizeof(bdm->subjects[i]->ptr);
+        pack_addr(curr, bdm->subjects[i]->ptr);
 
         // predicate
         bdm->predicates[i]->pack(curr);
 
         // predicate addr
-        memcpy(curr, &bdm->predicates[i]->ptr, sizeof(bdm->predicates[i]->ptr));
-        curr += sizeof(bdm->predicates[i]->ptr);
+        pack_addr(curr, bdm->predicates[i]->ptr);
     }
 
     return TRANSPORT_SUCCESS;
@@ -235,18 +242,10 @@ int Packer::pack(const Response::BPut *bpm, void **buf, std::size_t *bufsize) {
         curr += sizeof(bpm->statuses[i]);
 
         // original subject addr + len
-        memcpy(curr, &bpm->orig.subjects[i]->ptr, sizeof(bpm->orig.subjects[i]->ptr));
-        curr += sizeof(bpm->orig.subjects[i]->ptr);
-
-        memcpy(curr, &bpm->orig.subjects[i]->len, sizeof(bpm->orig.subjects[i]->len));
-        curr += sizeof(bpm->orig.subjects[i]->len);
+        bpm->orig.subjects[i]->pack_ref(curr);
 
         // original predicate addr + len
-        memcpy(curr, &bpm->orig.predicates[i]->ptr, sizeof(bpm->orig.predicates[i]->ptr));
-        curr += sizeof(bpm->orig.predicates[i]->ptr);
-
-        memcpy(curr, &bpm->orig.predicates[i]->len, sizeof(bpm->orig.predicates[i]->len));
-        curr += sizeof(bpm->orig.predicates[i]->len);
+        bpm->orig.predicates[i]->pack_ref(curr);
     }
 
     return TRANSPORT_SUCCESS;
@@ -270,18 +269,10 @@ int Packer::pack(const Response::BGet *bgm, void **buf, std::size_t *bufsize) {
         curr += sizeof(bgm->statuses[i]);
 
         // original subject addr + len
-        memcpy(curr, &bgm->orig.subjects[i]->ptr, sizeof(bgm->orig.subjects[i]->ptr));
-        curr += sizeof(bgm->orig.subjects[i]->ptr);
-
-        memcpy(curr, &bgm->orig.subjects[i]->len, sizeof(bgm->orig.subjects[i]->len));
-        curr += sizeof(bgm->orig.subjects[i]->len);
+        bgm->orig.subjects[i]->pack_ref(curr);
 
         // original predicate addr + len
-        memcpy(curr, &bgm->orig.predicates[i]->ptr, sizeof(bgm->orig.predicates[i]->ptr));
-        curr += sizeof(bgm->orig.predicates[i]->ptr);
-
-        memcpy(curr, &bgm->orig.predicates[i]->len, sizeof(bgm->orig.predicates[i]->len));
-        curr += sizeof(bgm->orig.predicates[i]->len);
+        bgm->orig.predicates[i]->pack_ref(curr);
 
         // object type
         memcpy(curr, &bgm->object_types[i], sizeof(bgm->object_types[i]));
@@ -354,18 +345,10 @@ int Packer::pack(const Response::BDelete *bdm, void **buf, std::size_t *bufsize)
         curr += sizeof(bdm->statuses[i]);
 
         // original subject addr + len
-        memcpy(curr, &bdm->orig.subjects[i]->ptr, sizeof(bdm->orig.subjects[i]->ptr));
-        curr += sizeof(bdm->orig.subjects[i]->ptr);
-
-        memcpy(curr, &bdm->orig.subjects[i]->len, sizeof(bdm->orig.subjects[i]->len));
-        curr += sizeof(bdm->orig.subjects[i]->len);
+        bdm->orig.subjects[i]->pack_ref(curr);
 
         // original predicate addr + len
-        memcpy(curr, &bdm->orig.predicates[i]->ptr, sizeof(bdm->orig.predicates[i]->ptr));
-        curr += sizeof(bdm->orig.predicates[i]->ptr);
-
-        memcpy(curr, &bdm->orig.predicates[i]->len, sizeof(bdm->orig.predicates[i]->len));
-        curr += sizeof(bdm->orig.predicates[i]->len);
+        bdm->orig.predicates[i]->pack_ref(curr);
     }
 
     return TRANSPORT_SUCCESS;

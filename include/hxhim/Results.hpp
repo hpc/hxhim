@@ -69,8 +69,8 @@ class Results {
                              const int datastore, const int status);
             virtual ~SubjectPredicate();
 
-            ReferenceBlob *subject;
-            ReferenceBlob *predicate;
+            Blob *subject;
+            Blob *predicate;
         };
 
         /** @description Convenience struct for PUT results */
