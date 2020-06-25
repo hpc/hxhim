@@ -32,6 +32,43 @@ char *Blob::pack(char *&dst) {
     return dst;
 }
 
+// pack the ptr address and length
+char *Blob::pack_ref(char *&dst) {
+    if (!dst) {
+        return nullptr;
+    }
+
+    memcpy(dst, &ptr, sizeof(ptr));
+    dst += sizeof(ptr);
+
+    memcpy(dst, &len, sizeof(len));
+    dst += sizeof(len);
+
+    return dst;
+}
+
+ReferenceBlob::ReferenceBlob(void *ptr, const std::size_t len)
+    : Blob(ptr, len)
+{}
+
+ReferenceBlob::ReferenceBlob(ReferenceBlob *blob)
+    : Blob(blob)
+{}
+
+char *ReferenceBlob::unpack_ref(char *&src) {
+    if (!src) {
+        return nullptr;
+    }
+
+    memcpy(&ptr, src, sizeof(ptr));
+    src += sizeof(ptr);
+
+    memcpy(&len, src, sizeof(len));
+    src += sizeof(len);
+
+    return src;
+}
+
 // take ownership of ptr
 RealBlob::RealBlob(void *ptr, const std::size_t len)
     : Blob(ptr, len)

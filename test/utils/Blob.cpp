@@ -66,6 +66,27 @@ TEST(ReferenceBlob, has_data) {
     dealloc(ptr);
 }
 
+TEST(ReferenceBlob, reference) {
+    ReferenceBlob src;
+    src.ptr = &src;
+    src.len = rand();
+
+    const std::size_t buf_size = sizeof(src.ptr) + sizeof(src.len);
+    char *buf = new char[buf_size];
+    char *curr = buf;
+
+    EXPECT_EQ(src.pack_ref(curr), buf + buf_size);
+
+    curr = buf;
+
+    ReferenceBlob dst;
+    EXPECT_EQ(dst.unpack_ref(curr), buf + buf_size);
+    EXPECT_EQ(src.ptr, dst.ptr);
+    EXPECT_EQ(src.len, dst.len);
+
+    delete [] buf;
+}
+
 TEST(RealBlob, null) {
     // nullptr, zero len
     {

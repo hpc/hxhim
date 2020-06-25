@@ -22,18 +22,31 @@ struct Blob {
     // (length is not known)
     char *pack(char *&dst);
 
+    // pack the ptr address and length
+    char *pack_ref(char *&dst);
+
     void *ptr;
     std::size_t len;
 };
 
-typedef Blob ReferenceBlob;
+/**
+ * ReferenceBlob
+ * A Blob with the ability to unpack references
+ * since doing so does not break pointer ownership
+ */
+struct ReferenceBlob : public Blob {
+    ReferenceBlob(void *ptr = nullptr, const std::size_t len = 0);
+    ReferenceBlob(ReferenceBlob *blob);
+
+    char *unpack_ref(char *&src);
+};
 
 /**
  * RealBlob
  * Takes ownership of ptr and deallocates it upon destruction
  * Overwriting old values does not deallocate them.
  */
-struct RealBlob : Blob {
+struct RealBlob : public Blob {
     // take ownership of ptr
     RealBlob(void *ptr = nullptr, const std::size_t len = 0);
 
