@@ -458,7 +458,7 @@ int hxhim_results_subject(hxhim_results_t *res, void **subject, size_t *subject_
         return HXHIM_ERROR;
     }
 
-    int rc = HXHIM_ERROR;
+    int rc = HXHIM_SUCCESS;
 
     hxhim::Results::Result *curr = res->res->Curr();
     switch (curr->type) {
@@ -467,14 +467,7 @@ int hxhim_results_subject(hxhim_results_t *res, void **subject, size_t *subject_
         case hxhim_result_type::HXHIM_RESULT_DEL:
             {
                 hxhim::Results::SubjectPredicate *sp = static_cast<hxhim::Results::SubjectPredicate *>(curr);
-
-                if (subject) {
-                    *subject = sp->subject->data();
-                }
-
-                if (subject_len) {
-                    *subject_len = sp->subject->size();
-                }
+                sp->subject->get(subject, subject_len);
             }
             break;
         default:
@@ -498,7 +491,7 @@ int hxhim_results_predicate(hxhim_results_t *res, void **predicate, size_t *pred
         return HXHIM_ERROR;
     }
 
-    int rc = HXHIM_ERROR;
+    int rc = HXHIM_SUCCESS;
 
     hxhim::Results::Result *curr = res->res->Curr();
     switch (curr->type) {
@@ -507,14 +500,7 @@ int hxhim_results_predicate(hxhim_results_t *res, void **predicate, size_t *pred
         case hxhim_result_type::HXHIM_RESULT_DEL:
             {
                 hxhim::Results::SubjectPredicate *sp = static_cast<hxhim::Results::SubjectPredicate *>(curr);
-
-                if (predicate) {
-                    *predicate = sp->predicate->data();
-                }
-
-                if (predicate_len) {
-                    *predicate_len = sp->predicate->size();
-                }
+                sp->predicate->get(predicate, predicate_len);
             }
             break;
         default:
@@ -565,15 +551,7 @@ int hxhim_results_object(hxhim_results_t *res, void **object, size_t *object_len
     hxhim::Results::Result *curr = res->res->Curr();
     if (curr->type == hxhim_result_type::HXHIM_RESULT_GET) {
         hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(curr);
-
-        if (object) {
-            *object = get->object->data();
-        }
-
-        if (object_len) {
-            *object_len = get->object->size();
-        }
-
+        get->object->get(object, object_len);
         return HXHIM_SUCCESS;
     }
 

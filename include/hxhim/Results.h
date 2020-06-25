@@ -19,7 +19,7 @@ extern "C"
  *
  * Each result takes ownership of the pointers passed into the constructor.
  *
- * To access the data, use the hxhim_results_* functions.
+ * To access the data, iterate through each result and use the hxhim_results_* functions.
  *
  * Usage:
  *

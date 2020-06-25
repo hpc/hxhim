@@ -55,6 +55,24 @@ std::size_t Blob::pack_ref_size() const {
     return sizeof(ptr) + sizeof(len);
 }
 
+/**
+ * get
+ * Get values from a Blob in one function
+ * Caller does not own pointer extracted from Blob
+ *
+ * @param addr    Address of variable to copy ptr into (optional)
+ * @param length  how long the item stored in this Blob is (optional)
+ */
+void Blob::get(void **addr, std::size_t *length) const {
+    if (addr) {
+        *addr = ptr;
+    }
+
+    if (length) {
+        *length = len;
+    }
+}
+
 void *Blob::data() const {
     return ptr;
 }

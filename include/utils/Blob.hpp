@@ -28,6 +28,8 @@ class Blob {
         char *pack_ref(char *&dst) const;
         std::size_t pack_ref_size() const;
 
+        // getters
+        void get(void **addr, std::size_t *length) const;
         void *data() const;
         std::size_t size() const;
 

@@ -20,8 +20,25 @@ namespace hxhim {
  *
  * Each result takes ownership of the pointers passed into its constructor.
  *
- * To access the data, cast the result to the appropriate type, select the
- * variable, and extract the values with the data() and size() member functions.
+ * To access the data, cast the result to the appropriate type and use the Blob::get
+ * function extract both values at once.
+ *
+ * e.g.
+ *
+ *     hxhim::Results::Put *put = static_cast<hxhim::Results::Put *>(res->Curr());
+ *     void *      subject     = nullptr;
+ *     std::size_T subject_len = 0;
+ *     put->subject->get(&subject, &subject_len);
+ *
+ * or, cast the result to the appropriate type, select the variable, and extract
+ * the values with the Blob::data() and Blob::size() member functions.
+ *
+ * e.g.
+ *
+ *     hxhim::Results::Put *put = static_cast<hxhim::Results::Put *>(res->Curr());
+ *     void *      subject     = put->subject->data();
+ *     std::size_t subject_len = put->subject->len();
+ *
  *
  * Usage:
  *
