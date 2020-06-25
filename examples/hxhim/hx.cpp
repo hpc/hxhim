@@ -24,7 +24,7 @@ static void print_results(const int rank, hxhim::Results *results) {
                     hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(curr);
                     std::cout << "{" << std::string((char *) get->subject->ptr, get->subject->len)
                               << ", " << std::string((char *) get->predicate->ptr, get->predicate->len)
-                              << "} -> " << std::string((char *) get->object, *(get->object_len));
+                              << "} -> " << std::string((char *) get->object->ptr, get->object->len);
                 }
                 else {
                     std::cout << "ERROR";
@@ -84,12 +84,8 @@ int main(int argc, char *argv[]) {
     }
 
     // GET them back, flushing only the GETs
-    void **get_objects = new void *[count];
-    std::size_t **get_object_lens = new std::size_t *[count];
     for(std::size_t i = 0; i < count; i++) {
-        get_objects[i] = ::operator new(bufsize);
-        get_object_lens[i] = new std::size_t(bufsize);
-        hxhim::Get(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_BYTE_TYPE, get_objects[i], get_object_lens[i]);
+        hxhim::Get(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_BYTE_TYPE);
     }
     hxhim::Results *flush_get_res = hxhim::FlushGets(&hx);
     std::cout << "GET before flushing PUTs" << std::endl;
@@ -102,18 +98,11 @@ int main(int argc, char *argv[]) {
         bget_types[i] = HXHIM_BYTE_TYPE;
     }
 
-    hxhim::BGet(&hx, subjects, subject_lens, predicates, predicate_lens, bget_types, get_objects, get_object_lens, count);
+    hxhim::BGet(&hx, subjects, subject_lens, predicates, predicate_lens, bget_types, count);
     hxhim::Results *flush_all_res = hxhim::Flush(&hx);
     std::cout << "GET after flushing PUTs" << std::endl;
     print_results(rank, flush_all_res);
     hxhim::Results::Destroy(flush_all_res);
-
-    for(std::size_t i = 0; i < count; i++) {
-        ::operator delete(get_objects[i]);
-        delete get_object_lens[i];
-    }
-    delete [] get_objects;
-    delete [] get_object_lens;
 
     spo_clean(count, subjects, subject_lens, predicates, predicate_lens, objects, object_lens);
     delete [] bget_types;

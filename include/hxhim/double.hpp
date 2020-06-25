@@ -4,6 +4,7 @@
 #include <cstddef>
 
 #include "hxhim/constants.h"
+#include "hxhim/double.h"
 #include "hxhim/struct.h"
 
 namespace hxhim {
@@ -15,8 +16,7 @@ int PutDouble(hxhim_t *hx,
 
 int GetDouble(hxhim_t *hx,
               void *subject, std::size_t subject_len,
-              void *predicate, std::size_t predicate_len,
-              double *object);
+              void *predicate, std::size_t predicate_len);
 
 int BPutDouble(hxhim_t *hx,
                void **subjects, std::size_t *subject_lens,
@@ -27,7 +27,6 @@ int BPutDouble(hxhim_t *hx,
 int BGetDouble(hxhim_t *hx,
                void **subjects, std::size_t *subject_lens,
                void **predicates, std::size_t *predicate_lens,
-               double **objects,
                std::size_t count);
 
 int BGetOpDouble(hxhim_t *hx,

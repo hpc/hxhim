@@ -157,14 +157,6 @@ int Unpacker::unpack(Request::BGet **bgm, void *buf, const std::size_t bufsize) 
         memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
         curr += sizeof(out->object_types[i]);
 
-        // object addr
-        memcpy(&out->orig.objects[i], curr, sizeof(out->orig.objects[i]));
-        curr += sizeof(out->orig.objects[i]);
-
-        // object len addr
-        memcpy(&out->orig.object_lens[i], curr, sizeof(out->orig.object_lens[i]));
-        curr += sizeof(out->orig.object_lens[i]);
-
         out->count++;
     }
 
@@ -453,40 +445,10 @@ int Unpacker::unpack(Response::BGet **bgm, void *buf, const std::size_t bufsize)
         memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
         curr += sizeof(out->object_types[i]);
 
-        // object len addr
-        memcpy(&out->orig.object_lens[i], curr, sizeof(out->orig.object_lens[i]));
-        curr += sizeof(out->orig.object_lens[i]);
-
-        // object addr
-        memcpy(&out->orig.objects[i], curr, sizeof(out->orig.objects[i]));
-        curr += sizeof(out->orig.objects[i]);
-
         // object
         // unpack into user pointers
         if (out->statuses[i] == HXHIM_SUCCESS) {
-            // get the length found in the packet
-            std::size_t get_len = 0;
-            memcpy(&get_len, curr, sizeof(get_len));
-            curr += sizeof(get_len);
-
-            // the available space for storing the object is set in object_lens by the caller
-            const std::size_t buffer_len = *(out->orig.object_lens[i]);
-
-            // get the maximum amount of data to copy
-            const std::size_t copy_len = (get_len < buffer_len)?get_len:buffer_len;
-
-            if (out->orig.object_lens[i]) {
-                *(out->orig.object_lens[i]) = copy_len;
-            }
-
-            if (out->orig.objects[i]) {
-                memcpy(out->orig.objects[i], curr, copy_len);
-            }
-
-            out->objects[i] = construct<ReferenceBlob>(out->orig.objects[i], *(out->orig.object_lens[i]));
-
-            // move past all data, not just data that was placed into the buffer
-            curr += get_len;
+            out->objects[i] = construct<RealBlob>(curr);
         }
 
         out->count++;

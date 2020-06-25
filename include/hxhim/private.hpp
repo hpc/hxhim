@@ -210,7 +210,7 @@ int PutImpl(hxhim::Unsent<hxhim::PutData> &puts,
 int GetImpl(hxhim::Unsent<hxhim::GetData> &gets,
             void *subject, std::size_t subject_len,
             void *predicate, std::size_t predicate_len,
-            enum hxhim_type_t object_type, void *object, std::size_t *object_len);
+            enum hxhim_type_t object_type);
 
 int GetOpImpl(hxhim::Unsent<hxhim::GetOpData> &getops,
               void *subject, std::size_t subject_len,

@@ -37,8 +37,6 @@ int hxhim::PutData::moveto(Transport::Request::BPut *bput, const int ds_offset) 
 hxhim::GetData::GetData()
     : SP_t(),
       object_type(HXHIM_INVALID_TYPE),
-      object(nullptr),
-      object_len(nullptr),
       prev(nullptr),
       next(nullptr)
 {}
@@ -57,8 +55,6 @@ int hxhim::GetData::moveto(Transport::Request::BGet *bget, const int ds_offset) 
 
     bget->orig.subjects[bget->count] = bget->subjects[bget->count]->ptr;
     bget->orig.predicates[bget->count] = bget->predicates[bget->count]->ptr;
-    bget->orig.objects[bget->count] = object;         // void *
-    bget->orig.object_lens[bget->count] = object_len; // std::size_t *
 
     bget->count++;
 

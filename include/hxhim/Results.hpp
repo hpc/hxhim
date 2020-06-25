@@ -83,8 +83,7 @@ class Results {
             Get(hxhim_t *hx, const int datastore, const int status);
 
             hxhim_type_t object_type;
-            void *object;
-            std::size_t *object_len;
+            Blob *object;
 
             struct Get *next;
         };

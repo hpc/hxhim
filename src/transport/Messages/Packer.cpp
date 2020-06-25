@@ -100,14 +100,6 @@ int Packer::pack(const Request::BGet *bgm, void **buf, std::size_t *bufsize) {
         // object type
         memcpy(curr, &bgm->object_types[i], sizeof(bgm->object_types[i]));
         curr += sizeof(bgm->object_types[i]);
-
-        // object addr
-        memcpy(curr, &(bgm->orig.objects[i]), sizeof(bgm->orig.objects[i]));
-        curr += sizeof(bgm->orig.objects[i]);
-
-        // object len addr
-        memcpy(curr, &(bgm->orig.object_lens[i]), sizeof(bgm->orig.object_lens[i]));
-        curr += sizeof(bgm->orig.object_lens[i]);
     }
 
     return TRANSPORT_SUCCESS;
@@ -294,14 +286,6 @@ int Packer::pack(const Response::BGet *bgm, void **buf, std::size_t *bufsize) {
         // object type
         memcpy(curr, &bgm->object_types[i], sizeof(bgm->object_types[i]));
         curr += sizeof(bgm->object_types[i]);
-
-        // original object len addr
-        memcpy(curr, &bgm->orig.object_lens[i], sizeof(bgm->orig.object_lens[i]));
-        curr += sizeof(bgm->orig.object_lens[i]);
-
-        // original object addr
-        memcpy(curr, &bgm->orig.objects[i], sizeof(bgm->orig.objects[i]));
-        curr += sizeof(bgm->orig.objects[i]);
 
         // object
         if (bgm->statuses[i] == HXHIM_SUCCESS) {

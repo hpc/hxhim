@@ -79,13 +79,8 @@ int main(int argc, char *argv[]) {
 
     // GET them back, flushing only the GETs
     // this will likely return errors, since not all of the PUTs will have completed
-    void **get_objects = malloc(count * sizeof(void *));
-    size_t **get_object_lens = malloc(count * sizeof(size_t *));
     for(size_t i = 0; i < count; i++) {
-        get_objects[i] = malloc(bufsize);
-        get_object_lens[i] = malloc(sizeof(size_t));
-        *(get_object_lens[i]) = bufsize;
-        hxhimGet(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_BYTE_TYPE, get_objects[i], get_object_lens[i]);
+        hxhimGet(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_BYTE_TYPE);
     }
 
     hxhim_results_t *flush_gets_early = hxhimFlushGets(&hx);
@@ -111,7 +106,7 @@ int main(int argc, char *argv[]) {
         bget_types[i] = HXHIM_BYTE_TYPE;
     }
 
-    hxhimBGet(&hx, subjects, subject_lens, predicates, predicate_lens, bget_types, get_objects, get_object_lens, count);
+    hxhimBGet(&hx, subjects, subject_lens, predicates, predicate_lens, bget_types, count);
 
     MPI_Barrier(MPI_COMM_WORLD);
     if (rank == 0) {
@@ -124,13 +119,6 @@ int main(int argc, char *argv[]) {
     hxhim_results_destroy(flush_gets);
 
     // clean up
-    for(size_t i = 0; i < count; i++) {
-        free(get_objects[i]);
-        free(get_object_lens[i]);
-    }
-    free(get_objects);
-    free(get_object_lens);
-
     spo_clean(count, subjects, subject_lens, predicates, predicate_lens, objects, object_lens);
     free(bget_types);
 

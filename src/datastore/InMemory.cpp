@@ -114,15 +114,13 @@ Transport::Response::BGet *hxhim::datastore::InMemory::BGetImpl(Transport::Reque
 
         dealloc(key);
 
-        res->ds_offsets[i]       = req->ds_offsets[i];
+        res->ds_offsets[i]      = req->ds_offsets[i];
 
         // object type was stored as a value, not address, so copy it to the response
-        res->object_types[i]     = req->object_types[i];
+        res->object_types[i]    = req->object_types[i];
 
-        res->orig.subjects[i]    = construct<ReferenceBlob>(req->orig.subjects[i], req->subjects[i]->len);
-        res->orig.predicates[i]  = construct<ReferenceBlob>(req->orig.predicates[i], req->predicates[i]->len);
-        res->orig.objects[i]     = req->orig.objects[i];
-        res->orig.object_lens[i] = req->orig.object_lens[i];
+        res->orig.subjects[i]   = construct<ReferenceBlob>(req->orig.subjects[i], req->subjects[i]->len);
+        res->orig.predicates[i] = construct<ReferenceBlob>(req->orig.predicates[i], req->predicates[i]->len);
 
         res->statuses[i] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
 

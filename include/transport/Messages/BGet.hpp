@@ -23,7 +23,6 @@ struct BGet final : Request {
     int steal(BGet *from, const std::size_t i);
     int cleanup();
 
-    // used by src (client)
     Blob **subjects;
     Blob **predicates;
     std::size_t *predicate_lens;
@@ -35,8 +34,6 @@ struct BGet final : Request {
         // do not deallocate individual pointers
         void **subjects;
         void **predicates;
-        void **objects;
-        std::size_t **object_lens;
     } orig;
 
     void *ptr;
@@ -56,11 +53,8 @@ struct BGet final : Response {
     int steal(BGet *bget, const std::size_t i);
     int cleanup();
 
-    // used by client
     hxhim_type_t *object_types;
-
-    // filled by server
-    ReferenceBlob **objects;
+    Blob **objects;
 
     struct {
         // arrays of addresses from client
@@ -68,8 +62,6 @@ struct BGet final : Response {
         // do not deallocate individual pointers
         ReferenceBlob **subjects;
         ReferenceBlob **predicates;
-        void **objects;
-        std::size_t **object_lens;
     } orig;
 
     BGet *next;

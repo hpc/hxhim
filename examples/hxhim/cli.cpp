@@ -150,16 +150,10 @@ std::size_t run_commands(hxhim_t * hx, const UserInput &commands) {
                               (void *) cmd.object.c_str(), cmd.object.size());
                 break;
             case HXHIM_OP::GET:
-                {
-                    std::size_t * len = new std::size_t(1024);
-                    char * obj = new char[*len];
-                    rc = hxhimGet(hx,
-                                  (void *) cmd.subject.c_str(), cmd.subject.size(),
-                                  (void *) cmd.predicate.c_str(), cmd.predicate.size(),
-                                  HXHIM_BYTE_TYPE,
-                                  obj, len);
-                    // do not delete obj and len here
-                }
+                rc = hxhimGet(hx,
+                              (void *) cmd.subject.c_str(), cmd.subject.size(),
+                              (void *) cmd.predicate.c_str(), cmd.predicate.size(),
+                              HXHIM_BYTE_TYPE);
                 break;
             case HXHIM_OP::DEL:
                 rc = hxhimDelete(hx,
@@ -192,10 +186,8 @@ std::size_t run_commands(hxhim_t * hx, const UserInput &commands) {
                 case HXHIM_RESULT_GET:
                     {
                         char *object = nullptr;
-                        size_t *object_len = nullptr;
+                        size_t object_len = 0;
                         hxhim_results_get_object(res, (void **) &object, &object_len);
-                        delete [] object;
-                        delete object_len;
                     }
                     break;
                 default:

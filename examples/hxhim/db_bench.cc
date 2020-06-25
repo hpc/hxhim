@@ -929,10 +929,8 @@ class Benchmark {
       const int pred = 0;//thread->rand.Next() % FLAGS_num;
       char predicate[100];
       std::size_t predicate_len = snprintf(predicate, 17, "%016d", pred);
-      char object[100];
-      std::size_t object_len = sizeof(object);
 
-      hxhimGet(hx, (void *) subject, subject_len, (void *) predicate, predicate_len, HXHIM_BYTE_TYPE, (void *) object, &object_len);
+      hxhimGet(hx, (void *) subject, subject_len, (void *) predicate, predicate_len, HXHIM_BYTE_TYPE);
 
       hxhim_results_t *ret = hxhimFlush(hx);
       thread->stats.FinishedSingleOp();
@@ -967,10 +965,8 @@ class Benchmark {
       const int pred = 0;//thread->rand.Next() % FLAGS_num;
       char predicate[100];
       snprintf(predicate, 18, "%016d.", pred);
-      char object[100];
-      std::size_t object_len = sizeof(object);
 
-      hxhimGet(hx, (void *) subject, strlen(subject), (void *) predicate, strlen(predicate), HXHIM_BYTE_TYPE, (void *) object, &object_len);
+      hxhimGet(hx, (void *) subject, strlen(subject), (void *) predicate, strlen(predicate), HXHIM_BYTE_TYPE);
 
       hxhim_results_t *ret = hxhimFlush(hx);
       hxhim_results_destroy(ret);
@@ -995,10 +991,8 @@ class Benchmark {
       const int pred = 0;//thread->rand.Next() % range;
       char predicate[100] = {0};
       snprintf(predicate, 17, "%016d", pred);
-      char object[100];
-      std::size_t object_len = sizeof(object);
 
-      hxhimGet(hx, (void *) subject, strlen(subject), (void *) predicate, strlen(predicate), HXHIM_BYTE_TYPE, (void *) object, &object_len);
+      hxhimGet(hx, (void *) subject, strlen(subject), (void *) predicate, strlen(predicate), HXHIM_BYTE_TYPE);
       hxhim_results_t *ret = hxhimFlush(hx);
       thread->stats.FinishedSingleOp();
       hxhim_results_destroy(ret);

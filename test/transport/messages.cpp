@@ -331,8 +331,6 @@ TEST(Response, BGet) {
 
         src.orig.subjects[0]    = construct<ReferenceBlob>(&SUBJECT, SUBJECT_LEN);
         src.orig.predicates[0]  = construct<ReferenceBlob>(&PREDICATE, PREDICATE_LEN);
-        src.orig.objects[0]     = src.objects[0]->ptr;
-        src.orig.object_lens[0] = construct<std::size_t>(OBJECT_LEN);
     }
 
     EXPECT_EQ(src.direction, Message::RESPONSE);
@@ -359,7 +357,6 @@ TEST(Response, BGet) {
         EXPECT_EQ(src.statuses[i], dst->statuses[i]);
 
         EXPECT_EQ(src.object_types[i],         dst->object_types[i]);
-        EXPECT_EQ(src.objects[i]->ptr,         dst->objects[i]->ptr); // received obj is a reference to the original
         EXPECT_EQ(src.objects[i]->len,         dst->objects[i]->len);
         EXPECT_EQ(memcmp(src.objects[i]->ptr,  dst->objects[i]->ptr, dst->objects[i]->len), 0);
 
@@ -367,11 +364,6 @@ TEST(Response, BGet) {
         EXPECT_EQ(src.orig.subjects[i]->len,   dst->orig.subjects[i]->len);
         EXPECT_EQ(src.orig.predicates[i]->ptr, dst->orig.predicates[i]->ptr);
         EXPECT_EQ(src.orig.predicates[i]->len, dst->orig.predicates[i]->len);
-        EXPECT_EQ(src.orig.objects[i],         dst->orig.objects[i]);
-        EXPECT_EQ(src.orig.object_lens[i],     dst->orig.object_lens[i]);
-        EXPECT_EQ(*src.orig.object_lens[i],   *dst->orig.object_lens[i]);
-
-        destruct(src.orig.object_lens[i]);
     }
 
     destruct(dst);
@@ -551,7 +543,6 @@ TEST(Response, BHistogram) {
         EXPECT_EQ(src.type, dst->type);
         EXPECT_EQ(src.src, dst->src);
         EXPECT_EQ(src.dst, dst->dst);
-
 
         EXPECT_EQ(src.count, dst->count);
 

@@ -3,9 +3,10 @@
 
 #include "hxhim/Results.hpp"
 #include "hxhim/accessors.hpp"
-#include "hxhim/config.h"
 #include "hxhim/config.hpp"
 #include "hxhim/constants.h"
+#include "hxhim/double.hpp"
+#include "hxhim/float.hpp"
 #include "hxhim/hash.h"
 #include "hxhim/options.h"
 #include "hxhim/options.hpp"
@@ -44,7 +45,7 @@ int Put(hxhim_t *hx,
 int Get(hxhim_t *hx,
         void *subject, std::size_t subject_len,
         void *predicate, std::size_t predicate_len,
-        hxhim_type_t object_type, void *object, std::size_t *object_len);
+        hxhim_type_t object_type);
 
 int Delete(hxhim_t *hx,
            void *subject, std::size_t subject_len,
@@ -59,7 +60,7 @@ int BPut(hxhim_t *hx,
 int BGet(hxhim_t *hx,
          void **subjects, std::size_t *subject_lens,
          void **predicates, std::size_t *predicate_lens,
-         hxhim_type_t *object_types, void **objects, std::size_t **object_lens,
+         hxhim_type_t *object_types,
          std::size_t count);
 
 int BGetOp(hxhim_t *hx,

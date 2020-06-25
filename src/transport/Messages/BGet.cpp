@@ -20,7 +20,7 @@ std::size_t Transport::Request::BGet::size() const {
     for(std::size_t i = 0; i < count; i++) {
         total += subjects[i]->len + sizeof(subjects[i]->len) + sizeof(subjects[i]->ptr) +
                  predicates[i]->len + sizeof(predicates[i]->len) + sizeof(predicates[i]->ptr) +
-                 sizeof(object_types[i]) + sizeof(orig.objects[i]) + sizeof(orig.object_lens[i]);
+                 sizeof(object_types[i]);
     }
     return total;
 }
@@ -29,14 +29,12 @@ int Transport::Request::BGet::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Request::alloc(max) != TRANSPORT_SUCCESS)                 ||
-            !(subjects            = alloc_array<Blob *>(max))          ||
-            !(predicates          = alloc_array<Blob *>(max))          ||
-            !(object_types        = alloc_array<hxhim_type_t>(max))    ||
-            !(orig.subjects       = alloc_array<void *>(max))          ||
-            !(orig.predicates     = alloc_array<void *>(max))          ||
-            !(orig.objects        = alloc_array<void *>(max))          ||
-            !(orig.object_lens    = alloc_array<std::size_t *>(max)))   {
+        if ((Request::alloc(max) != TRANSPORT_SUCCESS)              ||
+            !(subjects            = alloc_array<Blob *>(max))       ||
+            !(predicates          = alloc_array<Blob *>(max))       ||
+            !(object_types        = alloc_array<hxhim_type_t>(max)) ||
+            !(orig.subjects       = alloc_array<void *>(max))       ||
+            !(orig.predicates     = alloc_array<void *>(max)))       {
             cleanup();
             return TRANSPORT_ERROR;
         }
@@ -55,16 +53,12 @@ int Transport::Request::BGet::steal(Transport::Request::BGet *from, const std::s
     object_types[count]       = from->object_types[i];
     orig.subjects[count]      = from->orig.subjects[i];
     orig.predicates[count]    = from->orig.predicates[i];
-    orig.objects[count]       = from->orig.objects[i];
-    orig.object_lens[count]   = from->orig.object_lens[i];
     count++;
 
     from->subjects[i]         = nullptr;
     from->predicates[i]       = nullptr;
     from->orig.subjects[i]    = nullptr;
     from->orig.predicates[i]  = nullptr;
-    from->orig.objects[i]     = nullptr;
-    from->orig.object_lens[i] = nullptr;
 
     return TRANSPORT_SUCCESS;
 }
@@ -90,12 +84,6 @@ int Transport::Request::BGet::cleanup() {
     dealloc_array(orig.predicates, count);
     orig.predicates = nullptr;
 
-    dealloc_array(orig.objects, count);
-    orig.objects = nullptr;
-
-    dealloc_array(orig.object_lens, count);
-    orig.object_lens = nullptr;
-
     return Request::cleanup();
 }
 
@@ -120,8 +108,7 @@ std::size_t Transport::Response::BGet::size() const {
                  sizeof(orig.predicates[i]->ptr) + sizeof(orig.predicates[i]->len) +
                  sizeof(object_types[i]) +
                  sizeof(orig.subjects[i]) +
-                 sizeof(orig.predicates[i]) +
-                 sizeof(orig.objects[i]) + sizeof(orig.object_lens[i]);
+                 sizeof(orig.predicates[i]);
 
         if (statuses[i] == TRANSPORT_SUCCESS) {
             total += objects[i]->len + sizeof(objects[i]->len);
@@ -135,13 +122,11 @@ int Transport::Response::BGet::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Response::alloc(max) != TRANSPORT_SUCCESS)              ||
-            !(object_types = alloc_array<hxhim_type_t>(max))         ||
-            !(objects = alloc_array<Blob *>(max))                    ||
-            !(orig.subjects = alloc_array<ReferenceBlob *>(max))     ||
-            !(orig.predicates = alloc_array<ReferenceBlob *>(max))   ||
-            !(orig.objects = alloc_array<void *>(max))               ||
-            !(orig.object_lens = alloc_array<std::size_t *>(max)))    {
+        if ((Response::alloc(max) != TRANSPORT_SUCCESS)                  ||
+            !(object_types         = alloc_array<hxhim_type_t>(max))     ||
+            !(objects              = alloc_array<Blob *>(max))           ||
+            !(orig.subjects        = alloc_array<ReferenceBlob *>(max))  ||
+            !(orig.predicates      = alloc_array<ReferenceBlob *>(max)))  {
             cleanup();
             return TRANSPORT_SUCCESS;
         }
@@ -159,16 +144,13 @@ int Transport::Response::BGet::steal(Transport::Response::BGet *bget, const std:
     objects[count]            = bget->objects[i];
     orig.subjects[count]      = bget->orig.subjects[i];
     orig.predicates[count]    = bget->orig.predicates[i];
-    orig.objects[count]       = bget->orig.objects[i];
-    orig.object_lens[count]   = bget->orig.object_lens[i];
+
     count++;
 
     // remove ownership
     bget->objects[i]          = nullptr;
     bget->orig.subjects[i]    = nullptr;
     bget->orig.predicates[i]  = nullptr;
-    bget->orig.objects[i]     = nullptr;
-    bget->orig.object_lens[i] = nullptr;
 
     return TRANSPORT_SUCCESS;
 }
@@ -193,12 +175,6 @@ int Transport::Response::BGet::cleanup() {
 
     dealloc_array(orig.predicates, count);
     orig.predicates = nullptr;
-
-    dealloc_array(orig.objects, count);
-    orig.objects = nullptr;
-
-    dealloc_array(orig.object_lens, count);
-    orig.object_lens = nullptr;
 
     return Response::cleanup();
 }

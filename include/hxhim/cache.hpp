@@ -48,8 +48,6 @@ namespace hxhim {
         int moveto(Transport::Request::BGet *bget, const int ds_offset);
 
         hxhim_type_t object_type;
-        void *object;
-        std::size_t *object_len;
 
         GetData *prev;
         GetData *next;

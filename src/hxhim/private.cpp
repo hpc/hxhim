@@ -651,15 +651,13 @@ int hxhim::PutImpl(hxhim::Unsent<hxhim::PutData> &puts,
 int hxhim::GetImpl(hxhim::Unsent<hxhim::GetData> &gets,
                    void *subject, std::size_t subject_len,
                    void *predicate, std::size_t predicate_len,
-                   enum hxhim_type_t object_type, void *object, std::size_t *object_len) {
+                   enum hxhim_type_t object_type) {
     mlog(HXHIM_CLIENT_DBG, "GET Start");
 
     hxhim::GetData *get = construct<hxhim::GetData>();
     get->subject = construct<ReferenceBlob>(subject, subject_len);
     get->predicate = construct<ReferenceBlob>(predicate, predicate_len);
     get->object_type = object_type;
-    get->object = object;
-    get->object_len = object_len;
 
     mlog(HXHIM_CLIENT_DBG, "GET Insert into queue");
     gets.insert(get);

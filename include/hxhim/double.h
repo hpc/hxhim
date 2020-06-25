@@ -18,8 +18,7 @@ int hxhimPutDouble(hxhim_t *hx,
 
 int hxhimGetDouble(hxhim_t *hx,
                    void *subject, size_t subject_len,
-                   void *predicate, size_t predicate_len,
-                   double *object);
+                   void *predicate, size_t predicate_len);
 
 int hxhimBPutDouble(hxhim_t *hx,
                     void **subjects, size_t *subject_lens,
@@ -30,7 +29,6 @@ int hxhimBPutDouble(hxhim_t *hx,
 int hxhimBGetDouble(hxhim_t *hx,
                     void **subjects, size_t *subject_lens,
                     void **predicates, size_t *predicate_lens,
-                    double **objects,
                     size_t count);
 
 int hxhimBGetOpDouble(hxhim_t *hx,

@@ -5,6 +5,7 @@
 #include <unordered_map>
 
 #include "datastore/constants.hpp"
+#include "hxhim/config.h"
 #include "hxhim/constants.h"
 #include "hxhim/hash.hpp"
 #include "hxhim/options.h"

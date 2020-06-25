@@ -81,16 +81,13 @@ TEST(Enqueue, PUT) {
 }
 
 TEST(Enqueue, GET) {
-    std::size_t len1 = 0;
-    std::size_t len2 = 0;
-
     hxhim::Unsent<hxhim::GetData> gets;
     EXPECT_EQ(gets.head, nullptr);
     EXPECT_EQ(gets.tail, nullptr);
     EXPECT_EQ(gets.count, (std::size_t) 0);
 
     // enqueue one GET
-    EXPECT_EQ(hxhim::GetImpl(gets, (char *) SUBJECT1, strlen(SUBJECT1), (char *) PREDICATE1, strlen(PREDICATE1), TYPE, (char *) OBJECT1, &len1), HXHIM_SUCCESS);
+    EXPECT_EQ(hxhim::GetImpl(gets, (char *) SUBJECT1, strlen(SUBJECT1), (char *) PREDICATE1, strlen(PREDICATE1), TYPE), HXHIM_SUCCESS);
     ASSERT_NE(gets.head, nullptr);
     EXPECT_EQ(gets.head, gets.tail);
     EXPECT_EQ(gets.count, (std::size_t) 1);
@@ -102,12 +99,10 @@ TEST(Enqueue, GET) {
         EXPECT_EQ(head->predicate->ptr, PREDICATE1);
         EXPECT_EQ(head->predicate->len, strlen(PREDICATE1));
         EXPECT_EQ(head->object_type, TYPE);
-        EXPECT_EQ(head->object, OBJECT1);
-        EXPECT_EQ(head->object_len, &len1);
     }
 
     // enqueue a second GET
-    EXPECT_EQ(hxhim::GetImpl(gets, (char *) SUBJECT2, strlen(SUBJECT2), (char *) PREDICATE2, strlen(PREDICATE2), HXHIM_BYTE_TYPE, (char *) OBJECT2, &len2), HXHIM_SUCCESS);
+    EXPECT_EQ(hxhim::GetImpl(gets, (char *) SUBJECT2, strlen(SUBJECT2), (char *) PREDICATE2, strlen(PREDICATE2), HXHIM_BYTE_TYPE), HXHIM_SUCCESS);
     ASSERT_NE(gets.head, nullptr);
     EXPECT_NE(gets.head, gets.tail);
     EXPECT_EQ(gets.head->next, gets.tail);
@@ -122,8 +117,6 @@ TEST(Enqueue, GET) {
         EXPECT_EQ(head->predicate->ptr, PREDICATE1);
         EXPECT_EQ(head->predicate->len, strlen(PREDICATE1));
         EXPECT_EQ(head->object_type, TYPE);
-        EXPECT_EQ(head->object, OBJECT1);
-        EXPECT_EQ(head->object_len, &len1);
     }
 
     {
@@ -133,8 +126,6 @@ TEST(Enqueue, GET) {
         EXPECT_EQ(tail->predicate->ptr, PREDICATE2);
         EXPECT_EQ(tail->predicate->len, strlen(PREDICATE2));
         EXPECT_EQ(tail->object_type, TYPE);
-        EXPECT_EQ(tail->object, OBJECT2);
-        EXPECT_EQ(tail->object_len, &len2);
     }
 
     destruct(gets.head->subject);

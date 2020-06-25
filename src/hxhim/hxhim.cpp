@@ -582,11 +582,11 @@ int hxhimPut(hxhim_t *hx,
 int hxhim::Get(hxhim_t *hx,
                void *subject, std::size_t subject_len,
                void *predicate, std::size_t predicate_len,
-               enum hxhim_type_t object_type, void *object, std::size_t *object_len) {
+               enum hxhim_type_t object_type) {
     return hxhim::BGet(hx,
                         &subject, &subject_len,
                         &predicate, &predicate_len,
-                        &object_type, &object, &object_len,
+                        &object_type,
                         1);
 }
 
@@ -607,11 +607,11 @@ int hxhim::Get(hxhim_t *hx,
 int hxhimGet(hxhim_t *hx,
              void *subject, size_t subject_len,
              void *predicate, size_t predicate_len,
-             enum hxhim_type_t object_type, void *object, size_t *object_len) {
+             enum hxhim_type_t object_type) {
     return hxhim::Get(hx,
                        subject, subject_len,
                        predicate, predicate_len,
-                       object_type, object, object_len);
+                       object_type);
 }
 
 /**
@@ -757,17 +757,17 @@ int hxhimBPut(hxhim_t *hx,
 int hxhim::BGet(hxhim_t *hx,
                 void **subjects, std::size_t *subject_lens,
                 void **predicates, std::size_t *predicate_lens,
-                hxhim_type_t *object_types, void **objects, std::size_t **object_lens,
+                hxhim_type_t *object_types,
                 std::size_t count) {
     if (!valid(hx)  || !hx->p->running ||
         !subjects   || !subject_lens   ||
         !predicates || !predicate_lens ||
-        !objects    || !object_lens) {
+        !object_types)                  {
         return HXHIM_ERROR;
     }
 
     for(std::size_t i = 0; i < count; i++) {
-        hxhim::GetImpl(hx->p->queues.gets, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], object_types[i], objects[i], object_lens[i]);
+        hxhim::GetImpl(hx->p->queues.gets, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], object_types[i]);
     }
 
     return HXHIM_SUCCESS;
@@ -791,12 +791,12 @@ int hxhim::BGet(hxhim_t *hx,
 int hxhimBGet(hxhim_t *hx,
               void **subjects, std::size_t *subject_lens,
               void **predicates, std::size_t *predicate_lens,
-              enum hxhim_type_t *object_types, void **objects, std::size_t **object_lens,
+              enum hxhim_type_t *object_types,
               std::size_t count) {
     return hxhim::BGet(hx,
                        subjects, subject_lens,
                        predicates, predicate_lens,
-                       object_types, objects, object_lens,
+                       object_types,
                        count);
 }
 
