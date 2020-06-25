@@ -32,6 +32,7 @@ namespace hxhim {
  *                 }
  *                 break;
  *             case HXHIM_RESULT_GET:
+ *             case HXHIM_RESULT_GETOP:
  *                 {
  *                     hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(res->Curr());
  *                     // do stuff with get
@@ -78,25 +79,29 @@ class Results {
             Put(hxhim_t *hx, const int datastore, const int status);
         };
 
-        /** @description Convenience struct for GET results    */
-        struct Get final : public SubjectPredicate {
-            Get(hxhim_t *hx, const int datastore, const int status);
+    private:
+        /** @description Base structure for GET results */
+        template <hxhim_result_type_t gettype>
+        struct GetBase final : public SubjectPredicate {
+            GetBase(hxhim_t *hx, const int datastore, const int status)
+                : SubjectPredicate(hx, gettype, datastore, status),
+                  object_type(HXHIM_INVALID_TYPE),
+                  object(nullptr),
+                  next(nullptr)
+            {}
 
             hxhim_type_t object_type;
             Blob *object;
 
-            struct Get *next;
+            struct GetBase *next;
         };
 
-        /** @description Convenience struct for GETOP results    */
-        struct GetOp final : public SubjectPredicate {
-            GetOp(hxhim_t *hx, const int datastore, const int status);
+    public:
+        /** @description Convenience struct for GET results */
+        typedef GetBase<hxhim_result_type_t::HXHIM_RESULT_GET> Get;
 
-            hxhim_type_t object_type;
-            Blob *object;
-
-            struct GetOp *next;
-        };
+        /** @description Convenience struct for GETOP results */
+        typedef GetBase<hxhim_result_type_t::HXHIM_RESULT_GETOP> GetOp;
 
         /** @description Convenience struct for DEL results */
         struct Delete final : public SubjectPredicate {

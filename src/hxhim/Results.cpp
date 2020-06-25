@@ -37,22 +37,6 @@ hxhim::Results::Put::Put(hxhim_t *hx,
     : SubjectPredicate(hx, hxhim_result_type::HXHIM_RESULT_PUT, datastore, status)
 {}
 
-hxhim::Results::Get::Get(hxhim_t *hx,
-                         const int datastore, const int status)
-    : SubjectPredicate(hx, hxhim_result_type::HXHIM_RESULT_GET, datastore, status),
-      object_type(HXHIM_INVALID_TYPE),
-      object(nullptr),
-      next(nullptr)
-{}
-
-hxhim::Results::GetOp::GetOp(hxhim_t *hx,
-                             const int datastore, const int status)
-    : SubjectPredicate(hx, hxhim_result_type::HXHIM_RESULT_GETOP, datastore, status),
-      object_type(HXHIM_INVALID_TYPE),
-      object(nullptr),
-      next(nullptr)
-{}
-
 hxhim::Results::Delete::Delete(hxhim_t *hx,
                                const int datastore, const int status)
     : SubjectPredicate(hx, hxhim_result_type::HXHIM_RESULT_DEL, datastore, status)
