@@ -121,17 +121,16 @@ herr_t H5VL_hxhim_dataset_read(void *dset, hid_t mem_type_id, hid_t mem_space_id
     const char * predicate = get_type_name(mem_type_id);
     const size_t predicate_len = strlen(predicate);
 
-    size_t * object_len = malloc(sizeof(size_t)); // need to clean
-    *object_len = size * count;
+    fprintf(stderr, "%4d %s   buf: %p\n", __LINE__, __func__, buf);
 
-    fprintf(stderr, "%4d %s   buf: %p object_len: %p\n", __LINE__, __func__, buf, object_len);
-
-    const int rc = (hxhimGet(&dataset_info->file->under_vol->hx,
-                             dataset_info->subject, dataset_info->subject_len,
-                             (void *) predicate, predicate_len,
-                             HXHIM_BYTE_TYPE, buf, object_len) == HXHIM_SUCCESS);
+    int rc = (hxhimGet(&dataset_info->file->under_vol->hx,
+                       dataset_info->subject, dataset_info->subject_len,
+                       (void *) predicate, predicate_len,
+                       HXHIM_BYTE_TYPE) == HXHIM_SUCCESS);
 
     fprintf(stderr, "%4d %s   %p (%s, %s) -> %p %d %d %p\n", __LINE__, __func__, dset, dataset_info->subject, predicate, buf, mem_space_id, file_space_id, req);
+
+    // need to flush at some point so that object can be copied into buf
 
     return !(rc == HXHIM_SUCCESS);
 }
