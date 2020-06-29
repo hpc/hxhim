@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-#include "hxhim/triplestore.hpp"
+#include "utils/triplestore.hpp"
 
 static const char *SUBJECT = "subject";
 static const std::size_t SUBJECT_LEN = strlen(SUBJECT);
@@ -60,10 +60,12 @@ TEST(triplestore, decode_unsigned) {
 }
 
 TEST(triplestore, sp_to_key) {
+    ReferenceBlob sub((void *) SUBJECT, SUBJECT_LEN);
+    ReferenceBlob pred((void *) PREDICATE, PREDICATE_LEN);
     void *key = nullptr;
     std::size_t key_len;
 
-    EXPECT_EQ(sp_to_key(SUBJECT, SUBJECT_LEN, PREDICATE, PREDICATE_LEN, &key, &key_len), HXHIM_SUCCESS);
+    EXPECT_EQ(sp_to_key(&sub, &pred, &key, &key_len), HXHIM_SUCCESS);
 
     char *curr = (char *) key;
     EXPECT_EQ(memcmp(curr, SUBJECT, SUBJECT_LEN), 0);
@@ -81,21 +83,54 @@ TEST(triplestore, sp_to_key) {
 }
 
 TEST(triplestore, key_to_sp) {
+    ReferenceBlob sub((void *) SUBJECT, SUBJECT_LEN);
+    ReferenceBlob pred((void *) PREDICATE, PREDICATE_LEN);
     void *key = nullptr;
     std::size_t key_len;
 
-    EXPECT_EQ(sp_to_key(SUBJECT, SUBJECT_LEN, PREDICATE, PREDICATE_LEN, &key, &key_len), HXHIM_SUCCESS);
+    EXPECT_EQ(sp_to_key(&sub, &pred, &key, &key_len), HXHIM_SUCCESS);
 
-    void *subject = nullptr;
-    std::size_t subject_len = 0;
-    void *predicate = nullptr;
-    std::size_t predicate_len = 0;
+    // copy
+    {
+        Blob *subject = nullptr;
+        Blob *predicate = nullptr;
 
-    EXPECT_EQ(key_to_sp(key, key_len, &subject, &subject_len, &predicate, &predicate_len), HXHIM_SUCCESS);
-    EXPECT_EQ(subject_len, SUBJECT_LEN);
-    EXPECT_EQ(memcmp(subject, SUBJECT, subject_len), 0);
-    EXPECT_EQ(predicate_len, PREDICATE_LEN);
-    EXPECT_EQ(memcmp(predicate, PREDICATE, predicate_len), 0);
+        EXPECT_EQ(key_to_sp(key, key_len, &subject, &predicate, true), HXHIM_SUCCESS);
+
+        ASSERT_NE(subject, nullptr);
+        EXPECT_NE(subject->data(), SUBJECT);
+        EXPECT_EQ(subject->size(), SUBJECT_LEN);
+        EXPECT_EQ(memcmp(subject->data(), SUBJECT, subject->size()), 0);
+
+        ASSERT_NE(predicate, nullptr);
+        EXPECT_NE(predicate->data(), PREDICATE);
+        EXPECT_EQ(predicate->size(), PREDICATE_LEN);
+        EXPECT_EQ(memcmp(predicate->data(), PREDICATE, predicate->size()), 0);
+
+        destruct(subject);
+        destruct(predicate);
+    }
+
+    // reference
+    {
+        Blob *subject = nullptr;
+        Blob *predicate = nullptr;
+
+        EXPECT_EQ(key_to_sp(key, key_len, &subject, &predicate, false), HXHIM_SUCCESS);
+
+        ASSERT_NE(subject, nullptr);
+        EXPECT_EQ(subject->data(), key);
+        EXPECT_EQ(subject->size(), SUBJECT_LEN);
+        EXPECT_EQ(memcmp(subject->data(), SUBJECT, subject->size()), 0);
+
+        ASSERT_NE(predicate, nullptr);
+        EXPECT_EQ(predicate->data(), ((char *) key) + subject->size() + sizeof(subject->size()));
+        EXPECT_EQ(predicate->size(), PREDICATE_LEN);
+        EXPECT_EQ(memcmp(predicate->data(), PREDICATE, predicate->size()), 0);
+
+        destruct(subject);
+        destruct(predicate);
+    }
 
     dealloc(key);
 }

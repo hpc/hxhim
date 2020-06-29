@@ -8,4 +8,5 @@ target_sources(googletest PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/elen.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/is_range_server.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/memory.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/triplestore.cpp
 )

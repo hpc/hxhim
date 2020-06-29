@@ -4,10 +4,10 @@
 
 #include "datastore/InMemory.hpp"
 #include "hxhim/private.hpp"
-#include "hxhim/triplestore.hpp"
 #include "utils/Blob.hpp"
 #include "utils/elapsed.h"
 #include "utils/memory.hpp"
+#include "utils/triplestore.hpp"
 
 hxhim::datastore::InMemory::InMemory(hxhim_t *hx,
                                      Histogram::Histogram *hist,
@@ -61,7 +61,7 @@ Transport::Response::BPut *hxhim::datastore::InMemory::BPutImpl(Transport::Reque
     for(std::size_t i = 0; i < req->count; i++) {
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(req->subjects[i]->data(), req->subjects[i]->size(), req->predicates[i]->data(), req->predicates[i]->size(), &key, &key_len);
+        sp_to_key(req->subjects[i], req->predicates[i], &key, &key_len);
 
         clock_gettime(CLOCK_MONOTONIC, &start);
         db[std::string((char *) key, key_len)] = std::string((char *) req->objects[i]->data(), req->objects[i]->size());
@@ -106,7 +106,7 @@ Transport::Response::BGet *hxhim::datastore::InMemory::BGetImpl(Transport::Reque
 
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(req->subjects[i]->data(), req->subjects[i]->size(), req->predicates[i]->data(), req->predicates[i]->size(), &key, &key_len);
+        sp_to_key(req->subjects[i], req->predicates[i], &key, &key_len);
 
         clock_gettime(CLOCK_MONOTONIC, &start);
         decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
@@ -151,7 +151,7 @@ Transport::Response::BGet *hxhim::datastore::InMemory::BGetImpl(Transport::Reque
  * @return pointer to a list of results
  */
 Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::Request::BGetOp *req) {
-    Transport::Response::BGetOp *res = construct<Transport::Response::BGetOp>(0);
+    Transport::Response::BGetOp *res = construct<Transport::Response::BGetOp>(req->count);
 
     for(std::size_t i = 0; i < req->count; i++) {
         struct timespec start = {};
@@ -159,8 +159,9 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
 
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(req->subjects[i]->data(), req->subjects[i]->size(), req->predicates[i]->data(), req->predicates[i]->size(), &key, &key_len);
+        sp_to_key(req->subjects[i], req->predicates[i], &key, &key_len);
 
+        // find the starting position
         clock_gettime(CLOCK_MONOTONIC, &start);
         decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
         clock_gettime(CLOCK_MONOTONIC, &end);
@@ -174,47 +175,54 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
         res->statuses[i]     = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
         res->object_types[i] = req->object_types[i];
         res->num_recs[i]     = 0;
-        res->subjects[i]     = alloc_array<Blob *>(res->num_recs[i]);
-        res->predicates[i]   = alloc_array<Blob *>(res->num_recs[i]);
-        res->objects[i]      = alloc_array<Blob *>(res->num_recs[i]);
+        res->subjects[i]     = alloc_array<Blob *>(req->num_recs[i]);
+        res->predicates[i]   = alloc_array<Blob *>(req->num_recs[i]);
+        res->objects[i]      = alloc_array<Blob *>(req->num_recs[i]);
 
-        for(std::size_t j = 0; (j < req->num_recs[i]) && (it != db.end()); j++) {
-            const std::string &k = it->first;
-            const std::string &v = it->second;
-
-            // get subject and predicate for sending back
-            void *sub = nullptr, *pred = nullptr;
-            std::size_t sub_len = 0, pred_len = 0;
-            key_to_sp(k.data(), k.size(), &sub, &sub_len, &pred, &pred_len);
-            res->subjects[i][j] = construct<RealBlob>(sub, sub_len);
-            res->predicates[i][j] = construct<RealBlob>(pred, pred_len);
-
-            res->objects[i][j] = construct<RealBlob>(alloc(v.size()), v.size());
-            memcpy(res->objects[i][j]->data(), v.data(), v.size());
+        decltype(db)::const_reverse_iterator rit(it); // prevent it-- from going too far
+        bool can_continue = true;
+        for(std::size_t j = 0; (j < req->num_recs[i]) && can_continue; j++) {
+            decltype(it->first) const *k = nullptr;
+            decltype(it->second) const *v = nullptr;
 
             // move to next iterator according to operation
             switch (req->ops[i]) {
+                case hxhim_get_op_t::HXHIM_GET_EQ:
+                    k = &it->first;
+                    v = &it->second;
+                    can_continue = false;
+                    break;
                 case hxhim_get_op_t::HXHIM_GET_NEXT:
+                    k = &it->first;
+                    v = &it->second;
                     it++;
+                    can_continue = (it != db.end());
                     break;
                 case hxhim_get_op_t::HXHIM_GET_PREV:
-                    it--;
-                    break;
-                case hxhim_get_op_t::HXHIM_GET_FIRST:
-                    it++;
-                    break;
-                case hxhim_get_op_t::HXHIM_GET_LAST:
-                    it--;
+                    k = &rit->first;
+                    v = &rit->second;
+                    rit++;
+                    can_continue = (rit != db.rend());
                     break;
                 default:
                     break;
             }
+
+            // copy key into subject/predicate
+            key_to_sp(k->data(), k->size(), &(res->subjects[i][j]), &(res->predicates[i][j]), true);
+
+            // copy object
+            res->objects[i][j] = construct<RealBlob>(alloc(v->size()), v->size());
+            memcpy(res->objects[i][j]->data(), v->data(), v->size());
+
+            res->num_recs[i]++;
 
             clock_gettime(CLOCK_MONOTONIC, &end);
             stats.gets++;
             stats.get_times += nano(start, end);
         }
 
+        res->count++;
     }
 
     return res;
@@ -236,7 +244,7 @@ Transport::Response::BDelete *hxhim::datastore::InMemory::BDeleteImpl(Transport:
     for(std::size_t i = 0; i < req->count; i++) {
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(req->subjects[i]->data(), req->subjects[i]->size(), req->predicates[i]->data(), req->predicates[i]->size(), &key, &key_len);
+        sp_to_key(req->subjects[i], req->predicates[i], &key, &key_len);
 
         decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
         if (it != db.end()) {

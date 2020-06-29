@@ -20,29 +20,32 @@ extern "C"
  * The types of data tha can be passed into HXHIM
  */
 enum hxhim_type_t {
-    HXHIM_INVALID_TYPE,
-    HXHIM_INT_TYPE,
+    HXHIM_INT_TYPE = 0,
     HXHIM_SIZE_TYPE,
     HXHIM_INT64_TYPE,
     HXHIM_FLOAT_TYPE,
     HXHIM_DOUBLE_TYPE,
     HXHIM_BYTE_TYPE,
+
+    HXHIM_INVALID_TYPE
 };
 
 /**
  * GetOp
  * List of operations that can be done
- * with a Get or BGet
+ * with a GetOp or BGetOP
  */
 enum hxhim_get_op_t {
-    HXHIM_GET_EQ         = 0,
-    HXHIM_GET_NEXT       = 1,
-    HXHIM_GET_PREV       = 2,
-    HXHIM_GET_FIRST      = 3,
-    HXHIM_GET_LAST       = 4,
-    HXHIM_GET_PRIMARY_EQ = 5,
+    HXHIM_GET_EQ = 0,
+    HXHIM_GET_NEXT,
+    HXHIM_GET_PREV,
 
-    HXHIM_GET_OP_MAX     = 255
+    HXHIM_GET_FIRST,       /** subject-predicate pair is ignored */
+    HXHIM_GET_LAST,        /** subject-predicate pair is ignored */
+
+    HXHIM_GET_PRIMARY_EQ,
+
+    HXHIM_GET_OP_INVALID
 };
 
 #ifdef __cplusplus

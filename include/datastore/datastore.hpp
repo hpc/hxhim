@@ -1,6 +1,7 @@
 #ifndef HXHIM_DATASTORE_HPP
 #define HXHIM_DATASTORE_HPP
 
+#include <mpi.h>
 #include <mutex>
 
 #include "datastore/constants.hpp"
@@ -70,7 +71,8 @@ class Datastore {
         int encode(const hxhim_type_t type, void *&ptr, std::size_t &len, bool &copied);
         int decode(const hxhim_type_t type, void *src, const std::size_t &src_len, void **dst, std::size_t *dst_len);
 
-        hxhim_t *hx;
+        MPI_Comm comm; // MPI communicator of HXHIM instance
+        int rank;      // MPI rank of HXHIM instance
         int id;
         Histogram::Histogram *hist;
 

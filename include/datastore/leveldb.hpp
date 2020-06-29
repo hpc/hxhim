@@ -12,14 +12,15 @@ class leveldb : public Datastore {
     public:
         leveldb(hxhim_t *hx,
                 Histogram::Histogram *hist,
-                const std::string &exact_name);
+                const std::string &exact_name,
+                const bool create_if_missing);
         leveldb(hxhim_t *hx,
                 const int id,
                 Histogram::Histogram *hist,
                 const std::string &prefix,
                 const std::string &name,
                 const bool create_if_missing);
-        ~leveldb();
+        virtual ~leveldb();
 
         int StatFlush();
 
@@ -30,11 +31,14 @@ class leveldb : public Datastore {
         Transport::Response::BPut    *BPutImpl   (Transport::Request::BPut    *req);
         Transport::Response::BGet    *BGetImpl   (Transport::Request::BGet    *req);
         Transport::Response::BGetOp  *BGetOpImpl (Transport::Request::BGetOp  *req);
+
+        /** NOTE: LevelDB returns success so long as one item */
+        /** being deleted exists and was deleted successfully */
         Transport::Response::BDelete *BDeleteImpl(Transport::Request::BDelete *req);
 
         int SyncImpl();
 
-    private:
+    protected:
         bool create_if_missing;
 
         ::leveldb::DB *db;

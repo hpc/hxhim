@@ -1,8 +1,9 @@
 #include <cstring>
 
+#include <leveldb/db.h>
 #include <gtest/gtest.h>
 
-#include "datastore/InMemory.hpp"
+#include "datastore/leveldb.hpp"
 #include "utils/memory.hpp"
 #include "utils/triplestore.hpp"
 
@@ -12,20 +13,34 @@ static const hxhim_type_t types[] = {HXHIM_BYTE_TYPE, HXHIM_BYTE_TYPE};
 static const char *objs[]         = {"obj1",          "obj2"};
 static const std::size_t count    = sizeof(types) / sizeof(types[0]);
 
-class InMemoryTest : public hxhim::datastore::InMemory {
+class LevelDBTest : public hxhim::datastore::leveldb {
     public:
-        InMemoryTest()
-            : hxhim::datastore::InMemory(nullptr, 0, nullptr, "InMemory test")
+        LevelDBTest()
+            : hxhim::datastore::leveldb(nullptr, 0, name, true)
         {}
 
-        std::map<std::string, std::string> const &data() const {
+        ~LevelDBTest()  {
+            Close();
+            cleanup();
+        }
+
+        ::leveldb::DB *data() const {
             return db;
         }
+
+    private:
+        static void cleanup() {
+            remove(name.c_str());
+        }
+
+        static const std::string name;
 };
 
-// create a test InMemory datastore and insert some triples
-static InMemoryTest *setup() {
-    InMemoryTest *ds = construct<InMemoryTest>();
+const std::string LevelDBTest::name = "LEVELDB-TEST";
+
+// create a test LevelDB datastore and insert some triples
+static LevelDBTest *setup() {
+    LevelDBTest *ds = construct<LevelDBTest>();
 
     Transport::Request::BPut req(count);
 
@@ -43,13 +58,13 @@ static InMemoryTest *setup() {
     return ds;
 }
 
-TEST(InMemory, BPut) {
-    InMemoryTest *ds = setup();
+TEST(LevelDB, BPut) {
+    LevelDBTest *ds = setup();
     ASSERT_NE(ds, nullptr);
 
-    std::map<std::string, std::string> const &db = ds->data();
-    EXPECT_EQ(db.size(), 2U);
+    ::leveldb::DB *db = ds->data();
 
+    // read directly from leveldb since setup() already did PUTs
     for(std::size_t i = 0; i < count; i++) {
         ReferenceBlob sub((void *) subs[i], strlen(subs[i]));
         ReferenceBlob pred((void *) preds[i], strlen(preds[i]));
@@ -59,18 +74,33 @@ TEST(InMemory, BPut) {
         EXPECT_EQ(sp_to_key(&sub, &pred,
                             &key, &key_len), HXHIM_SUCCESS);
 
-        EXPECT_EQ(db.find(std::string((char *) key, key_len)) != db.end(), true);
+        std::string k((char *) key, key_len);
+        std::string v;
+        leveldb::Status status = db->Get(leveldb::ReadOptions(), k, &v);
+        EXPECT_EQ(status.ok(), true);
+        EXPECT_EQ(memcmp(v.c_str(), objs[i], v.size()), 0);
 
         dealloc(key);
     }
 
+    // make sure datastore only has count items
+    std::size_t items = 0;
+    leveldb::Iterator *it = db->NewIterator(leveldb::ReadOptions());
+    for(it->SeekToFirst(); it->Valid(); it->Next()) {
+        items++;
+    }
+    EXPECT_EQ(it->status().ok(), true);
+    EXPECT_EQ(items, count);
+    delete it;
+
     destruct(ds);
 }
 
-TEST(InMemory, BGet) {
-    InMemoryTest *ds = setup();
+TEST(LevelDB, BGet) {
+    LevelDBTest *ds = setup();
     ASSERT_NE(ds, nullptr);
 
+    // get triple back using GET
     Transport::Request::BGet req(count + 1);
     for(std::size_t i = 0; i < count; i++) {
         req.subjects[i]     = construct<ReferenceBlob>((void *) subs[i],  strlen(subs[i]));
@@ -102,8 +132,8 @@ TEST(InMemory, BGet) {
     destruct(ds);
 }
 
-TEST(InMemory, BGetOp) {
-    InMemoryTest *ds = setup();
+TEST(LevelDB, BGetOp) {
+    LevelDBTest *ds = setup();
     ASSERT_NE(ds, nullptr);
 
     for(int op = HXHIM_GET_EQ; op < HXHIM_GET_OP_INVALID; op++) {
@@ -166,47 +196,93 @@ TEST(InMemory, BGetOp) {
     destruct(ds);
 }
 
-TEST(InMemory, BDelete) {
-    InMemoryTest *ds = setup();
+TEST(LevelDB, BDelete) {
+    LevelDBTest *ds = setup();
     ASSERT_NE(ds, nullptr);
 
-    std::map<std::string, std::string> const &db = ds->data();
-    EXPECT_EQ(db.size(), 2U);
+    ::leveldb::DB *db = ds->data();
 
-    Transport::Request::BDelete req(count + 1);
-    for(std::size_t i = 0; i < count; i++) {
-        req.subjects[i]     = construct<ReferenceBlob>((void *) subs[i],  strlen(subs[i]));
-        req.predicates[i]   = construct<ReferenceBlob>((void *) preds[i], strlen(preds[i]));
+    // delete the triples
+    {
+        Transport::Request::BDelete req(count + 1);
+        for(std::size_t i = 0; i < count; i++) {
+            req.subjects[i]     = construct<ReferenceBlob>((void *) subs[i],  strlen(subs[i]));
+            req.predicates[i]   = construct<ReferenceBlob>((void *) preds[i], strlen(preds[i]));
+            req.count++;
+        }
+
+        // non-existant subject-predicate pair
+        req.subjects[count]     = construct<ReferenceBlob>((void *) "sub3",  4);
+        req.predicates[count]   = construct<ReferenceBlob>((void *) "pred3", 5);
         req.count++;
+
+        Transport::Response::BDelete *res = ds->operate(&req);
+        ASSERT_NE(res, nullptr);
+        EXPECT_EQ(res->count, count + 1);
+        for(std::size_t i = 0; i < count; i++) {
+            EXPECT_EQ(res->statuses[i], HXHIM_SUCCESS);
+        }
+
+        // as long as one delete succeeded, will return HXHIM_SUCCESS
+        EXPECT_EQ(res->statuses[count], HXHIM_SUCCESS);
+
+        destruct(res);
     }
 
-    // non-existant subject-predicate pair
-    req.subjects[count]     = construct<ReferenceBlob>((void *) "sub3",  4);
-    req.predicates[count]   = construct<ReferenceBlob>((void *) "pred3", 5);
-    req.count++;
+    // check if the triples still exist using GET
+    {
+        Transport::Request::BGet req(count + 1);
+        for(std::size_t i = 0; i < count; i++) {
+            req.subjects[i]   = construct<ReferenceBlob>((void *) subs[i],  strlen(subs[i]));
+            req.predicates[i] = construct<ReferenceBlob>((void *) preds[i], strlen(preds[i]));
+            req.count++;
+        }
 
-    Transport::Response::BDelete *res = ds->operate(&req);
-    ASSERT_NE(res, nullptr);
-    EXPECT_EQ(res->count, count + 1);
-    for(std::size_t i = 0; i < count; i++) {
-        EXPECT_EQ(res->statuses[i], HXHIM_SUCCESS);
+        // non-existant subject-predicate pair
+        req.subjects[count]   = construct<ReferenceBlob>((void *) "sub3",  4);
+        req.predicates[count] = construct<ReferenceBlob>((void *) "pred3", 5);
+        req.count++;
+
+        Transport::Response::BGet *res = ds->operate(&req);
+        ASSERT_NE(res, nullptr);
+        EXPECT_EQ(res->count, count + 1);
+        for(std::size_t i = 0; i < res->count; i++) {
+            EXPECT_EQ(res->statuses[i], HXHIM_ERROR);
+        }
+
+        destruct(res);
     }
 
-    EXPECT_EQ(res->statuses[count], HXHIM_ERROR);
+    // check the datastore directly
+    {
+        for(std::size_t i = 0; i < count; i++) {
+            ReferenceBlob sub((void *) subs[i], strlen(subs[i]));
+            ReferenceBlob pred((void *) preds[i], strlen(preds[i]));
+            void * key = nullptr;
+            std::size_t key_len = 0;
+            EXPECT_EQ(sp_to_key(&sub, &pred,
+                                &key, &key_len), HXHIM_SUCCESS);
 
-    destruct(res);
+            std::string k((char *) key, key_len);
+            std::string v;
+            leveldb::Status status = db->Get(leveldb::ReadOptions(), k, &v);
+            EXPECT_EQ(status.ok(), false);
+            EXPECT_EQ(memcmp(v.c_str(), objs[i], v.size()), 0);
 
-    // get directly from internal data
-    for(std::size_t i = 0; i < count; i++) {
-        ReferenceBlob sub((void *) subs[i], strlen(subs[i]));
-        ReferenceBlob pred((void *) preds[i], strlen(preds[i]));
-        void * key = nullptr;
-        std::size_t key_len = 0;
-        EXPECT_EQ(sp_to_key(&sub, &pred,
-                            &key, &key_len), HXHIM_SUCCESS);
+            dealloc(key);
+        }
+    }
 
-        EXPECT_EQ(db.find(std::string((char *) key, key_len)) == db.end(), true);
-        dealloc(key);
+    // make sure datastore is empty
+    {
+        std::size_t items = 0;
+        leveldb::Iterator *it = db->NewIterator(leveldb::ReadOptions());
+        for(it->SeekToFirst(); it->Valid(); it->Next()) {
+            items++;
+        }
+        EXPECT_EQ(it->status().ok(), true);
+        EXPECT_EQ(items, 0);
+        delete it;
     }
 
     destruct(ds);

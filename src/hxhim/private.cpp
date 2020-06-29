@@ -324,7 +324,8 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
         case hxhim::datastore::LEVELDB:
             hx->p->datastore.datastores[0] = new hxhim::datastore::leveldb(hx,
                                                                            hist,
-                                                                           name);
+                                                                           name,
+                                                                           false);
             mlog(HXHIM_CLIENT_INFO, "Initialized single LevelDB datastore");
             break;
         #endif

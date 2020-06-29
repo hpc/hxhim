@@ -8,12 +8,12 @@
 
 #include "hxhim/accessors.hpp"
 #include "datastore/leveldb.hpp"
-#include "hxhim/triplestore.hpp"
 #include "utils/Blob.hpp"
 #include "utils/elapsed.h"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
+#include "utils/triplestore.hpp"
 
 static int mkdir_p(const std::string & path, const mode_t mode, const char sep = '/') {
     char * copy = new char[path.size() + 1]();
@@ -51,14 +51,15 @@ static int mkdir_p(const std::string & path, const mode_t mode, const char sep =
 
 hxhim::datastore::leveldb::leveldb(hxhim_t *hx,
                                    Histogram::Histogram *hist,
-                                   const std::string &exact_name)
+                                   const std::string &exact_name,
+                                   const bool create_if_missing)
     : Datastore(hx, 0, hist),
-      create_if_missing(false),
+      create_if_missing(create_if_missing),
       db(nullptr), options()
 {
-    if (!Datastore::Open(exact_name)) {
-        throw std::runtime_error("Could not configure leveldb datastore " + exact_name);
-    }
+    options.create_if_missing = create_if_missing;
+
+    Datastore::Open(exact_name);
 
     mlog(LEVELDB_INFO, "Opened leveldb with name: %s", exact_name.c_str());
 }
@@ -67,7 +68,8 @@ hxhim::datastore::leveldb::leveldb(hxhim_t *hx,
                                    const int id,
                                    Histogram::Histogram *hist,
                                    const std::string &prefix,
-                                   const std::string &basename, const bool create_if_missing)
+                                   const std::string &basename,
+                                   const bool create_if_missing)
     : Datastore(hx, id, hist),
       create_if_missing(create_if_missing),
       db(nullptr), options()
@@ -80,9 +82,7 @@ hxhim::datastore::leveldb::leveldb(hxhim_t *hx,
 
     options.create_if_missing = create_if_missing;
 
-    if (!Datastore::Open(name)) {
-        throw std::runtime_error("Could not configure leveldb datastore " + name);
-    }
+    Datastore::Open(name);
 
     mlog(LEVELDB_INFO, "Opened leveldb with name: %s", s.str().c_str());
 }
@@ -92,7 +92,11 @@ hxhim::datastore::leveldb::~leveldb() {
 }
 
 bool hxhim::datastore::leveldb::OpenImpl(const std::string &new_name) {
-    return ::leveldb::DB::Open(options, new_name, &db).ok();
+    ::leveldb::Status status = ::leveldb::DB::Open(options, new_name, &db);
+    if (!status.ok()) {
+        throw std::runtime_error("Could not configure leveldb datastore " + new_name + ": " + status.ToString());
+    }
+    return status.ok();
 }
 
 void hxhim::datastore::leveldb::CloseImpl() {
@@ -122,7 +126,7 @@ Transport::Response::BPut *hxhim::datastore::leveldb::BPutImpl(Transport::Reques
     for(std::size_t i = 0; i < req->count; i++) {
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(req->subjects[i]->data(), req->subjects[i]->size(), req->predicates[i]->data(), req->predicates[i]->size(), &key, &key_len);
+        sp_to_key(req->subjects[i], req->predicates[i], &key, &key_len);
 
         clock_gettime(CLOCK_MONOTONIC, &start);
         batch.Put(::leveldb::Slice((char *) key, key_len), ::leveldb::Slice((char *) req->objects[i]->data(), req->objects[i]->size()));
@@ -174,9 +178,6 @@ Transport::Response::BPut *hxhim::datastore::leveldb::BPutImpl(Transport::Reques
  * @return pointer to a list of results
  */
 Transport::Response::BGet *hxhim::datastore::leveldb::BGetImpl(Transport::Request::BGet *req) {
-    int rank = -1;
-    hxhim::GetMPIRank(hx, &rank);
-
     mlog(LEVELDB_INFO, "Rank %d LevelDB GET processing %zu item in %ps", rank, req->count, req);
     Transport::Response::BGet *res = construct<Transport::Response::BGet>(req->count);
     for(std::size_t i = 0; i < req->count; i++) {
@@ -185,7 +186,7 @@ Transport::Response::BGet *hxhim::datastore::leveldb::BGetImpl(Transport::Reques
 
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(req->subjects[i]->data(), req->subjects[i]->size(), req->predicates[i]->data(), req->predicates[i]->size(), &key, &key_len);
+        sp_to_key(req->subjects[i], req->predicates[i], &key, &key_len);
 
         // create the key
         const ::leveldb::Slice k((char *) key, key_len);
@@ -243,14 +244,15 @@ Transport::Response::BGet *hxhim::datastore::leveldb::BGetImpl(Transport::Reques
 Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Request::BGetOp *req) {
     Transport::Response::BGetOp *res = construct<Transport::Response::BGetOp>(req->count);
 
+    ::leveldb::Iterator *it = db->NewIterator(::leveldb::ReadOptions());
+
     for(std::size_t i = 0; i < req->count; i++) {
-        ::leveldb::Iterator *it = db->NewIterator(::leveldb::ReadOptions());
         struct timespec start, end;
 
         // find starting point
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(req->subjects[i]->data(), req->subjects[i]->size(), req->predicates[i]->data(), req->predicates[i]->size(), &key, &key_len);
+        sp_to_key(req->subjects[i], req->predicates[i], &key, &key_len);
 
         clock_gettime(CLOCK_MONOTONIC, &start);
         it->Seek(::leveldb::Slice((char *) key, key_len));
@@ -265,11 +267,12 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
         res->statuses[i]     = HXHIM_SUCCESS;
         res->object_types[i] = req->object_types[i];
         res->num_recs[i]     = 0;
-        res->subjects[i]     = alloc_array<Blob *>(res->num_recs[i]);
-        res->predicates[i]   = alloc_array<Blob *>(res->num_recs[i]);
-        res->objects[i]      = alloc_array<Blob *>(res->num_recs[i]);
+        res->subjects[i]     = alloc_array<Blob *>(req->num_recs[i]);
+        res->predicates[i]   = alloc_array<Blob *>(req->num_recs[i]);
+        res->objects[i]      = alloc_array<Blob *>(req->num_recs[i]);
 
-        for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid(); j++) {
+        bool can_continue = true;
+        for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid() && can_continue; j++) {
             clock_gettime(CLOCK_MONOTONIC, &start);
             const ::leveldb::Slice k = it->key();
             const ::leveldb::Slice v = it->value();
@@ -284,11 +287,7 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
                 res->statuses[i] = HXHIM_SUCCESS;
 
                 // get subject and predicate for sending back
-                void *sub = nullptr, *pred = nullptr;
-                std::size_t sub_len = 0, pred_len = 0;
-                key_to_sp(k.data(), k.size(), &sub, &sub_len, &pred, &pred_len);
-                res->subjects[i][j] = construct<RealBlob>(sub, sub_len);
-                res->predicates[i][j] = construct<RealBlob>(pred, pred_len);
+                key_to_sp(k.data(), k.size(), &(res->subjects[i][j]), &(res->predicates[i][j]), true);
 
                 res->objects[i][j] = construct<RealBlob>(alloc(v.size()), v.size());
                 memcpy(res->objects[i][j]->data(), v.data(), v.size());
@@ -301,16 +300,13 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
 
             // move to next iterator according to operation
             switch (req->ops[i]) {
+                case hxhim_get_op_t::HXHIM_GET_EQ:
+                    can_continue = false;
+                    break;
                 case hxhim_get_op_t::HXHIM_GET_NEXT:
                     it->Next();
                     break;
                 case hxhim_get_op_t::HXHIM_GET_PREV:
-                    it->Prev();
-                    break;
-                case hxhim_get_op_t::HXHIM_GET_FIRST:
-                    it->Next();
-                    break;
-                case hxhim_get_op_t::HXHIM_GET_LAST:
                     it->Prev();
                     break;
                 default:
@@ -322,9 +318,9 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
         }
 
         res->count++;
-
-        delete it;
     }
+
+    delete it;
 
     return res;
 }
@@ -348,7 +344,7 @@ Transport::Response::BDelete *hxhim::datastore::leveldb::BDeleteImpl(Transport::
     for(std::size_t i = 0; i < req->count; i++) {
         void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(req->subjects[i]->data(), req->subjects[i]->size(), req->predicates[i]->data(), req->predicates[i]->size(), &key, &key_len);
+        sp_to_key(req->subjects[i], req->predicates[i], &key, &key_len);
 
         batch.Delete(::leveldb::Slice((char *) key, key_len));
 

@@ -19,15 +19,13 @@ class InMemory : public Datastore {
                  const int id,
                  Histogram::Histogram *hist,
                  const std::string &name);
-        #ifdef HXHIM_DATASTORE_GTEST
-        virtual
-        #endif
-        ~InMemory();
+
+        virtual ~InMemory();
 
         int StatFlush();
 
     private:
-        bool OpenImpl(const std::string &name_name);
+        bool OpenImpl(const std::string &); // NO OP
         void CloseImpl();
 
         Transport::Response::BPut    *BPutImpl   (Transport::Request::BPut    *req);
@@ -37,13 +35,7 @@ class InMemory : public Datastore {
 
         int SyncImpl();
 
-    #ifdef HXHIM_DATASTORE_GTEST
     protected:
-    #else
-    private:
-    #endif
-        int Open(MPI_Comm comm, const std::string &config);
-
         std::map<std::string, std::string> db;
 };
 

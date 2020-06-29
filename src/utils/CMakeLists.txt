@@ -9,4 +9,5 @@ target_sources(hxhim PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/is_range_server.c
   ${CMAKE_CURRENT_SOURCE_DIR}/memory.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/mlog2.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/triplestore.cpp
 )

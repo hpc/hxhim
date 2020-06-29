@@ -12,5 +12,4 @@ target_sources(hxhim PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/private.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/Results.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/single_type.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/triplestore.cpp
 )
