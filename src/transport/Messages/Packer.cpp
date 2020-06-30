@@ -127,11 +127,18 @@ int Packer::pack(const Request::BGetOp *bgm, void **buf, std::size_t *bufsize) {
         memcpy(curr, &bgm->ds_offsets[i], sizeof(bgm->ds_offsets[i]));
         curr += sizeof(bgm->ds_offsets[i]);
 
-        // subject
-        bgm->subjects[i]->pack(curr);
+        // operation to run
+        memcpy(curr, &bgm->ops[i], sizeof(bgm->ops[i]));
+        curr += sizeof(bgm->ops[i]);
 
-        // predicate
-        bgm->predicates[i]->pack(curr);
+        if ((bgm->ops[i] != hxhim_get_op_t::HXHIM_GET_FIRST) &&
+            (bgm->ops[i] != hxhim_get_op_t::HXHIM_GET_LAST))  {
+            // subject
+            bgm->subjects[i]->pack(curr);
+
+            // predicate
+            bgm->predicates[i]->pack(curr);
+        }
 
         // object type
         memcpy(curr, &bgm->object_types[i], sizeof(bgm->object_types[i]));
@@ -140,10 +147,6 @@ int Packer::pack(const Request::BGetOp *bgm, void **buf, std::size_t *bufsize) {
         // number of records to get back
         memcpy(curr, &bgm->num_recs[i], sizeof(bgm->num_recs[i]));
         curr += sizeof(bgm->num_recs[i]);
-
-        // operation to run
-        memcpy(curr, &bgm->ops[i], sizeof(bgm->ops[i]));
-        curr += sizeof(bgm->ops[i]);
     }
 
     return TRANSPORT_SUCCESS;

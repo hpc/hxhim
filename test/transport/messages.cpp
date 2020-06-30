@@ -125,20 +125,33 @@ TEST(Request, BGet) {
 
 TEST(Request, BGetOp) {
     Request::BGetOp src;
-    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
+    ASSERT_EQ(src.alloc(HXHIM_GET_INVALID), TRANSPORT_SUCCESS);
     {
         src.src = rand();
         src.dst = rand();
 
-        src.count = 1;
+        src.count = HXHIM_GET_INVALID;
 
-        src.ds_offsets[0] = rand();
+        for(int i = 0; i < HXHIM_GET_INVALID; i++) {
+            src.ds_offsets[i] = rand();
+            src.subjects[i] = construct<ReferenceBlob>(&SUBJECT, SUBJECT_LEN);
+            src.predicates[i] = construct<ReferenceBlob>(&PREDICATE, PREDICATE_LEN);
+            src.object_types[i] = OBJECT_TYPE;
+            src.num_recs[i] = rand();
+            src.ops[i] = static_cast<hxhim_get_op_t>(i);
+        }
 
-        src.subjects[0] = construct<ReferenceBlob>(&SUBJECT, SUBJECT_LEN);
-        src.predicates[0] = construct<ReferenceBlob>(&PREDICATE, PREDICATE_LEN);
-        src.object_types[0] = OBJECT_TYPE;
-        src.num_recs[0] = rand();
-        src.ops[0] = HXHIM_GET_EQ;
+        destruct(src.subjects[HXHIM_GET_FIRST]);
+        src.subjects[HXHIM_GET_FIRST] = nullptr;
+
+        destruct(src.predicates[HXHIM_GET_FIRST]);
+        src.predicates[HXHIM_GET_FIRST] = nullptr;
+
+        destruct(src.subjects[HXHIM_GET_LAST]);
+        src.subjects[HXHIM_GET_LAST] = nullptr;
+
+        destruct(src.predicates[HXHIM_GET_LAST]);
+        src.predicates[HXHIM_GET_LAST] = nullptr;
     }
 
     EXPECT_EQ(src.direction, Message::REQUEST);
@@ -163,11 +176,21 @@ TEST(Request, BGetOp) {
     for(std::size_t i = 0; i < dst->count; i++) {
         EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
 
-        EXPECT_EQ(src.subjects[i]->size(), dst->subjects[i]->size());
-        EXPECT_EQ(memcmp(src.subjects[i]->data(), dst->subjects[i]->data(), dst->subjects[i]->size()), 0);
+        if (!dst->subjects[i]) {
+            EXPECT_EQ(src.subjects[i], nullptr);
+        }
+        else {
+            EXPECT_EQ(src.subjects[i]->size(), dst->subjects[i]->size());
+            EXPECT_EQ(memcmp(src.subjects[i]->data(), dst->subjects[i]->data(), dst->subjects[i]->size()), 0);
+        }
 
-        EXPECT_EQ(src.predicates[i]->size(), dst->predicates[i]->size());
-        EXPECT_EQ(memcmp(src.predicates[i]->data(), dst->predicates[i]->data(), dst->predicates[i]->size()), 0);
+        if (!dst->predicates[i]) {
+            EXPECT_EQ(src.predicates[i], nullptr);
+        }
+        else {
+            EXPECT_EQ(src.predicates[i]->size(), dst->predicates[i]->size());
+            EXPECT_EQ(memcmp(src.predicates[i]->data(), dst->predicates[i]->data(), dst->predicates[i]->size()), 0);
+        }
 
         EXPECT_EQ(src.object_types[i], dst->object_types[i]);
 

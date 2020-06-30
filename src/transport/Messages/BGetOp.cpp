@@ -18,10 +18,14 @@ Transport::Request::BGetOp::~BGetOp() {
 std::size_t Transport::Request::BGetOp::size() const {
     std::size_t total = Request::size();
     for(std::size_t i = 0; i < count; i++) {
-        total += subjects[i]->pack_size() +
-                 predicates[i]->pack_size() +
-                 sizeof(object_types[i]) +
+        total += sizeof(object_types[i]) +
                  sizeof(num_recs[i]) + sizeof(ops[i]);
+
+        if ((ops[i] != hxhim_get_op_t::HXHIM_GET_FIRST) &&
+            (ops[i] != hxhim_get_op_t::HXHIM_GET_LAST)) {
+            total += subjects[i]->pack_size() +
+                     predicates[i]->pack_size();
+        }
     }
     return total;
 }

@@ -197,11 +197,18 @@ int Unpacker::unpack(Request::BGetOp **bgm, void *buf, const std::size_t bufsize
         memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
         curr += sizeof(out->ds_offsets[i]);
 
-        // subject
-        out->subjects[i] = construct<RealBlob>(curr);
+        // operation to run
+        memcpy(&out->ops[i], curr, sizeof(out->ops[i]));
+        curr += sizeof(out->ops[i]);
 
-        // predicate
-        out->predicates[i] = construct<RealBlob>(curr);
+        if ((out->ops[i] != hxhim_get_op_t::HXHIM_GET_FIRST) &&
+            (out->ops[i] != hxhim_get_op_t::HXHIM_GET_LAST))  {
+            // subject
+            out->subjects[i] = construct<RealBlob>(curr);
+
+            // predicate
+            out->predicates[i] = construct<RealBlob>(curr);
+        }
 
         // object type
         memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
@@ -210,10 +217,6 @@ int Unpacker::unpack(Request::BGetOp **bgm, void *buf, const std::size_t bufsize
         // number of records to get back
         memcpy(&out->num_recs[i], curr, sizeof(out->num_recs[i]));
         curr += sizeof(out->num_recs[i]);
-
-        // operation to run
-        memcpy(&out->ops[i], curr, sizeof(out->ops[i]));
-        curr += sizeof(out->ops[i]);
 
         out->count++;
     }
