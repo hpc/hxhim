@@ -66,7 +66,7 @@ hxhim::GetOpData::GetOpData()
     : SP_t(),
       object_type(HXHIM_INVALID_TYPE),
       num_recs(0),
-      op(HXHIM_GET_OP_INVALID),
+      op(HXHIM_GET_INVALID),
       prev(nullptr),
       next(nullptr)
 {}

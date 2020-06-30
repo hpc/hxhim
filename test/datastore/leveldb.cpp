@@ -136,7 +136,7 @@ TEST(LevelDB, BGetOp) {
     LevelDBTest *ds = setup();
     ASSERT_NE(ds, nullptr);
 
-    for(int op = HXHIM_GET_EQ; op < HXHIM_GET_OP_INVALID; op++) {
+    for(int op = HXHIM_GET_EQ; op < HXHIM_GET_INVALID; op++) {
         Transport::Request::BGetOp req(1);
         req.subjects[0]     = construct<ReferenceBlob>((void *) subs[0],  strlen(subs[0]));
         req.predicates[0]   = construct<ReferenceBlob>((void *) preds[0], strlen(preds[0]));
@@ -158,11 +158,16 @@ TEST(LevelDB, BGetOp) {
                     ASSERT_NE(res->subjects[0][j], nullptr);
                     ASSERT_NE(res->subjects[0][j]->data(), nullptr);
                     EXPECT_EQ(memcmp(subs[0],  res->subjects[0][j]->data(),   res->subjects[0][j]->size()),   0);
+                    ASSERT_NE(res->predicates[0][j], nullptr);
+                    ASSERT_NE(res->predicates[0][j]->data(), nullptr);
                     EXPECT_EQ(memcmp(preds[0], res->predicates[0][j]->data(), res->predicates[0][j]->size()), 0);
+                    ASSERT_NE(res->objects[0][j], nullptr);
+                    ASSERT_NE(res->objects[0][j]->data(), nullptr);
                     EXPECT_EQ(memcmp(objs[0],  res->objects[0][j]->data(),    res->objects[0][j]->size()),    0);
                 }
                 break;
             case HXHIM_GET_NEXT:
+            case HXHIM_GET_FIRST:
                 EXPECT_EQ(res->num_recs[0], count);
 
                 // only 2 values available
@@ -170,7 +175,11 @@ TEST(LevelDB, BGetOp) {
                     ASSERT_NE(res->subjects[0][j], nullptr);
                     ASSERT_NE(res->subjects[0][j]->data(), nullptr);
                     EXPECT_EQ(memcmp(subs[j],  res->subjects[0][j]->data(),   res->subjects[0][j]->size()),   0);
+                    ASSERT_NE(res->predicates[0][j], nullptr);
+                    ASSERT_NE(res->predicates[0][j]->data(), nullptr);
                     EXPECT_EQ(memcmp(preds[j], res->predicates[0][j]->data(), res->predicates[0][j]->size()), 0);
+                    ASSERT_NE(res->objects[0][j], nullptr);
+                    ASSERT_NE(res->objects[0][j]->data(), nullptr);
                     EXPECT_EQ(memcmp(objs[j],  res->objects[0][j]->data(),    res->objects[0][j]->size()),    0);
                 }
                 break;
@@ -181,11 +190,32 @@ TEST(LevelDB, BGetOp) {
                     ASSERT_NE(res->subjects[0][j], nullptr);
                     ASSERT_NE(res->subjects[0][j]->data(), nullptr);
                     EXPECT_EQ(memcmp(subs[j],  res->subjects[0][j]->data(),   res->subjects[0][j]->size()),   0);
+                    ASSERT_NE(res->predicates[0][j], nullptr);
+                    ASSERT_NE(res->predicates[0][j]->data(), nullptr);
                     EXPECT_EQ(memcmp(preds[j], res->predicates[0][j]->data(), res->predicates[0][j]->size()), 0);
+                    ASSERT_NE(res->objects[0][j], nullptr);
+                    ASSERT_NE(res->objects[0][j]->data(), nullptr);
                     EXPECT_EQ(memcmp(objs[j],  res->objects[0][j]->data(),    res->objects[0][j]->size()),    0);
                 }
                 break;
-            case HXHIM_GET_OP_INVALID:
+            case HXHIM_GET_LAST:
+                EXPECT_EQ(res->num_recs[0], 2);
+
+                for(std::size_t j = 0; j < res->num_recs[0]; j++) {
+                    const std::size_t k = res->num_recs[0] - 1 - j;;
+
+                    ASSERT_NE(res->subjects[0][k], nullptr);
+                    ASSERT_NE(res->subjects[0][k]->data(), nullptr);
+                    EXPECT_EQ(memcmp(subs[j],  res->subjects[0][k]->data(),   res->subjects[0][k]->size()),   0);
+                    ASSERT_NE(res->predicates[0][j], nullptr);
+                    ASSERT_NE(res->predicates[0][j]->data(), nullptr);
+                    EXPECT_EQ(memcmp(preds[j], res->predicates[0][k]->data(), res->predicates[0][k]->size()), 0);
+                    ASSERT_NE(res->objects[0][j], nullptr);
+                    ASSERT_NE(res->objects[0][j]->data(), nullptr);
+                    EXPECT_EQ(memcmp(objs[j],  res->objects[0][k]->data(),    res->objects[0][k]->size()),    0);
+                }
+                break;
+            case HXHIM_GET_INVALID:
             default:
                 break;
         }

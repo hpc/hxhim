@@ -36,16 +36,16 @@ enum hxhim_type_t {
  * with a GetOp or BGetOP
  */
 enum hxhim_get_op_t {
-    HXHIM_GET_EQ = 0,
+    HXHIM_GET_EQ = 0,      /** num_recs is ignored */
     HXHIM_GET_NEXT,
     HXHIM_GET_PREV,
 
     HXHIM_GET_FIRST,       /** subject-predicate pair is ignored */
     HXHIM_GET_LAST,        /** subject-predicate pair is ignored */
 
-    HXHIM_GET_PRIMARY_EQ,
+    // HXHIM_GET_PRIMARY_EQ,
 
-    HXHIM_GET_OP_INVALID
+    HXHIM_GET_INVALID
 };
 
 #ifdef __cplusplus

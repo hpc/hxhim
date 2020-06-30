@@ -138,6 +138,23 @@ Transport::Response::BGet *hxhim::datastore::InMemory::BGetImpl(Transport::Reque
     return res;
 }
 
+static void BGetOp_copy_response(const std::map<std::string, std::string>::const_iterator &it,
+                                 Transport::Response::BGetOp *res,
+                                 const std::size_t i,
+                                 const std::size_t j) {
+    const std::string &k = it->first;
+    const std::string &v = it->second;
+
+    // copy key into subject/predicate
+    key_to_sp(k.data(), k.size(), &(res->subjects[i][j]), &(res->predicates[i][j]), true);
+
+    // copy object
+    res->objects[i][j] = construct<RealBlob>(alloc(v.size()), v.size());
+    memcpy(res->objects[i][j]->data(), v.data(), v.size());
+
+    res->num_recs[i]++;
+}
+
 /**
  * BGetOp
  * Performs a GetOp in InMemory
@@ -157,70 +174,121 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
         struct timespec start = {};
         struct timespec end = {};
 
-        void *key = nullptr;
-        std::size_t key_len = 0;
-        sp_to_key(req->subjects[i], req->predicates[i], &key, &key_len);
-
-        // find the starting position
-        clock_gettime(CLOCK_MONOTONIC, &start);
-        decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
-        clock_gettime(CLOCK_MONOTONIC, &end);
-
-        // add in the time to get the first key-value without adding to the counter
-        stats.get_times += nano(start, end);
-
-        dealloc(key);
-
-        // all responses for this Op share a status
-        res->statuses[i]     = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
+        // prepare response
         res->object_types[i] = req->object_types[i];
         res->num_recs[i]     = 0;
         res->subjects[i]     = alloc_array<Blob *>(req->num_recs[i]);
         res->predicates[i]   = alloc_array<Blob *>(req->num_recs[i]);
         res->objects[i]      = alloc_array<Blob *>(req->num_recs[i]);
 
-        decltype(db)::const_reverse_iterator rit(it); // prevent it-- from going too far
-        bool can_continue = true;
-        for(std::size_t j = 0; (j < req->num_recs[i]) && can_continue; j++) {
-            decltype(it->first) const *k = nullptr;
-            decltype(it->second) const *v = nullptr;
+        if (req->ops[i] == hxhim_get_op_t::HXHIM_GET_EQ) {
+            void *key = nullptr;
+            std::size_t key_len = 0;
+            sp_to_key(req->subjects[i], req->predicates[i], &key, &key_len);
 
-            // move to next iterator according to operation
-            switch (req->ops[i]) {
-                case hxhim_get_op_t::HXHIM_GET_EQ:
-                    k = &it->first;
-                    v = &it->second;
-                    can_continue = false;
-                    break;
-                case hxhim_get_op_t::HXHIM_GET_NEXT:
-                    k = &it->first;
-                    v = &it->second;
-                    it++;
-                    can_continue = (it != db.end());
-                    break;
-                case hxhim_get_op_t::HXHIM_GET_PREV:
-                    k = &rit->first;
-                    v = &rit->second;
-                    rit++;
-                    can_continue = (rit != db.rend());
-                    break;
-                default:
-                    break;
-            }
-
-            // copy key into subject/predicate
-            key_to_sp(k->data(), k->size(), &(res->subjects[i][j]), &(res->predicates[i][j]), true);
-
-            // copy object
-            res->objects[i][j] = construct<RealBlob>(alloc(v->size()), v->size());
-            memcpy(res->objects[i][j]->data(), v->data(), v->size());
-
-            res->num_recs[i]++;
-
+            clock_gettime(CLOCK_MONOTONIC, &start);
+            decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
             clock_gettime(CLOCK_MONOTONIC, &end);
-            stats.gets++;
-            stats.get_times += nano(start, end);
+
+            dealloc(key);
+
+            res->statuses[i] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
+
+            // only 1 response, so j == 0 (num_recs is ignored)
+            BGetOp_copy_response(it, res, i, 0);
         }
+        else if (req->ops[i] == hxhim_get_op_t::HXHIM_GET_NEXT) {
+            void *key = nullptr;
+            std::size_t key_len = 0;
+            sp_to_key(req->subjects[i], req->predicates[i], &key, &key_len);
+
+            clock_gettime(CLOCK_MONOTONIC, &start);
+            decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
+            clock_gettime(CLOCK_MONOTONIC, &end);
+
+            dealloc(key);
+
+            // all responses for this Op share a status
+            res->statuses[i] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
+
+            // first result returned is (subject, predicate)
+            // (results are offsets)
+            for(std::size_t j = 0; (j < req->num_recs[i]) && (it != db.end()); j++) {
+                BGetOp_copy_response(it, res, i, j);
+                it++;
+            }
+        }
+        else if (req->ops[i] == hxhim_get_op_t::HXHIM_GET_PREV) {
+            void *key = nullptr;
+            std::size_t key_len = 0;
+            sp_to_key(req->subjects[i], req->predicates[i], &key, &key_len);
+
+            clock_gettime(CLOCK_MONOTONIC, &start);
+            decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
+            clock_gettime(CLOCK_MONOTONIC, &end);
+
+            dealloc(key);
+
+            if (it != db.end()) {
+                // first result returned is (subject, predicate)
+                // (results are offsets)
+                for(std::size_t j = 0; j < req->num_recs[i]; j++) {
+                    BGetOp_copy_response(it, res, i, j);
+                    if (it == db.begin()) {
+                        break;
+                    }
+                    it--;
+                }
+
+                res->statuses[i] = HXHIM_SUCCESS;
+            }
+            else {
+                res->statuses[i] = HXHIM_ERROR;
+            }
+        }
+        else if (req->ops[i] == hxhim_get_op_t::HXHIM_GET_FIRST) {
+            // ignore key
+            clock_gettime(CLOCK_MONOTONIC, &start);
+            decltype(db)::const_iterator it = db.begin();
+            clock_gettime(CLOCK_MONOTONIC, &end);
+
+            if (it != db.end()) {
+                for(std::size_t j = 0; (j < req->num_recs[i]) && (it != db.end()); j++) {
+                    BGetOp_copy_response(it, res, i, j);
+                    it++;
+                }
+
+                res->statuses[i] = HXHIM_SUCCESS;
+            }
+            else {
+                res->statuses[i] = HXHIM_ERROR;
+            }
+        }
+        else if (req->ops[i] == hxhim_get_op_t::HXHIM_GET_LAST) {
+            // ignore key
+            clock_gettime(CLOCK_MONOTONIC, &start);
+            decltype(db)::const_iterator it = db.end();
+            it--;
+            clock_gettime(CLOCK_MONOTONIC, &end);
+
+            if (it != db.end()) {
+                for(std::size_t j = 0; j < req->num_recs[i]; j++) {
+                    BGetOp_copy_response(it, res, i, j);
+                    if (it == db.begin()) {
+                        break;
+                    }
+                    it--;
+                }
+
+                res->statuses[i] = HXHIM_SUCCESS;
+            }
+            else {
+                res->statuses[i] = HXHIM_ERROR;
+            }
+        }
+
+        stats.gets++;
+        stats.get_times += nano(start, end);
 
         res->count++;
     }
