@@ -1,6 +1,8 @@
 #ifndef HXHIM_MESSAGE_STRUCTS_HPP
 #define HXHIM_MESSAGE_STRUCTS_HPP
 
+#include "transport/Messages/Message.hpp"
+
 #include "transport/Messages/BPut.hpp"
 #include "transport/Messages/BGet.hpp"
 #include "transport/Messages/BGetOp.hpp"

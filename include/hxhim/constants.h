@@ -15,6 +15,26 @@ extern "C"
 /** How many different ways a SPO triple will be PUT into HXHIM per PUT */
 #define HXHIM_PUT_MULTIPLIER 1
 
+// /**
+//  * hxhim_op_t
+//  * List of operations done by HXHIM
+//  * from the user's perspective
+//  */
+// enum hxhim_op_t {
+//     PUT,
+//     GET,
+//     GETOP,
+//     DELETE,
+
+//     BPUT,
+//     BGET,
+//     BGETOP,
+//     BDELETE,
+
+//     SYNC,
+//     BHISTOGRAM,
+// };
+
 /**
  * hxhim_type_t
  * The types of data tha can be passed into HXHIM

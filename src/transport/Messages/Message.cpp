@@ -30,6 +30,10 @@ std::size_t Transport::Message::Message::size() const {
     return sizeof(direction) + sizeof(type) + sizeof(src) + sizeof(dst) + (count * sizeof(*ds_offsets)) + sizeof(count);
 }
 
+std::size_t Transport::Message::Message::filled() const {
+    return count;
+}
+
 int Transport::Message::alloc(const std::size_t max) {
     Message::cleanup();
 

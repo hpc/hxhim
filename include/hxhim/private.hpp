@@ -2,6 +2,9 @@
 #define HXHIM_PRIVATE_HPP
 
 #include <atomic>
+#include <chrono>
+#include <iostream>
+#include <list>
 #include <mutex>
 #include <thread>
 #include <unordered_map>
@@ -89,50 +92,26 @@ typedef struct hxhim_private {
         void (*destroy)();                                     // Range server static variable cleanup
     } range_server;
 
-    /** @decription Statistics for an instance of Transport */
+    /** @decription Statistics */
     struct Stats {
-        struct Op {
-            /** @description Statistics on percentage of each packet filled */
-            struct Filled {
-                Filled(const int dst, const long double percent)
-                    : dst(dst),
-                      percent(percent)
-                    {}
+        // how long each single operation called by the user took
+        std::map<Transport::Message::Type, std::list<std::chrono::nanoseconds> > single_op;
 
-                Filled(const Filled &filled)
-                    : dst(filled.dst),
-                      percent(filled.percent)
-                    {}
+        // how long each bulk operation called by the user took
+        std::map<Transport::Message::Type, std::list<std::chrono::nanoseconds> > bulk_op;
 
-                Filled(const Filled &&filled)
-                    : dst(std::move(filled.dst)),
-                      percent(std::move(filled.percent))
-                    {}
+        // how many entries of a message packet were used before sending
+        // max number of entries per message should never change
+        std::map<Transport::Message::Type, std::list<std::size_t> > used;
 
-                Filled &operator=(const Filled &filled) {
-                    dst = filled.dst;
-                    percent = filled.percent;
-                    return *this;
-                }
+        // how long each transport took
+        std::map<Transport::Message::Type, std::list <std::chrono::nanoseconds> > transport;
 
-                Filled &operator=(const Filled &&filled) {
-                    dst = std::move(filled.dst);
-                    percent = std::move(filled.percent);
-                    return *this;
-                }
+        // distribution of outgoing packets
+        std::map<int, std::map<Transport::Message::Type, std::size_t> > outgoing;
 
-                int dst;
-                long double percent;
-            };
-
-            std::list<Filled> filled;
-            mutable std::mutex mutex;
-        };
-
-        Op bput;
-        Op bget;
-        Op bgetop;
-        Op bdel;
+        // distribution of incoming packets
+        std::map<int, std::map<Transport::Message::Type, std::size_t> > incoming;
     };
 
     Stats stats;
@@ -168,39 +147,10 @@ int async_put   (hxhim_t *hx);
 int datastore   (hxhim_t *hx);
 }
 
-/**
- * collect_fill_stats
- * Collects statistics on how much of a bulk packet was used before being sent into the transport
- *
- * @tparam msg  a single message
- * @param  op   the statistics structure for an operation (PUT, GET, GETOP, DEL)
- */
-template <typename T, typename = enable_if_t<is_child_of<Transport::Request::Request, T>::value> >
-void collect_fill_stats(T *msg, hxhim_private_t::Stats::Op &op) {
-    if (msg) {
-        // Collect packet filled percentage
-        std::lock_guard<std::mutex> lock(op.mutex);
-        op.filled.emplace_back(hxhim_private_t::Stats::Op::Filled(msg->dst, (double) msg->count / (double) msg->max_count));
-    }
-}
-
-/**
- * collect_fill_stats
- * Collects statistics on how much of a bulk packet was used before being sent into the transport
- *
- * @param msgs the list (really map) of messages
- * @param op   the statistics structure for an operation (PUT, GET, GETOP, DEL)
- */
-template <typename T, typename = enable_if_t<is_child_of<Transport::Request::Request, T>::value> >
-void collect_fill_stats(const std::unordered_map<int, T *> &msgs, hxhim_private_t::Stats::Op &op) {
-    // Collect packet filled percentage
-    std::lock_guard<std::mutex> lock(op.mutex);
-    for(REF(msgs)::value_type const & msg : msgs) {
-        if (msg.second) {
-            op.filled.emplace_back(hxhim_private_t::Stats::Op::Filled(msg.first, (double) msg.second->count / (double) msg.second->max_count));
-        }
-    }
-}
+// this will probably be moved to the public side
+std::ostream &print_stats(hxhim_t *hx,
+                          const std::string &indent = "    ",
+                          std::ostream &stream = std::cout);
 
 int PutImpl(hxhim::Unsent<hxhim::PutData> &puts,
             void *subject, std::size_t subject_len,

@@ -39,6 +39,7 @@ struct Message {
     virtual ~Message();
 
     virtual std::size_t size() const;
+    std::size_t filled() const;
 
     virtual int alloc(const std::size_t max);
     virtual int cleanup();

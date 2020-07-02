@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cfloat>
 #include <cmath>
+#include <iomanip>
 #include <map>
 
 #include "datastore/datastores.hpp"
@@ -594,6 +595,65 @@ int hxhim::destroy::datastore(hxhim_t *hx) {
     }
 
     return HXHIM_SUCCESS;
+}
+
+std::ostream &hxhim::print_stats(hxhim_t *hx, const std::string &indent, std::ostream &stream) {
+    std::ios_base::fmtflags flags(stream.flags());
+
+    stream << std::fixed << std::setprecision(3);
+    {
+        stream << indent << "Single Ops:" << std::endl;
+
+        std::size_t total_ops = 0;
+        std::chrono::nanoseconds total_time(0);
+        for(typename decltype(hx->p->stats.single_op)::const_iterator it = hx->p->stats.single_op.begin();
+            it != hx->p->stats.single_op.end(); it++) {
+            std::chrono::nanoseconds op_time(0);
+            for(std::chrono::nanoseconds const &time : it->second) {
+                op_time += time;
+            }
+            stream << indent << indent << Transport::Message::TypeStr[it->first] << " count: " << it->second.size() << " duration: "  << std::chrono::duration_cast<std::chrono::seconds>(op_time).count() << " seconds" << std::endl;
+
+            total_ops += it->second.size();
+            total_time += op_time;
+        }
+    }
+
+    {
+        stream << indent << "Bulk Ops:" << std::endl;
+
+        std::size_t total_ops = 0;
+        std::chrono::nanoseconds total_time(0);
+        for(typename decltype(hx->p->stats.bulk_op)::const_iterator it = hx->p->stats.bulk_op.begin();
+            it != hx->p->stats.bulk_op.end(); it++) {
+            std::chrono::nanoseconds op_time(0);
+            for(std::chrono::nanoseconds const &time : it->second) {
+                op_time += time;
+            }
+            stream << indent << indent << Transport::Message::TypeStr[it->first] << " count: " << it->second.size() << " duration: "  << std::chrono::duration_cast<std::chrono::seconds>(op_time).count() << " seconds" << std::endl;
+
+            total_ops += it->second.size();
+            total_time += op_time;
+        }
+    }
+
+    {
+        stream << indent << "Average Message Packet Fill Rate:" << std::endl;
+
+        for(typename decltype(hx->p->stats.used)::const_iterator it = hx->p->stats.used.begin();
+            it != hx->p->stats.used.end(); it++) {
+
+            std::size_t sum = 0;
+            for(std::size_t const &filled : it->second) {
+                sum += filled;
+            }
+
+            stream << indent << indent << Transport::Message::TypeStr[it->first] << " count: " << it->second.size() << " average filled: "  << sum << "/" << hx->p->max_ops_per_send.puts << " (" << 100 * sum / ((double) hx->p->max_ops_per_send.puts) << "%)" << std::endl;
+        }
+    }
+
+    stream.flags(flags);
+    return stream;
 }
 
 /**
