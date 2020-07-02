@@ -8,7 +8,7 @@
 #include "print_results.h"
 #include "spo_gen.h"
 
-const size_t count = 1;
+const size_t count = 10;
 const size_t bufsize = 100;
 
 void ordered_print(MPI_Comm comm, const int rank, const int size, hxhim_t * hx, hxhim_results_t *res) {
@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
     // PUT the key value pairs into HXHIM
     for(size_t i = 0; i < count; i++) {
         hxhimPut(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_BYTE_TYPE, objects[i], object_lens[i]);
-        printf("Rank %d PUT {%.*s, %.*s} -> %.*s\n", rank,
+        printf("Rank %d PUT          {%.*s, %.*s} -> %.*s\n", rank,
                (int) subject_lens[i],   (char *) subjects[i],
                (int) predicate_lens[i], (char *) predicates[i],
                (int) object_lens[i],    (char *) objects[i]);
