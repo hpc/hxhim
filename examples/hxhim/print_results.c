@@ -49,8 +49,8 @@ void print_results(hxhim_t *hx, const int print_rank, hxhim_results_t *results) 
         enum hxhim_result_type type;
         hxhim_results_type(results, &type);
 
-        int error;
-        hxhim_results_error(results, &error);
+        int status;
+        hxhim_results_status(results, &status);
 
         int datastore;
         hxhim_results_datastore(results, &datastore);
@@ -61,18 +61,18 @@ void print_results(hxhim_t *hx, const int print_rank, hxhim_results_t *results) 
         void *predicate = NULL;
         size_t predicate_len = 0;
 
-        if (error == HXHIM_SUCCESS) {
+        if (status == HXHIM_SUCCESS) {
             hxhim_results_subject(results, &subject, &subject_len);
             hxhim_results_predicate(results, &predicate, &predicate_len);
         }
 
         switch (type) {
             case HXHIM_RESULT_PUT:
-                printf("PUT          {%.*s, %.*s} returned %s from datastore %d\n", (int) subject_len, (char *) subject, (int) predicate_len, (char *) predicate, (error == HXHIM_SUCCESS)?"SUCCESS":"ERROR", datastore);
+                printf("PUT          {%.*s, %.*s} returned %s from datastore %d\n", (int) subject_len, (char *) subject, (int) predicate_len, (char *) predicate, (status == HXHIM_SUCCESS)?"SUCCESS":"ERROR", datastore);
                 break;
             case HXHIM_RESULT_GET:
                 printf("GET returned ");
-                if (error == HXHIM_SUCCESS) {
+                if (status == HXHIM_SUCCESS) {
                     enum hxhim_type_t object_type;
                     hxhim_results_object_type(results, &object_type);
                     void *object = NULL;
@@ -89,7 +89,7 @@ void print_results(hxhim_t *hx, const int print_rank, hxhim_results_t *results) 
                 printf(" from datastore %d\n", datastore);
                 break;
             case HXHIM_RESULT_DEL:
-                printf("DEL          {%.*s, %.*s} returned %s from datastore %d\n", (int) subject_len, (char *) subject, (int) predicate_len, (char *) predicate, (error == HXHIM_SUCCESS)?"SUCCESS":"ERROR", datastore);
+                printf("DEL          {%.*s, %.*s} returned %s from datastore %d\n", (int) subject_len, (char *) subject, (int) predicate_len, (char *) predicate, (status == HXHIM_SUCCESS)?"SUCCESS":"ERROR", datastore);
                 break;
             default:
                 printf("Bad Type: %d\n", (int) type);

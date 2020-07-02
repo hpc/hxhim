@@ -936,8 +936,8 @@ class Benchmark {
       thread->stats.FinishedSingleOp();
 
       for(hxhim_results_goto_head(ret); hxhim_results_valid(ret) == HXHIM_SUCCESS; hxhim_results_goto_next(ret)) {
-          int error; hxhim_results_error(ret, &error);
-          found += (error == HXHIM_SUCCESS);
+          int status; hxhim_results_status(ret, &status);
+          found += (status == HXHIM_SUCCESS);
       }
       hxhim_results_destroy(ret);
 

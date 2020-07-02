@@ -35,19 +35,19 @@ static void print_double_results(hxhim_results_t *results) {
         enum hxhim_result_type type;
         hxhim_results_type(results, &type);
 
-        int error;
-        hxhim_results_error(results, &error);
+        int status;
+        hxhim_results_status(results, &status);
 
         int datastore;
         hxhim_results_datastore(results, &datastore);
 
         switch (type) {
             case HXHIM_RESULT_PUT:
-                printf("PUT returned %s from datastore %d", (error == HXHIM_SUCCESS)?"SUCCESS":"ERROR", datastore);
+                printf("PUT returned %s from datastore %d", (status == HXHIM_SUCCESS)?"SUCCESS":"ERROR", datastore);
                 break;
             case HXHIM_RESULT_GET:
                 printf("GET returned ");
-                if (error == HXHIM_SUCCESS) {
+                if (status == HXHIM_SUCCESS) {
                     void *subject = NULL;
                     size_t subject_len = 0;
                     hxhim_results_subject(results, &subject, &subject_len);
@@ -72,7 +72,7 @@ static void print_double_results(hxhim_results_t *results) {
                 printf("from datastore %d\n", datastore);
                 break;
             case HXHIM_RESULT_DEL:
-                printf("DEL returned %s from datastore %d", (error == HXHIM_SUCCESS)?"SUCCESS":"ERROR", datastore);
+                printf("DEL returned %s from datastore %d", (status == HXHIM_SUCCESS)?"SUCCESS":"ERROR", datastore);
                 break;
             default:
                 break;

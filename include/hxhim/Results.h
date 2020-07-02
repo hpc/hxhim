@@ -29,20 +29,14 @@ extern "C"
  *         hxhim_results_type(res, &type);
  *         switch (type) {
  *             case HXHIM_RESULT_PUT:
- *                 {
- *                     // do stuff with put
- *                 }
+ *                 // do stuff with put
  *                 break;
  *             case HXHIM_RESULT_GET:
  *             case HXHIM_RESULT_GETOP:
- *                 {
- *                     // do stuff with get
- *                 }
+ *                 // do stuff with get
  *                 break;
  *             case HXHIM_RESULT_DEL:
- *                 {
- *                     // do stuff with del
- *                 }
+ *                 // do stuff with del
  *                 break;
  *             default:
  *                 break;
@@ -69,10 +63,13 @@ typedef struct hxhim_results hxhim_results_t;
 int hxhim_results_goto_head(hxhim_results_t *res);
 int hxhim_results_goto_next(hxhim_results_t *res);
 
+// get number of results
+size_t hxhim_results_size(hxhim_results_t *res);
+
 // accessor functions - only operates on current result in results list
 int hxhim_results_valid(hxhim_results_t *res);                              /* whether or not the pointer is readable */
 int hxhim_results_type(hxhim_results_t *res, enum hxhim_result_type *type);
-int hxhim_results_error(hxhim_results_t *res, int *error);                  /* whether or not the results are good */
+int hxhim_results_status(hxhim_results_t *res, int *status);                /* whether or not the results are good */
 int hxhim_results_datastore(hxhim_results_t *res, int *datastore);
 int hxhim_results_subject(hxhim_results_t *res, void **subject, size_t *subject_len);
 int hxhim_results_predicate(hxhim_results_t *res, void **predicate, size_t *predicate_len);

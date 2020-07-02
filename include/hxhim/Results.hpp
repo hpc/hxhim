@@ -20,49 +20,22 @@ namespace hxhim {
  *
  * Each result takes ownership of the pointers passed into its constructor.
  *
- * To access the data, cast the result to the appropriate type and use the Blob::get
- * function extract both values at once.
- *
- * e.g.
- *
- *     hxhim::Results::Put *put = static_cast<hxhim::Results::Put *>(res->Curr());
- *     void *      subject     = nullptr;
- *     std::size_T subject_len = 0;
- *     put->subject->get(&subject, &subject_len);
- *
- * or, cast the result to the appropriate type, select the variable, and extract
- * the values with the Blob::data() and Blob::size() member functions.
- *
- * e.g.
- *
- *     hxhim::Results::Put *put = static_cast<hxhim::Results::Put *>(res->Curr());
- *     void *      subject     = put->subject->data();
- *     std::size_t subject_len = put->subject->len();
- *
- *
  * Usage:
  *
  *     hxhim::Results *res = Flush(hx);
  *     for(res->GoToHead(); res->Valid(); res->GoToNext()) {
- *         switch (res->Curr()->GetType()) {
+ *         hxhim_result_type_t type;
+ *         res->Type(&type);
+ *         switch (type) {
  *             case HXHIM_RESULT_PUT:
- *                 {
- *                     hxhim::Results::Put *put = static_cast<hxhim::Results::Put *>(res->Curr());
- *                     // do stuff with put
- *                 }
+ *                 // do stuff with put
  *                 break;
  *             case HXHIM_RESULT_GET:
  *             case HXHIM_RESULT_GETOP:
- *                 {
- *                     hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(res->Curr());
- *                     // do stuff with get
- *                 }
+ *                 // do stuff with get
  *                 break;
  *             case HXHIM_RESULT_DEL:
- *                 {
- *                     hxhim::Results::Delete *del = static_cast<hxhim::Results::Delete *>(res->Curr());
- *                     // do stuff with del
- *                 }
+ *                 // do stuff with del
  *                 break;
  *             default:
  *                 break;
@@ -70,7 +43,30 @@ namespace hxhim {
  *     }
  *     hxhim::Results::Destroy(res);
  *
+ * There are three ways to extract data from individual results.
+ * The recommended method is to use the hxhim::Results interface:
+ *
+ *     void *      subject     = nullptr;
+ *     std::size_t subject_len = 0;
+ *     res->Subject(&subject, &subject_len);
+ *
+ * The data can also be extracted by casting the current result to the
+ * appropriate subtype and using Blob::get to get the pointers:
+ *
+ *     hxhim::Results::Put *put = static_cast<hxhim::Results::Put *>(res->Curr());
+ *     void *      subject     = nullptr;
+ *     std::size_T subject_len = 0;
+ *     put->subject->get(&subject, &subject_len);
+ *
+ * Instead of using Blob::get, Blob::data and Blob::size can also be
+ * used to retreive the values:
+ *
+ *     hxhim::Results::Put *put = static_cast<hxhim::Results::Put *>(res->Curr());
+ *     void *      subject     = put->subject->data();
+ *     std::size_t subject_len = put->subject->len();
+ *
  */
+
 class Results {
     public:
         struct Result {
@@ -148,20 +144,28 @@ class Results {
 
         static void Destroy(Results *res);
 
-        // Accessors (controls the "curr" pointer)
+        // Control the "curr" pointer
         bool Valid() const;
         Result *GoToHead();
         Result *GoToNext();
         Result *Curr() const;
-        Result *Next() const;
 
         // Appends a single new node to the list
         Result *Add(Result *res);
 
         // Moves and appends another set of results; the list being appended is emptied out
-        Results &Append(Results *other);
+        void Append(Results *other);
 
-        std::size_t size() const;
+        std::size_t Size() const;
+
+        // Accessors
+        int Type(enum hxhim_result_type *type) const;
+        int Status(int *status) const;
+        int Datastore(int *datastore) const;
+        int Subject(void **subject, size_t *subject_len) const;
+        int Predicate(void **predicate, size_t *predicate_len) const;
+        int ObjectType(enum hxhim_type_t *object_type) const;
+        int Object(void **object, size_t *object_len) const;
 
     private:
         hxhim_t *hx;

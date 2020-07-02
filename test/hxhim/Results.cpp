@@ -53,21 +53,41 @@ TEST(Results, PUT_GET_DEL) {
 TEST(Results, Loop) {
     hxhim::Results results(nullptr);
 
-    // add some data
-    const std::size_t puts = 10;
-    for(std::size_t i = 0; i < puts; i++) {
-        hxhim::Results::Result *put = results.Add(construct<TestPut>());
-        EXPECT_NE(put, nullptr);
+    // empty
+    {
+        const std::size_t size = results.Size();
+        EXPECT_EQ(size, 0U);
+
+        // check the data
+        std::size_t count = 0;
+        for(results.GoToHead(); results.Valid(); results.GoToNext()) {
+            count++;
+        }
+
+        EXPECT_EQ(count, size);
     }
 
-    // check the data
-    std::size_t count = 0;
-    for(results.GoToHead(); results.Valid(); results.GoToNext()) {
-        EXPECT_EQ(results.Curr()->type, HXHIM_RESULT_PUT);
-        count++;
-    }
+    // has stuff
+    {
+        // add some data
+        const std::size_t puts = 10;
+        for(std::size_t i = 0; i < puts; i++) {
+            hxhim::Results::Result *put = results.Add(construct<TestPut>());
+            EXPECT_NE(put, nullptr);
+        }
 
-    EXPECT_EQ(count, puts);
+        const std::size_t size = results.Size();
+        EXPECT_EQ(size, 10U);
+
+        // check the data
+        std::size_t count = 0;
+        for(results.GoToHead(); results.Valid(); results.GoToNext()) {
+            EXPECT_EQ(results.Curr()->type, HXHIM_RESULT_PUT);
+            count++;
+        }
+
+        EXPECT_EQ(count, size);
+    }
 }
 
 TEST(Results, Append_Empty) {

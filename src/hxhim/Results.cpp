@@ -22,7 +22,7 @@ hxhim::Results::Result::~Result() {}
 
 hxhim::Results::SubjectPredicate::SubjectPredicate(hxhim_t *hx, const hxhim_result_type type,
                                                    const int datastore, const int status)
-    : Result(hx, type, datastore, status),
+    : hxhim::Results::Result(hx, type, datastore, status),
       subject(nullptr),
       predicate(nullptr)
 {}
@@ -43,12 +43,12 @@ hxhim::Results::Delete::Delete(hxhim_t *hx,
 {}
 
 hxhim::Results::Sync::Sync(hxhim_t *hx,
-                         const int datastore, const int status)
+                           const int datastore, const int status)
     : Result(hx, hxhim_result_type::HXHIM_RESULT_SYNC, datastore, status)
 {}
 
 hxhim::Results::Histogram::Histogram(hxhim_t *hx,
-                         const int datastore, const int status)
+                                     const int datastore, const int status)
     : Result(hx, hxhim_result_type::HXHIM_RESULT_HISTOGRAM, datastore, status)
 {}
 
@@ -70,7 +70,7 @@ hxhim::Results::Result *hxhim::Result::init(hxhim_t *hx, Transport::Response::Re
         return nullptr;
     }
 
-    Results::Result *ret = nullptr;
+    hxhim::Results::Result *ret = nullptr;
     switch (res->type) {
         case Transport::Message::BPUT:
             ret = init(hx, static_cast<Transport::Response::BPut *>(res), i);
@@ -221,27 +221,67 @@ bool hxhim::Results::Valid() const {
 }
 
 /**
+ * hxhim_results_valid
+ *
+ * @param res A list of results
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
+ */
+int hxhim_results_valid(hxhim_results_t *res) {
+    return (res && res->res && res->res->Valid())?HXHIM_SUCCESS:HXHIM_ERROR;
+}
+
+/**
  * GoToHead
  * Moves the current node to point to the head of the list
  *
- * @return the pointer to the head of the list
+ * @return Whether or not the new position is valid
  */
 hxhim::Results::Result *hxhim::Results::GoToHead() {
     curr = results.begin();
-    return Valid()?*curr:nullptr;;
+    return Valid()?*curr:nullptr;
+}
+
+/**
+ * hxhim_results_goto_head
+ * Moves the internal pointer to the head of the list
+ *
+ * @param res A list of results
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
+ */
+int hxhim_results_goto_head(hxhim_results_t *res) {
+    // cannot use hxhim::Results::Valid here
+    // since curr might be pointing anywhere
+    if (res && res->res) {
+        return res->res->GoToHead()?HXHIM_SUCCESS:HXHIM_ERROR;
+    }
+
+    return HXHIM_ERROR;
 }
 
 /**
  * GoToNext
  * Moves the current node to point to the next node in the list
  *
- * @return the pointer to the next node in the list
+ * @return Whether or not the new position is valid
  */
 hxhim::Results::Result *hxhim::Results::GoToNext() {
-    if (Valid()) {
-        ++curr;
+    curr++;
+    return Valid()?*curr:nullptr;
+}
+
+/**
+ * hxhim_results_goto_next
+ * Moves the internal pointer to the next element in the list
+ *
+ * @param res A list of results
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
+ */
+int hxhim_results_goto_next(hxhim_results_t *res) {
+    if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
+        return HXHIM_ERROR;
     }
-    return Valid()?*curr:nullptr;;
+
+    return res->res->GoToNext()?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 
 /**
@@ -251,16 +291,6 @@ hxhim::Results::Result *hxhim::Results::GoToNext() {
  */
 hxhim::Results::Result *hxhim::Results::Curr() const {
     return Valid()?*curr:nullptr;;
-}
-
-/**
- * Curr
- *
- * @return the pointer to the node after the one currently being pointed to
- */
-hxhim::Results::Result *hxhim::Results::Next() const {
-    std::list<Result *>::iterator it = std::next(curr);
-    return (it != results.end())?*it:nullptr;;
 }
 
 /**
@@ -297,76 +327,54 @@ hxhim::Results::Result *hxhim::Results::Add(hxhim::Results::Result *res) {
  *
  * @return the pointer to the construct<node
  */
-hxhim::Results &hxhim::Results::Append(hxhim::Results *other) {
+void hxhim::Results::Append(hxhim::Results *other) {
     if (other) {
         results.splice(results.end(), other->results);
     }
-
-    return *this;
 }
 
-std::size_t hxhim::Results::size() const {
+/**
+ * Size
+ * Get the number of elements in this set of results
+ *
+ * @return number of elements
+ */
+std::size_t hxhim::Results::Size() const {
     return results.size();
 }
 
 /**
- * hxhim_results_init
+ * Size
+ * Get the number of elements in this set of results
  *
- * @param res A hxhim::Results instance
- * @return the pointer to the C structure containing the hxhim::Results
+ * @param res   A list of results
+ * @return number of elements
  */
-hxhim_results_t *hxhim_results_init(hxhim_t * hx, hxhim::Results *res) {
-    int rank = -1;
-    hxhim::GetMPIRank(hx, &rank);
-
-    mlog(HXHIM_CLIENT_DBG, "Rank %d Creating hxhim_results_t using %p", rank, res);
-    hxhim_results_t *ret = construct<hxhim_results_t>();
-    ret->hx = hx;
-    ret->res = res;
-    mlog(HXHIM_CLIENT_DBG, "Rank %d Created hxhim_results_t %p with %p inside", rank, ret, res);
-    return ret;
-}
-
-/**
- * hxhim_results_goto_head
- * Moves the internal pointer to the head of the list
- *
- * @param res A list of results
- * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
- */
-int hxhim_results_goto_head(hxhim_results_t *res) {
-    if (res && res->res) {
-        res->res->GoToHead();
-        return HXHIM_SUCCESS;
+size_t hxhim_results_size(hxhim_results_t *res) {
+    if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
+        return 0;
     }
 
-    return HXHIM_ERROR;
+    return res->res->Size();
 }
 
 /**
- * hxhim_results_goto_next
- * Moves the internal pointer to the next element in the list
+ * Type
+ * Gets the type of the result node currently being pointed to
  *
- * @param res A list of results
+ * @param type  (optional) the type of the current result, only valid if this function returns HXHIM_SUCCESS
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim_results_goto_next(hxhim_results_t *res) {
-    if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
+int hxhim::Results::Type(enum hxhim_result_type *type) const {
+    if (!Valid()) {
         return HXHIM_ERROR;
     }
 
-    res->res->GoToNext();
-    return HXHIM_SUCCESS;
-}
+    if (type) {
+        *type = Curr()->type;
+    }
 
-/**
- * hxhim_results_valid
- *
- * @param res A list of results
- * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
- */
-int hxhim_results_valid(hxhim_results_t *res) {
-    return (res && res->res && res->res->Valid())?HXHIM_SUCCESS:HXHIM_ERROR;
+    return HXHIM_SUCCESS;
 }
 
 /**
@@ -382,38 +390,58 @@ int hxhim_results_type(hxhim_results_t *res, enum hxhim_result_type *type) {
         return HXHIM_ERROR;
     }
 
-    hxhim::Results::Result *curr = res->res->Curr();
-    if (!curr) {
+    return res->res->Type(type);
+}
+
+/**
+ * Status
+ * Gets the status of the result node currently being pointed to
+ *
+ * @param error  (optional) the error of the current result, only valid if this function returns HXHIM_SUCCESS
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
+ */
+int hxhim::Results::Status(int *status) const {
+    if (!Valid()) {
         return HXHIM_ERROR;
     }
 
-    if (type) {
-        *type = curr->type;
+    if (status) {
+        *status = Curr()->status;
     }
 
     return HXHIM_SUCCESS;
 }
 
 /**
- * hxhim_results_error
- * Gets the error of the result node currently being pointed to
+ * hxhim_results_status
+ * Gets the status of the result node currently being pointed to
  *
- * @param res    A list of results
- * @param error  (optional) the error of the current result, only valid if this function returns HXHIM_SUCCESS
+ * @param res     A list of results
+ * @param status  (optional) the status of the current result, only valid if this function returns HXHIM_SUCCESS
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim_results_error(hxhim_results_t *res, int *error) {
+int hxhim_results_status(hxhim_results_t *res, int *status) {
     if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
 
-    hxhim::Results::Result *curr = res->res->Curr();
-    if (!curr) {
+    return res->res->Status(status);
+}
+
+/**
+ * Datastore
+ * Gets the datastore of the result node currently being pointed to
+ *
+ * @param datastore  (optional) the datastore of the current result, only valid if this function returns HXHIM_SUCCESS
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
+ */
+int hxhim::Results::Datastore(int *datastore) const {
+    if (!Valid()) {
         return HXHIM_ERROR;
     }
 
-    if (error) {
-        *error = curr->status;
+    if (datastore) {
+        *datastore = Curr()->datastore;
     }
 
     return HXHIM_SUCCESS;
@@ -432,16 +460,49 @@ int hxhim_results_datastore(hxhim_results_t *res, int *datastore) {
         return HXHIM_ERROR;
     }
 
-    hxhim::Results::Result *curr = res->res->Curr();
-    if (!curr) {
+    return res->res->Datastore(datastore);
+}
+
+/**
+ * Subject
+ * Gets the subject and length from the current result node, if the result node contains data from a GET
+ *
+ * @param subject      (optional) the subject of the current result, only valid if this function returns HXHIM_SUCCESS
+ * @param subject_len  (optional) the subject_len of the current result, only valid if this function returns HXHIM_SUCCESS
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
+ */
+int hxhim::Results::Subject(void **subject, size_t *subject_len) const {
+    if (!Valid()) {
         return HXHIM_ERROR;
     }
 
-    if (datastore) {
-        *datastore = curr->datastore;
+    hxhim::Results::Result *res = Curr();
+    if (!res) {
+        return HXHIM_ERROR;
     }
 
-    return HXHIM_SUCCESS;
+    int status = HXHIM_SUCCESS;
+    if ((Status(&status) != HXHIM_SUCCESS) ||
+        (status != HXHIM_SUCCESS)) {
+        return HXHIM_ERROR;
+    }
+
+    int rc = HXHIM_ERROR;
+    switch (res->type) {
+        case hxhim_result_type::HXHIM_RESULT_PUT:
+        case hxhim_result_type::HXHIM_RESULT_GET:
+        case hxhim_result_type::HXHIM_RESULT_DEL:
+        {
+            hxhim::Results::SubjectPredicate *sp = static_cast<hxhim::Results::SubjectPredicate *>(res);
+            sp->subject->get(subject, subject_len);
+            rc = HXHIM_SUCCESS;
+        }
+        break;
+        default:
+            break;
+    }
+
+    return rc;
 }
 
 /**
@@ -458,18 +519,44 @@ int hxhim_results_subject(hxhim_results_t *res, void **subject, size_t *subject_
         return HXHIM_ERROR;
     }
 
-    int rc = HXHIM_SUCCESS;
+    return res->res->Subject(subject, subject_len);
+}
 
-    hxhim::Results::Result *curr = res->res->Curr();
-    switch (curr->type) {
+/**
+ * Predicate
+ * Gets the predicate and length from the current result node, if the result node contains data from a GET
+ *
+ * @param predicate      (optional) the predicate of the current result, only valid if this function returns HXHIM_SUCCESS
+ * @param predicate_len  (optional) the predicate_len of the current result, only valid if this function returns HXHIM_SUCCESS
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
+ */
+int hxhim::Results::Predicate(void **predicate, size_t *predicate_len) const {
+    if (!Valid()) {
+        return HXHIM_ERROR;
+    }
+
+    hxhim::Results::Result *res = Curr();
+    if (!res) {
+        return HXHIM_ERROR;
+    }
+
+    int status = HXHIM_SUCCESS;
+    if ((Status(&status) != HXHIM_SUCCESS) ||
+        (status != HXHIM_SUCCESS)) {
+        return HXHIM_ERROR;
+    }
+
+    int rc = HXHIM_ERROR;
+    switch (res->type) {
         case hxhim_result_type::HXHIM_RESULT_PUT:
         case hxhim_result_type::HXHIM_RESULT_GET:
         case hxhim_result_type::HXHIM_RESULT_DEL:
-            {
-                hxhim::Results::SubjectPredicate *sp = static_cast<hxhim::Results::SubjectPredicate *>(curr);
-                sp->subject->get(subject, subject_len);
-            }
-            break;
+        {
+            hxhim::Results::SubjectPredicate *sp = static_cast<hxhim::Results::SubjectPredicate *>(res);
+            sp->predicate->get(predicate, predicate_len);
+            rc = HXHIM_SUCCESS;
+        }
+        break;
         default:
             break;
     }
@@ -481,7 +568,6 @@ int hxhim_results_subject(hxhim_results_t *res, void **subject, size_t *subject_
  * hxhim_results_predicate
  * Gets the predicate and length from the current result node, if the result node contains data from a GET
  *
- * @param res            A list of results
  * @param predicate      (optional) the predicate of the current result, only valid if this function returns HXHIM_SUCCESS
  * @param predicate_len  (optional) the predicate_len of the current result, only valid if this function returns HXHIM_SUCCESS
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
@@ -491,18 +577,43 @@ int hxhim_results_predicate(hxhim_results_t *res, void **predicate, size_t *pred
         return HXHIM_ERROR;
     }
 
-    int rc = HXHIM_SUCCESS;
+    return res->res->Predicate(predicate, predicate_len);
+}
 
-    hxhim::Results::Result *curr = res->res->Curr();
-    switch (curr->type) {
-        case hxhim_result_type::HXHIM_RESULT_PUT:
+/**
+ * ObjectType
+ * Gets the object type from the current result node, if the result node contains data from a GET
+ *
+ * @param object_type (optional) the object type of the current result, only valid if this function returns HXHIM_SUCCESS
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
+ */
+int hxhim::Results::ObjectType(enum hxhim_type_t *object_type) const {
+    if (!Valid()) {
+        return HXHIM_ERROR;
+    }
+
+    hxhim::Results::Result *res = Curr();
+    if (!res) {
+        return HXHIM_ERROR;
+    }
+
+    int status = HXHIM_SUCCESS;
+    if ((Status(&status) != HXHIM_SUCCESS) ||
+        (status != HXHIM_SUCCESS)) {
+        return HXHIM_ERROR;
+    }
+
+    int rc = HXHIM_ERROR;
+    switch (res->type) {
         case hxhim_result_type::HXHIM_RESULT_GET:
-        case hxhim_result_type::HXHIM_RESULT_DEL:
-            {
-                hxhim::Results::SubjectPredicate *sp = static_cast<hxhim::Results::SubjectPredicate *>(curr);
-                sp->predicate->get(predicate, predicate_len);
+        {
+            hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(res);
+            if (object_type) {
+                *object_type = get->object_type;
             }
-            break;
+            rc = HXHIM_SUCCESS;
+        }
+        break;
         default:
             break;
     }
@@ -512,7 +623,7 @@ int hxhim_results_predicate(hxhim_results_t *res, void **predicate, size_t *pred
 
 /**
  * hxhim_results_object_type
- * Gets the object and length from the current result node, if the result node contains data from a GET
+ * Gets the object type from the current result node, if the result node contains data from a GET
  *
  * @param res         A list of results
  * @param object_type (optional) the object type of the current result, only valid if this function returns HXHIM_SUCCESS
@@ -523,15 +634,48 @@ int hxhim_results_object_type(hxhim_results_t *res, hxhim_type_t *object_type) {
         return HXHIM_ERROR;
     }
 
-    hxhim::Results::Result *curr = res->res->Curr();
-    if (curr->type == hxhim_result_type::HXHIM_RESULT_GET) {
-        if (object_type) {
-            *object_type = static_cast<hxhim::Results::Get *>(curr)->object_type;
-            return HXHIM_SUCCESS;
-        }
+    return res->res->ObjectType(object_type);
+}
+
+/**
+ * Object
+ * Gets the object and length from the current result node, if the result node contains data from a GET
+ *
+ * @param res         A list of results
+ * @param object      (optional) the object of the current result, only valid if this function returns HXHIM_SUCCESS
+ * @param object_len  (optional) the object_len of the current result, only valid if this function returns HXHIM_SUCCESS
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
+ */
+int hxhim::Results::Object(void **object, size_t *object_len) const {
+    if (!Valid()) {
+        return HXHIM_ERROR;
     }
 
-    return HXHIM_ERROR;
+    hxhim::Results::Result *res = Curr();
+    if (!res) {
+        return HXHIM_ERROR;
+    }
+
+    int status = HXHIM_SUCCESS;
+    if ((Status(&status) != HXHIM_SUCCESS) ||
+        (status != HXHIM_SUCCESS)) {
+        return HXHIM_ERROR;
+    }
+
+    int rc = HXHIM_ERROR;
+    switch (res->type) {
+        case hxhim_result_type::HXHIM_RESULT_GET:
+        {
+            hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(res);
+            get->object->get(object, object_len);
+            rc = HXHIM_SUCCESS;
+        }
+        break;
+        default:
+            break;
+    }
+
+    return rc;
 }
 
 /**
@@ -548,14 +692,25 @@ int hxhim_results_object(hxhim_results_t *res, void **object, size_t *object_len
         return HXHIM_ERROR;
     }
 
-    hxhim::Results::Result *curr = res->res->Curr();
-    if (curr->type == hxhim_result_type::HXHIM_RESULT_GET) {
-        hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(curr);
-        get->object->get(object, object_len);
-        return HXHIM_SUCCESS;
-    }
+    return res->res->Object(object, object_len);
+}
 
-    return HXHIM_ERROR;
+/**
+ * hxhim_results_init
+ *
+ * @param res A hxhim::Results instance
+ * @return the pointer to the C structure containing the hxhim::Results
+ */
+hxhim_results_t *hxhim_results_init(hxhim_t * hx, hxhim::Results *res) {
+    int rank = -1;
+    hxhim::GetMPIRank(hx, &rank);
+
+    mlog(HXHIM_CLIENT_DBG, "Rank %d Creating hxhim_results_t using %p", rank, res);
+    hxhim_results_t *ret = construct<hxhim_results_t>();
+    ret->hx = hx;
+    ret->res = res;
+    mlog(HXHIM_CLIENT_DBG, "Rank %d Created hxhim_results_t %p with %p inside", rank, ret, res);
+    return ret;
 }
 
 /**

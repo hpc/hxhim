@@ -137,7 +137,7 @@ hxhim::Results *process(hxhim_t *hx,
             }
         }
 
-        mlog(HXHIM_CLIENT_DBG, "Rank %d Client received %zu responses", rank, res->size());
+        mlog(HXHIM_CLIENT_DBG, "Rank %d Client received %zu responses", rank, res->Size());
     }
 
     return res;
