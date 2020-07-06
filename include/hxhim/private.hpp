@@ -42,7 +42,7 @@ typedef struct hxhim_private {
         int size;
     } bootstrap;
 
-    std::atomic_bool running;                                  // whether or not HXHIM is running
+    std::atomic_bool running;                       // whether or not HXHIM is running
 
     std::map<Transport::Message::Type, std::size_t> max_ops_per_send;
 
@@ -55,22 +55,22 @@ typedef struct hxhim_private {
     } queues;
 
     struct {
-        hxhim::datastore::Datastore **datastores;              // fixed array of datastores mapped by rank and index: f(rank, index) -> datastore ID
-        std::size_t count;                                     // number of datastores in this process
+        hxhim::datastore::Datastore **datastores;   // fixed array of datastores mapped by rank and index: f(rank, index) -> datastore ID
+        std::size_t count;                          // number of datastores in this process
     } datastore;
 
     // asynchronous BPUT data
     struct {
-        std::size_t max_queued;                                // number of batches to hold before sending PUTs asynchronously
-        std::thread thread;                                    // the thread that pushes PUTs off the PUT queue asynchronously
-        std::mutex mutex;                                      // mutex to the list of results from asynchronous PUT operations
-        hxhim::Results *results;                               // the list of of PUT results
+        std::size_t max_queued;                     // number of batches to hold before sending PUTs asynchronously
+        std::thread thread;                         // the thread that pushes PUTs off the PUT queue asynchronously
+        std::mutex mutex;                           // mutex to the list of results from asynchronous PUT operations
+        hxhim::Results *results;                    // the list of of PUT results
     } async_put;
 
     struct {
         std::string name;
-        hxhim_hash_t func;                                     // the function used to determine which datastore should be used to perform an operation with
-        void *args;                                            // extra arguments to pass into the hash function
+        hxhim_hash_t func;                          // the function used to determine which datastore should be used to perform an operation with
+        void *args;                                 // extra arguments to pass into the hash function
     } hash;
 
     // Transport variables
@@ -78,9 +78,9 @@ typedef struct hxhim_private {
 
     // Range Server
     struct {
-        std::size_t client_ratio;                              // client portion of client:server ratio
-        std::size_t server_ratio;                              // server portion of client:server ratio
-        void (*destroy)();                                     // Range server static variable cleanup
+        std::size_t client_ratio;                   // client portion of client:server ratio
+        std::size_t server_ratio;                   // server portion of client:server ratio
+        void (*destroy)();                          // Range server static variable cleanup
     } range_server;
 
     hxhim::Stats::Stats stats;
