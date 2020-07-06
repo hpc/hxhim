@@ -47,13 +47,7 @@ typedef struct hxhim_private {
 
     std::atomic_bool running;                                  // whether or not HXHIM is running
 
-    struct {
-        std::size_t max;
-        std::size_t puts;
-        std::size_t gets;
-        std::size_t getops;
-        std::size_t deletes;
-    } max_ops_per_send;
+    std::map<Transport::Message::Type, std::size_t> max_ops_per_send;
 
     // unsent data queues
     struct {

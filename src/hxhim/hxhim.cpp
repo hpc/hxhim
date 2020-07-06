@@ -240,7 +240,7 @@ hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
     hxhim::GetMPIRank(hx, &rank);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing PUTs", rank);
-    hxhim::Results *res = FlushImpl<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, hx->p->queues.puts, hx->p->max_ops_per_send.puts);
+    hxhim::Results *res = FlushImpl<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, hx->p->queues.puts, hx->p->max_ops_per_send[Transport::Message::Type::BPUT]);
 
     // TODO: Remove this when the background thread is restored
     // if PUTs flushed when calling Put/BPut, return those results as well
@@ -317,7 +317,7 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
     hxhim::GetMPIRank(hx, &rank);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing GETs", rank);
-    hxhim::Results *res = FlushImpl<hxhim::GetData, Transport::Request::BGet, Transport::Response::BGet>(hx, hx->p->queues.gets, hx->p->max_ops_per_send.gets);
+    hxhim::Results *res = FlushImpl<hxhim::GetData, Transport::Request::BGet, Transport::Response::BGet>(hx, hx->p->queues.gets, hx->p->max_ops_per_send[Transport::Message::Type::BGET]);
     mlog(HXHIM_CLIENT_INFO, "Rank %d Done Flushing Gets %p", rank, res);
     return res;
 }
@@ -347,7 +347,7 @@ hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
     hxhim::GetMPIRank(hx, &rank);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing GETOPs", rank);
-    hxhim::Results *res = FlushImpl<hxhim::GetOpData, Transport::Request::BGetOp, Transport::Response::BGetOp>(hx, hx->p->queues.getops, hx->p->max_ops_per_send.getops);
+    hxhim::Results *res = FlushImpl<hxhim::GetOpData, Transport::Request::BGetOp, Transport::Response::BGetOp>(hx, hx->p->queues.getops, hx->p->max_ops_per_send[Transport::Message::Type::BGETOP]);
     mlog(HXHIM_CLIENT_INFO, "Rank %d Done Flushing GETOPs %p", rank, res);
     return res;
 }
@@ -377,7 +377,7 @@ hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
     hxhim::GetMPIRank(hx, &rank);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing DELETEs", rank);
-    hxhim::Results *res = FlushImpl<hxhim::DeleteData, Transport::Request::BDelete, Transport::Response::BDelete>(hx, hx->p->queues.deletes, hx->p->max_ops_per_send.deletes);
+    hxhim::Results *res = FlushImpl<hxhim::DeleteData, Transport::Request::BDelete, Transport::Response::BDelete>(hx, hx->p->queues.deletes, hx->p->max_ops_per_send[Transport::Message::Type::BDELETE]);
     mlog(HXHIM_CLIENT_INFO, "Rank %d Done Flushing DELETEs", rank);
     return res;
 }
@@ -717,7 +717,7 @@ int hxhim::BPut(hxhim_t *hx,
         }
 
         // process the batch and save the results
-        hxhim::Results *res = hxhim::process<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, head, hx->p->max_ops_per_send.puts);
+        hxhim::Results *res = hxhim::process<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, head, hx->p->max_ops_per_send[Transport::Message::Type::BPUT]);
         {
             std::unique_lock<std::mutex> lock(hx->p->async_put.mutex);
             if (hx->p->async_put.results) {

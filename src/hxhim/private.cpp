@@ -92,7 +92,7 @@ static void backgroundPUT(hxhim_t *hx) {
         mlog(HXHIM_CLIENT_DBG, "Processing queued PUTs");
         {
             // process the batch and save the results
-            hxhim::Results *res = hxhim::process<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, head, hx->p->max_ops_per_send.puts);
+            hxhim::Results *res = hxhim::process<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, head, hx->p->max_ops_per_send[Transport::Message::Type::BPUT]);
 
             {
                 std::unique_lock<std::mutex> lock(hx->p->async_put.mutex);
@@ -213,11 +213,10 @@ int hxhim::init::memory(hxhim_t *hx, hxhim_options_t *opts) {
     }
 
     // size of each set of queued messages
-    hx->p->max_ops_per_send.max     = opts->p->max_ops_per_send;
-    hx->p->max_ops_per_send.puts    = opts->p->max_ops_per_send / HXHIM_PUT_MULTIPLIER;
-    hx->p->max_ops_per_send.gets    = opts->p->max_ops_per_send;
-    hx->p->max_ops_per_send.getops  = opts->p->max_ops_per_send;
-    hx->p->max_ops_per_send.deletes = opts->p->max_ops_per_send;
+    hx->p->max_ops_per_send[Transport::Message::Type::BPUT]    = opts->p->max_ops_per_send / HXHIM_PUT_MULTIPLIER;
+    hx->p->max_ops_per_send[Transport::Message::Type::BGET]    = opts->p->max_ops_per_send;
+    hx->p->max_ops_per_send[Transport::Message::Type::BGETOP]  = opts->p->max_ops_per_send;
+    hx->p->max_ops_per_send[Transport::Message::Type::BDELETE] = opts->p->max_ops_per_send;
 
     mlog(HXHIM_CLIENT_INFO, "Completed Memory Initialization");
     return HXHIM_SUCCESS;
@@ -646,7 +645,9 @@ std::ostream &hxhim::print_stats(hxhim_t *hx, const std::string &indent, std::os
             for(std::size_t const &filled : it->second) {
                 sum += filled;
             }
-            stream << indent << indent << Transport::Message::TypeStr[it->first] << " count: " << it->second.size() << " average filled: "  << sum << "/" << hx->p->max_ops_per_send.puts << " (" << 100 * sum / ((double) hx->p->max_ops_per_send.puts) << "%)" << std::endl;
+            const double avg = ((double) sum) / it->second.size();
+            sum /= hx->p->stats.used.size();
+            stream << indent << indent << Transport::Message::TypeStr[it->first] << " count: " << it->second.size() << " average filled: "  << avg << "/" << hx->p->max_ops_per_send[it->first] << " (" << 100.0 * avg / hx->p->max_ops_per_send[it->first] << "%)" << std::endl;
         }
     }
 
