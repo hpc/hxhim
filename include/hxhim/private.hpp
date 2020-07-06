@@ -2,17 +2,14 @@
 #define HXHIM_PRIVATE_HPP
 
 #include <atomic>
-#include <chrono>
-#include <iostream>
-#include <list>
 #include <mutex>
 #include <thread>
-#include <unordered_map>
 
 #include <mpi.h>
 
 #include "datastore/datastore.hpp"
 #include "hxhim/Results.hpp"
+#include "hxhim/Stats.hpp"
 #include "hxhim/cache.hpp"
 #include "hxhim/constants.h"
 #include "hxhim/hash.hpp"
@@ -86,34 +83,7 @@ typedef struct hxhim_private {
         void (*destroy)();                                     // Range server static variable cleanup
     } range_server;
 
-    /** @decription Statistics */
-    struct Stats {
-        struct Event {
-            std::chrono::time_point<std::chrono::high_resolution_clock> start;
-            std::chrono::time_point<std::chrono::high_resolution_clock> end;
-        };
-
-        // how long each single operation called by the user took
-        std::map<Transport::Message::Type, std::list<Event> > single_op;
-
-        // how long each bulk operation called by the user took
-        std::map<Transport::Message::Type, std::list<Event> > bulk_op;
-
-        // how many entries of a message packet were used before sending
-        // max number of entries per message should never change
-        std::map<Transport::Message::Type, std::list<std::size_t> > used;
-
-        // how long each transport took
-        std::map<Transport::Message::Type, std::list <Event> > transport;
-
-        // distribution of outgoing packets
-        std::map<Transport::Message::Type, std::map<int, std::size_t> > outgoing;
-
-        // distribution of incoming packets
-        std::map<Transport::Message::Type, std::map<int, std::size_t> > incoming;
-    };
-
-    Stats stats;
+    hxhim::Stats::Stats stats;
 
 } hxhim_private_t;
 
@@ -148,11 +118,6 @@ int datastore   (hxhim_t *hx);
 
 // this will probably be moved to the public side
 std::ostream &print_stats(hxhim_t *hx,
-                          std::ostream &stream = std::cout,
-                          const std::string &indent = "    ");
-
-std::ostream &print_stats(hxhim_private::Stats &stats,
-                          const std::map<Transport::Message::Type, std::size_t> &max_ops_per_send,
                           std::ostream &stream = std::cout,
                           const std::string &indent = "    ");
 
