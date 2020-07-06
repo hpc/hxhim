@@ -1,11 +1,9 @@
-#include <ctime>
 #include <sstream>
 #include <stdexcept>
 
 #include "datastore/InMemory.hpp"
 #include "hxhim/private.hpp"
 #include "utils/Blob.hpp"
-#include "utils/elapsed.h"
 #include "utils/memory.hpp"
 #include "utils/triplestore.hpp"
 
@@ -53,27 +51,23 @@ void hxhim::datastore::InMemory::CloseImpl() {
  * @return pointer to a list of results
  */
 Transport::Response::BPut *hxhim::datastore::InMemory::BPutImpl(Transport::Request::BPut *req) {
-    Transport::Response::BPut *res = construct<Transport::Response::BPut>(req->count);
+    hxhim::datastore::Datastore::Stats::Event event;
+    event.time.start = now();
+    event.count = req->count;
 
-    struct timespec start = {};
-    struct timespec end = {};
+    Transport::Response::BPut *res = construct<Transport::Response::BPut>(req->count);
 
     for(std::size_t i = 0; i < req->count; i++) {
         void *key = nullptr;
         std::size_t key_len = 0;
         sp_to_key(req->subjects[i], req->predicates[i], &key, &key_len);
 
-        clock_gettime(CLOCK_MONOTONIC, &start);
         db[std::string((char *) key, key_len)] = std::string((char *) req->objects[i]->data(), req->objects[i]->size());
-        clock_gettime(CLOCK_MONOTONIC, &end);
 
         res->orig.subjects[i]   = construct<ReferenceBlob>(req->orig.subjects[i], req->subjects[i]->size());
         res->orig.predicates[i] = construct<ReferenceBlob>(req->orig.predicates[i], req->predicates[i]->size());
 
         dealloc(key);
-
-        stats.puts++;
-        stats.put_times += nano(start, end);
 
         // always successful
         res->statuses[i] = HXHIM_SUCCESS;
@@ -81,7 +75,8 @@ Transport::Response::BPut *hxhim::datastore::InMemory::BPutImpl(Transport::Reque
 
     res->count = req->count;
 
-    stats.put_times += nano(start, end);
+    event.time.end = now();
+    stats.puts.emplace_back(event);
 
     return res;
 }
@@ -97,6 +92,10 @@ Transport::Response::BPut *hxhim::datastore::InMemory::BPutImpl(Transport::Reque
  * @return pointer to a list of results
  */
 Transport::Response::BGet *hxhim::datastore::InMemory::BGetImpl(Transport::Request::BGet *req) {
+    hxhim::datastore::Datastore::Stats::Event event;
+    event.time.start = now();
+    event.count = req->count;
+
     Transport::Response::BGet *res = construct<Transport::Response::BGet>(req->count);
 
     for(std::size_t i = 0; i < req->count; i++) {
@@ -128,12 +127,12 @@ Transport::Response::BGet *hxhim::datastore::InMemory::BGetImpl(Transport::Reque
         if (res->statuses[i] == HXHIM_SUCCESS) {
             res->objects[i] = construct<RealBlob>(it->second.size(), it->second.data());
         }
-
-        stats.gets++;
-        stats.get_times += nano(start, end);
     }
 
     res->count = req->count;
+
+    event.time.end = now();
+    stats.gets.emplace_back(event);
 
     return res;
 }
@@ -171,8 +170,10 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
     Transport::Response::BGetOp *res = construct<Transport::Response::BGetOp>(req->count);
 
     for(std::size_t i = 0; i < req->count; i++) {
-        struct timespec start = {};
-        struct timespec end = {};
+        hxhim::datastore::Datastore::Stats::Event event;
+        event.time.start = now();
+
+        decltype(db)::const_iterator it = db.end();
 
         // prepare response
         res->object_types[i] = req->object_types[i];
@@ -186,9 +187,7 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
             std::size_t key_len = 0;
             sp_to_key(req->subjects[i], req->predicates[i], &key, &key_len);
 
-            clock_gettime(CLOCK_MONOTONIC, &start);
-            decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
-            clock_gettime(CLOCK_MONOTONIC, &end);
+            it = db.find(std::string((char *) key, key_len));
 
             dealloc(key);
 
@@ -202,9 +201,7 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
             std::size_t key_len = 0;
             sp_to_key(req->subjects[i], req->predicates[i], &key, &key_len);
 
-            clock_gettime(CLOCK_MONOTONIC, &start);
-            decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
-            clock_gettime(CLOCK_MONOTONIC, &end);
+            it = db.find(std::string((char *) key, key_len));
 
             dealloc(key);
 
@@ -223,9 +220,7 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
             std::size_t key_len = 0;
             sp_to_key(req->subjects[i], req->predicates[i], &key, &key_len);
 
-            clock_gettime(CLOCK_MONOTONIC, &start);
-            decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
-            clock_gettime(CLOCK_MONOTONIC, &end);
+            it = db.find(std::string((char *) key, key_len));
 
             dealloc(key);
 
@@ -248,9 +243,7 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
         }
         else if (req->ops[i] == hxhim_get_op_t::HXHIM_GET_FIRST) {
             // ignore key
-            clock_gettime(CLOCK_MONOTONIC, &start);
-            decltype(db)::const_iterator it = db.begin();
-            clock_gettime(CLOCK_MONOTONIC, &end);
+            it = db.begin();
 
             if (it != db.end()) {
                 for(std::size_t j = 0; (j < req->num_recs[i]) && (it != db.end()); j++) {
@@ -266,10 +259,8 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
         }
         else if (req->ops[i] == hxhim_get_op_t::HXHIM_GET_LAST) {
             // ignore key
-            clock_gettime(CLOCK_MONOTONIC, &start);
-            decltype(db)::const_iterator it = db.end();
+            it = db.end();
             it--;
-            clock_gettime(CLOCK_MONOTONIC, &end);
 
             if (it != db.end()) {
                 for(std::size_t j = 0; j < req->num_recs[i]; j++) {
@@ -287,10 +278,11 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
             }
         }
 
-        stats.gets++;
-        stats.get_times += nano(start, end);
-
         res->count++;
+
+        event.count = res->num_recs[i];
+        event.time.end = now();
+        stats.gets.emplace_back(event);
     }
 
     return res;
@@ -307,6 +299,10 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
  * @return pointer to a list of results
  */
 Transport::Response::BDelete *hxhim::datastore::InMemory::BDeleteImpl(Transport::Request::BDelete *req) {
+    hxhim::datastore::Datastore::Stats::Event event;
+    event.time.start = now();
+    event.count = req->count;
+
     Transport::Response::BDelete *res = construct<Transport::Response::BDelete>(req->count);
 
     for(std::size_t i = 0; i < req->count; i++) {
@@ -330,6 +326,9 @@ Transport::Response::BDelete *hxhim::datastore::InMemory::BDeleteImpl(Transport:
     }
 
     res->count = req->count;
+
+    event.time.end = now();
+    stats.deletes.emplace_back(event);
 
     return res;
 }

@@ -1,6 +1,9 @@
 #ifndef HXHIM_DATASTORE_HPP
 #define HXHIM_DATASTORE_HPP
 
+#include <iostream>
+#include <list>
+
 #include <mpi.h>
 #include <mutex>
 
@@ -8,6 +11,7 @@
 #include "hxhim/struct.h"
 #include "transport/Messages/Messages.hpp"
 #include "utils/Histogram.hpp"
+#include "utils/Stats.hpp"
 
 namespace hxhim {
 namespace datastore {
@@ -19,9 +23,17 @@ namespace datastore {
  *
  * Client : Server = 5 : 3
  * Datastores per range server: 4
- * MPI Rank:     |     0   |     1   |    2      | 3 | 4 |      5      |       6     |      7      | 8 | 9 |
- * Range Server: |     0   |     1   |    2      |   |   |      3      |       4     |      5      |   |   |
- * Datastore     | 0 1 2 3 | 4 5 6 7 | 8 9 10 11 |   |   | 12 13 14 15 | 16 17 18 19 | 20 21 22 23 |   |   |
+ * MPI Rank:     |    0    |    1    |     2     |      3      |       4     |      5      |      6      |      7      |      8      |      9      |
+ * Client:       |    0    |    1    |     2     |      3      |       4     |      5      |      6      |      7      |      8      |      9      |
+ * Range Server: |    0    |    1    |     2     |             |             |      3      |      4      |      5      |             |             |
+ * Datastore     | 0 1 2 3 | 4 5 6 7 | 8 9 10 11 |             |             | 12 13 14 15 | 16 17 18 19 | 20 21 22 23 |             |             |
+ *
+ * Client : Server = 3 : 5
+ * Datastores per range server: 4
+ * MPI Rank:     |    0    |    1    |     2     |      3      |       4     |      5      |      6      |      7      |      8      |      9      |
+ * Client:       |    0    |    1    |     2     |             |             |      5      |      6      |      7      |             |             |
+ * Range Server: |    0    |    1    |     2     |      3      |       4     |      5      |      6      |      7      |      8      |      9      |
+ * Datastore     | 0 1 2 3 | 4 5 6 7 | 8 9 10 11 | 12 13 14 15 | 16 17 18 19 | 20 21 22 23 | 24 25 26 27 | 28 29 30 31 | 32 33 34 35 | 36 37 38 39 |
  */
 int get_rank(hxhim_t *hx, const int id);
 int get_server(hxhim_t *hx, const int id);
@@ -73,17 +85,25 @@ class Datastore {
 
         MPI_Comm comm; // MPI communicator of HXHIM instance
         int rank;      // MPI rank of HXHIM instance
+        int size;      // MPI world size
         int id;
         Histogram::Histogram *hist;
 
         mutable std::mutex mutex;
 
-        struct {
-            std::size_t puts;
-            long double put_times;
-            std::size_t gets;
-            long double get_times;
-        } stats;
+        struct Stats {
+            struct Event {
+                struct Timestamp time;
+                std::size_t count;    // how many operations were performed during this event
+            };
+
+            std::list<Event> puts;
+            std::list<Event> gets;
+            std::list<Event> getops; // each individual op, not the entire packet
+            std::list<Event> deletes;
+        };
+
+        Stats stats;
 };
 
 }

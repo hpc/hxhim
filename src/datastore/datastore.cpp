@@ -1,3 +1,4 @@
+#include <chrono>
 #include <cmath>
 #include <cstring>
 #include <stdexcept>
@@ -36,12 +37,12 @@ int get_rank(hxhim_t *hx, const int id) {
  * @return the server number of the given ID or -1 on error
  */
 int get_server(hxhim_t *hx, const int id) {
-    std::size_t datastore_count = 0;
-    if (GetDatastoresPerRangeServer(hx, &datastore_count) != HXHIM_SUCCESS) {
+    std::size_t local_ds_count = 0;
+    if (GetDatastoresPerRangeServer(hx, &local_ds_count) != HXHIM_SUCCESS) {
         return -1;
     }
 
-    return id / datastore_count;
+    return id / local_ds_count;
 }
 
 /**
@@ -52,12 +53,12 @@ int get_server(hxhim_t *hx, const int id) {
  * @return the offset of the given ID or -1 on error
  */
 int get_offset(hxhim_t *hx, const int id) {
-    std::size_t datastore_count = 0;
-    if (GetDatastoresPerRangeServer(hx, &datastore_count) != HXHIM_SUCCESS) {
+    std::size_t local_ds_count = 0;
+    if (GetDatastoresPerRangeServer(hx, &local_ds_count) != HXHIM_SUCCESS) {
         return -1;
     }
 
-    return id % datastore_count;
+    return id % local_ds_count;
 }
 
 /**
@@ -69,32 +70,54 @@ int get_offset(hxhim_t *hx, const int id) {
  * @return the mapping from the (rank, offset) to the database ID, or -1 on error
  */
 int get_id(hxhim_t *hx, const int rank, const std::size_t offset) {
-    std::size_t datastore_count = 0;
-    if (GetDatastoresPerRangeServer(hx, &datastore_count) != HXHIM_SUCCESS) {
+    std::size_t local_ds_count = 0;
+    if (GetDatastoresPerRangeServer(hx, &local_ds_count) != HXHIM_SUCCESS) {
         return -1;
     }
 
-    if (offset >= datastore_count) {
+    if (offset >= local_ds_count) {
         return -1;
     }
 
-    return rank * datastore_count + offset;
+    return rank * local_ds_count + offset;
 }
 
 Datastore::Datastore(hxhim_t *hx,
                      const int id,
                      Histogram::Histogram *hist)
     : comm(MPI_COMM_NULL),
-      rank(get_rank(hx, id)),
+      rank(-1),
+      size(-1),
       id(id),
       hist(hist),
       mutex(),
       stats()
 {
-    hxhim::GetMPI(hx, &comm, nullptr, nullptr);
+    hxhim::GetMPI(hx, &comm, &rank, &size);
 }
 
 Datastore::~Datastore() {
+    long double put_time = 0;
+    for(Stats::Event const &event : stats.puts) {
+        put_time += elapsed<std::chrono::nanoseconds>(event.time);
+    }
+    put_time /= 1e9;
+
+    long double get_time = 0;
+    for(Stats::Event const &event : stats.gets) {
+        get_time += elapsed<std::chrono::nanoseconds>(event.time);
+    }
+    get_time /= 1e9;
+
+    for(int i = 0; i < size; i++) {
+        MPI_Barrier(comm);
+        if (rank == i) {
+            std::cerr << "Datastore " << id << ": " << stats.puts.size() << " PUTs in " << put_time << " seconds (" << stats.puts.size() / put_time << " PUTs/sec)" << std::endl;
+
+            std::cerr << "Datastore " << id << ": " << stats.gets.size() << " GETs in " << get_time << " seconds (" << stats.gets.size() / get_time << " GETs/sec)" << std::endl;
+        }
+    }
+
     delete hist;
 }
 
@@ -159,7 +182,8 @@ int Datastore::Sync() {
 /**
  * GetStats
  * Collective operation
- * Collects statistics from all HXHIM ranks
+ * Collects statistics from all HXHIM ranks.
+ * The pointers should be NULL on all ranks that are not the destination
  *
  * @param dst_rank       the rank to send to
  * @param get_put_times  whether or not to get put_times
@@ -174,54 +198,39 @@ int Datastore::Sync() {
  */
 int Datastore::GetStats(const int dst_rank,
                         const bool get_put_times, long double *put_times,
-                        const bool get_num_puts, std::size_t *num_puts,
+                        const bool get_num_puts, std::size_t  *num_puts,
                         const bool get_get_times, long double *get_times,
-                        const bool get_num_gets, std::size_t *num_gets) {
+                        const bool get_num_gets, std::size_t  *num_gets) {
     MPI_Barrier(comm);
 
     std::lock_guard<std::mutex> lock(mutex);
 
-    if (rank == dst_rank) {
-        if (get_put_times) {
-            const std::size_t size = sizeof(stats.put_times);
-            MPI_Gather(&stats.put_times, size, MPI_CHAR, put_times, size, MPI_CHAR, dst_rank, comm);
+    if (get_put_times) {
+        long double put_time = 0;
+        for(Stats::Event const &event : stats.puts) {
+            put_time += elapsed<std::chrono::nanoseconds>(event.time);
         }
-
-        if (get_num_puts) {
-            const std::size_t size = sizeof(stats.puts);
-            MPI_Gather(&stats.puts, size, MPI_CHAR, num_puts, size, MPI_CHAR, dst_rank, comm);
-        }
-
-        if (get_get_times) {
-            const std::size_t size = sizeof(stats.get_times);
-            MPI_Gather(&stats.get_times, size, MPI_CHAR, get_times, size, MPI_CHAR, dst_rank, comm);
-        }
-
-        if (get_num_gets) {
-            const std::size_t size = sizeof(stats.gets);
-            MPI_Gather(&stats.gets, size, MPI_CHAR, num_gets, size, MPI_CHAR, dst_rank, comm);
-        }
+        MPI_Gather(&put_time, 1, MPI_LONG_DOUBLE, put_times, 1, MPI_LONG_DOUBLE, dst_rank, comm);
     }
-    else {
-        if (get_put_times) {
-            const std::size_t size = sizeof(stats.put_times);
-            MPI_Gather(&stats.put_times, size, MPI_CHAR, nullptr, 0, MPI_CHAR, dst_rank, comm);
-        }
 
-        if (get_num_puts) {
-            const std::size_t size = sizeof(stats.puts);
-            MPI_Gather(&stats.puts, size, MPI_CHAR, nullptr, 0, MPI_CHAR, dst_rank, comm);
-        }
+    if (get_num_puts) {
+        const std::size_t put_count = stats.puts.size();
+        const std::size_t size = sizeof(put_count);
+        MPI_Gather(&put_count, size, MPI_CHAR, num_puts, size, MPI_CHAR, dst_rank, comm);
+    }
 
-        if (get_get_times) {
-            const std::size_t size = sizeof(stats.get_times);
-            MPI_Gather(&stats.get_times, size, MPI_CHAR, nullptr, 0, MPI_CHAR, dst_rank, comm);
+    if (get_get_times) {
+        long double get_time = 0;
+        for(Stats::Event const &event : stats.gets) {
+            get_time += elapsed<std::chrono::nanoseconds>(event.time);
         }
+        MPI_Gather(&get_time, 1, MPI_LONG_DOUBLE, get_times, 1, MPI_LONG_DOUBLE, dst_rank, comm);
+    }
 
-        if (get_num_gets) {
-            const std::size_t size = sizeof(stats.gets);
-            MPI_Gather(&stats.gets, size, MPI_CHAR, nullptr, 0, MPI_CHAR, dst_rank, comm);
-        }
+    if (get_num_gets) {
+        const std::size_t get_count = stats.gets.size();
+        const std::size_t size = sizeof(get_count);
+        MPI_Gather(&get_count, size, MPI_CHAR, num_gets, size, MPI_CHAR, dst_rank, comm);
     }
 
     MPI_Barrier(comm);

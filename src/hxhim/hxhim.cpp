@@ -548,9 +548,9 @@ int hxhim::Put(hxhim_t *hx,
                void *predicate, std::size_t predicate_len,
                enum hxhim_type_t object_type, void *object, std::size_t object_len) {
     mlog(HXHIM_CLIENT_DBG, "%s %s:%d", __FILE__, __func__, __LINE__);
-    std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
+    Timepoint start = now();
     const int rc = hxhim::PutImpl(hx->p->queues.puts, subject, subject_len, predicate, predicate_len, object_type, object, object_len);
-    std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now();
+    Timepoint end = now();
     hx->p->stats.single_op[Transport::Message::BPUT].push_back({start, end});
     return rc;
 }
@@ -598,9 +598,9 @@ int hxhim::Get(hxhim_t *hx,
                void *subject, std::size_t subject_len,
                void *predicate, std::size_t predicate_len,
                enum hxhim_type_t object_type) {
-    std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
+    Timepoint start = now();
     const int rc = hxhim::GetImpl(hx->p->queues.gets, subject, subject_len, predicate, predicate_len, object_type);
-    std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now();
+    Timepoint end = now();
     hx->p->stats.single_op[Transport::Message::BGET].push_back({start, end});
     return rc;
 }
@@ -643,11 +643,11 @@ int hxhimGet(hxhim_t *hx,
 int hxhim::Delete(hxhim_t *hx,
                   void *subject, std::size_t subject_len,
                   void *predicate, std::size_t predicate_len) {
-    std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
+    Timepoint start = now();
     const int rc = hxhim::DeleteImpl(hx->p->queues.deletes,
                                      subject, subject_len,
                                      predicate, predicate_len);
-    std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now();
+    Timepoint end = now();
     hx->p->stats.single_op[Transport::Message::BDELETE].push_back({start, end});
     return rc;
 }
@@ -698,7 +698,7 @@ int hxhim::BPut(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
-    std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
+    Timepoint start = now();
 
     // append these spo triples into the list of unsent PUTs
     for(std::size_t i = 0; i < count; i++) {
@@ -730,7 +730,7 @@ int hxhim::BPut(hxhim_t *hx,
         }
     }
 
-    std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now();
+    Timepoint end = now();
     hx->p->stats.bulk_op[Transport::Message::BPUT].push_back({start, end});
     return HXHIM_SUCCESS;
 }
@@ -788,11 +788,11 @@ int hxhim::BGet(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
-    std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
+    Timepoint start = now();
     for(std::size_t i = 0; i < count; i++) {
         hxhim::GetImpl(hx->p->queues.gets, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], object_types[i]);
     }
-    std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now();
+    Timepoint end = now();
     hx->p->stats.bulk_op[Transport::Message::BGET].push_back({start, end});
     return HXHIM_SUCCESS;
 }
@@ -847,13 +847,13 @@ int hxhim::BGetOp(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
-    std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
+    Timepoint start = now();
     const int rc = hxhim::GetOpImpl(hx->p->queues.getops,
                                     subject, subject_len,
                                     predicate, predicate_len,
                                     object_type,
                                     num_records, op);
-    std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now();
+    Timepoint end = now();
     hx->p->stats.bulk_op[Transport::Message::BGETOP].push_back({start, end});
     return rc;
 }
@@ -907,12 +907,12 @@ int hxhim::BDelete(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
-    std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
+    Timepoint start = now();
     for(std::size_t i = 0; i < count; i++) {
         hxhim::DeleteImpl(hx->p->queues.deletes, subjects[i], subject_lens[i], predicates[i], predicate_lens[i]);
     }
 
-    std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now();
+    Timepoint end = now();
     hx->p->stats.bulk_op[Transport::Message::BDELETE].push_back({start, end});
     return HXHIM_SUCCESS;
 }

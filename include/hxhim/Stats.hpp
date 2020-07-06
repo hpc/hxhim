@@ -7,14 +7,10 @@
 #include <iostream>
 
 #include "transport/Messages/Message.hpp"
+#include "utils/Stats.hpp"
 
 namespace hxhim {
 namespace Stats {
-
-struct Timestamp {
-    std::chrono::time_point<std::chrono::high_resolution_clock> start;
-    std::chrono::time_point<std::chrono::high_resolution_clock> end;
-};
 
 struct Stats {
     // how long each single operation called by the user took

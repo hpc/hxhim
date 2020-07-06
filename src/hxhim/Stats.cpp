@@ -17,7 +17,7 @@ std::ostream &hxhim::Stats::Stats::print(const std::map<Transport::Message::Type
         for(typename decltype(single_op)::const_iterator it = single_op.begin();
             it != single_op.end(); it++) {
             std::chrono::nanoseconds op_time(0);
-            for(hxhim::Stats::Timestamp const &event : it->second) {
+            for(Timestamp const &event : it->second) {
                 op_time += std::chrono::duration_cast<std::chrono::nanoseconds>(event.end - event.start);
             }
             stream << indent << indent << Transport::Message::TypeStr[it->first] << " count: " << it->second.size() << " duration: "  << std::chrono::duration_cast<std::chrono::seconds>(op_time).count() << " seconds" << std::endl;
@@ -35,7 +35,7 @@ std::ostream &hxhim::Stats::Stats::print(const std::map<Transport::Message::Type
         for(typename decltype(bulk_op)::const_iterator it = bulk_op.begin();
             it != bulk_op.end(); it++) {
             std::chrono::nanoseconds op_time(0);
-            for(hxhim::Stats::Timestamp const &event : it->second) {
+            for(Timestamp const &event : it->second) {
                 op_time += std::chrono::duration_cast<std::chrono::nanoseconds>(event.end - event.start);
             }
             stream << indent << indent << Transport::Message::TypeStr[it->first] << " count: " << it->second.size() << " duration: "  << std::chrono::duration_cast<std::chrono::seconds>(op_time).count() << " seconds" << std::endl;

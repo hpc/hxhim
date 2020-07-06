@@ -15,6 +15,7 @@ extern "C"
 
 int hxhimGetMPI(hxhim_t *hx, MPI_Comm *comm, int *rank, int *size);
 int hxhimGetDatastoresPerRangeServer(hxhim_t *hx, size_t *datastore_count);
+int hxhimGetDatastoreCount(hxhim_t *hx, size_t *count);
 int hxhimGetDatastoreClientToServerRatio(hxhim_t *hx, size_t *client, size_t *server);
 
 #ifdef __cplusplus

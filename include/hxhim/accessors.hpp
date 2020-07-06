@@ -14,6 +14,7 @@ namespace hxhim {
 
 int GetMPI(hxhim_t *hx, MPI_Comm *comm, int *rank, int *size);
 int GetDatastoresPerRangeServer(hxhim_t *hx, std::size_t *datastore_count);
+int GetDatastoreCount(hxhim_t *hx, std::size_t *count);
 int GetDatastoreClientToServerRatio(hxhim_t *hx, std::size_t *client, std::size_t *server);
 
 /** C++ only */

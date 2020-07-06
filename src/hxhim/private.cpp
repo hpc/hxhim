@@ -236,16 +236,17 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
-    hx->p->range_server.client_ratio = opts->p->client_ratio;
-    hx->p->range_server.server_ratio = opts->p->server_ratio;
-
-    // there must be more than 0 datastores
-    if (!opts->p->datastore_count) {
+    // there must be at least 1 client, server, and datastore
+    if (!opts->p->client_ratio    ||
+        !opts->p->server_ratio    ||
+        !opts->p->datastore_count) {
         return HXHIM_ERROR;
     }
 
+    hx->p->range_server.client_ratio = opts->p->client_ratio;
+    hx->p->range_server.server_ratio = opts->p->server_ratio;
+
     // allocate pointers
-    // hx->p->datastore.datastores = alloc_array<hxhim::datastore::Datastore *>(hx->p->datastore.count);
     hx->p->datastores.resize(opts->p->datastore_count);
 
     const bool is_rs = is_range_server(hx->p->bootstrap.rank, opts->p->client_ratio, opts->p->server_ratio);
@@ -276,6 +277,12 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
         }
         #endif
     }
+
+    // the higher of client_ratio and server_ratio creates a "set" of datastores
+    const std::size_t more = std::max(opts->p->client_ratio, opts->p->server_ratio);
+
+    hx->p->total_datastores = opts->p->datastore_count * ((opts->p->server_ratio * (hx->p->bootstrap.size / more)) +
+                                                          std::min(hx->p->bootstrap.size % more, opts->p->datastore_count));
 
     mlog(HXHIM_CLIENT_INFO, "Completed Datastore Initialization");
     return HXHIM_SUCCESS;

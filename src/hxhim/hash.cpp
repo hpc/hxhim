@@ -1,27 +1,7 @@
-#include <cmath>
 #include <cstdlib>
 
 #include "hxhim/accessors.hpp"
 #include "hxhim/hash.hpp"
-
-static std::size_t num_datastores(hxhim_t *hx) {
-    int rank = -1;
-    int size = -1;
-    std::size_t client = 0;
-    std::size_t server = 0;
-    if ((hxhim::GetMPI(hx, nullptr, &rank, &size)        != HXHIM_SUCCESS) ||
-        (hxhim::GetDatastoreClientToServerRatio(hx,
-                                                &client,
-                                                &server) != HXHIM_SUCCESS)) {
-        return -1;
-    }
-
-    static const div_t qr = std::div(size, client);
-
-    static const std::size_t datastores = server * qr.quot + std::min((std::size_t) qr.rem, server);
-
-    return datastores;
-}
 
 /**
  * RankZero
@@ -57,11 +37,13 @@ int hxhim::hash::MyRank(hxhim_t *hx, void *, const std::size_t, void *, const st
  */
 int hxhim::hash::RankModDatastores(hxhim_t *hx, void *, const std::size_t, void *, const std::size_t, void *) {
     int rank = -1;
-    if (hxhim::GetMPI(hx, nullptr, &rank, nullptr) != HXHIM_SUCCESS) {
+    std::size_t count = 0;
+    if ((hxhim::GetMPI(hx, nullptr, &rank, nullptr) != HXHIM_SUCCESS) ||
+        (hxhim::GetDatastoreCount(hx, &count)       != HXHIM_SUCCESS)) {
         return -1;
     }
 
-    return rank % num_datastores(hx);;
+    return rank % count;
 }
 
 /**
@@ -77,6 +59,11 @@ int hxhim::hash::RankModDatastores(hxhim_t *hx, void *, const std::size_t, void 
  * @return the destination datastore ID or -1 on error
  */
 int hxhim::hash::SumModDatastores(hxhim_t *hx, void *subject, const std::size_t subject_len, void *predicate, const std::size_t predicate_len, void *) {
+    std::size_t count = 0;
+    if (hxhim::GetDatastoreCount(hx, &count) != HXHIM_SUCCESS) {
+        return -1;
+    }
+
     int dst = 0;
     for(std::size_t i = 0; i < subject_len; i++) {
         dst += (int) (uint8_t) ((char *) subject)[i];
@@ -86,7 +73,7 @@ int hxhim::hash::SumModDatastores(hxhim_t *hx, void *subject, const std::size_t 
         dst += (int) (uint8_t) ((char *) predicate)[i];
     }
 
-    return dst % num_datastores(hx);
+    return dst % count;
 }
 
 /**

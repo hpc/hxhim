@@ -1,5 +1,4 @@
 #include <cerrno>
-#include <ctime>
 #include <sstream>
 #include <stdexcept>
 #include <sys/stat.h>
@@ -9,7 +8,6 @@
 #include "hxhim/accessors.hpp"
 #include "datastore/leveldb.hpp"
 #include "utils/Blob.hpp"
-#include "utils/elapsed.h"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
@@ -118,34 +116,31 @@ void hxhim::datastore::leveldb::CloseImpl() {
  */
 Transport::Response::BPut *hxhim::datastore::leveldb::BPutImpl(Transport::Request::BPut *req) {
     mlog(LEVELDB_INFO, "LevelDB BPut");
+
+    hxhim::datastore::Datastore::Stats::Event event;
+    event.time.start = now();
+    event.count = req->count;
+
     Transport::Response::BPut *res = construct<Transport::Response::BPut>(req->count);
 
-    struct timespec start, end;
+    // batch up PUTs
     ::leveldb::WriteBatch batch;
-
     for(std::size_t i = 0; i < req->count; i++) {
         void *key = nullptr;
         std::size_t key_len = 0;
         sp_to_key(req->subjects[i], req->predicates[i], &key, &key_len);
 
-        clock_gettime(CLOCK_MONOTONIC, &start);
         batch.Put(::leveldb::Slice((char *) key, key_len), ::leveldb::Slice((char *) req->objects[i]->data(), req->objects[i]->size()));
-        clock_gettime(CLOCK_MONOTONIC, &end);
 
         // save requesting addresses for sending back
         res->orig.subjects[i]   = construct<ReferenceBlob>(req->orig.subjects[i], req->subjects[i]->size());
         res->orig.predicates[i] = construct<ReferenceBlob>(req->orig.predicates[i], req->predicates[i]->size());
 
         dealloc(key);
-
-        stats.puts++;
-        stats.put_times += nano(start, end);
     }
 
     // add in the time to write the key-value pairs without adding to the counter
-    clock_gettime(CLOCK_MONOTONIC, &start);
     ::leveldb::Status status = db->Write(::leveldb::WriteOptions(), &batch);
-    clock_gettime(CLOCK_MONOTONIC, &end);
 
     if (status.ok()) {
         for(std::size_t i = 0; i < req->count; i++) {
@@ -161,7 +156,8 @@ Transport::Response::BPut *hxhim::datastore::leveldb::BPutImpl(Transport::Reques
     }
 
     res->count = req->count;
-    stats.put_times += nano(start, end);
+    event.time.end = now();
+    stats.puts.emplace_back(event);
 
     mlog(LEVELDB_INFO, "LevelDB BPut Completed");
     return res;
@@ -179,10 +175,16 @@ Transport::Response::BPut *hxhim::datastore::leveldb::BPutImpl(Transport::Reques
  */
 Transport::Response::BGet *hxhim::datastore::leveldb::BGetImpl(Transport::Request::BGet *req) {
     mlog(LEVELDB_INFO, "Rank %d LevelDB GET processing %zu item in %ps", rank, req->count, req);
+
+    hxhim::datastore::Datastore::Stats::Event event;
+    event.time.start = now();
+    event.count = req->count;
+
     Transport::Response::BGet *res = construct<Transport::Response::BGet>(req->count);
+
+    // batch up GETs
     for(std::size_t i = 0; i < req->count; i++) {
         mlog(LEVELDB_INFO, "Rank %d LevelDB GET processing %p[%zu] = {%p, %p}", rank, req, i, req->subjects[i], req->predicates[i]);
-        struct timespec start, end;
 
         void *key = nullptr;
         std::size_t key_len = 0;
@@ -192,10 +194,8 @@ Transport::Response::BGet *hxhim::datastore::leveldb::BGetImpl(Transport::Reques
         const ::leveldb::Slice k((char *) key, key_len);
 
         // get the value
-        clock_gettime(CLOCK_MONOTONIC, &start);
         ::leveldb::Slice value; // read gotten value into a Slice instead of a std::string to save a few copies
         ::leveldb::Status status = db->Get(::leveldb::ReadOptions(), k, value);
-        clock_gettime(CLOCK_MONOTONIC, &end);
 
         dealloc(key);
 
@@ -219,11 +219,10 @@ Transport::Response::BGet *hxhim::datastore::leveldb::BGetImpl(Transport::Reques
         }
 
         res->count++;
-
-        // update stats
-        stats.gets++;
-        stats.get_times += nano(start, end);
     }
+
+    event.time.end = now();
+    stats.gets.emplace_back(event);
 
     mlog(LEVELDB_INFO, "Rank %d LevelDB GET done processing %p", rank, req);
     return res;
@@ -259,13 +258,14 @@ static void BGetOp_copy_response(const ::leveldb::Iterator *it,
  * @return pointer to a list of results
  */
 Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Request::BGetOp *req) {
+
     Transport::Response::BGetOp *res = construct<Transport::Response::BGetOp>(req->count);
 
     ::leveldb::Iterator *it = db->NewIterator(::leveldb::ReadOptions());
 
     for(std::size_t i = 0; i < req->count; i++) {
-        struct timespec start = {};
-        struct timespec end = {};
+        hxhim::datastore::Datastore::Stats::Event event;
+        event.time.start = now();
 
         // prepare response
         res->object_types[i] = req->object_types[i];
@@ -279,9 +279,7 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
             std::size_t key_len = 0;
             sp_to_key(req->subjects[i], req->predicates[i], &key, &key_len);
 
-            clock_gettime(CLOCK_MONOTONIC, &start);
             it->Seek(::leveldb::Slice((char *) key, key_len));
-            clock_gettime(CLOCK_MONOTONIC, &end);
 
             dealloc(key);
 
@@ -293,9 +291,7 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
             std::size_t key_len = 0;
             sp_to_key(req->subjects[i], req->predicates[i], &key, &key_len);
 
-            clock_gettime(CLOCK_MONOTONIC, &start);
             it->Seek(::leveldb::Slice((char *) key, key_len));
-            clock_gettime(CLOCK_MONOTONIC, &end);
 
             dealloc(key);
 
@@ -311,9 +307,7 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
             std::size_t key_len = 0;
             sp_to_key(req->subjects[i], req->predicates[i], &key, &key_len);
 
-            clock_gettime(CLOCK_MONOTONIC, &start);
             it->Seek(::leveldb::Slice((char *) key, key_len));
-            clock_gettime(CLOCK_MONOTONIC, &end);
 
             dealloc(key);
 
@@ -326,9 +320,7 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
         }
         else if (req->ops[i] == hxhim_get_op_t::HXHIM_GET_FIRST) {
             // ignore key
-            clock_gettime(CLOCK_MONOTONIC, &start);
             it->SeekToFirst();
-            clock_gettime(CLOCK_MONOTONIC, &end);
 
             // first result returned is (subject, predicate)
             // (results are offsets)
@@ -339,9 +331,7 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
         }
         else if (req->ops[i] == hxhim_get_op_t::HXHIM_GET_LAST) {
             // ignore key
-            clock_gettime(CLOCK_MONOTONIC, &start);
             it->SeekToLast();
-            clock_gettime(CLOCK_MONOTONIC, &end);
 
             // first result returned is (subject, predicate)
             // (results are offsets)
@@ -354,10 +344,11 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
         // all responses for this Op share a status
         res->statuses[i] = it->status().ok()?HXHIM_SUCCESS:HXHIM_ERROR;
 
-        stats.gets++;
-        stats.get_times += nano(start, end);
-
         res->count++;
+
+        event.count = res->num_recs[i];
+        event.time.end = now();
+        stats.getops.emplace_back(event);
     }
 
     delete it;
@@ -376,6 +367,10 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
  * @return pointer to a list of results
  */
 Transport::Response::BDelete *hxhim::datastore::leveldb::BDeleteImpl(Transport::Request::BDelete *req) {
+    hxhim::datastore::Datastore::Stats::Event event;
+    event.time.start = now();
+    event.count = req->count;
+
     Transport::Response::BDelete *res = construct<Transport::Response::BDelete>(req->count);
 
     ::leveldb::WriteBatch batch;
@@ -402,6 +397,9 @@ Transport::Response::BDelete *hxhim::datastore::leveldb::BDeleteImpl(Transport::
     }
 
     res->count = req->count;
+
+    event.time.end = now();
+    stats.deletes.emplace_back(event);
 
     return res;
 }

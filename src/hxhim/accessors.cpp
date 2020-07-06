@@ -75,6 +75,39 @@ int hxhimGetDatastoresPerRangeServer(hxhim_t *hx, std::size_t *datastore_count) 
     return hxhim::GetDatastoresPerRangeServer(hx, datastore_count);
 }
 
+
+/**
+ * hxhim::GetDatastoreCount
+ * Gets the total number of datastores in this HXHIM instance
+ *
+ * @param hx              the HXHIM instance
+ * @param count           the total number of datastores
+ * @return HXHIM_SUCCESS or HXHIM_ERROR on error
+ */
+int hxhim::GetDatastoreCount(hxhim_t *hx, std::size_t *count) {
+    if (!valid(hx)) {
+        return HXHIM_ERROR;
+    }
+
+    if (count) {
+        *count = hx->p->total_datastores;
+    }
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * hxhimGetDatastoreCount
+ * Gets the total number of datastores in this HXHIM instance
+ *
+ * @param hx              the HXHIM instance
+ * @param count           the total number of datastores
+ * @return HXHIM_SUCCESS or HXHIM_ERROR on error
+ */
+int hxhimGetDatastoreCount(hxhim_t *hx, size_t *count) {
+    return hxhim::GetDatastoreCount(hx, count);
+}
+
 /**
  * GetDatastoreClientToServerRatio
  * Gets the ratio of clients to servers
@@ -115,7 +148,7 @@ int hxhimGetDatastoreClientToServerRatio(hxhim_t *hx, std::size_t *client, std::
 
 /**
  * GetDatastores
- * Gets the datastores from this HXHIM instance
+ * Gets the datastores from this rank of the HXHIM instance
  *
  * @param hx              the HXHIM instance
  * @param datastores      pointer to put the datastores array address
