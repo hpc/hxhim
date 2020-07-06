@@ -101,12 +101,9 @@ int main(int argc, char *argv[]) {
     MPI_Barrier(MPI_COMM_WORLD);
 
     // GET again, now that all PUTs have completed
-    enum hxhim_type_t *bget_types = malloc(count * sizeof(enum hxhim_type_t));
     for(size_t i = 0; i < count; i++) {
-        bget_types[i] = HXHIM_BYTE_TYPE;
+        hxhimGet(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_BYTE_TYPE);
     }
-
-    hxhimBGet(&hx, subjects, subject_lens, predicates, predicate_lens, bget_types, count);
 
     MPI_Barrier(MPI_COMM_WORLD);
     if (rank == 0) {
@@ -120,7 +117,6 @@ int main(int argc, char *argv[]) {
 
     // clean up
     spo_clean(count, subjects, subject_lens, predicates, predicate_lens, objects, object_lens);
-    free(bget_types);
 
     MPI_Barrier(MPI_COMM_WORLD);
 

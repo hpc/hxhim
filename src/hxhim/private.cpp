@@ -609,8 +609,8 @@ std::ostream &hxhim::print_stats(hxhim_t *hx, const std::string &indent, std::os
         for(typename decltype(hx->p->stats.single_op)::const_iterator it = hx->p->stats.single_op.begin();
             it != hx->p->stats.single_op.end(); it++) {
             std::chrono::nanoseconds op_time(0);
-            for(std::chrono::nanoseconds const &time : it->second) {
-                op_time += time;
+            for(hxhim_private::Stats::Event const &event : it->second) {
+                op_time += std::chrono::duration_cast<std::chrono::nanoseconds>(event.end - event.start);
             }
             stream << indent << indent << Transport::Message::TypeStr[it->first] << " count: " << it->second.size() << " duration: "  << std::chrono::duration_cast<std::chrono::seconds>(op_time).count() << " seconds" << std::endl;
 
@@ -627,8 +627,8 @@ std::ostream &hxhim::print_stats(hxhim_t *hx, const std::string &indent, std::os
         for(typename decltype(hx->p->stats.bulk_op)::const_iterator it = hx->p->stats.bulk_op.begin();
             it != hx->p->stats.bulk_op.end(); it++) {
             std::chrono::nanoseconds op_time(0);
-            for(std::chrono::nanoseconds const &time : it->second) {
-                op_time += time;
+            for(hxhim_private::Stats::Event const &event : it->second) {
+                op_time += std::chrono::duration_cast<std::chrono::nanoseconds>(event.end - event.start);
             }
             stream << indent << indent << Transport::Message::TypeStr[it->first] << " count: " << it->second.size() << " duration: "  << std::chrono::duration_cast<std::chrono::seconds>(op_time).count() << " seconds" << std::endl;
 
@@ -642,12 +642,10 @@ std::ostream &hxhim::print_stats(hxhim_t *hx, const std::string &indent, std::os
 
         for(typename decltype(hx->p->stats.used)::const_iterator it = hx->p->stats.used.begin();
             it != hx->p->stats.used.end(); it++) {
-
             std::size_t sum = 0;
             for(std::size_t const &filled : it->second) {
                 sum += filled;
             }
-
             stream << indent << indent << Transport::Message::TypeStr[it->first] << " count: " << it->second.size() << " average filled: "  << sum << "/" << hx->p->max_ops_per_send.puts << " (" << 100 * sum / ((double) hx->p->max_ops_per_send.puts) << "%)" << std::endl;
         }
     }

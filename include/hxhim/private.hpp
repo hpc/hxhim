@@ -94,18 +94,23 @@ typedef struct hxhim_private {
 
     /** @decription Statistics */
     struct Stats {
+        struct Event {
+            std::chrono::time_point<std::chrono::high_resolution_clock> start;
+            std::chrono::time_point<std::chrono::high_resolution_clock> end;
+        };
+
         // how long each single operation called by the user took
-        std::map<Transport::Message::Type, std::list<std::chrono::nanoseconds> > single_op;
+        std::map<Transport::Message::Type, std::list<Event> > single_op;
 
         // how long each bulk operation called by the user took
-        std::map<Transport::Message::Type, std::list<std::chrono::nanoseconds> > bulk_op;
+        std::map<Transport::Message::Type, std::list<Event> > bulk_op;
 
         // how many entries of a message packet were used before sending
         // max number of entries per message should never change
         std::map<Transport::Message::Type, std::list<std::size_t> > used;
 
         // how long each transport took
-        std::map<Transport::Message::Type, std::list <std::chrono::nanoseconds> > transport;
+        std::map<Transport::Message::Type, std::list <Event> > transport;
 
         // distribution of outgoing packets
         std::map<int, std::map<Transport::Message::Type, std::size_t> > outgoing;
