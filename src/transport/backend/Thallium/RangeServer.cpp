@@ -81,7 +81,7 @@ void RangeServer::process(const thallium::request &req, const std::size_t req_le
     mlog(THALLIUM_DBG, "Rank %d RangeServer Responding with %zu byte %s response", rank, res_len, Message::TypeStr[response->type]);
     dealloc(response);
 
-    mlog(THALLIUM_ERR, "Rank %d RangeServer Packed response into %zu byte buffer", rank, res_len);
+    mlog(THALLIUM_DBG, "Rank %d RangeServer Packed response into %zu byte buffer", rank, res_len);
 
     // send the response
     {

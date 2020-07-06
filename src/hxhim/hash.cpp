@@ -1,5 +1,6 @@
 #include <cstdlib>
 
+#include "datastore/datastore.hpp"
 #include "hxhim/accessors.hpp"
 #include "hxhim/hash.hpp"
 
@@ -90,7 +91,7 @@ int hxhim::hash::Left(hxhim_t *hx, void *, const std::size_t, void *, const std:
         return -1;
     }
 
-    return (rank - 1) % size;
+    return hxhim::datastore::get_id(hx, (rank - 1) % size, 0);
 }
 
 /**
@@ -107,5 +108,5 @@ int hxhim::hash::Right(hxhim_t *hx, void *, const std::size_t, void *, const std
         return -1;
     }
 
-    return (rank + 1) % size;
+    return hxhim::datastore::get_id(hx, (rank + 1) % size, 0);
 }

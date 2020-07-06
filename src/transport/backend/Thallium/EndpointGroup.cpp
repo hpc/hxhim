@@ -174,7 +174,7 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
         res_bulk.on(*dst_it->second) >> local;
 
         // unpack the response
-        mlog(THALLIUM_ERR, "Unpacking %zu byte response from %d", res_size, req->dst);
+        mlog(THALLIUM_DBG, "Unpacking %zu byte response from %d", res_size, req->dst);
 
         Recv_t *response = nullptr;
         const int unpack_rc = Unpacker::unpack(&response, res_buf, res_size);

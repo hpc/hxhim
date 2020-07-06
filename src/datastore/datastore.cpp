@@ -96,28 +96,32 @@ Datastore::Datastore(const int rank,
 
 Datastore::~Datastore() {
     long double put_time = 0;
+    std::size_t put_count = 0;
     for(Stats::Event const &event : stats.puts) {
         put_time += elapsed<std::chrono::nanoseconds>(event.time);
+        put_count += event.count;
     }
     put_time /= 1e9;
 
     long double get_time = 0;
+    std::size_t get_count = 0;
     for(Stats::Event const &event : stats.gets) {
         get_time += elapsed<std::chrono::nanoseconds>(event.time);
+        get_count += event.count;
     }
     get_time /= 1e9;
 
     std::ios_base::fmtflags flags(std::cerr.flags());
 
-    std::cerr << "Datastore " << id << ": " << stats.puts.size() << " PUTs in " << put_time << " seconds";
-    if (stats.puts.size()) {
-        std::cerr << " (" << stats.puts.size() / put_time << " PUTs/sec)";
+    std::cerr << "Datastore " << id << ": " << put_count << " PUTs in " << put_time << " seconds";
+    if (put_count) {
+        std::cerr << " (" << put_count / put_time << " PUTs/sec)";
     }
     std::cerr << std::endl;
 
-    std::cerr << "Datastore " << id << ": " << stats.gets.size() << " GETs in " << get_time << " seconds";
-    if (stats.gets.size()) {
-        std::cerr << " (" << stats.gets.size() / get_time << " GETs/sec)";
+    std::cerr << "Datastore " << id << ": " << get_count << " GETs in " << get_time << " seconds";
+    if (get_count) {
+        std::cerr << " (" << get_count / get_time << " GETs/sec)";
     }
     std::cerr << std::endl;
     std::cerr.flags(flags);
