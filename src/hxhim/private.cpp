@@ -596,7 +596,17 @@ int hxhim::destroy::datastore(hxhim_t *hx) {
     return HXHIM_SUCCESS;
 }
 
-std::ostream &hxhim::print_stats(hxhim_t *hx, const std::string &indent, std::ostream &stream) {
+std::ostream &hxhim::print_stats(hxhim_t *hx,
+                                 std::ostream &stream,
+                                 const std::string &indent) {
+    return print_stats(hx->p->stats, hx->p->max_ops_per_send, stream, indent);
+}
+
+std::ostream &hxhim::print_stats(hxhim_private::Stats &stats,
+                                 const std::map<Transport::Message::Type, std::size_t> &max_ops_per_send,
+
+                                 std::ostream &stream,
+                                 const std::string &indent) {
     std::ios_base::fmtflags flags(stream.flags());
 
     stream << std::fixed << std::setprecision(3);
@@ -605,8 +615,8 @@ std::ostream &hxhim::print_stats(hxhim_t *hx, const std::string &indent, std::os
 
         std::size_t total_ops = 0;
         std::chrono::nanoseconds total_time(0);
-        for(typename decltype(hx->p->stats.single_op)::const_iterator it = hx->p->stats.single_op.begin();
-            it != hx->p->stats.single_op.end(); it++) {
+        for(typename decltype(stats.single_op)::const_iterator it = stats.single_op.begin();
+            it != stats.single_op.end(); it++) {
             std::chrono::nanoseconds op_time(0);
             for(hxhim_private::Stats::Event const &event : it->second) {
                 op_time += std::chrono::duration_cast<std::chrono::nanoseconds>(event.end - event.start);
@@ -623,8 +633,8 @@ std::ostream &hxhim::print_stats(hxhim_t *hx, const std::string &indent, std::os
 
         std::size_t total_ops = 0;
         std::chrono::nanoseconds total_time(0);
-        for(typename decltype(hx->p->stats.bulk_op)::const_iterator it = hx->p->stats.bulk_op.begin();
-            it != hx->p->stats.bulk_op.end(); it++) {
+        for(typename decltype(stats.bulk_op)::const_iterator it = stats.bulk_op.begin();
+            it != stats.bulk_op.end(); it++) {
             std::chrono::nanoseconds op_time(0);
             for(hxhim_private::Stats::Event const &event : it->second) {
                 op_time += std::chrono::duration_cast<std::chrono::nanoseconds>(event.end - event.start);
@@ -639,15 +649,27 @@ std::ostream &hxhim::print_stats(hxhim_t *hx, const std::string &indent, std::os
     {
         stream << indent << "Average Message Packet Fill Rate:" << std::endl;
 
-        for(typename decltype(hx->p->stats.used)::const_iterator it = hx->p->stats.used.begin();
-            it != hx->p->stats.used.end(); it++) {
+        for(typename decltype(stats.used)::const_iterator it = stats.used.begin();
+            it != stats.used.end(); it++) {
             std::size_t sum = 0;
             for(std::size_t const &filled : it->second) {
                 sum += filled;
             }
             const double avg = ((double) sum) / it->second.size();
-            sum /= hx->p->stats.used.size();
-            stream << indent << indent << Transport::Message::TypeStr[it->first] << " count: " << it->second.size() << " average filled: "  << avg << "/" << hx->p->max_ops_per_send[it->first] << " (" << 100.0 * avg / hx->p->max_ops_per_send[it->first] << "%)" << std::endl;
+            sum /= stats.used.size();
+            stream << indent << indent << Transport::Message::TypeStr[it->first] << " count: " << it->second.size() << " average filled: "  << avg << "/" << max_ops_per_send.at(it->first) << " (" << 100.0 * avg / max_ops_per_send.at(it->first) << "%)" << std::endl;
+        }
+    }
+
+    {
+        stream << indent << "Outgoing:" << std::endl;
+
+        for(typename decltype(stats.outgoing)::const_iterator type = stats.outgoing.begin();
+            type != stats.outgoing.end(); type++) {
+            for(typename decltype(type->second)::const_iterator dst = type->second.begin();
+                dst != type->second.end(); dst++) {
+                stream << indent << indent << Transport::Message::TypeStr[type->first] << " -> " << dst->first << ": " << dst->second << std::endl;
+            }
         }
     }
 

@@ -107,10 +107,10 @@ typedef struct hxhim_private {
         std::map<Transport::Message::Type, std::list <Event> > transport;
 
         // distribution of outgoing packets
-        std::map<int, std::map<Transport::Message::Type, std::size_t> > outgoing;
+        std::map<Transport::Message::Type, std::map<int, std::size_t> > outgoing;
 
         // distribution of incoming packets
-        std::map<int, std::map<Transport::Message::Type, std::size_t> > incoming;
+        std::map<Transport::Message::Type, std::map<int, std::size_t> > incoming;
     };
 
     Stats stats;
@@ -148,8 +148,13 @@ int datastore   (hxhim_t *hx);
 
 // this will probably be moved to the public side
 std::ostream &print_stats(hxhim_t *hx,
-                          const std::string &indent = "    ",
-                          std::ostream &stream = std::cout);
+                          std::ostream &stream = std::cout,
+                          const std::string &indent = "    ");
+
+std::ostream &print_stats(hxhim_private::Stats &stats,
+                          const std::map<Transport::Message::Type, std::size_t> &max_ops_per_send,
+                          std::ostream &stream = std::cout,
+                          const std::string &indent = "    ");
 
 int PutImpl(hxhim::Unsent<hxhim::PutData> &puts,
             void *subject, std::size_t subject_len,
