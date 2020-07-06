@@ -453,8 +453,8 @@ hxhim::Results *hxhim::Sync(hxhim_t *hx) {
 
     if (is_range_server(hx->p->bootstrap.rank, hx->p->range_server.client_ratio, hx->p->range_server.server_ratio)) {
         // Sync local data stores
-        for(std::size_t i = 0; i < hx->p->datastore.count; i++) {
-            const int synced = hx->p->datastore.datastores[i]->Sync();
+        for(std::size_t i = 0; i < hx->p->datastores.size(); i++) {
+            const int synced = hx->p->datastores[i]->Sync();
             res->Add(hxhim::Result::init(hx, i, synced));
         }
     }
@@ -500,10 +500,10 @@ hxhim::Results *hxhim::ChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t fu
     hx->p->hash.args = args;
 
     // change datastores
-    for(std::size_t i = 0; i < hx->p->datastore.count; i++) {
+    for(std::size_t i = 0; i < hx->p->datastores.size(); i++) {
         std::stringstream s;
         s << name << "-" << hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, i);
-        hx->p->datastore.datastores[i]->Open(s.str());
+        hx->p->datastores[i]->Open(s.str());
     }
 
     MPI_Barrier(hx->p->bootstrap.comm);

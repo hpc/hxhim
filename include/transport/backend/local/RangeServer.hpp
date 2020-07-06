@@ -1,6 +1,8 @@
 #ifndef HXHIM_RANGE_SERVER_HPP
 #define HXHIM_RANGE_SERVER_HPP
 
+#include <vector>
+
 #include "datastore/datastore.hpp"
 #include "hxhim/accessors.hpp"
 #include "hxhim/private.hpp"
@@ -51,12 +53,12 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
     res->src = req->dst;
     res->dst = req->src;
 
-    hxhim::datastore::Datastore **datastores = nullptr;
+    std::vector<hxhim::datastore::Datastore *> *datastores = nullptr;
     hxhim::GetDatastores(hx, &datastores);
 
     // send to each datastore
     for(std::size_t ds = 0; ds < datastore_count; ds++) {
-        Response_t *response = datastores[ds]->operate(&dsts[ds]);
+        Response_t *response = (*datastores)[ds]->operate(&dsts[ds]);
 
         // if there were responses, copy them into the output variable
         if (response) {

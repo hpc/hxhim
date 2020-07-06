@@ -2,6 +2,7 @@
 #define HXHIM_ACCESSORS_HPP
 
 #include <cstddef>
+#include <vector>
 
 #include <mpi.h>
 
@@ -18,7 +19,7 @@ int GetDatastoresPerRangeServer(hxhim_t *hx, std::size_t *datastore_count);
 int GetDatastoreClientToServerRatio(hxhim_t *hx, std::size_t *client, std::size_t *server);
 
 /** C++ only */
-int GetDatastores(hxhim_t *hx, datastore::Datastore ***datastores);
+int GetDatastores(hxhim_t *hx, std::vector<datastore::Datastore *> **datastores);
 
 }
 

@@ -102,7 +102,7 @@ int hxhim::GetDatastoresPerRangeServer(hxhim_t *hx, std::size_t *datastore_count
         return HXHIM_ERROR;
     }
 
-    *datastore_count = hx->p->datastore.count;
+    *datastore_count = hx->p->datastores.size();
     return HXHIM_SUCCESS;
 }
 
@@ -164,11 +164,11 @@ int hxhimGetDatastoreClientToServerRatio(hxhim_t *hx, std::size_t *client, std::
  * @param datastores      pointer to put the datastores array address
  * @return HXHIM_SUCCESS or HXHIM_ERROR on error
  */
-int hxhim::GetDatastores(hxhim_t *hx, hxhim::datastore::Datastore ***datastores) {
+int hxhim::GetDatastores(hxhim_t *hx, std::vector<hxhim::datastore::Datastore *> **datastores) {
     if (!valid(hx) || !datastores) {
         return HXHIM_ERROR;
     }
 
-    *datastores = hx->p->datastore.datastores;
+    *datastores = &hx->p->datastores;
     return HXHIM_SUCCESS;
 }

@@ -4,6 +4,7 @@
 #include <atomic>
 #include <mutex>
 #include <thread>
+#include <vector>
 
 #include <mpi.h>
 
@@ -54,10 +55,9 @@ typedef struct hxhim_private {
         hxhim::Unsent<hxhim::DeleteData> deletes;
     } queues;
 
-    struct {
-        hxhim::datastore::Datastore **datastores;   // fixed array of datastores mapped by rank and index: f(rank, index) -> datastore ID
-        std::size_t count;                          // number of datastores in this process
-    } datastore;
+    // local datastores
+    // f(rank, index) = datastore ID
+    std::vector<hxhim::datastore::Datastore *> datastores;
 
     // asynchronous BPUT data
     struct {
