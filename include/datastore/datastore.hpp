@@ -85,7 +85,6 @@ class Datastore {
 
         MPI_Comm comm; // MPI communicator of HXHIM instance
         int rank;      // MPI rank of HXHIM instance
-        int size;      // MPI world size
         int id;
         Histogram::Histogram *hist;
 

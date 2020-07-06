@@ -589,11 +589,16 @@ int hxhim::destroy::datastore(hxhim_t *hx) {
         return HXHIM_ERROR;
     }
 
-    for(hxhim::datastore::Datastore *&ds : hx->p->datastores) {
-        if (ds) {
-            ds->Close();
-            delete ds;
-            ds = nullptr;
+    for(int i = 0; i < hx->p->bootstrap.size; i++) {
+        MPI_Barrier(hx->p->bootstrap.comm);
+        if (hx->p->bootstrap.rank == i) {
+            for(hxhim::datastore::Datastore *&ds : hx->p->datastores) {
+                if (ds) {
+                    ds->Close();
+                    delete ds;
+                    ds = nullptr;
+                }
+            }
         }
     }
 

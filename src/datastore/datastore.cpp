@@ -87,13 +87,12 @@ Datastore::Datastore(hxhim_t *hx,
                      Histogram::Histogram *hist)
     : comm(MPI_COMM_NULL),
       rank(-1),
-      size(-1),
       id(id),
       hist(hist),
       mutex(),
       stats()
 {
-    hxhim::GetMPI(hx, &comm, &rank, &size);
+    hxhim::GetMPI(hx, &comm, &rank, nullptr);
 }
 
 Datastore::~Datastore() {
@@ -109,14 +108,17 @@ Datastore::~Datastore() {
     }
     get_time /= 1e9;
 
-    for(int i = 0; i < size; i++) {
-        MPI_Barrier(comm);
-        if (rank == i) {
-            std::cerr << "Datastore " << id << ": " << stats.puts.size() << " PUTs in " << put_time << " seconds (" << stats.puts.size() / put_time << " PUTs/sec)" << std::endl;
-
-            std::cerr << "Datastore " << id << ": " << stats.gets.size() << " GETs in " << get_time << " seconds (" << stats.gets.size() / get_time << " GETs/sec)" << std::endl;
-        }
+    std::cerr << "Datastore " << id << ": " << stats.puts.size() << " PUTs in " << put_time << " seconds";
+    if (stats.puts.size()) {
+        std::cerr << " (" << stats.puts.size() / put_time << " PUTs/sec)";
     }
+    std::cerr << std::endl;
+
+    std::cerr << "Datastore " << id << ": " << stats.gets.size() << " GETs in " << get_time << " seconds";
+    if (stats.gets.size()) {
+        std::cerr << " (" << stats.gets.size() / get_time << " GETs/sec)";
+    }
+    std::cerr << std::endl;
 
     delete hist;
 }
