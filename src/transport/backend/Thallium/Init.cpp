@@ -19,7 +19,7 @@ namespace Thallium {
  */
 int init(hxhim_t *hx, hxhim_options_t *opts) {
     int rank = -1;
-    hxhim::GetMPIRank(hx, &rank);
+    hxhim::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(THALLIUM_INFO, "Rank %d Starting Thallium Initialization", rank);
     if (!hxhim::valid(hx, opts)) {

@@ -91,7 +91,7 @@ Datastore::Datastore(hxhim_t *hx,
       mutex(),
       stats()
 {
-    GetMPIComm(hx, &comm);
+    hxhim::GetMPI(hx, &comm, nullptr, nullptr);
 }
 
 Datastore::~Datastore() {

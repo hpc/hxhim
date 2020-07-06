@@ -38,7 +38,7 @@ int shuffle(hxhim_t *hx,
             DST_t *local,
             std::unordered_map<int, DST_t *> &remote) {
     int rank = -1;
-    hxhim::GetMPIRank(hx, &rank);
+    hxhim::GetMPI(hx, nullptr, &rank, nullptr);
 
     // get the destination backend id for the key
     const int ds_id = hx->p->hash.func(hx,

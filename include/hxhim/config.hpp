@@ -106,6 +106,8 @@ const std::unordered_map<std::string, hxhim_hash_t> HASHES = {
     std::make_pair("MY_RANK",             hash::MyRank),
     std::make_pair("RANK_MOD_DATASTORES", hash::RankModDatastores),
     std::make_pair("SUM_MOD_DATASTORES",  hash::SumModDatastores),
+    std::make_pair("LEFT",                hash::Left),
+    std::make_pair("RIGHT",               hash::Right),
 };
 
 /**

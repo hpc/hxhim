@@ -3,90 +3,47 @@
 #include "hxhim/private.hpp"
 
 /**
- * GetMPIComm
- * Gets the MPI communicator inside the HXHIM instance
+ * GetMPI
+ * Gets the MPI information of the HXHIM instance
  *
  * @param hx   the HXHIM instance
  * @param comm where to copy the communicator into
+ * @param rank where to copy the rank into
+ * @param size where to copy the size into
  * @return HXHIM_SUCCESS or HXHIM_ERROR on error
  */
-int hxhim::GetMPIComm(hxhim_t *hx, MPI_Comm *comm) {
-    if (!valid(hx) || !comm) {
+int hxhim::GetMPI(hxhim_t *hx, MPI_Comm *comm, int *rank, int *size) {
+    if (!valid(hx)) {
         return HXHIM_ERROR;
     }
 
-    *comm = hx->p->bootstrap.comm;
+    if (comm) {
+        *comm = hx->p->bootstrap.comm;
+    }
+
+    if (rank) {
+        *rank = hx->p->bootstrap.rank;
+    }
+
+    if (size) {
+        *size = hx->p->bootstrap.size;
+    }
+
     return HXHIM_SUCCESS;
 }
 
 /**
- * hxhimGetMPIComm
- * Gets the MPI communicator inside the HXHIM instance
+ * hxhimGetMPI
+ * Gets the MPI information of the HXHIM instance
  *
  * @param hx   the HXHIM instance
  * @param comm where to copy the communicator into
- * @return HXHIM_SUCCESS or HXHIM_ERROR on error
- */
-int hxhimGetMPIComm(hxhim_t *hx, MPI_Comm *comm) {
-    return hxhim::GetMPIComm(hx, comm);
-}
-
-/**
- * GetMPIRank
- * Gets the MPI rank inside the HXHIM instance
- *
- * @param hx   the HXHIM instance
  * @param rank where to copy the rank into
- * @return HXHIM_SUCCESS or HXHIM_ERROR on error
- */
-int hxhim::GetMPIRank(hxhim_t *hx, int *rank) {
-    if (!valid(hx) || !rank) {
-        return HXHIM_ERROR;
-    }
-
-    *rank = hx->p->bootstrap.rank;
-    return HXHIM_SUCCESS;
-}
-
-/**
- * hxhimGetMPIRank
- * Gets the MPI rank inside the HXHIM instance
- *
- * @param hx   the HXHIM instance
- * @param rank where to copy the rank into
- * @return HXHIM_SUCCESS or HXHIM_ERROR on error
- */
-int hxhimGetMPIRank(hxhim_t *hx, int *rank) {
-    return hxhim::GetMPIRank(hx, rank);
-}
-
-/**
- * GetMPISize
- * Gets the MPI size inside the HXHIM instance
- *
- * @param hx   the HXHIM instance
  * @param size where to copy the size into
  * @return HXHIM_SUCCESS or HXHIM_ERROR on error
  */
-int hxhim::GetMPISize(hxhim_t *hx, int *size) {
-    if (!valid(hx) || !size) {
-        return HXHIM_ERROR;
-    }
-
-    *size = hx->p->bootstrap.size;
-    return HXHIM_SUCCESS;
-}
-
-/**
- * hxhimGetMPISize
- * Gets the MPI size inside the HXHIM instance
- *
- * @param hx   the HXHIM instance
- * @param size where to copy the size into
- * @return HXHIM_SUCCESS or HXHIM_ERROR on error
- */
-int hxhimGetMPISize(hxhim_t *hx, int *size) {
-    return hxhim::GetMPISize(hx, size);
+int hxhimGetMPI(hxhim_t *hx, MPI_Comm *comm, int *rank, int *size) {
+    return hxhim::GetMPI(hx, comm, rank, size);
 }
 
 /**

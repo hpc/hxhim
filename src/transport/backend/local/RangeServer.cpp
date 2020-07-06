@@ -47,7 +47,7 @@ namespace local {
 
 Response::Response *range_server(hxhim_t *hx, Request::Request *req) {
     int rank = -1;
-    hxhim::GetMPIRank(hx, &rank);
+    hxhim::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_SERVER_INFO, "Rank %d Local RangeServer got a %s", rank, Message::TypeStr[req->type]);
 

@@ -25,14 +25,14 @@ void RangeServer::init(hxhim_t *hx, const Engine_t &engine, const std::size_t bu
     bufsize_ = buffer_size;
 
     int rank = -1;
-    hxhim::GetMPIRank(hx_, &rank);
+    hxhim::GetMPI(hx_, nullptr, &rank, nullptr);
 
     mlog(THALLIUM_INFO, "Initialized Thallium Range Server on rank %d", rank);
 }
 
 void RangeServer::destroy() {
     int rank = -1;
-    hxhim::GetMPIRank(hx_, &rank);
+    hxhim::GetMPI(hx_, nullptr, &rank, nullptr);
 
     bufsize_ = 0;
     engine_ = nullptr;
@@ -42,7 +42,7 @@ void RangeServer::destroy() {
 
 void RangeServer::process(const thallium::request &req, thallium::bulk &bulk) {
     int rank = -1;
-    hxhim::GetMPIRank(hx_, &rank);
+    hxhim::GetMPI(hx_, nullptr, &rank, nullptr);
 
     thallium::endpoint ep = req.get_endpoint();
     mlog(THALLIUM_INFO, "Rank %d RangeServer Starting to process data from %s", rank, ((std::string) ep).c_str());

@@ -143,7 +143,7 @@ int hxhim::Close(hxhim_t *hx) {
     }
 
     int rank = -1;
-    hxhim::GetMPIRank(hx, &rank);
+    hxhim::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Starting to shutdown HXHIM", rank);
 
@@ -237,7 +237,7 @@ hxhim::Results *FlushImpl(hxhim_t *hx, hxhim::Unsent<UserData_t> &unsent, const 
  */
 hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
     int rank = -1;
-    hxhim::GetMPIRank(hx, &rank);
+    hxhim::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing PUTs", rank);
     hxhim::Results *res = FlushImpl<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, hx->p->queues.puts, hx->p->max_ops_per_send[Transport::Message::Type::BPUT]);
@@ -314,7 +314,7 @@ hxhim_results_t *hxhimFlushPuts(hxhim_t *hx) {
  */
 hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
     int rank = -1;
-    hxhim::GetMPIRank(hx, &rank);
+    hxhim::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing GETs", rank);
     hxhim::Results *res = FlushImpl<hxhim::GetData, Transport::Request::BGet, Transport::Response::BGet>(hx, hx->p->queues.gets, hx->p->max_ops_per_send[Transport::Message::Type::BGET]);
@@ -344,7 +344,7 @@ hxhim_results_t *hxhimFlushGets(hxhim_t *hx) {
  */
 hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
     int rank = -1;
-    hxhim::GetMPIRank(hx, &rank);
+    hxhim::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing GETOPs", rank);
     hxhim::Results *res = FlushImpl<hxhim::GetOpData, Transport::Request::BGetOp, Transport::Response::BGetOp>(hx, hx->p->queues.getops, hx->p->max_ops_per_send[Transport::Message::Type::BGETOP]);
@@ -374,7 +374,7 @@ hxhim_results_t *hxhimFlushGetOps(hxhim_t *hx) {
  */
 hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
     int rank = -1;
-    hxhim::GetMPIRank(hx, &rank);
+    hxhim::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing DELETEs", rank);
     hxhim::Results *res = FlushImpl<hxhim::DeleteData, Transport::Request::BDelete, Transport::Response::BDelete>(hx, hx->p->queues.deletes, hx->p->max_ops_per_send[Transport::Message::Type::BDELETE]);
@@ -406,7 +406,7 @@ hxhim_results_t *hxhimFlushDeletes(hxhim_t *hx) {
  */
 hxhim::Results *hxhim::Flush(hxhim_t *hx) {
     int rank = -1;
-    hxhim::GetMPIRank(hx, &rank);
+    hxhim::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing", rank);
     hxhim::Results *res    = construct<hxhim::Results>(hx);

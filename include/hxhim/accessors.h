@@ -13,9 +13,7 @@ extern "C"
 {
 #endif
 
-int hxhimGetMPIComm(hxhim_t *hx, MPI_Comm *comm);
-int hxhimGetMPIRank(hxhim_t *hx, int *rank);
-int hxhimGetMPISize(hxhim_t *hx, int *size);
+int hxhimGetMPI(hxhim_t *hx, MPI_Comm *comm, int *rank, int *size);
 int hxhimGetDatastoresPerRangeServer(hxhim_t *hx, size_t *datastore_count);
 int hxhimGetDatastoreClientToServerRatio(hxhim_t *hx, size_t *client, size_t *server);
 

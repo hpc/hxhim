@@ -38,7 +38,7 @@ void print_results(hxhim_t *hx, const int print_rank, hxhim_results_t *results) 
     for(hxhim_results_goto_head(results); hxhim_results_valid(results) == HXHIM_SUCCESS; hxhim_results_goto_next(results)) {
         if (print_rank) {
             int rank = -1;
-            if (hxhimGetMPIRank(hx, &rank) != HXHIM_SUCCESS) {
+            if (hxhimGetMPI(hx, NULL, &rank, NULL) != HXHIM_SUCCESS) {
                 printf("Could not get rank\n");
             }
             else {

@@ -39,7 +39,7 @@ hxhim::Results *process(hxhim_t *hx,
                         UserData_t *head,
                         const std::size_t max_ops_per_send) {
     int rank = -1;
-    hxhim::GetMPIRank(hx, &rank);
+    hxhim::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_CLIENT_DBG, "Rank %d Start processing", rank);
 

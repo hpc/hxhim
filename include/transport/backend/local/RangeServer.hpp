@@ -31,7 +31,7 @@ template <typename Response_t, typename Request_t,
                                   is_child_of<Response::Response, Response_t>::value> >
 Response_t *range_server(hxhim_t *hx, Request_t *req) {
     int rank = -1;
-    hxhim::GetMPIRank(hx, &rank);
+    hxhim::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_SERVER_INFO, "Rank %d Local RangeServer recevied %s request", rank, Message::TypeStr[req->type]);
 

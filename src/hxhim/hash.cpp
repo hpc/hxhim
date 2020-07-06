@@ -1,11 +1,24 @@
 #include <cmath>
+#include <cstdlib>
 
+#include "hxhim/accessors.hpp"
 #include "hxhim/hash.hpp"
-#include "hxhim/private.hpp"
 
 static std::size_t num_datastores(hxhim_t *hx) {
-    // no need to check if hx is valid here
-    static const std::size_t datastores = hx->p->range_server.server_ratio * ((hx->p->bootstrap.size / hx->p->range_server.client_ratio)) + std::min(hx->p->bootstrap.size % hx->p->range_server.client_ratio, hx->p->range_server.server_ratio);
+    int rank = -1;
+    int size = -1;
+    std::size_t client = 0;
+    std::size_t server = 0;
+    if ((hxhim::GetMPI(hx, nullptr, &rank, &size)        != HXHIM_SUCCESS) ||
+        (hxhim::GetDatastoreClientToServerRatio(hx,
+                                                &client,
+                                                &server) != HXHIM_SUCCESS)) {
+        return -1;
+    }
+
+    static const div_t qr = std::div(size, client);
+
+    static const std::size_t datastores = server * qr.quot + std::min((std::size_t) qr.rem, server);
 
     return datastores;
 }
@@ -27,15 +40,12 @@ int hxhim::hash::RankZero(hxhim_t *, void *, const std::size_t, void *, const st
  * @return the destination datastore ID or -1 on error
  */
 int hxhim::hash::MyRank(hxhim_t *hx, void *, const std::size_t, void *, const std::size_t, void *) {
-    if (!hxhim::valid(hx)) {
+    int rank = -1;
+    if (hxhim::GetMPI(hx, nullptr, &rank, nullptr) != HXHIM_SUCCESS) {
         return -1;
     }
 
-    if (hx->p->range_server.server_ratio != hx->p->range_server.client_ratio) {
-        return -1;
-    }
-
-    return hx->p->bootstrap.rank;
+    return rank;
 }
 
 /**
@@ -46,11 +56,12 @@ int hxhim::hash::MyRank(hxhim_t *hx, void *, const std::size_t, void *, const st
  * @return the destination datastore ID or -1 on error
  */
 int hxhim::hash::RankModDatastores(hxhim_t *hx, void *, const std::size_t, void *, const std::size_t, void *) {
-    if (!hxhim::valid(hx)) {
+    int rank = -1;
+    if (hxhim::GetMPI(hx, nullptr, &rank, nullptr) != HXHIM_SUCCESS) {
         return -1;
     }
 
-    return hx->p->bootstrap.rank % num_datastores(hx);;
+    return rank % num_datastores(hx);;
 }
 
 /**
@@ -66,10 +77,6 @@ int hxhim::hash::RankModDatastores(hxhim_t *hx, void *, const std::size_t, void 
  * @return the destination datastore ID or -1 on error
  */
 int hxhim::hash::SumModDatastores(hxhim_t *hx, void *subject, const std::size_t subject_len, void *predicate, const std::size_t predicate_len, void *) {
-    if (!hxhim::valid(hx)) {
-        return -1;
-    }
-
     int dst = 0;
     for(std::size_t i = 0; i < subject_len; i++) {
         dst += (int) (uint8_t) ((char *) subject)[i];
@@ -80,4 +87,38 @@ int hxhim::hash::SumModDatastores(hxhim_t *hx, void *subject, const std::size_t 
     }
 
     return dst % num_datastores(hx);
+}
+
+/**
+ * Left
+ * Data from rank R goes to the first datastore on rank (R - 1) mod world_size
+ *
+ * @param hx            the HXHIM instance
+ * @return the destination datastore ID or -1 on error
+ */
+int hxhim::hash::Left(hxhim_t *hx, void *, const std::size_t, void *, const std::size_t, void *) {
+    int rank = -1;
+    int size = -1;
+    if (hxhim::GetMPI(hx, nullptr, &rank, &size) != HXHIM_SUCCESS) {
+        return -1;
+    }
+
+    return (rank - 1) % size;
+}
+
+/**
+ * Right
+ * Data from rank R goes to the first datastore on rank (R + 1) mod world_size
+ *
+ * @param hx            the HXHIM instance
+ * @return the destination datastore ID or -1 on error
+ */
+int hxhim::hash::Right(hxhim_t *hx, void *, const std::size_t, void *, const std::size_t, void *) {
+    int rank = -1;
+    int size = -1;
+    if (hxhim::GetMPI(hx, nullptr, &rank, &size) != HXHIM_SUCCESS) {
+        return -1;
+    }
+
+    return (rank + 1) % size;
 }
