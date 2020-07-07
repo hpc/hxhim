@@ -71,9 +71,9 @@ herr_t H5VL_hxhim_file_specific(void *obj, H5VL_file_specific_t specific_type, h
                         break;
                     case HXHIM_RESULT_GET:
                         {
-                            int error = 0;
-                            hxhim_results_error(res, &error);
-                            if (error != HXHIM_SUCCESS) {
+                            int status = 0;
+                            hxhim_results_status(res, &status);
+                            if (status != HXHIM_SUCCESS) {
                                 fprintf(stderr, "GET error\n");
                                 rc = -1;
                                 continue;
