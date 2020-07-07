@@ -77,12 +77,12 @@ int hxhimBDelete(hxhim_t *hx,
                  void **predicates, size_t *predicate_lens,
                  size_t count);
 
-// /** @description Utility Functions */
-// int hxhimGetStats(hxhim_t *hx, const int dst_rank,
-//                   const int get_put_times, long double *put_times,
-//                   const int get_num_puts, size_t *num_puts,
-//                   const int get_get_times, long double *get_times,
-//                   const int get_num_gets, size_t *num_gets);
+/** @description Utility Functions */
+int hxhimGetStats(hxhim_t *hx, const int dst_rank,
+                  long double *put_times,
+                  size_t *num_puts,
+                  long double *get_times,
+                  size_t *num_gets);
 
 // hxhim_results_t *hxhimGetHistogram(hxhim_t *hx, const int datastore);
 // hxhim_results_t *hxhimBGetHistogram(hxhim_t *hx, const int *datastores, const size_t count);

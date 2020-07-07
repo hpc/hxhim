@@ -7,20 +7,20 @@
 #include "utils/memory.hpp"
 #include "utils/triplestore.hpp"
 
-hxhim::datastore::InMemory::InMemory(hxhim_t *hx,
+hxhim::datastore::InMemory::InMemory(const int rank,
                                      Histogram::Histogram *hist,
                                      const std::string &exact_name)
-    : Datastore(hx, 0, hist),
+    : Datastore(rank, 0, hist),
       db()
 {
     Datastore::Open(exact_name);
 }
 
-hxhim::datastore::InMemory::InMemory(hxhim_t *hx,
-                   const int id,
-                   Histogram::Histogram *hist,
-                   const std::string &basename)
-    : Datastore(hx, id, hist),
+hxhim::datastore::InMemory::InMemory(const int rank,
+                                     const int id,
+                                     Histogram::Histogram *hist,
+                                     const std::string &basename)
+    : Datastore(rank, id, hist),
       db()
 {
     Datastore::Open(basename);

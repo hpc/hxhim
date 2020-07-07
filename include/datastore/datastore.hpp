@@ -46,7 +46,7 @@ int get_id(hxhim_t *hx, const int rank, const std::size_t offset);
  */
 class Datastore {
     public:
-        Datastore(hxhim_t *hx,
+        Datastore(const int rank,
                   const int id,
                   Histogram::Histogram *hist); // Datastore takes ownership of hist
         virtual ~Datastore();
@@ -54,11 +54,10 @@ class Datastore {
         bool Open(const std::string &new_name);
         void Close();
 
-        int GetStats(const int dst_rank,
-                     const bool get_put_times, long double *put_times,
-                     const bool get_num_puts, std::size_t *num_puts,
-                     const bool get_get_times, long double *get_times,
-                     const bool get_num_gets, std::size_t *num_gets);
+        int GetStats(long double *put_times,
+                     std::size_t *num_puts,
+                     long double *get_times,
+                     std::size_t *num_gets);
 
         // Transport::Response::Histogram *Histogram() const;
 
@@ -83,7 +82,6 @@ class Datastore {
         int encode(const hxhim_type_t type, void *&ptr, std::size_t &len, bool &copied);
         int decode(const hxhim_type_t type, void *src, const std::size_t &src_len, void **dst, std::size_t *dst_len);
 
-        MPI_Comm comm; // MPI communicator of HXHIM instance
         int rank;      // MPI rank of HXHIM instance
         int id;
         Histogram::Histogram *hist;

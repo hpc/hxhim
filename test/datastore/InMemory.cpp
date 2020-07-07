@@ -15,7 +15,7 @@ static const std::size_t count    = sizeof(types) / sizeof(types[0]);
 class InMemoryTest : public hxhim::datastore::InMemory {
     public:
         InMemoryTest()
-            : hxhim::datastore::InMemory(nullptr, 0, nullptr, "InMemory test")
+            : hxhim::datastore::InMemory(-1, 0, nullptr, "InMemory test")
         {}
 
         std::map<std::string, std::string> const &data() const {

@@ -47,11 +47,11 @@ static int mkdir_p(const std::string & path, const mode_t mode, const char sep =
     return 0;
 }
 
-hxhim::datastore::leveldb::leveldb(hxhim_t *hx,
+hxhim::datastore::leveldb::leveldb(const int rank,
                                    Histogram::Histogram *hist,
                                    const std::string &exact_name,
                                    const bool create_if_missing)
-    : Datastore(hx, 0, hist),
+    : Datastore(rank, 0, hist),
       create_if_missing(create_if_missing),
       db(nullptr), options()
 {
@@ -62,13 +62,13 @@ hxhim::datastore::leveldb::leveldb(hxhim_t *hx,
     mlog(LEVELDB_INFO, "Opened leveldb with name: %s", exact_name.c_str());
 }
 
-hxhim::datastore::leveldb::leveldb(hxhim_t *hx,
+hxhim::datastore::leveldb::leveldb(const int rank,
                                    const int id,
                                    Histogram::Histogram *hist,
                                    const std::string &prefix,
                                    const std::string &basename,
                                    const bool create_if_missing)
-    : Datastore(hx, id, hist),
+    : Datastore(rank, id, hist),
       create_if_missing(create_if_missing),
       db(nullptr), options()
 {

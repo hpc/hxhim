@@ -82,18 +82,15 @@ int get_id(hxhim_t *hx, const int rank, const std::size_t offset) {
     return rank * local_ds_count + offset;
 }
 
-Datastore::Datastore(hxhim_t *hx,
+Datastore::Datastore(const int rank,
                      const int id,
                      Histogram::Histogram *hist)
-    : comm(MPI_COMM_NULL),
-      rank(-1),
+    : rank(rank),
       id(id),
       hist(hist),
       mutex(),
       stats()
-{
-    hxhim::GetMPI(hx, &comm, &rank, nullptr);
-}
+{}
 
 Datastore::~Datastore() {
     long double put_time = 0;
@@ -140,7 +137,7 @@ Transport::Response::BPut *Datastore::operate(Transport::Request::BPut *req) {
     std::lock_guard<std::mutex> lock(mutex);
     Transport::Response::BPut *res = BPutImpl(req);
 
-    if (hist) {
+    if (hist && res) {
         // add successfully PUT floating point values to the histogram
         for(std::size_t i = 0; i < req->count; i++) {
             if (res->statuses[i] == HXHIM_SUCCESS) {
@@ -198,44 +195,34 @@ int Datastore::Sync() {
  * @param num_gets       the array of number of gets from each rank
  * @return HXHIM_SUCCESS or HXHIM_ERROR on error
  */
-int Datastore::GetStats(const int dst_rank,
-                        const bool get_put_times, long double *put_times,
-                        const bool get_num_puts, std::size_t  *num_puts,
-                        const bool get_get_times, long double *get_times,
-                        const bool get_num_gets, std::size_t  *num_gets) {
-    MPI_Barrier(comm);
-
+int Datastore::GetStats(long double *put_time,
+                        std::size_t  *num_put,
+                        long double *get_time,
+                        std::size_t  *num_get) {
     std::lock_guard<std::mutex> lock(mutex);
 
-    if (get_put_times) {
-        long double put_time = 0;
+    if (put_time) {
+        *put_time = 0;
         for(Stats::Event const &event : stats.puts) {
-            put_time += elapsed<std::chrono::nanoseconds>(event.time);
+            *put_time += elapsed<std::chrono::nanoseconds>(event.time);
         }
-        MPI_Gather(&put_time, 1, MPI_LONG_DOUBLE, put_times, 1, MPI_LONG_DOUBLE, dst_rank, comm);
     }
 
-    if (get_num_puts) {
-        const std::size_t put_count = stats.puts.size();
-        const std::size_t size = sizeof(put_count);
-        MPI_Gather(&put_count, size, MPI_CHAR, num_puts, size, MPI_CHAR, dst_rank, comm);
+    if (num_put) {
+        *num_put = stats.puts.size();
     }
 
-    if (get_get_times) {
-        long double get_time = 0;
+    if (get_time) {
+        *get_time = 0;
         for(Stats::Event const &event : stats.gets) {
-            get_time += elapsed<std::chrono::nanoseconds>(event.time);
+            *get_time += elapsed<std::chrono::nanoseconds>(event.time);
         }
-        MPI_Gather(&get_time, 1, MPI_LONG_DOUBLE, get_times, 1, MPI_LONG_DOUBLE, dst_rank, comm);
     }
 
-    if (get_num_gets) {
-        const std::size_t get_count = stats.gets.size();
-        const std::size_t size = sizeof(get_count);
-        MPI_Gather(&get_count, size, MPI_CHAR, num_gets, size, MPI_CHAR, dst_rank, comm);
+    if (num_get) {
+        *num_get = stats.gets.size();
     }
 
-    MPI_Barrier(comm);
     return HXHIM_SUCCESS;
 }
 

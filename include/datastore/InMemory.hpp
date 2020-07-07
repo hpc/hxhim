@@ -12,17 +12,15 @@ namespace datastore {
 
 class InMemory : public Datastore {
     public:
-        InMemory(hxhim_t *hx,
+        InMemory(const int rank,
                  Histogram::Histogram *hist,
                  const std::string &exact_name);
-        InMemory(hxhim_t *hx,
+        InMemory(const int rank,
                  const int id,
                  Histogram::Histogram *hist,
                  const std::string &name);
 
         virtual ~InMemory();
-
-        int StatFlush();
 
     private:
         bool OpenImpl(const std::string &); // NO OP

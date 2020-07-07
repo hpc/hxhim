@@ -10,19 +10,17 @@ namespace datastore {
 
 class leveldb : public Datastore {
     public:
-        leveldb(hxhim_t *hx,
+        leveldb(const int rank,
                 Histogram::Histogram *hist,
                 const std::string &exact_name,
                 const bool create_if_missing);
-        leveldb(hxhim_t *hx,
+        leveldb(const int rank,
                 const int id,
                 Histogram::Histogram *hist,
                 const std::string &prefix,
                 const std::string &name,
                 const bool create_if_missing);
         virtual ~leveldb();
-
-        int StatFlush();
 
     private:
         bool OpenImpl(const std::string &new_name);

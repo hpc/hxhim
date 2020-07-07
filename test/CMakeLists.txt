@@ -36,7 +36,7 @@ message( STATUS "GTest source dir: " ${gtest_SOURCE_DIR})
 include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
 add_executable(googletest main.cpp)
-target_include_directories(googletest SYSTEM BEFORE PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(googletest SYSTEM BEFORE PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR})
 add_subdirectory(hxhim)
 add_subdirectory(datastore)
 add_subdirectory(transport)

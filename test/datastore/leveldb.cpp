@@ -16,7 +16,7 @@ static const std::size_t count    = sizeof(types) / sizeof(types[0]);
 class LevelDBTest : public hxhim::datastore::leveldb {
     public:
         LevelDBTest()
-            : hxhim::datastore::leveldb(nullptr, 0, name, true)
+            : hxhim::datastore::leveldb(-1, 0, name, true)
         {}
 
         ~LevelDBTest()  {
