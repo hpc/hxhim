@@ -5,6 +5,8 @@
 #include "hxhim/private.hpp"
 #include "TestDatastore.hpp"
 
+static const int DST_RANK = 0;
+
 TEST(hxhim, GetStats) {
     hxhim_options_t opts;
     ASSERT_EQ(fill_options(&opts), true);
@@ -41,25 +43,27 @@ TEST(hxhim, GetStats) {
 
     // get stats for 1 PUT
     {
-        EXPECT_EQ(hxhim::GetStats(&hx, 0,
+        EXPECT_EQ(hxhim::GetStats(&hx, DST_RANK,
                                   put_times, num_puts,
                                   get_times, num_gets), HXHIM_SUCCESS);
 
-        long double total_put_time = 0;
-        std::size_t total_num_puts = 0;
-        long double total_get_time = 0;
-        std::size_t total_num_gets = 0;
-        for(std::size_t i = 0; i < total_ds; i++) {
-            total_put_time += put_times[i];
-            total_num_puts += num_puts[i];
-            total_get_time += get_times[i];
-            total_num_gets += num_gets[i];
-        }
+        if (hx.p->bootstrap.rank == DST_RANK) {
+            long double total_put_time = 0;
+            std::size_t total_num_puts = 0;
+            long double total_get_time = 0;
+            std::size_t total_num_gets = 0;
+            for(std::size_t i = 0; i < total_ds; i++) {
+                total_put_time += put_times[i];
+                total_num_puts += num_puts[i];
+                total_get_time += get_times[i];
+                total_num_gets += num_gets[i];
+            }
 
-        EXPECT_EQ(total_put_time, hx.p->bootstrap.size * PUT_TIME_DOUBLE);
-        EXPECT_EQ(total_num_puts, hx.p->bootstrap.size);
-        EXPECT_EQ(total_get_time, 0);
-        EXPECT_EQ(total_num_gets, 0);
+            EXPECT_EQ(total_put_time, hx.p->bootstrap.size * PUT_TIME_DOUBLE);
+            EXPECT_EQ(total_num_puts, hx.p->bootstrap.size);
+            EXPECT_EQ(total_get_time, 0);
+            EXPECT_EQ(total_num_gets, 0);
+        }
     }
 
     // GET some data (actual contents are irrelevant)
@@ -78,25 +82,27 @@ TEST(hxhim, GetStats) {
 
     // get stats for 1 PUT and 1 GET
     {
-        EXPECT_EQ(hxhim::GetStats(&hx, 0,
+        EXPECT_EQ(hxhim::GetStats(&hx, DST_RANK,
                                   put_times, num_puts,
                                   get_times, num_gets), HXHIM_SUCCESS);
 
-        long double total_put_time = 0;
-        std::size_t total_num_puts = 0;
-        long double total_get_time = 0;
-        std::size_t total_num_gets = 0;
-        for(std::size_t i = 0; i < total_ds; i++) {
-            total_put_time += put_times[i];
-            total_num_puts += num_puts[i];
-            total_get_time += get_times[i];
-            total_num_gets += num_gets[i];
-        }
+        if (hx.p->bootstrap.rank == DST_RANK) {
+            long double total_put_time = 0;
+            std::size_t total_num_puts = 0;
+            long double total_get_time = 0;
+            std::size_t total_num_gets = 0;
+            for(std::size_t i = 0; i < total_ds; i++) {
+                total_put_time += put_times[i];
+                total_num_puts += num_puts[i];
+                total_get_time += get_times[i];
+                total_num_gets += num_gets[i];
+            }
 
-        EXPECT_EQ(total_put_time, hx.p->bootstrap.size * PUT_TIME_DOUBLE);
-        EXPECT_EQ(total_num_puts, hx.p->bootstrap.size);
-        EXPECT_EQ(total_get_time, hx.p->bootstrap.size * GET_TIME_DOUBLE);
-        EXPECT_EQ(total_num_gets, hx.p->bootstrap.size);
+            EXPECT_EQ(total_put_time, hx.p->bootstrap.size * PUT_TIME_DOUBLE);
+            EXPECT_EQ(total_num_puts, hx.p->bootstrap.size);
+            EXPECT_EQ(total_get_time, hx.p->bootstrap.size * GET_TIME_DOUBLE);
+            EXPECT_EQ(total_num_gets, hx.p->bootstrap.size);
+        }
     }
 
     delete [] put_times;
