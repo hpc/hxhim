@@ -1,3 +1,4 @@
+#include <mpi.h>
 #include <gtest/gtest.h>
 
 #include "generic_options.hpp"
@@ -5,14 +6,16 @@
 #include "hxhim/private.hpp"
 #include "TestDatastore.hpp"
 
-static const int DST_RANK = 0;
-
 TEST(hxhim, GetStats) {
     hxhim_options_t opts;
     ASSERT_EQ(fill_options(&opts), true);
 
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
+
+    // rank 0 selects a random rank for the stats to be collected at
+    int DST_RANK = rand() % hx.p->bootstrap.size;
+    ASSERT_EQ(MPI_Bcast(&DST_RANK, 1, MPI_INT, 0, MPI_COMM_WORLD), MPI_SUCCESS);
 
     // replace datastores with TestDatastore
     for(std::size_t i = 0; i < hx.p->datastores.size(); i++) {
