@@ -52,12 +52,13 @@ hxhim::datastore::leveldb::leveldb(const int rank,
                                    const std::string &exact_name,
                                    const bool create_if_missing)
     : Datastore(rank, 0, hist),
+      dbname(exact_name),
       create_if_missing(create_if_missing),
       db(nullptr), options()
 {
     options.create_if_missing = create_if_missing;
 
-    Datastore::Open(exact_name);
+    Datastore::Open(dbname);
 
     mlog(LEVELDB_INFO, "Opened leveldb with name: %s", exact_name.c_str());
 }
@@ -69,6 +70,7 @@ hxhim::datastore::leveldb::leveldb(const int rank,
                                    const std::string &basename,
                                    const bool create_if_missing)
     : Datastore(rank, id, hist),
+      dbname(),
       create_if_missing(create_if_missing),
       db(nullptr), options()
 {
@@ -76,17 +78,21 @@ hxhim::datastore::leveldb::leveldb(const int rank,
 
     std::stringstream s;
     s << prefix << "/" << basename << "-" << id;
-    const std::string name = s.str();
+    dbname = s.str();
 
     options.create_if_missing = create_if_missing;
 
-    Datastore::Open(name);
+    Datastore::Open(dbname);
 
-    mlog(LEVELDB_INFO, "Opened leveldb with name: %s", s.str().c_str());
+    mlog(LEVELDB_INFO, "Opened leveldb with name: %s", dbname.c_str());
 }
 
 hxhim::datastore::leveldb::~leveldb() {
     Close();
+}
+
+const std::string &hxhim::datastore::leveldb::name() const {
+    return dbname;
 }
 
 bool hxhim::datastore::leveldb::OpenImpl(const std::string &new_name) {

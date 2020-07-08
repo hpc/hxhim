@@ -22,6 +22,8 @@ class leveldb : public Datastore {
                 const bool create_if_missing);
         virtual ~leveldb();
 
+        const std::string &name() const;
+
     private:
         bool OpenImpl(const std::string &new_name);
         void CloseImpl();
@@ -37,6 +39,7 @@ class leveldb : public Datastore {
         int SyncImpl();
 
     protected:
+        std::string dbname;
         bool create_if_missing;
 
         ::leveldb::DB *db;

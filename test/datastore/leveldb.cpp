@@ -1,4 +1,5 @@
 #include <cstring>
+#include <sstream>
 
 #include <leveldb/db.h>
 #include <gtest/gtest.h>
@@ -15,8 +16,8 @@ static const std::size_t count    = sizeof(types) / sizeof(types[0]);
 
 class LevelDBTest : public hxhim::datastore::leveldb {
     public:
-        LevelDBTest()
-            : hxhim::datastore::leveldb(-1, 0, name, true)
+        LevelDBTest(const int rank, const std::string &name)
+            : hxhim::datastore::leveldb(rank, 0, name, true)
         {}
 
         ~LevelDBTest()  {
@@ -29,18 +30,21 @@ class LevelDBTest : public hxhim::datastore::leveldb {
         }
 
     private:
-        static void cleanup() {
-            remove(name.c_str());
+        void cleanup() {
+            remove(dbname.c_str());
         }
-
-        static const std::string name;
 };
 
-const std::string LevelDBTest::name = "LEVELDB-TEST";
 
 // create a test LevelDB datastore and insert some triples
 static LevelDBTest *setup() {
-    LevelDBTest *ds = construct<LevelDBTest>();
+    int rank = -1;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    std::stringstream s;
+    s << "LEVELDB-TEST-" << rank;
+
+    LevelDBTest *ds = construct<LevelDBTest>(rank, s.str());
 
     Transport::Request::BPut req(count);
 
