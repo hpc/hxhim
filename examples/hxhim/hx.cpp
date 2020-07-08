@@ -42,15 +42,31 @@ static void print_results(const int rank, hxhim::Results *results) {
     }
 }
 
-const std::size_t count = 10;
 const std::size_t bufsize = 100;
 
 int main(int argc, char *argv[]) {
+    if (argc < 3) {
+        std::cerr << "Syntax: " << argv[0] << " count print?" << std::endl;
+        return 1;
+    }
+
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    std::size_t count = 0;
+    if (!(std::stringstream(argv[1]) >> count)) {
+        std::cerr << "Error: Could not parse count argument: " << argv[1] << std::endl;
+        return 1;
+    }
+
+    bool print = 0;
+    if (!(std::stringstream(argv[2]) >> print)) {
+        std::cerr << "Error: Could not parse print argument: " << argv[2] << std::endl;
+        return 1;
+    }
 
     // read the config
     hxhim_options_t opts;
@@ -80,32 +96,54 @@ int main(int argc, char *argv[]) {
     // PUT the subject-predicate-object triples
     for(std::size_t i = 0; i < count; i++) {
         hxhim::Put(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_BYTE_TYPE, objects[i], object_lens[i]);
-        std::cout << "Rank " << rank << " PUT {" << std::string((char *) subjects[i], subject_lens[i]) << ", " << std::string((char *) predicates[i], predicate_lens[i]) << "} -> " << std::string((char *) objects[i], object_lens[i]) << std::endl;
+        if (print) {
+            std::cout << "Rank " << rank << " PUT {" << std::string((char *) subjects[i], subject_lens[i]) << ", " << std::string((char *) predicates[i], predicate_lens[i]) << "} -> " << std::string((char *) objects[i], object_lens[i]) << std::endl;
+        }
     }
 
     // GET them back, flushing only the GETs
     for(std::size_t i = 0; i < count; i++) {
         hxhim::Get(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_BYTE_TYPE);
     }
-    hxhim::Results *flush_get_res = hxhim::FlushGets(&hx);
+    hxhim::Results *flush_gets_early = hxhim::FlushGets(&hx);
     std::cout << "GET before flushing PUTs" << std::endl;
-    print_results(rank, flush_get_res);
-    hxhim::Results::Destroy(flush_get_res);
+    if (print) {
+        print_results(rank, flush_gets_early);
+    }
+    hxhim::Results::Destroy(flush_gets_early);
+
+    // flush PUTs
+    MPI_Barrier(MPI_COMM_WORLD);
+    if (rank == 0) {
+        std::cout << "Flush PUTs" << std::endl;
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    hxhim::Results *flush_puts = hxhim::FlushPuts(&hx);
+    if (print) {
+        print_results(rank, flush_puts);
+    }
+    hxhim::Results::Destroy(flush_puts);
+
+    MPI_Barrier(MPI_COMM_WORLD);
 
     // GET again, but flush everything this time
-    enum hxhim_type_t *bget_types = new hxhim_type_t[count];
     for(std::size_t i = 0; i < count; i++) {
-        bget_types[i] = HXHIM_BYTE_TYPE;
+        hxhim::Get(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_BYTE_TYPE);
     }
 
-    hxhim::BGet(&hx, subjects, subject_lens, predicates, predicate_lens, bget_types, count);
-    hxhim::Results *flush_all_res = hxhim::Flush(&hx);
-    std::cout << "GET after flushing PUTs" << std::endl;
-    print_results(rank, flush_all_res);
-    hxhim::Results::Destroy(flush_all_res);
+    MPI_Barrier(MPI_COMM_WORLD);
+    if (rank == 0) {
+        std::cout << "GET after flushing PUTs" << std::endl;
+    }
+
+    hxhim::Results *flush_gets = hxhim::Flush(&hx);
+    if (print) {
+        print_results(rank, flush_gets);
+    }
+    hxhim::Results::Destroy(flush_gets);
 
     spo_clean(count, subjects, subject_lens, predicates, predicate_lens, objects, object_lens);
-    delete [] bget_types;
 
     MPI_Barrier(MPI_COMM_WORLD);
 

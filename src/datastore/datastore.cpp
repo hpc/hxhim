@@ -1,6 +1,8 @@
 #include <chrono>
 #include <cmath>
 #include <cstring>
+#include <iomanip>
+#include <iostream>
 #include <stdexcept>
 
 #include "datastore/datastore.hpp"
@@ -105,6 +107,8 @@ Datastore::~Datastore() {
     }
     get_time /= 1e9;
 
+    std::ios_base::fmtflags flags(std::cerr.flags());
+
     std::cerr << "Datastore " << id << ": " << stats.puts.size() << " PUTs in " << put_time << " seconds";
     if (stats.puts.size()) {
         std::cerr << " (" << stats.puts.size() / put_time << " PUTs/sec)";
@@ -116,6 +120,7 @@ Datastore::~Datastore() {
         std::cerr << " (" << stats.gets.size() / get_time << " GETs/sec)";
     }
     std::cerr << std::endl;
+    std::cerr.flags(flags);
 
     delete hist;
 }

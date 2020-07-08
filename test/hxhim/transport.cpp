@@ -21,18 +21,18 @@ TEST(transport, MPI) {
 }
 
 #ifdef HXHIM_HAVE_THALLIUM
-#define TEST_THALLIUM_TRANSPORT(plugin, protocol)                                                           \
-    TEST(transport, thallium_ ##plugin ##_ ##protocol) {                                                    \
-        hxhim_options_t opts;                                                                               \
-        ASSERT_EQ(fill_options(&opts), true);                                                               \
-        ASSERT_EQ(hxhim_options_set_transport_thallium(&opts, #plugin "+" #protocol, 1024), HXHIM_SUCCESS); \
-                                                                                                            \
-        hxhim_t hx;                                                                                         \
-        ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);                                                  \
-                                                                                                            \
-        EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);                                                        \
-        EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);                                             \
-    }                                                                                                       \
+#define TEST_THALLIUM_TRANSPORT(plugin, protocol)                                                     \
+    TEST(transport, thallium_ ##plugin ##_ ##protocol) {                                              \
+        hxhim_options_t opts;                                                                         \
+        ASSERT_EQ(fill_options(&opts), true);                                                         \
+        ASSERT_EQ(hxhim_options_set_transport_thallium(&opts, #plugin "+" #protocol), HXHIM_SUCCESS); \
+                                                                                                      \
+        hxhim_t hx;                                                                                   \
+        ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);                                            \
+                                                                                                      \
+        EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);                                                  \
+        EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);                                       \
+    }                                                                                                 \
 
 TEST_THALLIUM_TRANSPORT(na, sm)
 

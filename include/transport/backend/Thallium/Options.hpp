@@ -10,14 +10,12 @@ namespace Transport {
 namespace Thallium {
 
 struct Options : ::Transport::Options {
-    Options(const std::string &module, const std::size_t buffer_size)
+    Options(const std::string &module)
         : ::Transport::Options(TRANSPORT_THALLIUM),
-          module(module),
-          buffer_size(buffer_size)
+          module(module)
     {}
 
     const std::string module;
-    const std::size_t buffer_size;
 };
 
 }

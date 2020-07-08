@@ -12,10 +12,10 @@ extern "C"
 #endif
 
 // clean up generated SPOs
-int spo_clean(const size_t count,
-              void **subjects, size_t *subject_lens,
-              void **predicates, size_t *predicate_lens,
-              void **objects, size_t *object_lens) {
+size_t spo_clean(const size_t count,
+                 void **subjects, size_t *subject_lens,
+                 void **predicates, size_t *predicate_lens,
+                 void **objects, size_t *object_lens) {
     if (subjects) {
         for(size_t i = 0; i < count; i++) {
             free(subjects[i]);
@@ -53,11 +53,11 @@ int spo_clean(const size_t count,
 }
 
 // Generate some subject predicate pairs
-int spo_gen_fixed(const size_t count, const size_t bufsize,
-                  const int rank,
-                  void ***subjects, size_t **subject_lens,
-                  void ***predicates, size_t **predicate_lens,
-                  void ***objects, size_t **object_lens) {
+size_t spo_gen_fixed(const size_t count, const size_t bufsize,
+                     const int rank,
+                     void ***subjects, size_t **subject_lens,
+                     void ***predicates, size_t **predicate_lens,
+                     void ***objects, size_t **object_lens) {
     if (!subjects   || !subject_lens   ||
         !predicates || !predicate_lens ||
         !objects    || !object_lens)    {
@@ -92,13 +92,13 @@ int spo_gen_fixed(const size_t count, const size_t bufsize,
     return count;
 }
 
-int spo_gen_random(const size_t count,
-                   const size_t subject_min_size, const size_t subject_max_size,
-                   void ***subjects, size_t **subject_lens,
-                   const size_t predicate_min_size, const size_t predicate_max_size,
-                   void ***predicates, size_t **predicate_lens,
-                   const size_t object_min_size, const size_t object_max_size,
-                   void ***objects, size_t **object_lens) {
+size_t spo_gen_random(const size_t count,
+                      const size_t subject_min_size, const size_t subject_max_size,
+                      void ***subjects, size_t **subject_lens,
+                      const size_t predicate_min_size, const size_t predicate_max_size,
+                      void ***predicates, size_t **predicate_lens,
+                      const size_t object_min_size, const size_t object_max_size,
+                      void ***objects, size_t **object_lens) {
     if (!subjects   || !subject_lens              ||
         !predicates || !predicate_lens            ||
         !objects    || !object_lens               ||

@@ -1,7 +1,6 @@
 #ifndef HXHIM_DATASTORE_HPP
 #define HXHIM_DATASTORE_HPP
 
-#include <iostream>
 #include <list>
 
 #include <mpi.h>

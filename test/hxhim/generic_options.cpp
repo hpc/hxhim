@@ -10,7 +10,7 @@ bool fill_options(hxhim_options_t *opts) {
             (hxhim_options_set_datastores_per_range_server(opts, 1)              == HXHIM_SUCCESS) &&
             (hxhim_options_set_datastore_in_memory(opts)                         == HXHIM_SUCCESS) &&
             #ifdef HXHIM_HAVE_THALLIUM
-            (hxhim_options_set_transport_thallium(opts, "na+sm", 1024)           == HXHIM_SUCCESS) &&
+            (hxhim_options_set_transport_thallium(opts, "na+sm")                 == HXHIM_SUCCESS) &&
             #else
             (hxhim_options_set_transport_mpi(opts, 1)                            == HXHIM_SUCCESS) &&
             #endif

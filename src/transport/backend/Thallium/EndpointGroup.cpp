@@ -1,6 +1,7 @@
 #include "transport/backend/Thallium/EndpointGroup.hpp"
 
 #include <memory>
+#include <tuple>
 #include <unordered_map>
 #include <vector>
 
@@ -14,12 +15,10 @@ namespace Transport {
 namespace Thallium {
 
 EndpointGroup::EndpointGroup(const Thallium::Engine_t &engine,
-                             const Thallium::RPC_t &rpc,
-                             const std::size_t buffer_size)
+                             const Thallium::RPC_t &rpc)
   : ::Transport::EndpointGroup(),
     engine(engine),
     rpc(rpc),
-    buffer_size(buffer_size),
     endpoints()
 {
     if (!rpc) {
@@ -107,16 +106,11 @@ template <typename Recv_t, typename Send_t, typename = enable_if_t<std::is_base_
 Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
                      Engine_t engine,
                      RPC_t rpc,
-                     const std::size_t buffer_size,
                      std::unordered_map<int, Endpoint_t> &endpoints) {
     Recv_t *head = nullptr;
     Recv_t *tail = nullptr;
 
     mlog(THALLIUM_INFO, "Sending requests in %zu buffers", messages.size());
-
-    // buffer used for rdma
-    void *buf = alloc(buffer_size);
-    memset(buf, 0, buffer_size);
 
     for(REF(messages)::value_type const &message : messages) {
         Send_t *req = message.second;
@@ -138,34 +132,50 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
         mlog(THALLIUM_DBG, "Packing request going to range server %d", req->dst);
 
         // pack the request
-        // since the buf pointer is provided, pack will not allocate a new memory address, so the actual buffer size should be large enough to hold a request and a response
+        void *req_buf = nullptr;
         std::size_t req_size = 0;
-        if (Packer::pack(req, &buf, &req_size) != TRANSPORT_SUCCESS) {
+        if (Packer::pack(req, &req_buf, &req_size) != TRANSPORT_SUCCESS) {
             mlog(THALLIUM_WARN, "Unable to pack message");
+            dealloc(req_buf);
             continue;
         }
 
-        mlog(THALLIUM_DBG, "Sending packed request (%zu / %zu bytes) to %d", req_size, buffer_size, req->dst);
+        mlog(THALLIUM_DBG, "Sending packed request (%zu bytes) to %d", req_size, req->dst);
 
         // create the bulk message, send it, and get the size in response the response data is in buf
-        std::vector<std::pair<void *, std::size_t> > segments = {std::make_pair(buf, buffer_size)};
-        thallium::bulk bulk = engine->expose(segments, thallium::bulk_mode::read_write);
-        const std::size_t response_size = rpc->on(*dst_it->second)(bulk);
+        std::vector<std::pair<void *, std::size_t> > req_segments = {std::make_pair(req_buf, req_size)};
+        thallium::bulk req_bulk = engine->expose(req_segments, thallium::bulk_mode::read_write);
+        thallium::packed_response packed_res = rpc->on(*dst_it->second)(req_size, req_bulk);
 
-        mlog(THALLIUM_DBG, "Received %zu byte response from %d", response_size, req->dst);
+        dealloc(req_buf);
+
+        std::size_t res_size;
+        thallium::bulk res_bulk;
+        std::tie(res_size, res_bulk) = packed_res.as <std::size_t, thallium::bulk> ();
+
+        mlog(THALLIUM_DBG, "Received %zu byte response from %d", res_size, req->dst);
+
+        // read the data out of the response bulk
+        void *res_buf = alloc(res_size);
+        std::vector<std::pair<void *, std::size_t> > res_segments = {
+            std::make_pair((void *) res_buf, res_size)};
+        thallium::bulk local = engine->expose(res_segments, thallium::bulk_mode::write_only);
+        res_bulk.on(*dst_it->second) >> local;
 
         // unpack the response
-        mlog(THALLIUM_DBG, "Unpacking %zu byte response from %d", response_size, req->dst);
+        mlog(THALLIUM_DBG, "Unpacking %zu byte response from %d", res_size, req->dst);
 
         Recv_t *response = nullptr;
-        if (Unpacker::unpack(&response, buf, response_size) != TRANSPORT_SUCCESS) {
+        if (Unpacker::unpack(&response, res_buf, res_size) != TRANSPORT_SUCCESS) {
             mlog(THALLIUM_WARN, "Unable to unpack message");
+            dealloc(res_buf);
             continue;
         }
 
-        mlog(THALLIUM_DBG, "Unpacked %zu byte response from %d", response_size, req->dst);
+        mlog(THALLIUM_DBG, "Unpacked %zu byte response from %d", res_size, req->dst);
 
         if (!response) {
+            dealloc(res_buf);
             continue;
         }
 
@@ -178,10 +188,9 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
             tail = response;
         }
 
+        dealloc(res_buf);
         mlog(THALLIUM_DBG, "Done sending request to %d", req->dst);
     }
-
-    dealloc(buf);
 
     mlog(THALLIUM_INFO, "Done sending requests and receiving responses");
 
@@ -196,7 +205,7 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
  * @return a linked list of response messages, or nullptr
  */
 Response::BPut *EndpointGroup::communicate(const std::unordered_map<int, Request::BPut *> &bpm_list) {
-    return do_operation<Response::BPut>(bpm_list, engine, rpc, buffer_size, endpoints);
+    return do_operation<Response::BPut>(bpm_list, engine, rpc, endpoints);
 }
 
 /**
@@ -207,7 +216,7 @@ Response::BPut *EndpointGroup::communicate(const std::unordered_map<int, Request
  * @return a linked list of response messages, or nullptr
  */
 Response::BGet *EndpointGroup::communicate(const std::unordered_map<int, Request::BGet *> &bgm_list) {
-    return do_operation<Response::BGet>(bgm_list, engine, rpc, buffer_size, endpoints);
+    return do_operation<Response::BGet>(bgm_list, engine, rpc, endpoints);
 }
 
 /**
@@ -218,7 +227,7 @@ Response::BGet *EndpointGroup::communicate(const std::unordered_map<int, Request
  * @return a linked list of response messages, or nullptr
  */
 Response::BGetOp *EndpointGroup::communicate(const std::unordered_map<int, Request::BGetOp *> &bgm_list) {
-    return do_operation<Response::BGetOp>(bgm_list, engine, rpc, buffer_size, endpoints);
+    return do_operation<Response::BGetOp>(bgm_list, engine, rpc, endpoints);
 }
 
 /**
@@ -229,7 +238,7 @@ Response::BGetOp *EndpointGroup::communicate(const std::unordered_map<int, Reque
  * @return a linked list of response messages, or nullptr
  */
 Response::BDelete *EndpointGroup::communicate(const std::unordered_map<int, Request::BDelete *> &bdm_list) {
-    return do_operation<Response::BDelete>(bdm_list, engine, rpc, buffer_size, endpoints);
+    return do_operation<Response::BDelete>(bdm_list, engine, rpc, endpoints);
 }
 
 /**
@@ -240,7 +249,7 @@ Response::BDelete *EndpointGroup::communicate(const std::unordered_map<int, Requ
  * @return a linked list of response messages, or nullptr
  */
 Response::BHistogram *EndpointGroup::communicate(const std::unordered_map<int, Request::BHistogram *> &bhist_list) {
-    return do_operation<Response::BHistogram>(bhist_list, engine, rpc, buffer_size, endpoints);
+    return do_operation<Response::BHistogram>(bhist_list, engine, rpc, endpoints);
 }
 
 }

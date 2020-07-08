@@ -8,7 +8,6 @@
 #include "print_results.h"
 #include "spo_gen.h"
 
-const size_t count = 10;
 const size_t bufsize = 100;
 
 void ordered_print(MPI_Comm comm, const int rank, const int size, hxhim_t * hx, hxhim_results_t *res) {
@@ -22,6 +21,11 @@ void ordered_print(MPI_Comm comm, const int rank, const int size, hxhim_t * hx, 
 }
 
 int main(int argc, char *argv[]) {
+    if (argc < 3) {
+        fprintf(stderr, "Syntax: %s count print?\n", argv[0]);
+        return 1;
+    }
+
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 
@@ -30,6 +34,18 @@ int main(int argc, char *argv[]) {
 
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    size_t count = 0;
+    if (sscanf(argv[1], "%zu", &count) != 1) {
+        fprintf(stderr, "Error: Could not parse count argument: %s\n", argv[1]);
+        return 1;
+    }
+
+    int print = 0;
+    if (sscanf(argv[2], "%d", &print) != 1) {
+        fprintf(stderr, "Error: Could not parse print argument: %s\n", argv[2]);
+        return 1;
+    }
 
     // read the config
     hxhim_options_t opts;
@@ -65,10 +81,12 @@ int main(int argc, char *argv[]) {
     // PUT the key value pairs into HXHIM
     for(size_t i = 0; i < count; i++) {
         hxhimPut(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_BYTE_TYPE, objects[i], object_lens[i]);
-        printf("Rank %d PUT          {%.*s, %.*s} -> %.*s\n", rank,
-               (int) subject_lens[i],   (char *) subjects[i],
-               (int) predicate_lens[i], (char *) predicates[i],
-               (int) object_lens[i],    (char *) objects[i]);
+        if (print) {
+            printf("Rank %d PUT          {%.*s, %.*s} -> %.*s\n", rank,
+                   (int) subject_lens[i],   (char *) subjects[i],
+                   (int) predicate_lens[i], (char *) predicates[i],
+                   (int) object_lens[i],    (char *) objects[i]);
+        }
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
@@ -77,6 +95,7 @@ int main(int argc, char *argv[]) {
     }
     MPI_Barrier(MPI_COMM_WORLD);
 
+
     // GET them back, flushing only the GETs
     // this will likely return errors, since not all of the PUTs will have completed
     for(size_t i = 0; i < count; i++) {
@@ -84,7 +103,9 @@ int main(int argc, char *argv[]) {
     }
 
     hxhim_results_t *flush_gets_early = hxhimFlushGets(&hx);
-    ordered_print(MPI_COMM_WORLD, rank, size, &hx, flush_gets_early);
+    if (print) {
+        ordered_print(MPI_COMM_WORLD, rank, size, &hx, flush_gets_early);
+    }
     hxhim_results_destroy(flush_gets_early);
 
     // flush PUTs
@@ -94,8 +115,10 @@ int main(int argc, char *argv[]) {
     }
     MPI_Barrier(MPI_COMM_WORLD);
 
-    hxhim_results_t *flush_puts = hxhimFlush(&hx);
-    ordered_print(MPI_COMM_WORLD, rank, size, &hx, flush_puts);
+    hxhim_results_t *flush_puts = hxhimFlushPuts(&hx);
+    if (print) {
+        ordered_print(MPI_COMM_WORLD, rank, size, &hx, flush_puts);
+    }
     hxhim_results_destroy(flush_puts);
 
     MPI_Barrier(MPI_COMM_WORLD);
@@ -112,7 +135,9 @@ int main(int argc, char *argv[]) {
     MPI_Barrier(MPI_COMM_WORLD);
 
     hxhim_results_t *flush_gets = hxhimFlush(&hx);
-    ordered_print(MPI_COMM_WORLD, rank, size, &hx, flush_gets);
+    if (print) {
+        ordered_print(MPI_COMM_WORLD, rank, size, &hx, flush_gets);
+    }
     hxhim_results_destroy(flush_gets);
 
     // clean up

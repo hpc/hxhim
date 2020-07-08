@@ -57,7 +57,6 @@ const std::string MPI_LISTENERS               = "NUM_LISTENERS";             // 
 #if HXHIM_HAVE_THALLIUM
 /** Thallium Options */
 const std::string THALLIUM_MODULE             = "THALLIUM_MODULE";           // See mercury documentation
-const std::string THALLIUM_BUFFER_SIZE        = "THALLIUM_BUFFER_SIZE";      // size of rdma buffer
 #endif
 
 const std::string TRANSPORT_ENDPOINT_GROUP    = "ENDPOINT_GROUP";            // list of ranks or "ALL"

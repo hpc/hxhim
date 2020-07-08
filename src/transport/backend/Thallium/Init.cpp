@@ -46,7 +46,7 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
 
     // create a range server
     if (is_range_server(rank, opts->p->client_ratio, opts->p->server_ratio)) {
-        RangeServer::init(hx, engine, config->buffer_size);
+        RangeServer::init(hx, engine);
         hx->p->range_server.destroy = RangeServer::destroy;
         mlog(THALLIUM_INFO, "Rank %d Created Thallium Range Server", rank);
     }
@@ -66,7 +66,7 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
     // remove the loopback endpoint
     addrs.erase(rank);
 
-    EndpointGroup *eg = new EndpointGroup(engine, rpc, config->buffer_size);
+    EndpointGroup *eg = new EndpointGroup(engine, rpc);
 
     // create mapping between unique IDs and ranks
     for(decltype(addrs)::value_type const &addr : addrs) {

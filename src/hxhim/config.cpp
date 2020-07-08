@@ -173,12 +173,7 @@ static bool parse_transport(hxhim_options_t *opts, const Config &config) {
                         return false;
                     }
 
-                    std::size_t thallium_buffer_size;
-                    if (get_value(config, hxhim::config::THALLIUM_BUFFER_SIZE, thallium_buffer_size) != CONFIG_FOUND) {
-                        return false;
-                    }
-
-                    return ((hxhim_options_set_transport_thallium(opts, thallium_module->second.c_str(), thallium_buffer_size) == HXHIM_SUCCESS) &&
+                    return ((hxhim_options_set_transport_thallium(opts, thallium_module->second) == HXHIM_SUCCESS) &&
                             parse_hash(opts, config));
                 }
                 break;
