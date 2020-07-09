@@ -53,8 +53,7 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
     res->src = req->dst;
     res->dst = req->src;
 
-    std::vector<hxhim::datastore::Datastore *> *datastores = nullptr;
-    hxhim::GetDatastores(hx, &datastores);
+    std::vector<hxhim::datastore::Datastore *> *datastores = &hx->p->datastores;
 
     // send to each datastore
     for(std::size_t ds = 0; ds < datastore_count; ds++) {
