@@ -3,6 +3,7 @@
 
 #include <atomic>
 #include <mutex>
+#include <ostream>
 #include <thread>
 #include <vector>
 
@@ -119,7 +120,7 @@ int datastore   (hxhim_t *hx);
 
 // this will probably be moved to the public side
 std::ostream &print_stats(hxhim_t *hx,
-                          std::ostream &stream = std::cout,
+                          std::ostream &stream,
                           const std::string &indent = "    ");
 
 int PutImpl(hxhim::Unsent<hxhim::PutData> &puts,

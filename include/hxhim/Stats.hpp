@@ -4,7 +4,7 @@
 #include <chrono>
 #include <map>
 #include <list>
-#include <iostream>
+#include <ostream>
 
 #include "transport/Messages/Message.hpp"
 #include "utils/Stats.hpp"
@@ -32,9 +32,8 @@ struct Stats {
     // distribution of incoming packets
     std::map<Transport::Message::Type, std::map<int, std::size_t> > incoming;
 
-
     std::ostream &print(const std::map<Transport::Message::Type, std::size_t> &max_ops_per_send,
-                        std::ostream &stream = std::cout,
+                        std::ostream &stream,
                         const std::string &indent = "    ");
 
 };

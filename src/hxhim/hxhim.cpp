@@ -142,8 +142,10 @@ int hxhim::Close(hxhim_t *hx) {
         return HXHIM_ERROR;
     }
 
+    MPI_Comm comm = MPI_COMM_NULL;
     int rank = -1;
-    hxhim::GetMPI(hx, nullptr, &rank, nullptr);
+    int size = -1;
+    hxhim::GetMPI(hx, &comm, &rank, &size);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Starting to shutdown HXHIM", rank);
 
@@ -152,7 +154,7 @@ int hxhim::Close(hxhim_t *hx) {
 
     mlog(HXHIM_CLIENT_DBG, "Rank %d Waiting for all ranks to complete syncing", rank);
     Results::Destroy(hxhim::Sync(hx));
-    MPI_Barrier(hx->p->bootstrap.comm);
+    MPI_Barrier(comm);
     mlog(HXHIM_CLIENT_DBG, "Rank %d Closing HXHIM", rank);
 
     destroy::async_put(hx);
@@ -164,12 +166,12 @@ int hxhim::Close(hxhim_t *hx) {
     // stats should not be modified any more
 
     // print stats here for now
-    for(int i = 0; i < hx->p->bootstrap.size; i++) {
-        MPI_Barrier(hx->p->bootstrap.comm);
-        if (hx->p->bootstrap.rank == i) {
-            std::cout << "Rank " << hx->p->bootstrap.rank << std::endl;
-            print_stats(hx);
-            std::cout << std::endl;
+    for(int i = 0; i < size; i++) {
+        MPI_Barrier(comm);
+        if (rank == i) {
+            std::stringstream s;
+            print_stats(hx, s);
+            mlog(HXHIM_CLIENT_INFO, "Rank %d Stats\n%s", rank, s.str().c_str());
         }
     }
 
