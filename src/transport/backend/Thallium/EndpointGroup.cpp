@@ -15,14 +15,19 @@ namespace Transport {
 namespace Thallium {
 
 EndpointGroup::EndpointGroup(const Thallium::Engine_t &engine,
-                             const Thallium::RPC_t &rpc)
+                             const Thallium::RPC_t &process_rpc,
+                             const Thallium::RPC_t &cleanup_rpc)
   : ::Transport::EndpointGroup(),
     engine(engine),
-    rpc(rpc),
+    process_rpc(process_rpc),
+    cleanup_rpc(cleanup_rpc),
     endpoints()
 {
-    if (!rpc) {
-        throw std::runtime_error("thallium::remote_procedure in Thallium Endpoint Group must not be nullptr");
+    if (!process_rpc) {
+        throw std::runtime_error("Bad RPC for processing requests");
+    }
+    if (!cleanup_rpc) {
+        throw std::runtime_error("Bad RPC for cleaning up responses");
     }
 }
 
@@ -105,7 +110,8 @@ template <typename Recv_t, typename Send_t, typename = enable_if_t<std::is_base_
                                                                    std::is_base_of<Response::Response, Recv_t>::value> >
 Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
                      Engine_t engine,
-                     RPC_t rpc,
+                     RPC_t process_rpc,
+                     RPC_t cleanup_rpc,
                      std::unordered_map<int, Endpoint_t> &endpoints) {
     Recv_t *head = nullptr;
     Recv_t *tail = nullptr;
@@ -142,16 +148,21 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
 
         mlog(THALLIUM_DBG, "Sending packed request (%zu bytes) to %d", req_size, req->dst);
 
-        // create the bulk message, send it, and get the size in response the response data is in buf
+        // expose req_buf through bulk
         std::vector<std::pair<void *, std::size_t> > req_segments = {std::make_pair(req_buf, req_size)};
         thallium::bulk req_bulk = engine->expose(req_segments, thallium::bulk_mode::read_write);
-        thallium::packed_response packed_res = rpc->on(*dst_it->second)(req_size, req_bulk);
+
+        // send request_size and request
+        // get back packed response_size, response, and remote address
+        thallium::packed_response packed_res = process_rpc->on(*dst_it->second)(req_size, req_bulk);
 
         dealloc(req_buf);
 
+        // unpack packed_response
         std::size_t res_size;
         thallium::bulk res_bulk;
-        std::tie(res_size, res_bulk) = packed_res.as <std::size_t, thallium::bulk> ();
+        uintptr_t res_ptr;
+        std::tie(res_size, res_bulk, res_ptr) = packed_res.as<std::size_t, thallium::bulk, uintptr_t> ();
 
         mlog(THALLIUM_DBG, "Received %zu byte response from %d", res_size, req->dst);
 
@@ -163,19 +174,23 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
         res_bulk.on(*dst_it->second) >> local;
 
         // unpack the response
-        mlog(THALLIUM_DBG, "Unpacking %zu byte response from %d", res_size, req->dst);
+        mlog(THALLIUM_ERR, "Unpacking %zu byte response from %d", res_size, req->dst);
 
         Recv_t *response = nullptr;
-        if (Unpacker::unpack(&response, res_buf, res_size) != TRANSPORT_SUCCESS) {
+        const int unpack_rc = Unpacker::unpack(&response, res_buf, res_size);
+        dealloc(res_buf);
+
+        // clean up server pointer before handling any errors
+        cleanup_rpc->on(*dst_it->second)(res_ptr);
+
+        if (unpack_rc != TRANSPORT_SUCCESS) {
             mlog(THALLIUM_WARN, "Unable to unpack message");
-            dealloc(res_buf);
             continue;
         }
 
         mlog(THALLIUM_DBG, "Unpacked %zu byte response from %d", res_size, req->dst);
 
         if (!response) {
-            dealloc(res_buf);
             continue;
         }
 
@@ -188,7 +203,6 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
             tail = response;
         }
 
-        dealloc(res_buf);
         mlog(THALLIUM_DBG, "Done sending request to %d", req->dst);
     }
 
@@ -205,7 +219,7 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
  * @return a linked list of response messages, or nullptr
  */
 Response::BPut *EndpointGroup::communicate(const std::unordered_map<int, Request::BPut *> &bpm_list) {
-    return do_operation<Response::BPut>(bpm_list, engine, rpc, endpoints);
+    return do_operation<Response::BPut>(bpm_list, engine, process_rpc, cleanup_rpc, endpoints);
 }
 
 /**
@@ -216,7 +230,7 @@ Response::BPut *EndpointGroup::communicate(const std::unordered_map<int, Request
  * @return a linked list of response messages, or nullptr
  */
 Response::BGet *EndpointGroup::communicate(const std::unordered_map<int, Request::BGet *> &bgm_list) {
-    return do_operation<Response::BGet>(bgm_list, engine, rpc, endpoints);
+    return do_operation<Response::BGet>(bgm_list, engine, process_rpc, cleanup_rpc, endpoints);
 }
 
 /**
@@ -227,7 +241,7 @@ Response::BGet *EndpointGroup::communicate(const std::unordered_map<int, Request
  * @return a linked list of response messages, or nullptr
  */
 Response::BGetOp *EndpointGroup::communicate(const std::unordered_map<int, Request::BGetOp *> &bgm_list) {
-    return do_operation<Response::BGetOp>(bgm_list, engine, rpc, endpoints);
+    return do_operation<Response::BGetOp>(bgm_list, engine, process_rpc, cleanup_rpc, endpoints);
 }
 
 /**
@@ -238,7 +252,7 @@ Response::BGetOp *EndpointGroup::communicate(const std::unordered_map<int, Reque
  * @return a linked list of response messages, or nullptr
  */
 Response::BDelete *EndpointGroup::communicate(const std::unordered_map<int, Request::BDelete *> &bdm_list) {
-    return do_operation<Response::BDelete>(bdm_list, engine, rpc, endpoints);
+    return do_operation<Response::BDelete>(bdm_list, engine, process_rpc, cleanup_rpc, endpoints);
 }
 
 /**
@@ -249,7 +263,7 @@ Response::BDelete *EndpointGroup::communicate(const std::unordered_map<int, Requ
  * @return a linked list of response messages, or nullptr
  */
 Response::BHistogram *EndpointGroup::communicate(const std::unordered_map<int, Request::BHistogram *> &bhist_list) {
-    return do_operation<Response::BHistogram>(bhist_list, engine, rpc, endpoints);
+    return do_operation<Response::BHistogram>(bhist_list, engine, process_rpc, cleanup_rpc, endpoints);
 }
 
 }

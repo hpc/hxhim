@@ -631,7 +631,7 @@ int hxhim::PutImpl(hxhim::Unsent<hxhim::PutData> &puts,
                    void *subject, std::size_t subject_len,
                    void *predicate, std::size_t predicate_len,
                    enum hxhim_type_t object_type, void *object, std::size_t object_len) {
-    mlog(HXHIM_CLIENT_INFO, "Foreground PUT Start (%s, %s, %s)", (char *) subject, (char *) predicate, (char *) object);
+    mlog(HXHIM_CLIENT_INFO, "Foreground PUT Start (%p, %p, %p)", subject, predicate, object);
 
     hxhim::PutData *put = construct<hxhim::PutData>();
     put->subject = construct<ReferenceBlob>(subject, subject_len);

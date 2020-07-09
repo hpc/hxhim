@@ -14,7 +14,8 @@
 namespace Transport {
 namespace Thallium {
 
-const std::string RangeServer::CLIENT_TO_RANGE_SERVER_NAME = "process";
+const std::string RangeServer::PROCESS_RPC_NAME = "process";
+const std::string RangeServer::CLEANUP_RPC_NAME = "cleanup";
 hxhim_t *RangeServer::hx_ = nullptr;
 Engine_t RangeServer::engine_ = {};
 
@@ -38,7 +39,6 @@ void RangeServer::destroy() {
 }
 
 void RangeServer::process(const thallium::request &req, const std::size_t req_len, thallium::bulk &bulk) {
-
     int rank = -1;
     hxhim::GetMPI(hx_, nullptr, &rank, nullptr);
 
@@ -81,21 +81,24 @@ void RangeServer::process(const thallium::request &req, const std::size_t req_le
     mlog(THALLIUM_DBG, "Rank %d RangeServer Responding with %zu byte %s response", rank, res_len, Message::TypeStr[response->type]);
     dealloc(response);
 
-    mlog(THALLIUM_DBG, "Rank %d RangeServer Packed response into %zu byte buffer", rank, res_len);
+    mlog(THALLIUM_ERR, "Rank %d RangeServer Packed response into %zu byte buffer", rank, res_len);
 
     // send the response
     {
         std::vector<std::pair<void *, std::size_t> > segments = {std::make_pair(res_buf, res_len)};
         thallium::bulk local = engine_->expose(segments, thallium::bulk_mode::read_only);
-        req.respond(res_len, local);
+        req.respond(res_len, local, (uintptr_t) res_buf);
     }
 
     mlog(THALLIUM_DBG, "Rank %d RangeServer Done sending %zu byte packed response", rank, res_len);
 
-    // clean up
-    dealloc(res_buf);
-
     mlog(THALLIUM_INFO, "Rank %d RangeServer Done processing request from %s and sending response", rank, ((std::string) ep).c_str());
+}
+
+void RangeServer::cleanup(const thallium::request &, uintptr_t addr) {
+    // res_buf is cleaned up here
+    // since freeing in process will result in the other side given access to freed memory
+    dealloc((void *) addr);
 }
 
 }

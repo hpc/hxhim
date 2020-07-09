@@ -52,8 +52,11 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
     }
 
     // create client to range server RPC
-    RPC_t rpc(new thallium::remote_procedure(engine->define(RangeServer::CLIENT_TO_RANGE_SERVER_NAME,
-                                                            RangeServer::process)));
+    RPC_t process_rpc(new thallium::remote_procedure(engine->define(RangeServer::PROCESS_RPC_NAME,
+                                                                    RangeServer::process)));
+
+    RPC_t cleanup_rpc(new thallium::remote_procedure(engine->define(RangeServer::CLEANUP_RPC_NAME,
+                                                                    RangeServer::cleanup).disable_response()));
 
     mlog(THALLIUM_DBG, "Rank %d Created Thallium RPC", rank);
 
@@ -66,7 +69,7 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
     // remove the loopback endpoint
     addrs.erase(rank);
 
-    EndpointGroup *eg = new EndpointGroup(engine, rpc);
+    EndpointGroup *eg = new EndpointGroup(engine, process_rpc, cleanup_rpc);
 
     // create mapping between unique IDs and ranks
     for(decltype(addrs)::value_type const &addr : addrs) {
