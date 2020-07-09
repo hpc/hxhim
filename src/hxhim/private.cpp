@@ -243,43 +243,41 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
     hx->p->range_server.client_ratio = opts->p->client_ratio;
     hx->p->range_server.server_ratio = opts->p->server_ratio;
 
-    // allocate pointers
-    hx->p->datastores.resize(opts->p->datastore_count);
+    if (is_range_server(hx->p->bootstrap.rank, opts->p->client_ratio, opts->p->server_ratio)) {
+        // allocate pointers
+        hx->p->datastores.resize(opts->p->datastore_count);
 
-    const bool is_rs = is_range_server(hx->p->bootstrap.rank, opts->p->client_ratio, opts->p->server_ratio);
+        // create datastores
+        for(std::size_t i = 0; i < hx->p->datastores.size(); i++) {
+            Histogram::Histogram *hist = new Histogram::Histogram(opts->p->histogram.first_n,
+                                                                  opts->p->histogram.gen,
+                                                                  opts->p->histogram.args);
 
-    // create datastores
-    for(std::size_t i = 0; i < hx->p->datastores.size(); i++) {
-        Histogram::Histogram *hist = new Histogram::Histogram(opts->p->histogram.first_n,
-                                                              opts->p->histogram.gen,
-                                                              opts->p->histogram.args);
-        if ((opts->p->datastore->type == hxhim::datastore::IN_MEMORY) ||
-            !is_rs) { // create unused datastores if this rank is not a range server
-            hx->p->datastores[i] = new hxhim::datastore::InMemory(hx->p->bootstrap.rank,
-                                                                  hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, i),
-                                                                  hist,
-                                                                  hx->p->hash.name);
-            mlog(HXHIM_CLIENT_INFO, "Initialized In-Memory in datastore[%zu]", i);
+            if (opts->p->datastore->type == hxhim::datastore::IN_MEMORY) {
+                hx->p->datastores[i] = new hxhim::datastore::InMemory(hx->p->bootstrap.rank,
+                                                                      hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, i),
+                                                                      hist,
+                                                                      hx->p->hash.name);
+                mlog(HXHIM_CLIENT_INFO, "Initialized In-Memory in datastore[%zu]", i);
+            }
+            #if HXHIM_HAVE_LEVELDB
+            else if (opts->p->datastore->type == hxhim::datastore::LEVELDB) {
+                hxhim_leveldb_config_t *config = static_cast<hxhim_leveldb_config_t *>(opts->p->datastore);
+                hx->p->datastores[i] = new hxhim::datastore::leveldb(hx->p->bootstrap.rank,
+                                                                     hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, i),
+                                                                     hist,
+                                                                     config->prefix,
+                                                                     hx->p->hash.name,
+                                                                     config->create_if_missing);
+                mlog(HXHIM_CLIENT_INFO, "Initialized LevelDB in datastore[%zu]", i);
+            }
+            #endif
         }
-        #if HXHIM_HAVE_LEVELDB
-        else if (opts->p->datastore->type == hxhim::datastore::LEVELDB) {
-            hxhim_leveldb_config_t *config = static_cast<hxhim_leveldb_config_t *>(opts->p->datastore);
-            hx->p->datastores[i] = new hxhim::datastore::leveldb(hx->p->bootstrap.rank,
-                                                                 hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, i),
-                                                                 hist,
-                                                                 config->prefix,
-                                                                 hx->p->hash.name,
-                                                                 config->create_if_missing);
-            mlog(HXHIM_CLIENT_INFO, "Initialized LevelDB in datastore[%zu]", i);
-        }
-        #endif
     }
 
-    // the higher of client_ratio and server_ratio creates a "set" of datastores
-    const std::size_t more = std::max(opts->p->client_ratio, opts->p->server_ratio);
+    hx->p->total_range_servers = opts->p->server_ratio * (hx->p->bootstrap.size / opts->p->server_ratio) + (hx->p->bootstrap.size % opts->p->server_ratio);
 
-    hx->p->total_datastores = opts->p->datastore_count * ((opts->p->server_ratio * (hx->p->bootstrap.size / more)) +
-                                                          std::min(hx->p->bootstrap.size % more, opts->p->datastore_count));
+    hx->p->total_datastores = hx->p->total_range_servers * opts->p->datastore_count;
 
     mlog(HXHIM_CLIENT_INFO, "Completed Datastore Initialization");
     return HXHIM_SUCCESS;
@@ -304,7 +302,6 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
     if (opts->p->datastore_count != 1) {
         return HXHIM_ERROR;
     }
-
 
     // hx->p->datastore.datastores = alloc_array<hxhim::datastore::Datastore *>(hx->p->datastore.count);
     hx->p->datastores.resize(1);
@@ -339,6 +336,9 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
         default:
             break;
     }
+
+    hx->p->total_range_servers = 1;
+    hx->p->total_datastores = 1;
 
     return hx->p->datastores[0]?HXHIM_SUCCESS:HXHIM_ERROR;
 }

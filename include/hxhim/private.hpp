@@ -56,10 +56,13 @@ typedef struct hxhim_private {
         hxhim::Unsent<hxhim::DeleteData> deletes;
     } queues;
 
+    // calculate these once
+    std::size_t total_range_servers;       // total number of range servers across all ranks
+    std::size_t total_datastores;          // total number of datastores across all ranks
+
     // local datastores
     // f(rank, index) = datastore ID
     std::vector<hxhim::datastore::Datastore *> datastores;
-    std::size_t total_datastores;          // total number of datastores across all ranks
 
     // asynchronous BPUT data
     struct {

@@ -43,7 +43,7 @@ TEST(GetDatastoreCount, more_clients) {
 
     std::size_t count = 0;
     EXPECT_EQ(hxhim::GetDatastoreCount(&hx, &count), HXHIM_SUCCESS);
-    EXPECT_EQ(count, DATASTORES * ((size / LARGER) * SMALLER + std::min(size % LARGER, SMALLER)));
+    EXPECT_EQ(count, DATASTORES * ((size / LARGER) * LARGER + (size % LARGER)));
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
@@ -64,7 +64,7 @@ TEST(GetDatastoreCount, more_servers) {
 
     std::size_t count = 0;
     EXPECT_EQ(hxhim::GetDatastoreCount(&hx, &count), HXHIM_SUCCESS);
-    EXPECT_EQ(count, DATASTORES * size);
+    EXPECT_EQ(count, DATASTORES * ((size / LARGER) * LARGER + (size % LARGER)));
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
