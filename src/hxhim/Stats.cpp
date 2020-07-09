@@ -20,7 +20,7 @@ std::ostream &hxhim::Stats::Stats::print(const std::map<Transport::Message::Type
             for(Timestamp const &event : it->second) {
                 op_time += std::chrono::duration_cast<std::chrono::nanoseconds>(event.end - event.start);
             }
-            stream << indent << indent << Transport::Message::TypeStr[it->first] << " count: " << it->second.size() << " duration: "  << std::chrono::duration_cast<std::chrono::seconds>(op_time).count() << " seconds" << std::endl;
+            stream << indent << indent << Transport::Message::TypeStr[it->first] << " count: " << it->second.size() << " duration: "  << std::chrono::duration<long double>(op_time).count() << " seconds" << std::endl;
 
             total_ops += it->second.size();
             total_time += op_time;
@@ -38,7 +38,7 @@ std::ostream &hxhim::Stats::Stats::print(const std::map<Transport::Message::Type
             for(Timestamp const &event : it->second) {
                 op_time += std::chrono::duration_cast<std::chrono::nanoseconds>(event.end - event.start);
             }
-            stream << indent << indent << Transport::Message::TypeStr[it->first] << " count: " << it->second.size() << " duration: "  << std::chrono::duration_cast<std::chrono::seconds>(op_time).count() << " seconds" << std::endl;
+            stream << indent << indent << Transport::Message::TypeStr[it->first] << " count: " << it->second.size() << " duration: "  << std::chrono::duration<long double>(op_time).count() << " seconds" << std::endl;
 
             total_ops += it->second.size();
             total_time += op_time;
