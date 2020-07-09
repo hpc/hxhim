@@ -2,7 +2,6 @@
 #include <cmath>
 #include <cstring>
 #include <iomanip>
-#include <iostream>
 #include <sstream>
 #include <stdexcept>
 
@@ -10,6 +9,8 @@
 #include "hxhim/accessors.hpp"
 #include "utils/elen.hpp"
 #include "utils/is_range_server.hpp"
+#include "utils/mlog2.h"
+#include "utils/mlogfacs2.h"
 
 namespace hxhim {
 namespace datastore {
@@ -112,6 +113,8 @@ static std::string hr_size(const std::size_t size, const long double time) {
 }
 
 Datastore::~Datastore() {
+    mlog(DATASTORE_INFO, "Rank %d Datastore shutting down", rank);
+
     long double put_time = 0;
     std::size_t put_count = 0;
     std::size_t put_size = 0;
@@ -132,22 +135,21 @@ Datastore::~Datastore() {
     }
     get_time /= 1e9;
 
-    std::ios_base::fmtflags flags(std::cerr.flags());
-
-    std::cerr << "Datastore " << id << ": " << put_count << " PUTs (" << put_size << " bytes) in " << put_time << " seconds";
     if (put_count) {
-        std::cerr << " (" << put_count / put_time << " PUTs/sec, " << hr_size(put_size, put_time) << ")";
+        mlog(DATASTORE_INFO, "Rank %d Datastore %d: %zu PUTs (%zu bytes) in %.3Lf seconds (%.3Lf PUTs/sec, %s)", rank, id, put_count, put_size, put_time, put_count / put_time, hr_size(put_size, put_time).c_str());
     }
-    std::cerr << std::endl;
+    else {
+        mlog(DATASTORE_INFO, "Rank %d Datastore %d: %zu PUTs (%zu bytes) in %.3Lf seconds", rank, id, put_count, put_size, put_time);
+    }
 
-    std::cerr << "Datastore " << id << ": " << get_count << " GETs (" << get_size << " bytes) in " << get_time << " seconds";
     if (get_count) {
-        std::cerr << " (" << get_count / get_time << " GETs/sec, " << hr_size(get_size, get_time) << ")";
+        mlog(DATASTORE_INFO, "Rank %d Datastore %d: %zu GETs (%zu bytes) in %.3Lf seconds (%.3Lf GETs/sec, %s)", rank, id, get_count, get_size, get_time, get_count / get_time, hr_size(get_size, get_time).c_str());
     }
-    std::cerr << std::endl;
+    else {
+        mlog(DATASTORE_INFO, "Rank %d Datastore %d: %zu GETs (%zu bytes) in %.3Lf seconds", rank, id, get_count, get_size, get_time);
+    }
 
-    std::cerr.flags(flags);
-
+    mlog(DATASTORE_INFO, "Rank %d Datastore shut down completed", rank);
     delete hist;
 }
 
