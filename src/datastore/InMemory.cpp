@@ -71,6 +71,8 @@ Transport::Response::BPut *hxhim::datastore::InMemory::BPutImpl(Transport::Reque
 
         // always successful
         res->statuses[i] = HXHIM_SUCCESS;
+
+        event.size += key_len + req->objects[i]->size();
     }
 
     res->count = req->count;
@@ -123,9 +125,13 @@ Transport::Response::BGet *hxhim::datastore::InMemory::BGetImpl(Transport::Reque
 
         res->statuses[i] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
 
+        event.size += key_len;
+
         // copy the object into the response
         if (res->statuses[i] == HXHIM_SUCCESS) {
             res->objects[i] = construct<RealBlob>(it->second.size(), it->second.data());
+
+            event.size += res->objects[i]->size();
         }
     }
 
@@ -140,7 +146,8 @@ Transport::Response::BGet *hxhim::datastore::InMemory::BGetImpl(Transport::Reque
 static void BGetOp_copy_response(const std::map<std::string, std::string>::const_iterator &it,
                                  Transport::Response::BGetOp *res,
                                  const std::size_t i,
-                                 const std::size_t j) {
+                                 const std::size_t j,
+                                 hxhim::datastore::Datastore::Stats::Event &event) {
     const std::string &k = it->first;
     const std::string &v = it->second;
 
@@ -152,6 +159,8 @@ static void BGetOp_copy_response(const std::map<std::string, std::string>::const
     memcpy(res->objects[i][j]->data(), v.data(), v.size());
 
     res->num_recs[i]++;
+
+    event.size += k.size() + res->objects[i][j]->size();
 }
 
 /**
@@ -194,7 +203,7 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
             res->statuses[i] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
 
             // only 1 response, so j == 0 (num_recs is ignored)
-            BGetOp_copy_response(it, res, i, 0);
+            BGetOp_copy_response(it, res, i, 0, event);
         }
         else if (req->ops[i] == hxhim_get_op_t::HXHIM_GET_NEXT) {
             void *key = nullptr;
@@ -211,7 +220,7 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
             // first result returned is (subject, predicate)
             // (results are offsets)
             for(std::size_t j = 0; (j < req->num_recs[i]) && (it != db.end()); j++) {
-                BGetOp_copy_response(it, res, i, j);
+                BGetOp_copy_response(it, res, i, j, event);
                 it++;
             }
         }
@@ -228,7 +237,7 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
                 // first result returned is (subject, predicate)
                 // (results are offsets)
                 for(std::size_t j = 0; j < req->num_recs[i]; j++) {
-                    BGetOp_copy_response(it, res, i, j);
+                    BGetOp_copy_response(it, res, i, j, event);
                     if (it == db.begin()) {
                         break;
                     }
@@ -247,7 +256,7 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
 
             if (it != db.end()) {
                 for(std::size_t j = 0; (j < req->num_recs[i]) && (it != db.end()); j++) {
-                    BGetOp_copy_response(it, res, i, j);
+                    BGetOp_copy_response(it, res, i, j, event);
                     it++;
                 }
 
@@ -264,7 +273,7 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
 
             if (it != db.end()) {
                 for(std::size_t j = 0; j < req->num_recs[i]; j++) {
-                    BGetOp_copy_response(it, res, i, j);
+                    BGetOp_copy_response(it, res, i, j, event);
                     if (it == db.begin()) {
                         break;
                     }
@@ -323,6 +332,8 @@ Transport::Response::BDelete *hxhim::datastore::InMemory::BDeleteImpl(Transport:
         res->orig.predicates[i] = construct<ReferenceBlob>(req->orig.predicates[i], req->predicates[i]->size());
 
         dealloc(key);
+
+        event.size += key_len;
     }
 
     res->count = req->count;

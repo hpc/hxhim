@@ -87,18 +87,23 @@ class Datastore {
 
         mutable std::mutex mutex;
 
+    public:
         struct Stats {
             struct Event {
+                Event();
+
                 struct Timestamp time;
                 std::size_t count;    // how many operations were performed during this event
+                std::size_t size;     // how much data was involved
             };
 
             std::list<Event> puts;
             std::list<Event> gets;
-            std::list<Event> getops; // each individual op, not the entire packet
+            std::list<Event> getops;  // each individual op, not the entire packet
             std::list<Event> deletes;
         };
 
+    protected:
         Stats stats;
 };
 

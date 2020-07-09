@@ -143,6 +143,8 @@ Transport::Response::BPut *hxhim::datastore::leveldb::BPutImpl(Transport::Reques
         res->orig.predicates[i] = construct<ReferenceBlob>(req->orig.predicates[i], req->predicates[i]->size());
 
         dealloc(key);
+
+        event.size += key_len + req->objects[i]->size();
     }
 
     // add in the time to write the key-value pairs without adding to the counter
@@ -213,11 +215,15 @@ Transport::Response::BGet *hxhim::datastore::leveldb::BGetImpl(Transport::Reques
         // save requesting addresses for sending back
         res->orig.subjects[i]   = construct<ReferenceBlob>(req->orig.subjects[i], req->subjects[i]->size());
         res->orig.predicates[i] = construct<ReferenceBlob>(req->orig.predicates[i], req->predicates[i]->size());
+        event.size += key_len;
+
         // put object into response
         if (status.ok()) {
             mlog(LEVELDB_INFO, "Rank %d LevelDB GET success", rank);
             res->statuses[i] = HXHIM_SUCCESS;
             res->objects[i] = construct<RealBlob>(value.size(), value.data());
+
+            event.size += res->objects[i]->size();
         }
         else {
             mlog(LEVELDB_WARN, "Rank %d LevelDB GET error: %s", rank, status.ToString().c_str());
@@ -237,7 +243,8 @@ Transport::Response::BGet *hxhim::datastore::leveldb::BGetImpl(Transport::Reques
 static void BGetOp_copy_response(const ::leveldb::Iterator *it,
                                  Transport::Response::BGetOp *res,
                                  const std::size_t i,
-                                 const std::size_t j) {
+                                 const std::size_t j,
+                                 hxhim::datastore::Datastore::Stats::Event &event) {
     const ::leveldb::Slice k = it->key();
     const ::leveldb::Slice v = it->value();
 
@@ -249,6 +256,8 @@ static void BGetOp_copy_response(const ::leveldb::Iterator *it,
     memcpy(res->objects[i][j]->data(), v.data(), v.size());
 
     res->num_recs[i]++;
+
+    event.size += k.size() + res->objects[i][j]->size();
 }
 
 /**
@@ -290,7 +299,7 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
             dealloc(key);
 
             // only 1 response, so j == 0 (num_recs is ignored)
-            BGetOp_copy_response(it, res, i, 0);
+            BGetOp_copy_response(it, res, i, 0, event);
         }
         else if (req->ops[i] == hxhim_get_op_t::HXHIM_GET_NEXT) {
             void *key = nullptr;
@@ -304,7 +313,7 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
             // first result returned is (subject, predicate)
             // (results are offsets)
             for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid(); j++) {
-                BGetOp_copy_response(it, res, i, j);
+                BGetOp_copy_response(it, res, i, j, event);
                 it->Next();
             }
         }
@@ -320,7 +329,7 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
             // first result returned is (subject, predicate)
             // (results are offsets)
             for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid(); j++) {
-                BGetOp_copy_response(it, res, i, j);
+                BGetOp_copy_response(it, res, i, j, event);
                 it->Prev();
             }
         }
@@ -331,7 +340,7 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
             // first result returned is (subject, predicate)
             // (results are offsets)
             for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid(); j++) {
-                BGetOp_copy_response(it, res, i, j);
+                BGetOp_copy_response(it, res, i, j, event);
                 it->Next();
             }
         }
@@ -342,7 +351,7 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
             // first result returned is (subject, predicate)
             // (results are offsets)
             for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid(); j++) {
-                BGetOp_copy_response(it, res, i, j);
+                BGetOp_copy_response(it, res, i, j, event);
                 it->Prev();
             }
         }
@@ -393,6 +402,8 @@ Transport::Response::BDelete *hxhim::datastore::leveldb::BDeleteImpl(Transport::
         res->orig.predicates[i] = construct<ReferenceBlob>(req->orig.predicates[i], req->predicates[i]->size());
 
         dealloc(key);
+
+        event.size += key_len;
     }
 
     // create responses

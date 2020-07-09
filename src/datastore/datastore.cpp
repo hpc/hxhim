@@ -3,6 +3,7 @@
 #include <cstring>
 #include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 
 #include "datastore/datastore.hpp"
@@ -94,36 +95,57 @@ Datastore::Datastore(const int rank,
       stats()
 {}
 
+static std::string hr_size(const std::size_t size, const long double time) {
+    long double rate = size / time;
+    static const char *UNITS[] = {"B", "KB", "MB", "GB", "TB", "PB"};
+    static const std::size_t UNIT_COUNT = sizeof(UNITS) / sizeof(char *);
+
+    std::size_t i = 0;
+    while ((i < UNIT_COUNT) && ((rate / 1024) > 1)) {
+        rate /= 1024;
+        i++;
+    }
+
+    std::stringstream s;
+    s << std::fixed << std::setprecision(3) << rate << UNITS[i] << "/sec";
+    return s.str();
+}
+
 Datastore::~Datastore() {
     long double put_time = 0;
     std::size_t put_count = 0;
+    std::size_t put_size = 0;
     for(Stats::Event const &event : stats.puts) {
         put_time += elapsed<std::chrono::nanoseconds>(event.time);
         put_count += event.count;
+        put_size += event.size;
     }
     put_time /= 1e9;
 
     long double get_time = 0;
     std::size_t get_count = 0;
+    std::size_t get_size = 0;
     for(Stats::Event const &event : stats.gets) {
         get_time += elapsed<std::chrono::nanoseconds>(event.time);
         get_count += event.count;
+        get_size += event.size;
     }
     get_time /= 1e9;
 
     std::ios_base::fmtflags flags(std::cerr.flags());
 
-    std::cerr << "Datastore " << id << ": " << put_count << " PUTs in " << put_time << " seconds";
+    std::cerr << "Datastore " << id << ": " << put_count << " PUTs (" << put_size << " bytes) in " << put_time << " seconds";
     if (put_count) {
-        std::cerr << " (" << put_count / put_time << " PUTs/sec)";
+        std::cerr << " (" << put_count / put_time << " PUTs/sec, " << hr_size(put_size, put_time) << ")";
     }
     std::cerr << std::endl;
 
-    std::cerr << "Datastore " << id << ": " << get_count << " GETs in " << get_time << " seconds";
+    std::cerr << "Datastore " << id << ": " << get_count << " GETs (" << get_size << " bytes) in " << get_time << " seconds";
     if (get_count) {
-        std::cerr << " (" << get_count / get_time << " GETs/sec)";
+        std::cerr << " (" << get_count / get_time << " GETs/sec, " << hr_size(get_size, get_time) << ")";
     }
     std::cerr << std::endl;
+
     std::cerr.flags(flags);
 
     delete hist;
@@ -358,6 +380,12 @@ int Datastore::decode(const hxhim_type_t type, void *src, const std::size_t &src
 
     return HXHIM_SUCCESS;
 }
+
+Datastore::Stats::Event::Event()
+    : time(),
+      count(0),
+      size(0)
+{}
 
 }
 }
