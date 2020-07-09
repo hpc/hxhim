@@ -36,11 +36,11 @@
      "HXHIM_OPTIONS"    => "HXHIM options",
      "HXHIM_CLIENT"     => "HXHIM client",
      "HXHIM_SERVER"     => "HXHIM range server",
+     "DATASTORE"        => "Datastore",
      "LEVELDB"          => "LevelDB Datastore",
      "INMEMORY"         => "In-Memory Datastore",
      "MPI"              => "MPI Transport",
      "THALLIUM"         => "Thallium Transport",
-     "FBP"              => "FixedBufferPool",
 );
 
 @mloglvls = (
