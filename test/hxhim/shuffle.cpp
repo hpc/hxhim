@@ -59,7 +59,7 @@ TEST(hxhim, shuffle) {
 
     // bad destination
     dst = -1;
-    EXPECT_EQ(hxhim::shuffle::shuffle(&hx, 2, &put1, &local, remote), hxhim::shuffle::ERROR);
+    EXPECT_EQ(hxhim::shuffle::shuffle(&hx, dst, 2, &put1, &local, remote), hxhim::shuffle::ERROR);
     EXPECT_EQ(local.count,   0);
     EXPECT_EQ(remote.size(), 0);
 
@@ -67,17 +67,17 @@ TEST(hxhim, shuffle) {
     ASSERT_EQ(MPI_Comm_rank(MPI_COMM_WORLD, &dst), MPI_SUCCESS);
 
     // move into local buffer
-    EXPECT_EQ(hxhim::shuffle::shuffle(&hx, 2, &put1, &local, remote), dst);
+    EXPECT_EQ(hxhim::shuffle::shuffle(&hx, dst, 2, &put1, &local, remote), dst);
     EXPECT_EQ(local.count,   1);
     EXPECT_EQ(remote.size(), 0);
 
     // local buffer is "full", so return NOSPACE
-    EXPECT_EQ(hxhim::shuffle::shuffle(&hx, 1, &put2, &local, remote), hxhim::shuffle::NOSPACE);
+    EXPECT_EQ(hxhim::shuffle::shuffle(&hx, dst, 1, &put2, &local, remote), hxhim::shuffle::NOSPACE);
     EXPECT_EQ(local.count,   1);
     EXPECT_EQ(remote.size(), 0);
 
     // move into local buffer
-    EXPECT_EQ(hxhim::shuffle::shuffle(&hx, 2, &put2, &local, remote), dst);
+    EXPECT_EQ(hxhim::shuffle::shuffle(&hx, dst, 2, &put2, &local, remote), dst);
     EXPECT_EQ(local.count,   2);
     EXPECT_EQ(remote.size(), 0);
 

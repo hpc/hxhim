@@ -68,7 +68,7 @@ hxhim::Results *process(hxhim_t *hx,
             mlog(HXHIM_CLIENT_DBG, "Rank %d Client preparing to shuffle %p (next: %p)", rank, curr, curr->next);
 
             UserData_t *next = curr->next;
-            const int dst_ds = hxhim::shuffle::shuffle(hx, max_ops_per_send, curr, &local, remote);
+            const int dst_ds = hxhim::shuffle::shuffle(hx, rank, max_ops_per_send, curr, &local, remote);
 
             switch (dst_ds) {
                 case hxhim::shuffle::NOSPACE:

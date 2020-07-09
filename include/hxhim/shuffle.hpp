@@ -25,21 +25,27 @@ const int NOSPACE = -1;
  *     1. Figures out which backend the data should go to
  *     2. Packs the data into either the local or remote buffer
  *
- * All arguments passed into these functions should be defined.
- *
  * The local buffer is a single bulk op, with all data going to one rank (but possibly multiple backends)
  * The remote buffer should be a map of destination rank to bulk op, with all data in each bulk op going to one rank (but possibly multiple backends)
  *
+ *
+ *@tparam SRC_t       the cache type of the request
+ *@tparam DST_t       the response packet type
+ *@param hx           the HXHIM instance
+ *@param rank         the rank this HXHIM process is on
+ *@param max_per_dst  the maximum number of requests allowed in a bulk packet
+ *@param src          a single request that needs to be shuffled
+ *@param local        the bulk op packet destined for the local range server
+ *@param remote       the bulk op packets destined for remote range servers
+ *@return             destination datastore on success, or ERROR or NOSPACE
  */
 template <typename SRC_t, typename DST_t>
 int shuffle(hxhim_t *hx,
+            const int rank,
             const std::size_t max_per_dst,
             SRC_t *src,
             DST_t *local,
             std::unordered_map<int, DST_t *> &remote) {
-    int rank = -1;
-    hxhim::GetMPI(hx, nullptr, &rank, nullptr);
-
     // get the destination backend id for the key
     const int ds_id = hx->p->hash.func(hx,
                                        src->subject->data(), src->subject->size(),
@@ -59,7 +65,7 @@ int shuffle(hxhim_t *hx,
         mlog(HXHIM_CLIENT_INFO, "Shuffled %p to local datastore %d on rank %d (%zu already packed; %zu max)", src, ds_id, ds_rank, local->count, max_per_dst);
 
         if (local->count >= max_per_dst) {
-            mlog(HXHIM_CLIENT_WARN, "Cannot add to packet going to local datastore");
+            mlog(HXHIM_CLIENT_INFO, "Cannot add to packet going to local datastore");
             return NOSPACE;
         }
 
@@ -88,7 +94,7 @@ int shuffle(hxhim_t *hx,
 
         // packet is full
         if (rem->count >= max_per_dst) {
-            mlog(HXHIM_CLIENT_WARN, "Cannot add to packet going to rank %d (no space)", ds_rank);
+            mlog(HXHIM_CLIENT_INFO, "Cannot add to packet going to rank %d (no space)", ds_rank);
             return NOSPACE;
         }
 
