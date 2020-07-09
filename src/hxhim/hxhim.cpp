@@ -171,7 +171,7 @@ int hxhim::Close(hxhim_t *hx) {
         if (rank == i) {
             std::stringstream s;
             print_stats(hx, s);
-            mlog(HXHIM_CLIENT_INFO, "Rank %d Stats\n%s", rank, s.str().c_str());
+            mlog(HXHIM_CLIENT_NOTE, "Rank %d Stats\n%s", rank, s.str().c_str());
         }
     }
 
