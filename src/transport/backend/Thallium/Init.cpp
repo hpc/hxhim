@@ -1,4 +1,4 @@
-#include "hxhim/accessors.hpp"
+#include "hxhim/accessors_private.hpp"
 #include "hxhim/options_private.hpp"
 #include "hxhim/private.hpp"
 #include "transport/backend/Thallium/Thallium.hpp"
@@ -19,12 +19,9 @@ namespace Thallium {
  */
 int init(hxhim_t *hx, hxhim_options_t *opts) {
     int rank = -1;
-    hxhim::GetMPI(hx, nullptr, &rank, nullptr);
+    hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(THALLIUM_INFO, "Rank %d Starting Thallium Initialization", rank);
-    if (!hxhim::valid(hx, opts)) {
-        return HXHIM_ERROR;
-    }
 
     Options *config = static_cast<Options *>(opts->p->transport);
     mlog(THALLIUM_INFO, "Rank %d Configuring Thallium with %s", rank, config->module.c_str());

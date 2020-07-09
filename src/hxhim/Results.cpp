@@ -4,7 +4,7 @@
 #include "datastore/datastores.hpp"
 #include "hxhim/Results.hpp"
 #include "hxhim/Results_private.hpp"
-#include "hxhim/accessors.hpp"
+#include "hxhim/accessors_private.hpp"
 #include "transport/Messages/Messages.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
@@ -56,7 +56,7 @@ hxhim::Results::Result *hxhim::Result::init(hxhim_t *hx, Transport::Response::Re
     // hx should have been checked earlier
 
     int rank = -1;
-    hxhim::GetMPI(hx, nullptr, &rank, nullptr);
+    hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_CLIENT_DBG, "Rank %d Creating hxhim::Results::Result using %p[%zu]", rank, res, i);
 
@@ -162,7 +162,7 @@ hxhim::Results::Delete *hxhim::Result::init(hxhim_t *hx, Transport::Response::BD
 
 hxhim::Results::Sync *hxhim::Result::init(hxhim_t *hx, const int ds_offset, const int synced) {
     int rank = -1;
-    hxhim::GetMPI(hx, nullptr, &rank, nullptr);
+    hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
     hxhim::Results::Sync *out = construct<hxhim::Results::Sync>(hx, hxhim::datastore::get_id(hx, rank, ds_offset), synced);
     return out;
@@ -203,7 +203,7 @@ hxhim::Results::~Results() {
 void hxhim::Results::Destroy(Results *res) {
     if (res) {
         int rank = -1;
-        hxhim::GetMPI(res->hx, nullptr, &rank, nullptr);
+        hxhim::nocheck::GetMPI(res->hx, nullptr, &rank, nullptr);
 
         mlog(HXHIM_CLIENT_DBG, "Rank %d Destroying hxhim::Results %p", rank, res);
         destruct(res);
@@ -703,7 +703,7 @@ int hxhim_results_object(hxhim_results_t *res, void **object, size_t *object_len
  */
 hxhim_results_t *hxhim_results_init(hxhim_t * hx, hxhim::Results *res) {
     int rank = -1;
-    hxhim::GetMPI(hx, nullptr, &rank, nullptr);
+    hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_CLIENT_DBG, "Rank %d Creating hxhim_results_t using %p", rank, res);
     hxhim_results_t *ret = construct<hxhim_results_t>();
@@ -722,7 +722,7 @@ hxhim_results_t *hxhim_results_init(hxhim_t * hx, hxhim::Results *res) {
 void hxhim_results_destroy(hxhim_results_t *res) {
     if (res) {
         int rank = -1;
-        hxhim::GetMPI(res->hx, nullptr, &rank, nullptr);
+        hxhim::nocheck::GetMPI(res->hx, nullptr, &rank, nullptr);
 
         mlog(HXHIM_CLIENT_DBG, "Rank %d Destroying hxhim_results_t %p", rank, res);
         hxhim::Results::Destroy(res->res);

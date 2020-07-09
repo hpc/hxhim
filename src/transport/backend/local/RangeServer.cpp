@@ -2,7 +2,7 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "hxhim/accessors.hpp"
+#include "hxhim/accessors_private.hpp"
 #include "hxhim/hxhim.hpp"
 #include "transport/backend/local/RangeServer.hpp"
 #include "utils/Blob.hpp"
@@ -47,7 +47,7 @@ namespace local {
 
 Response::Response *range_server(hxhim_t *hx, Request::Request *req) {
     int rank = -1;
-    hxhim::GetMPI(hx, nullptr, &rank, nullptr);
+    hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_SERVER_INFO, "Rank %d Local RangeServer got a %s", rank, Message::TypeStr[req->type]);
 

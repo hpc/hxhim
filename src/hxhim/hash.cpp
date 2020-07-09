@@ -1,7 +1,7 @@
 #include <cstdlib>
 
 #include "datastore/datastore.hpp"
-#include "hxhim/accessors.hpp"
+#include "hxhim/accessors_private.hpp"
 #include "hxhim/hash.hpp"
 
 /**
@@ -22,10 +22,7 @@ int hxhim::hash::RankZero(hxhim_t *, void *, const std::size_t, void *, const st
  */
 int hxhim::hash::MyRank(hxhim_t *hx, void *, const std::size_t, void *, const std::size_t, void *) {
     int rank = -1;
-    if (hxhim::GetMPI(hx, nullptr, &rank, nullptr) != HXHIM_SUCCESS) {
-        return -1;
-    }
-
+    hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
     return rank;
 }
 
@@ -39,10 +36,8 @@ int hxhim::hash::MyRank(hxhim_t *hx, void *, const std::size_t, void *, const st
 int hxhim::hash::RankModDatastores(hxhim_t *hx, void *, const std::size_t, void *, const std::size_t, void *) {
     int rank = -1;
     std::size_t count = 0;
-    if ((hxhim::GetMPI(hx, nullptr, &rank, nullptr) != HXHIM_SUCCESS) ||
-        (hxhim::GetDatastoreCount(hx, &count)       != HXHIM_SUCCESS)) {
-        return -1;
-    }
+    hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
+    hxhim::nocheck::GetDatastoreCount(hx, &count);
 
     return rank % count;
 }
@@ -61,9 +56,7 @@ int hxhim::hash::RankModDatastores(hxhim_t *hx, void *, const std::size_t, void 
  */
 int hxhim::hash::SumModDatastores(hxhim_t *hx, void *subject, const std::size_t subject_len, void *predicate, const std::size_t predicate_len, void *) {
     std::size_t count = 0;
-    if (hxhim::GetDatastoreCount(hx, &count) != HXHIM_SUCCESS) {
-        return -1;
-    }
+    hxhim::nocheck::GetDatastoreCount(hx, &count);
 
     int dst = 0;
     for(std::size_t i = 0; i < subject_len; i++) {
@@ -87,10 +80,7 @@ int hxhim::hash::SumModDatastores(hxhim_t *hx, void *subject, const std::size_t 
 int hxhim::hash::Left(hxhim_t *hx, void *, const std::size_t, void *, const std::size_t, void *) {
     int rank = -1;
     int size = -1;
-    if (hxhim::GetMPI(hx, nullptr, &rank, &size) != HXHIM_SUCCESS) {
-        return -1;
-    }
-
+    hxhim::nocheck::GetMPI(hx, nullptr, &rank, &size);
     return hxhim::datastore::get_id(hx, (rank - 1) % size, 0);
 }
 
@@ -104,9 +94,6 @@ int hxhim::hash::Left(hxhim_t *hx, void *, const std::size_t, void *, const std:
 int hxhim::hash::Right(hxhim_t *hx, void *, const std::size_t, void *, const std::size_t, void *) {
     int rank = -1;
     int size = -1;
-    if (hxhim::GetMPI(hx, nullptr, &rank, &size) != HXHIM_SUCCESS) {
-        return -1;
-    }
-
+    hxhim::nocheck::GetMPI(hx, nullptr, &rank, &size);
     return hxhim::datastore::get_id(hx, (rank + 1) % size, 0);
 }

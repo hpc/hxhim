@@ -3,7 +3,7 @@
 
 #include <unordered_map>
 
-#include "hxhim/accessors.hpp"
+#include "hxhim/accessors_private.hpp"
 #include "hxhim/Results_private.hpp"
 #include "hxhim/private.hpp"
 #include "hxhim/shuffle.hpp"
@@ -39,7 +39,7 @@ hxhim::Results *process(hxhim_t *hx,
                         UserData_t *head,
                         const std::size_t max_ops_per_send) {
     int rank = -1;
-    hxhim::GetMPI(hx, nullptr, &rank, nullptr);
+    hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_CLIENT_DBG, "Rank %d Start processing", rank);
 

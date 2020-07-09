@@ -1,5 +1,6 @@
 #include "hxhim/accessors.h"
 #include "hxhim/accessors.hpp"
+#include "hxhim/accessors_private.hpp"
 #include "hxhim/private.hpp"
 
 /**
@@ -17,19 +18,7 @@ int hxhim::GetMPI(hxhim_t *hx, MPI_Comm *comm, int *rank, int *size) {
         return HXHIM_ERROR;
     }
 
-    if (comm) {
-        *comm = hx->p->bootstrap.comm;
-    }
-
-    if (rank) {
-        *rank = hx->p->bootstrap.rank;
-    }
-
-    if (size) {
-        *size = hx->p->bootstrap.size;
-    }
-
-    return HXHIM_SUCCESS;
+    return hxhim::nocheck::GetMPI(hx, comm, rank, size);
 }
 
 /**
@@ -55,12 +44,11 @@ int hxhimGetMPI(hxhim_t *hx, MPI_Comm *comm, int *rank, int *size) {
  * @return HXHIM_SUCCESS or HXHIM_ERROR on error
  */
 int hxhim::GetDatastoresPerRangeServer(hxhim_t *hx, std::size_t *datastore_count) {
-    if (!valid(hx) || !datastore_count) {
+    if (!valid(hx)) {
         return HXHIM_ERROR;
     }
 
-    *datastore_count = hx->p->datastores.size();
-    return HXHIM_SUCCESS;
+    return hxhim::nocheck::GetDatastoresPerRangeServer(hx, datastore_count);
 }
 
 /**
@@ -75,7 +63,6 @@ int hxhimGetDatastoresPerRangeServer(hxhim_t *hx, std::size_t *datastore_count) 
     return hxhim::GetDatastoresPerRangeServer(hx, datastore_count);
 }
 
-
 /**
  * hxhim::GetDatastoreCount
  * Gets the total number of datastores in this HXHIM instance
@@ -89,11 +76,7 @@ int hxhim::GetDatastoreCount(hxhim_t *hx, std::size_t *count) {
         return HXHIM_ERROR;
     }
 
-    if (count) {
-        *count = hx->p->total_datastores;
-    }
-
-    return HXHIM_SUCCESS;
+    return hxhim::nocheck::GetDatastoreCount(hx, count);
 }
 
 /**
@@ -122,15 +105,7 @@ int hxhim::GetDatastoreClientToServerRatio(hxhim_t *hx, std::size_t *client, std
         return HXHIM_ERROR;
     }
 
-    if (client) {
-        *client = hx->p->range_server.client_ratio;
-    }
-
-    if (server) {
-        *server = hx->p->range_server.server_ratio;
-    }
-
-    return HXHIM_SUCCESS;
+    return hxhim::nocheck::GetDatastoreClientToServerRatio(hx, client, server);
 }
 
 /**
