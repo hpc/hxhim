@@ -53,17 +53,16 @@ class Datastore {
         bool Open(const std::string &new_name);
         void Close();
 
-        int GetStats(long double *put_times,
-                     std::size_t *num_puts,
-                     long double *get_times,
-                     std::size_t *num_gets);
-
-        // Transport::Response::Histogram *Histogram() const;
-
         Transport::Response::BPut    *operate(Transport::Request::BPut    *req);
         Transport::Response::BGet    *operate(Transport::Request::BGet    *req);
         Transport::Response::BGetOp  *operate(Transport::Request::BGetOp  *req);
         Transport::Response::BDelete *operate(Transport::Request::BDelete *req);
+
+        int GetHistogram(Histogram::Histogram **h) const;
+        int GetStats(long double *put_times,
+                     std::size_t *num_puts,
+                     long double *get_times,
+                     std::size_t *num_gets);
 
         int Sync();
 
