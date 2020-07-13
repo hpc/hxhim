@@ -81,8 +81,8 @@ int GetStats(hxhim_t *hx, const int dst_rank,
              long double *get_times,
              std::size_t *num_gets);
 
-// hxhim::Results *GetHistogram(hxhim_t *hx, const int datastore);
-// hxhim::Results *GetBHistogram(hxhim_t *hx, const int *datastores, const std::size_t count);
+int GetHistograms(hxhim_t *hx, const int dst_rank, Histogram::Histogram ***hist, std::size_t *count);
+int DestroyHistograms(Histogram::Histogram **hist, const std::size_t count);
 
 // int GetMinFilled(hxhim_t *hx, const int dst_rank,
 //                  const bool get_bput, long double *bput,

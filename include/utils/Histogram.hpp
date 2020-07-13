@@ -23,11 +23,14 @@ class Histogram {
         // Add a value to the histogram
         int add(const double &value);
 
-        // Returns the histogram data in arrays
+        // Return references to internal arrays
         int get(double **buckets, std::size_t **counts, std::size_t *size) const;
 
+        std::size_t pack_size() const;
         bool pack(void **buf, std::size_t *size) const;
+        bool pack(char *&curr, std::size_t &avail, std::size_t *used) const;
         bool unpack(const void *buf, const std::size_t size);
+        bool unpack(char *&curr, std::size_t &size, std::size_t *used);
 
         // removes all datapoints, including the first_n values
         void clear();

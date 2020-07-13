@@ -54,7 +54,7 @@ typedef struct hxhim_private {
         hxhim::Unsent<hxhim::GetData> gets;
         hxhim::Unsent<hxhim::GetOpData> getops;
         hxhim::Unsent<hxhim::DeleteData> deletes;
-    } queues;
+   } queues;
 
     // calculate these once
     std::size_t total_range_servers;       // total number of range servers across all ranks

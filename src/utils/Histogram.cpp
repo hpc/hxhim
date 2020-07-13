@@ -156,9 +156,7 @@ int histogram_uniform_logn(const double *first_n, const size_t n, double **bucke
     return generate_using_bin_count(min, max, std::ceil((max - min) * std::log(* (std::size_t *) extra) / std::log(max - min)), buckets, size);
 }
 
-namespace Histogram {
-
-Histogram::Histogram(const std::size_t use_first_n, const HistogramBucketGenerator_t &generator, void *extra_args)
+Histogram::Histogram::Histogram(const std::size_t use_first_n, const HistogramBucketGenerator_t &generator, void *extra_args)
     : first_n(use_first_n),
       gen(generator),
       extra(extra_args),
@@ -168,16 +166,12 @@ Histogram::Histogram(const std::size_t use_first_n, const HistogramBucketGenerat
       counts_(nullptr),
       size_(0)
 {
-    // if (!first_n) {
-    //     first_n++;
-    // }
-
     if (!(data = new double[first_n]())) {
         throw std::runtime_error("Could not allocate space for first n values");
     }
 }
 
-Histogram::~Histogram() {
+Histogram::Histogram::~Histogram() {
     std::stringstream s;
     print(s);
     std::cerr << s.str() << std::endl;
@@ -198,7 +192,7 @@ Histogram::~Histogram() {
  * @param value the value to insert
  * @return HISTOGRAM_SUCCESS or HISTOGRAM_ERROR
  */
-int Histogram::add(const double &value) {
+int Histogram::Histogram::add(const double &value) {
     // limit has not been hit
     if (data_size < first_n) {
         data[data_size] = value;
@@ -216,13 +210,12 @@ int Histogram::add(const double &value) {
             }
 
             // insert original data
-            for(std::size_t i = 0; i < data_size; i++) {
+            for(std::size_t i = 0; i < first_n; i++) {
                 insert(data[i]);
             }
         }
-        else {
-            insert(value);
-        }
+
+        insert(value);
     }
 
     return HISTOGRAM_SUCCESS;
@@ -240,7 +233,7 @@ int Histogram::add(const double &value) {
  * @param size    pointer to the size    (optional)
  * @return HISTOGRAM_SUCCESS
  */
-int Histogram::get(double **buckets, std::size_t **counts, std::size_t *size) const {
+int Histogram::Histogram::get(double **buckets, std::size_t **counts, std::size_t *size) const {
     if (buckets) {
         *buckets = buckets_;
     }
@@ -256,6 +249,23 @@ int Histogram::get(double **buckets, std::size_t **counts, std::size_t *size) co
     return HISTOGRAM_SUCCESS;
 }
 
+/**
+ * pack_size
+ * Get the amount of space needed to pack this Histogram.
+ * This will fail if the buckets have not been generated yet.
+ *
+ * @return size != 0 on success, 0 on failure
+ */
+std::size_t Histogram::Histogram::pack_size() const {
+    if ((data_size < first_n) ||
+        !buckets_ || !counts_) {
+        return 0;
+    }
+
+    return sizeof(data_size) +
+        sizeof(size_) +
+        size_ * (sizeof(double) + sizeof(std::size_t));
+}
 
 /**
  * pack
@@ -267,25 +277,38 @@ int Histogram::get(double **buckets, std::size_t **counts, std::size_t *size) co
  * @param size  pointer to the size of the serialized data
  * @return true on success, false on error
  */
-bool Histogram::pack(void **buf, std::size_t *size) const {
+bool Histogram::Histogram::pack(void **buf, std::size_t *size) const {
     if (!buf || !size) {
         return false;
     }
 
-    if (data_size < first_n) {
+    *size = pack_size();
+    if (!*size) {
         return false;
     }
-
-    if (!buckets_ || !counts_) {
-        return false;
-    }
-
-    *size = sizeof(data_size) +
-            sizeof(size_) +
-            size_ * (sizeof(double) + sizeof(std::size_t));    // bucket + count
 
     *buf = alloc(*size);
     char *curr = (char *) *buf;
+
+    return pack(curr, *size, nullptr);
+}
+
+/**
+ * pack
+ * Serialize a Histogram in place.
+ * Arguments are updated if true was returned.
+ *
+ * @param curr   the location to start at
+ * @param avail  the available memory to use
+ * @param used   (optional) the amount of space that was used from the available space
+ * @return true on success, false on error
+ */
+bool Histogram::Histogram::pack(char *&curr, std::size_t &avail, std::size_t *used) const {
+    if (!curr || (avail < pack_size())) {
+        return false;
+    }
+
+    char *orig = curr;
 
     memcpy(curr, &data_size, sizeof(data_size));
     curr += sizeof(data_size);
@@ -301,6 +324,12 @@ bool Histogram::pack(void **buf, std::size_t *size) const {
         curr += sizeof(counts_[i]);
     }
 
+    avail -= curr - orig;
+
+    if (used) {
+        *used = curr - orig;
+    }
+
     return true;
 }
 
@@ -312,14 +341,30 @@ bool Histogram::pack(void **buf, std::size_t *size) const {
  * @param size size of the buffer
  * @return true on success, false on error
  */
-bool Histogram::unpack(const void *buf, const std::size_t size) {
-    if (!buf || (size < (2 * sizeof(std::size_t)))) {
+bool Histogram::Histogram::unpack(const void *buf, const std::size_t size) {
+    char *curr = (char *) buf;
+    std::size_t len = size;
+    return unpack(curr, len);
+}
+
+/**
+ * unpack
+ * Deserialize Histogram data.
+ * Arguments are modified if true is returned
+ *
+ * @param buf  the buffer containing serialized Histogram data
+ * @param size size of the buffer
+ * @return true on success, false on error
+ */
+bool Histogram::Histogram::unpack(char *&curr, std::size_t &size, std::size_t *used) {
+    if (!curr ||
+        (size < (2 * sizeof(std::size_t)))) {
         return false;
     }
 
     clear();
 
-    char *curr = (char *) buf;
+    char *orig = curr;
 
     memcpy(&data_size, curr, sizeof(data_size));
     curr += sizeof(data_size);
@@ -338,6 +383,10 @@ bool Histogram::unpack(const void *buf, const std::size_t size) {
         curr += sizeof(counts_[i]);
     }
 
+    if (used) {
+        *used = curr - orig;
+    }
+
     return true;
 }
 
@@ -346,7 +395,7 @@ bool Histogram::unpack(const void *buf, const std::size_t size) {
  * Clears all existing data, including
  * the first n values.
  */
-void Histogram::clear() {
+void Histogram::Histogram::clear() {
     first_n = 0;
     data_size = 0;
 
@@ -359,7 +408,7 @@ void Histogram::clear() {
     size_ = 0;
 }
 
-std::ostream &Histogram::print(std::ostream &stream, const std::string &indent) {
+std::ostream &Histogram::Histogram::print(std::ostream &stream, const std::string &indent) {
     stream << indent << "Histogram has " << data_size << " values" << std::endl;
     for(std::size_t i = 0; i < size_; i++) {
         stream << indent << indent << buckets_[i] << ": " << counts_[i] << std::endl;
@@ -373,7 +422,7 @@ std::ostream &Histogram::print(std::ostream &stream, const std::string &indent) 
  *
  * @return HISTOGRAM_SUCCESS, or HISTOGRAM_ERROR on error
  */
-int Histogram::gen_counts() {
+int Histogram::Histogram::gen_counts() {
     if (data_size < first_n) {
         return HISTOGRAM_ERROR;
     }
@@ -393,7 +442,7 @@ int Histogram::gen_counts() {
  *
  * @param value the value whose bin should be incremented
  */
-int Histogram::insert(const double &value) {
+int Histogram::Histogram::insert(const double &value) {
     if (!buckets_ || !counts_ || !size_) {
         return HISTOGRAM_ERROR;
     }
@@ -406,6 +455,4 @@ int Histogram::insert(const double &value) {
     counts_[i]++;
 
     return HISTOGRAM_SUCCESS;
-}
-
 }

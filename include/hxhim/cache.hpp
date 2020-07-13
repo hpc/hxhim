@@ -75,11 +75,6 @@ namespace hxhim {
         DeleteData *next;
     };
 
-    struct BHistogramData : UserData {
-        BHistogramData();
-        int moveto(Transport::Request::BHistogram *bhist, const int ds_offset);
-    };
-
     template <typename Data, typename = enable_if_t<std::is_base_of<SubjectPredicate, Data>::value> >
     struct Unsent {
         Unsent()

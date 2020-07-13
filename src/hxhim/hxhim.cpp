@@ -964,6 +964,10 @@ int hxhim::GetStats(hxhim_t *hx, const int dst_rank,
                     std::size_t *num_puts,
                     long double *get_times,
                     std::size_t *num_gets) {
+    if (!hxhim::valid(hx)) {
+        return HXHIM_ERROR;
+    }
+
     const static std::size_t size_size = sizeof(std::size_t);
 
     // collect from all datastores first
@@ -1063,132 +1067,131 @@ int hxhimGetStats(hxhim_t *hx, const int dst_rank,
                            num_gets);
 }
 
-// /**
-//  * GetHistogram
-//  * Get a histogram
-//  *
-//  * @param hx          the HXHIM session
-//  * @param datastore   the ID of the datastore to get the histogram from
-//  * @return the histogram, inside a hxhim::Results structure
-//  */
-// hxhim::Results *hxhim::GetHistogram(hxhim_t *hx, const int datastore) {
-//     if (!valid(hx) || (datastore < 0)) {
-//         return nullptr;
-//     }
+int hxhim::GetHistograms(hxhim_t *hx, const int dst_rank, Histogram::Histogram ***hists, std::size_t *count) {
+    if (dst_rank < 0) {
+        return HXHIM_ERROR;
+    }
 
-//     Transport::Request::Histogram request(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers);
-//     request.src = hx->p->bootstrap.rank;
-//     request.dst = hxhim::datastore::get_rank(hx, datastore);
-//     request.ds_offset = hxhim::datastore::get_offset(hx, datastore);;
+    if (!hists || !count) {
+        return HXHIM_ERROR;
+    }
 
-//     Transport::Response::Histogram *response = nullptr;
+    MPI_Comm comm;
+    int rank = -1;
+    int size = -1;
+    if (hxhim::GetMPI(hx, &comm, &rank, &size) != HXHIM_SUCCESS) {
+        return HXHIM_ERROR;
+    }
 
-//     // local
-//     if (request.src == request.dst) {
-//         response = local_client_histogram(hx, &request);
-//     }
-//     // remote
-//     else {
-//         response = hx->p->transport->Histogram(&request);
-//     }
+    const std::size_t local_count = hx->p->datastores.size();
 
-//     hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
-//     res->Add(hxhim::Result::init(hx, response));
-//     hx->p->memory_pools.responses->release(response);
-//     return res;
-// }
+    // get size required for all local datastores
+    std::size_t local_size = sizeof(std::size_t);
+    for(std::size_t i = 0; i < local_count; i++) {
+        Histogram::Histogram *h = nullptr;
+        if (hx->p->datastores[i]->GetHistogram(&h) != HXHIM_SUCCESS) {
+            return HXHIM_ERROR;
+        }
 
-// /**
-//  * GetHistogram
-//  * Get a histogram
-//  *
-//  * @param hx          the HXHIM session
-//  * @param datastore   the ID of the datastore to get the histogram from
-//  * @return the histogram, inside a hxhim::Results structure
-//  */
-// hxhim_results_t *hxhimGetHistogram(hxhim_t *hx, const int datastore) {
-//     return hxhim_results_init(hxhim::GetHistogram(hx, datastore));
-// }
+        local_size += h->pack_size();
+    }
 
-// /**
-//  * GetBHistogram
-//  * Get multiple histograms
-//  *
-//  * @param hx          the HXHIM session
-//  * @param datastores  the IDs of the datastores to get the histograms from
-//  * @param count       the number of datastores to get from
-//  * @return the histogram, inside a hxhim::Results structure
-//  */
-// hxhim::Results *hxhim::GetBHistogram(hxhim_t *hx, const hxhim::BHistogramData *datastores, const std::size_t count) {
-//     if (!hxhim::valid(hx)) {
-//         return nullptr;
-//     }
+    // get max size across all ranks
+    unsigned long long int local_size_ull = local_size;
+    unsigned long long int max_size_ull = 0;
+    if (MPI_Allreduce(&local_size_ull, &max_size_ull, 1,
+                      MPI_UNSIGNED_LONG_LONG, MPI_MAX,
+                      hx->p->bootstrap.comm) != MPI_SUCCESS) {
+        return HXHIM_ERROR;
+    }
 
-//     Transport::Request::BHistogram local(hx->p->memory_pools.arrays, hx->p->memory_pools.buffers, count);
-//     local.src = hx->p->bootstrap.rank;
-//     local.dst = hx->p->bootstrap.rank;
+    void *local_buf = alloc(max_size_ull);
+    std::size_t local_buf_size = max_size_ull;
+    char *curr = (char *) local_buf;
 
-//     // maximum number of remote destinations allowed at any time
-//     static const std::size_t max_remote = std::max(hx->p->memory_pools.requests->regions() / 2, (std::size_t) 1);
+    // first value is how many datastores are in this buffer
+    memcpy(curr, &local_count, sizeof(local_count));
+    curr += sizeof(local_count);
 
+    // serialize all local histograms into one buffer
+    for(std::size_t i = 0; i < local_count; i++) {
+        Histogram::Histogram *h = nullptr;
+        if (hx->p->datastores[i]->GetHistogram(&h) != HXHIM_SUCCESS) {
+            dealloc(local_buf);
+            return HXHIM_ERROR;
+        }
 
-//     hxhim::Results *res = hx->p->memory_pools.results->acquire<hxhim::Results>(hx);
+        if (!h->pack(curr, local_buf_size, nullptr)) {
+            std::cerr << "Could not pack" << std::endl;
+            dealloc(local_buf);
+            return HXHIM_ERROR;
+        }
+    }
 
-//     std::size_t i = 0;
-//     while (i < count) {
-//         // current set of remote destinations to send to
-//         std::unordered_map<int, Transport::Request::BHistogram *> remote;
+    // gather from ranks
+    std::size_t total_buf_size = size * max_size_ull;
+    void *total_buf = nullptr;
+    if (rank == dst_rank) {
+        total_buf = alloc(total_buf_size);
+    }
 
-//         // reset local without deallocating memory
-//         local.count = 0;
+    if (MPI_Gather(local_buf, max_size_ull, MPI_CHAR,
+                   total_buf, total_buf_size, MPI_CHAR,
+                   dst_rank, comm) != MPI_SUCCESS) {
+        dealloc(total_buf);
+        return HXHIM_ERROR;
+    }
 
-//         // move the data into the appropriate buffers
-//         while ((i < count) && (hxhim::shuffle(hx, hx->p->max_ops_per_send.max,
-//                                                          datastores[i],
-//                                                          &local, remote) > -1)) {
-//             i++;
-//         }
+    if (rank == dst_rank) {
+        hxhim::nocheck::GetDatastoreCount(hx, count);
 
-//         // remote requests
-//         if (remote.size()) {
-//             Transport::Response::BHistogram *responses = hx->p->transport->BHistogram(remote);
-//             for(Transport::Response::BHistogram *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
-//                 for(std::size_t j = 0; j < curr->count; j++) {
-//                     res->Add(hxhim::Result::init(hx, curr, j));
-//                 }
-//             }
+        *hists = alloc_array<Histogram::Histogram *>(*count);
+        std::size_t idx = 0;
 
-//             for(decltype(remote)::value_type const &dst : remote) {
-//                 hx->p->memory_pools.requests->release(dst.second);
-//             }
-//         }
+        // deserialize
+        char *total_curr = (char *) total_buf;
+        for(int i = 0; i < size; i++) {
+            // this pointer only points to this rank's data
+            // total_curr gets updated to the next rank's data
+            // skipping any unused data
+            char *curr = total_curr;
 
-//         // local request
-//         if (local.count) {
-//             Transport::Response::BHistogram *responses = local_client_bhistogram(hx, &local);
-//             for(Transport::Response::BHistogram *curr = responses; curr; curr = Transport::next(curr, hx->p->memory_pools.responses)) {
-//                 for(std::size_t j = 0; j < curr->count; j++) {
-//                     res->Add(hxhim::Result::init(hx, curr, j));
-//                 }
-//             }
-//         }
-//     }
+            // get how many histograms are in this rank
+            std::size_t rank_count = 0;
+            memcpy(&rank_count, curr, sizeof(rank_count));
+            curr += sizeof(rank_count);
 
-//     return res;
-// }
+            std::size_t max_size = max_size_ull - sizeof(rank_count);
 
-// /**
-//  * GetBHistogram
-//  * Get multiple histograms
-//  *
-//  * @param hx          the HXHIM session
-//  * @param datastores  the IDs of the datastores to get the histograms from
-//  * @param count       the number of datastores to get from
-//  * @return the histogram, inside a hxhim::Results structure
-//  */
-// hxhim_results_t *hxhimBGetHistogram(hxhim_t *hx, const int *datastores, const size_t count) {
-//     return hxhim_results_init(hxhim::GetBHistogram(hx, datastores, count));
-// }
+            // deserialize all histograms from each rank
+            for(std::size_t j = 0; j < rank_count; j++) {
+                (*hists)[idx] = construct<Histogram::Histogram>(0, nullptr, nullptr);
+                (*hists)[idx]->unpack(curr, max_size, nullptr);
+                idx++;
+            }
+
+            // shift past histogram data and unused space
+            total_curr += max_size_ull;
+        }
+    }
+
+    dealloc(total_buf);
+
+    MPI_Barrier(comm);
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim::DestroyHistograms(Histogram::Histogram **hist, const std::size_t count) {
+    if (count && hist) {
+        for(std::size_t i = 0; i < count; i++) {
+            destruct(hist[i]);
+        }
+    }
+
+    dealloc_array(hist);
+    return HXHIM_SUCCESS;
+}
 
 // /**
 //  * GetFilled

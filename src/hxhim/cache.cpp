@@ -108,18 +108,3 @@ int hxhim::DeleteData::moveto(Transport::Request::BDelete *bdel, const int ds_of
     return HXHIM_SUCCESS;
 
 }
-
-hxhim::BHistogramData::BHistogramData()
-    : UserData()
-{}
-
-int hxhim::BHistogramData::moveto(Transport::Request::BHistogram *bhist, const int ds_offset) {
-    if (!bhist) {
-        return HXHIM_ERROR;
-    }
-
-    bhist->ds_offsets[bhist->count] = ds_offset;
-    bhist->count++;
-
-    return HXHIM_SUCCESS;
-}
