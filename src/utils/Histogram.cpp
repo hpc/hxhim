@@ -1,7 +1,9 @@
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 #include <iterator>
 #include <limits>
+#include <sstream>
 #include <stdexcept>
 
 #include "utils/Histogram.hpp"
@@ -175,6 +177,10 @@ Histogram::Histogram(const std::size_t use_first_n, const HistogramBucketGenerat
 }
 
 Histogram::~Histogram() {
+    std::stringstream s;
+    print(s);
+    std::cerr << s.str() << std::endl;
+
     clear();
     delete [] data;
 }
@@ -264,6 +270,14 @@ void Histogram::clear() {
     counts_ = nullptr;
 
     size_ = 0;
+}
+
+std::ostream &Histogram::print(std::ostream &stream, const std::string &indent) {
+    stream << indent << "Histogram has " << data_size << " values" << std::endl;
+    for(std::size_t i = 0; i < size_; i++) {
+        stream << indent << indent << buckets_[i] << ": " << counts_[i] << std::endl;
+    }
+    return stream;
 }
 
 /**

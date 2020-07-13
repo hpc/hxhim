@@ -1,6 +1,8 @@
 #ifndef HISTOGRAM_HPP
 #define HISTOGRAM_HPP
 
+#include <ostream>
+
 #include "utils/memory.hpp"
 #include "utils/Histogram.h"
 
@@ -26,6 +28,8 @@ class Histogram {
 
         // removes all datapoints, including the first_n values
         void clear();
+
+        std::ostream &print(std::ostream &stream, const std::string &indent = "    ");
 
     private:
         int gen_counts();
