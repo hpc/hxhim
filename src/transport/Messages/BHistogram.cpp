@@ -38,7 +38,7 @@ Transport::Response::BHistogram::~BHistogram() {
 std::size_t Transport::Response::BHistogram::size() const {
     std::size_t ret = Response::size();
     for(std::size_t i = 0; i < count; i++) {
-        ret += sizeof(hists[i].size) + ((sizeof(*hists[i].buckets) + sizeof(*hists[i].counts)) * hists[i].size);
+        ret += hists[i]->size() + sizeof(hists[i]->size());
     }
     return ret;
 }
@@ -48,7 +48,7 @@ int Transport::Response::BHistogram::alloc(const std::size_t max) {
 
     if (max) {
         if ((Response::alloc(max) != TRANSPORT_SUCCESS) ||
-            !(hists = alloc_array<Histogram>(max)))      {
+            !(hists = alloc_array<RealBlob *>(max)))     {
             cleanup();
             return TRANSPORT_ERROR;
         }
@@ -59,8 +59,7 @@ int Transport::Response::BHistogram::alloc(const std::size_t max) {
 
 int Transport::Response::BHistogram::cleanup() {
     for(std::size_t i = 0; i < count; i++) {
-        dealloc_array(hists[i].buckets, hists[i].size);
-        dealloc_array(hists[i].counts, hists[i].size);
+        dealloc(hists[i]);
     }
 
     dealloc_array(hists, count);

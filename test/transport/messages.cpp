@@ -541,12 +541,14 @@ TEST(Response, BHistogram) {
 
             src.ds_offsets[0] = rand();
 
-            src.hists[0].buckets = alloc_array<double>(count);
-            src.hists[0].counts = alloc_array<std::size_t>(count);
-            src.hists[0].size = count;
-            for(std::size_t i = 0; i < count; i++) {
-                src.hists[0].buckets[i] = i;
-                src.hists[0].counts[i] = i * i;
+            for(std::size_t i = 0; i < src.count; i++) {
+                std::size_t size = rand() % 100;
+                void *buf = alloc(size);
+                for(std::size_t j = 0; j < size; j++) {
+                    ((char *) buf)[j] = rand();
+                }
+
+                src.hists[i] = construct<RealBlob>(buf, size);
             }
         }
 
@@ -573,11 +575,7 @@ TEST(Response, BHistogram) {
             EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
             EXPECT_EQ(src.statuses[i], dst->statuses[i]);
 
-            EXPECT_EQ(src.hists[i].size, dst->hists[i].size);
-            for(std::size_t j = 0; j < dst->hists[i].size; j++) {
-                EXPECT_NEAR(src.hists[i].buckets[j], dst->hists[i].buckets[j], 1e-7);
-                EXPECT_EQ(src.hists[i].counts[j], dst->hists[i].counts[j]);
-            }
+            EXPECT_EQ(memcmp(src.hists[i]->data(), dst->hists[i]->data(), dst->hists[i]->size()), 0);
         }
 
         destruct(dst);

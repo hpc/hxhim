@@ -89,7 +89,7 @@ TEST(Histogram, uniform_log10) {
 
 #define CUSTOM_NONUNIFORM_INIT(name, count)                                   \
     const int n = count;                                                      \
-    Histogram::Histogram name(n,                                              \
+    ::Histogram::Histogram name(n,                                            \
                               [](const double *, const std::size_t,           \
                                  double **buckets, std::size_t *size,         \
                                  void *) {                                    \

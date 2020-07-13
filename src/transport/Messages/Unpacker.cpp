@@ -573,31 +573,14 @@ int Unpacker::unpack(Response::BHistogram **bhist, void *buf, const std::size_t 
         return TRANSPORT_ERROR;
     }
 
-    // read arrays
-    memcpy(out->ds_offsets, curr, sizeof(*out->ds_offsets) * count);
-    curr += sizeof(*out->ds_offsets) * count;
-
-    memcpy(out->statuses, curr, sizeof(*out->statuses) * count);
-    curr += sizeof(*out->statuses) * count;
-
     for(std::size_t i = 0; i < count; i++) {
-        memcpy(&out->hists[i].size, curr, sizeof(out->hists[i].size));
-        curr += sizeof(out->hists[i].size);
+        memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
+        curr += sizeof(out->ds_offsets[i]);
 
-        if (out->hists[i].size &&
-            (!(out->hists[i].buckets = alloc_array<double>(out->hists[i].size))      ||
-             !(out->hists[i].counts = alloc_array<std::size_t>(out->hists[i].size)))) {
-            destruct(out);
-            return TRANSPORT_ERROR;
-        }
+        memcpy(&out->statuses[i], curr, sizeof(out->statuses[i]));
+        curr += sizeof(out->statuses[i]);
 
-        for(std::size_t j = 0; j < out->hists[i].size; j++) {
-            memcpy(&out->hists[i].buckets[j], curr, sizeof(out->hists[i].buckets[j]));
-            curr += sizeof(out->hists[i].buckets[j]);
-
-            memcpy(&out->hists[i].counts[j], curr, sizeof(out->hists[i].counts[j]));
-            curr += sizeof(out->hists[i].counts[j]);
-        }
+        out->hists[i] = construct<RealBlob>(curr);
 
         out->count++;
     }

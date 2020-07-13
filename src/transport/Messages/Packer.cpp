@@ -367,23 +367,14 @@ int Packer::pack(const Response::BHistogram *bhist, void **buf, std::size_t *buf
     memcpy(curr, &bhist->count, sizeof(bhist->count));
     curr += sizeof(bhist->count);
 
-    memcpy(curr, bhist->ds_offsets, sizeof(*bhist->ds_offsets) * bhist->count);
-    curr += sizeof(*bhist->ds_offsets) * bhist->count;
-
-    memcpy(curr, bhist->statuses, sizeof(*bhist->statuses) * bhist->count);
-    curr += sizeof(*bhist->statuses) * bhist->count;
-
     for(std::size_t i = 0; i < bhist->count; i++) {
-        memcpy(curr, &bhist->hists[i].size, sizeof(bhist->hists[i].size));
-        curr += sizeof(bhist->hists[i].size);
+        memcpy(curr, &bhist->ds_offsets[i], sizeof(bhist->ds_offsets[i]));
+        curr += sizeof(bhist->ds_offsets[i]);
 
-        for(std::size_t j = 0; j < bhist->hists[i].size; j++) {
-            memcpy(curr, &bhist->hists[i].buckets[j], sizeof(bhist->hists[i].buckets[j]));
-            curr += sizeof(bhist->hists[i].buckets[j]);
+        memcpy(curr, &bhist->statuses[i], sizeof(bhist->statuses[i]));
+        curr += sizeof(bhist->statuses[i]);
 
-            memcpy(curr, &bhist->hists[i].counts[j], sizeof(bhist->hists[i].counts[j]));
-            curr += sizeof(bhist->hists[i].counts[j]);
-        }
+        bhist->hists[i]->pack(curr);
     }
 
     return TRANSPORT_SUCCESS;

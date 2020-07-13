@@ -39,13 +39,7 @@ struct BHistogram final : Response {
     int steal(BHistogram *bhist, std::size_t i);
     int cleanup();
 
-    struct Histogram {
-        double *buckets;
-        std::size_t *counts;
-        std::size_t size;
-    };
-
-    Histogram *hists;
+    RealBlob **hists;
 
     BHistogram *next;
 };

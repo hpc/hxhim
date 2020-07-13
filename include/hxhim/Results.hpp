@@ -9,6 +9,7 @@
 #include "hxhim/constants.h"
 #include "hxhim/struct.h"
 #include "utils/Blob.hpp"
+#include "utils/Histogram.hpp"
 
 namespace hxhim {
 
@@ -36,6 +37,9 @@ namespace hxhim {
  *                 break;
  *             case HXHIM_RESULT_DEL:
  *                 // do stuff with del
+ *                 break;
+ *             case HXHIM_RESULT_HISTOGRAM:
+ *                 // do stuff with histogram
  *                 break;
  *             default:
  *                 break;
@@ -109,7 +113,7 @@ class Results {
             hxhim_type_t object_type;
             Blob *object;
 
-            struct GetBase *next;
+            struct GetBase<gettype> *next;
         };
 
     public:
@@ -130,12 +134,12 @@ class Results {
         };
 
         /** @description Convenience struct for HISTOGRAM results */
-        struct Histogram final : public Result {
-            Histogram(hxhim_t *hx, const int datastore, const int status);
+        struct Hist final : public Result {
+            Hist(hxhim_t *hx, const int datastore, const int status);
+            ~Hist();
 
-            double *buckets;
-            std::size_t *counts;
-            std::size_t size;
+            // owned by this struct
+            ::Histogram::Histogram *hist;
         };
 
     public:
@@ -159,6 +163,7 @@ class Results {
         std::size_t Size() const;
 
         // Accessors
+        // pointers are only valid if the Result they came from are still valid
         int Type(enum hxhim_result_type *type) const;
         int Status(int *status) const;
         int Datastore(int *datastore) const;
@@ -166,6 +171,8 @@ class Results {
         int Predicate(void **predicate, size_t *predicate_len) const;
         int ObjectType(enum hxhim_type_t *object_type) const;
         int Object(void **object, size_t *object_len) const;
+        int Histogram(::Histogram::Histogram **hist) const; // C++ only
+        int Histogram(double **buckets, std::size_t **counts, std::size_t *size) const;
 
     private:
         hxhim_t *hx;
