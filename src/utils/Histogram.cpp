@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <iostream>
 #include <iterator>
 #include <limits>
@@ -167,9 +168,9 @@ Histogram::Histogram(const std::size_t use_first_n, const HistogramBucketGenerat
       counts_(nullptr),
       size_(0)
 {
-    if (!gen) {
-        throw std::runtime_error("Bad bucket generator function");
-    }
+    // if (!first_n) {
+    //     first_n++;
+    // }
 
     if (!(data = new double[first_n]())) {
         throw std::runtime_error("Could not allocate space for first n values");
@@ -215,7 +216,7 @@ int Histogram::add(const double &value) {
             }
 
             // insert original data
-            for(std::size_t i = 0; i < first_n; i++) {
+            for(std::size_t i = 0; i < data_size; i++) {
                 insert(data[i]);
             }
         }
@@ -255,12 +256,98 @@ int Histogram::get(double **buckets, std::size_t **counts, std::size_t *size) co
     return HISTOGRAM_SUCCESS;
 }
 
+
+/**
+ * pack
+ * Serialize a Histogram for transport
+ * If the data_size is less than first_n, pack will fail since
+ * the buckets will not have been created yet.
+ *
+ * @param buf   pointer to a memory location where the serialized data will be
+ * @param size  pointer to the size of the serialized data
+ * @return true on success, false on error
+ */
+bool Histogram::pack(void **buf, std::size_t *size) const {
+    if (!buf || !size) {
+        return false;
+    }
+
+    if (data_size < first_n) {
+        return false;
+    }
+
+    if (!buckets_ || !counts_) {
+        return false;
+    }
+
+    *size = sizeof(data_size) +
+            sizeof(size_) +
+            size_ * (sizeof(double) + sizeof(std::size_t));    // bucket + count
+
+    *buf = alloc(*size);
+    char *curr = (char *) *buf;
+
+    memcpy(curr, &data_size, sizeof(data_size));
+    curr += sizeof(data_size);
+
+    memcpy(curr, &size_, sizeof(size_));
+    curr += sizeof(size_);
+
+    for(std::size_t i = 0; i < size_; i++) {
+        memcpy(curr, &buckets_[i], sizeof(buckets_[i]));
+        curr += sizeof(buckets_[i]);
+
+        memcpy(curr, &counts_[i], sizeof(counts_[i]));
+        curr += sizeof(counts_[i]);
+    }
+
+    return true;
+}
+
+/**
+ * unpack
+ * Deserialize Histogram data
+ *
+ * @param buf  the buffer containing serialized Histogram data
+ * @param size size of the buffer
+ * @return true on success, false on error
+ */
+bool Histogram::unpack(const void *buf, const std::size_t size) {
+    if (!buf || (size < (2 * sizeof(std::size_t)))) {
+        return false;
+    }
+
+    clear();
+
+    char *curr = (char *) buf;
+
+    memcpy(&data_size, curr, sizeof(data_size));
+    curr += sizeof(data_size);
+
+    memcpy(&size_, curr, sizeof(size_));
+    curr += sizeof(size_);
+
+    buckets_ = alloc_array<double>(size_);
+    counts_  = alloc_array<std::size_t>(size_);
+
+    for(std::size_t i = 0; i < size_; i++) {
+        memcpy(&buckets_[i], curr, sizeof(buckets_[i]));
+        curr += sizeof(buckets_[i]);
+
+        memcpy(&counts_[i], curr, sizeof(counts_[i]));
+        curr += sizeof(counts_[i]);
+    }
+
+    return true;
+}
+
 /**
  * clear
  * Clears all existing data, including
  * the first n values.
  */
 void Histogram::clear() {
+    first_n = 0;
     data_size = 0;
 
     dealloc_array(buckets_, size_);

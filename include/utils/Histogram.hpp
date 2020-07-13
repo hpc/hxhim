@@ -26,6 +26,9 @@ class Histogram {
         // Returns the histogram data in arrays
         int get(double **buckets, std::size_t **counts, std::size_t *size) const;
 
+        bool pack(void **buf, std::size_t *size) const;
+        bool unpack(const void *buf, const std::size_t size);
+
         // removes all datapoints, including the first_n values
         void clear();
 
@@ -36,7 +39,7 @@ class Histogram {
         int insert(const double &value);
 
         // set in constructor
-        const std::size_t first_n;              // size of data before the buckets are generated
+        std::size_t first_n;                    // size of data before the buckets are generated
         HistogramBucketGenerator_t gen;         // the function to use to generate buckets
         void *extra;                            // extra arguments needed by the bucket generator
 
