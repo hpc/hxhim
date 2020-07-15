@@ -3,6 +3,7 @@ cmake_minimum_required (VERSION 3.6.3)
 set(INSTALLED_HEADERS
   Blob.hpp
   Histogram.h
+  memory.hpp
 )
 
 set(NOT_INSTALLED_HEADERS
@@ -11,7 +12,6 @@ set(NOT_INSTALLED_HEADERS
   elen.h
   elen.hpp
   elen.tpp
-  memory.hpp
   mlog2.h
   mlogfacs2.h
   type_traits.hpp

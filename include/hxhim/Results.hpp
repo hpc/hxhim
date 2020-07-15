@@ -110,6 +110,10 @@ class Results {
                   next(nullptr)
             {}
 
+            ~GetBase() {
+                destruct(object);
+            }
+
             hxhim_type_t object_type;
             Blob *object;
 

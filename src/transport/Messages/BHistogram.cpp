@@ -59,7 +59,7 @@ int Transport::Response::BHistogram::alloc(const std::size_t max) {
 
 int Transport::Response::BHistogram::cleanup() {
     for(std::size_t i = 0; i < count; i++) {
-        dealloc(hists[i]);
+        destruct(hists[i]);
     }
 
     dealloc_array(hists, count);
