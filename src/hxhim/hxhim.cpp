@@ -1137,7 +1137,7 @@ int hxhim::GetHistograms(hxhim_t *hx, const int dst_rank, hxhim_histogram_t **hi
         }
 
         if (!h->pack(curr, local_buf_size, nullptr)) {
-            mlog(HXHIM_CLIENT_ERR, "GetHistograms Could not get pack histogram from datastore[%zu] (id: %d)", i, hx->p->datastores[i]->ID());
+            mlog(HXHIM_CLIENT_ERR, "GetHistograms Could not pack histogram from datastore[%zu] (id: %d)", i, hx->p->datastores[i]->ID());
             dealloc(local_buf);
             return HXHIM_ERROR;
         }

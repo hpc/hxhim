@@ -16,8 +16,8 @@ static int test_hash(hxhim_t *hx,
                      void *) {
     int rank = -1;
     hxhim::GetMPI(hx, nullptr, &rank, nullptr);
-    const int offset = (int) * (std::size_t *) predicate;
-    return (rank * DS_PER_RS) + ((offset < 10)?offset:9);
+    const std::size_t offset = * (std::size_t *) predicate;
+    return (rank * DS_PER_RS) + (int) ((offset < DS_PER_RS)?offset:(DS_PER_RS - 1));
 }
 
 static HistogramBucketGenerator_t test_buckets = [](const double *, const size_t,
@@ -58,13 +58,15 @@ TEST(hxhim, Histogram) {
     std::size_t total_ds = 0;
     EXPECT_EQ(hxhim::GetDatastoreCount(&hx, &total_ds), HXHIM_SUCCESS);
 
-    std::vector<std::size_t> subjects  (TRIPLES);
-    std::vector<std::size_t> predicates(TRIPLES);
-    std::vector<double>      objects   (TRIPLES);
+    std::vector<std::size_t> subjects  (TRIPLES + 1);
+    std::vector<std::size_t> predicates(TRIPLES + 1);
+    std::vector<double>      objects   (TRIPLES + 1);
 
     // PUT triples
-    for(std::size_t i = 0; i < TRIPLES; i++) {
-        subjects[i] = rank * DS_PER_RS + i;
+    // The first TRIPLES - 1 buckets will have 1 item each
+    // The last bucket will have 2 items
+    for(std::size_t i = 0; i < (TRIPLES + 1); i++) {
+        subjects[i] = rank;
         predicates[i] = i;
         objects[i] = i;
 
@@ -102,9 +104,22 @@ TEST(hxhim, Histogram) {
             EXPECT_EQ(hxhim::histogram::get(hists, i, &buckets, &counts, &size), HXHIM_SUCCESS);
             EXPECT_EQ(size, (std::size_t) 1);
 
+            // all buckets start at 0
             for(std::size_t j = 0; j < size; j++) {
                 EXPECT_EQ(buckets[j], 0);
-                EXPECT_EQ(counts[j],  1);
+            }
+
+            // the last datastore per rank got 2 values
+            if ((i % DS_PER_RS) == (DS_PER_RS - 1)) {
+                for(std::size_t j = 0; j < size; j++) {
+                    EXPECT_EQ(counts[j],  2);
+                }
+            }
+            // all the other datastores got 1
+            else {
+                for(std::size_t j = 0; j < size; j++) {
+                    EXPECT_EQ(counts[j],  1);
+                }
             }
         }
 
