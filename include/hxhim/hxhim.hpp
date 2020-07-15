@@ -1,6 +1,7 @@
 #ifndef HXHIM_HPP
 #define HXHIM_HPP
 
+#include "hxhim/Histogram.hpp"
 #include "hxhim/Results.hpp"
 #include "hxhim/accessors.hpp"
 #include "hxhim/config.hpp"
@@ -81,8 +82,8 @@ int GetStats(hxhim_t *hx, const int dst_rank,
              long double *get_times,
              std::size_t *num_gets);
 
-int GetHistograms(hxhim_t *hx, const int dst_rank, Histogram::Histogram ***hist, std::size_t *count);
-int DestroyHistograms(Histogram::Histogram **hist, const std::size_t count);
+int GetHistograms(hxhim_t *hx, const int dst_rank, hxhim_histogram_t **hists);
+int DestroyHistograms(hxhim_histogram_t *hists);
 
 // int GetMinFilled(hxhim_t *hx, const int dst_rank,
 //                  const bool get_bput, long double *bput,

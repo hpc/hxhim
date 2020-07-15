@@ -163,6 +163,10 @@ void Datastore::Close() {
     return;
 }
 
+int Datastore::ID() const {
+    return id;
+}
+
 Transport::Response::BPut *Datastore::operate(Transport::Request::BPut *req) {
     std::lock_guard<std::mutex> lock(mutex);
     Transport::Response::BPut *res = BPutImpl(req);

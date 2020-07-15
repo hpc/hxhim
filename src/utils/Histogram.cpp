@@ -215,7 +215,11 @@ int Histogram::Histogram::add(const double &value) {
             }
         }
 
-        insert(value);
+        // if data_size == first_n, the value will be in data array
+        // cannot use else bcause first_n == 0 will break
+        if (data_size > first_n) {
+            insert(value);
+        }
     }
 
     return HISTOGRAM_SUCCESS;
@@ -290,7 +294,8 @@ bool Histogram::Histogram::pack(void **buf, std::size_t *size) const {
     *buf = alloc(*size);
     char *curr = (char *) *buf;
 
-    return pack(curr, *size, nullptr);
+    std::size_t avail = *size;
+    return pack(curr, avail, nullptr);
 }
 
 /**
@@ -344,7 +349,7 @@ bool Histogram::Histogram::pack(char *&curr, std::size_t &avail, std::size_t *us
 bool Histogram::Histogram::unpack(const void *buf, const std::size_t size) {
     char *curr = (char *) buf;
     std::size_t len = size;
-    return unpack(curr, len);
+    return unpack(curr, len, nullptr);
 }
 
 /**

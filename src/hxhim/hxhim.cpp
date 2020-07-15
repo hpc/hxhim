@@ -7,6 +7,7 @@
 #include <memory>
 #include <unordered_map>
 
+#include "hxhim/Histogram_private.hpp"
 #include "hxhim/Results_private.hpp"
 #include "hxhim/config.hpp"
 #include "hxhim/hxhim.h"
@@ -1067,14 +1068,15 @@ int hxhimGetStats(hxhim_t *hx, const int dst_rank,
                            num_gets);
 }
 
-int hxhim::GetHistograms(hxhim_t *hx, const int dst_rank, Histogram::Histogram ***hists, std::size_t *count) {
+int hxhim::GetHistograms(hxhim_t *hx, const int dst_rank, hxhim_histogram_t **hists) {
+    mlog(HXHIM_CLIENT_NOTE, "GetHistograms Start");
+
     if (dst_rank < 0) {
+        mlog(HXHIM_CLIENT_ERR, "GetHistograms bad destination rank: %d", dst_rank);
         return HXHIM_ERROR;
     }
 
-    if (!hists || !count) {
-        return HXHIM_ERROR;
-    }
+    mlog(HXHIM_CLIENT_NOTE, "GetHistograms Collecting at rank %d", dst_rank);
 
     MPI_Comm comm;
     int rank = -1;
@@ -1083,18 +1085,28 @@ int hxhim::GetHistograms(hxhim_t *hx, const int dst_rank, Histogram::Histogram *
         return HXHIM_ERROR;
     }
 
+    // dst_rank must have hists
+    if ((rank == dst_rank) && !hists) {
+        mlog(HXHIM_CLIENT_ERR, "GetHistograms dst_rank (%d) was not given an address to fill", dst_rank);
+        return HXHIM_ERROR;
+    }
+
     const std::size_t local_count = hx->p->datastores.size();
+    mlog(HXHIM_CLIENT_DBG, "GetHistograms Have %zu local datastores", local_count);
 
     // get size required for all local datastores
     std::size_t local_size = sizeof(std::size_t);
     for(std::size_t i = 0; i < local_count; i++) {
         Histogram::Histogram *h = nullptr;
         if (hx->p->datastores[i]->GetHistogram(&h) != HXHIM_SUCCESS) {
+            mlog(HXHIM_CLIENT_ERR, "GetHistograms Could not get histogram from datastore[%zu] (id: %d)", i, hx->p->datastores[i]->ID());
             return HXHIM_ERROR;
         }
 
         local_size += h->pack_size();
     }
+
+    mlog(HXHIM_CLIENT_DBG, "GetHistograms Require %zu bytes to store serialized datastores", local_size);
 
     // get max size across all ranks
     unsigned long long int local_size_ull = local_size;
@@ -1102,8 +1114,10 @@ int hxhim::GetHistograms(hxhim_t *hx, const int dst_rank, Histogram::Histogram *
     if (MPI_Allreduce(&local_size_ull, &max_size_ull, 1,
                       MPI_UNSIGNED_LONG_LONG, MPI_MAX,
                       hx->p->bootstrap.comm) != MPI_SUCCESS) {
+        mlog(HXHIM_CLIENT_ERR, "GetHistograms MPI_Allreduce failed");
         return HXHIM_ERROR;
     }
+    mlog(HXHIM_CLIENT_DBG, "GetHistograms Max serialized datastore size: %llu", max_size_ull);
 
     void *local_buf = alloc(max_size_ull);
     std::size_t local_buf_size = max_size_ull;
@@ -1119,33 +1133,44 @@ int hxhim::GetHistograms(hxhim_t *hx, const int dst_rank, Histogram::Histogram *
         if (hx->p->datastores[i]->GetHistogram(&h) != HXHIM_SUCCESS) {
             dealloc(local_buf);
             return HXHIM_ERROR;
+            mlog(HXHIM_CLIENT_ERR, "GetHistograms Could not get histogram from datastore[%zu] (id: %d)", i, hx->p->datastores[i]->ID());
         }
 
         if (!h->pack(curr, local_buf_size, nullptr)) {
-            std::cerr << "Could not pack" << std::endl;
+            mlog(HXHIM_CLIENT_ERR, "GetHistograms Could not get pack histogram from datastore[%zu] (id: %d)", i, hx->p->datastores[i]->ID());
             dealloc(local_buf);
             return HXHIM_ERROR;
         }
     }
+
+    mlog(HXHIM_CLIENT_DBG, "GetHistograms Done serializing local datastores");
 
     // gather from ranks
     std::size_t total_buf_size = size * max_size_ull;
     void *total_buf = nullptr;
     if (rank == dst_rank) {
         total_buf = alloc(total_buf_size);
+        mlog(HXHIM_CLIENT_DBG, "GetHistograms Allocated space for all serialized histograms");
     }
 
+    mlog(HXHIM_CLIENT_DBG, "GetHistograms MPI_Gather Start");
     if (MPI_Gather(local_buf, max_size_ull, MPI_CHAR,
-                   total_buf, total_buf_size, MPI_CHAR,
+                   total_buf, max_size_ull, MPI_CHAR,
                    dst_rank, comm) != MPI_SUCCESS) {
+        dealloc(local_buf);
         dealloc(total_buf);
+        mlog(HXHIM_CLIENT_ERR, "GetHistograms Could not get histogram data");
         return HXHIM_ERROR;
     }
+    mlog(HXHIM_CLIENT_DBG, "GetHistograms MPI_Gather End");
 
+    dealloc(local_buf);
+
+    // only dst_rank does processing
     if (rank == dst_rank) {
-        hxhim::nocheck::GetDatastoreCount(hx, count);
+        // allocate space
+        hxhim::histogram::init(hx, hists);
 
-        *hists = alloc_array<Histogram::Histogram *>(*count);
         std::size_t idx = 0;
 
         // deserialize
@@ -1165,8 +1190,8 @@ int hxhim::GetHistograms(hxhim_t *hx, const int dst_rank, Histogram::Histogram *
 
             // deserialize all histograms from each rank
             for(std::size_t j = 0; j < rank_count; j++) {
-                (*hists)[idx] = construct<Histogram::Histogram>(0, nullptr, nullptr);
-                (*hists)[idx]->unpack(curr, max_size, nullptr);
+                (*hists)->p->hists[idx] = construct<Histogram::Histogram>(0, nullptr, nullptr);
+                (*hists)->p->hists[idx]->unpack(curr, max_size, nullptr);
                 idx++;
             }
 
@@ -1177,20 +1202,15 @@ int hxhim::GetHistograms(hxhim_t *hx, const int dst_rank, Histogram::Histogram *
 
     dealloc(total_buf);
 
+    mlog(HXHIM_CLIENT_DBG, "GetHistograms Waiting at barrier");
     MPI_Barrier(comm);
 
+    mlog(HXHIM_CLIENT_INFO, "GetHistograms End");
     return HXHIM_SUCCESS;
 }
 
-int hxhim::DestroyHistograms(Histogram::Histogram **hist, const std::size_t count) {
-    if (count && hist) {
-        for(std::size_t i = 0; i < count; i++) {
-            destruct(hist[i]);
-        }
-    }
-
-    dealloc_array(hist);
-    return HXHIM_SUCCESS;
+int hxhim::DestroyHistograms(hxhim_histogram_t *hists) {
+    return hxhim::histogram::destroy(hists);
 }
 
 // /**

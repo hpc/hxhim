@@ -1,16 +1,23 @@
+#include <sstream>
+#include <vector>
+
 #include <gtest/gtest.h>
 #include <mpi.h>
 
 #include "generic_options.hpp"
 #include "hxhim/hxhim.hpp"
 
-static const std::size_t subjects[]   = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-static const std::size_t predicates[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-static const double      objects[]    = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+static const std::size_t DS_PER_RS = 10;
+static const std::size_t TRIPLES = 10;
 
-static int test_hash(hxhim_t *, void *subject, const size_t, void *, const size_t, void *) {
-    const int ds = (int) * (std::size_t *) subject;
-    return (ds < 10)?ds:9;
+static int test_hash(hxhim_t *hx,
+                     void *, const size_t,
+                     void *predicate, const size_t,
+                     void *) {
+    int rank = -1;
+    hxhim::GetMPI(hx, nullptr, &rank, nullptr);
+    const int offset = (int) * (std::size_t *) predicate;
+    return (rank * DS_PER_RS) + ((offset < 10)?offset:9);
 }
 
 static HistogramBucketGenerator_t test_buckets = [](const double *, const size_t,
@@ -30,7 +37,7 @@ static HistogramBucketGenerator_t test_buckets = [](const double *, const size_t
 TEST(hxhim, Histogram) {
     hxhim_options_t opts;
     ASSERT_EQ(fill_options(&opts), true);
-    ASSERT_EQ(hxhim_options_set_datastores_per_range_server(&opts, 10), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim_options_set_datastores_per_range_server(&opts, DS_PER_RS), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_hash_function(&opts, "test hash", test_hash, nullptr), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_histogram_first_n(&opts, 0), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_histogram_bucket_gen_method(&opts, test_buckets, nullptr), HXHIM_SUCCESS);
@@ -38,12 +45,33 @@ TEST(hxhim, Histogram) {
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
 
-    // Put triples
-    for(std::size_t i = 0; i < 11; i++) {
+    int rank = -1;
+    int size = -1;
+    EXPECT_EQ(hxhim::GetMPI(&hx, nullptr, &rank, &size), HXHIM_SUCCESS);
+
+    // where the histograms will be collected
+    // the rank selected by rank 0 is used
+    int dst_rank = rand() % size;
+    ASSERT_EQ(MPI_Bcast(&dst_rank, 1, MPI_INT, 0, MPI_COMM_WORLD), MPI_SUCCESS);
+
+    // get this value early on just in case it is modified later on (should not happen)
+    std::size_t total_ds = 0;
+    EXPECT_EQ(hxhim::GetDatastoreCount(&hx, &total_ds), HXHIM_SUCCESS);
+
+    std::vector<std::size_t> subjects  (TRIPLES);
+    std::vector<std::size_t> predicates(TRIPLES);
+    std::vector<double>      objects   (TRIPLES);
+
+    // PUT triples
+    for(std::size_t i = 0; i < TRIPLES; i++) {
+        subjects[i] = rank * DS_PER_RS + i;
+        predicates[i] = i;
+        objects[i] = i;
+
         EXPECT_EQ(hxhim::PutDouble(&hx,
                                    (void *)&subjects[i], sizeof(subjects[i]),
                                    (void *)&predicates[i], sizeof(predicates[i]),
-                                   (double *) &objects[i]),
+                                   &objects[i]),
                   HXHIM_SUCCESS);
     }
 
@@ -52,31 +80,40 @@ TEST(hxhim, Histogram) {
     ASSERT_NE(put_results, nullptr);
     hxhim::Results::Destroy(put_results);
 
-    const int srcs[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-    const std::size_t src_count = sizeof(srcs) / sizeof(*srcs);
-    const std::size_t expected_counts[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 2};       // each datastore gets 1 value except the last one, which gets 2
+    // extract all histograms across this HXHIM instance
+    hxhim_histogram_t *hists = nullptr;
+    ASSERT_EQ(hxhim::GetHistograms(&hx, dst_rank, &hists), HXHIM_SUCCESS);
 
-    Histogram::Histogram **hists = nullptr;
-    std::size_t count = 0;
-    ASSERT_EQ(hxhim::GetHistograms(&hx, 0, &hists, &count), HXHIM_SUCCESS);
-    ASSERT_NE(hists, nullptr);
-    EXPECT_EQ(count, src_count);
+    // only dst_rank has the data
+    if (rank == dst_rank)  {
+        ASSERT_NE(hists, nullptr);
 
-    for(std::size_t i = 0; i < src_count; i++) {
-        double *buckets = nullptr;
-        std::size_t *counts = nullptr;
-        std::size_t size = 0;
+        // get how many histograms there are
+        std::size_t hist_count = 0;
+        EXPECT_EQ(hxhim::histogram::count(hists, &hist_count), HXHIM_SUCCESS);
+        EXPECT_EQ(hist_count, total_ds);
 
-        EXPECT_EQ(hists[i]->get(&buckets, &counts, &size), HISTOGRAM_SUCCESS);
-        EXPECT_EQ(size, (std::size_t) 1);
+        // extract histogram data and check values
+        for(std::size_t i = 0; i < hist_count; i++) {
+            double *buckets = nullptr;
+            std::size_t *counts = nullptr;
+            std::size_t size = 0;
 
-        for(std::size_t j = 0; j < size; j++) {
-            EXPECT_EQ(buckets[j], 0);
-            EXPECT_EQ(counts[j], expected_counts[i]);
+            EXPECT_EQ(hxhim::histogram::get(hists, i, &buckets, &counts, &size), HXHIM_SUCCESS);
+            EXPECT_EQ(size, (std::size_t) 1);
+
+            for(std::size_t j = 0; j < size; j++) {
+                EXPECT_EQ(buckets[j], 0);
+                EXPECT_EQ(counts[j],  1);
+            }
         }
+
+        EXPECT_EQ(hxhim::DestroyHistograms(hists), HXHIM_SUCCESS);
+    }
+    else {
+        EXPECT_EQ(hists, nullptr);
     }
 
-    EXPECT_EQ(hxhim::DestroyHistograms(hists, count), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }

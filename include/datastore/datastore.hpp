@@ -52,6 +52,7 @@ class Datastore {
 
         bool Open(const std::string &new_name);
         void Close();
+        int ID() const;
 
         Transport::Response::BPut    *operate(Transport::Request::BPut    *req);
         Transport::Response::BGet    *operate(Transport::Request::BGet    *req);
