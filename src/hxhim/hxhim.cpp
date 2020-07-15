@@ -692,7 +692,7 @@ int hxhim::BPut(hxhim_t *hx,
                 void **subjects, std::size_t *subject_lens,
                 void **predicates, std::size_t *predicate_lens,
                 enum hxhim_type_t *object_types, void **objects, std::size_t *object_lens,
-                std::size_t count) {
+                const std::size_t count) {
     if (!valid(hx)  || !hx->p->running ||
         !subjects   || !subject_lens   ||
         !predicates || !predicate_lens ||
@@ -756,7 +756,7 @@ int hxhimBPut(hxhim_t *hx,
               void **subjects, std::size_t *subject_lens,
               void **predicates, std::size_t *predicate_lens,
               enum hxhim_type_t *object_types, void **objects, std::size_t *object_lens,
-              std::size_t count) {
+              const std::size_t count) {
     return hxhim::BPut(hx,
                        subjects, subject_lens,
                        predicates, predicate_lens,
@@ -782,7 +782,7 @@ int hxhim::BGet(hxhim_t *hx,
                 void **subjects, std::size_t *subject_lens,
                 void **predicates, std::size_t *predicate_lens,
                 hxhim_type_t *object_types,
-                std::size_t count) {
+                const std::size_t count) {
     if (!valid(hx)  || !hx->p->running ||
         !subjects   || !subject_lens   ||
         !predicates || !predicate_lens ||
@@ -818,7 +818,7 @@ int hxhimBGet(hxhim_t *hx,
               void **subjects, std::size_t *subject_lens,
               void **predicates, std::size_t *predicate_lens,
               enum hxhim_type_t *object_types,
-              std::size_t count) {
+              const std::size_t count) {
     return hxhim::BGet(hx,
                        subjects, subject_lens,
                        predicates, predicate_lens,
@@ -902,7 +902,7 @@ int hxhimBGetOp(hxhim_t *hx,
 int hxhim::BDelete(hxhim_t *hx,
                    void **subjects, size_t *subject_lens,
                    void **predicates, size_t *predicate_lens,
-                   std::size_t count) {
+                   const std::size_t count) {
     if (!valid(hx)  || !hx->p->running ||
         !subjects   || !subject_lens   ||
         !predicates || !predicate_lens) {
@@ -935,7 +935,7 @@ int hxhim::BDelete(hxhim_t *hx,
 int hxhimBDelete(hxhim_t *hx,
                  void **subjects, size_t *subject_lens,
                  void **predicates, size_t *predicate_lens,
-                 std::size_t count) {
+                 const std::size_t count) {
     return hxhim::BDelete(hx,
                           subjects, subject_lens,
                           predicates, predicate_lens,

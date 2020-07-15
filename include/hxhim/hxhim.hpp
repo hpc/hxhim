@@ -57,13 +57,13 @@ int BPut(hxhim_t *hx,
          void **subjects, std::size_t *subject_lens,
          void **predicates, std::size_t *predicate_lens,
          hxhim_type_t *object_types, void **objects, std::size_t *object_lens,
-         std::size_t count);
+         const std::size_t count);
 
 int BGet(hxhim_t *hx,
          void **subjects, std::size_t *subject_lens,
          void **predicates, std::size_t *predicate_lens,
          hxhim_type_t *object_types,
-         std::size_t count);
+         const std::size_t count);
 
 int BGetOp(hxhim_t *hx,
            void *subject, std::size_t subject_len,
@@ -74,7 +74,7 @@ int BGetOp(hxhim_t *hx,
 int BDelete(hxhim_t *hx,
             void **subjects, std::size_t *subject_lens,
             void **predicates, std::size_t *predicate_lens,
-            std::size_t count);
+            const std::size_t count);
 
 /** @description Utility Functions */
 int GetStats(hxhim_t *hx, const int dst_rank,

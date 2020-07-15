@@ -59,13 +59,13 @@ int hxhimBPut(hxhim_t *hx,
               void **subjects, size_t *subject_lens,
               void **predicates, size_t *predicate_lens,
               void **objects, size_t *object_lens,
-              size_t count);
+              const size_t count);
 
 int hxhimBGet(hxhim_t *hx,
               void **subjects, size_t *subject_lens,
               void **predicates, size_t *predicate_lens,
               enum hxhim_type_t *object_types,
-              size_t count);
+              const size_t count);
 
 int hxhimBGetOp(hxhim_t *hx,
                 void *subject, size_t subject_len,
@@ -76,7 +76,7 @@ int hxhimBGetOp(hxhim_t *hx,
 int hxhimBDelete(hxhim_t *hx,
                  void **subjects, size_t *subject_lens,
                  void **predicates, size_t *predicate_lens,
-                 size_t count);
+                 const size_t count);
 
 /** @description Utility Functions */
 int hxhimGetStats(hxhim_t *hx, const int dst_rank,
