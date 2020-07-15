@@ -7,7 +7,7 @@
 #include <memory>
 #include <unordered_map>
 
-#include "hxhim/Histogram_private.hpp"
+#include "hxhim/Histograms_private.hpp"
 #include "hxhim/Results_private.hpp"
 #include "hxhim/config.hpp"
 #include "hxhim/hxhim.h"
@@ -1046,13 +1046,9 @@ int hxhim::GetStats(hxhim_t *hx, const int dst_rank,
  *
  * @param hx             the HXHIM session
  * @param dst_rank       the rank that is collecting the data
- * @param get_put_times  whether or not to get put_times
  * @param put_times      the array of put times from each rank
- * @param get_num_puts   whether or not to get num_puts
  * @param num_puts       the array of number of puts from each rank
- * @param get_get_times  whether or not to get get_times
  * @param get_times      the array of get times from each rank
- * @param get_num_gets   whether or not to get num_gets
  * @param num_gets       the array of number of gets from each rank
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
@@ -1068,7 +1064,17 @@ int hxhimGetStats(hxhim_t *hx, const int dst_rank,
                            num_gets);
 }
 
-int hxhim::GetHistograms(hxhim_t *hx, const int dst_rank, hxhim_histogram_t **hists) {
+/**
+ * GetHistograms
+ * Collective operation
+ * Collect all histograms from all datastores
+ *
+ * @param hx         the HXHIM session
+ * @param dst_rank   the rank that is collecting the data
+ * @param hists      address of the histogram struct pointer
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim::GetHistograms(hxhim_t *hx, const int dst_rank, hxhim_histograms_t **hists) {
     mlog(HXHIM_CLIENT_NOTE, "GetHistograms Start");
 
     if (dst_rank < 0) {
@@ -1169,7 +1175,7 @@ int hxhim::GetHistograms(hxhim_t *hx, const int dst_rank, hxhim_histogram_t **hi
     // only dst_rank does processing
     if (rank == dst_rank) {
         // allocate space
-        hxhim::histogram::init(hx, hists);
+        hxhim::Histograms::init(hx, hists);
 
         std::size_t idx = 0;
 
@@ -1209,8 +1215,18 @@ int hxhim::GetHistograms(hxhim_t *hx, const int dst_rank, hxhim_histogram_t **hi
     return HXHIM_SUCCESS;
 }
 
-int hxhim::DestroyHistograms(hxhim_histogram_t *hists) {
-    return hxhim::histogram::destroy(hists);
+/**
+ * hxhimGetHistograms
+ * Collective operation
+ * Collect all histograms from all datastores
+ *
+ * @param hx         the HXHIM session
+ * @param dst_rank   the rank that is collecting the data
+ * @param hists      address of the histogram struct pointer
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhimGetHistograms(hxhim_t *hx, const int dst_rank, hxhim_histograms_t **hists) {
+    return hxhim::GetHistograms(hx, dst_rank, hists);
 }
 
 // /**

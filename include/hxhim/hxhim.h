@@ -7,7 +7,7 @@
 
 #include <ctype.h>
 
-#include "hxhim/Histogram.h"
+#include "hxhim/Histograms.h"
 #include "hxhim/Results.h"
 #include "hxhim/accessors.h"
 #include "hxhim/config.h"
@@ -85,8 +85,7 @@ int hxhimGetStats(hxhim_t *hx, const int dst_rank,
                   long double *get_times,
                   size_t *num_gets);
 
-int hxhimGetHistograms(hxhim_t *hx, const int dst_rank, hxhim_histogram_t **hists);
-int hxhimDestroyHistograms(hxhim_histogram_t *hists);
+int hxhimGetHistograms(hxhim_t *hx, const int dst_rank, hxhim_histograms_t **hists);
 
 // int hxhimGetMinFilled(hxhim_t *hx, const int dst_rank,
 //                       const int get_bput, long double *bput,

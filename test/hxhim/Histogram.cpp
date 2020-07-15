@@ -83,7 +83,7 @@ TEST(hxhim, Histogram) {
     hxhim::Results::Destroy(put_results);
 
     // extract all histograms across this HXHIM instance
-    hxhim_histogram_t *hists = nullptr;
+    hxhim_histograms_t *hists = nullptr;
     ASSERT_EQ(hxhim::GetHistograms(&hx, dst_rank, &hists), HXHIM_SUCCESS);
 
     // only dst_rank has the data
@@ -92,7 +92,7 @@ TEST(hxhim, Histogram) {
 
         // get how many histograms there are
         std::size_t hist_count = 0;
-        EXPECT_EQ(hxhim::histogram::count(hists, &hist_count), HXHIM_SUCCESS);
+        EXPECT_EQ(hxhim::Histograms::Count(hists, &hist_count), HXHIM_SUCCESS);
         EXPECT_EQ(hist_count, total_ds);
 
         // extract histogram data and check values
@@ -101,7 +101,7 @@ TEST(hxhim, Histogram) {
             std::size_t *counts = nullptr;
             std::size_t size = 0;
 
-            EXPECT_EQ(hxhim::histogram::get(hists, i, &buckets, &counts, &size), HXHIM_SUCCESS);
+            EXPECT_EQ(hxhim::Histograms::Get(hists, i, &buckets, &counts, &size), HXHIM_SUCCESS);
             EXPECT_EQ(size, (std::size_t) 1);
 
             // all buckets start at 0
@@ -123,7 +123,7 @@ TEST(hxhim, Histogram) {
             }
         }
 
-        EXPECT_EQ(hxhim::DestroyHistograms(hists), HXHIM_SUCCESS);
+        EXPECT_EQ(hxhim::Histograms::Destroy(hists), HXHIM_SUCCESS);
     }
     else {
         EXPECT_EQ(hists, nullptr);
