@@ -42,6 +42,7 @@ find_package(Threads REQUIRED)
 # List of common linker flags
 #
 list(APPEND EXEC_LDFLAGS Threads::Threads m)
+list(APPEND PC_LIBS -lstdc++)
 list(APPEND PC_STATIC_LIBS ${CMAKE_THREAD_LIBS_INIT} -lm)
 
 #
@@ -50,8 +51,8 @@ list(APPEND PC_STATIC_LIBS ${CMAKE_THREAD_LIBS_INIT} -lm)
 if(POLICY CMP0074)
   cmake_policy(SET CMP0074 OLD)
 endif()
-find_package(MPI REQUIRED)
 
+find_package(MPI REQUIRED)
 if (CMAKE_SYSTEM_NAME STREQUAL "CrayLinuxEnvironment")
     set(MPI_C_COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS} -dynamic -craympich-mt")
     set(MPI_CXX_COMPILE_FLAGS "${MPI_CXX_COMPILE_FLAGS} -dynamic -craympich-mt")
@@ -59,10 +60,14 @@ endif()
 
 message(STATUS "MPI_C_LIBRARIES=" ${MPI_C_LIBRARIES})
 message(STATUS "MPI_C_LINK_FLAGS=" ${MPI_C_LINK_FLAGS})
-message(STATUS "MPI_C_COMPILE_FLAGS=" ${MPI_C_COMPILE_FLAGS})
-include_directories(SYSTEM ${MPI_INCLUDE_PATH})
+message(STATUS "MPI_C_INCLUDE_DIRS=" ${MPI_C_INCLUDE_DIRS})
+include_directories(SYSTEM ${MPI_C_INCLUDE_DIRS})
 
 list(APPEND EXEC_LDFLAGS ${MPI_C_LIBRARIES})
+foreach(INCLUDE_DIR ${MPI_C_INCLUDE_DIRS})
+  list(APPEND PC_CFLAGS "-I${INCLUDE_DIR}")
+endforeach()
+list(APPEND PC_LIBS -lmpi)
 list(APPEND PC_STATIC_LIBS ${MPI_C_LIBRARIES})
 
 # jemalloc is nice to have but not necessary

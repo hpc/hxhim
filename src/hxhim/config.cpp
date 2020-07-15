@@ -245,7 +245,7 @@ static int fill_options(hxhim_options_t *opts, const Config &config) {
         parse_value(opts, config, START_ASYNC_PUT_AT,            hxhim_options_set_start_async_put_at)          &&
         parse_value(opts, config, MAXIMUM_OPS_PER_SEND,          hxhim_options_set_maximum_ops_per_send)        &&
         parse_value(opts, config, HISTOGRAM_FIRST_N,             hxhim_options_set_histogram_first_n)           &&
-        parse_value(opts, config, HISTOGRAM_BUCKET_GEN_METHOD,   hxhim_options_set_histogram_bucket_gen_method) &&
+        parse_value(opts, config, HISTOGRAM_BUCKET_GEN_NAME,     hxhim_options_set_histogram_bucket_gen_name) &&
         true?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 

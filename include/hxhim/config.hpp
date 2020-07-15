@@ -67,7 +67,7 @@ const std::string MAXIMUM_OPS_PER_SEND        = "MAXIMUM_OPS_PER_SEND";      // 
 
 /** Histogram Options */
 const std::string HISTOGRAM_FIRST_N           = "HISTOGRAM_FIRST_N";         // unsigned int
-const std::string HISTOGRAM_BUCKET_GEN_METHOD = "HISTOGRAM_BUCKET_METHOD";   // See HISTOGRAM_BUCKET_GENERATORS
+const std::string HISTOGRAM_BUCKET_GEN_NAME   = "HISTOGRAM_BUCKET_GEN_NAME"; // See HISTOGRAM_BUCKET_GENERATORS
 
 /**
  * Set of available debug levels
@@ -169,7 +169,7 @@ const Config DEFAULT_CONFIG = {
     std::make_pair(START_ASYNC_PUT_AT,            "256"),
     std::make_pair(MAXIMUM_OPS_PER_SEND,          "128"),
     std::make_pair(HISTOGRAM_FIRST_N,             "10"),
-    std::make_pair(HISTOGRAM_BUCKET_GEN_METHOD,   "10_BUCKETS"),
+    std::make_pair(HISTOGRAM_BUCKET_GEN_NAME,     "10_BUCKETS"),
 };
 
 }

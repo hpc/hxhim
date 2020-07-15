@@ -456,7 +456,7 @@ int hxhim_options_set_histogram_first_n(hxhim_options_t *opts, const std::size_t
 }
 
 /**
- * hxhim_options_set_histogram_bucket_gen_method
+ * hxhim_options_set_histogram_bucket_gen_name
  * Set the name of the bucket generation method.
  * This function only allows for predefined functions
  * because the function signature uses C++ objects
@@ -465,7 +465,7 @@ int hxhim_options_set_histogram_first_n(hxhim_options_t *opts, const std::size_t
  * @param method the name of the method
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_options_set_histogram_bucket_gen_method(hxhim_options_t *opts, const char *method) {
+int hxhim_options_set_histogram_bucket_gen_name(hxhim_options_t *opts, const char *method) {
     if (!valid_opts(opts)) {
         return HXHIM_ERROR;
     }
@@ -487,7 +487,7 @@ int hxhim_options_set_histogram_bucket_gen_method(hxhim_options_t *opts, const c
 }
 
 /**
- * hxhim_options_set_histogram_bucket_gen_method
+ * hxhim_options_set_histogram_bucket_gen_name
  * Set the name of the bucket generation method.
  * This function only allows for predefined functions
  * because the function signature uses C++ objects
@@ -496,13 +496,13 @@ int hxhim_options_set_histogram_bucket_gen_method(hxhim_options_t *opts, const c
  * @param method the name of the method
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_options_set_histogram_bucket_gen_method(hxhim_options_t *opts, const std::string &method) {
-    return hxhim_options_set_histogram_bucket_gen_method(opts, method.c_str());
+int hxhim_options_set_histogram_bucket_gen_name(hxhim_options_t *opts, const std::string &method) {
+    return hxhim_options_set_histogram_bucket_gen_name(opts, method.c_str());
 }
 
 /**
- * hxhim_options_set_histogram_bucket_gen_method
- * Set the name of the bucket generation method.
+ * hxhim_options_set_histogram_bucket_gen_function
+ * Set the bucket generation function.
  * This function allows for arbitrary functions
  * that match the histogram bucket generator function
  * signature to be used.
@@ -512,7 +512,7 @@ int hxhim_options_set_histogram_bucket_gen_method(hxhim_options_t *opts, const s
  * @param args   arguments the custom function will use at runtime
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_options_set_histogram_bucket_gen_method(hxhim_options_t *opts, const HistogramBucketGenerator_t &gen, void *args) {
+int hxhim_options_set_histogram_bucket_gen_function(hxhim_options_t *opts, HistogramBucketGenerator_t gen, void *args) {
     if (!valid_opts(opts)) {
         return HXHIM_ERROR;
     }

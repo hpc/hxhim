@@ -1,7 +1,10 @@
 #
 # Install headers and libraries
 #
-install(FILES
+
+cmake_minimum_required (VERSION 3.6.3)
+
+set(HXHIM_HEADERS
   Histograms.h
   Histograms.hpp
   Results.h
@@ -23,4 +26,11 @@ install(FILES
   single_type.h
   single_type.hpp
   struct.h
-  DESTINATION include/hxhim)
+)
+
+foreach(HEADER ${HXHIM_HEADERS})
+  target_sources(hxhim PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/${HEADER})
+  install(FILES ${HEADER} DESTINATION include/hxhim)
+endforeach()
+
+add_subdirectory(private)

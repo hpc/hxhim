@@ -1,0 +1,17 @@
+cmake_minimum_required (VERSION 3.6.3)
+
+set(PRIVATE_HEADERS
+  Histograms.hpp
+  Results.hpp
+  Stats.hpp
+  accessors.hpp
+  cache.hpp
+  hxhim.hpp
+  options.hpp
+  process.hpp
+  shuffle.hpp
+)
+
+foreach(HEADER ${PRIVATE_HEADERS})
+  target_sources(hxhim PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/${HEADER})
+endforeach()

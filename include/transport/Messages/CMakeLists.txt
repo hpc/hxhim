@@ -14,9 +14,6 @@ set(MESSAGES
   Unpacker.hpp
 )
 
-
 foreach(MESSAGE ${MESSAGES})
-install(FILES
-  ${MESSAGE}
-  DESTINATION include/transport/Messages)
+  target_sources(hxhim PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/${MESSAGE})
 endforeach()
