@@ -2,6 +2,8 @@
 # Install headers and libraries
 #
 install(FILES
+  Histograms.h
+  Histograms.hpp
   Results.h
   Results.hpp
   accessors.h
@@ -14,7 +16,6 @@ install(FILES
   float.h
   float.hpp
   hash.h
-  hash.hpp
   hxhim.h
   hxhim.hpp
   options.h

@@ -101,12 +101,12 @@ const std::unordered_map<std::string, datastore::Type> DATASTORES = {
  * Set of predefined hash functions
  */
 const std::unordered_map<std::string, hxhim_hash_t> HASHES = {
-    std::make_pair("RANK_0",              hash::RankZero),
-    std::make_pair("MY_RANK",             hash::MyRank),
-    std::make_pair("RANK_MOD_DATASTORES", hash::RankModDatastores),
-    std::make_pair("SUM_MOD_DATASTORES",  hash::SumModDatastores),
-    std::make_pair("LEFT",                hash::Left),
-    std::make_pair("RIGHT",               hash::Right),
+    std::make_pair("RANK_0",              hxhim_hash_RankZero),
+    std::make_pair("MY_RANK",             hxhim_hash_MyRank),
+    std::make_pair("RANK_MOD_DATASTORES", hxhim_hash_RankModDatastores),
+    std::make_pair("SUM_MOD_DATASTORES",  hxhim_hash_SumModDatastores),
+    std::make_pair("LEFT",                hxhim_hash_Left),
+    std::make_pair("RIGHT",               hxhim_hash_Right),
 };
 
 /**

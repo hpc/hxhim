@@ -312,7 +312,7 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
 
     // ignore configuration hash - everything goes into here
     hx->p->hash.name = "local";
-    hx->p->hash.func = hash::RankZero;
+    hx->p->hash.func = hxhim_hash_RankZero;
     hx->p->hash.args = nullptr;
 
     // Start the datastore
