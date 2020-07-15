@@ -38,9 +38,6 @@ extern "C"
  *             case HXHIM_RESULT_DEL:
  *                 // do stuff with del
  *                 break;
- *             case HXHIM_RESULT_HISTOGRAM:
- *                 // do stuff with histogram
- *                 break;
  *             default:
  *                 break;
  *         }
@@ -56,7 +53,6 @@ typedef enum hxhim_result_type {
     HXHIM_RESULT_GETOP,
     HXHIM_RESULT_DEL,
     HXHIM_RESULT_SYNC,
-    HXHIM_RESULT_HISTOGRAM,
 } hxhim_result_type_t;
 
 // Opaque C struct, since user will never create one themselves
@@ -79,7 +75,6 @@ int hxhim_results_predicate(hxhim_results_t *res, void **predicate, size_t *pred
 // these accessor functions only work for GET results
 int hxhim_results_object_type(hxhim_results_t *res, enum hxhim_type_t *object_type);
 int hxhim_results_object(hxhim_results_t *res, void **object, size_t *object_len);
-int hxhim_results_histogram(hxhim_results_t *res, double **buckets, size_t **counts, size_t *size);
 
 void hxhim_results_destroy(hxhim_results_t *res);
 

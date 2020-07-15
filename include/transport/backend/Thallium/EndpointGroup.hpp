@@ -41,9 +41,6 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup {
         /** @description Bulk Delete to multiple endpoints */
         Response::BDelete *communicate(const std::unordered_map<int, Request::BDelete *> &bdm_list);
 
-        /** @description Bulk Histogram to multiple endpoints */
-        Response::BHistogram *communicate(const std::unordered_map<int, Request::BHistogram *> &bhist_list);
-
     private:
         Engine_t engine;
         RPC_t process_rpc; // rpc that processes requests and replys with responses

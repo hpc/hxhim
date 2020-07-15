@@ -33,51 +33,12 @@ Response::Response *range_server(hxhim_t *hx, Request::Request *req) {
         case Message::BDELETE:
             res = range_server<Response::BDelete>(hx, static_cast<Request::BDelete *>(req));
             break;
-        case Message::BHISTOGRAM:
-            res = range_server<Response::BHistogram>(hx, static_cast<Request::BHistogram *>(req));
-            break;
         default:
             break;
     }
 
     mlog(HXHIM_SERVER_INFO, "Rank %d Local RangeServer done processing request", rank);
     return res;
-}
-
-/**
- * range_server<BHistogram>
- * Gets the histograms from the selected datastores
- *
- * @param hx        pointer to the main HXHIM struct
- * @param bhist     the request packet to operate on
- * @return          the response packet resulting from the request
- */
-template <>
-Response::BHistogram *range_server(hxhim_t *hx, Request::BHistogram *bhist) {
-    Response::BHistogram *ret = construct<Response::BHistogram>(bhist->count);
-    ret->src = bhist->dst;
-    ret->dst = bhist->src;
-
-    for(std::size_t i = 0; i < bhist->count; i++) {
-        ret->ds_offsets[i] = bhist->ds_offsets[i];
-
-        void *buf = nullptr;
-        std::size_t size;
-        Histogram::Histogram *hist = nullptr;
-
-        if ((hx->p->datastores[bhist->ds_offsets[i]]->GetHistogram(&hist) != HXHIM_SUCCESS) ||
-            !hist->pack(&buf, &size)) {
-            ret->statuses[i] = HXHIM_SUCCESS;
-            ret->hists[i] = construct<RealBlob>(buf, size);
-        }
-        else {
-            ret->statuses[i] = HXHIM_ERROR;
-        }
-
-        ret->count++;
-    }
-
-    return ret;
 }
 
 }

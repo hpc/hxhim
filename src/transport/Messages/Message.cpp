@@ -7,7 +7,6 @@ const char * Transport::Message::TypeStr[]  = {
     "BGETOP",
     "BDELETE",
     "SYNC",
-    "BHISTOGRAM",
 };
 
 Transport::Message::Message(const Message::Direction dir, const Message::Type type, const std::size_t max_count)

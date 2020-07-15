@@ -4,7 +4,6 @@ set(MESSAGES
   BDelete.hpp
   BGet.hpp
   BGetOp.hpp
-  BHistogram.hpp
   BPut.hpp
   Message.hpp
   Messages.hpp

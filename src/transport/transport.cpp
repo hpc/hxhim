@@ -24,10 +24,6 @@ Response::BDelete *EndpointGroup::communicate(const std::unordered_map<int, Requ
     return nullptr;
 }
 
-Response::BHistogram *EndpointGroup::communicate(const std::unordered_map<int, Request::BHistogram *> &) {
-    return nullptr;
-}
-
 Transport::Transport()
     : endpointgroup_(nullptr)
 {}
@@ -95,18 +91,6 @@ Response::BGetOp *Transport::communicate(const std::unordered_map<int, Request::
  */
 Response::BDelete *Transport::communicate(const std::unordered_map<int, Request::BDelete *> &bdm_list) {
     return (bdm_list.size() && endpointgroup_)?endpointgroup_->communicate(bdm_list):nullptr;
-}
-
-/**
- * BHistogram
- * Bulk Histogram to multiple endpoints
- *
- * @param num_rangesrvs the total number of range servers
- * @param bdm_list a list of HISTOGRAM messages going to different servers
- * @return the response from the range server
- */
-Response::BHistogram *Transport::communicate(const std::unordered_map<int, Request::BHistogram *> &bhm_list) {
-    return (bhm_list.size() && endpointgroup_)?endpointgroup_->communicate(bhm_list):nullptr;
 }
 
 }

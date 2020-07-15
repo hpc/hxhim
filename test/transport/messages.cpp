@@ -249,44 +249,6 @@ TEST(Request, BDelete) {
     destruct(dst);
 }
 
-TEST(Request, BHistogram) {
-    Request::BHistogram src;
-    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
-    {
-        src.src = rand();
-        src.dst = rand();
-
-        src.count = 1;
-
-        src.ds_offsets[0] = rand();
-    }
-
-    EXPECT_EQ(src.direction, Message::REQUEST);
-    EXPECT_EQ(src.type, Message::BHISTOGRAM);
-
-    void *buf = nullptr;
-    std::size_t size = 0;
-    EXPECT_EQ(Packer::pack(&src, &buf, &size), TRANSPORT_SUCCESS);
-
-    Request::BHistogram *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, size), TRANSPORT_SUCCESS);
-    dealloc(buf);
-
-    ASSERT_NE(dst, nullptr);
-    EXPECT_EQ(src.direction, dst->direction);
-    EXPECT_EQ(src.type, dst->type);
-    EXPECT_EQ(src.src, dst->src);
-    EXPECT_EQ(src.dst, dst->dst);
-
-    EXPECT_EQ(src.count, dst->count);
-
-    for(std::size_t i = 0; i < dst->count; i++) {
-        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
-    }
-
-    destruct(dst);
-}
-
 TEST(Response, BPut) {
     Response::BPut src;
     ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
@@ -525,59 +487,4 @@ TEST(Response, BDelete) {
     }
 
     destruct(dst);
-}
-
-TEST(Response, BHistogram) {
-    for(std::size_t count = 0; count < 10; count++) {
-        Response::BHistogram src;
-        ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
-        {
-            src.src = rand();
-            src.dst = rand();
-
-            src.count = 1;
-
-            src.statuses[0] = HXHIM_SUCCESS;
-
-            src.ds_offsets[0] = rand();
-
-            for(std::size_t i = 0; i < src.count; i++) {
-                std::size_t size = rand() % 100;
-                void *buf = alloc(size);
-                for(std::size_t j = 0; j < size; j++) {
-                    ((char *) buf)[j] = rand();
-                }
-
-                src.hists[i] = construct<RealBlob>(buf, size);
-            }
-        }
-
-        EXPECT_EQ(src.direction, Message::RESPONSE);
-        EXPECT_EQ(src.type, Message::BHISTOGRAM);
-
-        void *buf = nullptr;
-        std::size_t size = 0;
-        EXPECT_EQ(Packer::pack(&src, &buf, &size), TRANSPORT_SUCCESS);
-
-        Response::BHistogram *dst = nullptr;
-        EXPECT_EQ(Unpacker::unpack(&dst, buf, size), TRANSPORT_SUCCESS);
-        dealloc(buf);
-
-        ASSERT_TRUE(dst);
-        EXPECT_EQ(src.direction, dst->direction);
-        EXPECT_EQ(src.type, dst->type);
-        EXPECT_EQ(src.src, dst->src);
-        EXPECT_EQ(src.dst, dst->dst);
-
-        EXPECT_EQ(src.count, dst->count);
-
-        for(std::size_t i = 0; i < dst->count; i++) {
-            EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
-            EXPECT_EQ(src.statuses[i], dst->statuses[i]);
-
-            EXPECT_EQ(memcmp(src.hists[i]->data(), dst->hists[i]->data(), dst->hists[i]->size()), 0);
-        }
-
-        destruct(dst);
-    }
 }

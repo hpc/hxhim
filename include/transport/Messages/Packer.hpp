@@ -21,14 +21,12 @@ class Packer {
         static int pack(const Request::BGet        *bgm,   void **buf, std::size_t *bufsize);
         static int pack(const Request::BGetOp      *bgm,   void **buf, std::size_t *bufsize);
         static int pack(const Request::BDelete     *bdm,   void **buf, std::size_t *bufsize);
-        static int pack(const Request::BHistogram  *bhist, void **buf, std::size_t *bufsize);
 
         static int pack(const Response::Response   *res,   void **buf, std::size_t *bufsize);
         static int pack(const Response::BPut       *bpm,   void **buf, std::size_t *bufsize);
         static int pack(const Response::BGet       *bgm,   void **buf, std::size_t *bufsize);
         static int pack(const Response::BGetOp     *bgm,   void **buf, std::size_t *bufsize);
         static int pack(const Response::BDelete    *bdm,   void **buf, std::size_t *bufsize);
-        static int pack(const Response::BHistogram *bhist, void **buf, std::size_t *bufsize);
 
     private:
         static int pack(const Message              *msg,   void **buf, std::size_t *bufsize, char **curr);

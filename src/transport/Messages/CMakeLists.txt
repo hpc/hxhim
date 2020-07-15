@@ -11,7 +11,6 @@ target_sources(hxhim PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/BGet.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/BGetOp.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/BDelete.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/BHistogram.cpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/Packer.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/Unpacker.cpp

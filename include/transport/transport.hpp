@@ -37,9 +37,6 @@ class EndpointGroup {
         /** @description Bulk Delete to multiple endpoints */
         virtual Response::BDelete *communicate(const std::unordered_map<int, Request::BDelete *> &bdm_list);
 
-        /** @description Bulk Histogram to multiple endpoints */
-        virtual Response::BHistogram *communicate(const std::unordered_map<int, Request::BHistogram *> &bhm_list);
-
    protected:
         EndpointGroup();
         EndpointGroup(const EndpointGroup&  rhs) = delete;
@@ -73,9 +70,6 @@ class Transport {
 
         /** @description Bulk Delete to multiple endpoints     */
         Response::BDelete *communicate(const std::unordered_map<int, Request::BDelete *> &bdm_list);
-
-        /** @description Bulk Histogram to multiple endpoints  */
-        Response::BHistogram *communicate(const std::unordered_map<int, Request::BHistogram *> &bhm_list);
 
     private:
         EndpointGroup *endpointgroup_;

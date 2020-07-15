@@ -9,7 +9,7 @@
 #include "hxhim/constants.h"
 #include "hxhim/struct.h"
 #include "utils/Blob.hpp"
-#include "utils/Histogram.hpp"
+#include "utils/memory.hpp"
 
 namespace hxhim {
 
@@ -37,9 +37,6 @@ namespace hxhim {
  *                 break;
  *             case HXHIM_RESULT_DEL:
  *                 // do stuff with del
- *                 break;
- *             case HXHIM_RESULT_HISTOGRAM:
- *                 // do stuff with histogram
  *                 break;
  *             default:
  *                 break;
@@ -137,15 +134,6 @@ class Results {
             Sync(hxhim_t *hx, const int datastore, const int status);
         };
 
-        /** @description Convenience struct for HISTOGRAM results */
-        struct Hist final : public Result {
-            Hist(hxhim_t *hx, const int datastore, const int status);
-            ~Hist();
-
-            // owned by this struct
-            ::Histogram::Histogram *hist;
-        };
-
     public:
         Results(hxhim_t *hx);
         ~Results();
@@ -175,8 +163,6 @@ class Results {
         int Predicate(void **predicate, size_t *predicate_len) const;
         int ObjectType(enum hxhim_type_t *object_type) const;
         int Object(void **object, size_t *object_len) const;
-        int Histogram(::Histogram::Histogram **hist) const; // C++ only
-        int Histogram(double **buckets, std::size_t **counts, std::size_t *size) const;
 
     private:
         hxhim_t *hx;

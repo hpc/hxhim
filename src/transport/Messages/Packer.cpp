@@ -181,23 +181,6 @@ int Packer::pack(const Request::BDelete *bdm, void **buf, std::size_t *bufsize) 
     return TRANSPORT_SUCCESS;
 }
 
-int Packer::pack(const Request::BHistogram *bhist, void **buf, std::size_t *bufsize) {
-    char *curr = nullptr;
-    if (pack(static_cast<const Request::Request *>(bhist), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
-        return TRANSPORT_ERROR;
-    }
-
-    memcpy(curr, &bhist->count, sizeof(bhist->count));
-    curr += sizeof(bhist->count);
-
-    for(std::size_t i = 0; i < bhist->count; i++) {
-        memcpy(curr, &bhist->ds_offsets[i], sizeof(bhist->ds_offsets[i]));
-        curr += sizeof(bhist->ds_offsets[i]);
-    }
-
-    return TRANSPORT_SUCCESS;
-}
-
 int Packer::pack(const Response::Response *res, void **buf, std::size_t *bufsize) {
     int ret = TRANSPORT_ERROR;
     if (!res) {
@@ -352,29 +335,6 @@ int Packer::pack(const Response::BDelete *bdm, void **buf, std::size_t *bufsize)
 
         // original predicate addr + len
         bdm->orig.predicates[i]->pack_ref(curr);
-    }
-
-    return TRANSPORT_SUCCESS;
-}
-
-int Packer::pack(const Response::BHistogram *bhist, void **buf, std::size_t *bufsize) {
-    char *curr = nullptr;
-
-    if (pack(static_cast<const Response::Response *>(bhist), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
-        return TRANSPORT_ERROR;
-    }
-
-    memcpy(curr, &bhist->count, sizeof(bhist->count));
-    curr += sizeof(bhist->count);
-
-    for(std::size_t i = 0; i < bhist->count; i++) {
-        memcpy(curr, &bhist->ds_offsets[i], sizeof(bhist->ds_offsets[i]));
-        curr += sizeof(bhist->ds_offsets[i]);
-
-        memcpy(curr, &bhist->statuses[i], sizeof(bhist->statuses[i]));
-        curr += sizeof(bhist->statuses[i]);
-
-        bhist->hists[i]->pack(curr);
     }
 
     return TRANSPORT_SUCCESS;

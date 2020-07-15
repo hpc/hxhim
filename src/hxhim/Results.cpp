@@ -47,16 +47,6 @@ hxhim::Results::Sync::Sync(hxhim_t *hx,
     : Result(hx, hxhim_result_type::HXHIM_RESULT_SYNC, datastore, status)
 {}
 
-hxhim::Results::Hist::Hist(hxhim_t *hx,
-                           const int datastore, const int status)
-    : Result(hx, hxhim_result_type::HXHIM_RESULT_HISTOGRAM, datastore, status),
-      hist(nullptr)
-{}
-
-hxhim::Results::Hist::~Hist() {
-    destruct(hist);
-}
-
 hxhim::Results::Result *hxhim::Result::init(hxhim_t *hx, Transport::Response::Response *res, const std::size_t i) {
     // hx should have been checked earlier
 
@@ -170,14 +160,6 @@ hxhim::Results::Sync *hxhim::Result::init(hxhim_t *hx, const int ds_offset, cons
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
     hxhim::Results::Sync *out = construct<hxhim::Results::Sync>(hx, hxhim::datastore::get_id(hx, rank, ds_offset), synced);
-    return out;
-}
-
-hxhim::Results::Hist *hxhim::Result::init(hxhim_t *hx, Transport::Response::BHistogram *bhist, const std::size_t i) {
-    hxhim::Results::Hist *out = construct<hxhim::Results::Hist>(hx, hxhim::datastore::get_id(hx, bhist->src, bhist->ds_offsets[i]), bhist->statuses[i]);
-
-    out->hist = construct<::Histogram::Histogram>(0, nullptr, nullptr);
-    out->hist->unpack(bhist->hists[i]->data(), bhist->hists[i]->size());
     return out;
 }
 
@@ -696,104 +678,6 @@ int hxhim_results_object(hxhim_results_t *res, void **object, size_t *object_len
     }
 
     return res->res->Object(object, object_len);
-}
-
-/**
- * Histogram
- * Gets the histogram from the current result node, if the result node contains data from a HISTOGRAM
- *
- * @param hist        Pointer to the histogram
- * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
- */
-int hxhim::Results::Histogram(::Histogram::Histogram **hist) const {
-    if (!Valid()) {
-        return HXHIM_ERROR;
-    }
-
-    hxhim::Results::Result *res = Curr();
-    if (!res) {
-        return HXHIM_ERROR;
-    }
-
-    int status = HXHIM_SUCCESS;
-    if ((Status(&status) != HXHIM_SUCCESS) ||
-        (status != HXHIM_SUCCESS)) {
-        return HXHIM_ERROR;
-    }
-
-    int rc = HXHIM_ERROR;
-    switch (res->type) {
-        case hxhim_result_type::HXHIM_RESULT_HISTOGRAM:
-        {
-            hxhim::Results::Hist *h = static_cast<hxhim::Results::Hist *>(res);
-            *hist = h->hist;
-            rc = HXHIM_SUCCESS;
-        }
-        break;
-        default:
-            break;
-    }
-
-    return rc;
-}
-
-/**
- * Histogram
- * Gets the histogram from the current result node, if the result node contains data from a HISTOGRAM
- *
- * @param buckets     Pointer to array of buckets
- * @param counts      Pointer to array of counts
- * @param size        how many bucket/count pairs there are
- * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
- */
-int hxhim::Results::Histogram(double **buckets, std::size_t **counts, std::size_t *size) const {
-    if (!Valid()) {
-        return HXHIM_ERROR;
-    }
-
-    hxhim::Results::Result *res = Curr();
-    if (!res) {
-        return HXHIM_ERROR;
-    }
-
-    int status = HXHIM_SUCCESS;
-    if ((Status(&status) != HXHIM_SUCCESS) ||
-        (status != HXHIM_SUCCESS)) {
-        return HXHIM_ERROR;
-    }
-
-    int rc = HXHIM_ERROR;
-    switch (res->type) {
-        case hxhim_result_type::HXHIM_RESULT_HISTOGRAM:
-        {
-            hxhim::Results::Hist *h = static_cast<hxhim::Results::Hist *>(res);
-            h->hist->get(buckets, counts, size);
-            rc = HXHIM_SUCCESS;
-        }
-        break;
-        default:
-            break;
-    }
-
-    return rc;
-}
-
-/**
- * hxhim_results_histogram
- * Gets the histogram thee current result node, if the result node contains data from a HISTOGRAM
- *
- * @param res         A list of results
- * @param buckets     Pointer to array of buckets
- * @param counts      Pointer to array of counts
- * @param size        how many bucket/count pairs there are
- * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
- */
-int hxhim_results_histogram(hxhim_results_t *res, double **buckets, std::size_t **counts, std::size_t *size) {
-    if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
-        return HXHIM_ERROR;
-    }
-
-    return res->res->Histogram(buckets, counts, size);
 }
 
 /**

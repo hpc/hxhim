@@ -75,9 +75,6 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
     return res;
 }
 
-template <>
-Response::BHistogram *range_server(hxhim_t *hx, Request::BHistogram *req);
-
 }
 }
 

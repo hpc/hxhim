@@ -268,36 +268,6 @@ int Unpacker::unpack(Request::BDelete **bdm, void *buf, const std::size_t bufsiz
     return TRANSPORT_SUCCESS;
 }
 
-int Unpacker::unpack(Request::BHistogram **bhist, void *buf, const std::size_t bufsize) {
-    Request::BHistogram *out = construct<Request::BHistogram>();
-    char *curr = nullptr;
-    if (unpack(static_cast<Request::Request *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
-        destruct(out);
-        return TRANSPORT_ERROR;
-    }
-
-    // read non array data
-    std::size_t count = 0;
-    memcpy(&count, curr, sizeof(out->count));
-    curr += sizeof(out->count);
-
-    // allocate space
-    if (out->alloc(count) != TRANSPORT_SUCCESS) {
-        destruct(out);
-        return TRANSPORT_ERROR;
-    }
-
-    for(std::size_t i = 0; i < count; i++) {
-        memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
-        curr += sizeof(out->ds_offsets[i]);
-
-        out->count++;
-    }
-
-    *bhist = out;
-    return TRANSPORT_SUCCESS;
-}
-
 int Unpacker::unpack(Response::Response **res, void *buf, const std::size_t bufsize) {
     int ret = TRANSPORT_ERROR;
     if (!res) {
@@ -551,41 +521,6 @@ int Unpacker::unpack(Response::BDelete **bdm, void *buf, const std::size_t bufsi
     }
 
     *bdm = out;
-    return TRANSPORT_SUCCESS;
-}
-
-int Unpacker::unpack(Response::BHistogram **bhist, void *buf, const std::size_t bufsize) {
-    Response::BHistogram *out = construct<Response::BHistogram>();
-    char *curr = nullptr;
-    if (unpack(static_cast<Response::Response *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
-        destruct(out);
-        return TRANSPORT_ERROR;
-    }
-
-    // read non array data
-    std::size_t count = 0;
-    memcpy(&count, curr, sizeof(out->count));
-    curr += sizeof(out->count);
-
-    // allocate space
-    if (out->alloc(count) != TRANSPORT_SUCCESS) {
-        destruct(out);
-        return TRANSPORT_ERROR;
-    }
-
-    for(std::size_t i = 0; i < count; i++) {
-        memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
-        curr += sizeof(out->ds_offsets[i]);
-
-        memcpy(&out->statuses[i], curr, sizeof(out->statuses[i]));
-        curr += sizeof(out->statuses[i]);
-
-        out->hists[i] = construct<RealBlob>(curr);
-
-        out->count++;
-    }
-
-    *bhist = out;
     return TRANSPORT_SUCCESS;
 }
 
