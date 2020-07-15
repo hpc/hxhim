@@ -1,7 +1,6 @@
-#include "hxhim/accessors.h"
 #include "hxhim/accessors.hpp"
-#include "hxhim/accessors_private.hpp"
-#include "hxhim/private.hpp"
+#include "hxhim/private/accessors.hpp"
+#include "hxhim/private/hxhim.hpp"
 
 /**
  * GetMPI

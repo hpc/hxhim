@@ -7,14 +7,13 @@
 #include <memory>
 #include <unordered_map>
 
-#include "hxhim/Histograms_private.hpp"
-#include "hxhim/Results_private.hpp"
 #include "hxhim/config.hpp"
-#include "hxhim/hxhim.h"
 #include "hxhim/hxhim.hpp"
-#include "hxhim/options_private.hpp"
-#include "hxhim/private.hpp"
-#include "hxhim/process.tpp"
+#include "hxhim/private/Histograms.hpp"
+#include "hxhim/private/Results.hpp"
+#include "hxhim/private/hxhim.hpp"
+#include "hxhim/private/options.hpp"
+#include "hxhim/private/process.hpp"
 #include "transport/transports.hpp"
 #include "utils/is_range_server.hpp"
 #include "utils/mlog2.h"
@@ -1068,6 +1067,7 @@ int hxhimGetStats(hxhim_t *hx, const int dst_rank,
  * GetHistograms
  * Collective operation
  * Collect all histograms from all datastores
+ * hists should be cleaned up with hxhim::Histograms::Destroy or hxhim_histograms_destroy
  *
  * @param hx         the HXHIM session
  * @param dst_rank   the rank that is collecting the data

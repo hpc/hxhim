@@ -1,7 +1,6 @@
 #include "hxhim/double.h"
 #include "hxhim/double.hpp"
 #include "hxhim/hxhim.hpp"
-#include "hxhim/private.hpp"
 #include "hxhim/single_type.hpp"
 
 /**

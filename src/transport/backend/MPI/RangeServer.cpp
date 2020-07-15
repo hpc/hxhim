@@ -1,5 +1,5 @@
 #include "hxhim/hxhim.hpp"
-#include "hxhim/private.hpp"
+#include "hxhim/private/hxhim.hpp"
 #include "transport/backend/MPI/RangeServer.hpp"
 #include "transport/backend/MPI/constants.h"
 #include "transport/backend/local/RangeServer.hpp"

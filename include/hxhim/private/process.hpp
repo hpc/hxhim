@@ -3,16 +3,16 @@
 
 #include <unordered_map>
 
-#include "hxhim/accessors_private.hpp"
-#include "hxhim/Results_private.hpp"
-#include "hxhim/private.hpp"
-#include "hxhim/shuffle.hpp"
+#include "hxhim/private/Results.hpp"
+#include "hxhim/private/accessors.hpp"
+#include "hxhim/private/hxhim.hpp"
+#include "hxhim/private/shuffle.hpp"
 #include "transport/backend/local/RangeServer.hpp"
 #include "utils/is_range_server.hpp"
 #include "utils/memory.hpp"
-#include "utils/type_traits.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
+#include "utils/type_traits.hpp"
 
 namespace hxhim {
 

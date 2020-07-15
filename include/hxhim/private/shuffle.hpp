@@ -6,9 +6,10 @@
 
 #include "hxhim/accessors.hpp"
 #include "hxhim/constants.h"
-#include "hxhim/private.hpp"
+#include "hxhim/private/hxhim.hpp"
 #include "hxhim/struct.h"
 #include "transport/Messages/Messages.hpp"
+#include "utils/macros.hpp"
 #include "utils/memory.hpp"
 
 namespace hxhim {

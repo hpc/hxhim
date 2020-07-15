@@ -3,7 +3,7 @@
 #include "hxhim/Results.hpp"
 #include "hxhim/config.hpp"
 #include "hxhim/options.h"
-#include "hxhim/options_private.hpp"
+#include "hxhim/private/options.hpp"
 #include "transport/backend/MPI/Options.hpp"
 #include "transport/backend/Thallium/Options.hpp"
 

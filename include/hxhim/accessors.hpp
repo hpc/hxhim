@@ -5,6 +5,7 @@
 
 #include <mpi.h>
 
+#include "hxhim/accessors.h"
 #include "hxhim/struct.h"
 
 namespace hxhim {

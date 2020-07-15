@@ -5,11 +5,11 @@
 #include <map>
 
 #include "datastore/datastores.hpp"
-#include "hxhim/Results_private.hpp"
 #include "hxhim/config.hpp"
-#include "hxhim/options_private.hpp"
-#include "hxhim/private.hpp"
-#include "hxhim/process.tpp"
+#include "hxhim/private/Results.hpp"
+#include "hxhim/private/hxhim.hpp"
+#include "hxhim/private/options.hpp"
+#include "hxhim/private/process.hpp"
 #include "transport/transports.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"

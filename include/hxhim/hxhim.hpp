@@ -9,6 +9,7 @@
 #include "hxhim/double.hpp"
 #include "hxhim/float.hpp"
 #include "hxhim/hash.h"
+#include "hxhim/hxhim.h"
 #include "hxhim/options.h"
 #include "hxhim/options.hpp"
 #include "hxhim/struct.h"

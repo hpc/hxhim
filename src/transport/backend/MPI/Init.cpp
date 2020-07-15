@@ -1,5 +1,5 @@
-#include "hxhim/options_private.hpp"
-#include "hxhim/private.hpp"
+#include "hxhim/private/hxhim.hpp"
+#include "hxhim/private/options.hpp"
 #include "transport/backend/MPI/MPI.hpp"
 #include "transport/transport.hpp"
 #include "utils/is_range_server.hpp"

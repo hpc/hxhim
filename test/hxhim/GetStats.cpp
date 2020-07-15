@@ -3,7 +3,7 @@
 
 #include "generic_options.hpp"
 #include "hxhim/hxhim.hpp"
-#include "hxhim/private.hpp"
+#include "hxhim/private/hxhim.hpp"
 #include "TestDatastore.hpp"
 
 TEST(hxhim, GetStats) {

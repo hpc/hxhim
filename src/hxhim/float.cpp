@@ -1,7 +1,5 @@
-#include "hxhim/float.h"
 #include "hxhim/float.hpp"
 #include "hxhim/hxhim.hpp"
-#include "hxhim/private.hpp"
 #include "hxhim/single_type.hpp"
 
 /**

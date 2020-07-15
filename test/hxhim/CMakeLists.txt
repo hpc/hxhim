@@ -8,9 +8,9 @@ target_sources(googletest PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/PutGet.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/Results.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/accessors.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/enqueue.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/generic_options.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/generic_options.hpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/private.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/shuffle.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/transport.cpp
 )

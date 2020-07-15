@@ -7,7 +7,7 @@
 #include "hxhim/constants.h"
 #include "hxhim/options.h"
 #include "hxhim/options.hpp"
-#include "hxhim/options_private.hpp"
+#include "hxhim/private/options.hpp"
 #include "utils/Histogram.hpp"
 #include "utils/type_traits.hpp"
 

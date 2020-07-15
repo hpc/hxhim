@@ -4,8 +4,8 @@
 #include <vector>
 
 #include "datastore/datastore.hpp"
-#include "hxhim/accessors_private.hpp"
-#include "hxhim/private.hpp"
+#include "hxhim/private/accessors.hpp"
+#include "hxhim/private/hxhim.hpp"
 #include "transport/Messages/Messages.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"

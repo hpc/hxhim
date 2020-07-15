@@ -1,6 +1,6 @@
 #include "hxhim/Histograms.hpp"
-#include "hxhim/Histograms_private.hpp"
 #include "hxhim/accessors.hpp"
+#include "hxhim/private/Histograms.hpp"
 #include "utils/memory.hpp"
 
 int hxhim::Histograms::init(hxhim_t *hx, hxhim_histograms_t **hists) {

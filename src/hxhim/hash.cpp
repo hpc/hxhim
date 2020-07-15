@@ -1,7 +1,7 @@
 #include <cstdlib>
 
 #include "datastore/datastore.hpp"
-#include "hxhim/accessors_private.hpp"
+#include "hxhim//private/accessors.hpp"
 #include "hxhim/hash.hpp"
 
 /**

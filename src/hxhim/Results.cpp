@@ -3,8 +3,8 @@
 
 #include "datastore/datastores.hpp"
 #include "hxhim/Results.hpp"
-#include "hxhim/Results_private.hpp"
-#include "hxhim/accessors_private.hpp"
+#include "hxhim/private/Results.hpp"
+#include "hxhim/private/accessors.hpp"
 #include "transport/Messages/Messages.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"

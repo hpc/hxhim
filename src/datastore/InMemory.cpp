@@ -2,7 +2,7 @@
 #include <stdexcept>
 
 #include "datastore/InMemory.hpp"
-#include "hxhim/private.hpp"
+#include "hxhim/private/hxhim.hpp"
 #include "utils/Blob.hpp"
 #include "utils/memory.hpp"
 #include "utils/triplestore.hpp"

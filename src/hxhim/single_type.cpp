@@ -1,6 +1,6 @@
 #include "hxhim/single_type.h"
 #include "hxhim/single_type.hpp"
-#include "hxhim/private.hpp"
+#include "hxhim/private/hxhim.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 

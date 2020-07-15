@@ -1,6 +1,6 @@
 #include <iomanip>
 
-#include "hxhim/Stats.hpp"
+#include "hxhim/private/Stats.hpp"
 
 std::ostream &hxhim::Stats::Stats::print(const std::map<Transport::Message::Type, std::size_t> &max_ops_per_send,
 

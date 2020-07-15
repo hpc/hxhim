@@ -4,10 +4,10 @@
 #include <gtest/gtest.h>
 
 #include "generic_options.hpp"
-#include "hxhim/cache.hpp"
 #include "hxhim/hxhim.hpp"
 #include "hxhim/options.hpp"
-#include "hxhim/shuffle.hpp"
+#include "hxhim/private/cache.hpp"
+#include "hxhim/private/shuffle.hpp"
 #include "transport/Messages/Messages.hpp"
 #include "utils/Blob.hpp"
 #include "utils/memory.hpp"

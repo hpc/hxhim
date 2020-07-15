@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "hxhim/private.hpp"
+#include "hxhim/private/hxhim.hpp"
 
 /*
  * Test the insertion of operations into HXHIM's queues

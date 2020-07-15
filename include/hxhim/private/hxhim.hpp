@@ -11,15 +11,14 @@
 
 #include "datastore/datastore.hpp"
 #include "hxhim/Results.hpp"
-#include "hxhim/Stats.hpp"
-#include "hxhim/cache.hpp"
 #include "hxhim/constants.h"
 #include "hxhim/hash.hpp"
 #include "hxhim/options.h"
+#include "hxhim/private/Stats.hpp"
+#include "hxhim/private/cache.hpp"
 #include "hxhim/struct.h"
 #include "transport/transport.hpp"
 #include "utils/type_traits.hpp"
-#include "utils/macros.hpp"
 
 /**
  * hxhim_private

@@ -1,4 +1,4 @@
-#include "hxhim/cache.hpp"
+#include "hxhim/private/cache.hpp"
 #include "utils/Blob.hpp"
 
 hxhim::UserData::~UserData() {}
