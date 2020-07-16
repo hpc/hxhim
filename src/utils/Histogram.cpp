@@ -174,7 +174,7 @@ Histogram::Histogram::Histogram(const std::size_t use_first_n, const HistogramBu
 Histogram::Histogram::~Histogram() {
     std::stringstream s;
     print(s);
-    mlog(HISTOGRAM_NOTE, "%s", s.str().c_str());
+    mlog(HISTOGRAM_NOTE, "\n%s", s.str().c_str());
 
     clear();
     delete [] data;

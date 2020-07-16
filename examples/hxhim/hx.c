@@ -5,6 +5,7 @@
 #include <mpi.h>
 
 #include "hxhim/hxhim.h"
+#include "utils/elen.h"
 #include "print_results.h"
 #include "spo_gen.h"
 
@@ -66,10 +67,18 @@ int main(int argc, char *argv[]) {
     }
 
     // Generate some subject-predicate-object triples
-    void **subjects = NULL, **predicates = NULL, **objects = NULL;
-    size_t *subject_lens = NULL, *predicate_lens = NULL, *object_lens = NULL;
-    if (spo_gen_fixed(count, bufsize, rank, &subjects, &subject_lens, &predicates, &predicate_lens, &objects, &object_lens) != count) {
+    void **subjects = NULL, **predicates = NULL;
+    size_t *subject_lens = NULL, *predicate_lens = NULL;
+    if (spo_gen_fixed(count, bufsize, rank, &subjects, &subject_lens, &predicates, &predicate_lens, NULL, NULL) != count) {
         return -1;
+    }
+
+    double *doubles = malloc(sizeof(double) * count);
+    for(size_t i = 0; i < count; i++) {
+        doubles[i] = rand();
+        doubles[i] /= rand();
+        doubles[i] *= rand();
+        doubles[i] /= rand();
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
@@ -80,12 +89,12 @@ int main(int argc, char *argv[]) {
 
     // PUT the key value pairs into HXHIM
     for(size_t i = 0; i < count; i++) {
-        hxhimPut(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_BYTE_TYPE, objects[i], object_lens[i]);
+        hxhimPut(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_DOUBLE_TYPE, &doubles[i], sizeof(doubles[i]));
         if (print) {
-            printf("Rank %d PUT          {%.*s, %.*s} -> %.*s\n", rank,
+            printf("Rank %d PUT          {%.*s, %.*s} -> %f\n", rank,
                    (int) subject_lens[i],   (char *) subjects[i],
                    (int) predicate_lens[i], (char *) predicates[i],
-                   (int) object_lens[i],    (char *) objects[i]);
+                   doubles[i]);
         }
     }
 
@@ -95,11 +104,10 @@ int main(int argc, char *argv[]) {
     }
     MPI_Barrier(MPI_COMM_WORLD);
 
-
     // GET them back, flushing only the GETs
     // this will likely return errors, since not all of the PUTs will have completed
     for(size_t i = 0; i < count; i++) {
-        hxhimGet(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_BYTE_TYPE);
+        hxhimGet(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_DOUBLE_TYPE);
     }
 
     hxhim_results_t *flush_gets_early = hxhimFlushGets(&hx);
@@ -125,7 +133,7 @@ int main(int argc, char *argv[]) {
 
     // GET again, now that all PUTs have completed
     for(size_t i = 0; i < count; i++) {
-        hxhimGet(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_BYTE_TYPE);
+        hxhimGet(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_DOUBLE_TYPE);
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
@@ -141,7 +149,8 @@ int main(int argc, char *argv[]) {
     hxhim_results_destroy(flush_gets);
 
     // clean up
-    spo_clean(count, subjects, subject_lens, predicates, predicate_lens, objects, object_lens);
+    free(doubles);
+    spo_clean(count, &subjects, &subject_lens, &predicates, &predicate_lens, NULL, NULL);
 
     MPI_Barrier(MPI_COMM_WORLD);
 
