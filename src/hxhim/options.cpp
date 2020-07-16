@@ -17,9 +17,7 @@ int hxhim_options_init(hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
-    if (!(opts->p = new hxhim_options_private_t())) {
-        return HXHIM_ERROR;
-    }
+    opts->p = new hxhim_options_private_t();
 
     return HXHIM_SUCCESS;
 }
@@ -161,10 +159,6 @@ static int hxhim_options_set_datastore(hxhim_options_t *opts, hxhim::datastore::
  */
 int hxhim_options_set_datastore_leveldb(hxhim_options_t *opts, const size_t id, const char *prefix, const int create_if_missing) {
     hxhim::datastore::Config *config = hxhim_options_create_leveldb_config(id, prefix, create_if_missing);
-    if (!config) {
-        return HXHIM_ERROR;
-    }
-
     if (hxhim_options_set_datastore(opts, config) != HXHIM_SUCCESS) {
         delete config;
         return HXHIM_ERROR;
@@ -184,10 +178,6 @@ int hxhim_options_set_datastore_leveldb(hxhim_options_t *opts, const size_t id, 
  */
 int hxhim_options_set_datastore_in_memory(hxhim_options_t *opts) {
     hxhim::datastore::Config *config = hxhim_options_create_in_memory_config();
-    if (!config) {
-        return HXHIM_ERROR;
-    }
-
     if (hxhim_options_set_datastore(opts, config) != HXHIM_SUCCESS) {
         delete config;
         return HXHIM_ERROR;
@@ -277,19 +267,10 @@ static int hxhim_options_set_transport(hxhim_options_t *opts, Transport::Options
  * Sets the values needed to set up a null Transport
  *
  * @param opts              the set of options to be modified
- * @param listeners         the number of listeners
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_set_transport_null(hxhim_options_t *opts) {
-    if (!opts || !opts->p) {
-        return HXHIM_ERROR;
-    }
-
     Transport::Options *config = new Transport::Options(Transport::TRANSPORT_NULL);
-    if (!config) {
-        return HXHIM_ERROR;
-    }
-
     if (hxhim_options_set_transport(opts, config) != HXHIM_SUCCESS) {
         delete config;
         return HXHIM_ERROR;
@@ -307,15 +288,7 @@ int hxhim_options_set_transport_null(hxhim_options_t *opts) {
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_set_transport_mpi(hxhim_options_t *opts, const size_t listeners) {
-    if (!opts || !opts->p) {
-        return HXHIM_ERROR;
-    }
-
     Transport::Options *config = new Transport::MPI::Options(opts->p->comm, listeners);
-    if (!config) {
-        return HXHIM_ERROR;
-    }
-
     if (hxhim_options_set_transport(opts, config) != HXHIM_SUCCESS) {
         delete config;
         return HXHIM_ERROR;
@@ -335,10 +308,6 @@ int hxhim_options_set_transport_mpi(hxhim_options_t *opts, const size_t listener
  */
 int hxhim_options_set_transport_thallium(hxhim_options_t *opts, const std::string &module) {
     Transport::Options *config = new Transport::Thallium::Options(module);
-    if (!config) {
-        return HXHIM_ERROR;
-    }
-
     if (hxhim_options_set_transport(opts, config) != HXHIM_SUCCESS) {
         delete config;
         return HXHIM_ERROR;

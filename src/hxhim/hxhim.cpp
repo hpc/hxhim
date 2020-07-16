@@ -37,10 +37,7 @@ int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
 
     mlog(HXHIM_CLIENT_INFO, "Initializing HXHIM");
 
-    if (!(hx->p = new hxhim_private_t())) {
-        mlog(HXHIM_CLIENT_ERR, "Failed to allocate space for private HXHIM data");
-        return HXHIM_ERROR;
-    }
+    hx->p = new hxhim_private_t();
 
     if ((init::bootstrap(hx, opts) != HXHIM_SUCCESS) ||
         (init::running  (hx, opts) != HXHIM_SUCCESS) ||
@@ -93,10 +90,7 @@ int hxhim::OpenOne(hxhim_t *hx, hxhim_options_t *opts, const std::string &db_pat
     //Open mlog - stolen from plfs
     mlog_open((char *) "hxhim", 0, opts->p->debug_level, opts->p->debug_level, nullptr, 0, MLOG_LOGPID, 0);
 
-    if (!(hx->p = new hxhim_private_t())) {
-        mlog(HXHIM_CLIENT_ERR, "Failed to allocate space for private HXHIM data");
-        return HXHIM_ERROR;
-    }
+    hx->p = new hxhim_private_t();
 
     if ((init::bootstrap     (hx, opts)          != HXHIM_SUCCESS) ||
         (hx->p->bootstrap.size                   != 1)             ||    // Only allow for 1 rank
