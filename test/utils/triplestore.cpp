@@ -2,7 +2,9 @@
 
 #include <gtest/gtest.h>
 
+#include "hxhim/constants.h"
 #include "utils/triplestore.hpp"
+#include "utils/memory.hpp"
 
 static const char *SUBJECT = "subject";
 static const std::size_t SUBJECT_LEN = strlen(SUBJECT);
@@ -29,34 +31,6 @@ static const char *PREDICATE_LEN_ENCODED() {
     }
 
     return nullptr;
-}
-
-TEST(triplestore, encode_unsigned) {
-    {
-        char buf[sizeof(SUBJECT_LEN)] = {0};
-        EXPECT_EQ(encode_unsigned(buf, SUBJECT_LEN), HXHIM_SUCCESS);
-        EXPECT_EQ(memcmp(SUBJECT_LEN_ENCODED(), buf, sizeof(SUBJECT_LEN)), 0);
-    }
-
-    {
-        char buf[sizeof(PREDICATE_LEN)] = {0};
-        EXPECT_EQ(encode_unsigned(buf, PREDICATE_LEN), HXHIM_SUCCESS);
-        EXPECT_EQ(memcmp(PREDICATE_LEN_ENCODED(), buf, sizeof(PREDICATE_LEN)), 0);
-    }
-}
-
-TEST(triplestore, decode_unsigned) {
-    {
-        std::size_t len = 0;
-        EXPECT_EQ(decode_unsigned((void *) SUBJECT_LEN_ENCODED(), len), HXHIM_SUCCESS);
-        EXPECT_EQ(len, SUBJECT_LEN);
-    }
-
-    {
-        std::size_t len = 0;
-        EXPECT_EQ(decode_unsigned((void *) PREDICATE_LEN_ENCODED(), len), HXHIM_SUCCESS);
-        EXPECT_EQ(len, PREDICATE_LEN);
-    }
 }
 
 TEST(triplestore, sp_to_key) {

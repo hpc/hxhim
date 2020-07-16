@@ -1,8 +1,9 @@
-#include "utils/Blob.hpp"
-#include "utils/memory.hpp"
-
 #include <cstring>
 #include <stdexcept>
+
+#include "utils/Blob.hpp"
+#include "utils/big_endian.hpp"
+#include "utils/memory.hpp"
 
 Blob::Blob(void *ptr, const std::size_t len)
     : ptr(ptr),
@@ -23,7 +24,7 @@ char *Blob::pack(char *&dst) const {
         return nullptr;
     }
 
-    memcpy(dst, &len, sizeof(len));
+    encode_unsigned(dst, len);
     dst += sizeof(len);
 
     memcpy(dst, ptr, len);
@@ -45,7 +46,7 @@ char *Blob::pack_ref(char *&dst) const {
     memcpy(dst, &ptr, sizeof(ptr));
     dst += sizeof(ptr);
 
-    memcpy(dst, &len, sizeof(len));
+    encode_unsigned(dst, len);
     dst += sizeof(len);
 
     return dst;
@@ -97,7 +98,7 @@ char *ReferenceBlob::unpack_ref(char *&src) {
     memcpy(&ptr, src, sizeof(ptr));
     src += sizeof(ptr);
 
-    memcpy(&len, src, sizeof(len));
+    decode_unsigned(len, src);
     src += sizeof(len);
 
     return src;
@@ -117,8 +118,8 @@ RealBlob::RealBlob(char *&blob)
         throw std::runtime_error("unable to unpack blob");
     }
 
-    memcpy(&len, blob, sizeof(len));
-    blob += sizeof(std::size_t);
+    decode_unsigned(len, blob);
+    blob += sizeof(len);
 
     ptr = alloc(len);
     memcpy(ptr, blob, len);

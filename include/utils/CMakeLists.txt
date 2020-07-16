@@ -9,6 +9,7 @@ set(INSTALLED_HEADERS
 set(NOT_INSTALLED_HEADERS
   Configuration.hpp
   Histogram.hpp
+  big_endian.hpp
   elen.h
   elen.hpp
   elen.tpp

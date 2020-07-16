@@ -1,3 +1,8 @@
+#include <cstring>
+
+#include "hxhim/constants.h"
+#include "utils/big_endian.hpp"
+#include "utils/memory.hpp"
 #include "utils/triplestore.hpp"
 
 /**
@@ -72,7 +77,7 @@ int key_to_sp(const void *key, const std::size_t key_len,
 
     // read predicate
     std::size_t pred_len = 0;
-    decode_unsigned(end - sizeof(pred_len), pred_len);
+    decode_unsigned(pred_len, end - sizeof(pred_len));
     void *pred_start = end - pred_len - sizeof(pred_len);
 
     if (copy) {
@@ -86,7 +91,7 @@ int key_to_sp(const void *key, const std::size_t key_len,
 
     // read subject
     std::size_t sub_len = 0;
-    decode_unsigned(end - sizeof(sub_len) - pred_len - sizeof(pred_len), sub_len);
+    decode_unsigned(sub_len, end - sizeof(sub_len) - pred_len - sizeof(pred_len));
     void *sub_start = (void *) key;
 
     if (copy) {
