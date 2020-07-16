@@ -1,13 +1,13 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
-#include <iostream>
-#include <iterator>
 #include <limits>
 #include <sstream>
 #include <stdexcept>
 
 #include "utils/Histogram.hpp"
+#include "utils/mlog2.h"
+#include "utils/mlogfacs2.h"
 
 static int minmax(const double *values, const std::size_t len, double &min, double &max) {
     const double *min_it = std::min_element(values, values + len);
@@ -174,7 +174,7 @@ Histogram::Histogram::Histogram(const std::size_t use_first_n, const HistogramBu
 Histogram::Histogram::~Histogram() {
     std::stringstream s;
     print(s);
-    std::cerr << s.str() << std::endl;
+    mlog(HISTOGRAM_NOTE, "%s", s.str().c_str());
 
     clear();
     delete [] data;

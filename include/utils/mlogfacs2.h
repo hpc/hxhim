@@ -49,7 +49,8 @@ static const char *mlog_facsarray[] = {
     "INMEMORY",      /* 6 */
     "MPI",           /* 7 */
     "THALLIUM",      /* 8 */
-    0,               /* 9 */
+    "HISTOGRAM",     /* 9 */
+    0,               /* 10 */
 };
 #endif /* MLOG_FACSARRAY || MLOG_AFACSARRAY */
 
@@ -64,7 +65,8 @@ static const char *mlog_lfacsarray[] = {
     "In-Memory Datastore", /* 6 */
     "MPI Transport", /* 7 */
     "Thallium Transport", /* 8 */
-    0,               /* 9 */
+    "Histogram",     /* 9 */
+    0,               /* 10 */
 };
 #endif /* MLOG_LFACSARRAY || MLOG_LFACSARRAY */
 
@@ -79,6 +81,7 @@ static const char *mlog_lfacsarray[] = {
 #define MLOGFAC_INMEMORY  6 /* In-Memory Datastore */
 #define MLOGFAC_MPI       7 /* MPI Transport */
 #define MLOGFAC_THALLIUM  8 /* Thallium Transport */
+#define MLOGFAC_HISTOGRAM  9 /* Histogram */
 
 /*
  * HXHIM options MLOG levels
@@ -239,5 +242,25 @@ static const char *mlog_lfacsarray[] = {
 #define THALLIUM_DCOMMON  THALLIUM_DBG2
 #define THALLIUM_DBG3    (8 | MLOG_DBG3)
 #define THALLIUM_DRARE    THALLIUM_DBG3
+
+/*
+ * Histogram MLOG levels
+ */
+#define HISTOGRAM_EMERG  (9 | MLOG_EMERG)
+#define HISTOGRAM_ALERT  (9 | MLOG_ALERT)
+#define HISTOGRAM_CRIT   (9 | MLOG_CRIT)
+#define HISTOGRAM_ERR    (9 | MLOG_ERR)
+#define HISTOGRAM_WARN   (9 | MLOG_WARN)
+#define HISTOGRAM_NOTE   (9 | MLOG_NOTE)
+#define HISTOGRAM_INFO   (9 | MLOG_INFO)
+#define HISTOGRAM_DBG    (9 | MLOG_DBG)
+#define HISTOGRAM_DBG0   (9 | MLOG_DBG0)
+#define HISTOGRAM_DAPI    HISTOGRAM_DBG0
+#define HISTOGRAM_DBG1   (9 | MLOG_DBG1)
+#define HISTOGRAM_DINTAPI  HISTOGRAM_DBG1
+#define HISTOGRAM_DBG2   (9 | MLOG_DBG2)
+#define HISTOGRAM_DCOMMON  HISTOGRAM_DBG2
+#define HISTOGRAM_DBG3   (9 | MLOG_DBG3)
+#define HISTOGRAM_DRARE   HISTOGRAM_DBG3
 
 #endif /* _MLOGFACS_H_ */

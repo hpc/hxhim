@@ -41,6 +41,7 @@
      "INMEMORY"         => "In-Memory Datastore",
      "MPI"              => "MPI Transport",
      "THALLIUM"         => "Thallium Transport",
+     "HISTOGRAM"        => "Histogram",
 );
 
 @mloglvls = (
