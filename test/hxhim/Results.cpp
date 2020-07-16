@@ -10,7 +10,7 @@ TEST(Results, PUT_GET_DEL) {
     // nothing works yet since there is no data
     EXPECT_EQ(results.GoToHead(), nullptr);
     EXPECT_EQ(results.GoToNext(), nullptr);
-    EXPECT_EQ(results.Valid(), false);
+    EXPECT_EQ(results.ValidIterator(), false);
 
     // add some data
     hxhim::Results::Result *put = results.Add(construct<hxhim::Results::Put>(nullptr, -1, HXHIM_SUCCESS));
@@ -22,14 +22,14 @@ TEST(Results, PUT_GET_DEL) {
     hxhim::Results::Result *del = results.Add(construct<hxhim::Results::Delete>(nullptr, -1, HXHIM_SUCCESS));
     EXPECT_NE(del, nullptr);
 
-    EXPECT_EQ(results.Valid(), false);  // still not valid because current result has not been set yet
+    EXPECT_EQ(results.ValidIterator(), false);  // still not valid because current result has not been set yet
     EXPECT_EQ(results.GoToHead(), put);
-    EXPECT_EQ(results.Valid(), true);   // valid now because current result is pointing to the head of the list
+    EXPECT_EQ(results.ValidIterator(), true);   // valid now because current result is pointing to the head of the list
     EXPECT_EQ(results.GoToNext(), get);
     EXPECT_EQ(results.GoToNext(), getop);
     EXPECT_EQ(results.GoToNext(), del);
     EXPECT_EQ(results.GoToNext(), nullptr);
-    EXPECT_EQ(results.Valid(), false);
+    EXPECT_EQ(results.ValidIterator(), false);
 }
 
 TEST(Results, Loop) {
@@ -42,7 +42,7 @@ TEST(Results, Loop) {
 
         // check the data
         std::size_t count = 0;
-        for(results.GoToHead(); results.Valid(); results.GoToNext()) {
+        for(results.GoToHead(); results.ValidIterator(); results.GoToNext()) {
             count++;
         }
 
@@ -63,7 +63,7 @@ TEST(Results, Loop) {
 
         // check the data
         std::size_t count = 0;
-        for(results.GoToHead(); results.Valid(); results.GoToNext()) {
+        for(results.GoToHead(); results.ValidIterator(); results.GoToNext()) {
             EXPECT_EQ(results.Curr()->type, HXHIM_RESULT_PUT);
             count++;
         }
@@ -94,7 +94,7 @@ TEST(Results, Append_Empty) {
     EXPECT_EQ(results.GoToNext(), getop);   // next result is GETOP
     EXPECT_EQ(results.GoToNext(), del);     // next result is DEL
     EXPECT_EQ(results.GoToNext(), nullptr); // next result does not exist
-    EXPECT_EQ(results.Valid(), false);
+    EXPECT_EQ(results.ValidIterator(), false);
 }
 
 TEST(Results, Empty_Append) {
@@ -119,7 +119,7 @@ TEST(Results, Empty_Append) {
     EXPECT_EQ(empty.GoToNext(), getop);   // next result is GETOP
     EXPECT_EQ(empty.GoToNext(), del);     // next result is DEL
     EXPECT_EQ(empty.GoToNext(), nullptr); // next result does not exist
-    EXPECT_EQ(empty.Valid(), false);
+    EXPECT_EQ(empty.ValidIterator(), false);
 
     // appending moves the contents of the result list
     EXPECT_EQ(results.GoToHead(), nullptr);
@@ -169,7 +169,7 @@ TEST(Results, Accessors) {
     std::size_t object_len = 0;
 
     EXPECT_EQ(results.GoToHead(), put);
-    EXPECT_EQ(results.Valid(), true);
+    EXPECT_EQ(results.ValidIterator(), true);
     {
         EXPECT_EQ(results.Type(&type), HXHIM_SUCCESS);
         EXPECT_EQ(type, hxhim_result_type::HXHIM_RESULT_PUT);
@@ -188,7 +188,7 @@ TEST(Results, Accessors) {
     }
 
     EXPECT_EQ(results.GoToNext(), get);
-    EXPECT_EQ(results.Valid(), true);
+    EXPECT_EQ(results.ValidIterator(), true);
     {
         EXPECT_EQ(results.Type(&type), HXHIM_SUCCESS);
         EXPECT_EQ(type, hxhim_result_type::HXHIM_RESULT_GET);
@@ -210,7 +210,7 @@ TEST(Results, Accessors) {
     }
 
     EXPECT_EQ(results.GoToNext(), getop);
-    EXPECT_EQ(results.Valid(), true);
+    EXPECT_EQ(results.ValidIterator(), true);
     {
         EXPECT_EQ(results.Type(&type), HXHIM_SUCCESS);
         EXPECT_EQ(type, hxhim_result_type::HXHIM_RESULT_GETOP);
@@ -232,7 +232,7 @@ TEST(Results, Accessors) {
     }
 
     EXPECT_EQ(results.GoToNext(), del);
-    EXPECT_EQ(results.Valid(), true);
+    EXPECT_EQ(results.ValidIterator(), true);
     {
         EXPECT_EQ(results.Type(&type), HXHIM_SUCCESS);
         EXPECT_EQ(type, hxhim_result_type::HXHIM_RESULT_DEL);
@@ -251,7 +251,7 @@ TEST(Results, Accessors) {
     }
 
     EXPECT_EQ(results.GoToNext(), nullptr);
-    EXPECT_EQ(results.Valid(), false);
+    EXPECT_EQ(results.ValidIterator(), false);
     {
         EXPECT_EQ(results.Type(&type), HXHIM_ERROR);
         EXPECT_EQ(type, hxhim_result_type::HXHIM_RESULT_DEL);

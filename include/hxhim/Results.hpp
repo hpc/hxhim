@@ -24,7 +24,7 @@ namespace hxhim {
  * Usage:
  *
  *     hxhim::Results *res = Flush(hx);
- *     for(res->GoToHead(); res->Valid(); res->GoToNext()) {
+ *     for(res->GoToHead(); res->ValidIterator(); res->GoToNext()) {
  *         hxhim_result_type_t type;
  *         res->Type(&type);
  *         switch (type) {
@@ -142,12 +142,6 @@ class Results {
 
         static void Destroy(Results *res);
 
-        // Control the "curr" pointer
-        bool Valid() const;
-        Result *GoToHead();
-        Result *GoToNext();
-        Result *Curr() const;
-
         // Appends a single new node to the list
         Result *Add(Result *res);
 
@@ -155,6 +149,12 @@ class Results {
         void Append(Results *other);
 
         std::size_t Size() const;
+
+        // Control the "curr" pointer
+        bool ValidIterator() const;
+        Result *GoToHead();
+        Result *GoToNext();
+        Result *Curr() const;
 
         // Accessors
         // pointers are only valid if the Result they came from are still valid

@@ -154,7 +154,7 @@ hxhim::Results::GetOp *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGe
 
     hxhim::Results::GetOp *prev = nullptr;
     hxhim::Results::GetOp *curr = top;
-    for(std::size_t j = 0; i < bgetop->num_recs[i]; j++) {
+    for(std::size_t j = 0; j < bgetop->num_recs[i]; j++) {
         curr->object_type      = bgetop->object_types[i];
 
         curr->subject          = bgetop->subjects[i][j];
@@ -196,6 +196,16 @@ hxhim::Results::Sync *hxhim::Result::init(hxhim_t *hx, const int ds_offset, cons
     return out;
 }
 
+/**
+ * hxhim_results_valid
+ *
+ * @param res A list of results
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
+ */
+int hxhim_results_valid(hxhim_results_t *res) {
+    return (res && res->res)?HXHIM_SUCCESS:HXHIM_ERROR;
+}
+
 hxhim::Results::Results(hxhim_t *hx)
     : hx(hx),
       results(),
@@ -228,88 +238,6 @@ void hxhim::Results::Destroy(Results *res) {
         destruct(res);
         mlog(HXHIM_CLIENT_DBG, "Rank %d Destroyed hxhim:Results %p", rank, res);
     }
-}
-
-/**
- * Valid
- *
- * @return Whether or not the current node is a valid pointer
- */
-bool hxhim::Results::Valid() const {
-    return (curr != results.end());
-}
-
-/**
- * hxhim_results_valid
- *
- * @param res A list of results
- * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
- */
-int hxhim_results_valid(hxhim_results_t *res) {
-    return (res && res->res && res->res->Valid())?HXHIM_SUCCESS:HXHIM_ERROR;
-}
-
-/**
- * GoToHead
- * Moves the current node to point to the head of the list
- *
- * @return Whether or not the new position is valid
- */
-hxhim::Results::Result *hxhim::Results::GoToHead() {
-    curr = results.begin();
-    return Valid()?*curr:nullptr;
-}
-
-/**
- * hxhim_results_goto_head
- * Moves the internal pointer to the head of the list
- *
- * @param res A list of results
- * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
- */
-int hxhim_results_goto_head(hxhim_results_t *res) {
-    // cannot use hxhim::Results::Valid here
-    // since curr might be pointing anywhere
-    if (res && res->res) {
-        return res->res->GoToHead()?HXHIM_SUCCESS:HXHIM_ERROR;
-    }
-
-    return HXHIM_ERROR;
-}
-
-/**
- * GoToNext
- * Moves the current node to point to the next node in the list
- *
- * @return Whether or not the new position is valid
- */
-hxhim::Results::Result *hxhim::Results::GoToNext() {
-    curr++;
-    return Valid()?*curr:nullptr;
-}
-
-/**
- * hxhim_results_goto_next
- * Moves the internal pointer to the next element in the list
- *
- * @param res A list of results
- * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
- */
-int hxhim_results_goto_next(hxhim_results_t *res) {
-    if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
-        return HXHIM_ERROR;
-    }
-
-    return res->res->GoToNext()?HXHIM_SUCCESS:HXHIM_ERROR;
-}
-
-/**
- * Curr
- *
- * @return the pointer to the node currently being pointed to
- */
-hxhim::Results::Result *hxhim::Results::Curr() const {
-    return Valid()?*curr:nullptr;;
 }
 
 /**
@@ -349,6 +277,90 @@ void hxhim::Results::Append(hxhim::Results *other) {
 }
 
 /**
+ * ValidIterator
+ *
+ * @return Whether or not the iterator is at a valid position
+ */
+bool hxhim::Results::ValidIterator() const {
+    return (curr != results.end());
+}
+
+/**
+ * hxhim_results_valid_iterator
+ *
+ * @param res A list of results
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
+ */
+int hxhim_results_valid_iterator(hxhim_results_t *res) {
+    if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
+        return HXHIM_ERROR;
+    }
+
+    return res->res->ValidIterator()?HXHIM_SUCCESS:HXHIM_ERROR;
+}
+
+/**
+ * GoToHead
+ * Moves the current node to point to the head of the list
+ *
+ * @return Whether or not the new position is valid
+ */
+hxhim::Results::Result *hxhim::Results::GoToHead() {
+    curr = results.begin();
+    return ValidIterator()?*curr:nullptr;
+}
+
+/**
+ * hxhim_results_goto_head
+ * Moves the internal pointer to the head of the list
+ *
+ * @param res A list of results
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
+ */
+int hxhim_results_goto_head(hxhim_results_t *res) {
+    if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
+        return HXHIM_ERROR;
+    }
+
+    return res->res->GoToHead()?HXHIM_SUCCESS:HXHIM_ERROR;
+}
+
+/**
+ * GoToNext
+ * Moves the current node to point to the next node in the list
+ *
+ * @return Whether or not the new position is valid
+ */
+hxhim::Results::Result *hxhim::Results::GoToNext() {
+    curr++;
+    return ValidIterator()?*curr:nullptr;
+}
+
+/**
+ * hxhim_results_goto_next
+ * Moves the internal pointer to the next element in the list
+ *
+ * @param res A list of results
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
+ */
+int hxhim_results_goto_next(hxhim_results_t *res) {
+    if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
+        return HXHIM_ERROR;
+    }
+
+    return res->res->GoToNext()?HXHIM_SUCCESS:HXHIM_ERROR;
+}
+
+/**
+ * Curr
+ *
+ * @return the pointer to the node currently being pointed to
+ */
+hxhim::Results::Result *hxhim::Results::Curr() const {
+    return ValidIterator()?*curr:nullptr;;
+}
+
+/**
  * Size
  * Get the number of elements in this set of results
  *
@@ -363,14 +375,19 @@ std::size_t hxhim::Results::Size() const {
  * Get the number of elements in this set of results
  *
  * @param res   A list of results
- * @return number of elements
+ * @param size  The number of elements
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-size_t hxhim_results_size(hxhim_results_t *res) {
+int hxhim_results_size(hxhim_results_t *res, size_t *size) {
     if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
-        return 0;
+        return HXHIM_ERROR;
     }
 
-    return res->res->Size();
+    if (size) {
+        *size = res->res->Size();
+    }
+
+    return HXHIM_SUCCESS;
 }
 
 /**

@@ -35,7 +35,7 @@ void print_results(hxhim_t *hx, const int print_rank, hxhim_results_t *results) 
         return;
     }
 
-    for(hxhim_results_goto_head(results); hxhim_results_valid(results) == HXHIM_SUCCESS; hxhim_results_goto_next(results)) {
+    for(hxhim_results_goto_head(results); hxhim_results_valid_iterator(results) == HXHIM_SUCCESS; hxhim_results_goto_next(results)) {
         if (print_rank) {
             int rank = -1;
             if (hxhimGetMPI(hx, NULL, &rank, NULL) != HXHIM_SUCCESS) {
@@ -71,6 +71,7 @@ void print_results(hxhim_t *hx, const int print_rank, hxhim_results_t *results) 
                 printf("PUT          {%.*s, %.*s} returned %s from datastore %d\n", (int) subject_len, (char *) subject, (int) predicate_len, (char *) predicate, (status == HXHIM_SUCCESS)?"SUCCESS":"ERROR", datastore);
                 break;
             case HXHIM_RESULT_GET:
+            case HXHIM_RESULT_GETOP:
                 printf("GET returned ");
                 if (status == HXHIM_SUCCESS) {
                     enum hxhim_type_t object_type;

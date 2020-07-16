@@ -11,7 +11,7 @@ static void print_results(const int rank, hxhim::Results *results) {
         return;
     }
 
-    for(results->GoToHead(); results->Valid(); results->GoToNext()) {
+    for(results->GoToHead(); results->ValidIterator(); results->GoToNext()) {
         std::cout << "Rank " << rank << " ";
         hxhim::Results::Result *curr = results->Curr();
         switch (curr->type) {

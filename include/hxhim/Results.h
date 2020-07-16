@@ -25,7 +25,7 @@ extern "C"
  * Usage:
  *
  *     hxhim_results_t *res = hxhimFlush(hx);
- *     for(hxhim_results_goto_head(res); hxhim_results_valid(res) == HXHIM_SUCCESS; hxhim_results_goto_next(res)) {
+ *     for(hxhim_results_goto_head(res); hxhim_results_valid_iterator(res) == HXHIM_SUCCESS; hxhim_results_goto_next(res)) {
  *         hxhim_result_type_t type;
  *         hxhim_results_type(res, &type);
  *         switch (type) {
@@ -66,15 +66,17 @@ typedef struct hxhim_result_timestamps_t {
 // Opaque C struct, since user will never create one themselves
 typedef struct hxhim_results hxhim_results_t;
 
+int hxhim_results_valid(hxhim_results_t *res);                             /* whether or not the underlying pointer is readable */
+
+// get number of results
+int hxhim_results_size(hxhim_results_t *res);
+
 // "iterator" functions
+int hxhim_results_valid_iterator(hxhim_results_t *res);                     /* whether or not the pointer is readable */
 int hxhim_results_goto_head(hxhim_results_t *res);
 int hxhim_results_goto_next(hxhim_results_t *res);
 
-// get number of results
-size_t hxhim_results_size(hxhim_results_t *res);
-
 // accessor functions - only operates on current result in results list
-int hxhim_results_valid(hxhim_results_t *res);                              /* whether or not the pointer is readable */
 int hxhim_results_type(hxhim_results_t *res, enum hxhim_result_type *type);
 int hxhim_results_status(hxhim_results_t *res, int *status);                /* whether or not the results are good */
 int hxhim_results_datastore(hxhim_results_t *res, int *datastore);
