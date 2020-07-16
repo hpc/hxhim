@@ -5,14 +5,17 @@
 #ifndef HXHIM_H
 #define HXHIM_H
 
-#include <ctype.h>
+#include <stddef.h>
 
 #include "hxhim/Histograms.h"
 #include "hxhim/Results.h"
 #include "hxhim/accessors.h"
 #include "hxhim/config.h"
 #include "hxhim/constants.h"
+#include "hxhim/double.h"
+#include "hxhim/float.h"
 #include "hxhim/options.h"
+#include "hxhim/single_type.h"
 #include "hxhim/struct.h"
 
 #ifdef __cplusplus
@@ -108,9 +111,5 @@ int hxhimGetHistograms(hxhim_t *hx, const int dst_rank, hxhim_histograms_t **his
 #ifdef __cplusplus
 }
 #endif
-
-#include "hxhim/float.h"
-#include "hxhim/double.h"
-#include "hxhim/single_type.h"
 
 #endif

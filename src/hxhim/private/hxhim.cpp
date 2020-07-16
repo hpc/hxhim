@@ -262,7 +262,7 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
             }
             #if HXHIM_HAVE_LEVELDB
             else if (opts->p->datastore->type == hxhim::datastore::LEVELDB) {
-                hxhim_leveldb_config_t *config = static_cast<hxhim_leveldb_config_t *>(opts->p->datastore);
+                hxhim::datastore::leveldb::Config *config = static_cast<hxhim::datastore::leveldb::Config *>(opts->p->datastore);
                 hx->p->datastores[i] = new hxhim::datastore::leveldb(hx->p->bootstrap.rank,
                                                                      hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, i),
                                                                      hist,
@@ -303,7 +303,6 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
         return HXHIM_ERROR;
     }
 
-    // hx->p->datastore.datastores = alloc_array<hxhim::datastore::Datastore *>(hx->p->datastore.count);
     hx->p->datastores.resize(1);
 
     Histogram::Histogram *hist = new Histogram::Histogram(opts->p->histogram.first_n,

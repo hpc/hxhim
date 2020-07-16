@@ -58,15 +58,6 @@ int hxhim_options_set_histogram_bucket_gen_function(hxhim_options_t *opts, Histo
 /* Cleans up memory allocated inside opts, but not the opts variable itself */
 int hxhim_options_destroy(hxhim_options_t *opts);
 
-/**
- * Functions that handle datastore configurations
- */
-hxhim_datastore_config_t *hxhim_options_create_leveldb_config(const size_t id, const char *prefix, const int create_if_missing);
-hxhim_datastore_config_t *hxhim_options_create_in_memory_config();
-
-/* Cleans up datastore config memory, including the config variable itself because the user will never be able to create their own config */
-void hxhim_options_datastore_config_destroy(hxhim_datastore_config_t *config);
-
 #ifdef __cplusplus
 }
 #endif

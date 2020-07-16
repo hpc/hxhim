@@ -7,7 +7,7 @@
 #include "datastore/constants.hpp"
 #include "hxhim/config.h"
 #include "hxhim/constants.h"
-#include "hxhim/hash.hpp"
+#include "hxhim/hash.h"
 #include "hxhim/options.h"
 #include "transport/constants.hpp"
 #include "utils/Configuration.hpp"
@@ -136,16 +136,14 @@ const std::unordered_map<std::string, HistogramBucketGenerator_t> HISTOGRAM_BUCK
 /**
  * Set of predefined extra arguments for bucket generators
  */
-const std::size_t two = 2;
-const std::size_t ten = 10;
 const std::unordered_map<std::string, void *> HISTOGRAM_BUCKET_GENERATOR_EXTRA_ARGS = {
-    std::make_pair("10_BUCKETS",                   (void *) &ten),
+    std::make_pair("10_BUCKETS",                   (void *) (uintptr_t) (std::size_t) 10),
     std::make_pair("SQUARE_ROOT_CHOICE",           nullptr),
     std::make_pair("STURGES_FORMULA",              nullptr),
     std::make_pair("RICE_RULE",                    nullptr),
     std::make_pair("SCOTTS_NORMAL_REFERENCE_RULE", nullptr),
-    std::make_pair("UNIFORM_LOG2",                 (void *) &two),
-    std::make_pair("UNIFORM_LOG10",                (void *) &ten),
+    std::make_pair("UNIFORM_LOG2",                 (void *) (uintptr_t) (std::size_t) 2),
+    std::make_pair("UNIFORM_LOG10",                (void *) (uintptr_t) (std::size_t) 10),
 };
 
 /**

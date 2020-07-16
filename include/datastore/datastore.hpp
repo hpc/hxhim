@@ -40,7 +40,20 @@ int get_offset(hxhim_t *hx, const int id);
 int get_id(hxhim_t *hx, const int rank, const std::size_t offset);
 
 /**
- * base
+ * Base configuration type
+ */
+struct Config {
+    Config(const hxhim::datastore::Type type)
+        : type(type)
+    {}
+
+    virtual ~Config() {}
+
+    const hxhim::datastore::Type type;
+};
+
+/**
+ * Datatstores
  * The base class for all datastores used by HXHIM
  */
 class Datastore {

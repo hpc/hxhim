@@ -12,6 +12,12 @@ namespace datastore {
 
 class InMemory : public Datastore {
     public:
+        struct Config : datastore::Config {
+            Config()
+                : ::hxhim::datastore::Config(hxhim::datastore::IN_MEMORY)
+            {}
+        };
+
         InMemory(const int rank,
                  Histogram::Histogram *hist,
                  const std::string &exact_name);

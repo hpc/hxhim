@@ -10,6 +10,16 @@ namespace datastore {
 
 class leveldb : public Datastore {
     public:
+        struct Config : datastore::Config {
+            Config()
+                : ::hxhim::datastore::Config(hxhim::datastore::LEVELDB)
+            {}
+
+            std::size_t id;
+            std::string prefix;
+            bool create_if_missing;
+        };
+
         leveldb(const int rank,
                 Histogram::Histogram *hist,
                 const std::string &exact_name,

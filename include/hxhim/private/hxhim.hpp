@@ -12,7 +12,7 @@
 #include "datastore/datastore.hpp"
 #include "hxhim/Results.hpp"
 #include "hxhim/constants.h"
-#include "hxhim/hash.hpp"
+#include "hxhim/hash.h"
 #include "hxhim/options.h"
 #include "hxhim/private/Stats.hpp"
 #include "hxhim/private/cache.hpp"

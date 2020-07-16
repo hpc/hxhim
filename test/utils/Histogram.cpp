@@ -43,7 +43,7 @@ static int every_two(const double *first_n, const std::size_t n, double **bucket
 }
 
 TEST(Histogram, every_two) {
-    const int n = 10;
+    const std::size_t n = 10;
     Histogram::Histogram h(n, every_two, nullptr);
 
     // fill the histogram
@@ -56,7 +56,7 @@ TEST(Histogram, every_two) {
     std::size_t size = 0;
 
     ASSERT_EQ(h.get(&buckets, &counts, &size), HISTOGRAM_SUCCESS);
-    EXPECT_EQ(size, (std::size_t) (n / 2));
+    EXPECT_EQ(size, n / 2);
     for(std::size_t i = 0; i < size; i++) {
         EXPECT_EQ(buckets[i], (std::size_t) (2 * i));
         EXPECT_EQ(counts[i], (std::size_t) 2);
@@ -65,8 +65,7 @@ TEST(Histogram, every_two) {
 
 TEST(Histogram, uniform_log10) {
     static const std::size_t ten = 10;
-    Histogram::Histogram h(ten, histogram_uniform_logn, (void *) &ten);
-
+    Histogram::Histogram h(ten, histogram_uniform_logn, (void *) (uintptr_t) ten);
     for(std::size_t i = 0; i < ten; i++) {
         h.add(i);
     }

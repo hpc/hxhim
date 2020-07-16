@@ -8,10 +8,9 @@
 #include "hxhim/constants.h"
 #include "hxhim/double.hpp"
 #include "hxhim/float.hpp"
-#include "hxhim/hash.h"
 #include "hxhim/hxhim.h"
-#include "hxhim/options.h"
 #include "hxhim/options.hpp"
+#include "hxhim/single_type.hpp"
 #include "hxhim/struct.h"
 
 namespace hxhim {
@@ -104,9 +103,5 @@ int GetHistograms(hxhim_t *hx, const int dst_rank, hxhim_histograms_t **hists);
 //                  const bool get_bdel, long double *bdel);
 
 }
-
-#include "hxhim/float.hpp"
-#include "hxhim/double.hpp"
-#include "hxhim/single_type.hpp"
 
 #endif

@@ -1,8 +1,6 @@
 #include <cmath>
 
-#include "hxhim/Results.hpp"
 #include "hxhim/config.hpp"
-#include "hxhim/options.h"
 #include "hxhim/private/options.hpp"
 #include "transport/backend/MPI/Options.hpp"
 #include "transport/backend/Thallium/Options.hpp"
@@ -140,7 +138,7 @@ int hxhim_options_set_datastores_per_range_server(hxhim_options_t *opts, const s
  * @param config configuration data needed to initialize the datastore
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-static int hxhim_options_set_datastore(hxhim_options_t *opts, hxhim_datastore_config_t *config) {
+static int hxhim_options_set_datastore(hxhim_options_t *opts, hxhim::datastore::Config *config) {
     if (!valid_opts(opts)) {
         return HXHIM_ERROR;
     }
@@ -162,7 +160,7 @@ static int hxhim_options_set_datastore(hxhim_options_t *opts, hxhim_datastore_co
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_set_datastore_leveldb(hxhim_options_t *opts, const size_t id, const char *prefix, const int create_if_missing) {
-    hxhim_datastore_config_t *config = hxhim_options_create_leveldb_config(id, prefix, create_if_missing);
+    hxhim::datastore::Config *config = hxhim_options_create_leveldb_config(id, prefix, create_if_missing);
     if (!config) {
         return HXHIM_ERROR;
     }
@@ -185,7 +183,7 @@ int hxhim_options_set_datastore_leveldb(hxhim_options_t *opts, const size_t id, 
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_set_datastore_in_memory(hxhim_options_t *opts) {
-    hxhim_datastore_config_t *config = hxhim_options_create_in_memory_config();
+    hxhim::datastore::Config *config = hxhim_options_create_in_memory_config();
     if (!config) {
         return HXHIM_ERROR;
     }
@@ -557,13 +555,11 @@ int hxhim_options_destroy(hxhim_options_t *opts) {
  * @param create_if_missing  whether or not leveldb should create new datastores if the datastores do not already exist
  * @return a pointer to the configuration data, or a nullptr
  */
-hxhim_datastore_config_t *hxhim_options_create_leveldb_config(const size_t id, const char *prefix, const int create_if_missing) {
-    hxhim_leveldb_config_t *config = new hxhim_leveldb_config_t();
-    if (config) {
-        config->id = id;
-        config->prefix = prefix;
-        config->create_if_missing = create_if_missing;
-    }
+hxhim::datastore::Config *hxhim_options_create_leveldb_config(const size_t id, const char *prefix, const int create_if_missing) {
+    hxhim::datastore::leveldb::Config *config = new hxhim::datastore::leveldb::Config();
+    config->id = id;
+    config->prefix = prefix;
+    config->create_if_missing = create_if_missing;
     return config;
 }
 #endif
@@ -573,11 +569,11 @@ hxhim_datastore_config_t *hxhim_options_create_leveldb_config(const size_t id, c
  *
  * @return a pointer to the configuration data, or a nullptr
  */
-hxhim_datastore_config_t *hxhim_options_create_in_memory_config() {
-    return new hxhim_in_memory_config_t();
+hxhim::datastore::Config *hxhim_options_create_in_memory_config() {
+    return new hxhim::datastore::InMemory::Config();
 }
 
 // Cleans up config memory, including the config variable itself because the user will never be able to create their own config
-void hxhim_options_datastore_config_destroy(hxhim_datastore_config_t *config) {
+void hxhim_options_datastore_config_destroy(hxhim::datastore::Config *config) {
     delete config;
 }

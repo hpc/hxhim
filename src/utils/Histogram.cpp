@@ -61,7 +61,7 @@ int histogram_n_buckets(const double *first_n, const size_t n, double **buckets,
         return HISTOGRAM_ERROR;
     }
 
-    *size = * (std::size_t *) extra;
+    *size = (std::size_t) (uintptr_t) extra;
     if (!(*buckets = alloc_array<double>(*size))) {
         return HISTOGRAM_ERROR;
     }
@@ -153,7 +153,7 @@ int histogram_uniform_logn(const double *first_n, const size_t n, double **bucke
     double min, max;
     minmax(first_n, n, min, max);
 
-    return generate_using_bin_count(min, max, std::ceil((max - min) * std::log(* (std::size_t *) extra) / std::log(max - min)), buckets, size);
+    return generate_using_bin_count(min, max, std::ceil((max - min) * std::log((std::size_t) (uintptr_t) extra) / std::log(max - min)), buckets, size);
 }
 
 Histogram::Histogram::Histogram(const std::size_t use_first_n, const HistogramBucketGenerator_t &generator, void *extra_args)
