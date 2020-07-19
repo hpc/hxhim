@@ -51,9 +51,6 @@ int Packer::pack(const Request::BPut *bpm, void **buf, std::size_t *bufsize) {
         return TRANSPORT_ERROR;
     }
 
-    memcpy(curr, &bpm->count, sizeof(bpm->count));
-    curr += sizeof(bpm->count);
-
     for(std::size_t i = 0; i < bpm->count; i++) {
         memcpy(curr, &bpm->ds_offsets[i], sizeof(bpm->ds_offsets[i]));
         curr += sizeof(bpm->ds_offsets[i]);
@@ -87,9 +84,6 @@ int Packer::pack(const Request::BGet *bgm, void **buf, std::size_t *bufsize) {
         return TRANSPORT_ERROR;
     }
 
-    memcpy(curr, &bgm->count, sizeof(bgm->count));
-    curr += sizeof(bgm->count);
-
     for(std::size_t i = 0; i < bgm->count; i++) {
         memcpy(curr, &bgm->ds_offsets[i], sizeof(bgm->ds_offsets[i]));
         curr += sizeof(bgm->ds_offsets[i]);
@@ -119,9 +113,6 @@ int Packer::pack(const Request::BGetOp *bgm, void **buf, std::size_t *bufsize) {
     if (pack(static_cast<const Request::Request *>(bgm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
-
-    memcpy(curr, &bgm->count, sizeof(bgm->count));
-    curr += sizeof(bgm->count);
 
     for(std::size_t i = 0; i < bgm->count; i++) {
         memcpy(curr, &bgm->ds_offsets[i], sizeof(bgm->ds_offsets[i]));
@@ -157,9 +148,6 @@ int Packer::pack(const Request::BDelete *bdm, void **buf, std::size_t *bufsize) 
     if (pack(static_cast<const Request::Request *>(bdm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
-
-    memcpy(curr, &bdm->count, sizeof(bdm->count));
-    curr += sizeof(bdm->count);
 
     for(std::size_t i = 0; i < bdm->count; i++) {
         memcpy(curr, &bdm->ds_offsets[i], sizeof(bdm->ds_offsets[i]));
@@ -217,9 +205,6 @@ int Packer::pack(const Response::BPut *bpm, void **buf, std::size_t *bufsize) {
         return TRANSPORT_ERROR;
     }
 
-    memcpy(curr, &bpm->count, sizeof(bpm->count));
-    curr += sizeof(bpm->count);
-
     for(std::size_t i = 0; i < bpm->count; i++) {
         memcpy(curr, &bpm->ds_offsets[i], sizeof(bpm->ds_offsets[i]));
         curr += sizeof(bpm->ds_offsets[i]);
@@ -243,9 +228,6 @@ int Packer::pack(const Response::BGet *bgm, void **buf, std::size_t *bufsize) {
     if (pack(static_cast<const Response::Response *>(bgm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
-
-    memcpy(curr, &bgm->count, sizeof(bgm->count));
-    curr += sizeof(bgm->count);
 
     for(std::size_t i = 0; i < bgm->count; i++) {
         memcpy(curr, &bgm->ds_offsets[i], sizeof(bgm->ds_offsets[i]));
@@ -278,9 +260,6 @@ int Packer::pack(const Response::BGetOp *bgm, void **buf, std::size_t *bufsize) 
     if (pack(static_cast<const Response::Response *>(bgm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
-
-    memcpy(curr, &bgm->count, sizeof(bgm->count));
-    curr += sizeof(bgm->count);
 
     for(std::size_t i = 0; i < bgm->count; i++) {
         memcpy(curr, &bgm->ds_offsets[i], sizeof(bgm->ds_offsets[i]));
@@ -319,9 +298,6 @@ int Packer::pack(const Response::BDelete *bdm, void **buf, std::size_t *bufsize)
     if (pack(static_cast<const Response::Response *>(bdm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
-
-    memcpy(curr, &bdm->count, sizeof(bdm->count));
-    curr += sizeof(bdm->count);
 
     for(std::size_t i = 0; i < bdm->count; i++) {
         memcpy(curr, &bdm->ds_offsets[i], sizeof(bdm->ds_offsets[i]));
@@ -369,6 +345,9 @@ int Packer::pack(const Message *msg, void **buf, std::size_t *bufsize, char **cu
 
     memcpy(*curr, &msg->dst, sizeof(msg->dst));
     *curr += sizeof(msg->dst);
+
+    memcpy(*curr, &msg->count, sizeof(msg->count));
+    *curr += sizeof(msg->count);
 
     return TRANSPORT_SUCCESS;
 }

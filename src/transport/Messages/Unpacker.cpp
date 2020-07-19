@@ -87,18 +87,7 @@ int Unpacker::unpack(Request::BPut **bpm, void *buf, const std::size_t bufsize) 
         return TRANSPORT_ERROR;
     }
 
-    // read non array data
-    std::size_t count = 0;
-    memcpy(&count, curr, sizeof(out->count));
-    curr += sizeof(out->count);
-
-    // allocate space
-    if (out->alloc(count) != TRANSPORT_SUCCESS) {
-        destruct(out);
-        return TRANSPORT_ERROR;
-    }
-
-    for(std::size_t i = 0; i < count; i++) {
+    for(std::size_t i = 0; i < out->max_count; i++) {
         memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
         curr += sizeof(out->ds_offsets[i]);
 
@@ -136,18 +125,7 @@ int Unpacker::unpack(Request::BGet **bgm, void *buf, const std::size_t bufsize) 
         return TRANSPORT_ERROR;
     }
 
-    // read non array data
-    std::size_t count = 0;
-    memcpy(&count, curr, sizeof(out->count));
-    curr += sizeof(out->count);
-
-    // allocate space
-    if (out->alloc(count) != TRANSPORT_SUCCESS) {
-        destruct(out);
-        return TRANSPORT_ERROR;
-    }
-
-    for(std::size_t i = 0; i < count; i++) {
+    for(std::size_t i = 0; i < out->max_count; i++) {
         memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
         curr += sizeof(out->ds_offsets[i]);
 
@@ -182,18 +160,7 @@ int Unpacker::unpack(Request::BGetOp **bgm, void *buf, const std::size_t bufsize
         return TRANSPORT_ERROR;
     }
 
-    // read non array data
-    std::size_t count = 0;
-    memcpy(&count, curr, sizeof(out->count));
-    curr += sizeof(out->count);
-
-    // allocate space
-    if (out->alloc(count) != TRANSPORT_SUCCESS) {
-        destruct(out);
-        return TRANSPORT_ERROR;
-    }
-
-    for(std::size_t i = 0; i < count; i++) {
+    for(std::size_t i = 0; i < out->max_count; i++) {
         memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
         curr += sizeof(out->ds_offsets[i]);
 
@@ -233,19 +200,7 @@ int Unpacker::unpack(Request::BDelete **bdm, void *buf, const std::size_t bufsiz
         return TRANSPORT_ERROR;
     }
 
-    // read non array data
-    std::size_t count = 0;
-    memcpy(&count, curr, sizeof(out->count));
-    curr += sizeof(out->count);
-
-
-    // allocate space
-    if (out->alloc(count) != TRANSPORT_SUCCESS) {
-        destruct(out);
-        return TRANSPORT_ERROR;
-    }
-
-    for(std::size_t i = 0; i < count; i++) {
+    for(std::size_t i = 0; i < out->max_count; i++) {
         memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
         curr += sizeof(out->ds_offsets[i]);
 
@@ -339,18 +294,7 @@ int Unpacker::unpack(Response::BPut **bpm, void *buf, const std::size_t bufsize)
         return TRANSPORT_ERROR;
     }
 
-    // read non array data
-    std::size_t count = 0;
-    memcpy(&count, curr, sizeof(out->count));
-    curr += sizeof(out->count);
-
-    // allocate space
-    if (out->alloc(count) != TRANSPORT_SUCCESS) {
-        destruct(out);
-        return TRANSPORT_ERROR;
-    }
-
-    for(std::size_t i = 0; i < count; i++) {
+    for(std::size_t i = 0; i < out->max_count; i++) {
         memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
         curr += sizeof(out->ds_offsets[i]);
 
@@ -380,18 +324,7 @@ int Unpacker::unpack(Response::BGet **bgm, void *buf, const std::size_t bufsize)
         return TRANSPORT_ERROR;
     }
 
-    // read non array data
-    std::size_t count = 0;
-    memcpy(&count, curr, sizeof(out->count));
-    curr += sizeof(out->count);
-
-    // allocate space
-    if (out->alloc(count) != TRANSPORT_SUCCESS) {
-        destruct(out);
-        return TRANSPORT_ERROR;
-    }
-
-    for(std::size_t i = 0; i < count; i++) {
+    for(std::size_t i = 0; i < out->max_count; i++) {
         memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
         curr += sizeof(out->ds_offsets[i]);
 
@@ -431,18 +364,7 @@ int Unpacker::unpack(Response::BGetOp **bgm, void *buf, const std::size_t bufsiz
         return TRANSPORT_ERROR;
     }
 
-    // read non array data
-    std::size_t count = 0;
-    memcpy(&count, curr, sizeof(out->count));
-    curr += sizeof(out->count);
-
-    // allocate space
-    if (out->alloc(count) != TRANSPORT_SUCCESS) {
-        destruct(out);
-        return TRANSPORT_ERROR;
-    }
-
-    for(std::size_t i = 0; i < count; i++) {
+    for(std::size_t i = 0; i < out->max_count; i++) {
         memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
         curr += sizeof(out->ds_offsets[i]);
 
@@ -491,18 +413,7 @@ int Unpacker::unpack(Response::BDelete **bdm, void *buf, const std::size_t bufsi
         return TRANSPORT_ERROR;
     }
 
-    // read non array data
-    std::size_t count = 0;
-    memcpy(&count, curr, sizeof(out->count));
-    curr += sizeof(out->count);
-
-    // allocate space
-    if (out->alloc(count) != TRANSPORT_SUCCESS) {
-        destruct(out);
-        return TRANSPORT_ERROR;
-    }
-
-    for(std::size_t i = 0; i < count; i++) {
+    for(std::size_t i = 0; i < out->max_count; i++) {
         memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
         curr += sizeof(out->ds_offsets[i]);
 
@@ -560,6 +471,15 @@ int Unpacker::unpack(Message *msg, void *buf, const std::size_t, char **curr) {
 
     memcpy(&msg->dst, *curr, sizeof(msg->dst));
     *curr += sizeof(msg->dst);
+
+    std::size_t count = 0;
+    memcpy(&count, *curr, sizeof(msg->count));
+    *curr += sizeof(msg->count);
+
+    if (msg->alloc(count) != TRANSPORT_SUCCESS) {
+        destruct(msg);
+        return TRANSPORT_ERROR;
+    }
 
     return TRANSPORT_SUCCESS;
 }
