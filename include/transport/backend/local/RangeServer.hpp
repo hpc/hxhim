@@ -52,10 +52,10 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
     Response_t *res = construct<Response_t>(req->count);
     res->src = req->dst;
     res->dst = req->src;
-
-    // take ownership of timestamps
-    res->timestamps = req->timestamps;
-    req->timestamps.reqs = nullptr;
+    for(std::size_t i = 0; i < req->count; i++) {
+        res->timestamps.reqs[i] = req->timestamps.reqs[i];
+    }
+    res->timestamps.transport = req->timestamps.transport;
 
     std::vector<hxhim::datastore::Datastore *> *datastores = &hx->p->datastores;
 
