@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include "transport/constants.hpp"
+#include "hxhim/Stats.h"
 #include "utils/memory.hpp"
 
 namespace Transport {
@@ -44,7 +45,6 @@ struct Message {
     virtual int alloc(const std::size_t max);
     virtual int cleanup();
 
-  public:
     Direction direction;
     Type type;
     int src;                   // range server ID, not backend ID
@@ -52,6 +52,11 @@ struct Message {
     std::size_t max_count;
     std::size_t count;
     int *ds_offsets;           // datastore id on the dst range server
+
+    struct {
+        struct Send *reqs;
+        struct SendRecv transport;
+    } timestamps;
 };
 
 }

@@ -16,7 +16,8 @@ Transport::Message::Message(const Message::Direction dir, const Message::Type ty
       dst(-1),
       max_count(max_count),
       count(0),
-      ds_offsets(nullptr)
+      ds_offsets(nullptr),
+      timestamps()
 {
     Message::alloc(max_count);
 }
@@ -37,7 +38,8 @@ int Transport::Message::alloc(const std::size_t max) {
     Message::cleanup();
 
     if ((max_count = max)) {
-        if (!(ds_offsets = alloc_array<int>(max))) {
+        if (!(ds_offsets      = alloc_array<int>(max))         ||
+            !(timestamps.reqs = alloc_array<struct Send>(max))) {
             cleanup();
             return TRANSPORT_ERROR;
         }
@@ -51,6 +53,9 @@ int Transport::Message::alloc(const std::size_t max) {
 int Transport::Message::cleanup() {
     dealloc_array(ds_offsets, count);
     ds_offsets = nullptr;
+
+    dealloc_array(timestamps.reqs, count);
+    timestamps.reqs = nullptr;
 
     count = 0;
 

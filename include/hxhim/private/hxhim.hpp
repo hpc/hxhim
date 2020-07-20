@@ -87,7 +87,7 @@ typedef struct hxhim_private {
         void (*destroy)();                 // Range server static variable cleanup
     } range_server;
 
-    hxhim::Stats::Stats stats;
+    hxhim::Stats::Global stats;
 
 } hxhim_private_t;
 

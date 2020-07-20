@@ -105,7 +105,7 @@ class Datastore {
             struct Event {
                 Event();
 
-                struct Timestamp time;
+                struct Chronostamp time;
                 std::size_t count;    // how many operations were performed during this event
                 std::size_t size;     // how much data was involved
             };

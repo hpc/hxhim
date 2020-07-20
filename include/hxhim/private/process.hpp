@@ -119,6 +119,9 @@ hxhim::Results *process(hxhim_t *hx,
             }
 
             Transport::Response::Response *responses = hx->p->transport->communicate(remote);
+            timespec end;
+            clock_gettime(CLOCK_MONOTONIC, &end);
+
             for(Transport::Response::Response *curr = responses; curr; curr = next(curr)) {
                 for(std::size_t i = 0; i < curr->count; i++) {
                     res->Add(hxhim::Result::init(hx, curr, i));

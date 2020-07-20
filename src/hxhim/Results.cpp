@@ -50,6 +50,9 @@ hxhim::Results::Sync::Sync(hxhim_t *hx,
 hxhim::Results::Result *hxhim::Result::init(hxhim_t *hx, Transport::Response::Response *res, const std::size_t i) {
     // hx should have been checked earlier
 
+    struct timespec start;
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
     int rank = -1;
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
@@ -82,6 +85,13 @@ hxhim::Results::Result *hxhim::Result::init(hxhim_t *hx, Transport::Response::Re
         default:
             break;
     }
+
+    // set timestamps
+    ret->timestamps.send = res->timestamps.reqs[i];
+    ret->timestamps.transport = res->timestamps.transport;
+    ret->timestamps.recv.result.start = start;
+    clock_gettime(CLOCK_MONOTONIC, &ret->timestamps.recv.result.end);
+
     mlog(HXHIM_CLIENT_DBG, "Rank %d Created hxhim::Results::Result %p using %p[%zu]", rank, ret, res, i);
 
     return ret;
@@ -348,12 +358,13 @@ size_t hxhim_results_size(hxhim_results_t *res) {
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
 int hxhim::Results::Type(enum hxhim_result_type *type) const {
-    if (!Valid()) {
+    hxhim::Results::Result *res = Curr();
+    if (!res) {
         return HXHIM_ERROR;
     }
 
     if (type) {
-        *type = Curr()->type;
+        *type = res->type;
     }
 
     return HXHIM_SUCCESS;
@@ -383,12 +394,13 @@ int hxhim_results_type(hxhim_results_t *res, enum hxhim_result_type *type) {
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
 int hxhim::Results::Status(int *status) const {
-    if (!Valid()) {
+    hxhim::Results::Result *res = Curr();
+    if (!res) {
         return HXHIM_ERROR;
     }
 
     if (status) {
-        *status = Curr()->status;
+        *status = res->status;
     }
 
     return HXHIM_SUCCESS;
@@ -418,12 +430,13 @@ int hxhim_results_status(hxhim_results_t *res, int *status) {
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
 int hxhim::Results::Datastore(int *datastore) const {
-    if (!Valid()) {
+    hxhim::Results::Result *res = Curr();
+    if (!res) {
         return HXHIM_ERROR;
     }
 
     if (datastore) {
-        *datastore = Curr()->datastore;
+        *datastore = res->datastore;
     }
 
     return HXHIM_SUCCESS;
@@ -454,10 +467,6 @@ int hxhim_results_datastore(hxhim_results_t *res, int *datastore) {
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
 int hxhim::Results::Subject(void **subject, size_t *subject_len) const {
-    if (!Valid()) {
-        return HXHIM_ERROR;
-    }
-
     hxhim::Results::Result *res = Curr();
     if (!res) {
         return HXHIM_ERROR;
@@ -514,10 +523,6 @@ int hxhim_results_subject(hxhim_results_t *res, void **subject, size_t *subject_
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
 int hxhim::Results::Predicate(void **predicate, size_t *predicate_len) const {
-    if (!Valid()) {
-        return HXHIM_ERROR;
-    }
-
     hxhim::Results::Result *res = Curr();
     if (!res) {
         return HXHIM_ERROR;
@@ -572,10 +577,6 @@ int hxhim_results_predicate(hxhim_results_t *res, void **predicate, size_t *pred
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
 int hxhim::Results::ObjectType(enum hxhim_type_t *object_type) const {
-    if (!Valid()) {
-        return HXHIM_ERROR;
-    }
-
     hxhim::Results::Result *res = Curr();
     if (!res) {
         return HXHIM_ERROR;
@@ -631,10 +632,6 @@ int hxhim_results_object_type(hxhim_results_t *res, hxhim_type_t *object_type) {
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
 int hxhim::Results::Object(void **object, size_t *object_len) const {
-    if (!Valid()) {
-        return HXHIM_ERROR;
-    }
-
     hxhim::Results::Result *res = Curr();
     if (!res) {
         return HXHIM_ERROR;
@@ -678,6 +675,42 @@ int hxhim_results_object(hxhim_results_t *res, void **object, size_t *object_len
     }
 
     return res->res->Object(object, object_len);
+}
+
+/**
+ * Timestamps
+ * Extract the timestamps associated with this request
+ *
+ * @param timestamps (optional) the address of the pointer to fill in
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
+ */
+int hxhim::Results::Timestamps(struct hxhim_result_timestamps_t **timestamps) const {
+    hxhim::Results::Result *res = Curr();
+    if (!res) {
+        return HXHIM_ERROR;
+    }
+
+    if (timestamps) {
+        *timestamps = &res->timestamps;
+    }
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * hxhim_results_timestamps
+ * Extract the timestamps associated with this request
+ *
+ * @param res         A list of results
+ * @param timestamps (optional) the address of the pointer to fill in
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
+ */
+int hxhim_results_timestamps(hxhim_results_t *res, struct hxhim_result_timestamps_t **timestamps) {
+    if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
+        return HXHIM_ERROR;
+    }
+
+    return res->res->Timestamps(timestamps);
 }
 
 /**

@@ -3,12 +3,12 @@
 
 #include <cstddef>
 #include <list>
-#include <memory>
 
 #include "hxhim/Results.h"
 #include "hxhim/constants.h"
 #include "hxhim/struct.h"
 #include "utils/Blob.hpp"
+#include "utils/Stats.hpp"
 #include "utils/memory.hpp"
 
 namespace hxhim {
@@ -80,6 +80,8 @@ class Results {
 
             int datastore;
             int status;
+
+            hxhim_result_timestamps_t timestamps;
         };
 
         struct SubjectPredicate : public Result {
@@ -163,6 +165,7 @@ class Results {
         int Predicate(void **predicate, size_t *predicate_len) const;
         int ObjectType(enum hxhim_type_t *object_type) const;
         int Object(void **object, size_t *object_len) const;
+        int Timestamps(struct hxhim_result_timestamps_t **timestamps) const;
 
     private:
         hxhim_t *hx;

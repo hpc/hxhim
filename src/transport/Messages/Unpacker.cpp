@@ -88,9 +88,6 @@ int Unpacker::unpack(Request::BPut **bpm, void *buf, const std::size_t bufsize) 
     }
 
     for(std::size_t i = 0; i < out->max_count; i++) {
-        memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
-        curr += sizeof(out->ds_offsets[i]);
-
         // subject + len
         out->subjects[i] = construct<RealBlob>(curr);
 
@@ -126,9 +123,6 @@ int Unpacker::unpack(Request::BGet **bgm, void *buf, const std::size_t bufsize) 
     }
 
     for(std::size_t i = 0; i < out->max_count; i++) {
-        memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
-        curr += sizeof(out->ds_offsets[i]);
-
         // subject
         out->subjects[i] = construct<RealBlob>(curr);
 
@@ -161,9 +155,6 @@ int Unpacker::unpack(Request::BGetOp **bgm, void *buf, const std::size_t bufsize
     }
 
     for(std::size_t i = 0; i < out->max_count; i++) {
-        memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
-        curr += sizeof(out->ds_offsets[i]);
-
         // operation to run
         memcpy(&out->ops[i], curr, sizeof(out->ops[i]));
         curr += sizeof(out->ops[i]);
@@ -201,9 +192,6 @@ int Unpacker::unpack(Request::BDelete **bdm, void *buf, const std::size_t bufsiz
     }
 
     for(std::size_t i = 0; i < out->max_count; i++) {
-        memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
-        curr += sizeof(out->ds_offsets[i]);
-
         // subject
         out->subjects[i] = construct<RealBlob>(curr);
 
@@ -295,9 +283,6 @@ int Unpacker::unpack(Response::BPut **bpm, void *buf, const std::size_t bufsize)
     }
 
     for(std::size_t i = 0; i < out->max_count; i++) {
-        memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
-        curr += sizeof(out->ds_offsets[i]);
-
         memcpy(&out->statuses[i], curr, sizeof(out->statuses[i]));
         curr += sizeof(out->statuses[i]);
 
@@ -325,9 +310,6 @@ int Unpacker::unpack(Response::BGet **bgm, void *buf, const std::size_t bufsize)
     }
 
     for(std::size_t i = 0; i < out->max_count; i++) {
-        memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
-        curr += sizeof(out->ds_offsets[i]);
-
         memcpy(&out->statuses[i], curr, sizeof(out->statuses[i]));
         curr += sizeof(out->statuses[i]);
 
@@ -365,9 +347,6 @@ int Unpacker::unpack(Response::BGetOp **bgm, void *buf, const std::size_t bufsiz
     }
 
     for(std::size_t i = 0; i < out->max_count; i++) {
-        memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
-        curr += sizeof(out->ds_offsets[i]);
-
         memcpy(&out->statuses[i], curr, sizeof(out->statuses[i]));
         curr += sizeof(out->statuses[i]);
 
@@ -414,9 +393,6 @@ int Unpacker::unpack(Response::BDelete **bdm, void *buf, const std::size_t bufsi
     }
 
     for(std::size_t i = 0; i < out->max_count; i++) {
-        memcpy(&out->ds_offsets[i], curr, sizeof(out->ds_offsets[i]));
-        curr += sizeof(out->ds_offsets[i]);
-
         memcpy(&out->statuses[i], curr, sizeof(out->statuses[i]));
         curr += sizeof(out->statuses[i]);
 
@@ -480,6 +456,10 @@ int Unpacker::unpack(Message *msg, void *buf, const std::size_t, char **curr) {
         destruct(msg);
         return TRANSPORT_ERROR;
     }
+
+    const std::size_t offset_len = sizeof(*msg->ds_offsets) * count;
+    memcpy(msg->ds_offsets, *curr, offset_len);
+    *curr += offset_len;
 
     return TRANSPORT_SUCCESS;
 }

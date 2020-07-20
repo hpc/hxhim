@@ -1,5 +1,15 @@
 #include "hxhim/private/cache.hpp"
-#include "utils/Blob.hpp"
+
+hxhim::UserData::UserData()
+    : ds_id(-1),
+      ds_rank(-1),
+      ds_offset(-1),
+      added(),
+      first_shuffle(),
+      hash()
+{
+    clock_gettime(CLOCK_MONOTONIC, &added);
+}
 
 hxhim::UserData::~UserData() {}
 
@@ -19,12 +29,13 @@ hxhim::PutData::PutData()
       next(nullptr)
 {}
 
-int hxhim::PutData::moveto(Transport::Request::BPut *bput, const int ds_offset) {
+int hxhim::PutData::moveto(Transport::Request::BPut *bput) {
     if (!bput) {
         return HXHIM_ERROR;
     }
 
     bput->ds_offsets[bput->count] = ds_offset;
+    bput->timestamps.reqs[bput->count].cached = added;
     bput->subjects[bput->count] = subject; subject = nullptr;
     bput->predicates[bput->count] = predicate; predicate = nullptr;
     bput->object_types[bput->count] = object_type;
@@ -43,12 +54,13 @@ hxhim::GetData::GetData()
 
 hxhim::GetData::~GetData() {}
 
-int hxhim::GetData::moveto(Transport::Request::BGet *bget, const int ds_offset) {
+int hxhim::GetData::moveto(Transport::Request::BGet *bget) {
     if (!bget) {
         return HXHIM_ERROR;
     }
 
     bget->ds_offsets[bget->count] = ds_offset;
+    bget->timestamps.reqs[bget->count].cached = added;
     bget->subjects[bget->count] = subject; subject = nullptr;
     bget->predicates[bget->count] = predicate; predicate = nullptr;
     bget->object_types[bget->count] = object_type;
@@ -73,12 +85,13 @@ hxhim::GetOpData::GetOpData()
 
 hxhim::GetOpData::~GetOpData() {}
 
-int hxhim::GetOpData::moveto(Transport::Request::BGetOp *bgetop, const int ds_offset) {
+int hxhim::GetOpData::moveto(Transport::Request::BGetOp *bgetop) {
     if (!bgetop) {
         return HXHIM_ERROR;
     }
 
     bgetop->ds_offsets[bgetop->count] = ds_offset;
+    bgetop->timestamps.reqs[bgetop->count].cached = added;
     bgetop->subjects[bgetop->count] = subject; subject = nullptr;
     bgetop->predicates[bgetop->count] = predicate; predicate = nullptr;
     bgetop->object_types[bgetop->count] = object_type;
@@ -95,12 +108,13 @@ hxhim::DeleteData::DeleteData()
       next(nullptr)
 {}
 
-int hxhim::DeleteData::moveto(Transport::Request::BDelete *bdel, const int ds_offset) {
+int hxhim::DeleteData::moveto(Transport::Request::BDelete *bdel) {
     if (!bdel) {
         return HXHIM_ERROR;
     }
 
     bdel->ds_offsets[bdel->count] = ds_offset;
+    bdel->timestamps.reqs[bdel->count].cached = added;
     bdel->subjects[bdel->count] = subject; subject = nullptr;
     bdel->predicates[bdel->count] = predicate; predicate = nullptr;
     bdel->count++;

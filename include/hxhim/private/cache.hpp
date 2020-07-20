@@ -4,8 +4,9 @@
 #include <condition_variable>
 #include <mutex>
 
-#include "hxhim/constants.h"
 #include "transport/Messages/Messages.hpp"
+#include "utils/Blob.hpp"
+#include "utils/Stats.hpp"
 #include "utils/type_traits.hpp"
 
 /*
@@ -19,7 +20,16 @@
  */
 namespace hxhim {
     struct UserData {
+        UserData();
         virtual ~UserData();
+
+        int ds_id;
+        int ds_rank;
+        int ds_offset;
+
+        struct timespec added;          // when this struct was created
+        struct timespec first_shuffle;  // first time this request was sent into shuffle
+        struct Monostamp hash;          // how long hashing took
     };
 
     typedef struct SubjectPredicate : UserData {
@@ -33,7 +43,7 @@ namespace hxhim {
     struct PutData : SP_t {
         PutData();
         ~PutData() = default;
-        int moveto(Transport::Request::BPut *bput, const int ds_offset);
+        int moveto(Transport::Request::BPut *bput);
 
         hxhim_type_t object_type;
         Blob *object;
@@ -45,7 +55,7 @@ namespace hxhim {
     struct GetData : SP_t {
         GetData();
         ~GetData();
-        int moveto(Transport::Request::BGet *bget, const int ds_offset);
+        int moveto(Transport::Request::BGet *bget);
 
         hxhim_type_t object_type;
 
@@ -56,7 +66,7 @@ namespace hxhim {
     struct GetOpData : SP_t {
         GetOpData();
         ~GetOpData();
-        int moveto(Transport::Request::BGetOp *bgetop, const int ds_offset);
+        int moveto(Transport::Request::BGetOp *bgetop);
 
         hxhim_type_t object_type;
         std::size_t num_recs;
@@ -69,7 +79,7 @@ namespace hxhim {
     struct DeleteData : SP_t {
         DeleteData();
         ~DeleteData() = default;
-        int moveto(Transport::Request::BDelete *bdelete, const int ds_offset);
+        int moveto(Transport::Request::BDelete *bdelete);
 
         DeleteData *prev;
         DeleteData *next;

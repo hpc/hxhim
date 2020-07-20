@@ -1,3 +1,4 @@
+#include <ctime>
 #include <cstring>
 
 #include "transport/Messages/Packer.hpp"
@@ -52,9 +53,6 @@ int Packer::pack(const Request::BPut *bpm, void **buf, std::size_t *bufsize) {
     }
 
     for(std::size_t i = 0; i < bpm->count; i++) {
-        memcpy(curr, &bpm->ds_offsets[i], sizeof(bpm->ds_offsets[i]));
-        curr += sizeof(bpm->ds_offsets[i]);
-
         // subject + len
         bpm->subjects[i]->pack(curr);
 
@@ -85,9 +83,6 @@ int Packer::pack(const Request::BGet *bgm, void **buf, std::size_t *bufsize) {
     }
 
     for(std::size_t i = 0; i < bgm->count; i++) {
-        memcpy(curr, &bgm->ds_offsets[i], sizeof(bgm->ds_offsets[i]));
-        curr += sizeof(bgm->ds_offsets[i]);
-
         // subject
         bgm->subjects[i]->pack(curr);
 
@@ -115,9 +110,6 @@ int Packer::pack(const Request::BGetOp *bgm, void **buf, std::size_t *bufsize) {
     }
 
     for(std::size_t i = 0; i < bgm->count; i++) {
-        memcpy(curr, &bgm->ds_offsets[i], sizeof(bgm->ds_offsets[i]));
-        curr += sizeof(bgm->ds_offsets[i]);
-
         // operation to run
         memcpy(curr, &bgm->ops[i], sizeof(bgm->ops[i]));
         curr += sizeof(bgm->ops[i]);
@@ -150,9 +142,6 @@ int Packer::pack(const Request::BDelete *bdm, void **buf, std::size_t *bufsize) 
     }
 
     for(std::size_t i = 0; i < bdm->count; i++) {
-        memcpy(curr, &bdm->ds_offsets[i], sizeof(bdm->ds_offsets[i]));
-        curr += sizeof(bdm->ds_offsets[i]);
-
         // subject
         bdm->subjects[i]->pack(curr);
 
@@ -206,9 +195,6 @@ int Packer::pack(const Response::BPut *bpm, void **buf, std::size_t *bufsize) {
     }
 
     for(std::size_t i = 0; i < bpm->count; i++) {
-        memcpy(curr, &bpm->ds_offsets[i], sizeof(bpm->ds_offsets[i]));
-        curr += sizeof(bpm->ds_offsets[i]);
-
         memcpy(curr, &bpm->statuses[i], sizeof(bpm->statuses[i]));
         curr += sizeof(bpm->statuses[i]);
 
@@ -230,9 +216,6 @@ int Packer::pack(const Response::BGet *bgm, void **buf, std::size_t *bufsize) {
     }
 
     for(std::size_t i = 0; i < bgm->count; i++) {
-        memcpy(curr, &bgm->ds_offsets[i], sizeof(bgm->ds_offsets[i]));
-        curr += sizeof(bgm->ds_offsets[i]);
-
         memcpy(curr, &bgm->statuses[i], sizeof(bgm->statuses[i]));
         curr += sizeof(bgm->statuses[i]);
 
@@ -262,9 +245,6 @@ int Packer::pack(const Response::BGetOp *bgm, void **buf, std::size_t *bufsize) 
     }
 
     for(std::size_t i = 0; i < bgm->count; i++) {
-        memcpy(curr, &bgm->ds_offsets[i], sizeof(bgm->ds_offsets[i]));
-        curr += sizeof(bgm->ds_offsets[i]);
-
         memcpy(curr, &bgm->statuses[i], sizeof(bgm->statuses[i]));
         curr += sizeof(bgm->statuses[i]);
 
@@ -300,9 +280,6 @@ int Packer::pack(const Response::BDelete *bdm, void **buf, std::size_t *bufsize)
     }
 
     for(std::size_t i = 0; i < bdm->count; i++) {
-        memcpy(curr, &bdm->ds_offsets[i], sizeof(bdm->ds_offsets[i]));
-        curr += sizeof(bdm->ds_offsets[i]);
-
         memcpy(curr, &bdm->statuses[i], sizeof(bdm->statuses[i]));
         curr += sizeof(bdm->statuses[i]);
 
@@ -348,6 +325,10 @@ int Packer::pack(const Message *msg, void **buf, std::size_t *bufsize, char **cu
 
     memcpy(*curr, &msg->count, sizeof(msg->count));
     *curr += sizeof(msg->count);
+
+    const std::size_t offset_len = sizeof(*msg->ds_offsets) * msg->count;
+    memcpy(*curr, msg->ds_offsets, offset_len);
+    *curr += offset_len;
 
     return TRANSPORT_SUCCESS;
 }

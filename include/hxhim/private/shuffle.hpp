@@ -47,63 +47,69 @@ int shuffle(hxhim_t *hx,
             SRC_t *src,
             DST_t *local,
             std::unordered_map<int, DST_t *> &remote) {
-    // get the destination backend id for the key
-    const int ds_id = hx->p->hash.func(hx,
-                                       src->subject->data(), src->subject->size(),
-                                       src->predicate->data(), src->predicate->size(),
-                                       hx->p->hash.args);
-    if (ds_id < 0) {
-        mlog(HXHIM_CLIENT_WARN, "Hash returned bad target datastore: %d", ds_id);
-        return ERROR;
-    }
+    // skip duplicate calculations
+    if ((src->ds_id < 0) || (src->ds_rank < 0) || (src->ds_offset < 0)) {
+        clock_gettime(CLOCK_MONOTONIC, &src->first_shuffle);
 
-    // split the backend id into destination rank and ds_offset
-    const int ds_rank = hxhim::datastore::get_rank(hx, ds_id);
-    const int ds_offset = hxhim::datastore::get_offset(hx, ds_id);
+        // get the destination backend id for the key
+        clock_gettime(CLOCK_MONOTONIC, &src->hash.start);
+        src->ds_id = hx->p->hash.func(hx,
+                                      src->subject->data(), src->subject->size(),
+                                      src->predicate->data(), src->predicate->size(),
+                                      hx->p->hash.args);
+        clock_gettime(CLOCK_MONOTONIC, &src->hash.end);
 
-    // group local keys
-    if (ds_rank == rank) {
-        mlog(HXHIM_CLIENT_INFO, "Shuffled %p to local datastore %d on rank %d (%zu already packed; %zu max)", src, ds_id, ds_rank, local->count, max_per_dst);
-
-        if (local->count >= max_per_dst) {
-            mlog(HXHIM_CLIENT_INFO, "Cannot add to packet going to local datastore");
-            return NOSPACE;
+        if (src->ds_id < 0) {
+            mlog(HXHIM_CLIENT_WARN, "Hash returned bad target datastore: %d", src->ds_id);
+            return ERROR;
         }
 
-        src->moveto(local, ds_offset);
-        mlog(HXHIM_CLIENT_INFO, "Added %p to local datastore packet (%zu packed; %zu max)", src, local->count, max_per_dst);
+        // split the backend id into destination rank and ds_offset
+        src->ds_rank = hxhim::datastore::get_rank(hx, src->ds_id);
+        src->ds_offset = hxhim::datastore::get_offset(hx, src->ds_id);
     }
-    // group remote keys
-    else {
-        mlog(HXHIM_CLIENT_INFO, "Shuffled %p to remote datastore %d on rank %d", src, ds_id, ds_rank);
 
+    mlog(HXHIM_CLIENT_INFO, "Shuffled %p to datastore %d on rank %d", src, src->ds_id, src->ds_rank);
+
+    DST_t *dst = nullptr;
+
+    // local keys
+    if (src->ds_rank == rank) {
+        dst = local;
+    }
+    // remote keys
+    else {
         // try to find the destination first
-        REF(remote)::iterator it = remote.find(ds_rank);
+        REF(remote)::iterator it = remote.find(src->ds_rank);
 
         // if the destination is not found, add one
         if (it == remote.end()) {
-            mlog(HXHIM_CLIENT_DBG, "Creating new packet going to rank %d", ds_rank);
+            mlog(HXHIM_CLIENT_DBG, "Creating new packet going to rank %d", src->ds_rank);
 
-            it = remote.insert(std::make_pair(ds_rank, construct<DST_t>(max_per_dst))).first;
+            it = remote.insert(std::make_pair(src->ds_rank, construct<DST_t>(max_per_dst))).first;
             it->second->src = rank;
-            it->second->dst = ds_rank;
+            it->second->dst = src->ds_rank;
         }
 
-        DST_t *rem = it->second;
-
-        mlog(HXHIM_CLIENT_DBG, "Packet going to rank %d currently has %zu entries", ds_rank, rem->count);
-
-        // packet is full
-        if (rem->count >= max_per_dst) {
-            mlog(HXHIM_CLIENT_INFO, "Cannot add to packet going to rank %d (no space)", ds_rank);
-            return NOSPACE;
-        }
-
-        src->moveto(rem, ds_offset);
-        mlog(HXHIM_CLIENT_INFO, "Added %p to rank %d packet (%zu / %zu)", src, ds_id, rem->count, max_per_dst);
+        dst = it->second;
     }
 
-    return ds_id;
+    mlog(HXHIM_CLIENT_INFO, "Packet going to rank %d has %zu already packed out of %zu slots", src->ds_rank, dst->count, max_per_dst);
+
+    // packet is full
+    if (dst->count >= max_per_dst) {
+        mlog(HXHIM_CLIENT_INFO, "Cannot add to packet going to rank %d (no space)", src->ds_rank);
+        return NOSPACE;
+    }
+
+    src->moveto(dst);
+    mlog(HXHIM_CLIENT_INFO, "Added %p to rank %d packet (%zu / %zu)", src, src->ds_id, dst->count, max_per_dst);
+
+    dst->timestamps.reqs[dst->count - 1].cached = src->added;
+    dst->timestamps.reqs[dst->count - 1].shuffled = src->first_shuffle;
+    clock_gettime(CLOCK_MONOTONIC, &dst->timestamps.reqs[dst->count - 1].bulked);
+
+    return src->ds_id;
 }
 
 }

@@ -3,6 +3,7 @@ cmake_minimum_required (VERSION 3.6.3)
 set(INSTALLED_HEADERS
   Blob.hpp
   Histogram.h
+  Stats.h
   memory.hpp
 )
 
