@@ -11,6 +11,7 @@
 
 #include "datastore/datastore.hpp"
 #include "hxhim/Results.hpp"
+#include "hxhim/Stats.h"
 #include "hxhim/constants.h"
 #include "hxhim/hash.h"
 #include "hxhim/options.h"
@@ -36,6 +37,8 @@
  */
 typedef struct hxhim_private {
     hxhim_private();
+
+    struct timespec epoch;
 
     struct {
         MPI_Comm comm;

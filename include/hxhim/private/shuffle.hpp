@@ -107,6 +107,7 @@ int shuffle(hxhim_t *hx,
 
     dst->timestamps.reqs[dst->count - 1].cached = src->added;
     dst->timestamps.reqs[dst->count - 1].shuffled = src->first_shuffle;
+    dst->timestamps.reqs[dst->count - 1].hashed = src->hash;
     clock_gettime(CLOCK_MONOTONIC, &dst->timestamps.reqs[dst->count - 1].bulked);
 
     return src->ds_id;

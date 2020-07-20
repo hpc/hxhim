@@ -4,7 +4,6 @@
 #include <iomanip>
 #include <map>
 
-#include "datastore/datastores.hpp"
 #include "hxhim/config.hpp"
 #include "hxhim/private/Results.hpp"
 #include "hxhim/private/hxhim.hpp"
@@ -32,7 +31,8 @@ void clean(hxhim_t *, Data *node) {
 }
 
 hxhim_private::hxhim_private()
-    : bootstrap(),
+    : epoch(),
+      bootstrap(),
       running(false),
       max_ops_per_send(),
       queues(),
@@ -41,7 +41,9 @@ hxhim_private::hxhim_private()
       hash(),
       transport(nullptr),
       range_server()
-{}
+{
+    clock_gettime(CLOCK_MONOTONIC, &epoch);
+}
 
 /**
  * backgroundPUT

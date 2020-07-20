@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
 
 #include "datastore/datastores.hpp"
 #include "hxhim/Results.hpp"
@@ -18,7 +19,26 @@ hxhim::Results::Result::Result(hxhim_t *hx, const hxhim_result_type type,
       status(status)
 {}
 
-hxhim::Results::Result::~Result() {}
+hxhim::Results::Result::~Result() {
+    if (hx) {
+        struct timespec epoch;
+        hxhim::nocheck::GetEpoch(hx, &epoch);
+        std::cerr << Transport::Message::TypeStr[type] << std::endl
+                  << "    Cached:       " << elapsed(&epoch, &timestamps.send.cached) << std::endl
+                  << "    Shuffled:     " << elapsed(&epoch, &timestamps.send.shuffled) << std::endl
+                  << "    Hash Start:   " << elapsed(&epoch, &timestamps.send.hashed.start) << std::endl
+                  << "    Hash End:     " << elapsed(&epoch, &timestamps.send.hashed.end) << std::endl
+                  << "    Bulked:       " << elapsed(&epoch, &timestamps.send.bulked) << std::endl
+                  << "    Pack Start:   " << elapsed(&epoch, &timestamps.transport.pack.start) << std::endl
+                  << "    Pack End:     " << elapsed(&epoch, &timestamps.transport.pack.end) << std::endl
+                  << "    Send Start:   " << elapsed(&epoch, &timestamps.transport.send_start) << std::endl
+                  << "    Recv End:     " << elapsed(&epoch, &timestamps.transport.recv_end) << std::endl
+                  << "    Unpack Start: " << elapsed(&epoch, &timestamps.transport.unpack.start) << std::endl
+                  << "    Unpack End:   " << elapsed(&epoch, &timestamps.transport.unpack.end) << std::endl
+                  << "    Result Start: " << elapsed(&epoch, &timestamps.recv.result.start) << std::endl
+                  << "    Result End:   " << elapsed(&epoch, &timestamps.recv.result.end) << std::endl;
+    }
+}
 
 hxhim::Results::SubjectPredicate::SubjectPredicate(hxhim_t *hx, const hxhim_result_type type,
                                                    const int datastore, const int status)

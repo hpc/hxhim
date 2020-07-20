@@ -2,6 +2,22 @@
 #include "hxhim/private/hxhim.hpp"
 
 /**
+ * GetEpoch
+ * Gets the epoch from the HXHIM instance
+ *
+ * @param hx     the HXHIM instance
+ * @param epoch  where to copy the epoch into
+ * @return HXHIM_SUCCESS
+ */
+int hxhim::nocheck::GetEpoch(hxhim_t *hx, struct timespec *epoch) {
+    if (epoch) {
+        *epoch = hx->p->epoch;
+    }
+
+    return HXHIM_SUCCESS;
+}
+
+/**
  * GetMPI
  * Gets the MPI information of the HXHIM instance
  *

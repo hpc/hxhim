@@ -26,17 +26,12 @@ int Transport::Response::Response::alloc(const std::size_t max) {
     return TRANSPORT_SUCCESS;
 }
 
-int Transport::Response::Response::steal(Transport::Response::Response *res, const std::size_t i) {
-    if (!res) {
+int Transport::Response::Response::steal(Transport::Response::Response *from, const std::size_t i) {
+    if (Message::steal(from, i) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
-    if (count >= max_count) {
-        return TRANSPORT_ERROR;
-    }
-
-    ds_offsets[count] = res->ds_offsets[i];
-    statuses[count] = res->statuses[i];
+    statuses[count] = from->statuses[i];
 
     return TRANSPORT_SUCCESS;
 }

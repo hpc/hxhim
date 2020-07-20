@@ -2,6 +2,7 @@
 #define HXHIM_ACCESSORS_H
 
 #include <stddef.h>
+#include <time.h>
 
 #include <mpi.h>
 
@@ -13,6 +14,7 @@ extern "C"
 {
 #endif
 
+int hxhimGetEpoch(hxhim_t *hx, struct timespec *epoch);
 int hxhimGetMPI(hxhim_t *hx, MPI_Comm *comm, int *rank, int *size);
 int hxhimGetDatastoresPerRangeServer(hxhim_t *hx, size_t *datastore_count);
 int hxhimGetDatastoreCount(hxhim_t *hx, size_t *count);

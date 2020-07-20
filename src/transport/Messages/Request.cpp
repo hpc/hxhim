@@ -22,19 +22,5 @@ int Transport::Request::Request::cleanup() {
 }
 
 int Transport::Request::Request::steal(Transport::Request::Request *from, const std::size_t i) {
-    // can't fit a new item
-    if (count == max_count) {
-        return TRANSPORT_ERROR;
-    }
-
-    if (!from) {
-        return TRANSPORT_ERROR;
-    }
-
-    // can't steal
-    if ((i >= from->count) || (i >= max_count)) {
-        return TRANSPORT_ERROR;
-    }
-
-    return TRANSPORT_SUCCESS;
+    return Message::steal(from, i);
 }

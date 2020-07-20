@@ -53,17 +53,32 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
     res->src = req->dst;
     res->dst = req->src;
 
+    // take ownership of timestamps
+    res->timestamps = req->timestamps;
+    req->timestamps.reqs = nullptr;
+
     std::vector<hxhim::datastore::Datastore *> *datastores = &hx->p->datastores;
 
     // send to each datastore
     for(std::size_t ds = 0; ds < datastore_count; ds++) {
+        // no packing
+        res->timestamps.transport.pack.start = hx->p->epoch;
+        res->timestamps.transport.pack.end = hx->p->epoch;
+
+        clock_gettime(CLOCK_MONOTONIC, &res->timestamps.transport.send_start);
         Response_t *response = (*datastores)[ds]->operate(&dsts[ds]);
+        clock_gettime(CLOCK_MONOTONIC, &res->timestamps.transport.recv_end);
+
+        // no unpacking
+        res->timestamps.transport.unpack.start = hx->p->epoch;
+        res->timestamps.transport.unpack.end = hx->p->epoch;
 
         // if there were responses, copy them into the output variable
         if (response) {
             for(std::size_t i = 0; i < response->count; i++) {
                 res->steal(response, i);
             }
+
             response->count = 0;
             destruct(response);
         }

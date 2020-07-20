@@ -43,6 +43,7 @@ struct Message {
     std::size_t filled() const;
 
     virtual int alloc(const std::size_t max);
+    virtual int steal(Message *from, const std::size_t i);
     virtual int cleanup();
 
     Direction direction;

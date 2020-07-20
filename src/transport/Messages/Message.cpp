@@ -50,6 +50,31 @@ int Transport::Message::alloc(const std::size_t max) {
     return TRANSPORT_SUCCESS;
 }
 
+int Transport::Message::steal(Transport::Message *from, const std::size_t i) {
+    // no space for new data
+    if (count >= max_count) {
+        return TRANSPORT_ERROR;
+    }
+
+    // no source
+    if (!from) {
+        return TRANSPORT_ERROR;
+    }
+
+    // bad source index
+    if (i >= from->count) {
+        return TRANSPORT_ERROR;
+    }
+
+    ds_offsets[count] = from->ds_offsets[i];
+
+    // timestamps.reqs[count] = from->timestamps.reqs[i];
+
+    // increment count in calling function
+
+    return TRANSPORT_SUCCESS;
+}
+
 int Transport::Message::cleanup() {
     dealloc_array(ds_offsets, count);
     ds_offsets = nullptr;

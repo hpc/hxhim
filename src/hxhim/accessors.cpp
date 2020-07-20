@@ -3,6 +3,34 @@
 #include "hxhim/private/hxhim.hpp"
 
 /**
+ * GetEpoch
+ * Gets the Epoch information of the HXHIM instance
+ *
+ * @param hx     the HXHIM instance
+ * @param epoch  where to copy the epoch into
+ * @return HXHIM_SUCCESS or HXHIM_ERROR on error
+ */
+int hxhim::GetEpoch(hxhim_t *hx, struct timespec *epoch) {
+    if (!valid(hx)) {
+        return HXHIM_ERROR;
+    }
+
+    return hxhim::nocheck::GetEpoch(hx, epoch);
+}
+
+/**
+ * hxhimGetEpoch
+ * Gets the Epoch information of the HXHIM instance
+ *
+ * @param hx     the HXHIM instance
+ * @param epoch  where to copy the epoch into
+ * @return HXHIM_SUCCESS or HXHIM_ERROR on error
+ */
+int hxhimGetEpoch(hxhim_t *hx, struct timespec *epoch) {
+    return hxhim::GetEpoch(hx, epoch);
+}
+
+/**
  * GetMPI
  * Gets the MPI information of the HXHIM instance
  *
