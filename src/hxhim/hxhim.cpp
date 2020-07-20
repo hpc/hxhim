@@ -436,6 +436,7 @@ hxhim_results_t *hxhimFlush(hxhim_t *hx) {
 
 /**
  * Sync
+ * Collective operation
  * Force all queues to be emptied out and
  * writes all data to the backing storage.
  *
@@ -445,17 +446,34 @@ hxhim_results_t *hxhimFlush(hxhim_t *hx) {
 hxhim::Results *hxhim::Sync(hxhim_t *hx) {
     hxhim::Results *res = Flush(hx);
 
-    MPI_Barrier(hx->p->bootstrap.comm);
+    struct Send send;
+    send.cached = hx->p->epoch;
+    send.shuffled = hx->p->epoch;
+    send.hashed.start = hx->p->epoch;
+    send.hashed.end = hx->p->epoch;
+    send.bulked = hx->p->epoch;
 
-    if (is_range_server(hx->p->bootstrap.rank, hx->p->range_server.client_ratio, hx->p->range_server.server_ratio)) {
-        // Sync local data stores
-        for(std::size_t i = 0; i < hx->p->datastores.size(); i++) {
-            const int synced = hx->p->datastores[i]->Sync();
-            res->Add(hxhim::Result::init(hx, i, synced));
-        }
+    struct SendRecv transport;
+    transport.pack.start = hx->p->epoch;
+    transport.pack.end = hx->p->epoch;
+
+    transport.unpack.start = hx->p->epoch;
+    transport.unpack.end = hx->p->epoch;
+
+    clock_gettime(CLOCK_MONOTONIC, &transport.send_start);
+    MPI_Barrier(hx->p->bootstrap.comm);
+    clock_gettime(CLOCK_MONOTONIC, &transport.recv_end);
+
+    // Sync local data stores
+    for(std::size_t i = 0; i < hx->p->datastores.size(); i++) {
+        const int synced = hx->p->datastores[i]->Sync();
+        hxhim::Results::Sync *sync = hxhim::Result::init(hx, i, synced);
+        sync->timestamps.send = send;
+        sync->timestamps.transport = transport;
+        clock_gettime(CLOCK_MONOTONIC, &sync->timestamps.recv.result.start);
+        res->Add(sync);
+        clock_gettime(CLOCK_MONOTONIC, &sync->timestamps.recv.result.end);
     }
-
-    MPI_Barrier(hx->p->bootstrap.comm);
 
     return res;
 }
