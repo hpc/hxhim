@@ -40,6 +40,10 @@ int hxhim::PutData::moveto(Transport::Request::BPut *bput) {
     bput->predicates[bput->count] = predicate; predicate = nullptr;
     bput->object_types[bput->count] = object_type;
     bput->objects[bput->count] = object; object = nullptr;
+
+    bput->orig.subjects[bput->count] = bput->subjects[bput->count]->data();
+    bput->orig.predicates[bput->count] = bput->predicates[bput->count]->data();
+
     bput->count++;
 
     return HXHIM_SUCCESS;
