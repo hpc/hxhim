@@ -25,7 +25,8 @@ hxhim::Results::Result::Result(hxhim_t *hx, const hxhim_result_type_t type,
     : hx(hx),
       type(type),
       datastore(datastore),
-      status(status)
+      status(status),
+      timestamps()
 {}
 
 hxhim::Results::Result::~Result() {

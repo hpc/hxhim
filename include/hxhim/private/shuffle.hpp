@@ -67,6 +67,8 @@ int shuffle(hxhim_t *hx,
         // split the backend id into destination rank and ds_offset
         src->ds_rank = hxhim::datastore::get_rank(hx, src->ds_id);
         src->ds_offset = hxhim::datastore::get_offset(hx, src->ds_id);
+
+        src->find_dst = 0;
     }
 
     struct Monostamp find_dst;
