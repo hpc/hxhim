@@ -1,16 +1,21 @@
 cmake_minimum_required(VERSION 3.6.3)
 
-target_sources(googletest PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/BadGet.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/GetStats.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/Histogram.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/OpenClose.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/PutGet.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/Results.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/accessors.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/enqueue.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/generic_options.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/generic_options.hpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/shuffle.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/transport.cpp
+set(HXHIM_TEST_FILES
+  BadGet.cpp
+  GetStats.cpp
+  Histogram.cpp
+  OpenClose.cpp
+  PutGet.cpp
+  Results.cpp
+  accessors.cpp
+  cache.cpp
+  enqueue.cpp
+  generic_options.cpp
+  generic_options.hpp
+  shuffle.cpp
+  transport.cpp
 )
+
+foreach(FILE ${HXHIM_TEST_FILES})
+  target_sources(googletest PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/${FILE}")
+endforeach()
