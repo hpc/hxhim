@@ -7,74 +7,87 @@
 #include <mpi.h>
 
 #include "hxhim/hxhim.h"
+#include "utils/elen.h"
 
 #define BUF_SIZE 100
 
 const double MIN_DOUBLE = -100;
 const double MAX_DOUBLE = 100;
 
-const char NAME_FMT[]   = "cell-%zu";
-const char X[]          = "x";
-const char Y[]          = "y";
-const char TEMP[]       = "TEMP";
+const char NAME_FMT[]   = "Cell-(%zu, %zu)";
+const char TEMP_FMT[]   = "Temp-(%zu, %zu)";
 
 typedef struct Cell {
     char name[BUF_SIZE];
-    size_t x;
-    size_t y;
+    char predicate[BUF_SIZE];
     double temp;
+    char *temp_str;
 } Cell_t;
 
-static void print_double_results(hxhim_results_t *results) {
+void print_results(hxhim_t *hx, const int print_rank, hxhim_results_t *results) {
     if (!results) {
-        printf("No Results\n");
         return;
     }
 
-    for(hxhim_results_goto_head(results); hxhim_results_valid(results) == HXHIM_SUCCESS; hxhim_results_goto_next(results)) {
-        enum hxhim_result_type type;
-        hxhim_results_type(results, &type);
+    for(hxhim_results_goto_head(results); hxhim_results_valid_iterator(results) == HXHIM_SUCCESS; hxhim_results_goto_next(results)) {
+        if (print_rank) {
+            int rank = -1;
+            if (hxhimGetMPI(hx, NULL, &rank, NULL) != HXHIM_SUCCESS) {
+                printf("Could not get rank\n");
+            }
+            else {
+                printf("Rank %d ", rank);
+            }
+        }
+
+        enum hxhim_result_type_t type;
+        hxhim_result_type(results, &type);
 
         int status;
-        hxhim_results_status(results, &status);
+        hxhim_result_status(results, &status);
 
         int datastore;
-        hxhim_results_datastore(results, &datastore);
+        hxhim_result_datastore(results, &datastore);
+
+        void *subject = NULL;
+        size_t subject_len = 0;
+
+        void *predicate = NULL;
+        size_t predicate_len = 0;
+
+        if (status == HXHIM_SUCCESS) {
+            hxhim_result_subject(results, &subject, &subject_len);
+            hxhim_result_predicate(results, &predicate, &predicate_len);
+        }
+
+        const double temp = elen_decode_floating_double(subject, ELEN_NEG, ELEN_POS);
 
         switch (type) {
             case HXHIM_RESULT_PUT:
-                printf("PUT returned %s from datastore %d", (status == HXHIM_SUCCESS)?"SUCCESS":"ERROR", datastore);
+                printf("PUT          {%f, %.*s} returned %s from datastore %d\n", temp, (int) predicate_len, (char *) predicate, (status == HXHIM_SUCCESS)?"SUCCESS":"ERROR", datastore);
                 break;
-            case HXHIM_RESULT_GET:
+            case HXHIM_RESULT_GETOP:
                 printf("GET returned ");
                 if (status == HXHIM_SUCCESS) {
-                    void *subject = NULL;
-                    size_t subject_len = 0;
-                    hxhim_results_subject(results, &subject, &subject_len);
-
-                    void *predicate = NULL;
-                    size_t predicate_len = 0;
-                    hxhim_results_predicate(results, &predicate, &predicate_len);
-
+                    enum hxhim_type_t object_type;
+                    hxhim_result_object_type(results, &object_type);
                     void *object = NULL;
                     size_t object_len = 0;
-                    hxhim_results_object(results, &object, &object_len);
+                    hxhim_result_object(results, &object, &object_len);
 
-                    printf("{%.*s, %f} -> %.*s",
-                           (int) subject_len, (char *) subject,
-                           * (double *) predicate,
+                    printf("{%f, %.*s} -> %.*s", temp,
+                           (int) predicate_len, (char *) predicate,
                            (int) object_len, (char *) object);
+
                 }
                 else {
                     printf("ERROR");
                 }
 
-                printf("from datastore %d\n", datastore);
-                break;
-            case HXHIM_RESULT_DEL:
-                printf("DEL returned %s from datastore %d", (status == HXHIM_SUCCESS)?"SUCCESS":"ERROR", datastore);
+                printf(" from datastore %d\n", datastore);
                 break;
             default:
+                printf("Bad Type: %d\n", (int) type);
                 break;
         }
     }
@@ -83,6 +96,24 @@ static void print_double_results(hxhim_results_t *results) {
 int main(int argc, char *argv[]) {
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+
+    if (argc < 5) {
+        fprintf(stderr, "Syntax: %s n_x n_y n_lowest n_highest", argv[0]);
+        return 1;
+    }
+
+    size_t num_x       = 0;
+    size_t num_y       = 0;
+    size_t num_lowest  = 0;
+    size_t num_highest = 0;
+
+    if ((sscanf(argv[1], "%zu", &num_x)       != 1) ||
+        (sscanf(argv[2], "%zu", &num_y)       != 1) ||
+        (sscanf(argv[3], "%zu", &num_lowest)  != 1) ||
+        (sscanf(argv[4], "%zu", &num_highest) != 1)) {
+        fprintf(stderr, "Bad input\n");
+        return 1;
+    }
 
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -111,12 +142,10 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    double lowest = DBL_MAX;
-    double highest = -DBL_MAX;
+    Cell_t *lowest = NULL;
+    Cell_t *highest = NULL;
 
     // generate some data
-    const size_t num_x = 10;
-    const size_t num_y = 10;
     const size_t total = num_x * num_y;
     Cell_t *cells = (Cell_t *) calloc(total, sizeof(Cell_t));
 
@@ -125,47 +154,71 @@ int main(int argc, char *argv[]) {
         for(size_t y = 0; y < num_y; y++) {
             Cell_t *c = &cells[x * num_x + y];
 
-            snprintf(c->name, BUF_SIZE, NAME_FMT, id++);
-
-            c->x = x;
-            c->y = y;
+            snprintf(c->name,      BUF_SIZE, NAME_FMT, x, y);
+            snprintf(c->predicate, BUF_SIZE, TEMP_FMT, x, y);
             c->temp = MIN_DOUBLE + (MAX_DOUBLE - MIN_DOUBLE) * ((double) rand()) / ((double) RAND_MAX);
+            c->temp_str = elen_encode_floating_double(c->temp, 10, ELEN_NEG, ELEN_POS);
 
             // keep track of the lowest temperature
-            if (c->temp < lowest) {
-                lowest = c->temp;
+            if (lowest) {
+                if (c->temp < lowest->temp) {
+                    lowest = c;
+                }
+            }
+            else {
+                lowest = c;
             }
 
             // keep track of the highest temperature
-            if (c->temp > highest) {
-                highest = c->temp;
+            if (highest) {
+                if (c->temp > highest->temp) {
+                    highest = c;
+                }
+            }
+            else {
+                highest = c;
             }
 
             hxhimPut(&hx,
-                     (void *) c->name, strlen(c->name),
-                     (void *) &X, strlen(X),
-                     HXHIM_SIZE_TYPE,   (void *) &c->x, sizeof(c->x));
-            hxhimPut(&hx,
-                     (void *) c->name, strlen(c->name),
-                     (void *) &Y, strlen(Y),
-                     HXHIM_SIZE_TYPE,   (void *) &c->y, sizeof(c->y));
-            hxhimPut(&hx,
-                     (void *) c->name, strlen(c->name),
-                     (void *) &TEMP, strlen(TEMP),
-                     HXHIM_DOUBLE_TYPE, (void *) &c->temp, sizeof(c->temp));
+                     c->temp_str, strlen(c->temp_str) + 1,
+                     c->predicate, strlen(c->predicate) + 1,
+                     HXHIM_BYTE_TYPE,
+                     c->name, strlen(c->name) + 1);
         }
     }
 
-    hxhim_results_t *flush1 = hxhimFlush(&hx);
-    hxhim_results_destroy(flush1);
+    // force PUTs to finish
+    hxhim_results_t *puts = hxhimFlush(&hx);
+    print_results(&hx, 0, puts);
+    hxhim_results_destroy(puts);
 
-    hxhimBGetOp(&hx, (void *) &TEMP, strlen(TEMP), (void *) &lowest,  sizeof(lowest),  HXHIM_DOUBLE_TYPE, 10, HXHIM_GET_NEXT);
-    hxhimBGetOp(&hx, (void *) &TEMP, strlen(TEMP), (void *) &highest, sizeof(highest), HXHIM_DOUBLE_TYPE, 10, HXHIM_GET_PREV);
+    printf("--------------------------------------------\n");
+    printf("lowest %zu\n", num_lowest);
+    printf("--------------------------------------------\n");
+    hxhimBGetOp(&hx,
+                lowest->temp_str, strlen(lowest->temp_str) + 1,
+                lowest->predicate, strlen(lowest->predicate) + 1,
+                HXHIM_BYTE_TYPE, num_lowest, HXHIM_GET_NEXT);
+    hxhim_results_t *get_lowest = hxhimFlush(&hx);
+    print_results(&hx, 0, get_lowest);
+    hxhim_results_destroy(get_lowest);
+    printf("--------------------------------------------\n");
 
-    hxhim_results_t *flush2 = hxhimFlush(&hx);
-    print_double_results(flush2);
-    hxhim_results_destroy(flush2);
+    printf("--------------------------------------------\n");
+    printf("highest %zu\n", num_highest);
+    printf("--------------------------------------------\n");
+    hxhimBGetOp(&hx,
+                highest->temp_str, strlen(highest->temp_str) + 1,
+                highest->predicate, strlen(highest->predicate) + 1,
+                HXHIM_BYTE_TYPE, num_highest, HXHIM_GET_PREV);
+    hxhim_results_t *get_highest = hxhimFlush(&hx);
+    print_results(&hx, 0, get_highest);
+    hxhim_results_destroy(get_highest);
+    printf("--------------------------------------------\n");
 
+    for(size_t i = 0; i < total; i++) {
+        free(cells[i].temp_str);
+    }
     free(cells);
 
     hxhimClose(&hx);
