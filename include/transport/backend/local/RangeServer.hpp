@@ -57,21 +57,16 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
     }
     res->timestamps.transport = req->timestamps.transport;
 
+    // no packing
+    clock_gettime(CLOCK_MONOTONIC, &res->timestamps.transport.pack.start);
+    res->timestamps.transport.pack.end = res->timestamps.transport.pack.start;
+
     std::vector<hxhim::datastore::Datastore *> *datastores = &hx->p->datastores;
 
     // send to each datastore
+    clock_gettime(CLOCK_MONOTONIC, &res->timestamps.transport.send_start);
     for(std::size_t ds = 0; ds < datastore_count; ds++) {
-        // no packing
-        res->timestamps.transport.pack.start = hx->p->epoch;
-        res->timestamps.transport.pack.end = hx->p->epoch;
-
-        clock_gettime(CLOCK_MONOTONIC, &res->timestamps.transport.send_start);
         Response_t *response = (*datastores)[ds]->operate(&dsts[ds]);
-        clock_gettime(CLOCK_MONOTONIC, &res->timestamps.transport.recv_end);
-
-        // no unpacking
-        res->timestamps.transport.unpack.start = hx->p->epoch;
-        res->timestamps.transport.unpack.end = hx->p->epoch;
 
         // if there were responses, copy them into the output variable
         if (response) {
@@ -83,6 +78,11 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
             destruct(response);
         }
     }
+    clock_gettime(CLOCK_MONOTONIC, &res->timestamps.transport.recv_end);
+
+    // no unpacking
+    clock_gettime(CLOCK_MONOTONIC, &res->timestamps.transport.unpack.start);
+    res->timestamps.transport.unpack.end = res->timestamps.transport.unpack.start;
 
     dealloc_array(dsts, datastore_count);
 

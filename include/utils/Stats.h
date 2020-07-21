@@ -16,6 +16,7 @@ struct Monostamp {
 };
 
 long double elapsed(const struct Monostamp *duration);
+long double elapsed2(const struct timespec *start, const struct timespec *end);
 
 #ifdef __cplusplus
 }

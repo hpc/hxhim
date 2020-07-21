@@ -69,6 +69,9 @@ int shuffle(hxhim_t *hx,
         src->ds_offset = hxhim::datastore::get_offset(hx, src->ds_id);
     }
 
+    struct Monostamp find_dst;
+    clock_gettime(CLOCK_MONOTONIC, &find_dst.start);
+
     mlog(HXHIM_CLIENT_INFO, "Shuffled %p to datastore %d on rank %d", src, src->ds_id, src->ds_rank);
 
     DST_t *dst = nullptr;
@@ -96,11 +99,20 @@ int shuffle(hxhim_t *hx,
 
     mlog(HXHIM_CLIENT_INFO, "Packet going to rank %d has %zu already packed out of %zu slots", src->ds_rank, dst->count, max_per_dst);
 
+    clock_gettime(CLOCK_MONOTONIC, &find_dst.end);
+
+    src->find_dst += elapsed(&find_dst);
+
     // packet is full
     if (dst->count >= max_per_dst) {
         mlog(HXHIM_CLIENT_INFO, "Cannot add to packet going to rank %d (no space)", src->ds_rank);
         return NOSPACE;
     }
+
+    // not dst->count because src has not been moved
+    // yet, so dst->count is the request that is
+    // about to be created
+    clock_gettime(CLOCK_MONOTONIC, &dst->timestamps.reqs[dst->count].bulked.start);
 
     src->moveto(dst);
     mlog(HXHIM_CLIENT_INFO, "Added %p to rank %d packet (%zu / %zu)", src, src->ds_id, dst->count, max_per_dst);
@@ -108,7 +120,9 @@ int shuffle(hxhim_t *hx,
     dst->timestamps.reqs[dst->count - 1].cached = src->added;
     dst->timestamps.reqs[dst->count - 1].shuffled = src->first_shuffle;
     dst->timestamps.reqs[dst->count - 1].hashed = src->hash;
-    clock_gettime(CLOCK_MONOTONIC, &dst->timestamps.reqs[dst->count - 1].bulked);
+    dst->timestamps.reqs[dst->count - 1].find_dst = src->find_dst;
+
+    clock_gettime(CLOCK_MONOTONIC, &dst->timestamps.reqs[dst->count - 1].bulked.end);
 
     return src->ds_id;
 }

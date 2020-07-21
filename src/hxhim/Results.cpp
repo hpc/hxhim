@@ -6,12 +6,21 @@
 #include "hxhim/Results.hpp"
 #include "hxhim/private/Results.hpp"
 #include "hxhim/private/accessors.hpp"
-#include "transport/Messages/Messages.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
-hxhim::Results::Result::Result(hxhim_t *hx, const hxhim_result_type type,
+const char *hxhim_result_type_str[] = {
+    "NONE",
+    "PUT",
+    "GET",
+    "GETOP",
+    "DELETE",
+    "SYNC",
+    "MAX",
+};
+
+hxhim::Results::Result::Result(hxhim_t *hx, const hxhim_result_type_t type,
                                const int datastore, const int status)
     : hx(hx),
       type(type),
@@ -24,26 +33,28 @@ hxhim::Results::Result::~Result() {
         struct timespec epoch;
         hxhim::nocheck::GetEpoch(hx, &epoch);
         std::stringstream s;
-        s << Transport::Message::TypeStr[type]                                           << std::endl
-          << "    Cached:       " << elapsed(&epoch, &timestamps.send.cached)            << std::endl
-          << "    Shuffled:     " << elapsed(&epoch, &timestamps.send.shuffled)          << std::endl
-          << "    Hash Start:   " << elapsed(&epoch, &timestamps.send.hashed.start)      << std::endl
-          << "    Hash End:     " << elapsed(&epoch, &timestamps.send.hashed.end)        << std::endl
-          << "    Bulked:       " << elapsed(&epoch, &timestamps.send.bulked)            << std::endl
-          << "    Pack Start:   " << elapsed(&epoch, &timestamps.transport.pack.start)   << std::endl
-          << "    Pack End:     " << elapsed(&epoch, &timestamps.transport.pack.end)     << std::endl
-          << "    Send Start:   " << elapsed(&epoch, &timestamps.transport.send_start)   << std::endl
-          << "    Recv End:     " << elapsed(&epoch, &timestamps.transport.recv_end)     << std::endl
-          << "    Unpack Start: " << elapsed(&epoch, &timestamps.transport.unpack.start) << std::endl
-          << "    Unpack End:   " << elapsed(&epoch, &timestamps.transport.unpack.end)   << std::endl
-          << "    Result Start: " << elapsed(&epoch, &timestamps.recv.result.start)      << std::endl
-          << "    Result End:   " << elapsed(&epoch, &timestamps.recv.result.end)        << std::endl;
+        s << hxhim_result_type_str[type]                                                      << std::endl
+          << "    Cached:           " << elapsed2(&epoch, &timestamps.send.cached)            << std::endl
+          << "    Shuffled:         " << elapsed2(&epoch, &timestamps.send.shuffled)          << std::endl
+          << "    Hash Start:       " << elapsed2(&epoch, &timestamps.send.hashed.start)      << std::endl
+          << "    Hash End:         " << elapsed2(&epoch, &timestamps.send.hashed.end)        << std::endl
+          << "    Find Dst (total): " << timestamps.send.find_dst                             << std::endl
+          << "    Bulked Start:     " << elapsed2(&epoch, &timestamps.send.bulked.start)      << std::endl
+          << "    Bulked End:       " << elapsed2(&epoch, &timestamps.send.bulked.end)        << std::endl
+          << "    Pack Start:       " << elapsed2(&epoch, &timestamps.transport.pack.start)   << std::endl
+          << "    Pack End:         " << elapsed2(&epoch, &timestamps.transport.pack.end)     << std::endl
+          << "    Send Start:       " << elapsed2(&epoch, &timestamps.transport.send_start)   << std::endl
+          << "    Recv End:         " << elapsed2(&epoch, &timestamps.transport.recv_end)     << std::endl
+          << "    Unpack Start:     " << elapsed2(&epoch, &timestamps.transport.unpack.start) << std::endl
+          << "    Unpack End:       " << elapsed2(&epoch, &timestamps.transport.unpack.end)   << std::endl
+          << "    Result Start:     " << elapsed2(&epoch, &timestamps.recv.result.start)      << std::endl
+          << "    Result End:       " << elapsed2(&epoch, &timestamps.recv.result.end)        << std::endl;
 
         mlog(HXHIM_CLIENT_DBG, "\n%s", s.str().c_str());
     }
 }
 
-hxhim::Results::SubjectPredicate::SubjectPredicate(hxhim_t *hx, const hxhim_result_type type,
+hxhim::Results::SubjectPredicate::SubjectPredicate(hxhim_t *hx, const hxhim_result_type_t type,
                                                    const int datastore, const int status)
     : hxhim::Results::Result(hx, type, datastore, status),
       subject(nullptr),
@@ -57,17 +68,17 @@ hxhim::Results::SubjectPredicate::~SubjectPredicate() {
 
 hxhim::Results::Put::Put(hxhim_t *hx,
                          const int datastore, const int status)
-    : SubjectPredicate(hx, hxhim_result_type::HXHIM_RESULT_PUT, datastore, status)
+    : SubjectPredicate(hx, hxhim_result_type_t::HXHIM_RESULT_PUT, datastore, status)
 {}
 
 hxhim::Results::Delete::Delete(hxhim_t *hx,
                                const int datastore, const int status)
-    : SubjectPredicate(hx, hxhim_result_type::HXHIM_RESULT_DEL, datastore, status)
+    : SubjectPredicate(hx, hxhim_result_type_t::HXHIM_RESULT_DEL, datastore, status)
 {}
 
 hxhim::Results::Sync::Sync(hxhim_t *hx,
                            const int datastore, const int status)
-    : Result(hx, hxhim_result_type::HXHIM_RESULT_SYNC, datastore, status)
+    : Result(hx, hxhim_result_type_t::HXHIM_RESULT_SYNC, datastore, status)
 {}
 
 hxhim::Results::Result *hxhim::Result::init(hxhim_t *hx, Transport::Response::Response *res, const std::size_t i) {
@@ -209,7 +220,8 @@ int hxhim_results_valid(hxhim_results_t *res) {
 hxhim::Results::Results(hxhim_t *hx)
     : hx(hx),
       results(),
-      curr(results.end())
+      curr(results.end()),
+      duration(0)
 {}
 
 hxhim::Results::~Results() {
@@ -242,7 +254,7 @@ void hxhim::Results::Destroy(Results *res) {
 
 /**
  * Add
- * Appends a single result node to the end of the list;
+ * Appends a single result node to the end of the list
  *
  * @return the pointer to the last valid node
  */
@@ -264,6 +276,35 @@ hxhim::Results::Result *hxhim::Results::Add(hxhim::Results::Result *res) {
 }
 
 /**
+ * Add
+ * Converts an entire response packet into a result list
+ * Timestamps are summed up
+ *
+ * @param res the response packet
+ */
+void hxhim::Results::Add(Transport::Response::Response *res) {
+    for(Transport::Response::Response *curr = res; curr; curr = next(curr)) {
+        struct timespec start;
+        clock_gettime(CLOCK_MONOTONIC, &start);
+        for(std::size_t i = 0; i < curr->count; i++) {
+            Add(hxhim::Result::init(hx, curr, i));
+
+            duration += elapsed(&curr->timestamps.reqs[i].hashed)
+                     +  curr->timestamps.reqs[i].find_dst
+                     +  elapsed(&curr->timestamps.reqs[i].bulked);
+        }
+
+        duration += elapsed2(&curr->timestamps.transport.pack.start,
+                             &curr->timestamps.transport.unpack.end);
+
+        struct timespec end;
+        clock_gettime(CLOCK_MONOTONIC, &end);
+
+        duration += elapsed2(&start, &end);
+    }
+}
+
+/**
  * Append
  * Moves and appends the contents of another hxhim::Results into this one.
  * The other list is emptied out;
@@ -273,6 +314,9 @@ hxhim::Results::Result *hxhim::Results::Add(hxhim::Results::Result *res) {
 void hxhim::Results::Append(hxhim::Results *other) {
     if (other) {
         results.splice(results.end(), other->results);
+
+        duration += other->duration;
+        other->duration = 0;
     }
 }
 
@@ -371,7 +415,7 @@ std::size_t hxhim::Results::Size() const {
 }
 
 /**
- * Size
+ * hxhim_results_size
  * Get the number of elements in this set of results
  *
  * @param res   A list of results
@@ -391,13 +435,45 @@ int hxhim_results_size(hxhim_results_t *res, size_t *size) {
 }
 
 /**
+ * Duration
+ * Return the total time it took to convert
+ * requests to responses.
+ *
+ * @return the total time
+ */
+long double hxhim::Results::Duration() const {
+    return duration;
+}
+
+/**
+ * Duration
+ * Return the total time it took to convert
+ * requests to responses.
+ *
+ * @param res       A list of results
+ * @param duration  The total time
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
+ */
+int hxhim_results_duration(hxhim_results_t *res, long double *duration) {
+    if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
+        return HXHIM_ERROR;
+    }
+
+    if (duration) {
+        *duration = res->res->Duration();
+    }
+
+    return HXHIM_SUCCESS;
+}
+
+/**
  * Type
  * Gets the type of the result node currently being pointed to
  *
  * @param type  (optional) the type of the current result, only valid if this function returns HXHIM_SUCCESS
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim::Results::Type(enum hxhim_result_type *type) const {
+int hxhim::Results::Type(enum hxhim_result_type_t *type) const {
     hxhim::Results::Result *res = Curr();
     if (!res) {
         return HXHIM_ERROR;
@@ -411,14 +487,14 @@ int hxhim::Results::Type(enum hxhim_result_type *type) const {
 }
 
 /**
- * hxhim_results_type
+ * hxhim_result_type
  * Gets the type of the result node currently being pointed to
  *
  * @param res   A list of results
  * @param type  (optional) the type of the current result, only valid if this function returns HXHIM_SUCCESS
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim_results_type(hxhim_results_t *res, enum hxhim_result_type *type) {
+int hxhim_result_type(hxhim_results_t *res, enum hxhim_result_type_t *type) {
     if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
@@ -454,7 +530,7 @@ int hxhim::Results::Status(int *status) const {
  * @param status  (optional) the status of the current result, only valid if this function returns HXHIM_SUCCESS
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim_results_status(hxhim_results_t *res, int *status) {
+int hxhim_result_status(hxhim_results_t *res, int *status) {
     if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
@@ -483,14 +559,14 @@ int hxhim::Results::Datastore(int *datastore) const {
 }
 
 /**
- * hxhim_results_datastore
+ * hxhim_result_datastore
  * Gets the datastore of the result node currently being pointed to
  *
  * @param res       A list of results
  * @param datastore  (optional) the datastore of the current result, only valid if this function returns HXHIM_SUCCESS
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim_results_datastore(hxhim_results_t *res, int *datastore) {
+int hxhim_result_datastore(hxhim_results_t *res, int *datastore) {
     if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
@@ -520,10 +596,10 @@ int hxhim::Results::Subject(void **subject, size_t *subject_len) const {
 
     int rc = HXHIM_ERROR;
     switch (res->type) {
-        case hxhim_result_type::HXHIM_RESULT_PUT:
-        case hxhim_result_type::HXHIM_RESULT_GET:
-        case hxhim_result_type::HXHIM_RESULT_GETOP:
-        case hxhim_result_type::HXHIM_RESULT_DEL:
+        case hxhim_result_type_t::HXHIM_RESULT_PUT:
+        case hxhim_result_type_t::HXHIM_RESULT_GET:
+        case hxhim_result_type_t::HXHIM_RESULT_GETOP:
+        case hxhim_result_type_t::HXHIM_RESULT_DEL:
         {
             hxhim::Results::SubjectPredicate *sp = static_cast<hxhim::Results::SubjectPredicate *>(res);
             sp->subject->get(subject, subject_len);
@@ -538,7 +614,7 @@ int hxhim::Results::Subject(void **subject, size_t *subject_len) const {
 }
 
 /**
- * hxhim_results_subject
+ * hxhim_result_subject
  * Gets the subject and length from the current result node, if the result node contains data from a GET
  *
  * @param res          A list of results
@@ -546,7 +622,7 @@ int hxhim::Results::Subject(void **subject, size_t *subject_len) const {
  * @param subject_len  (optional) the subject_len of the current result, only valid if this function returns HXHIM_SUCCESS
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim_results_subject(hxhim_results_t *res, void **subject, size_t *subject_len) {
+int hxhim_result_subject(hxhim_results_t *res, void **subject, size_t *subject_len) {
     if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
@@ -576,10 +652,10 @@ int hxhim::Results::Predicate(void **predicate, size_t *predicate_len) const {
 
     int rc = HXHIM_ERROR;
     switch (res->type) {
-        case hxhim_result_type::HXHIM_RESULT_PUT:
-        case hxhim_result_type::HXHIM_RESULT_GET:
-        case hxhim_result_type::HXHIM_RESULT_GETOP:
-        case hxhim_result_type::HXHIM_RESULT_DEL:
+        case hxhim_result_type_t::HXHIM_RESULT_PUT:
+        case hxhim_result_type_t::HXHIM_RESULT_GET:
+        case hxhim_result_type_t::HXHIM_RESULT_GETOP:
+        case hxhim_result_type_t::HXHIM_RESULT_DEL:
         {
             hxhim::Results::SubjectPredicate *sp = static_cast<hxhim::Results::SubjectPredicate *>(res);
             sp->predicate->get(predicate, predicate_len);
@@ -594,14 +670,14 @@ int hxhim::Results::Predicate(void **predicate, size_t *predicate_len) const {
 }
 
 /**
- * hxhim_results_predicate
+ * hxhim_result_predicate
  * Gets the predicate and length from the current result node, if the result node contains data from a GET
  *
  * @param predicate      (optional) the predicate of the current result, only valid if this function returns HXHIM_SUCCESS
  * @param predicate_len  (optional) the predicate_len of the current result, only valid if this function returns HXHIM_SUCCESS
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim_results_predicate(hxhim_results_t *res, void **predicate, size_t *predicate_len) {
+int hxhim_result_predicate(hxhim_results_t *res, void **predicate, size_t *predicate_len) {
     if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
@@ -630,8 +706,8 @@ int hxhim::Results::ObjectType(enum hxhim_type_t *object_type) const {
 
     int rc = HXHIM_ERROR;
     switch (res->type) {
-        case hxhim_result_type::HXHIM_RESULT_GET:
-        case hxhim_result_type::HXHIM_RESULT_GETOP:
+        case hxhim_result_type_t::HXHIM_RESULT_GET:
+        case hxhim_result_type_t::HXHIM_RESULT_GETOP:
         {
             hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(res);
             if (object_type) {
@@ -648,14 +724,14 @@ int hxhim::Results::ObjectType(enum hxhim_type_t *object_type) const {
 }
 
 /**
- * hxhim_results_object_type
+ * hxhim_result_object_type
  * Gets the object type from the current result node, if the result node contains data from a GET
  *
  * @param res         A list of results
  * @param object_type (optional) the object type of the current result, only valid if this function returns HXHIM_SUCCESS
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim_results_object_type(hxhim_results_t *res, hxhim_type_t *object_type) {
+int hxhim_result_object_type(hxhim_results_t *res, hxhim_type_t *object_type) {
     if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
@@ -685,8 +761,8 @@ int hxhim::Results::Object(void **object, size_t *object_len) const {
 
     int rc = HXHIM_ERROR;
     switch (res->type) {
-        case hxhim_result_type::HXHIM_RESULT_GET:
-        case hxhim_result_type::HXHIM_RESULT_GETOP:
+        case hxhim_result_type_t::HXHIM_RESULT_GET:
+        case hxhim_result_type_t::HXHIM_RESULT_GETOP:
         {
             hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(res);
             get->object->get(object, object_len);
@@ -701,7 +777,7 @@ int hxhim::Results::Object(void **object, size_t *object_len) const {
 }
 
 /**
- * hxhim_results_object
+ * hxhim_result_object
  * Gets the object and length from the current result node, if the result node contains data from a GET
  *
  * @param res         A list of results
@@ -709,7 +785,7 @@ int hxhim::Results::Object(void **object, size_t *object_len) const {
  * @param object_len  (optional) the object_len of the current result, only valid if this function returns HXHIM_SUCCESS
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim_results_object(hxhim_results_t *res, void **object, size_t *object_len) {
+int hxhim_result_object(hxhim_results_t *res, void **object, size_t *object_len) {
     if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
@@ -738,14 +814,14 @@ int hxhim::Results::Timestamps(struct hxhim_result_timestamps_t **timestamps) co
 }
 
 /**
- * hxhim_results_timestamps
+ * hxhim_result_timestamps
  * Extract the timestamps associated with this request
  *
  * @param res         A list of results
  * @param timestamps (optional) the address of the pointer to fill in
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim_results_timestamps(hxhim_results_t *res, struct hxhim_result_timestamps_t **timestamps) {
+int hxhim_result_timestamps(hxhim_results_t *res, struct hxhim_result_timestamps_t **timestamps) {
     if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }

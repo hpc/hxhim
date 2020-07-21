@@ -113,6 +113,10 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
                      RPC_t process_rpc,
                      RPC_t cleanup_rpc,
                      std::unordered_map<int, Endpoint_t> &endpoints) {
+
+    int rank = -1;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
     Recv_t *head = nullptr;
     Recv_t *tail = nullptr;
 
@@ -184,7 +188,7 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
         Recv_t *response = nullptr;
         const int unpack_rc = Unpacker::unpack(&response, res_buf, res_size);
         dealloc(res_buf);
-        clock_gettime(CLOCK_MONOTONIC, &req->timestamps.transport.unpack.start); // store the value in req for now
+        clock_gettime(CLOCK_MONOTONIC, &req->timestamps.transport.unpack.end); // store the value in req for now
 
         // clean up server pointer before handling any errors
         cleanup_rpc->on(*dst_it->second)(res_ptr);
@@ -218,7 +222,6 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
     }
 
     mlog(THALLIUM_INFO, "Done sending requests and receiving responses");
-
     return head;
 }
 

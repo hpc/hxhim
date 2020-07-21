@@ -5,8 +5,6 @@
 
 #include "utils/Stats.h"
 
-long double elapsed(const struct timespec *start, const struct timespec *end);
-
 using Clock = std::chrono::steady_clock;
 using Chronopoint = std::chrono::time_point<Clock>;
 

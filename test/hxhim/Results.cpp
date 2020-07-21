@@ -158,7 +158,7 @@ TEST(Results, Accessors) {
     del->predicate = construct<RealBlob>(alloc(1), 1);
 
     // all Results will attempt to get these variables
-    hxhim_result_type type;
+    hxhim_result_type_t type;
     int status;
     void *subject = nullptr;
     std::size_t subject_len = 0;
@@ -172,7 +172,7 @@ TEST(Results, Accessors) {
     EXPECT_EQ(results.ValidIterator(), true);
     {
         EXPECT_EQ(results.Type(&type), HXHIM_SUCCESS);
-        EXPECT_EQ(type, hxhim_result_type::HXHIM_RESULT_PUT);
+        EXPECT_EQ(type, hxhim_result_type_t::HXHIM_RESULT_PUT);
 
         EXPECT_EQ(results.Status(&status), HXHIM_SUCCESS);
         EXPECT_EQ(status, HXHIM_SUCCESS);
@@ -191,7 +191,7 @@ TEST(Results, Accessors) {
     EXPECT_EQ(results.ValidIterator(), true);
     {
         EXPECT_EQ(results.Type(&type), HXHIM_SUCCESS);
-        EXPECT_EQ(type, hxhim_result_type::HXHIM_RESULT_GET);
+        EXPECT_EQ(type, hxhim_result_type_t::HXHIM_RESULT_GET);
 
         EXPECT_EQ(results.Status(&status), HXHIM_SUCCESS);
         EXPECT_EQ(status, HXHIM_SUCCESS);
@@ -213,7 +213,7 @@ TEST(Results, Accessors) {
     EXPECT_EQ(results.ValidIterator(), true);
     {
         EXPECT_EQ(results.Type(&type), HXHIM_SUCCESS);
-        EXPECT_EQ(type, hxhim_result_type::HXHIM_RESULT_GETOP);
+        EXPECT_EQ(type, hxhim_result_type_t::HXHIM_RESULT_GETOP);
 
         EXPECT_EQ(results.Status(&status), HXHIM_SUCCESS);
         EXPECT_EQ(status, HXHIM_SUCCESS);
@@ -235,7 +235,7 @@ TEST(Results, Accessors) {
     EXPECT_EQ(results.ValidIterator(), true);
     {
         EXPECT_EQ(results.Type(&type), HXHIM_SUCCESS);
-        EXPECT_EQ(type, hxhim_result_type::HXHIM_RESULT_DEL);
+        EXPECT_EQ(type, hxhim_result_type_t::HXHIM_RESULT_DEL);
 
         EXPECT_EQ(results.Status(&status), HXHIM_SUCCESS);
         EXPECT_EQ(status, HXHIM_SUCCESS);
@@ -254,7 +254,7 @@ TEST(Results, Accessors) {
     EXPECT_EQ(results.ValidIterator(), false);
     {
         EXPECT_EQ(results.Type(&type), HXHIM_ERROR);
-        EXPECT_EQ(type, hxhim_result_type::HXHIM_RESULT_DEL);
+        EXPECT_EQ(type, hxhim_result_type_t::HXHIM_RESULT_DEL);
         EXPECT_EQ(results.Status(&status), HXHIM_ERROR);
         EXPECT_EQ(results.Subject(&subject, &subject_len), HXHIM_ERROR);
         EXPECT_EQ(results.Predicate(&predicate, &predicate_len), HXHIM_ERROR);

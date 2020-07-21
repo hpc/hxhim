@@ -226,7 +226,7 @@ Transport::Response::BGet *hxhim::datastore::leveldb::BGetImpl(Transport::Reques
             event.size += res->objects[i]->size();
         }
         else {
-            mlog(LEVELDB_WARN, "Rank %d LevelDB GET error: %s", rank, status.ToString().c_str());
+            mlog(LEVELDB_INFO, "Rank %d LevelDB GET error: %s", rank, status.ToString().c_str());
             res->statuses[i] = HXHIM_ERROR;
         }
 

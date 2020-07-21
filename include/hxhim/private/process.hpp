@@ -117,16 +117,7 @@ hxhim::Results *process(hxhim_t *hx,
                 hx->p->stats.used[it->second->type].push_back(it->second->filled());
                 hx->p->stats.outgoing[it->second->type][it->second->dst]++;
             }
-
-            Transport::Response::Response *responses = hx->p->transport->communicate(remote);
-            timespec end;
-            clock_gettime(CLOCK_MONOTONIC, &end);
-
-            for(Transport::Response::Response *curr = responses; curr; curr = next(curr)) {
-                for(std::size_t i = 0; i < curr->count; i++) {
-                    res->Add(hxhim::Result::init(hx, curr, i));
-                }
-            }
+            res->Add(hx->p->transport->communicate(remote));
         }
 
         for(REF(remote)::value_type &dst : remote) {
@@ -140,13 +131,7 @@ hxhim::Results *process(hxhim_t *hx,
             // collect stats
             hx->p->stats.used[local.type].push_back(local.filled());
             hx->p->stats.outgoing[local.type][local.dst]++;
-
-            Response_t *responses = Transport::local::range_server<Response_t, Request_t>(hx, &local);
-            for(Transport::Response::Response *curr = responses; curr; curr = next(curr)) {
-                for(std::size_t i = 0; i < curr->count; i++) {
-                    res->Add(hxhim::Result::init(hx, curr, i));
-                }
-            }
+            res->Add(Transport::local::range_server<Response_t, Request_t>(hx, &local));
         }
 
         mlog(HXHIM_CLIENT_DBG, "Rank %d Client received %zu responses", rank, res->Size());

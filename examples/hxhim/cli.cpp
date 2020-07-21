@@ -179,15 +179,15 @@ std::size_t run_commands(hxhim_t * hx, const UserInput &commands) {
             hxhim_results_valid(res) == HXHIM_SUCCESS;
             hxhim_results_goto_next(res)) {
 
-            enum hxhim_result_type type;
-            hxhim_results_type(res, &type);
+            enum hxhim_result_type_t type;
+            hxhim_result_type(res, &type);
 
             switch (type) {
                 case HXHIM_RESULT_GET:
                     {
                         char *object = nullptr;
                         size_t object_len = 0;
-                        hxhim_results_object(res, (void **) &object, &object_len);
+                        hxhim_result_object(res, (void **) &object, &object_len);
                     }
                     break;
                 default:

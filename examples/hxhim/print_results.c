@@ -2,6 +2,7 @@
 
 #include "print_results.h"
 #include "hxhim/accessors.h"
+#include "utils/elen.h"
 
 static void print_by_type(enum hxhim_type_t type, void *value, size_t value_len) {
     switch (type) {
@@ -46,14 +47,14 @@ void print_results(hxhim_t *hx, const int print_rank, hxhim_results_t *results) 
             }
         }
 
-        enum hxhim_result_type type;
-        hxhim_results_type(results, &type);
+        enum hxhim_result_type_t type;
+        hxhim_result_type(results, &type);
 
         int status;
-        hxhim_results_status(results, &status);
+        hxhim_result_status(results, &status);
 
         int datastore;
-        hxhim_results_datastore(results, &datastore);
+        hxhim_result_datastore(results, &datastore);
 
         void *subject = NULL;
         size_t subject_len = 0;
@@ -62,8 +63,8 @@ void print_results(hxhim_t *hx, const int print_rank, hxhim_results_t *results) 
         size_t predicate_len = 0;
 
         if (status == HXHIM_SUCCESS) {
-            hxhim_results_subject(results, &subject, &subject_len);
-            hxhim_results_predicate(results, &predicate, &predicate_len);
+            hxhim_result_subject(results, &subject, &subject_len);
+            hxhim_result_predicate(results, &predicate, &predicate_len);
         }
 
         switch (type) {
@@ -75,10 +76,10 @@ void print_results(hxhim_t *hx, const int print_rank, hxhim_results_t *results) 
                 printf("GET returned ");
                 if (status == HXHIM_SUCCESS) {
                     enum hxhim_type_t object_type;
-                    hxhim_results_object_type(results, &object_type);
+                    hxhim_result_object_type(results, &object_type);
                     void *object = NULL;
                     size_t object_len = 0;
-                    hxhim_results_object(results, &object, &object_len);
+                    hxhim_result_object(results, &object, &object_len);
 
                     printf("{%.*s, %.*s} -> ", (int) subject_len, (char *) subject, (int) predicate_len, (char *) predicate);
                     print_by_type(object_type, object, object_len);

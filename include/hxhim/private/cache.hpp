@@ -30,6 +30,8 @@ namespace hxhim {
         struct timespec added;          // when this struct was created
         struct timespec first_shuffle;  // first time this request was sent into shuffle
         struct Monostamp hash;          // how long hashing took
+        long double find_dst;           // how long it took to find the destination packet (before sending)
+                                        // this is a long double because this can happen multiple times
     };
 
     typedef struct SubjectPredicate : UserData {

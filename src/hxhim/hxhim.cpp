@@ -447,18 +447,20 @@ hxhim::Results *hxhim::Sync(hxhim_t *hx) {
     hxhim::Results *res = Flush(hx);
 
     struct Send send;
-    send.cached = hx->p->epoch;
-    send.shuffled = hx->p->epoch;
+    send.cached       = hx->p->epoch;
+    send.shuffled     = hx->p->epoch;
     send.hashed.start = hx->p->epoch;
-    send.hashed.end = hx->p->epoch;
-    send.bulked = hx->p->epoch;
+    send.hashed.end   = hx->p->epoch;
+    send.find_dst     = 0;
+    send.bulked.start = hx->p->epoch;
+    send.bulked.end   = hx->p->epoch;
 
     struct SendRecv transport;
     transport.pack.start = hx->p->epoch;
-    transport.pack.end = hx->p->epoch;
+    transport.pack.end   = hx->p->epoch;
 
     transport.unpack.start = hx->p->epoch;
-    transport.unpack.end = hx->p->epoch;
+    transport.unpack.end   = hx->p->epoch;
 
     clock_gettime(CLOCK_MONOTONIC, &transport.send_start);
     MPI_Barrier(hx->p->bootstrap.comm);

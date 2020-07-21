@@ -7,6 +7,7 @@
 #include "hxhim/Results.h"
 #include "hxhim/constants.h"
 #include "hxhim/struct.h"
+#include "transport/Messages/Messages.hpp"
 #include "utils/Blob.hpp"
 #include "utils/Stats.hpp"
 #include "utils/memory.hpp"
@@ -71,7 +72,7 @@ namespace hxhim {
 class Results {
     public:
         struct Result {
-            Result(hxhim_t *hx, const hxhim_result_type type,
+            Result(hxhim_t *hx, const hxhim_result_type_t type,
                    const int datastore, const int status);
             virtual ~Result();
 
@@ -85,7 +86,7 @@ class Results {
         };
 
         struct SubjectPredicate : public Result {
-            SubjectPredicate(hxhim_t *hx, const hxhim_result_type type,
+            SubjectPredicate(hxhim_t *hx, const hxhim_result_type_t type,
                              const int datastore, const int status);
             virtual ~SubjectPredicate();
 
@@ -143,12 +144,20 @@ class Results {
         static void Destroy(Results *res);
 
         // Appends a single new node to the list
+        // timestamps are not updated
         Result *Add(Result *res);
 
+        // Append an entire bulk packet's worth of data
+        // timestamps are updated
+        void Add(Transport::Response::Response *res);
+
         // Moves and appends another set of results; the list being appended is emptied out
+        // timestamps are updated
         void Append(Results *other);
 
+        // Accessors for the entire list of results
         std::size_t Size() const;
+        long double Duration() const;
 
         // Control the "curr" pointer
         bool ValidIterator() const;
@@ -156,9 +165,9 @@ class Results {
         Result *GoToNext();
         Result *Curr() const;
 
-        // Accessors
+        // Accessors for individual results
         // pointers are only valid if the Result they came from are still valid
-        int Type(enum hxhim_result_type *type) const;
+        int Type(enum hxhim_result_type_t *type) const;
         int Status(int *status) const;
         int Datastore(int *datastore) const;
         int Subject(void **subject, size_t *subject_len) const;
@@ -171,6 +180,7 @@ class Results {
         hxhim_t *hx;
         std::list <Result *> results;
         std::list <Result *>::iterator curr;
+        long double duration;
 };
 
 }
