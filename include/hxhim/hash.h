@@ -63,6 +63,11 @@ int hxhim_hash_Right(hxhim_t *hx,
                      void *predicate, const size_t predicate_len,
                      void *args);
 
+int hxhim_hash_Random(hxhim_t *hx,
+                      void *subject, const size_t subject_len,
+                      void *predicate, const size_t predicate_len,
+                      void *args);
+
 #ifdef __cplusplus
 }
 #endif

@@ -1,16 +1,21 @@
 cmake_minimum_required (VERSION 3.6.3)
 
-target_sources(hxhim PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/Histograms.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/Results.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/accessors.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/config.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/double.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/float.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/hash.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/hxhim.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/options.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/single_type.cpp
+set(HXHIM_SRC
+  Histograms.cpp
+  Results.cpp
+  Stats.cpp
+  accessors.cpp
+  config.cpp
+  double.cpp
+  float.cpp
+  hash.cpp
+  hxhim.cpp
+  options.cpp
+  single_type.cpp
 )
+
+foreach(FILE ${HXHIM_SRC})
+  target_sources(hxhim PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/${FILE})
+endforeach()
 
 add_subdirectory(private)

@@ -2,6 +2,7 @@
 #define HXHIM_PRIVATE_HPP
 
 #include <atomic>
+#include <map>
 #include <mutex>
 #include <ostream>
 #include <thread>
@@ -11,7 +12,7 @@
 
 #include "datastore/datastore.hpp"
 #include "hxhim/Results.hpp"
-#include "hxhim/Stats.h"
+#include "hxhim/Stats.hpp"
 #include "hxhim/constants.h"
 #include "hxhim/hash.h"
 #include "hxhim/options.h"

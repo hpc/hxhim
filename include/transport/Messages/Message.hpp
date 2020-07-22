@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-#include "hxhim/Stats.h"
+#include "hxhim/Stats.hpp"
 #include "hxhim/constants.h"
 #include "transport/constants.hpp"
 #include "utils/memory.hpp"
@@ -39,8 +39,8 @@ struct Message {
     int *ds_offsets;           // datastore id on the dst range server
 
     struct {
-        struct Send *reqs;
-        struct SendRecv transport;
+        struct hxhim::Stats::Send *reqs;
+        struct hxhim::Stats::SendRecv transport;
     } timestamps;
 };
 

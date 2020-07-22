@@ -67,8 +67,6 @@ int shuffle(hxhim_t *hx,
         // split the backend id into destination rank and ds_offset
         src->ds_rank = hxhim::datastore::get_rank(hx, src->ds_id);
         src->ds_offset = hxhim::datastore::get_offset(hx, src->ds_id);
-
-        src->find_dst = 0;
     }
 
     struct Monostamp find_dst;
@@ -103,6 +101,7 @@ int shuffle(hxhim_t *hx,
 
     clock_gettime(CLOCK_MONOTONIC, &find_dst.end);
 
+    // place this time range into src because the target bulk message might not have space
     src->find_dst += elapsed(&find_dst);
 
     // packet is full
@@ -111,20 +110,18 @@ int shuffle(hxhim_t *hx,
         return NOSPACE;
     }
 
-    // not dst->count because src has not been moved
-    // yet, so dst->count is the request that is
-    // about to be created
-    clock_gettime(CLOCK_MONOTONIC, &dst->timestamps.reqs[dst->count].bulked.start);
+    struct hxhim::Stats::Send *req = &dst->timestamps.reqs[dst->count];
 
+    clock_gettime(CLOCK_MONOTONIC, &req->bulked.start);
     src->moveto(dst);
+    clock_gettime(CLOCK_MONOTONIC, &req->bulked.end);
+
     mlog(HXHIM_CLIENT_INFO, "Added %p to rank %d packet (%zu / %zu)", src, src->ds_id, dst->count, max_per_dst);
 
-    dst->timestamps.reqs[dst->count - 1].cached = src->added;
-    dst->timestamps.reqs[dst->count - 1].shuffled = src->first_shuffle;
-    dst->timestamps.reqs[dst->count - 1].hashed = src->hash;
-    dst->timestamps.reqs[dst->count - 1].find_dst = src->find_dst;
-
-    clock_gettime(CLOCK_MONOTONIC, &dst->timestamps.reqs[dst->count - 1].bulked.end);
+    req->cached = src->added;
+    req->shuffled = src->first_shuffle;
+    req->hashed = src->hash;
+    req->find_dst = src->find_dst;
 
     return src->ds_id;
 }

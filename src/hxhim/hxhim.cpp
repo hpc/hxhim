@@ -454,7 +454,7 @@ hxhim_results_t *hxhimFlush(hxhim_t *hx) {
 hxhim::Results *hxhim::Sync(hxhim_t *hx) {
     hxhim::Results *res = Flush(hx);
 
-    struct Send send;
+    struct hxhim::Stats::Send send;
     send.cached       = hx->p->epoch;
     send.shuffled     = hx->p->epoch;
     send.hashed.start = hx->p->epoch;
@@ -463,7 +463,7 @@ hxhim::Results *hxhim::Sync(hxhim_t *hx) {
     send.bulked.start = hx->p->epoch;
     send.bulked.end   = hx->p->epoch;
 
-    struct SendRecv transport;
+    struct hxhim::Stats::SendRecv transport;
     transport.pack.start = hx->p->epoch;
     transport.pack.end   = hx->p->epoch;
 

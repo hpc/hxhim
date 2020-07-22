@@ -73,19 +73,19 @@ int Transport::Request::BGetOp::cleanup() {
         destruct(predicates[i]);
     }
 
-    dealloc_array(subjects, count);
+    dealloc_array(subjects, max_count);
     subjects = nullptr;
 
-    dealloc_array(predicates, count);
+    dealloc_array(predicates, max_count);
     predicates = nullptr;
 
-    dealloc_array(object_types, count);
+    dealloc_array(object_types, max_count);
     object_types = nullptr;
 
-    dealloc_array(num_recs, count);
+    dealloc_array(num_recs, max_count);
     num_recs = nullptr;
 
-    dealloc_array(ops, count);
+    dealloc_array(ops, max_count);
     ops = nullptr;
 
     return Request::cleanup();
@@ -192,19 +192,19 @@ int Transport::Response::BGetOp::cleanup() {
         }
     }
 
-    dealloc_array(object_types, count);
+    dealloc_array(object_types, max_count);
     object_types = nullptr;
 
-    dealloc_array(num_recs, count);
+    dealloc_array(num_recs, max_count);
     num_recs = nullptr;
 
-    dealloc_array(subjects, count);
+    dealloc_array(subjects, max_count);
     subjects = nullptr;
 
-    dealloc_array(predicates, count);
+    dealloc_array(predicates, max_count);
     predicates = nullptr;
 
-    dealloc_array(objects, count);
+    dealloc_array(objects, max_count);
     objects = nullptr;
 
     return Response::cleanup();

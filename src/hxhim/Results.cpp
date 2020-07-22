@@ -1,6 +1,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <sstream>
+#include <iostream>
 
 #include "datastore/datastores.hpp"
 #include "hxhim/Results.hpp"
@@ -21,27 +22,41 @@ hxhim::Results::Result::Result(hxhim_t *hx, const enum hxhim_op_t op,
 
 hxhim::Results::Result::~Result() {
     if (hx) {
+        int rank = -1;
+        hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
+
         struct timespec epoch;
         hxhim::nocheck::GetEpoch(hx, &epoch);
-        std::stringstream s;
-        s << HXHIM_OP_STR[op]                                                                 << std::endl
-          << "    Cached:           " << elapsed2(&epoch, &timestamps.send.cached)            << std::endl
-          << "    Shuffled:         " << elapsed2(&epoch, &timestamps.send.shuffled)          << std::endl
-          << "    Hash Start:       " << elapsed2(&epoch, &timestamps.send.hashed.start)      << std::endl
-          << "    Hash End:         " << elapsed2(&epoch, &timestamps.send.hashed.end)        << std::endl
-          << "    Find Dst (total): " << timestamps.send.find_dst                             << std::endl
-          << "    Bulked Start:     " << elapsed2(&epoch, &timestamps.send.bulked.start)      << std::endl
-          << "    Bulked End:       " << elapsed2(&epoch, &timestamps.send.bulked.end)        << std::endl
-          << "    Pack Start:       " << elapsed2(&epoch, &timestamps.transport.pack.start)   << std::endl
-          << "    Pack End:         " << elapsed2(&epoch, &timestamps.transport.pack.end)     << std::endl
-          << "    Send Start:       " << elapsed2(&epoch, &timestamps.transport.send_start)   << std::endl
-          << "    Recv End:         " << elapsed2(&epoch, &timestamps.transport.recv_end)     << std::endl
-          << "    Unpack Start:     " << elapsed2(&epoch, &timestamps.transport.unpack.start) << std::endl
-          << "    Unpack End:       " << elapsed2(&epoch, &timestamps.transport.unpack.end)   << std::endl
-          << "    Result Start:     " << elapsed2(&epoch, &timestamps.recv.result.start)      << std::endl
-          << "    Result End:       " << elapsed2(&epoch, &timestamps.recv.result.end)        << std::endl;
+        // std::stringstream s;
 
-        mlog(HXHIM_CLIENT_DBG, "\n%s", s.str().c_str());
+        // s << HXHIM_OP_STR[op]                                                                 << std::endl
+        //   << "    Cached:           " << elapsed2(&epoch, &timestamps.send.cached)            << std::endl
+        //   << "    Shuffled:         " << elapsed2(&epoch, &timestamps.send.shuffled)          << std::endl
+        //   << "    Hash Start:       " << elapsed2(&epoch, &timestamps.send.hashed.start)      << std::endl
+        //   << "    Hash End:         " << elapsed2(&epoch, &timestamps.send.hashed.end)        << std::endl
+        //   << "    Find Dst (total): " << timestamps.send.find_dst                             << std::endl
+        //   << "    Bulked Start:     " << elapsed2(&epoch, &timestamps.send.bulked.start)      << std::endl
+        //   << "    Bulked End:       " << elapsed2(&epoch, &timestamps.send.bulked.end)        << std::endl
+        //   << "    Pack Start:       " << elapsed2(&epoch, &timestamps.transport.pack.start)   << std::endl
+        //   << "    Pack End:         " << elapsed2(&epoch, &timestamps.transport.pack.end)     << std::endl
+        //   << "    Send Start:       " << elapsed2(&epoch, &timestamps.transport.send_start)   << std::endl
+        //   << "    Recv End:         " << elapsed2(&epoch, &timestamps.transport.recv_end)     << std::endl
+        //   << "    Unpack Start:     " << elapsed2(&epoch, &timestamps.transport.unpack.start) << std::endl
+        //   << "    Unpack End:       " << elapsed2(&epoch, &timestamps.transport.unpack.end)   << std::endl
+        //   << "    Result Start:     " << elapsed2(&epoch, &timestamps.recv.result.start)      << std::endl
+        //   << "    Result End:       " << elapsed2(&epoch, &timestamps.recv.result.end)        << std::endl;
+
+        // mlog(HXHIM_CLIENT_NOTE, "\n%s", s.str().c_str());
+
+        std::cerr << rank << " Cached " << nano2(&epoch, &timestamps.send.cached) << std::endl
+                  << rank << " Shuffled " << nano2(&epoch, &timestamps.send.shuffled) << std::endl
+                  << rank << " Hash " << nano2(&epoch, &timestamps.send.hashed.start) << " " << nano2(&epoch, &timestamps.send.hashed.end) << std::endl
+                  << rank << " FindDst " << timestamps.send.find_dst << std::endl
+                  << rank << " Bulked " << nano2(&epoch, &timestamps.send.bulked.start) << " " << nano2(&epoch, &timestamps.send.bulked.end) << std::endl
+                  << rank << " Pack " << nano2(&epoch, &timestamps.transport.pack.start) << " " << nano2(&epoch, &timestamps.transport.pack.end) << std::endl
+                  << rank << " Transport " << nano2(&epoch, &timestamps.transport.send_start) << " " << nano2(&epoch, &timestamps.transport.recv_end) << std::endl
+                  << rank << " Unpack " << nano2(&epoch, &timestamps.transport.unpack.start) << " " << nano2(&epoch, &timestamps.transport.unpack.end) << std::endl
+                  << rank << " Result " << nano2(&epoch, &timestamps.recv.result.start) << " " << nano2(&epoch, &timestamps.recv.result.end) << std::endl;
     }
 }
 
@@ -791,7 +806,7 @@ int hxhim_result_object(hxhim_results_t *res, void **object, size_t *object_len)
  * @param timestamps (optional) the address of the pointer to fill in
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim::Results::Timestamps(struct hxhim_result_timestamps_t **timestamps) const {
+int hxhim::Results::Timestamps(struct hxhim::Results::Result::Timestamps **timestamps) const {
     hxhim::Results::Result *res = Curr();
     if (!res) {
         return HXHIM_ERROR;
@@ -802,22 +817,6 @@ int hxhim::Results::Timestamps(struct hxhim_result_timestamps_t **timestamps) co
     }
 
     return HXHIM_SUCCESS;
-}
-
-/**
- * hxhim_result_timestamps
- * Extract the timestamps associated with this request
- *
- * @param res         A list of results
- * @param timestamps (optional) the address of the pointer to fill in
- * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
- */
-int hxhim_result_timestamps(hxhim_results_t *res, struct hxhim_result_timestamps_t **timestamps) {
-    if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
-        return HXHIM_ERROR;
-    }
-
-    return res->res->Timestamps(timestamps);
 }
 
 /**

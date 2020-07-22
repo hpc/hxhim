@@ -97,3 +97,16 @@ int hxhim_hash_Right(hxhim_t *hx, void *, const size_t, void *, const size_t, vo
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, &size);
     return hxhim::datastore::get_id(hx, (rank + 1) % size, 0);
 }
+
+/**
+ * hxhim_hash_Random
+ * Go to a random datatore
+ *
+ * @param hx            the HXHIM instance
+ * @return the destination datastore ID or -1 on error
+ */
+int hxhim_hash_Random(hxhim_t *hx, void *, const size_t, void *, const size_t, void *) {
+    std::size_t count = 0;
+    hxhim::nocheck::GetDatastoreCount(hx, &count);
+    return rand() % count;
+}

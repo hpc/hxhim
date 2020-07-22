@@ -29,8 +29,8 @@ int Transport::Message::alloc(const std::size_t max) {
     Message::cleanup();
 
     if ((max_count = max)) {
-        if (!(ds_offsets      = alloc_array<int>(max))         ||
-            !(timestamps.reqs = alloc_array<struct Send>(max))) {
+        if (!(ds_offsets      = alloc_array<int>(max))                       ||
+            !(timestamps.reqs = alloc_array<struct hxhim::Stats::Send>(max))) {
             cleanup();
             return TRANSPORT_ERROR;
         }
@@ -67,10 +67,10 @@ int Transport::Message::steal(Transport::Message *from, const std::size_t i) {
 }
 
 int Transport::Message::cleanup() {
-    dealloc_array(ds_offsets, count);
+    dealloc_array(ds_offsets, max_count);
     ds_offsets = nullptr;
 
-    dealloc_array(timestamps.reqs, count);
+    dealloc_array(timestamps.reqs, max_count);
     timestamps.reqs = nullptr;
 
     count = 0;

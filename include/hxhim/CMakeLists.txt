@@ -9,7 +9,7 @@ set(HXHIM_HEADERS
   Histograms.hpp
   Results.h
   Results.hpp
-  Stats.h
+  Stats.hpp
   accessors.h
   accessors.hpp
   config.h

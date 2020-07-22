@@ -6,7 +6,8 @@ hxhim::UserData::UserData()
       ds_offset(-1),
       added(),
       first_shuffle(),
-      hash()
+      hash(),
+      find_dst(0)
 {
     clock_gettime(CLOCK_MONOTONIC, &added);
 }

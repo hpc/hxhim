@@ -1,10 +1,13 @@
 #include <ctype.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include <mpi.h>
 
 #include "hxhim/hxhim.h"
+#include "utils/Stats.h"
 #include "utils/elen.h"
 #include "print_results.h"
 #include "spo_gen.h"
@@ -27,13 +30,13 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    int provided;
+    int provided = 0;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 
-    int rank;
+    int rank = -1;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    int size;
+    int size = -1;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
     size_t count = 0;
@@ -66,6 +69,12 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    struct timespec epoch;
+    hxhimGetEpoch(&hx, &epoch);
+
+    struct timespec gen_start;
+    clock_gettime(CLOCK_MONOTONIC, &gen_start);
+
     // Generate some subject-predicate-object triples
     void **subjects = NULL, **predicates = NULL;
     size_t *subject_lens = NULL, *predicate_lens = NULL;
@@ -81,11 +90,24 @@ int main(int argc, char *argv[]) {
         doubles[i] /= rand();
     }
 
+    struct timespec gen_end;
+    clock_gettime(CLOCK_MONOTONIC, &gen_end);
+    fprintf(stderr, "%d generate %" PRIu64 " %" PRIu64 "\n",
+            rank,
+            nano2(&epoch, &gen_start),
+            nano2(&epoch, &gen_end));
+
     MPI_Barrier(MPI_COMM_WORLD);
     if (rank == 0) {
         printf("PUT key value pairs\n");
     }
     MPI_Barrier(MPI_COMM_WORLD);
+
+    struct timespec barrier_start;
+    struct timespec barrier_end;
+
+    struct timespec put_start;
+    clock_gettime(CLOCK_MONOTONIC, &put_start);
 
     // PUT the key value pairs into HXHIM
     for(size_t i = 0; i < count; i++) {
@@ -97,39 +119,91 @@ int main(int argc, char *argv[]) {
                    doubles[i]);
         }
     }
+    struct timespec put_end;
+    clock_gettime(CLOCK_MONOTONIC, &put_end);
+    fprintf(stderr, "%d put %" PRIu64 " %" PRIu64 "\n",
+            rank,
+            nano2(&epoch, &put_start),
+            nano2(&epoch, &put_end));
 
+    clock_gettime(CLOCK_MONOTONIC, &barrier_start);
     MPI_Barrier(MPI_COMM_WORLD);
+    clock_gettime(CLOCK_MONOTONIC, &barrier_end);
+    fprintf(stderr, "%d barrier %" PRIu64 " %" PRIu64 "\n",
+            rank,
+            nano2(&epoch, &barrier_start),
+            nano2(&epoch, &barrier_end));
     if (rank == 0) {
         printf("GET before flushing PUTs\n");
     }
+    clock_gettime(CLOCK_MONOTONIC, &barrier_start);
     MPI_Barrier(MPI_COMM_WORLD);
+    clock_gettime(CLOCK_MONOTONIC, &barrier_end);
+    fprintf(stderr, "%d barrier %" PRIu64 " %" PRIu64 "\n",
+            rank,
+            nano2(&epoch, &barrier_start),
+            nano2(&epoch, &barrier_end));
 
-    // GET them back, flushing only the GETs
-    // this will likely return errors, since not all of the PUTs will have completed
-    for(size_t i = 0; i < count; i++) {
-        hxhimGetDouble(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i]);
-    }
+    /* // GET them back, flushing only the GETs */
+    /* // this will likely return errors, since not all of the PUTs will have completed */
+    /* for(size_t i = 0; i < count; i++) { */
+    /*     hxhimGetDouble(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i]); */
+    /* } */
 
-    hxhim_results_t *flush_gets_early = hxhimFlushGets(&hx);
-    if (print) {
-        ordered_print(MPI_COMM_WORLD, rank, size, &hx, flush_gets_early);
-    }
-    hxhim_results_destroy(flush_gets_early);
+    /* hxhim_results_t *flush_gets_early = hxhimFlushGets(&hx); */
+    /* if (print) { */
+    /*     ordered_print(MPI_COMM_WORLD, rank, size, &hx, flush_gets_early); */
+    /* } */
+    /* hxhim_results_destroy(flush_gets_early); */
 
     // flush PUTs
+    clock_gettime(CLOCK_MONOTONIC, &barrier_start);
     MPI_Barrier(MPI_COMM_WORLD);
+    clock_gettime(CLOCK_MONOTONIC, &barrier_end);
+    fprintf(stderr, "%d barrier %" PRIu64 " %" PRIu64 "\n",
+            rank,
+            nano2(&epoch, &barrier_start),
+            nano2(&epoch, &barrier_end));
     if (rank == 0) {
         printf("Flush PUTs\n");
     }
+    clock_gettime(CLOCK_MONOTONIC, &barrier_start);
     MPI_Barrier(MPI_COMM_WORLD);
+    clock_gettime(CLOCK_MONOTONIC, &barrier_end);
+    fprintf(stderr, "%d barrier %" PRIu64 " %" PRIu64 "\n",
+            rank,
+            nano2(&epoch, &barrier_start),
+            nano2(&epoch, &barrier_end));
+
+    struct timespec flush_put_start;
+    clock_gettime(CLOCK_MONOTONIC, &flush_put_start);
 
     hxhim_results_t *flush_puts = hxhimFlushPuts(&hx);
+
+    struct timespec flush_put_end;
+    clock_gettime(CLOCK_MONOTONIC, &flush_put_end);
+    fprintf(stderr, "%d flush_put %" PRIu64 " %" PRIu64 "\n",
+            rank,
+            nano2(&epoch, &flush_put_start),
+            nano2(&epoch, &flush_put_end));
+
+    clock_gettime(CLOCK_MONOTONIC, &barrier_start);
+    MPI_Barrier(MPI_COMM_WORLD);
+    clock_gettime(CLOCK_MONOTONIC, &barrier_end);
+    fprintf(stderr, "%d barrier %" PRIu64 " %" PRIu64 "\n",
+            rank,
+            nano2(&epoch, &barrier_start),
+            nano2(&epoch, &barrier_end));
+
     if (print) {
         ordered_print(MPI_COMM_WORLD, rank, size, &hx, flush_puts);
     }
 
     long double duration = 0;
     hxhim_results_duration(flush_puts, &duration);
+
+    struct timespec destroy_start;
+    clock_gettime(CLOCK_MONOTONIC, &destroy_start);
 
     for(int i = 0; i < size; i++) {
         MPI_Barrier(MPI_COMM_WORLD);
@@ -141,28 +215,43 @@ int main(int argc, char *argv[]) {
 
     hxhim_results_destroy(flush_puts);
 
-    MPI_Barrier(MPI_COMM_WORLD);
+    struct timespec destroy_end;
+    clock_gettime(CLOCK_MONOTONIC, &destroy_end);
+    fprintf(stderr, "%d destroy %" PRIu64 " %" PRIu64 "\n",
+            rank,
+            nano2(&epoch, &destroy_start),
+            nano2(&epoch, &destroy_end));
 
-    // GET again, now that all PUTs have completed
-    for(size_t i = 0; i < count; i++) {
-        hxhimGetDouble(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i]);
-    }
+    /* // GET again, now that all PUTs have completed */
+    /* for(size_t i = 0; i < count; i++) { */
+    /*     hxhimGetDouble(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i]); */
+    /* } */
 
-    MPI_Barrier(MPI_COMM_WORLD);
-    if (rank == 0) {
-        printf("GET after flushing PUTs\n");
-    }
-    MPI_Barrier(MPI_COMM_WORLD);
+    /* MPI_Barrier(MPI_COMM_WORLD); */
+    /* if (rank == 0) { */
+    /*     printf("GET after flushing PUTs\n"); */
+    /* } */
+    /* MPI_Barrier(MPI_COMM_WORLD); */
 
-    hxhim_results_t *flush_gets = hxhimFlush(&hx);
-    if (print) {
-        ordered_print(MPI_COMM_WORLD, rank, size, &hx, flush_gets);
-    }
-    hxhim_results_destroy(flush_gets);
+    /* hxhim_results_t *flush_gets = hxhimFlush(&hx); */
+    /* if (print) { */
+    /*     ordered_print(MPI_COMM_WORLD, rank, size, &hx, flush_gets); */
+    /* } */
+    /* hxhim_results_destroy(flush_gets); */
 
     // clean up
+    struct timespec cleanup_start;
+    clock_gettime(CLOCK_MONOTONIC, &cleanup_start);
+
     free(doubles);
     spo_clean(count, &subjects, &subject_lens, &predicates, &predicate_lens, NULL, NULL);
+
+    struct timespec cleanup_end;
+    clock_gettime(CLOCK_MONOTONIC, &cleanup_end);
+    fprintf(stderr, "%d cleanup %" PRIu64 " %" PRIu64 "\n",
+            rank,
+            nano2(&epoch, &cleanup_start),
+            nano2(&epoch, &cleanup_end));
 
     MPI_Barrier(MPI_COMM_WORLD);
 

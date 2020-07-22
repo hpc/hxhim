@@ -68,16 +68,16 @@ int Transport::Request::BDelete::cleanup() {
         destruct(predicates[i]);
     }
 
-    dealloc_array(subjects, count);
+    dealloc_array(subjects, max_count);
     subjects = nullptr;
 
-    dealloc_array(predicates, count);
+    dealloc_array(predicates, max_count);
     predicates = nullptr;
 
-    dealloc_array(orig.subjects, count);
+    dealloc_array(orig.subjects, max_count);
     orig.subjects = nullptr;
 
-    dealloc_array(orig.predicates, count);
+    dealloc_array(orig.predicates, max_count);
     orig.predicates = nullptr;
 
     return Request::cleanup();
@@ -142,10 +142,10 @@ int Transport::Response::BDelete::cleanup() {
         destruct(orig.predicates[i]);
     }
 
-    dealloc_array(orig.subjects, count);
+    dealloc_array(orig.subjects, max_count);
     orig.subjects = nullptr;
 
-    dealloc_array(orig.predicates, count);
+    dealloc_array(orig.predicates, max_count);
     orig.predicates = nullptr;
 
     return Response::cleanup();

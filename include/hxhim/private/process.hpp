@@ -1,6 +1,7 @@
 #ifndef TRANSPORT_BACKEND_LOCAL_PROCESS_TPP
 #define TRANSPORT_BACKEND_LOCAL_PROCESS_TPP
 
+#include <iostream>
 #include <unordered_map>
 
 #include "hxhim/private/Results.hpp"
@@ -41,6 +42,9 @@ hxhim::Results *process(hxhim_t *hx,
     int rank = -1;
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
+    struct timespec epoch;
+    hxhim::nocheck::GetEpoch(hx, &epoch);
+
     mlog(HXHIM_CLIENT_DBG, "Rank %d Start processing", rank);
 
     if (!head) {
@@ -64,6 +68,8 @@ hxhim::Results *process(hxhim_t *hx,
         // reset local without deallocating memory
         local.count = 0;
 
+        struct timespec fill_start;
+        clock_gettime(CLOCK_MONOTONIC, &fill_start);
         for(UserData_t *curr = head; curr;) {
             mlog(HXHIM_CLIENT_DBG, "Rank %d Client preparing to shuffle %p (next: %p)", rank, curr, curr->next);
 
@@ -106,9 +112,14 @@ hxhim::Results *process(hxhim_t *hx,
 
             curr = next;
         }
+        struct timespec fill_end;
+        clock_gettime(CLOCK_MONOTONIC, &fill_end);
+        std::cerr << rank << " fill " << nano2(&epoch, &fill_start) << " " << nano2(&epoch, &fill_end) << std::endl;
 
         mlog(HXHIM_CLIENT_DBG, "Rank %d Client packed together requests destined for %zu remote servers", rank, remote.size());
 
+        struct timespec remote_start;
+        clock_gettime(CLOCK_MONOTONIC, &remote_start);
         // process remote data
         if (remote.size()) {
             // collect stats
@@ -123,8 +134,14 @@ hxhim::Results *process(hxhim_t *hx,
         for(REF(remote)::value_type &dst : remote) {
             destruct(dst.second);
         }
+        struct timespec remote_end;
+        clock_gettime(CLOCK_MONOTONIC, &remote_end);
+        std::cerr << rank << " remote " << nano2(&epoch, &remote_start) << " " << nano2(&epoch, &remote_end) << std::endl;
 
         mlog(HXHIM_CLIENT_DBG, "Rank %d Client sending %zu local requests", rank, local.count);
+
+        struct timespec local_start;
+        clock_gettime(CLOCK_MONOTONIC, &local_start);
 
         // process local data
         if (local.count) {
@@ -133,6 +150,10 @@ hxhim::Results *process(hxhim_t *hx,
             hx->p->stats.outgoing[local.op][local.dst]++;
             res->Add(Transport::local::range_server<Response_t, Request_t>(hx, &local));
         }
+
+        struct timespec local_end;
+        clock_gettime(CLOCK_MONOTONIC, &local_end);
+        std::cerr << rank << " local " << nano2(&epoch, &local_start) << " " << nano2(&epoch, &local_end) << std::endl;
 
         mlog(HXHIM_CLIENT_DBG, "Rank %d Client received %zu responses", rank, res->Size());
     }

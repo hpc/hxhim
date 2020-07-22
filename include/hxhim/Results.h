@@ -3,7 +3,6 @@
 
 #include <stddef.h>
 
-#include "hxhim/Stats.h"
 #include "hxhim/constants.h"
 #include "hxhim/struct.h"
 
@@ -47,14 +46,6 @@ extern "C"
  *
  */
 
-// timestamps for a single operation
-// epoch can be obtained with hxhimGetEpoch
-typedef struct hxhim_result_timestamps_t {
-    struct Send send;
-    struct SendRecv transport;
-    struct Recv recv;
-} hxhim_result_timestamps_t;
-
 // Opaque C struct, since user will never create one themselves
 typedef struct hxhim_results hxhim_results_t;
 
@@ -78,8 +69,6 @@ int hxhim_result_predicate(hxhim_results_t *res, void **predicate, size_t *predi
 // these accessor functions only work for GET results
 int hxhim_result_object_type(hxhim_results_t *res, enum hxhim_object_type_t *object_type);
 int hxhim_result_object(hxhim_results_t *res, void **object, size_t *object_len);
-
-int hxhim_result_timestamps(hxhim_results_t *res, struct hxhim_result_timestamps_t **timestamps);
 
 void hxhim_results_destroy(hxhim_results_t *res);
 

@@ -107,6 +107,7 @@ const std::unordered_map<std::string, hxhim_hash_t> HASHES = {
     std::make_pair("SUM_MOD_DATASTORES",  hxhim_hash_SumModDatastores),
     std::make_pair("LEFT",                hxhim_hash_Left),
     std::make_pair("RIGHT",               hxhim_hash_Right),
+    std::make_pair("RANDOM",              hxhim_hash_Random),
 };
 
 /**

@@ -5,6 +5,7 @@
 #include <list>
 
 #include "hxhim/Results.h"
+#include "hxhim/Stats.hpp"
 #include "hxhim/constants.h"
 #include "hxhim/struct.h"
 #include "transport/Messages/Messages.hpp"
@@ -82,7 +83,15 @@ class Results {
             int datastore;
             int status;
 
-            hxhim_result_timestamps_t timestamps;
+            // timestamps for a single operation
+            // epoch can be obtained with hxhim::GetEpoch
+            struct Timestamps {
+                struct hxhim::Stats::Send send;
+                struct hxhim::Stats::SendRecv transport;
+                struct hxhim::Stats::Recv recv;
+            };
+
+            Timestamps timestamps;
         };
 
         struct SubjectPredicate : public Result {
@@ -174,7 +183,9 @@ class Results {
         int Predicate(void **predicate, size_t *predicate_len) const;
         int ObjectType(enum hxhim_object_type_t *object_type) const;
         int Object(void **object, size_t *object_len) const;
-        int Timestamps(struct hxhim_result_timestamps_t **timestamps) const;
+
+        // This function is only available in C++
+        int Timestamps(struct Result::Timestamps **timestamps) const;
 
     private:
         hxhim_t *hx;

@@ -1,11 +1,11 @@
-#ifndef HXHIM_STATS_HPP
-#define HXHIM_STATS_HPP
+#ifndef HXHIM_PRIVATE_STATS_HPP
+#define HXHIM_PRIVATE_STATS_HPP
 
 #include <map>
 #include <list>
 #include <ostream>
 
-#include "transport/Messages/Message.hpp"
+#include "hxhim/constants.h"
 #include "utils/Stats.hpp"
 
 namespace hxhim {
