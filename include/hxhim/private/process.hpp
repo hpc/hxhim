@@ -114,8 +114,8 @@ hxhim::Results *process(hxhim_t *hx,
             // collect stats
             for(typename decltype(remote)::const_iterator it = remote.begin();
                 it != remote.end(); it++) {
-                hx->p->stats.used[it->second->type].push_back(it->second->filled());
-                hx->p->stats.outgoing[it->second->type][it->second->dst]++;
+                hx->p->stats.used[it->second->op].push_back(it->second->filled());
+                hx->p->stats.outgoing[it->second->op][it->second->dst]++;
             }
             res->Add(hx->p->transport->communicate(remote));
         }
@@ -129,8 +129,8 @@ hxhim::Results *process(hxhim_t *hx,
         // process local data
         if (local.count) {
             // collect stats
-            hx->p->stats.used[local.type].push_back(local.filled());
-            hx->p->stats.outgoing[local.type][local.dst]++;
+            hx->p->stats.used[local.op].push_back(local.filled());
+            hx->p->stats.outgoing[local.op][local.dst]++;
             res->Add(Transport::local::range_server<Response_t, Request_t>(hx, &local));
         }
 

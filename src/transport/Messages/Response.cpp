@@ -1,6 +1,6 @@
 #include "transport/Messages/Response.hpp"
 
-Transport::Response::Response::Response(Message::Type type)
+Transport::Response::Response::Response(const enum hxhim_op_t type)
     : Message(Message::RESPONSE, type, 0),
       statuses(nullptr)
 {}

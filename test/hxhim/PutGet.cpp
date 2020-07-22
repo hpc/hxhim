@@ -36,7 +36,7 @@ TEST(hxhim, PutGet) {
         ASSERT_NE(res, nullptr);
 
         EXPECT_EQ(res->status, HXHIM_SUCCESS);
-        EXPECT_EQ(res->type, HXHIM_RESULT_PUT);
+        EXPECT_EQ(res->op, hxhim_op_t::HXHIM_PUT);
     }
 
     hxhim::Results::Destroy(put_results);
@@ -58,7 +58,7 @@ TEST(hxhim, PutGet) {
         ASSERT_NE(res, nullptr);
 
         ASSERT_EQ(res->status, HXHIM_SUCCESS);
-        ASSERT_EQ(res->type, HXHIM_RESULT_GET);
+        ASSERT_EQ(res->op, hxhim_op_t::HXHIM_GET);
 
         hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(get_results->Curr());
 

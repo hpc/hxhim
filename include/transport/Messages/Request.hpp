@@ -9,7 +9,7 @@ namespace Request {
 
 // messages sent by the client to the server
 struct Request : Message {
-    Request(Message::Type type);
+    Request(const enum hxhim_op_t type);
     ~Request();
 
     virtual std::size_t size() const;

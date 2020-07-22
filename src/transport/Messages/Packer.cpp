@@ -22,26 +22,26 @@ int Packer::pack(const Request::Request *req, void **buf, std::size_t *bufsize) 
         return ret;
     }
 
-    // mlog(THALLIUM_DBG, "Packing Request type %d", req->type);
+    // mlog(THALLIUM_DBG, "Packing Request type %d", req->op);
 
-    switch (req->type) {
-        case Message::BPUT:
+    switch (req->op) {
+        case hxhim_op_t::HXHIM_PUT:
             ret = pack(static_cast<const Request::BPut *>(req), buf, bufsize);
             break;
-        case Message::BGET:
+        case hxhim_op_t::HXHIM_GET:
             ret = pack(static_cast<const Request::BGet *>(req), buf, bufsize);
             break;
-        case Message::BGETOP:
+        case hxhim_op_t::HXHIM_GETOP:
             ret = pack(static_cast<const Request::BGetOp *>(req), buf, bufsize);
             break;
-        case Message::BDELETE:
+        case hxhim_op_t::HXHIM_DELETE:
             ret = pack(static_cast<const Request::BDelete *>(req), buf, bufsize);
             break;
         default:
             break;
     }
 
-    // mlog(THALLIUM_DBG, "Done Packing Request type %d", req->type);
+    // mlog(THALLIUM_DBG, "Done Packing Request type %d", req->op);
 
     return ret;
 }
@@ -164,26 +164,26 @@ int Packer::pack(const Response::Response *res, void **buf, std::size_t *bufsize
         return ret;
     }
 
-    // mlog(THALLIUM_DBG, "Packing Response type %d", res->type);
+    // mlog(THALLIUM_DBG, "Packing Response type %d", res->op);
 
-    switch (res->type) {
-        case Message::BPUT:
+    switch (res->op) {
+        case hxhim_op_t::HXHIM_PUT:
             ret = pack(static_cast<const Response::BPut *>(res), buf, bufsize);
             break;
-        case Message::BGET:
+        case hxhim_op_t::HXHIM_GET:
             ret = pack(static_cast<const Response::BGet *>(res), buf, bufsize);
             break;
-        case Message::BGETOP:
+        case hxhim_op_t::HXHIM_GETOP:
             ret = pack(static_cast<const Response::BGetOp *>(res), buf, bufsize);
             break;
-        case Message::BDELETE:
+        case hxhim_op_t::HXHIM_DELETE:
             ret = pack(static_cast<const Response::BDelete *>(res), buf, bufsize);
             break;
         default:
             break;
     }
 
-    // mlog(THALLIUM_DBG, "Done Packing Response type %d", res->type);
+    // mlog(THALLIUM_DBG, "Done Packing Response type %d", res->op);
 
     return ret;
 }
@@ -314,8 +314,8 @@ int Packer::pack(const Message *msg, void **buf, std::size_t *bufsize, char **cu
     memcpy(*curr, (char *)&msg->direction, sizeof(msg->direction));
     *curr += sizeof(msg->direction);
 
-    memcpy(*curr, (char *)&msg->type, sizeof(msg->type));
-    *curr += sizeof(msg->type);
+    memcpy(*curr, (char *)&msg->op, sizeof(msg->op));
+    *curr += sizeof(msg->op);
 
     memcpy(*curr, &msg->src, sizeof(msg->src));
     *curr += sizeof(msg->src);

@@ -65,20 +65,20 @@ void RangeServer::process(const thallium::request &req, const std::size_t req_le
         return;
     }
 
-    mlog(THALLIUM_DBG, "Rank %d RangeServer Unpacked %zu bytes of %s request", rank, req_len, Message::TypeStr[request->type]);
+    mlog(THALLIUM_DBG, "Rank %d RangeServer Unpacked %zu bytes of %s request", rank, req_len, HXHIM_OP_STR[request->op]);
 
     // process the request
-    mlog(THALLIUM_DBG, "Rank %d Sending %s to Local RangeServer", rank, Message::TypeStr[request->type]);
+    mlog(THALLIUM_DBG, "Rank %d Sending %s to Local RangeServer", rank, HXHIM_OP_STR[request->op]);
     Response::Response *response = local::range_server(hx_, request);
     dealloc(request);
 
-    mlog(THALLIUM_DBG, "Rank %d Local RangeServer responded with %s response", rank, Message::TypeStr[response->type]);
+    mlog(THALLIUM_DBG, "Rank %d Local RangeServer responded with %s response", rank, HXHIM_OP_STR[response->op]);
 
     // pack the response
     std::size_t res_len = 0;
     void *res_buf = nullptr;
     Packer::pack(response, &res_buf, &res_len);     // do not check for error
-    mlog(THALLIUM_DBG, "Rank %d RangeServer Responding with %zu byte %s response", rank, res_len, Message::TypeStr[response->type]);
+    mlog(THALLIUM_DBG, "Rank %d RangeServer Responding with %zu byte %s response", rank, res_len, HXHIM_OP_STR[response->op]);
     dealloc(response);
 
     mlog(THALLIUM_DBG, "Rank %d RangeServer Packed response into %zu byte buffer", rank, res_len);

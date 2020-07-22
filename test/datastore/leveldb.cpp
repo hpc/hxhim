@@ -8,11 +8,12 @@
 #include "utils/memory.hpp"
 #include "utils/triplestore.hpp"
 
-static const char *subs[]         = {"sub1",          "sub2"};
-static const char *preds[]        = {"pred1",         "pred2"};
-static const hxhim_type_t types[] = {HXHIM_BYTE_TYPE, HXHIM_BYTE_TYPE};
-static const char *objs[]         = {"obj1",          "obj2"};
-static const std::size_t count    = sizeof(types) / sizeof(types[0]);
+static const char *subs[]                = {"sub1",  "sub2"};
+static const char *preds[]               = {"pred1", "pred2"};
+static const hxhim_object_type_t types[] = {hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE,
+                                            hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE};
+static const char *objs[]                = {"obj1",  "obj2"};
+static const std::size_t count           = sizeof(types) / sizeof(types[0]);
 
 class LevelDBTest : public hxhim::datastore::leveldb {
     public:
@@ -116,7 +117,7 @@ TEST(LevelDB, BGet) {
     // non-existant subject-predicate pair
     req.subjects[count]     = construct<ReferenceBlob>((void *) "sub3",  4);
     req.predicates[count]   = construct<ReferenceBlob>((void *) "pred3", 5);
-    req.object_types[count] = HXHIM_BYTE_TYPE;
+    req.object_types[count] = hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE;
     req.count++;
 
     Transport::Response::BGet *res = ds->operate(&req);

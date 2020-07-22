@@ -4,6 +4,7 @@
 #include <condition_variable>
 #include <mutex>
 
+#include "hxhim/constants.h"
 #include "transport/Messages/Messages.hpp"
 #include "utils/Blob.hpp"
 #include "utils/Stats.hpp"
@@ -47,7 +48,7 @@ namespace hxhim {
         ~PutData() = default;
         int moveto(Transport::Request::BPut *bput);
 
-        hxhim_type_t object_type;
+        hxhim_object_type_t object_type;
         Blob *object;
 
         PutData *prev;
@@ -59,7 +60,7 @@ namespace hxhim {
         ~GetData();
         int moveto(Transport::Request::BGet *bget);
 
-        hxhim_type_t object_type;
+        hxhim_object_type_t object_type;
 
         GetData *prev;
         GetData *next;
@@ -70,7 +71,7 @@ namespace hxhim {
         ~GetOpData();
         int moveto(Transport::Request::BGetOp *bgetop);
 
-        hxhim_type_t object_type;
+        hxhim_object_type_t object_type;
         std::size_t num_recs;
         hxhim_get_op_t op;
 

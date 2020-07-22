@@ -146,14 +146,14 @@ std::size_t run_commands(hxhim_t * hx, const UserInput &commands) {
                 rc = hxhimPut(hx,
                               (void *) cmd.subject.c_str(), cmd.subject.size(),
                               (void *) cmd.predicate.c_str(), cmd.predicate.size(),
-                              HXHIM_BYTE_TYPE,
+                              hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE,
                               (void *) cmd.object.c_str(), cmd.object.size());
                 break;
             case HXHIM_OP::GET:
                 rc = hxhimGet(hx,
                               (void *) cmd.subject.c_str(), cmd.subject.size(),
                               (void *) cmd.predicate.c_str(), cmd.predicate.size(),
-                              HXHIM_BYTE_TYPE);
+                              hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE);
                 break;
             case HXHIM_OP::DEL:
                 rc = hxhimDelete(hx,
@@ -179,11 +179,11 @@ std::size_t run_commands(hxhim_t * hx, const UserInput &commands) {
             hxhim_results_valid(res) == HXHIM_SUCCESS;
             hxhim_results_goto_next(res)) {
 
-            enum hxhim_result_type_t type;
-            hxhim_result_type(res, &type);
+            enum hxhim_op_t op;
+            hxhim_result_op(res, &op);
 
-            switch (type) {
-                case HXHIM_RESULT_GET:
+            switch (op) {
+                case HXHIM_GET:
                     {
                         char *object = nullptr;
                         size_t object_len = 0;

@@ -94,7 +94,7 @@ static void backgroundPUT(hxhim_t *hx) {
         mlog(HXHIM_CLIENT_DBG, "Processing queued PUTs");
         {
             // process the batch and save the results
-            hxhim::Results *res = hxhim::process<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, head, hx->p->max_ops_per_send[Transport::Message::Type::BPUT]);
+            hxhim::Results *res = hxhim::process<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, head, hx->p->max_ops_per_send[hxhim_op_t::HXHIM_PUT]);
 
             {
                 std::unique_lock<std::mutex> lock(hx->p->async_put.mutex);
@@ -215,10 +215,10 @@ int hxhim::init::memory(hxhim_t *hx, hxhim_options_t *opts) {
     }
 
     // size of each set of queued messages
-    hx->p->max_ops_per_send[Transport::Message::Type::BPUT]    = opts->p->max_ops_per_send / HXHIM_PUT_MULTIPLIER;
-    hx->p->max_ops_per_send[Transport::Message::Type::BGET]    = opts->p->max_ops_per_send;
-    hx->p->max_ops_per_send[Transport::Message::Type::BGETOP]  = opts->p->max_ops_per_send;
-    hx->p->max_ops_per_send[Transport::Message::Type::BDELETE] = opts->p->max_ops_per_send;
+    hx->p->max_ops_per_send[hxhim_op_t::HXHIM_PUT]    = opts->p->max_ops_per_send / HXHIM_PUT_MULTIPLIER;
+    hx->p->max_ops_per_send[hxhim_op_t::HXHIM_GET]    = opts->p->max_ops_per_send;
+    hx->p->max_ops_per_send[hxhim_op_t::HXHIM_GETOP]  = opts->p->max_ops_per_send;
+    hx->p->max_ops_per_send[hxhim_op_t::HXHIM_DELETE] = opts->p->max_ops_per_send;
 
     mlog(HXHIM_CLIENT_INFO, "Completed Memory Initialization");
     return HXHIM_SUCCESS;
@@ -631,7 +631,7 @@ std::ostream &hxhim::print_stats(hxhim_t *hx,
 int hxhim::PutImpl(hxhim::Unsent<hxhim::PutData> &puts,
                    void *subject, std::size_t subject_len,
                    void *predicate, std::size_t predicate_len,
-                   enum hxhim_type_t object_type, void *object, std::size_t object_len) {
+                   enum hxhim_object_type_t object_type, void *object, std::size_t object_len) {
     mlog(HXHIM_CLIENT_INFO, "Foreground PUT Start (%p, %p, %p)", subject, predicate, object);
 
     hxhim::PutData *put = construct<hxhim::PutData>();
@@ -668,7 +668,7 @@ int hxhim::PutImpl(hxhim::Unsent<hxhim::PutData> &puts,
 int hxhim::GetImpl(hxhim::Unsent<hxhim::GetData> &gets,
                    void *subject, std::size_t subject_len,
                    void *predicate, std::size_t predicate_len,
-                   enum hxhim_type_t object_type) {
+                   enum hxhim_object_type_t object_type) {
     mlog(HXHIM_CLIENT_DBG, "GET Start");
 
     hxhim::GetData *get = construct<hxhim::GetData>();
@@ -703,7 +703,7 @@ int hxhim::GetImpl(hxhim::Unsent<hxhim::GetData> &gets,
 int hxhim::GetOpImpl(hxhim::Unsent<hxhim::GetOpData> &getops,
                      void *subject, std::size_t subject_len,
                      void *predicate, std::size_t predicate_len,
-                     enum hxhim_type_t object_type,
+                     enum hxhim_object_type_t object_type,
                      std::size_t num_records, enum hxhim_get_op_t op) {
     mlog(HXHIM_CLIENT_DBG, "GETOP Start");
 

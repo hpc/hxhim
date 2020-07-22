@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "datastore/datastore.hpp"
+#include "hxhim/constants.h"
 #include "hxhim/private/accessors.hpp"
 #include "hxhim/private/hxhim.hpp"
 #include "transport/Messages/Messages.hpp"
@@ -33,7 +34,7 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
     int rank = -1;
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
-    mlog(HXHIM_SERVER_INFO, "Rank %d Local RangeServer recevied %s request", rank, Message::TypeStr[req->type]);
+    mlog(HXHIM_SERVER_INFO, "Rank %d Local RangeServer recevied %s request", rank, HXHIM_OP_STR[req->op]);
 
     // overallocate in case all of the requests go to one datastore
     std::size_t datastore_count = 0;
@@ -86,7 +87,7 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
 
     dealloc_array(dsts, datastore_count);
 
-    mlog(HXHIM_SERVER_INFO, "Rank %d Local RangeServer done processing %s", rank, Message::TypeStr[req->type]);
+    mlog(HXHIM_SERVER_INFO, "Rank %d Local RangeServer done processing %s", rank, HXHIM_OP_STR[req->op]);
     return res;
 }
 

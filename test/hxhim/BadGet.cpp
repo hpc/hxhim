@@ -33,7 +33,7 @@ TEST(hxhim, BadGet) {
         ASSERT_NE(res, nullptr);
 
         EXPECT_NE(res->status, HXHIM_SUCCESS);
-        EXPECT_EQ(res->type, HXHIM_RESULT_GET);
+        EXPECT_EQ(res->op, hxhim_op_t::HXHIM_GET);
     }
 
     hxhim::Results::Destroy(get_results);

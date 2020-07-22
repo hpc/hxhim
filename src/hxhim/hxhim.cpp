@@ -20,6 +20,14 @@
 #include "utils/mlogfacs2.h"
 
 /**
+ * HXHIM_OP_STR
+ * Mapping of hxhim_op_t to strings
+ */
+const char *HXHIM_OP_STR[] = {
+    HXHIM_OP_GEN(GENERATE_STR)
+};
+
+/**
  * Open
  * Start a HXHIM session
  *
@@ -236,7 +244,7 @@ hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing PUTs", rank);
-    hxhim::Results *res = FlushImpl<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, hx->p->queues.puts, hx->p->max_ops_per_send[Transport::Message::Type::BPUT]);
+    hxhim::Results *res = FlushImpl<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, hx->p->queues.puts, hx->p->max_ops_per_send[hxhim_op_t::HXHIM_PUT]);
 
     // TODO: Remove this when the background thread is restored
     // if PUTs flushed when calling Put/BPut, return those results as well
@@ -313,7 +321,7 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing GETs", rank);
-    hxhim::Results *res = FlushImpl<hxhim::GetData, Transport::Request::BGet, Transport::Response::BGet>(hx, hx->p->queues.gets, hx->p->max_ops_per_send[Transport::Message::Type::BGET]);
+    hxhim::Results *res = FlushImpl<hxhim::GetData, Transport::Request::BGet, Transport::Response::BGet>(hx, hx->p->queues.gets, hx->p->max_ops_per_send[hxhim_op_t::HXHIM_GET]);
     mlog(HXHIM_CLIENT_INFO, "Rank %d Done Flushing Gets %p", rank, res);
     return res;
 }
@@ -343,7 +351,7 @@ hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing GETOPs", rank);
-    hxhim::Results *res = FlushImpl<hxhim::GetOpData, Transport::Request::BGetOp, Transport::Response::BGetOp>(hx, hx->p->queues.getops, hx->p->max_ops_per_send[Transport::Message::Type::BGETOP]);
+    hxhim::Results *res = FlushImpl<hxhim::GetOpData, Transport::Request::BGetOp, Transport::Response::BGetOp>(hx, hx->p->queues.getops, hx->p->max_ops_per_send[hxhim_op_t::HXHIM_GETOP]);
     mlog(HXHIM_CLIENT_INFO, "Rank %d Done Flushing GETOPs %p", rank, res);
     return res;
 }
@@ -373,7 +381,7 @@ hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing DELETEs", rank);
-    hxhim::Results *res = FlushImpl<hxhim::DeleteData, Transport::Request::BDelete, Transport::Response::BDelete>(hx, hx->p->queues.deletes, hx->p->max_ops_per_send[Transport::Message::Type::BDELETE]);
+    hxhim::Results *res = FlushImpl<hxhim::DeleteData, Transport::Request::BDelete, Transport::Response::BDelete>(hx, hx->p->queues.deletes, hx->p->max_ops_per_send[hxhim_op_t::HXHIM_DELETE]);
     mlog(HXHIM_CLIENT_INFO, "Rank %d Done Flushing DELETEs", rank);
     return res;
 }
@@ -562,12 +570,12 @@ hxhim_results_t *hxhimChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t fun
 int hxhim::Put(hxhim_t *hx,
                void *subject, std::size_t subject_len,
                void *predicate, std::size_t predicate_len,
-               enum hxhim_type_t object_type, void *object, std::size_t object_len) {
+               enum hxhim_object_type_t object_type, void *object, std::size_t object_len) {
     mlog(HXHIM_CLIENT_DBG, "%s %s:%d", __FILE__, __func__, __LINE__);
     Chronopoint start = now();
     const int rc = hxhim::PutImpl(hx->p->queues.puts, subject, subject_len, predicate, predicate_len, object_type, object, object_len);
     Chronopoint end = now();
-    hx->p->stats.single_op[Transport::Message::BPUT].push_back({start, end});
+    hx->p->stats.single_op[hxhim_op_t::HXHIM_PUT].push_back({start, end});
     return rc;
 }
 
@@ -588,7 +596,7 @@ int hxhim::Put(hxhim_t *hx,
 int hxhimPut(hxhim_t *hx,
              void *subject, std::size_t subject_len,
              void *predicate, std::size_t predicate_len,
-             enum hxhim_type_t object_type, void *object, std::size_t object_len) {
+             enum hxhim_object_type_t object_type, void *object, std::size_t object_len) {
     mlog(HXHIM_CLIENT_DBG, "%s %s:%d", __FILE__, __func__, __LINE__);
     return hxhim::Put(hx,
                       subject, subject_len,
@@ -613,11 +621,11 @@ int hxhimPut(hxhim_t *hx,
 int hxhim::Get(hxhim_t *hx,
                void *subject, std::size_t subject_len,
                void *predicate, std::size_t predicate_len,
-               enum hxhim_type_t object_type) {
+               enum hxhim_object_type_t object_type) {
     Chronopoint start = now();
     const int rc = hxhim::GetImpl(hx->p->queues.gets, subject, subject_len, predicate, predicate_len, object_type);
     Chronopoint end = now();
-    hx->p->stats.single_op[Transport::Message::BGET].push_back({start, end});
+    hx->p->stats.single_op[hxhim_op_t::HXHIM_GET].push_back({start, end});
     return rc;
 }
 
@@ -638,7 +646,7 @@ int hxhim::Get(hxhim_t *hx,
 int hxhimGet(hxhim_t *hx,
              void *subject, size_t subject_len,
              void *predicate, size_t predicate_len,
-             enum hxhim_type_t object_type) {
+             enum hxhim_object_type_t object_type) {
     return hxhim::Get(hx,
                        subject, subject_len,
                        predicate, predicate_len,
@@ -664,7 +672,7 @@ int hxhim::Delete(hxhim_t *hx,
                                      subject, subject_len,
                                      predicate, predicate_len);
     Chronopoint end = now();
-    hx->p->stats.single_op[Transport::Message::BDELETE].push_back({start, end});
+    hx->p->stats.single_op[hxhim_op_t::HXHIM_DELETE].push_back({start, end});
     return rc;
 }
 
@@ -705,7 +713,7 @@ int hxhimDelete(hxhim_t *hx,
 int hxhim::BPut(hxhim_t *hx,
                 void **subjects, std::size_t *subject_lens,
                 void **predicates, std::size_t *predicate_lens,
-                enum hxhim_type_t *object_types, void **objects, std::size_t *object_lens,
+                enum hxhim_object_type_t *object_types, void **objects, std::size_t *object_lens,
                 const std::size_t count) {
     if (!valid(hx)  || !hx->p->running ||
         !subjects   || !subject_lens   ||
@@ -733,7 +741,7 @@ int hxhim::BPut(hxhim_t *hx,
         }
 
         // process the batch and save the results
-        hxhim::Results *res = hxhim::process<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, head, hx->p->max_ops_per_send[Transport::Message::Type::BPUT]);
+        hxhim::Results *res = hxhim::process<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, head, hx->p->max_ops_per_send[hxhim_op_t::HXHIM_PUT]);
         {
             std::unique_lock<std::mutex> lock(hx->p->async_put.mutex);
             if (hx->p->async_put.results) {
@@ -747,7 +755,7 @@ int hxhim::BPut(hxhim_t *hx,
     }
 
     Chronopoint end = now();
-    hx->p->stats.bulk_op[Transport::Message::BPUT].push_back({start, end});
+    hx->p->stats.bulk_op[hxhim_op_t::HXHIM_PUT].push_back({start, end});
     return HXHIM_SUCCESS;
 }
 
@@ -769,7 +777,7 @@ int hxhim::BPut(hxhim_t *hx,
 int hxhimBPut(hxhim_t *hx,
               void **subjects, std::size_t *subject_lens,
               void **predicates, std::size_t *predicate_lens,
-              enum hxhim_type_t *object_types, void **objects, std::size_t *object_lens,
+              enum hxhim_object_type_t *object_types, void **objects, std::size_t *object_lens,
               const std::size_t count) {
     return hxhim::BPut(hx,
                        subjects, subject_lens,
@@ -795,7 +803,7 @@ int hxhimBPut(hxhim_t *hx,
 int hxhim::BGet(hxhim_t *hx,
                 void **subjects, std::size_t *subject_lens,
                 void **predicates, std::size_t *predicate_lens,
-                hxhim_type_t *object_types,
+                hxhim_object_type_t *object_types,
                 const std::size_t count) {
     if (!valid(hx)  || !hx->p->running ||
         !subjects   || !subject_lens   ||
@@ -809,7 +817,7 @@ int hxhim::BGet(hxhim_t *hx,
         hxhim::GetImpl(hx->p->queues.gets, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], object_types[i]);
     }
     Chronopoint end = now();
-    hx->p->stats.bulk_op[Transport::Message::BGET].push_back({start, end});
+    hx->p->stats.bulk_op[hxhim_op_t::HXHIM_GET].push_back({start, end});
     return HXHIM_SUCCESS;
 }
 
@@ -831,7 +839,7 @@ int hxhim::BGet(hxhim_t *hx,
 int hxhimBGet(hxhim_t *hx,
               void **subjects, std::size_t *subject_lens,
               void **predicates, std::size_t *predicate_lens,
-              enum hxhim_type_t *object_types,
+              enum hxhim_object_type_t *object_types,
               const std::size_t count) {
     return hxhim::BGet(hx,
                        subjects, subject_lens,
@@ -855,7 +863,7 @@ int hxhimBGet(hxhim_t *hx,
 int hxhim::BGetOp(hxhim_t *hx,
                   void *subject, size_t subject_len,
                   void *predicate, size_t predicate_len,
-                  enum hxhim_type_t object_type,
+                  enum hxhim_object_type_t object_type,
                   std::size_t num_records, enum hxhim_get_op_t op) {
     if (!valid(hx) || !hx->p->running ||
         !subject   || !subject_len    ||
@@ -870,7 +878,7 @@ int hxhim::BGetOp(hxhim_t *hx,
                                     object_type,
                                     num_records, op);
     Chronopoint end = now();
-    hx->p->stats.bulk_op[Transport::Message::BGETOP].push_back({start, end});
+    hx->p->stats.bulk_op[hxhim_op_t::HXHIM_GETOP].push_back({start, end});
     return rc;
 }
 
@@ -891,7 +899,7 @@ int hxhim::BGetOp(hxhim_t *hx,
 int hxhimBGetOp(hxhim_t *hx,
                 void *subject, size_t subject_len,
                 void *predicate, size_t predicate_len,
-                enum hxhim_type_t object_type,
+                enum hxhim_object_type_t object_type,
                 std::size_t num_records, enum hxhim_get_op_t op) {
     return hxhim::BGetOp(hx,
                          subject, subject_len,
@@ -929,7 +937,7 @@ int hxhim::BDelete(hxhim_t *hx,
     }
 
     Chronopoint end = now();
-    hx->p->stats.bulk_op[Transport::Message::BDELETE].push_back({start, end});
+    hx->p->stats.bulk_op[hxhim_op_t::HXHIM_DELETE].push_back({start, end});
     return HXHIM_SUCCESS;
 }
 

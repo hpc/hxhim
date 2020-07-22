@@ -15,22 +15,22 @@ Response::Response *range_server(hxhim_t *hx, Request::Request *req) {
     int rank = -1;
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
-    mlog(HXHIM_SERVER_INFO, "Rank %d Local RangeServer got a %s", rank, Message::TypeStr[req->type]);
+    mlog(HXHIM_SERVER_INFO, "Rank %d Local RangeServer got a %s", rank, HXHIM_OP_STR[req->op]);
 
     Response::Response *res = nullptr;
 
     // Call the appropriate function depending on the message type
-    switch(req->type) {
-        case Message::BPUT:
+    switch(req->op) {
+        case hxhim_op_t::HXHIM_PUT:
             res = range_server<Response::BPut>(hx, static_cast<Request::BPut *>(req));
             break;
-        case Message::BGET:
+        case hxhim_op_t::HXHIM_GET:
             res = range_server<Response::BGet>(hx, static_cast<Request::BGet *>(req));
             break;
-        case Message::BGETOP:
+        case hxhim_op_t::HXHIM_GETOP:
             res = range_server<Response::BGetOp>(hx, static_cast<Request::BGetOp *>(req));
             break;
-        case Message::BDELETE:
+        case hxhim_op_t::HXHIM_DELETE:
             res = range_server<Response::BDelete>(hx, static_cast<Request::BDelete *>(req));
             break;
         default:

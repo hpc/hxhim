@@ -62,14 +62,14 @@ herr_t H5VL_hxhim_file_specific(void *obj, H5VL_file_specific_t specific_type, h
             }
 
             for(hxhim_results_goto_head(res); hxhim_results_valid(res) == HXHIM_SUCCESS; hxhim_results_goto_next(res)) {
-                hxhim_result_type_t type;
-                hxhim_result_type(res, &type);
-                switch (type) {
-                    case HXHIM_RESULT_PUT:
-                    case HXHIM_RESULT_DEL:
+                enum hxhim_op_t op;
+                hxhim_result_op(res, &op);
+                switch (op) {
+                    case HXHIM_PUT:
+                    case HXHIM_DELETE:
                         /* user is responsible for subject and predicate, so don't do anything */
                         break;
-                    case HXHIM_RESULT_GET:
+                    case HXHIM_GET:
                         {
                             int status = 0;
                             hxhim_result_status(res, &status);

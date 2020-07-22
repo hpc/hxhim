@@ -7,7 +7,7 @@
 int hxhim::BPutSingleType(hxhim_t *hx,
                           void **subjects, std::size_t *subject_lens,
                           void **predicates, std::size_t *predicate_lens,
-                          enum hxhim_type_t object_type, void **objects, std::size_t *object_lens,
+                          enum hxhim_object_type_t object_type, void **objects, std::size_t *object_lens,
                           std::size_t count) {
 
     mlog(HXHIM_CLIENT_DBG, "Started %zu PUTs of type %d", count, object_type);
@@ -30,7 +30,7 @@ int hxhim::BPutSingleType(hxhim_t *hx,
 int hxhimBPutSingleType(hxhim_t *hx,
                         void **subjects, std::size_t *subject_lens,
                         void **predicates, std::size_t *predicate_lens,
-                        enum hxhim_type_t object_type, void **objects, std::size_t *object_lens,
+                        enum hxhim_object_type_t object_type, void **objects, std::size_t *object_lens,
                         std::size_t count) {
     return hxhim::BPutSingleType(hx,
                                  subjects, subject_lens,
@@ -42,7 +42,7 @@ int hxhimBPutSingleType(hxhim_t *hx,
 int hxhim::BGetSingleType(hxhim_t *hx,
                           void **subjects, std::size_t *subject_lens,
                           void **predicates, std::size_t *predicate_lens,
-                          enum hxhim_type_t object_type,
+                          enum hxhim_object_type_t object_type,
                           std::size_t count) {
     mlog(HXHIM_CLIENT_DBG, "Started %zu GETs of type %d", count, object_type);
 
@@ -63,7 +63,7 @@ int hxhim::BGetSingleType(hxhim_t *hx,
 int hxhimBGetSingleType(hxhim_t *hx,
                         void **subjects, std::size_t *subject_lens,
                         void **predicates, std::size_t *predicate_lens,
-                        enum hxhim_type_t object_type,
+                        enum hxhim_object_type_t object_type,
                         std::size_t count) {
     return hxhim::BGetSingleType(hx,
                                  subjects, subject_lens,

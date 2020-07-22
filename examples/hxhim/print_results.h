@@ -1,8 +1,6 @@
 #ifndef HXHIM_EXAMPLES_PRINT_RESULTS
 #define HXHIM_EXAMPLES_PRINT_RESULTS
 
-#include <stdio.h>
-
 #include "hxhim/hxhim.h"
 
 #ifdef __cplusplus

@@ -91,8 +91,8 @@ class Datastore {
 
         virtual int SyncImpl() = 0;
 
-        int encode(const hxhim_type_t type, void *&ptr, std::size_t &len, bool &copied);
-        int decode(const hxhim_type_t type, void *src, const std::size_t &src_len, void **dst, std::size_t *dst_len);
+        int encode(const hxhim_object_type_t type, void *&ptr, std::size_t &len, bool &copied);
+        int decode(const hxhim_object_type_t type, void *src, const std::size_t &src_len, void **dst, std::size_t *dst_len);
 
         int rank;      // MPI rank of HXHIM instance
         int id;

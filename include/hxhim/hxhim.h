@@ -47,12 +47,12 @@ hxhim_results_t *hxhimChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t fun
 int hxhimPut(hxhim_t *hx,
              void *subject, size_t subject_len,
              void *predicate, size_t predicate_len,
-             enum hxhim_type_t object_type, void *object, size_t object_len);
+             enum hxhim_object_type_t object_type, void *object, size_t object_len);
 
 int hxhimGet(hxhim_t *hx,
              void *subject, size_t subject_len,
              void *predicate, size_t predicate_len,
-             enum hxhim_type_t object_type);
+             enum hxhim_object_type_t object_type);
 
 int hxhimDelete(hxhim_t *hx,
                 void *subject, size_t subject_len,
@@ -67,13 +67,13 @@ int hxhimBPut(hxhim_t *hx,
 int hxhimBGet(hxhim_t *hx,
               void **subjects, size_t *subject_lens,
               void **predicates, size_t *predicate_lens,
-              enum hxhim_type_t *object_types,
+              enum hxhim_object_type_t *object_types,
               const size_t count);
 
 int hxhimBGetOp(hxhim_t *hx,
                 void *subject, size_t subject_len,
                 void *predicate, size_t predicate_len,
-                enum hxhim_type_t object_type,
+                enum hxhim_object_type_t object_type,
                 size_t num_records, enum hxhim_get_op_t op);
 
 int hxhimBDelete(hxhim_t *hx,

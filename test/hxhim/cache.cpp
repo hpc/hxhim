@@ -7,14 +7,14 @@ TEST(PutData, constructor) {
 
     EXPECT_EQ(put.subject, nullptr);
     EXPECT_EQ(put.predicate, nullptr);
-    EXPECT_EQ(put.object_type, hxhim_type_t::HXHIM_INVALID_TYPE);
+    EXPECT_EQ(put.object_type, hxhim_object_type_t::HXHIM_OBJECT_TYPE_INVALID);
     EXPECT_EQ(put.object, nullptr);
 }
 
 TEST(PutData, moveto) {
     ReferenceBlob *subject   = construct<ReferenceBlob>((void *) (uintptr_t) rand(), rand());
     ReferenceBlob *predicate = construct<ReferenceBlob>((void *) (uintptr_t) rand(), rand());
-    hxhim_type_t object_type = (hxhim_type_t) rand();
+    hxhim_object_type_t object_type = (hxhim_object_type_t) rand();
     ReferenceBlob *object    = construct<ReferenceBlob>((void *) (uintptr_t) rand(), rand());
 
     Transport::Request::BPut bput(1);
@@ -52,13 +52,13 @@ TEST(GetData, constructor) {
 
     EXPECT_EQ(get.subject, nullptr);
     EXPECT_EQ(get.predicate, nullptr);
-    EXPECT_EQ(get.object_type, hxhim_type_t::HXHIM_INVALID_TYPE);
+    EXPECT_EQ(get.object_type, hxhim_object_type_t::HXHIM_OBJECT_TYPE_INVALID);
 }
 
 TEST(GetData, moveto) {
     ReferenceBlob *subject   = construct<ReferenceBlob>((void *) (uintptr_t) rand(), rand());
     ReferenceBlob *predicate = construct<ReferenceBlob>((void *) (uintptr_t) rand(), rand());
-    hxhim_type_t object_type = (hxhim_type_t) rand();
+    hxhim_object_type_t object_type = (hxhim_object_type_t) rand();
 
     Transport::Request::BGet bget(1);
 
@@ -93,7 +93,7 @@ TEST(GetOpData, constructor) {
 
     EXPECT_EQ(getop.subject, nullptr);
     EXPECT_EQ(getop.predicate, nullptr);
-    EXPECT_EQ(getop.object_type, hxhim_type_t::HXHIM_INVALID_TYPE);
+    EXPECT_EQ(getop.object_type, hxhim_object_type_t::HXHIM_OBJECT_TYPE_INVALID);
     EXPECT_EQ(getop.num_recs, 0);
     EXPECT_EQ(getop.op, hxhim_get_op_t::HXHIM_GET_INVALID);
 }
@@ -101,7 +101,7 @@ TEST(GetOpData, constructor) {
 TEST(GetOpData, moveto) {
     ReferenceBlob *subject   = construct<ReferenceBlob>((void *) (uintptr_t) rand(), rand());
     ReferenceBlob *predicate = construct<ReferenceBlob>((void *) (uintptr_t) rand(), rand());
-    hxhim_type_t object_type = (hxhim_type_t) rand();
+    hxhim_object_type_t object_type = (hxhim_object_type_t) rand();
     std::size_t num_recs     = rand();
     hxhim_get_op_t op        = (hxhim_get_op_t) rand();
 

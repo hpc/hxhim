@@ -2,8 +2,7 @@
 
 #include "hxhim/private/Stats.hpp"
 
-std::ostream &hxhim::Stats::Global::print(const std::map<Transport::Message::Type, std::size_t> &max_ops_per_send,
-
+std::ostream &hxhim::Stats::Global::print(const std::map<enum hxhim_op_t, std::size_t> &max_ops_per_send,
                                          std::ostream &stream,
                                          const std::string &indent) {
     std::ios_base::fmtflags flags(stream.flags());
@@ -20,7 +19,7 @@ std::ostream &hxhim::Stats::Global::print(const std::map<Transport::Message::Typ
             for(Chronostamp const &event : it->second) {
                 op_time += std::chrono::duration_cast<std::chrono::nanoseconds>(event.end - event.start);
             }
-            stream << indent << indent << Transport::Message::TypeStr[it->first] << " count: " << it->second.size() << " duration: "  << std::chrono::duration<long double>(op_time).count() << " seconds" << std::endl;
+            stream << indent << indent << HXHIM_OP_STR[it->first] << " count: " << it->second.size() << " duration: "  << std::chrono::duration<long double>(op_time).count() << " seconds" << std::endl;
 
             total_ops += it->second.size();
             total_time += op_time;
@@ -38,7 +37,7 @@ std::ostream &hxhim::Stats::Global::print(const std::map<Transport::Message::Typ
             for(Chronostamp const &event : it->second) {
                 op_time += std::chrono::duration_cast<std::chrono::nanoseconds>(event.end - event.start);
             }
-            stream << indent << indent << Transport::Message::TypeStr[it->first] << " count: " << it->second.size() << " duration: "  << std::chrono::duration<long double>(op_time).count() << " seconds" << std::endl;
+            stream << indent << indent << HXHIM_OP_STR[it->first] << " count: " << it->second.size() << " duration: "  << std::chrono::duration<long double>(op_time).count() << " seconds" << std::endl;
 
             total_ops += it->second.size();
             total_time += op_time;
@@ -56,7 +55,7 @@ std::ostream &hxhim::Stats::Global::print(const std::map<Transport::Message::Typ
             }
             const double avg = ((double) sum) / it->second.size();
             sum /= used.size();
-            stream << indent << indent << Transport::Message::TypeStr[it->first] << " count: " << it->second.size() << " average filled: "  << avg << "/" << max_ops_per_send.at(it->first) << " (" << 100.0 * avg / max_ops_per_send.at(it->first) << "%)" << std::endl;
+            stream << indent << indent << HXHIM_OP_STR[it->first] << " count: " << it->second.size() << " average filled: "  << avg << "/" << max_ops_per_send.at(it->first) << " (" << 100.0 * avg / max_ops_per_send.at(it->first) << "%)" << std::endl;
         }
     }
 
@@ -67,7 +66,7 @@ std::ostream &hxhim::Stats::Global::print(const std::map<Transport::Message::Typ
             type != outgoing.end(); type++) {
             for(typename decltype(type->second)::const_iterator dst = type->second.begin();
                 dst != type->second.end(); dst++) {
-                stream << indent << indent << Transport::Message::TypeStr[type->first] << " -> " << dst->first << ": " << dst->second << std::endl;
+                stream << indent << indent << HXHIM_OP_STR[type->first] << " -> " << dst->first << ": " << dst->second << std::endl;
             }
         }
     }

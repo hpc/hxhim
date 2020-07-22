@@ -1,7 +1,7 @@
 #include "transport/Messages/BPut.hpp"
 
 Transport::Request::BPut::BPut(const std::size_t max)
-    : Request(BPUT),
+    : Request(hxhim_op_t::HXHIM_PUT),
       subjects(nullptr),
       predicates(nullptr),
       object_types(nullptr),
@@ -30,13 +30,13 @@ int Transport::Request::BPut::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Request::alloc(max) != TRANSPORT_SUCCESS)              ||
-            !(subjects            = alloc_array<Blob *>(max))       ||
-            !(predicates          = alloc_array<Blob *>(max))       ||
-            !(object_types        = alloc_array<hxhim_type_t>(max)) ||
-            !(objects             = alloc_array<Blob *>(max))       ||
-            !(orig.subjects       = alloc_array<void *>(max))       ||
-            !(orig.predicates     = alloc_array<void *>(max)))       {
+        if ((Request::alloc(max) != TRANSPORT_SUCCESS)                     ||
+            !(subjects            = alloc_array<Blob *>(max))              ||
+            !(predicates          = alloc_array<Blob *>(max))              ||
+            !(object_types        = alloc_array<hxhim_object_type_t>(max)) ||
+            !(objects             = alloc_array<Blob *>(max))              ||
+            !(orig.subjects       = alloc_array<void *>(max))              ||
+            !(orig.predicates     = alloc_array<void *>(max)))              {
             cleanup();
             return TRANSPORT_ERROR;
         }
@@ -99,7 +99,7 @@ int Transport::Request::BPut::cleanup() {
 }
 
 Transport::Response::BPut::BPut(const std::size_t max)
-    : Response(Message::BPUT),
+    : Response(hxhim_op_t::HXHIM_PUT),
       orig(),
       next(nullptr)
 {

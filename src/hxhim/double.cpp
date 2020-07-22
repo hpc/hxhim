@@ -22,7 +22,7 @@ int hxhim::PutDouble(hxhim_t *hx,
     return hxhim::Put(hx,
                       subject, subject_len,
                       predicate, predicate_len,
-                      HXHIM_DOUBLE_TYPE, (void *) object, sizeof(double));
+                      HXHIM_OBJECT_TYPE_DOUBLE, (void *) object, sizeof(double));
 }
 
 /**
@@ -44,7 +44,7 @@ int hxhimPutDouble(hxhim_t *hx,
     return hxhim::Put(hx,
                       subject, subject_len,
                       predicate, predicate_len,
-                      HXHIM_DOUBLE_TYPE, (void *) object, sizeof(double));
+                      HXHIM_OBJECT_TYPE_DOUBLE, (void *) object, sizeof(double));
 }
 
 /**
@@ -64,7 +64,7 @@ int hxhim::GetDouble(hxhim_t *hx,
     return hxhim::Get(hx,
                       subject, subject_len,
                       predicate, predicate_len,
-                      HXHIM_DOUBLE_TYPE);
+                      HXHIM_OBJECT_TYPE_DOUBLE);
 }
 
 /**
@@ -112,7 +112,7 @@ int hxhim::BPutDouble(hxhim_t *hx,
     const int ret = hxhim::BPutSingleType(hx,
                                           subjects, subject_lens,
                                           predicates, predicate_lens,
-                                          HXHIM_DOUBLE_TYPE, (void **) objects, lens,
+                                          HXHIM_OBJECT_TYPE_DOUBLE, (void **) objects, lens,
                                           count);
     delete [] lens;
     return ret;
@@ -162,7 +162,7 @@ int hxhim::BGetDouble(hxhim_t *hx,
     return hxhim::BGetSingleType(hx,
                                  subjects, subject_lens,
                                  predicates, predicate_lens,
-                                 HXHIM_DOUBLE_TYPE,
+                                 HXHIM_OBJECT_TYPE_DOUBLE,
                                  count);
 }
 
@@ -206,7 +206,7 @@ int hxhim::BGetOpDouble(hxhim_t *hx,
     return hxhim::BGetOp(hx,
                          subject, subject_len,
                          predicate, predicate_len,
-                         HXHIM_DOUBLE_TYPE,
+                         HXHIM_OBJECT_TYPE_DOUBLE,
                          num_records, op);
 }
 

@@ -10,12 +10,9 @@ static const char *SUBJECT = "SUBJECT";
 static const std::size_t SUBJECT_LEN = strlen(SUBJECT);
 static const char *PREDICATE = "PREDICATE";
 static const std::size_t PREDICATE_LEN = strlen(PREDICATE);
-static const hxhim_type_t OBJECT_TYPE = HXHIM_BYTE_TYPE;
+static const hxhim_object_type_t OBJECT_TYPE = hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE;
 static const char *OBJECT = "OBJECT";
 static const std::size_t OBJECT_LEN = strlen(OBJECT);
-
-static const std::size_t ALLOC_SIZE = 256;
-static const std::size_t REGIONS = 64;
 
 using namespace ::Transport;
 
@@ -38,7 +35,7 @@ TEST(Request, BPut) {
     }
 
     EXPECT_EQ(src.direction, Message::REQUEST);
-    EXPECT_EQ(src.type, Message::BPUT);
+    EXPECT_EQ(src.op, hxhim_op_t::HXHIM_PUT);
 
     void *buf = nullptr;
     std::size_t size = 0;
@@ -50,7 +47,7 @@ TEST(Request, BPut) {
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
-    EXPECT_EQ(src.type, dst->type);
+    EXPECT_EQ(src.op, dst->op);
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
 
@@ -90,7 +87,7 @@ TEST(Request, BGet) {
     }
 
     EXPECT_EQ(src.direction, Message::REQUEST);
-    EXPECT_EQ(src.type, Message::BGET);
+    EXPECT_EQ(src.op, hxhim_op_t::HXHIM_GET);
 
     void *buf = nullptr;
     std::size_t size = 0;
@@ -102,7 +99,7 @@ TEST(Request, BGet) {
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
-    EXPECT_EQ(src.type, dst->type);
+    EXPECT_EQ(src.op, dst->op);
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
 
@@ -155,7 +152,7 @@ TEST(Request, BGetOp) {
     }
 
     EXPECT_EQ(src.direction, Message::REQUEST);
-    EXPECT_EQ(src.type, Message::BGETOP);
+    EXPECT_EQ(src.op, hxhim_op_t::HXHIM_GETOP);
 
     void *buf = nullptr;
     std::size_t size = 0;
@@ -167,7 +164,7 @@ TEST(Request, BGetOp) {
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
-    EXPECT_EQ(src.type, dst->type);
+    EXPECT_EQ(src.op, dst->op);
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
 
@@ -217,7 +214,7 @@ TEST(Request, BDelete) {
     }
 
     EXPECT_EQ(src.direction, Message::REQUEST);
-    EXPECT_EQ(src.type, Message::BDELETE);
+    EXPECT_EQ(src.op, hxhim_op_t::HXHIM_DELETE);
 
     void *buf = nullptr;
     std::size_t size = 0;
@@ -229,7 +226,7 @@ TEST(Request, BDelete) {
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
-    EXPECT_EQ(src.type, dst->type);
+    EXPECT_EQ(src.op, dst->op);
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
 
@@ -267,7 +264,7 @@ TEST(Response, BPut) {
     }
 
     EXPECT_EQ(src.direction, Message::RESPONSE);
-    EXPECT_EQ(src.type, Message::BPUT);
+    EXPECT_EQ(src.op, hxhim_op_t::HXHIM_PUT);
 
     void *buf = nullptr;
     std::size_t size = 0;
@@ -279,7 +276,7 @@ TEST(Response, BPut) {
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
-    EXPECT_EQ(src.type, dst->type);
+    EXPECT_EQ(src.op, dst->op);
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
 
@@ -319,7 +316,7 @@ TEST(Response, BGet) {
     }
 
     EXPECT_EQ(src.direction, Message::RESPONSE);
-    EXPECT_EQ(src.type, Message::BGET);
+    EXPECT_EQ(src.op, hxhim_op_t::HXHIM_GET);
 
     void *buf = nullptr;
     std::size_t size = 0;
@@ -331,7 +328,7 @@ TEST(Response, BGet) {
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
-    EXPECT_EQ(src.type, dst->type);
+    EXPECT_EQ(src.op, dst->op);
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
 
@@ -380,7 +377,7 @@ TEST(Response, BGetOp) {
     }
 
     EXPECT_EQ(src.direction, Message::RESPONSE);
-    EXPECT_EQ(src.type, Message::BGETOP);
+    EXPECT_EQ(src.op, hxhim_op_t::HXHIM_GETOP);
 
     void *buf = nullptr;
     std::size_t size = 0;
@@ -392,7 +389,7 @@ TEST(Response, BGetOp) {
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
-    EXPECT_EQ(src.type, dst->type);
+    EXPECT_EQ(src.op, dst->op);
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
 
@@ -458,7 +455,7 @@ TEST(Response, BDelete) {
     }
 
     EXPECT_EQ(src.direction, Message::RESPONSE);
-    EXPECT_EQ(src.type, Message::BDELETE);
+    EXPECT_EQ(src.op, hxhim_op_t::HXHIM_DELETE);
 
     void *buf = nullptr;
     std::size_t size = 0;
@@ -470,7 +467,7 @@ TEST(Response, BDelete) {
 
     ASSERT_NE(dst, nullptr);
     EXPECT_EQ(src.direction, dst->direction);
-    EXPECT_EQ(src.type, dst->type);
+    EXPECT_EQ(src.op, dst->op);
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
 

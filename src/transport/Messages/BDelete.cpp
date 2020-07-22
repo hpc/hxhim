@@ -1,7 +1,7 @@
 #include "transport/Messages/BDelete.hpp"
 
 Transport::Request::BDelete::BDelete(const std::size_t max)
-    : Request(BDELETE),
+    : Request(hxhim_op_t::HXHIM_DELETE),
       subjects(nullptr),
       predicates(nullptr),
       orig()
@@ -84,7 +84,7 @@ int Transport::Request::BDelete::cleanup() {
 }
 
 Transport::Response::BDelete::BDelete(const std::size_t max)
-    : Response(BDELETE),
+    : Response(hxhim_op_t::HXHIM_DELETE),
       orig(),
       next(nullptr)
 {

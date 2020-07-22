@@ -26,17 +26,17 @@ namespace hxhim {
  *
  *     hxhim::Results *res = Flush(hx);
  *     for(res->GoToHead(); res->ValidIterator(); res->GoToNext()) {
- *         hxhim_result_type_t type;
- *         res->Type(&type);
+ *         hxhim_op_t op;
+ *         res->Op(&op);
  *         switch (type) {
- *             case HXHIM_RESULT_PUT:
+ *             case HXHIM_PUT:
  *                 // do stuff with put
  *                 break;
- *             case HXHIM_RESULT_GET:
- *             case HXHIM_RESULT_GETOP:
+ *             case HXHIM_GET:
+ *             case HXHIM_GETOP:
  *                 // do stuff with get
  *                 break;
- *             case HXHIM_RESULT_DEL:
+ *             case HXHIM_DELETE:
  *                 // do stuff with del
  *                 break;
  *             default:
@@ -72,12 +72,12 @@ namespace hxhim {
 class Results {
     public:
         struct Result {
-            Result(hxhim_t *hx, const hxhim_result_type_t type,
+            Result(hxhim_t *hx, const enum hxhim_op_t op,
                    const int datastore, const int status);
             virtual ~Result();
 
             hxhim_t *hx;
-            hxhim_result_type_t type;
+            enum hxhim_op_t op;
 
             int datastore;
             int status;
@@ -86,7 +86,7 @@ class Results {
         };
 
         struct SubjectPredicate : public Result {
-            SubjectPredicate(hxhim_t *hx, const hxhim_result_type_t type,
+            SubjectPredicate(hxhim_t *hx, const enum hxhim_op_t type,
                              const int datastore, const int status);
             virtual ~SubjectPredicate();
 
@@ -101,11 +101,11 @@ class Results {
 
     private:
         /** @description Base structure for GET results */
-        template <hxhim_result_type_t gettype>
+        template <enum hxhim_op_t gettype>
         struct GetBase final : public SubjectPredicate {
             GetBase(hxhim_t *hx, const int datastore, const int status)
                 : SubjectPredicate(hx, gettype, datastore, status),
-                  object_type(HXHIM_INVALID_TYPE),
+                  object_type(hxhim_object_type_t::HXHIM_OBJECT_TYPE_INVALID),
                   object(nullptr),
                   next(nullptr)
             {}
@@ -114,7 +114,7 @@ class Results {
                 destruct(object);
             }
 
-            hxhim_type_t object_type;
+            enum hxhim_object_type_t object_type;
             Blob *object;
 
             struct GetBase<gettype> *next;
@@ -122,10 +122,10 @@ class Results {
 
     public:
         /** @description Convenience struct for GET results */
-        typedef GetBase<hxhim_result_type_t::HXHIM_RESULT_GET> Get;
+        typedef GetBase<hxhim_op_t::HXHIM_GET> Get;
 
         /** @description Convenience struct for GETOP results */
-        typedef GetBase<hxhim_result_type_t::HXHIM_RESULT_GETOP> GetOp;
+        typedef GetBase<hxhim_op_t::HXHIM_GETOP> GetOp;
 
         /** @description Convenience struct for DEL results */
         struct Delete final : public SubjectPredicate {
@@ -167,12 +167,12 @@ class Results {
 
         // Accessors for individual results
         // pointers are only valid if the Result they came from are still valid
-        int Type(enum hxhim_result_type_t *type) const;
+        int Op(enum hxhim_op_t *op) const;
         int Status(int *status) const;
         int Datastore(int *datastore) const;
         int Subject(void **subject, size_t *subject_len) const;
         int Predicate(void **predicate, size_t *predicate_len) const;
-        int ObjectType(enum hxhim_type_t *object_type) const;
+        int ObjectType(enum hxhim_object_type_t *object_type) const;
         int Object(void **object, size_t *object_len) const;
         int Timestamps(struct hxhim_result_timestamps_t **timestamps) const;
 

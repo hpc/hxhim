@@ -48,7 +48,7 @@ typedef struct hxhim_private {
 
     std::atomic_bool running;              // whether or not HXHIM is running
 
-    std::map<Transport::Message::Type, std::size_t> max_ops_per_send;
+    std::map<enum hxhim_op_t, std::size_t> max_ops_per_send;
 
     // unsent data queues
     struct {
@@ -131,17 +131,17 @@ std::ostream &print_stats(hxhim_t *hx,
 int PutImpl(hxhim::Unsent<hxhim::PutData> &puts,
             void *subject, std::size_t subject_len,
             void *predicate, std::size_t predicate_len,
-            enum hxhim_type_t object_type, void *object, std::size_t object_len);
+            enum hxhim_object_type_t object_type, void *object, std::size_t object_len);
 
 int GetImpl(hxhim::Unsent<hxhim::GetData> &gets,
             void *subject, std::size_t subject_len,
             void *predicate, std::size_t predicate_len,
-            enum hxhim_type_t object_type);
+            enum hxhim_object_type_t object_type);
 
 int GetOpImpl(hxhim::Unsent<hxhim::GetOpData> &getops,
               void *subject, std::size_t subject_len,
               void *predicate, std::size_t predicate_len,
-              enum hxhim_type_t object_type,
+              enum hxhim_object_type_t object_type,
               std::size_t num_records, enum hxhim_get_op_t op);
 
 int DeleteImpl(hxhim::Unsent<hxhim::DeleteData> &dels,

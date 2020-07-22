@@ -176,10 +176,10 @@ Transport::Response::BPut *Datastore::operate(Transport::Request::BPut *req) {
         for(std::size_t i = 0; i < req->count; i++) {
             if (res->statuses[i] == HXHIM_SUCCESS) {
                 switch (req->object_types[i]) {
-                    case HXHIM_FLOAT_TYPE:
+                    case HXHIM_OBJECT_TYPE_FLOAT:
                         hist->add(* (float *) req->objects[i]->data());
                         break;
-                    case HXHIM_DOUBLE_TYPE:
+                    case HXHIM_OBJECT_TYPE_DOUBLE:
                         hist->add(* (double *) req->objects[i]->data());
                         break;
                     default:
@@ -289,13 +289,13 @@ int Datastore::GetStats(long double *put_time,
  * @param copied whether or not the original ptr was replaced by a copy that needs to be deallocated
  * @param HXHIM_SUCCESS or HXHIM_ERROR
  */
-int Datastore::encode(const hxhim_type_t type, void *&ptr, std::size_t &len, bool &copied) {
+int Datastore::encode(const hxhim_object_type_t type, void *&ptr, std::size_t &len, bool &copied) {
     if (!ptr) {
         return HXHIM_ERROR;
     }
 
     switch (type) {
-        case HXHIM_FLOAT_TYPE:
+        case HXHIM_OBJECT_TYPE_FLOAT:
             {
                 const std::string str = elen::encode::floating_point(* (float *) ptr);
                 len = str.size();
@@ -304,7 +304,7 @@ int Datastore::encode(const hxhim_type_t type, void *&ptr, std::size_t &len, boo
                 copied = true;
             }
             break;
-        case HXHIM_DOUBLE_TYPE:
+        case HXHIM_OBJECT_TYPE_DOUBLE:
             {
                 const std::string str = elen::encode::floating_point(* (double *) ptr);
                 len = str.size();
@@ -313,10 +313,10 @@ int Datastore::encode(const hxhim_type_t type, void *&ptr, std::size_t &len, boo
                 copied = true;
             }
             break;
-        case HXHIM_INT_TYPE:
-        case HXHIM_SIZE_TYPE:
-        case HXHIM_INT64_TYPE:
-        case HXHIM_BYTE_TYPE:
+        case HXHIM_OBJECT_TYPE_INT:
+        case HXHIM_OBJECT_TYPE_SIZE:
+        case HXHIM_OBJECT_TYPE_INT64:
+        case HXHIM_OBJECT_TYPE_BYTE:
             copied = false;
             break;
         default:
@@ -338,7 +338,7 @@ int Datastore::encode(const hxhim_type_t type, void *&ptr, std::size_t &len, boo
  * @param dst_len pointer to the destination buffer's length
  * @return HXHIM_SUCCESS or HXHIM_ERROR;
  */
-int Datastore::decode(const hxhim_type_t type, void *src, const std::size_t &src_len, void **dst, std::size_t *dst_len) {
+int Datastore::decode(const hxhim_object_type_t type, void *src, const std::size_t &src_len, void **dst, std::size_t *dst_len) {
     if (!src || !dst || !dst_len) {
         return HXHIM_ERROR;
     }
@@ -352,7 +352,7 @@ int Datastore::decode(const hxhim_type_t type, void *src, const std::size_t &src
     }
 
     switch (type) {
-        case HXHIM_FLOAT_TYPE:
+        case HXHIM_OBJECT_TYPE_FLOAT:
             {
                 const float value = elen::decode::floating_point<float>(std::string((char *) src, src_len));
                 *dst_len = sizeof(float);
@@ -360,7 +360,7 @@ int Datastore::decode(const hxhim_type_t type, void *src, const std::size_t &src
                 memcpy(*dst, &value, *dst_len);
             }
             break;
-        case HXHIM_DOUBLE_TYPE:
+        case HXHIM_OBJECT_TYPE_DOUBLE:
             {
                 const double value = elen::decode::floating_point<double>(std::string((char *) src, src_len));
                 *dst_len = sizeof(double);
@@ -368,10 +368,10 @@ int Datastore::decode(const hxhim_type_t type, void *src, const std::size_t &src
                 memcpy(*dst, &value, *dst_len);
             }
             break;
-        case HXHIM_INT_TYPE:
-        case HXHIM_SIZE_TYPE:
-        case HXHIM_INT64_TYPE:
-        case HXHIM_BYTE_TYPE:
+        case HXHIM_OBJECT_TYPE_INT:
+        case HXHIM_OBJECT_TYPE_SIZE:
+        case HXHIM_OBJECT_TYPE_INT64:
+        case HXHIM_OBJECT_TYPE_BYTE:
             *dst_len = src_len;
             *dst = ::operator new(*dst_len);
             memcpy(*dst, src, *dst_len);

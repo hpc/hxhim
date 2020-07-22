@@ -40,8 +40,8 @@ void print_results(hxhim_t *hx, const int print_rank, hxhim_results_t *results) 
             }
         }
 
-        enum hxhim_result_type_t type;
-        hxhim_result_type(results, &type);
+        enum hxhim_op_t op;
+        hxhim_result_op(results, &op);
 
         int status;
         hxhim_result_status(results, &status);
@@ -62,14 +62,14 @@ void print_results(hxhim_t *hx, const int print_rank, hxhim_results_t *results) 
 
         const double temp = elen_decode_floating_double(subject, ELEN_NEG, ELEN_POS);
 
-        switch (type) {
-            case HXHIM_RESULT_PUT:
+        switch (op) {
+            case HXHIM_PUT:
                 printf("PUT          {%f, %.*s} returned %s from datastore %d\n", temp, (int) predicate_len, (char *) predicate, (status == HXHIM_SUCCESS)?"SUCCESS":"ERROR", datastore);
                 break;
-            case HXHIM_RESULT_GETOP:
+            case HXHIM_GETOP:
                 printf("GET returned ");
                 if (status == HXHIM_SUCCESS) {
-                    enum hxhim_type_t object_type;
+                    enum hxhim_object_type_t object_type;
                     hxhim_result_object_type(results, &object_type);
                     void *object = NULL;
                     size_t object_len = 0;
@@ -87,7 +87,7 @@ void print_results(hxhim_t *hx, const int print_rank, hxhim_results_t *results) 
                 printf(" from datastore %d\n", datastore);
                 break;
             default:
-                printf("Bad Type: %d\n", (int) type);
+                printf("Bad Operation: %d\n", (int) op);
                 break;
         }
     }
@@ -182,7 +182,7 @@ int main(int argc, char *argv[]) {
             hxhimPut(&hx,
                      c->temp_str, strlen(c->temp_str) + 1,
                      c->predicate, strlen(c->predicate) + 1,
-                     HXHIM_BYTE_TYPE,
+                     HXHIM_OBJECT_TYPE_BYTE,
                      c->name, strlen(c->name) + 1);
         }
     }
@@ -198,7 +198,7 @@ int main(int argc, char *argv[]) {
     hxhimBGetOp(&hx,
                 lowest->temp_str, strlen(lowest->temp_str) + 1,
                 lowest->predicate, strlen(lowest->predicate) + 1,
-                HXHIM_BYTE_TYPE, num_lowest, HXHIM_GET_NEXT);
+                HXHIM_OBJECT_TYPE_BYTE, num_lowest, HXHIM_GET_NEXT);
     hxhim_results_t *get_lowest = hxhimFlush(&hx);
     print_results(&hx, 0, get_lowest);
     hxhim_results_destroy(get_lowest);
@@ -210,7 +210,7 @@ int main(int argc, char *argv[]) {
     hxhimBGetOp(&hx,
                 highest->temp_str, strlen(highest->temp_str) + 1,
                 highest->predicate, strlen(highest->predicate) + 1,
-                HXHIM_BYTE_TYPE, num_highest, HXHIM_GET_PREV);
+                HXHIM_OBJECT_TYPE_BYTE, num_highest, HXHIM_GET_PREV);
     hxhim_results_t *get_highest = hxhimFlush(&hx);
     print_results(&hx, 0, get_highest);
     hxhim_results_destroy(get_highest);

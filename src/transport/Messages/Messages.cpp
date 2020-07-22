@@ -6,17 +6,17 @@ Transport::Response::Response *Transport::next(Transport::Response::Response *cu
     }
 
     Transport::Response::Response *next = nullptr;
-    switch (curr->type) {
-        case Transport::Message::BPUT:
+    switch (curr->op) {
+        case hxhim_op_t::HXHIM_PUT:
             next = static_cast<Transport::Response::BPut *>(curr)->next;
             break;
-        case Transport::Message::BGET:
+        case hxhim_op_t::HXHIM_GET:
             next = static_cast<Transport::Response::BGet *>(curr)->next;
             break;
-        case Transport::Message::BGETOP:
+        case hxhim_op_t::HXHIM_GETOP:
             next = static_cast<Transport::Response::BGetOp *>(curr)->next;
             break;
-        case Transport::Message::BDELETE:
+        case hxhim_op_t::HXHIM_DELETE:
             next = static_cast<Transport::Response::BDelete *>(curr)->next;
             break;
         default:

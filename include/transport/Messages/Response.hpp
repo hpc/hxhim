@@ -9,7 +9,7 @@ namespace Response {
 
 // messages sent by the client to the server
 struct Response : Message {
-    Response(Message::Type type);
+    Response(const enum hxhim_op_t type);
     ~Response();
 
     virtual std::size_t size() const;

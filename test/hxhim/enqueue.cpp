@@ -14,7 +14,7 @@ const char SUBJECT2[]    = "SUBJECT";
 const char PREDICATE2[]  = "PREDICATE";
 const char OBJECT2[]     = "OBJECT";
 
-const hxhim_type_t TYPE = HXHIM_BYTE_TYPE;
+const hxhim_object_type_t TYPE = HXHIM_OBJECT_TYPE_BYTE;
 
 TEST(Enqueue, PUT) {
     hxhim::Unsent<hxhim::PutData> puts;
@@ -102,7 +102,7 @@ TEST(Enqueue, GET) {
     }
 
     // enqueue a second GET
-    EXPECT_EQ(hxhim::GetImpl(gets, (char *) SUBJECT2, strlen(SUBJECT2), (char *) PREDICATE2, strlen(PREDICATE2), HXHIM_BYTE_TYPE), HXHIM_SUCCESS);
+    EXPECT_EQ(hxhim::GetImpl(gets, (char *) SUBJECT2, strlen(SUBJECT2), (char *) PREDICATE2, strlen(PREDICATE2), HXHIM_OBJECT_TYPE_BYTE), HXHIM_SUCCESS);
     ASSERT_NE(gets.head, nullptr);
     EXPECT_NE(gets.head, gets.tail);
     EXPECT_EQ(gets.head->next, gets.tail);

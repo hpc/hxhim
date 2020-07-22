@@ -25,7 +25,7 @@ struct BGetOp final : Request {
 
     Blob **subjects;
     Blob **predicates;
-    hxhim_type_t *object_types;
+    hxhim_object_type_t *object_types;
     std::size_t *num_recs;            // number of records to get back
     hxhim_get_op_t *ops;
 };
@@ -44,7 +44,7 @@ struct BGetOp final : Response {
     int steal(BGetOp *bgetop, const std::size_t i);
     int cleanup();
 
-    hxhim_type_t *object_types;
+    hxhim_object_type_t *object_types;
     std::size_t *num_recs;
 
     // array of array of results

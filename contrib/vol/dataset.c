@@ -126,7 +126,7 @@ herr_t H5VL_hxhim_dataset_read(void *dset, hid_t mem_type_id, hid_t mem_space_id
     int rc = (hxhimGet(&dataset_info->file->under_vol->hx,
                        dataset_info->subject, dataset_info->subject_len,
                        (void *) predicate, predicate_len,
-                       HXHIM_BYTE_TYPE) == HXHIM_SUCCESS);
+                       HXHIM_OBJECT_TYPE_BYTE) == HXHIM_SUCCESS);
 
     fprintf(stderr, "%4d %s   %p (%s, %s) -> %p %d %d %p\n", __LINE__, __func__, dset, dataset_info->subject, predicate, buf, mem_space_id, file_space_id, req);
 
@@ -157,7 +157,7 @@ herr_t H5VL_hxhim_dataset_write(void *dset, hid_t mem_type_id, hid_t mem_space_i
     const int rc = (hxhimPut(&dataset_info->file->under_vol->hx,
                              dataset_info->subject, dataset_info->subject_len,
                              (void *) predicate, predicate_len,
-                             HXHIM_BYTE_TYPE, (void *) buf, size * count) == HXHIM_SUCCESS);
+                             HXHIM_OBJECT_TYPE_BYTE, (void *) buf, size * count) == HXHIM_SUCCESS);
 
     fprintf(stderr, "%4d %s  %p (%s, %s, %p) size: %zu count: %lld\n", __LINE__, __func__, dset, dataset_info->subject, predicate, buf, size, count);
 

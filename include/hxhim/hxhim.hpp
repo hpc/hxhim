@@ -41,12 +41,12 @@ Results *ChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t func, void *args
 int Put(hxhim_t *hx,
         void *subject, std::size_t subject_len,
         void *predicate, std::size_t predicate_len,
-        hxhim_type_t object_type, void *object, std::size_t object_len);
+        hxhim_object_type_t object_type, void *object, std::size_t object_len);
 
 int Get(hxhim_t *hx,
         void *subject, std::size_t subject_len,
         void *predicate, std::size_t predicate_len,
-        hxhim_type_t object_type);
+        hxhim_object_type_t object_type);
 
 int Delete(hxhim_t *hx,
            void *subject, std::size_t subject_len,
@@ -55,19 +55,19 @@ int Delete(hxhim_t *hx,
 int BPut(hxhim_t *hx,
          void **subjects, std::size_t *subject_lens,
          void **predicates, std::size_t *predicate_lens,
-         hxhim_type_t *object_types, void **objects, std::size_t *object_lens,
+         hxhim_object_type_t *object_types, void **objects, std::size_t *object_lens,
          const std::size_t count);
 
 int BGet(hxhim_t *hx,
          void **subjects, std::size_t *subject_lens,
          void **predicates, std::size_t *predicate_lens,
-         hxhim_type_t *object_types,
+         hxhim_object_type_t *object_types,
          const std::size_t count);
 
 int BGetOp(hxhim_t *hx,
            void *subject, std::size_t subject_len,
            void *predicate, std::size_t predicate_len,
-           hxhim_type_t object_type,
+           hxhim_object_type_t object_type,
            std::size_t num_records, enum hxhim_get_op_t op);
 
 int BDelete(hxhim_t *hx,

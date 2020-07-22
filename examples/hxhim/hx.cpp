@@ -14,11 +14,11 @@ static void print_results(const int rank, hxhim::Results *results) {
     for(results->GoToHead(); results->ValidIterator(); results->GoToNext()) {
         std::cout << "Rank " << rank << " ";
         hxhim::Results::Result *curr = results->Curr();
-        switch (curr->type) {
-            case HXHIM_RESULT_PUT:
+        switch (curr->op) {
+            case HXHIM_PUT:
                 std::cout << "PUT returned " << ((curr->status == HXHIM_SUCCESS)?std::string("SUCCESS"):std::string("ERROR")) << " from datastore " << curr->datastore << std::endl;
                 break;
-            case HXHIM_RESULT_GET:
+            case HXHIM_GET:
                 std::cout << "GET returned ";
                 if (curr->status == HXHIM_SUCCESS) {
                     hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(curr);
@@ -32,11 +32,8 @@ static void print_results(const int rank, hxhim::Results *results) {
 
                 std::cout << " from datastore " << curr->datastore << std::endl;
                 break;
-            case HXHIM_RESULT_DEL:
-                std::cout << "DEL returned " << ((curr->status == HXHIM_SUCCESS)?std::string("SUCCESS"):std::string("ERROR")) << " from datastore " << curr->datastore << std::endl;
-                break;
             default:
-                std::cout << "Bad type: " << curr->type << std::endl;
+                std::cout << "Bad Operation: " << curr->op << std::endl;
                 break;
         }
     }
@@ -103,7 +100,7 @@ int main(int argc, char *argv[]) {
 
    // PUT the subject-predicate-object triples
     for(std::size_t i = 0; i < count; i++) {
-        hxhim::Put(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_DOUBLE_TYPE, &doubles[i], sizeof(doubles[i]));
+        hxhim::PutDouble(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &doubles[i]);
         if (print) {
             std::cout << "Rank " << rank << " PUT {" << std::string((char *) subjects[i], subject_lens[i]) << ", " << std::string((char *) predicates[i], predicate_lens[i]) << "} -> " << doubles[i] << std::endl;
         }
@@ -111,7 +108,7 @@ int main(int argc, char *argv[]) {
 
     // GET them back, flushing only the GETs
     for(std::size_t i = 0; i < count; i++) {
-        hxhim::Get(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_DOUBLE_TYPE);
+        hxhim::GetDouble(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i]);
     }
     hxhim::Results *flush_gets_early = hxhim::FlushGets(&hx);
     std::cout << "GET before flushing PUTs" << std::endl;
@@ -137,7 +134,7 @@ int main(int argc, char *argv[]) {
 
     // GET again, but flush everything this time
     for(std::size_t i = 0; i < count; i++) {
-        hxhim::Get(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], HXHIM_DOUBLE_TYPE);
+        hxhim::GetDouble(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i]);
     }
 
     MPI_Barrier(MPI_COMM_WORLD);

@@ -1,17 +1,8 @@
 #include "transport/Messages/Message.hpp"
 
-const char * Transport::Message::TypeStr[]  = {
-    "INVALID",
-    "BPUT",
-    "BGET",
-    "BGETOP",
-    "BDELETE",
-    "SYNC",
-};
-
-Transport::Message::Message(const Message::Direction dir, const Message::Type type, const std::size_t max_count)
+Transport::Message::Message(const Message::Direction dir, const enum hxhim_op_t op, const std::size_t max_count)
     : direction(dir),
-      type(type),
+      op(op),
       src(-1),
       dst(-1),
       max_count(max_count),
@@ -27,7 +18,7 @@ Transport::Message::~Message() {
 }
 
 std::size_t Transport::Message::Message::size() const {
-    return sizeof(direction) + sizeof(type) + sizeof(src) + sizeof(dst) + (count * sizeof(*ds_offsets)) + sizeof(count);
+    return sizeof(direction) + sizeof(op) + sizeof(src) + sizeof(dst) + (count * sizeof(*ds_offsets)) + sizeof(count);
 }
 
 std::size_t Transport::Message::Message::filled() const {

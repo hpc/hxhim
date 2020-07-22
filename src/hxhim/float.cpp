@@ -21,7 +21,7 @@ int hxhim::PutFloat(hxhim_t *hx,
     return hxhim::Put(hx,
                       subject, subject_len,
                       predicate, predicate_len,
-                      HXHIM_FLOAT_TYPE, (void *) object, sizeof(float));
+                      HXHIM_OBJECT_TYPE_FLOAT, (void *) object, sizeof(float));
 }
 
 /**
@@ -43,7 +43,7 @@ int hxhimPutFloat(hxhim_t *hx,
     return hxhim::Put(hx,
                       subject, subject_len,
                       predicate, predicate_len,
-                      HXHIM_FLOAT_TYPE, (void *) object, sizeof(float));
+                      HXHIM_OBJECT_TYPE_FLOAT, (void *) object, sizeof(float));
 }
 
 /**
@@ -63,7 +63,7 @@ int hxhim::GetFloat(hxhim_t *hx,
     return hxhim::Get(hx,
                       subject, subject_len,
                       predicate, predicate_len,
-                      HXHIM_FLOAT_TYPE);
+                      HXHIM_OBJECT_TYPE_FLOAT);
 }
 
 /**
@@ -111,7 +111,7 @@ int hxhim::BPutFloat(hxhim_t *hx,
     const int ret = hxhim::BPutSingleType(hx,
                                           subjects, subject_lens,
                                           predicates, predicate_lens,
-                                          HXHIM_FLOAT_TYPE, (void **) objects, lens,
+                                          HXHIM_OBJECT_TYPE_FLOAT, (void **) objects, lens,
                                           count);
     delete [] lens;
     return ret;
@@ -161,7 +161,7 @@ int hxhim::BGetFloat(hxhim_t *hx,
     return hxhim::BGetSingleType(hx,
                                  subjects, subject_lens,
                                  predicates, predicate_lens,
-                                 HXHIM_FLOAT_TYPE,
+                                 HXHIM_OBJECT_TYPE_FLOAT,
                                  count);
 }
 
@@ -205,7 +205,7 @@ int hxhim::BGetOpFloat(hxhim_t *hx,
     return hxhim::BGetOp(hx,
                          subject, subject_len,
                          predicate, predicate_len,
-                         HXHIM_FLOAT_TYPE,
+                         HXHIM_OBJECT_TYPE_FLOAT,
                          num_records, op);
 }
 

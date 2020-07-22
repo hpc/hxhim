@@ -25,7 +25,7 @@ struct BPut final : Request {
 
     Blob **subjects;
     Blob **predicates;
-    hxhim_type_t *object_types;
+    hxhim_object_type_t *object_types;
     Blob **objects;
 
     struct {

@@ -1,6 +1,6 @@
 #include "transport/Messages/Request.hpp"
 
-Transport::Request::Request::Request(Message::Type type)
+Transport::Request::Request::Request(const enum hxhim_op_t type)
     : Message(Message::REQUEST, type, 0)
 {}
 

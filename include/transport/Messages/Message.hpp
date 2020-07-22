@@ -3,8 +3,9 @@
 
 #include <cstdint>
 
-#include "transport/constants.hpp"
 #include "hxhim/Stats.h"
+#include "hxhim/constants.h"
+#include "transport/constants.hpp"
 #include "utils/memory.hpp"
 
 namespace Transport {
@@ -19,24 +20,7 @@ struct Message {
         RESPONSE,
     };
 
-    /**
-     * Type
-     * List of available message types
-     */
-    enum Type {
-        INVALID,
-        BPUT,
-        BGET,
-        BGETOP,
-        BDELETE,
-        SYNC,
-        BHISTOGRAM,
-    };
-
-    // String prepresentation of Types
-    static const char *TypeStr[];
-
-    Message(const Direction dir, const Type type, const std::size_t max_count = 0);
+    Message(const Direction dir, const enum hxhim_op_t op, const std::size_t max_count = 0);
     virtual ~Message();
 
     virtual std::size_t size() const;
@@ -47,7 +31,7 @@ struct Message {
     virtual int cleanup();
 
     Direction direction;
-    Type type;
+    enum hxhim_op_t op;
     int src;                   // range server ID, not backend ID
     int dst;                   // range server ID, not backend ID
     std::size_t max_count;

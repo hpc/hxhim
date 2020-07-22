@@ -2,7 +2,7 @@
 #include <cstdio>
 
 Transport::Request::BGet::BGet(const std::size_t max)
-    : Request(BGET),
+    : Request(hxhim_op_t::HXHIM_GET),
       subjects(nullptr),
       predicates(nullptr),
       object_types(nullptr),
@@ -29,12 +29,12 @@ int Transport::Request::BGet::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Request::alloc(max) != TRANSPORT_SUCCESS)              ||
-            !(subjects            = alloc_array<Blob *>(max))       ||
-            !(predicates          = alloc_array<Blob *>(max))       ||
-            !(object_types        = alloc_array<hxhim_type_t>(max)) ||
-            !(orig.subjects       = alloc_array<void *>(max))       ||
-            !(orig.predicates     = alloc_array<void *>(max)))       {
+        if ((Request::alloc(max) != TRANSPORT_SUCCESS)                     ||
+            !(subjects            = alloc_array<Blob *>(max))              ||
+            !(predicates          = alloc_array<Blob *>(max))              ||
+            !(object_types        = alloc_array<hxhim_object_type_t>(max)) ||
+            !(orig.subjects       = alloc_array<void *>(max))              ||
+            !(orig.predicates     = alloc_array<void *>(max)))              {
             cleanup();
             return TRANSPORT_ERROR;
         }
@@ -88,7 +88,7 @@ int Transport::Request::BGet::cleanup() {
 }
 
 Transport::Response::BGet::BGet(const std::size_t max)
-    : Response(BGET),
+    : Response(hxhim_op_t::HXHIM_GET),
       object_types(nullptr),
       objects(nullptr),
       orig(),
@@ -120,11 +120,11 @@ int Transport::Response::BGet::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Response::alloc(max) != TRANSPORT_SUCCESS)                  ||
-            !(object_types         = alloc_array<hxhim_type_t>(max))     ||
-            !(objects              = alloc_array<Blob *>(max))           ||
-            !(orig.subjects        = alloc_array<ReferenceBlob *>(max))  ||
-            !(orig.predicates      = alloc_array<ReferenceBlob *>(max)))  {
+        if ((Response::alloc(max) != TRANSPORT_SUCCESS)                     ||
+            !(object_types         = alloc_array<hxhim_object_type_t>(max)) ||
+            !(objects              = alloc_array<Blob *>(max))              ||
+            !(orig.subjects        = alloc_array<ReferenceBlob *>(max))     ||
+            !(orig.predicates      = alloc_array<ReferenceBlob *>(max)))     {
             cleanup();
             return TRANSPORT_SUCCESS;
         }

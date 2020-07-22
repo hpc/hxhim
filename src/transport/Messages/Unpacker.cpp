@@ -39,30 +39,30 @@ int Unpacker::unpack(Request::Request **req, void *buf, const std::size_t bufsiz
 
     *req = nullptr;
 
-    // mlog(THALLIUM_DBG, "Unpacking Request type %d", base->type);
-    switch (base->type) {
-        case Message::BPUT:
+    // mlog(THALLIUM_DBG, "Unpacking Request type %d", base->op);
+    switch (base->op) {
+        case hxhim_op_t::HXHIM_PUT:
             {
                 Request::BPut *out = nullptr;
                 ret = unpack(&out, buf, bufsize);
                 *req = out;
             }
             break;
-        case Message::BGET:
+        case hxhim_op_t::HXHIM_GET:
             {
                 Request::BGet *out = nullptr;
                 ret = unpack(&out, buf, bufsize);
                 *req = out;
             }
             break;
-        case Message::BGETOP:
+        case hxhim_op_t::HXHIM_GETOP:
             {
                 Request::BGetOp *out = nullptr;
                 ret = unpack(&out, buf, bufsize);
                 *req = out;
             }
             break;
-        case Message::BDELETE:
+        case hxhim_op_t::HXHIM_DELETE:
             {
                 Request::BDelete *out = nullptr;
                 ret = unpack(&out, buf, bufsize);
@@ -74,7 +74,7 @@ int Unpacker::unpack(Request::Request **req, void *buf, const std::size_t bufsiz
     }
 
     destruct(base);
-    // mlog(THALLIUM_DBG, "Done Unpacking Request type %d", base->type);
+    // mlog(THALLIUM_DBG, "Done Unpacking Request type %d", base->op);
 
     return ret;
 }
@@ -234,30 +234,30 @@ int Unpacker::unpack(Response::Response **res, void *buf, const std::size_t bufs
 
     *res = nullptr;
 
-    // mlog(THALLIUM_DBG, "Unpacking Response type %d", base->type);
-    switch (base->type) {
-        case Message::BPUT:
+    // mlog(THALLIUM_DBG, "Unpacking Response type %d", base->op);
+    switch (base->op) {
+        case hxhim_op_t::HXHIM_PUT:
             {
                 Response::BPut *out = nullptr;
                 ret = unpack(&out, buf, bufsize);
                 *res = out;
             }
             break;
-        case Message::BGET:
+        case hxhim_op_t::HXHIM_GET:
             {
                 Response::BGet *out = nullptr;
                 ret = unpack(&out, buf, bufsize);
                 *res = out;
             }
             break;
-       case Message::BGETOP:
+       case hxhim_op_t::HXHIM_GETOP:
             {
                 Response::BGetOp *out = nullptr;
                 ret = unpack(&out, buf, bufsize);
                 *res = out;
             }
             break;
-        case Message::BDELETE:
+        case hxhim_op_t::HXHIM_DELETE:
             {
                 Response::BDelete *out = nullptr;
                 ret = unpack(&out, buf, bufsize);
@@ -269,7 +269,7 @@ int Unpacker::unpack(Response::Response **res, void *buf, const std::size_t bufs
     }
 
     destruct(base);
-    // mlog(THALLIUM_DBG, "Done Unpacking Response type %d", base->type);
+    // mlog(THALLIUM_DBG, "Done Unpacking Response type %d", base->op);
 
     return ret;
 }
@@ -418,7 +418,7 @@ int Unpacker::unpack(Message **msg, void *buf, const std::size_t bufsize) {
 
     *msg = nullptr;
 
-    Message *out = construct<Message>(Message::NONE, Message::INVALID);
+    Message *out = construct<Message>(Message::NONE, hxhim_op_t::HXHIM_INVALID);
     char *curr = nullptr;
     if (unpack(out, buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
         destruct(out);
@@ -439,8 +439,8 @@ int Unpacker::unpack(Message *msg, void *buf, const std::size_t, char **curr) {
     memcpy(&msg->direction, *curr, sizeof(msg->direction));
     *curr += sizeof(msg->direction);
 
-    memcpy(&msg->type, *curr, sizeof(msg->type));
-    *curr += sizeof(msg->type);
+    memcpy(&msg->op, *curr, sizeof(msg->op));
+    *curr += sizeof(msg->op);
 
     memcpy(&msg->src, *curr, sizeof(msg->src));
     *curr += sizeof(msg->src);

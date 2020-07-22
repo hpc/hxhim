@@ -23,7 +23,7 @@ hxhim::SubjectPredicate::~SubjectPredicate() {}
 
 hxhim::PutData::PutData()
     : SP_t(),
-      object_type(HXHIM_INVALID_TYPE),
+      object_type(HXHIM_OBJECT_TYPE_INVALID),
       object(nullptr),
       prev(nullptr),
       next(nullptr)
@@ -55,7 +55,7 @@ int hxhim::PutData::moveto(Transport::Request::BPut *bput) {
 
 hxhim::GetData::GetData()
     : SP_t(),
-      object_type(HXHIM_INVALID_TYPE),
+      object_type(HXHIM_OBJECT_TYPE_INVALID),
       prev(nullptr),
       next(nullptr)
 {}
@@ -88,7 +88,7 @@ int hxhim::GetData::moveto(Transport::Request::BGet *bget) {
 
 hxhim::GetOpData::GetOpData()
     : SP_t(),
-      object_type(HXHIM_INVALID_TYPE),
+      object_type(HXHIM_OBJECT_TYPE_INVALID),
       num_recs(0),
       op(HXHIM_GET_INVALID),
       prev(nullptr),

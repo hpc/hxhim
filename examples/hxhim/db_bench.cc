@@ -839,7 +839,7 @@ class Benchmark {
         object_lens[j] = value_size_;
         bytes += value_size_;
 
-        hxhimPut(hx, subjects[j], subject_lens[j], predicates[j], predicate_lens[j], HXHIM_BYTE_TYPE, objects[j], object_lens[j]);
+        hxhimPut(hx, subjects[j], subject_lens[j], predicates[j], predicate_lens[j], hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE, objects[j], object_lens[j]);
         thread->stats.FinishedSingleOp();
       }
       // hxhimBPut(hx, subjects, subject_lens, predicates, predicate_lens, objects, object_lens, entries_per_batch_);
@@ -930,7 +930,7 @@ class Benchmark {
       char predicate[100];
       std::size_t predicate_len = snprintf(predicate, 17, "%016d", pred);
 
-      hxhimGet(hx, (void *) subject, subject_len, (void *) predicate, predicate_len, HXHIM_BYTE_TYPE);
+      hxhimGet(hx, (void *) subject, subject_len, (void *) predicate, predicate_len, hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE);
 
       hxhim_results_t *ret = hxhimFlush(hx);
       thread->stats.FinishedSingleOp();
@@ -966,7 +966,7 @@ class Benchmark {
       char predicate[100];
       snprintf(predicate, 18, "%016d.", pred);
 
-      hxhimGet(hx, (void *) subject, strlen(subject), (void *) predicate, strlen(predicate), HXHIM_BYTE_TYPE);
+      hxhimGet(hx, (void *) subject, strlen(subject), (void *) predicate, strlen(predicate), hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE);
 
       hxhim_results_t *ret = hxhimFlush(hx);
       hxhim_results_destroy(ret);
@@ -992,7 +992,7 @@ class Benchmark {
       char predicate[100] = {0};
       snprintf(predicate, 17, "%016d", pred);
 
-      hxhimGet(hx, (void *) subject, strlen(subject), (void *) predicate, strlen(predicate), HXHIM_BYTE_TYPE);
+      hxhimGet(hx, (void *) subject, strlen(subject), (void *) predicate, strlen(predicate), hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE);
       hxhim_results_t *ret = hxhimFlush(hx);
       thread->stats.FinishedSingleOp();
       hxhim_results_destroy(ret);

@@ -5,13 +5,7 @@
 #ifndef TRANSPORT_HPP
 #define TRANSPORT_HPP
 
-#include <atomic>
-#include <list>
 #include <unordered_map>
-#include <mutex>
-#include <vector>
-
-#include <mpi.h>
 
 #include "transport/Messages/Messages.hpp"
 #include "transport/constants.hpp"

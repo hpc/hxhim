@@ -64,7 +64,7 @@ TEST(Results, Loop) {
         // check the data
         std::size_t count = 0;
         for(results.GoToHead(); results.ValidIterator(); results.GoToNext()) {
-            EXPECT_EQ(results.Curr()->type, HXHIM_RESULT_PUT);
+            EXPECT_EQ(results.Curr()->op, hxhim_op_t::HXHIM_PUT);
             count++;
         }
 
@@ -140,7 +140,7 @@ TEST(Results, Accessors) {
     EXPECT_NE(get, nullptr);
     get->subject = construct<RealBlob>(alloc(1), 1);
     get->predicate = construct<RealBlob>(alloc(1), 1);
-    get->object_type = hxhim_type_t::HXHIM_BYTE_TYPE;
+    get->object_type = hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE;
     get->object = construct<RealBlob>(alloc(1), 1);
 
     hxhim::Results::Result *rgetop = results.Add(construct<hxhim::Results::GetOp>(nullptr, -1, HXHIM_SUCCESS));
@@ -148,7 +148,7 @@ TEST(Results, Accessors) {
     EXPECT_NE(getop, nullptr);
     getop->subject = construct<RealBlob>(alloc(1), 1);
     getop->predicate = construct<RealBlob>(alloc(1), 1);
-    get->object_type = hxhim_type_t::HXHIM_BYTE_TYPE;
+    get->object_type = hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE;
     getop->object = construct<RealBlob>(alloc(1), 1);
 
     hxhim::Results::Result *rdel = results.Add(construct<hxhim::Results::Delete>(nullptr, -1, HXHIM_SUCCESS));
@@ -158,21 +158,21 @@ TEST(Results, Accessors) {
     del->predicate = construct<RealBlob>(alloc(1), 1);
 
     // all Results will attempt to get these variables
-    hxhim_result_type_t type;
+    hxhim_op_t op;
     int status;
     void *subject = nullptr;
     std::size_t subject_len = 0;
     void *predicate = nullptr;
     std::size_t predicate_len = 0;
-    hxhim_type_t object_type = HXHIM_INVALID_TYPE;
+    hxhim_object_type_t object_type = HXHIM_OBJECT_TYPE_INVALID;
     void *object = nullptr;
     std::size_t object_len = 0;
 
     EXPECT_EQ(results.GoToHead(), put);
     EXPECT_EQ(results.ValidIterator(), true);
     {
-        EXPECT_EQ(results.Type(&type), HXHIM_SUCCESS);
-        EXPECT_EQ(type, hxhim_result_type_t::HXHIM_RESULT_PUT);
+        EXPECT_EQ(results.Op(&op), HXHIM_SUCCESS);
+        EXPECT_EQ(op, hxhim_op_t::HXHIM_PUT);
 
         EXPECT_EQ(results.Status(&status), HXHIM_SUCCESS);
         EXPECT_EQ(status, HXHIM_SUCCESS);
@@ -190,8 +190,8 @@ TEST(Results, Accessors) {
     EXPECT_EQ(results.GoToNext(), get);
     EXPECT_EQ(results.ValidIterator(), true);
     {
-        EXPECT_EQ(results.Type(&type), HXHIM_SUCCESS);
-        EXPECT_EQ(type, hxhim_result_type_t::HXHIM_RESULT_GET);
+        EXPECT_EQ(results.Op(&op), HXHIM_SUCCESS);
+        EXPECT_EQ(op, hxhim_op_t::HXHIM_GET);
 
         EXPECT_EQ(results.Status(&status), HXHIM_SUCCESS);
         EXPECT_EQ(status, HXHIM_SUCCESS);
@@ -212,8 +212,8 @@ TEST(Results, Accessors) {
     EXPECT_EQ(results.GoToNext(), getop);
     EXPECT_EQ(results.ValidIterator(), true);
     {
-        EXPECT_EQ(results.Type(&type), HXHIM_SUCCESS);
-        EXPECT_EQ(type, hxhim_result_type_t::HXHIM_RESULT_GETOP);
+        EXPECT_EQ(results.Op(&op), HXHIM_SUCCESS);
+        EXPECT_EQ(op, hxhim_op_t::HXHIM_GETOP);
 
         EXPECT_EQ(results.Status(&status), HXHIM_SUCCESS);
         EXPECT_EQ(status, HXHIM_SUCCESS);
@@ -234,8 +234,8 @@ TEST(Results, Accessors) {
     EXPECT_EQ(results.GoToNext(), del);
     EXPECT_EQ(results.ValidIterator(), true);
     {
-        EXPECT_EQ(results.Type(&type), HXHIM_SUCCESS);
-        EXPECT_EQ(type, hxhim_result_type_t::HXHIM_RESULT_DEL);
+        EXPECT_EQ(results.Op(&op), HXHIM_SUCCESS);
+        EXPECT_EQ(op, hxhim_op_t::HXHIM_DELETE);
 
         EXPECT_EQ(results.Status(&status), HXHIM_SUCCESS);
         EXPECT_EQ(status, HXHIM_SUCCESS);
@@ -253,8 +253,8 @@ TEST(Results, Accessors) {
     EXPECT_EQ(results.GoToNext(), nullptr);
     EXPECT_EQ(results.ValidIterator(), false);
     {
-        EXPECT_EQ(results.Type(&type), HXHIM_ERROR);
-        EXPECT_EQ(type, hxhim_result_type_t::HXHIM_RESULT_DEL);
+        EXPECT_EQ(results.Op(&op), HXHIM_ERROR);
+        EXPECT_EQ(op, hxhim_op_t::HXHIM_DELETE);
         EXPECT_EQ(results.Status(&status), HXHIM_ERROR);
         EXPECT_EQ(results.Subject(&subject, &subject_len), HXHIM_ERROR);
         EXPECT_EQ(results.Predicate(&predicate, &predicate_len), HXHIM_ERROR);

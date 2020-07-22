@@ -34,7 +34,7 @@ TEST(hxhim, GetStats) {
         EXPECT_EQ(hxhim::Put(&hx,
                              nullptr, 0,
                              nullptr, 0,
-                             HXHIM_BYTE_TYPE,
+                             HXHIM_OBJECT_TYPE_BYTE,
                              nullptr, 0),
                   HXHIM_SUCCESS);
 
@@ -74,7 +74,7 @@ TEST(hxhim, GetStats) {
         EXPECT_EQ(hxhim::Get(&hx,
                              nullptr, 0,
                              nullptr, 0,
-                             HXHIM_BYTE_TYPE),
+                             HXHIM_OBJECT_TYPE_BYTE),
                   HXHIM_SUCCESS);
 
         // Flush all queued items

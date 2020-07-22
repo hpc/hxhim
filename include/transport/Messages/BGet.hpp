@@ -26,7 +26,7 @@ struct BGet final : Request {
     Blob **subjects;
     Blob **predicates;
     std::size_t *predicate_lens;
-    hxhim_type_t *object_types;
+    hxhim_object_type_t *object_types;
 
     struct {
         // arrays of addresses from client
@@ -53,7 +53,7 @@ struct BGet final : Response {
     int steal(BGet *bget, const std::size_t i);
     int cleanup();
 
-    hxhim_type_t *object_types;
+    hxhim_object_type_t *object_types;
     Blob **objects;
 
     struct {

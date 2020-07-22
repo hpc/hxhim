@@ -10,20 +10,10 @@
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
-const char *hxhim_result_type_str[] = {
-    "NONE",
-    "PUT",
-    "GET",
-    "GETOP",
-    "DELETE",
-    "SYNC",
-    "MAX",
-};
-
-hxhim::Results::Result::Result(hxhim_t *hx, const hxhim_result_type_t type,
+hxhim::Results::Result::Result(hxhim_t *hx, const enum hxhim_op_t op,
                                const int datastore, const int status)
     : hx(hx),
-      type(type),
+      op(op),
       datastore(datastore),
       status(status),
       timestamps()
@@ -34,7 +24,7 @@ hxhim::Results::Result::~Result() {
         struct timespec epoch;
         hxhim::nocheck::GetEpoch(hx, &epoch);
         std::stringstream s;
-        s << hxhim_result_type_str[type]                                                      << std::endl
+        s << HXHIM_OP_STR[op]                                                                 << std::endl
           << "    Cached:           " << elapsed2(&epoch, &timestamps.send.cached)            << std::endl
           << "    Shuffled:         " << elapsed2(&epoch, &timestamps.send.shuffled)          << std::endl
           << "    Hash Start:       " << elapsed2(&epoch, &timestamps.send.hashed.start)      << std::endl
@@ -55,9 +45,9 @@ hxhim::Results::Result::~Result() {
     }
 }
 
-hxhim::Results::SubjectPredicate::SubjectPredicate(hxhim_t *hx, const hxhim_result_type_t type,
+hxhim::Results::SubjectPredicate::SubjectPredicate(hxhim_t *hx, const enum hxhim_op_t op,
                                                    const int datastore, const int status)
-    : hxhim::Results::Result(hx, type, datastore, status),
+    : hxhim::Results::Result(hx, op, datastore, status),
       subject(nullptr),
       predicate(nullptr)
 {}
@@ -69,17 +59,17 @@ hxhim::Results::SubjectPredicate::~SubjectPredicate() {
 
 hxhim::Results::Put::Put(hxhim_t *hx,
                          const int datastore, const int status)
-    : SubjectPredicate(hx, hxhim_result_type_t::HXHIM_RESULT_PUT, datastore, status)
+    : SubjectPredicate(hx, hxhim_op_t::HXHIM_PUT, datastore, status)
 {}
 
 hxhim::Results::Delete::Delete(hxhim_t *hx,
                                const int datastore, const int status)
-    : SubjectPredicate(hx, hxhim_result_type_t::HXHIM_RESULT_DEL, datastore, status)
+    : SubjectPredicate(hx, hxhim_op_t::HXHIM_DELETE, datastore, status)
 {}
 
 hxhim::Results::Sync::Sync(hxhim_t *hx,
                            const int datastore, const int status)
-    : Result(hx, hxhim_result_type_t::HXHIM_RESULT_SYNC, datastore, status)
+    : Result(hx, hxhim_op_t::HXHIM_SYNC, datastore, status)
 {}
 
 hxhim::Results::Result *hxhim::Result::init(hxhim_t *hx, Transport::Response::Response *res, const std::size_t i) {
@@ -104,17 +94,17 @@ hxhim::Results::Result *hxhim::Result::init(hxhim_t *hx, Transport::Response::Re
     }
 
     hxhim::Results::Result *ret = nullptr;
-    switch (res->type) {
-        case Transport::Message::BPUT:
+    switch (res->op) {
+        case hxhim_op_t::HXHIM_PUT:
             ret = init(hx, static_cast<Transport::Response::BPut *>(res), i);
             break;
-        case Transport::Message::BGET:
+        case hxhim_op_t::HXHIM_GET:
             ret = init(hx, static_cast<Transport::Response::BGet *>(res), i);
             break;
-        case Transport::Message::BGETOP:
+        case hxhim_op_t::HXHIM_GETOP:
             ret = init(hx, static_cast<Transport::Response::BGetOp *>(res), i);
             break;
-        case Transport::Message::BDELETE:
+        case hxhim_op_t::HXHIM_DELETE:
             ret = init(hx, static_cast<Transport::Response::BDelete *>(res), i);
             break;
         default:
@@ -262,7 +252,7 @@ void hxhim::Results::Destroy(Results *res) {
 hxhim::Results::Result *hxhim::Results::Add(hxhim::Results::Result *res) {
     if (res) {
         // serialize GetOps
-        if (res->type == hxhim_result_type_t::HXHIM_RESULT_GETOP) {
+        if (res->op == hxhim_op_t::HXHIM_GETOP) {
             for(hxhim::Results::GetOp *get = static_cast<hxhim::Results::GetOp *>(res);
                 get; get = get->next) {
                 results.push_back(get);
@@ -468,39 +458,39 @@ int hxhim_results_duration(hxhim_results_t *res, long double *duration) {
 }
 
 /**
- * Type
- * Gets the type of the result node currently being pointed to
+ * Op
+ * Get the operation that was performed to get the current result
  *
  * @param type  (optional) the type of the current result, only valid if this function returns HXHIM_SUCCESS
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim::Results::Type(enum hxhim_result_type_t *type) const {
+int hxhim::Results::Op(enum hxhim_op_t *op) const {
     hxhim::Results::Result *res = Curr();
     if (!res) {
         return HXHIM_ERROR;
     }
 
-    if (type) {
-        *type = res->type;
+    if (op) {
+        *op = res->op;
     }
 
     return HXHIM_SUCCESS;
 }
 
 /**
- * hxhim_result_type
- * Gets the type of the result node currently being pointed to
+ * hxhim_result_op
+ * Get the operation that was performed to get the current result
  *
  * @param res   A list of results
- * @param type  (optional) the type of the current result, only valid if this function returns HXHIM_SUCCESS
+ * @param op  (optional) the op of the current result, only valid if this function returns HXHIM_SUCCESS
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim_result_type(hxhim_results_t *res, enum hxhim_result_type_t *type) {
+int hxhim_result_op(hxhim_results_t *res, enum hxhim_op_t *op) {
     if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
 
-    return res->res->Type(type);
+    return res->res->Op(op);
 }
 
 /**
@@ -596,11 +586,11 @@ int hxhim::Results::Subject(void **subject, size_t *subject_len) const {
     }
 
     int rc = HXHIM_ERROR;
-    switch (res->type) {
-        case hxhim_result_type_t::HXHIM_RESULT_PUT:
-        case hxhim_result_type_t::HXHIM_RESULT_GET:
-        case hxhim_result_type_t::HXHIM_RESULT_GETOP:
-        case hxhim_result_type_t::HXHIM_RESULT_DEL:
+    switch (res->op) {
+        case hxhim_op_t::HXHIM_PUT:
+        case hxhim_op_t::HXHIM_GET:
+        case hxhim_op_t::HXHIM_GETOP:
+        case hxhim_op_t::HXHIM_DELETE:
         {
             hxhim::Results::SubjectPredicate *sp = static_cast<hxhim::Results::SubjectPredicate *>(res);
             sp->subject->get(subject, subject_len);
@@ -652,11 +642,11 @@ int hxhim::Results::Predicate(void **predicate, size_t *predicate_len) const {
     }
 
     int rc = HXHIM_ERROR;
-    switch (res->type) {
-        case hxhim_result_type_t::HXHIM_RESULT_PUT:
-        case hxhim_result_type_t::HXHIM_RESULT_GET:
-        case hxhim_result_type_t::HXHIM_RESULT_GETOP:
-        case hxhim_result_type_t::HXHIM_RESULT_DEL:
+    switch (res->op) {
+        case hxhim_op_t::HXHIM_PUT:
+        case hxhim_op_t::HXHIM_GET:
+        case hxhim_op_t::HXHIM_GETOP:
+        case hxhim_op_t::HXHIM_DELETE:
         {
             hxhim::Results::SubjectPredicate *sp = static_cast<hxhim::Results::SubjectPredicate *>(res);
             sp->predicate->get(predicate, predicate_len);
@@ -693,7 +683,7 @@ int hxhim_result_predicate(hxhim_results_t *res, void **predicate, size_t *predi
  * @param object_type (optional) the object type of the current result, only valid if this function returns HXHIM_SUCCESS
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim::Results::ObjectType(enum hxhim_type_t *object_type) const {
+int hxhim::Results::ObjectType(enum hxhim_object_type_t *object_type) const {
     hxhim::Results::Result *res = Curr();
     if (!res) {
         return HXHIM_ERROR;
@@ -706,9 +696,9 @@ int hxhim::Results::ObjectType(enum hxhim_type_t *object_type) const {
     }
 
     int rc = HXHIM_ERROR;
-    switch (res->type) {
-        case hxhim_result_type_t::HXHIM_RESULT_GET:
-        case hxhim_result_type_t::HXHIM_RESULT_GETOP:
+    switch (res->op) {
+        case hxhim_op_t::HXHIM_GET:
+        case hxhim_op_t::HXHIM_GETOP:
         {
             hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(res);
             if (object_type) {
@@ -732,7 +722,7 @@ int hxhim::Results::ObjectType(enum hxhim_type_t *object_type) const {
  * @param object_type (optional) the object type of the current result, only valid if this function returns HXHIM_SUCCESS
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim_result_object_type(hxhim_results_t *res, hxhim_type_t *object_type) {
+int hxhim_result_object_type(hxhim_results_t *res, enum hxhim_object_type_t *object_type) {
     if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
@@ -761,9 +751,9 @@ int hxhim::Results::Object(void **object, size_t *object_len) const {
     }
 
     int rc = HXHIM_ERROR;
-    switch (res->type) {
-        case hxhim_result_type_t::HXHIM_RESULT_GET:
-        case hxhim_result_type_t::HXHIM_RESULT_GETOP:
+    switch (res->op) {
+        case hxhim_op_t::HXHIM_GET:
+        case hxhim_op_t::HXHIM_GETOP:
         {
             hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(res);
             get->object->get(object, object_len);

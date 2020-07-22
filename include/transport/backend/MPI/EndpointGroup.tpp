@@ -1,6 +1,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "hxhim/constants.h"
 #include "transport/backend/MPI/constants.h"
 #include "utils/macros.hpp"
 #include "utils/memory.hpp"
@@ -37,15 +38,15 @@ std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::unordered_ma
             continue;
         }
 
-        mlog(MPI_DBG, "Attempting to pack message (type %s, size %zu, %d -> %d)", Message::TypeStr[msg->type], msg->size(), msg->src, msg->dst);
+        mlog(MPI_DBG, "Attempting to pack message (type %s, size %zu, %d -> %d)", HXHIM_OP_STR[msg->op], msg->size(), msg->src, msg->dst);
 
         if (Packer::pack(msg, &bufs[pack_count], &lens[pack_count]) == TRANSPORT_SUCCESS) {
             dsts[pack_count] = msg->dst;
             pack_count++;
-            mlog(MPI_DBG, "Successfully packed message (type %s, size %zu, %d -> %d)", Message::TypeStr[msg->type], msg->size(), msg->src, msg->dst);
+            mlog(MPI_DBG, "Successfully packed message (type %s, size %zu, %d -> %d)", HXHIM_OP_STR[msg->op], msg->size(), msg->src, msg->dst);
         }
         else {
-            mlog(MPI_ERR, "Failed to pack message (type %s, size %zu, %d -> %d)", Message::TypeStr[msg->type], msg->size(), msg->src, msg->dst);
+            mlog(MPI_ERR, "Failed to pack message (type %s, size %zu, %d -> %d)", HXHIM_OP_STR[msg->op], msg->size(), msg->src, msg->dst);
         }
     }
 

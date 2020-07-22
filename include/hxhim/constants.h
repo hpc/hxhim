@@ -15,40 +15,35 @@ extern "C"
 /** How many different ways a SPO triple will be PUT into HXHIM per PUT */
 #define HXHIM_PUT_MULTIPLIER 1
 
-// /**
-//  * hxhim_op_t
-//  * List of operations done by HXHIM
-//  * from the user's perspective
-//  */
-// enum hxhim_op_t {
-//     PUT,
-//     GET,
-//     GETOP,
-//     DELETE,
+/**
+ * Adapted from
+ * https://stackoverflow.com/a/10966395
+ * by Terrence M
+ */
+#define HXHIM_OP_GEN(GEN)     \
+    GEN(PUT)                  \
+    GEN(GET)                  \
+    GEN(GETOP)                \
+    GEN(DELETE)               \
+    GEN(SYNC)                 \
+    GEN(INVALID)              \
 
-//     BPUT,
-//     BGET,
-//     BGETOP,
-//     BDELETE,
-
-//     SYNC,
-//     BHISTOGRAM,
-// };
+#define GENERATE_ENUM(name) HXHIM_##name,
+#define GENERATE_STR(name) "HXHIM_" #name,
 
 /**
- * hxhim_type_t
- * The types of data tha can be passed into HXHIM
+ * hxhim_op_t
+ * List of operations done by HXHIM
  */
-enum hxhim_type_t {
-    HXHIM_INT_TYPE = 0,
-    HXHIM_SIZE_TYPE,
-    HXHIM_INT64_TYPE,
-    HXHIM_FLOAT_TYPE,
-    HXHIM_DOUBLE_TYPE,
-    HXHIM_BYTE_TYPE,
-
-    HXHIM_INVALID_TYPE
+enum hxhim_op_t {
+    HXHIM_OP_GEN(GENERATE_ENUM)
 };
+
+/**
+ * HXHIM_OP_STR
+ * Get string versions of hxhim_op_t
+ */
+extern const char *HXHIM_OP_STR[];
 
 /**
  * GetOp
@@ -66,6 +61,21 @@ enum hxhim_get_op_t {
     // HXHIM_GET_PRIMARY_EQ,
 
     HXHIM_GET_INVALID
+};
+
+/**
+ * hxhim_object_type_t
+ * The types of data tha can be passed into HXHIM
+ */
+enum hxhim_object_type_t {
+    HXHIM_OBJECT_TYPE_INT = 0,
+    HXHIM_OBJECT_TYPE_SIZE,
+    HXHIM_OBJECT_TYPE_INT64,
+    HXHIM_OBJECT_TYPE_FLOAT,
+    HXHIM_OBJECT_TYPE_DOUBLE,
+    HXHIM_OBJECT_TYPE_BYTE,
+
+    HXHIM_OBJECT_TYPE_INVALID
 };
 
 #ifdef __cplusplus
