@@ -49,15 +49,15 @@ int shuffle(hxhim_t *hx,
             std::unordered_map<int, DST_t *> &remote) {
     // skip duplicate calculations
     if ((src->ds_id < 0) || (src->ds_rank < 0) || (src->ds_offset < 0)) {
-        clock_gettime(CLOCK_MONOTONIC, &src->first_shuffle);
+        clock_gettime(CLOCK_MONOTONIC, &src->timestamps.shuffled);
 
         // get the destination backend id for the key
-        clock_gettime(CLOCK_MONOTONIC, &src->hash.start);
+        clock_gettime(CLOCK_MONOTONIC, &src->timestamps.hashed.start);
         src->ds_id = hx->p->hash.func(hx,
                                       src->subject->data(), src->subject->size(),
                                       src->predicate->data(), src->predicate->size(),
                                       hx->p->hash.args);
-        clock_gettime(CLOCK_MONOTONIC, &src->hash.end);
+        clock_gettime(CLOCK_MONOTONIC, &src->timestamps.hashed.end);
 
         if (src->ds_id < 0) {
             mlog(HXHIM_CLIENT_WARN, "Hash returned bad target datastore: %d", src->ds_id);
@@ -102,7 +102,7 @@ int shuffle(hxhim_t *hx,
     clock_gettime(CLOCK_MONOTONIC, &find_dst.end);
 
     // place this time range into src because the target bulk message might not have space
-    src->find_dst += elapsed(&find_dst);
+    src->timestamps.find_dsts.emplace_back(find_dst);
 
     // packet is full
     if (dst->count >= max_per_dst) {
@@ -110,18 +110,15 @@ int shuffle(hxhim_t *hx,
         return NOSPACE;
     }
 
-    struct hxhim::Stats::Send *req = &dst->timestamps.reqs[dst->count];
-
-    clock_gettime(CLOCK_MONOTONIC, &req->bulked.start);
+    struct Monostamp bulked;
+    clock_gettime(CLOCK_MONOTONIC, &bulked.start);
     src->moveto(dst);
-    clock_gettime(CLOCK_MONOTONIC, &req->bulked.end);
+    clock_gettime(CLOCK_MONOTONIC, &bulked.end);
+
+    // set timestamp here because src gets moved into dst
+    dst->timestamps.reqs[dst->count - 1].bulked = bulked;
 
     mlog(HXHIM_CLIENT_INFO, "Added %p to rank %d packet (%zu / %zu)", src, src->ds_id, dst->count, max_per_dst);
-
-    req->cached = src->added;
-    req->shuffled = src->first_shuffle;
-    req->hashed = src->hash;
-    req->find_dst = src->find_dst;
 
     return src->ds_id;
 }

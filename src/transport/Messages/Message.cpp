@@ -59,6 +59,7 @@ int Transport::Message::steal(Transport::Message *from, const std::size_t i) {
 
     ds_offsets[count] = from->ds_offsets[i];
 
+    // do not steal timestamps
     // timestamps.reqs[count] = from->timestamps.reqs[i];
 
     // increment count in calling function

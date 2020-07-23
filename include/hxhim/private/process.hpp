@@ -55,21 +55,17 @@ hxhim::Results *process(hxhim_t *hx,
     // serialized results
     hxhim::Results *res = construct<hxhim::Results>(hx);
 
-    // declare local requests here to not reallocate every loop
-    Request_t local(max_ops_per_send);
-    local.src = rank;
-    local.dst = rank;
-
     // a round might not send every request, so keep running until out of requests
     while (head) {
         // current set of remote destinations to send to
         std::unordered_map<int, Request_t *> remote;
 
-        // reset local without deallocating memory
-        local.count = 0;
+        Request_t local(max_ops_per_send);
+        local.src = local.dst = rank;
 
         struct timespec fill_start;
         clock_gettime(CLOCK_MONOTONIC, &fill_start);
+
         for(UserData_t *curr = head; curr;) {
             mlog(HXHIM_CLIENT_DBG, "Rank %d Client preparing to shuffle %p (next: %p)", rank, curr, curr->next);
 
@@ -112,14 +108,19 @@ hxhim::Results *process(hxhim_t *hx,
 
             curr = next;
         }
+
         struct timespec fill_end;
         clock_gettime(CLOCK_MONOTONIC, &fill_end);
+
+        // This timer does not belong anywhere
+        // since it covers multiple requests and packets but does not describe any of them individually
         std::cerr << rank << " fill " << nano2(&epoch, &fill_start) << " " << nano2(&epoch, &fill_end) << std::endl;
 
         mlog(HXHIM_CLIENT_DBG, "Rank %d Client packed together requests destined for %zu remote servers", rank, remote.size());
 
         struct timespec remote_start;
         clock_gettime(CLOCK_MONOTONIC, &remote_start);
+
         // process remote data
         if (remote.size()) {
             // collect stats
@@ -134,6 +135,7 @@ hxhim::Results *process(hxhim_t *hx,
         for(REF(remote)::value_type &dst : remote) {
             destruct(dst.second);
         }
+
         struct timespec remote_end;
         clock_gettime(CLOCK_MONOTONIC, &remote_end);
         std::cerr << rank << " remote " << nano2(&epoch, &remote_start) << " " << nano2(&epoch, &remote_end) << std::endl;

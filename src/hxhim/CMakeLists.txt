@@ -3,7 +3,6 @@ cmake_minimum_required (VERSION 3.6.3)
 set(HXHIM_SRC
   Histograms.cpp
   Results.cpp
-  Stats.cpp
   accessors.cpp
   config.cpp
   double.cpp

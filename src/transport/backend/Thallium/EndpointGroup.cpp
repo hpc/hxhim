@@ -200,9 +200,8 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
 
         mlog(THALLIUM_DBG, "Unpacked %zu byte response from %d", res_size, req->dst);
 
-        // shallow copy timestamps into response
-        // response takes ownership
-        response->timestamps = req->timestamps;
+        // copy request timestamps (not set by datastores - needs fixing for GetOp)
+        response->timestamps = std::move(req->timestamps);
         req->timestamps.reqs = nullptr;
 
         if (!response) {

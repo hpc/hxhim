@@ -1,15 +1,14 @@
+#include <utility>
+
 #include "hxhim/private/cache.hpp"
 
 hxhim::UserData::UserData()
     : ds_id(-1),
       ds_rank(-1),
       ds_offset(-1),
-      added(),
-      first_shuffle(),
-      hash(),
-      find_dst(0)
+      timestamps()
 {
-    clock_gettime(CLOCK_MONOTONIC, &added);
+    clock_gettime(CLOCK_MONOTONIC, &timestamps.cached);
 }
 
 hxhim::UserData::~UserData() {}
@@ -40,7 +39,7 @@ int hxhim::PutData::moveto(Transport::Request::BPut *bput) {
     }
 
     bput->ds_offsets[bput->count] = ds_offset;
-    bput->timestamps.reqs[bput->count].cached = added;
+    bput->timestamps.reqs[bput->count] = std::move(timestamps);
     bput->subjects[bput->count] = subject; subject = nullptr;
     bput->predicates[bput->count] = predicate; predicate = nullptr;
     bput->object_types[bput->count] = object_type;
@@ -73,7 +72,7 @@ int hxhim::GetData::moveto(Transport::Request::BGet *bget) {
     }
 
     bget->ds_offsets[bget->count] = ds_offset;
-    bget->timestamps.reqs[bget->count].cached = added;
+    bget->timestamps.reqs[bget->count] = std::move(timestamps);
     bget->subjects[bget->count] = subject; subject = nullptr;
     bget->predicates[bget->count] = predicate; predicate = nullptr;
     bget->object_types[bget->count] = object_type;
@@ -108,7 +107,7 @@ int hxhim::GetOpData::moveto(Transport::Request::BGetOp *bgetop) {
     }
 
     bgetop->ds_offsets[bgetop->count] = ds_offset;
-    bgetop->timestamps.reqs[bgetop->count].cached = added;
+    bgetop->timestamps.reqs[bgetop->count] = std::move(timestamps);
     bgetop->subjects[bgetop->count] = subject; subject = nullptr;
     bgetop->predicates[bgetop->count] = predicate; predicate = nullptr;
     bgetop->object_types[bgetop->count] = object_type;
@@ -136,7 +135,7 @@ int hxhim::DeleteData::moveto(Transport::Request::BDelete *bdel) {
     }
 
     bdel->ds_offsets[bdel->count] = ds_offset;
-    bdel->timestamps.reqs[bdel->count].cached = added;
+    bdel->timestamps.reqs[bdel->count] = std::move(timestamps);
     bdel->subjects[bdel->count] = subject; subject = nullptr;
     bdel->predicates[bdel->count] = predicate; predicate = nullptr;
 

@@ -29,11 +29,11 @@ destroy
 cleanup
 "
 
-# for name in ${names}
-# do
-#     grep -E "[0-9]+ ${name} [0-9]+.*" "${file}" > "${file}.${name}" &
-# done
-# wait
+for name in ${names}
+do
+    grep -E "[0-9]+ ${name} [0-9]+.*" "${file}" > "${file}.${name}" &
+done
+wait
 
 ranks=$(awk '{print $1}' "${file}.barrier" | sort | uniq | wc -l)
 

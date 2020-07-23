@@ -133,16 +133,18 @@ int main(int argc, char *argv[]) {
             rank,
             nano2(&epoch, &barrier_start),
             nano2(&epoch, &barrier_end));
-    if (rank == 0) {
-        printf("GET before flushing PUTs\n");
-    }
-    clock_gettime(CLOCK_MONOTONIC, &barrier_start);
-    MPI_Barrier(MPI_COMM_WORLD);
-    clock_gettime(CLOCK_MONOTONIC, &barrier_end);
-    fprintf(stderr, "%d barrier %" PRIu64 " %" PRIu64 "\n",
-            rank,
-            nano2(&epoch, &barrier_start),
-            nano2(&epoch, &barrier_end));
+
+    /* if (rank == 0) { */
+    /*     printf("GET before flushing PUTs\n"); */
+    /* } */
+
+    /* clock_gettime(CLOCK_MONOTONIC, &barrier_start); */
+    /* MPI_Barrier(MPI_COMM_WORLD); */
+    /* clock_gettime(CLOCK_MONOTONIC, &barrier_end); */
+    /* fprintf(stderr, "%d barrier %" PRIu64 " %" PRIu64 "\n", */
+    /*         rank, */
+    /*         nano2(&epoch, &barrier_start), */
+    /*         nano2(&epoch, &barrier_end)); */
 
     /* // GET them back, flushing only the GETs */
     /* // this will likely return errors, since not all of the PUTs will have completed */
@@ -164,9 +166,11 @@ int main(int argc, char *argv[]) {
             rank,
             nano2(&epoch, &barrier_start),
             nano2(&epoch, &barrier_end));
+
     if (rank == 0) {
         printf("Flush PUTs\n");
     }
+
     clock_gettime(CLOCK_MONOTONIC, &barrier_start);
     MPI_Barrier(MPI_COMM_WORLD);
     clock_gettime(CLOCK_MONOTONIC, &barrier_end);
@@ -202,9 +206,6 @@ int main(int argc, char *argv[]) {
     long double duration = 0;
     hxhim_results_duration(flush_puts, &duration);
 
-    struct timespec destroy_start;
-    clock_gettime(CLOCK_MONOTONIC, &destroy_start);
-
     for(int i = 0; i < size; i++) {
         MPI_Barrier(MPI_COMM_WORLD);
         if (i == rank) {
@@ -212,6 +213,9 @@ int main(int argc, char *argv[]) {
         }
         MPI_Barrier(MPI_COMM_WORLD);
     }
+
+    struct timespec destroy_start;
+    clock_gettime(CLOCK_MONOTONIC, &destroy_start);
 
     hxhim_results_destroy(flush_puts);
 

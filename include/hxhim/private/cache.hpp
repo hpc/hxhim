@@ -6,6 +6,7 @@
 #include <mutex>
 
 #include "hxhim/constants.h"
+#include "hxhim/Stats.hpp"
 #include "transport/Messages/Messages.hpp"
 #include "utils/Blob.hpp"
 #include "utils/Stats.hpp"
@@ -29,10 +30,7 @@ namespace hxhim {
         int ds_rank;
         int ds_offset;
 
-        struct timespec added;          // when this struct was created
-        struct timespec first_shuffle;  // first time this request was sent into shuffle
-        struct Monostamp hash;          // how long hashing took
-        long double find_dst;           // how long it took to find the destination packet before placing this request into a packet)
+        struct hxhim::Stats::Send timestamps;
     };
 
     typedef struct SubjectPredicate : UserData {

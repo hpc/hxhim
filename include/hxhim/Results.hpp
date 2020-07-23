@@ -2,7 +2,7 @@
 #define HXHIM_RESULTS_HPP
 
 #include <cstddef>
-#include <list>
+#include <deque>
 
 #include "hxhim/Results.h"
 #include "hxhim/Stats.hpp"
@@ -189,8 +189,8 @@ class Results {
 
     private:
         hxhim_t *hx;
-        std::list <Result *> results;
-        std::list <Result *>::iterator curr;
+        std::deque <Result *> results;
+        decltype(results)::const_iterator curr;
         long double duration;
 };
 

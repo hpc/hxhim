@@ -53,10 +53,9 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
     Response_t *res = construct<Response_t>(req->count);
     res->src = req->dst;
     res->dst = req->src;
-    for(std::size_t i = 0; i < req->count; i++) {
-        res->timestamps.reqs[i] = req->timestamps.reqs[i];
-    }
-    res->timestamps.transport = req->timestamps.transport;
+    // copy request timestamps (not set by datastores - needs fixing for GetOp)
+    res->timestamps = std::move(req->timestamps);
+    req->timestamps.reqs = nullptr;
 
     // no packing
     clock_gettime(CLOCK_MONOTONIC, &res->timestamps.transport.pack.start);

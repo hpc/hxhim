@@ -50,9 +50,11 @@ hxhim::Results::Result::~Result() {
 
         std::cerr << rank << " Cached " << nano2(&epoch, &timestamps.send.cached) << std::endl
                   << rank << " Shuffled " << nano2(&epoch, &timestamps.send.shuffled) << std::endl
-                  << rank << " Hash " << nano2(&epoch, &timestamps.send.hashed.start) << " " << nano2(&epoch, &timestamps.send.hashed.end) << std::endl
-                  << rank << " FindDst " << timestamps.send.find_dst << std::endl
-                  << rank << " Bulked " << nano2(&epoch, &timestamps.send.bulked.start) << " " << nano2(&epoch, &timestamps.send.bulked.end) << std::endl
+                  << rank << " Hash " << nano2(&epoch, &timestamps.send.hashed.start) << " " << nano2(&epoch, &timestamps.send.hashed.end) << std::endl;
+        // for(struct Monostamp const &find : timestamps.send.find_dsts) {
+        //     std::cerr << rank << " FindDst " << nano2(&epoch, &find.start) << " " << nano2(&epoch, &find.end) << std::endl;
+        // }
+        std::cerr << rank << " Bulked " << nano2(&epoch, &timestamps.send.bulked.start) << " " << nano2(&epoch, &timestamps.send.bulked.end) << std::endl
                   << rank << " Pack " << nano2(&epoch, &timestamps.transport.pack.start) << " " << nano2(&epoch, &timestamps.transport.pack.end) << std::endl
                   << rank << " Transport " << nano2(&epoch, &timestamps.transport.send_start) << " " << nano2(&epoch, &timestamps.transport.recv_end) << std::endl
                   << rank << " Unpack " << nano2(&epoch, &timestamps.transport.unpack.start) << " " << nano2(&epoch, &timestamps.transport.unpack.end) << std::endl
@@ -277,7 +279,7 @@ hxhim::Results::Result *hxhim::Results::Add(hxhim::Results::Result *res) {
             results.push_back(res);
         }
     }
-    std::list<hxhim::Results::Result *>::reverse_iterator it = results.rbegin();
+    decltype(results)::reverse_iterator it = results.rbegin();
     return (it != results.rend())?*it:nullptr;
 }
 
@@ -292,16 +294,20 @@ void hxhim::Results::Add(Transport::Response::Response *res) {
     for(Transport::Response::Response *curr = res; curr; curr = next(curr)) {
         struct timespec start;
         clock_gettime(CLOCK_MONOTONIC, &start);
-        for(std::size_t i = 0; i < curr->count; i++) {
-            Add(hxhim::Result::init(hx, curr, i));
-
-            duration += elapsed(&curr->timestamps.reqs[i].hashed)
-                     +  curr->timestamps.reqs[i].find_dst
-                     +  elapsed(&curr->timestamps.reqs[i].bulked);
-        }
 
         duration += elapsed2(&curr->timestamps.transport.pack.start,
                              &curr->timestamps.transport.unpack.end);
+
+        for(std::size_t i = 0; i < curr->count; i++) {
+            for(struct Monostamp &find_dst : curr->timestamps.reqs[i].find_dsts) {
+                duration += elapsed(&find_dst);
+            }
+
+            duration += elapsed(&curr->timestamps.reqs[i].hashed)
+                     +  elapsed(&curr->timestamps.reqs[i].bulked);
+
+            Add(hxhim::Result::init(hx, curr, i));
+        }
 
         struct timespec end;
         clock_gettime(CLOCK_MONOTONIC, &end);
@@ -313,15 +319,16 @@ void hxhim::Results::Add(Transport::Response::Response *res) {
 /**
  * Append
  * Moves and appends the contents of another hxhim::Results into this one.
- * The other list is emptied out;
+ * The other list is emptied out
  *
  * @return the pointer to the construct<node
  */
 void hxhim::Results::Append(hxhim::Results *other) {
     if (other) {
-        results.splice(results.end(), other->results);
-
+        results.insert(results.end(), other->results.begin(), other->results.end());
         duration += other->duration;
+
+        other->results.clear();
         other->duration = 0;
     }
 }

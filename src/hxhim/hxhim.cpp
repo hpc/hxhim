@@ -459,7 +459,6 @@ hxhim::Results *hxhim::Sync(hxhim_t *hx) {
     send.shuffled     = hx->p->epoch;
     send.hashed.start = hx->p->epoch;
     send.hashed.end   = hx->p->epoch;
-    send.find_dst     = 0;
     send.bulked.start = hx->p->epoch;
     send.bulked.end   = hx->p->epoch;
 

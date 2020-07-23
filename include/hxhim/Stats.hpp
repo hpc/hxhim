@@ -1,7 +1,7 @@
 #ifndef HXHIM_STATS_HPP
 #define HXHIM_STATS_HPP
 
-#include <list>
+#include <deque>
 
 #include "utils/Stats.hpp"
 
@@ -13,17 +13,14 @@ namespace Stats {
 
 /** Timestamps before calling transport layer */
 struct Send {
-    Send();
-    ~Send();
-
     struct timespec cached;
-    struct timespec shuffled;       /** the first time shuffle was called on this request    */
-    struct Monostamp hashed;        /** how long hashing took (start should be close to      */
-                                    /** shuffled timestamp                                   */
-    long double find_dst;           /** time to figure out which packet this request goes to */
-    struct Monostamp bulked;        /** how long it took to place the request into a packet  */
-                                    /** This does not include the time between hashing and   */
-                                    /** failing to put the request into the packet           */
+    struct timespec shuffled;                /** the first time shuffle was called on this request    */
+    struct Monostamp hashed;                 /** how long hashing took (start should be close to      */
+                                             /** shuffled timestamp                                   */
+    std::deque<struct Monostamp> find_dsts;  /** time to figure out which packet this request goes to */
+    struct Monostamp bulked;                 /** how long it took to place the request into a packet  */
+                                             /** This does not include the time between hashing and   */
+                                             /** failing to put the request into the packet           */
 };
 
 /** Transport timestamps */
