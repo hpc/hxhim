@@ -2,6 +2,8 @@
 
 #include "utils/memory.hpp"
 
+static const int VALUE = rand();
+
 TEST(memory, alloc_dealloc) {
     void *ptr = alloc(1024);
     EXPECT_NE(ptr, nullptr);
@@ -21,17 +23,69 @@ TEST(memory, construct_destruct) {
         int *ptr;
     };
 
-    const int val = 1234;
-    struct Struct *ptr = construct<struct Struct>(val);
+    struct Struct *ptr = construct<struct Struct>(VALUE);
     ASSERT_NE(ptr, nullptr);
     ASSERT_NE(ptr->ptr, nullptr);
-    EXPECT_EQ(*ptr->ptr, val);
+    EXPECT_EQ(*ptr->ptr, VALUE);
     destruct(ptr);
 }
 
 TEST(memory, array) {
     const std::size_t count = 10;
-    int *ptr = alloc_array<int>(count);
-    ASSERT_NE(ptr, nullptr);
-    dealloc_array(ptr, count);
+
+    // built in type
+    {
+        int *ptr = alloc_array<int>(count, VALUE);
+        ASSERT_NE(ptr, nullptr);
+        for(std::size_t i = 0; i < count; i++) {
+            EXPECT_EQ(ptr[i], VALUE);
+        }
+        dealloc_array(ptr, count);
+    }
+
+    // pointer
+    {
+        void **ptr = alloc_array<void *>(count, nullptr);
+        ASSERT_NE(ptr, nullptr);
+        for(std::size_t i = 0; i < count; i++) {
+            EXPECT_EQ(ptr[i], nullptr);
+        }
+        dealloc_array(ptr, count);
+    }
+
+    // type with default constructor
+    {
+        struct WithDefaultConstructor {
+            WithDefaultConstructor()
+                : n(VALUE)
+            {}
+
+            const int n;
+        };
+
+        WithDefaultConstructor *ptr = alloc_array<WithDefaultConstructor>(count);
+        ASSERT_NE(ptr, nullptr);
+        for(std::size_t i = 0; i < count; i++) {
+            EXPECT_EQ(ptr[i].n, VALUE);
+        }
+        dealloc_array(ptr, count);
+    }
+
+    // type without default constructor
+    {
+        struct WithoutDefaultConstructor {
+            WithoutDefaultConstructor(const int value)
+                : n(value)
+            {}
+
+            const int n;
+        };
+
+        WithoutDefaultConstructor *ptr = alloc_array<WithoutDefaultConstructor>(count, VALUE);
+        ASSERT_NE(ptr, nullptr);
+        for(std::size_t i = 0; i < count; i++) {
+            EXPECT_EQ(ptr[i].n, VALUE);
+        }
+        dealloc_array(ptr, count);
+    }
 }
