@@ -278,6 +278,9 @@ hxhim::Results::Result *hxhim::Results::Add(hxhim::Results::Result *res) {
         else {
             results.push_back(res);
         }
+
+        // explicitly invalidate iterator
+        curr = results.end();
     }
     decltype(results)::reverse_iterator it = results.rbegin();
     return (it != results.rend())?*it:nullptr;
@@ -330,6 +333,9 @@ void hxhim::Results::Append(hxhim::Results *other) {
 
         other->results.clear();
         other->duration = 0;
+
+        // explicitly invalidate iterator
+        curr = results.end();
     }
 }
 
@@ -389,7 +395,10 @@ int hxhim_results_goto_head(hxhim_results_t *res) {
  * @return Whether or not the new position is valid
  */
 hxhim::Results::Result *hxhim::Results::GoToNext() {
-    curr++;
+    if (ValidIterator()) {
+        curr++;
+    }
+
     return ValidIterator()?*curr:nullptr;
 }
 
