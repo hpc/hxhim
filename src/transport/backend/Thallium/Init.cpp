@@ -6,9 +6,6 @@
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
-namespace Transport {
-namespace Thallium {
-
 /**
  * init
  * Initializes Thallium inside HXHIM
@@ -17,7 +14,7 @@ namespace Thallium {
  * @param opts the HXHIM options
  * @param TRANSPORT_SUCCESS or TRANSPORT_ERROR
  */
-int init(hxhim_t *hx, hxhim_options_t *opts) {
+int Transport::Thallium::init(hxhim_t *hx, hxhim_options_t *opts) {
     int rank = -1;
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
@@ -85,7 +82,4 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
 
     mlog(THALLIUM_INFO, "Rank %d Completed Thallium transport initialization", rank);
     return TRANSPORT_SUCCESS;
-}
-
-}
 }

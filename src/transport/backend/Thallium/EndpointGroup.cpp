@@ -11,16 +11,13 @@
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
-namespace Transport {
-namespace Thallium {
-
-EndpointGroup::EndpointGroup(const Thallium::Engine_t &engine,
-                             const Thallium::RPC_t &process_rpc,
-                             const Thallium::RPC_t &cleanup_rpc)
-  : ::Transport::EndpointGroup(),
-    engine(engine),
-    process_rpc(process_rpc),
-    cleanup_rpc(cleanup_rpc),
+Transport::Thallium::EndpointGroup::EndpointGroup(const Thallium::Engine_t &engine,
+                                                  const Thallium::RPC_t &process_rpc,
+                                                  const Thallium::RPC_t &cleanup_rpc)
+    : ::Transport::EndpointGroup(),
+      engine(engine),
+      process_rpc(process_rpc),
+      cleanup_rpc(cleanup_rpc),
     endpoints()
 {
     if (!process_rpc) {
@@ -31,7 +28,7 @@ EndpointGroup::EndpointGroup(const Thallium::Engine_t &engine,
     }
 }
 
-EndpointGroup::~EndpointGroup() {}
+Transport::Thallium::EndpointGroup::~EndpointGroup() {}
 
 /**
  * AddID
@@ -45,7 +42,7 @@ EndpointGroup::~EndpointGroup() {}
  * @param address  the address of the other end
  * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR
  */
-int EndpointGroup::AddID(const int id, const Thallium::Engine_t &engine, const std::string &address) {
+int Transport::Thallium::EndpointGroup::AddID(const int id, const Thallium::Engine_t &engine, const std::string &address) {
     if (!engine) {
         return TRANSPORT_ERROR;
     }
@@ -71,7 +68,7 @@ int EndpointGroup::AddID(const int id, const Thallium::Engine_t &engine, const s
  * @param ep the other end
  * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR
  */
-int EndpointGroup::AddID(const int id, const Thallium::Endpoint_t &ep) {
+int Transport::Thallium::EndpointGroup::AddID(const int id, const Thallium::Endpoint_t &ep) {
     if (!ep) {
         return TRANSPORT_ERROR;
     }
@@ -87,7 +84,7 @@ int EndpointGroup::AddID(const int id, const Thallium::Endpoint_t &ep) {
  *
  * @param id the unique ID to remove
  */
-void EndpointGroup::RemoveID(const int id) {
+void Transport::Thallium::EndpointGroup::RemoveID(const int id) {
     endpoints.erase(id);
 }
 
@@ -106,13 +103,14 @@ void EndpointGroup::RemoveID(const int id) {
  * @param endpoints    list of endpoints
  * @return The list of responses received
  */
-template <typename Recv_t, typename Send_t, typename = enable_if_t<std::is_base_of<Request::Request,   Send_t>::value &&
-                                                                   std::is_base_of<Response::Response, Recv_t>::value> >
+template <typename Recv_t, typename Send_t,
+          typename = enable_if_t<std::is_base_of<Transport::Request::Request,   Send_t>::value &&
+                                 std::is_base_of<Transport::Response::Response, Recv_t>::value> >
 Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
-                     Engine_t engine,
-                     RPC_t process_rpc,
-                     RPC_t cleanup_rpc,
-                     std::unordered_map<int, Endpoint_t> &endpoints) {
+                     Transport::Thallium::Engine_t engine,
+                     Transport::Thallium::RPC_t process_rpc,
+                     Transport::Thallium::RPC_t cleanup_rpc,
+                     std::unordered_map<int, Transport::Thallium::Endpoint_t> &endpoints) {
 
     int rank = -1;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -133,7 +131,7 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
         mlog(THALLIUM_DBG, "Request is going to range server %d", req->dst);
 
         // figure out where to send the message
-        std::unordered_map<int, Endpoint_t>::const_iterator dst_it = endpoints.find(req->dst);
+        std::remove_reference<decltype(endpoints)>::type::const_iterator dst_it = endpoints.find(req->dst);
         if (dst_it == endpoints.end()) {
             mlog(THALLIUM_WARN, "Could not find endpoint for destination rank %d", req->dst);
             continue;
@@ -145,7 +143,7 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
         clock_gettime(CLOCK_MONOTONIC, &req->timestamps.transport.pack.start);
         void *req_buf = nullptr;
         std::size_t req_size = 0;
-        if (Packer::pack(req, &req_buf, &req_size) != TRANSPORT_SUCCESS) {
+        if (Transport::Packer::pack(req, &req_buf, &req_size) != TRANSPORT_SUCCESS) {
             mlog(THALLIUM_WARN, "Unable to pack message");
             dealloc(req_buf);
             continue;
@@ -186,7 +184,7 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
 
         clock_gettime(CLOCK_MONOTONIC, &req->timestamps.transport.unpack.start); // store the value in req for now
         Recv_t *response = nullptr;
-        const int unpack_rc = Unpacker::unpack(&response, res_buf, res_size);
+        const int unpack_rc = Transport::Unpacker::unpack(&response, res_buf, res_size);
         dealloc(res_buf);
         clock_gettime(CLOCK_MONOTONIC, &req->timestamps.transport.unpack.end); // store the value in req for now
 
@@ -231,7 +229,7 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
  * @param bpm_list the list of BPUT messages to send
  * @return a linked list of response messages, or nullptr
  */
-Response::BPut *EndpointGroup::communicate(const std::unordered_map<int, Request::BPut *> &bpm_list) {
+Transport::Response::BPut *Transport::Thallium::EndpointGroup::communicate(const std::unordered_map<int, Request::BPut *> &bpm_list) {
     return do_operation<Response::BPut>(bpm_list, engine, process_rpc, cleanup_rpc, endpoints);
 }
 
@@ -242,7 +240,7 @@ Response::BPut *EndpointGroup::communicate(const std::unordered_map<int, Request
  * @param bgm_list the list of BGET messages to send
  * @return a linked list of response messages, or nullptr
  */
-Response::BGet *EndpointGroup::communicate(const std::unordered_map<int, Request::BGet *> &bgm_list) {
+Transport::Response::BGet *Transport::Thallium::EndpointGroup::communicate(const std::unordered_map<int, Request::BGet *> &bgm_list) {
     return do_operation<Response::BGet>(bgm_list, engine, process_rpc, cleanup_rpc, endpoints);
 }
 
@@ -253,7 +251,7 @@ Response::BGet *EndpointGroup::communicate(const std::unordered_map<int, Request
  * @param bgm_list the list of BGETOP messages to send
  * @return a linked list of response messages, or nullptr
  */
-Response::BGetOp *EndpointGroup::communicate(const std::unordered_map<int, Request::BGetOp *> &bgm_list) {
+Transport::Response::BGetOp *Transport::Thallium::EndpointGroup::communicate(const std::unordered_map<int, Request::BGetOp *> &bgm_list) {
     return do_operation<Response::BGetOp>(bgm_list, engine, process_rpc, cleanup_rpc, endpoints);
 }
 
@@ -264,7 +262,7 @@ Response::BGetOp *EndpointGroup::communicate(const std::unordered_map<int, Reque
  * @param bdm_list the list of BDELETE messages to send
  * @return a linked list of response messages, or nullptr
  */
-Response::BDelete *EndpointGroup::communicate(const std::unordered_map<int, Request::BDelete *> &bdm_list) {
+Transport::Response::BDelete *Transport::Thallium::EndpointGroup::communicate(const std::unordered_map<int, Request::BDelete *> &bdm_list) {
     return do_operation<Response::BDelete>(bdm_list, engine, process_rpc, cleanup_rpc, endpoints);
 }
 
@@ -275,9 +273,6 @@ Response::BDelete *EndpointGroup::communicate(const std::unordered_map<int, Requ
  * @param bhm_list the list of BHISTOGRAM messages to send
  * @return a linked list of response messages, or nullptr
  */
-Response::BHistogram *EndpointGroup::communicate(const std::unordered_map<int, Request::BHistogram *> &bhm_list) {
+Transport::Response::BHistogram *Transport::Thallium::EndpointGroup::communicate(const std::unordered_map<int, Request::BHistogram *> &bhm_list) {
     return do_operation<Response::BHistogram>(bhm_list, engine, process_rpc, cleanup_rpc, endpoints);
-}
-
-}
 }
