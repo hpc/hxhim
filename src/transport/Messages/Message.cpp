@@ -29,10 +29,17 @@ int Transport::Message::alloc(const std::size_t max) {
     Message::cleanup();
 
     if ((max_count = max)) {
-        if (!(ds_offsets      = alloc_array<int>(max))                       ||
-            !(timestamps.reqs = alloc_array<struct hxhim::Stats::Send>(max))) {
+        if (!(ds_offsets = alloc_array<int>(max))) {
             cleanup();
             return TRANSPORT_ERROR;
+        }
+
+        // responses take ownership of request timestamps
+        if (direction == Transport::Message::Direction::REQUEST) {
+            if (!(timestamps.reqs = alloc_array<struct hxhim::Stats::Send>(max))) {
+                cleanup();
+                return TRANSPORT_ERROR;
+            }
         }
 
         count = 0;
