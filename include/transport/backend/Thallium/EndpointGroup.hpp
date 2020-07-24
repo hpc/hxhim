@@ -29,17 +29,20 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup {
         /** @description Removes an endpoint*/
         void RemoveID(const int id);
 
-        /** @description Bulk Put to multiple endpoints    */
+        /** @description Bulk Put to multiple endpoints       */
         Response::BPut *communicate(const std::unordered_map<int, Request::BPut *> &bpm_list);
 
-        /** @description Bulk Get from multiple endpoints  */
+        /** @description Bulk Get from multiple endpoints     */
         Response::BGet *communicate(const std::unordered_map<int, Request::BGet *> &bgm_list);
 
-        /** @description Bulk Get from multiple endpoints  */
+        /** @description Bulk Get from multiple endpoints     */
         Response::BGetOp *communicate(const std::unordered_map<int, Request::BGetOp *> &bgm_list);
 
-        /** @description Bulk Delete to multiple endpoints */
+        /** @description Bulk Delete to multiple endpoints    */
         Response::BDelete *communicate(const std::unordered_map<int, Request::BDelete *> &bdm_list);
+
+        /** @description Bulk Histogram to multiple endpoints */
+        Response::BHistogram *communicate(const std::unordered_map<int, Request::BHistogram *> &bhm_list);
 
     private:
         Engine_t engine;

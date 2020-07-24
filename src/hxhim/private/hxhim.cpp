@@ -215,10 +215,11 @@ int hxhim::init::memory(hxhim_t *hx, hxhim_options_t *opts) {
     }
 
     // size of each set of queued messages
-    hx->p->max_ops_per_send[hxhim_op_t::HXHIM_PUT]    = opts->p->max_ops_per_send / HXHIM_PUT_MULTIPLIER;
-    hx->p->max_ops_per_send[hxhim_op_t::HXHIM_GET]    = opts->p->max_ops_per_send;
-    hx->p->max_ops_per_send[hxhim_op_t::HXHIM_GETOP]  = opts->p->max_ops_per_send;
-    hx->p->max_ops_per_send[hxhim_op_t::HXHIM_DELETE] = opts->p->max_ops_per_send;
+    hx->p->max_ops_per_send[hxhim_op_t::HXHIM_PUT]       = opts->p->max_ops_per_send / HXHIM_PUT_MULTIPLIER;
+    hx->p->max_ops_per_send[hxhim_op_t::HXHIM_GET]       = opts->p->max_ops_per_send;
+    hx->p->max_ops_per_send[hxhim_op_t::HXHIM_GETOP]     = opts->p->max_ops_per_send;
+    hx->p->max_ops_per_send[hxhim_op_t::HXHIM_DELETE]    = opts->p->max_ops_per_send;
+    hx->p->max_ops_per_send[hxhim_op_t::HXHIM_HISTOGRAM] = opts->p->max_ops_per_send;
 
     mlog(HXHIM_CLIENT_INFO, "Completed Memory Initialization");
     return HXHIM_SUCCESS;
@@ -749,5 +750,36 @@ int hxhim::DeleteImpl(hxhim::Unsent<hxhim::DeleteData> &dels,
     dels.start_processing.notify_one();
 
     mlog(HXHIM_CLIENT_DBG, "Delete Completed");
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * HistogramImpl
+ * Add a HISTOGRAM into the work queue
+ * hx and hx->p are not checked because they must have been
+ * valid for this function to be called.
+ *
+ * @param hx      the HXHIM instance
+ * @param hists   the queue to place the HISTOGRAM in
+ * @param ds_id   the datastore id - value checked by caller
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim::HistogramImpl(hxhim_t *hx,
+                         hxhim::Unsent<hxhim::HistogramData> &hists,
+                         const int ds_id) {
+    mlog(HXHIM_CLIENT_DBG, "HISTOGRAM Start");
+
+    hxhim::HistogramData *hist = construct<hxhim::HistogramData>();
+
+    // setting ds_* values here allows for shuffle to skip hashing this request
+    hist->ds_id     = ds_id;
+    hist->ds_rank   = hxhim::datastore::get_rank(hx, ds_id);
+    hist->ds_offset = hxhim::datastore::get_offset(hx, ds_id);
+
+    mlog(HXHIM_CLIENT_DBG, "HISTOGRAM Insert into queue");
+    hists.insert(hist);
+    hists.start_processing.notify_one();
+
+    mlog(HXHIM_CLIENT_DBG, "Histogram Completed");
     return HXHIM_SUCCESS;
 }

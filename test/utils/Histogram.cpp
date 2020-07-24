@@ -5,6 +5,7 @@
 
 #include <gtest/gtest.h>
 
+#include "TestHistogram.hpp"
 #include "utils/Histogram.hpp"
 
 TEST(Histogram, not_enough_values) {
@@ -85,53 +86,6 @@ TEST(Histogram, uniform_log10) {
 
     EXPECT_EQ(counts[size - 1], (std::size_t) 2);
 }
-
-#define CUSTOM_NONUNIFORM_INIT(name, count)                                   \
-    const int n = count;                                                      \
-    ::Histogram::Histogram name(n,                                            \
-                              [](const double *, const std::size_t,           \
-                                 double **buckets, std::size_t *size,         \
-                                 void *) {                                    \
-                                  if (!(*buckets = alloc_array<double>(3))) { \
-                                      return HISTOGRAM_ERROR;                 \
-                                  }                                           \
-                                                                              \
-                                  (*buckets)[0] = 0;                          \
-                                  (*buckets)[1] = 5;                          \
-                                  (*buckets)[2] = 9;                          \
-                                                                              \
-                                  *size = 3;                                  \
-                                                                              \
-                                  return HISTOGRAM_SUCCESS;                   \
-                              },                                              \
-                              nullptr)
-
-#define CUSTOM_NONUNIFORM_FILL(name, count)     \
-    for(std::size_t i = 0; i < (count); i++) {  \
-        name.add(i);                            \
-    }
-
-#define CUSTOM_NONUNIFORM_TEST(name)                                       \
-    {                                                                      \
-        double *buckets = nullptr;                                         \
-        std::size_t *counts = nullptr;                                     \
-        std::size_t size = 0;                                              \
-                                                                           \
-        ASSERT_EQ(name.get(&buckets, &counts, &size), HISTOGRAM_SUCCESS);  \
-        EXPECT_EQ(size, (std::size_t) 3);                                  \
-                                                                           \
-        /* 0: 0, 1, 2, 3, 4 */                                             \
-        EXPECT_EQ(buckets[0], (double) 0);                                 \
-        EXPECT_EQ(counts[0], (std::size_t) 5);                             \
-                                                                           \
-        /* 5: 5, 6, 7, 8 */                                                \
-        EXPECT_EQ(buckets[1], (double) 5);                                 \
-        EXPECT_EQ(counts[1], (std::size_t) 4);                             \
-                                                                           \
-        /* 9: 9 */                                                         \
-        EXPECT_EQ(buckets[2], (double) 9);                                 \
-        EXPECT_EQ(counts[2], (std::size_t) 1);                             \
-    }
 
 TEST(Histogram, custom_nonuniform) {
     CUSTOM_NONUNIFORM_INIT(h, 10);

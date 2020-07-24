@@ -112,6 +112,12 @@ hxhim::Results::Sync::Sync(hxhim_t *hx,
     : Result(hx, hxhim_op_t::HXHIM_SYNC, datastore, status)
 {}
 
+hxhim::Results::Hist::Hist(hxhim_t *hx,
+                           const int datastore, const int status)
+    : Result(hx, hxhim_op_t::HXHIM_HISTOGRAM, datastore, status),
+      histogram(nullptr)
+{}
+
 hxhim::Results::Result *hxhim::Result::init(hxhim_t *hx, Transport::Response::Response *res, const std::size_t i) {
     // hx should have been checked earlier
 
@@ -146,6 +152,9 @@ hxhim::Results::Result *hxhim::Result::init(hxhim_t *hx, Transport::Response::Re
             break;
         case hxhim_op_t::HXHIM_DELETE:
             ret = init(hx, static_cast<Transport::Response::BDelete *>(res), i);
+            break;
+        case hxhim_op_t::HXHIM_HISTOGRAM:
+            ret = init(hx, static_cast<Transport::Response::BHistogram *>(res), i);
             break;
         default:
             break;
@@ -238,6 +247,15 @@ hxhim::Results::Sync *hxhim::Result::init(hxhim_t *hx, const int ds_offset, cons
     return out;
 }
 
+hxhim::Results::Hist *hxhim::Result::init(hxhim_t *hx, Transport::Response::BHistogram *bhist, const std::size_t i) {
+    hxhim::Results::Hist *out = construct<hxhim::Results::Hist>(hx, hxhim::datastore::get_id(hx, bhist->src, bhist->ds_offsets[i]), bhist->statuses[i]);
+
+    out->histogram = bhist->histograms[i];
+
+    bhist->histograms[i] = nullptr;
+    return out;
+}
+
 /**
  * hxhim_results_valid
  *
@@ -289,17 +307,17 @@ void hxhim::Results::Destroy(Results *res) {
  *
  * @return the pointer to the last valid node
  */
-hxhim::Results::Result *hxhim::Results::Add(hxhim::Results::Result *res) {
-    if (res) {
+hxhim::Results::Result *hxhim::Results::Add(hxhim::Results::Result *response) {
+    if (response) {
         // serialize GetOps
-        if (res->op == hxhim_op_t::HXHIM_GETOP) {
-            for(hxhim::Results::GetOp *get = static_cast<hxhim::Results::GetOp *>(res);
+        if (response->op == hxhim_op_t::HXHIM_GETOP) {
+            for(hxhim::Results::GetOp *get = static_cast<hxhim::Results::GetOp *>(response);
                 get; get = get->next) {
                 results.push_back(get);
             }
         }
         else {
-            results.push_back(res);
+            results.push_back(response);
         }
 
         // explicitly invalidate iterator
@@ -316,23 +334,23 @@ hxhim::Results::Result *hxhim::Results::Add(hxhim::Results::Result *res) {
  *
  * @param res the response packet
  */
-void hxhim::Results::Add(Transport::Response::Response *res) {
-    for(Transport::Response::Response *curr = res; curr; curr = next(curr)) {
+void hxhim::Results::Add(Transport::Response::Response *response) {
+    for(Transport::Response::Response *res = response; res; res = next(res)) {
         struct timespec start;
         clock_gettime(CLOCK_MONOTONIC, &start);
 
-        duration += elapsed2(&curr->timestamps.transport.pack.start,
-                             &curr->timestamps.transport.unpack.end);
+        duration += elapsed2(&res->timestamps.transport.pack.start,
+                             &res->timestamps.transport.unpack.end);
 
-        for(std::size_t i = 0; i < curr->count; i++) {
-            for(struct Monostamp &find_dst : curr->timestamps.reqs[i].find_dsts) {
+        for(std::size_t i = 0; i < res->count; i++) {
+            for(struct Monostamp &find_dst : res->timestamps.reqs[i].find_dsts) {
                 duration += elapsed(&find_dst);
             }
 
-            duration += elapsed(&curr->timestamps.reqs[i].hashed)
-                     +  elapsed(&curr->timestamps.reqs[i].bulked);
+            duration += elapsed(&res->timestamps.reqs[i].hashed)
+                     +  elapsed(&res->timestamps.reqs[i].bulked);
 
-            Add(hxhim::Result::init(hx, curr, i));
+            Add(hxhim::Result::init(hx, res, i));
         }
 
         struct timespec end;
@@ -627,7 +645,7 @@ int hxhim_result_datastore(hxhim_results_t *res, int *datastore) {
  * @param subject_len  (optional) the subject_len of the current result, only valid if this function returns HXHIM_SUCCESS
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim::Results::Subject(void **subject, size_t *subject_len) const {
+int hxhim::Results::Subject(void **subject, std::size_t *subject_len) const {
     hxhim::Results::Result *res = Curr();
     if (!res) {
         return HXHIM_ERROR;
@@ -683,7 +701,7 @@ int hxhim_result_subject(hxhim_results_t *res, void **subject, size_t *subject_l
  * @param predicate_len  (optional) the predicate_len of the current result, only valid if this function returns HXHIM_SUCCESS
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim::Results::Predicate(void **predicate, size_t *predicate_len) const {
+int hxhim::Results::Predicate(void **predicate, std::size_t *predicate_len) const {
     hxhim::Results::Result *res = Curr();
     if (!res) {
         return HXHIM_ERROR;
@@ -792,7 +810,7 @@ int hxhim_result_object_type(hxhim_results_t *res, enum hxhim_object_type_t *obj
  * @param object_len  (optional) the object_len of the current result, only valid if this function returns HXHIM_SUCCESS
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim::Results::Object(void **object, size_t *object_len) const {
+int hxhim::Results::Object(void **object, std::size_t *object_len) const {
     hxhim::Results::Result *res = Curr();
     if (!res) {
         return HXHIM_ERROR;
@@ -836,6 +854,97 @@ int hxhim_result_object(hxhim_results_t *res, void **object, size_t *object_len)
     }
 
     return res->res->Object(object, object_len);
+}
+
+/**
+ * Histogram
+ * Gets the histogram data from the current result node, if the result node contains data from a HISTOGRAM
+ *
+ * @param buckets   (optional) the buckets of the histogram
+ * @param counts    (optional) the counts of the histogram
+ * @param size      (optional) how many bucket-count pairs there are
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
+ */
+int hxhim::Results::Histogram(double **buckets, std::size_t **counts, std::size_t *size) const {
+    hxhim::Results::Result *res = Curr();
+    if (!res) {
+        return HXHIM_ERROR;
+    }
+
+    int status = HXHIM_SUCCESS;
+    if ((Status(&status) != HXHIM_SUCCESS) ||
+        (status != HXHIM_SUCCESS)) {
+        return HXHIM_ERROR;
+    }
+
+    int rc = HXHIM_ERROR;
+    switch (res->op) {
+        case hxhim_op_t::HXHIM_HISTOGRAM:
+        {
+            hxhim::Results::Hist *hist = static_cast<hxhim::Results::Hist *>(res);
+            rc = (hist->histogram->get(buckets, counts, size) == HISTOGRAM_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
+        }
+        break;
+        default:
+            break;
+    }
+
+    return rc;
+}
+
+/**
+ * hxhim_result_histogram
+ * Gets the histogram and length from the current result node, if the result node contains data from a GET
+ *
+ * @param res       A list of results
+ * @param buckets   (optional) the buckets of the histogram
+ * @param counts    (optional) the counts of the histogram
+ * @param size      (optional) how many bucket-count pairs there are
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
+ */
+int hxhim_result_histogram(hxhim_results_t *res, double **buckets, size_t **counts, size_t *size) {
+    if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
+        return HXHIM_ERROR;
+    }
+
+    return res->res->Histogram(buckets, counts, size);
+}
+
+/**
+ * Histogram
+ * Gets the histogram data from the current result node, if the result node contains data from a HISTOGRAM
+ *
+ * @param hist      (optional) the histogram of the current result, only valid if this function returns HXHIM_SUCCESS
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
+ */
+int hxhim::Results::Histogram(::Histogram::Histogram **hist) const {
+    hxhim::Results::Result *res = Curr();
+    if (!res) {
+        return HXHIM_ERROR;
+    }
+
+    int status = HXHIM_SUCCESS;
+    if ((Status(&status) != HXHIM_SUCCESS) ||
+        (status != HXHIM_SUCCESS)) {
+        return HXHIM_ERROR;
+    }
+
+    int rc = HXHIM_ERROR;
+    switch (res->op) {
+        case hxhim_op_t::HXHIM_HISTOGRAM:
+        {
+            if (hist) {
+                hxhim::Results::Hist *h = static_cast<hxhim::Results::Hist *>(res);
+                *hist = h->histogram.get();
+            }
+            rc = HXHIM_SUCCESS;
+        }
+        break;
+        default:
+            break;
+    }
+
+    return rc;
 }
 
 /**

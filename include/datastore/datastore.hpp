@@ -2,6 +2,7 @@
 #define HXHIM_DATASTORE_HPP
 
 #include <list>
+#include <memory>
 
 #include <mpi.h>
 #include <mutex>
@@ -67,10 +68,11 @@ class Datastore {
         void Close();
         int ID() const;
 
-        Transport::Response::BPut    *operate(Transport::Request::BPut    *req);
-        Transport::Response::BGet    *operate(Transport::Request::BGet    *req);
-        Transport::Response::BGetOp  *operate(Transport::Request::BGetOp  *req);
-        Transport::Response::BDelete *operate(Transport::Request::BDelete *req);
+        Transport::Response::BPut       *operate(Transport::Request::BPut       *req);
+        Transport::Response::BGet       *operate(Transport::Request::BGet       *req);
+        Transport::Response::BGetOp     *operate(Transport::Request::BGetOp     *req);
+        Transport::Response::BDelete    *operate(Transport::Request::BDelete    *req);
+        Transport::Response::BHistogram *operate(Transport::Request::BHistogram *req);
 
         int GetHistogram(Histogram::Histogram **h) const;
         int GetStats(long double *put_times,
@@ -96,7 +98,7 @@ class Datastore {
 
         int rank;      // MPI rank of HXHIM instance
         int id;
-        Histogram::Histogram *hist;
+        std::shared_ptr<Histogram::Histogram> hist;
 
         mutable std::mutex mutex;
 

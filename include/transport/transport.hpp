@@ -19,17 +19,20 @@ class EndpointGroup {
     public:
         virtual ~EndpointGroup();
 
-        /** @description Bulk Put to multiple endpoints    */
+        /** @description Bulk Put to multiple endpoints       */
         virtual Response::BPut *communicate(const std::unordered_map<int, Request::BPut *> &bpm_list);
 
-        /** @description Bulk Get from multiple endpoints  */
+        /** @description Bulk Get from multiple endpoints     */
         virtual Response::BGet *communicate(const std::unordered_map<int, Request::BGet *> &bgm_list);
 
-        /** @description Bulk Get from multiple endpoints  */
+        /** @description Bulk Get from multiple endpoints     */
         virtual Response::BGetOp *communicate(const std::unordered_map<int, Request::BGetOp *> &bgm_list);
 
-        /** @description Bulk Delete to multiple endpoints */
+        /** @description Bulk Delete to multiple endpoints    */
         virtual Response::BDelete *communicate(const std::unordered_map<int, Request::BDelete *> &bdm_list);
+
+        /** @description Bulk Histogram to multiple endpoints */
+        virtual Response::BHistogram *communicate(const std::unordered_map<int, Request::BHistogram *> &bhm_list);
 
    protected:
         EndpointGroup();
@@ -64,6 +67,9 @@ class Transport {
 
         /** @description Bulk Delete to multiple endpoints     */
         Response::BDelete *communicate(const std::unordered_map<int, Request::BDelete *> &bdm_list);
+
+        /** @description Bulk Histogram to multiple endpoints  */
+        Response::BHistogram *communicate(const std::unordered_map<int, Request::BHistogram *> &bhm_list);
 
     private:
         EndpointGroup *endpointgroup_;

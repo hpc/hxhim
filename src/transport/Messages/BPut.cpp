@@ -100,8 +100,7 @@ int Transport::Request::BPut::cleanup() {
 
 Transport::Response::BPut::BPut(const std::size_t max)
     : Response(hxhim_op_t::HXHIM_PUT),
-      orig(),
-      next(nullptr)
+      orig()
 {
     alloc(max);
 }

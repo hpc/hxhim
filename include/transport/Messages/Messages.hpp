@@ -7,6 +7,7 @@
 #include "transport/Messages/BGet.hpp"
 #include "transport/Messages/BGetOp.hpp"
 #include "transport/Messages/BDelete.hpp"
+#include "transport/Messages/BHistogram.hpp"
 
 #include "transport/Messages/Packer.hpp"
 #include "transport/Messages/Unpacker.hpp"

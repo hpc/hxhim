@@ -85,8 +85,7 @@ int Transport::Request::BDelete::cleanup() {
 
 Transport::Response::BDelete::BDelete(const std::size_t max)
     : Response(hxhim_op_t::HXHIM_DELETE),
-      orig(),
-      next(nullptr)
+      orig()
 {
     alloc(max);
 }

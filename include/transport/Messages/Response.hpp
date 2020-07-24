@@ -19,6 +19,8 @@ struct Response : Message {
 
     int *statuses;
 
+    Response *next;
+
   protected:
     int steal(Response *from, const std::size_t i);
 };

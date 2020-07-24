@@ -147,3 +147,30 @@ int hxhim::DeleteData::moveto(Transport::Request::BDelete *bdel) {
     return HXHIM_SUCCESS;
 
 }
+
+const Blob *hxhim::HistogramData::subject = nullptr;
+const Blob *hxhim::HistogramData::predicate = nullptr;
+
+hxhim::HistogramData::HistogramData()
+    : UserData(),
+      prev(nullptr),
+      next(nullptr)
+{}
+
+int hxhim::HistogramData::moveto(Transport::Request::BHistogram *bhist) {
+    if (!bhist) {
+        return HXHIM_ERROR;
+    }
+
+    if (bhist->count >= bhist->max_count) {
+        return HXHIM_ERROR;
+    }
+
+    bhist->ds_offsets[bhist->count] = ds_offset;
+    bhist->timestamps.reqs[bhist->count] = std::move(timestamps);
+
+    bhist->count++;
+
+    return HXHIM_SUCCESS;
+
+}

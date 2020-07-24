@@ -461,3 +461,7 @@ int Histogram::Histogram::insert(const double &value) {
 
     return HISTOGRAM_SUCCESS;
 }
+
+void Histogram::deleter(Histogram *hist) {
+    destruct(hist);
+}

@@ -44,6 +44,9 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup, virtual public 
         /** @description Bulk Delete to multiple endpoints */
         Response::BDelete *communicate(const std::unordered_map<int, Request::BDelete *> &bdm_list);
 
+        /** @description Bulk Histogram to multiple endpoints */
+        Response::BHistogram *communicate(const std::unordered_map<int, Request::BHistogram *> &bhm_list);
+
     private:
         /** @escription Functions that perform the actual MPI calls */
         template <typename Send_t, typename = enable_if_t<std::is_base_of<Request::Request, Send_t>::value> >

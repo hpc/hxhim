@@ -26,6 +26,7 @@ extern "C"
     GEN(GETOP)                \
     GEN(DELETE)               \
     GEN(SYNC)                 \
+    GEN(HISTOGRAM)            \
     GEN(INVALID)              \
 
 #define GENERATE_ENUM(name) HXHIM_##name,

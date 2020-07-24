@@ -97,8 +97,7 @@ Transport::Response::BGetOp::BGetOp(const std::size_t max)
       num_recs(nullptr),
       subjects(nullptr),
       predicates(nullptr),
-      objects(nullptr),
-      next(nullptr)
+      objects(nullptr)
 {
     alloc(max);
 }

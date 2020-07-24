@@ -1,4 +1,5 @@
 #include <cstring>
+#include <memory>
 
 #include "transport/Messages/Unpacker.hpp"
 
@@ -65,6 +66,13 @@ int Unpacker::unpack(Request::Request **req, void *buf, const std::size_t bufsiz
         case hxhim_op_t::HXHIM_DELETE:
             {
                 Request::BDelete *out = nullptr;
+                ret = unpack(&out, buf, bufsize);
+                *req = out;
+            }
+            break;
+        case hxhim_op_t::HXHIM_HISTOGRAM:
+            {
+                Request::BHistogram *out = nullptr;
                 ret = unpack(&out, buf, bufsize);
                 *req = out;
             }
@@ -211,6 +219,20 @@ int Unpacker::unpack(Request::BDelete **bdm, void *buf, const std::size_t bufsiz
     return TRANSPORT_SUCCESS;
 }
 
+int Unpacker::unpack(Request::BHistogram **bhm, void *buf, const std::size_t bufsize) {
+    Request::BHistogram *out = construct<Request::BHistogram>();
+    char *curr = nullptr;
+    if (unpack(static_cast<Request::Request *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
+        destruct(out);
+        return TRANSPORT_ERROR;
+    }
+
+    out->count = out->max_count;
+
+    *bhm = out;
+    return TRANSPORT_SUCCESS;
+}
+
 int Unpacker::unpack(Response::Response **res, void *buf, const std::size_t bufsize) {
     int ret = TRANSPORT_ERROR;
     if (!res) {
@@ -260,6 +282,13 @@ int Unpacker::unpack(Response::Response **res, void *buf, const std::size_t bufs
         case hxhim_op_t::HXHIM_DELETE:
             {
                 Response::BDelete *out = nullptr;
+                ret = unpack(&out, buf, bufsize);
+                *res = out;
+            }
+            break;
+        case hxhim_op_t::HXHIM_HISTOGRAM:
+            {
+                Response::BHistogram *out = nullptr;
                 ret = unpack(&out, buf, bufsize);
                 *res = out;
             }
@@ -408,6 +437,30 @@ int Unpacker::unpack(Response::BDelete **bdm, void *buf, const std::size_t bufsi
     }
 
     *bdm = out;
+    return TRANSPORT_SUCCESS;
+}
+
+int Unpacker::unpack(Response::BHistogram **bhm, void *buf, const std::size_t bufsize) {
+    Response::BHistogram *out = construct<Response::BHistogram>();
+    char *curr = nullptr;
+    if (unpack(static_cast<Response::Response *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
+        destruct(out);
+        return TRANSPORT_ERROR;
+    }
+
+    std::size_t remaining = bufsize - (curr - (char *) buf);
+
+    for(std::size_t i = 0; i < out->max_count; i++) {
+        memcpy(&out->statuses[i], curr, sizeof(out->statuses[i]));
+        curr += sizeof(out->statuses[i]);
+
+        out->histograms[i] = std::shared_ptr<Histogram::Histogram>(construct<Histogram::Histogram>(0, nullptr, nullptr), Histogram::deleter);
+        out->histograms[i]->unpack(curr, remaining, nullptr);
+
+        out->count++;
+    }
+
+    *bhm = out;
     return TRANSPORT_SUCCESS;
 }
 

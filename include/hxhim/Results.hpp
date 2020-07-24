@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <deque>
+#include <memory>
 
 #include "hxhim/Results.h"
 #include "hxhim/Stats.hpp"
@@ -10,6 +11,7 @@
 #include "hxhim/struct.h"
 #include "transport/Messages/Messages.hpp"
 #include "utils/Blob.hpp"
+#include "utils/Histogram.hpp"
 #include "utils/Stats.hpp"
 #include "utils/memory.hpp"
 
@@ -27,7 +29,7 @@ namespace hxhim {
  *
  *     hxhim::Results *res = Flush(hx);
  *     for(res->GoToHead(); res->ValidIterator(); res->GoToNext()) {
- *         hxhim_op_t op;
+ *         enum hxhim_op_t op;
  *         res->Op(&op);
  *         switch (type) {
  *             case HXHIM_PUT:
@@ -39,6 +41,9 @@ namespace hxhim {
  *                 break;
  *             case HXHIM_DELETE:
  *                 // do stuff with del
+ *                 break;
+ *             case HXHIM_HISTOGRAM:
+ *                 // do stuff with hist
  *                 break;
  *             default:
  *                 break;
@@ -146,6 +151,13 @@ class Results {
             Sync(hxhim_t *hx, const int datastore, const int status);
         };
 
+        /** @description Convenience struct for DEL results */
+        struct Hist final : public Result {
+            Hist(hxhim_t *hx, const int datastore, const int status);
+
+            std::shared_ptr<::Histogram::Histogram> histogram;
+        };
+
     public:
         Results(hxhim_t *hx);
         ~Results();
@@ -154,11 +166,11 @@ class Results {
 
         // Appends a single new node to the list
         // timestamps are not updated
-        Result *Add(Result *res);
+        Result *Add(Result *response);
 
         // Append an entire bulk packet's worth of data
         // timestamps are updated
-        void Add(Transport::Response::Response *res);
+        void Add(Transport::Response::Response *response);
 
         // Moves and appends another set of results; the list being appended is emptied out
         // timestamps are updated
@@ -179,12 +191,14 @@ class Results {
         int Op(enum hxhim_op_t *op) const;
         int Status(int *status) const;
         int Datastore(int *datastore) const;
-        int Subject(void **subject, size_t *subject_len) const;
-        int Predicate(void **predicate, size_t *predicate_len) const;
+        int Subject(void **subject, std::size_t *subject_len) const;
+        int Predicate(void **predicate, std::size_t *predicate_len) const;
         int ObjectType(enum hxhim_object_type_t *object_type) const;
-        int Object(void **object, size_t *object_len) const;
+        int Object(void **object, std::size_t *object_len) const;
+        int Histogram(double **buckets, std::size_t **counts, std::size_t *size) const;
 
-        // This function is only available in C++
+        // These functions are only available in C++
+        int Histogram(::Histogram::Histogram **hist) const;
         int Timestamps(struct Result::Timestamps **timestamps) const;
 
     private:

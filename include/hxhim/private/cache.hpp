@@ -86,7 +86,20 @@ namespace hxhim {
         DeleteData *next;
     };
 
-    template <typename Data, typename = enable_if_t<std::is_base_of<SubjectPredicate, Data>::value> >
+    struct HistogramData : UserData {
+        HistogramData();
+        ~HistogramData() = default;
+        int moveto(Transport::Request::BHistogram *bhistogram);
+
+        // not used, but needed for shuffle to compile
+        static const Blob *subject;
+        static const Blob *predicate;
+
+        HistogramData *prev;
+        HistogramData *next;
+    };
+
+    template <typename Data, typename = enable_if_t<std::is_base_of<UserData, Data>::value> >
     struct Unsent {
         Unsent()
             : mutex(),

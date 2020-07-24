@@ -7,7 +7,6 @@
 
 #include <stddef.h>
 
-#include "hxhim/Histograms.h"
 #include "hxhim/Results.h"
 #include "hxhim/accessors.h"
 #include "hxhim/config.h"
@@ -35,6 +34,7 @@ hxhim_results_t *hxhimFlushPuts(hxhim_t *hx);
 hxhim_results_t *hxhimFlushGets(hxhim_t *hx);
 hxhim_results_t *hxhimFlushGetOps(hxhim_t *hx);
 hxhim_results_t *hxhimFlushDeletes(hxhim_t *hx);
+hxhim_results_t *hxhimFlushHistograms(hxhim_t *hx);
 hxhim_results_t *hxhimFlush(hxhim_t *hx);
 
 /** @description Function that forces the datastores to flush to the underlying storage */
@@ -88,7 +88,12 @@ int hxhimGetStats(hxhim_t *hx, const int dst_rank,
                   long double *get_times,
                   size_t *num_gets);
 
-int hxhimGetHistograms(hxhim_t *hx, const int dst_rank, hxhim_histograms_t **hists);
+int hxhimHistogram(hxhim_t *hx,
+                   int ds_id);
+
+int hxhimBHistogram(hxhim_t *hx,
+                    int *ds_ids,
+                    const size_t count);
 
 // int hxhimGetMinFilled(hxhim_t *hx, const int dst_rank,
 //                       const int get_bput, long double *bput,

@@ -91,7 +91,10 @@ Datastore::Datastore(const int rank,
                      Histogram::Histogram *hist)
     : rank(rank),
       id(id),
-      hist(hist),
+      hist(std::shared_ptr<Histogram::Histogram>(hist,
+                                                 [](Histogram::Histogram *ptr) {
+                                                     destruct(ptr);
+                                                 })),
       mutex(),
       stats()
 {}
@@ -150,7 +153,6 @@ Datastore::~Datastore() {
     }
 
     mlog(DATASTORE_INFO, "Rank %d Datastore shut down completed", rank);
-    delete hist;
 }
 
 bool Datastore::Open(const std::string &new_name) {
@@ -207,6 +209,36 @@ Transport::Response::BDelete *Datastore::operate(Transport::Request::BDelete *re
     return BDeleteImpl(req);
 }
 
+Transport::Response::BHistogram *Datastore::operate(Transport::Request::BHistogram *req) {
+    std::lock_guard<std::mutex> lock(mutex);
+
+    Datastore::Stats::Event event;
+    event.time.start = now();
+    event.count = req->count;
+
+    Transport::Response::BHistogram *res = construct<Transport::Response::BHistogram>(req->count);
+
+    for(std::size_t i = 0; i < req->count; i++) {
+        struct timespec start = {};
+        struct timespec end = {};
+
+        clock_gettime(CLOCK_MONOTONIC, &start);
+        res->histograms[i] = hist;
+        clock_gettime(CLOCK_MONOTONIC, &end);
+
+        res->statuses[i] = HXHIM_SUCCESS;
+
+        event.size += res->histograms[i]->pack_size();
+
+        res->count++;
+    }
+
+    event.time.end = now();
+    stats.gets.emplace_back(event);
+
+    return res;
+}
+
 int Datastore::Sync() {
     std::lock_guard<std::mutex> lock(mutex);
     return SyncImpl();
@@ -221,7 +253,7 @@ int Datastore::Sync() {
  */
 int Datastore::GetHistogram(Histogram::Histogram **h) const {
     if (hist) {
-        *h = hist;
+        *h = hist.get();
     }
 
     return HXHIM_SUCCESS;

@@ -268,5 +268,16 @@ Response::BDelete *EndpointGroup::communicate(const std::unordered_map<int, Requ
     return do_operation<Response::BDelete>(bdm_list, engine, process_rpc, cleanup_rpc, endpoints);
 }
 
+/**
+ * BHistogram
+ *
+ * @param num_rangesrvs the total number of range servers
+ * @param bhm_list the list of BHISTOGRAM messages to send
+ * @return a linked list of response messages, or nullptr
+ */
+Response::BHistogram *EndpointGroup::communicate(const std::unordered_map<int, Request::BHistogram *> &bhm_list) {
+    return do_operation<Response::BHistogram>(bhm_list, engine, process_rpc, cleanup_rpc, endpoints);
+}
+
 }
 }

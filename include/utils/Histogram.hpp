@@ -55,6 +55,9 @@ class Histogram {
         std::size_t size_;                      // the number of buckets
 };
 
+// deleter for std::shared_ptr
+void deleter(Histogram *hist);
+
 }
 
 #endif

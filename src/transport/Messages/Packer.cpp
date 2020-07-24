@@ -37,6 +37,9 @@ int Packer::pack(const Request::Request *req, void **buf, std::size_t *bufsize) 
         case hxhim_op_t::HXHIM_DELETE:
             ret = pack(static_cast<const Request::BDelete *>(req), buf, bufsize);
             break;
+        case hxhim_op_t::HXHIM_HISTOGRAM:
+            ret = pack(static_cast<const Request::BHistogram *>(req), buf, bufsize);
+            break;
         default:
             break;
     }
@@ -158,6 +161,15 @@ int Packer::pack(const Request::BDelete *bdm, void **buf, std::size_t *bufsize) 
     return TRANSPORT_SUCCESS;
 }
 
+int Packer::pack(const Request::BHistogram *bhm, void **buf, std::size_t *bufsize) {
+    char *curr = nullptr;
+    if (pack(static_cast<const Request::Request *>(bhm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
+        return TRANSPORT_ERROR;
+    }
+
+    return TRANSPORT_SUCCESS;
+}
+
 int Packer::pack(const Response::Response *res, void **buf, std::size_t *bufsize) {
     int ret = TRANSPORT_ERROR;
     if (!res) {
@@ -178,6 +190,9 @@ int Packer::pack(const Response::Response *res, void **buf, std::size_t *bufsize
             break;
         case hxhim_op_t::HXHIM_DELETE:
             ret = pack(static_cast<const Response::BDelete *>(res), buf, bufsize);
+            break;
+        case hxhim_op_t::HXHIM_HISTOGRAM:
+            ret = pack(static_cast<const Response::BHistogram *>(res), buf, bufsize);
             break;
         default:
             break;
@@ -288,6 +303,25 @@ int Packer::pack(const Response::BDelete *bdm, void **buf, std::size_t *bufsize)
 
         // original predicate addr + len
         bdm->orig.predicates[i]->pack_ref(curr);
+    }
+
+    return TRANSPORT_SUCCESS;
+}
+
+int Packer::pack(const Response::BHistogram *bhm, void **buf, std::size_t *bufsize) {
+    char *curr = nullptr;
+    if (pack(static_cast<const Response::Response *>(bhm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
+        return TRANSPORT_ERROR;
+    }
+
+    std::size_t avail = *bufsize - (curr - (char *) *buf);
+
+    for(std::size_t i = 0; i < bhm->count; i++) {
+        memcpy(curr, &bhm->statuses[i], sizeof(bhm->statuses[i]));
+        curr += sizeof(bhm->statuses[i]);
+
+        // histogram
+        bhm->histograms[i]->pack(curr, avail, nullptr);
     }
 
     return TRANSPORT_SUCCESS;

@@ -2,7 +2,8 @@
 
 Transport::Response::Response::Response(const enum hxhim_op_t type)
     : Message(Message::RESPONSE, type, 0),
-      statuses(nullptr)
+      statuses(nullptr),
+      next(nullptr)
 {}
 
 Transport::Response::Response::~Response()

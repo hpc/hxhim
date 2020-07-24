@@ -57,7 +57,8 @@ typedef struct hxhim_private {
         hxhim::Unsent<hxhim::GetData> gets;
         hxhim::Unsent<hxhim::GetOpData> getops;
         hxhim::Unsent<hxhim::DeleteData> deletes;
-   } queues;
+        hxhim::Unsent<hxhim::HistogramData> histograms;
+    } queues;
 
     // calculate these once
     std::size_t total_range_servers;       // total number of range servers across all ranks
@@ -148,6 +149,10 @@ int GetOpImpl(hxhim::Unsent<hxhim::GetOpData> &getops,
 int DeleteImpl(hxhim::Unsent<hxhim::DeleteData> &dels,
                void *subject, std::size_t subject_len,
                void *predicate, std::size_t predicate_len);
+
+int HistogramImpl(hxhim_t *hx,
+                  hxhim::Unsent<hxhim::HistogramData> &hists,
+                  const int ds_id);
 }
 
 #endif

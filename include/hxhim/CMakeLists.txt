@@ -5,8 +5,6 @@
 cmake_minimum_required (VERSION 3.6.3)
 
 set(HXHIM_HEADERS
-  Histograms.h
-  Histograms.hpp
   Results.h
   Results.hpp
   Stats.hpp

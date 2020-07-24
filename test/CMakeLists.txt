@@ -37,6 +37,17 @@ include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
 add_executable(googletest main.cpp)
 target_include_directories(googletest SYSTEM BEFORE PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR})
+
+set(TEST_COMMON
+  TestDatastore.hpp
+  TestHistogram.cpp
+  TestHistogram.hpp
+)
+
+foreach(FILE ${TEST_COMMON})
+  target_sources(googletest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/${FILE})
+endforeach()
+
 add_subdirectory(hxhim)
 add_subdirectory(datastore)
 add_subdirectory(transport)

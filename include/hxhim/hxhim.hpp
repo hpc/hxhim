@@ -1,7 +1,6 @@
 #ifndef HXHIM_HPP
 #define HXHIM_HPP
 
-#include "hxhim/Histograms.hpp"
 #include "hxhim/Results.hpp"
 #include "hxhim/accessors.hpp"
 #include "hxhim/config.hpp"
@@ -28,6 +27,7 @@ Results *FlushGets(hxhim_t *hx);
 Results *FlushGets(hxhim_t *hx);
 Results *FlushGetOps(hxhim_t *hx);
 Results *FlushDeletes(hxhim_t *hx);
+Results *FlushHistograms(hxhim_t *hx);
 Results *Flush(hxhim_t *hx);
 
 /** @description Function that forces the datastores to flush to the underlying storage */
@@ -82,7 +82,12 @@ int GetStats(hxhim_t *hx, const int dst_rank,
              long double *get_times,
              std::size_t *num_gets);
 
-int GetHistograms(hxhim_t *hx, const int dst_rank, hxhim_histograms_t **hists);
+int Histogram(hxhim_t *hx,
+              int ds_id);
+
+int BHistogram(hxhim_t *hx,
+               int *ds_ids,
+               const std::size_t count);
 
 // int GetMinFilled(hxhim_t *hx, const int dst_rank,
 //                  const bool get_bput, long double *bput,

@@ -21,12 +21,14 @@ class Unpacker {
         static int unpack(Request::BGet        **bgm,    void *buf, const std::size_t bufsize);
         static int unpack(Request::BGetOp      **bgm,    void *buf, const std::size_t bufsize);
         static int unpack(Request::BDelete     **bdm,    void *buf, const std::size_t bufsize);
+        static int unpack(Request::BHistogram  **bhm,    void *buf, const std::size_t bufsize);
 
         static int unpack(Response::Response   **res,    void *buf, const std::size_t bufsize);
         static int unpack(Response::BPut       **bpm,    void *buf, const std::size_t bufsize);
         static int unpack(Response::BGet       **bgm,    void *buf, const std::size_t bufsize);
         static int unpack(Response::BGetOp     **bgm,    void *buf, const std::size_t bufsize);
         static int unpack(Response::BDelete    **bdm,    void *buf, const std::size_t bufsize);
+        static int unpack(Response::BHistogram **bhm,    void *buf, const std::size_t bufsize);
 
     private:
         /** Allocates space for a temporary message and unpacks only the header */

@@ -33,6 +33,9 @@ Response::Response *range_server(hxhim_t *hx, Request::Request *req) {
         case hxhim_op_t::HXHIM_DELETE:
             res = range_server<Response::BDelete>(hx, static_cast<Request::BDelete *>(req));
             break;
+        case hxhim_op_t::HXHIM_HISTOGRAM:
+            res = range_server<Response::BHistogram>(hx, static_cast<Request::BHistogram *>(req));
+            break;
         default:
             break;
     }

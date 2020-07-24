@@ -91,8 +91,7 @@ Transport::Response::BGet::BGet(const std::size_t max)
     : Response(hxhim_op_t::HXHIM_GET),
       object_types(nullptr),
       objects(nullptr),
-      orig(),
-      next(nullptr)
+      orig()
 {
     alloc(max);
 }

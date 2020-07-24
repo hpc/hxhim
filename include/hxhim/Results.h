@@ -25,7 +25,7 @@ extern "C"
  *
  *     hxhim_results_t *res = hxhimFlush(hx);
  *     for(hxhim_results_goto_head(res); hxhim_results_valid_iterator(res) == HXHIM_SUCCESS; hxhim_results_goto_next(res)) {
- *         hxhim_op_t op;
+ *         enum hxhim_op_t op;
  *         hxhim_result_op(res, &op);
  *         switch (op) {
  *             case HXHIM_PUT:
@@ -37,6 +37,9 @@ extern "C"
  *                 break;
  *             case HXHIM_DELETE:
  *                 // do stuff with del
+ *                 break;
+ *             case HXHIM_HISTOGRAM:
+ *                 // do stuff with hist
  *                 break;
  *             default:
  *                 break;
@@ -66,9 +69,11 @@ int hxhim_result_status(hxhim_results_t *res, int *status);                /* wh
 int hxhim_result_datastore(hxhim_results_t *res, int *datastore);
 int hxhim_result_subject(hxhim_results_t *res, void **subject, size_t *subject_len);
 int hxhim_result_predicate(hxhim_results_t *res, void **predicate, size_t *predicate_len);
-// these accessor functions only work for GET results
+/* these accessor functions only work for GET results */
 int hxhim_result_object_type(hxhim_results_t *res, enum hxhim_object_type_t *object_type);
 int hxhim_result_object(hxhim_results_t *res, void **object, size_t *object_len);
+/* this accessor function only works for HISTOGRAM results */
+int hxhim_result_histogram(hxhim_results_t *res, double **buckets, size_t **counts, size_t *size);
 
 void hxhim_results_destroy(hxhim_results_t *res);
 
