@@ -1,7 +1,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <sstream>
-#include <iostream>
 
 #include "datastore/datastores.hpp"
 #include "hxhim/Results.hpp"
@@ -27,38 +26,62 @@ hxhim::Results::Result::~Result() {
 
         struct timespec epoch;
         hxhim::nocheck::GetEpoch(hx, &epoch);
-        // std::stringstream s;
 
-        // s << HXHIM_OP_STR[op]                                                                 << std::endl
-        //   << "    Cached:           " << elapsed2(&epoch, &timestamps.send.cached)            << std::endl
-        //   << "    Shuffled:         " << elapsed2(&epoch, &timestamps.send.shuffled)          << std::endl
-        //   << "    Hash Start:       " << elapsed2(&epoch, &timestamps.send.hashed.start)      << std::endl
-        //   << "    Hash End:         " << elapsed2(&epoch, &timestamps.send.hashed.end)        << std::endl
-        //   << "    Find Dst (total): " << timestamps.send.find_dst                             << std::endl
-        //   << "    Bulked Start:     " << elapsed2(&epoch, &timestamps.send.bulked.start)      << std::endl
-        //   << "    Bulked End:       " << elapsed2(&epoch, &timestamps.send.bulked.end)        << std::endl
-        //   << "    Pack Start:       " << elapsed2(&epoch, &timestamps.transport.pack.start)   << std::endl
-        //   << "    Pack End:         " << elapsed2(&epoch, &timestamps.transport.pack.end)     << std::endl
-        //   << "    Send Start:       " << elapsed2(&epoch, &timestamps.transport.send_start)   << std::endl
-        //   << "    Recv End:         " << elapsed2(&epoch, &timestamps.transport.recv_end)     << std::endl
-        //   << "    Unpack Start:     " << elapsed2(&epoch, &timestamps.transport.unpack.start) << std::endl
-        //   << "    Unpack End:       " << elapsed2(&epoch, &timestamps.transport.unpack.end)   << std::endl
-        //   << "    Result Start:     " << elapsed2(&epoch, &timestamps.recv.result.start)      << std::endl
-        //   << "    Result End:       " << elapsed2(&epoch, &timestamps.recv.result.end)        << std::endl;
+        std::stringstream s;
 
-        // mlog(HXHIM_CLIENT_NOTE, "\n%s", s.str().c_str());
+        // from when request was put into the hxhim queue until the response was ready for pulling
+        s << HXHIM_OP_STR[op] << " "
+          << nano2(&epoch, &timestamps.send.cached) << " "
+          << nano2(&epoch, &timestamps.recv.result.end)
+          << std::endl
 
-        std::cerr << rank << " Cached " << nano2(&epoch, &timestamps.send.cached) << std::endl
-                  << rank << " Shuffled " << nano2(&epoch, &timestamps.send.shuffled) << std::endl
-                  << rank << " Hash " << nano2(&epoch, &timestamps.send.hashed.start) << " " << nano2(&epoch, &timestamps.send.hashed.end) << std::endl;
-        // for(struct Monostamp const &find : timestamps.send.find_dsts) {
-        //     std::cerr << rank << " FindDst " << nano2(&epoch, &find.start) << " " << nano2(&epoch, &find.end) << std::endl;
-        // }
-        std::cerr << rank << " Bulked " << nano2(&epoch, &timestamps.send.bulked.start) << " " << nano2(&epoch, &timestamps.send.bulked.end) << std::endl
-                  << rank << " Pack " << nano2(&epoch, &timestamps.transport.pack.start) << " " << nano2(&epoch, &timestamps.transport.pack.end) << std::endl
-                  << rank << " Transport " << nano2(&epoch, &timestamps.transport.send_start) << " " << nano2(&epoch, &timestamps.transport.recv_end) << std::endl
-                  << rank << " Unpack " << nano2(&epoch, &timestamps.transport.unpack.start) << " " << nano2(&epoch, &timestamps.transport.unpack.end) << std::endl
-                  << rank << " Result " << nano2(&epoch, &timestamps.recv.result.start) << " " << nano2(&epoch, &timestamps.recv.result.end) << std::endl;
+          << rank << " Cached "
+          << nano2(&epoch, &timestamps.send.cached)
+          << std::endl
+
+          << rank << " Shuffled "
+          << nano2(&epoch, &timestamps.send.shuffled)
+          << std::endl
+
+          << rank << " Hash "
+          << nano2(&epoch, &timestamps.send.hashed.start) << " "
+          << nano2(&epoch, &timestamps.send.hashed.end)
+          << std::endl
+
+          << rank << " Bulked "
+          << nano2(&epoch, &timestamps.send.bulked.start) << " "
+          << nano2(&epoch, &timestamps.send.bulked.end)
+          << std::endl
+
+          << rank << " Pack "
+          << nano2(&epoch, &timestamps.transport.pack.start) << " "
+          << nano2(&epoch, &timestamps.transport.pack.end)
+          << std::endl
+
+          << rank << " Transport "
+          << nano2(&epoch, &timestamps.transport.send_start) << " "
+          << nano2(&epoch, &timestamps.transport.recv_end)
+          << std::endl
+
+          << rank << " Unpack "
+          << nano2(&epoch, &timestamps.transport.unpack.start) << " "
+          << nano2(&epoch, &timestamps.transport.unpack.end)
+          << std::endl
+
+          << rank << " Result "
+          << nano2(&epoch, &timestamps.recv.result.start) << " "
+          << nano2(&epoch, &timestamps.recv.result.end)
+          << std::endl;
+
+        // This might take very long
+        for(struct Monostamp const &find : timestamps.send.find_dsts) {
+            s << rank << " FindDst "
+              << nano2(&epoch, &find.start) << " "
+              << nano2(&epoch, &find.end)
+              << std::endl;
+        }
+
+        mlog(HXHIM_CLIENT_NOTE, "\n%s", s.str().c_str());
     }
 }
 

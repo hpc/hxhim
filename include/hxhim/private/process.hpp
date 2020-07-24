@@ -1,7 +1,7 @@
 #ifndef TRANSPORT_BACKEND_LOCAL_PROCESS_TPP
 #define TRANSPORT_BACKEND_LOCAL_PROCESS_TPP
 
-#include <iostream>
+#include <sstream>
 #include <unordered_map>
 
 #include "hxhim/private/Results.hpp"
@@ -114,7 +114,15 @@ hxhim::Results *process(hxhim_t *hx,
 
         // This timer does not belong anywhere
         // since it covers multiple requests and packets but does not describe any of them individually
-        std::cerr << rank << " fill " << nano2(&epoch, &fill_start) << " " << nano2(&epoch, &fill_end) << std::endl;
+        {
+            std::stringstream s;
+            s << rank << " fill "
+              << nano2(&epoch, &fill_start) << " "
+              << nano2(&epoch, &fill_end)
+              << std::endl;
+
+            mlog(HXHIM_CLIENT_NOTE, "\n%s", s.str().c_str());
+        }
 
         mlog(HXHIM_CLIENT_DBG, "Rank %d Client packed together requests destined for %zu remote servers", rank, remote.size());
 
@@ -138,7 +146,15 @@ hxhim::Results *process(hxhim_t *hx,
 
         struct timespec remote_end;
         clock_gettime(CLOCK_MONOTONIC, &remote_end);
-        std::cerr << rank << " remote " << nano2(&epoch, &remote_start) << " " << nano2(&epoch, &remote_end) << std::endl;
+        {
+            std::stringstream s;
+            s << rank << " remote "
+              << nano2(&epoch, &remote_start) << " "
+              << nano2(&epoch, &remote_end)
+              << std::endl;
+
+            mlog(HXHIM_CLIENT_NOTE, "\n%s", s.str().c_str());
+        }
 
         mlog(HXHIM_CLIENT_DBG, "Rank %d Client sending %zu local requests", rank, local.count);
 
@@ -155,7 +171,15 @@ hxhim::Results *process(hxhim_t *hx,
 
         struct timespec local_end;
         clock_gettime(CLOCK_MONOTONIC, &local_end);
-        std::cerr << rank << " local " << nano2(&epoch, &local_start) << " " << nano2(&epoch, &local_end) << std::endl;
+        {
+            std::stringstream s;
+            s << rank << " local "
+              << nano2(&epoch, &local_start) << " "
+              << nano2(&epoch, &local_end)
+              << std::endl;
+
+            mlog(HXHIM_CLIENT_NOTE, "\n%s", s.str().c_str());
+        }
 
         mlog(HXHIM_CLIENT_DBG, "Rank %d Client received %zu responses", rank, res->Size());
     }
