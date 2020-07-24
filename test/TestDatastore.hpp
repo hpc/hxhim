@@ -1,5 +1,5 @@
 #ifndef TEST_DATASTORE_HPP
-#define TEST_DATSTORE_HPP
+#define TEST_DATASTORE_HPP
 
 #include "datastore/datastore.hpp"
 
