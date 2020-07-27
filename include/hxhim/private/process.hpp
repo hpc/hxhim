@@ -135,7 +135,7 @@ hxhim::Results *process(hxhim_t *hx,
                 hx->p->stats.used[it->second->op].push_back(it->second->filled());
                 hx->p->stats.outgoing[it->second->op][it->second->dst]++;
             }
-            res->Add(hx->p->transport->communicate(remote));
+            hxhim::Result::AddAll(hx, res, hx->p->transport->communicate(remote));
         }
 
         for(REF(remote)::value_type &dst : remote) {
@@ -162,7 +162,7 @@ hxhim::Results *process(hxhim_t *hx,
             // collect stats
             hx->p->stats.used[local.op].push_back(local.filled());
             hx->p->stats.outgoing[local.op][local.dst]++;
-            res->Add(Transport::local::range_server<Response_t, Request_t>(hx, &local));
+            hxhim::Result::AddAll(hx, res, Transport::local::range_server<Response_t, Request_t>(hx, &local));
         }
 
         ::Stats::Chronopoint local_end = ::Stats::now();

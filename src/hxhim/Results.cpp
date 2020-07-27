@@ -257,6 +257,40 @@ hxhim::Results::Hist *hxhim::Result::init(hxhim_t *hx, Transport::Response::BHis
 }
 
 /**
+ * AddAll
+ * Converts an entire response packet into a result list
+ * Timestamps are summed up and updated in the target
+ * results list
+ *
+ * @param results   the result list to insert into
+ * @param response  the response packet
+ */
+void hxhim::Result::AddAll(hxhim_t *hx, hxhim::Results *results, Transport::Response::Response *response) {
+    long double duration = 0;
+    for(Transport::Response::Response *res = response; res; res = next(res)) {
+        ::Stats::Chronopoint start = ::Stats::now();
+
+        duration += ::Stats::sec(res->timestamps.transport.pack.start,
+                                 res->timestamps.transport.unpack.end);
+
+        for(std::size_t i = 0; i < res->count; i++) {
+            for(::Stats::Chronostamp const &find_dst : res->timestamps.reqs[i].find_dsts) {
+                duration += ::Stats::sec(find_dst);
+            }
+
+            duration += ::Stats::sec(res->timestamps.reqs[i].hashed)
+                     +  ::Stats::sec(res->timestamps.reqs[i].bulked);
+
+            results->Add(hxhim::Result::init(hx, res, i));
+        }
+
+        duration += ::Stats::sec(start, ::Stats::now());
+    }
+
+    results->UpdateDuration(duration);
+}
+
+/**
  * hxhim_results_valid
  *
  * @param res A list of results
@@ -328,32 +362,20 @@ hxhim::Results::Result *hxhim::Results::Add(hxhim::Results::Result *response) {
 }
 
 /**
- * Add
- * Converts an entire response packet into a result list
- * Timestamps are summed up
+ * UpdateDuration
+ * Change the time spent to collect this set of results.
+ * Needed since individual results do not have the packet
+ * time, and adding the packet time with each result is
+ * incorrect. Also needed because Transport::Message
+ * should not be exposed.
  *
- * @param res the response packet
+ * @param  dt   the change in duration
+ * @return the duration before adding dt
  */
-void hxhim::Results::Add(Transport::Response::Response *response) {
-    for(Transport::Response::Response *res = response; res; res = next(res)) {
-        ::Stats::Chronopoint start = ::Stats::now();
-
-        duration += ::Stats::sec(res->timestamps.transport.pack.start,
-                                 res->timestamps.transport.unpack.end);
-
-        for(std::size_t i = 0; i < res->count; i++) {
-            for(::Stats::Chronostamp const &find_dst : res->timestamps.reqs[i].find_dsts) {
-                duration += ::Stats::sec(find_dst);
-            }
-
-            duration += ::Stats::sec(res->timestamps.reqs[i].hashed)
-                     +  ::Stats::sec(res->timestamps.reqs[i].bulked);
-
-            Add(hxhim::Result::init(hx, res, i));
-        }
-
-        duration += ::Stats::sec(start, ::Stats::now());
-    }
+long double hxhim::Results::UpdateDuration(const long double dt) {
+    const long double old_duration = duration;
+    duration += dt;
+    return old_duration;
 }
 
 /**

@@ -15,6 +15,8 @@ namespace hxhim {
         Results::Sync   *init(hxhim_t *hx, const int ds_offset, const int synced);
         Results::Hist   *init(hxhim_t *hx, Transport::Response::BHistogram *bhist, const std::size_t i);
 
+        // add all responses into results with one call
+        void AddAll(hxhim_t *hx, hxhim::Results *results, Transport::Response::Response *response);
     }
 }
 

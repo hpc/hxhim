@@ -8,7 +8,6 @@
 #include "hxhim/Results.h"
 #include "hxhim/constants.h"
 #include "hxhim/struct.h"
-#include "transport/Messages/Messages.hpp"
 #include "utils/Blob.hpp"
 #include "utils/Histogram.hpp"
 #include "utils/Stats.hpp"
@@ -167,9 +166,8 @@ class Results {
         // timestamps are not updated
         Result *Add(Result *response);
 
-        // Append an entire bulk packet's worth of data
-        // timestamps are updated
-        void Add(Transport::Response::Response *response);
+        // Update duration separately
+        long double UpdateDuration(const long double dt);
 
         // Moves and appends another set of results; the list being appended is emptied out
         // timestamps are updated
