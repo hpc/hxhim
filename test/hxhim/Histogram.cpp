@@ -28,7 +28,7 @@ static HistogramBucketGenerator_t test_buckets = [](const double *, const size_t
     }
 
     *size = 1;
-    *buckets = new double[*size]();
+    *buckets = alloc_array<double>(*size);
     (*buckets)[0] = 0;
 
     return HISTOGRAM_SUCCESS;
@@ -84,8 +84,9 @@ TEST(hxhim, Histogram) {
 
     hxhim::Results *hist_results = hxhim::Flush(&hx);
     ASSERT_NE(hist_results, nullptr);
-
     EXPECT_EQ(hist_results->Size(), (std::size_t) total_ds);
+
+    std::size_t i = 0;
     for(hist_results->GoToHead(); hist_results->ValidIterator(); hist_results->GoToNext()) {
         hxhim::Results::Result *res = hist_results->Curr();
         ASSERT_NE(res, nullptr);
@@ -93,19 +94,23 @@ TEST(hxhim, Histogram) {
         ASSERT_EQ(res->status, HXHIM_SUCCESS);
         ASSERT_EQ(res->op, hxhim_op_t::HXHIM_HISTOGRAM);
 
-        hxhim::Results::Hist *hist = static_cast<hxhim::Results::Hist *>(hist_results->Curr());
         double *buckets = nullptr;
         std::size_t *counts = nullptr;
         std::size_t size = 0;
-        EXPECT_EQ(hist->histogram->get(&buckets, &counts, &size), HXHIM_SUCCESS);
+        EXPECT_EQ(hist_results->Histogram(&buckets, &counts, &size), HXHIM_SUCCESS);
 
         EXPECT_EQ(size, (std::size_t) 1);
-        for(std::size_t i = 0; i < (TRIPLES - 1); i++) {
-            EXPECT_EQ(buckets[i], 0);
-            EXPECT_EQ(counts[i], 1);
+
+        if (i < (TRIPLES - 1)) {
+            EXPECT_EQ(buckets[0], 0);
+            EXPECT_EQ(counts[0], 1);
         }
-        EXPECT_EQ(buckets[(TRIPLES - 1)], 0);
-        EXPECT_EQ(counts[(TRIPLES - 1)], 2);
+        else {
+            EXPECT_EQ(buckets[0], 0);
+            EXPECT_EQ(counts[0], 2);
+        }
+
+        i++;
     }
 
     hxhim::Results::Destroy(hist_results);
