@@ -12,9 +12,6 @@
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
-namespace hxhim {
-namespace datastore {
-
 /**
  * get_rank
  *
@@ -22,7 +19,7 @@ namespace datastore {
  * @param id the database ID to get the rank of
  * @return the rank of the given ID or -1 on error
  */
-int get_rank(hxhim_t *hx, const int id) {
+int hxhim::datastore::get_rank(hxhim_t *hx, const int id) {
     std::size_t client = 0;
     std::size_t server = 0;
     if (GetDatastoreClientToServerRatio(hx, &client, &server) != HXHIM_SUCCESS) {
@@ -40,7 +37,7 @@ int get_rank(hxhim_t *hx, const int id) {
  * @param id the database ID to get the server number of
  * @return the server number of the given ID or -1 on error
  */
-int get_server(hxhim_t *hx, const int id) {
+int hxhim::datastore::get_server(hxhim_t *hx, const int id) {
     std::size_t local_ds_count = 0;
     if (GetDatastoresPerRangeServer(hx, &local_ds_count) != HXHIM_SUCCESS) {
         return -1;
@@ -56,7 +53,7 @@ int get_server(hxhim_t *hx, const int id) {
  * @param id the database ID to get the offset of
  * @return the offset of the given ID or -1 on error
  */
-int get_offset(hxhim_t *hx, const int id) {
+int hxhim::datastore::get_offset(hxhim_t *hx, const int id) {
     std::size_t local_ds_count = 0;
     if (GetDatastoresPerRangeServer(hx, &local_ds_count) != HXHIM_SUCCESS) {
         return -1;
@@ -73,7 +70,7 @@ int get_offset(hxhim_t *hx, const int id) {
  * @param offset  the offset within the destination
  * @return the mapping from the (rank, offset) to the database ID, or -1 on error
  */
-int get_id(hxhim_t *hx, const int rank, const std::size_t offset) {
+int hxhim::datastore::get_id(hxhim_t *hx, const int rank, const std::size_t offset) {
     std::size_t local_ds_count = 0;
     if (GetDatastoresPerRangeServer(hx, &local_ds_count) != HXHIM_SUCCESS) {
         return -1;
@@ -86,9 +83,9 @@ int get_id(hxhim_t *hx, const int rank, const std::size_t offset) {
     return rank * local_ds_count + offset;
 }
 
-Datastore::Datastore(const int rank,
-                     const int id,
-                     Histogram::Histogram *hist)
+hxhim::datastore::Datastore::Datastore(const int rank,
+                                       const int id,
+                                       Histogram::Histogram *hist)
     : rank(rank),
       id(id),
       hist(std::shared_ptr<Histogram::Histogram>(hist,
@@ -115,7 +112,7 @@ static std::string hr_size(const std::size_t size, const long double time) {
     return s.str();
 }
 
-Datastore::~Datastore() {
+hxhim::datastore::Datastore::~Datastore() {
     mlog(DATASTORE_INFO, "Rank %d Datastore shutting down", rank);
 
     long double put_time = 0;
@@ -155,21 +152,21 @@ Datastore::~Datastore() {
     mlog(DATASTORE_INFO, "Rank %d Datastore shut down completed", rank);
 }
 
-bool Datastore::Open(const std::string &new_name) {
+bool hxhim::datastore::Datastore::Open(const std::string &new_name) {
     Close();
     return OpenImpl(new_name);
 }
 
-void Datastore::Close() {
+void hxhim::datastore::Datastore::Close() {
     CloseImpl();
     return;
 }
 
-int Datastore::ID() const {
+int hxhim::datastore::Datastore::ID() const {
     return id;
 }
 
-Transport::Response::BPut *Datastore::operate(Transport::Request::BPut *req) {
+Transport::Response::BPut *hxhim::datastore::Datastore::operate(Transport::Request::BPut *req) {
     std::lock_guard<std::mutex> lock(mutex);
     Transport::Response::BPut *res = BPutImpl(req);
 
@@ -194,22 +191,22 @@ Transport::Response::BPut *Datastore::operate(Transport::Request::BPut *req) {
     return res;
 }
 
-Transport::Response::BGet *Datastore::operate(Transport::Request::BGet *req) {
+Transport::Response::BGet *hxhim::datastore::Datastore::operate(Transport::Request::BGet *req) {
     std::lock_guard<std::mutex> lock(mutex);
     return BGetImpl(req);
 }
 
-Transport::Response::BGetOp *Datastore::operate(Transport::Request::BGetOp *req) {
+Transport::Response::BGetOp *hxhim::datastore::Datastore::operate(Transport::Request::BGetOp *req) {
     std::lock_guard<std::mutex> lock(mutex);
     return BGetOpImpl(req);
 }
 
-Transport::Response::BDelete *Datastore::operate(Transport::Request::BDelete *req) {
+Transport::Response::BDelete *hxhim::datastore::Datastore::operate(Transport::Request::BDelete *req) {
     std::lock_guard<std::mutex> lock(mutex);
     return BDeleteImpl(req);
 }
 
-Transport::Response::BHistogram *Datastore::operate(Transport::Request::BHistogram *req) {
+Transport::Response::BHistogram *hxhim::datastore::Datastore::operate(Transport::Request::BHistogram *req) {
     std::lock_guard<std::mutex> lock(mutex);
 
     Datastore::Stats::Event event;
@@ -239,7 +236,7 @@ Transport::Response::BHistogram *Datastore::operate(Transport::Request::BHistogr
     return res;
 }
 
-int Datastore::Sync() {
+int hxhim::datastore::Datastore::Sync() {
     std::lock_guard<std::mutex> lock(mutex);
     return SyncImpl();
 }
@@ -251,7 +248,7 @@ int Datastore::Sync() {
  * @param h A pointer to this histogram pointer
  * @return HXHIM_SUCCESS
  */
-int Datastore::GetHistogram(Histogram::Histogram **h) const {
+int hxhim::datastore::Datastore::GetHistogram(Histogram::Histogram **h) const {
     if (hist) {
         *h = hist.get();
     }
@@ -276,10 +273,10 @@ int Datastore::GetHistogram(Histogram::Histogram **h) const {
  * @param num_gets       the array of number of gets from each rank
  * @return HXHIM_SUCCESS or HXHIM_ERROR on error
  */
-int Datastore::GetStats(long double *put_time,
-                        std::size_t  *num_put,
-                        long double *get_time,
-                        std::size_t  *num_get) {
+int hxhim::datastore::Datastore::GetStats(long double *put_time,
+                                          std::size_t  *num_put,
+                                          long double *get_time,
+                                          std::size_t  *num_get) {
     std::lock_guard<std::mutex> lock(mutex);
 
     if (put_time) {
@@ -321,7 +318,7 @@ int Datastore::GetStats(long double *put_time,
  * @param copied whether or not the original ptr was replaced by a copy that needs to be deallocated
  * @param HXHIM_SUCCESS or HXHIM_ERROR
  */
-int Datastore::encode(const hxhim_object_type_t type, void *&ptr, std::size_t &len, bool &copied) {
+int hxhim::datastore::Datastore::encode(const hxhim_object_type_t type, void *&ptr, std::size_t &len, bool &copied) {
     if (!ptr) {
         return HXHIM_ERROR;
     }
@@ -370,7 +367,7 @@ int Datastore::encode(const hxhim_object_type_t type, void *&ptr, std::size_t &l
  * @param dst_len pointer to the destination buffer's length
  * @return HXHIM_SUCCESS or HXHIM_ERROR;
  */
-int Datastore::decode(const hxhim_object_type_t type, void *src, const std::size_t &src_len, void **dst, std::size_t *dst_len) {
+int hxhim::datastore::Datastore::decode(const hxhim_object_type_t type, void *src, const std::size_t &src_len, void **dst, std::size_t *dst_len) {
     if (!src || !dst || !dst_len) {
         return HXHIM_ERROR;
     }
@@ -415,11 +412,8 @@ int Datastore::decode(const hxhim_object_type_t type, void *src, const std::size
     return HXHIM_SUCCESS;
 }
 
-Datastore::Stats::Event::Event()
+hxhim::datastore::Datastore::Stats::Event::Event()
     : time(),
       count(0),
       size(0)
 {}
-
-}
-}
