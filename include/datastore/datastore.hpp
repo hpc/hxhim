@@ -75,9 +75,9 @@ class Datastore {
         Transport::Response::BHistogram *operate(Transport::Request::BHistogram *req);
 
         int GetHistogram(Histogram::Histogram **h) const;
-        int GetStats(long double *put_times,
+        int GetStats(uint64_t    *put_times,
                      std::size_t *num_puts,
-                     long double *get_times,
+                     uint64_t    *get_times,
                      std::size_t *num_gets);
 
         int Sync();
@@ -107,7 +107,7 @@ class Datastore {
             struct Event {
                 Event();
 
-                struct Chronostamp time;
+                ::Stats::Chronostamp time;
                 std::size_t count;    // how many operations were performed during this event
                 std::size_t size;     // how much data was involved
             };

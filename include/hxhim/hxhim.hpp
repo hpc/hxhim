@@ -77,9 +77,9 @@ int BDelete(hxhim_t *hx,
 
 /** @description Utility Functions */
 int GetStats(hxhim_t *hx, const int dst_rank,
-             long double *put_times,
+             uint64_t    *put_times,
              std::size_t *num_puts,
-             long double *get_times,
+             uint64_t    *get_times,
              std::size_t *num_gets);
 
 int Histogram(hxhim_t *hx,

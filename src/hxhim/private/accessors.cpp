@@ -9,11 +9,8 @@
  * @param epoch  where to copy the epoch into
  * @return HXHIM_SUCCESS
  */
-int hxhim::nocheck::GetEpoch(hxhim_t *hx, struct timespec *epoch) {
-    if (epoch) {
-        *epoch = hx->p->epoch;
-    }
-
+int hxhim::nocheck::GetEpoch(hxhim_t *hx, ::Stats::Chronopoint &epoch) {
+    epoch = hx->p->epoch;
     return HXHIM_SUCCESS;
 }
 

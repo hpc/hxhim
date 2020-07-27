@@ -3,9 +3,9 @@
 
 #include <cstdint>
 
-#include "hxhim/Stats.hpp"
 #include "hxhim/constants.h"
 #include "transport/constants.hpp"
+#include "utils/Stats.hpp"
 #include "utils/memory.hpp"
 
 namespace Transport {
@@ -39,8 +39,8 @@ struct Message {
     int *ds_offsets;           // datastore id on the dst range server
 
     struct {
-        struct hxhim::Stats::Send *reqs;
-        struct hxhim::Stats::SendRecv transport;
+        struct Stats::Send *reqs;
+        struct Stats::SendRecv transport;
     } timestamps;
 };
 

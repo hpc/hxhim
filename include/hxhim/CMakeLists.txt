@@ -7,7 +7,6 @@ cmake_minimum_required (VERSION 3.6.3)
 set(HXHIM_HEADERS
   Results.h
   Results.hpp
-  Stats.hpp
   accessors.h
   accessors.hpp
   config.h

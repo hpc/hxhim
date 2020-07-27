@@ -53,7 +53,7 @@ void hxhim::datastore::InMemory::CloseImpl() {
  */
 Transport::Response::BPut *hxhim::datastore::InMemory::BPutImpl(Transport::Request::BPut *req) {
     hxhim::datastore::Datastore::Stats::Event event;
-    event.time.start = now();
+    event.time.start = ::Stats::now();
     event.count = req->count;
 
     Transport::Response::BPut *res = construct<Transport::Response::BPut>(req->count);
@@ -78,7 +78,7 @@ Transport::Response::BPut *hxhim::datastore::InMemory::BPutImpl(Transport::Reque
 
     res->count = req->count;
 
-    event.time.end = now();
+    event.time.end = ::Stats::now();
     stats.puts.emplace_back(event);
 
     return res;
@@ -96,7 +96,7 @@ Transport::Response::BPut *hxhim::datastore::InMemory::BPutImpl(Transport::Reque
  */
 Transport::Response::BGet *hxhim::datastore::InMemory::BGetImpl(Transport::Request::BGet *req) {
     hxhim::datastore::Datastore::Stats::Event event;
-    event.time.start = now();
+    event.time.start = ::Stats::now();
     event.count = req->count;
 
     Transport::Response::BGet *res = construct<Transport::Response::BGet>(req->count);
@@ -138,7 +138,7 @@ Transport::Response::BGet *hxhim::datastore::InMemory::BGetImpl(Transport::Reque
 
     res->count = req->count;
 
-    event.time.end = now();
+    event.time.end = ::Stats::now();
     stats.gets.emplace_back(event);
 
     return res;
@@ -181,7 +181,7 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
 
     for(std::size_t i = 0; i < req->count; i++) {
         hxhim::datastore::Datastore::Stats::Event event;
-        event.time.start = now();
+        event.time.start = ::Stats::now();
 
         decltype(db)::const_iterator it = db.end();
 
@@ -291,7 +291,7 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
         res->count++;
 
         event.count = res->num_recs[i];
-        event.time.end = now();
+        event.time.end = ::Stats::now();
         stats.gets.emplace_back(event);
     }
 
@@ -310,7 +310,7 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
  */
 Transport::Response::BDelete *hxhim::datastore::InMemory::BDeleteImpl(Transport::Request::BDelete *req) {
     hxhim::datastore::Datastore::Stats::Event event;
-    event.time.start = now();
+    event.time.start = ::Stats::now();
     event.count = req->count;
 
     Transport::Response::BDelete *res = construct<Transport::Response::BDelete>(req->count);
@@ -339,7 +339,7 @@ Transport::Response::BDelete *hxhim::datastore::InMemory::BDeleteImpl(Transport:
 
     res->count = req->count;
 
-    event.time.end = now();
+    event.time.end = ::Stats::now();
     stats.deletes.emplace_back(event);
 
     return res;

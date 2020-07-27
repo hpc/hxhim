@@ -5,8 +5,8 @@
 
 static const std::chrono::microseconds PUT_TIME(123);
 static const std::chrono::microseconds GET_TIME(456);
-static const double PUT_TIME_DOUBLE = std::chrono::duration_cast<std::chrono::nanoseconds>(PUT_TIME).count();
-static const double GET_TIME_DOUBLE = std::chrono::duration_cast<std::chrono::nanoseconds>(GET_TIME).count();
+static const uint64_t PUT_TIME_UINT64 = std::chrono::duration_cast<std::chrono::nanoseconds>(PUT_TIME).count();
+static const uint64_t GET_TIME_UINT64 = std::chrono::duration_cast<std::chrono::nanoseconds>(GET_TIME).count();
 
 class TestDatastore : public hxhim::datastore::Datastore {
     public:
@@ -20,7 +20,7 @@ class TestDatastore : public hxhim::datastore::Datastore {
 
         Transport::Response::BPut *BPutImpl(Transport::Request::BPut *) {
             hxhim::datastore::Datastore::Stats::Event event;
-            event.time.start = now();
+            event.time.start = ::Stats::now();
             event.count = 1;
             event.time.end = event.time.start + PUT_TIME;
             stats.puts.emplace_back(event);
@@ -30,7 +30,7 @@ class TestDatastore : public hxhim::datastore::Datastore {
 
         Transport::Response::BGet *BGetImpl(Transport::Request::BGet *) {
             hxhim::datastore::Datastore::Stats::Event event;
-            event.time.start = now();
+            event.time.start = ::Stats::now();
             event.count = 1;
             event.time.end = event.time.start + GET_TIME;
             stats.gets.emplace_back(event);

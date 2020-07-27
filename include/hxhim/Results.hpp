@@ -6,7 +6,6 @@
 #include <memory>
 
 #include "hxhim/Results.h"
-#include "hxhim/Stats.hpp"
 #include "hxhim/constants.h"
 #include "hxhim/struct.h"
 #include "transport/Messages/Messages.hpp"
@@ -91,9 +90,9 @@ class Results {
             // timestamps for a single operation
             // epoch can be obtained with hxhim::GetEpoch
             struct Timestamps {
-                struct hxhim::Stats::Send send;
-                struct hxhim::Stats::SendRecv transport;
-                struct hxhim::Stats::Recv recv;
+                struct ::Stats::Send send;
+                struct ::Stats::SendRecv transport;
+                struct ::Stats::Recv recv;
             };
 
             Timestamps timestamps;

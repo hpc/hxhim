@@ -42,7 +42,7 @@ hxhim_private::hxhim_private()
       transport(nullptr),
       range_server()
 {
-    clock_gettime(CLOCK_MONOTONIC, &epoch);
+    epoch = ::Stats::now();
 }
 
 /**

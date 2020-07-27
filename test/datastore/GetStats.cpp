@@ -5,9 +5,9 @@
 TEST(datastore, GetStats) {
     TestDatastore ds(-1);
 
-    long double put_time = 0;
+    uint64_t put_time = 0;
     std::size_t num_puts = 0;
-    long double get_time = 0;
+    uint64_t get_time = 0;
     std::size_t num_gets = 0;
 
     // no stats yet
@@ -20,10 +20,10 @@ TEST(datastore, GetStats) {
     }
 
     // do a few puts and gets
-    // can use EXPECT_EQ since all long doubles are small integers
+    // can use EXPECT_EQ since all uint64_ts are small integers
     for(std::size_t i = 1; i <= 10; i++) {
-        const long double total_put_time = PUT_TIME_DOUBLE * i;
-        const long double total_get_time = GET_TIME_DOUBLE * i;
+        const uint64_t total_put_time = PUT_TIME_UINT64 * i;
+        const uint64_t total_get_time = GET_TIME_UINT64 * i;
 
         // do a put
         {
@@ -31,7 +31,7 @@ TEST(datastore, GetStats) {
             EXPECT_EQ(ds.GetStats(&put_time, &num_puts, &get_time, &num_gets), HXHIM_SUCCESS);
             EXPECT_EQ(put_time, total_put_time);
             EXPECT_EQ(num_puts, i);
-            EXPECT_EQ(get_time, (i - 1) * GET_TIME_DOUBLE);
+            EXPECT_EQ(get_time, (i - 1) * GET_TIME_UINT64);
             EXPECT_EQ(num_gets, i - 1);
         }
 

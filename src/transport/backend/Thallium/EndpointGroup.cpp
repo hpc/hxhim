@@ -140,7 +140,7 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
         mlog(THALLIUM_DBG, "Packing request going to range server %d", req->dst);
 
         // pack the request
-        clock_gettime(CLOCK_MONOTONIC, &req->timestamps.transport.pack.start);
+        req->timestamps.transport.pack.start = ::Stats::now();
         void *req_buf = nullptr;
         std::size_t req_size = 0;
         if (Transport::Packer::pack(req, &req_buf, &req_size) != TRANSPORT_SUCCESS) {
@@ -148,7 +148,7 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
             dealloc(req_buf);
             continue;
         }
-        clock_gettime(CLOCK_MONOTONIC, &req->timestamps.transport.pack.end);
+        req->timestamps.transport.pack.end = ::Stats::now();
 
         mlog(THALLIUM_DBG, "Sending packed request (%zu bytes) to %d", req_size, req->dst);
 
@@ -158,9 +158,9 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
 
         // send request_size and request
         // get back packed response_size, response, and remote address
-        clock_gettime(CLOCK_MONOTONIC, &req->timestamps.transport.send_start); // store the value in req for now
+        req->timestamps.transport.send_start = ::Stats::now(); // store the value in req for now
         thallium::packed_response packed_res = process_rpc->on(*dst_it->second)(req_size, req_bulk);
-        clock_gettime(CLOCK_MONOTONIC, &req->timestamps.transport.recv_end);   // store the value in req for now
+        req->timestamps.transport.recv_end = ::Stats::now();   // store the value in req for now
 
         dealloc(req_buf);
 
@@ -182,11 +182,11 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
         // unpack the response
         mlog(THALLIUM_DBG, "Unpacking %zu byte response from %d", res_size, req->dst);
 
-        clock_gettime(CLOCK_MONOTONIC, &req->timestamps.transport.unpack.start); // store the value in req for now
+        req->timestamps.transport.unpack.start = ::Stats::now(); // store the value in req for now
         Recv_t *response = nullptr;
         const int unpack_rc = Transport::Unpacker::unpack(&response, res_buf, res_size);
         dealloc(res_buf);
-        clock_gettime(CLOCK_MONOTONIC, &req->timestamps.transport.unpack.end); // store the value in req for now
+        req->timestamps.transport.unpack.end = ::Stats::now(); // store the value in req for now
 
         // clean up server pointer before handling any errors
         cleanup_rpc->on(*dst_it->second)(res_ptr);

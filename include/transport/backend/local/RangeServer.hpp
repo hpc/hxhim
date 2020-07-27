@@ -8,6 +8,7 @@
 #include "hxhim/private/accessors.hpp"
 #include "hxhim/private/hxhim.hpp"
 #include "transport/Messages/Messages.hpp"
+#include "utils/Stats.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 #include "utils/type_traits.hpp"
@@ -58,13 +59,13 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
     req->timestamps.reqs = nullptr;
 
     // no packing
-    clock_gettime(CLOCK_MONOTONIC, &res->timestamps.transport.pack.start);
+    res->timestamps.transport.pack.start = ::Stats::now();
     res->timestamps.transport.pack.end = res->timestamps.transport.pack.start;
 
     std::vector<hxhim::datastore::Datastore *> *datastores = &hx->p->datastores;
 
     // send to each datastore
-    clock_gettime(CLOCK_MONOTONIC, &res->timestamps.transport.send_start);
+    res->timestamps.transport.send_start = ::Stats::now();
     for(std::size_t ds = 0; ds < datastore_count; ds++) {
         Response_t *response = (*datastores)[ds]->operate(&dsts[ds]);
 
@@ -78,10 +79,10 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
             destruct(response);
         }
     }
-    clock_gettime(CLOCK_MONOTONIC, &res->timestamps.transport.recv_end);
+    res->timestamps.transport.recv_end = ::Stats::now();
 
     // no unpacking
-    clock_gettime(CLOCK_MONOTONIC, &res->timestamps.transport.unpack.start);
+    res->timestamps.transport.unpack.start = ::Stats::now();
     res->timestamps.transport.unpack.end = res->timestamps.transport.unpack.start;
 
     dealloc_array(dsts, datastore_count);

@@ -15,6 +15,36 @@ int hxhim::GetEpoch(hxhim_t *hx, struct timespec *epoch) {
         return HXHIM_ERROR;
     }
 
+    if (epoch) {
+        ::Stats::Chronopoint cxx;
+        const int rc = hxhim::nocheck::GetEpoch(hx, cxx);
+
+        if (rc == HXHIM_SUCCESS) {
+            const std::chrono::nanoseconds timestamp = cxx.time_since_epoch();
+
+            epoch->tv_nsec = timestamp.count() % 1000000000;
+            epoch->tv_sec  = timestamp.count() / 1000000000;
+        }
+
+        return rc;
+    }
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * GetEpoch
+ * Gets the Epoch information of the HXHIM instance
+ *
+ * @param hx     the HXHIM instance
+ * @param epoch  where to copy the epoch into
+ * @return HXHIM_SUCCESS or HXHIM_ERROR on error
+ */
+int hxhim::GetEpoch(hxhim_t *hx, ::Stats::Chronopoint &epoch) {
+    if (!valid(hx)) {
+        return HXHIM_ERROR;
+    }
+
     return hxhim::nocheck::GetEpoch(hx, epoch);
 }
 

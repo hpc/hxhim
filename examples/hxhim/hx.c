@@ -7,12 +7,23 @@
 #include <mpi.h>
 
 #include "hxhim/hxhim.h"
-#include "utils/Stats.h"
 #include "utils/elen.h"
 #include "print_results.h"
 #include "spo_gen.h"
 
 const size_t bufsize = 100;
+
+long double nano(struct timespec *start, struct timespec *end) {
+    long double s = start->tv_nsec;
+    s /= 1e9;
+    s += start->tv_sec;
+
+    long double e = end->tv_nsec;
+    e /= 1e9;
+    e += end->tv_sec;
+
+    return end - start;
+}
 
 void ordered_print(MPI_Comm comm, const int rank, const int size, hxhim_t * hx, hxhim_results_t *res) {
     for(int i = 0; i < size; i++) {
@@ -94,8 +105,8 @@ int main(int argc, char *argv[]) {
     clock_gettime(CLOCK_MONOTONIC, &gen_end);
     fprintf(stderr, "%d generate %" PRIu64 " %" PRIu64 "\n",
             rank,
-            nano2(&epoch, &gen_start),
-            nano2(&epoch, &gen_end));
+            nano(&epoch, &gen_start),
+            nano(&epoch, &gen_end));
 
     MPI_Barrier(MPI_COMM_WORLD);
     if (rank == 0) {
@@ -123,16 +134,16 @@ int main(int argc, char *argv[]) {
     clock_gettime(CLOCK_MONOTONIC, &put_end);
     fprintf(stderr, "%d put %" PRIu64 " %" PRIu64 "\n",
             rank,
-            nano2(&epoch, &put_start),
-            nano2(&epoch, &put_end));
+            nano(&epoch, &put_start),
+            nano(&epoch, &put_end));
 
     clock_gettime(CLOCK_MONOTONIC, &barrier_start);
     MPI_Barrier(MPI_COMM_WORLD);
     clock_gettime(CLOCK_MONOTONIC, &barrier_end);
     fprintf(stderr, "%d barrier %" PRIu64 " %" PRIu64 "\n",
             rank,
-            nano2(&epoch, &barrier_start),
-            nano2(&epoch, &barrier_end));
+            nano(&epoch, &barrier_start),
+            nano(&epoch, &barrier_end));
 
     /* if (rank == 0) { */
     /*     printf("GET before flushing PUTs\n"); */
@@ -143,8 +154,8 @@ int main(int argc, char *argv[]) {
     /* clock_gettime(CLOCK_MONOTONIC, &barrier_end); */
     /* fprintf(stderr, "%d barrier %" PRIu64 " %" PRIu64 "\n", */
     /*         rank, */
-    /*         nano2(&epoch, &barrier_start), */
-    /*         nano2(&epoch, &barrier_end)); */
+    /*         nano(&epoch, &barrier_start), */
+    /*         nano(&epoch, &barrier_end)); */
 
     /* // GET them back, flushing only the GETs */
     /* // this will likely return errors, since not all of the PUTs will have completed */
@@ -164,8 +175,8 @@ int main(int argc, char *argv[]) {
     clock_gettime(CLOCK_MONOTONIC, &barrier_end);
     fprintf(stderr, "%d barrier %" PRIu64 " %" PRIu64 "\n",
             rank,
-            nano2(&epoch, &barrier_start),
-            nano2(&epoch, &barrier_end));
+            nano(&epoch, &barrier_start),
+            nano(&epoch, &barrier_end));
 
     if (rank == 0) {
         printf("Flush PUTs\n");
@@ -176,8 +187,8 @@ int main(int argc, char *argv[]) {
     clock_gettime(CLOCK_MONOTONIC, &barrier_end);
     fprintf(stderr, "%d barrier %" PRIu64 " %" PRIu64 "\n",
             rank,
-            nano2(&epoch, &barrier_start),
-            nano2(&epoch, &barrier_end));
+            nano(&epoch, &barrier_start),
+            nano(&epoch, &barrier_end));
 
     struct timespec flush_put_start;
     clock_gettime(CLOCK_MONOTONIC, &flush_put_start);
@@ -188,16 +199,16 @@ int main(int argc, char *argv[]) {
     clock_gettime(CLOCK_MONOTONIC, &flush_put_end);
     fprintf(stderr, "%d flush_put %" PRIu64 " %" PRIu64 "\n",
             rank,
-            nano2(&epoch, &flush_put_start),
-            nano2(&epoch, &flush_put_end));
+            nano(&epoch, &flush_put_start),
+            nano(&epoch, &flush_put_end));
 
     clock_gettime(CLOCK_MONOTONIC, &barrier_start);
     MPI_Barrier(MPI_COMM_WORLD);
     clock_gettime(CLOCK_MONOTONIC, &barrier_end);
     fprintf(stderr, "%d barrier %" PRIu64 " %" PRIu64 "\n",
             rank,
-            nano2(&epoch, &barrier_start),
-            nano2(&epoch, &barrier_end));
+            nano(&epoch, &barrier_start),
+            nano(&epoch, &barrier_end));
 
     if (print) {
         ordered_print(MPI_COMM_WORLD, rank, size, &hx, flush_puts);
@@ -223,8 +234,8 @@ int main(int argc, char *argv[]) {
     clock_gettime(CLOCK_MONOTONIC, &destroy_end);
     fprintf(stderr, "%d destroy %" PRIu64 " %" PRIu64 "\n",
             rank,
-            nano2(&epoch, &destroy_start),
-            nano2(&epoch, &destroy_end));
+            nano(&epoch, &destroy_start),
+            nano(&epoch, &destroy_end));
 
     /* // GET again, now that all PUTs have completed */
     /* for(size_t i = 0; i < count; i++) { */
@@ -254,8 +265,8 @@ int main(int argc, char *argv[]) {
     clock_gettime(CLOCK_MONOTONIC, &cleanup_end);
     fprintf(stderr, "%d cleanup %" PRIu64 " %" PRIu64 "\n",
             rank,
-            nano2(&epoch, &cleanup_start),
-            nano2(&epoch, &cleanup_end));
+            nano(&epoch, &cleanup_start),
+            nano(&epoch, &cleanup_end));
 
     MPI_Barrier(MPI_COMM_WORLD);
 

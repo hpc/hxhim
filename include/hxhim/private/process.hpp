@@ -9,6 +9,7 @@
 #include "hxhim/private/hxhim.hpp"
 #include "hxhim/private/shuffle.hpp"
 #include "transport/backend/local/RangeServer.hpp"
+#include "utils/Stats.hpp"
 #include "utils/is_range_server.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
@@ -42,8 +43,8 @@ hxhim::Results *process(hxhim_t *hx,
     int rank = -1;
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
-    struct timespec epoch;
-    hxhim::nocheck::GetEpoch(hx, &epoch);
+    ::Stats::Chronopoint epoch;
+    hxhim::nocheck::GetEpoch(hx, epoch);
 
     mlog(HXHIM_CLIENT_DBG, "Rank %d Start processing", rank);
 
@@ -63,8 +64,7 @@ hxhim::Results *process(hxhim_t *hx,
         Request_t local(max_ops_per_send);
         local.src = local.dst = rank;
 
-        struct timespec fill_start;
-        clock_gettime(CLOCK_MONOTONIC, &fill_start);
+        ::Stats::Chronopoint fill_start = ::Stats::now();
 
         for(UserData_t *curr = head; curr;) {
             mlog(HXHIM_CLIENT_DBG, "Rank %d Client preparing to shuffle %p (next: %p)", rank, curr, curr->next);
@@ -109,16 +109,15 @@ hxhim::Results *process(hxhim_t *hx,
             curr = next;
         }
 
-        struct timespec fill_end;
-        clock_gettime(CLOCK_MONOTONIC, &fill_end);
+        ::Stats::Chronopoint fill_end = ::Stats::now();
 
         // This timer does not belong anywhere
         // since it covers multiple requests and packets but does not describe any of them individually
         {
             std::stringstream s;
             s << rank << " fill "
-              << nano2(&epoch, &fill_start) << " "
-              << nano2(&epoch, &fill_end)
+              << ::Stats::nano(epoch, fill_start) << " "
+              << ::Stats::nano(epoch, fill_end)
               << std::endl;
 
             mlog(HXHIM_CLIENT_NOTE, "\n%s", s.str().c_str());
@@ -126,8 +125,7 @@ hxhim::Results *process(hxhim_t *hx,
 
         mlog(HXHIM_CLIENT_DBG, "Rank %d Client packed together requests destined for %zu remote servers", rank, remote.size());
 
-        struct timespec remote_start;
-        clock_gettime(CLOCK_MONOTONIC, &remote_start);
+        ::Stats::Chronopoint remote_start = ::Stats::now();
 
         // process remote data
         if (remote.size()) {
@@ -144,13 +142,12 @@ hxhim::Results *process(hxhim_t *hx,
             destruct(dst.second);
         }
 
-        struct timespec remote_end;
-        clock_gettime(CLOCK_MONOTONIC, &remote_end);
+        ::Stats::Chronopoint remote_end = ::Stats::now();
         {
             std::stringstream s;
             s << rank << " remote "
-              << nano2(&epoch, &remote_start) << " "
-              << nano2(&epoch, &remote_end)
+              << ::Stats::nano(epoch, remote_start) << " "
+              << ::Stats::nano(epoch, remote_end)
               << std::endl;
 
             mlog(HXHIM_CLIENT_NOTE, "\n%s", s.str().c_str());
@@ -158,8 +155,7 @@ hxhim::Results *process(hxhim_t *hx,
 
         mlog(HXHIM_CLIENT_DBG, "Rank %d Client sending %zu local requests", rank, local.count);
 
-        struct timespec local_start;
-        clock_gettime(CLOCK_MONOTONIC, &local_start);
+        ::Stats::Chronopoint local_start = ::Stats::now();
 
         // process local data
         if (local.count) {
@@ -169,13 +165,12 @@ hxhim::Results *process(hxhim_t *hx,
             res->Add(Transport::local::range_server<Response_t, Request_t>(hx, &local));
         }
 
-        struct timespec local_end;
-        clock_gettime(CLOCK_MONOTONIC, &local_end);
+        ::Stats::Chronopoint local_end = ::Stats::now();
         {
             std::stringstream s;
             s << rank << " local "
-              << nano2(&epoch, &local_start) << " "
-              << nano2(&epoch, &local_end)
+              << ::Stats::nano(epoch, local_start) << " "
+              << ::Stats::nano(epoch, local_end)
               << std::endl;
 
             mlog(HXHIM_CLIENT_NOTE, "\n%s", s.str().c_str());

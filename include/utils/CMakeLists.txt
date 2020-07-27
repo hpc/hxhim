@@ -3,13 +3,13 @@ cmake_minimum_required (VERSION 3.6.3)
 set(INSTALLED_HEADERS
   Blob.hpp
   Histogram.h
-  Stats.h
+  Histogram.hpp
+  Stats.hpp
   memory.hpp
 )
 
 set(NOT_INSTALLED_HEADERS
   Configuration.hpp
-  Histogram.hpp
   big_endian.hpp
   elen.h
   elen.hpp

@@ -8,7 +8,7 @@ hxhim::UserData::UserData()
       ds_offset(-1),
       timestamps()
 {
-    clock_gettime(CLOCK_MONOTONIC, &timestamps.cached);
+    timestamps.cached = ::Stats::now();
 }
 
 hxhim::UserData::~UserData() {}

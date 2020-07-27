@@ -8,10 +8,12 @@
 
 #include "hxhim/accessors.h"
 #include "hxhim/struct.h"
+#include "utils/Stats.hpp"
 
 namespace hxhim {
 
 int GetEpoch(hxhim_t *hx, struct timespec *epoch);
+int GetEpoch(hxhim_t *hx, ::Stats::Chronopoint &epoch);
 int GetMPI(hxhim_t *hx, MPI_Comm *comm, int *rank, int *size);
 int GetDatastoresPerRangeServer(hxhim_t *hx, std::size_t *datastore_count);
 int GetDatastoreCount(hxhim_t *hx, std::size_t *count);

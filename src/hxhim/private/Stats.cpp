@@ -16,7 +16,7 @@ std::ostream &hxhim::Stats::Global::print(const std::map<enum hxhim_op_t, std::s
         for(typename decltype(single_op)::const_iterator it = single_op.begin();
             it != single_op.end(); it++) {
             std::chrono::nanoseconds op_time(0);
-            for(Chronostamp const &event : it->second) {
+            for(::Stats::Chronostamp const &event : it->second) {
                 op_time += std::chrono::duration_cast<std::chrono::nanoseconds>(event.end - event.start);
             }
             stream << indent << indent << HXHIM_OP_STR[it->first] << " count: " << it->second.size() << " duration: "  << std::chrono::duration<long double>(op_time).count() << " seconds" << std::endl;
@@ -34,7 +34,7 @@ std::ostream &hxhim::Stats::Global::print(const std::map<enum hxhim_op_t, std::s
         for(typename decltype(bulk_op)::const_iterator it = bulk_op.begin();
             it != bulk_op.end(); it++) {
             std::chrono::nanoseconds op_time(0);
-            for(Chronostamp const &event : it->second) {
+            for(::Stats::Chronostamp const &event : it->second) {
                 op_time += std::chrono::duration_cast<std::chrono::nanoseconds>(event.end - event.start);
             }
             stream << indent << indent << HXHIM_OP_STR[it->first] << " count: " << it->second.size() << " duration: "  << std::chrono::duration<long double>(op_time).count() << " seconds" << std::endl;

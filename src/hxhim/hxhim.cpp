@@ -487,7 +487,7 @@ hxhim_results_t *hxhimFlush(hxhim_t *hx) {
 hxhim::Results *hxhim::Sync(hxhim_t *hx) {
     hxhim::Results *res = Flush(hx);
 
-    struct hxhim::Stats::Send send;
+    struct ::Stats::Send send;
     send.cached       = hx->p->epoch;
     send.shuffled     = hx->p->epoch;
     send.hashed.start = hx->p->epoch;
@@ -495,16 +495,16 @@ hxhim::Results *hxhim::Sync(hxhim_t *hx) {
     send.bulked.start = hx->p->epoch;
     send.bulked.end   = hx->p->epoch;
 
-    struct hxhim::Stats::SendRecv transport;
+    struct ::Stats::SendRecv transport;
     transport.pack.start = hx->p->epoch;
     transport.pack.end   = hx->p->epoch;
 
     transport.unpack.start = hx->p->epoch;
     transport.unpack.end   = hx->p->epoch;
 
-    clock_gettime(CLOCK_MONOTONIC, &transport.send_start);
+    transport.send_start = ::Stats::now();
     MPI_Barrier(hx->p->bootstrap.comm);
-    clock_gettime(CLOCK_MONOTONIC, &transport.recv_end);
+    transport.recv_end = ::Stats::now();
 
     // Sync local data stores
     for(std::size_t i = 0; i < hx->p->datastores.size(); i++) {
@@ -512,9 +512,9 @@ hxhim::Results *hxhim::Sync(hxhim_t *hx) {
         hxhim::Results::Sync *sync = hxhim::Result::init(hx, i, synced);
         sync->timestamps.send = send;
         sync->timestamps.transport = transport;
-        clock_gettime(CLOCK_MONOTONIC, &sync->timestamps.recv.result.start);
+        sync->timestamps.recv.result.start = ::Stats::now();
         res->Add(sync);
-        clock_gettime(CLOCK_MONOTONIC, &sync->timestamps.recv.result.end);
+        sync->timestamps.recv.result.end = ::Stats::now();
     }
 
     return res;
@@ -604,9 +604,9 @@ int hxhim::Put(hxhim_t *hx,
                void *predicate, std::size_t predicate_len,
                enum hxhim_object_type_t object_type, void *object, std::size_t object_len) {
     mlog(HXHIM_CLIENT_DBG, "%s %s:%d", __FILE__, __func__, __LINE__);
-    Chronopoint start = now();
+    ::Stats::Chronopoint start = ::Stats::now();
     const int rc = hxhim::PutImpl(hx->p->queues.puts, subject, subject_len, predicate, predicate_len, object_type, object, object_len);
-    Chronopoint end = now();
+    ::Stats::Chronopoint end = ::Stats::now();
     hx->p->stats.single_op[hxhim_op_t::HXHIM_PUT].push_back({start, end});
     return rc;
 }
@@ -654,9 +654,9 @@ int hxhim::Get(hxhim_t *hx,
                void *subject, std::size_t subject_len,
                void *predicate, std::size_t predicate_len,
                enum hxhim_object_type_t object_type) {
-    Chronopoint start = now();
+    ::Stats::Chronopoint start = ::Stats::now();
     const int rc = hxhim::GetImpl(hx->p->queues.gets, subject, subject_len, predicate, predicate_len, object_type);
-    Chronopoint end = now();
+    ::Stats::Chronopoint end = ::Stats::now();
     hx->p->stats.single_op[hxhim_op_t::HXHIM_GET].push_back({start, end});
     return rc;
 }
@@ -699,11 +699,11 @@ int hxhimGet(hxhim_t *hx,
 int hxhim::Delete(hxhim_t *hx,
                   void *subject, std::size_t subject_len,
                   void *predicate, std::size_t predicate_len) {
-    Chronopoint start = now();
+    ::Stats::Chronopoint start = ::Stats::now();
     const int rc = hxhim::DeleteImpl(hx->p->queues.deletes,
                                      subject, subject_len,
                                      predicate, predicate_len);
-    Chronopoint end = now();
+    ::Stats::Chronopoint end = ::Stats::now();
     hx->p->stats.single_op[hxhim_op_t::HXHIM_DELETE].push_back({start, end});
     return rc;
 }
@@ -754,7 +754,7 @@ int hxhim::BPut(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
-    Chronopoint start = now();
+    ::Stats::Chronopoint start = ::Stats::now();
 
     // append these spo triples into the list of unsent PUTs
     for(std::size_t i = 0; i < count; i++) {
@@ -786,7 +786,7 @@ int hxhim::BPut(hxhim_t *hx,
         }
     }
 
-    Chronopoint end = now();
+    ::Stats::Chronopoint end = ::Stats::now();
     hx->p->stats.bulk_op[hxhim_op_t::HXHIM_PUT].push_back({start, end});
     return HXHIM_SUCCESS;
 }
@@ -844,11 +844,11 @@ int hxhim::BGet(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
-    Chronopoint start = now();
+    ::Stats::Chronopoint start = ::Stats::now();
     for(std::size_t i = 0; i < count; i++) {
         hxhim::GetImpl(hx->p->queues.gets, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], object_types[i]);
     }
-    Chronopoint end = now();
+    ::Stats::Chronopoint end = ::Stats::now();
     hx->p->stats.bulk_op[hxhim_op_t::HXHIM_GET].push_back({start, end});
     return HXHIM_SUCCESS;
 }
@@ -903,13 +903,13 @@ int hxhim::BGetOp(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
-    Chronopoint start = now();
+    ::Stats::Chronopoint start = ::Stats::now();
     const int rc = hxhim::GetOpImpl(hx->p->queues.getops,
                                     subject, subject_len,
                                     predicate, predicate_len,
                                     object_type,
                                     num_records, op);
-    Chronopoint end = now();
+    ::Stats::Chronopoint end = ::Stats::now();
     hx->p->stats.bulk_op[hxhim_op_t::HXHIM_GETOP].push_back({start, end});
     return rc;
 }
@@ -963,12 +963,12 @@ int hxhim::BDelete(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
-    Chronopoint start = now();
+    ::Stats::Chronopoint start = ::Stats::now();
     for(std::size_t i = 0; i < count; i++) {
         hxhim::DeleteImpl(hx->p->queues.deletes, subjects[i], subject_lens[i], predicates[i], predicate_lens[i]);
     }
 
-    Chronopoint end = now();
+    ::Stats::Chronopoint end = ::Stats::now();
     hx->p->stats.bulk_op[hxhim_op_t::HXHIM_DELETE].push_back({start, end});
     return HXHIM_SUCCESS;
 }
@@ -1003,20 +1003,16 @@ int hxhimBDelete(hxhim_t *hx,
  *
  * @param hx             the HXHIM session
  * @param dst_rank       the rank that is collecting the data
- * @param get_put_times  whether or not to get put_times
  * @param put_times      the array of put times from each rank
- * @param get_num_puts   whether or not to get num_puts
  * @param num_puts       the array of number of puts from each rank
- * @param get_get_times  whether or not to get get_times
  * @param get_times      the array of get times from each rank
- * @param get_num_gets   whether or not to get num_gets
  * @param num_gets       the array of number of gets from each rank
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::GetStats(hxhim_t *hx, const int dst_rank,
-                    long double *put_times,
+                    uint64_t    *put_times,
                     std::size_t *num_puts,
-                    long double *get_times,
+                    uint64_t    *get_times,
                     std::size_t *num_gets) {
     if (!hxhim::valid(hx)) {
         return HXHIM_ERROR;
@@ -1026,9 +1022,9 @@ int hxhim::GetStats(hxhim_t *hx, const int dst_rank,
 
     // collect from all datastores first
     const std::size_t count = hx->p->datastores.size();
-    long double *local_put_times = alloc_array<long double> (count);
+    uint64_t    *local_put_times = alloc_array<uint64_t>    (count);
     std::size_t *local_num_puts  = alloc_array<std::size_t> (count);
-    long double *local_get_times = alloc_array<long double> (count);
+    uint64_t    *local_get_times = alloc_array<uint64_t>    (count);
     std::size_t *local_num_gets  = alloc_array<std::size_t> (count);
 
     auto cleanup = [local_put_times, local_num_puts,
@@ -1055,8 +1051,8 @@ int hxhim::GetStats(hxhim_t *hx, const int dst_rank,
     MPI_Barrier(comm);
 
     if (put_times) {
-        if (MPI_Gather(local_put_times, count, MPI_LONG_DOUBLE,
-                             put_times, count, MPI_LONG_DOUBLE, dst_rank, comm) != MPI_SUCCESS) {
+        if (MPI_Gather(local_put_times, count, MPI_UINT64_T,
+                             put_times, count, MPI_UINT64_T, dst_rank, comm) != MPI_SUCCESS) {
             cleanup();
             return HXHIM_ERROR;
         }
@@ -1071,8 +1067,8 @@ int hxhim::GetStats(hxhim_t *hx, const int dst_rank,
     }
 
     if (get_times) {
-        if (MPI_Gather(local_get_times, count, MPI_LONG_DOUBLE,
-                             get_times, count, MPI_LONG_DOUBLE, dst_rank, comm) != MPI_SUCCESS) {
+        if (MPI_Gather(local_get_times, count, MPI_UINT64_T,
+                             get_times, count, MPI_UINT64_T, dst_rank, comm) != MPI_SUCCESS) {
             cleanup();
             return HXHIM_ERROR;
         }
@@ -1106,9 +1102,9 @@ int hxhim::GetStats(hxhim_t *hx, const int dst_rank,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimGetStats(hxhim_t *hx, const int dst_rank,
-                  long double *put_times,
+                  uint64_t    *put_times,
                   std::size_t *num_puts,
-                  long double *get_times,
+                  uint64_t    *get_times,
                   std::size_t *num_gets) {
     return hxhim::GetStats(hx, dst_rank,
                            put_times,
@@ -1132,9 +1128,9 @@ int hxhim::Histogram(hxhim_t *hx, int ds_id) {
         return HXHIM_ERROR;
     }
 
-    Chronopoint start = now();
+    ::Stats::Chronopoint start = ::Stats::now();
     const int rc = hxhim::HistogramImpl(hx, hx->p->queues.histograms, ds_id);
-    Chronopoint end = now();
+    ::Stats::Chronopoint end = ::Stats::now();
     hx->p->stats.single_op[hxhim_op_t::HXHIM_HISTOGRAM].push_back({start, end});
 
     return rc;
@@ -1175,12 +1171,12 @@ int hxhim::BHistogram(hxhim_t *hx,
         }
     }
 
-    Chronopoint start = now();
+    ::Stats::Chronopoint start = ::Stats::now();
     for(std::size_t i = 0; i < count; i++) {
         hxhim::HistogramImpl(hx, hx->p->queues.histograms, ds_ids[i]);
     }
 
-    Chronopoint end = now();
+    ::Stats::Chronopoint end = ::Stats::now();
     hx->p->stats.bulk_op[hxhim_op_t::HXHIM_HISTOGRAM].push_back({start, end});
     return HXHIM_SUCCESS;
 }

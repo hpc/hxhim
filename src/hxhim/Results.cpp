@@ -6,6 +6,7 @@
 #include "hxhim/Results.hpp"
 #include "hxhim/private/Results.hpp"
 #include "hxhim/private/accessors.hpp"
+#include "utils/Stats.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
@@ -24,60 +25,60 @@ hxhim::Results::Result::~Result() {
         int rank = -1;
         hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
-        struct timespec epoch;
-        hxhim::nocheck::GetEpoch(hx, &epoch);
+        ::Stats::Chronopoint epoch;
+        hxhim::nocheck::GetEpoch(hx, epoch);
 
         std::stringstream s;
 
         // from when request was put into the hxhim queue until the response was ready for pulling
         s << HXHIM_OP_STR[op] << " "
-          << nano2(&epoch, &timestamps.send.cached) << " "
-          << nano2(&epoch, &timestamps.recv.result.end)
+          << ::Stats::nano(epoch, timestamps.send.cached) << " "
+          << ::Stats::nano(epoch, timestamps.recv.result.end)
           << std::endl
 
           << rank << " Cached "
-          << nano2(&epoch, &timestamps.send.cached)
+          << ::Stats::nano(epoch, timestamps.send.cached)
           << std::endl
 
           << rank << " Shuffled "
-          << nano2(&epoch, &timestamps.send.shuffled)
+          << ::Stats::nano(epoch, timestamps.send.shuffled)
           << std::endl
 
           << rank << " Hash "
-          << nano2(&epoch, &timestamps.send.hashed.start) << " "
-          << nano2(&epoch, &timestamps.send.hashed.end)
+          << ::Stats::nano(epoch, timestamps.send.hashed.start) << " "
+          << ::Stats::nano(epoch, timestamps.send.hashed.end)
           << std::endl
 
           << rank << " Bulked "
-          << nano2(&epoch, &timestamps.send.bulked.start) << " "
-          << nano2(&epoch, &timestamps.send.bulked.end)
+          << ::Stats::nano(epoch, timestamps.send.bulked.start) << " "
+          << ::Stats::nano(epoch, timestamps.send.bulked.end)
           << std::endl
 
           << rank << " Pack "
-          << nano2(&epoch, &timestamps.transport.pack.start) << " "
-          << nano2(&epoch, &timestamps.transport.pack.end)
+          << ::Stats::nano(epoch, timestamps.transport.pack.start) << " "
+          << ::Stats::nano(epoch, timestamps.transport.pack.end)
           << std::endl
 
           << rank << " Transport "
-          << nano2(&epoch, &timestamps.transport.send_start) << " "
-          << nano2(&epoch, &timestamps.transport.recv_end)
+          << ::Stats::nano(epoch, timestamps.transport.send_start) << " "
+          << ::Stats::nano(epoch, timestamps.transport.recv_end)
           << std::endl
 
           << rank << " Unpack "
-          << nano2(&epoch, &timestamps.transport.unpack.start) << " "
-          << nano2(&epoch, &timestamps.transport.unpack.end)
+          << ::Stats::nano(epoch, timestamps.transport.unpack.start) << " "
+          << ::Stats::nano(epoch, timestamps.transport.unpack.end)
           << std::endl
 
           << rank << " Result "
-          << nano2(&epoch, &timestamps.recv.result.start) << " "
-          << nano2(&epoch, &timestamps.recv.result.end)
+          << ::Stats::nano(epoch, timestamps.recv.result.start) << " "
+          << ::Stats::nano(epoch, timestamps.recv.result.end)
           << std::endl;
 
         // This might take very long
-        for(struct Monostamp const &find : timestamps.send.find_dsts) {
+        for(::Stats::Chronostamp const find : timestamps.send.find_dsts) {
             s << rank << " FindDst "
-              << nano2(&epoch, &find.start) << " "
-              << nano2(&epoch, &find.end)
+              << ::Stats::nano(epoch, find.start) << " "
+              << ::Stats::nano(epoch, find.end)
               << std::endl;
         }
 
@@ -121,8 +122,7 @@ hxhim::Results::Hist::Hist(hxhim_t *hx,
 hxhim::Results::Result *hxhim::Result::init(hxhim_t *hx, Transport::Response::Response *res, const std::size_t i) {
     // hx should have been checked earlier
 
-    struct timespec start;
-    clock_gettime(CLOCK_MONOTONIC, &start);
+    ::Stats::Chronopoint start = ::Stats::now();
 
     int rank = -1;
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
@@ -164,7 +164,7 @@ hxhim::Results::Result *hxhim::Result::init(hxhim_t *hx, Transport::Response::Re
     ret->timestamps.send = res->timestamps.reqs[i];
     ret->timestamps.transport = res->timestamps.transport;
     ret->timestamps.recv.result.start = start;
-    clock_gettime(CLOCK_MONOTONIC, &ret->timestamps.recv.result.end);
+    ret->timestamps.recv.result.end = ::Stats::now();
 
     mlog(HXHIM_CLIENT_DBG, "Rank %d Created hxhim::Results::Result %p using %p[%zu]", rank, ret, res, i);
 
@@ -336,27 +336,23 @@ hxhim::Results::Result *hxhim::Results::Add(hxhim::Results::Result *response) {
  */
 void hxhim::Results::Add(Transport::Response::Response *response) {
     for(Transport::Response::Response *res = response; res; res = next(res)) {
-        struct timespec start;
-        clock_gettime(CLOCK_MONOTONIC, &start);
+        ::Stats::Chronopoint start = ::Stats::now();
 
-        duration += elapsed2(&res->timestamps.transport.pack.start,
-                             &res->timestamps.transport.unpack.end);
+        duration += ::Stats::sec(res->timestamps.transport.pack.start,
+                                 res->timestamps.transport.unpack.end);
 
         for(std::size_t i = 0; i < res->count; i++) {
-            for(struct Monostamp &find_dst : res->timestamps.reqs[i].find_dsts) {
-                duration += elapsed(&find_dst);
+            for(::Stats::Chronostamp const &find_dst : res->timestamps.reqs[i].find_dsts) {
+                duration += ::Stats::sec(find_dst);
             }
 
-            duration += elapsed(&res->timestamps.reqs[i].hashed)
-                     +  elapsed(&res->timestamps.reqs[i].bulked);
+            duration += ::Stats::sec(res->timestamps.reqs[i].hashed)
+                     +  ::Stats::sec(res->timestamps.reqs[i].bulked);
 
             Add(hxhim::Result::init(hx, res, i));
         }
 
-        struct timespec end;
-        clock_gettime(CLOCK_MONOTONIC, &end);
-
-        duration += elapsed2(&start, &end);
+        duration += ::Stats::sec(start, ::Stats::now());
     }
 }
 

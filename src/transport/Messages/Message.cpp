@@ -36,7 +36,7 @@ int Transport::Message::alloc(const std::size_t max) {
 
         // responses take ownership of request timestamps
         if (direction == Transport::Message::Direction::REQUEST) {
-            if (!(timestamps.reqs = alloc_array<struct hxhim::Stats::Send>(max))) {
+            if (!(timestamps.reqs = alloc_array<::Stats::Send>(max))) {
                 cleanup();
                 return TRANSPORT_ERROR;
             }

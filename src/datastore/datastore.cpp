@@ -119,21 +119,19 @@ hxhim::datastore::Datastore::~Datastore() {
     std::size_t put_count = 0;
     std::size_t put_size = 0;
     for(Stats::Event const &event : stats.puts) {
-        put_time += elapsed<std::chrono::nanoseconds>(event.time);
+        put_time  += sec(event.time);
         put_count += event.count;
-        put_size += event.size;
+        put_size  += event.size;
     }
-    put_time /= 1e9;
 
     long double get_time = 0;
     std::size_t get_count = 0;
     std::size_t get_size = 0;
     for(Stats::Event const &event : stats.gets) {
-        get_time += elapsed<std::chrono::nanoseconds>(event.time);
+        get_time  += sec(event.time);
         get_count += event.count;
-        get_size += event.size;
+        get_size  += event.size;
     }
-    get_time /= 1e9;
 
     if (put_count) {
         mlog(DATASTORE_NOTE, "Rank %d Datastore %d: %zu PUTs (%zu bytes) in %.3Lf seconds (%.3Lf PUTs/sec, %s)", rank, id, put_count, put_size, put_time, put_count / put_time, hr_size(put_size, put_time).c_str());
@@ -210,7 +208,7 @@ Transport::Response::BHistogram *hxhim::datastore::Datastore::operate(Transport:
     std::lock_guard<std::mutex> lock(mutex);
 
     Datastore::Stats::Event event;
-    event.time.start = now();
+    event.time.start = ::Stats::now();
     event.count = req->count;
 
     Transport::Response::BHistogram *res = construct<Transport::Response::BHistogram>(req->count);
@@ -230,7 +228,7 @@ Transport::Response::BHistogram *hxhim::datastore::Datastore::operate(Transport:
         res->count++;
     }
 
-    event.time.end = now();
+    event.time.end = ::Stats::now();
     stats.gets.emplace_back(event);
 
     return res;
@@ -273,16 +271,16 @@ int hxhim::datastore::Datastore::GetHistogram(Histogram::Histogram **h) const {
  * @param num_gets       the array of number of gets from each rank
  * @return HXHIM_SUCCESS or HXHIM_ERROR on error
  */
-int hxhim::datastore::Datastore::GetStats(long double *put_time,
+int hxhim::datastore::Datastore::GetStats(uint64_t *put_time,
                                           std::size_t  *num_put,
-                                          long double *get_time,
+                                          uint64_t *get_time,
                                           std::size_t  *num_get) {
     std::lock_guard<std::mutex> lock(mutex);
 
     if (put_time) {
         *put_time = 0;
         for(Stats::Event const &event : stats.puts) {
-            *put_time += elapsed<std::chrono::nanoseconds>(event.time);
+            *put_time += nano(event.time);
         }
     }
 
@@ -293,7 +291,7 @@ int hxhim::datastore::Datastore::GetStats(long double *put_time,
     if (get_time) {
         *get_time = 0;
         for(Stats::Event const &event : stats.gets) {
-            *get_time += elapsed<std::chrono::nanoseconds>(event.time);
+            *get_time += nano(event.time);
         }
     }
 

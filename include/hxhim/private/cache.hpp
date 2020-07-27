@@ -6,7 +6,7 @@
 #include <mutex>
 
 #include "hxhim/constants.h"
-#include "hxhim/Stats.hpp"
+#include "hxhim/private/Stats.hpp"
 #include "transport/Messages/Messages.hpp"
 #include "utils/Blob.hpp"
 #include "utils/Stats.hpp"
@@ -30,7 +30,7 @@ namespace hxhim {
         int ds_rank;
         int ds_offset;
 
-        struct hxhim::Stats::Send timestamps;
+        struct ::Stats::Send timestamps;
     };
 
     typedef struct SubjectPredicate : UserData {

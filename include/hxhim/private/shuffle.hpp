@@ -9,6 +9,7 @@
 #include "hxhim/private/hxhim.hpp"
 #include "hxhim/struct.h"
 #include "transport/Messages/Messages.hpp"
+#include "utils/Stats.hpp"
 #include "utils/macros.hpp"
 #include "utils/memory.hpp"
 
@@ -49,15 +50,15 @@ int shuffle(hxhim_t *hx,
             std::unordered_map<int, DST_t *> &remote) {
     // skip duplicate calculations
     if ((src->ds_id < 0) || (src->ds_rank < 0) || (src->ds_offset < 0)) {
-        clock_gettime(CLOCK_MONOTONIC, &src->timestamps.shuffled);
+        src->timestamps.shuffled = ::Stats::now();
 
         // get the destination backend id for the key
-        clock_gettime(CLOCK_MONOTONIC, &src->timestamps.hashed.start);
+        src->timestamps.hashed.start = ::Stats::now();
         src->ds_id = hx->p->hash.func(hx,
                                       src->subject->data(), src->subject->size(),
                                       src->predicate->data(), src->predicate->size(),
                                       hx->p->hash.args);
-        clock_gettime(CLOCK_MONOTONIC, &src->timestamps.hashed.end);
+        src->timestamps.hashed.end = ::Stats::now();
 
         if (src->ds_id < 0) {
             mlog(HXHIM_CLIENT_WARN, "Hash returned bad target datastore: %d", src->ds_id);
@@ -69,8 +70,8 @@ int shuffle(hxhim_t *hx,
         src->ds_offset = hxhim::datastore::get_offset(hx, src->ds_id);
     }
 
-    struct Monostamp find_dst;
-    clock_gettime(CLOCK_MONOTONIC, &find_dst.start);
+    ::Stats::Chronostamp find_dst;
+    find_dst.start = ::Stats::now();
 
     mlog(HXHIM_CLIENT_INFO, "Shuffled %p to datastore %d on rank %d", src, src->ds_id, src->ds_rank);
 
@@ -99,7 +100,7 @@ int shuffle(hxhim_t *hx,
 
     mlog(HXHIM_CLIENT_INFO, "Packet going to rank %d has %zu already packed out of %zu slots", src->ds_rank, dst->count, max_per_dst);
 
-    clock_gettime(CLOCK_MONOTONIC, &find_dst.end);
+    find_dst.end = ::Stats::now();
 
     // place this time range into src because the target bulk message might not have space
     src->timestamps.find_dsts.emplace_back(find_dst);
@@ -110,10 +111,10 @@ int shuffle(hxhim_t *hx,
         return NOSPACE;
     }
 
-    struct Monostamp bulked;
-    clock_gettime(CLOCK_MONOTONIC, &bulked.start);
+    ::Stats::Chronostamp bulked;
+    bulked.start = ::Stats::now();
     src->moveto(dst);
-    clock_gettime(CLOCK_MONOTONIC, &bulked.end);
+    bulked.end = ::Stats::now();
 
     // set timestamp here because src gets moved into dst
     dst->timestamps.reqs[dst->count - 1].bulked = bulked;

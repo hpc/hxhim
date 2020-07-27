@@ -124,7 +124,7 @@ Transport::Response::BPut *hxhim::datastore::leveldb::BPutImpl(Transport::Reques
     mlog(LEVELDB_INFO, "LevelDB BPut");
 
     hxhim::datastore::Datastore::Stats::Event event;
-    event.time.start = now();
+    event.time.start = ::Stats::now();
     event.count = req->count;
 
     Transport::Response::BPut *res = construct<Transport::Response::BPut>(req->count);
@@ -164,7 +164,7 @@ Transport::Response::BPut *hxhim::datastore::leveldb::BPutImpl(Transport::Reques
     }
 
     res->count = req->count;
-    event.time.end = now();
+    event.time.end = ::Stats::now();
     stats.puts.emplace_back(event);
 
     mlog(LEVELDB_INFO, "LevelDB BPut Completed");
@@ -185,7 +185,7 @@ Transport::Response::BGet *hxhim::datastore::leveldb::BGetImpl(Transport::Reques
     mlog(LEVELDB_INFO, "Rank %d LevelDB GET processing %zu item in %ps", rank, req->count, req);
 
     hxhim::datastore::Datastore::Stats::Event event;
-    event.time.start = now();
+    event.time.start = ::Stats::now();
     event.count = req->count;
 
     Transport::Response::BGet *res = construct<Transport::Response::BGet>(req->count);
@@ -233,7 +233,7 @@ Transport::Response::BGet *hxhim::datastore::leveldb::BGetImpl(Transport::Reques
         res->count++;
     }
 
-    event.time.end = now();
+    event.time.end = ::Stats::now();
     stats.gets.emplace_back(event);
 
     mlog(LEVELDB_INFO, "Rank %d LevelDB GET done processing %p", rank, req);
@@ -280,7 +280,7 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
 
     for(std::size_t i = 0; i < req->count; i++) {
         hxhim::datastore::Datastore::Stats::Event event;
-        event.time.start = now();
+        event.time.start = ::Stats::now();
 
         // prepare response
         res->object_types[i] = req->object_types[i];
@@ -362,7 +362,7 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
         res->count++;
 
         event.count = res->num_recs[i];
-        event.time.end = now();
+        event.time.end = ::Stats::now();
         stats.getops.emplace_back(event);
     }
 
@@ -383,7 +383,7 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
  */
 Transport::Response::BDelete *hxhim::datastore::leveldb::BDeleteImpl(Transport::Request::BDelete *req) {
     hxhim::datastore::Datastore::Stats::Event event;
-    event.time.start = now();
+    event.time.start = ::Stats::now();
     event.count = req->count;
 
     Transport::Response::BDelete *res = construct<Transport::Response::BDelete>(req->count);
@@ -415,7 +415,7 @@ Transport::Response::BDelete *hxhim::datastore::leveldb::BDeleteImpl(Transport::
 
     res->count = req->count;
 
-    event.time.end = now();
+    event.time.end = ::Stats::now();
     stats.deletes.emplace_back(event);
 
     return res;
