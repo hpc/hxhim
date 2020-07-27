@@ -8,26 +8,30 @@ fi
 
 file="$1"
 
+# grep -E "[0-9]+ .* [0-9]+.*" "${file}" | grep -v ".*:" > "${file}.filtered"
+# awk '{print $2}' "${file}.filtered" | sort | uniq > "${file}.names"
+
 names="
-generate
-put
 barrier
+gen
+put
 flush_put
 Cached
-fill
 Shuffled
 Hash
-FindDst
 Bulked
-Pack
+fill
 remote
-local
+Pack
 Transport
 Unpack
+local
 Result
 destroy
 cleanup
 "
+
+#FindDst
 
 for name in ${names}
 do
@@ -49,20 +53,20 @@ set key outside right
 set yrange [0:${ranks}]
 set ytics 1
 
-plot '${file}.put'       using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'put',       \
-     '${file}.barrier'   using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'barrier',   \
-     '${file}.flush_put' using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'flush_put', \
-     '${file}.fill'      using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 16 title 'fill',      \
-     '${file}.Hash'      using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  8 title 'hash',      \
-     '${file}.Bulked'    using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  8 title 'bulk',      \
-     '${file}.remote'    using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 16 title 'remote',    \
-     '${file}.Pack'      using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  8 title 'pack',      \
-     '${file}.Transport' using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  8 title 'transport', \
-     '${file}.Unpack'    using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  8 title 'unpack',    \
-     '${file}.local'     using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 16 title 'local',     \
-     '${file}.Result'    using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  8 title 'result',    \
-     '${file}.destroy'   using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'destroy',   \
-     '${file}.cleanup'   using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'cleanup',   \
+plot '${file}.barrier'   using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'barrier',                       \
+     '${file}.put'       using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'put',                           \
+     '${file}.flush_put' using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'flush_put',                     \
+     '${file}.fill'      using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 16 title 'fill (hash + find_dst + bulk)', \
+     '${file}.Hash'      using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  8 title 'hash',                          \
+     '${file}.Bulked'    using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  8 title 'add request to bulk',           \
+     '${file}.remote'    using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 16 title 'process remote',                \
+     '${file}.Pack'      using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  8 title 'pack operation packet',         \
+     '${file}.Transport' using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  8 title 'transport',                     \
+     '${file}.Unpack'    using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  8 title 'unpack operation packet',       \
+     '${file}.local'     using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 16 title 'process local',                 \
+     '${file}.Result'    using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  8 title 'deserialize into result',       \
+     '${file}.destroy'   using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'destroy results',               \
+     '${file}.cleanup'   using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'main cleanup',                  \
 
 EOF
 wait
