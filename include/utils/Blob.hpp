@@ -2,6 +2,7 @@
 #define TRANSPORT_BLOB_HPP
 
 #include <cstdint>
+#include <string>
 
 /**
  * Blob
@@ -32,6 +33,8 @@ class Blob {
         void get(void **addr, std::size_t *length) const;
         void *data() const;
         std::size_t size() const;
+
+        operator std::string() const;
 
     protected:
         void *ptr;

@@ -82,6 +82,10 @@ std::size_t Blob::size() const {
     return len;
 }
 
+Blob::operator std::string() const {
+    return std::string((char *) ptr, len);
+}
+
 ReferenceBlob::ReferenceBlob(void *ptr, const std::size_t len)
     : Blob(ptr, len)
 {}

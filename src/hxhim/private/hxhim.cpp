@@ -621,25 +621,23 @@ std::ostream &hxhim::print_stats(hxhim_t *hx,
  *
  * @param puts           the queue to place the PUT in
  * @param subject        the subject to put
- * @param subject_len    the length of the subject to put
  * @param predicate      the prediate to put
- * @param predicate_len  the length of the prediate to put
  * @param object_type    the type of the object
  * @param object         the object to put
- * @param object_len     the length of the object
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::PutImpl(hxhim::Unsent<hxhim::PutData> &puts,
-                   void *subject, std::size_t subject_len,
-                   void *predicate, std::size_t predicate_len,
-                   enum hxhim_object_type_t object_type, void *object, std::size_t object_len) {
+                   Blob *subject,
+                   Blob *predicate,
+                   enum hxhim_object_type_t object_type,
+                   Blob *object) {
     mlog(HXHIM_CLIENT_INFO, "Foreground PUT Start (%p, %p, %p)", subject, predicate, object);
 
     hxhim::PutData *put = construct<hxhim::PutData>();
-    put->subject = construct<ReferenceBlob>(subject, subject_len);
-    put->predicate = construct<ReferenceBlob>(predicate, predicate_len);
+    put->subject = subject;
+    put->predicate = predicate;
     put->object_type = object_type;
-    put->object = construct<ReferenceBlob>(object, object_len);
+    put->object = object;
 
     mlog(HXHIM_CLIENT_DBG, "Foreground PUT Insert SPO into queue");
     puts.insert(put);
@@ -658,23 +656,19 @@ int hxhim::PutImpl(hxhim::Unsent<hxhim::PutData> &puts,
  *
  * @param gets           the queue to place the GET in
  * @param subject        the subject to put
- * @param subject_len    the length of the subject to put
  * @param predicate      the prediate to put
- * @param predicate_len  the length of the prediate to put
  * @param object_type    the type of the object
- * @param object         the prediate to put
- * @param object_len     the length of the prediate to put
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::GetImpl(hxhim::Unsent<hxhim::GetData> &gets,
-                   void *subject, std::size_t subject_len,
-                   void *predicate, std::size_t predicate_len,
+                   Blob *subject,
+                   Blob *predicate,
                    enum hxhim_object_type_t object_type) {
     mlog(HXHIM_CLIENT_DBG, "GET Start");
 
     hxhim::GetData *get = construct<hxhim::GetData>();
-    get->subject = construct<ReferenceBlob>(subject, subject_len);
-    get->predicate = construct<ReferenceBlob>(predicate, predicate_len);
+    get->subject = subject;
+    get->predicate = predicate;
     get->object_type = object_type;
 
     mlog(HXHIM_CLIENT_DBG, "GET Insert into queue");
@@ -693,24 +687,22 @@ int hxhim::GetImpl(hxhim::Unsent<hxhim::GetData> &gets,
  *
  * @param getops         the queue to place the GETOP in
  * @param subject        the subject to put
- * @param subject_len    the length of the subject to put
  * @param predicate      the prediate to put
- * @param predicate_len  the length of the prediate to put
  * @param object_type    the type of the object
  * @param num_records    the number of records to get
  * @param op             the operation to run
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::GetOpImpl(hxhim::Unsent<hxhim::GetOpData> &getops,
-                     void *subject, std::size_t subject_len,
-                     void *predicate, std::size_t predicate_len,
+                     Blob *subject,
+                     Blob *predicate,
                      enum hxhim_object_type_t object_type,
                      std::size_t num_records, enum hxhim_get_op_t op) {
     mlog(HXHIM_CLIENT_DBG, "GETOP Start");
 
     hxhim::GetOpData *getop = construct<hxhim::GetOpData>();
-    getop->subject = construct<ReferenceBlob>(subject, subject_len);
-    getop->predicate = construct<ReferenceBlob>(predicate, predicate_len);
+    getop->subject = subject;
+    getop->predicate = predicate;
     getop->object_type = object_type;
     getop->num_recs = num_records;
     getop->op = op;
@@ -731,19 +723,17 @@ int hxhim::GetOpImpl(hxhim::Unsent<hxhim::GetOpData> &getops,
  *
  * @param dels         the queue to place the DELETE in
  * @param subject      the subject to delete
- * @param subject_len  the length of the subject to delete
  * @param prediate     the prediate to delete
- * @param prediate_len the length of the prediate to delete
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::DeleteImpl(hxhim::Unsent<hxhim::DeleteData> &dels,
-                      void *subject, std::size_t subject_len,
-                      void *predicate, std::size_t predicate_len) {
+                      Blob *subject,
+                      Blob *predicate) {
     mlog(HXHIM_CLIENT_DBG, "DELETE Start");
 
     hxhim::DeleteData *del = construct<hxhim::DeleteData>();
-    del->subject = construct<ReferenceBlob>(subject, subject_len);
-    del->predicate = construct<ReferenceBlob>(predicate, predicate_len);
+    del->subject = subject;
+    del->predicate = predicate;
 
     mlog(HXHIM_CLIENT_DBG, "DELETE Insert into queue");
     dels.insert(del);

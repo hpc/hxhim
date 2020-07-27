@@ -49,27 +49,16 @@ namespace hxhim {
  *     }
  *     hxhim::Results::Destroy(res);
  *
- * There are three ways to extract data from individual results.
- * The recommended method is to use the hxhim::Results interface:
- *
- *     void *      subject     = nullptr;
+ * Data should be extracted with their respective functions:
+ *     void *subject = nullptr;
  *     std::size_t subject_len = 0;
  *     res->Subject(&subject, &subject_len);
  *
- * The data can also be extracted by casting the current result to the
- * appropriate subtype and using Blob::get to get the pointers:
+ *     void *predicate = nullptr;
+ *     std::size_t predicate_len = 0;
+ *     res->Predicate(&predicate, &predicate_len);
  *
- *     hxhim::Results::Put *put = static_cast<hxhim::Results::Put *>(res->Curr());
- *     void *      subject     = nullptr;
- *     std::size_T subject_len = 0;
- *     put->subject->get(&subject, &subject_len);
- *
- * Instead of using Blob::get, Blob::data and Blob::size can also be
- * used to retreive the values:
- *
- *     hxhim::Results::Put *put = static_cast<hxhim::Results::Put *>(res->Curr());
- *     void *      subject     = put->subject->data();
- *     std::size_t subject_len = put->subject->len();
+ *     etc.
  *
  */
 
@@ -181,8 +170,11 @@ class Results {
         bool ValidIterator() const;
         Result *GoToHead();
         Result *GoToNext();
+
+    private:
         Result *Curr() const;
 
+    public:
         // Accessors for individual results
         // pointers are only valid if the Result they came from are still valid
         int Op(enum hxhim_op_t *op) const;
@@ -195,6 +187,9 @@ class Results {
         int Histogram(double **buckets, std::size_t **counts, std::size_t *size) const;
 
         // These functions are only available in C++
+        int Subject(ReferenceBlob *subject) const;
+        int Predicate(ReferenceBlob *predicate) const;
+        int Object(ReferenceBlob *object) const;
         int Histogram(::Histogram::Histogram **hist) const;
         int Timestamps(struct Result::Timestamps **timestamps) const;
 

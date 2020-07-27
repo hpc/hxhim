@@ -665,33 +665,18 @@ int hxhim_result_datastore(hxhim_results_t *res, int *datastore) {
  */
 int hxhim::Results::Subject(void **subject, std::size_t *subject_len) const {
     hxhim::Results::Result *res = Curr();
-    if (!res) {
+    if (!res                                       ||
+        ((res->op    != hxhim_op_t::HXHIM_PUT)     &&
+         (res->op    != hxhim_op_t::HXHIM_GET)     &&
+         (res->op    != hxhim_op_t::HXHIM_GETOP)   &&
+         (res->op    != hxhim_op_t::HXHIM_DELETE)) ||
+        (res->status != HXHIM_SUCCESS))             {
         return HXHIM_ERROR;
     }
 
-    int status = HXHIM_SUCCESS;
-    if ((Status(&status) != HXHIM_SUCCESS) ||
-        (status != HXHIM_SUCCESS)) {
-        return HXHIM_ERROR;
-    }
-
-    int rc = HXHIM_ERROR;
-    switch (res->op) {
-        case hxhim_op_t::HXHIM_PUT:
-        case hxhim_op_t::HXHIM_GET:
-        case hxhim_op_t::HXHIM_GETOP:
-        case hxhim_op_t::HXHIM_DELETE:
-        {
-            hxhim::Results::SubjectPredicate *sp = static_cast<hxhim::Results::SubjectPredicate *>(res);
-            sp->subject->get(subject, subject_len);
-            rc = HXHIM_SUCCESS;
-        }
-        break;
-        default:
-            break;
-    }
-
-    return rc;
+    hxhim::Results::SubjectPredicate *sp = static_cast<hxhim::Results::SubjectPredicate *>(res);
+    sp->subject->get(subject, subject_len);
+    return HXHIM_SUCCESS;
 }
 
 /**
@@ -721,33 +706,18 @@ int hxhim_result_subject(hxhim_results_t *res, void **subject, size_t *subject_l
  */
 int hxhim::Results::Predicate(void **predicate, std::size_t *predicate_len) const {
     hxhim::Results::Result *res = Curr();
-    if (!res) {
+    if (!res                                       ||
+        ((res->op    != hxhim_op_t::HXHIM_PUT)     &&
+         (res->op    != hxhim_op_t::HXHIM_GET)     &&
+         (res->op    != hxhim_op_t::HXHIM_GETOP)   &&
+         (res->op    != hxhim_op_t::HXHIM_DELETE)) ||
+        (res->status != HXHIM_SUCCESS))             {
         return HXHIM_ERROR;
     }
 
-    int status = HXHIM_SUCCESS;
-    if ((Status(&status) != HXHIM_SUCCESS) ||
-        (status != HXHIM_SUCCESS)) {
-        return HXHIM_ERROR;
-    }
-
-    int rc = HXHIM_ERROR;
-    switch (res->op) {
-        case hxhim_op_t::HXHIM_PUT:
-        case hxhim_op_t::HXHIM_GET:
-        case hxhim_op_t::HXHIM_GETOP:
-        case hxhim_op_t::HXHIM_DELETE:
-        {
-            hxhim::Results::SubjectPredicate *sp = static_cast<hxhim::Results::SubjectPredicate *>(res);
-            sp->predicate->get(predicate, predicate_len);
-            rc = HXHIM_SUCCESS;
-        }
-        break;
-        default:
-            break;
-    }
-
-    return rc;
+    hxhim::Results::SubjectPredicate *sp = static_cast<hxhim::Results::SubjectPredicate *>(res);
+    sp->predicate->get(predicate, predicate_len);
+    return HXHIM_SUCCESS;
 }
 
 /**
@@ -775,33 +745,19 @@ int hxhim_result_predicate(hxhim_results_t *res, void **predicate, size_t *predi
  */
 int hxhim::Results::ObjectType(enum hxhim_object_type_t *object_type) const {
     hxhim::Results::Result *res = Curr();
-    if (!res) {
+    if (!res                                       ||
+        ((res->op    != hxhim_op_t::HXHIM_GET)     &&
+         (res->op    != hxhim_op_t::HXHIM_GETOP))  ||
+        (res->status != HXHIM_SUCCESS))             {
         return HXHIM_ERROR;
     }
 
-    int status = HXHIM_SUCCESS;
-    if ((Status(&status) != HXHIM_SUCCESS) ||
-        (status != HXHIM_SUCCESS)) {
-        return HXHIM_ERROR;
+    hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(res);
+    if (object_type) {
+        *object_type = get->object_type;
     }
 
-    int rc = HXHIM_ERROR;
-    switch (res->op) {
-        case hxhim_op_t::HXHIM_GET:
-        case hxhim_op_t::HXHIM_GETOP:
-        {
-            hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(res);
-            if (object_type) {
-                *object_type = get->object_type;
-            }
-            rc = HXHIM_SUCCESS;
-        }
-        break;
-        default:
-            break;
-    }
-
-    return rc;
+    return HXHIM_SUCCESS;
 }
 
 /**
@@ -830,31 +786,16 @@ int hxhim_result_object_type(hxhim_results_t *res, enum hxhim_object_type_t *obj
  */
 int hxhim::Results::Object(void **object, std::size_t *object_len) const {
     hxhim::Results::Result *res = Curr();
-    if (!res) {
+    if (!res                                      ||
+        ((res->op    != hxhim_op_t::HXHIM_GET)    &&
+         (res->op    != hxhim_op_t::HXHIM_GETOP)) ||
+        (res->status != HXHIM_SUCCESS))            {
         return HXHIM_ERROR;
     }
 
-    int status = HXHIM_SUCCESS;
-    if ((Status(&status) != HXHIM_SUCCESS) ||
-        (status != HXHIM_SUCCESS)) {
-        return HXHIM_ERROR;
-    }
-
-    int rc = HXHIM_ERROR;
-    switch (res->op) {
-        case hxhim_op_t::HXHIM_GET:
-        case hxhim_op_t::HXHIM_GETOP:
-        {
-            hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(res);
-            get->object->get(object, object_len);
-            rc = HXHIM_SUCCESS;
-        }
-        break;
-        default:
-            break;
-    }
-
-    return rc;
+    hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(res);
+    get->object->get(object, object_len);
+    return HXHIM_SUCCESS;
 }
 
 /**
@@ -885,29 +826,14 @@ int hxhim_result_object(hxhim_results_t *res, void **object, size_t *object_len)
  */
 int hxhim::Results::Histogram(double **buckets, std::size_t **counts, std::size_t *size) const {
     hxhim::Results::Result *res = Curr();
-    if (!res) {
+    if (!res                                         ||
+        (res->op     != hxhim_op_t::HXHIM_HISTOGRAM) ||
+        (res->status != HXHIM_SUCCESS))               {
         return HXHIM_ERROR;
     }
 
-    int status = HXHIM_SUCCESS;
-    if ((Status(&status) != HXHIM_SUCCESS) ||
-        (status != HXHIM_SUCCESS)) {
-        return HXHIM_ERROR;
-    }
-
-    int rc = HXHIM_ERROR;
-    switch (res->op) {
-        case hxhim_op_t::HXHIM_HISTOGRAM:
-        {
-            hxhim::Results::Hist *hist = static_cast<hxhim::Results::Hist *>(res);
-            rc = (hist->histogram->get(buckets, counts, size) == HISTOGRAM_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
-        }
-        break;
-        default:
-            break;
-    }
-
-    return rc;
+    hxhim::Results::Hist *hist = static_cast<hxhim::Results::Hist *>(res);
+    return (hist->histogram->get(buckets, counts, size) == HISTOGRAM_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 
 /**
@@ -937,32 +863,18 @@ int hxhim_result_histogram(hxhim_results_t *res, double **buckets, size_t **coun
  */
 int hxhim::Results::Histogram(::Histogram::Histogram **hist) const {
     hxhim::Results::Result *res = Curr();
-    if (!res) {
+    if (!res                                         ||
+        (res->op     != hxhim_op_t::HXHIM_HISTOGRAM) ||
+        (res->status != HXHIM_SUCCESS))               {
         return HXHIM_ERROR;
     }
 
-    int status = HXHIM_SUCCESS;
-    if ((Status(&status) != HXHIM_SUCCESS) ||
-        (status != HXHIM_SUCCESS)) {
-        return HXHIM_ERROR;
+    if (hist) {
+        hxhim::Results::Hist *h = static_cast<hxhim::Results::Hist *>(res);
+        *hist = h->histogram.get();
     }
 
-    int rc = HXHIM_ERROR;
-    switch (res->op) {
-        case hxhim_op_t::HXHIM_HISTOGRAM:
-        {
-            if (hist) {
-                hxhim::Results::Hist *h = static_cast<hxhim::Results::Hist *>(res);
-                *hist = h->histogram.get();
-            }
-            rc = HXHIM_SUCCESS;
-        }
-        break;
-        default:
-            break;
-    }
-
-    return rc;
+    return HXHIM_SUCCESS;
 }
 
 /**

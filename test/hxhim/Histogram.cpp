@@ -88,11 +88,13 @@ TEST(hxhim, Histogram) {
 
     std::size_t i = 0;
     for(hist_results->GoToHead(); hist_results->ValidIterator(); hist_results->GoToNext()) {
-        hxhim::Results::Result *res = hist_results->Curr();
-        ASSERT_NE(res, nullptr);
+        hxhim_op_t op = hxhim_op_t::HXHIM_INVALID;
+        EXPECT_EQ(hist_results->Op(&op), HXHIM_SUCCESS);
+        EXPECT_EQ(op, hxhim_op_t::HXHIM_HISTOGRAM);
 
-        ASSERT_EQ(res->status, HXHIM_SUCCESS);
-        ASSERT_EQ(res->op, hxhim_op_t::HXHIM_HISTOGRAM);
+        int status = HXHIM_ERROR;
+        EXPECT_EQ(hist_results->Status(&status), HXHIM_SUCCESS);
+        EXPECT_EQ(status, HXHIM_SUCCESS);
 
         double *buckets = nullptr;
         std::size_t *counts = nullptr;

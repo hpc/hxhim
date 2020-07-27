@@ -1,6 +1,7 @@
-#include "hxhim/single_type.h"
 #include "hxhim/single_type.hpp"
 #include "hxhim/private/hxhim.hpp"
+#include "utils/Blob.hpp"
+#include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
@@ -20,7 +21,11 @@ int hxhim::BPutSingleType(hxhim_t *hx,
     }
 
     for(std::size_t i = 0; i < count; i++) {
-        hxhim::PutImpl(hx->p->queues.puts, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], object_type, objects[i], object_lens[i]);
+        hxhim::PutImpl(hx->p->queues.puts,
+                       construct<ReferenceBlob>(subjects[i], subject_lens[i]),
+                       construct<ReferenceBlob>(predicates[i], predicate_lens[i]),
+                       object_type,
+                       construct<ReferenceBlob>(objects[i], object_lens[i]));
     }
 
     mlog(HXHIM_CLIENT_DBG, "Completed %zu PUTs of type %d", count, object_type);
@@ -53,7 +58,10 @@ int hxhim::BGetSingleType(hxhim_t *hx,
     }
 
     for(std::size_t i = 0; i < count; i++) {
-        hxhim::GetImpl(hx->p->queues.gets, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], object_type);
+        hxhim::GetImpl(hx->p->queues.gets,
+                       construct<ReferenceBlob>(subjects[i], subject_lens[i]),
+                       construct<ReferenceBlob>(predicates[i], predicate_lens[i]),
+                       object_type);
     }
 
     mlog(HXHIM_CLIENT_DBG, "Completed %zu GETs of type %d", count, object_type);

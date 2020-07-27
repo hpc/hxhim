@@ -1,6 +1,9 @@
-#include "hxhim/double.h"
+#include <cstring>
+
+#include "hxhim/constants.h"
 #include "hxhim/double.hpp"
 #include "hxhim/hxhim.hpp"
+#include "hxhim/private/hxhim.hpp"
 #include "hxhim/single_type.hpp"
 
 /**
@@ -22,7 +25,8 @@ int hxhim::PutDouble(hxhim_t *hx,
     return hxhim::Put(hx,
                       subject, subject_len,
                       predicate, predicate_len,
-                      HXHIM_OBJECT_TYPE_DOUBLE, (void *) object, sizeof(double));
+                      hxhim_object_type_t::HXHIM_OBJECT_TYPE_DOUBLE,
+                      object, sizeof(double));
 }
 
 /**
@@ -41,10 +45,10 @@ int hxhimPutDouble(hxhim_t *hx,
                    void *subject, std::size_t subject_len,
                    void *predicate, std::size_t predicate_len,
                    double *object) {
-    return hxhim::Put(hx,
-                      subject, subject_len,
-                      predicate, predicate_len,
-                      HXHIM_OBJECT_TYPE_DOUBLE, (void *) object, sizeof(double));
+    return hxhim::PutDouble(hx,
+                            subject, subject_len,
+                            predicate, predicate_len,
+                            object);
 }
 
 /**
@@ -64,7 +68,7 @@ int hxhim::GetDouble(hxhim_t *hx,
     return hxhim::Get(hx,
                       subject, subject_len,
                       predicate, predicate_len,
-                      HXHIM_OBJECT_TYPE_DOUBLE);
+                      hxhim_object_type_t::HXHIM_OBJECT_TYPE_DOUBLE);
 }
 
 /**
@@ -104,18 +108,17 @@ int hxhim::BPutDouble(hxhim_t *hx,
                       void **predicates, std::size_t *predicate_lens,
                       double **objects,
                       std::size_t count) {
-    std::size_t *lens = new std::size_t[count];
-    for(std::size_t i = 0; i < count; i++) {
-        lens[i] = sizeof(double);
-    }
+    std::size_t *object_lens = alloc_array<std::size_t>(count, sizeof(double));
 
-    const int ret = hxhim::BPutSingleType(hx,
-                                          subjects, subject_lens,
-                                          predicates, predicate_lens,
-                                          HXHIM_OBJECT_TYPE_DOUBLE, (void **) objects, lens,
-                                          count);
-    delete [] lens;
-    return ret;
+    const int rc = hxhim::BPutSingleType(hx,
+                                         subjects, subject_lens,
+                                         predicates, predicate_lens,
+                                         hxhim_object_type_t::HXHIM_OBJECT_TYPE_DOUBLE,
+                                         (void **) objects, object_lens,
+                                         count);
+
+    dealloc_array(object_lens, count);
+    return rc;
 }
 
 /**
@@ -162,7 +165,7 @@ int hxhim::BGetDouble(hxhim_t *hx,
     return hxhim::BGetSingleType(hx,
                                  subjects, subject_lens,
                                  predicates, predicate_lens,
-                                 HXHIM_OBJECT_TYPE_DOUBLE,
+                                 hxhim_object_type_t::HXHIM_OBJECT_TYPE_DOUBLE,
                                  count);
 }
 
@@ -206,7 +209,7 @@ int hxhim::BGetOpDouble(hxhim_t *hx,
     return hxhim::BGetOp(hx,
                          subject, subject_len,
                          predicate, predicate_len,
-                         HXHIM_OBJECT_TYPE_DOUBLE,
+                         hxhim_object_type_t::HXHIM_OBJECT_TYPE_DOUBLE,
                          num_records, op);
 }
 

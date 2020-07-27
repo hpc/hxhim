@@ -23,7 +23,12 @@ TEST(Enqueue, PUT) {
     EXPECT_EQ(puts.count, (std::size_t) 0);
 
     // enqueue one PUT
-    EXPECT_EQ(hxhim::PutImpl(puts, (char *) SUBJECT1, strlen(SUBJECT1), (char *) PREDICATE1, strlen(PREDICATE1), TYPE, (char *) OBJECT1, strlen(OBJECT1)), HXHIM_SUCCESS);
+    EXPECT_EQ(hxhim::PutImpl(puts,
+                             construct<ReferenceBlob>((char *) SUBJECT1,   strlen(SUBJECT1)),
+                             construct<ReferenceBlob>((char *) PREDICATE1, strlen(PREDICATE1)),
+                             TYPE,
+                             construct<ReferenceBlob>((char *) OBJECT1,    strlen(OBJECT1))),
+              HXHIM_SUCCESS);
     ASSERT_NE(puts.head, nullptr);
     EXPECT_EQ(puts.head, puts.tail);
     EXPECT_EQ(puts.count, (std::size_t) 1);
@@ -40,7 +45,12 @@ TEST(Enqueue, PUT) {
     }
 
     // enqueue a second PUT
-    EXPECT_EQ(hxhim::PutImpl(puts, (char *) SUBJECT2, strlen(SUBJECT2), (char *) PREDICATE2, strlen(PREDICATE2), TYPE, (char *) OBJECT2, strlen(OBJECT2)), HXHIM_SUCCESS);
+    EXPECT_EQ(hxhim::PutImpl(puts,
+                             construct<ReferenceBlob>((char *) SUBJECT2,   strlen(SUBJECT2)),
+                             construct<ReferenceBlob>((char *) PREDICATE2, strlen(PREDICATE2)),
+                             TYPE,
+                             construct<ReferenceBlob>((char *) OBJECT2,    strlen(OBJECT2))),
+              HXHIM_SUCCESS);
     ASSERT_NE(puts.head, nullptr);
     EXPECT_NE(puts.head, puts.tail);
     EXPECT_EQ(puts.head->next, puts.tail);
@@ -87,7 +97,11 @@ TEST(Enqueue, GET) {
     EXPECT_EQ(gets.count, (std::size_t) 0);
 
     // enqueue one GET
-    EXPECT_EQ(hxhim::GetImpl(gets, (char *) SUBJECT1, strlen(SUBJECT1), (char *) PREDICATE1, strlen(PREDICATE1), TYPE), HXHIM_SUCCESS);
+    EXPECT_EQ(hxhim::GetImpl(gets,
+                             construct<ReferenceBlob>((char *) SUBJECT1,   strlen(SUBJECT1)),
+                             construct<ReferenceBlob>((char *) PREDICATE1, strlen(PREDICATE1)),
+                             TYPE),
+              HXHIM_SUCCESS);
     ASSERT_NE(gets.head, nullptr);
     EXPECT_EQ(gets.head, gets.tail);
     EXPECT_EQ(gets.count, (std::size_t) 1);
@@ -102,7 +116,11 @@ TEST(Enqueue, GET) {
     }
 
     // enqueue a second GET
-    EXPECT_EQ(hxhim::GetImpl(gets, (char *) SUBJECT2, strlen(SUBJECT2), (char *) PREDICATE2, strlen(PREDICATE2), HXHIM_OBJECT_TYPE_BYTE), HXHIM_SUCCESS);
+    EXPECT_EQ(hxhim::GetImpl(gets,
+                             construct<ReferenceBlob>((char *) SUBJECT2,   strlen(SUBJECT2)),
+                             construct<ReferenceBlob>((char *) PREDICATE2, strlen(PREDICATE2)),
+                             HXHIM_OBJECT_TYPE_BYTE),
+              HXHIM_SUCCESS);
     ASSERT_NE(gets.head, nullptr);
     EXPECT_NE(gets.head, gets.tail);
     EXPECT_EQ(gets.head->next, gets.tail);
@@ -146,7 +164,11 @@ TEST(Enqueue, GETOP) {
     EXPECT_EQ(getops.count, (std::size_t) 0);
 
     // enqueue one GETOP
-    EXPECT_EQ(hxhim::GetOpImpl(getops, (char *) SUBJECT1, strlen(SUBJECT1), (char *) PREDICATE1, strlen(PREDICATE1), TYPE, num_recs, op), HXHIM_SUCCESS);
+    EXPECT_EQ(hxhim::GetOpImpl(getops,
+                               construct<ReferenceBlob>((char *) SUBJECT1,   strlen(SUBJECT1)),
+                               construct<ReferenceBlob>((char *) PREDICATE1, strlen(PREDICATE1)),
+                               TYPE, num_recs, op),
+              HXHIM_SUCCESS);
     ASSERT_NE(getops.head, nullptr);
     EXPECT_EQ(getops.head, getops.tail);
     EXPECT_EQ(getops.count, (std::size_t) 1);
@@ -163,7 +185,11 @@ TEST(Enqueue, GETOP) {
     }
 
     // enqueue a second GETOP
-    EXPECT_EQ(hxhim::GetOpImpl(getops, (char *) SUBJECT2, strlen(SUBJECT2), (char *) PREDICATE2, strlen(PREDICATE2), TYPE, num_recs, op), HXHIM_SUCCESS);
+    EXPECT_EQ(hxhim::GetOpImpl(getops,
+                               construct<ReferenceBlob>((char *) SUBJECT2,   strlen(SUBJECT2)),
+                               construct<ReferenceBlob>((char *) PREDICATE2, strlen(PREDICATE2)),
+                               TYPE, num_recs, op),
+              HXHIM_SUCCESS);
     ASSERT_NE(getops.head, nullptr);
     EXPECT_NE(getops.head, getops.tail);
     EXPECT_EQ(getops.head->next, getops.tail);
@@ -208,7 +234,10 @@ TEST(Enqueue, DELETE) {
     EXPECT_EQ(deletes.count, (std::size_t) 0);
 
     // enqueue one DELETE
-    EXPECT_EQ(hxhim::DeleteImpl(deletes, (char *) SUBJECT1, strlen(SUBJECT1), (char *) PREDICATE1, strlen(PREDICATE1)), HXHIM_SUCCESS);
+    EXPECT_EQ(hxhim::DeleteImpl(deletes,
+                                construct<ReferenceBlob>((char *) SUBJECT1,   strlen(SUBJECT1)),
+                                construct<ReferenceBlob>((char *) PREDICATE1, strlen(PREDICATE1))),
+              HXHIM_SUCCESS);
     ASSERT_NE(deletes.head, nullptr);
     EXPECT_EQ(deletes.head, deletes.tail);
     EXPECT_EQ(deletes.count, (std::size_t) 1);
@@ -222,7 +251,10 @@ TEST(Enqueue, DELETE) {
     }
 
     // enqueue a second DELETE
-    EXPECT_EQ(hxhim::DeleteImpl(deletes, (char *) SUBJECT2, strlen(SUBJECT2), (char *) PREDICATE2, strlen(PREDICATE2)), HXHIM_SUCCESS);
+    EXPECT_EQ(hxhim::DeleteImpl(deletes,
+                                construct<ReferenceBlob>((char *) SUBJECT2,   strlen(SUBJECT2)),
+                                construct<ReferenceBlob>((char *) PREDICATE2, strlen(PREDICATE2))),
+              HXHIM_SUCCESS);
     ASSERT_NE(deletes.head, nullptr);
     EXPECT_NE(deletes.head, deletes.tail);
     EXPECT_EQ(deletes.head->next, deletes.tail);

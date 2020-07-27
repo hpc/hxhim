@@ -8,6 +8,7 @@ typedef uint64_t Predicate_t;
 typedef double   Object_t;
 
 TEST(hxhim, PutGet) {
+
     const Subject_t SUBJECT     = (((Subject_t) rand()) << 32) | rand();
     const Predicate_t PREDICATE = (((Predicate_t) rand()) << 32) | rand();
     const Object_t OBJECT       = (((Object_t) SUBJECT) * ((Object_t) SUBJECT)) / (((Object_t) PREDICATE) * ((Object_t) PREDICATE));
@@ -22,7 +23,7 @@ TEST(hxhim, PutGet) {
     EXPECT_EQ(hxhim::PutDouble(&hx,
                                (void *)&SUBJECT, sizeof(SUBJECT),
                                (void *)&PREDICATE, sizeof(PREDICATE),
-                               (double *)&OBJECT),
+                               (double *) &OBJECT),
               HXHIM_SUCCESS);
 
     // Flush all queued items
@@ -32,11 +33,13 @@ TEST(hxhim, PutGet) {
     // Make sure put succeeded
     EXPECT_EQ(put_results->Size(), (std::size_t) 1);
     for(put_results->GoToHead(); put_results->ValidIterator(); put_results->GoToNext()) {
-        hxhim::Results::Result *res = put_results->Curr();
-        ASSERT_NE(res, nullptr);
+        hxhim_op_t op;
+        EXPECT_EQ(put_results->Op(&op), HXHIM_SUCCESS);
+        EXPECT_EQ(op, hxhim_op_t::HXHIM_PUT);
 
-        EXPECT_EQ(res->status, HXHIM_SUCCESS);
-        EXPECT_EQ(res->op, hxhim_op_t::HXHIM_PUT);
+        int status = HXHIM_ERROR;
+        EXPECT_EQ(put_results->Status(&status), HXHIM_SUCCESS);
+        EXPECT_EQ(status, HXHIM_SUCCESS);
     }
 
     hxhim::Results::Destroy(put_results);
@@ -54,27 +57,37 @@ TEST(hxhim, PutGet) {
     // get the results and compare them with the original data
     EXPECT_EQ(get_results->Size(), (std::size_t) 1);
     for(get_results->GoToHead(); get_results->ValidIterator(); get_results->GoToNext()) {
-        hxhim::Results::Result *res = get_results->Curr();
-        ASSERT_NE(res, nullptr);
+        hxhim_op_t op = hxhim_op_t::HXHIM_INVALID;
+        EXPECT_EQ(get_results->Op(&op), HXHIM_SUCCESS);
+        EXPECT_EQ(op, hxhim_op_t::HXHIM_GET);
 
-        ASSERT_EQ(res->status, HXHIM_SUCCESS);
-        ASSERT_EQ(res->op, hxhim_op_t::HXHIM_GET);
+        int status = HXHIM_ERROR;
+        EXPECT_EQ(get_results->Status(&status), HXHIM_SUCCESS);
+        EXPECT_EQ(status, HXHIM_SUCCESS);
 
-        hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(get_results->Curr());
-
-        Subject_t *subject = static_cast<Subject_t *>(get->subject->data());
+        Subject_t *subject = nullptr;
+        EXPECT_EQ(get_results->Subject((void **) &subject, nullptr), HXHIM_SUCCESS);
         EXPECT_EQ(*subject, SUBJECT);
 
-        Predicate_t *predicate = static_cast<Predicate_t *>(get->predicate->data());
+        Predicate_t *predicate = nullptr;
+        EXPECT_EQ(get_results->Predicate((void **) &predicate, nullptr), HXHIM_SUCCESS);
         EXPECT_EQ(*predicate, PREDICATE);
 
-        Object_t *object = static_cast<Object_t *>(get->object->data());
-        ASSERT_NE(object, nullptr);
-        if (std::is_same<float, Object_t>::value) {
-            EXPECT_FLOAT_EQ(*object, OBJECT);
+        hxhim_object_type_t object_type = hxhim_object_type_t::HXHIM_OBJECT_TYPE_INVALID;
+        EXPECT_EQ(get_results->ObjectType(&object_type), HXHIM_SUCCESS);
+
+        void *ptr = nullptr;
+        std::size_t len = 0;
+        get_results->Object(&ptr, &len);
+
+        if (object_type == hxhim_object_type_t::HXHIM_OBJECT_TYPE_FLOAT) {
+            EXPECT_FLOAT_EQ(* (float *) ptr, OBJECT);
         }
-        else if (std::is_same<double, Object_t>::value) {
-            EXPECT_DOUBLE_EQ(*object, OBJECT);
+        else if (object_type == hxhim_object_type_t::HXHIM_OBJECT_TYPE_DOUBLE) {
+            EXPECT_DOUBLE_EQ(* (double *) ptr, OBJECT);
+        }
+        else {
+            FAIL();
         }
     }
 

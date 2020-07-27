@@ -4,6 +4,7 @@
 #include <cstddef>
 
 #include "hxhim/constants.h"
+#include "hxhim/single_type.h"
 #include "hxhim/struct.h"
 
 namespace hxhim {

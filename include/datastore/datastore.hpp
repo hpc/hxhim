@@ -83,6 +83,7 @@ class Datastore {
         int Sync();
 
     protected:
+        // child classes should implement these functions
         virtual bool OpenImpl(const std::string &new_name) = 0;
         virtual void CloseImpl() = 0;
 
@@ -93,9 +94,7 @@ class Datastore {
 
         virtual int SyncImpl() = 0;
 
-        int encode(const hxhim_object_type_t type, void *&ptr, std::size_t &len, bool &copied);
-        int decode(const hxhim_object_type_t type, void *src, const std::size_t &src_len, void **dst, std::size_t *dst_len);
-
+    protected:
         int rank;      // MPI rank of HXHIM instance
         int id;
         std::shared_ptr<Histogram::Histogram> hist;
@@ -103,6 +102,8 @@ class Datastore {
         mutable std::mutex mutex;
 
     public:
+        // child classes should update stats, since events might
+        // not be the same between different implementations
         struct Stats {
             struct Event {
                 Event();

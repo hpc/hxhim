@@ -605,7 +605,11 @@ int hxhim::Put(hxhim_t *hx,
                enum hxhim_object_type_t object_type, void *object, std::size_t object_len) {
     mlog(HXHIM_CLIENT_DBG, "%s %s:%d", __FILE__, __func__, __LINE__);
     ::Stats::Chronopoint start = ::Stats::now();
-    const int rc = hxhim::PutImpl(hx->p->queues.puts, subject, subject_len, predicate, predicate_len, object_type, object, object_len);
+    const int rc = hxhim::PutImpl(hx->p->queues.puts,
+                                  construct<ReferenceBlob>(subject, subject_len),
+                                  construct<ReferenceBlob>(predicate, predicate_len),
+                                  object_type,
+                                  construct<ReferenceBlob>(object, object_len));
     ::Stats::Chronopoint end = ::Stats::now();
     hx->p->stats.single_op[hxhim_op_t::HXHIM_PUT].push_back({start, end});
     return rc;
@@ -655,7 +659,10 @@ int hxhim::Get(hxhim_t *hx,
                void *predicate, std::size_t predicate_len,
                enum hxhim_object_type_t object_type) {
     ::Stats::Chronopoint start = ::Stats::now();
-    const int rc = hxhim::GetImpl(hx->p->queues.gets, subject, subject_len, predicate, predicate_len, object_type);
+    const int rc = hxhim::GetImpl(hx->p->queues.gets,
+                                  construct<ReferenceBlob>(subject, subject_len),
+                                  construct<ReferenceBlob>(predicate, predicate_len),
+                                  object_type);
     ::Stats::Chronopoint end = ::Stats::now();
     hx->p->stats.single_op[hxhim_op_t::HXHIM_GET].push_back({start, end});
     return rc;
@@ -680,9 +687,9 @@ int hxhimGet(hxhim_t *hx,
              void *predicate, size_t predicate_len,
              enum hxhim_object_type_t object_type) {
     return hxhim::Get(hx,
-                       subject, subject_len,
-                       predicate, predicate_len,
-                       object_type);
+                      subject, subject_len,
+                      predicate, predicate_len,
+                      object_type);
 }
 
 /**
@@ -701,8 +708,8 @@ int hxhim::Delete(hxhim_t *hx,
                   void *predicate, std::size_t predicate_len) {
     ::Stats::Chronopoint start = ::Stats::now();
     const int rc = hxhim::DeleteImpl(hx->p->queues.deletes,
-                                     subject, subject_len,
-                                     predicate, predicate_len);
+                                     construct<ReferenceBlob>(subject, subject_len),
+                                     construct<ReferenceBlob>(predicate, predicate_len));
     ::Stats::Chronopoint end = ::Stats::now();
     hx->p->stats.single_op[hxhim_op_t::HXHIM_DELETE].push_back({start, end});
     return rc;
@@ -758,7 +765,11 @@ int hxhim::BPut(hxhim_t *hx,
 
     // append these spo triples into the list of unsent PUTs
     for(std::size_t i = 0; i < count; i++) {
-        hxhim::PutImpl(hx->p->queues.puts, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], object_types[i], objects[i], object_lens[i]);
+        hxhim::PutImpl(hx->p->queues.puts,
+                       construct<ReferenceBlob>(subjects[i], subject_lens[i]),
+                       construct<ReferenceBlob>(predicates[i], predicate_lens[i]),
+                       object_types[i],
+                       construct<ReferenceBlob>(objects[i], object_lens[i]));
     }
 
     // TODO: replace this with background thread
@@ -846,7 +857,10 @@ int hxhim::BGet(hxhim_t *hx,
 
     ::Stats::Chronopoint start = ::Stats::now();
     for(std::size_t i = 0; i < count; i++) {
-        hxhim::GetImpl(hx->p->queues.gets, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], object_types[i]);
+        hxhim::GetImpl(hx->p->queues.gets,
+                       construct<ReferenceBlob>(subjects[i], subject_lens[i]),
+                       construct<ReferenceBlob>(predicates[i], predicate_lens[i]),
+                       object_types[i]);
     }
     ::Stats::Chronopoint end = ::Stats::now();
     hx->p->stats.bulk_op[hxhim_op_t::HXHIM_GET].push_back({start, end});
@@ -905,8 +919,8 @@ int hxhim::BGetOp(hxhim_t *hx,
 
     ::Stats::Chronopoint start = ::Stats::now();
     const int rc = hxhim::GetOpImpl(hx->p->queues.getops,
-                                    subject, subject_len,
-                                    predicate, predicate_len,
+                                    construct<ReferenceBlob>(subject, subject_len),
+                                    construct<ReferenceBlob>(predicate, predicate_len),
                                     object_type,
                                     num_records, op);
     ::Stats::Chronopoint end = ::Stats::now();
@@ -965,7 +979,9 @@ int hxhim::BDelete(hxhim_t *hx,
 
     ::Stats::Chronopoint start = ::Stats::now();
     for(std::size_t i = 0; i < count; i++) {
-        hxhim::DeleteImpl(hx->p->queues.deletes, subjects[i], subject_lens[i], predicates[i], predicate_lens[i]);
+        hxhim::DeleteImpl(hx->p->queues.deletes,
+                          construct<ReferenceBlob>(subjects[i], subject_lens[i]),
+                          construct<ReferenceBlob>(predicates[i], predicate_lens[i]));
     }
 
     ::Stats::Chronopoint end = ::Stats::now();

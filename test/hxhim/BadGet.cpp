@@ -29,11 +29,13 @@ TEST(hxhim, BadGet) {
     // get the results and compare them with the original data
     EXPECT_EQ(get_results->Size(), (std::size_t) 1);
     for(get_results->GoToHead(); get_results->ValidIterator(); get_results->GoToNext()) {
-        hxhim::Results::Result *res = get_results->Curr();
-        ASSERT_NE(res, nullptr);
+        hxhim_op_t op = hxhim_op_t::HXHIM_INVALID;
+        EXPECT_EQ(get_results->Op(&op), HXHIM_SUCCESS);
+        EXPECT_EQ(op, hxhim_op_t::HXHIM_GET);
 
-        EXPECT_NE(res->status, HXHIM_SUCCESS);
-        EXPECT_EQ(res->op, hxhim_op_t::HXHIM_GET);
+        int status = HXHIM_ERROR;
+        EXPECT_EQ(get_results->Status(&status), HXHIM_SUCCESS);
+        EXPECT_EQ(status, HXHIM_ERROR);
     }
 
     hxhim::Results::Destroy(get_results);

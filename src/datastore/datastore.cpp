@@ -165,19 +165,115 @@ int hxhim::datastore::Datastore::ID() const {
 }
 
 Transport::Response::BPut *hxhim::datastore::Datastore::operate(Transport::Request::BPut *req) {
-    std::lock_guard<std::mutex> lock(mutex);
-    Transport::Response::BPut *res = BPutImpl(req);
-
-    if (hist && res) {
-        // add successfully PUT floating point values to the histogram
+    Transport::Response::BPut *res = nullptr;
+    if (req) {
+        // scan req first to see if any values are floats/doubles
+        // prevents allocation of giant array if it is not necessary
+        bool has_fp = false;
         for(std::size_t i = 0; i < req->count; i++) {
-            if (res->statuses[i] == HXHIM_SUCCESS) {
+            if ((req->object_types[i] == HXHIM_OBJECT_TYPE_FLOAT)  ||
+                (req->object_types[i] == HXHIM_OBJECT_TYPE_DOUBLE)) {
+                has_fp = true;
+                break;
+            }
+        }
+
+        Blob **objects = nullptr;
+        if (has_fp) {
+            // move floats/doubles out of req so they can be converted to elen strings
+            objects = alloc_array<Blob *>(req->count);
+
+            for(std::size_t i = 0; i < req->count; i++) {
                 switch (req->object_types[i]) {
                     case HXHIM_OBJECT_TYPE_FLOAT:
-                        hist->add(* (float *) req->objects[i]->data());
+                        {
+                            objects[i] = req->objects[i];
+
+                            const std::string str = ::elen::encode::floating_point<float>(* (float *) objects[i]->data());
+                            void *buf = alloc(str.size() * sizeof(char));
+                            memcpy(buf, str.c_str(), str.size());
+
+                            req->objects[i] = construct<RealBlob>(buf, str.size());
+                        }
                         break;
                     case HXHIM_OBJECT_TYPE_DOUBLE:
-                        hist->add(* (double *) req->objects[i]->data());
+                        {
+                            objects[i] = req->objects[i];
+
+                            const std::string str = ::elen::encode::floating_point<double>(* (double *) objects[i]->data());
+                            void *buf = alloc(str.size() * sizeof(char));
+                            memcpy(buf, str.c_str(), str.size());
+
+                            req->objects[i] = construct<RealBlob>(buf, str.size());
+                        }
+                        break;
+                    default:
+                        objects[i] = nullptr;
+                        break;
+                }
+            }
+        }
+
+        std::lock_guard<std::mutex> lock(mutex);
+        res = BPutImpl(req);
+
+        if (hist && res) {
+            // add successfully PUT floating point values to the histogram
+            for(std::size_t i = 0; i < req->count; i++) {
+                if (res->statuses[i] == HXHIM_SUCCESS) {
+                    switch (req->object_types[i]) {
+                        case HXHIM_OBJECT_TYPE_FLOAT:
+                            hist->add(* (float *) objects[i]->data());
+                            break;
+                        case HXHIM_OBJECT_TYPE_DOUBLE:
+                            hist->add(* (double *) objects[i]->data());
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
+        }
+
+        if (objects) {
+            for(std::size_t i = 0; i < req->count; i++) {
+                destruct(objects[i]);
+                objects[i] = nullptr;
+            }
+        }
+        dealloc_array(objects, req->count);
+    }
+
+    return res;
+}
+
+Transport::Response::BGet *hxhim::datastore::Datastore::operate(Transport::Request::BGet *req) {
+    Transport::Response::BGet *res = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        res = BGetImpl(req);
+    }
+
+    // replace elen strings with values
+    if (res) {
+        for(std::size_t i = 0; i < res->count; i++) {
+            if (res->statuses[i] == HXHIM_SUCCESS) {
+                switch (res->object_types[i]) {
+                    case HXHIM_OBJECT_TYPE_FLOAT:
+                        {
+                            float *object = construct<float>(
+                                elen::decode::floating_point<float>((std::string) *res->objects[i]));
+                            destruct(res->objects[i]);
+                            res->objects[i] = construct<RealBlob>(object, sizeof(float));
+                        }
+                        break;
+                    case HXHIM_OBJECT_TYPE_DOUBLE:
+                        {
+                            double *object = construct<double>(
+                                elen::decode::floating_point<double>((std::string) *res->objects[i]));
+                            destruct(res->objects[i]);
+                            res->objects[i] = construct<RealBlob>(object, sizeof(double));
+                        }
                         break;
                     default:
                         break;
@@ -187,11 +283,6 @@ Transport::Response::BPut *hxhim::datastore::Datastore::operate(Transport::Reque
     }
 
     return res;
-}
-
-Transport::Response::BGet *hxhim::datastore::Datastore::operate(Transport::Request::BGet *req) {
-    std::lock_guard<std::mutex> lock(mutex);
-    return BGetImpl(req);
 }
 
 Transport::Response::BGetOp *hxhim::datastore::Datastore::operate(Transport::Request::BGetOp *req) {
@@ -261,13 +352,9 @@ int hxhim::datastore::Datastore::GetHistogram(Histogram::Histogram **h) const {
  * The pointers should be NULL on all ranks that are not the destination
  *
  * @param dst_rank       the rank to send to
- * @param get_put_times  whether or not to get put_times
  * @param put_times      the array of put times from each rank
- * @param get_num_puts   whether or not to get num_puts
  * @param num_puts       the array of number of puts from each rank
- * @param get_get_times  whether or not to get get_times
  * @param get_times      the array of get times from each rank
- * @param get_num_gets   whether or not to get num_gets
  * @param num_gets       the array of number of gets from each rank
  * @return HXHIM_SUCCESS or HXHIM_ERROR on error
  */
@@ -297,114 +384,6 @@ int hxhim::datastore::Datastore::GetStats(uint64_t *put_time,
 
     if (num_get) {
         *num_get = stats.gets.size();
-    }
-
-    return HXHIM_SUCCESS;
-}
-
-/**
- * encode
- * Converts the contents of a void * into another
- * format if the type is floating point.
- * This is allowed because the pointers are coming
- * from the internal arrays, and thus can be
- * overwritten/replaced with a new pointer.
- *
- * @param type   the underlying type of this value
- * @param ptr    address of the value
- * @param len    size of the memory being pointed to
- * @param copied whether or not the original ptr was replaced by a copy that needs to be deallocated
- * @param HXHIM_SUCCESS or HXHIM_ERROR
- */
-int hxhim::datastore::Datastore::encode(const hxhim_object_type_t type, void *&ptr, std::size_t &len, bool &copied) {
-    if (!ptr) {
-        return HXHIM_ERROR;
-    }
-
-    switch (type) {
-        case HXHIM_OBJECT_TYPE_FLOAT:
-            {
-                const std::string str = elen::encode::floating_point(* (float *) ptr);
-                len = str.size();
-                ptr = ::operator new(len);
-                memcpy(ptr, str.c_str(), len);
-                copied = true;
-            }
-            break;
-        case HXHIM_OBJECT_TYPE_DOUBLE:
-            {
-                const std::string str = elen::encode::floating_point(* (double *) ptr);
-                len = str.size();
-                ptr = ::operator new(len);
-                memcpy(ptr, str.c_str(), len);
-                copied = true;
-            }
-            break;
-        case HXHIM_OBJECT_TYPE_INT:
-        case HXHIM_OBJECT_TYPE_SIZE:
-        case HXHIM_OBJECT_TYPE_INT64:
-        case HXHIM_OBJECT_TYPE_BYTE:
-            copied = false;
-            break;
-        default:
-            return HXHIM_ERROR;
-    }
-
-    return HXHIM_SUCCESS;
-}
-
-/**
- * decode
- * Decodes values taken from a backend back into their
- * local format (i.e. encoded floating point -> double)
- *
- * @param type    the type the data being pointed to by ptr is
- * @param src     the original data
- * @param src_len the original data length
- * @param dst     pointer to the destination buffer of the decoded data
- * @param dst_len pointer to the destination buffer's length
- * @return HXHIM_SUCCESS or HXHIM_ERROR;
- */
-int hxhim::datastore::Datastore::decode(const hxhim_object_type_t type, void *src, const std::size_t &src_len, void **dst, std::size_t *dst_len) {
-    if (!src || !dst || !dst_len) {
-        return HXHIM_ERROR;
-    }
-
-    *dst = nullptr;
-    *dst_len = 0;
-
-    // nothing to decode
-    if (!src_len) {
-        return HXHIM_SUCCESS;
-    }
-
-    switch (type) {
-        case HXHIM_OBJECT_TYPE_FLOAT:
-            {
-                const float value = elen::decode::floating_point<float>(std::string((char *) src, src_len));
-                *dst_len = sizeof(float);
-                *dst = ::operator new(*dst_len);
-                memcpy(*dst, &value, *dst_len);
-            }
-            break;
-        case HXHIM_OBJECT_TYPE_DOUBLE:
-            {
-                const double value = elen::decode::floating_point<double>(std::string((char *) src, src_len));
-                *dst_len = sizeof(double);
-                *dst = ::operator new(*dst_len);
-                memcpy(*dst, &value, *dst_len);
-            }
-            break;
-        case HXHIM_OBJECT_TYPE_INT:
-        case HXHIM_OBJECT_TYPE_SIZE:
-        case HXHIM_OBJECT_TYPE_INT64:
-        case HXHIM_OBJECT_TYPE_BYTE:
-            *dst_len = src_len;
-            *dst = ::operator new(*dst_len);
-            memcpy(*dst, src, *dst_len);
-            break;
-        default:
-            return HXHIM_ERROR;
     }
 
     return HXHIM_SUCCESS;

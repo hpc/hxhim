@@ -13,27 +13,48 @@ static void print_results(const int rank, hxhim::Results *results) {
 
     for(results->GoToHead(); results->ValidIterator(); results->GoToNext()) {
         std::cout << "Rank " << rank << " ";
-        hxhim::Results::Result *curr = results->Curr();
-        switch (curr->op) {
+        hxhim_op_t op = hxhim_op_t::HXHIM_INVALID;
+        results->Op(&op);
+
+        int status = HXHIM_ERROR;
+        results->Status(&status);
+
+        int datastore = -1;
+        results->Datastore(&datastore);
+
+        switch (op) {
             case HXHIM_PUT:
-                std::cout << "PUT returned " << ((curr->status == HXHIM_SUCCESS)?std::string("SUCCESS"):std::string("ERROR")) << " from datastore " << curr->datastore << std::endl;
+                {
+                    std::cout << "PUT returned " << ((status == HXHIM_SUCCESS)?std::string("SUCCESS"):std::string("ERROR")) << " from datastore " << datastore << std::endl;
+                }
                 break;
             case HXHIM_GET:
                 std::cout << "GET returned ";
-                if (curr->status == HXHIM_SUCCESS) {
-                    hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(curr);
-                    std::cout << "{" << std::string((char *) get->subject->data(), get->subject->size())
-                              << ", " << std::string((char *) get->predicate->data(), get->predicate->size())
-                              << "} -> " << std::string((char *) get->object->data(), get->object->size());
+                if (status == HXHIM_SUCCESS) {
+                    void *subject = nullptr;
+                    std::size_t subject_len = 0;
+                    results->Subject(&subject, &subject_len);
+
+                    void *predicate = nullptr;
+                    std::size_t predicate_len = 0;
+                    results->Predicate(&predicate, &predicate_len);
+
+                    void *object = nullptr;
+                    std::size_t object_len = 0;
+                    results->Object(&object, &object_len);
+
+                    std::cout << "{" << std::string((char *) subject, subject_len)
+                              << ", " << std::string((char *) predicate, predicate_len)
+                              << "} -> " << std::string((char *) object, object_len);
                 }
                 else {
                     std::cout << "ERROR";
                 }
 
-                std::cout << " from datastore " << curr->datastore << std::endl;
+                std::cout << " from datastore " << datastore << std::endl;
                 break;
             default:
-                std::cout << "Bad Operation: " << curr->op << std::endl;
+                std::cout << "Bad Operation: " << op << std::endl;
                 break;
         }
     }
