@@ -13,17 +13,39 @@
 
 const size_t bufsize = 100;
 
-long double nano(struct timespec *start, struct timespec *end) {
-    long double s = start->tv_nsec;
-    s /= 1e9;
-    s += start->tv_sec;
+uint64_t nano(struct timespec *start, struct timespec *end) {
+    uint64_t s = start->tv_sec;
+    s *= 1000000000ULL;
+    s += start->tv_nsec;
 
-    long double e = end->tv_nsec;
-    e /= 1e9;
-    e += end->tv_sec;
+    uint64_t e = end->tv_sec;
+    e *= 1000000000ULL;
+    e += end->tv_nsec;
 
-    return end - start;
+    return e - s;
 }
+
+#define barrier_start                                   \
+    clock_gettime(CLOCK_MONOTONIC, &mpi_barrier_start)  \
+
+#define barrier_end                                             \
+    clock_gettime(CLOCK_MONOTONIC, &mpi_barrier_end);           \
+    fprintf(stderr, "%d barrier %" PRIu64 " %" PRIu64 "\n",     \
+            rank,                                               \
+            nano(&epoch, &mpi_barrier_start),                   \
+            nano(&epoch, &mpi_barrier_end))                     \
+
+#define timestamp_start(name)                       \
+    struct timespec name ## _start;                 \
+    clock_gettime(CLOCK_MONOTONIC, &name ## _start) \
+
+#define timestamp_end(name)                                     \
+    struct timespec name ## _end;                               \
+    clock_gettime(CLOCK_MONOTONIC, &name ## _end);              \
+    fprintf(stderr, "%d " #name " %" PRIu64 " %" PRIu64 "\n",   \
+            rank,                                               \
+            nano(&epoch, &name ## _start),                      \
+            nano(&epoch, &name ## _end))                        \
 
 void ordered_print(MPI_Comm comm, const int rank, const int size, hxhim_t * hx, hxhim_results_t *res) {
     for(int i = 0; i < size; i++) {
@@ -83,10 +105,8 @@ int main(int argc, char *argv[]) {
     struct timespec epoch;
     hxhimGetEpoch(&hx, &epoch);
 
-    struct timespec gen_start;
-    clock_gettime(CLOCK_MONOTONIC, &gen_start);
-
     // Generate some subject-predicate-object triples
+    timestamp_start(gen);
     void **subjects = NULL, **predicates = NULL;
     size_t *subject_lens = NULL, *predicate_lens = NULL;
     if (spo_gen_fixed(count, bufsize, rank, &subjects, &subject_lens, &predicates, &predicate_lens, NULL, NULL) != count) {
@@ -100,13 +120,7 @@ int main(int argc, char *argv[]) {
         doubles[i] *= rand();
         doubles[i] /= rand();
     }
-
-    struct timespec gen_end;
-    clock_gettime(CLOCK_MONOTONIC, &gen_end);
-    fprintf(stderr, "%d generate %" PRIu64 " %" PRIu64 "\n",
-            rank,
-            nano(&epoch, &gen_start),
-            nano(&epoch, &gen_end));
+    timestamp_end(gen);
 
     MPI_Barrier(MPI_COMM_WORLD);
     if (rank == 0) {
@@ -114,13 +128,11 @@ int main(int argc, char *argv[]) {
     }
     MPI_Barrier(MPI_COMM_WORLD);
 
-    struct timespec barrier_start;
-    struct timespec barrier_end;
-
-    struct timespec put_start;
-    clock_gettime(CLOCK_MONOTONIC, &put_start);
+    struct timespec mpi_barrier_start;
+    struct timespec mpi_barrier_end;
 
     // PUT the key value pairs into HXHIM
+    timestamp_start(put);
     for(size_t i = 0; i < count; i++) {
         hxhimPutDouble(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &doubles[i]);
         if (print) {
@@ -130,32 +142,19 @@ int main(int argc, char *argv[]) {
                    doubles[i]);
         }
     }
-    struct timespec put_end;
-    clock_gettime(CLOCK_MONOTONIC, &put_end);
-    fprintf(stderr, "%d put %" PRIu64 " %" PRIu64 "\n",
-            rank,
-            nano(&epoch, &put_start),
-            nano(&epoch, &put_end));
+    timestamp_end(put);
 
-    clock_gettime(CLOCK_MONOTONIC, &barrier_start);
+    barrier_start;
     MPI_Barrier(MPI_COMM_WORLD);
-    clock_gettime(CLOCK_MONOTONIC, &barrier_end);
-    fprintf(stderr, "%d barrier %" PRIu64 " %" PRIu64 "\n",
-            rank,
-            nano(&epoch, &barrier_start),
-            nano(&epoch, &barrier_end));
+    barrier_end;
 
     /* if (rank == 0) { */
     /*     printf("GET before flushing PUTs\n"); */
     /* } */
 
-    /* clock_gettime(CLOCK_MONOTONIC, &barrier_start); */
+    /* barrier_start; */
     /* MPI_Barrier(MPI_COMM_WORLD); */
-    /* clock_gettime(CLOCK_MONOTONIC, &barrier_end); */
-    /* fprintf(stderr, "%d barrier %" PRIu64 " %" PRIu64 "\n", */
-    /*         rank, */
-    /*         nano(&epoch, &barrier_start), */
-    /*         nano(&epoch, &barrier_end)); */
+    /* barrier_end; */
 
     /* // GET them back, flushing only the GETs */
     /* // this will likely return errors, since not all of the PUTs will have completed */
@@ -170,45 +169,25 @@ int main(int argc, char *argv[]) {
     /* hxhim_results_destroy(flush_gets_early); */
 
     // flush PUTs
-    clock_gettime(CLOCK_MONOTONIC, &barrier_start);
+    barrier_start;
     MPI_Barrier(MPI_COMM_WORLD);
-    clock_gettime(CLOCK_MONOTONIC, &barrier_end);
-    fprintf(stderr, "%d barrier %" PRIu64 " %" PRIu64 "\n",
-            rank,
-            nano(&epoch, &barrier_start),
-            nano(&epoch, &barrier_end));
+    barrier_end;
 
     if (rank == 0) {
         printf("Flush PUTs\n");
     }
 
-    clock_gettime(CLOCK_MONOTONIC, &barrier_start);
+    barrier_start;
     MPI_Barrier(MPI_COMM_WORLD);
-    clock_gettime(CLOCK_MONOTONIC, &barrier_end);
-    fprintf(stderr, "%d barrier %" PRIu64 " %" PRIu64 "\n",
-            rank,
-            nano(&epoch, &barrier_start),
-            nano(&epoch, &barrier_end));
+    barrier_end;
 
-    struct timespec flush_put_start;
-    clock_gettime(CLOCK_MONOTONIC, &flush_put_start);
-
+    timestamp_start(flush_put);
     hxhim_results_t *flush_puts = hxhimFlushPuts(&hx);
+    timestamp_end(flush_put);
 
-    struct timespec flush_put_end;
-    clock_gettime(CLOCK_MONOTONIC, &flush_put_end);
-    fprintf(stderr, "%d flush_put %" PRIu64 " %" PRIu64 "\n",
-            rank,
-            nano(&epoch, &flush_put_start),
-            nano(&epoch, &flush_put_end));
-
-    clock_gettime(CLOCK_MONOTONIC, &barrier_start);
+    barrier_start;
     MPI_Barrier(MPI_COMM_WORLD);
-    clock_gettime(CLOCK_MONOTONIC, &barrier_end);
-    fprintf(stderr, "%d barrier %" PRIu64 " %" PRIu64 "\n",
-            rank,
-            nano(&epoch, &barrier_start),
-            nano(&epoch, &barrier_end));
+    barrier_end;
 
     if (print) {
         ordered_print(MPI_COMM_WORLD, rank, size, &hx, flush_puts);
@@ -225,17 +204,9 @@ int main(int argc, char *argv[]) {
         MPI_Barrier(MPI_COMM_WORLD);
     }
 
-    struct timespec destroy_start;
-    clock_gettime(CLOCK_MONOTONIC, &destroy_start);
-
+    timestamp_start(destroy);
     hxhim_results_destroy(flush_puts);
-
-    struct timespec destroy_end;
-    clock_gettime(CLOCK_MONOTONIC, &destroy_end);
-    fprintf(stderr, "%d destroy %" PRIu64 " %" PRIu64 "\n",
-            rank,
-            nano(&epoch, &destroy_start),
-            nano(&epoch, &destroy_end));
+    timestamp_end(destroy);
 
     /* // GET again, now that all PUTs have completed */
     /* for(size_t i = 0; i < count; i++) { */
@@ -255,18 +226,10 @@ int main(int argc, char *argv[]) {
     /* hxhim_results_destroy(flush_gets); */
 
     // clean up
-    struct timespec cleanup_start;
-    clock_gettime(CLOCK_MONOTONIC, &cleanup_start);
-
+    timestamp_start(cleanup);
     free(doubles);
     spo_clean(count, &subjects, &subject_lens, &predicates, &predicate_lens, NULL, NULL);
-
-    struct timespec cleanup_end;
-    clock_gettime(CLOCK_MONOTONIC, &cleanup_end);
-    fprintf(stderr, "%d cleanup %" PRIu64 " %" PRIu64 "\n",
-            rank,
-            nano(&epoch, &cleanup_start),
-            nano(&epoch, &cleanup_end));
+    timestamp_end(cleanup);
 
     MPI_Barrier(MPI_COMM_WORLD);
 
