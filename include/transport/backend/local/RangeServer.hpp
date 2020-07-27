@@ -1,8 +1,6 @@
 #ifndef HXHIM_RANGE_SERVER_HPP
 #define HXHIM_RANGE_SERVER_HPP
 
-#include <vector>
-
 #include "datastore/datastore.hpp"
 #include "hxhim/constants.h"
 #include "hxhim/private/accessors.hpp"
@@ -54,7 +52,7 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
     Response_t *res = construct<Response_t>(req->count);
     res->src = req->dst;
     res->dst = req->src;
-    // copy request timestamps (not set by datastores - needs fixing for GetOp)
+    // copy request timestamps (not set by datastores)
     res->timestamps = std::move(req->timestamps);
     req->timestamps.reqs = nullptr;
 
@@ -62,12 +60,10 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
     res->timestamps.transport.pack.start = ::Stats::now();
     res->timestamps.transport.pack.end = res->timestamps.transport.pack.start;
 
-    std::vector<hxhim::datastore::Datastore *> *datastores = &hx->p->datastores;
-
     // send to each datastore
     res->timestamps.transport.send_start = ::Stats::now();
     for(std::size_t ds = 0; ds < datastore_count; ds++) {
-        Response_t *response = (*datastores)[ds]->operate(&dsts[ds]);
+        Response_t *response = hx->p->datastores[ds]->operate(&dsts[ds]);
 
         // if there were responses, copy them into the output variable
         if (response) {
