@@ -2,20 +2,20 @@ cmake_minimum_required (VERSION 3.6.3)
 
 set(INSTALLED_HEADERS
   Blob.hpp
+  Configuration.hpp
   Histogram.h
   Histogram.hpp
   Stats.hpp
   memory.hpp
+  mlog2.h
+  mlogfacs2.h
 )
 
 set(NOT_INSTALLED_HEADERS
-  Configuration.hpp
   big_endian.hpp
   elen.h
   elen.hpp
   elen.tpp
-  mlog2.h
-  mlogfacs2.h
   type_traits.hpp
 )
 
