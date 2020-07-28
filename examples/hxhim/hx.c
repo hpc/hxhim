@@ -25,27 +25,33 @@ uint64_t nano(struct timespec *start, struct timespec *end) {
     return e - s;
 }
 
-#define barrier_start                                   \
-    clock_gettime(CLOCK_MONOTONIC, &mpi_barrier_start)  \
+long double sec(struct timespec *start, struct timespec *end) {
+    return (long double) nano(start, end) / 1e9;
+}
 
-#define barrier_end                                             \
-    clock_gettime(CLOCK_MONOTONIC, &mpi_barrier_end);           \
-    fprintf(stderr, "%d barrier %" PRIu64 " %" PRIu64 "\n",     \
-            rank,                                               \
-            nano(&epoch, &mpi_barrier_start),                   \
-            nano(&epoch, &mpi_barrier_end))                     \
+#define barrier_start                                               \
+    clock_gettime(CLOCK_MONOTONIC, &mpi_barrier_start)              \
 
-#define timestamp_start(name)                       \
-    struct timespec name ## _start;                 \
-    clock_gettime(CLOCK_MONOTONIC, &name ## _start) \
+#define barrier_end                                                 \
+    clock_gettime(CLOCK_MONOTONIC, &mpi_barrier_end);               \
+    fprintf(stderr, "%d barrier %" PRIu64 " %" PRIu64 " %Lf\n",     \
+            rank,                                                   \
+            nano(&epoch, &mpi_barrier_start),                       \
+            nano(&epoch, &mpi_barrier_end),                         \
+            sec(&mpi_barrier_start, &mpi_barrier_end))              \
 
-#define timestamp_end(name)                                     \
-    struct timespec name ## _end;                               \
-    clock_gettime(CLOCK_MONOTONIC, &name ## _end);              \
-    fprintf(stderr, "%d " #name " %" PRIu64 " %" PRIu64 "\n",   \
-            rank,                                               \
-            nano(&epoch, &name ## _start),                      \
-            nano(&epoch, &name ## _end))                        \
+#define timestamp_start(name)                                       \
+    struct timespec name ## _start;                                 \
+    clock_gettime(CLOCK_MONOTONIC, &name ## _start)                 \
+
+#define timestamp_end(name)                                         \
+    struct timespec name ## _end;                                   \
+    clock_gettime(CLOCK_MONOTONIC, &name ## _end);                  \
+    fprintf(stderr, "%d " #name " %" PRIu64 " %" PRIu64 " %Lf\n",   \
+            rank,                                                   \
+            nano(&epoch, &name ## _start),                          \
+            nano(&epoch, &name ## _end),                            \
+            sec(&name ## _start, &name ## _end))                    \
 
 void ordered_print(MPI_Comm comm, const int rank, const int size, hxhim_t * hx, hxhim_results_t *res) {
     for(int i = 0; i < size; i++) {
@@ -168,18 +174,18 @@ int main(int argc, char *argv[]) {
     /* } */
     /* hxhim_results_destroy(flush_gets_early); */
 
-    // flush PUTs
-    barrier_start;
-    MPI_Barrier(MPI_COMM_WORLD);
-    barrier_end;
+    /* // flush PUTs */
+    /* barrier_start; */
+    /* MPI_Barrier(MPI_COMM_WORLD); */
+    /* barrier_end; */
 
     if (rank == 0) {
         printf("Flush PUTs\n");
     }
 
-    barrier_start;
-    MPI_Barrier(MPI_COMM_WORLD);
-    barrier_end;
+    /* barrier_start; */
+    /* MPI_Barrier(MPI_COMM_WORLD); */
+    /* barrier_end; */
 
     timestamp_start(flush_put);
     hxhim_results_t *flush_puts = hxhimFlushPuts(&hx);
