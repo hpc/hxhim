@@ -79,11 +79,7 @@ static void backgroundPUT(hxhim_t *hx) {
             mlog(HXHIM_CLIENT_DBG, "Moving %zu queued PUTs into process queue", unsent.count);
 
             // move all PUTs into this thread for processing
-            head = unsent.head;
-
-            unsent.head = nullptr;
-            unsent.tail = nullptr;
-            unsent.count = 0;
+            head = unsent.take_no_lock();
 
             // record whether or not this loop was forced, since the lock is not held
             force = unsent.force;

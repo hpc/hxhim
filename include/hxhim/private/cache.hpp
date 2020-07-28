@@ -132,6 +132,19 @@ namespace hxhim {
             count++;
         }
 
+        Data *take_no_lock() {
+            Data *ret = head;
+            count = 0;
+            head = nullptr;
+            tail = nullptr;
+            return ret;
+        }
+
+        Data *take() {
+            std::lock_guard<std::mutex> lock(mutex);
+            return take_no_lock();
+        }
+
         std::mutex mutex;
         std::condition_variable start_processing;
         std::condition_variable done_processing;

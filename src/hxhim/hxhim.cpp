@@ -219,15 +219,7 @@ hxhim::Results *FlushImpl(hxhim_t *hx, hxhim::Unsent<UserData_t> &unsent, const 
         return nullptr;
     }
 
-    UserData_t *head = nullptr;
-    {
-        std::lock_guard<std::mutex> lock(unsent.mutex);
-        head = unsent.head;
-        unsent.head = nullptr;
-        unsent.tail = nullptr;
-    }
-
-    return hxhim::process<UserData_t, Request_t, Response_t>(hx, head, max_ops_per_send);
+    return hxhim::process<UserData_t, Request_t, Response_t>(hx, unsent.take(), max_ops_per_send);
 }
 
 /**
@@ -774,17 +766,8 @@ int hxhim::BPut(hxhim_t *hx,
 
     // TODO: replace this with background thread
     if (hx->p->queues.puts.count > hx->p->async_put.max_queued) {
-        // remove the list from the context
-        hxhim::PutData* head = nullptr;
-        {
-            std::unique_lock<std::mutex> lock(hx->p->queues.puts.mutex);
-            head = hx->p->queues.puts.head;
-            hx->p->queues.puts.head = nullptr;
-            hx->p->queues.puts.tail = nullptr;
-        }
-
         // process the batch and save the results
-        hxhim::Results *res = hxhim::process<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, head, hx->p->max_ops_per_send[hxhim_op_t::HXHIM_PUT]);
+        hxhim::Results *res = hxhim::process<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, hx->p->queues.puts.take(), hx->p->max_ops_per_send[hxhim_op_t::HXHIM_PUT]);
         {
             std::unique_lock<std::mutex> lock(hx->p->async_put.mutex);
             if (hx->p->async_put.results) {
