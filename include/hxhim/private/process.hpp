@@ -107,6 +107,18 @@ hxhim::Results *process(hxhim_t *hx,
             }
 
             curr = next;
+
+            // quick scan of all packets
+            // if all packets are full, stop processing of the rest of the work queue
+            // saves effort if all queues are filled up early
+            std::size_t filled = (local.count == local.max_count);
+            for(typename decltype(remote)::value_type const & rem : remote) {
+                filled += (rem.second->count == rem.second->max_count);
+            }
+
+            if (filled == (remote.size() + 1)) {
+                break;
+            }
         }
 
         ::Stats::Chronopoint fill_end = ::Stats::now();
