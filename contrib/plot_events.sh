@@ -21,10 +21,13 @@ Shuffled
 Hash
 Bulked
 fill
+collect_stats
+ProcessBulk
 remote
 Pack
 Transport
 Unpack
+remote_cleanup
 local
 Result
 destroy
@@ -40,10 +43,11 @@ done
 wait
 
 ranks=$(awk '{print $1}' "${file}.barrier" | sort | uniq | wc -l)
+height=$((${ranks} * 100))
 
 gnuplot <<EOF &
 
-set terminal pngcairo color solid size 12000,2000 font ",32"
+set terminal pngcairo color solid size 12000,${height} font ",32"
 set output '${file}.png'
 set title "User Requests"
 set xlabel "Seconds Since Arbitrary Epoch"
@@ -53,20 +57,24 @@ set key outside right
 set yrange [0:${ranks}]
 set ytics 1
 
-plot '${file}.barrier'   using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'barrier',                       \
-     '${file}.put'       using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'put',                           \
-     '${file}.flush_put' using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'flush_put',                     \
-     '${file}.fill'      using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 16 title 'fill (hash + find_dst + bulk)', \
-     '${file}.Hash'      using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  8 title 'hash',                          \
-     '${file}.Bulked'    using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  8 title 'add request to bulk',           \
-     '${file}.remote'    using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 16 title 'process remote',                \
-     '${file}.Pack'      using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  8 title 'pack operation packet',         \
-     '${file}.Transport' using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  8 title 'transport',                     \
-     '${file}.Unpack'    using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  8 title 'unpack operation packet',       \
-     '${file}.local'     using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 16 title 'process local',                 \
-     '${file}.Result'    using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  8 title 'deserialize into result',       \
-     '${file}.destroy'   using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'destroy results',               \
-     '${file}.cleanup'   using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'main cleanup',                  \
+plot '${file}.barrier'        using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'barrier',                       \
+     '${file}.put'            using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'put',                           \
+     '${file}.flush_put'      using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'flush_put',                     \
+     '${file}.fill'           using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 16 title 'fill (hash + find_dst + bulk)', \
+     '${file}.remote'         using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 16 title 'process remote',                \
+     '${file}.local'          using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 16 title 'process local',                 \
+     '${file}.ProcessBulk'    using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  8 title 'process single bulk',                  \
+     '${file}.Pack'           using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  4 title 'pack request',                  \
+     '${file}.Transport'      using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  4 title 'transport',                     \
+     '${file}.Unpack'         using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  4 title 'unpack response',               \
+     '${file}.remote_cleanup' using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  4 title 'remote cleanup',               \
+     '${file}.Result'         using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 16 title 'deserialize into result',       \
+     '${file}.destroy'        using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'destroy results',               \
+     '${file}.cleanup'        using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'main cleanup',                  \
+
+     # '${file}.collect_stats'  using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 16 title 'collect stats',                 \
+     # '${file}.Hash'           using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  8 title 'hash',                          \
+     # '${file}.Bulked'         using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  8 title 'add request to bulk',           \
 
 EOF
 wait

@@ -488,22 +488,26 @@ hxhim::Results *hxhim::Sync(hxhim_t *hx) {
     send.bulked.end   = hx->p->epoch;
 
     struct ::Stats::SendRecv transport;
-    transport.pack.start = hx->p->epoch;
-    transport.pack.end   = hx->p->epoch;
 
-    transport.unpack.start = hx->p->epoch;
-    transport.unpack.end   = hx->p->epoch;
+    transport.pack.start = ::Stats::now();
+    transport.pack.end   = ::Stats::now();
 
     transport.send_start = ::Stats::now();
     MPI_Barrier(hx->p->bootstrap.comm);
     transport.recv_end = ::Stats::now();
 
-    // Sync local data stores
+    transport.unpack.start = ::Stats::now();
+    transport.unpack.end   = ::Stats::now();
+
+    // Sync local data store
     for(std::size_t i = 0; i < hx->p->datastores.size(); i++) {
+        transport.start = ::Stats::now();
+
         const int synced = hx->p->datastores[i]->Sync();
         hxhim::Results::Sync *sync = hxhim::Result::init(hx, i, synced);
         sync->timestamps.send = send;
         sync->timestamps.transport = transport;
+        sync->timestamps.transport.end = ::Stats::now();
         sync->timestamps.recv.result.start = ::Stats::now();
         res->Add(sync);
         sync->timestamps.recv.result.end = ::Stats::now();

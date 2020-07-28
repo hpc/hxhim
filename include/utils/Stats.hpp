@@ -4,6 +4,8 @@
 #include <chrono>
 #include <cstdint>
 #include <deque>
+#include <sstream>
+#include <string>
 
 namespace Stats {
 
@@ -42,16 +44,48 @@ struct Send {
 
 // Transport timestamps
 struct SendRecv {
+    Chronopoint start;
     Chronostamp pack;
     Chronopoint send_start;             // send and recv might be one call
     Chronopoint recv_end;               // send and recv might be one call
     Chronostamp unpack;
+    Chronopoint end;
 };
 
 // Timestamps of events after receiving responses
 struct Recv {
     Chronostamp result;
 };
+
+// print timestamps in the format of
+// <rank> <name> <start - epoch (ns)>
+std::ostream &print_event(std::ostream &stream,
+                          const int rank,
+                          const std::string &name,
+                          const Chronopoint &epoch,
+                          const Chronopoint &timestamp);
+
+// print timestamps in the format of
+// <rank> <name> <start - epoch (ns)> <end - epoch (ns)> <end - start (sec)>
+std::ostream &print_event(std::ostream &stream,
+                          const int rank,
+                          const std::string &name,
+                          const Chronopoint &epoch,
+                          const Chronopoint &start,
+                          const Chronopoint &end);
+
+std::ostream &print_event(std::ostream &stream,
+                          const int rank,
+                          const std::string &name,
+                          const Chronopoint &epoch,
+                          const Chronostamp &timestamp);
+
+void print_event_to_mlog(const int level,
+                         const int rank,
+                         const std::string &name,
+                         const Chronopoint &epoch,
+                         const Chronopoint &start,
+                         const Chronopoint &end);
 
 }
 

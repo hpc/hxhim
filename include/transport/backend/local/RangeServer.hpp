@@ -30,6 +30,8 @@ template <typename Response_t, typename Request_t,
           typename = enable_if_t <is_child_of<Request::Request,   Request_t> ::value &&
                                   is_child_of<Response::Response, Response_t>::value> >
 Response_t *range_server(hxhim_t *hx, Request_t *req) {
+    req->timestamps.transport.start = ::Stats::now();
+
     int rank = -1;
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
@@ -84,6 +86,7 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
     dealloc_array(dsts, datastore_count);
 
     mlog(HXHIM_SERVER_INFO, "Rank %d Local RangeServer done processing %s", rank, HXHIM_OP_STR[req->op]);
+    res->timestamps.transport.end = ::Stats::now();
     return res;
 }
 

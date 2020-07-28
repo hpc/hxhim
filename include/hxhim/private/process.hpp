@@ -1,7 +1,6 @@
 #ifndef TRANSPORT_BACKEND_LOCAL_PROCESS_TPP
 #define TRANSPORT_BACKEND_LOCAL_PROCESS_TPP
 
-#include <sstream>
 #include <unordered_map>
 
 #include "hxhim/private/Results.hpp"
@@ -122,70 +121,57 @@ hxhim::Results *process(hxhim_t *hx,
         }
 
         ::Stats::Chronopoint fill_end = ::Stats::now();
-
-        // This timer does not belong anywhere
-        // since it covers multiple requests and packets but does not describe any of them individually
-        {
-            std::stringstream s;
-            s << rank << " fill "
-              << ::Stats::nano(epoch, fill_start) << " "
-              << ::Stats::nano(epoch, fill_end)
-              << std::endl;
-
-            mlog(HXHIM_CLIENT_NOTE, "\n%s", s.str().c_str());
-        }
+        ::Stats::print_event_to_mlog(HXHIM_CLIENT_NOTE, rank, "fill", epoch, fill_start, fill_end);
 
         mlog(HXHIM_CLIENT_DBG, "Rank %d Client packed together requests destined for %zu remote servers", rank, remote.size());
-
-        ::Stats::Chronopoint remote_start = ::Stats::now();
 
         // process remote data
         if (remote.size()) {
             // collect stats
-            for(typename decltype(remote)::const_iterator it = remote.begin();
-                it != remote.end(); it++) {
-                hx->p->stats.used[it->second->op].push_back(it->second->filled());
-                hx->p->stats.outgoing[it->second->op][it->second->dst]++;
+            ::Stats::Chronopoint collect_stats_start = ::Stats::now();
+            for(REF(remote)::value_type &dst : remote) {
+                hx->p->stats.used[dst.second->op].push_back(dst.second->filled());
+                hx->p->stats.outgoing[dst.second->op][dst.second->dst]++;
             }
-            hxhim::Result::AddAll(hx, res, hx->p->transport->communicate(remote));
+            ::Stats::Chronopoint collect_stats_end = ::Stats::now();
+            ::Stats::print_event_to_mlog(HXHIM_CLIENT_NOTE, rank, "collect_stats", epoch, collect_stats_start, collect_stats_end);
+
+            // send down transport layer
+            ::Stats::Chronopoint remote_start = ::Stats::now();
+            Response_t *response = hx->p->transport->communicate(remote);
+            ::Stats::Chronopoint remote_end = ::Stats::now();
+            ::Stats::print_event_to_mlog(HXHIM_CLIENT_NOTE, rank, "remote", epoch, remote_start, remote_end);
+
+            // serialize results
+            hxhim::Result::AddAll(hx, res, response);
         }
 
+        ::Stats::Chronopoint remote_cleanup_start = ::Stats::now();
         for(REF(remote)::value_type &dst : remote) {
             destruct(dst.second);
         }
-
-        ::Stats::Chronopoint remote_end = ::Stats::now();
-        {
-            std::stringstream s;
-            s << rank << " remote "
-              << ::Stats::nano(epoch, remote_start) << " "
-              << ::Stats::nano(epoch, remote_end)
-              << std::endl;
-
-            mlog(HXHIM_CLIENT_NOTE, "\n%s", s.str().c_str());
-        }
+        ::Stats::Chronopoint remote_cleanup_end = ::Stats::now();
+        ::Stats::print_event_to_mlog(HXHIM_CLIENT_NOTE, rank, "remote_cleanup", epoch, remote_cleanup_start, remote_cleanup_end);
 
         mlog(HXHIM_CLIENT_DBG, "Rank %d Client sending %zu local requests", rank, local.count);
-
-        ::Stats::Chronopoint local_start = ::Stats::now();
 
         // process local data
         if (local.count) {
             // collect stats
+            ::Stats::Chronopoint collect_stats_start = ::Stats::now();
             hx->p->stats.used[local.op].push_back(local.filled());
             hx->p->stats.outgoing[local.op][local.dst]++;
-            hxhim::Result::AddAll(hx, res, Transport::local::range_server<Response_t, Request_t>(hx, &local));
-        }
+            ::Stats::Chronopoint collect_stats_end = ::Stats::now();
+            ::Stats::print_event_to_mlog(HXHIM_CLIENT_NOTE, rank, "collect_stats", epoch, collect_stats_start, collect_stats_end);
 
-        ::Stats::Chronopoint local_end = ::Stats::now();
-        {
-            std::stringstream s;
-            s << rank << " local "
-              << ::Stats::nano(epoch, local_start) << " "
-              << ::Stats::nano(epoch, local_end)
-              << std::endl;
+            // send to local range server
+            ::Stats::Chronopoint local_start = ::Stats::now();
+            Response_t *response = Transport::local::range_server<Response_t, Request_t>(hx, &local);
+            ::Stats::Chronopoint local_end = ::Stats::now();
+            ::Stats::print_event_to_mlog(HXHIM_CLIENT_NOTE, rank, "local", epoch, local_start, local_end);
 
-            mlog(HXHIM_CLIENT_NOTE, "\n%s", s.str().c_str());
+            // serialize results
+            hxhim::Result::AddAll(hx, res, response);
         }
 
         mlog(HXHIM_CLIENT_DBG, "Rank %d Client received %zu responses", rank, res->Size());

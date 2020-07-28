@@ -31,56 +31,24 @@ hxhim::Results::Result::~Result() {
         std::stringstream s;
 
         // from when request was put into the hxhim queue until the response was ready for pulling
-        s << HXHIM_OP_STR[op] << " "
-          << ::Stats::nano(epoch, timestamps.send.cached) << " "
-          << ::Stats::nano(epoch, timestamps.recv.result.end)
-          << std::endl
-
-          << rank << " Cached "
-          << ::Stats::nano(epoch, timestamps.send.cached)
-          << std::endl
-
-          << rank << " Shuffled "
-          << ::Stats::nano(epoch, timestamps.send.shuffled)
-          << std::endl
-
-          << rank << " Hash "
-          << ::Stats::nano(epoch, timestamps.send.hashed.start) << " "
-          << ::Stats::nano(epoch, timestamps.send.hashed.end)
-          << std::endl
-
-          << rank << " Bulked "
-          << ::Stats::nano(epoch, timestamps.send.bulked.start) << " "
-          << ::Stats::nano(epoch, timestamps.send.bulked.end)
-          << std::endl
-
-          << rank << " Pack "
-          << ::Stats::nano(epoch, timestamps.transport.pack.start) << " "
-          << ::Stats::nano(epoch, timestamps.transport.pack.end)
-          << std::endl
-
-          << rank << " Transport "
-          << ::Stats::nano(epoch, timestamps.transport.send_start) << " "
-          << ::Stats::nano(epoch, timestamps.transport.recv_end)
-          << std::endl
-
-          << rank << " Unpack "
-          << ::Stats::nano(epoch, timestamps.transport.unpack.start) << " "
-          << ::Stats::nano(epoch, timestamps.transport.unpack.end)
-          << std::endl
-
-          << rank << " Result "
-          << ::Stats::nano(epoch, timestamps.recv.result.start) << " "
-          << ::Stats::nano(epoch, timestamps.recv.result.end)
-          << std::endl;
-
+        ::Stats::print_event(s, rank, HXHIM_OP_STR[op], epoch, timestamps.send.cached,
+                                                               timestamps.recv.result.end);
+        ::Stats::print_event(s, rank, "Cached",         epoch, timestamps.send.cached);
+        ::Stats::print_event(s, rank, "Shuffled",       epoch, timestamps.send.shuffled);
+        ::Stats::print_event(s, rank, "Hash",           epoch, timestamps.send.hashed);
         // This might take very long
         for(::Stats::Chronostamp const find : timestamps.send.find_dsts) {
-            s << rank << " FindDst "
-              << ::Stats::nano(epoch, find.start) << " "
-              << ::Stats::nano(epoch, find.end)
-              << std::endl;
+            ::Stats::print_event(s, rank, "FindDst",    epoch, find);
         }
+        ::Stats::print_event(s, rank, "Bulked",         epoch, timestamps.send.bulked);
+        ::Stats::print_event(s, rank, "ProcessBulk",    epoch, timestamps.transport.start,
+                                                               timestamps.transport.end);
+
+        ::Stats::print_event(s, rank, "Pack",           epoch, timestamps.transport.pack);
+        ::Stats::print_event(s, rank, "Transport",      epoch, timestamps.transport.send_start,
+                                                               timestamps.transport.recv_end);
+        ::Stats::print_event(s, rank, "Unpack",         epoch, timestamps.transport.unpack);
+        ::Stats::print_event(s, rank, "Result",         epoch, timestamps.recv.result);
 
         mlog(HXHIM_CLIENT_NOTE, "\n%s", s.str().c_str());
     }

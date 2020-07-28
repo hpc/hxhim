@@ -111,7 +111,6 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
                      Transport::Thallium::RPC_t process_rpc,
                      Transport::Thallium::RPC_t cleanup_rpc,
                      std::unordered_map<int, Transport::Thallium::Endpoint_t> &endpoints) {
-
     int rank = -1;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
@@ -127,6 +126,8 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
             mlog(THALLIUM_WARN, "Request going to %d does not exist", message.first);
             continue;
         }
+
+        req->timestamps.transport.start = ::Stats::now();
 
         mlog(THALLIUM_DBG, "Request is going to range server %d", req->dst);
 
@@ -199,6 +200,7 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
         mlog(THALLIUM_DBG, "Unpacked %zu byte response from %d", res_size, req->dst);
 
         // copy request timestamps (not set by datastores - needs fixing for GetOp)
+        req->timestamps.transport.end = ::Stats::now();
         response->timestamps = std::move(req->timestamps);
         req->timestamps.reqs = nullptr;
 
