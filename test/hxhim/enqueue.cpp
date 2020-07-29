@@ -24,10 +24,10 @@ TEST(Enqueue, PUT) {
 
     // enqueue one PUT
     EXPECT_EQ(hxhim::PutImpl(puts,
-                             construct<ReferenceBlob>((char *) SUBJECT1,   strlen(SUBJECT1)),
-                             construct<ReferenceBlob>((char *) PREDICATE1, strlen(PREDICATE1)),
+                             ReferenceBlob((char *) SUBJECT1,   strlen(SUBJECT1)),
+                             ReferenceBlob((char *) PREDICATE1, strlen(PREDICATE1)),
                              TYPE,
-                             construct<ReferenceBlob>((char *) OBJECT1,    strlen(OBJECT1))),
+                             ReferenceBlob((char *) OBJECT1,    strlen(OBJECT1))),
               HXHIM_SUCCESS);
     ASSERT_NE(puts.head, nullptr);
     EXPECT_EQ(puts.head, puts.tail);
@@ -35,21 +35,21 @@ TEST(Enqueue, PUT) {
 
     {
         hxhim::PutData *head = puts.head;
-        EXPECT_EQ(head->subject->data(), SUBJECT1);
-        EXPECT_EQ(head->subject->size(), strlen(SUBJECT1));
-        EXPECT_EQ(head->predicate->data(), PREDICATE1);
-        EXPECT_EQ(head->predicate->size(), strlen(PREDICATE1));
+        EXPECT_EQ(head->subject.data(), SUBJECT1);
+        EXPECT_EQ(head->subject.size(), strlen(SUBJECT1));
+        EXPECT_EQ(head->predicate.data(), PREDICATE1);
+        EXPECT_EQ(head->predicate.size(), strlen(PREDICATE1));
         EXPECT_EQ(head->object_type, TYPE);
-        EXPECT_EQ(head->object->data(), OBJECT1);
-        EXPECT_EQ(head->object->size(), strlen(OBJECT2));
+        EXPECT_EQ(head->object.data(), OBJECT1);
+        EXPECT_EQ(head->object.size(), strlen(OBJECT2));
     }
 
     // enqueue a second PUT
     EXPECT_EQ(hxhim::PutImpl(puts,
-                             construct<ReferenceBlob>((char *) SUBJECT2,   strlen(SUBJECT2)),
-                             construct<ReferenceBlob>((char *) PREDICATE2, strlen(PREDICATE2)),
+                             ReferenceBlob((char *) SUBJECT2,   strlen(SUBJECT2)),
+                             ReferenceBlob((char *) PREDICATE2, strlen(PREDICATE2)),
                              TYPE,
-                             construct<ReferenceBlob>((char *) OBJECT2,    strlen(OBJECT2))),
+                             ReferenceBlob((char *) OBJECT2,    strlen(OBJECT2))),
               HXHIM_SUCCESS);
     ASSERT_NE(puts.head, nullptr);
     EXPECT_NE(puts.head, puts.tail);
@@ -60,34 +60,25 @@ TEST(Enqueue, PUT) {
 
     {
         hxhim::PutData *head = puts.head;
-        EXPECT_EQ(head->subject->data(), SUBJECT1);
-        EXPECT_EQ(head->subject->size(), strlen(SUBJECT1));
-        EXPECT_EQ(head->predicate->data(), PREDICATE1);
-        EXPECT_EQ(head->predicate->size(), strlen(PREDICATE1));
+        EXPECT_EQ(head->subject.data(), SUBJECT1);
+        EXPECT_EQ(head->subject.size(), strlen(SUBJECT1));
+        EXPECT_EQ(head->predicate.data(), PREDICATE1);
+        EXPECT_EQ(head->predicate.size(), strlen(PREDICATE1));
         EXPECT_EQ(head->object_type, TYPE);
-        EXPECT_EQ(head->object->data(), OBJECT1);
-        EXPECT_EQ(head->object->size(), strlen(OBJECT1));
+        EXPECT_EQ(head->object.data(), OBJECT1);
+        EXPECT_EQ(head->object.size(), strlen(OBJECT1));
     }
 
     {
         hxhim::PutData *tail = puts.tail;
-        EXPECT_EQ(tail->subject->data(), SUBJECT2);
-        EXPECT_EQ(tail->subject->size(), strlen(SUBJECT2));
-        EXPECT_EQ(tail->predicate->data(), PREDICATE2);
-        EXPECT_EQ(tail->predicate->size(), strlen(PREDICATE2));
+        EXPECT_EQ(tail->subject.data(), SUBJECT2);
+        EXPECT_EQ(tail->subject.size(), strlen(SUBJECT2));
+        EXPECT_EQ(tail->predicate.data(), PREDICATE2);
+        EXPECT_EQ(tail->predicate.size(), strlen(PREDICATE2));
         EXPECT_EQ(tail->object_type, TYPE);
-        EXPECT_EQ(tail->object->data(), OBJECT2);
-        EXPECT_EQ(tail->object->size(), strlen(OBJECT2));
+        EXPECT_EQ(tail->object.data(), OBJECT2);
+        EXPECT_EQ(tail->object.size(), strlen(OBJECT2));
     }
-
-    destruct(puts.head->subject);
-    destruct(puts.head->predicate);
-    destruct(puts.head->object);
-    destruct(puts.head);
-    destruct(puts.tail->subject);
-    destruct(puts.tail->predicate);
-    destruct(puts.tail->object);
-    destruct(puts.tail);
 }
 
 TEST(Enqueue, GET) {
@@ -98,8 +89,8 @@ TEST(Enqueue, GET) {
 
     // enqueue one GET
     EXPECT_EQ(hxhim::GetImpl(gets,
-                             construct<ReferenceBlob>((char *) SUBJECT1,   strlen(SUBJECT1)),
-                             construct<ReferenceBlob>((char *) PREDICATE1, strlen(PREDICATE1)),
+                             ReferenceBlob((char *) SUBJECT1,   strlen(SUBJECT1)),
+                             ReferenceBlob((char *) PREDICATE1, strlen(PREDICATE1)),
                              TYPE),
               HXHIM_SUCCESS);
     ASSERT_NE(gets.head, nullptr);
@@ -108,17 +99,17 @@ TEST(Enqueue, GET) {
 
     {
         hxhim::GetData *head = gets.head;
-        EXPECT_EQ(head->subject->data(), SUBJECT1);
-        EXPECT_EQ(head->subject->size(), strlen(SUBJECT1));
-        EXPECT_EQ(head->predicate->data(), PREDICATE1);
-        EXPECT_EQ(head->predicate->size(), strlen(PREDICATE1));
+        EXPECT_EQ(head->subject.data(), SUBJECT1);
+        EXPECT_EQ(head->subject.size(), strlen(SUBJECT1));
+        EXPECT_EQ(head->predicate.data(), PREDICATE1);
+        EXPECT_EQ(head->predicate.size(), strlen(PREDICATE1));
         EXPECT_EQ(head->object_type, TYPE);
     }
 
     // enqueue a second GET
     EXPECT_EQ(hxhim::GetImpl(gets,
-                             construct<ReferenceBlob>((char *) SUBJECT2,   strlen(SUBJECT2)),
-                             construct<ReferenceBlob>((char *) PREDICATE2, strlen(PREDICATE2)),
+                             ReferenceBlob((char *) SUBJECT2,   strlen(SUBJECT2)),
+                             ReferenceBlob((char *) PREDICATE2, strlen(PREDICATE2)),
                              HXHIM_OBJECT_TYPE_BYTE),
               HXHIM_SUCCESS);
     ASSERT_NE(gets.head, nullptr);
@@ -130,28 +121,21 @@ TEST(Enqueue, GET) {
 
     {
         hxhim::GetData *head = gets.head;
-        EXPECT_EQ(head->subject->data(), SUBJECT1);
-        EXPECT_EQ(head->subject->size(), strlen(SUBJECT1));
-        EXPECT_EQ(head->predicate->data(), PREDICATE1);
-        EXPECT_EQ(head->predicate->size(), strlen(PREDICATE1));
+        EXPECT_EQ(head->subject.data(), SUBJECT1);
+        EXPECT_EQ(head->subject.size(), strlen(SUBJECT1));
+        EXPECT_EQ(head->predicate.data(), PREDICATE1);
+        EXPECT_EQ(head->predicate.size(), strlen(PREDICATE1));
         EXPECT_EQ(head->object_type, TYPE);
     }
 
     {
         hxhim::GetData *tail = gets.tail;
-        EXPECT_EQ(tail->subject->data(), SUBJECT2);
-        EXPECT_EQ(tail->subject->size(), strlen(SUBJECT2));
-        EXPECT_EQ(tail->predicate->data(), PREDICATE2);
-        EXPECT_EQ(tail->predicate->size(), strlen(PREDICATE2));
+        EXPECT_EQ(tail->subject.data(), SUBJECT2);
+        EXPECT_EQ(tail->subject.size(), strlen(SUBJECT2));
+        EXPECT_EQ(tail->predicate.data(), PREDICATE2);
+        EXPECT_EQ(tail->predicate.size(), strlen(PREDICATE2));
         EXPECT_EQ(tail->object_type, TYPE);
     }
-
-    destruct(gets.head->subject);
-    destruct(gets.head->predicate);
-    destruct(gets.head);
-    destruct(gets.tail->subject);
-    destruct(gets.tail->predicate);
-    destruct(gets.tail);
 }
 
 TEST(Enqueue, GETOP) {
@@ -165,8 +149,8 @@ TEST(Enqueue, GETOP) {
 
     // enqueue one GETOP
     EXPECT_EQ(hxhim::GetOpImpl(getops,
-                               construct<ReferenceBlob>((char *) SUBJECT1,   strlen(SUBJECT1)),
-                               construct<ReferenceBlob>((char *) PREDICATE1, strlen(PREDICATE1)),
+                               ReferenceBlob((char *) SUBJECT1,   strlen(SUBJECT1)),
+                               ReferenceBlob((char *) PREDICATE1, strlen(PREDICATE1)),
                                TYPE, num_recs, op),
               HXHIM_SUCCESS);
     ASSERT_NE(getops.head, nullptr);
@@ -175,10 +159,10 @@ TEST(Enqueue, GETOP) {
 
     {
         hxhim::GetOpData *head = getops.head;
-        EXPECT_EQ(head->subject->data(), SUBJECT1);
-        EXPECT_EQ(head->subject->size(), strlen(SUBJECT1));
-        EXPECT_EQ(head->predicate->data(), PREDICATE1);
-        EXPECT_EQ(head->predicate->size(), strlen(PREDICATE1));
+        EXPECT_EQ(head->subject.data(), SUBJECT1);
+        EXPECT_EQ(head->subject.size(), strlen(SUBJECT1));
+        EXPECT_EQ(head->predicate.data(), PREDICATE1);
+        EXPECT_EQ(head->predicate.size(), strlen(PREDICATE1));
         EXPECT_EQ(head->object_type, TYPE);
         EXPECT_EQ(head->num_recs, num_recs);
         EXPECT_EQ(head->op, op);
@@ -186,8 +170,8 @@ TEST(Enqueue, GETOP) {
 
     // enqueue a second GETOP
     EXPECT_EQ(hxhim::GetOpImpl(getops,
-                               construct<ReferenceBlob>((char *) SUBJECT2,   strlen(SUBJECT2)),
-                               construct<ReferenceBlob>((char *) PREDICATE2, strlen(PREDICATE2)),
+                               ReferenceBlob((char *) SUBJECT2,   strlen(SUBJECT2)),
+                               ReferenceBlob((char *) PREDICATE2, strlen(PREDICATE2)),
                                TYPE, num_recs, op),
               HXHIM_SUCCESS);
     ASSERT_NE(getops.head, nullptr);
@@ -199,10 +183,10 @@ TEST(Enqueue, GETOP) {
 
     {
         hxhim::GetOpData *head = getops.head;
-        EXPECT_EQ(head->subject->data(), SUBJECT1);
-        EXPECT_EQ(head->subject->size(), strlen(SUBJECT1));
-        EXPECT_EQ(head->predicate->data(), PREDICATE1);
-        EXPECT_EQ(head->predicate->size(), strlen(PREDICATE1));
+        EXPECT_EQ(head->subject.data(), SUBJECT1);
+        EXPECT_EQ(head->subject.size(), strlen(SUBJECT1));
+        EXPECT_EQ(head->predicate.data(), PREDICATE1);
+        EXPECT_EQ(head->predicate.size(), strlen(PREDICATE1));
         EXPECT_EQ(head->object_type, TYPE);
         EXPECT_EQ(head->num_recs, num_recs);
         EXPECT_EQ(head->op, op);
@@ -210,21 +194,14 @@ TEST(Enqueue, GETOP) {
 
     {
         hxhim::GetOpData *tail = getops.tail;
-        EXPECT_EQ(tail->subject->data(), SUBJECT2);
-        EXPECT_EQ(tail->subject->size(), strlen(SUBJECT2));
-        EXPECT_EQ(tail->predicate->data(), PREDICATE2);
-        EXPECT_EQ(tail->predicate->size(), strlen(PREDICATE2));
+        EXPECT_EQ(tail->subject.data(), SUBJECT2);
+        EXPECT_EQ(tail->subject.size(), strlen(SUBJECT2));
+        EXPECT_EQ(tail->predicate.data(), PREDICATE2);
+        EXPECT_EQ(tail->predicate.size(), strlen(PREDICATE2));
         EXPECT_EQ(tail->object_type, TYPE);
         EXPECT_EQ(tail->num_recs, num_recs);
         EXPECT_EQ(tail->op, op);
     }
-
-    destruct(getops.head->subject);
-    destruct(getops.head->predicate);
-    destruct(getops.head);
-    destruct(getops.tail->subject);
-    destruct(getops.tail->predicate);
-    destruct(getops.tail);
 }
 
 TEST(Enqueue, DELETE) {
@@ -235,8 +212,8 @@ TEST(Enqueue, DELETE) {
 
     // enqueue one DELETE
     EXPECT_EQ(hxhim::DeleteImpl(deletes,
-                                construct<ReferenceBlob>((char *) SUBJECT1,   strlen(SUBJECT1)),
-                                construct<ReferenceBlob>((char *) PREDICATE1, strlen(PREDICATE1))),
+                                ReferenceBlob((char *) SUBJECT1,   strlen(SUBJECT1)),
+                                ReferenceBlob((char *) PREDICATE1, strlen(PREDICATE1))),
               HXHIM_SUCCESS);
     ASSERT_NE(deletes.head, nullptr);
     EXPECT_EQ(deletes.head, deletes.tail);
@@ -244,16 +221,16 @@ TEST(Enqueue, DELETE) {
 
     {
         hxhim::DeleteData *head = deletes.head;
-        EXPECT_EQ(head->subject->data(), SUBJECT1);
-        EXPECT_EQ(head->subject->size(), strlen(SUBJECT1));
-        EXPECT_EQ(head->predicate->data(), PREDICATE1);
-        EXPECT_EQ(head->predicate->size(), strlen(PREDICATE1));
+        EXPECT_EQ(head->subject.data(), SUBJECT1);
+        EXPECT_EQ(head->subject.size(), strlen(SUBJECT1));
+        EXPECT_EQ(head->predicate.data(), PREDICATE1);
+        EXPECT_EQ(head->predicate.size(), strlen(PREDICATE1));
     }
 
     // enqueue a second DELETE
     EXPECT_EQ(hxhim::DeleteImpl(deletes,
-                                construct<ReferenceBlob>((char *) SUBJECT2,   strlen(SUBJECT2)),
-                                construct<ReferenceBlob>((char *) PREDICATE2, strlen(PREDICATE2))),
+                                ReferenceBlob((char *) SUBJECT2,   strlen(SUBJECT2)),
+                                ReferenceBlob((char *) PREDICATE2, strlen(PREDICATE2))),
               HXHIM_SUCCESS);
     ASSERT_NE(deletes.head, nullptr);
     EXPECT_NE(deletes.head, deletes.tail);
@@ -264,24 +241,17 @@ TEST(Enqueue, DELETE) {
 
     {
         hxhim::DeleteData *head = deletes.head;
-        EXPECT_EQ(head->subject->data(), SUBJECT1);
-        EXPECT_EQ(head->subject->size(), strlen(SUBJECT1));
-        EXPECT_EQ(head->predicate->data(), PREDICATE1);
-        EXPECT_EQ(head->predicate->size(), strlen(PREDICATE1));
+        EXPECT_EQ(head->subject.data(), SUBJECT1);
+        EXPECT_EQ(head->subject.size(), strlen(SUBJECT1));
+        EXPECT_EQ(head->predicate.data(), PREDICATE1);
+        EXPECT_EQ(head->predicate.size(), strlen(PREDICATE1));
     }
 
     {
         hxhim::DeleteData *tail = deletes.tail;
-        EXPECT_EQ(tail->subject->data(), SUBJECT2);
-        EXPECT_EQ(tail->subject->size(), strlen(SUBJECT2));
-        EXPECT_EQ(tail->predicate->data(), PREDICATE2);
-        EXPECT_EQ(tail->predicate->size(), strlen(PREDICATE2));
+        EXPECT_EQ(tail->subject.data(), SUBJECT2);
+        EXPECT_EQ(tail->subject.size(), strlen(SUBJECT2));
+        EXPECT_EQ(tail->predicate.data(), PREDICATE2);
+        EXPECT_EQ(tail->predicate.size(), strlen(PREDICATE2));
     }
-
-    destruct(deletes.head->subject);
-    destruct(deletes.head->predicate);
-    destruct(deletes.head);
-    destruct(deletes.tail->subject);
-    destruct(deletes.tail->predicate);
-    destruct(deletes.tail);
 }

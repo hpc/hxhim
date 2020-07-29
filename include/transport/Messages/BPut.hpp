@@ -23,10 +23,10 @@ struct BPut final : Request {
     int steal(BPut *from, const std::size_t i);
     int cleanup();
 
-    Blob **subjects;
-    Blob **predicates;
+    Blob *subjects;
+    Blob *predicates;
     hxhim_object_type_t *object_types;
-    Blob **objects;
+    Blob *objects;
 
     struct {
         void **subjects;
@@ -49,8 +49,8 @@ struct BPut final : Response {
     int cleanup();
 
     struct {
-        ReferenceBlob **subjects;
-        ReferenceBlob **predicates;
+        ReferenceBlob *subjects;
+        ReferenceBlob *predicates;
     } orig;
 
     BPut *next;

@@ -600,14 +600,15 @@ int hxhim::Put(hxhim_t *hx,
                void *predicate, std::size_t predicate_len,
                enum hxhim_object_type_t object_type, void *object, std::size_t object_len) {
     mlog(HXHIM_CLIENT_DBG, "%s %s:%d", __FILE__, __func__, __LINE__);
-    ::Stats::Chronopoint start = ::Stats::now();
+    ::Stats::Chronostamp put;
+    put.start = ::Stats::now();
     const int rc = hxhim::PutImpl(hx->p->queues.puts,
-                                  construct<ReferenceBlob>(subject, subject_len),
-                                  construct<ReferenceBlob>(predicate, predicate_len),
+                                  ReferenceBlob(subject, subject_len),
+                                  ReferenceBlob(predicate, predicate_len),
                                   object_type,
-                                  construct<ReferenceBlob>(object, object_len));
-    ::Stats::Chronopoint end = ::Stats::now();
-    hx->p->stats.single_op[hxhim_op_t::HXHIM_PUT].push_back({start, end});
+                                  ReferenceBlob(object, object_len));
+    put.end = ::Stats::now();
+    hx->p->stats.single_op[hxhim_op_t::HXHIM_PUT].emplace_back(put);
     return rc;
 }
 
@@ -654,13 +655,14 @@ int hxhim::Get(hxhim_t *hx,
                void *subject, std::size_t subject_len,
                void *predicate, std::size_t predicate_len,
                enum hxhim_object_type_t object_type) {
-    ::Stats::Chronopoint start = ::Stats::now();
+    ::Stats::Chronostamp get;
+    get.start = ::Stats::now();
     const int rc = hxhim::GetImpl(hx->p->queues.gets,
-                                  construct<ReferenceBlob>(subject, subject_len),
-                                  construct<ReferenceBlob>(predicate, predicate_len),
+                                  ReferenceBlob(subject, subject_len),
+                                  ReferenceBlob(predicate, predicate_len),
                                   object_type);
-    ::Stats::Chronopoint end = ::Stats::now();
-    hx->p->stats.single_op[hxhim_op_t::HXHIM_GET].push_back({start, end});
+    get.end = ::Stats::now();
+    hx->p->stats.single_op[hxhim_op_t::HXHIM_GET].emplace_back(get);
     return rc;
 }
 
@@ -702,12 +704,13 @@ int hxhimGet(hxhim_t *hx,
 int hxhim::Delete(hxhim_t *hx,
                   void *subject, std::size_t subject_len,
                   void *predicate, std::size_t predicate_len) {
-    ::Stats::Chronopoint start = ::Stats::now();
+    ::Stats::Chronostamp del;
+    del.start = ::Stats::now();
     const int rc = hxhim::DeleteImpl(hx->p->queues.deletes,
-                                     construct<ReferenceBlob>(subject, subject_len),
-                                     construct<ReferenceBlob>(predicate, predicate_len));
-    ::Stats::Chronopoint end = ::Stats::now();
-    hx->p->stats.single_op[hxhim_op_t::HXHIM_DELETE].push_back({start, end});
+                                     ReferenceBlob(subject, subject_len),
+                                     ReferenceBlob(predicate, predicate_len));
+    del.end = ::Stats::now();
+    hx->p->stats.single_op[hxhim_op_t::HXHIM_DELETE].emplace_back(del);
     return rc;
 }
 
@@ -757,15 +760,16 @@ int hxhim::BPut(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
-    ::Stats::Chronopoint start = ::Stats::now();
+    ::Stats::Chronostamp bput;
+    bput.start = ::Stats::now();
 
     // append these spo triples into the list of unsent PUTs
     for(std::size_t i = 0; i < count; i++) {
         hxhim::PutImpl(hx->p->queues.puts,
-                       construct<ReferenceBlob>(subjects[i], subject_lens[i]),
-                       construct<ReferenceBlob>(predicates[i], predicate_lens[i]),
+                       ReferenceBlob(subjects[i], subject_lens[i]),
+                       ReferenceBlob(predicates[i], predicate_lens[i]),
                        object_types[i],
-                       construct<ReferenceBlob>(objects[i], object_lens[i]));
+                       ReferenceBlob(objects[i], object_lens[i]));
     }
 
     // TODO: replace this with background thread
@@ -784,8 +788,8 @@ int hxhim::BPut(hxhim_t *hx,
         }
     }
 
-    ::Stats::Chronopoint end = ::Stats::now();
-    hx->p->stats.bulk_op[hxhim_op_t::HXHIM_PUT].push_back({start, end});
+    bput.end = ::Stats::now();
+    hx->p->stats.bulk_op[hxhim_op_t::HXHIM_PUT].emplace_back(bput);
     return HXHIM_SUCCESS;
 }
 
@@ -842,15 +846,16 @@ int hxhim::BGet(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
-    ::Stats::Chronopoint start = ::Stats::now();
+    ::Stats::Chronostamp bget;
+    bget.start = ::Stats::now();
     for(std::size_t i = 0; i < count; i++) {
         hxhim::GetImpl(hx->p->queues.gets,
-                       construct<ReferenceBlob>(subjects[i], subject_lens[i]),
-                       construct<ReferenceBlob>(predicates[i], predicate_lens[i]),
+                       ReferenceBlob(subjects[i], subject_lens[i]),
+                       ReferenceBlob(predicates[i], predicate_lens[i]),
                        object_types[i]);
     }
-    ::Stats::Chronopoint end = ::Stats::now();
-    hx->p->stats.bulk_op[hxhim_op_t::HXHIM_GET].push_back({start, end});
+    bget.end = ::Stats::now();
+    hx->p->stats.bulk_op[hxhim_op_t::HXHIM_GET].emplace_back();
     return HXHIM_SUCCESS;
 }
 
@@ -904,14 +909,15 @@ int hxhim::BGetOp(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
-    ::Stats::Chronopoint start = ::Stats::now();
+    ::Stats::Chronostamp bgetop;
+    bgetop.start = ::Stats::now();
     const int rc = hxhim::GetOpImpl(hx->p->queues.getops,
-                                    construct<ReferenceBlob>(subject, subject_len),
-                                    construct<ReferenceBlob>(predicate, predicate_len),
+                                    ReferenceBlob(subject, subject_len),
+                                    ReferenceBlob(predicate, predicate_len),
                                     object_type,
                                     num_records, op);
-    ::Stats::Chronopoint end = ::Stats::now();
-    hx->p->stats.bulk_op[hxhim_op_t::HXHIM_GETOP].push_back({start, end});
+    bgetop.end = ::Stats::now();
+    hx->p->stats.bulk_op[hxhim_op_t::HXHIM_GETOP].emplace_back(bgetop);
     return rc;
 }
 
@@ -964,15 +970,16 @@ int hxhim::BDelete(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
-    ::Stats::Chronopoint start = ::Stats::now();
+    ::Stats::Chronostamp bdel;
+    bdel.start = ::Stats::now();
     for(std::size_t i = 0; i < count; i++) {
         hxhim::DeleteImpl(hx->p->queues.deletes,
-                          construct<ReferenceBlob>(subjects[i], subject_lens[i]),
-                          construct<ReferenceBlob>(predicates[i], predicate_lens[i]));
+                          ReferenceBlob(subjects[i], subject_lens[i]),
+                          ReferenceBlob(predicates[i], predicate_lens[i]));
     }
 
-    ::Stats::Chronopoint end = ::Stats::now();
-    hx->p->stats.bulk_op[hxhim_op_t::HXHIM_DELETE].push_back({start, end});
+    bdel.end = ::Stats::now();
+    hx->p->stats.bulk_op[hxhim_op_t::HXHIM_DELETE].emplace_back(bdel);
     return HXHIM_SUCCESS;
 }
 
@@ -1131,10 +1138,11 @@ int hxhim::Histogram(hxhim_t *hx, int ds_id) {
         return HXHIM_ERROR;
     }
 
-    ::Stats::Chronopoint start = ::Stats::now();
+    ::Stats::Chronostamp hist;
+    hist.start = ::Stats::now();
     const int rc = hxhim::HistogramImpl(hx, hx->p->queues.histograms, ds_id);
-    ::Stats::Chronopoint end = ::Stats::now();
-    hx->p->stats.single_op[hxhim_op_t::HXHIM_HISTOGRAM].push_back({start, end});
+    hist.end = ::Stats::now();
+    hx->p->stats.single_op[hxhim_op_t::HXHIM_HISTOGRAM].emplace_back(hist);
 
     return rc;
 }
@@ -1174,13 +1182,14 @@ int hxhim::BHistogram(hxhim_t *hx,
         }
     }
 
-    ::Stats::Chronopoint start = ::Stats::now();
+    ::Stats::Chronostamp bhist;
+    bhist.start = ::Stats::now();
     for(std::size_t i = 0; i < count; i++) {
         hxhim::HistogramImpl(hx, hx->p->queues.histograms, ds_ids[i]);
     }
 
-    ::Stats::Chronopoint end = ::Stats::now();
-    hx->p->stats.bulk_op[hxhim_op_t::HXHIM_HISTOGRAM].push_back({start, end});
+    bhist.end = ::Stats::now();
+    hx->p->stats.bulk_op[hxhim_op_t::HXHIM_HISTOGRAM].emplace_back(bhist);
     return HXHIM_SUCCESS;
 }
 

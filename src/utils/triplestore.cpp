@@ -16,16 +16,17 @@
  * @param key_len        address of the key length
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int sp_to_key(const Blob *subject,
-              const Blob *predicate,
+int sp_to_key(const Blob &subject,
+              const Blob &predicate,
               void **key, std::size_t *key_len) {
-    if (!subject || !predicate ||
-        !key || !key_len) {
+    if (!subject.data()   ||
+        !predicate.data() ||
+        !key || !key_len)  {
         return HXHIM_ERROR;
     }
 
-    *key_len = subject->size() + sizeof(subject->size()) +
-               predicate->size() + sizeof(predicate->size());
+    *key_len = subject.size() + sizeof(subject.size()) +
+               predicate.size() + sizeof(predicate.size());
 
     if (!*key_len) {
         *key = nullptr;
@@ -37,19 +38,19 @@ int sp_to_key(const Blob *subject,
     char *curr = static_cast<char *>(*key);
 
     // copy the subject value
-    memcpy(curr, subject->data(), subject->size());
-    curr += subject->size();
+    memcpy(curr, subject.data(), subject.size());
+    curr += subject.size();
 
     // length of the subject value
-    encode_unsigned(curr, subject->size());
-    curr += sizeof(subject->size());
+    encode_unsigned(curr, subject.size());
+    curr += sizeof(subject.size());
 
     // copy the predicate value
-    memcpy(curr, predicate->data(), predicate->size());
-    curr += predicate->size();
+    memcpy(curr, predicate.data(), predicate.size());
+    curr += predicate.size();
 
     // length of the predicate value
-    encode_unsigned(curr, predicate->size());
+    encode_unsigned(curr, predicate.size());
 
     return HXHIM_SUCCESS;
 }
@@ -66,10 +67,10 @@ int sp_to_key(const Blob *subject,
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
 int key_to_sp(const void *key, const std::size_t key_len,
-              Blob **subject,
-              Blob **predicate,
+              Blob &subject,
+              Blob &predicate,
               const bool copy) {
-    if (!key || !subject || !predicate) {
+    if (!key) {
         return HXHIM_ERROR;
     }
 
@@ -83,10 +84,10 @@ int key_to_sp(const void *key, const std::size_t key_len,
     if (copy) {
         void *pred = alloc(pred_len);
         memcpy(pred, pred_start, pred_len);
-        *predicate = construct<RealBlob>(pred, pred_len);
+        predicate = RealBlob(pred, pred_len);
     }
     else {
-        *predicate = construct<ReferenceBlob>(pred_start, pred_len);
+        predicate = ReferenceBlob(pred_start, pred_len);
     }
 
     // read subject
@@ -97,10 +98,10 @@ int key_to_sp(const void *key, const std::size_t key_len,
     if (copy) {
         void *sub = alloc(sub_len);
         memcpy(sub, sub_start, sub_len);
-        *subject = construct<RealBlob>(sub, sub_len);
+        subject = RealBlob(sub, sub_len);
     }
     else {
-        *subject = construct<ReferenceBlob>((void *) sub_start, sub_len);
+        subject = ReferenceBlob((void *) sub_start, sub_len);
     }
 
     return HXHIM_SUCCESS;

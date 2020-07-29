@@ -50,10 +50,10 @@ static LevelDBTest *setup() {
     Transport::Request::BPut req(count);
 
     for(std::size_t i = 0; i < count; i++) {
-        req.subjects[i]     = construct<ReferenceBlob>((void *) subs[i],  strlen(subs[i]));
-        req.predicates[i]   = construct<ReferenceBlob>((void *) preds[i], strlen(preds[i]));
+        req.subjects[i]     = ReferenceBlob((void *) subs[i],  strlen(subs[i]));
+        req.predicates[i]   = ReferenceBlob((void *) preds[i], strlen(preds[i]));
         req.object_types[i] = types[i];
-        req.objects[i]      = construct<ReferenceBlob>((void *) objs[i],  strlen(objs[i]));
+        req.objects[i]      = ReferenceBlob((void *) objs[i],  strlen(objs[i]));
         req.count++;
     }
 
@@ -108,15 +108,15 @@ TEST(LevelDB, BGet) {
     // get triple back using GET
     Transport::Request::BGet req(count + 1);
     for(std::size_t i = 0; i < count; i++) {
-        req.subjects[i]     = construct<ReferenceBlob>((void *) subs[i],  strlen(subs[i]));
-        req.predicates[i]   = construct<ReferenceBlob>((void *) preds[i], strlen(preds[i]));
+        req.subjects[i]     = ReferenceBlob((void *) subs[i],  strlen(subs[i]));
+        req.predicates[i]   = ReferenceBlob((void *) preds[i], strlen(preds[i]));
         req.object_types[i] = types[i];
         req.count++;
     }
 
     // non-existant subject-predicate pair
-    req.subjects[count]     = construct<ReferenceBlob>((void *) "sub3",  4);
-    req.predicates[count]   = construct<ReferenceBlob>((void *) "pred3", 5);
+    req.subjects[count]     = ReferenceBlob((void *) "sub3",  4);
+    req.predicates[count]   = ReferenceBlob((void *) "pred3", 5);
     req.object_types[count] = hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE;
     req.count++;
 
@@ -125,13 +125,13 @@ TEST(LevelDB, BGet) {
     EXPECT_EQ(res->count, count + 1);
     for(std::size_t i = 0; i < count; i++) {
         EXPECT_EQ(res->statuses[i], HXHIM_SUCCESS);
-        ASSERT_NE(res->objects[i], nullptr);
-        EXPECT_EQ(res->objects[i]->size(), strlen(objs[i]));
-        EXPECT_EQ(std::memcmp(objs[i], res->objects[i]->data(), res->objects[i]->size()), 0);
+        ASSERT_NE(res->objects[i].data(), nullptr);
+        EXPECT_EQ(res->objects[i].size(), strlen(objs[i]));
+        EXPECT_EQ(std::memcmp(objs[i], res->objects[i].data(), res->objects[i].size()), 0);
     }
 
     EXPECT_EQ(res->statuses[count], HXHIM_ERROR);
-    EXPECT_EQ(res->objects[count], nullptr);
+    EXPECT_EQ(res->objects[count].data(), nullptr);
 
     destruct(res);
     destruct(ds);
@@ -143,8 +143,8 @@ TEST(LevelDB, BGetOp) {
 
     for(int op = HXHIM_GET_EQ; op < HXHIM_GET_INVALID; op++) {
         Transport::Request::BGetOp req(1);
-        req.subjects[0]     = construct<ReferenceBlob>((void *) subs[0],  strlen(subs[0]));
-        req.predicates[0]   = construct<ReferenceBlob>((void *) preds[0], strlen(preds[0]));
+        req.subjects[0]     = ReferenceBlob((void *) subs[0],  strlen(subs[0]));
+        req.predicates[0]   = ReferenceBlob((void *) preds[0], strlen(preds[0]));
         req.object_types[0] = types[0];
         req.num_recs[0]     = count + 1; // get too many records
         req.ops[0]          = static_cast<hxhim_get_op_t>(op);
@@ -160,15 +160,12 @@ TEST(LevelDB, BGetOp) {
 
                 // all results are the same value
                 for(std::size_t j = 0; j < res->num_recs[0]; j++) {
-                    ASSERT_NE(res->subjects[0][j], nullptr);
-                    ASSERT_NE(res->subjects[0][j]->data(), nullptr);
-                    EXPECT_EQ(memcmp(subs[0],  res->subjects[0][j]->data(),   res->subjects[0][j]->size()),   0);
-                    ASSERT_NE(res->predicates[0][j], nullptr);
-                    ASSERT_NE(res->predicates[0][j]->data(), nullptr);
-                    EXPECT_EQ(memcmp(preds[0], res->predicates[0][j]->data(), res->predicates[0][j]->size()), 0);
-                    ASSERT_NE(res->objects[0][j], nullptr);
-                    ASSERT_NE(res->objects[0][j]->data(), nullptr);
-                    EXPECT_EQ(memcmp(objs[0],  res->objects[0][j]->data(),    res->objects[0][j]->size()),    0);
+                    ASSERT_NE(res->subjects[0][j].data(), nullptr);
+                    EXPECT_EQ(memcmp(subs[0],  res->subjects[0][j].data(),   res->subjects[0][j].size()),   0);
+                    ASSERT_NE(res->predicates[0][j].data(), nullptr);
+                    EXPECT_EQ(memcmp(preds[0], res->predicates[0][j].data(), res->predicates[0][j].size()), 0);
+                    ASSERT_NE(res->objects[0][j].data(), nullptr);
+                    EXPECT_EQ(memcmp(objs[0],  res->objects[0][j].data(),    res->objects[0][j].size()),    0);
                 }
                 break;
             case HXHIM_GET_NEXT:
@@ -177,30 +174,24 @@ TEST(LevelDB, BGetOp) {
 
                 // only 2 values available
                 for(std::size_t j = 0; j < res->num_recs[0]; j++) {
-                    ASSERT_NE(res->subjects[0][j], nullptr);
-                    ASSERT_NE(res->subjects[0][j]->data(), nullptr);
-                    EXPECT_EQ(memcmp(subs[j],  res->subjects[0][j]->data(),   res->subjects[0][j]->size()),   0);
-                    ASSERT_NE(res->predicates[0][j], nullptr);
-                    ASSERT_NE(res->predicates[0][j]->data(), nullptr);
-                    EXPECT_EQ(memcmp(preds[j], res->predicates[0][j]->data(), res->predicates[0][j]->size()), 0);
-                    ASSERT_NE(res->objects[0][j], nullptr);
-                    ASSERT_NE(res->objects[0][j]->data(), nullptr);
-                    EXPECT_EQ(memcmp(objs[j],  res->objects[0][j]->data(),    res->objects[0][j]->size()),    0);
+                    ASSERT_NE(res->subjects[0][j].data(), nullptr);
+                    EXPECT_EQ(memcmp(subs[j],  res->subjects[0][j].data(),   res->subjects[0][j].size()),   0);
+                    ASSERT_NE(res->predicates[0][j].data(), nullptr);
+                    EXPECT_EQ(memcmp(preds[j], res->predicates[0][j].data(), res->predicates[0][j].size()), 0);
+                    ASSERT_NE(res->objects[0][j].data(), nullptr);
+                    EXPECT_EQ(memcmp(objs[j],  res->objects[0][j].data(),    res->objects[0][j].size()),    0);
                 }
                 break;
             case HXHIM_GET_PREV:
                 EXPECT_EQ(res->num_recs[0], 1);
 
                 for(std::size_t j = 0; j < res->num_recs[0]; j++) {
-                    ASSERT_NE(res->subjects[0][j], nullptr);
-                    ASSERT_NE(res->subjects[0][j]->data(), nullptr);
-                    EXPECT_EQ(memcmp(subs[j],  res->subjects[0][j]->data(),   res->subjects[0][j]->size()),   0);
-                    ASSERT_NE(res->predicates[0][j], nullptr);
-                    ASSERT_NE(res->predicates[0][j]->data(), nullptr);
-                    EXPECT_EQ(memcmp(preds[j], res->predicates[0][j]->data(), res->predicates[0][j]->size()), 0);
-                    ASSERT_NE(res->objects[0][j], nullptr);
-                    ASSERT_NE(res->objects[0][j]->data(), nullptr);
-                    EXPECT_EQ(memcmp(objs[j],  res->objects[0][j]->data(),    res->objects[0][j]->size()),    0);
+                    ASSERT_NE(res->subjects[0][j].data(), nullptr);
+                    EXPECT_EQ(memcmp(subs[j],  res->subjects[0][j].data(),   res->subjects[0][j].size()),   0);
+                    ASSERT_NE(res->predicates[0][j].data(), nullptr);
+                    EXPECT_EQ(memcmp(preds[j], res->predicates[0][j].data(), res->predicates[0][j].size()), 0);
+                    ASSERT_NE(res->objects[0][j].data(), nullptr);
+                    EXPECT_EQ(memcmp(objs[j],  res->objects[0][j].data(),    res->objects[0][j].size()),    0);
                 }
                 break;
             case HXHIM_GET_LAST:
@@ -209,15 +200,12 @@ TEST(LevelDB, BGetOp) {
                 for(std::size_t j = 0; j < res->num_recs[0]; j++) {
                     const std::size_t k = res->num_recs[0] - 1 - j;;
 
-                    ASSERT_NE(res->subjects[0][k], nullptr);
-                    ASSERT_NE(res->subjects[0][k]->data(), nullptr);
-                    EXPECT_EQ(memcmp(subs[j],  res->subjects[0][k]->data(),   res->subjects[0][k]->size()),   0);
-                    ASSERT_NE(res->predicates[0][j], nullptr);
-                    ASSERT_NE(res->predicates[0][j]->data(), nullptr);
-                    EXPECT_EQ(memcmp(preds[j], res->predicates[0][k]->data(), res->predicates[0][k]->size()), 0);
-                    ASSERT_NE(res->objects[0][j], nullptr);
-                    ASSERT_NE(res->objects[0][j]->data(), nullptr);
-                    EXPECT_EQ(memcmp(objs[j],  res->objects[0][k]->data(),    res->objects[0][k]->size()),    0);
+                    ASSERT_NE(res->subjects[0][k].data(), nullptr);
+                    EXPECT_EQ(memcmp(subs[j],  res->subjects[0][k].data(),   res->subjects[0][k].size()),   0);
+                    ASSERT_NE(res->predicates[0][j].data(), nullptr);
+                    EXPECT_EQ(memcmp(preds[j], res->predicates[0][k].data(), res->predicates[0][k].size()), 0);
+                    ASSERT_NE(res->objects[0][j].data(), nullptr);
+                    EXPECT_EQ(memcmp(objs[j],  res->objects[0][k].data(),    res->objects[0][k].size()),    0);
                 }
                 break;
             case HXHIM_GET_INVALID:
@@ -241,14 +229,14 @@ TEST(LevelDB, BDelete) {
     {
         Transport::Request::BDelete req(count + 1);
         for(std::size_t i = 0; i < count; i++) {
-            req.subjects[i]     = construct<ReferenceBlob>((void *) subs[i],  strlen(subs[i]));
-            req.predicates[i]   = construct<ReferenceBlob>((void *) preds[i], strlen(preds[i]));
+            req.subjects[i]     = ReferenceBlob((void *) subs[i],  strlen(subs[i]));
+            req.predicates[i]   = ReferenceBlob((void *) preds[i], strlen(preds[i]));
             req.count++;
         }
 
         // non-existant subject-predicate pair
-        req.subjects[count]     = construct<ReferenceBlob>((void *) "sub3",  4);
-        req.predicates[count]   = construct<ReferenceBlob>((void *) "pred3", 5);
+        req.subjects[count]     = ReferenceBlob((void *) "sub3",  4);
+        req.predicates[count]   = ReferenceBlob((void *) "pred3", 5);
         req.count++;
 
         Transport::Response::BDelete *res = ds->operate(&req);
@@ -268,14 +256,14 @@ TEST(LevelDB, BDelete) {
     {
         Transport::Request::BGet req(count + 1);
         for(std::size_t i = 0; i < count; i++) {
-            req.subjects[i]   = construct<ReferenceBlob>((void *) subs[i],  strlen(subs[i]));
-            req.predicates[i] = construct<ReferenceBlob>((void *) preds[i], strlen(preds[i]));
+            req.subjects[i]   = ReferenceBlob((void *) subs[i],  strlen(subs[i]));
+            req.predicates[i] = ReferenceBlob((void *) preds[i], strlen(preds[i]));
             req.count++;
         }
 
         // non-existant subject-predicate pair
-        req.subjects[count]   = construct<ReferenceBlob>((void *) "sub3",  4);
-        req.predicates[count] = construct<ReferenceBlob>((void *) "pred3", 5);
+        req.subjects[count]   = ReferenceBlob((void *) "sub3",  4);
+        req.predicates[count] = ReferenceBlob((void *) "pred3", 5);
         req.count++;
 
         Transport::Response::BGet *res = ds->operate(&req);

@@ -15,8 +15,8 @@ hxhim::UserData::~UserData() {}
 
 hxhim::SubjectPredicate::SubjectPredicate()
     : UserData(),
-      subject(nullptr),
-      predicate(nullptr)
+      subject(),
+      predicate()
 {}
 
 hxhim::SubjectPredicate::~SubjectPredicate() {}
@@ -24,7 +24,7 @@ hxhim::SubjectPredicate::~SubjectPredicate() {}
 hxhim::PutData::PutData()
     : SP_t(),
       object_type(HXHIM_OBJECT_TYPE_INVALID),
-      object(nullptr),
+      object(),
       prev(nullptr),
       next(nullptr)
 {}
@@ -40,13 +40,13 @@ int hxhim::PutData::moveto(Transport::Request::BPut *bput) {
 
     bput->ds_offsets[bput->count] = ds_offset;
     bput->timestamps.reqs[bput->count] = std::move(timestamps);
-    bput->subjects[bput->count] = subject; subject = nullptr;
-    bput->predicates[bput->count] = predicate; predicate = nullptr;
+    bput->subjects[bput->count] = subject;
+    bput->predicates[bput->count] = predicate;
     bput->object_types[bput->count] = object_type;
-    bput->objects[bput->count] = object; object = nullptr;
+    bput->objects[bput->count] = object;
 
-    bput->orig.subjects[bput->count] = bput->subjects[bput->count]->data();
-    bput->orig.predicates[bput->count] = bput->predicates[bput->count]->data();
+    bput->orig.subjects[bput->count] = bput->subjects[bput->count].data();
+    bput->orig.predicates[bput->count] = bput->predicates[bput->count].data();
 
     bput->count++;
 
@@ -73,12 +73,12 @@ int hxhim::GetData::moveto(Transport::Request::BGet *bget) {
 
     bget->ds_offsets[bget->count] = ds_offset;
     bget->timestamps.reqs[bget->count] = std::move(timestamps);
-    bget->subjects[bget->count] = subject; subject = nullptr;
-    bget->predicates[bget->count] = predicate; predicate = nullptr;
+    bget->subjects[bget->count] = subject;
+    bget->predicates[bget->count] = predicate;
     bget->object_types[bget->count] = object_type;
 
-    bget->orig.subjects[bget->count] = bget->subjects[bget->count]->data();
-    bget->orig.predicates[bget->count] = bget->predicates[bget->count]->data();
+    bget->orig.subjects[bget->count] = bget->subjects[bget->count].data();
+    bget->orig.predicates[bget->count] = bget->predicates[bget->count].data();
 
     bget->count++;
 
@@ -108,8 +108,8 @@ int hxhim::GetOpData::moveto(Transport::Request::BGetOp *bgetop) {
 
     bgetop->ds_offsets[bgetop->count] = ds_offset;
     bgetop->timestamps.reqs[bgetop->count] = std::move(timestamps);
-    bgetop->subjects[bgetop->count] = subject; subject = nullptr;
-    bgetop->predicates[bgetop->count] = predicate; predicate = nullptr;
+    bgetop->subjects[bgetop->count] = subject;
+    bgetop->predicates[bgetop->count] = predicate;
     bgetop->object_types[bgetop->count] = object_type;
     bgetop->num_recs[bgetop->count] = num_recs;
     bgetop->ops[bgetop->count] = op;
@@ -136,11 +136,11 @@ int hxhim::DeleteData::moveto(Transport::Request::BDelete *bdel) {
 
     bdel->ds_offsets[bdel->count] = ds_offset;
     bdel->timestamps.reqs[bdel->count] = std::move(timestamps);
-    bdel->subjects[bdel->count] = subject; subject = nullptr;
-    bdel->predicates[bdel->count] = predicate; predicate = nullptr;
+    bdel->subjects[bdel->count] = subject;
+    bdel->predicates[bdel->count] = predicate;
 
-    bdel->orig.subjects[bdel->count] = bdel->subjects[bdel->count]->data();
-    bdel->orig.predicates[bdel->count] = bdel->predicates[bdel->count]->data();
+    bdel->orig.subjects[bdel->count] = bdel->subjects[bdel->count].data();
+    bdel->orig.predicates[bdel->count] = bdel->predicates[bdel->count].data();
 
     bdel->count++;
 
@@ -148,8 +148,8 @@ int hxhim::DeleteData::moveto(Transport::Request::BDelete *bdel) {
 
 }
 
-const Blob *hxhim::HistogramData::subject = nullptr;
-const Blob *hxhim::HistogramData::predicate = nullptr;
+const Blob hxhim::HistogramData::subject = {};
+const Blob hxhim::HistogramData::predicate = {};
 
 hxhim::HistogramData::HistogramData()
     : UserData(),

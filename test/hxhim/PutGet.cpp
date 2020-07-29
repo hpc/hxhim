@@ -8,7 +8,6 @@ typedef uint64_t Predicate_t;
 typedef double   Object_t;
 
 TEST(hxhim, PutGet) {
-
     const Subject_t SUBJECT     = (((Subject_t) rand()) << 32) | rand();
     const Predicate_t PREDICATE = (((Predicate_t) rand()) << 32) | rand();
     const Object_t OBJECT       = (((Object_t) SUBJECT) * ((Object_t) SUBJECT)) / (((Object_t) PREDICATE) * ((Object_t) PREDICATE));

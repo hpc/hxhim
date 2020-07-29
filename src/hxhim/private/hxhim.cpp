@@ -623,11 +623,11 @@ std::ostream &hxhim::print_stats(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::PutImpl(hxhim::Unsent<hxhim::PutData> &puts,
-                   Blob *subject,
-                   Blob *predicate,
+                   Blob subject,
+                   Blob predicate,
                    enum hxhim_object_type_t object_type,
-                   Blob *object) {
-    mlog(HXHIM_CLIENT_INFO, "Foreground PUT Start (%p, %p, %p)", subject, predicate, object);
+                   Blob object) {
+    mlog(HXHIM_CLIENT_INFO, "Foreground PUT Start (%p, %p, %p)", subject.data(), predicate.data(), object.data());
 
     hxhim::PutData *put = construct<hxhim::PutData>();
     put->subject = subject;
@@ -657,8 +657,8 @@ int hxhim::PutImpl(hxhim::Unsent<hxhim::PutData> &puts,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::GetImpl(hxhim::Unsent<hxhim::GetData> &gets,
-                   Blob *subject,
-                   Blob *predicate,
+                   Blob subject,
+                   Blob predicate,
                    enum hxhim_object_type_t object_type) {
     mlog(HXHIM_CLIENT_DBG, "GET Start");
 
@@ -690,8 +690,8 @@ int hxhim::GetImpl(hxhim::Unsent<hxhim::GetData> &gets,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::GetOpImpl(hxhim::Unsent<hxhim::GetOpData> &getops,
-                     Blob *subject,
-                     Blob *predicate,
+                     Blob subject,
+                     Blob predicate,
                      enum hxhim_object_type_t object_type,
                      std::size_t num_records, enum hxhim_get_op_t op) {
     mlog(HXHIM_CLIENT_DBG, "GETOP Start");
@@ -723,8 +723,8 @@ int hxhim::GetOpImpl(hxhim::Unsent<hxhim::GetOpData> &getops,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::DeleteImpl(hxhim::Unsent<hxhim::DeleteData> &dels,
-                      Blob *subject,
-                      Blob *predicate) {
+                      Blob subject,
+                      Blob predicate) {
     mlog(HXHIM_CLIENT_DBG, "DELETE Start");
 
     hxhim::DeleteData *del = construct<hxhim::DeleteData>();

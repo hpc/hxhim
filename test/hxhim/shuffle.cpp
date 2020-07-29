@@ -30,20 +30,20 @@ TEST(hxhim, shuffle) {
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
 
     // have to construct because Transport::Message::B* takes ownership and calls destruct
-    ReferenceBlob *sub1       = construct<ReferenceBlob>((void *) "sub1",  4);
-    ReferenceBlob *pred1      = construct<ReferenceBlob>((void *) "pred1", 5);
+    ReferenceBlob sub1         ((void *) "sub1",  4);
+    ReferenceBlob pred1        ((void *) "pred1", 5);
     hxhim_object_type_t type1 = hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE;
-    ReferenceBlob *obj1       = construct<ReferenceBlob>((void *) "obj1",  4);
+    ReferenceBlob obj1         ((void *) "obj1",  4);
     hxhim::PutData put1;
     put1.subject              = sub1;
     put1.predicate            = pred1;
     put1.object_type          = type1;
     put1.object               = obj1;
 
-    ReferenceBlob *sub2       = construct<ReferenceBlob>((void *) "sub2",  4);
-    ReferenceBlob *pred2      = construct<ReferenceBlob>((void *) "pred2", 5);
+    ReferenceBlob sub2         ((void *) "sub2",  4);
+    ReferenceBlob pred2        ((void *) "pred2", 5);
     hxhim_object_type_t type2 = hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE;
-    ReferenceBlob *obj2       = construct<ReferenceBlob>((void *) "obj2",  4);
+    ReferenceBlob obj2         ((void *) "obj2",  4);
     hxhim::PutData put2;
     put2.subject              = sub2;
     put2.predicate            = pred2;

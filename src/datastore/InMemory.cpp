@@ -63,17 +63,17 @@ Transport::Response::BPut *hxhim::datastore::InMemory::BPutImpl(Transport::Reque
         std::size_t key_len = 0;
         sp_to_key(req->subjects[i], req->predicates[i], &key, &key_len);
 
-        db[std::string((char *) key, key_len)] = std::string((char *) req->objects[i]->data(), req->objects[i]->size());
+        db[std::string((char *) key, key_len)] = (std::string) req->objects[i];
 
-        res->orig.subjects[i]   = construct<ReferenceBlob>(req->orig.subjects[i], req->subjects[i]->size());
-        res->orig.predicates[i] = construct<ReferenceBlob>(req->orig.predicates[i], req->predicates[i]->size());
+        res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size());
+        res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size());
 
         dealloc(key);
 
         // always successful
         res->statuses[i] = HXHIM_SUCCESS;
 
-        event.size += key_len + req->objects[i]->size();
+        event.size += key_len + req->objects[i].size();
     }
 
     res->count = req->count;
@@ -121,8 +121,8 @@ Transport::Response::BGet *hxhim::datastore::InMemory::BGetImpl(Transport::Reque
         // object type was stored as a value, not address, so copy it to the response
         res->object_types[i]    = req->object_types[i];
 
-        res->orig.subjects[i]   = construct<ReferenceBlob>(req->orig.subjects[i], req->subjects[i]->size());
-        res->orig.predicates[i] = construct<ReferenceBlob>(req->orig.predicates[i], req->predicates[i]->size());
+        res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size());
+        res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size());
 
         res->statuses[i] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
 
@@ -130,9 +130,9 @@ Transport::Response::BGet *hxhim::datastore::InMemory::BGetImpl(Transport::Reque
 
         // copy the object into the response
         if (res->statuses[i] == HXHIM_SUCCESS) {
-            res->objects[i] = construct<RealBlob>(it->second.size(), it->second.data());
+            res->objects[i] = RealBlob(it->second.size(), it->second.data());
 
-            event.size += res->objects[i]->size();
+            event.size += res->objects[i].size();
         }
     }
 
@@ -153,15 +153,15 @@ static void BGetOp_copy_response(const std::map<std::string, std::string>::const
     const std::string &v = it->second;
 
     // copy key into subject/predicate
-    key_to_sp(k.data(), k.size(), &(res->subjects[i][j]), &(res->predicates[i][j]), true);
+    key_to_sp(k.data(), k.size(), res->subjects[i][j], res->predicates[i][j], true);
 
     // copy object
-    res->objects[i][j] = construct<RealBlob>(alloc(v.size()), v.size());
-    memcpy(res->objects[i][j]->data(), v.data(), v.size());
+    res->objects[i][j] = RealBlob(alloc(v.size()), v.size());
+    memcpy(res->objects[i][j].data(), v.data(), v.size());
 
     res->num_recs[i]++;
 
-    event.size += k.size() + res->objects[i][j]->size();
+    event.size += k.size() + res->objects[i][j].size();
 }
 
 /**
@@ -188,9 +188,9 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
         // prepare response
         res->object_types[i] = req->object_types[i];
         res->num_recs[i]     = 0;
-        res->subjects[i]     = alloc_array<Blob *>(req->num_recs[i]);
-        res->predicates[i]   = alloc_array<Blob *>(req->num_recs[i]);
-        res->objects[i]      = alloc_array<Blob *>(req->num_recs[i]);
+        res->subjects[i]     = alloc_array<Blob>(req->num_recs[i]);
+        res->predicates[i]   = alloc_array<Blob>(req->num_recs[i]);
+        res->objects[i]      = alloc_array<Blob>(req->num_recs[i]);
 
         if (req->ops[i] == hxhim_get_op_t::HXHIM_GET_EQ) {
             void *key = nullptr;
@@ -329,8 +329,8 @@ Transport::Response::BDelete *hxhim::datastore::InMemory::BDeleteImpl(Transport:
             res->statuses[i] = HXHIM_ERROR;
         }
 
-        res->orig.subjects[i]   = construct<ReferenceBlob>(req->orig.subjects[i], req->subjects[i]->size());
-        res->orig.predicates[i] = construct<ReferenceBlob>(req->orig.predicates[i], req->predicates[i]->size());
+        res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size());
+        res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size());
 
         dealloc(key);
 

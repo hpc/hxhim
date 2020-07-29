@@ -4,13 +4,13 @@
 #include "utils/Blob.hpp"
 
 /** @description Combines a subject and predicate into a key */
-int sp_to_key(const Blob *subject,
-              const Blob *predicate,
+int sp_to_key(const Blob &subject,
+              const Blob &predicate,
               void **key, std::size_t *key_len);
 
 /** @description Splits a key into a subject and predicate */
 int key_to_sp(const void *key, const std::size_t key_len,
-              Blob **subject,
-              Blob **predicate,
+              Blob &subject,
+              Blob &predicate,
               const bool copy);
 #endif

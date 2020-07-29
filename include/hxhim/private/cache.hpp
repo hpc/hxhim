@@ -37,8 +37,8 @@ namespace hxhim {
         SubjectPredicate();
         virtual ~SubjectPredicate();
 
-        Blob *subject;
-        Blob *predicate;
+        Blob subject;
+        Blob predicate;
     } SP_t;
 
     struct PutData : SP_t {
@@ -47,7 +47,7 @@ namespace hxhim {
         int moveto(Transport::Request::BPut *bput);
 
         hxhim_object_type_t object_type;
-        Blob *object;
+        Blob object;
 
         PutData *prev;
         PutData *next;
@@ -92,8 +92,8 @@ namespace hxhim {
         int moveto(Transport::Request::BHistogram *bhistogram);
 
         // not used, but needed for shuffle to compile
-        static const Blob *subject;
-        static const Blob *predicate;
+        static const Blob subject;
+        static const Blob predicate;
 
         HistogramData *prev;
         HistogramData *next;
@@ -110,6 +110,18 @@ namespace hxhim {
               count(0),
               force(false)
         {}
+
+        ~Unsent() {
+            std::lock_guard<std::mutex> lock(mutex);
+            while (head) {
+                Data *next = head->next;
+                destruct(head);
+                head = next;
+            }
+
+            tail = nullptr;
+            count = 0;
+        }
 
         void insert(Data *node) {
             if (!node) {

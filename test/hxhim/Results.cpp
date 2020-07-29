@@ -134,30 +134,30 @@ TEST(Results, Accessors) {
     hxhim::Results::Result *rput = results.Add(construct<hxhim::Results::Put>(nullptr, -1, HXHIM_SUCCESS));
     hxhim::Results::Put *put = static_cast<hxhim::Results::Put *>(rput);
     EXPECT_NE(put, nullptr);
-    put->subject = construct<RealBlob>(alloc(1), 1);
-    put->predicate = construct<RealBlob>(alloc(1), 1);
+    put->subject = RealBlob(alloc(1), 1);
+    put->predicate = RealBlob(alloc(1), 1);
 
     hxhim::Results::Result *rget = results.Add(construct<hxhim::Results::Get>(nullptr, -1, HXHIM_SUCCESS));
     hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(rget);
     EXPECT_NE(get, nullptr);
-    get->subject = construct<RealBlob>(alloc(1), 1);
-    get->predicate = construct<RealBlob>(alloc(1), 1);
+    get->subject = RealBlob(alloc(1), 1);
+    get->predicate = RealBlob(alloc(1), 1);
     get->object_type = hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE;
-    get->object = construct<RealBlob>(alloc(1), 1);
+    get->object = RealBlob(alloc(1), 1);
 
     hxhim::Results::Result *rgetop = results.Add(construct<hxhim::Results::GetOp>(nullptr, -1, HXHIM_SUCCESS));
     hxhim::Results::GetOp *getop = static_cast<hxhim::Results::GetOp *>(rgetop);
     EXPECT_NE(getop, nullptr);
-    getop->subject = construct<RealBlob>(alloc(1), 1);
-    getop->predicate = construct<RealBlob>(alloc(1), 1);
+    getop->subject = RealBlob(alloc(1), 1);
+    getop->predicate = RealBlob(alloc(1), 1);
     get->object_type = hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE;
-    getop->object = construct<RealBlob>(alloc(1), 1);
+    getop->object = RealBlob(alloc(1), 1);
 
     hxhim::Results::Result *rdel = results.Add(construct<hxhim::Results::Delete>(nullptr, -1, HXHIM_SUCCESS));
     hxhim::Results::Delete *del = static_cast<hxhim::Results::Delete *>(rdel);
     EXPECT_NE(del, nullptr);
-    del->subject = construct<RealBlob>(alloc(1), 1);
-    del->predicate = construct<RealBlob>(alloc(1), 1);
+    del->subject = RealBlob(alloc(1), 1);
+    del->predicate = RealBlob(alloc(1), 1);
 
     // all Results will attempt to get these variables
     hxhim_op_t op;
@@ -180,10 +180,10 @@ TEST(Results, Accessors) {
         EXPECT_EQ(status, HXHIM_SUCCESS);
 
         EXPECT_EQ(results.Subject(&subject, &subject_len), HXHIM_SUCCESS);
-        EXPECT_EQ(put->subject->data(), subject);
+        EXPECT_EQ(put->subject.data(), subject);
 
         EXPECT_EQ(results.Predicate(&predicate, &predicate_len), HXHIM_SUCCESS);
-        EXPECT_EQ(put->predicate->data(), predicate);
+        EXPECT_EQ(put->predicate.data(), predicate);
 
         EXPECT_EQ(results.ObjectType(&object_type), HXHIM_ERROR);
         EXPECT_EQ(results.Object(&object, &object_len), HXHIM_ERROR);
@@ -199,16 +199,16 @@ TEST(Results, Accessors) {
         EXPECT_EQ(status, HXHIM_SUCCESS);
 
         EXPECT_EQ(results.Subject(&subject, &subject_len), HXHIM_SUCCESS);
-        EXPECT_EQ(get->subject->data(), subject);
+        EXPECT_EQ(get->subject.data(), subject);
 
         EXPECT_EQ(results.Predicate(&predicate, &predicate_len), HXHIM_SUCCESS);
-        EXPECT_EQ(get->predicate->data(), predicate);
+        EXPECT_EQ(get->predicate.data(), predicate);
 
         EXPECT_EQ(results.ObjectType(&object_type), HXHIM_SUCCESS);
         EXPECT_EQ(get->object_type, object_type);
 
         EXPECT_EQ(results.Object(&object, &object_len), HXHIM_SUCCESS);
-        EXPECT_EQ(get->object->data(), object);
+        EXPECT_EQ(get->object.data(), object);
     }
 
     EXPECT_EQ(results.GoToNext(), getop);
@@ -221,16 +221,16 @@ TEST(Results, Accessors) {
         EXPECT_EQ(status, HXHIM_SUCCESS);
 
         EXPECT_EQ(results.Subject(&subject, &subject_len), HXHIM_SUCCESS);
-        EXPECT_EQ(getop->subject->data(), subject);
+        EXPECT_EQ(getop->subject.data(), subject);
 
         EXPECT_EQ(results.Predicate(&predicate, &predicate_len), HXHIM_SUCCESS);
-        EXPECT_EQ(getop->predicate->data(), predicate);
+        EXPECT_EQ(getop->predicate.data(), predicate);
 
         EXPECT_EQ(results.ObjectType(&object_type), HXHIM_SUCCESS);
         EXPECT_EQ(getop->object_type, object_type);
 
         EXPECT_EQ(results.Object(&object, &object_len), HXHIM_SUCCESS);
-        EXPECT_EQ(getop->object->data(), object);
+        EXPECT_EQ(getop->object.data(), object);
     }
 
     EXPECT_EQ(results.GoToNext(), del);
@@ -243,10 +243,10 @@ TEST(Results, Accessors) {
         EXPECT_EQ(status, HXHIM_SUCCESS);
 
         EXPECT_EQ(results.Subject(&subject, &subject_len), HXHIM_SUCCESS);
-        EXPECT_EQ(del->subject->data(), subject);
+        EXPECT_EQ(del->subject.data(), subject);
 
         EXPECT_EQ(results.Predicate(&predicate, &predicate_len), HXHIM_SUCCESS);
-        EXPECT_EQ(del->predicate->data(), predicate);
+        EXPECT_EQ(del->predicate.data(), predicate);
 
         EXPECT_EQ(results.ObjectType(&object_type), HXHIM_ERROR);
         EXPECT_EQ(results.Object(&object, &object_len), HXHIM_ERROR);

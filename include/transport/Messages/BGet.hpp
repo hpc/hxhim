@@ -23,8 +23,8 @@ struct BGet final : Request {
     int steal(BGet *from, const std::size_t i);
     int cleanup();
 
-    Blob **subjects;
-    Blob **predicates;
+    Blob *subjects;
+    Blob *predicates;
     std::size_t *predicate_lens;
     hxhim_object_type_t *object_types;
 
@@ -54,14 +54,14 @@ struct BGet final : Response {
     int cleanup();
 
     hxhim_object_type_t *object_types;
-    Blob **objects;
+    Blob *objects;
 
     struct {
         // arrays of addresses from client
         // used by server when unpacking, and are sent back with response - otherwise not used
         // do not deallocate individual pointers
-        ReferenceBlob **subjects;
-        ReferenceBlob **predicates;
+        ReferenceBlob *subjects;
+        ReferenceBlob *predicates;
     } orig;
 
     BGet *next;

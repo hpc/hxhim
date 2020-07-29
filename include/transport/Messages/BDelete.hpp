@@ -23,8 +23,8 @@ struct BDelete final : Request {
     int steal(BDelete *from, const std::size_t i);
     int cleanup();
 
-    Blob **subjects;
-    Blob **predicates;
+    Blob *subjects;
+    Blob *predicates;
 
     struct {
         void **subjects;
@@ -47,8 +47,8 @@ struct BDelete final : Response {
     int cleanup();
 
     struct {
-        ReferenceBlob **subjects;
-        ReferenceBlob **predicates;
+        ReferenceBlob *subjects;
+        ReferenceBlob *predicates;
     } orig;
 
     BDelete *next;

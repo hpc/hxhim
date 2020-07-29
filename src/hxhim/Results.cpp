@@ -57,14 +57,11 @@ hxhim::Results::Result::~Result() {
 hxhim::Results::SubjectPredicate::SubjectPredicate(hxhim_t *hx, const enum hxhim_op_t op,
                                                    const int datastore, const int status)
     : hxhim::Results::Result(hx, op, datastore, status),
-      subject(nullptr),
-      predicate(nullptr)
+      subject(),
+      predicate()
 {}
 
-hxhim::Results::SubjectPredicate::~SubjectPredicate() {
-    destruct(subject);
-    destruct(predicate);
-}
+hxhim::Results::SubjectPredicate::~SubjectPredicate() {}
 
 hxhim::Results::Put::Put(hxhim_t *hx,
                          const int datastore, const int status)
@@ -145,8 +142,6 @@ hxhim::Results::Put *hxhim::Result::init(hxhim_t *hx, Transport::Response::BPut 
     out->subject = bput->orig.subjects[i];
     out->predicate = bput->orig.predicates[i];
 
-    bput->orig.subjects[i] = nullptr;
-    bput->orig.predicates[i] = nullptr;
     return out;
 }
 
@@ -159,9 +154,6 @@ hxhim::Results::Get *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGet 
     out->object = bget->objects[i];
     out->next = nullptr;
 
-    bget->objects[i] = nullptr;
-    bget->orig.subjects[i] = nullptr;
-    bget->orig.predicates[i] = nullptr;
     return out;
 }
 
@@ -179,10 +171,6 @@ hxhim::Results::GetOp *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGe
         curr->subject          = bgetop->subjects[i][j];
         curr->predicate        = bgetop->predicates[i][j];
         curr->object           = bgetop->objects[i][j];
-
-        bgetop->subjects[i][j]   = nullptr;
-        bgetop->predicates[i][j] = nullptr;
-        bgetop->objects[i][j]    = nullptr;
 
         prev = curr;
         curr = construct<hxhim::Results::GetOp>(hx, id, status);
@@ -202,8 +190,6 @@ hxhim::Results::Delete *hxhim::Result::init(hxhim_t *hx, Transport::Response::BD
     out->subject = bdel->orig.subjects[i];
     out->predicate = bdel->orig.predicates[i];
 
-    bdel->orig.subjects[i] = nullptr;
-    bdel->orig.predicates[i] = nullptr;
     return out;
 }
 
@@ -643,7 +629,7 @@ int hxhim::Results::Subject(void **subject, std::size_t *subject_len) const {
     }
 
     hxhim::Results::SubjectPredicate *sp = static_cast<hxhim::Results::SubjectPredicate *>(res);
-    sp->subject->get(subject, subject_len);
+    sp->subject.get(subject, subject_len);
     return HXHIM_SUCCESS;
 }
 
@@ -684,7 +670,7 @@ int hxhim::Results::Predicate(void **predicate, std::size_t *predicate_len) cons
     }
 
     hxhim::Results::SubjectPredicate *sp = static_cast<hxhim::Results::SubjectPredicate *>(res);
-    sp->predicate->get(predicate, predicate_len);
+    sp->predicate.get(predicate, predicate_len);
     return HXHIM_SUCCESS;
 }
 
@@ -762,7 +748,7 @@ int hxhim::Results::Object(void **object, std::size_t *object_len) const {
     }
 
     hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(res);
-    get->object->get(object, object_len);
+    get->object.get(object, object_len);
     return HXHIM_SUCCESS;
 }
 

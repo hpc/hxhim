@@ -57,23 +57,23 @@ int Packer::pack(const Request::BPut *bpm, void **buf, std::size_t *bufsize) {
 
     for(std::size_t i = 0; i < bpm->count; i++) {
         // subject + len
-        bpm->subjects[i]->pack(curr);
+        bpm->subjects[i].pack(curr);
 
         // subject addr
-        pack_addr(curr, bpm->subjects[i]->data());
+        pack_addr(curr, bpm->subjects[i].data());
 
         // predicate + len
-        bpm->predicates[i]->pack(curr);
+        bpm->predicates[i].pack(curr);
 
         // predicate addr
-        pack_addr(curr, bpm->predicates[i]->data());
+        pack_addr(curr, bpm->predicates[i].data());
 
         // object type
         memcpy(curr, &bpm->object_types[i], sizeof(bpm->object_types[i]));
         curr += sizeof(bpm->object_types[i]);
 
         // object + len
-        bpm->objects[i]->pack(curr);
+        bpm->objects[i].pack(curr);
     }
 
     return TRANSPORT_SUCCESS;
@@ -87,16 +87,16 @@ int Packer::pack(const Request::BGet *bgm, void **buf, std::size_t *bufsize) {
 
     for(std::size_t i = 0; i < bgm->count; i++) {
         // subject
-        bgm->subjects[i]->pack(curr);
+        bgm->subjects[i].pack(curr);
 
         // subject addr
-        pack_addr(curr, bgm->subjects[i]->data());
+        pack_addr(curr, bgm->subjects[i].data());
 
         // predicate
-        bgm->predicates[i]->pack(curr);
+        bgm->predicates[i].pack(curr);
 
         // predicate addr
-        pack_addr(curr, bgm->predicates[i]->data());
+        pack_addr(curr, bgm->predicates[i].data());
 
         // object type
         memcpy(curr, &bgm->object_types[i], sizeof(bgm->object_types[i]));
@@ -120,10 +120,10 @@ int Packer::pack(const Request::BGetOp *bgm, void **buf, std::size_t *bufsize) {
         if ((bgm->ops[i] != hxhim_get_op_t::HXHIM_GET_FIRST) &&
             (bgm->ops[i] != hxhim_get_op_t::HXHIM_GET_LAST))  {
             // subject
-            bgm->subjects[i]->pack(curr);
+            bgm->subjects[i].pack(curr);
 
             // predicate
-            bgm->predicates[i]->pack(curr);
+            bgm->predicates[i].pack(curr);
         }
 
         // object type
@@ -146,16 +146,16 @@ int Packer::pack(const Request::BDelete *bdm, void **buf, std::size_t *bufsize) 
 
     for(std::size_t i = 0; i < bdm->count; i++) {
         // subject
-        bdm->subjects[i]->pack(curr);
+        bdm->subjects[i].pack(curr);
 
         // subject addr
-        pack_addr(curr, bdm->subjects[i]->data());
+        pack_addr(curr, bdm->subjects[i].data());
 
         // predicate
-        bdm->predicates[i]->pack(curr);
+        bdm->predicates[i].pack(curr);
 
         // predicate addr
-        pack_addr(curr, bdm->predicates[i]->data());
+        pack_addr(curr, bdm->predicates[i].data());
     }
 
     return TRANSPORT_SUCCESS;
@@ -214,10 +214,10 @@ int Packer::pack(const Response::BPut *bpm, void **buf, std::size_t *bufsize) {
         curr += sizeof(bpm->statuses[i]);
 
         // original subject addr + len
-        bpm->orig.subjects[i]->pack_ref(curr);
+        bpm->orig.subjects[i].pack_ref(curr);
 
         // original predicate addr + len
-        bpm->orig.predicates[i]->pack_ref(curr);
+        bpm->orig.predicates[i].pack_ref(curr);
     }
 
     return TRANSPORT_SUCCESS;
@@ -235,10 +235,10 @@ int Packer::pack(const Response::BGet *bgm, void **buf, std::size_t *bufsize) {
         curr += sizeof(bgm->statuses[i]);
 
         // original subject addr + len
-        bgm->orig.subjects[i]->pack_ref(curr);
+        bgm->orig.subjects[i].pack_ref(curr);
 
         // original predicate addr + len
-        bgm->orig.predicates[i]->pack_ref(curr);
+        bgm->orig.predicates[i].pack_ref(curr);
 
         // object type
         memcpy(curr, &bgm->object_types[i], sizeof(bgm->object_types[i]));
@@ -246,7 +246,7 @@ int Packer::pack(const Response::BGet *bgm, void **buf, std::size_t *bufsize) {
 
         // object
         if (bgm->statuses[i] == HXHIM_SUCCESS) {
-            bgm->objects[i]->pack(curr);
+            bgm->objects[i].pack(curr);
         }
     }
 
@@ -273,14 +273,14 @@ int Packer::pack(const Response::BGetOp *bgm, void **buf, std::size_t *bufsize) 
 
         for(std::size_t j = 0; j < bgm->num_recs[i]; j++) {
             // subject
-            bgm->subjects[i][j]->pack(curr);
+            bgm->subjects[i][j].pack(curr);
 
             // predicate
-            bgm->predicates[i][j]->pack(curr);
+            bgm->predicates[i][j].pack(curr);
 
             // object
             if (bgm->statuses[i] == HXHIM_SUCCESS) {
-                bgm->objects[i][j]->pack(curr);
+                bgm->objects[i][j].pack(curr);
             }
         }
     }
@@ -299,10 +299,10 @@ int Packer::pack(const Response::BDelete *bdm, void **buf, std::size_t *bufsize)
         curr += sizeof(bdm->statuses[i]);
 
         // original subject addr + len
-        bdm->orig.subjects[i]->pack_ref(curr);
+        bdm->orig.subjects[i].pack_ref(curr);
 
         // original predicate addr + len
-        bdm->orig.predicates[i]->pack_ref(curr);
+        bdm->orig.predicates[i].pack_ref(curr);
     }
 
     return TRANSPORT_SUCCESS;

@@ -132,25 +132,25 @@ std::ostream &print_stats(hxhim_t *hx,
                           const std::string &indent = "    ");
 
 int PutImpl(hxhim::Unsent<hxhim::PutData> &puts,
-            Blob *subject,
-            Blob *predicate,
+            Blob subject,
+            Blob predicate,
             enum hxhim_object_type_t object_type,
-            Blob *object);
+            Blob object);
 
 int GetImpl(hxhim::Unsent<hxhim::GetData> &gets,
-            Blob *subject,
-            Blob *predicate,
+            Blob subject,
+            Blob predicate,
             enum hxhim_object_type_t object_type);
 
 int GetOpImpl(hxhim::Unsent<hxhim::GetOpData> &getops,
-              Blob *subject,
-              Blob *predicate,
+              Blob subject,
+              Blob predicate,
               enum hxhim_object_type_t object_type,
               std::size_t num_records, enum hxhim_get_op_t op);
 
 int DeleteImpl(hxhim::Unsent<hxhim::DeleteData> &dels,
-               Blob *subject,
-               Blob *predicate);
+               Blob subject,
+               Blob predicate);
 
 int HistogramImpl(hxhim_t *hx,
                   hxhim::Unsent<hxhim::HistogramData> &hists,

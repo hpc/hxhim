@@ -55,8 +55,8 @@ int shuffle(hxhim_t *hx,
         // get the destination backend id for the key
         src->timestamps.hashed.start = ::Stats::now();
         src->ds_id = hx->p->hash.func(hx,
-                                      src->subject->data(), src->subject->size(),
-                                      src->predicate->data(), src->predicate->size(),
+                                      src->subject.data(), src->subject.size(),
+                                      src->predicate.data(), src->predicate.size(),
                                       hx->p->hash.args);
         src->timestamps.hashed.end = ::Stats::now();
 

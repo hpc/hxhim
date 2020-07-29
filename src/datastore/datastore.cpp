@@ -178,10 +178,10 @@ Transport::Response::BPut *hxhim::datastore::Datastore::operate(Transport::Reque
             }
         }
 
-        Blob **objects = nullptr;
+        Blob *objects = nullptr;
         if (has_fp) {
             // move floats/doubles out of req so they can be converted to elen strings
-            objects = alloc_array<Blob *>(req->count);
+            objects = alloc_array<Blob>(req->count);
 
             for(std::size_t i = 0; i < req->count; i++) {
                 switch (req->object_types[i]) {
@@ -189,26 +189,26 @@ Transport::Response::BPut *hxhim::datastore::Datastore::operate(Transport::Reque
                         {
                             objects[i] = req->objects[i];
 
-                            const std::string str = ::elen::encode::floating_point<float>(* (float *) objects[i]->data());
+                            const std::string str = ::elen::encode::floating_point<float>(* (float *) objects[i].data());
                             void *buf = alloc(str.size() * sizeof(char));
                             memcpy(buf, str.c_str(), str.size());
 
-                            req->objects[i] = construct<RealBlob>(buf, str.size());
+                            req->objects[i] = RealBlob(buf, str.size());
                         }
                         break;
                     case HXHIM_OBJECT_TYPE_DOUBLE:
                         {
                             objects[i] = req->objects[i];
 
-                            const std::string str = ::elen::encode::floating_point<double>(* (double *) objects[i]->data());
+                            const std::string str = ::elen::encode::floating_point<double>(* (double *) objects[i].data());
                             void *buf = alloc(str.size() * sizeof(char));
                             memcpy(buf, str.c_str(), str.size());
 
-                            req->objects[i] = construct<RealBlob>(buf, str.size());
+                            req->objects[i] = RealBlob(buf, str.size());
                         }
                         break;
                     default:
-                        objects[i] = nullptr;
+                        objects[i].clear();
                         break;
                 }
             }
@@ -223,10 +223,10 @@ Transport::Response::BPut *hxhim::datastore::Datastore::operate(Transport::Reque
                 if (res->statuses[i] == HXHIM_SUCCESS) {
                     switch (req->object_types[i]) {
                         case HXHIM_OBJECT_TYPE_FLOAT:
-                            hist->add(* (float *) objects[i]->data());
+                            hist->add(* (float *) objects[i].data());
                             break;
                         case HXHIM_OBJECT_TYPE_DOUBLE:
-                            hist->add(* (double *) objects[i]->data());
+                            hist->add(* (double *) objects[i].data());
                             break;
                         default:
                             break;
@@ -237,8 +237,7 @@ Transport::Response::BPut *hxhim::datastore::Datastore::operate(Transport::Reque
 
         if (objects) {
             for(std::size_t i = 0; i < req->count; i++) {
-                destruct(objects[i]);
-                objects[i] = nullptr;
+                objects[i].clear();
             }
         }
         dealloc_array(objects, req->count);
@@ -262,17 +261,17 @@ Transport::Response::BGet *hxhim::datastore::Datastore::operate(Transport::Reque
                     case HXHIM_OBJECT_TYPE_FLOAT:
                         {
                             float *object = construct<float>(
-                                elen::decode::floating_point<float>((std::string) *res->objects[i]));
-                            destruct(res->objects[i]);
-                            res->objects[i] = construct<RealBlob>(object, sizeof(float));
+                                elen::decode::floating_point<float>((std::string) res->objects[i]));
+                            res->objects[i].dealloc();
+                            res->objects[i] = RealBlob(object, sizeof(float));
                         }
                         break;
                     case HXHIM_OBJECT_TYPE_DOUBLE:
                         {
                             double *object = construct<double>(
-                                elen::decode::floating_point<double>((std::string) *res->objects[i]));
-                            destruct(res->objects[i]);
-                            res->objects[i] = construct<RealBlob>(object, sizeof(double));
+                                elen::decode::floating_point<double>((std::string) res->objects[i]));
+                            res->objects[i].dealloc();
+                            res->objects[i] = RealBlob(object, sizeof(double));
                         }
                         break;
                     default:

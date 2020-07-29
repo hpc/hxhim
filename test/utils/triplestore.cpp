@@ -39,7 +39,7 @@ TEST(triplestore, sp_to_key) {
     void *key = nullptr;
     std::size_t key_len;
 
-    EXPECT_EQ(sp_to_key(&sub, &pred, &key, &key_len), HXHIM_SUCCESS);
+    EXPECT_EQ(sp_to_key(sub, pred, &key, &key_len), HXHIM_SUCCESS);
 
     char *curr = (char *) key;
     EXPECT_EQ(memcmp(curr, SUBJECT, SUBJECT_LEN), 0);
@@ -66,44 +66,34 @@ TEST(triplestore, key_to_sp) {
 
     // copy
     {
-        Blob *subject = nullptr;
-        Blob *predicate = nullptr;
+        Blob subject;
+        Blob predicate;
 
-        EXPECT_EQ(key_to_sp(key, key_len, &subject, &predicate, true), HXHIM_SUCCESS);
+        EXPECT_EQ(key_to_sp(key, key_len, subject, predicate, true), HXHIM_SUCCESS);
 
-        ASSERT_NE(subject, nullptr);
-        EXPECT_NE(subject->data(), SUBJECT);
-        EXPECT_EQ(subject->size(), SUBJECT_LEN);
-        EXPECT_EQ(memcmp(subject->data(), SUBJECT, subject->size()), 0);
+        EXPECT_NE(subject.data(), SUBJECT);
+        EXPECT_EQ(subject.size(), SUBJECT_LEN);
+        EXPECT_EQ(memcmp(subject.data(), SUBJECT, subject.size()), 0);
 
-        ASSERT_NE(predicate, nullptr);
-        EXPECT_NE(predicate->data(), PREDICATE);
-        EXPECT_EQ(predicate->size(), PREDICATE_LEN);
-        EXPECT_EQ(memcmp(predicate->data(), PREDICATE, predicate->size()), 0);
-
-        destruct(subject);
-        destruct(predicate);
+        EXPECT_NE(predicate.data(), PREDICATE);
+        EXPECT_EQ(predicate.size(), PREDICATE_LEN);
+        EXPECT_EQ(memcmp(predicate.data(), PREDICATE, predicate.size()), 0);
     }
 
     // reference
     {
-        Blob *subject = nullptr;
-        Blob *predicate = nullptr;
+        Blob subject;
+        Blob predicate;
 
-        EXPECT_EQ(key_to_sp(key, key_len, &subject, &predicate, false), HXHIM_SUCCESS);
+        EXPECT_EQ(key_to_sp(key, key_len, subject, predicate, false), HXHIM_SUCCESS);
 
-        ASSERT_NE(subject, nullptr);
-        EXPECT_EQ(subject->data(), key);
-        EXPECT_EQ(subject->size(), SUBJECT_LEN);
-        EXPECT_EQ(memcmp(subject->data(), SUBJECT, subject->size()), 0);
+        EXPECT_EQ(subject.data(), key);
+        EXPECT_EQ(subject.size(), SUBJECT_LEN);
+        EXPECT_EQ(memcmp(subject.data(), SUBJECT, subject.size()), 0);
 
-        ASSERT_NE(predicate, nullptr);
-        EXPECT_EQ(predicate->data(), ((char *) key) + subject->size() + sizeof(subject->size()));
-        EXPECT_EQ(predicate->size(), PREDICATE_LEN);
-        EXPECT_EQ(memcmp(predicate->data(), PREDICATE, predicate->size()), 0);
-
-        destruct(subject);
-        destruct(predicate);
+        EXPECT_EQ(predicate.data(), ((char *) key) + subject.size() + sizeof(subject.size()));
+        EXPECT_EQ(predicate.size(), PREDICATE_LEN);
+        EXPECT_EQ(memcmp(predicate.data(), PREDICATE, predicate.size()), 0);
     }
 
     dealloc(key);

@@ -91,8 +91,8 @@ class Results {
                              const int datastore, const int status);
             virtual ~SubjectPredicate();
 
-            Blob *subject;
-            Blob *predicate;
+            Blob subject;
+            Blob predicate;
         };
 
         /** @description Convenience struct for PUT results */
@@ -107,16 +107,12 @@ class Results {
             GetBase(hxhim_t *hx, const int datastore, const int status)
                 : SubjectPredicate(hx, gettype, datastore, status),
                   object_type(hxhim_object_type_t::HXHIM_OBJECT_TYPE_INVALID),
-                  object(nullptr),
+                  object(),
                   next(nullptr)
             {}
 
-            ~GetBase() {
-                destruct(object);
-            }
-
             enum hxhim_object_type_t object_type;
-            Blob *object;
+            Blob object;
 
             struct GetBase<gettype> *next;
         };
