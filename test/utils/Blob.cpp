@@ -37,7 +37,7 @@ TEST(ReferenceBlob, null) {
     }
 }
 
-TEST(ReferenceBlob, has_data) {
+TEST(ReferenceBlob, pack_unpack) {
     void *ptr = alloc(len);
     memset(ptr, 0, len);
 
@@ -53,12 +53,29 @@ TEST(ReferenceBlob, has_data) {
 
     // pack the reference blob
     {
-        void *packed = alloc(len + sizeof(len));
+        void *packed = alloc(refblob.pack_size());
         char *curr = (char *) packed;
         ASSERT_NE(refblob.pack(curr), nullptr);
-        EXPECT_EQ(curr, ((char *) packed) + (len + sizeof(len)));
+        EXPECT_EQ(curr, ((char *) packed) + refblob.pack_size());
 
-        // reference blob does not have a method to unpack
+        // reference blob does not have a method to unpack the actual data
+
+        dealloc(packed);
+    }
+
+    // pack the reference instead of the data being pointed to
+    {
+        void *packed = alloc(refblob.pack_ref_size());
+        char *curr = (char *) packed;
+        ASSERT_NE(refblob.pack_ref(curr), nullptr);
+        EXPECT_EQ(curr, ((char *) packed) + refblob.pack_ref_size());
+
+        // unpack the packed data
+        curr = (char *) packed;
+        ReferenceBlob unpacked;
+        EXPECT_NE(unpacked.unpack_ref(curr), nullptr);
+        EXPECT_EQ(unpacked.data(), refblob.data());
+        EXPECT_EQ(unpacked.size(), refblob.size());
 
         dealloc(packed);
     }
@@ -66,23 +83,42 @@ TEST(ReferenceBlob, has_data) {
     dealloc(ptr);
 }
 
-TEST(ReferenceBlob, reference) {
-    ReferenceBlob src(&src, rand());
+TEST(ReferenceBlob, assignment) {
+    void *ptr = alloc(len);
 
-    const std::size_t buf_size = sizeof(src.data()) + sizeof(src.size());
-    char *buf = new char[buf_size];
-    char *curr = buf;
+    // assignment
+    {
+        ReferenceBlob rhs(ptr, len);
+        ReferenceBlob lhs(nullptr, 0);
 
-    EXPECT_EQ(src.pack_ref(curr), buf + buf_size);
+        lhs = rhs;
 
-    curr = buf;
+        // pointer and length overwritten with rhs values
+        EXPECT_EQ(lhs.data(), ptr);
+        EXPECT_EQ(lhs.size(), len);
 
-    ReferenceBlob dst;
-    EXPECT_EQ(dst.unpack_ref(curr), buf + buf_size);
-    EXPECT_EQ(src.data(), dst.data());
-    EXPECT_EQ(src.size(), dst.size());
+        // rhs did not change
+        EXPECT_EQ(rhs.data(), ptr);
+        EXPECT_EQ(rhs.size(), len);
+    }
 
-    delete [] buf;
+    // move assignment
+    {
+        ReferenceBlob rhs(ptr, len);
+        ReferenceBlob lhs(nullptr, 0);
+
+        lhs = std::move(rhs);
+
+        // pointer and length overwritten with rhs values
+        EXPECT_EQ(lhs.data(), ptr);
+        EXPECT_EQ(lhs.size(), len);
+
+        // rhs did not change
+        EXPECT_EQ(rhs.data(), ptr);
+        EXPECT_EQ(rhs.size(), len);
+    }
+
+    dealloc(ptr);
 }
 
 TEST(RealBlob, null) {
@@ -113,7 +149,7 @@ TEST(RealBlob, null) {
     }
 }
 
-TEST(RealBlob, has_data) {
+TEST(RealBlob, pack_unpack) {
     void *ptr = alloc(len);
     memset(ptr, 0, len);
 
@@ -129,7 +165,7 @@ TEST(RealBlob, has_data) {
 
     // pack the real blob
     {
-        void *packed = alloc(len + sizeof(len));
+        void *packed = alloc(realblob.pack_size());
         char *curr = (char *) packed;
         ASSERT_NE(realblob.pack(curr), nullptr);
         EXPECT_EQ(curr, ((char *) packed) + (len + sizeof(len)));
@@ -160,22 +196,40 @@ TEST(RealBlob, has_data) {
     // do not deallocate ptr, since realblob took ownership
 }
 
-TEST(RealBlob, move) {
-    void *ptr = alloc(len);
-    memset(ptr, 0, len);
+TEST(RealBlob, assignment) {
+    // assignment
+    {
+        void *ptr = alloc(len);
 
-    RealBlob src(ptr, len);
-    RealBlob move_constructor(std::move(src));
+        RealBlob rhs(ptr, len);
+        RealBlob lhs(nullptr, 0);
 
-    EXPECT_EQ(src.data(), nullptr);
-    EXPECT_EQ(src.size(), (std::size_t) 0);
-    EXPECT_EQ(move_constructor.data(), ptr);
-    EXPECT_EQ(move_constructor.size(), len);
+        lhs = rhs;
 
-    RealBlob move_assignment;
-    EXPECT_EQ(move_assignment.data(), nullptr);
-    EXPECT_EQ(move_assignment.size(), (std::size_t) 0);
-    move_assignment = std::move(move_constructor);
-    EXPECT_EQ(move_assignment.data(), ptr);
-    EXPECT_EQ(move_assignment.size(), len);
+        // pointer and length overwritten with rhs values
+        EXPECT_EQ(lhs.data(), ptr);
+        EXPECT_EQ(lhs.size(), len);
+
+        // rhs zeroed
+        EXPECT_EQ(rhs.data(), nullptr);
+        EXPECT_EQ(rhs.size(), 0);
+    }
+
+    // move assignment
+    {
+        void *ptr = alloc(len);
+
+        RealBlob rhs(ptr, len);
+        RealBlob lhs(nullptr, 0);
+
+        lhs = std::move(rhs);
+
+        // pointer and length overwritten with rhs values
+        EXPECT_EQ(lhs.data(), ptr);
+        EXPECT_EQ(lhs.size(), len);
+
+        // rhs zeroed
+        EXPECT_EQ(rhs.data(), nullptr);
+        EXPECT_EQ(rhs.size(), 0);
+    }
 }

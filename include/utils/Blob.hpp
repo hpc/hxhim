@@ -9,15 +9,24 @@
  * A simple struct to hold some data and its size.
  * The ptr is not deallocated.
  *
- * The values are intentionally left public to
- * allow for writing to them.
+ * If the rhs is a reference, it is copied
+ * If the rhs is real, it is moved
+ * lhs is always overwritten with no reguards to its type
  */
 class Blob {
     public:
-        Blob(void *ptr = nullptr, const std::size_t len = 0);
-        Blob(Blob * blob);
+        Blob(void *ptr = nullptr, const std::size_t len = 0, const bool clean = false);
+        Blob(Blob &rhs);
+        Blob(Blob &&rhs);
+        Blob(Blob *rhs);
 
         virtual ~Blob();
+
+        Blob &operator=(Blob &rhs);
+        Blob &operator=(Blob &&rhs);
+
+        void clear();   // only null
+        void dealloc(); // only deallocate if clean == true, and then null
 
         // read to a blob of memory
         // the blob argument is assumed to be defined and large enough to fit the data
@@ -39,47 +48,48 @@ class Blob {
     protected:
         void *ptr;
         std::size_t len;
+        bool clean;         // whether or not to call dealloc in destructor
 };
 
 /**
  * ReferenceBlob
- * A Blob with the ability to unpack references
- * since doing so does not break pointer ownership
+ * Does not have ownership of its pointer
  */
 class ReferenceBlob : public Blob {
     public:
         ReferenceBlob(void *ptr = nullptr, const std::size_t len = 0);
-        ReferenceBlob(ReferenceBlob *blob);
+        ReferenceBlob(ReferenceBlob &rhs);
+        ReferenceBlob(ReferenceBlob &&rhs);
+        ReferenceBlob(ReferenceBlob *rhs);
+
+        ReferenceBlob &operator=(ReferenceBlob &rhs);
+        ReferenceBlob &operator=(ReferenceBlob &&rhs);
 
         char *unpack_ref(char *&src);
 };
 
 /**
  * RealBlob
- * Takes ownership of ptr and deallocates it upon destruction
- * Overwriting old values does not deallocate them.
+ * Has ownership of its pointer
  */
 class RealBlob : public Blob {
     public:
-        // take ownership of ptr
+        // take ownership of ptr and deallocate it when destructing
         RealBlob(void *ptr = nullptr, const std::size_t len = 0);
+
+        // rhs.ptr is set to nullptr
+        RealBlob(RealBlob &rhs);
+        RealBlob(RealBlob &&rhs);
 
         // read from a blob of memory and create a deep copy
         // (length is not known)
-        RealBlob(char *&blob);
+        RealBlob(char *&rhs);
 
         // length and data are known, but data needs to be copied
         RealBlob(const std::size_t len, const void *blob);
 
-        RealBlob(const RealBlob &) = delete;
-        RealBlob(RealBlob *) = delete;
-
-        RealBlob(RealBlob &&blob);
-
-        ~RealBlob();
-
-        RealBlob &operator=(const RealBlob &) = delete;
-        RealBlob &operator=(RealBlob &&blob);
+        RealBlob &operator=(RealBlob &rhs);
+        RealBlob &operator=(RealBlob &&rhs);
 };
 
 #endif

@@ -1,20 +1,67 @@
 #include <cstring>
 #include <stdexcept>
+#include <utility>
 
 #include "utils/Blob.hpp"
 #include "utils/big_endian.hpp"
 #include "utils/memory.hpp"
 
-Blob::Blob(void *ptr, const std::size_t len)
+Blob::Blob(void *ptr, const std::size_t len, const bool clean)
     : ptr(ptr),
-      len(len)
+      len(len),
+      clean(clean)
 {}
 
-Blob::~Blob() {}
-
-Blob::Blob(Blob * blob)
-    : Blob(blob->ptr, blob->len)
+// equivalent to the move constructor
+Blob::Blob(Blob &rhs)
+    : Blob(std::move(rhs))
 {}
+
+Blob::Blob(Blob &&rhs)
+    : Blob(rhs.ptr, rhs.len, rhs.clean)
+{
+    rhs.clear();
+}
+
+Blob::Blob(Blob *rhs)
+    : Blob(*rhs)
+{}
+
+Blob::~Blob() {
+    Blob::dealloc();
+}
+
+// equivalent to move assignment
+Blob& Blob::operator=(Blob &rhs) {
+    return (*this = std::move(rhs));
+}
+
+Blob& Blob::operator=(Blob &&rhs) {
+    if (this != &rhs) {
+        ptr = rhs.ptr;
+        len = rhs.len;
+        clean = rhs.clean;
+
+        if (rhs.clean) {
+            rhs.clear();
+        }
+    }
+
+    return *this;
+}
+
+void Blob::clear() {
+    ptr = nullptr;
+    len = 0;
+    clean = false;
+}
+
+void Blob::dealloc() {
+    if (clean) {
+        ::dealloc(ptr);
+    }
+    clear();
+}
 
 // read to a blob of memory
 // the blob argument is assumed to be defined and large enough to fit the data
@@ -87,12 +134,29 @@ Blob::operator std::string() const {
 }
 
 ReferenceBlob::ReferenceBlob(void *ptr, const std::size_t len)
-    : Blob(ptr, len)
+    : Blob(ptr, len, false)
 {}
 
-ReferenceBlob::ReferenceBlob(ReferenceBlob *blob)
-    : Blob(blob)
+ReferenceBlob::ReferenceBlob(ReferenceBlob &rhs)
+    : Blob(rhs)
 {}
+
+ReferenceBlob::ReferenceBlob(ReferenceBlob &&rhs)
+    : Blob(rhs)
+{}
+
+ReferenceBlob::ReferenceBlob(ReferenceBlob *rhs)
+    : Blob(rhs)
+{}
+
+ReferenceBlob &ReferenceBlob::operator=(ReferenceBlob &rhs) {
+    return (*this = std::move(rhs));
+}
+
+ReferenceBlob &ReferenceBlob::operator=(ReferenceBlob &&rhs) {
+    Blob::operator=(rhs);
+    return *this;
+}
 
 char *ReferenceBlob::unpack_ref(char *&src) {
     if (!src) {
@@ -110,52 +174,48 @@ char *ReferenceBlob::unpack_ref(char *&src) {
 
 // take ownership of ptr
 RealBlob::RealBlob(void *ptr, const std::size_t len)
-    : Blob(ptr, len)
+    : Blob(ptr, len, true)
+{}
+
+RealBlob::RealBlob(RealBlob &rhs)
+    : Blob(rhs)
+{}
+
+RealBlob::RealBlob(RealBlob &&rhs)
+    : Blob(rhs)
 {}
 
 // read from a blob of memory and create a deep copy
 // (length is not known)
-RealBlob::RealBlob(char *&blob)
-    : Blob(nullptr, 0)
+RealBlob::RealBlob(char *&rhs)
+    : Blob(nullptr, 0, true)
 {
-    if (!blob) {
+    if (!rhs) {
         throw std::runtime_error("unable to unpack blob");
     }
 
-    decode_unsigned(len, blob);
-    blob += sizeof(len);
+    decode_unsigned(len, rhs);
+    rhs += sizeof(len);
 
     ptr = alloc(len);
-    memcpy(ptr, blob, len);
-    blob += len;
+    memcpy(ptr, rhs, len);
+    rhs += len;
 }
 
 // length and data are known, but data needs to be copied
 RealBlob::RealBlob(const std::size_t len, const void *blob)
-    : Blob(alloc(len), len)
+    : Blob(alloc(len), len, true)
 {
     if (blob) {
         memcpy(ptr, blob, len);
     }
 }
 
-RealBlob::RealBlob(RealBlob &&blob)
-    : Blob(blob.ptr, blob.len)
-{
-    blob.ptr = nullptr;
-    blob.len = 0;
+RealBlob &RealBlob::operator=(RealBlob &rhs) {
+    return (*this = std::move(rhs));
 }
 
-RealBlob::~RealBlob() {
-    dealloc(ptr);
-}
-
-RealBlob &RealBlob::operator=(RealBlob &&blob) {
-    ptr = blob.ptr;
-    len = blob.len;
-
-    blob.ptr = nullptr;
-    blob.len = 0;
-
+RealBlob &RealBlob::operator=(RealBlob &&rhs) {
+    Blob::operator=(rhs);
     return *this;
 }
