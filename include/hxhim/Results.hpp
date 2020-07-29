@@ -183,9 +183,6 @@ class Results {
         int Histogram(double **buckets, std::size_t **counts, std::size_t *size) const;
 
         // These functions are only available in C++
-        int Subject(ReferenceBlob *subject) const;
-        int Predicate(ReferenceBlob *predicate) const;
-        int Object(ReferenceBlob *object) const;
         int Histogram(::Histogram::Histogram **hist) const;
         int Timestamps(struct Result::Timestamps **timestamps) const;
 

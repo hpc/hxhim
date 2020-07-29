@@ -9,227 +9,315 @@
 
 const std::size_t len = 1024;
 
-TEST(ReferenceBlob, null) {
-    // nullptr, zero len
-    {
-        ReferenceBlob nullblob(nullptr, 0);
-        EXPECT_EQ(nullblob.data(), nullptr);
-        EXPECT_EQ(nullblob.size(), (std::size_t) 0);
+TEST(Blob, null) {
+    Blob blob;
+    EXPECT_EQ(blob.data(), nullptr);
+    EXPECT_EQ(blob.size(), 0);
 
-        char *ptr = nullptr;
-        EXPECT_EQ(nullblob.pack(ptr), nullptr);
+    Blob ref (ReferenceBlob(nullptr, 0));
+    EXPECT_EQ(ref.data(), nullptr);
+    EXPECT_EQ(ref.size(), 0);
+    EXPECT_EQ(ref.will_clean(), false);
 
-        ptr = (char *) (uintptr_t) rand();
-        EXPECT_EQ(nullblob.pack(ptr), nullptr);
-    }
-
-    // nullptr, non-zero len
-    {
-        ReferenceBlob nullblob_with_len(nullptr, len);
-        EXPECT_EQ(nullblob_with_len.data(), nullptr);
-        EXPECT_EQ(nullblob_with_len.size(), len);
-
-        char *ptr = nullptr;
-        EXPECT_EQ(nullblob_with_len.pack(ptr), nullptr);
-
-        ptr = (char *) (uintptr_t) rand();
-        EXPECT_EQ(nullblob_with_len.pack(ptr), nullptr);
-    }
+    Blob real(RealBlob(nullptr, 0));
+    EXPECT_EQ(real.data(), nullptr);
+    EXPECT_EQ(real.size(), 0);
+    EXPECT_EQ(real.will_clean(), true);
 }
 
-TEST(ReferenceBlob, pack_unpack) {
-    void *ptr = alloc(len);
-    memset(ptr, 0, len);
-
-    ReferenceBlob refblob(ptr, len);
-    EXPECT_EQ(refblob.data(), ptr);
-    EXPECT_EQ(refblob.size(), len);
-
-    // pack into a nullptr
-    {
-        char *null = nullptr;
-        EXPECT_EQ(refblob.pack(null), nullptr);
-    }
-
-    // pack the reference blob
-    {
-        void *packed = alloc(refblob.pack_size());
-        char *curr = (char *) packed;
-        ASSERT_NE(refblob.pack(curr), nullptr);
-        EXPECT_EQ(curr, ((char *) packed) + refblob.pack_size());
-
-        // reference blob does not have a method to unpack the actual data
-
-        dealloc(packed);
-    }
-
-    // pack the reference instead of the data being pointed to
-    {
-        void *packed = alloc(refblob.pack_ref_size());
-        char *curr = (char *) packed;
-        ASSERT_NE(refblob.pack_ref(curr), nullptr);
-        EXPECT_EQ(curr, ((char *) packed) + refblob.pack_ref_size());
-
-        // unpack the packed data
-        curr = (char *) packed;
-        ReferenceBlob unpacked;
-        EXPECT_NE(unpacked.unpack_ref(curr), nullptr);
-        EXPECT_EQ(unpacked.data(), refblob.data());
-        EXPECT_EQ(unpacked.size(), refblob.size());
-
-        dealloc(packed);
-    }
-
-    dealloc(ptr);
-}
-
-TEST(ReferenceBlob, assignment) {
+TEST(Blob, non_null) {
     void *ptr = alloc(len);
 
-    // assignment
-    {
-        ReferenceBlob rhs(ptr, len);
-        ReferenceBlob lhs(nullptr, 0);
+    Blob ref (ReferenceBlob(ptr, len));
+    EXPECT_EQ(ref.data(), ptr);
+    EXPECT_EQ(ref.size(), len);
+    EXPECT_EQ(ref.will_clean(), false);
 
-        lhs = rhs;
+    Blob real(RealBlob(ptr, len));
+    EXPECT_EQ(real.data(), ptr);
+    EXPECT_EQ(real.size(), len);
+    EXPECT_EQ(real.will_clean(), true);
 
-        // pointer and length overwritten with rhs values
-        EXPECT_EQ(lhs.data(), ptr);
-        EXPECT_EQ(lhs.size(), len);
-
-        // rhs did not change
-        EXPECT_EQ(rhs.data(), ptr);
-        EXPECT_EQ(rhs.size(), len);
-    }
-
-    // move assignment
-    {
-        ReferenceBlob rhs(ptr, len);
-        ReferenceBlob lhs(nullptr, 0);
-
-        lhs = std::move(rhs);
-
-        // pointer and length overwritten with rhs values
-        EXPECT_EQ(lhs.data(), ptr);
-        EXPECT_EQ(lhs.size(), len);
-
-        // rhs did not change
-        EXPECT_EQ(rhs.data(), ptr);
-        EXPECT_EQ(rhs.size(), len);
-    }
-
-    dealloc(ptr);
+    // pointer is deallocated automatically
 }
 
-TEST(RealBlob, null) {
-    // nullptr, zero len
-    {
-        RealBlob nullblob(nullptr, 0);
-        EXPECT_EQ(nullblob.data(), nullptr);
-        EXPECT_EQ(nullblob.size(), (std::size_t) 0);
-
-        char *ptr = nullptr;
-        EXPECT_EQ(nullblob.pack(ptr), nullptr);
-
-        ptr = (char *) (uintptr_t) rand();
-        EXPECT_EQ(nullblob.pack(ptr), nullptr);
-    }
-
-    // nullptr, non-zero len
-    {
-        RealBlob nullblob_with_len(nullptr, len);
-        EXPECT_EQ(nullblob_with_len.data(), nullptr);
-        EXPECT_EQ(nullblob_with_len.size(), len);
-
-        char *ptr = nullptr;
-        EXPECT_EQ(nullblob_with_len.pack(ptr), nullptr);
-
-        ptr = (char *) (uintptr_t) rand();
-        EXPECT_EQ(nullblob_with_len.pack(ptr), nullptr);
-    }
-}
-
-TEST(RealBlob, pack_unpack) {
-    void *ptr = alloc(len);
-    memset(ptr, 0, len);
-
-    RealBlob realblob(ptr, len);
-    EXPECT_EQ(realblob.data(), ptr);
-    EXPECT_EQ(realblob.size(), len);
-
-    // pack into a nullptr
-    {
-        char *null = nullptr;
-        EXPECT_EQ(realblob.pack(null), nullptr);
-    }
-
-    // pack the real blob
-    {
-        void *packed = alloc(realblob.pack_size());
-        char *curr = (char *) packed;
-        ASSERT_NE(realblob.pack(curr), nullptr);
-        EXPECT_EQ(curr, ((char *) packed) + (len + sizeof(len)));
-
-        // unpack with unknown length constructor
-        {
-            char *curr = (char *) packed;
-            RealBlob unknown_len(curr);
-            EXPECT_EQ(curr, ((char *) packed) + len + sizeof(len));                        // pointer shifted
-            EXPECT_EQ(unknown_len.size(), realblob.size());                                // length matches
-            EXPECT_NE(unknown_len.data(), realblob.data());                                // not a reference
-            EXPECT_EQ(memcmp(realblob.data(), unknown_len.data(), unknown_len.size()), 0); // data matches
-        }
-
-        dealloc(packed);
-    }
-
-    // length and data are known, but data needs to be copied
-    {
-        char *curr = (char *) ptr;
-        RealBlob copy(len, curr);
-        EXPECT_EQ(curr, ((char *) ptr));                       // pointer did not shift
-        EXPECT_EQ(copy.size(), len);                           // length matches
-        EXPECT_NE(copy.data(), ptr);                           // not a reference
-        EXPECT_EQ(memcmp(ptr, copy.data(), copy.size()), 0);   // data matches
-    }
-
-    // do not deallocate ptr, since realblob took ownership
-}
-
-TEST(RealBlob, assignment) {
-    // assignment
+TEST(Blob, assignment) {
+    // ref -> ref
     {
         void *ptr = alloc(len);
 
-        RealBlob rhs(ptr, len);
-        RealBlob lhs(nullptr, 0);
+        Blob src(ReferenceBlob(ptr, len));
+        EXPECT_EQ(src.data(), ptr);
+        EXPECT_EQ(src.size(), len);
+        EXPECT_EQ(src.will_clean(), false);
 
-        lhs = rhs;
+        Blob dst(ReferenceBlob(nullptr, 0));
+        EXPECT_EQ(dst.data(), nullptr);
+        EXPECT_EQ(dst.size(), 0);
+        EXPECT_EQ(dst.will_clean(), false);
 
-        // pointer and length overwritten with rhs values
-        EXPECT_EQ(lhs.data(), ptr);
-        EXPECT_EQ(lhs.size(), len);
+        dst = src;
 
-        // rhs zeroed
-        EXPECT_EQ(rhs.data(), nullptr);
-        EXPECT_EQ(rhs.size(), 0);
+        // dst gets src
+        EXPECT_EQ(dst.data(), ptr);
+        EXPECT_EQ(dst.size(), len);
+        EXPECT_EQ(dst.will_clean(), false);
+
+        // src doesn't change
+        EXPECT_EQ(src.data(), ptr);
+        EXPECT_EQ(src.size(), len);
+        EXPECT_EQ(src.will_clean(), false);
+
+        dealloc(ptr);
     }
 
-    // move assignment
+    // real -> real
     {
         void *ptr = alloc(len);
 
-        RealBlob rhs(ptr, len);
-        RealBlob lhs(nullptr, 0);
+        Blob src(RealBlob(ptr, len));
+        EXPECT_EQ(src.data(), ptr);
+        EXPECT_EQ(src.size(), len);
+        EXPECT_EQ(src.will_clean(), true);
 
-        lhs = std::move(rhs);
+        Blob dst(RealBlob(nullptr, 0));
+        EXPECT_EQ(dst.data(), nullptr);
+        EXPECT_EQ(dst.size(), 0);
+        EXPECT_EQ(dst.will_clean(), true);
 
-        // pointer and length overwritten with rhs values
-        EXPECT_EQ(lhs.data(), ptr);
-        EXPECT_EQ(lhs.size(), len);
+        dst = src;
 
-        // rhs zeroed
-        EXPECT_EQ(rhs.data(), nullptr);
-        EXPECT_EQ(rhs.size(), 0);
+        // dst gets src
+        EXPECT_EQ(dst.data(), ptr);
+        EXPECT_EQ(dst.size(), len);
+        EXPECT_EQ(dst.will_clean(), true);
+
+        // src is nulled
+        EXPECT_EQ(src.data(), nullptr);
+        EXPECT_EQ(src.size(), 0);
+        EXPECT_EQ(src.will_clean(), false);
+
+        // pointer is deallocated automatically
     }
+
+    // ref -> real
+    {
+        void *ptr = alloc(len);
+
+        Blob src(ReferenceBlob(ptr, len));
+        EXPECT_EQ(src.data(), ptr);
+        EXPECT_EQ(src.size(), len);
+        EXPECT_EQ(src.will_clean(), false);
+
+        Blob dst(RealBlob(nullptr, 0));
+        EXPECT_EQ(dst.data(), nullptr);
+        EXPECT_EQ(dst.size(), 0);
+        EXPECT_EQ(dst.will_clean(), true);
+
+        dst = src;
+
+        // dst gets src
+        EXPECT_EQ(dst.data(), ptr);
+        EXPECT_EQ(dst.size(), len);
+        EXPECT_EQ(dst.will_clean(), false);
+
+        // src doesn't change
+        EXPECT_EQ(src.data(), ptr);
+        EXPECT_EQ(src.size(), len);
+        EXPECT_EQ(src.will_clean(), false);
+
+        // need to deallocate since the real became a reference
+        dealloc(ptr);
+    }
+
+    // real -> ref
+    {
+        void *ptr = alloc(len);
+
+        Blob src(RealBlob(ptr, len));
+        EXPECT_EQ(src.data(), ptr);
+        EXPECT_EQ(src.size(), len);
+        EXPECT_EQ(src.will_clean(), true);
+
+        Blob dst(ReferenceBlob(nullptr, 0));
+        EXPECT_EQ(dst.data(), nullptr);
+        EXPECT_EQ(dst.size(), 0);
+        EXPECT_EQ(dst.will_clean(), false);
+
+        dst = src;
+
+        // dst gets src
+        EXPECT_EQ(dst.data(), ptr);
+        EXPECT_EQ(dst.size(), len);
+        EXPECT_EQ(dst.will_clean(), true);
+
+        // src is nulled
+        EXPECT_EQ(src.data(), nullptr);
+        EXPECT_EQ(src.size(), 0);
+        EXPECT_EQ(src.will_clean(), false);
+
+        // pointer is deallocated automatically
+    }
+}
+
+
+TEST(Blob, pack_unpack) {
+    // reference
+    {
+        void *src_ptr = alloc(len);
+        memset(src_ptr, 0, len);
+
+        Blob src(ReferenceBlob(src_ptr, len));
+        EXPECT_EQ(src.data(), src_ptr);
+        EXPECT_EQ(src.size(), len);
+        EXPECT_EQ(src.will_clean(), false);
+
+        void *packed = alloc(src.pack_size());
+        char *head = (char *) packed;
+
+        EXPECT_EQ(src.pack(head), ((char *) packed) + src.pack_size());
+
+        head = (char *) packed;
+
+        Blob dst(ReferenceBlob(nullptr, 0));
+        EXPECT_EQ(dst.unpack(head), ((char *) packed) + src.pack_size());
+
+        EXPECT_EQ(src.size(), dst.size());
+        EXPECT_EQ(memcmp(src.data(), dst.data(), dst.size()), 0);
+        EXPECT_EQ(dst.will_clean(), true); // reference was converted to real
+
+        dealloc(packed);
+        dealloc(src_ptr);
+    }
+
+    // real
+    {
+        void *src_ptr = alloc(len);
+        memset(src_ptr, 0, len);
+
+        Blob src(RealBlob(src_ptr, len));
+        EXPECT_EQ(src.data(), src_ptr);
+        EXPECT_EQ(src.size(), len);
+        EXPECT_EQ(src.will_clean(), true);
+
+        void *packed = alloc(src.pack_size());
+        char *head = (char *) packed;
+
+        EXPECT_EQ(src.pack(head), ((char *) packed) + src.pack_size());
+
+        head = (char *) packed;
+
+        Blob dst(RealBlob(nullptr, 0));
+        EXPECT_EQ(dst.unpack(head), ((char *) packed) + src.pack_size());
+
+        EXPECT_EQ(src.size(), dst.size());
+        EXPECT_EQ(memcmp(src.data(), dst.data(), dst.size()), 0);
+        EXPECT_EQ(dst.will_clean(), true);
+
+        dealloc(packed);
+        // src_ptr is deallocated manually
+    }
+}
+
+TEST(Blob, pack_unpack_ref) {
+    // reference
+    {
+        void *src_ptr = alloc(len);
+        memset(src_ptr, 0, len);
+
+        Blob src(ReferenceBlob(src_ptr, len));
+        EXPECT_EQ(src.data(), src_ptr);
+        EXPECT_EQ(src.size(), len);
+        EXPECT_EQ(src.will_clean(), false);
+
+        void *packed = alloc(src.pack_ref_size());
+        char *head = (char *) packed;
+
+        EXPECT_EQ(src.pack_ref(head), ((char *) packed) + src.pack_ref_size());
+
+        head = (char *) packed;
+
+        Blob dst(ReferenceBlob(nullptr, 0));
+        EXPECT_EQ(dst.unpack_ref(head), ((char *) packed) + src.pack_ref_size());
+
+        EXPECT_EQ(src.size(), dst.size());
+        EXPECT_EQ(memcmp(src.data(), dst.data(), dst.size()), 0);
+        EXPECT_EQ(dst.will_clean(), false); // reference is still a reference
+
+        dealloc(packed);
+        dealloc(src_ptr);
+    }
+
+    // real
+    {
+        void *src_ptr = alloc(len);
+        memset(src_ptr, 0, len);
+
+        Blob src(RealBlob(src_ptr, len));
+        EXPECT_EQ(src.data(), src_ptr);
+        EXPECT_EQ(src.size(), len);
+        EXPECT_EQ(src.will_clean(), true);
+
+        void *packed = alloc(src.pack_ref_size());
+        char *head = (char *) packed;
+
+        EXPECT_EQ(src.pack_ref(head), ((char *) packed) + src.pack_ref_size());
+
+        head = (char *) packed;
+
+        Blob dst(RealBlob(nullptr, 0));
+        EXPECT_EQ(dst.unpack_ref(head), ((char *) packed) + src.pack_ref_size());
+
+        EXPECT_EQ(src.size(), dst.size());
+        EXPECT_EQ(memcmp(src.data(), dst.data(), dst.size()), 0);
+        EXPECT_EQ(dst.will_clean(), false); // real was converted to reference
+
+        dealloc(packed);
+        // src_ptr is deallocated manually
+    }
+}
+
+TEST(Blob, get) {
+    void *ptr = alloc(len);
+
+    Blob ref (ReferenceBlob(ptr, len));
+    EXPECT_EQ(ref.data(), ptr);
+    EXPECT_EQ(ref.size(), len);
+    EXPECT_EQ(ref.will_clean(), false);
+    {
+        void *get_ptr = nullptr;
+        std::size_t get_len = 0;
+        ref.get(&get_ptr, &get_len);
+
+        EXPECT_EQ(ptr, get_ptr);
+        EXPECT_EQ(len, get_len);
+    }
+
+    Blob real(RealBlob(ptr, len));
+    EXPECT_EQ(real.data(), ptr);
+    EXPECT_EQ(real.size(), len);
+    EXPECT_EQ(real.will_clean(), true);
+    {
+        void *get_ptr = nullptr;
+        std::size_t get_len = 0;
+        ref.get(&get_ptr, &get_len);
+
+        EXPECT_EQ(ptr, get_ptr);
+        EXPECT_EQ(len, get_len);
+    }
+
+    // pointer is deallocated automatically
+}
+
+TEST(Blob, string) {
+    void *str = alloc(len);
+    memset(str, 'A', len);
+
+    Blob ref (ReferenceBlob(str, len));
+    EXPECT_EQ((std::string) ref,  std::string(len, 'A'));
+
+    Blob real(RealBlob(str, len));
+    EXPECT_EQ((std::string) real, std::string(len, 'A'));
+
+    // str is deallocated automatically
 }

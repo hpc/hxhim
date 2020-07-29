@@ -97,14 +97,14 @@ int Unpacker::unpack(Request::BPut **bpm, void *buf, const std::size_t bufsize) 
 
     for(std::size_t i = 0; i < out->max_count; i++) {
         // subject + len
-        out->subjects[i] = RealBlob(curr);
+        out->subjects[i].unpack(curr);
 
         // subject addr
         memcpy(&out->orig.subjects[i], curr, sizeof(out->orig.subjects[i]));
         curr += sizeof(out->orig.subjects[i]);
 
         // predicate + len
-        out->predicates[i] = RealBlob(curr);
+        out->predicates[i].unpack(curr);
 
         // predicate addr
         memcpy(&out->orig.predicates[i], curr, sizeof(out->orig.predicates[i]));
@@ -113,7 +113,7 @@ int Unpacker::unpack(Request::BPut **bpm, void *buf, const std::size_t bufsize) 
         // object type + object + len
         memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
         curr += sizeof(out->object_types[i]);
-        out->objects[i] = RealBlob(curr);
+        out->objects[i].unpack(curr);
 
         out->count++;
     }
@@ -132,13 +132,13 @@ int Unpacker::unpack(Request::BGet **bgm, void *buf, const std::size_t bufsize) 
 
     for(std::size_t i = 0; i < out->max_count; i++) {
         // subject
-        out->subjects[i] = RealBlob(curr);
+        out->subjects[i].unpack(curr);
 
         // subject addr
         unpack_addr(&out->orig.subjects[i], curr);
 
         // predicate
-        out->predicates[i] = RealBlob(curr);
+        out->predicates[i].unpack(curr);
 
         // predicate addr
         unpack_addr(&out->orig.predicates[i], curr);
@@ -170,10 +170,10 @@ int Unpacker::unpack(Request::BGetOp **bgm, void *buf, const std::size_t bufsize
         if ((out->ops[i] != hxhim_get_op_t::HXHIM_GET_FIRST) &&
             (out->ops[i] != hxhim_get_op_t::HXHIM_GET_LAST))  {
             // subject
-            out->subjects[i] = RealBlob(curr);
+            out->subjects[i].unpack(curr);
 
             // predicate
-            out->predicates[i] = RealBlob(curr);
+            out->predicates[i].unpack(curr);
         }
 
         // object type
@@ -201,13 +201,13 @@ int Unpacker::unpack(Request::BDelete **bdm, void *buf, const std::size_t bufsiz
 
     for(std::size_t i = 0; i < out->max_count; i++) {
         // subject
-        out->subjects[i] = RealBlob(curr);
+        out->subjects[i].unpack(curr);
 
         // subject addr
         unpack_addr(&out->orig.subjects[i], curr);
 
         // predicate
-        out->predicates[i] = RealBlob(curr);
+        out->predicates[i].unpack(curr);
 
         // predicate addr
         unpack_addr(&out->orig.predicates[i], curr);
@@ -316,14 +316,10 @@ int Unpacker::unpack(Response::BPut **bpm, void *buf, const std::size_t bufsize)
         curr += sizeof(out->statuses[i]);
 
         // original subject addr + len
-        ReferenceBlob subject;
-        subject.unpack_ref(curr);
-        out->orig.subjects[i] = subject;
+        out->orig.subjects[i].unpack_ref(curr);
 
         // original predicate addr + len
-        ReferenceBlob predicate;
-        predicate.unpack_ref(curr);
-        out->orig.predicates[i] = predicate;
+        out->orig.predicates[i].unpack_ref(curr);
 
         out->count++;
     }
@@ -345,14 +341,10 @@ int Unpacker::unpack(Response::BGet **bgm, void *buf, const std::size_t bufsize)
         curr += sizeof(out->statuses[i]);
 
         // original subject addr + len
-        ReferenceBlob subject;
-        subject.unpack_ref(curr);
-        out->orig.subjects[i] = subject;
+        out->orig.subjects[i].unpack_ref(curr);
 
         // original predicate addr + len
-        ReferenceBlob predicate;
-        predicate.unpack_ref(curr);
-        out->orig.predicates[i] = predicate;
+        out->orig.predicates[i].unpack_ref(curr);
 
         // object type
         memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
@@ -361,7 +353,7 @@ int Unpacker::unpack(Response::BGet **bgm, void *buf, const std::size_t bufsize)
         // object
         // unpack into user pointers
         if (out->statuses[i] == HXHIM_SUCCESS) {
-            out->objects[i] = RealBlob(curr);
+            out->objects[i].unpack(curr);
         }
 
         out->count++;
@@ -399,14 +391,14 @@ int Unpacker::unpack(Response::BGetOp **bgm, void *buf, const std::size_t bufsiz
 
         for(std::size_t j = 0; j < out->num_recs[i]; j++) {
             // subject
-            out->subjects[i][j] = RealBlob(curr);
+            out->subjects[i][j].unpack(curr);
 
             // predicate
-            out->predicates[i][j] = RealBlob(curr);
+            out->predicates[i][j].unpack(curr);
 
             if (out->statuses[i] == HXHIM_SUCCESS) {
                 // object
-                out->objects[i][j] = RealBlob(curr);
+                out->objects[i][j].unpack(curr);
             }
         }
 
@@ -430,14 +422,10 @@ int Unpacker::unpack(Response::BDelete **bdm, void *buf, const std::size_t bufsi
         curr += sizeof(out->statuses[i]);
 
         // original subject addr + len
-        ReferenceBlob subject;
-        subject.unpack_ref(curr);
-        out->orig.subjects[i] = subject;
+        out->orig.subjects[i].unpack_ref(curr);
 
         // original predicate addr + len
-        ReferenceBlob predicate;
-        predicate.unpack_ref(curr);
-        out->orig.predicates[i] = predicate;
+        out->orig.predicates[i].unpack_ref(curr);
 
         out->count++;
     }

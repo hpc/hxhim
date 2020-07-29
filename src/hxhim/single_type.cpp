@@ -22,10 +22,10 @@ int hxhim::BPutSingleType(hxhim_t *hx,
 
     for(std::size_t i = 0; i < count; i++) {
         hxhim::PutImpl(hx->p->queues.puts,
-                       construct<ReferenceBlob>(subjects[i], subject_lens[i]),
-                       construct<ReferenceBlob>(predicates[i], predicate_lens[i]),
+                       ReferenceBlob(subjects[i], subject_lens[i]),
+                       ReferenceBlob(predicates[i], predicate_lens[i]),
                        object_type,
-                       construct<ReferenceBlob>(objects[i], object_lens[i]));
+                       ReferenceBlob(objects[i], object_lens[i]));
     }
 
     mlog(HXHIM_CLIENT_DBG, "Completed %zu PUTs of type %d", count, object_type);
@@ -59,8 +59,8 @@ int hxhim::BGetSingleType(hxhim_t *hx,
 
     for(std::size_t i = 0; i < count; i++) {
         hxhim::GetImpl(hx->p->queues.gets,
-                       construct<ReferenceBlob>(subjects[i], subject_lens[i]),
-                       construct<ReferenceBlob>(predicates[i], predicate_lens[i]),
+                       ReferenceBlob(subjects[i], subject_lens[i]),
+                       ReferenceBlob(predicates[i], predicate_lens[i]),
                        object_type);
     }
 

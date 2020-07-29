@@ -52,12 +52,12 @@ TEST(InMemory, BPut) {
     EXPECT_EQ(db.size(), 2U);
 
     for(std::size_t i = 0; i < count; i++) {
-        ReferenceBlob sub((void *) subs[i], strlen(subs[i]));
-        ReferenceBlob pred((void *) preds[i], strlen(preds[i]));
+        Blob sub  = ReferenceBlob((void *) subs[i], strlen(subs[i]));
+        Blob pred = ReferenceBlob((void *) preds[i], strlen(preds[i]));
 
         void *key = nullptr;
         std::size_t key_len = 0;
-        EXPECT_EQ(sp_to_key(&sub, &pred,
+        EXPECT_EQ(sp_to_key(sub, pred,
                             &key, &key_len), HXHIM_SUCCESS);
 
         EXPECT_EQ(db.find(std::string((char *) key, key_len)) != db.end(), true);
@@ -217,9 +217,9 @@ TEST(InMemory, BDelete) {
 
     // get directly from internal data
     for(std::size_t i = 0; i < count; i++) {
-        ReferenceBlob sub((void *) subs[i], strlen(subs[i]));
-        ReferenceBlob pred((void *) preds[i], strlen(preds[i]));
-        void * key = nullptr;
+        Blob sub  = ReferenceBlob((void *) subs[i], strlen(subs[i]));
+        Blob pred = ReferenceBlob((void *) preds[i], strlen(preds[i]));
+        void *key = nullptr;
         std::size_t key_len = 0;
         EXPECT_EQ(sp_to_key(&sub, &pred,
                             &key, &key_len), HXHIM_SUCCESS);

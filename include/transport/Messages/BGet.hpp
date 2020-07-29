@@ -60,8 +60,8 @@ struct BGet final : Response {
         // arrays of addresses from client
         // used by server when unpacking, and are sent back with response - otherwise not used
         // do not deallocate individual pointers
-        ReferenceBlob *subjects;
-        ReferenceBlob *predicates;
+        Blob *subjects;
+        Blob *predicates;
     } orig;
 
     BGet *next;

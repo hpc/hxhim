@@ -49,8 +49,8 @@ struct BPut final : Response {
     int cleanup();
 
     struct {
-        ReferenceBlob *subjects;
-        ReferenceBlob *predicates;
+        Blob *subjects;
+        Blob *predicates;
     } orig;
 
     BPut *next;

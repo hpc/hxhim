@@ -359,7 +359,7 @@ TEST(Response, BGet) {
         EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
         EXPECT_EQ(src.statuses[i], dst->statuses[i]);
 
-        EXPECT_EQ(src.object_types[i],         dst->object_types[i]);
+        EXPECT_EQ(src.object_types[i],           dst->object_types[i]);
         EXPECT_EQ(src.objects[i].size(),         dst->objects[i].size());
         EXPECT_EQ(memcmp(src.objects[i].data(),  dst->objects[i].data(), dst->objects[i].size()), 0);
 

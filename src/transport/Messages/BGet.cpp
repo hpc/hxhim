@@ -115,8 +115,8 @@ int Transport::Response::BGet::alloc(const std::size_t max) {
         if ((Response::alloc(max) != TRANSPORT_SUCCESS)                     ||
             !(object_types         = alloc_array<hxhim_object_type_t>(max)) ||
             !(objects              = alloc_array<Blob>(max))                ||
-            !(orig.subjects        = alloc_array<ReferenceBlob>(max))       ||
-            !(orig.predicates      = alloc_array<ReferenceBlob>(max)))       {
+            !(orig.subjects        = alloc_array<Blob>(max))                ||
+            !(orig.predicates      = alloc_array<Blob>(max)))                {
             cleanup();
             return TRANSPORT_SUCCESS;
         }

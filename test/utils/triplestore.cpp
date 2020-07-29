@@ -34,8 +34,8 @@ static const char *PREDICATE_LEN_ENCODED() {
 }
 
 TEST(triplestore, sp_to_key) {
-    ReferenceBlob sub((void *) SUBJECT, SUBJECT_LEN);
-    ReferenceBlob pred((void *) PREDICATE, PREDICATE_LEN);
+    Blob sub  = ReferenceBlob((void *) SUBJECT, SUBJECT_LEN);
+    Blob pred = ReferenceBlob((void *) PREDICATE, PREDICATE_LEN);
     void *key = nullptr;
     std::size_t key_len;
 
@@ -57,12 +57,19 @@ TEST(triplestore, sp_to_key) {
 }
 
 TEST(triplestore, key_to_sp) {
-    ReferenceBlob sub((void *) SUBJECT, SUBJECT_LEN);
-    ReferenceBlob pred((void *) PREDICATE, PREDICATE_LEN);
+    Blob sub  = ReferenceBlob((void *) SUBJECT, SUBJECT_LEN);
+    Blob pred = ReferenceBlob((void *) PREDICATE, PREDICATE_LEN);
     void *key = nullptr;
     std::size_t key_len;
 
-    EXPECT_EQ(sp_to_key(&sub, &pred, &key, &key_len), HXHIM_SUCCESS);
+    EXPECT_EQ(sp_to_key(sub, pred, &key, &key_len), HXHIM_SUCCESS);
+
+    char *curr = (char *) key;
+    EXPECT_EQ(memcmp(curr, SUBJECT, SUBJECT_LEN), 0);
+    curr += SUBJECT_LEN + sizeof(SUBJECT_LEN);
+    EXPECT_EQ(memcmp(curr, PREDICATE, PREDICATE_LEN), 0);
+    curr += PREDICATE_LEN + sizeof(PREDICATE_LEN);
+    EXPECT_EQ(curr, ((char *) key) + key_len);
 
     // copy
     {

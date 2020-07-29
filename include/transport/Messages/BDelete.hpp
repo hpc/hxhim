@@ -47,8 +47,8 @@ struct BDelete final : Response {
     int cleanup();
 
     struct {
-        ReferenceBlob *subjects;
-        ReferenceBlob *predicates;
+        Blob *subjects;
+        Blob *predicates;
     } orig;
 
     BDelete *next;

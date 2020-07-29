@@ -100,9 +100,9 @@ int Transport::Response::BDelete::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Response::alloc(max) != TRANSPORT_SUCCESS)               ||
-            !(orig.subjects        = alloc_array<ReferenceBlob>(max)) ||
-            !(orig.predicates      = alloc_array<ReferenceBlob>(max))) {
+        if ((Response::alloc(max) != TRANSPORT_SUCCESS)      ||
+            !(orig.subjects        = alloc_array<Blob>(max)) ||
+            !(orig.predicates      = alloc_array<Blob>(max))) {
             cleanup();
             return TRANSPORT_SUCCESS;
         }

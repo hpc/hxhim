@@ -29,10 +29,10 @@ TEST(PutData, constructor) {
 }
 
 TEST(PutData, moveto) {
-    ReferenceBlob subject             ((void *) (uintptr_t) rand(), rand());
-    ReferenceBlob predicate           ((void *) (uintptr_t) rand(), rand());
+    Blob subject                    = ReferenceBlob((void *) (uintptr_t) rand(), rand());
+    Blob predicate                  = ReferenceBlob((void *) (uintptr_t) rand(), rand());
     hxhim_object_type_t object_type = (hxhim_object_type_t) rand();
-    ReferenceBlob object              ((void *) (uintptr_t) rand(), rand());
+    Blob object                     = ReferenceBlob((void *) (uintptr_t) rand(), rand());
 
     Transport::Request::BPut bput(1);
 
@@ -73,8 +73,8 @@ TEST(GetData, constructor) {
 }
 
 TEST(GetData, moveto) {
-    ReferenceBlob subject  ((void *) (uintptr_t) rand(), rand());
-    ReferenceBlob predicate((void *) (uintptr_t) rand(), rand());
+    Blob subject   = ReferenceBlob((void *) (uintptr_t) rand(), rand());
+    Blob predicate = ReferenceBlob((void *) (uintptr_t) rand(), rand());
     hxhim_object_type_t object_type = (hxhim_object_type_t) rand();
 
     Transport::Request::BGet bget(1);
@@ -116,8 +116,8 @@ TEST(GetOpData, constructor) {
 }
 
 TEST(GetOpData, moveto) {
-    ReferenceBlob subject             ((void *) (uintptr_t) rand(), rand());
-    ReferenceBlob predicate           ((void *) (uintptr_t) rand(), rand());
+    Blob subject                    = ReferenceBlob((void *) (uintptr_t) rand(), rand());
+    Blob predicate                  = ReferenceBlob((void *) (uintptr_t) rand(), rand());
     hxhim_object_type_t object_type = (hxhim_object_type_t) rand();
     std::size_t num_recs            = rand();
     hxhim_get_op_t op               = (hxhim_get_op_t) rand();
@@ -161,8 +161,8 @@ TEST(DeleteData, constructor) {
 }
 
 TEST(DeleteData, moveto) {
-    ReferenceBlob subject  ((void *) (uintptr_t) rand(), rand());
-    ReferenceBlob predicate((void *) (uintptr_t) rand(), rand());
+    Blob subject   = ReferenceBlob((void *) (uintptr_t) rand(), rand());
+    Blob predicate = ReferenceBlob((void *) (uintptr_t) rand(), rand());
 
     Transport::Request::BDelete bdel(1);
 

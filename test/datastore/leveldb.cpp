@@ -71,12 +71,12 @@ TEST(LevelDB, BPut) {
 
     // read directly from leveldb since setup() already did PUTs
     for(std::size_t i = 0; i < count; i++) {
-        ReferenceBlob sub((void *) subs[i], strlen(subs[i]));
-        ReferenceBlob pred((void *) preds[i], strlen(preds[i]));
+        Blob sub  = ReferenceBlob((void *) subs[i], strlen(subs[i]));
+        Blob pred = ReferenceBlob((void *) preds[i], strlen(preds[i]));
 
         void *key = nullptr;
         std::size_t key_len = 0;
-        EXPECT_EQ(sp_to_key(&sub, &pred,
+        EXPECT_EQ(sp_to_key(sub, pred,
                             &key, &key_len), HXHIM_SUCCESS);
 
         std::string k((char *) key, key_len);
@@ -279,9 +279,9 @@ TEST(LevelDB, BDelete) {
     // check the datastore directly
     {
         for(std::size_t i = 0; i < count; i++) {
-            ReferenceBlob sub((void *) subs[i], strlen(subs[i]));
-            ReferenceBlob pred((void *) preds[i], strlen(preds[i]));
-            void * key = nullptr;
+            Blob sub  = ReferenceBlob((void *) subs[i], strlen(subs[i]));
+            Blob pred = ReferenceBlob((void *) preds[i], strlen(preds[i]));
+            void *key = nullptr;
             std::size_t key_len = 0;
             EXPECT_EQ(sp_to_key(&sub, &pred,
                                 &key, &key_len), HXHIM_SUCCESS);
