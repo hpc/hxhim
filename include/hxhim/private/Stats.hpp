@@ -32,7 +32,9 @@ struct Global {
     // distribution of incoming packets
     std::map<enum hxhim_op_t, std::map<int, std::size_t> > incoming;
 
-    std::ostream &print(const std::map<enum hxhim_op_t, std::size_t> &max_ops_per_send,
+    std::ostream &print(const int rank,
+                        const std::map<enum hxhim_op_t, std::size_t> &max_ops_per_send,
+                        const ::Stats::Chronopoint epoch,
                         std::ostream &stream,
                         const std::string &indent = "    ");
 

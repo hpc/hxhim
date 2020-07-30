@@ -1,10 +1,13 @@
 #include <iomanip>
 
 #include "hxhim/private/Stats.hpp"
+#include "utils/mlogfacs2.h"
 
-std::ostream &hxhim::Stats::Global::print(const std::map<enum hxhim_op_t, std::size_t> &max_ops_per_send,
-                                         std::ostream &stream,
-                                         const std::string &indent) {
+std::ostream &hxhim::Stats::Global::print(const int rank,
+                                          const std::map<enum hxhim_op_t, std::size_t> &max_ops_per_send,
+                                          const ::Stats::Chronopoint epoch,
+                                          std::ostream &stream,
+                                          const std::string &indent) {
     std::ios_base::fmtflags flags(stream.flags());
 
     stream << std::fixed << std::setprecision(3);
@@ -17,6 +20,7 @@ std::ostream &hxhim::Stats::Global::print(const std::map<enum hxhim_op_t, std::s
             it != single_op.end(); it++) {
             std::chrono::nanoseconds op_time(0);
             for(::Stats::Chronostamp const &event : it->second) {
+                ::Stats::print_event_to_mlog(HXHIM_CLIENT_NOTE, rank, HXHIM_OP_STR[it->first], epoch, event.start, event.end);
                 op_time += std::chrono::duration_cast<std::chrono::nanoseconds>(event.end - event.start);
             }
             stream << indent << indent << HXHIM_OP_STR[it->first] << " count: " << it->second.size() << " duration: "  << std::chrono::duration<long double>(op_time).count() << " seconds" << std::endl;
@@ -35,6 +39,7 @@ std::ostream &hxhim::Stats::Global::print(const std::map<enum hxhim_op_t, std::s
             it != bulk_op.end(); it++) {
             std::chrono::nanoseconds op_time(0);
             for(::Stats::Chronostamp const &event : it->second) {
+                ::Stats::print_event_to_mlog(HXHIM_CLIENT_NOTE, rank, HXHIM_OP_STR[it->first], epoch, event.start, event.end);
                 op_time += std::chrono::duration_cast<std::chrono::nanoseconds>(event.end - event.start);
             }
             stream << indent << indent << HXHIM_OP_STR[it->first] << " count: " << it->second.size() << " duration: "  << std::chrono::duration<long double>(op_time).count() << " seconds" << std::endl;

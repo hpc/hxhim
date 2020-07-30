@@ -1,7 +1,6 @@
 #include <sstream>
 
 #include "utils/Stats.hpp"
-#include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
 Stats::Chronopoint Stats::now() {

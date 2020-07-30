@@ -606,7 +606,10 @@ int hxhim::destroy::datastore(hxhim_t *hx) {
 std::ostream &hxhim::print_stats(hxhim_t *hx,
                                  std::ostream &stream,
                                  const std::string &indent) {
-    return hx->p->stats.print(hx->p->max_ops_per_send, stream, indent);
+    return hx->p->stats.print(hx->p->bootstrap.rank,
+                              hx->p->max_ops_per_send,
+                              hx->p->epoch,
+                              stream, indent);
 }
 
 /**
