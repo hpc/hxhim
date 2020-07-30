@@ -154,38 +154,38 @@ int main(int argc, char *argv[]) {
     MPI_Barrier(MPI_COMM_WORLD);
     barrier_end;
 
-    /* if (rank == 0) { */
-    /*     printf("GET before flushing PUTs\n"); */
-    /* } */
+    if (rank == 0) {
+        printf("GET before flushing PUTs\n");
+    }
 
-    /* barrier_start; */
-    /* MPI_Barrier(MPI_COMM_WORLD); */
-    /* barrier_end; */
+    barrier_start;
+    MPI_Barrier(MPI_COMM_WORLD);
+    barrier_end;
 
-    /* // GET them back, flushing only the GETs */
-    /* // this will likely return errors, since not all of the PUTs will have completed */
-    /* for(size_t i = 0; i < count; i++) { */
-    /*     hxhimGetDouble(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i]); */
-    /* } */
+    // GET them back, flushing only the GETs
+    // this will likely return errors, since not all of the PUTs will have completed
+    for(size_t i = 0; i < count; i++) {
+        hxhimGetDouble(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i]);
+    }
 
-    /* hxhim_results_t *flush_gets_early = hxhimFlushGets(&hx); */
-    /* if (print) { */
-    /*     ordered_print(MPI_COMM_WORLD, rank, size, &hx, flush_gets_early); */
-    /* } */
-    /* hxhim_results_destroy(flush_gets_early); */
+    hxhim_results_t *flush_gets_early = hxhimFlushGets(&hx);
+    if (print) {
+        ordered_print(MPI_COMM_WORLD, rank, size, &hx, flush_gets_early);
+    }
+    hxhim_results_destroy(flush_gets_early);
 
-    /* // flush PUTs */
-    /* barrier_start; */
-    /* MPI_Barrier(MPI_COMM_WORLD); */
-    /* barrier_end; */
+    // flush PUTs
+    barrier_start;
+    MPI_Barrier(MPI_COMM_WORLD);
+    barrier_end;
 
     if (rank == 0) {
         printf("Flush PUTs\n");
     }
 
-    /* barrier_start; */
-    /* MPI_Barrier(MPI_COMM_WORLD); */
-    /* barrier_end; */
+    barrier_start;
+    MPI_Barrier(MPI_COMM_WORLD);
+    barrier_end;
 
     timestamp_start(flush_put);
     hxhim_results_t *flush_puts = hxhimFlushPuts(&hx);
@@ -214,22 +214,22 @@ int main(int argc, char *argv[]) {
     hxhim_results_destroy(flush_puts);
     timestamp_end(destroy);
 
-    /* // GET again, now that all PUTs have completed */
-    /* for(size_t i = 0; i < count; i++) { */
-    /*     hxhimGetDouble(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i]); */
-    /* } */
+    // GET again, now that all PUTs have completed
+    for(size_t i = 0; i < count; i++) {
+        hxhimGetDouble(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i]);
+    }
 
-    /* MPI_Barrier(MPI_COMM_WORLD); */
-    /* if (rank == 0) { */
-    /*     printf("GET after flushing PUTs\n"); */
-    /* } */
-    /* MPI_Barrier(MPI_COMM_WORLD); */
+    MPI_Barrier(MPI_COMM_WORLD);
+    if (rank == 0) {
+        printf("GET after flushing PUTs\n");
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
 
-    /* hxhim_results_t *flush_gets = hxhimFlush(&hx); */
-    /* if (print) { */
-    /*     ordered_print(MPI_COMM_WORLD, rank, size, &hx, flush_gets); */
-    /* } */
-    /* hxhim_results_destroy(flush_gets); */
+    hxhim_results_t *flush_gets = hxhimFlush(&hx);
+    if (print) {
+        ordered_print(MPI_COMM_WORLD, rank, size, &hx, flush_gets);
+    }
+    hxhim_results_destroy(flush_gets);
 
     // clean up
     timestamp_start(cleanup);
