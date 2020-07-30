@@ -638,6 +638,7 @@ int hxhim::PutImpl(hxhim::Unsent<hxhim::PutData> &puts,
     mlog(HXHIM_CLIENT_DBG, "Foreground PUT Insert SPO into queue");
     puts.insert(put);
 
+    // background thread checks watermark after every single PUT is queued up
     puts.start_processing.notify_one();
 
     mlog(HXHIM_CLIENT_DBG, "Foreground PUT Completed");
@@ -669,7 +670,6 @@ int hxhim::GetImpl(hxhim::Unsent<hxhim::GetData> &gets,
 
     mlog(HXHIM_CLIENT_DBG, "GET Insert into queue");
     gets.insert(get);
-    gets.start_processing.notify_one();
 
     mlog(HXHIM_CLIENT_DBG, "GET Completed");
     return HXHIM_SUCCESS;
@@ -705,7 +705,6 @@ int hxhim::GetOpImpl(hxhim::Unsent<hxhim::GetOpData> &getops,
 
     mlog(HXHIM_CLIENT_DBG, "GETOP Insert into queue");
     getops.insert(getop);
-    getops.start_processing.notify_one();
 
     mlog(HXHIM_CLIENT_DBG, "GETOP Completed");
     return HXHIM_SUCCESS;
@@ -733,7 +732,6 @@ int hxhim::DeleteImpl(hxhim::Unsent<hxhim::DeleteData> &dels,
 
     mlog(HXHIM_CLIENT_DBG, "DELETE Insert into queue");
     dels.insert(del);
-    dels.start_processing.notify_one();
 
     mlog(HXHIM_CLIENT_DBG, "Delete Completed");
     return HXHIM_SUCCESS;
@@ -764,7 +762,6 @@ int hxhim::HistogramImpl(hxhim_t *hx,
 
     mlog(HXHIM_CLIENT_DBG, "HISTOGRAM Insert into queue");
     hists.insert(hist);
-    hists.start_processing.notify_one();
 
     mlog(HXHIM_CLIENT_DBG, "Histogram Completed");
     return HXHIM_SUCCESS;

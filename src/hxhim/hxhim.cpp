@@ -178,7 +178,6 @@ int hxhim::Close(hxhim_t *hx) {
 
     destroy::bootstrap(hx);
 
-
     // clean up pointer to private data
     delete hx->p;
     hx->p = nullptr;
@@ -237,54 +236,17 @@ hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing PUTs", rank);
     hxhim::Results *res = FlushImpl<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, hx->p->queues.puts, hx->p->max_ops_per_send[hxhim_op_t::HXHIM_PUT]);
 
-    // TODO: Remove this when the background thread is restored
-    // if PUTs flushed when calling Put/BPut, return those results as well
+    // if there are PUT results from the background thread, return them as well
     std::unique_lock<std::mutex> lock(hx->p->async_put.mutex);
     if (hx->p->async_put.results) {
         hx->p->async_put.results->Append(res);
-        destruct(res);
+        hxhim::Results::Destroy(res);
         res = hx->p->async_put.results;
         hx->p->async_put.results = nullptr;
     }
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Done Flushing Puts", rank);
     return res;
-    // mlog(HXHIM_CLIENT_INFO, "Flushing PUTs");
-    // if (!valid(hx)) {
-    //     return nullptr;
-    // }
-
-    // mlog(HXHIM_CLIENT_DBG, "Emptying PUT queue");
-
-    // hxhim::Unsent<hxhim::PutData> &unsent = hx->p->queues.puts;
-    // {
-    //     std::unique_lock<std::mutex> lock(unsent.mutex);
-    //     unsent.force = true;
-    // }
-    // unsent.start_processing.notify_all();
-
-    // mlog(HXHIM_CLIENT_DBG, "Forcing flush %d", unsent.force);
-
-    // // wait for flush to complete
-    // std::unique_lock<std::mutex> lock(unsent.mutex);
-    // while (hx->p->running && unsent.force) {
-    //     mlog(HXHIM_CLIENT_DBG, "Waiting for PUT queue to be processed %d", unsent.force);
-    //     unsent.done_processing.wait(lock, [&](){ return !hx->p->running || !unsent.force; });
-    // }
-
-    // mlog(HXHIM_CLIENT_DBG, "Emptied out PUT queue");
-
-    // std::unique_lock<std::mutex> results_lock(hx->p->async_put.mutex);
-
-    // mlog(HXHIM_CLIENT_DBG, "Processing PUT results");
-
-    // // return PUT results and allocate space for new PUT results
-    // hxhim::Results *res = hx->p->async_put.results;
-    // hx->p->async_put.results = construct<hxhim::Results>();
-
-    // mlog(HXHIM_CLIENT_INFO, "PUTs Flushed");
-
-    // return res;
 }
 
 /**
@@ -581,6 +543,24 @@ hxhim_results_t *hxhimChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t fun
     return hxhim_results_init(hx, hxhim::ChangeHash(hx, name, func, args));
 }
 
+// TODO: remove this function - this should be the background thread (triggered in PutImpl)
+static void clear_queued_puts(hxhim_t *hx) {
+    if (hx->p->queues.puts.count > hx->p->async_put.max_queued) {
+        hxhim::Results *res = hxhim::process<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, hx->p->queues.puts.take(), hx->p->max_ops_per_send[hxhim_op_t::HXHIM_PUT]);
+
+        {
+            std::unique_lock<std::mutex> lock(hx->p->async_put.mutex);
+            if (hx->p->async_put.results) {
+                hx->p->async_put.results->Append(res);
+                hxhim::Results::Destroy(res);
+            }
+            else {
+                hx->p->async_put.results = res;
+            }
+        }
+    }
+}
+
 /**
  * Put
  * Add a PUT into the work queue
@@ -602,11 +582,15 @@ int hxhim::Put(hxhim_t *hx,
     mlog(HXHIM_CLIENT_DBG, "%s %s:%d", __FILE__, __func__, __LINE__);
     ::Stats::Chronostamp put;
     put.start = ::Stats::now();
+
     const int rc = hxhim::PutImpl(hx->p->queues.puts,
                                   ReferenceBlob(subject, subject_len),
                                   ReferenceBlob(predicate, predicate_len),
                                   object_type,
                                   ReferenceBlob(object, object_len));
+
+    clear_queued_puts(hx);
+
     put.end = ::Stats::now();
     hx->p->stats.single_op[hxhim_op_t::HXHIM_PUT].emplace_back(put);
     return rc;
@@ -770,22 +754,8 @@ int hxhim::BPut(hxhim_t *hx,
                        ReferenceBlob(predicates[i], predicate_lens[i]),
                        object_types[i],
                        ReferenceBlob(objects[i], object_lens[i]));
-    }
 
-    // TODO: replace this with background thread
-    if (hx->p->queues.puts.count > hx->p->async_put.max_queued) {
-        // process the batch and save the results
-        hxhim::Results *res = hxhim::process<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, hx->p->queues.puts.take(), hx->p->max_ops_per_send[hxhim_op_t::HXHIM_PUT]);
-        {
-            std::unique_lock<std::mutex> lock(hx->p->async_put.mutex);
-            if (hx->p->async_put.results) {
-                hx->p->async_put.results->Append(res);
-                destruct(res);
-            }
-            else {
-                hx->p->async_put.results = res;
-            }
-        }
+        clear_queued_puts(hx);
     }
 
     bput.end = ::Stats::now();
