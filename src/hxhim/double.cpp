@@ -3,7 +3,6 @@
 #include "hxhim/constants.h"
 #include "hxhim/double.hpp"
 #include "hxhim/hxhim.hpp"
-#include "hxhim/private/hxhim.hpp"
 #include "hxhim/single_type.hpp"
 
 /**
