@@ -9,19 +9,11 @@
 #include "utils/triplestore.hpp"
 
 hxhim::datastore::InMemory::InMemory(const int rank,
-                                     Histogram::Histogram *hist,
-                                     const std::string &exact_name)
-    : Datastore(rank, 0, hist),
-      db()
-{
-    Datastore::Open(exact_name);
-}
-
-hxhim::datastore::InMemory::InMemory(const int rank,
+                                     const int offset,
                                      const int id,
                                      Histogram::Histogram *hist,
                                      const std::string &basename)
-    : Datastore(rank, id, hist),
+    : Datastore(rank, offset, id, hist),
       db()
 {
     Datastore::Open(basename);

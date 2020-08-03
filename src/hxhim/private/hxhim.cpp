@@ -254,6 +254,7 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
 
             if (opts->p->datastore->type == hxhim::datastore::IN_MEMORY) {
                 hx->p->datastores[i] = new hxhim::datastore::InMemory(hx->p->bootstrap.rank,
+                                                                      i,
                                                                       hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, i),
                                                                       hist,
                                                                       hx->p->hash.name);
@@ -263,6 +264,7 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
             else if (opts->p->datastore->type == hxhim::datastore::LEVELDB) {
                 hxhim::datastore::leveldb::Config *config = static_cast<hxhim::datastore::leveldb::Config *>(opts->p->datastore);
                 hx->p->datastores[i] = new hxhim::datastore::leveldb(hx->p->bootstrap.rank,
+                                                                     i,
                                                                      hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, i),
                                                                      hist,
                                                                      config->prefix,
@@ -317,6 +319,7 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
     switch (opts->p->datastore->type) {
         case hxhim::datastore::IN_MEMORY:
             hx->p->datastores[0] = new hxhim::datastore::InMemory(hx->p->bootstrap.rank,
+                                                                  0,
                                                                   0,
                                                                   hist,
                                                                   name);

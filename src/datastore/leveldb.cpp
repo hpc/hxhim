@@ -51,7 +51,7 @@ hxhim::datastore::leveldb::leveldb(const int rank,
                                    Histogram::Histogram *hist,
                                    const std::string &exact_name,
                                    const bool create_if_missing)
-    : Datastore(rank, 0, hist),
+    : Datastore(rank, 0, 0, hist),
       dbname(exact_name),
       create_if_missing(create_if_missing),
       db(nullptr), options()
@@ -64,12 +64,13 @@ hxhim::datastore::leveldb::leveldb(const int rank,
 }
 
 hxhim::datastore::leveldb::leveldb(const int rank,
+                                   const int offset,
                                    const int id,
                                    Histogram::Histogram *hist,
                                    const std::string &prefix,
                                    const std::string &basename,
                                    const bool create_if_missing)
-    : Datastore(rank, id, hist),
+    : Datastore(rank, offset, id, hist),
       dbname(),
       create_if_missing(create_if_missing),
       db(nullptr), options()

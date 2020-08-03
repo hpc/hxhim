@@ -1,4 +1,3 @@
-#include <chrono>
 #include <cmath>
 #include <cstring>
 #include <iomanip>
@@ -84,9 +83,11 @@ int hxhim::datastore::get_id(hxhim_t *hx, const int rank, const std::size_t offs
 }
 
 hxhim::datastore::Datastore::Datastore(const int rank,
+                                       const int offset,
                                        const int id,
                                        Histogram::Histogram *hist)
     : rank(rank),
+      offset(offset),
       id(id),
       hist(std::shared_ptr<Histogram::Histogram>(hist,
                                                  [](Histogram::Histogram *ptr) {
@@ -306,6 +307,8 @@ Transport::Response::BHistogram *hxhim::datastore::Datastore::operate(Transport:
     for(std::size_t i = 0; i < req->count; i++) {
         struct timespec start = {};
         struct timespec end = {};
+
+        res->ds_offsets[i] = offset;
 
         clock_gettime(CLOCK_MONOTONIC, &start);
         res->histograms[i] = hist;

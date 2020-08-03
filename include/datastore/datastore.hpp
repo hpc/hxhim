@@ -60,6 +60,7 @@ struct Config {
 class Datastore {
     public:
         Datastore(const int rank,
+                  const int offset,
                   const int id,
                   Histogram::Histogram *hist); // Datastore takes ownership of hist
         virtual ~Datastore();
@@ -96,6 +97,7 @@ class Datastore {
 
     protected:
         int rank;      // MPI rank of HXHIM instance
+        int offset;    // datastore offset in this HXHIM MPI rank
         int id;
         std::shared_ptr<Histogram::Histogram> hist;
 

@@ -10,14 +10,13 @@
 static const std::size_t DS_PER_RS = 10;
 static const std::size_t TRIPLES = 10;
 
-static int test_hash(hxhim_t *hx,
-                     void *, const size_t,
+static int test_hash(hxhim_t *,
+                     void *subject, const size_t,
                      void *predicate, const size_t,
                      void *) {
-    int rank = -1;
-    hxhim::GetMPI(hx, nullptr, &rank, nullptr);
+    const std::size_t rank = * (std::size_t *) subject;
     const std::size_t offset = * (std::size_t *) predicate;
-    return (rank * DS_PER_RS) + (int) ((offset < DS_PER_RS)?offset:(DS_PER_RS - 1));
+    return (rank * DS_PER_RS) + ((offset < DS_PER_RS)?offset:(DS_PER_RS - 1));
 }
 
 static HistogramBucketGenerator_t test_buckets = [](const double *, const size_t,
@@ -86,11 +85,13 @@ TEST(hxhim, Histogram) {
     ASSERT_NE(hist_results, nullptr);
     EXPECT_EQ(hist_results->Size(), (std::size_t) total_ds);
 
-    std::size_t i = 0;
     for(hist_results->GoToHead(); hist_results->ValidIterator(); hist_results->GoToNext()) {
         hxhim_op_t op = hxhim_op_t::HXHIM_INVALID;
         EXPECT_EQ(hist_results->Op(&op), HXHIM_SUCCESS);
         EXPECT_EQ(op, hxhim_op_t::HXHIM_HISTOGRAM);
+
+        int ds = -1;
+        EXPECT_EQ(hist_results->Datastore(&ds), HXHIM_SUCCESS);
 
         int status = HXHIM_ERROR;
         EXPECT_EQ(hist_results->Status(&status), HXHIM_SUCCESS);
@@ -103,7 +104,7 @@ TEST(hxhim, Histogram) {
 
         EXPECT_EQ(size, (std::size_t) 1);
 
-        if (i < (TRIPLES - 1)) {
+        if ((ds % DS_PER_RS) < (TRIPLES - 1)) {
             EXPECT_EQ(buckets[0], 0);
             EXPECT_EQ(counts[0], 1);
         }
@@ -111,8 +112,6 @@ TEST(hxhim, Histogram) {
             EXPECT_EQ(buckets[0], 0);
             EXPECT_EQ(counts[0], 2);
         }
-
-        i++;
     }
 
     hxhim::Results::Destroy(hist_results);

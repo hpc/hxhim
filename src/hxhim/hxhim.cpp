@@ -1105,7 +1105,7 @@ int hxhimGetStats(hxhim_t *hx, const int dst_rank,
 int hxhim::Histogram(hxhim_t *hx, int ds_id) {
     if (!valid(hx)  || !hx->p->running            ||
         (ds_id < 0) ||
-        (ds_id >= (int) hx->p->datastores.size())) {
+        (ds_id >= (int) hx->p->total_datastores)) {
         return HXHIM_ERROR;
     }
 
