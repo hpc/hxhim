@@ -1,8 +1,6 @@
 #include <ctype.h>
-#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 
 #include <mpi.h>
 
@@ -10,24 +8,9 @@
 #include "utils/elen.h"
 #include "print_results.h"
 #include "spo_gen.h"
+#include "timestamps.h"
 
 const size_t bufsize = 100;
-
-uint64_t nano(struct timespec *start, struct timespec *end) {
-    uint64_t s = start->tv_sec;
-    s *= 1000000000ULL;
-    s += start->tv_nsec;
-
-    uint64_t e = end->tv_sec;
-    e *= 1000000000ULL;
-    e += end->tv_nsec;
-
-    return e - s;
-}
-
-long double sec(struct timespec *start, struct timespec *end) {
-    return (long double) nano(start, end) / 1e9;
-}
 
 #define barrier_start                                               \
     clock_gettime(CLOCK_MONOTONIC, &mpi_barrier_start)              \
@@ -39,19 +22,6 @@ long double sec(struct timespec *start, struct timespec *end) {
             nano(&epoch, &mpi_barrier_start),                       \
             nano(&epoch, &mpi_barrier_end),                         \
             sec(&mpi_barrier_start, &mpi_barrier_end))              \
-
-#define timestamp_start(name)                                       \
-    struct timespec name ## _start;                                 \
-    clock_gettime(CLOCK_MONOTONIC, &name ## _start)                 \
-
-#define timestamp_end(name)                                         \
-    struct timespec name ## _end;                                   \
-    clock_gettime(CLOCK_MONOTONIC, &name ## _end);                  \
-    fprintf(stderr, "%d " #name " %" PRIu64 " %" PRIu64 " %Lf\n",   \
-            rank,                                                   \
-            nano(&epoch, &name ## _start),                          \
-            nano(&epoch, &name ## _end),                            \
-            sec(&name ## _start, &name ## _end))                    \
 
 void ordered_print(MPI_Comm comm, const int rank, const int size, hxhim_t * hx, hxhim_results_t *res) {
     for(int i = 0; i < size; i++) {

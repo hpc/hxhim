@@ -6,16 +6,17 @@ cmake_minimum_required(VERSION 2.8)
 set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} ${LEVELDB_LIBRARY_DIRS})
 
 add_library(print_results OBJECT print_results.c print_results.h)
-add_library(spo_gen OBJECT spo_gen.c spo_gen.h)
+add_library(spo_gen       OBJECT spo_gen.c       spo_gen.h)
+add_library(timestamps    OBJECT timestamps.c    timestamps.h)
 
 add_executable(hx-c hx.c)
-target_link_libraries(hx-c hxhim.a print_results spo_gen ${EXEC_LDFLAGS} stdc++)
+target_link_libraries(hx-c hxhim.a print_results spo_gen timestamps ${EXEC_LDFLAGS} stdc++)
 
 add_executable(hx-c++ hx.cpp)
 target_link_libraries(hx-c++ hxhim.a spo_gen ${EXEC_LDFLAGS})
 
-# add_executable(puts puts.c)
-# target_link_libraries(puts hxhim.a ${EXEC_LDFLAGS} stdc++)
+add_executable(puts puts.c)
+target_link_libraries(puts hxhim.a spo_gen timestamps ${EXEC_LDFLAGS} stdc++)
 
 add_executable(hxhim-cli cli.cpp)
 target_link_libraries(hxhim-cli hxhim.a print_results ${EXEC_LDFLAGS})
