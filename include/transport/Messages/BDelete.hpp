@@ -31,8 +31,6 @@ struct BDelete final : SubjectPredicate {
     int alloc(const std::size_t max);
     int steal(BDelete *from, const std::size_t i);
     int cleanup();
-
-    BDelete *next;
 };
 
 }

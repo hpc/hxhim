@@ -36,8 +36,6 @@ struct BGet final : SubjectPredicate {
 
     hxhim_object_type_t *object_types;
     Blob *objects;
-
-    BGet *next;
 };
 
 }

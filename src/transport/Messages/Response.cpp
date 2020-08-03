@@ -14,8 +14,6 @@ std::size_t Transport::Response::Response::size() const {
 }
 
 int Transport::Response::Response::alloc(const std::size_t max) {
-    Response::cleanup();
-
     if (max) {
         if ((Message::alloc(max) != TRANSPORT_SUCCESS) ||
             !(statuses = alloc_array<int>(max)))        {

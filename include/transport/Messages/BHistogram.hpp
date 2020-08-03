@@ -41,8 +41,6 @@ struct BHistogram final : Response {
     int cleanup();
 
     std::shared_ptr<Histogram::Histogram> *histograms;
-
-    BHistogram *next;
 };
 
 }

@@ -43,8 +43,6 @@ struct BGetOp final : Response { // does not inherit SubjectPredicate
     Blob **subjects;
     Blob **predicates;
     Blob **objects;
-
-    BGetOp *next;
 };
 
 }

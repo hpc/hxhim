@@ -29,6 +29,7 @@ struct Message {
 
     virtual int alloc(const std::size_t max);
     virtual int steal(Message *from, const std::size_t i);
+    int steal_timestamps(Message *from, const bool steal_individuals);
     virtual int cleanup();
 
     Direction direction;

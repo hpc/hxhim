@@ -11,9 +11,7 @@ Transport::Message::Message(const Message::Direction dir, const enum hxhim_op_t 
       timestamps()
 {}
 
-Transport::Message::~Message() {
-    cleanup();
-}
+Transport::Message::~Message() {}
 
 std::size_t Transport::Message::Message::size() const {
     return sizeof(direction) + sizeof(op) + sizeof(src) + sizeof(dst) + (count * sizeof(*ds_offsets)) + sizeof(count);
@@ -24,7 +22,7 @@ std::size_t Transport::Message::Message::filled() const {
 }
 
 int Transport::Message::alloc(const std::size_t max) {
-    Message::cleanup();
+    // final child should call cleanup before calling alloc
 
     if ((max_count = max)) {
         if (!(ds_offsets = alloc_array<int>(max))) {
@@ -37,7 +35,10 @@ int Transport::Message::alloc(const std::size_t max) {
             return TRANSPORT_ERROR;
         }
 
-        timestamps.transport = std::make_shared<struct ::Stats::SendRecv>();
+        timestamps.transport = std::shared_ptr<::Stats::SendRecv>(construct<::Stats::SendRecv>(),
+                                                                  [](::Stats::SendRecv *ptr) {
+                                                                      destruct(ptr);
+                                                                  });
 
         count = 0;
     }
@@ -68,15 +69,37 @@ int Transport::Message::steal(Transport::Message *from, const std::size_t i) {
 
     // do not steal transport timestamps here
     // since it belongs to all of the individual timestamps
+    // call steal_timestamps after all individual timestamps have been taken
 
     // increment count in calling function
 
     return TRANSPORT_SUCCESS;
 }
 
+int Transport::Message::steal_timestamps(Message *from, const bool steal_individuals) {
+    if (!from) {
+        return TRANSPORT_ERROR;
+    }
+
+    if (steal_individuals) {
+        dealloc_array(timestamps.reqs, max_count);
+        timestamps.reqs = std::move(from->timestamps.reqs);
+        from->timestamps.reqs = nullptr;
+    }
+
+    timestamps.transport = std::move(from->timestamps.transport);
+    from->timestamps.transport = nullptr;
+
+    from->count = 0;
+
+    return TRANSPORT_SUCCESS;
+}
+
 int Transport::Message::cleanup() {
-    for(std::size_t i = 0; i < count; i++) {
-        destruct(timestamps.reqs[i]);
+    if (timestamps.reqs) {
+        for(std::size_t i = 0; i < count; i++) {
+            destruct(timestamps.reqs[i]);
+        }
     }
 
     dealloc_array(ds_offsets, max_count);

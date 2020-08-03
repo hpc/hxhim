@@ -7,9 +7,7 @@ Transport::Request::SubjectPredicate::SubjectPredicate(const enum hxhim_op_t op)
       orig()
 {}
 
-Transport::Request::SubjectPredicate::~SubjectPredicate() {
-    cleanup();
-}
+Transport::Request::SubjectPredicate::~SubjectPredicate() {}
 
 std::size_t Transport::Request::SubjectPredicate::size() const {
     std::size_t total = Request::size();
@@ -22,8 +20,6 @@ std::size_t Transport::Request::SubjectPredicate::size() const {
 }
 
 int Transport::Request::SubjectPredicate::alloc(const std::size_t max) {
-    cleanup();
-
     if (max) {
         if ((Request::alloc(max) != TRANSPORT_SUCCESS)        ||
             !(subjects            = alloc_array<Blob>(max))   ||
@@ -76,9 +72,7 @@ Transport::Response::SubjectPredicate::SubjectPredicate(const enum hxhim_op_t op
       orig()
 {}
 
-Transport::Response::SubjectPredicate::~SubjectPredicate() {
-    cleanup();
-}
+Transport::Response::SubjectPredicate::~SubjectPredicate() {}
 
 std::size_t Transport::Response::SubjectPredicate::size() const {
     std::size_t total = Response::size();
@@ -91,8 +85,6 @@ std::size_t Transport::Response::SubjectPredicate::size() const {
 }
 
 int Transport::Response::SubjectPredicate::alloc(const std::size_t max) {
-    cleanup();
-
     if (max) {
         if ((Response::alloc(max) != TRANSPORT_SUCCESS)      ||
             !(orig.subjects        = alloc_array<Blob>(max)) ||

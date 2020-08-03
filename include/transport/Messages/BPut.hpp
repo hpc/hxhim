@@ -34,8 +34,6 @@ struct BPut final : SubjectPredicate {
     int alloc(const std::size_t max);
     int steal(BPut *from, const std::size_t i);
     int cleanup();
-
-    BPut *next;
 };
 
 }

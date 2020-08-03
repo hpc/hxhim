@@ -6,6 +6,7 @@ set(MESSAGE_HEADERS
 
   Request.hpp
   Response.hpp
+  SubjectPredicate.hpp
 
   BPut.hpp
   BGet.hpp

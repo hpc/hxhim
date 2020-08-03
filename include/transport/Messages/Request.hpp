@@ -18,7 +18,7 @@ struct Request : Message {
     virtual int cleanup();
 
   protected:
-    int steal(Request *from, const std::size_t i);
+    virtual int steal(Request *from, const std::size_t i);
 };
 
 }

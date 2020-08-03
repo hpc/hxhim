@@ -22,7 +22,7 @@ struct Response : Message {
     Response *next;
 
   protected:
-    int steal(Response *from, const std::size_t i);
+    virtual int steal(Response *from, const std::size_t i);
 };
 
 }

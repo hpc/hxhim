@@ -47,18 +47,14 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
     for(std::size_t i = 0; i < req->count; i++) {
         const int datastore = req->ds_offsets[i];
         Request_t &dst = dsts[datastore];
-        dst.steal(req, i);
+        dst.steal(req, i); // individual timestamps get moved here
     }
 
     // final response variable
     Response_t *res = construct<Response_t>(req->count);
     res->src = req->dst;
     res->dst = req->src;
-    // move request transport timestamps (order does not matter)
-    // individual timestamps have already been
-    // moved into the per-datastore packets
-    res->timestamps.transport = std::move(req->timestamps.transport);
-    req->count = 0;
+    res->steal_timestamps(req, false);
 
     // no packing
     res->timestamps.transport->pack.start = ::Stats::now();
@@ -94,6 +90,7 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
 
     mlog(HXHIM_SERVER_INFO, "Rank %d Local RangeServer done processing %s", rank, HXHIM_OP_STR[req->op]);
     res->timestamps.transport->end = ::Stats::now();
+
     return res;
 }
 
