@@ -11,6 +11,12 @@
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
+hxhim::Results::Result::Timestamps::Timestamps()
+    : send(nullptr),
+      transport(),
+      recv()
+{}
+
 hxhim::Results::Result::Result(hxhim_t *hx, const enum hxhim_op_t op,
                                const int datastore, const int status)
     : hx(hx),
@@ -31,16 +37,16 @@ hxhim::Results::Result::~Result() {
         std::stringstream s;
 
         // from when request was put into the hxhim queue until the response was ready for pulling
-        ::Stats::print_event(s, rank, HXHIM_OP_STR[op], epoch, timestamps.send.cached,
+        ::Stats::print_event(s, rank, HXHIM_OP_STR[op], epoch, timestamps.send->cached,
                                                                timestamps.recv.result.end);
-        ::Stats::print_event(s, rank, "Cached",         epoch, timestamps.send.cached);
-        ::Stats::print_event(s, rank, "Shuffled",       epoch, timestamps.send.shuffled);
-        ::Stats::print_event(s, rank, "Hash",           epoch, timestamps.send.hashed);
+        ::Stats::print_event(s, rank, "Cached",         epoch, timestamps.send->cached);
+        ::Stats::print_event(s, rank, "Shuffled",       epoch, timestamps.send->shuffled);
+        ::Stats::print_event(s, rank, "Hash",           epoch, timestamps.send->hashed);
         // This might take very long
-        for(::Stats::Chronostamp const find : timestamps.send.find_dsts) {
+        for(::Stats::Chronostamp const find : timestamps.send->find_dsts) {
             ::Stats::print_event(s, rank, "FindDst",    epoch, find);
         }
-        ::Stats::print_event(s, rank, "Bulked",         epoch, timestamps.send.bulked);
+        ::Stats::print_event(s, rank, "Bulked",         epoch, timestamps.send->bulked);
         ::Stats::print_event(s, rank, "ProcessBulk",    epoch, timestamps.transport.start,
                                                                timestamps.transport.end);
 
@@ -52,6 +58,8 @@ hxhim::Results::Result::~Result() {
 
         mlog(HXHIM_CLIENT_NOTE, "\n%s", s.str().c_str());
     }
+
+    destruct(timestamps.send);
 }
 
 hxhim::Results::SubjectPredicate::SubjectPredicate(hxhim_t *hx, const enum hxhim_op_t op,
@@ -130,6 +138,7 @@ hxhim::Results::Result *hxhim::Result::init(hxhim_t *hx, Transport::Response::Re
     ret->timestamps.transport = res->timestamps.transport;
     ret->timestamps.recv.result.start = start;
     ret->timestamps.recv.result.end = ::Stats::now();
+    res->timestamps.reqs[i] = nullptr;
 
     mlog(HXHIM_CLIENT_DBG, "Rank %d Created hxhim::Results::Result %p using %p[%zu]", rank, ret, res, i);
 
@@ -228,12 +237,12 @@ void hxhim::Result::AddAll(hxhim_t *hx, hxhim::Results *results, Transport::Resp
                                  res->timestamps.transport.unpack.end);
 
         for(std::size_t i = 0; i < res->count; i++) {
-            for(::Stats::Chronostamp const &find_dst : res->timestamps.reqs[i].find_dsts) {
+            for(::Stats::Chronostamp const &find_dst : res->timestamps.reqs[i]->find_dsts) {
                 duration += ::Stats::sec(find_dst);
             }
 
-            duration += ::Stats::sec(res->timestamps.reqs[i].hashed)
-                     +  ::Stats::sec(res->timestamps.reqs[i].bulked);
+            duration += ::Stats::sec(res->timestamps.reqs[i]->hashed)
+                     +  ::Stats::sec(res->timestamps.reqs[i]->bulked);
 
             results->Add(hxhim::Result::init(hx, res, i));
         }

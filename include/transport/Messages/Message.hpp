@@ -39,7 +39,7 @@ struct Message {
     int *ds_offsets;           // datastore id on the dst range server
 
     struct {
-        struct Stats::Send *reqs;
+        struct Stats::Send **reqs;
         struct Stats::SendRecv transport;
     } timestamps;
 };

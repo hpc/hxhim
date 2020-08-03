@@ -6,12 +6,34 @@ hxhim::UserData::UserData()
     : ds_id(-1),
       ds_rank(-1),
       ds_offset(-1),
-      timestamps()
+      timestamps(construct<::Stats::Send>())
 {
-    timestamps.cached = ::Stats::now();
+    timestamps->cached = ::Stats::now();
 }
 
-hxhim::UserData::~UserData() {}
+hxhim::UserData::~UserData() {
+    destruct(timestamps);
+}
+
+int hxhim::UserData::steal(Transport::Request::Request *req) {
+    if (!req) {
+        return HXHIM_ERROR;
+    }
+
+    if (req->count >= req->max_count) {
+        return HXHIM_ERROR;
+    }
+
+    // ds_id and ds_rank should have already been set and is the same for everyone
+    req->ds_offsets[req->count]      = ds_offset;
+    req->timestamps.reqs[req->count] = timestamps;
+
+    timestamps = nullptr;
+
+    // count not updated here
+
+    return HXHIM_SUCCESS;
+}
 
 hxhim::SubjectPredicate::SubjectPredicate()
     : UserData(),
@@ -20,6 +42,12 @@ hxhim::SubjectPredicate::SubjectPredicate()
 {}
 
 hxhim::SubjectPredicate::~SubjectPredicate() {}
+
+int hxhim::SubjectPredicate::steal(Transport::Request::Request *req) {
+    // cannot steal subject+predicate
+    // since Transport::Request::Request does not have them
+    return UserData::steal(req);
+}
 
 hxhim::PutData::PutData()
     : SP_t(),
@@ -30,16 +58,10 @@ hxhim::PutData::PutData()
 {}
 
 int hxhim::PutData::moveto(Transport::Request::BPut *bput) {
-    if (!bput) {
+    if (SubjectPredicate::steal(bput) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
 
-    if (bput->count >= bput->max_count) {
-        return HXHIM_ERROR;
-    }
-
-    bput->ds_offsets[bput->count] = ds_offset;
-    bput->timestamps.reqs[bput->count] = std::move(timestamps);
     bput->subjects[bput->count] = subject;
     bput->predicates[bput->count] = predicate;
     bput->object_types[bput->count] = object_type;
@@ -63,16 +85,10 @@ hxhim::GetData::GetData()
 hxhim::GetData::~GetData() {}
 
 int hxhim::GetData::moveto(Transport::Request::BGet *bget) {
-    if (!bget) {
+    if (SubjectPredicate::steal(bget) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
 
-    if (bget->count >= bget->max_count) {
-        return HXHIM_ERROR;
-    }
-
-    bget->ds_offsets[bget->count] = ds_offset;
-    bget->timestamps.reqs[bget->count] = std::move(timestamps);
     bget->subjects[bget->count] = subject;
     bget->predicates[bget->count] = predicate;
     bget->object_types[bget->count] = object_type;
@@ -83,7 +99,6 @@ int hxhim::GetData::moveto(Transport::Request::BGet *bget) {
     bget->count++;
 
     return HXHIM_SUCCESS;
-
 }
 
 hxhim::GetOpData::GetOpData()
@@ -98,16 +113,10 @@ hxhim::GetOpData::GetOpData()
 hxhim::GetOpData::~GetOpData() {}
 
 int hxhim::GetOpData::moveto(Transport::Request::BGetOp *bgetop) {
-    if (!bgetop) {
+    if (SubjectPredicate::steal(bgetop) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
 
-    if (bgetop->count >= bgetop->max_count) {
-        return HXHIM_ERROR;
-    }
-
-    bgetop->ds_offsets[bgetop->count] = ds_offset;
-    bgetop->timestamps.reqs[bgetop->count] = std::move(timestamps);
     bgetop->subjects[bgetop->count] = subject;
     bgetop->predicates[bgetop->count] = predicate;
     bgetop->object_types[bgetop->count] = object_type;
@@ -126,16 +135,10 @@ hxhim::DeleteData::DeleteData()
 {}
 
 int hxhim::DeleteData::moveto(Transport::Request::BDelete *bdel) {
-    if (!bdel) {
+    if (SubjectPredicate::steal(bdel) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
 
-    if (bdel->count >= bdel->max_count) {
-        return HXHIM_ERROR;
-    }
-
-    bdel->ds_offsets[bdel->count] = ds_offset;
-    bdel->timestamps.reqs[bdel->count] = std::move(timestamps);
     bdel->subjects[bdel->count] = subject;
     bdel->predicates[bdel->count] = predicate;
 
@@ -145,7 +148,6 @@ int hxhim::DeleteData::moveto(Transport::Request::BDelete *bdel) {
     bdel->count++;
 
     return HXHIM_SUCCESS;
-
 }
 
 const Blob hxhim::HistogramData::subject = {};
@@ -158,16 +160,9 @@ hxhim::HistogramData::HistogramData()
 {}
 
 int hxhim::HistogramData::moveto(Transport::Request::BHistogram *bhist) {
-    if (!bhist) {
+    if (UserData::steal(bhist) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
-
-    if (bhist->count >= bhist->max_count) {
-        return HXHIM_ERROR;
-    }
-
-    bhist->ds_offsets[bhist->count] = ds_offset;
-    bhist->timestamps.reqs[bhist->count] = std::move(timestamps);
 
     bhist->count++;
 

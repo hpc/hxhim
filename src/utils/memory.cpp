@@ -1,7 +1,7 @@
 #include "utils/memory.hpp"
 
 void *alloc(const std::size_t size) {
-    return ::operator new(size);
+    return size?::operator new(size):nullptr;
 }
 
 void dealloc(void *ptr) {

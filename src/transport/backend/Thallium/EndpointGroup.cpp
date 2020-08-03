@@ -203,6 +203,7 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
         req->timestamps.transport.end = ::Stats::now();
         response->timestamps = std::move(req->timestamps);
         req->timestamps.reqs = nullptr;
+        req->count = 0;
 
         if (!response) {
             continue;

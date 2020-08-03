@@ -24,10 +24,12 @@ void destruct(T *ptr) {
 
 // wraps initialzing each element of an array
 // basically std::vector<T>::vector(size, value) without having to involve std::move
-// type T must have a default constructor and have no issues
-// constructing twice
 template <typename T, typename... Args>
 T *alloc_array(const std::size_t count, Args&&... args) {
+    if (!count) {
+        return nullptr;
+    }
+
     T *array = static_cast<T*>(::operator new[](sizeof(T) * count));
     for(std::size_t i = 0; i < count; i++) {
         new (&(array[i])) T(std::forward<Args>(args)...);

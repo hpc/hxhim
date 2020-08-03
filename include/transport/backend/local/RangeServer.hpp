@@ -50,13 +50,14 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
         dst.steal(req, i);
     }
 
-    // response variable
+    // final response variable
     Response_t *res = construct<Response_t>(req->count);
     res->src = req->dst;
     res->dst = req->src;
-    // copy request timestamps (not set by datastores)
-    res->timestamps = std::move(req->timestamps);
-    req->timestamps.reqs = nullptr;
+    // move request transport timestamps (order does not matter)
+    // individual timestamps have already been
+    // moved into the per-datastore packets
+    res->timestamps.transport = std::move(req->timestamps.transport);
 
     // no packing
     res->timestamps.transport.pack.start = ::Stats::now();
@@ -70,6 +71,11 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
         // if there were responses, copy them into the output variable
         if (response) {
             for(std::size_t i = 0; i < response->count; i++) {
+                // move timestamps over to response (responses should correspond to requests)
+                response->timestamps.reqs[i] = dsts[ds].timestamps.reqs[i];
+                dsts[ds].timestamps.reqs[i] = nullptr;
+
+                // move the datastore response to the main response
                 res->steal(response, i);
             }
 

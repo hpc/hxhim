@@ -34,12 +34,9 @@ int Transport::Message::alloc(const std::size_t max) {
             return TRANSPORT_ERROR;
         }
 
-        // responses take ownership of request timestamps
-        if (direction == Transport::Message::Direction::REQUEST) {
-            if (!(timestamps.reqs = alloc_array<::Stats::Send>(max))) {
-                cleanup();
-                return TRANSPORT_ERROR;
-            }
+        if (!(timestamps.reqs = alloc_array<::Stats::Send *>(max))) {
+            cleanup();
+            return TRANSPORT_ERROR;
         }
 
         count = 0;
@@ -65,9 +62,9 @@ int Transport::Message::steal(Transport::Message *from, const std::size_t i) {
     }
 
     ds_offsets[count] = from->ds_offsets[i];
+    timestamps.reqs[count] = from->timestamps.reqs[i];
 
-    // do not steal timestamps
-    // timestamps.reqs[count] = from->timestamps.reqs[i];
+    from->timestamps.reqs[i] = nullptr;
 
     // increment count in calling function
 
@@ -75,6 +72,10 @@ int Transport::Message::steal(Transport::Message *from, const std::size_t i) {
 }
 
 int Transport::Message::cleanup() {
+    for(std::size_t i = 0; i < count; i++) {
+        destruct(timestamps.reqs[i]);
+    }
+
     dealloc_array(ds_offsets, max_count);
     ds_offsets = nullptr;
 
@@ -82,6 +83,7 @@ int Transport::Message::cleanup() {
     timestamps.reqs = nullptr;
 
     count = 0;
+    max_count = 0;
 
     return TRANSPORT_SUCCESS;
 }

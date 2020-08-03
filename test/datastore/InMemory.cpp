@@ -38,7 +38,7 @@ static InMemoryTest *setup() {
         req.count++;
     }
 
-    Transport::Response::BPut * res = ds->operate(&req);
+    Transport::Response::BPut *res = ds->operate(&req);
     destruct(res);
 
     return ds;

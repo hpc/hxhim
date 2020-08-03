@@ -25,17 +25,19 @@ namespace hxhim {
     struct UserData {
         UserData();
         virtual ~UserData();
+        virtual int steal(Transport::Request::Request *req);
 
         int ds_id;
         int ds_rank;
         int ds_offset;
 
-        struct ::Stats::Send timestamps;
+        struct ::Stats::Send *timestamps; // pointer to single set of timestamps - ownership not kept
     };
 
     typedef struct SubjectPredicate : UserData {
         SubjectPredicate();
         virtual ~SubjectPredicate();
+        virtual int steal(Transport::Request::Request *req);
 
         Blob subject;
         Blob predicate;

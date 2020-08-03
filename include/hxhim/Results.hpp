@@ -78,7 +78,9 @@ class Results {
             // timestamps for a single operation
             // epoch can be obtained with hxhim::GetEpoch
             struct Timestamps {
-                struct ::Stats::Send send;
+                Timestamps();
+
+                struct ::Stats::Send *send;
                 struct ::Stats::SendRecv transport;
                 struct ::Stats::Recv recv;
             };

@@ -441,13 +441,13 @@ hxhim_results_t *hxhimFlush(hxhim_t *hx) {
 hxhim::Results *hxhim::Sync(hxhim_t *hx) {
     hxhim::Results *res = Flush(hx);
 
-    struct ::Stats::Send send;
-    send.cached       = hx->p->epoch;
-    send.shuffled     = hx->p->epoch;
-    send.hashed.start = hx->p->epoch;
-    send.hashed.end   = hx->p->epoch;
-    send.bulked.start = hx->p->epoch;
-    send.bulked.end   = hx->p->epoch;
+    ::Stats::Send send;
+    send.cached       = ::Stats::now();
+    send.shuffled     = ::Stats::now();
+    send.hashed.start = ::Stats::now();
+    send.hashed.end   = send.hashed.end;
+    send.bulked.start = ::Stats::now();
+    send.bulked.end   = send.bulked.end;
 
     struct ::Stats::SendRecv transport;
 
@@ -467,7 +467,8 @@ hxhim::Results *hxhim::Sync(hxhim_t *hx) {
 
         const int synced = hx->p->datastores[i]->Sync();
         hxhim::Results::Sync *sync = hxhim::Result::init(hx, i, synced);
-        sync->timestamps.send = send;
+
+        sync->timestamps.send = construct<::Stats::Send>(send);
         sync->timestamps.transport = transport;
         sync->timestamps.transport.end = ::Stats::now();
         sync->timestamps.recv.result.start = ::Stats::now();

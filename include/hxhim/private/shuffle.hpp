@@ -50,15 +50,16 @@ int shuffle(hxhim_t *hx,
             std::unordered_map<int, DST_t *> &remote) {
     // skip duplicate calculations
     if ((src->ds_id < 0) || (src->ds_rank < 0) || (src->ds_offset < 0)) {
-        src->timestamps.shuffled = ::Stats::now();
+        // this should be the first and only time hash is called on this packet
+        src->timestamps->shuffled = ::Stats::now();
 
         // get the destination backend id for the key
-        src->timestamps.hashed.start = ::Stats::now();
+        src->timestamps->hashed.start = ::Stats::now();
         src->ds_id = hx->p->hash.func(hx,
                                       src->subject.data(), src->subject.size(),
                                       src->predicate.data(), src->predicate.size(),
                                       hx->p->hash.args);
-        src->timestamps.hashed.end = ::Stats::now();
+        src->timestamps->hashed.end = ::Stats::now();
 
         if (src->ds_id < 0) {
             mlog(HXHIM_CLIENT_WARN, "Hash returned bad target datastore: %d", src->ds_id);
@@ -103,7 +104,7 @@ int shuffle(hxhim_t *hx,
     find_dst.end = ::Stats::now();
 
     // place this time range into src because the target bulk message might not have space
-    src->timestamps.find_dsts.emplace_back(find_dst);
+    src->timestamps->find_dsts.emplace_back(find_dst);
 
     // packet is full
     if (dst->count >= max_per_dst) {
@@ -117,7 +118,7 @@ int shuffle(hxhim_t *hx,
     bulked.end = ::Stats::now();
 
     // set timestamp here because src gets moved into dst
-    dst->timestamps.reqs[dst->count - 1].bulked = bulked;
+    dst->timestamps.reqs[dst->count - 1]->bulked = bulked;
 
     mlog(HXHIM_CLIENT_INFO, "Added %p to rank %d packet (%zu / %zu)", src, src->ds_id, dst->count, max_per_dst);
 
