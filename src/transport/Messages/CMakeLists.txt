@@ -6,6 +6,7 @@ set(MESSAGE_SOURCES
 
   Request.cpp
   Response.cpp
+  SubjectPredicate.cpp
 
   BPut.cpp
   BGet.cpp

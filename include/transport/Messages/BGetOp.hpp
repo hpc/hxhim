@@ -1,19 +1,13 @@
 #ifndef TRANSPORT_BGETOP_MESSAGE_HPP
 #define TRANSPORT_BGETOP_MESSAGE_HPP
 
-#include <cstddef>
-
-#include "hxhim/constants.h"
-#include "utils/Blob.hpp"
-#include "transport/Messages/Request.hpp"
-#include "transport/Messages/Response.hpp"
-#include "transport/constants.hpp"
+#include "transport/Messages/SubjectPredicate.hpp"
 
 namespace Transport {
 
 namespace Request {
 
-struct BGetOp final : Request {
+struct BGetOp final : SubjectPredicate {
     BGetOp(const std::size_t max = 0);
     ~BGetOp();
 
@@ -23,8 +17,6 @@ struct BGetOp final : Request {
     int steal(BGetOp *from, const std::size_t i);
     int cleanup();
 
-    Blob *subjects;
-    Blob *predicates;
     hxhim_object_type_t *object_types;
     std::size_t *num_recs;            // number of records to get back
     hxhim_get_op_t *ops;
@@ -34,7 +26,7 @@ struct BGetOp final : Request {
 
 namespace Response {
 
-struct BGetOp final : Response {
+struct BGetOp final : Response { // does not inherit SubjectPredicate
     BGetOp(const std::size_t max = 0);
     ~BGetOp();
 

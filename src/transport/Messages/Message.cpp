@@ -9,9 +9,7 @@ Transport::Message::Message(const Message::Direction dir, const enum hxhim_op_t 
       count(0),
       ds_offsets(nullptr),
       timestamps()
-{
-    Message::alloc(max_count);
-}
+{}
 
 Transport::Message::~Message() {
     cleanup();

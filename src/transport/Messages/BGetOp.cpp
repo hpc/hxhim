@@ -1,9 +1,7 @@
 #include "transport/Messages/BGetOp.hpp"
 
 Transport::Request::BGetOp::BGetOp(const std::size_t max)
-    : Request(hxhim_op_t::HXHIM_GETOP),
-      subjects(nullptr),
-      predicates(nullptr),
+    : SubjectPredicate(hxhim_op_t::HXHIM_GETOP),
       object_types(nullptr),
       num_recs(nullptr),
       ops(nullptr)
@@ -16,7 +14,7 @@ Transport::Request::BGetOp::~BGetOp() {
 }
 
 std::size_t Transport::Request::BGetOp::size() const {
-    std::size_t total = Request::size();
+    std::size_t total = Request::size(); // do not call SubjectPredicate::size()
     for(std::size_t i = 0; i < count; i++) {
         total += sizeof(object_types[i]) +
                  sizeof(num_recs[i]) + sizeof(ops[i]);
@@ -34,9 +32,7 @@ int Transport::Request::BGetOp::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Request::alloc(max) != TRANSPORT_SUCCESS)                     ||
-            !(subjects            = alloc_array<Blob>(max))                ||
-            !(predicates          = alloc_array<Blob>(max))                ||
+        if ((SubjectPredicate::alloc(max) != TRANSPORT_SUCCESS)            ||
             !(object_types        = alloc_array<hxhim_object_type_t>(max)) ||
             !(num_recs            = alloc_array<std::size_t>(max))         ||
             !(ops                 = alloc_array<hxhim_get_op_t>(max)))      {
@@ -49,12 +45,10 @@ int Transport::Request::BGetOp::alloc(const std::size_t max) {
 }
 
 int Transport::Request::BGetOp::steal(Transport::Request::BGetOp *from, const std::size_t i) {
-    if (Request::steal(from, i) != TRANSPORT_SUCCESS) {
+    if (SubjectPredicate::steal(from, i) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
-    subjects[count]           = from->subjects[i];
-    predicates[count]         = from->predicates[i];
     object_types[count]       = from->object_types[i];
     num_recs[count]           = from->num_recs[i];
     ops[count]                = from->ops[i];
@@ -80,7 +74,7 @@ int Transport::Request::BGetOp::cleanup() {
     dealloc_array(ops, max_count);
     ops = nullptr;
 
-    return Request::cleanup();
+    return SubjectPredicate::cleanup();
 }
 
 Transport::Response::BGetOp::BGetOp(const std::size_t max)

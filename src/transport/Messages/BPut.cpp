@@ -1,12 +1,9 @@
 #include "transport/Messages/BPut.hpp"
 
 Transport::Request::BPut::BPut(const std::size_t max)
-    : Request(hxhim_op_t::HXHIM_PUT),
-      subjects(nullptr),
-      predicates(nullptr),
+    : SubjectPredicate(hxhim_op_t::HXHIM_PUT),
       object_types(nullptr),
-      objects(nullptr),
-      orig()
+      objects(nullptr)
 {
     alloc(max);
 }
@@ -16,11 +13,9 @@ Transport::Request::BPut::~BPut() {
 }
 
 std::size_t Transport::Request::BPut::size() const {
-    std::size_t total = Request::size();
+    std::size_t total = SubjectPredicate::size();
     for(std::size_t i = 0; i < count; i++) {
-        total += subjects[i].pack_size() + sizeof(orig.subjects[i]) +
-                 predicates[i].pack_size() + sizeof(orig.predicates[i]) +
-                 sizeof(object_types[i]) +
+        total += sizeof(object_types[i]) +
                  objects[i].pack_size();
     }
     return total;
@@ -30,13 +25,9 @@ int Transport::Request::BPut::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Request::alloc(max) != TRANSPORT_SUCCESS)                     ||
-            !(subjects            = alloc_array<Blob>(max))                ||
-            !(predicates          = alloc_array<Blob>(max))                ||
-            !(object_types        = alloc_array<hxhim_object_type_t>(max)) ||
-            !(objects             = alloc_array<Blob>(max))                ||
-            !(orig.subjects       = alloc_array<void *>(max))              ||
-            !(orig.predicates     = alloc_array<void *>(max)))              {
+        if ((SubjectPredicate::alloc(max) != TRANSPORT_SUCCESS)                     ||
+            !(object_types                 = alloc_array<hxhim_object_type_t>(max)) ||
+            !(objects                      = alloc_array<Blob>(max)))                {
             cleanup();
             return TRANSPORT_ERROR;
         }
@@ -46,51 +37,30 @@ int Transport::Request::BPut::alloc(const std::size_t max) {
 }
 
 int Transport::Request::BPut::steal(Transport::Request::BPut *from, const std::size_t i) {
-    if (Request::steal(from, i) != TRANSPORT_SUCCESS) {
+    if (SubjectPredicate::steal(from, i) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
-    subjects[count]          = from->subjects[i];
-    predicates[count]        = from->predicates[i];
-    object_types[count]      = from->object_types[i];
-    objects[count]           = from->objects[i];
-
-    orig.subjects[count]     = from->orig.subjects[i];
-    orig.predicates[count]   = from->orig.predicates[i];
+    object_types[count] = from->object_types[i];
+    objects[count]      = from->objects[i];
 
     count++;
-
-    from->orig.subjects[i]   = nullptr;
-    from->orig.predicates[i] = nullptr;
 
     return TRANSPORT_SUCCESS;
 }
 
 int Transport::Request::BPut::cleanup() {
-    dealloc_array(subjects, max_count);
-    subjects = nullptr;
-
-    dealloc_array(predicates, max_count);
-    predicates = nullptr;
-
     dealloc_array(object_types, max_count);
     object_types = nullptr;
 
     dealloc_array(objects, max_count);
     objects = nullptr;
 
-    dealloc_array(orig.subjects, max_count);
-    orig.subjects = nullptr;
-
-    dealloc_array(orig.predicates, max_count);
-    orig.predicates = nullptr;
-
-    return Request::cleanup();
+    return SubjectPredicate::cleanup();
 }
 
 Transport::Response::BPut::BPut(const std::size_t max)
-    : Response(hxhim_op_t::HXHIM_PUT),
-      orig()
+    : SubjectPredicate(hxhim_op_t::HXHIM_PUT)
 {
     alloc(max);
 }
@@ -100,20 +70,16 @@ Transport::Response::BPut::~BPut() {
 }
 
 std::size_t Transport::Response::BPut::size() const {
-    std::size_t total = Response::size();
-    for(std::size_t i = 0; i < count; i++) {
-        total += orig.subjects[i].pack_ref_size() +
-                 orig.predicates[i].pack_ref_size();
-    }
+    std::size_t total = SubjectPredicate::size();
     return total;
 }
 
 int Transport::Response::BPut::alloc(const std::size_t max) {
     cleanup();
     if (max) {
-        if ((Response::alloc(max) != TRANSPORT_SUCCESS)      ||
-            !(orig.subjects        = alloc_array<Blob>(max)) ||
-            !(orig.predicates      = alloc_array<Blob>(max))) {
+        if ((SubjectPredicate::alloc(max) != TRANSPORT_SUCCESS)       ||
+            !(orig.subjects                = alloc_array<Blob>(max))  ||
+            !(orig.predicates              = alloc_array<Blob>(max)))  {
             cleanup();
             return TRANSPORT_ERROR;
         }
@@ -123,12 +89,12 @@ int Transport::Response::BPut::alloc(const std::size_t max) {
 }
 
 int Transport::Response::BPut::steal(Transport::Response::BPut *from, const std::size_t i) {
-    if (Response::steal(from, i) != TRANSPORT_SUCCESS) {
+    if (SubjectPredicate::steal(from, i) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
 
-    orig.subjects[count]      = from->orig.subjects[i];
-    orig.predicates[count]    = from->orig.predicates[i];
+    orig.subjects[count]   = from->orig.subjects[i];
+    orig.predicates[count] = from->orig.predicates[i];
 
     count++;
 
@@ -142,5 +108,5 @@ int Transport::Response::BPut::cleanup() {
     dealloc_array(orig.predicates, max_count);
     orig.predicates = nullptr;
 
-    return Response::cleanup();
+    return SubjectPredicate::cleanup();
 }
