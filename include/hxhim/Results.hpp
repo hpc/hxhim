@@ -81,7 +81,7 @@ class Results {
                 Timestamps();
 
                 struct ::Stats::Send *send;
-                struct ::Stats::SendRecv transport;
+                std::shared_ptr<struct ::Stats::SendRecv> transport;
                 struct ::Stats::Recv recv;
             };
 

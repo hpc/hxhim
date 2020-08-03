@@ -30,7 +30,7 @@ template <typename Response_t, typename Request_t,
           typename = enable_if_t <is_child_of<Request::Request,   Request_t> ::value &&
                                   is_child_of<Response::Response, Response_t>::value> >
 Response_t *range_server(hxhim_t *hx, Request_t *req) {
-    req->timestamps.transport.start = ::Stats::now();
+    req->timestamps.transport->start = ::Stats::now();
 
     int rank = -1;
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
@@ -58,13 +58,14 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
     // individual timestamps have already been
     // moved into the per-datastore packets
     res->timestamps.transport = std::move(req->timestamps.transport);
+    req->count = 0;
 
     // no packing
-    res->timestamps.transport.pack.start = ::Stats::now();
-    res->timestamps.transport.pack.end = res->timestamps.transport.pack.start;
+    res->timestamps.transport->pack.start = ::Stats::now();
+    res->timestamps.transport->pack.end = res->timestamps.transport->pack.start;
 
     // send to each datastore
-    res->timestamps.transport.send_start = ::Stats::now();
+    res->timestamps.transport->send_start = ::Stats::now();
     for(std::size_t ds = 0; ds < datastore_count; ds++) {
         Response_t *response = hx->p->datastores[ds]->operate(&dsts[ds]);
 
@@ -83,16 +84,16 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
             destruct(response);
         }
     }
-    res->timestamps.transport.recv_end = ::Stats::now();
+    res->timestamps.transport->recv_end = ::Stats::now();
 
     // no unpacking
-    res->timestamps.transport.unpack.start = ::Stats::now();
-    res->timestamps.transport.unpack.end = res->timestamps.transport.unpack.start;
+    res->timestamps.transport->unpack.start = ::Stats::now();
+    res->timestamps.transport->unpack.end = res->timestamps.transport->unpack.start;
 
     dealloc_array(dsts, datastore_count);
 
     mlog(HXHIM_SERVER_INFO, "Rank %d Local RangeServer done processing %s", rank, HXHIM_OP_STR[req->op]);
-    res->timestamps.transport.end = ::Stats::now();
+    res->timestamps.transport->end = ::Stats::now();
     return res;
 }
 

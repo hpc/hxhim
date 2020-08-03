@@ -37,6 +37,8 @@ int Transport::Message::alloc(const std::size_t max) {
             return TRANSPORT_ERROR;
         }
 
+        timestamps.transport = std::make_shared<struct ::Stats::SendRecv>();
+
         count = 0;
     }
 
@@ -64,6 +66,9 @@ int Transport::Message::steal(Transport::Message *from, const std::size_t i) {
 
     from->timestamps.reqs[i] = nullptr;
 
+    // do not steal transport timestamps here
+    // since it belongs to all of the individual timestamps
+
     // increment count in calling function
 
     return TRANSPORT_SUCCESS;
@@ -79,6 +84,8 @@ int Transport::Message::cleanup() {
 
     dealloc_array(timestamps.reqs, max_count);
     timestamps.reqs = nullptr;
+
+    timestamps.transport = nullptr;
 
     count = 0;
     max_count = 0;

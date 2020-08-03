@@ -2,6 +2,7 @@
 #define TRANSPORT_MESSAGE_BASE_HPP
 
 #include <cstdint>
+#include <memory>
 
 #include "hxhim/constants.h"
 #include "transport/constants.hpp"
@@ -40,7 +41,7 @@ struct Message {
 
     struct {
         struct Stats::Send **reqs;
-        struct Stats::SendRecv transport;
+        std::shared_ptr<struct Stats::SendRecv> transport;
     } timestamps;
 };
 

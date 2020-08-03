@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <cfloat>
-#include <chrono>
 #include <cmath>
 #include <cstring>
 #include <functional>
@@ -449,28 +448,28 @@ hxhim::Results *hxhim::Sync(hxhim_t *hx) {
     send.bulked.start = ::Stats::now();
     send.bulked.end   = send.bulked.end;
 
-    struct ::Stats::SendRecv transport;
+    std::shared_ptr<struct ::Stats::SendRecv> transport = std::make_shared<struct ::Stats::SendRecv>();
 
-    transport.pack.start = ::Stats::now();
-    transport.pack.end   = ::Stats::now();
+    transport->pack.start = ::Stats::now();
+    transport->pack.end   = ::Stats::now();
 
-    transport.send_start = ::Stats::now();
+    transport->send_start = ::Stats::now();
     MPI_Barrier(hx->p->bootstrap.comm);
-    transport.recv_end = ::Stats::now();
+    transport->recv_end = ::Stats::now();
 
-    transport.unpack.start = ::Stats::now();
-    transport.unpack.end   = ::Stats::now();
+    transport->unpack.start = ::Stats::now();
+    transport->unpack.end   = ::Stats::now();
 
     // Sync local data store
     for(std::size_t i = 0; i < hx->p->datastores.size(); i++) {
-        transport.start = ::Stats::now();
+        transport->start = ::Stats::now();
 
         const int synced = hx->p->datastores[i]->Sync();
         hxhim::Results::Sync *sync = hxhim::Result::init(hx, i, synced);
 
         sync->timestamps.send = construct<::Stats::Send>(send);
         sync->timestamps.transport = transport;
-        sync->timestamps.transport.end = ::Stats::now();
+        sync->timestamps.transport->end = ::Stats::now();
         sync->timestamps.recv.result.start = ::Stats::now();
         res->Add(sync);
         sync->timestamps.recv.result.end = ::Stats::now();

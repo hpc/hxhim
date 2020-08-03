@@ -47,13 +47,13 @@ hxhim::Results::Result::~Result() {
             ::Stats::print_event(s, rank, "FindDst",    epoch, find);
         }
         ::Stats::print_event(s, rank, "Bulked",         epoch, timestamps.send->bulked);
-        ::Stats::print_event(s, rank, "ProcessBulk",    epoch, timestamps.transport.start,
-                                                               timestamps.transport.end);
+        ::Stats::print_event(s, rank, "ProcessBulk",    epoch, timestamps.transport->start,
+                                                               timestamps.transport->end);
 
-        ::Stats::print_event(s, rank, "Pack",           epoch, timestamps.transport.pack);
-        ::Stats::print_event(s, rank, "Transport",      epoch, timestamps.transport.send_start,
-                                                               timestamps.transport.recv_end);
-        ::Stats::print_event(s, rank, "Unpack",         epoch, timestamps.transport.unpack);
+        ::Stats::print_event(s, rank, "Pack",           epoch, timestamps.transport->pack);
+        ::Stats::print_event(s, rank, "Transport",      epoch, timestamps.transport->send_start,
+                                                               timestamps.transport->recv_end);
+        ::Stats::print_event(s, rank, "Unpack",         epoch, timestamps.transport->unpack);
         ::Stats::print_event(s, rank, "Result",         epoch, timestamps.recv.result);
 
         mlog(HXHIM_CLIENT_NOTE, "\n%s", s.str().c_str());
@@ -233,8 +233,8 @@ void hxhim::Result::AddAll(hxhim_t *hx, hxhim::Results *results, Transport::Resp
     for(Transport::Response::Response *res = response; res; res = next(res)) {
         ::Stats::Chronopoint start = ::Stats::now();
 
-        duration += ::Stats::sec(res->timestamps.transport.pack.start,
-                                 res->timestamps.transport.unpack.end);
+        duration += ::Stats::sec(res->timestamps.transport->pack.start,
+                                 res->timestamps.transport->unpack.end);
 
         for(std::size_t i = 0; i < res->count; i++) {
             for(::Stats::Chronostamp const &find_dst : res->timestamps.reqs[i]->find_dsts) {
