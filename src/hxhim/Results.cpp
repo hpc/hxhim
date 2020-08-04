@@ -37,7 +37,7 @@ hxhim::Results::Result::~Result() {
         std::stringstream s;
 
         // from when request was put into the hxhim queue until the response was ready for pulling
-        ::Stats::print_event(s, rank, HXHIM_OP_STR[op], epoch, timestamps.send->cached,
+        ::Stats::print_event(s, rank, HXHIM_OP_STR[op], epoch, timestamps.send->cached.start,
                                                                timestamps.recv.result.end);
         ::Stats::print_event(s, rank, "Cached",         epoch, timestamps.send->cached);
         ::Stats::print_event(s, rank, "Shuffled",       epoch, timestamps.send->shuffled);
@@ -233,21 +233,30 @@ void hxhim::Result::AddAll(hxhim_t *hx, hxhim::Results *results, Transport::Resp
     for(Transport::Response::Response *res = response; res; res = next(res)) {
         ::Stats::Chronopoint start = ::Stats::now();
 
-        duration += ::Stats::sec(res->timestamps.transport->pack.start,
-                                 res->timestamps.transport->unpack.end);
+        // add time to send the entire bulk over the network
+        // do here because results->Add moves the data out of the response packet
+        const long double transport = ::Stats::sec(res->timestamps.transport->start,
+                                                   res->timestamps.transport->end);
 
+        // add timestamps of individual events
+        long double individual = 0;
         for(std::size_t i = 0; i < res->count; i++) {
             for(::Stats::Chronostamp const &find_dst : res->timestamps.reqs[i]->find_dsts) {
-                duration += ::Stats::sec(find_dst);
+                individual += ::Stats::sec(find_dst);
             }
 
-            duration += ::Stats::sec(res->timestamps.reqs[i]->hashed)
-                     +  ::Stats::sec(res->timestamps.reqs[i]->bulked);
+            // include time it took to cache, hash, and bulk the data
+            individual += ::Stats::sec(res->timestamps.reqs[i]->cached)
+                       +  ::Stats::sec(res->timestamps.reqs[i]->hashed)
+                       +  ::Stats::sec(res->timestamps.reqs[i]->bulked);
 
             results->Add(hxhim::Result::init(hx, res, i));
         }
 
-        duration += ::Stats::sec(start, ::Stats::now());
+        // add time to run AddAll as a separate value
+        const long double loop = ::Stats::sec(start, ::Stats::now());
+
+        duration += individual + transport + loop;
     }
 
     results->UpdateDuration(duration);

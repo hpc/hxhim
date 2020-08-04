@@ -8,7 +8,7 @@ hxhim::UserData::UserData()
       ds_offset(-1),
       timestamps(construct<::Stats::Send>())
 {
-    timestamps->cached = ::Stats::now();
+    timestamps->cached.start = ::Stats::now();
 }
 
 hxhim::UserData::~UserData() {

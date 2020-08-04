@@ -125,6 +125,9 @@ hxhim::Results *process(hxhim_t *hx,
 
         mlog(HXHIM_CLIENT_DBG, "Rank %d Client packed together requests destined for %zu remote servers", rank, remote.size());
 
+        // extra time that needs to be added to the results duration
+        long double extra_time = 0;
+
         // process remote data
         if (remote.size()) {
             // collect stats
@@ -135,6 +138,9 @@ hxhim::Results *process(hxhim_t *hx,
             }
             ::Stats::Chronopoint collect_stats_end = ::Stats::now();
             ::Stats::print_event_to_mlog(HXHIM_CLIENT_NOTE, rank, "collect_stats", epoch, collect_stats_start, collect_stats_end);
+
+            extra_time += ::Stats::sec(collect_stats_start,
+                                       collect_stats_end);
 
             // send down transport layer
             ::Stats::Chronopoint remote_start = ::Stats::now();
@@ -153,6 +159,9 @@ hxhim::Results *process(hxhim_t *hx,
         ::Stats::Chronopoint remote_cleanup_end = ::Stats::now();
         ::Stats::print_event_to_mlog(HXHIM_CLIENT_NOTE, rank, "remote_cleanup", epoch, remote_cleanup_start, remote_cleanup_end);
 
+        extra_time += ::Stats::sec(remote_cleanup_start,
+                                   remote_cleanup_end);
+
         mlog(HXHIM_CLIENT_DBG, "Rank %d Client sending %zu local requests", rank, local.count);
 
         // process local data
@@ -164,6 +173,9 @@ hxhim::Results *process(hxhim_t *hx,
             ::Stats::Chronopoint collect_stats_end = ::Stats::now();
             ::Stats::print_event_to_mlog(HXHIM_CLIENT_NOTE, rank, "collect_stats", epoch, collect_stats_start, collect_stats_end);
 
+            extra_time += ::Stats::sec(collect_stats_start,
+                                       collect_stats_end);
+
             // send to local range server
             ::Stats::Chronopoint local_start = ::Stats::now();
             Response_t *response = Transport::local::range_server<Response_t, Request_t>(hx, &local);
@@ -173,6 +185,8 @@ hxhim::Results *process(hxhim_t *hx,
             // serialize results
             hxhim::Result::AddAll(hx, res, response);
         }
+
+        res->UpdateDuration(extra_time);
 
         mlog(HXHIM_CLIENT_DBG, "Rank %d Client received %zu responses", rank, res->Size());
     }

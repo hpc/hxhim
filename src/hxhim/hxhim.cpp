@@ -441,7 +441,8 @@ hxhim::Results *hxhim::Sync(hxhim_t *hx) {
     hxhim::Results *res = Flush(hx);
 
     ::Stats::Send send;
-    send.cached       = ::Stats::now();
+    send.cached.start = ::Stats::now();
+    send.cached.end   = send.cached.start;
     send.shuffled     = ::Stats::now();
     send.hashed.start = ::Stats::now();
     send.hashed.end   = send.hashed.end;

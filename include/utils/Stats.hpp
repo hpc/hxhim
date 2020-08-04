@@ -32,7 +32,7 @@ long double sec(const Chronostamp &duration);
 
 // Timestamps before calling transport layer
 struct Send {
-    Chronopoint cached;
+    Chronostamp cached;
     Chronopoint shuffled;               // the first time shuffle was called on this request
     Chronostamp hashed;                 // how long hashing took (start should be close to
                                         // shuffled timestamp

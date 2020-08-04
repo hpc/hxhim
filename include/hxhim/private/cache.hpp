@@ -144,6 +144,9 @@ namespace hxhim {
             tail = node;
             node->next = nullptr;
             count++;
+
+            // start set in constructor
+            node->timestamps->cached.end = ::Stats::now();
         }
 
         Data *take_no_lock() {
