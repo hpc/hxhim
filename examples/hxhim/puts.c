@@ -85,7 +85,17 @@ int main(int argc, char *argv[]) {
 
         long double duration = 0;
         hxhim_results_duration(flush, &duration);
-        results_duration += duration;
+        /* results_duration += duration; */
+        results_duration += sec(&BPUT_start, &flush_end);
+
+        fprintf(stderr, "%d BPut+Flush"
+                " %" PRIu64
+                " %" PRIu64
+                " %.3Lf %.3Lf\n",
+                rank, i,
+                nano(&epoch, &BPUT_start),
+                nano(&epoch, &flush_end),
+                sec(&BPUT_start, &flush_end), duration);
 
         timestamp_start(destroy);
         hxhim_results_destroy(flush);

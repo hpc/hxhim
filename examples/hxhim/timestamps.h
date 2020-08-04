@@ -15,7 +15,7 @@ long double sec(struct timespec *start, struct timespec *end);
 #define timestamp_end(name)                                         \
     struct timespec name ## _end;                                   \
     clock_gettime(CLOCK_MONOTONIC, &name ## _end);                  \
-    fprintf(stderr, "%d " #name " %" PRIu64 " %" PRIu64 " %Lf\n",   \
+    fprintf(stderr, "%d " #name " %" PRIu64 " %" PRIu64 " %.3Lf\n", \
             rank,                                                   \
             nano(&epoch, &name ## _start),                          \
             nano(&epoch, &name ## _end),                            \
