@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
     struct timespec epoch;
     hxhimGetEpoch(&hx, &epoch);
 
-    long double results_duration = 0;
+    uint64_t results_duration = 0;
 
     // do PUTs
     for(size_t i = 0; i < times; i++) {
@@ -83,19 +83,19 @@ int main(int argc, char *argv[]) {
         hxhim_results_t *flush = hxhimFlush(&hx);
         timestamp_end(flush);
 
-        long double duration = 0;
+        uint64_t duration = 0;
         hxhim_results_duration(flush, &duration);
         /* results_duration += duration; */
-        results_duration += sec(&BPUT_start, &flush_end);
+        results_duration += nano(&BPUT_start, &flush_end);
 
         fprintf(stderr, "%d BPut+Flush"
                 " %" PRIu64
                 " %" PRIu64
-                " %.3Lf %.3Lf\n",
-                rank, i,
+                " %.3Lf %.3f\n",
+                rank,
                 nano(&epoch, &BPUT_start),
                 nano(&epoch, &flush_end),
-                sec(&BPUT_start, &flush_end), duration);
+                sec(&BPUT_start, &flush_end), duration / 1e9);
 
         timestamp_start(destroy);
         hxhim_results_destroy(flush);
@@ -112,11 +112,13 @@ int main(int argc, char *argv[]) {
     MPI_Barrier(MPI_COMM_WORLD);
 
     const size_t total_count = count * times;
+    const long double duration = results_duration / 1e9;
+    const long double rate = ((long double) total_count) / duration;
 
     for(int i = 0; i < size; i++) {
         MPI_Barrier(MPI_COMM_WORLD);
         if (i == rank) {
-            fprintf(stderr, "Rank %d: %zu PUTs in %.3Lf seconds (%.3Lf PUTs/sec)\n", i, total_count, results_duration, total_count / results_duration);
+            fprintf(stderr, "Rank %d: %zu PUTs in %.3Lf seconds (%.3Lf PUTs/sec)\n", i, total_count, duration, rate);
         }
         MPI_Barrier(MPI_COMM_WORLD);
     }

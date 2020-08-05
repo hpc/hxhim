@@ -3,7 +3,9 @@
 #include "hxhim/config.hpp"
 #include "hxhim/private/options.hpp"
 #include "transport/backend/MPI/Options.hpp"
+#if HXHIM_HAVE_THALLIUM
 #include "transport/backend/Thallium/Options.hpp"
+#endif
 
 /**
  * hxhim_options_init

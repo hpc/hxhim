@@ -228,38 +228,38 @@ hxhim::Results::Hist *hxhim::Result::init(hxhim_t *hx, Transport::Response::BHis
  * @param results   the result list to insert into
  * @param response  the response packet
  */
-void hxhim::Result::AddAll(hxhim_t *hx, hxhim::Results *results, Transport::Response::Response *response) {
-    long double duration = 0;
+uint64_t hxhim::Result::AddAll(hxhim_t *hx, hxhim::Results *results, Transport::Response::Response *response) {
+    uint64_t duration = 0;
     for(Transport::Response::Response *res = response; res; res = next(res)) {
         ::Stats::Chronopoint start = ::Stats::now();
 
-        // add time to send the entire bulk over the network
-        // do here because results->Add moves the data out of the response packet
-        const long double transport = ::Stats::sec(res->timestamps.transport->start,
-                                                   res->timestamps.transport->end);
-
-        // add timestamps of individual events
-        long double individual = 0;
+       // add timestamps of individual events
+        uint64_t individual = 0;
         for(std::size_t i = 0; i < res->count; i++) {
             for(::Stats::Chronostamp const &find_dst : res->timestamps.reqs[i]->find_dsts) {
-                individual += ::Stats::sec(find_dst);
+                individual += ::Stats::nano(find_dst);
             }
 
             // include time it took to cache, hash, and bulk the data
-            individual += ::Stats::sec(res->timestamps.reqs[i]->cached)
-                       +  ::Stats::sec(res->timestamps.reqs[i]->hashed)
-                       +  ::Stats::sec(res->timestamps.reqs[i]->bulked);
+            individual += ::Stats::nano(res->timestamps.reqs[i]->cached)
+                       +  ::Stats::nano(res->timestamps.reqs[i]->hashed)
+                       +  ::Stats::nano(res->timestamps.reqs[i]->bulked);
 
             results->Add(hxhim::Result::init(hx, res, i));
         }
 
-        // add time to run AddAll as a separate value
-        const long double loop = ::Stats::sec(start, ::Stats::now());
+        // add time to send the entire bulk over the network
+        const uint64_t transport = ::Stats::nano(res->timestamps.transport->start,
+                                                 res->timestamps.transport->end);
 
-        duration += individual + transport + loop;
+        ::Stats::Chronopoint end = ::Stats::now();
+
+        duration += individual + transport + ::Stats::nano(start, end);
     }
 
     results->UpdateDuration(duration);
+
+    return duration;
 }
 
 /**
@@ -341,12 +341,12 @@ hxhim::Results::Result *hxhim::Results::Add(hxhim::Results::Result *response) {
  * incorrect. Also needed because Transport::Message
  * should not be exposed.
  *
- * @param  dt   the change in duration
- * @return the duration before adding dt
+ * @param  ns   the change in nanoseconds
+ * @return the duration before the change in nanoseconds
  */
-long double hxhim::Results::UpdateDuration(const long double dt) {
-    const long double old_duration = duration;
-    duration += dt;
+uint64_t hxhim::Results::UpdateDuration(const uint64_t ns) {
+    const uint64_t old_duration = duration;
+    duration += ns;
     return old_duration;
 }
 
@@ -492,9 +492,9 @@ int hxhim_results_size(hxhim_results_t *res, size_t *size) {
  * Return the total time it took to convert
  * requests to responses.
  *
- * @return the total time
+ * @return the total time in nanoseconds
  */
-long double hxhim::Results::Duration() const {
+uint64_t hxhim::Results::Duration() const {
     return duration;
 }
 
@@ -507,7 +507,7 @@ long double hxhim::Results::Duration() const {
  * @param duration  The total time
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim_results_duration(hxhim_results_t *res, long double *duration) {
+int hxhim_results_duration(hxhim_results_t *res, uint64_t *duration) {
     if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }

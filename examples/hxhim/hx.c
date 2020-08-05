@@ -169,13 +169,13 @@ int main(int argc, char *argv[]) {
         ordered_print(MPI_COMM_WORLD, rank, size, &hx, flush_puts);
     }
 
-    long double duration = 0;
+    uint64_t duration = 0;
     hxhim_results_duration(flush_puts, &duration);
 
     for(int i = 0; i < size; i++) {
         MPI_Barrier(MPI_COMM_WORLD);
         if (i == rank) {
-            fprintf(stderr, "Rank %d: %zu PUTs in %.3Lf seconds (%.3Lf PUTs/sec)\n", i, count, duration, count / duration);
+            fprintf(stderr, "Rank %d: %zu PUTs in %.3f seconds (%.3f PUTs/sec)\n", i, count, duration / 1e9, count * 1e9 / duration);
         }
         MPI_Barrier(MPI_COMM_WORLD);
     }

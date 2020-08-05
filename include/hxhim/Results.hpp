@@ -2,6 +2,7 @@
 #define HXHIM_RESULTS_HPP
 
 #include <cstddef>
+#include <cstdint>
 #include <deque>
 #include <memory>
 
@@ -154,7 +155,7 @@ class Results {
         Result *Add(Result *response);
 
         // Update duration separately
-        long double UpdateDuration(const long double dt);
+        uint64_t UpdateDuration(const uint64_t ns);
 
         // Moves and appends another set of results; the list being appended is emptied out
         // timestamps are updated
@@ -162,7 +163,7 @@ class Results {
 
         // Accessors for the entire list of results
         std::size_t Size() const;
-        long double Duration() const;
+        uint64_t Duration() const;
 
         // Control the "curr" pointer
         bool ValidIterator() const;
@@ -192,7 +193,7 @@ class Results {
         hxhim_t *hx;
         std::deque <Result *> results;
         decltype(results)::const_iterator curr;
-        long double duration;
+        uint64_t duration;
 };
 
 }
