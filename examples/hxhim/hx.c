@@ -12,17 +12,6 @@
 
 const size_t bufsize = 100;
 
-#define barrier_start                                               \
-    clock_gettime(CLOCK_MONOTONIC, &mpi_barrier_start)              \
-
-#define barrier_end                                                 \
-    clock_gettime(CLOCK_MONOTONIC, &mpi_barrier_end);               \
-    fprintf(stderr, "%d barrier %" PRIu64 " %" PRIu64 " %Lf\n",     \
-            rank,                                                   \
-            nano(&epoch, &mpi_barrier_start),                       \
-            nano(&epoch, &mpi_barrier_end),                         \
-            sec(&mpi_barrier_start, &mpi_barrier_end))              \
-
 void ordered_print(MPI_Comm comm, const int rank, const int size, hxhim_t * hx, hxhim_results_t *res) {
     for(int i = 0; i < size; i++) {
         MPI_Barrier(comm);
@@ -104,9 +93,6 @@ int main(int argc, char *argv[]) {
     }
     MPI_Barrier(MPI_COMM_WORLD);
 
-    struct timespec mpi_barrier_start;
-    struct timespec mpi_barrier_end;
-
     // PUT the key value pairs into HXHIM
     timestamp_start(put);
     for(size_t i = 0; i < count; i++) {
@@ -120,17 +106,13 @@ int main(int argc, char *argv[]) {
     }
     timestamp_end(put);
 
-    barrier_start;
-    MPI_Barrier(MPI_COMM_WORLD);
-    barrier_end;
+    barrier;
 
     if (rank == 0) {
         printf("GET before flushing PUTs\n");
     }
 
-    barrier_start;
-    MPI_Barrier(MPI_COMM_WORLD);
-    barrier_end;
+    barrier;
 
     // GET them back, flushing only the GETs
     // this will likely return errors, since not all of the PUTs will have completed
@@ -145,25 +127,19 @@ int main(int argc, char *argv[]) {
     hxhim_results_destroy(flush_gets_early);
 
     // flush PUTs
-    barrier_start;
-    MPI_Barrier(MPI_COMM_WORLD);
-    barrier_end;
+    barrier;
 
     if (rank == 0) {
         printf("Flush PUTs\n");
     }
 
-    barrier_start;
-    MPI_Barrier(MPI_COMM_WORLD);
-    barrier_end;
+    barrier;
 
     timestamp_start(flush_put);
     hxhim_results_t *flush_puts = hxhimFlushPuts(&hx);
     timestamp_end(flush_put);
 
-    barrier_start;
-    MPI_Barrier(MPI_COMM_WORLD);
-    barrier_end;
+    barrier;
 
     if (print) {
         ordered_print(MPI_COMM_WORLD, rank, size, &hx, flush_puts);

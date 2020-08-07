@@ -51,6 +51,11 @@ int main(int argc, char *argv[]) {
     struct timespec epoch;
     hxhimGetEpoch(&hx, &epoch);
 
+    struct timespec mpi_barrier_start;
+    struct timespec mpi_barrier_end;
+
+    barrier;
+
     uint64_t results_duration = 0;
 
     // do PUTs
@@ -109,7 +114,7 @@ int main(int argc, char *argv[]) {
         timestamp_end(clean);
     }
 
-    MPI_Barrier(MPI_COMM_WORLD);
+    barrier;
 
     const size_t total_count = count * times;
     const long double duration = results_duration / 1e9;
