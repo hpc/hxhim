@@ -42,7 +42,7 @@ TEST(Results, Loop) {
 
         // check the data
         std::size_t count = 0;
-        for(results.GoToHead(); results.ValidIterator(); results.GoToNext()) {
+        HXHIM_CXX_RESULTS_LOOP(&results) {
             count++;
         }
 
@@ -63,7 +63,7 @@ TEST(Results, Loop) {
 
         // check the data
         std::size_t count = 0;
-        for(results.GoToHead(); results.ValidIterator(); results.GoToNext()) {
+        HXHIM_CXX_RESULTS_LOOP(&results) {
             hxhim_op_t op = hxhim_op_t::HXHIM_INVALID;
             EXPECT_EQ(results.Op(&op), HXHIM_SUCCESS);
             EXPECT_EQ(op, hxhim_op_t::HXHIM_PUT);

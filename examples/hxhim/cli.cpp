@@ -175,10 +175,7 @@ std::size_t run_commands(hxhim_t * hx, const UserInput &commands) {
         }
 
         print_results(hx, 0, res);
-        for(hxhim_results_goto_head(res);
-            hxhim_results_valid(res) == HXHIM_SUCCESS;
-            hxhim_results_goto_next(res)) {
-
+        HXHIM_C_RESULTS_LOOP(res) {
             enum hxhim_op_t op;
             hxhim_result_op(res, &op);
 

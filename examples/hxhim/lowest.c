@@ -25,11 +25,7 @@ typedef struct Cell {
 } Cell_t;
 
 void print_results(hxhim_t *hx, const int print_rank, hxhim_results_t *results) {
-    if (!results) {
-        return;
-    }
-
-    for(hxhim_results_goto_head(results); hxhim_results_valid_iterator(results) == HXHIM_SUCCESS; hxhim_results_goto_next(results)) {
+    HXHIM_C_RESULTS_LOOP(results) {
         if (print_rank) {
             int rank = -1;
             if (hxhimGetMPI(hx, NULL, &rank, NULL) != HXHIM_SUCCESS) {

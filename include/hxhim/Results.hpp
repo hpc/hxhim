@@ -27,7 +27,7 @@ namespace hxhim {
  * Usage:
  *
  *     hxhim::Results *res = Flush(hx);
- *     for(res->GoToHead(); res->ValidIterator(); res->GoToNext()) {
+ *     HXHIM_CXX_RESULTS_LOOP(res) {
  *         enum hxhim_op_t op;
  *         res->Op(&op);
  *         switch (op) {
@@ -62,6 +62,12 @@ namespace hxhim {
  *     etc.
  *
  */
+
+/** Convenience macro to loop over a hxhim::Results pointer */
+#define HXHIM_CXX_RESULTS_LOOP(results)         \
+    for((results)->GoToHead();                  \
+        (results)->ValidIterator();             \
+        (results)->GoToNext())
 
 class Results {
     public:

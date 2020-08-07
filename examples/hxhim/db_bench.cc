@@ -935,7 +935,7 @@ class Benchmark {
       hxhim_results_t *ret = hxhimFlush(hx);
       thread->stats.FinishedSingleOp();
 
-      for(hxhim_results_goto_head(ret); hxhim_results_valid(ret) == HXHIM_SUCCESS; hxhim_results_goto_next(ret)) {
+      HXHIM_C_RESULTS_LOOP(ret) {
           int status = -1; hxhim_result_status(ret, &status);
           found += (status == HXHIM_SUCCESS);
       }

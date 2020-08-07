@@ -85,7 +85,7 @@ TEST(hxhim, Histogram) {
     ASSERT_NE(hist_results, nullptr);
     EXPECT_EQ(hist_results->Size(), (std::size_t) total_ds);
 
-    for(hist_results->GoToHead(); hist_results->ValidIterator(); hist_results->GoToNext()) {
+    HXHIM_CXX_RESULTS_LOOP(hist_results) {
         hxhim_op_t op = hxhim_op_t::HXHIM_INVALID;
         EXPECT_EQ(hist_results->Op(&op), HXHIM_SUCCESS);
         EXPECT_EQ(op, hxhim_op_t::HXHIM_HISTOGRAM);

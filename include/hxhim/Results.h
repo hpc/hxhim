@@ -25,7 +25,7 @@ extern "C"
  * Usage:
  *
  *     hxhim_results_t *res = hxhimFlush(hx);
- *     for(hxhim_results_goto_head(res); hxhim_results_valid_iterator(res) == HXHIM_SUCCESS; hxhim_results_goto_next(res)) {
+ *     HXHIM_C_RESULTS_LOOP(res) {
  *         enum hxhim_op_t op;
  *         hxhim_result_op(res, &op);
  *         switch (op) {
@@ -52,6 +52,12 @@ extern "C"
 
 // Opaque C struct, since user will never create one themselves
 typedef struct hxhim_results hxhim_results_t;
+
+/** Convenience macro to loop over a hxhim_results_t pointer */
+#define HXHIM_C_RESULTS_LOOP(results)                               \
+    for(hxhim_results_goto_head((results));                         \
+        hxhim_results_valid_iterator((results)) == HXHIM_SUCCESS;   \
+        hxhim_results_goto_next((results)))
 
 int hxhim_results_valid(hxhim_results_t *res);                             /* whether or not the underlying pointer is readable */
 

@@ -31,7 +31,7 @@ TEST(hxhim, PutGet) {
 
     // Make sure put succeeded
     EXPECT_EQ(put_results->Size(), (std::size_t) 1);
-    for(put_results->GoToHead(); put_results->ValidIterator(); put_results->GoToNext()) {
+    HXHIM_CXX_RESULTS_LOOP(put_results) {
         hxhim_op_t op;
         EXPECT_EQ(put_results->Op(&op), HXHIM_SUCCESS);
         EXPECT_EQ(op, hxhim_op_t::HXHIM_PUT);
@@ -55,7 +55,7 @@ TEST(hxhim, PutGet) {
 
     // get the results and compare them with the original data
     EXPECT_EQ(get_results->Size(), (std::size_t) 1);
-    for(get_results->GoToHead(); get_results->ValidIterator(); get_results->GoToNext()) {
+    HXHIM_CXX_RESULTS_LOOP(get_results) {
         hxhim_op_t op = hxhim_op_t::HXHIM_INVALID;
         EXPECT_EQ(get_results->Op(&op), HXHIM_SUCCESS);
         EXPECT_EQ(op, hxhim_op_t::HXHIM_GET);
