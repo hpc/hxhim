@@ -143,7 +143,7 @@ static int hxhim_options_set_datastore(hxhim_options_t *opts, hxhim::datastore::
         return HXHIM_ERROR;
     }
 
-    hxhim_options_datastore_config_destroy(opts->p->datastore);
+    delete opts->p->datastore;
 
     opts->p->datastore = config;
 
@@ -504,13 +504,10 @@ int hxhim_options_set_histogram_bucket_gen_function(hxhim_options_t *opts, Histo
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_destroy(hxhim_options_t *opts) {
-    if (!opts) {
+    if ((hxhim_options_set_datastore(opts, nullptr) != HXHIM_SUCCESS) ||
+        (hxhim_options_set_transport(opts, nullptr) != HXHIM_SUCCESS)) {
         return HXHIM_ERROR;
     }
-
-    hxhim_options_datastore_config_destroy(opts->p->datastore);
-    delete opts->p->transport;
-    opts->p->transport = nullptr;
 
     delete opts->p;
     opts->p = nullptr;
@@ -542,9 +539,4 @@ hxhim::datastore::Config *hxhim_options_create_leveldb_config(const size_t id, c
  */
 hxhim::datastore::Config *hxhim_options_create_in_memory_config() {
     return new hxhim::datastore::InMemory::Config();
-}
-
-// Cleans up config memory, including the config variable itself because the user will never be able to create their own config
-void hxhim_options_datastore_config_destroy(hxhim::datastore::Config *config) {
-    delete config;
 }

@@ -13,3 +13,15 @@ TEST(hxhim, OpenClose) {
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }
+
+TEST(hxhim, EarlyDestroyOpts) {
+    hxhim_t hx;
+    {
+        hxhim_options_t opts;
+        ASSERT_EQ(fill_options(&opts), true);
+        ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
+        EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
+    }
+
+    EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
+}
