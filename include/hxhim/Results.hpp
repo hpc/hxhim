@@ -30,7 +30,7 @@ namespace hxhim {
  *     for(res->GoToHead(); res->ValidIterator(); res->GoToNext()) {
  *         enum hxhim_op_t op;
  *         res->Op(&op);
- *         switch (type) {
+ *         switch (op) {
  *             case HXHIM_PUT:
  *                 // do stuff with put
  *                 break;
