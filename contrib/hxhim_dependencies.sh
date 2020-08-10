@@ -39,8 +39,8 @@ function usage() {
     echo "        --SM       build the SM  module for mercury"
     echo
     echo "        --NO_DL    do not download repositories"
-    echo "        --DL_ONLY  stop after downloading repositories (only effective if NO_DL is not specified)"
-    echo "        --PULL     run git pull if repository was downloaded"
+    echo "        --UPDATE   update source if downloading"
+    echo "        --DL_ONLY  stop after downloading and updating (if the source needed to be downloaded)"
 }
 
 # Check that an executable is available; if not, print the name and exit
@@ -81,137 +81,161 @@ function check_mpi() {
     fi
 }
 
-function NA_BMI() {
-    name=bmi
+function install() {
+    # all arguments after download are optional
+    name="$1"             # name of package
+    download="$2"         # function to download package
+    update="$3"           # function to update downloaded files
+    setup="$4"            # run this within the package root
+    cbi="$5"              # configure, build, and install in the ${BUILD} directory
+    post_download="$6"    # run this after installing
 
-    cmake_options="${cmake_options} -DNA_USE_BMI:BOOL=On"
-
-    # check for installed bmi
-    check_library ${name} && return
-
-    download_dir=${WORKING_DIR}/${name}
-    if [[ "${NO_DL}" -eq "0" ]]
+    #downlaod phase
+    download_dir="${WORKING_DIR}/${name}"
+    if [[ "${DL}" -eq "1" ]]
     then
-        if [[ ! -d "${download_dir}" ]]; then
-            git clone --depth 1 https://xgitlab.cels.anl.gov/sds/bmi.git ${download_dir}
-
-        fi
-
-        if [[ "${PULL}" -eq "1" ]]
+        if [[ ! -d "${download_dir}" ]]
         then
-            cd ${download_dir}
-            git pull
-            cd ..
+            $(${download} "${download_dir}")
+        else
+            if [[ "${UPDATE}" -eq "1" ]]
+            then
+                cd "${download_dir}"
+                ${update}
+            fi
         fi
-
-        if [[ "${DL_ONLY}" -ne "0" ]]
+    else
+        if [[ ! -d "${download_dir}" ]]
         then
-            return 0
+            echo "Error: ${name} not available locally but also not downloaded"
+            return 1
+        fi
+    fi
+    # ${download_dir} must exist by this point
+
+    cd "${download_dir}"
+
+    if [[ "${DL_ONLY}" -eq "1" ]]
+    then
+        # do not print or update variables
+        return 0;
+    fi
+
+    # build and install phase
+    install_dir="${PREFIX}/${name}"
+    if [[ ! -d "${install_dir}" ]]
+    then
+        build_dir="${download_dir}/${BUILD}"
+        if [[ ! -d "${build_dir}" ]]
+        then
+            ${setup}
+
+            mkdir -p "${build_dir}"
+        fi
+        # ${build_dir} exists at this point
+
+        cd "${build_dir}"
+        PKG_CONFIG_PATH="${pkg_config_path}:${PKG_CONFIG_PATH}"
+        ${cbi}
+
+        if [[ -d "${install_dir}/lib/pkgconfig" ]]
+        then
+            pkg_config_path="${pkg_config_path}:${install_dir}/lib/pkgconfig"
+        elif [[ -d "${install_dir}/lib64/pkgconfig" ]]
+        then
+            pkg_config_path="${pkg_config_path}:${install_dir}/lib64/pkgconfig"
         fi
     fi
 
-    cd ${download_dir}
-    ./prepare
-    mkdir -p ${BUILD}
-    cd ${BUILD}
-    install_dir=${PREFIX}/${name}
-    PKG_CONFIG_PATH=${pkg_config_path}:${PKG_CONFIG_PATH} ../configure --prefix=${PREFIX}/${name} --enable-shared --enable-bmi-only
-    make -j ${PROCS}
-    make -j ${PROCS} install
-    cd ../..
+    ${post_download}
+}
 
-    BMI_INCLUDE_DIR=${install_dir}/include
-    BMI_LIBRARY=${install_dir}/lib/libbmi.so
-    cmake_options="${cmake_options} -DBMI_INCLUDE_DIR=${BMI_INCLUDE_DIR} -DBMI_LIBRARY=${BMI_LIBRARY}"
-    pkg_config_path=${pkg_config_path}:${install_dir}/lib/pkgconfig
+function git_pull() {
+    git pull
+}
+
+function NA_BMI() {
+    function dl_bmi() {
+        git clone --depth 1 https://xgitlab.cels.anl.gov/sds/bmi.git "$1"
+    }
+
+    function setup_bmi() {
+        ./prepare
+    }
+
+    function cbi_bmi() {
+        if [[ ! -f Makefile ]]
+        then
+            ../configure --prefix="${install_dir}" --enable-shared --enable-bmi-only
+        fi
+
+        make -j ${PROCS}
+        make -j ${PROCS} install
+    }
+
+    function setup_bmi_vars() {
+        BMI_INCLUDE_DIR="${install_dir}/include"
+        BMI_LIBRARY="${install_dir}/lib/libbmi.so"
+        cmake_options="${cmake_options} -DNA_USE_BMI:BOOL=On -DBMI_INCLUDE_DIR=${BMI_INCLUDE_DIR} -DBMI_LIBRARY=${BMI_LIBRARY}"
+    }
+
+    install "bmi" dl_bmi git_pull setup_bmi cbi_bmi setup_bmi_vars
 }
 
 function NA_CCI() {
-    name=cci
+    function dl_cci() {
+        git clone --depth 1 https://github.com/CCI/cci.git "$1"
+    }
 
-    cmake_options="${cmake_options} -DNA_USE_CCI:BOOL=On"
+    function setup_cci() {
+        ./autogen.pl
+    }
 
-    # check for installed cci
-    check_library ${name} && return
-
-    download_dir=${WORKING_DIR}/${name}
-    if [[ "${NO_DL}" -eq "0" ]]
-    then
-        if [[ ! -d "${download_dir}" ]]; then
-            git clone --depth 1 https://github.com/CCI/cci.git ${download_dir}
-        fi
-
-        if [[ "${PULL}" -eq "1" ]]
+    function cbi_cci() {
+        if [[ ! -f Makefile ]]
         then
-            cd ${download_dir}
-            git pull
-            cd ..
+            ../configure --prefix="${install_dir}"
         fi
 
-        if [[ "${DL_ONLY}" -ne "0" ]]
-        then
-            return 0
-        fi
-    fi
+        make -j ${PROCS}
+        make -j ${PROCS} install
+    }
 
-    cd ${download_dir}
-    ./autogen.pl
-    mkdir -p ${BUILD}
-    cd ${BUILD}
-    install_dir=${PREFIX}/${name}
-    PKG_CONFIG_PATH=${pkg_config_path}:${PKG_CONFIG_PATH} ../configure --prefix=${install_dir}
-    make -j ${PROCS}
-    make -j ${PROCS} install
-    cd ../..
+    function setup_cci_vars() {
+        CCI_INCLUDE_DIR="${install_dir}/include"
+        CCI_LIBRARY="${install_dir}/lib/libcci.so"
+        cmake_options="${cmake_options} -DNA_USE_CCI:BOOL=On -DCCI_INCLUDE_DIR=${CCI_INCLUDE_DIR} -DCCI_LIBRARY=${CCI_LIBRARY}"
+    }
 
-    CCI_INCLUDE_DIR=${install_dir}/include
-    CCI_LIBRARY=${install_dir}/lib/libcci.so
-    cmake_options="${cmake_options} -DCCI_INCLUDE_DIR=${CCI_INCLUDE_DIR} -DCCI_LIBRARY=${CCI_LIBRARY}"
-    pkg_config_path=${pkg_config_path}:${install_dir}/lib/pkgconfig
+    install "cci" dl_cci git_pull setup_cci cbi_cci setup_cci_vars
 }
 
 function NA_OFI() {
-    name=libfabric
+    function dl_ofi() {
+        git clone --depth 1 https://github.com/ofiwg/libfabric.git "$1"
+    }
 
-    cmake_options="${cmake_options} -DNA_USE_OFI:BOOL=On"
+    function setup_ofi() {
+        ./autogen.sh
+    }
 
-    # check for installed libfabric
-    check_library ${name} && return
-
-    download_dir=${WORKING_DIR}/${name}
-    if [[ "${NO_DL}" -eq "0" ]]
-    then
-        if [[ ! -d "${download_dir}" ]]; then
-            git clone --depth 1 https://github.com/ofiwg/libfabric.git ${download_dir}
-        fi
-
-        if [[ "${PULL}" -eq "1" ]]
+    function cbi_ofi() {
+        if [[ ! -f Makefile ]]
         then
-            cd ${download_dir}
-            git pull
-            cd ..
+            ../configure --prefix="${install_dir}"
         fi
 
-        if [[ "${DL_ONLY}" -ne "0" ]]
-        then
-            return 0
-        fi
-    fi
+        make -j ${PROCS}
+        make -j ${PROCS} install
+    }
 
-    cd ${download_dir}
-    ./autogen.sh
-    mkdir -p ${BUILD}
-    cd ${BUILD}
-    install_dir=${PREFIX}/${name}
-    PKG_CONFIG_PATH=${pkg_config_path}:${PKG_CONFIG_PATH} ../configure --prefix=${install_dir}
-    make -j ${PROCS}
-    make -j ${PROCS} install
-    cd ../..
+    function setup_ofi_vars() {
+        OFI_INCLUDE_DIR="${install_dir}/include"
+        OFI_LIBRARY="${install_dir}/lib/libfabric.so"
+        cmake_options="${cmake_options} -DNA_USE_OFI:BOOL=On -DOFI_INCLUDE_DIR=${OFI_INCLUDE_DIR} -DOFI_LIBRARY=${OFI_LIBRARY}"
+    }
 
-    OFI_INCLUDE_DIR=${install_dir}/include
-    OFI_LIBRARY=${install_dir}/lib/libfabric.so
-    cmake_options="${cmake_options} -DOFI_INCLUDE_DIR=${OFI_INCLUDE_DIR} -DOFI_LIBRARY=${OFI_LIBRARY}"
-    pkg_config_path=${pkg_config_path}:${install_dir}/lib/pkgconfig
+    install "libfabric" dl_ofi git_pull setup_ofi cbi_ofi setup_ofi_vars
 }
 
 function NA_SM() {
@@ -222,46 +246,34 @@ function mercury() {
     check_cmake
 
     cmake_options=
-    if [[ ! -z ${USE_NA_BMI+false} ]]; then NA_BMI; fi
-    if [[ ! -z ${USE_NA_CCI+false} ]]; then NA_CCI; fi
-    if [[ ! -z ${USE_NA_OFI+false} ]]; then NA_OFI; fi
-    if [[ ! -z ${USE_NA_SM+false}  ]]; then NA_SM;  fi
+    if [[ "${USE_NA_BMI}" -eq "1" ]]; then NA_BMI; fi
+    if [[ "${USE_NA_CCI}" -eq "1" ]]; then NA_CCI; fi
+    if [[ "${USE_NA_OFI}" -eq "1" ]]; then NA_OFI; fi
+    if [[ "${USE_NA_SM}"  -eq "1" ]]; then NA_SM;  fi
 
-    name=mercury
-    download_dir=${WORKING_DIR}/${name}
-    if [[ "${NO_DL}" -eq "0" ]]
-    then
-        if [[ ! -d "${download_dir}" ]]; then
-            git clone --depth 1 --recurse-submodules https://github.com/mercury-hpc/mercury.git ${download_dir}
-            git submodule init && git submodule update
-        fi
+    function dl_hg() {
+        git clone --depth 1 https://github.com/mercury-hpc/mercury.git "$1"
+    }
 
-        if [[ "${PULL}" -eq "1" ]]
+    function setup_hg() {
+        git submodule init && git submodule update
+    }
+
+    function cbi_hg() {
+        if [[ ! -f Makefile ]]
         then
-            cd ${download_dir}
-            git pull
-            cd ..
+            cmake -DCMAKE_INSTALL_PREFIX="${install_dir}" -DMERCURY_USE_BOOST_PP:BOOL=ON -DBUILD_SHARED_LIBS:BOOL=ON ${cmake_options} ..
         fi
 
-        if [[ "${DL_ONLY}" -ne "0" ]]
-        then
-            return 0
-        fi
-    fi
+        make -j ${PROCS}
+        make -j ${PROCS} install
+    }
 
-    cd ${download_dir}
-    mkdir -p ${BUILD}
-    cd ${BUILD}
-    rm -rf *
-    install_dir=${PREFIX}/${name}
+    function setup_hg_vars() {
+        MERCURY_DIR="${install_dir}"
+    }
 
-    PKG_CONFIG_PATH=${pkg_config_path}:${PKG_CONFIG_PATH} cmake -DCMAKE_INSTALL_PREFIX=${install_dir} -DMERCURY_USE_BOOST_PP:BOOL=ON -DBUILD_SHARED_LIBS:BOOL=ON ${cmake_options} ..
-    make -j ${PROCS}
-    make -j ${PROCS} install
-    cd ../..
-
-    MERCURY_DIR=${install_dir}
-    pkg_config_path=${pkg_config_path}:${install_dir}/lib/pkgconfig
+    install "mercury" dl_hg git_pull setup_hg cbi_hg setup_hg_vars
 }
 
 function libev() {
@@ -271,76 +283,51 @@ function libev() {
         return 0;
     fi
 
-    name=libev
-    download_dir=${WORKING_DIR}/${name}
-    if [[ "${NO_DL}" -eq "0" ]]
-    then
-        if [[ ! -d "${download_dir}" ]]; then
-            git clone --depth 1 https://github.com/enki/libev.git ${download_dir}
-        fi
+    function dl_libev() {
+        git clone --depth 1 https://github.com/enki/libev.git "$1"
+    }
 
-        if [[ "${PULL}" -eq "1" ]]
+    function setup_libev() {
+        chmod +x ./autogen.sh
+        ./autogen.sh
+    }
+
+    function cbi_libev() {
+        if [[ ! -f Makefile ]]
         then
-            cd ${download_dir}
-            git pull
-            cd ..
+            ../configure --prefix="${install_dir}"
         fi
 
-        if [[ "${DL_ONLY}" -ne "0" ]]
-        then
-            return 0
-        fi
-    fi
+        make -j ${PROCS}
+        make -j ${PROCS} install
+    }
 
-    cd ${download_dir}
-    chmod +x ./autogen.sh
-    ./autogen.sh
-    mkdir -p ${BUILD}
-    cd ${BUILD}
-    install_dir=${PREFIX}/${name}
-    PKG_CONFIG_PATH=${pkg_config_path}:${PKG_CONFIG_PATH} ../configure --prefix=${install_dir}
-    make -j ${PROCS}
-    make -j ${PROCS} install
-    cd ../..
-
-    pkg_config_path=${pkg_config_path}:${install_dir}/lib/pkgconfig
+    install "libev" dl_libev git_pull setup_libev cbi_libev
 }
 
 function argobots() {
     libev
 
-    name=argobots
-    download_dir=${WORKING_DIR}/${name}
-    if [[ "${NO_DL}" -eq "0" ]]
-    then
-        if [[ ! -d "${download_dir}" ]]; then
-            git clone --depth 1 https://github.com/pmodels/argobots.git ${download_dir}
-        fi
+    function dl_argobots() {
+        git clone --depth 1 https://github.com/pmodels/argobots.git "$1"
+    }
 
-        if [[ "${PULL}" -eq "1" ]]
+
+    function setup_argobots() {
+        ./autogen.sh
+    }
+
+    function cbi_argobots() {
+        if [[ ! -f Makefile ]]
         then
-            cd ${download_dir}
-            git pull
-            cd ..
+            ../configure --prefix="${install_dir}"
         fi
 
-        if [[ "${DL_ONLY}" -ne "0" ]]
-        then
-            return 0
-        fi
-    fi
+        make -j ${PROCS}
+        make -j ${PROCS} install
+    }
 
-    cd ${download_dir}
-    ./autogen.sh
-    mkdir -p ${BUILD}
-    cd ${BUILD}
-    install_dir=${PREFIX}/${name}
-    PKG_CONFIG_PATH=${pkg_config_path}:${PKG_CONFIG_PATH} ../configure --prefix=${install_dir}
-    make -j ${PROCS}
-    make -j ${PROCS} install
-    cd ../..
-
-    pkg_config_path=${pkg_config_path}:${install_dir}/lib/pkgconfig
+    install "argobots" dl_argobots git_pull setup_argobots cbi_argobots
 }
 
 function margo() {
@@ -354,38 +341,25 @@ function margo() {
     argobots
     mercury
 
-    name=margo
-    download_dir=${WORKING_DIR}/${name}
-    if [[ "${NO_DL}" -eq "0" ]]
-    then
-        if [[ ! -d "${download_dir}" ]]; then
-            git clone --depth 1 https://xgitlab.cels.anl.gov/sds/margo.git ${download_dir}
-        fi
+    function dl_margo() {
+        git clone --depth 1 https://xgitlab.cels.anl.gov/sds/margo.git "$1"
+    }
 
-        if [[ "${PULL}" -eq "1" ]]
+    function setup_margo() {
+        ./prepare.sh
+    }
+
+    function cbi_margo() {
+        if [[ ! -f Makefile ]]
         then
-            cd ${download_dir}
-            git pull
-            cd ..
+            ../configure --prefix="${install_dir}"
         fi
 
-        if [[ "${DL_ONLY}" -ne "0" ]]
-        then
-            return 0
-        fi
-    fi
+        make -j ${PROCS}
+        make -j ${PROCS} install
+    }
 
-    cd ${download_dir}
-    ./prepare.sh
-    mkdir -p ${BUILD}
-    cd ${BUILD}
-    install_dir=${PREFIX}/${name}
-    PKG_CONFIG_PATH=${pkg_config_path}:${PKG_CONFIG_PATH} ../configure --prefix=${install_dir}
-    make -j ${PROCS}
-    make -j ${PROCS} install
-    cd ../..
-
-    pkg_config_path=${pkg_config_path}:${install_dir}/lib/pkgconfig
+    install "margo" dl_margo git_pull setup_margo cbi_margo
 }
 
 function thallium() {
@@ -393,42 +367,25 @@ function thallium() {
 
     margo
 
-    name=thallium
-    download_dir=${WORKING_DIR}/${name}
-    if [[ "${NO_DL}" -eq "0" ]]
-    then
-        if [[ ! -d "${download_dir}" ]]; then
-            git clone --depth 1 https://xgitlab.cels.anl.gov/sds/thallium.git ${download_dir}
-        fi
+    function dl_thallium() {
+        git clone --depth 1 https://xgitlab.cels.anl.gov/sds/thallium.git "$1"
+    }
 
-        if [[ "${PULL}" -eq "1" ]]
+    function cbi_thallium() {
+        if [[ ! -f Makefile ]]
         then
-            cd ${download_dir}
-            git pull
-            cd ..
+            mercury_DIR="${MERCURY_DIR}" cmake -DCMAKE_INSTALL_PREFIX="${install_dir}" -DCMAKE_CXX_EXTENSIONS:BOOL=OFF ..
         fi
 
-        if [[ "${DL_ONLY}" -ne "0" ]]
-        then
-            return 0
-        fi
-    fi
+        make -j ${PROCS}
+        make -j ${PROCS} install
+    }
 
-    cd ${download_dir}
-    mkdir -p ${BUILD}
-    cd ${BUILD}
-    rm -rf *
-    install_dir=${PREFIX}/${name}
-    PKG_CONFIG_PATH=${pkg_config_path}:${PKG_CONFIG_PATH} mercury_DIR=$MERCURY_DIR cmake -DCMAKE_INSTALL_PREFIX=${install_dir} -DCMAKE_CXX_EXTENSIONS:BOOL=OFF ..
-    make -j ${PROCS}
-    make -j ${PROCS} install
-    cd ../..
-
-    pkg_config_path=${pkg_config_path}:${install_dir}/lib/pkgconfig
+    install "thallium" dl_thallium git_pull "" cbi_thallium
 }
 
 function leveldb_pkgconfig {
-    install_dir=$1
+    install_dir="$1"
     pc="${install_dir}/lib64/pkgconfig/leveldb.pc"
 
     (
@@ -442,94 +399,64 @@ function leveldb_pkgconfig {
         echo "Version: Git Master"
         echo "Cflags: -I\${includedir}"
         echo "Libs: -L\${libdir} -lleveldb -lsnappy"
-    ) > $pc
+    ) > "${pc}"
 }
 
 function leveldb() {
     name=leveldb
-    download_dir=${WORKING_DIR}/${name}
-    if [[ "${NO_DL}" -eq "0" ]]
-    then
-        if [[ ! -d "${download_dir}" ]]; then
-            git clone --depth 1 https://github.com/google/leveldb.git ${download_dir}
-        fi
 
-        cd ${download_dir}
+    function dl_leveldb() {
+        git clone --depth 1 https://github.com/google/leveldb.git "$1"
+    }
+
+    function setup_leveldb() {
         git submodule update --init --recursive
-        cd ..
+        git reset --hard HEAD
+        git apply ${SOURCE}/leveldb.patch || true
+    }
 
-        if [[ "${PULL}" -eq "1" ]]
+    function cbi_leveldb() {
+        if [[ ! -f Makefile ]]
         then
-            cd ${download_dir}
-            git reset --hard HEAD
-            git pull
-            cd ..
+            cmake -DCMAKE_INSTALL_PREFIX="${install_dir}" ..
         fi
 
-        if [[ "${DL_ONLY}" -ne "0" ]]
-        then
-            return 0
-        fi
-    fi
+        make -j ${PROCS}
+        make -j ${PROCS} install
+    }
 
-    cd ${download_dir}
-    git reset --hard HEAD
-    git apply ${SOURCE}/leveldb.patch || true
-    mkdir -p ${BUILD}
-    cd ${BUILD}
-    rm -rf *
-    install_dir=${PREFIX}/${name}
-    PKG_CONFIG_PATH=${pkg_config_path}:${PKG_CONFIG_PATH} cmake -DCMAKE_INSTALL_PREFIX=${install_dir} ..
-    make -j ${PROCS}
-    make -j ${PROCS} install
-    cd ../..
+    function create_leveldb_pkgconfig() {
+        leveldb_pkgconfig "${install_dir}"
+    }
 
-    leveldb_pkgconfig ${install_dir}
-
-    pkg_config_path=${pkg_config_path}:${install_dir}/lib64
+    install "leveldb" dl_leveldb git_pull setup_leveldb cbi_leveldb create_leveldb_pkgconfig
 }
 
 function jemalloc() {
-    name=jemalloc
-    download_dir=${WORKING_DIR}/${name}
-    if [[ "${NO_DL}" -eq "0" ]]
-    then
-        if [[ ! -d "${download_dir}" ]]; then
-            git clone --depth 1 https://github.com/jemalloc/jemalloc.git ${download_dir}
-        fi
+    function dl_jemalloc() {
+        git clone --depth 1 https://github.com/jemalloc/jemalloc.git "$1"
+    }
 
-        if [[ "${PULL}" -eq "1" ]]
-        then
-            cd ${download_dir}
-            git pull
-            cd ..
-        fi
-
-        if [[ "${DL_ONLY}" -ne "0" ]]
-        then
-            return 0
-        fi
-    fi
-
-    cd ${download_dir}
-    if [[ ! (-f configure && -x configure) ]]; then
+    function setup_jemalloc() {
         ./autogen.sh
-    fi
-    mkdir -p ${BUILD}
-    cd ${BUILD}
-    install_dir=${PREFIX}/${name}
-    PKG_CONFIG_PATH=${pkg_config_path}:${PKG_CONFIG_PATH} ../configure --prefix=${install_dir}
-    make -j ${PROCS}
-    make -ij ${PROCS} install
-    cd ../..
+    }
 
-    pkg_config_path=${pkg_config_path}:${install_dir}/lib/pkgconfig
+    function cbi_jemalloc() {
+        if [[ ! -f Makefile ]]
+        then
+            ../configure --prefix="${install_dir}"
+        fi
+
+        make -j ${PROCS}
+        make -ij ${PROCS} install
+    }
+
+    install "jemalloc" dl_jemalloc git_pull setup_jemalloc cbi_jemalloc
 }
 
-
-NO_DL=0
+DL=1
 DL_ONLY=0
-PULL=0
+UPDATE=0
 
 # Parse command line arguments
 # https://stackoverflow.com/a/14203146
@@ -544,31 +471,31 @@ case $key in
     exit 0
     ;;
     --BMI)
-    USE_NA_BMI=
+    USE_NA_BMI=1
     shift # past argument
     ;;
     --CCI)
-    USE_NA_CCI=
+    USE_NA_CCI=1
     shift # past argument
     ;;
     --OFI)
-    USE_NA_OFI=
+    USE_NA_OFI=1
     shift # past argument
     ;;
     --SM)
-    USE_NA_SM=
+    USE_NA_SM=1
     shift # past argument
     ;;
     --NO_DL)
-    NO_DL=1
+    DL=0
     shift # past argument
     ;;
     --DL_ONLY)
     DL_ONLY=1
     shift # past argument
     ;;
-    --PULL)
-    PULL=1
+    --UPDATE)
+    UPDATE=1
     shift # past argument
     ;;
     *)    # unknown option
