@@ -27,6 +27,7 @@ hxhim::Results::Result::Result(hxhim_t *hx, const enum hxhim_op_t op,
 {}
 
 hxhim::Results::Result::~Result() {
+    #ifdef PRINT_RESULT_TIMESTAMPS
     if (hx) {
         int rank = -1;
         hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
@@ -58,6 +59,7 @@ hxhim::Results::Result::~Result() {
 
         mlog(HXHIM_CLIENT_NOTE, "\n%s", s.str().c_str());
     }
+    #endif
 
     destruct(timestamps.send);
 }
