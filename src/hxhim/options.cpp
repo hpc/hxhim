@@ -15,6 +15,8 @@
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_init(hxhim_options_t *opts) {
+    ::Stats::init();
+
     if (!opts) {
         return HXHIM_ERROR;
     }

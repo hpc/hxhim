@@ -66,10 +66,12 @@ hxhim::Results *process(hxhim_t *hx,
         ::Stats::Chronopoint fill_start = ::Stats::now();
 
         for(UserData_t *curr = head; curr;) {
+            ::Stats::Chronopoint shuffle_start = ::Stats::now();
             mlog(HXHIM_CLIENT_DBG, "Rank %d Client preparing to shuffle %p (next: %p)", rank, curr, curr->next);
 
             UserData_t *next = curr->next;
             const int dst_ds = hxhim::shuffle::shuffle(hx, rank, max_ops_per_send, curr, &local, remote);
+            ::Stats::Chronopoint shuffle_end = ::Stats::now();
 
             switch (dst_ds) {
                 case hxhim::shuffle::NOSPACE:
@@ -105,23 +107,31 @@ hxhim::Results *process(hxhim_t *hx,
                     break;
             }
 
+            ::Stats::Chronopoint print_start = ::Stats::now();
+
+            ::Stats::print_event(hx->p->print_buffer, rank, "shuffle", ::Stats::global_epoch, shuffle_start, shuffle_end);
+            ::Stats::Chronopoint print_end = ::Stats::now();
+            ::Stats::print_event(hx->p->print_buffer, rank, "print", ::Stats::global_epoch, print_start, print_end);
+
+            if (dst_ds == hxhim::shuffle::NOSPACE) {
+                // quick scan of all packets
+                // if all packets are full, stop processing of the rest of the work queue
+                // saves effort if all queues are filled up early
+                std::size_t filled = (local.count == local.max_count);
+                for(typename decltype(remote)::value_type const & rem : remote) {
+                    filled += (rem.second->count == rem.second->max_count);
+                }
+
+                if (filled == (remote.size() + 1)) {
+                    break;
+                }
+            }
+
             curr = next;
-
-            // quick scan of all packets
-            // if all packets are full, stop processing of the rest of the work queue
-            // saves effort if all queues are filled up early
-            std::size_t filled = (local.count == local.max_count);
-            for(typename decltype(remote)::value_type const & rem : remote) {
-                filled += (rem.second->count == rem.second->max_count);
-            }
-
-            if (filled == (remote.size() + 1)) {
-                break;
-            }
         }
 
         ::Stats::Chronopoint fill_end = ::Stats::now();
-        ::Stats::print_event_to_mlog(HXHIM_CLIENT_NOTE, rank, "fill", epoch, fill_start, fill_end);
+        ::Stats::print_event(hx->p->print_buffer, rank, "fill", ::Stats::global_epoch, fill_start, fill_end);
 
         mlog(HXHIM_CLIENT_DBG, "Rank %d Client packed together requests destined for %zu remote servers", rank, remote.size());
 
@@ -137,7 +147,7 @@ hxhim::Results *process(hxhim_t *hx,
                 hx->p->stats.outgoing[dst.second->op][dst.second->dst]++;
             }
             ::Stats::Chronopoint collect_stats_end = ::Stats::now();
-            ::Stats::print_event_to_mlog(HXHIM_CLIENT_NOTE, rank, "collect_stats", epoch, collect_stats_start, collect_stats_end);
+            ::Stats::print_event(hx->p->print_buffer, rank, "collect_stats", ::Stats::global_epoch, collect_stats_start, collect_stats_end);
 
             extra_time += ::Stats::sec(collect_stats_start,
                                        collect_stats_end);
@@ -146,7 +156,7 @@ hxhim::Results *process(hxhim_t *hx,
             ::Stats::Chronopoint remote_start = ::Stats::now();
             Response_t *response = hx->p->transport->communicate(remote);
             ::Stats::Chronopoint remote_end = ::Stats::now();
-            ::Stats::print_event_to_mlog(HXHIM_CLIENT_NOTE, rank, "remote", epoch, remote_start, remote_end);
+            ::Stats::print_event(hx->p->print_buffer, rank, "remote", ::Stats::global_epoch, remote_start, remote_end);
 
             // serialize results
             hxhim::Result::AddAll(hx, res, response);
@@ -157,7 +167,7 @@ hxhim::Results *process(hxhim_t *hx,
             destruct(dst.second);
         }
         ::Stats::Chronopoint remote_cleanup_end = ::Stats::now();
-        ::Stats::print_event_to_mlog(HXHIM_CLIENT_NOTE, rank, "remote_cleanup", epoch, remote_cleanup_start, remote_cleanup_end);
+        ::Stats::print_event(hx->p->print_buffer, rank, "remote_cleanup", ::Stats::global_epoch, remote_cleanup_start, remote_cleanup_end);
 
         extra_time += ::Stats::sec(remote_cleanup_start,
                                    remote_cleanup_end);
@@ -171,7 +181,7 @@ hxhim::Results *process(hxhim_t *hx,
             hx->p->stats.used[local.op].push_back(local.filled());
             hx->p->stats.outgoing[local.op][local.dst]++;
             ::Stats::Chronopoint collect_stats_end = ::Stats::now();
-            ::Stats::print_event_to_mlog(HXHIM_CLIENT_NOTE, rank, "collect_stats", epoch, collect_stats_start, collect_stats_end);
+            ::Stats::print_event(hx->p->print_buffer, rank, "collect_stats", ::Stats::global_epoch, collect_stats_start, collect_stats_end);
 
             extra_time += ::Stats::sec(collect_stats_start,
                                        collect_stats_end);
@@ -180,7 +190,7 @@ hxhim::Results *process(hxhim_t *hx,
             ::Stats::Chronopoint local_start = ::Stats::now();
             Response_t *response = Transport::local::range_server<Response_t, Request_t>(hx, &local);
             ::Stats::Chronopoint local_end = ::Stats::now();
-            ::Stats::print_event_to_mlog(HXHIM_CLIENT_NOTE, rank, "local", epoch, local_start, local_end);
+            ::Stats::print_event(hx->p->print_buffer, rank, "local", ::Stats::global_epoch, local_start, local_end);
 
             // serialize results
             hxhim::Result::AddAll(hx, res, response);

@@ -6,6 +6,7 @@
 #include "hxhim/Results.hpp"
 #include "hxhim/private/Results.hpp"
 #include "hxhim/private/accessors.hpp"
+#include "hxhim/private/hxhim.hpp"
 #include "utils/Stats.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
@@ -27,39 +28,36 @@ hxhim::Results::Result::Result(hxhim_t *hx, const enum hxhim_op_t op,
 {}
 
 hxhim::Results::Result::~Result() {
-    #ifdef PRINT_RESULT_TIMESTAMPS
-    if (hx) {
-        int rank = -1;
-        hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
+    // #ifdef PRINT_RESULT_TIMESTAMPS
+    // if (hx) {
+    //     int rank = -1;
+    //     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
-        ::Stats::Chronopoint epoch;
-        hxhim::nocheck::GetEpoch(hx, epoch);
+    //     ::Stats::Chronopoint epoch;
+    //     hxhim::nocheck::GetEpoch(hx, epoch);
 
-        std::stringstream s;
+    //     std::stringstream &s = hx->p->print_buffer;
 
-        // from when request was put into the hxhim queue until the response was ready for pulling
-        ::Stats::print_event(s, rank, HXHIM_OP_STR[op], epoch, timestamps.send->cached.start,
-                                                               timestamps.recv.result.end);
-        ::Stats::print_event(s, rank, "Cached",         epoch, timestamps.send->cached);
-        ::Stats::print_event(s, rank, "Shuffled",       epoch, timestamps.send->shuffled);
-        ::Stats::print_event(s, rank, "Hash",           epoch, timestamps.send->hashed);
-        // This might take very long
-        for(::Stats::Chronostamp const find : timestamps.send->find_dsts) {
-            ::Stats::print_event(s, rank, "FindDst",    epoch, find);
-        }
-        ::Stats::print_event(s, rank, "Bulked",         epoch, timestamps.send->bulked);
-        ::Stats::print_event(s, rank, "ProcessBulk",    epoch, timestamps.transport->start,
-                                                               timestamps.transport->end);
+    //     // from when request was put into the hxhim queue until the response was ready for pulling
+    //     ::Stats::print_event(s, rank, HXHIM_OP_STR[op], epoch, timestamps.send->cached.start, timestamps.recv.result.end);
+    //     ::Stats::print_event(s, rank, "Cached",         epoch, timestamps.send->cached);
+    //     ::Stats::print_event(s, rank, "Shuffled",       epoch, timestamps.send->shuffled);
+    //     ::Stats::print_event(s, rank, "Hash",           epoch, timestamps.send->hashed);
+    //     This might take very long
+    //     #ifdef PRINT_FIND_DST
+    //     for(::Stats::Chronostamp const find : timestamps.send->find_dsts) {
+    //         ::Stats::print_event(s, rank, "FindDst",    epoch, find);
+    //     }
+    //     #endif
+    //     ::Stats::print_event(s, rank, "Bulked",         epoch, timestamps.send->bulked);
+    //     ::Stats::print_event(s, rank, "ProcessBulk",    epoch, timestamps.transport->start, timestamps.transport->end);
 
-        ::Stats::print_event(s, rank, "Pack",           epoch, timestamps.transport->pack);
-        ::Stats::print_event(s, rank, "Transport",      epoch, timestamps.transport->send_start,
-                                                               timestamps.transport->recv_end);
-        ::Stats::print_event(s, rank, "Unpack",         epoch, timestamps.transport->unpack);
-        ::Stats::print_event(s, rank, "Result",         epoch, timestamps.recv.result);
-
-        mlog(HXHIM_CLIENT_NOTE, "\n%s", s.str().c_str());
-    }
-    #endif
+    //     ::Stats::print_event(s, rank, "Pack",           epoch, timestamps.transport->pack);
+    //     ::Stats::print_event(s, rank, "Transport",      epoch, timestamps.transport->send_start, timestamps.transport->recv_end);
+    //     ::Stats::print_event(s, rank, "Unpack",         epoch, timestamps.transport->unpack);
+    //     ::Stats::print_event(s, rank, "Result",         epoch, timestamps.recv.result);
+    // }
+    // #endif
 
     destruct(timestamps.send);
 }

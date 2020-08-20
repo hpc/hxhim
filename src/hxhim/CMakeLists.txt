@@ -19,6 +19,11 @@ endforeach()
 option(PRINT_RESULT_TIMESTAMPS "Whether or not to print result timestamps" Off)
 if (PRINT_RESULT_TIMESTAMPS)
   target_compile_definitions(hxhim PRIVATE PRINT_RESULT_TIMESTAMPS)
+
+  option(PRINT_FIND_DST "Whether or not to print FindDst timestamps" Off)
+  if (PRINT_FIND_DST)
+    target_compile_definitions(hxhim PRIVATE PRINT_FIND_DST)
+  endif()
 endif()
 
 add_subdirectory(private)

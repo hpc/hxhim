@@ -1,4 +1,5 @@
 #include <cerrno>
+#include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <sys/stat.h>
@@ -83,9 +84,13 @@ hxhim::datastore::leveldb::leveldb(const int rank,
 
     options.create_if_missing = create_if_missing;
 
+    ::Stats::Chronostamp init_open;
+    init_open.start = ::Stats::now();
     Datastore::Open(dbname);
+    init_open.end = ::Stats::now();
 
     mlog(LEVELDB_INFO, "Opened leveldb with name: %s", dbname.c_str());
+    ::Stats::print_event(std::cerr, rank, "hxhim_leveldb_open", ::Stats::global_epoch, init_open);
 }
 
 hxhim::datastore::leveldb::~leveldb() {
@@ -97,10 +102,14 @@ const std::string &hxhim::datastore::leveldb::name() const {
 }
 
 bool hxhim::datastore::leveldb::OpenImpl(const std::string &new_name) {
+    ::Stats::Chronostamp leveldb_open;
+    leveldb_open.start = ::Stats::now();
     ::leveldb::Status status = ::leveldb::DB::Open(options, new_name, &db);
+    leveldb_open.end = ::Stats::now();
     if (!status.ok()) {
         throw std::runtime_error("Could not configure leveldb datastore " + new_name + ": " + status.ToString());
     }
+    ::Stats::print_event(std::cerr, rank, "leveldb_open", ::Stats::global_epoch, leveldb_open);
     return status.ok();
 }
 

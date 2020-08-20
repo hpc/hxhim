@@ -5,6 +5,7 @@
 #include <map>
 #include <mutex>
 #include <ostream>
+#include <sstream>
 #include <thread>
 #include <vector>
 
@@ -39,6 +40,7 @@
  */
 typedef struct hxhim_private {
     hxhim_private();
+    ~hxhim_private();
 
     Stats::Chronopoint epoch;
 
@@ -94,6 +96,7 @@ typedef struct hxhim_private {
     } range_server;
 
     hxhim::Stats::Global stats;
+    std::stringstream print_buffer;
 
 } hxhim_private_t;
 

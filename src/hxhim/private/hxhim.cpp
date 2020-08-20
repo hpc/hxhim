@@ -31,7 +31,7 @@ void clean(hxhim_t *, Data *node) {
 }
 
 hxhim_private::hxhim_private()
-    : epoch(),
+    : epoch(::Stats::init()),
       bootstrap(),
       running(false),
       max_ops_per_send(),
@@ -40,9 +40,13 @@ hxhim_private::hxhim_private()
       async_put(),
       hash(),
       transport(nullptr),
-      range_server()
-{
-    epoch = ::Stats::now();
+      range_server(),
+      stats(),
+      print_buffer()
+{}
+
+hxhim_private::~hxhim_private() {
+    mlog(HXHIM_CLIENT_NOTE, "\n%s", print_buffer.str().c_str());
 }
 
 /**
@@ -262,6 +266,8 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
             }
             #if HXHIM_HAVE_LEVELDB
             else if (opts->p->datastore->type == hxhim::datastore::LEVELDB) {
+                ::Stats::Chronostamp init_leveldb;
+                init_leveldb.start = ::Stats::now();
                 hxhim::datastore::leveldb::Config *config = static_cast<hxhim::datastore::leveldb::Config *>(opts->p->datastore);
                 hx->p->datastores[i] = new hxhim::datastore::leveldb(hx->p->bootstrap.rank,
                                                                      i,
@@ -271,6 +277,8 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
                                                                      hx->p->hash.name,
                                                                      config->create_if_missing);
                 mlog(HXHIM_CLIENT_INFO, "Initialized LevelDB in datastore[%zu]", i);
+                init_leveldb.end = ::Stats::now();
+                ::Stats::print_event(std::cerr, hx->p->bootstrap.rank, "init_leveldb", ::Stats::global_epoch, init_leveldb);
             }
             #endif
         }
@@ -434,7 +442,13 @@ int hxhim::init::transport(hxhim_t *hx, hxhim_options_t *opts) {
             break;
         #if HXHIM_HAVE_THALLIUM
         case Transport::TRANSPORT_THALLIUM:
-            ret = Transport::Thallium::init(hx, opts);
+            {
+                ::Stats::Chronostamp init_thallium;
+                init_thallium.start = ::Stats::now();
+                ret = Transport::Thallium::init(hx, opts);
+                init_thallium.end = ::Stats::now();
+                ::Stats::print_event(std::cerr, hx->p->bootstrap.rank, "init_thallium", ::Stats::global_epoch, init_thallium);
+            }
             break;
         #endif
         default:
