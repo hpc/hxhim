@@ -12,6 +12,9 @@ namespace Stats {
 using Clock = std::chrono::steady_clock; // monotonic
 using Chronopoint = std::chrono::time_point<Clock>;
 
+extern Chronopoint global_epoch;
+Chronopoint init();
+
 struct Chronostamp {
     Chronopoint start;
     Chronopoint end;

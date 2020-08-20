@@ -3,6 +3,17 @@
 #include "utils/Stats.hpp"
 #include "utils/mlogfacs2.h"
 
+Stats::Chronopoint Stats::global_epoch = {};
+
+Stats::Chronopoint Stats::init() {
+    static bool global_epoch_initialized = false;
+    if (!global_epoch_initialized) {
+        Stats::global_epoch = Stats::now();
+        global_epoch_initialized = true;
+    }
+    return Stats::global_epoch;
+}
+
 Stats::Chronopoint Stats::now() {
     return Stats::Clock::now();
 }
