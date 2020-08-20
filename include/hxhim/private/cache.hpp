@@ -2,11 +2,9 @@
 #define HXHIM_CACHE_HPP
 
 #include <condition_variable>
-#include <list>
 #include <mutex>
 
 #include "hxhim/constants.h"
-#include "hxhim/private/Stats.hpp"
 #include "transport/Messages/Messages.hpp"
 #include "utils/Blob.hpp"
 #include "utils/Stats.hpp"
@@ -126,9 +124,9 @@ namespace hxhim {
         }
 
         void insert(Data *node) {
-            if (!node) {
-                return;
-            }
+            // if (!node) {
+            //     return;
+            // }
 
             std::lock_guard<std::mutex> lock(mutex);
 
