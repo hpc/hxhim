@@ -12,69 +12,64 @@ file="$1"
 # awk '{print $2}' "${file}.filtered" | sort | uniq > "${file}.names"
 
 names="
-barrier
-gen
-put
-flush_put
-Cached
-Shuffled
-Hash
-Bulked
+Open
+init_leveldb
+hxhim_leveldb_open
+leveldb_open
+init_thallium
+Put
+flush
 fill
+shuffle
 collect_stats
-ProcessBulk
 remote
-Pack
-Transport
-Unpack
 remote_cleanup
 local
-Result
 destroy
-cleanup
+print
 "
 
 #FindDst
 
-for name in ${names}
-do
-    grep -E "[0-9]+ ${name} [0-9]+.*" "${file}" > "${file}.${name}" &
-done
-wait
+if [[ "${file}" -nt "${file}.png" ]]
+then
+    echo "Regenerating individual files"
+    for name in ${names}
+    do
+        grep -E "[0-9]+ ${name} [0-9]+.*" "${file}" > "${file}.${name}" &
+    done
+    wait
+fi
 
-ranks=$(awk '{print $1}' "${file}.barrier" | sort | uniq | wc -l)
-height=$((${ranks} * 100))
+ranks=$(awk '{print $1}' "${file}.Open" | sort | uniq | wc -l)
+height=$((${ranks} * 300))
 
 gnuplot <<EOF &
 
-set terminal pngcairo color solid size 12000,${height} font ",32"
+set terminal pngcairo color solid size 16000,${height} font ",64"
 set output '${file}.png'
-set title "User Requests"
+set title "HXHIM Events\nRank R -> Rank R + 1"
 set xlabel "Seconds Since Arbitrary Epoch"
 set ylabel "Rank"
 set clip two
 set key outside right
+set xrange [0:]
 set yrange [0:${ranks}]
 set ytics 1
 
-plot '${file}.barrier'        using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'barrier',                       \
-     '${file}.put'            using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'put',                           \
-     '${file}.flush_put'      using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'flush_put',                     \
-     '${file}.fill'           using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 16 title 'fill (hash + find_dst + bulk)', \
-     '${file}.remote'         using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 16 title 'process remote',                \
-     '${file}.local'          using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 16 title 'process local',                 \
-     '${file}.ProcessBulk'    using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  8 title 'process single bulk',                  \
-     '${file}.Pack'           using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  4 title 'pack request',                  \
-     '${file}.Transport'      using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  4 title 'transport',                     \
-     '${file}.Unpack'         using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  4 title 'unpack response',               \
-     '${file}.remote_cleanup' using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  4 title 'remote cleanup',               \
-     '${file}.Result'         using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 16 title 'deserialize into result',       \
-     '${file}.destroy'        using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'destroy results',               \
-     '${file}.cleanup'        using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'main cleanup',                  \
-
-     # '${file}.collect_stats'  using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 16 title 'collect stats',                 \
-     # '${file}.Hash'           using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  8 title 'hash',                          \
-     # '${file}.Bulked'         using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth  8 title 'add request to bulk',           \
+plot '${file}.Open'               using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 80 title 'hxhim::Open',                          \
+     '${file}.init_leveldb'       using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 56 title 'init::datastore leveldb',              \
+     '${file}.hxhim_leveldb_open' using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 48 title 'hxhim datastore leveldb open',         \
+     '${file}.leveldb_open'       using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'leveldb::db::open',                    \
+     '${file}.init_thallium'      using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 56 title 'init::transport thallium',            \
+     '${file}.Put'                using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 80 title 'PUT',                                  \
+     '${file}.flush'              using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 80 title 'flush',                                \
+     '${file}.fill'               using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 72 title 'fill (shuffle + switch + check)',      \
+     '${file}.shuffle'            using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 64 title 'shuffle (hash + find_dst + bulk)',     \
+     '${file}.remote'             using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 72 title 'process remote',                       \
+     '${file}.remote_cleanup'     using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 72 title 'remote cleanup',                       \
+     '${file}.destroy'            using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 80 title 'destroy results',                      \
+     '${file}.print'              using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 16 title 'print',                                \
 
 EOF
 wait
