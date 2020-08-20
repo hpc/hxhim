@@ -177,3 +177,23 @@ int hxhim::GetDatastoreClientToServerRatio(hxhim_t *hx, std::size_t *client, std
 int hxhimGetDatastoreClientToServerRatio(hxhim_t *hx, std::size_t *client, std::size_t *server) {
     return hxhim::GetDatastoreClientToServerRatio(hx, client, server);
 }
+
+/**
+ * GetPrintBufferContents
+ * Moves the contents of the private print buffer to the
+ * provided ostream and clears out the private buffer
+ *
+ * @param hx              the HXHIM instance
+ * @param stream          the ostream where the private print buffer will be copied to
+ * @return HXHIM_SUCCESS or HXHIM_ERROR on error
+ */
+int hxhim::GetPrintBufferContents(hxhim_t *hx, std::ostream &stream) {
+    if (!valid(hx)) {
+        return HXHIM_ERROR;
+    }
+
+    stream << hx->p->print_buffer.rdbuf();
+    hx->p->print_buffer.str(std::string());
+    hx->p->print_buffer.clear();
+    return HXHIM_SUCCESS;
+}
