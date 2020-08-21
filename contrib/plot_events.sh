@@ -22,11 +22,20 @@ thallium_engine
 thallium_addrs
 Put
 flush
-fill
-shuffle
+process_fill
+process_shuffle
+Shuffled
+Hash
+Bulked
+ProcessBulk
+Pack
+Destruct
+Transport
+Unpack
+Cleanup_RPC
+Result
 collect_stats
 remote
-remote_cleanup
 local
 destroy
 print
@@ -70,13 +79,21 @@ plot '${file}.Open'               using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vecto
      '${file}.thallium_addrs'     using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 40 lc rgb "pink" title 'thallium get all addrs', \
      '${file}.Put'                using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 80 title 'PUT',                                  \
      '${file}.flush'              using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 80 title 'flush',                                \
-     '${file}.fill'               using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 72 title 'fill (shuffle + switch + check)',      \
-     '${file}.shuffle'            using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 64 title 'shuffle (hash + find_dst + bulk)',     \
+     '${file}.process_fill'       using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 72 title 'fill (shuffle + switch + check)',      \
+     '${file}.process_shuffle'    using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 64 title 'shuffle (hash + find_dst + bulk)',     \
+     '${file}.Hash'               using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 48 title 'hash',                                 \
+     '${file}.Bulked'             using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 48 title 'move data to bulk',                    \
      '${file}.remote'             using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 72 title 'process remote',                       \
-     '${file}.remote_cleanup'     using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 72 title 'remote cleanup',                       \
+     '${file}.ProcessBulk'        using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 64 title 'Process single bulk packet',           \
+     '${file}.Pack'               using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'pack',                                 \
+     '${file}.Destruct'           using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'Destruct single remote',               \
+     '${file}.Transport'          using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'transport',                            \
+     '${file}.Unpack'             using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'unpack',                               \
+     '${file}.Cleanup_RPC'        using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 32 title 'cleanup rpc',                          \
+     '${file}.Result'             using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 56 title 'serialize results',                    \
      '${file}.local'              using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 72 title 'process local',                        \
      '${file}.destroy'            using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 80 title 'destroy results',                      \
-     '${file}.print'              using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 16 title 'print',                                \
+     '${file}.print'              using (\$3/1e9):1:(\$4-\$3)/1e9:(0) with vectors nohead filled linewidth 16 lc rgb "brown" title 'print',                 \
 
 EOF
 wait

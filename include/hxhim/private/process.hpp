@@ -109,7 +109,7 @@ hxhim::Results *process(hxhim_t *hx,
 
             ::Stats::Chronopoint print_start = ::Stats::now();
 
-            ::Stats::print_event(hx->p->print_buffer, rank, "shuffle", ::Stats::global_epoch, shuffle_start, shuffle_end);
+            ::Stats::print_event(hx->p->print_buffer, rank, "process_shuffle", ::Stats::global_epoch, shuffle_start, shuffle_end);
             ::Stats::Chronopoint print_end = ::Stats::now();
             ::Stats::print_event(hx->p->print_buffer, rank, "print", ::Stats::global_epoch, print_start, print_end);
 
@@ -131,7 +131,7 @@ hxhim::Results *process(hxhim_t *hx,
         }
 
         ::Stats::Chronopoint fill_end = ::Stats::now();
-        ::Stats::print_event(hx->p->print_buffer, rank, "fill", ::Stats::global_epoch, fill_start, fill_end);
+        ::Stats::print_event(hx->p->print_buffer, rank, "process_fill", ::Stats::global_epoch, fill_start, fill_end);
 
         mlog(HXHIM_CLIENT_DBG, "Rank %d Client packed together requests destined for %zu remote servers", rank, remote.size());
 
@@ -161,16 +161,6 @@ hxhim::Results *process(hxhim_t *hx,
             // serialize results
             hxhim::Result::AddAll(hx, res, response);
         }
-
-        ::Stats::Chronopoint remote_cleanup_start = ::Stats::now();
-        for(REF(remote)::value_type &dst : remote) {
-            destruct(dst.second);
-        }
-        ::Stats::Chronopoint remote_cleanup_end = ::Stats::now();
-        ::Stats::print_event(hx->p->print_buffer, rank, "remote_cleanup", ::Stats::global_epoch, remote_cleanup_start, remote_cleanup_end);
-
-        extra_time += ::Stats::sec(remote_cleanup_start,
-                                   remote_cleanup_end);
 
         mlog(HXHIM_CLIENT_DBG, "Rank %d Client sending %zu local requests", rank, local.count);
 

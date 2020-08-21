@@ -60,6 +60,10 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
     res->timestamps.transport->pack.start = ::Stats::now();
     res->timestamps.transport->pack.end = res->timestamps.transport->pack.start;
 
+    // no destructing
+    res->timestamps.transport->destruct.start = ::Stats::now();
+    res->timestamps.transport->destruct.end = res->timestamps.transport->destruct.start;
+
     // send to each datastore
     res->timestamps.transport->send_start = ::Stats::now();
     for(std::size_t ds = 0; ds < datastore_count; ds++) {
@@ -85,6 +89,10 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
     // no unpacking
     res->timestamps.transport->unpack.start = ::Stats::now();
     res->timestamps.transport->unpack.end = res->timestamps.transport->unpack.start;
+
+    // no clean up rpc
+    res->timestamps.transport->cleanup_rpc.start = ::Stats::now();
+    res->timestamps.transport->cleanup_rpc.end = res->timestamps.transport->cleanup_rpc.start;
 
     dealloc_array(dsts, datastore_count);
 
