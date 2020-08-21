@@ -30,19 +30,12 @@ int Transport::Thallium::get_addrs(const MPI_Comm comm, const thallium::engine &
     }
     max_len++; // null terminate
 
-    // copy the address string and ensure the string is null terminated
-    char *copy = new char[max_len]();
-    memcpy(copy, self.c_str(), self_len);
-
     // get addresses
     char *buf = new char[max_len * size]();
-    if (MPI_Allgather(copy, max_len, MPI_CHAR, buf, max_len, MPI_CHAR, comm) != MPI_SUCCESS) {
-        delete [] copy;
+    if (MPI_Allgather(self.c_str(), self_len, MPI_CHAR, buf, max_len, MPI_CHAR, comm) != MPI_SUCCESS) {
         delete [] buf;
         return TRANSPORT_ERROR;
     }
-
-    delete [] copy;
 
     // copy the addresses into strings
     // and map the strings to unique IDs
