@@ -42,8 +42,10 @@ hxhim::Results *process(hxhim_t *hx,
     int rank = -1;
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
+    #ifdef PRINT_TIMESTAMPS
     ::Stats::Chronopoint epoch;
     hxhim::nocheck::GetEpoch(hx, epoch);
+    #endif
 
     mlog(HXHIM_CLIENT_DBG, "Rank %d Start processing", rank);
 
@@ -63,10 +65,14 @@ hxhim::Results *process(hxhim_t *hx,
         Request_t local(max_ops_per_send);
         local.src = local.dst = rank;
 
+        #ifdef PRINT_TIMESTAMPS
         ::Stats::Chronopoint fill_start = ::Stats::now();
+        #endif
 
         for(UserData_t *curr = head; curr;) {
+            #ifdef PRINT_TIMESTAMPS
             ::Stats::Chronopoint shuffle_start = ::Stats::now();
+            #endif
             mlog(HXHIM_CLIENT_DBG, "Rank %d Client preparing to shuffle %p (next: %p)", rank, curr, curr->next);
 
             UserData_t *next = curr->next;
@@ -107,11 +113,13 @@ hxhim::Results *process(hxhim_t *hx,
                     break;
             }
 
+            #ifdef PRINT_TIMESTAMPS
             ::Stats::Chronopoint print_start = ::Stats::now();
 
             ::Stats::print_event(hx->p->print_buffer, rank, "process_shuffle", ::Stats::global_epoch, shuffle_start, shuffle_end);
             ::Stats::Chronopoint print_end = ::Stats::now();
             ::Stats::print_event(hx->p->print_buffer, rank, "print", ::Stats::global_epoch, print_start, print_end);
+            #endif
 
             if (dst_ds == hxhim::shuffle::NOSPACE) {
                 // quick scan of all packets
@@ -130,8 +138,10 @@ hxhim::Results *process(hxhim_t *hx,
             curr = next;
         }
 
+        #ifdef PRINT_TIMESTAMPS
         ::Stats::Chronopoint fill_end = ::Stats::now();
         ::Stats::print_event(hx->p->print_buffer, rank, "process_fill", ::Stats::global_epoch, fill_start, fill_end);
+        #endif
 
         mlog(HXHIM_CLIENT_DBG, "Rank %d Client packed together requests destined for %zu remote servers", rank, remote.size());
 
@@ -147,16 +157,22 @@ hxhim::Results *process(hxhim_t *hx,
                 hx->p->stats.outgoing[dst.second->op][dst.second->dst]++;
             }
             ::Stats::Chronopoint collect_stats_end = ::Stats::now();
+            #ifdef PRINT_TIMESTAMPS
             ::Stats::print_event(hx->p->print_buffer, rank, "collect_stats", ::Stats::global_epoch, collect_stats_start, collect_stats_end);
+            #endif
 
             extra_time += ::Stats::sec(collect_stats_start,
                                        collect_stats_end);
 
             // send down transport layer
+            #ifdef PRINT_TIMESTAMPS
             ::Stats::Chronopoint remote_start = ::Stats::now();
+            #endif
             Response_t *response = hx->p->transport->communicate(remote);
+            #ifdef PRINT_TIMESTAMPS
             ::Stats::Chronopoint remote_end = ::Stats::now();
             ::Stats::print_event(hx->p->print_buffer, rank, "remote", ::Stats::global_epoch, remote_start, remote_end);
+            #endif
 
             // serialize results
             hxhim::Result::AddAll(hx, res, response);
@@ -171,16 +187,22 @@ hxhim::Results *process(hxhim_t *hx,
             hx->p->stats.used[local.op].push_back(local.filled());
             hx->p->stats.outgoing[local.op][local.dst]++;
             ::Stats::Chronopoint collect_stats_end = ::Stats::now();
+            #ifdef PRINT_TIMESTAMPS
             ::Stats::print_event(hx->p->print_buffer, rank, "collect_stats", ::Stats::global_epoch, collect_stats_start, collect_stats_end);
+            #endif
 
             extra_time += ::Stats::sec(collect_stats_start,
                                        collect_stats_end);
 
             // send to local range server
+            #ifdef PRINT_TIMESTAMPS
             ::Stats::Chronopoint local_start = ::Stats::now();
+            #endif
             Response_t *response = Transport::local::range_server<Response_t, Request_t>(hx, &local);
+            #ifdef PRINT_TIMESTAMPS
             ::Stats::Chronopoint local_end = ::Stats::now();
             ::Stats::print_event(hx->p->print_buffer, rank, "local", ::Stats::global_epoch, local_start, local_end);
+            #endif
 
             // serialize results
             hxhim::Result::AddAll(hx, res, response);

@@ -28,7 +28,7 @@ hxhim::Results::Result::Result(hxhim_t *hx, const enum hxhim_op_t op,
 {}
 
 hxhim::Results::Result::~Result() {
-    #ifdef PRINT_RESULT_TIMESTAMPS
+    #ifdef PRINT_TIMESTAMPS
     if (hx) {
         int rank = -1;
         hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);

@@ -16,10 +16,9 @@ foreach(FILE ${HXHIM_SRC})
   target_sources(hxhim PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/${FILE})
 endforeach()
 
-option(PRINT_RESULT_TIMESTAMPS "Whether or not to print result timestamps" Off)
-if (PRINT_RESULT_TIMESTAMPS)
-  target_compile_definitions(hxhim PRIVATE PRINT_RESULT_TIMESTAMPS)
-
+option(PRINT_TIMESTAMPS "Whether or not to print timestamps" Off)
+if (PRINT_TIMESTAMPS)
+  target_compile_definitions(hxhim PRIVATE PRINT_TIMESTAMPS)
   option(PRINT_FIND_DST "Whether or not to print FindDst timestamps" Off)
   if (PRINT_FIND_DST)
     target_compile_definitions(hxhim PRIVATE PRINT_FIND_DST)

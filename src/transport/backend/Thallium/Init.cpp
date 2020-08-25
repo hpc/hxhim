@@ -16,8 +16,10 @@
  * @param TRANSPORT_SUCCESS or TRANSPORT_ERROR
  */
 int Transport::Thallium::init(hxhim_t *hx, hxhim_options_t *opts) {
+    #ifdef PRINT_TIMESTAMPS
     ::Stats::Chronostamp thallium_init;
     thallium_init.start = ::Stats::now();
+    #endif
 
     int rank = -1;
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
@@ -27,8 +29,11 @@ int Transport::Thallium::init(hxhim_t *hx, hxhim_options_t *opts) {
     Options *config = static_cast<Options *>(opts->p->transport);
     mlog(THALLIUM_INFO, "Rank %d Configuring Thallium with %s", rank, config->module.c_str());
 
+    #ifdef PRINT_TIMESTAMPS
     ::Stats::Chronostamp thallium_engine;
     thallium_engine.start = ::Stats::now();
+    #endif
+
     // create the engine (only 1 instance per process)
     Engine_t engine(new thallium::engine(config->module, THALLIUM_SERVER_MODE, true, -1),
                     [](thallium::engine *engine) {
@@ -38,7 +43,9 @@ int Transport::Thallium::init(hxhim_t *hx, hxhim_options_t *opts) {
                         delete engine;
                         mlog(THALLIUM_INFO, "Stopped Thallium engine %s", addr.c_str());
                     });
+    #ifdef PRINT_TIMESTAMPS
     thallium_engine.end = ::Stats::now();
+    #endif
 
     mlog(THALLIUM_INFO, "Rank %d Created Thallium engine %s", rank, static_cast<std::string>(engine->self()).c_str());
 
@@ -58,14 +65,20 @@ int Transport::Thallium::init(hxhim_t *hx, hxhim_options_t *opts) {
 
     mlog(THALLIUM_DBG, "Rank %d Created Thallium RPC", rank);
 
+    #ifdef PRINT_TIMESTAMPS
     ::Stats::Chronostamp thallium_addrs;
     thallium_addrs.start = ::Stats::now();
+    #endif
+
     // get a mapping of unique IDs to thallium addresses
     std::unordered_map<int, std::string> addrs;
     if (get_addrs(hx->p->bootstrap.comm, *engine, addrs) != TRANSPORT_SUCCESS) {
         return TRANSPORT_ERROR;
     }
+
+    #ifdef PRINT_TIMESTAMPS
     thallium_addrs.end = ::Stats::now();
+    #endif
 
     // remove the loopback endpoint
     addrs.erase(rank);
@@ -88,9 +101,11 @@ int Transport::Thallium::init(hxhim_t *hx, hxhim_options_t *opts) {
     hx->p->transport->SetEndpointGroup(eg);
 
     mlog(THALLIUM_INFO, "Rank %d Completed Thallium transport initialization", rank);
+    #ifdef PRINT_TIMESTAMPS
     thallium_init.end = ::Stats::now();
     Stats::print_event(hx->p->print_buffer, hx->p->bootstrap.rank, "thallium_init",   ::Stats::global_epoch, thallium_init);
     Stats::print_event(hx->p->print_buffer, hx->p->bootstrap.rank, "thallium_engine", ::Stats::global_epoch, thallium_engine);
     Stats::print_event(hx->p->print_buffer, hx->p->bootstrap.rank, "thallium_addrs",  ::Stats::global_epoch, thallium_addrs);
+    #endif
     return TRANSPORT_SUCCESS;
 }

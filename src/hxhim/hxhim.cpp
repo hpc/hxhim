@@ -38,8 +38,10 @@ int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
+    #ifdef PRINT_TIMESTAMPS
     ::Stats::Chronostamp init;
     init.start = ::Stats::now();
+    #endif
 
     //Open mlog - stolen from plfs
     mlog_open((char *) "hxhim", 0, opts->p->debug_level, opts->p->debug_level, nullptr, 0, MLOG_LOGPID, 0);
@@ -64,10 +66,10 @@ int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
     mlog(HXHIM_CLIENT_INFO, "Waiting for everyone to complete initialization");
     MPI_Barrier(hx->p->bootstrap.comm);
     mlog(HXHIM_CLIENT_INFO, "Successfully initialized HXHIM on rank %d/%d", hx->p->bootstrap.rank, hx->p->bootstrap.size);
+    #ifdef PRINT_TIMESTAMPS
     init.end = ::Stats::now();
-
     ::Stats::print_event(std::cerr, hx->p->bootstrap.rank, "Open",      ::Stats::global_epoch, init);
-
+    #endif
     return HXHIM_SUCCESS;
 }
 
