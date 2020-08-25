@@ -1,13 +1,17 @@
 cmake_minimum_required (VERSION 3.6.3)
 
-target_sources(hxhim PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/Blob.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/Configuration.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/Histogram.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/Stats.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/elen.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/is_range_server.c
-  ${CMAKE_CURRENT_SOURCE_DIR}/memory.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/mlog2.c
-  ${CMAKE_CURRENT_SOURCE_DIR}/triplestore.cpp
+set(UTILS_SRC
+  Blob.cpp
+  Configuration.cpp
+  Histogram.cpp
+  Stats.cpp
+  elen.cpp
+  is_range_server.c
+  memory.cpp
+  mlog2.c
+  triplestore.cpp
 )
+
+foreach(FILE ${UTILS_SRC})
+  target_sources(hxhim PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/${FILE})
+endforeach()
