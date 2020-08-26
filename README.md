@@ -14,13 +14,13 @@ hxhim@lanl.gov
 
 ### Build
 ```
-contrib/hxhim_dependencies.sh --{BMI,CCI,OFI,SM} download_dir build_name install_dir [PROCS]
-export PKG_CONFIG_PATH=<output from script>:$PKG_CONFIG_PATH
-mkdir bld
-cd bld
-cmake ..
+export PKG_CONFIG_PATH="$(contrib/hxhim_dependencies.sh --{BMI,CCI,OFI,SM} download_dir build_name install_dir [PROCS] | tail -n 1):${PKG_CONFIG_PATH}"
+mkdir build
+cd build
+cmake .. -DCMAKE_INSTALL_PREFIX="${HXHIM_PREFIX}"
 make
 make install
+export PKG_CONFIG_PATH="${HXHIM_PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH}"
 ```
 
 `contrib/hxhim_dependencies.sh` should be run first in order make sure
