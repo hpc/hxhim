@@ -105,10 +105,10 @@ if (THALLIUM_FOUND)
     include_directories(AFTER SYSTEM ${THALLIUM_INCLUDE_DIRS})
     add_definitions(-DHXHIM_HAVE_THALLIUM=1)
 
-    list(APPEND EXEC_LDFLAGS ${THALLIUM_LDFLAGS})
+    list(APPEND EXEC_LDFLAGS ${THALLIUM_STATIC_LDFLAGS})
 
     list(APPEND PC_CFLAGS -DHXHIM_HAVE_THALLIUM=1)
-    list(APPEND PC_LIBS ${THALLIUM_LDFLAGS})
+    list(APPEND PC_LIBS ${THALLIUM_STATIC_LDFLAGS})
   else ()
     message(STATUS "Thallium found but not used")
   endif()
