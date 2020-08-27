@@ -398,7 +398,7 @@ function leveldb_pkgconfig {
         echo "Description: The leveldb library"
         echo "Version: Git Master"
         echo "Cflags: -I\${includedir}"
-        echo "Libs: -L\${libdir} -lleveldb"
+        echo "Libs: -L\${libdir} -lleveldb -lsnappy"
     ) > "${pc}"
 }
 
