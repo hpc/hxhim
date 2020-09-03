@@ -148,82 +148,60 @@ Transport::Response::BPut *hxhim::datastore::leveldb::BPutImpl(Transport::Reques
 
     Transport::Response::BPut *res = construct<Transport::Response::BPut>(req->count);
 
+    std::size_t key_buffer_len = all_keys_size(req);
+    char *key_buffer = (char *) alloc(key_buffer_len);
+    char *key_buffer_start = key_buffer;
+
     // batch up PUTs
     ::leveldb::WriteBatch batch;
     for(std::size_t i = 0; i < req->count; i++) {
+        // the current key address and length
+        char *key = nullptr;
+        std::size_t key_len = 0;
+
         // SPO
         {
-            void *key = nullptr;
-            std::size_t key_len = 0;
-            sp_to_key(req->subjects[i], req->predicates[i], &key, &key_len);
-
-            batch.Put(::leveldb::Slice((char *) key, key_len), ::leveldb::Slice((char *) req->objects[i].data(), req->objects[i].size()));
-            dealloc(key);
-
+            key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
+            batch.Put(::leveldb::Slice(key, key_len), ::leveldb::Slice((char *) req->objects[i].data(), req->objects[i].size()));
             event.size += key_len + req->objects[i].size();
         }
 
         #if SOP
         {
-            void *key = nullptr;
-            std::size_t key_len = 0;
-            sp_to_key(req->subjects[i], req->objects[i], &key, &key_len);
-
-            batch.Put(::leveldb::Slice((char *) key, key_len), ::leveldb::Slice((char *) req->predicates[i].data(), req->predicates[i].size()));
-            dealloc(key);
-
+            key = sp_to_key(req->subjects[i], req->objects[i], key_buffer, key_buffer_len, key_len);
+            batch.Put(::leveldb::Slice(key, key_len), ::leveldb::Slice((char *) req->predicates[i].data(), req->predicates[i].size()));
             event.size += key_len + req->predicates[i].size();
         }
         #endif
 
         #if PSO
         {
-            void *key = nullptr;
-            std::size_t key_len = 0;
-            sp_to_key(req->predicates[i], req->subjects[i], &key, &key_len);
-
-            batch.Put(::leveldb::Slice((char *) key, key_len), ::leveldb::Slice((char *) req->objects[i].data(), req->objects[i].size()));
-            dealloc(key);
-
+            key = sp_to_key(req->predicates[i], req->subjects[i], key_buffer, key_buffer_len, key_len);
+            batch.Put(::leveldb::Slice(key, key_len), ::leveldb::Slice((char *) req->objects[i].data(), req->objects[i].size()));
             event.size += key_len + req->objects[i].size();
         }
         #endif
 
         #if POS
         {
-            void *key = nullptr;
-            std::size_t key_len = 0;
-            sp_to_key(req->predicates[i], req->objects[i], &key, &key_len);
-
-            batch.Put(::leveldb::Slice((char *) key, key_len), ::leveldb::Slice((char *) req->subjects[i].data(), req->subjects[i].size()));
-            dealloc(key);
-
+            key = sp_to_key(req->predicates[i], req->objects[i], key_buffer, key_buffer_len, key_len);
+            batch.Put(::leveldb::Slice(key, key_len), ::leveldb::Slice((char *) req->subjects[i].data(), req->subjects[i].size()));
             event.size += key_len + req->subjects[i].size();
         }
         #endif
 
         #if OSP
         {
-            void *key = nullptr;
-            std::size_t key_len = 0;
-            sp_to_key(req->objects[i], req->subjects[i], &key, &key_len);
-
-            batch.Put(::leveldb::Slice((char *) key, key_len), ::leveldb::Slice((char *) req->predicates[i].data(), req->predicates[i].size()));
-            dealloc(key);
-
+            key = sp_to_key(req->object[i], req->subjects[i], key_buffer, key_buffer_len, key_len);
+            batch.Put(::leveldb::Slice(key, key_len), ::leveldb::Slice((char *) req->predicates[i].data(), req->predicates[i].size()));
             event.size += key_len + req->predicates[i].size();
         }
         #endif
 
         #if OPS
         {
-            void *key = nullptr;
-            std::size_t key_len = 0;
-            sp_to_key(req->objects[i], req->predicates[i], &key, &key_len);
-
-            batch.Put(::leveldb::Slice((char *) key, key_len), ::leveldb::Slice((char *) req->subjects[i].data(), req->subjects[i].size()));
-            dealloc(key);
-
+            key = sp_to_key(req->object[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
+            batch.Put(::leveldb::Slice(key, key_len), ::leveldb::Slice((char *) req->subjects[i].data(), req->subjects[i].size()));
             event.size += key_len + req->subjects[i].size();
         }
         #endif
@@ -235,6 +213,8 @@ Transport::Response::BPut *hxhim::datastore::leveldb::BPutImpl(Transport::Reques
 
     // add in the time to write the key-value pairs without adding to the counter
     ::leveldb::Status status = db->Write(::leveldb::WriteOptions(), &batch);
+
+    dealloc(key_buffer_start);
 
     if (status.ok()) {
         for(std::size_t i = 0; i < req->count; i++) {
@@ -276,22 +256,23 @@ Transport::Response::BGet *hxhim::datastore::leveldb::BGetImpl(Transport::Reques
 
     Transport::Response::BGet *res = construct<Transport::Response::BGet>(req->count);
 
+    std::size_t key_buffer_len = all_keys_size(req);
+    char *key_buffer = (char *) alloc(key_buffer_len);
+    char *key_buffer_start = key_buffer;
+
     // batch up GETs
     for(std::size_t i = 0; i < req->count; i++) {
         mlog(LEVELDB_INFO, "Rank %d LevelDB GET processing %p[%zu] = {%p, %p}", rank, req, i, req->subjects[i].data(), req->predicates[i].data());
 
-        void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(req->subjects[i], req->predicates[i], &key, &key_len);
+        char *key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
 
         // create the key
-        const ::leveldb::Slice k((char *) key, key_len);
+        const ::leveldb::Slice k(key, key_len);
 
         // get the value
         ::leveldb::Slice value; // read gotten value into a Slice instead of a std::string to save a few copies
         ::leveldb::Status status = db->Get(::leveldb::ReadOptions(), k, value);
-
-        dealloc(key);
 
         res->ds_offsets[i]      = req->ds_offsets[i];
 
@@ -318,6 +299,8 @@ Transport::Response::BGet *hxhim::datastore::leveldb::BGetImpl(Transport::Reques
 
         res->count++;
     }
+
+    dealloc(key_buffer_start);
 
     event.time.end = ::Stats::now();
     stats.gets.emplace_back(event);
@@ -362,6 +345,10 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
 
     Transport::Response::BGetOp *res = construct<Transport::Response::BGetOp>(req->count);
 
+    std::size_t key_buffer_len = all_keys_size(req);
+    char *key_buffer = (char *) alloc(key_buffer_len);
+    char *key_buffer_start = key_buffer;
+
     ::leveldb::Iterator *it = db->NewIterator(::leveldb::ReadOptions());
 
     for(std::size_t i = 0; i < req->count; i++) {
@@ -376,25 +363,19 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
         res->objects[i]      = alloc_array<Blob>(req->num_recs[i]);
 
         if (req->ops[i] == hxhim_get_op_t::HXHIM_GET_EQ) {
-            void *key = nullptr;
             std::size_t key_len = 0;
-            sp_to_key(req->subjects[i], req->predicates[i], &key, &key_len);
+            char *key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
 
-            it->Seek(::leveldb::Slice((char *) key, key_len));
-
-            dealloc(key);
+            it->Seek(::leveldb::Slice(key, key_len));
 
             // only 1 response, so j == 0 (num_recs is ignored)
             BGetOp_copy_response(it, res, i, 0, event);
         }
         else if (req->ops[i] == hxhim_get_op_t::HXHIM_GET_NEXT) {
-            void *key = nullptr;
             std::size_t key_len = 0;
-            sp_to_key(req->subjects[i], req->predicates[i], &key, &key_len);
+            char *key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
 
-            it->Seek(::leveldb::Slice((char *) key, key_len));
-
-            dealloc(key);
+            it->Seek(::leveldb::Slice(key, key_len));
 
             // first result returned is (subject, predicate)
             // (results are offsets)
@@ -404,13 +385,10 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
             }
         }
         else if (req->ops[i] == hxhim_get_op_t::HXHIM_GET_PREV) {
-            void *key = nullptr;
             std::size_t key_len = 0;
-            sp_to_key(req->subjects[i], req->predicates[i], &key, &key_len);
+            char *key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
 
-            it->Seek(::leveldb::Slice((char *) key, key_len));
-
-            dealloc(key);
+            it->Seek(::leveldb::Slice(key, key_len));
 
             // first result returned is (subject, predicate)
             // (results are offsets)
@@ -452,6 +430,8 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
         stats.getops.emplace_back(event);
     }
 
+    dealloc(key_buffer_start);
+
     delete it;
 
     return res;
@@ -474,26 +454,30 @@ Transport::Response::BDelete *hxhim::datastore::leveldb::BDeleteImpl(Transport::
 
     Transport::Response::BDelete *res = construct<Transport::Response::BDelete>(req->count);
 
+    std::size_t key_buffer_len = all_keys_size(req);
+    char *key_buffer = (char *) alloc(key_buffer_len);
+    char *key_buffer_start = key_buffer;
+
     ::leveldb::WriteBatch batch;
 
     // batch delete
     for(std::size_t i = 0; i < req->count; i++) {
-        void *key = nullptr;
         std::size_t key_len = 0;
-        sp_to_key(req->subjects[i], req->predicates[i], &key, &key_len);
+        char *key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
 
-        batch.Delete(::leveldb::Slice((char *) key, key_len));
+        batch.Delete(::leveldb::Slice(key, key_len));
 
         res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size());
         res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size());
-
-        dealloc(key);
 
         event.size += key_len;
     }
 
     // create responses
     ::leveldb::Status status = db->Write(::leveldb::WriteOptions(), &batch);
+
+    dealloc(key_buffer_start);
+
     const int stat = status.ok()?HXHIM_SUCCESS:HXHIM_ERROR;
     for(std::size_t i = 0; i < req->count; i++) {
         res->statuses[i] = stat;

@@ -12,6 +12,7 @@
 #include "transport/Messages/Messages.hpp"
 #include "utils/Histogram.hpp"
 #include "utils/Stats.hpp"
+#include "utils/type_traits.hpp"
 
 namespace hxhim {
 namespace datastore {
@@ -68,6 +69,9 @@ class Datastore {
         bool Open(const std::string &new_name);
         void Close();
         int ID() const;
+
+        static std::size_t all_keys_size(Transport::Request::BPut *req);
+        static std::size_t all_keys_size(Transport::Request::SubjectPredicate *req);
 
         Transport::Response::BPut       *operate(Transport::Request::BPut       *req);
         Transport::Response::BGet       *operate(Transport::Request::BGet       *req);

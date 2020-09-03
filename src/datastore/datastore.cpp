@@ -6,6 +6,7 @@
 
 #include "datastore/datastore.hpp"
 #include "hxhim/accessors.hpp"
+#include "utils/Blob.hpp"
 #include "utils/elen.hpp"
 #include "utils/is_range_server.hpp"
 #include "utils/mlog2.h"
@@ -163,6 +164,53 @@ void hxhim::datastore::Datastore::Close() {
 
 int hxhim::datastore::Datastore::ID() const {
     return id;
+}
+
+std::size_t hxhim::datastore::Datastore::all_keys_size(Transport::Request::BPut *req) {
+    std::size_t total = 0;
+    for(std::size_t i = 0; i < req->count; i++) {
+        Blob &subject   = req->subjects[i];
+        Blob &predicate = req->predicates[i];
+        #if SOP || POS || OSP || OPS
+        Blob &object    = req->objects[i];
+        #endif
+
+        total += (subject.pack_size() + predicate.pack_size())
+                 #if SOP
+                 + (subject.pack_size() + object.pack_size())
+                 #endif
+
+                 #if PSO
+                 + (predicate.pack_size() + subject.pack_size())
+                 #endif
+
+                 #if POS
+                 + (predicate.pack_size() + object.pack_size())
+                 #endif
+
+                 #if OSP
+                 + (object.pack_size() + subject.pack_size())
+                 #endif
+
+                 #if OPS
+                 + (object.pack_size() + predicate.pack_size())
+                 #endif
+                 ;
+    }
+
+    return total;
+}
+
+std::size_t hxhim::datastore::Datastore::all_keys_size(Transport::Request::SubjectPredicate *req) {
+    std::size_t total = 0;
+    for(std::size_t i = 0; i < req->count; i++) {
+        Blob &subject   = req->subjects[i];
+        Blob &predicate = req->predicates[i];
+
+        total += subject.pack_size() + predicate.pack_size();
+    }
+
+    return total;
 }
 
 Transport::Response::BPut *hxhim::datastore::Datastore::operate(Transport::Request::BPut *req) {

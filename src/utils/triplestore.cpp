@@ -7,52 +7,57 @@
 
 /**
  * sp_to_key
- * Combines a subject and a predicate (if present) to form a key.
+ * Combines a subject and a predicate to form a key.
+ * The buffer to store the key should be allocated
+ * by the caller.
  *
- * @param fbp            the FixedBufferPool to allocate from
  * @param subject        the subject of the triple
  * @param predicate      the predicate of the triple
- * @param key            address of the key
- * @param key_len        address of the key length
- * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
+ * @param buf            start of key buffer (updated to next unused address)
+ * @param buf_len        available space for data (updated to remaining space)
+ * @param key_len        the length of the key
+ * @return the original buf pointer, or nullptr on error
  */
-int sp_to_key(const Blob &subject,
-              const Blob &predicate,
-              void **key, std::size_t *key_len) {
+char *sp_to_key(const Blob &subject,
+                const Blob &predicate,
+                char *&buf, std::size_t &buf_len,
+                std::size_t &key_len) {
     if (!subject.data()   ||
         !predicate.data() ||
-        !key || !key_len)  {
-        return HXHIM_ERROR;
+        !buf || !buf_len)  {
+        return nullptr;
     }
 
-    *key_len = subject.size() + sizeof(subject.size()) +
-               predicate.size() + sizeof(predicate.size());
+    // Blob packs length + value
+    // this function packs value + length, but sizes are the same
+    key_len = subject.pack_size() + predicate.pack_size();
 
-    if (!*key_len) {
-        *key = nullptr;
-        return HXHIM_SUCCESS;
+    // check the buffer length
+    if (buf_len < key_len) {
+        return nullptr;
     }
 
-    *key = alloc(*key_len);
-
-    char *curr = static_cast<char *>(*key);
+    char *orig = buf;
 
     // copy the subject value
-    memcpy(curr, subject.data(), subject.size());
-    curr += subject.size();
+    memcpy(buf, subject.data(), subject.size());
+    buf += subject.size();
 
     // length of the subject value
-    encode_unsigned(curr, subject.size());
-    curr += sizeof(subject.size());
+    encode_unsigned(buf, subject.size());
+    buf += sizeof(subject.size());
 
     // copy the predicate value
-    memcpy(curr, predicate.data(), predicate.size());
-    curr += predicate.size();
+    memcpy(buf, predicate.data(), predicate.size());
+    buf += predicate.size();
 
     // length of the predicate value
-    encode_unsigned(curr, predicate.size());
+    encode_unsigned(buf, predicate.size());
+    buf += sizeof(predicate.size());
 
-    return HXHIM_SUCCESS;
+    buf_len -= key_len;
+
+    return orig;
 }
 
 /**

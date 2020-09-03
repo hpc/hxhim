@@ -25,10 +25,10 @@ static InMemoryTest *setup() {
     Transport::Request::BPut req(count);
 
     for(std::size_t i = 0; i < count; i++) {
-        req.subjects[i]     = ReferenceBlob((void *) subs[i],  strlen(subs[i]));
-        req.predicates[i]   = ReferenceBlob((void *) preds[i], strlen(preds[i]));
-        req.object_types[i] = types[i];
-        req.objects[i]      = ReferenceBlob((void *) objs[i],  strlen(objs[i]));
+        req.subjects[i]     = triples[i].get_sub();
+        req.predicates[i]   = triples[i].get_pred();
+        req.object_types[i] = triples[i].get_type();
+        req.objects[i]      = triples[i].get_obj();
         req.count++;
     }
 
@@ -45,20 +45,19 @@ TEST(InMemory, BPut) {
     std::map<std::string, std::string> const &db = ds->data();
     EXPECT_EQ(db.size(), total);
 
-    for(std::size_t i = 0; i < count; i++) {
-        Blob sub  = ReferenceBlob((void *) subs[i], strlen(subs[i]));
-        Blob pred = ReferenceBlob((void *) preds[i], strlen(preds[i]));
+    std::size_t key_buffer_len = all_keys_size();
+    char *key_buffer = (char *) alloc(key_buffer_len);
+    char *key_buffer_start = key_buffer;
 
-        void *key = nullptr;
+    for(Triple const &triple : triples) {
         std::size_t key_len = 0;
-        EXPECT_EQ(sp_to_key(sub, pred,
-                            &key, &key_len), HXHIM_SUCCESS);
+        char *key = sp_to_key(triple.get_sub(), triple.get_pred(), key_buffer, key_buffer_len, key_len);
+        EXPECT_NE(key, nullptr);
 
-        EXPECT_EQ(db.find(std::string((char *) key, key_len)) != db.end(), true);
-
-        dealloc(key);
+        EXPECT_EQ(db.find(std::string(key, key_len)) != db.end(), true);
     }
 
+    destruct(key_buffer_start);
     destruct(ds);
 }
 
@@ -66,14 +65,11 @@ TEST(InMemory, BGet) {
     InMemoryTest *ds = setup();
     ASSERT_NE(ds, nullptr);
 
-    std::map<std::string, std::string> const &db = ds->data();
-    EXPECT_EQ(db.size(), total);
-
     Transport::Request::BGet req(count + 1);
     for(std::size_t i = 0; i < count; i++) {
-        req.subjects[i]     = ReferenceBlob((void *) subs[i],  strlen(subs[i]));
-        req.predicates[i]   = ReferenceBlob((void *) preds[i], strlen(preds[i]));
-        req.object_types[i] = types[i];
+        req.subjects[i]     = triples[i].get_sub();
+        req.predicates[i]   = triples[i].get_pred();
+        req.object_types[i] = triples[i].get_type();
         req.count++;
     }
 
@@ -89,8 +85,8 @@ TEST(InMemory, BGet) {
     for(std::size_t i = 0; i < count; i++) {
         EXPECT_EQ(res->statuses[i], HXHIM_SUCCESS);
         ASSERT_NE(res->objects[i].data(), nullptr);
-        EXPECT_EQ(res->objects[i].size(), strlen(objs[i]));
-        EXPECT_EQ(std::memcmp(objs[i], res->objects[i].data(), res->objects[i].size()), 0);
+        EXPECT_EQ(res->objects[i].size(), triples[i].get_obj().size());
+        EXPECT_EQ(std::memcmp(triples[i].get_obj().data(), res->objects[i].data(), res->objects[i].size()), 0);
     }
 
     EXPECT_EQ(res->statuses[count], HXHIM_ERROR);
@@ -104,14 +100,16 @@ TEST(InMemory, BGetOp) {
     InMemoryTest *ds = setup();
     ASSERT_NE(ds, nullptr);
 
-    std::map<std::string, std::string> const &db = ds->data();
-    EXPECT_EQ(db.size(), total);
+    std::size_t key_buffer_len = all_keys_size();
+    char *key_buffer = (char *) alloc(key_buffer_len);
+    char *key_buffer_start = key_buffer;
 
     for(int op = HXHIM_GET_EQ; op < HXHIM_GET_INVALID; op++) {
         Transport::Request::BGetOp req(1);
-        req.subjects[0]     = ReferenceBlob((void *) subs[0],  strlen(subs[0]));
-        req.predicates[0]   = ReferenceBlob((void *) preds[0], strlen(preds[0]));
-        req.object_types[0] = types[0];
+
+        req.subjects[0]     = triples[0].get_sub();
+        req.predicates[0]   = triples[0].get_pred();
+        req.object_types[0] = triples[0].get_type();
         req.num_recs[0]     = 1;
         req.ops[0]          = static_cast<hxhim_get_op_t>(op);
         req.count++;
@@ -127,11 +125,19 @@ TEST(InMemory, BGetOp) {
                 // all results are the same value
                 for(std::size_t j = 0; j < res->num_recs[0]; j++) {
                     ASSERT_NE(res->subjects[0][j].data(), nullptr);
-                    EXPECT_EQ(memcmp(subs[0],  res->subjects[0][j].data(),   res->subjects[0][j].size()),   0);
+                    EXPECT_EQ(memcmp(triples[0].get_sub().data(),
+                                     res->subjects[0][j].data(),
+                                     res->subjects[0][j].size()),   0);
+
                     ASSERT_NE(res->predicates[0][j].data(), nullptr);
-                    EXPECT_EQ(memcmp(preds[0], res->predicates[0][j].data(), res->predicates[0][j].size()), 0);
+                    EXPECT_EQ(memcmp(triples[0].get_pred().data(),
+                                     res->predicates[0][j].data(),
+                                     res->predicates[0][j].size()), 0);
+
                     ASSERT_NE(res->objects[0][j].data(), nullptr);
-                    EXPECT_EQ(memcmp(objs[0],  res->objects[0][j].data(),    res->objects[0][j].size()),    0);
+                    EXPECT_EQ(memcmp(triples[0].get_obj().data(),
+                                     res->objects[0][j].data(),
+                                     res->objects[0][j].size()),    0);
                 }
                 break;
             case HXHIM_GET_NEXT:
@@ -145,11 +151,19 @@ TEST(InMemory, BGetOp) {
 
                 for(std::size_t j = 0; j < res->num_recs[0]; j++) {
                     ASSERT_NE(res->subjects[0][j].data(), nullptr);
-                    EXPECT_EQ(memcmp(subs[j],  res->subjects[0][j].data(),   res->subjects[0][j].size()),   0);
+                    EXPECT_EQ(memcmp(triples[j].get_sub().data(),
+                                     res->subjects[0][j].data(),
+                                     res->subjects[0][j].size()),   0);
+
                     ASSERT_NE(res->predicates[0][j].data(), nullptr);
-                    EXPECT_EQ(memcmp(preds[j], res->predicates[0][j].data(), res->predicates[0][j].size()), 0);
+                    EXPECT_EQ(memcmp(triples[j].get_pred().data(),
+                                     res->predicates[0][j].data(),
+                                     res->predicates[0][j].size()), 0);
+
                     ASSERT_NE(res->objects[0][j].data(), nullptr);
-                    EXPECT_EQ(memcmp(objs[j],  res->objects[0][j].data(),    res->objects[0][j].size()),    0);
+                    EXPECT_EQ(memcmp(triples[j].get_obj().data(),
+                                     res->objects[0][j].data(),
+                                     res->objects[0][j].size()),    0);
                 }
                 break;
             case HXHIM_GET_INVALID:
@@ -160,6 +174,7 @@ TEST(InMemory, BGetOp) {
         destruct(res);
     }
 
+    destruct(key_buffer_start);
     destruct(ds);
 }
 
@@ -172,8 +187,8 @@ TEST(InMemory, BDelete) {
 
     Transport::Request::BDelete req(count + 1);
     for(std::size_t i = 0; i < count; i++) {
-        req.subjects[i]     = ReferenceBlob((void *) subs[i],  strlen(subs[i]));
-        req.predicates[i]   = ReferenceBlob((void *) preds[i], strlen(preds[i]));
+        req.subjects[i]     = triples[i].get_sub();
+        req.predicates[i]   = triples[i].get_pred();
         req.count++;
     }
 
@@ -195,18 +210,19 @@ TEST(InMemory, BDelete) {
 
     EXPECT_EQ(db.size(), total - count);
 
-    // get directly from internal data
-    for(std::size_t i = 0; i < count; i++) {
-        Blob sub  = ReferenceBlob((void *) subs[i], strlen(subs[i]));
-        Blob pred = ReferenceBlob((void *) preds[i], strlen(preds[i]));
-        void *key = nullptr;
-        std::size_t key_len = 0;
-        EXPECT_EQ(sp_to_key(&sub, &pred,
-                            &key, &key_len), HXHIM_SUCCESS);
+    std::size_t key_buffer_len = all_keys_size();
+    char *key_buffer = (char *) alloc(key_buffer_len);
+    char *key_buffer_start = key_buffer;
 
-        EXPECT_EQ(db.find(std::string((char *) key, key_len)) == db.end(), true);
-        dealloc(key);
+    // get directly from internal data
+    for(Triple const &triple : triples) {
+        std::size_t key_len = 0;
+        char *key = sp_to_key(triple.get_sub(), triple.get_pred(), key_buffer, key_buffer_len, key_len);
+        EXPECT_NE(key, nullptr);
+
+        EXPECT_EQ(db.find(std::string(key, key_len)) == db.end(), true);
     }
 
+    destruct(key_buffer_start);
     destruct(ds);
 }

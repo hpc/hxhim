@@ -36,12 +36,17 @@ static const char *PREDICATE_LEN_ENCODED() {
 TEST(triplestore, sp_to_key) {
     Blob sub  = ReferenceBlob((void *) SUBJECT, SUBJECT_LEN);
     Blob pred = ReferenceBlob((void *) PREDICATE, PREDICATE_LEN);
-    void *key = nullptr;
-    std::size_t key_len;
+    std::size_t buf_len = sub.pack_size() + pred.pack_size();
+    char *buf = (char *) alloc(buf_len);
+    char *orig = buf;
+    std::size_t key_len = 0;
 
-    EXPECT_EQ(sp_to_key(sub, pred, &key, &key_len), HXHIM_SUCCESS);
+    char *key = sp_to_key(sub, pred, buf, buf_len, key_len);
+    EXPECT_EQ(orig + key_len, buf); // the buf pointer moved
+    EXPECT_EQ(buf_len, 0);          // used up all available space
+    EXPECT_EQ(key, orig);           // the key starts at orig
 
-    char *curr = (char *) key;
+    char *curr = key;
     EXPECT_EQ(memcmp(curr, SUBJECT, SUBJECT_LEN), 0);
 
     curr += SUBJECT_LEN;
@@ -53,18 +58,20 @@ TEST(triplestore, sp_to_key) {
     curr += PREDICATE_LEN;
     EXPECT_EQ(memcmp(curr, PREDICATE_LEN_ENCODED(), sizeof(PREDICATE_LEN)), 0);
 
-    dealloc(key);
+    dealloc(orig);
 }
 
 TEST(triplestore, key_to_sp) {
     Blob sub  = ReferenceBlob((void *) SUBJECT, SUBJECT_LEN);
     Blob pred = ReferenceBlob((void *) PREDICATE, PREDICATE_LEN);
-    void *key = nullptr;
-    std::size_t key_len;
+    std::size_t buf_len = sub.pack_size() + pred.pack_size();
+    char *buf = (char *) alloc(buf_len);
+    char *orig = buf;
+    std::size_t key_len = 0;
 
-    EXPECT_EQ(sp_to_key(sub, pred, &key, &key_len), HXHIM_SUCCESS);
+    char *key = sp_to_key(sub, pred, buf, buf_len, key_len);
 
-    char *curr = (char *) key;
+    char *curr = key;
     EXPECT_EQ(memcmp(curr, SUBJECT, SUBJECT_LEN), 0);
     curr += SUBJECT_LEN + sizeof(SUBJECT_LEN);
     EXPECT_EQ(memcmp(curr, PREDICATE, PREDICATE_LEN), 0);
@@ -103,5 +110,5 @@ TEST(triplestore, key_to_sp) {
         EXPECT_EQ(memcmp(predicate.data(), PREDICATE, predicate.size()), 0);
     }
 
-    dealloc(key);
+    dealloc(orig);
 }

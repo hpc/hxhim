@@ -1,11 +1,38 @@
-#include "datastore/datastore.hpp"
+#ifndef TEST_DATASTORE_COMMON_HPP
+#define TEST_DATASTORE_COMMON_HPP
 
-static const char *subs[]                = {"sub0",  "sub1"};
-static const char *preds[]               = {"pred0", "pred1"};
-static const hxhim_object_type_t types[] = {hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE,
-                                            hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE};
-static const char *objs[]                = {"obj0",   "obj1"};
-static const std::size_t count           = sizeof(types) / sizeof(types[0]);
+#include <vector>
+
+#include "datastore/datastore.hpp"
+#include "utils/Blob.hpp"
+
+class Triple {
+    public:
+        Triple(const char *sub,
+               const char *pred,
+               const hxhim_object_type_t type,
+               const char *obj);
+
+        std::size_t all_keys_size() const;
+
+        Blob get_sub() const;
+        Blob get_pred() const;
+        hxhim_object_type_t get_type() const;
+        Blob get_obj() const;
+
+    private:
+        std::string sub;
+        std::string pred;
+        hxhim_object_type_t type;
+        std::string obj;
+};
+
+const std::vector <Triple> triples = {
+    {"sub0", "pred0", hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE, "obj0"},
+    {"sub1", "pred1", hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE, "obj1"},
+};
+
+const std::size_t count = triples.size();
 
 /*
   If all 6 combinations are enabled:
@@ -22,5 +49,10 @@ static const std::size_t count           = sizeof(types) / sizeof(types[0]);
   sub0  pred0 obj0
   sub1  obj1  pred1
   sub1  pred1 obj1
- */
-static const std::size_t total = count * HXHIM_PUT_MULTIPLIER;
+*/
+
+const std::size_t total = count * HXHIM_PUT_MULTIPLIER;
+
+std::size_t all_keys_size();
+
+#endif

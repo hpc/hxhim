@@ -20,13 +20,19 @@ if (OPS)
   target_compile_definitions(googletest PRIVATE OPS=1)
 endif()
 
-target_sources(googletest PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/GetStats.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/InMemory.cpp
+set(DS_TEST_SRC
+  GetStats.cpp
+  InMemory.cpp
+  common.cpp
 )
 
 if (LEVELDB_FOUND AND ENABLE_LEVELDB)
-target_sources(googletest PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/leveldb.cpp
-)
+  list(APPEND DS_TEST_SRC
+    leveldb.cpp
+  )
 endif()
+
+foreach(FILE ${DS_TEST_SRC})
+  target_sources(googletest PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/${FILE})
+endforeach()
