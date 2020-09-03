@@ -144,7 +144,7 @@ int Transport::Response::BGetOp::steal(Transport::Response::BGetOp *from, const 
 }
 
 int Transport::Response::BGetOp::cleanup() {
-    for(std::size_t i = 0; i < max_count; i++) {
+    for(std::size_t i = 0; i < count; i++) {
         dealloc_array(subjects[i],   num_recs[i]);
         dealloc_array(predicates[i], num_recs[i]);
         dealloc_array(objects[i],    num_recs[i]);

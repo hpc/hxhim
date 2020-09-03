@@ -36,7 +36,7 @@ int Transport::Response::Response::steal(Transport::Response::Response *from, co
 }
 
 int Transport::Response::Response::cleanup() {
-    dealloc_array(statuses, count);
+    dealloc_array(statuses, max_count);
     statuses = nullptr;
 
     return Message::cleanup();
