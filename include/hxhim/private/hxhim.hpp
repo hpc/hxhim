@@ -52,7 +52,7 @@ typedef struct hxhim_private {
 
     std::atomic_bool running;              // whether or not HXHIM is running
 
-    std::map<enum hxhim_op_t, std::size_t> max_ops_per_send;
+    std::size_t max_ops_per_send;
 
     // unsent data queues
     struct {

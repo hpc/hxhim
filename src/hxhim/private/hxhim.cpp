@@ -94,7 +94,7 @@ static void backgroundPUT(hxhim_t *hx) {
         mlog(HXHIM_CLIENT_DBG, "Processing queued PUTs");
         {
             // process the batch and save the results
-            hxhim::Results *res = hxhim::process<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, head, hx->p->max_ops_per_send[hxhim_op_t::HXHIM_PUT]);
+            hxhim::Results *res = hxhim::process<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, head, hx->p->max_ops_per_send);
 
             {
                 std::unique_lock<std::mutex> lock(hx->p->async_put.mutex);
@@ -209,17 +209,8 @@ int hxhim::init::memory(hxhim_t *hx, hxhim_options_t *opts) {
     if (!valid(hx, opts)) {
         return HXHIM_ERROR;
     }
-    if (opts->p->max_ops_per_send < HXHIM_PUT_MULTIPLIER) {
-        mlog(HXHIM_CLIENT_ERR, "There should be at least %d operations per send", HXHIM_PUT_MULTIPLIER);
-        return HXHIM_SUCCESS;
-    }
 
-    // size of each set of queued messages
-    hx->p->max_ops_per_send[hxhim_op_t::HXHIM_PUT]       = opts->p->max_ops_per_send / HXHIM_PUT_MULTIPLIER;
-    hx->p->max_ops_per_send[hxhim_op_t::HXHIM_GET]       = opts->p->max_ops_per_send;
-    hx->p->max_ops_per_send[hxhim_op_t::HXHIM_GETOP]     = opts->p->max_ops_per_send;
-    hx->p->max_ops_per_send[hxhim_op_t::HXHIM_DELETE]    = opts->p->max_ops_per_send;
-    hx->p->max_ops_per_send[hxhim_op_t::HXHIM_HISTOGRAM] = opts->p->max_ops_per_send;
+    hx->p->max_ops_per_send = opts->p->max_ops_per_send;
 
     mlog(HXHIM_CLIENT_INFO, "Completed Memory Initialization");
     return HXHIM_SUCCESS;

@@ -4,7 +4,7 @@
 #include "utils/mlogfacs2.h"
 
 std::ostream &hxhim::Stats::Global::print(const int rank,
-                                          const std::map<enum hxhim_op_t, std::size_t> &max_ops_per_send,
+                                          const std::size_t max_ops_per_send,
                                           const ::Stats::Chronopoint epoch,
                                           std::ostream &stream,
                                           const std::string &indent) {
@@ -60,7 +60,7 @@ std::ostream &hxhim::Stats::Global::print(const int rank,
             }
             const double avg = ((double) sum) / it->second.size();
             sum /= used.size();
-            stream << indent << indent << HXHIM_OP_STR[it->first] << " count: " << it->second.size() << " average filled: "  << avg << "/" << max_ops_per_send.at(it->first) << " (" << 100.0 * avg / max_ops_per_send.at(it->first) << "%)" << std::endl;
+            stream << indent << indent << HXHIM_OP_STR[it->first] << " count: " << it->second.size() << " average filled: "  << avg << "/" << max_ops_per_send << " (" << 100.0 * avg / max_ops_per_send << "%)" << std::endl;
         }
     }
 
