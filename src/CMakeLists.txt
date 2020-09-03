@@ -4,6 +4,26 @@ cmake_minimum_required (VERSION 3.6.3)
 add_library(hxhim OBJECT)
 target_include_directories(hxhim PUBLIC ${CMAKE_SOURCE_DIR}/include)
 
+if (SOP)
+  target_compile_definitions(hxhim PRIVATE SOP=1)
+endif()
+
+if (PSO)
+  target_compile_definitions(hxhim PRIVATE PSO=1)
+endif()
+
+if (POS)
+  target_compile_definitions(hxhim PRIVATE POS=1)
+endif()
+
+if (OSP)
+  target_compile_definitions(hxhim PRIVATE OSP=1)
+endif()
+
+if (OPS)
+  target_compile_definitions(hxhim PRIVATE OPS=1)
+endif()
+
 # add source files
 add_subdirectory(base)
 add_subdirectory(datastore)

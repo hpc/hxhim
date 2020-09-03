@@ -25,6 +25,32 @@ const char *HXHIM_OP_STR[] = {
     HXHIM_OP_GEN(GENERATE_STR)
 };
 
+const HXHIM_PUT_COMBINATION HXHIM_PUT_COMBINATIONS[] = {
+    HXHIM_PUT_COMBINATION_SPO,
+
+    #if SOP
+    HXHIM_PUT_COMBINATION_SOP,
+    #endif
+
+    #if PSO
+    HXHIM_PUT_COMBINATION_PSO,
+    #endif
+
+    #if POS
+    HXHIM_PUT_COMBINATION_POS,
+    #endif
+
+    #if OSP
+    HXHIM_PUT_COMBINATION_OSP,
+    #endif
+
+    #if OPS
+    HXHIM_PUT_COMBINATION_OPS,
+    #endif
+};
+
+const size_t HXHIM_PUT_MULTIPLIER = sizeof(HXHIM_PUT_COMBINATIONS) / sizeof(HXHIM_PUT_COMBINATION_SPO);
+
 /**
  * Open
  * Start a HXHIM session

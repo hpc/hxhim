@@ -2,8 +2,12 @@
 #define HXHIM_CONSTANTS_H
 
 #ifdef __cplusplus
+#include <cstddef>
+
 extern "C"
 {
+#else
+#include <stddef.h>
 #endif
 
 /** Success constant */
@@ -12,8 +16,21 @@ extern "C"
 /** Error constant */
 #define HXHIM_ERROR 1
 
-/** How many different ways a SPO triple will be PUT into HXHIM per PUT */
-#define HXHIM_PUT_MULTIPLIER 1
+/** Different ways a SPO triple will be PUT into HXHIM per PUT */
+typedef enum {
+    HXHIM_PUT_COMBINATION_SPO, /* always enabled */
+    HXHIM_PUT_COMBINATION_SOP,
+    HXHIM_PUT_COMBINATION_PSO,
+    HXHIM_PUT_COMBINATION_POS,
+    HXHIM_PUT_COMBINATION_OSP,
+    HXHIM_PUT_COMBINATION_OPS,
+} HXHIM_PUT_COMBINATION;
+
+/** Filled with combinations that have been abled */
+extern const HXHIM_PUT_COMBINATION HXHIM_PUT_COMBINATIONS[];
+
+/** Number of combinations enabled */
+extern const size_t HXHIM_PUT_MULTIPLIER;
 
 /**
  * Adapted from
