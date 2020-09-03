@@ -2,16 +2,10 @@
 
 #include <gtest/gtest.h>
 
+#include "common.hpp"
 #include "datastore/InMemory.hpp"
 #include "utils/memory.hpp"
 #include "utils/triplestore.hpp"
-
-static const char *subs[]                = {"sub1",  "sub2"};
-static const char *preds[]               = {"pred1", "pred2"};
-static const hxhim_object_type_t types[] = {hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE,
-                                            hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE};
-static const char *objs[]                = {"obj1",   "obj2"};
-static const std::size_t count           = sizeof(types) / sizeof(types[0]);
 
 class InMemoryTest : public hxhim::datastore::InMemory {
     public:
@@ -49,7 +43,7 @@ TEST(InMemory, BPut) {
     ASSERT_NE(ds, nullptr);
 
     std::map<std::string, std::string> const &db = ds->data();
-    EXPECT_EQ(db.size(), 2U);
+    EXPECT_EQ(db.size(), total);
 
     for(std::size_t i = 0; i < count; i++) {
         Blob sub  = ReferenceBlob((void *) subs[i], strlen(subs[i]));
@@ -71,6 +65,9 @@ TEST(InMemory, BPut) {
 TEST(InMemory, BGet) {
     InMemoryTest *ds = setup();
     ASSERT_NE(ds, nullptr);
+
+    std::map<std::string, std::string> const &db = ds->data();
+    EXPECT_EQ(db.size(), total);
 
     Transport::Request::BGet req(count + 1);
     for(std::size_t i = 0; i < count; i++) {
@@ -107,12 +104,15 @@ TEST(InMemory, BGetOp) {
     InMemoryTest *ds = setup();
     ASSERT_NE(ds, nullptr);
 
+    std::map<std::string, std::string> const &db = ds->data();
+    EXPECT_EQ(db.size(), total);
+
     for(int op = HXHIM_GET_EQ; op < HXHIM_GET_INVALID; op++) {
         Transport::Request::BGetOp req(1);
         req.subjects[0]     = ReferenceBlob((void *) subs[0],  strlen(subs[0]));
         req.predicates[0]   = ReferenceBlob((void *) preds[0], strlen(preds[0]));
         req.object_types[0] = types[0];
-        req.num_recs[0]     = count + 1; // get too many records
+        req.num_recs[0]     = 1;
         req.ops[0]          = static_cast<hxhim_get_op_t>(op);
         req.count++;
 
@@ -136,17 +136,9 @@ TEST(InMemory, BGetOp) {
                 break;
             case HXHIM_GET_NEXT:
             case HXHIM_GET_FIRST:
-                EXPECT_EQ(res->num_recs[0], count);
-
-                // only 2 values available
-                for(std::size_t j = 0; j < res->num_recs[0]; j++) {
-                    ASSERT_NE(res->subjects[0][j].data(), nullptr);
-                    EXPECT_EQ(memcmp(subs[j],  res->subjects[0][j].data(),   res->subjects[0][j].size()),   0);
-                    ASSERT_NE(res->predicates[0][j].data(), nullptr);
-                    EXPECT_EQ(memcmp(preds[j], res->predicates[0][j].data(), res->predicates[0][j].size()), 0);
-                    ASSERT_NE(res->objects[0][j].data(), nullptr);
-                    EXPECT_EQ(memcmp(objs[j],  res->objects[0][j].data(),    res->objects[0][j].size()),    0);
-                }
+            case HXHIM_GET_LAST:
+                EXPECT_EQ(res->num_recs[0], 1);
+                // not sure how to test these
                 break;
             case HXHIM_GET_PREV:
                 EXPECT_EQ(res->num_recs[0], 1);
@@ -158,20 +150,6 @@ TEST(InMemory, BGetOp) {
                     EXPECT_EQ(memcmp(preds[j], res->predicates[0][j].data(), res->predicates[0][j].size()), 0);
                     ASSERT_NE(res->objects[0][j].data(), nullptr);
                     EXPECT_EQ(memcmp(objs[j],  res->objects[0][j].data(),    res->objects[0][j].size()),    0);
-                }
-                break;
-            case HXHIM_GET_LAST:
-                EXPECT_EQ(res->num_recs[0], count);
-
-                for(std::size_t j = 0; j < res->num_recs[0]; j++) {
-                    const std::size_t k = res->num_recs[0] - 1 - j;;
-
-                    ASSERT_NE(res->subjects[0][k].data(), nullptr);
-                    EXPECT_EQ(memcmp(subs[j],  res->subjects[0][k].data(),   res->subjects[0][k].size()),   0);
-                    ASSERT_NE(res->predicates[0][j].data(), nullptr);
-                    EXPECT_EQ(memcmp(preds[j], res->predicates[0][k].data(), res->predicates[0][k].size()), 0);
-                    ASSERT_NE(res->objects[0][j].data(), nullptr);
-                    EXPECT_EQ(memcmp(objs[j],  res->objects[0][k].data(),    res->objects[0][k].size()),    0);
                 }
                 break;
             case HXHIM_GET_INVALID:
@@ -190,7 +168,7 @@ TEST(InMemory, BDelete) {
     ASSERT_NE(ds, nullptr);
 
     std::map<std::string, std::string> const &db = ds->data();
-    EXPECT_EQ(db.size(), 2U);
+    EXPECT_EQ(db.size(), total);
 
     Transport::Request::BDelete req(count + 1);
     for(std::size_t i = 0; i < count; i++) {
@@ -214,6 +192,8 @@ TEST(InMemory, BDelete) {
     EXPECT_EQ(res->statuses[count], HXHIM_ERROR);
 
     destruct(res);
+
+    EXPECT_EQ(db.size(), total - count);
 
     // get directly from internal data
     for(std::size_t i = 0; i < count; i++) {

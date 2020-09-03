@@ -51,21 +51,88 @@ Transport::Response::BPut *hxhim::datastore::InMemory::BPutImpl(Transport::Reque
     Transport::Response::BPut *res = construct<Transport::Response::BPut>(req->count);
 
     for(std::size_t i = 0; i < req->count; i++) {
-        void *key = nullptr;
-        std::size_t key_len = 0;
-        sp_to_key(req->subjects[i], req->predicates[i], &key, &key_len);
+        // SPO
+        {
+            void *key = nullptr;
+            std::size_t key_len = 0;
+            sp_to_key(req->subjects[i], req->predicates[i], &key, &key_len);
 
-        db[std::string((char *) key, key_len)] = (std::string) req->objects[i];
+            db[std::string((char *) key, key_len)] = (std::string) req->objects[i];
+            dealloc(key);
+
+            event.size += key_len + req->objects[i].size();
+        }
+
+        #if SOP
+        {
+            void *key = nullptr;
+            std::size_t key_len = 0;
+            sp_to_key(req->subjects[i], req->objects[i], &key, &key_len);
+
+            db[std::string((char *) key, key_len)] = (std::string) req->predicates[i];
+            dealloc(key);
+
+            event.size += key_len + req->predicates[i].size();
+        }
+        #endif
+
+        #if PSO
+        {
+            void *key = nullptr;
+            std::size_t key_len = 0;
+            sp_to_key(req->predicates[i], req->subjects[i], &key, &key_len);
+
+            db[std::string((char *) key, key_len)] = (std::string) req->objects[i];
+            dealloc(key);
+
+            event.size += key_len + req->objects[i].size();
+        }
+        #endif
+
+        #if POS
+        {
+            void *key = nullptr;
+            std::size_t key_len = 0;
+            sp_to_key(req->predicates[i], req->objects[i], &key, &key_len);
+
+            db[std::string((char *) key, key_len)] = (std::string) req->subjects[i];
+            dealloc(key);
+
+            event.size += key_len + req->subjects[i].size();
+        }
+        #endif
+
+        #if OSP
+        {
+            void *key = nullptr;
+            std::size_t key_len = 0;
+            sp_to_key(req->objects[i], req->subjects[i], &key, &key_len);
+
+            db[std::string((char *) key, key_len)] = (std::string) req->predicates[i];
+            dealloc(key);
+
+            event.size += key_len + req->predicates[i].size();
+        }
+        #endif
+
+        #if OPS
+        {
+            void *key = nullptr;
+            std::size_t key_len = 0;
+            sp_to_key(req->objects[i], req->predicates[i], &key, &key_len);
+
+            db[std::string((char *) key, key_len)] = (std::string) req->subjects[i];
+            dealloc(key);
+
+            event.size += key_len + req->subjects[i].size();
+        }
+        #endif
 
         res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size());
         res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size());
 
-        dealloc(key);
-
         // always successful
         res->statuses[i] = HXHIM_SUCCESS;
-
-        event.size += key_len + req->objects[i].size();
     }
 
     res->count = req->count;

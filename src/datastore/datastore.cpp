@@ -216,6 +216,12 @@ Transport::Response::BPut *hxhim::datastore::Datastore::operate(Transport::Reque
         }
 
         std::lock_guard<std::mutex> lock(mutex);
+
+        // All combinations of SPO should be handled in the BPutImpl
+        // call. Error handling/atomicity/etc. is enforced by the
+        // datastore wrapper, not here. Each request tuple should
+        // correspond to eactly one response tuple no matter how many
+        // tuples are actually PUT.
         res = BPutImpl(req);
 
         if (hist && res) {
