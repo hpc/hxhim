@@ -16,7 +16,7 @@
  * @param TRANSPORT_SUCCESS or TRANSPORT_ERROR
  */
 int Transport::Thallium::init(hxhim_t *hx, hxhim_options_t *opts) {
-    #ifdef PRINT_TIMESTAMPS
+    #if PRINT_TIMESTAMPS
     ::Stats::Chronostamp thallium_init;
     thallium_init.start = ::Stats::now();
     #endif
@@ -29,7 +29,7 @@ int Transport::Thallium::init(hxhim_t *hx, hxhim_options_t *opts) {
     Options *config = static_cast<Options *>(opts->p->transport);
     mlog(THALLIUM_INFO, "Rank %d Configuring Thallium with %s", rank, config->module.c_str());
 
-    #ifdef PRINT_TIMESTAMPS
+    #if PRINT_TIMESTAMPS
     ::Stats::Chronostamp thallium_engine;
     thallium_engine.start = ::Stats::now();
     #endif
@@ -43,7 +43,7 @@ int Transport::Thallium::init(hxhim_t *hx, hxhim_options_t *opts) {
                         delete engine;
                         mlog(THALLIUM_INFO, "Stopped Thallium engine %s", addr.c_str());
                     });
-    #ifdef PRINT_TIMESTAMPS
+    #if PRINT_TIMESTAMPS
     thallium_engine.end = ::Stats::now();
     #endif
 
@@ -65,7 +65,7 @@ int Transport::Thallium::init(hxhim_t *hx, hxhim_options_t *opts) {
 
     mlog(THALLIUM_DBG, "Rank %d Created Thallium RPC", rank);
 
-    #ifdef PRINT_TIMESTAMPS
+    #if PRINT_TIMESTAMPS
     ::Stats::Chronostamp thallium_addrs;
     thallium_addrs.start = ::Stats::now();
     #endif
@@ -76,7 +76,7 @@ int Transport::Thallium::init(hxhim_t *hx, hxhim_options_t *opts) {
         return TRANSPORT_ERROR;
     }
 
-    #ifdef PRINT_TIMESTAMPS
+    #if PRINT_TIMESTAMPS
     thallium_addrs.end = ::Stats::now();
     #endif
 
@@ -101,7 +101,7 @@ int Transport::Thallium::init(hxhim_t *hx, hxhim_options_t *opts) {
     hx->p->transport->SetEndpointGroup(eg);
 
     mlog(THALLIUM_INFO, "Rank %d Completed Thallium transport initialization", rank);
-    #ifdef PRINT_TIMESTAMPS
+    #if PRINT_TIMESTAMPS
     thallium_init.end = ::Stats::now();
     Stats::print_event(hx->p->print_buffer, hx->p->bootstrap.rank, "thallium_init",   ::Stats::global_epoch, thallium_init);
     Stats::print_event(hx->p->print_buffer, hx->p->bootstrap.rank, "thallium_engine", ::Stats::global_epoch, thallium_engine);

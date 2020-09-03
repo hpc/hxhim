@@ -38,7 +38,7 @@ int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
-    #ifdef PRINT_TIMESTAMPS
+    #if PRINT_TIMESTAMPS
     ::Stats::Chronostamp init;
     init.start = ::Stats::now();
     #endif
@@ -66,7 +66,7 @@ int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
     mlog(HXHIM_CLIENT_INFO, "Waiting for everyone to complete initialization");
     MPI_Barrier(hx->p->bootstrap.comm);
     mlog(HXHIM_CLIENT_INFO, "Successfully initialized HXHIM on rank %d/%d", hx->p->bootstrap.rank, hx->p->bootstrap.size);
-    #ifdef PRINT_TIMESTAMPS
+    #if PRINT_TIMESTAMPS
     init.end = ::Stats::now();
     ::Stats::print_event(std::cerr, hx->p->bootstrap.rank, "Open",      ::Stats::global_epoch, init);
     #endif

@@ -28,7 +28,7 @@ hxhim::Results::Result::Result(hxhim_t *hx, const enum hxhim_op_t op,
 {}
 
 hxhim::Results::Result::~Result() {
-    #ifdef PRINT_TIMESTAMPS
+    #if PRINT_TIMESTAMPS
     if (hx) {
         int rank = -1;
         hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
@@ -47,7 +47,7 @@ hxhim::Results::Result::~Result() {
         ::Stats::print_event(s, rank, "Shuffled",       epoch, timestamps.send->shuffled);
         ::Stats::print_event(s, rank, "Hash",           epoch, timestamps.send->hashed);
         // This might take very long
-        #ifdef PRINT_FIND_DST
+        #if PRINT_FIND_DST
         for(::Stats::Chronostamp const find : timestamps.send->find_dsts) {
             ::Stats::print_event(s, rank, "FindDst",    epoch, find);
         }

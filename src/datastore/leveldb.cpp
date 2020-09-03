@@ -84,13 +84,13 @@ hxhim::datastore::leveldb::leveldb(const int rank,
 
     options.create_if_missing = create_if_missing;
 
-    #ifdef PRINT_TIMESTAMPS
+    #if PRINT_TIMESTAMPS
     ::Stats::Chronostamp init_open;
     init_open.start = ::Stats::now();
     #endif
     Datastore::Open(dbname);
     mlog(LEVELDB_INFO, "Opened leveldb with name: %s", dbname.c_str());
-    #ifdef PRINT_TIMESTAMPS
+    #if PRINT_TIMESTAMPS
     init_open.end = ::Stats::now();
     ::Stats::print_event(std::cerr, rank, "hxhim_leveldb_open", ::Stats::global_epoch, init_open);
     #endif
@@ -105,18 +105,18 @@ const std::string &hxhim::datastore::leveldb::name() const {
 }
 
 bool hxhim::datastore::leveldb::OpenImpl(const std::string &new_name) {
-    #ifdef PRINT_TIMESTAMPS
+    #if PRINT_TIMESTAMPS
     ::Stats::Chronostamp leveldb_open;
     leveldb_open.start = ::Stats::now();
     #endif
     ::leveldb::Status status = ::leveldb::DB::Open(options, new_name, &db);
-    #ifdef PRINT_TIMESTAMPS
+    #if PRINT_TIMESTAMPS
     leveldb_open.end = ::Stats::now();
     #endif
     if (!status.ok()) {
         throw std::runtime_error("Could not configure leveldb datastore " + new_name + ": " + status.ToString());
     }
-    #ifdef PRINT_TIMESTAMPS
+    #if PRINT_TIMESTAMPS
     ::Stats::print_event(std::cerr, rank, "leveldb_open", ::Stats::global_epoch, leveldb_open);
     #endif
     return status.ok();
