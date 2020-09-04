@@ -49,11 +49,6 @@ hxhim::Results *process(hxhim_t *hx,
 
     mlog(HXHIM_CLIENT_DBG, "Rank %d Start processing", rank);
 
-    if (!head) {
-        mlog(HXHIM_CLIENT_WARN, "Rank %d Nothing to process", rank);
-        return nullptr;
-    }
-
     // serialized results
     hxhim::Results *res = construct<hxhim::Results>(hx);
 

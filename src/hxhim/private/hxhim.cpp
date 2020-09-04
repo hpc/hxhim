@@ -56,7 +56,7 @@ hxhim_private::~hxhim_private() {
  * @param hx      the HXHIM context
  */
 static void backgroundPUT(hxhim_t *hx) {
-    if (!hx || !hx->p) {
+    if (!hxhim::valid(hx)) {
         return;
     }
 
@@ -163,10 +163,6 @@ bool hxhim::valid(hxhim_t *hx, hxhim_options_t *opts) {
  */
 int hxhim::init::bootstrap(hxhim_t *hx, hxhim_options_t *opts) {
     mlog(HXHIM_CLIENT_INFO, "Starting MPI Bootstrap Initialization");
-    if (!valid(hx, opts)) {
-        return HXHIM_ERROR;
-    }
-
     if (((hx->p->bootstrap.comm = opts->p->comm)                      == MPI_COMM_NULL) ||
         (MPI_Comm_rank(hx->p->bootstrap.comm, &hx->p->bootstrap.rank) != MPI_SUCCESS)   ||
         (MPI_Comm_size(hx->p->bootstrap.comm, &hx->p->bootstrap.size) != MPI_SUCCESS))   {
@@ -187,11 +183,7 @@ int hxhim::init::bootstrap(hxhim_t *hx, hxhim_options_t *opts) {
  * @param opts the HXHIM options
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int hxhim::init::running(hxhim_t *hx, hxhim_options_t *opts) {
-    if (!valid(hx, opts)) {
-        return HXHIM_ERROR;
-    }
-
+int hxhim::init::running(hxhim_t *hx, hxhim_options_t *) {
     hx->p->running = true;
     return HXHIM_SUCCESS;
 }
@@ -206,12 +198,7 @@ int hxhim::init::running(hxhim_t *hx, hxhim_options_t *opts) {
  */
 int hxhim::init::memory(hxhim_t *hx, hxhim_options_t *opts) {
     mlog(HXHIM_CLIENT_INFO, "Starting Memory Initialization");
-    if (!valid(hx, opts)) {
-        return HXHIM_ERROR;
-    }
-
     hx->p->max_ops_per_send = opts->p->max_ops_per_send;
-
     mlog(HXHIM_CLIENT_INFO, "Completed Memory Initialization");
     return HXHIM_SUCCESS;
 }
@@ -356,10 +343,6 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
 int hxhim::init::async_put(hxhim_t *hx, hxhim_options_t *opts) {
-    if (!valid(hx, opts)) {
-        return HXHIM_ERROR;
-    }
-
     if (init::running(hx, opts) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
@@ -386,9 +369,6 @@ int hxhim::init::async_put(hxhim_t *hx, hxhim_options_t *opts) {
  */
 int hxhim::init::hash(hxhim_t *hx, hxhim_options_t *opts) {
     mlog(HXHIM_CLIENT_INFO, "Starting Hash Initalization");
-    if (!valid(hx, opts)) {
-        return HXHIM_ERROR;
-    }
 
     hx->p->hash.name = opts->p->hash.name;
     hx->p->hash.func = opts->p->hash.func;
@@ -408,9 +388,6 @@ int hxhim::init::hash(hxhim_t *hx, hxhim_options_t *opts) {
  */
 int hxhim::init::transport(hxhim_t *hx, hxhim_options_t *opts) {
     mlog(HXHIM_CLIENT_INFO, "Starting Transport Initialization");
-    if (!valid(hx, opts)) {
-        return HXHIM_ERROR;
-    }
 
     if (!opts->p->client_ratio) {
         mlog(HXHIM_CLIENT_ERR, "Client ratio must be at least 1");
@@ -467,10 +444,6 @@ int hxhim::init::transport(hxhim_t *hx, hxhim_options_t *opts) {
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
 int hxhim::destroy::bootstrap(hxhim_t *hx) {
-    if (!valid(hx)) {
-        return HXHIM_ERROR;
-    }
-
     hx->p->bootstrap.comm = MPI_COMM_NULL;
     hx->p->bootstrap.rank = -1;
     hx->p->bootstrap.size = -1;
@@ -486,10 +459,6 @@ int hxhim::destroy::bootstrap(hxhim_t *hx) {
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
 int hxhim::destroy::running(hxhim_t *hx) {
-    if (!valid(hx)) {
-        return HXHIM_ERROR;
-    }
-
     hx->p->running = false;
     return HXHIM_SUCCESS;
 }
@@ -501,11 +470,7 @@ int hxhim::destroy::running(hxhim_t *hx) {
  * @param hx   the HXHIM instance
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int hxhim::destroy::memory(hxhim_t *hx) {
-    if (!valid(hx)) {
-        return HXHIM_ERROR;
-    }
-
+int hxhim::destroy::memory(hxhim_t *) {
     return HXHIM_SUCCESS;
 }
 
@@ -517,10 +482,6 @@ int hxhim::destroy::memory(hxhim_t *hx) {
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
 int hxhim::destroy::transport(hxhim_t *hx) {
-    if (!valid(hx)) {
-        return HXHIM_ERROR;
-    }
-
     if (hx->p->range_server.destroy) {
         hx->p->range_server.destroy();
     }
@@ -539,15 +500,12 @@ int hxhim::destroy::transport(hxhim_t *hx) {
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
 int hxhim::destroy::hash(hxhim_t *hx) {
-    if (!valid(hx)) {
-        return HXHIM_ERROR;
-    }
-
     hx->p->hash.func = nullptr;
     hx->p->hash.args = nullptr;
 
     return HXHIM_SUCCESS;
 }
+
 /**
  * async_put
  * Stops the background thread and cleans up the variables used by it
@@ -556,10 +514,6 @@ int hxhim::destroy::hash(hxhim_t *hx) {
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
 int hxhim::destroy::async_put(hxhim_t *hx) {
-    if (!valid(hx)) {
-        return HXHIM_ERROR;
-    }
-
     // stop the thread
     destroy::running(hx);
     hx->p->queues.puts.start_processing.notify_all();
@@ -597,10 +551,6 @@ int hxhim::destroy::async_put(hxhim_t *hx) {
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
 int hxhim::destroy::datastore(hxhim_t *hx) {
-    if (!valid(hx)) {
-        return HXHIM_ERROR;
-    }
-
     for(int i = 0; i < hx->p->bootstrap.size; i++) {
         MPI_Barrier(hx->p->bootstrap.comm);
         if (hx->p->bootstrap.rank == i) {

@@ -1,12 +1,9 @@
 #include <algorithm>
-#include <cfloat>
 #include <cmath>
 #include <cstring>
 #include <functional>
 #include <memory>
-#include <unordered_map>
 
-#include "hxhim/config.hpp"
 #include "hxhim/hxhim.hpp"
 #include "hxhim/private/Results.hpp"
 #include "hxhim/private/hxhim.hpp"
@@ -60,7 +57,7 @@ const size_t HXHIM_PUT_MULTIPLIER = sizeof(HXHIM_PUT_COMBINATIONS) / sizeof(HXHI
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
-    if (!hx || !opts || !opts->p) {
+    if (!hx || !valid(opts)) {
         return HXHIM_ERROR;
     }
 
@@ -123,7 +120,7 @@ int hxhimOpen(hxhim_t *hx, hxhim_options_t *opts) {
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::OpenOne(hxhim_t *hx, hxhim_options_t *opts, const std::string &db_path) {
-    if (!hx || !opts || !opts->p) {
+    if (!hx || !valid(opts)) {
         return HXHIM_ERROR;
     }
 
@@ -246,11 +243,9 @@ int hxhimClose(hxhim_t *hx) {
  * @return results of flushing the queue
  */
 template <typename UserData_t, typename Request_t, typename Response_t>
-hxhim::Results *FlushImpl(hxhim_t *hx, hxhim::Unsent<UserData_t> &unsent, const std::size_t max_ops_per_send) {
-    if (!hxhim::valid(hx)) {
-        return nullptr;
-    }
-
+hxhim::Results *FlushImpl(hxhim_t *hx,
+                          hxhim::Unsent<UserData_t> &unsent,
+                          const std::size_t max_ops_per_send) {
     return hxhim::process<UserData_t, Request_t, Response_t>(hx, unsent.take(), max_ops_per_send);
 }
 
@@ -263,6 +258,10 @@ hxhim::Results *FlushImpl(hxhim_t *hx, hxhim::Unsent<UserData_t> &unsent, const 
  * @return results from sending the PUTs
  */
 hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
+    if (!hxhim::valid(hx)) {
+        return nullptr;
+    }
+
     int rank = -1;
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
@@ -303,6 +302,10 @@ hxhim_results_t *hxhimFlushPuts(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
+    if (!hxhim::valid(hx)) {
+        return nullptr;
+    }
+
     int rank = -1;
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
@@ -333,6 +336,10 @@ hxhim_results_t *hxhimFlushGets(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
+    if (!hxhim::valid(hx)) {
+        return nullptr;
+    }
+
     int rank = -1;
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
@@ -363,6 +370,10 @@ hxhim_results_t *hxhimFlushGetOps(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
+    if (!hxhim::valid(hx)) {
+        return nullptr;
+    }
+
     int rank = -1;
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
@@ -393,6 +404,10 @@ hxhim_results_t *hxhimFlushDeletes(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Results *hxhim::FlushHistograms(hxhim_t *hx) {
+    if (!hxhim::valid(hx)) {
+        return nullptr;
+    }
+
     int rank = -1;
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
@@ -472,6 +487,10 @@ hxhim_results_t *hxhimFlush(hxhim_t *hx) {
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 hxhim::Results *hxhim::Sync(hxhim_t *hx) {
+    if (!hxhim::valid(hx)) {
+        return nullptr;
+    }
+
     hxhim::Results *res = Flush(hx);
 
     ::Stats::Send send;
@@ -540,6 +559,10 @@ hxhim_results_t *hxhimSync(hxhim_t *hx) {
  * @return A list of results
  */
 hxhim::Results *hxhim::ChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t func, void *args) {
+    if (!hxhim::valid(hx)) {
+        return nullptr;
+    }
+
     hxhim::Results *res = Sync(hx);
 
     MPI_Barrier(hx->p->bootstrap.comm);
@@ -615,6 +638,10 @@ int hxhim::Put(hxhim_t *hx,
                void *predicate, std::size_t predicate_len,
                enum hxhim_object_type_t object_type, void *object, std::size_t object_len) {
     mlog(HXHIM_CLIENT_DBG, "%s %s:%d", __FILE__, __func__, __LINE__);
+    if (!valid(hx) || !hx->p->running) {
+        return HXHIM_ERROR;
+    }
+
     ::Stats::Chronostamp put;
     put.start = ::Stats::now();
 
@@ -674,6 +701,10 @@ int hxhim::Get(hxhim_t *hx,
                void *subject, std::size_t subject_len,
                void *predicate, std::size_t predicate_len,
                enum hxhim_object_type_t object_type) {
+    if (!valid(hx) || !hx->p->running) {
+        return HXHIM_ERROR;
+    }
+
     ::Stats::Chronostamp get;
     get.start = ::Stats::now();
     const int rc = hxhim::GetImpl(hx->p->queues.gets,
@@ -723,6 +754,10 @@ int hxhimGet(hxhim_t *hx,
 int hxhim::Delete(hxhim_t *hx,
                   void *subject, std::size_t subject_len,
                   void *predicate, std::size_t predicate_len) {
+    if (!valid(hx) || !hx->p->running) {
+        return HXHIM_ERROR;
+    }
+
     ::Stats::Chronostamp del;
     del.start = ::Stats::now();
     const int rc = hxhim::DeleteImpl(hx->p->queues.deletes,
