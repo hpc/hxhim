@@ -44,7 +44,7 @@ char *sp_to_key(const Blob &subject,
     buf += subject.size();
 
     // length of the subject value
-    encode_unsigned(buf, subject.size());
+    big_endian::encode(buf, subject.size());
     buf += sizeof(subject.size());
 
     // copy the predicate value
@@ -52,7 +52,7 @@ char *sp_to_key(const Blob &subject,
     buf += predicate.size();
 
     // length of the predicate value
-    encode_unsigned(buf, predicate.size());
+    big_endian::encode(buf, predicate.size());
     buf += sizeof(predicate.size());
 
     buf_len -= key_len;
@@ -83,7 +83,7 @@ int key_to_sp(const void *key, const std::size_t key_len,
 
     // read predicate
     std::size_t pred_len = 0;
-    decode_unsigned(pred_len, end - sizeof(pred_len));
+    big_endian::decode(pred_len, end - sizeof(pred_len));
     void *pred_start = end - pred_len - sizeof(pred_len);
 
     if (copy) {
@@ -97,7 +97,7 @@ int key_to_sp(const void *key, const std::size_t key_len,
 
     // read subject
     std::size_t sub_len = 0;
-    decode_unsigned(sub_len, end - sizeof(sub_len) - pred_len - sizeof(pred_len));
+    big_endian::decode(sub_len, end - sizeof(sub_len) - pred_len - sizeof(pred_len));
     void *sub_start = (void *) key;
 
     if (copy) {

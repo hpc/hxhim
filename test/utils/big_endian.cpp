@@ -5,57 +5,74 @@
 #include "hxhim/constants.h"
 #include "utils/big_endian.hpp"
 
-static const char *SUBJECT = "subject";
-static const std::size_t SUBJECT_LEN = strlen(SUBJECT);
-static const char *PREDICATE = "predicate";
-static const std::size_t PREDICATE_LEN = strlen(PREDICATE);
-
-static const char *SUBJECT_LEN_ENCODED() {
-    switch (sizeof(std::size_t)) {
-        case 4:
-            return "\x00\x00\x00\x07";
-        case 8:
-            return "\x00\x00\x00\x00\x00\x00\x00\x07";
+// char arrays stay the same
+TEST(big_endian, c_string) {
+    const std::size_t len = (rand() % 32) + 1;
+    char *orig = new char[len]();
+    for(std::size_t i = 0; i < len; i++){
+        orig[i] = rand();
     }
 
-    return nullptr;
+    {
+        char *encoded = new char[len]();
+        EXPECT_EQ(big_endian::encode(encoded, orig, len), HXHIM_SUCCESS);
+        EXPECT_EQ(memcmp(encoded, orig, len), 0);
+        delete [] encoded;
+    }
+
+    {
+        char *decoded = new char[len]();
+        EXPECT_EQ(big_endian::decode(decoded, orig, len), HXHIM_SUCCESS);
+        EXPECT_EQ(memcmp(decoded, orig, len), 0);
+        delete [] decoded;
+    }
+
+    delete [] orig;
 }
 
-static const char *PREDICATE_LEN_ENCODED() {
-    switch (sizeof(std::size_t)) {
-        case 4:
-            return "\x00\x00\x00\x09";
-        case 8:
-            return "\x00\x00\x00\x00\x00\x00\x00\x09";
-    }
+TEST(big_endian, int) {
+    const int orig = rand();
 
-    return nullptr;
+    char encoded[sizeof(orig)] = {};
+    EXPECT_EQ(big_endian::encode(encoded, orig, sizeof(orig)), HXHIM_SUCCESS);
+
+    int decoded = 0;
+    EXPECT_EQ(big_endian::decode(decoded, encoded, sizeof(orig)), HXHIM_SUCCESS);
+    EXPECT_EQ(decoded, orig);
 }
 
-TEST(big_endian, encode) {
-    {
-        char buf[sizeof(SUBJECT_LEN)] = {0};
-        EXPECT_EQ(encode_unsigned(buf, SUBJECT_LEN), HXHIM_SUCCESS);
-        EXPECT_EQ(memcmp(SUBJECT_LEN_ENCODED(), buf, sizeof(SUBJECT_LEN)), 0);
-    }
+TEST(big_endian, float) {
+    const float orig = rand() + rand() / rand();
 
-    {
-        char buf[sizeof(PREDICATE_LEN)] = {0};
-        EXPECT_EQ(encode_unsigned(buf, PREDICATE_LEN), HXHIM_SUCCESS);
-        EXPECT_EQ(memcmp(PREDICATE_LEN_ENCODED(), buf, sizeof(PREDICATE_LEN)), 0);
-    }
+    char encoded[sizeof(orig)] = {};
+    EXPECT_EQ(big_endian::encode(encoded, orig, sizeof(orig)), HXHIM_SUCCESS);
+
+    float decoded = 0;
+    EXPECT_EQ(big_endian::decode(decoded, encoded, sizeof(orig)), HXHIM_SUCCESS);
+    EXPECT_EQ(decoded, orig);
 }
 
-TEST(big_endian, decode) {
-    {
-        std::size_t len = 0;
-        EXPECT_EQ(decode_unsigned(len, (void *) SUBJECT_LEN_ENCODED()), HXHIM_SUCCESS);
-        EXPECT_EQ(len, SUBJECT_LEN);
-    }
+TEST(big_endian, double) {
+    const double orig = rand() + rand() / rand();
 
-    {
-        std::size_t len = 0;
-        EXPECT_EQ(decode_unsigned(len, (void *) PREDICATE_LEN_ENCODED()), HXHIM_SUCCESS);
-        EXPECT_EQ(len, PREDICATE_LEN);
-    }
+    char encoded[sizeof(orig)] = {};
+    EXPECT_EQ(big_endian::encode(encoded, orig, sizeof(orig)), HXHIM_SUCCESS);
+
+    double decoded = 0;
+    EXPECT_EQ(big_endian::decode(decoded, encoded, sizeof(orig)), HXHIM_SUCCESS);
+    EXPECT_EQ(decoded, orig);
+}
+
+TEST(big_endian, Enum) {
+
+    enum TestEnum {};
+
+    const TestEnum orig = (TestEnum) rand();
+
+    char encoded[sizeof(Test)] = {};
+    EXPECT_EQ(big_endian::encode(encoded, orig, sizeof(orig)), HXHIM_SUCCESS);
+
+    TestEnum decoded = (TestEnum) 0;
+    EXPECT_EQ(big_endian::decode(decoded, encoded, sizeof(orig)), HXHIM_SUCCESS);
+    EXPECT_EQ(decoded, orig);
 }

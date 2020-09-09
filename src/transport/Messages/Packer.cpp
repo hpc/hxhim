@@ -2,6 +2,7 @@
 #include <cstring>
 
 #include "transport/Messages/Packer.hpp"
+#include "utils/big_endian.hpp"
 
 namespace Transport {
 
@@ -11,7 +12,7 @@ static char *pack_addr(char *&dst, void *ptr) {
     //     return nullptr;
     // }
 
-    memcpy(dst, &ptr, sizeof(ptr));
+    big_endian::encode(dst, &ptr);
     dst += sizeof(ptr);
     return dst;
 }
@@ -69,7 +70,7 @@ int Packer::pack(const Request::BPut *bpm, void **buf, std::size_t *bufsize) {
         pack_addr(curr, bpm->predicates[i].data());
 
         // object type
-        memcpy(curr, &bpm->object_types[i], sizeof(bpm->object_types[i]));
+        big_endian::encode(curr, bpm->object_types[i], sizeof(bpm->object_types[i]));
         curr += sizeof(bpm->object_types[i]);
 
         // object + len
@@ -99,7 +100,7 @@ int Packer::pack(const Request::BGet *bgm, void **buf, std::size_t *bufsize) {
         pack_addr(curr, bgm->predicates[i].data());
 
         // object type
-        memcpy(curr, &bgm->object_types[i], sizeof(bgm->object_types[i]));
+        big_endian::encode(curr, bgm->object_types[i], sizeof(bgm->object_types[i]));
         curr += sizeof(bgm->object_types[i]);
     }
 
@@ -114,7 +115,7 @@ int Packer::pack(const Request::BGetOp *bgm, void **buf, std::size_t *bufsize) {
 
     for(std::size_t i = 0; i < bgm->count; i++) {
         // operation to run
-        memcpy(curr, &bgm->ops[i], sizeof(bgm->ops[i]));
+        big_endian::encode(curr, bgm->ops[i], sizeof(bgm->ops[i]));
         curr += sizeof(bgm->ops[i]);
 
         if ((bgm->ops[i] != hxhim_get_op_t::HXHIM_GET_FIRST) &&
@@ -127,11 +128,11 @@ int Packer::pack(const Request::BGetOp *bgm, void **buf, std::size_t *bufsize) {
         }
 
         // object type
-        memcpy(curr, &bgm->object_types[i], sizeof(bgm->object_types[i]));
+        big_endian::encode(curr, bgm->object_types[i], sizeof(bgm->object_types[i]));
         curr += sizeof(bgm->object_types[i]);
 
         // number of records to get back
-        memcpy(curr, &bgm->num_recs[i], sizeof(bgm->num_recs[i]));
+        big_endian::encode(curr, bgm->num_recs[i], sizeof(bgm->num_recs[i]));
         curr += sizeof(bgm->num_recs[i]);
     }
 
@@ -210,7 +211,7 @@ int Packer::pack(const Response::BPut *bpm, void **buf, std::size_t *bufsize) {
     }
 
     for(std::size_t i = 0; i < bpm->count; i++) {
-        memcpy(curr, &bpm->statuses[i], sizeof(bpm->statuses[i]));
+        big_endian::encode(curr, bpm->statuses[i], sizeof(bpm->statuses[i]));
         curr += sizeof(bpm->statuses[i]);
 
         // original subject addr + len
@@ -231,7 +232,7 @@ int Packer::pack(const Response::BGet *bgm, void **buf, std::size_t *bufsize) {
     }
 
     for(std::size_t i = 0; i < bgm->count; i++) {
-        memcpy(curr, &bgm->statuses[i], sizeof(bgm->statuses[i]));
+        big_endian::encode(curr, bgm->statuses[i], sizeof(bgm->statuses[i]));
         curr += sizeof(bgm->statuses[i]);
 
         // original subject addr + len
@@ -241,7 +242,7 @@ int Packer::pack(const Response::BGet *bgm, void **buf, std::size_t *bufsize) {
         bgm->orig.predicates[i].pack_ref(curr);
 
         // object type
-        memcpy(curr, &bgm->object_types[i], sizeof(bgm->object_types[i]));
+        big_endian::encode(curr, bgm->object_types[i], sizeof(bgm->object_types[i]));
         curr += sizeof(bgm->object_types[i]);
 
         // object
@@ -260,15 +261,15 @@ int Packer::pack(const Response::BGetOp *bgm, void **buf, std::size_t *bufsize) 
     }
 
     for(std::size_t i = 0; i < bgm->count; i++) {
-        memcpy(curr, &bgm->statuses[i], sizeof(bgm->statuses[i]));
+        big_endian::encode(curr, bgm->statuses[i], sizeof(bgm->statuses[i]));
         curr += sizeof(bgm->statuses[i]);
 
         // object type
-        memcpy(curr, &bgm->object_types[i], sizeof(bgm->object_types[i]));
+        big_endian::encode(curr, bgm->object_types[i], sizeof(bgm->object_types[i]));
         curr += sizeof(bgm->object_types[i]);
 
         // num_recs
-        memcpy(curr, &bgm->num_recs[i], sizeof(bgm->num_recs[i]));
+        big_endian::encode(curr, bgm->num_recs[i], sizeof(bgm->num_recs[i]));
         curr += sizeof(bgm->num_recs[i]);
 
         for(std::size_t j = 0; j < bgm->num_recs[i]; j++) {
@@ -295,7 +296,7 @@ int Packer::pack(const Response::BDelete *bdm, void **buf, std::size_t *bufsize)
     }
 
     for(std::size_t i = 0; i < bdm->count; i++) {
-        memcpy(curr, &bdm->statuses[i], sizeof(bdm->statuses[i]));
+        big_endian::encode(curr, bdm->statuses[i], sizeof(bdm->statuses[i]));
         curr += sizeof(bdm->statuses[i]);
 
         // original subject addr + len
@@ -317,7 +318,7 @@ int Packer::pack(const Response::BHistogram *bhm, void **buf, std::size_t *bufsi
     std::size_t avail = *bufsize - (curr - (char *) *buf);
 
     for(std::size_t i = 0; i < bhm->count; i++) {
-        memcpy(curr, &bhm->statuses[i], sizeof(bhm->statuses[i]));
+        big_endian::encode(curr, bhm->statuses[i], sizeof(bhm->statuses[i]));
         curr += sizeof(bhm->statuses[i]);
 
         // histogram
@@ -345,24 +346,25 @@ int Packer::pack(const Message *msg, void **buf, std::size_t *bufsize, char **cu
     *curr = (char *) *buf;
 
     // copy header into *buf
-    memcpy(*curr, (char *)&msg->direction, sizeof(msg->direction));
+    big_endian::encode(*curr, msg->direction);
     *curr += sizeof(msg->direction);
 
-    memcpy(*curr, (char *)&msg->op, sizeof(msg->op));
+    big_endian::encode(*curr, msg->op);
     *curr += sizeof(msg->op);
 
-    memcpy(*curr, &msg->src, sizeof(msg->src));
+    big_endian::encode(*curr, msg->src);
     *curr += sizeof(msg->src);
 
-    memcpy(*curr, &msg->dst, sizeof(msg->dst));
+    big_endian::encode(*curr, msg->dst);
     *curr += sizeof(msg->dst);
 
-    memcpy(*curr, &msg->count, sizeof(msg->count));
+    big_endian::encode(*curr, msg->count);
     *curr += sizeof(msg->count);
 
-    const std::size_t offset_len = sizeof(*msg->ds_offsets) * msg->count;
-    memcpy(*curr, msg->ds_offsets, offset_len);
-    *curr += offset_len;
+    for(std::size_t i = 0; i < msg->count; i++)  {
+        big_endian::encode(*curr, msg->ds_offsets[i]);
+        *curr += sizeof(msg->ds_offsets[i]);
+    }
 
     return TRANSPORT_SUCCESS;
 }

@@ -65,7 +65,7 @@ char *Blob::pack(char *&dst) const {
         return nullptr;
     }
 
-    encode_unsigned(dst, len);
+    big_endian::encode(dst, len);
     dst += sizeof(len);
 
     memcpy(dst, ptr, len);
@@ -85,7 +85,7 @@ char *Blob::unpack(char *&src) {
         throw std::runtime_error("unable to unpack blob");
     }
 
-    decode_unsigned(len, src);
+    big_endian::decode(len, src);
     src += sizeof(len);
 
     ptr = alloc(len);
@@ -106,7 +106,7 @@ char *Blob::pack_ref(char *&dst) const {
     memcpy(dst, &ptr, sizeof(ptr));
     dst += sizeof(ptr);
 
-    encode_unsigned(dst, len);
+    big_endian::encode(dst, len);
     dst += sizeof(len);
 
     return dst;
@@ -124,7 +124,7 @@ char *Blob::unpack_ref(char *&src) {
     memcpy(&ptr, src, sizeof(ptr));
     src += sizeof(ptr);
 
-    decode_unsigned(len, src);
+    big_endian::decode(len, src);
     src += sizeof(len);
 
     clean = false;

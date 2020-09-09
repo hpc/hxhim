@@ -2,6 +2,7 @@
 #include <memory>
 
 #include "transport/Messages/Unpacker.hpp"
+#include "utils/big_endian.hpp"
 
 namespace Transport {
 
@@ -11,9 +12,8 @@ static char *unpack_addr(void **dst, char *&src) {
     //     return nullptr;
     // }
 
-    const std::size_t len = sizeof(*dst);
-    memcpy(dst, src, len);
-    src += len;
+    big_endian::decode(dst, src);
+    src += sizeof(*dst);
     return src;
 }
 
@@ -100,18 +100,16 @@ int Unpacker::unpack(Request::BPut **bpm, void *buf, const std::size_t bufsize) 
         out->subjects[i].unpack(curr);
 
         // subject addr
-        memcpy(&out->orig.subjects[i], curr, sizeof(out->orig.subjects[i]));
-        curr += sizeof(out->orig.subjects[i]);
+        unpack_addr(&out->orig.subjects[i], curr);
 
         // predicate + len
         out->predicates[i].unpack(curr);
 
         // predicate addr
-        memcpy(&out->orig.predicates[i], curr, sizeof(out->orig.predicates[i]));
-        curr += sizeof(out->orig.predicates[i]);
+        unpack_addr(&out->orig.predicates[i], curr);
 
         // object type + object + len
-        memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
+        big_endian::decode(out->object_types[i], curr);
         curr += sizeof(out->object_types[i]);
         out->objects[i].unpack(curr);
 
@@ -144,7 +142,7 @@ int Unpacker::unpack(Request::BGet **bgm, void *buf, const std::size_t bufsize) 
         unpack_addr(&out->orig.predicates[i], curr);
 
         // object type
-        memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
+        big_endian::decode(out->object_types[i], curr);
         curr += sizeof(out->object_types[i]);
 
         out->count++;
@@ -164,7 +162,7 @@ int Unpacker::unpack(Request::BGetOp **bgm, void *buf, const std::size_t bufsize
 
     for(std::size_t i = 0; i < out->max_count; i++) {
         // operation to run
-        memcpy(&out->ops[i], curr, sizeof(out->ops[i]));
+        big_endian::decode(out->ops[i], curr);
         curr += sizeof(out->ops[i]);
 
         if ((out->ops[i] != hxhim_get_op_t::HXHIM_GET_FIRST) &&
@@ -177,11 +175,11 @@ int Unpacker::unpack(Request::BGetOp **bgm, void *buf, const std::size_t bufsize
         }
 
         // object type
-        memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
+        big_endian::decode(out->object_types[i], curr);
         curr += sizeof(out->object_types[i]);
 
         // number of records to get back
-        memcpy(&out->num_recs[i], curr, sizeof(out->num_recs[i]));
+        big_endian::decode(out->num_recs[i], curr);
         curr += sizeof(out->num_recs[i]);
 
         out->count++;
@@ -312,7 +310,7 @@ int Unpacker::unpack(Response::BPut **bpm, void *buf, const std::size_t bufsize)
     }
 
     for(std::size_t i = 0; i < out->max_count; i++) {
-        memcpy(&out->statuses[i], curr, sizeof(out->statuses[i]));
+        big_endian::decode(out->statuses[i], curr);
         curr += sizeof(out->statuses[i]);
 
         // original subject addr + len
@@ -337,7 +335,7 @@ int Unpacker::unpack(Response::BGet **bgm, void *buf, const std::size_t bufsize)
     }
 
     for(std::size_t i = 0; i < out->max_count; i++) {
-        memcpy(&out->statuses[i], curr, sizeof(out->statuses[i]));
+        big_endian::decode(out->statuses[i], curr);
         curr += sizeof(out->statuses[i]);
 
         // original subject addr + len
@@ -347,7 +345,7 @@ int Unpacker::unpack(Response::BGet **bgm, void *buf, const std::size_t bufsize)
         out->orig.predicates[i].unpack_ref(curr);
 
         // object type
-        memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
+        big_endian::decode(out->object_types[i], curr);
         curr += sizeof(out->object_types[i]);
 
         // object
@@ -372,15 +370,15 @@ int Unpacker::unpack(Response::BGetOp **bgm, void *buf, const std::size_t bufsiz
     }
 
     for(std::size_t i = 0; i < out->max_count; i++) {
-        memcpy(&out->statuses[i], curr, sizeof(out->statuses[i]));
+        big_endian::decode(out->statuses[i], curr);
         curr += sizeof(out->statuses[i]);
 
         // object type
-        memcpy(&out->object_types[i], curr, sizeof(out->object_types[i]));
+        big_endian::decode(out->object_types[i], curr);
         curr += sizeof(out->object_types[i]);
 
         // num_recs
-        memcpy(&out->num_recs[i], curr, sizeof(out->num_recs[i]));
+        big_endian::decode(out->num_recs[i], curr);
         curr += sizeof(out->num_recs[i]);
 
         out->subjects[i]    = alloc_array<Blob>(out->num_recs[i]);
@@ -418,7 +416,7 @@ int Unpacker::unpack(Response::BDelete **bdm, void *buf, const std::size_t bufsi
     }
 
     for(std::size_t i = 0; i < out->max_count; i++) {
-        memcpy(&out->statuses[i], curr, sizeof(out->statuses[i]));
+        big_endian::decode(out->statuses[i], curr);
         curr += sizeof(out->statuses[i]);
 
         // original subject addr + len
@@ -445,7 +443,7 @@ int Unpacker::unpack(Response::BHistogram **bhm, void *buf, const std::size_t bu
     std::size_t remaining = bufsize - (curr - (char *) buf);
 
     for(std::size_t i = 0; i < out->max_count; i++) {
-        memcpy(&out->statuses[i], curr, sizeof(out->statuses[i]));
+        big_endian::decode(out->statuses[i], curr);
         curr += sizeof(out->statuses[i]);
 
         out->histograms[i] = std::shared_ptr<Histogram::Histogram>(construct<Histogram::Histogram>(0, nullptr, nullptr), Histogram::deleter);
@@ -483,20 +481,20 @@ int Unpacker::unpack(Message *msg, void *buf, const std::size_t, char **curr) {
 
     *curr = (char *) buf;
 
-    memcpy(&msg->direction, *curr, sizeof(msg->direction));
+    big_endian::decode(msg->direction, *curr);
     *curr += sizeof(msg->direction);
 
-    memcpy(&msg->op, *curr, sizeof(msg->op));
+    big_endian::decode(msg->op, *curr);
     *curr += sizeof(msg->op);
 
-    memcpy(&msg->src, *curr, sizeof(msg->src));
+    big_endian::decode(msg->src, *curr);
     *curr += sizeof(msg->src);
 
-    memcpy(&msg->dst, *curr, sizeof(msg->dst));
+    big_endian::decode(msg->dst, *curr);
     *curr += sizeof(msg->dst);
 
     std::size_t count = 0;
-    memcpy(&count, *curr, sizeof(msg->count));
+    big_endian::decode(count, *curr);
     *curr += sizeof(msg->count);
 
     if (msg->alloc(count) != TRANSPORT_SUCCESS) {
@@ -504,9 +502,10 @@ int Unpacker::unpack(Message *msg, void *buf, const std::size_t, char **curr) {
         return TRANSPORT_ERROR;
     }
 
-    const std::size_t offset_len = sizeof(*msg->ds_offsets) * count;
-    memcpy(msg->ds_offsets, *curr, offset_len);
-    *curr += offset_len;
+    for(std::size_t i = 0; i < count; i++)  {
+        big_endian::decode(msg->ds_offsets[i], *curr);
+        *curr += sizeof(msg->ds_offsets[i]);
+    }
 
     return TRANSPORT_SUCCESS;
 }
