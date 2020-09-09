@@ -7,7 +7,6 @@
 #include "datastore/datastore.hpp"
 #include "hxhim/accessors.hpp"
 #include "utils/Blob.hpp"
-#include "utils/elen.hpp"
 #include "utils/is_range_server.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
@@ -214,129 +213,39 @@ std::size_t hxhim::datastore::Datastore::all_keys_size(Transport::Request::Subje
 }
 
 Transport::Response::BPut *hxhim::datastore::Datastore::operate(Transport::Request::BPut *req) {
-    Transport::Response::BPut *res = nullptr;
-    if (req) {
-        // scan req first to see if any values are floats/doubles
-        // prevents allocation of giant array if it is not necessary
-        bool has_fp = false;
+    std::lock_guard<std::mutex> lock(mutex);
+
+    // All combinations of SPO should be handled in the BPutImpl
+    // call. Error handling/atomicity/etc. is enforced by the
+    // datastore wrapper, not here. Each request tuple should
+    // correspond to eactly one response tuple no matter how many
+    // tuples are actually PUT.
+    Transport::Response::BPut *res = BPutImpl(req);
+
+    if (hist) {
+        // add successfully PUT floating point values to the histogram
         for(std::size_t i = 0; i < req->count; i++) {
-            if ((req->object_types[i] == HXHIM_OBJECT_TYPE_FLOAT)  ||
-                (req->object_types[i] == HXHIM_OBJECT_TYPE_DOUBLE)) {
-                has_fp = true;
-                break;
-            }
-        }
-
-        Blob *objects = nullptr;
-        if (has_fp) {
-            // move floats/doubles out of req so they can be converted to elen strings
-            objects = alloc_array<Blob>(req->count);
-
-            for(std::size_t i = 0; i < req->count; i++) {
+            if (res->statuses[i] == HXHIM_SUCCESS) {
                 switch (req->object_types[i]) {
                     case HXHIM_OBJECT_TYPE_FLOAT:
-                        {
-                            objects[i] = req->objects[i];
-
-                            const std::string str = ::elen::encode::floating_point<float>(* (float *) objects[i].data());
-                            void *buf = alloc(str.size() * sizeof(char));
-                            memcpy(buf, str.c_str(), str.size());
-
-                            req->objects[i] = RealBlob(buf, str.size());
-                        }
+                        hist->add(* (float *) req->objects[i].data());
                         break;
                     case HXHIM_OBJECT_TYPE_DOUBLE:
-                        {
-                            objects[i] = req->objects[i];
-
-                            const std::string str = ::elen::encode::floating_point<double>(* (double *) objects[i].data());
-                            void *buf = alloc(str.size() * sizeof(char));
-                            memcpy(buf, str.c_str(), str.size());
-
-                            req->objects[i] = RealBlob(buf, str.size());
-                        }
+                        hist->add(* (double *) req->objects[i].data());
                         break;
                     default:
-                        objects[i].clear();
                         break;
                 }
             }
         }
-
-        std::lock_guard<std::mutex> lock(mutex);
-
-        // All combinations of SPO should be handled in the BPutImpl
-        // call. Error handling/atomicity/etc. is enforced by the
-        // datastore wrapper, not here. Each request tuple should
-        // correspond to eactly one response tuple no matter how many
-        // tuples are actually PUT.
-        res = BPutImpl(req);
-
-        if (hist && res) {
-            // add successfully PUT floating point values to the histogram
-            for(std::size_t i = 0; i < req->count; i++) {
-                if (res->statuses[i] == HXHIM_SUCCESS) {
-                    switch (req->object_types[i]) {
-                        case HXHIM_OBJECT_TYPE_FLOAT:
-                            hist->add(* (float *) objects[i].data());
-                            break;
-                        case HXHIM_OBJECT_TYPE_DOUBLE:
-                            hist->add(* (double *) objects[i].data());
-                            break;
-                        default:
-                            break;
-                    }
-                }
-            }
-        }
-
-        if (objects) {
-            for(std::size_t i = 0; i < req->count; i++) {
-                objects[i].clear();
-            }
-        }
-        dealloc_array(objects, req->count);
     }
 
     return res;
 }
 
 Transport::Response::BGet *hxhim::datastore::Datastore::operate(Transport::Request::BGet *req) {
-    Transport::Response::BGet *res = nullptr;
-    {
-        std::lock_guard<std::mutex> lock(mutex);
-        res = BGetImpl(req);
-    }
-
-    // replace elen strings with values
-    if (res) {
-        for(std::size_t i = 0; i < res->count; i++) {
-            if (res->statuses[i] == HXHIM_SUCCESS) {
-                switch (res->object_types[i]) {
-                    case HXHIM_OBJECT_TYPE_FLOAT:
-                        {
-                            float *object = construct<float>(
-                                elen::decode::floating_point<float>((std::string) res->objects[i]));
-                            res->objects[i].dealloc();
-                            res->objects[i] = RealBlob(object, sizeof(float));
-                        }
-                        break;
-                    case HXHIM_OBJECT_TYPE_DOUBLE:
-                        {
-                            double *object = construct<double>(
-                                elen::decode::floating_point<double>((std::string) res->objects[i]));
-                            res->objects[i].dealloc();
-                            res->objects[i] = RealBlob(object, sizeof(double));
-                        }
-                        break;
-                    default:
-                        break;
-                }
-            }
-        }
-    }
-
-    return res;
+    std::lock_guard<std::mutex> lock(mutex);
+    return BGetImpl(req);
 }
 
 Transport::Response::BGetOp *hxhim::datastore::Datastore::operate(Transport::Request::BGetOp *req) {
