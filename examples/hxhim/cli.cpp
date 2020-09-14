@@ -14,18 +14,17 @@ std::ostream &help(char *self, std::ostream &stream = std::cout) {
                   << std::endl
                   << "Input is passed in through the stdin of rank 0, delimited with newlines, in the following formats:" << std::endl
 
-                  << "    PUT <SUBJECT> <PREDICATE> <OBJECT>" << std::endl
-                  << "    GET <SUBJECT> <PREDICATE> " << std::endl
+                  << "    PUT <SUBJECT> <PREDICATE> <OBJECT_TYPE> <OBJECT>" << std::endl
+                  << "    GET <SUBJECT> <PREDICATE> <OBJECT_TYPE>" << std::endl
                   << "    DEL <SUBJECT> <PREDICATE> " << std::endl
-                  << "    BPUT N <SUBJECT_1> <PREDICATE_1> <OBJECT_1> ... <SUBJECT_N> <PREDICATE_N> <OBJECT_N>" << std::endl
-                  << "    BGET N <SUBJECT_1> <PREDICATE_1> ... <SUBJECT_N> <PREDICATE_N>" << std::endl
+                  << "    BPUT N <SUBJECT_1> <PREDICATE_1> <OBJECT_TYPE_1> <OBJECT_1> ... <SUBJECT_N> <PREDICATE_N> <OBJECT_TYPE_N> <OBJECT_N>" << std::endl
+                  << "    BGET N <SUBJECT_1> <PREDICATE_1> <OBJECT_TYPE_1> ... <SUBJECT_N> <PREDICATE_N> <OBJECT_TYPE_N>" << std::endl
                   << "    BDEL N <SUBJECT_1> <PREDICATE_1> ... <SUBJECT_N> <PREDICATE_N>" << std::endl
                   << "    FLUSHPUTS" << std::endl
                   << "    FLUSHGETS" << std::endl
                   << "    FLUSHDELS" << std::endl
                   << "    FLUSH" << std::endl
-                  << std::endl
-                  << "Data is currently expected to all be strings" << std::endl;
+                  << std::endl;
 }
 
 enum HXHIM_OP {
@@ -51,10 +50,20 @@ const std::map<std::string, HXHIM_OP> USER2OP = {
     std::make_pair("FLUSH",     HXHIM_OP::FLUSH),
 };
 
+const std::map<std::string, hxhim_object_type_t> USER2OT= {
+    std::make_pair("INT",    HXHIM_OBJECT_TYPE_INT),
+    std::make_pair("SIZE",   HXHIM_OBJECT_TYPE_SIZE),
+    std::make_pair("INT64",  HXHIM_OBJECT_TYPE_INT64),
+    std::make_pair("FLOAT",  HXHIM_OBJECT_TYPE_FLOAT),
+    std::make_pair("DOUBLE", HXHIM_OBJECT_TYPE_DOUBLE),
+    std::make_pair("BYTE",   HXHIM_OBJECT_TYPE_BYTE),
+};
+
 struct SubjectPredicateObject {
     HXHIM_OP op;
     std::string subject;
     std::string predicate;
+    hxhim_object_type_t object_type;
     std::string object;
 };
 
@@ -80,7 +89,7 @@ std::size_t parse_commands(std::istream & stream, UserInput & commands) {
             continue;
         }
 
-        const std::map<std::string, HXHIM_OP>::const_iterator op_it = USER2OP.find(op_str);
+        const decltype(USER2OP)::const_iterator op_it = USER2OP.find(op_str);
         if (op_it == USER2OP.end()) {
             std::cerr << "Error: Bad operation: " << op_str << std::endl;
             continue;
@@ -105,11 +114,37 @@ std::size_t parse_commands(std::istream & stream, UserInput & commands) {
             bool ok = true;
             switch ((input.op = op)) {
                 case HXHIM_OP::PUT:
-                    if (!(command >> input.subject >> input.predicate >> input.object)) {
-                        ok = false;
+                    {
+                        std::string object_type;
+                        if (!(command >> input.subject >> input.predicate >> object_type >> input.object)) {
+                            ok = false;
+                        }
+
+                        const decltype(USER2OT)::const_iterator it = USER2OT.find(object_type);
+                        if (it == USER2OT.end()) {
+                            ok = false;
+                        }
+                        else {
+                            input.object_type = it->second;
+                        }
                     }
                     break;
                 case HXHIM_OP::GET:
+                    {
+                        std::string object_type;
+                        if (!(command >> input.subject >> input.predicate >> object_type)) {
+                            ok = false;
+                        }
+
+                        const decltype(USER2OT)::const_iterator it = USER2OT.find(object_type);
+                        if (it == USER2OT.end()) {
+                            ok = false;
+                        }
+                        else {
+                            input.object_type = it->second;
+                        }
+                    }
+                    break;
                 case HXHIM_OP::DEL:
                     if (!(command >> input.subject >> input.predicate)) {
                         ok = false;
@@ -146,14 +181,14 @@ std::size_t run_commands(hxhim_t * hx, const UserInput &commands) {
                 rc = hxhimPut(hx,
                               (void *) cmd.subject.c_str(), cmd.subject.size(),
                               (void *) cmd.predicate.c_str(), cmd.predicate.size(),
-                              hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE,
+                              cmd.object_type,
                               (void *) cmd.object.c_str(), cmd.object.size());
                 break;
             case HXHIM_OP::GET:
                 rc = hxhimGet(hx,
                               (void *) cmd.subject.c_str(), cmd.subject.size(),
                               (void *) cmd.predicate.c_str(), cmd.predicate.size(),
-                              hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE);
+                              cmd.object_type);
                 break;
             case HXHIM_OP::DEL:
                 rc = hxhimDelete(hx,
@@ -175,22 +210,6 @@ std::size_t run_commands(hxhim_t * hx, const UserInput &commands) {
         }
 
         print_results(hx, 0, res);
-        HXHIM_C_RESULTS_LOOP(res) {
-            enum hxhim_op_t op;
-            hxhim_result_op(res, &op);
-
-            switch (op) {
-                case HXHIM_GET:
-                    {
-                        char *object = nullptr;
-                        size_t object_len = 0;
-                        hxhim_result_object(res, (void **) &object, &object_len);
-                    }
-                    break;
-                default:
-                    break;
-            }
-        }
         hxhim_results_destroy(res);
 
         if (rc == HXHIM_ERROR) {

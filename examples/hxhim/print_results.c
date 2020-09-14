@@ -1,3 +1,4 @@
+#include <float.h>
 #include <inttypes.h>
 #include <stdio.h>
 
@@ -17,10 +18,10 @@ static void print_by_type(enum hxhim_object_type_t type, void *value, size_t val
             printf("%" PRId64, * (int64_t *) value);
             break;
         case HXHIM_OBJECT_TYPE_FLOAT:
-            printf("%f", * (float *) value);
+            printf("%.*f", FLT_DECIMAL_DIG, * (float *) value);
             break;
         case HXHIM_OBJECT_TYPE_DOUBLE:
-            printf("%f", * (double *) value);
+            printf("%.*f", DBL_DECIMAL_DIG, * (double *) value);
             break;
         case HXHIM_OBJECT_TYPE_BYTE:
             printf("%.*s", (int) value_len, (char *) value);
