@@ -27,7 +27,7 @@ int hxhimBGetOpSingleType(hxhim_t *hx,
                           void **subjects, size_t *subject_lens,
                           void **predicates, size_t *predicate_lens,
                           enum hxhim_object_type_t object_type,
-                          size_t *num_records, enum hxhim_get_op_t *ops,
+                          size_t *num_records, enum hxhim_getop_t *ops,
                           const size_t count);
 
 #ifdef __cplusplus

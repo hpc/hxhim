@@ -112,7 +112,7 @@ TEST(GetOpData, constructor) {
     EXPECT_EQ(getop.predicate.data(), nullptr);
     EXPECT_EQ(getop.object_type, hxhim_object_type_t::HXHIM_OBJECT_TYPE_INVALID);
     EXPECT_EQ(getop.num_recs, 0);
-    EXPECT_EQ(getop.op, hxhim_get_op_t::HXHIM_GET_INVALID);
+    EXPECT_EQ(getop.op, hxhim_getop_t::HXHIM_GETOP_INVALID);
 }
 
 TEST(GetOpData, moveto) {
@@ -120,7 +120,7 @@ TEST(GetOpData, moveto) {
     Blob predicate                  = ReferenceBlob((void *) (uintptr_t) rand(), rand());
     hxhim_object_type_t object_type = (hxhim_object_type_t) rand();
     std::size_t num_recs            = rand();
-    hxhim_get_op_t op               = (hxhim_get_op_t) rand();
+    hxhim_getop_t op                = (hxhim_getop_t) rand();
 
     Transport::Request::BGetOp bgetop(1);
 

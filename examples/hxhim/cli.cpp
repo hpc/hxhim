@@ -60,11 +60,11 @@ const std::map<std::string, hxhim_object_type_t> USER2OT= {
 };
 
 struct SubjectPredicateObject {
-    HXHIM_OP op;
+    HXHIM_OP hxhim_op;
     std::string subject;
     std::string predicate;
     hxhim_object_type_t object_type;
-    std::string object;
+    std::string object;  // only used by (B)PUT
 };
 
 using UserInput = std::list<SubjectPredicateObject>;
@@ -95,7 +95,7 @@ std::size_t parse_commands(std::istream & stream, UserInput & commands) {
             continue;
         }
 
-        const HXHIM_OP op = op_it->second;
+        const HXHIM_OP hxhim_op = op_it->second;
 
         std::size_t count = 1;
 
@@ -112,7 +112,7 @@ std::size_t parse_commands(std::istream & stream, UserInput & commands) {
             SubjectPredicateObject input;
 
             bool ok = true;
-            switch ((input.op = op)) {
+            switch ((input.hxhim_op = hxhim_op)) {
                 case HXHIM_OP::PUT:
                     {
                         std::string object_type;
@@ -176,7 +176,7 @@ std::size_t run_commands(hxhim_t * hx, const UserInput &commands) {
         int rc = HXHIM_SUCCESS;
         hxhim_results *res = nullptr;
 
-        switch (cmd.op) {
+        switch (cmd.hxhim_op) {
             case HXHIM_OP::PUT:
                 rc = hxhimPut(hx,
                               (void *) cmd.subject.c_str(), cmd.subject.size(),

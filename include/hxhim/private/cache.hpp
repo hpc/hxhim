@@ -71,7 +71,7 @@ namespace hxhim {
 
         hxhim_object_type_t object_type;
         std::size_t num_recs;
-        hxhim_get_op_t op;
+        hxhim_getop_t op;
 
         GetOpData *prev;
         GetOpData *next;

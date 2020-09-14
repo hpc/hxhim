@@ -19,7 +19,7 @@ struct BGetOp final : SubjectPredicate {
 
     hxhim_object_type_t *object_types;
     std::size_t *num_recs;            // number of records to get back
-    hxhim_get_op_t *ops;
+    hxhim_getop_t *ops;
 };
 
 }

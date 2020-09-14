@@ -118,8 +118,8 @@ int Packer::pack(const Request::BGetOp *bgm, void **buf, std::size_t *bufsize) {
         big_endian::encode(curr, bgm->ops[i], sizeof(bgm->ops[i]));
         curr += sizeof(bgm->ops[i]);
 
-        if ((bgm->ops[i] != hxhim_get_op_t::HXHIM_GET_FIRST) &&
-            (bgm->ops[i] != hxhim_get_op_t::HXHIM_GET_LAST))  {
+        if ((bgm->ops[i] != hxhim_getop_t::HXHIM_GETOP_FIRST) &&
+            (bgm->ops[i] != hxhim_getop_t::HXHIM_GETOP_LAST))  {
             // subject
             bgm->subjects[i].pack(curr);
 

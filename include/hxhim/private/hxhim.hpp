@@ -149,7 +149,7 @@ int GetOpImpl(hxhim::Unsent<hxhim::GetOpData> &getops,
               Blob subject,
               Blob predicate,
               enum hxhim_object_type_t object_type,
-              std::size_t num_records, enum hxhim_get_op_t op);
+              std::size_t num_records, enum hxhim_getop_t op);
 
 int DeleteImpl(hxhim::Unsent<hxhim::DeleteData> &dels,
                Blob subject,

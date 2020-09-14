@@ -19,8 +19,8 @@ std::size_t Transport::Request::BGetOp::size() const {
         total += sizeof(object_types[i]) +
                  sizeof(num_recs[i]) + sizeof(ops[i]);
 
-        if ((ops[i] != hxhim_get_op_t::HXHIM_GET_FIRST) &&
-            (ops[i] != hxhim_get_op_t::HXHIM_GET_LAST)) {
+        if ((ops[i] != hxhim_getop_t::HXHIM_GETOP_FIRST) &&
+            (ops[i] != hxhim_getop_t::HXHIM_GETOP_LAST)) {
             total += subjects[i].pack_size() +
                      predicates[i].pack_size();
         }
@@ -35,7 +35,7 @@ int Transport::Request::BGetOp::alloc(const std::size_t max) {
         if ((SubjectPredicate::alloc(max) != TRANSPORT_SUCCESS)            ||
             !(object_types        = alloc_array<hxhim_object_type_t>(max)) ||
             !(num_recs            = alloc_array<std::size_t>(max))         ||
-            !(ops                 = alloc_array<hxhim_get_op_t>(max)))      {
+            !(ops                 = alloc_array<hxhim_getop_t>(max)))      {
             cleanup();
             return TRANSPORT_ERROR;
         }

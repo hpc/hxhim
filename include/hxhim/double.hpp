@@ -21,7 +21,7 @@ int GetDouble(hxhim_t *hx,
 int GetOpDouble(hxhim_t *hx,
                 void *subject, std::size_t subject_len,
                 void *predicate, std::size_t predicate_len,
-                std::size_t num_records, enum hxhim_get_op_t op);
+                std::size_t num_records, enum hxhim_getop_t op);
 
 int BPutDouble(hxhim_t *hx,
                void **subjects, std::size_t *subject_lens,
@@ -37,7 +37,7 @@ int BGetDouble(hxhim_t *hx,
 int BGetOpDouble(hxhim_t *hx,
                  void **subjects, std::size_t *subject_lens,
                  void **predicates, std::size_t *predicate_lens,
-                 std::size_t *num_records, enum hxhim_get_op_t *ops,
+                 std::size_t *num_records, enum hxhim_getop_t *ops,
                  const std::size_t count);
 
 }

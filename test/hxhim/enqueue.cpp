@@ -140,7 +140,7 @@ TEST(Enqueue, GET) {
 
 TEST(Enqueue, GETOP) {
     const std::size_t num_recs = 10;
-    enum hxhim_get_op_t op = HXHIM_GET_EQ;
+    enum hxhim_getop_t op = HXHIM_GETOP_EQ;
 
     hxhim::Unsent<hxhim::GetOpData> getops;
     EXPECT_EQ(getops.head, nullptr);

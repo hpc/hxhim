@@ -238,7 +238,7 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
         res->predicates[i]   = alloc_array<Blob>(req->num_recs[i]);
         res->objects[i]      = alloc_array<Blob>(req->num_recs[i]);
 
-        if (req->ops[i] == hxhim_get_op_t::HXHIM_GET_EQ) {
+        if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_EQ) {
             std::size_t key_len = 0;
             char *key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
 
@@ -249,7 +249,7 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
             // only 1 response, so j == 0 (num_recs is ignored)
             BGetOp_copy_response(it, res, i, 0, event);
         }
-        else if (req->ops[i] == hxhim_get_op_t::HXHIM_GET_NEXT) {
+        else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_NEXT) {
             std::size_t key_len = 0;
             char *key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
 
@@ -265,7 +265,7 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
                 it++;
             }
         }
-        else if (req->ops[i] == hxhim_get_op_t::HXHIM_GET_PREV) {
+        else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_PREV) {
             std::size_t key_len = 0;
             char *key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
 
@@ -288,7 +288,7 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
                 res->statuses[i] = HXHIM_ERROR;
             }
         }
-        else if (req->ops[i] == hxhim_get_op_t::HXHIM_GET_FIRST) {
+        else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_FIRST) {
             // ignore key
             it = db.begin();
 
@@ -304,7 +304,7 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
                 res->statuses[i] = HXHIM_ERROR;
             }
         }
-        else if (req->ops[i] == hxhim_get_op_t::HXHIM_GET_LAST) {
+        else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_LAST) {
             // ignore key
             it = db.end();
             it--;

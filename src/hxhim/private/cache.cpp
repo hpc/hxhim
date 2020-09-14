@@ -105,7 +105,7 @@ hxhim::GetOpData::GetOpData()
     : SP_t(),
       object_type(HXHIM_OBJECT_TYPE_INVALID),
       num_recs(0),
-      op(HXHIM_GET_INVALID),
+      op(HXHIM_GETOP_INVALID),
       prev(nullptr),
       next(nullptr)
 {}

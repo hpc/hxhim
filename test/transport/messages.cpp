@@ -123,20 +123,20 @@ TEST(Request, BGet) {
 
 TEST(Request, BGetOp) {
     Request::BGetOp src;
-    ASSERT_EQ(src.alloc(HXHIM_GET_INVALID), TRANSPORT_SUCCESS);
+    ASSERT_EQ(src.alloc(HXHIM_GETOP_INVALID), TRANSPORT_SUCCESS);
     {
         src.src = rand();
         src.dst = rand();
 
-        src.count = HXHIM_GET_INVALID;
+        src.count = HXHIM_GETOP_INVALID;
 
-        for(int i = 0; i < HXHIM_GET_INVALID; i++) {
+        for(int i = 0; i < HXHIM_GETOP_INVALID; i++) {
             src.ds_offsets[i] = rand();
             src.subjects[i] = ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN);
             src.predicates[i] = ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN);
             src.object_types[i] = OBJECT_TYPE;
             src.num_recs[i] = rand();
-            src.ops[i] = static_cast<hxhim_get_op_t>(i);
+            src.ops[i] = static_cast<hxhim_getop_t>(i);
         }
     }
 

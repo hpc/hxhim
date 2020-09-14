@@ -194,7 +194,7 @@ int main(int argc, char *argv[]) {
     hxhimGetOp(&hx,
                lowest->temp_str, strlen(lowest->temp_str) + 1,
                lowest->predicate, strlen(lowest->predicate) + 1,
-               HXHIM_OBJECT_TYPE_BYTE, num_lowest, HXHIM_GET_NEXT);
+               HXHIM_OBJECT_TYPE_BYTE, num_lowest, HXHIM_GETOP_NEXT);
     hxhim_results_t *get_lowest = hxhimFlush(&hx);
     print_results(&hx, 0, get_lowest);
     hxhim_results_destroy(get_lowest);
@@ -206,7 +206,7 @@ int main(int argc, char *argv[]) {
     hxhimGetOp(&hx,
                highest->temp_str, strlen(highest->temp_str) + 1,
                highest->predicate, strlen(highest->predicate) + 1,
-               HXHIM_OBJECT_TYPE_BYTE, num_highest, HXHIM_GET_PREV);
+               HXHIM_OBJECT_TYPE_BYTE, num_highest, HXHIM_GETOP_PREV);
     hxhim_results_t *get_highest = hxhimFlush(&hx);
     print_results(&hx, 0, get_highest);
     hxhim_results_destroy(get_highest);

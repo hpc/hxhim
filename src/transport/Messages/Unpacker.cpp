@@ -165,8 +165,8 @@ int Unpacker::unpack(Request::BGetOp **bgm, void *buf, const std::size_t bufsize
         big_endian::decode(out->ops[i], curr);
         curr += sizeof(out->ops[i]);
 
-        if ((out->ops[i] != hxhim_get_op_t::HXHIM_GET_FIRST) &&
-            (out->ops[i] != hxhim_get_op_t::HXHIM_GET_LAST))  {
+        if ((out->ops[i] != hxhim_getop_t::HXHIM_GETOP_FIRST) &&
+            (out->ops[i] != hxhim_getop_t::HXHIM_GETOP_LAST))  {
             // subject
             out->subjects[i].unpack(curr);
 

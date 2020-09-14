@@ -14,15 +14,11 @@
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
-/**
- * HXHIM_OP_STR
- * Mapping of hxhim_op_t to strings
- */
-const char *HXHIM_OP_STR[] = {
-    HXHIM_OP_GEN(GENERATE_STR)
+const char *HXHIM_PUT_COMBINATION_STR[] = {
+    HXHIM_PUT_COMBINATION_GEN(HXHIM_PUT_COMBINATION_PREFIX, GENERATE_STR)
 };
 
-const HXHIM_PUT_COMBINATION HXHIM_PUT_COMBINATIONS[] = {
+const HXHIM_PUT_COMBINATION HXHIM_PUT_COMBINATIONS_ENABLED[] = {
     HXHIM_PUT_COMBINATION_SPO,
 
     #if SOP
@@ -46,7 +42,28 @@ const HXHIM_PUT_COMBINATION HXHIM_PUT_COMBINATIONS[] = {
     #endif
 };
 
-const size_t HXHIM_PUT_MULTIPLIER = sizeof(HXHIM_PUT_COMBINATIONS) / sizeof(HXHIM_PUT_COMBINATION_SPO);
+int hxhim_put_combination_enabled(const HXHIM_PUT_COMBINATION combo) {
+    for(std::size_t i = 0; i < HXHIM_PUT_MULTIPLIER; i++) {
+        if (HXHIM_PUT_COMBINATIONS_ENABLED[i] == combo) {
+            return 1;
+        }
+    }
+    return 0;
+};
+
+const size_t HXHIM_PUT_MULTIPLIER = sizeof(HXHIM_PUT_COMBINATIONS_ENABLED) / sizeof(HXHIM_PUT_COMBINATION_SPO);
+
+const char *HXHIM_OP_STR[] = {
+    HXHIM_OP_GEN(HXHIM_OP_PREFIX, GENERATE_STR)
+};
+
+const char *HXHIM_GETOP_STR[] = {
+    HXHIM_GETOP_GEN(HXHIM_GETOP_PREFIX, GENERATE_STR)
+};
+
+const char *HXHIM_OBJECT_TYPE_STR[] = {
+    HXHIM_OBJECT_TYPE_GEN(HXHIM_OBJECT_TYPE_PREFIX, GENERATE_STR)
+};
 
 /**
  * Open
@@ -758,7 +775,7 @@ int hxhim::GetOp(hxhim_t *hx,
                  void *subject, std::size_t subject_len,
                  void *predicate, std::size_t predicate_len,
                  enum hxhim_object_type_t object_type,
-                 std::size_t num_records, enum hxhim_get_op_t op) {
+                 std::size_t num_records, enum hxhim_getop_t op) {
     if (!valid(hx) || !hx->p->running ||
         !subject   || !subject_len    ||
         !predicate || !predicate_len)  {
@@ -795,7 +812,7 @@ int hxhimGetOp(hxhim_t *hx,
                  void *subject, size_t subject_len,
                  void *predicate, size_t predicate_len,
                  enum hxhim_object_type_t object_type,
-                 std::size_t num_records, enum hxhim_get_op_t op) {
+                 std::size_t num_records, enum hxhim_getop_t op) {
     return hxhim::GetOp(hx,
                         subject, subject_len,
                         predicate, predicate_len,
@@ -1008,7 +1025,7 @@ int hxhim::BGetOp(hxhim_t *hx,
                   void **subjects, std::size_t *subject_lens,
                   void **predicates, std::size_t *predicate_lens,
                   enum hxhim_object_type_t *object_types,
-                  std::size_t *num_records, enum hxhim_get_op_t *ops,
+                  std::size_t *num_records, enum hxhim_getop_t *ops,
                   const std::size_t count) {
     if (!valid(hx)    || !hx->p->running  ||
         !subjects     || !subject_lens    ||
@@ -1051,7 +1068,7 @@ int hxhimBGetOp(hxhim_t *hx,
                 void **subjects, size_t *subject_lens,
                 void **predicates, size_t *predicate_lens,
                 enum hxhim_object_type_t *object_types,
-                size_t *num_records, enum hxhim_get_op_t *ops,
+                size_t *num_records, enum hxhim_getop_t *ops,
                 const size_t count) {
     return hxhim::BGetOp(hx,
                          subjects, subject_lens,

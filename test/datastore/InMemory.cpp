@@ -104,14 +104,14 @@ TEST(InMemory, BGetOp) {
     char *key_buffer = (char *) alloc(key_buffer_len);
     char *key_buffer_start = key_buffer;
 
-    for(int op = HXHIM_GET_EQ; op < HXHIM_GET_INVALID; op++) {
+    for(int op = HXHIM_GETOP_EQ; op < HXHIM_GETOP_INVALID; op++) {
         Transport::Request::BGetOp req(1);
 
         req.subjects[0]     = triples[0].get_sub();
         req.predicates[0]   = triples[0].get_pred();
         req.object_types[0] = triples[0].get_type();
         req.num_recs[0]     = 1;
-        req.ops[0]          = static_cast<hxhim_get_op_t>(op);
+        req.ops[0]          = static_cast<hxhim_getop_t>(op);
         req.count++;
 
         Transport::Response::BGetOp *res = ds->operate(&req);
@@ -119,7 +119,7 @@ TEST(InMemory, BGetOp) {
         EXPECT_EQ(res->count, req.count);
 
         switch (req.ops[0]) {
-            case HXHIM_GET_EQ:
+            case HXHIM_GETOP_EQ:
                 EXPECT_EQ(res->num_recs[0], 1);
 
                 // all results are the same value
@@ -140,13 +140,13 @@ TEST(InMemory, BGetOp) {
                                      res->objects[0][j].size()),    0);
                 }
                 break;
-            case HXHIM_GET_NEXT:
-            case HXHIM_GET_FIRST:
-            case HXHIM_GET_LAST:
+            case HXHIM_GETOP_NEXT:
+            case HXHIM_GETOP_FIRST:
+            case HXHIM_GETOP_LAST:
                 EXPECT_EQ(res->num_recs[0], 1);
                 // not sure how to test these
                 break;
-            case HXHIM_GET_PREV:
+            case HXHIM_GETOP_PREV:
                 EXPECT_EQ(res->num_recs[0], 1);
 
                 for(std::size_t j = 0; j < res->num_recs[0]; j++) {
@@ -166,7 +166,7 @@ TEST(InMemory, BGetOp) {
                                      res->objects[0][j].size()),    0);
                 }
                 break;
-            case HXHIM_GET_INVALID:
+            case HXHIM_GETOP_INVALID:
             default:
                 break;
         }
