@@ -16,9 +16,11 @@ std::ostream &help(char *self, std::ostream &stream = std::cout) {
 
                   << "    PUT <SUBJECT> <PREDICATE> <OBJECT_TYPE> <OBJECT>" << std::endl
                   << "    GET <SUBJECT> <PREDICATE> <OBJECT_TYPE>" << std::endl
+                  << "    GETOP <SUBJECT> <PREDICATE> <OBJECT_TYPE> <NUM_RECS> <OP>" << std::endl
                   << "    DEL <SUBJECT> <PREDICATE> " << std::endl
                   << "    BPUT N <SUBJECT_1> <PREDICATE_1> <OBJECT_TYPE_1> <OBJECT_1> ... <SUBJECT_N> <PREDICATE_N> <OBJECT_TYPE_N> <OBJECT_N>" << std::endl
                   << "    BGET N <SUBJECT_1> <PREDICATE_1> <OBJECT_TYPE_1> ... <SUBJECT_N> <PREDICATE_N> <OBJECT_TYPE_N>" << std::endl
+                  << "    BGETOP <SUBJECT_1> <PREDICATE_1> <OBJECT_TYPE_1> <NUM_RECS_1> <OP_1> ... <SUBJECT_N> <PREDICATE_N> <OBJECT_TYPE_N> <NUM_RECS_N> <OP_N>" << std::endl
                   << "    BDEL N <SUBJECT_1> <PREDICATE_1> ... <SUBJECT_N> <PREDICATE_N>" << std::endl
                   << "    FLUSHPUTS" << std::endl
                   << "    FLUSHGETS" << std::endl
@@ -30,6 +32,7 @@ std::ostream &help(char *self, std::ostream &stream = std::cout) {
 enum HXHIM_OP {
     PUT,
     GET,
+    GETOP,
     DEL,
     FLUSHPUTS,
     FLUSHGETS,
@@ -42,6 +45,8 @@ const std::map<std::string, HXHIM_OP> USER2OP = {
     std::make_pair("BPUT",      HXHIM_OP::PUT),
     std::make_pair("GET",       HXHIM_OP::GET),
     std::make_pair("BGET",      HXHIM_OP::GET),
+    std::make_pair("GETOP",     HXHIM_OP::GETOP),
+    std::make_pair("BGETOP",    HXHIM_OP::GETOP),
     std::make_pair("DEL",       HXHIM_OP::DEL),
     std::make_pair("BDEL",      HXHIM_OP::DEL),
     std::make_pair("FLUSHPUTS", HXHIM_OP::FLUSHPUTS),
@@ -50,7 +55,7 @@ const std::map<std::string, HXHIM_OP> USER2OP = {
     std::make_pair("FLUSH",     HXHIM_OP::FLUSH),
 };
 
-const std::map<std::string, hxhim_object_type_t> USER2OT= {
+const std::map<std::string, hxhim_object_type_t> USER2OT = {
     std::make_pair("INT",    HXHIM_OBJECT_TYPE_INT),
     std::make_pair("SIZE",   HXHIM_OBJECT_TYPE_SIZE),
     std::make_pair("INT64",  HXHIM_OBJECT_TYPE_INT64),
@@ -59,15 +64,29 @@ const std::map<std::string, hxhim_object_type_t> USER2OT= {
     std::make_pair("BYTE",   HXHIM_OBJECT_TYPE_BYTE),
 };
 
-struct SubjectPredicateObject {
+const std::map<std::string, hxhim_getop_t> USER2GETOP = {
+    std::make_pair("EQ",         HXHIM_GETOP_EQ),
+    std::make_pair("NEXT",       HXHIM_GETOP_NEXT),
+    std::make_pair("PREV",       HXHIM_GETOP_PREV),
+    std::make_pair("FIRST",      HXHIM_GETOP_FIRST),
+    std::make_pair("LAST",       HXHIM_GETOP_LAST),
+    // std::make_pair("PRIMARY_EQ", HXHIM_GETOP_PRIMARY_EQ),
+};
+
+struct UserInput {
     HXHIM_OP hxhim_op;
     std::string subject;
     std::string predicate;
     hxhim_object_type_t object_type;
+
     std::string object;  // only used by (B)PUT
+
+    // only used by (B)GETOP
+    std::size_t num_recs;
+    hxhim_getop_t op;
 };
 
-using UserInput = std::list<SubjectPredicateObject>;
+using UserInputs = std::list<UserInput>;
 
 // A quick and dirty cleanup function
 void cleanup(hxhim_t *hx, hxhim_options_t *opts) {
@@ -78,7 +97,7 @@ void cleanup(hxhim_t *hx, hxhim_options_t *opts) {
 
 // serialize user input
 // B* becomes individual operations
-std::size_t parse_commands(std::istream & stream, UserInput & commands) {
+std::size_t parse_commands(std::istream & stream, UserInputs & commands) {
     std::string line;
     while (std::getline(stream, line)) {
         std::stringstream command(line);
@@ -109,7 +128,7 @@ std::size_t parse_commands(std::istream & stream, UserInput & commands) {
 
         // read input
         for(std::size_t i = 0; i < count; i++) {
-            SubjectPredicateObject input;
+            UserInput input;
 
             bool ok = true;
             switch ((input.hxhim_op = hxhim_op)) {
@@ -145,6 +164,31 @@ std::size_t parse_commands(std::istream & stream, UserInput & commands) {
                         }
                     }
                     break;
+                case HXHIM_OP::GETOP:
+                    {
+                        std::string object_type;
+                        std::string op;
+                        if (!(command >> input.subject >> input.predicate >> object_type >> input.num_recs >> op)) {
+                            ok = false;
+                        }
+
+                        const decltype(USER2OT)::const_iterator ot_it = USER2OT.find(object_type);
+                        if (ot_it == USER2OT.end()) {
+                            ok = false;
+                        }
+                        else {
+                            input.object_type = ot_it->second;
+                        }
+
+                        const decltype(USER2GETOP)::const_iterator getop_it = USER2GETOP.find(op);
+                        if (getop_it == USER2GETOP.end()) {
+                            ok = false;
+                        }
+                        else {
+                            input.op = getop_it->second;
+                        }
+                    }
+                    break;
                 case HXHIM_OP::DEL:
                     if (!(command >> input.subject >> input.predicate)) {
                         ok = false;
@@ -169,10 +213,10 @@ std::size_t parse_commands(std::istream & stream, UserInput & commands) {
     return commands.size();
 }
 
-std::size_t run_commands(hxhim_t * hx, const UserInput &commands) {
+std::size_t run_commands(hxhim_t * hx, const UserInputs &commands) {
     std::size_t successful = 0;
 
-    for(UserInput::value_type const &cmd : commands) {
+    for(UserInputs::value_type const &cmd : commands) {
         int rc = HXHIM_SUCCESS;
         hxhim_results *res = nullptr;
 
@@ -189,6 +233,13 @@ std::size_t run_commands(hxhim_t * hx, const UserInput &commands) {
                               (void *) cmd.subject.c_str(), cmd.subject.size(),
                               (void *) cmd.predicate.c_str(), cmd.predicate.size(),
                               cmd.object_type);
+                break;
+            case HXHIM_OP::GETOP:
+                rc = hxhimGetOp(hx,
+                                (void *) cmd.subject.c_str(), cmd.subject.size(),
+                                (void *) cmd.predicate.c_str(), cmd.predicate.size(),
+                                cmd.object_type,
+                                cmd.num_recs, cmd.op);
                 break;
             case HXHIM_OP::DEL:
                 rc = hxhimDelete(hx,
@@ -293,7 +344,7 @@ int main(int argc, char * argv[]) {
 
     // parse and run input
     if (rank == 0) {
-        UserInput cmds;
+        UserInputs cmds;
         const std::size_t valid_count = parse_commands(std::cin, cmds);
         std::cout << "Read " << valid_count << " valid commands" << std::endl;
         run_commands(&hx, cmds);
