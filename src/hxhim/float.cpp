@@ -90,6 +90,54 @@ int hxhimGetFloat(hxhim_t *hx,
 }
 
 /**
+ * GetOp
+ * Add a BGET into the work queue
+ *
+ * @param hx             the HXHIM session
+ * @param subject        the subjects to get
+ * @param subject_len    the lengths of the subjects to get
+ * @param predicate      the predicates to get
+ * @param predicate_len  the lengths of the predicates to get
+ * @param num_records    maximum number of records to GET
+ * @param op             the operation to use
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim::GetOpFloat(hxhim_t *hx,
+                      void *subject, std::size_t subject_len,
+                      void *predicate, std::size_t predicate_len,
+                      std::size_t num_records, enum hxhim_get_op_t op) {
+    return hxhim::GetOp(hx,
+                        subject, subject_len,
+                        predicate, predicate_len,
+                        hxhim_object_type_t::HXHIM_OBJECT_TYPE_FLOAT,
+                        num_records, op);
+}
+
+
+/**
+ * hxhimGetOpFloat
+ * Add a BGET into the work queue
+ *
+ * @param hx             the HXHIM session
+ * @param subject        the subjects to get
+ * @param subject_len    the lengths of the subjects to get
+ * @param predicate      the predicates to get
+ * @param predicate_len  the lengths of the predicates to get
+ * @param num_records    maximum number of records to GET
+ * @param op             the operation to use
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhimGetOpFloat(hxhim_t *hx,
+                    void *subject, size_t subject_len,
+                    void *predicate, size_t predicate_len,
+                    size_t num_records, enum hxhim_get_op_t op) {
+    return hxhim::GetOpFloat(hx,
+                             subject, subject_len,
+                             predicate, predicate_len,
+                             num_records, op);
+}
+
+/**
  * BPutFloat
  * Add a BPUT into the work queue
  *
@@ -199,17 +247,22 @@ int hxhimBGetFloat(hxhim_t *hx,
  * @param subject_lens   the lengths of the subjects to get
  * @param predicates     the predicates to get
  * @param predicate_lens the lengths of the predicates to get
+ * @param num_records    maximum numbers of records to GET
+ * @param op             the operations to use
+ * @param count          the number of inputs
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::BGetOpFloat(hxhim_t *hx,
-                        void *subject, size_t subject_len,
-                        void *predicate, size_t predicate_len,
-                        size_t num_records, enum hxhim_get_op_t op) {
-    return hxhim::BGetOp(hx,
-                         subject, subject_len,
-                         predicate, predicate_len,
-                         hxhim_object_type_t::HXHIM_OBJECT_TYPE_FLOAT,
-                         num_records, op);
+                       void **subjects, std::size_t *subject_lens,
+                       void **predicates, std::size_t *predicate_lens,
+                       std::size_t *num_records, enum hxhim_get_op_t *ops,
+                       const std::size_t count) {
+    return hxhim::BGetOpSingleType(hx,
+                                   subjects, subject_lens,
+                                   predicates, predicate_lens,
+                                   hxhim_object_type_t::HXHIM_OBJECT_TYPE_FLOAT,
+                                   num_records, ops,
+                                   count);
 }
 
 /**
@@ -221,14 +274,19 @@ int hxhim::BGetOpFloat(hxhim_t *hx,
  * @param subject_lens   the lengths of the subjects to get
  * @param predicates     the predicates to get
  * @param predicate_lens the lengths of the predicates to get
+ * @param num_records    maximum numbers of records to GET
+ * @param op             the operations to use
+ * @param count          the number of inputs
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimBGetOpFloat(hxhim_t *hx,
-                      void *subject, size_t subject_len,
-                      void *predicate, size_t predicate_len,
-                      size_t num_records, enum hxhim_get_op_t op) {
+                     void **subjects, size_t *subject_lens,
+                     void **predicates, size_t *predicate_lens,
+                     size_t *num_records, enum hxhim_get_op_t *ops,
+                     const size_t count) {
     return hxhim::BGetOpFloat(hx,
-                               subject, subject_len,
-                               predicate, predicate_len,
-                               num_records, op);
+                              subjects, subject_lens,
+                              predicates, predicate_lens,
+                              num_records, ops,
+                              count);
 }

@@ -48,6 +48,12 @@ int Get(hxhim_t *hx,
         void *predicate, std::size_t predicate_len,
         hxhim_object_type_t object_type);
 
+int GetOp(hxhim_t *hx,
+          void *subject, std::size_t subject_len,
+          void *predicate, std::size_t predicate_len,
+          hxhim_object_type_t object_type,
+          std::size_t num_records, enum hxhim_get_op_t op);
+
 int Delete(hxhim_t *hx,
            void *subject, std::size_t subject_len,
            void *predicate, std::size_t predicate_len);
@@ -65,10 +71,11 @@ int BGet(hxhim_t *hx,
          const std::size_t count);
 
 int BGetOp(hxhim_t *hx,
-           void *subject, std::size_t subject_len,
-           void *predicate, std::size_t predicate_len,
-           hxhim_object_type_t object_type,
-           std::size_t num_records, enum hxhim_get_op_t op);
+           void **subjects, std::size_t *subject_lens,
+           void **predicates, std::size_t *predicate_lens,
+           hxhim_object_type_t *object_types,
+           std::size_t *num_records, enum hxhim_get_op_t *ops,
+           const std::size_t count);
 
 int BDelete(hxhim_t *hx,
             void **subjects, std::size_t *subject_lens,

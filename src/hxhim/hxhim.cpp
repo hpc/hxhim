@@ -673,9 +673,9 @@ int hxhim::Put(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimPut(hxhim_t *hx,
-             void *subject, std::size_t subject_len,
-             void *predicate, std::size_t predicate_len,
-             enum hxhim_object_type_t object_type, void *object, std::size_t object_len) {
+             void *subject, size_t subject_len,
+             void *predicate, size_t predicate_len,
+             enum hxhim_object_type_t object_type, void *object, size_t object_len) {
     mlog(HXHIM_CLIENT_DBG, "%s %s:%d", __FILE__, __func__, __LINE__);
     return hxhim::Put(hx,
                       subject, subject_len,
@@ -741,6 +741,69 @@ int hxhimGet(hxhim_t *hx,
 }
 
 /**
+ * GetOp
+ * Add a BGET into the work queue
+ *
+ * @param hx             the HXHIM session
+ * @param subject        the subjects to get
+ * @param subject_len    the lengths of the subjects to get
+ * @param predicate      the predicates to get
+ * @param predicate_len  the lengths of the predicates to get
+ * @param object_type    the type of the object
+ * @param num_records    maximum number of records to GET
+ * @param op             the operation to use
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim::GetOp(hxhim_t *hx,
+                 void *subject, std::size_t subject_len,
+                 void *predicate, std::size_t predicate_len,
+                 enum hxhim_object_type_t object_type,
+                 std::size_t num_records, enum hxhim_get_op_t op) {
+    if (!valid(hx) || !hx->p->running ||
+        !subject   || !subject_len    ||
+        !predicate || !predicate_len)  {
+        return HXHIM_ERROR;
+    }
+
+    ::Stats::Chronostamp bgetop;
+    bgetop.start = ::Stats::now();
+    const int rc = hxhim::GetOpImpl(hx->p->queues.getops,
+                                    ReferenceBlob(subject, subject_len),
+                                    ReferenceBlob(predicate, predicate_len),
+                                    object_type,
+                                    num_records, op);
+    bgetop.end = ::Stats::now();
+    hx->p->stats.bulk_op[hxhim_op_t::HXHIM_GETOP].emplace_back(bgetop);
+    return rc;
+}
+
+/**
+ * hxhimGetOp
+ * Add a BGET into the work queue
+ *
+ * @param hx             the HXHIM session
+ * @param subject        the subjects to get
+ * @param subject_len    the lengths of the subjects to get
+ * @param predicate      the predicates to get
+ * @param predicate_len  the lengths of the predicates to get
+ * @param object_type    the type of the object
+ * @param num_records    maximum number of records to GET
+ * @param op             the operation to use
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhimGetOp(hxhim_t *hx,
+                 void *subject, size_t subject_len,
+                 void *predicate, size_t predicate_len,
+                 enum hxhim_object_type_t object_type,
+                 std::size_t num_records, enum hxhim_get_op_t op) {
+    return hxhim::GetOp(hx,
+                        subject, subject_len,
+                        predicate, predicate_len,
+                        object_type,
+                        num_records, op);
+}
+
+/**
  * Delete
  * Add a DELETE into the work queue
  *
@@ -780,8 +843,8 @@ int hxhim::Delete(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimDelete(hxhim_t *hx,
-                void *subject, std::size_t subject_len,
-                void *predicate, std::size_t predicate_len) {
+                void *subject, size_t subject_len,
+                void *predicate, size_t predicate_len) {
     return hxhim::Delete(hx,
                          subject, subject_len,
                          predicate, predicate_len);
@@ -849,10 +912,10 @@ int hxhim::BPut(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimBPut(hxhim_t *hx,
-              void **subjects, std::size_t *subject_lens,
-              void **predicates, std::size_t *predicate_lens,
-              enum hxhim_object_type_t *object_types, void **objects, std::size_t *object_lens,
-              const std::size_t count) {
+              void **subjects, size_t *subject_lens,
+              void **predicates, size_t *predicate_lens,
+              enum hxhim_object_type_t *object_types, void **objects, size_t *object_lens,
+              const size_t count) {
     return hxhim::BPut(hx,
                        subjects, subject_lens,
                        predicates, predicate_lens,
@@ -915,8 +978,8 @@ int hxhim::BGet(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimBGet(hxhim_t *hx,
-              void **subjects, std::size_t *subject_lens,
-              void **predicates, std::size_t *predicate_lens,
+              void **subjects, size_t *subject_lens,
+              void **predicates, size_t *predicate_lens,
               enum hxhim_object_type_t *object_types,
               const std::size_t count) {
     return hxhim::BGet(hx,
@@ -935,56 +998,67 @@ int hxhimBGet(hxhim_t *hx,
  * @param subject_lens   the lengths of the subjects to get
  * @param predicates     the predicates to get
  * @param predicate_lens the lengths of the predicates to get
- * @param object_type    the type of the object
+ * @param object_types   the type of the objects
+ * @param num_records    maximum numbers of records to GET
+ * @param op             the operations to use
+ * @param count          the number of inputs
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::BGetOp(hxhim_t *hx,
-                  void *subject, size_t subject_len,
-                  void *predicate, size_t predicate_len,
-                  enum hxhim_object_type_t object_type,
-                  std::size_t num_records, enum hxhim_get_op_t op) {
-    if (!valid(hx) || !hx->p->running ||
-        !subject   || !subject_len    ||
-        !predicate || !predicate_len)  {
+                  void **subjects, std::size_t *subject_lens,
+                  void **predicates, std::size_t *predicate_lens,
+                  enum hxhim_object_type_t *object_types,
+                  std::size_t *num_records, enum hxhim_get_op_t *ops,
+                  const std::size_t count) {
+    if (!valid(hx)    || !hx->p->running  ||
+        !subjects     || !subject_lens    ||
+        !predicates   || !predicate_lens  ||
+        !object_types ||
+        !num_records  || !ops)             {
         return HXHIM_ERROR;
     }
 
     ::Stats::Chronostamp bgetop;
     bgetop.start = ::Stats::now();
-    const int rc = hxhim::GetOpImpl(hx->p->queues.getops,
-                                    ReferenceBlob(subject, subject_len),
-                                    ReferenceBlob(predicate, predicate_len),
-                                    object_type,
-                                    num_records, op);
+    for(std::size_t i = 0; i < count; i++) {
+        hxhim::GetOpImpl(hx->p->queues.getops,
+                         ReferenceBlob(subjects[i], subject_lens[i]),
+                         ReferenceBlob(predicates[i], predicate_lens[i]),
+                         object_types[i],
+                         num_records[i], ops[i]);
+    }
     bgetop.end = ::Stats::now();
-    hx->p->stats.bulk_op[hxhim_op_t::HXHIM_GETOP].emplace_back(bgetop);
-    return rc;
+    hx->p->stats.bulk_op[hxhim_op_t::HXHIM_GETOP].emplace_back();
+    return HXHIM_SUCCESS;
 }
 
 /**
  * hxhimBGetOp
  * Add a BGET into the work queue
  *
- * @param hx            the HXHIM session
- * @param subjects      the subjects to get
- * @param subject_lens  the lengths of the subjects to get
- * @param prediates     the prediates to get
- * @param prediate_lens the lengths of the prediates to get
- * @param object_type   the type of the object
- * @param num_records   the number of key value pairs to get back
- * @param op            the operation to do
+ * @param hx             the HXHIM session
+ * @param subjects       the subjects to get
+ * @param subject_lens   the lengths of the subjects to get
+ * @param predicates     the predicates to get
+ * @param predicate_lens the lengths of the predicates to get
+ * @param object_types   the type of the objects
+ * @param num_records    maximum numbers of records to GET
+ * @param op             the operations to use
+ * @param count          the number of inputs
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimBGetOp(hxhim_t *hx,
-                void *subject, size_t subject_len,
-                void *predicate, size_t predicate_len,
-                enum hxhim_object_type_t object_type,
-                std::size_t num_records, enum hxhim_get_op_t op) {
+                void **subjects, size_t *subject_lens,
+                void **predicates, size_t *predicate_lens,
+                enum hxhim_object_type_t *object_types,
+                size_t *num_records, enum hxhim_get_op_t *ops,
+                const size_t count) {
     return hxhim::BGetOp(hx,
-                         subject, subject_len,
-                         predicate, predicate_len,
-                         object_type,
-                         num_records, op);
+                         subjects, subject_lens,
+                         predicates, predicate_lens,
+                         object_types,
+                         num_records, ops,
+                         count);
 }
 
 /**
@@ -1001,8 +1075,8 @@ int hxhimBGetOp(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::BDelete(hxhim_t *hx,
-                   void **subjects, size_t *subject_lens,
-                   void **predicates, size_t *predicate_lens,
+                   void **subjects, std::size_t *subject_lens,
+                   void **predicates, std::size_t *predicate_lens,
                    const std::size_t count) {
     if (!valid(hx)  || !hx->p->running ||
         !subjects   || !subject_lens   ||
@@ -1039,7 +1113,7 @@ int hxhim::BDelete(hxhim_t *hx,
 int hxhimBDelete(hxhim_t *hx,
                  void **subjects, size_t *subject_lens,
                  void **predicates, size_t *predicate_lens,
-                 const std::size_t count) {
+                 const size_t count) {
     return hxhim::BDelete(hx,
                           subjects, subject_lens,
                           predicates, predicate_lens,
