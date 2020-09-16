@@ -14,8 +14,8 @@
 const double MIN_DOUBLE = -100;
 const double MAX_DOUBLE = 100;
 
-const char NAME_FMT[]   = "Cell-(%zu, %zu)";
-const char TEMP_FMT[]   = "Temp-(%zu, %zu)";
+const char NAME_FMT[]   = "Cell-(%d, %zu, %zu)";
+const char TEMP_FMT[]   = "Temp-(%d, %zu, %zu)";
 
 typedef struct Cell {
     char name[BUF_SIZE];
@@ -150,8 +150,8 @@ int main(int argc, char *argv[]) {
         for(size_t y = 0; y < num_y; y++) {
             Cell_t *c = &cells[x * num_x + y];
 
-            snprintf(c->name,      BUF_SIZE, NAME_FMT, x, y);
-            snprintf(c->predicate, BUF_SIZE, TEMP_FMT, x, y);
+            snprintf(c->name,      BUF_SIZE, NAME_FMT, rank, x, y);
+            snprintf(c->predicate, BUF_SIZE, TEMP_FMT, rank, x, y);
             c->temp = MIN_DOUBLE + (MAX_DOUBLE - MIN_DOUBLE) * ((double) rand()) / ((double) RAND_MAX);
             c->temp_str = elen_encode_floating_double(c->temp, 10, ELEN_NEG, ELEN_POS);
 
@@ -188,29 +188,33 @@ int main(int argc, char *argv[]) {
     print_results(&hx, 0, puts);
     hxhim_results_destroy(puts);
 
-    printf("--------------------------------------------\n");
-    printf("lowest %zu\n", num_lowest);
-    printf("--------------------------------------------\n");
-    hxhimGetOp(&hx,
-               lowest->temp_str, strlen(lowest->temp_str) + 1,
-               lowest->predicate, strlen(lowest->predicate) + 1,
-               HXHIM_OBJECT_TYPE_BYTE, num_lowest, HXHIM_GETOP_NEXT);
-    hxhim_results_t *get_lowest = hxhimFlush(&hx);
-    print_results(&hx, 0, get_lowest);
-    hxhim_results_destroy(get_lowest);
-    printf("--------------------------------------------\n");
+    MPI_Barrier(MPI_COMM_WORLD);
 
-    printf("--------------------------------------------\n");
-    printf("highest %zu\n", num_highest);
-    printf("--------------------------------------------\n");
-    hxhimGetOp(&hx,
-               highest->temp_str, strlen(highest->temp_str) + 1,
-               highest->predicate, strlen(highest->predicate) + 1,
-               HXHIM_OBJECT_TYPE_BYTE, num_highest, HXHIM_GETOP_PREV);
-    hxhim_results_t *get_highest = hxhimFlush(&hx);
-    print_results(&hx, 0, get_highest);
-    hxhim_results_destroy(get_highest);
-    printf("--------------------------------------------\n");
+    if (rank == (rand() % size)) {
+        printf("--------------------------------------------\n");
+        printf("lowest %zu\n", num_lowest);
+        printf("--------------------------------------------\n");
+        hxhimGetOp(&hx,
+                   lowest->temp_str, strlen(lowest->temp_str) + 1,
+                   lowest->predicate, strlen(lowest->predicate) + 1,
+                   HXHIM_OBJECT_TYPE_BYTE, num_lowest, HXHIM_GETOP_NEXT);
+        hxhim_results_t *get_lowest = hxhimFlush(&hx);
+        print_results(&hx, 0, get_lowest);
+        hxhim_results_destroy(get_lowest);
+        printf("--------------------------------------------\n");
+
+        printf("--------------------------------------------\n");
+        printf("highest %zu\n", num_highest);
+        printf("--------------------------------------------\n");
+        hxhimGetOp(&hx,
+                   highest->temp_str, strlen(highest->temp_str) + 1,
+                   highest->predicate, strlen(highest->predicate) + 1,
+                   HXHIM_OBJECT_TYPE_BYTE, num_highest, HXHIM_GETOP_PREV);
+        hxhim_results_t *get_highest = hxhimFlush(&hx);
+        print_results(&hx, 0, get_highest);
+        hxhim_results_destroy(get_highest);
+        printf("--------------------------------------------\n");
+    }
 
     for(size_t i = 0; i < total; i++) {
         free(cells[i].temp_str);
