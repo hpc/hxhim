@@ -7,48 +7,45 @@
 #include "hxhim/hxhim.h"
 #include "print_results.h"
 
-std::ostream &help(char *self, std::ostream &stream = std::cout) {
-    return stream << "Syntax: " << self << " [-h | --help] [--ds <name>]" << std::endl
-                  << std::endl
-                  << "--ds implies a single rank. Running multiple MPI ranks will error." << std::endl
-                  << std::endl
-                  << "Input is passed in through the stdin of rank 0, delimited with newlines, in the following formats:" << std::endl
-
-                  << "    PUT <SUBJECT> <PREDICATE> <OBJECT_TYPE> <OBJECT>" << std::endl
-                  << "    GET <SUBJECT> <PREDICATE> <OBJECT_TYPE>" << std::endl
-                  << "    GETOP <SUBJECT> <PREDICATE> <OBJECT_TYPE> <NUM_RECS> <OP>" << std::endl
-                  << "    DEL <SUBJECT> <PREDICATE> " << std::endl
-                  << "    BPUT N <SUBJECT_1> <PREDICATE_1> <OBJECT_TYPE_1> <OBJECT_1> ... <SUBJECT_N> <PREDICATE_N> <OBJECT_TYPE_N> <OBJECT_N>" << std::endl
-                  << "    BGET N <SUBJECT_1> <PREDICATE_1> <OBJECT_TYPE_1> ... <SUBJECT_N> <PREDICATE_N> <OBJECT_TYPE_N>" << std::endl
-                  << "    BGETOP <SUBJECT_1> <PREDICATE_1> <OBJECT_TYPE_1> <NUM_RECS_1> <OP_1> ... <SUBJECT_N> <PREDICATE_N> <OBJECT_TYPE_N> <NUM_RECS_N> <OP_N>" << std::endl
-                  << "    BDEL N <SUBJECT_1> <PREDICATE_1> ... <SUBJECT_N> <PREDICATE_N>" << std::endl
-                  << "    FLUSHPUTS" << std::endl
-                  << "    FLUSHGETS" << std::endl
-                  << "    FLUSHDELS" << std::endl
-                  << "    FLUSH" << std::endl
-                  << std::endl;
-}
-
 enum HXHIM_OP {
     PUT,
     GET,
     GETOP,
     DEL,
+    BPUT,
+    BGET,
+    BGETOP,
+    BDEL,
     FLUSHPUTS,
     FLUSHGETS,
     FLUSHDELS,
     FLUSH,
 };
 
+const std::map<HXHIM_OP, std::string> FORMAT = {
+    std::make_pair(HXHIM_OP::PUT,       "PUT <SUBJECT> <PREDICATE> <OBJECT_TYPE> <OBJECT>"),
+    std::make_pair(HXHIM_OP::GET,       "GET <SUBJECT> <PREDICATE> <OBJECT_TYPE>"),
+    std::make_pair(HXHIM_OP::GETOP,     "GETOP <SUBJECT> <PREDICATE> <OBJECT_TYPE> <NUM_RECS> <OP>"),
+    std::make_pair(HXHIM_OP::DEL,       "DEL <SUBJECT> <PREDICATE>"),
+    std::make_pair(HXHIM_OP::BPUT,      "BPUT N <SUBJECT_1> <PREDICATE_1> <OBJECT_TYPE_1> <OBJECT_1> ... <SUBJECT_N> <PREDICATE_N> <OBJECT_TYPE_N> <OBJECT_N>"),
+    std::make_pair(HXHIM_OP::BGET,      "BGET N <SUBJECT_1> <PREDICATE_1> <OBJECT_TYPE_1> ... <SUBJECT_N> <PREDICATE_N> <OBJECT_TYPE_N>"),
+    std::make_pair(HXHIM_OP::BGETOP,    "BGETOP <SUBJECT_1> <PREDICATE_1> <OBJECT_TYPE_1> <NUM_RECS_1> <OP_1> ... <SUBJECT_N> <PREDICATE_N> <OBJECT_TYPE_N> <NUM_RECS_N> <OP_N>"),
+    std::make_pair(HXHIM_OP::BDEL,      "BDEL N <SUBJECT_1> <PREDICATE_1> ... <SUBJECT_N> <PREDICATE_N>"),
+    std::make_pair(HXHIM_OP::FLUSHPUTS, "FLUSHPUTS"),
+    std::make_pair(HXHIM_OP::FLUSHGETS, "FLUSHGETS"),
+    std::make_pair(HXHIM_OP::FLUSHDELS, "FLUSHDELS"),
+    std::make_pair(HXHIM_OP::FLUSH,     "FLUSH"),
+};
+
 const std::map<std::string, HXHIM_OP> USER2OP = {
     std::make_pair("PUT",       HXHIM_OP::PUT),
-    std::make_pair("BPUT",      HXHIM_OP::PUT),
+    std::make_pair("BPUT",      HXHIM_OP::BPUT),
     std::make_pair("GET",       HXHIM_OP::GET),
-    std::make_pair("BGET",      HXHIM_OP::GET),
+    std::make_pair("BGET",      HXHIM_OP::BGET),
     std::make_pair("GETOP",     HXHIM_OP::GETOP),
-    std::make_pair("BGETOP",    HXHIM_OP::GETOP),
+    std::make_pair("BGETOP",    HXHIM_OP::BGETOP),
     std::make_pair("DEL",       HXHIM_OP::DEL),
-    std::make_pair("BDEL",      HXHIM_OP::DEL),
+    std::make_pair("BDEL",      HXHIM_OP::BDEL),
     std::make_pair("FLUSHPUTS", HXHIM_OP::FLUSHPUTS),
     std::make_pair("FLUSHGETS", HXHIM_OP::FLUSHGETS),
     std::make_pair("FLUSHDELS", HXHIM_OP::FLUSHDELS),
@@ -65,13 +62,26 @@ const std::map<std::string, hxhim_object_type_t> USER2OT = {
 };
 
 const std::map<std::string, hxhim_getop_t> USER2GETOP = {
-    std::make_pair("EQ",         HXHIM_GETOP_EQ),
-    std::make_pair("NEXT",       HXHIM_GETOP_NEXT),
-    std::make_pair("PREV",       HXHIM_GETOP_PREV),
-    std::make_pair("FIRST",      HXHIM_GETOP_FIRST),
-    std::make_pair("LAST",       HXHIM_GETOP_LAST),
+    std::make_pair("EQ",    HXHIM_GETOP_EQ),
+    std::make_pair("NEXT",  HXHIM_GETOP_NEXT),
+    std::make_pair("PREV",  HXHIM_GETOP_PREV),
+    std::make_pair("FIRST", HXHIM_GETOP_FIRST),
+    std::make_pair("LAST",  HXHIM_GETOP_LAST),
     // std::make_pair("PRIMARY_EQ", HXHIM_GETOP_PRIMARY_EQ),
 };
+
+std::ostream &help(char *self, std::ostream &stream = std::cout) {
+    stream << "Syntax: " << self << " [-h | --help] [--ds <name>]" << std::endl
+           << std::endl
+           << "--ds implies a single rank. Running multiple MPI ranks will error." << std::endl
+           << std::endl
+           << "Input is passed in through the stdin of rank 0, delimited with newlines, in the following formats:" << std::endl;
+
+    for(decltype(FORMAT)::value_type const &format : FORMAT) {
+        stream << "    " << format.second << std::endl;
+    }
+    return stream;
+}
 
 struct UserInput {
     HXHIM_OP hxhim_op;
@@ -133,6 +143,7 @@ std::size_t parse_commands(std::istream & stream, UserInputs & commands) {
             bool ok = true;
             switch ((input.hxhim_op = hxhim_op)) {
                 case HXHIM_OP::PUT:
+                case HXHIM_OP::BPUT:
                     {
                         std::string object_type;
                         if (!(command >> input.subject >> input.predicate >> object_type >> input.object)) {
@@ -149,6 +160,7 @@ std::size_t parse_commands(std::istream & stream, UserInputs & commands) {
                     }
                     break;
                 case HXHIM_OP::GET:
+                case HXHIM_OP::BGET:
                     {
                         std::string object_type;
                         if (!(command >> input.subject >> input.predicate >> object_type)) {
@@ -165,6 +177,7 @@ std::size_t parse_commands(std::istream & stream, UserInputs & commands) {
                     }
                     break;
                 case HXHIM_OP::GETOP:
+                case HXHIM_OP::BGETOP:
                     {
                         std::string object_type;
                         std::string op;
@@ -190,6 +203,7 @@ std::size_t parse_commands(std::istream & stream, UserInputs & commands) {
                     }
                     break;
                 case HXHIM_OP::DEL:
+                case HXHIM_OP::BDEL:
                     if (!(command >> input.subject >> input.predicate)) {
                         ok = false;
                     }
@@ -202,7 +216,8 @@ std::size_t parse_commands(std::istream & stream, UserInputs & commands) {
             }
 
             if (!ok) {
-                std::cerr << "Error: Could not parse line \"" << line << "\"" << std::endl;
+                std::cerr << "Error: Could not parse line \"" << line << "\"." << std::endl
+                          << "Expected: " << FORMAT.at(hxhim_op) << std::endl;
                 break;
             }
 
@@ -222,6 +237,7 @@ std::size_t run_commands(hxhim_t * hx, const UserInputs &commands) {
 
         switch (cmd.hxhim_op) {
             case HXHIM_OP::PUT:
+            case HXHIM_OP::BPUT:
                 rc = hxhimPut(hx,
                               (void *) cmd.subject.c_str(), cmd.subject.size(),
                               (void *) cmd.predicate.c_str(), cmd.predicate.size(),
@@ -229,12 +245,14 @@ std::size_t run_commands(hxhim_t * hx, const UserInputs &commands) {
                               (void *) cmd.object.c_str(), cmd.object.size());
                 break;
             case HXHIM_OP::GET:
+            case HXHIM_OP::BGET:
                 rc = hxhimGet(hx,
                               (void *) cmd.subject.c_str(), cmd.subject.size(),
                               (void *) cmd.predicate.c_str(), cmd.predicate.size(),
                               cmd.object_type);
                 break;
             case HXHIM_OP::GETOP:
+            case HXHIM_OP::BGETOP:
                 rc = hxhimGetOp(hx,
                                 (void *) cmd.subject.c_str(), cmd.subject.size(),
                                 (void *) cmd.predicate.c_str(), cmd.predicate.size(),
@@ -242,6 +260,7 @@ std::size_t run_commands(hxhim_t * hx, const UserInputs &commands) {
                                 cmd.num_recs, cmd.op);
                 break;
             case HXHIM_OP::DEL:
+            case HXHIM_OP::BDEL:
                 rc = hxhimDelete(hx,
                                  (void *) cmd.subject.c_str(), cmd.subject.size(),
                                  (void *) cmd.predicate.c_str(), cmd.predicate.size());
