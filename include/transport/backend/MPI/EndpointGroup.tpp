@@ -19,7 +19,7 @@
  * @return the number of messages successfully sent
  */
 template <typename Send_t, typename>
-std::size_t Transport::MPI::EndpointGroup::parallel_send(const std::unordered_map<int, Send_t *> &messages) {
+std::size_t Transport::MPI::EndpointGroup::parallel_send(const ReqList<Send_t> &messages) {
     mlog(MPI_DBG, "Attempting to send %zu messages", messages.size());
 
     if (!messages.size()) {
@@ -333,7 +333,7 @@ std::size_t Transport::MPI::EndpointGroup::parallel_recv(const std::size_t nsrcs
  * @treturn a linked list of return messages
  */
 template<typename Recv_t, typename Send_t, typename>
-Recv_t *Transport::MPI::EndpointGroup::return_msgs(const std::unordered_map<int, Send_t *> &messages) {
+Recv_t *Transport::MPI::EndpointGroup::return_msgs(const ReqList<Send_t> &messages) {
     mlog(MPI_DBG, "Maximum number of messages: %zu", messages.size());
 
     // return value here is not useful

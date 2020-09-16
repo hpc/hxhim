@@ -400,17 +400,17 @@ int hxhim::init::transport(hxhim_t *hx, hxhim_options_t *opts) {
     }
 
     delete hx->p->transport;
-    if (!(hx->p->transport = new Transport::Transport())) {
-        return HXHIM_ERROR;
-    }
+    hx->p->transport = nullptr;
 
-    int ret = TRANSPORT_ERROR;
+    int ret = HXHIM_SUCCESS; // can't check hx->p->transport because it will be
+                             // nullptr when transport type is TRANSPORT_NULL
     switch (opts->p->transport->type) {
         case Transport::TRANSPORT_NULL:
-            ret = TRANSPORT_SUCCESS;
             break;
         case Transport::TRANSPORT_MPI:
-            ret = Transport::MPI::init(hx, opts);
+            if (!(hx->p->transport = Transport::MPI::init(hx, opts))) {
+                ret = HXHIM_ERROR;
+            }
             break;
         #if HXHIM_HAVE_THALLIUM
         case Transport::TRANSPORT_THALLIUM:
@@ -419,7 +419,9 @@ int hxhim::init::transport(hxhim_t *hx, hxhim_options_t *opts) {
                 ::Stats::Chronostamp init_thallium;
                 init_thallium.start = ::Stats::now();
                 #endif
-                ret = Transport::Thallium::init(hx, opts);
+                if (!(hx->p->transport = Transport::Thallium::init(hx, opts))) {
+                    ret = HXHIM_ERROR;
+                }
                 #ifdef PRINT_TIMESTAMPS
                 init_thallium.end = ::Stats::now();
                 ::Stats::print_event(std::cerr, hx->p->bootstrap.rank, "init_thallium", ::Stats::global_epoch, init_thallium);
@@ -433,7 +435,7 @@ int hxhim::init::transport(hxhim_t *hx, hxhim_options_t *opts) {
     }
 
     mlog(HXHIM_CLIENT_INFO, "Completed Transport Initialization");
-    return (ret == TRANSPORT_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
+    return (ret == HXHIM_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 
 /**
@@ -482,11 +484,7 @@ int hxhim::destroy::memory(hxhim_t *) {
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
 int hxhim::destroy::transport(hxhim_t *hx) {
-    if (hx->p->range_server.destroy) {
-        hx->p->range_server.destroy();
-    }
-
-    delete hx->p->transport;
+    destruct(hx->p->transport);
     hx->p->transport = nullptr;
 
     return HXHIM_SUCCESS;

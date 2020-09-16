@@ -7,7 +7,7 @@
 namespace Transport {
 namespace Thallium {
 
-int init(hxhim_t *hx, hxhim_options_t *opts);
+Transport *init(hxhim_t *hx, hxhim_options_t *opts);
 
 }
 }

@@ -92,7 +92,6 @@ typedef struct hxhim_private {
     struct {
         std::size_t client_ratio;          // client portion of client:server ratio
         std::size_t server_ratio;          // server portion of client:server ratio
-        void (*destroy)();                 // Range server static variable cleanup
     } range_server;
 
     hxhim::Stats::Global stats;

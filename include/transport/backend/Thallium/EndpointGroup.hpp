@@ -3,6 +3,7 @@
 
 #include <unordered_map>
 
+#include "transport/backend/Thallium/RangeServer.hpp"
 #include "transport/backend/Thallium/Utilities.hpp"
 #include "transport/transport.hpp"
 
@@ -16,8 +17,7 @@ namespace Thallium {
 class EndpointGroup : virtual public ::Transport::EndpointGroup {
     public:
         EndpointGroup(const Engine_t &engine,
-                      const RPC_t &process_rpc,
-                      const RPC_t &cleanup_rpc);
+                      RangeServer *rs);
         ~EndpointGroup();
 
         /** @description Converts a string into an endpoint and adds it to the map_*/
@@ -30,24 +30,23 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup {
         void RemoveID(const int id);
 
         /** @description Bulk Put to multiple endpoints       */
-        Response::BPut *communicate(const std::unordered_map<int, Request::BPut *> &bpm_list);
+        Response::BPut *communicate(const ReqList<Request::BPut> &bpm_list);
 
         /** @description Bulk Get from multiple endpoints     */
-        Response::BGet *communicate(const std::unordered_map<int, Request::BGet *> &bgm_list);
+        Response::BGet *communicate(const ReqList<Request::BGet> &bgm_list);
 
         /** @description Bulk Get from multiple endpoints     */
-        Response::BGetOp *communicate(const std::unordered_map<int, Request::BGetOp *> &bgm_list);
+        Response::BGetOp *communicate(const ReqList<Request::BGetOp> &bgm_list);
 
         /** @description Bulk Delete to multiple endpoints    */
-        Response::BDelete *communicate(const std::unordered_map<int, Request::BDelete *> &bdm_list);
+        Response::BDelete *communicate(const ReqList<Request::BDelete> &bdm_list);
 
         /** @description Bulk Histogram to multiple endpoints */
-        Response::BHistogram *communicate(const std::unordered_map<int, Request::BHistogram *> &bhm_list);
+        Response::BHistogram *communicate(const ReqList<Request::BHistogram> &bhm_list);
 
     private:
         Engine_t engine;
-        RPC_t process_rpc; // rpc that processes requests and replys with responses
-        RPC_t cleanup_rpc; // rpc to clean up pointer that is not freed during process
+        RangeServer *rs; /** needed because thats where the rpc signatures are defined */
 
         std::unordered_map<int, Endpoint_t> endpoints;
 };

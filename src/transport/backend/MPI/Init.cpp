@@ -17,29 +17,28 @@ namespace MPI {
  * @param opts           the HXHIM options
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int init(hxhim_t *hx, hxhim_options_t *opts) {
+Transport *init(hxhim_t *hx, hxhim_options_t *opts) {
     mlog(MPI_INFO, "Starting MPI Initialization");
-    if (!hxhim::valid(hx, opts) ||
-        !hx->p->transport)       {
-        return HXHIM_ERROR;
+    if (!hxhim::valid(hx, opts)) {
+        return nullptr;
     }
 
     // Do not allow MPI_COMM_NULL
     if (hx->p->bootstrap.comm == MPI_COMM_NULL) {
-        return TRANSPORT_ERROR;
+        return nullptr;
     }
 
     Options *config = static_cast<Options *>(opts->p->transport);
 
     // create a range server
+    RangeServer *rs = nullptr;
     if (is_range_server(hx->p->bootstrap.rank, opts->p->client_ratio, opts->p->server_ratio)) {
-        RangeServer::init(hx, config->listeners);
-        hx->p->range_server.destroy = RangeServer::destroy;
+        rs = construct<RangeServer>(hx, config->listeners);
         mlog(MPI_INFO, "Created MPI Range Server on rank %d", hx->p->bootstrap.rank);
     }
 
-    EndpointGroup *eg = new EndpointGroup(hx->p->bootstrap.comm,
-                                          hx->p->running);
+    EndpointGroup *eg = construct<EndpointGroup>(hx->p->bootstrap.comm,
+                                                 hx->p->running);
 
     // create mapping between unique IDs and ranks
     for(int i = 0; i < hx->p->bootstrap.size; i++) {
@@ -51,11 +50,8 @@ int init(hxhim_t *hx, hxhim_options_t *opts) {
         }
     }
 
-    // set the endpoint group
-    hx->p->transport->SetEndpointGroup(eg);
-
     mlog(MPI_INFO, "Completed MPI Initialization");
-    return TRANSPORT_SUCCESS;
+    return construct<Transport>(eg, rs);
 }
 
 }

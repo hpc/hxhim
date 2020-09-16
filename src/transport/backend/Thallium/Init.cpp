@@ -1,3 +1,5 @@
+#include <unordered_map>
+
 #include "hxhim/private/accessors.hpp"
 #include "hxhim/private/hxhim.hpp"
 #include "hxhim/private/options.hpp"
@@ -15,7 +17,7 @@
  * @param opts the HXHIM options
  * @param TRANSPORT_SUCCESS or TRANSPORT_ERROR
  */
-int Transport::Thallium::init(hxhim_t *hx, hxhim_options_t *opts) {
+Transport::Transport *Transport::Thallium::init(hxhim_t *hx, hxhim_options_t *opts) {
     #if PRINT_TIMESTAMPS
     ::Stats::Chronostamp thallium_init;
     thallium_init.start = ::Stats::now();
@@ -49,21 +51,10 @@ int Transport::Thallium::init(hxhim_t *hx, hxhim_options_t *opts) {
 
     mlog(THALLIUM_INFO, "Rank %d Created Thallium engine %s", rank, static_cast<std::string>(engine->self()).c_str());
 
-    // create a range server
-    if (is_range_server(rank, opts->p->client_ratio, opts->p->server_ratio)) {
-        RangeServer::init(hx, engine);
-        hx->p->range_server.destroy = RangeServer::destroy;
-        mlog(THALLIUM_INFO, "Rank %d Created Thallium Range Server", rank);
-    }
-
-    // create client to range server RPC
-    RPC_t process_rpc(new thallium::remote_procedure(engine->define(RangeServer::PROCESS_RPC_NAME,
-                                                                    RangeServer::process)));
-
-    RPC_t cleanup_rpc(new thallium::remote_procedure(engine->define(RangeServer::CLEANUP_RPC_NAME,
-                                                                    RangeServer::cleanup).disable_response()));
-
-    mlog(THALLIUM_DBG, "Rank %d Created Thallium RPC", rank);
+    // Range server is always created, even if this rank is not a range server
+    // because RPC function signatures are needed. Datastores are not tied to
+    // range servers, so it should not matter that there are extra range servers.
+    RangeServer *rs = construct<RangeServer>(hx, engine);
 
     #if PRINT_TIMESTAMPS
     ::Stats::Chronostamp thallium_addrs;
@@ -73,7 +64,8 @@ int Transport::Thallium::init(hxhim_t *hx, hxhim_options_t *opts) {
     // get a mapping of unique IDs to thallium addresses
     std::unordered_map<int, std::string> addrs;
     if (get_addrs(hx->p->bootstrap.comm, *engine, addrs) != TRANSPORT_SUCCESS) {
-        return TRANSPORT_ERROR;
+        delete rs;
+        return nullptr;
     }
 
     #if PRINT_TIMESTAMPS
@@ -83,7 +75,7 @@ int Transport::Thallium::init(hxhim_t *hx, hxhim_options_t *opts) {
     // remove the loopback endpoint
     addrs.erase(rank);
 
-    EndpointGroup *eg = new EndpointGroup(engine, process_rpc, cleanup_rpc);
+    EndpointGroup *eg = construct<EndpointGroup>(engine, rs);
 
     // create mapping between unique IDs and ranks
     for(decltype(addrs)::value_type const &addr : addrs) {
@@ -98,8 +90,6 @@ int Transport::Thallium::init(hxhim_t *hx, hxhim_options_t *opts) {
         }
     }
 
-    hx->p->transport->SetEndpointGroup(eg);
-
     mlog(THALLIUM_INFO, "Rank %d Completed Thallium transport initialization", rank);
     #if PRINT_TIMESTAMPS
     thallium_init.end = ::Stats::now();
@@ -107,5 +97,5 @@ int Transport::Thallium::init(hxhim_t *hx, hxhim_options_t *opts) {
     Stats::print_event(hx->p->print_buffer, hx->p->bootstrap.rank, "thallium_engine", ::Stats::global_epoch, thallium_engine);
     Stats::print_event(hx->p->print_buffer, hx->p->bootstrap.rank, "thallium_addrs",  ::Stats::global_epoch, thallium_addrs);
     #endif
-    return TRANSPORT_SUCCESS;
+    return construct<Transport>(eg, rs);
 }

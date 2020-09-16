@@ -12,21 +12,12 @@
 #include "utils/mlogfacs2.h"
 
 Transport::Thallium::EndpointGroup::EndpointGroup(const Thallium::Engine_t &engine,
-                                                  const Thallium::RPC_t &process_rpc,
-                                                  const Thallium::RPC_t &cleanup_rpc)
+                                                  RangeServer *rs)
     : ::Transport::EndpointGroup(),
       engine(engine),
-      process_rpc(process_rpc),
-      cleanup_rpc(cleanup_rpc),
-    endpoints()
-{
-    if (!process_rpc) {
-        throw std::runtime_error("Bad RPC for processing requests");
-    }
-    if (!cleanup_rpc) {
-        throw std::runtime_error("Bad RPC for cleaning up responses");
-    }
-}
+      rs(rs),
+      endpoints()
+{}
 
 Transport::Thallium::EndpointGroup::~EndpointGroup() {}
 
@@ -106,10 +97,9 @@ void Transport::Thallium::EndpointGroup::RemoveID(const int id) {
 template <typename Recv_t, typename Send_t,
           typename = enable_if_t<std::is_base_of<Transport::Request::Request,   Send_t>::value &&
                                  std::is_base_of<Transport::Response::Response, Recv_t>::value> >
-Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
+Recv_t *do_operation(const Transport::ReqList<Send_t> &messages,
                      Transport::Thallium::Engine_t engine,
-                     Transport::Thallium::RPC_t process_rpc,
-                     Transport::Thallium::RPC_t cleanup_rpc,
+                     Transport::Thallium::RangeServer *rs,
                      std::unordered_map<int, Transport::Thallium::Endpoint_t> &endpoints) {
     int rank = -1;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -161,7 +151,7 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
         // send request_size and request
         // get back packed response_size, response, and remote address
         req->timestamps.transport->send_start = ::Stats::now(); // store the value in req for now
-        thallium::packed_response packed_res = process_rpc->on(*dst_it->second)(req_size, req_bulk);
+        thallium::packed_response packed_res = rs->process()->on(*dst_it->second)(req_size, req_bulk);
         req->timestamps.transport->recv_end = ::Stats::now();   // store the value in req for now
 
         dealloc(req_buf);
@@ -192,7 +182,7 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
 
         // clean up server pointer before handling any errors
         req->timestamps.transport->cleanup_rpc.start = ::Stats::now(); // store the value in req for now
-        cleanup_rpc->on(*dst_it->second)(res_ptr);
+        rs->cleanup()->on(*dst_it->second)(res_ptr);
         req->timestamps.transport->cleanup_rpc.end = ::Stats::now(); // store the value in req for now
 
         if (unpack_rc != TRANSPORT_SUCCESS) {
@@ -239,8 +229,8 @@ Recv_t *do_operation(const std::unordered_map<int, Send_t *> &messages,
  * @param bpm_list the list of BPUT messages to send
  * @return a linked list of response messages, or nullptr
  */
-Transport::Response::BPut *Transport::Thallium::EndpointGroup::communicate(const std::unordered_map<int, Request::BPut *> &bpm_list) {
-    return do_operation<Response::BPut>(bpm_list, engine, process_rpc, cleanup_rpc, endpoints);
+Transport::Response::BPut *Transport::Thallium::EndpointGroup::communicate(const ReqList<Request::BPut> &bpm_list) {
+    return do_operation<Response::BPut>(bpm_list, engine, rs, endpoints);
 }
 
 /**
@@ -250,8 +240,8 @@ Transport::Response::BPut *Transport::Thallium::EndpointGroup::communicate(const
  * @param bgm_list the list of BGET messages to send
  * @return a linked list of response messages, or nullptr
  */
-Transport::Response::BGet *Transport::Thallium::EndpointGroup::communicate(const std::unordered_map<int, Request::BGet *> &bgm_list) {
-    return do_operation<Response::BGet>(bgm_list, engine, process_rpc, cleanup_rpc, endpoints);
+Transport::Response::BGet *Transport::Thallium::EndpointGroup::communicate(const ReqList<Request::BGet> &bgm_list) {
+    return do_operation<Response::BGet>(bgm_list, engine, rs, endpoints);
 }
 
 /**
@@ -261,8 +251,8 @@ Transport::Response::BGet *Transport::Thallium::EndpointGroup::communicate(const
  * @param bgm_list the list of BGETOP messages to send
  * @return a linked list of response messages, or nullptr
  */
-Transport::Response::BGetOp *Transport::Thallium::EndpointGroup::communicate(const std::unordered_map<int, Request::BGetOp *> &bgm_list) {
-    return do_operation<Response::BGetOp>(bgm_list, engine, process_rpc, cleanup_rpc, endpoints);
+Transport::Response::BGetOp *Transport::Thallium::EndpointGroup::communicate(const ReqList<Request::BGetOp> &bgm_list) {
+    return do_operation<Response::BGetOp>(bgm_list, engine, rs, endpoints);
 }
 
 /**
@@ -272,8 +262,8 @@ Transport::Response::BGetOp *Transport::Thallium::EndpointGroup::communicate(con
  * @param bdm_list the list of BDELETE messages to send
  * @return a linked list of response messages, or nullptr
  */
-Transport::Response::BDelete *Transport::Thallium::EndpointGroup::communicate(const std::unordered_map<int, Request::BDelete *> &bdm_list) {
-    return do_operation<Response::BDelete>(bdm_list, engine, process_rpc, cleanup_rpc, endpoints);
+Transport::Response::BDelete *Transport::Thallium::EndpointGroup::communicate(const ReqList<Request::BDelete> &bdm_list) {
+    return do_operation<Response::BDelete>(bdm_list, engine, rs, endpoints);
 }
 
 /**
@@ -283,6 +273,6 @@ Transport::Response::BDelete *Transport::Thallium::EndpointGroup::communicate(co
  * @param bhm_list the list of BHISTOGRAM messages to send
  * @return a linked list of response messages, or nullptr
  */
-Transport::Response::BHistogram *Transport::Thallium::EndpointGroup::communicate(const std::unordered_map<int, Request::BHistogram *> &bhm_list) {
-    return do_operation<Response::BHistogram>(bhm_list, engine, process_rpc, cleanup_rpc, endpoints);
+Transport::Response::BHistogram *Transport::Thallium::EndpointGroup::communicate(const ReqList<Request::BHistogram> &bhm_list) {
+    return do_operation<Response::BHistogram>(bhm_list, engine, rs, endpoints);
 }

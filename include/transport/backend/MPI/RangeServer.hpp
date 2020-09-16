@@ -13,25 +13,25 @@
 namespace Transport {
 namespace MPI {
 
-class RangeServer {
+class RangeServer : virtual public ::Transport::RangeServer {
     public:
-        static int init(hxhim_t *hx, const std::size_t listener_count);
-        static void destroy();
+        RangeServer(hxhim_t *hx, const std::size_t listener_count);
+        ~RangeServer();
 
+    private:
         /**
          * Function that will be used to listen for MPI messages
          */
-        static void listener_thread();
+        void listener_thread();
 
-    private:
-        static int recv(void **data, std::size_t *len);
-        static int send(const int dst, void *data, const std::size_t len);
+        int recv(void **data, std::size_t *len);
+        int send(const int dst, void *data, const std::size_t len);
 
-        static int Flush(MPI_Request &req);
-        static int Flush(MPI_Request &req, MPI_Status &status);
+        int Flush(MPI_Request &req);
+        int Flush(MPI_Request &req, MPI_Status &status);
 
-        static hxhim_t *hx_;
-        static std::vector<std::thread> listeners_;
+        hxhim_t *hx;
+        std::vector<std::thread> listeners;
 };
 
 }

@@ -4,44 +4,56 @@
 #include <thallium/serialization/stl/string.hpp>
 
 #include "hxhim/accessors.hpp"
-#include "hxhim/hxhim.hpp"
 #include "transport/backend/Thallium/RangeServer.hpp"
 #include "transport/backend/local/RangeServer.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
-namespace Transport {
-namespace Thallium {
+const std::string Transport::Thallium::RangeServer::PROCESS_RPC_NAME = "process";
+const std::string Transport::Thallium::RangeServer::CLEANUP_RPC_NAME = "cleanup";
 
-const std::string RangeServer::PROCESS_RPC_NAME = "process";
-const std::string RangeServer::CLEANUP_RPC_NAME = "cleanup";
-hxhim_t *RangeServer::hx_ = nullptr;
-Engine_t RangeServer::engine_ = {};
-
-void RangeServer::init(hxhim_t *hx, const Engine_t &engine) {
-    hx_ = hx;
-    engine_ = engine;
-
-    int rank = -1;
-    hxhim::nocheck::GetMPI(hx_, nullptr, &rank, nullptr);
-
+Transport::Thallium::RangeServer::RangeServer(hxhim_t *hx, Engine_t &engine)
+    : hx(hx),
+      engine(engine),
+      rank(-1),
+      process_rpc(new thallium::remote_procedure(
+                      engine->define(PROCESS_RPC_NAME,
+                                     [this](const thallium::request &req,
+                                            const std::size_t req_len,
+                                            thallium::bulk &bulk) {
+                                         return this->process(req, req_len, bulk);
+                                     }
+                          )
+                      )
+          ),
+      cleanup_rpc(new thallium::remote_procedure(
+                      engine->define(CLEANUP_RPC_NAME,
+                                     [this](const thallium::request &req,
+                                            uintptr_t addr) {
+                                         return this->cleanup(req, addr);
+                                     }
+                          ).disable_response()
+                      )
+          )
+{
+    hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
     mlog(THALLIUM_INFO, "Initialized Thallium Range Server on rank %d", rank);
 }
 
-void RangeServer::destroy() {
-    int rank = -1;
-    hxhim::nocheck::GetMPI(hx_, nullptr, &rank, nullptr);
-
-    engine_ = nullptr;
-    hx_ = nullptr;
+Transport::Thallium::RangeServer::~RangeServer() {
     mlog(THALLIUM_INFO, "Stopped Thallium Range Server on rank %d", rank);
 }
 
-void RangeServer::process(const thallium::request &req, const std::size_t req_len, thallium::bulk &bulk) {
-    int rank = -1;
-    hxhim::nocheck::GetMPI(hx_, nullptr, &rank, nullptr);
+Transport::Thallium::RPC_t Transport::Thallium::RangeServer::process() const {
+    return process_rpc;
+}
 
+Transport::Thallium::RPC_t Transport::Thallium::RangeServer::cleanup() const {
+    return cleanup_rpc;
+}
+
+void Transport::Thallium::RangeServer::process(const thallium::request &req, const std::size_t req_len, thallium::bulk &bulk) {
     thallium::endpoint ep = req.get_endpoint();
     mlog(THALLIUM_INFO, "Rank %d RangeServer Starting to process data from %s", rank, ((std::string) ep).c_str());
 
@@ -50,7 +62,7 @@ void RangeServer::process(const thallium::request &req, const std::size_t req_le
     // receive request
     {
         std::vector<std::pair<void *, std::size_t> > segments = {std::make_pair(req_buf, req_len)};
-        thallium::bulk local = engine_->expose(segments, thallium::bulk_mode::write_only);
+        thallium::bulk local = engine->expose(segments, thallium::bulk_mode::write_only);
         bulk.on(ep) >> local;
     }
 
@@ -69,7 +81,7 @@ void RangeServer::process(const thallium::request &req, const std::size_t req_le
 
     // process the request
     mlog(THALLIUM_DBG, "Rank %d Sending %s to Local RangeServer", rank, HXHIM_OP_STR[request->op]);
-    Response::Response *response = local::range_server(hx_, request);
+    Response::Response *response = local::range_server(hx, request);
     dealloc(request);
 
     mlog(THALLIUM_DBG, "Rank %d Local RangeServer responded with %s response", rank, HXHIM_OP_STR[response->op]);
@@ -86,7 +98,7 @@ void RangeServer::process(const thallium::request &req, const std::size_t req_le
     // send the response
     {
         std::vector<std::pair<void *, std::size_t> > segments = {std::make_pair(res_buf, res_len)};
-        thallium::bulk local = engine_->expose(segments, thallium::bulk_mode::read_only);
+        thallium::bulk local = engine->expose(segments, thallium::bulk_mode::read_only);
         req.respond(res_len, local, (uintptr_t) res_buf);
     }
 
@@ -95,11 +107,8 @@ void RangeServer::process(const thallium::request &req, const std::size_t req_le
     mlog(THALLIUM_INFO, "Rank %d RangeServer Done processing request from %s and sending response", rank, ((std::string) ep).c_str());
 }
 
-void RangeServer::cleanup(const thallium::request &, uintptr_t addr) {
+void Transport::Thallium::RangeServer::cleanup(const thallium::request &, uintptr_t addr) {
     // res_buf is cleaned up here
     // since freeing in process will result in the other side given access to freed memory
     dealloc((void *) addr);
-}
-
-}
 }

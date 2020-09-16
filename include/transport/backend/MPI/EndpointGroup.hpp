@@ -33,31 +33,31 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup, virtual public 
         void RemoveID(const int id);
 
         /** @description Bulk Put to multiple endpoints    */
-        Response::BPut *communicate(const std::unordered_map<int, Request::BPut *> &bpm_list);
+        Response::BPut *communicate(const ReqList<Request::BPut> &bpm_list);
 
         /** @description Bulk Get from multiple endpoints  */
-        Response::BGet *communicate(const std::unordered_map<int, Request::BGet *> &bgm_list);
+        Response::BGet *communicate(const ReqList<Request::BGet> &bgm_list);
 
         /** @description Bulk Get from multiple endpoints  */
-        Response::BGetOp *communicate(const std::unordered_map<int, Request::BGetOp *> &bgm_list);
+        Response::BGetOp *communicate(const ReqList<Request::BGetOp> &bgm_list);
 
         /** @description Bulk Delete to multiple endpoints */
-        Response::BDelete *communicate(const std::unordered_map<int, Request::BDelete *> &bdm_list);
+        Response::BDelete *communicate(const ReqList<Request::BDelete> &bdm_list);
 
         /** @description Bulk Histogram to multiple endpoints */
-        Response::BHistogram *communicate(const std::unordered_map<int, Request::BHistogram *> &bhm_list);
+        Response::BHistogram *communicate(const ReqList<Request::BHistogram> &bhm_list);
 
     private:
         /** @escription Functions that perform the actual MPI calls */
         template <typename Send_t, typename = enable_if_t<std::is_base_of<Request::Request, Send_t>::value> >
-        std::size_t parallel_send(const std::unordered_map<int, Send_t *> &messages);                      // send to range server
+        std::size_t parallel_send(const ReqList<Send_t> &messages);                         // send to range server
 
         template <typename Recv_t, typename = enable_if_t<std::is_base_of<Response::Response, Recv_t>::value> >
-        std::size_t parallel_recv(const std::size_t nsrcs, int *srcs, Recv_t ***messages);       // receive from range server
+        std::size_t parallel_recv(const std::size_t nsrcs, int *srcs, Recv_t ***messages);  // receive from range server
 
         template <typename Recv_t, typename Send_t, typename = enable_if_t<std::is_base_of<Request::Request,   Send_t>::value &&
                                                                            std::is_base_of<Response::Response, Recv_t>::value> >
-        Recv_t *return_msgs(const std::unordered_map<int, Send_t *> &messages);
+        Recv_t *return_msgs(const ReqList<Send_t> &messages);
 
         /** @description Mapping from unique ids to MPI ranks */
         std::unordered_map<int, int> ranks;

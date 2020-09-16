@@ -11,7 +11,7 @@
 namespace Transport {
 namespace Thallium {
 
-class RangeServer {
+class RangeServer : virtual public ::Transport::RangeServer {
     public:
         /**
          * RPC name called by the client to send and receive data
@@ -19,16 +19,23 @@ class RangeServer {
         static const std::string PROCESS_RPC_NAME;
         static const std::string CLEANUP_RPC_NAME;
 
-        static void init(hxhim_t *hx, const Engine_t &engine);
-        static void destroy();
+        RangeServer(hxhim_t *hx, Engine_t &engine);
+        ~RangeServer();
 
-        static void process(const thallium::request &req, const std::size_t req_len, thallium::bulk &bulk);
-        static void cleanup(const thallium::request &req, uintptr_t addr);
+        // access RPCs using these functions
+        RPC_t process() const;
+        RPC_t cleanup() const;
 
     private:
-        static hxhim_t *hx_;
-        static Engine_t engine_;
-        static std::size_t bufsize_;
+        hxhim_t *hx;
+        Engine_t engine;
+        int rank;
+
+        void process(const thallium::request &req, const std::size_t req_len, thallium::bulk &bulk);
+        RPC_t process_rpc;
+
+        void cleanup(const thallium::request &req, uintptr_t addr);
+        RPC_t cleanup_rpc;
 };
 
 }

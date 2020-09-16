@@ -55,7 +55,7 @@ hxhim::Results *process(hxhim_t *hx,
     // a round might not send every request, so keep running until out of requests
     while (head) {
         // current set of remote destinations to send to
-        std::unordered_map<int, Request_t *> remote;
+        Transport::ReqList<Request_t> remote;
 
         Request_t local(max_ops_per_send);
         local.src = local.dst = rank;
