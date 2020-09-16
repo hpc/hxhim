@@ -12,7 +12,7 @@ static char *pack_addr(char *&dst, void *ptr) {
     //     return nullptr;
     // }
 
-    big_endian::encode(dst, &ptr);
+    big_endian::encode(dst, ptr);
     dst += sizeof(ptr);
     return dst;
 }
