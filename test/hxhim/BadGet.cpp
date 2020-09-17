@@ -7,7 +7,7 @@ typedef uint64_t Subject_t;
 typedef uint64_t Predicate_t;
 
 TEST(hxhim, BadGet) {
-    const Subject_t SUBJECT     = (((Subject_t) rand()) << 32) | rand();
+    const Subject_t   SUBJECT   = (((Subject_t)   rand()) << 32) | rand();
     const Predicate_t PREDICATE = (((Predicate_t) rand()) << 32) | rand();
 
     hxhim_options_t opts;
@@ -18,8 +18,8 @@ TEST(hxhim, BadGet) {
 
     // Add nonexistant subject-predicate to get
     EXPECT_EQ(hxhim::GetDouble(&hx,
-                               (void *)&SUBJECT, sizeof(SUBJECT),
-                               (void *)&PREDICATE, sizeof(PREDICATE)),
+                               (void *) &SUBJECT, sizeof(SUBJECT),
+                               (void *) &PREDICATE, sizeof(PREDICATE)),
               HXHIM_SUCCESS);
 
     // Flush all queued items

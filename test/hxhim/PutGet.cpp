@@ -8,9 +8,9 @@ typedef uint64_t Predicate_t;
 typedef double   Object_t;
 
 TEST(hxhim, PutGet) {
-    const Subject_t SUBJECT     = (((Subject_t) rand()) << 32) | rand();
+    const Subject_t   SUBJECT   = (((Subject_t)   rand()) << 32) | rand();
     const Predicate_t PREDICATE = (((Predicate_t) rand()) << 32) | rand();
-    const Object_t OBJECT       = (((Object_t) SUBJECT) * ((Object_t) SUBJECT)) / (((Object_t) PREDICATE) * ((Object_t) PREDICATE));
+    const Object_t    OBJECT    = (((Object_t) SUBJECT) * ((Object_t) SUBJECT)) / (((Object_t) PREDICATE) * ((Object_t) PREDICATE));
 
     hxhim_options_t opts;
     ASSERT_EQ(fill_options(&opts), true);
@@ -20,8 +20,8 @@ TEST(hxhim, PutGet) {
 
     // Add triple for putting
     EXPECT_EQ(hxhim::PutDouble(&hx,
-                               (void *)&SUBJECT, sizeof(SUBJECT),
-                               (void *)&PREDICATE, sizeof(PREDICATE),
+                               (void *)   &SUBJECT, sizeof(SUBJECT),
+                               (void *)   &PREDICATE, sizeof(PREDICATE),
                                (double *) &OBJECT),
               HXHIM_SUCCESS);
 
