@@ -296,15 +296,17 @@ hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
             res = hx->p->async_put.results;
             hx->p->async_put.results = nullptr;
         }
-        else {
-            res = construct<hxhim::Results>(hx);
-        }
     }
 
     // append new results to old results
     hxhim::Results *put_results = FlushImpl<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, hx->p->queues.puts, hx->p->max_ops_per_send);
-    res->Append(put_results);
-    hxhim::Results::Destroy(put_results);
+    if (res) {
+        res->Append(put_results);
+        hxhim::Results::Destroy(put_results);
+    }
+    else {
+        res = put_results;
+    }
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Done Flushing Puts", rank);
     return res;
