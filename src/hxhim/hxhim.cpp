@@ -283,16 +283,28 @@ hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing PUTs", rank);
-    hxhim::Results *res = FlushImpl<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, hx->p->queues.puts, hx->p->max_ops_per_send);
 
-    // if there are PUT results from the background thread, return them as well
-    std::unique_lock<std::mutex> lock(hx->p->async_put.mutex);
-    if (hx->p->async_put.results) {
-        hx->p->async_put.results->Append(res);
-        hxhim::Results::Destroy(res);
-        res = hx->p->async_put.results;
-        hx->p->async_put.results = nullptr;
+    hxhim::Results *res = nullptr;
+
+    // if there are PUT results from the background thread
+    // use that as the return pointer
+    {
+        // If background thread is running, this
+        // will block until the thread finishes.
+        std::unique_lock<std::mutex> lock(hx->p->async_put.mutex);
+        if (hx->p->async_put.results) {
+            res = hx->p->async_put.results;
+            hx->p->async_put.results = nullptr;
+        }
+        else {
+            res = construct<hxhim::Results>(hx);
+        }
     }
+
+    // append new results to old results
+    hxhim::Results *put_results = FlushImpl<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, hx->p->queues.puts, hx->p->max_ops_per_send);
+    res->Append(put_results);
+    hxhim::Results::Destroy(put_results);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Done Flushing Puts", rank);
     return res;
@@ -618,9 +630,18 @@ hxhim_results_t *hxhimChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t fun
     return hxhim_results_init(hx, hxhim::ChangeHash(hx, name, func, args));
 }
 
-// TODO: remove this function - this should be the background thread (triggered in PutImpl)
-static void clear_queued_puts(hxhim_t *hx) {
-    if (hx->p->queues.puts.count > hx->p->async_put.max_queued) {
+#if !ASYNC_PUTS
+/**
+ * serial_puts
+ * This is effectively FlushPuts but runs in hxhim::Put and hxhim::BPut
+ * to simulate background PUTs when threading is not allowed. The results
+ * are placed into the background PUTs results buffer.
+ *
+ * @param hx the HXHIM session
+ */
+static void serial_puts(hxhim_t *hx) {
+    if (hx->p->queues.puts.count >= hx->p->async_put.max_queued) {
+        // don't call FlushPuts to avoid deallocating old Results only to allocate a new one
         hxhim::Results *res = hxhim::process<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, hx->p->queues.puts.take(), hx->p->max_ops_per_send);
 
         {
@@ -634,7 +655,10 @@ static void clear_queued_puts(hxhim_t *hx) {
             }
         }
     }
+
+    hx->p->queues.puts.done_processing.notify_all();
 }
+#endif
 
 /**
  * Put
@@ -668,7 +692,11 @@ int hxhim::Put(hxhim_t *hx,
                                   object_type,
                                   ReferenceBlob(object, object_len));
 
-    clear_queued_puts(hx);
+    #if ASYNC_PUTS
+    hx->p->queues.puts.start_processing.notify_all();
+    #else
+    serial_puts(hx);
+    #endif
 
     put.end = ::Stats::now();
     hx->p->stats.single_op[hxhim_op_t::HXHIM_PUT].emplace_back(put);
@@ -905,8 +933,13 @@ int hxhim::BPut(hxhim_t *hx,
                        object_types[i],
                        ReferenceBlob(objects[i], object_lens[i]));
 
-        clear_queued_puts(hx);
     }
+
+    #if ASYNC_PUTS
+    hx->p->queues.puts.start_processing.notify_all();
+    #else
+    serial_puts(hx);
+    #endif
 
     bput.end = ::Stats::now();
     hx->p->stats.bulk_op[hxhim_op_t::HXHIM_PUT].emplace_back(bput);

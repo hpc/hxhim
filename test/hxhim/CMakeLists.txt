@@ -8,6 +8,7 @@ set(HXHIM_TEST_FILES
   PutGet.cpp
   Results.cpp
   accessors.cpp
+  background_put.cpp
   cache.cpp
   enqueue.cpp
   generic_options.cpp

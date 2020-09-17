@@ -107,8 +107,7 @@ namespace hxhim {
               done_processing(),
               head(nullptr),
               tail(nullptr),
-              count(0),
-              force(false)
+              count(0)
         {}
 
         ~Unsent() {
@@ -166,7 +165,6 @@ namespace hxhim {
         Data *head;
         Data *tail;
         std::size_t count;
-        bool force;
     };
 }
 

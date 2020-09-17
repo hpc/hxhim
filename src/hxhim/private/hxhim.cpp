@@ -64,56 +64,47 @@ static void backgroundPUT(hxhim_t *hx) {
 
     while (hx->p->running) {
         hxhim::PutData *head = nullptr;    // the first PUT to process
-        bool force = false;                // whether or not FlushPuts was called
+
+        hxhim::Unsent<hxhim::PutData> &unsent = hx->p->queues.puts;
 
         // hold unsent.mutex just long enough to move queued PUTs to send queue
         {
-            hxhim::Unsent<hxhim::PutData> &unsent = hx->p->queues.puts;
-
             // Wait until any of the following is true
             //    1. HXHIM is no longer running
             //    2. The number of queued PUTs passes the threshold
             //    3. The PUTs are being forced to flush
             std::unique_lock<std::mutex> lock(unsent.mutex);
-            while (hx->p->running && (unsent.count < hx->p->async_put.max_queued) && !unsent.force) {
                 mlog(HXHIM_CLIENT_DBG, "Waiting for %zu PUTs (currently have %zu)", hx->p->async_put.max_queued, unsent.count);
-                unsent.start_processing.wait(lock, [&]() -> bool { return !hx->p->running || (unsent.count >= hx->p->async_put.max_queued) || unsent.force; });
-            }
+                unsent.start_processing.wait(lock, [&]() -> bool { return !hx->p->running || (unsent.count >= hx->p->async_put.max_queued); });
 
             mlog(HXHIM_CLIENT_DBG, "Moving %zu queued PUTs into process queue", unsent.count);
 
             // move all PUTs into this thread for processing
             head = unsent.take_no_lock();
-
-            // record whether or not this loop was forced, since the lock is not held
-            force = unsent.force;
-            unsent.force = false;
         }
 
-        // process the queued PUTs
         mlog(HXHIM_CLIENT_DBG, "Processing queued PUTs");
         {
-            // process the batch and save the results
+            // process the queued PUTs
             hxhim::Results *res = hxhim::process<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, head, hx->p->max_ops_per_send);
 
+            // store the results in a buffer that FlushPuts will clean up
             {
-                std::unique_lock<std::mutex> lock(hx->p->async_put.mutex);
-                hx->p->async_put.results->Append(res);
+                std::lock_guard<std::mutex> lock(hx->p->async_put.mutex);
+
+                if (hx->p->async_put.results) {
+                    hx->p->async_put.results->Append(res);
+                    destruct(res);
+                }
+                else {
+                    hx->p->async_put.results = res;
+                }
             }
 
-            destruct(res);
-        }
-        mlog(HXHIM_CLIENT_DBG, "Done processing queued PUTs");
-
-        // if this flush was forced, notify FlushPuts
-        if (force) {
-            hxhim::Unsent<hxhim::PutData> &unsent = hx->p->queues.puts;
-            std::unique_lock<std::mutex> lock(unsent.mutex);
             unsent.done_processing.notify_all();
         }
 
-        // // clean up in case previous loop stopped early
-        // clean(hx, head);
+        mlog(HXHIM_CLIENT_DBG, "Done processing queued PUTs");
     }
 
     mlog(HXHIM_CLIENT_DBG, "Background PUT thread stopping");
@@ -347,14 +338,18 @@ int hxhim::init::async_put(hxhim_t *hx, hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
+    std::lock_guard<std::mutex> lock(hx->p->async_put.mutex);
+
     // Set number of bulk puts to queue up before sending
     hx->p->async_put.max_queued = opts->p->start_async_put_at;
 
     // Set up queued PUT results list
     hx->p->async_put.results = nullptr;
 
-    // // Start the background thread
-    // hx->p->async_put.thread = std::thread(backgroundPUT, hx);
+    // Start the background thread
+    #if ASYNC_PUTS
+    hx->p->async_put.thread = std::thread(backgroundPUT, hx);
+    #endif
 
     return HXHIM_SUCCESS;
 }
@@ -515,28 +510,15 @@ int hxhim::destroy::async_put(hxhim_t *hx) {
     // stop the thread
     destroy::running(hx);
     hx->p->queues.puts.start_processing.notify_all();
-    hx->p->queues.puts.done_processing.notify_all();
 
-    // if (hx->p->async_put.thread.joinable()) {
-    //     hx->p->async_put.thread.join();
-    // }
-
-    // clear out unflushed work in the work queue
-    clean(hx, hx->p->queues.puts.head);
-    hx->p->queues.puts.head = nullptr;
-    clean(hx, hx->p->queues.gets.head);
-    hx->p->queues.gets.head = nullptr;
-    clean(hx, hx->p->queues.getops.head);
-    hx->p->queues.getops.head = nullptr;
-    clean(hx, hx->p->queues.deletes.head);
-    hx->p->queues.deletes.head = nullptr;
+    std::unique_lock<std::mutex>(hx->p->async_put.mutex);
+    if (hx->p->async_put.thread.joinable()) {
+        hx->p->async_put.thread.join();
+    }
 
     // release unproceesed results from asynchronous PUTs
-    {
-        std::unique_lock<std::mutex>(hx->p->async_put.mutex);
-        destruct(hx->p->async_put.results);
-        hx->p->async_put.results = nullptr;
-    }
+    destruct(hx->p->async_put.results);
+    hx->p->async_put.results = nullptr;
 
     return HXHIM_SUCCESS;
 }
