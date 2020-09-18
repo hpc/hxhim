@@ -39,7 +39,7 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
 
     // overallocate in case all of the requests go to one datastore
     std::size_t datastore_count = 0;
-    hxhim::GetDatastoresPerRangeServer(hx, &datastore_count);
+    hxhim::nocheck::GetDatastoresPerRangeServer(hx, &datastore_count);
     Request_t *dsts = alloc_array<Request_t>(datastore_count, req->count);
 
     // split up requests into datastores

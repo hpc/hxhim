@@ -17,7 +17,11 @@
  * @param opts the HXHIM options
  * @param TRANSPORT_SUCCESS or TRANSPORT_ERROR
  */
-Transport::Transport *Transport::Thallium::init(hxhim_t *hx, hxhim_options_t *opts) {
+Transport::Transport *Transport::Thallium::init(hxhim_t *hx,
+                                                const std::size_t client_ratio,
+                                                const std::size_t server_ratio,
+                                                const std::set<int> &endpointgroup,
+                                                Options *opts) {
     #if PRINT_TIMESTAMPS
     ::Stats::Chronostamp thallium_init;
     thallium_init.start = ::Stats::now();
@@ -28,8 +32,7 @@ Transport::Transport *Transport::Thallium::init(hxhim_t *hx, hxhim_options_t *op
 
     mlog(THALLIUM_INFO, "Rank %d Starting Thallium Initialization", rank);
 
-    Options *config = static_cast<Options *>(opts->p->transport);
-    mlog(THALLIUM_INFO, "Rank %d Configuring Thallium with %s", rank, config->module.c_str());
+    mlog(THALLIUM_INFO, "Rank %d Configuring Thallium with %s", rank, opts->module.c_str());
 
     #if PRINT_TIMESTAMPS
     ::Stats::Chronostamp thallium_engine;
@@ -37,7 +40,7 @@ Transport::Transport *Transport::Thallium::init(hxhim_t *hx, hxhim_options_t *op
     #endif
 
     // create the engine (only 1 instance per process)
-    Engine_t engine(new thallium::engine(config->module, THALLIUM_SERVER_MODE, true, -1),
+    Engine_t engine(new thallium::engine(opts->module, THALLIUM_SERVER_MODE, true, -1),
                     [](thallium::engine *engine) {
                         const std::string addr = static_cast<std::string>(engine->self());
                         mlog(THALLIUM_DBG, "Stopping Thallium engine %s", addr.c_str());
@@ -79,11 +82,11 @@ Transport::Transport *Transport::Thallium::init(hxhim_t *hx, hxhim_options_t *op
 
     // create mapping between unique IDs and ranks
     for(decltype(addrs)::value_type const &addr : addrs) {
-        if (is_range_server(addr.first, opts->p->client_ratio, opts->p->server_ratio)) {
+        if (is_range_server(addr.first, client_ratio, server_ratio)) {
             Endpoint_t server(new thallium::endpoint(engine->lookup(addr.second)));
 
             // if the rank was specified as part of the endpoint group, add the thallium endpoint to the endpoint group
-            if (!opts->p->endpointgroup.size() || (opts->p->endpointgroup.find(addr.first) != opts->p->endpointgroup.end())) {
+            if (!endpointgroup.size() || (endpointgroup.find(addr.first) != endpointgroup.end())) {
                 eg->AddID(addr.first, server);
                 mlog(THALLIUM_DBG, "Added Thallium endpoint %s to the endpoint group", addr.second.c_str());
             }

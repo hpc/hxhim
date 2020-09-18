@@ -394,43 +394,16 @@ int hxhim::init::transport(hxhim_t *hx, hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
-    delete hx->p->transport;
-    hx->p->transport = nullptr;
+    destroy::transport(hx);
 
-    int ret = HXHIM_SUCCESS; // can't check hx->p->transport because it will be
-                             // nullptr when transport type is TRANSPORT_NULL
-    switch (opts->p->transport->type) {
-        case Transport::TRANSPORT_NULL:
-            break;
-        case Transport::TRANSPORT_MPI:
-            if (!(hx->p->transport = Transport::MPI::init(hx, opts))) {
-                ret = HXHIM_ERROR;
-            }
-            break;
-        #if HXHIM_HAVE_THALLIUM
-        case Transport::TRANSPORT_THALLIUM:
-            {
-                #ifdef PRINT_TIMESTAMPS
-                ::Stats::Chronostamp init_thallium;
-                init_thallium.start = ::Stats::now();
-                #endif
-                if (!(hx->p->transport = Transport::Thallium::init(hx, opts))) {
-                    ret = HXHIM_ERROR;
-                }
-                #ifdef PRINT_TIMESTAMPS
-                init_thallium.end = ::Stats::now();
-                ::Stats::print_event(std::cerr, hx->p->bootstrap.rank, "init_thallium", ::Stats::global_epoch, init_thallium);
-                #endif
-            }
-            break;
-        #endif
-        default:
-            mlog(HXHIM_CLIENT_ERR, "Received bad transport type to initialize %d", opts->p->transport->type);
-            break;
-    }
+    const int ret = Transport::init(hx,
+                                    opts->p->client_ratio,
+                                    opts->p->server_ratio,
+                                    opts->p->endpointgroup,
+                                    opts->p->transport);
 
     mlog(HXHIM_CLIENT_INFO, "Completed Transport Initialization");
-    return (ret == HXHIM_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
+    return (ret == TRANSPORT_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 
 /**
@@ -479,10 +452,7 @@ int hxhim::destroy::memory(hxhim_t *) {
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
 int hxhim::destroy::transport(hxhim_t *hx) {
-    destruct(hx->p->transport);
-    hx->p->transport = nullptr;
-
-    return HXHIM_SUCCESS;
+    return (Transport::destroy(hx) == TRANSPORT_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 
 /**
