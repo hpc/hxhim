@@ -1,12 +1,17 @@
 cmake_minimum_required (VERSION 3.6.3)
 
-target_sources(hxhim PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/datastore.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/InMemory.cpp
+set(DATASTORE_SOURCES
+  datastore.cpp
+  datastores.cpp
+  InMemory.cpp
 )
 
 if (LEVELDB_FOUND AND ENABLE_LEVELDB)
-  target_sources(hxhim PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/leveldb.cpp
+  list(APPEND DATASTORE_SOURCES
+    leveldb.cpp
   )
 endif()
+
+foreach(MESSAGE ${DATASTORE_SOURCES})
+  target_sources(hxhim PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/${MESSAGE})
+endforeach()

@@ -225,7 +225,7 @@ Transport::Response::BPut *hxhim::datastore::Datastore::operate(Transport::Reque
     if (hist) {
         // add successfully PUT floating point values to the histogram
         for(std::size_t i = 0; i < req->count; i++) {
-            if (res->statuses[i] == HXHIM_SUCCESS) {
+            if (res->statuses[i] == DATASTORE_SUCCESS) {
                 switch (req->object_types[i]) {
                     case HXHIM_OBJECT_TYPE_FLOAT:
                         hist->add(* (float *) req->objects[i].data());
@@ -277,7 +277,7 @@ Transport::Response::BHistogram *hxhim::datastore::Datastore::operate(Transport:
         res->histograms[i] = hist;
         clock_gettime(CLOCK_MONOTONIC, &end);
 
-        res->statuses[i] = HXHIM_SUCCESS;
+        res->statuses[i] = DATASTORE_SUCCESS;
 
         event.size += res->histograms[i]->pack_size();
 
@@ -300,14 +300,14 @@ int hxhim::datastore::Datastore::Sync() {
  * Get the pointer to this datatstore's histogram
  *
  * @param h A pointer to this histogram pointer
- * @return HXHIM_SUCCESS
+ * @return DATASTORE_SUCCESS
  */
 int hxhim::datastore::Datastore::GetHistogram(Histogram::Histogram **h) const {
     if (hist) {
         *h = hist.get();
     }
 
-    return HXHIM_SUCCESS;
+    return DATASTORE_SUCCESS;
 }
 
 /**
@@ -321,7 +321,7 @@ int hxhim::datastore::Datastore::GetHistogram(Histogram::Histogram **h) const {
  * @param num_puts       the array of number of puts from each rank
  * @param get_times      the array of get times from each rank
  * @param num_gets       the array of number of gets from each rank
- * @return HXHIM_SUCCESS or HXHIM_ERROR on error
+ * @return DATASTORE_SUCCESS or DATASTORE_ERROR on error
  */
 int hxhim::datastore::Datastore::GetStats(uint64_t *put_time,
                                           std::size_t  *num_put,
@@ -351,7 +351,7 @@ int hxhim::datastore::Datastore::GetStats(uint64_t *put_time,
         *num_get = stats.gets.size();
     }
 
-    return HXHIM_SUCCESS;
+    return DATASTORE_SUCCESS;
 }
 
 hxhim::datastore::Datastore::Stats::Event::Event()

@@ -446,7 +446,7 @@ int Unpacker::unpack(Response::BHistogram **bhm, void *buf, const std::size_t bu
         big_endian::decode(out->statuses[i], curr);
         curr += sizeof(out->statuses[i]);
 
-        out->histograms[i] = std::shared_ptr<Histogram::Histogram>(construct<Histogram::Histogram>(0, nullptr, nullptr), Histogram::deleter);
+        out->histograms[i] = std::shared_ptr<Histogram::Histogram>(construct<Histogram::Histogram>(Histogram::Config{0, nullptr, nullptr}), Histogram::deleter);
         out->histograms[i]->unpack(curr, remaining, nullptr);
 
         out->count++;

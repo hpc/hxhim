@@ -451,8 +451,8 @@ int hxhim_options_set_histogram_bucket_gen_name(hxhim_options_t *opts, const cha
         return HXHIM_ERROR;
     }
 
-    opts->p->histogram.gen = gen_it->second;
-    opts->p->histogram.args = args_it->second;
+    opts->p->histogram.generator = gen_it->second;
+    opts->p->histogram.extra_args = args_it->second;
 
     return HXHIM_SUCCESS;
 }
@@ -492,8 +492,8 @@ int hxhim_options_set_histogram_bucket_gen_function(hxhim_options_t *opts, Histo
         return HXHIM_ERROR;
     }
 
-    opts->p->histogram.gen = gen;
-    opts->p->histogram.args = args;
+    opts->p->histogram.generator = gen;
+    opts->p->histogram.extra_args = args;
 
     return HXHIM_SUCCESS;
 }

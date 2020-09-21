@@ -221,39 +221,9 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
 
         // create datastores
         for(std::size_t i = 0; i < hx->p->datastores.size(); i++) {
-            Histogram::Histogram *hist = new Histogram::Histogram(opts->p->histogram.first_n,
-                                                                  opts->p->histogram.gen,
-                                                                  opts->p->histogram.args);
-
-            if (opts->p->datastore->type == hxhim::datastore::IN_MEMORY) {
-                hx->p->datastores[i] = new hxhim::datastore::InMemory(hx->p->bootstrap.rank,
-                                                                      i,
-                                                                      hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, i),
-                                                                      hist,
-                                                                      hx->p->hash.name);
-                mlog(HXHIM_CLIENT_INFO, "Initialized In-Memory in datastore[%zu]", i);
+            if (datastore::Init(hx, i, opts->p->datastore, opts->p->histogram) != DATASTORE_SUCCESS) {
+                return HXHIM_ERROR;
             }
-            #if HXHIM_HAVE_LEVELDB
-            else if (opts->p->datastore->type == hxhim::datastore::LEVELDB) {
-                #ifdef PRINT_TIMESTAMPS
-                ::Stats::Chronostamp init_leveldb;
-                init_leveldb.start = ::Stats::now();
-                #endif
-                hxhim::datastore::leveldb::Config *config = static_cast<hxhim::datastore::leveldb::Config *>(opts->p->datastore);
-                hx->p->datastores[i] = new hxhim::datastore::leveldb(hx->p->bootstrap.rank,
-                                                                     i,
-                                                                     hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, i),
-                                                                     hist,
-                                                                     config->prefix,
-                                                                     hx->p->hash.name,
-                                                                     config->create_if_missing);
-                mlog(HXHIM_CLIENT_INFO, "Initialized LevelDB in datastore[%zu]", i);
-                #ifdef PRINT_TIMESTAMPS
-                init_leveldb.end = ::Stats::now();
-                ::Stats::print_event(std::cerr, hx->p->bootstrap.rank, "init_leveldb", ::Stats::global_epoch, init_leveldb);
-                #endif
-            }
-            #endif
         }
     }
 
@@ -287,36 +257,13 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
 
     hx->p->datastores.resize(1);
 
-    Histogram::Histogram *hist = new Histogram::Histogram(opts->p->histogram.first_n,
-                                                          opts->p->histogram.gen,
-                                                          opts->p->histogram.args);
-
     // ignore configuration hash - everything goes into here
     hx->p->hash.name = "local";
     hx->p->hash.func = hxhim_hash_RankZero;
     hx->p->hash.args = nullptr;
 
-    // Start the datastore
-    switch (opts->p->datastore->type) {
-        case hxhim::datastore::IN_MEMORY:
-            hx->p->datastores[0] = new hxhim::datastore::InMemory(hx->p->bootstrap.rank,
-                                                                  0,
-                                                                  0,
-                                                                  hist,
-                                                                  name);
-            mlog(HXHIM_CLIENT_INFO, "Initialized single In-Memory datastore");
-            break;
-        #if HXHIM_HAVE_LEVELDB
-        case hxhim::datastore::LEVELDB:
-            hx->p->datastores[0] = new hxhim::datastore::leveldb(hx->p->bootstrap.rank,
-                                                                 hist,
-                                                                 name,
-                                                                 false);
-            mlog(HXHIM_CLIENT_INFO, "Initialized single LevelDB datastore");
-            break;
-        #endif
-        default:
-            break;
+    if (datastore::Init(hx, 0, opts->p->datastore, opts->p->histogram, &name) != DATASTORE_SUCCESS) {
+        return HXHIM_ERROR;
     }
 
     hx->p->total_range_servers = 1;
@@ -501,22 +448,7 @@ int hxhim::destroy::async_put(hxhim_t *hx) {
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
 int hxhim::destroy::datastore(hxhim_t *hx) {
-    for(int i = 0; i < hx->p->bootstrap.size; i++) {
-        MPI_Barrier(hx->p->bootstrap.comm);
-        if (hx->p->bootstrap.rank == i) {
-            for(hxhim::datastore::Datastore *&ds : hx->p->datastores) {
-                if (ds) {
-                    ds->Close();
-                    delete ds;
-                    ds = nullptr;
-                }
-            }
-        }
-    }
-
-    hx->p->datastores.resize(0);
-
-    return HXHIM_SUCCESS;
+    return (datastore::destroy(hx) == DATASTORE_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 
 std::ostream &hxhim::print_stats(hxhim_t *hx,

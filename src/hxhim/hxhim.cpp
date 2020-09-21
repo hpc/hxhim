@@ -1216,7 +1216,7 @@ int hxhim::GetStats(hxhim_t *hx, const int dst_rank,
         if (hx->p->datastores[i]->GetStats(&local_put_times[i],
                                            &local_num_puts[i],
                                            &local_get_times[i],
-                                           &local_num_gets[i]) != HXHIM_SUCCESS) {
+                                           &local_num_gets[i]) != DATASTORE_SUCCESS) {
             cleanup();
             return HXHIM_ERROR;
         }
@@ -1298,7 +1298,7 @@ int hxhimGetStats(hxhim_t *hx, const int dst_rank,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::Histogram(hxhim_t *hx, int ds_id) {
-    if (!valid(hx)  || !hx->p->running            ||
+    if (!valid(hx)  || !hx->p->running           ||
         (ds_id < 0) ||
         (ds_id >= (int) hx->p->total_datastores)) {
         return HXHIM_ERROR;

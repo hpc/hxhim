@@ -110,7 +110,7 @@ Transport::Response::BPut *hxhim::datastore::InMemory::BPutImpl(Transport::Reque
         res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size());
 
         // always successful
-        res->statuses[i] = HXHIM_SUCCESS;
+        res->statuses[i] = DATASTORE_SUCCESS;
     }
 
     dealloc(key_buffer_start);
@@ -164,12 +164,12 @@ Transport::Response::BGet *hxhim::datastore::InMemory::BGetImpl(Transport::Reque
         res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size());
         res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size());
 
-        res->statuses[i] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
+        res->statuses[i] = (it != db.end())?DATASTORE_SUCCESS:DATASTORE_ERROR;
 
         event.size += key_len;
 
         // copy the object into the response
-        if (res->statuses[i] == HXHIM_SUCCESS) {
+        if (res->statuses[i] == DATASTORE_SUCCESS) {
             res->objects[i] = RealBlob(it->second.size(), it->second.data());
 
             event.size += res->objects[i].size();
@@ -244,7 +244,7 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
 
             it = db.find(std::string((char *) key, key_len));
 
-            res->statuses[i] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
+            res->statuses[i] = (it != db.end())?DATASTORE_SUCCESS:DATASTORE_ERROR;
 
             // only 1 response, so j == 0 (num_recs is ignored)
             BGetOp_copy_response(it, res, i, 0, event);
@@ -256,7 +256,7 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
             it = db.find(std::string((char *) key, key_len));
 
             // all responses for this Op share a status
-            res->statuses[i] = (it != db.end())?HXHIM_SUCCESS:HXHIM_ERROR;
+            res->statuses[i] = (it != db.end())?DATASTORE_SUCCESS:DATASTORE_ERROR;
 
             // first result returned is (subject, predicate)
             // (results are offsets)
@@ -282,10 +282,10 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
                     it--;
                 }
 
-                res->statuses[i] = HXHIM_SUCCESS;
+                res->statuses[i] = DATASTORE_SUCCESS;
             }
             else {
-                res->statuses[i] = HXHIM_ERROR;
+                res->statuses[i] = DATASTORE_ERROR;
             }
         }
         else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_FIRST) {
@@ -298,10 +298,10 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
                     it++;
                 }
 
-                res->statuses[i] = HXHIM_SUCCESS;
+                res->statuses[i] = DATASTORE_SUCCESS;
             }
             else {
-                res->statuses[i] = HXHIM_ERROR;
+                res->statuses[i] = DATASTORE_ERROR;
             }
         }
         else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_LAST) {
@@ -318,10 +318,10 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
                     it--;
                 }
 
-                res->statuses[i] = HXHIM_SUCCESS;
+                res->statuses[i] = DATASTORE_SUCCESS;
             }
             else {
-                res->statuses[i] = HXHIM_ERROR;
+                res->statuses[i] = DATASTORE_ERROR;
             }
         }
 
@@ -365,10 +365,10 @@ Transport::Response::BDelete *hxhim::datastore::InMemory::BDeleteImpl(Transport:
         decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
         if (it != db.end()) {
             db.erase(it);
-            res->statuses[i] = HXHIM_SUCCESS;
+            res->statuses[i] = DATASTORE_SUCCESS;
         }
         else {
-            res->statuses[i] = HXHIM_ERROR;
+            res->statuses[i] = DATASTORE_ERROR;
         }
 
         res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size());
@@ -391,8 +391,8 @@ Transport::Response::BDelete *hxhim::datastore::InMemory::BDeleteImpl(Transport:
  * Sync
  * NOOP
  *
- * @return HXHIM_SUCCESS
+ * @return DATASTORE_SUCCESS
  */
 int hxhim::datastore::InMemory::SyncImpl() {
-    return HXHIM_SUCCESS;
+    return DATASTORE_SUCCESS;
 }

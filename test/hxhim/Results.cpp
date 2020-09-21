@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "datastore/constants.hpp"
 #include "hxhim/Results.hpp"
 #include "utils/Blob.hpp"
 #include "utils/memory.hpp"
@@ -13,13 +14,13 @@ TEST(Results, PUT_GET_DEL) {
     EXPECT_EQ(results.ValidIterator(), false);
 
     // add some data
-    hxhim::Results::Result *put = results.Add(construct<hxhim::Results::Put>(nullptr, -1, HXHIM_SUCCESS));
+    hxhim::Results::Result *put = results.Add(construct<hxhim::Results::Put>(nullptr, -1, DATASTORE_SUCCESS));
     EXPECT_NE(put, nullptr);
-    hxhim::Results::Result *get = results.Add(construct<hxhim::Results::Get>(nullptr, -1, HXHIM_SUCCESS));
+    hxhim::Results::Result *get = results.Add(construct<hxhim::Results::Get>(nullptr, -1, DATASTORE_SUCCESS));
     EXPECT_NE(get, nullptr);
-    hxhim::Results::Result *getop = results.Add(construct<hxhim::Results::GetOp>(nullptr, -1, HXHIM_SUCCESS));
+    hxhim::Results::Result *getop = results.Add(construct<hxhim::Results::GetOp>(nullptr, -1, DATASTORE_SUCCESS));
     EXPECT_NE(getop, nullptr);
-    hxhim::Results::Result *del = results.Add(construct<hxhim::Results::Delete>(nullptr, -1, HXHIM_SUCCESS));
+    hxhim::Results::Result *del = results.Add(construct<hxhim::Results::Delete>(nullptr, -1, DATASTORE_SUCCESS));
     EXPECT_NE(del, nullptr);
 
     EXPECT_EQ(results.ValidIterator(), false);  // still not valid because current result has not been set yet
@@ -54,7 +55,7 @@ TEST(Results, Loop) {
         // add some data
         const std::size_t puts = 10;
         for(std::size_t i = 0; i < puts; i++) {
-            hxhim::Results::Result *put = results.Add(construct<hxhim::Results::Put>(nullptr, -1, HXHIM_SUCCESS));
+            hxhim::Results::Result *put = results.Add(construct<hxhim::Results::Put>(nullptr, -1, DATASTORE_SUCCESS));
             EXPECT_NE(put, nullptr);
         }
 
@@ -78,13 +79,13 @@ TEST(Results, Append_Empty) {
     hxhim::Results results(nullptr);
 
     // add some data
-    hxhim::Results::Result *put = results.Add(construct<hxhim::Results::Put>(nullptr, -1, HXHIM_SUCCESS));
+    hxhim::Results::Result *put = results.Add(construct<hxhim::Results::Put>(nullptr, -1, DATASTORE_SUCCESS));
     EXPECT_NE(put, nullptr);
-    hxhim::Results::Result *get = results.Add(construct<hxhim::Results::Get>(nullptr, -1, HXHIM_SUCCESS));
+    hxhim::Results::Result *get = results.Add(construct<hxhim::Results::Get>(nullptr, -1, DATASTORE_SUCCESS));
     EXPECT_NE(get, nullptr);
-    hxhim::Results::Result *getop = results.Add(construct<hxhim::Results::GetOp>(nullptr, -1, HXHIM_SUCCESS));
+    hxhim::Results::Result *getop = results.Add(construct<hxhim::Results::GetOp>(nullptr, -1, DATASTORE_SUCCESS));
     EXPECT_NE(getop, nullptr);
-    hxhim::Results::Result *del = results.Add(construct<hxhim::Results::Delete>(nullptr, -1, HXHIM_SUCCESS));
+    hxhim::Results::Result *del = results.Add(construct<hxhim::Results::Delete>(nullptr, -1, DATASTORE_SUCCESS));
     EXPECT_NE(del, nullptr);
 
     // append empty set of results
@@ -103,13 +104,13 @@ TEST(Results, Empty_Append) {
     hxhim::Results results(nullptr);
 
     // add some data to the non-empty results
-    hxhim::Results::Result *put = results.Add(construct<hxhim::Results::Put>(nullptr, -1, HXHIM_SUCCESS));
+    hxhim::Results::Result *put = results.Add(construct<hxhim::Results::Put>(nullptr, -1, DATASTORE_SUCCESS));
     EXPECT_NE(put, nullptr);
-    hxhim::Results::Result *get = results.Add(construct<hxhim::Results::Get>(nullptr, -1, HXHIM_SUCCESS));
+    hxhim::Results::Result *get = results.Add(construct<hxhim::Results::Get>(nullptr, -1, DATASTORE_SUCCESS));
     EXPECT_NE(get, nullptr);
-    hxhim::Results::Result *getop = results.Add(construct<hxhim::Results::GetOp>(nullptr, -1, HXHIM_SUCCESS));
+    hxhim::Results::Result *getop = results.Add(construct<hxhim::Results::GetOp>(nullptr, -1, DATASTORE_SUCCESS));
     EXPECT_NE(getop, nullptr);
-    hxhim::Results::Result *del = results.Add(construct<hxhim::Results::Delete>(nullptr, -1, HXHIM_SUCCESS));
+    hxhim::Results::Result *del = results.Add(construct<hxhim::Results::Delete>(nullptr, -1, DATASTORE_SUCCESS));
     EXPECT_NE(del, nullptr);
 
     // empty append set of results
@@ -131,13 +132,13 @@ TEST(Results, Accessors) {
     hxhim::Results results(nullptr);
 
     // add some data to the non-empty results
-    hxhim::Results::Result *rput = results.Add(construct<hxhim::Results::Put>(nullptr, -1, HXHIM_SUCCESS));
+    hxhim::Results::Result *rput = results.Add(construct<hxhim::Results::Put>(nullptr, -1, DATASTORE_SUCCESS));
     hxhim::Results::Put *put = static_cast<hxhim::Results::Put *>(rput);
     EXPECT_NE(put, nullptr);
     put->subject = RealBlob(alloc(1), 1);
     put->predicate = RealBlob(alloc(1), 1);
 
-    hxhim::Results::Result *rget = results.Add(construct<hxhim::Results::Get>(nullptr, -1, HXHIM_SUCCESS));
+    hxhim::Results::Result *rget = results.Add(construct<hxhim::Results::Get>(nullptr, -1, DATASTORE_SUCCESS));
     hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(rget);
     EXPECT_NE(get, nullptr);
     get->subject = RealBlob(alloc(1), 1);
@@ -145,7 +146,7 @@ TEST(Results, Accessors) {
     get->object_type = hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE;
     get->object = RealBlob(alloc(1), 1);
 
-    hxhim::Results::Result *rgetop = results.Add(construct<hxhim::Results::GetOp>(nullptr, -1, HXHIM_SUCCESS));
+    hxhim::Results::Result *rgetop = results.Add(construct<hxhim::Results::GetOp>(nullptr, -1, DATASTORE_SUCCESS));
     hxhim::Results::GetOp *getop = static_cast<hxhim::Results::GetOp *>(rgetop);
     EXPECT_NE(getop, nullptr);
     getop->subject = RealBlob(alloc(1), 1);
@@ -153,7 +154,7 @@ TEST(Results, Accessors) {
     get->object_type = hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE;
     getop->object = RealBlob(alloc(1), 1);
 
-    hxhim::Results::Result *rdel = results.Add(construct<hxhim::Results::Delete>(nullptr, -1, HXHIM_SUCCESS));
+    hxhim::Results::Result *rdel = results.Add(construct<hxhim::Results::Delete>(nullptr, -1, DATASTORE_SUCCESS));
     hxhim::Results::Delete *del = static_cast<hxhim::Results::Delete *>(rdel);
     EXPECT_NE(del, nullptr);
     del->subject = RealBlob(alloc(1), 1);

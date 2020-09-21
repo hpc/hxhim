@@ -218,13 +218,13 @@ Transport::Response::BPut *hxhim::datastore::leveldb::BPutImpl(Transport::Reques
 
     if (status.ok()) {
         for(std::size_t i = 0; i < req->count; i++) {
-            res->statuses[i] = HXHIM_SUCCESS;
+            res->statuses[i] = DATASTORE_SUCCESS;
         }
         mlog(LEVELDB_INFO, "LevelDB write success");
     }
     else {
         for(std::size_t i = 0; i < req->count; i++) {
-            res->statuses[i] = HXHIM_ERROR;
+            res->statuses[i] = DATASTORE_ERROR;
         }
         mlog(LEVELDB_INFO, "LevelDB write error");
     }
@@ -287,14 +287,14 @@ Transport::Response::BGet *hxhim::datastore::leveldb::BGetImpl(Transport::Reques
         // put object into response
         if (status.ok()) {
             mlog(LEVELDB_INFO, "Rank %d LevelDB GET success", rank);
-            res->statuses[i] = HXHIM_SUCCESS;
+            res->statuses[i] = DATASTORE_SUCCESS;
             res->objects[i] = RealBlob(value.size(), value.data());
 
             event.size += res->objects[i].size();
         }
         else {
             mlog(LEVELDB_INFO, "Rank %d LevelDB GET error: %s", rank, status.ToString().c_str());
-            res->statuses[i] = HXHIM_ERROR;
+            res->statuses[i] = DATASTORE_ERROR;
         }
 
         res->count++;
@@ -421,7 +421,7 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
         }
 
         // all responses for this Op share a status
-        res->statuses[i] = it->status().ok()?HXHIM_SUCCESS:HXHIM_ERROR;
+        res->statuses[i] = it->status().ok()?DATASTORE_SUCCESS:DATASTORE_ERROR;
 
         res->count++;
 
@@ -478,7 +478,7 @@ Transport::Response::BDelete *hxhim::datastore::leveldb::BDeleteImpl(Transport::
 
     dealloc(key_buffer_start);
 
-    const int stat = status.ok()?HXHIM_SUCCESS:HXHIM_ERROR;
+    const int stat = status.ok()?DATASTORE_SUCCESS:DATASTORE_ERROR;
     for(std::size_t i = 0; i < req->count; i++) {
         res->statuses[i] = stat;
     }
@@ -495,11 +495,11 @@ Transport::Response::BDelete *hxhim::datastore::leveldb::BDeleteImpl(Transport::
  * Sync
  * Syncs the database to disc
  *
- * @return HXHIM_SUCCESS or HXHIM_ERROR on error
+ * @return DATASTORE_SUCCESS or DATASTORE_ERROR on error
  */
 int hxhim::datastore::leveldb::SyncImpl() {
     ::leveldb::WriteBatch batch;
     ::leveldb::WriteOptions options;
     options.sync = true;
-    return db->Write(options, &batch).ok()?HXHIM_SUCCESS:HXHIM_ERROR;
+    return db->Write(options, &batch).ok()?DATASTORE_SUCCESS:DATASTORE_ERROR;
 }

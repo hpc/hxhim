@@ -73,7 +73,7 @@ class Results {
     public:
         struct Result {
             Result(hxhim_t *hx, const enum hxhim_op_t op,
-                   const int datastore, const int status);
+                   const int datastore, const int ds_status);
             virtual ~Result();
 
             hxhim_t *hx;

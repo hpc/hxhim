@@ -520,7 +520,7 @@ TEST(Response, BHistogram) {
 
         src.ds_offsets[0] = rand();
 
-        src.histograms[0] = std::shared_ptr<Histogram::Histogram>(construct<Histogram::Histogram>(0, CUSTOM_NONUNIFORM_FUNC, nullptr), Histogram::deleter);
+        src.histograms[0] = std::shared_ptr<Histogram::Histogram>(construct<Histogram::Histogram>(Histogram::Config{0, CUSTOM_NONUNIFORM_FUNC, nullptr}), Histogram::deleter);
         for(std::size_t i = 0; i < 10; i++) {
             src.histograms[0]->add(rand() % 10);
         }

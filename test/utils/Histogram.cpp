@@ -10,7 +10,7 @@
 
 TEST(Histogram, not_enough_values) {
     const int n = 10;
-    Histogram::Histogram h(n + 1, [](const double *, const std::size_t, double **, std::size_t *, void *) { return HISTOGRAM_ERROR; }, nullptr);
+    Histogram::Histogram h({n + 1, [](const double *, const std::size_t, double **, std::size_t *, void *) { return HISTOGRAM_ERROR; }, nullptr});
 
     for(std::size_t i = 0; i < n; i++) {
         h.add(i);
@@ -45,7 +45,7 @@ static int every_two(const double *first_n, const std::size_t n, double **bucket
 
 TEST(Histogram, every_two) {
     const std::size_t n = 10;
-    Histogram::Histogram h(n, every_two, nullptr);
+    Histogram::Histogram h({n, every_two, nullptr});
 
     // fill the histogram
     for(std::size_t i = 0; i < n; i++) {
@@ -66,7 +66,7 @@ TEST(Histogram, every_two) {
 
 TEST(Histogram, uniform_log10) {
     static const std::size_t ten = 10;
-    Histogram::Histogram h(ten, histogram_uniform_logn, (void *) (uintptr_t) ten);
+    Histogram::Histogram h({ten, histogram_uniform_logn, (void *) (uintptr_t) ten});
     for(std::size_t i = 0; i < ten; i++) {
         h.add(i);
     }
@@ -104,7 +104,7 @@ TEST(Histogram, pack_unpack) {
         EXPECT_EQ(src.pack(&buf, &size), true);
         ASSERT_NE(buf, nullptr);
 
-        Histogram::Histogram dst(0, nullptr, nullptr);
+        Histogram::Histogram dst({0, nullptr, nullptr});
         EXPECT_EQ(dst.unpack(buf, size), true);
 
         dealloc(buf);
@@ -133,7 +133,7 @@ TEST(Histogram, pack_unpack) {
         EXPECT_EQ(src.pack(&buf, &size), true);
         ASSERT_NE(buf, nullptr);
 
-        Histogram::Histogram dst(0, nullptr, nullptr);
+        Histogram::Histogram dst({0, nullptr, nullptr});
         EXPECT_EQ(dst.unpack(buf, size), true);
 
         dealloc(buf);
@@ -143,7 +143,7 @@ TEST(Histogram, pack_unpack) {
 
     // bad unpack
     {
-        Histogram::Histogram dst(0, nullptr, nullptr);
+        Histogram::Histogram dst({0, nullptr, nullptr});
 
         // invalid pointer
         EXPECT_EQ(dst.unpack(nullptr, 2 * sizeof(std::size_t)), false);

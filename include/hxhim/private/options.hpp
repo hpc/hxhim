@@ -46,11 +46,7 @@ typedef struct hxhim_options_private {
 
     std::set<int> endpointgroup;
 
-    struct {
-        std::size_t first_n;               // number of datapoints used to generate histogram buckets
-        HistogramBucketGenerator_t gen;    // string name of the histogram bucket generation method
-        void *args;
-    } histogram;
+    struct Histogram::Config histogram;
 } hxhim_options_private_t;
 
 #ifdef __cplusplus

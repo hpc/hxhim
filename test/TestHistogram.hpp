@@ -9,9 +9,9 @@ int CUSTOM_NONUNIFORM_FUNC(const double *first_n, const size_t n,
 
 #define CUSTOM_NONUNIFORM_INIT(name, count)                             \
     const int n = count;                                                \
-    ::Histogram::Histogram name(n,                                      \
+    ::Histogram::Histogram name(Histogram::Config{n,                    \
                                 CUSTOM_NONUNIFORM_FUNC,                 \
-                                nullptr)
+                                nullptr})
 
 #define CUSTOM_NONUNIFORM_FILL(name, count)     \
     for(std::size_t i = 0; i < (count); i++) {  \

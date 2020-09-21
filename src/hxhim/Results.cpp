@@ -19,11 +19,11 @@ hxhim::Results::Result::Timestamps::Timestamps()
 {}
 
 hxhim::Results::Result::Result(hxhim_t *hx, const enum hxhim_op_t op,
-                               const int datastore, const int status)
+                               const int datastore, const int ds_status)
     : hx(hx),
       op(op),
       datastore(datastore),
-      status(status),
+      status((ds_status == DATASTORE_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR),
       timestamps()
 {}
 

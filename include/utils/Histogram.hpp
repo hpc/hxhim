@@ -8,6 +8,12 @@
 
 namespace Histogram {
 
+struct Config {
+    std::size_t first_n;
+    HistogramBucketGenerator_t generator;
+    void *extra_args;
+};
+
 /**
  * Histogram
  * This class generates histograms using the values added to it.
@@ -17,7 +23,8 @@ namespace Histogram {
  */
 class Histogram {
     public:
-        Histogram(const std::size_t use_first_n, const HistogramBucketGenerator_t &generator, void *extra_args);
+        Histogram(const Config &config);
+        Histogram(Config *config);
         virtual ~Histogram();
 
         // Add a value to the histogram

@@ -154,13 +154,13 @@ TEST(LevelDB, BGet) {
     ASSERT_NE(res, nullptr);
     EXPECT_EQ(res->count, count + 1);
     for(std::size_t i = 0; i < count; i++) {
-        EXPECT_EQ(res->statuses[i], HXHIM_SUCCESS);
+        EXPECT_EQ(res->statuses[i], DATASTORE_SUCCESS);
         ASSERT_NE(res->objects[i].data(), nullptr);
         EXPECT_EQ(res->objects[i].size(), triples[i].get_obj().size());
         EXPECT_EQ(std::memcmp(triples[i].get_obj().data(), res->objects[i].data(), res->objects[i].size()), 0);
     }
 
-    EXPECT_EQ(res->statuses[count], HXHIM_ERROR);
+    EXPECT_EQ(res->statuses[count], DATASTORE_ERROR);
     EXPECT_EQ(res->objects[count].data(), nullptr);
 
     destruct(res);
@@ -267,11 +267,11 @@ TEST(LevelDB, BDelete) {
         ASSERT_NE(res, nullptr);
         EXPECT_EQ(res->count, count + 1);
         for(std::size_t i = 0; i < count; i++) {
-            EXPECT_EQ(res->statuses[i], HXHIM_SUCCESS);
+            EXPECT_EQ(res->statuses[i], DATASTORE_SUCCESS);
         }
 
         // as long as one delete succeeded, will return HXHIM_SUCCESS
-        EXPECT_EQ(res->statuses[count], HXHIM_SUCCESS);
+        EXPECT_EQ(res->statuses[count], DATASTORE_SUCCESS);
 
         destruct(res);
     }
@@ -294,7 +294,7 @@ TEST(LevelDB, BDelete) {
         ASSERT_NE(res, nullptr);
         EXPECT_EQ(res->count, count + 1);
         for(std::size_t i = 0; i < res->count; i++) {
-            EXPECT_EQ(res->statuses[i], HXHIM_ERROR);
+            EXPECT_EQ(res->statuses[i], DATASTORE_ERROR);
         }
 
         destruct(res);

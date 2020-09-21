@@ -12,7 +12,7 @@ TEST(datastore, GetStats) {
 
     // no stats yet
     {
-        EXPECT_EQ(ds.GetStats(&put_time, &num_puts, &get_time, &num_gets), HXHIM_SUCCESS);
+        EXPECT_EQ(ds.GetStats(&put_time, &num_puts, &get_time, &num_gets), DATASTORE_SUCCESS);
         EXPECT_EQ(put_time, 0);
         EXPECT_EQ(num_puts, 0);
         EXPECT_EQ(get_time, 0);
@@ -29,7 +29,7 @@ TEST(datastore, GetStats) {
         {
             Transport::Request::BPut bput(0);
             ds.operate(static_cast<Transport::Request::BPut *>(&bput));
-            EXPECT_EQ(ds.GetStats(&put_time, &num_puts, &get_time, &num_gets), HXHIM_SUCCESS);
+            EXPECT_EQ(ds.GetStats(&put_time, &num_puts, &get_time, &num_gets), DATASTORE_SUCCESS);
             EXPECT_EQ(put_time, total_put_time);
             EXPECT_EQ(num_puts, i);
             EXPECT_EQ(get_time, (i - 1) * GET_TIME_UINT64);
@@ -40,7 +40,7 @@ TEST(datastore, GetStats) {
         {
             Transport::Request::BGet bget(0);
             ds.operate(static_cast<Transport::Request::BGet *>(&bget));
-            EXPECT_EQ(ds.GetStats(&put_time, &num_puts, &get_time, &num_gets), HXHIM_SUCCESS);
+            EXPECT_EQ(ds.GetStats(&put_time, &num_puts, &get_time, &num_gets), DATASTORE_SUCCESS);
             EXPECT_EQ(put_time, total_put_time);
             EXPECT_EQ(num_puts, i);
             EXPECT_EQ(get_time, total_get_time);

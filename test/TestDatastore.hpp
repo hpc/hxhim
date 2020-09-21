@@ -42,7 +42,7 @@ class TestDatastore : public hxhim::datastore::Datastore {
 
         Transport::Response::BDelete *BDeleteImpl(Transport::Request::BDelete *) { return nullptr; }
 
-        int SyncImpl() { return HXHIM_SUCCESS; }
+        int SyncImpl() { return DATASTORE_SUCCESS; }
 };
 
 #endif

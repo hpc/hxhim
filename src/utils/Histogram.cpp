@@ -156,10 +156,10 @@ int histogram_uniform_logn(const double *first_n, const size_t n, double **bucke
     return generate_using_bin_count(min, max, std::ceil((max - min) * std::log((std::size_t) (uintptr_t) extra) / std::log(max - min)), buckets, size);
 }
 
-Histogram::Histogram::Histogram(const std::size_t use_first_n, const HistogramBucketGenerator_t &generator, void *extra_args)
-    : first_n(use_first_n),
-      gen(generator),
-      extra(extra_args),
+Histogram::Histogram::Histogram(const Config &config)
+    : first_n(config.first_n),
+      gen(config.generator),
+      extra(config.extra_args),
       data(nullptr),
       data_size(0),
       buckets_(nullptr),
@@ -170,6 +170,10 @@ Histogram::Histogram::Histogram(const std::size_t use_first_n, const HistogramBu
         throw std::runtime_error("Could not allocate space for first n values");
     }
 }
+
+Histogram::Histogram::Histogram(Config *config)
+    : Histogram(*config)
+{}
 
 Histogram::Histogram::~Histogram() {
     std::stringstream s;
