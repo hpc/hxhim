@@ -280,7 +280,7 @@ int process_config_and_fill_options(hxhim_options_t *opts, ConfigSequence &confi
 }
 
 /**
- * hxhim_default_config_reader
+ * default_reader
  * This function acts as both the default
  * configuration reader as well as an example
  * of how custom configuration readers should
@@ -289,7 +289,7 @@ int process_config_and_fill_options(hxhim_options_t *opts, ConfigSequence &confi
  * @param opts the options to fill
  * @return whether or not configuration was completed
  */
-int hxhim_default_config_reader(hxhim_options_t *opts, MPI_Comm comm) {
+int hxhim::config::default_reader(hxhim_options_t *opts, MPI_Comm comm) {
     if (!opts) {
         return HXHIM_ERROR;
     }
@@ -327,4 +327,18 @@ int hxhim_default_config_reader(hxhim_options_t *opts, MPI_Comm comm) {
     }
 
     return ret;
+}
+
+/**
+ * hxhim_config_default_reader
+ * This function acts as both the default
+ * configuration reader as well as an example
+ * of how custom configuration readers should
+ * be implmented.
+ *
+ * @param opts the options to fill
+ * @return whether or not configuration was completed
+ */
+int hxhim_config_default_reader(hxhim_options_t *opts, MPI_Comm comm) {
+    return hxhim::config::default_reader(opts, comm);
 }

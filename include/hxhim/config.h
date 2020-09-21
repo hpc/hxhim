@@ -11,7 +11,7 @@ extern "C"
 {
 #endif
 
-int hxhim_default_config_reader(hxhim_options_t *opts, MPI_Comm comm);
+int hxhim_config_default_reader(hxhim_options_t *opts, MPI_Comm comm);
 
 #ifdef __cplusplus
 }

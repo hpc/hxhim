@@ -171,6 +171,8 @@ const Config DEFAULT_CONFIG = {
     std::make_pair(HISTOGRAM_BUCKET_GEN_NAME,     "10_BUCKETS"),
 };
 
+int default_reader(hxhim_options_t *opts, MPI_Comm comm);
+
 }
 }
 
