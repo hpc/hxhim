@@ -2,7 +2,6 @@
 #define HXHIM_PRIVATE_HPP
 
 #include <atomic>
-#include <map>
 #include <mutex>
 #include <ostream>
 #include <sstream>
@@ -20,9 +19,7 @@
 #include "hxhim/private/cache.hpp"
 #include "hxhim/struct.h"
 #include "transport/transport.hpp"
-#include "utils/Blob.hpp"
 #include "utils/Stats.hpp"
-#include "utils/type_traits.hpp"
 
 /**
  * hxhim_private
@@ -127,6 +124,10 @@ int hash        (hxhim_t *hx);
 int async_put   (hxhim_t *hx);
 int datastore   (hxhim_t *hx);
 }
+
+#if !ASYNC_PUTS
+void serial_puts(hxhim_t *hx);
+#endif
 
 // this will probably be moved to the public side
 std::ostream &print_stats(hxhim_t *hx,

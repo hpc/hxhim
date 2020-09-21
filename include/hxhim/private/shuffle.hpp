@@ -12,6 +12,8 @@
 #include "utils/Stats.hpp"
 #include "utils/macros.hpp"
 #include "utils/memory.hpp"
+#include "utils/mlog2.h"
+#include "utils/mlogfacs2.h"
 
 namespace hxhim {
 namespace shuffle {

@@ -2,13 +2,18 @@ cmake_minimum_required (VERSION 3.6.3)
 
 set(HXHIM_SRC
   Results.cpp
+  Stats.cpp
   accessors.cpp
+  cache.cpp
   config.cpp
+  destroy.cpp
   double.cpp
   float.cpp
   hash.cpp
   hxhim.cpp
+  init.cpp
   options.cpp
+  private.cpp
   single_type.cpp
 )
 
@@ -25,4 +30,4 @@ if (PRINT_TIMESTAMPS)
   endif()
 endif()
 
-add_subdirectory(private)
+add_subdirectory(ops)
