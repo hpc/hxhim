@@ -1,6 +1,7 @@
 #include "datastore/datastore.hpp"
 #include "hxhim/private/hxhim.hpp"
 #include "hxhim/private/options.hpp"
+#include "hxhim/private/process.hpp"
 #include "transport/transports.hpp"
 #include "utils/is_range_server.hpp"
 
@@ -131,6 +132,69 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
 
     return hx->p->datastores[0]?HXHIM_SUCCESS:HXHIM_ERROR;
 }
+
+#if ASYNC_PUTS
+/**
+ * backgroundPUT
+ * The thread that runs when the number of full batches crosses the queued bputs threshold
+ *
+ * @param hx      the HXHIM context
+ */
+static void backgroundPUT(hxhim_t *hx) {
+    if (!hxhim::valid(hx)) {
+        return;
+    }
+
+    mlog(HXHIM_CLIENT_DBG, "Started background PUT thread");
+
+    while (hx->p->running) {
+        hxhim::PutData *head = nullptr;    // the first PUT to process
+
+        hxhim::Unsent<hxhim::PutData> &unsent = hx->p->queues.puts;
+
+        // hold unsent.mutex just long enough to move queued PUTs to send queue
+        {
+            // Wait until any of the following is true
+            //    1. HXHIM is no longer running
+            //    2. The number of queued PUTs passes the threshold
+            //    3. The PUTs are being forced to flush
+            std::unique_lock<std::mutex> lock(unsent.mutex);
+                mlog(HXHIM_CLIENT_DBG, "Waiting for %zu PUTs (currently have %zu)", hx->p->async_put.max_queued, unsent.count);
+                unsent.start_processing.wait(lock, [&]() -> bool { return !hx->p->running || (unsent.count >= hx->p->async_put.max_queued); });
+
+            mlog(HXHIM_CLIENT_DBG, "Moving %zu queued PUTs into process queue", unsent.count);
+
+            // move all PUTs into this thread for processing
+            head = unsent.take_no_lock();
+        }
+
+        mlog(HXHIM_CLIENT_DBG, "Processing queued PUTs");
+        {
+            // process the queued PUTs
+            hxhim::Results *res = hxhim::process<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, head, hx->p->max_ops_per_send);
+
+            // store the results in a buffer that FlushPuts will clean up
+            {
+                std::lock_guard<std::mutex> lock(hx->p->async_put.mutex);
+
+                if (hx->p->async_put.results) {
+                    hx->p->async_put.results->Append(res);
+                    destruct(res);
+                }
+                else {
+                    hx->p->async_put.results = res;
+                }
+            }
+
+            unsent.done_processing.notify_all();
+        }
+
+        mlog(HXHIM_CLIENT_DBG, "Done processing queued PUTs");
+    }
+
+    mlog(HXHIM_CLIENT_DBG, "Background PUT thread stopping");
+}
+#endif
 
 /**
  * async_put
