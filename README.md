@@ -2,6 +2,9 @@
 ## The Hexadimensional Hashing Indexing Middleware
 ----
 
+### License
+HXHIM is licensed under the OSS and BSD-3 licenses. Please see [LICENSE](LICENSE) for details.
+
 ### Contact
 hxhim@lanl.gov
 
