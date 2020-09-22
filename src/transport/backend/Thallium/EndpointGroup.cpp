@@ -1,17 +1,17 @@
 #include "transport/backend/Thallium/EndpointGroup.hpp"
 
-#include <memory>
-#include <tuple>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "transport/backend/Thallium/Utilities.hpp"
 #include "utils/type_traits.hpp"
 #include "utils/macros.hpp"
+#include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
-Transport::Thallium::EndpointGroup::EndpointGroup(const Thallium::Engine_t &engine,
+Transport::Thallium::EndpointGroup::EndpointGroup(thallium::engine *engine,
                                                   RangeServer *rs)
     : ::Transport::EndpointGroup(),
       engine(engine),
@@ -19,37 +19,30 @@ Transport::Thallium::EndpointGroup::EndpointGroup(const Thallium::Engine_t &engi
       endpoints()
 {}
 
-Transport::Thallium::EndpointGroup::~EndpointGroup() {}
+Transport::Thallium::EndpointGroup::~EndpointGroup() {
+    for(decltype(endpoints)::value_type const ep : endpoints) {
+        destruct(ep.second);
+    }
+    engine->finalize();
+    destruct(engine);
+}
 
 /**
  * AddID
- * Add a mapping from a unique ID to a thalllium address
- * ThalliumEndpointGroup takes ownership of ep
- *     - If the engine is null or if the lookup fails,
- *       nothing is done and TRANSPORT_ERROR is returned
+ * Add a mapping from a unique ID to a thalllium address.
  *
  * @param id       the unique ID associated with the rank
- * @param engine   the engine instance
  * @param address  the address of the other end
  * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR
  */
-int Transport::Thallium::EndpointGroup::AddID(const int id, const Thallium::Engine_t &engine, const std::string &address) {
-    if (!engine) {
-        return TRANSPORT_ERROR;
-    }
-
-    Thallium::Endpoint_t ep(new thallium::endpoint(engine->lookup(address)));
-    if (!ep) {
-        return TRANSPORT_ERROR;
-    }
-
-    return AddID(id, ep);
+int Transport::Thallium::EndpointGroup::AddID(const int id, const std::string &address) {
+    return AddID(id, construct<thallium::endpoint>(engine->lookup(address)));
 }
 
 /**
  * AddID
  * Add a mapping from a unique ID to a MPI rank
- * ThalliumEndpointGroup takes ownership of ep
+ * Thallium::EndpointGroup takes ownership of ep
  *     - If ep is null, nothing is done
  *       and TRANSPORT_ERROR is returned
  *     - If there is already an endpoint at id,
@@ -59,11 +52,12 @@ int Transport::Thallium::EndpointGroup::AddID(const int id, const Thallium::Engi
  * @param ep the other end
  * @return TRANSPORT_SUCCESS or TRANSPORT_ERROR
  */
-int Transport::Thallium::EndpointGroup::AddID(const int id, const Thallium::Endpoint_t &ep) {
+int Transport::Thallium::EndpointGroup::AddID(const int id, thallium::endpoint *ep) {
     if (!ep) {
         return TRANSPORT_ERROR;
     }
 
+    RemoveID(id);
     endpoints[id] = ep;
     return TRANSPORT_SUCCESS;
 }
@@ -76,7 +70,11 @@ int Transport::Thallium::EndpointGroup::AddID(const int id, const Thallium::Endp
  * @param id the unique ID to remove
  */
 void Transport::Thallium::EndpointGroup::RemoveID(const int id) {
-    endpoints.erase(id);
+    decltype(endpoints)::const_iterator rm = endpoints.find(id);
+    if (rm != endpoints.end()) {
+        destruct(rm->second);
+        endpoints.erase(rm);
+    }
 }
 
 /**
@@ -98,9 +96,9 @@ template <typename Recv_t, typename Send_t,
           typename = enable_if_t<std::is_base_of<Transport::Request::Request,   Send_t>::value &&
                                  std::is_base_of<Transport::Response::Response, Recv_t>::value> >
 Recv_t *do_operation(const Transport::ReqList<Send_t> &messages,
-                     Transport::Thallium::Engine_t engine,
+                     thallium::engine *engine,
                      Transport::Thallium::RangeServer *rs,
-                     std::unordered_map<int, Transport::Thallium::Endpoint_t> &endpoints) {
+                     const std::unordered_map<int, thallium::endpoint *> &endpoints) {
     int rank = -1;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
@@ -122,7 +120,7 @@ Recv_t *do_operation(const Transport::ReqList<Send_t> &messages,
         mlog(THALLIUM_DBG, "Request is going to range server %d", req->dst);
 
         // figure out where to send the message
-        std::remove_reference<decltype(endpoints)>::type::const_iterator dst_it = endpoints.find(req->dst);
+        REF(endpoints)::const_iterator dst_it = endpoints.find(req->dst);
         if (dst_it == endpoints.end()) {
             mlog(THALLIUM_WARN, "Could not find endpoint for destination rank %d", req->dst);
             continue;
@@ -151,7 +149,7 @@ Recv_t *do_operation(const Transport::ReqList<Send_t> &messages,
         // send request_size and request
         // get back packed response_size, response, and remote address
         req->timestamps.transport->send_start = ::Stats::now(); // store the value in req for now
-        thallium::packed_response packed_res = rs->process()->on(*dst_it->second)(req_size, req_bulk);
+        thallium::packed_response packed_res = rs->process().on(*dst_it->second)(req_size, req_bulk);
         req->timestamps.transport->recv_end = ::Stats::now();   // store the value in req for now
 
         dealloc(req_buf);
@@ -182,7 +180,7 @@ Recv_t *do_operation(const Transport::ReqList<Send_t> &messages,
 
         // clean up server pointer before handling any errors
         req->timestamps.transport->cleanup_rpc.start = ::Stats::now(); // store the value in req for now
-        rs->cleanup()->on(*dst_it->second)(res_ptr);
+        rs->cleanup().on(*dst_it->second)(res_ptr);
         req->timestamps.transport->cleanup_rpc.end = ::Stats::now(); // store the value in req for now
 
         if (unpack_rc != TRANSPORT_SUCCESS) {

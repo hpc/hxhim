@@ -16,15 +16,15 @@ namespace Thallium {
  */
 class EndpointGroup : virtual public ::Transport::EndpointGroup {
     public:
-        EndpointGroup(const Engine_t &engine,
+        EndpointGroup(thallium::engine *engine,
                       RangeServer *rs);
         ~EndpointGroup();
 
         /** @description Converts a string into an endpoint and adds it to the map_*/
-        int AddID(const int id, const Engine_t &engine, const std::string &address);
+        int AddID(const int id, const std::string &address);
 
         /** @description Adds an endpoint to the map */
-        int AddID(const int id, const Endpoint_t &ep);
+        int AddID(const int id, thallium::endpoint *ep);
 
         /** @description Removes an endpoint*/
         void RemoveID(const int id);
@@ -45,10 +45,10 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup {
         Response::BHistogram *communicate(const ReqList<Request::BHistogram> &bhm_list);
 
     private:
-        Engine_t engine;
-        RangeServer *rs; /** needed because thats where the rpc signatures are defined */
+        thallium::engine *engine;                                 /** take ownership */
+        RangeServer *rs;                                          /** needed because thats where the rpc signatures are defined */
 
-        std::unordered_map<int, Endpoint_t> endpoints;
+        std::unordered_map<int, thallium::endpoint *> endpoints;  /** take ownership */
 };
 
 }

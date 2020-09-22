@@ -13,28 +13,25 @@
 const std::string Transport::Thallium::RangeServer::PROCESS_RPC_NAME = "process";
 const std::string Transport::Thallium::RangeServer::CLEANUP_RPC_NAME = "cleanup";
 
-Transport::Thallium::RangeServer::RangeServer(hxhim_t *hx, Engine_t &engine)
+Transport::Thallium::RangeServer::RangeServer(hxhim_t *hx, thallium::engine *engine)
     : hx(hx),
       engine(engine),
       rank(-1),
-      process_rpc(new thallium::remote_procedure(
-                      engine->define(PROCESS_RPC_NAME,
-                                     [this](const thallium::request &req,
-                                            const std::size_t req_len,
-                                            thallium::bulk &bulk) {
-                                         return this->process(req, req_len, bulk);
-                                     }
-                          )
+      process_rpc(engine->define(PROCESS_RPC_NAME,
+                                 [this](const thallium::request &req,
+                                        const std::size_t req_len,
+                                        thallium::bulk &bulk) {
+                                     return this->process(req, req_len, bulk);
+                                 }
                       )
+
           ),
-      cleanup_rpc(new thallium::remote_procedure(
-                      engine->define(CLEANUP_RPC_NAME,
-                                     [this](const thallium::request &req,
-                                            uintptr_t addr) {
-                                         return this->cleanup(req, addr);
-                                     }
-                          ).disable_response()
-                      )
+      cleanup_rpc(engine->define(CLEANUP_RPC_NAME,
+                                 [this](const thallium::request &req,
+                                        uintptr_t addr) {
+                                     return this->cleanup(req, addr);
+                                 }
+                      ).disable_response()
           )
 {
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
@@ -45,11 +42,11 @@ Transport::Thallium::RangeServer::~RangeServer() {
     mlog(THALLIUM_INFO, "Stopped Thallium Range Server on rank %d", rank);
 }
 
-Transport::Thallium::RPC_t Transport::Thallium::RangeServer::process() const {
+const thallium::remote_procedure &Transport::Thallium::RangeServer::process() const {
     return process_rpc;
 }
 
-Transport::Thallium::RPC_t Transport::Thallium::RangeServer::cleanup() const {
+const thallium::remote_procedure &Transport::Thallium::RangeServer::cleanup() const {
     return cleanup_rpc;
 }
 

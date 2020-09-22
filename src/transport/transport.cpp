@@ -42,8 +42,8 @@ Transport::Transport::Transport(EndpointGroup *epg, RangeServer *rs)
 }
 
 Transport::Transport::~Transport() {
-    SetEndpointGroup(nullptr);
     SetRangeServer(nullptr);
+    SetEndpointGroup(nullptr);
 }
 
 /**

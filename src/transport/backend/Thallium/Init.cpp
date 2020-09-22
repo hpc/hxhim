@@ -6,6 +6,7 @@
 #include "transport/backend/Thallium/Thallium.hpp"
 #include "utils/Stats.hpp"
 #include "utils/is_range_server.hpp"
+#include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
@@ -40,14 +41,8 @@ Transport::Transport *Transport::Thallium::init(hxhim_t *hx,
     #endif
 
     // create the engine (only 1 instance per process)
-    Engine_t engine(new thallium::engine(opts->module, THALLIUM_SERVER_MODE, true, -1),
-                    [](thallium::engine *engine) {
-                        const std::string addr = static_cast<std::string>(engine->self());
-                        mlog(THALLIUM_DBG, "Stopping Thallium engine %s", addr.c_str());
-                        engine->finalize();
-                        delete engine;
-                        mlog(THALLIUM_INFO, "Stopped Thallium engine %s", addr.c_str());
-                    });
+    thallium::engine *engine = construct<thallium::engine>(opts->module, THALLIUM_SERVER_MODE, true, -1);
+
     #if PRINT_TIMESTAMPS
     thallium_engine.end = ::Stats::now();
     #endif
@@ -83,11 +78,9 @@ Transport::Transport *Transport::Thallium::init(hxhim_t *hx,
     // create mapping between unique IDs and ranks
     for(decltype(addrs)::value_type const &addr : addrs) {
         if (is_range_server(addr.first, client_ratio, server_ratio)) {
-            Endpoint_t server(new thallium::endpoint(engine->lookup(addr.second)));
-
             // if the rank was specified as part of the endpoint group, add the thallium endpoint to the endpoint group
             if (!endpointgroup.size() || (endpointgroup.find(addr.first) != endpointgroup.end())) {
-                eg->AddID(addr.first, server);
+                eg->AddID(addr.first, addr.second);
                 mlog(THALLIUM_DBG, "Added Thallium endpoint %s to the endpoint group", addr.second.c_str());
             }
         }

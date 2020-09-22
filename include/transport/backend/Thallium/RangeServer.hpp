@@ -19,23 +19,23 @@ class RangeServer : virtual public ::Transport::RangeServer {
         static const std::string PROCESS_RPC_NAME;
         static const std::string CLEANUP_RPC_NAME;
 
-        RangeServer(hxhim_t *hx, Engine_t &engine);
+        RangeServer(hxhim_t *hx, thallium::engine *engine);
         ~RangeServer();
 
         // access RPCs using these functions
-        RPC_t process() const;
-        RPC_t cleanup() const;
+        const thallium::remote_procedure &process() const;
+        const thallium::remote_procedure &cleanup() const;
 
     private:
         hxhim_t *hx;
-        Engine_t engine;
+        thallium::engine *engine;  // not owned by RangeServer
         int rank;
 
         void process(const thallium::request &req, const std::size_t req_len, thallium::bulk &bulk);
-        RPC_t process_rpc;
+        const thallium::remote_procedure process_rpc;
 
         void cleanup(const thallium::request &req, uintptr_t addr);
-        RPC_t cleanup_rpc;
+        const thallium::remote_procedure cleanup_rpc;
 };
 
 }
