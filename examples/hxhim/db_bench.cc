@@ -754,7 +754,7 @@ class Benchmark {
 
     // read the config
     opts = new hxhim_options_t();
-    if (hxhim_default_config_reader(opts, MPI_COMM_WORLD) != HXHIM_SUCCESS) {
+    if (hxhim_config_default_reader(opts, MPI_COMM_WORLD) != HXHIM_SUCCESS) {
         fprintf(stderr, "Failed to read configuration");
         exit(1);
     }
