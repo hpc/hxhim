@@ -32,6 +32,7 @@ class Blob {
         // (length is not known)
         char *pack(char *&dst) const;
         std::size_t pack_size() const;
+        static std::size_t pack_size(const std::size_t len);
         char *unpack(char *&src);         // sets clean to true
 
         // pack the ptr address and length

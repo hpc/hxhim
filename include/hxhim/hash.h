@@ -68,6 +68,36 @@ int hxhim_hash_Random(hxhim_t *hx,
                       void *predicate, const size_t predicate_len,
                       void *args);
 
+int hxhim_hash_uthash_BER(hxhim_t *hx,
+                          void *subject, const size_t subject_len,
+                          void *predicate, const size_t predicate_len,
+                          void *);
+
+int hxhim_hash_uthash_SAX(hxhim_t *hx,
+                          void *subject, const size_t subject_len,
+                          void *predicate, const size_t predicate_len,
+                          void *);
+
+int hxhim_hash_uthash_FNV(hxhim_t *hx,
+                          void *subject, const size_t subject_len,
+                          void *predicate, const size_t predicate_len,
+                          void *);
+
+int hxhim_hash_uthash_OAT(hxhim_t *hx,
+                          void *subject, const size_t subject_len,
+                          void *predicate, const size_t predicate_len,
+                          void *);
+
+int hxhim_hash_uthash_JEN(hxhim_t *hx,
+                          void *subject, const size_t subject_len,
+                          void *predicate, const size_t predicate_len,
+                          void *);
+
+int hxhim_hash_uthash_SFH(hxhim_t *hx,
+                          void *subject, const size_t subject_len,
+                          void *predicate, const size_t predicate_len,
+                          void *);
+
 #ifdef __cplusplus
 }
 #endif

@@ -1,8 +1,9 @@
 #include <cstdlib>
 
 #include "datastore/datastore.hpp"
-#include "hxhim//private/accessors.hpp"
 #include "hxhim/hash.h"
+#include "hxhim/private/accessors.hpp"
+#include "utils/uthash.h"
 
 /**
  * hxhim_hash_RankZero
@@ -109,4 +110,124 @@ int hxhim_hash_Random(hxhim_t *hx, void *, const size_t, void *, const size_t, v
     std::size_t count = 0;
     hxhim::nocheck::GetDatastoreCount(hx, &count);
     return rand() % count;
+}
+
+/**
+ * hxhim_hash_uthash_BER
+ *
+ * @param hx            the HXHIM instance
+ * @param subject       the subject to hash
+ * @param subject_len   the length of the subject
+ * @param predicate     the predicate to hash
+ * @param predicate_len the length of the predicate
+ * @return the destination datastore ID or -1 on error
+ */
+int hxhim_hash_uthash_BER(hxhim_t *hx, void *subject, const size_t subject_len, void *predicate, const size_t predicate_len, void *) {
+    std::size_t count = 0;
+    hxhim::nocheck::GetDatastoreCount(hx, &count);
+
+    unsigned hashv = 0;
+    HASH_BER(subject,   subject_len,   hashv);
+    HASH_BER(predicate, predicate_len, hashv);
+    return hashv % count;
+}
+
+/**
+ * hxhim_hash_uthash_SAX
+ *
+ * @param hx            the HXHIM instance
+ * @param subject       the subject to hash
+ * @param subject_len   the length of the subject
+ * @param predicate     the predicate to hash
+ * @param predicate_len the length of the predicate
+ * @return the destination datastore ID or -1 on error
+ */
+int hxhim_hash_uthash_SAX(hxhim_t *hx, void *subject, const size_t subject_len, void *predicate, const size_t predicate_len, void *) {
+    std::size_t count = 0;
+    hxhim::nocheck::GetDatastoreCount(hx, &count);
+
+    unsigned hashv = 0;
+    HASH_SAX(subject,   subject_len,   hashv);
+    HASH_SAX(predicate, predicate_len, hashv);
+    return hashv % count;
+}
+
+/**
+ * hxhim_hash_uthash_FNV
+ *
+ * @param hx            the HXHIM instance
+ * @param subject       the subject to hash
+ * @param subject_len   the length of the subject
+ * @param predicate     the predicate to hash
+ * @param predicate_len the length of the predicate
+ * @return the destination datastore ID or -1 on error
+ */
+int hxhim_hash_uthash_FNV(hxhim_t *hx, void *subject, const size_t subject_len, void *predicate, const size_t predicate_len, void *) {
+    std::size_t count = 0;
+    hxhim::nocheck::GetDatastoreCount(hx, &count);
+
+    unsigned hashv = 2166136261U;
+    HASH_FNV(subject,   subject_len,   hashv);
+    HASH_FNV(predicate, predicate_len, hashv);
+    return hashv % count;
+}
+
+/**
+ * hxhim_hash_uthash_OAT
+ *
+ * @param hx            the HXHIM instance
+ * @param subject       the subject to hash
+ * @param subject_len   the length of the subject
+ * @param predicate     the predicate to hash
+ * @param predicate_len the length of the predicate
+ * @return the destination datastore ID or -1 on error
+ */
+int hxhim_hash_uthash_OAT(hxhim_t *hx, void *subject, const size_t subject_len, void *predicate, const size_t predicate_len, void *) {
+    std::size_t count = 0;
+    hxhim::nocheck::GetDatastoreCount(hx, &count);
+
+    unsigned hashv = 0;
+    HASH_OAT(subject,   subject_len,   hashv);
+    HASH_OAT(predicate, predicate_len, hashv);
+    return hashv % count;
+}
+
+/**
+ * hxhim_hash_uthash_JEN
+ *
+ * @param hx            the HXHIM instance
+ * @param subject       the subject to hash
+ * @param subject_len   the length of the subject
+ * @param predicate     the predicate to hash
+ * @param predicate_len the length of the predicate
+ * @return the destination datastore ID or -1 on error
+ */
+int hxhim_hash_uthash_JEN(hxhim_t *hx, void *subject, const size_t subject_len, void *predicate, const size_t predicate_len, void *) {
+    std::size_t count = 0;
+    hxhim::nocheck::GetDatastoreCount(hx, &count);
+
+    unsigned hashv = 0xfeedbeefu;
+    HASH_JEN(subject,   subject_len,   hashv);
+    HASH_JEN(predicate, predicate_len, hashv);
+    return hashv % count;
+}
+
+/**
+ * hxhim_hash_uthash_SFH
+ *
+ * @param hx            the HXHIM instance
+ * @param subject       the subject to hash
+ * @param subject_len   the length of the subject
+ * @param predicate     the predicate to hash
+ * @param predicate_len the length of the predicate
+ * @return the destination datastore ID or -1 on error
+ */
+int hxhim_hash_uthash_SFH(hxhim_t *hx, void *subject, const size_t subject_len, void *predicate, const size_t predicate_len, void *) {
+    std::size_t count = 0;
+    hxhim::nocheck::GetDatastoreCount(hx, &count);
+
+    unsigned hashv = 0xcafebabeu;
+    HASH_SFH(subject,   subject_len,   hashv);
+    HASH_SFH(predicate, predicate_len, hashv);
+    return hashv % count;
 }

@@ -14,6 +14,7 @@ set(INSTALLED_HEADERS
   mlog2.h
   mlogfacs2.h
   type_traits.hpp
+  uthash.h
 )
 
 set(NOT_INSTALLED_HEADERS

@@ -117,6 +117,12 @@ const std::unordered_map<std::string, hxhim_hash_t> HASHES = {
     std::make_pair("LEFT",                hxhim_hash_Left),
     std::make_pair("RIGHT",               hxhim_hash_Right),
     std::make_pair("RANDOM",              hxhim_hash_Random),
+    std::make_pair("UTHASH_BER",          hxhim_hash_uthash_BER),
+    std::make_pair("UTHASH_SAX",          hxhim_hash_uthash_SAX),
+    std::make_pair("UTHASH_FNV",          hxhim_hash_uthash_FNV),
+    std::make_pair("UTHASH_OAT",          hxhim_hash_uthash_OAT),
+    std::make_pair("UTHASH_JEN",          hxhim_hash_uthash_JEN),
+    std::make_pair("UTHASH_SFH",          hxhim_hash_uthash_SFH),
 };
 
 /**

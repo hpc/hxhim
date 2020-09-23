@@ -75,6 +75,10 @@ char *Blob::pack(char *&dst) const {
 }
 
 std::size_t Blob::pack_size() const {
+    return pack_size(len);
+}
+
+std::size_t Blob::pack_size(const std::size_t len) {
     return len + sizeof(len);
 }
 
