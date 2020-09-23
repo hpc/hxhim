@@ -45,12 +45,13 @@ static const char *mlog_facsarray[] = {
     "HXHIM_CLIENT",  /* 2 */
     "HXHIM_SERVER",  /* 3 */
     "DATASTORE",     /* 4 */
-    "LEVELDB",       /* 5 */
-    "INMEMORY",      /* 6 */
-    "MPI",           /* 7 */
-    "THALLIUM",      /* 8 */
-    "HISTOGRAM",     /* 9 */
-    0,               /* 10 */
+    "INMEMORY",      /* 5 */
+    "LEVELDB",       /* 6 */
+    "ROCKSDB",       /* 7 */
+    "MPI",           /* 8 */
+    "THALLIUM",      /* 9 */
+    "HISTOGRAM",     /* 10 */
+    0,               /* 11 */
 };
 #endif /* MLOG_FACSARRAY || MLOG_AFACSARRAY */
 
@@ -61,12 +62,13 @@ static const char *mlog_lfacsarray[] = {
     "HXHIM client",  /* 2 */
     "HXHIM range server", /* 3 */
     "Datastore",     /* 4 */
-    "LevelDB Datastore", /* 5 */
-    "In-Memory Datastore", /* 6 */
-    "MPI Transport", /* 7 */
-    "Thallium Transport", /* 8 */
-    "Histogram",     /* 9 */
-    0,               /* 10 */
+    "In-Memory Datastore", /* 5 */
+    "LevelDB Datastore", /* 6 */
+    "RocksDB Datastore", /* 7 */
+    "MPI Transport", /* 8 */
+    "Thallium Transport", /* 9 */
+    "Histogram",     /* 10 */
+    0,               /* 11 */
 };
 #endif /* MLOG_LFACSARRAY || MLOG_LFACSARRAY */
 
@@ -77,11 +79,12 @@ static const char *mlog_lfacsarray[] = {
 #define MLOGFAC_HXHIM_CLIENT  2 /* HXHIM client */
 #define MLOGFAC_HXHIM_SERVER  3 /* HXHIM range server */
 #define MLOGFAC_DATASTORE  4 /* Datastore */
-#define MLOGFAC_LEVELDB   5 /* LevelDB Datastore */
-#define MLOGFAC_INMEMORY  6 /* In-Memory Datastore */
-#define MLOGFAC_MPI       7 /* MPI Transport */
-#define MLOGFAC_THALLIUM  8 /* Thallium Transport */
-#define MLOGFAC_HISTOGRAM  9 /* Histogram */
+#define MLOGFAC_INMEMORY  5 /* In-Memory Datastore */
+#define MLOGFAC_LEVELDB   6 /* LevelDB Datastore */
+#define MLOGFAC_ROCKSDB   7 /* RocksDB Datastore */
+#define MLOGFAC_MPI       8 /* MPI Transport */
+#define MLOGFAC_THALLIUM  9 /* Thallium Transport */
+#define MLOGFAC_HISTOGRAM 10 /* Histogram */
 
 /*
  * HXHIM options MLOG levels
@@ -164,103 +167,123 @@ static const char *mlog_lfacsarray[] = {
 #define DATASTORE_DRARE   DATASTORE_DBG3
 
 /*
+ * In-Memory Datastore MLOG levels
+ */
+#define INMEMORY_EMERG   (5 | MLOG_EMERG)
+#define INMEMORY_ALERT   (5 | MLOG_ALERT)
+#define INMEMORY_CRIT    (5 | MLOG_CRIT)
+#define INMEMORY_ERR     (5 | MLOG_ERR)
+#define INMEMORY_WARN    (5 | MLOG_WARN)
+#define INMEMORY_NOTE    (5 | MLOG_NOTE)
+#define INMEMORY_INFO    (5 | MLOG_INFO)
+#define INMEMORY_DBG     (5 | MLOG_DBG)
+#define INMEMORY_DBG0    (5 | MLOG_DBG0)
+#define INMEMORY_DAPI     INMEMORY_DBG0
+#define INMEMORY_DBG1    (5 | MLOG_DBG1)
+#define INMEMORY_DINTAPI  INMEMORY_DBG1
+#define INMEMORY_DBG2    (5 | MLOG_DBG2)
+#define INMEMORY_DCOMMON  INMEMORY_DBG2
+#define INMEMORY_DBG3    (5 | MLOG_DBG3)
+#define INMEMORY_DRARE    INMEMORY_DBG3
+
+/*
  * LevelDB Datastore MLOG levels
  */
-#define LEVELDB_EMERG    (5 | MLOG_EMERG)
-#define LEVELDB_ALERT    (5 | MLOG_ALERT)
-#define LEVELDB_CRIT     (5 | MLOG_CRIT)
-#define LEVELDB_ERR      (5 | MLOG_ERR)
-#define LEVELDB_WARN     (5 | MLOG_WARN)
-#define LEVELDB_NOTE     (5 | MLOG_NOTE)
-#define LEVELDB_INFO     (5 | MLOG_INFO)
-#define LEVELDB_DBG      (5 | MLOG_DBG)
-#define LEVELDB_DBG0     (5 | MLOG_DBG0)
+#define LEVELDB_EMERG    (6 | MLOG_EMERG)
+#define LEVELDB_ALERT    (6 | MLOG_ALERT)
+#define LEVELDB_CRIT     (6 | MLOG_CRIT)
+#define LEVELDB_ERR      (6 | MLOG_ERR)
+#define LEVELDB_WARN     (6 | MLOG_WARN)
+#define LEVELDB_NOTE     (6 | MLOG_NOTE)
+#define LEVELDB_INFO     (6 | MLOG_INFO)
+#define LEVELDB_DBG      (6 | MLOG_DBG)
+#define LEVELDB_DBG0     (6 | MLOG_DBG0)
 #define LEVELDB_DAPI      LEVELDB_DBG0
-#define LEVELDB_DBG1     (5 | MLOG_DBG1)
+#define LEVELDB_DBG1     (6 | MLOG_DBG1)
 #define LEVELDB_DINTAPI   LEVELDB_DBG1
-#define LEVELDB_DBG2     (5 | MLOG_DBG2)
+#define LEVELDB_DBG2     (6 | MLOG_DBG2)
 #define LEVELDB_DCOMMON   LEVELDB_DBG2
-#define LEVELDB_DBG3     (5 | MLOG_DBG3)
+#define LEVELDB_DBG3     (6 | MLOG_DBG3)
 #define LEVELDB_DRARE     LEVELDB_DBG3
 
 /*
- * In-Memory Datastore MLOG levels
+ * RocksDB Datastore MLOG levels
  */
-#define INMEMORY_EMERG   (6 | MLOG_EMERG)
-#define INMEMORY_ALERT   (6 | MLOG_ALERT)
-#define INMEMORY_CRIT    (6 | MLOG_CRIT)
-#define INMEMORY_ERR     (6 | MLOG_ERR)
-#define INMEMORY_WARN    (6 | MLOG_WARN)
-#define INMEMORY_NOTE    (6 | MLOG_NOTE)
-#define INMEMORY_INFO    (6 | MLOG_INFO)
-#define INMEMORY_DBG     (6 | MLOG_DBG)
-#define INMEMORY_DBG0    (6 | MLOG_DBG0)
-#define INMEMORY_DAPI     INMEMORY_DBG0
-#define INMEMORY_DBG1    (6 | MLOG_DBG1)
-#define INMEMORY_DINTAPI  INMEMORY_DBG1
-#define INMEMORY_DBG2    (6 | MLOG_DBG2)
-#define INMEMORY_DCOMMON  INMEMORY_DBG2
-#define INMEMORY_DBG3    (6 | MLOG_DBG3)
-#define INMEMORY_DRARE    INMEMORY_DBG3
+#define ROCKSDB_EMERG    (7 | MLOG_EMERG)
+#define ROCKSDB_ALERT    (7 | MLOG_ALERT)
+#define ROCKSDB_CRIT     (7 | MLOG_CRIT)
+#define ROCKSDB_ERR      (7 | MLOG_ERR)
+#define ROCKSDB_WARN     (7 | MLOG_WARN)
+#define ROCKSDB_NOTE     (7 | MLOG_NOTE)
+#define ROCKSDB_INFO     (7 | MLOG_INFO)
+#define ROCKSDB_DBG      (7 | MLOG_DBG)
+#define ROCKSDB_DBG0     (7 | MLOG_DBG0)
+#define ROCKSDB_DAPI      ROCKSDB_DBG0
+#define ROCKSDB_DBG1     (7 | MLOG_DBG1)
+#define ROCKSDB_DINTAPI   ROCKSDB_DBG1
+#define ROCKSDB_DBG2     (7 | MLOG_DBG2)
+#define ROCKSDB_DCOMMON   ROCKSDB_DBG2
+#define ROCKSDB_DBG3     (7 | MLOG_DBG3)
+#define ROCKSDB_DRARE     ROCKSDB_DBG3
 
 /*
  * MPI Transport MLOG levels
  */
-#define MPI_EMERG        (7 | MLOG_EMERG)
-#define MPI_ALERT        (7 | MLOG_ALERT)
-#define MPI_CRIT         (7 | MLOG_CRIT)
-#define MPI_ERR          (7 | MLOG_ERR)
-#define MPI_WARN         (7 | MLOG_WARN)
-#define MPI_NOTE         (7 | MLOG_NOTE)
-#define MPI_INFO         (7 | MLOG_INFO)
-#define MPI_DBG          (7 | MLOG_DBG)
-#define MPI_DBG0         (7 | MLOG_DBG0)
+#define MPI_EMERG        (8 | MLOG_EMERG)
+#define MPI_ALERT        (8 | MLOG_ALERT)
+#define MPI_CRIT         (8 | MLOG_CRIT)
+#define MPI_ERR          (8 | MLOG_ERR)
+#define MPI_WARN         (8 | MLOG_WARN)
+#define MPI_NOTE         (8 | MLOG_NOTE)
+#define MPI_INFO         (8 | MLOG_INFO)
+#define MPI_DBG          (8 | MLOG_DBG)
+#define MPI_DBG0         (8 | MLOG_DBG0)
 #define MPI_DAPI          MPI_DBG0
-#define MPI_DBG1         (7 | MLOG_DBG1)
+#define MPI_DBG1         (8 | MLOG_DBG1)
 #define MPI_DINTAPI       MPI_DBG1
-#define MPI_DBG2         (7 | MLOG_DBG2)
+#define MPI_DBG2         (8 | MLOG_DBG2)
 #define MPI_DCOMMON       MPI_DBG2
-#define MPI_DBG3         (7 | MLOG_DBG3)
+#define MPI_DBG3         (8 | MLOG_DBG3)
 #define MPI_DRARE         MPI_DBG3
 
 /*
  * Thallium Transport MLOG levels
  */
-#define THALLIUM_EMERG   (8 | MLOG_EMERG)
-#define THALLIUM_ALERT   (8 | MLOG_ALERT)
-#define THALLIUM_CRIT    (8 | MLOG_CRIT)
-#define THALLIUM_ERR     (8 | MLOG_ERR)
-#define THALLIUM_WARN    (8 | MLOG_WARN)
-#define THALLIUM_NOTE    (8 | MLOG_NOTE)
-#define THALLIUM_INFO    (8 | MLOG_INFO)
-#define THALLIUM_DBG     (8 | MLOG_DBG)
-#define THALLIUM_DBG0    (8 | MLOG_DBG0)
+#define THALLIUM_EMERG   (9 | MLOG_EMERG)
+#define THALLIUM_ALERT   (9 | MLOG_ALERT)
+#define THALLIUM_CRIT    (9 | MLOG_CRIT)
+#define THALLIUM_ERR     (9 | MLOG_ERR)
+#define THALLIUM_WARN    (9 | MLOG_WARN)
+#define THALLIUM_NOTE    (9 | MLOG_NOTE)
+#define THALLIUM_INFO    (9 | MLOG_INFO)
+#define THALLIUM_DBG     (9 | MLOG_DBG)
+#define THALLIUM_DBG0    (9 | MLOG_DBG0)
 #define THALLIUM_DAPI     THALLIUM_DBG0
-#define THALLIUM_DBG1    (8 | MLOG_DBG1)
+#define THALLIUM_DBG1    (9 | MLOG_DBG1)
 #define THALLIUM_DINTAPI  THALLIUM_DBG1
-#define THALLIUM_DBG2    (8 | MLOG_DBG2)
+#define THALLIUM_DBG2    (9 | MLOG_DBG2)
 #define THALLIUM_DCOMMON  THALLIUM_DBG2
-#define THALLIUM_DBG3    (8 | MLOG_DBG3)
+#define THALLIUM_DBG3    (9 | MLOG_DBG3)
 #define THALLIUM_DRARE    THALLIUM_DBG3
 
 /*
  * Histogram MLOG levels
  */
-#define HISTOGRAM_EMERG  (9 | MLOG_EMERG)
-#define HISTOGRAM_ALERT  (9 | MLOG_ALERT)
-#define HISTOGRAM_CRIT   (9 | MLOG_CRIT)
-#define HISTOGRAM_ERR    (9 | MLOG_ERR)
-#define HISTOGRAM_WARN   (9 | MLOG_WARN)
-#define HISTOGRAM_NOTE   (9 | MLOG_NOTE)
-#define HISTOGRAM_INFO   (9 | MLOG_INFO)
-#define HISTOGRAM_DBG    (9 | MLOG_DBG)
-#define HISTOGRAM_DBG0   (9 | MLOG_DBG0)
+#define HISTOGRAM_EMERG  (10 | MLOG_EMERG)
+#define HISTOGRAM_ALERT  (10 | MLOG_ALERT)
+#define HISTOGRAM_CRIT   (10 | MLOG_CRIT)
+#define HISTOGRAM_ERR    (10 | MLOG_ERR)
+#define HISTOGRAM_WARN   (10 | MLOG_WARN)
+#define HISTOGRAM_NOTE   (10 | MLOG_NOTE)
+#define HISTOGRAM_INFO   (10 | MLOG_INFO)
+#define HISTOGRAM_DBG    (10 | MLOG_DBG)
+#define HISTOGRAM_DBG0   (10 | MLOG_DBG0)
 #define HISTOGRAM_DAPI    HISTOGRAM_DBG0
-#define HISTOGRAM_DBG1   (9 | MLOG_DBG1)
+#define HISTOGRAM_DBG1   (10 | MLOG_DBG1)
 #define HISTOGRAM_DINTAPI  HISTOGRAM_DBG1
-#define HISTOGRAM_DBG2   (9 | MLOG_DBG2)
+#define HISTOGRAM_DBG2   (10 | MLOG_DBG2)
 #define HISTOGRAM_DCOMMON  HISTOGRAM_DBG2
-#define HISTOGRAM_DBG3   (9 | MLOG_DBG3)
+#define HISTOGRAM_DBG3   (10 | MLOG_DBG3)
 #define HISTOGRAM_DRARE   HISTOGRAM_DBG3
 
 #endif /* _MLOGFACS_H_ */

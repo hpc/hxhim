@@ -10,6 +10,7 @@ set(INSTALLED_HEADERS
   elen.hpp
   elen.tpp
   memory.hpp
+  mkdir_p.hpp
   mlog2.h
   mlogfacs2.h
   type_traits.hpp

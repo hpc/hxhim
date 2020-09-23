@@ -12,10 +12,13 @@ namespace datastore {
  * The types of datastores that are available
  */
 enum Type {
+    IN_MEMORY,
     #if HXHIM_HAVE_LEVELDB
     LEVELDB,
     #endif
-    IN_MEMORY,
+    #if HXHIM_HAVE_ROCKSDB
+    ROCKSDB,
+    #endif
 };
 
 }

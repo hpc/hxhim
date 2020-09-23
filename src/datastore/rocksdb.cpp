@@ -4,10 +4,10 @@
 #include <stdexcept>
 #include <sys/stat.h>
 
-#include "leveldb/write_batch.h"
+#include "rocksdb/write_batch.h"
 
 #include "hxhim/accessors.hpp"
-#include "datastore/leveldb.hpp"
+#include "datastore/rocksdb.hpp"
 #include "utils/Blob.hpp"
 #include "utils/memory.hpp"
 #include "utils/mkdir_p.hpp"
@@ -15,7 +15,7 @@
 #include "utils/mlogfacs2.h"
 #include "utils/triplestore.hpp"
 
-hxhim::datastore::leveldb::leveldb(const int rank,
+hxhim::datastore::rocksdb::rocksdb(const int rank,
                                    Histogram::Histogram *hist,
                                    const std::string &exact_name,
                                    const bool create_if_missing)
@@ -28,10 +28,10 @@ hxhim::datastore::leveldb::leveldb(const int rank,
 
     Datastore::Open(dbname);
 
-    mlog(LEVELDB_INFO, "Opened leveldb with name: %s", exact_name.c_str());
+    mlog(ROCKSDB_INFO, "Opened rocksdb with name: %s", exact_name.c_str());
 }
 
-hxhim::datastore::leveldb::leveldb(const int rank,
+hxhim::datastore::rocksdb::rocksdb(const int rank,
                                    const int offset,
                                    const int id,
                                    Histogram::Histogram *hist,
@@ -56,47 +56,47 @@ hxhim::datastore::leveldb::leveldb(const int rank,
     init_open.start = ::Stats::now();
     #endif
     Datastore::Open(dbname);
-    mlog(LEVELDB_INFO, "Opened leveldb with name: %s", dbname.c_str());
+    mlog(ROCKSDB_INFO, "Opened rocksdb with name: %s", dbname.c_str());
     #if PRINT_TIMESTAMPS
     init_open.end = ::Stats::now();
-    ::Stats::print_event(std::cerr, rank, "hxhim_leveldb_open", ::Stats::global_epoch, init_open);
+    ::Stats::print_event(std::cerr, rank, "hxhim_rocksdb_open", ::Stats::global_epoch, init_open);
     #endif
 }
 
-hxhim::datastore::leveldb::~leveldb() {
+hxhim::datastore::rocksdb::~rocksdb() {
     Close();
 }
 
-const std::string &hxhim::datastore::leveldb::name() const {
+const std::string &hxhim::datastore::rocksdb::name() const {
     return dbname;
 }
 
-bool hxhim::datastore::leveldb::OpenImpl(const std::string &new_name) {
+bool hxhim::datastore::rocksdb::OpenImpl(const std::string &new_name) {
     #if PRINT_TIMESTAMPS
-    ::Stats::Chronostamp leveldb_open;
-    leveldb_open.start = ::Stats::now();
+    ::Stats::Chronostamp rocksdb_open;
+    rocksdb_open.start = ::Stats::now();
     #endif
-    ::leveldb::Status status = ::leveldb::DB::Open(options, new_name, &db);
+    ::rocksdb::Status status = ::rocksdb::DB::Open(options, new_name, &db);
     #if PRINT_TIMESTAMPS
-    leveldb_open.end = ::Stats::now();
+    rocksdb_open.end = ::Stats::now();
     #endif
     if (!status.ok()) {
-        throw std::runtime_error("Could not configure leveldb datastore " + new_name + ": " + status.ToString());
+        throw std::runtime_error("Could not configure rocksdb datastore " + new_name + ": " + status.ToString());
     }
     #if PRINT_TIMESTAMPS
-    ::Stats::print_event(std::cerr, rank, "leveldb_open", ::Stats::global_epoch, leveldb_open);
+    ::Stats::print_event(std::cerr, rank, "rocksdb_open", ::Stats::global_epoch, rocksdb_open);
     #endif
     return status.ok();
 }
 
-void hxhim::datastore::leveldb::CloseImpl() {
+void hxhim::datastore::rocksdb::CloseImpl() {
     delete db;
     db = nullptr;
 }
 
 /**
  * BPut
- * Performs a bulk PUT in leveldb
+ * Performs a bulk PUT in rocksdb
  *
  * @param subjects      the subjects to put
  * @param subject_lens  the lengths of the subjects to put
@@ -106,8 +106,8 @@ void hxhim::datastore::leveldb::CloseImpl() {
  * @param object_lens   the lengths of the objects
  * @return pointer to a list of results
  */
-Transport::Response::BPut *hxhim::datastore::leveldb::BPutImpl(Transport::Request::BPut *req) {
-    mlog(LEVELDB_INFO, "LevelDB BPut");
+Transport::Response::BPut *hxhim::datastore::rocksdb::BPutImpl(Transport::Request::BPut *req) {
+    mlog(ROCKSDB_INFO, "Rocksdb BPut");
 
     hxhim::datastore::Datastore::Stats::Event event;
     event.time.start = ::Stats::now();
@@ -120,7 +120,7 @@ Transport::Response::BPut *hxhim::datastore::leveldb::BPutImpl(Transport::Reques
     char *key_buffer_start = key_buffer;
 
     // batch up PUTs
-    ::leveldb::WriteBatch batch;
+    ::rocksdb::WriteBatch batch;
     for(std::size_t i = 0; i < req->count; i++) {
         // the current key address and length
         char *key = nullptr;
@@ -129,14 +129,14 @@ Transport::Response::BPut *hxhim::datastore::leveldb::BPutImpl(Transport::Reques
         // SPO
         {
             key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
-            batch.Put(::leveldb::Slice(key, key_len), ::leveldb::Slice((char *) req->objects[i].data(), req->objects[i].size()));
+            batch.Put(::rocksdb::Slice(key, key_len), ::rocksdb::Slice((char *) req->objects[i].data(), req->objects[i].size()));
             event.size += key_len + req->objects[i].size();
         }
 
         #if SOP
         {
             key = sp_to_key(req->subjects[i], req->objects[i], key_buffer, key_buffer_len, key_len);
-            batch.Put(::leveldb::Slice(key, key_len), ::leveldb::Slice((char *) req->predicates[i].data(), req->predicates[i].size()));
+            batch.Put(::rocksdb::Slice(key, key_len), ::rocksdb::Slice((char *) req->predicates[i].data(), req->predicates[i].size()));
             event.size += key_len + req->predicates[i].size();
         }
         #endif
@@ -144,7 +144,7 @@ Transport::Response::BPut *hxhim::datastore::leveldb::BPutImpl(Transport::Reques
         #if PSO
         {
             key = sp_to_key(req->predicates[i], req->subjects[i], key_buffer, key_buffer_len, key_len);
-            batch.Put(::leveldb::Slice(key, key_len), ::leveldb::Slice((char *) req->objects[i].data(), req->objects[i].size()));
+            batch.Put(::rocksdb::Slice(key, key_len), ::rocksdb::Slice((char *) req->objects[i].data(), req->objects[i].size()));
             event.size += key_len + req->objects[i].size();
         }
         #endif
@@ -152,7 +152,7 @@ Transport::Response::BPut *hxhim::datastore::leveldb::BPutImpl(Transport::Reques
         #if POS
         {
             key = sp_to_key(req->predicates[i], req->objects[i], key_buffer, key_buffer_len, key_len);
-            batch.Put(::leveldb::Slice(key, key_len), ::leveldb::Slice((char *) req->subjects[i].data(), req->subjects[i].size()));
+            batch.Put(::rocksdb::Slice(key, key_len), ::rocksdb::Slice((char *) req->subjects[i].data(), req->subjects[i].size()));
             event.size += key_len + req->subjects[i].size();
         }
         #endif
@@ -160,7 +160,7 @@ Transport::Response::BPut *hxhim::datastore::leveldb::BPutImpl(Transport::Reques
         #if OSP
         {
             key = sp_to_key(req->object[i], req->subjects[i], key_buffer, key_buffer_len, key_len);
-            batch.Put(::leveldb::Slice(key, key_len), ::leveldb::Slice((char *) req->predicates[i].data(), req->predicates[i].size()));
+            batch.Put(::rocksdb::Slice(key, key_len), ::rocksdb::Slice((char *) req->predicates[i].data(), req->predicates[i].size()));
             event.size += key_len + req->predicates[i].size();
         }
         #endif
@@ -168,7 +168,7 @@ Transport::Response::BPut *hxhim::datastore::leveldb::BPutImpl(Transport::Reques
         #if OPS
         {
             key = sp_to_key(req->object[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
-            batch.Put(::leveldb::Slice(key, key_len), ::leveldb::Slice((char *) req->subjects[i].data(), req->subjects[i].size()));
+            batch.Put(::rocksdb::Slice(key, key_len), ::rocksdb::Slice((char *) req->subjects[i].data(), req->subjects[i].size()));
             event.size += key_len + req->subjects[i].size();
         }
         #endif
@@ -179,7 +179,7 @@ Transport::Response::BPut *hxhim::datastore::leveldb::BPutImpl(Transport::Reques
     }
 
     // add in the time to write the key-value pairs without adding to the counter
-    ::leveldb::Status status = db->Write(::leveldb::WriteOptions(), &batch);
+    ::rocksdb::Status status = db->Write(::rocksdb::WriteOptions(), &batch);
 
     dealloc(key_buffer_start);
 
@@ -187,26 +187,26 @@ Transport::Response::BPut *hxhim::datastore::leveldb::BPutImpl(Transport::Reques
         for(std::size_t i = 0; i < req->count; i++) {
             res->statuses[i] = DATASTORE_SUCCESS;
         }
-        mlog(LEVELDB_INFO, "LevelDB write success");
+        mlog(ROCKSDB_INFO, "Rocksdb write success");
     }
     else {
         for(std::size_t i = 0; i < req->count; i++) {
             res->statuses[i] = DATASTORE_ERROR;
         }
-        mlog(LEVELDB_INFO, "LevelDB write error");
+        mlog(ROCKSDB_INFO, "Rocksdb write error");
     }
 
     res->count = req->count;
     event.time.end = ::Stats::now();
     stats.puts.emplace_back(event);
 
-    mlog(LEVELDB_INFO, "LevelDB BPut Completed");
+    mlog(ROCKSDB_INFO, "Rocksdb BPut Completed");
     return res;
 }
 
 /**
  * BGet
- * Performs a bulk GET in leveldb
+ * Performs a bulk GET in rocksdb
  *
  * @param subjects      the subjects to put
  * @param subject_lens  the lengths of the subjects to put
@@ -214,8 +214,8 @@ Transport::Response::BPut *hxhim::datastore::leveldb::BPutImpl(Transport::Reques
  * @param prediate_lens the lengths of the prediates to put
  * @return pointer to a list of results
  */
-Transport::Response::BGet *hxhim::datastore::leveldb::BGetImpl(Transport::Request::BGet *req) {
-    mlog(LEVELDB_INFO, "Rank %d LevelDB GET processing %zu item in %ps", rank, req->count, req);
+Transport::Response::BGet *hxhim::datastore::rocksdb::BGetImpl(Transport::Request::BGet *req) {
+    mlog(ROCKSDB_INFO, "Rank %d Rocksdb GET processing %zu item in %ps", rank, req->count, req);
 
     hxhim::datastore::Datastore::Stats::Event event;
     event.time.start = ::Stats::now();
@@ -229,17 +229,17 @@ Transport::Response::BGet *hxhim::datastore::leveldb::BGetImpl(Transport::Reques
 
     // batch up GETs
     for(std::size_t i = 0; i < req->count; i++) {
-        mlog(LEVELDB_INFO, "Rank %d LevelDB GET processing %p[%zu] = {%p, %p}", rank, req, i, req->subjects[i].data(), req->predicates[i].data());
+        mlog(ROCKSDB_INFO, "Rank %d Rocksdb GET processing %p[%zu] = {%p, %p}", rank, req, i, req->subjects[i].data(), req->predicates[i].data());
 
         std::size_t key_len = 0;
         char *key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
 
         // create the key
-        const ::leveldb::Slice k(key, key_len);
+        const ::rocksdb::Slice k(key, key_len);
 
         // get the value
-        ::leveldb::Slice value; // read gotten value into a Slice instead of a std::string to save a few copies
-        ::leveldb::Status status = db->Get(::leveldb::ReadOptions(), k, value);
+        std::string value;
+        ::rocksdb::Status status = db->Get(::rocksdb::ReadOptions(), k, &value);
 
         res->ds_offsets[i]      = req->ds_offsets[i];
 
@@ -253,14 +253,14 @@ Transport::Response::BGet *hxhim::datastore::leveldb::BGetImpl(Transport::Reques
 
         // put object into response
         if (status.ok()) {
-            mlog(LEVELDB_INFO, "Rank %d LevelDB GET success", rank);
+            mlog(ROCKSDB_INFO, "Rank %d Rocksdb GET success", rank);
             res->statuses[i] = DATASTORE_SUCCESS;
             res->objects[i] = RealBlob(value.size(), value.data());
 
             event.size += res->objects[i].size();
         }
         else {
-            mlog(LEVELDB_INFO, "Rank %d LevelDB GET error: %s", rank, status.ToString().c_str());
+            mlog(ROCKSDB_INFO, "Rank %d Rocksdb GET error: %s", rank, status.ToString().c_str());
             res->statuses[i] = DATASTORE_ERROR;
         }
 
@@ -272,17 +272,17 @@ Transport::Response::BGet *hxhim::datastore::leveldb::BGetImpl(Transport::Reques
     event.time.end = ::Stats::now();
     stats.gets.emplace_back(event);
 
-    mlog(LEVELDB_INFO, "Rank %d LevelDB GET done processing %p", rank, req);
+    mlog(ROCKSDB_INFO, "Rank %d Rocksdb GET done processing %p", rank, req);
     return res;
 }
 
-static void BGetOp_copy_response(const ::leveldb::Iterator *it,
+static void BGetOp_copy_response(const ::rocksdb::Iterator *it,
                                  Transport::Response::BGetOp *res,
                                  const std::size_t i,
                                  const std::size_t j,
                                  hxhim::datastore::Datastore::Stats::Event &event) {
-    const ::leveldb::Slice k = it->key();
-    const ::leveldb::Slice v = it->value();
+    const ::rocksdb::Slice k = it->key();
+    const ::rocksdb::Slice v = it->value();
 
     // copy key into subject/predicate
     key_to_sp(k.data(), k.size(), res->subjects[i][j], res->predicates[i][j], true);
@@ -298,7 +298,7 @@ static void BGetOp_copy_response(const ::leveldb::Iterator *it,
 
 /**
  * BGetOp
- * Performs a GetOp in leveldb
+ * Performs a GetOp in rocksdb
  *
  * @param subjects      the subjects to put
  * @param subject_lens  the lengths of the subjects to put
@@ -308,7 +308,7 @@ static void BGetOp_copy_response(const ::leveldb::Iterator *it,
  * @param object_lens   the lengths of the objects
  * @return pointer to a list of results
  */
-Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Request::BGetOp *req) {
+Transport::Response::BGetOp *hxhim::datastore::rocksdb::BGetOpImpl(Transport::Request::BGetOp *req) {
 
     Transport::Response::BGetOp *res = construct<Transport::Response::BGetOp>(req->count);
 
@@ -316,7 +316,7 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
     char *key_buffer = (char *) alloc(key_buffer_len);
     char *key_buffer_start = key_buffer;
 
-    ::leveldb::Iterator *it = db->NewIterator(::leveldb::ReadOptions());
+    ::rocksdb::Iterator *it = db->NewIterator(::rocksdb::ReadOptions());
 
     for(std::size_t i = 0; i < req->count; i++) {
         hxhim::datastore::Datastore::Stats::Event event;
@@ -333,7 +333,7 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
             std::size_t key_len = 0;
             char *key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
 
-            it->Seek(::leveldb::Slice(key, key_len));
+            it->Seek(::rocksdb::Slice(key, key_len));
 
             // only 1 response, so j == 0 (num_recs is ignored)
             BGetOp_copy_response(it, res, i, 0, event);
@@ -342,7 +342,7 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
             std::size_t key_len = 0;
             char *key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
 
-            it->Seek(::leveldb::Slice(key, key_len));
+            it->Seek(::rocksdb::Slice(key, key_len));
 
             // first result returned is (subject, predicate)
             // (results are offsets)
@@ -355,7 +355,7 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
             std::size_t key_len = 0;
             char *key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
 
-            it->Seek(::leveldb::Slice(key, key_len));
+            it->Seek(::rocksdb::Slice(key, key_len));
 
             // first result returned is (subject, predicate)
             // (results are offsets)
@@ -406,7 +406,7 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
 
 /**
  * BDelete
- * Performs a bulk DELETE in leveldb
+ * Performs a bulk DELETE in rocksdb
  *
  * @param subjects      the subjects to put
  * @param subject_lens  the lengths of the subjects to put
@@ -414,7 +414,7 @@ Transport::Response::BGetOp *hxhim::datastore::leveldb::BGetOpImpl(Transport::Re
  * @param prediate_lens the lengths of the prediates to put
  * @return pointer to a list of results
  */
-Transport::Response::BDelete *hxhim::datastore::leveldb::BDeleteImpl(Transport::Request::BDelete *req) {
+Transport::Response::BDelete *hxhim::datastore::rocksdb::BDeleteImpl(Transport::Request::BDelete *req) {
     hxhim::datastore::Datastore::Stats::Event event;
     event.time.start = ::Stats::now();
     event.count = req->count;
@@ -425,14 +425,14 @@ Transport::Response::BDelete *hxhim::datastore::leveldb::BDeleteImpl(Transport::
     char *key_buffer = (char *) alloc(key_buffer_len);
     char *key_buffer_start = key_buffer;
 
-    ::leveldb::WriteBatch batch;
+    ::rocksdb::WriteBatch batch;
 
     // batch delete
     for(std::size_t i = 0; i < req->count; i++) {
         std::size_t key_len = 0;
         char *key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
 
-        batch.Delete(::leveldb::Slice(key, key_len));
+        batch.Delete(::rocksdb::Slice(key, key_len));
 
         res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size());
         res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size());
@@ -441,7 +441,7 @@ Transport::Response::BDelete *hxhim::datastore::leveldb::BDeleteImpl(Transport::
     }
 
     // create responses
-    ::leveldb::Status status = db->Write(::leveldb::WriteOptions(), &batch);
+    ::rocksdb::Status status = db->Write(::rocksdb::WriteOptions(), &batch);
 
     dealloc(key_buffer_start);
 
@@ -464,9 +464,9 @@ Transport::Response::BDelete *hxhim::datastore::leveldb::BDeleteImpl(Transport::
  *
  * @return DATASTORE_SUCCESS or DATASTORE_ERROR on error
  */
-int hxhim::datastore::leveldb::SyncImpl() {
-    ::leveldb::WriteBatch batch;
-    ::leveldb::WriteOptions options;
+int hxhim::datastore::rocksdb::SyncImpl() {
+    ::rocksdb::WriteBatch batch;
+    ::rocksdb::WriteOptions options;
     options.sync = true;
     return db->Write(options, &batch).ok()?DATASTORE_SUCCESS:DATASTORE_ERROR;
 }

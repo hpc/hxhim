@@ -96,7 +96,7 @@ function install() {
     then
         if [[ ! -d "${download_dir}" ]]
         then
-            $(${download} "${download_dir}")
+            ${download} "${download_dir}"
         else
             if [[ "${UPDATE}" -eq "1" ]]
             then
@@ -384,24 +384,6 @@ function thallium() {
     install "thallium" dl_thallium git_pull "" cbi_thallium
 }
 
-function leveldb_pkgconfig {
-    install_dir="$1"
-    pc="${install_dir}/lib64/pkgconfig/leveldb.pc"
-
-    (
-        echo "prefix=${install_dir}"
-        echo "exec_prefix=\${prefix}"
-        echo "includedir=\${prefix}/include"
-        echo "libdir=\${prefix}/lib64"
-        echo ""
-        echo "Name: leveldb"
-        echo "Description: The leveldb library"
-        echo "Version: Git Master"
-        echo "Cflags: -I\${includedir}"
-        echo "Libs: -L\${libdir} -lleveldb -lsnappy"
-    ) > "${pc}"
-}
-
 function leveldb() {
     name=leveldb
 
@@ -426,10 +408,62 @@ function leveldb() {
     }
 
     function create_leveldb_pkgconfig() {
-        leveldb_pkgconfig "${install_dir}"
+        pc="${install_dir}/lib64/pkgconfig/leveldb.pc"
+        mkdir -p "$(dirname ${pc})"
+
+        (
+            echo "prefix=${install_dir}"
+            echo "exec_prefix=\${prefix}"
+            echo "includedir=\${prefix}/include"
+            echo "libdir=\${prefix}/lib64"
+            echo ""
+            echo "Name: leveldb"
+            echo "Description: The leveldb library"
+            echo "Version: Git Master"
+            echo "Cflags: -I\${includedir}"
+            echo "Libs: -L\${libdir} -lleveldb -lsnappy"
+        ) > "${pc}"
     }
 
     install "leveldb" dl_leveldb git_pull setup_leveldb cbi_leveldb create_leveldb_pkgconfig
+}
+
+function rocksdb() {
+    name=rocksdb
+
+    function dl_rocksdb() {
+        git clone --depth 1 https://github.com/facebook/rocksdb.git "$1"
+    }
+
+    function cbi_rocksdb() {
+        if [[ ! -f Makefile ]]
+        then
+            cmake .. -DCMAKE_INSTALL_PREFIX="${install_dir}" -DWITH_GFLAGS=Off
+        fi
+
+        make -j ${PROCS}
+        make -j ${PROCS} install
+    }
+
+    function create_rocksdb_pkgconfig() {
+        pc="${install_dir}/lib64/pkgconfig/rocksdb.pc"
+        mkdir -p "$(dirname ${pc})"
+
+        (
+            echo "prefix=${install_dir}"
+            echo "exec_prefix=\${prefix}"
+            echo "includedir=\${prefix}/include"
+            echo "libdir=\${prefix}/lib64"
+            echo ""
+            echo "Name: rocksdb"
+            echo "Description: The RocksDB library"
+            echo "Version: Git Master"
+            echo "Cflags: -I\${includedir}"
+            echo "Libs: -L\${libdir} -lrocksdb"
+        ) > "${pc}"
+    }
+
+    install "rocksdb" dl_rocksdb git_pull "" cbi_rocksdb create_rocksdb_pkgconfig
 }
 
 function jemalloc() {
@@ -539,6 +573,7 @@ check_mpi
 # check and/or install
 thallium
 leveldb
+rocksdb
 jemalloc
 
 if [[ "${DL_ONLY}" -eq "0" ]]

@@ -141,6 +141,32 @@ else()
   message(STATUS "LevelDB not found")
 endif()
 
+#
+# RocksDB Support
+#
+pkg_search_module(ROCKSDB rocksdb)
+if(ROCKSDB_FOUND)
+  option(ENABLE_ROCKSDB "Use RocksDB if found" On)
+
+  if (ENABLE_ROCKSDB)
+    message(STATUS "RocksDB Data Storage Module Enabled")
+    message(STATUS "ROCKSDB_INCLUDEDIR=" ${ROCKSDB_INCLUDEDIR})
+    message(STATUS "ROCKSDB_INCLUDE_DIRS=" ${ROCKSDB_INCLUDE_DIRS})
+    message(STATUS "ROCKSDB_LIBDIR=" ${ROCKSDB_LIBDIR})
+    include_directories(AFTER SYSTEM ${ROCKSDB_INCLUDE_DIRS})
+    add_definitions(-DHXHIM_HAVE_ROCKSDB=1)
+
+    list(APPEND EXEC_LDFLAGS ${ROCKSDB_LDFLAGS})
+
+    list(APPEND PC_CFLAGS -DHXHIM_HAVE_ROCKSDB=1)
+    list(APPEND PC_LIBS ${ROCKSDB_LDFLAGS})
+  else()
+    message(STATUS "RocksDB found but not used")
+  endif()
+else()
+  message(STATUS "RocksDB not found")
+endif()
+
 # always look for HDF5
 find_package(HDF5)
 if (HDF5_FOUND)

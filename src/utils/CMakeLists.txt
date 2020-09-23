@@ -19,6 +19,7 @@ set(UTILS_SRC
   elen.cpp
   is_range_server.c
   memory.cpp
+  mkdir_p.cpp
   mlog2.c
   triplestore.cpp
 )

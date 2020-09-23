@@ -12,6 +12,12 @@ if (LEVELDB_FOUND AND ENABLE_LEVELDB)
   )
 endif()
 
+if (ROCKSDB_FOUND AND ENABLE_ROCKSDB)
+  list(APPEND DATASTORE_SOURCES
+    rocksdb.cpp
+  )
+endif()
+
 foreach(MESSAGE ${DATASTORE_SOURCES})
   target_sources(hxhim PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/${MESSAGE})
 endforeach()

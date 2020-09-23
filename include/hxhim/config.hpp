@@ -47,6 +47,12 @@ const std::string LEVELDB_PREFIX              = "LEVELDB_PREFIX";            // 
 const std::string LEVELDB_CREATE_IF_MISSING   = "LEVELDB_CREATE_IF_MISSING"; // boolean
 #endif
 
+#if HXHIM_HAVE_ROCKSDB
+/** RocksDB Datastore Options */
+const std::string ROCKSDB_PREFIX              = "ROCKSDB_PREFIX";            // string
+const std::string ROCKSDB_CREATE_IF_MISSING   = "ROCKSDB_CREATE_IF_MISSING"; // boolean
+#endif
+
 const std::string HASH                        = "HASH";                      // See HASHES
 
 const std::string TRANSPORT                   = "TRANSPORT";                 // See TRANSPORTS
@@ -94,6 +100,9 @@ const std::unordered_map<std::string, datastore::Type> DATASTORES = {
     std::make_pair("IN_MEMORY", datastore::IN_MEMORY),
     #if HXHIM_HAVE_LEVELDB
     std::make_pair("LEVELDB",   datastore::LEVELDB),
+    #endif
+    #if HXHIM_HAVE_ROCKSDB
+    std::make_pair("ROCKSDB",   datastore::ROCKSDB),
     #endif
 };
 
@@ -159,6 +168,10 @@ const Config DEFAULT_CONFIG = {
     std::make_pair(DATASTORE_TYPE,                "LEVELDB"),
     std::make_pair(LEVELDB_PREFIX,                "."),
     std::make_pair(LEVELDB_CREATE_IF_MISSING,     "true"),
+#elif HXHIM_HAVE_ROCKSDB
+    std::make_pair(DATASTORE_TYPE,                "ROCKSDB"),
+    std::make_pair(ROCKSDB_PREFIX,                "."),
+    std::make_pair(ROCKSDB_CREATE_IF_MISSING,     "true"),
 #else
     std::make_pair(DATASTORE_TYPE,                "IN_MEMORY"),
 #endif

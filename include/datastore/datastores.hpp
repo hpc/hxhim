@@ -8,6 +8,10 @@
 #include "datastore/leveldb.hpp"
 #endif
 
+#if HXHIM_HAVE_ROCKSDB
+#include "datastore/rocksdb.hpp"
+#endif
+
 #include "hxhim/struct.h"
 
 namespace hxhim {

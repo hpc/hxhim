@@ -9,6 +9,18 @@ set(NOT_INSTALLED_HEADERS
   datastores.hpp
 )
 
+if (LEVELDB_FOUND AND ENABLE_LEVELDB)
+  list(APPEND NOT_INSTALLED_HEADERS
+    leveldb.hpp
+  )
+endif()
+
+if (ROCKSDB_FOUND AND ENABLE_ROCKSDB)
+  list(APPEND NOT_INSTALLED_HEADERS
+    rocksdb.hpp
+  )
+endif()
+
 foreach(HEADER ${INSTALLED_HEADERS} ${NOT_INSTALLED_HEADERS})
   target_sources(hxhim PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/${HEADER})
 endforeach()
