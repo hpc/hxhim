@@ -38,7 +38,7 @@ class TestDatastore : public hxhim::datastore::Datastore {
             return nullptr;
         }
 
-        Transport::Response::BGetOp *BGetOpImpl (Transport::Request::BGetOp *) { return nullptr; }
+        Transport::Response::BGetOp *BGetOpImpl(Transport::Request::BGetOp *) { return nullptr; }
 
         Transport::Response::BDelete *BDeleteImpl(Transport::Request::BDelete *) { return nullptr; }
 

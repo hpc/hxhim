@@ -21,6 +21,8 @@
 #     mercury
 #     libev-devel (libev.*)
 #     argobots
+#     jansson
+#     moch-cfg
 #     margo
 #     thallium
 #
@@ -29,18 +31,31 @@ SOURCE="$(dirname $(realpath $BASH_SOURCE[0]))"
 
 set -e
 
+START_DIR="$(pwd)"
+
+function return_to_start_dir() {
+    ret="$?"
+    cd "${START_DIR}"
+    exit "${ret}"
+}
+
+trap return_to_start_dir EXIT
+
 function usage() {
     echo "Usage: $0 [Options] download_dir build_name install_dir [PROCS]"
     echo ""
     echo "    Options:"
-    echo "        --BMI      build the BMI module for mercury"
-    echo "        --CCI      build the CCI module for mercury"
-    echo "        --OFI      build the OFI module for mercury"
-    echo "        --SM       build the SM  module for mercury"
+    echo "        --BMI         build the BMI module for mercury"
+    echo "        --CCI         build the CCI module for mercury"
+    echo "        --OFI         build the OFI module for mercury"
+    echo "        --SM          build the SM  module for mercury"
     echo
-    echo "        --NO_DL    do not download repositories"
-    echo "        --UPDATE   update source if downloading"
-    echo "        --DL_ONLY  stop after downloading and updating (if the source needed to be downloaded)"
+    echo "        --NO_DL       do not download repositories"
+    echo "        --UPDATE      update source if downloading"
+    echo "        --DL_ONLY     stop after downloading and updating (if the source needed to be downloaded)"
+    echo "        --NO_LEVELDB  do not download/build/install leveldb"
+    echo "        --NO_ROCKSDB  do not download/build/install rocksdb"
+    echo "        --NO_JEMALLOC do not download/build/install jemalloc"
 }
 
 # Check that an executable is available; if not, print the name and exit
@@ -88,16 +103,19 @@ function install() {
     update="$3"           # function to update downloaded files
     setup="$4"            # run this within the package root
     cbi="$5"              # configure, build, and install in the ${BUILD} directory
-    post_download="$6"    # run this after installing
+    post_install="$6"     # run this after installing
+
+    echo "${name} Start" 1>&2
 
     #downlaod phase
     download_dir="${WORKING_DIR}/${name}"
     if [[ "${DL}" -eq "1" ]]
     then
+        # repo directory doesn't exist
         if [[ ! -d "${download_dir}" ]]
         then
             ${download} "${download_dir}"
-        else
+        else # repo already exists, so just update
             if [[ "${UPDATE}" -eq "1" ]]
             then
                 cd "${download_dir}"
@@ -105,6 +123,7 @@ function install() {
             fi
         fi
     else
+        # don't download, but directory doesn't exist
         if [[ ! -d "${download_dir}" ]]
         then
             echo "Error: ${name} not available locally but also not downloaded"
@@ -113,6 +132,7 @@ function install() {
     fi
     # ${download_dir} must exist by this point
 
+    echo "${name} Downloaded" 1>&2
     cd "${download_dir}"
 
     if [[ "${DL_ONLY}" -eq "1" ]]
@@ -122,32 +142,50 @@ function install() {
     fi
 
     # build and install phase
+    build_dir="${download_dir}/${BUILD}"
+    if [[ ! -d "${build_dir}" ]]
+    then
+        ${setup}
+
+        mkdir -p "${build_dir}"
+    fi
+    # ${build_dir} exists at this point
+
+    cd "${build_dir}"
+
     install_dir="${PREFIX}/${name}"
     if [[ ! -d "${install_dir}" ]]
     then
-        build_dir="${download_dir}/${BUILD}"
-        if [[ ! -d "${build_dir}" ]]
-        then
-            ${setup}
-
-            mkdir -p "${build_dir}"
-        fi
-        # ${build_dir} exists at this point
-
-        cd "${build_dir}"
-        PKG_CONFIG_PATH="${pkg_config_path}:${PKG_CONFIG_PATH}"
-        ${cbi}
-
-        if [[ -d "${install_dir}/lib/pkgconfig" ]]
-        then
-            pkg_config_path="${pkg_config_path}:${install_dir}/lib/pkgconfig"
-        elif [[ -d "${install_dir}/lib64/pkgconfig" ]]
-        then
-            pkg_config_path="${pkg_config_path}:${install_dir}/lib64/pkgconfig"
-        fi
+        LD_LIBRARY_PATH="${ld_library_path}:${LD_LIBRARY_PATH}" PKG_CONFIG_PATH="${pkg_config_path}:${PKG_CONFIG_PATH}" ${cbi}
     fi
 
-    ${post_download}
+    echo "${name} Built and Installed" 1>&2
+
+    # add to ld_library_path and pkg_config_path
+    dep_lib=""
+    if [[ -d "${install_dir}/lib" ]]
+    then
+        dep_lib="${install_dir}/lib"
+    elif [[ -d "${install_dir}/lib64" ]]
+    then
+        dep_lib="${install_dir}/lib64"
+    fi
+
+    if [[ -z "${dep_lib}" ]]
+    then
+        echo "Could not find ${name}'s library directory" 1>&2
+        return 1
+    fi
+
+    dep_pcp="${dep_lib}/pkgconfig"
+    mkdir -p "${dep_pcp}"
+
+    ld_library_path="${ld_library_path}:${dep_lib}"
+    pkg_config_path="${pkg_config_path}:${dep_pcp}"
+
+    ${post_install}
+
+    echo "${name} Done" 1>&2
 }
 
 function git_pull() {
@@ -262,7 +300,7 @@ function mercury() {
     function cbi_hg() {
         if [[ ! -f Makefile ]]
         then
-            cmake -DCMAKE_INSTALL_PREFIX="${install_dir}" -DMERCURY_USE_BOOST_PP:BOOL=ON -DBUILD_SHARED_LIBS:BOOL=ON ${cmake_options} ..
+            cmake .. -DCMAKE_INSTALL_PREFIX="${install_dir}" -DMERCURY_USE_BOOST_PP:BOOL=ON -DBUILD_SHARED_LIBS:BOOL=ON ${cmake_options}
         fi
 
         make -j ${PROCS}
@@ -330,6 +368,48 @@ function argobots() {
     install "argobots" dl_argobots git_pull setup_argobots cbi_argobots
 }
 
+function jansson() {
+    function dl_jansson() {
+        git clone --depth 1 https://github.com/akheron/jansson "$1"
+    }
+
+    function cbi_jansson() {
+        if [[ ! -f Makefile ]]
+        then
+            cmake .. -DCMAKE_INSTALL_PREFIX="${install_dir}"
+        fi
+
+        make -j ${PROCS}
+        make -j ${PROCS} install
+    }
+
+    install "jansson" dl_jansson git_pull "" cbi_jansson
+}
+
+function mochi() {
+    jansson
+
+    function dl_mochi() {
+        git clone --depth 1 https://xgitlab.cels.anl.gov/sds/mochi-cfg.git "$1"
+    }
+
+    function setup_mochi() {
+        ./prepare.sh
+    }
+
+    function cbi_mochi() {
+        if [[ ! -f Makefile ]]
+        then
+            ../configure --prefix="${install_dir}"
+        fi
+
+        make -j ${PROCS}
+        make -j ${PROCS} install
+    }
+
+    install "mochi" dl_mochi git_pull setup_mochi cbi_mochi
+}
+
 function margo() {
     # libtool-ltdl-devel
     if ! check_library "libltdl\\..*"
@@ -340,6 +420,7 @@ function margo() {
 
     argobots
     mercury
+    mochi
 
     function dl_margo() {
         git clone --depth 1 https://xgitlab.cels.anl.gov/sds/margo.git "$1"
@@ -374,7 +455,7 @@ function thallium() {
     function cbi_thallium() {
         if [[ ! -f Makefile ]]
         then
-            mercury_DIR="${MERCURY_DIR}" cmake -DCMAKE_INSTALL_PREFIX="${install_dir}" -DCMAKE_CXX_EXTENSIONS:BOOL=OFF ..
+            mercury_DIR="${MERCURY_DIR}" cmake .. -DCMAKE_INSTALL_PREFIX="${install_dir}" -DCMAKE_CXX_EXTENSIONS:BOOL=OFF
         fi
 
         make -j ${PROCS}
@@ -400,7 +481,7 @@ function leveldb() {
     function cbi_leveldb() {
         if [[ ! -f Makefile ]]
         then
-            cmake -DCMAKE_INSTALL_PREFIX="${install_dir}" -DHAVE_SNAPPY=Off ..
+            cmake .. -DCMAKE_INSTALL_PREFIX="${install_dir}" -DHAVE_SNAPPY=Off
         fi
 
         make -j ${PROCS}
@@ -408,14 +489,13 @@ function leveldb() {
     }
 
     function create_leveldb_pkgconfig() {
-        pc="${install_dir}/lib64/pkgconfig/leveldb.pc"
-        mkdir -p "$(dirname ${pc})"
+        pc="${dep_pcp}/leveldb.pc"
 
         (
             echo "prefix=${install_dir}"
             echo "exec_prefix=\${prefix}"
             echo "includedir=\${prefix}/include"
-            echo "libdir=\${prefix}/lib64"
+            echo "libdir=${dep_lib}"
             echo ""
             echo "Name: leveldb"
             echo "Description: The leveldb library"
@@ -446,14 +526,13 @@ function rocksdb() {
     }
 
     function create_rocksdb_pkgconfig() {
-        pc="${install_dir}/lib64/pkgconfig/rocksdb.pc"
-        mkdir -p "$(dirname ${pc})"
+        pc="${dep_pcp}/rocksdb.pc"
 
         (
             echo "prefix=${install_dir}"
             echo "exec_prefix=\${prefix}"
             echo "includedir=\${prefix}/include"
-            echo "libdir=\${prefix}/lib64"
+            echo "libdir=${dep_lib}"
             echo ""
             echo "Name: rocksdb"
             echo "Description: The RocksDB library"
@@ -491,6 +570,9 @@ function jemalloc() {
 DL=1
 DL_ONLY=0
 UPDATE=0
+LEVELDB=1
+ROCKSDB=1
+JEMALLOC=1
 
 # Parse command line arguments
 # https://stackoverflow.com/a/14203146
@@ -532,6 +614,18 @@ case $key in
     UPDATE=1
     shift # past argument
     ;;
+    --NO_LEVELDB)
+    LEVELDB=0
+    shift # past argument
+    ;;
+    --NO_ROCKSDB)
+    ROCKSDB=0
+    shift # past argument
+    ;;
+    --NO_JEMALLOC)
+    JEMALLOC=0
+    shift # past argument
+    ;;
     *)    # unknown option
     POSITIONAL+=("$1") # save it in an array for later
     shift # past argument
@@ -540,7 +634,7 @@ esac
 done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
-if [[ "$#" -ne 3 ]]; then
+if [[ "$#" -lt 3 ]]; then
     usage
     exit 1
 fi
@@ -550,6 +644,7 @@ BUILD="$2"
 PREFIX="$3"
 PROCS="$4"       # number of processes make should use
 pkg_config_path= # internal PKG_CONFIG_PATH so available paths are not hidden
+ld_library_path= # internal LD_LIBRARY_PATH so available paths are not hidden
 
 mkdir -p ${WORKING_DIR}
 cd ${WORKING_DIR}
@@ -572,11 +667,28 @@ check_mpi
 
 # check and/or install
 thallium
-leveldb
-rocksdb
-jemalloc
+
+if [[ "${LEVELDB}" -eq 1 ]]
+then
+    leveldb
+fi
+
+if [[ "${ROCKSDB}" -eq 1 ]]
+then
+    rocksdb
+fi
+
+if [[ "${JEMALLOC}" -eq 1 ]]
+then
+    jemalloc
+fi
 
 if [[ "${DL_ONLY}" -eq "0" ]]
 then
-    echo -e "Please add this to your PKG_CONFIG_PATH:\n${pkg_config_path}"
+    export LD_LIBRARY_PATH="${ld_library_path}:${LD_LIBRARY_PATH}"
+    export PKG_CONFIG_PATH="${pkg_config_path}:${PKG_CONFIG_PATH}"
+    echo -e "Make sure your LD_LIBRARY_PATH contains:\n${ld_library_path}"
+    echo -e "Make sure your PKG_CONFIG_PATH contains:\n${pkg_config_path}"
+    echo
+    echo "Source this script to get prepend LD_LIBRARY_PATH and PKG_CONFIG_PATH with these values"
 fi

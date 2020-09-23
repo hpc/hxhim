@@ -1,5 +1,8 @@
 # HXHIM
 ## The Hexadimensional Hashing Indexing Middleware
+
+[![Build Status](https://travis-ci.com/hpc/hxhim.svg?branch=master)](https://travis-ci.com/hpc/hxhim)
+
 ----
 
 ### License
@@ -12,25 +15,27 @@ hxhim@lanl.gov
 * C++11 Compiler
 * CMake 3
 * MPI
-* (optional) LevelDB: https://github.com/google/leveldb
 * (optional, requires C++14) thallium: https://xgitlab.cels.anl.gov/sds/thallium
+* (optional) LevelDB: https://github.com/google/leveldb
+* (optional) RocksDB: https://github.com/facebook/rocksdb
 
 ### Build
 ```
-export PKG_CONFIG_PATH="$(contrib/hxhim_dependencies.sh --{BMI,CCI,OFI,SM} download_dir build_name install_dir [PROCS] | tail -n 1):${PKG_CONFIG_PATH}"
+source contrib/hxhim_dependencies.sh --{BMI,CCI,OFI,SM} download_dir build_name install_dir [PROCS]
 mkdir build
 cd build
 cmake .. -DCMAKE_INSTALL_PREFIX="${HXHIM_PREFIX}"
 make
 make install
+export LD_LIBRARY_PATH="${HXHIM_PREFIX}/lib:${LD_LIBRARY_PATH}"
 export PKG_CONFIG_PATH="${HXHIM_PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH}"
 ```
 
 `contrib/hxhim_dependencies.sh` should be run first in order make sure
-all dependencies are available.  If `contrib/hxhim_dependencies.sh` is
-not run, the leveldb source must be available on the system (One of
-the CMake targets requires files from leveldb that are not built into
-the library).
+all dependencies are available.  The `build_name` argument of
+`contrib/hxhim_dependencies.sh` is a string that will be appended to
+`download_dir`, not a full path. `build` and `$(hostname)` are
+recommended.
 
 ### Usage Notes
 * The number of databases must remain the same across all runs for the stored data to make sense.
