@@ -92,7 +92,7 @@ Transport::Response::BPut *hxhim::datastore::InMemory::BPutImpl(Transport::Reque
 
         #if OSP
         {
-            key = sp_to_key(req->object[i], req->subjects[i], key_buffer, key_buffer_len, key_len);
+            key = sp_to_key(req->objects[i], req->subjects[i], key_buffer, key_buffer_len, key_len);
             db[std::string((char *) key, key_len)] = (std::string) req->predicates[i];
             event.size += key_len + req->predicates[i].size();
         }
@@ -100,7 +100,7 @@ Transport::Response::BPut *hxhim::datastore::InMemory::BPutImpl(Transport::Reque
 
         #if OPS
         {
-            key = sp_to_key(req->object[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
+            key = sp_to_key(req->objects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
             db[std::string((char *) key, key_len)] = (std::string) req->subjects[i];
             event.size += key_len + req->subjects[i].size();
         }

@@ -159,7 +159,7 @@ Transport::Response::BPut *hxhim::datastore::leveldb::BPutImpl(Transport::Reques
 
         #if OSP
         {
-            key = sp_to_key(req->object[i], req->subjects[i], key_buffer, key_buffer_len, key_len);
+            key = sp_to_key(req->objects[i], req->subjects[i], key_buffer, key_buffer_len, key_len);
             batch.Put(::leveldb::Slice(key, key_len), ::leveldb::Slice((char *) req->predicates[i].data(), req->predicates[i].size()));
             event.size += key_len + req->predicates[i].size();
         }
@@ -167,7 +167,7 @@ Transport::Response::BPut *hxhim::datastore::leveldb::BPutImpl(Transport::Reques
 
         #if OPS
         {
-            key = sp_to_key(req->object[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
+            key = sp_to_key(req->objects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
             batch.Put(::leveldb::Slice(key, key_len), ::leveldb::Slice((char *) req->subjects[i].data(), req->subjects[i].size()));
             event.size += key_len + req->subjects[i].size();
         }
