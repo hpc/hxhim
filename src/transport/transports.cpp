@@ -12,6 +12,7 @@ int ::Transport::init(hxhim_t *hx,
 
     switch (opts->type) {
         case TRANSPORT_NULL:
+            // hash has already been set to SUM_MOD_LOCAL_DATASTORES
             hx->p->transport = nullptr;
             break;
         case TRANSPORT_MPI:

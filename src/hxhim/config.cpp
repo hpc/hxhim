@@ -178,8 +178,8 @@ static bool parse_transport(hxhim_options_t *opts, const Config &config) {
         switch (transport_type) {
             case Transport::TRANSPORT_NULL:
                 {
-                    return ((hxhim_options_set_transport_null(opts)       == HXHIM_SUCCESS) &&
-                            (hxhim_options_set_hash_name(opts, "MY_RANK") == HXHIM_SUCCESS));
+                    return ((hxhim_options_set_transport_null(opts)                        == HXHIM_SUCCESS) &&
+                            (hxhim_options_set_hash_name(opts, "SUM_MOD_LOCAL_DATASTORES") == HXHIM_SUCCESS));
                 }
                 break;
             case Transport::TRANSPORT_MPI:

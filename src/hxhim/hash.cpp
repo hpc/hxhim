@@ -3,6 +3,7 @@
 #include "datastore/datastore.hpp"
 #include "hxhim/hash.h"
 #include "hxhim/private/accessors.hpp"
+#include "utils/is_range_server.hpp"
 #include "utils/uthash.h"
 
 /**
@@ -69,6 +70,43 @@ int hxhim_hash_SumModDatastores(hxhim_t *hx, void *subject, const size_t subject
     }
 
     return dst % count;
+}
+
+/**
+ * hxhim_hash_SumModLocalDatastores
+ * Returns a datastore id that is local to the rank
+ *
+ * @param hx            the HXHIM instance
+ * @param subject       the subject to hash
+ * @param subject_len   the length of the subject
+ * @param predicate     the predicate to hash
+ * @param predicate_len the length of the predicate
+ * @return the destination datastore ID or -1 on error
+ */
+int hxhim_hash_SumModLocalDatastores(hxhim_t *hx,
+                    void *subject, const size_t subject_len,
+                    void *predicate, const size_t predicate_len,
+                    void *args){
+    int rank = -1;
+    hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
+
+    std::size_t client = 0;
+    std::size_t server = 0;
+    hxhim::nocheck::GetDatastoreClientToServerRatio(hx, &client, &server);
+    if (!is_range_server(rank, client, server)) {
+        return -1;
+    }
+
+    int offset = 0;
+    for(std::size_t i = 0; i < subject_len; i++) {
+        offset += (int) (uint8_t) ((char *) subject)[i];
+    }
+
+    for(std::size_t i = 0; i < predicate_len; i++) {
+        offset += (int) (uint8_t) ((char *) predicate)[i];
+    }
+
+    return hxhim::datastore::get_id(hx, rank, offset % server);
 }
 
 /**

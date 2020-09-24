@@ -110,19 +110,20 @@ const std::unordered_map<std::string, datastore::Type> DATASTORES = {
  * Set of predefined hash functions
  */
 const std::unordered_map<std::string, hxhim_hash_t> HASHES = {
-    std::make_pair("RANK_0",              hxhim_hash_RankZero),
-    std::make_pair("MY_RANK",             hxhim_hash_MyRank),
-    std::make_pair("RANK_MOD_DATASTORES", hxhim_hash_RankModDatastores),
-    std::make_pair("SUM_MOD_DATASTORES",  hxhim_hash_SumModDatastores),
-    std::make_pair("LEFT",                hxhim_hash_Left),
-    std::make_pair("RIGHT",               hxhim_hash_Right),
-    std::make_pair("RANDOM",              hxhim_hash_Random),
-    std::make_pair("UTHASH_BER",          hxhim_hash_uthash_BER),
-    std::make_pair("UTHASH_SAX",          hxhim_hash_uthash_SAX),
-    std::make_pair("UTHASH_FNV",          hxhim_hash_uthash_FNV),
-    std::make_pair("UTHASH_OAT",          hxhim_hash_uthash_OAT),
-    std::make_pair("UTHASH_JEN",          hxhim_hash_uthash_JEN),
-    std::make_pair("UTHASH_SFH",          hxhim_hash_uthash_SFH),
+    std::make_pair("RANK_0",                   hxhim_hash_RankZero),
+    std::make_pair("MY_RANK",                  hxhim_hash_MyRank),
+    std::make_pair("RANK_MOD_DATASTORES",      hxhim_hash_RankModDatastores),
+    std::make_pair("SUM_MOD_DATASTORES",       hxhim_hash_SumModDatastores),
+    std::make_pair("SUM_MOD_LOCAL_DATASTORES", hxhim_hash_SumModLocalDatastores),
+    std::make_pair("LEFT",                     hxhim_hash_Left),
+    std::make_pair("RIGHT",                    hxhim_hash_Right),
+    std::make_pair("RANDOM",                   hxhim_hash_Random),
+    std::make_pair("UTHASH_BER",               hxhim_hash_uthash_BER),
+    std::make_pair("UTHASH_SAX",               hxhim_hash_uthash_SAX),
+    std::make_pair("UTHASH_FNV",               hxhim_hash_uthash_FNV),
+    std::make_pair("UTHASH_OAT",               hxhim_hash_uthash_OAT),
+    std::make_pair("UTHASH_JEN",               hxhim_hash_uthash_JEN),
+    std::make_pair("UTHASH_SFH",               hxhim_hash_uthash_SFH),
 };
 
 /**
