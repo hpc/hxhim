@@ -1,8 +1,6 @@
 #include <sstream>
 #include <vector>
 
-#include "hxhim/Results.hpp"
-#include "hxhim/config.h"
 #include "hxhim/config.hpp"
 #include "hxhim/constants.h"
 #include "hxhim/options.h"
@@ -96,6 +94,11 @@ static bool parse_datastore(hxhim_options_t *opts, const Config &config) {
     hxhim::datastore::Type datastore;
 
     int ret = get_from_map(config, hxhim::config::DATASTORE_TYPE, hxhim::config::DATASTORES, datastore);
+
+    if (ret == CONFIG_NOT_FOUND) {
+        return false;
+    }
+
     if (ret == CONFIG_ERROR) {
         return false;
     }
@@ -150,11 +153,13 @@ static bool parse_datastore(hxhim_options_t *opts, const Config &config) {
                 }
                 break;
             #endif
+            // should never get here
             default:
                 return false;
         }
     }
 
+    // should never get here
     return false;
 }
 
