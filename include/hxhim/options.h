@@ -30,10 +30,13 @@ int hxhim_options_set_debug_level(hxhim_options_t *opts, const int level);
 int hxhim_options_set_client_ratio(hxhim_options_t *opts, const size_t ratio);
 int hxhim_options_set_server_ratio(hxhim_options_t *opts, const size_t ratio);
 int hxhim_options_set_datastores_per_range_server(hxhim_options_t *opts, const size_t count);
+int hxhim_options_set_datastore_in_memory(hxhim_options_t *opts);
 #if HXHIM_HAVE_LEVELDB
 int hxhim_options_set_datastore_leveldb(hxhim_options_t *opts, const size_t id, const char *prefix, const int create_if_missing);
 #endif
-int hxhim_options_set_datastore_in_memory(hxhim_options_t *opts);
+#if HXHIM_HAVE_ROCKSDB
+int hxhim_options_set_datastore_rocksdb(hxhim_options_t *opts, const size_t id, const char *prefix, const int create_if_missing);
+#endif
 int hxhim_options_set_hash_name(hxhim_options_t *opts, const char *name);
 int hxhim_options_set_hash_function(hxhim_options_t *opts, const char *name, hxhim_hash_t func, void *args);
 int hxhim_options_set_transport_null(hxhim_options_t *opts);

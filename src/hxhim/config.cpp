@@ -102,6 +102,8 @@ static bool parse_datastore(hxhim_options_t *opts, const Config &config) {
 
     if (ret == CONFIG_FOUND) {
         switch (datastore) {
+            case hxhim::datastore::IN_MEMORY:
+                return (hxhim_options_set_datastore_in_memory(opts) == HXHIM_SUCCESS);
             #if HXHIM_HAVE_LEVELDB
             case hxhim::datastore::LEVELDB:
                 {
@@ -125,8 +127,29 @@ static bool parse_datastore(hxhim_options_t *opts, const Config &config) {
                 }
                 break;
             #endif
-            case hxhim::datastore::IN_MEMORY:
-                return (hxhim_options_set_datastore_in_memory(opts) == HXHIM_SUCCESS);
+            #if HXHIM_HAVE_ROCKSDB
+            case hxhim::datastore::ROCKSDB:
+                {
+                    // get the rocksdb datastore prefix prefix
+                    Config_it prefix = config.find(hxhim::config::ROCKSDB_PREFIX);
+                    if (prefix == config.end()) {
+                        return false;
+                    }
+
+                    bool create_if_missing = true; // default to true; do not error if not found
+                    if (get_value(config, hxhim::config::ROCKSDB_CREATE_IF_MISSING, create_if_missing) == CONFIG_ERROR) {
+                        return false;
+                    }
+
+                    int rank = -1;
+                    if (MPI_Comm_rank(opts->p->comm, &rank) != MPI_SUCCESS) {
+                        return false;
+                    }
+
+                    return (hxhim_options_set_datastore_rocksdb(opts, rank, prefix->second.c_str(), create_if_missing) == HXHIM_SUCCESS);
+                }
+                break;
+            #endif
             default:
                 return false;
         }

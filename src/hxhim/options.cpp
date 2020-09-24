@@ -152,7 +152,49 @@ static int hxhim_options_set_datastore(hxhim_options_t *opts, hxhim::datastore::
     return HXHIM_SUCCESS;
 }
 
+/**
+ * hxhim_options_create_in_memory_config
+ *
+ * @return a pointer to the configuration data, or a nullptr
+ */
+static hxhim::datastore::Config *hxhim_options_create_in_memory_config() {
+    return new hxhim::datastore::InMemory::Config();
+}
+
+/**
+ * hxhim_options_set_datastore_in_memory
+ * Sets up the values needed for a in_memory datastore
+ *
+ * @param opts   the set of options to be modified
+ * @param path the name prefix for each datastore
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim_options_set_datastore_in_memory(hxhim_options_t *opts) {
+    hxhim::datastore::Config *config = hxhim_options_create_in_memory_config();
+    if (hxhim_options_set_datastore(opts, config) != HXHIM_SUCCESS) {
+        delete config;
+        return HXHIM_ERROR;
+    }
+
+    return HXHIM_SUCCESS;
+}
+
 #if HXHIM_HAVE_LEVELDB
+/**
+ * hxhim_options_create_leveldb_config
+ *
+ * @param path               the name prefix for each datastore
+ * @param create_if_missing  whether or not leveldb should create new datastores if the datastores do not already exist
+ * @return a pointer to the configuration data, or a nullptr
+ */
+static hxhim::datastore::Config *hxhim_options_create_leveldb_config(const size_t id, const char *prefix, const int create_if_missing) {
+    hxhim::datastore::leveldb::Config *config = new hxhim::datastore::leveldb::Config();
+    config->id = id;
+    config->prefix = prefix;
+    config->create_if_missing = create_if_missing;
+    return config;
+}
+
 /**
  * hxhim_options_set_datastore_leveldb
  * Sets up the values needed for a leveldb datastore
@@ -172,16 +214,32 @@ int hxhim_options_set_datastore_leveldb(hxhim_options_t *opts, const size_t id, 
 }
 #endif
 
+#if HXHIM_HAVE_ROCKSDB
 /**
- * hxhim_options_set_datastore_in_memory
- * Sets up the values needed for a in_memory datastore
+ * hxhim_options_create_rocksdb_config
+ *
+ * @param path               the name prefix for each datastore
+ * @param create_if_missing  whether or not rocksdb should create new datastores if the datastores do not already exist
+ * @return a pointer to the configuration data, or a nullptr
+ */
+static hxhim::datastore::Config *hxhim_options_create_rocksdb_config(const size_t id, const char *prefix, const int create_if_missing) {
+    hxhim::datastore::rocksdb::Config *config = new hxhim::datastore::rocksdb::Config();
+    config->id = id;
+    config->prefix = prefix;
+    config->create_if_missing = create_if_missing;
+    return config;
+}
+
+/**
+ * hxhim_options_set_datastore_rocksdb
+ * Sets up the values needed for a rocksdb datastore
  *
  * @param opts   the set of options to be modified
  * @param path the name prefix for each datastore
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_options_set_datastore_in_memory(hxhim_options_t *opts) {
-    hxhim::datastore::Config *config = hxhim_options_create_in_memory_config();
+int hxhim_options_set_datastore_rocksdb(hxhim_options_t *opts, const size_t id, const char *prefix, const int create_if_missing) {
+    hxhim::datastore::Config *config = hxhim_options_create_rocksdb_config(id, prefix, create_if_missing);
     if (hxhim_options_set_datastore(opts, config) != HXHIM_SUCCESS) {
         delete config;
         return HXHIM_ERROR;
@@ -189,6 +247,7 @@ int hxhim_options_set_datastore_in_memory(hxhim_options_t *opts) {
 
     return HXHIM_SUCCESS;
 }
+#endif
 
 /**
  * hxhim_options_set_hash_name
@@ -515,30 +574,4 @@ int hxhim_options_destroy(hxhim_options_t *opts) {
     opts->p = nullptr;
 
     return HXHIM_SUCCESS;
-}
-
-#if HXHIM_HAVE_LEVELDB
-/**
- * hxhim_options_create_leveldb_config
- *
- * @param path               the name prefix for each datastore
- * @param create_if_missing  whether or not leveldb should create new datastores if the datastores do not already exist
- * @return a pointer to the configuration data, or a nullptr
- */
-hxhim::datastore::Config *hxhim_options_create_leveldb_config(const size_t id, const char *prefix, const int create_if_missing) {
-    hxhim::datastore::leveldb::Config *config = new hxhim::datastore::leveldb::Config();
-    config->id = id;
-    config->prefix = prefix;
-    config->create_if_missing = create_if_missing;
-    return config;
-}
-#endif
-
-/**
- * hxhim_options_create_in_memory_config
- *
- * @return a pointer to the configuration data, or a nullptr
- */
-hxhim::datastore::Config *hxhim_options_create_in_memory_config() {
-    return new hxhim::datastore::InMemory::Config();
 }

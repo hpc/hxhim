@@ -50,6 +50,30 @@ int hxhim::datastore::Init(hxhim_t *hx,
             break;
         #endif
 
+        #if HXHIM_HAVE_ROCKSDB
+        case ROCKSDB:
+            {
+                rocksdb::Config *rocksdb_config = static_cast<rocksdb::Config *>(config);
+                if (exact_name) {
+                    hx->p->datastores[offset] = new rocksdb(rank,
+                                                            hist,
+                                                            *exact_name,
+                                                            false);
+                }
+                else {
+                    hx->p->datastores[offset] = new rocksdb(rank,
+                                                            offset,
+                                                            id,
+                                                            hist,
+                                                            rocksdb_config->prefix,
+                                                            hx->p->hash.name,
+                                                            rocksdb_config->create_if_missing);
+                }
+                mlog(HXHIM_CLIENT_INFO, "Initialized RocksDB in datastore[%d]", offset);
+            }
+            break;
+        #endif
+
         default:
             break;
     }
