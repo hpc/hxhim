@@ -46,7 +46,7 @@ function usage() {
 # Check that an executable is available; if not, print the name and exit
 function check_executable() {
     executable="$@"
-    command -v ${executable} > /dev/null 2>&1 || (echo "${executable} not found"; exit 1)
+    command -v ${executable} > /dev/null 1>&2 || (echo "${executable} not found"; exit 1)
 }
 
 function check_autoconf() {
