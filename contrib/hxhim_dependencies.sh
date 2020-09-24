@@ -400,7 +400,7 @@ function leveldb() {
     function cbi_leveldb() {
         if [[ ! -f Makefile ]]
         then
-            cmake -DCMAKE_INSTALL_PREFIX="${install_dir}" ..
+            cmake -DCMAKE_INSTALL_PREFIX="${install_dir}" -DHAVE_SNAPPY=Off ..
         fi
 
         make -j ${PROCS}
@@ -421,7 +421,7 @@ function leveldb() {
             echo "Description: The leveldb library"
             echo "Version: Git Master"
             echo "Cflags: -I\${includedir}"
-            echo "Libs: -L\${libdir} -lleveldb -lsnappy"
+            echo "Libs: -L\${libdir} -lleveldb"
         ) > "${pc}"
     }
 
