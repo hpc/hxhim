@@ -26,7 +26,7 @@ int hxhim::datastore::get_rank(hxhim_t *hx, const int id) {
 
     std::size_t total_datastores = 0;
     nocheck::GetDatastoreCount(hx, &total_datastores);
-    if (id >= total_datastores) {
+    if ((std::size_t) id >= total_datastores) {
         return -1;
     }
 

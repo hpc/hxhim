@@ -14,6 +14,5 @@ int is_range_server(const int rank, const size_t client_ratio, const size_t serv
         !server_ratio) {
         return -1;
     }
-
     return ((rank % client_ratio) < server_ratio);
 }

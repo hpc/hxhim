@@ -7,16 +7,13 @@
 #include "generic_options.hpp"
 #include "hxhim/hxhim.hpp"
 
-static const std::size_t DS_PER_RS = 10;
 static const std::size_t TRIPLES = 10;
 
 static int test_hash(hxhim_t *,
                      void *subject, const size_t,
-                     void *predicate, const size_t,
+                     void *, const size_t,
                      void *) {
-    const std::size_t rank = * (std::size_t *) subject;
-    const std::size_t offset = * (std::size_t *) predicate;
-    return (rank * DS_PER_RS) + ((offset < DS_PER_RS)?offset:(DS_PER_RS - 1));
+    return * (std::size_t *) subject;
 }
 
 static HistogramBucketGenerator_t test_buckets = [](const double *, const size_t,
@@ -58,10 +55,10 @@ TEST(hxhim, Histogram) {
     // PUT triples
     // The first TRIPLES - 1 buckets will have 1 item each
     // The last bucket will have 2 items
-    for(std::size_t i = 0; i < (TRIPLES + 1); i++) {
+    for(std::size_t i = 0; i < TRIPLES; i++) {
         subjects[i] = rank;
-        predicates[i] = i;
-        objects[i] = i;
+        predicates[i] = 0;
+        objects[i] = 0;
 
         EXPECT_EQ(hxhim::PutDouble(&hx,
                                    (void *)&subjects[i], sizeof(subjects[i]),
@@ -101,16 +98,10 @@ TEST(hxhim, Histogram) {
         std::size_t size = 0;
         EXPECT_EQ(hist_results->Histogram(&buckets, &counts, &size), HXHIM_SUCCESS);
 
-        EXPECT_EQ(size, (std::size_t) 1);
+        EXPECT_EQ(size, (std::size_t ) 1);
 
-        if ((ds % DS_PER_RS) < (TRIPLES - 1)) {
-            EXPECT_EQ(buckets[0], 0);
-            EXPECT_EQ(counts[0], 1);
-        }
-        else {
-            EXPECT_EQ(buckets[0], 0);
-            EXPECT_EQ(counts[0], 2);
-        }
+        EXPECT_EQ(buckets[0], 0);
+        EXPECT_EQ(counts[0], TRIPLES);
     }
 
     hxhim::Results::Destroy(hist_results);

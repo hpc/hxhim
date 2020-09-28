@@ -96,7 +96,6 @@ class Datastore {
 
     protected:
         int rank;      // MPI rank of HXHIM instance
-        int offset;    // datastore offset in this HXHIM MPI rank
         int id;
         std::shared_ptr<Histogram::Histogram> hist;
 
