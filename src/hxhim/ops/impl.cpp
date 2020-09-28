@@ -155,7 +155,6 @@ int hxhim::HistogramImpl(hxhim_t *hx,
     // setting ds_* values here allows for shuffle to skip hashing this request
     hist->ds_id     = ds_id;
     hist->ds_rank   = hxhim::datastore::get_rank(hx, ds_id);
-    hist->ds_offset = hxhim::datastore::get_offset(hx, ds_id);
 
     mlog(HXHIM_CLIENT_DBG, "HISTOGRAM Insert into queue");
     hists.insert(hist);

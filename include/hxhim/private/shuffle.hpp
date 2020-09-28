@@ -51,7 +51,7 @@ int shuffle(hxhim_t *hx,
             DST_t *local,
             std::unordered_map<int, DST_t *> &remote) {
     // skip duplicate calculations
-    if ((src->ds_id < 0) || (src->ds_rank < 0) || (src->ds_offset < 0)) {
+    if ((src->ds_id < 0) || (src->ds_rank < 0)) {
         // this should be the first and only time hash is called on this packet
         src->timestamps->shuffled = ::Stats::now();
 
@@ -70,7 +70,6 @@ int shuffle(hxhim_t *hx,
 
         // split the backend id into destination rank and ds_offset
         src->ds_rank = hxhim::datastore::get_rank(hx, src->ds_id);
-        src->ds_offset = hxhim::datastore::get_offset(hx, src->ds_id);
     }
 
     ::Stats::Chronostamp find_dst;

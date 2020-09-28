@@ -131,51 +131,6 @@ int hxhimGetMPI(hxhim_t *hx, MPI_Comm *comm, int *rank, int *size) {
     return hxhim::GetMPI(hx, comm, rank, size);
 }
 
-
-/**
- * GetDatastoresPerRangeServer
- * Gets the number of datastores inside this process of the HXHIM instance
- *
- * @param hx              the HXHIM instance
- * @param datastore_count where to copy the count into
- * @return HXHIM_SUCCESS
- */
-int hxhim::nocheck::GetDatastoresPerRangeServer(hxhim_t *hx, std::size_t *datastore_count) {
-    if (datastore_count) {
-        *datastore_count = hx->p->datastores.size();
-    }
-
-    return HXHIM_SUCCESS;
-}
-
-/**
- * GetDatastoresPerRangeServer
- * Gets the number of datastores inside this process of the HXHIM instance
- *
- * @param hx              the HXHIM instance
- * @param datastore_count where to copy the count into
- * @return HXHIM_SUCCESS or HXHIM_ERROR on error
- */
-int hxhim::GetDatastoresPerRangeServer(hxhim_t *hx, std::size_t *datastore_count) {
-    if (!valid(hx)) {
-        return HXHIM_ERROR;
-    }
-
-    return hxhim::nocheck::GetDatastoresPerRangeServer(hx, datastore_count);
-}
-
-/**
- * hxhimGetDatastoresPerRangeServer
- * Gets the number of datastores inside this process of the HXHIM instance
- *
- * @param hx              the HXHIM instance
- * @param datastore_count where to copy the count into
- * @return HXHIM_SUCCESS or HXHIM_ERROR on error
- */
-int hxhimGetDatastoresPerRangeServer(hxhim_t *hx, std::size_t *datastore_count) {
-    return hxhim::GetDatastoresPerRangeServer(hx, datastore_count);
-}
-
 /**
  * hxhim::nocheck::GetDatastoreCount
  * Gets the total number of datastores in this HXHIM instance

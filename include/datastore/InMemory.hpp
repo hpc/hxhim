@@ -19,7 +19,6 @@ class InMemory : public Datastore {
         };
 
         InMemory(const int rank,
-                 const int offset,
                  const int id,
                  Histogram::Histogram *hist,
                  const std::string &name);

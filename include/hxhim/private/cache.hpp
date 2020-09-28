@@ -27,7 +27,6 @@ namespace hxhim {
 
         int ds_id;
         int ds_rank;
-        int ds_offset;
 
         struct ::Stats::Send *timestamps; // pointer to single set of timestamps - ownership not kept
     };

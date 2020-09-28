@@ -10,7 +10,7 @@
 class InMemoryTest : public hxhim::datastore::InMemory {
     public:
         InMemoryTest()
-            : hxhim::datastore::InMemory(-1, 0, 0, nullptr, "InMemory test")
+            : hxhim::datastore::InMemory(-1, 0, nullptr, "InMemory test")
         {}
 
         std::map<std::string, std::string> const &data() const {

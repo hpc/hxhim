@@ -9,11 +9,10 @@
 #include "utils/triplestore.hpp"
 
 hxhim::datastore::InMemory::InMemory(const int rank,
-                                     const int offset,
                                      const int id,
                                      Histogram::Histogram *hist,
                                      const std::string &basename)
-    : Datastore(rank, offset, id, hist),
+    : Datastore(rank, id, hist),
       db()
 {
     Datastore::Open(basename);
@@ -155,8 +154,6 @@ Transport::Response::BGet *hxhim::datastore::InMemory::BGetImpl(Transport::Reque
         clock_gettime(CLOCK_MONOTONIC, &start);
         decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
         clock_gettime(CLOCK_MONOTONIC, &end);
-
-        res->ds_offsets[i]      = req->ds_offsets[i];
 
         // object type was stored as a value, not address, so copy it to the response
         res->object_types[i]    = req->object_types[i];

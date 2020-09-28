@@ -7,7 +7,6 @@ bool fill_options(hxhim_options_t *opts) {
             (hxhim_options_set_debug_level(opts, MLOG_ERR)                       == HXHIM_SUCCESS) &&
             (hxhim_options_set_client_ratio(opts, 1)                             == HXHIM_SUCCESS) &&
             (hxhim_options_set_server_ratio(opts, 1)                             == HXHIM_SUCCESS) &&
-            (hxhim_options_set_datastores_per_range_server(opts, 1)              == HXHIM_SUCCESS) &&
             (hxhim_options_set_datastore_in_memory(opts)                         == HXHIM_SUCCESS) &&
             #ifdef HXHIM_HAVE_THALLIUM
             (hxhim_options_set_transport_thallium(opts, "na+sm")                 == HXHIM_SUCCESS) &&

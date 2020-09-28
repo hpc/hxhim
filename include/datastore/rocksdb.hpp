@@ -25,7 +25,6 @@ class rocksdb : public Datastore {
                 const std::string &exact_name,
                 const bool create_if_missing);
         rocksdb(const int rank,
-                const int offset,
                 const int id,
                 Histogram::Histogram *hist,
                 const std::string &prefix,

@@ -265,11 +265,9 @@ hxhim::Results *hxhim::ChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t fu
     hx->p->hash.args = args;
 
     // change datastores
-    for(std::size_t i = 0; i < hx->p->datastores.size(); i++) {
-        std::stringstream s;
-        s << name << "-" << hxhim::datastore::get_id(hx, hx->p->bootstrap.rank, i);
-        hx->p->datastores[i]->Open(s.str());
-    }
+    std::stringstream s;
+    s << name << "-" << hxhim::datastore::get_id(hx, hx->p->bootstrap.rank);
+    hx->p->datastore->Open(s.str());
 
     MPI_Barrier(hx->p->bootstrap.comm);
 
@@ -319,29 +317,16 @@ int hxhim::GetStats(hxhim_t *hx, const int dst_rank,
     const static std::size_t size_size = sizeof(std::size_t);
 
     // collect from all datastores first
-    const std::size_t count = hx->p->datastores.size();
-    uint64_t    *local_put_times = alloc_array<uint64_t>    (count);
-    std::size_t *local_num_puts  = alloc_array<std::size_t> (count);
-    uint64_t    *local_get_times = alloc_array<uint64_t>    (count);
-    std::size_t *local_num_gets  = alloc_array<std::size_t> (count);
+    uint64_t    local_put_times = 0;
+    std::size_t local_num_puts  = 0;
+    uint64_t    local_get_times = 0;
+    std::size_t local_num_gets  = 0;
 
-    auto cleanup = [local_put_times, local_num_puts,
-                    local_get_times, local_num_gets,
-                    count] () -> void {
-        dealloc_array(local_put_times, count);
-        dealloc_array(local_num_puts, count);
-        dealloc_array(local_get_times, count);
-        dealloc_array(local_num_gets, count);
-    };
-
-    for(std::size_t i = 0; i < count; i++) {
-        if (hx->p->datastores[i]->GetStats(&local_put_times[i],
-                                           &local_num_puts[i],
-                                           &local_get_times[i],
-                                           &local_num_gets[i]) != DATASTORE_SUCCESS) {
-            cleanup();
-            return HXHIM_ERROR;
-        }
+    if (hx->p->datastore->GetStats(&local_put_times,
+                                   &local_num_puts,
+                                   &local_get_times,
+                                   &local_num_gets) != DATASTORE_SUCCESS) {
+        return HXHIM_ERROR;
     }
 
     // send to destination rank
@@ -349,39 +334,34 @@ int hxhim::GetStats(hxhim_t *hx, const int dst_rank,
     MPI_Barrier(comm);
 
     if (put_times) {
-        if (MPI_Gather(local_put_times, count, MPI_UINT64_T,
-                             put_times, count, MPI_UINT64_T, dst_rank, comm) != MPI_SUCCESS) {
-            cleanup();
+        if (MPI_Gather(&local_put_times, 1, MPI_UINT64_T,
+                              put_times, 1, MPI_UINT64_T, dst_rank, comm) != MPI_SUCCESS) {
             return HXHIM_ERROR;
         }
     }
 
     if (num_puts) {
-        if (MPI_Gather(local_num_puts, size_size * count, MPI_CHAR,
-                             num_puts, size_size * count, MPI_CHAR, dst_rank, comm) != MPI_SUCCESS) {
-            cleanup();
+        if (MPI_Gather(&local_num_puts, size_size, MPI_CHAR,
+                              num_puts, size_size, MPI_CHAR, dst_rank, comm) != MPI_SUCCESS) {
             return HXHIM_ERROR;
         }
     }
 
     if (get_times) {
-        if (MPI_Gather(local_get_times, count, MPI_UINT64_T,
-                             get_times, count, MPI_UINT64_T, dst_rank, comm) != MPI_SUCCESS) {
-            cleanup();
+        if (MPI_Gather(&local_get_times, 1, MPI_UINT64_T,
+                              get_times, 1, MPI_UINT64_T, dst_rank, comm) != MPI_SUCCESS) {
             return HXHIM_ERROR;
         }
     }
 
     if (num_gets) {
-        if (MPI_Gather(local_num_gets, size_size * count, MPI_CHAR,
-                             num_gets, size_size * count, MPI_CHAR, dst_rank, comm) != MPI_SUCCESS) {
-            cleanup();
+        if (MPI_Gather(&local_num_gets, size_size, MPI_CHAR,
+                              num_gets, size_size, MPI_CHAR, dst_rank, comm) != MPI_SUCCESS) {
             return HXHIM_ERROR;
         }
     }
 
     MPI_Barrier(comm);
-    cleanup();
 
     return HXHIM_SUCCESS;
 }

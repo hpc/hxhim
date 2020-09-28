@@ -17,7 +17,7 @@
 class RocksDBTest : public hxhim::datastore::rocksdb {
     public:
         RocksDBTest(const int rank, const std::string &name)
-            : hxhim::datastore::rocksdb(rank, 0, name, true)
+            : hxhim::datastore::rocksdb(rank, nullptr, name, true)
         {}
 
         ~RocksDBTest()  {

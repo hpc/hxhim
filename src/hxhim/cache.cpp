@@ -5,7 +5,6 @@
 hxhim::UserData::UserData()
     : ds_id(-1),
       ds_rank(-1),
-      ds_offset(-1),
       timestamps(construct<::Stats::Send>())
 {
     timestamps->cached.start = ::Stats::now();
@@ -25,7 +24,6 @@ int hxhim::UserData::steal(Transport::Request::Request *req) {
     }
 
     // ds_id and ds_rank should have already been set and is the same for everyone
-    req->ds_offsets[req->count]      = ds_offset;
     req->timestamps.reqs[req->count] = timestamps;
 
     timestamps = nullptr;

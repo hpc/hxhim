@@ -3,7 +3,6 @@
 #include "generic_options.hpp"
 #include "hxhim/hxhim.hpp"
 
-static const std::size_t DATASTORES = 4;
 static const std::size_t SMALLER = 3;
 static const std::size_t LARGER = 5;
 
@@ -12,7 +11,6 @@ TEST(GetDatastoreCount, equal) {
     ASSERT_EQ(fill_options(&opts), true);
     EXPECT_EQ(hxhim_options_set_client_ratio(&opts, 1), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_set_server_ratio(&opts, 1), HXHIM_SUCCESS);
-    EXPECT_EQ(hxhim_options_set_datastores_per_range_server(&opts, DATASTORES), HXHIM_SUCCESS);
 
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
@@ -22,7 +20,7 @@ TEST(GetDatastoreCount, equal) {
 
     std::size_t count = 0;
     EXPECT_EQ(hxhim::GetDatastoreCount(&hx, &count), HXHIM_SUCCESS);
-    EXPECT_EQ(count, DATASTORES * size);
+    EXPECT_EQ(count, size);
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
@@ -33,7 +31,6 @@ TEST(GetDatastoreCount, more_clients) {
     ASSERT_EQ(fill_options(&opts), true);
     EXPECT_EQ(hxhim_options_set_client_ratio(&opts, LARGER), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_set_server_ratio(&opts, SMALLER), HXHIM_SUCCESS);
-    EXPECT_EQ(hxhim_options_set_datastores_per_range_server(&opts, DATASTORES), HXHIM_SUCCESS);
 
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
@@ -43,7 +40,7 @@ TEST(GetDatastoreCount, more_clients) {
 
     std::size_t count = 0;
     EXPECT_EQ(hxhim::GetDatastoreCount(&hx, &count), HXHIM_SUCCESS);
-    EXPECT_EQ(count, DATASTORES * ((size / LARGER) * LARGER + (size % LARGER)));
+    EXPECT_EQ(count, ((size / LARGER) * LARGER + (size % LARGER)));
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
@@ -54,7 +51,6 @@ TEST(GetDatastoreCount, more_servers) {
     ASSERT_EQ(fill_options(&opts), true);
     EXPECT_EQ(hxhim_options_set_client_ratio(&opts, SMALLER), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_set_server_ratio(&opts, LARGER), HXHIM_SUCCESS);
-    EXPECT_EQ(hxhim_options_set_datastores_per_range_server(&opts, DATASTORES), HXHIM_SUCCESS);
 
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
@@ -64,7 +60,7 @@ TEST(GetDatastoreCount, more_servers) {
 
     std::size_t count = 0;
     EXPECT_EQ(hxhim::GetDatastoreCount(&hx, &count), HXHIM_SUCCESS);
-    EXPECT_EQ(count, DATASTORES * ((size / LARGER) * LARGER + (size % LARGER)));
+    EXPECT_EQ(count, ((size / LARGER) * LARGER + (size % LARGER)));
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);

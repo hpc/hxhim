@@ -12,7 +12,7 @@ namespace hxhim {
         Results::Get    *init(hxhim_t *hx, Transport::Response::BGet *bget,        const std::size_t i);
         Results::GetOp  *init(hxhim_t *hx, Transport::Response::BGetOp *bgetop,    const std::size_t i);
         Results::Delete *init(hxhim_t *hx, Transport::Response::BDelete *bdel,     const std::size_t i);
-        Results::Sync   *init(hxhim_t *hx, const int ds_offset, const int synced);
+        Results::Sync   *init(hxhim_t *hx, const int synced);
         Results::Hist   *init(hxhim_t *hx, Transport::Response::BHistogram *bhist, const std::size_t i);
 
         // add all responses into results with one call

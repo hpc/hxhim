@@ -84,26 +84,19 @@ int hxhim_hash_SumModDatastores(hxhim_t *hx, void *subject, const size_t subject
  * @return the destination datastore ID or -1 on error
  */
 int hxhim_hash_SumModLocalDatastores(hxhim_t *hx, void *subject, const size_t subject_len, void *predicate, const size_t predicate_len, void*){
-    int rank = -1;
-    hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
-
-    std::size_t client = 0;
-    std::size_t server = 0;
-    hxhim::nocheck::GetDatastoreClientToServerRatio(hx, &client, &server);
-    if (!is_range_server(rank, client, server)) {
-        return -1;
-    }
-
-    int offset = 0;
+    int sum = 0;
     for(std::size_t i = 0; i < subject_len; i++) {
-        offset += (int) (uint8_t) ((char *) subject)[i];
+        sum += (int) (uint8_t) ((char *) subject)[i];
     }
 
     for(std::size_t i = 0; i < predicate_len; i++) {
-        offset += (int) (uint8_t) ((char *) predicate)[i];
+        sum += (int) (uint8_t) ((char *) predicate)[i];
     }
 
-    return hxhim::datastore::get_id(hx, rank, offset % server);
+    std::size_t total_datastores = 0;
+    hxhim::nocheck::GetDatastoreCount(hx, &total_datastores);
+
+    return sum % total_datastores;
 }
 
 /**
@@ -117,7 +110,7 @@ int hxhim_hash_Left(hxhim_t *hx, void *, const size_t, void *, const size_t, voi
     int rank = -1;
     int size = -1;
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, &size);
-    return hxhim::datastore::get_id(hx, (rank - 1) % size, 0);
+    return hxhim::datastore::get_id(hx, (rank - 1) % size);
 }
 
 /**
@@ -131,7 +124,7 @@ int hxhim_hash_Right(hxhim_t *hx, void *, const size_t, void *, const size_t, vo
     int rank = -1;
     int size = -1;
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, &size);
-    return hxhim::datastore::get_id(hx, (rank + 1) % size, 0);
+    return hxhim::datastore::get_id(hx, (rank + 1) % size);
 }
 
 /**

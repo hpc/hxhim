@@ -111,27 +111,6 @@ int hxhim_options_set_server_ratio(hxhim_options_t *opts, const size_t ratio) {
 }
 
 /**
- * hxhim_options_set_datastores_per_range_server
- *
- * @param opts  the set of options to be modified
- * @param count the number of databases to open if this rank is a range server
- * @return HXHIM_SUCCESS or HXHIM_ERROR
- */
-int hxhim_options_set_datastores_per_range_server(hxhim_options_t *opts, const size_t count) {
-    if (!valid_opts(opts)) {
-        return HXHIM_ERROR;
-    }
-
-    if (count < 1) {
-        return HXHIM_ERROR;
-    }
-
-    opts->p->datastore_count = count;
-
-    return HXHIM_SUCCESS;
-}
-
-/**
  * hxhim_options_set_datastore
  * Sets the values needed to set up the datastore
  * This function moves ownership of the config function from the caller to opts

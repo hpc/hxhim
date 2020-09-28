@@ -361,11 +361,6 @@ int Packer::pack(const Message *msg, void **buf, std::size_t *bufsize, char **cu
     big_endian::encode(*curr, msg->count);
     *curr += sizeof(msg->count);
 
-    for(std::size_t i = 0; i < msg->count; i++)  {
-        big_endian::encode(*curr, msg->ds_offsets[i]);
-        *curr += sizeof(msg->ds_offsets[i]);
-    }
-
     return TRANSPORT_SUCCESS;
 }
 

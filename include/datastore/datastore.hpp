@@ -19,27 +19,23 @@ namespace datastore {
 
 /**
  * Functions for converting between
- * datastore IDs and (rank, offset) pairs
- * get_id is the inverse of get_rank and get_offset
+ * datastore IDs and rank
+ * get_id is the inverse of get_rank
  *
  * Client : Server = 5 : 3
- * Datastores per range server: 4
  * MPI Rank:     |    0    |    1    |     2     |      3      |       4     |      5      |      6      |      7      |      8      |      9      |
  * Client:       |    0    |    1    |     2     |      3      |       4     |      5      |      6      |      7      |      8      |      9      |
  * Range Server: |    0    |    1    |     2     |             |             |      3      |      4      |      5      |             |             |
- * Datastore     | 0 1 2 3 | 4 5 6 7 | 8 9 10 11 |             |             | 12 13 14 15 | 16 17 18 19 | 20 21 22 23 |             |             |
+ * Datastore     |    0    |    1    |     2     |             |             |      3      |      4      |      5      |             |             |
  *
  * Client : Server = 3 : 5
- * Datastores per range server: 4
  * MPI Rank:     |    0    |    1    |     2     |      3      |       4     |      5      |      6      |      7      |      8      |      9      |
  * Client:       |    0    |    1    |     2     |             |             |      5      |      6      |      7      |             |             |
  * Range Server: |    0    |    1    |     2     |      3      |       4     |      5      |      6      |      7      |      8      |      9      |
- * Datastore     | 0 1 2 3 | 4 5 6 7 | 8 9 10 11 | 12 13 14 15 | 16 17 18 19 | 20 21 22 23 | 24 25 26 27 | 28 29 30 31 | 32 33 34 35 | 36 37 38 39 |
+ * Datastore     |    0    |    1    |     2     |      3      |       4     |      5      |      6      |      7      |      8      |      9      |
  */
 int get_rank(hxhim_t *hx, const int id);
-int get_server(hxhim_t *hx, const int id);
-int get_offset(hxhim_t *hx, const int id);
-int get_id(hxhim_t *hx, const int rank, const std::size_t offset);
+int get_id(hxhim_t *hx, const int rank);
 
 /**
  * Base configuration type
@@ -61,7 +57,6 @@ struct Config {
 class Datastore {
     public:
         Datastore(const int rank,
-                  const int offset,
                   const int id,
                   Histogram::Histogram *hist); // Datastore takes ownership of hist
         virtual ~Datastore();

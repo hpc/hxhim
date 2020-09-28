@@ -154,7 +154,7 @@ hxhim::Results::Result *hxhim::Result::init(hxhim_t *hx, Transport::Response::Re
 }
 
 hxhim::Results::Put *hxhim::Result::init(hxhim_t *hx, Transport::Response::BPut *bput, const std::size_t i) {
-    hxhim::Results::Put *out = construct<hxhim::Results::Put>(hx, hxhim::datastore::get_id(hx, bput->src, bput->ds_offsets[i]), bput->statuses[i]);
+    hxhim::Results::Put *out = construct<hxhim::Results::Put>(hx, hxhim::datastore::get_id(hx, bput->src), bput->statuses[i]);
 
     out->subject = bput->orig.subjects[i];
     out->predicate = bput->orig.predicates[i];
@@ -163,7 +163,7 @@ hxhim::Results::Put *hxhim::Result::init(hxhim_t *hx, Transport::Response::BPut 
 }
 
 hxhim::Results::Get *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGet *bget, const std::size_t i) {
-    hxhim::Results::Get *out = construct<hxhim::Results::Get>(hx, hxhim::datastore::get_id(hx, bget->src, bget->ds_offsets[i]), bget->statuses[i]);
+    hxhim::Results::Get *out = construct<hxhim::Results::Get>(hx, hxhim::datastore::get_id(hx, bget->src), bget->statuses[i]);
 
     out->subject = bget->orig.subjects[i];
     out->predicate = bget->orig.predicates[i];
@@ -175,7 +175,7 @@ hxhim::Results::Get *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGet 
 }
 
 hxhim::Results::GetOp *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGetOp *bgetop, const std::size_t i) {
-    const int id = hxhim::datastore::get_id(hx, bgetop->src, bgetop->ds_offsets[i]);
+    const int id = hxhim::datastore::get_id(hx, bgetop->src);
     const int status = bgetop->statuses[i];
 
     hxhim::Results::GetOp *top = construct<hxhim::Results::GetOp>(hx, id, status);
@@ -202,7 +202,7 @@ hxhim::Results::GetOp *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGe
 }
 
 hxhim::Results::Delete *hxhim::Result::init(hxhim_t *hx, Transport::Response::BDelete *bdel, const std::size_t i) {
-    hxhim::Results::Delete *out = construct<hxhim::Results::Delete>(hx, hxhim::datastore::get_id(hx, bdel->src, bdel->ds_offsets[i]), bdel->statuses[i]);
+    hxhim::Results::Delete *out = construct<hxhim::Results::Delete>(hx, hxhim::datastore::get_id(hx, bdel->src), bdel->statuses[i]);
 
     out->subject = bdel->orig.subjects[i];
     out->predicate = bdel->orig.predicates[i];
@@ -210,16 +210,16 @@ hxhim::Results::Delete *hxhim::Result::init(hxhim_t *hx, Transport::Response::BD
     return out;
 }
 
-hxhim::Results::Sync *hxhim::Result::init(hxhim_t *hx, const int ds_offset, const int synced) {
+hxhim::Results::Sync *hxhim::Result::init(hxhim_t *hx, const int synced) {
     int rank = -1;
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
-    hxhim::Results::Sync *out = construct<hxhim::Results::Sync>(hx, hxhim::datastore::get_id(hx, rank, ds_offset), synced);
+    hxhim::Results::Sync *out = construct<hxhim::Results::Sync>(hx, hxhim::datastore::get_id(hx, rank), synced);
     return out;
 }
 
 hxhim::Results::Hist *hxhim::Result::init(hxhim_t *hx, Transport::Response::BHistogram *bhist, const std::size_t i) {
-    hxhim::Results::Hist *out = construct<hxhim::Results::Hist>(hx, hxhim::datastore::get_id(hx, bhist->src, bhist->ds_offsets[i]), bhist->statuses[i]);
+    hxhim::Results::Hist *out = construct<hxhim::Results::Hist>(hx, hxhim::datastore::get_id(hx, bhist->src), bhist->statuses[i]);
 
     out->histogram = bhist->histograms[i];
 

@@ -13,7 +13,7 @@
 class LevelDBTest : public hxhim::datastore::leveldb {
     public:
         LevelDBTest(const int rank, const std::string &name)
-            : hxhim::datastore::leveldb(rank, 0, name, true)
+            : hxhim::datastore::leveldb(rank, nullptr, name, true)
         {}
 
         ~LevelDBTest()  {

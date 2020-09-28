@@ -27,12 +27,10 @@ TEST(Request, BPut) {
 
         src.count = 1;
 
-        src.ds_offsets[0] = rand();
-
-        src.subjects[0] = ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN);
-        src.predicates[0] = ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN);
+        src.subjects[0]     = ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN);
+        src.predicates[0]   = ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN);
         src.object_types[0] = OBJECT_TYPE;
-        src.objects[0] = ReferenceBlob((void *) &OBJECT, OBJECT_LEN);
+        src.objects[0]      = ReferenceBlob((void *) &OBJECT, OBJECT_LEN);
     }
 
     EXPECT_EQ(src.direction, Message::REQUEST);
@@ -55,8 +53,6 @@ TEST(Request, BPut) {
     EXPECT_EQ(src.count, dst->count);
 
     for(std::size_t i = 0; i < dst->count; i++) {
-        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
-
         EXPECT_EQ(src.subjects[i].size(), dst->subjects[i].size());
         EXPECT_EQ(memcmp(src.subjects[i].data(), dst->subjects[i].data(), dst->subjects[i].size()), 0);
 
@@ -79,8 +75,6 @@ TEST(Request, BGet) {
         src.dst = rand();
 
         src.count = 1;
-
-        src.ds_offsets[0] = rand();
 
         src.subjects[0] = ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN);
         src.predicates[0] = ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN);
@@ -107,8 +101,6 @@ TEST(Request, BGet) {
     EXPECT_EQ(src.count, dst->count);
 
     for(std::size_t i = 0; i < dst->count; i++) {
-        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
-
         EXPECT_EQ(src.subjects[i].size(), dst->subjects[i].size());
         EXPECT_EQ(memcmp(src.subjects[i].data(), dst->subjects[i].data(), dst->subjects[i].size()), 0);
 
@@ -131,7 +123,6 @@ TEST(Request, BGetOp) {
         src.count = HXHIM_GETOP_INVALID;
 
         for(int i = 0; i < HXHIM_GETOP_INVALID; i++) {
-            src.ds_offsets[i] = rand();
             src.subjects[i] = ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN);
             src.predicates[i] = ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN);
             src.object_types[i] = OBJECT_TYPE;
@@ -160,8 +151,6 @@ TEST(Request, BGetOp) {
     EXPECT_EQ(src.count, dst->count);
 
     for(std::size_t i = 0; i < dst->count; i++) {
-        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
-
         if (dst->subjects[i].data()) {
             EXPECT_EQ(src.subjects[i].size(), dst->subjects[i].size());
             EXPECT_EQ(memcmp(src.subjects[i].data(), dst->subjects[i].data(), dst->subjects[i].size()), 0);
@@ -190,8 +179,6 @@ TEST(Request, BDelete) {
 
         src.count = 1;
 
-        src.ds_offsets[0] = rand();
-
         src.subjects[0] = ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN);
         src.predicates[0] = ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN);
     }
@@ -216,8 +203,6 @@ TEST(Request, BDelete) {
     EXPECT_EQ(src.count, dst->count);
 
     for(std::size_t i = 0; i < dst->count; i++) {
-        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
-
         EXPECT_EQ(src.subjects[i].size(), dst->subjects[i].size());
         EXPECT_EQ(memcmp(src.subjects[i].data(), dst->subjects[i].data(), dst->subjects[i].size()), 0);
 
@@ -236,8 +221,6 @@ TEST(Request, BHistogram) {
         src.dst = rand();
 
         src.count = 1;
-
-        src.ds_offsets[0] = rand();
     }
 
     EXPECT_EQ(src.direction, Message::REQUEST);
@@ -260,10 +243,6 @@ TEST(Request, BHistogram) {
 
     EXPECT_EQ(src.count, dst->count);
 
-    for(std::size_t i = 0; i < dst->count; i++) {
-        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
-    }
-
     destruct(dst);
 }
 
@@ -277,8 +256,6 @@ TEST(Response, BPut) {
         src.count = 1;
 
         src.statuses[0] = HXHIM_SUCCESS;
-
-        src.ds_offsets[0] = rand();
 
         src.orig.subjects[0]   = ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN);
         src.orig.predicates[0] = ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN);
@@ -304,7 +281,6 @@ TEST(Response, BPut) {
     EXPECT_EQ(src.count, dst->count);
 
     for(std::size_t i = 0; i < dst->count; i++) {
-        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
         EXPECT_EQ(src.statuses[i], dst->statuses[i]);
 
         EXPECT_EQ(src.orig.subjects[i].data(),   dst->orig.subjects[i].data());
@@ -326,8 +302,6 @@ TEST(Response, BGet) {
         src.count = 1;
 
         src.statuses[0] = HXHIM_SUCCESS;
-
-        src.ds_offsets[0] = rand();
 
         src.object_types[0] = OBJECT_TYPE;
         src.objects[0] = ReferenceBlob((void *) &OBJECT, OBJECT_LEN);
@@ -356,7 +330,6 @@ TEST(Response, BGet) {
     EXPECT_EQ(src.count, dst->count);
 
     for(std::size_t i = 0; i < dst->count; i++) {
-        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
         EXPECT_EQ(src.statuses[i], dst->statuses[i]);
 
         EXPECT_EQ(src.object_types[i],           dst->object_types[i]);
@@ -382,8 +355,6 @@ TEST(Response, BGetOp) {
         src.count = 1;
 
         src.statuses[0]      = HXHIM_SUCCESS;
-
-        src.ds_offsets[0]    = rand();
 
         src.object_types[0]  = OBJECT_TYPE;
         src.num_recs[0]      = 1;
@@ -423,7 +394,6 @@ TEST(Response, BGetOp) {
     ASSERT_NE(dst->objects, nullptr);
 
     for(std::size_t i = 0; i < dst->count; i++) {
-        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
         EXPECT_EQ(src.statuses[i], dst->statuses[i]);
 
         EXPECT_EQ(src.object_types[i], dst->object_types[i]);
@@ -469,8 +439,6 @@ TEST(Response, BDelete) {
 
         src.statuses[0] = HXHIM_SUCCESS;
 
-        src.ds_offsets[0] = rand();
-
         src.orig.subjects[0]   = ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN);
         src.orig.predicates[0] = ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN);
     }
@@ -495,7 +463,6 @@ TEST(Response, BDelete) {
     EXPECT_EQ(src.count, dst->count);
 
     for(std::size_t i = 0; i < dst->count; i++) {
-        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
         EXPECT_EQ(src.statuses[i], dst->statuses[i]);
 
         EXPECT_EQ(src.orig.subjects[i].data(),   dst->orig.subjects[i].data());
@@ -517,8 +484,6 @@ TEST(Response, BHistogram) {
         src.count = 1;
 
         src.statuses[0] = HXHIM_SUCCESS;
-
-        src.ds_offsets[0] = rand();
 
         src.histograms[0] = std::shared_ptr<Histogram::Histogram>(construct<Histogram::Histogram>(Histogram::Config{0, CUSTOM_NONUNIFORM_FUNC, nullptr}), Histogram::deleter);
         for(std::size_t i = 0; i < 10; i++) {
@@ -546,7 +511,6 @@ TEST(Response, BHistogram) {
     EXPECT_EQ(src.count, dst->count);
 
     for(std::size_t i = 0; i < dst->count; i++) {
-        EXPECT_EQ(src.ds_offsets[i], dst->ds_offsets[i]);
         EXPECT_EQ(src.statuses[i], dst->statuses[i]);
 
         double *src_buckets = nullptr;

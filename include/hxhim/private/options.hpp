@@ -31,7 +31,6 @@ typedef struct hxhim_options_private {
     std::size_t server_ratio;
 
     hxhim::datastore::Config *datastore;   // configuration options for the selected datastore
-    std::size_t datastore_count;
 
     std::size_t max_ops_per_send;          // the maximum number of operations that can be sent in one packet
     std::size_t start_async_put_at;        // number of PUTs to hold before sending PUTs asynchronously

@@ -19,7 +19,7 @@ hxhim::datastore::leveldb::leveldb(const int rank,
                                    Histogram::Histogram *hist,
                                    const std::string &exact_name,
                                    const bool create_if_missing)
-    : Datastore(rank, 0, 0, hist),
+    : Datastore(rank, 0, hist),
       dbname(exact_name),
       create_if_missing(create_if_missing),
       db(nullptr), options()
@@ -32,13 +32,12 @@ hxhim::datastore::leveldb::leveldb(const int rank,
 }
 
 hxhim::datastore::leveldb::leveldb(const int rank,
-                                   const int offset,
                                    const int id,
                                    Histogram::Histogram *hist,
                                    const std::string &prefix,
                                    const std::string &basename,
                                    const bool create_if_missing)
-    : Datastore(rank, offset, id, hist),
+    : Datastore(rank, id, hist),
       dbname(),
       create_if_missing(create_if_missing),
       db(nullptr), options()
@@ -240,8 +239,6 @@ Transport::Response::BGet *hxhim::datastore::leveldb::BGetImpl(Transport::Reques
         // get the value
         ::leveldb::Slice value; // read gotten value into a Slice instead of a std::string to save a few copies
         ::leveldb::Status status = db->Get(::leveldb::ReadOptions(), k, value);
-
-        res->ds_offsets[i]      = req->ds_offsets[i];
 
         // object type was stored as a value, not address, so copy it to the response
         res->object_types[i]    = req->object_types[i];

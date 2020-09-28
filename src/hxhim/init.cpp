@@ -67,30 +67,24 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
     mlog(HXHIM_CLIENT_INFO, "Starting Datastore Initialization");
 
     // there must be at least 1 client, server, and datastore
-    if (!opts->p->client_ratio    ||
-        !opts->p->server_ratio    ||
-        !opts->p->datastore_count) {
+    if (!opts->p->client_ratio ||
+        !opts->p->server_ratio) {
         return HXHIM_ERROR;
     }
 
     hx->p->range_server.client_ratio = opts->p->client_ratio;
     hx->p->range_server.server_ratio = opts->p->server_ratio;
 
+    // create datastore if this rank is a server
     if (is_range_server(hx->p->bootstrap.rank, opts->p->client_ratio, opts->p->server_ratio)) {
-        // allocate pointers
-        hx->p->datastores.resize(opts->p->datastore_count);
-
-        // create datastores
-        for(std::size_t i = 0; i < hx->p->datastores.size(); i++) {
-            if (datastore::Init(hx, i, opts->p->datastore, opts->p->histogram) != DATASTORE_SUCCESS) {
-                return HXHIM_ERROR;
-            }
+        if (datastore::Init(hx, opts->p->datastore, opts->p->histogram) != DATASTORE_SUCCESS) {
+            return HXHIM_ERROR;
         }
     }
 
     hx->p->total_range_servers = opts->p->server_ratio * (hx->p->bootstrap.size / opts->p->server_ratio) + (hx->p->bootstrap.size % opts->p->server_ratio);
 
-    hx->p->total_datastores = hx->p->total_range_servers * opts->p->datastore_count;
+    hx->p->total_datastores = hx->p->total_range_servers;
 
     mlog(HXHIM_CLIENT_INFO, "Completed Datastore Initialization");
     return HXHIM_SUCCESS;
@@ -112,25 +106,19 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
     hx->p->range_server.client_ratio = 1;
     hx->p->range_server.server_ratio = 1;
 
-    if (opts->p->datastore_count != 1) {
-        return HXHIM_ERROR;
-    }
-
-    hx->p->datastores.resize(1);
-
     // ignore configuration hash - everything goes into here
     hx->p->hash.name = "local";
     hx->p->hash.func = hxhim_hash_RankZero;
     hx->p->hash.args = nullptr;
 
-    if (datastore::Init(hx, 0, opts->p->datastore, opts->p->histogram, &name) != DATASTORE_SUCCESS) {
+    if (datastore::Init(hx, opts->p->datastore, opts->p->histogram, &name) != DATASTORE_SUCCESS) {
         return HXHIM_ERROR;
     }
 
     hx->p->total_range_servers = 1;
     hx->p->total_datastores = 1;
 
-    return hx->p->datastores[0]?HXHIM_SUCCESS:HXHIM_ERROR;
+    return hx->p->datastore?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 
 #if ASYNC_PUTS

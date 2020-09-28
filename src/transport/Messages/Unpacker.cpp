@@ -502,11 +502,6 @@ int Unpacker::unpack(Message *msg, void *buf, const std::size_t, char **curr) {
         return TRANSPORT_ERROR;
     }
 
-    for(std::size_t i = 0; i < count; i++)  {
-        big_endian::decode(msg->ds_offsets[i], *curr);
-        *curr += sizeof(msg->ds_offsets[i]);
-    }
-
     return TRANSPORT_SUCCESS;
 }
 

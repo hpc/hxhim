@@ -64,9 +64,9 @@ typedef struct hxhim_private {
     std::size_t total_range_servers;       // total number of range servers across all ranks
     std::size_t total_datastores;          // total number of datastores across all ranks
 
-    // local datastores
+    // local datastore (max 1 per server)
     // f(rank, index) = datastore ID
-    std::vector<hxhim::datastore::Datastore *> datastores;
+    hxhim::datastore::Datastore *datastore;
 
     // asynchronous BPUT data
     struct {

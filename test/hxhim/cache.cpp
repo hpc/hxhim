@@ -6,14 +6,12 @@ TEST(UserData, constructor) {
     hxhim::UserData ud;
     EXPECT_EQ(ud.ds_id,     -1);
     EXPECT_EQ(ud.ds_rank,   -1);
-    EXPECT_EQ(ud.ds_offset, -1);
 }
 
 TEST(SubjectPredicate, constructor) {
     hxhim::SubjectPredicate sp;
     EXPECT_EQ(sp.ds_id,     -1);
     EXPECT_EQ(sp.ds_rank,   -1);
-    EXPECT_EQ(sp.ds_offset, -1);
 
     EXPECT_EQ(sp.subject.data(),   nullptr);
     EXPECT_EQ(sp.predicate.data(), nullptr);

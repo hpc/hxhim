@@ -12,7 +12,7 @@ hxhim_private::hxhim_private()
       running(false),
       max_ops_per_send(),
       queues(),
-      datastores(),
+      datastore(nullptr),
       async_put(),
       hash(),
       transport(nullptr),

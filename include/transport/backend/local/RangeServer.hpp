@@ -37,19 +37,6 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
 
     mlog(HXHIM_SERVER_INFO, "Rank %d Local RangeServer recevied %s request", rank, HXHIM_OP_STR[req->op]);
 
-    // overallocate in case all of the requests go to one datastore
-    std::size_t datastore_count = 0;
-    hxhim::nocheck::GetDatastoresPerRangeServer(hx, &datastore_count);
-    Request_t *dsts = alloc_array<Request_t>(datastore_count, req->count);
-
-    // split up requests into datastores
-    // pointers are now owned by the database inputs, not by the server request
-    for(std::size_t i = 0; i < req->count; i++) {
-        const int datastore = req->ds_offsets[i];
-        Request_t &dst = dsts[datastore];
-        dst.steal(req, i); // individual timestamps get moved here
-    }
-
     // final response variable
     Response_t *res = construct<Response_t>(req->count);
     res->src = req->dst;
@@ -66,24 +53,24 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
 
     // send to each datastore
     res->timestamps.transport->send_start = ::Stats::now();
-    for(std::size_t ds = 0; ds < datastore_count; ds++) {
-        Response_t *response = hx->p->datastores[ds]->operate(&dsts[ds]);
 
-        // if there were responses, copy them into the output variable
-        if (response) {
-            for(std::size_t i = 0; i < response->count; i++) {
-                // move timestamps over to response (responses should correspond to requests)
-                response->timestamps.reqs[i] = dsts[ds].timestamps.reqs[i];
-                dsts[ds].timestamps.reqs[i] = nullptr;
+    Response_t *response = hx->p->datastore->operate(req);
 
-                // move the datastore response to the main response
-                res->steal(response, i);
-            }
+    // if there were responses, copy them into the output variable
+    if (response) {
+        for(std::size_t i = 0; i < response->count; i++) {
+            // move timestamps over to response (responses should correspond to requests)
+            response->timestamps.reqs[i] = req->timestamps.reqs[i];
+            req->timestamps.reqs[i] = nullptr;
 
-            response->count = 0;
-            destruct(response);
+            // move the datastore response to the main response
+            res->steal(response, i);
         }
+
+        response->count = 0;
+        destruct(response);
     }
+
     res->timestamps.transport->recv_end = ::Stats::now();
 
     // no unpacking
@@ -93,8 +80,6 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
     // no clean up rpc
     res->timestamps.transport->cleanup_rpc.start = ::Stats::now();
     res->timestamps.transport->cleanup_rpc.end = res->timestamps.transport->cleanup_rpc.start;
-
-    dealloc_array(dsts, datastore_count);
 
     mlog(HXHIM_SERVER_INFO, "Rank %d Local RangeServer done processing %s", rank, HXHIM_OP_STR[req->op]);
     res->timestamps.transport->end = ::Stats::now();

@@ -39,20 +39,18 @@ hxhim::Results *hxhim::Sync(hxhim_t *hx) {
     transport->unpack.start = ::Stats::now();
     transport->unpack.end   = ::Stats::now();
 
-    // Sync local data store
-    for(std::size_t i = 0; i < hx->p->datastores.size(); i++) {
-        transport->start = ::Stats::now();
+    // Sync local datastore
+    transport->start = ::Stats::now();
 
-        const int synced = hx->p->datastores[i]->Sync();
-        hxhim::Results::Sync *sync = hxhim::Result::init(hx, i, synced);
+    const int synced = hx->p->datastore->Sync();
+    hxhim::Results::Sync *sync = hxhim::Result::init(hx, synced);
 
-        sync->timestamps.send = construct<::Stats::Send>(send);
-        sync->timestamps.transport = transport;
-        sync->timestamps.transport->end = ::Stats::now();
-        sync->timestamps.recv.result.start = ::Stats::now();
-        res->Add(sync);
-        sync->timestamps.recv.result.end = ::Stats::now();
-    }
+    sync->timestamps.send = construct<::Stats::Send>(send);
+    sync->timestamps.transport = transport;
+    sync->timestamps.transport->end = ::Stats::now();
+    sync->timestamps.recv.result.start = ::Stats::now();
+    res->Add(sync);
+    sync->timestamps.recv.result.end = ::Stats::now();
 
     return res;
 }

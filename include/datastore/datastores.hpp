@@ -18,7 +18,6 @@ namespace hxhim {
 namespace datastore {
 
 int Init(hxhim_t *hx,
-         const int offset,
          Config *config,
          const Histogram::Config &hist_config,
          const std::string *exact_name = nullptr);

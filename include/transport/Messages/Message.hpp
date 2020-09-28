@@ -38,7 +38,6 @@ struct Message {
     int dst;                   // range server ID, not backend ID
     std::size_t max_count;
     std::size_t count;
-    int *ds_offsets;           // datastore id on the dst range server
 
     struct {
         struct Stats::Send **reqs;

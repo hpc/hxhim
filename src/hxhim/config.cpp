@@ -266,14 +266,13 @@ static int fill_options(hxhim_options_t *opts, const Config &config) {
         parse_map_value(opts, config, DEBUG_LEVEL, DEBUG_LEVELS, hxhim_options_set_debug_level)                 &&
         parse_value(opts, config, CLIENT_RATIO,                  hxhim_options_set_client_ratio)                &&
         parse_value(opts, config, SERVER_RATIO,                  hxhim_options_set_server_ratio)                &&
-        parse_value(opts, config, DATASTORES_PER_RANGE_SERVER,   hxhim_options_set_datastores_per_range_server) &&
         parse_datastore(opts, config)                                                                           &&
         parse_transport(opts, config)                                                                           &&
         parse_endpointgroup(opts, config)                                                                       &&
         parse_value(opts, config, START_ASYNC_PUT_AT,            hxhim_options_set_start_async_put_at)          &&
         parse_value(opts, config, MAXIMUM_OPS_PER_SEND,          hxhim_options_set_maximum_ops_per_send)        &&
         parse_value(opts, config, HISTOGRAM_FIRST_N,             hxhim_options_set_histogram_first_n)           &&
-        parse_value(opts, config, HISTOGRAM_BUCKET_GEN_NAME,     hxhim_options_set_histogram_bucket_gen_name) &&
+        parse_value(opts, config, HISTOGRAM_BUCKET_GEN_NAME,     hxhim_options_set_histogram_bucket_gen_name)   &&
         true?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 

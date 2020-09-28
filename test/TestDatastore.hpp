@@ -11,7 +11,7 @@ static const uint64_t GET_TIME_UINT64 = std::chrono::duration_cast<std::chrono::
 class TestDatastore : public hxhim::datastore::Datastore {
     public:
         TestDatastore(const int id)
-            : hxhim::datastore::Datastore(0, 0, id, nullptr)
+            : hxhim::datastore::Datastore(0, id, nullptr)
         {}
 
     private:

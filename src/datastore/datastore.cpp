@@ -5,7 +5,7 @@
 #include <stdexcept>
 
 #include "datastore/datastore.hpp"
-#include "hxhim/accessors.hpp"
+#include "hxhim/private/accessors.hpp"
 #include "utils/Blob.hpp"
 #include "utils/is_range_server.hpp"
 #include "utils/mlog2.h"
@@ -13,6 +13,7 @@
 
 /**
  * get_rank
+ * Get the rank the datastore id is on
  *
  * @param hx the HXHIM instance
  * @param id the database ID to get the rank of
@@ -21,73 +22,56 @@
 int hxhim::datastore::get_rank(hxhim_t *hx, const int id) {
     std::size_t client = 0;
     std::size_t server = 0;
-    if (GetDatastoreClientToServerRatio(hx, &client, &server) != HXHIM_SUCCESS) {
+    nocheck::GetDatastoreClientToServerRatio(hx, &client, &server);
+
+    std::size_t total_datastores = 0;
+    nocheck::GetDatastoreCount(hx, &total_datastores);
+    if (id >= total_datastores) {
         return -1;
     }
 
-    const std::div_t qr = std::div(get_server(hx, id), server);
-    return client * qr.quot + qr.rem;
-}
-
-/**
- * get_server
- *
- * @param hx the HXHIM instance
- * @param id the database ID to get the server number of
- * @return the server number of the given ID or -1 on error
- */
-int hxhim::datastore::get_server(hxhim_t *hx, const int id) {
-    std::size_t local_ds_count = 0;
-    if (GetDatastoresPerRangeServer(hx, &local_ds_count) != HXHIM_SUCCESS) {
-        return -1;
+    // not every rank is a server
+    if (client > server) {
+        return (id / server) * client + (id % server);
     }
 
-    return id / local_ds_count;
-}
-
-/**
- * get_offset
- *
- * @param hx the HXHIM instance
- * @param id the database ID to get the offset of
- * @return the offset of the given ID or -1 on error
- */
-int hxhim::datastore::get_offset(hxhim_t *hx, const int id) {
-    std::size_t local_ds_count = 0;
-    if (GetDatastoresPerRangeServer(hx, &local_ds_count) != HXHIM_SUCCESS) {
-        return -1;
-    }
-
-    return id % local_ds_count;
+    // every rank is a server
+    return id;
 }
 
 /**
  * get_id
+ * Get the id of the datastore located on the given rank
  *
  * @param hx      the HXHIM instance
  * @param rank    the destination rank
- * @param offset  the offset within the destination
- * @return the mapping from the (rank, offset) to the database ID, or -1 on error
+ * @return the mapping from the rank to the database ID, or -1 on error
  */
-int hxhim::datastore::get_id(hxhim_t *hx, const int rank, const std::size_t offset) {
-    std::size_t local_ds_count = 0;
-    if (GetDatastoresPerRangeServer(hx, &local_ds_count) != HXHIM_SUCCESS) {
+int hxhim::datastore::get_id(hxhim_t *hx, const int rank) {
+    std::size_t client = 0;
+    std::size_t server = 0;
+    nocheck::GetDatastoreClientToServerRatio(hx, &client, &server);
+
+    // make sure the rank is valid
+    int size = 0;
+    nocheck::GetMPI(hx, nullptr, nullptr, &size);
+    if ((rank < 0) || (rank >= size)) {
         return -1;
     }
 
-    if (offset >= local_ds_count) {
-        return -1;
+    // not every rank is a server
+    if (client > server) {
+        return (rank / client) * server + (rank % client);
     }
 
-    return rank * local_ds_count + offset;
+    // every rank is a server
+    return rank;
 }
 
 hxhim::datastore::Datastore::Datastore(const int rank,
-                                       const int offset,
                                        const int id,
                                        Histogram::Histogram *hist)
     : rank(rank),
-      offset(offset),
       id(id),
       hist(std::shared_ptr<Histogram::Histogram>(hist,
                                                  [](Histogram::Histogram *ptr) {
@@ -270,8 +254,6 @@ Transport::Response::BHistogram *hxhim::datastore::Datastore::operate(Transport:
     for(std::size_t i = 0; i < req->count; i++) {
         struct timespec start = {};
         struct timespec end = {};
-
-        res->ds_offsets[i] = offset;
 
         clock_gettime(CLOCK_MONOTONIC, &start);
         res->histograms[i] = hist;
