@@ -16,42 +16,45 @@ hxhim::Results *hxhim::Sync(hxhim_t *hx) {
         return nullptr;
     }
 
+    // clear out queues
     hxhim::Results *res = Flush(hx);
 
-    if (hx->p->datastore) {
-        ::Stats::Send send;
-        send.cached.start = ::Stats::now();
-        send.cached.end   = send.cached.start;
-        send.shuffled     = ::Stats::now();
-        send.hashed.start = ::Stats::now();
-        send.hashed.end   = send.hashed.end;
-        send.bulked.start = ::Stats::now();
-        send.bulked.end   = send.bulked.end;
+    MPI_Barrier(hx->p->bootstrap.comm);
 
-        std::shared_ptr<struct ::Stats::SendRecv> transport = std::make_shared<struct ::Stats::SendRecv>();
+    ::Stats::Send send;
+    send.cached.start = ::Stats::now();
+    send.cached.end   = send.cached.start;
+    send.shuffled     = ::Stats::now();
+    send.hashed.start = ::Stats::now();
+    send.hashed.end   = send.hashed.end;
+    send.bulked.start = ::Stats::now();
+    send.bulked.end   = send.bulked.end;
 
-        transport->pack.start = ::Stats::now();
-        transport->pack.end   = ::Stats::now();
+    std::shared_ptr<struct ::Stats::SendRecv> transport = std::make_shared<struct ::Stats::SendRecv>();
 
-        transport->send_start = ::Stats::now();
-        MPI_Barrier(hx->p->bootstrap.comm);
-        transport->recv_end = ::Stats::now();
+    transport->pack.start = ::Stats::now();
+    transport->pack.end   = ::Stats::now();
 
-        transport->unpack.start = ::Stats::now();
-        transport->unpack.end   = ::Stats::now();
+    transport->send_start = ::Stats::now();
+    transport->recv_end = ::Stats::now();
 
-        // Sync local datastore
-        transport->start = ::Stats::now();
-        const int synced = hx->p->datastore->Sync();
-        hxhim::Results::Sync *sync = hxhim::Result::init(hx, synced);
+    transport->unpack.start = ::Stats::now();
+    transport->unpack.end   = ::Stats::now();
 
-        sync->timestamps.send = construct<::Stats::Send>(send);
-        sync->timestamps.transport = transport;
-        sync->timestamps.transport->end = ::Stats::now();
-        sync->timestamps.recv.result.start = ::Stats::now();
-        res->Add(sync);
-        sync->timestamps.recv.result.end = ::Stats::now();
-    }
+    // Sync local datastore
+    transport->start = ::Stats::now();
+
+    // clear out local datastore
+    // if there is no local datastore, treat as success
+    const int synced = hx->p->datastore?hx->p->datastore->Sync():DATASTORE_SUCCESS;
+    hxhim::Results::Sync *sync = hxhim::Result::init(hx, synced);
+
+    sync->timestamps.send = construct<::Stats::Send>(send);
+    sync->timestamps.transport = transport;
+    sync->timestamps.transport->end = ::Stats::now();
+    sync->timestamps.recv.result.start = ::Stats::now();
+    res->Add(sync);
+    sync->timestamps.recv.result.end = ::Stats::now();
 
     return res;
 }
