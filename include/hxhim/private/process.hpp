@@ -196,6 +196,7 @@ hxhim::Results *process(hxhim_t *hx,
             ::Stats::Chronopoint local_start = ::Stats::now();
             #endif
             Response_t *response = Transport::local::range_server<Response_t, Request_t>(hx, &local);
+
             #if PRINT_TIMESTAMPS
             ::Stats::Chronopoint local_end = ::Stats::now();
             ::Stats::print_event(hx->p->print_buffer, rank, "local", ::Stats::global_epoch, local_start, local_end);

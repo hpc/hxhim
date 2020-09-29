@@ -11,10 +11,10 @@ extern "C"
 #endif
 
 /** Success constant */
-#define HXHIM_SUCCESS 0
+#define HXHIM_SUCCESS 3
 
 /** Error constant */
-#define HXHIM_ERROR 1
+#define HXHIM_ERROR 4
 
 /**
  * Enum and String generation adapted from

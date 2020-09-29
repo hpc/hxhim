@@ -1,8 +1,8 @@
 #ifndef MDHIM_TRANSPORT_CONSTANTS_H
 #define MDHIM_TRANSPORT_CONSTANTS_H
 
-#define TRANSPORT_SUCCESS 0
-#define TRANSPORT_ERROR   1
+#define TRANSPORT_SUCCESS 5
+#define TRANSPORT_ERROR   6
 
 namespace Transport {
 

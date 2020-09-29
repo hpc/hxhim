@@ -8,8 +8,8 @@ extern "C"
 {
 #endif
 
-#define HISTOGRAM_SUCCESS  0
-#define HISTOGRAM_ERROR   -1
+#define HISTOGRAM_SUCCESS  7
+#define HISTOGRAM_ERROR    8
 
 /**
  * HistogramBucketGenerator_t

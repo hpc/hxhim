@@ -105,7 +105,7 @@ int Transport::Response::SubjectPredicate::steal(Transport::Response::SubjectPre
     orig.subjects[count]     = from->orig.subjects[i];
     orig.predicates[count]   = from->orig.predicates[i];
 
-    return HXHIM_SUCCESS;
+    return TRANSPORT_SUCCESS;
 }
 
 int Transport::Response::SubjectPredicate::cleanup() {
