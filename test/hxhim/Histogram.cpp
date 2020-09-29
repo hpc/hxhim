@@ -98,8 +98,10 @@ TEST(hxhim, Histogram) {
         std::size_t size = 0;
         EXPECT_EQ(hist_results->Histogram(&buckets, &counts, &size), HXHIM_SUCCESS);
 
-        EXPECT_EQ(size, (std::size_t ) 1);
+        ASSERT_NE(buckets, nullptr);
+        ASSERT_NE(counts, nullptr);
 
+        EXPECT_EQ(size, (std::size_t ) 1);
         EXPECT_EQ(buckets[0], 0);
         EXPECT_EQ(counts[0], TRIPLES);
     }
