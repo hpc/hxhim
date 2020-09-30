@@ -101,7 +101,7 @@ std::size_t Transport::Response::BGetOp::size() const {
                      predicates[i][j].pack_size();
 
             // all records from response[i] share the same status
-            if (statuses[i] == TRANSPORT_SUCCESS) {
+            if (statuses[i] == DATASTORE_SUCCESS) {
                 total += objects[i][j].pack_size();
             }
         }

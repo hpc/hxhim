@@ -66,10 +66,11 @@ Transport::Response::BGet::~BGet() {
 
 std::size_t Transport::Response::BGet::size() const {
     std::size_t total = SubjectPredicate::size();
+
     for(std::size_t i = 0; i < count; i++) {
         total += sizeof(object_types[i]);
 
-        if (statuses[i] == TRANSPORT_SUCCESS) {
+        if (statuses[i] == DATASTORE_SUCCESS) {
             total += objects[i].pack_size();
         }
     }

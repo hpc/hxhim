@@ -350,7 +350,7 @@ int Unpacker::unpack(Response::BGet **bgm, void *buf, const std::size_t bufsize)
 
         // object
         // unpack into user pointers
-        if (out->statuses[i] == HXHIM_SUCCESS) {
+        if (out->statuses[i] == DATASTORE_SUCCESS) {
             out->objects[i].unpack(curr);
         }
 
@@ -381,11 +381,9 @@ int Unpacker::unpack(Response::BGetOp **bgm, void *buf, const std::size_t bufsiz
         big_endian::decode(out->num_recs[i], curr);
         curr += sizeof(out->num_recs[i]);
 
-        out->subjects[i]    = alloc_array<Blob>(out->num_recs[i]);
-        out->predicates[i]  = alloc_array<Blob>(out->num_recs[i]);
-        if (out->statuses[i] == HXHIM_SUCCESS) {
-            out->objects[i] = alloc_array<Blob>(out->num_recs[i]);
-        }
+        out->subjects[i]   = alloc_array<Blob>(out->num_recs[i]);
+        out->predicates[i] = alloc_array<Blob>(out->num_recs[i]);
+        out->objects[i]    = alloc_array<Blob>(out->num_recs[i]);
 
         for(std::size_t j = 0; j < out->num_recs[i]; j++) {
             // subject
@@ -394,8 +392,8 @@ int Unpacker::unpack(Response::BGetOp **bgm, void *buf, const std::size_t bufsiz
             // predicate
             out->predicates[i][j].unpack(curr);
 
-            if (out->statuses[i] == HXHIM_SUCCESS) {
-                // object
+            // object
+            if (out->statuses[i] == DATASTORE_SUCCESS) {
                 out->objects[i][j].unpack(curr);
             }
         }

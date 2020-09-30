@@ -35,23 +35,23 @@ int run(void *dst, const void *src, std::size_t len) {
 
 /** @description encoding of data into big endian */
 template <typename T>
-int encode(char *dst, const T &src, std::size_t len = sizeof(T)) {
+int encode(char *dst, const T &src, const std::size_t len = sizeof(T)) {
     return run<T>(dst, &src, len);
 }
 
 template <typename T>
-int encode(char *dst, T *src, std::size_t count) {
+int encode(char *dst, T *src, const std::size_t count) {
     return run<T>(dst, src, sizeof(T) * count);
 }
 
 /** @description decoding of big endian encoded data */
 template <typename T>
-int decode(T &dst, const char *src, std::size_t len = sizeof(T)) {
+int decode(T &dst, const char *src, const std::size_t len = sizeof(T)) {
     return run<T>(&dst, src, len);
 }
 
 template <typename T>
-int decode(T *dst, const char *src, std::size_t count) {
+int decode(T *dst, const char *src, const std::size_t count) {
     return run<T>(dst, src, sizeof(T) * count);
 }
 

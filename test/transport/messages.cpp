@@ -1,7 +1,3 @@
-#include <cstdio>
-#include <sstream>
-#include <unistd.h>
-
 #include "gtest/gtest.h"
 
 #include "TestHistogram.hpp"
@@ -240,7 +236,6 @@ TEST(Request, BHistogram) {
     EXPECT_EQ(src.src, dst->src);
     EXPECT_EQ(src.dst, dst->dst);
 
-
     EXPECT_EQ(src.count, dst->count);
 
     destruct(dst);
@@ -255,7 +250,7 @@ TEST(Response, BPut) {
 
         src.count = 1;
 
-        src.statuses[0] = HXHIM_SUCCESS;
+        src.statuses[0] = DATASTORE_SUCCESS;
 
         src.orig.subjects[0]   = ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN);
         src.orig.predicates[0] = ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN);
@@ -301,7 +296,7 @@ TEST(Response, BGet) {
 
         src.count = 1;
 
-        src.statuses[0] = HXHIM_SUCCESS;
+        src.statuses[0] = DATASTORE_SUCCESS;
 
         src.object_types[0] = OBJECT_TYPE;
         src.objects[0] = ReferenceBlob((void *) &OBJECT, OBJECT_LEN);
@@ -354,7 +349,7 @@ TEST(Response, BGetOp) {
 
         src.count = 1;
 
-        src.statuses[0]      = HXHIM_SUCCESS;
+        src.statuses[0]      = DATASTORE_SUCCESS;
 
         src.object_types[0]  = OBJECT_TYPE;
         src.num_recs[0]      = 1;
@@ -437,7 +432,7 @@ TEST(Response, BDelete) {
 
         src.count = 1;
 
-        src.statuses[0] = HXHIM_SUCCESS;
+        src.statuses[0] = DATASTORE_SUCCESS;
 
         src.orig.subjects[0]   = ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN);
         src.orig.predicates[0] = ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN);
@@ -483,7 +478,7 @@ TEST(Response, BHistogram) {
 
         src.count = 1;
 
-        src.statuses[0] = HXHIM_SUCCESS;
+        src.statuses[0] = DATASTORE_SUCCESS;
 
         src.histograms[0] = std::shared_ptr<Histogram::Histogram>(construct<Histogram::Histogram>(Histogram::Config{0, CUSTOM_NONUNIFORM_FUNC, nullptr}), Histogram::deleter);
         for(std::size_t i = 0; i < 10; i++) {

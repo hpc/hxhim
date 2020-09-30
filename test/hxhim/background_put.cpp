@@ -42,7 +42,7 @@ TEST(hxhim, background_put) {
     hxhim::Results *background_put_results = hx.p->async_put.results;
     EXPECT_EQ(background_put_results->Size(), 1);
 
-    // Make result is correct
+    // Make sure result is correct
     HXHIM_CXX_RESULTS_LOOP(background_put_results) {
         hxhim_op_t op;
         EXPECT_EQ(background_put_results->Op(&op), HXHIM_SUCCESS);

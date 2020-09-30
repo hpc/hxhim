@@ -1,6 +1,7 @@
 #ifndef TRANSPORT_RESPONSE_HPP
 #define TRANSPORT_RESPONSE_HPP
 
+#include "datastore/constants.hpp"
 #include "transport/Messages/Message.hpp"
 
 namespace Transport {
@@ -17,7 +18,7 @@ struct Response : Message {
     virtual int alloc(const std::size_t max);
     virtual int cleanup();
 
-    int *statuses;
+    int *statuses; // DATASTORE_SUCCESS or DATASTORE_ERROR
 
     Response *next;
 

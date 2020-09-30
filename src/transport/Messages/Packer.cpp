@@ -1,6 +1,7 @@
 #include <ctime>
 #include <cstring>
 
+#include "datastore/constants.hpp"
 #include "transport/Messages/Packer.hpp"
 #include "utils/big_endian.hpp"
 
@@ -246,7 +247,7 @@ int Packer::pack(const Response::BGet *bgm, void **buf, std::size_t *bufsize) {
         curr += sizeof(bgm->object_types[i]);
 
         // object
-        if (bgm->statuses[i] == HXHIM_SUCCESS) {
+        if (bgm->statuses[i] == DATASTORE_SUCCESS) {
             bgm->objects[i].pack(curr);
         }
     }
@@ -280,7 +281,7 @@ int Packer::pack(const Response::BGetOp *bgm, void **buf, std::size_t *bufsize) 
             bgm->predicates[i][j].pack(curr);
 
             // object
-            if (bgm->statuses[i] == HXHIM_SUCCESS) {
+            if (bgm->statuses[i] == DATASTORE_SUCCESS) {
                 bgm->objects[i][j].pack(curr);
             }
         }
