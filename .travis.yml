@@ -30,6 +30,27 @@ matrix:
         - FORT_COMPILER=gfortran-9
       script:
         - travis_wait 20 contrib/travis/build_and_test.sh
+    # Ubuntu Focal
+    - dist: focal
+      addons:
+        apt:
+          packages:
+            - automake
+            - bzip2
+            - g++-9
+            - gfortran-9
+            - libltdl-dev
+            - libtool-bin
+            - pkg-config
+            - python3-pip
+            - wget
+          update: true
+      env:
+        - C_COMPILER=gcc-9
+        - CXX_COMPILER=g++-9
+        - FORT_COMPILER=gfortran-9
+      script:
+        - travis_wait 20 contrib/travis/build_and_test.sh
     # CentOS 7
     - dist: xenial
       addons:
