@@ -37,7 +37,7 @@ hxhim_private::~hxhim_private() {
 void hxhim::serial_puts(hxhim_t *hx) {
     if (hx->p->queues.puts.count >= hx->p->async_put.max_queued) {
         // don't call FlushPuts to avoid deallocating old Results only to allocate a new one
-        hxhim::Results *res = hxhim::process<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, hx->p->queues.puts.take(), hx->p->max_ops_per_send);
+        hxhim::Results *res = hxhim::process<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, hx->p->queues.puts.take());
 
         {
             std::unique_lock<std::mutex> lock(hx->p->async_put.mutex);

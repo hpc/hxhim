@@ -5,7 +5,7 @@
 
 #include "generic_options.hpp"
 #include "hxhim/hxhim.hpp"
-#include "hxhim/options.hpp"
+#include "hxhim/private/hxhim.hpp"
 #include "hxhim/private/cache.hpp"
 #include "hxhim/private/shuffle.hpp"
 #include "transport/Messages/Messages.hpp"
@@ -19,17 +19,22 @@ TEST(hxhim, shuffle) {
     // overwrite default hash
     int dst;
     ASSERT_EQ(hxhim_options_set_hash_function(&opts,
-                                              "test has",
+                                              "test hash",
                                               [](hxhim_t *, void *, const size_t,
                                                  void *, const size_t, void *args) {
                                                   return * (int *) args;
                                               },
                                               &dst), HXHIM_SUCCESS);
+    // pack at most 1 set of data into one packet
+    ASSERT_EQ(hxhim_options_set_maximum_ops_per_send(&opts, 1), HXHIM_SUCCESS);
 
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
 
-    // have to construct because Transport::Message::B* takes ownership and calls destruct
+    int size = -1;
+    ASSERT_EQ(hxhim::GetMPI(&hx, nullptr, nullptr, &size), HXHIM_SUCCESS);
+    ASSERT_NE(size, -1);
+
     Blob sub1                 = ReferenceBlob((void *) "sub1",  4);
     Blob pred1                = ReferenceBlob((void *) "pred1", 5);
     hxhim_object_type_t type1 = hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE;
@@ -50,36 +55,51 @@ TEST(hxhim, shuffle) {
     put2.object_type          = type2;
     put2.object               = obj2;
 
-    Transport::Request::BPut                            local(2);
-    std::unordered_map<int, Transport::Request::BPut *> remote; // not used, but reference is needed
+    Transport::Request::BPut   local(2);
+    Transport::Request::BPut **remote = alloc_array<Transport::Request::BPut *>(size);
+    const int target = rand() % size; // "send" to arbitrary destination
+    remote[target] = &local;
+
+    auto created = [&size](Transport::Request::BPut **remote){
+        int count = 0;
+        for(int i = 0; i < size; i++) {
+            count += (bool) remote[i];
+        }
+        return count;
+    };
 
     // start empty
-    EXPECT_EQ(local.count,   0);
-    EXPECT_EQ(remote.size(), 0);
+    EXPECT_EQ(local.count,     0);
+    EXPECT_EQ(created(remote), 1);
 
     // bad destination
     dst = -1;
-    EXPECT_EQ(hxhim::shuffle::shuffle(&hx, dst, 2, &put1, &local, remote), hxhim::shuffle::ERROR);
-    EXPECT_EQ(local.count,   0);
-    EXPECT_EQ(remote.size(), 0);
+    EXPECT_EQ(hxhim::shuffle::shuffle(&hx, &put1, remote), hxhim::shuffle::ERROR);
+    EXPECT_EQ(local.count,     0);
+    EXPECT_EQ(created(remote), 1);
 
-    // "send" to the local rank
-    ASSERT_EQ(MPI_Comm_rank(MPI_COMM_WORLD, &dst), MPI_SUCCESS);
+    // good destination
+    dst = target;
 
-    // move into local buffer
-    EXPECT_EQ(hxhim::shuffle::shuffle(&hx, dst, 2, &put1, &local, remote), dst);
-    EXPECT_EQ(local.count,   1);
-    EXPECT_EQ(remote.size(), 0);
+    // move to the local rank buffer
+    EXPECT_EQ(hxhim::shuffle::shuffle(&hx, &put1, remote), dst);
+    EXPECT_EQ(local.count,     1);
+    EXPECT_EQ(created(remote), 1);
 
     // local buffer is "full", so return NOSPACE
-    EXPECT_EQ(hxhim::shuffle::shuffle(&hx, dst, 1, &put2, &local, remote), hxhim::shuffle::NOSPACE);
-    EXPECT_EQ(local.count,   1);
-    EXPECT_EQ(remote.size(), 0);
+    EXPECT_EQ(hxhim::shuffle::shuffle(&hx, &put2, remote), hxhim::shuffle::NOSPACE);
+    EXPECT_EQ(local.count,     1);
+    EXPECT_EQ(created(remote), 1);
 
-    // move into local buffer
-    EXPECT_EQ(hxhim::shuffle::shuffle(&hx, dst, 2, &put2, &local, remote), dst);
-    EXPECT_EQ(local.count,   2);
-    EXPECT_EQ(remote.size(), 0);
+    // overwrite max count
+    hx.p->max_ops_per_send = 2;
+
+    // move to the local rank buffer
+    EXPECT_EQ(hxhim::shuffle::shuffle(&hx, &put2, remote), dst);
+    EXPECT_EQ(local.count,     2);
+    EXPECT_EQ(created(remote), 1);
+
+    dealloc_array(remote);
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);

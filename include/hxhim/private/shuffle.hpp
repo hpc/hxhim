@@ -4,10 +4,8 @@
 #include <cstddef>
 #include <unordered_map>
 
-#include "hxhim/accessors.hpp"
 #include "hxhim/constants.h"
 #include "hxhim/private/hxhim.hpp"
-#include "hxhim/struct.h"
 #include "transport/Messages/Messages.hpp"
 #include "utils/Stats.hpp"
 #include "utils/macros.hpp"
@@ -23,33 +21,28 @@ const int NOSPACE = -1;
 
 /**
  * shuffle
- * Functions in this namespace take in 1 entry that is to be
- * sent to be processed by the backend and does 2 things:
+ * Place user data into a packet for sending to a datastore.
  *
- *     1. Figures out which backend the data should go to
- *     2. Packs the data into either the local or remote buffer
+ * 1. If the destination is not known, calculate it
+ *    (allows for calculations to be skipped)
+ * 2. Find an existing destination packet. If one
+ *    is not found, create it.
+ * 3. If the destination buffer cannot accept any
+ *    more data, return NOSPACE.
+ * 3. Place the data into the destination buffer.
  *
- * The local buffer is a single bulk op, with all data going to one rank (but possibly multiple backends)
- * The remote buffer should be a map of destination rank to bulk op, with all data in each bulk op going to one rank (but possibly multiple backends)
  *
- *
- *@tparam SRC_t       the cache type of the request
- *@tparam DST_t       the response packet type
+ *@tparam cache_t     the cache type of the request
+ *@tparam Request_t   the response packet type
  *@param hx           the HXHIM instance
- *@param rank         the rank this HXHIM process is on
- *@param max_per_dst  the maximum number of requests allowed in a bulk packet
  *@param src          a single request that needs to be shuffled
- *@param local        the bulk op packet destined for the local range server
  *@param remote       the bulk op packets destined for remote range servers
  *@return             destination datastore on success, or ERROR or NOSPACE
  */
-template <typename SRC_t, typename DST_t>
+template <typename cache_t, typename Request_t>
 int shuffle(hxhim_t *hx,
-            const int rank,
-            const std::size_t max_per_dst,
-            SRC_t *src,
-            DST_t *local,
-            std::unordered_map<int, DST_t *> &remote) {
+            cache_t *src,
+            Request_t **remote) {
     // skip duplicate calculations
     if ((src->ds_id < 0) || (src->ds_rank < 0)) {
         // this should be the first and only time hash is called on this packet
@@ -77,30 +70,14 @@ int shuffle(hxhim_t *hx,
 
     mlog(HXHIM_CLIENT_INFO, "Shuffled %p to datastore %d on rank %d", src, src->ds_id, src->ds_rank);
 
-    DST_t *dst = nullptr;
-
-    // local keys
-    if (src->ds_rank == rank) {
-        dst = local;
-    }
-    // remote keys
-    else {
-        // try to find the destination first
-        REF(remote)::iterator it = remote.find(src->ds_rank);
-
-        // if the destination is not found, add one
-        if (it == remote.end()) {
-            mlog(HXHIM_CLIENT_DBG, "Creating new packet going to rank %d", src->ds_rank);
-
-            it = remote.insert(std::make_pair(src->ds_rank, construct<DST_t>(max_per_dst))).first;
-            it->second->src = rank;
-            it->second->dst = src->ds_rank;
-        }
-
-        dst = it->second;
+    Request_t *&dst = remote[src->ds_rank];
+    if (!dst) {
+        dst = construct<Request_t>(hx->p->max_ops_per_send);
+        dst->src = hx->p->bootstrap.rank;
+        dst->dst = src->ds_rank;
     }
 
-    mlog(HXHIM_CLIENT_INFO, "Packet going to rank %d has %zu already packed out of %zu slots", src->ds_rank, dst->count, max_per_dst);
+    mlog(HXHIM_CLIENT_INFO, "Packet going to rank %d has %zu already packed out of %zu slots", src->ds_rank, dst->count, hx->p->max_ops_per_send);
 
     find_dst.end = ::Stats::now();
 
@@ -108,7 +85,7 @@ int shuffle(hxhim_t *hx,
     src->timestamps->find_dsts.emplace_back(find_dst);
 
     // packet is full
-    if (dst->count >= max_per_dst) {
+    if (dst->count >= hx->p->max_ops_per_send) {
         mlog(HXHIM_CLIENT_INFO, "Cannot add to packet going to rank %d (no space)", src->ds_rank);
         return NOSPACE;
     }
@@ -121,7 +98,7 @@ int shuffle(hxhim_t *hx,
     // set timestamp here because src gets moved into dst
     dst->timestamps.reqs[dst->count - 1]->bulked = bulked;
 
-    mlog(HXHIM_CLIENT_INFO, "Added %p to rank %d packet (%zu / %zu)", src, src->ds_id, dst->count, max_per_dst);
+    mlog(HXHIM_CLIENT_INFO, "Added %p to rank %d packet (%zu / %zu)", src, src->ds_id, dst->count, hx->p->max_ops_per_send);
 
     return src->ds_id;
 }

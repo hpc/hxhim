@@ -18,9 +18,8 @@
  */
 template <typename UserData_t, typename Request_t, typename Response_t>
 hxhim::Results *FlushImpl(hxhim_t *hx,
-                          hxhim::Unsent<UserData_t> &unsent,
-                          const std::size_t max_ops_per_send) {
-    return hxhim::process<UserData_t, Request_t, Response_t>(hx, unsent.take(), max_ops_per_send);
+                          hxhim::Unsent<UserData_t> &unsent) {
+    return hxhim::process<UserData_t, Request_t, Response_t>(hx, unsent.take());
 }
 
 /**
@@ -56,7 +55,7 @@ hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
     }
 
     // append new results to old results
-    hxhim::Results *put_results = FlushImpl<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, hx->p->queues.puts, hx->p->max_ops_per_send);
+    hxhim::Results *put_results = FlushImpl<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, hx->p->queues.puts);
     if (res) {
         res->Append(put_results);
         hxhim::Results::Destroy(put_results);
@@ -98,7 +97,7 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing GETs", rank);
-    hxhim::Results *res = FlushImpl<hxhim::GetData, Transport::Request::BGet, Transport::Response::BGet>(hx, hx->p->queues.gets, hx->p->max_ops_per_send);
+    hxhim::Results *res = FlushImpl<hxhim::GetData, Transport::Request::BGet, Transport::Response::BGet>(hx, hx->p->queues.gets);
     mlog(HXHIM_CLIENT_INFO, "Rank %d Done Flushing Gets %p", rank, res);
     return res;
 }
@@ -132,7 +131,7 @@ hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing GETOPs", rank);
-    hxhim::Results *res = FlushImpl<hxhim::GetOpData, Transport::Request::BGetOp, Transport::Response::BGetOp>(hx, hx->p->queues.getops, hx->p->max_ops_per_send);
+    hxhim::Results *res = FlushImpl<hxhim::GetOpData, Transport::Request::BGetOp, Transport::Response::BGetOp>(hx, hx->p->queues.getops);
     mlog(HXHIM_CLIENT_INFO, "Rank %d Done Flushing GETOPs %p", rank, res);
     return res;
 }
@@ -166,7 +165,7 @@ hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing DELETEs", rank);
-    hxhim::Results *res = FlushImpl<hxhim::DeleteData, Transport::Request::BDelete, Transport::Response::BDelete>(hx, hx->p->queues.deletes, hx->p->max_ops_per_send);
+    hxhim::Results *res = FlushImpl<hxhim::DeleteData, Transport::Request::BDelete, Transport::Response::BDelete>(hx, hx->p->queues.deletes);
     mlog(HXHIM_CLIENT_INFO, "Rank %d Done Flushing DELETEs", rank);
     return res;
 }
@@ -200,7 +199,7 @@ hxhim::Results *hxhim::FlushHistograms(hxhim_t *hx) {
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing HISTOGRAMs", rank);
-    hxhim::Results *res = FlushImpl<hxhim::HistogramData, Transport::Request::BHistogram, Transport::Response::BHistogram>(hx, hx->p->queues.histograms, hx->p->max_ops_per_send);
+    hxhim::Results *res = FlushImpl<hxhim::HistogramData, Transport::Request::BHistogram, Transport::Response::BHistogram>(hx, hx->p->queues.histograms);
     mlog(HXHIM_CLIENT_INFO, "Rank %d Done Flushing HISTOGRAMs", rank);
     return res;
 }
