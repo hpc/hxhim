@@ -100,7 +100,7 @@ int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
     mlog(HXHIM_CLIENT_INFO, "Successfully initialized HXHIM on rank %d/%d", hx->p->bootstrap.rank, hx->p->bootstrap.size);
     #if PRINT_TIMESTAMPS
     init.end = ::Stats::now();
-    ::Stats::print_event(std::cerr, hx->p->bootstrap.rank, "Open",      ::Stats::global_epoch, init);
+    ::Stats::print_event(hx->p->print_buffer, hx->p->bootstrap.rank, "Open", ::Stats::global_epoch, init);
     #endif
     return HXHIM_SUCCESS;
 }
