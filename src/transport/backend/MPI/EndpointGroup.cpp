@@ -52,7 +52,7 @@ void EndpointGroup::RemoveID(const int id) {
  * @param bpm_list the list of BPUT messages to send
  * @return a linked list of response messages, or nullptr
  */
-Response::BPut *EndpointGroup::communicate(const std::unordered_map<int, Request::BPut *> &bpm_list) {
+Response::BPut *EndpointGroup::communicate(const ReqList<Request::BPut> &bpm_list) {
     return return_msgs<Response::BPut>(bpm_list);
 }
 
@@ -63,7 +63,7 @@ Response::BPut *EndpointGroup::communicate(const std::unordered_map<int, Request
  * @param bgm_list the list of BGET messages to send
  * @return a linked list of response messages, or nullptr
  */
-Response::BGet *EndpointGroup::communicate(const std::unordered_map<int, Request::BGet *> &bgm_list) {
+Response::BGet *EndpointGroup::communicate(const ReqList<Request::BGet> &bgm_list) {
     return return_msgs<Response::BGet>(bgm_list);
 }
 
@@ -74,7 +74,7 @@ Response::BGet *EndpointGroup::communicate(const std::unordered_map<int, Request
  * @param bgm_list the list of BGET messages to send
  * @return a linked list of response messages, or nullptr
  */
-Response::BGetOp *EndpointGroup::communicate(const std::unordered_map<int, Request::BGetOp *> &bgm_list) {
+Response::BGetOp *EndpointGroup::communicate(const ReqList<Request::BGetOp> &bgm_list) {
     return return_msgs<Response::BGetOp>(bgm_list);
 }
 
@@ -85,7 +85,7 @@ Response::BGetOp *EndpointGroup::communicate(const std::unordered_map<int, Reque
  * @param bdm_list the list of BDELETE messages to send
  * @return a linked list of response messages, or nullptr
  */
-Response::BDelete *EndpointGroup::communicate(const std::unordered_map<int, Request::BDelete *> &bdm_list) {
+Response::BDelete *EndpointGroup::communicate(const ReqList<Request::BDelete> &bdm_list) {
     return return_msgs<Response::BDelete>(bdm_list);
 }
 
@@ -96,7 +96,7 @@ Response::BDelete *EndpointGroup::communicate(const std::unordered_map<int, Requ
  * @param bdm_list the list of BHISTOGRAM messages to send
  * @return a linked list of response messages, or nullptr
  */
-Response::BHistogram *EndpointGroup::communicate(const std::unordered_map<int, Request::BHistogram *> &bhm_list) {
+Response::BHistogram *EndpointGroup::communicate(const ReqList<Request::BHistogram> &bhm_list) {
     return return_msgs<Response::BHistogram>(bhm_list);
 }
 
