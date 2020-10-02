@@ -52,8 +52,7 @@ matrix:
       script:
         - travis_wait 20 contrib/travis/build_and_test.sh
     # CentOS 7
-    - dist: xenial
-      addons:
+    - addons:
         apt:
           update: false
       services: docker
@@ -65,8 +64,7 @@ matrix:
       script:
         - travis_wait 20 docker run --rm --privileged --cap-add=SYS_ADMIN -v $(realpath .):/hxhim -w /hxhim "${DOCKER_IMAGE}" bash -c contrib/travis/centos7.sh
     # CentOS 8
-    - dist: xenial
-      addons:
+    - addons:
         apt:
           update: false
       services: docker
