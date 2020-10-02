@@ -29,7 +29,8 @@ int hxhim::GetOp(hxhim_t *hx,
 
     ::Stats::Chronostamp bgetop;
     bgetop.start = ::Stats::now();
-    const int rc = hxhim::GetOpImpl(hx->p->queues.getops,
+    const int rc = hxhim::GetOpImpl(hx,
+                                    hx->p->queues.getops,
                                     ReferenceBlob(subject, subject_len),
                                     ReferenceBlob(predicate, predicate_len),
                                     object_type,

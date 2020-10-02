@@ -34,7 +34,8 @@ int hxhim::BPut(hxhim_t *hx,
 
     // append these spo triples into the list of unsent PUTs
     for(std::size_t i = 0; i < count; i++) {
-        hxhim::PutImpl(hx->p->queues.puts,
+        hxhim::PutImpl(hx,
+                       hx->p->queues.puts,
                        ReferenceBlob(subjects[i], subject_lens[i]),
                        ReferenceBlob(predicates[i], predicate_lens[i]),
                        object_types[i],

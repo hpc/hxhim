@@ -26,7 +26,8 @@ int hxhim::Get(hxhim_t *hx,
 
     ::Stats::Chronostamp get;
     get.start = ::Stats::now();
-    const int rc = hxhim::GetImpl(hx->p->queues.gets,
+    const int rc = hxhim::GetImpl(hx,
+                                  hx->p->queues.gets,
                                   ReferenceBlob(subject, subject_len),
                                   ReferenceBlob(predicate, predicate_len),
                                   object_type);

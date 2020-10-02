@@ -34,7 +34,8 @@ int hxhim::BGetOp(hxhim_t *hx,
     ::Stats::Chronostamp bgetop;
     bgetop.start = ::Stats::now();
     for(std::size_t i = 0; i < count; i++) {
-        hxhim::GetOpImpl(hx->p->queues.getops,
+        hxhim::GetOpImpl(hx,
+                         hx->p->queues.getops,
                          ReferenceBlob(subjects[i], subject_lens[i]),
                          ReferenceBlob(predicates[i], predicate_lens[i]),
                          object_types[i],

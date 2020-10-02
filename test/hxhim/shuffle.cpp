@@ -1,9 +1,7 @@
-#include <unordered_map>
-
-#include <mpi.h>
 #include <gtest/gtest.h>
 
 #include "generic_options.hpp"
+#include "hxhim/accessors.hpp"
 #include "hxhim/hxhim.hpp"
 #include "hxhim/private/hxhim.hpp"
 #include "hxhim/private/cache.hpp"
@@ -16,53 +14,35 @@ TEST(hxhim, shuffle) {
     hxhim_options_t opts;
     ASSERT_EQ(fill_options(&opts), true);
 
-    // overwrite default hash
-    int dst;
-    ASSERT_EQ(hxhim_options_set_hash_function(&opts,
-                                              "test hash",
-                                              [](hxhim_t *, void *, const size_t,
-                                                 void *, const size_t, void *args) {
-                                                  return * (int *) args;
-                                              },
-                                              &dst), HXHIM_SUCCESS);
     // pack at most 1 set of data into one packet
     ASSERT_EQ(hxhim_options_set_maximum_ops_per_send(&opts, 1), HXHIM_SUCCESS);
 
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
 
-    int size = -1;
-    ASSERT_EQ(hxhim::GetMPI(&hx, nullptr, nullptr, &size), HXHIM_SUCCESS);
-    ASSERT_NE(size, -1);
+    int rank = -1;
+    ASSERT_EQ(hxhim::GetMPI(&hx, nullptr, &rank, nullptr), HXHIM_SUCCESS);
+    ASSERT_NE(rank, -1);
 
     Blob sub1                 = ReferenceBlob((void *) "sub1",  4);
     Blob pred1                = ReferenceBlob((void *) "pred1", 5);
     hxhim_object_type_t type1 = hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE;
     Blob obj1                 = ReferenceBlob((void *) "obj1",  4);
-    hxhim::PutData put1;
-    put1.subject              = sub1;
-    put1.predicate            = pred1;
-    put1.object_type          = type1;
-    put1.object               = obj1;
+    hxhim::PutData put1(&hx, sub1, pred1, type1, obj1);
 
     Blob sub2                 = ReferenceBlob((void *) "sub2",  4);
     Blob pred2                = ReferenceBlob((void *) "pred2", 5);
     hxhim_object_type_t type2 = hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE;
     Blob obj2                 = ReferenceBlob((void *) "obj2",  4);
-    hxhim::PutData put2;
-    put2.subject              = sub2;
-    put2.predicate            = pred2;
-    put2.object_type          = type2;
-    put2.object               = obj2;
+    hxhim::PutData put2(&hx, sub2, pred2, type2, obj2);
 
     Transport::Request::BPut   local(2);
-    Transport::Request::BPut **remote = alloc_array<Transport::Request::BPut *>(size);
-    const int target = rand() % size; // "send" to arbitrary destination
-    remote[target] = &local;
+    Transport::Request::BPut **remote = alloc_array<Transport::Request::BPut *>(rank + 1);
+    remote[rank] = &local;
 
-    auto created = [&size](Transport::Request::BPut **remote){
+    auto created = [&rank](Transport::Request::BPut **remote){
         int count = 0;
-        for(int i = 0; i < size; i++) {
+        for(int i = 0; i <= rank; i++) {
             count += (bool) remote[i];
         }
         return count;
@@ -72,17 +52,8 @@ TEST(hxhim, shuffle) {
     EXPECT_EQ(local.count,     0);
     EXPECT_EQ(created(remote), 1);
 
-    // bad destination
-    dst = -1;
-    EXPECT_EQ(hxhim::shuffle::shuffle(&hx, &put1, remote), hxhim::shuffle::ERROR);
-    EXPECT_EQ(local.count,     0);
-    EXPECT_EQ(created(remote), 1);
-
-    // good destination
-    dst = target;
-
     // move to the local rank buffer
-    EXPECT_EQ(hxhim::shuffle::shuffle(&hx, &put1, remote), dst);
+    EXPECT_EQ(hxhim::shuffle::shuffle(&hx, &put1, remote), rank);
     EXPECT_EQ(local.count,     1);
     EXPECT_EQ(created(remote), 1);
 
@@ -95,7 +66,7 @@ TEST(hxhim, shuffle) {
     hx.p->max_ops_per_send = 2;
 
     // move to the local rank buffer
-    EXPECT_EQ(hxhim::shuffle::shuffle(&hx, &put2, remote), dst);
+    EXPECT_EQ(hxhim::shuffle::shuffle(&hx, &put2, remote), rank);
     EXPECT_EQ(local.count,     2);
     EXPECT_EQ(created(remote), 1);
 

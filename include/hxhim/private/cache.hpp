@@ -5,6 +5,7 @@
 #include <mutex>
 
 #include "hxhim/constants.h"
+#include "hxhim/struct.h"
 #include "transport/Messages/Messages.hpp"
 #include "utils/Blob.hpp"
 #include "utils/Stats.hpp"
@@ -21,18 +22,19 @@
  */
 namespace hxhim {
     struct UserData {
-        UserData();
+        UserData(hxhim_t *hx, const int id);
         virtual ~UserData();
         virtual int steal(Transport::Request::Request *req);
 
-        int ds_id;
-        int ds_rank;
+        const int ds_id;
+        const int ds_rank;
 
         struct ::Stats::Send *timestamps; // pointer to single set of timestamps - ownership not kept
     };
 
     typedef struct SubjectPredicate : UserData {
-        SubjectPredicate();
+        SubjectPredicate(hxhim_t *hx,
+                         Blob subject, Blob predicate);
         virtual ~SubjectPredicate();
         virtual int steal(Transport::Request::Request *req);
 
@@ -41,11 +43,13 @@ namespace hxhim {
     } SP_t;
 
     struct PutData : SP_t {
-        PutData();
+        PutData(hxhim_t *hx,
+                Blob subject, Blob predicate,
+                const hxhim_object_type_t object_type, Blob object);
         ~PutData() = default;
         int moveto(Transport::Request::BPut *bput);
 
-        hxhim_object_type_t object_type;
+        const hxhim_object_type_t object_type;
         Blob object;
 
         PutData *prev;
@@ -53,31 +57,38 @@ namespace hxhim {
     };
 
     struct GetData : SP_t {
-        GetData();
+        GetData(hxhim_t *hx,
+                Blob subject, Blob predicate,
+                const hxhim_object_type_t object_type);
         ~GetData();
         int moveto(Transport::Request::BGet *bget);
 
-        hxhim_object_type_t object_type;
+        const hxhim_object_type_t object_type;
 
         GetData *prev;
         GetData *next;
     };
 
     struct GetOpData : SP_t {
-        GetOpData();
+        GetOpData(hxhim_t *hx,
+                  Blob subject, Blob predicate,
+                  const hxhim_object_type_t object_type,
+                  const std::size_t num_recs,
+                  const hxhim_getop_t op);
         ~GetOpData();
         int moveto(Transport::Request::BGetOp *bgetop);
 
-        hxhim_object_type_t object_type;
-        std::size_t num_recs;
-        hxhim_getop_t op;
+        const hxhim_object_type_t object_type;
+        const std::size_t num_recs;
+        const hxhim_getop_t op;
 
         GetOpData *prev;
         GetOpData *next;
     };
 
     struct DeleteData : SP_t {
-        DeleteData();
+        DeleteData(hxhim_t *hx,
+                   Blob subject, Blob predicate);
         ~DeleteData() = default;
         int moveto(Transport::Request::BDelete *bdelete);
 
@@ -86,7 +97,8 @@ namespace hxhim {
     };
 
     struct HistogramData : UserData {
-        HistogramData();
+        HistogramData(hxhim_t *hx,
+                      const int id);
         ~HistogramData() = default;
         int moveto(Transport::Request::BHistogram *bhistogram);
 

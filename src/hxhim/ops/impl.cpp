@@ -12,6 +12,7 @@
  * hx and hx->p are not checked because they must have been
  * valid for this function to be called.
  *
+ * @param hx             the HXHIM session
  * @param puts           the queue to place the PUT in
  * @param subject        the subject to put
  * @param predicate      the prediate to put
@@ -19,18 +20,19 @@
  * @param object         the object to put
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim::PutImpl(hxhim::Unsent<hxhim::PutData> &puts,
+int hxhim::PutImpl(hxhim_t *hx,
+                   hxhim::Unsent<hxhim::PutData> &puts,
                    Blob subject,
                    Blob predicate,
                    enum hxhim_object_type_t object_type,
                    Blob object) {
     mlog(HXHIM_CLIENT_INFO, "Foreground PUT Start (%p, %p, %p)", subject.data(), predicate.data(), object.data());
 
-    hxhim::PutData *put = construct<hxhim::PutData>();
-    put->subject = subject;
-    put->predicate = predicate;
-    put->object_type = object_type;
-    put->object = object;
+    hxhim::PutData *put = construct<hxhim::PutData>(hx, subject, predicate, object_type, object);
+    if (put->ds_rank < 0) {
+        destruct(put);
+        return HXHIM_ERROR;
+    }
 
     mlog(HXHIM_CLIENT_DBG, "Foreground PUT Insert SPO into queue");
     puts.insert(put);
@@ -48,22 +50,25 @@ int hxhim::PutImpl(hxhim::Unsent<hxhim::PutData> &puts,
  * hx and hx->p are not checked because they must have been
  * valid for this function to be called.
  *
+ * @param hx             the HXHIM session
  * @param gets           the queue to place the GET in
  * @param subject        the subject to put
  * @param predicate      the prediate to put
  * @param object_type    the type of the object
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim::GetImpl(hxhim::Unsent<hxhim::GetData> &gets,
+int hxhim::GetImpl(hxhim_t *hx,
+                   hxhim::Unsent<hxhim::GetData> &gets,
                    Blob subject,
                    Blob predicate,
                    enum hxhim_object_type_t object_type) {
     mlog(HXHIM_CLIENT_DBG, "GET Start");
 
-    hxhim::GetData *get = construct<hxhim::GetData>();
-    get->subject = subject;
-    get->predicate = predicate;
-    get->object_type = object_type;
+    hxhim::GetData *get = construct<hxhim::GetData>(hx, subject, predicate, object_type);
+    if (get->ds_rank < 0) {
+        destruct(get);
+        return HXHIM_ERROR;
+    }
 
     mlog(HXHIM_CLIENT_DBG, "GET Insert into queue");
     gets.insert(get);
@@ -78,6 +83,7 @@ int hxhim::GetImpl(hxhim::Unsent<hxhim::GetData> &gets,
  * hx and hx->p are not checked because they must have been
  * valid for this function to be called.
  *
+ * @param hx             the HXHIM session
  * @param getops         the queue to place the GETOP in
  * @param subject        the subject to put
  * @param predicate      the prediate to put
@@ -86,19 +92,19 @@ int hxhim::GetImpl(hxhim::Unsent<hxhim::GetData> &gets,
  * @param op             the operation to run
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim::GetOpImpl(hxhim::Unsent<hxhim::GetOpData> &getops,
+int hxhim::GetOpImpl(hxhim_t *hx,
+                     hxhim::Unsent<hxhim::GetOpData> &getops,
                      Blob subject,
                      Blob predicate,
                      enum hxhim_object_type_t object_type,
                      std::size_t num_records, enum hxhim_getop_t op) {
     mlog(HXHIM_CLIENT_DBG, "GETOP Start");
 
-    hxhim::GetOpData *getop = construct<hxhim::GetOpData>();
-    getop->subject = subject;
-    getop->predicate = predicate;
-    getop->object_type = object_type;
-    getop->num_recs = num_records;
-    getop->op = op;
+    hxhim::GetOpData *getop = construct<hxhim::GetOpData>(hx, subject, predicate, object_type, num_records, op);
+    if (getop->ds_rank < 0) {
+        destruct(getop);
+        return HXHIM_ERROR;
+    }
 
     mlog(HXHIM_CLIENT_DBG, "GETOP Insert into queue");
     getops.insert(getop);
@@ -113,19 +119,23 @@ int hxhim::GetOpImpl(hxhim::Unsent<hxhim::GetOpData> &getops,
  * hx and hx->p are not checked because they must have been
  * valid for this function to be called.
  *
+ * @param hx           the HXHIM session
  * @param dels         the queue to place the DELETE in
  * @param subject      the subject to delete
  * @param prediate     the prediate to delete
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim::DeleteImpl(hxhim::Unsent<hxhim::DeleteData> &dels,
+int hxhim::DeleteImpl(hxhim_t *hx,
+                      hxhim::Unsent<hxhim::DeleteData> &dels,
                       Blob subject,
                       Blob predicate) {
     mlog(HXHIM_CLIENT_DBG, "DELETE Start");
 
-    hxhim::DeleteData *del = construct<hxhim::DeleteData>();
-    del->subject = subject;
-    del->predicate = predicate;
+    hxhim::DeleteData *del = construct<hxhim::DeleteData>(hx, subject, predicate);
+    if (del->ds_rank < 0) {
+        destruct(del);
+        return HXHIM_ERROR;
+    }
 
     mlog(HXHIM_CLIENT_DBG, "DELETE Insert into queue");
     dels.insert(del);
@@ -140,7 +150,7 @@ int hxhim::DeleteImpl(hxhim::Unsent<hxhim::DeleteData> &dels,
  * hx and hx->p are not checked because they must have been
  * valid for this function to be called.
  *
- * @param hx      the HXHIM instance
+ * @param hx      the HXHIM session
  * @param hists   the queue to place the HISTOGRAM in
  * @param ds_id   the datastore id - value checked by caller
  * @return HXHIM_SUCCESS or HXHIM_ERROR
@@ -150,11 +160,11 @@ int hxhim::HistogramImpl(hxhim_t *hx,
                          const int ds_id) {
     mlog(HXHIM_CLIENT_DBG, "HISTOGRAM Start");
 
-    hxhim::HistogramData *hist = construct<hxhim::HistogramData>();
-
-    // setting ds_* values here allows for shuffle to skip hashing this request
-    hist->ds_id     = ds_id;
-    hist->ds_rank   = hxhim::datastore::get_rank(hx, ds_id);
+    hxhim::HistogramData *hist = construct<hxhim::HistogramData>(hx, ds_id);
+    if (hist->ds_rank < 0) {
+        destruct(hist);
+        return HXHIM_ERROR;
+    }
 
     mlog(HXHIM_CLIENT_DBG, "HISTOGRAM Insert into queue");
     hists.insert(hist);

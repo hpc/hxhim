@@ -1,7 +1,7 @@
 #ifndef TRANSPORT_BACKEND_LOCAL_PROCESS_TPP
 #define TRANSPORT_BACKEND_LOCAL_PROCESS_TPP
 
-#include <unordered_map>
+#include <cstring>
 
 #include "hxhim/private/Results.hpp"
 #include "hxhim/private/accessors.hpp"
@@ -37,29 +37,33 @@ template <typename UserData_t, typename Request_t, typename Response_t,
           >
 hxhim::Results *process(hxhim_t *hx,
                         UserData_t *head) {
+
     int rank = -1;
     int size = -1;
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, &size);
+
+    mlog(HXHIM_CLIENT_DBG, "Rank %d Start processing", rank);
 
     #if PRINT_TIMESTAMPS
     ::Stats::Chronopoint epoch;
     hxhim::nocheck::GetEpoch(hx, epoch);
     #endif
 
-    mlog(HXHIM_CLIENT_DBG, "Rank %d Start processing", rank);
-
     // serialized results
     hxhim::Results *res = construct<hxhim::Results>(hx);
 
+    // buffers to bulking up user data
+    Request_t local;
+    local.src = local.dst = rank;
+    Request_t **remote_ptrs = alloc_array<Request_t *>(size);
+
     // a round might not send every request, so keep running until out of requests
     while (head) {
-        // current set of remote destinations to send to
-        // Transport::ReqList<Request_t> remote;
-        Request_t **remote_ptrs = alloc_array<Request_t *>(size);
+        // reset buffers
+        memset(remote_ptrs, 0, sizeof(Request_t *) * size);
+        local.alloc(hx->p->max_ops_per_send);
 
         // local is placed into remote to make bulking easier
-        Request_t local(hx->p->max_ops_per_send);
-        local.src = local.dst = rank;
         remote_ptrs[rank] = &local;
 
         #if PRINT_TIMESTAMPS
@@ -76,6 +80,11 @@ hxhim::Results *process(hxhim_t *hx,
             const int dst_ds = hxhim::shuffle::shuffle(hx, curr, remote_ptrs);
             #if PRINT_TIMESTAMPS
             ::Stats::Chronopoint shuffle_end = ::Stats::now();
+
+            ::Stats::Chronopoint print_start = ::Stats::now();
+            ::Stats::print_event(hx->p->print_buffer, rank, "process_shuffle", ::Stats::global_epoch, shuffle_start, shuffle_end);
+            ::Stats::Chronopoint print_end = ::Stats::now();
+            ::Stats::print_event(hx->p->print_buffer, rank, "print", ::Stats::global_epoch, print_start, print_end);
             #endif
 
             switch (dst_ds) {
@@ -112,16 +121,12 @@ hxhim::Results *process(hxhim_t *hx,
                     break;
             }
 
-            #if PRINT_TIMESTAMPS
-            ::Stats::Chronopoint print_start = ::Stats::now();
-
-            ::Stats::print_event(hx->p->print_buffer, rank, "process_shuffle", ::Stats::global_epoch, shuffle_start, shuffle_end);
-            ::Stats::Chronopoint print_end = ::Stats::now();
-            ::Stats::print_event(hx->p->print_buffer, rank, "print", ::Stats::global_epoch, print_start, print_end);
-            #endif
-
             // scan packets if current item could not be inserted
             if (dst_ds == hxhim::shuffle::NOSPACE) {
+                #if PRINT_TIMESTAMPS
+                ::Stats::Chronopoint break_start = ::Stats::now();
+                #endif
+
                 // if all packets are full, stop processing of the rest of the work queue
                 // saves effort if all queues are filled up early
                 std::size_t filled = 0;
@@ -132,6 +137,15 @@ hxhim::Results *process(hxhim_t *hx,
                         filled += (remote_ptrs[i]->count == remote_ptrs[i]->max_count);
                     }
                 }
+
+                #if PRINT_TIMESTAMPS
+                ::Stats::Chronopoint break_end = ::Stats::now();
+
+                ::Stats::Chronopoint print_start = ::Stats::now();
+                ::Stats::print_event(hx->p->print_buffer, rank, "Break", ::Stats::global_epoch, break_start, break_end);
+                ::Stats::Chronopoint print_end = ::Stats::now();
+                ::Stats::print_event(hx->p->print_buffer, rank, "print", ::Stats::global_epoch, print_start, print_end);
+                #endif
 
                 if (created == filled) {
                     break;
@@ -170,7 +184,6 @@ hxhim::Results *process(hxhim_t *hx,
 
         // remove requests destined for local datastore
         remote.erase(rank);
-        dealloc_array(remote_ptrs);
 
         mlog(HXHIM_CLIENT_DBG, "Rank %d Client packed together requests destined for %zu remote servers", rank, remote.size());
 
@@ -218,6 +231,7 @@ hxhim::Results *process(hxhim_t *hx,
 
         mlog(HXHIM_CLIENT_DBG, "Rank %d Client received %zu responses", rank, res->Size());
     }
+    dealloc_array(remote_ptrs);
 
     return res;
 }

@@ -22,7 +22,8 @@ int hxhim::Delete(hxhim_t *hx,
 
     ::Stats::Chronostamp del;
     del.start = ::Stats::now();
-    const int rc = hxhim::DeleteImpl(hx->p->queues.deletes,
+    const int rc = hxhim::DeleteImpl(hx,
+                                     hx->p->queues.deletes,
                                      ReferenceBlob(subject, subject_len),
                                      ReferenceBlob(predicate, predicate_len));
     del.end = ::Stats::now();

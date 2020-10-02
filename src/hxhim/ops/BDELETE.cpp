@@ -28,7 +28,8 @@ int hxhim::BDelete(hxhim_t *hx,
     ::Stats::Chronostamp bdel;
     bdel.start = ::Stats::now();
     for(std::size_t i = 0; i < count; i++) {
-        hxhim::DeleteImpl(hx->p->queues.deletes,
+        hxhim::DeleteImpl(hx,
+                          hx->p->queues.deletes,
                           ReferenceBlob(subjects[i], subject_lens[i]),
                           ReferenceBlob(predicates[i], predicate_lens[i]));
     }

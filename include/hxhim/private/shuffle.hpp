@@ -16,7 +16,6 @@
 namespace hxhim {
 namespace shuffle {
 
-const int ERROR = -2;
 const int NOSPACE = -1;
 
 /**
@@ -37,34 +36,12 @@ const int NOSPACE = -1;
  *@param hx           the HXHIM instance
  *@param src          a single request that needs to be shuffled
  *@param remote       the bulk op packets destined for remote range servers
- *@return             destination datastore on success, or ERROR or NOSPACE
+ *@return             destination datastore on success, or NOSPACE
  */
 template <typename cache_t, typename Request_t>
 int shuffle(hxhim_t *hx,
             cache_t *src,
             Request_t **remote) {
-    // skip duplicate calculations
-    if ((src->ds_id < 0) || (src->ds_rank < 0)) {
-        // this should be the first and only time hash is called on this packet
-        src->timestamps->shuffled = ::Stats::now();
-
-        // get the destination backend id for the key
-        src->timestamps->hashed.start = ::Stats::now();
-        src->ds_id = hx->p->hash.func(hx,
-                                      src->subject.data(), src->subject.size(),
-                                      src->predicate.data(), src->predicate.size(),
-                                      hx->p->hash.args);
-        src->timestamps->hashed.end = ::Stats::now();
-
-        if (src->ds_id < 0) {
-            mlog(HXHIM_CLIENT_WARN, "Hash returned bad target datastore: %d", src->ds_id);
-            return ERROR;
-        }
-
-        // split the backend id into destination rank and ds_offset
-        src->ds_rank = hxhim::datastore::get_rank(hx, src->ds_id);
-    }
-
     ::Stats::Chronostamp find_dst;
     find_dst.start = ::Stats::now();
 

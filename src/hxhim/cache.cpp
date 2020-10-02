@@ -1,10 +1,12 @@
 #include <utility>
 
+#include "datastore/datastore.hpp"
 #include "hxhim/private/cache.hpp"
+#include "hxhim/private/hxhim.hpp"
 
-hxhim::UserData::UserData()
-    : ds_id(-1),
-      ds_rank(-1),
+hxhim::UserData::UserData(hxhim_t *hx, const int id)
+    : ds_id(id),
+      ds_rank(hxhim::datastore::get_rank(hx, id)),
       timestamps(construct<::Stats::Send>())
 {
     timestamps->cached.start = ::Stats::now();
@@ -33,10 +35,15 @@ int hxhim::UserData::steal(Transport::Request::Request *req) {
     return HXHIM_SUCCESS;
 }
 
-hxhim::SubjectPredicate::SubjectPredicate()
-    : UserData(),
-      subject(),
-      predicate()
+hxhim::SubjectPredicate::SubjectPredicate(hxhim_t *hx,
+                                          Blob subject, Blob predicate)
+    : UserData(hx,
+               hx->p->hash.func(hx,
+                                subject.data(), subject.size(),
+                                predicate.data(), predicate.size(),
+                                hx->p->hash.args)),
+      subject(subject),
+      predicate(predicate)
 {}
 
 hxhim::SubjectPredicate::~SubjectPredicate() {}
@@ -47,10 +54,12 @@ int hxhim::SubjectPredicate::steal(Transport::Request::Request *req) {
     return UserData::steal(req);
 }
 
-hxhim::PutData::PutData()
-    : SP_t(),
-      object_type(HXHIM_OBJECT_TYPE_INVALID),
-      object(),
+hxhim::PutData::PutData(hxhim_t *hx,
+                        Blob subject, Blob predicate,
+                        const hxhim_object_type_t object_type, Blob object)
+    : SP_t(hx, subject, predicate),
+      object_type(object_type),
+      object(object),
       prev(nullptr),
       next(nullptr)
 {}
@@ -73,9 +82,11 @@ int hxhim::PutData::moveto(Transport::Request::BPut *bput) {
     return HXHIM_SUCCESS;
 }
 
-hxhim::GetData::GetData()
-    : SP_t(),
-      object_type(HXHIM_OBJECT_TYPE_INVALID),
+hxhim::GetData::GetData(hxhim_t *hx,
+                        Blob subject, Blob predicate,
+                        const hxhim_object_type_t object_type)
+    : SP_t(hx, subject, predicate),
+      object_type(object_type),
       prev(nullptr),
       next(nullptr)
 {}
@@ -99,11 +110,15 @@ int hxhim::GetData::moveto(Transport::Request::BGet *bget) {
     return HXHIM_SUCCESS;
 }
 
-hxhim::GetOpData::GetOpData()
-    : SP_t(),
-      object_type(HXHIM_OBJECT_TYPE_INVALID),
-      num_recs(0),
-      op(HXHIM_GETOP_INVALID),
+hxhim::GetOpData::GetOpData(hxhim_t *hx,
+                            Blob subject, Blob predicate,
+                            const hxhim_object_type_t object_type,
+                            const std::size_t num_recs,
+                            const hxhim_getop_t op)
+    : SP_t(hx, subject, predicate),
+      object_type(object_type),
+      num_recs(num_recs),
+      op(op),
       prev(nullptr),
       next(nullptr)
 {}
@@ -126,8 +141,9 @@ int hxhim::GetOpData::moveto(Transport::Request::BGetOp *bgetop) {
     return HXHIM_SUCCESS;
 }
 
-hxhim::DeleteData::DeleteData()
-    : SP_t(),
+hxhim::DeleteData::DeleteData(hxhim_t *hx,
+                              Blob subject, Blob predicate)
+    : SP_t(hx, subject, predicate),
       prev(nullptr),
       next(nullptr)
 {}
@@ -151,8 +167,9 @@ int hxhim::DeleteData::moveto(Transport::Request::BDelete *bdel) {
 const Blob hxhim::HistogramData::subject = {};
 const Blob hxhim::HistogramData::predicate = {};
 
-hxhim::HistogramData::HistogramData()
-    : UserData(),
+hxhim::HistogramData::HistogramData(hxhim_t *hx,
+                                    const int id)
+    : UserData(hx, id),
       prev(nullptr),
       next(nullptr)
 {}

@@ -28,7 +28,8 @@ int hxhim::Put(hxhim_t *hx,
     ::Stats::Chronostamp put;
     put.start = ::Stats::now();
 
-    const int rc = hxhim::PutImpl(hx->p->queues.puts,
+    const int rc = hxhim::PutImpl(hx,
+                                  hx->p->queues.puts,
                                   ReferenceBlob(subject, subject_len),
                                   ReferenceBlob(predicate, predicate_len),
                                   object_type,

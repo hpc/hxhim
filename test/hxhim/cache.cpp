@@ -1,45 +1,29 @@
 #include <gtest/gtest.h>
 
+#include "generic_options.hpp"
+#include "hxhim/hxhim.hpp"
 #include "hxhim/private/cache.hpp"
 
-TEST(UserData, constructor) {
-    hxhim::UserData ud;
-    EXPECT_EQ(ud.ds_id,     -1);
-    EXPECT_EQ(ud.ds_rank,   -1);
-}
+// subject and predicate must be valid
+static const char SUBJECT[]   = "SUBJECT";
+static const char PREDICATE[] = "PREDICATE";
 
-TEST(SubjectPredicate, constructor) {
-    hxhim::SubjectPredicate sp;
-    EXPECT_EQ(sp.ds_id,     -1);
-    EXPECT_EQ(sp.ds_rank,   -1);
-
-    EXPECT_EQ(sp.subject.data(),   nullptr);
-    EXPECT_EQ(sp.predicate.data(), nullptr);
-}
-
-TEST(PutData, constructor) {
-    hxhim::PutData put;
-
-    EXPECT_EQ(put.subject.data(), nullptr);
-    EXPECT_EQ(put.predicate.data(), nullptr);
-    EXPECT_EQ(put.object_type, hxhim_object_type_t::HXHIM_OBJECT_TYPE_INVALID);
-    EXPECT_EQ(put.object.data(), nullptr);
-}
+static Blob       subject     = ReferenceBlob((void *) SUBJECT, strlen(SUBJECT));
+static Blob       predicate   = ReferenceBlob((void *) PREDICATE, strlen(PREDICATE));
+static const hxhim_object_type_t object_type = (hxhim_object_type_t) rand();
+static Blob       object      = ReferenceBlob((void *) (uintptr_t) rand(), rand());
 
 TEST(PutData, moveto) {
-    Blob subject                    = ReferenceBlob((void *) (uintptr_t) rand(), rand());
-    Blob predicate                  = ReferenceBlob((void *) (uintptr_t) rand(), rand());
-    hxhim_object_type_t object_type = (hxhim_object_type_t) rand();
-    Blob object                     = ReferenceBlob((void *) (uintptr_t) rand(), rand());
+    hxhim_options_t opts;
+    ASSERT_EQ(fill_options(&opts), true);
+
+    hxhim_t hx;
+    ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
 
     Transport::Request::BPut bput(1);
 
     for(int i = 0; i < 2; i++) {
-        hxhim::PutData put;
-        put.subject     = subject;
-        put.predicate   = predicate;
-        put.object_type = object_type;
-        put.object      = object;
+        hxhim::PutData put(&hx, subject, predicate, object_type, object);
 
         if (i == 0) {
             EXPECT_EQ(put.moveto(&bput), HXHIM_SUCCESS);
@@ -60,28 +44,22 @@ TEST(PutData, moveto) {
             EXPECT_EQ(put.moveto(&bput), HXHIM_ERROR);
         }
     }
-}
 
-TEST(GetData, constructor) {
-    hxhim::GetData get;
-
-    EXPECT_EQ(get.subject.data(), nullptr);
-    EXPECT_EQ(get.predicate.data(), nullptr);
-    EXPECT_EQ(get.object_type, hxhim_object_type_t::HXHIM_OBJECT_TYPE_INVALID);
+    EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
+    EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }
 
 TEST(GetData, moveto) {
-    Blob subject   = ReferenceBlob((void *) (uintptr_t) rand(), rand());
-    Blob predicate = ReferenceBlob((void *) (uintptr_t) rand(), rand());
-    hxhim_object_type_t object_type = (hxhim_object_type_t) rand();
+    hxhim_options_t opts;
+    ASSERT_EQ(fill_options(&opts), true);
+
+    hxhim_t hx;
+    ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
 
     Transport::Request::BGet bget(1);
 
     for(int i = 0; i < 2; i++) {
-        hxhim::GetData get;
-        get.subject     = subject;
-        get.predicate   = predicate;
-        get.object_type = object_type;
+        hxhim::GetData get(&hx, subject, predicate, object_type);
 
         if (i == 0) {
             EXPECT_EQ(get.moveto(&bget), HXHIM_SUCCESS);
@@ -100,35 +78,25 @@ TEST(GetData, moveto) {
             EXPECT_EQ(get.moveto(&bget), HXHIM_ERROR);
         }
     }
-}
 
-
-TEST(GetOpData, constructor) {
-    hxhim::GetOpData getop;
-
-    EXPECT_EQ(getop.subject.data(), nullptr);
-    EXPECT_EQ(getop.predicate.data(), nullptr);
-    EXPECT_EQ(getop.object_type, hxhim_object_type_t::HXHIM_OBJECT_TYPE_INVALID);
-    EXPECT_EQ(getop.num_recs, 0);
-    EXPECT_EQ(getop.op, hxhim_getop_t::HXHIM_GETOP_INVALID);
+    EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
+    EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }
 
 TEST(GetOpData, moveto) {
-    Blob subject                    = ReferenceBlob((void *) (uintptr_t) rand(), rand());
-    Blob predicate                  = ReferenceBlob((void *) (uintptr_t) rand(), rand());
-    hxhim_object_type_t object_type = (hxhim_object_type_t) rand();
+    hxhim_options_t opts;
+    ASSERT_EQ(fill_options(&opts), true);
+
+    hxhim_t hx;
+    ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
+
     std::size_t num_recs            = rand();
     hxhim_getop_t op                = (hxhim_getop_t) rand();
 
     Transport::Request::BGetOp bgetop(1);
 
     for(int i = 0; i < 2; i++) {
-        hxhim::GetOpData getop;
-        getop.subject     = subject;
-        getop.predicate   = predicate;
-        getop.object_type = object_type;
-        getop.num_recs    = num_recs;
-        getop.op          = op;
+        hxhim::GetOpData getop(&hx, subject, predicate, object_type, num_recs, op);
 
         if (i == 0) {
             EXPECT_EQ(getop.moveto(&bgetop), HXHIM_SUCCESS);
@@ -149,25 +117,22 @@ TEST(GetOpData, moveto) {
             EXPECT_EQ(getop.moveto(&bgetop), HXHIM_ERROR);
         }
     }
-}
 
-TEST(DeleteData, constructor) {
-    hxhim::DeleteData del;
-
-    EXPECT_EQ(del.subject.data(), nullptr);
-    EXPECT_EQ(del.predicate.data(), nullptr);
+    EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
+    EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }
 
 TEST(DeleteData, moveto) {
-    Blob subject   = ReferenceBlob((void *) (uintptr_t) rand(), rand());
-    Blob predicate = ReferenceBlob((void *) (uintptr_t) rand(), rand());
+    hxhim_options_t opts;
+    ASSERT_EQ(fill_options(&opts), true);
+
+    hxhim_t hx;
+    ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
 
     Transport::Request::BDelete bdel(1);
 
     for(int i = 0; i < 2; i++) {
-        hxhim::DeleteData del;
-        del.subject     = subject;
-        del.predicate   = predicate;
+        hxhim::DeleteData del(&hx, subject, predicate);
 
         if (i == 0) {
             EXPECT_EQ(del.moveto(&bdel), HXHIM_SUCCESS);
@@ -184,4 +149,7 @@ TEST(DeleteData, moveto) {
             EXPECT_EQ(del.moveto(&bdel), HXHIM_ERROR);
         }
     }
+
+    EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
+    EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }
