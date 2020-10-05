@@ -73,6 +73,8 @@ int Transport::Response::BDelete::steal(Transport::Response::BDelete *from, cons
         return TRANSPORT_ERROR;
     }
 
+    count++;
+
     return HXHIM_SUCCESS;
 }
 
