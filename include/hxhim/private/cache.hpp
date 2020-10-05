@@ -26,8 +26,8 @@ namespace hxhim {
         virtual ~UserData();
         virtual int steal(Transport::Request::Request *req);
 
-        const int ds_id;
-        const int ds_rank;
+        int ds_id;
+        int ds_rank;
 
         struct ::Stats::Send *timestamps; // pointer to single set of timestamps - ownership not kept
     };

@@ -37,14 +37,19 @@ int hxhim::UserData::steal(Transport::Request::Request *req) {
 
 hxhim::SubjectPredicate::SubjectPredicate(hxhim_t *hx,
                                           Blob subject, Blob predicate)
-    : UserData(hx,
-               hx->p->hash.func(hx,
-                                subject.data(), subject.size(),
-                                predicate.data(), predicate.size(),
-                                hx->p->hash.args)),
+    : UserData(hx, -1),
       subject(subject),
       predicate(predicate)
-{}
+{
+    timestamps->hashed.start = ::Stats::now();
+    ds_id = hx->p->hash.func(hx,
+                             subject.data(),   subject.size(),
+                             predicate.data(), predicate.size(),
+                             hx->p->hash.args);
+    timestamps->hashed.end = ::Stats::now();
+
+    ds_rank = hxhim::datastore::get_rank(hx, ds_id);
+}
 
 hxhim::SubjectPredicate::~SubjectPredicate() {}
 
