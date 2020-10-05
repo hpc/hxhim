@@ -107,83 +107,89 @@ function install() {
 
     echo "${name} Start" 1>&2
 
-    #downlaod phase
-    download_dir="${WORKING_DIR}/${name}"
-    if [[ "${DL}" -eq "1" ]]
+    install_dir="${PREFIX}/${name}"
+
+    # check if the install directory exists
+    if [[ "${UPDATE}" -eq "1" ]] || [[ ! -d "${install_dir}" ]]
     then
-        # repo directory doesn't exist
-        if [[ ! -d "${download_dir}" ]]
+        # check if the download directory exists
+        download_dir="${WORKING_DIR}/${name}"
+        if [[ "${DL}" -eq "1" ]]
         then
-            ${download} "${download_dir}"
-        else # repo already exists, so just update
+            # repo directory doesn't exist
+            if [[ ! -d "${download_dir}" ]]
+            then
+                ${download} "${download_dir}"
+                echo "${name} Downloaded" 1>&2
+            fi
+
+            cd "${download_dir}"
+
+            # update
             if [[ "${UPDATE}" -eq "1" ]]
             then
-                cd "${download_dir}"
                 ${update}
+                echo "${name} Updated" 1>&2
+            fi
+        else
+            # don't download, but directory doesn't exist
+            if [[ ! -d "${download_dir}" ]]
+            then
+                echo "Error: ${name} not available locally but also not downloaded"
+                return 1
             fi
         fi
-    else
-        # don't download, but directory doesn't exist
-        if [[ ! -d "${download_dir}" ]]
+
+        # if only downloading, stop here
+        if [[ "${DL_ONLY}" -eq "1" ]]
         then
-            echo "Error: ${name} not available locally but also not downloaded"
+            return 0;
+        fi
+
+        # ${download_dir} exists by this point
+        cd "${download_dir}"
+
+        # check if the build directory exists
+        build_dir="${download_dir}/${BUILD}"
+        if [[ ! -d "${build_dir}" ]]
+        then
+            ${setup}
+
+            mkdir -p "${build_dir}"
+        fi
+
+        # ${build_dir} exists at this point
+        cd "${build_dir}"
+
+        LD_LIBRARY_PATH="${ld_library_path}:${LD_LIBRARY_PATH}" PKG_CONFIG_PATH="${pkg_config_path}:${PKG_CONFIG_PATH}" ${cbi}
+
+        echo "${name} Built and Installed" 1>&2
+
+        # add to ld_library_path and pkg_config_path
+        dep_lib=""
+        if [[ -d "${install_dir}/lib" ]]
+        then
+            dep_lib="${install_dir}/lib"
+        elif [[ -d "${install_dir}/lib64" ]]
+        then
+            dep_lib="${install_dir}/lib64"
+        fi
+
+        if [[ -z "${dep_lib}" ]]
+        then
+            echo "Could not find ${name}'s library directory" 1>&2
             return 1
         fi
+
+        # make sure the pkgconfig directory exists
+        dep_pcp="${dep_lib}/pkgconfig"
+        mkdir -p "${dep_pcp}"
+
+        ld_library_path="${ld_library_path}:${dep_lib}"
+        pkg_config_path="${pkg_config_path}:${dep_pcp}"
+
+        ${post_install}
     fi
-    # ${download_dir} must exist by this point
-
-    echo "${name} Downloaded" 1>&2
-    cd "${download_dir}"
-
-    if [[ "${DL_ONLY}" -eq "1" ]]
-    then
-        # do not print or update variables
-        return 0;
-    fi
-
-    # build and install phase
-    build_dir="${download_dir}/${BUILD}"
-    if [[ ! -d "${build_dir}" ]]
-    then
-        ${setup}
-
-        mkdir -p "${build_dir}"
-    fi
-    # ${build_dir} exists at this point
-
-    cd "${build_dir}"
-
-    install_dir="${PREFIX}/${name}"
-    if [[ ! -d "${install_dir}" ]]
-    then
-        LD_LIBRARY_PATH="${ld_library_path}:${LD_LIBRARY_PATH}" PKG_CONFIG_PATH="${pkg_config_path}:${PKG_CONFIG_PATH}" ${cbi}
-    fi
-
-    echo "${name} Built and Installed" 1>&2
-
-    # add to ld_library_path and pkg_config_path
-    dep_lib=""
-    if [[ -d "${install_dir}/lib" ]]
-    then
-        dep_lib="${install_dir}/lib"
-    elif [[ -d "${install_dir}/lib64" ]]
-    then
-        dep_lib="${install_dir}/lib64"
-    fi
-
-    if [[ -z "${dep_lib}" ]]
-    then
-        echo "Could not find ${name}'s library directory" 1>&2
-        return 1
-    fi
-
-    dep_pcp="${dep_lib}/pkgconfig"
-    mkdir -p "${dep_pcp}"
-
-    ld_library_path="${ld_library_path}:${dep_lib}"
-    pkg_config_path="${pkg_config_path}:${dep_pcp}"
-
-    ${post_install}
 
     echo "${name} Done" 1>&2
 }
@@ -687,8 +693,8 @@ if [[ "${DL_ONLY}" -eq "0" ]]
 then
     export LD_LIBRARY_PATH="${ld_library_path}:${LD_LIBRARY_PATH}"
     export PKG_CONFIG_PATH="${pkg_config_path}:${PKG_CONFIG_PATH}"
-    echo -e "Make sure your LD_LIBRARY_PATH contains:\n${ld_library_path}"
-    echo -e "Make sure your PKG_CONFIG_PATH contains:\n${pkg_config_path}"
+    echo -e "Add to LD_LIBRARY_PATH:\n${ld_library_path}"
+    echo -e "Add to PKG_CONFIG_PATH:\n${pkg_config_path}"
     echo
     echo "Source this script to get prepend LD_LIBRARY_PATH and PKG_CONFIG_PATH with these values"
 fi
