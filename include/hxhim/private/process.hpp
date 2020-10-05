@@ -9,7 +9,6 @@
 #include "hxhim/private/shuffle.hpp"
 #include "transport/backend/local/RangeServer.hpp"
 #include "utils/Stats.hpp"
-#include "utils/is_range_server.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
@@ -87,40 +86,6 @@ hxhim::Results *process(hxhim_t *hx,
             ::Stats::print_event(hx->p->print_buffer, rank, "print", ::Stats::global_epoch, print_start, print_end);
             #endif
 
-            switch (dst_ds) {
-                case hxhim::shuffle::NOSPACE:
-                    // go to the next request; will come back later
-                    break;
-                case hxhim::shuffle::ERROR:
-                default:
-                    // remove the current request from the list and destroy it
-
-                    // remove the current operation from the list of
-                    // operations queued up and continue processing
-
-                    // replace head node, since it is about to be destructed
-                    if (curr == head) {
-                        head = curr->next;
-                    }
-
-                    // there is a node before the current one
-                    if (curr->prev) {
-                        curr->prev->next = curr->next;
-                    }
-
-                    // there is a node after the current one
-                    if (curr->next) {
-                        curr->next->prev = curr->prev;
-                    }
-
-                    // deallocate current node
-                    curr->prev = nullptr;
-                    curr->next = nullptr;
-                    destruct(curr);
-
-                    break;
-            }
-
             // scan packets if current item could not be inserted
             if (dst_ds == hxhim::shuffle::NOSPACE) {
                 #if PRINT_TIMESTAMPS
@@ -150,6 +115,32 @@ hxhim::Results *process(hxhim_t *hx,
                 if (created == filled) {
                     break;
                 }
+            }
+            else /* if (dst_ds > -1) */ {
+                // remove the current request from the list and destroy it
+
+                // remove the current operation from the list of
+                // operations queued up and continue processing
+
+                // replace head node, since it is about to be destructed
+                if (curr == head) {
+                    head = curr->next;
+                }
+
+                // there is a node before the current one
+                if (curr->prev) {
+                    curr->prev->next = curr->next;
+                }
+
+                // there is a node after the current one
+                if (curr->next) {
+                    curr->next->prev = curr->prev;
+                }
+
+                // deallocate current node
+                curr->prev = nullptr;
+                curr->next = nullptr;
+                destruct(curr);
             }
 
             curr = next;
@@ -231,6 +222,7 @@ hxhim::Results *process(hxhim_t *hx,
 
         mlog(HXHIM_CLIENT_DBG, "Rank %d Client received %zu responses", rank, res->Size());
     }
+
     dealloc_array(remote_ptrs);
 
     return res;
