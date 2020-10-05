@@ -82,7 +82,7 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
         }
     }
 
-    hx->p->total_range_servers = opts->p->server_ratio * (hx->p->bootstrap.size / opts->p->server_ratio) + (hx->p->bootstrap.size % opts->p->server_ratio);
+    hx->p->total_range_servers = opts->p->server_ratio * (hx->p->bootstrap.size / opts->p->client_ratio) + (hx->p->bootstrap.size % opts->p->server_ratio);
 
     hx->p->total_datastores = hx->p->total_range_servers;
 
@@ -159,7 +159,7 @@ static void backgroundPUT(hxhim_t *hx) {
         mlog(HXHIM_CLIENT_DBG, "Processing queued PUTs");
         {
             // process the queued PUTs
-            hxhim::Results *res = hxhim::process<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, head, hx->p->max_ops_per_send);
+            hxhim::Results *res = hxhim::process<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, head);
 
             // store the results in a buffer that FlushPuts will clean up
             {

@@ -20,6 +20,10 @@
  * @return the rank of the given ID or -1 on error
  */
 int hxhim::datastore::get_rank(hxhim_t *hx, const int id) {
+    if (id < 0) {
+        return -1;
+    }
+
     std::size_t client = 0;
     std::size_t server = 0;
     nocheck::GetDatastoreClientToServerRatio(hx, &client, &server);
