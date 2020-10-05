@@ -272,11 +272,6 @@ Transport::Response::BHistogram *hxhim::datastore::Datastore::operate(Transport:
     return res;
 }
 
-int hxhim::datastore::Datastore::Sync() {
-    std::lock_guard<std::mutex> lock(mutex);
-    return SyncImpl();
-}
-
 /**
  * Histogram
  * Get the pointer to this datatstore's histogram
@@ -336,8 +331,24 @@ int hxhim::datastore::Datastore::GetStats(uint64_t *put_time,
     return DATASTORE_SUCCESS;
 }
 
+int hxhim::datastore::Datastore::Sync() {
+    std::lock_guard<std::mutex> lock(mutex);
+    return SyncImpl();
+}
+
 hxhim::datastore::Datastore::Stats::Event::Event()
     : time(),
       count(0),
       size(0)
 {}
+
+void hxhim::datastore::Datastore::BGetOp_error_response(Transport::Response::BGetOp *res,
+                                                        const std::size_t i,
+                                                        const Blob &subject, const Blob &predicate,
+                                                        hxhim::datastore::Datastore::Stats::Event &event) {
+    res->subjects[i][0]   = ReferenceBlob(subject.data(), subject.size());
+    res->predicates[i][0] = ReferenceBlob(predicate.data(), predicate.size());
+    res->num_recs[i]++;
+
+    event.size += subject.pack_size() + predicate.pack_size();
+}

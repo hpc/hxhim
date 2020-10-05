@@ -306,7 +306,6 @@ static void BGetOp_copy_response(const ::rocksdb::Iterator *it,
  * @return pointer to a list of results
  */
 Transport::Response::BGetOp *hxhim::datastore::rocksdb::BGetOpImpl(Transport::Request::BGetOp *req) {
-
     Transport::Response::BGetOp *res = construct<Transport::Response::BGetOp>(req->count);
 
     std::size_t key_buffer_len = all_keys_size(req);
@@ -332,8 +331,17 @@ Transport::Response::BGetOp *hxhim::datastore::rocksdb::BGetOpImpl(Transport::Re
 
             it->Seek(::rocksdb::Slice(key, key_len));
 
-            // only 1 response, so j == 0 (num_recs is ignored)
-            BGetOp_copy_response(it, res, i, 0, event);
+            if (it->Valid()) {
+                // only 1 response, so j == 0 (num_recs is ignored)
+                BGetOp_copy_response(it, res, i, 0, event);
+
+                res->statuses[i] = DATASTORE_SUCCESS;
+            }
+            else {
+                BGetOp_error_response(res, i, req->subjects[i], req->predicates[i], event);
+
+                res->statuses[i] = DATASTORE_ERROR;
+            }
         }
         else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_NEXT) {
             std::size_t key_len = 0;
@@ -341,11 +349,20 @@ Transport::Response::BGetOp *hxhim::datastore::rocksdb::BGetOpImpl(Transport::Re
 
             it->Seek(::rocksdb::Slice(key, key_len));
 
-            // first result returned is (subject, predicate)
-            // (results are offsets)
-            for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid(); j++) {
-                BGetOp_copy_response(it, res, i, j, event);
-                it->Next();
+            if (it->Valid()) {
+                // first result returned is (subject, predicate)
+                // (results are offsets)
+                for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid(); j++) {
+                    BGetOp_copy_response(it, res, i, j, event);
+                    it->Next();
+                }
+
+                res->statuses[i] = DATASTORE_SUCCESS;
+            }
+            else {
+                BGetOp_error_response(res, i, req->subjects[i], req->predicates[i], event);
+
+                res->statuses[i] = DATASTORE_ERROR;
             }
         }
         else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_PREV) {
@@ -354,38 +371,62 @@ Transport::Response::BGetOp *hxhim::datastore::rocksdb::BGetOpImpl(Transport::Re
 
             it->Seek(::rocksdb::Slice(key, key_len));
 
-            // first result returned is (subject, predicate)
-            // (results are offsets)
-            for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid(); j++) {
-                BGetOp_copy_response(it, res, i, j, event);
-                it->Prev();
+            if (it->Valid()) {
+                // first result returned is (subject, predicate)
+                // (results are offsets)
+                for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid(); j++) {
+                    BGetOp_copy_response(it, res, i, j, event);
+                    it->Prev();
+                }
+
+                res->statuses[i] = DATASTORE_SUCCESS;
+            }
+            else {
+                BGetOp_error_response(res, i, req->subjects[i], req->predicates[i], event);
+
+                res->statuses[i] = DATASTORE_ERROR;
             }
         }
         else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_FIRST) {
             // ignore key
             it->SeekToFirst();
 
-            // first result returned is (subject, predicate)
-            // (results are offsets)
-            for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid(); j++) {
-                BGetOp_copy_response(it, res, i, j, event);
-                it->Next();
+            if (it->Valid()) {
+                // first result returned is (subject, predicate)
+                // (results are offsets)
+                for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid(); j++) {
+                    BGetOp_copy_response(it, res, i, j, event);
+                    it->Next();
+                }
+
+                res->statuses[i] = DATASTORE_SUCCESS;
+            }
+            else {
+                BGetOp_error_response(res, i, req->subjects[i], req->predicates[i], event);
+
+                res->statuses[i] = DATASTORE_ERROR;
             }
         }
         else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_LAST) {
             // ignore key
             it->SeekToLast();
 
-            // first result returned is (subject, predicate)
-            // (results are offsets)
-            for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid(); j++) {
-                BGetOp_copy_response(it, res, i, j, event);
-                it->Prev();
+            if (it->Valid()) {
+                // first result returned is (subject, predicate)
+                // (results are offsets)
+                for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid(); j++) {
+                    BGetOp_copy_response(it, res, i, j, event);
+                    it->Prev();
+                }
+
+                res->statuses[i] = DATASTORE_SUCCESS;
+            }
+            else {
+                BGetOp_error_response(res, i, req->subjects[i], req->predicates[i], event);
+
+                res->statuses[i] = DATASTORE_ERROR;
             }
         }
-
-        // all responses for this Op share a status
-        res->statuses[i] = it->status().ok()?DATASTORE_SUCCESS:DATASTORE_ERROR;
 
         res->count++;
 

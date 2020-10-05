@@ -241,10 +241,16 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
 
             it = db.find(std::string((char *) key, key_len));
 
-            res->statuses[i] = (it != db.end())?DATASTORE_SUCCESS:DATASTORE_ERROR;
+            if (it != db.end()) {
+                // only 1 response, so j == 0 (num_recs is ignored)
+                BGetOp_copy_response(it, res, i, 0, event);
+                res->statuses[i] = DATASTORE_SUCCESS;
+            }
+            else {
+                BGetOp_error_response(res, i, req->subjects[i], req->predicates[i], event);
 
-            // only 1 response, so j == 0 (num_recs is ignored)
-            BGetOp_copy_response(it, res, i, 0, event);
+                res->statuses[i] = DATASTORE_ERROR;
+            }
         }
         else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_NEXT) {
             std::size_t key_len = 0;
@@ -252,14 +258,21 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
 
             it = db.find(std::string((char *) key, key_len));
 
-            // all responses for this Op share a status
-            res->statuses[i] = (it != db.end())?DATASTORE_SUCCESS:DATASTORE_ERROR;
+            if (it != db.end()) {
+                // first result returned is (subject, predicate)
+                // (results are offsets)
+                for(std::size_t j = 0; (j < req->num_recs[i]) && (it != db.end()); j++) {
+                    BGetOp_copy_response(it, res, i, j, event);
+                    it++;
+                }
 
-            // first result returned is (subject, predicate)
-            // (results are offsets)
-            for(std::size_t j = 0; (j < req->num_recs[i]) && (it != db.end()); j++) {
-                BGetOp_copy_response(it, res, i, j, event);
-                it++;
+                // all responses for this Op share a status
+                res->statuses[i] = DATASTORE_SUCCESS;
+            }
+            else {
+                BGetOp_error_response(res, i, req->subjects[i], req->predicates[i], event);
+
+                res->statuses[i] = DATASTORE_ERROR;
             }
         }
         else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_PREV) {
@@ -282,6 +295,8 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
                 res->statuses[i] = DATASTORE_SUCCESS;
             }
             else {
+                BGetOp_error_response(res, i, req->subjects[i], req->predicates[i], event);
+
                 res->statuses[i] = DATASTORE_ERROR;
             }
         }
@@ -298,6 +313,8 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
                 res->statuses[i] = DATASTORE_SUCCESS;
             }
             else {
+                BGetOp_error_response(res, i, req->subjects[i], req->predicates[i], event);
+
                 res->statuses[i] = DATASTORE_ERROR;
             }
         }
@@ -318,6 +335,8 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
                 res->statuses[i] = DATASTORE_SUCCESS;
             }
             else {
+                BGetOp_error_response(res, i, req->subjects[i], req->predicates[i], event);
+
                 res->statuses[i] = DATASTORE_ERROR;
             }
         }
