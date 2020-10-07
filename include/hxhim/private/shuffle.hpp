@@ -40,8 +40,10 @@ template <typename cache_t, typename Request_t>
 int shuffle(cache_t *src,
             const std::size_t max_ops_per_send,
             Request_t **remote) {
+    #if PRINT_FIND_DST
     ::Stats::Chronostamp find_dst;
     find_dst.start = ::Stats::now();
+    #endif
 
     mlog(HXHIM_CLIENT_INFO, "Shuffled %p to datastore %d on rank %d", src, src->ds_id, src->ds_rank);
 
@@ -52,10 +54,12 @@ int shuffle(cache_t *src,
 
     mlog(HXHIM_CLIENT_INFO, "Packet going to rank %d has %zu already packed out of %zu slots", src->ds_rank, dst->count, max_ops_per_send);
 
+    #if PRINT_FIND_DST
     find_dst.end = ::Stats::now();
 
     // place this time range into src because the target bulk message might not have space
     src->timestamps->find_dsts.emplace_back(find_dst);
+    #endif
 
     // packet is full
     // don't set bulk timestamps here since
