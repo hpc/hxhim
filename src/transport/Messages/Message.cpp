@@ -28,16 +28,20 @@ int Transport::Message::alloc(const std::size_t max) {
             cleanup();
             return TRANSPORT_ERROR;
         }
-    }
 
-    timestamps.transport = std::shared_ptr<::Stats::SendRecv>(construct<::Stats::SendRecv>(),
-                                                              [](::Stats::SendRecv *ptr) {
-                                                                  destruct(ptr);
-                                                              });
+        alloc_transport_timestamp();
+    }
 
     count = 0;
 
     return TRANSPORT_SUCCESS;
+}
+
+void Transport::Message::alloc_transport_timestamp() {
+    timestamps.transport = std::shared_ptr<::Stats::SendRecv>(construct<::Stats::SendRecv>(),
+                                                              [](::Stats::SendRecv *ptr) {
+                                                                  destruct(ptr);
+                                                              });
 }
 
 int Transport::Message::steal(Transport::Message *from, const std::size_t i) {

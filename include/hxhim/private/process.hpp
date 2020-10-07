@@ -52,7 +52,7 @@ hxhim::Results *process(hxhim_t *hx,
     hxhim::Results *res = construct<hxhim::Results>(hx);
 
     // buffers to bulking up user data
-    Request_t local;
+    Request_t local(hx->p->max_ops_per_send);
     local.src = local.dst = rank;
     Request_t **requests = alloc_array<Request_t *>(size);
 
@@ -60,7 +60,8 @@ hxhim::Results *process(hxhim_t *hx,
     while (head) {
         // reset buffers
         memset(requests, 0, sizeof(Request_t *) * size);
-        local.alloc(hx->p->max_ops_per_send);
+        local.count = 0;
+        local.alloc_transport_timestamp();
 
         // local is placed into remote to make bulking easier
         requests[rank] = &local;
@@ -107,17 +108,16 @@ hxhim::Results *process(hxhim_t *hx,
                     }
                 }
 
-                #if PRINT_TIMESTAMPS
-                ::Stats::Chronopoint next_end = ::Stats::now();
-                {
-                    ::Stats::Chronopoint print_start = ::Stats::now();
-                    ::Stats::print_event(hx->p->print_buffer, rank, "Break", ::Stats::global_epoch, next_start, next_end);
-                    ::Stats::Chronopoint print_end = ::Stats::now();
-                    ::Stats::print_event(hx->p->print_buffer, rank, "print", ::Stats::global_epoch, print_start, print_end);
-                }
-                #endif
-
                 if (created == filled) {
+                    #if PRINT_TIMESTAMPS
+                    ::Stats::Chronopoint next_end = ::Stats::now();
+                    {
+                        ::Stats::Chronopoint print_start = ::Stats::now();
+                        ::Stats::print_event(hx->p->print_buffer, rank, "Break", ::Stats::global_epoch, next_start, next_end);
+                        ::Stats::Chronopoint print_end = ::Stats::now();
+                        ::Stats::print_event(hx->p->print_buffer, rank, "print", ::Stats::global_epoch, print_start, print_end);
+                    }
+                    #endif
                     break;
                 }
             }
@@ -188,7 +188,8 @@ hxhim::Results *process(hxhim_t *hx,
                 hx->p->stats.outgoing[req->op][req->dst]++;
                 ::Stats::Chronopoint collect_stats_end = ::Stats::now();
                 #if PRINT_TIMESTAMPS
-                ::Stats::print_event(hx->p->print_buffer, rank, "collect_stats", ::Stats::global_epoch, collect_stats_start, collect_stats_end);
+                ::Stats::print_event(hx->p->print_buffer, rank, "collect_stats",
+                                     ::Stats::global_epoch, collect_stats_start, collect_stats_end);
                 #endif
 
                 extra_time += ::Stats::sec(collect_stats_start,
