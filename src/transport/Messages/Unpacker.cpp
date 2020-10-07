@@ -495,10 +495,7 @@ int Unpacker::unpack(Message *msg, void *buf, const std::size_t, char **curr) {
     little_endian::decode(count, *curr);
     *curr += sizeof(msg->count);
 
-    if (msg->alloc(count) != TRANSPORT_SUCCESS) {
-        destruct(msg);
-        return TRANSPORT_ERROR;
-    }
+    msg->alloc(count);
 
     return TRANSPORT_SUCCESS;
 }

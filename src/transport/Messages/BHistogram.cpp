@@ -14,17 +14,12 @@ std::size_t Transport::Request::BHistogram::size() const {
     return Request::size();
 }
 
-int Transport::Request::BHistogram::alloc(const std::size_t max) {
+void Transport::Request::BHistogram::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if (Request::alloc(max) != TRANSPORT_SUCCESS) {
-            cleanup();
-            return TRANSPORT_SUCCESS;
-        }
+        Request::alloc(max);
     }
-
-    return TRANSPORT_SUCCESS;
 }
 
 int Transport::Request::BHistogram::steal(Transport::Request::BHistogram *from, const std::size_t i) {
@@ -61,18 +56,13 @@ std::size_t Transport::Response::BHistogram::size() const {
     return total;
 }
 
-int Transport::Response::BHistogram::alloc(const std::size_t max) {
+void Transport::Response::BHistogram::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((Response::alloc(max) != TRANSPORT_SUCCESS)                                        ||
-            !(histograms           = alloc_array<std::shared_ptr<Histogram::Histogram> >(max))) {
-            cleanup();
-            return TRANSPORT_SUCCESS;
-        }
+        Response::alloc(max);
+        histograms = alloc_array<std::shared_ptr<Histogram::Histogram> >(max);
     }
-
-    return TRANSPORT_SUCCESS;
 }
 
 int Transport::Response::BHistogram::steal(Transport::Response::BHistogram *from, const std::size_t i) {

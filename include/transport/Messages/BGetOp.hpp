@@ -13,7 +13,7 @@ struct BGetOp final : SubjectPredicate {
 
     std::size_t size() const;
 
-    int alloc(const std::size_t max);
+    void alloc(const std::size_t max);
     int steal(BGetOp *from, const std::size_t i);
     int cleanup();
 
@@ -32,7 +32,7 @@ struct BGetOp final : Response { // does not inherit SubjectPredicate
 
     std::size_t size() const;
 
-    int alloc(const std::size_t max);
+    void alloc(const std::size_t max);
     int steal(BGetOp *bgetop, const std::size_t i);
     int cleanup();
 

@@ -14,17 +14,12 @@ std::size_t Transport::Request::BDelete::size() const {
     return SubjectPredicate::size();
 }
 
-int Transport::Request::BDelete::alloc(const std::size_t max) {
+void Transport::Request::BDelete::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if (SubjectPredicate::alloc(max) != TRANSPORT_SUCCESS) {
-            cleanup();
-            return TRANSPORT_SUCCESS;
-        }
+        SubjectPredicate::alloc(max);
     }
-
-    return TRANSPORT_SUCCESS;
 }
 
 int Transport::Request::BDelete::steal(Transport::Request::BDelete *from, const std::size_t i) {
@@ -55,17 +50,12 @@ std::size_t Transport::Response::BDelete::size() const {
     return SubjectPredicate::size();
 }
 
-int Transport::Response::BDelete::alloc(const std::size_t max) {
+void Transport::Response::BDelete::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if (SubjectPredicate::alloc(max) != TRANSPORT_SUCCESS) {
-            cleanup();
-            return TRANSPORT_SUCCESS;
-        }
+        SubjectPredicate::alloc(max);
     }
-
-    return TRANSPORT_SUCCESS;
 }
 
 int Transport::Response::BDelete::steal(Transport::Response::BDelete *from, const std::size_t i) {

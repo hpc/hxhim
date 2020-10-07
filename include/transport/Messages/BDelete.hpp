@@ -13,7 +13,7 @@ struct BDelete final : SubjectPredicate {
 
     std::size_t size() const;
 
-    int alloc(const std::size_t max);
+    void alloc(const std::size_t max);
     int steal(BDelete *from, const std::size_t i);
     int cleanup();
 };
@@ -28,7 +28,7 @@ struct BDelete final : SubjectPredicate {
 
     std::size_t size() const;
 
-    int alloc(const std::size_t max);
+    void alloc(const std::size_t max);
     int steal(BDelete *from, const std::size_t i);
     int cleanup();
 };

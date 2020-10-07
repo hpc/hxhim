@@ -19,18 +19,13 @@ std::size_t Transport::Request::BGet::size() const {
     return total;
 }
 
-int Transport::Request::BGet::alloc(const std::size_t max) {
+void Transport::Request::BGet::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((SubjectPredicate::alloc(max) != TRANSPORT_SUCCESS)                     ||
-            !(object_types                 = alloc_array<hxhim_object_type_t>(max))) {
-            cleanup();
-            return TRANSPORT_ERROR;
-        }
+        SubjectPredicate::alloc(max);
+        object_types = alloc_array<hxhim_object_type_t>(max);
     }
-
-    return TRANSPORT_SUCCESS;
 }
 
 int Transport::Request::BGet::steal(Transport::Request::BGet *from, const std::size_t i) {
@@ -78,19 +73,14 @@ std::size_t Transport::Response::BGet::size() const {
     return total;
 }
 
-int Transport::Response::BGet::alloc(const std::size_t max) {
+void Transport::Response::BGet::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
-        if ((SubjectPredicate::alloc(max) != TRANSPORT_SUCCESS)             ||
-            !(object_types         = alloc_array<hxhim_object_type_t>(max)) ||
-            !(objects              = alloc_array<Blob>(max)))                {
-            cleanup();
-            return TRANSPORT_SUCCESS;
-        }
+        SubjectPredicate::alloc(max);
+        object_types = alloc_array<hxhim_object_type_t>(max);
+        objects      = alloc_array<Blob>(max);
     }
-
-    return TRANSPORT_SUCCESS;
 }
 
 int Transport::Response::BGet::steal(Transport::Response::BGet *bget, const std::size_t i) {

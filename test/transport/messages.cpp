@@ -15,9 +15,8 @@ using namespace ::Transport;
 
 TEST(Request, BPut) {
     Request::BPut src;
-    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
+    ASSERT_NO_THROW(src.alloc(1));
     {
-
         src.src = rand();
         src.dst = rand();
 
@@ -65,7 +64,7 @@ TEST(Request, BPut) {
 
 TEST(Request, BGet) {
     Request::BGet src;
-    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
+    ASSERT_NO_THROW(src.alloc(1));
     {
         src.src = rand();
         src.dst = rand();
@@ -111,7 +110,7 @@ TEST(Request, BGet) {
 
 TEST(Request, BGetOp) {
     Request::BGetOp src;
-    ASSERT_EQ(src.alloc(HXHIM_GETOP_INVALID), TRANSPORT_SUCCESS);
+    ASSERT_NO_THROW(src.alloc(HXHIM_GETOP_INVALID));
     {
         src.src = rand();
         src.dst = rand();
@@ -168,7 +167,7 @@ TEST(Request, BGetOp) {
 
 TEST(Request, BDelete) {
     Request::BDelete src;
-    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
+    ASSERT_NO_THROW(src.alloc(1));
     {
         src.src = rand();
         src.dst = rand();
@@ -211,7 +210,7 @@ TEST(Request, BDelete) {
 
 TEST(Request, BHistogram) {
     Request::BHistogram src;
-    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
+    ASSERT_NO_THROW(src.alloc(1));
     {
         src.src = rand();
         src.dst = rand();
@@ -243,7 +242,7 @@ TEST(Request, BHistogram) {
 
 TEST(Response, BPut) {
     Response::BPut src;
-    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
+    ASSERT_NO_THROW(src.alloc(1));
     {
         src.src = rand();
         src.dst = rand();
@@ -289,7 +288,7 @@ TEST(Response, BPut) {
 
 TEST(Response, BGet) {
     Response::BGet src;
-    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
+    ASSERT_NO_THROW(src.alloc(1));
     {
         src.src = rand();
         src.dst = rand();
@@ -342,7 +341,7 @@ TEST(Response, BGet) {
 
 TEST(Response, BGetOp) {
     Response::BGetOp src;
-    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
+    ASSERT_NO_THROW(src.alloc(1));
     {
         src.src = rand();
         src.dst = rand();
@@ -425,7 +424,7 @@ TEST(Response, BGetOp) {
 
 TEST(Response, BDelete) {
     Response::BDelete src;
-    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
+    ASSERT_NO_THROW(src.alloc(1));
     {
         src.src = rand();
         src.dst = rand();
@@ -471,7 +470,7 @@ TEST(Response, BDelete) {
 
 TEST(Response, BHistogram) {
     Response::BHistogram src;
-    ASSERT_EQ(src.alloc(1), TRANSPORT_SUCCESS);
+    ASSERT_NO_THROW(src.alloc(1));
     {
         src.src = rand();
         src.dst = rand();

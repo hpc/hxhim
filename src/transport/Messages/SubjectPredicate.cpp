@@ -19,19 +19,14 @@ std::size_t Transport::Request::SubjectPredicate::size() const {
     return total;
 }
 
-int Transport::Request::SubjectPredicate::alloc(const std::size_t max) {
+void Transport::Request::SubjectPredicate::alloc(const std::size_t max) {
     if (max) {
-        if ((Request::alloc(max) != TRANSPORT_SUCCESS)        ||
-            !(subjects            = alloc_array<Blob>(max))   ||
-            !(predicates          = alloc_array<Blob>(max))   ||
-            !(orig.subjects       = alloc_array<void *>(max)) ||
-            !(orig.predicates     = alloc_array<void *>(max))) {
-            cleanup();
-            return TRANSPORT_SUCCESS;
-        }
+        Request::alloc(max);
+        subjects        = alloc_array<Blob>(max);
+        predicates      = alloc_array<Blob>(max);
+        orig.subjects   = alloc_array<void *>(max);
+        orig.predicates = alloc_array<void *>(max);
     }
-
-    return TRANSPORT_SUCCESS;
 }
 
 int Transport::Request::SubjectPredicate::steal(Transport::Request::SubjectPredicate *from, const std::size_t i) {
@@ -84,17 +79,12 @@ std::size_t Transport::Response::SubjectPredicate::size() const {
     return total;
 }
 
-int Transport::Response::SubjectPredicate::alloc(const std::size_t max) {
+void Transport::Response::SubjectPredicate::alloc(const std::size_t max) {
     if (max) {
-        if ((Response::alloc(max) != TRANSPORT_SUCCESS)      ||
-            !(orig.subjects        = alloc_array<Blob>(max)) ||
-            !(orig.predicates      = alloc_array<Blob>(max))) {
-            cleanup();
-            return TRANSPORT_SUCCESS;
-        }
+        Response::alloc(max);
+        orig.subjects   = alloc_array<Blob>(max);
+        orig.predicates = alloc_array<Blob>(max);
     }
-
-    return TRANSPORT_SUCCESS;
 }
 
 int Transport::Response::SubjectPredicate::steal(Transport::Response::SubjectPredicate *from, const std::size_t i) {

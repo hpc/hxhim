@@ -10,8 +10,8 @@ std::size_t Transport::Request::Request::size() const {
     return Message::size();
 }
 
-int Transport::Request::Request::alloc(const std::size_t max) {
-    return Message::alloc(max);
+void Transport::Request::Request::alloc(const std::size_t max) {
+    Message::alloc(max);
 }
 
 int Transport::Request::Request::cleanup() {

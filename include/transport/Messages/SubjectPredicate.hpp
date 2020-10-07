@@ -19,7 +19,7 @@ struct SubjectPredicate : Request {
 
     virtual std::size_t size() const;
 
-    virtual int alloc(const std::size_t max);
+    virtual void alloc(const std::size_t max);
     virtual int steal(SubjectPredicate *from, const std::size_t i);
     virtual int cleanup();
 
@@ -43,7 +43,7 @@ struct SubjectPredicate : Response {
 
     virtual std::size_t size() const;
 
-    virtual int alloc(const std::size_t max);
+    virtual void alloc(const std::size_t max);
     virtual int steal(SubjectPredicate *from, const std::size_t i);
     virtual int cleanup();
 

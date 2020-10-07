@@ -20,7 +20,7 @@ std::size_t Transport::Message::Message::filled() const {
     return count;
 }
 
-int Transport::Message::alloc(const std::size_t max) {
+void Transport::Message::alloc(const std::size_t max) {
     // final child should call cleanup before calling alloc
 
     if ((max_count = max)) {
@@ -28,8 +28,6 @@ int Transport::Message::alloc(const std::size_t max) {
     }
 
     count = 0;
-
-    return TRANSPORT_SUCCESS;
 }
 
 void Transport::Message::alloc_timestamps() {

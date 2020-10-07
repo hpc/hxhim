@@ -13,16 +13,11 @@ std::size_t Transport::Response::Response::size() const {
     return Message::size() + (count * sizeof(*statuses));
 }
 
-int Transport::Response::Response::alloc(const std::size_t max) {
+void Transport::Response::Response::alloc(const std::size_t max) {
     if (max) {
-        if ((Message::alloc(max) != TRANSPORT_SUCCESS) ||
-            !(statuses = alloc_array<int>(max)))        {
-            cleanup();
-            return TRANSPORT_ERROR;
-        }
+        Message::alloc(max);
+        statuses = alloc_array<int>(max);
     }
-
-    return TRANSPORT_SUCCESS;
 }
 
 int Transport::Response::Response::steal(Transport::Response::Response *from, const std::size_t i) {
