@@ -54,7 +54,7 @@ std::ostream &Stats::print_event(std::ostream &stream,
     return stream << rank << " "
                   << name << " "
                   << Stats::nano(epoch, timestamp)
-                  << std::endl;
+                  << "\n";
 }
 
 /**
@@ -81,7 +81,7 @@ std::ostream &Stats::print_event(std::ostream &stream,
                   << Stats::nano(epoch, start) << " "
                   << Stats::nano(epoch, end) << " "
                   << Stats::sec(start, end)
-                  << std::endl;
+                  << "\n";
 }
 
 /**
