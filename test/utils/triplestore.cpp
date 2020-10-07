@@ -14,9 +14,9 @@ static const std::size_t PREDICATE_LEN = strlen(PREDICATE);
 static const char *SUBJECT_LEN_ENCODED() {
     switch (sizeof(std::size_t)) {
         case 4:
-            return "\x00\x00\x00\x07";
+            return "\x07\x00\x00\x00";
         case 8:
-            return "\x00\x00\x00\x00\x00\x00\x00\x07";
+            return "\x07\x00\x00\x00\x00\x00\x00\x00";
     }
 
     return nullptr;
@@ -25,9 +25,9 @@ static const char *SUBJECT_LEN_ENCODED() {
 static const char *PREDICATE_LEN_ENCODED() {
     switch (sizeof(std::size_t)) {
         case 4:
-            return "\x00\x00\x00\x09";
+            return "\x09\x00\x00\x00";
         case 8:
-            return "\x00\x00\x00\x00\x00\x00\x00\x09";
+            return "\x09\x00\x00\x00\x00\x00\x00\x00";
     }
 
     return nullptr;

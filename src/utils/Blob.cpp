@@ -3,7 +3,7 @@
 #include <utility>
 
 #include "utils/Blob.hpp"
-#include "utils/big_endian.hpp"
+#include "utils/little_endian.hpp"
 #include "utils/memory.hpp"
 
 Blob::Blob(void *ptr, const std::size_t len, const bool clean)
@@ -65,7 +65,7 @@ char *Blob::pack(char *&dst) const {
         return nullptr;
     }
 
-    big_endian::encode(dst, len);
+    little_endian::encode(dst, len);
     dst += sizeof(len);
 
     memcpy(dst, ptr, len);
@@ -89,7 +89,7 @@ char *Blob::unpack(char *&src) {
         throw std::runtime_error("unable to unpack blob");
     }
 
-    big_endian::decode(len, src);
+    little_endian::decode(len, src);
     src += sizeof(len);
 
     ptr = alloc(len);
@@ -110,7 +110,7 @@ char *Blob::pack_ref(char *&dst) const {
     memcpy(dst, &ptr, sizeof(ptr));
     dst += sizeof(ptr);
 
-    big_endian::encode(dst, len);
+    little_endian::encode(dst, len);
     dst += sizeof(len);
 
     return dst;
@@ -128,7 +128,7 @@ char *Blob::unpack_ref(char *&src) {
     memcpy(&ptr, src, sizeof(ptr));
     src += sizeof(ptr);
 
-    big_endian::decode(len, src);
+    little_endian::decode(len, src);
     src += sizeof(len);
 
     clean = false;

@@ -1,12 +1,12 @@
-#ifndef HXHIM_BIG_ENDIAN_HPP
-#define HXHIM_BIG_ENDIAN_HPP
+#ifndef HXHIM_LITTLE_ENDIAN_HPP
+#define HXHIM_LITTLE_ENDIAN_HPP
 
 #include <cstdint>
 #include <cstring>
 
 #include "hxhim/constants.h"
 
-namespace big_endian {
+namespace little_endian {
 
 template <typename T>
 int run(void *dst, const void *src, std::size_t len) {
@@ -15,8 +15,6 @@ int run(void *dst, const void *src, std::size_t len) {
     }
 
     #if SYSTEM_BIG_ENDIAN
-    std::memcpy(dst, src, len);
-    #else
     if (sizeof(T) == 1) {
         std::memcpy(dst, src, len);
     }
@@ -28,6 +26,8 @@ int run(void *dst, const void *src, std::size_t len) {
             src_ptr++;
         }
     }
+    #else
+    std::memcpy(dst, src, len);
     #endif
 
     return HXHIM_SUCCESS;

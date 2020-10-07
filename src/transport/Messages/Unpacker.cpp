@@ -2,7 +2,7 @@
 #include <memory>
 
 #include "transport/Messages/Unpacker.hpp"
-#include "utils/big_endian.hpp"
+#include "utils/little_endian.hpp"
 
 namespace Transport {
 
@@ -12,7 +12,7 @@ static char *unpack_addr(void **dst, char *&src) {
     //     return nullptr;
     // }
 
-    big_endian::decode(dst, src, 1);
+    little_endian::decode(dst, src, 1);
     src += sizeof(*dst);
     return src;
 }
@@ -109,7 +109,7 @@ int Unpacker::unpack(Request::BPut **bpm, void *buf, const std::size_t bufsize) 
         unpack_addr(&out->orig.predicates[i], curr);
 
         // object type + object + len
-        big_endian::decode(out->object_types[i], curr);
+        little_endian::decode(out->object_types[i], curr);
         curr += sizeof(out->object_types[i]);
         out->objects[i].unpack(curr);
 
@@ -142,7 +142,7 @@ int Unpacker::unpack(Request::BGet **bgm, void *buf, const std::size_t bufsize) 
         unpack_addr(&out->orig.predicates[i], curr);
 
         // object type
-        big_endian::decode(out->object_types[i], curr);
+        little_endian::decode(out->object_types[i], curr);
         curr += sizeof(out->object_types[i]);
 
         out->count++;
@@ -162,7 +162,7 @@ int Unpacker::unpack(Request::BGetOp **bgm, void *buf, const std::size_t bufsize
 
     for(std::size_t i = 0; i < out->max_count; i++) {
         // operation to run
-        big_endian::decode(out->ops[i], curr);
+        little_endian::decode(out->ops[i], curr);
         curr += sizeof(out->ops[i]);
 
         if ((out->ops[i] != hxhim_getop_t::HXHIM_GETOP_FIRST) &&
@@ -175,11 +175,11 @@ int Unpacker::unpack(Request::BGetOp **bgm, void *buf, const std::size_t bufsize
         }
 
         // object type
-        big_endian::decode(out->object_types[i], curr);
+        little_endian::decode(out->object_types[i], curr);
         curr += sizeof(out->object_types[i]);
 
         // number of records to get back
-        big_endian::decode(out->num_recs[i], curr);
+        little_endian::decode(out->num_recs[i], curr);
         curr += sizeof(out->num_recs[i]);
 
         out->count++;
@@ -310,7 +310,7 @@ int Unpacker::unpack(Response::BPut **bpm, void *buf, const std::size_t bufsize)
     }
 
     for(std::size_t i = 0; i < out->max_count; i++) {
-        big_endian::decode(out->statuses[i], curr);
+        little_endian::decode(out->statuses[i], curr);
         curr += sizeof(out->statuses[i]);
 
         // original subject addr + len
@@ -335,7 +335,7 @@ int Unpacker::unpack(Response::BGet **bgm, void *buf, const std::size_t bufsize)
     }
 
     for(std::size_t i = 0; i < out->max_count; i++) {
-        big_endian::decode(out->statuses[i], curr);
+        little_endian::decode(out->statuses[i], curr);
         curr += sizeof(out->statuses[i]);
 
         // original subject addr + len
@@ -345,7 +345,7 @@ int Unpacker::unpack(Response::BGet **bgm, void *buf, const std::size_t bufsize)
         out->orig.predicates[i].unpack_ref(curr);
 
         // object type
-        big_endian::decode(out->object_types[i], curr);
+        little_endian::decode(out->object_types[i], curr);
         curr += sizeof(out->object_types[i]);
 
         // object
@@ -370,15 +370,15 @@ int Unpacker::unpack(Response::BGetOp **bgm, void *buf, const std::size_t bufsiz
     }
 
     for(std::size_t i = 0; i < out->max_count; i++) {
-        big_endian::decode(out->statuses[i], curr);
+        little_endian::decode(out->statuses[i], curr);
         curr += sizeof(out->statuses[i]);
 
         // object type
-        big_endian::decode(out->object_types[i], curr);
+        little_endian::decode(out->object_types[i], curr);
         curr += sizeof(out->object_types[i]);
 
         // num_recs
-        big_endian::decode(out->num_recs[i], curr);
+        little_endian::decode(out->num_recs[i], curr);
         curr += sizeof(out->num_recs[i]);
 
         out->subjects[i]   = alloc_array<Blob>(out->num_recs[i]);
@@ -414,7 +414,7 @@ int Unpacker::unpack(Response::BDelete **bdm, void *buf, const std::size_t bufsi
     }
 
     for(std::size_t i = 0; i < out->max_count; i++) {
-        big_endian::decode(out->statuses[i], curr);
+        little_endian::decode(out->statuses[i], curr);
         curr += sizeof(out->statuses[i]);
 
         // original subject addr + len
@@ -441,7 +441,7 @@ int Unpacker::unpack(Response::BHistogram **bhm, void *buf, const std::size_t bu
     std::size_t remaining = bufsize - (curr - (char *) buf);
 
     for(std::size_t i = 0; i < out->max_count; i++) {
-        big_endian::decode(out->statuses[i], curr);
+        little_endian::decode(out->statuses[i], curr);
         curr += sizeof(out->statuses[i]);
 
         out->histograms[i] = std::shared_ptr<Histogram::Histogram>(construct<Histogram::Histogram>(Histogram::Config{0, nullptr, nullptr}), Histogram::deleter);
@@ -479,20 +479,20 @@ int Unpacker::unpack(Message *msg, void *buf, const std::size_t, char **curr) {
 
     *curr = (char *) buf;
 
-    big_endian::decode(msg->direction, *curr);
+    little_endian::decode(msg->direction, *curr);
     *curr += sizeof(msg->direction);
 
-    big_endian::decode(msg->op, *curr);
+    little_endian::decode(msg->op, *curr);
     *curr += sizeof(msg->op);
 
-    big_endian::decode(msg->src, *curr);
+    little_endian::decode(msg->src, *curr);
     *curr += sizeof(msg->src);
 
-    big_endian::decode(msg->dst, *curr);
+    little_endian::decode(msg->dst, *curr);
     *curr += sizeof(msg->dst);
 
     std::size_t count = 0;
-    big_endian::decode(count, *curr);
+    little_endian::decode(count, *curr);
     *curr += sizeof(msg->count);
 
     if (msg->alloc(count) != TRANSPORT_SUCCESS) {
