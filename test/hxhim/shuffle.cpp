@@ -29,9 +29,8 @@ TEST(hxhim, shuffle) {
     hxhim::PutData put2(&hx, sub2, pred2, type2, obj2);
     put2.ds_rank = 0;
 
-    Transport::Request::BPut   local(2);
-    Transport::Request::BPut  *request0 = &local;
-    Transport::Request::BPut **requests = &request0;
+    Transport::Request::BPut  local(2);
+    Transport::Request::BPut *requests = &local;
 
     // start empty
     EXPECT_EQ(local.count, 0);

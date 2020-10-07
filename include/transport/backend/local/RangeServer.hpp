@@ -47,10 +47,6 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
     res->timestamps.transport->pack.start = ::Stats::now();
     res->timestamps.transport->pack.end = res->timestamps.transport->pack.start;
 
-    // no destructing
-    res->timestamps.transport->destruct.start = ::Stats::now();
-    res->timestamps.transport->destruct.end = res->timestamps.transport->destruct.start;
-
     // send to each datastore
     res->timestamps.transport->send_start = ::Stats::now();
 

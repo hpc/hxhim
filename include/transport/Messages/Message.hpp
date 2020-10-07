@@ -28,7 +28,7 @@ struct Message {
     std::size_t filled() const;
 
     virtual int alloc(const std::size_t max);
-    void alloc_transport_timestamp();
+    void alloc_timestamps();
     virtual int steal(Message *from, const std::size_t i);
     int steal_timestamps(Message *from, const bool steal_individuals);
     virtual int cleanup();

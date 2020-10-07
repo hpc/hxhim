@@ -52,7 +52,6 @@ struct SendRecv {
     Chronopoint send_start;             // send and recv might be one call
     Chronopoint recv_end;               // send and recv might be one call
     Chronostamp unpack;
-    Chronostamp destruct;
     Chronostamp cleanup_rpc;
     Chronopoint end;
 };

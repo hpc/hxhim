@@ -135,7 +135,6 @@ Recv_t *do_operation(const Transport::ReqList<Send_t> &messages,
         if (Transport::Packer::pack(req, &req_buf, &req_size) != TRANSPORT_SUCCESS) {
             mlog(THALLIUM_WARN, "Unable to pack message");
             dealloc(req_buf);
-            destruct(req);
             continue;
         }
         req->timestamps.transport->pack.end = ::Stats::now();
@@ -185,7 +184,6 @@ Recv_t *do_operation(const Transport::ReqList<Send_t> &messages,
 
         if (unpack_rc != TRANSPORT_SUCCESS) {
             mlog(THALLIUM_WARN, "Unable to unpack message");
-            destruct(req);
             continue;
         }
 
@@ -194,15 +192,10 @@ Recv_t *do_operation(const Transport::ReqList<Send_t> &messages,
         req->timestamps.transport->end = ::Stats::now();
 
         if (!response) {
-            destruct(req);
             continue;
         }
 
         response->steal_timestamps(req, true);
-
-        response->timestamps.transport->destruct.start = ::Stats::now();
-        destruct(req);
-        response->timestamps.transport->destruct.end = ::Stats::now();
 
         if (!head) {
             head = response;

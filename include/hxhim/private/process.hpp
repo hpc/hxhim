@@ -52,19 +52,15 @@ hxhim::Results *process(hxhim_t *hx,
     hxhim::Results *res = construct<hxhim::Results>(hx);
 
     // buffers to bulking up user data
-    Request_t local(hx->p->max_ops_per_send);
-    local.src = local.dst = rank;
-    Request_t **requests = alloc_array<Request_t *>(size);
+    Request_t *requests = alloc_array<Request_t>(size, hx->p->max_ops_per_send);
 
     // a round might not send every request, so keep running until out of requests
     while (head) {
-        // reset buffers
-        memset(requests, 0, sizeof(Request_t *) * size);
-        local.count = 0;
-        local.alloc_transport_timestamp();
-
-        // local is placed into remote to make bulking easier
-        requests[rank] = &local;
+        // reset buffers without reallocating everything
+        for(int i = 0; i < size; i++) {
+            requests[i].count = 0;
+            requests[i].alloc_timestamps();
+        }
 
         #if PRINT_TIMESTAMPS
         ::Stats::Chronopoint fill_start = ::Stats::now();
@@ -96,15 +92,14 @@ hxhim::Results *process(hxhim_t *hx,
 
             // scan packets if current item could not be inserted
             if (dst_ds == hxhim::shuffle::NOSPACE) {
-
                 // if all packets are full, stop processing of the rest of the work queue
                 // saves effort if all queues are filled up early
                 std::size_t filled = 0;
                 std::size_t created = 0;
                 for(int i = 0; i < size; i++) {
-                    if (requests[i]) {
+                    if (requests[i].count) {
                         created++;
-                        filled += (requests[i]->count == requests[i]->max_count);
+                        filled += (requests[i].count == requests[i].max_count);
                     }
                 }
 
@@ -169,14 +164,11 @@ hxhim::Results *process(hxhim_t *hx,
         // extra time that needs to be added to the results duration
         long double extra_time = 0;
 
-        // remove requests destined for local datastore
-        requests[rank] = nullptr;
-
         // move requests into remote map
         Transport::ReqList<Request_t> remote;
         for(int i = 0; i < size; i++) {
-            Request_t *req = requests[i];
-            if (req) {
+            Request_t *req = &requests[i];
+            if (req->count) {
                 req->src = rank;
                 req->dst = i;
 
@@ -197,10 +189,13 @@ hxhim::Results *process(hxhim_t *hx,
             }
         }
 
-        mlog(HXHIM_CLIENT_DBG, "Rank %d Client packed together requests destined for %zu remote servers", rank, remote.size());
+        // remove requests destined for local datastore
+        remote.erase(rank);
 
         // process remote data
         if (remote.size()) {
+            mlog(HXHIM_CLIENT_DBG, "Rank %d Client packed together requests destined for %zu remote servers", rank, remote.size());
+
             #if PRINT_TIMESTAMPS
             ::Stats::Chronopoint remote_start = ::Stats::now();
             #endif
@@ -218,16 +213,17 @@ hxhim::Results *process(hxhim_t *hx,
             hxhim::Result::AddAll(hx, res, response);
         }
 
-        mlog(HXHIM_CLIENT_DBG, "Rank %d Client sending %zu local requests", rank, local.count);
-
         // process local data
-        if (local.count) {
+        Request_t *local = &requests[rank];
+        if (local) {
+            mlog(HXHIM_CLIENT_DBG, "Rank %d Client sending %zu local requests", rank, local->count);
+
             #if PRINT_TIMESTAMPS
             ::Stats::Chronopoint local_start = ::Stats::now();
             #endif
 
             // send to local range server
-            Response_t *response = Transport::local::range_server<Response_t, Request_t>(hx, &local);
+            Response_t *response = Transport::local::range_server<Response_t, Request_t>(hx, local);
 
             #if PRINT_TIMESTAMPS
             ::Stats::Chronopoint local_end = ::Stats::now();
@@ -244,7 +240,7 @@ hxhim::Results *process(hxhim_t *hx,
         mlog(HXHIM_CLIENT_DBG, "Rank %d Client received %zu responses", rank, res->Size());
     }
 
-    dealloc_array(requests);
+    dealloc_array(requests, size);
 
     return res;
 }

@@ -39,7 +39,7 @@ const int NOSPACE = -1;
 template <typename cache_t, typename Request_t>
 int shuffle(cache_t *src,
             const std::size_t max_ops_per_send,
-            Request_t **remote) {
+            Request_t *remote) {
     #if PRINT_FIND_DST
     ::Stats::Chronostamp find_dst;
     find_dst.start = ::Stats::now();
@@ -47,12 +47,12 @@ int shuffle(cache_t *src,
 
     mlog(HXHIM_CLIENT_INFO, "Shuffled %p to datastore %d on rank %d", src, src->ds_id, src->ds_rank);
 
-    Request_t *&dst = remote[src->ds_rank];
-    if (!dst) {
-        dst = construct<Request_t>(max_ops_per_send);
-    }
+    Request_t &dst = remote[src->ds_rank];
+    // if (!dst) {
+    //     dst = construct<Request_t>(max_ops_per_send);
+    // }
 
-    mlog(HXHIM_CLIENT_INFO, "Packet going to rank %d has %zu already packed out of %zu slots", src->ds_rank, dst->count, max_ops_per_send);
+    mlog(HXHIM_CLIENT_INFO, "Packet going to rank %d has %zu already packed out of %zu slots", src->ds_rank, dst.count, max_ops_per_send);
 
     #if PRINT_FIND_DST
     find_dst.end = ::Stats::now();
@@ -64,20 +64,20 @@ int shuffle(cache_t *src,
     // packet is full
     // don't set bulk timestamps here since
     // the src will eventually be bulked
-    if (dst->count >= max_ops_per_send) {
+    if (dst.count >= max_ops_per_send) {
         mlog(HXHIM_CLIENT_INFO, "Cannot add to packet going to rank %d (no space)", src->ds_rank);
         return NOSPACE;
     }
 
     ::Stats::Chronostamp bulked;
     bulked.start = ::Stats::now();
-    src->moveto(dst);
+    src->moveto(&dst);
     bulked.end = ::Stats::now();
 
     // set timestamp here because src gets moved into dst
-    dst->timestamps.reqs[dst->count - 1]->bulked = bulked;
+    dst.timestamps.reqs[dst.count - 1]->bulked = bulked;
 
-    mlog(HXHIM_CLIENT_INFO, "Added %p to rank %d packet (%zu / %zu)", src, src->ds_id, dst->count, max_ops_per_send);
+    mlog(HXHIM_CLIENT_INFO, "Added %p to rank %d packet (%zu / %zu)", src, src->ds_id, dst.count, max_ops_per_send);
 
     return src->ds_id;
 }

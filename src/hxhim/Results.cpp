@@ -60,7 +60,6 @@ hxhim::Results::Result::~Result() {
             ::Stats::print_event(s, rank, "ProcessBulk",    epoch, timestamps.transport->start, timestamps.transport->end);
 
             ::Stats::print_event(s, rank, "Pack",           epoch, timestamps.transport->pack);
-            ::Stats::print_event(s, rank, "Destruct",       epoch, timestamps.transport->destruct);
             ::Stats::print_event(s, rank, "Transport",      epoch, timestamps.transport->send_start, timestamps.transport->recv_end);
             ::Stats::print_event(s, rank, "Unpack",         epoch, timestamps.transport->unpack);
             ::Stats::print_event(s, rank, "Cleanup_RPC",    epoch, timestamps.transport->cleanup_rpc);
