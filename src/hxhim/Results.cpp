@@ -25,7 +25,8 @@ hxhim::Results::Result::Result(hxhim_t *hx, const enum hxhim_op_t op,
       op(op),
       datastore(datastore),
       status((ds_status == DATASTORE_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR),
-      timestamps()
+      timestamps(),
+      next(nullptr)
 {}
 
 hxhim::Results::Result::~Result() {
@@ -319,21 +320,24 @@ int hxhim_results_valid(hxhim_results_t *res) {
     return (res && res->res)?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 
-hxhim::Results::Results(hxhim_t *hx)
-    : hx(hx),
-      results(),
-      curr(results.end()),
+hxhim::Results::Results()
+    : head(nullptr),
+      tail(nullptr),
+      curr(nullptr),
+      count(0),
       duration(0)
 {}
 
 hxhim::Results::~Results() {
-    curr = results.end();
-
-    for(Result *res : results) {
-        destruct(res);
+    for(curr = head; curr;) {
+        Result *next = curr->next;
+        destruct(curr);
+        curr = next;
     }
 
-    results.clear();
+    head = nullptr;
+    tail = nullptr;
+    count = 0;
 }
 
 /**
@@ -344,19 +348,44 @@ hxhim::Results::~Results() {
  * @param res   pointer to a set of results
  */
 void hxhim::Results::Destroy(Results *res) {
-    if (res) {
-        int rank = -1;
-        hxhim::nocheck::GetMPI(res->hx, nullptr, &rank, nullptr);
+    destruct(res);
+}
 
-        mlog(HXHIM_CLIENT_DBG, "Rank %d Destroying hxhim::Results %p", rank, res);
-        destruct(res);
-        mlog(HXHIM_CLIENT_DBG, "Rank %d Destroyed hxhim:Results %p", rank, res);
+/**
+ * push_back
+ * The actual list push_back operation
+ * count is incremented. response->next is not reset
+ * to allow for another list to be appended to the tail
+ *
+ * @param response the result packet to put at the back
+ */
+void hxhim::Results::push_back(hxhim::Results::Result *response) {
+    // don't push nullptrs
+    if (!response) {
+        return;
     }
+
+    if (!head) {
+        head = response;
+    }
+
+    if (tail) {
+        tail->next = response; // do not reset response->next
+        tail = tail->next;
+    }
+    else {
+        tail = response;
+    }
+
+    // curr is not modified
+
+    count++;
 }
 
 /**
  * Add
  * Appends a single result node to the end of the list
+ * The result type is processed before being inserted
  *
  * @return the pointer to the last valid node
  */
@@ -366,18 +395,15 @@ hxhim::Results::Result *hxhim::Results::Add(hxhim::Results::Result *response) {
         if (response->op == hxhim_op_t::HXHIM_GETOP) {
             for(hxhim::Results::GetOp *get = static_cast<hxhim::Results::GetOp *>(response);
                 get; get = get->next) {
-                results.push_back(get);
+                push_back(get);
             }
         }
         else {
-            results.push_back(response);
+            push_back(response);
         }
-
-        // explicitly invalidate iterator
-        curr = results.end();
     }
-    decltype(results)::reverse_iterator it = results.rbegin();
-    return (it != results.rend())?*it:nullptr;
+
+    return tail;
 }
 
 /**
@@ -406,14 +432,19 @@ uint64_t hxhim::Results::UpdateDuration(const uint64_t ns) {
  */
 void hxhim::Results::Append(hxhim::Results *other) {
     if (other) {
-        results.insert(results.end(), other->results.begin(), other->results.end());
-        duration += other->duration;
+        if (other->count) {
+            push_back(other->head);    // move other into this instance
+            tail = other->tail;        // override tail since the actual tail is other->tail
+            count += other->count - 1; // subtract 1 because count was incremented in push_back
+            duration += other->duration;
+        }
 
-        other->results.clear();
+        // clear out other
+        other->head = nullptr;
+        other->tail = nullptr;
+        other->curr = nullptr;
+        other->count = 0;
         other->duration = 0;
-
-        // explicitly invalidate iterator
-        curr = results.end();
     }
 }
 
@@ -423,7 +454,7 @@ void hxhim::Results::Append(hxhim::Results *other) {
  * @return Whether or not the iterator is at a valid position
  */
 bool hxhim::Results::ValidIterator() const {
-    return (curr != results.end());
+    return curr;
 }
 
 /**
@@ -447,8 +478,7 @@ int hxhim_results_valid_iterator(hxhim_results_t *res) {
  * @return Whether or not the new position is valid
  */
 hxhim::Results::Result *hxhim::Results::GoToHead() {
-    curr = results.begin();
-    return ValidIterator()?*curr:nullptr;
+    return (curr = head);
 }
 
 /**
@@ -474,10 +504,10 @@ int hxhim_results_goto_head(hxhim_results_t *res) {
  */
 hxhim::Results::Result *hxhim::Results::GoToNext() {
     if (ValidIterator()) {
-        curr++;
+        curr = curr->next;
     }
 
-    return ValidIterator()?*curr:nullptr;
+    return curr;
 }
 
 /**
@@ -501,7 +531,7 @@ int hxhim_results_goto_next(hxhim_results_t *res) {
  * @return the pointer to the node currently being pointed to
  */
 hxhim::Results::Result *hxhim::Results::Curr() const {
-    return ValidIterator()?*curr:nullptr;;
+    return curr;
 }
 
 /**
@@ -511,7 +541,7 @@ hxhim::Results::Result *hxhim::Results::Curr() const {
  * @return number of elements
  */
 std::size_t hxhim::Results::Size() const {
-    return results.size();
+    return count;
 }
 
 /**

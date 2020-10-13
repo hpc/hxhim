@@ -3,7 +3,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <deque>
 #include <memory>
 
 #include "hxhim/Results.h"
@@ -93,6 +92,8 @@ class Results {
             };
 
             Timestamps timestamps;
+
+            struct Result *next;
         };
 
         struct SubjectPredicate : public Result {
@@ -151,7 +152,7 @@ class Results {
         };
 
     public:
-        Results(hxhim_t *hx);
+        Results();
         ~Results();
 
         static void Destroy(Results *res);
@@ -178,6 +179,7 @@ class Results {
 
     private:
         Result *Curr() const;
+        void push_back(Result *response);
 
     public:
         // Accessors for individual results
@@ -196,9 +198,12 @@ class Results {
         int Timestamps(struct Result::Timestamps **timestamps) const;
 
     private:
-        hxhim_t *hx;
-        std::deque <Result *> results;
-        decltype(results)::const_iterator curr;
+        // list of results
+        Result *head;
+        Result *tail;
+        Result *curr;
+        std::size_t count;
+
         uint64_t duration;
 };
 

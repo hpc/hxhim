@@ -232,7 +232,7 @@ hxhim::Results *hxhim::Flush(hxhim_t *hx) {
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing", rank);
-    hxhim::Results *res    = construct<hxhim::Results>(hx);
+    hxhim::Results *res    = construct<hxhim::Results>();
 
     hxhim::Results *puts   = FlushPuts(hx);
     res->Append(puts);     destruct(puts);

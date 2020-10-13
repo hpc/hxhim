@@ -49,7 +49,7 @@ hxhim::Results *process(hxhim_t *hx,
     #endif
 
     // serialized results
-    hxhim::Results *res = construct<hxhim::Results>(hx);
+    hxhim::Results *res = construct<hxhim::Results>();
 
     // buffers to bulking up user data
     Request_t *requests = alloc_array<Request_t>(size, hx->p->max_ops_per_send);
@@ -158,7 +158,11 @@ hxhim::Results *process(hxhim_t *hx,
 
         #if PRINT_TIMESTAMPS
         ::Stats::Chronopoint fill_end = ::Stats::now();
+
+        ::Stats::Chronopoint print_start = ::Stats::now();
         ::Stats::print_event(hx->p->print_buffer, rank, "process_fill", ::Stats::global_epoch, fill_start, fill_end);
+        ::Stats::Chronopoint print_end = ::Stats::now();
+        ::Stats::print_event(hx->p->print_buffer, rank, "print", ::Stats::global_epoch, print_start, print_end);
         #endif
 
         // extra time that needs to be added to the results duration
