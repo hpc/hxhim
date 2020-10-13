@@ -3,6 +3,7 @@
 #include "hxhim/private/accessors.hpp"
 #include "hxhim/private/hxhim.hpp"
 #include "hxhim/private/options.hpp"
+#include "hxhim/RangeServer.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
@@ -264,10 +265,15 @@ hxhim::Results *hxhim::ChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t fu
     hx->p->hash.func = func;
     hx->p->hash.args = args;
 
-    // change datastores
-    std::stringstream s;
-    s << name << "-" << hxhim::datastore::get_id(hx, hx->p->bootstrap.rank);
-    hx->p->datastore->Open(s.str());
+    if (hx->p->datastore) {
+        // change datastores
+        std::stringstream s;
+        s << name << "-" << RangeServer::get_id(hx->p->bootstrap.rank,
+                                                hx->p->bootstrap.size,
+                                                hx->p->range_server.client_ratio,
+                                                hx->p->range_server.server_ratio);
+        hx->p->datastore->Open(s.str());
+    }
 
     MPI_Barrier(hx->p->bootstrap.comm);
 

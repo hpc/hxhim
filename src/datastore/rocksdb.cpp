@@ -15,7 +15,7 @@
 #include "utils/mlogfacs2.h"
 #include "utils/triplestore.hpp"
 
-hxhim::datastore::rocksdb::rocksdb(const int rank,
+datastore::rocksdb::rocksdb(const int rank,
                                    Histogram::Histogram *hist,
                                    const std::string &exact_name,
                                    const bool create_if_missing)
@@ -31,7 +31,7 @@ hxhim::datastore::rocksdb::rocksdb(const int rank,
     mlog(ROCKSDB_INFO, "Opened rocksdb with name: %s", exact_name.c_str());
 }
 
-hxhim::datastore::rocksdb::rocksdb(const int rank,
+datastore::rocksdb::rocksdb(const int rank,
                                    const int id,
                                    Histogram::Histogram *hist,
                                    const std::string &prefix,
@@ -62,15 +62,15 @@ hxhim::datastore::rocksdb::rocksdb(const int rank,
     #endif
 }
 
-hxhim::datastore::rocksdb::~rocksdb() {
+datastore::rocksdb::~rocksdb() {
     Close();
 }
 
-const std::string &hxhim::datastore::rocksdb::name() const {
+const std::string &datastore::rocksdb::name() const {
     return dbname;
 }
 
-bool hxhim::datastore::rocksdb::OpenImpl(const std::string &new_name) {
+bool datastore::rocksdb::OpenImpl(const std::string &new_name) {
     #if PRINT_TIMESTAMPS
     ::Stats::Chronostamp rocksdb_open;
     rocksdb_open.start = ::Stats::now();
@@ -88,7 +88,7 @@ bool hxhim::datastore::rocksdb::OpenImpl(const std::string &new_name) {
     return status.ok();
 }
 
-void hxhim::datastore::rocksdb::CloseImpl() {
+void datastore::rocksdb::CloseImpl() {
     delete db;
     db = nullptr;
 }
@@ -105,10 +105,10 @@ void hxhim::datastore::rocksdb::CloseImpl() {
  * @param object_lens   the lengths of the objects
  * @return pointer to a list of results
  */
-Transport::Response::BPut *hxhim::datastore::rocksdb::BPutImpl(Transport::Request::BPut *req) {
+Transport::Response::BPut *datastore::rocksdb::BPutImpl(Transport::Request::BPut *req) {
     mlog(ROCKSDB_INFO, "Rocksdb BPut");
 
-    hxhim::datastore::Datastore::Stats::Event event;
+    datastore::Datastore::Stats::Event event;
     event.time.start = ::Stats::now();
     event.count = req->count;
 
@@ -213,10 +213,10 @@ Transport::Response::BPut *hxhim::datastore::rocksdb::BPutImpl(Transport::Reques
  * @param prediate_lens the lengths of the prediates to put
  * @return pointer to a list of results
  */
-Transport::Response::BGet *hxhim::datastore::rocksdb::BGetImpl(Transport::Request::BGet *req) {
+Transport::Response::BGet *datastore::rocksdb::BGetImpl(Transport::Request::BGet *req) {
     mlog(ROCKSDB_INFO, "Rank %d Rocksdb GET processing %zu item in %ps", rank, req->count, req);
 
-    hxhim::datastore::Datastore::Stats::Event event;
+    datastore::Datastore::Stats::Event event;
     event.time.start = ::Stats::now();
     event.count = req->count;
 
@@ -277,7 +277,7 @@ static void BGetOp_copy_response(const ::rocksdb::Iterator *it,
                                  Transport::Response::BGetOp *res,
                                  const std::size_t i,
                                  const std::size_t j,
-                                 hxhim::datastore::Datastore::Stats::Event &event) {
+                                 datastore::Datastore::Stats::Event &event) {
     const ::rocksdb::Slice k = it->key();
     const ::rocksdb::Slice v = it->value();
 
@@ -305,7 +305,7 @@ static void BGetOp_copy_response(const ::rocksdb::Iterator *it,
  * @param object_lens   the lengths of the objects
  * @return pointer to a list of results
  */
-Transport::Response::BGetOp *hxhim::datastore::rocksdb::BGetOpImpl(Transport::Request::BGetOp *req) {
+Transport::Response::BGetOp *datastore::rocksdb::BGetOpImpl(Transport::Request::BGetOp *req) {
     Transport::Response::BGetOp *res = construct<Transport::Response::BGetOp>(req->count);
 
     std::size_t key_buffer_len = all_keys_size(req);
@@ -315,7 +315,7 @@ Transport::Response::BGetOp *hxhim::datastore::rocksdb::BGetOpImpl(Transport::Re
     ::rocksdb::Iterator *it = db->NewIterator(::rocksdb::ReadOptions());
 
     for(std::size_t i = 0; i < req->count; i++) {
-        hxhim::datastore::Datastore::Stats::Event event;
+        datastore::Datastore::Stats::Event event;
         event.time.start = ::Stats::now();
 
         // prepare response
@@ -452,8 +452,8 @@ Transport::Response::BGetOp *hxhim::datastore::rocksdb::BGetOpImpl(Transport::Re
  * @param prediate_lens the lengths of the prediates to put
  * @return pointer to a list of results
  */
-Transport::Response::BDelete *hxhim::datastore::rocksdb::BDeleteImpl(Transport::Request::BDelete *req) {
-    hxhim::datastore::Datastore::Stats::Event event;
+Transport::Response::BDelete *datastore::rocksdb::BDeleteImpl(Transport::Request::BDelete *req) {
+    datastore::Datastore::Stats::Event event;
     event.time.start = ::Stats::now();
     event.count = req->count;
 
@@ -502,7 +502,7 @@ Transport::Response::BDelete *hxhim::datastore::rocksdb::BDeleteImpl(Transport::
  *
  * @return DATASTORE_SUCCESS or DATASTORE_ERROR on error
  */
-int hxhim::datastore::rocksdb::SyncImpl() {
+int datastore::rocksdb::SyncImpl() {
     ::rocksdb::WriteBatch batch;
     ::rocksdb::WriteOptions options;
     options.sync = true;

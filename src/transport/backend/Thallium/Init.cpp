@@ -3,9 +3,9 @@
 #include "hxhim/private/accessors.hpp"
 #include "hxhim/private/hxhim.hpp"
 #include "hxhim/private/options.hpp"
+#include "hxhim/RangeServer.hpp"
 #include "transport/backend/Thallium/Thallium.hpp"
 #include "utils/Stats.hpp"
-#include "utils/is_range_server.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
@@ -77,7 +77,7 @@ Transport::Transport *Transport::Thallium::init(hxhim_t *hx,
 
     // create mapping between unique IDs and ranks
     for(decltype(addrs)::value_type const &addr : addrs) {
-        if (is_range_server(addr.first, client_ratio, server_ratio)) {
+        if (hxhim::RangeServer::is_range_server(addr.first, client_ratio, server_ratio)) {
             // if the rank was specified as part of the endpoint group, add the thallium endpoint to the endpoint group
             if (!endpointgroup.size() || (endpointgroup.find(addr.first) != endpointgroup.end())) {
                 eg->AddID(addr.first, addr.second);

@@ -5,14 +5,13 @@
 
 #include "datastore/datastore.hpp"
 
-namespace hxhim {
 namespace datastore {
 
 class rocksdb : public Datastore {
     public:
         struct Config : datastore::Config {
             Config()
-                : ::hxhim::datastore::Config(hxhim::datastore::ROCKSDB)
+                : ::datastore::Config(datastore::ROCKSDB)
             {}
 
             std::size_t id;
@@ -56,7 +55,6 @@ class rocksdb : public Datastore {
         ::rocksdb::Options options;
 };
 
-}
 }
 
 #endif

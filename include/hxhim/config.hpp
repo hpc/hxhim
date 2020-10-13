@@ -38,7 +38,6 @@ const std::string DEBUG_LEVEL                 = "DEBUG_LEVEL";               // 
 const std::string CLIENT_RATIO                = "CLIENT_RATIO";              // positive integer
 const std::string SERVER_RATIO                = "SERVER_RATIO";              // positive integer
 
-const std::string DATASTORES_PER_RANGE_SERVER = "DATASTORES_PER_RS";         // positive integer
 const std::string DATASTORE_TYPE              = "DATASTORE";                 // See DATASTORE_TYPES
 
 #if HXHIM_HAVE_LEVELDB
@@ -111,13 +110,8 @@ const std::unordered_map<std::string, datastore::Type> DATASTORES = {
  */
 const std::unordered_map<std::string, hxhim_hash_t> HASHES = {
     std::make_pair("RANK_0",                   hxhim_hash_RankZero),
-    std::make_pair("MY_RANK",                  hxhim_hash_MyRank),
-    std::make_pair("RANK_MOD_DATASTORES",      hxhim_hash_RankModDatastores),
-    std::make_pair("SUM_MOD_DATASTORES",       hxhim_hash_SumModDatastores),
-    std::make_pair("SUM_MOD_LOCAL_DATASTORES", hxhim_hash_SumModLocalDatastores),
-    std::make_pair("LEFT",                     hxhim_hash_Left),
-    std::make_pair("RIGHT",                    hxhim_hash_Right),
-    std::make_pair("RANDOM",                   hxhim_hash_Random),
+    std::make_pair("RANK_MOD_RANGESERVERS",    hxhim_hash_RankModRangeServers),
+    std::make_pair("SUM_MOD_RANGESERVERS",     hxhim_hash_SumModRangeServers),
     std::make_pair("UTHASH_BER",               hxhim_hash_uthash_BER),
     std::make_pair("UTHASH_SAX",               hxhim_hash_uthash_SAX),
     std::make_pair("UTHASH_FNV",               hxhim_hash_uthash_FNV),
@@ -170,7 +164,6 @@ const Config DEFAULT_CONFIG = {
     std::make_pair(DEBUG_LEVEL,                   "CRITICAL"),
     std::make_pair(CLIENT_RATIO,                  "2"),
     std::make_pair(SERVER_RATIO,                  "1"),
-    std::make_pair(DATASTORES_PER_RANGE_SERVER,   "1"),
 #if HXHIM_HAVE_LEVELDB
     std::make_pair(DATASTORE_TYPE,                "LEVELDB"),
     std::make_pair(LEVELDB_PREFIX,                "."),

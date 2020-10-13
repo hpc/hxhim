@@ -6,7 +6,6 @@ set(UTILS_SRC
   Histogram.cpp
   Stats.cpp
   elen.cpp
-  is_range_server.c
   memory.cpp
   mkdir_p.cpp
   mlog2.c

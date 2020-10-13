@@ -45,8 +45,8 @@ TEST(hxhim, Histogram) {
     EXPECT_EQ(hxhim::GetMPI(&hx, nullptr, &rank, &size), HXHIM_SUCCESS);
 
     // get this value early on just in case it is modified later on (should not happen)
-    std::size_t total_ds = 0;
-    EXPECT_EQ(hxhim::GetDatastoreCount(&hx, &total_ds), HXHIM_SUCCESS);
+    std::size_t total_rs = 0;
+    EXPECT_EQ(hxhim::GetRangeServerCount(&hx, &total_rs), HXHIM_SUCCESS);
 
     std::vector<std::size_t> subjects  (TRIPLES + 1);
     std::vector<std::size_t> predicates(TRIPLES + 1);
@@ -73,13 +73,13 @@ TEST(hxhim, Histogram) {
     hxhim::Results::Destroy(put_results);
 
     // request all histograms
-    for(std::size_t i = 0; i < total_ds; i++) {
+    for(std::size_t i = 0; i < total_rs; i++) {
         EXPECT_EQ(hxhim::Histogram(&hx, i), HXHIM_SUCCESS);
     }
 
     hxhim::Results *hist_results = hxhim::Flush(&hx);
     ASSERT_NE(hist_results, nullptr);
-    EXPECT_EQ(hist_results->Size(), (std::size_t) total_ds);
+    EXPECT_EQ(hist_results->Size(), (std::size_t) total_rs);
 
     HXHIM_CXX_RESULTS_LOOP(hist_results) {
         hxhim_op_t op = hxhim_op_t::HXHIM_INVALID;

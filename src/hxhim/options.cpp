@@ -119,7 +119,7 @@ int hxhim_options_set_server_ratio(hxhim_options_t *opts, const size_t ratio) {
  * @param config configuration data needed to initialize the datastore
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-static int hxhim_options_set_datastore(hxhim_options_t *opts, hxhim::datastore::Config *config) {
+static int hxhim_options_set_datastore(hxhim_options_t *opts, datastore::Config *config) {
     if (!valid_opts(opts)) {
         return HXHIM_ERROR;
     }
@@ -136,8 +136,8 @@ static int hxhim_options_set_datastore(hxhim_options_t *opts, hxhim::datastore::
  *
  * @return a pointer to the configuration data, or a nullptr
  */
-static hxhim::datastore::Config *hxhim_options_create_in_memory_config() {
-    return new hxhim::datastore::InMemory::Config();
+static datastore::Config *hxhim_options_create_in_memory_config() {
+    return new datastore::InMemory::Config();
 }
 
 /**
@@ -149,7 +149,7 @@ static hxhim::datastore::Config *hxhim_options_create_in_memory_config() {
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_set_datastore_in_memory(hxhim_options_t *opts) {
-    hxhim::datastore::Config *config = hxhim_options_create_in_memory_config();
+    datastore::Config *config = hxhim_options_create_in_memory_config();
     if (hxhim_options_set_datastore(opts, config) != HXHIM_SUCCESS) {
         delete config;
         return HXHIM_ERROR;
@@ -166,8 +166,8 @@ int hxhim_options_set_datastore_in_memory(hxhim_options_t *opts) {
  * @param create_if_missing  whether or not leveldb should create new datastores if the datastores do not already exist
  * @return a pointer to the configuration data, or a nullptr
  */
-static hxhim::datastore::Config *hxhim_options_create_leveldb_config(const size_t id, const char *prefix, const int create_if_missing) {
-    hxhim::datastore::leveldb::Config *config = new hxhim::datastore::leveldb::Config();
+static datastore::Config *hxhim_options_create_leveldb_config(const size_t id, const char *prefix, const int create_if_missing) {
+    datastore::leveldb::Config *config = new datastore::leveldb::Config();
     config->id = id;
     config->prefix = prefix;
     config->create_if_missing = create_if_missing;
@@ -183,7 +183,7 @@ static hxhim::datastore::Config *hxhim_options_create_leveldb_config(const size_
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_set_datastore_leveldb(hxhim_options_t *opts, const size_t id, const char *prefix, const int create_if_missing) {
-    hxhim::datastore::Config *config = hxhim_options_create_leveldb_config(id, prefix, create_if_missing);
+    datastore::Config *config = hxhim_options_create_leveldb_config(id, prefix, create_if_missing);
     if (hxhim_options_set_datastore(opts, config) != HXHIM_SUCCESS) {
         delete config;
         return HXHIM_ERROR;
@@ -201,8 +201,8 @@ int hxhim_options_set_datastore_leveldb(hxhim_options_t *opts, const size_t id, 
  * @param create_if_missing  whether or not rocksdb should create new datastores if the datastores do not already exist
  * @return a pointer to the configuration data, or a nullptr
  */
-static hxhim::datastore::Config *hxhim_options_create_rocksdb_config(const size_t id, const char *prefix, const int create_if_missing) {
-    hxhim::datastore::rocksdb::Config *config = new hxhim::datastore::rocksdb::Config();
+static datastore::Config *hxhim_options_create_rocksdb_config(const size_t id, const char *prefix, const int create_if_missing) {
+    datastore::rocksdb::Config *config = new datastore::rocksdb::Config();
     config->id = id;
     config->prefix = prefix;
     config->create_if_missing = create_if_missing;
@@ -218,7 +218,7 @@ static hxhim::datastore::Config *hxhim_options_create_rocksdb_config(const size_
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_set_datastore_rocksdb(hxhim_options_t *opts, const size_t id, const char *prefix, const int create_if_missing) {
-    hxhim::datastore::Config *config = hxhim_options_create_rocksdb_config(id, prefix, create_if_missing);
+    datastore::Config *config = hxhim_options_create_rocksdb_config(id, prefix, create_if_missing);
     if (hxhim_options_set_datastore(opts, config) != HXHIM_SUCCESS) {
         delete config;
         return HXHIM_ERROR;

@@ -16,8 +16,8 @@ extern "C"
 
 int hxhimGetEpoch(hxhim_t *hx, struct timespec *epoch);
 int hxhimGetMPI(hxhim_t *hx, MPI_Comm *comm, int *rank, int *size);
-int hxhimGetDatastoreCount(hxhim_t *hx, size_t *count);
-int hxhimGetDatastoreClientToServerRatio(hxhim_t *hx, size_t *client, size_t *server);
+int hxhimGetRangeServerCount(hxhim_t *hx, size_t *count);
+int hxhimGetRangeServerClientToServerRatio(hxhim_t *hx, size_t *client, size_t *server);
 
 #ifdef __cplusplus
 }

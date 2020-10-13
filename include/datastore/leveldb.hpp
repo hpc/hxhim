@@ -5,14 +5,13 @@
 
 #include "datastore/datastore.hpp"
 
-namespace hxhim {
 namespace datastore {
 
 class leveldb : public Datastore {
     public:
         struct Config : datastore::Config {
             Config()
-                : ::hxhim::datastore::Config(hxhim::datastore::LEVELDB)
+                : ::datastore::Config(datastore::LEVELDB)
             {}
 
             std::size_t id;
@@ -56,7 +55,6 @@ class leveldb : public Datastore {
         ::leveldb::Options options;
 };
 
-}
 }
 
 #endif

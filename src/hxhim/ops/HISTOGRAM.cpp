@@ -10,9 +10,9 @@
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::Histogram(hxhim_t *hx, int ds_id) {
-    if (!valid(hx)  || !hx->p->running           ||
+    if (!valid(hx)  || !hx->p->running              ||
         (ds_id < 0) ||
-        (ds_id >= (int) hx->p->total_datastores)) {
+        (ds_id >= (int) hx->p->total_range_servers)) {
         return HXHIM_ERROR;
     }
 

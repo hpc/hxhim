@@ -1,8 +1,8 @@
 #include "hxhim/private/hxhim.hpp"
 #include "hxhim/private/options.hpp"
+#include "hxhim/RangeServer.hpp"
 #include "transport/backend/MPI/MPI.hpp"
 #include "transport/transport.hpp"
-#include "utils/is_range_server.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
@@ -28,7 +28,7 @@ Transport::Transport *Transport::MPI::init(hxhim_t *hx,
 
     // create a range server
     RangeServer *rs = nullptr;
-    if (is_range_server(hx->p->bootstrap.rank, client_ratio, server_ratio)) {
+    if (hxhim::RangeServer::is_range_server(hx->p->bootstrap.rank, client_ratio, server_ratio)) {
         rs = construct<RangeServer>(hx, opts->listeners);
         mlog(MPI_INFO, "Created MPI Range Server on rank %d", hx->p->bootstrap.rank);
     }
@@ -38,7 +38,7 @@ Transport::Transport *Transport::MPI::init(hxhim_t *hx,
 
     // create mapping between unique IDs and ranks
     for(int i = 0; i < hx->p->bootstrap.size; i++) {
-        if (is_range_server(i, client_ratio, server_ratio)) {
+        if (hxhim::RangeServer::is_range_server(i, hx->p->bootstrap.size, client_ratio, server_ratio)) {
             // if the rank was specified as part of the endpoint group, add the rank to the endpoint group
             if (endpointgroup.find(i) != endpointgroup.end()) {
                 eg->AddID(i, i);

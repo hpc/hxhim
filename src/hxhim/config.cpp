@@ -91,7 +91,7 @@ bool parse_map_value(hxhim_options_t *opts, const Config &config, const std::str
  * @return a boolean indicating whether or not an error was encountered
  */
 static bool parse_datastore(hxhim_options_t *opts, const Config &config) {
-    hxhim::datastore::Type datastore;
+    datastore::Type datastore;
 
     int ret = get_from_map(config, hxhim::config::DATASTORE_TYPE, hxhim::config::DATASTORES, datastore);
 
@@ -105,10 +105,10 @@ static bool parse_datastore(hxhim_options_t *opts, const Config &config) {
 
     if (ret == CONFIG_FOUND) {
         switch (datastore) {
-            case hxhim::datastore::IN_MEMORY:
+            case datastore::IN_MEMORY:
                 return (hxhim_options_set_datastore_in_memory(opts) == HXHIM_SUCCESS);
             #if HXHIM_HAVE_LEVELDB
-            case hxhim::datastore::LEVELDB:
+            case datastore::LEVELDB:
                 {
                     // get the leveldb datastore prefix prefix
                     Config_it prefix = config.find(hxhim::config::LEVELDB_PREFIX);
@@ -131,7 +131,7 @@ static bool parse_datastore(hxhim_options_t *opts, const Config &config) {
                 break;
             #endif
             #if HXHIM_HAVE_ROCKSDB
-            case hxhim::datastore::ROCKSDB:
+            case datastore::ROCKSDB:
                 {
                     // get the rocksdb datastore prefix prefix
                     Config_it prefix = config.find(hxhim::config::ROCKSDB_PREFIX);
@@ -178,8 +178,8 @@ static bool parse_transport(hxhim_options_t *opts, const Config &config) {
         switch (transport_type) {
             case Transport::TRANSPORT_NULL:
                 {
-                    return ((hxhim_options_set_transport_null(opts)                        == HXHIM_SUCCESS) &&
-                            (hxhim_options_set_hash_name(opts, "SUM_MOD_LOCAL_DATASTORES") == HXHIM_SUCCESS));
+                    return ((hxhim_options_set_transport_null(opts)                     == HXHIM_SUCCESS) &&
+                            (hxhim_options_set_hash_name(opts, "RANK_MOD_RANGESERVERS") == HXHIM_SUCCESS));
                 }
                 break;
             case Transport::TRANSPORT_MPI:

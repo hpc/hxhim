@@ -3,18 +3,15 @@
 
 #include <map>
 
-#include <mpi.h>
-
 #include "datastore/datastore.hpp"
 
-namespace hxhim {
 namespace datastore {
 
 class InMemory : public Datastore {
     public:
         struct Config : datastore::Config {
             Config()
-                : ::hxhim::datastore::Config(hxhim::datastore::IN_MEMORY)
+                : ::datastore::Config(datastore::IN_MEMORY)
             {}
         };
 
@@ -40,7 +37,6 @@ class InMemory : public Datastore {
         std::map<std::string, std::string> db;
 };
 
-}
 }
 
 #endif

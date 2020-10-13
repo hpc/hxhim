@@ -132,51 +132,51 @@ int hxhimGetMPI(hxhim_t *hx, MPI_Comm *comm, int *rank, int *size) {
 }
 
 /**
- * hxhim::nocheck::GetDatastoreCount
+ * hxhim::nocheck::GetRangeServerCount
  * Gets the total number of datastores in this HXHIM instance
  *
  * @param hx              the HXHIM instance
  * @param count           the total number of datastores
  * @return HXHIM_SUCCESS
  */
-int hxhim::nocheck::GetDatastoreCount(hxhim_t *hx, std::size_t *count) {
+int hxhim::nocheck::GetRangeServerCount(hxhim_t *hx, std::size_t *count) {
     if (count) {
-        *count = hx->p->total_datastores;
+        *count = hx->p->total_range_servers;
     }
 
     return HXHIM_SUCCESS;
 }
 
 /**
- * hxhim::GetDatastoreCount
+ * hxhim::GetRangeServerCount
  * Gets the total number of datastores in this HXHIM instance
  *
  * @param hx              the HXHIM instance
  * @param count           the total number of datastores
  * @return HXHIM_SUCCESS or HXHIM_ERROR on error
  */
-int hxhim::GetDatastoreCount(hxhim_t *hx, std::size_t *count) {
+int hxhim::GetRangeServerCount(hxhim_t *hx, std::size_t *count) {
     if (!valid(hx)) {
         return HXHIM_ERROR;
     }
 
-    return hxhim::nocheck::GetDatastoreCount(hx, count);
+    return hxhim::nocheck::GetRangeServerCount(hx, count);
 }
 
 /**
- * hxhimGetDatastoreCount
+ * hxhimGetRangeServerCount
  * Gets the total number of datastores in this HXHIM instance
  *
  * @param hx              the HXHIM instance
  * @param count           the total number of datastores
  * @return HXHIM_SUCCESS or HXHIM_ERROR on error
  */
-int hxhimGetDatastoreCount(hxhim_t *hx, size_t *count) {
-    return hxhim::GetDatastoreCount(hx, count);
+int hxhimGetRangeServerCount(hxhim_t *hx, size_t *count) {
+    return hxhim::GetRangeServerCount(hx, count);
 }
 
 /**
- * GetDatastoreClientToServerRatio
+ * GetRangeServerClientToServerRatio
  * Gets the ratio of clients to servers
  *
  * @param hx              the HXHIM instance
@@ -184,7 +184,7 @@ int hxhimGetDatastoreCount(hxhim_t *hx, size_t *count) {
  * @param server          the server portion of the ratio
  * @return HXHIM_SUCCESS
  */
-int hxhim::nocheck::GetDatastoreClientToServerRatio(hxhim_t *hx, std::size_t *client, std::size_t *server) {
+int hxhim::nocheck::GetRangeServerClientToServerRatio(hxhim_t *hx, std::size_t *client, std::size_t *server) {
     if (client) {
         *client = hx->p->range_server.client_ratio;
     }
@@ -197,7 +197,7 @@ int hxhim::nocheck::GetDatastoreClientToServerRatio(hxhim_t *hx, std::size_t *cl
 }
 
 /**
- * GetDatastoreClientToServerRatio
+ * GetRangeServerClientToServerRatio
  * Gets the ratio of clients to servers
  *
  * @param hx              the HXHIM instance
@@ -205,16 +205,16 @@ int hxhim::nocheck::GetDatastoreClientToServerRatio(hxhim_t *hx, std::size_t *cl
  * @param server          the server portion of the ratio
  * @return HXHIM_SUCCESS or HXHIM_ERROR on error
  */
-int hxhim::GetDatastoreClientToServerRatio(hxhim_t *hx, std::size_t *client, std::size_t *server) {
+int hxhim::GetRangeServerClientToServerRatio(hxhim_t *hx, std::size_t *client, std::size_t *server) {
     if (!valid(hx)) {
         return HXHIM_ERROR;
     }
 
-    return hxhim::nocheck::GetDatastoreClientToServerRatio(hx, client, server);
+    return hxhim::nocheck::GetRangeServerClientToServerRatio(hx, client, server);
 }
 
 /**
- * hxhimGetDatastoreClientToServerRatio
+ * hxhimGetRangeServerClientToServerRatio
  * Gets the ratio of clients to servers
  *
  * @param hx              the HXHIM instance
@@ -222,8 +222,8 @@ int hxhim::GetDatastoreClientToServerRatio(hxhim_t *hx, std::size_t *client, std
  * @param server          the server portion of the ratio
  * @return HXHIM_SUCCESS or HXHIM_ERROR on error
  */
-int hxhimGetDatastoreClientToServerRatio(hxhim_t *hx, std::size_t *client, std::size_t *server) {
-    return hxhim::GetDatastoreClientToServerRatio(hx, client, server);
+int hxhimGetRangeServerClientToServerRatio(hxhim_t *hx, std::size_t *client, std::size_t *server) {
+    return hxhim::GetRangeServerClientToServerRatio(hx, client, server);
 }
 
 /**

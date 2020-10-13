@@ -3,8 +3,6 @@
 
 #include <list>
 #include <memory>
-
-#include <mpi.h>
 #include <mutex>
 
 #include "datastore/constants.hpp"
@@ -14,40 +12,19 @@
 #include "utils/Stats.hpp"
 #include "utils/type_traits.hpp"
 
-namespace hxhim {
 namespace datastore {
-
-/**
- * Functions for converting between
- * datastore IDs and rank
- * get_id is the inverse of get_rank
- *
- * Client : Server = 5 : 3
- * MPI Rank:     |    0    |    1    |     2     |      3      |       4     |      5      |      6      |      7      |      8      |      9      |
- * Client:       |    0    |    1    |     2     |      3      |       4     |      5      |      6      |      7      |      8      |      9      |
- * Range Server: |    0    |    1    |     2     |             |             |      3      |      4      |      5      |             |             |
- * Datastore     |    0    |    1    |     2     |             |             |      3      |      4      |      5      |             |             |
- *
- * Client : Server = 3 : 5
- * MPI Rank:     |    0    |    1    |     2     |      3      |       4     |      5      |      6      |      7      |      8      |      9      |
- * Client:       |    0    |    1    |     2     |             |             |      5      |      6      |      7      |             |             |
- * Range Server: |    0    |    1    |     2     |      3      |       4     |      5      |      6      |      7      |      8      |      9      |
- * Datastore     |    0    |    1    |     2     |      3      |       4     |      5      |      6      |      7      |      8      |      9      |
- */
-int get_rank(hxhim_t *hx, const int id);
-int get_id(hxhim_t *hx, const int rank);
 
 /**
  * Base configuration type
  */
 struct Config {
-    Config(const hxhim::datastore::Type type)
+    Config(const datastore::Type type)
         : type(type)
     {}
 
     virtual ~Config() {}
 
-    const hxhim::datastore::Type type;
+    const datastore::Type type;
 };
 
 /**
@@ -130,7 +107,6 @@ class Datastore {
 
 };
 
-}
 }
 
 #endif

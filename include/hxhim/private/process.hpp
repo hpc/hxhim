@@ -1,5 +1,5 @@
-#ifndef TRANSPORT_BACKEND_LOCAL_PROCESS_TPP
-#define TRANSPORT_BACKEND_LOCAL_PROCESS_TPP
+#ifndef TRANSPORT_BACKEND_LOCAL_PROCESS_HPP
+#define TRANSPORT_BACKEND_LOCAL_PROCESS_HPP
 
 #include <cstring>
 
@@ -215,7 +215,7 @@ hxhim::Results *process(hxhim_t *hx,
 
         // process local data
         Request_t *local = &requests[rank];
-        if (local) {
+        if (local->count) {
             mlog(HXHIM_CLIENT_DBG, "Rank %d Client sending %zu local requests", rank, local->count);
 
             #if PRINT_TIMESTAMPS

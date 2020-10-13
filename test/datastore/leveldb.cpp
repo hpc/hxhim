@@ -1,8 +1,9 @@
 #include <cstring>
 #include <sstream>
 
-#include <leveldb/db.h>
 #include <gtest/gtest.h>
+#include <leveldb/db.h>
+#include <mpi.h>
 
 #include "common.hpp"
 #include "datastore/leveldb.hpp"
@@ -10,10 +11,10 @@
 #include "utils/memory.hpp"
 #include "utils/triplestore.hpp"
 
-class LevelDBTest : public hxhim::datastore::leveldb {
+class LevelDBTest : public datastore::leveldb {
     public:
         LevelDBTest(const int rank, const std::string &name)
-            : hxhim::datastore::leveldb(rank, nullptr, name, true)
+            : datastore::leveldb(rank, nullptr, name, true)
         {}
 
         ~LevelDBTest()  {

@@ -30,7 +30,7 @@ typedef struct hxhim_options_private {
     std::size_t client_ratio;
     std::size_t server_ratio;
 
-    hxhim::datastore::Config *datastore;   // configuration options for the selected datastore
+    datastore::Config *datastore;          // configuration options for the selected datastore
 
     std::size_t max_ops_per_send;          // the maximum number of operations that can be sent in one packet
     std::size_t start_async_put_at;        // number of PUTs to hold before sending PUTs asynchronously
@@ -56,6 +56,6 @@ typedef struct hxhim_options_private {
 int hxhim_options_set_requests_regions_in_config(hxhim_options_t *opts, const size_t regions);
 
 /* Cleans up datastore config memory, including the config variable itself because the user will never be able to create their own config */
-void hxhim_options_datastore_config_destroy(hxhim::datastore::Config *config);
+void hxhim_options_datastore_config_destroy(datastore::Config *config);
 
 #endif

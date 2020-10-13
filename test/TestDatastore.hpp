@@ -8,10 +8,10 @@ static const std::chrono::microseconds GET_TIME(456);
 static const uint64_t PUT_TIME_UINT64 = std::chrono::duration_cast<std::chrono::nanoseconds>(PUT_TIME).count();
 static const uint64_t GET_TIME_UINT64 = std::chrono::duration_cast<std::chrono::nanoseconds>(GET_TIME).count();
 
-class TestDatastore : public hxhim::datastore::Datastore {
+class TestDatastore : public datastore::Datastore {
     public:
         TestDatastore(const int id)
-            : hxhim::datastore::Datastore(0, id, nullptr)
+            : datastore::Datastore(0, id, nullptr)
         {}
 
     private:
@@ -19,7 +19,7 @@ class TestDatastore : public hxhim::datastore::Datastore {
         void CloseImpl() {}
 
         Transport::Response::BPut *BPutImpl(Transport::Request::BPut *) {
-            hxhim::datastore::Datastore::Stats::Event event;
+            datastore::Datastore::Stats::Event event;
             event.time.start = ::Stats::now();
             event.count = 1;
             event.time.end = event.time.start + PUT_TIME;
@@ -29,7 +29,7 @@ class TestDatastore : public hxhim::datastore::Datastore {
         }
 
         Transport::Response::BGet *BGetImpl(Transport::Request::BGet *) {
-            hxhim::datastore::Datastore::Stats::Event event;
+            datastore::Datastore::Stats::Event event;
             event.time.start = ::Stats::now();
             event.count = 1;
             event.time.end = event.time.start + GET_TIME;

@@ -60,13 +60,11 @@ typedef struct hxhim_private {
         hxhim::Unsent<hxhim::HistogramData> histograms;
     } queues;
 
-    // calculate these once
     std::size_t total_range_servers;       // total number of range servers across all ranks
-    std::size_t total_datastores;          // total number of datastores across all ranks
 
     // local datastore (max 1 per server)
     // f(rank, index) = datastore ID
-    hxhim::datastore::Datastore *datastore;
+    datastore::Datastore *datastore;
 
     // asynchronous BPUT data
     struct {

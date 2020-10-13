@@ -6,7 +6,6 @@ set(UTILS_TEST_FILES
   Histogram.cpp
   Stats.cpp
   elen.cpp
-  is_range_server.cpp
   little_endian.cpp
   memory.cpp
   triplestore.cpp

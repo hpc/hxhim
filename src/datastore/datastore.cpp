@@ -5,74 +5,11 @@
 #include <stdexcept>
 
 #include "datastore/datastore.hpp"
-#include "hxhim/private/accessors.hpp"
 #include "utils/Blob.hpp"
-#include "utils/is_range_server.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
-/**
- * get_rank
- * Get the rank the datastore id is on
- *
- * @param hx the HXHIM instance
- * @param id the database ID to get the rank of
- * @return the rank of the given ID or -1 on error
- */
-int hxhim::datastore::get_rank(hxhim_t *hx, const int id) {
-    if (id < 0) {
-        return -1;
-    }
-
-    std::size_t client = 0;
-    std::size_t server = 0;
-    nocheck::GetDatastoreClientToServerRatio(hx, &client, &server);
-
-    std::size_t total_datastores = 0;
-    nocheck::GetDatastoreCount(hx, &total_datastores);
-    if ((std::size_t) id >= total_datastores) {
-        return -1;
-    }
-
-    // not every rank is a server
-    if (client > server) {
-        return (id / server) * client + (id % server);
-    }
-
-    // every rank is a server
-    return id;
-}
-
-/**
- * get_id
- * Get the id of the datastore located on the given rank
- *
- * @param hx      the HXHIM instance
- * @param rank    the destination rank
- * @return the mapping from the rank to the database ID, or -1 on error
- */
-int hxhim::datastore::get_id(hxhim_t *hx, const int rank) {
-    std::size_t client = 0;
-    std::size_t server = 0;
-    nocheck::GetDatastoreClientToServerRatio(hx, &client, &server);
-
-    // make sure the rank is valid
-    int size = 0;
-    nocheck::GetMPI(hx, nullptr, nullptr, &size);
-    if ((rank < 0) || (rank >= size)) {
-        return -1;
-    }
-
-    // not every rank is a server
-    if (client > server) {
-        return (rank / client) * server + (rank % client);
-    }
-
-    // every rank is a server
-    return rank;
-}
-
-hxhim::datastore::Datastore::Datastore(const int rank,
+datastore::Datastore::Datastore(const int rank,
                                        const int id,
                                        Histogram::Histogram *hist)
     : rank(rank),
@@ -101,7 +38,7 @@ static std::string hr_size(const std::size_t size, const long double time) {
     return s.str();
 }
 
-hxhim::datastore::Datastore::~Datastore() {
+datastore::Datastore::~Datastore() {
     mlog(DATASTORE_INFO, "Rank %d Datastore shutting down", rank);
 
     long double put_time = 0;
@@ -139,21 +76,21 @@ hxhim::datastore::Datastore::~Datastore() {
     mlog(DATASTORE_INFO, "Rank %d Datastore shut down completed", rank);
 }
 
-bool hxhim::datastore::Datastore::Open(const std::string &new_name) {
+bool datastore::Datastore::Open(const std::string &new_name) {
     Close();
     return OpenImpl(new_name);
 }
 
-void hxhim::datastore::Datastore::Close() {
+void datastore::Datastore::Close() {
     CloseImpl();
     return;
 }
 
-int hxhim::datastore::Datastore::ID() const {
+int datastore::Datastore::ID() const {
     return id;
 }
 
-std::size_t hxhim::datastore::Datastore::all_keys_size(Transport::Request::BPut *req) {
+std::size_t datastore::Datastore::all_keys_size(Transport::Request::BPut *req) {
     std::size_t total = 0;
     for(std::size_t i = 0; i < req->count; i++) {
         Blob &subject   = req->subjects[i];
@@ -188,7 +125,7 @@ std::size_t hxhim::datastore::Datastore::all_keys_size(Transport::Request::BPut 
     return total;
 }
 
-std::size_t hxhim::datastore::Datastore::all_keys_size(Transport::Request::SubjectPredicate *req) {
+std::size_t datastore::Datastore::all_keys_size(Transport::Request::SubjectPredicate *req) {
     std::size_t total = 0;
     for(std::size_t i = 0; i < req->count; i++) {
         Blob &subject   = req->subjects[i];
@@ -200,7 +137,7 @@ std::size_t hxhim::datastore::Datastore::all_keys_size(Transport::Request::Subje
     return total;
 }
 
-Transport::Response::BPut *hxhim::datastore::Datastore::operate(Transport::Request::BPut *req) {
+Transport::Response::BPut *datastore::Datastore::operate(Transport::Request::BPut *req) {
     std::lock_guard<std::mutex> lock(mutex);
 
     // All combinations of SPO should be handled in the BPutImpl
@@ -231,22 +168,22 @@ Transport::Response::BPut *hxhim::datastore::Datastore::operate(Transport::Reque
     return res;
 }
 
-Transport::Response::BGet *hxhim::datastore::Datastore::operate(Transport::Request::BGet *req) {
+Transport::Response::BGet *datastore::Datastore::operate(Transport::Request::BGet *req) {
     std::lock_guard<std::mutex> lock(mutex);
     return BGetImpl(req);
 }
 
-Transport::Response::BGetOp *hxhim::datastore::Datastore::operate(Transport::Request::BGetOp *req) {
+Transport::Response::BGetOp *datastore::Datastore::operate(Transport::Request::BGetOp *req) {
     std::lock_guard<std::mutex> lock(mutex);
     return BGetOpImpl(req);
 }
 
-Transport::Response::BDelete *hxhim::datastore::Datastore::operate(Transport::Request::BDelete *req) {
+Transport::Response::BDelete *datastore::Datastore::operate(Transport::Request::BDelete *req) {
     std::lock_guard<std::mutex> lock(mutex);
     return BDeleteImpl(req);
 }
 
-Transport::Response::BHistogram *hxhim::datastore::Datastore::operate(Transport::Request::BHistogram *req) {
+Transport::Response::BHistogram *datastore::Datastore::operate(Transport::Request::BHistogram *req) {
     std::lock_guard<std::mutex> lock(mutex);
 
     Datastore::Stats::Event event;
@@ -283,7 +220,7 @@ Transport::Response::BHistogram *hxhim::datastore::Datastore::operate(Transport:
  * @param h A pointer to this histogram pointer
  * @return DATASTORE_SUCCESS
  */
-int hxhim::datastore::Datastore::GetHistogram(Histogram::Histogram **h) const {
+int datastore::Datastore::GetHistogram(Histogram::Histogram **h) const {
     if (hist) {
         *h = hist.get();
     }
@@ -304,7 +241,7 @@ int hxhim::datastore::Datastore::GetHistogram(Histogram::Histogram **h) const {
  * @param num_gets       the array of number of gets from each rank
  * @return DATASTORE_SUCCESS or DATASTORE_ERROR on error
  */
-int hxhim::datastore::Datastore::GetStats(uint64_t *put_time,
+int datastore::Datastore::GetStats(uint64_t *put_time,
                                           std::size_t  *num_put,
                                           uint64_t *get_time,
                                           std::size_t  *num_get) {
@@ -335,21 +272,21 @@ int hxhim::datastore::Datastore::GetStats(uint64_t *put_time,
     return DATASTORE_SUCCESS;
 }
 
-int hxhim::datastore::Datastore::Sync() {
+int datastore::Datastore::Sync() {
     std::lock_guard<std::mutex> lock(mutex);
     return SyncImpl();
 }
 
-hxhim::datastore::Datastore::Stats::Event::Event()
+datastore::Datastore::Stats::Event::Event()
     : time(),
       count(0),
       size(0)
 {}
 
-void hxhim::datastore::Datastore::BGetOp_error_response(Transport::Response::BGetOp *res,
+void datastore::Datastore::BGetOp_error_response(Transport::Response::BGetOp *res,
                                                         const std::size_t i,
                                                         const Blob &subject, const Blob &predicate,
-                                                        hxhim::datastore::Datastore::Stats::Event &event) {
+                                                        datastore::Datastore::Stats::Event &event) {
     res->subjects[i][0]   = ReferenceBlob(subject.data(), subject.size());
     res->predicates[i][0] = ReferenceBlob(predicate.data(), predicate.size());
     res->num_recs[i]++;

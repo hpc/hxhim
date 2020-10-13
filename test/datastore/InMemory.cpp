@@ -7,10 +7,10 @@
 #include "utils/memory.hpp"
 #include "utils/triplestore.hpp"
 
-class InMemoryTest : public hxhim::datastore::InMemory {
+class InMemoryTest : public datastore::InMemory {
     public:
         InMemoryTest()
-            : hxhim::datastore::InMemory(-1, 0, nullptr, "InMemory test")
+            : datastore::InMemory(-1, 0, nullptr, "InMemory test")
         {}
 
         std::map<std::string, std::string> const &data() const {

@@ -1,26 +1,35 @@
 #include "datastore/datastores.hpp"
 #include "hxhim/private/accessors.hpp"
 #include "hxhim/private/hxhim.hpp"
+#include "hxhim/RangeServer.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
-int hxhim::datastore::Init(hxhim_t *hx,
+int datastore::Init(hxhim_t *hx,
                            Config *config,
                            const Histogram::Config &hist_config,
                            const std::string *exact_name) {
     int rank = -1;
-    nocheck::GetMPI(hx, nullptr, &rank, nullptr);
+    int size = -1;
+    hxhim::nocheck::GetMPI(hx, nullptr, &rank, &size);
 
-    const int id = get_id(hx, rank);
+    std::size_t client = 0;
+    std::size_t server = 0;
+    hxhim::nocheck::GetRangeServerClientToServerRatio(hx, &client, &server);
+
+    const int id = hxhim::RangeServer::get_id(rank, size, client, server);
+    if (id < 0) {
+        return DATASTORE_ERROR;
+    }
 
     Histogram::Histogram *hist = new Histogram::Histogram(hist_config);
 
     switch (config->type) {
         case IN_MEMORY:
-            hx->p->datastore = new hxhim::datastore::InMemory(rank,
-                                                              id,
-                                                              hist,
-                                                              hx->p->hash.name);
+            hx->p->datastore = new InMemory(rank,
+                                            id,
+                                            hist,
+                                            hx->p->hash.name);
             mlog(HXHIM_CLIENT_INFO, "Initialized In-Memory in datastore %d", id);
             break;
 
@@ -77,8 +86,8 @@ int hxhim::datastore::Init(hxhim_t *hx,
     return DATASTORE_SUCCESS;
 }
 
-int hxhim::datastore::destroy(hxhim_t *hx) {
-    hxhim::datastore::Datastore *&ds = hx->p->datastore;
+int datastore::destroy(hxhim_t *hx) {
+    datastore::Datastore *&ds = hx->p->datastore;
     if (ds) {
         ds->Close();
         delete ds;

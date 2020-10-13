@@ -14,7 +14,6 @@
 
 #include "hxhim/struct.h"
 
-namespace hxhim {
 namespace datastore {
 
 int Init(hxhim_t *hx,
@@ -24,7 +23,6 @@ int Init(hxhim_t *hx,
 
 int destroy(hxhim_t *hx);
 
-}
 }
 
 #endif

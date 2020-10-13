@@ -8,7 +8,7 @@
 #include "utils/memory.hpp"
 #include "utils/triplestore.hpp"
 
-hxhim::datastore::InMemory::InMemory(const int rank,
+datastore::InMemory::InMemory(const int rank,
                                      const int id,
                                      Histogram::Histogram *hist,
                                      const std::string &basename)
@@ -18,15 +18,15 @@ hxhim::datastore::InMemory::InMemory(const int rank,
     Datastore::Open(basename);
 }
 
-hxhim::datastore::InMemory::~InMemory() {
+datastore::InMemory::~InMemory() {
     Close();
 }
 
-bool hxhim::datastore::InMemory::OpenImpl(const std::string &) {
+bool datastore::InMemory::OpenImpl(const std::string &) {
     return true;
 }
 
-void hxhim::datastore::InMemory::CloseImpl() {
+void datastore::InMemory::CloseImpl() {
     db.clear();
 }
 
@@ -42,8 +42,8 @@ void hxhim::datastore::InMemory::CloseImpl() {
  * @param object_lens   the lengths of the objects
  * @return pointer to a list of results
  */
-Transport::Response::BPut *hxhim::datastore::InMemory::BPutImpl(Transport::Request::BPut *req) {
-    hxhim::datastore::Datastore::Stats::Event event;
+Transport::Response::BPut *datastore::InMemory::BPutImpl(Transport::Request::BPut *req) {
+    datastore::Datastore::Stats::Event event;
     event.time.start = ::Stats::now();
     event.count = req->count;
 
@@ -132,8 +132,8 @@ Transport::Response::BPut *hxhim::datastore::InMemory::BPutImpl(Transport::Reque
  * @param prediate_lens the lengths of the prediates to put
  * @return pointer to a list of results
  */
-Transport::Response::BGet *hxhim::datastore::InMemory::BGetImpl(Transport::Request::BGet *req) {
-    hxhim::datastore::Datastore::Stats::Event event;
+Transport::Response::BGet *datastore::InMemory::BGetImpl(Transport::Request::BGet *req) {
+    datastore::Datastore::Stats::Event event;
     event.time.start = ::Stats::now();
     event.count = req->count;
 
@@ -187,7 +187,7 @@ static void BGetOp_copy_response(const std::map<std::string, std::string>::const
                                  Transport::Response::BGetOp *res,
                                  const std::size_t i,
                                  const std::size_t j,
-                                 hxhim::datastore::Datastore::Stats::Event &event) {
+                                 datastore::Datastore::Stats::Event &event) {
     const std::string &k = it->first;
     const std::string &v = it->second;
 
@@ -215,7 +215,7 @@ static void BGetOp_copy_response(const std::map<std::string, std::string>::const
  * @param object_lens   the lengths of the objects
  * @return pointer to a list of results
  */
-Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::Request::BGetOp *req) {
+Transport::Response::BGetOp *datastore::InMemory::BGetOpImpl(Transport::Request::BGetOp *req) {
     Transport::Response::BGetOp *res = construct<Transport::Response::BGetOp>(req->count);
 
     std::size_t key_buffer_len = all_keys_size(req);
@@ -223,7 +223,7 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
     char *key_buffer_start = key_buffer;
 
     for(std::size_t i = 0; i < req->count; i++) {
-        hxhim::datastore::Datastore::Stats::Event event;
+        datastore::Datastore::Stats::Event event;
         event.time.start = ::Stats::now();
 
         decltype(db)::const_iterator it = db.end();
@@ -363,8 +363,8 @@ Transport::Response::BGetOp *hxhim::datastore::InMemory::BGetOpImpl(Transport::R
  * @param prediate_lens the lengths of the prediates to put
  * @return pointer to a list of results
  */
-Transport::Response::BDelete *hxhim::datastore::InMemory::BDeleteImpl(Transport::Request::BDelete *req) {
-    hxhim::datastore::Datastore::Stats::Event event;
+Transport::Response::BDelete *datastore::InMemory::BDeleteImpl(Transport::Request::BDelete *req) {
+    datastore::Datastore::Stats::Event event;
     event.time.start = ::Stats::now();
     event.count = req->count;
 
@@ -409,6 +409,6 @@ Transport::Response::BDelete *hxhim::datastore::InMemory::BDeleteImpl(Transport:
  *
  * @return DATASTORE_SUCCESS
  */
-int hxhim::datastore::InMemory::SyncImpl() {
+int datastore::InMemory::SyncImpl() {
     return DATASTORE_SUCCESS;
 }

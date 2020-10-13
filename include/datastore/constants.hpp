@@ -4,7 +4,6 @@
 #define DATASTORE_SUCCESS 1
 #define DATASTORE_ERROR   2
 
-namespace hxhim {
 namespace datastore {
 
 /**
@@ -21,7 +20,6 @@ enum Type {
     #endif
 };
 
-}
 }
 
 #endif

@@ -5,8 +5,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <rocksdb/db.h>
 #include <gtest/gtest.h>
+#include <mpi.h>
+#include <rocksdb/db.h>
 
 #include "common.hpp"
 #include "datastore/rocksdb.hpp"
@@ -14,10 +15,10 @@
 #include "utils/memory.hpp"
 #include "utils/triplestore.hpp"
 
-class RocksDBTest : public hxhim::datastore::rocksdb {
+class RocksDBTest : public datastore::rocksdb {
     public:
         RocksDBTest(const int rank, const std::string &name)
-            : hxhim::datastore::rocksdb(rank, nullptr, name, true)
+            : datastore::rocksdb(rank, nullptr, name, true)
         {}
 
         ~RocksDBTest()  {

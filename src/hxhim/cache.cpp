@@ -1,12 +1,15 @@
 #include <utility>
 
-#include "datastore/datastore.hpp"
+#include "datastore/datastores.hpp"
 #include "hxhim/private/cache.hpp"
 #include "hxhim/private/hxhim.hpp"
+#include "hxhim/RangeServer.hpp"
 
 hxhim::UserData::UserData(hxhim_t *hx, const int id)
     : ds_id(id),
-      ds_rank(hxhim::datastore::get_rank(hx, id)),
+      ds_rank(RangeServer::get_rank(id, hx->p->bootstrap.size,
+                                    hx->p->range_server.client_ratio,
+                                    hx->p->range_server.server_ratio)),
       timestamps(construct<::Stats::Send>())
 {
     timestamps->cached.start = ::Stats::now();
@@ -48,7 +51,9 @@ hxhim::SubjectPredicate::SubjectPredicate(hxhim_t *hx,
                              hx->p->hash.args);
     timestamps->hashed.end = ::Stats::now();
 
-    ds_rank = hxhim::datastore::get_rank(hx, ds_id);
+    ds_rank = RangeServer::get_rank(ds_id, hx->p->bootstrap.size,
+                                    hx->p->range_server.client_ratio,
+                                    hx->p->range_server.server_ratio);
 }
 
 hxhim::SubjectPredicate::~SubjectPredicate() {}

@@ -1,9 +1,11 @@
+#include <cmath>
+
 #include "datastore/datastore.hpp"
 #include "hxhim/private/hxhim.hpp"
 #include "hxhim/private/options.hpp"
 #include "hxhim/private/process.hpp"
+#include "hxhim/RangeServer.hpp"
 #include "transport/transports.hpp"
-#include "utils/is_range_server.hpp"
 
 /**
  * bootstrap
@@ -76,15 +78,28 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
     hx->p->range_server.server_ratio = opts->p->server_ratio;
 
     // create datastore if this rank is a server
-    if (is_range_server(hx->p->bootstrap.rank, opts->p->client_ratio, opts->p->server_ratio)) {
+    if (RangeServer::is_range_server(hx->p->bootstrap.rank, opts->p->client_ratio, opts->p->server_ratio)) {
         if (datastore::Init(hx, opts->p->datastore, opts->p->histogram) != DATASTORE_SUCCESS) {
             return HXHIM_ERROR;
         }
     }
 
-    hx->p->total_range_servers = opts->p->server_ratio * (hx->p->bootstrap.size / opts->p->client_ratio) + (hx->p->bootstrap.size % opts->p->server_ratio);
+    // calculate how many range servers there are
+    if (hx->p->range_server.client_ratio <= hx->p->range_server.server_ratio) {
+        // all ranks are servers
+        hx->p->total_range_servers = hx->p->bootstrap.size;
+    }
+    else {
+        // client > server
 
-    hx->p->total_datastores = hx->p->total_range_servers;
+        // whole "buckets" get server_ratio servers per bucket
+        const std::size_t whole_buckets = hx->p->bootstrap.size / hx->p->range_server.client_ratio;
+        hx->p->total_range_servers = whole_buckets * hx->p->range_server.server_ratio;
+
+        // there can be at most server_ratio servers
+        const std::size_t remaining_ranks = hx->p->bootstrap.size % hx->p->range_server.client_ratio;
+        hx->p->total_range_servers += std::min(remaining_ranks, hx->p->range_server.server_ratio);
+    }
 
     mlog(HXHIM_CLIENT_INFO, "Completed Datastore Initialization");
     return HXHIM_SUCCESS;
@@ -116,7 +131,6 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
     }
 
     hx->p->total_range_servers = 1;
-    hx->p->total_datastores = 1;
 
     return hx->p->datastore?HXHIM_SUCCESS:HXHIM_ERROR;
 }

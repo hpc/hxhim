@@ -7,6 +7,7 @@
 #include "hxhim/private/Results.hpp"
 #include "hxhim/private/accessors.hpp"
 #include "hxhim/private/hxhim.hpp"
+#include "hxhim/RangeServer.hpp"
 #include "utils/Stats.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
@@ -159,7 +160,13 @@ hxhim::Results::Result *hxhim::Result::init(hxhim_t *hx, Transport::Response::Re
 }
 
 hxhim::Results::Put *hxhim::Result::init(hxhim_t *hx, Transport::Response::BPut *bput, const std::size_t i) {
-    hxhim::Results::Put *out = construct<hxhim::Results::Put>(hx, hxhim::datastore::get_id(hx, bput->src), bput->statuses[i]);
+    hxhim::Results::Put *out = construct<hxhim::Results::Put>(
+        hx,
+        hxhim::RangeServer::get_id(bput->src,
+                                   hx->p->bootstrap.size,
+                                   hx->p->range_server.client_ratio,
+                                   hx->p->range_server.server_ratio),
+        bput->statuses[i]);
 
     out->subject = bput->orig.subjects[i];
     out->predicate = bput->orig.predicates[i];
@@ -168,7 +175,13 @@ hxhim::Results::Put *hxhim::Result::init(hxhim_t *hx, Transport::Response::BPut 
 }
 
 hxhim::Results::Get *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGet *bget, const std::size_t i) {
-    hxhim::Results::Get *out = construct<hxhim::Results::Get>(hx, hxhim::datastore::get_id(hx, bget->src), bget->statuses[i]);
+    hxhim::Results::Get *out = construct<hxhim::Results::Get>(
+        hx,
+        hxhim::RangeServer::get_id(bget->src,
+                                   hx->p->bootstrap.size,
+                                   hx->p->range_server.client_ratio,
+                                   hx->p->range_server.server_ratio),
+        bget->statuses[i]);
 
     out->subject = bget->orig.subjects[i];
     out->predicate = bget->orig.predicates[i];
@@ -180,7 +193,10 @@ hxhim::Results::Get *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGet 
 }
 
 hxhim::Results::GetOp *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGetOp *bgetop, const std::size_t i) {
-    const int id = hxhim::datastore::get_id(hx, bgetop->src);
+    const int id = hxhim::RangeServer::get_id(bgetop->src,
+                                              hx->p->bootstrap.size,
+                                              hx->p->range_server.client_ratio,
+                                              hx->p->range_server.server_ratio);
     const int status = bgetop->statuses[i];
 
     hxhim::Results::GetOp *top = construct<hxhim::Results::GetOp>(hx, id, status);
@@ -207,7 +223,13 @@ hxhim::Results::GetOp *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGe
 }
 
 hxhim::Results::Delete *hxhim::Result::init(hxhim_t *hx, Transport::Response::BDelete *bdel, const std::size_t i) {
-    hxhim::Results::Delete *out = construct<hxhim::Results::Delete>(hx, hxhim::datastore::get_id(hx, bdel->src), bdel->statuses[i]);
+    hxhim::Results::Delete *out = construct<hxhim::Results::Delete>(
+        hx,
+        hxhim::RangeServer::get_id(bdel->src,
+                                   hx->p->bootstrap.size,
+                                   hx->p->range_server.client_ratio,
+                                   hx->p->range_server.server_ratio),
+        bdel->statuses[i]);
 
     out->subject = bdel->orig.subjects[i];
     out->predicate = bdel->orig.predicates[i];
@@ -219,12 +241,24 @@ hxhim::Results::Sync *hxhim::Result::init(hxhim_t *hx, const int synced) {
     int rank = -1;
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
-    hxhim::Results::Sync *out = construct<hxhim::Results::Sync>(hx, hxhim::datastore::get_id(hx, rank), synced);
+    hxhim::Results::Sync *out = construct<hxhim::Results::Sync>(
+        hx,
+        hxhim::RangeServer::get_id(rank,
+                                   hx->p->bootstrap.size,
+                                   hx->p->range_server.client_ratio,
+                                   hx->p->range_server.server_ratio),
+        synced);
     return out;
 }
 
 hxhim::Results::Hist *hxhim::Result::init(hxhim_t *hx, Transport::Response::BHistogram *bhist, const std::size_t i) {
-    hxhim::Results::Hist *out = construct<hxhim::Results::Hist>(hx, hxhim::datastore::get_id(hx, bhist->src), bhist->statuses[i]);
+    hxhim::Results::Hist *out = construct<hxhim::Results::Hist>(
+        hx,
+        hxhim::RangeServer::get_id(bhist->src,
+                                   hx->p->bootstrap.size,
+                                   hx->p->range_server.client_ratio,
+                                   hx->p->range_server.server_ratio),
+        bhist->statuses[i]);
 
     out->histogram = bhist->histograms[i];
 
@@ -246,7 +280,7 @@ uint64_t hxhim::Result::AddAll(hxhim_t *hx, hxhim::Results *results, Transport::
     for(Transport::Response::Response *res = response; res; res = next(res)) {
         ::Stats::Chronopoint start = ::Stats::now();
 
-       // add timestamps of individual events
+        // add timestamps of individual events
         uint64_t individual = 0;
         for(std::size_t i = 0; i < res->count; i++) {
             for(::Stats::Chronostamp const &find_dst : res->timestamps.reqs[i]->find_dsts) {
@@ -255,8 +289,8 @@ uint64_t hxhim::Result::AddAll(hxhim_t *hx, hxhim::Results *results, Transport::
 
             // include time it took to cache, hash, and bulk the data
             individual += ::Stats::nano(res->timestamps.reqs[i]->cached)
-                       +  ::Stats::nano(res->timestamps.reqs[i]->hashed)
-                       +  ::Stats::nano(res->timestamps.reqs[i]->bulked);
+                +  ::Stats::nano(res->timestamps.reqs[i]->hashed)
+                +  ::Stats::nano(res->timestamps.reqs[i]->bulked);
 
             results->Add(hxhim::Result::init(hx, res, i));
         }

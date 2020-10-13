@@ -19,7 +19,7 @@ int hxhim::BHistogram(hxhim_t *hx,
 
     for(std::size_t i = 0; i < count; i++) {
         if ((ds_ids[i] < 0) ||
-            (ds_ids[i] >= (int) hx->p->total_datastores)) {
+            (ds_ids[i] >= (int) hx->p->total_range_servers)) {
             return HXHIM_ERROR;
         }
     }

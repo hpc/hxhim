@@ -48,9 +48,6 @@ int shuffle(cache_t *src,
     mlog(HXHIM_CLIENT_INFO, "Shuffled %p to datastore %d on rank %d", src, src->ds_id, src->ds_rank);
 
     Request_t &dst = remote[src->ds_rank];
-    // if (!dst) {
-    //     dst = construct<Request_t>(max_ops_per_send);
-    // }
 
     mlog(HXHIM_CLIENT_INFO, "Packet going to rank %d has %zu already packed out of %zu slots", src->ds_rank, dst.count, max_ops_per_send);
 
