@@ -3,7 +3,6 @@
 
 #include <chrono>
 #include <cstdint>
-#include <deque>
 #include <sstream>
 #include <string>
 
@@ -35,22 +34,17 @@ long double sec(const Chronostamp &duration);
 
 // Timestamps before calling transport layer
 struct Send {
-    Chronostamp cached;
-    Chronopoint shuffled;               // the first time shuffle was called on this request
-    Chronostamp hashed;                 // how long hashing took (start should be close to
-                                        // shuffled timestamp
-    std::deque<Chronostamp> find_dsts;  // time to figure out which packet this request goes to
-    Chronostamp bulked;                 // how long it took to place the request into a packet
-                                        // This does not include the time between hashing and
-                                        // failing to put the request into the packet
+    Chronostamp hash;        // how long hashing took (start should be close to
+                             // shuffled timestamp
+    Chronostamp insert;      // how long it took to [alloc and] insert into the packet
 };
 
 // Transport timestamps
 struct SendRecv {
     Chronopoint start;
     Chronostamp pack;
-    Chronopoint send_start;             // send and recv might be one call
-    Chronopoint recv_end;               // send and recv might be one call
+    Chronopoint send_start;  // send and recv might be one call
+    Chronopoint recv_end;    // send and recv might be one call
     Chronostamp unpack;
     Chronostamp cleanup_rpc;
     Chronopoint end;

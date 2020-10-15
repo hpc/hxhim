@@ -9,12 +9,10 @@ set(HXHIM_TEST_FILES
   RangeServer.cpp
   Results.cpp
   accessors.cpp
-  background_put.cpp
-  cache.cpp
+  # background_put.cpp
   enqueue.cpp
   generic_options.cpp
   generic_options.hpp
-  shuffle.cpp
   transport.cpp
 )
 

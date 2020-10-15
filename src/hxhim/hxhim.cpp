@@ -85,11 +85,11 @@ int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
 
     if ((init::bootstrap(hx, opts) != HXHIM_SUCCESS) ||
         (init::running  (hx, opts) != HXHIM_SUCCESS) ||
-        (init::memory   (hx, opts) != HXHIM_SUCCESS) ||
         (init::hash     (hx, opts) != HXHIM_SUCCESS) ||
         (init::datastore(hx, opts) != HXHIM_SUCCESS) ||
-        (init::async_put(hx, opts) != HXHIM_SUCCESS) ||
-        (init::transport(hx, opts) != HXHIM_SUCCESS)) {
+        (init::transport(hx, opts) != HXHIM_SUCCESS) ||
+        (init::queues   (hx, opts) != HXHIM_SUCCESS) ||
+        (init::async_put(hx, opts) != HXHIM_SUCCESS)) {
         MPI_Barrier(hx->p->bootstrap.comm);
         Close(hx);
         mlog(HXHIM_CLIENT_ERR, "Failed to initialize HXHIM");
@@ -142,9 +142,8 @@ int hxhim::OpenOne(hxhim_t *hx, hxhim_options_t *opts, const std::string &db_pat
     if ((init::bootstrap     (hx, opts)          != HXHIM_SUCCESS) ||
         (hx->p->bootstrap.size                   != 1)             ||    // Only allow for 1 rank
         (init::running       (hx, opts)          != HXHIM_SUCCESS) ||
-        (init::memory        (hx, opts)          != HXHIM_SUCCESS) ||
-        // (init::hash          (hx, opts)          != HXHIM_SUCCESS) || // hash is ignored
         (init::one_datastore (hx, opts, db_path) != HXHIM_SUCCESS) ||
+        (init::queues        (hx, opts)          != HXHIM_SUCCESS) ||
         (init::async_put     (hx, opts)          != HXHIM_SUCCESS)) {
         MPI_Barrier(hx->p->bootstrap.comm);
         Close(hx);
@@ -195,14 +194,17 @@ int hxhim::Close(hxhim_t *hx) {
 
     mlog(HXHIM_CLIENT_DBG, "Rank %d Waiting for all ranks to complete syncing", rank);
     Results::Destroy(hxhim::Sync(hx));
-    MPI_Barrier(comm);
     mlog(HXHIM_CLIENT_DBG, "Rank %d Closing HXHIM", rank);
 
     destroy::async_put(hx);
+
+    // make sure all ranks are ready to destroy the transport
+    MPI_Barrier(comm);
+
     destroy::transport(hx);
-    destroy::hash(hx);
     destroy::datastore(hx);
-    destroy::memory(hx);
+    destroy::queues(hx);
+    destroy::hash(hx);
 
     // stats should not be modified any more
 

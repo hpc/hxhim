@@ -21,7 +21,7 @@ TEST(hxhim, GetStats) {
     destruct(hx.p->datastore);
     hx.p->datastore = construct<TestDatastore>(hx.p->bootstrap.rank);
 
-    const std::size_t total_ds = hx.p->total_range_servers;
+    const std::size_t total_ds = hx.p->range_server.total_range_servers;
     uint64_t    *put_times = new uint64_t   [total_ds]();
     std::size_t *num_puts  = new std::size_t[total_ds]();
     uint64_t    *get_times = new uint64_t   [total_ds]();

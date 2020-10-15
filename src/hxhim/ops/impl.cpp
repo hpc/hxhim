@@ -1,7 +1,7 @@
-#include "hxhim/hxhim.hpp"
-#include "hxhim/private/cache.hpp"
 #include "hxhim/private/hxhim.hpp"
 #include "utils/Blob.hpp"
+#include "utils/Stats.hpp"
+#include "utils/macros.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
@@ -21,24 +21,65 @@
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::PutImpl(hxhim_t *hx,
-                   hxhim::Unsent<hxhim::PutData> &puts,
+                   hxhim::Queue<Transport::Request::BPut> &puts_queue,
                    Blob subject,
                    Blob predicate,
                    enum hxhim_object_type_t object_type,
                    Blob object) {
     mlog(HXHIM_CLIENT_INFO, "Foreground PUT Start (%p, %p, %p)", subject.data(), predicate.data(), object.data());
 
-    hxhim::PutData *put = construct<hxhim::PutData>(hx, subject, predicate, object_type, object);
-    if (put->ds_rank < 0) {
-        destruct(put);
+    ::Stats::Chronostamp hash;
+    hash.start = ::Stats::now();
+
+    // figure out where this triple is going
+    const int rs_id = hx->p->hash.func(hx,
+                                       subject.data(),   subject.size(),
+                                       predicate.data(), predicate.size(),
+                                       hx->p->hash.args);
+
+    hash.end = ::Stats::now();
+    if (rs_id < 0) {
         return HXHIM_ERROR;
     }
 
     mlog(HXHIM_CLIENT_DBG, "Foreground PUT Insert SPO into queue");
-    puts.insert(put);
 
-    // background thread checks watermark after every single PUT is queued up
-    puts.start_processing.notify_one();
+    ::Stats::Chronostamp insert;
+    insert.start = ::Stats::now();
+
+    #if ASYNC_PUTS
+    std::unique_lock<std::mutex> lock(hx->p->queues.puts.mutex);
+    #endif
+
+    // find the queue this triple should be placed on
+    QueueTarget<Transport::Request::BPut> &puts = puts_queue[rs_id];
+
+    if (puts.empty()                                                ||
+        ((*puts.rbegin())->count >= hx->p->queues.max_ops_per_send)) { // last packet doesn't have space
+        puts.push_back(construct<Transport::Request::BPut>(hx->p->queues.max_ops_per_send));
+    }
+
+    // add the triple to the last packet in the queue
+    Transport::Request::BPut *put = *(puts.rbegin());
+
+    put->subjects[put->count] = subject;
+    put->predicates[put->count] = predicate;
+    put->object_types[put->count] = object_type;
+    put->objects[put->count] = object;
+
+    put->orig.subjects[put->count] = subject.data();
+    put->orig.predicates[put->count] = predicate.data();
+
+    put->timestamps.reqs[put->count] = construct<::Stats::Send>();
+
+    put->timestamps.reqs[put->count]->hash = hash;
+    put->timestamps.reqs[put->count]->insert = insert;
+
+    put->count++;
+
+    hx->p->queues.puts.count++;
+
+    put->timestamps.reqs[put->count - 1]->insert.end = ::Stats::now();
 
     mlog(HXHIM_CLIENT_DBG, "Foreground PUT Completed");
     return HXHIM_SUCCESS;
@@ -58,20 +99,56 @@ int hxhim::PutImpl(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::GetImpl(hxhim_t *hx,
-                   hxhim::Unsent<hxhim::GetData> &gets,
+                   hxhim::Queue<Transport::Request::BGet> &gets_queue,
                    Blob subject,
                    Blob predicate,
                    enum hxhim_object_type_t object_type) {
     mlog(HXHIM_CLIENT_DBG, "GET Start");
 
-    hxhim::GetData *get = construct<hxhim::GetData>(hx, subject, predicate, object_type);
-    if (get->ds_rank < 0) {
-        destruct(get);
+    ::Stats::Chronostamp hash;
+    hash.start = ::Stats::now();
+
+    // figure out where this triple is going
+    const int rs_id = hx->p->hash.func(hx,
+                                       subject.data(),   subject.size(),
+                                       predicate.data(), predicate.size(),
+                                       hx->p->hash.args);
+
+    hash.end = ::Stats::now();
+    if (rs_id < 0) {
         return HXHIM_ERROR;
     }
 
-    mlog(HXHIM_CLIENT_DBG, "GET Insert into queue");
-    gets.insert(get);
+    mlog(HXHIM_CLIENT_DBG, "Foreground GET Insert SPO into queue");
+
+    ::Stats::Chronostamp insert;
+    insert.start = ::Stats::now();
+
+    // find the queue this triple should be placed on
+    QueueTarget<Transport::Request::BGet> &gets = gets_queue[rs_id];
+    if (gets.empty()                                                ||
+        ((*gets.rbegin())->count >= hx->p->queues.max_ops_per_send)) { // last packet doesn't have space
+        gets.push_back(construct<Transport::Request::BGet>(hx->p->queues.max_ops_per_send));
+    }
+
+    // add the triple to the last packet in the queue
+    Transport::Request::BGet *get = *(gets.rbegin());
+
+    get->subjects[get->count] = subject;
+    get->predicates[get->count] = predicate;
+    get->object_types[get->count] = object_type;
+
+    get->orig.subjects[get->count] = subject.data();
+    get->orig.predicates[get->count] = predicate.data();
+
+    get->timestamps.reqs[get->count] = construct<::Stats::Send>();
+
+    get->timestamps.reqs[get->count]->hash = hash;
+    get->timestamps.reqs[get->count]->insert = insert;
+
+    get->count++;
+
+    get->timestamps.reqs[get->count - 1]->insert.end = ::Stats::now();
 
     mlog(HXHIM_CLIENT_DBG, "GET Completed");
     return HXHIM_SUCCESS;
@@ -93,21 +170,56 @@ int hxhim::GetImpl(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::GetOpImpl(hxhim_t *hx,
-                     hxhim::Unsent<hxhim::GetOpData> &getops,
+                     hxhim::Queue<Transport::Request::BGetOp> &getops_queue,
                      Blob subject,
                      Blob predicate,
                      enum hxhim_object_type_t object_type,
                      std::size_t num_records, enum hxhim_getop_t op) {
     mlog(HXHIM_CLIENT_DBG, "GETOP Start");
 
-    hxhim::GetOpData *getop = construct<hxhim::GetOpData>(hx, subject, predicate, object_type, num_records, op);
-    if (getop->ds_rank < 0) {
-        destruct(getop);
+    ::Stats::Chronostamp hash;
+    hash.start = ::Stats::now();
+
+    // figure out where this triple is going
+    const int rs_id = hx->p->hash.func(hx,
+                                       subject.data(),   subject.size(),
+                                       predicate.data(), predicate.size(),
+                                       hx->p->hash.args);
+
+    hash.end = ::Stats::now();
+    if (rs_id < 0) {
         return HXHIM_ERROR;
     }
 
-    mlog(HXHIM_CLIENT_DBG, "GETOP Insert into queue");
-    getops.insert(getop);
+    mlog(HXHIM_CLIENT_DBG, "Foreground GETOP Insert SPO into queue");
+
+    ::Stats::Chronostamp insert;
+    insert.start = ::Stats::now();
+
+    // find the queue this triple should be placed on
+    QueueTarget<Transport::Request::BGetOp> &getops = getops_queue[rs_id];
+    if (getops.empty()                                                ||
+        ((*getops.rbegin())->count >= hx->p->queues.max_ops_per_send)) { // last packet doesn't have space
+        getops.push_back(construct<Transport::Request::BGetOp>(hx->p->queues.max_ops_per_send));
+    }
+
+    // add the triple to the last packet in the queue
+    Transport::Request::BGetOp *getop = *(getops.rbegin());
+
+    getop->subjects[getop->count] = subject;
+    getop->predicates[getop->count] = predicate;
+    getop->object_types[getop->count] = object_type;
+    getop->num_recs[getop->count] = num_records;
+    getop->ops[getop->count] = op;
+
+    getop->timestamps.reqs[getop->count] = construct<::Stats::Send>();
+
+    getop->timestamps.reqs[getop->count]->hash = hash;
+    getop->timestamps.reqs[getop->count]->insert = insert;
+
+    getop->count++;
+
+    getop->timestamps.reqs[getop->count - 1]->insert.end = ::Stats::now();
 
     mlog(HXHIM_CLIENT_DBG, "GETOP Completed");
     return HXHIM_SUCCESS;
@@ -126,19 +238,54 @@ int hxhim::GetOpImpl(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::DeleteImpl(hxhim_t *hx,
-                      hxhim::Unsent<hxhim::DeleteData> &dels,
+                      hxhim::Queue<Transport::Request::BDelete> &dels_queue,
                       Blob subject,
                       Blob predicate) {
     mlog(HXHIM_CLIENT_DBG, "DELETE Start");
 
-    hxhim::DeleteData *del = construct<hxhim::DeleteData>(hx, subject, predicate);
-    if (del->ds_rank < 0) {
-        destruct(del);
+    ::Stats::Chronostamp hash;
+    hash.start = ::Stats::now();
+
+    // figure out where this triple is going
+    const int rs_id = hx->p->hash.func(hx,
+                                       subject.data(),   subject.size(),
+                                       predicate.data(), predicate.size(),
+                                       hx->p->hash.args);
+
+    hash.end = ::Stats::now();
+    if (rs_id < 0) {
         return HXHIM_ERROR;
     }
 
-    mlog(HXHIM_CLIENT_DBG, "DELETE Insert into queue");
-    dels.insert(del);
+    mlog(HXHIM_CLIENT_DBG, "Foreground DELETE Insert SPO into queue");
+
+    ::Stats::Chronostamp insert;
+    insert.start = ::Stats::now();
+
+    // find the queue this triple should be placed on
+    QueueTarget<Transport::Request::BDelete> &dels = dels_queue[rs_id];
+    if (dels.empty()                                                ||
+        ((*dels.rbegin())->count >= hx->p->queues.max_ops_per_send)) { // last packet doesn't have space
+        dels.push_back(construct<Transport::Request::BDelete>(hx->p->queues.max_ops_per_send));
+    }
+
+    // add the triple to the last packet in the queue
+    Transport::Request::BDelete *del = *(dels.rbegin());
+
+    del->subjects[del->count] = subject;
+    del->predicates[del->count] = predicate;
+
+    del->orig.subjects[del->count] = subject.data();
+    del->orig.predicates[del->count] = predicate.data();
+
+    del->timestamps.reqs[del->count] = construct<::Stats::Send>();
+
+    del->timestamps.reqs[del->count]->hash = hash;
+    del->timestamps.reqs[del->count]->insert = insert;
+
+    del->count++;
+
+    del->timestamps.reqs[del->count - 1]->insert.end = ::Stats::now();
 
     mlog(HXHIM_CLIENT_DBG, "Delete Completed");
     return HXHIM_SUCCESS;
@@ -156,18 +303,41 @@ int hxhim::DeleteImpl(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::HistogramImpl(hxhim_t *hx,
-                         hxhim::Unsent<hxhim::HistogramData> &hists,
-                         const int ds_id) {
+                         hxhim::Queue<Transport::Request::BHistogram> &hists_queue,
+                         const int rs_id) {
     mlog(HXHIM_CLIENT_DBG, "HISTOGRAM Start");
 
-    hxhim::HistogramData *hist = construct<hxhim::HistogramData>(hx, ds_id);
-    if (hist->ds_rank < 0) {
-        destruct(hist);
+    ::Stats::Chronostamp hash;
+    hash.start = ::Stats::now();
+    hash.end = ::Stats::now();
+
+    if (rs_id < 0) {
         return HXHIM_ERROR;
     }
 
-    mlog(HXHIM_CLIENT_DBG, "HISTOGRAM Insert into queue");
-    hists.insert(hist);
+    mlog(HXHIM_CLIENT_DBG, "Foreground HISTOGRAM Insert SPO into queue");
+
+    ::Stats::Chronostamp insert;
+    insert.start = ::Stats::now();
+
+    // find the queue this triple should be placed on
+    QueueTarget<Transport::Request::BHistogram> &hists = hists_queue[rs_id];
+    if (hists.empty()                                                ||
+        ((*hists.rbegin())->count >= hx->p->queues.max_ops_per_send)) { // last packet doesn't have space
+        hists.push_back(construct<Transport::Request::BHistogram>(hx->p->queues.max_ops_per_send));
+    }
+
+    // add the triple to the last packet in the queue
+    Transport::Request::BHistogram *hist = *(hists.rbegin());
+
+    hist->timestamps.reqs[hist->count] = construct<::Stats::Send>();
+
+    hist->timestamps.reqs[hist->count]->hash = hash;
+    hist->timestamps.reqs[hist->count]->insert = insert;
+
+    hist->count++;
+
+    hist->timestamps.reqs[hist->count - 1]->insert.end = ::Stats::now();
 
     mlog(HXHIM_CLIENT_DBG, "Histogram Completed");
     return HXHIM_SUCCESS;

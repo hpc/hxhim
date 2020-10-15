@@ -4,11 +4,9 @@ set(PRIVATE_HEADERS
   Results.hpp
   Stats.hpp
   accessors.hpp
-  cache.hpp
   hxhim.hpp
   options.hpp
   process.hpp
-  shuffle.hpp
 )
 
 foreach(HEADER ${PRIVATE_HEADERS})

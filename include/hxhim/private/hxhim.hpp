@@ -2,6 +2,8 @@
 #define HXHIM_PRIVATE_HPP
 
 #include <atomic>
+#include <condition_variable>
+#include <list>
 #include <mutex>
 #include <ostream>
 #include <sstream>
@@ -12,14 +14,27 @@
 
 #include "datastore/datastore.hpp"
 #include "hxhim/Results.hpp"
+#include "hxhim/private/Stats.hpp"
 #include "hxhim/constants.h"
 #include "hxhim/hash.h"
 #include "hxhim/options.h"
-#include "hxhim/private/Stats.hpp"
-#include "hxhim/private/cache.hpp"
 #include "hxhim/struct.h"
+#include "transport/Messages/Messages.hpp"
 #include "transport/transport.hpp"
-#include "utils/Stats.hpp"
+
+namespace hxhim {
+
+// list of packets of a given type
+template <typename Request_t,
+          typename = enable_if_t<is_child_of<Transport::Request::Request, Request_t>::value> >
+using QueueTarget = std::list<Request_t *>;
+
+// index is range server id, not rank
+template <typename Request_t,
+          typename = enable_if_t<is_child_of<Transport::Request::Request, Request_t>::value> >
+using Queue = std::vector<QueueTarget<Request_t> >;
+
+}
 
 /**
  * hxhim_private
@@ -49,30 +64,38 @@ typedef struct hxhim_private {
 
     std::atomic_bool running;              // whether or not HXHIM is running
 
-    std::size_t max_ops_per_send;
-
     // unsent data queues
     struct {
-        hxhim::Unsent<hxhim::PutData> puts;
-        hxhim::Unsent<hxhim::GetData> gets;
-        hxhim::Unsent<hxhim::GetOpData> getops;
-        hxhim::Unsent<hxhim::DeleteData> deletes;
-        hxhim::Unsent<hxhim::HistogramData> histograms;
+        std::size_t max_ops_per_send;
+
+        struct {
+            hxhim::Queue<Transport::Request::BPut> queue;
+            #if ASYNC_PUTS
+            std::mutex mutex;
+            std::condition_variable start_processing;
+            #endif
+            std::size_t count;
+        } puts;
+        hxhim::Queue<Transport::Request::BGet>       gets;
+        hxhim::Queue<Transport::Request::BGetOp>     getops;
+        hxhim::Queue<Transport::Request::BDelete>    deletes;
+        hxhim::Queue<Transport::Request::BHistogram> histograms;
+
+        std::vector<int> rs_to_rank;
     } queues;
-
-    std::size_t total_range_servers;       // total number of range servers across all ranks
-
-    // local datastore (max 1 per server)
-    // f(rank, index) = datastore ID
-    datastore::Datastore *datastore;
 
     // asynchronous BPUT data
     struct {
         std::size_t max_queued;            // number of batches to hold before sending PUTs asynchronously
+        #if ASYNC_PUTS
         std::thread thread;                // the thread that pushes PUTs off the PUT queue asynchronously
-        std::mutex mutex;                  // mutex to the list of results from asynchronous PUT operations
+        #endif
         hxhim::Results *results;           // the list of of PUT results
     } async_put;
+
+    // local datastore (max 1 per server)
+    // f(rank, index) = datastore ID
+    datastore::Datastore *datastore;
 
     struct {
         std::string name;
@@ -87,6 +110,7 @@ typedef struct hxhim_private {
     struct {
         std::size_t client_ratio;          // client portion of client:server ratio
         std::size_t server_ratio;          // server portion of client:server ratio
+        std::size_t total_range_servers;   // total number of range servers across all ranks
     } range_server;
 
     hxhim::Stats::Global stats;
@@ -104,23 +128,23 @@ bool valid(hxhim_t *hx, hxhim_options_t *opts);
 namespace init {
 int bootstrap    (hxhim_t *hx, hxhim_options_t *opts);
 int running      (hxhim_t *hx, hxhim_options_t *opts);
-int memory       (hxhim_t *hx, hxhim_options_t *opts);
+int hash         (hxhim_t *hx, hxhim_options_t *opts);
 int datastore    (hxhim_t *hx, hxhim_options_t *opts);
 int one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::string &name);
-int async_put    (hxhim_t *hx, hxhim_options_t *opts);
-int hash         (hxhim_t *hx, hxhim_options_t *opts);
 int transport    (hxhim_t *hx, hxhim_options_t *opts);
+int queues       (hxhim_t *hx, hxhim_options_t *opts);
+int async_put    (hxhim_t *hx, hxhim_options_t *opts);
 }
 
 // HXHIM should (probably) be destroyed in this order
 namespace destroy {
 int bootstrap   (hxhim_t *hx);
 int running     (hxhim_t *hx);
-int memory      (hxhim_t *hx);
-int transport   (hxhim_t *hx);
-int hash        (hxhim_t *hx);
 int async_put   (hxhim_t *hx);
+int transport   (hxhim_t *hx);
 int datastore   (hxhim_t *hx);
+int queues      (hxhim_t *hx);
+int hash        (hxhim_t *hx);
 }
 
 #if !ASYNC_PUTS
@@ -133,33 +157,33 @@ std::ostream &print_stats(hxhim_t *hx,
                           const std::string &indent = "    ");
 
 int PutImpl(hxhim_t *hx,
-            hxhim::Unsent<hxhim::PutData> &puts,
+            Queue<Transport::Request::BPut> &puts,
             Blob subject,
             Blob predicate,
             enum hxhim_object_type_t object_type,
             Blob object);
 
 int GetImpl(hxhim_t *hx,
-            hxhim::Unsent<hxhim::GetData> &gets,
+            Queue<Transport::Request::BGet> &gets,
             Blob subject,
             Blob predicate,
             enum hxhim_object_type_t object_type);
 
 int GetOpImpl(hxhim_t *hx,
-              hxhim::Unsent<hxhim::GetOpData> &getops,
+              Queue<Transport::Request::BGetOp> &getops,
               Blob subject,
               Blob predicate,
               enum hxhim_object_type_t object_type,
               std::size_t num_records, enum hxhim_getop_t op);
 
 int DeleteImpl(hxhim_t *hx,
-               hxhim::Unsent<hxhim::DeleteData> &dels,
+               Queue<Transport::Request::BDelete> &dels,
                Blob subject,
                Blob predicate);
 
 int HistogramImpl(hxhim_t *hx,
-                  hxhim::Unsent<hxhim::HistogramData> &hists,
-                  const int ds_id);
+                  Queue<Transport::Request::BHistogram> &hists,
+                  const int rs_id);
 }
 
 #endif

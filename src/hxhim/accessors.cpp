@@ -132,7 +132,7 @@ int hxhimGetMPI(hxhim_t *hx, MPI_Comm *comm, int *rank, int *size) {
 }
 
 /**
- * hxhim::nocheck::GetRangeServerCount
+ * nocheck::GetRangeServerCount
  * Gets the total number of datastores in this HXHIM instance
  *
  * @param hx              the HXHIM instance
@@ -141,14 +141,14 @@ int hxhimGetMPI(hxhim_t *hx, MPI_Comm *comm, int *rank, int *size) {
  */
 int hxhim::nocheck::GetRangeServerCount(hxhim_t *hx, std::size_t *count) {
     if (count) {
-        *count = hx->p->total_range_servers;
+        *count = hx->p->range_server.total_range_servers;
     }
 
     return HXHIM_SUCCESS;
 }
 
 /**
- * hxhim::GetRangeServerCount
+ * GetRangeServerCount
  * Gets the total number of datastores in this HXHIM instance
  *
  * @param hx              the HXHIM instance

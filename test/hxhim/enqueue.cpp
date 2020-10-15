@@ -8,13 +8,9 @@
  * Test the insertion of operations into HXHIM's queues
  */
 
-const char SUBJECT1[]    = "SUBJECT";
-const char PREDICATE1[]  = "PREDICATE";
-const char OBJECT1[]     = "OBJECT";
-
-const char SUBJECT2[]    = "SUBJECT";
-const char PREDICATE2[]  = "PREDICATE";
-const char OBJECT2[]     = "OBJECT";
+const char *SUBJECTS[]    = {"SUBJECT0",   "SUBJECT1"};
+const char *PREDICATES[]  = {"PREDICATE0", "PREDICATE1"};
+const char *OBJECTS[]     = {"OBJECT0",    "OBJECT1"};
 
 const hxhim_object_type_t TYPE = HXHIM_OBJECT_TYPE_BYTE;
 
@@ -25,69 +21,69 @@ TEST(Enqueue, PUT) {
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
 
-    hxhim::Unsent<hxhim::PutData> &puts = hx.p->queues.puts;
-    EXPECT_EQ(puts.head, nullptr);
-    EXPECT_EQ(puts.tail, nullptr);
-    EXPECT_EQ(puts.count, (std::size_t) 0);
+    int rank = -1;
+    int size = -1;
+    EXPECT_EQ(hxhim::GetMPI(&hx, nullptr, &rank, &size), HXHIM_SUCCESS);
+    EXPECT_GT(rank, -1);
+    EXPECT_GT(size, -1);
+
+    hxhim::Queue<Transport::Request::BPut> &puts = hx.p->queues.puts.queue;
+    EXPECT_EQ(puts.size(), (std::size_t) size);
 
     // enqueue one PUT
     EXPECT_EQ(hxhim::PutImpl(&hx,
                              puts,
-                             ReferenceBlob((char *) SUBJECT1,   strlen(SUBJECT1)),
-                             ReferenceBlob((char *) PREDICATE1, strlen(PREDICATE1)),
+                             ReferenceBlob((char *) SUBJECTS[0],   strlen(SUBJECTS[0])),
+                             ReferenceBlob((char *) PREDICATES[0], strlen(PREDICATES[0])),
                              TYPE,
-                             ReferenceBlob((char *) OBJECT1,    strlen(OBJECT1))),
+                             ReferenceBlob((char *) OBJECTS[0],    strlen(OBJECTS[0]))),
               HXHIM_SUCCESS);
-    ASSERT_NE(puts.head, nullptr);
-    EXPECT_EQ(puts.head, puts.tail);
-    EXPECT_EQ(puts.count, (std::size_t) 1);
+    ASSERT_EQ(puts[rank].size(), 1);
 
     {
-        hxhim::PutData *head = puts.head;
-        EXPECT_EQ(head->subject.data(), SUBJECT1);
-        EXPECT_EQ(head->subject.size(), strlen(SUBJECT1));
-        EXPECT_EQ(head->predicate.data(), PREDICATE1);
-        EXPECT_EQ(head->predicate.size(), strlen(PREDICATE1));
-        EXPECT_EQ(head->object_type, TYPE);
-        EXPECT_EQ(head->object.data(), OBJECT1);
-        EXPECT_EQ(head->object.size(), strlen(OBJECT2));
+        Transport::Request::BPut *head = puts[rank].front();
+        ASSERT_EQ(head->count, 1);
+        EXPECT_EQ(head->subjects[0].data(), SUBJECTS[0]);
+        EXPECT_EQ(head->subjects[0].size(), strlen(SUBJECTS[0]));
+        EXPECT_EQ(head->predicates[0].data(), PREDICATES[0]);
+        EXPECT_EQ(head->predicates[0].size(), strlen(PREDICATES[0]));
+        EXPECT_EQ(head->object_types[0], TYPE);
+        EXPECT_EQ(head->objects[0].data(), OBJECTS[0]);
+        EXPECT_EQ(head->objects[0].size(), strlen(OBJECTS[0]));
     }
 
     // enqueue a second PUT
     EXPECT_EQ(hxhim::PutImpl(&hx,
                              puts,
-                             ReferenceBlob((char *) SUBJECT2,   strlen(SUBJECT2)),
-                             ReferenceBlob((char *) PREDICATE2, strlen(PREDICATE2)),
+                             ReferenceBlob((char *) SUBJECTS[1],   strlen(SUBJECTS[1])),
+                             ReferenceBlob((char *) PREDICATES[1], strlen(PREDICATES[1])),
                              TYPE,
-                             ReferenceBlob((char *) OBJECT2,    strlen(OBJECT2))),
+                             ReferenceBlob((char *) OBJECTS[1],    strlen(OBJECTS[1]))),
               HXHIM_SUCCESS);
-    ASSERT_NE(puts.head, nullptr);
-    EXPECT_NE(puts.head, puts.tail);
-    EXPECT_EQ(puts.head->next, puts.tail);
-    ASSERT_NE(puts.tail, nullptr);
-    EXPECT_EQ(puts.tail->next, nullptr);
-    EXPECT_EQ(puts.count, (std::size_t) 2);
+    ASSERT_EQ(puts[rank].size(), 2); // maximum_ops_per_send is set to 1
 
     {
-        hxhim::PutData *head = puts.head;
-        EXPECT_EQ(head->subject.data(), SUBJECT1);
-        EXPECT_EQ(head->subject.size(), strlen(SUBJECT1));
-        EXPECT_EQ(head->predicate.data(), PREDICATE1);
-        EXPECT_EQ(head->predicate.size(), strlen(PREDICATE1));
-        EXPECT_EQ(head->object_type, TYPE);
-        EXPECT_EQ(head->object.data(), OBJECT1);
-        EXPECT_EQ(head->object.size(), strlen(OBJECT1));
+        Transport::Request::BPut *head = puts[rank].front();
+        ASSERT_EQ(head->count, 1);
+        EXPECT_EQ(head->subjects[0].data(), SUBJECTS[0]);
+        EXPECT_EQ(head->subjects[0].size(), strlen(SUBJECTS[0]));
+        EXPECT_EQ(head->predicates[0].data(), PREDICATES[0]);
+        EXPECT_EQ(head->predicates[0].size(), strlen(PREDICATES[0]));
+        EXPECT_EQ(head->object_types[0], TYPE);
+        EXPECT_EQ(head->objects[0].data(), OBJECTS[0]);
+        EXPECT_EQ(head->objects[0].size(), strlen(OBJECTS[0]));
     }
 
     {
-        hxhim::PutData *tail = puts.tail;
-        EXPECT_EQ(tail->subject.data(), SUBJECT2);
-        EXPECT_EQ(tail->subject.size(), strlen(SUBJECT2));
-        EXPECT_EQ(tail->predicate.data(), PREDICATE2);
-        EXPECT_EQ(tail->predicate.size(), strlen(PREDICATE2));
-        EXPECT_EQ(tail->object_type, TYPE);
-        EXPECT_EQ(tail->object.data(), OBJECT2);
-        EXPECT_EQ(tail->object.size(), strlen(OBJECT2));
+        Transport::Request::BPut *tail = puts[rank].back();
+        ASSERT_EQ(tail->count, 1);
+        EXPECT_EQ(tail->subjects[0].data(), SUBJECTS[1]);
+        EXPECT_EQ(tail->subjects[0].size(), strlen(SUBJECTS[1]));
+        EXPECT_EQ(tail->predicates[0].data(), PREDICATES[1]);
+        EXPECT_EQ(tail->predicates[0].size(), strlen(PREDICATES[1]));
+        EXPECT_EQ(tail->object_types[0], TYPE);
+        EXPECT_EQ(tail->objects[0].data(), OBJECTS[1]);
+        EXPECT_EQ(tail->objects[0].size(), strlen(OBJECTS[1]));
     }
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
@@ -101,61 +97,61 @@ TEST(Enqueue, GET) {
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
 
-    hxhim::Unsent<hxhim::GetData> &gets = hx.p->queues.gets;
-    EXPECT_EQ(gets.head, nullptr);
-    EXPECT_EQ(gets.tail, nullptr);
-    EXPECT_EQ(gets.count, (std::size_t) 0);
+    int rank = -1;
+    int size = -1;
+    EXPECT_EQ(hxhim::GetMPI(&hx, nullptr, &rank, &size), HXHIM_SUCCESS);
+    EXPECT_GT(rank, -1);
+    EXPECT_GT(size, -1);
+
+    hxhim::Queue<Transport::Request::BGet> &gets = hx.p->queues.gets;
+    EXPECT_EQ(gets.size(), (std::size_t) size);
 
     // enqueue one GET
     EXPECT_EQ(hxhim::GetImpl(&hx,
                              gets,
-                             ReferenceBlob((char *) SUBJECT1,   strlen(SUBJECT1)),
-                             ReferenceBlob((char *) PREDICATE1, strlen(PREDICATE1)),
+                             ReferenceBlob((char *) SUBJECTS[0],   strlen(SUBJECTS[0])),
+                             ReferenceBlob((char *) PREDICATES[0], strlen(PREDICATES[0])),
                              TYPE),
               HXHIM_SUCCESS);
-    ASSERT_NE(gets.head, nullptr);
-    EXPECT_EQ(gets.head, gets.tail);
-    EXPECT_EQ(gets.count, (std::size_t) 1);
+    ASSERT_EQ(gets[rank].size(), 1);
 
     {
-        hxhim::GetData *head = gets.head;
-        EXPECT_EQ(head->subject.data(), SUBJECT1);
-        EXPECT_EQ(head->subject.size(), strlen(SUBJECT1));
-        EXPECT_EQ(head->predicate.data(), PREDICATE1);
-        EXPECT_EQ(head->predicate.size(), strlen(PREDICATE1));
-        EXPECT_EQ(head->object_type, TYPE);
+        Transport::Request::BGet *head = gets[rank].front();
+        ASSERT_EQ(head->count, 1);
+        EXPECT_EQ(head->subjects[0].data(), SUBJECTS[0]);
+        EXPECT_EQ(head->subjects[0].size(), strlen(SUBJECTS[0]));
+        EXPECT_EQ(head->predicates[0].data(), PREDICATES[0]);
+        EXPECT_EQ(head->predicates[0].size(), strlen(PREDICATES[0]));
+        EXPECT_EQ(head->object_types[0], TYPE);
     }
 
     // enqueue a second GET
     EXPECT_EQ(hxhim::GetImpl(&hx,
                              gets,
-                             ReferenceBlob((char *) SUBJECT2,   strlen(SUBJECT2)),
-                             ReferenceBlob((char *) PREDICATE2, strlen(PREDICATE2)),
-                             HXHIM_OBJECT_TYPE_BYTE),
+                             ReferenceBlob((char *) SUBJECTS[1],   strlen(SUBJECTS[1])),
+                             ReferenceBlob((char *) PREDICATES[1], strlen(PREDICATES[1])),
+                             TYPE),
               HXHIM_SUCCESS);
-    ASSERT_NE(gets.head, nullptr);
-    EXPECT_NE(gets.head, gets.tail);
-    EXPECT_EQ(gets.head->next, gets.tail);
-    ASSERT_NE(gets.tail, nullptr);
-    EXPECT_EQ(gets.tail->next, nullptr);
-    EXPECT_EQ(gets.count, (std::size_t) 2);
+    ASSERT_EQ(gets[rank].size(), 2); // maximum_ops_per_send is set to 1
 
     {
-        hxhim::GetData *head = gets.head;
-        EXPECT_EQ(head->subject.data(), SUBJECT1);
-        EXPECT_EQ(head->subject.size(), strlen(SUBJECT1));
-        EXPECT_EQ(head->predicate.data(), PREDICATE1);
-        EXPECT_EQ(head->predicate.size(), strlen(PREDICATE1));
-        EXPECT_EQ(head->object_type, TYPE);
+        Transport::Request::BGet *head = gets[rank].front();
+        ASSERT_EQ(head->count, 1);
+        EXPECT_EQ(head->subjects[0].data(), SUBJECTS[0]);
+        EXPECT_EQ(head->subjects[0].size(), strlen(SUBJECTS[0]));
+        EXPECT_EQ(head->predicates[0].data(), PREDICATES[0]);
+        EXPECT_EQ(head->predicates[0].size(), strlen(PREDICATES[0]));
+        EXPECT_EQ(head->object_types[0], TYPE);
     }
 
     {
-        hxhim::GetData *tail = gets.tail;
-        EXPECT_EQ(tail->subject.data(), SUBJECT2);
-        EXPECT_EQ(tail->subject.size(), strlen(SUBJECT2));
-        EXPECT_EQ(tail->predicate.data(), PREDICATE2);
-        EXPECT_EQ(tail->predicate.size(), strlen(PREDICATE2));
-        EXPECT_EQ(tail->object_type, TYPE);
+        Transport::Request::BGet *tail = gets[rank].back();
+        ASSERT_EQ(tail->count, 1);
+        EXPECT_EQ(tail->subjects[0].data(), SUBJECTS[1]);
+        EXPECT_EQ(tail->subjects[0].size(), strlen(SUBJECTS[1]));
+        EXPECT_EQ(tail->predicates[0].data(), PREDICATES[1]);
+        EXPECT_EQ(tail->predicates[0].size(), strlen(PREDICATES[1]));
+        EXPECT_EQ(tail->object_types[0], TYPE);
     }
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
@@ -169,71 +165,78 @@ TEST(Enqueue, GETOP) {
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
 
-    const std::size_t num_recs = 10;
-    enum hxhim_getop_t op = HXHIM_GETOP_EQ;
+    int rank = -1;
+    int size = -1;
+    EXPECT_EQ(hxhim::GetMPI(&hx, nullptr, &rank, &size), HXHIM_SUCCESS);
+    EXPECT_GT(rank, -1);
+    EXPECT_GT(size, -1);
 
-    hxhim::Unsent<hxhim::GetOpData> &getops = hx.p->queues.getops;
-    EXPECT_EQ(getops.head, nullptr);
-    EXPECT_EQ(getops.tail, nullptr);
-    EXPECT_EQ(getops.count, (std::size_t) 0);
+    hxhim::Queue<Transport::Request::BGetOp> &getops = hx.p->queues.getops;
+    EXPECT_EQ(getops.size(), (std::size_t) size);
+
+    const std::size_t num_recs = rand();
+    enum hxhim_getop_t op = HXHIM_GETOP_EQ;
 
     // enqueue one GETOP
     EXPECT_EQ(hxhim::GetOpImpl(&hx,
-                               getops,
-                               ReferenceBlob((char *) SUBJECT1,   strlen(SUBJECT1)),
-                               ReferenceBlob((char *) PREDICATE1, strlen(PREDICATE1)),
-                               TYPE, num_recs, op),
+                             getops,
+                             ReferenceBlob((char *) SUBJECTS[0],   strlen(SUBJECTS[0])),
+                             ReferenceBlob((char *) PREDICATES[0], strlen(PREDICATES[0])),
+                             TYPE, num_recs, op),
               HXHIM_SUCCESS);
-    ASSERT_NE(getops.head, nullptr);
-    EXPECT_EQ(getops.head, getops.tail);
-    EXPECT_EQ(getops.count, (std::size_t) 1);
+    ASSERT_EQ(getops[rank].size(), 1);
 
     {
-        hxhim::GetOpData *head = getops.head;
-        EXPECT_EQ(head->subject.data(), SUBJECT1);
-        EXPECT_EQ(head->subject.size(), strlen(SUBJECT1));
-        EXPECT_EQ(head->predicate.data(), PREDICATE1);
-        EXPECT_EQ(head->predicate.size(), strlen(PREDICATE1));
-        EXPECT_EQ(head->object_type, TYPE);
-        EXPECT_EQ(head->num_recs, num_recs);
-        EXPECT_EQ(head->op, op);
+        Transport::Request::BGetOp *head = getops[rank].front();
+        ASSERT_EQ(head->count, 1);
+        EXPECT_EQ(head->subjects[0].data(), SUBJECTS[0]);
+        EXPECT_EQ(head->subjects[0].size(), strlen(SUBJECTS[0]));
+        EXPECT_EQ(head->predicates[0].data(), PREDICATES[0]);
+        EXPECT_EQ(head->predicates[0].size(), strlen(PREDICATES[0]));
+        EXPECT_EQ(head->object_types[0], TYPE);
+        EXPECT_EQ(head->num_recs[0], num_recs);
+        EXPECT_EQ(head->ops[0], op);
     }
 
     // enqueue a second GETOP
     EXPECT_EQ(hxhim::GetOpImpl(&hx,
-                               getops,
-                               ReferenceBlob((char *) SUBJECT2,   strlen(SUBJECT2)),
-                               ReferenceBlob((char *) PREDICATE2, strlen(PREDICATE2)),
-                               TYPE, num_recs, op),
+                             getops,
+                             ReferenceBlob((char *) SUBJECTS[1],   strlen(SUBJECTS[1])),
+                             ReferenceBlob((char *) PREDICATES[1], strlen(PREDICATES[1])),
+                             TYPE, num_recs, op),
               HXHIM_SUCCESS);
-    ASSERT_NE(getops.head, nullptr);
-    EXPECT_NE(getops.head, getops.tail);
-    EXPECT_EQ(getops.head->next, getops.tail);
-    ASSERT_NE(getops.tail, nullptr);
-    EXPECT_EQ(getops.tail->next, nullptr);
-    EXPECT_EQ(getops.count, (std::size_t) 2);
+    ASSERT_EQ(getops[rank].size(), 2); // maximum_ops_per_send is set to 1
 
     {
-        hxhim::GetOpData *head = getops.head;
-        EXPECT_EQ(head->subject.data(), SUBJECT1);
-        EXPECT_EQ(head->subject.size(), strlen(SUBJECT1));
-        EXPECT_EQ(head->predicate.data(), PREDICATE1);
-        EXPECT_EQ(head->predicate.size(), strlen(PREDICATE1));
-        EXPECT_EQ(head->object_type, TYPE);
-        EXPECT_EQ(head->num_recs, num_recs);
-        EXPECT_EQ(head->op, op);
+        Transport::Request::BGetOp *head = getops[rank].front();
+        ASSERT_EQ(head->count, 1);
+        EXPECT_EQ(head->subjects[0].data(), SUBJECTS[0]);
+        EXPECT_EQ(head->subjects[0].size(), strlen(SUBJECTS[0]));
+        EXPECT_EQ(head->predicates[0].data(), PREDICATES[0]);
+        EXPECT_EQ(head->predicates[0].size(), strlen(PREDICATES[0]));
+        EXPECT_EQ(head->object_types[0], TYPE);
+        EXPECT_EQ(head->num_recs[0], num_recs);
+        EXPECT_EQ(head->ops[0], op);
+
+        destruct(head);
     }
 
     {
-        hxhim::GetOpData *tail = getops.tail;
-        EXPECT_EQ(tail->subject.data(), SUBJECT2);
-        EXPECT_EQ(tail->subject.size(), strlen(SUBJECT2));
-        EXPECT_EQ(tail->predicate.data(), PREDICATE2);
-        EXPECT_EQ(tail->predicate.size(), strlen(PREDICATE2));
-        EXPECT_EQ(tail->object_type, TYPE);
-        EXPECT_EQ(tail->num_recs, num_recs);
-        EXPECT_EQ(tail->op, op);
+        Transport::Request::BGetOp *tail = getops[rank].back();
+        ASSERT_EQ(tail->count, 1);
+        EXPECT_EQ(tail->subjects[0].data(), SUBJECTS[1]);
+        EXPECT_EQ(tail->subjects[0].size(), strlen(SUBJECTS[1]));
+        EXPECT_EQ(tail->predicates[0].data(), PREDICATES[1]);
+        EXPECT_EQ(tail->predicates[0].size(), strlen(PREDICATES[1]));
+        EXPECT_EQ(tail->object_types[0], TYPE);
+        EXPECT_EQ(tail->num_recs[0], num_recs);
+        EXPECT_EQ(tail->ops[0], op);
+
+        destruct(tail);
     }
+
+    // prevent GETOPs from being sent during hxhim::Close
+    getops[rank].clear();
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
@@ -246,56 +249,105 @@ TEST(Enqueue, DELETE) {
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
 
-    hxhim::Unsent<hxhim::DeleteData> &deletes = hx.p->queues.deletes;
-    EXPECT_EQ(deletes.head, nullptr);
-    EXPECT_EQ(deletes.tail, nullptr);
-    EXPECT_EQ(deletes.count, (std::size_t) 0);
+    int rank = -1;
+    int size = -1;
+    EXPECT_EQ(hxhim::GetMPI(&hx, nullptr, &rank, &size), HXHIM_SUCCESS);
+    EXPECT_GT(rank, -1);
+    EXPECT_GT(size, -1);
+
+    hxhim::Queue<Transport::Request::BDelete> &deletes = hx.p->queues.deletes;
+    EXPECT_EQ(deletes.size(), (std::size_t) size);
 
     // enqueue one DELETE
     EXPECT_EQ(hxhim::DeleteImpl(&hx,
-                                deletes,
-                                ReferenceBlob((char *) SUBJECT1,   strlen(SUBJECT1)),
-                                ReferenceBlob((char *) PREDICATE1, strlen(PREDICATE1))),
+                             deletes,
+                             ReferenceBlob((char *) SUBJECTS[0],   strlen(SUBJECTS[0])),
+                             ReferenceBlob((char *) PREDICATES[0], strlen(PREDICATES[0]))),
               HXHIM_SUCCESS);
-    ASSERT_NE(deletes.head, nullptr);
-    EXPECT_EQ(deletes.head, deletes.tail);
-    EXPECT_EQ(deletes.count, (std::size_t) 1);
+    ASSERT_EQ(deletes[rank].size(), 1);
 
     {
-        hxhim::DeleteData *head = deletes.head;
-        EXPECT_EQ(head->subject.data(), SUBJECT1);
-        EXPECT_EQ(head->subject.size(), strlen(SUBJECT1));
-        EXPECT_EQ(head->predicate.data(), PREDICATE1);
-        EXPECT_EQ(head->predicate.size(), strlen(PREDICATE1));
+        Transport::Request::BDelete *head = deletes[rank].front();
+        ASSERT_EQ(head->count, 1);
+        EXPECT_EQ(head->subjects[0].data(), SUBJECTS[0]);
+        EXPECT_EQ(head->subjects[0].size(), strlen(SUBJECTS[0]));
+        EXPECT_EQ(head->predicates[0].data(), PREDICATES[0]);
+        EXPECT_EQ(head->predicates[0].size(), strlen(PREDICATES[0]));
     }
 
     // enqueue a second DELETE
     EXPECT_EQ(hxhim::DeleteImpl(&hx,
-                                deletes,
-                                ReferenceBlob((char *) SUBJECT2,   strlen(SUBJECT2)),
-                                ReferenceBlob((char *) PREDICATE2, strlen(PREDICATE2))),
+                             deletes,
+                             ReferenceBlob((char *) SUBJECTS[1],   strlen(SUBJECTS[1])),
+                             ReferenceBlob((char *) PREDICATES[1], strlen(PREDICATES[1]))),
               HXHIM_SUCCESS);
-    ASSERT_NE(deletes.head, nullptr);
-    EXPECT_NE(deletes.head, deletes.tail);
-    EXPECT_EQ(deletes.head->next, deletes.tail);
-    ASSERT_NE(deletes.tail, nullptr);
-    EXPECT_EQ(deletes.tail->next, nullptr);
-    EXPECT_EQ(deletes.count, (std::size_t) 2);
+    ASSERT_EQ(deletes[rank].size(), 2); // maximum_ops_per_send is set to 1
 
     {
-        hxhim::DeleteData *head = deletes.head;
-        EXPECT_EQ(head->subject.data(), SUBJECT1);
-        EXPECT_EQ(head->subject.size(), strlen(SUBJECT1));
-        EXPECT_EQ(head->predicate.data(), PREDICATE1);
-        EXPECT_EQ(head->predicate.size(), strlen(PREDICATE1));
+        Transport::Request::BDelete *head = deletes[rank].front();
+        ASSERT_EQ(head->count, 1);
+        EXPECT_EQ(head->subjects[0].data(), SUBJECTS[0]);
+        EXPECT_EQ(head->subjects[0].size(), strlen(SUBJECTS[0]));
+        EXPECT_EQ(head->predicates[0].data(), PREDICATES[0]);
+        EXPECT_EQ(head->predicates[0].size(), strlen(PREDICATES[0]));
     }
 
     {
-        hxhim::DeleteData *tail = deletes.tail;
-        EXPECT_EQ(tail->subject.data(), SUBJECT2);
-        EXPECT_EQ(tail->subject.size(), strlen(SUBJECT2));
-        EXPECT_EQ(tail->predicate.data(), PREDICATE2);
-        EXPECT_EQ(tail->predicate.size(), strlen(PREDICATE2));
+        Transport::Request::BDelete *tail = deletes[rank].back();
+        ASSERT_EQ(tail->count, 1);
+        EXPECT_EQ(tail->subjects[0].data(), SUBJECTS[1]);
+        EXPECT_EQ(tail->subjects[0].size(), strlen(SUBJECTS[1]));
+        EXPECT_EQ(tail->predicates[0].data(), PREDICATES[1]);
+        EXPECT_EQ(tail->predicates[0].size(), strlen(PREDICATES[1]));
+    }
+
+    EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
+    EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
+}
+
+TEST(Enqueue, HISTOGRAM) {
+    hxhim_options_t opts;
+    ASSERT_EQ(fill_options(&opts), true);
+
+    hxhim_t hx;
+    ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
+
+    int rank = -1;
+    int size = -1;
+    EXPECT_EQ(hxhim::GetMPI(&hx, nullptr, &rank, &size), HXHIM_SUCCESS);
+    EXPECT_GT(rank, -1);
+    EXPECT_GT(size, -1);
+
+    hxhim::Queue<Transport::Request::BHistogram> &histograms = hx.p->queues.histograms;
+    EXPECT_EQ(histograms.size(), (std::size_t) size);
+
+    // enqueue one HISTOGRAM
+    EXPECT_EQ(hxhim::HistogramImpl(&hx,
+                                   histograms,
+                                   rank),
+              HXHIM_SUCCESS);
+    ASSERT_EQ(histograms[rank].size(), 1);
+
+    {
+        Transport::Request::BHistogram *head = histograms[rank].front();
+        ASSERT_EQ(head->count, 1);
+    }
+
+    // enqueue a second HISTOGRAM
+    EXPECT_EQ(hxhim::HistogramImpl(&hx,
+                                   histograms,
+                                   rank),
+              HXHIM_SUCCESS);
+    ASSERT_EQ(histograms[rank].size(), 2); // maximum_ops_per_send is set to 1
+
+    {
+        Transport::Request::BHistogram *head = histograms[rank].front();
+        ASSERT_EQ(head->count, 1);
+    }
+
+    {
+        Transport::Request::BHistogram *tail = histograms[rank].back();
+        ASSERT_EQ(tail->count, 1);
     }
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);

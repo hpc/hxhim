@@ -29,7 +29,7 @@ int hxhim::Put(hxhim_t *hx,
     put.start = ::Stats::now();
 
     const int rc = hxhim::PutImpl(hx,
-                                  hx->p->queues.puts,
+                                  hx->p->queues.puts.queue,
                                   ReferenceBlob(subject, subject_len),
                                   ReferenceBlob(predicate, predicate_len),
                                   object_type,

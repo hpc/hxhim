@@ -10,10 +10,9 @@ hxhim_private::hxhim_private()
     : epoch(::Stats::init()),
       bootstrap(),
       running(false),
-      max_ops_per_send(),
       queues(),
-      datastore(nullptr),
       async_put(),
+      datastore(nullptr),
       hash(),
       transport(nullptr),
       range_server(),
@@ -32,15 +31,17 @@ hxhim_private::~hxhim_private() {
  * to simulate background PUTs when threading is not allowed. The results
  * are placed into the background PUTs results buffer.
  *
+ * There is no need to lock here since it is serial.
+ *
  * @param hx the HXHIM session
  */
 void hxhim::serial_puts(hxhim_t *hx) {
     if (hx->p->queues.puts.count >= hx->p->async_put.max_queued) {
         // don't call FlushPuts to avoid deallocating old Results only to allocate a new one
-        hxhim::Results *res = hxhim::process<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, hx->p->queues.puts.take());
+        hxhim::Results *res = hxhim::process<Transport::Request::BPut, Transport::Response::BPut>(hx, hx->p->queues.puts.queue);
 
         {
-            std::unique_lock<std::mutex> lock(hx->p->async_put.mutex);
+            // hold results in async_puts
             if (hx->p->async_put.results) {
                 hx->p->async_put.results->Append(res);
                 hxhim::Results::Destroy(res);
@@ -48,10 +49,10 @@ void hxhim::serial_puts(hxhim_t *hx) {
             else {
                 hx->p->async_put.results = res;
             }
+
+            hx->p->queues.puts.count = 0;
         }
     }
-
-    hx->p->queues.puts.done_processing.notify_all();
 }
 #endif
 
@@ -94,7 +95,7 @@ std::ostream &hxhim::print_stats(hxhim_t *hx,
                                  std::ostream &stream,
                                  const std::string &indent) {
     return hx->p->stats.print(hx->p->bootstrap.rank,
-                              hx->p->max_ops_per_send,
+                              hx->p->queues.max_ops_per_send,
                               hx->p->epoch,
                               stream, indent);
 }

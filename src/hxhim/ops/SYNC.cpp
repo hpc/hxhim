@@ -22,13 +22,10 @@ hxhim::Results *hxhim::Sync(hxhim_t *hx) {
     MPI_Barrier(hx->p->bootstrap.comm);
 
     ::Stats::Send send;
-    send.cached.start = ::Stats::now();
-    send.cached.end   = send.cached.start;
-    send.shuffled     = ::Stats::now();
-    send.hashed.start = ::Stats::now();
-    send.hashed.end   = send.hashed.end;
-    send.bulked.start = ::Stats::now();
-    send.bulked.end   = send.bulked.end;
+    send.hash.start = ::Stats::now();
+    send.hash.end   = ::Stats::now();
+    send.insert.start = ::Stats::now();
+    send.insert.end   = ::Stats::now();
 
     std::shared_ptr<struct ::Stats::SendRecv> transport = std::make_shared<struct ::Stats::SendRecv>();
 

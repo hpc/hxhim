@@ -45,17 +45,9 @@ hxhim::Results::Result::~Result() {
 
         if (timestamps.send) {
             // from when request was put into the hxhim queue until the response was ready for pulling
-            ::Stats::print_event(s, rank, HXHIM_OP_STR[op], epoch, timestamps.send->cached.start, timestamps.recv.result.end);
-            ::Stats::print_event(s, rank, "Cached",         epoch, timestamps.send->cached);
-            ::Stats::print_event(s, rank, "Shuffled",       epoch, timestamps.send->shuffled);
-            ::Stats::print_event(s, rank, "Hash",           epoch, timestamps.send->hashed);
-            // This might take very long
-            #if PRINT_FIND_DST
-            for(::Stats::Chronostamp const find : timestamps.send->find_dsts) {
-                ::Stats::print_event(s, rank, "FindDst",    epoch, find);
-            }
-            #endif
-            ::Stats::print_event(s, rank, "Bulked",         epoch, timestamps.send->bulked);
+            ::Stats::print_event(s, rank, HXHIM_OP_STR[op], epoch, timestamps.send->hash.start, timestamps.recv.result.end);
+            ::Stats::print_event(s, rank, "Hash",           epoch, timestamps.send->hash);
+            ::Stats::print_event(s, rank, "Insert",         epoch, timestamps.send->insert);
         }
 
         if (timestamps.transport) {
@@ -276,35 +268,29 @@ hxhim::Results::Hist *hxhim::Result::init(hxhim_t *hx, Transport::Response::BHis
  * @param results   the result list to insert into
  * @param response  the response packet
  */
-uint64_t hxhim::Result::AddAll(hxhim_t *hx, hxhim::Results *results, Transport::Response::Response *response) {
+uint64_t hxhim::Result::AddAll(hxhim_t *hx, hxhim::Results *results,
+                               Transport::Response::Response *response) {
+    ::Stats::Chronopoint start = ::Stats::now();
+
     uint64_t duration = 0;
     for(Transport::Response::Response *res = response; res; res = next(res)) {
-        ::Stats::Chronopoint start = ::Stats::now();
+        duration += ::Stats::nano(res->timestamps.transport->start,
+                                  res->timestamps.transport->end);
 
-        // add timestamps of individual events
-        uint64_t individual = 0;
         for(std::size_t i = 0; i < res->count; i++) {
-            for(::Stats::Chronostamp const &find_dst : res->timestamps.reqs[i]->find_dsts) {
-                individual += ::Stats::nano(find_dst);
-            }
+            hxhim::Results::Result *result = results->Add(hxhim::Result::init(hx, res, i));
 
-            // include time it took to cache, hash, and bulk the data
-            individual += ::Stats::nano(res->timestamps.reqs[i]->cached)
-                +  ::Stats::nano(res->timestamps.reqs[i]->hashed)
-                +  ::Stats::nano(res->timestamps.reqs[i]->bulked);
-
-            results->Add(hxhim::Result::init(hx, res, i));
+            // add timestamps of individual results
+            duration += ::Stats::nano(result->timestamps.send->hash.start,
+                                      result->timestamps.send->insert.end) +
+                        ::Stats::nano(result->timestamps.recv.result.start,
+                                      result->timestamps.recv.result.end);
         }
-
-        // add time to send the entire bulk over the network
-        const uint64_t transport = ::Stats::nano(res->timestamps.transport->start,
-                                                 res->timestamps.transport->end);
-
-        ::Stats::Chronopoint end = ::Stats::now();
-
-        duration += individual + transport + ::Stats::nano(start, end);
     }
 
+    ::Stats::Chronopoint end = ::Stats::now();
+
+    duration += ::Stats::nano(start, end);
     results->UpdateDuration(duration);
 
     return duration;

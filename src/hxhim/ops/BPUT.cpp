@@ -35,13 +35,14 @@ int hxhim::BPut(hxhim_t *hx,
     // append these spo triples into the list of unsent PUTs
     for(std::size_t i = 0; i < count; i++) {
         hxhim::PutImpl(hx,
-                       hx->p->queues.puts,
+                       hx->p->queues.puts.queue,
                        ReferenceBlob(subjects[i], subject_lens[i]),
                        ReferenceBlob(predicates[i], predicate_lens[i]),
                        object_types[i],
                        ReferenceBlob(objects[i], object_lens[i]));
 
     }
+
 
     #if ASYNC_PUTS
     hx->p->queues.puts.start_processing.notify_all();

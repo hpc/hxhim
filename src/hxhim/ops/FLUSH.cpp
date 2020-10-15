@@ -16,10 +16,10 @@
  * @param max_ops_per_send maximum operations per send
  * @return results of flushing the queue
  */
-template <typename UserData_t, typename Request_t, typename Response_t>
+template <typename Request_t, typename Response_t>
 hxhim::Results *FlushImpl(hxhim_t *hx,
-                          hxhim::Unsent<UserData_t> &unsent) {
-    return hxhim::process<UserData_t, Request_t, Response_t>(hx, unsent.take());
+                          hxhim::Queue<Request_t> &unsent) {
+    return hxhim::process<Request_t, Response_t>(hx, unsent);
 }
 
 /**
@@ -35,8 +35,7 @@ hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
         return nullptr;
     }
 
-    int rank = -1;
-    hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
+    const int rank = hx->p->bootstrap.rank;
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing PUTs", rank);
 
@@ -45,17 +44,20 @@ hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
     // if there are PUT results from the background thread
     // use that as the return pointer
     {
-        // If background thread is running, this
-        // will block until the thread finishes.
-        std::unique_lock<std::mutex> lock(hx->p->async_put.mutex);
         if (hx->p->async_put.results) {
             res = hx->p->async_put.results;
             hx->p->async_put.results = nullptr;
         }
     }
 
+    #if ASYNC_PUTS
+    std::unique_lock<std::mutex> lock(hx->p->queues.puts.mutex);
+    #endif
+
     // append new results to old results
-    hxhim::Results *put_results = FlushImpl<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, hx->p->queues.puts);
+    hxhim::Results *put_results = FlushImpl<Transport::Request::BPut, Transport::Response::BPut>(hx, hx->p->queues.puts.queue);
+    hx->p->queues.puts.count = 0;
+
     if (res) {
         res->Append(put_results);
         hxhim::Results::Destroy(put_results);
@@ -97,7 +99,7 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing GETs", rank);
-    hxhim::Results *res = FlushImpl<hxhim::GetData, Transport::Request::BGet, Transport::Response::BGet>(hx, hx->p->queues.gets);
+    hxhim::Results *res = FlushImpl<Transport::Request::BGet, Transport::Response::BGet>(hx, hx->p->queues.gets);
     mlog(HXHIM_CLIENT_INFO, "Rank %d Done Flushing Gets %p", rank, res);
     return res;
 }
@@ -131,7 +133,7 @@ hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing GETOPs", rank);
-    hxhim::Results *res = FlushImpl<hxhim::GetOpData, Transport::Request::BGetOp, Transport::Response::BGetOp>(hx, hx->p->queues.getops);
+    hxhim::Results *res = FlushImpl<Transport::Request::BGetOp, Transport::Response::BGetOp>(hx, hx->p->queues.getops);
     mlog(HXHIM_CLIENT_INFO, "Rank %d Done Flushing GETOPs %p", rank, res);
     return res;
 }
@@ -165,7 +167,7 @@ hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing DELETEs", rank);
-    hxhim::Results *res = FlushImpl<hxhim::DeleteData, Transport::Request::BDelete, Transport::Response::BDelete>(hx, hx->p->queues.deletes);
+    hxhim::Results *res = FlushImpl<Transport::Request::BDelete, Transport::Response::BDelete>(hx, hx->p->queues.deletes);
     mlog(HXHIM_CLIENT_INFO, "Rank %d Done Flushing DELETEs", rank);
     return res;
 }
@@ -199,7 +201,7 @@ hxhim::Results *hxhim::FlushHistograms(hxhim_t *hx) {
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing HISTOGRAMs", rank);
-    hxhim::Results *res = FlushImpl<hxhim::HistogramData, Transport::Request::BHistogram, Transport::Response::BHistogram>(hx, hx->p->queues.histograms);
+    hxhim::Results *res = FlushImpl<Transport::Request::BHistogram, Transport::Response::BHistogram>(hx, hx->p->queues.histograms);
     mlog(HXHIM_CLIENT_INFO, "Rank %d Done Flushing HISTOGRAMs", rank);
     return res;
 }

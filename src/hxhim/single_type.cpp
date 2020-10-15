@@ -1,7 +1,6 @@
 #include "hxhim/single_type.hpp"
 #include "hxhim/private/hxhim.hpp"
 #include "utils/Blob.hpp"
-#include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
@@ -10,7 +9,6 @@ int hxhim::BPutSingleType(hxhim_t *hx,
                           void **predicates, std::size_t *predicate_lens,
                           enum hxhim_object_type_t object_type, void **objects, std::size_t *object_lens,
                           const std::size_t count) {
-
     mlog(HXHIM_CLIENT_DBG, "Started %zu PUTs of type %d", count, object_type);
 
     if (!valid(hx)  ||
@@ -22,12 +20,18 @@ int hxhim::BPutSingleType(hxhim_t *hx,
 
     for(std::size_t i = 0; i < count; i++) {
         hxhim::PutImpl(hx,
-                       hx->p->queues.puts,
+                       hx->p->queues.puts.queue,
                        ReferenceBlob(subjects[i], subject_lens[i]),
                        ReferenceBlob(predicates[i], predicate_lens[i]),
                        object_type,
                        ReferenceBlob(objects[i], object_lens[i]));
     }
+
+    #if ASYNC_PUTS
+    hx->p->queues.puts.start_processing.notify_all();
+    #else
+    hxhim::serial_puts(hx);
+    #endif
 
     mlog(HXHIM_CLIENT_DBG, "Completed %zu PUTs of type %d", count, object_type);
     return HXHIM_SUCCESS;

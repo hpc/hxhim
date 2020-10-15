@@ -4,11 +4,10 @@
 #include <cstring>
 
 #include "hxhim/private/Results.hpp"
-#include "hxhim/private/accessors.hpp"
 #include "hxhim/private/hxhim.hpp"
-#include "hxhim/private/shuffle.hpp"
 #include "transport/backend/local/RangeServer.hpp"
 #include "utils/Stats.hpp"
+#include "utils/macros.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
@@ -16,169 +15,50 @@
 
 namespace hxhim {
 
-/**
- * process
- * The core set of function calls that are needed to send requests and receive responses
- * Converts a UserData_t into Request_ts for transport
- * The Request_ts are converted to Response_ts upon completion of the operation and returned
- *
- * @tparam UserData_t      unsorted hxhim user data type
- * @tparam Response_t      Transport::Response::*
- * @tparam Request_t       Transport::Request::*
- * @param hx               the HXHIM session
- * @param head             the head of the list of requests to send
- * @return results from sending requests
- */
-template <typename UserData_t, typename Request_t, typename Response_t,
-          typename = enable_if_t <is_child_of <hxhim::UserData,               UserData_t>::value &&
-                                  is_child_of <Transport::Request::Request,   Request_t> ::value &&
-                                  is_child_of <Transport::Response::Response, Response_t>::value  >
-          >
+template <typename Request_t,
+          typename = enable_if_t <is_child_of <Transport::Request::Request, Request_t>::value> >
+std::size_t remaining(hxhim::Queue<Request_t> &queue) {
+    std::size_t count = 0;
+    for(std::size_t i = 0; i < queue.size(); i++) {
+        count += queue[i].size();
+    }
+
+    return count;
+}
+
+template <typename Request_t,
+          typename Response_t,
+          typename = enable_if_t <is_child_of <Transport::Request::Request,   Request_t>::value  &&
+                                  is_child_of <Transport::Response::Response, Response_t>::value> >
 hxhim::Results *process(hxhim_t *hx,
-                        UserData_t *head) {
-
-    int rank = -1;
-    int size = -1;
-    hxhim::nocheck::GetMPI(hx, nullptr, &rank, &size);
-
-    mlog(HXHIM_CLIENT_DBG, "Rank %d Start processing", rank);
-
+                        hxhim::Queue<Request_t> &queue) {
     #if PRINT_TIMESTAMPS
-    ::Stats::Chronopoint epoch;
-    hxhim::nocheck::GetEpoch(hx, epoch);
+    const int rank = hx->p->bootstrap.rank;
     #endif
 
     // serialized results
     hxhim::Results *res = construct<hxhim::Results>();
+    uint64_t extra_time = 0;
 
-    // buffers to bulking up user data
-    Request_t *requests = alloc_array<Request_t>(size, hx->p->max_ops_per_send);
-
-    // a round might not send every request, so keep running until out of requests
-    while (head) {
-        // reset buffers without reallocating everything
-        for(int i = 0; i < size; i++) {
-            requests[i].count = 0;
-            requests[i].alloc_timestamps();
-        }
-
-        #if PRINT_TIMESTAMPS
-        ::Stats::Chronopoint fill_start = ::Stats::now();
-        #endif
-
-        for(UserData_t *curr = head; curr;) {
-            #if PRINT_TIMESTAMPS
-            ::Stats::Chronopoint shuffle_start = ::Stats::now();
-            #endif
-            mlog(HXHIM_CLIENT_DBG, "Rank %d Client preparing to shuffle %p (next: %p)", rank, curr, curr->next);
-
-            const int dst_ds = hxhim::shuffle::shuffle(curr, hx->p->max_ops_per_send, requests);
-
-            #if PRINT_TIMESTAMPS
-            ::Stats::Chronopoint shuffle_end = ::Stats::now();
-            {
-                ::Stats::Chronopoint print_start = ::Stats::now();
-                ::Stats::print_event(hx->p->print_buffer, rank, "process_shuffle", ::Stats::global_epoch, shuffle_start, shuffle_end);
-                ::Stats::Chronopoint print_end = ::Stats::now();
-                ::Stats::print_event(hx->p->print_buffer, rank, "print", ::Stats::global_epoch, print_start, print_end);
-            }
-            #endif
-
-            #if PRINT_TIMESTAMPS
-            ::Stats::Chronopoint next_start = ::Stats::now();
-            #endif
-
-            UserData_t *next = curr->next;
-
-            // scan packets if current item could not be inserted
-            if (dst_ds == hxhim::shuffle::NOSPACE) {
-                // if all packets are full, stop processing of the rest of the work queue
-                // saves effort if all queues are filled up early
-                std::size_t filled = 0;
-                std::size_t created = 0;
-                for(int i = 0; i < size; i++) {
-                    if (requests[i].count) {
-                        created++;
-                        filled += (requests[i].count == requests[i].max_count);
-                    }
-                }
-
-                if (created == filled) {
-                    #if PRINT_TIMESTAMPS
-                    ::Stats::Chronopoint next_end = ::Stats::now();
-                    {
-                        ::Stats::Chronopoint print_start = ::Stats::now();
-                        ::Stats::print_event(hx->p->print_buffer, rank, "Break", ::Stats::global_epoch, next_start, next_end);
-                        ::Stats::Chronopoint print_end = ::Stats::now();
-                        ::Stats::print_event(hx->p->print_buffer, rank, "print", ::Stats::global_epoch, print_start, print_end);
-                    }
-                    #endif
-                    break;
-                }
-            }
-            else /* if (dst_ds > -1) */ {
-                // remove the current request from the list and destroy it
-
-                // remove the current operation from the list of
-                // operations queued up and continue processing
-
-                // replace head node, since it is about to be destructed
-                if (curr == head) {
-                    head = curr->next;
-                }
-
-                // there is a node before the current one
-                if (curr->prev) {
-                    curr->prev->next = curr->next;
-                }
-
-                // there is a node after the current one
-                if (curr->next) {
-                    curr->next->prev = curr->prev;
-                }
-
-                // deallocate current node
-                curr->prev = nullptr;
-                curr->next = nullptr;
-                destruct(curr);
-            }
-
-            curr = next;
-
-            #if PRINT_TIMESTAMPS
-            ::Stats::Chronopoint next_end = ::Stats::now();
-            {
-                ::Stats::Chronopoint print_start = ::Stats::now();
-                ::Stats::print_event(hx->p->print_buffer, rank, "Next", ::Stats::global_epoch, next_start, next_end);
-                ::Stats::Chronopoint print_end = ::Stats::now();
-                ::Stats::print_event(hx->p->print_buffer, rank, "print", ::Stats::global_epoch, print_start, print_end);
-            }
-            #endif
-        }
-
-        #if PRINT_TIMESTAMPS
-        ::Stats::Chronopoint fill_end = ::Stats::now();
-
-        ::Stats::Chronopoint print_start = ::Stats::now();
-        ::Stats::print_event(hx->p->print_buffer, rank, "process_fill", ::Stats::global_epoch, fill_start, fill_end);
-        ::Stats::Chronopoint print_end = ::Stats::now();
-        ::Stats::print_event(hx->p->print_buffer, rank, "print", ::Stats::global_epoch, print_start, print_end);
-        #endif
-
-        // extra time that needs to be added to the results duration
-        long double extra_time = 0;
-
-        // move requests into remote map
+    while (remaining(queue)) {
+        // extract the first packet for each target range server
+        Request_t *local = nullptr;
         Transport::ReqList<Request_t> remote;
-        for(int i = 0; i < size; i++) {
-            Request_t *req = &requests[i];
-            if (req->count) {
-                req->src = rank;
-                req->dst = i;
+        for(std::size_t i = 0; i < queue.size(); i++) {
+            if (queue[i].size()) {
+                Request_t *req = queue[i].front();
+                queue[i].pop_front();
 
-                remote[i] = req;
+                req->src = hx->p->bootstrap.rank;
+                req->dst = hx->p->queues.rs_to_rank[i];
 
-                // collect stats
+                if (req->src == req->dst) {
+                    local = req;
+                }
+                else {
+                    remote[req->dst] = req;
+                }
+
                 ::Stats::Chronopoint collect_stats_start = ::Stats::now();
                 hx->p->stats.used[req->op].push_back(req->filled());
                 hx->p->stats.outgoing[req->op][req->dst]++;
@@ -188,18 +68,14 @@ hxhim::Results *process(hxhim_t *hx,
                                      ::Stats::global_epoch, collect_stats_start, collect_stats_end);
                 #endif
 
-                extra_time += ::Stats::sec(collect_stats_start,
-                                           collect_stats_end);
+                extra_time += ::Stats::nano(collect_stats_start,
+                                            collect_stats_end);
+
             }
         }
 
-        // remove requests destined for local datastore
-        remote.erase(rank);
-
         // process remote data
         if (remote.size()) {
-            mlog(HXHIM_CLIENT_DBG, "Rank %d Client packed together requests destined for %zu remote servers", rank, remote.size());
-
             #if PRINT_TIMESTAMPS
             ::Stats::Chronopoint remote_start = ::Stats::now();
             #endif
@@ -215,13 +91,17 @@ hxhim::Results *process(hxhim_t *hx,
 
             // serialize results
             hxhim::Result::AddAll(hx, res, response);
+
+            ::Stats::Chronopoint destruct_start = ::Stats::now();
+            for(REF(remote)::value_type const &req : remote) {
+                destruct(req.second);
+            }
+            ::Stats::Chronopoint destruct_end = ::Stats::now();
+            extra_time += ::Stats::nano(destruct_start, destruct_end);
         }
 
         // process local data
-        Request_t *local = &requests[rank];
-        if (local->count) {
-            mlog(HXHIM_CLIENT_DBG, "Rank %d Client sending %zu local requests", rank, local->count);
-
+        if (local) {
             #if PRINT_TIMESTAMPS
             ::Stats::Chronopoint local_start = ::Stats::now();
             #endif
@@ -237,14 +117,15 @@ hxhim::Results *process(hxhim_t *hx,
 
             // serialize results
             hxhim::Result::AddAll(hx, res, response);
+
+            ::Stats::Chronopoint destruct_start = ::Stats::now();
+            destruct(local);
+            ::Stats::Chronopoint destruct_end = ::Stats::now();
+            extra_time += ::Stats::nano(destruct_start, destruct_end);
         }
-
-        res->UpdateDuration(extra_time);
-
-        mlog(HXHIM_CLIENT_DBG, "Rank %d Client received %zu responses", rank, res->Size());
     }
 
-    dealloc_array(requests, size);
+    res->UpdateDuration(extra_time);
 
     return res;
 }

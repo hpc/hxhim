@@ -30,26 +30,72 @@ int hxhim::destroy::running(hxhim_t *hx) {
     return HXHIM_SUCCESS;
 }
 
+template <typename T>
+void destroy_queue(const std::vector<std::list<T *> > &queue) {
+    for(std::list <T *> const &rs : queue) {
+        for(T *request : rs) {
+            destruct(request);
+        }
+    }
+}
+
 /**
- * memory
- * Removes the memory pools
+ * queues
+ * Cleans up the queues
  *
  * @param hx   the HXHIM instance
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int hxhim::destroy::memory(hxhim_t *) {
+int hxhim::destroy::queues(hxhim_t *hx) {
+    {
+        #if ASYNC_PUTS
+        std::lock_guard<std::mutex> lock(hx->p->queues.puts.mutex);
+        #endif
+        destroy_queue(hx->p->queues.puts.queue);
+    }
+    destroy_queue(hx->p->queues.gets);
+    destroy_queue(hx->p->queues.getops);
+    destroy_queue(hx->p->queues.deletes);
+    destroy_queue(hx->p->queues.histograms);
     return HXHIM_SUCCESS;
 }
 
 /**
- * transport
- * Cleans up the transport
+ * datastore
+ * Cleans up the datastore
  *
  * @param hx   the HXHIM instance
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int hxhim::destroy::transport(hxhim_t *hx) {
-    return (Transport::destroy(hx) == TRANSPORT_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
+int hxhim::destroy::datastore(hxhim_t *hx) {
+    return (datastore::destroy(hx) == DATASTORE_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
+}
+
+/**
+ * async_put
+ * Stops the background thread and cleans up the variables used by it
+ *
+ * @param hx   the HXHIM instance
+ * @return HXHIM_SUCCESS on success or HXHIM_ERROR
+ */
+int hxhim::destroy::async_put(hxhim_t *hx) {
+    #if ASYNC_PUTS
+    hx->p->queues.puts.start_processing.notify_all();
+
+    // wait for running background thread to stop
+    std::unique_lock<std::mutex> lock(hx->p->async_put.mutex);
+    hx->p->async_put.done.wait(lock, [&]() -> bool { return hx->p->async_put.done_check; });
+
+    if (hx->p->async_put.thread.joinable()) {
+        hx->p->async_put.thread.join();
+    }
+    #endif
+
+    // release unproceesed results from asynchronous PUTs
+    destruct(hx->p->async_put.results);
+    hx->p->async_put.results = nullptr;
+
+    return HXHIM_SUCCESS;
 }
 
 /**
@@ -67,36 +113,12 @@ int hxhim::destroy::hash(hxhim_t *hx) {
 }
 
 /**
- * async_put
- * Stops the background thread and cleans up the variables used by it
+ * transport
+ * Cleans up the transport
  *
  * @param hx   the HXHIM instance
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int hxhim::destroy::async_put(hxhim_t *hx) {
-    // stop the thread
-    destroy::running(hx);
-    hx->p->queues.puts.start_processing.notify_all();
-
-    std::unique_lock<std::mutex>(hx->p->async_put.mutex);
-    if (hx->p->async_put.thread.joinable()) {
-        hx->p->async_put.thread.join();
-    }
-
-    // release unproceesed results from asynchronous PUTs
-    destruct(hx->p->async_put.results);
-    hx->p->async_put.results = nullptr;
-
-    return HXHIM_SUCCESS;
-}
-
-/**
- * datastore
- * Cleans up the datastore
- *
- * @param hx   the HXHIM instance
- * @return HXHIM_SUCCESS on success or HXHIM_ERROR
- */
-int hxhim::destroy::datastore(hxhim_t *hx) {
-    return (datastore::destroy(hx) == DATASTORE_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
+int hxhim::destroy::transport(hxhim_t *hx) {
+    return (Transport::destroy(hx) == TRANSPORT_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
 }

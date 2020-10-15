@@ -28,15 +28,14 @@ struct Message {
     std::size_t filled() const;
 
     virtual void alloc(const std::size_t max);
-    void alloc_timestamps();
     virtual int steal(Message *from, const std::size_t i);
     int steal_timestamps(Message *from, const bool steal_individuals);
     virtual int cleanup();
 
     Direction direction;
     enum hxhim_op_t op;
-    int src;                   // range server ID, not backend ID
-    int dst;                   // range server ID, not backend ID
+    int src;
+    int dst;
     std::size_t max_count;
     std::size_t count;
 

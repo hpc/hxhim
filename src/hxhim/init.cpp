@@ -43,16 +43,39 @@ int hxhim::init::running(hxhim_t *hx, hxhim_options_t *) {
 }
 
 /**
- * memory
- * Sets up the memory related variables
+ * queues
+ * Sets up the queue related variables
+ * The total number of range servers across
+ * all ranks must be known by this point
  *
  * @param hx   the HXHIM instance
  * @param opts the HXHIM options
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int hxhim::init::memory(hxhim_t *hx, hxhim_options_t *opts) {
+int hxhim::init::queues(hxhim_t *hx, hxhim_options_t *opts) {
     mlog(HXHIM_CLIENT_INFO, "Starting Memory Initialization");
-    hx->p->max_ops_per_send = opts->p->max_ops_per_send;
+    hx->p->queues.max_ops_per_send = opts->p->max_ops_per_send;
+
+    {
+        #if ASYNC_PUTS
+        std::lock_guard<std::mutex> lock(hx->p->queues.puts.mutex);
+        #endif
+        hx->p->queues.puts.queue.resize(hx->p->range_server.total_range_servers);
+        hx->p->queues.puts.count = 0;
+    }
+    hx->p->queues.gets.resize      (hx->p->range_server.total_range_servers);
+    hx->p->queues.getops.resize    (hx->p->range_server.total_range_servers);
+    hx->p->queues.deletes.resize   (hx->p->range_server.total_range_servers);
+    hx->p->queues.histograms.resize(hx->p->range_server.total_range_servers);
+    hx->p->queues.rs_to_rank.resize(hx->p->range_server.total_range_servers);
+
+    for(std::size_t i = 0; i < hx->p->range_server.total_range_servers; i++) {
+        hx->p->queues.rs_to_rank[i] = hxhim::RangeServer::get_rank(i, hx->p->bootstrap.size,
+                                                                   hx->p->range_server.client_ratio,
+                                                                   hx->p->range_server.server_ratio);
+    }
+
+
     mlog(HXHIM_CLIENT_INFO, "Completed Memory Initialization");
     return HXHIM_SUCCESS;
 }
@@ -87,18 +110,18 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
     // calculate how many range servers there are
     if (hx->p->range_server.client_ratio <= hx->p->range_server.server_ratio) {
         // all ranks are servers
-        hx->p->total_range_servers = hx->p->bootstrap.size;
+        hx->p->range_server.total_range_servers = hx->p->bootstrap.size;
     }
     else {
         // client > server
 
         // whole "buckets" get server_ratio servers per bucket
         const std::size_t whole_buckets = hx->p->bootstrap.size / hx->p->range_server.client_ratio;
-        hx->p->total_range_servers = whole_buckets * hx->p->range_server.server_ratio;
+        hx->p->range_server.total_range_servers = whole_buckets * hx->p->range_server.server_ratio;
 
         // there can be at most server_ratio servers
         const std::size_t remaining_ranks = hx->p->bootstrap.size % hx->p->range_server.client_ratio;
-        hx->p->total_range_servers += std::min(remaining_ranks, hx->p->range_server.server_ratio);
+        hx->p->range_server.total_range_servers += std::min(remaining_ranks, hx->p->range_server.server_ratio);
     }
 
     mlog(HXHIM_CLIENT_INFO, "Completed Datastore Initialization");
@@ -130,7 +153,7 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
         return HXHIM_ERROR;
     }
 
-    hx->p->total_range_servers = 1;
+    hx->p->range_server.total_range_servers = 1;
 
     return hx->p->datastore?HXHIM_SUCCESS:HXHIM_ERROR;
 }
@@ -143,55 +166,13 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
  * @param hx      the HXHIM context
  */
 static void backgroundPUT(hxhim_t *hx) {
-    if (!hxhim::valid(hx)) {
-        return;
-    }
+    // if (!hxhim::valid(hx)) {
+    //     return;
+    // }
 
     mlog(HXHIM_CLIENT_DBG, "Started background PUT thread");
 
     while (hx->p->running) {
-        hxhim::PutData *head = nullptr;    // the first PUT to process
-
-        hxhim::Unsent<hxhim::PutData> &unsent = hx->p->queues.puts;
-
-        // hold unsent.mutex just long enough to move queued PUTs to send queue
-        {
-            // Wait until any of the following is true
-            //    1. HXHIM is no longer running
-            //    2. The number of queued PUTs passes the threshold
-            //    3. The PUTs are being forced to flush
-            std::unique_lock<std::mutex> lock(unsent.mutex);
-                mlog(HXHIM_CLIENT_DBG, "Waiting for %zu PUTs (currently have %zu)", hx->p->async_put.max_queued, unsent.count);
-                unsent.start_processing.wait(lock, [&]() -> bool { return !hx->p->running || (unsent.count >= hx->p->async_put.max_queued); });
-
-            mlog(HXHIM_CLIENT_DBG, "Moving %zu queued PUTs into process queue", unsent.count);
-
-            // move all PUTs into this thread for processing
-            head = unsent.take_no_lock();
-        }
-
-        mlog(HXHIM_CLIENT_DBG, "Processing queued PUTs");
-        {
-            // process the queued PUTs
-            hxhim::Results *res = hxhim::process<hxhim::PutData, Transport::Request::BPut, Transport::Response::BPut>(hx, head);
-
-            // store the results in a buffer that FlushPuts will clean up
-            {
-                std::lock_guard<std::mutex> lock(hx->p->async_put.mutex);
-
-                if (hx->p->async_put.results) {
-                    hx->p->async_put.results->Append(res);
-                    destruct(res);
-                }
-                else {
-                    hx->p->async_put.results = res;
-                }
-            }
-
-            unsent.done_processing.notify_all();
-        }
-
-        mlog(HXHIM_CLIENT_DBG, "Done processing queued PUTs");
     }
 
     mlog(HXHIM_CLIENT_DBG, "Background PUT thread stopping");
@@ -211,7 +192,9 @@ int hxhim::init::async_put(hxhim_t *hx, hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
+    #if ASYNC_PUTS
     std::lock_guard<std::mutex> lock(hx->p->async_put.mutex);
+    #endif
 
     // Set number of bulk puts to queue up before sending
     hx->p->async_put.max_queued = opts->p->start_async_put_at;
@@ -221,6 +204,8 @@ int hxhim::init::async_put(hxhim_t *hx, hxhim_options_t *opts) {
 
     // Start the background thread
     #if ASYNC_PUTS
+    hx->p->async_put.done_check = true;
+
     hx->p->async_put.thread = std::thread(backgroundPUT, hx);
     #endif
 

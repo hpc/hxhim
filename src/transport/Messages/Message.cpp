@@ -24,22 +24,14 @@ void Transport::Message::alloc(const std::size_t max) {
     // final child should call cleanup before calling alloc
 
     if ((max_count = max)) {
-        alloc_timestamps();
-    }
-
-    count = 0;
-}
-
-void Transport::Message::alloc_timestamps() {
-    if (!timestamps.reqs) {
         timestamps.reqs = alloc_array<::Stats::Send *>(max_count);
-    }
-    if (!timestamps.transport) {
         timestamps.transport = std::shared_ptr<::Stats::SendRecv>(construct<::Stats::SendRecv>(),
                                                                   [](::Stats::SendRecv *ptr) {
                                                                       destruct(ptr);
                                                                   });
     }
+
+    count = 0;
 }
 
 int Transport::Message::steal(Transport::Message *from, const std::size_t i) {
