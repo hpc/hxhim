@@ -28,18 +28,13 @@ TEST(GetRangeServerCount, equal) {
 TEST(GetRangeServerCount, more_clients) {
     /**
      * Client : Server = 5 : 3
-     * MPI Rank: |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  |
-     * Client:   |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  |
-     * RS/DS:    |  0  |  1  |  2  |     |     |  3  |  4  |  5  |     |     |
-
-     * MPI Rank: |  0  |  1  |  2  |  3  |
-     * Client:   |  0  |  1  |  2  |  3  |
-     * RS/DS:    |  0  |  1  |  2  |     |
+     * MPI Rank: |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |
+     * Client:   |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |
+     * RS/DS:    |  0  |  1  |  2  |     |     |  3  |  4  |  5  |     |
      */
 
     const std::size_t CLIENT_RATIO = 5;
     const std::size_t SERVER_RATIO = 3;
-    const std::size_t LARGER = std::max(CLIENT_RATIO, SERVER_RATIO);
 
     hxhim_options_t opts;
     ASSERT_EQ(fill_options(&opts), true);
@@ -54,7 +49,7 @@ TEST(GetRangeServerCount, more_clients) {
 
     std::size_t count = 0;
     EXPECT_EQ(hxhim::GetRangeServerCount(&hx, &count), HXHIM_SUCCESS);
-    EXPECT_EQ(count, ((size / LARGER) * SERVER_RATIO + (size % SERVER_RATIO)));
+    EXPECT_EQ(count, ((size / CLIENT_RATIO) * SERVER_RATIO + std::min(size % CLIENT_RATIO, SERVER_RATIO)));
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
@@ -63,14 +58,13 @@ TEST(GetRangeServerCount, more_clients) {
 TEST(GetRangeServerCount, more_servers) {
     /**
      * Client : Server = 3 : 5
-     * MPI Rank: |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  |
-     * Client:   |  0  |  1  |  2  |     |     |  5  |  6  |  7  |     |     |
-     * RS/DS:    |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  |
+     * MPI Rank: |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |
+     * Client:   |  0  |  1  |  2  |     |     |  5  |  6  |  7  |     |
+     * RS/DS:    |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |
      */
 
     const std::size_t CLIENT_RATIO = 3;
     const std::size_t SERVER_RATIO = 5;
-    const std::size_t LARGER = std::max(CLIENT_RATIO, SERVER_RATIO);
 
     hxhim_options_t opts;
     ASSERT_EQ(fill_options(&opts), true);
@@ -85,7 +79,7 @@ TEST(GetRangeServerCount, more_servers) {
 
     std::size_t count = 0;
     EXPECT_EQ(hxhim::GetRangeServerCount(&hx, &count), HXHIM_SUCCESS);
-    EXPECT_EQ(count, ((size / LARGER) * SERVER_RATIO + (size % SERVER_RATIO)));
+    EXPECT_EQ(count, size);
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
