@@ -81,6 +81,8 @@ int hxhim::PutImpl(hxhim_t *hx,
 
     put->timestamps.reqs[put->count - 1]->insert.end = ::Stats::now();
 
+    // do not trigger background PUTs here in order to allow for all BPUTs to queue up before flushing
+
     mlog(HXHIM_CLIENT_DBG, "Foreground PUT Completed");
     return HXHIM_SUCCESS;
 }

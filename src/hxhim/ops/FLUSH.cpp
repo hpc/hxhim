@@ -39,15 +39,19 @@ hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing PUTs", rank);
 
-    hxhim::Results *res = nullptr;
+    hxhim::Results *res = construct<hxhim::Results>();
 
     // if there are PUT results from the background thread
     // use that as the return pointer
     {
-        if (hx->p->async_put.results) {
-            res = hx->p->async_put.results;
-            hx->p->async_put.results = nullptr;
-        }
+        #if ASYNC_PUTS
+        // wait for the background thread to finish
+        hxhim::wait_for_background_puts(hx);
+        #endif
+
+        res->Append(hx->p->async_put.results);
+        destruct(hx->p->async_put.results);
+        hx->p->async_put.results = nullptr;
     }
 
     #if ASYNC_PUTS
@@ -58,13 +62,8 @@ hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
     hxhim::Results *put_results = FlushImpl<Transport::Request::BPut, Transport::Response::BPut>(hx, hx->p->queues.puts.queue);
     hx->p->queues.puts.count = 0;
 
-    if (res) {
-        res->Append(put_results);
-        hxhim::Results::Destroy(put_results);
-    }
-    else {
-        res = put_results;
-    }
+    res->Append(put_results);
+    destruct(put_results);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Done Flushing Puts", rank);
     return res;

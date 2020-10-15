@@ -80,15 +80,9 @@ int hxhim::destroy::datastore(hxhim_t *hx) {
  */
 int hxhim::destroy::async_put(hxhim_t *hx) {
     #if ASYNC_PUTS
-    hx->p->queues.puts.start_processing.notify_all();
+    hxhim::wait_for_background_puts(hx);
 
-    // wait for running background thread to stop
-    std::unique_lock<std::mutex> lock(hx->p->async_put.mutex);
-    hx->p->async_put.done.wait(lock, [&]() -> bool { return hx->p->async_put.done_check; });
-
-    if (hx->p->async_put.thread.joinable()) {
-        hx->p->async_put.thread.join();
-    }
+    hx->p->async_put.thread.join();
     #endif
 
     // release unproceesed results from asynchronous PUTs

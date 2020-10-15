@@ -24,7 +24,30 @@ hxhim_private::~hxhim_private() {
     mlog(HXHIM_CLIENT_NOTE, "\n%s", print_buffer.str().c_str());
 }
 
-#if !ASYNC_PUTS
+#if ASYNC_PUTS
+void hxhim::wait_for_background_puts(hxhim_t *hx) {
+        // force the background thread to flush
+    {
+        std::lock_guard <std::mutex> lock(hx->p->queues.puts.mutex);
+        hx->p->queues.puts.flushed = true;
+    }
+
+    hx->p->queues.puts.start_processing.notify_all();
+
+    // wait for the background thread to finish
+    {
+        std::unique_lock<std::mutex> lock(hx->p->async_put.mutex);
+
+        hx->p->async_put.done.wait(lock,
+                                   [hx]() -> bool {
+                                       return !hx->p->running || hx->p->async_put.done_check;
+                                   });
+        hx->p->async_put.done_check = false;
+    }
+}
+
+#else
+
 /**
  * serial_puts
  * This is effectively FlushPuts but runs in hxhim::Put and hxhim::BPut

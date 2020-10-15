@@ -30,16 +30,14 @@ TEST(hxhim, background_put) {
                          (void *) &OBJECT, sizeof(OBJECT)),
               HXHIM_SUCCESS);
 
+    #if ASYNC_PUTS
     // wait for the background thread to signal it finished
-    // this should never block
-    {
-        std::mutex mutex;
-        std::unique_lock<std::mutex> lock(mutex);
-        hx.p->queues.puts.done_processing.wait(lock, [&hx](){ return hx.p->async_put.results; } );
-    }
+    hxhim::wait_for_background_puts(&hx);
+    #endif
 
     // background PUT results should have 1 item in it
     hxhim::Results *background_put_results = hx.p->async_put.results;
+    ASSERT_NE(background_put_results, nullptr);
     EXPECT_EQ(background_put_results->Size(), 1);
 
     // Make sure result is correct
