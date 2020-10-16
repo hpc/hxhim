@@ -91,9 +91,14 @@ int main(int argc, char *argv[]) {
         uint64_t duration = 0;
         hxhim_results_duration(flush, &duration);
         /* results_duration += duration; */
-        results_duration += nano(&BPUT_start, &flush_end);
 
-        fprintf(stderr, "%d BPut+Flush"
+        timestamp_start(destroy);
+        hxhim_results_destroy(flush);
+        timestamp_end(destroy);
+
+        results_duration += nano(&BPUT_start, &destroy_end);
+
+        fprintf(stderr, "%d BPut+Flush+Destroy"
                 " %" PRIu64
                 " %" PRIu64
                 " %.3Lf %.3f\n",
@@ -102,9 +107,6 @@ int main(int argc, char *argv[]) {
                 nano(&epoch, &flush_end),
                 sec(&BPUT_start, &flush_end), duration / 1e9);
 
-        timestamp_start(destroy);
-        hxhim_results_destroy(flush);
-        timestamp_end(destroy);
 
         timestamp_start(clean);
         spo_clean(count,
