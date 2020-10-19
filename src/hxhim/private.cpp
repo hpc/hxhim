@@ -26,7 +26,7 @@ hxhim_private::~hxhim_private() {
 
 #if ASYNC_PUTS
 void hxhim::wait_for_background_puts(hxhim_t *hx) {
-        // force the background thread to flush
+    // force the background thread to flush
     {
         std::lock_guard <std::mutex> lock(hx->p->queues.puts.mutex);
         hx->p->queues.puts.flushed = true;
