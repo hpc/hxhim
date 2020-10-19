@@ -72,13 +72,13 @@ class Results {
     public:
         struct Result {
             Result(hxhim_t *hx, const enum hxhim_op_t op,
-                   const int datastore, const int ds_status);
+                   const int range_server, const int ds_status);
             virtual ~Result();
 
             hxhim_t *hx;
             enum hxhim_op_t op;
 
-            int datastore;
+            int range_server;
             int status;
 
             // timestamps for a single operation
@@ -98,7 +98,7 @@ class Results {
 
         struct SubjectPredicate : public Result {
             SubjectPredicate(hxhim_t *hx, const enum hxhim_op_t type,
-                             const int datastore, const int status);
+                             const int range_server, const int status);
             virtual ~SubjectPredicate();
 
             Blob subject;
@@ -107,15 +107,15 @@ class Results {
 
         /** @description Convenience struct for PUT results */
         struct Put final : public SubjectPredicate {
-            Put(hxhim_t *hx, const int datastore, const int status);
+            Put(hxhim_t *hx, const int range_server, const int status);
         };
 
     private:
         /** @description Base structure for GET results */
         template <enum hxhim_op_t gettype>
         struct GetBase final : public SubjectPredicate {
-            GetBase(hxhim_t *hx, const int datastore, const int status)
-                : SubjectPredicate(hx, gettype, datastore, status),
+            GetBase(hxhim_t *hx, const int range_server, const int status)
+                : SubjectPredicate(hx, gettype, range_server, status),
                   object_type(hxhim_object_type_t::HXHIM_OBJECT_TYPE_INVALID),
                   object(),
                   next(nullptr)
@@ -136,17 +136,17 @@ class Results {
 
         /** @description Convenience struct for DEL results */
         struct Delete final : public SubjectPredicate {
-            Delete(hxhim_t *hx, const int datastore, const int status);
+            Delete(hxhim_t *hx, const int range_server, const int status);
         };
 
         /** @description Convenience struct for SYNC results */
         struct Sync final : public Result {
-            Sync(hxhim_t *hx, const int datastore, const int status);
+            Sync(hxhim_t *hx, const int range_server, const int status);
         };
 
         /** @description Convenience struct for DEL results */
         struct Hist final : public Result {
-            Hist(hxhim_t *hx, const int datastore, const int status);
+            Hist(hxhim_t *hx, const int range_server, const int status);
 
             std::shared_ptr<::Histogram::Histogram> histogram;
         };
@@ -186,7 +186,7 @@ class Results {
         // pointers are only valid if the Result they came from are still valid
         int Op(enum hxhim_op_t *op) const;
         int Status(int *status) const;
-        int Datastore(int *datastore) const;
+        int RangeServer(int *range_server) const;
         int Subject(void **subject, std::size_t *subject_len) const;
         int Predicate(void **predicate, std::size_t *predicate_len) const;
         int ObjectType(enum hxhim_object_type_t *object_type) const;

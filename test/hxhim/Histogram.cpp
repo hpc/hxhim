@@ -86,8 +86,8 @@ TEST(hxhim, Histogram) {
         EXPECT_EQ(hist_results->Op(&op), HXHIM_SUCCESS);
         EXPECT_EQ(op, hxhim_op_t::HXHIM_HISTOGRAM);
 
-        int ds = -1;
-        EXPECT_EQ(hist_results->Datastore(&ds), HXHIM_SUCCESS);
+        int rs = -1;
+        EXPECT_EQ(hist_results->RangeServer(&rs), HXHIM_SUCCESS);
 
         int status = HXHIM_ERROR;
         EXPECT_EQ(hist_results->Status(&status), HXHIM_SUCCESS);

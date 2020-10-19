@@ -39,8 +39,8 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
 
     // final response variable
     Response_t *res = construct<Response_t>(req->count);
-    res->src = req->dst;
-    res->dst = req->src;
+    res->src = req->dst; // range server
+    res->dst = req->src; // rank
     res->steal_timestamps(req, false);
 
     // no packing

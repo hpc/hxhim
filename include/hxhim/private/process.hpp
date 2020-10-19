@@ -52,19 +52,20 @@ hxhim::Results *process(hxhim_t *hx,
         // extract the first packet for each target range server
         Request_t *local = nullptr;
         Transport::ReqList<Request_t> remote;
-        for(std::size_t i = 0; i < queue.size(); i++) {
-            if (queue[i].size()) {
-                Request_t *req = queue[i].front();
-                queue[i].pop_front();
+        for(std::size_t rs = 0; rs < queue.size(); rs++) {
+            if (queue[rs].size()) {
+                Request_t *req = queue[rs].front();
+                queue[rs].pop_front();
 
-                req->src = hx->p->bootstrap.rank;
-                req->dst = hx->p->queues.rs_to_rank[i];
+                req->src = hx->p->bootstrap.rank;    // rank
+                req->dst = (int) rs;                 // range server
 
-                if (req->src == req->dst) {
+                const int dst_rank = hx->p->queues.rs_to_rank[rs];
+                if (req->src == dst_rank) {
                     local = req;
                 }
                 else {
-                    remote[req->dst] = req;
+                    remote[dst_rank] = req;
                 }
 
                 ::Stats::Chronopoint collect_stats_start = ::Stats::now();

@@ -42,8 +42,8 @@ void print_results(hxhim_t *hx, const int print_rank, hxhim_results_t *results) 
         int status;
         hxhim_result_status(results, &status);
 
-        int datastore;
-        hxhim_result_datastore(results, &datastore);
+        int range_server;
+        hxhim_result_range_server(results, &range_server);
 
         void *subject = NULL;
         size_t subject_len = 0;
@@ -60,7 +60,7 @@ void print_results(hxhim_t *hx, const int print_rank, hxhim_results_t *results) 
 
         switch (op) {
             case HXHIM_PUT:
-                printf("PUT          {%f, %.*s} returned %s from datastore %d\n", temp, (int) predicate_len, (char *) predicate, (status == HXHIM_SUCCESS)?"SUCCESS":"ERROR", datastore);
+                printf("PUT          {%f, %.*s} returned %s from range server %d\n", temp, (int) predicate_len, (char *) predicate, (status == HXHIM_SUCCESS)?"SUCCESS":"ERROR", range_server);
                 break;
             case HXHIM_GETOP:
                 printf("GET returned ");
@@ -80,7 +80,7 @@ void print_results(hxhim_t *hx, const int print_rank, hxhim_results_t *results) 
                     printf("ERROR");
                 }
 
-                printf(" from datastore %d\n", datastore);
+                printf(" from range server %d\n", range_server);
                 break;
             default:
                 printf("Bad Operation: %d\n", (int) op);

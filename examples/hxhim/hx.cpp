@@ -19,13 +19,13 @@ static void print_results(const int rank, hxhim::Results *results) {
         int status = HXHIM_ERROR;
         results->Status(&status);
 
-        int datastore = -1;
-        results->Datastore(&datastore);
+        int range_server = -1;
+        results->RangeServer(&range_server);
 
         switch (op) {
             case HXHIM_PUT:
                 {
-                    std::cout << "PUT returned " << ((status == HXHIM_SUCCESS)?std::string("SUCCESS"):std::string("ERROR")) << " from datastore " << datastore << std::endl;
+                    std::cout << "PUT returned " << ((status == HXHIM_SUCCESS)?std::string("SUCCESS"):std::string("ERROR")) << " from range server " << range_server << std::endl;
                 }
                 break;
             case HXHIM_GET:
@@ -51,7 +51,7 @@ static void print_results(const int rank, hxhim::Results *results) {
                     std::cout << "ERROR";
                 }
 
-                std::cout << " from datastore " << datastore << std::endl;
+                std::cout << " from range server " << range_server << std::endl;
                 break;
             default:
                 std::cout << "Bad Operation: " << op << std::endl;

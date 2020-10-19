@@ -20,10 +20,10 @@ hxhim::Results::Result::Timestamps::Timestamps()
 {}
 
 hxhim::Results::Result::Result(hxhim_t *hx, const enum hxhim_op_t op,
-                               const int datastore, const int ds_status)
+                               const int range_server, const int ds_status)
     : hx(hx),
       op(op),
-      datastore(datastore),
+      range_server(range_server),
       status((ds_status == DATASTORE_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR),
       timestamps(),
       next(nullptr)
@@ -70,8 +70,8 @@ hxhim::Results::Result::~Result() {
 }
 
 hxhim::Results::SubjectPredicate::SubjectPredicate(hxhim_t *hx, const enum hxhim_op_t op,
-                                                   const int datastore, const int status)
-    : hxhim::Results::Result(hx, op, datastore, status),
+                                                   const int range_server, const int status)
+    : hxhim::Results::Result(hx, op, range_server, status),
       subject(),
       predicate()
 {}
@@ -79,23 +79,23 @@ hxhim::Results::SubjectPredicate::SubjectPredicate(hxhim_t *hx, const enum hxhim
 hxhim::Results::SubjectPredicate::~SubjectPredicate() {}
 
 hxhim::Results::Put::Put(hxhim_t *hx,
-                         const int datastore, const int status)
-    : SubjectPredicate(hx, hxhim_op_t::HXHIM_PUT, datastore, status)
+                         const int range_server, const int status)
+    : SubjectPredicate(hx, hxhim_op_t::HXHIM_PUT, range_server, status)
 {}
 
 hxhim::Results::Delete::Delete(hxhim_t *hx,
-                               const int datastore, const int status)
-    : SubjectPredicate(hx, hxhim_op_t::HXHIM_DELETE, datastore, status)
+                               const int range_server, const int status)
+    : SubjectPredicate(hx, hxhim_op_t::HXHIM_DELETE, range_server, status)
 {}
 
 hxhim::Results::Sync::Sync(hxhim_t *hx,
-                           const int datastore, const int status)
-    : Result(hx, hxhim_op_t::HXHIM_SYNC, datastore, status)
+                           const int range_server, const int status)
+    : Result(hx, hxhim_op_t::HXHIM_SYNC, range_server, status)
 {}
 
 hxhim::Results::Hist::Hist(hxhim_t *hx,
-                           const int datastore, const int status)
-    : Result(hx, hxhim_op_t::HXHIM_HISTOGRAM, datastore, status),
+                           const int range_server, const int status)
+    : Result(hx, hxhim_op_t::HXHIM_HISTOGRAM, range_server, status),
       histogram(nullptr)
 {}
 
@@ -153,13 +153,7 @@ hxhim::Results::Result *hxhim::Result::init(hxhim_t *hx, Transport::Response::Re
 }
 
 hxhim::Results::Put *hxhim::Result::init(hxhim_t *hx, Transport::Response::BPut *bput, const std::size_t i) {
-    hxhim::Results::Put *out = construct<hxhim::Results::Put>(
-        hx,
-        hxhim::RangeServer::get_id(bput->src,
-                                   hx->p->bootstrap.size,
-                                   hx->p->range_server.client_ratio,
-                                   hx->p->range_server.server_ratio),
-        bput->statuses[i]);
+    hxhim::Results::Put *out = construct<hxhim::Results::Put>(hx, bput->src, bput->statuses[i]);
 
     out->subject = bput->orig.subjects[i];
     out->predicate = bput->orig.predicates[i];
@@ -168,13 +162,7 @@ hxhim::Results::Put *hxhim::Result::init(hxhim_t *hx, Transport::Response::BPut 
 }
 
 hxhim::Results::Get *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGet *bget, const std::size_t i) {
-    hxhim::Results::Get *out = construct<hxhim::Results::Get>(
-        hx,
-        hxhim::RangeServer::get_id(bget->src,
-                                   hx->p->bootstrap.size,
-                                   hx->p->range_server.client_ratio,
-                                   hx->p->range_server.server_ratio),
-        bget->statuses[i]);
+    hxhim::Results::Get *out = construct<hxhim::Results::Get>(hx, bget->src, bget->statuses[i]);
 
     out->subject = bget->orig.subjects[i];
     out->predicate = bget->orig.predicates[i];
@@ -186,25 +174,21 @@ hxhim::Results::Get *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGet 
 }
 
 hxhim::Results::GetOp *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGetOp *bgetop, const std::size_t i) {
-    const int id = hxhim::RangeServer::get_id(bgetop->src,
-                                              hx->p->bootstrap.size,
-                                              hx->p->range_server.client_ratio,
-                                              hx->p->range_server.server_ratio);
     const int status = bgetop->statuses[i];
 
-    hxhim::Results::GetOp *top = construct<hxhim::Results::GetOp>(hx, id, status);
+    hxhim::Results::GetOp *top = construct<hxhim::Results::GetOp>(hx, bgetop->src, status);
 
     hxhim::Results::GetOp *prev = nullptr;
     hxhim::Results::GetOp *curr = top;
     for(std::size_t j = 0; j < bgetop->num_recs[i]; j++) {
-        curr->object_type      = bgetop->object_types[i];
+        curr->object_type = bgetop->object_types[i];
 
-        curr->subject          = bgetop->subjects[i][j];
-        curr->predicate        = bgetop->predicates[i][j];
-        curr->object           = bgetop->objects[i][j];
+        curr->subject = bgetop->subjects[i][j];
+        curr->predicate = bgetop->predicates[i][j];
+        curr->object = bgetop->objects[i][j];
 
         prev = curr;
-        curr = construct<hxhim::Results::GetOp>(hx, id, status);
+        curr = construct<hxhim::Results::GetOp>(hx, bgetop->src, status);
         prev->next = curr;
     }
 
@@ -216,13 +200,7 @@ hxhim::Results::GetOp *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGe
 }
 
 hxhim::Results::Delete *hxhim::Result::init(hxhim_t *hx, Transport::Response::BDelete *bdel, const std::size_t i) {
-    hxhim::Results::Delete *out = construct<hxhim::Results::Delete>(
-        hx,
-        hxhim::RangeServer::get_id(bdel->src,
-                                   hx->p->bootstrap.size,
-                                   hx->p->range_server.client_ratio,
-                                   hx->p->range_server.server_ratio),
-        bdel->statuses[i]);
+    hxhim::Results::Delete *out = construct<hxhim::Results::Delete>(hx, bdel->src, bdel->statuses[i]);
 
     out->subject = bdel->orig.subjects[i];
     out->predicate = bdel->orig.predicates[i];
@@ -234,24 +212,11 @@ hxhim::Results::Sync *hxhim::Result::init(hxhim_t *hx, const int synced) {
     int rank = -1;
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
-    hxhim::Results::Sync *out = construct<hxhim::Results::Sync>(
-        hx,
-        hxhim::RangeServer::get_id(rank,
-                                   hx->p->bootstrap.size,
-                                   hx->p->range_server.client_ratio,
-                                   hx->p->range_server.server_ratio),
-        synced);
-    return out;
+    return construct<hxhim::Results::Sync>(hx, rank, synced);
 }
 
 hxhim::Results::Hist *hxhim::Result::init(hxhim_t *hx, Transport::Response::BHistogram *bhist, const std::size_t i) {
-    hxhim::Results::Hist *out = construct<hxhim::Results::Hist>(
-        hx,
-        hxhim::RangeServer::get_id(bhist->src,
-                                   hx->p->bootstrap.size,
-                                   hx->p->range_server.client_ratio,
-                                   hx->p->range_server.server_ratio),
-        bhist->statuses[i]);
+    hxhim::Results::Hist *out = construct<hxhim::Results::Hist>(hx, bhist->src, bhist->statuses[i]);
 
     out->histogram = bhist->histograms[i];
 
@@ -655,39 +620,39 @@ int hxhim_result_status(hxhim_results_t *res, int *status) {
 }
 
 /**
- * Datastore
- * Gets the datastore of the result node currently being pointed to
+ * RangeServer
+ * Gets the range server of the result node currently being pointed to
  *
- * @param datastore  (optional) the datastore of the current result, only valid if this function returns HXHIM_SUCCESS
+ * @param range_server  (optional) the range_server of the current result, only valid if this function returns HXHIM_SUCCESS
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim::Results::Datastore(int *datastore) const {
+int hxhim::Results::RangeServer(int *range_server) const {
     hxhim::Results::Result *res = Curr();
     if (!res) {
         return HXHIM_ERROR;
     }
 
-    if (datastore) {
-        *datastore = res->datastore;
+    if (range_server) {
+        *range_server = res->range_server;
     }
 
     return HXHIM_SUCCESS;
 }
 
 /**
- * hxhim_result_datastore
- * Gets the datastore of the result node currently being pointed to
+ * hxhim_result_range_server
+ * Gets the range_server of the result node currently being pointed to
  *
- * @param res       A list of results
- * @param datastore  (optional) the datastore of the current result, only valid if this function returns HXHIM_SUCCESS
+ * @param res           A list of results
+ * @param range_server  (optional) the range_server of the current result, only valid if this function returns HXHIM_SUCCESS
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim_result_datastore(hxhim_results_t *res, int *datastore) {
+int hxhim_result_range_server(hxhim_results_t *res, int *range_server) {
     if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
 
-    return res->res->Datastore(datastore);
+    return res->res->RangeServer(range_server);
 }
 
 /**
