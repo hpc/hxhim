@@ -33,6 +33,6 @@ cd "${ROOT}"
 
 mkdir -p build
 cd build
-cmake .. -DCMAKE_BUILD_TYPE=Debug -DENABLE_THALLIUM=On -DENABLE_LEVELDB=On -DASYNC_PUTS=Off -DENABLE_HDF5=Off -DPRINT_TIMESTAMPS=Off
+cmake .. -DCMAKE_BUILD_TYPE=Debug
 make -j $(nproc --all)
 mpirun -np 1 --allow-run-as-root test/googletest
