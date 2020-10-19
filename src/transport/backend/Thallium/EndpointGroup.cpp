@@ -1,15 +1,14 @@
-#include "transport/backend/Thallium/EndpointGroup.hpp"
-
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
+#include "transport/backend/Thallium/EndpointGroup.hpp"
 #include "transport/backend/Thallium/Utilities.hpp"
-#include "utils/type_traits.hpp"
 #include "utils/macros.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
+#include "utils/type_traits.hpp"
 
 Transport::Thallium::EndpointGroup::EndpointGroup(thallium::engine *engine,
                                                   RangeServer *rs)
@@ -78,11 +77,115 @@ void Transport::Thallium::EndpointGroup::RemoveID(const int id) {
 }
 
 /**
- * do_operation
- * Does the client side of a remote send/receive operation
+ * process request
+ * Does the client side of a single remote send/receive operation
  * All arguments after messages are members of Thallium::EndpointGroup
  *
- * @tparam Recv_t      Recieve type; listed first to allow for Send_t to be deduced by the compiler
+ * @tparam Recv_t      Receive type; listed first to allow for Send_t to be deduced by the compiler
+ * @tparam Send_t      Send type
+ * @tparam (unnamed)   test to make sure the rest of the template makes sense
+ * @param messages     the list of messages to send
+ * @param engine       the thallium engine
+ * @param rpc          the thallium rpc
+ * @param buffer_size  the size of the buffer allocated for sending and receiving packets
+ * @param endpoints    the endpoint to send to
+ * @return The list of responses received
+ */
+template <typename Recv_t, typename Send_t,
+          typename = enable_if_t<std::is_base_of<Transport::Request::Request,   Send_t>::value &&
+                                 std::is_base_of<Transport::Response::Response, Recv_t>::value> >
+inline Recv_t *process_request(Send_t *req,
+                        thallium::engine *engine,
+                        Transport::Thallium::RangeServer *rs,
+                        thallium::endpoint *endpoint) {
+    // if (!req || !engine || !rs || !endpoint) {
+    //     return nullptr;
+    // }
+
+    mlog(THALLIUM_DBG, "Request is going to range server %d", req->dst);
+
+    req->timestamps.transport->start = ::Stats::now();
+
+    mlog(THALLIUM_DBG, "Packing request going to range server %d", req->dst);
+
+    // pack the request
+    req->timestamps.transport->pack.start = ::Stats::now();
+    void *req_buf = nullptr;
+    std::size_t req_size = 0;
+    if (Transport::Packer::pack(req, &req_buf, &req_size) != TRANSPORT_SUCCESS) {
+        mlog(THALLIUM_WARN, "Unable to pack message");
+        dealloc(req_buf);
+        return nullptr;
+    }
+    req->timestamps.transport->pack.end = ::Stats::now();
+
+    mlog(THALLIUM_DBG, "Sending packed request (%zu bytes) to %d", req_size, req->dst);
+
+    // expose req_buf through bulk
+    std::vector<std::pair<void *, std::size_t> > req_segments = {std::make_pair(req_buf, req_size)};
+    thallium::bulk req_bulk = engine->expose(req_segments, thallium::bulk_mode::read_write);
+
+    // send request_size and request
+    // get back packed response_size, response, and remote address
+    req->timestamps.transport->send_start = ::Stats::now(); // store the value in req for now
+    thallium::packed_response packed_res = rs->process().on(*endpoint)(req_size, req_bulk);
+    req->timestamps.transport->recv_end = ::Stats::now();   // store the value in req for now
+
+    dealloc(req_buf);
+
+    // unpack thallium::packed_response
+    std::size_t res_size;
+    thallium::bulk res_bulk;
+    uintptr_t res_ptr;
+    std::tie(res_size, res_bulk, res_ptr) = packed_res.as<std::size_t, thallium::bulk, uintptr_t> ();
+
+    mlog(THALLIUM_DBG, "Received %zu byte response from %d", res_size, req->dst);
+
+    // read the data out of the response bulk
+    void *res_buf = alloc(res_size);
+    std::vector<std::pair<void *, std::size_t> > res_segments = {
+        std::make_pair((void *) res_buf, res_size)};
+    thallium::bulk local = engine->expose(res_segments, thallium::bulk_mode::write_only);
+    res_bulk.on(*endpoint) >> local;
+
+    // unpack the response
+    mlog(THALLIUM_DBG, "Unpacking %zu byte response from %d", res_size, req->dst);
+
+    req->timestamps.transport->unpack.start = ::Stats::now(); // store the value in req for now
+    Recv_t *response = nullptr;
+    const int unpack_rc = Transport::Unpacker::unpack(&response, res_buf, res_size);
+    dealloc(res_buf);
+    req->timestamps.transport->unpack.end = ::Stats::now(); // store the value in req for now
+
+    // clean up server pointer before handling any errors
+    req->timestamps.transport->cleanup_rpc.start = ::Stats::now(); // store the value in req for now
+    rs->cleanup().on(*endpoint)(res_ptr);
+    req->timestamps.transport->cleanup_rpc.end = ::Stats::now(); // store the value in req for now
+
+    if (unpack_rc != TRANSPORT_SUCCESS) {
+        mlog(THALLIUM_WARN, "Unable to unpack message");
+        return nullptr;
+    }
+
+    mlog(THALLIUM_DBG, "Unpacked %zu byte response from %d", res_size, req->dst);
+
+    req->timestamps.transport->end = ::Stats::now();
+
+    if (!response) {
+        return nullptr;
+    }
+
+    response->steal_timestamps(req, true);
+
+    return response;
+}
+
+/**
+ * process requests
+ * Sends off all requests provided
+ * All arguments after messages are members of Thallium::EndpointGroup
+ *
+ * @tparam Recv_t      Receive type; listed first to allow for Send_t to be deduced by the compiler
  * @tparam Send_t      Send type
  * @tparam (unnamed)   test to make sure the rest of the template makes sense
  * @param messages     the list of messages to send
@@ -95,115 +198,44 @@ void Transport::Thallium::EndpointGroup::RemoveID(const int id) {
 template <typename Recv_t, typename Send_t,
           typename = enable_if_t<std::is_base_of<Transport::Request::Request,   Send_t>::value &&
                                  std::is_base_of<Transport::Response::Response, Recv_t>::value> >
-Recv_t *do_operation(const Transport::ReqList<Send_t> &messages,
-                     thallium::engine *engine,
-                     Transport::Thallium::RangeServer *rs,
-                     const std::unordered_map<int, thallium::endpoint *> &endpoints) {
+Recv_t *process_requests(const Transport::ReqList<Send_t> &messages,
+                         thallium::engine *engine,
+                         Transport::Thallium::RangeServer *rs,
+                         const std::unordered_map<int, thallium::endpoint *> &endpoints) {
     int rank = -1;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
+    mlog(THALLIUM_INFO, "Sending %zu requests", messages.size());
+
     Recv_t *head = nullptr;
     Recv_t *tail = nullptr;
-
-    mlog(THALLIUM_INFO, "Sending requests in %zu buffers", messages.size());
-
     for(REF(messages)::value_type const &message : messages) {
         Send_t *req = message.second;
-
         if (!req) {
             mlog(THALLIUM_WARN, "Request going to %d does not exist", message.first);
             continue;
         }
 
-        req->timestamps.transport->start = ::Stats::now();
-
-        mlog(THALLIUM_DBG, "Request is going to range server %d", req->dst);
+        mlog(THALLIUM_DBG, "Sending request to %d", req->dst);
 
         // figure out where to send the message
         REF(endpoints)::const_iterator dst_it = endpoints.find(req->dst);
         if (dst_it == endpoints.end()) {
             mlog(THALLIUM_WARN, "Could not find endpoint for destination rank %d", req->dst);
+            destruct(req);
             continue;
         }
 
-        mlog(THALLIUM_DBG, "Packing request going to range server %d", req->dst);
-
-        // pack the request
-        req->timestamps.transport->pack.start = ::Stats::now();
-        void *req_buf = nullptr;
-        std::size_t req_size = 0;
-        if (Transport::Packer::pack(req, &req_buf, &req_size) != TRANSPORT_SUCCESS) {
-            mlog(THALLIUM_WARN, "Unable to pack message");
-            dealloc(req_buf);
-            continue;
-        }
-        req->timestamps.transport->pack.end = ::Stats::now();
-
-        mlog(THALLIUM_DBG, "Sending packed request (%zu bytes) to %d", req_size, req->dst);
-
-        // expose req_buf through bulk
-        std::vector<std::pair<void *, std::size_t> > req_segments = {std::make_pair(req_buf, req_size)};
-        thallium::bulk req_bulk = engine->expose(req_segments, thallium::bulk_mode::read_write);
-
-        // send request_size and request
-        // get back packed response_size, response, and remote address
-        req->timestamps.transport->send_start = ::Stats::now(); // store the value in req for now
-        thallium::packed_response packed_res = rs->process().on(*dst_it->second)(req_size, req_bulk);
-        req->timestamps.transport->recv_end = ::Stats::now();   // store the value in req for now
-
-        dealloc(req_buf);
-
-        // unpack thallium::packed_response
-        std::size_t res_size;
-        thallium::bulk res_bulk;
-        uintptr_t res_ptr;
-        std::tie(res_size, res_bulk, res_ptr) = packed_res.as<std::size_t, thallium::bulk, uintptr_t> ();
-
-        mlog(THALLIUM_DBG, "Received %zu byte response from %d", res_size, req->dst);
-
-        // read the data out of the response bulk
-        void *res_buf = alloc(res_size);
-        std::vector<std::pair<void *, std::size_t> > res_segments = {
-            std::make_pair((void *) res_buf, res_size)};
-        thallium::bulk local = engine->expose(res_segments, thallium::bulk_mode::write_only);
-        res_bulk.on(*dst_it->second) >> local;
-
-        // unpack the response
-        mlog(THALLIUM_DBG, "Unpacking %zu byte response from %d", res_size, req->dst);
-
-        req->timestamps.transport->unpack.start = ::Stats::now(); // store the value in req for now
-        Recv_t *response = nullptr;
-        const int unpack_rc = Transport::Unpacker::unpack(&response, res_buf, res_size);
-        dealloc(res_buf);
-        req->timestamps.transport->unpack.end = ::Stats::now(); // store the value in req for now
-
-        // clean up server pointer before handling any errors
-        req->timestamps.transport->cleanup_rpc.start = ::Stats::now(); // store the value in req for now
-        rs->cleanup().on(*dst_it->second)(res_ptr);
-        req->timestamps.transport->cleanup_rpc.end = ::Stats::now(); // store the value in req for now
-
-        if (unpack_rc != TRANSPORT_SUCCESS) {
-            mlog(THALLIUM_WARN, "Unable to unpack message");
-            continue;
-        }
-
-        mlog(THALLIUM_DBG, "Unpacked %zu byte response from %d", res_size, req->dst);
-
-        req->timestamps.transport->end = ::Stats::now();
-
-        if (!response) {
-            continue;
-        }
-
-        response->steal_timestamps(req, true);
-
-        if (!head) {
-            head = response;
-            tail = response;
-        }
-        else {
-            tail->next = response;
-            tail = response;
+        Recv_t *response = process_request<Recv_t, Send_t>(req, engine, rs, dst_it->second);
+        if (response) {
+            if (!head) {
+                head = response;
+                tail = response;
+            }
+            else {
+                tail->next = response;
+                tail = response;
+            }
         }
 
         mlog(THALLIUM_DBG, "Done sending request to %d", req->dst);
@@ -221,7 +253,7 @@ Recv_t *do_operation(const Transport::ReqList<Send_t> &messages,
  * @return a linked list of response messages, or nullptr
  */
 Transport::Response::BPut *Transport::Thallium::EndpointGroup::communicate(const ReqList<Request::BPut> &bpm_list) {
-    return do_operation<Response::BPut>(bpm_list, engine, rs, endpoints);
+    return process_requests<Response::BPut>(bpm_list, engine, rs, endpoints);
 }
 
 /**
@@ -232,7 +264,7 @@ Transport::Response::BPut *Transport::Thallium::EndpointGroup::communicate(const
  * @return a linked list of response messages, or nullptr
  */
 Transport::Response::BGet *Transport::Thallium::EndpointGroup::communicate(const ReqList<Request::BGet> &bgm_list) {
-    return do_operation<Response::BGet>(bgm_list, engine, rs, endpoints);
+    return process_requests<Response::BGet>(bgm_list, engine, rs, endpoints);
 }
 
 /**
@@ -243,7 +275,7 @@ Transport::Response::BGet *Transport::Thallium::EndpointGroup::communicate(const
  * @return a linked list of response messages, or nullptr
  */
 Transport::Response::BGetOp *Transport::Thallium::EndpointGroup::communicate(const ReqList<Request::BGetOp> &bgm_list) {
-    return do_operation<Response::BGetOp>(bgm_list, engine, rs, endpoints);
+    return process_requests<Response::BGetOp>(bgm_list, engine, rs, endpoints);
 }
 
 /**
@@ -254,7 +286,7 @@ Transport::Response::BGetOp *Transport::Thallium::EndpointGroup::communicate(con
  * @return a linked list of response messages, or nullptr
  */
 Transport::Response::BDelete *Transport::Thallium::EndpointGroup::communicate(const ReqList<Request::BDelete> &bdm_list) {
-    return do_operation<Response::BDelete>(bdm_list, engine, rs, endpoints);
+    return process_requests<Response::BDelete>(bdm_list, engine, rs, endpoints);
 }
 
 /**
@@ -265,5 +297,5 @@ Transport::Response::BDelete *Transport::Thallium::EndpointGroup::communicate(co
  * @return a linked list of response messages, or nullptr
  */
 Transport::Response::BHistogram *Transport::Thallium::EndpointGroup::communicate(const ReqList<Request::BHistogram> &bhm_list) {
-    return do_operation<Response::BHistogram>(bhm_list, engine, rs, endpoints);
+    return process_requests<Response::BHistogram>(bhm_list, engine, rs, endpoints);
 }
