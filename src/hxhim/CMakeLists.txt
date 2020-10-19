@@ -7,14 +7,11 @@ set(HXHIM_SRC
   accessors.cpp
   config.cpp
   destroy.cpp
-  double.cpp
-  float.cpp
   hash.cpp
   hxhim.cpp
   init.cpp
   options.cpp
   private.cpp
-  single_type.cpp
 )
 
 foreach(FILE ${HXHIM_SRC})

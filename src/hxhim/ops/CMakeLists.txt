@@ -13,6 +13,10 @@ set(HXHIM_SRC
   BDELETE.cpp
   BHISTOGRAM.cpp
 
+  double.cpp
+  float.cpp
+  single_type.cpp
+
   FLUSH.cpp
   SYNC.cpp
 
