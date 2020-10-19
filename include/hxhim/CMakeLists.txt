@@ -27,7 +27,7 @@ set(HXHIM_HEADERS
   struct.h
 )
 
-option(ASYNC_PUTS "Flush PUTs asynchronously in addtion to explicit FlushPuts" On)
+option(ASYNC_PUTS "Flush PUTs asynchronously in addtion to explicit FlushPuts" Off)
 if (ASYNC_PUTS)
   target_compile_definitions(hxhim PRIVATE ASYNC_PUTS=1)
 endif()
