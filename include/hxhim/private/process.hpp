@@ -33,6 +33,10 @@ template <typename Request_t,
 hxhim::Results *process(hxhim_t *hx,
                         hxhim::Queue<Request_t> &queue) {
     #if PRINT_TIMESTAMPS
+    ::Stats::Chronopoint process_start = ::Stats::now();
+    #endif
+
+    #if PRINT_TIMESTAMPS
     const int rank = hx->p->bootstrap.rank;
     #endif
 
@@ -41,6 +45,10 @@ hxhim::Results *process(hxhim_t *hx,
     uint64_t extra_time = 0;
 
     while (remaining(queue)) {
+        #if PRINT_TIMESTAMPS
+        ::Stats::Chronopoint pop_start = ::Stats::now();
+        #endif
+
         // extract the first packet for each target range server
         Request_t *local = nullptr;
         Transport::ReqList<Request_t> remote;
@@ -74,6 +82,12 @@ hxhim::Results *process(hxhim_t *hx,
             }
         }
 
+        #if PRINT_TIMESTAMPS
+        ::Stats::Chronopoint pop_end = ::Stats::now();
+        ::Stats::print_event(hx->p->print_buffer, rank, "pop",
+                             ::Stats::global_epoch, pop_start, pop_end);
+        #endif
+
         // process remote data
         if (remote.size()) {
             #if PRINT_TIMESTAMPS
@@ -89,14 +103,30 @@ hxhim::Results *process(hxhim_t *hx,
                                  ::Stats::global_epoch, remote_start, remote_end);
             #endif
 
+            #if PRINT_TIMESTAMPS
+            ::Stats::Chronopoint serialize_start = ::Stats::now();
+            #endif
+
             // serialize results
             hxhim::Result::AddAll(hx, res, response);
+
+            #if PRINT_TIMESTAMPS
+            ::Stats::Chronopoint serialize_end = ::Stats::now();
+            ::Stats::print_event(hx->p->print_buffer, rank, "serialize",
+                                 ::Stats::global_epoch, serialize_start, serialize_end);
+            #endif
 
             ::Stats::Chronopoint destruct_start = ::Stats::now();
             for(REF(remote)::value_type const &req : remote) {
                 destruct(req.second);
             }
             ::Stats::Chronopoint destruct_end = ::Stats::now();
+
+            #if PRINT_TIMESTAMPS
+            ::Stats::print_event(hx->p->print_buffer, rank, "destruct",
+                                 ::Stats::global_epoch, destruct_start, destruct_end);
+            #endif
+
             extra_time += ::Stats::nano(destruct_start, destruct_end);
         }
 
@@ -115,17 +145,39 @@ hxhim::Results *process(hxhim_t *hx,
                                  ::Stats::global_epoch, local_start, local_end);
             #endif
 
+            #if PRINT_TIMESTAMPS
+            ::Stats::Chronopoint serialize_start = ::Stats::now();
+            #endif
+
             // serialize results
             hxhim::Result::AddAll(hx, res, response);
+
+            #if PRINT_TIMESTAMPS
+            ::Stats::Chronopoint serialize_end = ::Stats::now();
+            ::Stats::print_event(hx->p->print_buffer, rank, "serialize",
+                                 ::Stats::global_epoch, serialize_start, serialize_end);
+            #endif
 
             ::Stats::Chronopoint destruct_start = ::Stats::now();
             destruct(local);
             ::Stats::Chronopoint destruct_end = ::Stats::now();
+
+            #if PRINT_TIMESTAMPS
+            ::Stats::print_event(hx->p->print_buffer, rank, "destruct",
+                                 ::Stats::global_epoch, destruct_start, destruct_end);
+            #endif
+
             extra_time += ::Stats::nano(destruct_start, destruct_end);
         }
     }
 
     res->UpdateDuration(extra_time);
+
+    #if PRINT_TIMESTAMPS
+    ::Stats::Chronopoint process_end = ::Stats::now();
+    ::Stats::print_event(hx->p->print_buffer, rank, "process",
+        ::Stats::global_epoch, process_start, process_end);
+    #endif
 
     return res;
 }
