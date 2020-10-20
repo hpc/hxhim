@@ -70,6 +70,33 @@ TEST(hxhim, Histogram) {
     // flush all queued items
     hxhim::Results *put_results = hxhim::Flush(&hx);
     ASSERT_NE(put_results, nullptr);
+    EXPECT_EQ(put_results->Size(), TRIPLES);
+
+    HXHIM_CXX_RESULTS_LOOP(put_results) {
+        hxhim_op_t op = hxhim_op_t::HXHIM_INVALID;
+        EXPECT_EQ(put_results->Op(&op), HXHIM_SUCCESS);
+        EXPECT_EQ(op, hxhim_op_t::HXHIM_PUT);
+
+        int rs = -1;
+        EXPECT_EQ(put_results->RangeServer(&rs), HXHIM_SUCCESS);
+
+        int status = HXHIM_ERROR;
+        EXPECT_EQ(put_results->Status(&status), HXHIM_SUCCESS);
+        EXPECT_EQ(status, HXHIM_SUCCESS);
+
+        void *subject = nullptr;
+        std::size_t subject_len = 0;
+        EXPECT_EQ(put_results->Subject(&subject, &subject_len), HXHIM_SUCCESS);
+        EXPECT_NE(subject, nullptr);
+        EXPECT_NE(subject_len, 0);
+
+        void *predicate = nullptr;
+        std::size_t predicate_len = 0;
+        EXPECT_EQ(put_results->Predicate(&predicate, &predicate_len), HXHIM_SUCCESS);
+        EXPECT_NE(predicate, nullptr);
+        EXPECT_NE(predicate_len, 0);
+    }
+
     hxhim::Results::Destroy(put_results);
 
     // request all histograms
