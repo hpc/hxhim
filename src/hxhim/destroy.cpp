@@ -79,11 +79,11 @@ int hxhim::destroy::datastore(hxhim_t *hx) {
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
 int hxhim::destroy::async_put(hxhim_t *hx) {
-    #if ASYNC_PUTS
-    hxhim::wait_for_background_puts(hx);
+    // #if ASYNC_PUTS
+    // hxhim::wait_for_background_puts(hx);
 
-    hx->p->async_put.thread.join();
-    #endif
+    // hx->p->async_put.thread.join();
+    // #endif
 
     // release unproceesed results from asynchronous PUTs
     destruct(hx->p->async_put.results);

@@ -30,10 +30,10 @@ TEST(hxhim, background_put) {
                          (void *) &OBJECT, sizeof(OBJECT)),
               HXHIM_SUCCESS);
 
-    #if ASYNC_PUTS
-    // wait for the background thread to signal it finished
-    hxhim::wait_for_background_puts(&hx);
-    #endif
+    // #if ASYNC_PUTS
+    // // wait for the background thread to signal it finished
+    // hxhim::wait_for_background_puts(&hx);
+    // #endif
 
     // background PUT results should have 1 item in it
     hxhim::Results *background_put_results = hx.p->async_put.results;

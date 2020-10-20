@@ -70,11 +70,11 @@ typedef struct hxhim_private {
 
         struct {
             hxhim::Queue<Transport::Request::BPut> queue;
-            #if ASYNC_PUTS
-            std::mutex mutex;
-            std::condition_variable start_processing;
-            bool flushed;
-            #endif
+            // #if ASYNC_PUTS
+            // std::mutex mutex;
+            // std::condition_variable start_processing;
+            // bool flushed;
+            // #endif
             std::size_t count;
         } puts;
         hxhim::Queue<Transport::Request::BGet>       gets;
@@ -88,12 +88,12 @@ typedef struct hxhim_private {
     // asynchronous BPUT data
     struct {
         std::size_t max_queued;            // number of batches to hold before sending PUTs asynchronously
-        #if ASYNC_PUTS
-        std::thread thread;                // the thread that pushes PUTs off the PUT queue asynchronously
-        std::mutex mutex;
-        std::condition_variable done;
-        bool done_check;
-        #endif
+        // #if ASYNC_PUTS
+        // std::thread thread;                // the thread that pushes PUTs off the PUT queue asynchronously
+        // std::mutex mutex;
+        // std::condition_variable done;
+        // bool done_check;
+        // #endif
         hxhim::Results *results;           // the list of of PUT results
     } async_put;
 

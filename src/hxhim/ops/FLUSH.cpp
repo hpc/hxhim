@@ -44,19 +44,19 @@ hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
     // if there are PUT results from the background thread
     // use that as the return pointer
     {
-        #if ASYNC_PUTS
-        // wait for the background thread to finish
-        hxhim::wait_for_background_puts(hx);
-        #endif
+        // #if ASYNC_PUTS
+        // // wait for the background thread to finish
+        // hxhim::wait_for_background_puts(hx);
+        // #endif
 
         res->Append(hx->p->async_put.results);
         destruct(hx->p->async_put.results);
         hx->p->async_put.results = nullptr;
     }
 
-    #if ASYNC_PUTS
-    std::unique_lock<std::mutex> lock(hx->p->queues.puts.mutex);
-    #endif
+    // #if ASYNC_PUTS
+    // std::unique_lock<std::mutex> lock(hx->p->queues.puts.mutex);
+    // #endif
 
     // append new results to old results
     hxhim::Results *put_results = FlushImpl<Transport::Request::BPut, Transport::Response::BPut>(hx, hx->p->queues.puts.queue);
