@@ -30,7 +30,7 @@ template <typename Response_t, typename Request_t,
           typename = enable_if_t <is_child_of<Request::Request,   Request_t> ::value &&
                                   is_child_of<Response::Response, Response_t>::value> >
 Response_t *range_server(hxhim_t *hx, Request_t *req) {
-    req->timestamps.transport->start = ::Stats::now();
+    req->timestamps.transport.start = ::Stats::now();
 
     int rank = -1;
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
@@ -44,11 +44,11 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
     res->steal_timestamps(req, false);
 
     // no packing
-    res->timestamps.transport->pack.start = ::Stats::now();
-    res->timestamps.transport->pack.end = res->timestamps.transport->pack.start;
+    res->timestamps.transport.pack.start = ::Stats::now();
+    res->timestamps.transport.pack.end = res->timestamps.transport.pack.start;
 
     // send to each datastore
-    res->timestamps.transport->send_start = ::Stats::now();
+    res->timestamps.transport.send_start = ::Stats::now();
 
     Response_t *response = hx->p->datastore->operate(req);
 
@@ -56,8 +56,7 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
     if (response) {
         for(std::size_t i = 0; i < response->count; i++) {
             // move timestamps over to response (responses should correspond to requests)
-            response->timestamps.reqs[i] = req->timestamps.reqs[i];
-            req->timestamps.reqs[i] = nullptr;
+            response->timestamps.reqs[i] = std::move(req->timestamps.reqs[i]);
 
             // move the datastore response to the main response
             res->steal(response, i);
@@ -67,18 +66,18 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
         destruct(response);
     }
 
-    res->timestamps.transport->recv_end = ::Stats::now();
+    res->timestamps.transport.recv_end = ::Stats::now();
 
     // no unpacking
-    res->timestamps.transport->unpack.start = ::Stats::now();
-    res->timestamps.transport->unpack.end = res->timestamps.transport->unpack.start;
+    res->timestamps.transport.unpack.start = ::Stats::now();
+    res->timestamps.transport.unpack.end = res->timestamps.transport.unpack.start;
 
     // no clean up rpc
-    res->timestamps.transport->cleanup_rpc.start = ::Stats::now();
-    res->timestamps.transport->cleanup_rpc.end = res->timestamps.transport->cleanup_rpc.start;
+    res->timestamps.transport.cleanup_rpc.start = ::Stats::now();
+    res->timestamps.transport.cleanup_rpc.end = res->timestamps.transport.cleanup_rpc.start;
 
     mlog(HXHIM_SERVER_INFO, "Rank %d Local RangeServer done processing %s", rank, HXHIM_OP_STR[req->op]);
-    res->timestamps.transport->end = ::Stats::now();
+    res->timestamps.transport.end = ::Stats::now();
 
     return res;
 }

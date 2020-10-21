@@ -40,8 +40,8 @@ struct Message {
     std::size_t count;
 
     struct {
-        struct Stats::Send **reqs;
-        std::shared_ptr<struct Stats::SendRecv> transport;
+        struct Stats::Send *reqs;
+        struct Stats::SendRecv transport;
     } timestamps;
 };
 

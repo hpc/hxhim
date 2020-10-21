@@ -5,7 +5,6 @@
 #include "datastore/datastores.hpp"
 #include "hxhim/Results.hpp"
 #include "hxhim/private/Results.hpp"
-#include "hxhim/private/accessors.hpp"
 #include "hxhim/private/hxhim.hpp"
 #include "hxhim/RangeServer.hpp"
 #include "utils/Stats.hpp"
@@ -14,7 +13,7 @@
 #include "utils/mlogfacs2.h"
 
 hxhim::Results::Result::Timestamps::Timestamps()
-    : send(nullptr),
+    : send(),
       transport(),
       recv()
 {}
@@ -32,32 +31,26 @@ hxhim::Results::Result::Result(hxhim_t *hx, const enum hxhim_op_t op,
 hxhim::Results::Result::~Result() {
     #if PRINT_TIMESTAMPS
     if (hx) {
-        int rank = -1;
-        hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
+        const int rank = hx->p->bootstrap.rank;
 
-        ::Stats::Chronopoint epoch;
-        hxhim::nocheck::GetEpoch(hx, epoch);
+        const ::Stats::Chronopoint epoch = hx->p->epoch;
 
         std::stringstream &s = hx->p->print_buffer;
 
         ::Stats::Chronostamp print;
         print.start = ::Stats::now();
 
-        if (timestamps.send) {
-            // from when request was put into the hxhim queue until the response was ready for pulling
-            ::Stats::print_event(s, rank, HXHIM_OP_STR[op], epoch, timestamps.send->hash.start, timestamps.recv.result.end);
-            ::Stats::print_event(s, rank, "Hash",           epoch, timestamps.send->hash);
-            ::Stats::print_event(s, rank, "Insert",         epoch, timestamps.send->insert);
-        }
+        // from when request was put into the hxhim queue until the response was ready for pulling
+        ::Stats::print_event(s, rank, HXHIM_OP_STR[op], epoch, timestamps.send.hash.start, timestamps.recv.result.end);
+        ::Stats::print_event(s, rank, "Hash",           epoch, timestamps.send.hash);
+        ::Stats::print_event(s, rank, "Insert",         epoch, timestamps.send.insert);
 
-        if (timestamps.transport) {
-            ::Stats::print_event(s, rank, "ProcessBulk",    epoch, timestamps.transport->start, timestamps.transport->end);
+        ::Stats::print_event(s, rank, "ProcessBulk",    epoch, timestamps.transport.start, timestamps.transport.end);
 
-            ::Stats::print_event(s, rank, "Pack",           epoch, timestamps.transport->pack);
-            ::Stats::print_event(s, rank, "Transport",      epoch, timestamps.transport->send_start, timestamps.transport->recv_end);
-            ::Stats::print_event(s, rank, "Unpack",         epoch, timestamps.transport->unpack);
-            ::Stats::print_event(s, rank, "Cleanup_RPC",    epoch, timestamps.transport->cleanup_rpc);
-        }
+        ::Stats::print_event(s, rank, "Pack",           epoch, timestamps.transport.pack);
+        ::Stats::print_event(s, rank, "Transport",      epoch, timestamps.transport.send_start, timestamps.transport.recv_end);
+        ::Stats::print_event(s, rank, "Unpack",         epoch, timestamps.transport.unpack);
+        ::Stats::print_event(s, rank, "Cleanup_RPC",    epoch, timestamps.transport.cleanup_rpc);
 
         ::Stats::print_event(s, rank, "Result",         epoch, timestamps.recv.result);
 
@@ -65,8 +58,6 @@ hxhim::Results::Result::~Result() {
         ::Stats::print_event(s, rank, "print",          epoch, print);
     }
     #endif
-
-    destruct(timestamps.send);
 }
 
 hxhim::Results::SubjectPredicate::SubjectPredicate(hxhim_t *hx, const enum hxhim_op_t op,
@@ -104,8 +95,7 @@ hxhim::Results::Result *hxhim::Result::init(hxhim_t *hx, Transport::Response::Re
 
     ::Stats::Chronopoint start = ::Stats::now();
 
-    int rank = -1;
-    hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
+    const int rank = hx->p->bootstrap.rank;
 
     mlog(HXHIM_CLIENT_DBG, "Rank %d Creating hxhim::Results::Result using %p[%zu]", rank, res, i);
 
@@ -141,11 +131,10 @@ hxhim::Results::Result *hxhim::Result::init(hxhim_t *hx, Transport::Response::Re
     }
 
     // set timestamps
-    ret->timestamps.send = res->timestamps.reqs[i];
+    ret->timestamps.send = std::move(res->timestamps.reqs[i]);
     ret->timestamps.transport = res->timestamps.transport;
     ret->timestamps.recv.result.start = start;
     ret->timestamps.recv.result.end = ::Stats::now();
-    res->timestamps.reqs[i] = nullptr;
 
     mlog(HXHIM_CLIENT_DBG, "Rank %d Created hxhim::Results::Result %p using %p[%zu]", rank, ret, res, i);
 
@@ -209,9 +198,7 @@ hxhim::Results::Delete *hxhim::Result::init(hxhim_t *hx, Transport::Response::BD
 }
 
 hxhim::Results::Sync *hxhim::Result::init(hxhim_t *hx, const int synced) {
-    int rank = -1;
-    hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
-
+    const int rank = hx->p->bootstrap.rank;
     return construct<hxhim::Results::Sync>(hx, rank, synced);
 }
 
@@ -239,15 +226,15 @@ uint64_t hxhim::Result::AddAll(hxhim_t *hx, hxhim::Results *results,
 
     uint64_t duration = 0;
     for(Transport::Response::Response *res = response; res; res = next(res)) {
-        duration += ::Stats::nano(res->timestamps.transport->start,
-                                  res->timestamps.transport->end);
+        duration += ::Stats::nano(res->timestamps.transport.start,
+                                  res->timestamps.transport.end);
 
         for(std::size_t i = 0; i < res->count; i++) {
             hxhim::Results::Result *result = results->Add(hxhim::Result::init(hx, res, i));
 
             // add timestamps of individual results
-            duration += ::Stats::nano(result->timestamps.send->hash.start,
-                                      result->timestamps.send->insert.end) +
+            duration += ::Stats::nano(result->timestamps.send.hash.start,
+                                      result->timestamps.send.insert.end) +
                         ::Stats::nano(result->timestamps.recv.result.start,
                                       result->timestamps.recv.result.end);
         }
@@ -904,8 +891,7 @@ int hxhim::Results::Timestamps(struct hxhim::Results::Result::Timestamps **times
  * @return the pointer to the C structure containing the hxhim::Results
  */
 hxhim_results_t *hxhim_results_init(hxhim_t * hx, hxhim::Results *res) {
-    int rank = -1;
-    hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
+    const int rank = hx->p->bootstrap.rank;
 
     mlog(HXHIM_CLIENT_DBG, "Rank %d Creating hxhim_results_t using %p", rank, res);
     hxhim_results_t *ret = construct<hxhim_results_t>();
@@ -923,8 +909,7 @@ hxhim_results_t *hxhim_results_init(hxhim_t * hx, hxhim::Results *res) {
  */
 void hxhim_results_destroy(hxhim_results_t *res) {
     if (res) {
-        int rank = -1;
-        hxhim::nocheck::GetMPI(res->hx, nullptr, &rank, nullptr);
+        const int rank = res->hx->p->bootstrap.rank;
 
         mlog(HXHIM_CLIENT_DBG, "Rank %d Destroying hxhim_results_t %p", rank, res);
         hxhim::Results::Destroy(res->res);

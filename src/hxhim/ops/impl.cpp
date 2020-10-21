@@ -70,16 +70,14 @@ int hxhim::PutImpl(hxhim_t *hx,
     put->orig.subjects[put->count] = subject.data();
     put->orig.predicates[put->count] = predicate.data();
 
-    put->timestamps.reqs[put->count] = construct<::Stats::Send>();
-
-    put->timestamps.reqs[put->count]->hash = hash;
-    put->timestamps.reqs[put->count]->insert = insert;
+    put->timestamps.reqs[put->count].hash = hash;
+    put->timestamps.reqs[put->count].insert = insert;
 
     put->count++;
 
     hx->p->queues.puts.count++;
 
-    put->timestamps.reqs[put->count - 1]->insert.end = ::Stats::now();
+    put->timestamps.reqs[put->count - 1].insert.end = ::Stats::now();
 
     // do not trigger background PUTs here in order to allow for all BPUTs to queue up before flushing
 
@@ -143,14 +141,12 @@ int hxhim::GetImpl(hxhim_t *hx,
     get->orig.subjects[get->count] = subject.data();
     get->orig.predicates[get->count] = predicate.data();
 
-    get->timestamps.reqs[get->count] = construct<::Stats::Send>();
-
-    get->timestamps.reqs[get->count]->hash = hash;
-    get->timestamps.reqs[get->count]->insert = insert;
+    get->timestamps.reqs[get->count].hash = hash;
+    get->timestamps.reqs[get->count].insert = insert;
 
     get->count++;
 
-    get->timestamps.reqs[get->count - 1]->insert.end = ::Stats::now();
+    get->timestamps.reqs[get->count - 1].insert.end = ::Stats::now();
 
     mlog(HXHIM_CLIENT_DBG, "GET Completed");
     return HXHIM_SUCCESS;
@@ -214,14 +210,12 @@ int hxhim::GetOpImpl(hxhim_t *hx,
     getop->num_recs[getop->count] = num_records;
     getop->ops[getop->count] = op;
 
-    getop->timestamps.reqs[getop->count] = construct<::Stats::Send>();
-
-    getop->timestamps.reqs[getop->count]->hash = hash;
-    getop->timestamps.reqs[getop->count]->insert = insert;
+    getop->timestamps.reqs[getop->count].hash = hash;
+    getop->timestamps.reqs[getop->count].insert = insert;
 
     getop->count++;
 
-    getop->timestamps.reqs[getop->count - 1]->insert.end = ::Stats::now();
+    getop->timestamps.reqs[getop->count - 1].insert.end = ::Stats::now();
 
     mlog(HXHIM_CLIENT_DBG, "GETOP Completed");
     return HXHIM_SUCCESS;
@@ -280,14 +274,12 @@ int hxhim::DeleteImpl(hxhim_t *hx,
     del->orig.subjects[del->count] = subject.data();
     del->orig.predicates[del->count] = predicate.data();
 
-    del->timestamps.reqs[del->count] = construct<::Stats::Send>();
-
-    del->timestamps.reqs[del->count]->hash = hash;
-    del->timestamps.reqs[del->count]->insert = insert;
+    del->timestamps.reqs[del->count].hash = hash;
+    del->timestamps.reqs[del->count].insert = insert;
 
     del->count++;
 
-    del->timestamps.reqs[del->count - 1]->insert.end = ::Stats::now();
+    del->timestamps.reqs[del->count - 1].insert.end = ::Stats::now();
 
     mlog(HXHIM_CLIENT_DBG, "Delete Completed");
     return HXHIM_SUCCESS;
@@ -332,14 +324,12 @@ int hxhim::HistogramImpl(hxhim_t *hx,
     // add the triple to the last packet in the queue
     Transport::Request::BHistogram *hist = *(hists.rbegin());
 
-    hist->timestamps.reqs[hist->count] = construct<::Stats::Send>();
-
-    hist->timestamps.reqs[hist->count]->hash = hash;
-    hist->timestamps.reqs[hist->count]->insert = insert;
+    hist->timestamps.reqs[hist->count].hash = hash;
+    hist->timestamps.reqs[hist->count].insert = insert;
 
     hist->count++;
 
-    hist->timestamps.reqs[hist->count - 1]->insert.end = ::Stats::now();
+    hist->timestamps.reqs[hist->count - 1].insert.end = ::Stats::now();
 
     mlog(HXHIM_CLIENT_DBG, "Histogram Completed");
     return HXHIM_SUCCESS;

@@ -104,12 +104,12 @@ inline Recv_t *process_request(Send_t *req,
 
     mlog(THALLIUM_DBG, "Request is going to range server %d", req->dst);
 
-    req->timestamps.transport->start = ::Stats::now();
+    req->timestamps.transport.start = ::Stats::now();
 
     mlog(THALLIUM_DBG, "Packing request going to range server %d", req->dst);
 
     // pack the request
-    req->timestamps.transport->pack.start = ::Stats::now();
+    req->timestamps.transport.pack.start = ::Stats::now();
     void *req_buf = nullptr;
     std::size_t req_size = 0;
     if (Transport::Packer::pack(req, &req_buf, &req_size) != TRANSPORT_SUCCESS) {
@@ -117,7 +117,7 @@ inline Recv_t *process_request(Send_t *req,
         dealloc(req_buf);
         return nullptr;
     }
-    req->timestamps.transport->pack.end = ::Stats::now();
+    req->timestamps.transport.pack.end = ::Stats::now();
 
     mlog(THALLIUM_DBG, "Sending packed request (%zu bytes) to %d", req_size, req->dst);
 
@@ -127,9 +127,9 @@ inline Recv_t *process_request(Send_t *req,
 
     // send request_size and request
     // get back packed response_size, response, and remote address
-    req->timestamps.transport->send_start = ::Stats::now(); // store the value in req for now
+    req->timestamps.transport.send_start = ::Stats::now(); // store the value in req for now
     thallium::packed_response packed_res = rs->process().on(*endpoint)(req_size, req_bulk);
-    req->timestamps.transport->recv_end = ::Stats::now();   // store the value in req for now
+    req->timestamps.transport.recv_end = ::Stats::now();   // store the value in req for now
 
     dealloc(req_buf);
 
@@ -151,16 +151,16 @@ inline Recv_t *process_request(Send_t *req,
     // unpack the response
     mlog(THALLIUM_DBG, "Unpacking %zu byte response from %d", res_size, req->dst);
 
-    req->timestamps.transport->unpack.start = ::Stats::now(); // store the value in req for now
+    req->timestamps.transport.unpack.start = ::Stats::now(); // store the value in req for now
     Recv_t *response = nullptr;
     const int unpack_rc = Transport::Unpacker::unpack(&response, res_buf, res_size);
     dealloc(res_buf);
-    req->timestamps.transport->unpack.end = ::Stats::now(); // store the value in req for now
+    req->timestamps.transport.unpack.end = ::Stats::now(); // store the value in req for now
 
     // clean up server pointer before handling any errors
-    req->timestamps.transport->cleanup_rpc.start = ::Stats::now(); // store the value in req for now
+    req->timestamps.transport.cleanup_rpc.start = ::Stats::now(); // store the value in req for now
     rs->cleanup().on(*endpoint)(res_ptr);
-    req->timestamps.transport->cleanup_rpc.end = ::Stats::now(); // store the value in req for now
+    req->timestamps.transport.cleanup_rpc.end = ::Stats::now(); // store the value in req for now
 
     if (unpack_rc != TRANSPORT_SUCCESS) {
         mlog(THALLIUM_WARN, "Unable to unpack message");
@@ -169,7 +169,7 @@ inline Recv_t *process_request(Send_t *req,
 
     mlog(THALLIUM_DBG, "Unpacked %zu byte response from %d", res_size, req->dst);
 
-    req->timestamps.transport->end = ::Stats::now();
+    req->timestamps.transport.end = ::Stats::now();
 
     if (!response) {
         return nullptr;
