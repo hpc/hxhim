@@ -209,14 +209,9 @@ int hxhim::Close(hxhim_t *hx) {
     // stats should not be modified any more
 
     // print stats here for now
-    for(int i = 0; i < size; i++) {
-        MPI_Barrier(comm);
-        if (rank == i) {
-            std::stringstream s;
-            print_stats(hx, s);
-            mlog(HXHIM_CLIENT_NOTE, "Rank %d Stats\n%s", rank, s.str().c_str());
-        }
-    }
+    std::stringstream s;
+    print_stats(hx, s);
+    mlog(HXHIM_CLIENT_NOTE, "Rank %d Stats\n%s", rank, s.str().c_str());
 
     destroy::bootstrap(hx);
 
