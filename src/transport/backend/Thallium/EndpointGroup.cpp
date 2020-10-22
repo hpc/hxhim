@@ -1,3 +1,8 @@
+#ifdef ASYNC_THALLIUM
+#include <future>
+#include <list>
+#endif
+
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -95,9 +100,9 @@ template <typename Recv_t, typename Send_t,
           typename = enable_if_t<std::is_base_of<Transport::Request::Request,   Send_t>::value &&
                                  std::is_base_of<Transport::Response::Response, Recv_t>::value> >
 inline Recv_t *process_request(Send_t *req,
-                        thallium::engine *engine,
-                        Transport::Thallium::RangeServer *rs,
-                        thallium::endpoint *endpoint) {
+                               thallium::engine *engine,
+                               Transport::Thallium::RangeServer *rs,
+                               thallium::endpoint *endpoint) {
     // if (!req || !engine || !rs || !endpoint) {
     //     return nullptr;
     // }
@@ -207,6 +212,10 @@ Recv_t *process_requests(const Transport::ReqList<Send_t> &messages,
 
     mlog(THALLIUM_INFO, "Sending %zu requests", messages.size());
 
+    #ifdef ASYNC_THALLIUM
+    std::list<std::future<Recv_t *> > futures;
+    #endif
+
     Recv_t *head = nullptr;
     Recv_t *tail = nullptr;
     for(REF(messages)::value_type const &message : messages) {
@@ -226,19 +235,30 @@ Recv_t *process_requests(const Transport::ReqList<Send_t> &messages,
             continue;
         }
 
+    #ifdef ASYNC_THALLIUM
+        futures.emplace_back(std::async(std::launch::async,
+                                        process_request<Recv_t, Send_t>,
+                                        req, engine, rs, dst_it->second));
+
+        mlog(THALLIUM_DBG, "Done sending request to %d", req->dst);
+    }
+
+    for(std::future<Recv_t *> &future : futures) {
+        Recv_t *response = future.get();
+    #else
         Recv_t *response = process_request<Recv_t, Send_t>(req, engine, rs, dst_it->second);
+    #endif
+
+        mlog(THALLIUM_DBG, "Received response from %d", response->src);
         if (response) {
             if (!head) {
                 head = response;
-                tail = response;
             }
             else {
                 tail->next = response;
-                tail = response;
             }
+            tail = response;
         }
-
-        mlog(THALLIUM_DBG, "Done sending request to %d", req->dst);
     }
 
     mlog(THALLIUM_INFO, "Done sending requests and receiving responses");
