@@ -239,8 +239,7 @@ uint64_t hxhim::Result::AddAll(hxhim_t *hx, hxhim::Results *results,
 
     uint64_t duration = 0;
     for(Transport::Response::Response *res = response; res; res = next(res)) {
-        duration += ::Stats::nano(res->timestamps.allocate) +
-                    ::Stats::nano(res->timestamps.transport.start,
+        duration += ::Stats::nano(res->timestamps.transport.start,
                                   res->timestamps.transport.end);
 
         for(std::size_t i = 0; i < res->count; i++) {
