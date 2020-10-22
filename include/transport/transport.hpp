@@ -13,6 +13,7 @@
 
 namespace Transport {
 
+// destination MPI rank -> single Request packet
 template <typename Req>
 using ReqList = std::unordered_map<int, Req *>;
 

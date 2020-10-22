@@ -57,15 +57,15 @@ hxhim::Results *process(hxhim_t *hx,
                 Request_t *req = queue[rs].front();
                 queue[rs].pop_front();
 
-                req->src = hx->p->bootstrap.rank;    // rank
-                req->dst = (int) rs;                 // range server
+                // set req src and dst because they were not set in impl
+                req->src = hx->p->bootstrap.rank;
+                req->dst = hx->p->queues.rs_to_rank[rs];
 
-                const int dst_rank = hx->p->queues.rs_to_rank[rs];
-                if (req->src == dst_rank) {
+                if (req->src == req->dst) {
                     local = req;
                 }
                 else {
-                    remote[dst_rank] = req;
+                    remote[req->dst] = req;
                 }
 
                 ::Stats::Chronopoint collect_stats_start = ::Stats::now();
