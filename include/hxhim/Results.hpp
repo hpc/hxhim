@@ -85,7 +85,9 @@ class Results {
             // epoch can be obtained with hxhim::GetEpoch
             struct Timestamps {
                 Timestamps();
+                ~Timestamps();
 
+                ::Stats::Chronostamp *alloc;
                 struct ::Stats::Send send;
                 struct ::Stats::SendRecv transport;
                 struct ::Stats::Recv recv;

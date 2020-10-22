@@ -13,10 +13,15 @@
 #include "utils/mlogfacs2.h"
 
 hxhim::Results::Result::Timestamps::Timestamps()
-    : send(),
+    : alloc(nullptr),
+      send(),
       transport(),
       recv()
 {}
+
+hxhim::Results::Result::Timestamps::~Timestamps() {
+    destruct(alloc);
+}
 
 hxhim::Results::Result::Result(hxhim_t *hx, const enum hxhim_op_t op,
                                const int range_server, const int ds_status)
@@ -41,14 +46,19 @@ hxhim::Results::Result::~Result() {
         print.start = ::Stats::now();
 
         // from when request was put into the hxhim queue until the response was ready for pulling
-        ::Stats::print_event(s, rank, HXHIM_OP_STR[op], epoch, timestamps.send.hash.start, timestamps.recv.result.end);
+        ::Stats::print_event(s, rank, HXHIM_OP_STR[op], epoch, timestamps.send.hash.start,
+                                                               timestamps.recv.result.end);
         ::Stats::print_event(s, rank, "Hash",           epoch, timestamps.send.hash);
         ::Stats::print_event(s, rank, "Insert",         epoch, timestamps.send.insert);
-
-        ::Stats::print_event(s, rank, "ProcessBulk",    epoch, timestamps.transport.start, timestamps.transport.end);
+        if (timestamps.alloc) {
+            ::Stats::print_event(s, rank, "Alloc",      epoch, *timestamps.alloc);
+        }
+        ::Stats::print_event(s, rank, "ProcessBulk",    epoch, timestamps.transport.start,
+                                                               timestamps.transport.end);
 
         ::Stats::print_event(s, rank, "Pack",           epoch, timestamps.transport.pack);
-        ::Stats::print_event(s, rank, "Transport",      epoch, timestamps.transport.send_start, timestamps.transport.recv_end);
+        ::Stats::print_event(s, rank, "Transport",      epoch, timestamps.transport.send_start,
+                                                               timestamps.transport.recv_end);
         ::Stats::print_event(s, rank, "Unpack",         epoch, timestamps.transport.unpack);
         ::Stats::print_event(s, rank, "Cleanup_RPC",    epoch, timestamps.transport.cleanup_rpc);
 
@@ -131,6 +141,9 @@ hxhim::Results::Result *hxhim::Result::init(hxhim_t *hx, Transport::Response::Re
     }
 
     // set timestamps
+    if (i == 0) {
+        ret->timestamps.alloc = construct<::Stats::Chronostamp>(res->timestamps.allocate);
+    }
     ret->timestamps.send = std::move(res->timestamps.reqs[i]);
     ret->timestamps.transport = res->timestamps.transport;
     ret->timestamps.recv.result.start = start;
@@ -226,7 +239,8 @@ uint64_t hxhim::Result::AddAll(hxhim_t *hx, hxhim::Results *results,
 
     uint64_t duration = 0;
     for(Transport::Response::Response *res = response; res; res = next(res)) {
-        duration += ::Stats::nano(res->timestamps.transport.start,
+        duration += ::Stats::nano(res->timestamps.allocate) +
+                    ::Stats::nano(res->timestamps.transport.start,
                                   res->timestamps.transport.end);
 
         for(std::size_t i = 0; i < res->count; i++) {

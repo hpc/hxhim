@@ -27,11 +27,7 @@ void Transport::Message::alloc(const std::size_t max) {
 
     if ((max_count = max)) {
         timestamps.reqs = alloc_array<::Stats::Send>(max_count);
-        memset(&timestamps.transport, 0, sizeof(timestamps.transport));
-        // timestamps.transport = std::shared_ptr<::Stats::SendRecv>(construct<::Stats::SendRecv>(),
-        //                                                           [](::Stats::SendRecv *ptr) {
-        //                                                               destruct(ptr);
-        //                                                           });
+        timestamps.transport = {};
     }
 
     count = 0;
@@ -68,6 +64,8 @@ int Transport::Message::steal_timestamps(Message *from, const bool steal_individ
     if (!from) {
         return TRANSPORT_ERROR;
     }
+
+    timestamps.allocate = std::move(from->timestamps.allocate);
 
     if (steal_individuals) {
         dealloc_array(timestamps.reqs, max_count);

@@ -40,6 +40,7 @@ struct Message {
     std::size_t count;
 
     struct {
+        Stats::Chronostamp allocate;
         struct Stats::Send *reqs;
         struct Stats::SendRecv transport;
     } timestamps;

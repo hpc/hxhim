@@ -7,6 +7,25 @@
 #include "utils/mlogfacs2.h"
 
 /**
+ * new_request
+ * Creates a new Transport::Request packet
+ * and fills in the allocate timestamp
+ *
+ * @param hx      the HXHIM session
+ * @param queue   the queue to push into
+ *
+ */
+template <typename Request_t,
+          typename = enable_if_t <is_child_of <Transport::Request::Request, Request_t>::value> >
+void new_request(hxhim_t *hx, hxhim::QueueTarget<Request_t> &queue) {
+    ::Stats::Chronostamp allocate;
+    allocate.start = ::Stats::now();
+    queue.push_back(construct<Request_t>(hx->p->queues.max_ops_per_send));
+    queue.back()->timestamps.allocate = allocate;
+    queue.back()->timestamps.allocate.end = ::Stats::now();
+}
+
+/**
  * PutImpl
  * Add a PUT into the work queue
  * hx and hx->p are not checked because they must have been
@@ -56,7 +75,7 @@ int hxhim::PutImpl(hxhim_t *hx,
 
     if (puts.empty()                                                ||
         ((*puts.rbegin())->count >= hx->p->queues.max_ops_per_send)) { // last packet doesn't have space
-        puts.push_back(construct<Transport::Request::BPut>(hx->p->queues.max_ops_per_send));
+        new_request(hx, puts);
     }
 
     // add the triple to the last packet in the queue
@@ -128,7 +147,7 @@ int hxhim::GetImpl(hxhim_t *hx,
     QueueTarget<Transport::Request::BGet> &gets = gets_queue[rs_id];
     if (gets.empty()                                                ||
         ((*gets.rbegin())->count >= hx->p->queues.max_ops_per_send)) { // last packet doesn't have space
-        gets.push_back(construct<Transport::Request::BGet>(hx->p->queues.max_ops_per_send));
+        new_request(hx, gets);
     }
 
     // add the triple to the last packet in the queue
@@ -198,7 +217,7 @@ int hxhim::GetOpImpl(hxhim_t *hx,
     QueueTarget<Transport::Request::BGetOp> &getops = getops_queue[rs_id];
     if (getops.empty()                                                ||
         ((*getops.rbegin())->count >= hx->p->queues.max_ops_per_send)) { // last packet doesn't have space
-        getops.push_back(construct<Transport::Request::BGetOp>(hx->p->queues.max_ops_per_send));
+        new_request(hx, getops);
     }
 
     // add the triple to the last packet in the queue
@@ -262,7 +281,7 @@ int hxhim::DeleteImpl(hxhim_t *hx,
     QueueTarget<Transport::Request::BDelete> &dels = dels_queue[rs_id];
     if (dels.empty()                                                ||
         ((*dels.rbegin())->count >= hx->p->queues.max_ops_per_send)) { // last packet doesn't have space
-        dels.push_back(construct<Transport::Request::BDelete>(hx->p->queues.max_ops_per_send));
+        new_request(hx, dels);
     }
 
     // add the triple to the last packet in the queue
@@ -318,7 +337,7 @@ int hxhim::HistogramImpl(hxhim_t *hx,
     QueueTarget<Transport::Request::BHistogram> &hists = hists_queue[rs_id];
     if (hists.empty()                                                ||
         ((*hists.rbegin())->count >= hx->p->queues.max_ops_per_send)) { // last packet doesn't have space
-        hists.push_back(construct<Transport::Request::BHistogram>(hx->p->queues.max_ops_per_send));
+        new_request(hx, hists);
     }
 
     // add the triple to the last packet in the queue
