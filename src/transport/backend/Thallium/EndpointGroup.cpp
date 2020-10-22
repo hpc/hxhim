@@ -102,10 +102,17 @@ template <typename Recv_t, typename Send_t,
 inline Recv_t *process_request(Send_t *req,
                                thallium::engine *engine,
                                Transport::Thallium::RangeServer *rs,
-                               thallium::endpoint *endpoint) {
+                               const std::unordered_map<int, thallium::endpoint *> &endpoints) {
     // if (!req || !engine || !rs || !endpoint) {
     //     return nullptr;
     // }
+
+    // figure out where to send the message
+    REF(endpoints)::const_iterator dst_it = endpoints.find(req->dst);
+    if (dst_it == endpoints.end()) {
+        mlog(THALLIUM_WARN, "Could not find endpoint for destination rank %d", req->dst);
+        return nullptr;
+    }
 
     mlog(THALLIUM_DBG, "Request is going to range server %d", req->dst);
 
@@ -133,7 +140,7 @@ inline Recv_t *process_request(Send_t *req,
     // send request_size and request
     // get back packed response_size, response, and remote address
     req->timestamps.transport.send_start = ::Stats::now(); // store the value in req for now
-    thallium::packed_response packed_res = rs->process().on(*endpoint)(req_size, req_bulk);
+    thallium::packed_response packed_res = rs->process().on(*(dst_it->second))(req_size, req_bulk);
     req->timestamps.transport.recv_end = ::Stats::now();   // store the value in req for now
 
     dealloc(req_buf);
@@ -151,7 +158,7 @@ inline Recv_t *process_request(Send_t *req,
     std::vector<std::pair<void *, std::size_t> > res_segments = {
         std::make_pair((void *) res_buf, res_size)};
     thallium::bulk local = engine->expose(res_segments, thallium::bulk_mode::write_only);
-    res_bulk.on(*endpoint) >> local;
+    res_bulk.on(*(dst_it->second)) >> local;
 
     // unpack the response
     mlog(THALLIUM_DBG, "Unpacking %zu byte response from %d", res_size, req->dst);
@@ -164,7 +171,7 @@ inline Recv_t *process_request(Send_t *req,
 
     // clean up server pointer before handling any errors
     req->timestamps.transport.cleanup_rpc.start = ::Stats::now(); // store the value in req for now
-    rs->cleanup().on(*endpoint)(res_ptr);
+    rs->cleanup().on(*(dst_it->second))(res_ptr);
     req->timestamps.transport.cleanup_rpc.end = ::Stats::now(); // store the value in req for now
 
     if (unpack_rc != TRANSPORT_SUCCESS) {
@@ -227,18 +234,10 @@ Recv_t *process_requests(const Transport::ReqList<Send_t> &messages,
 
         mlog(THALLIUM_DBG, "Sending request to %d", req->dst);
 
-        // figure out where to send the message
-        REF(endpoints)::const_iterator dst_it = endpoints.find(req->dst);
-        if (dst_it == endpoints.end()) {
-            mlog(THALLIUM_WARN, "Could not find endpoint for destination rank %d", req->dst);
-            destruct(req);
-            continue;
-        }
-
     #ifdef ASYNC_THALLIUM
         futures.emplace_back(std::async(std::launch::async,
                                         process_request<Recv_t, Send_t>,
-                                        req, engine, rs, dst_it->second));
+                                        req, engine, rs, std::cref(endpoints)));
 
         mlog(THALLIUM_DBG, "Done sending request to %d", req->dst);
     }
@@ -246,7 +245,7 @@ Recv_t *process_requests(const Transport::ReqList<Send_t> &messages,
     for(std::future<Recv_t *> &future : futures) {
         Recv_t *response = future.get();
     #else
-        Recv_t *response = process_request<Recv_t, Send_t>(req, engine, rs, dst_it->second);
+        Recv_t *response = process_request<Recv_t, Send_t>(req, engine, rs, endpoints);
     #endif
 
         mlog(THALLIUM_DBG, "Received response from %d", response->src);
