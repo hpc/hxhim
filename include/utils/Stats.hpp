@@ -72,11 +72,26 @@ std::ostream &print_event(std::ostream &stream,
                           const Chronopoint &start,
                           const Chronopoint &end);
 
+/**
+ * print_event
+ * Print a timestamp pair in the format
+ * <rank> <name> <start - epoch (ns)> <end - epoch (ns)> <end - start (sec)>
+ *
+ * @param stream     the stream to print to
+ * @param rank       the rank this is printing from
+ * @param name       the name of the event
+ * @param epoch      the epoch timestamps are counting from
+ * @param timestamp  a structure with Chronopoints start and end
+ * @return the stream
+ */
+template <typename T>
 std::ostream &print_event(std::ostream &stream,
                           const int rank,
                           const std::string &name,
-                          const Chronopoint &epoch,
-                          const Chronostamp &timestamp);
+                          const Stats::Chronopoint &epoch,
+                          const T &timestamp) {
+    return print_event(stream, rank, name, epoch, timestamp.start, timestamp.end);
+}
 
 void print_event_to_mlog(const int level,
                          const int rank,

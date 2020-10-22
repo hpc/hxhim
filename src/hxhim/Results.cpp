@@ -53,8 +53,7 @@ hxhim::Results::Result::~Result() {
         if (timestamps.alloc) {
             ::Stats::print_event(s, rank, "Alloc",      epoch, *timestamps.alloc);
         }
-        ::Stats::print_event(s, rank, "ProcessBulk",    epoch, timestamps.transport.start,
-                                                               timestamps.transport.end);
+        ::Stats::print_event(s, rank, "ProcessBulk",    epoch, timestamps.transport);
 
         ::Stats::print_event(s, rank, "Pack",           epoch, timestamps.transport.pack);
         ::Stats::print_event(s, rank, "Transport",      epoch, timestamps.transport.send_start,
