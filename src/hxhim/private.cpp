@@ -25,25 +25,36 @@ hxhim_private::~hxhim_private() {
 }
 
 #if ASYNC_PUTS
-void hxhim::wait_for_background_puts(hxhim_t *hx) {
+void hxhim::wait_for_background_puts(hxhim_t *hx, const bool clear_queued) {
+    // lock async_put.mutex to prevent background thread from completing a loop
+    // or to wait until the previous loop has completed
+    std::unique_lock<std::mutex> lock(hx->p->async_put.mutex);
+    hx->p->async_put.done_check = false;
+
     // force the background thread to flush
     {
-        std::lock_guard <std::mutex> lock(hx->p->queues.puts.mutex);
+        std::lock_guard <std::mutex> flush_lock(hx->p->queues.puts.mutex);
+        if (clear_queued) {
+            // clear each target range server's queue
+            for(hxhim::QueueTarget<Transport::Request::BPut> &target : hx->p->queues.puts.queue) {
+                // clear out queued items for a target single range server
+                for(Transport::Request::BPut *bput : target) {
+                    destruct(bput);
+                }
+                target.clear();
+            }
+            hx->p->queues.puts.queue.clear();
+        }
         hx->p->queues.puts.flushed = true;
     }
 
     hx->p->queues.puts.start_processing.notify_all();
 
     // wait for the background thread to finish
-    {
-        std::unique_lock<std::mutex> lock(hx->p->async_put.mutex);
-
-        hx->p->async_put.done.wait(lock,
-                                   [hx]() -> bool {
-                                       return !hx->p->running || hx->p->async_put.done_check;
-                                   });
-        hx->p->async_put.done_check = false;
-    }
+    hx->p->async_put.done.wait(lock,
+                               [hx]() -> bool {
+                                   return !hx->p->running || hx->p->async_put.done_check;
+                               });
 }
 
 #else

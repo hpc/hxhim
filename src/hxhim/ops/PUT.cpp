@@ -35,11 +35,11 @@ int hxhim::Put(hxhim_t *hx,
                                   object_type,
                                   ReferenceBlob(object, object_len));
 
-    // #if ASYNC_PUTS
-    // hx->p->queues.puts.start_processing.notify_all();
-    // #else
+    #if ASYNC_PUTS
+    hx->p->queues.puts.start_processing.notify_all();
+    #else
     hxhim::serial_puts(hx);
-    // #endif
+    #endif
 
     put.end = ::Stats::now();
     hx->p->stats.single_op[hxhim_op_t::HXHIM_PUT].emplace_back(put);

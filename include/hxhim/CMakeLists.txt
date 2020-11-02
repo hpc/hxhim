@@ -27,10 +27,10 @@ set(HXHIM_HEADERS
   struct.h
 )
 
-# option(ASYNC_PUTS "Flush PUTs asynchronously in addtion to explicit FlushPuts" Off)
-# if (ASYNC_PUTS)
-#   target_compile_definitions(hxhim PRIVATE ASYNC_PUTS=1)
-# endif()
+option(ASYNC_PUTS "Flush PUTs asynchronously in addtion to explicit FlushPuts" Off)
+if (ASYNC_PUTS)
+  target_compile_definitions(hxhim PRIVATE ASYNC_PUTS=1)
+endif()
 
 foreach(HEADER ${HXHIM_HEADERS})
   target_sources(hxhim PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/${HEADER})

@@ -118,6 +118,8 @@ Transport::Response::BPut *datastore::leveldb::BPutImpl(Transport::Request::BPut
     char *key_buffer = (char *) alloc(key_buffer_len);
     char *key_buffer_start = key_buffer;
 
+    memset(key_buffer, 0, key_buffer_len);
+
     // batch up PUTs
     ::leveldb::WriteBatch batch;
     for(std::size_t i = 0; i < req->count; i++) {

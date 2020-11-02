@@ -158,69 +158,70 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
     return hx->p->datastore?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 
-// #if ASYNC_PUTS
-// /**
-//  * backgroundPUT
-//  * The thread that runs when the number of full batches crosses the queued bputs threshold
-//  *
-//  * @param hx      the HXHIM context
-//  */
-// static void backgroundPUT(hxhim_t *hx) {
-//     // if (!hxhim::valid(hx)) {
-//     //     return;
-//     // }
+#if ASYNC_PUTS
+/**
+ * backgroundPUT
+ * The thread that runs when the number of full batches crosses the queued bputs threshold
+ *
+ * @param hx      the HXHIM context
+ */
+static void backgroundPUT(hxhim_t *hx) {
+    // if (!hxhim::valid(hx)) {
+    //     return;
+    // }
 
-//     mlog(HXHIM_CLIENT_DBG, "Started background PUT thread");
+    mlog(HXHIM_CLIENT_DBG, "Started background PUT thread");
 
-//     while (hx->p->running) {
-//         hxhim::Queue<Transport::Request::BPut> puts;
-//         {
-//             // wait for number of PUTs to reach limit
-//             // PUTs/FlushPuts triggers check
-//             std::unique_lock<std::mutex> queue_lock(hx->p->queues.puts.mutex);
-//             hx->p->queues.puts.start_processing.wait(queue_lock,
-//                                                      [hx]() -> bool {
-//                                                          return (!hx->p->running ||
-//                                                                  (hx->p->queues.puts.count >= hx->p->async_put.max_queued) ||
-//                                                                  hx->p->queues.puts.flushed);
-//                                                      }
-//                 );
+    while (hx->p->running) {
+        hxhim::Queue<Transport::Request::BPut> puts;
+        {
+            // wait for number of PUTs to reach limit
+            // PUTs/FlushPuts triggers check
+            std::unique_lock<std::mutex> queue_lock(hx->p->queues.puts.mutex);
+            hx->p->queues.puts.start_processing.wait(queue_lock,
+                                                     [hx]() -> bool {
+                                                         return (!hx->p->running ||
+                                                                 (hx->p->queues.puts.count >= hx->p->async_put.max_queued) ||
+                                                                 hx->p->queues.puts.flushed);
+                                                     }
+                );
 
-//             // puts.mutex now locked
+            // puts.mutex now locked
 
-//             // take PUTs and restore queue
-//             puts = std::move(hx->p->queues.puts.queue);
-//             hx->p->queues.puts.queue.resize(hx->p->range_server.total_range_servers);
-//             hx->p->queues.puts.count = 0;
-//             hx->p->queues.puts.flushed = false;
-//         }
+            // take PUTs and restore queue
+            puts = std::move(hx->p->queues.puts.queue);
+            hx->p->queues.puts.queue.clear();
+            hx->p->queues.puts.queue.resize(hx->p->range_server.total_range_servers);
+            hx->p->queues.puts.count = 0;
+            hx->p->queues.puts.flushed = false;
+        }
 
-//         // puts.mutex unlocked
-//         // new PUTs can enter queue while processing occurs
+        // puts.mutex unlocked
+        // new PUTs can enter queue while processing occurs
 
-//         // process PUTs
-//         hxhim::Results *results = hxhim::process<Transport::Request::BPut, Transport::Response::BPut>(hx, puts);
-//         {
-//             std::lock_guard<std::mutex> async_lock(hx->p->async_put.mutex);
+        // process PUTs
+        hxhim::Results *results = hxhim::process<Transport::Request::BPut, Transport::Response::BPut>(hx, puts);
+        {
+            std::lock_guard<std::mutex> async_lock(hx->p->async_put.mutex);
 
-//             // store/append results
-//             if (hx->p->async_put.results) {
-//                 hx->p->async_put.results->Append(results);
-//                 destruct(results);
-//             }
-//             else {
-//                 hx->p->async_put.results = results;
-//             }
+            // store/append results
+            if (hx->p->async_put.results) {
+                hx->p->async_put.results->Append(results);
+                destruct(results);
+            }
+            else {
+                hx->p->async_put.results = results;
+            }
 
-//             hx->p->async_put.done_check = true;
-//         }
+            hx->p->async_put.done_check = true;
+        }
 
-//         hx->p->async_put.done.notify_all();
-//     }
+        hx->p->async_put.done.notify_all();
+    }
 
-//     mlog(HXHIM_CLIENT_DBG, "Background PUT thread stopping");
-// }
-// #endif
+    mlog(HXHIM_CLIENT_DBG, "Background PUT thread stopping");
+}
+#endif
 
 /**
  * async_put
@@ -241,14 +242,14 @@ int hxhim::init::async_put(hxhim_t *hx, hxhim_options_t *opts) {
     // Set up queued PUT results list
     hx->p->async_put.results = nullptr;
 
-    // #if ASYNC_PUTS
-    // hx->p->queues.puts.flushed = true;
-    // hx->p->async_put.done_check = false;
+    #if ASYNC_PUTS
+    hx->p->queues.puts.flushed = true;
+    hx->p->async_put.done_check = false;
 
-    // // Start the background thread
-    // hx->p->async_put.thread = std::thread(backgroundPUT, hx);
-    // hxhim::wait_for_background_puts(hx);
-    // #endif
+    // Start the background thread
+    hx->p->async_put.thread = std::thread(backgroundPUT, hx);
+    hxhim::wait_for_background_puts(hx);
+    #endif
 
     return HXHIM_SUCCESS;
 }
