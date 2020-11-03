@@ -51,10 +51,9 @@ int hxhim::PutImpl(hxhim_t *hx,
     hash.start = ::Stats::now();
 
     // figure out where this triple is going
-    const int rs_id = hx->p->hash.func(hx,
-                                       subject.data(),   subject.size(),
-                                       predicate.data(), predicate.size(),
-                                       hx->p->hash.args);
+    const int rs_id = hxhim_hash(hx,
+                                 subject.data(),   subject.size(),
+                                 predicate.data(), predicate.size());
 
     hash.end = ::Stats::now();
     if (rs_id < 0) {
@@ -128,10 +127,9 @@ int hxhim::GetImpl(hxhim_t *hx,
     hash.start = ::Stats::now();
 
     // figure out where this triple is going
-    const int rs_id = hx->p->hash.func(hx,
-                                       subject.data(),   subject.size(),
-                                       predicate.data(), predicate.size(),
-                                       hx->p->hash.args);
+    const int rs_id = hxhim_hash(hx,
+                                 subject.data(),   subject.size(),
+                                 predicate.data(), predicate.size());
 
     hash.end = ::Stats::now();
     if (rs_id < 0) {
@@ -198,10 +196,9 @@ int hxhim::GetOpImpl(hxhim_t *hx,
     hash.start = ::Stats::now();
 
     // figure out where this triple is going
-    const int rs_id = hx->p->hash.func(hx,
-                                       subject.data(),   subject.size(),
-                                       predicate.data(), predicate.size(),
-                                       hx->p->hash.args);
+    const int rs_id = hxhim_hash(hx,
+                                 subject.data(),   subject.size(),
+                                 predicate.data(), predicate.size());
 
     hash.end = ::Stats::now();
     if (rs_id < 0) {
@@ -262,10 +259,9 @@ int hxhim::DeleteImpl(hxhim_t *hx,
     hash.start = ::Stats::now();
 
     // figure out where this triple is going
-    const int rs_id = hx->p->hash.func(hx,
-                                       subject.data(),   subject.size(),
-                                       predicate.data(), predicate.size(),
-                                       hx->p->hash.args);
+    const int rs_id = hxhim_hash(hx,
+                                 subject.data(),   subject.size(),
+                                 predicate.data(), predicate.size());
 
     hash.end = ::Stats::now();
     if (rs_id < 0) {

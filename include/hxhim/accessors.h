@@ -7,6 +7,7 @@
 #include <mpi.h>
 
 #include "hxhim/constants.h"
+#include "hxhim/hash.h"
 #include "hxhim/struct.h"
 
 #ifdef __cplusplus
@@ -18,6 +19,8 @@ int hxhimGetEpoch(hxhim_t *hx, struct timespec *epoch);
 int hxhimGetMPI(hxhim_t *hx, MPI_Comm *comm, int *rank, int *size);
 int hxhimGetRangeServerCount(hxhim_t *hx, size_t *count);
 int hxhimGetRangeServerClientToServerRatio(hxhim_t *hx, size_t *client, size_t *server);
+
+int hxhimGetHash(hxhim_t *hx, const char **name, hxhim_hash_t *func, void **args);
 
 #ifdef __cplusplus
 }

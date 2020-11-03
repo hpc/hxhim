@@ -245,3 +245,61 @@ int hxhim::GetPrintBufferContents(hxhim_t *hx, std::ostream &stream) {
     hx->p->print_buffer.clear();
     return HXHIM_SUCCESS;
 }
+
+/**
+ * GetHash
+ * Get information about the hash used in the hxhim instance
+ *
+ * @param hx     the HXHIM instance
+ * @param name   the name of the hash function
+ * @param func   the hash function
+ * @param args   extra arguments to the hash function
+ * @return HXHIM_SUCCESS or HXHIM_ERROR on error
+ */
+int hxhim::nocheck::GetHash(hxhim_t *hx, const char **name, hxhim_hash_t *func, void **args) {
+    if (name) {
+        *name = hx->p->hash.name.c_str();
+    }
+
+    if (func) {
+        *func = hx->p->hash.func;
+    }
+
+    if (args) {
+        *args = hx->p->hash.args;
+    }
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * GetHash
+ * Get information about the hash used in the hxhim instance
+ *
+ * @param hx     the HXHIM instance
+ * @param name   the name of the hash function
+ * @param func   the hash function
+ * @param args   extra arguments to the hash function
+ * @return HXHIM_SUCCESS or HXHIM_ERROR on error
+ */
+int hxhim::GetHash(hxhim_t *hx, const char **name, hxhim_hash_t *func, void **args) {
+    if (!valid(hx) || !hx->p->running) {
+        return HXHIM_ERROR;
+    }
+
+    return hxhim::nocheck::GetHash(hx, name, func, args);
+}
+
+/**
+ * hxhimGetHash
+ * Get information about the hash used in the hxhim instance
+ *
+ * @param hx     the HXHIM instance
+ * @param name   the name of the hash function
+ * @param func   the hash function
+ * @param args   extra arguments to the hash function
+ * @return HXHIM_SUCCESS or HXHIM_ERROR on error
+ */
+int hxhimGetHash(hxhim_t *hx, const char **name, hxhim_hash_t *func, void **args) {
+    return hxhim::GetHash(hx, name, func, args);
+}

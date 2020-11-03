@@ -8,6 +8,7 @@
 #include <mpi.h>
 
 #include "hxhim/accessors.h"
+#include "hxhim/hash.h"
 #include "hxhim/struct.h"
 #include "utils/Stats.hpp"
 
@@ -20,6 +21,8 @@ int GetRangeServerCount(hxhim_t *hx, std::size_t *count);
 int GetRangeServerClientToServerRatio(hxhim_t *hx, std::size_t *client, std::size_t *server);
 
 int GetPrintBufferContents(hxhim_t *hx, std::ostream &stream);
+
+int GetHash(hxhim_t *hx, const char **name, hxhim_hash_t *func, void **args);
 
 }
 

@@ -7,6 +7,33 @@
 #include "utils/uthash.h"
 
 /**
+ * hxhim_hash
+ * This function wraps the hash function set by the
+ * configuration and performs generic checks.
+ *
+ * @param hx            the HXHIM instance
+ * @param subject       the subject to hash
+ * @param subject_len   the length of the subject
+ * @param predicate     the predicate to hash
+ * @param predicate_len the length of the predicate
+ * @return the destination datastore ID or -1 on error
+ */
+int hxhim_hash(hxhim_t *hx,
+               void *subject, const size_t subject_len,
+               void *predicate, const size_t predicate_len) {
+    hxhim_hash_t func = nullptr;
+    void *args = nullptr;
+    if (hxhim::GetHash(hx, nullptr, &func, &args) != HXHIM_SUCCESS) {
+        return -1;
+    }
+
+    return func(hx,
+                subject, subject_len,
+                predicate, predicate_len,
+                args);
+}
+
+/**
  * hxhim_hash_RankZero
  *
  * @return 0

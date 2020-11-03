@@ -32,6 +32,11 @@ typedef int (*hxhim_hash_t)(hxhim_t *hx,
                             void *predicate, const size_t predicate_len,
                             void *args);
 
+/** This function wraps the chosen hash function and performs checks */
+int hxhim_hash(hxhim_t *hx,
+               void *subject, const size_t subject_len,
+               void *predicate, const size_t predicate_len);
+
 /** @description Simple, predefined hashes */
 int hxhim_hash_RankZero(hxhim_t *hx,
                         void *subject, const size_t subject_len,
