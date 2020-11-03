@@ -196,15 +196,14 @@ int hxhim::Close(hxhim_t *hx) {
     Results::Destroy(hxhim::Sync(hx));
     mlog(HXHIM_CLIENT_DBG, "Rank %d Closing HXHIM", rank);
 
-    destroy::async_put(hx);
-
-    // make sure all ranks are ready to destroy the transport
+    // make sure all ranks are ready to stop
     MPI_Barrier(comm);
 
-    destroy::transport(hx);
-    destroy::datastore(hx);
-    destroy::queues(hx);
     destroy::hash(hx);
+    destroy::queues(hx);    // clear queued work
+    destroy::async_put(hx); // complete existing processing and prevent new processing
+    destroy::transport(hx); // prevent work from getting into transport
+    destroy::datastore(hx);
 
     // stats should not be modified any more
 
