@@ -52,6 +52,7 @@ int hxhim::destroy::queues(hxhim_t *hx) {
         std::lock_guard<std::mutex> lock(hx->p->queues.puts.mutex);
         #endif
         destroy_queue(hx->p->queues.puts.queue);
+        hx->p->queues.puts.count = 0;
     }
     destroy_queue(hx->p->queues.gets);
     destroy_queue(hx->p->queues.getops);

@@ -147,10 +147,11 @@ Transport::Response::BPut *datastore::Datastore::operate(Transport::Request::BPu
     // tuples are actually PUT.
     Transport::Response::BPut *res = BPutImpl(req);
 
-    if (hist) {
+    if (hist && res) {
         // add successfully PUT floating point values to the histogram
         for(std::size_t i = 0; i < req->count; i++) {
             if (res->statuses[i] == DATASTORE_SUCCESS) {
+
                 switch (req->object_types[i]) {
                     case HXHIM_OBJECT_TYPE_FLOAT:
                         hist->add(* (float *) req->objects[i].data());

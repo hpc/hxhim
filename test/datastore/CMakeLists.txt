@@ -22,6 +22,7 @@ endif()
 
 set(DS_TEST_SRC
   GetStats.cpp
+  Histogram.cpp
   InMemory.cpp
   common.cpp
   rm_r.hpp

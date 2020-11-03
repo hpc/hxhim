@@ -30,6 +30,9 @@ class Histogram {
         // Add a value to the histogram
         int add(const double &value);
 
+        // Return references to the data being used to generate the buckets
+        int get_cache(std::size_t *first_n, double **cache, std::size_t *size) const;
+
         // Return references to internal arrays
         int get(double **buckets, std::size_t **counts, std::size_t *size) const;
 
@@ -49,13 +52,13 @@ class Histogram {
         int insert(const double &value);
 
         // set in constructor
-        std::size_t first_n;                    // size of data before the buckets are generated
-        HistogramBucketGenerator_t gen;         // the function to use to generate buckets
-        void *extra;                            // extra arguments needed by the bucket generator
+        std::size_t first_n_;                   // size of data before the buckets are generated
+        HistogramBucketGenerator_t gen_;        // the function to use to generate buckets
+        void *extra_;                           // extra arguments needed by the bucket generator
 
         // state data
-        double *data;                           // the data being used to generate the buckets
-        std::size_t data_size;                  // the number of values that have been added into this histogram
+        double *cache_;                         // the data being used to generate the buckets
+        std::size_t count_;                     // the number of values that have been added into this histogram; also used for generating buckets
 
         double *buckets_;                       // the left end of the buckets
         std::size_t *counts_;                   // the counts at the buckets

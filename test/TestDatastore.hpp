@@ -10,22 +10,27 @@ static const uint64_t GET_TIME_UINT64 = std::chrono::duration_cast<std::chrono::
 
 class TestDatastore : public datastore::Datastore {
     public:
-        TestDatastore(const int id)
-            : datastore::Datastore(0, id, nullptr)
+        TestDatastore(const int id, Histogram::Histogram *hist = nullptr)
+            : datastore::Datastore(0, id, hist)
         {}
 
     private:
         bool OpenImpl(const std::string &) { return true; }
         void CloseImpl() {}
 
-        Transport::Response::BPut *BPutImpl(Transport::Request::BPut *) {
+        Transport::Response::BPut *BPutImpl(Transport::Request::BPut *req) {
             datastore::Datastore::Stats::Event event;
             event.time.start = ::Stats::now();
             event.count = 1;
             event.time.end = event.time.start + PUT_TIME;
             stats.puts.emplace_back(event);
 
-            return nullptr;
+            Transport::Response::BPut *res = construct<Transport::Response::BPut>(req->count);
+            res->count = req->count;
+            for(std::size_t i = 0; i < req->count; i++) {
+                res->statuses[i] = DATASTORE_SUCCESS;
+            }
+            return res;
         }
 
         Transport::Response::BGet *BGetImpl(Transport::Request::BGet *) {

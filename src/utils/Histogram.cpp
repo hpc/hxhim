@@ -157,19 +157,15 @@ int histogram_uniform_logn(const double *first_n, const size_t n, double **bucke
 }
 
 Histogram::Histogram::Histogram(const Config &config)
-    : first_n(config.first_n),
-      gen(config.generator),
-      extra(config.extra_args),
-      data(nullptr),
-      data_size(0),
+    : first_n_(config.first_n),
+      gen_(config.generator),
+      extra_(config.extra_args),
+      cache_(alloc_array<double>(first_n_)),
+      count_(0),
       buckets_(nullptr),
       counts_(nullptr),
       size_(0)
-{
-    if (!(data = new double[first_n]())) {
-        throw std::runtime_error("Could not allocate space for first n values");
-    }
-}
+{}
 
 Histogram::Histogram::Histogram(Config *config)
     : Histogram(*config)
@@ -181,7 +177,7 @@ Histogram::Histogram::~Histogram() {
     mlog(HISTOGRAM_NOTE, "\n%s", s.str().c_str());
 
     clear();
-    delete [] data;
+    dealloc_array(cache_);
 }
 
 /**
@@ -198,32 +194,58 @@ Histogram::Histogram::~Histogram() {
  */
 int Histogram::Histogram::add(const double &value) {
     // limit has not been hit
-    if (data_size < first_n) {
-        data[data_size] = value;
+    if (count_ < first_n_) {
+        cache_[count_] = value;
     }
 
-    data_size++;
+    count_++;
 
     // insert into the buckets if the limit has been hit
-    if (data_size >= first_n) {
+    if (count_ >= first_n_) {
         if (!buckets_) {
             // generate the buckets and allocate space for the counts
-            if ((gen(data, data_size, &buckets_, &size_, extra) != HISTOGRAM_SUCCESS) ||
-                (gen_counts()                                   != HISTOGRAM_SUCCESS)) {
+            if ((gen_(cache_, count_, &buckets_, &size_, extra_) != HISTOGRAM_SUCCESS) ||
+                (gen_counts()                                    != HISTOGRAM_SUCCESS)) {
                 return HISTOGRAM_ERROR;
             }
 
             // insert original data
-            for(std::size_t i = 0; i < first_n; i++) {
-                insert(data[i]);
+            for(std::size_t i = 0; i < first_n_; i++) {
+                insert(cache_[i]);
             }
         }
 
-        // if data_size == first_n, the value will be in data array
+        // if count == first_n, the value will be in data array
         // cannot use else bcause first_n == 0 will break
-        if (data_size > first_n) {
+        if (count_ > first_n_) {
             insert(value);
         }
+    }
+
+    return HISTOGRAM_SUCCESS;
+}
+
+/**
+ * get_cache
+ * Gets the internal data for generating buckets
+ *
+ * @param first_n  the maximum number of cached doubles used to generate the buckets
+ * @param cache    the array of cached doubles
+ * @param size     the number of doubles that have been cached
+ */
+int Histogram::Histogram::get_cache(std::size_t *first_n,
+                                    double **cache,
+                                    std::size_t *size) const {
+    if (first_n) {
+        *first_n = first_n_;
+    }
+
+    if (cache) {
+        *cache = cache_;
+    }
+
+    if (size) {
+        *size = std::min(first_n_, count_);
     }
 
     return HISTOGRAM_SUCCESS;
@@ -242,6 +264,10 @@ int Histogram::Histogram::add(const double &value) {
  * @return HISTOGRAM_SUCCESS
  */
 int Histogram::Histogram::get(double **buckets, std::size_t **counts, std::size_t *size) const {
+    if (count_  < first_n_) {
+        return HISTOGRAM_ERROR;
+    }
+
     if (buckets) {
         *buckets = buckets_;
     }
@@ -265,12 +291,12 @@ int Histogram::Histogram::get(double **buckets, std::size_t **counts, std::size_
  * @return size != 0 on success, 0 on failure
  */
 std::size_t Histogram::Histogram::pack_size() const {
-    if ((data_size < first_n) ||
+    if ((count_ < first_n_) ||
         !buckets_ || !counts_) {
         return 0;
     }
 
-    return sizeof(data_size) +
+    return sizeof(count_) +
         sizeof(size_) +
         size_ * (sizeof(double) + sizeof(std::size_t));
 }
@@ -278,7 +304,7 @@ std::size_t Histogram::Histogram::pack_size() const {
 /**
  * pack
  * Serialize a Histogram for transport
- * If the data_size is less than first_n, pack will fail since
+ * If the count is less than first_n, pack will fail since
  * the buckets will not have been created yet.
  *
  * @param buf   pointer to a memory location where the serialized data will be
@@ -319,8 +345,8 @@ bool Histogram::Histogram::pack(char *&curr, std::size_t &avail, std::size_t *us
 
     char *orig = curr;
 
-    memcpy(curr, &data_size, sizeof(data_size));
-    curr += sizeof(data_size);
+    memcpy(curr, &count_, sizeof(count_));
+    curr += sizeof(count_);
 
     memcpy(curr, &size_, sizeof(size_));
     curr += sizeof(size_);
@@ -375,8 +401,8 @@ bool Histogram::Histogram::unpack(char *&curr, std::size_t &size, std::size_t *u
 
     char *orig = curr;
 
-    memcpy(&data_size, curr, sizeof(data_size));
-    curr += sizeof(data_size);
+    memcpy(&count_, curr, sizeof(count_));
+    curr += sizeof(count_);
 
     memcpy(&size_, curr, sizeof(size_));
     curr += sizeof(size_);
@@ -405,8 +431,8 @@ bool Histogram::Histogram::unpack(char *&curr, std::size_t &size, std::size_t *u
  * the first n values.
  */
 void Histogram::Histogram::clear() {
-    first_n = 0;
-    data_size = 0;
+    first_n_ = 0;
+    count_ = 0;
 
     dealloc_array(buckets_, size_);
     buckets_ = nullptr;
@@ -418,7 +444,7 @@ void Histogram::Histogram::clear() {
 }
 
 std::ostream &Histogram::Histogram::print(std::ostream &stream, const std::string &indent) {
-    stream << indent << "Histogram has " << data_size << " values" << std::endl;
+    stream << indent << "Histogram has " << count_ << " values" << std::endl;
     for(std::size_t i = 0; i < size_; i++) {
         stream << indent << indent << buckets_[i] << ": " << counts_[i] << std::endl;
     }
@@ -432,7 +458,7 @@ std::ostream &Histogram::Histogram::print(std::ostream &stream, const std::strin
  * @return HISTOGRAM_SUCCESS, or HISTOGRAM_ERROR on error
  */
 int Histogram::Histogram::gen_counts() {
-    if (data_size < first_n) {
+    if (count_ < first_n_) {
         return HISTOGRAM_ERROR;
     }
 
