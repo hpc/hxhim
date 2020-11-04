@@ -20,19 +20,15 @@ namespace hxhim {
     }
 }
 
-#ifdef __cplusplus
 extern "C"
 {
-#endif
 
 typedef struct hxhim_results {
     hxhim_t *hx;
     hxhim::Results *res;
 } hxhim_results_t;
 
-#ifdef __cplusplus
 }
-#endif
 
 /* wraps a hxhim::Results with a hxhim_results_t */
 hxhim_results_t *hxhim_results_init(hxhim_t *hx, hxhim::Results *res);

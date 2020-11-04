@@ -13,10 +13,8 @@
 #include "transport/Options.hpp"
 #include "utils/Histogram.hpp"
 
-#ifdef __cplusplus
 extern "C"
 {
-#endif
 
 /**
  * The entire collection of configuration options
@@ -48,9 +46,7 @@ typedef struct hxhim_options_private {
     struct Histogram::Config histogram;
 } hxhim_options_private_t;
 
-#ifdef __cplusplus
 }
-#endif
 
 // Private functions for setting options that have side effects
 int hxhim_options_set_requests_regions_in_config(hxhim_options_t *opts, const size_t regions);
