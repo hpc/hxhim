@@ -33,6 +33,7 @@ int hxhim::BGetOp(hxhim_t *hx,
 
     ::Stats::Chronostamp bgetop;
     bgetop.start = ::Stats::now();
+
     for(std::size_t i = 0; i < count; i++) {
         hxhim::GetOpImpl(hx,
                          hx->p->queues.getops,
@@ -41,8 +42,9 @@ int hxhim::BGetOp(hxhim_t *hx,
                          object_types[i],
                          num_records[i], ops[i]);
     }
+
     bgetop.end = ::Stats::now();
-    hx->p->stats.bulk_op[hxhim_op_t::HXHIM_GETOP].emplace_back();
+    hx->p->stats.bulk_op[hxhim_op_t::HXHIM_GETOP].emplace_back(bgetop);
     return HXHIM_SUCCESS;
 }
 

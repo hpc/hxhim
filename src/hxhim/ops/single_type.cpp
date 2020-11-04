@@ -18,6 +18,9 @@ int hxhim::BPutSingleType(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
+    ::Stats::Chronostamp bput;
+    bput.start = ::Stats::now();
+
     for(std::size_t i = 0; i < count; i++) {
         hxhim::PutImpl(hx,
                        hx->p->queues.puts.queue,
@@ -34,6 +37,8 @@ int hxhim::BPutSingleType(hxhim_t *hx,
     #endif
 
     mlog(HXHIM_CLIENT_DBG, "Completed %zu PUTs of type %d", count, object_type);
+    bput.end = ::Stats::now();
+    hx->p->stats.bulk_op[hxhim_op_t::HXHIM_PUT].emplace_back(bput);
     return HXHIM_SUCCESS;
 }
 
@@ -62,6 +67,9 @@ int hxhim::BGetSingleType(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
+    ::Stats::Chronostamp bget;
+    bget.start = ::Stats::now();
+
     for(std::size_t i = 0; i < count; i++) {
         hxhim::GetImpl(hx,
                        hx->p->queues.gets,
@@ -71,6 +79,9 @@ int hxhim::BGetSingleType(hxhim_t *hx,
     }
 
     mlog(HXHIM_CLIENT_DBG, "Completed %zu GETs of type %d", count, object_type);
+
+    bget.end = ::Stats::now();
+    hx->p->stats.bulk_op[hxhim_op_t::HXHIM_GET].emplace_back(bget);
     return HXHIM_SUCCESS;
 }
 
@@ -101,6 +112,9 @@ int hxhim::BGetOpSingleType(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
+    ::Stats::Chronostamp bgetop;
+    bgetop.start = ::Stats::now();
+
     for(std::size_t i = 0; i < count; i++) {
         hxhim::GetOpImpl(hx,
                          hx->p->queues.getops,
@@ -111,6 +125,9 @@ int hxhim::BGetOpSingleType(hxhim_t *hx,
     }
 
     mlog(HXHIM_CLIENT_DBG, "Completed %zu GETs of type %d", count, object_type);
+
+    bgetop.end = ::Stats::now();
+    hx->p->stats.bulk_op[hxhim_op_t::HXHIM_GETOP].emplace_back(bgetop);
     return HXHIM_SUCCESS;
 }
 

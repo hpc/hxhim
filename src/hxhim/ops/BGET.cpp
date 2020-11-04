@@ -30,6 +30,7 @@ int hxhim::BGet(hxhim_t *hx,
 
     ::Stats::Chronostamp bget;
     bget.start = ::Stats::now();
+
     for(std::size_t i = 0; i < count; i++) {
         hxhim::GetImpl(hx,
                        hx->p->queues.gets,
@@ -37,8 +38,9 @@ int hxhim::BGet(hxhim_t *hx,
                        ReferenceBlob(predicates[i], predicate_lens[i]),
                        object_types[i]);
     }
+
     bget.end = ::Stats::now();
-    hx->p->stats.bulk_op[hxhim_op_t::HXHIM_GET].emplace_back();
+    hx->p->stats.bulk_op[hxhim_op_t::HXHIM_GET].emplace_back(bget);
     return HXHIM_SUCCESS;
 }
 
