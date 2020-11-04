@@ -1,5 +1,3 @@
-#include <cstring>
-
 #include "transport/Messages/Message.hpp"
 
 Transport::Message::Message(const Message::Direction dir, const enum hxhim_op_t op, const std::size_t max_count)

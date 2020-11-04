@@ -8,7 +8,6 @@
 #include "transport/Messages/Request.hpp"
 #include "transport/Messages/Response.hpp"
 #include "transport/constants.hpp"
-#include "utils/Blob.hpp"
 #include "utils/Histogram.hpp"
 
 namespace Transport {

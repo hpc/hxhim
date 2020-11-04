@@ -2,7 +2,6 @@
 #define TRANSPORT_PACKER_HPP
 
 #include "transport/Messages/Messages.hpp"
-#include "utils/memory.hpp"
 
 namespace Transport {
 

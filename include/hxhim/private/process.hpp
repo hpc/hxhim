@@ -1,8 +1,6 @@
 #ifndef TRANSPORT_BACKEND_LOCAL_PROCESS_HPP
 #define TRANSPORT_BACKEND_LOCAL_PROCESS_HPP
 
-#include <cstring>
-
 #include "hxhim/private/Results.hpp"
 #include "hxhim/private/hxhim.hpp"
 #include "transport/backend/local/RangeServer.hpp"

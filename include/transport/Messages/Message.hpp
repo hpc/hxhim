@@ -2,7 +2,6 @@
 #define TRANSPORT_MESSAGE_BASE_HPP
 
 #include <cstdint>
-#include <memory>
 
 #include "hxhim/constants.h"
 #include "transport/constants.hpp"

@@ -1,9 +1,7 @@
-#include <ctime>
-#include <cstring>
-
 #include "datastore/constants.hpp"
 #include "transport/Messages/Packer.hpp"
 #include "utils/little_endian.hpp"
+#include "utils/memory.hpp"
 
 namespace Transport {
 
