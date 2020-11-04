@@ -21,11 +21,11 @@
  * @param true, or false on error
  */
 template <typename T, typename = enable_if_t <!std::is_reference<T>::value> >
-bool parse_value(hxhim_options_t *opts, const Config &config, const std::string &key, int (*set_option)(hxhim_options_t *, const T)) {
+bool parse_value(hxhim_options_t *opts, const Config::Config &config, const std::string &key, int (*set_option)(hxhim_options_t *, const T)) {
     T value = {};
-    const int ret = get_value(config, key, value);
-    if ((ret == CONFIG_ERROR)                                                 ||
-        ((ret == CONFIG_FOUND) && (set_option(opts, value) != HXHIM_SUCCESS))) {
+    const int ret = Config::get_value(config, key, value);
+    if ((ret == Config::ERROR)                                                 ||
+        ((ret == Config::FOUND) && (set_option(opts, value) != HXHIM_SUCCESS))) {
         return false;
     }
 
@@ -43,11 +43,11 @@ bool parse_value(hxhim_options_t *opts, const Config &config, const std::string 
  * @param set_option  the function to do the setting of the option
  * @param true, or false on error
  */
-static bool parse_value(hxhim_options_t *opts, const Config &config, const std::string &key, int (*set_option)(hxhim_options_t *, const char *)) {
+static bool parse_value(hxhim_options_t *opts, const Config::Config &config, const std::string &key, int (*set_option)(hxhim_options_t *, const char *)) {
     std::string value;
-    const int ret = get_value(config, key, value);
-    if ((ret == CONFIG_ERROR)                                                         ||
-        ((ret == CONFIG_FOUND) && (set_option(opts, value.c_str()) != HXHIM_SUCCESS))) {
+    const int ret = Config::get_value(config, key, value);
+    if ((ret == Config::ERROR)                                                         ||
+        ((ret == Config::FOUND) && (set_option(opts, value.c_str()) != HXHIM_SUCCESS))) {
         return false;
     }
 
@@ -67,11 +67,11 @@ static bool parse_value(hxhim_options_t *opts, const Config &config, const std::
  * @param true, or false on error
  */
 template <typename T, typename = enable_if_t <!std::is_reference<T>::value> >
-bool parse_map_value(hxhim_options_t *opts, const Config &config, const std::string &key, const std::unordered_map<std::string, T> &map, int (*set_option)(hxhim_options_t *, const T)) {
+bool parse_map_value(hxhim_options_t *opts, const Config::Config &config, const std::string &key, const std::unordered_map<std::string, T> &map, int (*set_option)(hxhim_options_t *, const T)) {
     T value = {};
-    const int ret = get_from_map(config, key, map, value);
-    if ((ret == CONFIG_ERROR)                                                 ||
-        ((ret == CONFIG_FOUND) && (set_option(opts, value) != HXHIM_SUCCESS))) {
+    const int ret = Config::get_from_map(config, key, map, value);
+    if ((ret == Config::ERROR)                                                 ||
+        ((ret == Config::FOUND) && (set_option(opts, value) != HXHIM_SUCCESS))) {
         return false;
     }
 
@@ -90,20 +90,20 @@ bool parse_map_value(hxhim_options_t *opts, const Config &config, const std::str
  * @param config the configuration to use
  * @return a boolean indicating whether or not an error was encountered
  */
-static bool parse_datastore(hxhim_options_t *opts, const Config &config) {
+static bool parse_datastore(hxhim_options_t *opts, const Config::Config &config) {
     datastore::Type datastore;
 
-    int ret = get_from_map(config, hxhim::config::DATASTORE_TYPE, hxhim::config::DATASTORES, datastore);
+    int ret = Config::get_from_map(config, hxhim::config::DATASTORE_TYPE, hxhim::config::DATASTORES, datastore);
 
-    if (ret == CONFIG_NOT_FOUND) {
+    if (ret == Config::NOT_FOUND) {
         return false;
     }
 
-    if (ret == CONFIG_ERROR) {
+    if (ret == Config::ERROR) {
         return false;
     }
 
-    if (ret == CONFIG_FOUND) {
+    if (ret == Config::FOUND) {
         switch (datastore) {
             case datastore::IN_MEMORY:
                 return (hxhim_options_set_datastore_in_memory(opts) == HXHIM_SUCCESS);
@@ -111,13 +111,13 @@ static bool parse_datastore(hxhim_options_t *opts, const Config &config) {
             case datastore::LEVELDB:
                 {
                     // get the leveldb datastore prefix prefix
-                    Config_it prefix = config.find(hxhim::config::LEVELDB_PREFIX);
+                    Config::Config_it prefix = config.find(hxhim::config::LEVELDB_PREFIX);
                     if (prefix == config.end()) {
                         return false;
                     }
 
                     bool create_if_missing = true; // default to true; do not error if not found
-                    if (get_value(config, hxhim::config::LEVELDB_CREATE_IF_MISSING, create_if_missing) == CONFIG_ERROR) {
+                    if (Config::get_value(config, hxhim::config::LEVELDB_CREATE_IF_MISSING, create_if_missing) == Config::ERROR) {
                         return false;
                     }
 
@@ -134,13 +134,13 @@ static bool parse_datastore(hxhim_options_t *opts, const Config &config) {
             case datastore::ROCKSDB:
                 {
                     // get the rocksdb datastore prefix prefix
-                    Config_it prefix = config.find(hxhim::config::ROCKSDB_PREFIX);
+                    Config::Config_it prefix = config.find(hxhim::config::ROCKSDB_PREFIX);
                     if (prefix == config.end()) {
                         return false;
                     }
 
                     bool create_if_missing = true; // default to true; do not error if not found
-                    if (get_value(config, hxhim::config::ROCKSDB_CREATE_IF_MISSING, create_if_missing) == CONFIG_ERROR) {
+                    if (Config::get_value(config, hxhim::config::ROCKSDB_CREATE_IF_MISSING, create_if_missing) == Config::ERROR) {
                         return false;
                     }
 
@@ -163,18 +163,18 @@ static bool parse_datastore(hxhim_options_t *opts, const Config &config) {
     return false;
 }
 
-static bool parse_hash(hxhim_options_t *opts, const Config &config) {
+static bool parse_hash(hxhim_options_t *opts, const Config::Config &config) {
     return parse_value(opts, config, hxhim::config::HASH, hxhim_options_set_hash_name);
 }
 
-static bool parse_transport(hxhim_options_t *opts, const Config &config) {
+static bool parse_transport(hxhim_options_t *opts, const Config::Config &config) {
     Transport::Type transport_type;
-    const int ret = get_from_map(config, hxhim::config::TRANSPORT, hxhim::config::TRANSPORTS, transport_type);
-    if (ret == CONFIG_ERROR) {
+    const int ret = Config::get_from_map(config, hxhim::config::TRANSPORT, hxhim::config::TRANSPORTS, transport_type);
+    if (ret == Config::ERROR) {
         return false;
     }
 
-    if (ret == CONFIG_FOUND) {
+    if (ret == Config::FOUND) {
         switch (transport_type) {
             case Transport::TRANSPORT_NULL:
                 {
@@ -185,7 +185,7 @@ static bool parse_transport(hxhim_options_t *opts, const Config &config) {
             case Transport::TRANSPORT_MPI:
                 {
                     std::size_t listeners;
-                    if (get_value(config, hxhim::config::MPI_LISTENERS, listeners) != CONFIG_FOUND) {
+                    if (Config::get_value(config, hxhim::config::MPI_LISTENERS, listeners) != Config::FOUND) {
                         return false;
                     }
 
@@ -196,7 +196,7 @@ static bool parse_transport(hxhim_options_t *opts, const Config &config) {
             #if HXHIM_HAVE_THALLIUM
             case Transport::TRANSPORT_THALLIUM:
                 {
-                    Config_it thallium_module = config.find(hxhim::config::THALLIUM_MODULE);
+                    Config::Config_it thallium_module = config.find(hxhim::config::THALLIUM_MODULE);
                     if (thallium_module == config.end()) {
                         return false;
                     }
@@ -214,8 +214,8 @@ static bool parse_transport(hxhim_options_t *opts, const Config &config) {
     return false;
 }
 
-static bool parse_endpointgroup(hxhim_options_t *opts, const Config &config) {
-    Config_it endpointgroup = config.find(hxhim::config::TRANSPORT_ENDPOINT_GROUP);
+static bool parse_endpointgroup(hxhim_options_t *opts, const Config::Config &config) {
+    Config::Config_it endpointgroup = config.find(hxhim::config::TRANSPORT_ENDPOINT_GROUP);
     if (endpointgroup != config.end()) {
         hxhim_options_clear_endpoint_group(opts);
         if (endpointgroup->second == "ALL") {
@@ -230,9 +230,8 @@ static bool parse_endpointgroup(hxhim_options_t *opts, const Config &config) {
             return true;
         }
         else {
-            std::stringstream s(endpointgroup->second);
             int id;
-            while (s >> id) {
+            while (std::stringstream(endpointgroup->second) >> id) {
                 if (hxhim_options_add_endpoint_to_group(opts, id) != HXHIM_SUCCESS) {
                     // should probably write to mlog and continue instead of returning
                     return false;
@@ -254,7 +253,7 @@ static bool parse_endpointgroup(hxhim_options_t *opts, const Config &config) {
  * @param the configuration to use
  * @param HXHIM_SUCCESS or HXHIM_ERROR on error
  */
-static int fill_options(hxhim_options_t *opts, const Config &config) {
+static int fill_options(hxhim_options_t *opts, const Config::Config &config) {
     if (!opts || !opts->p                ||
         (opts->p->comm == MPI_COMM_NULL)) {
         return HXHIM_ERROR;
@@ -289,18 +288,18 @@ static int fill_options(hxhim_options_t *opts, const Config &config) {
  *
  * opts should be cleaned up by the calling function.
  *
- * @param opts            the options to fill
- * @param config_sequence the configuration reader that has been set up
+ * @param opts     the options to fill
+ * @param sequence the configuration reader that has been set up
  * @return whether or not opts was successfully filled
  */
-int process_config_and_fill_options(hxhim_options_t *opts, ConfigSequence &config_sequence) {
+int process_config_and_fill_options(hxhim_options_t *opts, Config::Sequence &sequence) {
     if (!opts || !opts->p) {
         return HXHIM_ERROR;
     }
 
     // Parse the configuration data
-    Config config;
-    config_sequence.process(config);
+    Config::Config config;
+    sequence.process(config);
 
     // fill opts with values from configuration
     return fill_options(opts, config);
@@ -321,21 +320,21 @@ int hxhim::config::default_reader(hxhim_options_t *opts, MPI_Comm comm) {
         return HXHIM_ERROR;
     }
 
-    ConfigSequence config_sequence;
+    Config::Sequence sequence;
 
     // try to find the default configuration file first
-    ConfigFile file(hxhim::config::CONFIG_FILE);
-    config_sequence.add(&file);
+    Config::File file(hxhim::config::CONFIG_FILE);
+    sequence.add(&file);
 
-    // overwrite values with the file pointed to by CONFIG_ENV
-    ConfigFileEnvironment fileenv(hxhim::config::CONFIG_ENV);
-    config_sequence.add(&fileenv);
+    // overwrite values with the file pointed to by Config::ENV
+    Config::EnvironmentFile fileenv(hxhim::config::CONFIG_ENV);
+    sequence.add(&fileenv);
 
     // overwite values with individual environment variables
-    std::vector<ConfigVarEnvironment *> vars;
+    std::vector<Config::EnvironmentVar *> vars;
     for(decltype(hxhim::config::DEFAULT_CONFIG)::value_type const &default_config : hxhim::config::DEFAULT_CONFIG) {
-        ConfigVarEnvironment *var = new ConfigVarEnvironment(hxhim::config::HXHIM_ENV_NAMESPACE + default_config.first, default_config.first);
-        config_sequence.add(var);
+        Config::EnvironmentVar *var = new Config::EnvironmentVar(hxhim::config::HXHIM_ENV_NAMESPACE + default_config.first, default_config.first);
+        sequence.add(var);
         vars.push_back(var);
     }
 
@@ -345,11 +344,11 @@ int hxhim::config::default_reader(hxhim_options_t *opts, MPI_Comm comm) {
     hxhim_options_set_mpi_bootstrap(opts, comm);
 
     if ((fill_options(opts, hxhim::config::DEFAULT_CONFIG)      != HXHIM_SUCCESS) || // fill in the options with default values
-        (process_config_and_fill_options(opts, config_sequence) != HXHIM_SUCCESS)) { // read the configuration and overwrite default values
+        (process_config_and_fill_options(opts, sequence) != HXHIM_SUCCESS)) { // read the configuration and overwrite default values
         ret = HXHIM_ERROR;
     }
 
-    for(ConfigVarEnvironment *var : vars) {
+    for(Config::EnvironmentVar *var : vars) {
         delete var;
     }
 

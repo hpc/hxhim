@@ -160,7 +160,7 @@ const std::unordered_map<std::string, void *> HISTOGRAM_BUCKET_GENERATOR_EXTRA_A
 /**
  * Default configurations that can be hard coded
  */
-const Config DEFAULT_CONFIG = {
+const Config::Config DEFAULT_CONFIG = {
     std::make_pair(DEBUG_LEVEL,                   "CRITICAL"),
     std::make_pair(CLIENT_RATIO,                  "2"),
     std::make_pair(SERVER_RATIO,                  "1"),

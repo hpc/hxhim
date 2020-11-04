@@ -1,77 +1,82 @@
 #ifndef CONFIGURATION
 #define CONFIGURATION
 
-#include <algorithm>
-#include <cmath>
 #include <list>
 #include <sstream>
 #include <string>
 #include <unordered_map>
 
+#include "utils/macros.hpp"
+
+namespace Config {
+
+const int FOUND     = 0;
+const int NOT_FOUND = 1;
+const int ERROR     = 2;
 
 /** @description The underlying configuration type */
 typedef std::unordered_map<std::string, std::string> Config;
 typedef Config::const_iterator Config_it;
 
 /**
- * ConfigReader
+ * Reader
  * The base type for methods of finding, reading, and parsing
  * configuration sources.
  *
- * ConfigReaders should be added to ConfigSequence to be called
+ * Readers should be added to Sequence to be called
  * in the desired order.
  */
-class ConfigReader {
+class Reader {
     public:
-        virtual ~ConfigReader() = 0;
+        virtual ~Reader() = 0;
 
         /** @description This function should be implemented in order to fill in a configuration */
         virtual bool process(Config &config) const = 0;
 };
 
 /**
- * ConfigSequence
- * A series of user defined child classes of ConfigReader
- * are passed into ConfigSequence. These classes contain all
+ * Sequence
+ * A series of user defined child classes of Reader
+ * are passed into Sequence. These classes contain all
  * of the information necessary to search for a configuration
  * and fill in as much of a Config variable as they can. The
  * configurations are read in FIFO order, so newer configurations
  * will over older configurations.
  *
- * ConfigSequence DOES NOT take ownership of the ConfigReaders
+ * Sequence DOES NOT take ownership of the Readers
  */
-class ConfigSequence {
+class Sequence {
     public:
-        ConfigSequence();
+        Sequence();
 
         /** @description Add a new source */
-        std::size_t add(const ConfigReader *reader);
+        std::size_t add(const Reader *reader);
 
         /** @description Call all of the configuration parsing functions in the order they are listed */
         void process(Config &config) const;
 
-        /** @description Resets the ConfigSequence for reuse */
+        /** @description Resets the Sequence for reuse */
         std::size_t reset();
 
     private:
-        ConfigSequence(const ConfigSequence&  copy)           = delete;
-        ConfigSequence(const ConfigSequence&& copy)           = delete;
-        ConfigSequence &operator=(const ConfigSequence&  rhs) = delete;
-        ConfigSequence &operator=(const ConfigSequence&& rhs) = delete;
+        Sequence(const Sequence&  copy)           = delete;
+        Sequence(const Sequence&& copy)           = delete;
+        Sequence &operator=(const Sequence&  rhs) = delete;
+        Sequence &operator=(const Sequence&& rhs) = delete;
 
-        typedef std::list<const ConfigReader *> Sequence_t;
+        typedef std::list<const Reader *> Sequence_t;
         Sequence_t sequence_;
 };
 
-/** Example ConfigReaders that try to get configurations from different sources */
+/** Example Readers that try to get configurations from different sources */
 /**
- * ConfigFile
+ * File
  * Attempts to find the file with the given filename
  */
-class ConfigFile : public ConfigReader {
+class File : public Reader {
     public:
-       ConfigFile(const std::string &filename);
-       ~ConfigFile();
+       File(const std::string &filename);
+       ~File();
 
        bool process(Config &config) const;
 
@@ -80,13 +85,13 @@ class ConfigFile : public ConfigReader {
 };
 
 /**
- * ConfigDirectory
+ * Directory
  * Searches the given directory
  */
-class ConfigDirectory : public ConfigReader {
+class Directory : public Reader {
     public:
-       ConfigDirectory(const std::string &directory);
-       ~ConfigDirectory();
+       Directory(const std::string &directory);
+       ~Directory();
 
        bool process(Config &config) const;
 
@@ -95,13 +100,13 @@ class ConfigDirectory : public ConfigReader {
 };
 
 /**
- * ConfigFileEnvironment
+ * EnvironmentFile
  * Attempts to find the file pointed to by a given environment variable
  */
-class ConfigFileEnvironment : public ConfigReader {
+class EnvironmentFile : public Reader {
     public:
-       ConfigFileEnvironment(const std::string& key);
-       ~ConfigFileEnvironment();
+       EnvironmentFile(const std::string& key);
+       ~EnvironmentFile();
 
        bool process(Config &config) const;
 
@@ -110,13 +115,13 @@ class ConfigFileEnvironment : public ConfigReader {
 };
 
 /**
- * ConfigVarEnvironment
+ * EnvironmentVar
  * Attempts to find one configuration variable set as an environment variable
  */
-class ConfigVarEnvironment : public ConfigReader {
+class EnvironmentVar : public Reader {
     public:
-       ConfigVarEnvironment(const std::string & env, const std::string &key);
-       ~ConfigVarEnvironment();
+       EnvironmentVar(const std::string & env, const std::string &key);
+       ~EnvironmentVar();
 
        bool process(Config &config) const;
 
@@ -125,10 +130,6 @@ class ConfigVarEnvironment : public ConfigReader {
        const std::string key_;
 };
 
-#define CONFIG_FOUND     0
-#define CONFIG_NOT_FOUND 1
-#define CONFIG_ERROR     2
-
 /**
  * get_value
  * Helper function for reading numeric values from the configuration
@@ -136,17 +137,17 @@ class ConfigVarEnvironment : public ConfigReader {
  * @param config     the configuration
  * @param config_key the entry in the configuraion to read
  * @tparam value     the value of the configuration
- * @return CONFIG_FOUND if the configuration value was good, CONFIG_NOT_FOUND if the configuration key was not found, or CONFIG_ERROR if the configuration value was bad
+ * @return FOUND if the configuration value was good, NOT_FOUND if the configuration key was not found, or ERROR if the configuration value was bad
  */
 template <typename T>
 int get_value(const Config &config, const std::string &config_key, T &v) {
     // find the key
     Config_it in_config = config.find(config_key);
     if (in_config != config.end()) {
-        return (std::stringstream(in_config->second) >> v)?CONFIG_FOUND:CONFIG_ERROR;
+        return (std::stringstream(in_config->second) >> v)?FOUND:ERROR;
     }
 
-    return CONFIG_NOT_FOUND;
+    return NOT_FOUND;
 }
 
 /**
@@ -178,16 +179,18 @@ int get_from_map(const Config &config, const std::string &config_key,
 
     if (in_config != config.end()) {
         // use value to get internal value from map
-        typename std::unordered_map<std::string, T>::const_iterator in_map = map.find(in_config->second);
+        REF(map)::const_iterator in_map = map.find(in_config->second);
         if (in_map == map.end()) {
-            return CONFIG_ERROR;
+            return ERROR;
         }
 
         value = in_map->second;
-        return CONFIG_FOUND;
+        return FOUND;
     }
 
-    return CONFIG_NOT_FOUND;
+    return NOT_FOUND;
+}
+
 }
 
 #endif

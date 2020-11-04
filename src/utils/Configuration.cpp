@@ -1,13 +1,12 @@
 #include <algorithm>
 #include <fstream>
 #include <sstream>
-#include <sys/types.h>
 
 #include "utils/Configuration.hpp"
 
-ConfigReader::~ConfigReader() {}
+Config::Reader::~Reader() {}
 
-ConfigSequence::ConfigSequence()
+Config::Sequence::Sequence()
   : sequence_()
 {}
 
@@ -18,18 +17,18 @@ ConfigSequence::ConfigSequence()
  * @param func the callback to be used
  * @return the next avaialble index
  */
-std::size_t ConfigSequence::add(const ConfigReader *reader) {
+std::size_t Config::Sequence::add(const Reader *reader) {
     sequence_.push_back(reader);
     return sequence_.size();
 }
 
 /**
  * reset
- * Clears the stored ConfigReaders
+ * Clears the stored Readers
  *
  * @return 0
  */
-std::size_t ConfigSequence::reset() {
+std::size_t Config::Sequence::reset() {
     sequence_.clear();
     return sequence_.size();
 }
@@ -43,9 +42,9 @@ std::size_t ConfigSequence::reset() {
  *
  * @param config the configuration that will be used by the user
  */
-void ConfigSequence::process(Config &config) const {
+void Config::Sequence::process(Config &config) const {
     config.clear();
-    for(const ConfigReader * const &seq : sequence_) {
+    for(const Reader * const &seq : sequence_) {
         if (seq) {
             seq->process(config);
         }
@@ -60,14 +59,13 @@ void ConfigSequence::process(Config &config) const {
  * @param stream the input stream
  * @return how many items were read; 0 is considered a failure even if the file was opened properly
  */
-static bool parse_kv_stream(Config &config, std::istream& stream) {
+static bool parse_kv_stream(Config::Config &config, std::istream& stream) {
     // parsing should not cross line boundaries
     std::string line;
     size_t count = 0;
     while (std::getline(stream, line)) {
-        std::stringstream s(line);
         std::string key, value;
-        if (s >> key >> value) {
+        if (std::stringstream(line) >> key >> value) {
             // check for comments
             if (key[0] == '#') {
                 continue;
@@ -89,26 +87,26 @@ static bool parse_kv_stream(Config &config, std::istream& stream) {
     return !!count;
 }
 
-ConfigFile::ConfigFile(const std::string &filename)
-  : ConfigReader(),
+Config::File::File(const std::string &filename)
+  : Reader(),
     filename_(filename)
 {}
 
-ConfigFile::~ConfigFile() {}
+Config::File::~File() {}
 
-bool ConfigFile::process(Config &config) const {
+bool Config::File::process(Config &config) const {
     std::ifstream f(filename_);
     return parse_kv_stream(config, f);
 }
 
-ConfigFileEnvironment::ConfigFileEnvironment(const std::string& key)
-  : ConfigReader(),
+Config::EnvironmentFile::EnvironmentFile(const std::string& key)
+  : Reader(),
     key_(key)
 {}
 
-ConfigFileEnvironment::~ConfigFileEnvironment() {}
+Config::EnvironmentFile::~EnvironmentFile() {}
 
-bool ConfigFileEnvironment::process(Config &config) const {
+bool Config::EnvironmentFile::process(Config &config) const {
     char *env = getenv(key_.c_str());
     if (env) {
         std::ifstream f(env);
@@ -117,15 +115,15 @@ bool ConfigFileEnvironment::process(Config &config) const {
     return false;
 }
 
-ConfigVarEnvironment::ConfigVarEnvironment(const std::string &env, const std::string &key)
-  : ConfigReader(),
+Config::EnvironmentVar::EnvironmentVar(const std::string &env, const std::string &key)
+  : Reader(),
     env_(env),
     key_(key)
 {}
 
-ConfigVarEnvironment::~ConfigVarEnvironment() {}
+Config::EnvironmentVar::~EnvironmentVar() {}
 
-bool ConfigVarEnvironment::process(Config &config) const {
+bool Config::EnvironmentVar::process(Config &config) const {
     char *env = getenv(env_.c_str());
     if (env) {
         config[key_] = env;
@@ -141,16 +139,16 @@ bool ConfigVarEnvironment::process(Config &config) const {
  * @param config     the configuration
  * @param config_key the entry in the configuraion to read
  * @param b          the value of the configuration
- * @return CONFIG_FOUND if the configuration value was good, CONFIG_NOT_FOUND if the configuration key was not found, or CONFIG_ERROR if the configuration value was bad
+ * @return Config::FOUND if the configuration value was good, Config::NOT_FOUND if the configuration key was not found, or Config::ERROR if the configuration value was bad
  */
-int get_value(const Config &config, const std::string &config_key, bool &b) {
+int Config::get_value(const Config &config, const std::string &config_key, bool &b) {
     // find the key
     Config_it in_config = config.find(config_key);
     if (in_config != config.end()) {
         std::string config_value = in_config->second;
         std::transform(config_value.begin(), config_value.end(), config_value.begin(), ::tolower);
-        return (std::stringstream(config_value) >> std::boolalpha >> b)?CONFIG_FOUND:CONFIG_ERROR;
+        return (std::stringstream(config_value) >> std::boolalpha >> b)?FOUND:ERROR;
     }
 
-    return CONFIG_NOT_FOUND;
+    return NOT_FOUND;
 }
