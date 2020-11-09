@@ -127,52 +127,9 @@ Transport::Response::BPut *datastore::leveldb::BPutImpl(Transport::Request::BPut
         char *key = nullptr;
         std::size_t key_len = 0;
 
-        // SPO
-        {
-            key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
-            batch.Put(::leveldb::Slice(key, key_len), ::leveldb::Slice((char *) req->objects[i].data(), req->objects[i].size()));
-            event.size += key_len + req->objects[i].size();
-        }
-
-        #if SOP
-        {
-            key = sp_to_key(req->subjects[i], req->objects[i], key_buffer, key_buffer_len, key_len);
-            batch.Put(::leveldb::Slice(key, key_len), ::leveldb::Slice((char *) req->predicates[i].data(), req->predicates[i].size()));
-            event.size += key_len + req->predicates[i].size();
-        }
-        #endif
-
-        #if PSO
-        {
-            key = sp_to_key(req->predicates[i], req->subjects[i], key_buffer, key_buffer_len, key_len);
-            batch.Put(::leveldb::Slice(key, key_len), ::leveldb::Slice((char *) req->objects[i].data(), req->objects[i].size()));
-            event.size += key_len + req->objects[i].size();
-        }
-        #endif
-
-        #if POS
-        {
-            key = sp_to_key(req->predicates[i], req->objects[i], key_buffer, key_buffer_len, key_len);
-            batch.Put(::leveldb::Slice(key, key_len), ::leveldb::Slice((char *) req->subjects[i].data(), req->subjects[i].size()));
-            event.size += key_len + req->subjects[i].size();
-        }
-        #endif
-
-        #if OSP
-        {
-            key = sp_to_key(req->objects[i], req->subjects[i], key_buffer, key_buffer_len, key_len);
-            batch.Put(::leveldb::Slice(key, key_len), ::leveldb::Slice((char *) req->predicates[i].data(), req->predicates[i].size()));
-            event.size += key_len + req->predicates[i].size();
-        }
-        #endif
-
-        #if OPS
-        {
-            key = sp_to_key(req->objects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
-            batch.Put(::leveldb::Slice(key, key_len), ::leveldb::Slice((char *) req->subjects[i].data(), req->subjects[i].size()));
-            event.size += key_len + req->subjects[i].size();
-        }
-        #endif
+        key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
+        batch.Put(::leveldb::Slice(key, key_len), ::leveldb::Slice((char *) req->objects[i].data(), req->objects[i].size()));
+        event.size += key_len + req->objects[i].size();
 
         // save requesting addresses for sending back
         res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size());

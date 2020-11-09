@@ -6,11 +6,9 @@
 #include <mutex>
 
 #include "datastore/constants.hpp"
-#include "hxhim/struct.h"
 #include "transport/Messages/Messages.hpp"
 #include "utils/Histogram.hpp"
 #include "utils/Stats.hpp"
-#include "utils/type_traits.hpp"
 
 namespace datastore {
 
@@ -42,7 +40,6 @@ class Datastore {
         void Close();
         int ID() const;
 
-        static std::size_t all_keys_size(Transport::Request::BPut *req);
         static std::size_t all_keys_size(Transport::Request::SubjectPredicate *req);
 
         Transport::Response::BPut       *operate(Transport::Request::BPut       *req);

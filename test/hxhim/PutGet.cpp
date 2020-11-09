@@ -30,7 +30,7 @@ TEST(hxhim, PutGet) {
     ASSERT_NE(put_results, nullptr);
 
     // Make sure put succeeded
-    EXPECT_EQ(put_results->Size(), (std::size_t) 1);
+    EXPECT_EQ(put_results->Size(), (std::size_t) HXHIM_PUT_MULTIPLIER);
     HXHIM_CXX_RESULTS_LOOP(put_results) {
         hxhim_op_t op;
         EXPECT_EQ(put_results->Op(&op), HXHIM_SUCCESS);

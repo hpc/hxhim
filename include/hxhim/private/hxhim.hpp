@@ -21,6 +21,7 @@
 #include "hxhim/struct.h"
 #include "transport/Messages/Messages.hpp"
 #include "transport/transport.hpp"
+#include "utils/type_traits.hpp"
 
 namespace hxhim {
 

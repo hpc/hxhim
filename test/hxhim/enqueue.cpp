@@ -17,6 +17,7 @@ const hxhim_object_type_t TYPE = HXHIM_OBJECT_TYPE_BYTE;
 TEST(Enqueue, PUT) {
     hxhim_options_t opts;
     ASSERT_EQ(fill_options(&opts), true);
+    ASSERT_EQ(hxhim_options_set_maximum_ops_per_send(&opts, HXHIM_PUT_MULTIPLIER), HXHIM_SUCCESS);
 
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
@@ -42,7 +43,7 @@ TEST(Enqueue, PUT) {
 
     {
         Transport::Request::BPut *head = puts[rank].front();
-        ASSERT_EQ(head->count, 1);
+        ASSERT_EQ(head->count, HXHIM_PUT_MULTIPLIER);
         EXPECT_EQ(head->subjects[0].data(), SUBJECTS[0]);
         EXPECT_EQ(head->subjects[0].size(), strlen(SUBJECTS[0]));
         EXPECT_EQ(head->predicates[0].data(), PREDICATES[0]);
@@ -60,11 +61,11 @@ TEST(Enqueue, PUT) {
                              TYPE,
                              ReferenceBlob((char *) OBJECTS[1],    strlen(OBJECTS[1]))),
               HXHIM_SUCCESS);
-    ASSERT_EQ(puts[rank].size(), 2); // maximum_ops_per_send is set to 1
+    ASSERT_EQ(puts[rank].size(), 2); // maximum_ops_per_send is set to HXHIM_PUT_MULTIPLIER, so each PUT fills up a packet
 
     {
         Transport::Request::BPut *head = puts[rank].front();
-        ASSERT_EQ(head->count, 1);
+        ASSERT_EQ(head->count, HXHIM_PUT_MULTIPLIER);
         EXPECT_EQ(head->subjects[0].data(), SUBJECTS[0]);
         EXPECT_EQ(head->subjects[0].size(), strlen(SUBJECTS[0]));
         EXPECT_EQ(head->predicates[0].data(), PREDICATES[0]);
@@ -76,7 +77,7 @@ TEST(Enqueue, PUT) {
 
     {
         Transport::Request::BPut *tail = puts[rank].back();
-        ASSERT_EQ(tail->count, 1);
+        ASSERT_EQ(tail->count, HXHIM_PUT_MULTIPLIER);
         EXPECT_EQ(tail->subjects[0].data(), SUBJECTS[1]);
         EXPECT_EQ(tail->subjects[0].size(), strlen(SUBJECTS[1]));
         EXPECT_EQ(tail->predicates[0].data(), PREDICATES[1]);

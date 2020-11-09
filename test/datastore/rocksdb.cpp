@@ -94,7 +94,7 @@ TEST(Rocksdb, BPut) {
         items++;
     }
     EXPECT_EQ(it->status().ok(), true);
-    EXPECT_EQ(items, total);
+    EXPECT_EQ(items, count);
     delete it;
 
     destruct(key_buffer_start);
@@ -299,7 +299,7 @@ TEST(Rocksdb, BDelete) {
             items++;
         }
         EXPECT_EQ(it->status().ok(), true);
-        EXPECT_EQ(items, total - count);
+        EXPECT_EQ(items, 0);
         delete it;
     }
 

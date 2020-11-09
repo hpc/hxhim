@@ -38,7 +38,7 @@ TEST(hxhim, background_put) {
     // background PUT results should have 1 item in it
     hxhim::Results *background_put_results = hx.p->async_put.results;
     ASSERT_NE(background_put_results, nullptr);
-    EXPECT_EQ(background_put_results->Size(), 1);
+    EXPECT_EQ(background_put_results->Size(), HXHIM_PUT_MULTIPLIER);
 
     // Make sure result is correct
     HXHIM_CXX_RESULTS_LOOP(background_put_results) {

@@ -58,52 +58,9 @@ Transport::Response::BPut *datastore::InMemory::BPutImpl(Transport::Request::BPu
         char *key = nullptr;
         std::size_t key_len = 0;
 
-        // SPO
-        {
-            key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
-            db[std::string((char *) key, key_len)] = (std::string) req->objects[i];
-            event.size += key_len + req->objects[i].size();
-        }
-
-        #if SOP
-        {
-            key = sp_to_key(req->subjects[i], req->objects[i], key_buffer, key_buffer_len, key_len);
-            db[std::string((char *) key, key_len)] = (std::string) req->predicates[i];
-            event.size += key_len + req->predicates[i].size();
-        }
-        #endif
-
-        #if PSO
-        {
-            key = sp_to_key(req->predicates[i], req->subjects[i], key_buffer, key_buffer_len, key_len);
-            db[std::string((char *) key, key_len)] = (std::string) req->objects[i];
-            event.size += key_len + req->objects[i].size();
-        }
-        #endif
-
-        #if POS
-        {
-            key = sp_to_key(req->predicates[i], req->objects[i], key_buffer, key_buffer_len, key_len);
-            db[std::string((char *) key, key_len)] = (std::string) req->subjects[i];
-            event.size += key_len + req->subjects[i].size();
-        }
-        #endif
-
-        #if OSP
-        {
-            key = sp_to_key(req->objects[i], req->subjects[i], key_buffer, key_buffer_len, key_len);
-            db[std::string((char *) key, key_len)] = (std::string) req->predicates[i];
-            event.size += key_len + req->predicates[i].size();
-        }
-        #endif
-
-        #if OPS
-        {
-            key = sp_to_key(req->objects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
-            db[std::string((char *) key, key_len)] = (std::string) req->subjects[i];
-            event.size += key_len + req->subjects[i].size();
-        }
-        #endif
+        key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
+        db[std::string((char *) key, key_len)] = (std::string) req->objects[i];
+        event.size += key_len + req->objects[i].size();
 
         res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size());
         res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size());

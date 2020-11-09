@@ -43,7 +43,7 @@ TEST(InMemory, BPut) {
     ASSERT_NE(ds, nullptr);
 
     std::map<std::string, std::string> const &db = ds->data();
-    EXPECT_EQ(db.size(), total);
+    EXPECT_EQ(db.size(), count);
 
     std::size_t key_buffer_len = all_keys_size();
     char *key_buffer = (char *) alloc(key_buffer_len);
@@ -183,7 +183,7 @@ TEST(InMemory, BDelete) {
     ASSERT_NE(ds, nullptr);
 
     std::map<std::string, std::string> const &db = ds->data();
-    EXPECT_EQ(db.size(), total);
+    EXPECT_EQ(db.size(), count);
 
     Transport::Request::BDelete req(count + 1);
     for(std::size_t i = 0; i < count; i++) {
@@ -208,7 +208,7 @@ TEST(InMemory, BDelete) {
 
     destruct(res);
 
-    EXPECT_EQ(db.size(), total - count);
+    EXPECT_EQ(db.size(), 0);
 
     std::size_t key_buffer_len = all_keys_size();
     char *key_buffer = (char *) alloc(key_buffer_len);

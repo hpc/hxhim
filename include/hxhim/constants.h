@@ -25,7 +25,7 @@ extern "C"
 #define GENERATE_STR(prefix, name)  #prefix "-" #name,
 
 /** Different ways a SPO triple will be PUT into HXHIM per PUT */
-#define HXHIM_PUT_COMBINATION_GEN(PREFIX, GEN)  \
+#define HXHIM_PUT_PERMUTATION_GEN(PREFIX, GEN)  \
     GEN(PREFIX, SPO) /* always enabled */       \
     GEN(PREFIX, SOP)                            \
     GEN(PREFIX, PSO)                            \
@@ -33,21 +33,21 @@ extern "C"
     GEN(PREFIX, OSP)                            \
     GEN(PREFIX, OPS)                            \
 
-#define HXHIM_PUT_COMBINATION_PREFIX HXHIM_PUT_COMBINATION
+#define HXHIM_PUT_PERMUTATION_PREFIX HXHIM_PUT_PERMUTATION
 
 typedef enum {
-    HXHIM_PUT_COMBINATION_GEN(HXHIM_PUT_COMBINATION_PREFIX, GENERATE_ENUM)
-} HXHIM_PUT_COMBINATION;
+    HXHIM_PUT_PERMUTATION_GEN(HXHIM_PUT_PERMUTATION_PREFIX, GENERATE_ENUM)
+} HXHIM_PUT_PERMUTATION;
 
-extern const char *HXHIM_PUT_COMBINATION_STR[];
+extern const char *HXHIM_PUT_PERMUTATION_STR[];
 
-/** Enabled combinations in array form */
-extern const HXHIM_PUT_COMBINATION HXHIM_PUT_COMBINATIONS_ENABLED[];
+/** Enabled permutations in array form */
+extern const HXHIM_PUT_PERMUTATION HXHIM_PUT_PERMUTATIONS_ENABLED[];
 
-/** Function to check if a combination has been enabled */
-int hxhim_put_combination_enabled(const HXHIM_PUT_COMBINATION combo);
+/** Function to check if a permutation has been enabled */
+int hxhim_put_permutation_enabled(const HXHIM_PUT_PERMUTATION combo);
 
-/** Number of combinations enabled */
+/** Number of permutations enabled */
 extern const size_t HXHIM_PUT_MULTIPLIER;
 
 /**

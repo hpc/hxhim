@@ -70,7 +70,7 @@ TEST(hxhim, Histogram) {
     // flush all queued items
     hxhim::Results *put_results = hxhim::Flush(&hx);
     ASSERT_NE(put_results, nullptr);
-    EXPECT_EQ(put_results->Size(), TRIPLES);
+    EXPECT_EQ(put_results->Size(), TRIPLES * HXHIM_PUT_MULTIPLIER);
 
     HXHIM_CXX_RESULTS_LOOP(put_results) {
         hxhim_op_t op = hxhim_op_t::HXHIM_INVALID;

@@ -90,41 +90,6 @@ int datastore::Datastore::ID() const {
     return id;
 }
 
-std::size_t datastore::Datastore::all_keys_size(Transport::Request::BPut *req) {
-    std::size_t total = 0;
-    for(std::size_t i = 0; i < req->count; i++) {
-        Blob &subject   = req->subjects[i];
-        Blob &predicate = req->predicates[i];
-        #if SOP || POS || OSP || OPS
-        Blob &object    = req->objects[i];
-        #endif
-
-        total += (subject.pack_size() + predicate.pack_size())
-                 #if SOP
-                 + (subject.pack_size() + object.pack_size())
-                 #endif
-
-                 #if PSO
-                 + (predicate.pack_size() + subject.pack_size())
-                 #endif
-
-                 #if POS
-                 + (predicate.pack_size() + object.pack_size())
-                 #endif
-
-                 #if OSP
-                 + (object.pack_size() + subject.pack_size())
-                 #endif
-
-                 #if OPS
-                 + (object.pack_size() + predicate.pack_size())
-                 #endif
-                 ;
-    }
-
-    return total;
-}
-
 std::size_t datastore::Datastore::all_keys_size(Transport::Request::SubjectPredicate *req) {
     std::size_t total = 0;
     for(std::size_t i = 0; i < req->count; i++) {
@@ -139,12 +104,6 @@ std::size_t datastore::Datastore::all_keys_size(Transport::Request::SubjectPredi
 
 Transport::Response::BPut *datastore::Datastore::operate(Transport::Request::BPut *req) {
     std::lock_guard<std::mutex> lock(mutex);
-
-    // All combinations of SPO should be handled in the BPutImpl
-    // call. Error handling/atomicity/etc. is enforced by the
-    // datastore wrapper, not here. Each request tuple should
-    // correspond to eactly one response tuple no matter how many
-    // tuples are actually PUT.
     Transport::Response::BPut *res = BPutImpl(req);
 
     if (hist && res) {

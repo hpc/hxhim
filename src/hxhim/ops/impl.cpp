@@ -47,55 +47,119 @@ int hxhim::PutImpl(hxhim_t *hx,
                    Blob object) {
     mlog(HXHIM_CLIENT_INFO, "Foreground PUT Start (%p, %p, %p)", subject.data(), predicate.data(), object.data());
 
-    ::Stats::Chronostamp hash;
-    hash.start = ::Stats::now();
+    for(std::size_t i = 0; i < HXHIM_PUT_MULTIPLIER; i++) {
+        Blob *sub = nullptr;
+        Blob *pred = nullptr;
+        enum hxhim_object_type_t obj_type = object_type;
+        Blob *obj = nullptr;
 
-    // figure out where this triple is going
-    const int rs_id = hxhim_hash(hx,
-                                 subject.data(),   subject.size(),
-                                 predicate.data(), predicate.size());
+        switch (HXHIM_PUT_PERMUTATIONS_ENABLED[i]) {
+            case HXHIM_PUT_PERMUTATION_SPO:
+                sub  = &subject;
+                pred = &predicate;
+                obj_type = object_type;
+                obj  = &object;
+                break;
 
-    hash.end = ::Stats::now();
-    if (rs_id < 0) {
-        return HXHIM_ERROR;
+            #if SOP
+            case HXHIM_PUT_PERMUTATION_SOP:
+                sub  = &subject;
+                pred = &object;
+                obj_type = HXHIM_OBJECT_TYPE_BYTE;
+                obj  = &predicate;
+                break;
+            #endif
+
+            #if PSO
+            case HXHIM_PUT_PERMUTATION_PSO:
+                sub  = &predicate;
+                pred = &subject;
+                obj_type = object_type;
+                obj  = &object;
+                break;
+            #endif
+
+            #if POS
+            case HXHIM_PUT_PERMUTATION_POS:
+                sub  = &predicate;
+                pred = &object;
+                obj_type = HXHIM_OBJECT_TYPE_BYTE;
+                obj  = &subject;
+                break;
+            #endif
+
+            #if OSP
+            case HXHIM_PUT_PERMUTATION_OSP:
+                sub  = &object;
+                pred = &subject;
+                obj_type = HXHIM_OBJECT_TYPE_BYTE;
+                obj  = &predicate;
+                break;
+            #endif
+
+            #if OPS
+            case HXHIM_PUT_PERMUTATION_OPS:
+                sub  = &object;
+                pred = &predicate;
+                obj_type = HXHIM_OBJECT_TYPE_BYTE;
+                obj  = &subject;
+                break;
+            #endif
+
+            default:
+                return HXHIM_ERROR;
+        }
+
+        ::Stats::Chronostamp hash;
+        hash.start = ::Stats::now();
+
+        // figure out where this triple is going
+        const int rs_id = hxhim_hash(hx,
+                                     sub->data(),  sub->size(),
+                                     pred->data(), pred->size());
+
+        hash.end = ::Stats::now();
+        if (rs_id < 0) {
+            return HXHIM_ERROR;
+        }
+
+        mlog(HXHIM_CLIENT_DBG, "Foreground PUT Insert SPO into queue");
+
+        ::Stats::Chronostamp insert;
+        insert.start = ::Stats::now();
+
+        #if ASYNC_PUTS
+        std::unique_lock<std::mutex> lock(hx->p->queues.puts.mutex);
+        #endif
+
+        // find the queue this triple should be placed on
+        QueueTarget<Transport::Request::BPut> &puts = puts_queue[rs_id];
+
+        if (puts.empty()                                                ||
+            ((*puts.rbegin())->count >= hx->p->queues.max_ops_per_send)) { // last packet doesn't have space
+            new_request(hx, puts);
+        }
+
+        // add the triple to the last packet in the queue
+        Transport::Request::BPut *put = *(puts.rbegin());
+
+        put->subjects[put->count] = *sub;
+        put->predicates[put->count] = *pred;
+        put->object_types[put->count] = obj_type;
+        put->objects[put->count] = *obj;
+
+        put->orig.subjects[put->count] = sub->data();
+        put->orig.predicates[put->count] = pred->data();
+
+        put->timestamps.reqs[put->count].hash = hash;
+        put->timestamps.reqs[put->count].insert = insert;
+
+        put->count++;
+
+        hx->p->queues.puts.count++;
+
+        put->timestamps.reqs[put->count - 1].insert.end = ::Stats::now();
     }
-
-    mlog(HXHIM_CLIENT_DBG, "Foreground PUT Insert SPO into queue");
-
-    ::Stats::Chronostamp insert;
-    insert.start = ::Stats::now();
-
-    #if ASYNC_PUTS
-    std::unique_lock<std::mutex> lock(hx->p->queues.puts.mutex);
-    #endif
-
-    // find the queue this triple should be placed on
-    QueueTarget<Transport::Request::BPut> &puts = puts_queue[rs_id];
-
-    if (puts.empty()                                                ||
-        ((*puts.rbegin())->count >= hx->p->queues.max_ops_per_send)) { // last packet doesn't have space
-        new_request(hx, puts);
-    }
-
-    // add the triple to the last packet in the queue
-    Transport::Request::BPut *put = *(puts.rbegin());
-
-    put->subjects[put->count] = subject;
-    put->predicates[put->count] = predicate;
-    put->object_types[put->count] = object_type;
-    put->objects[put->count] = object;
-
-    put->orig.subjects[put->count] = subject.data();
-    put->orig.predicates[put->count] = predicate.data();
-
-    put->timestamps.reqs[put->count].hash = hash;
-    put->timestamps.reqs[put->count].insert = insert;
-
-    put->count++;
-
-    hx->p->queues.puts.count++;
-
-    put->timestamps.reqs[put->count - 1].insert.end = ::Stats::now();
 
     // do not trigger background PUTs here in order to allow for all BPUTs to queue up before flushing
 

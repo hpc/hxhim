@@ -34,25 +34,6 @@ const std::vector <Triple> triples = {
 
 const std::size_t count = triples.size();
 
-/*
-  If all 6 combinations are enabled:
-
-  obj0  pred0 sub0
-  obj0  sub0  pred0
-  obj1  pred1 sub1
-  obj1  sub1  pred1
-  pred0 obj0  sub0
-  pred0 sub0  obj0
-  pred1 obj1  sub1
-  pred1 sub1  obj1
-  sub0  obj0  pred0
-  sub0  pred0 obj0
-  sub1  obj1  pred1
-  sub1  pred1 obj1
-*/
-
-const std::size_t total = count * HXHIM_PUT_MULTIPLIER;
-
 std::size_t all_keys_size();
 
 #endif
