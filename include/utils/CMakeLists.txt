@@ -13,6 +13,7 @@ set(INSTALLED_HEADERS
   elen.h
   elen.hpp
   elen.tpp
+  macros.hpp
   memory.hpp
   mkdir_p.hpp
   mlog2.h
