@@ -25,6 +25,9 @@ set_target_properties(hxhim-cli PROPERTIES OUTPUT_NAME cli)
 add_executable(lowest lowest.c)
 target_link_libraries(lowest hxhim.a ${EXEC_LDFLAGS} stdc++)
 
+add_executable(elen elen.cpp)
+target_link_libraries(lowest hxhim.a ${EXEC_LDFLAGS})
+
 if (LEVELDB_FOUND AND ENABLE_LEVELDB AND DBBENCH)
   include(TestBigEndian)
   test_big_endian(LEVELDB_IS_BIG_ENDIAN)
