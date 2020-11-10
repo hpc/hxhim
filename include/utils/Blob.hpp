@@ -24,6 +24,8 @@ class Blob {
         Blob &operator=(Blob &rhs);
         Blob &operator=(Blob &&rhs);
 
+        bool set_clean(bool new_clean);
+
         void clear();   // only null
         void dealloc(); // only deallocate if clean == true, and then null
 

@@ -1,6 +1,7 @@
 #include "hxhim/private/hxhim.hpp"
 #include "utils/Blob.hpp"
 #include "utils/Stats.hpp"
+#include "utils/elen.hpp"
 #include "utils/macros.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
@@ -47,6 +48,33 @@ int hxhim::PutImpl(hxhim_t *hx,
                    Blob object) {
     mlog(HXHIM_CLIENT_INFO, "Foreground PUT Start (%p, %p, %p)", subject.data(), predicate.data(), object.data());
 
+    // check if the object needs to be transformed
+    bool encoded = true;
+    Blob actual_object;
+    {
+        std::string encoded_str;
+        switch (object_type) {
+            case HXHIM_OBJECT_TYPE_FLOAT:
+                encoded_str = elen::encode::floating_point<float>(* (float *) object.data());
+                actual_object = RealBlob(encoded_str.size(), encoded_str.c_str());
+                break;
+            case HXHIM_OBJECT_TYPE_DOUBLE:
+                encoded_str = elen::encode::floating_point<double>(* (double *) object.data());
+                actual_object = RealBlob(encoded_str.size(), encoded_str.c_str());
+                break;
+            case HXHIM_OBJECT_TYPE_INT:
+            case HXHIM_OBJECT_TYPE_SIZE:
+            case HXHIM_OBJECT_TYPE_INT64:
+            case HXHIM_OBJECT_TYPE_BYTE:
+            default:
+                actual_object = ReferenceBlob(object.data(), object.size());
+                encoded = false;
+                break;
+        }
+
+        actual_object.set_clean(false);
+    }
+
     for(std::size_t i = 0; i < HXHIM_PUT_MULTIPLIER; i++) {
         Blob *sub = nullptr;
         Blob *pred = nullptr;
@@ -58,13 +86,13 @@ int hxhim::PutImpl(hxhim_t *hx,
                 sub  = &subject;
                 pred = &predicate;
                 obj_type = object_type;
-                obj  = &object;
+                obj  = &actual_object;
                 break;
 
             #if SOP
             case HXHIM_PUT_PERMUTATION_SOP:
                 sub  = &subject;
-                pred = &object;
+                pred = &actual_object;
                 obj_type = HXHIM_OBJECT_TYPE_BYTE;
                 obj  = &predicate;
                 break;
@@ -75,14 +103,14 @@ int hxhim::PutImpl(hxhim_t *hx,
                 sub  = &predicate;
                 pred = &subject;
                 obj_type = object_type;
-                obj  = &object;
+                obj  = &actual_object;
                 break;
             #endif
 
             #if POS
             case HXHIM_PUT_PERMUTATION_POS:
                 sub  = &predicate;
-                pred = &object;
+                pred = &actual_object;
                 obj_type = HXHIM_OBJECT_TYPE_BYTE;
                 obj  = &subject;
                 break;
@@ -90,7 +118,7 @@ int hxhim::PutImpl(hxhim_t *hx,
 
             #if OSP
             case HXHIM_PUT_PERMUTATION_OSP:
-                sub  = &object;
+                sub  = &actual_object;
                 pred = &subject;
                 obj_type = HXHIM_OBJECT_TYPE_BYTE;
                 obj  = &predicate;
@@ -99,7 +127,7 @@ int hxhim::PutImpl(hxhim_t *hx,
 
             #if OPS
             case HXHIM_PUT_PERMUTATION_OPS:
-                sub  = &object;
+                sub  = &actual_object;
                 pred = &predicate;
                 obj_type = HXHIM_OBJECT_TYPE_BYTE;
                 obj  = &subject;
@@ -142,11 +170,25 @@ int hxhim::PutImpl(hxhim_t *hx,
 
         // add the triple to the last packet in the queue
         Transport::Request::BPut *put = *(puts.rbegin());
-
         put->subjects[put->count] = *sub;
         put->predicates[put->count] = *pred;
         put->object_types[put->count] = obj_type;
         put->objects[put->count] = *obj;
+
+        // first permutation cleans up the pointer
+        if (i == 0) {
+            if (encoded) {
+                if (put->subjects[put->count].data() == actual_object.data()) {
+                    put->subjects[put->count].set_clean(true);
+                }
+                else if (put->predicates[put->count].data() == actual_object.data()) {
+                    put->predicates[put->count].set_clean(true);
+                }
+                else if (put->objects[put->count].data() == actual_object.data()) {
+                    put->objects[put->count].set_clean(true);
+                }
+            }
+        }
 
         put->orig.subjects[put->count] = sub->data();
         put->orig.predicates[put->count] = pred->data();

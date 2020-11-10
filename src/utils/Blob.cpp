@@ -44,6 +44,12 @@ Blob& Blob::operator=(Blob &&rhs) {
     return *this;
 }
 
+bool Blob::set_clean(bool new_clean) {
+    const bool old_clean = clean;
+    clean = new_clean;
+    return old_clean;
+}
+
 void Blob::clear() {
     ptr = nullptr;
     len = 0;

@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "TestDatastore.hpp"
+#include "utils/elen.hpp"
 
 const std::size_t FIRST_N = 5;
 
@@ -119,13 +120,14 @@ TEST(datastore, Histogram) {
         std::size_t cache_size = 0;
 
         {
-            float object = 0;
+            const float object = 0;
+            const std::string object_str = elen::encode::floating_point<float>(object);
 
             Transport::Request::BPut flt(1);
             flt.subjects[0] = ReferenceBlob(nullptr, 0);
             flt.predicates[0] = ReferenceBlob(nullptr, 0);
             flt.object_types[0] = hxhim_object_type_t::HXHIM_OBJECT_TYPE_FLOAT;
-            flt.objects[0] = ReferenceBlob((void *) &object, sizeof(object));
+            flt.objects[0] = ReferenceBlob((void *) object_str.data(), object_str.size());
             flt.count = 1;
             destruct(ds.operate(&flt));
 
@@ -143,13 +145,14 @@ TEST(datastore, Histogram) {
             EXPECT_EQ(cache_size, i);
             EXPECT_EQ(hist->get(nullptr, nullptr, nullptr), HISTOGRAM_ERROR);
 
-            double object = 0;
+            const double object = 0;
+            const std::string object_str = elen::encode::floating_point<double>(object);
 
             Transport::Request::BPut dbl(1);
             dbl.subjects[0] = ReferenceBlob(nullptr, 0);
             dbl.predicates[0] = ReferenceBlob(nullptr, 0);
             dbl.object_types[0] = hxhim_object_type_t::HXHIM_OBJECT_TYPE_DOUBLE;
-            dbl.objects[0] = ReferenceBlob((void *) &object, sizeof(object));
+            dbl.objects[0] = ReferenceBlob((void *) object_str.data(), object_str.size());
             dbl.count = 1;
             destruct(ds.operate(&dbl));
         }

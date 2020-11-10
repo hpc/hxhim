@@ -8,6 +8,7 @@
 #include "hxhim/private/hxhim.hpp"
 #include "hxhim/RangeServer.hpp"
 #include "utils/Stats.hpp"
+#include "utils/elen.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
@@ -162,13 +163,35 @@ hxhim::Results::Put *hxhim::Result::init(hxhim_t *hx, Transport::Response::BPut 
     return out;
 }
 
+static void decode(Blob &dst, hxhim_object_type_t type, Blob &src) {
+    switch (type) {
+        case HXHIM_OBJECT_TYPE_FLOAT:
+            dst = RealBlob(construct<float>(elen::decode::floating_point<float>(src)),
+                                   sizeof(float));
+            break;
+        case HXHIM_OBJECT_TYPE_DOUBLE:
+            dst = RealBlob(construct<double>(elen::decode::floating_point<double>(src)),
+                                   sizeof(double));
+            break;
+        case HXHIM_OBJECT_TYPE_INT:
+        case HXHIM_OBJECT_TYPE_SIZE:
+        case HXHIM_OBJECT_TYPE_INT64:
+        case HXHIM_OBJECT_TYPE_BYTE:
+        default:
+            dst = src;
+            break;
+    }
+}
+
 hxhim::Results::Get *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGet *bget, const std::size_t i) {
     hxhim::Results::Get *out = construct<hxhim::Results::Get>(hx, bget->src, bget->statuses[i]);
 
     out->subject = bget->orig.subjects[i];
     out->predicate = bget->orig.predicates[i];
     out->object_type = bget->object_types[i];
-    out->object = bget->objects[i];
+    if (out->status == HXHIM_SUCCESS) {
+        decode(out->object, out->object_type, bget->objects[i]);
+    }
     out->next = nullptr;
 
     return out;
@@ -182,11 +205,12 @@ hxhim::Results::GetOp *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGe
     hxhim::Results::GetOp *prev = nullptr;
     hxhim::Results::GetOp *curr = top;
     for(std::size_t j = 0; j < bgetop->num_recs[i]; j++) {
-        curr->object_type = bgetop->object_types[i];
-
         curr->subject = bgetop->subjects[i][j];
         curr->predicate = bgetop->predicates[i][j];
-        curr->object = bgetop->objects[i][j];
+        curr->object_type = bgetop->object_types[i];
+        if (curr->status == HXHIM_SUCCESS) {
+            decode(curr->object, curr->object_type, bgetop->objects[i][j]);
+        }
 
         prev = curr;
         curr = construct<hxhim::Results::GetOp>(hx, bgetop->src, status);
