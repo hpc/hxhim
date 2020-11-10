@@ -21,8 +21,7 @@
 #     mercury
 #     libev-devel (libev.*)
 #     argobots
-#     jansson
-#     moch-cfg
+#     json-c
 #     margo
 #     thallium
 #
@@ -374,12 +373,12 @@ function argobots() {
     install "argobots" dl_argobots git_pull setup_argobots cbi_argobots
 }
 
-function jansson() {
-    function dl_jansson() {
-        git clone --depth 1 https://github.com/akheron/jansson "$1"
+function json-c() {
+    function dl_json-c() {
+        git clone --depth 1 https://github.com/json-c/json-c.git "$1"
     }
 
-    function cbi_jansson() {
+    function cbi_json-c() {
         if [[ ! -f Makefile ]]
         then
             cmake .. -DCMAKE_INSTALL_PREFIX="${install_dir}"
@@ -389,31 +388,7 @@ function jansson() {
         make -j ${PROCS} install
     }
 
-    install "jansson" dl_jansson git_pull "" cbi_jansson
-}
-
-function mochi() {
-    jansson
-
-    function dl_mochi() {
-        git clone --depth 1 https://xgitlab.cels.anl.gov/sds/mochi-cfg.git "$1"
-    }
-
-    function setup_mochi() {
-        ./prepare.sh
-    }
-
-    function cbi_mochi() {
-        if [[ ! -f Makefile ]]
-        then
-            ../configure --prefix="${install_dir}"
-        fi
-
-        make -j ${PROCS}
-        make -j ${PROCS} install
-    }
-
-    install "mochi" dl_mochi git_pull setup_mochi cbi_mochi
+    install "json-c" dl_json-c git_pull "" cbi_json-c
 }
 
 function margo() {
@@ -426,7 +401,7 @@ function margo() {
 
     argobots
     mercury
-    mochi
+    json-c
 
     function dl_margo() {
         git clone --depth 1 https://xgitlab.cels.anl.gov/sds/margo.git "$1"
