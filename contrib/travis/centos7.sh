@@ -13,6 +13,7 @@ yum install -y         \
     libtool-ltdl-devel \
     pkgconfig          \
     python3-pip        \
+    snappy-devel       \
     wget               \
 
 source /opt/rh/devtoolset-9/enable

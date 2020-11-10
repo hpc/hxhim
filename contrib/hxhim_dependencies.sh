@@ -13,6 +13,7 @@
 # Libraries (only checked for):
 #     libtool-ltdl-devel (libltdl.*)
 #     mpi (libmpi.*)
+#     snappy
 #
 # Git Repositories (checks and installs):
 #     BMI (optional)
@@ -447,7 +448,7 @@ function thallium() {
 }
 
 function leveldb() {
-    name=leveldb
+    check_library snappy
 
     function dl_leveldb() {
         git clone --depth 1 https://github.com/google/leveldb.git "$1"
@@ -462,7 +463,7 @@ function leveldb() {
     function cbi_leveldb() {
         if [[ ! -f Makefile ]]
         then
-            cmake .. -DCMAKE_INSTALL_PREFIX="${install_dir}" -DHAVE_SNAPPY=Off
+            cmake .. -DCMAKE_INSTALL_PREFIX="${install_dir}" -DHAVE_SNAPPY=On
         fi
 
         make -j ${PROCS}
@@ -482,7 +483,7 @@ function leveldb() {
             echo "Description: The leveldb library"
             echo "Version: Git Master"
             echo "Cflags: -I\${includedir}"
-            echo "Libs: -L\${libdir} -lleveldb"
+            echo "Libs: -L\${libdir} -lleveldb -lsnappy"
         ) > "${pc}"
     }
 
@@ -490,8 +491,6 @@ function leveldb() {
 }
 
 function rocksdb() {
-    name=rocksdb
-
     function dl_rocksdb() {
         git clone --depth 1 https://github.com/facebook/rocksdb.git "$1"
     }

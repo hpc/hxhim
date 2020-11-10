@@ -19,6 +19,7 @@ matrix:
             - g++-9
             - gfortran-9
             - libltdl-dev
+            - libsnappy-dev
             - libtool-bin
             - pkg-config
             - python3-pip
@@ -40,6 +41,7 @@ matrix:
             - g++-9
             - gfortran-9
             - libltdl-dev
+            - libsnappy-dev
             - libtool-bin
             - pkg-config
             - python3-pip
