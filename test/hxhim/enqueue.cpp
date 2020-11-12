@@ -12,7 +12,7 @@ const char *SUBJECTS[]    = {"SUBJECT0",   "SUBJECT1"};
 const char *PREDICATES[]  = {"PREDICATE0", "PREDICATE1"};
 const char *OBJECTS[]     = {"OBJECT0",    "OBJECT1"};
 
-const hxhim_object_type_t TYPE = HXHIM_OBJECT_TYPE_BYTE;
+const hxhim_data_t TYPE = hxhim_data_t::HXHIM_DATA_BYTE;
 
 TEST(Enqueue, PUT) {
     hxhim_options_t opts;
@@ -34,10 +34,9 @@ TEST(Enqueue, PUT) {
     // enqueue one PUT
     EXPECT_EQ(hxhim::PutImpl(&hx,
                              puts,
-                             ReferenceBlob((char *) SUBJECTS[0],   strlen(SUBJECTS[0])),
-                             ReferenceBlob((char *) PREDICATES[0], strlen(PREDICATES[0])),
-                             TYPE,
-                             ReferenceBlob((char *) OBJECTS[0],    strlen(OBJECTS[0]))),
+                             ReferenceBlob((char *) SUBJECTS[0],   strlen(SUBJECTS[0]),   hxhim_data_t::HXHIM_DATA_BYTE),
+                             ReferenceBlob((char *) PREDICATES[0], strlen(PREDICATES[0]), hxhim_data_t::HXHIM_DATA_BYTE),
+                             ReferenceBlob((char *) OBJECTS[0],    strlen(OBJECTS[0]),   TYPE)),
               HXHIM_SUCCESS);
     ASSERT_EQ(puts[rank].size(), 1);
 
@@ -48,7 +47,6 @@ TEST(Enqueue, PUT) {
         EXPECT_EQ(head->subjects[0].size(), strlen(SUBJECTS[0]));
         EXPECT_EQ(head->predicates[0].data(), PREDICATES[0]);
         EXPECT_EQ(head->predicates[0].size(), strlen(PREDICATES[0]));
-        EXPECT_EQ(head->object_types[0], TYPE);
         EXPECT_EQ(head->objects[0].data(), OBJECTS[0]);
         EXPECT_EQ(head->objects[0].size(), strlen(OBJECTS[0]));
     }
@@ -56,10 +54,9 @@ TEST(Enqueue, PUT) {
     // enqueue a second PUT
     EXPECT_EQ(hxhim::PutImpl(&hx,
                              puts,
-                             ReferenceBlob((char *) SUBJECTS[1],   strlen(SUBJECTS[1])),
-                             ReferenceBlob((char *) PREDICATES[1], strlen(PREDICATES[1])),
-                             TYPE,
-                             ReferenceBlob((char *) OBJECTS[1],    strlen(OBJECTS[1]))),
+                             ReferenceBlob((char *) SUBJECTS[1],   strlen(SUBJECTS[1]),   hxhim_data_t::HXHIM_DATA_BYTE),
+                             ReferenceBlob((char *) PREDICATES[1], strlen(PREDICATES[1]), hxhim_data_t::HXHIM_DATA_BYTE),
+                             ReferenceBlob((char *) OBJECTS[1],    strlen(OBJECTS[1]),    TYPE)),
               HXHIM_SUCCESS);
     ASSERT_EQ(puts[rank].size(), 2); // maximum_ops_per_send is set to HXHIM_PUT_MULTIPLIER, so each PUT fills up a packet
 
@@ -70,7 +67,6 @@ TEST(Enqueue, PUT) {
         EXPECT_EQ(head->subjects[0].size(), strlen(SUBJECTS[0]));
         EXPECT_EQ(head->predicates[0].data(), PREDICATES[0]);
         EXPECT_EQ(head->predicates[0].size(), strlen(PREDICATES[0]));
-        EXPECT_EQ(head->object_types[0], TYPE);
         EXPECT_EQ(head->objects[0].data(), OBJECTS[0]);
         EXPECT_EQ(head->objects[0].size(), strlen(OBJECTS[0]));
     }
@@ -82,7 +78,6 @@ TEST(Enqueue, PUT) {
         EXPECT_EQ(tail->subjects[0].size(), strlen(SUBJECTS[1]));
         EXPECT_EQ(tail->predicates[0].data(), PREDICATES[1]);
         EXPECT_EQ(tail->predicates[0].size(), strlen(PREDICATES[1]));
-        EXPECT_EQ(tail->object_types[0], TYPE);
         EXPECT_EQ(tail->objects[0].data(), OBJECTS[1]);
         EXPECT_EQ(tail->objects[0].size(), strlen(OBJECTS[1]));
     }
@@ -110,8 +105,8 @@ TEST(Enqueue, GET) {
     // enqueue one GET
     EXPECT_EQ(hxhim::GetImpl(&hx,
                              gets,
-                             ReferenceBlob((char *) SUBJECTS[0],   strlen(SUBJECTS[0])),
-                             ReferenceBlob((char *) PREDICATES[0], strlen(PREDICATES[0])),
+                             ReferenceBlob((char *) SUBJECTS[0],   strlen(SUBJECTS[0]),   hxhim_data_t::HXHIM_DATA_BYTE),
+                             ReferenceBlob((char *) PREDICATES[0], strlen(PREDICATES[0]), hxhim_data_t::HXHIM_DATA_BYTE),
                              TYPE),
               HXHIM_SUCCESS);
     ASSERT_EQ(gets[rank].size(), 1);
@@ -129,8 +124,8 @@ TEST(Enqueue, GET) {
     // enqueue a second GET
     EXPECT_EQ(hxhim::GetImpl(&hx,
                              gets,
-                             ReferenceBlob((char *) SUBJECTS[1],   strlen(SUBJECTS[1])),
-                             ReferenceBlob((char *) PREDICATES[1], strlen(PREDICATES[1])),
+                             ReferenceBlob((char *) SUBJECTS[1],   strlen(SUBJECTS[1]),   hxhim_data_t::HXHIM_DATA_BYTE),
+                             ReferenceBlob((char *) PREDICATES[1], strlen(PREDICATES[1]), hxhim_data_t::HXHIM_DATA_BYTE),
                              TYPE),
               HXHIM_SUCCESS);
     ASSERT_EQ(gets[rank].size(), 2); // maximum_ops_per_send is set to 1
@@ -181,8 +176,8 @@ TEST(Enqueue, GETOP) {
     // enqueue one GETOP
     EXPECT_EQ(hxhim::GetOpImpl(&hx,
                              getops,
-                             ReferenceBlob((char *) SUBJECTS[0],   strlen(SUBJECTS[0])),
-                             ReferenceBlob((char *) PREDICATES[0], strlen(PREDICATES[0])),
+                             ReferenceBlob((char *) SUBJECTS[0],   strlen(SUBJECTS[0]),   hxhim_data_t::HXHIM_DATA_BYTE),
+                             ReferenceBlob((char *) PREDICATES[0], strlen(PREDICATES[0]), hxhim_data_t::HXHIM_DATA_BYTE),
                              TYPE, num_recs, op),
               HXHIM_SUCCESS);
     ASSERT_EQ(getops[rank].size(), 1);
@@ -202,8 +197,8 @@ TEST(Enqueue, GETOP) {
     // enqueue a second GETOP
     EXPECT_EQ(hxhim::GetOpImpl(&hx,
                              getops,
-                             ReferenceBlob((char *) SUBJECTS[1],   strlen(SUBJECTS[1])),
-                             ReferenceBlob((char *) PREDICATES[1], strlen(PREDICATES[1])),
+                             ReferenceBlob((char *) SUBJECTS[1],   strlen(SUBJECTS[1]),   hxhim_data_t::HXHIM_DATA_BYTE),
+                             ReferenceBlob((char *) PREDICATES[1], strlen(PREDICATES[1]), hxhim_data_t::HXHIM_DATA_BYTE),
                              TYPE, num_recs, op),
               HXHIM_SUCCESS);
     ASSERT_EQ(getops[rank].size(), 2); // maximum_ops_per_send is set to 1
@@ -262,8 +257,8 @@ TEST(Enqueue, DELETE) {
     // enqueue one DELETE
     EXPECT_EQ(hxhim::DeleteImpl(&hx,
                              deletes,
-                             ReferenceBlob((char *) SUBJECTS[0],   strlen(SUBJECTS[0])),
-                             ReferenceBlob((char *) PREDICATES[0], strlen(PREDICATES[0]))),
+                             ReferenceBlob((char *) SUBJECTS[0],   strlen(SUBJECTS[0]),   hxhim_data_t::HXHIM_DATA_BYTE),
+                             ReferenceBlob((char *) PREDICATES[0], strlen(PREDICATES[0]), hxhim_data_t::HXHIM_DATA_BYTE)),
               HXHIM_SUCCESS);
     ASSERT_EQ(deletes[rank].size(), 1);
 
@@ -279,8 +274,8 @@ TEST(Enqueue, DELETE) {
     // enqueue a second DELETE
     EXPECT_EQ(hxhim::DeleteImpl(&hx,
                              deletes,
-                             ReferenceBlob((char *) SUBJECTS[1],   strlen(SUBJECTS[1])),
-                             ReferenceBlob((char *) PREDICATES[1], strlen(PREDICATES[1]))),
+                             ReferenceBlob((char *) SUBJECTS[1],   strlen(SUBJECTS[1]),   hxhim_data_t::HXHIM_DATA_BYTE),
+                             ReferenceBlob((char *) PREDICATES[1], strlen(PREDICATES[1]), hxhim_data_t::HXHIM_DATA_BYTE)),
               HXHIM_SUCCESS);
     ASSERT_EQ(deletes[rank].size(), 2); // maximum_ops_per_send is set to 1
 

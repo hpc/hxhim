@@ -18,14 +18,13 @@
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::PutDouble(hxhim_t *hx,
-                     void *subject, std::size_t subject_len,
-                     void *predicate, std::size_t predicate_len,
+                     void *subject, std::size_t subject_len, enum hxhim_data_t subject_type,
+                     void *predicate, std::size_t predicate_len, enum hxhim_data_t predicate_type,
                      double *object) {
     return hxhim::Put(hx,
-                      subject, subject_len,
-                      predicate, predicate_len,
-                      hxhim_object_type_t::HXHIM_OBJECT_TYPE_DOUBLE,
-                      object, sizeof(double));
+                      subject, subject_len, subject_type,
+                      predicate, predicate_len, predicate_type,
+                      object, sizeof(double), hxhim_data_t::HXHIM_DATA_DOUBLE);
 }
 
 /**
@@ -41,12 +40,12 @@ int hxhim::PutDouble(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimPutDouble(hxhim_t *hx,
-                   void *subject, std::size_t subject_len,
-                   void *predicate, std::size_t predicate_len,
+                   void *subject, size_t subject_len, enum hxhim_data_t subject_type,
+                   void *predicate, size_t predicate_len, enum hxhim_data_t predicate_type,
                    double *object) {
     return hxhim::PutDouble(hx,
-                            subject, subject_len,
-                            predicate, predicate_len,
+                            subject, subject_len, subject_type,
+                            predicate, predicate_len, predicate_type,
                             object);
 }
 
@@ -62,12 +61,12 @@ int hxhimPutDouble(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::GetDouble(hxhim_t *hx,
-                     void *subject, size_t subject_len,
-                     void *predicate, size_t predicate_len) {
+                     void *subject, std::size_t subject_len, enum hxhim_data_t subject_type,
+                     void *predicate, std::size_t predicate_len, enum hxhim_data_t predicate_type) {
     return hxhim::Get(hx,
-                      subject, subject_len,
-                      predicate, predicate_len,
-                      hxhim_object_type_t::HXHIM_OBJECT_TYPE_DOUBLE);
+                      subject, subject_len, subject_type,
+                      predicate, predicate_len, predicate_type,
+                      hxhim_data_t::HXHIM_DATA_DOUBLE);
 }
 
 /**
@@ -82,11 +81,11 @@ int hxhim::GetDouble(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimGetDouble(hxhim_t *hx,
-                   void *subject, size_t subject_len,
-                   void *predicate, size_t predicate_len) {
+                   void *subject, size_t subject_len, enum hxhim_data_t subject_type,
+                   void *predicate, size_t predicate_len, enum hxhim_data_t predicate_type) {
     return hxhim::GetDouble(hx,
-                            subject, subject_len,
-                            predicate, predicate_len);
+                            subject, subject_len, subject_type,
+                            predicate, predicate_len, predicate_type);
 }
 
 /**
@@ -103,13 +102,13 @@ int hxhimGetDouble(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::GetOpDouble(hxhim_t *hx,
-                       void *subject, std::size_t subject_len,
-                       void *predicate, std::size_t predicate_len,
+                       void *subject, std::size_t subject_len, enum hxhim_data_t subject_type,
+                       void *predicate, std::size_t predicate_len, enum hxhim_data_t predicate_type,
                        std::size_t num_records, enum hxhim_getop_t op) {
     return hxhim::GetOp(hx,
-                        subject, subject_len,
-                        predicate, predicate_len,
-                        hxhim_object_type_t::HXHIM_OBJECT_TYPE_DOUBLE,
+                        subject, subject_len, subject_type,
+                        predicate, predicate_len, predicate_type,
+                        hxhim_data_t::HXHIM_DATA_DOUBLE,
                         num_records, op);
 }
 
@@ -128,12 +127,12 @@ int hxhim::GetOpDouble(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimGetOpDouble(hxhim_t *hx,
-                     void *subject, size_t subject_len,
-                     void *predicate, size_t predicate_len,
+                     void *subject, size_t subject_len, enum hxhim_data_t subject_type,
+                     void *predicate, size_t predicate_len, enum hxhim_data_t predicate_type,
                      size_t num_records, enum hxhim_getop_t op) {
     return hxhim::GetOpDouble(hx,
-                              subject, subject_len,
-                              predicate, predicate_len,
+                              subject, subject_len, subject_type,
+                              predicate, predicate_len, predicate_type,
                               num_records, op);
 }
 
@@ -151,17 +150,16 @@ int hxhimGetOpDouble(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::BPutDouble(hxhim_t *hx,
-                      void **subjects, std::size_t *subject_lens,
-                      void **predicates, std::size_t *predicate_lens,
+                      void **subjects, std::size_t *subject_lens, enum hxhim_data_t *subject_types,
+                      void **predicates, std::size_t *predicate_lens, enum hxhim_data_t *predicate_types,
                       double **objects,
                       std::size_t count) {
     std::size_t *object_lens = alloc_array<std::size_t>(count, sizeof(double));
 
     const int rc = hxhim::BPutSingleType(hx,
-                                         subjects, subject_lens,
-                                         predicates, predicate_lens,
-                                         hxhim_object_type_t::HXHIM_OBJECT_TYPE_DOUBLE,
-                                         (void **) objects, object_lens,
+                                         subjects, subject_lens, subject_types,
+                                         predicates, predicate_lens, predicate_types,
+                                         (void **) objects, object_lens, hxhim_data_t::HXHIM_DATA_DOUBLE,
                                          count);
 
     dealloc_array(object_lens, count);
@@ -182,13 +180,13 @@ int hxhim::BPutDouble(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimBPutDouble(hxhim_t *hx,
-                    void **subjects, std::size_t *subject_lens,
-                    void **predicates, std::size_t *predicate_lens,
+                    void **subjects, size_t *subject_lens, enum hxhim_data_t *subject_types,
+                    void **predicates, size_t *predicate_lens, enum hxhim_data_t *predicate_types,
                     double **objects,
                     std::size_t count) {
     return hxhim::BPutDouble(hx,
-                             subjects, subject_lens,
-                             predicates, predicate_lens,
+                             subjects, subject_lens, subject_types,
+                             predicates, predicate_lens, predicate_types,
                              objects,
                              count);
 }
@@ -206,13 +204,13 @@ int hxhimBPutDouble(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::BGetDouble(hxhim_t *hx,
-                      void **subjects, size_t *subject_lens,
-                      void **predicates, size_t *predicate_lens,
+                      void **subjects, std::size_t *subject_lens, enum hxhim_data_t *subject_types,
+                      void **predicates, std::size_t *predicate_lens, enum hxhim_data_t *predicate_types,
                       std::size_t count) {
     return hxhim::BGetSingleType(hx,
-                                 subjects, subject_lens,
-                                 predicates, predicate_lens,
-                                 hxhim_object_type_t::HXHIM_OBJECT_TYPE_DOUBLE,
+                                 subjects, subject_lens, subject_types,
+                                 predicates, predicate_lens, predicate_types,
+                                 hxhim_data_t::HXHIM_DATA_DOUBLE,
                                  count);
 }
 
@@ -229,12 +227,12 @@ int hxhim::BGetDouble(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimBGetDouble(hxhim_t *hx,
-                    void **subjects, size_t *subject_lens,
-                    void **predicates, size_t *predicate_lens,
+                    void **subjects, size_t *subject_lens, enum hxhim_data_t *subject_types,
+                    void **predicates, size_t *predicate_lens, enum hxhim_data_t *predicate_types,
                     size_t count) {
     return hxhim::BGetDouble(hx,
-                             subjects, subject_lens,
-                             predicates, predicate_lens,
+                             subjects, subject_lens, subject_types,
+                             predicates, predicate_lens, predicate_types,
                              count);
 }
 
@@ -253,14 +251,14 @@ int hxhimBGetDouble(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::BGetOpDouble(hxhim_t *hx,
-                        void **subjects, std::size_t *subject_lens,
-                        void **predicates, std::size_t *predicate_lens,
+                        void **subjects, std::size_t *subject_lens, enum hxhim_data_t *subject_types,
+                        void **predicates, std::size_t *predicate_lens, enum hxhim_data_t *predicate_types,
                         std::size_t *num_records, enum hxhim_getop_t *ops,
                         const std::size_t count) {
     return hxhim::BGetOpSingleType(hx,
-                                   subjects, subject_lens,
-                                   predicates, predicate_lens,
-                                   hxhim_object_type_t::HXHIM_OBJECT_TYPE_DOUBLE,
+                                   subjects, subject_lens, subject_types,
+                                   predicates, predicate_lens, predicate_types,
+                                   hxhim_data_t::HXHIM_DATA_DOUBLE,
                                    num_records, ops,
                                    count);
 }
@@ -280,13 +278,13 @@ int hxhim::BGetOpDouble(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimBGetOpDouble(hxhim_t *hx,
-                      void **subjects, size_t *subject_lens,
-                      void **predicates, size_t *predicate_lens,
+                      void **subjects, size_t *subject_lens, enum hxhim_data_t *subject_types,
+                      void **predicates, size_t *predicate_lens, enum hxhim_data_t *predicate_types,
                       size_t *num_records, enum hxhim_getop_t *ops,
                       const size_t count) {
     return hxhim::BGetOpDouble(hx,
-                               subjects, subject_lens,
-                               predicates, predicate_lens,
+                               subjects, subject_lens, subject_types,
+                               predicates, predicate_lens, predicate_types,
                                num_records, ops,
                                count);
 }

@@ -3,7 +3,7 @@
 #include <gtest/gtest.h>
 
 #include "hxhim/constants.h"
-#include "utils/triplestore.hpp"
+#include "hxhim/triplestore.hpp"
 #include "utils/memory.hpp"
 
 static const char *SUBJECT = "subject";
@@ -34,9 +34,9 @@ static const char *PREDICATE_LEN_ENCODED() {
 }
 
 TEST(triplestore, sp_to_key) {
-    Blob sub  = ReferenceBlob((void *) SUBJECT, SUBJECT_LEN);
-    Blob pred = ReferenceBlob((void *) PREDICATE, PREDICATE_LEN);
-    std::size_t buf_len = sub.pack_size() + pred.pack_size();
+    Blob sub  = ReferenceBlob((void *) SUBJECT, SUBJECT_LEN, hxhim_data_t::HXHIM_DATA_BYTE);
+    Blob pred = ReferenceBlob((void *) PREDICATE, PREDICATE_LEN, hxhim_data_t::HXHIM_DATA_BYTE);
+    std::size_t buf_len = sub.pack_size(false) + pred.pack_size(false);
     char *buf = (char *) alloc(buf_len);
     char *orig = buf;
     std::size_t key_len = 0;
@@ -62,9 +62,9 @@ TEST(triplestore, sp_to_key) {
 }
 
 TEST(triplestore, key_to_sp) {
-    Blob sub  = ReferenceBlob((void *) SUBJECT, SUBJECT_LEN);
-    Blob pred = ReferenceBlob((void *) PREDICATE, PREDICATE_LEN);
-    std::size_t buf_len = sub.pack_size() + pred.pack_size();
+    Blob sub  = ReferenceBlob((void *) SUBJECT, SUBJECT_LEN, hxhim_data_t::HXHIM_DATA_BYTE);
+    Blob pred = ReferenceBlob((void *) PREDICATE, PREDICATE_LEN, hxhim_data_t::HXHIM_DATA_BYTE);
+    std::size_t buf_len = sub.pack_size(false) + pred.pack_size(false);
     char *buf = (char *) alloc(buf_len);
     char *orig = buf;
     std::size_t key_len = 0;

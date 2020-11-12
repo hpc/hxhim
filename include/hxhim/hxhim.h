@@ -45,47 +45,47 @@ hxhim_results_t *hxhimChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t fun
 
 /** @description Functions for queuing operations to perform on the underlying storage */
 int hxhimPut(hxhim_t *hx,
-             void *subject, size_t subject_len,
-             void *predicate, size_t predicate_len,
-             enum hxhim_object_type_t object_type, void *object, size_t object_len);
+             void *subject, size_t subject_len, enum hxhim_data_t subject_type,
+             void *predicate, size_t predicate_len, enum hxhim_data_t predicate_type,
+             void *object, size_t object_len, enum hxhim_data_t object_type);
 
 int hxhimGet(hxhim_t *hx,
-             void *subject, size_t subject_len,
-             void *predicate, size_t predicate_len,
-             enum hxhim_object_type_t object_type);
+             void *subject, size_t subject_len, enum hxhim_data_t subject_type,
+             void *predicate, size_t predicate_len, enum hxhim_data_t predicate_type,
+             enum hxhim_data_t object_type);
 
 int hxhimGetOp(hxhim_t *hx,
-               void *subject, size_t subject_len,
-               void *predicate, size_t predicate_len,
-               enum hxhim_object_type_t object_type,
+               void *subject, size_t subject_len, enum hxhim_data_t subject_type,
+               void *predicate, size_t predicate_len, enum hxhim_data_t predicate_type,
+               enum hxhim_data_t object_type,
                size_t num_records, enum hxhim_getop_t op);
 
 int hxhimDelete(hxhim_t *hx,
-                void *subject, size_t subject_len,
-                void *predicate, size_t predicate_len);
+                void *subject, size_t subject_len, enum hxhim_data_t subject_type,
+                void *predicate, size_t predicate_len, enum hxhim_data_t predicate_type);
 
 int hxhimBPut(hxhim_t *hx,
-              void **subjects, size_t *subject_lens,
-              void **predicates, size_t *predicate_lens,
-              void **objects, size_t *object_lens,
+              void **subjects, size_t *subject_lens, enum hxhim_data_t *subject_types,
+              void **predicates, size_t *predicate_lens, enum hxhim_data_t *predicate_types,
+              void **objects, size_t *object_lens, enum hxhim_data_t *object_types,
               const size_t count);
 
 int hxhimBGet(hxhim_t *hx,
-              void **subjects, size_t *subject_lens,
-              void **predicates, size_t *predicate_lens,
-              enum hxhim_object_type_t *object_types,
+              void **subjects, size_t *subject_lens, enum hxhim_data_t *subject_types,
+              void **predicates, size_t *predicate_lens, enum hxhim_data_t *predicate_types,
+              enum hxhim_data_t *object_types,
               const size_t count);
 
 int hxhimBGetOp(hxhim_t *hx,
-                void **subjects, size_t *subject_lens,
-                void **predicates, size_t *predicate_lens,
-                enum hxhim_object_type_t *object_types,
+                void **subjects, size_t *subject_lens, enum hxhim_data_t *subject_types,
+                void **predicates, size_t *predicate_lens, enum hxhim_data_t *predicate_types,
+                enum hxhim_data_t *object_types,
                 size_t *num_records, enum hxhim_getop_t *ops,
                 const size_t count);
 
 int hxhimBDelete(hxhim_t *hx,
-                 void **subjects, size_t *subject_lens,
-                 void **predicates, size_t *predicate_lens,
+                 void **subjects, size_t *subject_lens, enum hxhim_data_t *subject_types,
+                 void **predicates, size_t *predicate_lens, enum hxhim_data_t *predicate_types,
                  const size_t count);
 
 /** @description Utility Functions */

@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
 #include "datastore/constants.hpp"
+#include "hxhim/Blob.hpp"
 #include "hxhim/Results.hpp"
-#include "utils/Blob.hpp"
 #include "utils/memory.hpp"
 
 TEST(Results, PUT_GET_DEL) {
@@ -121,39 +121,40 @@ TEST(Results, Accessors) {
     // add some data to the non-empty results
     hxhim::Results::Result *rput = results.Add(construct<hxhim::Results::Put>(nullptr, -1, DATASTORE_SUCCESS));
     hxhim::Results::Put *put = static_cast<hxhim::Results::Put *>(rput);
-    put->subject = RealBlob(alloc(1), 1);
-    put->predicate = RealBlob(alloc(1), 1);
+    put->subject   = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_POINTER);
+    put->predicate = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_POINTER);
 
     hxhim::Results::Result *rget = results.Add(construct<hxhim::Results::Get>(nullptr, -1, DATASTORE_SUCCESS));
     hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(rget);
-    get->subject = RealBlob(alloc(1), 1);
-    get->predicate = RealBlob(alloc(1), 1);
-    get->object_type = hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE;
-    get->object = RealBlob(alloc(1), 1);
+    get->subject   = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_POINTER);
+    get->predicate = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_POINTER);
+    get->object    = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_BYTE);
 
     hxhim::Results::Result *rgetop = results.Add(construct<hxhim::Results::GetOp>(nullptr, -1, DATASTORE_SUCCESS));
     hxhim::Results::GetOp *getop = static_cast<hxhim::Results::GetOp *>(rgetop);
-    getop->subject = RealBlob(alloc(1), 1);
-    getop->predicate = RealBlob(alloc(1), 1);
-    get->object_type = hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE;
-    getop->object = RealBlob(alloc(1), 1);
+    getop->subject   = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_POINTER);
+    getop->predicate = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_POINTER);
+    getop->object    = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_POINTER);
 
     hxhim::Results::Result *rdel = results.Add(construct<hxhim::Results::Delete>(nullptr, -1, DATASTORE_SUCCESS));
     hxhim::Results::Delete *del = static_cast<hxhim::Results::Delete *>(rdel);
-    del->subject = RealBlob(alloc(1), 1);
-    del->predicate = RealBlob(alloc(1), 1);
+    del->subject   = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_POINTER);
+    del->predicate = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_POINTER);
 
     // all Results will attempt to get these variables
     hxhim_op_t op;
     int status;
     void *subject = nullptr;
     std::size_t subject_len = 0;
+    hxhim_data_t subject_type;
     void *predicate = nullptr;
     std::size_t predicate_len = 0;
-    hxhim_object_type_t object_type = HXHIM_OBJECT_TYPE_INVALID;
+    hxhim_data_t predicate_type;
     void *object = nullptr;
     std::size_t object_len = 0;
+    hxhim_data_t object_type;
 
+    // PUT
     EXPECT_EQ(results.GoToHead(), put);
     EXPECT_EQ(results.ValidIterator(), true);
     {
@@ -163,16 +164,16 @@ TEST(Results, Accessors) {
         EXPECT_EQ(results.Status(&status), HXHIM_SUCCESS);
         EXPECT_EQ(status, HXHIM_SUCCESS);
 
-        EXPECT_EQ(results.Subject(&subject, &subject_len), HXHIM_SUCCESS);
+        EXPECT_EQ(results.Subject(&subject, &subject_len, &subject_type), HXHIM_SUCCESS);
         EXPECT_EQ(put->subject.data(), subject);
 
-        EXPECT_EQ(results.Predicate(&predicate, &predicate_len), HXHIM_SUCCESS);
+        EXPECT_EQ(results.Predicate(&predicate, &predicate_len, &predicate_type), HXHIM_SUCCESS);
         EXPECT_EQ(put->predicate.data(), predicate);
 
-        EXPECT_EQ(results.ObjectType(&object_type), HXHIM_ERROR);
-        EXPECT_EQ(results.Object(&object, &object_len), HXHIM_ERROR);
+        EXPECT_EQ(results.Object(&object, &object_len, &object_type), HXHIM_ERROR);
     }
 
+    // GET
     EXPECT_EQ(results.GoToNext(), get);
     EXPECT_EQ(results.ValidIterator(), true);
     {
@@ -182,19 +183,17 @@ TEST(Results, Accessors) {
         EXPECT_EQ(results.Status(&status), HXHIM_SUCCESS);
         EXPECT_EQ(status, HXHIM_SUCCESS);
 
-        EXPECT_EQ(results.Subject(&subject, &subject_len), HXHIM_SUCCESS);
+        EXPECT_EQ(results.Subject(&subject, &subject_len, &subject_type), HXHIM_SUCCESS);
         EXPECT_EQ(get->subject.data(), subject);
 
-        EXPECT_EQ(results.Predicate(&predicate, &predicate_len), HXHIM_SUCCESS);
+        EXPECT_EQ(results.Predicate(&predicate, &predicate_len, &predicate_type), HXHIM_SUCCESS);
         EXPECT_EQ(get->predicate.data(), predicate);
 
-        EXPECT_EQ(results.ObjectType(&object_type), HXHIM_SUCCESS);
-        EXPECT_EQ(get->object_type, object_type);
-
-        EXPECT_EQ(results.Object(&object, &object_len), HXHIM_SUCCESS);
+        EXPECT_EQ(results.Object(&object, &object_len, &object_type), HXHIM_SUCCESS);
         EXPECT_EQ(get->object.data(), object);
     }
 
+    // GETOP
     EXPECT_EQ(results.GoToNext(), getop);
     EXPECT_EQ(results.ValidIterator(), true);
     {
@@ -204,19 +203,17 @@ TEST(Results, Accessors) {
         EXPECT_EQ(results.Status(&status), HXHIM_SUCCESS);
         EXPECT_EQ(status, HXHIM_SUCCESS);
 
-        EXPECT_EQ(results.Subject(&subject, &subject_len), HXHIM_SUCCESS);
+        EXPECT_EQ(results.Subject(&subject, &subject_len, &subject_type), HXHIM_SUCCESS);
         EXPECT_EQ(getop->subject.data(), subject);
 
-        EXPECT_EQ(results.Predicate(&predicate, &predicate_len), HXHIM_SUCCESS);
+        EXPECT_EQ(results.Predicate(&predicate, &predicate_len, &predicate_type), HXHIM_SUCCESS);
         EXPECT_EQ(getop->predicate.data(), predicate);
 
-        EXPECT_EQ(results.ObjectType(&object_type), HXHIM_SUCCESS);
-        EXPECT_EQ(getop->object_type, object_type);
-
-        EXPECT_EQ(results.Object(&object, &object_len), HXHIM_SUCCESS);
+        EXPECT_EQ(results.Object(&object, &object_len, &object_type), HXHIM_SUCCESS);
         EXPECT_EQ(getop->object.data(), object);
     }
 
+    // DEL
     EXPECT_EQ(results.GoToNext(), del);
     EXPECT_EQ(results.ValidIterator(), true);
     {
@@ -226,14 +223,13 @@ TEST(Results, Accessors) {
         EXPECT_EQ(results.Status(&status), HXHIM_SUCCESS);
         EXPECT_EQ(status, HXHIM_SUCCESS);
 
-        EXPECT_EQ(results.Subject(&subject, &subject_len), HXHIM_SUCCESS);
+        EXPECT_EQ(results.Subject(&subject, &subject_len, &subject_type), HXHIM_SUCCESS);
         EXPECT_EQ(del->subject.data(), subject);
 
-        EXPECT_EQ(results.Predicate(&predicate, &predicate_len), HXHIM_SUCCESS);
+        EXPECT_EQ(results.Predicate(&predicate, &predicate_len, &predicate_type), HXHIM_SUCCESS);
         EXPECT_EQ(del->predicate.data(), predicate);
 
-        EXPECT_EQ(results.ObjectType(&object_type), HXHIM_ERROR);
-        EXPECT_EQ(results.Object(&object, &object_len), HXHIM_ERROR);
+        EXPECT_EQ(results.Object(&object, &object_len, &object_type), HXHIM_ERROR);
     }
 
     EXPECT_EQ(results.GoToNext(), nullptr);
@@ -242,9 +238,8 @@ TEST(Results, Accessors) {
         EXPECT_EQ(results.Op(&op), HXHIM_ERROR);
         EXPECT_EQ(op, hxhim_op_t::HXHIM_DELETE);
         EXPECT_EQ(results.Status(&status), HXHIM_ERROR);
-        EXPECT_EQ(results.Subject(&subject, &subject_len), HXHIM_ERROR);
-        EXPECT_EQ(results.Predicate(&predicate, &predicate_len), HXHIM_ERROR);
-        EXPECT_EQ(results.ObjectType(&object_type), HXHIM_ERROR);
-        EXPECT_EQ(results.Object(&object, &object_len), HXHIM_ERROR);
+        EXPECT_EQ(results.Subject(&subject, &subject_len, &subject_type), HXHIM_ERROR);
+        EXPECT_EQ(results.Predicate(&predicate, &predicate_len, &predicate_type), HXHIM_ERROR);
+        EXPECT_EQ(results.Object(&object, &object_len, &object_type), HXHIM_ERROR);
     }
 }

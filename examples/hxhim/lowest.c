@@ -7,6 +7,7 @@
 #include <mpi.h>
 
 #include "hxhim/hxhim.h"
+#include "print_results.h"
 #include "utils/elen.h"
 
 #define BUF_SIZE 100
@@ -23,71 +24,6 @@ typedef struct Cell {
     double temp;
     char *temp_str;
 } Cell_t;
-
-void print_results(hxhim_t *hx, const int print_rank, hxhim_results_t *results) {
-    HXHIM_C_RESULTS_LOOP(results) {
-        if (print_rank) {
-            int rank = -1;
-            if (hxhimGetMPI(hx, NULL, &rank, NULL) != HXHIM_SUCCESS) {
-                printf("Could not get rank\n");
-            }
-            else {
-                printf("Rank %d ", rank);
-            }
-        }
-
-        enum hxhim_op_t op;
-        hxhim_result_op(results, &op);
-
-        int status;
-        hxhim_result_status(results, &status);
-
-        int range_server;
-        hxhim_result_range_server(results, &range_server);
-
-        void *subject = NULL;
-        size_t subject_len = 0;
-
-        void *predicate = NULL;
-        size_t predicate_len = 0;
-
-        if (status == HXHIM_SUCCESS) {
-            hxhim_result_subject(results, &subject, &subject_len);
-            hxhim_result_predicate(results, &predicate, &predicate_len);
-        }
-
-        const double temp = elen_decode_floating_double(subject, ELEN_NEG, ELEN_POS);
-
-        switch (op) {
-            case HXHIM_PUT:
-                printf("PUT          {%f, %.*s} returned %s from range server %d\n", temp, (int) predicate_len, (char *) predicate, (status == HXHIM_SUCCESS)?"SUCCESS":"ERROR", range_server);
-                break;
-            case HXHIM_GETOP:
-                printf("GET returned ");
-                if (status == HXHIM_SUCCESS) {
-                    enum hxhim_object_type_t object_type;
-                    hxhim_result_object_type(results, &object_type);
-                    void *object = NULL;
-                    size_t object_len = 0;
-                    hxhim_result_object(results, &object, &object_len);
-
-                    printf("{%f, %.*s} -> %.*s", temp,
-                           (int) predicate_len, (char *) predicate,
-                           (int) object_len, (char *) object);
-
-                }
-                else {
-                    printf("ERROR");
-                }
-
-                printf(" from range server %d\n", range_server);
-                break;
-            default:
-                printf("Bad Operation: %d\n", (int) op);
-                break;
-        }
-    }
-}
 
 int main(int argc, char *argv[]) {
     int provided;
@@ -176,10 +112,9 @@ int main(int argc, char *argv[]) {
             }
 
             hxhimPut(&hx,
-                     c->temp_str, strlen(c->temp_str) + 1,
-                     c->predicate, strlen(c->predicate) + 1,
-                     HXHIM_OBJECT_TYPE_BYTE,
-                     c->name, strlen(c->name) + 1);
+                     c->temp_str, strlen(c->temp_str) + 1, HXHIM_DATA_BYTE,
+                     c->predicate, strlen(c->predicate) + 1, HXHIM_DATA_BYTE,
+                     c->name, strlen(c->name) + 1, HXHIM_DATA_BYTE);
         }
     }
 
@@ -195,9 +130,9 @@ int main(int argc, char *argv[]) {
         printf("lowest %zu\n", num_lowest);
         printf("--------------------------------------------\n");
         hxhimGetOp(&hx,
-                   lowest->temp_str, strlen(lowest->temp_str) + 1,
-                   lowest->predicate, strlen(lowest->predicate) + 1,
-                   HXHIM_OBJECT_TYPE_BYTE, num_lowest, HXHIM_GETOP_NEXT);
+                   lowest->temp_str, strlen(lowest->temp_str) + 1, HXHIM_DATA_BYTE,
+                   lowest->predicate, strlen(lowest->predicate) + 1, HXHIM_DATA_BYTE,
+                   HXHIM_DATA_BYTE, num_lowest, HXHIM_GETOP_NEXT);
         hxhim_results_t *get_lowest = hxhimFlush(&hx);
         print_results(&hx, 0, get_lowest);
         hxhim_results_destroy(get_lowest);
@@ -207,9 +142,9 @@ int main(int argc, char *argv[]) {
         printf("highest %zu\n", num_highest);
         printf("--------------------------------------------\n");
         hxhimGetOp(&hx,
-                   highest->temp_str, strlen(highest->temp_str) + 1,
-                   highest->predicate, strlen(highest->predicate) + 1,
-                   HXHIM_OBJECT_TYPE_BYTE, num_highest, HXHIM_GETOP_PREV);
+                   highest->temp_str, strlen(highest->temp_str) + 1, HXHIM_DATA_BYTE,
+                   highest->predicate, strlen(highest->predicate) + 1, HXHIM_DATA_BYTE,
+                   HXHIM_DATA_BYTE, num_highest, HXHIM_GETOP_PREV);
         hxhim_results_t *get_highest = hxhimFlush(&hx);
         print_results(&hx, 0, get_highest);
         hxhim_results_destroy(get_highest);

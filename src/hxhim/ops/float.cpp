@@ -18,14 +18,13 @@
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::PutFloat(hxhim_t *hx,
-                     void *subject, std::size_t subject_len,
-                     void *predicate, std::size_t predicate_len,
-                     float *object) {
+                    void *subject, std::size_t subject_len, enum hxhim_data_t subject_type,
+                    void *predicate, std::size_t predicate_len, enum hxhim_data_t predicate_type,
+                    float *object) {
     return hxhim::Put(hx,
-                      subject, subject_len,
-                      predicate, predicate_len,
-                      hxhim_object_type_t::HXHIM_OBJECT_TYPE_FLOAT,
-                      object, sizeof(float));
+                      subject, subject_len, subject_type,
+                      predicate, predicate_len, predicate_type,
+                      object, sizeof(float), hxhim_data_t::HXHIM_DATA_FLOAT);
 }
 
 /**
@@ -41,13 +40,13 @@ int hxhim::PutFloat(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimPutFloat(hxhim_t *hx,
-                   void *subject, std::size_t subject_len,
-                   void *predicate, std::size_t predicate_len,
-                   float *object) {
+                  void *subject, size_t subject_len, enum hxhim_data_t subject_type,
+                  void *predicate, size_t predicate_len, enum hxhim_data_t predicate_type,
+                  float *object) {
     return hxhim::PutFloat(hx,
-                            subject, subject_len,
-                            predicate, predicate_len,
-                            object);
+                           subject, subject_len, subject_type,
+                           predicate, predicate_len, predicate_type,
+                           object);
 }
 
 /**
@@ -62,12 +61,12 @@ int hxhimPutFloat(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::GetFloat(hxhim_t *hx,
-                     void *subject, size_t subject_len,
-                     void *predicate, size_t predicate_len) {
+                    void *subject, std::size_t subject_len, enum hxhim_data_t subject_type,
+                    void *predicate, std::size_t predicate_len, enum hxhim_data_t predicate_type) {
     return hxhim::Get(hx,
-                      subject, subject_len,
-                      predicate, predicate_len,
-                      hxhim_object_type_t::HXHIM_OBJECT_TYPE_FLOAT);
+                      subject, subject_len, subject_type,
+                      predicate, predicate_len, predicate_type,
+                      hxhim_data_t::HXHIM_DATA_FLOAT);
 }
 
 /**
@@ -82,11 +81,11 @@ int hxhim::GetFloat(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimGetFloat(hxhim_t *hx,
-                   void *subject, size_t subject_len,
-                   void *predicate, size_t predicate_len) {
+                  void *subject, size_t subject_len, enum hxhim_data_t subject_type,
+                  void *predicate, size_t predicate_len, enum hxhim_data_t predicate_type) {
     return hxhim::GetFloat(hx,
-                            subject, subject_len,
-                            predicate, predicate_len);
+                           subject, subject_len, subject_type,
+                           predicate, predicate_len, predicate_type);
 }
 
 /**
@@ -103,13 +102,13 @@ int hxhimGetFloat(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::GetOpFloat(hxhim_t *hx,
-                      void *subject, std::size_t subject_len,
-                      void *predicate, std::size_t predicate_len,
+                      void *subject, std::size_t subject_len, enum hxhim_data_t subject_type,
+                      void *predicate, std::size_t predicate_len, enum hxhim_data_t predicate_type,
                       std::size_t num_records, enum hxhim_getop_t op) {
     return hxhim::GetOp(hx,
-                        subject, subject_len,
-                        predicate, predicate_len,
-                        hxhim_object_type_t::HXHIM_OBJECT_TYPE_FLOAT,
+                        subject, subject_len, subject_type,
+                        predicate, predicate_len, predicate_type,
+                        hxhim_data_t::HXHIM_DATA_FLOAT,
                         num_records, op);
 }
 
@@ -128,12 +127,12 @@ int hxhim::GetOpFloat(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimGetOpFloat(hxhim_t *hx,
-                    void *subject, size_t subject_len,
-                    void *predicate, size_t predicate_len,
+                    void *subject, size_t subject_len, enum hxhim_data_t subject_type,
+                    void *predicate, size_t predicate_len, enum hxhim_data_t predicate_type,
                     size_t num_records, enum hxhim_getop_t op) {
     return hxhim::GetOpFloat(hx,
-                             subject, subject_len,
-                             predicate, predicate_len,
+                             subject, subject_len, subject_type,
+                             predicate, predicate_len, predicate_type,
                              num_records, op);
 }
 
@@ -151,17 +150,16 @@ int hxhimGetOpFloat(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::BPutFloat(hxhim_t *hx,
-                      void **subjects, std::size_t *subject_lens,
-                      void **predicates, std::size_t *predicate_lens,
-                      float **objects,
-                      std::size_t count) {
+                     void **subjects, std::size_t *subject_lens, enum hxhim_data_t *subject_types,
+                     void **predicates, std::size_t *predicate_lens, enum hxhim_data_t *predicate_types,
+                     float **objects,
+                     std::size_t count) {
     std::size_t *object_lens = alloc_array<std::size_t>(count, sizeof(float));
 
     const int rc = hxhim::BPutSingleType(hx,
-                                         subjects, subject_lens,
-                                         predicates, predicate_lens,
-                                         hxhim_object_type_t::HXHIM_OBJECT_TYPE_FLOAT,
-                                         (void **) objects, object_lens,
+                                         subjects, subject_lens, subject_types,
+                                         predicates, predicate_lens, predicate_types,
+                                         (void **) objects, object_lens, hxhim_data_t::HXHIM_DATA_FLOAT,
                                          count);
 
     dealloc_array(object_lens, count);
@@ -182,15 +180,15 @@ int hxhim::BPutFloat(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimBPutFloat(hxhim_t *hx,
-                    void **subjects, std::size_t *subject_lens,
-                    void **predicates, std::size_t *predicate_lens,
-                    float **objects,
-                    std::size_t count) {
+                   void **subjects, size_t *subject_lens, enum hxhim_data_t *subject_types,
+                   void **predicates, size_t *predicate_lens, enum hxhim_data_t *predicate_types,
+                   float **objects,
+                   std::size_t count) {
     return hxhim::BPutFloat(hx,
-                             subjects, subject_lens,
-                             predicates, predicate_lens,
-                             objects,
-                             count);
+                            subjects, subject_lens, subject_types,
+                            predicates, predicate_lens, predicate_types,
+                            objects,
+                            count);
 }
 
 /**
@@ -206,13 +204,13 @@ int hxhimBPutFloat(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::BGetFloat(hxhim_t *hx,
-                      void **subjects, size_t *subject_lens,
-                      void **predicates, size_t *predicate_lens,
-                      std::size_t count) {
+                     void **subjects, std::size_t *subject_lens, enum hxhim_data_t *subject_types,
+                     void **predicates, std::size_t *predicate_lens, enum hxhim_data_t *predicate_types,
+                     std::size_t count) {
     return hxhim::BGetSingleType(hx,
-                                 subjects, subject_lens,
-                                 predicates, predicate_lens,
-                                 hxhim_object_type_t::HXHIM_OBJECT_TYPE_FLOAT,
+                                 subjects, subject_lens, subject_types,
+                                 predicates, predicate_lens, predicate_types,
+                                 hxhim_data_t::HXHIM_DATA_FLOAT,
                                  count);
 }
 
@@ -229,13 +227,13 @@ int hxhim::BGetFloat(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimBGetFloat(hxhim_t *hx,
-                    void **subjects, size_t *subject_lens,
-                    void **predicates, size_t *predicate_lens,
-                    size_t count) {
+                   void **subjects, size_t *subject_lens, enum hxhim_data_t *subject_types,
+                   void **predicates, size_t *predicate_lens, enum hxhim_data_t *predicate_types,
+                   size_t count) {
     return hxhim::BGetFloat(hx,
-                             subjects, subject_lens,
-                             predicates, predicate_lens,
-                             count);
+                            subjects, subject_lens, subject_types,
+                            predicates, predicate_lens, predicate_types,
+                            count);
 }
 
 /**
@@ -253,14 +251,14 @@ int hxhimBGetFloat(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::BGetOpFloat(hxhim_t *hx,
-                       void **subjects, std::size_t *subject_lens,
-                       void **predicates, std::size_t *predicate_lens,
+                       void **subjects, std::size_t *subject_lens, enum hxhim_data_t *subject_types,
+                       void **predicates, std::size_t *predicate_lens, enum hxhim_data_t *predicate_types,
                        std::size_t *num_records, enum hxhim_getop_t *ops,
                        const std::size_t count) {
     return hxhim::BGetOpSingleType(hx,
-                                   subjects, subject_lens,
-                                   predicates, predicate_lens,
-                                   hxhim_object_type_t::HXHIM_OBJECT_TYPE_FLOAT,
+                                   subjects, subject_lens, subject_types,
+                                   predicates, predicate_lens, predicate_types,
+                                   hxhim_data_t::HXHIM_DATA_FLOAT,
                                    num_records, ops,
                                    count);
 }
@@ -280,13 +278,13 @@ int hxhim::BGetOpFloat(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimBGetOpFloat(hxhim_t *hx,
-                     void **subjects, size_t *subject_lens,
-                     void **predicates, size_t *predicate_lens,
+                     void **subjects, size_t *subject_lens, enum hxhim_data_t *subject_types,
+                     void **predicates, size_t *predicate_lens, enum hxhim_data_t *predicate_types,
                      size_t *num_records, enum hxhim_getop_t *ops,
                      const size_t count) {
     return hxhim::BGetOpFloat(hx,
-                              subjects, subject_lens,
-                              predicates, predicate_lens,
+                              subjects, subject_lens, subject_types,
+                              predicates, predicate_lens, predicate_types,
                               num_records, ops,
                               count);
 }

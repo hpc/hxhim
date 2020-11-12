@@ -61,8 +61,8 @@ TEST(hxhim, Histogram) {
         objects[i] = 0;
 
         EXPECT_EQ(hxhim::PutDouble(&hx,
-                                   (void *)&subjects[i], sizeof(subjects[i]),
-                                   (void *)&predicates[i], sizeof(predicates[i]),
+                                   (void *)&subjects[i],   sizeof(subjects[i]),   hxhim_data_t::HXHIM_DATA_SIZE,
+                                   (void *)&predicates[i], sizeof(predicates[i]), hxhim_data_t::HXHIM_DATA_SIZE,
                                    &objects[i]),
                   HXHIM_SUCCESS);
     }
@@ -86,15 +86,17 @@ TEST(hxhim, Histogram) {
 
         void *subject = nullptr;
         std::size_t subject_len = 0;
-        EXPECT_EQ(put_results->Subject(&subject, &subject_len), HXHIM_SUCCESS);
+        EXPECT_EQ(put_results->Subject(&subject, &subject_len, nullptr), HXHIM_SUCCESS);
         EXPECT_NE(subject, nullptr);
         EXPECT_NE(subject_len, 0);
+        // type changes depending on which PUT permutation this result came from
 
         void *predicate = nullptr;
         std::size_t predicate_len = 0;
-        EXPECT_EQ(put_results->Predicate(&predicate, &predicate_len), HXHIM_SUCCESS);
+        EXPECT_EQ(put_results->Predicate(&predicate, &predicate_len, nullptr), HXHIM_SUCCESS);
         EXPECT_NE(predicate, nullptr);
         EXPECT_NE(predicate_len, 0);
+        // type changes depending on which PUT permutation this result came from
     }
 
     hxhim::Results::Destroy(put_results);

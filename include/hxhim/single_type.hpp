@@ -10,21 +10,21 @@
 namespace hxhim {
 
 int BPutSingleType(hxhim_t *hx,
-                   void **subjects, std::size_t *subject_lens,
-                   void **predicates, std::size_t *predicate_lens,
-                   enum hxhim_object_type_t object_type, void **objects, std::size_t *object_lens,
+                   void **subjects, std::size_t *subject_lens, enum hxhim_data_t *subject_types,
+                   void **predicates, std::size_t *predicate_lens, enum hxhim_data_t *predicate_types,
+                   void **objects, std::size_t *object_lens, enum hxhim_data_t object_type,
                    const std::size_t count);
 
 int BGetSingleType(hxhim_t *hx,
-                   void **subjects, std::size_t *subject_lens,
-                   void **predicates, std::size_t *predicate_lens,
-                   enum hxhim_object_type_t object_type,
+                   void **subjects, std::size_t *subject_lens, enum hxhim_data_t *subject_types,
+                   void **predicates, std::size_t *predicate_lens, enum hxhim_data_t *predicate_types,
+                   enum hxhim_data_t object_type,
                    const std::size_t count);
 
 int BGetOpSingleType(hxhim_t *hx,
-                     void **subjects, std::size_t *subject_lens,
-                     void **predicates, std::size_t *predicate_lens,
-                     enum hxhim_object_type_t object_type,
+                     void **subjects, std::size_t *subject_lens, enum hxhim_data_t *subject_types,
+                     void **predicates, std::size_t *predicate_lens, enum hxhim_data_t *predicate_types,
+                     enum hxhim_data_t object_type,
                      std::size_t *num_records, enum hxhim_getop_t *ops,
                      const std::size_t count);
 }

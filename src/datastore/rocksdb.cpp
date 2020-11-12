@@ -6,14 +6,14 @@
 
 #include "rocksdb/write_batch.h"
 
-#include "hxhim/accessors.hpp"
 #include "datastore/rocksdb.hpp"
-#include "utils/Blob.hpp"
+#include "hxhim/Blob.hpp"
+#include "hxhim/accessors.hpp"
+#include "hxhim/triplestore.hpp"
 #include "utils/memory.hpp"
 #include "utils/mkdir_p.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
-#include "utils/triplestore.hpp"
 
 datastore::rocksdb::rocksdb(const int rank,
                                    Histogram::Histogram *hist,
@@ -130,8 +130,8 @@ Transport::Response::BPut *datastore::rocksdb::BPutImpl(Transport::Request::BPut
         event.size += key_len + req->objects[i].size();
 
         // save requesting addresses for sending back
-        res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size());
-        res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size());
+        res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size(), req->subjects[i].data_type());
+        res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size(), req->predicates[i].data_type());
     }
 
     // add in the time to write the key-value pairs without adding to the counter
@@ -197,19 +197,16 @@ Transport::Response::BGet *datastore::rocksdb::BGetImpl(Transport::Request::BGet
         std::string value;
         ::rocksdb::Status status = db->Get(::rocksdb::ReadOptions(), k, &value);
 
-        // object type was stored as a value, not address, so copy it to the response
-        res->object_types[i]    = req->object_types[i];
-
         // save requesting addresses for sending back
-        res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size());
-        res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size());
+        res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size(), req->subjects[i].data_type());
+        res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size(), req->predicates[i].data_type());
         event.size += key_len;
 
         // put object into response
         if (status.ok()) {
             mlog(ROCKSDB_INFO, "Rank %d Rocksdb GET success", rank);
             res->statuses[i] = DATASTORE_SUCCESS;
-            res->objects[i] = RealBlob(value.size(), value.data());
+            res->objects[i] = RealBlob(value.size(), value.data(), req->object_types[i]);
 
             event.size += res->objects[i].size();
         }
@@ -231,6 +228,7 @@ Transport::Response::BGet *datastore::rocksdb::BGetImpl(Transport::Request::BGet
 }
 
 static void BGetOp_copy_response(const ::rocksdb::Iterator *it,
+                                 Transport::Request::BGetOp *req,
                                  Transport::Response::BGetOp *res,
                                  const std::size_t i,
                                  const std::size_t j,
@@ -240,9 +238,11 @@ static void BGetOp_copy_response(const ::rocksdb::Iterator *it,
 
     // copy key into subject/predicate
     key_to_sp(k.data(), k.size(), res->subjects[i][j], res->predicates[i][j], true);
+    res->subjects[i][j].set_type(req->subjects[i].data_type());
+    res->predicates[i][j].set_type(req->predicates[i].data_type());
 
     // copy object
-    res->objects[i][j] = RealBlob(alloc(v.size()), v.size());
+    res->objects[i][j] = RealBlob(alloc(v.size()), v.size(), req->object_types[i]);
     memcpy(res->objects[i][j].data(), v.data(), v.size());
 
     res->num_recs[i]++;
@@ -276,7 +276,6 @@ Transport::Response::BGetOp *datastore::rocksdb::BGetOpImpl(Transport::Request::
         event.time.start = ::Stats::now();
 
         // prepare response
-        res->object_types[i] = req->object_types[i];
         res->num_recs[i]     = 0;
         res->subjects[i]     = alloc_array<Blob>(req->num_recs[i]);
         res->predicates[i]   = alloc_array<Blob>(req->num_recs[i]);
@@ -290,7 +289,7 @@ Transport::Response::BGetOp *datastore::rocksdb::BGetOpImpl(Transport::Request::
 
             if (it->Valid()) {
                 // only 1 response, so j == 0 (num_recs is ignored)
-                BGetOp_copy_response(it, res, i, 0, event);
+                BGetOp_copy_response(it, req, res, i, 0, event);
 
                 res->statuses[i] = DATASTORE_SUCCESS;
             }
@@ -310,7 +309,7 @@ Transport::Response::BGetOp *datastore::rocksdb::BGetOpImpl(Transport::Request::
                 // first result returned is (subject, predicate)
                 // (results are offsets)
                 for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid(); j++) {
-                    BGetOp_copy_response(it, res, i, j, event);
+                    BGetOp_copy_response(it, req, res, i, j, event);
                     it->Next();
                 }
 
@@ -332,7 +331,7 @@ Transport::Response::BGetOp *datastore::rocksdb::BGetOpImpl(Transport::Request::
                 // first result returned is (subject, predicate)
                 // (results are offsets)
                 for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid(); j++) {
-                    BGetOp_copy_response(it, res, i, j, event);
+                    BGetOp_copy_response(it, req, res, i, j, event);
                     it->Prev();
                 }
 
@@ -352,7 +351,7 @@ Transport::Response::BGetOp *datastore::rocksdb::BGetOpImpl(Transport::Request::
                 // first result returned is (subject, predicate)
                 // (results are offsets)
                 for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid(); j++) {
-                    BGetOp_copy_response(it, res, i, j, event);
+                    BGetOp_copy_response(it, req, res, i, j, event);
                     it->Next();
                 }
 
@@ -372,7 +371,7 @@ Transport::Response::BGetOp *datastore::rocksdb::BGetOpImpl(Transport::Request::
                 // first result returned is (subject, predicate)
                 // (results are offsets)
                 for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid(); j++) {
-                    BGetOp_copy_response(it, res, i, j, event);
+                    BGetOp_copy_response(it, req, res, i, j, event);
                     it->Prev();
                 }
 
@@ -429,8 +428,8 @@ Transport::Response::BDelete *datastore::rocksdb::BDeleteImpl(Transport::Request
 
         batch.Delete(::rocksdb::Slice(key, key_len));
 
-        res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size());
-        res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size());
+        res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size(), req->subjects[i].data_type());
+        res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size(), req->predicates[i].data_type());
 
         event.size += key_len;
     }

@@ -5,7 +5,6 @@ test_big_endian(SYSTEM_BIG_ENDIAN)
 target_compile_definitions(hxhim PRIVATE SYSTEM_BIG_ENDIAN=${SYSTEM_BIG_ENDIAN})
 
 set(INSTALLED_HEADERS
-  Blob.hpp
   Configuration.hpp
   Histogram.h
   Histogram.hpp

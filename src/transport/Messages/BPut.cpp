@@ -2,7 +2,6 @@
 
 Transport::Request::BPut::BPut(const std::size_t max)
     : SubjectPredicate(hxhim_op_t::HXHIM_PUT),
-      object_types(nullptr),
       objects(nullptr)
 {
     alloc(max);
@@ -15,8 +14,7 @@ Transport::Request::BPut::~BPut() {
 std::size_t Transport::Request::BPut::size() const {
     std::size_t total = SubjectPredicate::size();
     for(std::size_t i = 0; i < count; i++) {
-        total += sizeof(object_types[i]) +
-                 objects[i].pack_size();
+        total += objects[i].pack_size(true);
     }
     return total;
 }
@@ -26,8 +24,7 @@ void Transport::Request::BPut::alloc(const std::size_t max) {
 
     if (max) {
         SubjectPredicate::alloc(max);
-        object_types = alloc_array<hxhim_object_type_t>(max);
-        objects      = alloc_array<Blob>(max);
+        objects = alloc_array<Blob>(max);
     }
 }
 
@@ -36,8 +33,7 @@ int Transport::Request::BPut::steal(Transport::Request::BPut *from, const std::s
         return TRANSPORT_ERROR;
     }
 
-    object_types[count] = from->object_types[i];
-    objects[count]      = from->objects[i];
+    objects[count] = from->objects[i];
 
     count++;
 
@@ -45,9 +41,6 @@ int Transport::Request::BPut::steal(Transport::Request::BPut *from, const std::s
 }
 
 int Transport::Request::BPut::cleanup() {
-    dealloc_array(object_types, max_count);
-    object_types = nullptr;
-
     dealloc_array(objects, max_count);
     objects = nullptr;
 

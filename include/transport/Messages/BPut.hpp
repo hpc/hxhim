@@ -17,7 +17,6 @@ struct BPut final : SubjectPredicate {
     int steal(BPut *from, const std::size_t i);
     int cleanup();
 
-    hxhim_object_type_t *object_types;
     Blob *objects;
 };
 

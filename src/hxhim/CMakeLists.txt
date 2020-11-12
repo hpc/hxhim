@@ -1,6 +1,7 @@
 cmake_minimum_required (VERSION 3.6.3)
 
 set(HXHIM_SRC
+  Blob.cpp
   RangeServer.cpp
   Results.cpp
   Stats.cpp
@@ -12,6 +13,7 @@ set(HXHIM_SRC
   init.cpp
   options.cpp
   private.cpp
+  triplestore.cpp
 )
 
 foreach(FILE ${HXHIM_SRC})

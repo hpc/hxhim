@@ -4,6 +4,7 @@
 #include <mpi.h>
 
 #include "hxhim/hxhim.hpp"
+#include "print_results.h"
 #include "spo_gen.h"
 
 static void print_results(const int rank, hxhim::Results *results) {
@@ -33,19 +34,25 @@ static void print_results(const int rank, hxhim::Results *results) {
                 if (status == HXHIM_SUCCESS) {
                     void *subject = nullptr;
                     std::size_t subject_len = 0;
-                    results->Subject(&subject, &subject_len);
+                    hxhim_data_t subject_type;
+                    results->Subject(&subject, &subject_len, &subject_type);
 
                     void *predicate = nullptr;
                     std::size_t predicate_len = 0;
-                    results->Predicate(&predicate, &predicate_len);
+                    hxhim_data_t predicate_type;
+                    results->Predicate(&predicate, &predicate_len, &predicate_type);
 
                     void *object = nullptr;
                     std::size_t object_len = 0;
-                    results->Object(&object, &object_len);
+                    hxhim_data_t object_type;
+                    results->Object(&object, &object_len, &object_type);
 
-                    std::cout << "{" << std::string((char *) subject, subject_len)
-                              << ", " << std::string((char *) predicate, predicate_len)
-                              << "} -> " << std::string((char *) object, object_len);
+                    std::cout << "{";
+                    print_by_type(subject, subject_len, subject_type);
+                    std::cout << ", ";
+                    print_by_type(predicate, predicate_len, predicate_type);
+                    std::cout << "} -> ";
+                    print_by_type(object, object_len, object_type);
                 }
                 else {
                     std::cout << "ERROR";
@@ -121,7 +128,10 @@ int main(int argc, char *argv[]) {
 
    // PUT the subject-predicate-object triples
     for(std::size_t i = 0; i < count; i++) {
-        hxhim::PutDouble(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &doubles[i]);
+        hxhim::PutDouble(&hx,
+                         subjects[i], subject_lens[i], HXHIM_DATA_BYTE,
+                         predicates[i], predicate_lens[i], HXHIM_DATA_BYTE,
+                         &doubles[i]);
         if (print) {
             std::cout << "Rank " << rank << " PUT {" << std::string((char *) subjects[i], subject_lens[i]) << ", " << std::string((char *) predicates[i], predicate_lens[i]) << "} -> " << doubles[i] << std::endl;
         }
@@ -129,7 +139,9 @@ int main(int argc, char *argv[]) {
 
     // GET them back, flushing only the GETs
     for(std::size_t i = 0; i < count; i++) {
-        hxhim::GetDouble(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i]);
+        hxhim::GetDouble(&hx,
+                         subjects[i], subject_lens[i], HXHIM_DATA_BYTE,
+                         predicates[i], predicate_lens[i], HXHIM_DATA_BYTE);
     }
     hxhim::Results *flush_gets_early = hxhim::FlushGets(&hx);
     std::cout << "GET before flushing PUTs" << std::endl;
@@ -155,7 +167,9 @@ int main(int argc, char *argv[]) {
 
     // GET again, but flush everything this time
     for(std::size_t i = 0; i < count; i++) {
-        hxhim::GetDouble(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i]);
+        hxhim::GetDouble(&hx,
+                         subjects[i], subject_lens[i], HXHIM_DATA_BYTE,
+                         predicates[i], predicate_lens[i], HXHIM_DATA_BYTE);
     }
 
     MPI_Barrier(MPI_COMM_WORLD);

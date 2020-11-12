@@ -5,7 +5,7 @@
 #include <stdexcept>
 
 #include "datastore/datastore.hpp"
-#include "utils/Blob.hpp"
+#include "hxhim/Blob.hpp"
 #include "utils/elen.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
@@ -97,7 +97,7 @@ std::size_t datastore::Datastore::all_keys_size(Transport::Request::SubjectPredi
         Blob &subject   = req->subjects[i];
         Blob &predicate = req->predicates[i];
 
-        total += subject.pack_size() + predicate.pack_size();
+        total += subject.pack_size(false) + predicate.pack_size(false);
     }
 
     return total;
@@ -111,11 +111,11 @@ Transport::Response::BPut *datastore::Datastore::operate(Transport::Request::BPu
         // add successfully PUT floating point values to the histogram
         for(std::size_t i = 0; i < req->count; i++) {
             if (res->statuses[i] == DATASTORE_SUCCESS) {
-                switch (req->object_types[i]) {
-                    case HXHIM_OBJECT_TYPE_FLOAT:
+                switch (req->objects[i].data_type()) {
+                    case HXHIM_DATA_FLOAT:
                         hist->add(elen::decode::floating_point<float>(req->objects[i]));
                         break;
-                    case HXHIM_OBJECT_TYPE_DOUBLE:
+                    case HXHIM_DATA_DOUBLE:
                         hist->add(elen::decode::floating_point<double>(req->objects[i]));
                         break;
                     default:
@@ -244,12 +244,12 @@ datastore::Datastore::Stats::Event::Event()
 {}
 
 void datastore::Datastore::BGetOp_error_response(Transport::Response::BGetOp *res,
-                                                        const std::size_t i,
-                                                        const Blob &subject, const Blob &predicate,
-                                                        datastore::Datastore::Stats::Event &event) {
-    res->subjects[i][0]   = ReferenceBlob(subject.data(), subject.size());
-    res->predicates[i][0] = ReferenceBlob(predicate.data(), predicate.size());
+                                                 const std::size_t i,
+                                                 const Blob &subject, const Blob &predicate,
+                                                 datastore::Datastore::Stats::Event &event) {
+    res->subjects[i][0]   = ReferenceBlob(subject.data(), subject.size(), subject.data_type());
+    res->predicates[i][0] = ReferenceBlob(predicate.data(), predicate.size(), predicate.data_type());
     res->num_recs[i]++;
 
-    event.size += subject.pack_size() + predicate.pack_size();
+    event.size += subject.pack_size(true) + predicate.pack_size(true);
 }

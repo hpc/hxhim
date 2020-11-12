@@ -12,33 +12,33 @@ extern "C"
 #endif
 
 int hxhimPutFloat(hxhim_t *hx,
-                  void *subject, size_t subject_len,
-                  void *predicate, size_t predicate_len,
+                  void *subject, size_t subject_len, enum hxhim_data_t subject_type,
+                  void *predicate, size_t predicate_len, enum hxhim_data_t predicate_type,
                   float *object);
 
 int hxhimGetFloat(hxhim_t *hx,
-                  void *subject, size_t subject_len,
-                  void *predicate, size_t predicate_len);
+                  void *subject, size_t subject_len, enum hxhim_data_t subject_type,
+                  void *predicate, size_t predicate_len, enum hxhim_data_t predicate_type);
 
 int hxhimGetOpFloat(hxhim_t *hx,
-                    void *subject, size_t subject_len,
-                    void *predicate, size_t predicate_len,
+                    void *subject, size_t subject_len, enum hxhim_data_t subject_type,
+                    void *predicate, size_t predicate_len, enum hxhim_data_t predicate_type,
                     size_t num_records, enum hxhim_getop_t op);
 
 int hxhimBPutFloat(hxhim_t *hx,
-                   void **subjects, size_t *subject_lens,
-                   void **predicates, size_t *predicate_lens,
+                   void **subjects, size_t *subject_lens, enum hxhim_data_t *subject_types,
+                   void **predicates, size_t *predicate_lens, enum hxhim_data_t *predicate_types,
                    float **objects,
                    const size_t count);
 
 int hxhimBGetFloat(hxhim_t *hx,
-                   void **subjects, size_t *subject_lens,
-                   void **predicates, size_t *predicate_lens,
+                   void **subjects, size_t *subject_lens, enum hxhim_data_t *subject_types,
+                   void **predicates, size_t *predicate_lens, enum hxhim_data_t *predicate_types,
                    const size_t count);
 
 int hxhimBGetOpFloat(hxhim_t *hx,
-                     void **subjects, size_t *subject_lens,
-                     void **predicates, size_t *predicate_lens,
+                     void **subjects, size_t *subject_lens, enum hxhim_data_t *subject_types,
+                     void **predicates, size_t *predicate_lens, enum hxhim_data_t *predicate_types,
                      size_t *num_records, enum hxhim_getop_t *ops,
                      const size_t count);
 

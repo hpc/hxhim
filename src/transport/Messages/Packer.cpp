@@ -57,23 +57,19 @@ int Packer::pack(const Request::BPut *bpm, void **buf, std::size_t *bufsize) {
 
     for(std::size_t i = 0; i < bpm->count; i++) {
         // subject + len
-        bpm->subjects[i].pack(curr);
+        bpm->subjects[i].pack(curr, true);
 
         // subject addr
         pack_addr(curr, bpm->subjects[i].data());
 
         // predicate + len
-        bpm->predicates[i].pack(curr);
+        bpm->predicates[i].pack(curr, true);
 
         // predicate addr
         pack_addr(curr, bpm->predicates[i].data());
 
-        // object type
-        little_endian::encode(curr, bpm->object_types[i], sizeof(bpm->object_types[i]));
-        curr += sizeof(bpm->object_types[i]);
-
         // object + len
-        bpm->objects[i].pack(curr);
+        bpm->objects[i].pack(curr, true);
     }
 
     return TRANSPORT_SUCCESS;
@@ -87,13 +83,13 @@ int Packer::pack(const Request::BGet *bgm, void **buf, std::size_t *bufsize) {
 
     for(std::size_t i = 0; i < bgm->count; i++) {
         // subject
-        bgm->subjects[i].pack(curr);
+        bgm->subjects[i].pack(curr, true);
 
         // subject addr
         pack_addr(curr, bgm->subjects[i].data());
 
         // predicate
-        bgm->predicates[i].pack(curr);
+        bgm->predicates[i].pack(curr, true);
 
         // predicate addr
         pack_addr(curr, bgm->predicates[i].data());
@@ -120,10 +116,10 @@ int Packer::pack(const Request::BGetOp *bgm, void **buf, std::size_t *bufsize) {
         if ((bgm->ops[i] != hxhim_getop_t::HXHIM_GETOP_FIRST) &&
             (bgm->ops[i] != hxhim_getop_t::HXHIM_GETOP_LAST))  {
             // subject
-            bgm->subjects[i].pack(curr);
+            bgm->subjects[i].pack(curr, true);
 
             // predicate
-            bgm->predicates[i].pack(curr);
+            bgm->predicates[i].pack(curr, true);
         }
 
         // object type
@@ -146,13 +142,13 @@ int Packer::pack(const Request::BDelete *bdm, void **buf, std::size_t *bufsize) 
 
     for(std::size_t i = 0; i < bdm->count; i++) {
         // subject
-        bdm->subjects[i].pack(curr);
+        bdm->subjects[i].pack(curr, true);
 
         // subject addr
         pack_addr(curr, bdm->subjects[i].data());
 
         // predicate
-        bdm->predicates[i].pack(curr);
+        bdm->predicates[i].pack(curr, true);
 
         // predicate addr
         pack_addr(curr, bdm->predicates[i].data());
@@ -214,10 +210,10 @@ int Packer::pack(const Response::BPut *bpm, void **buf, std::size_t *bufsize) {
         curr += sizeof(bpm->statuses[i]);
 
         // original subject addr + len
-        bpm->orig.subjects[i].pack_ref(curr);
+        bpm->orig.subjects[i].pack_ref(curr, true);
 
         // original predicate addr + len
-        bpm->orig.predicates[i].pack_ref(curr);
+        bpm->orig.predicates[i].pack_ref(curr, true);
     }
 
     return TRANSPORT_SUCCESS;
@@ -235,18 +231,14 @@ int Packer::pack(const Response::BGet *bgm, void **buf, std::size_t *bufsize) {
         curr += sizeof(bgm->statuses[i]);
 
         // original subject addr + len
-        bgm->orig.subjects[i].pack_ref(curr);
+        bgm->orig.subjects[i].pack_ref(curr, true);
 
         // original predicate addr + len
-        bgm->orig.predicates[i].pack_ref(curr);
-
-        // object type
-        little_endian::encode(curr, bgm->object_types[i], sizeof(bgm->object_types[i]));
-        curr += sizeof(bgm->object_types[i]);
+        bgm->orig.predicates[i].pack_ref(curr, true);
 
         // object
         if (bgm->statuses[i] == DATASTORE_SUCCESS) {
-            bgm->objects[i].pack(curr);
+            bgm->objects[i].pack(curr, true);
         }
     }
 
@@ -263,24 +255,20 @@ int Packer::pack(const Response::BGetOp *bgm, void **buf, std::size_t *bufsize) 
         little_endian::encode(curr, bgm->statuses[i], sizeof(bgm->statuses[i]));
         curr += sizeof(bgm->statuses[i]);
 
-        // object type
-        little_endian::encode(curr, bgm->object_types[i], sizeof(bgm->object_types[i]));
-        curr += sizeof(bgm->object_types[i]);
-
         // num_recs
         little_endian::encode(curr, bgm->num_recs[i], sizeof(bgm->num_recs[i]));
         curr += sizeof(bgm->num_recs[i]);
 
         for(std::size_t j = 0; j < bgm->num_recs[i]; j++) {
             // subject
-            bgm->subjects[i][j].pack(curr);
+            bgm->subjects[i][j].pack(curr, true);
 
             // predicate
-            bgm->predicates[i][j].pack(curr);
+            bgm->predicates[i][j].pack(curr, true);
 
             // object
             if (bgm->statuses[i] == DATASTORE_SUCCESS) {
-                bgm->objects[i][j].pack(curr);
+                bgm->objects[i][j].pack(curr, true);
             }
         }
     }
@@ -299,10 +287,10 @@ int Packer::pack(const Response::BDelete *bdm, void **buf, std::size_t *bufsize)
         curr += sizeof(bdm->statuses[i]);
 
         // original subject addr + len
-        bdm->orig.subjects[i].pack_ref(curr);
+        bdm->orig.subjects[i].pack_ref(curr, true);
 
         // original predicate addr + len
-        bdm->orig.predicates[i].pack_ref(curr);
+        bdm->orig.predicates[i].pack_ref(curr, true);
     }
 
     return TRANSPORT_SUCCESS;

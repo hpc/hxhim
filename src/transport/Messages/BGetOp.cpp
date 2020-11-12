@@ -21,8 +21,8 @@ std::size_t Transport::Request::BGetOp::size() const {
 
         if ((ops[i] != hxhim_getop_t::HXHIM_GETOP_FIRST) &&
             (ops[i] != hxhim_getop_t::HXHIM_GETOP_LAST)) {
-            total += subjects[i].pack_size() +
-                     predicates[i].pack_size();
+            total += subjects[i].pack_size(true) +
+                     predicates[i].pack_size(true);
         }
     }
     return total;
@@ -33,7 +33,7 @@ void Transport::Request::BGetOp::alloc(const std::size_t max) {
 
     if (max) {
         SubjectPredicate::alloc(max);
-        object_types = alloc_array<hxhim_object_type_t>(max);
+        object_types = alloc_array<hxhim_data_t>(max);
         num_recs     = alloc_array<std::size_t>(max);
         ops          = alloc_array<hxhim_getop_t>(max);
     }
@@ -74,7 +74,6 @@ int Transport::Request::BGetOp::cleanup() {
 
 Transport::Response::BGetOp::BGetOp(const std::size_t max)
     : Response(hxhim_op_t::HXHIM_GETOP),
-      object_types(nullptr),
       num_recs(nullptr),
       subjects(nullptr),
       predicates(nullptr),
@@ -90,14 +89,14 @@ Transport::Response::BGetOp::~BGetOp() {
 std::size_t Transport::Response::BGetOp::size() const {
     std::size_t total = Response::size();
     for(std::size_t i = 0; i < count; i++) {
-        total += sizeof(object_types[i]) + sizeof(num_recs[i]);
+        total += sizeof(num_recs[i]);
         for(std::size_t j = 0; j < num_recs[i]; j++) {
-            total += subjects[i][j].pack_size() +
-                     predicates[i][j].pack_size();
+            total += subjects[i][j].pack_size(true) +
+                     predicates[i][j].pack_size(true);
 
             // all records from response[i] share the same status
             if (statuses[i] == DATASTORE_SUCCESS) {
-                total += objects[i][j].pack_size();
+                total += objects[i][j].pack_size(true);
             }
         }
     }
@@ -109,7 +108,6 @@ void Transport::Response::BGetOp::alloc(const std::size_t max) {
 
     if (max) {
         Response::alloc(max);
-        object_types = alloc_array<hxhim_object_type_t>(max);
         num_recs     = alloc_array<std::size_t>(max);
         subjects     = alloc_array<Blob *>(max);
         predicates   = alloc_array<Blob *>(max);
@@ -122,7 +120,6 @@ int Transport::Response::BGetOp::steal(Transport::Response::BGetOp *from, const 
         return TRANSPORT_ERROR;
     }
 
-    object_types[count] = from->object_types[i];
     num_recs[count]     = from->num_recs[i];
     subjects[count]     = from->subjects[i];
     predicates[count]   = from->predicates[i];
@@ -139,9 +136,6 @@ int Transport::Response::BGetOp::cleanup() {
         dealloc_array(predicates[i], num_recs[i]);
         dealloc_array(objects[i],    num_recs[i]);
     }
-
-    dealloc_array(object_types, max_count);
-    object_types = nullptr;
 
     dealloc_array(num_recs, max_count);
     num_recs = nullptr;

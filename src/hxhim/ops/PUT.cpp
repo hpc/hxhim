@@ -1,6 +1,6 @@
+#include "hxhim/Blob.hpp"
 #include "hxhim/hxhim.hpp"
 #include "hxhim/private/hxhim.hpp"
-#include "utils/Blob.hpp"
 
 /**
  * Put
@@ -17,11 +17,14 @@
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::Put(hxhim_t *hx,
-               void *subject, std::size_t subject_len,
-               void *predicate, std::size_t predicate_len,
-               enum hxhim_object_type_t object_type, void *object, std::size_t object_len) {
+               void *subject, std::size_t subject_len, enum hxhim_data_t subject_type,
+               void *predicate, std::size_t predicate_len, enum hxhim_data_t predicate_type,
+               void *object, std::size_t object_len, enum hxhim_data_t object_type) {
     mlog(HXHIM_CLIENT_DBG, "%s %s:%d", __FILE__, __func__, __LINE__);
-    if (!valid(hx) || !hx->p->running) {
+    if (!valid(hx) || !hx->p->running ||
+        !subject   || !subject_len    ||
+        !predicate || !predicate_len  ||
+        !object    || !object_len)     {
         return HXHIM_ERROR;
     }
 
@@ -30,10 +33,9 @@ int hxhim::Put(hxhim_t *hx,
 
     const int rc = hxhim::PutImpl(hx,
                                   hx->p->queues.puts.queue,
-                                  ReferenceBlob(subject, subject_len),
-                                  ReferenceBlob(predicate, predicate_len),
-                                  object_type,
-                                  ReferenceBlob(object, object_len));
+                                  ReferenceBlob(subject, subject_len, subject_type),
+                                  ReferenceBlob(predicate, predicate_len, predicate_type),
+                                  ReferenceBlob(object, object_len, object_type));
 
     #if ASYNC_PUTS
     hx->p->queues.puts.start_processing.notify_all();
@@ -61,12 +63,12 @@ int hxhim::Put(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimPut(hxhim_t *hx,
-             void *subject, size_t subject_len,
-             void *predicate, size_t predicate_len,
-             enum hxhim_object_type_t object_type, void *object, size_t object_len) {
+             void *subject, size_t subject_len, enum hxhim_data_t subject_type,
+             void *predicate, size_t predicate_len, enum hxhim_data_t predicate_type,
+             void *object, size_t object_len, enum hxhim_data_t object_type) {
     mlog(HXHIM_CLIENT_DBG, "%s %s:%d", __FILE__, __func__, __LINE__);
     return hxhim::Put(hx,
-                      subject, subject_len,
-                      predicate, predicate_len,
-                      object_type, object, object_len);
+                      subject, subject_len, subject_type,
+                      predicate, predicate_len, predicate_type,
+                      object, object_len, object_type);
 }

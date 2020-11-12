@@ -20,8 +20,8 @@ TEST(hxhim, PutGet) {
 
     // Add triple for putting
     EXPECT_EQ(hxhim::PutDouble(&hx,
-                               (void *)   &SUBJECT, sizeof(SUBJECT),
-                               (void *)   &PREDICATE, sizeof(PREDICATE),
+                               (void *)   &SUBJECT,   sizeof(SUBJECT),   hxhim_data_t::HXHIM_DATA_UINT64,
+                               (void *)   &PREDICATE, sizeof(PREDICATE), hxhim_data_t::HXHIM_DATA_UINT64,
                                (double *) &OBJECT),
               HXHIM_SUCCESS);
 
@@ -45,8 +45,8 @@ TEST(hxhim, PutGet) {
 
     // Add subject-predicate to get back
     EXPECT_EQ(hxhim::GetDouble(&hx,
-                               (void *)&SUBJECT, sizeof(SUBJECT),
-                               (void *)&PREDICATE, sizeof(PREDICATE)),
+                               (void *)&SUBJECT,   sizeof(SUBJECT),   hxhim_data_t::HXHIM_DATA_UINT64,
+                               (void *)&PREDICATE, sizeof(PREDICATE), hxhim_data_t::HXHIM_DATA_UINT64),
               HXHIM_SUCCESS);
 
     // Flush all queued items
@@ -65,25 +65,33 @@ TEST(hxhim, PutGet) {
         EXPECT_EQ(status, HXHIM_SUCCESS);
 
         Subject_t *subject = nullptr;
-        EXPECT_EQ(get_results->Subject((void **) &subject, nullptr), HXHIM_SUCCESS);
+        std::size_t subject_len = 0;
+        hxhim_data_t subject_type;
+        EXPECT_EQ(get_results->Subject((void **) &subject, &subject_len, &subject_type), HXHIM_SUCCESS);
         EXPECT_EQ(*subject, SUBJECT);
+        EXPECT_EQ(subject_len, sizeof(SUBJECT));
+        EXPECT_EQ(subject_type, hxhim_data_t::HXHIM_DATA_UINT64);
 
         Predicate_t *predicate = nullptr;
-        EXPECT_EQ(get_results->Predicate((void **) &predicate, nullptr), HXHIM_SUCCESS);
+        std::size_t predicate_len = 0;
+        hxhim_data_t predicate_type;
+        EXPECT_EQ(get_results->Predicate((void **) &predicate, &predicate_len, &predicate_type), HXHIM_SUCCESS);
         EXPECT_EQ(*predicate, PREDICATE);
+        EXPECT_EQ(predicate_len, sizeof(PREDICATE));
+        EXPECT_EQ(predicate_type, hxhim_data_t::HXHIM_DATA_UINT64);
 
-        hxhim_object_type_t object_type = hxhim_object_type_t::HXHIM_OBJECT_TYPE_INVALID;
-        EXPECT_EQ(get_results->ObjectType(&object_type), HXHIM_SUCCESS);
+        Object_t *object = nullptr;
+        std::size_t object_size = 0;
+        hxhim_data_t object_type;
+        get_results->Object((void **) &object, &object_size, &object_type);
 
-        void *ptr = nullptr;
-        std::size_t len = 0;
-        get_results->Object(&ptr, &len);
-
-        if (object_type == hxhim_object_type_t::HXHIM_OBJECT_TYPE_FLOAT) {
-            EXPECT_FLOAT_EQ(* (float *) ptr, OBJECT);
+        if (object_type == hxhim_data_t::HXHIM_DATA_FLOAT) {
+            EXPECT_FLOAT_EQ(* (float *) object, OBJECT);
+            EXPECT_EQ(object_size, sizeof(float));
         }
-        else if (object_type == hxhim_object_type_t::HXHIM_OBJECT_TYPE_DOUBLE) {
-            EXPECT_DOUBLE_EQ(* (double *) ptr, OBJECT);
+        else if (object_type == hxhim_data_t::HXHIM_DATA_DOUBLE) {
+            EXPECT_DOUBLE_EQ(* (double *) object, OBJECT);
+            EXPECT_EQ(object_size, sizeof(double));
         }
         else {
             FAIL();

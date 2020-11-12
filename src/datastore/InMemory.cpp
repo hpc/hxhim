@@ -3,10 +3,10 @@
 #include <stdexcept>
 
 #include "datastore/InMemory.hpp"
+#include "hxhim/Blob.hpp"
 #include "hxhim/private/hxhim.hpp"
-#include "utils/Blob.hpp"
+#include "hxhim/triplestore.hpp"
 #include "utils/memory.hpp"
-#include "utils/triplestore.hpp"
 
 datastore::InMemory::InMemory(const int rank,
                                      const int id,
@@ -62,8 +62,8 @@ Transport::Response::BPut *datastore::InMemory::BPutImpl(Transport::Request::BPu
         db[std::string((char *) key, key_len)] = (std::string) req->objects[i];
         event.size += key_len + req->objects[i].size();
 
-        res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size());
-        res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size());
+        res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size(), req->subjects[i].data_type());
+        res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size(), req->predicates[i].data_type());
 
         // always successful
         res->statuses[i] = DATASTORE_SUCCESS;
@@ -112,11 +112,8 @@ Transport::Response::BGet *datastore::InMemory::BGetImpl(Transport::Request::BGe
         decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
         clock_gettime(CLOCK_MONOTONIC, &end);
 
-        // object type was stored as a value, not address, so copy it to the response
-        res->object_types[i]    = req->object_types[i];
-
-        res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size());
-        res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size());
+        res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size(), req->subjects[i].data_type());
+        res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size(), req->predicates[i].data_type());
 
         res->statuses[i] = (it != db.end())?DATASTORE_SUCCESS:DATASTORE_ERROR;
 
@@ -124,7 +121,7 @@ Transport::Response::BGet *datastore::InMemory::BGetImpl(Transport::Request::BGe
 
         // copy the object into the response
         if (res->statuses[i] == DATASTORE_SUCCESS) {
-            res->objects[i] = RealBlob(it->second.size(), it->second.data());
+            res->objects[i] = RealBlob(it->second.size(), it->second.data(), req->object_types[i]);
 
             event.size += res->objects[i].size();
         }
@@ -141,6 +138,7 @@ Transport::Response::BGet *datastore::InMemory::BGetImpl(Transport::Request::BGe
 }
 
 static void BGetOp_copy_response(const std::map<std::string, std::string>::const_iterator &it,
+                                 Transport::Request::BGetOp *req,
                                  Transport::Response::BGetOp *res,
                                  const std::size_t i,
                                  const std::size_t j,
@@ -150,9 +148,11 @@ static void BGetOp_copy_response(const std::map<std::string, std::string>::const
 
     // copy key into subject/predicate
     key_to_sp(k.data(), k.size(), res->subjects[i][j], res->predicates[i][j], true);
+    res->subjects[i][j].set_type(req->subjects[i].data_type());
+    res->predicates[i][j].set_type(req->predicates[i].data_type());
 
     // copy object
-    res->objects[i][j] = RealBlob(alloc(v.size()), v.size());
+    res->objects[i][j] = RealBlob(alloc(v.size()), v.size(), req->object_types[i]);
     memcpy(res->objects[i][j].data(), v.data(), v.size());
 
     res->num_recs[i]++;
@@ -186,7 +186,6 @@ Transport::Response::BGetOp *datastore::InMemory::BGetOpImpl(Transport::Request:
         decltype(db)::const_iterator it = db.end();
 
         // prepare response
-        res->object_types[i] = req->object_types[i];
         res->num_recs[i]     = 0;
         res->subjects[i]     = alloc_array<Blob>(req->num_recs[i]);
         res->predicates[i]   = alloc_array<Blob>(req->num_recs[i]);
@@ -200,7 +199,7 @@ Transport::Response::BGetOp *datastore::InMemory::BGetOpImpl(Transport::Request:
 
             if (it != db.end()) {
                 // only 1 response, so j == 0 (num_recs is ignored)
-                BGetOp_copy_response(it, res, i, 0, event);
+                BGetOp_copy_response(it, req, res, i, 0, event);
                 res->statuses[i] = DATASTORE_SUCCESS;
             }
             else {
@@ -219,7 +218,7 @@ Transport::Response::BGetOp *datastore::InMemory::BGetOpImpl(Transport::Request:
                 // first result returned is (subject, predicate)
                 // (results are offsets)
                 for(std::size_t j = 0; (j < req->num_recs[i]) && (it != db.end()); j++) {
-                    BGetOp_copy_response(it, res, i, j, event);
+                    BGetOp_copy_response(it, req, res, i, j, event);
                     it++;
                 }
 
@@ -242,7 +241,7 @@ Transport::Response::BGetOp *datastore::InMemory::BGetOpImpl(Transport::Request:
                 // first result returned is (subject, predicate)
                 // (results are offsets)
                 for(std::size_t j = 0; j < req->num_recs[i]; j++) {
-                    BGetOp_copy_response(it, res, i, j, event);
+                    BGetOp_copy_response(it, req, res, i, j, event);
                     if (it == db.begin()) {
                         break;
                     }
@@ -263,7 +262,7 @@ Transport::Response::BGetOp *datastore::InMemory::BGetOpImpl(Transport::Request:
 
             if (it != db.end()) {
                 for(std::size_t j = 0; (j < req->num_recs[i]) && (it != db.end()); j++) {
-                    BGetOp_copy_response(it, res, i, j, event);
+                    BGetOp_copy_response(it, req, res, i, j, event);
                     it++;
                 }
 
@@ -282,7 +281,7 @@ Transport::Response::BGetOp *datastore::InMemory::BGetOpImpl(Transport::Request:
 
             if (it != db.end()) {
                 for(std::size_t j = 0; j < req->num_recs[i]; j++) {
-                    BGetOp_copy_response(it, res, i, j, event);
+                    BGetOp_copy_response(it, req, res, i, j, event);
                     if (it == db.begin()) {
                         break;
                     }
@@ -344,8 +343,8 @@ Transport::Response::BDelete *datastore::InMemory::BDeleteImpl(Transport::Reques
             res->statuses[i] = DATASTORE_ERROR;
         }
 
-        res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size());
-        res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size());
+        res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size(), req->subjects[i].data_type());
+        res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size(), req->predicates[i].data_type());
 
         event.size += key_len;
     }

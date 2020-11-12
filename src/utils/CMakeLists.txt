@@ -1,7 +1,6 @@
 cmake_minimum_required (VERSION 3.6.3)
 
 set(UTILS_SRC
-  Blob.cpp
   Configuration.cpp
   Histogram.cpp
   Stats.cpp
@@ -9,7 +8,6 @@ set(UTILS_SRC
   memory.cpp
   mkdir_p.cpp
   mlog2.c
-  triplestore.cpp
 )
 
 foreach(FILE ${UTILS_SRC})

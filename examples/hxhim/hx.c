@@ -96,7 +96,10 @@ int main(int argc, char *argv[]) {
     // PUT the key value pairs into HXHIM
     timestamp_start(put);
     for(size_t i = 0; i < count; i++) {
-        hxhimPutDouble(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i], &doubles[i]);
+        hxhimPutDouble(&hx,
+                       subjects[i], subject_lens[i], HXHIM_DATA_BYTE,
+                       predicates[i], predicate_lens[i], HXHIM_DATA_BYTE,
+                       &doubles[i]);
         if (print) {
             printf("Rank %d PUT          {%.*s, %.*s} -> %f\n", rank,
                    (int) subject_lens[i],   (char *) subjects[i],
@@ -117,7 +120,9 @@ int main(int argc, char *argv[]) {
     // GET them back, flushing only the GETs
     // this will likely return errors, since not all of the PUTs will have completed
     for(size_t i = 0; i < count; i++) {
-        hxhimGetDouble(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i]);
+        hxhimGetDouble(&hx,
+                       subjects[i], subject_lens[i], HXHIM_DATA_BYTE,
+                       predicates[i], predicate_lens[i], HXHIM_DATA_BYTE);
     }
 
     hxhim_results_t *flush_gets_early = hxhimFlushGets(&hx);
@@ -162,7 +167,9 @@ int main(int argc, char *argv[]) {
 
     // GET again, now that all PUTs have completed
     for(size_t i = 0; i < count; i++) {
-        hxhimGetDouble(&hx, subjects[i], subject_lens[i], predicates[i], predicate_lens[i]);
+        hxhimGetDouble(&hx,
+                       subjects[i], subject_lens[i], HXHIM_DATA_BYTE,
+                       predicates[i], predicate_lens[i], HXHIM_DATA_BYTE);
     }
 
     MPI_Barrier(MPI_COMM_WORLD);

@@ -7,9 +7,9 @@
 
 #include "common.hpp"
 #include "datastore/leveldb.hpp"
+#include "hxhim/triplestore.hpp"
 #include "rm_r.hpp"
 #include "utils/memory.hpp"
-#include "utils/triplestore.hpp"
 
 class LevelDBTest : public datastore::leveldb {
     public:
@@ -47,10 +47,9 @@ static LevelDBTest *setup() {
     Transport::Request::BPut req(count);
 
     for(std::size_t i = 0; i < count; i++) {
-        req.subjects[i]     = triples[i].get_sub();
-        req.predicates[i]   = triples[i].get_pred();
-        req.object_types[i] = triples[i].get_type();
-        req.objects[i]      = triples[i].get_obj();
+        req.subjects[i]   = triples[i].get_sub();
+        req.predicates[i] = triples[i].get_pred();
+        req.objects[i]    = triples[i].get_obj();
         req.count++;
     }
 
@@ -106,14 +105,14 @@ TEST(LevelDB, BGet) {
     for(std::size_t i = 0; i < count; i++) {
         req.subjects[i]     = triples[i].get_sub();
         req.predicates[i]   = triples[i].get_pred();
-        req.object_types[i] = triples[i].get_type();
+        req.object_types[i] = triples[i].get_obj().data_type();
         req.count++;
     }
 
     // non-existant subject-predicate pair
-    req.subjects[count]     = ReferenceBlob((void *) "sub3",  4);
-    req.predicates[count]   = ReferenceBlob((void *) "pred3", 5);
-    req.object_types[count] = hxhim_object_type_t::HXHIM_OBJECT_TYPE_BYTE;
+    req.subjects[count]     = ReferenceBlob((void *) "sub3",  4, hxhim_data_t::HXHIM_DATA_BYTE);
+    req.predicates[count]   = ReferenceBlob((void *) "pred3", 5, hxhim_data_t::HXHIM_DATA_BYTE);
+    req.object_types[count] = hxhim_data_t::HXHIM_DATA_BYTE;
     req.count++;
 
     Transport::Response::BGet *res = ds->operate(&req);
@@ -141,7 +140,7 @@ TEST(LevelDB, BGetOp) {
         Transport::Request::BGetOp req(1);
         req.subjects[0]     = triples[0].get_sub();
         req.predicates[0]   = triples[0].get_pred();
-        req.object_types[0] = triples[0].get_type();
+        req.object_types[0] = triples[0].get_obj().data_type();
         req.num_recs[0]     = 1;
         req.ops[0]          = static_cast<hxhim_getop_t>(op);
         req.count++;
@@ -225,8 +224,8 @@ TEST(LevelDB, BDelete) {
         }
 
         // non-existant subject-predicate pair
-        req.subjects[count]     = ReferenceBlob((void *) "sub3",  4);
-        req.predicates[count]   = ReferenceBlob((void *) "pred3", 5);
+        req.subjects[count]     = ReferenceBlob((void *) "sub3",  4, hxhim_data_t::HXHIM_DATA_BYTE);
+        req.predicates[count]   = ReferenceBlob((void *) "pred3", 5, hxhim_data_t::HXHIM_DATA_BYTE);
         req.count++;
 
         Transport::Response::BDelete *res = ds->operate(&req);
@@ -252,8 +251,8 @@ TEST(LevelDB, BDelete) {
         }
 
         // non-existant subject-predicate pair
-        req.subjects[count]   = ReferenceBlob((void *) "sub3",  4);
-        req.predicates[count] = ReferenceBlob((void *) "pred3", 5);
+        req.subjects[count]   = ReferenceBlob((void *) "sub3",  4, hxhim_data_t::HXHIM_DATA_BYTE);
+        req.predicates[count] = ReferenceBlob((void *) "pred3", 5, hxhim_data_t::HXHIM_DATA_BYTE);
         req.count++;
 
         Transport::Response::BGet *res = ds->operate(&req);

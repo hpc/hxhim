@@ -5,10 +5,10 @@
 #include <cstdint>
 #include <memory>
 
+#include "hxhim/Blob.hpp"
 #include "hxhim/Results.h"
 #include "hxhim/constants.h"
 #include "hxhim/struct.h"
-#include "utils/Blob.hpp"
 #include "utils/Histogram.hpp"
 #include "utils/Stats.hpp"
 #include "utils/memory.hpp"
@@ -118,12 +118,10 @@ class Results {
         struct GetBase final : public SubjectPredicate {
             GetBase(hxhim_t *hx, const int range_server, const int status)
                 : SubjectPredicate(hx, gettype, range_server, status),
-                  object_type(hxhim_object_type_t::HXHIM_OBJECT_TYPE_INVALID),
                   object(),
                   next(nullptr)
             {}
 
-            enum hxhim_object_type_t object_type;
             Blob object;
 
             struct GetBase<gettype> *next;
@@ -189,10 +187,9 @@ class Results {
         int Op(enum hxhim_op_t *op) const;
         int Status(int *status) const;
         int RangeServer(int *range_server) const;
-        int Subject(void **subject, std::size_t *subject_len) const;
-        int Predicate(void **predicate, std::size_t *predicate_len) const;
-        int ObjectType(enum hxhim_object_type_t *object_type) const;
-        int Object(void **object, std::size_t *object_len) const;
+        int Subject(void **subject, std::size_t *subject_len, hxhim_data_t *type) const;
+        int Predicate(void **predicate, std::size_t *predicate_len, hxhim_data_t *type) const;
+        int Object(void **object, std::size_t *object_len, hxhim_data_t *type) const;
         int Histogram(double **buckets, std::size_t **counts, std::size_t *size) const;
 
         // These functions are only available in C++

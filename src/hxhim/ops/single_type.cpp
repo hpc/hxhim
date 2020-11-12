@@ -1,13 +1,13 @@
-#include "hxhim/single_type.hpp"
+#include "hxhim/Blob.hpp"
 #include "hxhim/private/hxhim.hpp"
-#include "utils/Blob.hpp"
+#include "hxhim/single_type.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
 int hxhim::BPutSingleType(hxhim_t *hx,
-                          void **subjects, std::size_t *subject_lens,
-                          void **predicates, std::size_t *predicate_lens,
-                          enum hxhim_object_type_t object_type, void **objects, std::size_t *object_lens,
+                          void **subjects, std::size_t *subject_lens, enum hxhim_data_t *subject_types,
+                          void **predicates, std::size_t *predicate_lens, enum hxhim_data_t *predicate_types,
+                          void **objects, std::size_t *object_lens, enum hxhim_data_t object_type,
                           const std::size_t count) {
     mlog(HXHIM_CLIENT_DBG, "Started %zu PUTs of type %d", count, object_type);
 
@@ -24,10 +24,9 @@ int hxhim::BPutSingleType(hxhim_t *hx,
     for(std::size_t i = 0; i < count; i++) {
         hxhim::PutImpl(hx,
                        hx->p->queues.puts.queue,
-                       ReferenceBlob(subjects[i], subject_lens[i]),
-                       ReferenceBlob(predicates[i], predicate_lens[i]),
-                       object_type,
-                       ReferenceBlob(objects[i], object_lens[i]));
+                       ReferenceBlob(subjects[i], subject_lens[i], subject_types[i]),
+                       ReferenceBlob(predicates[i], predicate_lens[i], predicate_types[i]),
+                       ReferenceBlob(objects[i], object_lens[i], object_type));
     }
 
     #if ASYNC_PUTS
@@ -43,21 +42,21 @@ int hxhim::BPutSingleType(hxhim_t *hx,
 }
 
 int hxhimBPutSingleType(hxhim_t *hx,
-                        void **subjects, size_t *subject_lens,
-                        void **predicates, size_t *predicate_lens,
-                        enum hxhim_object_type_t object_type, void **objects, size_t *object_lens,
+                        void **subjects, size_t *subject_lens, enum hxhim_data_t *subject_types,
+                        void **predicates, size_t *predicate_lens, enum hxhim_data_t *predicate_types,
+                        void **objects, size_t *object_lens, enum hxhim_data_t object_type,
                         const size_t count) {
     return hxhim::BPutSingleType(hx,
-                                 subjects, subject_lens,
-                                 predicates, predicate_lens,
-                                 object_type, objects, object_lens,
+                                 subjects, subject_lens, subject_types,
+                                 predicates, predicate_lens, predicate_types,
+                                 objects, object_lens, object_type,
                                  count);
 }
 
 int hxhim::BGetSingleType(hxhim_t *hx,
-                          void **subjects, std::size_t *subject_lens,
-                          void **predicates, std::size_t *predicate_lens,
-                          enum hxhim_object_type_t object_type,
+                          void **subjects, std::size_t *subject_lens, enum hxhim_data_t *subject_types,
+                          void **predicates, std::size_t *predicate_lens, enum hxhim_data_t *predicate_types,
+                          enum hxhim_data_t object_type,
                           const std::size_t count) {
     mlog(HXHIM_CLIENT_DBG, "Started %zu GETs of type %d", count, object_type);
 
@@ -73,8 +72,8 @@ int hxhim::BGetSingleType(hxhim_t *hx,
     for(std::size_t i = 0; i < count; i++) {
         hxhim::GetImpl(hx,
                        hx->p->queues.gets,
-                       ReferenceBlob(subjects[i], subject_lens[i]),
-                       ReferenceBlob(predicates[i], predicate_lens[i]),
+                       ReferenceBlob(subjects[i], subject_lens[i], subject_types[i]),
+                       ReferenceBlob(predicates[i], predicate_lens[i], predicate_types[i]),
                        object_type);
     }
 
@@ -86,21 +85,21 @@ int hxhim::BGetSingleType(hxhim_t *hx,
 }
 
 int hxhimBGetSingleType(hxhim_t *hx,
-                        void **subjects, size_t *subject_lens,
-                        void **predicates, size_t *predicate_lens,
-                        enum hxhim_object_type_t object_type,
+                        void **subjects, size_t *subject_lens, enum hxhim_data_t *subject_types,
+                        void **predicates, size_t *predicate_lens, enum hxhim_data_t *predicate_types,
+                        enum hxhim_data_t object_type,
                         const size_t count) {
     return hxhim::BGetSingleType(hx,
-                                 subjects, subject_lens,
-                                 predicates, predicate_lens,
+                                 subjects, subject_lens, subject_types,
+                                 predicates, predicate_lens, predicate_types,
                                  object_type,
                                  count);
 }
 
 int hxhim::BGetOpSingleType(hxhim_t *hx,
-                            void **subjects, std::size_t *subject_lens,
-                            void **predicates, std::size_t *predicate_lens,
-                            enum hxhim_object_type_t object_type,
+                            void **subjects, std::size_t *subject_lens, enum hxhim_data_t *subject_types,
+                            void **predicates, std::size_t *predicate_lens, enum hxhim_data_t *predicate_types,
+                            enum hxhim_data_t object_type,
                             std::size_t *num_records, enum hxhim_getop_t *ops,
                             const std::size_t count) {
     mlog(HXHIM_CLIENT_DBG, "Started %zu GETs of type %d", count, object_type);
@@ -118,8 +117,8 @@ int hxhim::BGetOpSingleType(hxhim_t *hx,
     for(std::size_t i = 0; i < count; i++) {
         hxhim::GetOpImpl(hx,
                          hx->p->queues.getops,
-                         ReferenceBlob(subjects[i], subject_lens[i]),
-                         ReferenceBlob(predicates[i], predicate_lens[i]),
+                         ReferenceBlob(subjects[i], subject_lens[i], subject_types[i]),
+                         ReferenceBlob(predicates[i], predicate_lens[i], predicate_types[i]),
                          object_type,
                          num_records[i], ops[i]);
     }
@@ -132,14 +131,14 @@ int hxhim::BGetOpSingleType(hxhim_t *hx,
 }
 
 int hxhimBGetOPSingleType(hxhim_t *hx,
-                          void **subjects, size_t *subject_lens,
-                          void **predicates, size_t *predicate_lens,
-                          enum hxhim_object_type_t object_type,
+                          void **subjects, size_t *subject_lens, enum hxhim_data_t *subject_types,
+                          void **predicates, size_t *predicate_lens, enum hxhim_data_t *predicate_types,
+                          enum hxhim_data_t object_type,
                           size_t *num_records, enum hxhim_getop_t *ops,
                           const size_t count) {
     return hxhim::BGetOpSingleType(hx,
-                                   subjects, subject_lens,
-                                   predicates, predicate_lens,
+                                   subjects, subject_lens, subject_types,
+                                   predicates, predicate_lens, predicate_types,
                                    object_type,
                                    num_records, ops,
                                    count);

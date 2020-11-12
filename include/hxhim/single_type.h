@@ -12,21 +12,21 @@ extern "C"
 #endif
 
 int hxhimBPutSingleType(hxhim_t *hx,
-                        void **subjects, size_t *subject_lens,
-                        void **predicates, size_t *predicate_lens,
-                        enum hxhim_object_type_t object_type, void **objects, size_t *object_lens,
+                        void **subjects, size_t *subject_lens, enum hxhim_data_t *subject_types,
+                        void **predicates, size_t *predicate_lens, enum hxhim_data_t *predicate_types,
+                        void **objects, size_t *object_lens, enum hxhim_data_t object_type,
                         const size_t count);
 
 int hxhimBGetSingleType(hxhim_t *hx,
-                        void **subjects, size_t *subject_lens,
-                        void **predicates, size_t *predicate_lens,
-                        enum hxhim_object_type_t object_type,
+                        void **subjects, size_t *subject_lens, enum hxhim_data_t *subject_types,
+                        void **predicates, size_t *predicate_lens, enum hxhim_data_t *predicate_types,
+                        enum hxhim_data_t object_type,
                         const size_t count);
 
 int hxhimBGetOpSingleType(hxhim_t *hx,
-                          void **subjects, size_t *subject_lens,
-                          void **predicates, size_t *predicate_lens,
-                          enum hxhim_object_type_t object_type,
+                          void **subjects, size_t *subject_lens, enum hxhim_data_t *subject_types,
+                          void **predicates, size_t *predicate_lens, enum hxhim_data_t *predicate_types,
+                          enum hxhim_data_t object_type,
                           size_t *num_records, enum hxhim_getop_t *ops,
                           const size_t count);
 

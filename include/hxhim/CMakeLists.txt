@@ -5,6 +5,7 @@
 cmake_minimum_required (VERSION 3.6.3)
 
 set(HXHIM_HEADERS
+  Blob.hpp
   RangeServer.hpp
   Results.h
   Results.hpp
@@ -25,6 +26,7 @@ set(HXHIM_HEADERS
   single_type.h
   single_type.hpp
   struct.h
+  triplestore.hpp
 )
 
 option(ASYNC_PUTS "Flush PUTs asynchronously in addtion to explicit FlushPuts" Off)

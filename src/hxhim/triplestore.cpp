@@ -1,9 +1,9 @@
 #include <cstring>
 
 #include "hxhim/constants.h"
+#include "hxhim/triplestore.hpp"
 #include "utils/little_endian.hpp"
 #include "utils/memory.hpp"
-#include "utils/triplestore.hpp"
 
 /**
  * sp_to_key
@@ -30,7 +30,7 @@ char *sp_to_key(const Blob &subject,
 
     // Blob packs length + value
     // this function packs value + length, but sizes are the same
-    key_len = subject.pack_size() + predicate.pack_size();
+    key_len = subject.pack_size(false) + predicate.pack_size(false);
 
     // check the buffer length
     if (buf_len < key_len) {
@@ -89,10 +89,10 @@ int key_to_sp(const void *key, const std::size_t key_len,
     if (copy) {
         void *pred = alloc(pred_len);
         memcpy(pred, pred_start, pred_len);
-        predicate = RealBlob(pred, pred_len);
+        predicate = RealBlob(pred, pred_len, hxhim_data_t::HXHIM_DATA_BYTE);
     }
     else {
-        predicate = ReferenceBlob(pred_start, pred_len);
+        predicate = ReferenceBlob(pred_start, pred_len, hxhim_data_t::HXHIM_DATA_BYTE);
     }
 
     // read subject
@@ -103,10 +103,10 @@ int key_to_sp(const void *key, const std::size_t key_len,
     if (copy) {
         void *sub = alloc(sub_len);
         memcpy(sub, sub_start, sub_len);
-        subject = RealBlob(sub, sub_len);
+        subject = RealBlob(sub, sub_len, hxhim_data_t::HXHIM_DATA_BYTE);
     }
     else {
-        subject = ReferenceBlob((void *) sub_start, sub_len);
+        subject = ReferenceBlob((void *) sub_start, sub_len, hxhim_data_t::HXHIM_DATA_BYTE);
     }
 
     return HXHIM_SUCCESS;

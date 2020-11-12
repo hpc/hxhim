@@ -12,8 +12,8 @@ Transport::Request::SubjectPredicate::~SubjectPredicate() {}
 std::size_t Transport::Request::SubjectPredicate::size() const {
     std::size_t total = Request::size();
     for(std::size_t i = 0; i < count; i++) {
-        total += subjects[i].pack_size() + sizeof(orig.subjects[i]) +
-                 predicates[i].pack_size() + sizeof(orig.predicates[i]);
+        total += subjects[i].pack_size(true) + sizeof(orig.subjects[i]) +
+                 predicates[i].pack_size(true) + sizeof(orig.predicates[i]);
     }
 
     return total;
@@ -72,8 +72,8 @@ Transport::Response::SubjectPredicate::~SubjectPredicate() {}
 std::size_t Transport::Response::SubjectPredicate::size() const {
     std::size_t total = Response::size();
     for(std::size_t i = 0; i < count; i++) {
-        total += orig.subjects[i].pack_ref_size() +
-                 orig.predicates[i].pack_ref_size();
+        total += orig.subjects[i].pack_ref_size(true) +
+                 orig.predicates[i].pack_ref_size(true);
     }
 
     return total;

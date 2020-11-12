@@ -96,21 +96,19 @@ int Unpacker::unpack(Request::BPut **bpm, void *buf, const std::size_t bufsize) 
 
     for(std::size_t i = 0; i < out->max_count; i++) {
         // subject + len
-        out->subjects[i].unpack(curr);
+        out->subjects[i].unpack(curr, true);
 
         // subject addr
         unpack_addr(&out->orig.subjects[i], curr);
 
         // predicate + len
-        out->predicates[i].unpack(curr);
+        out->predicates[i].unpack(curr, true);
 
         // predicate addr
         unpack_addr(&out->orig.predicates[i], curr);
 
-        // object type + object + len
-        little_endian::decode(out->object_types[i], curr);
-        curr += sizeof(out->object_types[i]);
-        out->objects[i].unpack(curr);
+        // object + len
+        out->objects[i].unpack(curr, true);
 
         out->count++;
     }
@@ -129,13 +127,13 @@ int Unpacker::unpack(Request::BGet **bgm, void *buf, const std::size_t bufsize) 
 
     for(std::size_t i = 0; i < out->max_count; i++) {
         // subject
-        out->subjects[i].unpack(curr);
+        out->subjects[i].unpack(curr, true);
 
         // subject addr
         unpack_addr(&out->orig.subjects[i], curr);
 
         // predicate
-        out->predicates[i].unpack(curr);
+        out->predicates[i].unpack(curr, true);
 
         // predicate addr
         unpack_addr(&out->orig.predicates[i], curr);
@@ -167,10 +165,10 @@ int Unpacker::unpack(Request::BGetOp **bgm, void *buf, const std::size_t bufsize
         if ((out->ops[i] != hxhim_getop_t::HXHIM_GETOP_FIRST) &&
             (out->ops[i] != hxhim_getop_t::HXHIM_GETOP_LAST))  {
             // subject
-            out->subjects[i].unpack(curr);
+            out->subjects[i].unpack(curr, true);
 
             // predicate
-            out->predicates[i].unpack(curr);
+            out->predicates[i].unpack(curr, true);
         }
 
         // object type
@@ -198,13 +196,13 @@ int Unpacker::unpack(Request::BDelete **bdm, void *buf, const std::size_t bufsiz
 
     for(std::size_t i = 0; i < out->max_count; i++) {
         // subject
-        out->subjects[i].unpack(curr);
+        out->subjects[i].unpack(curr, true);
 
         // subject addr
         unpack_addr(&out->orig.subjects[i], curr);
 
         // predicate
-        out->predicates[i].unpack(curr);
+        out->predicates[i].unpack(curr, true);
 
         // predicate addr
         unpack_addr(&out->orig.predicates[i], curr);
@@ -313,10 +311,10 @@ int Unpacker::unpack(Response::BPut **bpm, void *buf, const std::size_t bufsize)
         curr += sizeof(out->statuses[i]);
 
         // original subject addr + len
-        out->orig.subjects[i].unpack_ref(curr);
+        out->orig.subjects[i].unpack_ref(curr, true);
 
         // original predicate addr + len
-        out->orig.predicates[i].unpack_ref(curr);
+        out->orig.predicates[i].unpack_ref(curr, true);
 
         out->count++;
     }
@@ -338,19 +336,15 @@ int Unpacker::unpack(Response::BGet **bgm, void *buf, const std::size_t bufsize)
         curr += sizeof(out->statuses[i]);
 
         // original subject addr + len
-        out->orig.subjects[i].unpack_ref(curr);
+        out->orig.subjects[i].unpack_ref(curr, true);
 
         // original predicate addr + len
-        out->orig.predicates[i].unpack_ref(curr);
-
-        // object type
-        little_endian::decode(out->object_types[i], curr);
-        curr += sizeof(out->object_types[i]);
+        out->orig.predicates[i].unpack_ref(curr, true);
 
         // object
         // unpack into user pointers
         if (out->statuses[i] == DATASTORE_SUCCESS) {
-            out->objects[i].unpack(curr);
+            out->objects[i].unpack(curr, true);
         }
 
         out->count++;
@@ -372,10 +366,6 @@ int Unpacker::unpack(Response::BGetOp **bgm, void *buf, const std::size_t bufsiz
         little_endian::decode(out->statuses[i], curr);
         curr += sizeof(out->statuses[i]);
 
-        // object type
-        little_endian::decode(out->object_types[i], curr);
-        curr += sizeof(out->object_types[i]);
-
         // num_recs
         little_endian::decode(out->num_recs[i], curr);
         curr += sizeof(out->num_recs[i]);
@@ -386,14 +376,14 @@ int Unpacker::unpack(Response::BGetOp **bgm, void *buf, const std::size_t bufsiz
 
         for(std::size_t j = 0; j < out->num_recs[i]; j++) {
             // subject
-            out->subjects[i][j].unpack(curr);
+            out->subjects[i][j].unpack(curr, true);
 
             // predicate
-            out->predicates[i][j].unpack(curr);
+            out->predicates[i][j].unpack(curr, true);
 
             // object
             if (out->statuses[i] == DATASTORE_SUCCESS) {
-                out->objects[i][j].unpack(curr);
+                out->objects[i][j].unpack(curr, true);
             }
         }
 
@@ -417,10 +407,10 @@ int Unpacker::unpack(Response::BDelete **bdm, void *buf, const std::size_t bufsi
         curr += sizeof(out->statuses[i]);
 
         // original subject addr + len
-        out->orig.subjects[i].unpack_ref(curr);
+        out->orig.subjects[i].unpack_ref(curr, true);
 
         // original predicate addr + len
-        out->orig.predicates[i].unpack_ref(curr);
+        out->orig.predicates[i].unpack_ref(curr, true);
 
         out->count++;
     }

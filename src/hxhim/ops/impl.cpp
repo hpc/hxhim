@@ -1,5 +1,5 @@
+#include "hxhim/Blob.hpp"
 #include "hxhim/private/hxhim.hpp"
-#include "utils/Blob.hpp"
 #include "utils/Stats.hpp"
 #include "utils/elen.hpp"
 #include "utils/macros.hpp"
@@ -44,7 +44,6 @@ int hxhim::PutImpl(hxhim_t *hx,
                    hxhim::Queue<Transport::Request::BPut> &puts_queue,
                    Blob subject,
                    Blob predicate,
-                   enum hxhim_object_type_t object_type,
                    Blob object) {
     mlog(HXHIM_CLIENT_INFO, "Foreground PUT Start (%p, %p, %p)", subject.data(), predicate.data(), object.data());
 
@@ -53,21 +52,21 @@ int hxhim::PutImpl(hxhim_t *hx,
     Blob actual_object;
     {
         std::string encoded_str;
-        switch (object_type) {
-            case HXHIM_OBJECT_TYPE_FLOAT:
+        switch (object.data_type()) {
+            case HXHIM_DATA_FLOAT:
                 encoded_str = elen::encode::floating_point<float>(* (float *) object.data());
-                actual_object = RealBlob(encoded_str.size(), encoded_str.c_str());
+                actual_object = RealBlob(encoded_str.size(), encoded_str.c_str(), object.data_type());
                 break;
-            case HXHIM_OBJECT_TYPE_DOUBLE:
+            case HXHIM_DATA_DOUBLE:
                 encoded_str = elen::encode::floating_point<double>(* (double *) object.data());
-                actual_object = RealBlob(encoded_str.size(), encoded_str.c_str());
+                actual_object = RealBlob(encoded_str.size(), encoded_str.c_str(), object.data_type());
                 break;
-            case HXHIM_OBJECT_TYPE_INT:
-            case HXHIM_OBJECT_TYPE_SIZE:
-            case HXHIM_OBJECT_TYPE_INT64:
-            case HXHIM_OBJECT_TYPE_BYTE:
+            case HXHIM_DATA_INT:
+            case HXHIM_DATA_SIZE:
+            case HXHIM_DATA_INT64:
+            case HXHIM_DATA_BYTE:
             default:
-                actual_object = ReferenceBlob(object.data(), object.size());
+                actual_object = ReferenceBlob(object.data(), object.size(), object.data_type());
                 encoded = false;
                 break;
         }
@@ -78,14 +77,12 @@ int hxhim::PutImpl(hxhim_t *hx,
     for(std::size_t i = 0; i < HXHIM_PUT_MULTIPLIER; i++) {
         Blob *sub = nullptr;
         Blob *pred = nullptr;
-        enum hxhim_object_type_t obj_type = object_type;
         Blob *obj = nullptr;
 
         switch (HXHIM_PUT_PERMUTATIONS_ENABLED[i]) {
             case HXHIM_PUT_PERMUTATION_SPO:
                 sub  = &subject;
                 pred = &predicate;
-                obj_type = object_type;
                 obj  = &actual_object;
                 break;
 
@@ -93,7 +90,6 @@ int hxhim::PutImpl(hxhim_t *hx,
             case HXHIM_PUT_PERMUTATION_SOP:
                 sub  = &subject;
                 pred = &actual_object;
-                obj_type = HXHIM_OBJECT_TYPE_BYTE;
                 obj  = &predicate;
                 break;
             #endif
@@ -102,7 +98,6 @@ int hxhim::PutImpl(hxhim_t *hx,
             case HXHIM_PUT_PERMUTATION_PSO:
                 sub  = &predicate;
                 pred = &subject;
-                obj_type = object_type;
                 obj  = &actual_object;
                 break;
             #endif
@@ -111,7 +106,6 @@ int hxhim::PutImpl(hxhim_t *hx,
             case HXHIM_PUT_PERMUTATION_POS:
                 sub  = &predicate;
                 pred = &actual_object;
-                obj_type = HXHIM_OBJECT_TYPE_BYTE;
                 obj  = &subject;
                 break;
             #endif
@@ -120,7 +114,6 @@ int hxhim::PutImpl(hxhim_t *hx,
             case HXHIM_PUT_PERMUTATION_OSP:
                 sub  = &actual_object;
                 pred = &subject;
-                obj_type = HXHIM_OBJECT_TYPE_BYTE;
                 obj  = &predicate;
                 break;
             #endif
@@ -129,7 +122,6 @@ int hxhim::PutImpl(hxhim_t *hx,
             case HXHIM_PUT_PERMUTATION_OPS:
                 sub  = &actual_object;
                 pred = &predicate;
-                obj_type = HXHIM_OBJECT_TYPE_BYTE;
                 obj  = &subject;
                 break;
             #endif
@@ -172,7 +164,6 @@ int hxhim::PutImpl(hxhim_t *hx,
         Transport::Request::BPut *put = *(puts.rbegin());
         put->subjects[put->count] = *sub;
         put->predicates[put->count] = *pred;
-        put->object_types[put->count] = obj_type;
         put->objects[put->count] = *obj;
 
         // first permutation cleans up the pointer
@@ -226,7 +217,7 @@ int hxhim::GetImpl(hxhim_t *hx,
                    hxhim::Queue<Transport::Request::BGet> &gets_queue,
                    Blob subject,
                    Blob predicate,
-                   enum hxhim_object_type_t object_type) {
+                   enum hxhim_data_t object_type) {
     mlog(HXHIM_CLIENT_DBG, "GET Start");
 
     ::Stats::Chronostamp hash;
@@ -294,7 +285,7 @@ int hxhim::GetOpImpl(hxhim_t *hx,
                      hxhim::Queue<Transport::Request::BGetOp> &getops_queue,
                      Blob subject,
                      Blob predicate,
-                     enum hxhim_object_type_t object_type,
+                     enum hxhim_data_t object_type,
                      std::size_t num_records, enum hxhim_getop_t op) {
     mlog(HXHIM_CLIENT_DBG, "GETOP Start");
 

@@ -14,8 +14,8 @@ TEST(hxhim, GetStats) {
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
 
     // rank 0 selects a random rank for the stats to be collected at
-    int DST_RANK = rand() % hx.p->bootstrap.size;
-    ASSERT_EQ(MPI_Bcast(&DST_RANK, 1, MPI_INT, 0, MPI_COMM_WORLD), MPI_SUCCESS);
+    const int DST_RANK = rand() % hx.p->bootstrap.size;
+    ASSERT_EQ(MPI_Bcast((void *) &DST_RANK, 1, MPI_INT, 0, MPI_COMM_WORLD), MPI_SUCCESS);
 
     // replace datastores with TestDatastore
     destruct(hx.p->datastore);
@@ -30,10 +30,9 @@ TEST(hxhim, GetStats) {
     // PUT some data (actual contents are irrelevant)
     {
         EXPECT_EQ(hxhim::Put(&hx,
-                             nullptr, 0,
-                             nullptr, 0,
-                             HXHIM_OBJECT_TYPE_BYTE,
-                             nullptr, 0),
+                             &hx, sizeof(&hx), hxhim_data_t::HXHIM_DATA_BYTE,
+                             &hx, sizeof(&hx), hxhim_data_t::HXHIM_DATA_BYTE,
+                             &hx, sizeof(&hx), hxhim_data_t::HXHIM_DATA_BYTE),
                   HXHIM_SUCCESS);
 
         // Flush all queued items
@@ -70,9 +69,9 @@ TEST(hxhim, GetStats) {
     // GET some data (actual contents are irrelevant)
     {
         EXPECT_EQ(hxhim::Get(&hx,
-                             nullptr, 0,
-                             nullptr, 0,
-                             HXHIM_OBJECT_TYPE_BYTE),
+                             &hx, sizeof(&hx), hxhim_data_t::HXHIM_DATA_BYTE,
+                             &hx, sizeof(&hx), hxhim_data_t::HXHIM_DATA_BYTE,
+                             HXHIM_DATA_BYTE),
                   HXHIM_SUCCESS);
 
         // Flush all queued items

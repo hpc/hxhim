@@ -1,6 +1,6 @@
+#include "hxhim/Blob.hpp"
 #include "hxhim/hxhim.hpp"
 #include "hxhim/private/hxhim.hpp"
-#include "utils/Blob.hpp"
 
 /**
  * Delete
@@ -14,9 +14,11 @@
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::Delete(hxhim_t *hx,
-                  void *subject, std::size_t subject_len,
-                  void *predicate, std::size_t predicate_len) {
-    if (!valid(hx) || !hx->p->running) {
+                  void *subject, std::size_t subject_len, enum hxhim_data_t subject_type,
+                  void *predicate, std::size_t predicate_len, enum hxhim_data_t predicate_type) {
+    if (!valid(hx) || !hx->p->running ||
+        !subject   || !subject_len    ||
+        !predicate || !predicate_len) {
         return HXHIM_ERROR;
     }
 
@@ -24,8 +26,8 @@ int hxhim::Delete(hxhim_t *hx,
     del.start = ::Stats::now();
     const int rc = hxhim::DeleteImpl(hx,
                                      hx->p->queues.deletes,
-                                     ReferenceBlob(subject, subject_len),
-                                     ReferenceBlob(predicate, predicate_len));
+                                     ReferenceBlob(subject, subject_len, subject_type),
+                                     ReferenceBlob(predicate, predicate_len, predicate_type));
     del.end = ::Stats::now();
     hx->p->stats.single_op[hxhim_op_t::HXHIM_DELETE].emplace_back(del);
     return rc;
@@ -43,9 +45,9 @@ int hxhim::Delete(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimDelete(hxhim_t *hx,
-                void *subject, size_t subject_len,
-                void *predicate, size_t predicate_len) {
+                void *subject, size_t subject_len, enum hxhim_data_t subject_type,
+                void *predicate, size_t predicate_len, enum hxhim_data_t predicate_type) {
     return hxhim::Delete(hx,
-                         subject, subject_len,
-                         predicate, predicate_len);
+                         subject, subject_len, subject_type,
+                         predicate, predicate_len, predicate_type);
 }

@@ -24,7 +24,7 @@ void Transport::Request::BGet::alloc(const std::size_t max) {
 
     if (max) {
         SubjectPredicate::alloc(max);
-        object_types = alloc_array<hxhim_object_type_t>(max);
+        object_types = alloc_array<hxhim_data_t>(max);
     }
 }
 
@@ -49,7 +49,6 @@ int Transport::Request::BGet::cleanup() {
 
 Transport::Response::BGet::BGet(const std::size_t max)
     : SubjectPredicate(hxhim_op_t::HXHIM_GET),
-      object_types(nullptr),
       objects(nullptr)
 {
     alloc(max);
@@ -63,10 +62,8 @@ std::size_t Transport::Response::BGet::size() const {
     std::size_t total = SubjectPredicate::size();
 
     for(std::size_t i = 0; i < count; i++) {
-        total += sizeof(object_types[i]);
-
         if (statuses[i] == DATASTORE_SUCCESS) {
-            total += objects[i].pack_size();
+            total += objects[i].pack_size(true);
         }
     }
 
@@ -78,7 +75,6 @@ void Transport::Response::BGet::alloc(const std::size_t max) {
 
     if (max) {
         SubjectPredicate::alloc(max);
-        object_types = alloc_array<hxhim_object_type_t>(max);
         objects      = alloc_array<Blob>(max);
     }
 }
@@ -88,7 +84,6 @@ int Transport::Response::BGet::steal(Transport::Response::BGet *bget, const std:
         return TRANSPORT_ERROR;
     }
 
-    object_types[count]       = bget->object_types[i];
     objects[count]            = bget->objects[i];
 
     count++;
@@ -97,9 +92,6 @@ int Transport::Response::BGet::steal(Transport::Response::BGet *bget, const std:
 }
 
 int Transport::Response::BGet::cleanup() {
-    dealloc_array(object_types, max_count);
-    object_types = nullptr;
-
     dealloc_array(objects, max_count);
     objects = nullptr;
 

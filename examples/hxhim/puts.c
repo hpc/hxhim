@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <mpi.h>
 
@@ -58,6 +59,11 @@ int main(int argc, char *argv[]) {
 
     uint64_t results_duration = 0;
 
+    enum hxhim_data_t *sub_pred_types = (enum hxhim_data_t *) calloc(count, sizeof(enum hxhim_data_t));
+    for(size_t i = 0; i < count; i++) {
+        sub_pred_types[i] = HXHIM_DATA_BYTE;
+    }
+
     // do PUTs
     for(size_t i = 0; i < times; i++) {
         // Generate some subject-predicate-object triples
@@ -77,10 +83,9 @@ int main(int argc, char *argv[]) {
         // BPUT the key value pairs into HXHIM
         timestamp_start(BPUT);
         hxhimBPutSingleType(&hx,
-                            subjects, subject_lens,
-                            predicates, predicate_lens,
-                            HXHIM_OBJECT_TYPE_BYTE,
-                            objects, object_lens,
+                            subjects, subject_lens, sub_pred_types,
+                            predicates, predicate_lens, sub_pred_types,
+                            objects, object_lens, HXHIM_DATA_BYTE,
                             count);
         timestamp_end(BPUT);
 
@@ -117,6 +122,8 @@ int main(int argc, char *argv[]) {
     }
 
     barrier;
+
+    free(sub_pred_types);
 
     const size_t total_count = count * times;
     const long double duration = results_duration / 1e9;

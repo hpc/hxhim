@@ -167,20 +167,19 @@ int PutImpl(hxhim_t *hx,
             Queue<Transport::Request::BPut> &puts,
             Blob subject,
             Blob predicate,
-            enum hxhim_object_type_t object_type,
             Blob object);
 
 int GetImpl(hxhim_t *hx,
             Queue<Transport::Request::BGet> &gets,
             Blob subject,
             Blob predicate,
-            enum hxhim_object_type_t object_type);
+            enum hxhim_data_t object_type);
 
 int GetOpImpl(hxhim_t *hx,
               Queue<Transport::Request::BGetOp> &getops,
               Blob subject,
               Blob predicate,
-              enum hxhim_object_type_t object_type,
+              enum hxhim_data_t object_type,
               std::size_t num_records, enum hxhim_getop_t op);
 
 int DeleteImpl(hxhim_t *hx,

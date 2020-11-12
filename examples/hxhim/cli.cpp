@@ -1,3 +1,4 @@
+#include <ios>
 #include <list>
 #include <map>
 #include <iostream>
@@ -52,13 +53,13 @@ const std::map<std::string, HXHIM_OP> USER2OP = {
     std::make_pair("FLUSH",     HXHIM_OP::FLUSH),
 };
 
-const std::map<std::string, hxhim_object_type_t> USER2OT = {
-    std::make_pair("INT",    HXHIM_OBJECT_TYPE_INT),
-    std::make_pair("SIZE",   HXHIM_OBJECT_TYPE_SIZE),
-    std::make_pair("INT64",  HXHIM_OBJECT_TYPE_INT64),
-    std::make_pair("FLOAT",  HXHIM_OBJECT_TYPE_FLOAT),
-    std::make_pair("DOUBLE", HXHIM_OBJECT_TYPE_DOUBLE),
-    std::make_pair("BYTE",   HXHIM_OBJECT_TYPE_BYTE),
+const std::map<std::string, hxhim_data_t> USER2OT = {
+    std::make_pair("INT",    HXHIM_DATA_INT),
+    std::make_pair("SIZE",   HXHIM_DATA_SIZE),
+    std::make_pair("INT64",  HXHIM_DATA_INT64),
+    std::make_pair("FLOAT",  HXHIM_DATA_FLOAT),
+    std::make_pair("DOUBLE", HXHIM_DATA_DOUBLE),
+    std::make_pair("BYTE",   HXHIM_DATA_BYTE),
 };
 
 const std::map<std::string, hxhim_getop_t> USER2GETOP = {
@@ -80,16 +81,41 @@ std::ostream &help(char *self, std::ostream &stream = std::cout) {
     for(decltype(FORMAT)::value_type const &format : FORMAT) {
         stream << "    " << format.second << std::endl;
     }
+
+    stream << "Where <SUBJECT>, <PREDICATE>, and <OBJECT> are pairs of <data, type>" << std::endl
+           << "<OBJECT_TYPE> is only the type" << std::endl;
     return stream;
+}
+
+struct UserPair {
+    std::string data;
+    hxhim_data_t type;
+};
+
+std::istream &operator>>(std::istream &stream, hxhim_data_t &type) {
+    std::string str;
+    if ((stream >> str)) {
+        const decltype(USER2OT)::const_iterator it = USER2OT.find(str);
+        if (it == USER2OT.end()) {
+            stream.setstate(std::ios::failbit);
+        }
+        else {
+            type = it->second;
+        }
+    }
+
+    return stream;
+}
+
+std::istream &operator>>(std::istream &stream, struct UserPair &pair) {
+    return (stream >> pair.data >> pair.type);
 }
 
 struct UserInput {
     HXHIM_OP hxhim_op;
-    std::string subject;
-    std::string predicate;
-    hxhim_object_type_t object_type;
-
-    std::string object;  // only used by (B)PUT
+    struct UserPair subject;
+    struct UserPair predicate;
+    struct UserPair object; // data field is only used by (B)PUT
 
     // only used by (B)GETOP
     std::size_t num_recs;
@@ -146,33 +172,16 @@ std::size_t parse_commands(std::istream & stream, UserInputs & commands) {
                 case HXHIM_OP::BPUT:
                     {
                         std::string object_type;
-                        if (!(command >> input.subject >> input.predicate >> object_type >> input.object)) {
+                        if (!(command >> input.subject >> input.predicate >> input.object)) {
                             ok = false;
-                        }
-
-                        const decltype(USER2OT)::const_iterator it = USER2OT.find(object_type);
-                        if (it == USER2OT.end()) {
-                            ok = false;
-                        }
-                        else {
-                            input.object_type = it->second;
                         }
                     }
                     break;
                 case HXHIM_OP::GET:
                 case HXHIM_OP::BGET:
                     {
-                        std::string object_type;
-                        if (!(command >> input.subject >> input.predicate >> object_type)) {
+                        if (!(command >> input.subject >> input.predicate >> input.object.type)) {
                             ok = false;
-                        }
-
-                        const decltype(USER2OT)::const_iterator it = USER2OT.find(object_type);
-                        if (it == USER2OT.end()) {
-                            ok = false;
-                        }
-                        else {
-                            input.object_type = it->second;
                         }
                     }
                     break;
@@ -181,16 +190,8 @@ std::size_t parse_commands(std::istream & stream, UserInputs & commands) {
                     {
                         std::string object_type;
                         std::string op;
-                        if (!(command >> input.subject >> input.predicate >> object_type >> input.num_recs >> op)) {
+                        if (!(command >> input.subject >> input.predicate >> input.object.type >> input.num_recs >> op)) {
                             ok = false;
-                        }
-
-                        const decltype(USER2OT)::const_iterator ot_it = USER2OT.find(object_type);
-                        if (ot_it == USER2OT.end()) {
-                            ok = false;
-                        }
-                        else {
-                            input.object_type = ot_it->second;
                         }
 
                         const decltype(USER2GETOP)::const_iterator getop_it = USER2GETOP.find(op);
@@ -239,31 +240,30 @@ std::size_t run_commands(hxhim_t * hx, const UserInputs &commands) {
             case HXHIM_OP::PUT:
             case HXHIM_OP::BPUT:
                 rc = hxhimPut(hx,
-                              (void *) cmd.subject.c_str(), cmd.subject.size(),
-                              (void *) cmd.predicate.c_str(), cmd.predicate.size(),
-                              cmd.object_type,
-                              (void *) cmd.object.c_str(), cmd.object.size());
+                              (void *) cmd.subject.data.c_str(),   cmd.subject.data.size(),   cmd.subject.type,
+                              (void *) cmd.predicate.data.c_str(), cmd.predicate.data.size(), cmd.predicate.type,
+                              (void *) cmd.object.data.c_str(),    cmd.object.data.size(),    cmd.object.type);
                 break;
             case HXHIM_OP::GET:
             case HXHIM_OP::BGET:
                 rc = hxhimGet(hx,
-                              (void *) cmd.subject.c_str(), cmd.subject.size(),
-                              (void *) cmd.predicate.c_str(), cmd.predicate.size(),
-                              cmd.object_type);
+                              (void *) cmd.subject.data.c_str(),   cmd.subject.data.size(),   cmd.subject.type,
+                              (void *) cmd.predicate.data.c_str(), cmd.predicate.data.size(), cmd.predicate.type,
+                              cmd.object.type);
                 break;
             case HXHIM_OP::GETOP:
             case HXHIM_OP::BGETOP:
                 rc = hxhimGetOp(hx,
-                                (void *) cmd.subject.c_str(), cmd.subject.size(),
-                                (void *) cmd.predicate.c_str(), cmd.predicate.size(),
-                                cmd.object_type,
+                                (void *) cmd.subject.data.c_str(),   cmd.subject.data.size(),   cmd.subject.type,
+                                (void *) cmd.predicate.data.c_str(), cmd.predicate.data.size(), cmd.predicate.type,
+                                cmd.object.type,
                                 cmd.num_recs, cmd.op);
                 break;
             case HXHIM_OP::DEL:
             case HXHIM_OP::BDEL:
                 rc = hxhimDelete(hx,
-                                 (void *) cmd.subject.c_str(), cmd.subject.size(),
-                                 (void *) cmd.predicate.c_str(), cmd.predicate.size());
+                                 (void *) cmd.subject.data.c_str(),   cmd.subject.data.size(),   cmd.subject.type,
+                                 (void *) cmd.predicate.data.c_str(), cmd.predicate.data.size(), cmd.predicate.type);
                 break;
             case HXHIM_OP::FLUSHPUTS:
                 res = hxhimFlushPuts(hx);

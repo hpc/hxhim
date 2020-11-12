@@ -24,10 +24,9 @@ TEST(hxhim, background_put) {
 
     // PUT triple
     EXPECT_EQ(hxhim::Put(&hx,
-                         (void *) &SUBJECT, sizeof(SUBJECT),
-                         (void *) &PREDICATE, sizeof(PREDICATE),
-                         hxhim_object_type_t::HXHIM_OBJECT_TYPE_DOUBLE,
-                         (void *) &OBJECT, sizeof(OBJECT)),
+                         (void *) &SUBJECT,   sizeof(SUBJECT),   hxhim_data_t::HXHIM_DATA_UINT64,
+                         (void *) &PREDICATE, sizeof(PREDICATE), hxhim_data_t::HXHIM_DATA_UINT64,
+                         (void *) &OBJECT,    sizeof(OBJECT),    hxhim_data_t::HXHIM_DATA_DOUBLE),
               HXHIM_SUCCESS);
 
     #if ASYNC_PUTS

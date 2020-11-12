@@ -74,11 +74,10 @@ int hxhim_results_goto_next(hxhim_results_t *res);
 int hxhim_result_op(hxhim_results_t *res, enum hxhim_op_t *op);
 int hxhim_result_status(hxhim_results_t *res, int *status);                /* whether or not the results are good */
 int hxhim_result_range_server(hxhim_results_t *res, int *range_server);
-int hxhim_result_subject(hxhim_results_t *res, void **subject, size_t *subject_len);
-int hxhim_result_predicate(hxhim_results_t *res, void **predicate, size_t *predicate_len);
+int hxhim_result_subject(hxhim_results_t *res, void **subject, size_t *subject_len, enum hxhim_data_t *type);
+int hxhim_result_predicate(hxhim_results_t *res, void **predicate, size_t *predicate_len, enum hxhim_data_t *type);
 /* these accessor functions only work for GET results */
-int hxhim_result_object_type(hxhim_results_t *res, enum hxhim_object_type_t *object_type);
-int hxhim_result_object(hxhim_results_t *res, void **object, size_t *object_len);
+int hxhim_result_object(hxhim_results_t *res, void **object, size_t *object_len, enum hxhim_data_t *type);
 /* this accessor function only works for HISTOGRAM results */
 int hxhim_result_histogram(hxhim_results_t *res, double **buckets, size_t **counts, size_t *size);
 

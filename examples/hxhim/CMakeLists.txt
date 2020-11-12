@@ -13,7 +13,7 @@ add_executable(hx-c hx.c)
 target_link_libraries(hx-c hxhim.a print_results spo_gen timestamps ${EXEC_LDFLAGS} stdc++)
 
 add_executable(hx-c++ hx.cpp)
-target_link_libraries(hx-c++ hxhim.a spo_gen ${EXEC_LDFLAGS})
+target_link_libraries(hx-c++ hxhim.a print_results spo_gen ${EXEC_LDFLAGS})
 
 add_executable(puts puts.c)
 target_link_libraries(puts hxhim.a spo_gen timestamps ${EXEC_LDFLAGS} stdc++)
@@ -23,7 +23,7 @@ target_link_libraries(hxhim-cli hxhim.a print_results ${EXEC_LDFLAGS})
 set_target_properties(hxhim-cli PROPERTIES OUTPUT_NAME cli)
 
 add_executable(lowest lowest.c)
-target_link_libraries(lowest hxhim.a ${EXEC_LDFLAGS} stdc++)
+target_link_libraries(lowest hxhim.a print_results ${EXEC_LDFLAGS} stdc++)
 
 add_executable(elen elen.cpp)
 target_link_libraries(lowest hxhim.a ${EXEC_LDFLAGS})

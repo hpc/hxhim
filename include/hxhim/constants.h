@@ -98,27 +98,28 @@ enum hxhim_getop_t {
 extern const char *HXHIM_GETOP_STR[];
 
 /**
- * hxhim_object_type_t
+ * hxhim_data_t
  * The types of data tha can be passed into HXHIM
  *
- * HXHIM_OBJECT_TYPE_*
+ * HXHIM_DATA_*
  */
-#define HXHIM_OBJECT_TYPE_GEN(PREFIX, GEN) \
-    GEN(PREFIX, INT)                       \
-    GEN(PREFIX, SIZE)                      \
-    GEN(PREFIX, INT64)                     \
-    GEN(PREFIX, FLOAT)                     \
-    GEN(PREFIX, DOUBLE)                    \
-    GEN(PREFIX, BYTE)                      \
-    GEN(PREFIX, INVALID)                   \
+#define HXHIM_DATA_GEN(PREFIX, GEN) \
+    GEN(PREFIX, INT)                \
+    GEN(PREFIX, SIZE)               \
+    GEN(PREFIX, INT64)              \
+    GEN(PREFIX, UINT64)             \
+    GEN(PREFIX, FLOAT)              \
+    GEN(PREFIX, DOUBLE)             \
+    GEN(PREFIX, BYTE)               \
+    GEN(PREFIX, POINTER)            \
 
-#define HXHIM_OBJECT_TYPE_PREFIX HXHIM_OBJECT_TYPE
+#define HXHIM_DATA_PREFIX HXHIM_DATA
 
-enum hxhim_object_type_t {
-    HXHIM_OBJECT_TYPE_GEN(HXHIM_OBJECT_TYPE_PREFIX, GENERATE_ENUM)
+enum hxhim_data_t {
+    HXHIM_DATA_GEN(HXHIM_DATA_PREFIX, GENERATE_ENUM)
 };
 
-extern const char *HXHIM_OBJECT_TYPE_STR[];
+extern const char *HXHIM_DATA_STR[];
 
 #ifdef __cplusplus
 }

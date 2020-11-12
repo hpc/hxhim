@@ -1,7 +1,7 @@
 #ifndef HXHIM_TRIPLESTORE_HPP
 #define HXHIM_TRIPLESTORE_HPP
 
-#include "utils/Blob.hpp"
+#include "hxhim/Blob.hpp"
 
 /** @description Combines a subject and predicate into a key */
 char *sp_to_key(const Blob &subject,

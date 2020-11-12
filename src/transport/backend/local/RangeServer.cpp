@@ -2,10 +2,10 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "hxhim/Blob.hpp"
 #include "hxhim/hxhim.hpp"
 #include "hxhim/private/accessors.hpp"
 #include "transport/backend/local/RangeServer.hpp"
-#include "utils/Blob.hpp"
 #include "utils/memory.hpp"
 
 namespace Transport {

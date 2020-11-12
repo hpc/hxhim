@@ -17,7 +17,7 @@ struct BGetOp final : SubjectPredicate {
     int steal(BGetOp *from, const std::size_t i);
     int cleanup();
 
-    hxhim_object_type_t *object_types;
+    hxhim_data_t *object_types;
     std::size_t *num_recs;            // number of records to get back
     hxhim_getop_t *ops;
 };
@@ -36,7 +36,6 @@ struct BGetOp final : Response { // does not inherit SubjectPredicate
     int steal(BGetOp *bgetop, const std::size_t i);
     int cleanup();
 
-    hxhim_object_type_t *object_types;
     std::size_t *num_recs;
 
     // array of array of results

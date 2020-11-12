@@ -17,7 +17,7 @@ struct BGet final : SubjectPredicate {
     int steal(BGet *from, const std::size_t i);
     int cleanup();
 
-    hxhim_object_type_t *object_types;
+    hxhim_data_t *object_types;
 };
 
 }
@@ -34,7 +34,6 @@ struct BGet final : SubjectPredicate {
     int steal(BGet *bget, const std::size_t i);
     int cleanup();
 
-    hxhim_object_type_t *object_types;
     Blob *objects;
 };
 
