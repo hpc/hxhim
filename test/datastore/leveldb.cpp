@@ -14,7 +14,7 @@
 class LevelDBTest : public datastore::leveldb {
     public:
         LevelDBTest(const int rank, const std::string &name)
-            : datastore::leveldb(rank, nullptr, name, true)
+            : datastore::leveldb(rank, nullptr, nullptr, name, true)
         {}
 
         ~LevelDBTest()  {
@@ -65,21 +65,16 @@ TEST(LevelDB, BPut) {
 
     ::leveldb::DB *db = ds->data();
 
-    std::size_t key_buffer_len = all_keys_size();
-    char *key_buffer = (char *) alloc(key_buffer_len);
-    char *key_buffer_start = key_buffer;
-
     // read directly from leveldb since setup() already did PUTs
     for(std::size_t i = 0; i < count; i++) {
-        std::size_t key_len = 0;
-        char *key = sp_to_key(triples[i].get_sub(), triples[i].get_pred(), key_buffer, key_buffer_len, key_len);
-        EXPECT_NE(key, nullptr);
+        std::string key;
+        EXPECT_EQ(sp_to_key(triples[i].get_sub(), triples[i].get_pred(), key), HXHIM_SUCCESS);
+        EXPECT_NE(key.size(), 0);
 
-        std::string k(key, key_len);
-        std::string v;
-        leveldb::Status status = db->Get(leveldb::ReadOptions(), k, &v);
+        std::string value;
+        leveldb::Status status = db->Get(leveldb::ReadOptions(), key, &value);
         EXPECT_EQ(status.ok(), true);
-        EXPECT_EQ(memcmp(triples[i].get_obj().data(), v.c_str(), v.size()), 0);
+        EXPECT_EQ(memcmp(triples[i].get_obj().data(), value.c_str(), value.size()), 0);
     }
 
     // make sure datastore only has count items
@@ -92,7 +87,6 @@ TEST(LevelDB, BPut) {
     EXPECT_EQ(items, count);
     delete it;
 
-    destruct(key_buffer_start);
     destruct(ds);
 }
 
@@ -267,23 +261,16 @@ TEST(LevelDB, BDelete) {
 
     // check the datastore directly
     {
-        std::size_t key_buffer_len = all_keys_size();
-        char *key_buffer = (char *) alloc(key_buffer_len);
-        char *key_buffer_start = key_buffer;
-
         for(std::size_t i = 0; i < count; i++) {
-            std::size_t key_len = 0;
-            char *key = sp_to_key(triples[i].get_sub(), triples[i].get_pred(), key_buffer, key_buffer_len, key_len);
-            EXPECT_NE(key, nullptr);
+            std::string key;
+            EXPECT_EQ(sp_to_key(triples[i].get_sub(), triples[i].get_pred(), key), HXHIM_SUCCESS);
+            EXPECT_NE(key.size(), 0);
 
-            std::string k(key, key_len);
-            std::string v;
-            leveldb::Status status = db->Get(leveldb::ReadOptions(), k, &v);
+            std::string value;
+            leveldb::Status status = db->Get(leveldb::ReadOptions(), key, &value);
             EXPECT_EQ(status.ok(), false);
-            EXPECT_EQ(memcmp(triples[i].get_obj().data(), v.c_str(), v.size()), 0);
+            EXPECT_EQ(memcmp(triples[i].get_obj().data(), value.c_str(), value.size()), 0);
         }
-
-        destruct(key_buffer_start);
     }
 
     // make sure datastore doesn't have the original SPO triples

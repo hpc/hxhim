@@ -121,12 +121,11 @@ TEST(datastore, Histogram) {
 
         {
             const float object = 0;
-            const std::string object_str = elen::encode::floating_point<float>(object);
 
             Transport::Request::BPut flt(1);
             flt.subjects[0] = ReferenceBlob(nullptr, 0, hxhim_data_t::HXHIM_DATA_POINTER);
             flt.predicates[0] = ReferenceBlob(nullptr, 0, hxhim_data_t::HXHIM_DATA_POINTER);
-            flt.objects[0] = ReferenceBlob((void *) object_str.data(), object_str.size(),
+            flt.objects[0] = ReferenceBlob((void *) &object, sizeof(object),
                                            hxhim_data_t::HXHIM_DATA_FLOAT);
             flt.count = 1;
             destruct(ds.operate(&flt));
@@ -146,12 +145,11 @@ TEST(datastore, Histogram) {
             EXPECT_EQ(hist->get(nullptr, nullptr, nullptr), HISTOGRAM_ERROR);
 
             const double object = 0;
-            const std::string object_str = elen::encode::floating_point<double>(object);
 
             Transport::Request::BPut dbl(1);
             dbl.subjects[0] = ReferenceBlob(nullptr, 0, hxhim_data_t::HXHIM_DATA_POINTER);
             dbl.predicates[0] = ReferenceBlob(nullptr, 0, hxhim_data_t::HXHIM_DATA_POINTER);
-            dbl.objects[0] = ReferenceBlob((void *) object_str.data(), object_str.size(),
+            dbl.objects[0] = ReferenceBlob((void *) &object, sizeof(object),
                                            hxhim_data_t::HXHIM_DATA_DOUBLE);
             dbl.count = 1;
             destruct(ds.operate(&dbl));

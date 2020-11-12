@@ -5,6 +5,7 @@
 
 #include "hxhim/constants.h"
 #include "hxhim/hash.h"
+#include "datastore/transform.h"
 #include "utils/Histogram.h"
 
 #ifdef __cplusplus
@@ -38,6 +39,10 @@ int hxhim_options_set_datastore_rocksdb(hxhim_options_t *opts, const size_t id, 
 #endif
 int hxhim_options_set_hash_name(hxhim_options_t *opts, const char *name);
 int hxhim_options_set_hash_function(hxhim_options_t *opts, const char *name, hxhim_hash_t func, void *args);
+int hxhim_options_set_transform_numeric_values(hxhim_options_t *opts, const char neg, const char pos, const size_t float_precision, const size_t double_precision);
+int hxhim_options_set_transform_function(hxhim_options_t *opts, const enum hxhim_data_t type,
+                                         hxhim_encode_func encode, void *encode_extra,
+                                         hxhim_decode_func decode, void *decode_extra);
 int hxhim_options_set_transport_null(hxhim_options_t *opts);
 int hxhim_options_set_transport_mpi(hxhim_options_t *opts, const size_t listeners);
 #if HXHIM_HAVE_THALLIUM

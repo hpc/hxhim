@@ -15,13 +15,13 @@ TEST(Blob, null) {
     EXPECT_EQ(blob.data(), nullptr);
     EXPECT_EQ(blob.size(), 0);
 
-    Blob ref (ReferenceBlob(nullptr, 0, type));
+    Blob ref(nullptr, 0, type, false);
     EXPECT_EQ(ref.data(), nullptr);
     EXPECT_EQ(ref.size(), 0);
     EXPECT_EQ(ref.data_type(), type);
     EXPECT_EQ(ref.will_clean(), false);
 
-    Blob real(RealBlob(nullptr, 0, type));
+    Blob real(nullptr, 0, type, true);
     EXPECT_EQ(real.data(), nullptr);
     EXPECT_EQ(real.size(), 0);
     EXPECT_EQ(real.data_type(), type);
@@ -31,13 +31,13 @@ TEST(Blob, null) {
 TEST(Blob, non_null) {
     void *ptr = alloc(len);
 
-    Blob ref(ReferenceBlob(ptr, len, type));
+    Blob ref(ptr, len, type, false);
     EXPECT_EQ(ref.data(), ptr);
     EXPECT_EQ(ref.size(), len);
     EXPECT_EQ(ref.data_type(), type);
     EXPECT_EQ(ref.will_clean(), false);
 
-    Blob real(RealBlob(ptr, len, type));
+    Blob real(ptr, len, type, true);
     EXPECT_EQ(real.data(), ptr);
     EXPECT_EQ(real.size(), len);
     EXPECT_EQ(real.data_type(), type);
@@ -46,26 +46,18 @@ TEST(Blob, non_null) {
     // pointer is deallocated automatically
 }
 
-TEST(Blob, assignment) {
-    // ref -> ref
+TEST(Blob, copy_constructor) {
+    // clean == true
     {
         void *ptr = alloc(len);
 
-        Blob src(ReferenceBlob(ptr, len, type));
+        Blob src(ptr, len, type, true);
         EXPECT_EQ(src.data(), ptr);
         EXPECT_EQ(src.size(), len);
         EXPECT_EQ(src.data_type(), type);
-        EXPECT_EQ(src.will_clean(), false);
+        EXPECT_EQ(src.will_clean(), true);
 
-        Blob dst(ReferenceBlob(nullptr, 0, type));
-        EXPECT_EQ(dst.data(), nullptr);
-        EXPECT_EQ(dst.size(), 0);
-        EXPECT_EQ(dst.data_type(), type);
-        EXPECT_EQ(dst.will_clean(), false);
-
-        dst = src;
-
-        // dst gets src
+        Blob dst(src);
         EXPECT_EQ(dst.data(), ptr);
         EXPECT_EQ(dst.size(), len);
         EXPECT_EQ(dst.data_type(), type);
@@ -75,112 +67,223 @@ TEST(Blob, assignment) {
         EXPECT_EQ(src.data(), ptr);
         EXPECT_EQ(src.size(), len);
         EXPECT_EQ(src.data_type(), type);
-        EXPECT_EQ(src.will_clean(), false);
-
-        dealloc(ptr);
-    }
-
-    // real -> real
-    {
-        void *ptr = alloc(len);
-
-        Blob src(RealBlob(ptr, len, type));
-        EXPECT_EQ(src.data(), ptr);
-        EXPECT_EQ(src.size(), len);
-        EXPECT_EQ(src.data_type(), type);
         EXPECT_EQ(src.will_clean(), true);
-
-        Blob dst(RealBlob(nullptr, 0, type));
-        EXPECT_EQ(dst.data(), nullptr);
-        EXPECT_EQ(dst.size(), 0);
-        EXPECT_EQ(dst.data_type(), type);
-        EXPECT_EQ(dst.will_clean(), true);
-
-        dst = src;
-
-        // dst gets src
-        EXPECT_EQ(dst.data(), ptr);
-        EXPECT_EQ(dst.size(), len);
-        EXPECT_EQ(dst.data_type(), type);
-        EXPECT_EQ(dst.will_clean(), true);
-
-        // src is nulled
-        EXPECT_EQ(src.data(), nullptr);
-        EXPECT_EQ(src.size(), 0);
-        EXPECT_EQ(src.data_type(), type);
-        EXPECT_EQ(src.will_clean(), false);
 
         // pointer is deallocated automatically
     }
 
-    // ref -> real
+    // clean == false
     {
         void *ptr = alloc(len);
 
-        Blob src(ReferenceBlob(ptr, len, type));
+        Blob src(ptr, len, type, false);
         EXPECT_EQ(src.data(), ptr);
         EXPECT_EQ(src.size(), len);
         EXPECT_EQ(src.data_type(), type);
         EXPECT_EQ(src.will_clean(), false);
 
-        Blob dst(RealBlob(nullptr, 0, type));
-        EXPECT_EQ(dst.data(), nullptr);
-        EXPECT_EQ(dst.size(), 0);
-        EXPECT_EQ(dst.data_type(), type);
-        EXPECT_EQ(dst.will_clean(), true);
-
-        dst = src;
-
-        // dst gets src
+        Blob dst(src);
         EXPECT_EQ(dst.data(), ptr);
         EXPECT_EQ(dst.size(), len);
         EXPECT_EQ(dst.data_type(), type);
         EXPECT_EQ(dst.will_clean(), false);
 
-        // src doesn't change
         EXPECT_EQ(src.data(), ptr);
         EXPECT_EQ(src.size(), len);
         EXPECT_EQ(src.data_type(), type);
         EXPECT_EQ(src.will_clean(), false);
 
-        // need to deallocate since the real became a reference
         dealloc(ptr);
-    }
-
-    // real -> ref
-    {
-        void *ptr = alloc(len);
-
-        Blob src(RealBlob(ptr, len, type));
-        EXPECT_EQ(src.data(), ptr);
-        EXPECT_EQ(src.size(), len);
-        EXPECT_EQ(src.data_type(), type);
-        EXPECT_EQ(src.will_clean(), true);
-
-        Blob dst(ReferenceBlob(nullptr, 0, type));
-        EXPECT_EQ(dst.data(), nullptr);
-        EXPECT_EQ(dst.size(), 0);
-        EXPECT_EQ(dst.data_type(), type);
-        EXPECT_EQ(dst.will_clean(), false);
-
-        dst = src;
-
-        // dst gets src
-        EXPECT_EQ(dst.data(), ptr);
-        EXPECT_EQ(dst.size(), len);
-        EXPECT_EQ(dst.data_type(), type);
-        EXPECT_EQ(dst.will_clean(), true);
-
-        // src is nulled
-        EXPECT_EQ(src.data(), nullptr);
-        EXPECT_EQ(src.size(), 0);
-        EXPECT_EQ(src.data_type(), type);
-        EXPECT_EQ(src.will_clean(), false);
-
-        // pointer is deallocated automatically
     }
 }
 
+TEST(Blob, move_constructor) {
+    // clean == true
+    {
+        void *ptr = alloc(len);
+
+        Blob src(ptr, len, type, true);
+        EXPECT_EQ(src.data(), ptr);
+        EXPECT_EQ(src.size(), len);
+        EXPECT_EQ(src.data_type(), type);
+        EXPECT_EQ(src.will_clean(), true);
+
+        Blob dst(std::move(src));
+        EXPECT_EQ(dst.data(), ptr);
+        EXPECT_EQ(dst.size(), len);
+        EXPECT_EQ(dst.data_type(), type);
+        EXPECT_EQ(dst.will_clean(), true);
+
+        // src is empty
+        EXPECT_EQ(src.data(), nullptr);
+        EXPECT_EQ(src.size(), 0);
+        EXPECT_EQ(src.data_type(), hxhim_data_t::HXHIM_DATA_INVALID);
+        EXPECT_EQ(src.will_clean(), false);
+
+        // pointer is deallocated automatically
+    }
+
+    // clean == false
+    {
+        void *ptr = alloc(len);
+
+        Blob src(ptr, len, type, false);
+        EXPECT_EQ(src.data(), ptr);
+        EXPECT_EQ(src.size(), len);
+        EXPECT_EQ(src.data_type(), type);
+        EXPECT_EQ(src.will_clean(), false);
+
+        Blob dst(std::move(src));
+        EXPECT_EQ(dst.data(), ptr);
+        EXPECT_EQ(dst.size(), len);
+        EXPECT_EQ(dst.data_type(), type);
+        EXPECT_EQ(dst.will_clean(), false);
+
+        // src is empty
+        EXPECT_EQ(src.data(), nullptr);
+        EXPECT_EQ(src.size(), 0);
+        EXPECT_EQ(src.data_type(), hxhim_data_t::HXHIM_DATA_INVALID);
+        EXPECT_EQ(src.will_clean(), false);
+
+        dealloc(ptr);
+    }
+}
+
+TEST(Blob, copy_assignment) {
+    // clean == true
+    {
+        void *ptr = alloc(len);
+
+        Blob src(ptr, len, type, true);
+        EXPECT_EQ(src.data(), ptr);
+        EXPECT_EQ(src.size(), len);
+        EXPECT_EQ(src.data_type(), type);
+        EXPECT_EQ(src.will_clean(), true);
+
+        Blob dst;
+        EXPECT_EQ(dst.data(), nullptr);
+        EXPECT_EQ(dst.size(), 0);
+        EXPECT_EQ(dst.data_type(), hxhim_data_t::HXHIM_DATA_INVALID);
+        EXPECT_EQ(dst.will_clean(), false);
+
+        dst = src;
+
+        // dst gets reference to source
+        EXPECT_EQ(dst.data(), ptr);
+        EXPECT_EQ(dst.size(), len);
+        EXPECT_EQ(dst.data_type(), type);
+        EXPECT_EQ(dst.will_clean(), false);
+
+        // src doesn't change
+        EXPECT_EQ(src.data(), ptr);
+        EXPECT_EQ(src.size(), len);
+        EXPECT_EQ(src.data_type(), type);
+        EXPECT_EQ(src.will_clean(), true);
+
+        // pointer is deallocated automatically
+    }
+
+    // clean == false
+    {
+        void *ptr = alloc(len);
+
+        Blob src(ptr, len, type, false);
+        EXPECT_EQ(src.data(), ptr);
+        EXPECT_EQ(src.size(), len);
+        EXPECT_EQ(src.data_type(), type);
+        EXPECT_EQ(src.will_clean(), false);
+
+        Blob dst;
+        EXPECT_EQ(dst.data(), nullptr);
+        EXPECT_EQ(dst.size(), 0);
+        EXPECT_EQ(dst.data_type(), hxhim_data_t::HXHIM_DATA_INVALID);
+        EXPECT_EQ(dst.will_clean(), false);
+
+        dst = src;
+
+        // dst gets reference to source
+        EXPECT_EQ(dst.data(), ptr);
+        EXPECT_EQ(dst.size(), len);
+        EXPECT_EQ(dst.data_type(), type);
+        EXPECT_EQ(dst.will_clean(), false);
+
+        // src doesn't change
+        EXPECT_EQ(src.data(), ptr);
+        EXPECT_EQ(src.size(), len);
+        EXPECT_EQ(src.data_type(), type);
+        EXPECT_EQ(src.will_clean(), false);
+
+        dealloc(ptr);
+    }
+}
+
+TEST(Blob, move_assignment) {
+    // clean == true
+    {
+        void *ptr = alloc(len);
+
+        Blob src(ptr, len, type, true);
+        EXPECT_EQ(src.data(), ptr);
+        EXPECT_EQ(src.size(), len);
+        EXPECT_EQ(src.data_type(), type);
+        EXPECT_EQ(src.will_clean(), true);
+
+        Blob dst;
+        EXPECT_EQ(dst.data(), nullptr);
+        EXPECT_EQ(dst.size(), 0);
+        EXPECT_EQ(dst.data_type(), hxhim_data_t::HXHIM_DATA_INVALID);
+        EXPECT_EQ(dst.will_clean(), false);
+
+        dst = std::move(src);
+
+        // dst takes ownership of ptr
+        EXPECT_EQ(dst.data(), ptr);
+        EXPECT_EQ(dst.size(), len);
+        EXPECT_EQ(dst.data_type(), type);
+        EXPECT_EQ(dst.will_clean(), true);
+
+        // src is empty
+        EXPECT_EQ(src.data(), nullptr);
+        EXPECT_EQ(src.size(), 0);
+        EXPECT_EQ(src.data_type(), hxhim_data_t::HXHIM_DATA_INVALID);
+        EXPECT_EQ(src.will_clean(), false);
+
+        // pointer is deallocated automatically
+    }
+
+    // clean == false
+    {
+        void *ptr = alloc(len);
+
+        Blob src(ptr, len, type, false);
+        EXPECT_EQ(src.data(), ptr);
+        EXPECT_EQ(src.size(), len);
+        EXPECT_EQ(src.data_type(), type);
+        EXPECT_EQ(src.will_clean(), false);
+
+        Blob dst;
+        EXPECT_EQ(dst.data(), nullptr);
+        EXPECT_EQ(dst.size(), 0);
+        EXPECT_EQ(dst.data_type(), hxhim_data_t::HXHIM_DATA_INVALID);
+        EXPECT_EQ(dst.will_clean(), false);
+
+        dst = std::move(src);
+
+        // dst gets reference to source
+        EXPECT_EQ(dst.data(), ptr);
+        EXPECT_EQ(dst.size(), len);
+        EXPECT_EQ(dst.data_type(), type);
+        EXPECT_EQ(dst.will_clean(), false);
+
+        // src is empty
+        EXPECT_EQ(src.data(), nullptr);
+        EXPECT_EQ(src.size(), 0);
+        EXPECT_EQ(src.data_type(), hxhim_data_t::HXHIM_DATA_INVALID);
+        EXPECT_EQ(src.will_clean(), false);
+
+        dealloc(ptr);
+    }
+}
 
 TEST(Blob, pack_unpack) {
     // reference

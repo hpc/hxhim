@@ -8,14 +8,17 @@
 
 void print_by_type(void *value, size_t value_len, enum hxhim_data_t type) {
     switch (type) {
-        case HXHIM_DATA_INT:
-            printf("%d", * (int *) value);
-            break;
-        case HXHIM_DATA_SIZE:
-            printf("%zu", * (size_t *) value);
+        case HXHIM_DATA_INT32:
+            printf("%" PRId32, * (int32_t *) value);
             break;
         case HXHIM_DATA_INT64:
             printf("%" PRId64, * (int64_t *) value);
+            break;
+        case HXHIM_DATA_UINT32:
+            printf("%" PRId32, * (uint32_t *) value);
+            break;
+        case HXHIM_DATA_UINT64:
+            printf("%" PRId64, * (uint64_t *) value);
             break;
         case HXHIM_DATA_FLOAT:
             printf("%.*f", FLT_DECIMAL_DIG, * (float *) value);
@@ -25,6 +28,9 @@ void print_by_type(void *value, size_t value_len, enum hxhim_data_t type) {
             break;
         case HXHIM_DATA_BYTE:
             printf("%.*s", (int) value_len, (char *) value);
+            break;
+        case HXHIM_DATA_POINTER:
+            printf("%p", value);
             break;
         default:
             printf("Invalid Type (%zu bytes)", value_len);

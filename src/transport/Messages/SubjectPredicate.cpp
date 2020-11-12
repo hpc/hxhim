@@ -34,8 +34,8 @@ int Transport::Request::SubjectPredicate::steal(Transport::Request::SubjectPredi
         return TRANSPORT_ERROR;
     }
 
-    subjects[count]     = from->subjects[i];
-    predicates[count]   = from->predicates[i];
+    subjects[count]     = std::move(from->subjects[i]);
+    predicates[count]   = std::move(from->predicates[i]);
 
     orig.subjects[count]     = from->orig.subjects[i];
     orig.predicates[count]   = from->orig.predicates[i];

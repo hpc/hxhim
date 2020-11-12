@@ -47,33 +47,6 @@ int hxhim::PutImpl(hxhim_t *hx,
                    Blob object) {
     mlog(HXHIM_CLIENT_INFO, "Foreground PUT Start (%p, %p, %p)", subject.data(), predicate.data(), object.data());
 
-    // check if the object needs to be transformed
-    bool encoded = true;
-    Blob actual_object;
-    {
-        std::string encoded_str;
-        switch (object.data_type()) {
-            case HXHIM_DATA_FLOAT:
-                encoded_str = elen::encode::floating_point<float>(* (float *) object.data());
-                actual_object = RealBlob(encoded_str.size(), encoded_str.c_str(), object.data_type());
-                break;
-            case HXHIM_DATA_DOUBLE:
-                encoded_str = elen::encode::floating_point<double>(* (double *) object.data());
-                actual_object = RealBlob(encoded_str.size(), encoded_str.c_str(), object.data_type());
-                break;
-            case HXHIM_DATA_INT:
-            case HXHIM_DATA_SIZE:
-            case HXHIM_DATA_INT64:
-            case HXHIM_DATA_BYTE:
-            default:
-                actual_object = ReferenceBlob(object.data(), object.size(), object.data_type());
-                encoded = false;
-                break;
-        }
-
-        actual_object.set_clean(false);
-    }
-
     for(std::size_t i = 0; i < HXHIM_PUT_MULTIPLIER; i++) {
         Blob *sub = nullptr;
         Blob *pred = nullptr;
@@ -83,13 +56,13 @@ int hxhim::PutImpl(hxhim_t *hx,
             case HXHIM_PUT_PERMUTATION_SPO:
                 sub  = &subject;
                 pred = &predicate;
-                obj  = &actual_object;
+                obj  = &object;
                 break;
 
             #if SOP
             case HXHIM_PUT_PERMUTATION_SOP:
                 sub  = &subject;
-                pred = &actual_object;
+                pred = &object;
                 obj  = &predicate;
                 break;
             #endif
@@ -98,21 +71,21 @@ int hxhim::PutImpl(hxhim_t *hx,
             case HXHIM_PUT_PERMUTATION_PSO:
                 sub  = &predicate;
                 pred = &subject;
-                obj  = &actual_object;
+                obj  = &object;
                 break;
             #endif
 
             #if POS
             case HXHIM_PUT_PERMUTATION_POS:
                 sub  = &predicate;
-                pred = &actual_object;
+                pred = &object;
                 obj  = &subject;
                 break;
             #endif
 
             #if OSP
             case HXHIM_PUT_PERMUTATION_OSP:
-                sub  = &actual_object;
+                sub  = &object;
                 pred = &subject;
                 obj  = &predicate;
                 break;
@@ -120,7 +93,7 @@ int hxhim::PutImpl(hxhim_t *hx,
 
             #if OPS
             case HXHIM_PUT_PERMUTATION_OPS:
-                sub  = &actual_object;
+                sub  = &object;
                 pred = &predicate;
                 obj  = &subject;
                 break;
@@ -165,21 +138,6 @@ int hxhim::PutImpl(hxhim_t *hx,
         put->subjects[put->count] = *sub;
         put->predicates[put->count] = *pred;
         put->objects[put->count] = *obj;
-
-        // first permutation cleans up the pointer
-        if (i == 0) {
-            if (encoded) {
-                if (put->subjects[put->count].data() == actual_object.data()) {
-                    put->subjects[put->count].set_clean(true);
-                }
-                else if (put->predicates[put->count].data() == actual_object.data()) {
-                    put->predicates[put->count].set_clean(true);
-                }
-                else if (put->objects[put->count].data() == actual_object.data()) {
-                    put->objects[put->count].set_clean(true);
-                }
-            }
-        }
 
         put->orig.subjects[put->count] = sub->data();
         put->orig.predicates[put->count] = pred->data();

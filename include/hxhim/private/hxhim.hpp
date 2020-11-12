@@ -14,10 +14,10 @@
 
 #include "datastore/datastore.hpp"
 #include "hxhim/Results.hpp"
-#include "hxhim/private/Stats.hpp"
 #include "hxhim/constants.h"
 #include "hxhim/hash.h"
 #include "hxhim/options.h"
+#include "hxhim/private/Stats.hpp"
 #include "hxhim/struct.h"
 #include "transport/Messages/Messages.hpp"
 #include "transport/transport.hpp"
@@ -126,10 +126,8 @@ typedef struct hxhim_private {
 namespace hxhim {
 
 bool valid(hxhim_t *hx);
-bool valid(hxhim_options_t *opts);
 bool valid(hxhim_t *hx, hxhim_options_t *opts);
 
-// HXHIM should (probably) be initialized in this order
 namespace init {
 int bootstrap    (hxhim_t *hx, hxhim_options_t *opts);
 int running      (hxhim_t *hx, hxhim_options_t *opts);
@@ -141,7 +139,6 @@ int queues       (hxhim_t *hx, hxhim_options_t *opts);
 int async_put    (hxhim_t *hx, hxhim_options_t *opts);
 }
 
-// HXHIM should (probably) be destroyed in this order
 namespace destroy {
 int bootstrap   (hxhim_t *hx);
 int running     (hxhim_t *hx);

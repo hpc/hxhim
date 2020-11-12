@@ -16,48 +16,39 @@
  * @param buf            start of key buffer (updated to next unused address)
  * @param buf_len        available space for data (updated to remaining space)
  * @param key_len        the length of the key
- * @return the original buf pointer, or nullptr on error
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-char *sp_to_key(const Blob &subject,
-                const Blob &predicate,
-                char *&buf, std::size_t &buf_len,
-                std::size_t &key_len) {
-    if (!subject.data()   ||
-        !predicate.data() ||
-        !buf || !buf_len)  {
-        return nullptr;
-    }
-
+int sp_to_key(const Blob &subject,
+              const Blob &predicate,
+              std::string &key) {
     // Blob packs length + value
     // this function packs value + length, but sizes are the same
-    key_len = subject.pack_size(false) + predicate.pack_size(false);
+    const std::size_t len = subject.pack_size(false) + predicate.pack_size(false);
 
-    // check the buffer length
-    if (buf_len < key_len) {
-        return nullptr;
-    }
-
-    char *orig = buf;
+    char *buf = (char *) alloc(len);
+    char *curr = buf;
 
     // copy the subject value
-    memcpy(buf, subject.data(), subject.size());
-    buf += subject.size();
+    memcpy(curr, subject.data(), subject.size());
+    curr += subject.size();
 
     // length of the subject value
-    little_endian::encode(buf, subject.size());
-    buf += sizeof(subject.size());
+    little_endian::encode(curr, subject.size());
+    curr += sizeof(subject.size());
 
     // copy the predicate value
-    memcpy(buf, predicate.data(), predicate.size());
-    buf += predicate.size();
+    memcpy(curr, predicate.data(), predicate.size());
+    curr += predicate.size();
 
     // length of the predicate value
-    little_endian::encode(buf, predicate.size());
-    buf += sizeof(predicate.size());
+    little_endian::encode(curr, predicate.size());
+    curr += sizeof(predicate.size());
 
-    buf_len -= key_len;
+    key.assign(buf, len);
 
-    return orig;
+    dealloc(buf);
+
+    return HXHIM_SUCCESS;
 }
 
 /**
@@ -71,20 +62,17 @@ char *sp_to_key(const Blob &subject,
  * @paral copy           whether the subject and predicate are copies or references to the key
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int key_to_sp(const void *key, const std::size_t key_len,
+int key_to_sp(const void *key,
+              const std::size_t key_len,
               Blob &subject,
               Blob &predicate,
               const bool copy) {
-    if (!key) {
-        return HXHIM_ERROR;
-    }
-
     char *end = ((char *) key) + key_len;
 
     // read predicate
     std::size_t pred_len = 0;
     little_endian::decode(pred_len, end - sizeof(pred_len));
-    void *pred_start = end - pred_len - sizeof(pred_len);
+    const void *pred_start = end - pred_len - sizeof(pred_len);
 
     if (copy) {
         void *pred = alloc(pred_len);
@@ -92,7 +80,7 @@ int key_to_sp(const void *key, const std::size_t key_len,
         predicate = RealBlob(pred, pred_len, hxhim_data_t::HXHIM_DATA_BYTE);
     }
     else {
-        predicate = ReferenceBlob(pred_start, pred_len, hxhim_data_t::HXHIM_DATA_BYTE);
+        predicate = ReferenceBlob((void *) pred_start, pred_len, hxhim_data_t::HXHIM_DATA_BYTE);
     }
 
     // read subject
@@ -110,4 +98,23 @@ int key_to_sp(const void *key, const std::size_t key_len,
     }
 
     return HXHIM_SUCCESS;
+}
+
+/**
+ * key_to_sp
+ * Splits a key into a subject key pair.
+ *
+ * @param key            the key
+ * @param subject        the subject of the triple
+ * @param predicate      the predicate of the triple
+ * @paral copy           whether the subject and predicate are copies or references to the key
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
+ */
+int key_to_sp(const std::string &key,
+              Blob &subject,
+              Blob &predicate,
+              const bool copy) {
+    return key_to_sp((void *) key.data(), key.size(),
+                     subject, predicate,
+                     copy);
 }

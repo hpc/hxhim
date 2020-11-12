@@ -16,10 +16,11 @@
 #include "utils/mlogfacs2.h"
 
 datastore::rocksdb::rocksdb(const int rank,
-                                   Histogram::Histogram *hist,
-                                   const std::string &exact_name,
-                                   const bool create_if_missing)
-    : Datastore(rank, 0, hist),
+                            Transform::Callbacks *callbacks,
+                            Histogram::Histogram *hist,
+                            const std::string &exact_name,
+                            const bool create_if_missing)
+    : Datastore(rank, 0, callbacks, hist),
       dbname(exact_name),
       create_if_missing(create_if_missing),
       db(nullptr), options()
@@ -32,12 +33,13 @@ datastore::rocksdb::rocksdb(const int rank,
 }
 
 datastore::rocksdb::rocksdb(const int rank,
-                                   const int id,
-                                   Histogram::Histogram *hist,
-                                   const std::string &prefix,
-                                   const std::string &basename,
-                                   const bool create_if_missing)
-    : Datastore(rank, id, hist),
+                            const int id,
+                            Transform::Callbacks *callbacks,
+                            Histogram::Histogram *hist,
+                            const std::string &prefix,
+                            const std::string &basename,
+                            const bool create_if_missing)
+    : Datastore(rank, id, callbacks, hist),
       dbname(),
       create_if_missing(create_if_missing),
       db(nullptr), options()
@@ -114,34 +116,56 @@ Transport::Response::BPut *datastore::rocksdb::BPutImpl(Transport::Request::BPut
 
     Transport::Response::BPut *res = construct<Transport::Response::BPut>(req->count);
 
-    std::size_t key_buffer_len = all_keys_size(req);
-    char *key_buffer = (char *) alloc(key_buffer_len);
-    char *key_buffer_start = key_buffer;
-
     // batch up PUTs
     ::rocksdb::WriteBatch batch;
     for(std::size_t i = 0; i < req->count; i++) {
-        // the current key address and length
-        char *key = nullptr;
-        std::size_t key_len = 0;
+        void *subject = nullptr;
+        std::size_t subject_len = 0;
+        void *predicate = nullptr;
+        std::size_t predicate_len = 0;
+        void *object = nullptr;
+        std::size_t object_len = 0;
 
-        key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
-        batch.Put(::rocksdb::Slice(key, key_len), ::rocksdb::Slice((char *) req->objects[i].data(), req->objects[i].size()));
-        event.size += key_len + req->objects[i].size();
+        int status = DATASTORE_ERROR; // successful batching will set toe DATASTORE_UNSET
+        if ((encode(req->subjects[i],   &subject,   &subject_len)   == DATASTORE_SUCCESS) &&
+            (encode(req->predicates[i], &predicate, &predicate_len) == DATASTORE_SUCCESS) &&
+            (encode(req->objects[i],    &object,    &object_len)    == DATASTORE_SUCCESS)) {
+            // the current key address and length
+            std::string key;
+            sp_to_key(ReferenceBlob(subject,   subject_len,   req->subjects[i].data_type()),
+                      ReferenceBlob(predicate, predicate_len, req->predicates[i].data_type()),
+                      key);
 
-        // save requesting addresses for sending back
+            batch.Put(::rocksdb::Slice(key.c_str(), key.size()), ::rocksdb::Slice((char *) object, object_len));
+
+            event.size += key.size() + object_len;
+            status = DATASTORE_UNSET;
+        }
+
+        res->statuses[i] = status;
+
+        if (subject != req->subjects[i].data()) {
+            dealloc(subject);
+        }
+        if (predicate != req->predicates[i].data()) {
+            dealloc(predicate);
+        }
+        if (object != req->objects[i].data()) {
+            dealloc(object);
+        }
+
         res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size(), req->subjects[i].data_type());
         res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size(), req->predicates[i].data_type());
     }
 
-    // add in the time to write the key-value pairs without adding to the counter
     ::rocksdb::Status status = db->Write(::rocksdb::WriteOptions(), &batch);
 
-    dealloc(key_buffer_start);
-
     if (status.ok()) {
+        // successful writes only update statuses that were unset
         for(std::size_t i = 0; i < req->count; i++) {
-            res->statuses[i] = DATASTORE_SUCCESS;
+            if (res->statuses[i] == DATASTORE_UNSET) {
+                res->statuses[i] = DATASTORE_SUCCESS;
+            }
         }
         mlog(ROCKSDB_INFO, "Rocksdb write success");
     }
@@ -179,75 +203,61 @@ Transport::Response::BGet *datastore::rocksdb::BGetImpl(Transport::Request::BGet
 
     Transport::Response::BGet *res = construct<Transport::Response::BGet>(req->count);
 
-    std::size_t key_buffer_len = all_keys_size(req);
-    char *key_buffer = (char *) alloc(key_buffer_len);
-    char *key_buffer_start = key_buffer;
-
     // batch up GETs
     for(std::size_t i = 0; i < req->count; i++) {
-        mlog(ROCKSDB_INFO, "Rank %d Rocksdb GET processing %p[%zu] = {%p, %p}", rank, req, i, req->subjects[i].data(), req->predicates[i].data());
+        void *subject = nullptr;
+        std::size_t subject_len = 0;
+        void *predicate = nullptr;
+        std::size_t predicate_len = 0;
 
-        std::size_t key_len = 0;
-        char *key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
+        int status = DATASTORE_ERROR; // only successful decoding sets the status to DATASTORE_SUCCESS
+        if ((encode(req->subjects[i],   &subject,   &subject_len)   == DATASTORE_SUCCESS) &&
+            (encode(req->predicates[i], &predicate, &predicate_len) == DATASTORE_SUCCESS)) {
+            // create the key from the subject and predicate
+            std::string key;
+            sp_to_key(ReferenceBlob(subject,   subject_len,   req->subjects[i].data_type()),
+                      ReferenceBlob(predicate, predicate_len, req->predicates[i].data_type()),
+                      key);
 
-        // create the key
-        const ::rocksdb::Slice k(key, key_len);
+            std::string value;
+            ::rocksdb::Status s = db->Get(::rocksdb::ReadOptions(), key, &value);
 
-        // get the value
-        std::string value;
-        ::rocksdb::Status status = db->Get(::rocksdb::ReadOptions(), k, &value);
+            if (s.ok()) {
+                mlog(ROCKSDB_INFO, "Rank %d Rocksdb GET success", rank);
 
-        // save requesting addresses for sending back
+                // decode the object
+                void *object = nullptr;
+                std::size_t object_len = 0;
+                if (decode(ReferenceBlob((void *) value.data(), value.size(), req->object_types[i]),
+                           &object, &object_len) == DATASTORE_SUCCESS) {
+                    res->objects[i] = RealBlob(object, object_len, req->object_types[i]);
+                    event.size += res->objects[i].size();
+                    status = DATASTORE_SUCCESS;
+                    mlog(ROCKSDB_INFO, "Rank %d Rocksdb GET decode success", rank);
+                }
+            }
+        }
+
+        res->statuses[i] = status;
+
         res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size(), req->subjects[i].data_type());
         res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size(), req->predicates[i].data_type());
-        event.size += key_len;
 
-        // put object into response
-        if (status.ok()) {
-            mlog(ROCKSDB_INFO, "Rank %d Rocksdb GET success", rank);
-            res->statuses[i] = DATASTORE_SUCCESS;
-            res->objects[i] = RealBlob(value.size(), value.data(), req->object_types[i]);
-
-            event.size += res->objects[i].size();
+        if (subject != req->subjects[i].data()) {
+            dealloc(subject);
         }
-        else {
-            mlog(ROCKSDB_INFO, "Rank %d Rocksdb GET error: %s", rank, status.ToString().c_str());
-            res->statuses[i] = DATASTORE_ERROR;
+        if (predicate != req->predicates[i].data()) {
+            dealloc(predicate);
         }
-
-        res->count++;
     }
 
-    dealloc(key_buffer_start);
+    res->count = req->count;
 
     event.time.end = ::Stats::now();
     stats.gets.emplace_back(event);
 
     mlog(ROCKSDB_INFO, "Rank %d Rocksdb GET done processing %p", rank, req);
     return res;
-}
-
-static void BGetOp_copy_response(const ::rocksdb::Iterator *it,
-                                 Transport::Request::BGetOp *req,
-                                 Transport::Response::BGetOp *res,
-                                 const std::size_t i,
-                                 const std::size_t j,
-                                 datastore::Datastore::Stats::Event &event) {
-    const ::rocksdb::Slice k = it->key();
-    const ::rocksdb::Slice v = it->value();
-
-    // copy key into subject/predicate
-    key_to_sp(k.data(), k.size(), res->subjects[i][j], res->predicates[i][j], true);
-    res->subjects[i][j].set_type(req->subjects[i].data_type());
-    res->predicates[i][j].set_type(req->predicates[i].data_type());
-
-    // copy object
-    res->objects[i][j] = RealBlob(alloc(v.size()), v.size(), req->object_types[i]);
-    memcpy(res->objects[i][j].data(), v.data(), v.size());
-
-    res->num_recs[i]++;
-
-    event.size += k.size() + res->objects[i][j].size();
 }
 
 /**
@@ -265,12 +275,7 @@ static void BGetOp_copy_response(const ::rocksdb::Iterator *it,
 Transport::Response::BGetOp *datastore::rocksdb::BGetOpImpl(Transport::Request::BGetOp *req) {
     Transport::Response::BGetOp *res = construct<Transport::Response::BGetOp>(req->count);
 
-    std::size_t key_buffer_len = all_keys_size(req);
-    char *key_buffer = (char *) alloc(key_buffer_len);
-    char *key_buffer_start = key_buffer;
-
     ::rocksdb::Iterator *it = db->NewIterator(::rocksdb::ReadOptions());
-
     for(std::size_t i = 0; i < req->count; i++) {
         datastore::Datastore::Stats::Event event;
         event.time.start = ::Stats::now();
@@ -281,17 +286,18 @@ Transport::Response::BGetOp *datastore::rocksdb::BGetOpImpl(Transport::Request::
         res->predicates[i]   = alloc_array<Blob>(req->num_recs[i]);
         res->objects[i]      = alloc_array<Blob>(req->num_recs[i]);
 
+        std::string key;
         if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_EQ) {
-            std::size_t key_len = 0;
-            char *key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
-
-            it->Seek(::rocksdb::Slice(key, key_len));
+            sp_to_key(req->subjects[i], req->predicates[i], key);
+            it->Seek(key);
 
             if (it->Valid()) {
-                // only 1 response, so j == 0 (num_recs is ignored)
-                BGetOp_copy_response(it, req, res, i, 0, event);
+                // set status early so failures during copy will change the status
+                // all responses for this Op share a status
+                res->statuses[i] = DATASTORE_UNSET;
 
-                res->statuses[i] = DATASTORE_SUCCESS;
+                // only 1 response, so j == 0 (num_recs is ignored)
+                this->template BGetOp_copy_response(it->key(), it->value(), req, res, i, 0, event);
             }
             else {
                 BGetOp_error_response(res, i, req->subjects[i], req->predicates[i], event);
@@ -300,20 +306,20 @@ Transport::Response::BGetOp *datastore::rocksdb::BGetOpImpl(Transport::Request::
             }
         }
         else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_NEXT) {
-            std::size_t key_len = 0;
-            char *key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
-
-            it->Seek(::rocksdb::Slice(key, key_len));
+            sp_to_key(req->subjects[i], req->predicates[i], key);
+            it->Seek(key);
 
             if (it->Valid()) {
+                // set status early so failures during copy will change the status
+                // all responses for this Op share a status
+                res->statuses[i] = DATASTORE_UNSET;
+
                 // first result returned is (subject, predicate)
                 // (results are offsets)
                 for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid(); j++) {
-                    BGetOp_copy_response(it, req, res, i, j, event);
+                    this->template BGetOp_copy_response(it->key(), it->value(), req, res, i, j, event);
                     it->Next();
                 }
-
-                res->statuses[i] = DATASTORE_SUCCESS;
             }
             else {
                 BGetOp_error_response(res, i, req->subjects[i], req->predicates[i], event);
@@ -322,20 +328,20 @@ Transport::Response::BGetOp *datastore::rocksdb::BGetOpImpl(Transport::Request::
             }
         }
         else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_PREV) {
-            std::size_t key_len = 0;
-            char *key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
-
-            it->Seek(::rocksdb::Slice(key, key_len));
+            sp_to_key(req->subjects[i], req->predicates[i], key);
+            it->Seek(key);
 
             if (it->Valid()) {
+                // set status early so failures during copy will change the status
+                // all responses for this Op share a status
+                res->statuses[i] = DATASTORE_UNSET;
+
                 // first result returned is (subject, predicate)
                 // (results are offsets)
                 for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid(); j++) {
-                    BGetOp_copy_response(it, req, res, i, j, event);
+                    this->template BGetOp_copy_response(it->key(), it->value(), req, res, i, j, event);
                     it->Prev();
                 }
-
-                res->statuses[i] = DATASTORE_SUCCESS;
             }
             else {
                 BGetOp_error_response(res, i, req->subjects[i], req->predicates[i], event);
@@ -348,14 +354,16 @@ Transport::Response::BGetOp *datastore::rocksdb::BGetOpImpl(Transport::Request::
             it->SeekToFirst();
 
             if (it->Valid()) {
+                // set status early so failures during copy will change the status
+                // all responses for this Op share a status
+                res->statuses[i] = DATASTORE_UNSET;
+
                 // first result returned is (subject, predicate)
                 // (results are offsets)
                 for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid(); j++) {
-                    BGetOp_copy_response(it, req, res, i, j, event);
+                    this->template BGetOp_copy_response(it->key(), it->value(), req, res, i, j, event);
                     it->Next();
                 }
-
-                res->statuses[i] = DATASTORE_SUCCESS;
             }
             else {
                 BGetOp_error_response(res, i, req->subjects[i], req->predicates[i], event);
@@ -368,14 +376,16 @@ Transport::Response::BGetOp *datastore::rocksdb::BGetOpImpl(Transport::Request::
             it->SeekToLast();
 
             if (it->Valid()) {
+                // set status early so failures during copy will change the status
+                // all responses for this Op share a status
+                res->statuses[i] = DATASTORE_UNSET;
+
                 // first result returned is (subject, predicate)
                 // (results are offsets)
                 for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid(); j++) {
-                    BGetOp_copy_response(it, req, res, i, j, event);
+                    this->template BGetOp_copy_response(it->key(), it->value(), req, res, i, j, event);
                     it->Prev();
                 }
-
-                res->statuses[i] = DATASTORE_SUCCESS;
             }
             else {
                 BGetOp_error_response(res, i, req->subjects[i], req->predicates[i], event);
@@ -384,14 +394,16 @@ Transport::Response::BGetOp *datastore::rocksdb::BGetOpImpl(Transport::Request::
             }
         }
 
+        if (res->statuses[i] == DATASTORE_UNSET) {
+            res->statuses[i] = DATASTORE_SUCCESS;
+        }
+
         res->count++;
 
         event.count = res->num_recs[i];
         event.time.end = ::Stats::now();
         stats.getops.emplace_back(event);
     }
-
-    dealloc(key_buffer_start);
 
     delete it;
 
@@ -415,29 +427,39 @@ Transport::Response::BDelete *datastore::rocksdb::BDeleteImpl(Transport::Request
 
     Transport::Response::BDelete *res = construct<Transport::Response::BDelete>(req->count);
 
-    std::size_t key_buffer_len = all_keys_size(req);
-    char *key_buffer = (char *) alloc(key_buffer_len);
-    char *key_buffer_start = key_buffer;
-
     ::rocksdb::WriteBatch batch;
 
     // batch delete
     for(std::size_t i = 0; i < req->count; i++) {
-        std::size_t key_len = 0;
-        char *key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
+        void *subject = nullptr;
+        std::size_t subject_len = 0;
+        void *predicate = nullptr;
+        std::size_t predicate_len = 0;
 
-        batch.Delete(::rocksdb::Slice(key, key_len));
+        if ((encode(req->subjects[i],   &subject,   &subject_len)   == DATASTORE_SUCCESS) &&
+            (encode(req->predicates[i], &predicate, &predicate_len) == DATASTORE_SUCCESS)) {
+            // create the key from the subject and predicate
+            std::string key;
+            sp_to_key(ReferenceBlob(subject,   subject_len,   req->subjects[i].data_type()),
+                      ReferenceBlob(predicate, predicate_len, req->predicates[i].data_type()),
+                      key);
+            batch.Delete(key);
+            event.size += key.size();
+        }
 
         res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size(), req->subjects[i].data_type());
         res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size(), req->predicates[i].data_type());
 
-        event.size += key_len;
+        if (subject != req->subjects[i].data()) {
+            dealloc(subject);
+        }
+        if (predicate != req->predicates[i].data()) {
+            dealloc(predicate);
+        }
     }
 
     // create responses
     ::rocksdb::Status status = db->Write(::rocksdb::WriteOptions(), &batch);
-
-    dealloc(key_buffer_start);
 
     const int stat = status.ok()?DATASTORE_SUCCESS:DATASTORE_ERROR;
     for(std::size_t i = 0; i < req->count; i++) {

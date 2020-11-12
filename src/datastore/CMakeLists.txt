@@ -4,6 +4,7 @@ set(DATASTORE_SOURCES
   datastore.cpp
   datastores.cpp
   InMemory.cpp
+  transform.cpp
 )
 
 if (LEVELDB_FOUND AND ENABLE_LEVELDB)

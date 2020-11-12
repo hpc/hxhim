@@ -104,9 +104,10 @@ extern const char *HXHIM_GETOP_STR[];
  * HXHIM_DATA_*
  */
 #define HXHIM_DATA_GEN(PREFIX, GEN) \
-    GEN(PREFIX, INT)                \
-    GEN(PREFIX, SIZE)               \
+    GEN(PREFIX, INVALID)            \
+    GEN(PREFIX, INT32)              \
     GEN(PREFIX, INT64)              \
+    GEN(PREFIX, UINT32)             \
     GEN(PREFIX, UINT64)             \
     GEN(PREFIX, FLOAT)              \
     GEN(PREFIX, DOUBLE)             \

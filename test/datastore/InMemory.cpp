@@ -8,14 +8,14 @@
 #include "utils/memory.hpp"
 
 class InMemoryTest : public datastore::InMemory {
-    public:
-        InMemoryTest()
-            : datastore::InMemory(-1, 0, nullptr, "InMemory test")
+public:
+    InMemoryTest()
+        : datastore::InMemory(-1, 0, nullptr, nullptr, "InMemory test")
         {}
 
-        std::map<std::string, std::string> const &data() const {
-            return db;
-        }
+    std::map<std::string, std::string> const &data() const {
+        return db;
+    }
 };
 
 // create a test InMemory datastore and insert some triples
@@ -25,9 +25,9 @@ static InMemoryTest *setup() {
     Transport::Request::BPut req(count);
 
     for(std::size_t i = 0; i < count; i++) {
-        req.subjects[i]     = triples[i].get_sub();
-        req.predicates[i]   = triples[i].get_pred();
-        req.objects[i]      = triples[i].get_obj();
+        req.subjects[i]   = triples[i].get_sub();
+        req.predicates[i] = triples[i].get_pred();
+        req.objects[i]    = triples[i].get_obj();
         req.count++;
     }
 
@@ -44,19 +44,13 @@ TEST(InMemory, BPut) {
     std::map<std::string, std::string> const &db = ds->data();
     EXPECT_EQ(db.size(), count);
 
-    std::size_t key_buffer_len = all_keys_size();
-    char *key_buffer = (char *) alloc(key_buffer_len);
-    char *key_buffer_start = key_buffer;
-
     for(Triple const &triple : triples) {
-        std::size_t key_len = 0;
-        char *key = sp_to_key(triple.get_sub(), triple.get_pred(), key_buffer, key_buffer_len, key_len);
-        EXPECT_NE(key, nullptr);
-
-        EXPECT_EQ(db.find(std::string(key, key_len)) != db.end(), true);
+        std::string key;
+        EXPECT_EQ(sp_to_key(triple.get_sub(), triple.get_pred(), key), HXHIM_SUCCESS);
+        EXPECT_NE(key.size(), 0);
+        EXPECT_EQ(db.find(key) != db.end(), true);
     }
 
-    destruct(key_buffer_start);
     destruct(ds);
 }
 
@@ -68,6 +62,7 @@ TEST(InMemory, BGet) {
     for(std::size_t i = 0; i < count; i++) {
         req.subjects[i]     = triples[i].get_sub();
         req.predicates[i]   = triples[i].get_pred();
+        req.object_types[i] = hxhim_data_t::HXHIM_DATA_BYTE;
         req.count++;
     }
 
@@ -84,7 +79,10 @@ TEST(InMemory, BGet) {
         EXPECT_EQ(res->statuses[i], DATASTORE_SUCCESS);
         ASSERT_NE(res->objects[i].data(), nullptr);
         EXPECT_EQ(res->objects[i].size(), triples[i].get_obj().size());
-        EXPECT_EQ(std::memcmp(triples[i].get_obj().data(), res->objects[i].data(), res->objects[i].size()), 0);
+        EXPECT_EQ(std::memcmp(triples[i].get_obj().data(),
+                              res->objects[i].data(),
+                              res->objects[i].size()),
+                  0);
     }
 
     EXPECT_EQ(res->statuses[count], DATASTORE_ERROR);
@@ -97,10 +95,6 @@ TEST(InMemory, BGet) {
 TEST(InMemory, BGetOp) {
     InMemoryTest *ds = setup();
     ASSERT_NE(ds, nullptr);
-
-    std::size_t key_buffer_len = all_keys_size();
-    char *key_buffer = (char *) alloc(key_buffer_len);
-    char *key_buffer_start = key_buffer;
 
     for(int op = HXHIM_GETOP_EQ; op < HXHIM_GETOP_INVALID; op++) {
         Transport::Request::BGetOp req(1);
@@ -172,7 +166,6 @@ TEST(InMemory, BGetOp) {
         destruct(res);
     }
 
-    destruct(key_buffer_start);
     destruct(ds);
 }
 
@@ -208,19 +201,13 @@ TEST(InMemory, BDelete) {
 
     EXPECT_EQ(db.size(), 0);
 
-    std::size_t key_buffer_len = all_keys_size();
-    char *key_buffer = (char *) alloc(key_buffer_len);
-    char *key_buffer_start = key_buffer;
-
     // get directly from internal data
     for(Triple const &triple : triples) {
-        std::size_t key_len = 0;
-        char *key = sp_to_key(triple.get_sub(), triple.get_pred(), key_buffer, key_buffer_len, key_len);
-        EXPECT_NE(key, nullptr);
-
-        EXPECT_EQ(db.find(std::string(key, key_len)) == db.end(), true);
+        std::string key;
+        EXPECT_EQ(sp_to_key(triple.get_sub(), triple.get_pred(), key), HXHIM_SUCCESS);
+        EXPECT_NE(key.size(), 0);
+        EXPECT_EQ(db.find(key) == db.end(), true);
     }
 
-    destruct(key_buffer_start);
     destruct(ds);
 }

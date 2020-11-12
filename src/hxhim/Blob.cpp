@@ -14,7 +14,7 @@ Blob::Blob(void *ptr, const std::size_t len, const hxhim_data_t type, const bool
 {}
 
 Blob::Blob(Blob &rhs)
-    : Blob(rhs.ptr, rhs.len, rhs.type, rhs.clean)
+    : Blob(rhs.ptr, rhs.len, rhs.type, false)
 {}
 
 Blob::Blob(Blob &&rhs)
@@ -28,7 +28,12 @@ Blob::~Blob() {
 }
 
 Blob& Blob::operator=(Blob &rhs) {
-    return (*this = std::move(rhs));
+    ptr = rhs.ptr;
+    len = rhs.len;
+    type = rhs.type;
+    clean = false;
+
+    return *this;
 }
 
 Blob& Blob::operator=(Blob &&rhs) {
@@ -38,9 +43,7 @@ Blob& Blob::operator=(Blob &&rhs) {
         type = rhs.type;
         clean = rhs.clean;
 
-        if (rhs.clean) {
-            rhs.clear();
-        }
+        rhs.clear();
     }
 
     return *this;
@@ -61,6 +64,7 @@ bool Blob::set_clean(bool new_clean) {
 void Blob::clear() {
     ptr = nullptr;
     len = 0;
+    type = hxhim_data_t::HXHIM_DATA_INVALID;
     clean = false;
 }
 

@@ -33,7 +33,7 @@ int Transport::Request::BPut::steal(Transport::Request::BPut *from, const std::s
         return TRANSPORT_ERROR;
     }
 
-    objects[count] = from->objects[i];
+    objects[count] = std::move(from->objects[i]);
 
     count++;
 

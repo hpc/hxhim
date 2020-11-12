@@ -8,6 +8,17 @@
 #endif
 
 /**
+ * valid
+ * Checks if opts are valid
+ *
+ * @param opts the HXHIM options
+ * @param true if ready, else false
+ */
+bool hxhim::valid(hxhim_options_t *opts) {
+    return opts && opts->p;
+}
+
+/**
  * hxhim_options_init
  * Allocates the private pointer of an existing hxhim_options_t structure
  *
@@ -27,16 +38,6 @@ int hxhim_options_init(hxhim_options_t *opts) {
 }
 
 /**
- * valid_opts
- *
- * @param opts
- * @return whether or not opts and opts->p are both non NULL
- */
-static bool valid_opts(hxhim_options_t *opts) {
-    return opts && opts->p;
-}
-
-/**
  * hxhim_options_set_mpi_bootstrap
  *
  * @param opts the set of options to be modified
@@ -44,7 +45,7 @@ static bool valid_opts(hxhim_options_t *opts) {
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_set_mpi_bootstrap(hxhim_options_t *opts, MPI_Comm comm) {
-    if (!valid_opts(opts)) {
+    if (!hxhim::valid(opts)) {
         return HXHIM_ERROR;
     }
 
@@ -59,7 +60,7 @@ int hxhim_options_set_mpi_bootstrap(hxhim_options_t *opts, MPI_Comm comm) {
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_set_debug_level(hxhim_options_t *opts, const int level) {
-    if (!valid_opts(opts)) {
+    if (!hxhim::valid(opts)) {
         return HXHIM_ERROR;
     }
 
@@ -76,7 +77,7 @@ int hxhim_options_set_debug_level(hxhim_options_t *opts, const int level) {
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_set_client_ratio(hxhim_options_t *opts, const size_t ratio) {
-    if (!valid_opts(opts)) {
+    if (!hxhim::valid(opts)) {
         return HXHIM_ERROR;
     }
 
@@ -97,7 +98,7 @@ int hxhim_options_set_client_ratio(hxhim_options_t *opts, const size_t ratio) {
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_set_server_ratio(hxhim_options_t *opts, const size_t ratio) {
-    if (!valid_opts(opts)) {
+    if (!hxhim::valid(opts)) {
         return HXHIM_ERROR;
     }
 
@@ -120,7 +121,7 @@ int hxhim_options_set_server_ratio(hxhim_options_t *opts, const size_t ratio) {
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 static int hxhim_options_set_datastore(hxhim_options_t *opts, datastore::Config *config) {
-    if (!valid_opts(opts)) {
+    if (!hxhim::valid(opts)) {
         return HXHIM_ERROR;
     }
 
@@ -239,7 +240,7 @@ int hxhim_options_set_datastore_rocksdb(hxhim_options_t *opts, const size_t id, 
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_set_hash_name(hxhim_options_t *opts, const char *name) {
-    if (!valid_opts(opts)) {
+    if (!hxhim::valid(opts)) {
         return HXHIM_ERROR;
     }
 
@@ -268,7 +269,7 @@ int hxhim_options_set_hash_name(hxhim_options_t *opts, const char *name) {
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_set_hash_function(hxhim_options_t *opts, const char *name, hxhim_hash_t func, void *args) {
-    if (!valid_opts(opts)) {
+    if (!hxhim::valid(opts)) {
         return HXHIM_ERROR;
     }
 
@@ -283,6 +284,32 @@ int hxhim_options_set_hash_function(hxhim_options_t *opts, const char *name, hxh
     return HXHIM_SUCCESS;
 }
 
+int hxhim_options_set_transform_numeric_values(hxhim_options_t *opts, const char neg, const char pos, const size_t float_precision, const size_t double_precision) {
+    if (!hxhim::valid(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->transform.numeric_extra.neg = neg;
+    opts->p->transform.numeric_extra.pos = pos;
+    opts->p->transform.numeric_extra.float_precision = float_precision;
+    opts->p->transform.numeric_extra.double_precision = double_precision;
+
+    return HXHIM_SUCCESS;
+}
+
+int hxhim_options_set_transform_function(hxhim_options_t *opts, const enum hxhim_data_t type,
+                                         hxhim_encode_func encode, void *encode_extra,
+                                         hxhim_decode_func decode, void *decode_extra) {
+    if (!hxhim::valid(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->transform.encode.emplace(type, std::make_pair(encode, encode_extra));
+    opts->p->transform.decode.emplace(type, std::make_pair(decode, decode_extra));
+
+    return HXHIM_SUCCESS;
+}
+
 /**
  * hxhim_options_set_transport
  * Sets the values needed to set up the Transport
@@ -293,7 +320,7 @@ int hxhim_options_set_hash_function(hxhim_options_t *opts, const char *name, hxh
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 static int hxhim_options_set_transport(hxhim_options_t *opts, Transport::Options *config) {
-    if (!valid_opts(opts)) {
+    if (!hxhim::valid(opts)) {
         return HXHIM_ERROR;
     }
 
@@ -380,7 +407,7 @@ int hxhim_options_set_transport_thallium(hxhim_options_t *opts, const char *modu
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_add_endpoint_to_group(hxhim_options_t *opts, const int id) {
-    if (!valid_opts(opts)) {
+    if (!hxhim::valid(opts)) {
         return HXHIM_ERROR;
     }
 
@@ -401,7 +428,7 @@ int hxhim_options_add_endpoint_to_group(hxhim_options_t *opts, const int id) {
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_clear_endpoint_group(hxhim_options_t *opts) {
-    if (!valid_opts(opts)) {
+    if (!hxhim::valid(opts)) {
         return HXHIM_ERROR;
     }
 
@@ -419,7 +446,7 @@ int hxhim_options_clear_endpoint_group(hxhim_options_t *opts) {
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_set_start_async_put_at(hxhim_options_t *opts, const std::size_t count) {
-    if (!valid_opts(opts)) {
+    if (!hxhim::valid(opts)) {
         return HXHIM_ERROR;
     }
 
@@ -437,7 +464,7 @@ int hxhim_options_set_start_async_put_at(hxhim_options_t *opts, const std::size_
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_set_maximum_ops_per_send(hxhim_options_t *opts, const std::size_t count) {
-    if (!valid_opts(opts)) {
+    if (!hxhim::valid(opts)) {
         return HXHIM_ERROR;
     }
 
@@ -455,7 +482,7 @@ int hxhim_options_set_maximum_ops_per_send(hxhim_options_t *opts, const std::siz
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_set_histogram_first_n(hxhim_options_t *opts, const std::size_t count) {
-    if (!valid_opts(opts)) {
+    if (!hxhim::valid(opts)) {
         return HXHIM_ERROR;
     }
 
@@ -475,7 +502,7 @@ int hxhim_options_set_histogram_first_n(hxhim_options_t *opts, const std::size_t
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_set_histogram_bucket_gen_name(hxhim_options_t *opts, const char *method) {
-    if (!valid_opts(opts)) {
+    if (!hxhim::valid(opts)) {
         return HXHIM_ERROR;
     }
 
@@ -522,7 +549,7 @@ int hxhim_options_set_histogram_bucket_gen_name(hxhim_options_t *opts, const std
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_set_histogram_bucket_gen_function(hxhim_options_t *opts, HistogramBucketGenerator_t gen, void *args) {
-    if (!valid_opts(opts)) {
+    if (!hxhim::valid(opts)) {
         return HXHIM_ERROR;
     }
 

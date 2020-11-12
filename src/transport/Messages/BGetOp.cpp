@@ -121,9 +121,9 @@ int Transport::Response::BGetOp::steal(Transport::Response::BGetOp *from, const 
     }
 
     num_recs[count]     = from->num_recs[i];
-    subjects[count]     = from->subjects[i];
-    predicates[count]   = from->predicates[i];
-    objects[count]      = from->objects[i];
+    subjects[count]     = std::move(from->subjects[i]);
+    predicates[count]   = std::move(from->predicates[i]);
+    objects[count]      = std::move(from->objects[i]);
 
     count++;
 

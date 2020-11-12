@@ -17,6 +17,7 @@ class InMemory : public Datastore {
 
         InMemory(const int rank,
                  const int id,
+                 Transform::Callbacks *callbacks,
                  Histogram::Histogram *hist,
                  const std::string &name);
 

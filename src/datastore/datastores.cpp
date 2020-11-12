@@ -6,9 +6,10 @@
 #include "utils/mlogfacs2.h"
 
 int datastore::Init(hxhim_t *hx,
-                           Config *config,
-                           const Histogram::Config &hist_config,
-                           const std::string *exact_name) {
+                    Config *config,
+                    Transform::Callbacks *callbacks,
+                    const Histogram::Config &hist_config,
+                    const std::string *exact_name) {
     int rank = -1;
     int size = -1;
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, &size);
@@ -28,6 +29,7 @@ int datastore::Init(hxhim_t *hx,
         case IN_MEMORY:
             hx->p->datastore = new InMemory(rank,
                                             id,
+                                            callbacks,
                                             hist,
                                             hx->p->hash.name);
             mlog(HXHIM_CLIENT_INFO, "Initialized In-Memory in datastore %d", id);
@@ -39,6 +41,7 @@ int datastore::Init(hxhim_t *hx,
                 leveldb::Config *leveldb_config = static_cast<leveldb::Config *>(config);
                 if (exact_name) {
                     hx->p->datastore = new leveldb(rank,
+                                                   callbacks,
                                                    hist,
                                                    *exact_name,
                                                    false);
@@ -46,6 +49,7 @@ int datastore::Init(hxhim_t *hx,
                 else {
                     hx->p->datastore = new leveldb(rank,
                                                    id,
+                                                   callbacks,
                                                    hist,
                                                    leveldb_config->prefix,
                                                    hx->p->hash.name,
@@ -62,6 +66,7 @@ int datastore::Init(hxhim_t *hx,
                 rocksdb::Config *rocksdb_config = static_cast<rocksdb::Config *>(config);
                 if (exact_name) {
                     hx->p->datastore = new rocksdb(rank,
+                                                   callbacks,
                                                    hist,
                                                    *exact_name,
                                                    false);
@@ -69,6 +74,7 @@ int datastore::Init(hxhim_t *hx,
                 else {
                     hx->p->datastore = new rocksdb(rank,
                                                    id,
+                                                   callbacks,
                                                    hist,
                                                    rocksdb_config->prefix,
                                                    hx->p->hash.name,

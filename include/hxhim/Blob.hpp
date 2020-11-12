@@ -18,7 +18,7 @@
 class Blob {
     public:
         Blob(void *ptr = nullptr, const std::size_t len = 0,
-             const hxhim_data_t type = hxhim_data_t::HXHIM_DATA_BYTE, const bool clean = false);
+             const hxhim_data_t type = hxhim_data_t::HXHIM_DATA_INVALID, const bool clean = false);
         Blob(Blob &rhs);
         Blob(Blob &&rhs);
 
@@ -62,8 +62,11 @@ class Blob {
         bool clean;         // whether or not to call dealloc in destructor
 };
 
+// don't take ownership of ptr
 Blob ReferenceBlob(void *ptr, const std::size_t len,
                    const hxhim_data_t type);
+
+// take ownership of ptr
 Blob RealBlob(void *ptr, const std::size_t len,
               const hxhim_data_t type);
 

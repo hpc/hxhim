@@ -36,17 +36,14 @@ static const char *PREDICATE_LEN_ENCODED() {
 TEST(triplestore, sp_to_key) {
     Blob sub  = ReferenceBlob((void *) SUBJECT, SUBJECT_LEN, hxhim_data_t::HXHIM_DATA_BYTE);
     Blob pred = ReferenceBlob((void *) PREDICATE, PREDICATE_LEN, hxhim_data_t::HXHIM_DATA_BYTE);
-    std::size_t buf_len = sub.pack_size(false) + pred.pack_size(false);
-    char *buf = (char *) alloc(buf_len);
-    char *orig = buf;
-    std::size_t key_len = 0;
 
-    char *key = sp_to_key(sub, pred, buf, buf_len, key_len);
-    EXPECT_EQ(orig + key_len, buf); // the buf pointer moved
-    EXPECT_EQ(buf_len, 0);          // used up all available space
-    EXPECT_EQ(key, orig);           // the key starts at orig
+    const std::size_t expected_len = sub.pack_size(false) + pred.pack_size(false);
 
-    char *curr = key;
+    std::string key;
+    EXPECT_EQ(sp_to_key(sub, pred, key), HXHIM_SUCCESS);
+    EXPECT_EQ(key.size(), expected_len);
+
+    const char *curr = key.data();
     EXPECT_EQ(memcmp(curr, SUBJECT, SUBJECT_LEN), 0);
 
     curr += SUBJECT_LEN;
@@ -57,33 +54,30 @@ TEST(triplestore, sp_to_key) {
 
     curr += PREDICATE_LEN;
     EXPECT_EQ(memcmp(curr, PREDICATE_LEN_ENCODED(), sizeof(PREDICATE_LEN)), 0);
-
-    dealloc(orig);
 }
 
 TEST(triplestore, key_to_sp) {
     Blob sub  = ReferenceBlob((void *) SUBJECT, SUBJECT_LEN, hxhim_data_t::HXHIM_DATA_BYTE);
     Blob pred = ReferenceBlob((void *) PREDICATE, PREDICATE_LEN, hxhim_data_t::HXHIM_DATA_BYTE);
-    std::size_t buf_len = sub.pack_size(false) + pred.pack_size(false);
-    char *buf = (char *) alloc(buf_len);
-    char *orig = buf;
-    std::size_t key_len = 0;
+    const std::size_t expected_len = sub.pack_size(false) + pred.pack_size(false);
 
-    char *key = sp_to_key(sub, pred, buf, buf_len, key_len);
+    std::string key;
+    ASSERT_EQ(sp_to_key(sub, pred, key), HXHIM_SUCCESS);
+    EXPECT_EQ(key.size(), expected_len);
 
-    char *curr = key;
+    const char *curr = key.data();
     EXPECT_EQ(memcmp(curr, SUBJECT, SUBJECT_LEN), 0);
     curr += SUBJECT_LEN + sizeof(SUBJECT_LEN);
     EXPECT_EQ(memcmp(curr, PREDICATE, PREDICATE_LEN), 0);
     curr += PREDICATE_LEN + sizeof(PREDICATE_LEN);
-    EXPECT_EQ(curr, ((char *) key) + key_len);
+    EXPECT_EQ(curr, key.data() + key.size());
 
     // copy
     {
         Blob subject;
         Blob predicate;
 
-        EXPECT_EQ(key_to_sp(key, key_len, subject, predicate, true), HXHIM_SUCCESS);
+        EXPECT_EQ(key_to_sp(key, subject, predicate, true), HXHIM_SUCCESS);
 
         EXPECT_NE(subject.data(), SUBJECT);
         EXPECT_EQ(subject.size(), SUBJECT_LEN);
@@ -99,16 +93,14 @@ TEST(triplestore, key_to_sp) {
         Blob subject;
         Blob predicate;
 
-        EXPECT_EQ(key_to_sp(key, key_len, subject, predicate, false), HXHIM_SUCCESS);
+        EXPECT_EQ(key_to_sp(key, subject, predicate, false), HXHIM_SUCCESS);
 
-        EXPECT_EQ(subject.data(), key);
+        EXPECT_EQ(subject.data(), key.data());
         EXPECT_EQ(subject.size(), SUBJECT_LEN);
         EXPECT_EQ(memcmp(subject.data(), SUBJECT, subject.size()), 0);
 
-        EXPECT_EQ(predicate.data(), ((char *) key) + subject.size() + sizeof(subject.size()));
+        EXPECT_EQ(predicate.data(), key.data() + subject.size() + sizeof(subject.size()));
         EXPECT_EQ(predicate.size(), PREDICATE_LEN);
         EXPECT_EQ(memcmp(predicate.data(), PREDICATE, predicate.size()), 0);
     }
-
-    dealloc(orig);
 }

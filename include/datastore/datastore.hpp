@@ -6,6 +6,8 @@
 #include <mutex>
 
 #include "datastore/constants.hpp"
+#include "datastore/transform.hpp"
+#include "hxhim/Blob.hpp"
 #include "transport/Messages/Messages.hpp"
 #include "utils/Histogram.hpp"
 #include "utils/Stats.hpp"
@@ -33,7 +35,8 @@ class Datastore {
     public:
         Datastore(const int rank,
                   const int id,
-                  Histogram::Histogram *hist); // Datastore takes ownership of hist
+                  Transform::Callbacks *callbacks, // Datastore takes ownership of callbacks
+                  Histogram::Histogram *hist);     // Datastore takes ownership of hist
         virtual ~Datastore();
 
         bool Open(const std::string &new_name);
@@ -68,9 +71,15 @@ class Datastore {
 
         virtual int SyncImpl() = 0;
 
+        int encode(const Blob &src,
+                   void **dst, std::size_t *dst_size) const;
+        int decode(const Blob &src,
+                   void **dst, std::size_t *dst_size) const;
+
     protected:
         int rank;      // MPI rank of HXHIM instance
         int id;
+        Transform::Callbacks *callbacks;
         std::shared_ptr<Histogram::Histogram> hist;
 
         mutable std::mutex mutex;
@@ -101,9 +110,18 @@ class Datastore {
                                    const Blob &subject, const Blob &predicate,
                                    Stats::Event &event);
 
-
+        template <typename Key_t, typename Value_t>
+        void BGetOp_copy_response(const Key_t &key,
+                                  const Value_t &value,
+                                  Transport::Request::BGetOp *req,
+                                  Transport::Response::BGetOp *res,
+                                  const std::size_t i,
+                                  const std::size_t j,
+                                  datastore::Datastore::Stats::Event &event) const;
 };
 
 }
+
+#include "datastore/datastore.tpp"
 
 #endif

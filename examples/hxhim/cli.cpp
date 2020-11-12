@@ -54,8 +54,10 @@ const std::map<std::string, HXHIM_OP> USER2OP = {
 };
 
 const std::map<std::string, hxhim_data_t> USER2OT = {
-    std::make_pair("INT",    HXHIM_DATA_INT),
-    std::make_pair("SIZE",   HXHIM_DATA_SIZE),
+    std::make_pair("INT32",  HXHIM_DATA_INT32),
+    std::make_pair("INT64",  HXHIM_DATA_INT64),
+    std::make_pair("UINT32", HXHIM_DATA_UINT32),
+    std::make_pair("UINT64", HXHIM_DATA_UINT64),
     std::make_pair("INT64",  HXHIM_DATA_INT64),
     std::make_pair("FLOAT",  HXHIM_DATA_FLOAT),
     std::make_pair("DOUBLE", HXHIM_DATA_DOUBLE),

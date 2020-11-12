@@ -103,17 +103,6 @@ bool hxhim::valid(hxhim_t *hx) {
 
 /**
  * valid
- * Checks if opts are valid
- *
- * @param opts the HXHIM options
- * @param true if ready, else false
- */
-bool hxhim::valid(hxhim_options_t *opts) {
-    return opts && opts->p;
-}
-
-/**
- * valid
  * Checks if hx and opts are ready to be used
  *
  * @param hx   the HXHIM instance

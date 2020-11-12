@@ -33,7 +33,7 @@ int Transport::Request::BGet::steal(Transport::Request::BGet *from, const std::s
         return TRANSPORT_ERROR;
     }
 
-    object_types[count] = from->object_types[i];
+    object_types[count] = std::move(from->object_types[i]);
 
     count++;
 
@@ -75,7 +75,7 @@ void Transport::Response::BGet::alloc(const std::size_t max) {
 
     if (max) {
         SubjectPredicate::alloc(max);
-        objects      = alloc_array<Blob>(max);
+        objects = alloc_array<Blob>(max);
     }
 }
 
@@ -84,7 +84,7 @@ int Transport::Response::BGet::steal(Transport::Response::BGet *bget, const std:
         return TRANSPORT_ERROR;
     }
 
-    objects[count]            = bget->objects[i];
+    objects[count] = std::move(bget->objects[i]);
 
     count++;
 

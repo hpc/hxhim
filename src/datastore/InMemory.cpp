@@ -9,10 +9,11 @@
 #include "utils/memory.hpp"
 
 datastore::InMemory::InMemory(const int rank,
-                                     const int id,
-                                     Histogram::Histogram *hist,
-                                     const std::string &basename)
-    : Datastore(rank, id, hist),
+                              const int id,
+                              Transform::Callbacks *callbacks,
+                              Histogram::Histogram *hist,
+                              const std::string &basename)
+    : Datastore(rank, id, callbacks, hist),
       db()
 {
     Datastore::Open(basename);
@@ -49,27 +50,45 @@ Transport::Response::BPut *datastore::InMemory::BPutImpl(Transport::Request::BPu
 
     Transport::Response::BPut *res = construct<Transport::Response::BPut>(req->count);
 
-    std::size_t key_buffer_len = all_keys_size(req);
-    char *key_buffer = (char *) alloc(key_buffer_len);
-    char *key_buffer_start = key_buffer;
-
     for(std::size_t i = 0; i < req->count; i++) {
-        // the current key address and length
-        char *key = nullptr;
-        std::size_t key_len = 0;
+        void *subject = nullptr;
+        std::size_t subject_len = 0;
+        void *predicate = nullptr;
+        std::size_t predicate_len = 0;
+        void *object = nullptr;
+        std::size_t object_len = 0;
 
-        key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
-        db[std::string((char *) key, key_len)] = (std::string) req->objects[i];
-        event.size += key_len + req->objects[i].size();
+        int status = DATASTORE_ERROR; // only successful writes sets the status to DATASTORE_SUCCESS
+        if ((encode(req->subjects[i],   &subject,   &subject_len)   == DATASTORE_SUCCESS) &&
+            (encode(req->predicates[i], &predicate, &predicate_len) == DATASTORE_SUCCESS) &&
+            (encode(req->objects[i],    &object,    &object_len)    == DATASTORE_SUCCESS)) {
+            // the current key address and length
+            std::string key;
+            sp_to_key(ReferenceBlob(subject,   subject_len,   req->subjects[i].data_type()),
+                      ReferenceBlob(predicate, predicate_len, req->predicates[i].data_type()),
+                      key);
+
+            db[key] = std::string((char *) object, object_len);
+
+            event.size += key.size() + object_len;
+            status = DATASTORE_SUCCESS;
+        }
+
+        res->statuses[i] = status;
+
+        if (subject != req->subjects[i].data()) {
+            dealloc(subject);
+        }
+        if (predicate != req->predicates[i].data()) {
+            dealloc(predicate);
+        }
+        if (object != req->objects[i].data()) {
+            dealloc(object);
+        }
 
         res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size(), req->subjects[i].data_type());
         res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size(), req->predicates[i].data_type());
-
-        // always successful
-        res->statuses[i] = DATASTORE_SUCCESS;
     }
-
-    dealloc(key_buffer_start);
 
     res->count = req->count;
 
@@ -96,38 +115,50 @@ Transport::Response::BGet *datastore::InMemory::BGetImpl(Transport::Request::BGe
 
     Transport::Response::BGet *res = construct<Transport::Response::BGet>(req->count);
 
-    std::size_t key_buffer_len = all_keys_size(req);
-    char *key_buffer = (char *) alloc(key_buffer_len);
-    char *key_buffer_start = key_buffer;
-
     for(std::size_t i = 0; i < req->count; i++) {
-        struct timespec start = {};
-        struct timespec end = {};
-        std::string value_str;
+        void *subject = nullptr;
+        std::size_t subject_len = 0;
+        void *predicate = nullptr;
+        std::size_t predicate_len = 0;
 
-        std::size_t key_len = 0;
-        char *key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
+        int status = DATASTORE_ERROR; // only successful decoding sets the status to DATASTORE_SUCCESS
+        if ((encode(req->subjects[i],   &subject,   &subject_len)   == DATASTORE_SUCCESS) &&
+            (encode(req->predicates[i], &predicate, &predicate_len) == DATASTORE_SUCCESS)) {
+            // create the key from the subject and predicate
+            std::string key;
+            sp_to_key(ReferenceBlob(subject,   subject_len,   req->subjects[i].data_type()),
+                      ReferenceBlob(predicate, predicate_len, req->predicates[i].data_type()),
+                      key);
 
-        clock_gettime(CLOCK_MONOTONIC, &start);
-        decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
-        clock_gettime(CLOCK_MONOTONIC, &end);
+            decltype(db)::const_iterator it = db.find(key);
+            if (it != db.end()) {
+                // decode the object
+                void *object = nullptr;
+                std::size_t object_len = 0;
+                if (decode(ReferenceBlob((void *) it->second.data(), it->second.size(), req->object_types[i]),
+                           &object, &object_len) == DATASTORE_SUCCESS) {
+
+                    res->objects[i] = std::move(Blob(object, object_len, req->object_types[i], true));
+                    event.size += res->objects[i].size();
+                    status = DATASTORE_SUCCESS;
+                }
+            }
+
+            event.size += key.size();
+        }
+
+        res->statuses[i] = status;
 
         res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size(), req->subjects[i].data_type());
         res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size(), req->predicates[i].data_type());
 
-        res->statuses[i] = (it != db.end())?DATASTORE_SUCCESS:DATASTORE_ERROR;
-
-        event.size += key_len;
-
-        // copy the object into the response
-        if (res->statuses[i] == DATASTORE_SUCCESS) {
-            res->objects[i] = RealBlob(it->second.size(), it->second.data(), req->object_types[i]);
-
-            event.size += res->objects[i].size();
+        if (subject != req->subjects[i].data()) {
+            dealloc(subject);
+        }
+        if (predicate != req->predicates[i].data()) {
+            dealloc(predicate);
         }
     }
-
-    dealloc(key_buffer_start);
 
     res->count = req->count;
 
@@ -135,29 +166,6 @@ Transport::Response::BGet *datastore::InMemory::BGetImpl(Transport::Request::BGe
     stats.gets.emplace_back(event);
 
     return res;
-}
-
-static void BGetOp_copy_response(const std::map<std::string, std::string>::const_iterator &it,
-                                 Transport::Request::BGetOp *req,
-                                 Transport::Response::BGetOp *res,
-                                 const std::size_t i,
-                                 const std::size_t j,
-                                 datastore::Datastore::Stats::Event &event) {
-    const std::string &k = it->first;
-    const std::string &v = it->second;
-
-    // copy key into subject/predicate
-    key_to_sp(k.data(), k.size(), res->subjects[i][j], res->predicates[i][j], true);
-    res->subjects[i][j].set_type(req->subjects[i].data_type());
-    res->predicates[i][j].set_type(req->predicates[i].data_type());
-
-    // copy object
-    res->objects[i][j] = RealBlob(alloc(v.size()), v.size(), req->object_types[i]);
-    memcpy(res->objects[i][j].data(), v.data(), v.size());
-
-    res->num_recs[i]++;
-
-    event.size += k.size() + res->objects[i][j].size();
 }
 
 /**
@@ -175,10 +183,6 @@ static void BGetOp_copy_response(const std::map<std::string, std::string>::const
 Transport::Response::BGetOp *datastore::InMemory::BGetOpImpl(Transport::Request::BGetOp *req) {
     Transport::Response::BGetOp *res = construct<Transport::Response::BGetOp>(req->count);
 
-    std::size_t key_buffer_len = all_keys_size(req);
-    char *key_buffer = (char *) alloc(key_buffer_len);
-    char *key_buffer_start = key_buffer;
-
     for(std::size_t i = 0; i < req->count; i++) {
         datastore::Datastore::Stats::Event event;
         event.time.start = ::Stats::now();
@@ -191,16 +195,18 @@ Transport::Response::BGetOp *datastore::InMemory::BGetOpImpl(Transport::Request:
         res->predicates[i]   = alloc_array<Blob>(req->num_recs[i]);
         res->objects[i]      = alloc_array<Blob>(req->num_recs[i]);
 
+        std::string key;
         if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_EQ) {
-            std::size_t key_len = 0;
-            char *key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
-
-            it = db.find(std::string((char *) key, key_len));
+            sp_to_key(req->subjects[i], req->predicates[i], key);
+            it = db.find(key);
 
             if (it != db.end()) {
+                // set status early so failures during copy will change the status
+                // all responses for this Op share a status
+                res->statuses[i] = DATASTORE_UNSET;
+
                 // only 1 response, so j == 0 (num_recs is ignored)
-                BGetOp_copy_response(it, req, res, i, 0, event);
-                res->statuses[i] = DATASTORE_SUCCESS;
+                this->template BGetOp_copy_response(it->first, it->second, req, res, i, 0, event);
             }
             else {
                 BGetOp_error_response(res, i, req->subjects[i], req->predicates[i], event);
@@ -209,21 +215,20 @@ Transport::Response::BGetOp *datastore::InMemory::BGetOpImpl(Transport::Request:
             }
         }
         else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_NEXT) {
-            std::size_t key_len = 0;
-            char *key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
-
-            it = db.find(std::string((char *) key, key_len));
+            sp_to_key(req->subjects[i], req->predicates[i], key);
+            it = db.find(key);
 
             if (it != db.end()) {
+                // set status early so failures during copy will change the status
+                // all responses for this Op share a status
+                res->statuses[i] = DATASTORE_UNSET;
+
                 // first result returned is (subject, predicate)
                 // (results are offsets)
                 for(std::size_t j = 0; (j < req->num_recs[i]) && (it != db.end()); j++) {
-                    BGetOp_copy_response(it, req, res, i, j, event);
+                    this->template BGetOp_copy_response(it->first, it->second, req, res, i, j, event);
                     it++;
                 }
-
-                // all responses for this Op share a status
-                res->statuses[i] = DATASTORE_SUCCESS;
             }
             else {
                 BGetOp_error_response(res, i, req->subjects[i], req->predicates[i], event);
@@ -232,23 +237,23 @@ Transport::Response::BGetOp *datastore::InMemory::BGetOpImpl(Transport::Request:
             }
         }
         else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_PREV) {
-            std::size_t key_len = 0;
-            char *key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
-
-            it = db.find(std::string((char *) key, key_len));
+            sp_to_key(req->subjects[i], req->predicates[i], key);
+            it = db.find(key);
 
             if (it != db.end()) {
+                // set status early so failures during copy will change the status
+                // all responses for this Op share a status
+                res->statuses[i] = DATASTORE_UNSET;
+
                 // first result returned is (subject, predicate)
                 // (results are offsets)
                 for(std::size_t j = 0; j < req->num_recs[i]; j++) {
-                    BGetOp_copy_response(it, req, res, i, j, event);
+                    this->template BGetOp_copy_response(it->first, it->second, req, res, i, j, event);
                     if (it == db.begin()) {
                         break;
                     }
                     it--;
                 }
-
-                res->statuses[i] = DATASTORE_SUCCESS;
             }
             else {
                 BGetOp_error_response(res, i, req->subjects[i], req->predicates[i], event);
@@ -261,12 +266,14 @@ Transport::Response::BGetOp *datastore::InMemory::BGetOpImpl(Transport::Request:
             it = db.begin();
 
             if (it != db.end()) {
+                // set status early so failures during copy will change the status
+                // all responses for this Op share a status
+                res->statuses[i] = DATASTORE_UNSET;
+
                 for(std::size_t j = 0; (j < req->num_recs[i]) && (it != db.end()); j++) {
-                    BGetOp_copy_response(it, req, res, i, j, event);
+                    this->template BGetOp_copy_response(it->first, it->second, req, res, i, j, event);
                     it++;
                 }
-
-                res->statuses[i] = DATASTORE_SUCCESS;
             }
             else {
                 BGetOp_error_response(res, i, req->subjects[i], req->predicates[i], event);
@@ -280,15 +287,17 @@ Transport::Response::BGetOp *datastore::InMemory::BGetOpImpl(Transport::Request:
             it--;
 
             if (it != db.end()) {
+                // set status early so failures during copy will change the status
+                // all responses for this Op share a status
+                res->statuses[i] = DATASTORE_UNSET;
+
                 for(std::size_t j = 0; j < req->num_recs[i]; j++) {
-                    BGetOp_copy_response(it, req, res, i, j, event);
+                    this->template BGetOp_copy_response(it->first, it->second, req, res, i, j, event);
                     if (it == db.begin()) {
                         break;
                     }
                     it--;
                 }
-
-                res->statuses[i] = DATASTORE_SUCCESS;
             }
             else {
                 BGetOp_error_response(res, i, req->subjects[i], req->predicates[i], event);
@@ -297,14 +306,16 @@ Transport::Response::BGetOp *datastore::InMemory::BGetOpImpl(Transport::Request:
             }
         }
 
+        if (res->statuses[i] == DATASTORE_UNSET) {
+            res->statuses[i] = DATASTORE_SUCCESS;
+        }
+
         res->count++;
 
         event.count = res->num_recs[i];
         event.time.end = ::Stats::now();
         stats.gets.emplace_back(event);
     }
-
-    dealloc(key_buffer_start);
 
     return res;
 }
@@ -326,30 +337,45 @@ Transport::Response::BDelete *datastore::InMemory::BDeleteImpl(Transport::Reques
 
     Transport::Response::BDelete *res = construct<Transport::Response::BDelete>(req->count);
 
-    std::size_t key_buffer_len = all_keys_size(req);
-    char *key_buffer = (char *) alloc(key_buffer_len);
-    char *key_buffer_start = key_buffer;
-
     for(std::size_t i = 0; i < req->count; i++) {
-        std::size_t key_len = 0;
-        char *key = sp_to_key(req->subjects[i], req->predicates[i], key_buffer, key_buffer_len, key_len);
+        void *subject = nullptr;
+        std::size_t subject_len = 0;
+        void *predicate = nullptr;
+        std::size_t predicate_len = 0;
 
-        decltype(db)::const_iterator it = db.find(std::string((char *) key, key_len));
-        if (it != db.end()) {
-            db.erase(it);
-            res->statuses[i] = DATASTORE_SUCCESS;
+        int status = DATASTORE_ERROR; // only successful decoding sets the status to DATASTORE_SUCCESS
+        if ((encode(req->subjects[i],   &subject,   &subject_len)   == DATASTORE_SUCCESS) &&
+            (encode(req->predicates[i], &predicate, &predicate_len) == DATASTORE_SUCCESS)) {
+            // create the key from the subject and predicate
+            std::string key;
+            sp_to_key(ReferenceBlob(subject,   subject_len,   req->subjects[i].data_type()),
+                      ReferenceBlob(predicate, predicate_len, req->predicates[i].data_type()),
+                      key);
+
+            decltype(db)::const_iterator it = db.find(key);
+            if (it != db.end()) {
+                db.erase(it);
+                status = DATASTORE_SUCCESS;
+            }
+            else {
+                status = DATASTORE_ERROR;
+            }
+
+            event.size += key.size();
         }
-        else {
-            res->statuses[i] = DATASTORE_ERROR;
-        }
+
+        res->statuses[i] = status;
 
         res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size(), req->subjects[i].data_type());
         res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size(), req->predicates[i].data_type());
 
-        event.size += key_len;
+        if (subject != req->subjects[i].data()) {
+            dealloc(subject);
+        }
+        if (predicate != req->predicates[i].data()) {
+            dealloc(predicate);
+        }
     }
-
-    dealloc(key_buffer_start);
 
     res->count = req->count;
 

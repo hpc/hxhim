@@ -80,6 +80,29 @@ int hxhim::init::queues(hxhim_t *hx, hxhim_options_t *opts) {
     return HXHIM_SUCCESS;
 }
 
+namespace hxhim {
+namespace init {
+
+datastore::Transform::Callbacks *transform(hxhim_options_t *opts) {
+    datastore::Transform::Callbacks *callbacks = datastore::Transform::default_callbacks();
+
+    // move in values from opts
+    callbacks->numeric_extra = opts->p->transform.numeric_extra;
+
+    // overwrite existing callbacks with those set in opts
+    for(decltype(opts->p->transform.encode)::value_type const &callback : opts->p->transform.encode) {
+        callbacks->encode.emplace(callback);
+    }
+    for(decltype(opts->p->transform.decode)::value_type const &callback : opts->p->transform.decode) {
+        callbacks->decode.emplace(callback);
+    }
+
+    return callbacks;
+}
+
+}
+}
+
 /**
  * datastore
  * Sets up and starts the datastore
@@ -90,6 +113,8 @@ int hxhim::init::queues(hxhim_t *hx, hxhim_options_t *opts) {
  */
 int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
     mlog(HXHIM_CLIENT_INFO, "Starting Datastore Initialization");
+
+    datastore::Transform::Callbacks *callbacks = init::transform(opts);
 
     // there must be at least 1 client, server, and datastore
     if (!opts->p->client_ratio ||
@@ -102,7 +127,7 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
 
     // create datastore if this rank is a server
     if (RangeServer::is_range_server(hx->p->bootstrap.rank, opts->p->client_ratio, opts->p->server_ratio)) {
-        if (datastore::Init(hx, opts->p->datastore, opts->p->histogram) != DATASTORE_SUCCESS) {
+        if (datastore::Init(hx, opts->p->datastore, callbacks, opts->p->histogram) != DATASTORE_SUCCESS) {
             return HXHIM_ERROR;
         }
     }
@@ -141,6 +166,8 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
         return HXHIM_ERROR;
     }
 
+    datastore::Transform::Callbacks *callbacks = init::transform(opts);
+
     hx->p->range_server.client_ratio = 1;
     hx->p->range_server.server_ratio = 1;
 
@@ -149,7 +176,7 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
     hx->p->hash.func = hxhim_hash_RankZero;
     hx->p->hash.args = nullptr;
 
-    if (datastore::Init(hx, opts->p->datastore, opts->p->histogram, &name) != DATASTORE_SUCCESS) {
+    if (datastore::Init(hx, opts->p->datastore, callbacks, opts->p->histogram, &name) != DATASTORE_SUCCESS) {
         return HXHIM_ERROR;
     }
 

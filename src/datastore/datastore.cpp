@@ -7,21 +7,29 @@
 #include "datastore/datastore.hpp"
 #include "hxhim/Blob.hpp"
 #include "utils/elen.hpp"
+#include "utils/macros.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
 datastore::Datastore::Datastore(const int rank,
-                                       const int id,
-                                       Histogram::Histogram *hist)
+                                const int id,
+                                Transform::Callbacks *callbacks,
+                                Histogram::Histogram *hist)
     : rank(rank),
       id(id),
+      callbacks(callbacks),
       hist(std::shared_ptr<Histogram::Histogram>(hist,
                                                  [](Histogram::Histogram *ptr) {
                                                      destruct(ptr);
                                                  })),
-      mutex(),
-      stats()
-{}
+    mutex(),
+    stats()
+{
+    // default to basic callbacks
+    if (!this->callbacks) {
+        this->callbacks = Transform::default_callbacks();
+    }
+}
 
 static std::string hr_size(const std::size_t size, const long double time) {
     long double rate = size / time;
@@ -41,6 +49,8 @@ static std::string hr_size(const std::size_t size, const long double time) {
 
 datastore::Datastore::~Datastore() {
     mlog(DATASTORE_INFO, "Rank %d Datastore shutting down", rank);
+
+    destruct(callbacks);
 
     long double put_time = 0;
     std::size_t put_count = 0;
@@ -113,10 +123,10 @@ Transport::Response::BPut *datastore::Datastore::operate(Transport::Request::BPu
             if (res->statuses[i] == DATASTORE_SUCCESS) {
                 switch (req->objects[i].data_type()) {
                     case HXHIM_DATA_FLOAT:
-                        hist->add(elen::decode::floating_point<float>(req->objects[i]));
+                        hist->add(* (float *) req->objects[i].data());
                         break;
                     case HXHIM_DATA_DOUBLE:
-                        hist->add(elen::decode::floating_point<double>(req->objects[i]));
+                        hist->add(* (double *) req->objects[i].data());
                         break;
                     default:
                         break;
@@ -202,9 +212,9 @@ int datastore::Datastore::GetHistogram(Histogram::Histogram **h) const {
  * @return DATASTORE_SUCCESS or DATASTORE_ERROR on error
  */
 int datastore::Datastore::GetStats(uint64_t *put_time,
-                                          std::size_t  *num_put,
-                                          uint64_t *get_time,
-                                          std::size_t  *num_get) {
+                                   std::size_t  *num_put,
+                                   uint64_t *get_time,
+                                   std::size_t  *num_get) {
     std::lock_guard<std::mutex> lock(mutex);
 
     if (put_time) {
@@ -235,6 +245,42 @@ int datastore::Datastore::GetStats(uint64_t *put_time,
 int datastore::Datastore::Sync() {
     std::lock_guard<std::mutex> lock(mutex);
     return SyncImpl();
+}
+
+int datastore::Datastore::encode(const Blob &src,
+                                 void **dst, std::size_t *dst_size) const {
+    REF(callbacks->encode)::const_iterator it = callbacks->encode.find(src.data_type());
+    if (it == callbacks->encode.end()) {
+        return DATASTORE_ERROR;
+    }
+
+    if (!it->second.first) {
+        *dst_size = src.size();
+        *dst = alloc(*dst_size);
+        memcpy(*dst, src.data(), src.size());
+
+        return DATASTORE_SUCCESS;
+    }
+
+    return it->second.first(src.data(), src.size(), dst, dst_size, it->second.second);
+}
+
+int datastore::Datastore::decode(const Blob &src,
+                                 void **dst, std::size_t *dst_size) const {
+    REF(callbacks->decode)::const_iterator it = callbacks->decode.find(src.data_type());
+    if (it == callbacks->decode.end()) {
+        return DATASTORE_ERROR;
+    }
+
+    if (!it->second.first) {
+        *dst_size = src.size();
+        *dst = alloc(*dst_size);
+        memcpy(*dst, src.data(), src.size());
+
+        return DATASTORE_SUCCESS;
+    }
+
+    return it->second.first(src.data(), src.size(), dst, dst_size, it->second.second);
 }
 
 datastore::Datastore::Stats::Event::Event()

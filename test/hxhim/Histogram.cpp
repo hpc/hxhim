@@ -48,9 +48,9 @@ TEST(hxhim, Histogram) {
     std::size_t total_rs = 0;
     EXPECT_EQ(hxhim::GetRangeServerCount(&hx, &total_rs), HXHIM_SUCCESS);
 
-    std::vector<std::size_t> subjects  (TRIPLES + 1);
-    std::vector<std::size_t> predicates(TRIPLES + 1);
-    std::vector<double>      objects   (TRIPLES + 1);
+    std::vector<uint32_t> subjects  (TRIPLES + 1);
+    std::vector<uint32_t> predicates(TRIPLES + 1);
+    std::vector<double>   objects   (TRIPLES + 1);
 
     // PUT triples
     // The first TRIPLES - 1 buckets will have 1 item each
@@ -61,8 +61,8 @@ TEST(hxhim, Histogram) {
         objects[i] = 0;
 
         EXPECT_EQ(hxhim::PutDouble(&hx,
-                                   (void *)&subjects[i],   sizeof(subjects[i]),   hxhim_data_t::HXHIM_DATA_SIZE,
-                                   (void *)&predicates[i], sizeof(predicates[i]), hxhim_data_t::HXHIM_DATA_SIZE,
+                                   (void *)&subjects[i],   sizeof(subjects[i]),   hxhim_data_t::HXHIM_DATA_UINT32,
+                                   (void *)&predicates[i], sizeof(predicates[i]), hxhim_data_t::HXHIM_DATA_UINT32,
                                    &objects[i]),
                   HXHIM_SUCCESS);
     }

@@ -8,7 +8,6 @@
 #include "hxhim/private/hxhim.hpp"
 #include "hxhim/RangeServer.hpp"
 #include "utils/Stats.hpp"
-#include "utils/elen.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
@@ -157,39 +156,19 @@ hxhim::Results::Result *hxhim::Result::init(hxhim_t *hx, Transport::Response::Re
 hxhim::Results::Put *hxhim::Result::init(hxhim_t *hx, Transport::Response::BPut *bput, const std::size_t i) {
     hxhim::Results::Put *out = construct<hxhim::Results::Put>(hx, bput->src, bput->statuses[i]);
 
-    out->subject = bput->orig.subjects[i];
-    out->predicate = bput->orig.predicates[i];
+    out->subject = std::move(bput->orig.subjects[i]);
+    out->predicate = std::move(bput->orig.predicates[i]);
 
     return out;
-}
-
-static void decode(Blob &dst, Blob &src) {
-    switch (src.data_type()) {
-        case HXHIM_DATA_FLOAT:
-            dst = RealBlob(construct<float>(elen::decode::floating_point<float>(src)),
-                           sizeof(float), HXHIM_DATA_FLOAT);
-            break;
-        case HXHIM_DATA_DOUBLE:
-            dst = RealBlob(construct<double>(elen::decode::floating_point<double>(src)),
-                           sizeof(double), HXHIM_DATA_DOUBLE);
-            break;
-        case HXHIM_DATA_INT:
-        case HXHIM_DATA_SIZE:
-        case HXHIM_DATA_INT64:
-        case HXHIM_DATA_BYTE:
-        default:
-            dst = src;
-            break;
-    }
 }
 
 hxhim::Results::Get *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGet *bget, const std::size_t i) {
     hxhim::Results::Get *out = construct<hxhim::Results::Get>(hx, bget->src, bget->statuses[i]);
 
-    out->subject = bget->orig.subjects[i];
-    out->predicate = bget->orig.predicates[i];
+    out->subject = std::move(bget->orig.subjects[i]);
+    out->predicate = std::move(bget->orig.predicates[i]);
     if (out->status == HXHIM_SUCCESS) {
-        decode(out->object, bget->objects[i]);
+        out->object = std::move(bget->objects[i]);
     }
     out->next = nullptr;
 
@@ -204,10 +183,10 @@ hxhim::Results::GetOp *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGe
     hxhim::Results::GetOp *prev = nullptr;
     hxhim::Results::GetOp *curr = top;
     for(std::size_t j = 0; j < bgetop->num_recs[i]; j++) {
-        curr->subject = bgetop->subjects[i][j];
-        curr->predicate = bgetop->predicates[i][j];
+        curr->subject = std::move(bgetop->subjects[i][j]);
+        curr->predicate = std::move(bgetop->predicates[i][j]);
         if (curr->status == HXHIM_SUCCESS) {
-            decode(curr->object, bgetop->objects[i][j]);
+            curr->object = std::move(bgetop->objects[i][j]);
         }
 
         prev = curr;
@@ -225,8 +204,8 @@ hxhim::Results::GetOp *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGe
 hxhim::Results::Delete *hxhim::Result::init(hxhim_t *hx, Transport::Response::BDelete *bdel, const std::size_t i) {
     hxhim::Results::Delete *out = construct<hxhim::Results::Delete>(hx, bdel->src, bdel->statuses[i]);
 
-    out->subject = bdel->orig.subjects[i];
-    out->predicate = bdel->orig.predicates[i];
+    out->subject = std::move(bdel->orig.subjects[i]);
+    out->predicate = std::move(bdel->orig.predicates[i]);
 
     return out;
 }

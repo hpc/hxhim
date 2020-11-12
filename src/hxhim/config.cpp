@@ -1,6 +1,7 @@
 #include <sstream>
 #include <vector>
 
+#include "datastore/transform.hpp"
 #include "hxhim/config.hpp"
 #include "hxhim/constants.h"
 #include "hxhim/options.h"
@@ -343,8 +344,8 @@ int hxhim::config::default_reader(hxhim_options_t *opts, MPI_Comm comm) {
     hxhim_options_init(opts);
     hxhim_options_set_mpi_bootstrap(opts, comm);
 
-    if ((fill_options(opts, hxhim::config::DEFAULT_CONFIG)      != HXHIM_SUCCESS) || // fill in the options with default values
-        (process_config_and_fill_options(opts, sequence) != HXHIM_SUCCESS)) { // read the configuration and overwrite default values
+    if ((fill_options(opts, hxhim::config::DEFAULT_CONFIG) != HXHIM_SUCCESS) || // fill in the options with default values
+        (process_config_and_fill_options(opts, sequence)   != HXHIM_SUCCESS)) { // read the configuration and overwrite default values
         ret = HXHIM_ERROR;
     }
 

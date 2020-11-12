@@ -1,13 +1,9 @@
 #include <cstring>
-#include <dirent.h>
 #include <sstream>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
 
 #include <gtest/gtest.h>
-#include <mpi.h>
 #include <rocksdb/db.h>
+#include <mpi.h>
 
 #include "common.hpp"
 #include "datastore/rocksdb.hpp"
@@ -15,13 +11,13 @@
 #include "rm_r.hpp"
 #include "utils/memory.hpp"
 
-class RocksDBTest : public datastore::rocksdb {
+class RocksdbTest : public datastore::rocksdb {
     public:
-        RocksDBTest(const int rank, const std::string &name)
-            : datastore::rocksdb(rank, nullptr, name, true)
+        RocksdbTest(const int rank, const std::string &name)
+            : datastore::rocksdb(rank, nullptr, nullptr, name, true)
         {}
 
-        ~RocksDBTest()  {
+        ~RocksdbTest()  {
             Close();
             cleanup();
         }
@@ -37,7 +33,7 @@ class RocksDBTest : public datastore::rocksdb {
 };
 
 // create a test Rocksdb datastore and insert some triples
-static RocksDBTest *setup() {
+static RocksdbTest *setup() {
     int rank = -1;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
@@ -46,14 +42,14 @@ static RocksDBTest *setup() {
 
     rm_r(s.str());
 
-    RocksDBTest *ds = construct<RocksDBTest>(rank, s.str());
+    RocksdbTest *ds = construct<RocksdbTest>(rank, s.str());
 
     Transport::Request::BPut req(count);
 
     for(std::size_t i = 0; i < count; i++) {
-        req.subjects[i]     = triples[i].get_sub();
-        req.predicates[i]   = triples[i].get_pred();
-        req.objects[i]      = triples[i].get_obj();
+        req.subjects[i]   = triples[i].get_sub();
+        req.predicates[i] = triples[i].get_pred();
+        req.objects[i]    = triples[i].get_obj();
         req.count++;
     }
 
@@ -64,26 +60,21 @@ static RocksDBTest *setup() {
 }
 
 TEST(Rocksdb, BPut) {
-    RocksDBTest *ds = setup();
+    RocksdbTest *ds = setup();
     ASSERT_NE(ds, nullptr);
 
     ::rocksdb::DB *db = ds->data();
 
-    std::size_t key_buffer_len = all_keys_size();
-    char *key_buffer = (char *) alloc(key_buffer_len);
-    char *key_buffer_start = key_buffer;
-
     // read directly from rocksdb since setup() already did PUTs
     for(std::size_t i = 0; i < count; i++) {
-        std::size_t key_len = 0;
-        char *key = sp_to_key(triples[i].get_sub(), triples[i].get_pred(), key_buffer, key_buffer_len, key_len);
-        EXPECT_NE(key, nullptr);
+        std::string key;
+        EXPECT_EQ(sp_to_key(triples[i].get_sub(), triples[i].get_pred(), key), HXHIM_SUCCESS);
+        EXPECT_NE(key.size(), 0);
 
-        std::string k(key, key_len);
-        std::string v;
-        rocksdb::Status status = db->Get(rocksdb::ReadOptions(), k, &v);
+        std::string value;
+        rocksdb::Status status = db->Get(rocksdb::ReadOptions(), key, &value);
         EXPECT_EQ(status.ok(), true);
-        EXPECT_EQ(memcmp(triples[i].get_obj().data(), v.c_str(), v.size()), 0);
+        EXPECT_EQ(memcmp(triples[i].get_obj().data(), value.c_str(), value.size()), 0);
     }
 
     // make sure datastore only has count items
@@ -96,12 +87,11 @@ TEST(Rocksdb, BPut) {
     EXPECT_EQ(items, count);
     delete it;
 
-    destruct(key_buffer_start);
     destruct(ds);
 }
 
 TEST(Rocksdb, BGet) {
-    RocksDBTest *ds = setup();
+    RocksdbTest *ds = setup();
     ASSERT_NE(ds, nullptr);
 
     // get triple back using GET
@@ -137,7 +127,7 @@ TEST(Rocksdb, BGet) {
 }
 
 TEST(Rocksdb, BGetOp) {
-    RocksDBTest *ds = setup();
+    RocksdbTest *ds = setup();
     ASSERT_NE(ds, nullptr);
 
     for(int op = HXHIM_GETOP_EQ; op < HXHIM_GETOP_INVALID; op++) {
@@ -213,7 +203,7 @@ TEST(Rocksdb, BGetOp) {
 }
 
 TEST(Rocksdb, BDelete) {
-    RocksDBTest *ds = setup();
+    RocksdbTest *ds = setup();
     ASSERT_NE(ds, nullptr);
 
     ::rocksdb::DB *db = ds->data();
@@ -271,23 +261,16 @@ TEST(Rocksdb, BDelete) {
 
     // check the datastore directly
     {
-        std::size_t key_buffer_len = all_keys_size();
-        char *key_buffer = (char *) alloc(key_buffer_len);
-        char *key_buffer_start = key_buffer;
-
         for(std::size_t i = 0; i < count; i++) {
-            std::size_t key_len = 0;
-            char *key = sp_to_key(triples[i].get_sub(), triples[i].get_pred(), key_buffer, key_buffer_len, key_len);
-            EXPECT_NE(key, nullptr);
+            std::string key;
+            EXPECT_EQ(sp_to_key(triples[i].get_sub(), triples[i].get_pred(), key), HXHIM_SUCCESS);
+            EXPECT_NE(key.size(), 0);
 
-            std::string k(key, key_len);
-            std::string v;
-            rocksdb::Status status = db->Get(rocksdb::ReadOptions(), k, &v);
+            std::string value;
+            rocksdb::Status status = db->Get(rocksdb::ReadOptions(), key, &value);
             EXPECT_EQ(status.ok(), false);
-            EXPECT_EQ(memcmp(triples[i].get_obj().data(), v.c_str(), v.size()), 0);
+            EXPECT_EQ(memcmp(triples[i].get_obj().data(), value.c_str(), value.size()), 0);
         }
-
-        destruct(key_buffer_start);
     }
 
     // make sure datastore doesn't have the original SPO triples

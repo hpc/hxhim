@@ -2,6 +2,9 @@ cmake_minimum_required (VERSION 3.6.3)
 
 set(INSTALLED_HEADERS
   constants.hpp
+  transform.h
+  transform.hpp
+  transform.tpp
 )
 
 set(NOT_INSTALLED_HEADERS
