@@ -8,7 +8,7 @@
 #include "utils/memory.hpp"
 
 const std::size_t len = 1024;
-const hxhim_data_t type = hxhim_data_t::HXHIM_DATA_POINTER;
+const hxhim_data_t type = (hxhim_data_t) rand();
 
 TEST(Blob, null) {
     Blob blob;
@@ -456,4 +456,143 @@ TEST(Blob, string) {
     EXPECT_EQ((std::string) real, std::string(len, 'A'));
 
     // str is deallocated automatically
+}
+
+TEST(Blob, wrappers) {
+    // ReferenceBlob constructor
+    {
+        void *ptr = (void *) (uintptr_t) rand();
+        const size_t size = rand();
+        const hxhim_data_t type = (hxhim_data_t) rand();
+
+        Blob ref(ReferenceBlob(ptr, size, type));
+        EXPECT_EQ(ref.data(), ptr);
+        EXPECT_EQ(ref.size(), size);
+        EXPECT_EQ(ref.data_type(), type);
+        EXPECT_EQ(ref.will_clean(), false);
+    }
+
+    // RealBlob (move) constructor (take ownership)
+    {
+        void *ptr = alloc(len);
+        const hxhim_data_t type = (hxhim_data_t) rand();
+
+        Blob real(RealBlob(ptr, len, type));
+        EXPECT_EQ(real.data(), ptr);
+        EXPECT_EQ(real.size(), len);
+        EXPECT_EQ(real.data_type(), type);
+        EXPECT_EQ(real.will_clean(), true);
+    }
+
+    // RealBlob (move) constructor (copy)
+    {
+        void *ptr = alloc(len);
+        const hxhim_data_t type = (hxhim_data_t) rand();
+
+        Blob real(RealBlob(len, ptr, type));
+        EXPECT_NE(real.data(), ptr);
+        EXPECT_NE(real.data(), nullptr);
+        EXPECT_EQ(real.size(), len);
+        EXPECT_EQ(real.data_type(), type);
+        EXPECT_EQ(real.will_clean(), true);
+
+        dealloc(ptr);
+    }
+
+    // ReferenceBlob assignment
+    {
+        void *ptr = (void *) (uintptr_t) rand();
+        const size_t size = rand();
+        const hxhim_data_t type = (hxhim_data_t) rand();
+
+        Blob ref;
+        EXPECT_EQ(ref.data(), nullptr);
+        EXPECT_EQ(ref.size(), 0);
+        EXPECT_EQ(ref.data_type(), HXHIM_DATA_INVALID);
+        EXPECT_EQ(ref.will_clean(), false);
+
+        ref = ReferenceBlob(ptr, size, type);
+        EXPECT_EQ(ref.data(), ptr);
+        EXPECT_EQ(ref.size(), size);
+        EXPECT_EQ(ref.data_type(), type);
+        EXPECT_EQ(ref.will_clean(), false);
+    }
+
+    // RealBlob (move) assignment (take ownership)
+    {
+        void *ptr = alloc(len);
+        const hxhim_data_t type = (hxhim_data_t) rand();
+
+        Blob real;
+        EXPECT_EQ(real.data(), nullptr);
+        EXPECT_EQ(real.size(), 0);
+        EXPECT_EQ(real.data_type(), HXHIM_DATA_INVALID);
+        EXPECT_EQ(real.will_clean(), false);
+
+        real = RealBlob(ptr, len, type);
+        EXPECT_EQ(real.data(), ptr);
+        EXPECT_EQ(real.size(), len);
+        EXPECT_EQ(real.data_type(), type);
+        EXPECT_EQ(real.will_clean(), true);
+    }
+
+    // RealBlob (move) assignment (take ownership)
+    {
+        void *ptr = alloc(len);
+        const hxhim_data_t type = (hxhim_data_t) rand();
+
+        Blob real;
+        EXPECT_EQ(real.data(), nullptr);
+        EXPECT_EQ(real.size(), 0);
+        EXPECT_EQ(real.data_type(), HXHIM_DATA_INVALID);
+        EXPECT_EQ(real.will_clean(), false);
+
+        real = std::move(RealBlob(ptr, len, type));
+        EXPECT_EQ(real.data(), ptr);
+        EXPECT_EQ(real.size(), len);
+        EXPECT_EQ(real.data_type(), type);
+        EXPECT_EQ(real.will_clean(), true);
+    }
+
+    // RealBlob (move) assignment (copy data)
+    {
+        void *ptr = alloc(len);
+        const hxhim_data_t type = (hxhim_data_t) rand();
+
+        Blob real;
+        EXPECT_EQ(real.data(), nullptr);
+        EXPECT_EQ(real.size(), 0);
+        EXPECT_EQ(real.data_type(), HXHIM_DATA_INVALID);
+        EXPECT_EQ(real.will_clean(), false);
+
+        real = RealBlob(len, ptr, type);
+        EXPECT_NE(real.data(), ptr);
+        EXPECT_NE(real.data(), nullptr);
+        EXPECT_EQ(real.size(), len);
+        EXPECT_EQ(real.data_type(), type);
+        EXPECT_EQ(real.will_clean(), true);
+
+        dealloc(ptr);
+    }
+
+    // RealBlob (move) assignment (copy data)
+    {
+        void *ptr = alloc(len);
+        const hxhim_data_t type = (hxhim_data_t) rand();
+
+        Blob real;
+        EXPECT_EQ(real.data(), nullptr);
+        EXPECT_EQ(real.size(), 0);
+        EXPECT_EQ(real.data_type(), HXHIM_DATA_INVALID);
+        EXPECT_EQ(real.will_clean(), false);
+
+        real = std::move(RealBlob(len, ptr, type));
+        EXPECT_NE(real.data(), ptr);
+        EXPECT_NE(real.data(), nullptr);
+        EXPECT_EQ(real.size(), len);
+        EXPECT_EQ(real.data_type(), type);
+        EXPECT_EQ(real.will_clean(), true);
+
+        dealloc(ptr);
+    }
 }

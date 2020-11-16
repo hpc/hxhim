@@ -28,6 +28,8 @@ Blob::~Blob() {
 }
 
 Blob& Blob::operator=(Blob &rhs) {
+    Blob::dealloc(); // handle existing data
+
     ptr = rhs.ptr;
     len = rhs.len;
     type = rhs.type;
@@ -38,6 +40,8 @@ Blob& Blob::operator=(Blob &rhs) {
 
 Blob& Blob::operator=(Blob &&rhs) {
     if (this != &rhs) {
+        Blob::dealloc(); // handle existing data
+
         ptr = rhs.ptr;
         len = rhs.len;
         type = rhs.type;
