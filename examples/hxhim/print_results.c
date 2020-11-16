@@ -57,7 +57,7 @@ void print_results(hxhim_t *hx, const int print_rank, hxhim_results_t *results) 
             }
         }
 
-        enum hxhim_op_t op;
+        enum hxhim_op_t op = HXHIM_INVALID;
         hxhim_result_op(results, &op);
 
         int status = HXHIM_ERROR;
