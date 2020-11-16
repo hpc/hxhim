@@ -5,8 +5,10 @@
 #include <sstream>
 #include <cstring>
 
+#include "hxhim/Blob.hpp"
 #include "hxhim/hxhim.h"
 #include "print_results.h"
+#include "utils/memory.hpp"
 
 enum HXHIM_OP {
     PUT,
@@ -24,11 +26,11 @@ enum HXHIM_OP {
 };
 
 const std::map<HXHIM_OP, std::string> FORMAT = {
-    std::make_pair(HXHIM_OP::PUT,       "PUT <SUBJECT> <PREDICATE> <OBJECT_TYPE> <OBJECT>"),
+    std::make_pair(HXHIM_OP::PUT,       "PUT <SUBJECT> <PREDICATE> <OBJECT>"),
     std::make_pair(HXHIM_OP::GET,       "GET <SUBJECT> <PREDICATE> <OBJECT_TYPE>"),
     std::make_pair(HXHIM_OP::GETOP,     "GETOP <SUBJECT> <PREDICATE> <OBJECT_TYPE> <NUM_RECS> <OP>"),
     std::make_pair(HXHIM_OP::DEL,       "DEL <SUBJECT> <PREDICATE>"),
-    std::make_pair(HXHIM_OP::BPUT,      "BPUT N <SUBJECT_1> <PREDICATE_1> <OBJECT_TYPE_1> <OBJECT_1> ... <SUBJECT_N> <PREDICATE_N> <OBJECT_TYPE_N> <OBJECT_N>"),
+    std::make_pair(HXHIM_OP::BPUT,      "BPUT N <SUBJECT_1> <PREDICATE_1> <OBJECT_1> ... <SUBJECT_N> <PREDICATE_N> <OBJECT_N>"),
     std::make_pair(HXHIM_OP::BGET,      "BGET N <SUBJECT_1> <PREDICATE_1> <OBJECT_TYPE_1> ... <SUBJECT_N> <PREDICATE_N> <OBJECT_TYPE_N>"),
     std::make_pair(HXHIM_OP::BGETOP,    "BGETOP <SUBJECT_1> <PREDICATE_1> <OBJECT_TYPE_1> <NUM_RECS_1> <OP_1> ... <SUBJECT_N> <PREDICATE_N> <OBJECT_TYPE_N> <NUM_RECS_N> <OP_N>"),
     std::make_pair(HXHIM_OP::BDEL,      "BDEL N <SUBJECT_1> <PREDICATE_1> ... <SUBJECT_N> <PREDICATE_N>"),
@@ -58,7 +60,6 @@ const std::map<std::string, hxhim_data_t> USER2OT = {
     std::make_pair("INT64",  HXHIM_DATA_INT64),
     std::make_pair("UINT32", HXHIM_DATA_UINT32),
     std::make_pair("UINT64", HXHIM_DATA_UINT64),
-    std::make_pair("INT64",  HXHIM_DATA_INT64),
     std::make_pair("FLOAT",  HXHIM_DATA_FLOAT),
     std::make_pair("DOUBLE", HXHIM_DATA_DOUBLE),
     std::make_pair("BYTE",   HXHIM_DATA_BYTE),
@@ -84,15 +85,10 @@ std::ostream &help(char *self, std::ostream &stream = std::cout) {
         stream << "    " << format.second << std::endl;
     }
 
-    stream << "Where <SUBJECT>, <PREDICATE>, and <OBJECT> are pairs of <data, type>" << std::endl
+    stream << "Where <SUBJECT>, <PREDICATE>, and <OBJECT> are pairs of <type, data>" << std::endl
            << "<OBJECT_TYPE> is only the type" << std::endl;
     return stream;
 }
-
-struct UserPair {
-    std::string data;
-    hxhim_data_t type;
-};
 
 std::istream &operator>>(std::istream &stream, hxhim_data_t &type) {
     std::string str;
@@ -109,15 +105,71 @@ std::istream &operator>>(std::istream &stream, hxhim_data_t &type) {
     return stream;
 }
 
-std::istream &operator>>(std::istream &stream, struct UserPair &pair) {
-    return (stream >> pair.data >> pair.type);
+std::istream &operator>>(std::istream &stream, Blob &input) {
+    hxhim_data_t type;
+    if (!(stream >> type)) {
+        return stream;
+    }
+
+    void *data = nullptr;
+    std::size_t size = 0;
+    switch (type) {
+        case HXHIM_DATA_INT32:
+            size = sizeof(int32_t);
+            data = alloc(size);
+            stream >> * (int32_t *) data;
+            break;
+        case HXHIM_DATA_INT64:
+            size = sizeof(int64_t);
+            data = alloc(size);
+            stream >> * (int64_t *) data;
+            break;
+        case HXHIM_DATA_UINT32:
+            size = sizeof(uint32_t);
+            data = alloc(size);
+            stream >> * (uint32_t *) data;
+            break;
+        case HXHIM_DATA_UINT64:
+            size = sizeof(uint64_t);
+            data = alloc(size);
+            stream >> * (uint64_t *) data;
+            break;
+        case HXHIM_DATA_FLOAT:
+            size = sizeof(float);
+            data = alloc(size);
+            stream >> * (float *) data;
+            break;
+        case HXHIM_DATA_DOUBLE:
+            size = sizeof(double);
+            data = alloc(size);
+            stream >> * (double *) data;
+            break;
+        case HXHIM_DATA_BYTE:
+            {
+                std::string str;
+                if ((stream >> str)) {
+                    size = str.size();
+                    data = alloc(size);
+                    memcpy(data, str.c_str(), str.size());
+                }
+            }
+            break;
+        default:
+            stream.setstate(std::ios::failbit);
+            break;
+    }
+
+    // on error, will be deallocated automatically
+    input = std::move(RealBlob(data, size, type));
+
+    return stream;
 }
 
 struct UserInput {
     HXHIM_OP hxhim_op;
-    struct UserPair subject;
-    struct UserPair predicate;
-    struct UserPair object; // data field is only used by (B)PUT
+    Blob subject;
+    Blob predicate;
+    Blob object; // data field is only used by (B)PUT
 
     // only used by (B)GETOP
     std::size_t num_recs;
@@ -135,7 +187,7 @@ void cleanup(hxhim_t *hx, hxhim_options_t *opts) {
 
 // serialize user input
 // B* becomes individual operations
-std::size_t parse_commands(std::istream & stream, UserInputs & commands) {
+std::size_t parse_commands(std::istream &stream, UserInputs &commands) {
     std::string line;
     while (std::getline(stream, line)) {
         std::stringstream command(line);
@@ -173,7 +225,6 @@ std::size_t parse_commands(std::istream & stream, UserInputs & commands) {
                 case HXHIM_OP::PUT:
                 case HXHIM_OP::BPUT:
                     {
-                        std::string object_type;
                         if (!(command >> input.subject >> input.predicate >> input.object)) {
                             ok = false;
                         }
@@ -182,18 +233,25 @@ std::size_t parse_commands(std::istream & stream, UserInputs & commands) {
                 case HXHIM_OP::GET:
                 case HXHIM_OP::BGET:
                     {
-                        if (!(command >> input.subject >> input.predicate >> input.object.type)) {
+                        hxhim_data_t object_type;
+                        if (!(command >> input.subject >> input.predicate >> object_type)) {
                             ok = false;
+                        }
+                        else {
+                            input.object.set_type(object_type);
                         }
                     }
                     break;
                 case HXHIM_OP::GETOP:
                 case HXHIM_OP::BGETOP:
                     {
-                        std::string object_type;
+                        hxhim_data_t object_type;
                         std::string op;
-                        if (!(command >> input.subject >> input.predicate >> input.object.type >> input.num_recs >> op)) {
+                        if (!(command >> input.subject >> input.predicate >> object_type >> input.num_recs >> op)) {
                             ok = false;
+                        }
+                        else {
+                            input.object.set_type(object_type);
                         }
 
                         const decltype(USER2GETOP)::const_iterator getop_it = USER2GETOP.find(op);
@@ -224,14 +282,14 @@ std::size_t parse_commands(std::istream & stream, UserInputs & commands) {
                 break;
             }
 
-            commands.emplace_back(input);
+            commands.emplace_back(std::move(input));
         }
     }
 
     return commands.size();
 }
 
-std::size_t run_commands(hxhim_t * hx, const UserInputs &commands) {
+std::size_t run_commands(hxhim_t *hx, const UserInputs &commands) {
     std::size_t successful = 0;
 
     for(UserInputs::value_type const &cmd : commands) {
@@ -242,30 +300,30 @@ std::size_t run_commands(hxhim_t * hx, const UserInputs &commands) {
             case HXHIM_OP::PUT:
             case HXHIM_OP::BPUT:
                 rc = hxhimPut(hx,
-                              (void *) cmd.subject.data.c_str(),   cmd.subject.data.size(),   cmd.subject.type,
-                              (void *) cmd.predicate.data.c_str(), cmd.predicate.data.size(), cmd.predicate.type,
-                              (void *) cmd.object.data.c_str(),    cmd.object.data.size(),    cmd.object.type);
+                              (void *) cmd.subject.data(),   cmd.subject.size(),   cmd.subject.data_type(),
+                              (void *) cmd.predicate.data(), cmd.predicate.size(), cmd.predicate.data_type(),
+                              (void *) cmd.object.data(),    cmd.object.size(),    cmd.object.data_type());
                 break;
             case HXHIM_OP::GET:
             case HXHIM_OP::BGET:
                 rc = hxhimGet(hx,
-                              (void *) cmd.subject.data.c_str(),   cmd.subject.data.size(),   cmd.subject.type,
-                              (void *) cmd.predicate.data.c_str(), cmd.predicate.data.size(), cmd.predicate.type,
-                              cmd.object.type);
+                              (void *) cmd.subject.data(),   cmd.subject.size(),   cmd.subject.data_type(),
+                              (void *) cmd.predicate.data(), cmd.predicate.size(), cmd.predicate.data_type(),
+                              cmd.object.data_type());
                 break;
             case HXHIM_OP::GETOP:
             case HXHIM_OP::BGETOP:
                 rc = hxhimGetOp(hx,
-                                (void *) cmd.subject.data.c_str(),   cmd.subject.data.size(),   cmd.subject.type,
-                                (void *) cmd.predicate.data.c_str(), cmd.predicate.data.size(), cmd.predicate.type,
-                                cmd.object.type,
+                                (void *) cmd.subject.data(),   cmd.subject.size(),   cmd.subject.data_type(),
+                                (void *) cmd.predicate.data(), cmd.predicate.size(), cmd.predicate.data_type(),
+                                cmd.object.data_type(),
                                 cmd.num_recs, cmd.op);
                 break;
             case HXHIM_OP::DEL:
             case HXHIM_OP::BDEL:
                 rc = hxhimDelete(hx,
-                                 (void *) cmd.subject.data.c_str(),   cmd.subject.data.size(),   cmd.subject.type,
-                                 (void *) cmd.predicate.data.c_str(), cmd.predicate.data.size(), cmd.predicate.type);
+                                 (void *) cmd.subject.data(),   cmd.subject.size(),   cmd.subject.data_type(),
+                                 (void *) cmd.predicate.data(), cmd.predicate.size(), cmd.predicate.data_type());
                 break;
             case HXHIM_OP::FLUSHPUTS:
                 res = hxhimFlushPuts(hx);
@@ -297,7 +355,7 @@ std::size_t run_commands(hxhim_t * hx, const UserInputs &commands) {
     return successful;
 }
 
-int main(int argc, char * argv[]) {
+int main(int argc, char *argv[]) {
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 

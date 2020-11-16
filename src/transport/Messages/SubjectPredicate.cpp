@@ -92,8 +92,8 @@ int Transport::Response::SubjectPredicate::steal(Transport::Response::SubjectPre
         return TRANSPORT_ERROR;
     }
 
-    orig.subjects[count]     = from->orig.subjects[i];
-    orig.predicates[count]   = from->orig.predicates[i];
+    orig.subjects[count]     = std::move(from->orig.subjects[i]);
+    orig.predicates[count]   = std::move(from->orig.predicates[i]);
 
     return TRANSPORT_SUCCESS;
 }

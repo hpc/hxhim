@@ -8,6 +8,9 @@
 
 void print_by_type(void *value, size_t value_len, enum hxhim_data_t type) {
     switch (type) {
+        case HXHIM_DATA_INVALID:
+            printf("Invalid Type: %d (%zu bytes)", type, value_len);
+            break;
         case HXHIM_DATA_INT32:
             printf("%" PRId32, * (int32_t *) value);
             break;
@@ -33,7 +36,7 @@ void print_by_type(void *value, size_t value_len, enum hxhim_data_t type) {
             printf("%p", value);
             break;
         default:
-            printf("Invalid Type (%zu bytes)", value_len);
+            printf("Unknown Type: %d (%zu bytes)", type, value_len);
             break;
     }
 }
@@ -57,24 +60,22 @@ void print_results(hxhim_t *hx, const int print_rank, hxhim_results_t *results) 
         enum hxhim_op_t op;
         hxhim_result_op(results, &op);
 
-        int status;
+        int status = HXHIM_ERROR;
         hxhim_result_status(results, &status);
 
-        int range_server;
+        int range_server = -1;
         hxhim_result_range_server(results, &range_server);
 
         void *subject = NULL;
         size_t subject_len = 0;
-        enum hxhim_data_t subject_type;
+        enum hxhim_data_t subject_type = HXHIM_DATA_INVALID;
 
         void *predicate = NULL;
         size_t predicate_len = 0;
-        enum hxhim_data_t predicate_type;
+        enum hxhim_data_t predicate_type = HXHIM_DATA_INVALID;
 
-        if (status == HXHIM_SUCCESS) {
-            hxhim_result_subject(results, &subject, &subject_len, &subject_type);
-            hxhim_result_predicate(results, &predicate, &predicate_len, &subject_type);
-        }
+        hxhim_result_subject(results, &subject, &subject_len, &subject_type);
+        hxhim_result_predicate(results, &predicate, &predicate_len, &predicate_type);
 
         switch (op) {
             case HXHIM_PUT:
@@ -95,9 +96,9 @@ void print_results(hxhim_t *hx, const int print_rank, hxhim_results_t *results) 
 
                     printf("{");
                     print_by_type(subject, subject_len, subject_type);
-printf(", ");
+                    printf(", ");
                     print_by_type(predicate, predicate_len, predicate_type);
-printf("} -> ");
+                    printf("} -> ");
                     print_by_type(object, object_len, object_type);
                 }
                 else {
