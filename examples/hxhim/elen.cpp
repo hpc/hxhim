@@ -10,8 +10,8 @@ const std::string FLOAT  = "float";
 const std::string DOUBLE = "double";
 
 int main(int argc, char *argv[]) {
-    char neg = elen::N;
-    char pos = elen::P;
+    char neg = elen::NEG_SYMBOL;
+    char pos = elen::POS_SYMBOL;
 
     for(int i = 1; i < argc; i++) {
         const std::string args = argv[i];
@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
                     continue;
                 }
 
-                std::cout << elen::encode::floating_point(value, 2 * sizeof(float), neg, pos) << std::endl;
+                std::cout << elen::encode::floating_point(value, std::numeric_limits<float>::digits10, neg, pos) << std::endl;
             }
             else if (type == DOUBLE) {
                 double value;
@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
                     continue;
                 }
 
-                std::cout << elen::encode::floating_point(value, 2 * sizeof(double), neg, pos) << std::endl;
+                std::cout << elen::encode::floating_point(value, std::numeric_limits<double>::digits10, neg, pos) << std::endl;
             }
             else {
                 std::cerr << "Unknown numeric type: " << type << std::endl;

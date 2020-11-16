@@ -12,6 +12,7 @@
 #include "transport/constants.hpp"
 #include "utils/Configuration.hpp"
 #include "utils/Histogram.h"
+#include "utils/elen.hpp"
 #include "utils/mlogfacs2.h"
 
 namespace hxhim {
@@ -73,6 +74,12 @@ const std::string MAXIMUM_OPS_PER_SEND        = "MAXIMUM_OPS_PER_SEND";      // 
 /** Histogram Options */
 const std::string HISTOGRAM_FIRST_N           = "HISTOGRAM_FIRST_N";         // unsigned int
 const std::string HISTOGRAM_BUCKET_GEN_NAME   = "HISTOGRAM_BUCKET_GEN_NAME"; // See HISTOGRAM_BUCKET_GENERATORS
+
+/** ELEN Options */
+const std::string ELEN_NEG_SYMBOL             = "ELEN_NEG_SYMBOL";
+const std::string ELEN_POS_SYMBOL             = "ELEN_POS_SYMBOL";
+const std::string ELEN_FLOAT_PRECISION        = "ELEN_FLOAT_PRECISION";
+const std::string ELEN_DOUBLE_PRECISION       = "ELEN_DOUBLE_PRECISION";
 
 /**
  * Set of available debug levels
@@ -182,6 +189,10 @@ const Config::Config DEFAULT_CONFIG = {
     std::make_pair(MAXIMUM_OPS_PER_SEND,          "128"),
     std::make_pair(HISTOGRAM_FIRST_N,             "10"),
     std::make_pair(HISTOGRAM_BUCKET_GEN_NAME,     "10_BUCKETS"),
+    std::make_pair(ELEN_NEG_SYMBOL,               std::string(elen::NEG_SYMBOL, 1)),
+    std::make_pair(ELEN_NEG_SYMBOL,               std::string(elen::POS_SYMBOL, 1)),
+    std::make_pair(ELEN_FLOAT_PRECISION,          std::to_string(elen::FLOAT_PRECISION)),
+    std::make_pair(ELEN_DOUBLE_PRECISION,         std::to_string(elen::DOUBLE_PRECISION)),
 };
 
 int default_reader(hxhim_options_t *opts, MPI_Comm comm);

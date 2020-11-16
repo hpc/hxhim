@@ -243,6 +243,51 @@ static bool parse_endpointgroup(hxhim_options_t *opts, const Config::Config &con
     return false;
 }
 
+static bool parse_elen(hxhim_options_t *opts, const Config::Config &config) {
+    char neg = elen::NEG_SYMBOL;
+    char pos = elen::POS_SYMBOL;
+    int  flt_precision = elen::FLOAT_PRECISION;
+    int  dbl_precision = elen::DOUBLE_PRECISION;
+
+    Config::Config_it neg_it = config.find(hxhim::config::ELEN_NEG_SYMBOL);
+    if (neg_it != config.end()) {
+        if (!(std::stringstream(neg_it->second) >> neg)) {
+            return false;
+        }
+    }
+
+    Config::Config_it pos_it = config.find(hxhim::config::ELEN_POS_SYMBOL);
+    if (pos_it != config.end()) {
+        if (!(std::stringstream(pos_it->second) >> pos)) {
+            return false;
+        }
+    }
+
+    Config::Config_it flt_it = config.find(hxhim::config::ELEN_FLOAT_PRECISION);
+    if (flt_it != config.end()) {
+        if (!(std::stringstream(flt_it->second) >> flt_precision)) {
+            return false;
+        }
+    }
+
+    Config::Config_it dbl_it = config.find(hxhim::config::ELEN_DOUBLE_PRECISION);
+    if (dbl_it != config.end()) {
+        if (!(std::stringstream(dbl_it->second) >> dbl_precision)) {
+            return false;
+        }
+    }
+
+    if (neg >= pos) {
+        return false;
+    }
+
+    if (flt_precision >= dbl_precision) {
+        return false;
+    }
+
+    return (hxhim_options_set_transform_numeric_values(opts, neg, pos, flt_precision, dbl_precision) == HXHIM_SUCCESS);
+}
+
 /**
  * fill_options
  * Fills up opts as best it can using config.
@@ -273,6 +318,7 @@ static int fill_options(hxhim_options_t *opts, const Config::Config &config) {
         parse_value(opts, config, MAXIMUM_OPS_PER_SEND,          hxhim_options_set_maximum_ops_per_send)        &&
         parse_value(opts, config, HISTOGRAM_FIRST_N,             hxhim_options_set_histogram_first_n)           &&
         parse_value(opts, config, HISTOGRAM_BUCKET_GEN_NAME,     hxhim_options_set_histogram_bucket_gen_name)   &&
+        parse_elen(opts, config)                                                                                &&
         true?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 

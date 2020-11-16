@@ -5,8 +5,8 @@
 #include <cstdint>
 #include <cstring>
 
-const char ELEN_NEG = elen::N;
-const char ELEN_POS = elen::P;
+const char ELEN_NEG = elen::NEG_SYMBOL;
+const char ELEN_POS = elen::POS_SYMBOL;
 
 /**
  * lex_comp::operator()

@@ -6,10 +6,10 @@
 #include "utils/memory.hpp"
 
 datastore::Transform::NumericExtra::NumericExtra()
-    : neg(elen::N),
-      pos(elen::P),
-      float_precision(2 * sizeof(float)),
-      double_precision(2 * sizeof(double))
+    : neg(elen::NEG_SYMBOL),
+      pos(elen::POS_SYMBOL),
+      float_precision(elen::FLOAT_PRECISION),
+      double_precision(elen::DOUBLE_PRECISION)
 {}
 
 void *datastore::Transform::encode::copy(const std::string &str) {

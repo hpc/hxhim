@@ -86,11 +86,11 @@ TEST(hxhim, PutGet) {
         get_results->Object((void **) &object, &object_size, &object_type);
 
         if (object_type == hxhim_data_t::HXHIM_DATA_FLOAT) {
-            EXPECT_FLOAT_EQ(* (float *) object, OBJECT);
+            EXPECT_NEAR(* (float *) object, OBJECT, std::numeric_limits<float>::digits10);
             EXPECT_EQ(object_size, sizeof(float));
         }
         else if (object_type == hxhim_data_t::HXHIM_DATA_DOUBLE) {
-            EXPECT_DOUBLE_EQ(* (double *) object, OBJECT);
+            EXPECT_NEAR(* (double *) object, OBJECT, std::numeric_limits<double>::digits10);
             EXPECT_EQ(object_size, sizeof(double));
         }
         else {
