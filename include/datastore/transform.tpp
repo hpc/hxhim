@@ -65,7 +65,7 @@ int integers(void *src, const size_t src_size,
 
     *dst = (T *) alloc(sizeof(T));
 
-    * (T *) *dst = elen::decode::integers<T>(std::string((char *) src, src_size), nullptr,
+    * (T *) *dst = elen::decode::integers<T>(std::string((const char *) src, src_size), nullptr,
                                              num_extra->neg, num_extra->pos);
     return DATASTORE_SUCCESS;
 }
@@ -86,7 +86,7 @@ int floating_point(void *src, const size_t src_size,
 
     *dst = (T *) alloc(sizeof(T));
 
-    * (T *) *dst = elen::decode::floating_point<T>(std::string((char *) src, src_size),
+    * (T *) *dst = elen::decode::floating_point<T>(std::string((const char *) src, src_size),
                                                    num_extra->neg, num_extra->pos);
     return DATASTORE_SUCCESS;
 }

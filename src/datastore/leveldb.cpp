@@ -127,9 +127,9 @@ Transport::Response::BPut *datastore::leveldb::BPutImpl(Transport::Request::BPut
         std::size_t object_len = 0;
 
         int status = DATASTORE_ERROR; // successful batching will set toe DATASTORE_UNSET
-        if ((encode(req->subjects[i],   &subject,   &subject_len)   == DATASTORE_SUCCESS) &&
-            (encode(req->predicates[i], &predicate, &predicate_len) == DATASTORE_SUCCESS) &&
-            (encode(req->objects[i],    &object,    &object_len)    == DATASTORE_SUCCESS)) {
+        if ((encode(callbacks, req->subjects[i],   &subject,   &subject_len)   == DATASTORE_SUCCESS) &&
+            (encode(callbacks, req->predicates[i], &predicate, &predicate_len) == DATASTORE_SUCCESS) &&
+            (encode(callbacks, req->objects[i],    &object,    &object_len)    == DATASTORE_SUCCESS)) {
             // the current key address and length
             std::string key;
             sp_to_key(ReferenceBlob(subject,   subject_len,   req->subjects[i].data_type()),
@@ -211,8 +211,8 @@ Transport::Response::BGet *datastore::leveldb::BGetImpl(Transport::Request::BGet
         std::size_t predicate_len = 0;
 
         int status = DATASTORE_ERROR; // only successful decoding sets the status to DATASTORE_SUCCESS
-        if ((encode(req->subjects[i],   &subject,   &subject_len)   == DATASTORE_SUCCESS) &&
-            (encode(req->predicates[i], &predicate, &predicate_len) == DATASTORE_SUCCESS)) {
+        if ((encode(callbacks, req->subjects[i],   &subject,   &subject_len)   == DATASTORE_SUCCESS) &&
+            (encode(callbacks, req->predicates[i], &predicate, &predicate_len) == DATASTORE_SUCCESS)) {
             // create the key from the subject and predicate
             std::string key;
             sp_to_key(ReferenceBlob(subject,   subject_len,   req->subjects[i].data_type()),
@@ -228,7 +228,7 @@ Transport::Response::BGet *datastore::leveldb::BGetImpl(Transport::Request::BGet
                 // decode the object
                 void *object = nullptr;
                 std::size_t object_len = 0;
-                if (decode(ReferenceBlob((void *) value.data(), value.size(), req->object_types[i]),
+                if (decode(callbacks, ReferenceBlob((void *) value.data(), value.size(), req->object_types[i]),
                            &object, &object_len) == DATASTORE_SUCCESS) {
                     res->objects[i] = RealBlob(object, object_len, req->object_types[i]);
                     event.size += res->objects[i].size();
@@ -281,128 +281,124 @@ Transport::Response::BGetOp *datastore::leveldb::BGetOpImpl(Transport::Request::
         event.time.start = ::Stats::now();
 
         // prepare response
-        res->num_recs[i]     = 0;
-        res->subjects[i]     = alloc_array<Blob>(req->num_recs[i]);
-        res->predicates[i]   = alloc_array<Blob>(req->num_recs[i]);
-        res->objects[i]      = alloc_array<Blob>(req->num_recs[i]);
+        res->num_recs[i]   = 0;
+        res->subjects[i]   = alloc_array<Blob>(req->num_recs[i]);
+        res->predicates[i] = alloc_array<Blob>(req->num_recs[i]);
+        res->objects[i]    = alloc_array<Blob>(req->num_recs[i]);
+        // set status early so failures during copy will change the status
+        // all responses for this Op share a status
+        res->statuses[i]   = DATASTORE_UNSET;
 
+        // encode the subject and predicate and get the key
+        void *subject = nullptr;
+        std::size_t subject_len = 0;
+        void *predicate = nullptr;
+        std::size_t predicate_len = 0;
         std::string key;
-        if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_EQ) {
-            sp_to_key(req->subjects[i], req->predicates[i], key);
-            it->Seek(key);
-
-            if (it->Valid()) {
-                // set status early so failures during copy will change the status
-                // all responses for this Op share a status
-                res->statuses[i] = DATASTORE_UNSET;
-
-                // only 1 response, so j == 0 (num_recs is ignored)
-                this->template BGetOp_copy_response(it->key(), it->value(), req, res, i, 0, event);
-            }
-            else {
-                BGetOp_error_response(res, i, req->subjects[i], req->predicates[i], event);
-
-                res->statuses[i] = DATASTORE_ERROR;
-            }
-        }
-        else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_NEXT) {
-            sp_to_key(req->subjects[i], req->predicates[i], key);
-            it->Seek(key);
-
-            if (it->Valid()) {
-                // set status early so failures during copy will change the status
-                // all responses for this Op share a status
-                res->statuses[i] = DATASTORE_UNSET;
-
-                // first result returned is (subject, predicate)
-                // (results are offsets)
-                for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid(); j++) {
-                    this->template BGetOp_copy_response(it->key(), it->value(), req, res, i, j, event);
-                    it->Next();
+        if ((req->ops[i] == hxhim_getop_t::HXHIM_GETOP_EQ)   ||
+            (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_NEXT) ||
+            (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_PREV)) {
+            if ((encode(callbacks, req->subjects[i],   &subject,   &subject_len)   == DATASTORE_SUCCESS) &&
+                (encode(callbacks, req->predicates[i], &predicate, &predicate_len) == DATASTORE_SUCCESS)) {
+                if (sp_to_key(ReferenceBlob(subject,   subject_len,   req->subjects[i].data_type()),
+                              ReferenceBlob(predicate, predicate_len, req->predicates[i].data_type()),
+                              key) != HXHIM_SUCCESS) {
+                    res->statuses[i] = DATASTORE_ERROR;
                 }
             }
             else {
-                BGetOp_error_response(res, i, req->subjects[i], req->predicates[i], event);
-
-                res->statuses[i] = DATASTORE_ERROR;
-            }
-        }
-        else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_PREV) {
-            sp_to_key(req->subjects[i], req->predicates[i], key);
-            it->Seek(key);
-
-            if (it->Valid()) {
-                // set status early so failures during copy will change the status
-                // all responses for this Op share a status
-                res->statuses[i] = DATASTORE_UNSET;
-
-                // first result returned is (subject, predicate)
-                // (results are offsets)
-                for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid(); j++) {
-                    this->template BGetOp_copy_response(it->key(), it->value(), req, res, i, j, event);
-                    it->Prev();
-                }
-            }
-            else {
-                BGetOp_error_response(res, i, req->subjects[i], req->predicates[i], event);
-
-                res->statuses[i] = DATASTORE_ERROR;
-            }
-        }
-        else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_FIRST) {
-            // ignore key
-            it->SeekToFirst();
-
-            if (it->Valid()) {
-                // set status early so failures during copy will change the status
-                // all responses for this Op share a status
-                res->statuses[i] = DATASTORE_UNSET;
-
-                // first result returned is (subject, predicate)
-                // (results are offsets)
-                for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid(); j++) {
-                    this->template BGetOp_copy_response(it->key(), it->value(), req, res, i, j, event);
-                    it->Next();
-                }
-            }
-            else {
-                BGetOp_error_response(res, i, req->subjects[i], req->predicates[i], event);
-
-                res->statuses[i] = DATASTORE_ERROR;
-            }
-        }
-        else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_LAST) {
-            // ignore key
-            it->SeekToLast();
-
-            if (it->Valid()) {
-                // set status early so failures during copy will change the status
-                // all responses for this Op share a status
-                res->statuses[i] = DATASTORE_UNSET;
-
-                // first result returned is (subject, predicate)
-                // (results are offsets)
-                for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid(); j++) {
-                    this->template BGetOp_copy_response(it->key(), it->value(), req, res, i, j, event);
-                    it->Prev();
-                }
-            }
-            else {
-                BGetOp_error_response(res, i, req->subjects[i], req->predicates[i], event);
-
                 res->statuses[i] = DATASTORE_ERROR;
             }
         }
 
         if (res->statuses[i] == DATASTORE_UNSET) {
+            if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_EQ) {
+                it->Seek(key);
+
+                if (it->Valid()) {
+                    // only 1 response, so j == 0 (num_recs is ignored)
+                    this->template BGetOp_copy_response(callbacks, it->key(), it->value(), req, res, i, 0, event);
+                }
+                else {
+                    res->statuses[i] = DATASTORE_ERROR;
+                }
+            }
+            else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_NEXT) {
+                it->Seek(key);
+
+                if (it->Valid()) {
+                    // first result returned is (subject, predicate)
+                    // (results are offsets)
+                    for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid(); j++) {
+                        this->template BGetOp_copy_response(callbacks, it->key(), it->value(), req, res, i, j, event);
+                        it->Next();
+                    }
+                }
+                else {
+                    res->statuses[i] = DATASTORE_ERROR;
+                }
+            }
+            else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_PREV) {
+                it->Seek(key);
+
+                if (it->Valid()) {
+                    // first result returned is (subject, predicate)
+                    // (results are offsets)
+                    for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid(); j++) {
+                        this->template BGetOp_copy_response(callbacks, it->key(), it->value(), req, res, i, j, event);
+                        it->Prev();
+                    }
+                }
+                else {
+                    res->statuses[i] = DATASTORE_ERROR;
+                }
+            }
+            else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_FIRST) {
+                // ignore key
+                it->SeekToFirst();
+
+                if (it->Valid()) {
+                    for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid(); j++) {
+                        this->template BGetOp_copy_response(callbacks, it->key(), it->value(), req, res, i, j, event);
+                        it->Next();
+                    }
+                }
+                else {
+                    res->statuses[i] = DATASTORE_ERROR;
+                }
+            }
+            else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_LAST) {
+                // ignore key
+                it->SeekToLast();
+
+                if (it->Valid()) {
+                    for(std::size_t j = 0; (j < req->num_recs[i]) && it->Valid(); j++) {
+                        this->template BGetOp_copy_response(callbacks, it->key(), it->value(), req, res, i, j, event);
+                        it->Prev();
+                    }
+                }
+                else {
+                    res->statuses[i] = DATASTORE_ERROR;
+                }
+            }
+            else {
+                res->statuses[i] = DATASTORE_ERROR;
+            }
+        }
+
+        // if the status is still DATASTORE_UNSET, the operation succeeded
+        if (res->statuses[i] == DATASTORE_UNSET) {
             res->statuses[i] = DATASTORE_SUCCESS;
+        }
+        else /* if (res->statuses[i] == DATASTORE_ERROR) */ {
+            BGetOp_error_response(res, i, req->subjects[i], req->predicates[i], event);
         }
 
         res->count++;
 
         event.count = res->num_recs[i];
         event.time.end = ::Stats::now();
-        stats.getops.emplace_back(event);
+        stats.gets.emplace_back(event);
     }
 
     delete it;
@@ -436,8 +432,8 @@ Transport::Response::BDelete *datastore::leveldb::BDeleteImpl(Transport::Request
         void *predicate = nullptr;
         std::size_t predicate_len = 0;
 
-        if ((encode(req->subjects[i],   &subject,   &subject_len)   == DATASTORE_SUCCESS) &&
-            (encode(req->predicates[i], &predicate, &predicate_len) == DATASTORE_SUCCESS)) {
+        if ((encode(callbacks, req->subjects[i],   &subject,   &subject_len)   == DATASTORE_SUCCESS) &&
+            (encode(callbacks, req->predicates[i], &predicate, &predicate_len) == DATASTORE_SUCCESS)) {
             // create the key from the subject and predicate
             std::string key;
             sp_to_key(ReferenceBlob(subject,   subject_len,   req->subjects[i].data_type()),

@@ -71,17 +71,18 @@ class Datastore {
 
         virtual int SyncImpl() = 0;
 
-        int encode(const Blob &src,
-                   void **dst, std::size_t *dst_size) const;
-        int decode(const Blob &src,
-                   void **dst, std::size_t *dst_size) const;
+        static int encode(Transform::Callbacks *callbacks,
+                   const Blob &src,
+                   void **dst, std::size_t *dst_size);
+        static int decode(Transform::Callbacks *callbacks,
+                   const Blob &src,
+                   void **dst, std::size_t *dst_size);
 
     protected:
         int rank;      // MPI rank of HXHIM instance
         int id;
         Transform::Callbacks *callbacks;
         std::shared_ptr<Histogram::Histogram> hist;
-
         mutable std::mutex mutex;
 
     public:
@@ -105,19 +106,22 @@ class Datastore {
     protected:
         Stats stats;
 
+    public:
+        template <typename Key_t, typename Value_t>
+        static void BGetOp_copy_response(Transform::Callbacks *callbacks,
+                                         const Key_t &key,
+                                         const Value_t &value,
+                                         Transport::Request::BGetOp *req,
+                                         Transport::Response::BGetOp *res,
+                                         const std::size_t i,
+                                         const std::size_t j,
+                                         datastore::Datastore::Stats::Event &event);
+
         void BGetOp_error_response(Transport::Response::BGetOp *res,
                                    const std::size_t i,
                                    const Blob &subject, const Blob &predicate,
                                    Stats::Event &event);
 
-        template <typename Key_t, typename Value_t>
-        void BGetOp_copy_response(const Key_t &key,
-                                  const Value_t &value,
-                                  Transport::Request::BGetOp *req,
-                                  Transport::Response::BGetOp *res,
-                                  const std::size_t i,
-                                  const std::size_t j,
-                                  datastore::Datastore::Stats::Event &event) const;
 };
 
 }

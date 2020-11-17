@@ -247,8 +247,9 @@ int datastore::Datastore::Sync() {
     return SyncImpl();
 }
 
-int datastore::Datastore::encode(const Blob &src,
-                                 void **dst, std::size_t *dst_size) const {
+int datastore::Datastore::encode(Transform::Callbacks *callbacks,
+                                 const Blob &src,
+                                 void **dst, std::size_t *dst_size) {
     REF(callbacks->encode)::const_iterator it = callbacks->encode.find(src.data_type());
     if (it == callbacks->encode.end()) {
         return DATASTORE_ERROR;
@@ -258,15 +259,15 @@ int datastore::Datastore::encode(const Blob &src,
         *dst_size = src.size();
         *dst = alloc(*dst_size);
         memcpy(*dst, src.data(), src.size());
-
         return DATASTORE_SUCCESS;
     }
 
     return it->second.first(src.data(), src.size(), dst, dst_size, it->second.second);
 }
 
-int datastore::Datastore::decode(const Blob &src,
-                                 void **dst, std::size_t *dst_size) const {
+int datastore::Datastore::decode(Transform::Callbacks *callbacks,
+                                 const Blob &src,
+                                 void **dst, std::size_t *dst_size) {
     REF(callbacks->decode)::const_iterator it = callbacks->decode.find(src.data_type());
     if (it == callbacks->decode.end()) {
         return DATASTORE_ERROR;
@@ -276,7 +277,6 @@ int datastore::Datastore::decode(const Blob &src,
         *dst_size = src.size();
         *dst = alloc(*dst_size);
         memcpy(*dst, src.data(), src.size());
-
         return DATASTORE_SUCCESS;
     }
 
