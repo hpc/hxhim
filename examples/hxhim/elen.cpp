@@ -1,3 +1,4 @@
+#include <iomanip>
 #include <iostream>
 
 #include "utils/elen.hpp"
@@ -79,10 +80,12 @@ int main(int argc, char *argv[]) {
                 std::cout << elen::decode::integers<int64_t>(value, nullptr, neg, pos) << std::endl;
             }
             else if (type == FLOAT) {
-                std::cout << elen::decode::floating_point<float>(value, neg, pos) << std::endl;
+                std::cout << std::fixed << std::setprecision(std::numeric_limits<float>::digits10 + 1)
+                          << elen::decode::floating_point<float>(value, neg, pos) << std::endl;
             }
             else if (type == DOUBLE) {
-                std::cout << elen::decode::floating_point<double>(value, neg, pos) << std::endl;
+                std::cout << std::fixed << std::setprecision(std::numeric_limits<double>::digits10 + 1)
+                          << elen::decode::floating_point<double>(value, neg, pos) << std::endl;
             }
             else {
                 std::cerr << "Unknown numeric type: " << type << std::endl;
