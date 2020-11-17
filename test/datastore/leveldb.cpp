@@ -5,10 +5,10 @@
 #include <leveldb/db.h>
 #include <mpi.h>
 
-#include "common.hpp"
 #include "datastore/leveldb.hpp"
 #include "hxhim/triplestore.hpp"
 #include "rm_r.hpp"
+#include "triples.hpp"
 #include "utils/memory.hpp"
 
 class LevelDBTest : public datastore::leveldb {
@@ -47,9 +47,9 @@ static LevelDBTest *setup() {
     Transport::Request::BPut req(count);
 
     for(std::size_t i = 0; i < count; i++) {
-        req.subjects[i]   = triples[i].get_sub();
-        req.predicates[i] = triples[i].get_pred();
-        req.objects[i]    = triples[i].get_obj();
+        req.subjects[i]   = BLOB(subjects[i]);
+        req.predicates[i] = BLOB(predicates[i]);
+        req.objects[i]    = BLOB(objects[i]);
         req.count++;
     }
 
@@ -68,13 +68,13 @@ TEST(LevelDB, BPut) {
     // read directly from leveldb since setup() already did PUTs
     for(std::size_t i = 0; i < count; i++) {
         std::string key;
-        EXPECT_EQ(sp_to_key(triples[i].get_sub(), triples[i].get_pred(), key), HXHIM_SUCCESS);
+        EXPECT_EQ(sp_to_key(BLOB(subjects[i]), BLOB(predicates[i]), key), HXHIM_SUCCESS);
         EXPECT_NE(key.size(), 0);
 
         std::string value;
         leveldb::Status status = db->Get(leveldb::ReadOptions(), key, &value);
         EXPECT_EQ(status.ok(), true);
-        EXPECT_EQ(memcmp(triples[i].get_obj().data(), value.c_str(), value.size()), 0);
+        EXPECT_EQ(memcmp(BLOB(objects[i]).data(), value.c_str(), value.size()), 0);
     }
 
     // make sure datastore only has count items
@@ -97,15 +97,15 @@ TEST(LevelDB, BGet) {
     // get triple back using GET
     Transport::Request::BGet req(count + 1);
     for(std::size_t i = 0; i < count; i++) {
-        req.subjects[i]     = triples[i].get_sub();
-        req.predicates[i]   = triples[i].get_pred();
-        req.object_types[i] = triples[i].get_obj().data_type();
+        req.subjects[i]     = BLOB(subjects[i]);
+        req.predicates[i]   = BLOB(predicates[i]);
+        req.object_types[i] = BLOB(objects[i]).data_type();
         req.count++;
     }
 
     // non-existant subject-predicate pair
-    req.subjects[count]     = ReferenceBlob((void *) "sub3",  4, hxhim_data_t::HXHIM_DATA_BYTE);
-    req.predicates[count]   = ReferenceBlob((void *) "pred3", 5, hxhim_data_t::HXHIM_DATA_BYTE);
+    req.subjects[count]     = BLOB(std::string("sub3"));
+    req.predicates[count]   = BLOB(std::string("pred3"));
     req.object_types[count] = hxhim_data_t::HXHIM_DATA_BYTE;
     req.count++;
 
@@ -115,8 +115,8 @@ TEST(LevelDB, BGet) {
     for(std::size_t i = 0; i < count; i++) {
         EXPECT_EQ(res->statuses[i], DATASTORE_SUCCESS);
         ASSERT_NE(res->objects[i].data(), nullptr);
-        EXPECT_EQ(res->objects[i].size(), triples[i].get_obj().size());
-        EXPECT_EQ(std::memcmp(triples[i].get_obj().data(), res->objects[i].data(), res->objects[i].size()), 0);
+        EXPECT_EQ(res->objects[i].size(), BLOB(objects[i]).size());
+        EXPECT_EQ(std::memcmp(BLOB(objects[i]).data(), res->objects[i].data(), res->objects[i].size()), 0);
     }
 
     EXPECT_EQ(res->statuses[count], DATASTORE_ERROR);
@@ -132,9 +132,9 @@ TEST(LevelDB, BGetOp) {
 
     for(int op = HXHIM_GETOP_EQ; op < HXHIM_GETOP_INVALID; op++) {
         Transport::Request::BGetOp req(1);
-        req.subjects[0]     = triples[0].get_sub();
-        req.predicates[0]   = triples[0].get_pred();
-        req.object_types[0] = triples[0].get_obj().data_type();
+        req.subjects[0]     = BLOB(subjects[0]);
+        req.predicates[0]   = BLOB(predicates[0]);
+        req.object_types[0] = hxhim_data_t::HXHIM_DATA_BYTE;
         req.num_recs[0]     = 1;
         req.ops[0]          = static_cast<hxhim_getop_t>(op);
         req.count++;
@@ -150,17 +150,17 @@ TEST(LevelDB, BGetOp) {
                 // all results are the same value
                 for(std::size_t j = 0; j < res->num_recs[0]; j++) {
                     ASSERT_NE(res->subjects[0][j].data(), nullptr);
-                    EXPECT_EQ(memcmp(triples[0].get_sub().data(),
+                    EXPECT_EQ(memcmp(subjects[0].data(),
                                      res->subjects[0][j].data(),
                                      res->subjects[0][j].size()),   0);
 
                     ASSERT_NE(res->predicates[0][j].data(), nullptr);
-                    EXPECT_EQ(memcmp(triples[0].get_pred().data(),
+                    EXPECT_EQ(memcmp(predicates[0].data(),
                                      res->predicates[0][j].data(),
                                      res->predicates[0][j].size()), 0);
 
                     ASSERT_NE(res->objects[0][j].data(), nullptr);
-                    EXPECT_EQ(memcmp(triples[0].get_obj().data(),
+                    EXPECT_EQ(memcmp(objects[0].data(),
                                      res->objects[0][j].data(),
                                      res->objects[0][j].size()),    0);
                 }
@@ -176,17 +176,17 @@ TEST(LevelDB, BGetOp) {
 
                 for(std::size_t j = 0; j < res->num_recs[0]; j++) {
                     ASSERT_NE(res->subjects[0][j].data(), nullptr);
-                    EXPECT_EQ(memcmp(triples[j].get_sub().data(),
+                    EXPECT_EQ(memcmp(subjects[j].data(),
                                      res->subjects[0][j].data(),
                                      res->subjects[0][j].size()),   0);
 
                     ASSERT_NE(res->predicates[0][j].data(), nullptr);
-                    EXPECT_EQ(memcmp(triples[j].get_pred().data(),
+                    EXPECT_EQ(memcmp(predicates[j].data(),
                                      res->predicates[0][j].data(),
                                      res->predicates[0][j].size()), 0);
 
                     ASSERT_NE(res->objects[0][j].data(), nullptr);
-                    EXPECT_EQ(memcmp(triples[j].get_obj().data(),
+                    EXPECT_EQ(memcmp(objects[j].data(),
                                      res->objects[0][j].data(),
                                      res->objects[0][j].size()),    0);
                 }
@@ -212,14 +212,14 @@ TEST(LevelDB, BDelete) {
     {
         Transport::Request::BDelete req(count + 1);
         for(std::size_t i = 0; i < count; i++) {
-            req.subjects[i]     = triples[i].get_sub();
-            req.predicates[i]   = triples[i].get_pred();
+            req.subjects[i]     = BLOB(subjects[i]);
+            req.predicates[i]   = BLOB(predicates[i]);
             req.count++;
         }
 
         // non-existant subject-predicate pair
-        req.subjects[count]     = ReferenceBlob((void *) "sub3",  4, hxhim_data_t::HXHIM_DATA_BYTE);
-        req.predicates[count]   = ReferenceBlob((void *) "pred3", 5, hxhim_data_t::HXHIM_DATA_BYTE);
+        req.subjects[count]     = BLOB(std::string("sub3"));
+        req.predicates[count]   = BLOB(std::string("pred3"));
         req.count++;
 
         Transport::Response::BDelete *res = ds->operate(&req);
@@ -239,14 +239,14 @@ TEST(LevelDB, BDelete) {
     {
         Transport::Request::BGet req(count + 1);
         for(std::size_t i = 0; i < count; i++) {
-            req.subjects[i]     = triples[i].get_sub();
-            req.predicates[i]   = triples[i].get_pred();
+            req.subjects[i]     = BLOB(subjects[i]);
+            req.predicates[i]   = BLOB(predicates[i]);
             req.count++;
         }
 
         // non-existant subject-predicate pair
-        req.subjects[count]   = ReferenceBlob((void *) "sub3",  4, hxhim_data_t::HXHIM_DATA_BYTE);
-        req.predicates[count] = ReferenceBlob((void *) "pred3", 5, hxhim_data_t::HXHIM_DATA_BYTE);
+        req.subjects[count]   = BLOB(std::string("sub3"));
+        req.predicates[count] = BLOB(std::string("pred3"));
         req.count++;
 
         Transport::Response::BGet *res = ds->operate(&req);
@@ -263,13 +263,13 @@ TEST(LevelDB, BDelete) {
     {
         for(std::size_t i = 0; i < count; i++) {
             std::string key;
-            EXPECT_EQ(sp_to_key(triples[i].get_sub(), triples[i].get_pred(), key), HXHIM_SUCCESS);
+            EXPECT_EQ(sp_to_key(BLOB(subjects[i]), BLOB(predicates[i]), key), HXHIM_SUCCESS);
             EXPECT_NE(key.size(), 0);
 
             std::string value;
             leveldb::Status status = db->Get(leveldb::ReadOptions(), key, &value);
             EXPECT_EQ(status.ok(), false);
-            EXPECT_EQ(memcmp(triples[i].get_obj().data(), value.c_str(), value.size()), 0);
+            EXPECT_EQ(memcmp(BLOB(objects[i]).data(), value.c_str(), value.size()), 0);
         }
     }
 

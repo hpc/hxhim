@@ -1,5 +1,4 @@
 #include <cerrno>
-#include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <sys/stat.h>

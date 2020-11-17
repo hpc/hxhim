@@ -24,9 +24,9 @@ set(DS_TEST_SRC
   GetStats.cpp
   Histogram.cpp
   InMemory.cpp
-  common.cpp
-  rm_r.hpp
   rm_r.cpp
+  rm_r.hpp
+  triples.hpp
 )
 
 if (LEVELDB_FOUND AND ENABLE_LEVELDB)
