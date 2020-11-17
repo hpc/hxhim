@@ -7,6 +7,7 @@ set(HXHIM_TEST_FILES
   Histogram.cpp
   OpenClose.cpp
   PutGet.cpp
+  PutGetOp.cpp
   RangeServer.cpp
   Results.cpp
   accessors.cpp
