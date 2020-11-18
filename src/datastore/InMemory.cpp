@@ -302,6 +302,13 @@ Transport::Response::BGetOp *datastore::InMemory::BGetOpImpl(Transport::Request:
             }
         }
 
+        if (subject != req->subjects[i].data()) {
+            dealloc(subject);
+        }
+        if (predicate != req->predicates[i].data()) {
+            dealloc(predicate);
+        }
+
         // if the status is still DATASTORE_UNSET, the operation succeeded
         if (res->statuses[i] == DATASTORE_UNSET) {
             res->statuses[i] = DATASTORE_SUCCESS;
