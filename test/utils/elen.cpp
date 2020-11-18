@@ -161,23 +161,23 @@ TEST(elen, random_small_decimals) {
 
 // Chapter 5 Large Decimals
 TEST(elen, encode_large_decimals) {
-    ELEN_EQ((elen_encode_large_float(-100.5,     4,   '-', '+')),   "--68994+");
-    ELEN_EQ((elen_encode_large_float(-10.5,      3,   '-', '+')),    "--7894+");
-    ELEN_EQ((elen_encode_large_float(-3.145,     4,   '-', '+')),     "-6854+"); // -3854+
-    ELEN_EQ((elen_encode_large_float(-3.14,      3,   '-', '+')),      "-685+"); // -385+
-    ELEN_EQ((elen_encode_large_float(-1.01,      3,   '-', '+')),      "-898+"); // -198+
-    ELEN_EQ((elen_encode_large_float(-1,         1,   '-', '+')),        "-8+"); // -1+
+    ELEN_EQ((elen_encode_large_float(-100.5,     1,   '-', '+')),   "--68994+");
+    ELEN_EQ((elen_encode_large_float(-10.5,      1,   '-', '+')),    "--7894+");
+    ELEN_EQ((elen_encode_large_float(-3.145,     3,   '-', '+')),     "-6854+"); // -3854+
+    ELEN_EQ((elen_encode_large_float(-3.14,      2,   '-', '+')),      "-685+"); // -385+
+    ELEN_EQ((elen_encode_large_float(-1.01,      2,   '-', '+')),      "-898+"); // -198+
+    ELEN_EQ((elen_encode_large_float(-1,         0,   '-', '+')),        "-8+"); // -1+
     ELEN_EQ((elen_encode_large_float(-0.0001233, 7,   '-', '+')), "-99998766+"); // -09998766+
     ELEN_EQ((elen_encode_large_float(-0.000123,  6,   '-', '+')),  "-9999876+"); // -0999876+
     ELEN_EQ((elen_encode_large_float(0,          0,   '-', '+')),          "0");
     ELEN_EQ((elen_encode_large_float(+0.000123,  6,   '-', '+')),  "+0000123-");
     ELEN_EQ((elen_encode_large_float(+0.0001233, 7,   '-', '+')), "+00001233-");
-    ELEN_EQ((elen_encode_large_float(+1,         1,   '-', '+')),        "+1-");
-    ELEN_EQ((elen_encode_large_float(+1.01,      3,   '-', '+')),      "+101-");
-    ELEN_EQ((elen_encode_large_float(+3.14,      3,   '-', '+')),      "+314-");
-    ELEN_EQ((elen_encode_large_float(+3.145,     4,   '-', '+')),     "+3145-");
-    ELEN_EQ((elen_encode_large_float(+10.5,      3,   '-', '+')),    "++2105-");
-    ELEN_EQ((elen_encode_large_float(+100.5,     4,   '-', '+')),   "++31005-");
+    ELEN_EQ((elen_encode_large_float(+1,         0,   '-', '+')),        "+1-");
+    ELEN_EQ((elen_encode_large_float(+1.01,      2,   '-', '+')),      "+101-");
+    ELEN_EQ((elen_encode_large_float(+3.14,      2,   '-', '+')),      "+314-");
+    ELEN_EQ((elen_encode_large_float(+3.145,     3,   '-', '+')),     "+3145-");
+    ELEN_EQ((elen_encode_large_float(+10.5,      1,   '-', '+')),    "++2105-");
+    ELEN_EQ((elen_encode_large_float(+100.5,     1,   '-', '+')),   "++31005-");
 }
 
 // Chapter 5 Large Decimals
@@ -235,14 +235,14 @@ TEST(elen, encode_floating_point) {
     ELEN_EQ((elen_encode_floating_float(-1.4,      2,     '-', '+')),    "--885+");
     ELEN_EQ((elen_encode_floating_float(-1.3,      2,     '-', '+')),    "--886+");
     ELEN_EQ((elen_encode_floating_float(-1,        1,     '-', '+')),     "--88+");
-    ELEN_EQ((elen_encode_floating_float(-0.123,    4,     '-', '+')),    "-0876+");
-    ELEN_EQ((elen_encode_floating_float(-0.0123,   4,     '-', '+')),   "-+1876+");
-    ELEN_EQ((elen_encode_floating_float(-0.001233, 6,     '-', '+')),  "-+28766+");
-    ELEN_EQ((elen_encode_floating_float(-0.00123,  5,     '-', '+')),   "-+2876+");
+    ELEN_EQ((elen_encode_floating_float(-0.123,    3,     '-', '+')),    "-0876+");
+    ELEN_EQ((elen_encode_floating_float(-0.0123,   3,     '-', '+')),   "-+1876+");
+    ELEN_EQ((elen_encode_floating_float(-0.001233, 4,     '-', '+')),  "-+28766+");
+    ELEN_EQ((elen_encode_floating_float(-0.00123,  3,     '-', '+')),   "-+2876+");
     ELEN_EQ((elen_encode_floating_float(0,         0,     '-', '+')),         "0");
-    ELEN_EQ((elen_encode_floating_float(+0.00123,  5,     '-', '+')),   "+-7123-");
-    ELEN_EQ((elen_encode_floating_float(+0.001233, 6,     '-', '+')),  "+-71233-");
-    ELEN_EQ((elen_encode_floating_float(+0.0123,   4,     '-', '+')),   "+-8123-");
+    ELEN_EQ((elen_encode_floating_float(+0.00123,  3,     '-', '+')),   "+-7123-");
+    ELEN_EQ((elen_encode_floating_float(+0.001233, 4,     '-', '+')),  "+-71233-");
+    ELEN_EQ((elen_encode_floating_float(+0.0123,   3,     '-', '+')),   "+-8123-");
     ELEN_EQ((elen_encode_floating_float(+0.123,    3,     '-', '+')),    "+0123-");
     ELEN_EQ((elen_encode_floating_float(+1,        1,     '-', '+')),     "++11-");
     ELEN_EQ((elen_encode_floating_float(+1.3,      2,     '-', '+')),    "++113-");

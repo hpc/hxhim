@@ -59,7 +59,7 @@ std::string small_decimals_digits(const T value, const int precision) {
     }
 
     std::stringstream s;
-    s << std::setprecision(precision) << std::abs(value);
+    s << std::fixed << std::setprecision(precision) << std::abs(value);
 
     // remove leading zero and decimal point
     char tmp[2];
@@ -102,7 +102,7 @@ std::string large_decimals(const T value, const int precision, const char neg, c
     }
 
     std::stringstream s;
-    s << std::setprecision(precision) << value;
+    s << std::fixed << std::setprecision(precision) << value;
 
     int integer = 0;
     T decimal = 0;
