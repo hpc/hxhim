@@ -1,6 +1,8 @@
 #ifndef TRANSFORM_TPP
 #define TRANSFORM_TPP
 
+#include <cstring>
+
 #include "datastore/constants.hpp"
 #include "utils/elen.hpp"
 #include "utils/memory.hpp"
@@ -9,6 +11,12 @@
 namespace datastore {
 namespace Transform {
 namespace encode {
+
+static void *copy(const std::string &str) {
+    void *dst = alloc(str.size());
+    memcpy(dst, str.c_str(), str.size());
+    return dst;
+}
 
 template <typename T, typename = enable_if_t <std::is_integral<T>::value> >
 int integers(void *src, const size_t,

@@ -33,8 +33,6 @@ namespace datastore {
 
         /** All *dst must be dealloc-ed (NOT destruct-ed) by the caller of these functions */
         namespace encode {
-            void *copy(const std::string &str);
-
             template <typename T, typename = enable_if_t <std::is_integral<T>::value> >
             int integers(void *src, const size_t,
                          void **dst, size_t *dst_size,

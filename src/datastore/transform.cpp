@@ -12,12 +12,6 @@ datastore::Transform::NumericExtra::NumericExtra()
       double_precision(elen::DOUBLE_PRECISION)
 {}
 
-void *datastore::Transform::encode::copy(const std::string &str) {
-    void *dst = alloc(str.size());
-    memcpy(dst, str.c_str(), str.size());
-    return dst;
-}
-
 datastore::Transform::Callbacks *datastore::Transform::default_callbacks() {
     Callbacks *callbacks = construct<Callbacks>();
 
