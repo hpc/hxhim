@@ -13,15 +13,17 @@ const std::string DOUBLE = "double";
 int main(int argc, char *argv[]) {
     char neg = elen::NEG_SYMBOL;
     char pos = elen::POS_SYMBOL;
+    std::size_t precision = 0;
+    std::size_t *pre = nullptr;
 
     for(int i = 1; i < argc; i++) {
         const std::string args = argv[i];
         if ((args == "-h") || (args == "--help")) {
-            std::cout << "Syntax: " << argv[0] << " [--neg c] [--pos c]" << std::endl
+            std::cout << "Syntax: " << argv[0] << " [--neg c] [--pos c] [--digits d]" << std::endl
                       << std::endl
                       << "    Input is read from stdin" << std::endl
                       << "    Input format is: <encode|decode> <int|float|double> <value>" << std::endl
-                      << "    value should be numeric when encoding and a string when decoding" << std::endl;
+                      << "    Value should be numeric when encoding and a string when decoding." << std::endl;
             return 0;
         }
         else if (args == "--neg") {
@@ -29,6 +31,14 @@ int main(int argc, char *argv[]) {
         }
         else if (args == "--pos") {
             pos = argv[++i][0];
+        }
+        else if (args == "--digits") {
+            if (sscanf(argv[++i], "%zu", &precision) != 1) {
+                std::cerr << "Bad Precision: " << args << std::endl;
+                return 1;
+            }
+
+            pre = &precision;
         }
 
         i++;
@@ -54,7 +64,9 @@ int main(int argc, char *argv[]) {
                     continue;
                 }
 
-                std::cout << elen::encode::floating_point(value, std::numeric_limits<float>::digits10, neg, pos) << std::endl;
+                std::cout << elen::encode::floating_point(value,
+                                                          pre?*pre:std::numeric_limits<float>::digits10,
+                                                          neg, pos) << std::endl;
             }
             else if (type == DOUBLE) {
                 double value;
@@ -63,7 +75,9 @@ int main(int argc, char *argv[]) {
                     continue;
                 }
 
-                std::cout << elen::encode::floating_point(value, std::numeric_limits<double>::digits10, neg, pos) << std::endl;
+                std::cout << elen::encode::floating_point(value,
+                                                          pre?*pre:std::numeric_limits<double>::digits10,
+                                                          neg, pos) << std::endl;
             }
             else {
                 std::cerr << "Unknown numeric type: " << type << std::endl;
@@ -80,11 +94,13 @@ int main(int argc, char *argv[]) {
                 std::cout << elen::decode::integers<int64_t>(value, nullptr, neg, pos) << std::endl;
             }
             else if (type == FLOAT) {
-                std::cout << std::fixed << std::setprecision(std::numeric_limits<float>::digits10 + 1)
+                std::cout << std::fixed
+                          << std::setprecision(pre?*pre:(std::numeric_limits<float>::digits10) + 1)
                           << elen::decode::floating_point<float>(value, neg, pos) << std::endl;
             }
             else if (type == DOUBLE) {
-                std::cout << std::fixed << std::setprecision(std::numeric_limits<double>::digits10 + 1)
+                std::cout << std::fixed
+                          << std::setprecision(pre?*pre:(std::numeric_limits<float>::digits10) + 1)
                           << elen::decode::floating_point<double>(value, neg, pos) << std::endl;
             }
             else {
