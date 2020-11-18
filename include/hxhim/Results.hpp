@@ -11,7 +11,6 @@
 #include "hxhim/struct.h"
 #include "utils/Histogram.hpp"
 #include "utils/Stats.hpp"
-#include "utils/memory.hpp"
 
 namespace hxhim {
 

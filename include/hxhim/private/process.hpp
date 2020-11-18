@@ -1,5 +1,5 @@
-#ifndef TRANSPORT_BACKEND_LOCAL_PROCESS_HPP
-#define TRANSPORT_BACKEND_LOCAL_PROCESS_HPP
+#ifndef PROCESS_HPP
+#define PROCESS_HPP
 
 #include "hxhim/private/Results.hpp"
 #include "hxhim/private/hxhim.hpp"

@@ -1,8 +1,6 @@
 #include "hxhim/Blob.hpp"
 #include "hxhim/private/hxhim.hpp"
 #include "utils/Stats.hpp"
-#include "utils/elen.hpp"
-#include "utils/macros.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"

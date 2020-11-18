@@ -101,18 +101,6 @@ int datastore::Datastore::ID() const {
     return id;
 }
 
-std::size_t datastore::Datastore::all_keys_size(Transport::Request::SubjectPredicate *req) {
-    std::size_t total = 0;
-    for(std::size_t i = 0; i < req->count; i++) {
-        Blob &subject   = req->subjects[i];
-        Blob &predicate = req->predicates[i];
-
-        total += subject.pack_size(false) + predicate.pack_size(false);
-    }
-
-    return total;
-}
-
 Transport::Response::BPut *datastore::Datastore::operate(Transport::Request::BPut *req) {
     std::lock_guard<std::mutex> lock(mutex);
     Transport::Response::BPut *res = BPutImpl(req);

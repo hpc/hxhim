@@ -1,5 +1,5 @@
-#ifndef HXHIM_TRANSFORM_HPP
-#define HXHIM_TRANSFORM_HPP
+#ifndef TRANSFORM_HPP
+#define TRANSFORM_HPP
 
 #include <map>
 

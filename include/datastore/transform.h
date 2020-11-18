@@ -1,5 +1,5 @@
-#ifndef HXHIM_TRANSFORM_H
-#define HXHIM_TRANSFORM_H
+#ifndef TRANSFORM_H
+#define TRANSFORM_H
 
 #ifdef __cplusplus
 #include <cstddef>

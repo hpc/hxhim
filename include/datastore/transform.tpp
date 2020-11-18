@@ -1,8 +1,7 @@
-#ifndef DATASTORE_TRANSFORM_TPP
-#define DATASTORE_TRANSFORM_TPP
+#ifndef TRANSFORM_TPP
+#define TRANSFORM_TPP
 
 #include "datastore/constants.hpp"
-#include "hxhim/constants.h"
 #include "utils/elen.hpp"
 #include "utils/memory.hpp"
 #include "utils/type_traits.hpp"

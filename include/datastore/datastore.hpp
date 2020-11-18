@@ -43,8 +43,6 @@ class Datastore {
         void Close();
         int ID() const;
 
-        static std::size_t all_keys_size(Transport::Request::SubjectPredicate *req);
-
         Transport::Response::BPut       *operate(Transport::Request::BPut       *req);
         Transport::Response::BGet       *operate(Transport::Request::BGet       *req);
         Transport::Response::BGetOp     *operate(Transport::Request::BGetOp     *req);

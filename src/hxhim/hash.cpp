@@ -1,9 +1,5 @@
-#include <cstdlib>
-
-#include "datastore/datastores.hpp"
 #include "hxhim/hash.h"
 #include "hxhim/private/accessors.hpp"
-#include "hxhim/RangeServer.hpp"
 #include "utils/uthash.h"
 
 /**
@@ -23,7 +19,7 @@ int hxhim_hash(hxhim_t *hx,
                void *predicate, const size_t predicate_len) {
     hxhim_hash_t func = nullptr;
     void *args = nullptr;
-    if (hxhim::GetHash(hx, nullptr, &func, &args) != HXHIM_SUCCESS) {
+    if (hxhim::nocheck::GetHash(hx, nullptr, &func, &args) != HXHIM_SUCCESS) {
         return -1;
     }
 

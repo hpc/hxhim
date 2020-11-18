@@ -2,7 +2,6 @@
 #include "hxhim/private/hxhim.hpp"
 #include "hxhim/private/options.hpp"
 #include "hxhim/private/process.hpp"
-#include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
