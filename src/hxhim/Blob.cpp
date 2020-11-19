@@ -13,6 +13,15 @@ Blob::Blob(void *ptr, const std::size_t len, const hxhim_data_t type, const bool
       clean(clean)
 {}
 
+Blob::Blob(const std::size_t len, const void *ptr, const hxhim_data_t type)
+    : ptr(::alloc(len)),
+      len(len),
+      type(type),
+      clean(true)
+{
+    memcpy(this->ptr, ptr, len);
+}
+
 Blob::Blob(Blob &rhs)
     : Blob(rhs.ptr, rhs.len, rhs.type, false)
 {}
@@ -27,7 +36,7 @@ Blob::~Blob() {
     Blob::dealloc();
 }
 
-Blob& Blob::operator=(Blob &rhs) {
+Blob &Blob::operator=(const Blob &rhs) {
     Blob::dealloc(); // handle existing data
 
     ptr = rhs.ptr;
@@ -38,7 +47,7 @@ Blob& Blob::operator=(Blob &rhs) {
     return *this;
 }
 
-Blob& Blob::operator=(Blob &&rhs) {
+Blob &Blob::operator=(Blob &&rhs) {
     if (this != &rhs) {
         Blob::dealloc(); // handle existing data
 
@@ -221,24 +230,16 @@ Blob::operator std::string() const {
     return std::string((char *) ptr, len);
 }
 
-// don't take ownership of ptr
 Blob ReferenceBlob(void *ptr, const std::size_t len, const hxhim_data_t type) {
     return Blob(ptr, len, type, false);
 }
 
-// take ownership of ptr
-Blob RealBlob(void *ptr, const std::size_t len, const hxhim_data_t type) {
-    return Blob(ptr, len, type, true);
+Blob RealBlob(void *ptr, const std::size_t len,
+              const hxhim_data_t type) {
+    return std::move(Blob(ptr, len, type, true));
 }
 
-// length and data are known, but data needs to be copied
-Blob RealBlob(const std::size_t len, const void *blob, const hxhim_data_t type) {
-    if (!blob) {
-        throw std::runtime_error("unable to unpack blob");
-    }
-
-    void *ptr = alloc(len);
-    memcpy(ptr, blob, len);
-
-    return Blob(ptr, len, type, true);
+Blob RealBlob(const std::size_t len, const void *ptr,
+              const hxhim_data_t type) {
+    return std::move(Blob(len, ptr, type));
 }

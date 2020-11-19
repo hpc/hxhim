@@ -1,5 +1,5 @@
-#ifndef TRANSPORT_BLOB_HPP
-#define TRANSPORT_BLOB_HPP
+#ifndef BLOB_HPP
+#define BLOB_HPP
 
 #include <cstdint>
 #include <string>
@@ -8,23 +8,42 @@
 
 /**
  * Blob
- * A simple struct to hold some data and its size.
- * The ptr is not deallocated.
+ * A structure for holding pointers
+ * and enforcing ownership semantics.
  *
- * If the rhs is a reference, it is copied
- * If the rhs is real, it is moved
- * lhs is always overwritten with no reguards to its type
+ * If clean is false, *this is a reference
+ * to the original data.
+ *
+ * If clean is true, *this blob has taken
+ * ownership of the pointer, and will
+ * deallocate the pointer with the dealloc
+ * function found in utils/memory.hpp
+ * when *this blob is overwritten
+ * or destructed.
  */
 class Blob {
     public:
+        // save ptr but do not touch data
         Blob(void *ptr = nullptr, const std::size_t len = 0,
-             const hxhim_data_t type = hxhim_data_t::HXHIM_DATA_INVALID, const bool clean = false);
+             const hxhim_data_t type = hxhim_data_t::HXHIM_DATA_INVALID,
+             const bool clean = false);
+
+        // memcpy the ptr
+        Blob(const std::size_t len, const void *ptr,
+             const hxhim_data_t type = hxhim_data_t::HXHIM_DATA_INVALID);
+
+        // creates a reference to rhs
         Blob(Blob &rhs);
+
+        // moves rhs to here
         Blob(Blob &&rhs);
 
         virtual ~Blob();
 
-        Blob &operator=(Blob &rhs);
+        // destroy this and reference rhs
+        Blob &operator=(const Blob &rhs);
+
+        // destroy this, take rhs, and clear rhs
         Blob &operator=(Blob &&rhs);
 
         hxhim_data_t set_type(const hxhim_data_t new_type);
@@ -62,16 +81,17 @@ class Blob {
         bool clean;         // whether or not to call dealloc in destructor
 };
 
-// don't take ownership of ptr
+// Convenience wrapper for constructing references
 Blob ReferenceBlob(void *ptr, const std::size_t len,
                    const hxhim_data_t type);
 
-// take ownership of ptr
+// Convenience wrapper for constructing Blobs that own their pointers
 Blob RealBlob(void *ptr, const std::size_t len,
               const hxhim_data_t type);
 
-// deep copy with known length
-Blob RealBlob(const std::size_t len, const void *blob,
+// Convenience wrapper for constructing Blobs that copy the pointer
+Blob RealBlob(const std::size_t len, const void *ptr,
               const hxhim_data_t type);
+
 
 #endif

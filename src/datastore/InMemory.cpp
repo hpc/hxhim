@@ -137,7 +137,7 @@ Transport::Response::BGet *datastore::InMemory::BGetImpl(Transport::Request::BGe
                     if (decode(callbacks, ReferenceBlob((void *) it->second.data(), it->second.size(), req->object_types[i]),
                                &object, &object_len) == DATASTORE_SUCCESS) {
 
-                        res->objects[i] = std::move(Blob(object, object_len, req->object_types[i], true));
+                        res->objects[i] = RealBlob(object, object_len, req->object_types[i]);
                         event.size += res->objects[i].size();
                         status = DATASTORE_SUCCESS;
                     }

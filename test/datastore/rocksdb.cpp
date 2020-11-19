@@ -47,9 +47,9 @@ static RocksdbTest *setup() {
     Transport::Request::BPut req(count);
 
     for(std::size_t i = 0; i < count; i++) {
-        req.subjects[i]   = BLOB(subjects[i]);
-        req.predicates[i] = BLOB(predicates[i]);
-        req.objects[i]    = BLOB(objects[i]);
+        req.subjects[i]   = ReferenceBlob(subjects[i]);
+        req.predicates[i] = ReferenceBlob(predicates[i]);
+        req.objects[i]    = ReferenceBlob(objects[i]);
         req.count++;
     }
 
@@ -68,13 +68,13 @@ TEST(Rocksdb, BPut) {
     // read directly from rocksdb since setup() already did PUTs
     for(std::size_t i = 0; i < count; i++) {
         std::string key;
-        EXPECT_EQ(sp_to_key(BLOB(subjects[i]), BLOB(predicates[i]), key), HXHIM_SUCCESS);
+        EXPECT_EQ(sp_to_key(ReferenceBlob(subjects[i]), ReferenceBlob(predicates[i]), key), HXHIM_SUCCESS);
         EXPECT_NE(key.size(), 0);
 
         std::string value;
         rocksdb::Status status = db->Get(rocksdb::ReadOptions(), key, &value);
         EXPECT_EQ(status.ok(), true);
-        EXPECT_EQ(memcmp(BLOB(objects[i]).data(), value.c_str(), value.size()), 0);
+        EXPECT_EQ(memcmp(ReferenceBlob(objects[i]).data(), value.c_str(), value.size()), 0);
     }
 
     // make sure datastore only has count items
@@ -95,19 +95,14 @@ TEST(Rocksdb, BGet) {
     ASSERT_NE(ds, nullptr);
 
     // get triple back using GET
+    // include the non-existant subject-predicate pair
     Transport::Request::BGet req(count + 1);
-    for(std::size_t i = 0; i < count; i++) {
-        req.subjects[i]     = BLOB(subjects[i]);
-        req.predicates[i]   = BLOB(predicates[i]);
-        req.object_types[i] = BLOB(objects[i]).data_type();
+    for(std::size_t i = 0; i < count + 1; i++) {
+        req.subjects[i]     = ReferenceBlob(subjects[i]);
+        req.predicates[i]   = ReferenceBlob(predicates[i]);
+        req.object_types[i] = ReferenceBlob(objects[i]).data_type();
         req.count++;
     }
-
-    // non-existant subject-predicate pair
-    req.subjects[count]     = BLOB(std::string("sub3"));
-    req.predicates[count]   = BLOB(std::string("pred3"));
-    req.object_types[count] = hxhim_data_t::HXHIM_DATA_BYTE;
-    req.count++;
 
     Transport::Response::BGet *res = ds->operate(&req);
     ASSERT_NE(res, nullptr);
@@ -115,8 +110,8 @@ TEST(Rocksdb, BGet) {
     for(std::size_t i = 0; i < count; i++) {
         EXPECT_EQ(res->statuses[i], DATASTORE_SUCCESS);
         ASSERT_NE(res->objects[i].data(), nullptr);
-        EXPECT_EQ(res->objects[i].size(), BLOB(objects[i]).size());
-        EXPECT_EQ(std::memcmp(BLOB(objects[i]).data(), res->objects[i].data(), res->objects[i].size()), 0);
+        EXPECT_EQ(res->objects[i].size(), ReferenceBlob(objects[i]).size());
+        EXPECT_EQ(std::memcmp(ReferenceBlob(objects[i]).data(), res->objects[i].data(), res->objects[i].size()), 0);
     }
 
     EXPECT_EQ(res->statuses[count], DATASTORE_ERROR);
@@ -132,8 +127,8 @@ TEST(Rocksdb, BGetOp) {
 
     for(int op = HXHIM_GETOP_EQ; op < HXHIM_GETOP_INVALID; op++) {
         Transport::Request::BGetOp req(1);
-        req.subjects[0]     = BLOB(subjects[0]);
-        req.predicates[0]   = BLOB(predicates[0]);
+        req.subjects[0]     = ReferenceBlob(subjects[0]);
+        req.predicates[0]   = ReferenceBlob(predicates[0]);
         req.object_types[0] = hxhim_data_t::HXHIM_DATA_BYTE;
         req.num_recs[0]     = 1;
         req.ops[0]          = static_cast<hxhim_getop_t>(op);
@@ -210,17 +205,13 @@ TEST(Rocksdb, BDelete) {
 
     // delete the triples
     {
+        // include the non-existant subject-predicate pair
         Transport::Request::BDelete req(count + 1);
-        for(std::size_t i = 0; i < count; i++) {
-            req.subjects[i]     = BLOB(subjects[i]);
-            req.predicates[i]   = BLOB(predicates[i]);
+        for(std::size_t i = 0; i < count + 1; i++) {
+            req.subjects[i]     = ReferenceBlob(subjects[i]);
+            req.predicates[i]   = ReferenceBlob(predicates[i]);
             req.count++;
         }
-
-        // non-existant subject-predicate pair
-        req.subjects[count]     = BLOB(std::string("sub3"));
-        req.predicates[count]   = BLOB(std::string("pred3"));
-        req.count++;
 
         Transport::Response::BDelete *res = ds->operate(&req);
         ASSERT_NE(res, nullptr);
@@ -237,17 +228,13 @@ TEST(Rocksdb, BDelete) {
 
     // check if the triples still exist using GET
     {
+        // include the non-existant subject-predicate pair
         Transport::Request::BGet req(count + 1);
-        for(std::size_t i = 0; i < count; i++) {
-            req.subjects[i]     = BLOB(subjects[i]);
-            req.predicates[i]   = BLOB(predicates[i]);
+        for(std::size_t i = 0; i < count + 1; i++) {
+            req.subjects[i]     = ReferenceBlob(subjects[i]);
+            req.predicates[i]   = ReferenceBlob(predicates[i]);
             req.count++;
         }
-
-        // non-existant subject-predicate pair
-        req.subjects[count]   = BLOB(std::string("sub3"));
-        req.predicates[count] = BLOB(std::string("pred3"));
-        req.count++;
 
         Transport::Response::BGet *res = ds->operate(&req);
         ASSERT_NE(res, nullptr);
@@ -263,13 +250,13 @@ TEST(Rocksdb, BDelete) {
     {
         for(std::size_t i = 0; i < count; i++) {
             std::string key;
-            EXPECT_EQ(sp_to_key(BLOB(subjects[i]), BLOB(predicates[i]), key), HXHIM_SUCCESS);
+            EXPECT_EQ(sp_to_key(ReferenceBlob(subjects[i]), ReferenceBlob(predicates[i]), key), HXHIM_SUCCESS);
             EXPECT_NE(key.size(), 0);
 
             std::string value;
             rocksdb::Status status = db->Get(rocksdb::ReadOptions(), key, &value);
             EXPECT_EQ(status.ok(), false);
-            EXPECT_EQ(memcmp(BLOB(objects[i]).data(), value.c_str(), value.size()), 0);
+            EXPECT_EQ(memcmp(ReferenceBlob(objects[i]).data(), value.c_str(), value.size()), 0);
         }
     }
 

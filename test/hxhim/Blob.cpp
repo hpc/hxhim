@@ -304,7 +304,7 @@ TEST(Blob, pack_unpack) {
 
         head = (char *) packed;
 
-        Blob dst(ReferenceBlob(nullptr, 0, type));
+        Blob dst(nullptr, 0, type, false);
         EXPECT_EQ(dst.unpack(head, false), ((char *) packed) + src.pack_size(false));
 
         EXPECT_EQ(src.size(), dst.size());
@@ -320,7 +320,7 @@ TEST(Blob, pack_unpack) {
         void *src_ptr = alloc(len);
         memset(src_ptr, 0, len);
 
-        Blob src(RealBlob(src_ptr, len, type));
+        Blob src(src_ptr, len, type, true);
         EXPECT_EQ(src.data(), src_ptr);
         EXPECT_EQ(src.size(), len);
         EXPECT_EQ(src.data_type(), type);
@@ -333,7 +333,7 @@ TEST(Blob, pack_unpack) {
 
         head = (char *) packed;
 
-        Blob dst(RealBlob(nullptr, 0, type));
+        Blob dst(nullptr, 0, type, true);
         EXPECT_EQ(dst.unpack(head, false), ((char *) packed) + src.pack_size(false));
 
         EXPECT_EQ(src.size(), dst.size());
@@ -365,7 +365,7 @@ TEST(Blob, pack_unpack_ref) {
 
         head = (char *) packed;
 
-        Blob dst(ReferenceBlob(nullptr, 0, type));
+        Blob dst(nullptr, 0, type, false);
         EXPECT_EQ(dst.unpack_ref(head, false), ((char *) packed) + src.pack_ref_size(false));
 
         EXPECT_EQ(src.size(), dst.size());
@@ -381,7 +381,7 @@ TEST(Blob, pack_unpack_ref) {
         void *src_ptr = alloc(len);
         memset(src_ptr, 0, len);
 
-        Blob src(RealBlob(src_ptr, len, type));
+        Blob src(src_ptr, len, type, true);
         EXPECT_EQ(src.data(), src_ptr);
         EXPECT_EQ(src.size(), len);
         EXPECT_EQ(src.data_type(), type);
@@ -394,7 +394,7 @@ TEST(Blob, pack_unpack_ref) {
 
         head = (char *) packed;
 
-        Blob dst(RealBlob(nullptr, 0, type));
+        Blob dst(nullptr, 0, type, true);
         EXPECT_EQ(dst.unpack_ref(head, false), ((char *) packed) + src.pack_ref_size(false));
 
         EXPECT_EQ(src.size(), dst.size());
@@ -410,7 +410,7 @@ TEST(Blob, pack_unpack_ref) {
 TEST(Blob, get) {
     void *ptr = alloc(len);
 
-    Blob ref (ReferenceBlob(ptr, len, type));
+    Blob ref(ptr, len, type, false);
     EXPECT_EQ(ref.data(), ptr);
     EXPECT_EQ(ref.size(), len);
     EXPECT_EQ(ref.data_type(), type);
@@ -426,7 +426,7 @@ TEST(Blob, get) {
         EXPECT_EQ(type, get_type);
     }
 
-    Blob real(RealBlob(ptr, len, type));
+    Blob real(ptr, len, type, true);
     EXPECT_EQ(real.data(), ptr);
     EXPECT_EQ(real.size(), len);
     EXPECT_EQ(real.data_type(), type);
@@ -449,10 +449,10 @@ TEST(Blob, string) {
     void *str = alloc(len);
     memset(str, 'A', len);
 
-    Blob ref (ReferenceBlob(str, len, type));
+    Blob ref(str, len, type, false);
     EXPECT_EQ((std::string) ref,  std::string(len, 'A'));
 
-    Blob real(RealBlob(str, len, type));
+    Blob real(str, len, type, true);
     EXPECT_EQ((std::string) real, std::string(len, 'A'));
 
     // str is deallocated automatically
@@ -472,7 +472,7 @@ TEST(Blob, wrappers) {
         EXPECT_EQ(ref.will_clean(), false);
     }
 
-    // RealBlob (move) constructor (take ownership)
+    // RealBlob (move) constructor
     {
         void *ptr = alloc(len);
         const hxhim_data_t type = (hxhim_data_t) rand();
@@ -482,21 +482,6 @@ TEST(Blob, wrappers) {
         EXPECT_EQ(real.size(), len);
         EXPECT_EQ(real.data_type(), type);
         EXPECT_EQ(real.will_clean(), true);
-    }
-
-    // RealBlob (move) constructor (copy)
-    {
-        void *ptr = alloc(len);
-        const hxhim_data_t type = (hxhim_data_t) rand();
-
-        Blob real(RealBlob(len, ptr, type));
-        EXPECT_NE(real.data(), ptr);
-        EXPECT_NE(real.data(), nullptr);
-        EXPECT_EQ(real.size(), len);
-        EXPECT_EQ(real.data_type(), type);
-        EXPECT_EQ(real.will_clean(), true);
-
-        dealloc(ptr);
     }
 
     // ReferenceBlob assignment
@@ -518,7 +503,7 @@ TEST(Blob, wrappers) {
         EXPECT_EQ(ref.will_clean(), false);
     }
 
-    // RealBlob (move) assignment (take ownership)
+    // RealBlob assignment
     {
         void *ptr = alloc(len);
         const hxhim_data_t type = (hxhim_data_t) rand();
@@ -534,65 +519,5 @@ TEST(Blob, wrappers) {
         EXPECT_EQ(real.size(), len);
         EXPECT_EQ(real.data_type(), type);
         EXPECT_EQ(real.will_clean(), true);
-    }
-
-    // RealBlob (move) assignment (take ownership)
-    {
-        void *ptr = alloc(len);
-        const hxhim_data_t type = (hxhim_data_t) rand();
-
-        Blob real;
-        EXPECT_EQ(real.data(), nullptr);
-        EXPECT_EQ(real.size(), 0);
-        EXPECT_EQ(real.data_type(), HXHIM_DATA_INVALID);
-        EXPECT_EQ(real.will_clean(), false);
-
-        real = std::move(RealBlob(ptr, len, type));
-        EXPECT_EQ(real.data(), ptr);
-        EXPECT_EQ(real.size(), len);
-        EXPECT_EQ(real.data_type(), type);
-        EXPECT_EQ(real.will_clean(), true);
-    }
-
-    // RealBlob (move) assignment (copy data)
-    {
-        void *ptr = alloc(len);
-        const hxhim_data_t type = (hxhim_data_t) rand();
-
-        Blob real;
-        EXPECT_EQ(real.data(), nullptr);
-        EXPECT_EQ(real.size(), 0);
-        EXPECT_EQ(real.data_type(), HXHIM_DATA_INVALID);
-        EXPECT_EQ(real.will_clean(), false);
-
-        real = RealBlob(len, ptr, type);
-        EXPECT_NE(real.data(), ptr);
-        EXPECT_NE(real.data(), nullptr);
-        EXPECT_EQ(real.size(), len);
-        EXPECT_EQ(real.data_type(), type);
-        EXPECT_EQ(real.will_clean(), true);
-
-        dealloc(ptr);
-    }
-
-    // RealBlob (move) assignment (copy data)
-    {
-        void *ptr = alloc(len);
-        const hxhim_data_t type = (hxhim_data_t) rand();
-
-        Blob real;
-        EXPECT_EQ(real.data(), nullptr);
-        EXPECT_EQ(real.size(), 0);
-        EXPECT_EQ(real.data_type(), HXHIM_DATA_INVALID);
-        EXPECT_EQ(real.will_clean(), false);
-
-        real = std::move(RealBlob(len, ptr, type));
-        EXPECT_NE(real.data(), ptr);
-        EXPECT_NE(real.data(), nullptr);
-        EXPECT_EQ(real.size(), len);
-        EXPECT_EQ(real.data_type(), type);
-        EXPECT_EQ(real.will_clean(), true);
-
-        dealloc(ptr);
     }
 }

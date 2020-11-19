@@ -121,14 +121,14 @@ TEST(Results, Accessors) {
     // add some data to the non-empty results
     hxhim::Results::Result *rput = results.Add(construct<hxhim::Results::Put>(nullptr, -1, DATASTORE_SUCCESS));
     hxhim::Results::Put *put = static_cast<hxhim::Results::Put *>(rput);
-    put->subject   = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_POINTER);
-    put->predicate = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_POINTER);
+    put->subject     = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_POINTER);
+    put->predicate   = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_POINTER);
 
     hxhim::Results::Result *rget = results.Add(construct<hxhim::Results::Get>(nullptr, -1, DATASTORE_SUCCESS));
     hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(rget);
-    get->subject   = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_POINTER);
-    get->predicate = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_POINTER);
-    get->object    = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_BYTE);
+    get->subject     = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_POINTER);
+    get->predicate   = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_POINTER);
+    get->object      = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_BYTE);
 
     hxhim::Results::Result *rgetop = results.Add(construct<hxhim::Results::GetOp>(nullptr, -1, DATASTORE_SUCCESS));
     hxhim::Results::GetOp *getop = static_cast<hxhim::Results::GetOp *>(rgetop);
@@ -138,8 +138,8 @@ TEST(Results, Accessors) {
 
     hxhim::Results::Result *rdel = results.Add(construct<hxhim::Results::Delete>(nullptr, -1, DATASTORE_SUCCESS));
     hxhim::Results::Delete *del = static_cast<hxhim::Results::Delete *>(rdel);
-    del->subject   = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_POINTER);
-    del->predicate = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_POINTER);
+    del->subject     = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_POINTER);
+    del->predicate   = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_POINTER);
 
     // all Results will attempt to get these variables
     hxhim_op_t op;

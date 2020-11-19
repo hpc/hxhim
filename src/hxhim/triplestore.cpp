@@ -75,9 +75,7 @@ int key_to_sp(const void *key,
     const void *pred_start = end - pred_len - sizeof(pred_len);
 
     if (copy) {
-        void *pred = alloc(pred_len);
-        memcpy(pred, pred_start, pred_len);
-        predicate = RealBlob(pred, pred_len, hxhim_data_t::HXHIM_DATA_BYTE);
+        predicate = Blob(pred_len, pred_start, hxhim_data_t::HXHIM_DATA_BYTE);
     }
     else {
         predicate = ReferenceBlob((void *) pred_start, pred_len, hxhim_data_t::HXHIM_DATA_BYTE);
@@ -89,9 +87,7 @@ int key_to_sp(const void *key,
     void *sub_start = (void *) key;
 
     if (copy) {
-        void *sub = alloc(sub_len);
-        memcpy(sub, sub_start, sub_len);
-        subject = RealBlob(sub, sub_len, hxhim_data_t::HXHIM_DATA_BYTE);
+        subject = Blob(sub_len, sub_start, hxhim_data_t::HXHIM_DATA_BYTE);
     }
     else {
         subject = ReferenceBlob((void *) sub_start, sub_len, hxhim_data_t::HXHIM_DATA_BYTE);

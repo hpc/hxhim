@@ -160,7 +160,7 @@ std::istream &operator>>(std::istream &stream, Blob &input) {
     }
 
     // on error, will be deallocated automatically
-    input = std::move(RealBlob(data, size, type));
+    input = RealBlob(data, size, type);
 
     return stream;
 }
