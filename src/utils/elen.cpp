@@ -7,6 +7,8 @@
 
 const char ELEN_NEG = elen::NEG_SYMBOL;
 const char ELEN_POS = elen::POS_SYMBOL;
+const int  ELEN_FLOAT_PRECISION  = elen::FLOAT_PRECISION;
+const int  ELEN_DOUBLE_PRECISION = elen::DOUBLE_PRECISION;
 
 /**
  * lex_comp::operator()
