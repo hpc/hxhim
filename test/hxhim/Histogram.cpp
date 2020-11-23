@@ -9,11 +9,13 @@
 
 static const std::size_t TRIPLES = 10;
 
-static int test_hash(hxhim_t *,
-                     void *subject, const size_t,
+static int test_hash(hxhim_t *hx,
+                     void *, const size_t,
                      void *, const size_t,
                      void *) {
-    return * (std::size_t *) subject;
+    int rank = -1;
+    hxhim::GetMPI(hx, nullptr, &rank, nullptr);
+    return rank;
 }
 
 static HistogramBucketGenerator_t test_buckets = [](const double *, const size_t,
@@ -57,8 +59,8 @@ TEST(hxhim, Histogram) {
     // The last bucket will have 2 items
     for(std::size_t i = 0; i < TRIPLES; i++) {
         subjects[i] = rank;
-        predicates[i] = 0;
-        objects[i] = 0;
+        predicates[i] = rank + TRIPLES;
+        objects[i] = rank - TRIPLES;
 
         EXPECT_EQ(hxhim::PutDouble(&hx,
                                    (void *)&subjects[i],   sizeof(subjects[i]),   hxhim_data_t::HXHIM_DATA_UINT32,
@@ -129,10 +131,24 @@ TEST(hxhim, Histogram) {
 
         ASSERT_NE(buckets, nullptr);
         ASSERT_NE(counts, nullptr);
-
         EXPECT_EQ(size, (std::size_t ) 1);
+
         EXPECT_EQ(buckets[0], 0);
-        EXPECT_EQ(counts[0], TRIPLES);
+
+        EXPECT_EQ(counts[0], TRIPLES * (
+                      // SPO
+                      1
+                      // PSO
+                      #ifdef PSO
+                      + 1
+                      #endif
+                      // do not modify histogram as long as S and P are not floats/doubles
+                      // SOP
+                      // POS
+                      // OSP
+                      // OPS
+                      )
+            );
     }
 
     hxhim::Results::Destroy(hist_results);
