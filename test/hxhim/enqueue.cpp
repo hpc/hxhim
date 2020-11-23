@@ -28,7 +28,7 @@ TEST(Enqueue, PUT) {
     EXPECT_GT(rank, -1);
     EXPECT_GT(size, -1);
 
-    hxhim::Queue<Transport::Request::BPut> &puts = hx.p->queues.puts.queue;
+    hxhim::Queues<Transport::Request::BPut> &puts = hx.p->queues.puts.queue;
     EXPECT_EQ(puts.size(), (std::size_t) size);
 
     // enqueue one PUT
@@ -99,7 +99,7 @@ TEST(Enqueue, GET) {
     EXPECT_GT(rank, -1);
     EXPECT_GT(size, -1);
 
-    hxhim::Queue<Transport::Request::BGet> &gets = hx.p->queues.gets;
+    hxhim::Queues<Transport::Request::BGet> &gets = hx.p->queues.gets;
     EXPECT_EQ(gets.size(), (std::size_t) size);
 
     // enqueue one GET
@@ -167,7 +167,7 @@ TEST(Enqueue, GETOP) {
     EXPECT_GT(rank, -1);
     EXPECT_GT(size, -1);
 
-    hxhim::Queue<Transport::Request::BGetOp> &getops = hx.p->queues.getops;
+    hxhim::Queues<Transport::Request::BGetOp> &getops = hx.p->queues.getops;
     EXPECT_EQ(getops.size(), (std::size_t) size);
 
     const std::size_t num_recs = rand();
@@ -251,7 +251,7 @@ TEST(Enqueue, DELETE) {
     EXPECT_GT(rank, -1);
     EXPECT_GT(size, -1);
 
-    hxhim::Queue<Transport::Request::BDelete> &deletes = hx.p->queues.deletes;
+    hxhim::Queues<Transport::Request::BDelete> &deletes = hx.p->queues.deletes;
     EXPECT_EQ(deletes.size(), (std::size_t) size);
 
     // enqueue one DELETE
@@ -314,7 +314,7 @@ TEST(Enqueue, HISTOGRAM) {
     EXPECT_GT(rank, -1);
     EXPECT_GT(size, -1);
 
-    hxhim::Queue<Transport::Request::BHistogram> &histograms = hx.p->queues.histograms;
+    hxhim::Queues<Transport::Request::BHistogram> &histograms = hx.p->queues.histograms;
     EXPECT_EQ(histograms.size(), (std::size_t) size);
 
     // enqueue one HISTOGRAM

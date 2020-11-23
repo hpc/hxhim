@@ -15,10 +15,10 @@ namespace hxhim {
 
 template <typename Request_t,
           typename = enable_if_t <is_child_of <Transport::Request::Request, Request_t>::value> >
-std::size_t remaining(hxhim::Queue<Request_t> &queue) {
+std::size_t remaining(hxhim::Queues<Request_t> &queues) {
     std::size_t count = 0;
-    for(std::size_t i = 0; i < queue.size(); i++) {
-        count += queue[i].size();
+    for(std::size_t i = 0; i < queues.size(); i++) {
+        count += queues[i].size();
     }
 
     return count;
@@ -29,7 +29,7 @@ template <typename Request_t,
           typename = enable_if_t <is_child_of <Transport::Request::Request,   Request_t>::value  &&
                                   is_child_of <Transport::Response::Response, Response_t>::value> >
 hxhim::Results *process(hxhim_t *hx,
-                        hxhim::Queue<Request_t> &queue) {
+                        hxhim::Queues<Request_t> &queues) {
     #if PRINT_TIMESTAMPS
     ::Stats::Chronopoint process_start = ::Stats::now();
     #endif
@@ -42,7 +42,7 @@ hxhim::Results *process(hxhim_t *hx,
     hxhim::Results *res = construct<hxhim::Results>();
     uint64_t extra_time = 0;
 
-    while (remaining(queue)) {
+    while (remaining(queues)) {
         #if PRINT_TIMESTAMPS
         ::Stats::Chronopoint pop_start = ::Stats::now();
         #endif
@@ -50,10 +50,10 @@ hxhim::Results *process(hxhim_t *hx,
         // extract the first packet for each target range server
         Request_t *local = nullptr;
         Transport::ReqList<Request_t> remote;
-        for(std::size_t rs = 0; rs < queue.size(); rs++) {
-            if (queue[rs].size()) {
-                Request_t *req = queue[rs].front();
-                queue[rs].pop_front();
+        for(std::size_t rs = 0; rs < queues.size(); rs++) {
+            if (queues[rs].size()) {
+                Request_t *req = queues[rs].front();
+                queues[rs].pop_front();
 
                 // set req src and dst because they were not set in impl
                 req->src = hx->p->bootstrap.rank;

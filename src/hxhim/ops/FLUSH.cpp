@@ -18,7 +18,7 @@
  */
 template <typename Request_t, typename Response_t>
 hxhim::Results *FlushImpl(hxhim_t *hx,
-                          hxhim::Queue<Request_t> &unsent) {
+                          hxhim::Queues<Request_t> &unsent) {
     return hxhim::process<Request_t, Response_t>(hx, unsent);
 }
 

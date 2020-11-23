@@ -33,7 +33,7 @@ using QueueTarget = std::list<Request_t *>;
 // index is range server id, not rank
 template <typename Request_t,
           typename = enable_if_t<is_child_of<Transport::Request::Request, Request_t>::value> >
-using Queue = std::vector<QueueTarget<Request_t> >;
+using Queues = std::vector<QueueTarget<Request_t> >;
 
 }
 
@@ -70,7 +70,7 @@ typedef struct hxhim_private {
         std::size_t max_ops_per_send;
 
         struct {
-            hxhim::Queue<Transport::Request::BPut> queue;
+            hxhim::Queues<Transport::Request::BPut> queue;
             #if ASYNC_PUTS
             std::mutex mutex;
             std::condition_variable start_processing;
@@ -78,10 +78,10 @@ typedef struct hxhim_private {
             #endif
             std::size_t count;
         } puts;
-        hxhim::Queue<Transport::Request::BGet>       gets;
-        hxhim::Queue<Transport::Request::BGetOp>     getops;
-        hxhim::Queue<Transport::Request::BDelete>    deletes;
-        hxhim::Queue<Transport::Request::BHistogram> histograms;
+        hxhim::Queues<Transport::Request::BGet>       gets;
+        hxhim::Queues<Transport::Request::BGetOp>     getops;
+        hxhim::Queues<Transport::Request::BDelete>    deletes;
+        hxhim::Queues<Transport::Request::BHistogram> histograms;
 
         std::vector<int> rs_to_rank;
     } queues;
@@ -161,31 +161,31 @@ std::ostream &print_stats(hxhim_t *hx,
                           const std::string &indent = "    ");
 
 int PutImpl(hxhim_t *hx,
-            Queue<Transport::Request::BPut> &puts,
+            Queues<Transport::Request::BPut> &puts,
             Blob subject,
             Blob predicate,
             Blob object);
 
 int GetImpl(hxhim_t *hx,
-            Queue<Transport::Request::BGet> &gets,
+            Queues<Transport::Request::BGet> &gets,
             Blob subject,
             Blob predicate,
             enum hxhim_data_t object_type);
 
 int GetOpImpl(hxhim_t *hx,
-              Queue<Transport::Request::BGetOp> &getops,
+              Queues<Transport::Request::BGetOp> &getops,
               Blob subject,
               Blob predicate,
               enum hxhim_data_t object_type,
               std::size_t num_records, enum hxhim_getop_t op);
 
 int DeleteImpl(hxhim_t *hx,
-               Queue<Transport::Request::BDelete> &dels,
+               Queues<Transport::Request::BDelete> &dels,
                Blob subject,
                Blob predicate);
 
 int HistogramImpl(hxhim_t *hx,
-                  Queue<Transport::Request::BHistogram> &hists,
+                  Queues<Transport::Request::BHistogram> &hists,
                   const int rs_id);
 }
 
