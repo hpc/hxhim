@@ -8,8 +8,8 @@
 datastore::Transform::NumericExtra::NumericExtra()
     : neg(elen::NEG_SYMBOL),
       pos(elen::POS_SYMBOL),
-      float_precision(elen::FLOAT_PRECISION),
-      double_precision(elen::DOUBLE_PRECISION)
+      float_precision(elen::encode::FLOAT_PRECISION),
+      double_precision(elen::encode::DOUBLE_PRECISION)
 {}
 
 datastore::Transform::Callbacks *datastore::Transform::default_callbacks() {

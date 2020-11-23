@@ -143,7 +143,7 @@ TEST(elen, random_small_decimals) {
     for(std::size_t i = 0; i < 10; i++) {
         const float value = dist(gen);
         floats.push_back(value);
-        strings.push_back(elen_encode_small_float(value, ELEN_FLOAT_PRECISION, ELEN_NEG, ELEN_POS));
+        strings.push_back(elen_encode_small_float(value, ELEN_ENCODE_FLOAT_PRECISION, ELEN_NEG, ELEN_POS));
     }
 
     std::sort(floats.begin(), floats.end());
@@ -212,7 +212,7 @@ TEST(elen, random_large_decimals) {
     for(std::size_t i = 0; i < 10; i++) {
         const float value = dist(gen);
         floats.push_back(value);
-        strings.push_back(elen_encode_large_float(value, ELEN_FLOAT_PRECISION, ELEN_NEG, ELEN_POS));
+        strings.push_back(elen_encode_large_float(value, ELEN_ENCODE_FLOAT_PRECISION, ELEN_NEG, ELEN_POS));
     }
 
     std::sort(floats.begin(), floats.end());
@@ -285,7 +285,7 @@ TEST(elen, random_floating_point) {
     for(std::size_t i = 0; i < 10; i++) {
         const float value = dist(gen);
         floats.push_back(value);
-        strings.push_back(elen_encode_floating_float(value, ELEN_FLOAT_PRECISION, ELEN_NEG, ELEN_POS));
+        strings.push_back(elen_encode_floating_float(value, ELEN_ENCODE_FLOAT_PRECISION, ELEN_NEG, ELEN_POS));
     }
 
     std::sort(floats.begin(), floats.end());

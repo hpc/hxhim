@@ -21,10 +21,21 @@ namespace elen {
     const char POS_SYMBOL = '9' + 1;
     static_assert(NEG_SYMBOL <= POS_SYMBOL, "Character used as negative sign is not less than the one used for positives");
 
-    const int FLOAT_PRECISION  = std::numeric_limits<float>::digits10 + 2;    // 2 * sizeof(float)
-    const int DOUBLE_PRECISION = std::numeric_limits<double>::digits10 + 1;   // 2 * sizeof(double)
-
     namespace encode {
+        const int FLOAT_PRECISION  = std::numeric_limits<float>::digits10 + 2;  // 2 * sizeof(float)
+        const int DOUBLE_PRECISION = std::numeric_limits<double>::digits10 + 1; // 2 * sizeof(double)
+
+        // only define default precisions for float and double
+        template <typename T,
+                  typename = enable_if_t<std::is_floating_point<T>::value> >
+        int default_precision();
+
+        template <>
+        int default_precision<float>();
+
+        template <>
+        int default_precision<double>();
+
         // Chapter 3 Integers
         template <typename T,
                   typename = enable_if_t<std::is_integral<T>::value> >
@@ -33,17 +44,17 @@ namespace elen {
         // Chapter 4 Small Decimals
         template <typename T,
                   typename = enable_if_t<std::is_floating_point<T>::value> >
-        std::string small_decimals(const T value, const int precision, const char neg = NEG_SYMBOL, const char pos = POS_SYMBOL);
+        std::string small_decimals(const T value, const int precision = default_precision<T>(), const char neg = NEG_SYMBOL, const char pos = POS_SYMBOL);
 
         // Chapter 5 Large Decimals
         template <typename T,
                   typename = enable_if_t<std::is_floating_point<T>::value> >
-        std::string large_decimals(const T value, const int precision, const char neg = NEG_SYMBOL, const char pos = POS_SYMBOL);
+        std::string large_decimals(const T value, const int precision = default_precision<T>(), const char neg = NEG_SYMBOL, const char pos = POS_SYMBOL);
 
         // Chapter 6 Floating Pointer Numbers
         template <typename T,
                   typename = enable_if_t<std::is_floating_point<T>::value> >
-        std::string floating_point(const T value, const int precision, const char neg = NEG_SYMBOL, const char pos = POS_SYMBOL);
+        std::string floating_point(const T value, const int precision = default_precision<T>(), const char neg = NEG_SYMBOL, const char pos = POS_SYMBOL);
     }
 
     namespace decode {

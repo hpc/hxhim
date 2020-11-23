@@ -7,8 +7,18 @@
 
 const char ELEN_NEG = elen::NEG_SYMBOL;
 const char ELEN_POS = elen::POS_SYMBOL;
-const int  ELEN_FLOAT_PRECISION  = elen::FLOAT_PRECISION;
-const int  ELEN_DOUBLE_PRECISION = elen::DOUBLE_PRECISION;
+const int  ELEN_ENCODE_FLOAT_PRECISION  = elen::encode::FLOAT_PRECISION;
+const int  ELEN_ENCODE_DOUBLE_PRECISION = elen::encode::DOUBLE_PRECISION;
+
+template <>
+int elen::encode::default_precision<float>() {
+    return FLOAT_PRECISION;
+}
+
+template <>
+int elen::encode::default_precision<double>() {
+    return DOUBLE_PRECISION;
+}
 
 /**
  * lex_comp::operator()

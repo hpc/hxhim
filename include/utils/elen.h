@@ -10,8 +10,8 @@ extern "C" {
 
 extern const char ELEN_NEG;
 extern const char ELEN_POS;
-extern const int ELEN_FLOAT_PRECISION;
-extern const int ELEN_DOUBLE_PRECISION;
+extern const int ELEN_ENCODE_FLOAT_PRECISION;
+extern const int ELEN_ENCODE_DOUBLE_PRECISION;
 
 /*  Chapter 3 Integers */
 #define elen_encode_int_prototype(type)                                 \

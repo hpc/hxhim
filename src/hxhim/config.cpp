@@ -246,8 +246,8 @@ static bool parse_endpointgroup(hxhim_options_t *opts, const Config::Config &con
 static bool parse_elen(hxhim_options_t *opts, const Config::Config &config) {
     char neg = elen::NEG_SYMBOL;
     char pos = elen::POS_SYMBOL;
-    int  flt_precision = elen::FLOAT_PRECISION;
-    int  dbl_precision = elen::DOUBLE_PRECISION;
+    int  flt_precision = elen::encode::FLOAT_PRECISION;
+    int  dbl_precision = elen::encode::DOUBLE_PRECISION;
 
     Config::Config_it neg_it = config.find(hxhim::config::ELEN_NEG_SYMBOL);
     if (neg_it != config.end()) {
@@ -263,14 +263,14 @@ static bool parse_elen(hxhim_options_t *opts, const Config::Config &config) {
         }
     }
 
-    Config::Config_it flt_it = config.find(hxhim::config::ELEN_FLOAT_PRECISION);
+    Config::Config_it flt_it = config.find(hxhim::config::ELEN_ENCODE_FLOAT_PRECISION);
     if (flt_it != config.end()) {
         if (!(std::stringstream(flt_it->second) >> flt_precision)) {
             return false;
         }
     }
 
-    Config::Config_it dbl_it = config.find(hxhim::config::ELEN_DOUBLE_PRECISION);
+    Config::Config_it dbl_it = config.find(hxhim::config::ELEN_ENCODE_DOUBLE_PRECISION);
     if (dbl_it != config.end()) {
         if (!(std::stringstream(dbl_it->second) >> dbl_precision)) {
             return false;

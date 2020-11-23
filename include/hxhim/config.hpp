@@ -19,10 +19,10 @@ namespace hxhim {
 namespace config {
 
 /** Constant location where the configuration reader searches */
-const std::string CONFIG_FILE                 = "hxhim.conf";
+const std::string CONFIG_FILE                  = "hxhim.conf";
 
 /** A file pointed to by HXHIM_CONFIG will overwrite duplicate values found in CONFIG_FILE (hxhim.conf) */
-const std::string CONFIG_ENV                  = "HXHIM_CONFIG";
+const std::string CONFIG_ENV                   = "HXHIM_CONFIG";
 
 /**
  * This string prefixes environment variables of respective configuration settings
@@ -31,55 +31,55 @@ const std::string CONFIG_ENV                  = "HXHIM_CONFIG";
  * set by the hard coded configuration file CONFIG_FILE and the configuration file
  * pointed to by HXHIM_CONFIG.
  */
-const std::string HXHIM_ENV_NAMESPACE         = "HXHIM_";
+const std::string HXHIM_ENV_NAMESPACE          = "HXHIM_";
 
 /** Configuration Variables */
-const std::string DEBUG_LEVEL                 = "DEBUG_LEVEL";               // See DEBUG_LEVELS
+const std::string DEBUG_LEVEL                  = "DEBUG_LEVEL";                   // See DEBUG_LEVELS
 
-const std::string CLIENT_RATIO                = "CLIENT_RATIO";              // positive integer
-const std::string SERVER_RATIO                = "SERVER_RATIO";              // positive integer
+const std::string CLIENT_RATIO                 = "CLIENT_RATIO";                  // positive integer
+const std::string SERVER_RATIO                 = "SERVER_RATIO";                  // positive integer
 
-const std::string DATASTORE_TYPE              = "DATASTORE";                 // See DATASTORE_TYPES
+const std::string DATASTORE_TYPE               = "DATASTORE";                     // See DATASTORE_TYPES
 
 #if HXHIM_HAVE_LEVELDB
 /** LevelDB Datastore Options */
-const std::string LEVELDB_PREFIX              = "LEVELDB_PREFIX";            // string
-const std::string LEVELDB_CREATE_IF_MISSING   = "LEVELDB_CREATE_IF_MISSING"; // boolean
+const std::string LEVELDB_PREFIX               = "LEVELDB_PREFIX";                // string
+const std::string LEVELDB_CREATE_IF_MISSING    = "LEVELDB_CREATE_IF_MISSING";     // boolean
 #endif
 
 #if HXHIM_HAVE_ROCKSDB
 /** RocksDB Datastore Options */
-const std::string ROCKSDB_PREFIX              = "ROCKSDB_PREFIX";            // string
-const std::string ROCKSDB_CREATE_IF_MISSING   = "ROCKSDB_CREATE_IF_MISSING"; // boolean
+const std::string ROCKSDB_PREFIX               = "ROCKSDB_PREFIX";                // string
+const std::string ROCKSDB_CREATE_IF_MISSING    = "ROCKSDB_CREATE_IF_MISSING";     // boolean
 #endif
 
-const std::string HASH                        = "HASH";                      // See HASHES
+const std::string HASH                         = "HASH";                          // See HASHES
 
-const std::string TRANSPORT                   = "TRANSPORT";                 // See TRANSPORTS
+const std::string TRANSPORT                    = "TRANSPORT";                     // See TRANSPORTS
 
 /** MPI Options */
-const std::string MPI_LISTENERS               = "NUM_LISTENERS";             // positive integer
+const std::string MPI_LISTENERS                = "NUM_LISTENERS";                 // positive integer
 
 #if HXHIM_HAVE_THALLIUM
 /** Thallium Options */
-const std::string THALLIUM_MODULE             = "THALLIUM_MODULE";           // See mercury documentation
+const std::string THALLIUM_MODULE              = "THALLIUM_MODULE";               // See mercury documentation
 #endif
 
-const std::string TRANSPORT_ENDPOINT_GROUP    = "ENDPOINT_GROUP";            // list of ranks or "ALL"
+const std::string TRANSPORT_ENDPOINT_GROUP     = "ENDPOINT_GROUP";                // list of ranks or "ALL"
 
 /** Asynchronous PUT Settings */
-const std::string START_ASYNC_PUT_AT          = "START_ASYNC_PUT_AT";        // nonnegative integer
-const std::string MAXIMUM_OPS_PER_SEND        = "MAXIMUM_OPS_PER_SEND";      // positive integer
+const std::string START_ASYNC_PUT_AT           = "START_ASYNC_PUT_AT";            // nonnegative integer
+const std::string MAXIMUM_OPS_PER_SEND         = "MAXIMUM_OPS_PER_SEND";          // positive integer
 
 /** Histogram Options */
-const std::string HISTOGRAM_FIRST_N           = "HISTOGRAM_FIRST_N";         // unsigned int
-const std::string HISTOGRAM_BUCKET_GEN_NAME   = "HISTOGRAM_BUCKET_GEN_NAME"; // See HISTOGRAM_BUCKET_GENERATORS
+const std::string HISTOGRAM_FIRST_N            = "HISTOGRAM_FIRST_N";             // unsigned int
+const std::string HISTOGRAM_BUCKET_GEN_NAME    = "HISTOGRAM_BUCKET_GEN_NAME";     // See HISTOGRAM_BUCKET_GENERATORS
 
 /** ELEN Options */
-const std::string ELEN_NEG_SYMBOL             = "ELEN_NEG_SYMBOL";
-const std::string ELEN_POS_SYMBOL             = "ELEN_POS_SYMBOL";
-const std::string ELEN_FLOAT_PRECISION        = "ELEN_FLOAT_PRECISION";
-const std::string ELEN_DOUBLE_PRECISION       = "ELEN_DOUBLE_PRECISION";
+const std::string ELEN_NEG_SYMBOL              = "ELEN_NEG_SYMBOL";               // single character
+const std::string ELEN_POS_SYMBOL              = "ELEN_POS_SYMBOL";               // single character > ELEN_NEG_SYMBOL
+const std::string ELEN_ENCODE_FLOAT_PRECISION  = "ELEN_ENCODE_FLOAT_PRECISION";   // positive integer
+const std::string ELEN_ENCODE_DOUBLE_PRECISION = "ELEN_ENCODE_DOUBLE_PRECISION";  // positive integer > ELEN_ENCODE_FLOAT_PRECISION
 
 /**
  * Set of available debug levels
@@ -191,8 +191,8 @@ const Config::Config DEFAULT_CONFIG = {
     std::make_pair(HISTOGRAM_BUCKET_GEN_NAME,     "10_BUCKETS"),
     std::make_pair(ELEN_NEG_SYMBOL,               std::string(elen::NEG_SYMBOL, 1)),
     std::make_pair(ELEN_NEG_SYMBOL,               std::string(elen::POS_SYMBOL, 1)),
-    std::make_pair(ELEN_FLOAT_PRECISION,          std::to_string(elen::FLOAT_PRECISION)),
-    std::make_pair(ELEN_DOUBLE_PRECISION,         std::to_string(elen::DOUBLE_PRECISION)),
+    std::make_pair(ELEN_ENCODE_FLOAT_PRECISION,   std::to_string(elen::encode::FLOAT_PRECISION)),
+    std::make_pair(ELEN_ENCODE_DOUBLE_PRECISION,  std::to_string(elen::encode::DOUBLE_PRECISION)),
 };
 
 int default_reader(hxhim_options_t *opts, MPI_Comm comm);
