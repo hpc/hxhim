@@ -21,11 +21,13 @@ int hxhim::BPut(hxhim_t *hx,
                 void **subjects, std::size_t *subject_lens, enum hxhim_data_t *subject_types,
                 void **predicates, std::size_t *predicate_lens, enum hxhim_data_t *predicate_types,
                 void **objects, std::size_t *object_lens, enum hxhim_data_t *object_types,
+                const hxhim_put_permutation_t *permutations,
                 const std::size_t count) {
     if (!valid(hx)  || !hx->p->running ||
         !subjects   || !subject_lens   || !subject_types   ||
         !predicates || !predicate_lens || !predicate_types ||
-        !objects    || !object_lens) {
+        !objects    || !object_lens    || !object_types    ||
+        !permutations) {
         return HXHIM_ERROR;
     }
 
@@ -38,8 +40,8 @@ int hxhim::BPut(hxhim_t *hx,
                        hx->p->queues.puts.queue,
                        ReferenceBlob(subjects[i], subject_lens[i], subject_types[i]),
                        ReferenceBlob(predicates[i], predicate_lens[i], predicate_types[i]),
-                       ReferenceBlob(objects[i], object_lens[i], object_types[i]));
-
+                       ReferenceBlob(objects[i], object_lens[i], object_types[i]),
+                       permutations[i]);
     }
 
 
@@ -73,10 +75,12 @@ int hxhimBPut(hxhim_t *hx,
               void **subjects, size_t *subject_lens, enum hxhim_data_t *subject_types,
               void **predicates, size_t *predicate_lens, enum hxhim_data_t *predicate_types,
               void **objects, size_t *object_lens, enum hxhim_data_t *object_types,
+              const hxhim_put_permutation_t *permutations,
               const size_t count) {
     return hxhim::BPut(hx,
                        subjects, subject_lens, subject_types,
                        predicates, predicate_lens, predicate_types,
                        objects, object_lens, object_types,
+                       permutations,
                        count);
 }

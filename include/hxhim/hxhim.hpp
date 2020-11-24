@@ -41,7 +41,8 @@ Results *ChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t func, void *args
 int Put(hxhim_t *hx,
         void *subject, std::size_t subject_len, enum hxhim_data_t subject_type,
         void *predicate, std::size_t predicate_len, enum hxhim_data_t predicate_type,
-        void *object, std::size_t object_len, enum hxhim_data_t object_type);
+        void *object, std::size_t object_len, enum hxhim_data_t object_type,
+        const hxhim_put_permutation_t permutations);
 
 int Get(hxhim_t *hx,
         void *subject, std::size_t subject_len, enum hxhim_data_t subject_type,
@@ -62,6 +63,7 @@ int BPut(hxhim_t *hx,
          void **subjects, std::size_t *subject_lens, enum hxhim_data_t *subject_types,
          void **predicates, std::size_t *predicate_lens, enum hxhim_data_t *predicate_types,
          void **objects, std::size_t *object_lens, enum hxhim_data_t *object_types,
+         const hxhim_put_permutation_t *permutations,
          const std::size_t count);
 
 int BGet(hxhim_t *hx,

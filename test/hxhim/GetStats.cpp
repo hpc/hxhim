@@ -32,7 +32,8 @@ TEST(hxhim, GetStats) {
         EXPECT_EQ(hxhim::Put(&hx,
                              &hx, sizeof(&hx), hxhim_data_t::HXHIM_DATA_BYTE,
                              &hx, sizeof(&hx), hxhim_data_t::HXHIM_DATA_BYTE,
-                             &hx, sizeof(&hx), hxhim_data_t::HXHIM_DATA_BYTE),
+                             &hx, sizeof(&hx), hxhim_data_t::HXHIM_DATA_BYTE,
+                             HXHIM_PUT_SPO),
                   HXHIM_SUCCESS);
 
         // Flush all queued items
@@ -59,8 +60,8 @@ TEST(hxhim, GetStats) {
                 total_num_gets += num_gets[i];
             }
 
-            EXPECT_EQ(total_put_time, hx.p->bootstrap.size * HXHIM_PUT_MULTIPLIER * PUT_TIME_UINT64);
-            EXPECT_EQ(total_num_puts, hx.p->bootstrap.size * HXHIM_PUT_MULTIPLIER);
+            EXPECT_EQ(total_put_time, hx.p->bootstrap.size * PUT_TIME_UINT64);
+            EXPECT_EQ(total_num_puts, hx.p->bootstrap.size);
             EXPECT_EQ(total_get_time, 0);
             EXPECT_EQ(total_num_gets, 0);
         }
@@ -98,8 +99,8 @@ TEST(hxhim, GetStats) {
                 total_num_gets += num_gets[i];
             }
 
-            EXPECT_EQ(total_put_time, hx.p->bootstrap.size * HXHIM_PUT_MULTIPLIER * PUT_TIME_UINT64);
-            EXPECT_EQ(total_num_puts, hx.p->bootstrap.size * HXHIM_PUT_MULTIPLIER);
+            EXPECT_EQ(total_put_time, hx.p->bootstrap.size * PUT_TIME_UINT64);
+            EXPECT_EQ(total_num_puts, hx.p->bootstrap.size);
             EXPECT_EQ(total_get_time, hx.p->bootstrap.size * GET_TIME_UINT64);
             EXPECT_EQ(total_num_gets, hx.p->bootstrap.size);
         }

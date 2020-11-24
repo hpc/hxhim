@@ -164,7 +164,8 @@ int PutImpl(hxhim_t *hx,
             Queues<Transport::Request::BPut> &puts,
             Blob subject,
             Blob predicate,
-            Blob object);
+            Blob object,
+            const hxhim_put_permutation_t permutations);
 
 int GetImpl(hxhim_t *hx,
             Queues<Transport::Request::BGet> &gets,

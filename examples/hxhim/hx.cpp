@@ -131,7 +131,8 @@ int main(int argc, char *argv[]) {
         hxhim::PutDouble(&hx,
                          subjects[i], subject_lens[i], HXHIM_DATA_BYTE,
                          predicates[i], predicate_lens[i], HXHIM_DATA_BYTE,
-                         &doubles[i]);
+                         &doubles[i],
+                         HXHIM_PUT_SPO);
         if (print) {
             std::cout << "Rank " << rank << " PUT {" << std::string((char *) subjects[i], subject_lens[i]) << ", " << std::string((char *) predicates[i], predicate_lens[i]) << "} -> " << doubles[i] << std::endl;
         }

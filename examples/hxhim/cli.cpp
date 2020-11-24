@@ -302,7 +302,8 @@ std::size_t run_commands(hxhim_t *hx, const UserInputs &commands) {
                 rc = hxhimPut(hx,
                               (void *) cmd.subject.data(),   cmd.subject.size(),   cmd.subject.data_type(),
                               (void *) cmd.predicate.data(), cmd.predicate.size(), cmd.predicate.data_type(),
-                              (void *) cmd.object.data(),    cmd.object.size(),    cmd.object.data_type());
+                              (void *) cmd.object.data(),    cmd.object.size(),    cmd.object.data_type(),
+                              HXHIM_PUT_ALL);
                 break;
             case HXHIM_OP::GET:
             case HXHIM_OP::BGET:

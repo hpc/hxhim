@@ -99,7 +99,8 @@ int main(int argc, char *argv[]) {
         hxhimPutDouble(&hx,
                        subjects[i], subject_lens[i], HXHIM_DATA_BYTE,
                        predicates[i], predicate_lens[i], HXHIM_DATA_BYTE,
-                       &doubles[i]);
+                       &doubles[i],
+                       HXHIM_PUT_SPO);
         if (print) {
             printf("Rank %d PUT          {%.*s, %.*s} -> %f\n", rank,
                    (int) subject_lens[i],   (char *) subjects[i],

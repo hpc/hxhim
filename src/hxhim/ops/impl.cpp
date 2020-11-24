@@ -104,61 +104,52 @@ int hxhim::PutImpl(hxhim_t *hx,
                    hxhim::Queues<Transport::Request::BPut> &puts,
                    Blob subject,
                    Blob predicate,
-                   Blob object) {
+                   Blob object,
+                   const hxhim_put_permutation_t permutations) {
     mlog(HXHIM_CLIENT_INFO, "Foreground PUT Start (%p, %p, %p)", subject.data(), predicate.data(), object.data());
 
-    for(std::size_t i = 0; i < HXHIM_PUT_MULTIPLIER; i++) {
+    for(hxhim_put_permutation_t mask : { HXHIM_PUT_SPO, HXHIM_PUT_SOP,
+                                         HXHIM_PUT_PSO, HXHIM_PUT_POS,
+                                         HXHIM_PUT_OSP, HXHIM_PUT_OPS }) {
+        if (!(permutations & mask)) {
+            continue;
+        }
+
         Blob *sub = nullptr;
         Blob *pred = nullptr;
         Blob *obj = nullptr;
 
-        switch (HXHIM_PUT_PERMUTATIONS_ENABLED[i]) {
-            case HXHIM_PUT_PERMUTATION_SPO:
+        switch (mask) {
+            case HXHIM_PUT_SPO:
                 sub  = &subject;
                 pred = &predicate;
                 obj  = &object;
                 break;
-
-            #if SOP
-            case HXHIM_PUT_PERMUTATION_SOP:
+            case HXHIM_PUT_SOP:
                 sub  = &subject;
                 pred = &object;
                 obj  = &predicate;
                 break;
-            #endif
-
-            #if PSO
-            case HXHIM_PUT_PERMUTATION_PSO:
+            case HXHIM_PUT_PSO:
                 sub  = &predicate;
                 pred = &subject;
                 obj  = &object;
                 break;
-            #endif
-
-            #if POS
-            case HXHIM_PUT_PERMUTATION_POS:
+            case HXHIM_PUT_POS:
                 sub  = &predicate;
                 pred = &object;
                 obj  = &subject;
                 break;
-            #endif
-
-            #if OSP
-            case HXHIM_PUT_PERMUTATION_OSP:
+            case HXHIM_PUT_OSP:
                 sub  = &object;
                 pred = &subject;
                 obj  = &predicate;
                 break;
-            #endif
-
-            #if OPS
-            case HXHIM_PUT_PERMUTATION_OPS:
+            case HXHIM_PUT_OPS:
                 sub  = &object;
                 pred = &predicate;
                 obj  = &subject;
                 break;
-            #endif
-
             default:
                 return HXHIM_ERROR;
         }

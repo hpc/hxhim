@@ -7,6 +7,7 @@ set(HXHIM_TEST_FILES
   Histogram.cpp
   OpenClose.cpp
   PutGet.cpp
+  PutGetOp.cpp
   RangeServer.cpp
   Results.cpp
   accessors.cpp
@@ -17,10 +18,6 @@ set(HXHIM_TEST_FILES
   transport.cpp
   triplestore.cpp
 )
-
-if (NOT SOP AND NOT PSO AND NOT POS AND NOT OSP AND NOT OPS)
-  list(APPEND HXHIM_TEST_FILES PutGetOp.cpp)
-endif()
 
 foreach(FILE ${HXHIM_TEST_FILES})
   target_sources(googletest PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/${FILE}")

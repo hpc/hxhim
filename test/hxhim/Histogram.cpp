@@ -65,14 +65,15 @@ TEST(hxhim, Histogram) {
         EXPECT_EQ(hxhim::PutDouble(&hx,
                                    (void *)&subjects[i],   sizeof(subjects[i]),   hxhim_data_t::HXHIM_DATA_UINT32,
                                    (void *)&predicates[i], sizeof(predicates[i]), hxhim_data_t::HXHIM_DATA_UINT32,
-                                   &objects[i]),
+                                   &objects[i],
+                                   HXHIM_PUT_SPO),
                   HXHIM_SUCCESS);
     }
 
     // flush all queued items
     hxhim::Results *put_results = hxhim::Flush(&hx);
     ASSERT_NE(put_results, nullptr);
-    EXPECT_EQ(put_results->Size(), TRIPLES * HXHIM_PUT_MULTIPLIER);
+    EXPECT_EQ(put_results->Size(), TRIPLES);
 
     HXHIM_CXX_RESULTS_LOOP(put_results) {
         hxhim_op_t op = hxhim_op_t::HXHIM_INVALID;
@@ -135,20 +136,7 @@ TEST(hxhim, Histogram) {
 
         EXPECT_EQ(buckets[0], 0);
 
-        EXPECT_EQ(counts[0], TRIPLES * (
-                      // SPO
-                      1
-                      // PSO
-                      #ifdef PSO
-                      + 1
-                      #endif
-                      // do not modify histogram as long as S and P are not floats/doubles
-                      // SOP
-                      // POS
-                      // OSP
-                      // OPS
-                      )
-            );
+        EXPECT_EQ(counts[0], TRIPLES);
     }
 
     hxhim::Results::Destroy(hist_results);

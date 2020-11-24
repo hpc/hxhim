@@ -26,7 +26,8 @@ TEST(hxhim, background_put) {
     EXPECT_EQ(hxhim::Put(&hx,
                          (void *) &SUBJECT,   sizeof(SUBJECT),   hxhim_data_t::HXHIM_DATA_UINT64,
                          (void *) &PREDICATE, sizeof(PREDICATE), hxhim_data_t::HXHIM_DATA_UINT64,
-                         (void *) &OBJECT,    sizeof(OBJECT),    hxhim_data_t::HXHIM_DATA_DOUBLE),
+                         (void *) &OBJECT,    sizeof(OBJECT),    hxhim_data_t::HXHIM_DATA_DOUBLE,
+                         HXHIM_PUT_SPO),
               HXHIM_SUCCESS);
 
     #if ASYNC_PUTS
@@ -37,7 +38,7 @@ TEST(hxhim, background_put) {
     // background PUT results should have 1 item in it
     hxhim::Results *background_put_results = hx.p->async_put.results;
     ASSERT_NE(background_put_results, nullptr);
-    EXPECT_EQ(background_put_results->Size(), HXHIM_PUT_MULTIPLIER);
+    EXPECT_EQ(background_put_results->Size(), 1);
 
     // Make sure result is correct
     HXHIM_CXX_RESULTS_LOOP(background_put_results) {

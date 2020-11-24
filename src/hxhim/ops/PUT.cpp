@@ -19,7 +19,8 @@
 int hxhim::Put(hxhim_t *hx,
                void *subject, std::size_t subject_len, enum hxhim_data_t subject_type,
                void *predicate, std::size_t predicate_len, enum hxhim_data_t predicate_type,
-               void *object, std::size_t object_len, enum hxhim_data_t object_type) {
+               void *object, std::size_t object_len, enum hxhim_data_t object_type,
+               const hxhim_put_permutation_t permutations) {
     mlog(HXHIM_CLIENT_DBG, "%s %s:%d", __FILE__, __func__, __LINE__);
     if (!valid(hx) || !hx->p->running ||
         !subject   || !subject_len    ||
@@ -35,7 +36,8 @@ int hxhim::Put(hxhim_t *hx,
                                   hx->p->queues.puts.queue,
                                   ReferenceBlob(subject, subject_len, subject_type),
                                   ReferenceBlob(predicate, predicate_len, predicate_type),
-                                  ReferenceBlob(object, object_len, object_type));
+                                  ReferenceBlob(object, object_len, object_type),
+                                  permutations);
 
     #if ASYNC_PUTS
     hx->p->queues.puts.start_processing.notify_all();
@@ -65,10 +67,12 @@ int hxhim::Put(hxhim_t *hx,
 int hxhimPut(hxhim_t *hx,
              void *subject, size_t subject_len, enum hxhim_data_t subject_type,
              void *predicate, size_t predicate_len, enum hxhim_data_t predicate_type,
-             void *object, size_t object_len, enum hxhim_data_t object_type) {
+             void *object, size_t object_len, enum hxhim_data_t object_type,
+             const hxhim_put_permutation_t permutations) {
     mlog(HXHIM_CLIENT_DBG, "%s %s:%d", __FILE__, __func__, __LINE__);
     return hxhim::Put(hx,
                       subject, subject_len, subject_type,
                       predicate, predicate_len, predicate_type,
-                      object, object_len, object_type);
+                      object, object_len, object_type,
+                      permutations);
 }

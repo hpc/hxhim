@@ -78,6 +78,11 @@ int main(int argc, char *argv[]) {
             printf("Could not generate triples\n");
             return 1;
         }
+        hxhim_put_permutation_t *perms = malloc(sizeof(hxhim_put_permutation_t) * count);
+        for(size_t i = 0; i < count; i++) {
+            perms[i] = HXHIM_PUT_SPO;
+        }
+
         timestamp_end(gen);
 
         // BPUT the key value pairs into HXHIM
@@ -86,6 +91,7 @@ int main(int argc, char *argv[]) {
                             subjects, subject_lens, sub_pred_types,
                             predicates, predicate_lens, sub_pred_types,
                             objects, object_lens, HXHIM_DATA_BYTE,
+                            perms,
                             count);
         timestamp_end(BPUT);
 
@@ -114,6 +120,7 @@ int main(int argc, char *argv[]) {
 
 
         timestamp_start(clean);
+        free(perms);
         spo_clean(count,
                   &subjects,   &subject_lens,
                   &predicates, &predicate_lens,

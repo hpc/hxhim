@@ -189,14 +189,6 @@ else()
   message(STATUS "HDF5 not found")
 endif()
 
-# which combinations of SPO to PUT
-# SPO is always enabled
-option(SOP "Also store (Subject, Object, Predicate)" Off)
-option(PSO "Also store (Predicate, Subject, Object)" Off)
-option(POS "Also store (Predicate, Object, Subject)" Off)
-option(OSP "Also store (Object, Subject, Predicate)" Off)
-option(OPS "Also store (Object, Predicate, Subject)" Off)
-
 #
 # build library
 #

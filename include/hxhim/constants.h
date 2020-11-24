@@ -10,45 +10,25 @@ extern "C"
 #include <stddef.h>
 #endif
 
+#include "utils/macros.h"
+
 /** Success constant */
 #define HXHIM_SUCCESS 3
 
 /** Error constant */
 #define HXHIM_ERROR 4
 
-/**
- * Enum and String generation adapted from
- * https://stackoverflow.com/a/10966395
- * by Terrence M
- */
-#define GENERATE_ENUM(prefix, name) prefix##_##name,
-#define GENERATE_STR(prefix, name)  #prefix "-" #name,
-
 /** Different ways a SPO triple will be PUT into HXHIM per PUT */
-#define HXHIM_PUT_PERMUTATION_GEN(PREFIX, GEN)  \
-    GEN(PREFIX, SPO) /* always enabled */       \
-    GEN(PREFIX, SOP)                            \
-    GEN(PREFIX, PSO)                            \
-    GEN(PREFIX, POS)                            \
-    GEN(PREFIX, OSP)                            \
-    GEN(PREFIX, OPS)                            \
-
-#define HXHIM_PUT_PERMUTATION_PREFIX HXHIM_PUT_PERMUTATION
-
-typedef enum {
-    HXHIM_PUT_PERMUTATION_GEN(HXHIM_PUT_PERMUTATION_PREFIX, GENERATE_ENUM)
-} HXHIM_PUT_PERMUTATION;
-
-extern const char *HXHIM_PUT_PERMUTATION_STR[];
-
-/** Enabled permutations in array form */
-extern const HXHIM_PUT_PERMUTATION HXHIM_PUT_PERMUTATIONS_ENABLED[];
-
-/** Function to check if a permutation has been enabled */
-int hxhim_put_permutation_enabled(const HXHIM_PUT_PERMUTATION combo);
-
-/** Number of permutations enabled */
-extern const size_t HXHIM_PUT_MULTIPLIER;
+typedef size_t hxhim_put_permutation_t;
+#define HXHIM_PUT_SPO 0x01U
+#define HXHIM_PUT_SOP 0x02U
+#define HXHIM_PUT_PSO 0x04U
+#define HXHIM_PUT_POS 0x08U
+#define HXHIM_PUT_OSP 0x10U
+#define HXHIM_PUT_OPS 0x20U
+#define HXHIM_PUT_ALL ( HXHIM_PUT_SPO | HXHIM_PUT_SOP | \
+                        HXHIM_PUT_PSO | HXHIM_PUT_POS | \
+                        HXHIM_PUT_OSP | HXHIM_PUT_OPS )
 
 /**
  * hxhim_op_t

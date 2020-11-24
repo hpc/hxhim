@@ -7,45 +7,6 @@
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
-const char *HXHIM_PUT_PERMUTATION_STR[] = {
-    HXHIM_PUT_PERMUTATION_GEN(HXHIM_PUT_PERMUTATION_PREFIX, GENERATE_STR)
-};
-
-const HXHIM_PUT_PERMUTATION HXHIM_PUT_PERMUTATIONS_ENABLED[] = {
-    HXHIM_PUT_PERMUTATION_SPO,
-
-    #if SOP
-    HXHIM_PUT_PERMUTATION_SOP,
-    #endif
-
-    #if PSO
-    HXHIM_PUT_PERMUTATION_PSO,
-    #endif
-
-    #if POS
-    HXHIM_PUT_PERMUTATION_POS,
-    #endif
-
-    #if OSP
-    HXHIM_PUT_PERMUTATION_OSP,
-    #endif
-
-    #if OPS
-    HXHIM_PUT_PERMUTATION_OPS,
-    #endif
-};
-
-int hxhim_put_permutation_enabled(const HXHIM_PUT_PERMUTATION combo) {
-    for(std::size_t i = 0; i < HXHIM_PUT_MULTIPLIER; i++) {
-        if (HXHIM_PUT_PERMUTATIONS_ENABLED[i] == combo) {
-            return 1;
-        }
-    }
-    return 0;
-};
-
-const size_t HXHIM_PUT_MULTIPLIER = sizeof(HXHIM_PUT_PERMUTATIONS_ENABLED) / sizeof(HXHIM_PUT_PERMUTATION_SPO);
-
 const char *HXHIM_OP_STR[] = {
     HXHIM_OP_GEN(HXHIM_OP_PREFIX, GENERATE_STR)
 };

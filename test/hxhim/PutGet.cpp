@@ -22,7 +22,8 @@ TEST(hxhim, PutGet) {
     EXPECT_EQ(hxhim::PutDouble(&hx,
                                (void *)   &SUBJECT,   sizeof(SUBJECT),   hxhim_data_t::HXHIM_DATA_UINT64,
                                (void *)   &PREDICATE, sizeof(PREDICATE), hxhim_data_t::HXHIM_DATA_UINT64,
-                               (double *) &OBJECT),
+                               (double *) &OBJECT,
+                               HXHIM_PUT_ALL),
               HXHIM_SUCCESS);
 
     // Flush all queued items
@@ -30,7 +31,7 @@ TEST(hxhim, PutGet) {
     ASSERT_NE(put_results, nullptr);
 
     // Make sure put succeeded
-    EXPECT_EQ(put_results->Size(), (std::size_t) HXHIM_PUT_MULTIPLIER);
+    EXPECT_EQ(put_results->Size(), 6);
     HXHIM_CXX_RESULTS_LOOP(put_results) {
         hxhim_op_t op;
         EXPECT_EQ(put_results->Op(&op), HXHIM_SUCCESS);

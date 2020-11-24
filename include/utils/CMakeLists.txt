@@ -12,6 +12,7 @@ set(INSTALLED_HEADERS
   elen.h
   elen.hpp
   elen.tpp
+  macros.h
   macros.hpp
   memory.hpp
   mkdir_p.hpp

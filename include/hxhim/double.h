@@ -14,7 +14,8 @@ extern "C"
 int hxhimPutDouble(hxhim_t *hx,
                    void *subject, size_t subject_len, enum hxhim_data_t subject_type,
                    void *predicate, size_t predicate_len, enum hxhim_data_t predicate_type,
-                   double *object);
+                   double *object,
+                   const hxhim_put_permutation_t permutations);
 
 int hxhimGetDouble(hxhim_t *hx,
                    void *subject, size_t subject_len, enum hxhim_data_t subject_type,
@@ -29,6 +30,7 @@ int hxhimBPutDouble(hxhim_t *hx,
                     void **subjects, size_t *subject_lens, enum hxhim_data_t *subject_types,
                     void **predicates, size_t *predicate_lens, enum hxhim_data_t *predicate_types,
                     double **objects,
+                    const hxhim_put_permutation_t *permutations,
                     const size_t count);
 
 int hxhimBGetDouble(hxhim_t *hx,

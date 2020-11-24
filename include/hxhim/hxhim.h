@@ -47,7 +47,8 @@ hxhim_results_t *hxhimChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t fun
 int hxhimPut(hxhim_t *hx,
              void *subject, size_t subject_len, enum hxhim_data_t subject_type,
              void *predicate, size_t predicate_len, enum hxhim_data_t predicate_type,
-             void *object, size_t object_len, enum hxhim_data_t object_type);
+             void *object, size_t object_len, enum hxhim_data_t object_type,
+             const hxhim_put_permutation_t permutations);
 
 int hxhimGet(hxhim_t *hx,
              void *subject, size_t subject_len, enum hxhim_data_t subject_type,
@@ -68,6 +69,7 @@ int hxhimBPut(hxhim_t *hx,
               void **subjects, size_t *subject_lens, enum hxhim_data_t *subject_types,
               void **predicates, size_t *predicate_lens, enum hxhim_data_t *predicate_types,
               void **objects, size_t *object_lens, enum hxhim_data_t *object_types,
+              const hxhim_put_permutation_t *permutations,
               const size_t count);
 
 int hxhimBGet(hxhim_t *hx,

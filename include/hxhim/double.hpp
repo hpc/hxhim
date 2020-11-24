@@ -12,7 +12,8 @@ namespace hxhim {
 int PutDouble(hxhim_t *hx,
               void *subject, std::size_t subject_len, enum hxhim_data_t subject_type,
               void *predicate, std::size_t predicate_len, enum hxhim_data_t predicate_type,
-              double *object);
+              double *object,
+              const hxhim_put_permutation_t permutations);
 
 int GetDouble(hxhim_t *hx,
               void *subject, std::size_t subject_len, enum hxhim_data_t subject_type,
@@ -27,6 +28,7 @@ int BPutDouble(hxhim_t *hx,
                void **subjects, std::size_t *subject_lens, enum hxhim_data_t *subject_types,
                void **predicates, std::size_t *predicate_lens, enum hxhim_data_t *predicate_types,
                double **objects,
+               const hxhim_put_permutation_t *permutations,
                const std::size_t count);
 
 int BGetDouble(hxhim_t *hx,

@@ -26,28 +26,51 @@ static const std::vector<Triple> TRIPLES = [](const std::size_t count) {
     return ret;
 }(COUNT);
 
-TEST(hxhim, PutGetOp_EQ) {
+static int init(hxhim_t *hx) {
     hxhim_options_t opts;
-    ASSERT_EQ(fill_options(&opts), true);
+    if (!fill_options(&opts)) {
+        hxhim_options_destroy(&opts);
+        return HXHIM_ERROR;
+    }
 
-    hxhim_t hx;
-    ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
+    if (hxhim::Open(hx, &opts) != HXHIM_SUCCESS) {
+        return HXHIM_ERROR;
+    }
 
     // Add triples for putting
+    int rc = HXHIM_SUCCESS;
     for(struct Triple const &triple : TRIPLES) {
-        EXPECT_EQ(hxhim::Put(&hx,
-                             (void *) &triple.subject,   sizeof(triple.subject),   hxhim_data_t::HXHIM_DATA_UINT64,
-                             (void *) &triple.predicate, sizeof(triple.predicate), hxhim_data_t::HXHIM_DATA_DOUBLE,
-                             (void *) &triple.object,    sizeof(triple.object),    hxhim_data_t::HXHIM_DATA_INT32),
-                  HXHIM_SUCCESS);
+        if (hxhim::Put(hx,
+                       (void *) &triple.subject,   sizeof(triple.subject),   hxhim_data_t::HXHIM_DATA_UINT64,
+                       (void *) &triple.predicate, sizeof(triple.predicate), hxhim_data_t::HXHIM_DATA_DOUBLE,
+                       (void *) &triple.object,    sizeof(triple.object),    hxhim_data_t::HXHIM_DATA_INT32,
+                       HXHIM_PUT_SPO) != HXHIM_SUCCESS) {
+            rc = HXHIM_ERROR;
+            break;
+        }
     }
+
+    if (hxhim_options_destroy(&opts) != HXHIM_SUCCESS) {
+        rc = HXHIM_ERROR;
+    }
+
+    if (rc != HXHIM_SUCCESS) {
+        hxhimClose(hx);
+    }
+
+    return rc;
+}
+
+TEST(hxhim, PutGetOp_EQ) {
+    hxhim_t hx;
+    ASSERT_EQ(init(&hx), HXHIM_SUCCESS);
 
     // Flush all queued items
     hxhim::Results *put_results = hxhim::Flush(&hx);
     ASSERT_NE(put_results, nullptr);
 
     // Make sure put succeeded
-    EXPECT_EQ(put_results->Size(), COUNT * (std::size_t) HXHIM_PUT_MULTIPLIER);
+    EXPECT_EQ(put_results->Size(), COUNT);
     HXHIM_CXX_RESULTS_LOOP(put_results) {
         hxhim_op_t op;
         EXPECT_EQ(put_results->Op(&op), HXHIM_SUCCESS);
@@ -115,31 +138,18 @@ TEST(hxhim, PutGetOp_EQ) {
     }
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
-    EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }
 
 TEST(hxhim, PutGetOp_NEXT) {
-    hxhim_options_t opts;
-    ASSERT_EQ(fill_options(&opts), true);
-
     hxhim_t hx;
-    ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
-
-    // Add triples for putting
-    for(struct Triple const &triple : TRIPLES) {
-        EXPECT_EQ(hxhim::Put(&hx,
-                             (void *) &triple.subject,   sizeof(triple.subject),   hxhim_data_t::HXHIM_DATA_UINT64,
-                             (void *) &triple.predicate, sizeof(triple.predicate), hxhim_data_t::HXHIM_DATA_DOUBLE,
-                             (void *) &triple.object,    sizeof(triple.object),    hxhim_data_t::HXHIM_DATA_INT32),
-                  HXHIM_SUCCESS);
-    }
+    ASSERT_EQ(init(&hx), HXHIM_SUCCESS);
 
     // Flush all queued items
     hxhim::Results *put_results = hxhim::Flush(&hx);
     ASSERT_NE(put_results, nullptr);
 
     // Make sure put succeeded
-    EXPECT_EQ(put_results->Size(), COUNT * (std::size_t) HXHIM_PUT_MULTIPLIER);
+    EXPECT_EQ(put_results->Size(), COUNT);
     HXHIM_CXX_RESULTS_LOOP(put_results) {
         hxhim_op_t op;
         EXPECT_EQ(put_results->Op(&op), HXHIM_SUCCESS);
@@ -211,31 +221,18 @@ TEST(hxhim, PutGetOp_NEXT) {
     }
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
-    EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }
 
 TEST(hxhim, PutGetOp_PREV) {
-    hxhim_options_t opts;
-    ASSERT_EQ(fill_options(&opts), true);
-
     hxhim_t hx;
-    ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
-
-    // Add triples for putting
-    for(struct Triple const &triple : TRIPLES) {
-        EXPECT_EQ(hxhim::Put(&hx,
-                             (void *) &triple.subject,   sizeof(triple.subject),   hxhim_data_t::HXHIM_DATA_UINT64,
-                             (void *) &triple.predicate, sizeof(triple.predicate), hxhim_data_t::HXHIM_DATA_DOUBLE,
-                             (void *) &triple.object,    sizeof(triple.object),    hxhim_data_t::HXHIM_DATA_INT32),
-                  HXHIM_SUCCESS);
-    }
+    ASSERT_EQ(init(&hx), HXHIM_SUCCESS);
 
     // Flush all queued items
     hxhim::Results *put_results = hxhim::Flush(&hx);
     ASSERT_NE(put_results, nullptr);
 
     // Make sure put succeeded
-    EXPECT_EQ(put_results->Size(), COUNT * (std::size_t) HXHIM_PUT_MULTIPLIER);
+    EXPECT_EQ(put_results->Size(), COUNT);
     HXHIM_CXX_RESULTS_LOOP(put_results) {
         hxhim_op_t op;
         EXPECT_EQ(put_results->Op(&op), HXHIM_SUCCESS);
@@ -307,31 +304,18 @@ TEST(hxhim, PutGetOp_PREV) {
     }
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
-    EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }
 
 TEST(hxhim, PutGetOp_FIRST) {
-    hxhim_options_t opts;
-    ASSERT_EQ(fill_options(&opts), true);
-
     hxhim_t hx;
-    ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
-
-    // Add triples for putting
-    for(struct Triple const &triple : TRIPLES) {
-        EXPECT_EQ(hxhim::Put(&hx,
-                             (void *) &triple.subject,   sizeof(triple.subject),   hxhim_data_t::HXHIM_DATA_UINT64,
-                             (void *) &triple.predicate, sizeof(triple.predicate), hxhim_data_t::HXHIM_DATA_DOUBLE,
-                             (void *) &triple.object,    sizeof(triple.object),    hxhim_data_t::HXHIM_DATA_INT32),
-                  HXHIM_SUCCESS);
-    }
+    ASSERT_EQ(init(&hx), HXHIM_SUCCESS);
 
     // Flush all queued items
     hxhim::Results *put_results = hxhim::Flush(&hx);
     ASSERT_NE(put_results, nullptr);
 
     // Make sure put succeeded
-    EXPECT_EQ(put_results->Size(), COUNT * (std::size_t) HXHIM_PUT_MULTIPLIER);
+    EXPECT_EQ(put_results->Size(), COUNT);
     HXHIM_CXX_RESULTS_LOOP(put_results) {
         hxhim_op_t op;
         EXPECT_EQ(put_results->Op(&op), HXHIM_SUCCESS);
@@ -403,31 +387,18 @@ TEST(hxhim, PutGetOp_FIRST) {
     }
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
-    EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }
 
 TEST(hxhim, PutGetOp_LAST) {
-    hxhim_options_t opts;
-    ASSERT_EQ(fill_options(&opts), true);
-
     hxhim_t hx;
-    ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
-
-    // Add triples for putting
-    for(struct Triple const &triple : TRIPLES) {
-        EXPECT_EQ(hxhim::Put(&hx,
-                             (void *) &triple.subject,   sizeof(triple.subject),   hxhim_data_t::HXHIM_DATA_UINT64,
-                             (void *) &triple.predicate, sizeof(triple.predicate), hxhim_data_t::HXHIM_DATA_DOUBLE,
-                             (void *) &triple.object,    sizeof(triple.object),    hxhim_data_t::HXHIM_DATA_INT32),
-                  HXHIM_SUCCESS);
-    }
+    ASSERT_EQ(init(&hx), HXHIM_SUCCESS);
 
     // Flush all queued items
     hxhim::Results *put_results = hxhim::Flush(&hx);
     ASSERT_NE(put_results, nullptr);
 
     // Make sure put succeeded
-    EXPECT_EQ(put_results->Size(), COUNT * (std::size_t) HXHIM_PUT_MULTIPLIER);
+    EXPECT_EQ(put_results->Size(), COUNT);
     HXHIM_CXX_RESULTS_LOOP(put_results) {
         hxhim_op_t op;
         EXPECT_EQ(put_results->Op(&op), HXHIM_SUCCESS);
@@ -499,31 +470,18 @@ TEST(hxhim, PutGetOp_LAST) {
     }
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
-    EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }
 
 TEST(hxhim, PutGetOp_INVALID) {
-    hxhim_options_t opts;
-    ASSERT_EQ(fill_options(&opts), true);
-
     hxhim_t hx;
-    ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
-
-    // Add triples for putting
-    for(struct Triple const &triple : TRIPLES) {
-        EXPECT_EQ(hxhim::Put(&hx,
-                             (void *) &triple.subject,   sizeof(triple.subject),   hxhim_data_t::HXHIM_DATA_UINT64,
-                             (void *) &triple.predicate, sizeof(triple.predicate), hxhim_data_t::HXHIM_DATA_DOUBLE,
-                             (void *) &triple.object,    sizeof(triple.object),    hxhim_data_t::HXHIM_DATA_INT32),
-                  HXHIM_SUCCESS);
-    }
+    ASSERT_EQ(init(&hx), HXHIM_SUCCESS);
 
     // Flush all queued items
     hxhim::Results *put_results = hxhim::Flush(&hx);
     ASSERT_NE(put_results, nullptr);
 
     // Make sure put succeeded
-    EXPECT_EQ(put_results->Size(), COUNT * (std::size_t) HXHIM_PUT_MULTIPLIER);
+    EXPECT_EQ(put_results->Size(), COUNT);
     HXHIM_CXX_RESULTS_LOOP(put_results) {
         hxhim_op_t op;
         EXPECT_EQ(put_results->Op(&op), HXHIM_SUCCESS);
@@ -591,5 +549,4 @@ TEST(hxhim, PutGetOp_INVALID) {
     }
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
-    EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }

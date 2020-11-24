@@ -20,11 +20,13 @@
 int hxhim::PutFloat(hxhim_t *hx,
                     void *subject, std::size_t subject_len, enum hxhim_data_t subject_type,
                     void *predicate, std::size_t predicate_len, enum hxhim_data_t predicate_type,
-                    float *object) {
+                    float *object,
+                    const hxhim_put_permutation_t permutations) {
     return hxhim::Put(hx,
                       subject, subject_len, subject_type,
                       predicate, predicate_len, predicate_type,
-                      object, sizeof(float), hxhim_data_t::HXHIM_DATA_FLOAT);
+                      object, sizeof(float), hxhim_data_t::HXHIM_DATA_FLOAT,
+                      permutations);
 }
 
 /**
@@ -42,11 +44,13 @@ int hxhim::PutFloat(hxhim_t *hx,
 int hxhimPutFloat(hxhim_t *hx,
                   void *subject, size_t subject_len, enum hxhim_data_t subject_type,
                   void *predicate, size_t predicate_len, enum hxhim_data_t predicate_type,
-                  float *object) {
+                  float *object,
+                  const hxhim_put_permutation_t permutations) {
     return hxhim::PutFloat(hx,
                            subject, subject_len, subject_type,
                            predicate, predicate_len, predicate_type,
-                           object);
+                           object,
+                           permutations);
 }
 
 /**
@@ -153,6 +157,7 @@ int hxhim::BPutFloat(hxhim_t *hx,
                      void **subjects, std::size_t *subject_lens, enum hxhim_data_t *subject_types,
                      void **predicates, std::size_t *predicate_lens, enum hxhim_data_t *predicate_types,
                      float **objects,
+                     const hxhim_put_permutation_t *permutations,
                      std::size_t count) {
     std::size_t *object_lens = alloc_array<std::size_t>(count, sizeof(float));
 
@@ -160,6 +165,7 @@ int hxhim::BPutFloat(hxhim_t *hx,
                                          subjects, subject_lens, subject_types,
                                          predicates, predicate_lens, predicate_types,
                                          (void **) objects, object_lens, hxhim_data_t::HXHIM_DATA_FLOAT,
+                                         permutations,
                                          count);
 
     dealloc_array(object_lens, count);
@@ -183,11 +189,13 @@ int hxhimBPutFloat(hxhim_t *hx,
                    void **subjects, size_t *subject_lens, enum hxhim_data_t *subject_types,
                    void **predicates, size_t *predicate_lens, enum hxhim_data_t *predicate_types,
                    float **objects,
+                   const hxhim_put_permutation_t *permutations,
                    std::size_t count) {
     return hxhim::BPutFloat(hx,
                             subjects, subject_lens, subject_types,
                             predicates, predicate_lens, predicate_types,
                             objects,
+                            permutations,
                             count);
 }
 

@@ -114,7 +114,8 @@ int main(int argc, char *argv[]) {
             hxhimPut(&hx,
                      c->temp_str, strlen(c->temp_str) + 1, HXHIM_DATA_BYTE,
                      c->predicate, strlen(c->predicate) + 1, HXHIM_DATA_BYTE,
-                     c->name, strlen(c->name) + 1, HXHIM_DATA_BYTE);
+                     c->name, strlen(c->name) + 1, HXHIM_DATA_BYTE,
+                     HXHIM_PUT_SPO);
         }
     }
 
