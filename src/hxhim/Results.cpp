@@ -185,6 +185,7 @@ hxhim::Results::GetOp *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGe
     for(std::size_t j = 0; j < bgetop->num_recs[i]; j++) {
         curr->subject = std::move(bgetop->subjects[i][j]);
         curr->predicate = std::move(bgetop->predicates[i][j]);
+
         if (curr->status == HXHIM_SUCCESS) {
             curr->object = std::move(bgetop->objects[i][j]);
         }
@@ -670,13 +671,13 @@ int hxhim::Results::Subject(void **subject, std::size_t *subject_len, enum hxhim
         ((res->op    != hxhim_op_t::HXHIM_PUT)     &&
          (res->op    != hxhim_op_t::HXHIM_GET)     &&
          (res->op    != hxhim_op_t::HXHIM_GETOP)   &&
-         (res->op    != hxhim_op_t::HXHIM_DELETE)) ||
-        (res->status != HXHIM_SUCCESS))             {
+         (res->op    != hxhim_op_t::HXHIM_DELETE))) {
         return HXHIM_ERROR;
     }
 
     hxhim::Results::SubjectPredicate *sp = static_cast<hxhim::Results::SubjectPredicate *>(res);
     sp->subject.get(subject, subject_len, type);
+
     return HXHIM_SUCCESS;
 }
 
@@ -713,8 +714,7 @@ int hxhim::Results::Predicate(void **predicate, std::size_t *predicate_len, hxhi
         ((res->op    != hxhim_op_t::HXHIM_PUT)     &&
          (res->op    != hxhim_op_t::HXHIM_GET)     &&
          (res->op    != hxhim_op_t::HXHIM_GETOP)   &&
-         (res->op    != hxhim_op_t::HXHIM_DELETE)) ||
-        (res->status != HXHIM_SUCCESS))             {
+         (res->op    != hxhim_op_t::HXHIM_DELETE))) {
         return HXHIM_ERROR;
     }
 

@@ -117,7 +117,7 @@ class Datastore {
 
         void BGetOp_error_response(Transport::Response::BGetOp *res,
                                    const std::size_t i,
-                                   const Blob &subject, const Blob &predicate,
+                                   Blob &subject, Blob &predicate,
                                    Stats::Event &event);
 
 };

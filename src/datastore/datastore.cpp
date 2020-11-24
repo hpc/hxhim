@@ -278,11 +278,12 @@ datastore::Datastore::Stats::Event::Event()
 
 void datastore::Datastore::BGetOp_error_response(Transport::Response::BGetOp *res,
                                                  const std::size_t i,
-                                                 const Blob &subject, const Blob &predicate,
+                                                 Blob &subject, Blob &predicate,
                                                  datastore::Datastore::Stats::Event &event) {
-    res->subjects[i][0]   = ReferenceBlob(subject.data(), subject.size(), subject.data_type());
-    res->predicates[i][0] = ReferenceBlob(predicate.data(), predicate.size(), predicate.data_type());
-    res->num_recs[i]++;
+    std::size_t &index = res->num_recs[i];
+    res->subjects[i][index]   = std::move(subject);
+    res->predicates[i][index] = std::move(predicate);
+    index++;
 
     event.size += subject.pack_size(true) + predicate.pack_size(true);
 }
