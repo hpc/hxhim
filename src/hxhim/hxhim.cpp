@@ -7,6 +7,17 @@
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
+const hxhim_put_permutation_t HXHIM_PUT_PERMUTATIONS[] = {
+    HXHIM_PUT_SPO,
+    HXHIM_PUT_SOP,
+    HXHIM_PUT_PSO,
+    HXHIM_PUT_POS,
+    HXHIM_PUT_OSP,
+    HXHIM_PUT_OPS,
+};
+
+const size_t HXHIM_PUT_PERMUTATIONS_COUNT = sizeof(HXHIM_PUT_PERMUTATIONS) / sizeof(hxhim_put_permutation_t);
+
 const char *HXHIM_OP_STR[] = {
     HXHIM_OP_GEN(HXHIM_OP_PREFIX, GENERATE_STR)
 };

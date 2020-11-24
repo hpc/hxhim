@@ -108,10 +108,8 @@ int hxhim::PutImpl(hxhim_t *hx,
                    const hxhim_put_permutation_t permutations) {
     mlog(HXHIM_CLIENT_INFO, "Foreground PUT Start (%p, %p, %p)", subject.data(), predicate.data(), object.data());
 
-    for(hxhim_put_permutation_t mask : { HXHIM_PUT_SPO, HXHIM_PUT_SOP,
-                                         HXHIM_PUT_PSO, HXHIM_PUT_POS,
-                                         HXHIM_PUT_OSP, HXHIM_PUT_OPS }) {
-        if (!(permutations & mask)) {
+    for(std::size_t i = 0; i < HXHIM_PUT_PERMUTATIONS_COUNT; i++) {
+        if (!(permutations & HXHIM_PUT_PERMUTATIONS[i])) {
             continue;
         }
 
@@ -119,7 +117,7 @@ int hxhim::PutImpl(hxhim_t *hx,
         Blob *pred = nullptr;
         Blob *obj = nullptr;
 
-        switch (mask) {
+        switch (HXHIM_PUT_PERMUTATIONS[i]) {
             case HXHIM_PUT_SPO:
                 sub  = &subject;
                 pred = &predicate;

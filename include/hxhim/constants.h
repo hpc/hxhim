@@ -18,7 +18,7 @@ extern "C"
 /** Error constant */
 #define HXHIM_ERROR 4
 
-/** Different ways a SPO triple will be PUT into HXHIM per PUT */
+/** Different ways a SPO triple can be PUT into HXHIM per PUT */
 typedef size_t hxhim_put_permutation_t;
 #define HXHIM_PUT_SPO 0x01U
 #define HXHIM_PUT_SOP 0x02U
@@ -29,6 +29,10 @@ typedef size_t hxhim_put_permutation_t;
 #define HXHIM_PUT_ALL ( HXHIM_PUT_SPO | HXHIM_PUT_SOP | \
                         HXHIM_PUT_PSO | HXHIM_PUT_POS | \
                         HXHIM_PUT_OSP | HXHIM_PUT_OPS )
+
+/** Convenience array for accessing the permutations */
+extern const hxhim_put_permutation_t HXHIM_PUT_PERMUTATIONS[];
+extern const size_t HXHIM_PUT_PERMUTATIONS_COUNT;
 
 /**
  * hxhim_op_t
