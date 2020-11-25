@@ -288,6 +288,24 @@ static bool parse_elen(hxhim_options_t *opts, const Config::Config &config) {
     return (hxhim_options_set_transform_numeric_values(opts, neg, pos, flt_precision, dbl_precision) == HXHIM_SUCCESS);
 }
 
+static bool parse_histogram(hxhim_options_t *opt, const Config::Config &config) {
+    if (!parse_value(opt, config, hxhim::config::HISTOGRAM_FIRST_N,          hxhim_options_set_histogram_first_n)         ||
+        !parse_value(opt, config, hxhim::config::HISTOGRAM_BUCKET_GEN_NAME,  hxhim_options_set_histogram_bucket_gen_name)) {
+        return false;
+    }
+
+    Config::Config_it hist_name_it = config.find(hxhim::config::HISTOGRAM_TRACK_PREDICATES);
+    if (hist_name_it != config.end()) {
+        std::stringstream s(hist_name_it->second);
+        std::string name;
+        while (std::getline(s, name, ',')) {
+            opt->p->histogram_names.emplace(name);
+        }
+    }
+
+    return true;
+}
+
 /**
  * fill_options
  * Fills up opts as best it can using config.
@@ -316,9 +334,8 @@ static int fill_options(hxhim_options_t *opts, const Config::Config &config) {
         parse_endpointgroup(opts, config)                                                                       &&
         parse_value(opts, config, START_ASYNC_PUT_AT,            hxhim_options_set_start_async_put_at)          &&
         parse_value(opts, config, MAXIMUM_OPS_PER_SEND,          hxhim_options_set_maximum_ops_per_send)        &&
-        parse_value(opts, config, HISTOGRAM_FIRST_N,             hxhim_options_set_histogram_first_n)           &&
-        parse_value(opts, config, HISTOGRAM_BUCKET_GEN_NAME,     hxhim_options_set_histogram_bucket_gen_name)   &&
         parse_elen(opts, config)                                                                                &&
+        parse_histogram(opts, config)                                                                           &&
         true?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 

@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <memory>
 
+#include "hxhim/Blob.hpp"
 #include "hxhim/constants.h"
 #include "transport/Messages/Request.hpp"
 #include "transport/Messages/Response.hpp"
@@ -23,6 +24,8 @@ struct BHistogram final : Request {
     void alloc(const std::size_t max);
     int steal(BHistogram *from, const std::size_t i);
     int cleanup();
+
+    Blob *names;
 };
 
 }

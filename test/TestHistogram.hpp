@@ -3,6 +3,8 @@
 
 #include "utils/Histogram.hpp"
 
+const std::string TEST_HIST_NAME = "TEST_HISTOGRAM";
+
 int CUSTOM_NONUNIFORM_FUNC(const double *first_n, const size_t n,
                            double **buckets, size_t *size,
                            void *extra);
@@ -11,7 +13,7 @@ int CUSTOM_NONUNIFORM_FUNC(const double *first_n, const size_t n,
     const int n = count;                                                \
     ::Histogram::Histogram name(Histogram::Config{n,                    \
                                 CUSTOM_NONUNIFORM_FUNC,                 \
-                                nullptr})
+                                nullptr}, TEST_HIST_NAME)
 
 #define CUSTOM_NONUNIFORM_FILL(name, count)     \
     for(std::size_t i = 0; i < (count); i++) {  \
@@ -20,11 +22,16 @@ int CUSTOM_NONUNIFORM_FUNC(const double *first_n, const size_t n,
 
 #define CUSTOM_NONUNIFORM_TEST(name)                                       \
     {                                                                      \
+        const char *name_str = nullptr;                                    \
+        std::size_t name_len = 0;                                          \
         double *buckets = nullptr;                                         \
         std::size_t *counts = nullptr;                                     \
         std::size_t size = 0;                                              \
                                                                            \
-        ASSERT_EQ(name.get(&buckets, &counts, &size), HISTOGRAM_SUCCESS);  \
+        ASSERT_EQ(name.get(&name_str, &name_len,                           \
+                           &buckets, &counts, &size), HISTOGRAM_SUCCESS);  \
+        EXPECT_EQ(std::string(name_str, name_len), TEST_HIST_NAME);        \
+                                                                           \
         EXPECT_EQ(size, (std::size_t) 3);                                  \
                                                                            \
         /* 0: 0, 1, 2, 3, 4 */                                             \

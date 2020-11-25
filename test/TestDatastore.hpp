@@ -1,17 +1,19 @@
 #ifndef TEST_DATASTORE_HPP
 #define TEST_DATASTORE_HPP
 
+#include <map>
+
 #include "datastore/datastore.hpp"
 
-static const std::chrono::microseconds PUT_TIME(123);
-static const std::chrono::microseconds GET_TIME(456);
-static const uint64_t PUT_TIME_UINT64 = std::chrono::duration_cast<std::chrono::nanoseconds>(PUT_TIME).count();
-static const uint64_t GET_TIME_UINT64 = std::chrono::duration_cast<std::chrono::nanoseconds>(GET_TIME).count();
+const std::chrono::microseconds PUT_TIME(123);
+const std::chrono::microseconds GET_TIME(456);
+const uint64_t PUT_TIME_UINT64 = std::chrono::duration_cast<std::chrono::nanoseconds>(PUT_TIME).count();
+const uint64_t GET_TIME_UINT64 = std::chrono::duration_cast<std::chrono::nanoseconds>(GET_TIME).count();
 
 class TestDatastore : public datastore::Datastore {
     public:
-        TestDatastore(const int id, Histogram::Histogram *hist = nullptr)
-            : datastore::Datastore(0, id, nullptr, hist)
+        TestDatastore(const int id)
+            : datastore::Datastore(0, id, nullptr)
         {}
 
     private:

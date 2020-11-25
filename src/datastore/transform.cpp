@@ -35,6 +35,7 @@ datastore::Transform::Callbacks *datastore::Transform::default_callbacks() {
                                               &callbacks->numeric_extra));
     callbacks->encode.emplace(HXHIM_DATA_BYTE,    std::make_pair(nullptr, nullptr));
     callbacks->encode.emplace(HXHIM_DATA_POINTER, std::make_pair(nullptr, nullptr));
+    callbacks->encode.emplace(HXHIM_DATA_TRACKED, std::make_pair(nullptr, nullptr));
 
     callbacks->decode.emplace(HXHIM_DATA_INT32,
                                std::make_pair(decode::integers<int32_t>,
@@ -56,6 +57,7 @@ datastore::Transform::Callbacks *datastore::Transform::default_callbacks() {
                                               &callbacks->numeric_extra));
     callbacks->decode.emplace(HXHIM_DATA_BYTE,    std::make_pair(nullptr, nullptr));
     callbacks->decode.emplace(HXHIM_DATA_POINTER, std::make_pair(nullptr, nullptr));
+    callbacks->decode.emplace(HXHIM_DATA_TRACKED, std::make_pair(nullptr, nullptr));
 
     return callbacks;
 }

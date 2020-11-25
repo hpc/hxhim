@@ -43,8 +43,9 @@ typedef struct hxhim_options_private {
 
     datastore::Config *datastore;              // configuration options for the selected datastore
     datastore::Transform::Callbacks transform; // callbacks for transforming user data into datastore-suitable data
+    datastore::HistNames_t histogram_names;    // names of histograms that should keep track of PUTs
 
-    struct Histogram::Config histogram;
+    struct Histogram::Config histogram;        // common settings for all histograms
 } hxhim_options_private_t;
 
 }

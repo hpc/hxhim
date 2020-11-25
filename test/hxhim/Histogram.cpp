@@ -1,9 +1,8 @@
-#include <sstream>
 #include <vector>
 
 #include <gtest/gtest.h>
-#include <mpi.h>
 
+#include "TestHistogram.hpp"
 #include "generic_options.hpp"
 #include "hxhim/hxhim.hpp"
 
@@ -38,6 +37,7 @@ TEST(hxhim, Histogram) {
     ASSERT_EQ(hxhim_options_set_hash_function(&opts, "test hash", test_hash, nullptr), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_histogram_first_n(&opts, 0), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_histogram_bucket_gen_function(&opts, test_buckets, nullptr), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim_options_add_histogram_track_predicate(&opts, TEST_HIST_NAME), HXHIM_SUCCESS);
 
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
@@ -50,23 +50,23 @@ TEST(hxhim, Histogram) {
     std::size_t total_rs = 0;
     EXPECT_EQ(hxhim::GetRangeServerCount(&hx, &total_rs), HXHIM_SUCCESS);
 
-    std::vector<uint32_t> subjects  (TRIPLES + 1);
-    std::vector<uint32_t> predicates(TRIPLES + 1);
-    std::vector<double>   objects   (TRIPLES + 1);
+    std::vector<double>      subjects  (TRIPLES + 1);
+    std::vector<std::string> predicates(TRIPLES + 1);
+    std::vector<void *>      objects   (TRIPLES + 1);
 
     // PUT triples
     // The first TRIPLES - 1 buckets will have 1 item each
     // The last bucket will have 2 items
     for(std::size_t i = 0; i < TRIPLES; i++) {
         subjects[i] = rank;
-        predicates[i] = rank + TRIPLES;
-        objects[i] = rank - TRIPLES;
+        predicates[i] = TEST_HIST_NAME;
+        objects[i] = nullptr;
 
-        EXPECT_EQ(hxhim::PutDouble(&hx,
-                                   (void *)&subjects[i],   sizeof(subjects[i]),   hxhim_data_t::HXHIM_DATA_UINT32,
-                                   (void *)&predicates[i], sizeof(predicates[i]), hxhim_data_t::HXHIM_DATA_UINT32,
-                                   &objects[i],
-                                   HXHIM_PUT_SPO),
+        EXPECT_EQ(hxhim::Put(&hx,
+                             (void *)&subjects[i],         sizeof(subjects[i]),  hxhim_data_t::HXHIM_DATA_DOUBLE,
+                             (void *)predicates[i].data(), predicates[i].size(), hxhim_data_t::HXHIM_DATA_BYTE,
+                             (void *)&objects[i],          sizeof(subjects[i]),  hxhim_data_t::HXHIM_DATA_POINTER,
+                             HXHIM_PUT_SPO),
                   HXHIM_SUCCESS);
     }
 
@@ -104,9 +104,9 @@ TEST(hxhim, Histogram) {
 
     hxhim::Results::Destroy(put_results);
 
-    // request all histograms
+    // a single histogram from all ranks
     for(std::size_t i = 0; i < total_rs; i++) {
-        EXPECT_EQ(hxhim::Histogram(&hx, i), HXHIM_SUCCESS);
+        EXPECT_EQ(hxhim::Histogram(&hx, i, TEST_HIST_NAME.data(), TEST_HIST_NAME.size()), HXHIM_SUCCESS);
     }
 
     hxhim::Results *hist_results = hxhim::Flush(&hx);
@@ -125,11 +125,14 @@ TEST(hxhim, Histogram) {
         EXPECT_EQ(hist_results->Status(&status), HXHIM_SUCCESS);
         EXPECT_EQ(status, HXHIM_SUCCESS);
 
+        const char *name = nullptr;
+        std::size_t name_len = 0;
         double *buckets = nullptr;
         std::size_t *counts = nullptr;
         std::size_t size = 0;
-        EXPECT_EQ(hist_results->Histogram(&buckets, &counts, &size), HXHIM_SUCCESS);
+        ASSERT_EQ(hist_results->Histogram(&name, &name_len, &buckets, &counts, &size), HXHIM_SUCCESS);
 
+        EXPECT_EQ(std::string(name, name_len), TEST_HIST_NAME);
         ASSERT_NE(buckets, nullptr);
         ASSERT_NE(counts, nullptr);
         EXPECT_EQ(size, (std::size_t ) 1);

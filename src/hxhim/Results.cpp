@@ -785,12 +785,14 @@ int hxhim_result_object(hxhim_results_t *res, void **object, size_t *object_len,
  * Histogram
  * Gets the histogram data from the current result node, if the result node contains data from a HISTOGRAM
  *
+ * @param name      (optional) the name of the histogram
+ * @param name_len  (optional) the length of the histogram's name
  * @param buckets   (optional) the buckets of the histogram
  * @param counts    (optional) the counts of the histogram
  * @param size      (optional) how many bucket-count pairs there are
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim::Results::Histogram(double **buckets, std::size_t **counts, std::size_t *size) const {
+int hxhim::Results::Histogram(const char **name, std::size_t *name_len, double **buckets, std::size_t **counts, std::size_t *size) const {
     hxhim::Results::Result *res = Curr();
     if (!res                                         ||
         (res->op     != hxhim_op_t::HXHIM_HISTOGRAM) ||
@@ -799,7 +801,7 @@ int hxhim::Results::Histogram(double **buckets, std::size_t **counts, std::size_
     }
 
     hxhim::Results::Hist *hist = static_cast<hxhim::Results::Hist *>(res);
-    return (hist->histogram->get(buckets, counts, size) == HISTOGRAM_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
+    return (hist->histogram->get(name, name_len, buckets, counts, size) == HISTOGRAM_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 
 /**
@@ -807,17 +809,19 @@ int hxhim::Results::Histogram(double **buckets, std::size_t **counts, std::size_
  * Gets the histogram and length from the current result node, if the result node contains data from a GET
  *
  * @param res       A list of results
+ * @param name      (optional) the name of the histogram
+ * @param name_len  (optional) the length of the histogram's name
  * @param buckets   (optional) the buckets of the histogram
  * @param counts    (optional) the counts of the histogram
  * @param size      (optional) how many bucket-count pairs there are
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim_result_histogram(hxhim_results_t *res, double **buckets, size_t **counts, size_t *size) {
+int hxhim_result_histogram(hxhim_results_t *res, const char **name, std::size_t *name_len, double **buckets, size_t **counts, size_t *size) {
     if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
 
-    return res->res->Histogram(buckets, counts, size);
+    return res->res->Histogram(name, name_len, buckets, counts, size);
 }
 
 /**

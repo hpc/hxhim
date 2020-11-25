@@ -2,8 +2,10 @@
 #define HXHIM_DATASTORE_HPP
 
 #include <list>
+#include <map>
 #include <memory>
 #include <mutex>
+#include <set>
 
 #include "datastore/constants.hpp"
 #include "datastore/transform.hpp"
@@ -27,6 +29,9 @@ struct Config {
     const datastore::Type type;
 };
 
+// mapping from predicate name to id
+typedef std::set<std::string> HistNames_t;
+
 /**
  * Datatstores
  * The base class for all datastores used by HXHIM
@@ -35,8 +40,8 @@ class Datastore {
     public:
         Datastore(const int rank,
                   const int id,
-                  Transform::Callbacks *callbacks, // Datastore takes ownership of callbacks
-                  Histogram::Histogram *hist);     // Datastore takes ownership of hist
+                  Transform::Callbacks *callbacks);   // Datastore takes ownership of callbacks
+
         virtual ~Datastore();
 
         bool Open(const std::string &new_name);
@@ -49,7 +54,9 @@ class Datastore {
         Transport::Response::BDelete    *operate(Transport::Request::BDelete    *req);
         Transport::Response::BHistogram *operate(Transport::Request::BHistogram *req);
 
-        int GetHistogram(Histogram::Histogram **h) const;
+        std::map<std::string, std::shared_ptr<Histogram::Histogram> > const &AddHistogram(const std::string &name, std::shared_ptr<Histogram::Histogram> new_histogram);
+        int GetHistogram(const char *name, const std::size_t name_len, Histogram::Histogram **h) const;
+        int GetHistogram(const std::string &name, Histogram::Histogram **h) const;
         int GetStats(uint64_t    *put_times,
                      std::size_t *num_puts,
                      uint64_t    *get_times,
@@ -80,7 +87,7 @@ class Datastore {
         int rank;      // MPI rank of HXHIM instance
         int id;
         Transform::Callbacks *callbacks;
-        std::shared_ptr<Histogram::Histogram> hist;
+        std::map<std::string, std::shared_ptr<Histogram::Histogram> > hists;
         mutable std::mutex mutex;
 
     public:

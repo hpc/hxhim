@@ -20,15 +20,16 @@ extern "C"
 
 /** Different ways a SPO triple can be PUT into HXHIM per PUT */
 typedef size_t hxhim_put_permutation_t;
-#define HXHIM_PUT_SPO 0x01U
-#define HXHIM_PUT_SOP 0x02U
-#define HXHIM_PUT_PSO 0x04U
-#define HXHIM_PUT_POS 0x08U
-#define HXHIM_PUT_OSP 0x10U
-#define HXHIM_PUT_OPS 0x20U
-#define HXHIM_PUT_ALL ( HXHIM_PUT_SPO | HXHIM_PUT_SOP | \
-                        HXHIM_PUT_PSO | HXHIM_PUT_POS | \
-                        HXHIM_PUT_OSP | HXHIM_PUT_OPS )
+#define HXHIM_PUT_NONE 0x00U
+#define HXHIM_PUT_SPO  0x01U
+#define HXHIM_PUT_SOP  0x02U
+#define HXHIM_PUT_PSO  0x04U
+#define HXHIM_PUT_POS  0x08U
+#define HXHIM_PUT_OSP  0x10U
+#define HXHIM_PUT_OPS  0x20U
+#define HXHIM_PUT_ALL  ( HXHIM_PUT_SPO | HXHIM_PUT_SOP | \
+                         HXHIM_PUT_PSO | HXHIM_PUT_POS | \
+                         HXHIM_PUT_OSP | HXHIM_PUT_OPS )
 
 /** Convenience array for accessing the permutations */
 extern const hxhim_put_permutation_t HXHIM_PUT_PERMUTATIONS[];
@@ -64,14 +65,14 @@ extern const char *HXHIM_OP_STR[];
  *
  * HXHIM_GETOP_*
  */
-#define HXHIM_GETOP_GEN(PREFIX, GEN)                                    \
-    GEN(PREFIX, EQ)      /** num_recs is ignored */                     \
-    GEN(PREFIX, NEXT)                                                   \
-    GEN(PREFIX, PREV)                                                   \
-    GEN(PREFIX, FIRST)   /** subject-predicate pair is ignored */       \
-    GEN(PREFIX, LAST)    /** subject-predicate pair is ignored */       \
-    /* GEN(PREFIX, PRIMARY_EQ) */                                       \
-    GEN(PREFIX, INVALID)                                                \
+#define HXHIM_GETOP_GEN(PREFIX, GEN)                                \
+    GEN(PREFIX, EQ)      /** num_recs is ignored */                 \
+    GEN(PREFIX, NEXT)                                               \
+    GEN(PREFIX, PREV)                                               \
+    GEN(PREFIX, FIRST)   /** subject-predicate pair is ignored */   \
+    GEN(PREFIX, LAST)    /** subject-predicate pair is ignored */   \
+    /* GEN(PREFIX, PRIMARY_EQ) */                                   \
+    GEN(PREFIX, INVALID)                                            \
 
 #define HXHIM_GETOP_PREFIX HXHIM_GETOP
 
@@ -97,6 +98,7 @@ extern const char *HXHIM_GETOP_STR[];
     GEN(PREFIX, DOUBLE)             \
     GEN(PREFIX, BYTE)               \
     GEN(PREFIX, POINTER)            \
+    GEN(PREFIX, TRACKED)            \
 
 #define HXHIM_DATA_PREFIX HXHIM_DATA
 

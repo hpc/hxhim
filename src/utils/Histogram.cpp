@@ -156,8 +156,9 @@ int histogram_uniform_logn(const double *first_n, const size_t n, double **bucke
     return generate_using_bin_count(min, max, std::ceil((max - min) * std::log((std::size_t) (uintptr_t) extra) / std::log(max - min)), buckets, size);
 }
 
-Histogram::Histogram::Histogram(const Config &config)
-    : first_n_(config.first_n),
+Histogram::Histogram::Histogram(const Config &config, const std::string &name)
+    : name_(name),
+      first_n_(config.first_n),
       gen_(config.generator),
       extra_(config.extra_args),
       cache_(alloc_array<double>(first_n_)),
@@ -167,8 +168,8 @@ Histogram::Histogram::Histogram(const Config &config)
       size_(0)
 {}
 
-Histogram::Histogram::Histogram(Config *config)
-    : Histogram(*config)
+Histogram::Histogram::Histogram(const Config *config, const std::string &name)
+    : Histogram(*config, name)
 {}
 
 Histogram::Histogram::~Histogram() {
@@ -258,14 +259,25 @@ int Histogram::Histogram::get_cache(std::size_t *first_n,
  * if the number of values required to generate
  * the buckets has not been reached.
  *
- * @param buckets pointer to the buckets (optional)
- * @param counts  pointer to the counts  (optional)
- * @param size    pointer to the size    (optional)
+ * @param name      (optional) the name of the histogram
+ * @param name_len  (optional) the length of the histogram's name
+ * @param buckets   (optional) the buckets of the histogram
+ * @param counts    (optional) the counts of the histogram
+ * @param size      (optional) how many bucket-count pairs there are
  * @return HISTOGRAM_SUCCESS
  */
-int Histogram::Histogram::get(double **buckets, std::size_t **counts, std::size_t *size) const {
+int Histogram::Histogram::get(const char **name, std::size_t *name_len,
+                              double **buckets, std::size_t **counts, std::size_t *size) const {
     if (count_  < first_n_) {
         return HISTOGRAM_ERROR;
+    }
+
+    if (name) {
+        *name = name_.data();
+    }
+
+    if (name_len) {
+        *name_len = name_.size();
     }
 
     if (buckets) {
@@ -296,7 +308,10 @@ std::size_t Histogram::Histogram::pack_size() const {
         return 0;
     }
 
-    return sizeof(count_) +
+    return
+        sizeof(name_.size()) +
+        name_.size() +
+        sizeof(count_) +
         sizeof(size_) +
         size_ * (sizeof(double) + sizeof(std::size_t));
 }
@@ -344,6 +359,13 @@ bool Histogram::Histogram::pack(char *&curr, std::size_t &avail, std::size_t *us
     }
 
     char *orig = curr;
+
+    const std::size_t name_len = name_.size();
+    memcpy(curr, &name_len, sizeof(name_len));
+    curr += sizeof(name_len);
+
+    memcpy(curr, name_.data(), name_len);
+    curr += name_len;
 
     memcpy(curr, &count_, sizeof(count_));
     curr += sizeof(count_);
@@ -400,6 +422,13 @@ bool Histogram::Histogram::unpack(char *&curr, std::size_t &size, std::size_t *u
     clear();
 
     char *orig = curr;
+
+    std::size_t name_len = 0;
+    memcpy(&name_len, curr, sizeof(name_len));
+    curr += sizeof(name_len);
+
+    name_.assign(curr, name_len);
+    curr += name_len;
 
     memcpy(&count_, curr, sizeof(count_));
     curr += sizeof(count_);

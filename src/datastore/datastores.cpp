@@ -23,14 +23,11 @@ int datastore::Init(hxhim_t *hx,
         return DATASTORE_ERROR;
     }
 
-    Histogram::Histogram *hist = new Histogram::Histogram(hist_config);
-
     switch (config->type) {
         case IN_MEMORY:
             hx->p->datastore = new InMemory(rank,
                                             id,
                                             callbacks,
-                                            hist,
                                             hx->p->hash.name);
             mlog(HXHIM_CLIENT_INFO, "Initialized In-Memory in datastore %d", id);
             break;
@@ -42,7 +39,6 @@ int datastore::Init(hxhim_t *hx,
                 if (exact_name) {
                     hx->p->datastore = new leveldb(rank,
                                                    callbacks,
-                                                   hist,
                                                    *exact_name,
                                                    false);
                 }
@@ -50,7 +46,6 @@ int datastore::Init(hxhim_t *hx,
                     hx->p->datastore = new leveldb(rank,
                                                    id,
                                                    callbacks,
-                                                   hist,
                                                    leveldb_config->prefix,
                                                    hx->p->hash.name,
                                                    leveldb_config->create_if_missing);
@@ -67,7 +62,6 @@ int datastore::Init(hxhim_t *hx,
                 if (exact_name) {
                     hx->p->datastore = new rocksdb(rank,
                                                    callbacks,
-                                                   hist,
                                                    *exact_name,
                                                    false);
                 }
@@ -75,7 +69,6 @@ int datastore::Init(hxhim_t *hx,
                     hx->p->datastore = new rocksdb(rank,
                                                    id,
                                                    callbacks,
-                                                   hist,
                                                    rocksdb_config->prefix,
                                                    hx->p->hash.name,
                                                    rocksdb_config->create_if_missing);
@@ -87,6 +80,13 @@ int datastore::Init(hxhim_t *hx,
 
         default:
             break;
+    }
+
+    if (hx->p->datastore) {
+        for(std::string const &name : hx->p->hist_names) {
+            hx->p->datastore->AddHistogram(name,
+                                           std::shared_ptr<Histogram::Histogram>(construct<Histogram::Histogram>(hist_config, name), Histogram::deleter));
+        }
     }
 
     return DATASTORE_SUCCESS;

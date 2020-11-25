@@ -92,10 +92,12 @@ int GetStats(hxhim_t *hx, const int dst_rank,
              std::size_t *num_gets);
 
 int Histogram(hxhim_t *hx,
-              int ds_id);
+              int ds_id,
+              const char *name, const std::size_t name_len);
 
 int BHistogram(hxhim_t *hx,
                int *ds_ids,
+               const char **names, const std::size_t *name_lens,
                const std::size_t count);
 
 // int GetMinFilled(hxhim_t *hx, const int dst_rank,

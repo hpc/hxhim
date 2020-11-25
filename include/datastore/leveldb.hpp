@@ -21,13 +21,11 @@ class leveldb : public Datastore {
 
         leveldb(const int rank,
                 Transform::Callbacks *callbacks,
-                Histogram::Histogram *hist,
                 const std::string &exact_name,
                 const bool create_if_missing);
         leveldb(const int rank,
                 const int id,
                 Transform::Callbacks *callbacks,
-                Histogram::Histogram *hist,
                 const std::string &prefix,
                 const std::string &name,
                 const bool create_if_missing);

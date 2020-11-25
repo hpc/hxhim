@@ -189,7 +189,7 @@ class Results {
         int Subject(void **subject, std::size_t *subject_len, hxhim_data_t *type) const;
         int Predicate(void **predicate, std::size_t *predicate_len, hxhim_data_t *type) const;
         int Object(void **object, std::size_t *object_len, hxhim_data_t *type) const;
-        int Histogram(double **buckets, std::size_t **counts, std::size_t *size) const;
+        int Histogram(const char **name, std::size_t *name_len, double **buckets, std::size_t **counts, std::size_t *size) const;
 
         // These functions are only available in C++
         int Histogram(::Histogram::Histogram **hist) const;

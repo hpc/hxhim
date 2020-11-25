@@ -11,9 +11,8 @@
 datastore::InMemory::InMemory(const int rank,
                               const int id,
                               Transform::Callbacks *callbacks,
-                              Histogram::Histogram *hist,
                               const std::string &basename)
-    : Datastore(rank, id, callbacks, hist),
+    : Datastore(rank, id, callbacks),
       db()
 {
     Datastore::Open(basename);

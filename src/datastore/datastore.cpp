@@ -1,28 +1,22 @@
 #include <cmath>
 #include <iomanip>
 #include <sstream>
-#include <stdexcept>
 
 #include "datastore/datastore.hpp"
 #include "hxhim/Blob.hpp"
-#include "utils/elen.hpp"
 #include "utils/macros.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
 datastore::Datastore::Datastore(const int rank,
                                 const int id,
-                                Transform::Callbacks *callbacks,
-                                Histogram::Histogram *hist)
+                                Transform::Callbacks *callbacks)
     : rank(rank),
       id(id),
       callbacks(callbacks),
-      hist(std::shared_ptr<Histogram::Histogram>(hist,
-                                                 [](Histogram::Histogram *ptr) {
-                                                     destruct(ptr);
-                                                 })),
-    mutex(),
-    stats()
+      hists(),
+      mutex(),
+      stats()
 {
     // default to basic callbacks
     if (!this->callbacks) {
@@ -50,6 +44,7 @@ datastore::Datastore::~Datastore() {
     mlog(DATASTORE_INFO, "Rank %d Datastore shutting down", rank);
 
     destruct(callbacks);
+    hists.clear();
 
     long double put_time = 0;
     std::size_t put_count = 0;
@@ -104,17 +99,36 @@ Transport::Response::BPut *datastore::Datastore::operate(Transport::Request::BPu
     std::lock_guard<std::mutex> lock(mutex);
     Transport::Response::BPut *res = BPutImpl(req);
 
-    if (hist && res) {
-        // add successfully PUT floating point values to the histogram
+    if (hists.size() && res) {
+        // if a predicate is HXHIM_DATA_TRACKED and the PUT was successful
+        // keep track of the subject in the histogram
         for(std::size_t i = 0; i < req->count; i++) {
             if (res->statuses[i] == DATASTORE_SUCCESS) {
-                switch (req->objects[i].data_type()) {
-                    case HXHIM_DATA_FLOAT:
-                        hist->add(* (float *) req->objects[i].data());
+                switch (req->predicates[i].data_type()) {
+                    case HXHIM_DATA_BYTE:
+                        {
+                            // find the histogram at the provided index
+                            REF(hists)::const_iterator hist_it = hists.find((std::string) req->predicates[i]);
+                            if (hist_it == hists.end()) {
+                                res->statuses[i] = DATASTORE_ERROR;
+                            }
+                            else {
+                                // insert the subject
+                                switch (req->subjects[i].data_type()) {
+                                    case HXHIM_DATA_FLOAT:
+                                        hist_it->second->add(* (float *) req->subjects[i].data());
+                                        break;
+                                    case HXHIM_DATA_DOUBLE:
+                                        hist_it->second->add(* (double *) req->subjects[i].data());
+                                        break;
+                                    default:
+                                        break;
+                                }
+                            }
+                        }
+
                         break;
-                    case HXHIM_DATA_DOUBLE:
-                        hist->add(* (double *) req->objects[i].data());
-                        break;
+
                     default:
                         break;
                 }
@@ -141,6 +155,9 @@ Transport::Response::BDelete *datastore::Datastore::operate(Transport::Request::
 }
 
 Transport::Response::BHistogram *datastore::Datastore::operate(Transport::Request::BHistogram *req) {
+    /**
+     * handle histograms right here because it is datastore agnostic
+     */
     std::lock_guard<std::mutex> lock(mutex);
 
     Datastore::Stats::Event event;
@@ -153,13 +170,19 @@ Transport::Response::BHistogram *datastore::Datastore::operate(Transport::Reques
         struct timespec start = {};
         struct timespec end = {};
 
+        // find the histogram at the requested index
         clock_gettime(CLOCK_MONOTONIC, &start);
-        res->histograms[i] = hist;
+        REF(hists)::const_iterator it = hists.find((std::string) req->names[i]);
         clock_gettime(CLOCK_MONOTONIC, &end);
 
-        res->statuses[i] = DATASTORE_SUCCESS;
-
-        event.size += res->histograms[i]->pack_size();
+        if (it != hists.end()) {
+            res->histograms[i] = it->second;
+            res->statuses[i] = DATASTORE_SUCCESS;
+            event.size += res->histograms[i]->pack_size();
+        }
+        else {
+            res->statuses[i] = DATASTORE_ERROR;
+        }
 
         res->count++;
     }
@@ -170,17 +193,43 @@ Transport::Response::BHistogram *datastore::Datastore::operate(Transport::Reques
     return res;
 }
 
+std::map<std::string, std::shared_ptr<Histogram::Histogram> > const &
+datastore::Datastore::AddHistogram(const std::string &name, std::shared_ptr<Histogram::Histogram> new_histogram) {
+    hists[name] = new_histogram;
+    return hists;
+}
+
+/**
+ * Histogram
+ * Get the pointer to this datatstore's histogram
+ *
+ * @param name      the name of the histogram to get
+ * @param name_len  the length of the name
+ * @param h         A pointer to this histogram pointer
+ * @return DATASTORE_SUCCESS if found, else DATASTORE_ERROR
+ */
+int datastore::Datastore::GetHistogram(const char *name, const std::size_t name_len, Histogram::Histogram **h) const {
+    return GetHistogram(std::string(name, name_len), h);
+}
+
 /**
  * Histogram
  * Get the pointer to this datatstore's histogram
  *
  * @param h A pointer to this histogram pointer
- * @return DATASTORE_SUCCESS
+ * @return DATASTORE_SUCCESS if found, else DATASTORE_ERROR
  */
-int datastore::Datastore::GetHistogram(Histogram::Histogram **h) const {
-    if (hist) {
-        *h = hist.get();
+int datastore::Datastore::GetHistogram(const std::string &name, Histogram::Histogram **h) const {
+    if (!h) {
+        return DATASTORE_ERROR;
     }
+
+    REF(hists)::const_iterator it = hists.find(name);
+    if (it == hists.end()) {
+        return DATASTORE_ERROR;
+    }
+
+    *h = it->second.get();
 
     return DATASTORE_SUCCESS;
 }

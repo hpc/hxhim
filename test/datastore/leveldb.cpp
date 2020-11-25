@@ -14,7 +14,7 @@
 class LevelDBTest : public datastore::leveldb {
     public:
         LevelDBTest(const int rank, const std::string &name)
-            : datastore::leveldb(rank, nullptr, nullptr, name, true)
+            : datastore::leveldb(rank, nullptr, name, true)
         {}
 
         ~LevelDBTest()  {

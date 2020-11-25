@@ -1,11 +1,12 @@
 #include <gtest/gtest.h>
 
 #include "TestDatastore.hpp"
+#include "TestHistogram.hpp"
 #include "utils/elen.hpp"
 
 const std::size_t FIRST_N = 5;
 
-void check_nothing_happend(Histogram::Histogram *hist) {
+void check_nothing_happend(const std::shared_ptr<Histogram::Histogram> &hist) {
     std::size_t first_n = 0;
     double *cache = nullptr;
     std::size_t cache_size = 0;
@@ -14,39 +15,53 @@ void check_nothing_happend(Histogram::Histogram *hist) {
     EXPECT_EQ(first_n, FIRST_N);
     EXPECT_NE(cache, nullptr);
     EXPECT_EQ(cache_size, 0);
-    EXPECT_EQ(hist->get(nullptr, nullptr, nullptr), HISTOGRAM_ERROR);
+    EXPECT_EQ(hist->get(nullptr, nullptr, nullptr, nullptr, nullptr), HISTOGRAM_ERROR);
 }
 
 TEST(datastore, Histogram) {
-    Histogram::Histogram *hist = construct<Histogram::Histogram>(
-        Histogram::Config{FIRST_N,
-                          [](const double *, const size_t,
-                             double **buckets, size_t *size,
-                             void *) -> int {
-                              if (!buckets || !size) {
-                                  return HISTOGRAM_ERROR;
-                              }
+    // This histogram will be owned by the datastore
+    std::shared_ptr<Histogram::Histogram> hist(construct<Histogram::Histogram>(
+                                                   Histogram::Config{
+                                                       FIRST_N,
+                                                           [](const double *, const size_t,
+                                                              double **buckets, size_t *size,
+                                                              void *) -> int {
+                                                           if (!buckets || !size) {
+                                                               return HISTOGRAM_ERROR;
+                                                           }
 
-                              *size = 1;
-                              *buckets = alloc_array<double>(*size);
-                              (*buckets)[0] = 0;
+                                                           *size = 1;
+                                                           *buckets = alloc_array<double>(*size);
+                                                           (*buckets)[0] = 0;
 
-                              return HISTOGRAM_SUCCESS;
-                          },
-                          nullptr}
-        );
-    TestDatastore ds(-1, hist);
+                                                           return HISTOGRAM_SUCCESS;
+                                                       },
+                                                       nullptr
+                                                   },
+                                                   TEST_HIST_NAME),
+                                               Histogram::deleter);
+
+    TestDatastore ds(-1);
+    ds.AddHistogram(TEST_HIST_NAME, hist);
 
     // before any events
     check_nothing_happend(hist);
+
+    Blob predicate = ReferenceBlob((void *) TEST_HIST_NAME.data(), TEST_HIST_NAME.size(), hxhim_data_t::HXHIM_DATA_BYTE);
+
+    float flt_subject = rand();
+    Blob flt_blob = ReferenceBlob(&flt_subject, sizeof(flt_subject), hxhim_data_t::HXHIM_DATA_FLOAT);
+
+    double dbl_subject = rand();
+    Blob dbl_blob = ReferenceBlob(&dbl_subject, sizeof(dbl_subject), hxhim_data_t::HXHIM_DATA_DOUBLE);
 
     // GET should not update the histogram
     {
         {
             Transport::Request::BGet flt(1);
-            flt.subjects[0] = ReferenceBlob(nullptr, 0, hxhim_data_t::HXHIM_DATA_POINTER);
-            flt.predicates[0] = ReferenceBlob(nullptr, 0, hxhim_data_t::HXHIM_DATA_POINTER);
-            flt.object_types[0] = hxhim_data_t::HXHIM_DATA_FLOAT;
+            flt.subjects[0] = flt_blob;
+            flt.predicates[0] = predicate;
+            flt.object_types[0] = hxhim_data_t::HXHIM_DATA_POINTER;
             flt.count = 1;
             ds.operate(&flt);
 
@@ -55,9 +70,9 @@ TEST(datastore, Histogram) {
 
         {
             Transport::Request::BGet dbl(1);
-            dbl.subjects[0] = ReferenceBlob(nullptr, 0, hxhim_data_t::HXHIM_DATA_POINTER);
-            dbl.predicates[0] = ReferenceBlob(nullptr, 0, hxhim_data_t::HXHIM_DATA_POINTER);
-            dbl.object_types[0] = hxhim_data_t::HXHIM_DATA_DOUBLE;
+            dbl.subjects[0] = dbl_blob;
+            dbl.predicates[0] = predicate;
+            dbl.object_types[0] = hxhim_data_t::HXHIM_DATA_POINTER;
             dbl.count = 1;
             ds.operate(&dbl);
 
@@ -69,8 +84,8 @@ TEST(datastore, Histogram) {
     {
         {
             Transport::Request::BGetOp flt(1);
-            flt.subjects[0] = ReferenceBlob(nullptr, 0, hxhim_data_t::HXHIM_DATA_POINTER);
-            flt.predicates[0] = ReferenceBlob(nullptr, 0, hxhim_data_t::HXHIM_DATA_POINTER);
+            flt.subjects[0] = flt_blob;
+            flt.predicates[0] = predicate;
             flt.object_types[0] = hxhim_data_t::HXHIM_DATA_FLOAT;
             flt.count = 1;
             ds.operate(&flt);
@@ -80,8 +95,8 @@ TEST(datastore, Histogram) {
 
         {
             Transport::Request::BGetOp dbl(1);
-            dbl.subjects[0] = ReferenceBlob(nullptr, 0, hxhim_data_t::HXHIM_DATA_POINTER);
-            dbl.predicates[0] = ReferenceBlob(nullptr, 0, hxhim_data_t::HXHIM_DATA_POINTER);
+            dbl.subjects[0] = dbl_blob;
+            dbl.predicates[0] = predicate;
             dbl.object_types[0] = hxhim_data_t::HXHIM_DATA_DOUBLE;
             dbl.count = 1;
             ds.operate(&dbl);
@@ -94,8 +109,8 @@ TEST(datastore, Histogram) {
     {
         {
             Transport::Request::BDelete flt(1);
-            flt.subjects[0] = ReferenceBlob(nullptr, 0, hxhim_data_t::HXHIM_DATA_POINTER);
-            flt.predicates[0] = ReferenceBlob(nullptr, 0, hxhim_data_t::HXHIM_DATA_POINTER);
+            flt.subjects[0] = flt_blob;
+            flt.predicates[0] = predicate;
             flt.count = 1;
             ds.operate(&flt);
 
@@ -104,8 +119,8 @@ TEST(datastore, Histogram) {
 
         {
             Transport::Request::BDelete dbl(1);
-            dbl.subjects[0] = ReferenceBlob(nullptr, 0, hxhim_data_t::HXHIM_DATA_POINTER);
-            dbl.predicates[0] = ReferenceBlob(nullptr, 0, hxhim_data_t::HXHIM_DATA_POINTER);
+            dbl.subjects[0] = dbl_blob;
+            dbl.predicates[0] = predicate;
             dbl.count = 1;
             ds.operate(&dbl);
 
@@ -120,13 +135,10 @@ TEST(datastore, Histogram) {
         std::size_t cache_size = 0;
 
         {
-            const float object = 0;
-
             Transport::Request::BPut flt(1);
-            flt.subjects[0] = ReferenceBlob(nullptr, 0, hxhim_data_t::HXHIM_DATA_POINTER);
-            flt.predicates[0] = ReferenceBlob(nullptr, 0, hxhim_data_t::HXHIM_DATA_POINTER);
-            flt.objects[0] = ReferenceBlob((void *) &object, sizeof(object),
-                                           hxhim_data_t::HXHIM_DATA_FLOAT);
+            flt.subjects[0] = flt_blob;
+            flt.predicates[0] = predicate;
+            flt.objects[0] = ReferenceBlob(nullptr, 0, hxhim_data_t::HXHIM_DATA_POINTER);
             flt.count = 1;
             destruct(ds.operate(&flt));
 
@@ -134,7 +146,7 @@ TEST(datastore, Histogram) {
             EXPECT_EQ(first_n, FIRST_N);
             EXPECT_NE(cache, nullptr);
             EXPECT_EQ(cache_size, 1);
-            EXPECT_EQ(hist->get(nullptr, nullptr, nullptr), HISTOGRAM_ERROR);
+            EXPECT_EQ(hist->get(nullptr, nullptr, nullptr, nullptr, nullptr), HISTOGRAM_ERROR);
         }
 
         for(std::size_t i = 1; i < FIRST_N; i++) {
@@ -142,15 +154,12 @@ TEST(datastore, Histogram) {
             EXPECT_EQ(first_n, FIRST_N);
             EXPECT_NE(cache, nullptr);
             EXPECT_EQ(cache_size, i);
-            EXPECT_EQ(hist->get(nullptr, nullptr, nullptr), HISTOGRAM_ERROR);
-
-            const double object = 0;
+            EXPECT_EQ(hist->get(nullptr, nullptr, nullptr, nullptr, nullptr), HISTOGRAM_ERROR);
 
             Transport::Request::BPut dbl(1);
-            dbl.subjects[0] = ReferenceBlob(nullptr, 0, hxhim_data_t::HXHIM_DATA_POINTER);
-            dbl.predicates[0] = ReferenceBlob(nullptr, 0, hxhim_data_t::HXHIM_DATA_POINTER);
-            dbl.objects[0] = ReferenceBlob((void *) &object, sizeof(object),
-                                           hxhim_data_t::HXHIM_DATA_DOUBLE);
+            dbl.subjects[0] = dbl_blob;
+            dbl.predicates[0] = predicate;
+            dbl.objects[0] = ReferenceBlob(nullptr, 0, hxhim_data_t::HXHIM_DATA_POINTER);
             dbl.count = 1;
             destruct(ds.operate(&dbl));
         }
@@ -160,10 +169,13 @@ TEST(datastore, Histogram) {
         EXPECT_NE(cache, nullptr);
         EXPECT_EQ(cache_size, FIRST_N);
 
+        const char *name = nullptr;
+        std::size_t name_len = 0;
         double *buckets = nullptr;
         std::size_t *counts = nullptr;
         std::size_t size = 0;
-        EXPECT_EQ(hist->get(&buckets, &counts, &size), HISTOGRAM_SUCCESS);
+        EXPECT_EQ(hist->get(&name, &name_len, &buckets, &counts, &size), HISTOGRAM_SUCCESS);
+        EXPECT_EQ(std::string(name, name_len), TEST_HIST_NAME);
         EXPECT_NE(buckets, nullptr);
         EXPECT_NE(counts, nullptr);
         EXPECT_EQ(size, 1);

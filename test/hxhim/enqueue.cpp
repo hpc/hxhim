@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "TestHistogram.hpp"
 #include "generic_options.hpp"
 #include "hxhim/hxhim.hpp"
 #include "hxhim/private/hxhim.hpp"
@@ -306,6 +307,7 @@ TEST(Enqueue, DELETE) {
 TEST(Enqueue, HISTOGRAM) {
     hxhim_options_t opts;
     ASSERT_EQ(fill_options(&opts), true);
+    ASSERT_EQ(hxhim_options_add_histogram_track_predicate(&opts, TEST_HIST_NAME), HXHIM_SUCCESS);
 
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
@@ -322,7 +324,8 @@ TEST(Enqueue, HISTOGRAM) {
     // enqueue one HISTOGRAM
     EXPECT_EQ(hxhim::HistogramImpl(&hx,
                                    histograms,
-                                   rank),
+                                   rank,
+                                   TEST_HIST_NAME.data(), TEST_HIST_NAME.size()),
               HXHIM_SUCCESS);
     ASSERT_EQ(histograms[rank].size(), 1);
 
@@ -334,7 +337,8 @@ TEST(Enqueue, HISTOGRAM) {
     // enqueue a second HISTOGRAM
     EXPECT_EQ(hxhim::HistogramImpl(&hx,
                                    histograms,
-                                   rank),
+                                   rank,
+                                   TEST_HIST_NAME.data(), TEST_HIST_NAME.size()),
               HXHIM_SUCCESS);
     ASSERT_EQ(histograms[rank].size(), 2); // maximum_ops_per_send is set to 1
 

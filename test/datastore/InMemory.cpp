@@ -10,7 +10,7 @@
 class InMemoryTest : public datastore::InMemory {
   public:
     InMemoryTest()
-        : datastore::InMemory(-1, 0, nullptr, nullptr, "InMemory test")
+        : datastore::InMemory(-1, 0, nullptr, "InMemory test")
     {}
 
     std::map<std::string, std::string> const &data() const {

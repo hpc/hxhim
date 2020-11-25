@@ -564,6 +564,34 @@ int hxhim_options_set_histogram_bucket_gen_function(hxhim_options_t *opts, Histo
 }
 
 /**
+ * hxhim_options_add_histogram_track_predicate
+ *
+ * @param opts       the set of options to be modified
+ * @param name       the name of the predicate to track
+ * @param name_len   length of name argument
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim_options_add_histogram_track_predicate(hxhim_options_t *opts, const char *name, const size_t name_len) {
+    return hxhim_options_add_histogram_track_predicate(opts, std::string(name, name_len));
+}
+
+/**
+ * hxhim_options_add_histogram_track_predicate
+ *
+ * @param opts       the set of options to be modified
+ * @param name       the name of the predicate to track
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim_options_add_histogram_track_predicate(hxhim_options_t *opts, const std::string &name) {
+    if (!hxhim::valid(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->histogram_names.insert(name);
+    return HXHIM_SUCCESS;
+}
+
+/**
  * hxhim_options_destroy
  * Destroys the contents of the hxhim_options_t, but not the variable itself
  *

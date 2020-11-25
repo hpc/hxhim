@@ -1,8 +1,6 @@
 #ifndef HXHIM_DATASTORE_INMEMORY_HPP
 #define HXHIM_DATASTORE_INMEMORY_HPP
 
-#include <map>
-
 #include "datastore/datastore.hpp"
 
 namespace datastore {
@@ -18,7 +16,6 @@ class InMemory : public Datastore {
         InMemory(const int rank,
                  const int id,
                  Transform::Callbacks *callbacks,
-                 Histogram::Histogram *hist,
                  const std::string &name);
 
         virtual ~InMemory();

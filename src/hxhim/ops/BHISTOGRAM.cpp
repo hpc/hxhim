@@ -12,8 +12,11 @@
  */
 int hxhim::BHistogram(hxhim_t *hx,
                       int *ds_ids,
+                      const char **names, const std::size_t *name_lens,
                       const std::size_t count) {
-    if (!valid(hx) || !hx->p->running) {
+    if (!valid(hx) || !hx->p->running ||
+        !ds_ids    ||
+        !names     || !name_lens)      {
         return HXHIM_ERROR;
     }
 
@@ -27,7 +30,7 @@ int hxhim::BHistogram(hxhim_t *hx,
     ::Stats::Chronostamp bhist;
     bhist.start = ::Stats::now();
     for(std::size_t i = 0; i < count; i++) {
-        hxhim::HistogramImpl(hx, hx->p->queues.histograms, ds_ids[i]);
+        hxhim::HistogramImpl(hx, hx->p->queues.histograms, ds_ids[i], names[i], name_lens[i]);
     }
 
     bhist.end = ::Stats::now();
@@ -46,8 +49,10 @@ int hxhim::BHistogram(hxhim_t *hx,
  */
 int hxhimBHistogram(hxhim_t *hx,
                     int *ds_ids,
-                    const std::size_t count) {
+                    const char **names, const size_t *name_lens,
+                    const size_t count) {
     return hxhim::BHistogram(hx,
                              ds_ids,
+                             names, name_lens,
                              count);
 }

@@ -1,7 +1,8 @@
 #include "transport/Messages/BHistogram.hpp"
 
 Transport::Request::BHistogram::BHistogram(const std::size_t max)
-    : Request(hxhim_op_t::HXHIM_HISTOGRAM)
+    : Request(hxhim_op_t::HXHIM_HISTOGRAM),
+      names(nullptr)
 {
     alloc(max);
 }
@@ -11,7 +12,11 @@ Transport::Request::BHistogram::~BHistogram() {
 }
 
 std::size_t Transport::Request::BHistogram::size() const {
-    return Request::size();
+    std::size_t total = Request::size();
+    for(std::size_t i = 0; i < count; i++) {
+        total += names[i].pack_size(false);
+    }
+    return total;
 }
 
 void Transport::Request::BHistogram::alloc(const std::size_t max) {
@@ -19,6 +24,7 @@ void Transport::Request::BHistogram::alloc(const std::size_t max) {
 
     if (max) {
         Request::alloc(max);
+        names = alloc_array<Blob>(max);
     }
 }
 
@@ -33,6 +39,9 @@ int Transport::Request::BHistogram::steal(Transport::Request::BHistogram *from, 
 }
 
 int Transport::Request::BHistogram::cleanup() {
+    dealloc_array(names, max_count);
+    names = nullptr;
+
     return Request::cleanup();
 }
 

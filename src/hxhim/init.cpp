@@ -113,9 +113,6 @@ datastore::Transform::Callbacks *transform(hxhim_options_t *opts) {
  */
 int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
     mlog(HXHIM_CLIENT_INFO, "Starting Datastore Initialization");
-
-    datastore::Transform::Callbacks *callbacks = init::transform(opts);
-
     // there must be at least 1 client, server, and datastore
     if (!opts->p->client_ratio ||
         !opts->p->server_ratio) {
@@ -125,9 +122,13 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
     hx->p->range_server.client_ratio = opts->p->client_ratio;
     hx->p->range_server.server_ratio = opts->p->server_ratio;
 
+    hx->p->hist_names = std::move(opts->p->histogram_names);
+
     // create datastore if this rank is a server
     if (RangeServer::is_range_server(hx->p->bootstrap.rank, opts->p->client_ratio, opts->p->server_ratio)) {
-        if (datastore::Init(hx, opts->p->datastore, callbacks, opts->p->histogram) != DATASTORE_SUCCESS) {
+        if (datastore::Init(hx, opts->p->datastore,
+                            init::transform(opts),
+                            opts->p->histogram) != DATASTORE_SUCCESS) {
             return HXHIM_ERROR;
         }
     }
@@ -166,17 +167,20 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
         return HXHIM_ERROR;
     }
 
-    datastore::Transform::Callbacks *callbacks = init::transform(opts);
-
     hx->p->range_server.client_ratio = 1;
     hx->p->range_server.server_ratio = 1;
+
+    hx->p->hist_names = std::move(opts->p->histogram_names);
 
     // ignore configuration hash - everything goes into here
     hx->p->hash.name = "local";
     hx->p->hash.func = hxhim_hash_RankZero;
     hx->p->hash.args = nullptr;
 
-    if (datastore::Init(hx, opts->p->datastore, callbacks, opts->p->histogram, &name) != DATASTORE_SUCCESS) {
+    if (datastore::Init(hx, opts->p->datastore,
+                        init::transform(opts),
+                        opts->p->histogram,
+                        &name) != DATASTORE_SUCCESS) {
         return HXHIM_ERROR;
     }
 

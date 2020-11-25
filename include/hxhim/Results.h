@@ -79,7 +79,7 @@ int hxhim_result_predicate(hxhim_results_t *res, void **predicate, size_t *predi
 /* these accessor functions only work for GET results */
 int hxhim_result_object(hxhim_results_t *res, void **object, size_t *object_len, enum hxhim_data_t *type);
 /* this accessor function only works for HISTOGRAM results */
-int hxhim_result_histogram(hxhim_results_t *res, double **buckets, size_t **counts, size_t *size);
+int hxhim_result_histogram(hxhim_results_t *res, const char **name, size_t *name_len, double **buckets, size_t **counts, size_t *size);
 
 void hxhim_results_destroy(hxhim_results_t *res);
 

@@ -74,6 +74,7 @@ const std::string MAXIMUM_OPS_PER_SEND         = "MAXIMUM_OPS_PER_SEND";        
 /** Histogram Options */
 const std::string HISTOGRAM_FIRST_N            = "HISTOGRAM_FIRST_N";             // unsigned int
 const std::string HISTOGRAM_BUCKET_GEN_NAME    = "HISTOGRAM_BUCKET_GEN_NAME";     // See HISTOGRAM_BUCKET_GENERATORS
+const std::string HISTOGRAM_TRACK_PREDICATES   = "HISTOGRAM_TRACK_PREDICATES";    // comma delimited string
 
 /** ELEN Options */
 const std::string ELEN_NEG_SYMBOL              = "ELEN_NEG_SYMBOL";               // single character

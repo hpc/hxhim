@@ -101,6 +101,7 @@ typedef struct hxhim_private {
     // local datastore (max 1 per server)
     // f(rank) = datastore ID
     datastore::Datastore *datastore;
+    datastore::HistNames_t hist_names;
 
     struct {
         std::string name;
@@ -187,7 +188,8 @@ int DeleteImpl(hxhim_t *hx,
 
 int HistogramImpl(hxhim_t *hx,
                   Queues<Transport::Request::BHistogram> &hists,
-                  const int rs_id);
+                  const int rs_id,
+                  const char *name, const std::size_t name_len);
 }
 
 #endif

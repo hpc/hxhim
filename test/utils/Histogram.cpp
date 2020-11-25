@@ -8,13 +8,17 @@
 
 TEST(Histogram, not_enough_values) {
     const int n = 10;
-    Histogram::Histogram h({n + 1, [](const double *, const std::size_t, double **, std::size_t *, void *) { return HISTOGRAM_ERROR; }, nullptr});
+    Histogram::Histogram h({n + 1,
+                [](const double *, const std::size_t, double **, std::size_t *, void *) {
+                    return HISTOGRAM_ERROR;
+                },
+                nullptr}, TEST_HIST_NAME);
 
     for(std::size_t i = 0; i < n; i++) {
         h.add(i);
     }
 
-    ASSERT_EQ(h.get(nullptr, nullptr, nullptr), HISTOGRAM_ERROR);
+    ASSERT_EQ(h.get(nullptr, nullptr, nullptr, nullptr, nullptr), HISTOGRAM_ERROR);
 }
 
 TEST(Histogram, add) {
@@ -34,7 +38,7 @@ TEST(Histogram, add) {
 
                                    return HISTOGRAM_SUCCESS;
                                },
-                               nullptr});
+                               nullptr}, TEST_HIST_NAME);
 
     std::size_t first_n = 0;
     double *cache = nullptr;
@@ -47,7 +51,7 @@ TEST(Histogram, add) {
         EXPECT_NE(cache, nullptr);
         EXPECT_EQ(cache_size, i);
 
-        EXPECT_EQ(hist.get(nullptr, nullptr, nullptr), HISTOGRAM_ERROR);
+        EXPECT_EQ(hist.get(nullptr, nullptr, nullptr, nullptr, nullptr), HISTOGRAM_ERROR);
 
         hist.add(0);
     }
@@ -66,10 +70,13 @@ TEST(Histogram, add) {
     EXPECT_EQ(cache_size, FIRST_N); // FIRST_N + 1 values, but only FIRST_N values cached
 
     // check contents
+    const char *name = nullptr;
+    std::size_t name_len = 0;
     double *buckets = nullptr;
     std::size_t *counts = nullptr;
     std::size_t size = 0;
-    EXPECT_EQ(hist.get(&buckets, &counts, &size), HISTOGRAM_SUCCESS);
+    EXPECT_EQ(hist.get(&name, &name_len, &buckets, &counts, &size), HISTOGRAM_SUCCESS);
+    EXPECT_EQ(std::string(name, name_len), TEST_HIST_NAME);
     EXPECT_NE(buckets, nullptr);
     EXPECT_NE(counts, nullptr);
     EXPECT_EQ(size, 1);
@@ -100,18 +107,21 @@ static int every_two(const double *first_n, const std::size_t n, double **bucket
 
 TEST(Histogram, every_two) {
     const std::size_t n = 10;
-    Histogram::Histogram h({n, every_two, nullptr});
+    Histogram::Histogram h({n, every_two, nullptr}, TEST_HIST_NAME);
 
     // fill the histogram
     for(std::size_t i = 0; i < n; i++) {
         h.add(i);
     }
 
+    const char *name = nullptr;
+    std::size_t name_len = 0;
     double *buckets = nullptr;
     std::size_t *counts = nullptr;
     std::size_t size = 0;
 
-    ASSERT_EQ(h.get(&buckets, &counts, &size), HISTOGRAM_SUCCESS);
+    ASSERT_EQ(h.get(&name, &name_len, &buckets, &counts, &size), HISTOGRAM_SUCCESS);
+    EXPECT_EQ(std::string(name, name_len), TEST_HIST_NAME);
     EXPECT_EQ(size, n / 2);
     for(std::size_t i = 0; i < size; i++) {
         EXPECT_EQ(buckets[i], (std::size_t) (2 * i));
@@ -121,16 +131,19 @@ TEST(Histogram, every_two) {
 
 TEST(Histogram, uniform_log10) {
     static const std::size_t ten = 10;
-    Histogram::Histogram h({ten, histogram_uniform_logn, (void *) (uintptr_t) ten});
+    Histogram::Histogram h({ten, histogram_uniform_logn, (void *) (uintptr_t) ten}, TEST_HIST_NAME);
     for(std::size_t i = 0; i < ten; i++) {
         h.add(i);
     }
 
+    const char *name = nullptr;
+    std::size_t name_len = 0;
     double *buckets = nullptr;
     std::size_t *counts = nullptr;
     std::size_t size = 0;
 
-    ASSERT_EQ(h.get(&buckets, &counts, &size), HISTOGRAM_SUCCESS);
+    ASSERT_EQ(h.get(&name, &name_len, &buckets, &counts, &size), HISTOGRAM_SUCCESS);
+    EXPECT_EQ(std::string(name, name_len), TEST_HIST_NAME);
 
     for(std::size_t i = 0; i < size; i++) {
         EXPECT_EQ(counts[i], (std::size_t) 1);
@@ -159,7 +172,7 @@ TEST(Histogram, pack_unpack) {
         EXPECT_EQ(src.pack(&buf, &size), true);
         ASSERT_NE(buf, nullptr);
 
-        Histogram::Histogram dst({0, nullptr, nullptr});
+        Histogram::Histogram dst({0, nullptr, nullptr}, TEST_HIST_NAME);
         EXPECT_EQ(dst.unpack(buf, size), true);
 
         dealloc(buf);
@@ -188,7 +201,7 @@ TEST(Histogram, pack_unpack) {
         EXPECT_EQ(src.pack(&buf, &size), true);
         ASSERT_NE(buf, nullptr);
 
-        Histogram::Histogram dst({0, nullptr, nullptr});
+        Histogram::Histogram dst({0, nullptr, nullptr}, TEST_HIST_NAME);
         EXPECT_EQ(dst.unpack(buf, size), true);
 
         dealloc(buf);
@@ -198,7 +211,7 @@ TEST(Histogram, pack_unpack) {
 
     // bad unpack
     {
-        Histogram::Histogram dst({0, nullptr, nullptr});
+        Histogram::Histogram dst({0, nullptr, nullptr}, TEST_HIST_NAME);
 
         // invalid pointer
         EXPECT_EQ(dst.unpack(nullptr, 2 * sizeof(std::size_t)), false);

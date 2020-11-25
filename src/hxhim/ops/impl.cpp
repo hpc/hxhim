@@ -1,6 +1,7 @@
 #include "hxhim/Blob.hpp"
 #include "hxhim/private/hxhim.hpp"
 #include "utils/Stats.hpp"
+#include "utils/macros.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
@@ -181,7 +182,7 @@ int hxhim::PutImpl(hxhim_t *hx,
         put->objects[put->count] = *obj;
 
         put->orig.subjects[put->count] = sub->data();
-        put->orig.predicates[put->count] = pred->data();
+        put->orig.predicates[put->count] = pred->data(); // use original predicate address
 
         put->timestamps.reqs[put->count].hash = hash;
         put->timestamps.reqs[put->count].insert = insert;
@@ -337,7 +338,8 @@ int hxhim::DeleteImpl(hxhim_t *hx,
  */
 int hxhim::HistogramImpl(hxhim_t *hx,
                          hxhim::Queues<Transport::Request::BHistogram> &hists,
-                         const int rs_id) {
+                         const int rs_id,
+                         const char *name, const std::size_t name_len) {
     mlog(HXHIM_CLIENT_DBG, "HISTOGRAM Start");
 
     ::Stats::Chronostamp hash;
@@ -348,6 +350,12 @@ int hxhim::HistogramImpl(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
+    // make sure the name matches a histogram
+    REF(hx->p->hist_names)::const_iterator name_it = hx->p->hist_names.find(std::string(name, name_len));
+    if (name_it == hx->p->hist_names.end()) {
+        return HXHIM_ERROR;
+    }
+
     mlog(HXHIM_CLIENT_DBG, "Foreground HISTOGRAM Insert SPO into queue");
 
     ::Stats::Chronostamp insert;
@@ -355,6 +363,7 @@ int hxhim::HistogramImpl(hxhim_t *hx,
 
     // add the data to the packet
     Transport::Request::BHistogram *hist = setup_packet(hx, hists[rs_id]); // no need to check for nullptr
+    hist->names[hist->count] = ReferenceBlob((void *) name, name_len, hxhim_data_t::HXHIM_DATA_BYTE);
     hist->timestamps.reqs[hist->count].hash = hash;
     hist->timestamps.reqs[hist->count].insert = insert;
 

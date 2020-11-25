@@ -23,8 +23,8 @@ struct Config {
  */
 class Histogram {
     public:
-        Histogram(const Config &config);
-        Histogram(Config *config);
+        Histogram(const Config &config, const std::string &name);
+        Histogram(const Config *config, const std::string &name);
         virtual ~Histogram();
 
         // Add a value to the histogram
@@ -34,7 +34,8 @@ class Histogram {
         int get_cache(std::size_t *first_n, double **cache, std::size_t *size) const;
 
         // Return references to internal arrays
-        int get(double **buckets, std::size_t **counts, std::size_t *size) const;
+        int get(const char **name, std::size_t *name_len,
+                double **buckets, std::size_t **counts, std::size_t *size) const;
 
         std::size_t pack_size() const;
         bool pack(void **buf, std::size_t *size) const;
@@ -52,6 +53,7 @@ class Histogram {
         int insert(const double &value);
 
         // set in constructor
+        std::string name_;
         std::size_t first_n_;                   // size of data before the buckets are generated
         HistogramBucketGenerator_t gen_;        // the function to use to generate buckets
         void *extra_;                           // extra arguments needed by the bucket generator

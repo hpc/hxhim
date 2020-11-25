@@ -9,7 +9,8 @@
  * @param ds_id      the datastore to collect from
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim::Histogram(hxhim_t *hx, int ds_id) {
+int hxhim::Histogram(hxhim_t *hx, int ds_id,
+                     const char *name, const std::size_t len) {
     if (!valid(hx)  || !hx->p->running                           ||
         (ds_id < 0) ||
         (ds_id >= (int) hx->p->range_server.total_range_servers)) {
@@ -18,7 +19,7 @@ int hxhim::Histogram(hxhim_t *hx, int ds_id) {
 
     ::Stats::Chronostamp hist;
     hist.start = ::Stats::now();
-    const int rc = hxhim::HistogramImpl(hx, hx->p->queues.histograms, ds_id);
+    const int rc = hxhim::HistogramImpl(hx, hx->p->queues.histograms, ds_id, name, len);
     hist.end = ::Stats::now();
     hx->p->stats.single_op[hxhim_op_t::HXHIM_HISTOGRAM].emplace_back(hist);
 
@@ -33,6 +34,7 @@ int hxhim::Histogram(hxhim_t *hx, int ds_id) {
  * @param ds_id      the datastore to collect from
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhimHistogram(hxhim_t *hx, int ds_id) {
-    return hxhim::Histogram(hx, ds_id);
+int hxhimHistogram(hxhim_t *hx, int ds_id,
+                   const char *name, const size_t len) {
+    return hxhim::Histogram(hx, ds_id, name, len);
 }

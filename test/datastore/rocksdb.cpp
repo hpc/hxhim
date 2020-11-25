@@ -14,7 +14,7 @@
 class RocksdbTest : public datastore::rocksdb {
     public:
         RocksdbTest(const int rank, const std::string &name)
-            : datastore::rocksdb(rank, nullptr, nullptr, name, true)
+            : datastore::rocksdb(rank, nullptr, name, true)
         {}
 
         ~RocksdbTest()  {

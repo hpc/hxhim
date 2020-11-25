@@ -61,6 +61,7 @@ int hxhim_options_set_maximum_ops_per_send(hxhim_options_t *opts, const size_t c
 int hxhim_options_set_histogram_first_n(hxhim_options_t *opts, const size_t count);
 int hxhim_options_set_histogram_bucket_gen_name(hxhim_options_t *opts, const char *method);
 int hxhim_options_set_histogram_bucket_gen_function(hxhim_options_t *opts, HistogramBucketGenerator_t gen, void *args);
+int hxhim_options_add_histogram_track_predicate(hxhim_options_t *opts, const char *name, const size_t name_len);
 
 /* Cleans up memory allocated inside opts, but not the opts variable itself */
 int hxhim_options_destroy(hxhim_options_t *opts);

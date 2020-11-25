@@ -163,6 +163,11 @@ int Packer::pack(const Request::BHistogram *bhm, void **buf, std::size_t *bufsiz
         return TRANSPORT_ERROR;
     }
 
+    for(std::size_t i = 0; i < bhm->count; i++) {
+        // histogram names
+        bhm->names[i].pack(curr, false);
+    }
+
     return TRANSPORT_SUCCESS;
 }
 

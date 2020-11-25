@@ -1,3 +1,5 @@
+#include <memory>
+
 #include "datastore/constants.hpp"
 #include "transport/Messages/Unpacker.hpp"
 #include "utils/little_endian.hpp"
@@ -222,7 +224,12 @@ int Unpacker::unpack(Request::BHistogram **bhm, void *buf, const std::size_t buf
         return TRANSPORT_ERROR;
     }
 
-    out->count = out->max_count;
+    for(std::size_t i = 0; i < out->max_count; i++) {
+        // histogram names
+        out->names[i].unpack(curr, false);
+
+        out->count++;
+    }
 
     *bhm = out;
     return TRANSPORT_SUCCESS;
@@ -433,7 +440,7 @@ int Unpacker::unpack(Response::BHistogram **bhm, void *buf, const std::size_t bu
         little_endian::decode(out->statuses[i], curr);
         curr += sizeof(out->statuses[i]);
 
-        out->histograms[i] = std::shared_ptr<Histogram::Histogram>(construct<Histogram::Histogram>(Histogram::Config{0, nullptr, nullptr}), Histogram::deleter);
+        out->histograms[i] = std::shared_ptr<Histogram::Histogram>(construct<Histogram::Histogram>(Histogram::Config{0, nullptr, nullptr}, ""), Histogram::deleter);
         out->histograms[i]->unpack(curr, remaining, nullptr);
 
         out->count++;

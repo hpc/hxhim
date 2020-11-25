@@ -16,10 +16,9 @@
 
 datastore::leveldb::leveldb(const int rank,
                             Transform::Callbacks *callbacks,
-                            Histogram::Histogram *hist,
                             const std::string &exact_name,
                             const bool create_if_missing)
-    : Datastore(rank, 0, callbacks, hist),
+    : Datastore(rank, 0, callbacks),
       dbname(exact_name),
       create_if_missing(create_if_missing),
       db(nullptr), options()
@@ -34,11 +33,10 @@ datastore::leveldb::leveldb(const int rank,
 datastore::leveldb::leveldb(const int rank,
                             const int id,
                             Transform::Callbacks *callbacks,
-                            Histogram::Histogram *hist,
                             const std::string &prefix,
                             const std::string &basename,
                             const bool create_if_missing)
-    : Datastore(rank, id, callbacks, hist),
+    : Datastore(rank, id, callbacks),
       dbname(),
       create_if_missing(create_if_missing),
       db(nullptr), options()
