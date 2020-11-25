@@ -152,7 +152,7 @@ TEST(elen, random_small_decimals) {
     std::vector<float>::const_iterator f_it = floats.begin();
     std::vector<char *>::const_iterator s_it = strings.begin();
     while (f_it != floats.end()) {
-        EXPECT_FLOAT_EQ(*f_it, (elen_decode_small_float(*s_it, ELEN_NEG, ELEN_POS)));
+        EXPECT_NEAR(*f_it, (elen_decode_small_float(*s_it, ELEN_NEG, ELEN_POS)), ELEN_ENCODE_FLOAT_PRECISION);
         free(*s_it);
         f_it++;
         s_it++;
@@ -221,7 +221,7 @@ TEST(elen, random_large_decimals) {
     std::vector<float>::const_iterator f_it = floats.begin();
     std::vector<char *>::const_iterator s_it = strings.begin();
     while (f_it != floats.end()) {
-        EXPECT_FLOAT_EQ(*f_it, (elen_decode_large_float(*s_it, ELEN_NEG, ELEN_POS)));
+        EXPECT_NEAR(*f_it, (elen_decode_large_float(*s_it, ELEN_NEG, ELEN_POS)), ELEN_ENCODE_FLOAT_PRECISION);
         free(*s_it);
         f_it++;
         s_it++;
@@ -294,7 +294,7 @@ TEST(elen, random_floating_point) {
     std::vector<float>::const_iterator f_it = floats.begin();
     std::vector<char *>::const_iterator s_it = strings.begin();
     while (f_it != floats.end()) {
-        EXPECT_FLOAT_EQ(*f_it, (elen_decode_floating_float(*s_it, ELEN_NEG, ELEN_POS)));
+        EXPECT_NEAR(*f_it, (elen_decode_floating_float(*s_it, ELEN_NEG, ELEN_POS)), ELEN_ENCODE_FLOAT_PRECISION);
         free(*s_it);
         f_it++;
         s_it++;
