@@ -3,8 +3,63 @@
 
 #include <gtest/gtest.h>
 
-#include "TestHistogram.hpp"
 #include "utils/Histogram.hpp"
+
+static const std::string TEST_HIST_NAME = "Test Histogram Name";
+
+int CUSTOM_NONUNIFORM_FUNC(const double *, const size_t,
+                           double **buckets, size_t *size,
+                           void *) {
+    if (!(*buckets = alloc_array<double>(3))) {
+        return HISTOGRAM_ERROR;
+    }
+
+    (*buckets)[0] = 0;
+    (*buckets)[1] = 5;
+    (*buckets)[2] = 9;
+
+    *size = 3;
+
+    return HISTOGRAM_SUCCESS;
+}
+
+#define CUSTOM_NONUNIFORM_INIT(name, count)                             \
+    const int n = count;                                                \
+    ::Histogram::Histogram name(Histogram::Config{n,                    \
+                                CUSTOM_NONUNIFORM_FUNC,                 \
+                                nullptr}, TEST_HIST_NAME)
+
+#define CUSTOM_NONUNIFORM_FILL(name, count)     \
+    for(std::size_t i = 0; i < (count); i++) {  \
+        name.add(i);                            \
+    }
+
+#define CUSTOM_NONUNIFORM_TEST(name)                                       \
+    {                                                                      \
+        const char *name_str = nullptr;                                    \
+        std::size_t name_len = 0;                                          \
+        EXPECT_EQ(name.get_name(&name_str, &name_len), HISTOGRAM_SUCCESS); \
+        EXPECT_EQ(std::string(name_str, name_len), TEST_HIST_NAME);        \
+                                                                           \
+        double *buckets = nullptr;                                         \
+        std::size_t *counts = nullptr;                                     \
+        std::size_t size = 0;                                              \
+        ASSERT_EQ(name.get(&buckets, &counts, &size), HISTOGRAM_SUCCESS);  \
+        EXPECT_EQ(size, (std::size_t) 3);                                  \
+                                                                           \
+        /* 0: 0, 1, 2, 3, 4 */                                             \
+        EXPECT_EQ(buckets[0], (double) 0);                                 \
+        EXPECT_EQ(counts[0], (std::size_t) 5);                             \
+                                                                           \
+        /* 5: 5, 6, 7, 8 */                                                \
+        EXPECT_EQ(buckets[1], (double) 5);                                 \
+        EXPECT_EQ(counts[1], (std::size_t) 4);                             \
+                                                                           \
+        /* 9: 9 */                                                         \
+        EXPECT_EQ(buckets[2], (double) 9);                                 \
+        EXPECT_EQ(counts[2], (std::size_t) 1);                             \
+    }
+
 
 TEST(Histogram, not_enough_values) {
     const int n = 10;
@@ -18,7 +73,7 @@ TEST(Histogram, not_enough_values) {
         h.add(i);
     }
 
-    ASSERT_EQ(h.get(nullptr, nullptr, nullptr, nullptr, nullptr), HISTOGRAM_ERROR);
+    ASSERT_EQ(h.get(nullptr, nullptr, nullptr), HISTOGRAM_ERROR);
 }
 
 TEST(Histogram, add) {
@@ -51,7 +106,7 @@ TEST(Histogram, add) {
         EXPECT_NE(cache, nullptr);
         EXPECT_EQ(cache_size, i);
 
-        EXPECT_EQ(hist.get(nullptr, nullptr, nullptr, nullptr, nullptr), HISTOGRAM_ERROR);
+        EXPECT_EQ(hist.get(nullptr, nullptr, nullptr), HISTOGRAM_ERROR);
 
         hist.add(0);
     }
@@ -72,11 +127,13 @@ TEST(Histogram, add) {
     // check contents
     const char *name = nullptr;
     std::size_t name_len = 0;
+    EXPECT_EQ(hist.get_name(&name, &name_len), HISTOGRAM_SUCCESS);
+    EXPECT_EQ(std::string(name, name_len), TEST_HIST_NAME);
+
     double *buckets = nullptr;
     std::size_t *counts = nullptr;
     std::size_t size = 0;
-    EXPECT_EQ(hist.get(&name, &name_len, &buckets, &counts, &size), HISTOGRAM_SUCCESS);
-    EXPECT_EQ(std::string(name, name_len), TEST_HIST_NAME);
+    EXPECT_EQ(hist.get(&buckets, &counts, &size), HISTOGRAM_SUCCESS);
     EXPECT_NE(buckets, nullptr);
     EXPECT_NE(counts, nullptr);
     EXPECT_EQ(size, 1);
@@ -116,12 +173,13 @@ TEST(Histogram, every_two) {
 
     const char *name = nullptr;
     std::size_t name_len = 0;
+    EXPECT_EQ(h.get_name(&name, &name_len), HISTOGRAM_SUCCESS);
+    EXPECT_EQ(std::string(name, name_len), TEST_HIST_NAME);
+
     double *buckets = nullptr;
     std::size_t *counts = nullptr;
     std::size_t size = 0;
-
-    ASSERT_EQ(h.get(&name, &name_len, &buckets, &counts, &size), HISTOGRAM_SUCCESS);
-    EXPECT_EQ(std::string(name, name_len), TEST_HIST_NAME);
+    EXPECT_EQ(h.get(&buckets, &counts, &size), HISTOGRAM_SUCCESS);
     EXPECT_EQ(size, n / 2);
     for(std::size_t i = 0; i < size; i++) {
         EXPECT_EQ(buckets[i], (std::size_t) (2 * i));
@@ -138,12 +196,13 @@ TEST(Histogram, uniform_log10) {
 
     const char *name = nullptr;
     std::size_t name_len = 0;
+    EXPECT_EQ(h.get_name(&name, &name_len), HISTOGRAM_SUCCESS);
+    EXPECT_EQ(std::string(name, name_len), TEST_HIST_NAME);
+
     double *buckets = nullptr;
     std::size_t *counts = nullptr;
     std::size_t size = 0;
-
-    ASSERT_EQ(h.get(&name, &name_len, &buckets, &counts, &size), HISTOGRAM_SUCCESS);
-    EXPECT_EQ(std::string(name, name_len), TEST_HIST_NAME);
+    EXPECT_EQ(h.get(&buckets, &counts, &size), HISTOGRAM_SUCCESS);
 
     for(std::size_t i = 0; i < size; i++) {
         EXPECT_EQ(counts[i], (std::size_t) 1);

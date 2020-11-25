@@ -54,9 +54,12 @@ class Datastore {
         Transport::Response::BDelete    *operate(Transport::Request::BDelete    *req);
         Transport::Response::BHistogram *operate(Transport::Request::BHistogram *req);
 
-        std::map<std::string, std::shared_ptr<Histogram::Histogram> > const &AddHistogram(const std::string &name, std::shared_ptr<Histogram::Histogram> new_histogram);
-        int GetHistogram(const char *name, const std::size_t name_len, Histogram::Histogram **h) const;
-        int GetHistogram(const std::string &name, Histogram::Histogram **h) const;
+        typedef std::shared_ptr<::Histogram::Histogram> Histogram;
+        typedef std::map<std::string, Histogram> Histograms;
+        int AddHistogram(const std::string &name, Histogram new_histogram);
+        int GetHistogram(const std::string &name, Histogram *h) const;
+        int GetHistogram(const std::string &name, ::Histogram::Histogram **h) const;
+        int GetHistograms(const Histograms **histograms) const;
         int GetStats(uint64_t    *put_times,
                      std::size_t *num_puts,
                      uint64_t    *get_times,
@@ -87,7 +90,7 @@ class Datastore {
         int rank;      // MPI rank of HXHIM instance
         int id;
         Transform::Callbacks *callbacks;
-        std::map<std::string, std::shared_ptr<Histogram::Histogram> > hists;
+        Histograms hists;
         mutable std::mutex mutex;
 
     public:

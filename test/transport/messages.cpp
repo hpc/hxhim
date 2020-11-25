@@ -1,6 +1,5 @@
 #include "gtest/gtest.h"
 
-#include "TestHistogram.hpp"
 #include "transport/Messages/Messages.hpp"
 
 static const char         SUBJECT[]      = "SUBJECT";
@@ -496,7 +495,7 @@ TEST(Response, BHistogram) {
 
         src.statuses[0] = DATASTORE_SUCCESS;
 
-        src.histograms[0] = std::shared_ptr<Histogram::Histogram>(construct<Histogram::Histogram>(Histogram::Config{0, CUSTOM_NONUNIFORM_FUNC, nullptr}, TEST_HIST_NAME), Histogram::deleter);
+        src.histograms[0] = std::shared_ptr<Histogram::Histogram>(construct<Histogram::Histogram>(Histogram::Config{0, histogram_rice_rule, nullptr}, ""), Histogram::deleter);
         for(std::size_t i = 0; i < 10; i++) {
             src.histograms[0]->add(rand() % 10);
         }
@@ -529,17 +528,18 @@ TEST(Response, BHistogram) {
         double *src_buckets = nullptr;
         std::size_t *src_counts = nullptr;
         std::size_t src_size = 0;
-        EXPECT_EQ(src.histograms[i]->get(&src_name, &src_name_len,
-                                         &src_buckets, &src_counts, &src_size), HISTOGRAM_SUCCESS);
+        EXPECT_EQ(src.histograms[i]->get_name(&src_name, &src_name_len), HISTOGRAM_SUCCESS);
+        EXPECT_EQ(src.histograms[i]->get(&src_buckets, &src_counts, &src_size), HISTOGRAM_SUCCESS);
 
         const char *dst_name = nullptr;
         std::size_t dst_name_len = 0;
         double *dst_buckets = nullptr;
         std::size_t *dst_counts = nullptr;
         std::size_t dst_size = 0;
-        EXPECT_EQ(dst->histograms[i]->get(&dst_name, &dst_name_len,
-                                          &dst_buckets, &dst_counts, &dst_size), HISTOGRAM_SUCCESS);
+        EXPECT_EQ(dst->histograms[i]->get_name(&dst_name, &dst_name_len), HISTOGRAM_SUCCESS);
+        EXPECT_EQ(dst->histograms[i]->get(&dst_buckets, &dst_counts, &dst_size), HISTOGRAM_SUCCESS);
 
+        EXPECT_EQ(std::string(src_name, src_name_len), std::string(dst_name, dst_name_len));
         EXPECT_EQ(src_size, dst_size);
 
         for(std::size_t i = 0; i < dst_size; i++) {

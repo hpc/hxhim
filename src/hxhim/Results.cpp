@@ -801,7 +801,16 @@ int hxhim::Results::Histogram(const char **name, std::size_t *name_len, double *
     }
 
     hxhim::Results::Hist *hist = static_cast<hxhim::Results::Hist *>(res);
-    return (hist->histogram->get(name, name_len, buckets, counts, size) == HISTOGRAM_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
+    if (hist->histogram->get_name(name, name_len) != HISTOGRAM_SUCCESS) {
+        return HXHIM_ERROR;
+    }
+
+
+    if (hist->histogram->get(buckets, counts, size) != HISTOGRAM_SUCCESS) {
+        return HXHIM_ERROR;
+    }
+
+    return HXHIM_SUCCESS;
 }
 
 /**

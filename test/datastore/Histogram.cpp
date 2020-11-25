@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
 #include "TestDatastore.hpp"
-#include "TestHistogram.hpp"
 #include "utils/elen.hpp"
 
+const std::string TEST_HIST_NAME = "Test Histogram Name";
 const std::size_t FIRST_N = 5;
 
 void check_nothing_happend(const std::shared_ptr<Histogram::Histogram> &hist) {
@@ -15,7 +15,7 @@ void check_nothing_happend(const std::shared_ptr<Histogram::Histogram> &hist) {
     EXPECT_EQ(first_n, FIRST_N);
     EXPECT_NE(cache, nullptr);
     EXPECT_EQ(cache_size, 0);
-    EXPECT_EQ(hist->get(nullptr, nullptr, nullptr, nullptr, nullptr), HISTOGRAM_ERROR);
+    EXPECT_EQ(hist->get(nullptr, nullptr, nullptr), HISTOGRAM_ERROR);
 }
 
 TEST(datastore, Histogram) {
@@ -146,7 +146,7 @@ TEST(datastore, Histogram) {
             EXPECT_EQ(first_n, FIRST_N);
             EXPECT_NE(cache, nullptr);
             EXPECT_EQ(cache_size, 1);
-            EXPECT_EQ(hist->get(nullptr, nullptr, nullptr, nullptr, nullptr), HISTOGRAM_ERROR);
+            EXPECT_EQ(hist->get(nullptr, nullptr, nullptr), HISTOGRAM_ERROR);
         }
 
         for(std::size_t i = 1; i < FIRST_N; i++) {
@@ -154,7 +154,7 @@ TEST(datastore, Histogram) {
             EXPECT_EQ(first_n, FIRST_N);
             EXPECT_NE(cache, nullptr);
             EXPECT_EQ(cache_size, i);
-            EXPECT_EQ(hist->get(nullptr, nullptr, nullptr, nullptr, nullptr), HISTOGRAM_ERROR);
+            EXPECT_EQ(hist->get(nullptr, nullptr, nullptr), HISTOGRAM_ERROR);
 
             Transport::Request::BPut dbl(1);
             dbl.subjects[0] = dbl_blob;
@@ -171,15 +171,115 @@ TEST(datastore, Histogram) {
 
         const char *name = nullptr;
         std::size_t name_len = 0;
+        EXPECT_EQ(hist->get_name(&name, &name_len), HISTOGRAM_SUCCESS);
+        EXPECT_EQ(std::string(name, name_len), TEST_HIST_NAME);
+
         double *buckets = nullptr;
         std::size_t *counts = nullptr;
         std::size_t size = 0;
-        EXPECT_EQ(hist->get(&name, &name_len, &buckets, &counts, &size), HISTOGRAM_SUCCESS);
-        EXPECT_EQ(std::string(name, name_len), TEST_HIST_NAME);
+        EXPECT_EQ(hist->get(&buckets, &counts, &size), HISTOGRAM_SUCCESS);
         EXPECT_NE(buckets, nullptr);
         EXPECT_NE(counts, nullptr);
         EXPECT_EQ(size, 1);
         EXPECT_EQ(buckets[0], 0);
         EXPECT_EQ(counts[0], FIRST_N);
+    }
+
+    // capture some values in a different histogram
+    {
+        // create the second histogram
+        const std::string SECOND_HIST_NAME = "Second Histogram";
+        std::shared_ptr<Histogram::Histogram> hist2(construct<Histogram::Histogram>(
+                                                        Histogram::Config{
+                                                            FIRST_N,
+                                                                [](const double *, const size_t,
+                                                                   double **buckets, size_t *size,
+                                                                   void *) -> int {
+                                                                    if (!buckets || !size) {
+                                                                        return HISTOGRAM_ERROR;
+                                                                    }
+
+                                                                    *size = 1;
+                                                                    *buckets = alloc_array<double>(*size);
+                                                                    (*buckets)[0] = FIRST_N;
+
+                                                                    return HISTOGRAM_SUCCESS;
+                                                                },
+                                                            nullptr
+                                                        },
+                                                    SECOND_HIST_NAME),
+                                                   Histogram::deleter);
+
+        // add the second histogram into the datastore
+        ds.AddHistogram(SECOND_HIST_NAME, hist2);
+
+        {
+            const datastore::Datastore::Histograms *hists = nullptr;
+            ASSERT_EQ(ds.GetHistograms(&hists), DATASTORE_SUCCESS);
+            EXPECT_EQ(hists->size(), 2);
+            EXPECT_TRUE(hists->find(TEST_HIST_NAME)   != hists->end());
+            EXPECT_TRUE(hists->find(SECOND_HIST_NAME) != hists->end());
+        }
+
+        Blob predicate2 = ReferenceBlob((void *) SECOND_HIST_NAME.data(),
+                                        SECOND_HIST_NAME.size(),
+                                        hxhim_data_t::HXHIM_DATA_BYTE);
+
+        // PUT values in a different range than the first histogram
+        {
+            std::size_t first_n = 0;
+            double *cache = nullptr;
+            std::size_t cache_size = 0;
+
+            {
+                Transport::Request::BPut flt(FIRST_N);
+                flt.subjects[0] = flt_blob;
+                flt.predicates[0] = predicate2;
+                flt.objects[0] = ReferenceBlob(nullptr, 0, hxhim_data_t::HXHIM_DATA_POINTER);
+                flt.count = 1;
+                destruct(ds.operate(&flt));
+
+                EXPECT_EQ(hist2->get_cache(&first_n, &cache, &cache_size), HISTOGRAM_SUCCESS);
+                EXPECT_EQ(first_n, FIRST_N);
+                EXPECT_NE(cache, nullptr);
+                EXPECT_EQ(cache_size, 1);
+                EXPECT_EQ(hist2->get(nullptr, nullptr, nullptr), HISTOGRAM_ERROR);
+            }
+
+            for(std::size_t i = 1; i < FIRST_N; i++) {
+                EXPECT_EQ(hist2->get_cache(&first_n, &cache, &cache_size), HISTOGRAM_SUCCESS);
+                EXPECT_EQ(first_n, FIRST_N);
+                EXPECT_NE(cache, nullptr);
+                EXPECT_EQ(cache_size, i);
+                EXPECT_EQ(hist2->get(nullptr, nullptr, nullptr), HISTOGRAM_ERROR);
+
+                Transport::Request::BPut dbl(FIRST_N);
+                dbl.subjects[0] = dbl_blob;
+                dbl.predicates[0] = predicate2;
+                dbl.objects[0] = ReferenceBlob(nullptr, 0, hxhim_data_t::HXHIM_DATA_POINTER);
+                dbl.count = 1;
+                destruct(ds.operate(&dbl));
+            }
+
+            EXPECT_EQ(hist2->get_cache(&first_n, &cache, &cache_size), HISTOGRAM_SUCCESS);
+            EXPECT_EQ(first_n, FIRST_N);
+            EXPECT_NE(cache, nullptr);
+            EXPECT_EQ(cache_size, FIRST_N);
+
+            const char *name = nullptr;
+            std::size_t name_len = 0;
+            EXPECT_EQ(hist2->get_name(&name, &name_len), HISTOGRAM_SUCCESS);
+            EXPECT_EQ(std::string(name, name_len), SECOND_HIST_NAME);
+
+            double *buckets = nullptr;
+            std::size_t *counts = nullptr;
+            std::size_t size = 0;
+            EXPECT_EQ(hist2->get(&buckets, &counts, &size), HISTOGRAM_SUCCESS);
+            EXPECT_NE(buckets, nullptr);
+            EXPECT_NE(counts, nullptr);
+            EXPECT_EQ(size, 1);
+            EXPECT_EQ(buckets[0], FIRST_N);
+            EXPECT_EQ(counts[0], FIRST_N);
+        }
     }
 }

@@ -40,8 +40,6 @@ target_include_directories(googletest SYSTEM BEFORE PRIVATE ${CMAKE_SOURCE_DIR}/
 
 set(TEST_COMMON
   TestDatastore.hpp
-  TestHistogram.cpp
-  TestHistogram.hpp
 )
 
 foreach(FILE ${TEST_COMMON})

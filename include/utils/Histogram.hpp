@@ -30,12 +30,14 @@ class Histogram {
         // Add a value to the histogram
         int add(const double &value);
 
+        int get_name(std::string &name) const;
+        int get_name(const char **name, std::size_t *name_len) const;
+
         // Return references to the data being used to generate the buckets
         int get_cache(std::size_t *first_n, double **cache, std::size_t *size) const;
 
         // Return references to internal arrays
-        int get(const char **name, std::size_t *name_len,
-                double **buckets, std::size_t **counts, std::size_t *size) const;
+        int get(double **buckets, std::size_t **counts, std::size_t *size) const;
 
         std::size_t pack_size() const;
         bool pack(void **buf, std::size_t *size) const;

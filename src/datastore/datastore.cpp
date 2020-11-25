@@ -193,33 +193,29 @@ Transport::Response::BHistogram *datastore::Datastore::operate(Transport::Reques
     return res;
 }
 
-std::map<std::string, std::shared_ptr<Histogram::Histogram> > const &
-datastore::Datastore::AddHistogram(const std::string &name, std::shared_ptr<Histogram::Histogram> new_histogram) {
+/**
+ * AddHistogram
+ * Register a histogram to this datastore
+ * Overwrites existing histograms.
+ *
+ * @param name              the name of the new histogram
+ * @param new_histogram     a std::shared_ptr<::Histogram::Histogram>
+ * @return DATASTORE_SUCCESS
+ */
+int datastore::Datastore::AddHistogram(const std::string &name, datastore::Datastore::Histogram new_histogram) {
     hists[name] = new_histogram;
-    return hists;
+    return DATASTORE_SUCCESS;
 }
 
 /**
- * Histogram
+ * GetHistogram
  * Get the pointer to this datatstore's histogram
  *
- * @param name      the name of the histogram to get
- * @param name_len  the length of the name
- * @param h         A pointer to this histogram pointer
+ * @param name   the name of the histogram to get
+ * @param h      A pointer to this histogram pointer
  * @return DATASTORE_SUCCESS if found, else DATASTORE_ERROR
  */
-int datastore::Datastore::GetHistogram(const char *name, const std::size_t name_len, Histogram::Histogram **h) const {
-    return GetHistogram(std::string(name, name_len), h);
-}
-
-/**
- * Histogram
- * Get the pointer to this datatstore's histogram
- *
- * @param h A pointer to this histogram pointer
- * @return DATASTORE_SUCCESS if found, else DATASTORE_ERROR
- */
-int datastore::Datastore::GetHistogram(const std::string &name, Histogram::Histogram **h) const {
+int datastore::Datastore::GetHistogram(const std::string &name, datastore::Datastore::Histogram *h) const {
     if (!h) {
         return DATASTORE_ERROR;
     }
@@ -229,7 +225,45 @@ int datastore::Datastore::GetHistogram(const std::string &name, Histogram::Histo
         return DATASTORE_ERROR;
     }
 
-    *h = it->second.get();
+    *h = it->second;
+
+    return DATASTORE_SUCCESS;
+}
+
+/**
+ * GetHistogram
+ * Get the pointer to this datatstore's histogram
+ *
+ * @param name   the name of the histogram to get
+ * @param h      A pointer to this histogram pointer
+ * @return DATASTORE_SUCCESS if found, else DATASTORE_ERROR
+ */
+int datastore::Datastore::GetHistogram(const std::string &name, ::Histogram::Histogram **h) const {
+    if (!h) {
+        return DATASTORE_ERROR;
+    }
+
+    Histogram ds_hist;
+    if (GetHistogram(name, &ds_hist) != DATASTORE_SUCCESS) {
+        return DATASTORE_ERROR;
+    }
+
+    *h = ds_hist.get();
+
+    return DATASTORE_SUCCESS;
+}
+
+/**
+ * GetHistograms
+ * Get a reference to all histograms this datastore holds
+ *
+ * @param histogtrams  a reference
+ * @return DATASTORE_SUCCESS
+ */
+int datastore::Datastore::GetHistograms(const datastore::Datastore::Histograms **histograms) const {
+    if (histograms) {
+        *histograms = &hists;
+    }
 
     return DATASTORE_SUCCESS;
 }

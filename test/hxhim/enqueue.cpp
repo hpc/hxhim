@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-#include "TestHistogram.hpp"
 #include "generic_options.hpp"
 #include "hxhim/hxhim.hpp"
 #include "hxhim/private/hxhim.hpp"
@@ -8,6 +7,8 @@
 /*
  * Test the insertion of operations into HXHIM's queues
  */
+
+const std::string TEST_HIST_NAME = "Test Histogram Name";
 
 const char *SUBJECTS[]    = {"SUBJECT0",   "SUBJECT1"};
 const char *PREDICATES[]  = {"PREDICATE0", "PREDICATE1"};

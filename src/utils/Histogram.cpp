@@ -227,12 +227,45 @@ int Histogram::Histogram::add(const double &value) {
 }
 
 /**
+ * get_name
+ * Gets this histogram's name.
+ *
+ * @param name      (optional) the name of the histogram
+ * @return HISTOGRAM_SUCCESS
+ */
+int Histogram::Histogram::get_name(std::string &name) const {
+    name = name_;
+    return HISTOGRAM_SUCCESS;
+}
+
+/**
+ * get_name
+ * Gets this histogram's name.
+ *
+ * @param name      (optional) the name of the histogram
+ * @param name_len  (optional) the length of the histogram's name
+ * @return HISTOGRAM_SUCCESS
+ */
+int Histogram::Histogram::get_name(const char **name, std::size_t *name_len) const {
+    if (name) {
+        *name = name_.data();
+    }
+
+    if (name_len) {
+        *name_len = name_.size();
+    }
+
+    return HISTOGRAM_SUCCESS;
+}
+
+/**
  * get_cache
  * Gets the internal data for generating buckets
  *
  * @param first_n  the maximum number of cached doubles used to generate the buckets
  * @param cache    the array of cached doubles
  * @param size     the number of doubles that have been cached
+ * @return HISTOGRAM_SUCCESS
  */
 int Histogram::Histogram::get_cache(std::size_t *first_n,
                                     double **cache,
@@ -259,25 +292,14 @@ int Histogram::Histogram::get_cache(std::size_t *first_n,
  * if the number of values required to generate
  * the buckets has not been reached.
  *
- * @param name      (optional) the name of the histogram
- * @param name_len  (optional) the length of the histogram's name
  * @param buckets   (optional) the buckets of the histogram
  * @param counts    (optional) the counts of the histogram
  * @param size      (optional) how many bucket-count pairs there are
  * @return HISTOGRAM_SUCCESS
  */
-int Histogram::Histogram::get(const char **name, std::size_t *name_len,
-                              double **buckets, std::size_t **counts, std::size_t *size) const {
+int Histogram::Histogram::get(double **buckets, std::size_t **counts, std::size_t *size) const {
     if (count_  < first_n_) {
         return HISTOGRAM_ERROR;
-    }
-
-    if (name) {
-        *name = name_.data();
-    }
-
-    if (name_len) {
-        *name_len = name_.size();
     }
 
     if (buckets) {

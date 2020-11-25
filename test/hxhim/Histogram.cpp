@@ -2,13 +2,21 @@
 
 #include <gtest/gtest.h>
 
-#include "TestHistogram.hpp"
 #include "generic_options.hpp"
 #include "hxhim/hxhim.hpp"
 
-static const std::size_t TRIPLES = 10;
+const std::vector<std::string> HIST_NAMES = {
+    "Histogram 0",
+    "Histogram 1",
+    "Histogram 2",
+    "Histogram 3",
+    "Histogram 4",
+};
 
-static int test_hash(hxhim_t *hx,
+const std::size_t TRIPLES = 10;
+const std::size_t TOTAL_PUTS = TRIPLES * HIST_NAMES.size();
+
+int test_hash(hxhim_t *hx,
                      void *, const size_t,
                      void *, const size_t,
                      void *) {
@@ -17,7 +25,7 @@ static int test_hash(hxhim_t *hx,
     return rank;
 }
 
-static HistogramBucketGenerator_t test_buckets = [](const double *, const size_t,
+HistogramBucketGenerator_t test_buckets = [](const double *, const size_t,
                                                     double **buckets, size_t *size,
                                                     void *) -> int {
     if (!buckets || !size) {
@@ -37,7 +45,10 @@ TEST(hxhim, Histogram) {
     ASSERT_EQ(hxhim_options_set_hash_function(&opts, "test hash", test_hash, nullptr), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_histogram_first_n(&opts, 0), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_histogram_bucket_gen_function(&opts, test_buckets, nullptr), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_add_histogram_track_predicate(&opts, TEST_HIST_NAME), HXHIM_SUCCESS);
+
+    for(std::string const &name : HIST_NAMES) {
+        ASSERT_EQ(hxhim_options_add_histogram_track_predicate(&opts, name),  HXHIM_SUCCESS);
+    }
 
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
@@ -50,16 +61,16 @@ TEST(hxhim, Histogram) {
     std::size_t total_rs = 0;
     EXPECT_EQ(hxhim::GetRangeServerCount(&hx, &total_rs), HXHIM_SUCCESS);
 
-    std::vector<double>      subjects  (TRIPLES + 1);
-    std::vector<std::string> predicates(TRIPLES + 1);
-    std::vector<void *>      objects   (TRIPLES + 1);
+    std::vector<double>      subjects  (TOTAL_PUTS);
+    std::vector<std::string> predicates(TOTAL_PUTS);
+    std::vector<void *>      objects   (TOTAL_PUTS);
 
     // PUT triples
     // The first TRIPLES - 1 buckets will have 1 item each
     // The last bucket will have 2 items
-    for(std::size_t i = 0; i < TRIPLES; i++) {
+    for(std::size_t i = 0; i < TOTAL_PUTS; i++) {
         subjects[i] = rank;
-        predicates[i] = TEST_HIST_NAME;
+        predicates[i] = HIST_NAMES[i % HIST_NAMES.size()];
         objects[i] = nullptr;
 
         EXPECT_EQ(hxhim::Put(&hx,
@@ -73,7 +84,7 @@ TEST(hxhim, Histogram) {
     // flush all queued items
     hxhim::Results *put_results = hxhim::Flush(&hx);
     ASSERT_NE(put_results, nullptr);
-    EXPECT_EQ(put_results->Size(), TRIPLES);
+    EXPECT_EQ(put_results->Size(), TOTAL_PUTS);
 
     HXHIM_CXX_RESULTS_LOOP(put_results) {
         hxhim_op_t op = hxhim_op_t::HXHIM_INVALID;
@@ -104,45 +115,48 @@ TEST(hxhim, Histogram) {
 
     hxhim::Results::Destroy(put_results);
 
-    // a single histogram from all ranks
-    for(std::size_t i = 0; i < total_rs; i++) {
-        EXPECT_EQ(hxhim::Histogram(&hx, i, TEST_HIST_NAME.data(), TEST_HIST_NAME.size()), HXHIM_SUCCESS);
+    for(std::string const &hist_name : HIST_NAMES) {
+        // Pull the current histogram from each rank
+        for(std::size_t i = 0; i < total_rs; i++) {
+            EXPECT_EQ(hxhim::Histogram(&hx, i, hist_name.data(), hist_name.size()), HXHIM_SUCCESS);
+        }
+
+        hxhim::Results *hist_results = hxhim::Flush(&hx);
+        ASSERT_NE(hist_results, nullptr);
+        EXPECT_EQ(hist_results->Size(), (std::size_t) total_rs);
+
+        // check contents of each rank's histogram
+        HXHIM_CXX_RESULTS_LOOP(hist_results) {
+            hxhim_op_t op = hxhim_op_t::HXHIM_INVALID;
+            EXPECT_EQ(hist_results->Op(&op), HXHIM_SUCCESS);
+            EXPECT_EQ(op, hxhim_op_t::HXHIM_HISTOGRAM);
+
+            int rs = -1;
+            EXPECT_EQ(hist_results->RangeServer(&rs), HXHIM_SUCCESS);
+
+            int status = HXHIM_ERROR;
+            EXPECT_EQ(hist_results->Status(&status), HXHIM_SUCCESS);
+            EXPECT_EQ(status, HXHIM_SUCCESS);
+
+            const char *name = nullptr;
+            std::size_t name_len = 0;
+            double *buckets = nullptr;
+            std::size_t *counts = nullptr;
+            std::size_t size = 0;
+            ASSERT_EQ(hist_results->Histogram(&name, &name_len, &buckets, &counts, &size), HXHIM_SUCCESS);
+
+            EXPECT_EQ(std::string(name, name_len), hist_name);
+            ASSERT_NE(buckets, nullptr);
+            ASSERT_NE(counts, nullptr);
+            EXPECT_EQ(size, (std::size_t ) 1);
+
+            EXPECT_EQ(buckets[0], 0);
+
+            EXPECT_EQ(counts[0], TRIPLES);
+        }
+
+        hxhim::Results::Destroy(hist_results);
     }
-
-    hxhim::Results *hist_results = hxhim::Flush(&hx);
-    ASSERT_NE(hist_results, nullptr);
-    EXPECT_EQ(hist_results->Size(), (std::size_t) total_rs);
-
-    HXHIM_CXX_RESULTS_LOOP(hist_results) {
-        hxhim_op_t op = hxhim_op_t::HXHIM_INVALID;
-        EXPECT_EQ(hist_results->Op(&op), HXHIM_SUCCESS);
-        EXPECT_EQ(op, hxhim_op_t::HXHIM_HISTOGRAM);
-
-        int rs = -1;
-        EXPECT_EQ(hist_results->RangeServer(&rs), HXHIM_SUCCESS);
-
-        int status = HXHIM_ERROR;
-        EXPECT_EQ(hist_results->Status(&status), HXHIM_SUCCESS);
-        EXPECT_EQ(status, HXHIM_SUCCESS);
-
-        const char *name = nullptr;
-        std::size_t name_len = 0;
-        double *buckets = nullptr;
-        std::size_t *counts = nullptr;
-        std::size_t size = 0;
-        ASSERT_EQ(hist_results->Histogram(&name, &name_len, &buckets, &counts, &size), HXHIM_SUCCESS);
-
-        EXPECT_EQ(std::string(name, name_len), TEST_HIST_NAME);
-        ASSERT_NE(buckets, nullptr);
-        ASSERT_NE(counts, nullptr);
-        EXPECT_EQ(size, (std::size_t ) 1);
-
-        EXPECT_EQ(buckets[0], 0);
-
-        EXPECT_EQ(counts[0], TRIPLES);
-    }
-
-    hxhim::Results::Destroy(hist_results);
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);

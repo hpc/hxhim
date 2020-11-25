@@ -98,7 +98,6 @@ extern const char *HXHIM_GETOP_STR[];
     GEN(PREFIX, DOUBLE)             \
     GEN(PREFIX, BYTE)               \
     GEN(PREFIX, POINTER)            \
-    GEN(PREFIX, TRACKED)            \
 
 #define HXHIM_DATA_PREFIX HXHIM_DATA
 
