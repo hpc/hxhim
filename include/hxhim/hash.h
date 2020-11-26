@@ -1,13 +1,14 @@
 #ifndef HXHIM_HASH_H
 #define HXHIM_HASH_H
 
-#include <stddef.h>
-
 #include "hxhim/struct.h"
 
 #ifdef __cplusplus
+#include <cstddef>
 extern "C"
 {
+#else
+#include <stddef.h>
 #endif
 
 /**
