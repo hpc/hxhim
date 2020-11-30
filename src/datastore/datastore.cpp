@@ -113,13 +113,13 @@ Transport::Response::BPut *datastore::Datastore::operate(Transport::Request::BPu
                                 res->statuses[i] = DATASTORE_ERROR;
                             }
                             else {
-                                // insert the subject
-                                switch (req->subjects[i].data_type()) {
+                                // insert the object
+                                switch (req->objects[i].data_type()) {
                                     case HXHIM_DATA_FLOAT:
-                                        hist_it->second->add(* (float *) req->subjects[i].data());
+                                        hist_it->second->add(* (float *) req->objects[i].data());
                                         break;
                                     case HXHIM_DATA_DOUBLE:
-                                        hist_it->second->add(* (double *) req->subjects[i].data());
+                                        hist_it->second->add(* (double *) req->objects[i].data());
                                         break;
                                     default:
                                         break;
