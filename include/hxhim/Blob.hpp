@@ -2,6 +2,7 @@
 #define BLOB_HPP
 
 #include <cstdint>
+#include <ostream>
 #include <string>
 
 #include "hxhim/constants.h"
@@ -32,6 +33,9 @@ class Blob {
         Blob(const std::size_t len, const void *ptr,
              const hxhim_data_t type = hxhim_data_t::HXHIM_DATA_INVALID);
 
+        // reference to a string
+        Blob(const std::string &str);
+
         // creates a reference to rhs
         Blob(Blob &rhs);
 
@@ -45,6 +49,11 @@ class Blob {
 
         // destroy this, take rhs, and clear rhs
         Blob &operator=(Blob &&rhs);
+
+        // compare ptr, len, and type
+        // clean is not compared
+        bool operator==(const Blob &rhs) const;
+        bool operator!=(const Blob &rhs) const;
 
         hxhim_data_t set_type(const hxhim_data_t new_type);
         bool set_clean(bool new_clean);
@@ -74,6 +83,8 @@ class Blob {
 
         operator std::string() const;
 
+        friend std::ostream &operator<<(std::ostream &stream, const Blob &blob);
+
     protected:
         void *ptr;
         std::size_t len;
@@ -92,6 +103,5 @@ Blob RealBlob(void *ptr, const std::size_t len,
 // Convenience wrapper for constructing Blobs that copy the pointer
 Blob RealBlob(const std::size_t len, const void *ptr,
               const hxhim_data_t type);
-
 
 #endif

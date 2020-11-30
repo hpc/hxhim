@@ -458,6 +458,82 @@ TEST(Blob, string) {
     // str is deallocated automatically
 }
 
+TEST(Blob, comparison) {
+    void *ptr = alloc(len);
+    memset(ptr, 'A', len);
+    memcpy(ptr, "AB", 2); // force the first two bytes to be different to exit memcmp early
+
+    // same
+    {
+        // same pointer
+        EXPECT_EQ(Blob(ptr, len, type), Blob(ptr, len, type));
+
+        // different pointer
+        void *ptr2 = alloc(len);
+        memcpy(ptr2, ptr, len);
+        EXPECT_EQ(Blob(ptr, len, type, false), Blob(ptr2, len, type, true));
+    }
+
+    // different
+    {
+        // pointer
+        EXPECT_NE(Blob(ptr, len, type), Blob(((char *) ptr) + 1, len, type));
+
+        // length
+        EXPECT_NE(Blob(ptr, len, type), Blob(ptr, len + 1, type));
+
+        // type
+        hxhim_data_t type2 = (hxhim_data_t) rand();
+
+        // limit number attempts to get a different type
+        for(int i = 0; (i < 5) && (type2 == type); i++) {
+            type2 = (hxhim_data_t) rand();
+        }
+
+        if (type != type2) {
+            EXPECT_NE(Blob(ptr, len, type), Blob(ptr, len, type2));
+        }
+    }
+
+    // Reference vs Real
+    // also cleans up ptr
+    EXPECT_EQ(Blob(ptr, len, type, false), Blob(ptr, len, type, true));
+}
+
+TEST(Blob, print) {
+    Blob blob(alloc(len), len, type, true);
+
+    std::stringstream s;
+    EXPECT_NO_THROW(s << blob);
+
+    char open_bracket, comma, close_bracket;
+    void *parsed_ptr = nullptr;
+    std::size_t parsed_len = 0;
+    std::string parsed_type_str;
+    bool parsed_clean = false;
+
+    EXPECT_TRUE(s
+                >> open_bracket
+                >> parsed_ptr >> comma
+                >> parsed_len >> comma);
+    EXPECT_TRUE(std::getline(s >> std::ws, parsed_type_str, ','));
+    EXPECT_TRUE(s
+                >> std::boolalpha >> parsed_clean
+                >> close_bracket);
+
+    if (type <= hxhim_data_t::HXHIM_DATA_MAX_KNOWN) {
+        EXPECT_EQ(parsed_type_str, HXHIM_DATA_STR[type]);
+    }
+    else {
+        std::stringstream unknown_type;
+        unknown_type << "Unknown Type (" << type << ")";
+        EXPECT_EQ(parsed_type_str, unknown_type.str());
+    }
+
+    EXPECT_EQ(Blob(parsed_ptr, parsed_len, type), blob);
+    EXPECT_EQ(parsed_clean, blob.will_clean());
+}
+
 TEST(Blob, wrappers) {
     // ReferenceBlob constructor
     {

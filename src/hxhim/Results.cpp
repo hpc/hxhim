@@ -662,10 +662,10 @@ int hxhim_result_range_server(hxhim_results_t *res, int *range_server) {
  *
  * @param subject      (optional) the subject of the current result, only valid if this function returns HXHIM_SUCCESS
  * @param subject_len  (optional) the subject_len of the current result, only valid if this function returns HXHIM_SUCCESS
- * @param type         (optional) the type of the subject
+ * @param subject_type (optional) the type of the subject
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim::Results::Subject(void **subject, std::size_t *subject_len, enum hxhim_data_t *type) const {
+int hxhim::Results::Subject(void **subject, std::size_t *subject_len, enum hxhim_data_t *subject_type) const {
     hxhim::Results::Result *res = Curr();
     if (!res                                       ||
         ((res->op    != hxhim_op_t::HXHIM_PUT)     &&
@@ -676,7 +676,7 @@ int hxhim::Results::Subject(void **subject, std::size_t *subject_len, enum hxhim
     }
 
     hxhim::Results::SubjectPredicate *sp = static_cast<hxhim::Results::SubjectPredicate *>(res);
-    sp->subject.get(subject, subject_len, type);
+    sp->subject.get(subject, subject_len, subject_type);
 
     return HXHIM_SUCCESS;
 }
@@ -688,15 +688,15 @@ int hxhim::Results::Subject(void **subject, std::size_t *subject_len, enum hxhim
  * @param res          A list of results
  * @param subject      (optional) the subject of the current result, only valid if this function returns HXHIM_SUCCESS
  * @param subject_len  (optional) the subject_len of the current result, only valid if this function returns HXHIM_SUCCESS
- * @param type         (optional) the type of the subject
+ * @param subject_type (optional) the type of the subject
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim_result_subject(hxhim_results_t *res, void **subject, size_t *subject_len, hxhim_data_t *type) {
+int hxhim_result_subject(hxhim_results_t *res, void **subject, size_t *subject_len, hxhim_data_t *subject_type) {
     if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
 
-    return res->res->Subject(subject, subject_len, type);
+    return res->res->Subject(subject, subject_len, subject_type);
 }
 
 /**
@@ -705,10 +705,10 @@ int hxhim_result_subject(hxhim_results_t *res, void **subject, size_t *subject_l
  *
  * @param predicate      (optional) the predicate of the current result, only valid if this function returns HXHIM_SUCCESS
  * @param predicate_len  (optional) the predicate_len of the current result, only valid if this function returns HXHIM_SUCCESS
- * @param type           (optional) the type of the predicate
+ * @param predicate_type (optional) the type of the predicate
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim::Results::Predicate(void **predicate, std::size_t *predicate_len, hxhim_data_t *type) const {
+int hxhim::Results::Predicate(void **predicate, std::size_t *predicate_len, hxhim_data_t *predicate_type) const {
     hxhim::Results::Result *res = Curr();
     if (!res                                       ||
         ((res->op    != hxhim_op_t::HXHIM_PUT)     &&
@@ -719,7 +719,7 @@ int hxhim::Results::Predicate(void **predicate, std::size_t *predicate_len, hxhi
     }
 
     hxhim::Results::SubjectPredicate *sp = static_cast<hxhim::Results::SubjectPredicate *>(res);
-    sp->predicate.get(predicate, predicate_len, type);
+    sp->predicate.get(predicate, predicate_len, predicate_type);
     return HXHIM_SUCCESS;
 }
 
@@ -729,15 +729,15 @@ int hxhim::Results::Predicate(void **predicate, std::size_t *predicate_len, hxhi
  *
  * @param predicate      (optional) the predicate of the current result, only valid if this function returns HXHIM_SUCCESS
  * @param predicate_len  (optional) the predicate_len of the current result, only valid if this function returns HXHIM_SUCCESS
- * @param type           (optional) the type of the predicate
+ * @param predicate_type (optional) the type of the predicate
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim_result_predicate(hxhim_results_t *res, void **predicate, size_t *predicate_len, enum hxhim_data_t *type) {
+int hxhim_result_predicate(hxhim_results_t *res, void **predicate, size_t *predicate_len, enum hxhim_data_t *predicate_type) {
     if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
 
-    return res->res->Predicate(predicate, predicate_len, type);
+    return res->res->Predicate(predicate, predicate_len, predicate_type);
 }
 
 /**
@@ -746,10 +746,10 @@ int hxhim_result_predicate(hxhim_results_t *res, void **predicate, size_t *predi
  *
  * @param object      (optional) the object of the current result, only valid if this function returns HXHIM_SUCCESS
  * @param object_len  (optional) the object_len of the current result, only valid if this function returns HXHIM_SUCCESS
- * @param type        (optional) the type of the object
+ * @param object_type (optional) the type of the object
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim::Results::Object(void **object, std::size_t *object_len, hxhim_data_t *type) const {
+int hxhim::Results::Object(void **object, std::size_t *object_len, hxhim_data_t *object_type) const {
     hxhim::Results::Result *res = Curr();
     if (!res                                      ||
         ((res->op    != hxhim_op_t::HXHIM_GET)    &&
@@ -759,7 +759,7 @@ int hxhim::Results::Object(void **object, std::size_t *object_len, hxhim_data_t 
     }
 
     hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(res);
-    get->object.get(object, object_len, type);
+    get->object.get(object, object_len, object_type);
     return HXHIM_SUCCESS;
 }
 
@@ -770,15 +770,15 @@ int hxhim::Results::Object(void **object, std::size_t *object_len, hxhim_data_t 
  * @param res         A list of results
  * @param object      (optional) the object of the current result, only valid if this function returns HXHIM_SUCCESS
  * @param object_len  (optional) the object_len of the current result, only valid if this function returns HXHIM_SUCCESS
- * @param type        (optional) the type of the object
+ * @param object_type (optional) the type of the object
  * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
  */
-int hxhim_result_object(hxhim_results_t *res, void **object, size_t *object_len, enum hxhim_data_t *type) {
+int hxhim_result_object(hxhim_results_t *res, void **object, size_t *object_len, enum hxhim_data_t *object_type) {
     if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
 
-    return res->res->Object(object, object_len, type);
+    return res->res->Object(object, object_len, object_type);
 }
 
 /**
@@ -804,7 +804,6 @@ int hxhim::Results::Histogram(const char **name, std::size_t *name_len, double *
     if (hist->histogram->get_name(name, name_len) != HISTOGRAM_SUCCESS) {
         return HXHIM_ERROR;
     }
-
 
     if (hist->histogram->get(buckets, counts, size) != HISTOGRAM_SUCCESS) {
         return HXHIM_ERROR;

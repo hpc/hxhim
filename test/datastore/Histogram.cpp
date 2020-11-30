@@ -31,7 +31,7 @@ TEST(datastore, Histogram) {
                                                            }
 
                                                            *size = 1;
-                                                           *buckets = alloc_array<double>(*size);
+                                                           *buckets = alloc_array<double>(*size + 1);
                                                            (*buckets)[0] = 0;
 
                                                            return HISTOGRAM_SUCCESS;
@@ -200,7 +200,7 @@ TEST(datastore, Histogram) {
                                                                     }
 
                                                                     *size = 1;
-                                                                    *buckets = alloc_array<double>(*size);
+                                                                    *buckets = alloc_array<double>(*size + 1);
                                                                     (*buckets)[0] = FIRST_N;
 
                                                                     return HISTOGRAM_SUCCESS;

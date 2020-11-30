@@ -36,7 +36,7 @@ static int generate_using_bin_count(const double &min, const double &max, const 
         return HISTOGRAM_ERROR;
     }
 
-    double *bins = alloc_array<double>(bin_count);
+    double *bins = alloc_array<double>(bin_count + 1);
     if (!bins) {
         return HISTOGRAM_ERROR;
     }
@@ -62,7 +62,7 @@ int histogram_n_buckets(const double *first_n, const size_t n, double **buckets,
     }
 
     *size = (std::size_t) (uintptr_t) extra;
-    if (!(*buckets = alloc_array<double>(*size))) {
+    if (!(*buckets = alloc_array<double>(*size + 1))) {
         return HISTOGRAM_ERROR;
     }
 
@@ -210,6 +210,9 @@ int Histogram::Histogram::add(const double &value) {
                 return HISTOGRAM_ERROR;
             }
 
+            // initialize the upper bound
+            buckets_[size_] = std::numeric_limits<double>::min();
+
             // insert original data
             for(std::size_t i = 0; i < first_n_; i++) {
                 insert(cache_[i]);
@@ -320,22 +323,23 @@ int Histogram::Histogram::get(double **buckets, std::size_t **counts, std::size_
 /**
  * pack_size
  * Get the amount of space needed to pack this Histogram.
- * This will fail if the buckets have not been generated yet.
+ * If the buckets have not been generated yet, the
+ * serialized data will stop after size_.
  *
- * @return size != 0 on success, 0 on failure
+ * @return size
  */
 std::size_t Histogram::Histogram::pack_size() const {
-    if ((count_ < first_n_) ||
-        !buckets_ || !counts_) {
-        return 0;
+    std::size_t total =
+        sizeof(name_.size()) + name_.size() +
+        sizeof(count_) + sizeof(first_n_) +
+        sizeof(size_);
+
+    if (size_) {
+        total += size_ * (sizeof(*buckets_) + sizeof(*counts_)) +
+            sizeof(buckets_[size_]);
     }
 
-    return
-        sizeof(name_.size()) +
-        name_.size() +
-        sizeof(count_) +
-        sizeof(size_) +
-        size_ * (sizeof(double) + sizeof(std::size_t));
+    return total;
 }
 
 /**
@@ -392,15 +396,23 @@ bool Histogram::Histogram::pack(char *&curr, std::size_t &avail, std::size_t *us
     memcpy(curr, &count_, sizeof(count_));
     curr += sizeof(count_);
 
+    memcpy(curr, &first_n_, sizeof(first_n_));
+    curr += sizeof(first_n_);
+
     memcpy(curr, &size_, sizeof(size_));
     curr += sizeof(size_);
 
-    for(std::size_t i = 0; i < size_; i++) {
-        memcpy(curr, &buckets_[i], sizeof(buckets_[i]));
-        curr += sizeof(buckets_[i]);
+    if (size_) {
+        for(std::size_t i = 0; i < size_; i++) {
+            memcpy(curr, &buckets_[i], sizeof(buckets_[i]));
+            curr += sizeof(buckets_[i]);
 
-        memcpy(curr, &counts_[i], sizeof(counts_[i]));
-        curr += sizeof(counts_[i]);
+            memcpy(curr, &counts_[i], sizeof(counts_[i]));
+            curr += sizeof(counts_[i]);
+        }
+
+        memcpy(curr, &buckets_[size_], sizeof(buckets_[size_]));
+        curr += sizeof(buckets_[size_]);
     }
 
     avail -= curr - orig;
@@ -437,7 +449,7 @@ bool Histogram::Histogram::unpack(const void *buf, const std::size_t size) {
  */
 bool Histogram::Histogram::unpack(char *&curr, std::size_t &size, std::size_t *used) {
     if (!curr ||
-        (size < (2 * sizeof(std::size_t)))) {
+        (size < (4 * sizeof(std::size_t)))) {
         return false;
     }
 
@@ -455,18 +467,26 @@ bool Histogram::Histogram::unpack(char *&curr, std::size_t &size, std::size_t *u
     memcpy(&count_, curr, sizeof(count_));
     curr += sizeof(count_);
 
+    memcpy(&first_n_, curr, sizeof(first_n_));
+    curr += sizeof(first_n_);
+
     memcpy(&size_, curr, sizeof(size_));
     curr += sizeof(size_);
 
-    buckets_ = alloc_array<double>(size_);
-    counts_  = alloc_array<std::size_t>(size_);
+    if (size_) {
+        buckets_ = alloc_array<double>(size_ + 1);
+        gen_counts();
 
-    for(std::size_t i = 0; i < size_; i++) {
-        memcpy(&buckets_[i], curr, sizeof(buckets_[i]));
-        curr += sizeof(buckets_[i]);
+        for(std::size_t i = 0; i < size_; i++) {
+            memcpy(&buckets_[i], curr, sizeof(buckets_[i]));
+            curr += sizeof(buckets_[i]);
 
-        memcpy(&counts_[i], curr, sizeof(counts_[i]));
-        curr += sizeof(counts_[i]);
+            memcpy(&counts_[i], curr, sizeof(counts_[i]));
+            curr += sizeof(counts_[i]);
+        }
+
+        memcpy(&buckets_[size_], curr, sizeof(buckets_[size_]));
+        curr += sizeof(buckets_[size_]);
     }
 
     if (used) {
@@ -485,7 +505,7 @@ void Histogram::Histogram::clear() {
     first_n_ = 0;
     count_ = 0;
 
-    dealloc_array(buckets_, size_);
+    dealloc_array(buckets_, size_ + 1);
     buckets_ = nullptr;
 
     dealloc_array(counts_, size_);
@@ -496,8 +516,11 @@ void Histogram::Histogram::clear() {
 
 std::ostream &Histogram::Histogram::print(std::ostream &stream, const std::string &indent) {
     stream << indent << "Histogram has " << count_ << " values" << std::endl;
-    for(std::size_t i = 0; i < size_; i++) {
-        stream << indent << indent << buckets_[i] << ": " << counts_[i] << std::endl;
+    if (size_) {
+        for(std::size_t i = 0; i < size_; i++) {
+            stream << indent << indent << buckets_[i] << ": " << counts_[i] << std::endl;
+        }
+        stream << indent << indent << buckets_[size_] << std::endl;
     }
     return stream;
 }
@@ -539,6 +562,11 @@ int Histogram::Histogram::insert(const double &value) {
     }
 
     counts_[i]++;
+
+    // update upper bound
+    if (value > buckets_[size_]) {
+        buckets_[size_] = value;
+    }
 
     return HISTOGRAM_SUCCESS;
 }

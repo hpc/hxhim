@@ -98,11 +98,11 @@ int hxhimGetStats(hxhim_t *hx, const int dst_rank,
                   size_t *num_gets);
 
 int hxhimHistogram(hxhim_t *hx,
-                   int ds_id,
+                   int rs_id,
                    const char *name, const size_t name_len);
 
 int hxhimBHistogram(hxhim_t *hx,
-                    int *ds_ids,
+                    int *rs_ids,
                     const char **names, const size_t *name_lens,
                     const size_t count);
 

@@ -97,7 +97,6 @@ Request_t *get_packet(hxhim_t *hx,
  * @param puts           the queue to place the PUT in
  * @param subject        the subject to put
  * @param predicate      the prediate to put
- * @param object_type    the type of the object
  * @param object         the object to put
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
@@ -333,7 +332,7 @@ int hxhim::DeleteImpl(hxhim_t *hx,
  *
  * @param hx      the HXHIM session
  * @param hists   the queue to place the HISTOGRAM in
- * @param ds_id   the datastore id - value checked by caller
+ * @param rs_id   the range server id - value checked by caller
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::HistogramImpl(hxhim_t *hx,
@@ -346,15 +345,8 @@ int hxhim::HistogramImpl(hxhim_t *hx,
     hash.start = ::Stats::now();
     hash.end = ::Stats::now();
 
-    if (rs_id < 0) {
-        return HXHIM_ERROR;
-    }
-
-    // make sure the name matches a histogram
-    REF(hx->p->hist_names)::const_iterator name_it = hx->p->hist_names.find(std::string(name, name_len));
-    if (name_it == hx->p->hist_names.end()) {
-        return HXHIM_ERROR;
-    }
+    // rs_id is checked by caller
+    // name does not need to be checked here/by caller
 
     mlog(HXHIM_CLIENT_DBG, "Foreground HISTOGRAM Insert SPO into queue");
 

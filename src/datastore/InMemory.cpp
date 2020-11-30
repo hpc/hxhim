@@ -34,12 +34,7 @@ void datastore::InMemory::CloseImpl() {
  * BPut
  * Performs a bulk PUT in
  *
- * @param subjects      the subjects to put
- * @param subject_lens  the lengths of the subjects to put
- * @param prediates     the prediates to put
- * @param prediate_lens the lengths of the prediates to put
- * @param objects       the objects to put
- * @param object_lens   the lengths of the objects
+ * @param req  the packet requesting multiple PUTs
  * @return pointer to a list of results
  */
 Transport::Response::BPut *datastore::InMemory::BPutImpl(Transport::Request::BPut *req) {
@@ -101,10 +96,7 @@ Transport::Response::BPut *datastore::InMemory::BPutImpl(Transport::Request::BPu
  * BGet
  * Performs a bulk GET in InMemory
  *
- * @param subjects      the subjects to put
- * @param subject_lens  the lengths of the subjects to put
- * @param prediates     the prediates to put
- * @param prediate_lens the lengths of the prediates to put
+ * @param req  the packet requesting multiple GETs
  * @return pointer to a list of results
  */
 Transport::Response::BGet *datastore::InMemory::BGetImpl(Transport::Request::BGet *req) {
@@ -171,12 +163,7 @@ Transport::Response::BGet *datastore::InMemory::BGetImpl(Transport::Request::BGe
  * BGetOp
  * Performs a GetOp in InMemory
  *
- * @param subjects      the subjects to put
- * @param subject_lens  the lengths of the subjects to put
- * @param prediates     the prediates to put
- * @param prediate_lens the lengths of the prediates to put
- * @param objects       the objects to put
- * @param object_lens   the lengths of the objects
+ * @param req  the packet requesting multiple GETOPs
  * @return pointer to a list of results
  */
 Transport::Response::BGetOp *datastore::InMemory::BGetOpImpl(Transport::Request::BGetOp *req) {
@@ -330,10 +317,7 @@ Transport::Response::BGetOp *datastore::InMemory::BGetOpImpl(Transport::Request:
  * BDelete
  * Performs a bulk DELETE in InMemory
  *
- * @param subjects      the subjects to put
- * @param subject_lens  the lengths of the subjects to put
- * @param prediates     the prediates to put
- * @param prediate_lens the lengths of the prediates to put
+ * @param req  the packet requesting multiple DELETEs
  * @return pointer to a list of results
  */
 Transport::Response::BDelete *datastore::InMemory::BDeleteImpl(Transport::Request::BDelete *req) {

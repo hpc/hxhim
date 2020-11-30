@@ -1,4 +1,5 @@
 #include <cstring>
+#include <iomanip>
 #include <stdexcept>
 #include <utility>
 
@@ -21,6 +22,13 @@ Blob::Blob(const std::size_t len, const void *ptr, const hxhim_data_t type)
 {
     memcpy(this->ptr, ptr, len);
 }
+
+Blob::Blob(const std::string &str)
+    : ptr((char *) str.data()),
+      len(str.size()),
+      type(hxhim_data_t::HXHIM_DATA_BYTE),
+      clean(false)
+{}
 
 Blob::Blob(Blob &rhs)
     : Blob(rhs.ptr, rhs.len, rhs.type, false)
@@ -60,6 +68,17 @@ Blob &Blob::operator=(Blob &&rhs) {
     }
 
     return *this;
+}
+
+bool Blob::operator==(const Blob &rhs) const {
+    return ((type == rhs.type) &&
+            (len == rhs.len)   &&
+            ((ptr == rhs.ptr)  ||
+             (memcmp(ptr, rhs.ptr, rhs.len) == 0)));
+}
+
+bool Blob::operator!=(const Blob &rhs) const {
+    return !(*this == rhs);
 }
 
 hxhim_data_t Blob::set_type(const hxhim_data_t new_type) {
@@ -228,6 +247,23 @@ bool Blob::will_clean() const {
 
 Blob::operator std::string() const {
     return std::string((char *) ptr, len);
+}
+
+std::ostream &operator<<(std::ostream &stream, const Blob &blob) {
+    stream << "["
+           << blob.ptr << ", "
+           << blob.len << ", ";
+
+    if (blob.type <= hxhim_data_t::HXHIM_DATA_MAX_KNOWN) {
+        stream << HXHIM_DATA_STR[blob.type];
+    }
+    else {
+        stream << "Unknown Type (" << blob.type << ")";
+    }
+
+    return stream << ", "
+           << std::boolalpha << blob.clean
+           << "]";
 }
 
 Blob ReferenceBlob(void *ptr, const std::size_t len, const hxhim_data_t type) {

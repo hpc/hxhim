@@ -24,6 +24,8 @@ int GetPrintBufferContents(hxhim_t *hx, std::ostream &stream);
 
 int GetHash(hxhim_t *hx, const char **name, hxhim_hash_t *func, void **args);
 
+int HaveHistogram(hxhim_t *hx, const char *name, const std::size_t name_len, int *exists);
+
 }
 
 #endif

@@ -33,8 +33,9 @@ HistogramBucketGenerator_t test_buckets = [](const double *, const size_t,
     }
 
     *size = 1;
-    *buckets = alloc_array<double>(*size);
+    *buckets = alloc_array<double>(*size + 1);
     (*buckets)[0] = 0;
+    (*buckets)[*size] = 0;
 
     return HISTOGRAM_SUCCESS;
 };

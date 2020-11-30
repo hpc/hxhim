@@ -303,3 +303,50 @@ int hxhim::GetHash(hxhim_t *hx, const char **name, hxhim_hash_t *func, void **ar
 int hxhimGetHash(hxhim_t *hx, const char **name, hxhim_hash_t *func, void **args) {
     return hxhim::GetHash(hx, name, func, args);
 }
+
+/**
+ * HaveHistogram
+ * Whether or not the provided name is a histogram maintained by the range servers
+ *
+ * @param hx        the HXHIM instance
+ * @param name      the name to search for
+ * @param name_len  the length of the name
+ * @param exists    result variable
+ * @return HXHIM_SUCCESS
+ */
+int hxhim::nocheck::HaveHistogram(hxhim_t *hx, const char *name, const std::size_t name_len, int *exists) {
+    *exists = (hx->p->hist_names.find(std::string(name, name_len)) != hx->p->hist_names.end());
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * HaveHistogram
+ * Whether or not the provided name is a histogram maintained by the range servers
+ *
+ * @param hx        the HXHIM instance
+ * @param name      the name to search for
+ * @param name_len  the length of the name
+ * @param exists    result variable
+ * @return HXHIM_SUCCESS or HXHIM_ERROR on error
+ */
+int hxhim::HaveHistogram(hxhim_t *hx, const char *name, const std::size_t name_len, int *exists) {
+    if (!valid(hx) || !hx->p->running || !exists) {
+        return HXHIM_ERROR;
+    }
+
+    return hxhim::nocheck::HaveHistogram(hx, name, name_len, exists);
+}
+
+/**
+ * hxhimHaveHistogram
+ * Whether or not the provided name is a histogram maintained by the range servers
+ *
+ * @param hx        the HXHIM instance
+ * @param name      the name to search for
+ * @param name_len  the length of the name
+ * @param exists    result variable
+ * @return HXHIM_SUCCESS or HXHIM_ERROR on error
+ */
+int hxhimHaveHistogram(hxhim_t *hx, const char *name, const size_t name_len, int *exists) {
+    return hxhim::HaveHistogram(hx, name, name_len, exists);
+}

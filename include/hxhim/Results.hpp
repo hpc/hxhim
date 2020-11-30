@@ -186,9 +186,9 @@ class Results {
         int Op(enum hxhim_op_t *op) const;
         int Status(int *status) const;
         int RangeServer(int *range_server) const;
-        int Subject(void **subject, std::size_t *subject_len, hxhim_data_t *type) const;
-        int Predicate(void **predicate, std::size_t *predicate_len, hxhim_data_t *type) const;
-        int Object(void **object, std::size_t *object_len, hxhim_data_t *type) const;
+        int Subject(void **subject, std::size_t *subject_len, hxhim_data_t *subject_type) const;
+        int Predicate(void **predicate, std::size_t *predicate_len, hxhim_data_t *predicate_type) const;
+        int Object(void **object, std::size_t *object_len, hxhim_data_t *object_type) const;
         int Histogram(const char **name, std::size_t *name_len, double **buckets, std::size_t **counts, std::size_t *size) const;
 
         // These functions are only available in C++

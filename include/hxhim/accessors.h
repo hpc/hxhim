@@ -22,6 +22,8 @@ int hxhimGetRangeServerClientToServerRatio(hxhim_t *hx, size_t *client, size_t *
 
 int hxhimGetHash(hxhim_t *hx, const char **name, hxhim_hash_t *func, void **args);
 
+int hxhimHaveHistogram(hxhim_t *hx, const char *name, const size_t name_len, int *exists);
+
 #ifdef __cplusplus
 }
 #endif

@@ -64,7 +64,7 @@ class Histogram {
         double *cache_;                         // the data being used to generate the buckets
         std::size_t count_;                     // the number of values that have been added into this histogram; also used for generating buckets
 
-        double *buckets_;                       // the left end of the buckets
+        double *buckets_;                       // the left end of the buckets (has size_ + 1 values)
         std::size_t *counts_;                   // the counts at the buckets
         std::size_t size_;                      // the number of buckets
 };

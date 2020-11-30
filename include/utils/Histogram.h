@@ -20,7 +20,7 @@ extern "C"
  *
  * @param first_n     first n data points
  * @param n           the number of data points
- * @param buckets     the address of the bucket array
+ * @param buckets     the address of the bucket array - should allocate size + 1 elements
  * @param size        how many buckets there are
  * @param extra       extra arguments for the function
  * @return HISTOGRAM_SUCCESS or HISTOGRAM_ERROR on error

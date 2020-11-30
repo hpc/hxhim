@@ -23,9 +23,9 @@ TEST(Request, BPut) {
 
         src.count = 1;
 
-        src.subjects[0]     = ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN, SUBJECT_TYPE);
-        src.predicates[0]   = ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN, PREDICATE_TYPE);
-        src.objects[0]      = ReferenceBlob((void *) &OBJECT, OBJECT_LEN, OBJECT_TYPE);
+        src.subjects[0]   = ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN, SUBJECT_TYPE);
+        src.predicates[0] = ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN, PREDICATE_TYPE);
+        src.objects[0]    = ReferenceBlob((void *) &OBJECT, OBJECT_LEN, OBJECT_TYPE);
     }
 
     EXPECT_EQ(src.direction, Message::REQUEST);
@@ -48,17 +48,9 @@ TEST(Request, BPut) {
     EXPECT_EQ(src.count, dst->count);
 
     for(std::size_t i = 0; i < dst->count; i++) {
-        EXPECT_EQ(src.subjects[i].size(), dst->subjects[i].size());
-        EXPECT_EQ(memcmp(src.subjects[i].data(), dst->subjects[i].data(), dst->subjects[i].size()), 0);
-        EXPECT_EQ(src.subjects[i].data_type(), dst->subjects[i].data_type());
-
-        EXPECT_EQ(src.predicates[i].size(), dst->predicates[i].size());
-        EXPECT_EQ(memcmp(src.predicates[i].data(), dst->predicates[i].data(), dst->predicates[i].size()), 0);
-        EXPECT_EQ(src.predicates[i].data_type(), dst->predicates[i].data_type());
-
-        EXPECT_EQ(src.objects[i].size(), dst->objects[i].size());
-        EXPECT_EQ(memcmp(src.objects[i].data(), dst->objects[i].data(), dst->objects[i].size()), 0);
-        EXPECT_EQ(src.objects[i].data_type(), dst->objects[i].data_type());
+        EXPECT_EQ(src.subjects[i], dst->subjects[i]);
+        EXPECT_EQ(src.predicates[i], dst->predicates[i]);
+        EXPECT_EQ(src.objects[i], dst->objects[i]);
     }
 
     destruct(dst);
@@ -73,8 +65,8 @@ TEST(Request, BGet) {
 
         src.count = 1;
 
-        src.subjects[0] = ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN, SUBJECT_TYPE);
-        src.predicates[0] = ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN, PREDICATE_TYPE);
+        src.subjects[0]     = ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN, SUBJECT_TYPE);
+        src.predicates[0]   = ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN, PREDICATE_TYPE);
         src.object_types[0] = OBJECT_TYPE;
     }
 
@@ -98,14 +90,8 @@ TEST(Request, BGet) {
     EXPECT_EQ(src.count, dst->count);
 
     for(std::size_t i = 0; i < dst->count; i++) {
-        EXPECT_EQ(src.subjects[i].size(), dst->subjects[i].size());
-        EXPECT_EQ(memcmp(src.subjects[i].data(), dst->subjects[i].data(), dst->subjects[i].size()), 0);
-        EXPECT_EQ(src.subjects[i].data_type(), dst->subjects[i].data_type());
-
-        EXPECT_EQ(src.predicates[i].size(), dst->predicates[i].size());
-        EXPECT_EQ(memcmp(src.predicates[i].data(), dst->predicates[i].data(), dst->predicates[i].size()), 0);
-        EXPECT_EQ(src.predicates[i].data_type(), dst->predicates[i].data_type());
-
+        EXPECT_EQ(src.subjects[i], dst->subjects[i]);
+        EXPECT_EQ(src.predicates[i], dst->predicates[i]);
         EXPECT_EQ(src.object_types[i], dst->object_types[i]);
     }
 
@@ -151,19 +137,14 @@ TEST(Request, BGetOp) {
 
     for(std::size_t i = 0; i < dst->count; i++) {
         if (dst->subjects[i].data()) {
-            EXPECT_EQ(src.subjects[i].size(), dst->subjects[i].size());
-            EXPECT_EQ(memcmp(src.subjects[i].data(), dst->subjects[i].data(), dst->subjects[i].size()), 0);
-            EXPECT_EQ(src.subjects[i].data_type(), dst->subjects[i].data_type());
+            EXPECT_EQ(src.subjects[i], dst->subjects[i]);
         }
 
         if (dst->predicates[i].data()) {
-            EXPECT_EQ(src.predicates[i].size(), dst->predicates[i].size());
-            EXPECT_EQ(memcmp(src.predicates[i].data(), dst->predicates[i].data(), dst->predicates[i].size()), 0);
-            EXPECT_EQ(src.predicates[i].data_type(), dst->predicates[i].data_type());
+            EXPECT_EQ(src.predicates[i], dst->predicates[i]);
         }
 
         EXPECT_EQ(src.object_types[i], dst->object_types[i]);
-
         EXPECT_EQ(src.num_recs[i], dst->num_recs[i]);
         EXPECT_EQ(src.ops[i], dst->ops[i]);
     }
@@ -180,7 +161,7 @@ TEST(Request, BDelete) {
 
         src.count = 1;
 
-        src.subjects[0] = ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN, SUBJECT_TYPE);
+        src.subjects[0]   = ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN, SUBJECT_TYPE);
         src.predicates[0] = ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN, PREDICATE_TYPE);
     }
 
@@ -204,19 +185,16 @@ TEST(Request, BDelete) {
     EXPECT_EQ(src.count, dst->count);
 
     for(std::size_t i = 0; i < dst->count; i++) {
-        EXPECT_EQ(src.subjects[i].size(), dst->subjects[i].size());
-        EXPECT_EQ(memcmp(src.subjects[i].data(), dst->subjects[i].data(), dst->subjects[i].size()), 0);
-        EXPECT_EQ(src.subjects[i].data_type(), dst->subjects[i].data_type());
-
-        EXPECT_EQ(src.predicates[i].size(), dst->predicates[i].size());
-        EXPECT_EQ(memcmp(src.predicates[i].data(), dst->predicates[i].data(), dst->predicates[i].size()), 0);
-        EXPECT_EQ(src.predicates[i].data_type(), dst->predicates[i].data_type());
+        EXPECT_EQ(src.subjects[i], dst->subjects[i]);
+        EXPECT_EQ(src.predicates[i], dst->predicates[i]);
     }
 
     destruct(dst);
 }
 
 TEST(Request, BHistogram) {
+    const std::string TEST_HIST_NAME = "TEST_HIST_NAME";
+
     Request::BHistogram src;
     ASSERT_NO_THROW(src.alloc(1));
     {
@@ -224,6 +202,8 @@ TEST(Request, BHistogram) {
         src.dst = rand();
 
         src.count = 1;
+
+        src.names[0] = ReferenceBlob((char *) TEST_HIST_NAME.data(), TEST_HIST_NAME.size(), hxhim_data_t::HXHIM_DATA_BYTE);
     }
 
     EXPECT_EQ(src.direction, Message::REQUEST);
@@ -244,6 +224,7 @@ TEST(Request, BHistogram) {
     EXPECT_EQ(src.dst, dst->dst);
 
     EXPECT_EQ(src.count, dst->count);
+    EXPECT_EQ(memcmp(src.names[0].data(), dst->names[0].data(), dst->names[0].size()), 0);
 
     destruct(dst);
 }
@@ -285,13 +266,8 @@ TEST(Response, BPut) {
     for(std::size_t i = 0; i < dst->count; i++) {
         EXPECT_EQ(src.statuses[i], dst->statuses[i]);
 
-        EXPECT_EQ(src.orig.subjects[i].data(),        dst->orig.subjects[i].data());
-        EXPECT_EQ(src.orig.subjects[i].size(),        dst->orig.subjects[i].size());
-        EXPECT_EQ(src.orig.subjects[i].data_type(),   dst->orig.subjects[i].data_type());
-
-        EXPECT_EQ(src.orig.predicates[i].data(),      dst->orig.predicates[i].data());
-        EXPECT_EQ(src.orig.predicates[i].size()  ,    dst->orig.predicates[i].size());
-        EXPECT_EQ(src.orig.predicates[i].data_type(), dst->orig.predicates[i].data_type());
+        EXPECT_EQ(src.orig.subjects[i],   dst->orig.subjects[i]);
+        EXPECT_EQ(src.orig.predicates[i], dst->orig.predicates[i]);
     }
 
     destruct(dst);
@@ -310,8 +286,8 @@ TEST(Response, BGet) {
 
         src.objects[0] = ReferenceBlob((void *) &OBJECT, OBJECT_LEN, OBJECT_TYPE);
 
-        src.orig.subjects[0]    = ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN, SUBJECT_TYPE);
-        src.orig.predicates[0]  = ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN, PREDICATE_TYPE);
+        src.orig.subjects[0]   = ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN, SUBJECT_TYPE);
+        src.orig.predicates[0] = ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN, PREDICATE_TYPE);
     }
 
     EXPECT_EQ(src.direction, Message::RESPONSE);
@@ -336,17 +312,10 @@ TEST(Response, BGet) {
     for(std::size_t i = 0; i < dst->count; i++) {
         EXPECT_EQ(src.statuses[i], dst->statuses[i]);
 
-        EXPECT_EQ(src.objects[i].size(),              dst->objects[i].size());
-        EXPECT_EQ(memcmp(src.objects[i].data(),       dst->objects[i].data(), dst->objects[i].size()), 0);
-        EXPECT_EQ(src.objects[i].data_type(),         dst->objects[i].data_type());
+        EXPECT_EQ(src.objects[i], dst->objects[i]);
 
-        EXPECT_EQ(src.orig.subjects[i].data(),        dst->orig.subjects[i].data());
-        EXPECT_EQ(src.orig.subjects[i].size(),        dst->orig.subjects[i].size());
-        EXPECT_EQ(src.orig.subjects[i].data_type(),   dst->orig.subjects[i].data_type());
-
-        EXPECT_EQ(src.orig.predicates[i].data(),      dst->orig.predicates[i].data());
-        EXPECT_EQ(src.orig.predicates[i].size()  ,    dst->orig.predicates[i].size());
-        EXPECT_EQ(src.orig.predicates[i].data_type(), dst->orig.predicates[i].data_type());
+        EXPECT_EQ(src.orig.subjects[i],   dst->orig.subjects[i]);
+        EXPECT_EQ(src.orig.predicates[i], dst->orig.predicates[i]);
     }
 
     destruct(dst);
@@ -408,27 +377,9 @@ TEST(Response, BGetOp) {
         ASSERT_NE(dst->objects[i], nullptr);
 
         for(std::size_t j = 0; j < dst->num_recs[i]; j++) {
-            ASSERT_NE(dst->subjects[i][j].data(), nullptr);
-            ASSERT_NE(dst->predicates[i][j].data(), nullptr);
-            ASSERT_NE(dst->objects[i][j].data(), nullptr);
-
-            EXPECT_EQ(src.subjects[i][j].size(), dst->subjects[i][j].size());
-            EXPECT_EQ(memcmp(src.subjects[i][j].data(),
-                             dst->subjects[i][j].data(),
-                             dst->subjects[i][j].size()), 0);
-            EXPECT_EQ(src.subjects[i]->data_type(), dst->subjects[i]->data_type());
-
-            EXPECT_EQ(src.predicates[i][j].size(), dst->predicates[i][j].size());
-            EXPECT_EQ(memcmp(src.predicates[i][j].data(),
-                             dst->predicates[i][j].data(),
-                             dst->predicates[i][j].size()), 0);
-            EXPECT_EQ(src.predicates[i]->data_type(), dst->predicates[i]->data_type());
-
-            EXPECT_EQ(src.objects[i][j].size(), dst->objects[i][j].size());
-            EXPECT_EQ(memcmp(src.objects[i][j].data(),
-                             dst->objects[i][j].data(),
-                             dst->objects[i][j].size()), 0);
-            EXPECT_EQ(src.objects[i]->data_type(), dst->objects[i]->data_type());
+            EXPECT_EQ(src.subjects[i][j],   dst->subjects[i][j]);
+            EXPECT_EQ(src.predicates[i][j], dst->predicates[i][j]);
+            EXPECT_EQ(src.objects[i][j],    dst->objects[i][j]);
         }
     }
 
@@ -472,13 +423,8 @@ TEST(Response, BDelete) {
     for(std::size_t i = 0; i < dst->count; i++) {
         EXPECT_EQ(src.statuses[i], dst->statuses[i]);
 
-        EXPECT_EQ(src.orig.subjects[i].data(),        dst->orig.subjects[i].data());
-        EXPECT_EQ(src.orig.subjects[i].size(),        dst->orig.subjects[i].size());
-        EXPECT_EQ(src.orig.subjects[i].data_type(),   dst->orig.subjects[i].data_type());
-
-        EXPECT_EQ(src.orig.predicates[i].data(),      dst->orig.predicates[i].data());
-        EXPECT_EQ(src.orig.predicates[i].size(),      dst->orig.predicates[i].size());
-        EXPECT_EQ(src.orig.predicates[i].data_type(), dst->orig.predicates[i].data_type());
+        EXPECT_EQ(src.orig.subjects[i], dst->orig.subjects[i]);
+        EXPECT_EQ(src.orig.predicates[i], dst->orig.predicates[i]);
     }
 
     destruct(dst);

@@ -10,15 +10,16 @@ static const std::string TEST_HIST_NAME = "Test Histogram Name";
 int CUSTOM_NONUNIFORM_FUNC(const double *, const size_t,
                            double **buckets, size_t *size,
                            void *) {
-    if (!(*buckets = alloc_array<double>(3))) {
+    *size = 3;
+
+    if (!(*buckets = alloc_array<double>(*size + 1))) {
         return HISTOGRAM_ERROR;
     }
 
     (*buckets)[0] = 0;
     (*buckets)[1] = 5;
     (*buckets)[2] = 9;
-
-    *size = 3;
+    (*buckets)[*size] = -1;
 
     return HISTOGRAM_SUCCESS;
 }
@@ -58,6 +59,8 @@ int CUSTOM_NONUNIFORM_FUNC(const double *, const size_t,
         /* 9: 9 */                                                         \
         EXPECT_EQ(buckets[2], (double) 9);                                 \
         EXPECT_EQ(counts[2], (std::size_t) 1);                             \
+                                                                           \
+        EXPECT_EQ(buckets[3], (double) 9);                                 \
     }
 
 
@@ -88,7 +91,7 @@ TEST(Histogram, add) {
                                    }
 
                                    *size = 1;
-                                   *buckets = alloc_array<double>(*size);
+                                   *buckets = alloc_array<double>(*size + 1);
                                    (*buckets)[0] = 0;
 
                                    return HISTOGRAM_SUCCESS;
@@ -152,7 +155,7 @@ static int every_two(const double *first_n, const std::size_t n, double **bucket
     double max = *std::max_element(first_n, first_n + n);
 
     *size = std::ceil((max - min) / 2);
-    *buckets = alloc_array<double>(*size);
+    *buckets = alloc_array<double>(*size + 1);
 
     for(std::size_t i = 0; i < *size; i++) {
         (*buckets)[i] = min;
@@ -239,18 +242,22 @@ TEST(Histogram, pack_unpack) {
         CUSTOM_NONUNIFORM_TEST(dst);
     }
 
-    // first_n != 0 not enough data
+    // buckets haven't been generated yet
     {
         CUSTOM_NONUNIFORM_INIT(src, 10);
 
         void *buf = nullptr;
         std::size_t size = 0;
-        EXPECT_EQ(src.pack(&buf, &size), false);
-        EXPECT_EQ(buf, nullptr);
-        EXPECT_EQ(size, 0);
+        EXPECT_EQ(src.pack(&buf, &size), true);
+        EXPECT_NE(buf, nullptr);
+        EXPECT_EQ(size,
+                  TEST_HIST_NAME.size() + sizeof(TEST_HIST_NAME.size()) +
+                  3 * sizeof(std::size_t));
+
+        dealloc(buf);
     }
 
-    // good pack/unpack
+    // buckets have been generated
     {
         CUSTOM_NONUNIFORM_INIT(src, 10);
         CUSTOM_NONUNIFORM_FILL(src, 10);
