@@ -1,6 +1,5 @@
-#include <cstring>
+#include <deque>
 #include <sstream>
-#include <stdexcept>
 
 #include "datastore/InMemory.hpp"
 #include "hxhim/Blob.hpp"
@@ -10,19 +9,23 @@
 
 datastore::InMemory::InMemory(const int rank,
                               const int id,
-                              Transform::Callbacks *callbacks,
-                              const std::string &basename)
+                              Transform::Callbacks *callbacks)
     : Datastore(rank, id, callbacks),
       db()
 {
-    Datastore::Open(basename);
+    Open();
 }
 
 datastore::InMemory::~InMemory() {
     Close();
 }
 
+bool datastore::InMemory::Open() {
+    return OpenImpl("");
+}
+
 bool datastore::InMemory::OpenImpl(const std::string &) {
+    db.clear();
     return true;
 }
 
@@ -373,6 +376,73 @@ Transport::Response::BDelete *datastore::InMemory::BDeleteImpl(Transport::Reques
     stats.deletes.emplace_back(event);
 
     return res;
+}
+
+/**
+ * WriteHistogramsImpl
+ * Write histograms to the map.
+ *
+ * @return DATASTORE_SUCCESS
+ */
+int datastore::InMemory::WriteHistogramsImpl() {
+    std::deque<void *> ptrs;
+    for(decltype(hists)::value_type hist : hists) {
+        std::string key;
+        sp_to_key(ReferenceBlob((char *) HISTOGRAM_SUBJECT.data(), HISTOGRAM_SUBJECT.size(), hxhim_data_t::HXHIM_DATA_BYTE),
+                  ReferenceBlob((char *) hist.first.data(), hist.first.size(), hxhim_data_t::HXHIM_DATA_BYTE),
+                  key);
+
+        void *serial_hist = nullptr;
+        std::size_t serial_hist_len = 0;
+
+        hist.second->pack(&serial_hist, &serial_hist_len);
+        ptrs.push_back(serial_hist);
+
+        db[key] = std::string((char *) serial_hist, serial_hist_len);
+    }
+
+    for(void *ptr : ptrs) {
+        dealloc(ptr);
+    }
+
+    return DATASTORE_SUCCESS;
+}
+
+/**
+ * ReadHistogramsImpl
+ * Reads histograms found in the map. Histogram
+ * instances that exist are overwritten.
+ *
+ * @param names  A list of histogram names to look for
+ * @return The number of histograms found
+ */
+std::size_t datastore::InMemory::ReadHistogramsImpl(const datastore::HistNames_t &names) {
+    std::size_t found = 0;
+
+    for(std::string const &name : names) {
+        // Create the key from the fixed subject and the histogram name
+        std::string key;
+        sp_to_key(ReferenceBlob((char *) HISTOGRAM_SUBJECT.data(), HISTOGRAM_SUBJECT.size(), hxhim_data_t::HXHIM_DATA_BYTE),
+                  ReferenceBlob((char *) name.data(), name.size(), hxhim_data_t::HXHIM_DATA_BYTE),
+                  key);
+
+        // Search for the histogram
+        decltype(db)::const_iterator it = db.find(key);
+        if (it != db.end()) {
+            std::shared_ptr<::Histogram::Histogram> new_hist(construct<::Histogram::Histogram>(),
+                                                             ::Histogram::deleter);
+
+            // parse serialized data
+            if(new_hist->unpack((void *) it->second.data(), it->second.size())) {
+                // overwrite existing
+                hists[name] = new_hist;
+
+                found++;
+            }
+        }
+    }
+
+    return found;
 }
 
 /**

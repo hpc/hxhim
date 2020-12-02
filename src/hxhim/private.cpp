@@ -11,7 +11,6 @@ hxhim_private::hxhim_private()
       running(false),
       queues(),
       async_put(),
-      datastore(nullptr),
       hash(),
       transport(nullptr),
       range_server(),

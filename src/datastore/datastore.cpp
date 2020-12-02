@@ -4,9 +4,12 @@
 
 #include "datastore/datastore.hpp"
 #include "hxhim/Blob.hpp"
+#include "hxhim/triplestore.hpp"
 #include "utils/macros.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
+
+const std::string datastore::Datastore::HISTOGRAM_SUBJECT = "HISTOGRAM";
 
 datastore::Datastore::Datastore(const int rank,
                                 const int id,
@@ -81,14 +84,28 @@ datastore::Datastore::~Datastore() {
     mlog(DATASTORE_INFO, "Rank %d Datastore shut down completed", rank);
 }
 
-bool datastore::Datastore::Open(const std::string &new_name) {
-    Close();
-    return OpenImpl(new_name);
+bool datastore::Datastore::Open(const std::string &new_name,
+                                const datastore::HistNames_t *histogram_names) {
+    const bool ret = OpenImpl(new_name);
+    if (ret && histogram_names) {
+        ReadHistogramsImpl(*histogram_names);
+    }
+    return ret;
 }
 
-void datastore::Datastore::Close() {
+void datastore::Datastore::Close(const bool write_histograms) {
+    if (write_histograms) {
+        Sync();
+    }
     CloseImpl();
     return;
+}
+
+bool datastore::Datastore::Change(const std::string &new_name,
+                                  const bool write_histograms,
+                                  const datastore::HistNames_t *find_histogram_names) {
+    Close(write_histograms);
+    return Open(new_name, find_histogram_names);
 }
 
 int datastore::Datastore::ID() const {
@@ -100,8 +117,9 @@ Transport::Response::BPut *datastore::Datastore::operate(Transport::Request::BPu
     Transport::Response::BPut *res = BPutImpl(req);
 
     if (hists.size() && res) {
-        // if a predicate is HXHIM_DATA_TRACKED and the PUT was successful
+        // if a predicate is HXHIM_DATA_BYTE and the PUT was successful
         // keep track of the subject in the histogram
+
         for(std::size_t i = 0; i < req->count; i++) {
             if (res->statuses[i] == DATASTORE_SUCCESS) {
                 switch (req->predicates[i].data_type()) {
@@ -194,16 +212,59 @@ Transport::Response::BHistogram *datastore::Datastore::operate(Transport::Reques
 }
 
 /**
+ * WriteHistograms
+ * Write histograms into the underlying datastore.
+ *
+ * @return DATASTORE_SUCCESS or DATASTORE_ERROR
+ */
+int datastore::Datastore::WriteHistograms() {
+    return WriteHistogramsImpl();
+}
+
+/**
+ * ReadHistograms
+ * Searches for histograms in the underlying datastore
+ * that have names from the provided list. Histogram
+ * instances that exist are overwritten.
+ *
+ * @param names  A list of histogram names to look for
+ * @return The number of histograms found
+ */
+std::size_t datastore::Datastore::ReadHistograms(const datastore::HistNames_t &names) {
+    return ReadHistogramsImpl(names);
+}
+
+/**
  * AddHistogram
- * Register a histogram to this datastore
+ * Register a histogram to this datastore.
  * Overwrites existing histograms.
  *
- * @param name              the name of the new histogram
- * @param new_histogram     a std::shared_ptr<::Histogram::Histogram>
+ * @param name      the name of the new histogram
+ * @param config    the new histogram's configuration
  * @return DATASTORE_SUCCESS
  */
-int datastore::Datastore::AddHistogram(const std::string &name, datastore::Datastore::Histogram new_histogram) {
-    hists[name] = new_histogram;
+int datastore::Datastore::AddHistogram(const std::string &name, const ::Histogram::Config &config) {
+    hists[name] = std::shared_ptr<::Histogram::Histogram>(construct<::Histogram::Histogram>(config, name),
+                                                          ::Histogram::deleter);
+    return DATASTORE_SUCCESS;
+}
+
+
+/**
+ * AddHistogram
+ * Register an existing histogram to this datastore.
+ * Ownership is transferred to this datastore.
+ *
+ * @param name              the name of the new histogram
+ * @param new_histogram     a pointer to an existing histogram
+ * @return DATASTORE_SUCCESS
+ */
+int datastore::Datastore::AddHistogram(const std::string &name, ::Histogram::Histogram *new_histogram) {
+    if (!new_histogram) {
+        return DATASTORE_ERROR;
+    }
+
+    hists[name] = std::shared_ptr<::Histogram::Histogram>(new_histogram, ::Histogram::deleter);
     return DATASTORE_SUCCESS;
 }
 
@@ -314,6 +375,7 @@ int datastore::Datastore::GetStats(uint64_t *put_time,
 
 int datastore::Datastore::Sync() {
     std::lock_guard<std::mutex> lock(mutex);
+    WriteHistograms();
     return SyncImpl();
 }
 

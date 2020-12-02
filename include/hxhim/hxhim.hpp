@@ -36,6 +36,10 @@ Results *Sync(hxhim_t *hx);
 /** @description Function that opens new datastores */
 Results *ChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t func, void *args);
 
+/** @description Function for changing the datastore without changing the hash */
+Results * ChangeDatastore(hxhim_t *hx, const char *name, const std::size_t name_len,
+                          const bool write_histograms, const bool read_histograms);
+
 /** @description Functions for queuing operations to perform on the underlying storage */
 /*  all buffers are user buffers */
 int Put(hxhim_t *hx,

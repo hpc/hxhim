@@ -233,14 +233,14 @@ hxhim::Results *hxhim::ChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t fu
     hx->p->hash.func = func;
     hx->p->hash.args = args;
 
-    if (hx->p->datastore) {
+    if (hx->p->range_server.datastore) {
         // change datastores
         std::stringstream s;
         s << name << "-" << RangeServer::get_id(hx->p->bootstrap.rank,
                                                 hx->p->bootstrap.size,
                                                 hx->p->range_server.client_ratio,
                                                 hx->p->range_server.server_ratio);
-        hx->p->datastore->Open(s.str());
+        hx->p->range_server.datastore->Open(s.str());
     }
 
     MPI_Barrier(hx->p->bootstrap.comm);
@@ -264,6 +264,58 @@ hxhim::Results *hxhim::ChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t fu
  */
 hxhim_results_t *hxhimChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t func, void *args) {
     return hxhim_results_init(hx, hxhim::ChangeHash(hx, name, func, args));
+}
+
+/**
+ * ChangeHash
+ * Close the current datastore and open a new one with the same hash function.
+ * This is a collective function, but allows for each rank to select its own
+ * new datastore name.
+ *
+ * @param hx                 the HXHIM session
+ * @param name               the name of the new datastore
+ * @param name_len           the length of the new name
+ * @param write_histograms   whether or not to write the old datastore's histograms
+ * @param read_histograms    whether or not to try to find and read the new datastore's histograms
+ * @return A list of results from before the datastores were changed
+ */
+hxhim::Results *hxhim::ChangeDatastore(hxhim_t *hx, const char *name, const std::size_t name_len,
+                                       const bool write_histograms, const bool read_histograms) {
+    if (!hxhim::valid(hx)) {
+        return nullptr;
+    }
+
+    hxhim::Results *res = hxhim::Sync(hx);
+
+    MPI_Barrier(hx->p->bootstrap.comm);
+
+    if (hx->p->range_server.datastore) {
+        hx->p->range_server.datastore->Close(write_histograms);
+        hx->p->range_server.datastore->Open(std::string(name, name_len),
+                                            read_histograms?&hx->p->histograms.names:nullptr);
+    }
+
+    MPI_Barrier(hx->p->bootstrap.comm);
+
+    return res;
+}
+
+/**
+ * ChangeHash
+ * Close the current datastore and open a new one with the same hash function.
+ * This is a collective function, but allows for each rank to select its own
+ * new datastore name.
+ *
+ * @param hx                 the HXHIM session
+ * @param name               the name of the new datastore
+ * @param name_len           the length of the new name
+ * @param write_histograms   whether or not to write the old datastore's histograms
+ * @param read_histograms    whether or not to try to find and read the new datastore's histograms
+ * @return A list of results from before the datastores were changed
+ */
+hxhim_results_t *hxhimChangeDatastore(hxhim_t *hx, const char *name, const size_t name_len,
+                         const int write_histograms, const int read_histograms) {
+    return hxhim_results_init(hx, hxhim::ChangeDatastore(hx, name, name_len, write_histograms, read_histograms));
 }
 
 /**
@@ -296,10 +348,10 @@ int hxhim::GetStats(hxhim_t *hx, const int dst_rank,
     uint64_t    local_get_times = 0;
     std::size_t local_num_gets  = 0;
 
-    if (hx->p->datastore->GetStats(&local_put_times,
-                                   &local_num_puts,
-                                   &local_get_times,
-                                   &local_num_gets) != DATASTORE_SUCCESS) {
+    if (hx->p->range_server.datastore->GetStats(&local_put_times,
+                                                &local_num_puts,
+                                                &local_get_times,
+                                                &local_num_gets) != DATASTORE_SUCCESS) {
         return HXHIM_ERROR;
     }
 

@@ -15,13 +15,13 @@ class InMemory : public Datastore {
 
         InMemory(const int rank,
                  const int id,
-                 Transform::Callbacks *callbacks,
-                 const std::string &name);
+                 Transform::Callbacks *callbacks);
 
         virtual ~InMemory();
+        bool Open();
 
     private:
-        bool OpenImpl(const std::string &); // NO OP
+        bool OpenImpl(const std::string &);
         void CloseImpl();
 
         Transport::Response::BPut    *BPutImpl   (Transport::Request::BPut    *req);
@@ -29,6 +29,8 @@ class InMemory : public Datastore {
         Transport::Response::BGetOp  *BGetOpImpl (Transport::Request::BGetOp  *req);
         Transport::Response::BDelete *BDeleteImpl(Transport::Request::BDelete *req);
 
+        int WriteHistogramsImpl();
+        std::size_t ReadHistogramsImpl(const datastore::HistNames_t &names);
         int SyncImpl();
 
     protected:

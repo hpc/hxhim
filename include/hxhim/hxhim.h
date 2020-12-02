@@ -43,6 +43,10 @@ hxhim_results_t *hxhimSync(hxhim_t *hx);
 /** @description Function that opens new datastores */
 hxhim_results_t *hxhimChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t func, void *args);
 
+/** @description Function for changing the datastore without changing the hash */
+hxhim_results_t * hxhimChangeDatastore(hxhim_t *hx, const char *name, const size_t name_len,
+                                       const int write_histograms, const int read_histograms);
+
 /** @description Functions for queuing operations to perform on the underlying storage */
 int hxhimPut(hxhim_t *hx,
              void *subject, size_t subject_len, enum hxhim_data_t subject_type,

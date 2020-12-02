@@ -62,22 +62,22 @@ TEST(hxhim, Histogram) {
     std::size_t total_rs = 0;
     EXPECT_EQ(hxhim::GetRangeServerCount(&hx, &total_rs), HXHIM_SUCCESS);
 
-    std::vector<double>      subjects  (TOTAL_PUTS);
+    std::vector<void *>      subjects  (TOTAL_PUTS);
     std::vector<std::string> predicates(TOTAL_PUTS);
-    std::vector<void *>      objects   (TOTAL_PUTS);
+    std::vector<double>      objects   (TOTAL_PUTS);
 
     // PUT triples
     // The first TRIPLES - 1 buckets will have 1 item each
     // The last bucket will have 2 items
     for(std::size_t i = 0; i < TOTAL_PUTS; i++) {
-        subjects[i] = rank;
+        subjects[i] = nullptr;
         predicates[i] = HIST_NAMES[i % HIST_NAMES.size()];
-        objects[i] = nullptr;
+        objects[i] = rank;
 
         EXPECT_EQ(hxhim::Put(&hx,
-                             (void *)&subjects[i],         sizeof(subjects[i]),  hxhim_data_t::HXHIM_DATA_DOUBLE,
+                             (void *)&subjects[i],         sizeof(subjects[i]),  hxhim_data_t::HXHIM_DATA_POINTER,
                              (void *)predicates[i].data(), predicates[i].size(), hxhim_data_t::HXHIM_DATA_BYTE,
-                             (void *)&objects[i],          sizeof(subjects[i]),  hxhim_data_t::HXHIM_DATA_POINTER,
+                             (void *)&objects[i],          sizeof(subjects[i]),  hxhim_data_t::HXHIM_DATA_DOUBLE,
                              HXHIM_PUT_SPO),
                   HXHIM_SUCCESS);
     }

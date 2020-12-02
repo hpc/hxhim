@@ -18,8 +18,8 @@ TEST(hxhim, GetStats) {
     ASSERT_EQ(MPI_Bcast((void *) &DST_RANK, 1, MPI_INT, 0, MPI_COMM_WORLD), MPI_SUCCESS);
 
     // replace datastores with TestDatastore
-    destruct(hx.p->datastore);
-    hx.p->datastore = construct<TestDatastore>(hx.p->bootstrap.rank);
+    destruct(hx.p->range_server.datastore);
+    hx.p->range_server.datastore = construct<TestDatastore>(hx.p->bootstrap.rank);
 
     const std::size_t total_ds = hx.p->range_server.total_range_servers;
     uint64_t    *put_times = new uint64_t   [total_ds]();

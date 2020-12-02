@@ -6,6 +6,7 @@
 #if HXHIM_HAVE_THALLIUM
 #include "transport/backend/Thallium/Options.hpp"
 #endif
+#include "utils/memory.hpp"
 
 /**
  * valid
@@ -32,7 +33,7 @@ int hxhim_options_init(hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
-    opts->p = new hxhim_options_private_t();
+    opts->p = construct<hxhim_options_private_t>();
 
     return HXHIM_SUCCESS;
 }
@@ -112,6 +113,43 @@ int hxhim_options_set_server_ratio(hxhim_options_t *opts, const size_t ratio) {
 }
 
 /**
+ * hxhim_options_set_open_init_datastore
+ * Sets whether or not initialization should open datastores after setting up their wrappers.
+ *
+ * @param opts             the set of options to be modified
+ * @param init             whether or not the underlying datastore should be opened when initializing
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim_options_set_init_open_datastore(hxhim_options_t *opts, const int init) {
+    if (!hxhim::valid(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->open_init_datastore = init;
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * hxhim_options_datastore_histograms
+ * Set whether or not to read histograms when opening datastores
+ * and whether or not to write histograms when closing datastores.
+ *
+ * @param read_histograms  whether or not to try to read existing histograms from the datastore when opening
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim_options_datastore_histograms(hxhim_options_t *opts, const int read, const int write) {
+    if (!hxhim::valid(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->histograms.read = read;
+    opts->p->histograms.write = write;
+
+    return HXHIM_SUCCESS;
+}
+
+/**
  * hxhim_options_set_datastore
  * Sets the values needed to set up the datastore
  * This function moves ownership of the config function from the caller to opts
@@ -125,7 +163,7 @@ static int hxhim_options_set_datastore(hxhim_options_t *opts, datastore::Config 
         return HXHIM_ERROR;
     }
 
-    delete opts->p->datastore;
+    destruct(opts->p->datastore);
 
     opts->p->datastore = config;
 
@@ -138,7 +176,7 @@ static int hxhim_options_set_datastore(hxhim_options_t *opts, datastore::Config 
  * @return a pointer to the configuration data, or a nullptr
  */
 static datastore::Config *hxhim_options_create_in_memory_config() {
-    return new datastore::InMemory::Config();
+    return construct<datastore::InMemory::Config>();
 }
 
 /**
@@ -152,7 +190,7 @@ static datastore::Config *hxhim_options_create_in_memory_config() {
 int hxhim_options_set_datastore_in_memory(hxhim_options_t *opts) {
     datastore::Config *config = hxhim_options_create_in_memory_config();
     if (hxhim_options_set_datastore(opts, config) != HXHIM_SUCCESS) {
-        delete config;
+        destruct(config);
         return HXHIM_ERROR;
     }
 
@@ -161,32 +199,18 @@ int hxhim_options_set_datastore_in_memory(hxhim_options_t *opts) {
 
 #if HXHIM_HAVE_LEVELDB
 /**
- * hxhim_options_create_leveldb_config
- *
- * @param path               the name prefix for each datastore
- * @param create_if_missing  whether or not leveldb should create new datastores if the datastores do not already exist
- * @return a pointer to the configuration data, or a nullptr
- */
-static datastore::Config *hxhim_options_create_leveldb_config(const size_t id, const char *prefix, const int create_if_missing) {
-    datastore::leveldb::Config *config = new datastore::leveldb::Config();
-    config->id = id;
-    config->prefix = prefix;
-    config->create_if_missing = create_if_missing;
-    return config;
-}
-
-/**
  * hxhim_options_set_datastore_leveldb
  * Sets up the values needed for a leveldb datastore
  *
- * @param opts   the set of options to be modified
- * @param path the name prefix for each datastore
+ * @param opts                the set of options to be modified
+ * @param prefix              the path prefix for each datastore
+ * @param create_if_missing   whether or not to create the datastore if it does not already exist
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_options_set_datastore_leveldb(hxhim_options_t *opts, const size_t id, const char *prefix, const int create_if_missing) {
-    datastore::Config *config = hxhim_options_create_leveldb_config(id, prefix, create_if_missing);
+int hxhim_options_set_datastore_leveldb(hxhim_options_t *opts, const char *prefix, const int create_if_missing) {
+    datastore::leveldb::Config *config = construct<datastore::leveldb::Config>(prefix, create_if_missing);
     if (hxhim_options_set_datastore(opts, config) != HXHIM_SUCCESS) {
-        delete config;
+        destruct(config);
         return HXHIM_ERROR;
     }
 
@@ -196,32 +220,18 @@ int hxhim_options_set_datastore_leveldb(hxhim_options_t *opts, const size_t id, 
 
 #if HXHIM_HAVE_ROCKSDB
 /**
- * hxhim_options_create_rocksdb_config
- *
- * @param path               the name prefix for each datastore
- * @param create_if_missing  whether or not rocksdb should create new datastores if the datastores do not already exist
- * @return a pointer to the configuration data, or a nullptr
- */
-static datastore::Config *hxhim_options_create_rocksdb_config(const size_t id, const char *prefix, const int create_if_missing) {
-    datastore::rocksdb::Config *config = new datastore::rocksdb::Config();
-    config->id = id;
-    config->prefix = prefix;
-    config->create_if_missing = create_if_missing;
-    return config;
-}
-
-/**
  * hxhim_options_set_datastore_rocksdb
  * Sets up the values needed for a rocksdb datastore
  *
- * @param opts   the set of options to be modified
- * @param path the name prefix for each datastore
+ * @param opts                the set of options to be modified
+ * @param prefix              the path prefix for each datastore
+ * @param create_if_missing   whether or not to create the datastore if it does not already exist
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_options_set_datastore_rocksdb(hxhim_options_t *opts, const size_t id, const char *prefix, const int create_if_missing) {
-    datastore::Config *config = hxhim_options_create_rocksdb_config(id, prefix, create_if_missing);
+int hxhim_options_set_datastore_rocksdb(hxhim_options_t *opts, const char *prefix, const int create_if_missing) {
+    datastore::rocksdb::Config *config = construct<datastore::rocksdb::Config>(prefix, create_if_missing);
     if (hxhim_options_set_datastore(opts, config) != HXHIM_SUCCESS) {
-        delete config;
+        destruct(config);
         return HXHIM_ERROR;
     }
 
@@ -324,7 +334,7 @@ static int hxhim_options_set_transport(hxhim_options_t *opts, Transport::Options
         return HXHIM_ERROR;
     }
 
-    delete opts->p->transport;
+    destruct(opts->p->transport);
 
     opts->p->transport = config;
 
@@ -339,9 +349,9 @@ static int hxhim_options_set_transport(hxhim_options_t *opts, Transport::Options
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_set_transport_null(hxhim_options_t *opts) {
-    Transport::Options *config = new Transport::Options(Transport::TRANSPORT_NULL);
+    Transport::Options *config = construct<Transport::Options>(Transport::TRANSPORT_NULL);
     if (hxhim_options_set_transport(opts, config) != HXHIM_SUCCESS) {
-        delete config;
+        destruct(config);
         return HXHIM_ERROR;
     }
 
@@ -357,9 +367,9 @@ int hxhim_options_set_transport_null(hxhim_options_t *opts) {
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_set_transport_mpi(hxhim_options_t *opts, const size_t listeners) {
-    Transport::Options *config = new Transport::MPI::Options(opts->p->comm, listeners);
+    Transport::Options *config = construct<Transport::MPI::Options>(opts->p->comm, listeners);
     if (hxhim_options_set_transport(opts, config) != HXHIM_SUCCESS) {
-        delete config;
+        destruct(config);
         return HXHIM_ERROR;
     }
 
@@ -376,9 +386,9 @@ int hxhim_options_set_transport_mpi(hxhim_options_t *opts, const size_t listener
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_set_transport_thallium(hxhim_options_t *opts, const std::string &module) {
-    Transport::Options *config = new Transport::Thallium::Options(module);
+    Transport::Options *config = construct<Transport::Thallium::Options>(module);
     if (hxhim_options_set_transport(opts, config) != HXHIM_SUCCESS) {
-        delete config;
+        destruct(config);
         return HXHIM_ERROR;
     }
 
@@ -486,7 +496,7 @@ int hxhim_options_set_histogram_first_n(hxhim_options_t *opts, const std::size_t
         return HXHIM_ERROR;
     }
 
-    opts->p->histogram.first_n = count;
+    opts->p->histograms.config.first_n = count;
 
     return HXHIM_SUCCESS;
 }
@@ -516,8 +526,8 @@ int hxhim_options_set_histogram_bucket_gen_name(hxhim_options_t *opts, const cha
         return HXHIM_ERROR;
     }
 
-    opts->p->histogram.generator = gen_it->second;
-    opts->p->histogram.extra_args = args_it->second;
+    opts->p->histograms.config.generator = gen_it->second;
+    opts->p->histograms.config.extra_args = args_it->second;
 
     return HXHIM_SUCCESS;
 }
@@ -557,8 +567,8 @@ int hxhim_options_set_histogram_bucket_gen_function(hxhim_options_t *opts, Histo
         return HXHIM_ERROR;
     }
 
-    opts->p->histogram.generator = gen;
-    opts->p->histogram.extra_args = args;
+    opts->p->histograms.config.generator = gen;
+    opts->p->histograms.config.extra_args = args;
 
     return HXHIM_SUCCESS;
 }
@@ -587,7 +597,7 @@ int hxhim_options_add_histogram_track_predicate(hxhim_options_t *opts, const std
         return HXHIM_ERROR;
     }
 
-    opts->p->histogram_names.insert(name);
+    opts->p->histograms.names.insert(name);
     return HXHIM_SUCCESS;
 }
 
@@ -604,7 +614,7 @@ int hxhim_options_destroy(hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
-    delete opts->p;
+    destruct(opts->p);
     opts->p = nullptr;
 
     return HXHIM_SUCCESS;

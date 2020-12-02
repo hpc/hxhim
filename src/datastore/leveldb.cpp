@@ -1,7 +1,5 @@
-#include <cerrno>
+#include <deque>
 #include <sstream>
-#include <stdexcept>
-#include <sys/stat.h>
 
 #include "leveldb/write_batch.h"
 
@@ -10,63 +8,23 @@
 #include "hxhim/accessors.hpp"
 #include "hxhim/triplestore.hpp"
 #include "utils/memory.hpp"
-#include "utils/mkdir_p.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
 datastore::leveldb::leveldb(const int rank,
-                            Transform::Callbacks *callbacks,
-                            const std::string &exact_name,
-                            const bool create_if_missing)
-    : Datastore(rank, 0, callbacks),
-      dbname(exact_name),
-      create_if_missing(create_if_missing),
-      db(nullptr), options()
-{
-    options.create_if_missing = create_if_missing;
-
-    Datastore::Open(dbname);
-
-    mlog(LEVELDB_INFO, "Opened leveldb with name: %s", exact_name.c_str());
-}
-
-datastore::leveldb::leveldb(const int rank,
                             const int id,
                             Transform::Callbacks *callbacks,
-                            const std::string &prefix,
-                            const std::string &basename,
                             const bool create_if_missing)
     : Datastore(rank, id, callbacks),
-      dbname(),
+      name(),
       create_if_missing(create_if_missing),
       db(nullptr), options()
 {
-    mkdir_p(prefix, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-
-    std::stringstream s;
-    s << prefix << "/" << basename << "-" << id;
-    dbname = s.str();
-
     options.create_if_missing = create_if_missing;
-
-    #if PRINT_TIMESTAMPS
-    ::Stats::Chronostamp init_open;
-    init_open.start = ::Stats::now();
-    #endif
-    Datastore::Open(dbname);
-    mlog(LEVELDB_INFO, "Opened leveldb with name: %s", dbname.c_str());
-    #if PRINT_TIMESTAMPS
-    init_open.end = ::Stats::now();
-    ::Stats::print_event(std::cerr, rank, "hxhim_leveldb_open", ::Stats::global_epoch, init_open);
-    #endif
 }
 
 datastore::leveldb::~leveldb() {
     Close();
-}
-
-const std::string &datastore::leveldb::name() const {
-    return dbname;
 }
 
 bool datastore::leveldb::OpenImpl(const std::string &new_name) {
@@ -79,17 +37,23 @@ bool datastore::leveldb::OpenImpl(const std::string &new_name) {
     leveldb_open.end = ::Stats::now();
     #endif
     if (!status.ok()) {
-        throw std::runtime_error("Could not configure leveldb datastore " + new_name + ": " + status.ToString());
+        return false;
     }
+    mlog(LEVELDB_INFO, "Opened leveldb with name: %s", name.c_str());
     #if PRINT_TIMESTAMPS
     ::Stats::print_event(std::cerr, rank, "leveldb_open", ::Stats::global_epoch, leveldb_open);
     #endif
+
     return status.ok();
 }
 
 void datastore::leveldb::CloseImpl() {
     delete db;
     db = nullptr;
+}
+
+const std::string &datastore::leveldb::Name() const {
+    return name;
 }
 
 /**
@@ -456,6 +420,81 @@ Transport::Response::BDelete *datastore::leveldb::BDeleteImpl(Transport::Request
     stats.deletes.emplace_back(event);
 
     return res;
+}
+
+/**
+ * WriteHistogramsImpl
+ * Writes all histograms to the underlying datastore.
+ *
+ * @return DATASTORE_SUCCESS
+ */
+int datastore::leveldb::WriteHistogramsImpl() {
+    ::leveldb::WriteBatch batch;
+
+    std::deque<void *> ptrs;
+    for(decltype(hists)::value_type hist : hists) {
+        std::string key;
+        sp_to_key(ReferenceBlob((char *) HISTOGRAM_SUBJECT.data(), HISTOGRAM_SUBJECT.size(), hxhim_data_t::HXHIM_DATA_BYTE),
+                  ReferenceBlob((char *) hist.first.data(), hist.first.size(), hxhim_data_t::HXHIM_DATA_BYTE),
+                  key);
+
+        void *serial_hist = nullptr;
+        std::size_t serial_hist_len = 0;
+
+        hist.second->pack(&serial_hist, &serial_hist_len);
+        ptrs.push_back(serial_hist);
+
+        batch.Put(::leveldb::Slice(key.c_str(), key.size()),
+                  ::leveldb::Slice((char *) serial_hist, serial_hist_len));
+    }
+
+    ::leveldb::Status status = db->Write(::leveldb::WriteOptions(), &batch);
+
+    for(void *ptr : ptrs) {
+        dealloc(ptr);
+    }
+
+    return status.ok()?DATASTORE_SUCCESS:DATASTORE_ERROR;
+}
+
+/**
+ * ReadHistogramsImpl
+ * Searches for histograms in the underlying datastore
+ * that have names from the provided list. Histogram
+ * instances that exist are overwritten.
+ *
+ * @param names  A list of histogram names to look for
+ * @return The number of histograms found
+ */
+std::size_t datastore::leveldb::ReadHistogramsImpl(const datastore::HistNames_t &names) {
+    std::size_t found = 0;
+
+    for(std::string const &name : names) {
+        // Create the key from the fixed subject and the histogram name
+        std::string key;
+        sp_to_key(ReferenceBlob((char *) HISTOGRAM_SUBJECT.data(), HISTOGRAM_SUBJECT.size(), hxhim_data_t::HXHIM_DATA_BYTE),
+                  ReferenceBlob((char *) name.data(), name.size(), hxhim_data_t::HXHIM_DATA_BYTE),
+                  key);
+
+        // Search for the histogram
+        std::string serial_hist;
+        ::leveldb::Status status = db->Get(::leveldb::ReadOptions(), key, &serial_hist);
+
+        if (status.ok()) {
+            std::shared_ptr<::Histogram::Histogram> new_hist(construct<::Histogram::Histogram>(),
+                                                             ::Histogram::deleter);
+
+            // parse serialized data
+            if(new_hist->unpack((void *) serial_hist.data(), serial_hist.size())) {
+                // overwrite existing
+                hists[name] = new_hist;
+
+                found++;
+            }
+        }
+    }
+
+    return found;
 }
 
 /**

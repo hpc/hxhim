@@ -49,6 +49,8 @@ class TestDatastore : public datastore::Datastore {
 
         Transport::Response::BDelete *BDeleteImpl(Transport::Request::BDelete *) { return nullptr; }
 
+        int WriteHistogramsImpl() { return DATASTORE_SUCCESS; }
+        std::size_t ReadHistogramsImpl(const datastore::HistNames_t &) { return 0; }
         int SyncImpl() { return DATASTORE_SUCCESS; }
 };
 

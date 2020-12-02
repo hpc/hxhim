@@ -50,7 +50,7 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
     // send to each datastore
     res->timestamps.transport.send_start = ::Stats::now();
 
-    Response_t *response = hx->p->datastore->operate(req);
+    Response_t *response = hx->p->range_server.datastore->operate(req);
 
     // if there were responses, copy them into the output variable
     if (response) {

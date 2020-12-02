@@ -41,11 +41,19 @@ typedef struct hxhim_options_private {
     Transport::Options *transport;
     std::set<int> endpointgroup;
 
+    // whether or not the datastore objects should open the underlying datastore.
+    // not set in configuration file, but can be modified in code
+    bool open_init_datastore = true;
     datastore::Config *datastore;              // configuration options for the selected datastore
-    datastore::Transform::Callbacks transform; // callbacks for transforming user data into datastore-suitable data
-    datastore::HistNames_t histogram_names;    // names of histograms that should keep track of PUTs
 
-    struct Histogram::Config histogram;        // common settings for all histograms
+    datastore::Transform::Callbacks transform; // callbacks for transforming user data into datastore-suitable data
+    struct {
+        datastore::HistNames_t names;          // names of histograms that should keep track of PUTs
+        struct Histogram::Config config;       // common settings for all histograms
+
+        bool read;                             // if open_init_datastore == true, whether or not to try to find and read histograms
+        bool write;
+    } histograms;
 } hxhim_options_private_t;
 
 }

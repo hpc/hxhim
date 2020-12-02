@@ -156,6 +156,18 @@ int histogram_uniform_logn(const double *first_n, const size_t n, double **bucke
     return generate_using_bin_count(min, max, std::ceil((max - min) * std::log((std::size_t) (uintptr_t) extra) / std::log(max - min)), buckets, size);
 }
 
+Histogram::Histogram::Histogram()
+    : name_(),
+      first_n_(0),
+      gen_(nullptr),
+      extra_(nullptr),
+      cache_(nullptr),
+      count_(0),
+      buckets_(nullptr),
+      counts_(nullptr),
+      size_(0)
+{}
+
 Histogram::Histogram::Histogram(const Config &config, const std::string &name)
     : name_(name),
       first_n_(config.first_n),
@@ -298,7 +310,7 @@ int Histogram::Histogram::get_cache(std::size_t *first_n,
  * @param buckets   (optional) the buckets of the histogram
  * @param counts    (optional) the counts of the histogram
  * @param size      (optional) how many bucket-count pairs there are
- * @return HISTOGRAM_SUCCESS
+ * @return HISTOGRAM_SUCCESS or HISTOGRAM_ERROR if the buckets have not been generated yet
  */
 int Histogram::Histogram::get(double **buckets, std::size_t **counts, std::size_t *size) const {
     if (count_  < first_n_) {
@@ -333,6 +345,10 @@ std::size_t Histogram::Histogram::pack_size() const {
         sizeof(name_.size()) + name_.size() +
         sizeof(count_) + sizeof(first_n_) +
         sizeof(size_);
+
+    if (count_ < first_n_) {
+        total += sizeof(*cache_) * count_;
+    }
 
     if (size_) {
         total += size_ * (sizeof(*buckets_) + sizeof(*counts_)) +
@@ -398,6 +414,13 @@ bool Histogram::Histogram::pack(char *&curr, std::size_t &avail, std::size_t *us
 
     memcpy(curr, &first_n_, sizeof(first_n_));
     curr += sizeof(first_n_);
+
+    if (count_ < first_n_) {
+        for(std::size_t i = 0; i < count_; i++) {
+            memcpy(curr, &cache_[i], sizeof(cache_[i]));
+            curr += sizeof(cache_[i]);
+        }
+    }
 
     memcpy(curr, &size_, sizeof(size_));
     curr += sizeof(size_);
@@ -469,6 +492,16 @@ bool Histogram::Histogram::unpack(char *&curr, std::size_t &size, std::size_t *u
 
     memcpy(&first_n_, curr, sizeof(first_n_));
     curr += sizeof(first_n_);
+
+    if (count_ < first_n_) {
+        dealloc_array(cache_);
+        cache_ = alloc_array<double>(first_n_);
+
+        for(std::size_t i = 0; i < count_; i++) {
+            memcpy(&cache_[i], curr, sizeof(cache_[i]));
+            curr += sizeof(cache_[i]);
+        }
+    }
 
     memcpy(&size_, curr, sizeof(size_));
     curr += sizeof(size_);

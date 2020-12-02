@@ -10,28 +10,24 @@ namespace datastore {
 class leveldb : public Datastore {
     public:
         struct Config : datastore::Config {
-            Config()
-                : ::datastore::Config(datastore::LEVELDB)
+            Config(const std::string &prefix,
+                   const bool create_if_missing)
+                : ::datastore::Config(datastore::LEVELDB),
+                  prefix(prefix),
+                  create_if_missing(create_if_missing)
             {}
 
-            std::size_t id;
-            std::string prefix;
-            bool create_if_missing;
+            const std::string prefix;
+            const bool create_if_missing;
         };
 
         leveldb(const int rank,
-                Transform::Callbacks *callbacks,
-                const std::string &exact_name,
-                const bool create_if_missing);
-        leveldb(const int rank,
                 const int id,
                 Transform::Callbacks *callbacks,
-                const std::string &prefix,
-                const std::string &name,
                 const bool create_if_missing);
         virtual ~leveldb();
 
-        const std::string &name() const;
+        const std::string &Name() const;
 
     private:
         bool OpenImpl(const std::string &new_name);
@@ -45,10 +41,12 @@ class leveldb : public Datastore {
         /** being deleted exists and was deleted successfully */
         Transport::Response::BDelete *BDeleteImpl(Transport::Request::BDelete *req);
 
+        int WriteHistogramsImpl();
+        std::size_t ReadHistogramsImpl(const datastore::HistNames_t &names);
         int SyncImpl();
 
     protected:
-        std::string dbname;
+        std::string name;
         bool create_if_missing;
 
         ::leveldb::DB *db;

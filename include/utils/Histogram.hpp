@@ -23,6 +23,7 @@ struct Config {
  */
 class Histogram {
     public:
+        Histogram();
         Histogram(const Config &config, const std::string &name);
         Histogram(const Config *config, const std::string &name);
         virtual ~Histogram();

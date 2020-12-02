@@ -38,14 +38,24 @@ typedef std::set<std::string> HistNames_t;
  */
 class Datastore {
     public:
+        // subject of the key used to store histograms
+        static const std::string HISTOGRAM_SUBJECT;
+
         Datastore(const int rank,
                   const int id,
-                  Transform::Callbacks *callbacks);   // Datastore takes ownership of callbacks
-
+                  Transform::Callbacks *callbacks);     // Datastore takes ownership of callbacks
         virtual ~Datastore();
 
-        bool Open(const std::string &new_name);
-        void Close();
+        // owner must explicitly call Open to open the underlying datastore
+        bool Open(const std::string &new_name, const HistNames_t *histogram_names = nullptr);
+        // destructor calls Close
+        void Close(const bool write_histograms = false);
+
+        // write histogram, close, open new datastore
+        bool Change(const std::string &new_name,
+                    const bool write_histograms = true,
+                    const datastore::HistNames_t *find_histogram_names = nullptr);
+
         int ID() const;
 
         Transport::Response::BPut       *operate(Transport::Request::BPut       *req);
@@ -56,7 +66,12 @@ class Datastore {
 
         typedef std::shared_ptr<::Histogram::Histogram> Histogram;
         typedef std::map<std::string, Histogram> Histograms;
-        int AddHistogram(const std::string &name, Histogram new_histogram);
+        int WriteHistograms();
+        std::size_t ReadHistograms(const HistNames_t &names);
+        int AddHistogram(const std::string &name,
+                         const ::Histogram::Config &config);     // overwrites existing histogram
+        int AddHistogram(const std::string &name,
+                         ::Histogram::Histogram *new_histogram); // overwrites existing histogram
         int GetHistogram(const std::string &name, Histogram *h) const;
         int GetHistogram(const std::string &name, ::Histogram::Histogram **h) const;
         int GetHistograms(const Histograms **histograms) const;
@@ -67,24 +82,27 @@ class Datastore {
 
         int Sync();
 
-    protected:
+    private:
         // child classes should implement these functions
-        virtual bool OpenImpl(const std::string &new_name) = 0;
-        virtual void CloseImpl() = 0;
+        virtual bool OpenImpl(const std::string &new_name) = 0; // only open;  no processing
+        virtual void CloseImpl() = 0;                           // only close; no processing
 
         virtual Transport::Response::BPut    *BPutImpl   (Transport::Request::BPut    *req) = 0;
         virtual Transport::Response::BGet    *BGetImpl   (Transport::Request::BGet    *req) = 0;
         virtual Transport::Response::BGetOp  *BGetOpImpl (Transport::Request::BGetOp  *req) = 0;
         virtual Transport::Response::BDelete *BDeleteImpl(Transport::Request::BDelete *req) = 0;
 
+        virtual int WriteHistogramsImpl() = 0;                                // store histograms in datastore
+        virtual std::size_t ReadHistogramsImpl(const HistNames_t &names) = 0; // retrieve histograms from datastore
         virtual int SyncImpl() = 0;
 
+    protected:
         static int encode(Transform::Callbacks *callbacks,
-                   const Blob &src,
-                   void **dst, std::size_t *dst_size);
+                          const Blob &src,
+                          void **dst, std::size_t *dst_size);
         static int decode(Transform::Callbacks *callbacks,
-                   const Blob &src,
-                   void **dst, std::size_t *dst_size);
+                          const Blob &src,
+                          void **dst, std::size_t *dst_size);
 
     protected:
         int rank;      // MPI rank of HXHIM instance
@@ -114,7 +132,6 @@ class Datastore {
     protected:
         Stats stats;
 
-    public:
         template <typename Key_t, typename Value_t>
         static void BGetOp_copy_response(Transform::Callbacks *callbacks,
                                          const Key_t &key,

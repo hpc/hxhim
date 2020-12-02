@@ -18,10 +18,14 @@
 namespace datastore {
 
 int Init(hxhim_t *hx,
+         const int id,
          Config *config,
          Transform::Callbacks *callbacks,
          const Histogram::Config &hist_config,
-         const std::string *exact_name = nullptr);
+         const std::string *exact_name,
+         const bool do_open,
+         const bool read_histograms,
+         const bool write_histograms);
 
 int destroy(hxhim_t *hx);
 

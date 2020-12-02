@@ -315,7 +315,7 @@ int hxhimGetHash(hxhim_t *hx, const char **name, hxhim_hash_t *func, void **args
  * @return HXHIM_SUCCESS
  */
 int hxhim::nocheck::HaveHistogram(hxhim_t *hx, const char *name, const std::size_t name_len, int *exists) {
-    *exists = (hx->p->hist_names.find(std::string(name, name_len)) != hx->p->hist_names.end());
+    *exists = (hx->p->histograms.names.find(std::string(name, name_len)) != hx->p->histograms.names.end());
     return HXHIM_SUCCESS;
 }
 

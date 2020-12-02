@@ -75,6 +75,8 @@ const std::string MAXIMUM_OPS_PER_SEND         = "MAXIMUM_OPS_PER_SEND";        
 const std::string HISTOGRAM_FIRST_N            = "HISTOGRAM_FIRST_N";             // unsigned int
 const std::string HISTOGRAM_BUCKET_GEN_NAME    = "HISTOGRAM_BUCKET_GEN_NAME";     // See HISTOGRAM_BUCKET_GENERATORS
 const std::string HISTOGRAM_TRACK_PREDICATES   = "HISTOGRAM_TRACK_PREDICATES";    // comma delimited string
+const std::string HISTOGRAM_READ_EXISTING      = "HISTOGRAM_READ_EXISTING";       // boolean
+const std::string HISTOGRAM_WRITE_AT_EXIT      = "HISTOGRAM_WRITE_AT_EXIT";       // boolean
 
 /** ELEN Options */
 const std::string ELEN_NEG_SYMBOL              = "ELEN_NEG_SYMBOL";               // single character
@@ -190,6 +192,8 @@ const Config::Config DEFAULT_CONFIG = {
     std::make_pair(MAXIMUM_OPS_PER_SEND,          "128"),
     std::make_pair(HISTOGRAM_FIRST_N,             "10"),
     std::make_pair(HISTOGRAM_BUCKET_GEN_NAME,     "10_BUCKETS"),
+    std::make_pair(HISTOGRAM_READ_EXISTING,       "true"),
+    std::make_pair(HISTOGRAM_WRITE_AT_EXIT,       "true"),
     std::make_pair(ELEN_NEG_SYMBOL,               std::string(elen::NEG_SYMBOL, 1)),
     std::make_pair(ELEN_NEG_SYMBOL,               std::string(elen::POS_SYMBOL, 1)),
     std::make_pair(ELEN_ENCODE_FLOAT_PRECISION,   std::to_string(elen::encode::FLOAT_PRECISION)),

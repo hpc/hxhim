@@ -98,11 +98,6 @@ typedef struct hxhim_private {
         hxhim::Results *results;           // the list of of PUT results
     } async_put;
 
-    // local datastore (max 1 per server)
-    // f(rank) = datastore ID
-    datastore::Datastore *datastore;
-    datastore::HistNames_t hist_names;
-
     struct {
         std::string name;
         hxhim_hash_t func;                 // the function used to determine which datastore should be used to perform an operation with
@@ -112,11 +107,21 @@ typedef struct hxhim_private {
     // Transport variables
     Transport::Transport *transport;
 
+    struct {
+        datastore::HistNames_t names;      // all ranks have the list of histogram names
+        bool read;                         // whether or not to read existing histograms on open
+        bool write;                        // whether or not to write histograms on close
+    } histograms;
+
     // Range Server
     struct {
         std::size_t client_ratio;          // client portion of client:server ratio
         std::size_t server_ratio;          // server portion of client:server ratio
         std::size_t total_range_servers;   // total number of range servers across all ranks
+
+        // local datastore (max 1 per server)
+        // f(rank) = datastore ID
+        datastore::Datastore *datastore = nullptr;
     } range_server;
 
     hxhim::Stats::Global stats;

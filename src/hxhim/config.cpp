@@ -122,12 +122,7 @@ static bool parse_datastore(hxhim_options_t *opts, const Config::Config &config)
                         return false;
                     }
 
-                    int rank = -1;
-                    if (MPI_Comm_rank(opts->p->comm, &rank) != MPI_SUCCESS) {
-                        return false;
-                    }
-
-                    return (hxhim_options_set_datastore_leveldb(opts, rank, prefix->second.c_str(), create_if_missing) == HXHIM_SUCCESS);
+                    return (hxhim_options_set_datastore_leveldb(opts, prefix->second.c_str(), create_if_missing) == HXHIM_SUCCESS);
                 }
                 break;
             #endif
@@ -145,12 +140,7 @@ static bool parse_datastore(hxhim_options_t *opts, const Config::Config &config)
                         return false;
                     }
 
-                    int rank = -1;
-                    if (MPI_Comm_rank(opts->p->comm, &rank) != MPI_SUCCESS) {
-                        return false;
-                    }
-
-                    return (hxhim_options_set_datastore_rocksdb(opts, rank, prefix->second.c_str(), create_if_missing) == HXHIM_SUCCESS);
+                    return (hxhim_options_set_datastore_rocksdb(opts, prefix->second.c_str(), create_if_missing) == HXHIM_SUCCESS);
                 }
                 break;
             #endif
@@ -294,12 +284,26 @@ static bool parse_histogram(hxhim_options_t *opt, const Config::Config &config) 
         return false;
     }
 
+    bool read = true; // default to true; do not error if not found
+    if (Config::get_value(config, hxhim::config::HISTOGRAM_READ_EXISTING, read) == Config::ERROR) {
+        return false;
+    }
+
+    bool write = true; // default to true; do not error if not found
+    if (Config::get_value(config, hxhim::config::HISTOGRAM_WRITE_AT_EXIT, write) == Config::ERROR) {
+        return false;
+    }
+
+    if (hxhim_options_datastore_histograms(opt, read, write) != HXHIM_SUCCESS) {
+        return false;
+    }
+
     Config::Config_it hist_name_it = config.find(hxhim::config::HISTOGRAM_TRACK_PREDICATES);
     if (hist_name_it != config.end()) {
         std::stringstream s(hist_name_it->second);
         std::string name;
         while (std::getline(s, name, ',')) {
-            opt->p->histogram_names.emplace(name);
+            opt->p->histograms.names.emplace(name);
         }
     }
 
