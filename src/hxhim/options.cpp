@@ -120,7 +120,7 @@ int hxhim_options_set_server_ratio(hxhim_options_t *opts, const size_t ratio) {
  * @param init             whether or not the underlying datastore should be opened when initializing
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_options_set_init_open_datastore(hxhim_options_t *opts, const int init) {
+int hxhim_options_set_open_init_datastore(hxhim_options_t *opts, const int init) {
     if (!hxhim::valid(opts)) {
         return HXHIM_ERROR;
     }
