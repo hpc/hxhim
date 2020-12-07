@@ -82,7 +82,7 @@ class Datastore {
                      uint64_t    *get_times,
                      std::size_t *num_gets);
 
-        int Sync();
+        int Sync(const bool write_histograms);
 
     private:
         // child classes should implement these functions

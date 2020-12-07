@@ -94,9 +94,7 @@ bool datastore::Datastore::Open(const std::string &new_name,
 }
 
 void datastore::Datastore::Close(const bool write_histograms) {
-    if (write_histograms) {
-        Sync();
-    }
+    Sync(write_histograms);
     CloseImpl();
     return;
 }
@@ -377,9 +375,11 @@ int datastore::Datastore::GetStats(uint64_t *put_time,
     return DATASTORE_SUCCESS;
 }
 
-int datastore::Datastore::Sync() {
+int datastore::Datastore::Sync(const bool write_histograms) {
     std::lock_guard<std::mutex> lock(mutex);
-    WriteHistograms();
+    if (write_histograms) {
+        WriteHistograms();
+    }
     return Usable()?SyncImpl():DATASTORE_ERROR;
 }
 

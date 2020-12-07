@@ -21,37 +21,39 @@ hxhim::Results *hxhim::Sync(hxhim_t *hx) {
 
     MPI_Barrier(hx->p->bootstrap.comm);
 
-    ::Stats::Send send;
-    send.hash.start        = ::Stats::now();
-    send.hash.end          = ::Stats::now();
-    send.insert.start      = ::Stats::now();
-    send.insert.end        = ::Stats::now();
+    if (hx->p->range_server.datastore) {
+        ::Stats::Send send;
+        send.hash.start        = ::Stats::now();
+        send.hash.end          = ::Stats::now();
+        send.insert.start      = ::Stats::now();
+        send.insert.end        = ::Stats::now();
 
-    struct ::Stats::SendRecv transport;
+        struct ::Stats::SendRecv transport;
 
-    transport.pack.start   = ::Stats::now();
-    transport.pack.end     = ::Stats::now();
+        transport.pack.start   = ::Stats::now();
+        transport.pack.end     = ::Stats::now();
 
-    transport.send_start   = ::Stats::now();
-    transport.recv_end     = ::Stats::now();
+        transport.send_start   = ::Stats::now();
+        transport.recv_end     = ::Stats::now();
 
-    transport.unpack.start = ::Stats::now();
-    transport.unpack.end   = ::Stats::now();
+        transport.unpack.start = ::Stats::now();
+        transport.unpack.end   = ::Stats::now();
 
-    // Sync local datastore
-    transport.start        = ::Stats::now();
+        // Sync local datastore
+        transport.start        = ::Stats::now();
 
-    // clear out local datastore
-    // if there is no local datastore, treat as success
-    const int synced = hx->p->range_server.datastore->Sync();
-    hxhim::Results::Sync *sync = hxhim::Result::init(hx, synced);
+        // clear out local datastore
+        // if there is no local datastore, treat as success
+        const int synced = hx->p->range_server.datastore->Sync(hx->p->histograms.write);
+        hxhim::Results::Sync *sync = hxhim::Result::init(hx, synced);
 
-    sync->timestamps.send = std::move(send);
-    sync->timestamps.transport = transport;
-    sync->timestamps.transport.end = ::Stats::now();
-    sync->timestamps.recv.result.start = ::Stats::now();
-    res->Add(sync);
-    sync->timestamps.recv.result.end = ::Stats::now();
+        sync->timestamps.send = std::move(send);
+        sync->timestamps.transport = transport;
+        sync->timestamps.transport.end = ::Stats::now();
+        sync->timestamps.recv.result.start = ::Stats::now();
+        res->Add(sync);
+        sync->timestamps.recv.result.end = ::Stats::now();
+    }
 
     return res;
 }
