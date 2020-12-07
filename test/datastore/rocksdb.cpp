@@ -312,7 +312,7 @@ TEST(RocksDB, Histograms) {
                                                  }
 
                                                  *size = 1;
-                                                 *buckets = alloc_array<double>(*size);
+                                                 *buckets = alloc_array<double>(*size + 1);
                                                  (*buckets)[0] = 0;
 
                                                  return HISTOGRAM_SUCCESS;
