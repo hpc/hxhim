@@ -171,6 +171,7 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
  *
  * @param hx   the HXHIM instance
  * @param opts the HXHIM options
+ * @param name the name of the datastore, not including the prefix
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
 int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::string &name) {

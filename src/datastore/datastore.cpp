@@ -86,11 +86,11 @@ datastore::Datastore::~Datastore() {
 
 bool datastore::Datastore::Open(const std::string &new_name,
                                 const datastore::HistNames_t *histogram_names) {
-    const bool ret = OpenImpl(new_name);
-    if (ret && histogram_names) {
+    OpenImpl(new_name);
+    if (Usable() && histogram_names) {
         ReadHistogramsImpl(*histogram_names);
     }
-    return ret;
+    return Usable();
 }
 
 void datastore::Datastore::Close(const bool write_histograms) {
@@ -99,6 +99,10 @@ void datastore::Datastore::Close(const bool write_histograms) {
     }
     CloseImpl();
     return;
+}
+
+bool datastore::Datastore::Usable() const {
+    return UsableImpl();
 }
 
 bool datastore::Datastore::Change(const std::string &new_name,
@@ -114,7 +118,7 @@ int datastore::Datastore::ID() const {
 
 Transport::Response::BPut *datastore::Datastore::operate(Transport::Request::BPut *req) {
     std::lock_guard<std::mutex> lock(mutex);
-    Transport::Response::BPut *res = BPutImpl(req);
+    Transport::Response::BPut *res = Usable()?BPutImpl(req):nullptr;
 
     if (hists.size() && res) {
         // if a predicate is HXHIM_DATA_BYTE and the PUT was successful
@@ -159,17 +163,17 @@ Transport::Response::BPut *datastore::Datastore::operate(Transport::Request::BPu
 
 Transport::Response::BGet *datastore::Datastore::operate(Transport::Request::BGet *req) {
     std::lock_guard<std::mutex> lock(mutex);
-    return BGetImpl(req);
+    return Usable()?BGetImpl(req):nullptr;
 }
 
 Transport::Response::BGetOp *datastore::Datastore::operate(Transport::Request::BGetOp *req) {
     std::lock_guard<std::mutex> lock(mutex);
-    return BGetOpImpl(req);
+    return Usable()?BGetOpImpl(req):nullptr;
 }
 
 Transport::Response::BDelete *datastore::Datastore::operate(Transport::Request::BDelete *req) {
     std::lock_guard<std::mutex> lock(mutex);
-    return BDeleteImpl(req);
+    return Usable()?BDeleteImpl(req):nullptr;
 }
 
 Transport::Response::BHistogram *datastore::Datastore::operate(Transport::Request::BHistogram *req) {
@@ -218,7 +222,7 @@ Transport::Response::BHistogram *datastore::Datastore::operate(Transport::Reques
  * @return DATASTORE_SUCCESS or DATASTORE_ERROR
  */
 int datastore::Datastore::WriteHistograms() {
-    return WriteHistogramsImpl();
+    return Usable()?WriteHistogramsImpl():0;
 }
 
 /**
@@ -231,7 +235,7 @@ int datastore::Datastore::WriteHistograms() {
  * @return The number of histograms found
  */
 std::size_t datastore::Datastore::ReadHistograms(const datastore::HistNames_t &names) {
-    return ReadHistogramsImpl(names);
+    return Usable()?ReadHistogramsImpl(names):0;
 }
 
 /**
@@ -376,7 +380,7 @@ int datastore::Datastore::GetStats(uint64_t *put_time,
 int datastore::Datastore::Sync() {
     std::lock_guard<std::mutex> lock(mutex);
     WriteHistograms();
-    return SyncImpl();
+    return Usable()?SyncImpl():DATASTORE_ERROR;
 }
 
 int datastore::Datastore::encode(Transform::Callbacks *callbacks,

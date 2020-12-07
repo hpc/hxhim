@@ -23,7 +23,7 @@ int GetRangeServerClientToServerRatio(hxhim_t *hx, std::size_t *client, std::siz
 int GetPrintBufferContents(hxhim_t *hx, std::ostream &stream);
 
 int GetHash(hxhim_t *hx, const char **name, hxhim_hash_t *func, void **args);
-
+int GetDatastorePrefix(hxhim_t *hx, const char **prefix, std::size_t *prefix_len);
 int HaveHistogram(hxhim_t *hx, const char *name, const std::size_t name_len, int *exists);
 
 }

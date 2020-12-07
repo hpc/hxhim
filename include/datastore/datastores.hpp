@@ -22,7 +22,7 @@ int Init(hxhim_t *hx,
          Config *config,
          Transform::Callbacks *callbacks,
          const Histogram::Config &hist_config,
-         const std::string *exact_name,
+         const std::string *exact_name, // full path + name of datastore; ignores config
          const bool do_open,
          const bool read_histograms,
          const bool write_histograms);

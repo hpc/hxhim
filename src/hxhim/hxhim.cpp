@@ -98,7 +98,7 @@ int hxhimOpen(hxhim_t *hx, hxhim_options_t *opts) {
  *
  * @param hx       the HXHIM session
  * @param opts     the HXHIM options to use
- * @param db_path  the name of the datastore to pass
+ * @param db_path  the full path + name of the datastore to open
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::OpenOne(hxhim_t *hx, hxhim_options_t *opts, const std::string &db_path) {
@@ -289,11 +289,9 @@ hxhim::Results *hxhim::ChangeDatastore(hxhim_t *hx, const char *name, const std:
 
     MPI_Barrier(hx->p->bootstrap.comm);
 
-    if (hx->p->range_server.datastore) {
-        hx->p->range_server.datastore->Close(write_histograms);
-        hx->p->range_server.datastore->Open(std::string(name, name_len),
-                                            read_histograms?&hx->p->histograms.names:nullptr);
-    }
+    hx->p->range_server.datastore->Change(std::string(name, name_len),
+                                          write_histograms,
+                                          read_histograms?&hx->p->histograms.names:nullptr);
 
     MPI_Barrier(hx->p->bootstrap.comm);
 

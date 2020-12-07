@@ -23,6 +23,7 @@ class InMemory : public Datastore {
     private:
         bool OpenImpl(const std::string &);
         void CloseImpl();
+        bool UsableImpl() const;
 
         Transport::Response::BPut    *BPutImpl   (Transport::Request::BPut    *req);
         Transport::Response::BGet    *BGetImpl   (Transport::Request::BGet    *req);
@@ -34,6 +35,7 @@ class InMemory : public Datastore {
         int SyncImpl();
 
     protected:
+        bool good;
         std::map<std::string, std::string> db;
 };
 

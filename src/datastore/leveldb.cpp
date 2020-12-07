@@ -32,7 +32,8 @@ bool datastore::leveldb::OpenImpl(const std::string &new_name) {
     ::Stats::Chronostamp leveldb_open;
     leveldb_open.start = ::Stats::now();
     #endif
-    ::leveldb::Status status = ::leveldb::DB::Open(options, new_name, &db);
+    name = new_name;
+    ::leveldb::Status status = ::leveldb::DB::Open(options, name, &db);
     #if PRINT_TIMESTAMPS
     leveldb_open.end = ::Stats::now();
     #endif
@@ -50,6 +51,10 @@ bool datastore::leveldb::OpenImpl(const std::string &new_name) {
 void datastore::leveldb::CloseImpl() {
     delete db;
     db = nullptr;
+}
+
+bool datastore::leveldb::UsableImpl() const {
+    return db;
 }
 
 const std::string &datastore::leveldb::Name() const {

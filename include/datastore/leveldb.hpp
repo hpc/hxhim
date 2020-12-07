@@ -32,6 +32,7 @@ class leveldb : public Datastore {
     private:
         bool OpenImpl(const std::string &new_name);
         void CloseImpl();
+        bool UsableImpl() const;
 
         Transport::Response::BPut    *BPutImpl   (Transport::Request::BPut    *req);
         Transport::Response::BGet    *BGetImpl   (Transport::Request::BGet    *req);

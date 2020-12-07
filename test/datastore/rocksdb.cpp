@@ -51,7 +51,9 @@ static RocksDBTest *setup() {
     rm_r(s.str());
 
     RocksDBTest *ds = construct<RocksDBTest>(rank);
+    EXPECT_FALSE(ds->Usable());
     ds->Open(s.str());
+    EXPECT_TRUE(ds->Usable());
 
     Transport::Request::BPut req(count);
 

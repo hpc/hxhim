@@ -11,10 +11,9 @@ datastore::InMemory::InMemory(const int rank,
                               const int id,
                               Transform::Callbacks *callbacks)
     : Datastore(rank, id, callbacks),
+      good(false),
       db()
-{
-    Open();
-}
+{}
 
 datastore::InMemory::~InMemory() {
     Close();
@@ -26,11 +25,17 @@ bool datastore::InMemory::Open() {
 
 bool datastore::InMemory::OpenImpl(const std::string &) {
     db.clear();
-    return true;
+    good = true;
+    return Usable();
 }
 
 void datastore::InMemory::CloseImpl() {
+    good = false;
     db.clear();
+}
+
+bool datastore::InMemory::UsableImpl() const {
+    return good;
 }
 
 /**

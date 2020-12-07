@@ -51,6 +51,8 @@ class Datastore {
         // destructor calls Close
         void Close(const bool write_histograms = false);
 
+        bool Usable() const;
+
         // write histogram, close, open new datastore
         bool Change(const std::string &new_name,
                     const bool write_histograms = true,
@@ -84,8 +86,15 @@ class Datastore {
 
     private:
         // child classes should implement these functions
-        virtual bool OpenImpl(const std::string &new_name) = 0; // only open;  no processing
-        virtual void CloseImpl() = 0;                           // only close; no processing
+
+        // only open;  no processing
+        virtual bool OpenImpl(const std::string &new_name) = 0;
+
+        // only close; no processing
+        virtual void CloseImpl() = 0;
+
+        // check whether or not the underyling datastore is valid
+        virtual bool UsableImpl() const = 0;
 
         virtual Transport::Response::BPut    *BPutImpl   (Transport::Request::BPut    *req) = 0;
         virtual Transport::Response::BGet    *BGetImpl   (Transport::Request::BGet    *req) = 0;

@@ -19,6 +19,7 @@ class TestDatastore : public datastore::Datastore {
     private:
         bool OpenImpl(const std::string &) { return true; }
         void CloseImpl() {}
+        bool UsableImpl() const {return true; }
 
         Transport::Response::BPut *BPutImpl(Transport::Request::BPut *req) {
             datastore::Datastore::Stats::Event event;

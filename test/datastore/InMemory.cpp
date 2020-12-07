@@ -1,5 +1,4 @@
 #include <cstring>
-#include <type_traits>
 
 #include <gtest/gtest.h>
 
@@ -30,7 +29,9 @@ class InMemoryTest : public datastore::InMemory {
 // create a test InMemory datastore and insert some triples
 static InMemoryTest *setup() {
     InMemoryTest *ds = construct<InMemoryTest>();
+    EXPECT_FALSE(ds->Usable());
     ds->Open();
+    EXPECT_TRUE(ds->Usable());
 
     Transport::Request::BPut req(count);
     for(std::size_t i = 0; i < count; i++) {

@@ -122,6 +122,8 @@ typedef struct hxhim_private {
         // local datastore (max 1 per server)
         // f(rank) = datastore ID
         datastore::Datastore *datastore = nullptr;
+
+        std::string prefix;                // datastore prefix set by the configuration file/variables
     } range_server;
 
     hxhim::Stats::Global stats;

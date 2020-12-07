@@ -51,7 +51,9 @@ static LevelDBTest *setup() {
     rm_r(s.str());
 
     LevelDBTest *ds = construct<LevelDBTest>(rank);
+    EXPECT_FALSE(ds->Usable());
     ds->Open(s.str());
+    EXPECT_TRUE(ds->Usable());
 
     Transport::Request::BPut req(count);
 

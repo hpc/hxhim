@@ -305,6 +305,60 @@ int hxhimGetHash(hxhim_t *hx, const char **name, hxhim_hash_t *func, void **args
 }
 
 /**
+ * GetDatastorePrefix
+ * Get the prefix for the datastore instance
+ * that was found by the configuration parser
+ *
+ * @param hx          the HXHIM instance
+ * @param prefix      a pointer to the prefix
+ * @param prefix_len  a pointer to the prefix length
+ * @return HXHIM_SUCCESS or HXHIM_ERROR on error
+ */
+int hxhim::nocheck::GetDatastorePrefix(hxhim_t *hx, const char **prefix, std::size_t *prefix_len) {
+    if (prefix) {
+        *prefix = hx->p->range_server.prefix.data();
+    }
+
+    if (prefix_len) {
+        *prefix_len = hx->p->range_server.prefix.size();
+    }
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * GetDatastorePrefix
+ * Get the prefix for the datastore instance
+ * that was found by the configuration parser
+ *
+ * @param hx          the HXHIM instance
+ * @param prefix      a pointer to the prefix
+ * @param prefix_len  a pointer to the prefix length
+ * @return HXHIM_SUCCESS or HXHIM_ERROR on error
+ */
+int hxhim::GetDatastorePrefix(hxhim_t *hx, const char **prefix, std::size_t *prefix_len) {
+    if (!valid(hx) || !hx->p->running) {
+        return HXHIM_ERROR;
+    }
+
+    return hxhim::nocheck::GetDatastorePrefix(hx, prefix, prefix_len);
+}
+
+/**
+ * hxhimGetDatastorePrefix
+ * Get the prefix for the datastore instance
+ * that was found by the configuration parser
+ *
+ * @param hx          the HXHIM instance
+ * @param prefix      a pointer to the prefix
+ * @param prefix_len  a pointer to the prefix length
+ * @return HXHIM_SUCCESS or HXHIM_ERROR on error
+ */
+int hxhimGetDatastorePrefix(hxhim_t *hx, const char **prefix, size_t *prefix_len) {
+    return hxhim::GetDatastorePrefix(hx, prefix, prefix_len);
+}
+
+/**
  * HaveHistogram
  * Whether or not the provided name is a histogram maintained by the range servers
  *

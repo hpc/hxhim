@@ -32,7 +32,8 @@ bool datastore::rocksdb::OpenImpl(const std::string &new_name) {
     ::Stats::Chronostamp rocksdb_open;
     rocksdb_open.start = ::Stats::now();
     #endif
-    ::rocksdb::Status status = ::rocksdb::DB::Open(options, new_name, &db);
+    name = new_name;
+    ::rocksdb::Status status = ::rocksdb::DB::Open(options, name, &db);
     #if PRINT_TIMESTAMPS
     rocksdb_open.end = ::Stats::now();
     #endif
@@ -49,6 +50,10 @@ bool datastore::rocksdb::OpenImpl(const std::string &new_name) {
 void datastore::rocksdb::CloseImpl() {
     delete db;
     db = nullptr;
+}
+
+bool datastore::rocksdb::UsableImpl() const {
+    return db;
 }
 
 const std::string &datastore::rocksdb::Name() const {

@@ -18,8 +18,8 @@ int datastore::Init(hxhim_t *hx,
                     Config *config,
                     Transform::Callbacks *callbacks,
                     const Histogram::Config &hist_config,
-                    const std::string *exact_name,
-                    const bool do_open,
+                    const std::string *exact_name,     // full path + name of datastore; ignores config
+                    const bool do_open,                // opening of underlying implementation not guaranteed
                     const bool read_histograms,
                     const bool write_histograms) {
     if ((hx->p->bootstrap.rank < 0) || (id < 0)) {
@@ -39,24 +39,26 @@ int datastore::Init(hxhim_t *hx,
         case IN_MEMORY:
             ds = new InMemory(hx->p->bootstrap.rank,
                               id, callbacks);
+            hx->p->range_server.prefix = "";
             mlog(HXHIM_CLIENT_INFO, "Initialized In-Memory in datastore %d", id);
             break;
 
         #if HXHIM_HAVE_LEVELDB
         case LEVELDB:
             {
+                leveldb::Config *leveldb_config = static_cast<leveldb::Config *>(config);
+                hx->p->range_server.prefix = leveldb_config->prefix;
+
                 if (exact_name) {
                     ds = new leveldb(hx->p->bootstrap.rank,
                                      id, callbacks,
                                      false);
                 }
                 else {
-                    leveldb::Config *leveldb_config = static_cast<leveldb::Config *>(config);
-
                     // generate the prefix path
-                    mkdir_p(leveldb_config->prefix, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+                    mkdir_p(hx->p->range_server.prefix, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
-                    name = generate_name(leveldb_config->prefix, hx->p->hash.name, id);
+                    name = generate_name(hx->p->range_server.prefix, hx->p->hash.name, id);
                     ds = new leveldb(hx->p->bootstrap.rank,
                                      id, callbacks,
                                      leveldb_config->create_if_missing);
@@ -69,18 +71,19 @@ int datastore::Init(hxhim_t *hx,
         #if HXHIM_HAVE_ROCKSDB
         case ROCKSDB:
             {
+                rocksdb::Config *rocksdb_config = static_cast<rocksdb::Config *>(config);
+                hx->p->range_server.prefix = rocksdb_config->prefix;
+
                 if (exact_name) {
                     ds = new rocksdb(hx->p->bootstrap.rank,
                                      id, callbacks,
                                      false);
                 }
                 else {
-                    rocksdb::Config *rocksdb_config = static_cast<rocksdb::Config *>(config);
-
                     // generate the prefix path
-                    mkdir_p(rocksdb_config->prefix, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+                    mkdir_p(hx->p->range_server.prefix, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
-                    name = generate_name(rocksdb_config->prefix, hx->p->hash.name, id);
+                    name = generate_name(hx->p->range_server.prefix, hx->p->hash.name, id);
                     ds = new rocksdb(hx->p->bootstrap.rank,
                                      id, callbacks,
                                      rocksdb_config->create_if_missing);
