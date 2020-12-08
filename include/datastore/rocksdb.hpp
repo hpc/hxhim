@@ -11,13 +11,16 @@ class rocksdb : public Datastore {
     public:
         struct Config : datastore::Config {
             Config(const std::string &prefix,
+                   const std::string &postfix,
                    const bool create_if_missing)
                 : ::datastore::Config(datastore::ROCKSDB),
                   prefix(prefix),
+                  postfix(postfix),
                   create_if_missing(create_if_missing)
             {}
 
             const std::string prefix;
+            const std::string postfix;
             const bool create_if_missing;
         };
 

@@ -204,11 +204,12 @@ int hxhim_options_set_datastore_in_memory(hxhim_options_t *opts) {
  *
  * @param opts                the set of options to be modified
  * @param prefix              the path prefix for each datastore
+ * @param postfix             any extra string to add to the back of the datastore name
  * @param create_if_missing   whether or not to create the datastore if it does not already exist
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_options_set_datastore_leveldb(hxhim_options_t *opts, const char *prefix, const int create_if_missing) {
-    datastore::leveldb::Config *config = construct<datastore::leveldb::Config>(prefix, create_if_missing);
+int hxhim_options_set_datastore_leveldb(hxhim_options_t *opts, const char *prefix, const char *postfix, const int create_if_missing) {
+    datastore::leveldb::Config *config = construct<datastore::leveldb::Config>(prefix, postfix, create_if_missing);
     if (hxhim_options_set_datastore(opts, config) != HXHIM_SUCCESS) {
         destruct(config);
         return HXHIM_ERROR;
@@ -225,11 +226,12 @@ int hxhim_options_set_datastore_leveldb(hxhim_options_t *opts, const char *prefi
  *
  * @param opts                the set of options to be modified
  * @param prefix              the path prefix for each datastore
+ * @param postfix             any extra string to add to the back of the datastore name
  * @param create_if_missing   whether or not to create the datastore if it does not already exist
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_options_set_datastore_rocksdb(hxhim_options_t *opts, const char *prefix, const int create_if_missing) {
-    datastore::rocksdb::Config *config = construct<datastore::rocksdb::Config>(prefix, create_if_missing);
+int hxhim_options_set_datastore_rocksdb(hxhim_options_t *opts, const char *prefix, const char *postfix, const int create_if_missing) {
+    datastore::rocksdb::Config *config = construct<datastore::rocksdb::Config>(prefix, postfix, create_if_missing);
     if (hxhim_options_set_datastore(opts, config) != HXHIM_SUCCESS) {
         destruct(config);
         return HXHIM_ERROR;

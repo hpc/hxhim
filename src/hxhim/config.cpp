@@ -111,36 +111,48 @@ static bool parse_datastore(hxhim_options_t *opts, const Config::Config &config)
             #if HXHIM_HAVE_LEVELDB
             case datastore::LEVELDB:
                 {
-                    // get the leveldb datastore prefix prefix
+                    // get the leveldb datastore prefix
                     Config::Config_it prefix = config.find(hxhim::config::LEVELDB_PREFIX);
                     if (prefix == config.end()) {
                         return false;
                     }
+
+                    // get the leveldb datastore postfix (optional)
+                    Config::Config_it postfix = config.find(hxhim::config::LEVELDB_POSTFIX);
 
                     bool create_if_missing = true; // default to true; do not error if not found
                     if (Config::get_value(config, hxhim::config::LEVELDB_CREATE_IF_MISSING, create_if_missing) == Config::ERROR) {
                         return false;
                     }
 
-                    return (hxhim_options_set_datastore_leveldb(opts, prefix->second.c_str(), create_if_missing) == HXHIM_SUCCESS);
+                    return (hxhim_options_set_datastore_leveldb(opts,
+                                                                prefix->second.c_str(),
+                                                                (postfix != config.end())?postfix->second.c_str():"",
+                                                                create_if_missing) == HXHIM_SUCCESS);
                 }
                 break;
             #endif
             #if HXHIM_HAVE_ROCKSDB
             case datastore::ROCKSDB:
                 {
-                    // get the rocksdb datastore prefix prefix
+                    // get the rocksdb datastore prefix
                     Config::Config_it prefix = config.find(hxhim::config::ROCKSDB_PREFIX);
                     if (prefix == config.end()) {
                         return false;
                     }
+
+                    // get the rocksdb datastore postfix
+                    Config::Config_it postfix = config.find(hxhim::config::ROCKSDB_POSTFIX);
 
                     bool create_if_missing = true; // default to true; do not error if not found
                     if (Config::get_value(config, hxhim::config::ROCKSDB_CREATE_IF_MISSING, create_if_missing) == Config::ERROR) {
                         return false;
                     }
 
-                    return (hxhim_options_set_datastore_rocksdb(opts, prefix->second.c_str(), create_if_missing) == HXHIM_SUCCESS);
+                    return (hxhim_options_set_datastore_rocksdb(opts,
+                                                                prefix->second.c_str(),
+                                                                (postfix != config.end())?postfix->second.c_str():"",
+                                                                create_if_missing) == HXHIM_SUCCESS);
                 }
                 break;
             #endif

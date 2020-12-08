@@ -7,9 +7,9 @@
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
-static std::string generate_name(const std::string &prefix, const std::string &basename, const int id) {
+static std::string generate_name(const std::string &prefix, const std::string &basename, const int id, const std::string &postfix) {
     std::stringstream s;
-    s << prefix << "/" << basename << "-" << id;
+    s << prefix << "/" << basename << "-" << id << postfix;
     return s.str();
 }
 
@@ -40,6 +40,8 @@ int datastore::Init(hxhim_t *hx,
             ds = new InMemory(hx->p->bootstrap.rank,
                               id, callbacks);
             hx->p->range_server.prefix = "";
+            hx->p->range_server.postfix = "";
+
             mlog(HXHIM_CLIENT_INFO, "Initialized In-Memory in datastore %d", id);
             break;
 
@@ -48,6 +50,7 @@ int datastore::Init(hxhim_t *hx,
             {
                 leveldb::Config *leveldb_config = static_cast<leveldb::Config *>(config);
                 hx->p->range_server.prefix = leveldb_config->prefix;
+                hx->p->range_server.postfix = leveldb_config->postfix;
 
                 if (exact_name) {
                     ds = new leveldb(hx->p->bootstrap.rank,
@@ -58,7 +61,9 @@ int datastore::Init(hxhim_t *hx,
                     // generate the prefix path
                     mkdir_p(hx->p->range_server.prefix, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
-                    name = generate_name(hx->p->range_server.prefix, hx->p->hash.name, id);
+                    name = generate_name(hx->p->range_server.prefix,
+                                         hx->p->hash.name, id,
+                                         hx->p->range_server.postfix);
                     ds = new leveldb(hx->p->bootstrap.rank,
                                      id, callbacks,
                                      leveldb_config->create_if_missing);
@@ -73,6 +78,7 @@ int datastore::Init(hxhim_t *hx,
             {
                 rocksdb::Config *rocksdb_config = static_cast<rocksdb::Config *>(config);
                 hx->p->range_server.prefix = rocksdb_config->prefix;
+                hx->p->range_server.postfix = rocksdb_config->postfix;
 
                 if (exact_name) {
                     ds = new rocksdb(hx->p->bootstrap.rank,
@@ -83,7 +89,9 @@ int datastore::Init(hxhim_t *hx,
                     // generate the prefix path
                     mkdir_p(hx->p->range_server.prefix, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
-                    name = generate_name(hx->p->range_server.prefix, hx->p->hash.name, id);
+                    name = generate_name(hx->p->range_server.prefix,
+                                         hx->p->hash.name, id,
+                                         hx->p->range_server.postfix);
                     ds = new rocksdb(hx->p->bootstrap.rank,
                                      id, callbacks,
                                      rocksdb_config->create_if_missing);

@@ -124,6 +124,7 @@ typedef struct hxhim_private {
         datastore::Datastore *datastore = nullptr;
 
         std::string prefix;                // datastore prefix set by the configuration file/variables
+        std::string postfix;               // datastore postfix set by the configuration file/variables
     } range_server;
 
     hxhim::Stats::Global stats;

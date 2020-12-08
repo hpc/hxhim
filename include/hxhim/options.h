@@ -34,10 +34,14 @@ int hxhim_options_set_open_init_datastore(hxhim_options_t *opts, const int init)
 int hxhim_options_datastore_histograms(hxhim_options_t *opts, const int read, const int write);
 int hxhim_options_set_datastore_in_memory(hxhim_options_t *opts);
 #if HXHIM_HAVE_LEVELDB
-int hxhim_options_set_datastore_leveldb(hxhim_options_t *opts, const char *prefix, const int create_if_missing);
+int hxhim_options_set_datastore_leveldb(hxhim_options_t *opts,
+                                        const char *prefix, const char *postfix,
+                                        const int create_if_missing);
 #endif
 #if HXHIM_HAVE_ROCKSDB
-int hxhim_options_set_datastore_rocksdb(hxhim_options_t *opts, const char *prefix, const int create_if_missing);
+int hxhim_options_set_datastore_rocksdb(hxhim_options_t *opts,
+                                        const char *prefix, const char *postfix,
+                                        const int create_if_missing);
 #endif
 int hxhim_options_set_hash_name(hxhim_options_t *opts, const char *name);
 int hxhim_options_set_hash_function(hxhim_options_t *opts, const char *name, hxhim_hash_t func, void *args);

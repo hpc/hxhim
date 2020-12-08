@@ -44,12 +44,14 @@ const std::string DATASTORE_TYPE               = "DATASTORE";                   
 #if HXHIM_HAVE_LEVELDB
 /** LevelDB Datastore Options */
 const std::string LEVELDB_PREFIX               = "LEVELDB_PREFIX";                // string
+const std::string LEVELDB_POSTFIX              = "LEVELDB_POSTFIX";               // string
 const std::string LEVELDB_CREATE_IF_MISSING    = "LEVELDB_CREATE_IF_MISSING";     // boolean
 #endif
 
 #if HXHIM_HAVE_ROCKSDB
 /** RocksDB Datastore Options */
 const std::string ROCKSDB_PREFIX               = "ROCKSDB_PREFIX";                // string
+const std::string ROCKSDB_POSTFIX              = "ROCKSDB_POSTFIX";               // string
 const std::string ROCKSDB_CREATE_IF_MISSING    = "ROCKSDB_CREATE_IF_MISSING";     // boolean
 #endif
 
@@ -177,10 +179,12 @@ const Config::Config DEFAULT_CONFIG = {
 #if HXHIM_HAVE_LEVELDB
     std::make_pair(DATASTORE_TYPE,                "LEVELDB"),
     std::make_pair(LEVELDB_PREFIX,                "."),
+    std::make_pair(LEVELDB_POSTFIX,               ""),
     std::make_pair(LEVELDB_CREATE_IF_MISSING,     "true"),
 #elif HXHIM_HAVE_ROCKSDB
     std::make_pair(DATASTORE_TYPE,                "ROCKSDB"),
     std::make_pair(ROCKSDB_PREFIX,                "."),
+    std::make_pair(ROCKSDB_POSTFIX,               ""),
     std::make_pair(ROCKSDB_CREATE_IF_MISSING,     "true"),
 #else
     std::make_pair(DATASTORE_TYPE,                "IN_MEMORY"),
