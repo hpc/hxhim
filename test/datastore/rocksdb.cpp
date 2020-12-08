@@ -36,7 +36,7 @@ class RocksDBTest : public datastore::rocksdb {
 
     private:
         void cleanup() {
-            remove(Name().c_str());
+            rm_r(Name().c_str());
         }
 };
 
@@ -294,7 +294,7 @@ TEST(RocksDB, Histograms) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     std::stringstream s;
-    s << "LEVELDB-TEST-" << rank;
+    s << "ROCKSDB-TEST-" << rank;
 
     rm_r(s.str());
 

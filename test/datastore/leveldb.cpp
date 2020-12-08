@@ -36,7 +36,7 @@ class LevelDBTest : public datastore::leveldb {
 
     private:
         void cleanup() {
-            remove(Name().c_str());
+            rm_r(Name().c_str());
         }
 };
 

@@ -16,7 +16,6 @@ void rm_r(const std::string &path, const char sep) {
     struct stat st;
     if (stat(path.c_str(), &st) == 0) {
         if (S_ISDIR(st.st_mode)) {
-
             DIR *dir = opendir(path.c_str());
 
             struct dirent *entry = nullptr;
@@ -27,13 +26,12 @@ void rm_r(const std::string &path, const char sep) {
                     continue;
                 }
 
-                const std::string sub = path + sep + entry->d_name;
-                rm_r(sub, sep);
+                rm_r(path + sep + entry->d_name, sep);
             }
 
             closedir(dir);
         }
-    }
 
-    remove(path.c_str());
+        remove(path.c_str());
+    }
 }
