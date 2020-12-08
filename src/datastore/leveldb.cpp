@@ -439,8 +439,8 @@ int datastore::leveldb::WriteHistogramsImpl() {
     std::deque<void *> ptrs;
     for(decltype(hists)::value_type hist : hists) {
         std::string key;
-        sp_to_key(ReferenceBlob((char *) HISTOGRAM_SUBJECT.data(), HISTOGRAM_SUBJECT.size(), hxhim_data_t::HXHIM_DATA_BYTE),
-                  ReferenceBlob((char *) hist.first.data(), hist.first.size(), hxhim_data_t::HXHIM_DATA_BYTE),
+        sp_to_key(Blob(HISTOGRAM_SUBJECT),
+                  Blob(hist.first),
                   key);
 
         void *serial_hist = nullptr;

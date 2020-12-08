@@ -274,13 +274,14 @@ hxhim_results_t *hxhimChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t fun
  *
  * @param hx                 the HXHIM session
  * @param name               the name of the new datastore
- * @param name_len           the length of the new name
  * @param write_histograms   whether or not to write the old datastore's histograms
  * @param read_histograms    whether or not to try to find and read the new datastore's histograms
+ * @param create_missing     whether or not to create histograms that were not found
  * @return A list of results from before the datastores were changed
  */
-hxhim::Results *hxhim::ChangeDatastore(hxhim_t *hx, const char *name, const std::size_t name_len,
-                                       const bool write_histograms, const bool read_histograms) {
+hxhim::Results *hxhim::ChangeDatastore(hxhim_t *hx, const char *name,
+                                       const bool write_histograms, const bool read_histograms,
+                                       const bool create_missing) {
     if (!hxhim::valid(hx)) {
         return nullptr;
     }
@@ -289,9 +290,20 @@ hxhim::Results *hxhim::ChangeDatastore(hxhim_t *hx, const char *name, const std:
 
     MPI_Barrier(hx->p->bootstrap.comm);
 
-    hx->p->range_server.datastore->Change(std::string(name, name_len),
+    hx->p->range_server.datastore->Change(std::string(name),
                                           write_histograms,
                                           read_histograms?&hx->p->histograms.names:nullptr);
+
+    if (create_missing) {
+        const datastore::Datastore::Histograms *hists = nullptr;
+        hx->p->range_server.datastore->GetHistograms(&hists);
+
+        for(std::string const &hist_name : hx->p->histograms.names) {
+            if (hists->find(hist_name) == hists->end()){
+                hx->p->range_server.datastore->AddHistogram(hist_name, hx->p->histograms.config);
+            }
+        }
+    }
 
     MPI_Barrier(hx->p->bootstrap.comm);
 
@@ -306,14 +318,15 @@ hxhim::Results *hxhim::ChangeDatastore(hxhim_t *hx, const char *name, const std:
  *
  * @param hx                 the HXHIM session
  * @param name               the name of the new datastore
- * @param name_len           the length of the new name
  * @param write_histograms   whether or not to write the old datastore's histograms
  * @param read_histograms    whether or not to try to find and read the new datastore's histograms
+ * @param create_missing     whether or not to create histograms that were not found
  * @return A list of results from before the datastores were changed
  */
-hxhim_results_t *hxhimChangeDatastore(hxhim_t *hx, const char *name, const size_t name_len,
-                         const int write_histograms, const int read_histograms) {
-    return hxhim_results_init(hx, hxhim::ChangeDatastore(hx, name, name_len, write_histograms, read_histograms));
+hxhim_results_t *hxhimChangeDatastore(hxhim_t *hx, const char *name,
+                                      const int write_histograms, const int read_histograms,
+                                      const int create_missing) {
+    return hxhim_results_init(hx, hxhim::ChangeDatastore(hx, name, write_histograms, read_histograms, create_missing));
 }
 
 /**

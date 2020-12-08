@@ -37,9 +37,6 @@ static int generate_using_bin_count(const double &min, const double &max, const 
     }
 
     double *bins = alloc_array<double>(bin_count + 1);
-    if (!bins) {
-        return HISTOGRAM_ERROR;
-    }
 
     // generate the left ends of the buckets
     const double step = ((double) (max - min)) / bin_count;
@@ -62,11 +59,9 @@ int histogram_n_buckets(const double *first_n, const size_t n, double **buckets,
     }
 
     *size = (std::size_t) (uintptr_t) extra;
-    if (!(*buckets = alloc_array<double>(*size + 1))) {
-        return HISTOGRAM_ERROR;
-    }
+    *buckets = alloc_array<double>(*size + 1);
 
-    double min, max;
+    double min = 0, max = 0;
     minmax(first_n, n, min, max);
 
     const double width = std::ceil((max - min) / *size);

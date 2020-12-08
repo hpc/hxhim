@@ -1,6 +1,7 @@
 #ifndef HISTOGRAM_HPP
 #define HISTOGRAM_HPP
 
+#include <memory>
 #include <ostream>
 
 #include "utils/memory.hpp"

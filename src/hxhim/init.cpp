@@ -124,6 +124,7 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
     hx->p->range_server.server_ratio = opts->p->server_ratio;
 
     hx->p->histograms.names = std::move(opts->p->histograms.names);
+    hx->p->histograms.config = opts->p->histograms.config;
 
     // create datastore if this rank is a server
     const int rs_id = hxhim::RangeServer::get_id(hx->p->bootstrap.rank, hx->p->bootstrap.size,

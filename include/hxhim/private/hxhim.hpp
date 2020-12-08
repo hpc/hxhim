@@ -109,6 +109,7 @@ typedef struct hxhim_private {
 
     struct {
         datastore::HistNames_t names;      // all ranks have the list of histogram names
+        struct Histogram::Config config;   // common settings for all histograms
         bool read;                         // whether or not to read existing histograms on open
         bool write;                        // whether or not to write histograms on close
     } histograms;

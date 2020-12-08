@@ -12,9 +12,7 @@ int CUSTOM_NONUNIFORM_FUNC(const double *, const size_t,
                            void *) {
     *size = 3;
 
-    if (!(*buckets = alloc_array<double>(*size + 1))) {
-        return HISTOGRAM_ERROR;
-    }
+    *buckets = alloc_array<double>(*size + 1);
 
     (*buckets)[0] = 0;
     (*buckets)[1] = 5;

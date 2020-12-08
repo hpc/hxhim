@@ -95,8 +95,8 @@ bool datastore::Datastore::Open(const std::string &new_name,
 
 void datastore::Datastore::Close(const bool write_histograms) {
     Sync(write_histograms);
+    hists.clear();
     CloseImpl();
-    return;
 }
 
 bool datastore::Datastore::Usable() const {
@@ -246,11 +246,8 @@ std::size_t datastore::Datastore::ReadHistograms(const datastore::HistNames_t &n
  * @return DATASTORE_SUCCESS
  */
 int datastore::Datastore::AddHistogram(const std::string &name, const ::Histogram::Config &config) {
-    hists[name] = std::shared_ptr<::Histogram::Histogram>(construct<::Histogram::Histogram>(config, name),
-                                                          ::Histogram::deleter);
-    return DATASTORE_SUCCESS;
+    return AddHistogram(name, construct<::Histogram::Histogram>(config, name));
 }
-
 
 /**
  * AddHistogram
