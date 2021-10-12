@@ -1,7 +1,7 @@
 # HXHIM
 ## The Hexadimensional Hashing Indexing Middleware
 
-[![Build Status](https://travis-ci.com/hpc/hxhim.svg?branch=master)](https://travis-ci.com/hpc/hxhim)
+[![Build Status](https://app.travis-ci.com/hpc/hxhim.svg?branch=master)](https://app.travis-ci.com/hpc/hxhim)
 
 ----
 
