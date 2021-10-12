@@ -619,9 +619,9 @@ if [[ "$#" -lt 3 ]]; then
     exit 1
 fi
 
-WORKING_DIR="$1"
+WORKING_DIR="$(realpath $1)"
 BUILD="$2"
-PREFIX="$3"
+PREFIX="$(realpath $3)"
 PROCS="$4"       # number of processes make should use
 pkg_config_path= # internal PKG_CONFIG_PATH so available paths are not hidden
 ld_library_path= # internal LD_LIBRARY_PATH so available paths are not hidden
@@ -648,17 +648,17 @@ check_mpi
 # check and/or install
 thallium
 
-if [[ "${LEVELDB}" -eq 1 ]]
+if [[ "${LEVELDB}" -eq "1" ]]
 then
     leveldb
 fi
 
-if [[ "${ROCKSDB}" -eq 1 ]]
+if [[ "${ROCKSDB}" -eq "1" ]]
 then
     rocksdb
 fi
 
-if [[ "${JEMALLOC}" -eq 1 ]]
+if [[ "${JEMALLOC}" -eq "1" ]]
 then
     jemalloc
 fi
