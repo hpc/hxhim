@@ -3,7 +3,7 @@
 set -e
 
 yum install -y dnf-plugins-core
-yum config-manager --set-enabled PowerTools
+yum config-manager --set-enabled powertools
 
 yum install -y         \
     automake           \
