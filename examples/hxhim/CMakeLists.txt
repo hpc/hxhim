@@ -9,21 +9,21 @@ add_library(print_results OBJECT print_results.c print_results.h)
 add_library(spo_gen       OBJECT spo_gen.c       spo_gen.h)
 add_library(timestamps    OBJECT timestamps.c    timestamps.h)
 
-add_executable(hx-c hx.c)
-target_link_libraries(hx-c hxhim.a print_results spo_gen timestamps ${EXEC_LDFLAGS} stdc++)
+add_executable(hx-c hx.c print_results spo_gen timestamps)
+target_link_libraries(hx-c hxhim.a ${EXEC_LDFLAGS} stdc++)
 
-add_executable(hx-c++ hx.cpp)
-target_link_libraries(hx-c++ hxhim.a print_results spo_gen ${EXEC_LDFLAGS})
+add_executable(hx-c++ hx.cpp print_results spo_gen)
+target_link_libraries(hx-c++ hxhim.a ${EXEC_LDFLAGS})
 
-add_executable(puts puts.c)
-target_link_libraries(puts hxhim.a spo_gen timestamps ${EXEC_LDFLAGS} stdc++)
+add_executable(puts puts.c spo_gen timestamps)
+target_link_libraries(puts hxhim.a ${EXEC_LDFLAGS} stdc++)
 
-add_executable(hxhim-cli cli.cpp)
-target_link_libraries(hxhim-cli hxhim.a print_results ${EXEC_LDFLAGS})
+add_executable(hxhim-cli cli.cpp print_results)
+target_link_libraries(hxhim-cli hxhim.a ${EXEC_LDFLAGS})
 set_target_properties(hxhim-cli PROPERTIES OUTPUT_NAME cli)
 
-add_executable(lowest lowest.c)
-target_link_libraries(lowest hxhim.a print_results ${EXEC_LDFLAGS} stdc++)
+add_executable(lowest lowest.c print_results)
+target_link_libraries(lowest hxhim.a ${EXEC_LDFLAGS} stdc++)
 
 add_executable(elen elen.cpp)
 target_link_libraries(lowest hxhim.a ${EXEC_LDFLAGS})
