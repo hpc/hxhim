@@ -7,7 +7,7 @@ os: linux
 
 matrix:
   include:
-    # Ubuntu Xenial
+    # Ubuntu Xenial 16.04
     - dist: xenial
       addons:
         apt:
@@ -31,7 +31,31 @@ matrix:
         - FORT_COMPILER=gfortran-9
       script:
         - travis_wait 20 contrib/travis/build_and_test.sh
-    # Ubuntu Focal
+    # Ubuntu Bionic 18.04
+    - dist: bionic
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - automake
+            - bzip2
+            - g++-9
+            - gfortran-9
+            - libltdl-dev
+            - libsnappy-dev
+            - libtool-bin
+            - pkg-config
+            - python3-pip
+            - wget
+          update: true
+      env:
+        - C_COMPILER=gcc-9
+        - CXX_COMPILER=g++-9
+        - FORT_COMPILER=gfortran-9
+      script:
+        - travis_wait 20 contrib/travis/build_and_test.sh
+    # Ubuntu Focal 20.04
     - dist: focal
       addons:
         apt:
