@@ -17,7 +17,7 @@
 Transport::Transport *Transport::MPI::init(hxhim_t *hx,
                                            const std::size_t client_ratio,
                                            const std::size_t server_ratio,
-                                           const std::set<int> &endpointgroup,
+                                           const std::set<int> &endpointgroup, // from config
                                            Options *opts) {
     mlog(MPI_INFO, "Starting MPI Initialization");
 
@@ -36,13 +36,21 @@ Transport::Transport *Transport::MPI::init(hxhim_t *hx,
     EndpointGroup *eg = construct<EndpointGroup>(hx->p->bootstrap.comm,
                                                  hx->p->running);
 
-    // create mapping between unique IDs and ranks
+    // logical
+    int rs_id = 0;
+
+    // create mapping between logical IDs and endpoint ranks
     for(int i = 0; i < hx->p->bootstrap.size; i++) {
         if (hxhim::RangeServer::is_range_server(i, hx->p->bootstrap.size, client_ratio, server_ratio)) {
-            // if the rank was specified as part of the endpoint group, add the rank to the endpoint group
-            if (endpointgroup.find(i) != endpointgroup.end()) {
-                eg->AddID(i, i);
+            if (hx->p->bootstrap.rank != i) { // skip adding the local range server
+                // if the rank was specified as part of the endpoint
+                // group, add the rank to the endpoint group
+                if (endpointgroup.find(i) != endpointgroup.end()) {
+                    eg->AddID(rs_id, i);
+                }
             }
+
+            rs_id++;
         }
     }
 

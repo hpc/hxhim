@@ -1,4 +1,4 @@
-#include <unordered_map>
+#include <map>
 
 #include "hxhim/private/accessors.hpp"
 #include "hxhim/private/hxhim.hpp"
@@ -21,7 +21,7 @@
 Transport::Transport *Transport::Thallium::init(hxhim_t *hx,
                                                 const std::size_t client_ratio,
                                                 const std::size_t server_ratio,
-                                                const std::set<int> &endpointgroup,
+                                                const std::set<int> &endpointgroup, // from config
                                                 Options *opts) {
     #if PRINT_TIMESTAMPS
     ::Stats::Chronostamp thallium_init;
@@ -59,8 +59,8 @@ Transport::Transport *Transport::Thallium::init(hxhim_t *hx,
     thallium_addrs.start = ::Stats::now();
     #endif
 
-    // get a mapping of unique IDs to thallium addresses
-    std::unordered_map<int, std::string> addrs;
+    // get a mapping of ranks to thallium addresses
+    std::map<int, std::string> addrs;
     if (get_addrs(hx->p->bootstrap.comm, *engine, addrs) != TRANSPORT_SUCCESS) {
         delete rs;
         return nullptr;
@@ -70,19 +70,25 @@ Transport::Transport *Transport::Thallium::init(hxhim_t *hx,
     thallium_addrs.end = ::Stats::now();
     #endif
 
-    // remove the loopback endpoint
-    addrs.erase(rank);
-
+    // the EndpointGroup that will be stored
     EndpointGroup *eg = construct<EndpointGroup>(engine, rs);
 
-    // create mapping between unique IDs and ranks
+    // logical
+    int rs_id = 0;
+
+    // create mapping between logical ids and endpoints
     for(decltype(addrs)::value_type const &addr : addrs) {
         if (hxhim::RangeServer::is_range_server(addr.first, client_ratio, server_ratio)) {
-            // if the rank was specified as part of the endpoint group, add the thallium endpoint to the endpoint group
-            if (!endpointgroup.size() || (endpointgroup.find(addr.first) != endpointgroup.end())) {
-                eg->AddID(addr.first, addr.second);
-                mlog(THALLIUM_DBG, "Added Thallium endpoint %s to the endpoint group", addr.second.c_str());
+            if (rank != addr.first) { // skip adding the local range server
+                // if the rank was specified as part of the endpoint group,
+                // add the thallium endpoint to the endpoint group
+                if (!endpointgroup.size() || (endpointgroup.find(addr.first) != endpointgroup.end())) {
+                    eg->AddID(rs_id, addr.second);
+                    mlog(THALLIUM_DBG, "Added Thallium endpoint %s to the endpoint group", addr.second.c_str());
+                }
             }
+
+            rs_id++;
         }
     }
 
