@@ -18,6 +18,7 @@ hxhim@lanl.gov
 * (optional, requires C++14) thallium: https://xgitlab.cels.anl.gov/sds/thallium
 * (optional) LevelDB: https://github.com/google/leveldb
 * (optional) RocksDB: https://github.com/facebook/rocksdb
+* (optional) jemalloc: https://github.com/jemalloc/jemalloc
 
 ### Build
 ```

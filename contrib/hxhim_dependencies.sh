@@ -25,6 +25,7 @@
 #     json-c
 #     margo
 #     thallium
+#     jemalloc (optional)
 #
 
 SOURCE="$(dirname $(realpath $BASH_SOURCE[0]))"
