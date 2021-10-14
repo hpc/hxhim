@@ -29,8 +29,14 @@ int main(int argc, char *argv[]) {
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 
+    int rank = -1;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
     if (argc < 5) {
-        fprintf(stderr, "Syntax: %s n_x n_y n_lowest n_highest", argv[0]);
+        if (rank == 0) {
+            fprintf(stderr, "Syntax: %s n_x n_y n_lowest n_highest\n", argv[0]);
+        }
+        MPI_Finalize();
         return 1;
     }
 
@@ -47,9 +53,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
@@ -61,6 +64,7 @@ int main(int argc, char *argv[]) {
         if (rank == 0) {
             fprintf(stderr, "Failed to read configuration\n");
         }
+        MPI_Finalize();
         return 1;
     }
 
@@ -71,6 +75,7 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "Failed to initialize hxhim\n");
         }
         hxhim_options_destroy(&opts);
+        MPI_Finalize();
         return 1;
     }
 

@@ -54,7 +54,7 @@ void RangeServer::listener_thread() {
         // decode request
         Request::Request *request = nullptr;
         Unpacker::unpack(&request, req, len);
-        ::operator delete(req);
+        dealloc(req);
 
         // process request
         Response::Response *response = local::range_server(hx, request);
@@ -105,7 +105,7 @@ int RangeServer::recv(void **data, std::size_t *len) {
     }
     mlog(MPI_DBG, "MPI Range Server got size %zu", *len);
 
-    *data = ::operator new(*len);
+    *data = alloc(*len);
 
     // wait for the data
     // mlog(MPI_DBG, "MPI Range Server waiting for data");

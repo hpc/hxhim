@@ -129,10 +129,7 @@ Transport::Response::BPut *datastore::Datastore::operate(Transport::Request::BPu
                         {
                             // find the histogram at the provided index
                             REF(hists)::const_iterator hist_it = hists.find((std::string) req->predicates[i]);
-                            if (hist_it == hists.end()) {
-                                res->statuses[i] = DATASTORE_ERROR;
-                            }
-                            else {
+                            if (hist_it != hists.end()) {
                                 // insert the object
                                 switch (req->objects[i].data_type()) {
                                     case HXHIM_DATA_FLOAT:
