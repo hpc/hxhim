@@ -13,7 +13,9 @@ namespace RangeServer {
  * configuration keys. max(CLIENT_RATIO, SERVER_RATIO) defines a "block"
  * of MPI ranks, where the first C ranks are clients and the first S
  * ranks are servers. This is true even when there are not enough MPI
- * ranks to complete a  "block".
+ * ranks to complete a "block". CLIENT_RATIO < SERVER_RATIO is treated
+ * as CLIENT_RATIO == SERVER_RATIO, since MPI ranks are not prevented
+ * from client operations.
  *
  * e.g.
  *     Client : Server = 5 : 3
@@ -23,7 +25,7 @@ namespace RangeServer {
  *
  *     Client : Server = 3 : 5
  *     MPI Rank:    |  0  |  1  |  2  |  3  |  4  |  5  |  6  |
- *     Client:      |  0  |  1  |  2  |     |     |  5  |  6  |
+ *     Client:      |  0  |  1  |  2  |  3  |  4  |  5  |  6  |
  *     RangeServer: |  0  |  1  |  2  |  3  |  4  |  5  |  6  |
  */
 

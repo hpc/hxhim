@@ -59,7 +59,7 @@ TEST(GetRangeServerCount, more_servers) {
     /**
      * Client : Server = 3 : 5
      * MPI Rank: |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |
-     * Client:   |  0  |  1  |  2  |     |     |  5  |  6  |  7  |     |
+     * Client:   |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |
      * RS/DS:    |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |
      */
 
