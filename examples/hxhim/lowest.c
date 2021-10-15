@@ -8,7 +8,6 @@
 
 #include "hxhim/hxhim.h"
 #include "print_results.h"
-#include "utils/elen.h"
 
 #define BUF_SIZE 100
 
@@ -22,7 +21,6 @@ typedef struct Cell {
     char name[BUF_SIZE];
     char predicate[BUF_SIZE];
     double temp;
-    char *temp_str;
 } Cell_t;
 
 int main(int argc, char *argv[]) {
@@ -94,7 +92,6 @@ int main(int argc, char *argv[]) {
             snprintf(c->name,      BUF_SIZE, NAME_FMT, rank, x, y);
             snprintf(c->predicate, BUF_SIZE, TEMP_FMT, rank, x, y);
             c->temp = MIN_DOUBLE + (MAX_DOUBLE - MIN_DOUBLE) * ((double) rand()) / ((double) RAND_MAX);
-            c->temp_str = elen_encode_floating_double(c->temp, 10, ELEN_NEG, ELEN_POS);
 
             // keep track of the lowest temperature
             if (lowest) {
@@ -117,10 +114,10 @@ int main(int argc, char *argv[]) {
             }
 
             hxhimPut(&hx,
-                     c->temp_str, strlen(c->temp_str) + 1, HXHIM_DATA_BYTE,
-                     c->predicate, strlen(c->predicate) + 1, HXHIM_DATA_BYTE,
-                     c->name, strlen(c->name) + 1, HXHIM_DATA_BYTE,
-                     HXHIM_PUT_SPO);
+                     c->name, strlen(c->name), HXHIM_DATA_BYTE,
+                     c->predicate, strlen(c->predicate), HXHIM_DATA_BYTE,
+                     &c->temp, sizeof(c->temp), HXHIM_DATA_DOUBLE,
+                     HXHIM_PUT_OPS);
         }
     }
 
@@ -136,8 +133,8 @@ int main(int argc, char *argv[]) {
         printf("lowest %zu\n", num_lowest);
         printf("--------------------------------------------\n");
         hxhimGetOp(&hx,
-                   lowest->temp_str, strlen(lowest->temp_str) + 1, HXHIM_DATA_BYTE,
-                   lowest->predicate, strlen(lowest->predicate) + 1, HXHIM_DATA_BYTE,
+                   &lowest->temp, sizeof(lowest->temp), HXHIM_DATA_DOUBLE,
+                   lowest->predicate, strlen(lowest->predicate), HXHIM_DATA_BYTE,
                    HXHIM_DATA_BYTE, num_lowest, HXHIM_GETOP_NEXT);
         hxhim_results_t *get_lowest = hxhimFlush(&hx);
         print_results(&hx, 0, get_lowest);
@@ -148,8 +145,8 @@ int main(int argc, char *argv[]) {
         printf("highest %zu\n", num_highest);
         printf("--------------------------------------------\n");
         hxhimGetOp(&hx,
-                   highest->temp_str, strlen(highest->temp_str) + 1, HXHIM_DATA_BYTE,
-                   highest->predicate, strlen(highest->predicate) + 1, HXHIM_DATA_BYTE,
+                   &highest->temp, sizeof(highest->temp), HXHIM_DATA_DOUBLE,
+                   highest->predicate, strlen(highest->predicate), HXHIM_DATA_BYTE,
                    HXHIM_DATA_BYTE, num_highest, HXHIM_GETOP_PREV);
         hxhim_results_t *get_highest = hxhimFlush(&hx);
         print_results(&hx, 0, get_highest);
@@ -157,9 +154,6 @@ int main(int argc, char *argv[]) {
         printf("--------------------------------------------\n");
     }
 
-    for(size_t i = 0; i < total; i++) {
-        free(cells[i].temp_str);
-    }
     free(cells);
 
     hxhimClose(&hx);
