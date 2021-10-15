@@ -221,7 +221,7 @@ static void backgroundPUT(hxhim_t *hx) {
     mlog(HXHIM_CLIENT_DBG, "Started background PUT thread");
 
     while (hx->p->running) {
-        hxhim::Queue<Transport::Request::BPut> puts;
+        hxhim::Queues<Transport::Request::BPut> puts;
         {
             // wait for number of PUTs to reach limit
             // PUTs/FlushPuts triggers check
