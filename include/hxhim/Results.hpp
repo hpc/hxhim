@@ -202,7 +202,9 @@ class Results {
         Result *curr;
         std::size_t count;
 
-        uint64_t duration;
+        uint64_t duration; // sum of durations for each result
+                           // parallel timestamps will generate weird
+                           // values
 };
 
 }
