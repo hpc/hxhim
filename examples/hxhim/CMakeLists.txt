@@ -12,7 +12,7 @@ add_library(timestamps    OBJECT timestamps.c    timestamps.h)
 add_executable(hx-c hx.c print_results spo_gen timestamps)
 target_link_libraries(hx-c hxhim.a ${EXEC_LDFLAGS} stdc++)
 
-add_executable(hx-c++ hx.cpp print_results spo_gen)
+add_executable(hx-c++ hx.cpp print_results spo_gen timestamps)
 target_link_libraries(hx-c++ hxhim.a ${EXEC_LDFLAGS})
 
 add_executable(puts puts.c spo_gen timestamps)

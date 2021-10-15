@@ -6,6 +6,7 @@
 #include "hxhim/hxhim.hpp"
 #include "print_results.h"
 #include "spo_gen.h"
+#include "timestamps.h"
 
 static void print_results(const int rank, hxhim::Results *results) {
     if (!results) {
@@ -81,6 +82,9 @@ int main(int argc, char *argv[]) {
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
+    int size;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+
     std::size_t count = 0;
     if (!(std::stringstream(argv[1]) >> count)) {
         std::cerr << "Error: Could not parse count argument: " << argv[1] << std::endl;
@@ -111,6 +115,9 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    struct timespec epoch;
+    hxhimGetEpoch(&hx, &epoch);
+
     // Generate some subject-predicate-object triples
     void **subjects = NULL, **predicates = NULL;
     std::size_t *subject_lens = NULL, *predicate_lens = NULL;
@@ -127,6 +134,7 @@ int main(int argc, char *argv[]) {
     }
 
    // PUT the subject-predicate-object triples
+    timestamp_start(put);
     for(std::size_t i = 0; i < count; i++) {
         hxhim::PutDouble(&hx,
                          subjects[i], subject_lens[i], HXHIM_DATA_BYTE,
@@ -137,6 +145,15 @@ int main(int argc, char *argv[]) {
             std::cout << "Rank " << rank << " PUT {" << std::string((char *) subjects[i], subject_lens[i]) << ", " << std::string((char *) predicates[i], predicate_lens[i]) << "} -> " << doubles[i] << std::endl;
         }
     }
+    timestamp_end(put);
+
+    barrier;
+
+    if (rank == 0) {
+        std::cout << "GET before flushing PUTs" << std::endl;
+    }
+
+    barrier;
 
     // GET them back, flushing only the GETs
     for(std::size_t i = 0; i < count; i++) {
@@ -144,29 +161,53 @@ int main(int argc, char *argv[]) {
                          subjects[i], subject_lens[i], HXHIM_DATA_BYTE,
                          predicates[i], predicate_lens[i], HXHIM_DATA_BYTE);
     }
+
     hxhim::Results *flush_gets_early = hxhim::FlushGets(&hx);
-    std::cout << "GET before flushing PUTs" << std::endl;
     if (print) {
         print_results(rank, flush_gets_early);
     }
     hxhim::Results::Destroy(flush_gets_early);
 
     // flush PUTs
-    MPI_Barrier(MPI_COMM_WORLD);
+    barrier;
+
     if (rank == 0) {
         std::cout << "Flush PUTs" << std::endl;
     }
-    MPI_Barrier(MPI_COMM_WORLD);
 
+    barrier;
+
+    timestamp_start(flush_put);
     hxhim::Results *flush_puts = hxhim::FlushPuts(&hx);
+    timestamp_end(flush_put);
+
+    barrier;
+
     if (print) {
         print_results(rank, flush_puts);
     }
+
+    long double duration = 0;
+    duration += nano(&put_start, &put_end);
+    duration += nano(&flush_put_start, &flush_put_end);
+    duration /= 1e9;
+
+    for(int i = 0; i < size; i++) {
+        MPI_Barrier(MPI_COMM_WORLD);
+        if (i == rank) {
+            fprintf(stderr, "Rank %d: %zu PUTs in %.3Lf seconds (%.3Lf PUTs/sec)\n",
+                    i, count, duration, count / duration);
+        }
+        MPI_Barrier(MPI_COMM_WORLD);
+    }
+
+    timestamp_start(destroy);
     hxhim::Results::Destroy(flush_puts);
+    timestamp_end(destroy);
 
-    MPI_Barrier(MPI_COMM_WORLD);
+    barrier;
 
-    // GET again, but flush everything this time
+    // GET again, now that all PUTs have completed
     for(std::size_t i = 0; i < count; i++) {
         hxhim::GetDouble(&hx,
                          subjects[i], subject_lens[i], HXHIM_DATA_BYTE,
@@ -177,6 +218,7 @@ int main(int argc, char *argv[]) {
     if (rank == 0) {
         std::cout << "GET after flushing PUTs" << std::endl;
     }
+    MPI_Barrier(MPI_COMM_WORLD);
 
     hxhim::Results *flush_gets = hxhim::Flush(&hx);
     if (print) {
@@ -184,6 +226,7 @@ int main(int argc, char *argv[]) {
     }
     hxhim::Results::Destroy(flush_gets);
 
+    // cleanup
     free(doubles);
     spo_clean(count, &subjects, &subject_lens, &predicates, &predicate_lens, nullptr, nullptr);
 

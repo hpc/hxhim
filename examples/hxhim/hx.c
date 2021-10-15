@@ -5,7 +5,6 @@
 #include <mpi.h>
 
 #include "hxhim/hxhim.h"
-#include "utils/elen.h"
 #include "print_results.h"
 #include "spo_gen.h"
 #include "timestamps.h"
@@ -151,13 +150,16 @@ int main(int argc, char *argv[]) {
         ordered_print(MPI_COMM_WORLD, rank, size, &hx, flush_puts);
     }
 
-    uint64_t duration = 0;
-    hxhim_results_duration(flush_puts, &duration);
+    long double duration = 0;
+    duration += nano(&put_start, &put_end);
+    duration += nano(&flush_put_start, &flush_put_end);
+    duration /= 1e9;
 
     for(int i = 0; i < size; i++) {
         MPI_Barrier(MPI_COMM_WORLD);
         if (i == rank) {
-            fprintf(stderr, "Rank %d: %zu PUTs in %.3f seconds (%.3f PUTs/sec)\n", i, count, duration / 1e9, count * 1e9 / duration);
+            fprintf(stderr, "Rank %d: %zu PUTs in %.3Lf seconds (%.3Lf PUTs/sec)\n",
+                    i, count, duration, count / duration);
         }
         MPI_Barrier(MPI_COMM_WORLD);
     }
@@ -165,6 +167,8 @@ int main(int argc, char *argv[]) {
     timestamp_start(destroy);
     hxhim_results_destroy(flush_puts);
     timestamp_end(destroy);
+
+    barrier;
 
     // GET again, now that all PUTs have completed
     for(size_t i = 0; i < count; i++) {
@@ -186,10 +190,8 @@ int main(int argc, char *argv[]) {
     hxhim_results_destroy(flush_gets);
 
     // clean up
-    timestamp_start(cleanup);
     free(doubles);
     spo_clean(count, &subjects, &subject_lens, &predicates, &predicate_lens, NULL, NULL);
-    timestamp_end(cleanup);
 
     MPI_Barrier(MPI_COMM_WORLD);
 

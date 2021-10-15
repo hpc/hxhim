@@ -1,6 +1,10 @@
 #ifndef HXHIM_EXAMPLES_TIMESTAMPS_H
 #define HXHIM_EXAMPLES_TIMESTAMPS_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <inttypes.h>
 #include <mpi.h>
 #include <stdint.h>
@@ -34,5 +38,9 @@ long double sec(struct timespec *start, struct timespec *end);
         MPI_Barrier(MPI_COMM_WORLD);            \
         timestamp_end(mpi_barrier);             \
     } while(0)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
