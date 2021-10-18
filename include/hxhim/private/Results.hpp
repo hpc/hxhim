@@ -16,7 +16,7 @@ namespace hxhim {
         Results::Hist   *init(hxhim_t *hx, Transport::Response::BHistogram *bhist, const std::size_t i);
 
         // add all responses into results with one call
-        uint64_t AddAll(hxhim_t *hx, hxhim::Results *results, Transport::Response::Response *response);
+        void AddAll(hxhim_t *hx, hxhim::Results *results, Transport::Response::Response *response);
     }
 }
 

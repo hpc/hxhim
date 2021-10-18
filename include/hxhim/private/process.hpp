@@ -40,8 +40,6 @@ hxhim::Results *process(hxhim_t *hx,
 
     // serialized results
     hxhim::Results *res = construct<hxhim::Results>();
-    uint64_t extra_time = 0;
-
     while (remaining(queues)) {
         #if PRINT_TIMESTAMPS
         ::Stats::Chronopoint pop_start = ::Stats::now();
@@ -66,18 +64,16 @@ hxhim::Results *process(hxhim_t *hx,
                     remote[req->dst] = req;
                 }
 
+                #if PRINT_TIMESTAMPS
                 ::Stats::Chronopoint collect_stats_start = ::Stats::now();
+                #endif
                 hx->p->stats.used[req->op].push_back(req->filled());
                 hx->p->stats.outgoing[req->op][req->dst]++;
-                ::Stats::Chronopoint collect_stats_end = ::Stats::now();
                 #if PRINT_TIMESTAMPS
+                ::Stats::Chronopoint collect_stats_end = ::Stats::now();
                 ::Stats::print_event(hx->p->print_buffer, rank, "collect_stats",
                                      ::Stats::global_epoch, collect_stats_start, collect_stats_end);
                 #endif
-
-                extra_time += ::Stats::nano(collect_stats_start,
-                                            collect_stats_end);
-
             }
         }
 
@@ -100,9 +96,6 @@ hxhim::Results *process(hxhim_t *hx,
             ::Stats::Chronopoint remote_end = ::Stats::now();
             ::Stats::print_event(hx->p->print_buffer, rank, "remote",
                                  ::Stats::global_epoch, remote_start, remote_end);
-            #endif
-
-            #if PRINT_TIMESTAMPS
             ::Stats::Chronopoint serialize_start = ::Stats::now();
             #endif
 
@@ -113,20 +106,18 @@ hxhim::Results *process(hxhim_t *hx,
             ::Stats::Chronopoint serialize_end = ::Stats::now();
             ::Stats::print_event(hx->p->print_buffer, rank, "serialize",
                                  ::Stats::global_epoch, serialize_start, serialize_end);
+            ::Stats::Chronopoint destruct_start = ::Stats::now();
             #endif
 
-            ::Stats::Chronopoint destruct_start = ::Stats::now();
             for(REF(remote)::value_type const &req : remote) {
                 destruct(req.second);
             }
-            ::Stats::Chronopoint destruct_end = ::Stats::now();
 
             #if PRINT_TIMESTAMPS
+            ::Stats::Chronopoint destruct_end = ::Stats::now();
             ::Stats::print_event(hx->p->print_buffer, rank, "destruct",
                                  ::Stats::global_epoch, destruct_start, destruct_end);
             #endif
-
-            extra_time += ::Stats::nano(destruct_start, destruct_end);
         }
 
         // process local data
@@ -142,9 +133,6 @@ hxhim::Results *process(hxhim_t *hx,
             ::Stats::Chronopoint local_end = ::Stats::now();
             ::Stats::print_event(hx->p->print_buffer, rank, "local",
                                  ::Stats::global_epoch, local_start, local_end);
-            #endif
-
-            #if PRINT_TIMESTAMPS
             ::Stats::Chronopoint serialize_start = ::Stats::now();
             #endif
 
@@ -155,22 +143,18 @@ hxhim::Results *process(hxhim_t *hx,
             ::Stats::Chronopoint serialize_end = ::Stats::now();
             ::Stats::print_event(hx->p->print_buffer, rank, "serialize",
                                  ::Stats::global_epoch, serialize_start, serialize_end);
+            ::Stats::Chronopoint destruct_start = ::Stats::now();
             #endif
 
-            ::Stats::Chronopoint destruct_start = ::Stats::now();
             destruct(local);
-            ::Stats::Chronopoint destruct_end = ::Stats::now();
 
             #if PRINT_TIMESTAMPS
+            ::Stats::Chronopoint destruct_end = ::Stats::now();
             ::Stats::print_event(hx->p->print_buffer, rank, "destruct",
                                  ::Stats::global_epoch, destruct_start, destruct_end);
             #endif
-
-            extra_time += ::Stats::nano(destruct_start, destruct_end);
         }
     }
-
-    res->UpdateDuration(extra_time);
 
     #if PRINT_TIMESTAMPS
     ::Stats::Chronopoint process_end = ::Stats::now();

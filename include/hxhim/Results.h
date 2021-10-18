@@ -63,7 +63,6 @@ int hxhim_results_valid(hxhim_results_t *res);                             /* wh
 
 // Accessors for the entire list of results
 int hxhim_results_size(hxhim_results_t *res, size_t *size);
-int hxhim_results_duration(hxhim_results_t *res, uint64_t *duration);
 
 // "iterator" functions
 int hxhim_results_valid_iterator(hxhim_results_t *res);                     /* whether or not the pointer is readable */

@@ -228,38 +228,17 @@ hxhim::Results::Hist *hxhim::Result::init(hxhim_t *hx, Transport::Response::BHis
 /**
  * AddAll
  * Converts an entire response packet into a result list
- * Timestamps are summed up and updated in the target
- * results list
  *
  * @param results   the result list to insert into
  * @param response  the response packet
  */
-uint64_t hxhim::Result::AddAll(hxhim_t *hx, hxhim::Results *results,
-                               Transport::Response::Response *response) {
-    ::Stats::Chronopoint start = ::Stats::now();
-
-    uint64_t duration = 0;
+void hxhim::Result::AddAll(hxhim_t *hx, hxhim::Results *results,
+                           Transport::Response::Response *response) {
     for(Transport::Response::Response *res = response; res; res = next(res)) {
-        duration += ::Stats::nano(res->timestamps.transport.start,
-                                  res->timestamps.transport.end);
-
         for(std::size_t i = 0; i < res->count; i++) {
-            hxhim::Results::Result *result = results->Add(hxhim::Result::init(hx, res, i));
-
-            // add timestamps of individual results
-            duration += ::Stats::nano(result->timestamps.send.hash.start,
-                                      result->timestamps.send.insert.end) +
-                        ::Stats::nano(result->timestamps.recv.result.start,
-                                      result->timestamps.recv.result.end);
+            results->Add(hxhim::Result::init(hx, res, i));
         }
     }
-
-    ::Stats::Chronopoint end = ::Stats::now();
-
-    duration += ::Stats::nano(start, end);
-    results->UpdateDuration(duration);
-
-    return duration;
 }
 
 /**
@@ -276,8 +255,7 @@ hxhim::Results::Results()
     : head(nullptr),
       tail(nullptr),
       curr(nullptr),
-      count(0),
-      duration(0)
+      count(0)
 {}
 
 hxhim::Results::~Results() {
@@ -359,23 +337,6 @@ hxhim::Results::Result *hxhim::Results::Add(hxhim::Results::Result *response) {
 }
 
 /**
- * UpdateDuration
- * Change the time spent to collect this set of results.
- * Needed since individual results do not have the packet
- * time, and adding the packet time with each result is
- * incorrect. Also needed because Transport::Message
- * should not be exposed.
- *
- * @param  ns   the change in nanoseconds
- * @return the duration before the change in nanoseconds
- */
-uint64_t hxhim::Results::UpdateDuration(const uint64_t ns) {
-    const uint64_t old_duration = duration;
-    duration += ns;
-    return old_duration;
-}
-
-/**
  * Append
  * Moves and appends the contents of another hxhim::Results into this one.
  * The other list is emptied out
@@ -388,7 +349,6 @@ void hxhim::Results::Append(hxhim::Results *other) {
             push_back(other->head);    // move other into this instance
             tail = other->tail;        // override tail since the actual tail is other->tail
             count += other->count - 1; // subtract 1 because count was incremented in push_back
-            duration += other->duration;
         }
 
         // clear out other
@@ -396,7 +356,6 @@ void hxhim::Results::Append(hxhim::Results *other) {
         other->tail = nullptr;
         other->curr = nullptr;
         other->count = 0;
-        other->duration = 0;
     }
 }
 
@@ -511,38 +470,6 @@ int hxhim_results_size(hxhim_results_t *res, size_t *size) {
 
     if (size) {
         *size = res->res->Size();
-    }
-
-    return HXHIM_SUCCESS;
-}
-
-/**
- * Duration
- * Return the total time it took to convert
- * requests to responses.
- *
- * @return the total time in nanoseconds
- */
-uint64_t hxhim::Results::Duration() const {
-    return duration;
-}
-
-/**
- * Duration
- * Return the total time it took to convert
- * requests to responses.
- *
- * @param res       A list of results
- * @param duration  The total time
- * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
- */
-int hxhim_results_duration(hxhim_results_t *res, uint64_t *duration) {
-    if (hxhim_results_valid(res) != HXHIM_SUCCESS) {
-        return HXHIM_ERROR;
-    }
-
-    if (duration) {
-        *duration = res->res->Duration();
     }
 
     return HXHIM_SUCCESS;
