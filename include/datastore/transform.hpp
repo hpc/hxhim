@@ -7,7 +7,7 @@
 #include "hxhim/constants.h"
 #include "utils/type_traits.hpp"
 
-namespace datastore {
+namespace Datastore {
     namespace Transform {
         /** Common values used by numeric encoding/decoding */
         struct NumericExtra {

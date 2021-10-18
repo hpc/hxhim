@@ -7,13 +7,13 @@
 #include "triples.hpp"
 #include "utils/memory.hpp"
 
-class InMemoryTest : public datastore::InMemory {
+class InMemoryTest : public Datastore::InMemory {
   public:
     InMemoryTest()
-        : datastore::InMemory(-1, 0, nullptr)
+        : ::Datastore::InMemory(-1, 0, nullptr)
     {}
 
-    int GetHistograms(datastore::Datastore::Histograms **histograms) {
+    int GetHistograms(Datastore::Datastore::Histograms **histograms) {
         if (histograms) {
             *histograms = &hists;
         }
@@ -275,7 +275,7 @@ TEST(InMemory, Histograms) {
     destruct(ds->operate(&req));
     delete [] values;
 
-    datastore::Datastore::Histograms *hists = nullptr;
+    Datastore::Datastore::Histograms *hists = nullptr;
     EXPECT_EQ(ds->GetHistograms(&hists), DATASTORE_SUCCESS);
     ASSERT_NE(hists, nullptr);
     EXPECT_EQ(hists->size(), hist_count);
@@ -288,7 +288,7 @@ TEST(InMemory, Histograms) {
 
         // hist0 buckets have been generated
         {
-            datastore::Datastore::Histograms::const_iterator it = hists->find(hist_names[0]);
+            Datastore::Datastore::Histograms::const_iterator it = hists->find(hist_names[0]);
             if (it == hists->end()) {
                 FAIL();
             }
@@ -305,7 +305,7 @@ TEST(InMemory, Histograms) {
 
         // hist1 buckets have not been generated
         {
-            datastore::Datastore::Histograms::const_iterator it = hists->find(hist_names[1]);
+            Datastore::Datastore::Histograms::const_iterator it = hists->find(hist_names[1]);
             if (it == hists->end()) {
                 FAIL();
             }
@@ -328,7 +328,7 @@ TEST(InMemory, Histograms) {
     EXPECT_EQ(ds->data().size(), triples + hist_count);
 
     // clear the histogram data
-    for(datastore::Datastore::Histograms::value_type &hist : *hists) {
+    for(Datastore::Datastore::Histograms::value_type &hist : *hists) {
         hist.second->clear();
 
         double *buckets = nullptr;
@@ -353,7 +353,7 @@ TEST(InMemory, Histograms) {
     EXPECT_EQ(hists->size(), hist_count);
 
     // read the histograms back in
-    EXPECT_EQ(ds->ReadHistograms(datastore::HistNames_t(std::begin(hist_names),
+    EXPECT_EQ(ds->ReadHistograms(Datastore::HistNames_t(std::begin(hist_names),
                                                         std::end  (hist_names))),
               hist_count);
 
@@ -365,7 +365,7 @@ TEST(InMemory, Histograms) {
 
         // hist0 has buckets
         {
-            datastore::Datastore::Histograms::const_iterator it = hists->find(hist_names[0]);
+            Datastore::Datastore::Histograms::const_iterator it = hists->find(hist_names[0]);
             if (it == hists->end()) {
                 FAIL();
             }
@@ -382,7 +382,7 @@ TEST(InMemory, Histograms) {
 
         // hist1 does not have buckets
         {
-            datastore::Datastore::Histograms::const_iterator it = hists->find(hist_names[1]);
+            Datastore::Datastore::Histograms::const_iterator it = hists->find(hist_names[1]);
             if (it == hists->end()) {
                 FAIL();
             }

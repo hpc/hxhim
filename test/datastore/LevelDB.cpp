@@ -2,27 +2,27 @@
 #include <sstream>
 
 #include <gtest/gtest.h>
-#include <rocksdb/db.h>
+#include <leveldb/db.h>
 #include <mpi.h>
 
-#include "datastore/rocksdb.hpp"
+#include "datastore/LevelDB.hpp"
 #include "hxhim/triplestore.hpp"
 #include "rm_r.hpp"
 #include "triples.hpp"
 #include "utils/memory.hpp"
 
-class RocksDBTest : public datastore::rocksdb {
+class LevelDBTest : public ::Datastore::LevelDB {
     public:
-        RocksDBTest(const int rank)
-            : datastore::rocksdb(rank, 0, nullptr, true)
+        LevelDBTest(const int rank)
+            : ::Datastore::LevelDB(rank, 0, nullptr, true)
         {}
 
-        ~RocksDBTest()  {
+        ~LevelDBTest()  {
             Close();
             cleanup();
         }
 
-        int GetHistograms(datastore::Datastore::Histograms **histograms) {
+        int GetHistograms(Datastore::Datastore::Histograms **histograms) {
             if (histograms) {
                 *histograms = &hists;
             }
@@ -30,7 +30,7 @@ class RocksDBTest : public datastore::rocksdb {
             return DATASTORE_SUCCESS;
         }
 
-        ::rocksdb::DB *data() const {
+        ::leveldb::DB *data() const {
             return db;
         }
 
@@ -40,17 +40,17 @@ class RocksDBTest : public datastore::rocksdb {
         }
 };
 
-// create a test RocksDB datastore and insert some triples
-static RocksDBTest *setup() {
+// create a test LevelDB datastore and insert some triples
+static LevelDBTest *setup() {
     int rank = -1;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     std::stringstream s;
-    s << "ROCKSDB-TEST-" << rank;
+    s << "LEVELDB-TEST-" << rank;
 
     rm_r(s.str());
 
-    RocksDBTest *ds = construct<RocksDBTest>(rank);
+    LevelDBTest *ds = construct<LevelDBTest>(rank);
     EXPECT_FALSE(ds->Usable());
     ds->Open(s.str());
     EXPECT_TRUE(ds->Usable());
@@ -69,27 +69,27 @@ static RocksDBTest *setup() {
     return ds;
 }
 
-TEST(RocksDB, BPut) {
-    RocksDBTest *ds = setup();
+TEST(LevelDB, BPut) {
+    LevelDBTest *ds = setup();
     ASSERT_NE(ds, nullptr);
 
-    ::rocksdb::DB *db = ds->data();
+    ::leveldb::DB *db = ds->data();
 
-    // read directly from RocksDB since setup() already did PUTs
+    // read directly from leveldb since setup() already did PUTs
     for(std::size_t i = 0; i < count; i++) {
         std::string key;
         EXPECT_EQ(sp_to_key(ReferenceBlob(subjects[i]), ReferenceBlob(predicates[i]), key), HXHIM_SUCCESS);
         EXPECT_NE(key.size(), 0);
 
         std::string value;
-        rocksdb::Status status = db->Get(rocksdb::ReadOptions(), key, &value);
+        ::leveldb::Status status = db->Get(::leveldb::ReadOptions(), key, &value);
         EXPECT_EQ(status.ok(), true);
         EXPECT_EQ(memcmp(ReferenceBlob(objects[i]).data(), value.c_str(), value.size()), 0);
     }
 
     // make sure datastore only has count items
     std::size_t items = 0;
-    rocksdb::Iterator *it = db->NewIterator(rocksdb::ReadOptions());
+    ::leveldb::Iterator *it = db->NewIterator(::leveldb::ReadOptions());
     for(it->SeekToFirst(); it->Valid(); it->Next()) {
         items++;
     }
@@ -100,8 +100,8 @@ TEST(RocksDB, BPut) {
     destruct(ds);
 }
 
-TEST(RocksDB, BGet) {
-    RocksDBTest *ds = setup();
+TEST(LevelDB, BGet) {
+    LevelDBTest *ds = setup();
     ASSERT_NE(ds, nullptr);
 
     // get triple back using GET
@@ -131,8 +131,8 @@ TEST(RocksDB, BGet) {
     destruct(ds);
 }
 
-TEST(RocksDB, BGetOp) {
-    RocksDBTest *ds = setup();
+TEST(LevelDB, BGetOp) {
+    LevelDBTest *ds = setup();
     ASSERT_NE(ds, nullptr);
 
     for(int op = HXHIM_GETOP_EQ; op < HXHIM_GETOP_INVALID; op++) {
@@ -207,11 +207,11 @@ TEST(RocksDB, BGetOp) {
     destruct(ds);
 }
 
-TEST(RocksDB, BDelete) {
-    RocksDBTest *ds = setup();
+TEST(LevelDB, BDelete) {
+    LevelDBTest *ds = setup();
     ASSERT_NE(ds, nullptr);
 
-    ::rocksdb::DB *db = ds->data();
+    ::leveldb::DB *db = ds->data();
 
     // delete the triples
     {
@@ -264,7 +264,7 @@ TEST(RocksDB, BDelete) {
             EXPECT_NE(key.size(), 0);
 
             std::string value;
-            rocksdb::Status status = db->Get(rocksdb::ReadOptions(), key, &value);
+            ::leveldb::Status status = db->Get(::leveldb::ReadOptions(), key, &value);
             EXPECT_EQ(status.ok(), false);
             EXPECT_EQ(memcmp(ReferenceBlob(objects[i]).data(), value.c_str(), value.size()), 0);
         }
@@ -273,7 +273,7 @@ TEST(RocksDB, BDelete) {
     // make sure datastore doesn't have the original SPO triples
     {
         std::size_t items = 0;
-        rocksdb::Iterator *it = db->NewIterator(rocksdb::ReadOptions());
+        ::leveldb::Iterator *it = db->NewIterator(::leveldb::ReadOptions());
         for(it->SeekToFirst(); it->Valid(); it->Next()) {
             items++;
         }
@@ -285,7 +285,7 @@ TEST(RocksDB, BDelete) {
     destruct(ds);
 }
 
-TEST(RocksDB, Histograms) {
+TEST(LevelDB, Histograms) {
     const std::string hist_names[] = {"hist0", "hist1"};
     const std::size_t hist_count = sizeof(hist_names) / sizeof(*hist_names);
     const std::size_t first_ns[] = {count - 1,   //  buckets are generated at the end
@@ -294,11 +294,11 @@ TEST(RocksDB, Histograms) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     std::stringstream s;
-    s << "ROCKSDB-TEST-" << rank;
+    s << "LEVELDB-TEST-" << rank;
 
     rm_r(s.str());
 
-    RocksDBTest *ds = construct<RocksDBTest>(rank);
+    LevelDBTest *ds = construct<LevelDBTest>(rank);
     ds->Open(s.str());
 
     // add some histograms
@@ -351,7 +351,7 @@ TEST(RocksDB, Histograms) {
     destruct(ds->operate(&req));
     delete [] values;
 
-    datastore::Datastore::Histograms *hists = nullptr;
+    Datastore::Datastore::Histograms *hists = nullptr;
     EXPECT_EQ(ds->GetHistograms(&hists), DATASTORE_SUCCESS);
     ASSERT_NE(hists, nullptr);
     EXPECT_EQ(hists->size(), hist_count);
@@ -364,7 +364,7 @@ TEST(RocksDB, Histograms) {
 
         // hist0 buckets have been generated
         {
-            datastore::Datastore::Histograms::const_iterator it = hists->find(hist_names[0]);
+            Datastore::Datastore::Histograms::const_iterator it = hists->find(hist_names[0]);
             if (it == hists->end()) {
                 FAIL();
             }
@@ -381,7 +381,7 @@ TEST(RocksDB, Histograms) {
 
         // hist1 buckets have not been generated
         {
-            datastore::Datastore::Histograms::const_iterator it = hists->find(hist_names[1]);
+            Datastore::Datastore::Histograms::const_iterator it = hists->find(hist_names[1]);
             if (it == hists->end()) {
                 FAIL();
             }
@@ -402,7 +402,7 @@ TEST(RocksDB, Histograms) {
     // Write the histograms to the datastore
     ds->WriteHistograms();
     {
-        rocksdb::Iterator* it = ds->data()->NewIterator(rocksdb::ReadOptions());
+        ::leveldb::Iterator* it = ds->data()->NewIterator(::leveldb::ReadOptions());
         std::size_t pairs = 0;
         for (it->SeekToFirst(); it->Valid(); it->Next()) {
             pairs++;
@@ -414,7 +414,7 @@ TEST(RocksDB, Histograms) {
     }
 
     // clear the histogram data
-    for(datastore::Datastore::Histograms::value_type &hist : *hists) {
+    for(Datastore::Datastore::Histograms::value_type &hist : *hists) {
         hist.second->clear();
 
         double *buckets = nullptr;
@@ -439,7 +439,7 @@ TEST(RocksDB, Histograms) {
     EXPECT_EQ(hists->size(), hist_count);
 
     // read the histograms back in
-    EXPECT_EQ(ds->ReadHistograms(datastore::HistNames_t(std::begin(hist_names),
+    EXPECT_EQ(ds->ReadHistograms(Datastore::HistNames_t(std::begin(hist_names),
                                                         std::end  (hist_names))),
               hist_count);
 
@@ -451,7 +451,7 @@ TEST(RocksDB, Histograms) {
 
         // hist0 has buckets
         {
-            datastore::Datastore::Histograms::const_iterator it = hists->find(hist_names[0]);
+            Datastore::Datastore::Histograms::const_iterator it = hists->find(hist_names[0]);
             if (it == hists->end()) {
                 FAIL();
             }
@@ -468,7 +468,7 @@ TEST(RocksDB, Histograms) {
 
         // hist1 does not have buckets
         {
-            datastore::Datastore::Histograms::const_iterator it = hists->find(hist_names[1]);
+            Datastore::Datastore::Histograms::const_iterator it = hists->find(hist_names[1]);
             if (it == hists->end()) {
                 FAIL();
             }

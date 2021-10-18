@@ -158,7 +158,7 @@ int hxhim_options_datastore_histograms(hxhim_options_t *opts, const int read, co
  * @param config configuration data needed to initialize the datastore
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-static int hxhim_options_set_datastore(hxhim_options_t *opts, datastore::Config *config) {
+static int hxhim_options_set_datastore(hxhim_options_t *opts, Datastore::Config *config) {
     if (!hxhim::valid(opts)) {
         return HXHIM_ERROR;
     }
@@ -175,8 +175,8 @@ static int hxhim_options_set_datastore(hxhim_options_t *opts, datastore::Config 
  *
  * @return a pointer to the configuration data, or a nullptr
  */
-static datastore::Config *hxhim_options_create_in_memory_config() {
-    return construct<datastore::InMemory::Config>();
+static Datastore::Config *hxhim_options_create_in_memory_config() {
+    return construct<Datastore::InMemory::Config>();
 }
 
 /**
@@ -188,7 +188,7 @@ static datastore::Config *hxhim_options_create_in_memory_config() {
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_set_datastore_in_memory(hxhim_options_t *opts) {
-    datastore::Config *config = hxhim_options_create_in_memory_config();
+    Datastore::Config *config = hxhim_options_create_in_memory_config();
     if (hxhim_options_set_datastore(opts, config) != HXHIM_SUCCESS) {
         destruct(config);
         return HXHIM_ERROR;
@@ -209,7 +209,7 @@ int hxhim_options_set_datastore_in_memory(hxhim_options_t *opts) {
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_set_datastore_leveldb(hxhim_options_t *opts, const char *prefix, const char *postfix, const int create_if_missing) {
-    datastore::leveldb::Config *config = construct<datastore::leveldb::Config>(prefix, postfix, create_if_missing);
+    Datastore::LevelDB::Config *config = construct<Datastore::LevelDB::Config>(prefix, postfix, create_if_missing);
     if (hxhim_options_set_datastore(opts, config) != HXHIM_SUCCESS) {
         destruct(config);
         return HXHIM_ERROR;
@@ -231,7 +231,7 @@ int hxhim_options_set_datastore_leveldb(hxhim_options_t *opts, const char *prefi
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_options_set_datastore_rocksdb(hxhim_options_t *opts, const char *prefix, const char *postfix, const int create_if_missing) {
-    datastore::rocksdb::Config *config = construct<datastore::rocksdb::Config>(prefix, postfix, create_if_missing);
+    Datastore::RocksDB::Config *config = construct<Datastore::RocksDB::Config>(prefix, postfix, create_if_missing);
     if (hxhim_options_set_datastore(opts, config) != HXHIM_SUCCESS) {
         destruct(config);
         return HXHIM_ERROR;

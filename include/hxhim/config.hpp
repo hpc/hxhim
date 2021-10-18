@@ -107,13 +107,13 @@ const std::unordered_map<std::string, int> DEBUG_LEVELS = {
 /**
  * Set of allowed datastores for HXHIM
  */
-const std::unordered_map<std::string, datastore::Type> DATASTORES = {
-    std::make_pair("IN_MEMORY", datastore::IN_MEMORY),
+const std::unordered_map<std::string, Datastore::Type> DATASTORES = {
+    std::make_pair("IN_MEMORY", Datastore::IN_MEMORY),
     #if HXHIM_HAVE_LEVELDB
-    std::make_pair("LEVELDB",   datastore::LEVELDB),
+    std::make_pair("LEVELDB",   Datastore::LEVELDB),
     #endif
     #if HXHIM_HAVE_ROCKSDB
-    std::make_pair("ROCKSDB",   datastore::ROCKSDB),
+    std::make_pair("ROCKSDB",   Datastore::ROCKSDB),
     #endif
 };
 

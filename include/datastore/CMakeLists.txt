@@ -14,13 +14,13 @@ set(NOT_INSTALLED_HEADERS
 
 if (LEVELDB_FOUND AND ENABLE_LEVELDB)
   list(APPEND NOT_INSTALLED_HEADERS
-    leveldb.hpp
+    LevelDB.hpp
   )
 endif()
 
 if (ROCKSDB_FOUND AND ENABLE_ROCKSDB)
   list(APPEND NOT_INSTALLED_HEADERS
-    rocksdb.hpp
+    RocksDB.hpp
   )
 endif()
 

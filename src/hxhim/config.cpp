@@ -92,7 +92,7 @@ bool parse_map_value(hxhim_options_t *opts, const Config::Config &config, const 
  * @return a boolean indicating whether or not an error was encountered
  */
 static bool parse_datastore(hxhim_options_t *opts, const Config::Config &config) {
-    datastore::Type datastore;
+    Datastore::Type datastore;
 
     int ret = Config::get_from_map(config, hxhim::config::DATASTORE_TYPE, hxhim::config::DATASTORES, datastore);
 
@@ -106,10 +106,10 @@ static bool parse_datastore(hxhim_options_t *opts, const Config::Config &config)
 
     if (ret == Config::FOUND) {
         switch (datastore) {
-            case datastore::IN_MEMORY:
+            case Datastore::IN_MEMORY:
                 return (hxhim_options_set_datastore_in_memory(opts) == HXHIM_SUCCESS);
             #if HXHIM_HAVE_LEVELDB
-            case datastore::LEVELDB:
+            case Datastore::LEVELDB:
                 {
                     // get the leveldb datastore prefix
                     Config::Config_it prefix = config.find(hxhim::config::LEVELDB_PREFIX);
@@ -133,7 +133,7 @@ static bool parse_datastore(hxhim_options_t *opts, const Config::Config &config)
                 break;
             #endif
             #if HXHIM_HAVE_ROCKSDB
-            case datastore::ROCKSDB:
+            case Datastore::ROCKSDB:
                 {
                     // get the rocksdb datastore prefix
                     Config::Config_it prefix = config.find(hxhim::config::ROCKSDB_PREFIX);

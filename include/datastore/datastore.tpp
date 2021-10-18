@@ -4,14 +4,14 @@
 #include "transport/Messages/Messages.hpp"
 
 template <typename Key_t, typename Value_t>
-void datastore::Datastore::BGetOp_copy_response(Transform::Callbacks *callbacks,
+void Datastore::Datastore::BGetOp_copy_response(Transform::Callbacks *callbacks,
                                                 const Key_t &key,
                                                 const Value_t &value,
                                                 Transport::Request::BGetOp *req,
                                                 Transport::Response::BGetOp *res,
                                                 const std::size_t i,
                                                 const std::size_t j,
-                                                datastore::Datastore::Stats::Event &event) {
+                                                Datastore::Datastore::Stats::Event &event) {
     if (res->statuses[i] == DATASTORE_UNSET) {
         // extract the encoded subject and predicate from the key
         Blob encoded_subject;

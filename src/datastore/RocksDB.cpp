@@ -1,9 +1,9 @@
 #include <deque>
 #include <sstream>
 
-#include "leveldb/write_batch.h"
+#include "rocksdb/write_batch.h"
 
-#include "datastore/leveldb.hpp"
+#include "datastore/RocksDB.hpp"
 #include "hxhim/Blob.hpp"
 #include "hxhim/accessors.hpp"
 #include "hxhim/triplestore.hpp"
@@ -11,7 +11,7 @@
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
-datastore::leveldb::leveldb(const int rank,
+Datastore::RocksDB::RocksDB(const int rank,
                             const int id,
                             Transform::Callbacks *callbacks,
                             const bool create_if_missing)
@@ -23,62 +23,61 @@ datastore::leveldb::leveldb(const int rank,
     options.create_if_missing = create_if_missing;
 }
 
-datastore::leveldb::~leveldb() {
+Datastore::RocksDB::~RocksDB() {
     Close();
 }
 
-bool datastore::leveldb::OpenImpl(const std::string &new_name) {
+bool Datastore::RocksDB::OpenImpl(const std::string &new_name) {
     #if PRINT_TIMESTAMPS
-    ::Stats::Chronostamp leveldb_open;
-    leveldb_open.start = ::Stats::now();
+    ::Stats::Chronostamp rocksdb_open;
+    rocksdb_open.start = ::Stats::now();
     #endif
     name = new_name;
-    ::leveldb::Status status = ::leveldb::DB::Open(options, name, &db);
+    ::rocksdb::Status status = ::rocksdb::DB::Open(options, name, &db);
     #if PRINT_TIMESTAMPS
-    leveldb_open.end = ::Stats::now();
+    rocksdb_open.end = ::Stats::now();
     #endif
     if (!status.ok()) {
         return false;
     }
-    mlog(LEVELDB_INFO, "Opened leveldb with name: %s", name.c_str());
     #if PRINT_TIMESTAMPS
-    ::Stats::print_event(std::cerr, rank, "leveldb_open", ::Stats::global_epoch, leveldb_open);
+    ::Stats::print_event(std::cerr, rank, "rocksdb_open", ::Stats::global_epoch, rocksdb_open);
     #endif
-
+    mlog(ROCKSDB_INFO, "Opened rocksdb with name: %s", name.c_str());
     return status.ok();
 }
 
-void datastore::leveldb::CloseImpl() {
+void Datastore::RocksDB::CloseImpl() {
     delete db;
     db = nullptr;
 }
 
-bool datastore::leveldb::UsableImpl() const {
+bool Datastore::RocksDB::UsableImpl() const {
     return db;
 }
 
-const std::string &datastore::leveldb::Name() const {
+const std::string &Datastore::RocksDB::Name() const {
     return name;
 }
 
 /**
  * BPut
- * Performs a bulk PUT in leveldb
+ * Performs a bulk PUT in rocksdb
  *
  * @param req  the packet requesting multiple PUTs
  * @return pointer to a list of results
  */
-Transport::Response::BPut *datastore::leveldb::BPutImpl(Transport::Request::BPut *req) {
-    mlog(LEVELDB_INFO, "LevelDB BPut");
+Transport::Response::BPut *Datastore::RocksDB::BPutImpl(Transport::Request::BPut *req) {
+    mlog(ROCKSDB_INFO, "Rocksdb BPut");
 
-    datastore::Datastore::Stats::Event event;
+    Datastore::Datastore::Stats::Event event;
     event.time.start = ::Stats::now();
     event.count = req->count;
 
     Transport::Response::BPut *res = construct<Transport::Response::BPut>(req->count);
 
     // batch up PUTs
-    ::leveldb::WriteBatch batch;
+    ::rocksdb::WriteBatch batch;
     for(std::size_t i = 0; i < req->count; i++) {
         void *subject = nullptr;
         std::size_t subject_len = 0;
@@ -97,7 +96,7 @@ Transport::Response::BPut *datastore::leveldb::BPutImpl(Transport::Request::BPut
                       ReferenceBlob(predicate, predicate_len, req->predicates[i].data_type()),
                       key);
 
-            batch.Put(::leveldb::Slice(key.c_str(), key.size()), ::leveldb::Slice((char *) object, object_len));
+            batch.Put(::rocksdb::Slice(key.c_str(), key.size()), ::rocksdb::Slice((char *) object, object_len));
 
             event.size += key.size() + object_len;
             status = DATASTORE_UNSET;
@@ -119,7 +118,7 @@ Transport::Response::BPut *datastore::leveldb::BPutImpl(Transport::Request::BPut
         res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size(), req->predicates[i].data_type());
     }
 
-    ::leveldb::Status status = db->Write(::leveldb::WriteOptions(), &batch);
+    ::rocksdb::Status status = db->Write(::rocksdb::WriteOptions(), &batch);
 
     if (status.ok()) {
         // successful writes only update statuses that were unset
@@ -128,34 +127,34 @@ Transport::Response::BPut *datastore::leveldb::BPutImpl(Transport::Request::BPut
                 res->statuses[i] = DATASTORE_SUCCESS;
             }
         }
-        mlog(LEVELDB_INFO, "LevelDB write success");
+        mlog(ROCKSDB_INFO, "Rocksdb write success");
     }
     else {
         for(std::size_t i = 0; i < req->count; i++) {
             res->statuses[i] = DATASTORE_ERROR;
         }
-        mlog(LEVELDB_INFO, "LevelDB write error");
+        mlog(ROCKSDB_INFO, "Rocksdb write error");
     }
 
     res->count = req->count;
     event.time.end = ::Stats::now();
     stats.puts.emplace_back(event);
 
-    mlog(LEVELDB_INFO, "LevelDB BPut Completed");
+    mlog(ROCKSDB_INFO, "Rocksdb BPut Completed");
     return res;
 }
 
 /**
  * BGet
- * Performs a bulk GET in leveldb
+ * Performs a bulk GET in rocksdb
  *
  * @param req  the packet requesting multiple GETs
  * @return pointer to a list of results
  */
-Transport::Response::BGet *datastore::leveldb::BGetImpl(Transport::Request::BGet *req) {
-    mlog(LEVELDB_INFO, "Rank %d LevelDB GET processing %zu item in %ps", rank, req->count, req);
+Transport::Response::BGet *Datastore::RocksDB::BGetImpl(Transport::Request::BGet *req) {
+    mlog(ROCKSDB_INFO, "Rank %d Rocksdb GET processing %zu item in %ps", rank, req->count, req);
 
-    datastore::Datastore::Stats::Event event;
+    Datastore::Datastore::Stats::Event event;
     event.time.start = ::Stats::now();
     event.count = req->count;
 
@@ -178,10 +177,10 @@ Transport::Response::BGet *datastore::leveldb::BGetImpl(Transport::Request::BGet
                       key);
 
             std::string value;
-            ::leveldb::Status s = db->Get(::leveldb::ReadOptions(), key, &value);
+            ::rocksdb::Status s = db->Get(::rocksdb::ReadOptions(), key, &value);
 
             if (s.ok()) {
-                mlog(LEVELDB_INFO, "Rank %d LevelDB GET success", rank);
+                mlog(ROCKSDB_INFO, "Rank %d Rocksdb GET success", rank);
 
                 // decode the object
                 void *object = nullptr;
@@ -191,7 +190,7 @@ Transport::Response::BGet *datastore::leveldb::BGetImpl(Transport::Request::BGet
                     res->objects[i] = RealBlob(object, object_len, req->object_types[i]);
                     event.size += res->objects[i].size();
                     status = DATASTORE_SUCCESS;
-                    mlog(LEVELDB_INFO, "Rank %d LevelDB GET decode success", rank);
+                    mlog(ROCKSDB_INFO, "Rank %d Rocksdb GET decode success", rank);
                 }
             }
         }
@@ -214,23 +213,23 @@ Transport::Response::BGet *datastore::leveldb::BGetImpl(Transport::Request::BGet
     event.time.end = ::Stats::now();
     stats.gets.emplace_back(event);
 
-    mlog(LEVELDB_INFO, "Rank %d LevelDB GET done processing %p", rank, req);
+    mlog(ROCKSDB_INFO, "Rank %d Rocksdb GET done processing %p", rank, req);
     return res;
 }
 
 /**
  * BGetOp
- * Performs a GetOp in leveldb
+ * Performs a GetOp in rocksdb
  *
  * @param req  the packet requesting multiple GETOPs
  * @return pointer to a list of results
  */
-Transport::Response::BGetOp *datastore::leveldb::BGetOpImpl(Transport::Request::BGetOp *req) {
+Transport::Response::BGetOp *Datastore::RocksDB::BGetOpImpl(Transport::Request::BGetOp *req) {
     Transport::Response::BGetOp *res = construct<Transport::Response::BGetOp>(req->count);
 
-    ::leveldb::Iterator *it = db->NewIterator(::leveldb::ReadOptions());
+    ::rocksdb::Iterator *it = db->NewIterator(::rocksdb::ReadOptions());
     for(std::size_t i = 0; i < req->count; i++) {
-        datastore::Datastore::Stats::Event event;
+        Datastore::Datastore::Stats::Event event;
         event.time.start = ::Stats::now();
 
         // prepare response
@@ -368,19 +367,19 @@ Transport::Response::BGetOp *datastore::leveldb::BGetOpImpl(Transport::Request::
 
 /**
  * BDelete
- * Performs a bulk DELETE in leveldb
+ * Performs a bulk DELETE in rocksdb
  *
  * @param req  the packet requesting multiple DELETEs
  * @return pointer to a list of results
  */
-Transport::Response::BDelete *datastore::leveldb::BDeleteImpl(Transport::Request::BDelete *req) {
-    datastore::Datastore::Stats::Event event;
+Transport::Response::BDelete *Datastore::RocksDB::BDeleteImpl(Transport::Request::BDelete *req) {
+    Datastore::Datastore::Stats::Event event;
     event.time.start = ::Stats::now();
     event.count = req->count;
 
     Transport::Response::BDelete *res = construct<Transport::Response::BDelete>(req->count);
 
-    ::leveldb::WriteBatch batch;
+    ::rocksdb::WriteBatch batch;
 
     // batch delete
     for(std::size_t i = 0; i < req->count; i++) {
@@ -412,7 +411,7 @@ Transport::Response::BDelete *datastore::leveldb::BDeleteImpl(Transport::Request
     }
 
     // create responses
-    ::leveldb::Status status = db->Write(::leveldb::WriteOptions(), &batch);
+    ::rocksdb::Status status = db->Write(::rocksdb::WriteOptions(), &batch);
 
     const int stat = status.ok()?DATASTORE_SUCCESS:DATASTORE_ERROR;
     for(std::size_t i = 0; i < req->count; i++) {
@@ -433,14 +432,14 @@ Transport::Response::BDelete *datastore::leveldb::BDeleteImpl(Transport::Request
  *
  * @return DATASTORE_SUCCESS
  */
-int datastore::leveldb::WriteHistogramsImpl() {
-    ::leveldb::WriteBatch batch;
+int Datastore::RocksDB::WriteHistogramsImpl() {
+    ::rocksdb::WriteBatch batch;
 
     std::deque<void *> ptrs;
     for(decltype(hists)::value_type hist : hists) {
         std::string key;
-        sp_to_key(Blob(HISTOGRAM_SUBJECT),
-                  Blob(hist.first),
+        sp_to_key(ReferenceBlob((char *) HISTOGRAM_SUBJECT.data(), HISTOGRAM_SUBJECT.size(), hxhim_data_t::HXHIM_DATA_BYTE),
+                  ReferenceBlob((char *) hist.first.data(), hist.first.size(), hxhim_data_t::HXHIM_DATA_BYTE),
                   key);
 
         void *serial_hist = nullptr;
@@ -449,11 +448,11 @@ int datastore::leveldb::WriteHistogramsImpl() {
         hist.second->pack(&serial_hist, &serial_hist_len);
         ptrs.push_back(serial_hist);
 
-        batch.Put(::leveldb::Slice(key.c_str(), key.size()),
-                  ::leveldb::Slice((char *) serial_hist, serial_hist_len));
+        batch.Put(::rocksdb::Slice(key.c_str(), key.size()),
+                  ::rocksdb::Slice((char *) serial_hist, serial_hist_len));
     }
 
-    ::leveldb::Status status = db->Write(::leveldb::WriteOptions(), &batch);
+    ::rocksdb::Status status = db->Write(::rocksdb::WriteOptions(), &batch);
 
     for(void *ptr : ptrs) {
         dealloc(ptr);
@@ -471,7 +470,7 @@ int datastore::leveldb::WriteHistogramsImpl() {
  * @param names  A list of histogram names to look for
  * @return The number of histograms found
  */
-std::size_t datastore::leveldb::ReadHistogramsImpl(const datastore::HistNames_t &names) {
+std::size_t Datastore::RocksDB::ReadHistogramsImpl(const HistNames_t &names) {
     std::size_t found = 0;
 
     for(std::string const &name : names) {
@@ -483,7 +482,7 @@ std::size_t datastore::leveldb::ReadHistogramsImpl(const datastore::HistNames_t 
 
         // Search for the histogram
         std::string serial_hist;
-        ::leveldb::Status status = db->Get(::leveldb::ReadOptions(), key, &serial_hist);
+        ::rocksdb::Status status = db->Get(::rocksdb::ReadOptions(), key, &serial_hist);
 
         if (status.ok()) {
             std::shared_ptr<::Histogram::Histogram> new_hist(construct<::Histogram::Histogram>(),
@@ -508,9 +507,9 @@ std::size_t datastore::leveldb::ReadHistogramsImpl(const datastore::HistNames_t 
  *
  * @return DATASTORE_SUCCESS or DATASTORE_ERROR on error
  */
-int datastore::leveldb::SyncImpl() {
-    ::leveldb::WriteBatch batch;
-    ::leveldb::WriteOptions options;
+int Datastore::RocksDB::SyncImpl() {
+    ::rocksdb::WriteBatch batch;
+    ::rocksdb::WriteOptions options;
     options.sync = true;
     return db->Write(options, &batch).ok()?DATASTORE_SUCCESS:DATASTORE_ERROR;
 }

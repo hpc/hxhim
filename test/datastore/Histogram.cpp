@@ -159,7 +159,7 @@ TEST(datastore, Histogram) {
         ds.AddHistogram(pred_str, hist);
 
         // check histograms
-        const datastore::Datastore::Histograms *hists = nullptr;
+        const Datastore::Datastore::Histograms *hists = nullptr;
         EXPECT_EQ(ds.GetHistograms(&hists), DATASTORE_SUCCESS);
         EXPECT_NE(hists, nullptr);
         EXPECT_EQ(hists->size(), i + 1 + 1); // extra + 1 due to earlier histogram

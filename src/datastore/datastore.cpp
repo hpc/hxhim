@@ -9,9 +9,9 @@
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
-const std::string datastore::Datastore::HISTOGRAM_SUBJECT = "HISTOGRAM";
+const std::string Datastore::Datastore::HISTOGRAM_SUBJECT = "HISTOGRAM";
 
-datastore::Datastore::Datastore(const int rank,
+Datastore::Datastore::Datastore(const int rank,
                                 const int id,
                                 Transform::Callbacks *callbacks)
     : rank(rank),
@@ -43,7 +43,7 @@ static std::string hr_size(const std::size_t size, const long double time) {
     return s.str();
 }
 
-datastore::Datastore::~Datastore() {
+Datastore::Datastore::~Datastore() {
     mlog(DATASTORE_INFO, "Rank %d Datastore shutting down", rank);
 
     destruct(callbacks);
@@ -84,8 +84,8 @@ datastore::Datastore::~Datastore() {
     mlog(DATASTORE_INFO, "Rank %d Datastore shut down completed", rank);
 }
 
-bool datastore::Datastore::Open(const std::string &new_name,
-                                const datastore::HistNames_t *histogram_names) {
+bool Datastore::Datastore::Open(const std::string &new_name,
+                                const ::Datastore::HistNames_t *histogram_names) {
     OpenImpl(new_name);
     if (Usable() && histogram_names) {
         ReadHistogramsImpl(*histogram_names);
@@ -93,28 +93,28 @@ bool datastore::Datastore::Open(const std::string &new_name,
     return Usable();
 }
 
-void datastore::Datastore::Close(const bool write_histograms) {
+void Datastore::Datastore::Close(const bool write_histograms) {
     Sync(write_histograms);
     hists.clear();
     CloseImpl();
 }
 
-bool datastore::Datastore::Usable() const {
+bool Datastore::Datastore::Usable() const {
     return UsableImpl();
 }
 
-bool datastore::Datastore::Change(const std::string &new_name,
+bool Datastore::Datastore::Change(const std::string &new_name,
                                   const bool write_histograms,
-                                  const datastore::HistNames_t *find_histogram_names) {
+                                  const ::Datastore::HistNames_t *find_histogram_names) {
     Close(write_histograms);
     return Open(new_name, find_histogram_names);
 }
 
-int datastore::Datastore::ID() const {
+int Datastore::Datastore::ID() const {
     return id;
 }
 
-Transport::Response::BPut *datastore::Datastore::operate(Transport::Request::BPut *req) {
+Transport::Response::BPut *Datastore::Datastore::operate(Transport::Request::BPut *req) {
     std::lock_guard<std::mutex> lock(mutex);
     Transport::Response::BPut *res = Usable()?BPutImpl(req):nullptr;
 
@@ -156,22 +156,22 @@ Transport::Response::BPut *datastore::Datastore::operate(Transport::Request::BPu
     return res;
 }
 
-Transport::Response::BGet *datastore::Datastore::operate(Transport::Request::BGet *req) {
+Transport::Response::BGet *Datastore::Datastore::operate(Transport::Request::BGet *req) {
     std::lock_guard<std::mutex> lock(mutex);
     return Usable()?BGetImpl(req):nullptr;
 }
 
-Transport::Response::BGetOp *datastore::Datastore::operate(Transport::Request::BGetOp *req) {
+Transport::Response::BGetOp *Datastore::Datastore::operate(Transport::Request::BGetOp *req) {
     std::lock_guard<std::mutex> lock(mutex);
     return Usable()?BGetOpImpl(req):nullptr;
 }
 
-Transport::Response::BDelete *datastore::Datastore::operate(Transport::Request::BDelete *req) {
+Transport::Response::BDelete *Datastore::Datastore::operate(Transport::Request::BDelete *req) {
     std::lock_guard<std::mutex> lock(mutex);
     return Usable()?BDeleteImpl(req):nullptr;
 }
 
-Transport::Response::BHistogram *datastore::Datastore::operate(Transport::Request::BHistogram *req) {
+Transport::Response::BHistogram *Datastore::Datastore::operate(Transport::Request::BHistogram *req) {
     /**
      * handle histograms right here because it is datastore agnostic
      */
@@ -216,7 +216,7 @@ Transport::Response::BHistogram *datastore::Datastore::operate(Transport::Reques
  *
  * @return DATASTORE_SUCCESS or DATASTORE_ERROR
  */
-int datastore::Datastore::WriteHistograms() {
+int Datastore::Datastore::WriteHistograms() {
     return Usable()?WriteHistogramsImpl():0;
 }
 
@@ -229,7 +229,7 @@ int datastore::Datastore::WriteHistograms() {
  * @param names  A list of histogram names to look for
  * @return The number of histograms found
  */
-std::size_t datastore::Datastore::ReadHistograms(const datastore::HistNames_t &names) {
+std::size_t Datastore::Datastore::ReadHistograms(const ::Datastore::HistNames_t &names) {
     return Usable()?ReadHistogramsImpl(names):0;
 }
 
@@ -242,7 +242,7 @@ std::size_t datastore::Datastore::ReadHistograms(const datastore::HistNames_t &n
  * @param config    the new histogram's configuration
  * @return DATASTORE_SUCCESS
  */
-int datastore::Datastore::AddHistogram(const std::string &name, const ::Histogram::Config &config) {
+int Datastore::Datastore::AddHistogram(const std::string &name, const ::Histogram::Config &config) {
     return AddHistogram(name, construct<::Histogram::Histogram>(config, name));
 }
 
@@ -255,7 +255,7 @@ int datastore::Datastore::AddHistogram(const std::string &name, const ::Histogra
  * @param new_histogram     a pointer to an existing histogram
  * @return DATASTORE_SUCCESS
  */
-int datastore::Datastore::AddHistogram(const std::string &name, ::Histogram::Histogram *new_histogram) {
+int Datastore::Datastore::AddHistogram(const std::string &name, ::Histogram::Histogram *new_histogram) {
     if (!new_histogram) {
         return DATASTORE_ERROR;
     }
@@ -272,7 +272,7 @@ int datastore::Datastore::AddHistogram(const std::string &name, ::Histogram::His
  * @param h      A pointer to this histogram pointer
  * @return DATASTORE_SUCCESS if found, else DATASTORE_ERROR
  */
-int datastore::Datastore::GetHistogram(const std::string &name, datastore::Datastore::Histogram *h) const {
+int Datastore::Datastore::GetHistogram(const std::string &name, Datastore::Datastore::Histogram *h) const {
     if (!h) {
         return DATASTORE_ERROR;
     }
@@ -295,7 +295,7 @@ int datastore::Datastore::GetHistogram(const std::string &name, datastore::Datas
  * @param h      A pointer to this histogram pointer
  * @return DATASTORE_SUCCESS if found, else DATASTORE_ERROR
  */
-int datastore::Datastore::GetHistogram(const std::string &name, ::Histogram::Histogram **h) const {
+int Datastore::Datastore::GetHistogram(const std::string &name, ::Histogram::Histogram **h) const {
     if (!h) {
         return DATASTORE_ERROR;
     }
@@ -317,7 +317,7 @@ int datastore::Datastore::GetHistogram(const std::string &name, ::Histogram::His
  * @param histogtrams  a reference
  * @return DATASTORE_SUCCESS
  */
-int datastore::Datastore::GetHistograms(const datastore::Datastore::Histograms **histograms) const {
+int Datastore::Datastore::GetHistograms(const Datastore::Datastore::Histograms **histograms) const {
     if (histograms) {
         *histograms = &hists;
     }
@@ -338,7 +338,7 @@ int datastore::Datastore::GetHistograms(const datastore::Datastore::Histograms *
  * @param num_gets       the array of number of gets from each rank
  * @return DATASTORE_SUCCESS or DATASTORE_ERROR on error
  */
-int datastore::Datastore::GetStats(uint64_t *put_time,
+int Datastore::Datastore::GetStats(uint64_t *put_time,
                                    std::size_t  *num_put,
                                    uint64_t *get_time,
                                    std::size_t  *num_get) {
@@ -369,7 +369,7 @@ int datastore::Datastore::GetStats(uint64_t *put_time,
     return DATASTORE_SUCCESS;
 }
 
-int datastore::Datastore::Sync(const bool write_histograms) {
+int Datastore::Datastore::Sync(const bool write_histograms) {
     std::lock_guard<std::mutex> lock(mutex);
     if (write_histograms) {
         WriteHistograms();
@@ -377,7 +377,7 @@ int datastore::Datastore::Sync(const bool write_histograms) {
     return Usable()?SyncImpl():DATASTORE_ERROR;
 }
 
-int datastore::Datastore::encode(Transform::Callbacks *callbacks,
+int Datastore::Datastore::encode(Transform::Callbacks *callbacks,
                                  const Blob &src,
                                  void **dst, std::size_t *dst_size) {
     REF(callbacks->encode)::const_iterator it = callbacks->encode.find(src.data_type());
@@ -395,7 +395,7 @@ int datastore::Datastore::encode(Transform::Callbacks *callbacks,
     return it->second.first(src.data(), src.size(), dst, dst_size, it->second.second);
 }
 
-int datastore::Datastore::decode(Transform::Callbacks *callbacks,
+int Datastore::Datastore::decode(Transform::Callbacks *callbacks,
                                  const Blob &src,
                                  void **dst, std::size_t *dst_size) {
     REF(callbacks->decode)::const_iterator it = callbacks->decode.find(src.data_type());
@@ -413,16 +413,16 @@ int datastore::Datastore::decode(Transform::Callbacks *callbacks,
     return it->second.first(src.data(), src.size(), dst, dst_size, it->second.second);
 }
 
-datastore::Datastore::Stats::Event::Event()
+Datastore::Datastore::Stats::Event::Event()
     : time(),
       count(0),
       size(0)
 {}
 
-void datastore::Datastore::BGetOp_error_response(Transport::Response::BGetOp *res,
+void Datastore::Datastore::BGetOp_error_response(Transport::Response::BGetOp *res,
                                                  const std::size_t i,
                                                  Blob &subject, Blob &predicate,
-                                                 datastore::Datastore::Stats::Event &event) {
+                                                 Datastore::Datastore::Stats::Event &event) {
     std::size_t &index = res->num_recs[i];
     res->subjects[i][index]   = std::move(subject);
     res->predicates[i][index] = std::move(predicate);

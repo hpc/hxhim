@@ -295,7 +295,7 @@ hxhim::Results *hxhim::ChangeDatastore(hxhim_t *hx, const char *name,
                                           read_histograms?&hx->p->histograms.names:nullptr);
 
     if (create_missing) {
-        const datastore::Datastore::Histograms *hists = nullptr;
+        const Datastore::Datastore::Histograms *hists = nullptr;
         hx->p->range_server.datastore->GetHistograms(&hists);
 
         for(std::string const &hist_name : hx->p->histograms.names) {

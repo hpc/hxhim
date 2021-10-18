@@ -69,7 +69,7 @@ int hxhim::destroy::queues(hxhim_t *hx) {
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
 int hxhim::destroy::datastore(hxhim_t *hx) {
-    return (datastore::destroy(hx) == DATASTORE_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
+    return (Datastore::destroy(hx) == DATASTORE_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
 }
 
 /**

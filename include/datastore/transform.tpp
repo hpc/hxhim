@@ -8,7 +8,7 @@
 #include "utils/memory.hpp"
 #include "utils/type_traits.hpp"
 
-namespace datastore {
+namespace Datastore {
 namespace Transform {
 namespace encode {
 

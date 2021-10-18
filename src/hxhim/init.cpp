@@ -84,8 +84,8 @@ int hxhim::init::queues(hxhim_t *hx, hxhim_options_t *opts) {
 namespace hxhim {
 namespace init {
 
-datastore::Transform::Callbacks *transform(hxhim_options_t *opts) {
-    datastore::Transform::Callbacks *callbacks = datastore::Transform::default_callbacks();
+Datastore::Transform::Callbacks *transform(hxhim_options_t *opts) {
+    Datastore::Transform::Callbacks *callbacks = Datastore::Transform::default_callbacks();
 
     // move in values from opts
     callbacks->numeric_extra = opts->p->transform.numeric_extra;
@@ -132,7 +132,7 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
                                                  hx->p->range_server.server_ratio);
     if (rs_id > -1) {
         // and if the datastore should be created
-        if (datastore::Init(hx,
+        if (Datastore::Init(hx,
                             rs_id,
                             opts->p->datastore,
                             init::transform(opts),
@@ -190,7 +190,7 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
     hx->p->hash.func = hxhim_hash_RankZero;
     hx->p->hash.args = nullptr;
 
-    if (datastore::Init(hx, 0,
+    if (Datastore::Init(hx, 0,
                         opts->p->datastore,
                         init::transform(opts),
                         opts->p->histograms.config,

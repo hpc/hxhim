@@ -108,7 +108,7 @@ typedef struct hxhim_private {
     Transport::Transport *transport;
 
     struct {
-        datastore::HistNames_t names;      // all ranks have the list of histogram names
+        Datastore::HistNames_t names;      // all ranks have the list of histogram names
         struct Histogram::Config config;   // common settings for all histograms
         bool read;                         // whether or not to read existing histograms on open
         bool write;                        // whether or not to write histograms on close
@@ -122,7 +122,7 @@ typedef struct hxhim_private {
 
         // local datastore (max 1 per server)
         // f(rank) = datastore ID
-        datastore::Datastore *datastore = nullptr;
+        Datastore::Datastore *datastore = nullptr;
 
         std::string prefix;                // datastore prefix set by the configuration file/variables
         std::string postfix;               // datastore postfix set by the configuration file/variables

@@ -3,13 +3,13 @@
 
 #include "datastore/datastore.hpp"
 
-namespace datastore {
+namespace Datastore {
 
 class InMemory : public Datastore {
     public:
-        struct Config : datastore::Config {
+        struct Config : ::Datastore::Config {
             Config()
-                : ::datastore::Config(datastore::IN_MEMORY)
+                : ::Datastore::Config(::Datastore::IN_MEMORY)
             {}
         };
 
@@ -31,7 +31,7 @@ class InMemory : public Datastore {
         Transport::Response::BDelete *BDeleteImpl(Transport::Request::BDelete *req);
 
         int WriteHistogramsImpl();
-        std::size_t ReadHistogramsImpl(const datastore::HistNames_t &names);
+        std::size_t ReadHistogramsImpl(const HistNames_t &names);
         int SyncImpl();
 
     protected:

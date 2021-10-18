@@ -5,15 +5,15 @@
 
 #include "datastore/datastore.hpp"
 
-namespace datastore {
+namespace Datastore {
 
-class leveldb : public Datastore {
+class LevelDB : public Datastore {
     public:
-        struct Config : datastore::Config {
+        struct Config : ::Datastore::Config {
             Config(const std::string &prefix,
                    const std::string &postfix,
                    const bool create_if_missing)
-                : ::datastore::Config(datastore::LEVELDB),
+                : ::Datastore::Config(::Datastore::LEVELDB),
                   prefix(prefix),
                   postfix(postfix),
                   create_if_missing(create_if_missing)
@@ -24,11 +24,11 @@ class leveldb : public Datastore {
             const bool create_if_missing;
         };
 
-        leveldb(const int rank,
+        LevelDB(const int rank,
                 const int id,
                 Transform::Callbacks *callbacks,
                 const bool create_if_missing);
-        virtual ~leveldb();
+        virtual ~LevelDB();
 
         const std::string &Name() const;
 
@@ -46,7 +46,7 @@ class leveldb : public Datastore {
         Transport::Response::BDelete *BDeleteImpl(Transport::Request::BDelete *req);
 
         int WriteHistogramsImpl();
-        std::size_t ReadHistogramsImpl(const datastore::HistNames_t &names);
+        std::size_t ReadHistogramsImpl(const HistNames_t &names);
         int SyncImpl();
 
     protected:

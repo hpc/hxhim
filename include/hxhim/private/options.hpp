@@ -44,11 +44,11 @@ typedef struct hxhim_options_private {
     // whether or not the datastore objects should open the underlying datastore.
     // not set in configuration file, but can be modified in code
     bool open_init_datastore = true;
-    datastore::Config *datastore;              // configuration options for the selected datastore
+    Datastore::Config *datastore;              // configuration options for the selected datastore
 
-    datastore::Transform::Callbacks transform; // callbacks for transforming user data into datastore-suitable data
+    Datastore::Transform::Callbacks transform; // callbacks for transforming user data into datastore-suitable data
     struct {
-        datastore::HistNames_t names;          // names of histograms that should keep track of PUTs
+        Datastore::HistNames_t names;          // names of histograms that should keep track of PUTs
         struct Histogram::Config config;       // common settings for all histograms
 
         bool read;                             // if open_init_datastore == true, whether or not to try to find and read histograms
@@ -62,7 +62,7 @@ typedef struct hxhim_options_private {
 int hxhim_options_set_requests_regions_in_config(hxhim_options_t *opts, const size_t regions);
 
 /* Cleans up datastore config memory, including the config variable itself because the user will never be able to create their own config */
-void hxhim_options_datastore_config_destroy(datastore::Config *config);
+void hxhim_options_datastore_config_destroy(Datastore::Config *config);
 
 namespace hxhim {
 bool valid(hxhim_options_t *opts);

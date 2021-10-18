@@ -12,13 +12,13 @@ set(DS_TEST_SRC
 
 if (LEVELDB_FOUND AND ENABLE_LEVELDB)
   list(APPEND DS_TEST_SRC
-    leveldb.cpp
+    LevelDB.cpp
   )
 endif()
 
 if (ROCKSDB_FOUND AND ENABLE_ROCKSDB)
   list(APPEND DS_TEST_SRC
-    rocksdb.cpp
+    RocksDB.cpp
   )
 endif()
 

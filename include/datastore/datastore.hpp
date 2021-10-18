@@ -14,19 +14,19 @@
 #include "utils/Histogram.hpp"
 #include "utils/Stats.hpp"
 
-namespace datastore {
+namespace Datastore {
 
 /**
  * Base configuration type
  */
 struct Config {
-    Config(const datastore::Type type)
+    Config(const Type type)
         : type(type)
     {}
 
     virtual ~Config() {}
 
-    const datastore::Type type;
+    const Type type;
 };
 
 // mapping from predicate name to id
@@ -56,7 +56,7 @@ class Datastore {
         // write histogram, close, open new datastore
         bool Change(const std::string &new_name,
                     const bool write_histograms = true,
-                    const datastore::HistNames_t *find_histogram_names = nullptr);
+                    const HistNames_t *find_histogram_names = nullptr);
 
         int ID() const;
 
@@ -149,7 +149,7 @@ class Datastore {
                                          Transport::Response::BGetOp *res,
                                          const std::size_t i,
                                          const std::size_t j,
-                                         datastore::Datastore::Stats::Event &event);
+                                         Datastore::Datastore::Stats::Event &event);
 
         void BGetOp_error_response(Transport::Response::BGetOp *res,
                                    const std::size_t i,

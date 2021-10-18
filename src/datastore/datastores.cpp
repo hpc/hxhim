@@ -13,7 +13,7 @@ static std::string generate_name(const std::string &prefix, const std::string &b
     return s.str();
 }
 
-int datastore::Init(hxhim_t *hx,
+int Datastore::Init(hxhim_t *hx,
                     const int id,
                     Config *config,
                     Transform::Callbacks *callbacks,
@@ -27,14 +27,14 @@ int datastore::Init(hxhim_t *hx,
     }
 
     // clear out old datastore
-    datastore::destroy(hx);
+    destroy(hx);
 
     hx->p->histograms.read  = read_histograms;
     hx->p->histograms.write = write_histograms;
 
     std::string name = "";
 
-    datastore::Datastore *ds = nullptr;
+    Datastore *ds = nullptr;
     switch (config->type) {
         case IN_MEMORY:
             ds = new InMemory(hx->p->bootstrap.rank,
@@ -48,12 +48,12 @@ int datastore::Init(hxhim_t *hx,
         #if HXHIM_HAVE_LEVELDB
         case LEVELDB:
             {
-                leveldb::Config *leveldb_config = static_cast<leveldb::Config *>(config);
+                LevelDB::Config *leveldb_config = static_cast<LevelDB::Config *>(config);
                 hx->p->range_server.prefix = leveldb_config->prefix;
                 hx->p->range_server.postfix = leveldb_config->postfix;
 
                 if (exact_name) {
-                    ds = new leveldb(hx->p->bootstrap.rank,
+                    ds = new LevelDB(hx->p->bootstrap.rank,
                                      id, callbacks,
                                      false);
                 }
@@ -64,7 +64,7 @@ int datastore::Init(hxhim_t *hx,
                     name = generate_name(hx->p->range_server.prefix,
                                          hx->p->hash.name, id,
                                          hx->p->range_server.postfix);
-                    ds = new leveldb(hx->p->bootstrap.rank,
+                    ds = new LevelDB(hx->p->bootstrap.rank,
                                      id, callbacks,
                                      leveldb_config->create_if_missing);
                 }
@@ -76,12 +76,12 @@ int datastore::Init(hxhim_t *hx,
         #if HXHIM_HAVE_ROCKSDB
         case ROCKSDB:
             {
-                rocksdb::Config *rocksdb_config = static_cast<rocksdb::Config *>(config);
+                RocksDB::Config *rocksdb_config = static_cast<RocksDB::Config *>(config);
                 hx->p->range_server.prefix = rocksdb_config->prefix;
                 hx->p->range_server.postfix = rocksdb_config->postfix;
 
                 if (exact_name) {
-                    ds = new rocksdb(hx->p->bootstrap.rank,
+                    ds = new RocksDB(hx->p->bootstrap.rank,
                                      id, callbacks,
                                      false);
                 }
@@ -92,7 +92,7 @@ int datastore::Init(hxhim_t *hx,
                     name = generate_name(hx->p->range_server.prefix,
                                          hx->p->hash.name, id,
                                          hx->p->range_server.postfix);
-                    ds = new rocksdb(hx->p->bootstrap.rank,
+                    ds = new RocksDB(hx->p->bootstrap.rank,
                                      id, callbacks,
                                      rocksdb_config->create_if_missing);
                 }
@@ -132,7 +132,7 @@ int datastore::Init(hxhim_t *hx,
             ds->ReadHistograms(hx->p->histograms.names);
         }
 
-        const datastore::Datastore::Histograms *existing = nullptr;
+        const Datastore::Datastore::Histograms *existing = nullptr;
         ds->GetHistograms(&existing);
 
         // construct histograms that don't exist
@@ -147,8 +147,8 @@ int datastore::Init(hxhim_t *hx,
     return DATASTORE_SUCCESS;
 }
 
-int datastore::destroy(hxhim_t *hx) {
-    datastore::Datastore *&ds = hx->p->range_server.datastore;
+int Datastore::destroy(hxhim_t *hx) {
+    Datastore *&ds = hx->p->range_server.datastore;
     if (ds) {
         ds->Close(hx->p->histograms.write);
         delete ds;

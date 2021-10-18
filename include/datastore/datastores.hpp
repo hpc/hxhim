@@ -6,16 +6,16 @@
 #include "datastore/InMemory.hpp"
 
 #if HXHIM_HAVE_LEVELDB
-#include "datastore/leveldb.hpp"
+#include "datastore/LevelDB.hpp"
 #endif
 
 #if HXHIM_HAVE_ROCKSDB
-#include "datastore/rocksdb.hpp"
+#include "datastore/RocksDB.hpp"
 #endif
 
 #include "hxhim/struct.h"
 
-namespace datastore {
+namespace Datastore {
 
 int Init(hxhim_t *hx,
          const int id,

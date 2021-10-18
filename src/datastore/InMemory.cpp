@@ -7,7 +7,7 @@
 #include "hxhim/triplestore.hpp"
 #include "utils/memory.hpp"
 
-datastore::InMemory::InMemory(const int rank,
+Datastore::InMemory::InMemory(const int rank,
                               const int id,
                               Transform::Callbacks *callbacks)
     : Datastore(rank, id, callbacks),
@@ -15,26 +15,26 @@ datastore::InMemory::InMemory(const int rank,
       db()
 {}
 
-datastore::InMemory::~InMemory() {
+Datastore::InMemory::~InMemory() {
     Close();
 }
 
-bool datastore::InMemory::Open() {
+bool Datastore::InMemory::Open() {
     return OpenImpl("");
 }
 
-bool datastore::InMemory::OpenImpl(const std::string &) {
+bool Datastore::InMemory::OpenImpl(const std::string &) {
     db.clear();
     good = true;
     return Usable();
 }
 
-void datastore::InMemory::CloseImpl() {
+void Datastore::InMemory::CloseImpl() {
     good = false;
     db.clear();
 }
 
-bool datastore::InMemory::UsableImpl() const {
+bool Datastore::InMemory::UsableImpl() const {
     return good;
 }
 
@@ -45,8 +45,8 @@ bool datastore::InMemory::UsableImpl() const {
  * @param req  the packet requesting multiple PUTs
  * @return pointer to a list of results
  */
-Transport::Response::BPut *datastore::InMemory::BPutImpl(Transport::Request::BPut *req) {
-    datastore::Datastore::Stats::Event event;
+Transport::Response::BPut *Datastore::InMemory::BPutImpl(Transport::Request::BPut *req) {
+    Datastore::Datastore::Stats::Event event;
     event.time.start = ::Stats::now();
     event.count = req->count;
 
@@ -107,8 +107,8 @@ Transport::Response::BPut *datastore::InMemory::BPutImpl(Transport::Request::BPu
  * @param req  the packet requesting multiple GETs
  * @return pointer to a list of results
  */
-Transport::Response::BGet *datastore::InMemory::BGetImpl(Transport::Request::BGet *req) {
-    datastore::Datastore::Stats::Event event;
+Transport::Response::BGet *Datastore::InMemory::BGetImpl(Transport::Request::BGet *req) {
+    Datastore::Datastore::Stats::Event event;
     event.time.start = ::Stats::now();
     event.count = req->count;
 
@@ -174,11 +174,11 @@ Transport::Response::BGet *datastore::InMemory::BGetImpl(Transport::Request::BGe
  * @param req  the packet requesting multiple GETOPs
  * @return pointer to a list of results
  */
-Transport::Response::BGetOp *datastore::InMemory::BGetOpImpl(Transport::Request::BGetOp *req) {
+Transport::Response::BGetOp *Datastore::InMemory::BGetOpImpl(Transport::Request::BGetOp *req) {
     Transport::Response::BGetOp *res = construct<Transport::Response::BGetOp>(req->count);
 
     for(std::size_t i = 0; i < req->count; i++) {
-        datastore::Datastore::Stats::Event event;
+        Datastore::Datastore::Stats::Event event;
         event.time.start = ::Stats::now();
 
         decltype(db)::const_iterator it = db.end();
@@ -328,8 +328,8 @@ Transport::Response::BGetOp *datastore::InMemory::BGetOpImpl(Transport::Request:
  * @param req  the packet requesting multiple DELETEs
  * @return pointer to a list of results
  */
-Transport::Response::BDelete *datastore::InMemory::BDeleteImpl(Transport::Request::BDelete *req) {
-    datastore::Datastore::Stats::Event event;
+Transport::Response::BDelete *Datastore::InMemory::BDeleteImpl(Transport::Request::BDelete *req) {
+    Datastore::Datastore::Stats::Event event;
     event.time.start = ::Stats::now();
     event.count = req->count;
 
@@ -389,7 +389,7 @@ Transport::Response::BDelete *datastore::InMemory::BDeleteImpl(Transport::Reques
  *
  * @return DATASTORE_SUCCESS
  */
-int datastore::InMemory::WriteHistogramsImpl() {
+int Datastore::InMemory::WriteHistogramsImpl() {
     std::deque<void *> ptrs;
     for(decltype(hists)::value_type hist : hists) {
         std::string key;
@@ -421,7 +421,7 @@ int datastore::InMemory::WriteHistogramsImpl() {
  * @param names  A list of histogram names to look for
  * @return The number of histograms found
  */
-std::size_t datastore::InMemory::ReadHistogramsImpl(const datastore::HistNames_t &names) {
+std::size_t Datastore::InMemory::ReadHistogramsImpl(const HistNames_t &names) {
     std::size_t found = 0;
 
     for(std::string const &name : names) {
@@ -456,6 +456,6 @@ std::size_t datastore::InMemory::ReadHistogramsImpl(const datastore::HistNames_t
  *
  * @return DATASTORE_SUCCESS
  */
-int datastore::InMemory::SyncImpl() {
+int Datastore::InMemory::SyncImpl() {
     return DATASTORE_SUCCESS;
 }

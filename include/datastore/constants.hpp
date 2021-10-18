@@ -5,7 +5,7 @@
 #define DATASTORE_ERROR   2
 #define DATASTORE_UNSET   3
 
-namespace datastore {
+namespace Datastore {
 
 /**
  * hxhim_datastore_t

@@ -5,14 +5,14 @@
 #include "utils/elen.hpp"
 #include "utils/memory.hpp"
 
-datastore::Transform::NumericExtra::NumericExtra()
+Datastore::Transform::NumericExtra::NumericExtra()
     : neg(elen::NEG_SYMBOL),
       pos(elen::POS_SYMBOL),
       float_precision(elen::encode::FLOAT_PRECISION),
       double_precision(elen::encode::DOUBLE_PRECISION)
 {}
 
-datastore::Transform::Callbacks *datastore::Transform::default_callbacks() {
+Datastore::Transform::Callbacks *Datastore::Transform::default_callbacks() {
     Callbacks *callbacks = construct<Callbacks>();
 
     callbacks->encode.emplace(HXHIM_DATA_INT32,

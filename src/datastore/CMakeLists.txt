@@ -9,13 +9,13 @@ set(DATASTORE_SOURCES
 
 if (LEVELDB_FOUND AND ENABLE_LEVELDB)
   list(APPEND DATASTORE_SOURCES
-    leveldb.cpp
+    LevelDB.cpp
   )
 endif()
 
 if (ROCKSDB_FOUND AND ENABLE_ROCKSDB)
   list(APPEND DATASTORE_SOURCES
-    rocksdb.cpp
+    RocksDB.cpp
   )
 endif()
 
