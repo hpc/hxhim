@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
 
     barrier;
 
-    uint64_t results_duration = 0;
+    uint64_t bput_flush_time = 0;
 
     enum hxhim_data_t *sub_pred_types = (enum hxhim_data_t *) calloc(count, sizeof(enum hxhim_data_t));
     for(size_t i = 0; i < count; i++) {
@@ -99,25 +99,24 @@ int main(int argc, char *argv[]) {
         hxhim_results_t *flush = hxhimFlush(&hx);
         timestamp_end(flush);
 
-        uint64_t duration = 0;
-        hxhim_results_duration(flush, &duration);
-        /* results_duration += duration; */
-
         timestamp_start(destroy);
         hxhim_results_destroy(flush);
         timestamp_end(destroy);
 
-        results_duration += nano(&BPUT_start, &destroy_end);
+        /* time from PUTting to flush returning for this run */
+        const uint64_t bput_flush = nano(&BPUT_start, &flush_end);
+        bput_flush_time += bput_flush;
 
         fprintf(stderr, "%d BPut+Flush+Destroy"
                 " %" PRIu64
                 " %" PRIu64
-                " %.3Lf %.3f\n",
+                " %" PRIu64
+                " %.3Lf\n",
                 rank,
                 nano(&epoch, &BPUT_start),
                 nano(&epoch, &flush_end),
-                sec(&BPUT_start, &flush_end), duration / 1e9);
-
+                nano(&epoch, &destroy_end),
+                sec(&BPUT_start, &destroy_end));
 
         timestamp_start(clean);
         free(perms);
@@ -133,15 +132,14 @@ int main(int argc, char *argv[]) {
     free(sub_pred_types);
 
     const size_t total_count = count * times;
-    const long double duration = results_duration / 1e9;
-    const long double rate = ((long double) total_count) / duration;
+    const long double total_secs = bput_flush_time / 1e9;
+    const long double rate = ((long double) total_count) / total_secs;
 
     for(int i = 0; i < size; i++) {
         MPI_Barrier(MPI_COMM_WORLD);
         if (i == rank) {
-            fprintf(stderr, "Rank %d: %zu PUTs in %.3Lf seconds (%.3Lf PUTs/sec)\n", i, total_count, duration, rate);
+            fprintf(stderr, "Rank %d: %zu PUTs in %.3Lf seconds (%.3Lf PUTs/sec)\n", i, total_count, total_secs, rate);
         }
-        MPI_Barrier(MPI_COMM_WORLD);
     }
 
     hxhimClose(&hx);
