@@ -19,7 +19,8 @@ const hxhim_data_t TYPE = hxhim_data_t::HXHIM_DATA_BYTE;
 TEST(Enqueue, PUT) {
     hxhim_options_t opts;
     ASSERT_EQ(fill_options(&opts), true);
-    ASSERT_EQ(hxhim_options_set_maximum_ops_per_send(&opts, 1), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim_options_set_maximum_ops_per_request(&opts, 1), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim_options_set_maximum_size_per_request(&opts, 1), HXHIM_SUCCESS);
 
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);

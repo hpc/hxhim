@@ -55,7 +55,8 @@ int hxhim::init::running(hxhim_t *hx, hxhim_options_t *) {
  */
 int hxhim::init::queues(hxhim_t *hx, hxhim_options_t *opts) {
     mlog(HXHIM_CLIENT_INFO, "Starting Memory Initialization");
-    hx->p->queues.max_ops_per_send = opts->p->max_ops_per_send;
+    hx->p->queues.max_per_request.ops = opts->p->max_per_request.ops;
+    hx->p->queues.max_per_request.size = opts->p->max_per_request.size;
 
     {
         #if ASYNC_PUTS

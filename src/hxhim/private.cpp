@@ -116,7 +116,7 @@ std::ostream &hxhim::print_stats(hxhim_t *hx,
                                  std::ostream &stream,
                                  const std::string &indent) {
     return hx->p->stats.print(hx->p->bootstrap.rank,
-                              hx->p->queues.max_ops_per_send,
+                              hx->p->queues.max_per_request.ops,
                               hx->p->epoch,
                               stream, indent);
 }

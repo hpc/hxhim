@@ -19,7 +19,7 @@ template <typename Request_t,
 void new_request(hxhim_t *hx, hxhim::QueueTarget<Request_t> &queue) {
     ::Stats::Chronostamp allocate;
     allocate.start = ::Stats::now();
-    queue.push_back(construct<Request_t>(hx->p->queues.max_ops_per_send));
+    queue.push_back(construct<Request_t>(hx->p->queues.max_per_request.ops));
     queue.back()->timestamps.allocate = allocate;
     queue.back()->timestamps.allocate.end = ::Stats::now();
 }
@@ -35,9 +35,12 @@ void new_request(hxhim_t *hx, hxhim::QueueTarget<Request_t> &queue) {
  */
 template <typename Request_t,
           typename = enable_if_t <is_child_of <Transport::Request::Request, Request_t>::value> >
-Request_t *setup_packet(hxhim_t *hx, hxhim::QueueTarget<Request_t> &queue) {
-    if (queue.empty()                                                ||
-        ((*queue.rbegin())->count >= hx->p->queues.max_ops_per_send)) { // last packet doesn't have space
+Request_t *setup_packet(hxhim_t *hx, hxhim::QueueTarget<Request_t> &queue, const size_t additional_size) {
+    if (queue.empty()                                                   ||
+        // last packet doesn't have an empty slot
+        ((*queue.rbegin())->count >= hx->p->queues.max_per_request.ops) ||
+        // has slots, but serialized buffer would be too big
+        (((*queue.rbegin())->size() + additional_size) > hx->p->queues.max_per_request.size)){
         new_request(hx, queue);
     }
 
@@ -81,7 +84,7 @@ Request_t *get_packet(hxhim_t *hx,
     ::Stats::Chronopoint insert_start = ::Stats::now();
 
     // set up the packet this triple should be placed into
-    Request_t *req = setup_packet(hx, queues[rs_id]);
+    Request_t *req = setup_packet(hx, queues[rs_id], subject.pack_size(true) + predicate.pack_size(true));
     req->timestamps.reqs[req->count].hash = hash;
     req->timestamps.reqs[req->count].insert.start = insert_start;
     return req;
@@ -175,7 +178,10 @@ int hxhim::PutImpl(hxhim_t *hx,
         #endif
 
         // add the triple to the last packet in the queue
-        Transport::Request::BPut *put = setup_packet(hx, puts[rs_id]); // no need to check for nullptr
+        Transport::Request::BPut *put = setup_packet(hx, puts[rs_id],
+                                                     sub->pack_size(true) +
+                                                     pred->pack_size(true) +
+                                                     obj->pack_size(true));
         put->subjects[put->count] = *sub;
         put->predicates[put->count] = *pred;
         put->objects[put->count] = *obj;
@@ -353,8 +359,10 @@ int hxhim::HistogramImpl(hxhim_t *hx,
     ::Stats::Chronostamp insert;
     insert.start = ::Stats::now();
 
+    Blob n = ReferenceBlob((void *) name, name_len, hxhim_data_t::HXHIM_DATA_BYTE);
+
     // add the data to the packet
-    Transport::Request::BHistogram *hist = setup_packet(hx, hists[rs_id]); // no need to check for nullptr
+    Transport::Request::BHistogram *hist = setup_packet(hx, hists[rs_id], n.pack_size(false));
     hist->names[hist->count] = ReferenceBlob((void *) name, name_len, hxhim_data_t::HXHIM_DATA_BYTE);
     hist->timestamps.reqs[hist->count].hash = hash;
     hist->timestamps.reqs[hist->count].insert = insert;

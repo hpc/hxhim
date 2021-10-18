@@ -71,7 +71,9 @@ const std::string TRANSPORT_ENDPOINT_GROUP     = "ENDPOINT_GROUP";              
 
 /** Asynchronous PUT Settings */
 const std::string START_ASYNC_PUT_AT           = "START_ASYNC_PUT_AT";            // nonnegative integer
-const std::string MAXIMUM_OPS_PER_SEND         = "MAXIMUM_OPS_PER_SEND";          // positive integer
+
+const std::string MAXIMUM_OPS_PER_REQUEST      = "MAXIMUM_OPS_PER_REQUEST";       // positive integer
+const std::string MAXIMUM_SIZE_PER_REQUEST     = "MAXIMUM_SIZE_PER_REQUEST";      // positive integer
 
 /** Histogram Options */
 const std::string HISTOGRAM_FIRST_N            = "HISTOGRAM_FIRST_N";             // unsigned int
@@ -193,7 +195,8 @@ const Config::Config DEFAULT_CONFIG = {
     std::make_pair(HASH,                          "MY_RANK"),
     std::make_pair(TRANSPORT_ENDPOINT_GROUP,      "ALL"),
     std::make_pair(START_ASYNC_PUT_AT,            "256"),
-    std::make_pair(MAXIMUM_OPS_PER_SEND,          "128"),
+    std::make_pair(MAXIMUM_OPS_PER_REQUEST,       "128"),
+    std::make_pair(MAXIMUM_SIZE_PER_REQUEST,      "1048576"),
     std::make_pair(HISTOGRAM_FIRST_N,             "10"),
     std::make_pair(HISTOGRAM_BUCKET_GEN_NAME,     "10_BUCKETS"),
     std::make_pair(HISTOGRAM_READ_EXISTING,       "true"),

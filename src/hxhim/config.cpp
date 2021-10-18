@@ -349,7 +349,8 @@ static int fill_options(hxhim_options_t *opts, const Config::Config &config) {
         parse_transport(opts, config)                                                                           &&
         parse_endpointgroup(opts, config)                                                                       &&
         parse_value(opts, config, START_ASYNC_PUT_AT,            hxhim_options_set_start_async_put_at)          &&
-        parse_value(opts, config, MAXIMUM_OPS_PER_SEND,          hxhim_options_set_maximum_ops_per_send)        &&
+        parse_value(opts, config, MAXIMUM_OPS_PER_REQUEST,       hxhim_options_set_maximum_ops_per_request)     &&
+        parse_value(opts, config, MAXIMUM_SIZE_PER_REQUEST,      hxhim_options_set_maximum_size_per_request)    &&
         parse_elen(opts, config)                                                                                &&
         parse_histogram(opts, config)                                                                           &&
         true?HXHIM_SUCCESS:HXHIM_ERROR;

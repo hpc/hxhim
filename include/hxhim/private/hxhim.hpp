@@ -67,7 +67,10 @@ typedef struct hxhim_private {
 
     // unsent data queues
     struct {
-        std::size_t max_ops_per_send;
+        struct {
+            std::size_t ops;               // max slots to allocate
+            std::size_t size;              // max bytes to allow
+        } max_per_request;
 
         struct {
             hxhim::Queues<Transport::Request::BPut> queue;

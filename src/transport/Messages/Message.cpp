@@ -13,7 +13,8 @@ Transport::Message::Message(const Message::Direction dir, const enum hxhim_op_t 
 Transport::Message::~Message() {}
 
 std::size_t Transport::Message::Message::size() const {
-    return sizeof(direction) + sizeof(op) + sizeof(src) + sizeof(dst) + sizeof(count);
+    static const std::size_t HEADER_SIZE = sizeof(direction) + sizeof(op) + sizeof(src) + sizeof(dst) + sizeof(count);
+    return HEADER_SIZE;
 }
 
 std::size_t Transport::Message::Message::filled() const {

@@ -468,19 +468,37 @@ int hxhim_options_set_start_async_put_at(hxhim_options_t *opts, const std::size_
 }
 
 /**
- * hxhim_options_set_maximum_ops_per_send
- * Set the number of operations to queue up before flushing in the background thread
+ * hxhim_options_set_maximum_ops_per_request
+ * Set the maximum number of operations a bulk request can hold
  *
  * @param opts  the set of options to be modified
  * @param count the number of PUTs
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_options_set_maximum_ops_per_send(hxhim_options_t *opts, const std::size_t count) {
+int hxhim_options_set_maximum_ops_per_request(hxhim_options_t *opts, const std::size_t count) {
     if (!hxhim::valid(opts)) {
         return HXHIM_ERROR;
     }
 
-    opts->p->max_ops_per_send = count;
+    opts->p->max_per_request.ops = count;
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * hxhim_options_set_maximum_size_per_request
+ * Set the maximum number of bytes a bulk requst can be
+ *
+ * @param opts  the set of options to be modified
+ * @param count the number of PUTs
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim_options_set_maximum_size_per_request(hxhim_options_t *opts, const std::size_t size) {
+    if (!hxhim::valid(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->max_per_request.size = size;
 
     return HXHIM_SUCCESS;
 }
