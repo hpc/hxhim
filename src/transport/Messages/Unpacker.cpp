@@ -435,13 +435,14 @@ int Unpacker::unpack(Response::BHistogram **bhm, void *buf, const std::size_t bu
     }
 
     std::size_t remaining = bufsize - (curr - (char *) buf);
-
     for(std::size_t i = 0; i < out->max_count; i++) {
         little_endian::decode(out->statuses[i], curr);
         curr += sizeof(out->statuses[i]);
 
-        out->histograms[i] = std::shared_ptr<Histogram::Histogram>(construct<Histogram::Histogram>(Histogram::Config{0, nullptr, nullptr}, ""), Histogram::deleter);
-        out->histograms[i]->unpack(curr, remaining, nullptr);
+        if (out->statuses[i] == DATASTORE_SUCCESS) {
+            out->histograms[i] = std::shared_ptr<Histogram::Histogram>(construct<Histogram::Histogram>(Histogram::Config{0, nullptr, nullptr}, ""), Histogram::deleter);
+            out->histograms[i]->unpack(curr, remaining, nullptr);
+        }
 
         out->count++;
     }

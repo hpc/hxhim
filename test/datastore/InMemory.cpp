@@ -35,10 +35,9 @@ static InMemoryTest *setup() {
 
     Transport::Request::BPut req(count);
     for(std::size_t i = 0; i < count; i++) {
-        req.subjects[i]   = ReferenceBlob(subjects[i]);
-        req.predicates[i] = ReferenceBlob(predicates[i]);
-        req.objects[i]    = ReferenceBlob(objects[i]);
-        req.count++;
+        req.add(ReferenceBlob(subjects[i]),
+                ReferenceBlob(predicates[i]),
+                ReferenceBlob(objects[i]));
     }
 
     destruct(ds->operate(&req));
@@ -72,10 +71,9 @@ TEST(InMemory, BGet) {
     // include the non-existant subject-predicate pair
     Transport::Request::BGet req(count + 1);
     for(std::size_t i = 0; i < count + 1; i++) {
-        req.subjects[i]     = ReferenceBlob(subjects[i]);
-        req.predicates[i]   = ReferenceBlob(predicates[i]);
-        req.object_types[i] = hxhim_data_t::HXHIM_DATA_BYTE;
-        req.count++;
+        req.add(ReferenceBlob(subjects[i]),
+                ReferenceBlob(predicates[i]),
+                hxhim_data_t::HXHIM_DATA_BYTE);
     }
 
     Transport::Response::BGet *res = ds->operate(&req);
@@ -85,7 +83,7 @@ TEST(InMemory, BGet) {
         EXPECT_EQ(res->statuses[i], DATASTORE_SUCCESS);
         ASSERT_NE(res->objects[i].data(), nullptr);
         EXPECT_EQ(res->objects[i].size(), ReferenceBlob(objects[i]).size());
-        EXPECT_EQ(std::memcmp(ReferenceBlob(objects[i]).data(),
+        EXPECT_EQ(std::memcmp(objects[i].data(),
                               res->objects[i].data(),
                               res->objects[i].size()),
                   0);
@@ -105,12 +103,11 @@ TEST(InMemory, BGetOp) {
     for(int op = HXHIM_GETOP_EQ; op < HXHIM_GETOP_INVALID; op++) {
         Transport::Request::BGetOp req(1);
 
-        req.subjects[0]     = ReferenceBlob(subjects[0]);
-        req.predicates[0]   = ReferenceBlob(predicates[0]);
-        req.object_types[0] = hxhim_data_t::HXHIM_DATA_BYTE;
-        req.num_recs[0]     = 1;
-        req.ops[0]          = static_cast<hxhim_getop_t>(op);
-        req.count++;
+        req.add(ReferenceBlob(subjects[0]),
+                ReferenceBlob(predicates[0]),
+                hxhim_data_t::HXHIM_DATA_BYTE,
+                1,
+                static_cast<hxhim_getop_t>(op));
 
         Transport::Response::BGetOp *res = ds->operate(&req);
         ASSERT_NE(res, nullptr);
@@ -185,9 +182,8 @@ TEST(InMemory, BDelete) {
     // include the non-existant subject-predicate pair
     Transport::Request::BDelete req(count + 1);
     for(std::size_t i = 0; i < count + 1; i++) {
-        req.subjects[i]   = ReferenceBlob(subjects[i]);
-        req.predicates[i] = ReferenceBlob(predicates[i]);
-        req.count++;
+        req.add(ReferenceBlob(subjects[i]),
+                ReferenceBlob(predicates[i]));
     }
 
     Transport::Response::BDelete *res = ds->operate(&req);
@@ -257,19 +253,17 @@ TEST(InMemory, Histograms) {
         values[i] = (double) i;
         Blob ref(&values[i], sizeof(values[i]), hxhim_data_t::HXHIM_DATA_DOUBLE);
 
-        req.subjects[i]       = ref;
-        req.predicates[i]     = ReferenceBlob((void *) hist_names[0].data(),
-                                          hist_names[0].size(),
-                                          hxhim_data_t::HXHIM_DATA_BYTE);
-        req.objects[i]        = ref;
-        req.count++;
+        req.add(ref,
+                ReferenceBlob((void *) hist_names[0].data(),
+                              hist_names[0].size(),
+                              hxhim_data_t::HXHIM_DATA_BYTE),
+                ref);
 
-        req.subjects[i + 1]   = ref;
-        req.predicates[i + 1] = ReferenceBlob((void *) hist_names[1].data(),
-                                          hist_names[1].size(),
-                                          hxhim_data_t::HXHIM_DATA_BYTE);
-        req.objects[i + 1]    = ref;
-        req.count++;
+        req.add(ref,
+                ReferenceBlob((void *) hist_names[1].data(),
+                              hist_names[1].size(),
+                              hxhim_data_t::HXHIM_DATA_BYTE),
+                ref);
     }
 
     destruct(ds->operate(&req));

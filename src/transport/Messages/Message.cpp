@@ -7,14 +7,23 @@ Transport::Message::Message(const Message::Direction dir, const enum hxhim_op_t 
       dst(-1),
       max_count(max_count),
       count(0),
+      serialized_size(sizeof(direction) + sizeof(op) +
+                      sizeof(src) + sizeof(dst) +
+                      sizeof(count)),
       timestamps()
 {}
 
 Transport::Message::~Message() {}
 
+std::size_t Transport::Message::add(const std::size_t ds, const bool increment_count ) {
+    if (increment_count) {
+        count++;
+    }
+    return (serialized_size += ds);
+}
+
 std::size_t Transport::Message::Message::size() const {
-    static const std::size_t HEADER_SIZE = sizeof(direction) + sizeof(op) + sizeof(src) + sizeof(dst) + sizeof(count);
-    return HEADER_SIZE;
+    return serialized_size;
 }
 
 std::size_t Transport::Message::Message::filled() const {

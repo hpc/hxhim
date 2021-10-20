@@ -11,14 +11,6 @@ Transport::Request::BHistogram::~BHistogram() {
     cleanup();
 }
 
-std::size_t Transport::Request::BHistogram::size() const {
-    std::size_t total = Request::size();
-    for(std::size_t i = 0; i < count; i++) {
-        total += names[i].pack_size(false);
-    }
-    return total;
-}
-
 void Transport::Request::BHistogram::alloc(const std::size_t max) {
     cleanup();
 
@@ -26,6 +18,11 @@ void Transport::Request::BHistogram::alloc(const std::size_t max) {
         Request::alloc(max);
         names = alloc_array<Blob>(max);
     }
+}
+
+std::size_t Transport::Request::BHistogram::add(Blob name) {
+    names[count] = name;
+    return Request::add(name.pack_size(false), true);
 }
 
 int Transport::Request::BHistogram::steal(Transport::Request::BHistogram *from, const std::size_t i) {
@@ -56,15 +53,6 @@ Transport::Response::BHistogram::~BHistogram() {
     cleanup();
 }
 
-std::size_t Transport::Response::BHistogram::size() const {
-    std::size_t total = Response::size();
-    for(std::size_t i = 0; i < count; i++) {
-        total += histograms[i]->pack_size();
-    }
-
-    return total;
-}
-
 void Transport::Response::BHistogram::alloc(const std::size_t max) {
     cleanup();
 
@@ -74,18 +62,21 @@ void Transport::Response::BHistogram::alloc(const std::size_t max) {
     }
 }
 
-int Transport::Response::BHistogram::steal(Transport::Response::BHistogram *from, const std::size_t i) {
-    if (Response::steal(from, i) != TRANSPORT_SUCCESS) {
-        return TRANSPORT_ERROR;
+std::size_t Transport::Response::BHistogram::add(const std::shared_ptr<Histogram::Histogram> &hist, int status) {
+    size_t ds = 0;
+    if (status == DATASTORE_SUCCESS) {
+        histograms[count] = hist;
+        ds = hist->pack_size();
     }
 
-    histograms[count] = from->histograms[i];
+    return Response::add(status, ds, true);
+}
 
-    count++;
-
+int Transport::Response::BHistogram::steal(Transport::Response::BHistogram *from, const std::size_t i) {
+    add(std::move(from->histograms[i]), from->statuses[i]);
     from->histograms[i] = nullptr;
 
-    return HXHIM_SUCCESS;
+    return TRANSPORT_SUCCESS;
 }
 
 int Transport::Response::BHistogram::cleanup() {

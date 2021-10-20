@@ -76,8 +76,6 @@ Transport::Response::BPut *Datastore::InMemory::BPutImpl(Transport::Request::BPu
             }
         }
 
-        res->statuses[i] = status;
-
         if (subject != req->subjects[i].data()) {
             dealloc(subject);
         }
@@ -88,11 +86,10 @@ Transport::Response::BPut *Datastore::InMemory::BPutImpl(Transport::Request::BPu
             dealloc(object);
         }
 
-        res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size(), req->subjects[i].data_type());
-        res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size(), req->predicates[i].data_type());
+        res->add(ReferenceBlob(req->orig.subjects[i], req->subjects[i].size(), req->subjects[i].data_type()),
+                 ReferenceBlob(req->orig.predicates[i], req->predicates[i].size(), req->predicates[i].data_type()),
+                 status);
     }
-
-    res->count = req->count;
 
     event.time.end = ::Stats::now();
     stats.puts.emplace_back(event);
@@ -119,6 +116,8 @@ Transport::Response::BGet *Datastore::InMemory::BGetImpl(Transport::Request::BGe
         std::size_t subject_len = 0;
         void *predicate = nullptr;
         std::size_t predicate_len = 0;
+        void *object = nullptr;
+        std::size_t object_len = 0;
 
         int status = DATASTORE_ERROR; // only successful decoding sets the status to DATASTORE_SUCCESS
         if ((encode(callbacks, req->subjects[i],   &subject,   &subject_len)   == DATASTORE_SUCCESS) &&
@@ -131,12 +130,8 @@ Transport::Response::BGet *Datastore::InMemory::BGetImpl(Transport::Request::BGe
                 decltype(db)::const_iterator it = db.find(key);
                 if (it != db.end()) {
                     // decode the object
-                    void *object = nullptr;
-                    std::size_t object_len = 0;
                     if (decode(callbacks, ReferenceBlob((void *) it->second.data(), it->second.size(), req->object_types[i]),
                                &object, &object_len) == DATASTORE_SUCCESS) {
-
-                        res->objects[i] = RealBlob(object, object_len, req->object_types[i]);
                         event.size += res->objects[i].size();
                         status = DATASTORE_SUCCESS;
                     }
@@ -146,10 +141,10 @@ Transport::Response::BGet *Datastore::InMemory::BGetImpl(Transport::Request::BGe
             }
         }
 
-        res->statuses[i] = status;
-
-        res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size(), req->subjects[i].data_type());
-        res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size(), req->predicates[i].data_type());
+        res->add(ReferenceBlob(req->orig.subjects[i], req->subjects[i].size(), req->subjects[i].data_type()),
+                 ReferenceBlob(req->orig.predicates[i], req->predicates[i].size(), req->predicates[i].data_type()),
+                 RealBlob(object, object_len, req->object_types[i]),
+                 status);
 
         if (subject != req->subjects[i].data()) {
             dealloc(subject);
@@ -158,8 +153,6 @@ Transport::Response::BGet *Datastore::InMemory::BGetImpl(Transport::Request::BGe
             dealloc(predicate);
         }
     }
-
-    res->count = req->count;
 
     event.time.end = ::Stats::now();
     stats.gets.emplace_back(event);
@@ -184,13 +177,14 @@ Transport::Response::BGetOp *Datastore::InMemory::BGetOpImpl(Transport::Request:
         decltype(db)::const_iterator it = db.end();
 
         // prepare response
-        res->num_recs[i]   = 0;
-        res->subjects[i]   = alloc_array<Blob>(req->num_recs[i]);
-        res->predicates[i] = alloc_array<Blob>(req->num_recs[i]);
-        res->objects[i]    = alloc_array<Blob>(req->num_recs[i]);
+        // does not modify serialized size
         // set status early so failures during copy will change the status
         // all responses for this Op share a status
-        res->statuses[i]   = DATASTORE_UNSET;
+        res->add(alloc_array<Blob>(req->num_recs[i]),
+                 alloc_array<Blob>(req->num_recs[i]),
+                 alloc_array<Blob>(req->num_recs[i]),
+                 0,
+                 DATASTORE_UNSET);
 
         // encode the subject and predicate and get the key
         void *subject = nullptr;
@@ -311,7 +305,7 @@ Transport::Response::BGetOp *Datastore::InMemory::BGetOpImpl(Transport::Request:
             BGetOp_error_response(res, i, req->subjects[i], req->predicates[i], event);
         }
 
-        res->count++;
+        res->update_size(i);
 
         event.count = res->num_recs[i];
         event.time.end = ::Stats::now();
@@ -362,10 +356,9 @@ Transport::Response::BDelete *Datastore::InMemory::BDeleteImpl(Transport::Reques
             event.size += key.size();
         }
 
-        res->statuses[i] = status;
-
-        res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size(), req->subjects[i].data_type());
-        res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size(), req->predicates[i].data_type());
+        res->add(ReferenceBlob(req->orig.subjects[i], req->subjects[i].size(), req->subjects[i].data_type()),
+                 ReferenceBlob(req->orig.predicates[i], req->predicates[i].size(), req->predicates[i].data_type()),
+                 status);
 
         if (subject != req->subjects[i].data()) {
             dealloc(subject);

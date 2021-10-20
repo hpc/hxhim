@@ -44,13 +44,16 @@ Blob::~Blob() {
     Blob::dealloc();
 }
 
-Blob &Blob::operator=(const Blob &rhs) {
-    Blob::dealloc(); // handle existing data
+Blob &Blob::operator=(Blob &rhs) {
+    if (this != &rhs) {
+        Blob::dealloc(); // handle existing data
 
-    ptr = rhs.ptr;
-    len = rhs.len;
-    type = rhs.type;
-    clean = false;
+        // this becomes a reference to rhs
+        ptr = rhs.ptr;
+        len = rhs.len;
+        type = rhs.type;
+        clean = false;
+    }
 
     return *this;
 }
@@ -64,6 +67,7 @@ Blob &Blob::operator=(Blob &&rhs) {
         type = rhs.type;
         clean = rhs.clean;
 
+        rhs.clean = false;
         rhs.clear();
     }
 

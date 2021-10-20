@@ -10,16 +10,16 @@ Transport::Request::BDelete::~BDelete() {
     cleanup();
 }
 
-std::size_t Transport::Request::BDelete::size() const {
-    return SubjectPredicate::size();
-}
-
 void Transport::Request::BDelete::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
         SubjectPredicate::alloc(max);
     }
+}
+
+std::size_t Transport::Request::BDelete::add(Blob subject, Blob predicate) {
+    return SubjectPredicate::add(subject, predicate, true);
 }
 
 int Transport::Request::BDelete::steal(Transport::Request::BDelete *from, const std::size_t i) {
@@ -46,10 +46,6 @@ Transport::Response::BDelete::~BDelete() {
     cleanup();
 }
 
-std::size_t Transport::Response::BDelete::size() const {
-    return SubjectPredicate::size();
-}
-
 void Transport::Response::BDelete::alloc(const std::size_t max) {
     cleanup();
 
@@ -58,13 +54,18 @@ void Transport::Response::BDelete::alloc(const std::size_t max) {
     }
 }
 
+std::size_t Transport::Response::BDelete::add(Blob subject,
+                                              Blob predicate,
+                                              int status) {
+    return SubjectPredicate::add(subject, predicate, status);
+}
+
 int Transport::Response::BDelete::steal(Transport::Response::BDelete *from, const std::size_t i) {
-    if (SubjectPredicate::steal(from, i) != TRANSPORT_SUCCESS) {
-        return TRANSPORT_ERROR;
-    }
-
-    count++;
-
+    add(std::move(from->orig.subjects[i]),
+        std::move(from->orig.predicates[i]),
+        from->statuses[i]);
+    from->orig.subjects[i] = nullptr;
+    from->orig.predicates[i] = nullptr;
     return HXHIM_SUCCESS;
 }
 

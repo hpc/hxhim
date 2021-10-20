@@ -308,13 +308,14 @@ int Packer::pack(const Response::BHistogram *bhm, void **buf, std::size_t *bufsi
     }
 
     std::size_t avail = *bufsize - (curr - (char *) *buf);
-
     for(std::size_t i = 0; i < bhm->count; i++) {
         little_endian::encode(curr, bhm->statuses[i], sizeof(bhm->statuses[i]));
         curr += sizeof(bhm->statuses[i]);
 
-        // histogram
-        bhm->histograms[i]->pack(curr, avail, nullptr);
+        if (bhm->statuses[i] == DATASTORE_SUCCESS) {
+            // histogram
+            bhm->histograms[i]->pack(curr, avail, nullptr);
+        }
     }
 
     return TRANSPORT_SUCCESS;

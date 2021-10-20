@@ -11,12 +11,16 @@ Transport::Request::BGet::~BGet() {
     cleanup();
 }
 
-std::size_t Transport::Request::BGet::size() const {
-    std::size_t total = SubjectPredicate::size();
-    for(std::size_t i = 0; i < count; i++) {
-        total += sizeof(object_types[i]);
+int Transport::Request::BGet::steal(Transport::Request::BGet *from, const std::size_t i) {
+    if (SubjectPredicate::steal(from, i) != TRANSPORT_SUCCESS) {
+        return TRANSPORT_ERROR;
     }
-    return total;
+
+    object_types[count] = std::move(from->object_types[i]);
+
+    count++;
+
+    return TRANSPORT_SUCCESS;
 }
 
 void Transport::Request::BGet::alloc(const std::size_t max) {
@@ -28,16 +32,10 @@ void Transport::Request::BGet::alloc(const std::size_t max) {
     }
 }
 
-int Transport::Request::BGet::steal(Transport::Request::BGet *from, const std::size_t i) {
-    if (SubjectPredicate::steal(from, i) != TRANSPORT_SUCCESS) {
-        return TRANSPORT_ERROR;
-    }
-
-    object_types[count] = std::move(from->object_types[i]);
-
-    count++;
-
-    return TRANSPORT_SUCCESS;
+std::size_t Transport::Request::BGet::add(Blob subject, Blob predicate, hxhim_data_t object_type) {
+    object_types[count] = object_type;
+    Request::add(sizeof(object_type), false);
+    return SubjectPredicate::add(subject, predicate, true);
 }
 
 int Transport::Request::BGet::cleanup() {
@@ -58,18 +56,6 @@ Transport::Response::BGet::~BGet() {
     cleanup();
 }
 
-std::size_t Transport::Response::BGet::size() const {
-    std::size_t total = SubjectPredicate::size();
-
-    for(std::size_t i = 0; i < count; i++) {
-        if (statuses[i] == DATASTORE_SUCCESS) {
-            total += objects[i].pack_size(true);
-        }
-    }
-
-    return total;
-}
-
 void Transport::Response::BGet::alloc(const std::size_t max) {
     cleanup();
 
@@ -79,15 +65,24 @@ void Transport::Response::BGet::alloc(const std::size_t max) {
     }
 }
 
-int Transport::Response::BGet::steal(Transport::Response::BGet *bget, const std::size_t i) {
-    if (SubjectPredicate::steal(bget, i) != TRANSPORT_SUCCESS) {
-        return TRANSPORT_ERROR;
+std::size_t Transport::Response::BGet::add(Blob subject, Blob predicate,
+                                           Blob &&object, int status) {
+    if (status == DATASTORE_SUCCESS) {
+        objects[count] = std::move(object);
+        Message::add(objects[count].pack_size(true), false);
     }
 
-    objects[count] = std::move(bget->objects[i]);
+    return SubjectPredicate::add(subject, predicate, status);
+}
 
-    count++;
-
+int Transport::Response::BGet::steal(Transport::Response::BGet *from, const std::size_t i) {
+    add((from->orig.subjects[i]),
+        (from->orig.predicates[i]),
+        std::move(from->objects[i]),
+        from->statuses[i]);
+    from->orig.subjects[i] = nullptr;
+    from->orig.predicates[i] = nullptr;
+    from->objects[i] = nullptr;
     return TRANSPORT_SUCCESS;
 }
 

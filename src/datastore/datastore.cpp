@@ -193,15 +193,12 @@ Transport::Response::BHistogram *Datastore::Datastore::operate(Transport::Reques
         clock_gettime(CLOCK_MONOTONIC, &end);
 
         if (it != hists.end()) {
-            res->histograms[i] = it->second;
-            res->statuses[i] = DATASTORE_SUCCESS;
-            event.size += res->histograms[i]->pack_size();
+            res->add(it->second, DATASTORE_SUCCESS);
+            event.size += it->second->pack_size();
         }
         else {
-            res->statuses[i] = DATASTORE_ERROR;
+            res->add(nullptr, DATASTORE_ERROR);
         }
-
-        res->count++;
     }
 
     event.time.end = ::Stats::now();

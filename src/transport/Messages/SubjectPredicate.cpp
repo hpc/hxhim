@@ -9,16 +9,6 @@ Transport::Request::SubjectPredicate::SubjectPredicate(const enum hxhim_op_t op)
 
 Transport::Request::SubjectPredicate::~SubjectPredicate() {}
 
-std::size_t Transport::Request::SubjectPredicate::size() const {
-    std::size_t total = Request::size();
-    for(std::size_t i = 0; i < count; i++) {
-        total += subjects[i].pack_size(true) + sizeof(orig.subjects[i]) +
-                 predicates[i].pack_size(true) + sizeof(orig.predicates[i]);
-    }
-
-    return total;
-}
-
 void Transport::Request::SubjectPredicate::alloc(const std::size_t max) {
     if (max) {
         Request::alloc(max);
@@ -27,6 +17,16 @@ void Transport::Request::SubjectPredicate::alloc(const std::size_t max) {
         orig.subjects   = alloc_array<void *>(max);
         orig.predicates = alloc_array<void *>(max);
     }
+}
+
+std::size_t Transport::Request::SubjectPredicate::add(Blob subject, Blob predicate, const bool increment_count) {
+    subjects[count] = subject;
+    predicates[count] = predicate;
+    orig.subjects[count] = subject.data();
+    orig.predicates[count] = predicate.data();
+    return Request::add(subject.pack_size(true) + sizeof(subject.data()) +
+                        predicate.pack_size(true) + sizeof(predicate.data()),
+                        increment_count);
 }
 
 int Transport::Request::SubjectPredicate::steal(Transport::Request::SubjectPredicate *from, const std::size_t i) {
@@ -69,16 +69,6 @@ Transport::Response::SubjectPredicate::SubjectPredicate(const enum hxhim_op_t op
 
 Transport::Response::SubjectPredicate::~SubjectPredicate() {}
 
-std::size_t Transport::Response::SubjectPredicate::size() const {
-    std::size_t total = Response::size();
-    for(std::size_t i = 0; i < count; i++) {
-        total += orig.subjects[i].pack_ref_size(true) +
-                 orig.predicates[i].pack_ref_size(true);
-    }
-
-    return total;
-}
-
 void Transport::Response::SubjectPredicate::alloc(const std::size_t max) {
     if (max) {
         Response::alloc(max);
@@ -87,14 +77,17 @@ void Transport::Response::SubjectPredicate::alloc(const std::size_t max) {
     }
 }
 
+std::size_t Transport::Response::SubjectPredicate::add(Blob &subject, Blob &predicate, int status) {
+    orig.subjects[count] = std::move(subject);
+    orig.predicates[count] = std::move(predicate);
+    return Response::add(status,
+                         orig.subjects[count].pack_ref_size(true) +
+                         orig.predicates[count].pack_ref_size(true),
+                         true);
+}
+
 int Transport::Response::SubjectPredicate::steal(Transport::Response::SubjectPredicate *from, const std::size_t i) {
-    if (Response::steal(from, i) != TRANSPORT_SUCCESS) {
-        return TRANSPORT_ERROR;
-    }
-
-    orig.subjects[count]     = std::move(from->orig.subjects[i]);
-    orig.predicates[count]   = std::move(from->orig.predicates[i]);
-
+    add(from->orig.subjects[i], from->orig.predicates[i], from->statuses[i]);
     return TRANSPORT_SUCCESS;
 }
 

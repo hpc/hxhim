@@ -11,14 +11,6 @@ Transport::Request::BPut::~BPut() {
     cleanup();
 }
 
-std::size_t Transport::Request::BPut::size() const {
-    std::size_t total = SubjectPredicate::size();
-    for(std::size_t i = 0; i < count; i++) {
-        total += objects[i].pack_size(true);
-    }
-    return total;
-}
-
 void Transport::Request::BPut::alloc(const std::size_t max) {
     cleanup();
 
@@ -26,6 +18,12 @@ void Transport::Request::BPut::alloc(const std::size_t max) {
         SubjectPredicate::alloc(max);
         objects = alloc_array<Blob>(max);
     }
+}
+
+std::size_t Transport::Request::BPut::add(Blob subject, Blob predicate, Blob object) {
+    objects[count] = object;
+    Request::add(object.pack_size(true), false);
+    return SubjectPredicate::add(subject, predicate, true);
 }
 
 int Transport::Request::BPut::steal(Transport::Request::BPut *from, const std::size_t i) {
@@ -57,10 +55,6 @@ Transport::Response::BPut::~BPut() {
     cleanup();
 }
 
-std::size_t Transport::Response::BPut::size() const {
-    return SubjectPredicate::size();
-}
-
 void Transport::Response::BPut::alloc(const std::size_t max) {
     cleanup();
 
@@ -69,13 +63,16 @@ void Transport::Response::BPut::alloc(const std::size_t max) {
     }
 }
 
+std::size_t Transport::Response::BPut::add(Blob subject, Blob predicate, int status) {
+    return SubjectPredicate::add(subject, predicate, status);
+}
+
 int Transport::Response::BPut::steal(Transport::Response::BPut *from, const std::size_t i) {
-    if (SubjectPredicate::steal(from, i) != TRANSPORT_SUCCESS) {
-        return TRANSPORT_ERROR;
-    }
-
-    count++;
-
+    add(std::move(from->orig.subjects[i]),
+        std::move(from->orig.predicates[i]),
+        from->statuses[i]);
+    from->orig.subjects[i] = nullptr;
+    from->orig.predicates[i] = nullptr;
     return TRANSPORT_SUCCESS;
 }
 

@@ -6,12 +6,12 @@ Transport::Request::Request::Request(const enum hxhim_op_t type)
 
 Transport::Request::Request::~Request() {}
 
-std::size_t Transport::Request::Request::size() const {
-    return Message::size();
-}
-
 void Transport::Request::Request::alloc(const std::size_t max) {
     Message::alloc(max);
+}
+
+std::size_t Transport::Request::Request::add(const std::size_t ds, const bool increment_count) {
+    return Message::add(ds, increment_count);
 }
 
 int Transport::Request::Request::cleanup() {

@@ -11,9 +11,8 @@ struct BPut final : SubjectPredicate {
     BPut(const std::size_t max = 0);
     ~BPut();
 
-    std::size_t size() const;
-
     void alloc(const std::size_t max);
+    std::size_t add(Blob subject, Blob predicate, Blob object);
     int steal(BPut *from, const std::size_t i);
     int cleanup();
 
@@ -28,9 +27,8 @@ struct BPut final : SubjectPredicate {
     BPut(const std::size_t max = 0);
     ~BPut();
 
-    std::size_t size() const;
-
     void alloc(const std::size_t max);
+    std::size_t add(Blob subject, Blob predicate, int status);
     int steal(BPut *from, const std::size_t i);
     int cleanup();
 };

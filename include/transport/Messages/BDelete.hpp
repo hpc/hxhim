@@ -11,9 +11,8 @@ struct BDelete final : SubjectPredicate {
     BDelete(const std::size_t max = 0);
     ~BDelete();
 
-    std::size_t size() const;
-
     void alloc(const std::size_t max);
+    std::size_t add(Blob subject, Blob predicate);
     int steal(BDelete *from, const std::size_t i);
     int cleanup();
 };
@@ -26,9 +25,8 @@ struct BDelete final : SubjectPredicate {
     BDelete(const std::size_t max = 0);
     ~BDelete();
 
-    std::size_t size() const;
-
     void alloc(const std::size_t max);
+    std::size_t add(Blob subject, Blob predicate, int status);
     int steal(BDelete *from, const std::size_t i);
     int cleanup();
 };

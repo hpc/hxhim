@@ -182,20 +182,12 @@ int hxhim::PutImpl(hxhim_t *hx,
                                                      sub->pack_size(true) +
                                                      pred->pack_size(true) +
                                                      obj->pack_size(true));
-        put->subjects[put->count] = *sub;
-        put->predicates[put->count] = *pred;
-        put->objects[put->count] = *obj;
-
-        put->orig.subjects[put->count] = sub->data();
-        put->orig.predicates[put->count] = pred->data(); // use original predicate address
-
-        put->timestamps.reqs[put->count].hash = hash;
-        put->timestamps.reqs[put->count].insert = insert;
-
-        put->count++;
+        put->add(*sub, *pred, *obj);
 
         hx->p->queues.puts.count++;
 
+        put->timestamps.reqs[put->count - 1].hash = hash;
+        put->timestamps.reqs[put->count - 1].insert = insert;
         put->timestamps.reqs[put->count - 1].insert.end = ::Stats::now();
     }
 
@@ -232,14 +224,7 @@ int hxhim::GetImpl(hxhim_t *hx,
     }
 
     // add the data to the packet
-    get->subjects[get->count] = subject;
-    get->predicates[get->count] = predicate;
-    get->object_types[get->count] = object_type;
-
-    get->orig.subjects[get->count] = subject.data();
-    get->orig.predicates[get->count] = predicate.data();
-
-    get->count++;
+    get->add(subject, predicate, object_type);
 
     get->timestamps.reqs[get->count - 1].insert.end = ::Stats::now();
 
@@ -277,14 +262,7 @@ int hxhim::GetOpImpl(hxhim_t *hx,
     }
 
     // add the data to the packet
-    getop->subjects[getop->count] = subject;
-    getop->predicates[getop->count] = predicate;
-    getop->object_types[getop->count] = object_type;
-    getop->num_recs[getop->count] = num_records;
-    getop->ops[getop->count] = op;
-
-    getop->count++;
-
+    getop->add(subject, predicate, object_type, num_records, op);
     getop->timestamps.reqs[getop->count - 1].insert.end = ::Stats::now();
 
     mlog(HXHIM_CLIENT_DBG, "GETOP Completed");
@@ -316,13 +294,7 @@ int hxhim::DeleteImpl(hxhim_t *hx,
     }
 
     // add the data to the packet
-    del->subjects[del->count] = subject;
-    del->predicates[del->count] = predicate;
-
-    del->orig.subjects[del->count] = subject.data();
-    del->orig.predicates[del->count] = predicate.data();
-
-    del->count++;
+    del->add(subject, predicate);
 
     del->timestamps.reqs[del->count - 1].insert.end = ::Stats::now();
 
@@ -363,12 +335,10 @@ int hxhim::HistogramImpl(hxhim_t *hx,
 
     // add the data to the packet
     Transport::Request::BHistogram *hist = setup_packet(hx, hists[rs_id], n.pack_size(false));
-    hist->names[hist->count] = ReferenceBlob((void *) name, name_len, hxhim_data_t::HXHIM_DATA_BYTE);
-    hist->timestamps.reqs[hist->count].hash = hash;
-    hist->timestamps.reqs[hist->count].insert = insert;
+    hist->add(ReferenceBlob((void *) name, name_len, hxhim_data_t::HXHIM_DATA_BYTE));
 
-    hist->count++;
-
+    hist->timestamps.reqs[hist->count - 1].hash = hash;
+    hist->timestamps.reqs[hist->count - 1].insert = insert;
     hist->timestamps.reqs[hist->count - 1].insert.end = ::Stats::now();
 
     mlog(HXHIM_CLIENT_DBG, "Histogram Completed");

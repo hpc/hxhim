@@ -13,21 +13,6 @@ Transport::Request::BGetOp::~BGetOp() {
     cleanup();
 }
 
-std::size_t Transport::Request::BGetOp::size() const {
-    std::size_t total = Request::size(); // do not call SubjectPredicate::size()
-    for(std::size_t i = 0; i < count; i++) {
-        total += sizeof(object_types[i]) +
-                 sizeof(num_recs[i]) + sizeof(ops[i]);
-
-        if ((ops[i] != hxhim_getop_t::HXHIM_GETOP_FIRST) &&
-            (ops[i] != hxhim_getop_t::HXHIM_GETOP_LAST)) {
-            total += subjects[i].pack_size(true) +
-                     predicates[i].pack_size(true);
-        }
-    }
-    return total;
-}
-
 void Transport::Request::BGetOp::alloc(const std::size_t max) {
     cleanup();
 
@@ -37,6 +22,31 @@ void Transport::Request::BGetOp::alloc(const std::size_t max) {
         num_recs     = alloc_array<std::size_t>(max);
         ops          = alloc_array<hxhim_getop_t>(max);
     }
+}
+
+std::size_t Transport::Request::BGetOp::add(Blob subject, Blob predicate,
+                                            hxhim_data_t object_type,
+                                            std::size_t num_rec,
+                                            hxhim_getop_t op) {
+    subjects[count] = subject;
+    predicates[count] = predicate;
+    object_types[count] = object_type;
+    num_recs[count] = num_rec;
+    ops[count] = op;
+
+    // use Request::add instead of SubjectPredicate::add
+    // to have mroe control of values added
+    // original subject and predicate addresses are not added
+    if ((op != hxhim_getop_t::HXHIM_GETOP_FIRST) &&
+        (op != hxhim_getop_t::HXHIM_GETOP_LAST)) {
+        Request::add(subject.pack_size(true) +
+                     predicate.pack_size(true),
+                     false);
+    }
+
+    return Request::add(sizeof(object_type) +
+                 sizeof(num_rec) + sizeof(op),
+                 true);
 }
 
 int Transport::Request::BGetOp::steal(Transport::Request::BGetOp *from, const std::size_t i) {
@@ -86,23 +96,6 @@ Transport::Response::BGetOp::~BGetOp() {
     cleanup();
 }
 
-std::size_t Transport::Response::BGetOp::size() const {
-    std::size_t total = Response::size();
-    for(std::size_t i = 0; i < count; i++) {
-        total += sizeof(num_recs[i]);
-        for(std::size_t j = 0; j < num_recs[i]; j++) {
-            total += subjects[i][j].pack_size(true) +
-                     predicates[i][j].pack_size(true);
-
-            // all records from response[i] share the same status
-            if (statuses[i] == DATASTORE_SUCCESS) {
-                total += objects[i][j].pack_size(true);
-            }
-        }
-    }
-    return total;
-}
-
 void Transport::Response::BGetOp::alloc(const std::size_t max) {
     cleanup();
 
@@ -115,17 +108,51 @@ void Transport::Response::BGetOp::alloc(const std::size_t max) {
     }
 }
 
-int Transport::Response::BGetOp::steal(Transport::Response::BGetOp *from, const std::size_t i) {
-    if (Response::steal(from, i) != TRANSPORT_SUCCESS) {
-        return TRANSPORT_ERROR;
+std::size_t Transport::Response::BGetOp::add(Blob *subject,
+                                             Blob *predicate,
+                                             Blob *object,
+                                             std::size_t num_rec,
+                                             int status) {
+
+    size_t ds = sizeof(num_rec);
+    for(std::size_t i = 0; i < num_rec; i++) {
+        ds += subject[i].pack_size(true) +
+            predicate[i].pack_size(true) +
+            object[i].pack_size(true);
     }
 
-    num_recs[count]     = from->num_recs[i];
-    subjects[count]     = std::move(from->subjects[i]);
-    predicates[count]   = std::move(from->predicates[i]);
-    objects[count]      = std::move(from->objects[i]);
+    subjects[count] = subject;
+    predicates[count] = predicate;
+    objects[count] = object;
+    num_recs[count] = num_rec;
 
-    count++;
+    // status is shared by all responses
+    return Response::add(status, sizeof(num_rec) + ds, true);
+}
+
+std::size_t Transport::Response::BGetOp::update_size(const std::size_t index) {
+    for(std::size_t i = 0; i < num_recs[index]; i++) {
+        Message::add(subjects[index][i].pack_size(true) + predicates[index][i].pack_size(true), false);
+
+        // all records from this response share the same status
+        if (statuses[index] == DATASTORE_SUCCESS) {
+            Message::add(objects[index][i].pack_size(true), false);
+        }
+    }
+
+    return size();
+}
+
+int Transport::Response::BGetOp::steal(Transport::Response::BGetOp *from, const std::size_t i) {
+    add(from->subjects[i],
+        from->predicates[i],
+        from->objects[i],
+        from->num_recs[i],
+        from->statuses[i]);
+
+    from->subjects[i]   = nullptr;
+    from->predicates[i] = nullptr;
+    from->objects[i]    = nullptr;
 
     return HXHIM_SUCCESS;
 }

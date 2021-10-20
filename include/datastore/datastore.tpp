@@ -32,9 +32,9 @@ void Datastore::Datastore::BGetOp_copy_response(Transform::Callbacks *callbacks,
             (decode(callbacks, encoded_predicate, &predicate, &predicate_len) == DATASTORE_SUCCESS) &&
             (decode(callbacks, ReferenceBlob((void *) value.data(), value.size(), req->object_types[i]),
                     &object, &object_len)                                     == DATASTORE_SUCCESS)) {
-            res->subjects[i][j]   = RealBlob(subject,   subject_len,   req->subjects[i].data_type());
-            res->predicates[i][j] = RealBlob(predicate, predicate_len, req->predicates[i].data_type());
-            res->objects[i][j]    = RealBlob(object,    object_len,    req->object_types[i]);
+            res->subjects[i][j]   = std::move(RealBlob(subject,   subject_len,   req->subjects[i].data_type()));
+            res->predicates[i][j] = std::move(RealBlob(predicate, predicate_len, req->predicates[i].data_type()));
+            res->objects[i][j]    = std::move(RealBlob(object,    object_len,    req->object_types[i]));
             res->num_recs[i]++;
             event.size += key.size() + value.size();
         }

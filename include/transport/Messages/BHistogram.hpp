@@ -19,9 +19,8 @@ struct BHistogram final : Request {
     BHistogram(const std::size_t max = 0);
     ~BHistogram();
 
-    std::size_t size() const;
-
     void alloc(const std::size_t max);
+    std::size_t add(Blob name);
     int steal(BHistogram *from, const std::size_t i);
     int cleanup();
 
@@ -36,9 +35,8 @@ struct BHistogram final : Response {
     BHistogram(const std::size_t max = 0);
     ~BHistogram();
 
-    std::size_t size() const;
-
     void alloc(const std::size_t max);
+    std::size_t add(const std::shared_ptr<Histogram::Histogram> &hist, int status);
     int steal(BHistogram *from, const std::size_t i);
     int cleanup();
 

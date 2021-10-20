@@ -17,9 +17,8 @@ struct SubjectPredicate : Request {
     SubjectPredicate(const enum hxhim_op_t op);
     virtual ~SubjectPredicate();
 
-    virtual std::size_t size() const;
-
     virtual void alloc(const std::size_t max);
+    virtual std::size_t add(Blob subject, Blob predicate, const bool increment_count);
     virtual int steal(SubjectPredicate *from, const std::size_t i);
     virtual int cleanup();
 
@@ -41,9 +40,8 @@ struct SubjectPredicate : Response {
     SubjectPredicate(const enum hxhim_op_t op);
     virtual ~SubjectPredicate();
 
-    virtual std::size_t size() const;
-
     virtual void alloc(const std::size_t max);
+    virtual std::size_t add(Blob &subject, Blob &predicate, int status);
     virtual int steal(SubjectPredicate *from, const std::size_t i);
     virtual int cleanup();
 

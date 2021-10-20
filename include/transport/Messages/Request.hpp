@@ -12,9 +12,8 @@ struct Request : Message {
     Request(const enum hxhim_op_t type);
     virtual ~Request();
 
-    virtual std::size_t size() const;
-
     virtual void alloc(const std::size_t max);
+    virtual std::size_t add(const std::size_t ds, const bool increment_count);
     virtual int cleanup();
 
   protected:

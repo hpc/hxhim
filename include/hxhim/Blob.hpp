@@ -45,7 +45,7 @@ class Blob {
         virtual ~Blob();
 
         // destroy this and reference rhs
-        Blob &operator=(const Blob &rhs);
+        Blob &operator=(Blob &rhs);
 
         // destroy this, take rhs, and clear rhs
         Blob &operator=(Blob &&rhs);

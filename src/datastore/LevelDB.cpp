@@ -114,30 +114,17 @@ Transport::Response::BPut *Datastore::LevelDB::BPutImpl(Transport::Request::BPut
         if (object != req->objects[i].data()) {
             dealloc(object);
         }
-
-        res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size(), req->subjects[i].data_type());
-        res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size(), req->predicates[i].data_type());
     }
 
     ::leveldb::Status status = db->Write(::leveldb::WriteOptions(), &batch);
+    const int res_status = status.ok()?DATASTORE_SUCCESS:DATASTORE_ERROR;
 
-    if (status.ok()) {
-        // successful writes only update statuses that were unset
-        for(std::size_t i = 0; i < req->count; i++) {
-            if (res->statuses[i] == DATASTORE_UNSET) {
-                res->statuses[i] = DATASTORE_SUCCESS;
-            }
-        }
-        mlog(LEVELDB_INFO, "LevelDB write success");
-    }
-    else {
-        for(std::size_t i = 0; i < req->count; i++) {
-            res->statuses[i] = DATASTORE_ERROR;
-        }
-        mlog(LEVELDB_INFO, "LevelDB write error");
+    for(std::size_t i = 0; i < req->count; i++) {
+        res->add(ReferenceBlob(req->orig.subjects[i], req->subjects[i].size(), req->subjects[i].data_type()),
+                 ReferenceBlob(req->orig.predicates[i], req->predicates[i].size(), req->predicates[i].data_type()),
+                 res_status);
     }
 
-    res->count = req->count;
     event.time.end = ::Stats::now();
     stats.puts.emplace_back(event);
 
@@ -167,6 +154,8 @@ Transport::Response::BGet *Datastore::LevelDB::BGetImpl(Transport::Request::BGet
         std::size_t subject_len = 0;
         void *predicate = nullptr;
         std::size_t predicate_len = 0;
+        void *object = nullptr;
+        std::size_t object_len = 0;
 
         int status = DATASTORE_ERROR; // only successful decoding sets the status to DATASTORE_SUCCESS
         if ((encode(callbacks, req->subjects[i],   &subject,   &subject_len)   == DATASTORE_SUCCESS) &&
@@ -184,11 +173,8 @@ Transport::Response::BGet *Datastore::LevelDB::BGetImpl(Transport::Request::BGet
                 mlog(LEVELDB_INFO, "Rank %d LevelDB GET success", rank);
 
                 // decode the object
-                void *object = nullptr;
-                std::size_t object_len = 0;
                 if (decode(callbacks, ReferenceBlob((void *) value.data(), value.size(), req->object_types[i]),
                            &object, &object_len) == DATASTORE_SUCCESS) {
-                    res->objects[i] = RealBlob(object, object_len, req->object_types[i]);
                     event.size += res->objects[i].size();
                     status = DATASTORE_SUCCESS;
                     mlog(LEVELDB_INFO, "Rank %d LevelDB GET decode success", rank);
@@ -196,10 +182,11 @@ Transport::Response::BGet *Datastore::LevelDB::BGetImpl(Transport::Request::BGet
             }
         }
 
-        res->statuses[i] = status;
-
-        res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size(), req->subjects[i].data_type());
-        res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size(), req->predicates[i].data_type());
+        // object will be owned by the result packet
+        res->add(ReferenceBlob(req->orig.subjects[i], req->subjects[i].size(), req->subjects[i].data_type()),
+                 ReferenceBlob(req->orig.predicates[i], req->predicates[i].size(), req->predicates[i].data_type()),
+                 RealBlob(object, object_len, req->object_types[i]),
+                 status);
 
         if (subject != req->subjects[i].data()) {
             dealloc(subject);
@@ -208,8 +195,6 @@ Transport::Response::BGet *Datastore::LevelDB::BGetImpl(Transport::Request::BGet
             dealloc(predicate);
         }
     }
-
-    res->count = req->count;
 
     event.time.end = ::Stats::now();
     stats.gets.emplace_back(event);
@@ -234,13 +219,14 @@ Transport::Response::BGetOp *Datastore::LevelDB::BGetOpImpl(Transport::Request::
         event.time.start = ::Stats::now();
 
         // prepare response
-        res->num_recs[i]   = 0;
-        res->subjects[i]   = alloc_array<Blob>(req->num_recs[i]);
-        res->predicates[i] = alloc_array<Blob>(req->num_recs[i]);
-        res->objects[i]    = alloc_array<Blob>(req->num_recs[i]);
+        // does not modify serialized size
         // set status early so failures during copy will change the status
         // all responses for this Op share a status
-        res->statuses[i]   = DATASTORE_UNSET;
+        res->add(alloc_array<Blob>(req->num_recs[i]),
+                 alloc_array<Blob>(req->num_recs[i]),
+                 alloc_array<Blob>(req->num_recs[i]),
+                 0,
+                 DATASTORE_UNSET);
 
         // encode the subject and predicate and get the key
         void *subject = nullptr;
@@ -354,7 +340,7 @@ Transport::Response::BGetOp *Datastore::LevelDB::BGetOpImpl(Transport::Request::
             BGetOp_error_response(res, i, req->subjects[i], req->predicates[i], event);
         }
 
-        res->count++;
+        res->update_size(i);
 
         event.count = res->num_recs[i];
         event.time.end = ::Stats::now();
@@ -400,9 +386,6 @@ Transport::Response::BDelete *Datastore::LevelDB::BDeleteImpl(Transport::Request
             event.size += key.size();
         }
 
-        res->orig.subjects[i]   = ReferenceBlob(req->orig.subjects[i], req->subjects[i].size(), req->subjects[i].data_type());
-        res->orig.predicates[i] = ReferenceBlob(req->orig.predicates[i], req->predicates[i].size(), req->predicates[i].data_type());
-
         if (subject != req->subjects[i].data()) {
             dealloc(subject);
         }
@@ -416,10 +399,10 @@ Transport::Response::BDelete *Datastore::LevelDB::BDeleteImpl(Transport::Request
 
     const int stat = status.ok()?DATASTORE_SUCCESS:DATASTORE_ERROR;
     for(std::size_t i = 0; i < req->count; i++) {
-        res->statuses[i] = stat;
+        res->add(ReferenceBlob(req->orig.subjects[i], req->subjects[i].size(), req->subjects[i].data_type()),
+                 ReferenceBlob(req->orig.predicates[i], req->predicates[i].size(), req->predicates[i].data_type()),
+                 stat);
     }
-
-    res->count = req->count;
 
     event.time.end = ::Stats::now();
     stats.deletes.emplace_back(event);

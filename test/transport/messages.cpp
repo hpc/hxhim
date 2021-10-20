@@ -2,6 +2,7 @@
 
 #include "transport/Messages/Messages.hpp"
 
+static const std::size_t  COUNT = 10;
 static const char         SUBJECT[]      = "SUBJECT";
 static const std::size_t  SUBJECT_LEN    = strlen(SUBJECT);
 static const hxhim_data_t SUBJECT_TYPE   = (hxhim_data_t) rand();
@@ -16,16 +17,14 @@ using namespace ::Transport;
 
 TEST(Request, BPut) {
     Request::BPut src;
-    ASSERT_NO_THROW(src.alloc(1));
-    {
+    ASSERT_NO_THROW(src.alloc(COUNT));
+    for(std::size_t i = 0; i < COUNT; i++) {
         src.src = rand();
         src.dst = rand();
 
-        src.count = 1;
-
-        src.subjects[0]   = ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN, SUBJECT_TYPE);
-        src.predicates[0] = ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN, PREDICATE_TYPE);
-        src.objects[0]    = ReferenceBlob((void *) &OBJECT, OBJECT_LEN, OBJECT_TYPE);
+        src.add(ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN, SUBJECT_TYPE),
+                ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN, PREDICATE_TYPE),
+                ReferenceBlob((void *) &OBJECT, OBJECT_LEN, OBJECT_TYPE));
     }
 
     EXPECT_EQ(src.direction, Message::REQUEST);
@@ -58,16 +57,14 @@ TEST(Request, BPut) {
 
 TEST(Request, BGet) {
     Request::BGet src;
-    ASSERT_NO_THROW(src.alloc(1));
-    {
+    ASSERT_NO_THROW(src.alloc(COUNT));
+    for(std::size_t i = 0; i < COUNT; i++) {
         src.src = rand();
         src.dst = rand();
 
-        src.count = 1;
-
-        src.subjects[0]     = ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN, SUBJECT_TYPE);
-        src.predicates[0]   = ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN, PREDICATE_TYPE);
-        src.object_types[0] = OBJECT_TYPE;
+        src.add(ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN, SUBJECT_TYPE),
+                ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN, PREDICATE_TYPE),
+                OBJECT_TYPE);
     }
 
     EXPECT_EQ(src.direction, Message::REQUEST);
@@ -105,14 +102,12 @@ TEST(Request, BGetOp) {
         src.src = rand();
         src.dst = rand();
 
-        src.count = HXHIM_GETOP_INVALID;
-
         for(int i = 0; i < HXHIM_GETOP_INVALID; i++) {
-            src.subjects[i] = ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN, SUBJECT_TYPE);
-            src.predicates[i] = ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN, PREDICATE_TYPE);
-            src.object_types[i] = OBJECT_TYPE;
-            src.num_recs[i] = rand();
-            src.ops[i] = static_cast<hxhim_getop_t>(i);
+            src.add(ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN, SUBJECT_TYPE),
+                    ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN, PREDICATE_TYPE),
+                    OBJECT_TYPE,
+                    rand(),
+                    static_cast<hxhim_getop_t>(i));
         }
     }
 
@@ -154,15 +149,13 @@ TEST(Request, BGetOp) {
 
 TEST(Request, BDelete) {
     Request::BDelete src;
-    ASSERT_NO_THROW(src.alloc(1));
-    {
+    ASSERT_NO_THROW(src.alloc(COUNT));
+    for(std::size_t i = 0; i < COUNT; i++) {
         src.src = rand();
         src.dst = rand();
 
-        src.count = 1;
-
-        src.subjects[0]   = ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN, SUBJECT_TYPE);
-        src.predicates[0] = ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN, PREDICATE_TYPE);
+        src.add(ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN, SUBJECT_TYPE),
+                ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN, PREDICATE_TYPE));
     }
 
     EXPECT_EQ(src.direction, Message::REQUEST);
@@ -196,14 +189,12 @@ TEST(Request, BHistogram) {
     const std::string TEST_HIST_NAME = "TEST_HIST_NAME";
 
     Request::BHistogram src;
-    ASSERT_NO_THROW(src.alloc(1));
-    {
+    ASSERT_NO_THROW(src.alloc(COUNT));
+    for(std::size_t i = 0; i < COUNT; i++) {
         src.src = rand();
         src.dst = rand();
 
-        src.count = 1;
-
-        src.names[0] = ReferenceBlob((char *) TEST_HIST_NAME.data(), TEST_HIST_NAME.size(), hxhim_data_t::HXHIM_DATA_BYTE);
+        src.add(ReferenceBlob((char *) TEST_HIST_NAME.data(), TEST_HIST_NAME.size(), hxhim_data_t::HXHIM_DATA_BYTE));
     }
 
     EXPECT_EQ(src.direction, Message::REQUEST);
@@ -231,17 +222,14 @@ TEST(Request, BHistogram) {
 
 TEST(Response, BPut) {
     Response::BPut src;
-    ASSERT_NO_THROW(src.alloc(1));
-    {
+    ASSERT_NO_THROW(src.alloc(COUNT));
+    for(std::size_t i = 0; i < COUNT; i++) {
         src.src = rand();
         src.dst = rand();
 
-        src.count = 1;
-
-        src.statuses[0] = DATASTORE_SUCCESS;
-
-        src.orig.subjects[0]   = ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN, SUBJECT_TYPE);
-        src.orig.predicates[0] = ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN, PREDICATE_TYPE);
+        src.add(ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN, SUBJECT_TYPE),
+                ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN, PREDICATE_TYPE),
+                DATASTORE_SUCCESS);
     }
 
     EXPECT_EQ(src.direction, Message::RESPONSE);
@@ -275,19 +263,15 @@ TEST(Response, BPut) {
 
 TEST(Response, BGet) {
     Response::BGet src;
-    ASSERT_NO_THROW(src.alloc(1));
-    {
+    ASSERT_NO_THROW(src.alloc(COUNT));
+    for(std::size_t i = 0; i < COUNT; i++) {
         src.src = rand();
         src.dst = rand();
 
-        src.count = 1;
-
-        src.statuses[0] = DATASTORE_SUCCESS;
-
-        src.objects[0] = ReferenceBlob((void *) &OBJECT, OBJECT_LEN, OBJECT_TYPE);
-
-        src.orig.subjects[0]   = ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN, SUBJECT_TYPE);
-        src.orig.predicates[0] = ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN, PREDICATE_TYPE);
+        src.add(ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN, SUBJECT_TYPE),
+                ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN, PREDICATE_TYPE),
+                ReferenceBlob((void *) &OBJECT, OBJECT_LEN, OBJECT_TYPE),
+                DATASTORE_SUCCESS);
     }
 
     EXPECT_EQ(src.direction, Message::RESPONSE);
@@ -328,19 +312,15 @@ TEST(Response, BGetOp) {
         src.src = rand();
         src.dst = rand();
 
-        src.count = 1;
+        Blob *subjects       = alloc_array<Blob>(1);
+        Blob *predicates     = alloc_array<Blob>(1);
+        Blob *objects        = alloc_array<Blob>(1);
 
-        src.statuses[0]      = DATASTORE_SUCCESS;
+        subjects[0]   = ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN, SUBJECT_TYPE);
+        predicates[0] = ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN, PREDICATE_TYPE);
+        objects[0]    = ReferenceBlob((void *) &OBJECT, OBJECT_LEN, OBJECT_TYPE);
 
-        src.num_recs[0]      = 1;
-
-        src.subjects[0]      = alloc_array<Blob>(src.num_recs[0]);
-        src.predicates[0]    = alloc_array<Blob>(src.num_recs[0]);
-        src.objects[0]       = alloc_array<Blob>(src.num_recs[0]);
-
-        src.subjects[0][0]   = ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN, SUBJECT_TYPE);
-        src.predicates[0][0] = ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN, PREDICATE_TYPE);
-        src.objects[0][0]    = ReferenceBlob((void *) &OBJECT, OBJECT_LEN, OBJECT_TYPE);
+        src.add(subjects, predicates, objects, DATASTORE_SUCCESS, 1);
     }
 
     EXPECT_EQ(src.direction, Message::RESPONSE);
@@ -388,17 +368,14 @@ TEST(Response, BGetOp) {
 
 TEST(Response, BDelete) {
     Response::BDelete src;
-    ASSERT_NO_THROW(src.alloc(1));
-    {
+    ASSERT_NO_THROW(src.alloc(COUNT));
+    for(std::size_t i = 0; i < COUNT; i++) {
         src.src = rand();
         src.dst = rand();
 
-        src.count = 1;
-
-        src.statuses[0] = DATASTORE_SUCCESS;
-
-        src.orig.subjects[0]   = ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN, SUBJECT_TYPE);
-        src.orig.predicates[0] = ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN, PREDICATE_TYPE);
+        src.add(ReferenceBlob((void *) &SUBJECT, SUBJECT_LEN, SUBJECT_TYPE),
+                ReferenceBlob((void *) &PREDICATE, PREDICATE_LEN, PREDICATE_TYPE),
+                DATASTORE_SUCCESS);
     }
 
     EXPECT_EQ(src.direction, Message::RESPONSE);
@@ -432,19 +409,17 @@ TEST(Response, BDelete) {
 
 TEST(Response, BHistogram) {
     Response::BHistogram src;
-    ASSERT_NO_THROW(src.alloc(1));
-    {
+    ASSERT_NO_THROW(src.alloc(COUNT));
+    for(std::size_t i = 0; i < COUNT; i++) {
         src.src = rand();
         src.dst = rand();
 
-        src.count = 1;
-
-        src.statuses[0] = DATASTORE_SUCCESS;
-
-        src.histograms[0] = std::shared_ptr<Histogram::Histogram>(construct<Histogram::Histogram>(Histogram::Config{0, histogram_rice_rule, nullptr}, ""), Histogram::deleter);
+        std::shared_ptr<Histogram::Histogram> hist(construct<Histogram::Histogram>(Histogram::Config{0, histogram_rice_rule, nullptr}, ""), Histogram::deleter);
         for(std::size_t i = 0; i < 10; i++) {
-            src.histograms[0]->add(rand() % 10);
+            hist->add(rand() % 10);
         }
+
+        src.add(hist, DATASTORE_SUCCESS);
     }
 
     EXPECT_EQ(src.direction, Message::RESPONSE);

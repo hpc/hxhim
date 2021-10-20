@@ -9,15 +9,16 @@ Transport::Response::Response::Response(const enum hxhim_op_t type)
 Transport::Response::Response::~Response()
 {}
 
-std::size_t Transport::Response::Response::size() const {
-    return Message::size() + (count * sizeof(*statuses));
-}
-
 void Transport::Response::Response::alloc(const std::size_t max) {
     if (max) {
         Message::alloc(max);
         statuses = alloc_array<int>(max);
     }
+}
+
+std::size_t Transport::Response::Response::add(const int status, const std::size_t ds, const bool increment_count) {
+    statuses[count] = status;
+    return Message::add(sizeof(status) + ds, increment_count);
 }
 
 int Transport::Response::Response::steal(Transport::Response::Response *from, const std::size_t i) {

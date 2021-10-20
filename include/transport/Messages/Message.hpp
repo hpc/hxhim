@@ -23,7 +23,8 @@ struct Message {
     Message(const Direction dir, const enum hxhim_op_t op, const std::size_t max_count = 0);
     virtual ~Message();
 
-    virtual std::size_t size() const;
+    virtual std::size_t add(const size_t ds, const bool increment_count);
+    std::size_t size() const;
     std::size_t filled() const;
 
     virtual void alloc(const std::size_t max);
@@ -37,6 +38,7 @@ struct Message {
     int dst;
     std::size_t max_count;
     std::size_t count;
+    std::size_t serialized_size;
 
     struct {
         Stats::Chronostamp allocate;

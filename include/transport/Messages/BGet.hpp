@@ -11,9 +11,8 @@ struct BGet final : SubjectPredicate {
     BGet(const std::size_t max = 0);
     ~BGet();
 
-    std::size_t size() const;
-
     void alloc(const std::size_t max);
+    std::size_t add(Blob subject, Blob predicate, hxhim_data_t object_type);
     int steal(BGet *from, const std::size_t i);
     int cleanup();
 
@@ -28,9 +27,8 @@ struct BGet final : SubjectPredicate {
     BGet(const std::size_t max = 0);
     ~BGet();
 
-    std::size_t size() const;
-
     void alloc(const std::size_t max);
+    std::size_t add(Blob subject, Blob predicate, Blob &&object, int status);
     int steal(BGet *bget, const std::size_t i);
     int cleanup();
 

@@ -219,7 +219,9 @@ hxhim::Results::Sync *hxhim::Result::init(hxhim_t *hx, const int synced) {
 hxhim::Results::Hist *hxhim::Result::init(hxhim_t *hx, Transport::Response::BHistogram *bhist, const std::size_t i) {
     hxhim::Results::Hist *out = construct<hxhim::Results::Hist>(hx, bhist->src, bhist->statuses[i]);
 
-    out->histogram = bhist->histograms[i];
+    if (bhist->statuses[i] == DATASTORE_SUCCESS) {
+        out->histogram = bhist->histograms[i];
+    }
 
     bhist->histograms[i] = nullptr;
     return out;

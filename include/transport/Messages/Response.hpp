@@ -13,9 +13,8 @@ struct Response : Message {
     Response(const enum hxhim_op_t type);
     virtual ~Response();
 
-    virtual std::size_t size() const;
-
     virtual void alloc(const std::size_t max);
+    virtual std::size_t add(const int status, const std::size_t ds, const bool increment_count);
     virtual int cleanup();
 
     int *statuses; // DATASTORE_SUCCESS or DATASTORE_ERROR
