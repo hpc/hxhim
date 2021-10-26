@@ -58,7 +58,7 @@ TEST(datastore, Histogram) {
     // GET should not update the histogram
     {
         {
-            Transport::Request::BGet flt(1);
+            Message::Request::BGet flt(1);
             flt.subjects[0] = flt_blob;
             flt.predicates[0] = predicate;
             flt.object_types[0] = hxhim_data_t::HXHIM_DATA_POINTER;
@@ -69,7 +69,7 @@ TEST(datastore, Histogram) {
         }
 
         {
-            Transport::Request::BGet dbl(1);
+            Message::Request::BGet dbl(1);
             dbl.subjects[0] = dbl_blob;
             dbl.predicates[0] = predicate;
             dbl.object_types[0] = hxhim_data_t::HXHIM_DATA_POINTER;
@@ -83,7 +83,7 @@ TEST(datastore, Histogram) {
     // GETOP should not update the histogram
     {
         {
-            Transport::Request::BGetOp flt(1);
+            Message::Request::BGetOp flt(1);
             flt.subjects[0] = flt_blob;
             flt.predicates[0] = predicate;
             flt.object_types[0] = hxhim_data_t::HXHIM_DATA_FLOAT;
@@ -94,7 +94,7 @@ TEST(datastore, Histogram) {
         }
 
         {
-            Transport::Request::BGetOp dbl(1);
+            Message::Request::BGetOp dbl(1);
             dbl.subjects[0] = dbl_blob;
             dbl.predicates[0] = predicate;
             dbl.object_types[0] = hxhim_data_t::HXHIM_DATA_DOUBLE;
@@ -108,7 +108,7 @@ TEST(datastore, Histogram) {
     // DELETE should not update the histogram
     {
         {
-            Transport::Request::BDelete flt(1);
+            Message::Request::BDelete flt(1);
             flt.subjects[0] = flt_blob;
             flt.predicates[0] = predicate;
             flt.count = 1;
@@ -118,7 +118,7 @@ TEST(datastore, Histogram) {
         }
 
         {
-            Transport::Request::BDelete dbl(1);
+            Message::Request::BDelete dbl(1);
             dbl.subjects[0] = dbl_blob;
             dbl.predicates[0] = predicate;
             dbl.count = 1;
@@ -171,7 +171,7 @@ TEST(datastore, Histogram) {
 
         // PUT a float
         {
-            Transport::Request::BPut flt(1);
+            Message::Request::BPut flt(1);
             flt.subjects[0] = ReferenceBlob(nullptr, 0, hxhim_data_t::HXHIM_DATA_POINTER);
             flt.predicates[0] = pred;
             flt.objects[0] = flt_blob;
@@ -188,7 +188,7 @@ TEST(datastore, Histogram) {
             EXPECT_EQ(hist->get(nullptr, nullptr, nullptr), HISTOGRAM_ERROR);
 
             // PUT doubles
-            Transport::Request::BPut dbl(1);
+            Message::Request::BPut dbl(1);
             dbl.subjects[0] = ReferenceBlob(nullptr, 0, hxhim_data_t::HXHIM_DATA_POINTER);
             dbl.predicates[0] = pred;
             dbl.objects[0] = dbl_blob;

@@ -30,19 +30,19 @@ class EndpointGroup : virtual public ::Transport::EndpointGroup {
         void RemoveID(const int id);
 
         /** @description Bulk Put to multiple endpoints       */
-        Response::BPut *communicate(const ReqList<Request::BPut> &bpm_list);
+        Message::Response::BPut *communicate(const ReqList<Message::Request::BPut> &bpm_list);
 
         /** @description Bulk Get from multiple endpoints     */
-        Response::BGet *communicate(const ReqList<Request::BGet> &bgm_list);
+        Message::Response::BGet *communicate(const ReqList<Message::Request::BGet> &bgm_list);
 
         /** @description Bulk Get from multiple endpoints     */
-        Response::BGetOp *communicate(const ReqList<Request::BGetOp> &bgm_list);
+        Message::Response::BGetOp *communicate(const ReqList<Message::Request::BGetOp> &bgm_list);
 
         /** @description Bulk Delete to multiple endpoints    */
-        Response::BDelete *communicate(const ReqList<Request::BDelete> &bdm_list);
+        Message::Response::BDelete *communicate(const ReqList<Message::Request::BDelete> &bdm_list);
 
         /** @description Bulk Histogram to multiple endpoints */
-        Response::BHistogram *communicate(const ReqList<Request::BHistogram> &bhm_list);
+        Message::Response::BHistogram *communicate(const ReqList<Message::Request::BHistogram> &bhm_list);
 
     private:
         thallium::engine *engine;                                 /** take ownership */

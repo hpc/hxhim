@@ -1,9 +1,9 @@
-#ifndef TRANSPORT_BPUT_MESSAGE_HPP
-#define TRANSPORT_BPUT_MESSAGE_HPP
+#ifndef BPUT_MESSAGE_HPP
+#define BPUT_MESSAGE_HPP
 
-#include "transport/Messages/SubjectPredicate.hpp"
+#include "message/SubjectPredicate.hpp"
 
-namespace Transport {
+namespace Message {
 
 namespace Request {
 
@@ -13,7 +13,6 @@ struct BPut final : SubjectPredicate {
 
     void alloc(const std::size_t max);
     std::size_t add(Blob subject, Blob predicate, Blob object);
-    int steal(BPut *from, const std::size_t i);
     int cleanup();
 
     Blob *objects;

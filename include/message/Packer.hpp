@@ -1,14 +1,13 @@
-#ifndef TRANSPORT_PACKER_HPP
-#define TRANSPORT_PACKER_HPP
+#ifndef MESSAGE_PACKER_HPP
+#define MESSAGE_PACKER_HPP
 
-#include "transport/Messages/Messages.hpp"
+#include "message/Messages.hpp"
 
-namespace Transport {
+namespace Message {
 
 /**
  * Packer
- * A collection of functions that pack
- * Transport::Messages using thallium
+ * A collection of functions that pack messages
  *
  * @param message pointer to the mesage that will be packed
  * @param buf     the string where the packed data will be placed into

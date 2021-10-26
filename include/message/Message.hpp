@@ -1,25 +1,24 @@
-#ifndef TRANSPORT_MESSAGE_BASE_HPP
-#define TRANSPORT_MESSAGE_BASE_HPP
+#ifndef BASE_MESSAGE_HPP
+#define BASE_MESSAGE_HPP
 
 #include <cstdint>
 
 #include "hxhim/constants.h"
-#include "transport/constants.hpp"
+#include "message/constants.hpp"
 #include "utils/Stats.hpp"
 #include "utils/memory.hpp"
 
-namespace Transport {
+namespace Message {
+/**
+ * Whether this packet is a request or a response
+ */
+enum Direction {
+    NONE,
+    REQUEST,
+    RESPONSE,
+};
 
 struct Message {
-    /**
-     * Whether this packet is a request or a response
-     */
-    enum Direction {
-        NONE,
-        REQUEST,
-        RESPONSE,
-    };
-
     Message(const Direction dir, const enum hxhim_op_t op, const std::size_t max_count = 0);
     virtual ~Message();
 

@@ -1,9 +1,9 @@
-#ifndef TRANSPORT_BGET_MESSAGE_HPP
-#define TRANSPORT_BGET_MESSAGE_HPP
+#ifndef BGET_MESSAGE_HPP
+#define BGET_MESSAGE_HPP
 
-#include "transport/Messages/SubjectPredicate.hpp"
+#include "message/SubjectPredicate.hpp"
 
-namespace Transport {
+namespace Message {
 
 namespace Request {
 
@@ -13,7 +13,6 @@ struct BGet final : SubjectPredicate {
 
     void alloc(const std::size_t max);
     std::size_t add(Blob subject, Blob predicate, hxhim_data_t object_type);
-    int steal(BGet *from, const std::size_t i);
     int cleanup();
 
     hxhim_data_t *object_types;

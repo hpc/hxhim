@@ -6,28 +6,28 @@ Transport::EndpointGroup::EndpointGroup() {}
 
 Transport::EndpointGroup::~EndpointGroup() {}
 
-Transport::Response::BPut *
-Transport::EndpointGroup::communicate(const ReqList<Request::BPut> &) {
+Message::Response::BPut *
+Transport::EndpointGroup::communicate(const ReqList<Message::Request::BPut> &) {
     return nullptr;
 }
 
-Transport::Response::BGet *
-Transport::EndpointGroup::communicate(const ReqList<Request::BGet> &) {
+Message::Response::BGet *
+Transport::EndpointGroup::communicate(const ReqList<Message::Request::BGet> &) {
     return nullptr;
 }
 
-Transport::Response::BGetOp *
-Transport::EndpointGroup::communicate(const ReqList<Request::BGetOp> &) {
+Message::Response::BGetOp *
+Transport::EndpointGroup::communicate(const ReqList<Message::Request::BGetOp> &) {
     return nullptr;
 }
 
-Transport::Response::BDelete *
-Transport::EndpointGroup::communicate(const ReqList<Request::BDelete> &) {
+Message::Response::BDelete *
+Transport::EndpointGroup::communicate(const ReqList<Message::Request::BDelete> &) {
     return nullptr;
 }
 
-Transport::Response::BHistogram *
-Transport::EndpointGroup::communicate(const ReqList<Request::BHistogram> &) {
+Message::Response::BHistogram *
+Transport::EndpointGroup::communicate(const ReqList<Message::Request::BHistogram> &) {
     return nullptr;
 }
 
@@ -76,8 +76,8 @@ void Transport::Transport::SetRangeServer(RangeServer *rs) {
  * @param bpm_list a list of PUT messages going to different servers
  * @return the response from the range server
  */
-Transport::Response::BPut *
-Transport::Transport::communicate(const ReqList<Request::BPut> &bpm_list) {
+Message::Response::BPut *
+Transport::Transport::communicate(const ReqList<Message::Request::BPut> &bpm_list) {
     return (bpm_list.size() && endpointgroup_)?endpointgroup_->communicate(bpm_list):nullptr;
 }
 
@@ -89,8 +89,8 @@ Transport::Transport::communicate(const ReqList<Request::BPut> &bpm_list) {
  * @param bgm_list a list of GET messages going to different servers
  * @return the response from the range server
  */
-Transport::Response::BGet *
-Transport::Transport::communicate(const ReqList<Request::BGet> &bgm_list) {
+Message::Response::BGet *
+Transport::Transport::communicate(const ReqList<Message::Request::BGet> &bgm_list) {
     return (bgm_list.size() && endpointgroup_)?endpointgroup_->communicate(bgm_list):nullptr;
 }
 
@@ -102,8 +102,8 @@ Transport::Transport::communicate(const ReqList<Request::BGet> &bgm_list) {
  * @param bgm_list a list of GET messages going to different servers
  * @return the response from the range server
  */
-Transport::Response::BGetOp *
-Transport::Transport::communicate(const ReqList<Request::BGetOp> &bgm_list) {
+Message::Response::BGetOp *
+Transport::Transport::communicate(const ReqList<Message::Request::BGetOp> &bgm_list) {
     return (bgm_list.size() && endpointgroup_)?endpointgroup_->communicate(bgm_list):nullptr;
 }
 
@@ -115,8 +115,8 @@ Transport::Transport::communicate(const ReqList<Request::BGetOp> &bgm_list) {
  * @param bdm_list a list of DELETE messages going to different servers
  * @return the response from the range server
  */
-Transport::Response::BDelete *
-Transport::Transport::communicate(const ReqList<Request::BDelete> &bdm_list) {
+Message::Response::BDelete *
+Transport::Transport::communicate(const ReqList<Message::Request::BDelete> &bdm_list) {
     return (bdm_list.size() && endpointgroup_)?endpointgroup_->communicate(bdm_list):nullptr;
 }
 
@@ -128,7 +128,7 @@ Transport::Transport::communicate(const ReqList<Request::BDelete> &bdm_list) {
  * @param bhm_list a list of HISTOGRAM messages going to different servers
  * @return the response from the range server
  */
-Transport::Response::BHistogram *
-Transport::Transport::communicate(const ReqList<Request::BHistogram> &bhm_list) {
+Message::Response::BHistogram *
+Transport::Transport::communicate(const ReqList<Message::Request::BHistogram> &bhm_list) {
     return (bhm_list.size() && endpointgroup_)?endpointgroup_->communicate(bhm_list):nullptr;
 }

@@ -1,15 +1,14 @@
-#ifndef TRANSPORT_BSUBJECTPREDICATE_MESSAGE_HPP
-#define TRANSPORT_BSUBJECTPREDICATE_MESSAGE_HPP
+#ifndef SUBJECTPREDICATE_MESSAGE_HPP
+#define SUBJECTPREDICATE_MESSAGE_HPP
 
 #include <cstddef>
 
-#include "hxhim/Blob.hpp"
 #include "hxhim/constants.h"
-#include "transport/Messages/Request.hpp"
-#include "transport/Messages/Response.hpp"
-#include "transport/constants.hpp"
+#include "message/Request.hpp"
+#include "message/Response.hpp"
+#include "utils/Blob.hpp"
 
-namespace Transport {
+namespace Message {
 
 namespace Request {
 

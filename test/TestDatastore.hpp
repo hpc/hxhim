@@ -21,14 +21,14 @@ class TestDatastore : public Datastore::Datastore {
         void CloseImpl() {}
         bool UsableImpl() const {return true; }
 
-        Transport::Response::BPut *BPutImpl(Transport::Request::BPut *req) {
+        Message::Response::BPut *BPutImpl(Message::Request::BPut *req) {
             Datastore::Datastore::Stats::Event event;
             event.time.start = ::Stats::now();
             event.count = 1;
             event.time.end = event.time.start + PUT_TIME;
             stats.puts.emplace_back(event);
 
-            Transport::Response::BPut *res = construct<Transport::Response::BPut>(req->count);
+            Message::Response::BPut *res = construct<Message::Response::BPut>(req->count);
             res->count = req->count;
             for(std::size_t i = 0; i < req->count; i++) {
                 res->statuses[i] = DATASTORE_SUCCESS;
@@ -36,7 +36,7 @@ class TestDatastore : public Datastore::Datastore {
             return res;
         }
 
-        Transport::Response::BGet *BGetImpl(Transport::Request::BGet *) {
+        Message::Response::BGet *BGetImpl(Message::Request::BGet *) {
             Datastore::Datastore::Stats::Event event;
             event.time.start = ::Stats::now();
             event.count = 1;
@@ -46,9 +46,9 @@ class TestDatastore : public Datastore::Datastore {
             return nullptr;
         }
 
-        Transport::Response::BGetOp *BGetOpImpl(Transport::Request::BGetOp *) { return nullptr; }
+        Message::Response::BGetOp *BGetOpImpl(Message::Request::BGetOp *) { return nullptr; }
 
-        Transport::Response::BDelete *BDeleteImpl(Transport::Request::BDelete *) { return nullptr; }
+        Message::Response::BDelete *BDeleteImpl(Message::Request::BDelete *) { return nullptr; }
 
         int WriteHistogramsImpl() { return DATASTORE_SUCCESS; }
         std::size_t ReadHistogramsImpl(const ::Datastore::HistNames_t &) { return 0; }

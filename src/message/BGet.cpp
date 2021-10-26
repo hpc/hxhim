@@ -1,29 +1,17 @@
-#include "transport/Messages/BGet.hpp"
+#include "message/BGet.hpp"
 
-Transport::Request::BGet::BGet(const std::size_t max)
+Message::Request::BGet::BGet(const std::size_t max)
     : SubjectPredicate(hxhim_op_t::HXHIM_GET),
       object_types(nullptr)
 {
     alloc(max);
 }
 
-Transport::Request::BGet::~BGet() {
+Message::Request::BGet::~BGet() {
     cleanup();
 }
 
-int Transport::Request::BGet::steal(Transport::Request::BGet *from, const std::size_t i) {
-    if (SubjectPredicate::steal(from, i) != TRANSPORT_SUCCESS) {
-        return TRANSPORT_ERROR;
-    }
-
-    object_types[count] = std::move(from->object_types[i]);
-
-    count++;
-
-    return TRANSPORT_SUCCESS;
-}
-
-void Transport::Request::BGet::alloc(const std::size_t max) {
+void Message::Request::BGet::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
@@ -32,31 +20,31 @@ void Transport::Request::BGet::alloc(const std::size_t max) {
     }
 }
 
-std::size_t Transport::Request::BGet::add(Blob subject, Blob predicate, hxhim_data_t object_type) {
+std::size_t Message::Request::BGet::add(Blob subject, Blob predicate, hxhim_data_t object_type) {
     object_types[count] = object_type;
     Request::add(sizeof(object_type), false);
     return SubjectPredicate::add(subject, predicate, true);
 }
 
-int Transport::Request::BGet::cleanup() {
+int Message::Request::BGet::cleanup() {
     dealloc_array(object_types, max_count);
     object_types = nullptr;
 
     return SubjectPredicate::cleanup();
 }
 
-Transport::Response::BGet::BGet(const std::size_t max)
+Message::Response::BGet::BGet(const std::size_t max)
     : SubjectPredicate(hxhim_op_t::HXHIM_GET),
       objects(nullptr)
 {
     alloc(max);
 }
 
-Transport::Response::BGet::~BGet() {
+Message::Response::BGet::~BGet() {
     cleanup();
 }
 
-void Transport::Response::BGet::alloc(const std::size_t max) {
+void Message::Response::BGet::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
@@ -65,7 +53,7 @@ void Transport::Response::BGet::alloc(const std::size_t max) {
     }
 }
 
-std::size_t Transport::Response::BGet::add(Blob subject, Blob predicate,
+std::size_t Message::Response::BGet::add(Blob subject, Blob predicate,
                                            Blob &&object, int status) {
     if (status == DATASTORE_SUCCESS) {
         objects[count] = std::move(object);
@@ -75,7 +63,7 @@ std::size_t Transport::Response::BGet::add(Blob subject, Blob predicate,
     return SubjectPredicate::add(subject, predicate, status);
 }
 
-int Transport::Response::BGet::steal(Transport::Response::BGet *from, const std::size_t i) {
+int Message::Response::BGet::steal(BGet *from, const std::size_t i) {
     add((from->orig.subjects[i]),
         (from->orig.predicates[i]),
         std::move(from->objects[i]),
@@ -83,10 +71,10 @@ int Transport::Response::BGet::steal(Transport::Response::BGet *from, const std:
     from->orig.subjects[i] = nullptr;
     from->orig.predicates[i] = nullptr;
     from->objects[i] = nullptr;
-    return TRANSPORT_SUCCESS;
+    return MESSAGE_SUCCESS;
 }
 
-int Transport::Response::BGet::cleanup() {
+int Message::Response::BGet::cleanup() {
     dealloc_array(objects, max_count);
     objects = nullptr;
 

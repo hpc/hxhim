@@ -6,5 +6,4 @@ install(FILES
   constants.hpp
   DESTINATION include/transport)
 
-add_subdirectory(Messages)
 add_subdirectory(backend)

@@ -222,7 +222,7 @@ static void backgroundPUT(hxhim_t *hx) {
     mlog(HXHIM_CLIENT_DBG, "Started background PUT thread");
 
     while (hx->p->running) {
-        hxhim::Queues<Transport::Request::BPut> puts;
+        hxhim::Queues<Message::Request::BPut> puts;
         {
             // wait for number of PUTs to reach limit
             // PUTs/FlushPuts triggers check
@@ -249,7 +249,7 @@ static void backgroundPUT(hxhim_t *hx) {
         // new PUTs can enter queue while processing occurs
 
         // process PUTs
-        hxhim::Results *results = hxhim::process<Transport::Request::BPut, Transport::Response::BPut>(hx, puts);
+        hxhim::Results *results = hxhim::process<Message::Request::BPut, Message::Response::BPut>(hx, puts);
         {
             std::lock_guard<std::mutex> async_lock(hx->p->async_put.mutex);
 

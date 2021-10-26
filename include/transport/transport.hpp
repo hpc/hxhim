@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include <map>
 
-#include "transport/Messages/Messages.hpp"
+#include "message/Messages.hpp"
 #include "transport/constants.hpp"
 
 namespace Transport {
@@ -25,19 +25,19 @@ class EndpointGroup {
         virtual ~EndpointGroup();
 
         /** @description Bulk Put to multiple endpoints       */
-        virtual Response::BPut *communicate(const ReqList<Request::BPut> &bpm_list);
+        virtual Message::Response::BPut *communicate(const ReqList<Message::Request::BPut> &bpm_list);
 
         /** @description Bulk Get from multiple endpoints     */
-        virtual Response::BGet *communicate(const ReqList<Request::BGet> &bgm_list);
+        virtual Message::Response::BGet *communicate(const ReqList<Message::Request::BGet> &bgm_list);
 
         /** @description Bulk Get from multiple endpoints     */
-        virtual Response::BGetOp *communicate(const ReqList<Request::BGetOp> &bgm_list);
+        virtual Message::Response::BGetOp *communicate(const ReqList<Message::Request::BGetOp> &bgm_list);
 
         /** @description Bulk Delete to multiple endpoints    */
-        virtual Response::BDelete *communicate(const ReqList<Request::BDelete> &bdm_list);
+        virtual Message::Response::BDelete *communicate(const ReqList<Message::Request::BDelete> &bdm_list);
 
         /** @description Bulk Histogram to multiple endpoints */
-        virtual Response::BHistogram *communicate(const ReqList<Request::BHistogram> &bhm_list);
+        virtual Message::Response::BHistogram *communicate(const ReqList<Message::Request::BHistogram> &bhm_list);
 
    protected:
         EndpointGroup();
@@ -74,19 +74,19 @@ class Transport {
         void SetRangeServer(RangeServer *rs);
 
         /** @description Bulk Put to multiple endpoints        */
-        Response::BPut *communicate(const ReqList<Request::BPut> &bpm_list);
+        Message::Response::BPut *communicate(const ReqList<Message::Request::BPut> &bpm_list);
 
         /** @description Bulk Get from multiple endpoints      */
-        Response::BGet *communicate(const ReqList<Request::BGet> &bgm_list);
+        Message::Response::BGet *communicate(const ReqList<Message::Request::BGet> &bgm_list);
 
         /** @description Bulk Get from multiple endpoints      */
-        Response::BGetOp *communicate(const ReqList<Request::BGetOp> &bgm_list);
+        Message::Response::BGetOp *communicate(const ReqList<Message::Request::BGetOp> &bgm_list);
 
         /** @description Bulk Delete to multiple endpoints     */
-        Response::BDelete *communicate(const ReqList<Request::BDelete> &bdm_list);
+        Message::Response::BDelete *communicate(const ReqList<Message::Request::BDelete> &bdm_list);
 
         /** @description Bulk Histogram to multiple endpoints  */
-        Response::BHistogram *communicate(const ReqList<Request::BHistogram> &bhm_list);
+        Message::Response::BHistogram *communicate(const ReqList<Message::Request::BHistogram> &bhm_list);
 
     private:
         EndpointGroup *endpointgroup_;

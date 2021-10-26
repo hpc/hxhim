@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.6.3)
 
 set(UTILS_TEST_FILES
+  Blob.cpp
   Configuration.cpp
   Histogram.cpp
   Stats.cpp

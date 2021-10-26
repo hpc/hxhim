@@ -1,17 +1,16 @@
-#ifndef TRANSPORT_BHISTOGRAM_MESSAGE_HPP
-#define TRANSPORT_BHISTOGRAM_MESSAGE_HPP
+#ifndef BHISTOGRAM_MESSAGE_HPP
+#define BHISTOGRAM_MESSAGE_HPP
 
 #include <cstddef>
 #include <memory>
 
-#include "hxhim/Blob.hpp"
 #include "hxhim/constants.h"
-#include "transport/Messages/Request.hpp"
-#include "transport/Messages/Response.hpp"
-#include "transport/constants.hpp"
+#include "message/Request.hpp"
+#include "message/Response.hpp"
+#include "utils/Blob.hpp"
 #include "utils/Histogram.hpp"
 
-namespace Transport {
+namespace Message {
 
 namespace Request {
 
@@ -21,7 +20,6 @@ struct BHistogram final : Request {
 
     void alloc(const std::size_t max);
     std::size_t add(Blob name);
-    int steal(BHistogram *from, const std::size_t i);
     int cleanup();
 
     Blob *names;

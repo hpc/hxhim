@@ -1,6 +1,6 @@
-#include "hxhim/Blob.hpp"
 #include "hxhim/private/hxhim.hpp"
 #include "hxhim/single_type.hpp"
+#include "utils/Blob.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 

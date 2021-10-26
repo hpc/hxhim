@@ -27,8 +27,8 @@ TEST(datastore, GetStats) {
 
         // do a put
         {
-            Transport::Request::BPut bput(0);
-            destruct(ds.operate(static_cast<Transport::Request::BPut *>(&bput)));
+            Message::Request::BPut bput(0);
+            destruct(ds.operate(static_cast<Message::Request::BPut *>(&bput)));
             EXPECT_EQ(ds.GetStats(&put_time, &num_puts, &get_time, &num_gets), DATASTORE_SUCCESS);
             EXPECT_EQ(put_time, total_put_time);
             EXPECT_EQ(num_puts, i);
@@ -38,8 +38,8 @@ TEST(datastore, GetStats) {
 
         // do a get
         {
-            Transport::Request::BGet bget(0);
-            destruct(ds.operate(static_cast<Transport::Request::BGet *>(&bget)));
+            Message::Request::BGet bget(0);
+            destruct(ds.operate(static_cast<Message::Request::BGet *>(&bget)));
             EXPECT_EQ(ds.GetStats(&put_time, &num_puts, &get_time, &num_gets), DATASTORE_SUCCESS);
             EXPECT_EQ(put_time, total_put_time);
             EXPECT_EQ(num_puts, i);

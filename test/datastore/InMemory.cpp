@@ -33,7 +33,7 @@ static InMemoryTest *setup() {
     ds->Open();
     EXPECT_TRUE(ds->Usable());
 
-    Transport::Request::BPut req(count);
+    Message::Request::BPut req(count);
     for(std::size_t i = 0; i < count; i++) {
         req.add(ReferenceBlob(subjects[i]),
                 ReferenceBlob(predicates[i]),
@@ -69,14 +69,14 @@ TEST(InMemory, BGet) {
     ASSERT_NE(ds, nullptr);
 
     // include the non-existant subject-predicate pair
-    Transport::Request::BGet req(count + 1);
+    Message::Request::BGet req(count + 1);
     for(std::size_t i = 0; i < count + 1; i++) {
         req.add(ReferenceBlob(subjects[i]),
                 ReferenceBlob(predicates[i]),
                 hxhim_data_t::HXHIM_DATA_BYTE);
     }
 
-    Transport::Response::BGet *res = ds->operate(&req);
+    Message::Response::BGet *res = ds->operate(&req);
     ASSERT_NE(res, nullptr);
     EXPECT_EQ(res->count, count + 1);
     for(std::size_t i = 0; i < count; i++) {
@@ -101,7 +101,7 @@ TEST(InMemory, BGetOp) {
     ASSERT_NE(ds, nullptr);
 
     for(int op = HXHIM_GETOP_EQ; op < HXHIM_GETOP_INVALID; op++) {
-        Transport::Request::BGetOp req(1);
+        Message::Request::BGetOp req(1);
 
         req.add(ReferenceBlob(subjects[0]),
                 ReferenceBlob(predicates[0]),
@@ -109,7 +109,7 @@ TEST(InMemory, BGetOp) {
                 1,
                 static_cast<hxhim_getop_t>(op));
 
-        Transport::Response::BGetOp *res = ds->operate(&req);
+        Message::Response::BGetOp *res = ds->operate(&req);
         ASSERT_NE(res, nullptr);
         EXPECT_EQ(res->count, req.count);
 
@@ -180,13 +180,13 @@ TEST(InMemory, BDelete) {
     EXPECT_EQ(db.size(), count);
 
     // include the non-existant subject-predicate pair
-    Transport::Request::BDelete req(count + 1);
+    Message::Request::BDelete req(count + 1);
     for(std::size_t i = 0; i < count + 1; i++) {
         req.add(ReferenceBlob(subjects[i]),
                 ReferenceBlob(predicates[i]));
     }
 
-    Transport::Response::BDelete *res = ds->operate(&req);
+    Message::Response::BDelete *res = ds->operate(&req);
     ASSERT_NE(res, nullptr);
     EXPECT_EQ(res->count, count + 1);
     for(std::size_t i = 0; i < count; i++) {
@@ -248,7 +248,7 @@ TEST(InMemory, Histograms) {
     // insert values so that the histograms get some data
     const std::size_t triples = count * 2;
     double *values = new double[triples];
-    Transport::Request::BPut req(triples);
+    Message::Request::BPut req(triples);
     for(std::size_t i = 0; i < triples; i += 2) {
         values[i] = (double) i;
         Blob ref(&values[i], sizeof(values[i]), hxhim_data_t::HXHIM_DATA_DOUBLE);

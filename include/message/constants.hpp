@@ -1,0 +1,7 @@
+#ifndef MESSAGE_CONSTS_HPP
+#define MESSAGE_CONSTS_HPP
+
+#define MESSAGE_SUCCESS 8
+#define MESSAGE_ERROR   9
+
+#endif

@@ -1,6 +1,6 @@
-#include "transport/Messages/Message.hpp"
+#include "message/Message.hpp"
 
-Transport::Message::Message(const Message::Direction dir, const enum hxhim_op_t op, const std::size_t max_count)
+Message::Message::Message(const Direction dir, const enum hxhim_op_t op, const std::size_t max_count)
     : direction(dir),
       op(op),
       src(-1),
@@ -13,24 +13,24 @@ Transport::Message::Message(const Message::Direction dir, const enum hxhim_op_t 
       timestamps()
 {}
 
-Transport::Message::~Message() {}
+Message::Message::~Message() {}
 
-std::size_t Transport::Message::add(const std::size_t ds, const bool increment_count ) {
+std::size_t Message::Message::add(const std::size_t ds, const bool increment_count ) {
     if (increment_count) {
         count++;
     }
     return (serialized_size += ds);
 }
 
-std::size_t Transport::Message::Message::size() const {
+std::size_t Message::Message::Message::size() const {
     return serialized_size;
 }
 
-std::size_t Transport::Message::Message::filled() const {
+std::size_t Message::Message::Message::filled() const {
     return count;
 }
 
-void Transport::Message::alloc(const std::size_t max) {
+void Message::Message::alloc(const std::size_t max) {
     // final child should call cleanup before calling alloc
 
     if ((max_count = max)) {
@@ -41,20 +41,20 @@ void Transport::Message::alloc(const std::size_t max) {
     count = 0;
 }
 
-int Transport::Message::steal(Transport::Message *from, const std::size_t i) {
+int ::Message::Message::steal(::Message::Message *from, const std::size_t i) {
     // no space for new data
     if (count >= max_count) {
-        return TRANSPORT_ERROR;
+        return MESSAGE_ERROR;
     }
 
     // no source
     if (!from) {
-        return TRANSPORT_ERROR;
+        return MESSAGE_ERROR;
     }
 
     // bad source index
     if (i >= from->count) {
-        return TRANSPORT_ERROR;
+        return MESSAGE_ERROR;
     }
 
     timestamps.reqs[count] = std::move(from->timestamps.reqs[i]);
@@ -65,12 +65,12 @@ int Transport::Message::steal(Transport::Message *from, const std::size_t i) {
 
     // increment count in calling function
 
-    return TRANSPORT_SUCCESS;
+    return MESSAGE_SUCCESS;
 }
 
-int Transport::Message::steal_timestamps(Message *from, const bool steal_individuals) {
+int Message::Message::steal_timestamps(Message *from, const bool steal_individuals) {
     if (!from) {
-        return TRANSPORT_ERROR;
+        return MESSAGE_ERROR;
     }
 
     timestamps.allocate = std::move(from->timestamps.allocate);
@@ -83,15 +83,15 @@ int Transport::Message::steal_timestamps(Message *from, const bool steal_individ
 
     timestamps.transport = std::move(from->timestamps.transport);
 
-    return TRANSPORT_SUCCESS;
+    return MESSAGE_SUCCESS;
 }
 
-int Transport::Message::cleanup() {
+int Message::Message::cleanup() {
     dealloc_array(timestamps.reqs, max_count);
     timestamps.reqs = nullptr;
 
     count = 0;
     max_count = 0;
 
-    return TRANSPORT_SUCCESS;
+    return MESSAGE_SUCCESS;
 }

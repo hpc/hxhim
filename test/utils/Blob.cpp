@@ -4,7 +4,7 @@
 #include <cstring>
 #include <utility>
 
-#include "hxhim/Blob.hpp"
+#include "utils/Blob.hpp"
 #include "utils/memory.hpp"
 
 const std::size_t len = 1024;

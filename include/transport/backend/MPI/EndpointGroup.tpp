@@ -40,7 +40,7 @@ std::size_t Transport::MPI::EndpointGroup::parallel_send(const ReqList<Send_t> &
 
         mlog(MPI_DBG, "Attempting to pack message (type %s, size %zu, %d -> %d)", HXHIM_OP_STR[msg->op], msg->size(), msg->src, msg->dst);
 
-        if (Packer::pack(msg, &bufs[pack_count], &lens[pack_count]) == TRANSPORT_SUCCESS) {
+        if (Message::Packer::pack(msg, &bufs[pack_count], &lens[pack_count]) == TRANSPORT_SUCCESS) {
             dsts[pack_count] = msg->dst;
             pack_count++;
             mlog(MPI_DBG, "Successfully packed message (type %s, size %zu, %d -> %d)", HXHIM_OP_STR[msg->op], msg->size(), msg->src, msg->dst);
@@ -312,7 +312,7 @@ std::size_t Transport::MPI::EndpointGroup::parallel_recv(const std::size_t nsrcs
     std::size_t valid = 0;
     *messages = alloc_array<Recv_t *>(data_req_count);
     for(std::size_t i = 0; i < data_req_count; i++) {
-        if (Unpacker::unpack(&((*messages)[valid]), recvbufs[i], lens[i]) == TRANSPORT_SUCCESS) {
+        if (Message::Unpacker::unpack(&((*messages)[valid]), recvbufs[i], lens[i]) == TRANSPORT_SUCCESS) {
             valid++;
         }
 

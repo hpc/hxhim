@@ -34,9 +34,9 @@ void hxhim::wait_for_background_puts(hxhim_t *hx, const bool clear_queued) {
         std::lock_guard <std::mutex> flush_lock(hx->p->queues.puts.mutex);
         if (clear_queued) {
             // clear each target range server's queue
-            for(hxhim::QueueTarget<Transport::Request::BPut> &target : hx->p->queues.puts.queue) {
+            for(hxhim::QueueTarget<Message::Request::BPut> &target : hx->p->queues.puts.queue) {
                 // clear out queued items for a target single range server
-                for(Transport::Request::BPut *bput : target) {
+                for(Message::Request::BPut *bput : target) {
                     destruct(bput);
                 }
                 target.clear();
@@ -70,7 +70,7 @@ void hxhim::wait_for_background_puts(hxhim_t *hx, const bool clear_queued) {
 void hxhim::serial_puts(hxhim_t *hx) {
     if (hx->p->queues.puts.count >= hx->p->async_put.max_queued) {
         // don't call FlushPuts to avoid deallocating old Results only to allocate a new one
-        hxhim::Results *res = hxhim::process<Transport::Request::BPut, Transport::Response::BPut>(hx, hx->p->queues.puts.queue);
+        hxhim::Results *res = hxhim::process<Message::Request::BPut, Message::Response::BPut>(hx, hx->p->queues.puts.queue);
 
         {
             // hold results in async_puts

@@ -1,5 +1,5 @@
-#include "hxhim/Blob.hpp"
 #include "hxhim/private/hxhim.hpp"
+#include "utils/Blob.hpp"
 #include "utils/Stats.hpp"
 #include "utils/macros.hpp"
 #include "utils/memory.hpp"
@@ -8,14 +8,14 @@
 
 /**
  * new_request
- * Creates a new Transport::Request packet
+ * Creates a new Message::Request packet
  * and fills in the allocate timestamp
  *
  * @param hx      the HXHIM session
  * @param queue   the queue to push into
  */
 template <typename Request_t,
-          typename = enable_if_t <is_child_of <Transport::Request::Request, Request_t>::value> >
+          typename = enable_if_t <is_child_of <Message::Request::Request, Request_t>::value> >
 void new_request(hxhim_t *hx, hxhim::QueueTarget<Request_t> &queue) {
     ::Stats::Chronostamp allocate;
     allocate.start = ::Stats::now();
@@ -34,7 +34,7 @@ void new_request(hxhim_t *hx, hxhim::QueueTarget<Request_t> &queue) {
  * @return pointer to a packet with space for a new set of data
  */
 template <typename Request_t,
-          typename = enable_if_t <is_child_of <Transport::Request::Request, Request_t>::value> >
+          typename = enable_if_t <is_child_of <Message::Request::Request, Request_t>::value> >
 Request_t *setup_packet(hxhim_t *hx, hxhim::QueueTarget<Request_t> &queue, const size_t additional_size) {
     if (queue.empty()                                                   ||
         // last packet doesn't have an empty slot
@@ -62,7 +62,7 @@ Request_t *setup_packet(hxhim_t *hx, hxhim::QueueTarget<Request_t> &queue, const
  * @return pointer to a packet with space for a new set of data
  */
 template <typename Request_t,
-          typename = enable_if_t <is_child_of <Transport::Request::Request, Request_t>::value> >
+          typename = enable_if_t <is_child_of <Message::Request::Request, Request_t>::value> >
 Request_t *get_packet(hxhim_t *hx,
                       hxhim::Queues<Request_t> &queues,
                       const Blob &subject, const Blob &predicate) {
@@ -104,7 +104,7 @@ Request_t *get_packet(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::PutImpl(hxhim_t *hx,
-                   hxhim::Queues<Transport::Request::BPut> &puts,
+                   hxhim::Queues<Message::Request::BPut> &puts,
                    Blob subject,
                    Blob predicate,
                    Blob object,
@@ -178,7 +178,7 @@ int hxhim::PutImpl(hxhim_t *hx,
         #endif
 
         // add the triple to the last packet in the queue
-        Transport::Request::BPut *put = setup_packet(hx, puts[rs_id],
+        Message::Request::BPut *put = setup_packet(hx, puts[rs_id],
                                                      sub->pack_size(true) +
                                                      pred->pack_size(true) +
                                                      obj->pack_size(true));
@@ -211,13 +211,13 @@ int hxhim::PutImpl(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::GetImpl(hxhim_t *hx,
-                   hxhim::Queues<Transport::Request::BGet> &gets,
+                   hxhim::Queues<Message::Request::BGet> &gets,
                    Blob subject,
                    Blob predicate,
                    enum hxhim_data_t object_type) {
     mlog(HXHIM_CLIENT_DBG, "GET Start");
 
-    Transport::Request::BGet *get = get_packet(hx, gets,
+    Message::Request::BGet *get = get_packet(hx, gets,
                                                subject, predicate);
     if (!get) {
         return HXHIM_ERROR;
@@ -248,14 +248,14 @@ int hxhim::GetImpl(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::GetOpImpl(hxhim_t *hx,
-                     hxhim::Queues<Transport::Request::BGetOp> &getops,
+                     hxhim::Queues<Message::Request::BGetOp> &getops,
                      Blob subject,
                      Blob predicate,
                      enum hxhim_data_t object_type,
                      std::size_t num_records, enum hxhim_getop_t op) {
     mlog(HXHIM_CLIENT_DBG, "GETOP Start");
 
-    Transport::Request::BGetOp *getop = get_packet(hx, getops,
+    Message::Request::BGetOp *getop = get_packet(hx, getops,
                                                    subject, predicate);
     if (!getop) {
         return HXHIM_ERROR;
@@ -282,12 +282,12 @@ int hxhim::GetOpImpl(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::DeleteImpl(hxhim_t *hx,
-                      hxhim::Queues<Transport::Request::BDelete> &dels,
+                      hxhim::Queues<Message::Request::BDelete> &dels,
                       Blob subject,
                       Blob predicate) {
     mlog(HXHIM_CLIENT_DBG, "DELETE Start");
 
-    Transport::Request::BDelete *del = get_packet(hx, dels,
+    Message::Request::BDelete *del = get_packet(hx, dels,
                                                   subject, predicate);
     if (!del) {
         return HXHIM_ERROR;
@@ -314,7 +314,7 @@ int hxhim::DeleteImpl(hxhim_t *hx,
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::HistogramImpl(hxhim_t *hx,
-                         hxhim::Queues<Transport::Request::BHistogram> &hists,
+                         hxhim::Queues<Message::Request::BHistogram> &hists,
                          const int rs_id,
                          const char *name, const std::size_t name_len) {
     mlog(HXHIM_CLIENT_DBG, "HISTOGRAM Start");
@@ -334,7 +334,7 @@ int hxhim::HistogramImpl(hxhim_t *hx,
     Blob n = ReferenceBlob((void *) name, name_len, hxhim_data_t::HXHIM_DATA_BYTE);
 
     // add the data to the packet
-    Transport::Request::BHistogram *hist = setup_packet(hx, hists[rs_id], n.pack_size(false));
+    Message::Request::BHistogram *hist = setup_packet(hx, hists[rs_id], n.pack_size(false));
     hist->add(ReferenceBlob((void *) name, name_len, hxhim_data_t::HXHIM_DATA_BYTE));
 
     hist->timestamps.reqs[hist->count - 1].hash = hash;

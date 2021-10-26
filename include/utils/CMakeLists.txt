@@ -23,6 +23,7 @@ set(INSTALLED_HEADERS
 )
 
 set(NOT_INSTALLED_HEADERS
+  Blob.hpp
   little_endian.hpp
 )
 

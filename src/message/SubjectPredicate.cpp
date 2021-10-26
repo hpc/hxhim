@@ -1,15 +1,15 @@
-#include "transport/Messages/SubjectPredicate.hpp"
+#include "message/SubjectPredicate.hpp"
 
-Transport::Request::SubjectPredicate::SubjectPredicate(const enum hxhim_op_t op)
+Message::Request::SubjectPredicate::SubjectPredicate(const enum hxhim_op_t op)
     : Request(op),
       subjects(nullptr),
       predicates(nullptr),
       orig()
 {}
 
-Transport::Request::SubjectPredicate::~SubjectPredicate() {}
+Message::Request::SubjectPredicate::~SubjectPredicate() {}
 
-void Transport::Request::SubjectPredicate::alloc(const std::size_t max) {
+void Message::Request::SubjectPredicate::alloc(const std::size_t max) {
     if (max) {
         Request::alloc(max);
         subjects        = alloc_array<Blob>(max);
@@ -19,7 +19,7 @@ void Transport::Request::SubjectPredicate::alloc(const std::size_t max) {
     }
 }
 
-std::size_t Transport::Request::SubjectPredicate::add(Blob subject, Blob predicate, const bool increment_count) {
+std::size_t Message::Request::SubjectPredicate::add(Blob subject, Blob predicate, const bool increment_count) {
     subjects[count] = subject;
     predicates[count] = predicate;
     orig.subjects[count] = subject.data();
@@ -29,9 +29,9 @@ std::size_t Transport::Request::SubjectPredicate::add(Blob subject, Blob predica
                         increment_count);
 }
 
-int Transport::Request::SubjectPredicate::steal(Transport::Request::SubjectPredicate *from, const std::size_t i) {
-    if (Request::steal(from, i) != TRANSPORT_SUCCESS) {
-        return TRANSPORT_ERROR;
+int Message::Request::SubjectPredicate::steal(SubjectPredicate *from, const std::size_t i) {
+    if (Request::steal(from, i) != MESSAGE_SUCCESS) {
+        return MESSAGE_ERROR;
     }
 
     subjects[count]     = std::move(from->subjects[i]);
@@ -43,10 +43,10 @@ int Transport::Request::SubjectPredicate::steal(Transport::Request::SubjectPredi
     from->orig.subjects[i]   = nullptr;
     from->orig.predicates[i] = nullptr;
 
-    return TRANSPORT_SUCCESS;
+    return MESSAGE_SUCCESS;
 }
 
-int Transport::Request::SubjectPredicate::cleanup() {
+int Message::Request::SubjectPredicate::cleanup() {
     dealloc_array(subjects, max_count);
     subjects = nullptr;
 
@@ -62,14 +62,14 @@ int Transport::Request::SubjectPredicate::cleanup() {
     return Request::cleanup();
 }
 
-Transport::Response::SubjectPredicate::SubjectPredicate(const enum hxhim_op_t op)
+Message::Response::SubjectPredicate::SubjectPredicate(const enum hxhim_op_t op)
     : Response(op),
       orig()
 {}
 
-Transport::Response::SubjectPredicate::~SubjectPredicate() {}
+Message::Response::SubjectPredicate::~SubjectPredicate() {}
 
-void Transport::Response::SubjectPredicate::alloc(const std::size_t max) {
+void Message::Response::SubjectPredicate::alloc(const std::size_t max) {
     if (max) {
         Response::alloc(max);
         orig.subjects   = alloc_array<Blob>(max);
@@ -77,7 +77,7 @@ void Transport::Response::SubjectPredicate::alloc(const std::size_t max) {
     }
 }
 
-std::size_t Transport::Response::SubjectPredicate::add(Blob &subject, Blob &predicate, int status) {
+std::size_t Message::Response::SubjectPredicate::add(Blob &subject, Blob &predicate, int status) {
     orig.subjects[count] = std::move(subject);
     orig.predicates[count] = std::move(predicate);
     return Response::add(status,
@@ -86,12 +86,12 @@ std::size_t Transport::Response::SubjectPredicate::add(Blob &subject, Blob &pred
                          true);
 }
 
-int Transport::Response::SubjectPredicate::steal(Transport::Response::SubjectPredicate *from, const std::size_t i) {
+int Message::Response::SubjectPredicate::steal(SubjectPredicate *from, const std::size_t i) {
     add(from->orig.subjects[i], from->orig.predicates[i], from->statuses[i]);
-    return TRANSPORT_SUCCESS;
+    return MESSAGE_SUCCESS;
 }
 
-int Transport::Response::SubjectPredicate::cleanup() {
+int Message::Response::SubjectPredicate::cleanup() {
     dealloc_array(orig.subjects, max_count);
     orig.subjects = nullptr;
 

@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "hxhim/Blob.hpp"
+#include "utils/Blob.hpp"
 
 // use different sized strings
 const std::string subjects[]   = {"sub0",     "sub1",    "sub2"};

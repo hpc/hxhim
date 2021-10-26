@@ -52,8 +52,8 @@ void EndpointGroup::RemoveID(const int id) {
  * @param bpm_list the list of BPUT messages to send
  * @return a linked list of response messages, or nullptr
  */
-Response::BPut *EndpointGroup::communicate(const ReqList<Request::BPut> &bpm_list) {
-    return return_msgs<Response::BPut>(bpm_list);
+Message::Response::BPut *EndpointGroup::communicate(const ReqList<Message::Request::BPut> &bpm_list) {
+    return return_msgs<Message::Response::BPut>(bpm_list);
 }
 
 /**
@@ -63,8 +63,8 @@ Response::BPut *EndpointGroup::communicate(const ReqList<Request::BPut> &bpm_lis
  * @param bgm_list the list of BGET messages to send
  * @return a linked list of response messages, or nullptr
  */
-Response::BGet *EndpointGroup::communicate(const ReqList<Request::BGet> &bgm_list) {
-    return return_msgs<Response::BGet>(bgm_list);
+Message::Response::BGet *EndpointGroup::communicate(const ReqList<Message::Request::BGet> &bgm_list) {
+    return return_msgs<Message::Response::BGet>(bgm_list);
 }
 
 /**
@@ -74,8 +74,8 @@ Response::BGet *EndpointGroup::communicate(const ReqList<Request::BGet> &bgm_lis
  * @param bgm_list the list of BGET messages to send
  * @return a linked list of response messages, or nullptr
  */
-Response::BGetOp *EndpointGroup::communicate(const ReqList<Request::BGetOp> &bgm_list) {
-    return return_msgs<Response::BGetOp>(bgm_list);
+Message::Response::BGetOp *EndpointGroup::communicate(const ReqList<Message::Request::BGetOp> &bgm_list) {
+    return return_msgs<Message::Response::BGetOp>(bgm_list);
 }
 
 /**
@@ -85,8 +85,8 @@ Response::BGetOp *EndpointGroup::communicate(const ReqList<Request::BGetOp> &bgm
  * @param bdm_list the list of BDELETE messages to send
  * @return a linked list of response messages, or nullptr
  */
-Response::BDelete *EndpointGroup::communicate(const ReqList<Request::BDelete> &bdm_list) {
-    return return_msgs<Response::BDelete>(bdm_list);
+Message::Response::BDelete *EndpointGroup::communicate(const ReqList<Message::Request::BDelete> &bdm_list) {
+    return return_msgs<Message::Response::BDelete>(bdm_list);
 }
 
 /**
@@ -96,8 +96,8 @@ Response::BDelete *EndpointGroup::communicate(const ReqList<Request::BDelete> &b
  * @param bdm_list the list of BHISTOGRAM messages to send
  * @return a linked list of response messages, or nullptr
  */
-Response::BHistogram *EndpointGroup::communicate(const ReqList<Request::BHistogram> &bhm_list) {
-    return return_msgs<Response::BHistogram>(bhm_list);
+Message::Response::BHistogram *EndpointGroup::communicate(const ReqList<Message::Request::BHistogram> &bhm_list) {
+    return return_msgs<Message::Response::BHistogram>(bhm_list);
 }
 
 }

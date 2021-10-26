@@ -52,18 +52,18 @@ void RangeServer::listener_thread() {
         }
 
         // decode request
-        Request::Request *request = nullptr;
-        Unpacker::unpack(&request, req, len);
+        Message::Request::Request *request = nullptr;
+        Message::Unpacker::unpack(&request, req, len);
         dealloc(req);
 
         // process request
-        Response::Response *response = local::range_server(hx, request);
+        Message::Response::Response *response = local::range_server(hx, request);
         dealloc(request);
 
         // encode result
         void *res = nullptr;
         len = 0;
-        Packer::pack(response, &res, &len);
+        Message::Packer::pack(response, &res, &len);
 
         // send result
         const int ret = send(response->dst, res, len);

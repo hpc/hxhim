@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 
-#include "transport/Messages/Messages.hpp"
+#include "message/Messages.hpp"
 
 static const std::size_t  COUNT = 10;
 static const char         SUBJECT[]      = "SUBJECT";
@@ -13,7 +13,7 @@ static const char         OBJECT[]       = "OBJECT";
 static const std::size_t  OBJECT_LEN     = strlen(OBJECT);
 static const hxhim_data_t OBJECT_TYPE    = (hxhim_data_t) rand();
 
-using namespace ::Transport;
+using namespace ::Message;
 
 TEST(Request, BPut) {
     Request::BPut src;
@@ -27,15 +27,15 @@ TEST(Request, BPut) {
                 ReferenceBlob((void *) &OBJECT, OBJECT_LEN, OBJECT_TYPE));
     }
 
-    EXPECT_EQ(src.direction, Message::REQUEST);
+    EXPECT_EQ(src.direction, Direction::REQUEST);
     EXPECT_EQ(src.op, hxhim_op_t::HXHIM_PUT);
 
     void *buf = nullptr;
     std::size_t size = 0;
-    EXPECT_EQ(Packer::pack(&src, &buf, &size), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Packer::pack(&src, &buf, &size), MESSAGE_SUCCESS);
 
     Request::BPut *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, size), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size), MESSAGE_SUCCESS);
     dealloc(buf);
 
     ASSERT_NE(dst, nullptr);
@@ -72,10 +72,10 @@ TEST(Request, BGet) {
 
     void *buf = nullptr;
     std::size_t size = 0;
-    EXPECT_EQ(Packer::pack(&src, &buf, &size), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Packer::pack(&src, &buf, &size), MESSAGE_SUCCESS);
 
     Request::BGet *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, size), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size), MESSAGE_SUCCESS);
     dealloc(buf);
 
     ASSERT_NE(dst, nullptr);
@@ -116,10 +116,10 @@ TEST(Request, BGetOp) {
 
     void *buf = nullptr;
     std::size_t size = 0;
-    EXPECT_EQ(Packer::pack(&src, &buf, &size), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Packer::pack(&src, &buf, &size), MESSAGE_SUCCESS);
 
     Request::BGetOp *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, size), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size), MESSAGE_SUCCESS);
     dealloc(buf);
 
     ASSERT_NE(dst, nullptr);
@@ -163,10 +163,10 @@ TEST(Request, BDelete) {
 
     void *buf = nullptr;
     std::size_t size = 0;
-    EXPECT_EQ(Packer::pack(&src, &buf, &size), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Packer::pack(&src, &buf, &size), MESSAGE_SUCCESS);
 
     Request::BDelete *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, size), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size), MESSAGE_SUCCESS);
     dealloc(buf);
 
     ASSERT_NE(dst, nullptr);
@@ -202,10 +202,10 @@ TEST(Request, BHistogram) {
 
     void *buf = nullptr;
     std::size_t size = 0;
-    EXPECT_EQ(Packer::pack(&src, &buf, &size), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Packer::pack(&src, &buf, &size), MESSAGE_SUCCESS);
 
     Request::BHistogram *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, size), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size), MESSAGE_SUCCESS);
     dealloc(buf);
 
     ASSERT_NE(dst, nullptr);
@@ -237,10 +237,10 @@ TEST(Response, BPut) {
 
     void *buf = nullptr;
     std::size_t size = 0;
-    EXPECT_EQ(Packer::pack(&src, &buf, &size), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Packer::pack(&src, &buf, &size), MESSAGE_SUCCESS);
 
     Response::BPut *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, size), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size), MESSAGE_SUCCESS);
     dealloc(buf);
 
     ASSERT_NE(dst, nullptr);
@@ -279,10 +279,10 @@ TEST(Response, BGet) {
 
     void *buf = nullptr;
     std::size_t size = 0;
-    EXPECT_EQ(Packer::pack(&src, &buf, &size), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Packer::pack(&src, &buf, &size), MESSAGE_SUCCESS);
 
     Response::BGet *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, size), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size), MESSAGE_SUCCESS);
     dealloc(buf);
 
     ASSERT_NE(dst, nullptr);
@@ -328,10 +328,10 @@ TEST(Response, BGetOp) {
 
     void *buf = nullptr;
     std::size_t size = 0;
-    EXPECT_EQ(Packer::pack(&src, &buf, &size), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Packer::pack(&src, &buf, &size), MESSAGE_SUCCESS);
 
     Response::BGetOp *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, size), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size), MESSAGE_SUCCESS);
     dealloc(buf);
 
     ASSERT_NE(dst, nullptr);
@@ -383,10 +383,10 @@ TEST(Response, BDelete) {
 
     void *buf = nullptr;
     std::size_t size = 0;
-    EXPECT_EQ(Packer::pack(&src, &buf, &size), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Packer::pack(&src, &buf, &size), MESSAGE_SUCCESS);
 
     Response::BDelete *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, size), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size), MESSAGE_SUCCESS);
     dealloc(buf);
 
     ASSERT_NE(dst, nullptr);
@@ -427,10 +427,10 @@ TEST(Response, BHistogram) {
 
     void *buf = nullptr;
     std::size_t size = 0;
-    EXPECT_EQ(Packer::pack(&src, &buf, &size), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Packer::pack(&src, &buf, &size), MESSAGE_SUCCESS);
 
     Response::BHistogram *dst = nullptr;
-    EXPECT_EQ(Unpacker::unpack(&dst, buf, size), TRANSPORT_SUCCESS);
+    EXPECT_EQ(Unpacker::unpack(&dst, buf, size), MESSAGE_SUCCESS);
     dealloc(buf);
 
     ASSERT_NE(dst, nullptr);

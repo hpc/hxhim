@@ -19,7 +19,7 @@
 #include "hxhim/options.h"
 #include "hxhim/private/Stats.hpp"
 #include "hxhim/struct.h"
-#include "transport/Messages/Messages.hpp"
+#include "message/Messages.hpp"
 #include "transport/transport.hpp"
 #include "utils/type_traits.hpp"
 
@@ -27,12 +27,12 @@ namespace hxhim {
 
 // list of packets of a given type
 template <typename Request_t,
-          typename = enable_if_t<is_child_of<Transport::Request::Request, Request_t>::value> >
+          typename = enable_if_t<is_child_of<Message::Request::Request, Request_t>::value> >
 using QueueTarget = std::list<Request_t *>;
 
 // index is range server id, not rank
 template <typename Request_t,
-          typename = enable_if_t<is_child_of<Transport::Request::Request, Request_t>::value> >
+          typename = enable_if_t<is_child_of<Message::Request::Request, Request_t>::value> >
 using Queues = std::vector<QueueTarget<Request_t> >;
 
 }
@@ -73,7 +73,7 @@ typedef struct hxhim_private {
         } max_per_request;
 
         struct {
-            hxhim::Queues<Transport::Request::BPut> queue;
+            hxhim::Queues<Message::Request::BPut> queue;
             #if ASYNC_PUTS
             std::mutex mutex;
             std::condition_variable start_processing;
@@ -81,10 +81,10 @@ typedef struct hxhim_private {
             #endif
             std::size_t count;
         } puts;
-        hxhim::Queues<Transport::Request::BGet>       gets;
-        hxhim::Queues<Transport::Request::BGetOp>     getops;
-        hxhim::Queues<Transport::Request::BDelete>    deletes;
-        hxhim::Queues<Transport::Request::BHistogram> histograms;
+        hxhim::Queues<Message::Request::BGet>       gets;
+        hxhim::Queues<Message::Request::BGetOp>     getops;
+        hxhim::Queues<Message::Request::BDelete>    deletes;
+        hxhim::Queues<Message::Request::BHistogram> histograms;
 
         std::vector<int> rs_to_rank;
     } queues;
@@ -174,32 +174,32 @@ std::ostream &print_stats(hxhim_t *hx,
                           const std::string &indent = "    ");
 
 int PutImpl(hxhim_t *hx,
-            Queues<Transport::Request::BPut> &puts,
+            Queues<Message::Request::BPut> &puts,
             Blob subject,
             Blob predicate,
             Blob object,
             const hxhim_put_permutation_t permutations);
 
 int GetImpl(hxhim_t *hx,
-            Queues<Transport::Request::BGet> &gets,
+            Queues<Message::Request::BGet> &gets,
             Blob subject,
             Blob predicate,
             enum hxhim_data_t object_type);
 
 int GetOpImpl(hxhim_t *hx,
-              Queues<Transport::Request::BGetOp> &getops,
+              Queues<Message::Request::BGetOp> &getops,
               Blob subject,
               Blob predicate,
               enum hxhim_data_t object_type,
               std::size_t num_records, enum hxhim_getop_t op);
 
 int DeleteImpl(hxhim_t *hx,
-               Queues<Transport::Request::BDelete> &dels,
+               Queues<Message::Request::BDelete> &dels,
                Blob subject,
                Blob predicate);
 
 int HistogramImpl(hxhim_t *hx,
-                  Queues<Transport::Request::BHistogram> &hists,
+                  Queues<Message::Request::BHistogram> &hists,
                   const int rs_id,
                   const char *name, const std::size_t name_len);
 }

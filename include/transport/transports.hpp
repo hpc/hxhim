@@ -4,7 +4,7 @@
 #include <set>
 
 #include "hxhim/struct.h"
-#include "transport/Messages/Messages.hpp"
+#include "message/Messages.hpp"
 #include "transport/Options.hpp"
 #include "transport/backend/backends.hpp"
 #include "transport/constants.hpp"

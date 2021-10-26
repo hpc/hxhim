@@ -59,7 +59,7 @@ hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
     #endif
 
     // append new results to old results
-    hxhim::Results *put_results = FlushImpl<Transport::Request::BPut, Transport::Response::BPut>(hx, hx->p->queues.puts.queue);
+    hxhim::Results *put_results = FlushImpl<Message::Request::BPut, Message::Response::BPut>(hx, hx->p->queues.puts.queue);
     hx->p->queues.puts.count = 0;
 
     res->Append(put_results);
@@ -98,7 +98,7 @@ hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing GETs", rank);
-    hxhim::Results *res = FlushImpl<Transport::Request::BGet, Transport::Response::BGet>(hx, hx->p->queues.gets);
+    hxhim::Results *res = FlushImpl<Message::Request::BGet, Message::Response::BGet>(hx, hx->p->queues.gets);
     mlog(HXHIM_CLIENT_INFO, "Rank %d Done Flushing Gets %p", rank, res);
     return res;
 }
@@ -132,7 +132,7 @@ hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing GETOPs", rank);
-    hxhim::Results *res = FlushImpl<Transport::Request::BGetOp, Transport::Response::BGetOp>(hx, hx->p->queues.getops);
+    hxhim::Results *res = FlushImpl<Message::Request::BGetOp, Message::Response::BGetOp>(hx, hx->p->queues.getops);
     mlog(HXHIM_CLIENT_INFO, "Rank %d Done Flushing GETOPs %p", rank, res);
     return res;
 }
@@ -166,7 +166,7 @@ hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing DELETEs", rank);
-    hxhim::Results *res = FlushImpl<Transport::Request::BDelete, Transport::Response::BDelete>(hx, hx->p->queues.deletes);
+    hxhim::Results *res = FlushImpl<Message::Request::BDelete, Message::Response::BDelete>(hx, hx->p->queues.deletes);
     mlog(HXHIM_CLIENT_INFO, "Rank %d Done Flushing DELETEs", rank);
     return res;
 }
@@ -200,7 +200,7 @@ hxhim::Results *hxhim::FlushHistograms(hxhim_t *hx) {
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing HISTOGRAMs", rank);
-    hxhim::Results *res = FlushImpl<Transport::Request::BHistogram, Transport::Response::BHistogram>(hx, hx->p->queues.histograms);
+    hxhim::Results *res = FlushImpl<Message::Request::BHistogram, Message::Response::BHistogram>(hx, hx->p->queues.histograms);
     mlog(HXHIM_CLIENT_INFO, "Rank %d Done Flushing HISTOGRAMs", rank);
     return res;
 }

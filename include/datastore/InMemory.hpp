@@ -25,10 +25,10 @@ class InMemory : public Datastore {
         void CloseImpl();
         bool UsableImpl() const;
 
-        Transport::Response::BPut    *BPutImpl   (Transport::Request::BPut    *req);
-        Transport::Response::BGet    *BGetImpl   (Transport::Request::BGet    *req);
-        Transport::Response::BGetOp  *BGetOpImpl (Transport::Request::BGetOp  *req);
-        Transport::Response::BDelete *BDeleteImpl(Transport::Request::BDelete *req);
+        Message::Response::BPut    *BPutImpl   (Message::Request::BPut    *req);
+        Message::Response::BGet    *BGetImpl   (Message::Request::BGet    *req);
+        Message::Response::BGetOp  *BGetOpImpl (Message::Request::BGetOp  *req);
+        Message::Response::BDelete *BDeleteImpl(Message::Request::BDelete *req);
 
         int WriteHistogramsImpl();
         std::size_t ReadHistogramsImpl(const HistNames_t &names);

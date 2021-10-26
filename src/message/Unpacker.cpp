@@ -1,11 +1,11 @@
 #include <memory>
 
 #include "datastore/constants.hpp"
-#include "transport/Messages/Unpacker.hpp"
+#include "message/Unpacker.hpp"
 #include "utils/little_endian.hpp"
 #include "utils/memory.hpp"
 
-namespace Transport {
+namespace Message {
 
 static char *unpack_addr(void **dst, char *&src) {
     // // skip check
@@ -19,7 +19,7 @@ static char *unpack_addr(void **dst, char *&src) {
 }
 
 int Unpacker::unpack(Request::Request **req, void *buf, const std::size_t bufsize) {
-    int ret = TRANSPORT_ERROR;
+    int ret = MESSAGE_ERROR;
     if (!req) {
         // mlog(THALLIUM_WARN, "Bad address to pointer to unpack into");
         return ret;
@@ -29,12 +29,12 @@ int Unpacker::unpack(Request::Request **req, void *buf, const std::size_t bufsiz
 
     // partial unpacking
     Message *base = nullptr;
-    if (unpack(&base, buf, bufsize) != TRANSPORT_SUCCESS) {
+    if (unpack(&base, buf, bufsize) != MESSAGE_SUCCESS) {
         return ret;
     }
 
     // make sure the data is for a request
-    if (base->direction != Message::REQUEST) {
+    if (base->direction != Direction::REQUEST) {
         destruct(base);
         return ret;
     }
@@ -91,9 +91,9 @@ int Unpacker::unpack(Request::Request **req, void *buf, const std::size_t bufsiz
 int Unpacker::unpack(Request::BPut **bpm, void *buf, const std::size_t bufsize) {
     Request::BPut *out = construct<Request::BPut>();
     char *curr = nullptr;
-    if (unpack(static_cast<Request::Request *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
+    if (unpack(static_cast<Request::Request *>(out), buf, bufsize, &curr) != MESSAGE_SUCCESS) {
         destruct(out);
-        return TRANSPORT_ERROR;
+        return MESSAGE_ERROR;
     }
 
     for(std::size_t i = 0; i < out->max_count; i++) {
@@ -116,15 +116,15 @@ int Unpacker::unpack(Request::BPut **bpm, void *buf, const std::size_t bufsize) 
     }
 
     *bpm = out;
-    return TRANSPORT_SUCCESS;
+    return MESSAGE_SUCCESS;
 }
 
 int Unpacker::unpack(Request::BGet **bgm, void *buf, const std::size_t bufsize) {
     Request::BGet *out = construct<Request::BGet>();
     char *curr = nullptr;
-    if (unpack(static_cast<Request::Request *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
+    if (unpack(static_cast<Request::Request *>(out), buf, bufsize, &curr) != MESSAGE_SUCCESS) {
         destruct(out);
-        return TRANSPORT_ERROR;
+        return MESSAGE_ERROR;
     }
 
     for(std::size_t i = 0; i < out->max_count; i++) {
@@ -148,15 +148,15 @@ int Unpacker::unpack(Request::BGet **bgm, void *buf, const std::size_t bufsize) 
     }
 
     *bgm = out;
-    return TRANSPORT_SUCCESS;
+    return MESSAGE_SUCCESS;
 }
 
 int Unpacker::unpack(Request::BGetOp **bgm, void *buf, const std::size_t bufsize) {
     Request::BGetOp *out = construct<Request::BGetOp>();
     char *curr = nullptr;
-    if (unpack(static_cast<Request::Request *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
+    if (unpack(static_cast<Request::Request *>(out), buf, bufsize, &curr) != MESSAGE_SUCCESS) {
         destruct(out);
-        return TRANSPORT_ERROR;
+        return MESSAGE_ERROR;
     }
 
     for(std::size_t i = 0; i < out->max_count; i++) {
@@ -185,15 +185,15 @@ int Unpacker::unpack(Request::BGetOp **bgm, void *buf, const std::size_t bufsize
     }
 
     *bgm = out;
-    return TRANSPORT_SUCCESS;
+    return MESSAGE_SUCCESS;
 }
 
 int Unpacker::unpack(Request::BDelete **bdm, void *buf, const std::size_t bufsize) {
     Request::BDelete *out = construct<Request::BDelete>();
     char *curr = nullptr;
-    if (unpack(static_cast<Request::Request *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
+    if (unpack(static_cast<Request::Request *>(out), buf, bufsize, &curr) != MESSAGE_SUCCESS) {
         destruct(out);
-        return TRANSPORT_ERROR;
+        return MESSAGE_ERROR;
     }
 
     for(std::size_t i = 0; i < out->max_count; i++) {
@@ -213,15 +213,15 @@ int Unpacker::unpack(Request::BDelete **bdm, void *buf, const std::size_t bufsiz
     }
 
     *bdm = out;
-    return TRANSPORT_SUCCESS;
+    return MESSAGE_SUCCESS;
 }
 
 int Unpacker::unpack(Request::BHistogram **bhm, void *buf, const std::size_t bufsize) {
     Request::BHistogram *out = construct<Request::BHistogram>();
     char *curr = nullptr;
-    if (unpack(static_cast<Request::Request *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
+    if (unpack(static_cast<Request::Request *>(out), buf, bufsize, &curr) != MESSAGE_SUCCESS) {
         destruct(out);
-        return TRANSPORT_ERROR;
+        return MESSAGE_ERROR;
     }
 
     for(std::size_t i = 0; i < out->max_count; i++) {
@@ -232,11 +232,11 @@ int Unpacker::unpack(Request::BHistogram **bhm, void *buf, const std::size_t buf
     }
 
     *bhm = out;
-    return TRANSPORT_SUCCESS;
+    return MESSAGE_SUCCESS;
 }
 
 int Unpacker::unpack(Response::Response **res, void *buf, const std::size_t bufsize) {
-    int ret = TRANSPORT_ERROR;
+    int ret = MESSAGE_ERROR;
     if (!res) {
         return ret;
     }
@@ -245,13 +245,13 @@ int Unpacker::unpack(Response::Response **res, void *buf, const std::size_t bufs
 
     // partial unpacking
     Message *base = nullptr;
-    if (unpack(&base, buf, bufsize) != TRANSPORT_SUCCESS) {
+    if (unpack(&base, buf, bufsize) != MESSAGE_SUCCESS) {
         destruct(base);
         return ret;
     }
 
     // make sure the data is for a response
-    if (base->direction != Message::RESPONSE) {
+    if (base->direction != Direction::RESPONSE) {
         destruct(base);
         return ret;
     }
@@ -308,9 +308,9 @@ int Unpacker::unpack(Response::Response **res, void *buf, const std::size_t bufs
 int Unpacker::unpack(Response::BPut **bpm, void *buf, const std::size_t bufsize) {
     Response::BPut *out = construct<Response::BPut>();
     char *curr = nullptr;
-    if (unpack(static_cast<Response::Response *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
+    if (unpack(static_cast<Response::Response *>(out), buf, bufsize, &curr) != MESSAGE_SUCCESS) {
         destruct(out);
-        return TRANSPORT_ERROR;
+        return MESSAGE_ERROR;
     }
 
     for(std::size_t i = 0; i < out->max_count; i++) {
@@ -327,15 +327,15 @@ int Unpacker::unpack(Response::BPut **bpm, void *buf, const std::size_t bufsize)
     }
 
     *bpm = out;
-    return TRANSPORT_SUCCESS;
+    return MESSAGE_SUCCESS;
 }
 
 int Unpacker::unpack(Response::BGet **bgm, void *buf, const std::size_t bufsize) {
     Response::BGet *out = construct<Response::BGet>();
     char *curr = nullptr;
-    if (unpack(static_cast<Response::Response *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
+    if (unpack(static_cast<Response::Response *>(out), buf, bufsize, &curr) != MESSAGE_SUCCESS) {
         destruct(out);
-        return TRANSPORT_ERROR;
+        return MESSAGE_ERROR;
     }
 
     for(std::size_t i = 0; i < out->max_count; i++) {
@@ -358,15 +358,15 @@ int Unpacker::unpack(Response::BGet **bgm, void *buf, const std::size_t bufsize)
     }
 
     *bgm = out;
-    return TRANSPORT_SUCCESS;
+    return MESSAGE_SUCCESS;
 }
 
 int Unpacker::unpack(Response::BGetOp **bgm, void *buf, const std::size_t bufsize) {
     Response::BGetOp *out = construct<Response::BGetOp>();
     char *curr = nullptr;
-    if (unpack(static_cast<Response::Response *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
+    if (unpack(static_cast<Response::Response *>(out), buf, bufsize, &curr) != MESSAGE_SUCCESS) {
         destruct(out);
-        return TRANSPORT_ERROR;
+        return MESSAGE_ERROR;
     }
 
     for(std::size_t i = 0; i < out->max_count; i++) {
@@ -398,15 +398,15 @@ int Unpacker::unpack(Response::BGetOp **bgm, void *buf, const std::size_t bufsiz
     }
 
     *bgm = out;
-    return TRANSPORT_SUCCESS;
+    return MESSAGE_SUCCESS;
 }
 
 int Unpacker::unpack(Response::BDelete **bdm, void *buf, const std::size_t bufsize) {
     Response::BDelete *out = construct<Response::BDelete>();
     char *curr = nullptr;
-    if (unpack(static_cast<Response::Response *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
+    if (unpack(static_cast<Response::Response *>(out), buf, bufsize, &curr) != MESSAGE_SUCCESS) {
         destruct(out);
-        return TRANSPORT_ERROR;
+        return MESSAGE_ERROR;
     }
 
     for(std::size_t i = 0; i < out->max_count; i++) {
@@ -423,15 +423,15 @@ int Unpacker::unpack(Response::BDelete **bdm, void *buf, const std::size_t bufsi
     }
 
     *bdm = out;
-    return TRANSPORT_SUCCESS;
+    return MESSAGE_SUCCESS;
 }
 
 int Unpacker::unpack(Response::BHistogram **bhm, void *buf, const std::size_t bufsize) {
     Response::BHistogram *out = construct<Response::BHistogram>();
     char *curr = nullptr;
-    if (unpack(static_cast<Response::Response *>(out), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
+    if (unpack(static_cast<Response::Response *>(out), buf, bufsize, &curr) != MESSAGE_SUCCESS) {
         destruct(out);
-        return TRANSPORT_ERROR;
+        return MESSAGE_ERROR;
     }
 
     std::size_t remaining = bufsize - (curr - (char *) buf);
@@ -448,30 +448,30 @@ int Unpacker::unpack(Response::BHistogram **bhm, void *buf, const std::size_t bu
     }
 
     *bhm = out;
-    return TRANSPORT_SUCCESS;
+    return MESSAGE_SUCCESS;
 }
 
 int Unpacker::unpack(Message **msg, void *buf, const std::size_t bufsize) {
     if (!msg) {
-        return TRANSPORT_ERROR;
+        return MESSAGE_ERROR;
     }
 
     *msg = nullptr;
 
-    Message *out = construct<Message>(Message::NONE, hxhim_op_t::HXHIM_INVALID);
+    Message *out = construct<Message>(Direction::NONE, hxhim_op_t::HXHIM_INVALID);
     char *curr = nullptr;
-    if (unpack(out, buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
+    if (unpack(out, buf, bufsize, &curr) != MESSAGE_SUCCESS) {
         destruct(out);
-        return TRANSPORT_ERROR;
+        return MESSAGE_ERROR;
     }
 
     *msg = out;
-    return TRANSPORT_SUCCESS;
+    return MESSAGE_SUCCESS;
 }
 
 int Unpacker::unpack(Message *msg, void *buf, const std::size_t, char **curr) {
     if (!msg || !buf || !curr) {
-        return TRANSPORT_ERROR;
+        return MESSAGE_ERROR;
     }
 
     *curr = (char *) buf;
@@ -494,7 +494,7 @@ int Unpacker::unpack(Message *msg, void *buf, const std::size_t, char **curr) {
 
     msg->alloc(count);
 
-    return TRANSPORT_SUCCESS;
+    return MESSAGE_SUCCESS;
 }
 
 }

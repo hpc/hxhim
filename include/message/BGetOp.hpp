@@ -1,9 +1,9 @@
-#ifndef TRANSPORT_BGETOP_MESSAGE_HPP
-#define TRANSPORT_BGETOP_MESSAGE_HPP
+#ifndef BGETOP_MESSAGE_HPP
+#define BGETOP_MESSAGE_HPP
 
-#include "transport/Messages/SubjectPredicate.hpp"
+#include "message/SubjectPredicate.hpp"
 
-namespace Transport {
+namespace Message {
 
 namespace Request {
 
@@ -16,7 +16,6 @@ struct BGetOp final : SubjectPredicate {
                     hxhim_data_t object_type,
                     std::size_t num_rec,
                     hxhim_getop_t op);
-    int steal(BGetOp *from, const std::size_t i);
     int cleanup();
 
     hxhim_data_t *object_types;

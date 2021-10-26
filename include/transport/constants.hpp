@@ -13,7 +13,6 @@ enum Type {
     #if HXHIM_HAVE_THALLIUM
     TRANSPORT_THALLIUM,
     #endif
-
 };
 
 }

@@ -1,9 +1,9 @@
 #include "datastore/constants.hpp"
-#include "transport/Messages/Packer.hpp"
+#include "message/Packer.hpp"
 #include "utils/little_endian.hpp"
 #include "utils/memory.hpp"
 
-namespace Transport {
+namespace Message {
 
 static char *pack_addr(char *&dst, void *ptr) {
     // // skip check
@@ -17,7 +17,7 @@ static char *pack_addr(char *&dst, void *ptr) {
 }
 
 int Packer::pack(const Request::Request *req, void **buf, std::size_t *bufsize) {
-    int ret = TRANSPORT_ERROR;
+    int ret = MESSAGE_ERROR;
     if (!req) {
         return ret;
     }
@@ -51,8 +51,8 @@ int Packer::pack(const Request::Request *req, void **buf, std::size_t *bufsize) 
 
 int Packer::pack(const Request::BPut *bpm, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
-    if (pack(static_cast<const Request::Request *>(bpm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
-        return TRANSPORT_ERROR;
+    if (pack(static_cast<const Request::Request *>(bpm), buf, bufsize, &curr) != MESSAGE_SUCCESS) {
+        return MESSAGE_ERROR;
     }
 
     for(std::size_t i = 0; i < bpm->count; i++) {
@@ -72,13 +72,13 @@ int Packer::pack(const Request::BPut *bpm, void **buf, std::size_t *bufsize) {
         bpm->objects[i].pack(curr, true);
     }
 
-    return TRANSPORT_SUCCESS;
+    return MESSAGE_SUCCESS;
 }
 
 int Packer::pack(const Request::BGet *bgm, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
-    if (pack(static_cast<const Request::Request *>(bgm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
-        return TRANSPORT_ERROR;
+    if (pack(static_cast<const Request::Request *>(bgm), buf, bufsize, &curr) != MESSAGE_SUCCESS) {
+        return MESSAGE_ERROR;
     }
 
     for(std::size_t i = 0; i < bgm->count; i++) {
@@ -99,13 +99,13 @@ int Packer::pack(const Request::BGet *bgm, void **buf, std::size_t *bufsize) {
         curr += sizeof(bgm->object_types[i]);
     }
 
-    return TRANSPORT_SUCCESS;
+    return MESSAGE_SUCCESS;
 }
 
 int Packer::pack(const Request::BGetOp *bgm, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
-    if (pack(static_cast<const Request::Request *>(bgm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
-        return TRANSPORT_ERROR;
+    if (pack(static_cast<const Request::Request *>(bgm), buf, bufsize, &curr) != MESSAGE_SUCCESS) {
+        return MESSAGE_ERROR;
     }
 
     for(std::size_t i = 0; i < bgm->count; i++) {
@@ -131,13 +131,13 @@ int Packer::pack(const Request::BGetOp *bgm, void **buf, std::size_t *bufsize) {
         curr += sizeof(bgm->num_recs[i]);
     }
 
-    return TRANSPORT_SUCCESS;
+    return MESSAGE_SUCCESS;
 }
 
 int Packer::pack(const Request::BDelete *bdm, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
-    if (pack(static_cast<const Request::Request *>(bdm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
-        return TRANSPORT_ERROR;
+    if (pack(static_cast<const Request::Request *>(bdm), buf, bufsize, &curr) != MESSAGE_SUCCESS) {
+        return MESSAGE_ERROR;
     }
 
     for(std::size_t i = 0; i < bdm->count; i++) {
@@ -154,13 +154,13 @@ int Packer::pack(const Request::BDelete *bdm, void **buf, std::size_t *bufsize) 
         pack_addr(curr, bdm->predicates[i].data());
     }
 
-    return TRANSPORT_SUCCESS;
+    return MESSAGE_SUCCESS;
 }
 
 int Packer::pack(const Request::BHistogram *bhm, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
-    if (pack(static_cast<const Request::Request *>(bhm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
-        return TRANSPORT_ERROR;
+    if (pack(static_cast<const Request::Request *>(bhm), buf, bufsize, &curr) != MESSAGE_SUCCESS) {
+        return MESSAGE_ERROR;
     }
 
     for(std::size_t i = 0; i < bhm->count; i++) {
@@ -168,11 +168,11 @@ int Packer::pack(const Request::BHistogram *bhm, void **buf, std::size_t *bufsiz
         bhm->names[i].pack(curr, false);
     }
 
-    return TRANSPORT_SUCCESS;
+    return MESSAGE_SUCCESS;
 }
 
 int Packer::pack(const Response::Response *res, void **buf, std::size_t *bufsize) {
-    int ret = TRANSPORT_ERROR;
+    int ret = MESSAGE_ERROR;
     if (!res) {
         return ret;
     }
@@ -206,8 +206,8 @@ int Packer::pack(const Response::Response *res, void **buf, std::size_t *bufsize
 
 int Packer::pack(const Response::BPut *bpm, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
-    if (pack(static_cast<const Response::Response *>(bpm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
-        return TRANSPORT_ERROR;
+    if (pack(static_cast<const Response::Response *>(bpm), buf, bufsize, &curr) != MESSAGE_SUCCESS) {
+        return MESSAGE_ERROR;
     }
 
     for(std::size_t i = 0; i < bpm->count; i++) {
@@ -221,14 +221,14 @@ int Packer::pack(const Response::BPut *bpm, void **buf, std::size_t *bufsize) {
         bpm->orig.predicates[i].pack_ref(curr, true);
     }
 
-    return TRANSPORT_SUCCESS;
+    return MESSAGE_SUCCESS;
 }
 
 int Packer::pack(const Response::BGet *bgm, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
 
-    if (pack(static_cast<const Response::Response *>(bgm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
-        return TRANSPORT_ERROR;
+    if (pack(static_cast<const Response::Response *>(bgm), buf, bufsize, &curr) != MESSAGE_SUCCESS) {
+        return MESSAGE_ERROR;
     }
 
     for(std::size_t i = 0; i < bgm->count; i++) {
@@ -247,13 +247,13 @@ int Packer::pack(const Response::BGet *bgm, void **buf, std::size_t *bufsize) {
         }
     }
 
-    return TRANSPORT_SUCCESS;
+    return MESSAGE_SUCCESS;
 }
 
 int Packer::pack(const Response::BGetOp *bgm, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
-    if (pack(static_cast<const Response::Response *>(bgm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
-        return TRANSPORT_ERROR;
+    if (pack(static_cast<const Response::Response *>(bgm), buf, bufsize, &curr) != MESSAGE_SUCCESS) {
+        return MESSAGE_ERROR;
     }
 
     for(std::size_t i = 0; i < bgm->count; i++) {
@@ -278,13 +278,13 @@ int Packer::pack(const Response::BGetOp *bgm, void **buf, std::size_t *bufsize) 
         }
     }
 
-    return TRANSPORT_SUCCESS;
+    return MESSAGE_SUCCESS;
 }
 
 int Packer::pack(const Response::BDelete *bdm, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
-    if (pack(static_cast<const Response::Response *>(bdm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
-        return TRANSPORT_ERROR;
+    if (pack(static_cast<const Response::Response *>(bdm), buf, bufsize, &curr) != MESSAGE_SUCCESS) {
+        return MESSAGE_ERROR;
     }
 
     for(std::size_t i = 0; i < bdm->count; i++) {
@@ -298,13 +298,13 @@ int Packer::pack(const Response::BDelete *bdm, void **buf, std::size_t *bufsize)
         bdm->orig.predicates[i].pack_ref(curr, true);
     }
 
-    return TRANSPORT_SUCCESS;
+    return MESSAGE_SUCCESS;
 }
 
 int Packer::pack(const Response::BHistogram *bhm, void **buf, std::size_t *bufsize) {
     char *curr = nullptr;
-    if (pack(static_cast<const Response::Response *>(bhm), buf, bufsize, &curr) != TRANSPORT_SUCCESS) {
-        return TRANSPORT_ERROR;
+    if (pack(static_cast<const Response::Response *>(bhm), buf, bufsize, &curr) != MESSAGE_SUCCESS) {
+        return MESSAGE_ERROR;
     }
 
     std::size_t avail = *bufsize - (curr - (char *) *buf);
@@ -318,12 +318,12 @@ int Packer::pack(const Response::BHistogram *bhm, void **buf, std::size_t *bufsi
         }
     }
 
-    return TRANSPORT_SUCCESS;
+    return MESSAGE_SUCCESS;
 }
 
 int Packer::pack(const Message *msg, void **buf, std::size_t *bufsize, char **curr) {
     if (!msg || !buf || !bufsize || !curr) {
-        return TRANSPORT_ERROR;
+        return MESSAGE_ERROR;
     }
 
     *bufsize = msg->size();
@@ -332,7 +332,7 @@ int Packer::pack(const Message *msg, void **buf, std::size_t *bufsize, char **cu
     if (!*buf) {
         if (!(*buf = alloc(*bufsize))) {
             *bufsize = 0;
-            return TRANSPORT_ERROR;
+            return MESSAGE_ERROR;
         }
     }
 
@@ -354,7 +354,7 @@ int Packer::pack(const Message *msg, void **buf, std::size_t *bufsize, char **cu
     little_endian::encode(*curr, msg->count);
     *curr += sizeof(msg->count);
 
-    return TRANSPORT_SUCCESS;
+    return MESSAGE_SUCCESS;
 }
 
 int Packer::pack(const Request::Request *req, void **buf, std::size_t *bufsize, char **curr) {

@@ -1,14 +1,14 @@
-#ifndef TRANSPORT_UNPACKER_HPP
-#define TRANSPORT_UNPACKER_HPP
+#ifndef MESSAGE_UNPACKER_HPP
+#define MESSAGE_UNPACKER_HPP
 
-#include "transport/Messages/Messages.hpp"
+#include "message/Messages.hpp"
 
-namespace Transport {
+namespace Message {
 
 /**
  * Unpacker
  * A collection of functions that unpack
- * formatted buffers into Transport::Messages
+ * formatted buffers into Messages
  *
  * @param message address of the pointer that will be created and unpacked into
  * @param buf     the data to convert into the message

@@ -97,8 +97,8 @@ void Transport::Thallium::EndpointGroup::RemoveID(const int id) {
  * @return The list of responses received
  */
 template <typename Recv_t, typename Send_t,
-          typename = enable_if_t<std::is_base_of<Transport::Request::Request,   Send_t>::value &&
-                                 std::is_base_of<Transport::Response::Response, Recv_t>::value> >
+          typename = enable_if_t<std::is_base_of<Message::Request::Request,   Send_t>::value &&
+                                 std::is_base_of<Message::Response::Response, Recv_t>::value> >
 inline Recv_t *process_request(Send_t *req,
                                thallium::engine *engine,
                                Transport::Thallium::RangeServer *rs,
@@ -124,7 +124,7 @@ inline Recv_t *process_request(Send_t *req,
     req->timestamps.transport.pack.start = ::Stats::now();
     void *req_buf = nullptr;
     std::size_t req_size = 0;
-    if (Transport::Packer::pack(req, &req_buf, &req_size) != TRANSPORT_SUCCESS) {
+    if (Message::Packer::pack(req, &req_buf, &req_size) != MESSAGE_SUCCESS) {
         mlog(THALLIUM_WARN, "Unable to pack message");
         dealloc(req_buf);
         return nullptr;
@@ -165,7 +165,7 @@ inline Recv_t *process_request(Send_t *req,
 
     req->timestamps.transport.unpack.start = ::Stats::now(); // store the value in req for now
     Recv_t *response = nullptr;
-    const int unpack_rc = Transport::Unpacker::unpack(&response, res_buf, res_size);
+    const int unpack_rc = Message::Unpacker::unpack(&response, res_buf, res_size);
     dealloc(res_buf);
     req->timestamps.transport.unpack.end = ::Stats::now(); // store the value in req for now
 
@@ -174,7 +174,7 @@ inline Recv_t *process_request(Send_t *req,
     rs->cleanup().on(*(dst_it->second))(res_ptr);
     req->timestamps.transport.cleanup_rpc.end = ::Stats::now(); // store the value in req for now
 
-    if (unpack_rc != TRANSPORT_SUCCESS) {
+    if (unpack_rc != MESSAGE_SUCCESS) {
         mlog(THALLIUM_WARN, "Unable to unpack message");
         return nullptr;
     }
@@ -208,8 +208,8 @@ inline Recv_t *process_request(Send_t *req,
  * @return The list of responses received
  */
 template <typename Recv_t, typename Send_t,
-          typename = enable_if_t<std::is_base_of<Transport::Request::Request,   Send_t>::value &&
-                                 std::is_base_of<Transport::Response::Response, Recv_t>::value> >
+          typename = enable_if_t<std::is_base_of<Message::Request::Request,   Send_t>::value &&
+                                 std::is_base_of<Message::Response::Response, Recv_t>::value> >
 Recv_t *process_requests(const Transport::ReqList<Send_t> &messages,
                          thallium::engine *engine,
                          Transport::Thallium::RangeServer *rs,
@@ -271,8 +271,8 @@ Recv_t *process_requests(const Transport::ReqList<Send_t> &messages,
  * @param bpm_list the list of BPUT messages to send
  * @return a linked list of response messages, or nullptr
  */
-Transport::Response::BPut *Transport::Thallium::EndpointGroup::communicate(const ReqList<Request::BPut> &bpm_list) {
-    return process_requests<Response::BPut>(bpm_list, engine, rs, endpoints);
+Message::Response::BPut *Transport::Thallium::EndpointGroup::communicate(const ReqList<Message::Request::BPut> &bpm_list) {
+    return process_requests<Message::Response::BPut>(bpm_list, engine, rs, endpoints);
 }
 
 /**
@@ -282,8 +282,8 @@ Transport::Response::BPut *Transport::Thallium::EndpointGroup::communicate(const
  * @param bgm_list the list of BGET messages to send
  * @return a linked list of response messages, or nullptr
  */
-Transport::Response::BGet *Transport::Thallium::EndpointGroup::communicate(const ReqList<Request::BGet> &bgm_list) {
-    return process_requests<Response::BGet>(bgm_list, engine, rs, endpoints);
+Message::Response::BGet *Transport::Thallium::EndpointGroup::communicate(const ReqList<Message::Request::BGet> &bgm_list) {
+    return process_requests<Message::Response::BGet>(bgm_list, engine, rs, endpoints);
 }
 
 /**
@@ -293,8 +293,8 @@ Transport::Response::BGet *Transport::Thallium::EndpointGroup::communicate(const
  * @param bgm_list the list of BGETOP messages to send
  * @return a linked list of response messages, or nullptr
  */
-Transport::Response::BGetOp *Transport::Thallium::EndpointGroup::communicate(const ReqList<Request::BGetOp> &bgm_list) {
-    return process_requests<Response::BGetOp>(bgm_list, engine, rs, endpoints);
+Message::Response::BGetOp *Transport::Thallium::EndpointGroup::communicate(const ReqList<Message::Request::BGetOp> &bgm_list) {
+    return process_requests<Message::Response::BGetOp>(bgm_list, engine, rs, endpoints);
 }
 
 /**
@@ -304,8 +304,8 @@ Transport::Response::BGetOp *Transport::Thallium::EndpointGroup::communicate(con
  * @param bdm_list the list of BDELETE messages to send
  * @return a linked list of response messages, or nullptr
  */
-Transport::Response::BDelete *Transport::Thallium::EndpointGroup::communicate(const ReqList<Request::BDelete> &bdm_list) {
-    return process_requests<Response::BDelete>(bdm_list, engine, rs, endpoints);
+Message::Response::BDelete *Transport::Thallium::EndpointGroup::communicate(const ReqList<Message::Request::BDelete> &bdm_list) {
+    return process_requests<Message::Response::BDelete>(bdm_list, engine, rs, endpoints);
 }
 
 /**
@@ -315,6 +315,6 @@ Transport::Response::BDelete *Transport::Thallium::EndpointGroup::communicate(co
  * @param bhm_list the list of BHISTOGRAM messages to send
  * @return a linked list of response messages, or nullptr
  */
-Transport::Response::BHistogram *Transport::Thallium::EndpointGroup::communicate(const ReqList<Request::BHistogram> &bhm_list) {
-    return process_requests<Response::BHistogram>(bhm_list, engine, rs, endpoints);
+Message::Response::BHistogram *Transport::Thallium::EndpointGroup::communicate(const ReqList<Message::Request::BHistogram> &bhm_list) {
+    return process_requests<Message::Response::BHistogram>(bhm_list, engine, rs, endpoints);
 }

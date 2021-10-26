@@ -1,10 +1,10 @@
-#ifndef TRANSPORT_RESPONSE_HPP
-#define TRANSPORT_RESPONSE_HPP
+#ifndef RESPONSE_MESSAGE_HPP
+#define RESPONSE_MESSAGE_HPP
 
 #include "datastore/constants.hpp"
-#include "transport/Messages/Message.hpp"
+#include "message/Message.hpp"
 
-namespace Transport {
+namespace Message {
 
 namespace Response {
 

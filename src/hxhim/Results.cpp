@@ -99,7 +99,7 @@ hxhim::Results::Hist::Hist(hxhim_t *hx,
       histogram(nullptr)
 {}
 
-hxhim::Results::Result *hxhim::Result::init(hxhim_t *hx, Transport::Response::Response *res, const std::size_t i) {
+hxhim::Results::Result *hxhim::Result::init(hxhim_t *hx, Message::Response::Response *res, const std::size_t i) {
     // hx should have been checked earlier
 
     ::Stats::Chronopoint start = ::Stats::now();
@@ -121,19 +121,19 @@ hxhim::Results::Result *hxhim::Result::init(hxhim_t *hx, Transport::Response::Re
     hxhim::Results::Result *ret = nullptr;
     switch (res->op) {
         case hxhim_op_t::HXHIM_PUT:
-            ret = init(hx, static_cast<Transport::Response::BPut *>(res), i);
+            ret = init(hx, static_cast<Message::Response::BPut *>(res), i);
             break;
         case hxhim_op_t::HXHIM_GET:
-            ret = init(hx, static_cast<Transport::Response::BGet *>(res), i);
+            ret = init(hx, static_cast<Message::Response::BGet *>(res), i);
             break;
         case hxhim_op_t::HXHIM_GETOP:
-            ret = init(hx, static_cast<Transport::Response::BGetOp *>(res), i);
+            ret = init(hx, static_cast<Message::Response::BGetOp *>(res), i);
             break;
         case hxhim_op_t::HXHIM_DELETE:
-            ret = init(hx, static_cast<Transport::Response::BDelete *>(res), i);
+            ret = init(hx, static_cast<Message::Response::BDelete *>(res), i);
             break;
         case hxhim_op_t::HXHIM_HISTOGRAM:
-            ret = init(hx, static_cast<Transport::Response::BHistogram *>(res), i);
+            ret = init(hx, static_cast<Message::Response::BHistogram *>(res), i);
             break;
         default:
             break;
@@ -153,7 +153,7 @@ hxhim::Results::Result *hxhim::Result::init(hxhim_t *hx, Transport::Response::Re
     return ret;
 }
 
-hxhim::Results::Put *hxhim::Result::init(hxhim_t *hx, Transport::Response::BPut *bput, const std::size_t i) {
+hxhim::Results::Put *hxhim::Result::init(hxhim_t *hx, Message::Response::BPut *bput, const std::size_t i) {
     hxhim::Results::Put *out = construct<hxhim::Results::Put>(hx, bput->src, bput->statuses[i]);
 
     out->subject = std::move(bput->orig.subjects[i]);
@@ -162,7 +162,7 @@ hxhim::Results::Put *hxhim::Result::init(hxhim_t *hx, Transport::Response::BPut 
     return out;
 }
 
-hxhim::Results::Get *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGet *bget, const std::size_t i) {
+hxhim::Results::Get *hxhim::Result::init(hxhim_t *hx, Message::Response::BGet *bget, const std::size_t i) {
     hxhim::Results::Get *out = construct<hxhim::Results::Get>(hx, bget->src, bget->statuses[i]);
 
     out->subject = std::move(bget->orig.subjects[i]);
@@ -175,7 +175,7 @@ hxhim::Results::Get *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGet 
     return out;
 }
 
-hxhim::Results::GetOp *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGetOp *bgetop, const std::size_t i) {
+hxhim::Results::GetOp *hxhim::Result::init(hxhim_t *hx, Message::Response::BGetOp *bgetop, const std::size_t i) {
     const int status = bgetop->statuses[i];
 
     hxhim::Results::GetOp *top = construct<hxhim::Results::GetOp>(hx, bgetop->src, status);
@@ -202,7 +202,7 @@ hxhim::Results::GetOp *hxhim::Result::init(hxhim_t *hx, Transport::Response::BGe
     return top;
 }
 
-hxhim::Results::Delete *hxhim::Result::init(hxhim_t *hx, Transport::Response::BDelete *bdel, const std::size_t i) {
+hxhim::Results::Delete *hxhim::Result::init(hxhim_t *hx, Message::Response::BDelete *bdel, const std::size_t i) {
     hxhim::Results::Delete *out = construct<hxhim::Results::Delete>(hx, bdel->src, bdel->statuses[i]);
 
     out->subject = std::move(bdel->orig.subjects[i]);
@@ -216,7 +216,7 @@ hxhim::Results::Sync *hxhim::Result::init(hxhim_t *hx, const int synced) {
     return construct<hxhim::Results::Sync>(hx, rank, synced);
 }
 
-hxhim::Results::Hist *hxhim::Result::init(hxhim_t *hx, Transport::Response::BHistogram *bhist, const std::size_t i) {
+hxhim::Results::Hist *hxhim::Result::init(hxhim_t *hx, Message::Response::BHistogram *bhist, const std::size_t i) {
     hxhim::Results::Hist *out = construct<hxhim::Results::Hist>(hx, bhist->src, bhist->statuses[i]);
 
     if (bhist->statuses[i] == DATASTORE_SUCCESS) {
@@ -235,8 +235,8 @@ hxhim::Results::Hist *hxhim::Result::init(hxhim_t *hx, Transport::Response::BHis
  * @param response  the response packet
  */
 void hxhim::Result::AddAll(hxhim_t *hx, hxhim::Results *results,
-                           Transport::Response::Response *response) {
-    for(Transport::Response::Response *res = response; res; res = next(res)) {
+                           Message::Response::Response *response) {
+    for(Message::Response::Response *res = response; res; res = next(res)) {
         for(std::size_t i = 0; i < res->count; i++) {
             results->Add(hxhim::Result::init(hx, res, i));
         }

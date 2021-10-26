@@ -8,6 +8,7 @@ target_include_directories(hxhim PUBLIC ${CMAKE_SOURCE_DIR}/include)
 add_subdirectory(base)
 add_subdirectory(datastore)
 add_subdirectory(hxhim)
+add_subdirectory(message)
 add_subdirectory(transport)
 add_subdirectory(utils)
 

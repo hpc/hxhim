@@ -5,7 +5,6 @@
 cmake_minimum_required (VERSION 3.6.3)
 
 set(HXHIM_HEADERS
-  Blob.hpp
   RangeServer.hpp
   Results.h
   Results.hpp

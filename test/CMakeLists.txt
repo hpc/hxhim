@@ -48,7 +48,7 @@ endforeach()
 
 add_subdirectory(hxhim)
 add_subdirectory(datastore)
-add_subdirectory(transport)
+add_subdirectory(messages)
 add_subdirectory(utils)
 target_link_libraries(googletest hxhim.a gtest ${EXEC_LDFLAGS})
 add_test(googletest ${MPIEXEC} -np 1 googletest)

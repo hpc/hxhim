@@ -9,8 +9,8 @@
 
 #include "datastore/constants.hpp"
 #include "datastore/transform.hpp"
-#include "hxhim/Blob.hpp"
-#include "transport/Messages/Messages.hpp"
+#include "message/Messages.hpp"
+#include "utils/Blob.hpp"
 #include "utils/Histogram.hpp"
 #include "utils/Stats.hpp"
 
@@ -60,11 +60,11 @@ class Datastore {
 
         int ID() const;
 
-        Transport::Response::BPut       *operate(Transport::Request::BPut       *req);
-        Transport::Response::BGet       *operate(Transport::Request::BGet       *req);
-        Transport::Response::BGetOp     *operate(Transport::Request::BGetOp     *req);
-        Transport::Response::BDelete    *operate(Transport::Request::BDelete    *req);
-        Transport::Response::BHistogram *operate(Transport::Request::BHistogram *req);
+        Message::Response::BPut       *operate(Message::Request::BPut       *req);
+        Message::Response::BGet       *operate(Message::Request::BGet       *req);
+        Message::Response::BGetOp     *operate(Message::Request::BGetOp     *req);
+        Message::Response::BDelete    *operate(Message::Request::BDelete    *req);
+        Message::Response::BHistogram *operate(Message::Request::BHistogram *req);
 
         typedef std::shared_ptr<::Histogram::Histogram> Histogram;
         typedef std::map<std::string, Histogram> Histograms;
@@ -96,10 +96,10 @@ class Datastore {
         // check whether or not the underyling datastore is valid
         virtual bool UsableImpl() const = 0;
 
-        virtual Transport::Response::BPut    *BPutImpl   (Transport::Request::BPut    *req) = 0;
-        virtual Transport::Response::BGet    *BGetImpl   (Transport::Request::BGet    *req) = 0;
-        virtual Transport::Response::BGetOp  *BGetOpImpl (Transport::Request::BGetOp  *req) = 0;
-        virtual Transport::Response::BDelete *BDeleteImpl(Transport::Request::BDelete *req) = 0;
+        virtual Message::Response::BPut    *BPutImpl   (Message::Request::BPut    *req) = 0;
+        virtual Message::Response::BGet    *BGetImpl   (Message::Request::BGet    *req) = 0;
+        virtual Message::Response::BGetOp  *BGetOpImpl (Message::Request::BGetOp  *req) = 0;
+        virtual Message::Response::BDelete *BDeleteImpl(Message::Request::BDelete *req) = 0;
 
         virtual int WriteHistogramsImpl() = 0;                                // store histograms in datastore
         virtual std::size_t ReadHistogramsImpl(const HistNames_t &names) = 0; // retrieve histograms from datastore
@@ -145,13 +145,13 @@ class Datastore {
         static void BGetOp_copy_response(Transform::Callbacks *callbacks,
                                          const Key_t &key,
                                          const Value_t &value,
-                                         Transport::Request::BGetOp *req,
-                                         Transport::Response::BGetOp *res,
+                                         Message::Request::BGetOp *req,
+                                         Message::Response::BGetOp *res,
                                          const std::size_t i,
                                          const std::size_t j,
                                          Datastore::Datastore::Stats::Event &event);
 
-        void BGetOp_error_response(Transport::Response::BGetOp *res,
+        void BGetOp_error_response(Message::Response::BGetOp *res,
                                    const std::size_t i,
                                    Blob &subject, Blob &predicate,
                                    Stats::Event &event);

@@ -1,9 +1,9 @@
-#ifndef TRANSPORT_REQUEST_HPP
-#define TRANSPORT_REQUEST_HPP
+#ifndef REQUEST_MESSAGE_HPP
+#define REQUEST_MESSAGE_HPP
 
-#include "transport/Messages/Message.hpp"
+#include "message/Message.hpp"
 
-namespace Transport {
+namespace Message {
 
 namespace Request {
 
@@ -15,9 +15,6 @@ struct Request : Message {
     virtual void alloc(const std::size_t max);
     virtual std::size_t add(const std::size_t ds, const bool increment_count);
     virtual int cleanup();
-
-  protected:
-    virtual int steal(Request *from, const std::size_t i);
 };
 
 }

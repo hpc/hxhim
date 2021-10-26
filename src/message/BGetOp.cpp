@@ -1,6 +1,6 @@
-#include "transport/Messages/BGetOp.hpp"
+#include "message/BGetOp.hpp"
 
-Transport::Request::BGetOp::BGetOp(const std::size_t max)
+Message::Request::BGetOp::BGetOp(const std::size_t max)
     : SubjectPredicate(hxhim_op_t::HXHIM_GETOP),
       object_types(nullptr),
       num_recs(nullptr),
@@ -9,11 +9,11 @@ Transport::Request::BGetOp::BGetOp(const std::size_t max)
     alloc(max);
 }
 
-Transport::Request::BGetOp::~BGetOp() {
+Message::Request::BGetOp::~BGetOp() {
     cleanup();
 }
 
-void Transport::Request::BGetOp::alloc(const std::size_t max) {
+void Message::Request::BGetOp::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
@@ -24,7 +24,7 @@ void Transport::Request::BGetOp::alloc(const std::size_t max) {
     }
 }
 
-std::size_t Transport::Request::BGetOp::add(Blob subject, Blob predicate,
+std::size_t Message::Request::BGetOp::add(Blob subject, Blob predicate,
                                             hxhim_data_t object_type,
                                             std::size_t num_rec,
                                             hxhim_getop_t op) {
@@ -49,21 +49,7 @@ std::size_t Transport::Request::BGetOp::add(Blob subject, Blob predicate,
                  true);
 }
 
-int Transport::Request::BGetOp::steal(Transport::Request::BGetOp *from, const std::size_t i) {
-    if (SubjectPredicate::steal(from, i) != TRANSPORT_SUCCESS) {
-        return TRANSPORT_ERROR;
-    }
-
-    object_types[count] = from->object_types[i];
-    num_recs[count]     = from->num_recs[i];
-    ops[count]          = from->ops[i];
-
-    count++;
-
-    return TRANSPORT_SUCCESS;
-}
-
-int Transport::Request::BGetOp::cleanup() {
+int Message::Request::BGetOp::cleanup() {
     dealloc_array(subjects, max_count);
     subjects = nullptr;
 
@@ -82,7 +68,7 @@ int Transport::Request::BGetOp::cleanup() {
     return SubjectPredicate::cleanup();
 }
 
-Transport::Response::BGetOp::BGetOp(const std::size_t max)
+Message::Response::BGetOp::BGetOp(const std::size_t max)
     : Response(hxhim_op_t::HXHIM_GETOP),
       num_recs(nullptr),
       subjects(nullptr),
@@ -92,11 +78,11 @@ Transport::Response::BGetOp::BGetOp(const std::size_t max)
     alloc(max);
 }
 
-Transport::Response::BGetOp::~BGetOp() {
+Message::Response::BGetOp::~BGetOp() {
     cleanup();
 }
 
-void Transport::Response::BGetOp::alloc(const std::size_t max) {
+void Message::Response::BGetOp::alloc(const std::size_t max) {
     cleanup();
 
     if (max) {
@@ -108,7 +94,7 @@ void Transport::Response::BGetOp::alloc(const std::size_t max) {
     }
 }
 
-std::size_t Transport::Response::BGetOp::add(Blob *subject,
+std::size_t Message::Response::BGetOp::add(Blob *subject,
                                              Blob *predicate,
                                              Blob *object,
                                              std::size_t num_rec,
@@ -130,7 +116,7 @@ std::size_t Transport::Response::BGetOp::add(Blob *subject,
     return Response::add(status, sizeof(num_rec) + ds, true);
 }
 
-std::size_t Transport::Response::BGetOp::update_size(const std::size_t index) {
+std::size_t Message::Response::BGetOp::update_size(const std::size_t index) {
     for(std::size_t i = 0; i < num_recs[index]; i++) {
         Message::add(subjects[index][i].pack_size(true) + predicates[index][i].pack_size(true), false);
 
@@ -143,7 +129,7 @@ std::size_t Transport::Response::BGetOp::update_size(const std::size_t index) {
     return size();
 }
 
-int Transport::Response::BGetOp::steal(Transport::Response::BGetOp *from, const std::size_t i) {
+int Message::Response::BGetOp::steal(BGetOp *from, const std::size_t i) {
     add(from->subjects[i],
         from->predicates[i],
         from->objects[i],
@@ -157,7 +143,7 @@ int Transport::Response::BGetOp::steal(Transport::Response::BGetOp *from, const 
     return HXHIM_SUCCESS;
 }
 
-int Transport::Response::BGetOp::cleanup() {
+int Message::Response::BGetOp::cleanup() {
     for(std::size_t i = 0; i < count; i++) {
         dealloc_array(subjects[i],   num_recs[i]);
         dealloc_array(predicates[i], num_recs[i]);

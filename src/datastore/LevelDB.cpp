@@ -4,9 +4,9 @@
 #include "leveldb/write_batch.h"
 
 #include "datastore/LevelDB.hpp"
-#include "hxhim/Blob.hpp"
 #include "hxhim/accessors.hpp"
 #include "hxhim/triplestore.hpp"
+#include "utils/Blob.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
@@ -68,14 +68,14 @@ const std::string &Datastore::LevelDB::Name() const {
  * @param req  the packet requesting multiple PUTs
  * @return pointer to a list of results
  */
-Transport::Response::BPut *Datastore::LevelDB::BPutImpl(Transport::Request::BPut *req) {
+Message::Response::BPut *Datastore::LevelDB::BPutImpl(Message::Request::BPut *req) {
     mlog(LEVELDB_INFO, "LevelDB BPut");
 
     Datastore::Datastore::Stats::Event event;
     event.time.start = ::Stats::now();
     event.count = req->count;
 
-    Transport::Response::BPut *res = construct<Transport::Response::BPut>(req->count);
+    Message::Response::BPut *res = construct<Message::Response::BPut>(req->count);
 
     // batch up PUTs
     ::leveldb::WriteBatch batch;
@@ -139,14 +139,14 @@ Transport::Response::BPut *Datastore::LevelDB::BPutImpl(Transport::Request::BPut
  * @param req  the packet requesting multiple GETs
  * @return pointer to a list of results
  */
-Transport::Response::BGet *Datastore::LevelDB::BGetImpl(Transport::Request::BGet *req) {
+Message::Response::BGet *Datastore::LevelDB::BGetImpl(Message::Request::BGet *req) {
     mlog(LEVELDB_INFO, "Rank %d LevelDB GET processing %zu item in %ps", rank, req->count, req);
 
     Datastore::Datastore::Stats::Event event;
     event.time.start = ::Stats::now();
     event.count = req->count;
 
-    Transport::Response::BGet *res = construct<Transport::Response::BGet>(req->count);
+    Message::Response::BGet *res = construct<Message::Response::BGet>(req->count);
 
     // batch up GETs
     for(std::size_t i = 0; i < req->count; i++) {
@@ -210,8 +210,8 @@ Transport::Response::BGet *Datastore::LevelDB::BGetImpl(Transport::Request::BGet
  * @param req  the packet requesting multiple GETOPs
  * @return pointer to a list of results
  */
-Transport::Response::BGetOp *Datastore::LevelDB::BGetOpImpl(Transport::Request::BGetOp *req) {
-    Transport::Response::BGetOp *res = construct<Transport::Response::BGetOp>(req->count);
+Message::Response::BGetOp *Datastore::LevelDB::BGetOpImpl(Message::Request::BGetOp *req) {
+    Message::Response::BGetOp *res = construct<Message::Response::BGetOp>(req->count);
 
     ::leveldb::Iterator *it = db->NewIterator(::leveldb::ReadOptions());
     for(std::size_t i = 0; i < req->count; i++) {
@@ -359,12 +359,12 @@ Transport::Response::BGetOp *Datastore::LevelDB::BGetOpImpl(Transport::Request::
  * @param req  the packet requesting multiple DELETEs
  * @return pointer to a list of results
  */
-Transport::Response::BDelete *Datastore::LevelDB::BDeleteImpl(Transport::Request::BDelete *req) {
+Message::Response::BDelete *Datastore::LevelDB::BDeleteImpl(Message::Request::BDelete *req) {
     Datastore::Datastore::Stats::Event event;
     event.time.start = ::Stats::now();
     event.count = req->count;
 
-    Transport::Response::BDelete *res = construct<Transport::Response::BDelete>(req->count);
+    Message::Response::BDelete *res = construct<Message::Response::BDelete>(req->count);
 
     ::leveldb::WriteBatch batch;
 

@@ -5,10 +5,10 @@
 #include <cstdint>
 #include <memory>
 
-#include "hxhim/Blob.hpp"
 #include "hxhim/Results.h"
 #include "hxhim/constants.h"
 #include "hxhim/struct.h"
+#include "utils/Blob.hpp"
 #include "utils/Histogram.hpp"
 #include "utils/Stats.hpp"
 

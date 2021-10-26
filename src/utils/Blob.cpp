@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <utility>
 
-#include "hxhim/Blob.hpp"
+#include "utils/Blob.hpp"
 #include "utils/little_endian.hpp"
 #include "utils/memory.hpp"
 

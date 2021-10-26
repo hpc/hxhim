@@ -1,14 +1,14 @@
 #ifndef DATASTORE_TPP
 #define DATASTORE_TPP
 
-#include "transport/Messages/Messages.hpp"
+#include "message/Messages.hpp"
 
 template <typename Key_t, typename Value_t>
 void Datastore::Datastore::BGetOp_copy_response(Transform::Callbacks *callbacks,
                                                 const Key_t &key,
                                                 const Value_t &value,
-                                                Transport::Request::BGetOp *req,
-                                                Transport::Response::BGetOp *res,
+                                                Message::Request::BGetOp *req,
+                                                Message::Response::BGetOp *res,
                                                 const std::size_t i,
                                                 const std::size_t j,
                                                 Datastore::Datastore::Stats::Event &event) {

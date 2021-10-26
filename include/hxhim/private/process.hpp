@@ -14,7 +14,7 @@
 namespace hxhim {
 
 template <typename Request_t,
-          typename = enable_if_t <is_child_of <Transport::Request::Request, Request_t>::value> >
+          typename = enable_if_t <is_child_of <Message::Request::Request, Request_t>::value> >
 std::size_t remaining(hxhim::Queues<Request_t> &queues) {
     std::size_t count = 0;
     for(std::size_t i = 0; i < queues.size(); i++) {
@@ -26,8 +26,8 @@ std::size_t remaining(hxhim::Queues<Request_t> &queues) {
 
 template <typename Request_t,
           typename Response_t,
-          typename = enable_if_t <is_child_of <Transport::Request::Request,   Request_t>::value  &&
-                                  is_child_of <Transport::Response::Response, Response_t>::value> >
+          typename = enable_if_t <is_child_of <Message::Request::Request,   Request_t>::value  &&
+                                  is_child_of <Message::Response::Response, Response_t>::value> >
 hxhim::Results *process(hxhim_t *hx,
                         hxhim::Queues<Request_t> &queues) {
     #if PRINT_TIMESTAMPS

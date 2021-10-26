@@ -31,7 +31,7 @@ TEST(Enqueue, PUT) {
     EXPECT_GT(rank, -1);
     EXPECT_GT(size, -1);
 
-    hxhim::Queues<Transport::Request::BPut> &puts = hx.p->queues.puts.queue;
+    hxhim::Queues<Message::Request::BPut> &puts = hx.p->queues.puts.queue;
     EXPECT_EQ(puts.size(), (std::size_t) size);
 
     // enqueue one PUT
@@ -45,7 +45,7 @@ TEST(Enqueue, PUT) {
     ASSERT_EQ(puts[rank].size(), 1);
 
     {
-        Transport::Request::BPut *head = puts[rank].front();
+        Message::Request::BPut *head = puts[rank].front();
         ASSERT_EQ(head->count, 1);
         EXPECT_EQ(head->subjects[0].data(), SUBJECTS[0]);
         EXPECT_EQ(head->subjects[0].size(), strlen(SUBJECTS[0]));
@@ -66,7 +66,7 @@ TEST(Enqueue, PUT) {
     ASSERT_EQ(puts[rank].size(), 2); // maximum_ops_per_send is set to 1, so each PUT fills up a packet
 
     {
-        Transport::Request::BPut *head = puts[rank].front();
+        Message::Request::BPut *head = puts[rank].front();
         ASSERT_EQ(head->count, 1);
         EXPECT_EQ(head->subjects[0].data(), SUBJECTS[0]);
         EXPECT_EQ(head->subjects[0].size(), strlen(SUBJECTS[0]));
@@ -77,7 +77,7 @@ TEST(Enqueue, PUT) {
     }
 
     {
-        Transport::Request::BPut *tail = puts[rank].back();
+        Message::Request::BPut *tail = puts[rank].back();
         ASSERT_EQ(tail->count, 1);
         EXPECT_EQ(tail->subjects[0].data(), SUBJECTS[1]);
         EXPECT_EQ(tail->subjects[0].size(), strlen(SUBJECTS[1]));
@@ -104,7 +104,7 @@ TEST(Enqueue, GET) {
     EXPECT_GT(rank, -1);
     EXPECT_GT(size, -1);
 
-    hxhim::Queues<Transport::Request::BGet> &gets = hx.p->queues.gets;
+    hxhim::Queues<Message::Request::BGet> &gets = hx.p->queues.gets;
     EXPECT_EQ(gets.size(), (std::size_t) size);
 
     // enqueue one GET
@@ -117,7 +117,7 @@ TEST(Enqueue, GET) {
     ASSERT_EQ(gets[rank].size(), 1);
 
     {
-        Transport::Request::BGet *head = gets[rank].front();
+        Message::Request::BGet *head = gets[rank].front();
         ASSERT_EQ(head->count, 1);
         EXPECT_EQ(head->subjects[0].data(), SUBJECTS[0]);
         EXPECT_EQ(head->subjects[0].size(), strlen(SUBJECTS[0]));
@@ -136,7 +136,7 @@ TEST(Enqueue, GET) {
     ASSERT_EQ(gets[rank].size(), 2); // maximum_ops_per_send is set to 1
 
     {
-        Transport::Request::BGet *head = gets[rank].front();
+        Message::Request::BGet *head = gets[rank].front();
         ASSERT_EQ(head->count, 1);
         EXPECT_EQ(head->subjects[0].data(), SUBJECTS[0]);
         EXPECT_EQ(head->subjects[0].size(), strlen(SUBJECTS[0]));
@@ -146,7 +146,7 @@ TEST(Enqueue, GET) {
     }
 
     {
-        Transport::Request::BGet *tail = gets[rank].back();
+        Message::Request::BGet *tail = gets[rank].back();
         ASSERT_EQ(tail->count, 1);
         EXPECT_EQ(tail->subjects[0].data(), SUBJECTS[1]);
         EXPECT_EQ(tail->subjects[0].size(), strlen(SUBJECTS[1]));
@@ -172,7 +172,7 @@ TEST(Enqueue, GETOP) {
     EXPECT_GT(rank, -1);
     EXPECT_GT(size, -1);
 
-    hxhim::Queues<Transport::Request::BGetOp> &getops = hx.p->queues.getops;
+    hxhim::Queues<Message::Request::BGetOp> &getops = hx.p->queues.getops;
     EXPECT_EQ(getops.size(), (std::size_t) size);
 
     const std::size_t num_recs = rand();
@@ -188,7 +188,7 @@ TEST(Enqueue, GETOP) {
     ASSERT_EQ(getops[rank].size(), 1);
 
     {
-        Transport::Request::BGetOp *head = getops[rank].front();
+        Message::Request::BGetOp *head = getops[rank].front();
         ASSERT_EQ(head->count, 1);
         EXPECT_EQ(head->subjects[0].data(), SUBJECTS[0]);
         EXPECT_EQ(head->subjects[0].size(), strlen(SUBJECTS[0]));
@@ -209,7 +209,7 @@ TEST(Enqueue, GETOP) {
     ASSERT_EQ(getops[rank].size(), 2); // maximum_ops_per_send is set to 1
 
     {
-        Transport::Request::BGetOp *head = getops[rank].front();
+        Message::Request::BGetOp *head = getops[rank].front();
         ASSERT_EQ(head->count, 1);
         EXPECT_EQ(head->subjects[0].data(), SUBJECTS[0]);
         EXPECT_EQ(head->subjects[0].size(), strlen(SUBJECTS[0]));
@@ -223,7 +223,7 @@ TEST(Enqueue, GETOP) {
     }
 
     {
-        Transport::Request::BGetOp *tail = getops[rank].back();
+        Message::Request::BGetOp *tail = getops[rank].back();
         ASSERT_EQ(tail->count, 1);
         EXPECT_EQ(tail->subjects[0].data(), SUBJECTS[1]);
         EXPECT_EQ(tail->subjects[0].size(), strlen(SUBJECTS[1]));
@@ -256,7 +256,7 @@ TEST(Enqueue, DELETE) {
     EXPECT_GT(rank, -1);
     EXPECT_GT(size, -1);
 
-    hxhim::Queues<Transport::Request::BDelete> &deletes = hx.p->queues.deletes;
+    hxhim::Queues<Message::Request::BDelete> &deletes = hx.p->queues.deletes;
     EXPECT_EQ(deletes.size(), (std::size_t) size);
 
     // enqueue one DELETE
@@ -268,7 +268,7 @@ TEST(Enqueue, DELETE) {
     ASSERT_EQ(deletes[rank].size(), 1);
 
     {
-        Transport::Request::BDelete *head = deletes[rank].front();
+        Message::Request::BDelete *head = deletes[rank].front();
         ASSERT_EQ(head->count, 1);
         EXPECT_EQ(head->subjects[0].data(), SUBJECTS[0]);
         EXPECT_EQ(head->subjects[0].size(), strlen(SUBJECTS[0]));
@@ -285,7 +285,7 @@ TEST(Enqueue, DELETE) {
     ASSERT_EQ(deletes[rank].size(), 2); // maximum_ops_per_send is set to 1
 
     {
-        Transport::Request::BDelete *head = deletes[rank].front();
+        Message::Request::BDelete *head = deletes[rank].front();
         ASSERT_EQ(head->count, 1);
         EXPECT_EQ(head->subjects[0].data(), SUBJECTS[0]);
         EXPECT_EQ(head->subjects[0].size(), strlen(SUBJECTS[0]));
@@ -294,7 +294,7 @@ TEST(Enqueue, DELETE) {
     }
 
     {
-        Transport::Request::BDelete *tail = deletes[rank].back();
+        Message::Request::BDelete *tail = deletes[rank].back();
         ASSERT_EQ(tail->count, 1);
         EXPECT_EQ(tail->subjects[0].data(), SUBJECTS[1]);
         EXPECT_EQ(tail->subjects[0].size(), strlen(SUBJECTS[1]));
@@ -320,7 +320,7 @@ TEST(Enqueue, HISTOGRAM) {
     EXPECT_GT(rank, -1);
     EXPECT_GT(size, -1);
 
-    hxhim::Queues<Transport::Request::BHistogram> &histograms = hx.p->queues.histograms;
+    hxhim::Queues<Message::Request::BHistogram> &histograms = hx.p->queues.histograms;
     EXPECT_EQ(histograms.size(), (std::size_t) size);
 
     // enqueue one HISTOGRAM
@@ -332,7 +332,7 @@ TEST(Enqueue, HISTOGRAM) {
     ASSERT_EQ(histograms[rank].size(), 1);
 
     {
-        Transport::Request::BHistogram *head = histograms[rank].front();
+        Message::Request::BHistogram *head = histograms[rank].front();
         ASSERT_EQ(head->count, 1);
     }
 
@@ -345,12 +345,12 @@ TEST(Enqueue, HISTOGRAM) {
     ASSERT_EQ(histograms[rank].size(), 2); // maximum_ops_per_send is set to 1
 
     {
-        Transport::Request::BHistogram *head = histograms[rank].front();
+        Message::Request::BHistogram *head = histograms[rank].front();
         ASSERT_EQ(head->count, 1);
     }
 
     {
-        Transport::Request::BHistogram *tail = histograms[rank].back();
+        Message::Request::BHistogram *tail = histograms[rank].back();
         ASSERT_EQ(tail->count, 1);
     }
 

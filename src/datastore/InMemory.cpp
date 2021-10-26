@@ -2,9 +2,9 @@
 #include <sstream>
 
 #include "datastore/InMemory.hpp"
-#include "hxhim/Blob.hpp"
 #include "hxhim/private/hxhim.hpp"
 #include "hxhim/triplestore.hpp"
+#include "utils/Blob.hpp"
 #include "utils/memory.hpp"
 
 Datastore::InMemory::InMemory(const int rank,
@@ -45,12 +45,12 @@ bool Datastore::InMemory::UsableImpl() const {
  * @param req  the packet requesting multiple PUTs
  * @return pointer to a list of results
  */
-Transport::Response::BPut *Datastore::InMemory::BPutImpl(Transport::Request::BPut *req) {
+Message::Response::BPut *Datastore::InMemory::BPutImpl(Message::Request::BPut *req) {
     Datastore::Datastore::Stats::Event event;
     event.time.start = ::Stats::now();
     event.count = req->count;
 
-    Transport::Response::BPut *res = construct<Transport::Response::BPut>(req->count);
+    Message::Response::BPut *res = construct<Message::Response::BPut>(req->count);
 
     for(std::size_t i = 0; i < req->count; i++) {
         void *subject = nullptr;
@@ -104,12 +104,12 @@ Transport::Response::BPut *Datastore::InMemory::BPutImpl(Transport::Request::BPu
  * @param req  the packet requesting multiple GETs
  * @return pointer to a list of results
  */
-Transport::Response::BGet *Datastore::InMemory::BGetImpl(Transport::Request::BGet *req) {
+Message::Response::BGet *Datastore::InMemory::BGetImpl(Message::Request::BGet *req) {
     Datastore::Datastore::Stats::Event event;
     event.time.start = ::Stats::now();
     event.count = req->count;
 
-    Transport::Response::BGet *res = construct<Transport::Response::BGet>(req->count);
+    Message::Response::BGet *res = construct<Message::Response::BGet>(req->count);
 
     for(std::size_t i = 0; i < req->count; i++) {
         void *subject = nullptr;
@@ -167,8 +167,8 @@ Transport::Response::BGet *Datastore::InMemory::BGetImpl(Transport::Request::BGe
  * @param req  the packet requesting multiple GETOPs
  * @return pointer to a list of results
  */
-Transport::Response::BGetOp *Datastore::InMemory::BGetOpImpl(Transport::Request::BGetOp *req) {
-    Transport::Response::BGetOp *res = construct<Transport::Response::BGetOp>(req->count);
+Message::Response::BGetOp *Datastore::InMemory::BGetOpImpl(Message::Request::BGetOp *req) {
+    Message::Response::BGetOp *res = construct<Message::Response::BGetOp>(req->count);
 
     for(std::size_t i = 0; i < req->count; i++) {
         Datastore::Datastore::Stats::Event event;
@@ -322,12 +322,12 @@ Transport::Response::BGetOp *Datastore::InMemory::BGetOpImpl(Transport::Request:
  * @param req  the packet requesting multiple DELETEs
  * @return pointer to a list of results
  */
-Transport::Response::BDelete *Datastore::InMemory::BDeleteImpl(Transport::Request::BDelete *req) {
+Message::Response::BDelete *Datastore::InMemory::BDeleteImpl(Message::Request::BDelete *req) {
     Datastore::Datastore::Stats::Event event;
     event.time.start = ::Stats::now();
     event.count = req->count;
 
-    Transport::Response::BDelete *res = construct<Transport::Response::BDelete>(req->count);
+    Message::Response::BDelete *res = construct<Message::Response::BDelete>(req->count);
 
     for(std::size_t i = 0; i < req->count; i++) {
         void *subject = nullptr;

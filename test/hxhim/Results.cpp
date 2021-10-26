@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
 #include "datastore/constants.hpp"
-#include "hxhim/Blob.hpp"
 #include "hxhim/Results.hpp"
+#include "utils/Blob.hpp"
 #include "utils/memory.hpp"
 
 TEST(Results, PUT_GET_DEL) {

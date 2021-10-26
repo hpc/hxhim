@@ -3,8 +3,8 @@
 #include <sstream>
 
 #include "datastore/datastore.hpp"
-#include "hxhim/Blob.hpp"
 #include "hxhim/triplestore.hpp"
+#include "utils/Blob.hpp"
 #include "utils/macros.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
@@ -114,9 +114,9 @@ int Datastore::Datastore::ID() const {
     return id;
 }
 
-Transport::Response::BPut *Datastore::Datastore::operate(Transport::Request::BPut *req) {
+Message::Response::BPut *Datastore::Datastore::operate(Message::Request::BPut *req) {
     std::lock_guard<std::mutex> lock(mutex);
-    Transport::Response::BPut *res = Usable()?BPutImpl(req):nullptr;
+    Message::Response::BPut *res = Usable()?BPutImpl(req):nullptr;
 
     if (hists.size() && res) {
         // if a predicate is HXHIM_DATA_BYTE and the PUT was successful
@@ -156,22 +156,22 @@ Transport::Response::BPut *Datastore::Datastore::operate(Transport::Request::BPu
     return res;
 }
 
-Transport::Response::BGet *Datastore::Datastore::operate(Transport::Request::BGet *req) {
+Message::Response::BGet *Datastore::Datastore::operate(Message::Request::BGet *req) {
     std::lock_guard<std::mutex> lock(mutex);
     return Usable()?BGetImpl(req):nullptr;
 }
 
-Transport::Response::BGetOp *Datastore::Datastore::operate(Transport::Request::BGetOp *req) {
+Message::Response::BGetOp *Datastore::Datastore::operate(Message::Request::BGetOp *req) {
     std::lock_guard<std::mutex> lock(mutex);
     return Usable()?BGetOpImpl(req):nullptr;
 }
 
-Transport::Response::BDelete *Datastore::Datastore::operate(Transport::Request::BDelete *req) {
+Message::Response::BDelete *Datastore::Datastore::operate(Message::Request::BDelete *req) {
     std::lock_guard<std::mutex> lock(mutex);
     return Usable()?BDeleteImpl(req):nullptr;
 }
 
-Transport::Response::BHistogram *Datastore::Datastore::operate(Transport::Request::BHistogram *req) {
+Message::Response::BHistogram *Datastore::Datastore::operate(Message::Request::BHistogram *req) {
     /**
      * handle histograms right here because it is datastore agnostic
      */
@@ -181,7 +181,7 @@ Transport::Response::BHistogram *Datastore::Datastore::operate(Transport::Reques
     event.time.start = ::Stats::now();
     event.count = req->count;
 
-    Transport::Response::BHistogram *res = construct<Transport::Response::BHistogram>(req->count);
+    Message::Response::BHistogram *res = construct<Message::Response::BHistogram>(req->count);
 
     for(std::size_t i = 0; i < req->count; i++) {
         struct timespec start = {};
@@ -416,7 +416,7 @@ Datastore::Datastore::Stats::Event::Event()
       size(0)
 {}
 
-void Datastore::Datastore::BGetOp_error_response(Transport::Response::BGetOp *res,
+void Datastore::Datastore::BGetOp_error_response(Message::Response::BGetOp *res,
                                                  const std::size_t i,
                                                  Blob &subject, Blob &predicate,
                                                  Datastore::Datastore::Stats::Event &event) {

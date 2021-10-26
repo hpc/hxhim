@@ -5,7 +5,7 @@
 #include "hxhim/constants.h"
 #include "hxhim/private/accessors.hpp"
 #include "hxhim/private/hxhim.hpp"
-#include "transport/Messages/Messages.hpp"
+#include "message/Messages.hpp"
 #include "utils/Stats.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
@@ -14,21 +14,21 @@
 namespace Transport {
 namespace local {
 
-Response::Response *range_server(hxhim_t *hx, Request::Request *req);
+Message::Response::Response *range_server(hxhim_t *hx, Message::Request::Request *req);
 
 /**
  * bput
  * Handles the bput message and puts data in the datastore
  *
- * @tparam Response_t  Transport::Response::*
- * @tparam Request_t   Transport::Request::*
+ * @tparam Response_t  Message::Response::*
+ * @tparam Request_t   Message::Request::*
  * @param hx           pointer to the main HXHIM struct
  * @param req          the request packet to operate on
  * @return             the response packet resulting from the request
  */
 template <typename Response_t, typename Request_t,
-          typename = enable_if_t <is_child_of<Request::Request,   Request_t> ::value &&
-                                  is_child_of<Response::Response, Response_t>::value> >
+          typename = enable_if_t <is_child_of<Message::Request::Request,   Request_t> ::value &&
+                                  is_child_of<Message::Response::Response, Response_t>::value> >
 Response_t *range_server(hxhim_t *hx, Request_t *req) {
     req->timestamps.transport.start = ::Stats::now();
 
