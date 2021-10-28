@@ -76,8 +76,9 @@ typedef struct hxhim_private {
             hxhim::Queues<Message::Request::BPut> queue;
             #if ASYNC_PUTS
             std::mutex mutex;
-            std::condition_variable start_processing;
-            bool flushed;
+            std::condition_variable start_processing; // check whether or not enough PUTs have been queued
+            bool flushed;                             // true if flush was called
+            bool processing;                          // true if data was popped off of the queue and has not been placed on the results queue yet
             #endif
             std::size_t count;
         } puts;
@@ -90,13 +91,14 @@ typedef struct hxhim_private {
     } queues;
 
     // asynchronous BPUT data
+    // handles processing of requests and results
     struct {
         std::size_t max_queued;            // number of batches to hold before sending PUTs asynchronously
         #if ASYNC_PUTS
         std::thread thread;                // the thread that pushes PUTs off the PUT queue asynchronously
         std::mutex mutex;
         std::condition_variable done;
-        bool done_check;
+        bool done_check;                   // whether or not the background puts have completed
         #endif
         hxhim::Results *results;           // the list of of PUT results
     } async_put;
@@ -163,7 +165,7 @@ int hash        (hxhim_t *hx);
 }
 
 #if ASYNC_PUTS
-void wait_for_background_puts(hxhim_t *hx, const bool clear_queued = false);
+void wait_for_background_puts(hxhim_t *hx, const bool drop_queued = false);
 #else
 void serial_puts(hxhim_t *hx);
 #endif

@@ -40,7 +40,8 @@ Request_t *setup_packet(hxhim_t *hx, hxhim::QueueTarget<Request_t> &queue, const
         // last packet doesn't have an empty slot
         ((*queue.rbegin())->count >= hx->p->queues.max_per_request.ops) ||
         // has slots, but serialized buffer would be too big
-        (((*queue.rbegin())->size() + additional_size) > hx->p->queues.max_per_request.size)){
+        (hx->p->queues.max_per_request.size &&
+         (((*queue.rbegin())->size() + additional_size) > hx->p->queues.max_per_request.size))) {
         new_request(hx, queue);
     }
 
@@ -116,9 +117,9 @@ int hxhim::PutImpl(hxhim_t *hx,
             continue;
         }
 
-        Blob *sub = nullptr;
+        Blob *sub  = nullptr;
         Blob *pred = nullptr;
-        Blob *obj = nullptr;
+        Blob *obj  = nullptr;
 
         switch (HXHIM_PUT_PERMUTATIONS[i]) {
             case HXHIM_PUT_SPO:
@@ -173,25 +174,20 @@ int hxhim::PutImpl(hxhim_t *hx,
         ::Stats::Chronostamp insert;
         insert.start = ::Stats::now();
 
-        #if ASYNC_PUTS
-        std::unique_lock<std::mutex> lock(hx->p->queues.puts.mutex);
-        #endif
-
         // add the triple to the last packet in the queue
         Message::Request::BPut *put = setup_packet(hx, puts[rs_id],
-                                                     sub->pack_size(true) +
-                                                     pred->pack_size(true) +
-                                                     obj->pack_size(true));
+                                                   sub->pack_size(true) +
+                                                   pred->pack_size(true) +
+                                                   obj->pack_size(true));
         put->add(*sub, *pred, *obj);
-
-        hx->p->queues.puts.count++;
+        hx->p->queues.puts.count++; // mutex is locked by caller
 
         put->timestamps.reqs[put->count - 1].hash = hash;
         put->timestamps.reqs[put->count - 1].insert = insert;
         put->timestamps.reqs[put->count - 1].insert.end = ::Stats::now();
     }
 
-    // do not trigger background PUTs here in order to allow for all BPUTs to queue up before flushing
+    // trigger background PUTs in higher scope in order to allow for all BPUTs to queue up before flushing
 
     mlog(HXHIM_CLIENT_DBG, "Foreground PUT Completed");
     return HXHIM_SUCCESS;

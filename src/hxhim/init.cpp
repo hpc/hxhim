@@ -227,18 +227,21 @@ static void backgroundPUT(hxhim_t *hx) {
             // wait for number of PUTs to reach limit
             // PUTs/FlushPuts triggers check
             std::unique_lock<std::mutex> queue_lock(hx->p->queues.puts.mutex);
-            hx->p->queues.puts.start_processing.wait(queue_lock,
-                                                     [hx]() -> bool {
-                                                         return (!hx->p->running ||
-                                                                 (hx->p->queues.puts.count >= hx->p->async_put.max_queued) ||
-                                                                 hx->p->queues.puts.flushed);
-                                                     }
-                );
+            hx->p->queues.puts.start_processing.wait(
+                queue_lock,
+                [hx]() -> bool {
+                    return (!hx->p->running ||
+                            (hx->p->queues.puts.count >= hx->p->async_put.max_queued) ||
+                            hx->p->queues.puts.flushed);
+                }
+            );
 
             // puts.mutex now locked
 
-            // take PUTs and restore queue
+            // move PUTs to local variable
             puts = std::move(hx->p->queues.puts.queue);
+
+            // reset PUT queues
             hx->p->queues.puts.queue.clear();
             hx->p->queues.puts.queue.resize(hx->p->range_server.total_range_servers);
             hx->p->queues.puts.count = 0;
@@ -250,10 +253,9 @@ static void backgroundPUT(hxhim_t *hx) {
 
         // process PUTs
         hxhim::Results *results = hxhim::process<Message::Request::BPut, Message::Response::BPut>(hx, puts);
-        {
-            std::lock_guard<std::mutex> async_lock(hx->p->async_put.mutex);
 
-            // store/append results
+        // store results in hxhim instance
+        {
             if (hx->p->async_put.results) {
                 hx->p->async_put.results->Append(results);
                 destruct(results);
@@ -262,6 +264,7 @@ static void backgroundPUT(hxhim_t *hx) {
                 hx->p->async_put.results = results;
             }
 
+            std::unique_lock<std::mutex> async_lock(hx->p->async_put.mutex);
             hx->p->async_put.done_check = true;
         }
 
@@ -293,7 +296,6 @@ int hxhim::init::async_put(hxhim_t *hx, hxhim_options_t *opts) {
 
     #if ASYNC_PUTS
     hx->p->queues.puts.flushed = true;
-    hx->p->async_put.done_check = false;
 
     // Start the background thread
     hx->p->async_put.thread = std::thread(backgroundPUT, hx);

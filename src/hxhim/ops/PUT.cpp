@@ -29,21 +29,27 @@ int hxhim::Put(hxhim_t *hx,
         return HXHIM_ERROR;
     }
 
+    int rc = HXHIM_ERROR;
+
     ::Stats::Chronostamp put;
     put.start = ::Stats::now();
 
-    const int rc = hxhim::PutImpl(hx,
-                                  hx->p->queues.puts.queue,
-                                  ReferenceBlob(subject, subject_len, subject_type),
-                                  ReferenceBlob(predicate, predicate_len, predicate_type),
-                                  ReferenceBlob(object, object_len, object_type),
-                                  permutations);
+    {
+        #if ASYNC_PUTS
+        std::unique_lock<std::mutex> lock(hx->p->queues.puts.mutex);
+        #endif
 
-    #if ASYNC_PUTS
-    hx->p->queues.puts.start_processing.notify_all();
-    #else
-    hxhim::serial_puts(hx);
-    #endif
+        rc = hxhim::PutImpl(hx,
+                            hx->p->queues.puts.queue,
+                            ReferenceBlob(subject, subject_len, subject_type),
+                            ReferenceBlob(predicate, predicate_len, predicate_type),
+                            ReferenceBlob(object, object_len, object_type),
+                            permutations);
+
+        #if ASYNC_PUTS
+        hx->p->queues.puts.start_processing.notify_all();
+        #endif
+    }
 
     put.end = ::Stats::now();
     hx->p->stats.single_op[hxhim_op_t::HXHIM_PUT].emplace_back(put);

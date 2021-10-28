@@ -31,35 +31,28 @@ hxhim::Results *FlushImpl(hxhim_t *hx,
  * @return results from sending the PUTs
  */
 hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
-    if (!hxhim::valid(hx)) {
-        return nullptr;
-    }
-
     const int rank = hx->p->bootstrap.rank;
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Flushing PUTs", rank);
 
     hxhim::Results *res = construct<hxhim::Results>();
 
-    // if there are PUT results from the background thread
-    // use that as the return pointer
-    {
-        #if ASYNC_PUTS
-        // wait for the background thread to finish
-        hxhim::wait_for_background_puts(hx);
-        #endif
-
-        res->Append(hx->p->async_put.results);
-        destruct(hx->p->async_put.results);
-        hx->p->async_put.results = nullptr;
-    }
-
     #if ASYNC_PUTS
+    // wait for the background thread to finish
+    hxhim::wait_for_background_puts(hx, false);
+
+    // move internal results to res to give to caller
+    res->Append(hx->p->async_put.results);
+    destruct(hx->p->async_put.results);
+    hx->p->async_put.results = nullptr;
+
     std::unique_lock<std::mutex> lock(hx->p->queues.puts.mutex);
     #endif
 
     // append new results to old results
-    hxhim::Results *put_results = FlushImpl<Message::Request::BPut, Message::Response::BPut>(hx, hx->p->queues.puts.queue);
+    hxhim::Results *put_results =
+        FlushImpl<Message::Request::BPut,
+                  Message::Response::BPut>(hx, hx->p->queues.puts.queue);
     hx->p->queues.puts.count = 0;
 
     res->Append(put_results);
@@ -90,10 +83,6 @@ hxhim_results_t *hxhimFlushPuts(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Results *hxhim::FlushGets(hxhim_t *hx) {
-    if (!hxhim::valid(hx)) {
-        return nullptr;
-    }
-
     int rank = -1;
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
@@ -124,10 +113,6 @@ hxhim_results_t *hxhimFlushGets(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Results *hxhim::FlushGetOps(hxhim_t *hx) {
-    if (!hxhim::valid(hx)) {
-        return nullptr;
-    }
-
     int rank = -1;
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
@@ -158,10 +143,6 @@ hxhim_results_t *hxhimFlushGetOps(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Results *hxhim::FlushDeletes(hxhim_t *hx) {
-    if (!hxhim::valid(hx)) {
-        return nullptr;
-    }
-
     int rank = -1;
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 
@@ -192,10 +173,6 @@ hxhim_results_t *hxhimFlushDeletes(hxhim_t *hx) {
  * @return Pointer to return value wrapper
  */
 hxhim::Results *hxhim::FlushHistograms(hxhim_t *hx) {
-    if (!hxhim::valid(hx)) {
-        return nullptr;
-    }
-
     int rank = -1;
     hxhim::nocheck::GetMPI(hx, nullptr, &rank, nullptr);
 

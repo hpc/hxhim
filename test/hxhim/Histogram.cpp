@@ -17,17 +17,17 @@ const std::size_t TRIPLES = 10;
 const std::size_t TOTAL_PUTS = TRIPLES * HIST_NAMES.size();
 
 int test_hash(hxhim_t *hx,
-                     void *, const size_t,
-                     void *, const size_t,
-                     void *) {
+              void *, const size_t,
+              void *, const size_t,
+              void *) {
     int rank = -1;
     hxhim::GetMPI(hx, nullptr, &rank, nullptr);
     return rank;
 }
 
 HistogramBucketGenerator_t test_buckets = [](const double *, const size_t,
-                                                    double **buckets, size_t *size,
-                                                    void *) -> int {
+                                             double **buckets, size_t *size,
+                                             void *) -> int {
     if (!buckets || !size) {
         return HISTOGRAM_ERROR;
     }
@@ -101,17 +101,19 @@ TEST(hxhim, Histogram) {
 
         void *subject = nullptr;
         std::size_t subject_len = 0;
-        EXPECT_EQ(put_results->Subject(&subject, &subject_len, nullptr), HXHIM_SUCCESS);
+        hxhim_data_t subject_type = hxhim_data_t::HXHIM_DATA_INVALID;
+        EXPECT_EQ(put_results->Subject(&subject, &subject_len, &subject_type), HXHIM_SUCCESS);
         EXPECT_NE(subject, nullptr);
         EXPECT_NE(subject_len, 0);
-        // type changes depending on which PUT permutation this result came from
+        EXPECT_EQ(subject_type, hxhim_data_t::HXHIM_DATA_POINTER);
 
         void *predicate = nullptr;
         std::size_t predicate_len = 0;
-        EXPECT_EQ(put_results->Predicate(&predicate, &predicate_len, nullptr), HXHIM_SUCCESS);
+        hxhim_data_t predicate_type = hxhim_data_t::HXHIM_DATA_INVALID;
+        EXPECT_EQ(put_results->Predicate(&predicate, &predicate_len, &predicate_type), HXHIM_SUCCESS);
         EXPECT_NE(predicate, nullptr);
         EXPECT_NE(predicate_len, 0);
-        // type changes depending on which PUT permutation this result came from
+        EXPECT_EQ(predicate_type, hxhim_data_t::HXHIM_DATA_BYTE);
     }
 
     hxhim::Results::Destroy(put_results);

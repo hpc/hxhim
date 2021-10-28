@@ -34,22 +34,25 @@ int hxhim::BPut(hxhim_t *hx,
     ::Stats::Chronostamp bput;
     bput.start = ::Stats::now();
 
-    // append these spo triples into the list of unsent PUTs
-    for(std::size_t i = 0; i < count; i++) {
-        hxhim::PutImpl(hx,
-                       hx->p->queues.puts.queue,
-                       ReferenceBlob(subjects[i], subject_lens[i], subject_types[i]),
-                       ReferenceBlob(predicates[i], predicate_lens[i], predicate_types[i]),
-                       ReferenceBlob(objects[i], object_lens[i], object_types[i]),
-                       permutations[i]);
+    {
+        #if ASYNC_PUTS
+        std::unique_lock<std::mutex> lock(hx->p->queues.puts.mutex);
+        #endif
+
+        // append these spo triples into the list of unsent PUTs
+        for(std::size_t i = 0; i < count; i++) {
+            hxhim::PutImpl(hx,
+                           hx->p->queues.puts.queue,
+                           ReferenceBlob(subjects[i], subject_lens[i], subject_types[i]),
+                           ReferenceBlob(predicates[i], predicate_lens[i], predicate_types[i]),
+                           ReferenceBlob(objects[i], object_lens[i], object_types[i]),
+                           permutations[i]);
+        }
+
+        #if ASYNC_PUTS
+        hx->p->queues.puts.start_processing.notify_all();
+        #endif
     }
-
-
-    #if ASYNC_PUTS
-    hx->p->queues.puts.start_processing.notify_all();
-    #else
-    hxhim::serial_puts(hx);
-    #endif
 
     bput.end = ::Stats::now();
     hx->p->stats.bulk_op[hxhim_op_t::HXHIM_PUT].emplace_back(bput);

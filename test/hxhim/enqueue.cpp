@@ -20,7 +20,8 @@ TEST(Enqueue, PUT) {
     hxhim_options_t opts;
     ASSERT_EQ(fill_options(&opts), true);
     ASSERT_EQ(hxhim_options_set_maximum_ops_per_request(&opts, 1), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_maximum_size_per_request(&opts, 1), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim_options_set_maximum_size_per_request(&opts, 0), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim_options_set_start_async_put_at(&opts, 3), HXHIM_SUCCESS); // don't clear PUT queues
 
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);

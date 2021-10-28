@@ -31,9 +31,8 @@ TEST(hxhim, background_put) {
               HXHIM_SUCCESS);
 
     #if ASYNC_PUTS
-    // wait for the background thread to signal it finished
-    hxhim::wait_for_background_puts(&hx);
-    #endif
+    // force the background thread to flush
+    hxhim::wait_for_background_puts(&hx, false);
 
     // background PUT results should have 1 item in it
     hxhim::Results *background_put_results = hx.p->async_put.results;
@@ -50,8 +49,19 @@ TEST(hxhim, background_put) {
         EXPECT_EQ(background_put_results->Status(&status), HXHIM_SUCCESS);
         EXPECT_EQ(status, HXHIM_SUCCESS);
     }
+    #endif
 
+    // check the results after flushing
     hxhim::Results *put_results = hxhim::FlushPuts(&hx);
+    HXHIM_CXX_RESULTS_LOOP(put_results) {
+        hxhim_op_t op;
+        EXPECT_EQ(put_results->Op(&op), HXHIM_SUCCESS);
+        EXPECT_EQ(op, hxhim_op_t::HXHIM_PUT);
+
+        int status = HXHIM_ERROR;
+        EXPECT_EQ(put_results->Status(&status), HXHIM_SUCCESS);
+        EXPECT_EQ(status, HXHIM_SUCCESS);
+    }
     hxhim::Results::Destroy(put_results);
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
