@@ -46,17 +46,18 @@ function usage() {
     echo "Usage: $0 [Options] download_dir build_name install_dir [PROCS]"
     echo ""
     echo "    Options:"
-    echo "        --BMI         build the BMI module for mercury"
-    echo "        --CCI         build the CCI module for mercury"
-    echo "        --OFI         build the OFI module for mercury"
-    echo "        --SM          build the SM  module for mercury"
+    echo "        --BMI           build the BMI module for mercury"
+    echo "        --CCI           build the CCI module for mercury"
+    echo "        --OFI           build the OFI module for mercury"
+    echo "        --SM            build the SM  module for mercury"
     echo
-    echo "        --NO_DL       do not download repositories"
-    echo "        --UPDATE      update source if downloading"
-    echo "        --DL_ONLY     stop after downloading and updating (if the source needed to be downloaded)"
-    echo "        --NO_LEVELDB  do not download/build/install leveldb"
-    echo "        --NO_ROCKSDB  do not download/build/install rocksdb"
-    echo "        --NO_JEMALLOC do not download/build/install jemalloc"
+    echo "        --NO_DL         do not download repositories"
+    echo "        --UPDATE        update source if downloading"
+    echo "        --DL_ONLY       stop after downloading and updating (if the source needed to be downloaded)"
+    echo "        --NO_LEVELDB    do not download/build/install leveldb"
+    echo "        --NO_ROCKSDB    do not download/build/install rocksdb"
+    echo "        --NO_JEMALLOC   do not download/build/install jemalloc"
+    echo "        --cmake <bin>   name of CMake executable (default: cmake)"
 }
 
 # Check that an executable is available; if not, print the name and exit
@@ -72,10 +73,10 @@ function check_autoconf() {
 }
 
 function check_cmake() {
-    check_executable cmake
+    check_executable "${CMAKE}"
 
     # make sure CMake's version is at least 3.6.3
-    version=$(cmake --version | head -n 1 | awk '{ print $3 }')
+    version=$("${CMAKE}" --version | head -n 1 | awk '{ print $3 }')
     [ "3.6.3" = $(echo -e "3.6.3\n${version}" | sort -V | head -n 1) ] || (echo "Need CMake 3.6.3+. Have ${version}."; exit 1)
 }
 
@@ -307,7 +308,7 @@ function mercury() {
     function cbi_hg() {
         if [[ ! -f Makefile ]]
         then
-            cmake .. -DCMAKE_INSTALL_PREFIX="${install_dir}" -DMERCURY_USE_BOOST_PP:BOOL=ON -DBUILD_SHARED_LIBS:BOOL=ON ${cmake_options}
+            "${CMAKE}" .. -DCMAKE_INSTALL_PREFIX="${install_dir}" -DMERCURY_USE_BOOST_PP:BOOL=ON -DBUILD_SHARED_LIBS:BOOL=ON ${cmake_options}
         fi
 
         make -j ${PROCS}
@@ -383,7 +384,7 @@ function json-c() {
     function cbi_json-c() {
         if [[ ! -f Makefile ]]
         then
-            cmake .. -DCMAKE_INSTALL_PREFIX="${install_dir}"
+            "${CMAKE}" .. -DCMAKE_INSTALL_PREFIX="${install_dir}"
         fi
 
         make -j ${PROCS}
@@ -438,7 +439,7 @@ function thallium() {
     function cbi_thallium() {
         if [[ ! -f Makefile ]]
         then
-            mercury_DIR="${MERCURY_DIR}" cmake .. -DCMAKE_INSTALL_PREFIX="${install_dir}" -DCMAKE_CXX_EXTENSIONS:BOOL=OFF
+            mercury_DIR="${MERCURY_DIR}" "${CMAKE}" .. -DCMAKE_INSTALL_PREFIX="${install_dir}" -DCMAKE_CXX_EXTENSIONS:BOOL=OFF
         fi
 
         make -j ${PROCS}
@@ -464,7 +465,7 @@ function leveldb() {
     function cbi_leveldb() {
         if [[ ! -f Makefile ]]
         then
-            cmake .. -DCMAKE_INSTALL_PREFIX="${install_dir}" -DHAVE_SNAPPY=On
+            "${CMAKE}" .. -DCMAKE_INSTALL_PREFIX="${install_dir}" -DHAVE_SNAPPY=On
         fi
 
         make -j ${PROCS}
@@ -499,7 +500,7 @@ function rocksdb() {
     function cbi_rocksdb() {
         if [[ ! -f Makefile ]]
         then
-            cmake .. -DCMAKE_INSTALL_PREFIX="${install_dir}" -DWITH_GFLAGS=Off
+            "${CMAKE}" .. -DCMAKE_INSTALL_PREFIX="${install_dir}" -DWITH_GFLAGS=Off
         fi
 
         make -j ${PROCS}
@@ -554,6 +555,7 @@ UPDATE=0
 LEVELDB=1
 ROCKSDB=1
 JEMALLOC=1
+CMAKE="cmake"
 
 # Parse command line arguments
 # https://stackoverflow.com/a/14203146
@@ -564,52 +566,57 @@ key="$1"
 
 case $key in
     -h|--help)
-    usage
-    exit 0
-    ;;
+        usage
+        exit 0
+        ;;
     --BMI)
-    USE_NA_BMI=1
-    shift # past argument
-    ;;
+        USE_NA_BMI=1
+        shift # past argument
+        ;;
     --CCI)
-    USE_NA_CCI=1
-    shift # past argument
-    ;;
+        USE_NA_CCI=1
+        shift # past argument
+        ;;
     --OFI)
-    USE_NA_OFI=1
-    shift # past argument
-    ;;
+        USE_NA_OFI=1
+        shift # past argument
+        ;;
     --SM)
-    USE_NA_SM=1
-    shift # past argument
-    ;;
+        USE_NA_SM=1
+        shift # past argument
+        ;;
     --NO_DL)
-    DL=0
-    shift # past argument
-    ;;
+        DL=0
+        shift # past argument
+        ;;
     --DL_ONLY)
-    DL_ONLY=1
-    shift # past argument
-    ;;
+        DL_ONLY=1
+        shift # past argument
+        ;;
     --UPDATE)
-    UPDATE=1
-    shift # past argument
-    ;;
+        UPDATE=1
+        shift # past argument
+        ;;
     --NO_LEVELDB)
-    LEVELDB=0
-    shift # past argument
-    ;;
+        LEVELDB=0
+        shift # past argument
+        ;;
     --NO_ROCKSDB)
-    ROCKSDB=0
-    shift # past argument
-    ;;
+        ROCKSDB=0
+        shift # past argument
+        ;;
     --NO_JEMALLOC)
-    JEMALLOC=0
-    shift # past argument
-    ;;
+        JEMALLOC=0
+        shift # past argument
+        ;;
+    --cmake)
+        CMAKE="$2"
+        shift # past argument
+        shift # past value
+        ;;
     *)    # unknown option
-    POSITIONAL+=("$1") # save it in an array for later
-    shift # past argument
+        POSITIONAL+=("$1") # save it in an array for later
+        shift # past argument
     ;;
 esac
 done

@@ -15,24 +15,26 @@ export CXX="${CXX_COMPILER}"
 export FC="${FORT_COMPILER}"
 export GTEST_COLOR=1
 
+PROCS="$(nproc --all)"
+
 # install cmake through pip instead of dnf
 pip3 install --upgrade cmake
 
 mkdir -p "${INSTALL_DIR}"
 
 # install mpi manually
-contrib/travis/mpi.sh "${DL_DIR}" "${BUILD_NAME}" "${INSTALL_DIR}" > /dev/null
+contrib/travis/mpi.sh "${DL_DIR}" "${BUILD_NAME}" "${INSTALL_DIR}" "${PROCS}" > /dev/null
 
 # find mpi and add it to the environment
 source contrib/travis/setup_env.sh "${INSTALL_DIR}"
 
 # set up hxhim dependencies
-source contrib/hxhim_dependencies.sh --OFI --NO_ROCKSDB --NO_JEMALLOC "${DL_DIR}" "${BUILD_NAME}" "${INSTALL_DIR}" "$(nproc --all)" > /dev/null
+source contrib/hxhim_dependencies.sh --OFI --NO_ROCKSDB --NO_JEMALLOC "${DL_DIR}" "${BUILD_NAME}" "${INSTALL_DIR}" "${PROCS}" > /dev/null
 
 cd "${ROOT}"
 
 mkdir -p build
 cd build
 cmake .. -DCMAKE_BUILD_TYPE=Debug
-make -j $(nproc --all)
+make -j "${PROCS}"
 mpirun -np 1 --allow-run-as-root test/googletest
