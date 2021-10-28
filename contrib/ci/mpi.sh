@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+
 if [[ "$#" -lt 3 ]]
 then
     echo "Syntax: $0 DL_DIR BUILD_NAME INSTALL_DIR [PROCS]" 1>&2
@@ -18,7 +20,7 @@ cd ompi
 mkdir "${BUILD_NAME}"
 cd "${BUILD_NAME}"
 MPI_PREFIX="${INSTALL_DIR}/openmpi-github"
-../configure --prefix="${MPI_PREFIX}" --disable-man-pages --enable-threads=multiple
+../configure --prefix="${MPI_PREFIX}" --disable-man-pages --enable-threads=multiple --disable-dependency-tracking
 make -j ${PROCS}
 make -j ${PROCS} install
 

@@ -9,7 +9,7 @@ fi
 INSTALL_DIR="$1"
 
 # set PATH, LD_LIBRARY_PATH, and PKG_CONFIG_PATH
-for name in mpi
+for name in openmpi-github
 do
     prefix="${INSTALL_DIR}/${name}"
 

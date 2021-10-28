@@ -1,0 +1,85 @@
+name: HXHIM
+
+on: [push, pull_request]
+
+env:
+  BUILD_TYPE: Debug
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+
+    strategy:
+      matrix:
+        container: ["ubuntu:xenial", "ubuntu:bionic", "ubuntu:focal", "centos:7", "centos:8"]
+        async_puts: ["On", "Off"]
+
+    env:
+      BUILD_NAME: "build"
+      SWHOME: "/tmp"
+
+    container:
+      image: ${{matrix.container}}
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Get Ubuntu Packages
+      if: startsWith(matrix.container, 'ubuntu:')
+      run: |
+        contrib/ci/ubuntu.sh
+        echo CC="gcc-9" >> ${GITHUB_ENV}
+        echo CXX="g++-9" >> ${GITHUB_ENV}
+
+    - name: Get CentOS 7 Packages
+      if: matrix.container == 'centos:7'
+      run: |
+        source contrib/ci/centos7.sh
+        echo CC="$(which gcc)" >> ${GITHUB_ENV}
+        echo CXX="$(which g++)" >> ${GITHUB_ENV}
+
+    - name: Get CentOS 8 Packages
+      if: matrix.container == 'centos:8'
+      run: |
+        source contrib/ci/centos8.sh
+        echo CC="$(which gcc)" >> ${GITHUB_ENV}
+        echo CXX="$(which g++)" >> ${GITHUB_ENV}
+
+    - name: Get newer CMake
+      run: pip3 install --upgrade cmake
+
+    - name: Build MPI
+      run: contrib/ci/mpi.sh "${HOME}" "${BUILD_NAME}" "${SWHOME}" "$(nproc --all)"
+
+    - name: Build Dependencies
+      run: |
+        source contrib/ci/setup_env.sh "${SWHOME}"
+        source contrib/hxhim_dependencies.sh --OFI --NO_ROCKSDB "${HOME}" "${BUILD_NAME}" "${SWHOME}" "$(nproc --all)" CC="${CC}" CXX="${CXX}"
+        echo "PATH=${PATH}" >> ${GITHUB_ENV}
+        echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >> ${GITHUB_ENV}
+        echo "PKG_CONFIG_PATH=${PKG_CONFIG_PATH}" >> ${GITHUB_ENV}
+
+    - name: Configure CMake
+      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DASYNC_PUTS=${{matrix.async_puts}}
+
+    - name: Build
+      # Build your program with the given configuration
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+
+    - name: Test
+      run: |
+        cd ${{github.workspace}}/build
+        mpirun -np 1 --allow-run-as-root test/googletest
+      env:
+        GTEST_COLOR: 1
+
+    - name: Install
+      run: |
+        cd ${{github.workspace}}/build
+        make install
