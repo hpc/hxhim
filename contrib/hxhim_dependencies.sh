@@ -82,8 +82,21 @@ function check_cmake() {
 
 # Check that a library is found; if not, print the library name and exit
 function check_library() {
-    library=$1
+    library="$1"
     ldconfig -N -v $(echo "${LD_LIBRARY_PATH}" | sed 's/:/ /g') 2> /dev/null | grep ${library} > /dev/null
+}
+
+function check_pkgconfig() {
+    prefix="$(pkg-config --variable=prefix $1)"
+    if [[ "$?" -eq "0" ]] # package was found
+    then
+        if [[ "${prefix}" != "${PREFIX}/$1" ]] # installed package is not installed in PREFIX directory
+        then
+            return 0
+        fi
+    fi
+
+    return 1
 }
 
 function check_mpi() {
@@ -257,6 +270,8 @@ function NA_CCI() {
 }
 
 function NA_OFI() {
+    # do not check for existing libfabric - package likely has bugs
+
     function dl_ofi() {
         git clone --depth 1 https://github.com/ofiwg/libfabric.git "$1"
     }
@@ -450,7 +465,15 @@ function thallium() {
 }
 
 function leveldb() {
-    check_library snappy
+    if check_library "snappy"
+    then
+        :
+    elif check_pkgconfig "snappy"
+    then
+        :
+    else
+        exit 1
+    fi
 
     function dl_leveldb() {
         git clone --depth 1 https://github.com/google/leveldb.git "$1"
@@ -528,6 +551,16 @@ function rocksdb() {
 }
 
 function jemalloc() {
+    if ! check_library "jemalloc"
+    then
+        return 0;
+    fi
+
+    if check_pkgconfig "jemalloc"
+    then
+        return 0
+    fi
+
     function dl_jemalloc() {
         git clone --depth 1 https://github.com/jemalloc/jemalloc.git "$1"
     }
@@ -680,3 +713,5 @@ then
     echo
     echo "Source this script to get prepend LD_LIBRARY_PATH and PKG_CONFIG_PATH with these values"
 fi
+
+return_to_start_dir

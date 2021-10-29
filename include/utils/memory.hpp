@@ -2,6 +2,7 @@
 #define HXHIM_MEMORY_HPP
 
 #include <new>
+#include <utility>
 
 // Simple wrappers around ::new and ::delete to reduce typing.
 // Allows for the actual allocation/deallocation functions to be
