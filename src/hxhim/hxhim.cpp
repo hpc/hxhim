@@ -43,6 +43,8 @@ int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
         return HXHIM_ERROR;
     }
 
+    int rc = HXHIM_SUCCESS;
+
     #if PRINT_TIMESTAMPS
     ::Stats::Chronostamp init;
     init.start = ::Stats::now();
@@ -55,17 +57,38 @@ int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
 
     hx->p = new hxhim_private_t();
 
-    if ((init::bootstrap(hx, opts) != HXHIM_SUCCESS) ||
-        (init::running  (hx, opts) != HXHIM_SUCCESS) ||
-        (init::hash     (hx, opts) != HXHIM_SUCCESS) ||
-        (init::datastore(hx, opts) != HXHIM_SUCCESS) ||
-        (init::transport(hx, opts) != HXHIM_SUCCESS) ||
-        (init::queues   (hx, opts) != HXHIM_SUCCESS) ||
-        (init::async_put(hx, opts) != HXHIM_SUCCESS)) {
-        MPI_Barrier(hx->p->bootstrap.comm);
-        Close(hx);
-        mlog(HXHIM_CLIENT_ERR, "Failed to initialize HXHIM");
-        return HXHIM_ERROR;
+    if (init::bootstrap(hx, opts) != HXHIM_SUCCESS) {
+        rc = HXHIM_OPEN_ERROR_BOOTSTRAP;
+        goto error;
+    }
+
+    if (init::running  (hx, opts) != HXHIM_SUCCESS) {
+        rc = HXHIM_OPEN_ERROR_SET_RUNNING;
+        goto error;
+    }
+    if (init::hash     (hx, opts) != HXHIM_SUCCESS) {
+        rc = HXHIM_OPEN_ERROR_HASH;
+        goto error;
+    }
+
+    if (init::datastore(hx, opts) != HXHIM_SUCCESS) {
+        rc = HXHIM_OPEN_ERROR_DATASTORE;
+        goto error;
+    }
+
+    if (init::transport(hx, opts) != HXHIM_SUCCESS) {
+        rc = HXHIM_OPEN_ERROR_TRANSPORT;
+        goto error;
+    }
+
+    if (init::queues   (hx, opts) != HXHIM_SUCCESS) {
+        rc = HXHIM_OPEN_ERROR_QUEUES;
+        goto error;
+    }
+
+    if (init::async_put(hx, opts) != HXHIM_SUCCESS) {
+        rc = HXHIM_OPEN_ERROR_ASYNC_PUT;
+        goto error;
     }
 
     mlog(HXHIM_CLIENT_INFO, "Waiting for everyone to complete initialization");
@@ -75,7 +98,15 @@ int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
     init.end = ::Stats::now();
     ::Stats::print_event(hx->p->print_buffer, hx->p->bootstrap.rank, "Open", ::Stats::global_epoch, init);
     #endif
-    return HXHIM_SUCCESS;
+    return rc;
+
+  error:
+    if (rc != HXHIM_OPEN_ERROR_BOOTSTRAP) {
+        MPI_Barrier(hx->p->bootstrap.comm);
+    }
+    Close(hx);
+    mlog(HXHIM_CLIENT_ERR, "Failed to initialize HXHIM");
+    return rc;
 }
 
 /**

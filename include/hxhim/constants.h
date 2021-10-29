@@ -12,11 +12,20 @@ extern "C"
 
 #include "utils/macros.h"
 
-/** Success constant */
-#define HXHIM_SUCCESS 3
+/* not 0 to force return value checks to use this macro */
+#define HXHIM_SUCCESS                 3
 
-/** Error constant */
-#define HXHIM_ERROR 4
+/** Generic Error */
+#define HXHIM_ERROR                   4
+
+/** hxhim::Open Errors */
+#define HXHIM_OPEN_ERROR_BOOTSTRAP    5
+#define HXHIM_OPEN_ERROR_SET_RUNNING  6 /** should never be seen */
+#define HXHIM_OPEN_ERROR_HASH         7
+#define HXHIM_OPEN_ERROR_DATASTORE    8
+#define HXHIM_OPEN_ERROR_TRANSPORT    9
+#define HXHIM_OPEN_ERROR_QUEUES      10
+#define HXHIM_OPEN_ERROR_ASYNC_PUT   11
 
 /** Different ways a SPO triple can be PUT into HXHIM per PUT */
 typedef size_t hxhim_put_permutation_t;
