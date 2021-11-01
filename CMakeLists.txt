@@ -142,7 +142,7 @@ if(LEVELDB_FOUND)
     list(APPEND PC_CFLAGS -DHXHIM_HAVE_LEVELDB=1)
     list(APPEND PC_LIBS ${LEVELDB_LDFLAGS})
 
-    option(DBBENCH "Build dbbench for hxhim" On)
+    option(DBBENCH "Build dbbench for hxhim" Off)
   else()
     message(STATUS "LevelDB found but not used")
   endif()
