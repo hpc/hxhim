@@ -86,7 +86,21 @@ std::ostream &help(char *self, std::ostream &stream = std::cout) {
     }
 
     stream << "Where <SUBJECT>, <PREDICATE>, and <OBJECT> are pairs of <type, data>" << std::endl
-           << "<OBJECT_TYPE> is only the type" << std::endl;
+           << "<OBJECT_TYPE> is only the type" << std::endl
+           << std::endl
+           << "Available Types:" << std::endl;
+
+    for(decltype(USER2OT)::value_type const &type : USER2OT) {
+        stream << "    " << type.first << std::endl;
+    }
+
+    stream << std::endl
+           << "The <OP> argument to (B)GETOP can be one of the following:" << std::endl;
+
+    for(decltype(USER2GETOP)::value_type const &op : USER2GETOP) {
+        stream << "    " << op.first << std::endl;
+    }
+
     return stream;
 }
 
