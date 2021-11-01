@@ -27,15 +27,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    int provided = 0;
-    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-
-    int rank = -1;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
-    int size = -1;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-
     size_t count = 0;
     if (sscanf(argv[1], "%zu", &count) != 1) {
         fprintf(stderr, "Error: Could not parse count argument: %s\n", argv[1]);
@@ -48,12 +39,22 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    int provided = 0;
+    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+
+    int rank = -1;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    int size = -1;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+
     // read the config
     hxhim_options_t opts;
     if (hxhim_config_default_reader(&opts, MPI_COMM_WORLD) != HXHIM_SUCCESS) {
         if (rank == 0) {
             fprintf(stderr, "Failed to read configuration\n");
         }
+        MPI_Finalize();
         return 1;
     }
 
@@ -63,8 +64,11 @@ int main(int argc, char *argv[]) {
         if (rank == 0) {
             fprintf(stderr, "Failed to initialize hxhim\n");
         }
+        hxhim_options_destroy(&opts);
+        MPI_Finalize();
         return 1;
     }
+    hxhim_options_destroy(&opts);
 
     struct timespec epoch;
     hxhimGetEpoch(&hx, &epoch);
@@ -196,7 +200,6 @@ int main(int argc, char *argv[]) {
     MPI_Barrier(MPI_COMM_WORLD);
 
     hxhimClose(&hx);
-    hxhim_options_destroy(&opts);
 
     MPI_Finalize();
 

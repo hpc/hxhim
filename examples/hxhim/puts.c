@@ -8,9 +8,6 @@
 #include "timestamps.h"
 
 int main(int argc, char *argv[]) {
-    int provided;
-    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-
     size_t count = 1000 * 500;
     size_t times = 2;
 
@@ -28,6 +25,9 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    int provided;
+    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+
     int size = -1;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
@@ -37,7 +37,10 @@ int main(int argc, char *argv[]) {
     // read the config
     hxhim_options_t opts;
     if (hxhim_config_default_reader(&opts, MPI_COMM_WORLD) != HXHIM_SUCCESS) {
-        fprintf(stderr, "Failed to read configuration\n");
+        if (rank == 0) {
+            fprintf(stderr, "Failed to read configuration\n");
+        }
+        MPI_Finalize();
         return 1;
     }
 
@@ -46,8 +49,10 @@ int main(int argc, char *argv[]) {
     if (hxhimOpen(&hx, &opts) != HXHIM_SUCCESS) {
         fprintf(stderr, "Failed to initialize hxhim\n");
         hxhim_options_destroy(&opts);
+        MPI_Finalize();
         return 1;
     }
+    hxhim_options_destroy(&opts);
 
     struct timespec epoch;
     hxhimGetEpoch(&hx, &epoch);
@@ -143,7 +148,6 @@ int main(int argc, char *argv[]) {
     }
 
     hxhimClose(&hx);
-    hxhim_options_destroy(&opts);
 
     MPI_Finalize();
 

@@ -24,17 +24,8 @@ typedef struct Cell {
 } Cell_t;
 
 int main(int argc, char *argv[]) {
-    int provided;
-    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-
-    int rank = -1;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
     if (argc < 5) {
-        if (rank == 0) {
-            fprintf(stderr, "Syntax: %s n_x n_y n_lowest n_highest\n", argv[0]);
-        }
-        MPI_Finalize();
+        fprintf(stderr, "Syntax: %s n_x n_y n_lowest n_highest\n", argv[0]);
         return 1;
     }
 
@@ -50,6 +41,12 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Bad input\n");
         return 1;
     }
+
+    int provided;
+    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+
+    int rank = -1;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -76,6 +73,7 @@ int main(int argc, char *argv[]) {
         MPI_Finalize();
         return 1;
     }
+    hxhim_options_destroy(&opts);
 
     Cell_t *lowest = NULL;
     Cell_t *highest = NULL;
@@ -157,7 +155,6 @@ int main(int argc, char *argv[]) {
     free(cells);
 
     hxhimClose(&hx);
-    hxhim_options_destroy(&opts);
 
     MPI_Finalize();
 

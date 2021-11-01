@@ -394,10 +394,19 @@ int process_config_and_fill_options(hxhim_options_t *opts, Config::Sequence &seq
  * be implmented.
  *
  * @param opts the options to fill
- * @return whether or not configuration was completed
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR if filling in the default configuration failed
  */
 int hxhim::config::default_reader(hxhim_options_t *opts, MPI_Comm comm) {
     if (!opts) {
+        return HXHIM_ERROR;
+    }
+
+    hxhim_options_init(opts);
+    hxhim_options_set_mpi_bootstrap(opts, comm);
+
+    // fill in the options with default values
+    if ((fill_options(opts, hxhim::config::DEFAULT_CONFIG) != HXHIM_SUCCESS)) {
+        hxhim_options_destroy(opts);
         return HXHIM_ERROR;
     }
 
@@ -419,21 +428,14 @@ int hxhim::config::default_reader(hxhim_options_t *opts, MPI_Comm comm) {
         vars.push_back(var);
     }
 
-    int ret = HXHIM_SUCCESS;
-
-    hxhim_options_init(opts);
-    hxhim_options_set_mpi_bootstrap(opts, comm);
-
-    if ((fill_options(opts, hxhim::config::DEFAULT_CONFIG) != HXHIM_SUCCESS) || // fill in the options with default values
-        (process_config_and_fill_options(opts, sequence)   != HXHIM_SUCCESS)) { // read the configuration and overwrite default values
-        ret = HXHIM_ERROR;
-    }
+    // read the configuration and overwrite default values
+    process_config_and_fill_options(opts, sequence);
 
     for(Config::EnvironmentVar *var : vars) {
         delete var;
     }
 
-    return ret;
+    return HXHIM_SUCCESS;
 }
 
 /**
@@ -444,7 +446,7 @@ int hxhim::config::default_reader(hxhim_options_t *opts, MPI_Comm comm) {
  * be implmented.
  *
  * @param opts the options to fill
- * @return whether or not configuration was completed
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR if filling in the default configuration failed
  */
 int hxhim_config_default_reader(hxhim_options_t *opts, MPI_Comm comm) {
     return hxhim::config::default_reader(opts, comm);

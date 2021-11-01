@@ -76,15 +76,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    int provided;
-    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-
-    int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
-    int size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-
     std::size_t count = 0;
     if (!(std::stringstream(argv[1]) >> count)) {
         std::cerr << "Error: Could not parse count argument: " << argv[1] << std::endl;
@@ -97,12 +88,22 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    int provided;
+    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    int size;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+
     // read the config
     hxhim_options_t opts;
     if (hxhim_config_default_reader(&opts, MPI_COMM_WORLD) != HXHIM_SUCCESS) {
         if (rank == 0) {
             std::cerr << "Failed to read configuration" << std::endl;
         }
+        MPI_Finalize();
         return 1;
     }
 
@@ -112,6 +113,8 @@ int main(int argc, char *argv[]) {
         if (rank == 0) {
             std::cerr << "Failed to initialize hxhim" << std::endl;
         }
+        hxhim_options_destroy(&opts);
+        MPI_Finalize();
         return 1;
     }
 
