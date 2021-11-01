@@ -48,10 +48,6 @@ list(APPEND PC_STATIC_LIBS ${CMAKE_THREAD_LIBS_INIT} -lm)
 #
 # External projects
 #
-if(POLICY CMP0074)
-  cmake_policy(SET CMP0074 OLD)
-endif()
-
 find_package(MPI REQUIRED)
 if (CMAKE_SYSTEM_NAME STREQUAL "CrayLinuxEnvironment")
     set(MPI_C_COMPILE_FLAGS "${MPI_C_COMPILE_FLAGS} -dynamic -craympich-mt")
