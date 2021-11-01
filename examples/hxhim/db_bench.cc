@@ -325,7 +325,6 @@ class Benchmark {
   const FilterPolicy* filter_policy_;
   // DB* db_;
   hxhim_t *hx;
-  hxhim_options_t *opts;
   int num_;
   int value_size_;
   int entries_per_batch_;
@@ -415,7 +414,6 @@ class Benchmark {
                    : nullptr),
     // db_(nullptr),
     hx(nullptr),
-    opts(nullptr),
     num_(FLAGS_num),
     value_size_(FLAGS_value_size),
     entries_per_batch_(1),
@@ -437,8 +435,6 @@ class Benchmark {
   ~Benchmark() {
     hxhimClose(hx);
     delete hx;
-    hxhim_options_destroy(opts);
-    delete opts;
     // delete db_;
     // delete cache_;
     delete filter_policy_;
@@ -551,10 +547,6 @@ class Benchmark {
           hxhimClose(hx);
           delete hx;
           hx = nullptr;
-
-          hxhim_options_destroy(opts);
-          delete opts;
-          opts = nullptr;
 
           // quick and dirty "rm -rf mdhim_manifest* mdhimTstDB--*"
           DIR *dir = opendir(".");
@@ -749,21 +741,19 @@ class Benchmark {
   // }
 
   void Open() {
-    assert(opts == nullptr);
     assert(hx == nullptr);
 
     // read the config
-    opts = new hxhim_options_t();
-    if (hxhim_config_default_reader(opts, MPI_COMM_WORLD) != HXHIM_SUCCESS) {
-        fprintf(stderr, "Failed to read configuration");
-        exit(1);
-    }
+    hxhim_options_t opts;
+    hxhim_config_default_reader(&opts, MPI_COMM_WORLD);
 
     hx = new hxhim_t();
-    if (hxhimOpen(hx, opts) != HXHIM_SUCCESS) {
+    if (hxhimOpen(hx, &opts) != HXHIM_SUCCESS) {
         fprintf(stderr, "Failed to initialize hxhim\n");
         exit(1);
     }
+    hxhim_options_destroy(&opts);
+
     // assert(db_ == nullptr);
     // Options options;
     // options.env = g_env;
@@ -839,22 +829,25 @@ class Benchmark {
         object_lens[j] = value_size_;
         bytes += value_size_;
 
-        hxhimPut(hx, subjects[j], subject_lens[j], predicates[j], predicate_lens[j], hxhim_data_t::HXHIM_DATA_BYTE, objects[j], object_lens[j]);
-        thread->stats.FinishedSingleOp();
+        hxhimPut(hx,
+                 &subjects[j],   subject_lens[j],   hxhim_data_t::HXHIM_DATA_BYTE,
+                 &predicates[j], predicate_lens[j], hxhim_data_t::HXHIM_DATA_BYTE,
+                 objects[j],     object_lens[j],    hxhim_data_t::HXHIM_DATA_BYTE,
+                 HXHIM_PUT_SPO);
       }
       // hxhimBPut(hx, subjects, subject_lens, predicates, predicate_lens, objects, object_lens, entries_per_batch_);
       // thread->stats.FinishedSingleOp();
-  }
 
-    // flush
-    hxhim_results_t *ret = hxhimFlush(hx);
-    thread->stats.FinishedSingleOp();
-    if (write_options_.sync) {
+      // flush
+      hxhim_results_t *ret = hxhimFlush(hx);
+      thread->stats.FinishedSingleOp();
+      if (write_options_.sync) {
         hxhim_results_destroy(hxhimSync(hx));
         thread->stats.FinishedSingleOp();
-    }
+      }
 
-    hxhim_results_destroy(ret);
+      hxhim_results_destroy(ret);
+    }
 
     for (int i = 0; i < entries_per_batch_; i++) {
       ::operator delete(subjects[i]);
@@ -930,7 +923,10 @@ class Benchmark {
       char predicate[100];
       std::size_t predicate_len = snprintf(predicate, 17, "%016d", pred);
 
-      hxhimGet(hx, (void *) subject, subject_len, (void *) predicate, predicate_len, hxhim_data_t::HXHIM_DATA_BYTE);
+      hxhimGet(hx,
+               &subject,   subject_len,   hxhim_data_t::HXHIM_DATA_BYTE,
+               &predicate, predicate_len, hxhim_data_t::HXHIM_DATA_BYTE,
+               hxhim_data_t::HXHIM_DATA_BYTE);
 
       hxhim_results_t *ret = hxhimFlush(hx);
       thread->stats.FinishedSingleOp();
@@ -960,22 +956,25 @@ class Benchmark {
     for (int i = 0; i < reads_; i++) {
       const int sub = thread->rand.Next() % FLAGS_num;
       char subject[100];
-      snprintf(subject, 17, "%016d", sub);
+      std::size_t subject_len = snprintf(subject, 17, "%016d", sub);
 
       const int pred = 0;//thread->rand.Next() % FLAGS_num;
       char predicate[100];
-      snprintf(predicate, 18, "%016d.", pred);
+      std::size_t predicate_len = snprintf(predicate, 17, "%016d", pred);
 
-      hxhimGet(hx, (void *) subject, strlen(subject), (void *) predicate, strlen(predicate), hxhim_data_t::HXHIM_DATA_BYTE);
+      hxhimGet(hx,
+               &subject,   subject_len,   hxhim_data_t::HXHIM_DATA_BYTE,
+               &predicate, predicate_len, hxhim_data_t::HXHIM_DATA_BYTE,
+               hxhim_data_t::HXHIM_DATA_BYTE);
 
       hxhim_results_t *ret = hxhimFlush(hx);
+      thread->stats.FinishedSingleOp();
       hxhim_results_destroy(ret);
 
       // char key[100];
       // const int k = thread->rand.Next() % FLAGS_num;
       // snprintf(key, sizeof(key), "%016d.", k);
       // db_->Get(options, key, &value);
-      thread->stats.FinishedSingleOp();
     }
   }
 
@@ -985,14 +984,18 @@ class Benchmark {
     const int range = (FLAGS_num + 99) / 100;
     for (int i = 0; i < reads_; i++) {
       const int sub = thread->rand.Next() % range;
-      char subject[100] = {0};
-      snprintf(subject, 17, "%016d", sub);
+      char subject[100];
+      std::size_t subject_len = snprintf(subject, 17, "%016d", sub);
 
       const int pred = 0;//thread->rand.Next() % range;
-      char predicate[100] = {0};
-      snprintf(predicate, 17, "%016d", pred);
+      char predicate[100];
+      std::size_t predicate_len = snprintf(predicate, 17, "%016d", pred);
 
-      hxhimGet(hx, (void *) subject, strlen(subject), (void *) predicate, strlen(predicate), hxhim_data_t::HXHIM_DATA_BYTE);
+      hxhimGet(hx,
+               &subject,   subject_len,   hxhim_data_t::HXHIM_DATA_BYTE,
+               &predicate, predicate_len, hxhim_data_t::HXHIM_DATA_BYTE,
+               hxhim_data_t::HXHIM_DATA_BYTE);
+
       hxhim_results_t *ret = hxhimFlush(hx);
       thread->stats.FinishedSingleOp();
       hxhim_results_destroy(ret);
