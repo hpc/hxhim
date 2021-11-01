@@ -37,7 +37,7 @@ START_DIR="$(pwd)"
 function return_to_start_dir() {
     ret="$?"
     cd "${START_DIR}"
-    exit "${ret}"
+    return "${ret}"
 }
 
 trap return_to_start_dir EXIT

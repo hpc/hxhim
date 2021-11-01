@@ -4,6 +4,7 @@ on: [push, pull_request]
 
 env:
   BUILD_TYPE: Debug
+  HXHIM_ENV: hxhim_env.sh
 
 jobs:
   build_and_test:
@@ -29,40 +30,49 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - name: Set up environment script
+      run: echo "#/usr/bin/env bash" > "${{env.HXHIM_ENV}}"
+
     - name: Get Ubuntu Packages
       if: startsWith(matrix.container, 'ubuntu:')
       run: |
         contrib/ci/ubuntu.sh ${{matrix.mpi}}
-        contrib/ci/ga-set-env.sh "CC=$(which gcc-11)" "CXX=$(which g++-11)"
+        contrib/ci/ga-set-env.sh "CC=$(which gcc-11)" "CXX=$(which g++-11)" >> "${{env.HXHIM_ENV}}"
 
     - name: Get CentOS 7 Packages
       if: matrix.container == 'centos:7'
       run: |
         source contrib/ci/centos7.sh ${{matrix.mpi}}
-        contrib/ci/ga-set-env.sh "CC=$(which gcc)" "CXX=$(which g++)"
+        contrib/ci/ga-set-env.sh "CC=$(which gcc)" "CXX=$(which g++)" >> "${{env.HXHIM_ENV}}"
 
     - name: Get CentOS 8 Packages
       if: matrix.container == 'centos:8'
       run: |
         source contrib/ci/centos8.sh ${{matrix.mpi}}
-        contrib/ci/ga-set-env.sh "CC=$(which gcc)" "CXX=$(which g++)"
+        contrib/ci/ga-set-env.sh "CC=$(which gcc)" "CXX=$(which g++)" >> "${{env.HXHIM_ENV}}"
 
     - name: Build Dependencies
       run: |
+        source "${{env.HXHIM_ENV}}"
         source contrib/hxhim_dependencies.sh --OFI --NO_ROCKSDB --NO_JEMALLOC "${HOME}" "${BUILD_NAME}" "${SWHOME}" "$(nproc --all)" CC="${CC}" CXX="${CXX}"
-        contrib/ci/ga-set-env.sh
+        contrib/ci/ga-set-env.sh >> "${{env.HXHIM_ENV}}"
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+      run: |
+        source "${{env.HXHIM_ENV}}"
+        cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 
     - name: Build
       # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --parallel "$(nproc --all)"
+      run: |
+        source "${{env.HXHIM_ENV}}"
+        cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --parallel "$(nproc --all)"
 
     - name: Test
       run: |
+        source "${{env.HXHIM_ENV}}"
         cd ${{github.workspace}}/build
         if [[ "${{matrix.async_puts}}" == "On" ]]; then export HXHIM_START_ASYNC_PUTS_AT=32768; fi
         mpirun -np 1 ${ALLOW_RUN_AS_ROOT} test/googletest
