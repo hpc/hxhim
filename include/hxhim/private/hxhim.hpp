@@ -74,12 +74,10 @@ typedef struct hxhim_private {
 
         struct {
             hxhim::Queues<Message::Request::BPut> queue;
-            #if ASYNC_PUTS
             std::mutex mutex;
             std::condition_variable start_processing; // check whether or not enough PUTs have been queued
             bool flushed;                             // true if flush was called
             bool processing;                          // true if data was popped off of the queue and has not been placed on the results queue yet
-            #endif
             std::size_t count;
         } puts;
         hxhim::Queues<Message::Request::BGet>       gets;
@@ -93,15 +91,14 @@ typedef struct hxhim_private {
     // asynchronous BPUT data
     // handles processing of requests and results
     struct {
+        bool enabled;
         std::size_t max_queued;            // number of batches to hold before sending PUTs asynchronously
-        #if ASYNC_PUTS
         std::thread thread;                // the thread that pushes PUTs off the PUT queue asynchronously
         std::mutex mutex;
         std::condition_variable done;
         bool done_check;                   // whether or not the background puts have completed
-        #endif
         hxhim::Results *results;           // the list of of PUT results
-    } async_put;
+    } async_puts;
 
     struct {
         std::string name;
@@ -151,24 +148,21 @@ int datastore    (hxhim_t *hx, hxhim_options_t *opts);
 int one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::string &name);
 int transport    (hxhim_t *hx, hxhim_options_t *opts);
 int queues       (hxhim_t *hx, hxhim_options_t *opts);
-int async_put    (hxhim_t *hx, hxhim_options_t *opts);
+int async_puts   (hxhim_t *hx, hxhim_options_t *opts);
 }
 
 namespace destroy {
 int bootstrap   (hxhim_t *hx);
 int running     (hxhim_t *hx);
-int async_put   (hxhim_t *hx);
+int async_puts  (hxhim_t *hx);
 int transport   (hxhim_t *hx);
 int datastore   (hxhim_t *hx);
 int queues      (hxhim_t *hx);
 int hash        (hxhim_t *hx);
 }
 
-#if ASYNC_PUTS
 void wait_for_background_puts(hxhim_t *hx, const bool drop_queued = false);
-#else
 void serial_puts(hxhim_t *hx);
-#endif
 
 // this will probably be moved to the public side
 std::ostream &print_stats(hxhim_t *hx,

@@ -34,24 +34,23 @@ int hxhim::BPut(hxhim_t *hx,
     ::Stats::Chronostamp bput;
     bput.start = ::Stats::now();
 
-    {
-        #if ASYNC_PUTS
-        std::unique_lock<std::mutex> lock(hx->p->queues.puts.mutex);
-        #endif
+    if (hx->p->async_puts.enabled) {
+        hx->p->queues.puts.mutex.lock();
+    }
 
-        // append these spo triples into the list of unsent PUTs
-        for(std::size_t i = 0; i < count; i++) {
-            hxhim::PutImpl(hx,
-                           hx->p->queues.puts.queue,
-                           ReferenceBlob(subjects[i], subject_lens[i], subject_types[i]),
-                           ReferenceBlob(predicates[i], predicate_lens[i], predicate_types[i]),
-                           ReferenceBlob(objects[i], object_lens[i], object_types[i]),
-                           permutations[i]);
-        }
+    // append these spo triples into the list of unsent PUTs
+    for(std::size_t i = 0; i < count; i++) {
+        hxhim::PutImpl(hx,
+                       hx->p->queues.puts.queue,
+                       ReferenceBlob(subjects[i], subject_lens[i], subject_types[i]),
+                       ReferenceBlob(predicates[i], predicate_lens[i], predicate_types[i]),
+                       ReferenceBlob(objects[i], object_lens[i], object_types[i]),
+                       permutations[i]);
+    }
 
-        #if ASYNC_PUTS
+    if (hx->p->async_puts.enabled) {
         hx->p->queues.puts.start_processing.notify_all();
-        #endif
+        hx->p->queues.puts.mutex.unlock();
     }
 
     bput.end = ::Stats::now();

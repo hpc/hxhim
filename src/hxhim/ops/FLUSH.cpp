@@ -37,17 +37,17 @@ hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
 
     hxhim::Results *res = construct<hxhim::Results>();
 
-    #if ASYNC_PUTS
-    // wait for the background thread to finish
-    hxhim::wait_for_background_puts(hx, false);
+    if (hx->p->async_puts.enabled) {
+        // wait for the background thread to finish
+        hxhim::wait_for_background_puts(hx, false);
 
-    // move internal results to res to give to caller
-    res->Append(hx->p->async_put.results);
-    destruct(hx->p->async_put.results);
-    hx->p->async_put.results = nullptr;
+        // move internal results to res to give to caller
+        res->Append(hx->p->async_puts.results);
+        destruct(hx->p->async_puts.results);
+        hx->p->async_puts.results = nullptr;
 
-    std::unique_lock<std::mutex> lock(hx->p->queues.puts.mutex);
-    #endif
+        hx->p->queues.puts.mutex.lock();
+    }
 
     // append new results to old results
     hxhim::Results *put_results =
@@ -58,6 +58,9 @@ hxhim::Results *hxhim::FlushPuts(hxhim_t *hx) {
     res->Append(put_results);
     destruct(put_results);
 
+    if (hx->p->async_puts.enabled) {
+        hx->p->queues.puts.mutex.unlock();
+    }
     mlog(HXHIM_CLIENT_INFO, "Rank %d Done Flushing Puts", rank);
     return res;
 }

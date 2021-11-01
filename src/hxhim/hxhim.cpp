@@ -86,7 +86,7 @@ int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
         goto error;
     }
 
-    if (init::async_put(hx, opts) != HXHIM_SUCCESS) {
+    if (init::async_puts(hx, opts) != HXHIM_SUCCESS) {
         rc = HXHIM_OPEN_ERROR_ASYNC_PUT;
         goto error;
     }
@@ -147,7 +147,7 @@ int hxhim::OpenOne(hxhim_t *hx, hxhim_options_t *opts, const std::string &db_pat
         (init::running       (hx, opts)          != HXHIM_SUCCESS) ||
         (init::one_datastore (hx, opts, db_path) != HXHIM_SUCCESS) ||
         (init::queues        (hx, opts)          != HXHIM_SUCCESS) ||
-        (init::async_put     (hx, opts)          != HXHIM_SUCCESS)) {
+        (init::async_puts    (hx, opts)          != HXHIM_SUCCESS)) {
         MPI_Barrier(hx->p->bootstrap.comm);
         Close(hx);
         mlog(HXHIM_CLIENT_ERR, "Failed to initialize HXHIM");
@@ -188,7 +188,7 @@ int hxhim::Close(hxhim_t *hx) {
     MPI_Comm comm = MPI_COMM_NULL;
     int rank = -1;
     int size = -1;
-    hxhim::nocheck::GetMPI(hx, &comm, &rank, &size);
+    nocheck::GetMPI(hx, &comm, &rank, &size);
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d Starting to shutdown HXHIM", rank);
 
@@ -203,9 +203,9 @@ int hxhim::Close(hxhim_t *hx) {
     MPI_Barrier(comm);
 
     destroy::hash(hx);
-    destroy::queues(hx);    // clear queued work
-    destroy::async_put(hx); // complete existing processing and prevent new processing
-    destroy::transport(hx); // prevent work from getting into transport
+    destroy::queues(hx);     // clear queued work
+    destroy::async_puts(hx); // complete existing processing and prevent new processing
+    destroy::transport(hx);  // prevent work from getting into transport
     destroy::datastore(hx);
 
     // stats should not be modified any more

@@ -16,12 +16,14 @@ const char *OBJECTS[]     = {"OBJECT0",    "OBJECT1"};
 
 const hxhim_data_t TYPE = hxhim_data_t::HXHIM_DATA_BYTE;
 
-TEST(Enqueue, PUT) {
+void enqueue_put(bool async_puts) {
     hxhim_options_t opts;
     ASSERT_EQ(fill_options(&opts), true);
     ASSERT_EQ(hxhim_options_set_maximum_ops_per_request(&opts, 1), HXHIM_SUCCESS);
     ASSERT_EQ(hxhim_options_set_maximum_size_per_request(&opts, 0), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_start_async_put_at(&opts, 3), HXHIM_SUCCESS); // don't clear PUT queues
+    if (async_puts) {
+        ASSERT_EQ(hxhim_options_set_start_async_puts_at(&opts, 3), HXHIM_SUCCESS); // don't clear PUT queues
+    }
 
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
@@ -90,6 +92,11 @@ TEST(Enqueue, PUT) {
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
     EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
+}
+
+TEST(Enqueue, PUT) {
+    enqueue_put(false);
+    enqueue_put(true);
 }
 
 TEST(Enqueue, GET) {

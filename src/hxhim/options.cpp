@@ -450,19 +450,20 @@ int hxhim_options_clear_endpoint_group(hxhim_options_t *opts) {
 }
 
 /**
- * hxhim_options_set_start_async_put_at
+ * hxhim_options_set_start_async_puts_at
  * Set the number of bulk PUTs to queue up before flushing in the background thread
  *
  * @param opts  the set of options to be modified
  * @param count the number of PUTs
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_options_set_start_async_put_at(hxhim_options_t *opts, const std::size_t count) {
+int hxhim_options_set_start_async_puts_at(hxhim_options_t *opts, const std::size_t count) {
     if (!hxhim::valid(opts)) {
         return HXHIM_ERROR;
     }
 
-    opts->p->start_async_put_at = count;
+    opts->p->async_puts.enabled = true;
+    opts->p->async_puts.start_at = count;
 
     return HXHIM_SUCCESS;
 }

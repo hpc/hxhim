@@ -47,13 +47,17 @@ void destroy_queue(const std::vector<std::list<T *> > &queue) {
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
 int hxhim::destroy::queues(hxhim_t *hx) {
-    {
-        #if ASYNC_PUTS
-        std::lock_guard<std::mutex> lock(hx->p->queues.puts.mutex);
-        #endif
-        destroy_queue(hx->p->queues.puts.queue);
-        hx->p->queues.puts.count = 0;
+    if (hx->p->async_puts.enabled) {
+        hx->p->queues.puts.mutex.lock();
     }
+
+    destroy_queue(hx->p->queues.puts.queue);
+    hx->p->queues.puts.count = 0;
+
+    if (hx->p->async_puts.enabled) {
+        hx->p->queues.puts.mutex.unlock();
+    }
+
     destroy_queue(hx->p->queues.gets);
     destroy_queue(hx->p->queues.getops);
     destroy_queue(hx->p->queues.deletes);
@@ -79,16 +83,16 @@ int hxhim::destroy::datastore(hxhim_t *hx) {
  * @param hx   the HXHIM instance
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int hxhim::destroy::async_put(hxhim_t *hx) {
-    #if ASYNC_PUTS
-    wait_for_background_puts(hx, true);
+int hxhim::destroy::async_puts(hxhim_t *hx) {
+    if (hx->p->async_puts.enabled) {
+        wait_for_background_puts(hx, true);
 
-    hx->p->async_put.thread.join();
-    #endif
+        hx->p->async_puts.thread.join();
+    }
 
     // release unproceesed results from asynchronous PUTs
-    destruct(hx->p->async_put.results);
-    hx->p->async_put.results = nullptr;
+    destruct(hx->p->async_puts.results);
+    hx->p->async_puts.results = nullptr;
 
     return HXHIM_SUCCESS;
 }

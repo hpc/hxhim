@@ -34,21 +34,20 @@ int hxhim::Put(hxhim_t *hx,
     ::Stats::Chronostamp put;
     put.start = ::Stats::now();
 
-    {
-        #if ASYNC_PUTS
-        std::unique_lock<std::mutex> lock(hx->p->queues.puts.mutex);
-        #endif
+    if (hx->p->async_puts.enabled) {
+        hx->p->queues.puts.mutex.lock();
+    }
 
-        rc = hxhim::PutImpl(hx,
-                            hx->p->queues.puts.queue,
-                            ReferenceBlob(subject, subject_len, subject_type),
-                            ReferenceBlob(predicate, predicate_len, predicate_type),
-                            ReferenceBlob(object, object_len, object_type),
-                            permutations);
+    rc = hxhim::PutImpl(hx,
+                        hx->p->queues.puts.queue,
+                        ReferenceBlob(subject, subject_len, subject_type),
+                        ReferenceBlob(predicate, predicate_len, predicate_type),
+                        ReferenceBlob(object, object_len, object_type),
+                        permutations);
 
-        #if ASYNC_PUTS
+    if (hx->p->async_puts.enabled) {
         hx->p->queues.puts.start_processing.notify_all();
-        #endif
+        hx->p->queues.puts.mutex.unlock();
     }
 
     put.end = ::Stats::now();

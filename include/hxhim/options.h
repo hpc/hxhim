@@ -58,7 +58,7 @@ int hxhim_options_add_endpoint_to_group(hxhim_options_t *opts, const int id);
 int hxhim_options_clear_endpoint_group(hxhim_options_t *opts);
 
 /** Asynchronous PUT Settings */
-int hxhim_options_set_start_async_put_at(hxhim_options_t *opts, const size_t count);
+int hxhim_options_set_start_async_puts_at(hxhim_options_t *opts, const size_t count);
 
 /* maximum size of any buffer being sent to a single destination */
 int hxhim_options_set_maximum_ops_per_request(hxhim_options_t *opts, const size_t count);

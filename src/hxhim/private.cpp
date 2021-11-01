@@ -10,7 +10,7 @@ hxhim_private::hxhim_private()
       bootstrap(),
       running(false),
       queues(),
-      async_put(),
+      async_puts(),
       hash(),
       transport(nullptr),
       range_server(),
@@ -22,15 +22,14 @@ hxhim_private::~hxhim_private() {
     mlog(HXHIM_CLIENT_NOTE, "\n%s", print_buffer.str().c_str());
 }
 
-#if ASYNC_PUTS
 void hxhim::wait_for_background_puts(hxhim_t *hx, const bool clear_queued) {
     // keep this locked at all times except when waiting
-    std::unique_lock<std::mutex> async_lock(hx->p->async_put.mutex);
+    std::unique_lock<std::mutex> async_lock(hx->p->async_puts.mutex);
 
     // i = 0: wait for the background PUTs thread to finish
     // i = 1: force the background PUTs thread to run again to clear out any items that queued up while i = 0 was running
     for(int i = 0; i < 2; i++) {
-        hx->p->async_put.done_check = false;
+        hx->p->async_puts.done_check = false;
 
         // force the background thread to flush
         {
@@ -51,13 +50,12 @@ void hxhim::wait_for_background_puts(hxhim_t *hx, const bool clear_queued) {
         }
 
         // wait for the background thread to finish
-        hx->p->async_put.done.wait(async_lock,
+        hx->p->async_puts.done.wait(async_lock,
                                    [hx]() -> bool {
-                                       return !hx->p->running || hx->p->async_put.done_check;
+                                       return !hx->p->running || hx->p->async_puts.done_check;
                                    });
     }
 }
-#else
 
 /**
  * serial_puts
@@ -70,25 +68,24 @@ void hxhim::wait_for_background_puts(hxhim_t *hx, const bool clear_queued) {
  * @param hx the HXHIM session
  */
 void hxhim::serial_puts(hxhim_t *hx) {
-    if (hx->p->queues.puts.count >= hx->p->async_put.max_queued) {
+    if (hx->p->queues.puts.count >= hx->p->async_puts.max_queued) {
         // don't call FlushPuts to avoid deallocating old Results only to allocate a new one
         hxhim::Results *res = hxhim::process<Message::Request::BPut, Message::Response::BPut>(hx, hx->p->queues.puts.queue);
 
         {
             // hold results in async_puts
-            if (hx->p->async_put.results) {
-                hx->p->async_put.results->Append(res);
+            if (hx->p->async_puts.results) {
+                hx->p->async_puts.results->Append(res);
                 hxhim::Results::Destroy(res);
             }
             else {
-                hx->p->async_put.results = res;
+                hx->p->async_puts.results = res;
             }
 
             hx->p->queues.puts.count = 0;
         }
     }
 }
-#endif
 
 /**
  * valid

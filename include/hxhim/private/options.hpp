@@ -34,7 +34,10 @@ typedef struct hxhim_options_private {
         std::size_t size;                      // the maximum nuber of bytes to send per request
     } max_per_request;
 
-    std::size_t start_async_put_at;            // number of PUTs to hold before sending PUTs asynchronously
+    struct {
+        bool enabled;
+        std::size_t start_at;                  // number of PUTs to hold before sending PUTs asynchronously
+    } async_puts;
 
     struct {
         std::string name;

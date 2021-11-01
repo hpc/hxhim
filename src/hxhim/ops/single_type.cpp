@@ -32,11 +32,12 @@ int hxhim::BPutSingleType(hxhim_t *hx,
                        permutations[i]);
     }
 
-    #if ASYNC_PUTS
-    hx->p->queues.puts.start_processing.notify_all();
-    #else
-    hxhim::serial_puts(hx);
-    #endif
+    if (hx->p->async_puts.enabled) {
+        hx->p->queues.puts.start_processing.notify_all();
+    }
+    else {
+        hxhim::serial_puts(hx);
+    }
 
     mlog(HXHIM_CLIENT_DBG, "Completed %zu PUTs of type %d", count, object_type);
     bput.end = ::Stats::now();

@@ -17,7 +17,7 @@ TEST(hxhim, background_put) {
     ASSERT_EQ(fill_options(&opts), true);
 
     // automatically flush after 1 item has been PUT
-    ASSERT_EQ(hxhim_options_set_start_async_put_at(&opts, 1), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim_options_set_start_async_puts_at(&opts, 1), HXHIM_SUCCESS);
 
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
@@ -30,12 +30,11 @@ TEST(hxhim, background_put) {
                          HXHIM_PUT_SPO),
               HXHIM_SUCCESS);
 
-    #if ASYNC_PUTS
     // force the background thread to flush
     hxhim::wait_for_background_puts(&hx, false);
 
     // background PUT results should have 1 item in it
-    hxhim::Results *background_put_results = hx.p->async_put.results;
+    hxhim::Results *background_put_results = hx.p->async_puts.results;
     ASSERT_NE(background_put_results, nullptr);
     EXPECT_EQ(background_put_results->Size(), 1);
 
@@ -49,7 +48,6 @@ TEST(hxhim, background_put) {
         EXPECT_EQ(background_put_results->Status(&status), HXHIM_SUCCESS);
         EXPECT_EQ(status, HXHIM_SUCCESS);
     }
-    #endif
 
     // check the results after flushing
     hxhim::Results *put_results = hxhim::FlushPuts(&hx);
