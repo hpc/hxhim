@@ -43,7 +43,7 @@ elen_encode_large_decimals_prototype(double);
 
 /*  Chapter 6 Floating Pointer Numbers */
 #define elen_encode_floating_point_prototype(type)                      \
-    char * elen_encode_floating_##type(const type value, const int precision, const char neg, const char pos)
+    char * elen_encode_##type(const type value, const int precision, const char neg, const char pos)
 
 elen_encode_floating_point_prototype(float);
 elen_encode_floating_point_prototype(double);
@@ -78,7 +78,7 @@ elen_decode_large_decimals_prototype(double);
 
 /*  Chapter 6 Floating Pointer Numbers */
 #define elen_decode_floating_point_prototype(type)                      \
-    type elen_decode_floating_##type(const char * str, const char neg, const char pos)
+    type elen_decode_##type(const char * str, const char neg, const char pos)
 
 elen_decode_floating_point_prototype(float);
 elen_decode_floating_point_prototype(double);

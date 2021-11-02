@@ -71,7 +71,7 @@ elen_encode_large_decimals(float);
 elen_encode_large_decimals(double);
 
 #define elen_encode_floating_point(type)                                                                        \
-    char * elen_encode_floating_##type(const type value, const int precision, const char neg, const char pos) { \
+    char * elen_encode_##type(const type value, const int precision, const char neg, const char pos) { \
         return c_str(elen::encode::floating_point(value, precision, neg, pos));                                 \
     }                                                                                                           \
 
@@ -109,10 +109,10 @@ elen_decode_small_decimals(double);
 elen_decode_large_decimals(float);
 elen_decode_large_decimals(double);
 
-#define elen_decode_floating_point(type)                                                 \
-    type elen_decode_floating_##type(const char * str, const char neg, const char pos) { \
-        return elen::decode::floating_point <type> (str, neg, pos);                      \
-    }                                                                                    \
+#define elen_decode_floating_point(type)                                                \
+    type elen_decode_##type(const char * str, const char neg, const char pos) {         \
+        return elen::decode::floating_point <type> (str, neg, pos);                     \
+    }                                                                                   \
 
 elen_decode_floating_point(float);
 elen_decode_floating_point(double);

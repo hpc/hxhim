@@ -196,11 +196,11 @@ static std::size_t get_prefix_count(const char prefix, const std::string &str, c
         return 0;
     }
 
-    // count the number of prefix symbols
     if ((prefix != pos) && (prefix != neg)) {
-        throw std::runtime_error(std::string("Bad prefix: ") + prefix);
+        throw std::invalid_argument(ERROR_PREFIX + "Expected prefix: '" + pos + "' or '" + neg + "'. Got: " + prefix + " from " + str);
     }
 
+    // count the number of prefix symbols
     std::size_t prefix_count = 0;
     while ((prefix_count < str.size()) && (str[prefix_count] == prefix)) {
         prefix_count++;
@@ -208,12 +208,12 @@ static std::size_t get_prefix_count(const char prefix, const std::string &str, c
 
     // end of string
     if (prefix_count == str.size()) {
-        throw std::runtime_error("Bad input: " + str);
+        throw std::invalid_argument(ERROR_PREFIX + "Entire string is made of prefixes (" + prefix + "): " + str);
     }
 
     // bad symbol
     if (!std::isdigit(str[prefix_count])) {
-        throw std::runtime_error("Bad input: " + str);
+        throw std::invalid_argument(ERROR_PREFIX + "First character after prefixes is not a digit: " + str + " from " + str);
     }
 
     return prefix_count;
@@ -238,7 +238,7 @@ T next(const char prefix, const std::string &str, std::size_t &position, const T
     T out = 0;
 
     if (!(s >> out)) {
-        throw std::runtime_error("Bad next set of digits: " + str_len);
+        throw std::invalid_argument(ERROR_PREFIX + "Could not read length of next set of digits at position " + std::to_string(position) + ": " + str_len + " from " + str);
     }
 
     return out;
@@ -249,7 +249,7 @@ template <typename T,
           typename Cond>
 T integers(const std::string &str, std::size_t* prefix_len, const char neg, const char pos) {
     if (str.size() == 0) {
-        throw std::runtime_error("Empty string");
+        throw std::invalid_argument(ERROR_PREFIX + "Decode Integer: Got empty string");
     }
 
     if (str.size() == 1) {
@@ -257,7 +257,7 @@ T integers(const std::string &str, std::size_t* prefix_len, const char neg, cons
             return 0;
         }
         else {
-            throw std::runtime_error("Bad input: " + str);
+            throw std::invalid_argument(ERROR_PREFIX + "Decode Integer: Cannot decode single character string that is not '0': " + str);
         }
     }
 
@@ -289,7 +289,7 @@ template <typename T,
           typename Cond>
 T small_decimals(const std::string &str, const char neg, const char pos) {
     if (str.size() == 0) {
-        throw std::runtime_error("Empty string");
+        throw std::invalid_argument(ERROR_PREFIX + "Decode Small Decimals: Got empty string");
     }
 
     if (str.size() == 1) {
@@ -297,12 +297,12 @@ T small_decimals(const std::string &str, const char neg, const char pos) {
             return 0;
         }
         else {
-            throw std::runtime_error("Bad input: " + str);
+            throw std::invalid_argument(ERROR_PREFIX + "Decode Small Decimals: Cannot decode single character string that is not '0': " + str);
         }
     }
 
     if (str.size() == 2) {
-        throw std::runtime_error("Bad input: " + str);
+        throw std::length_error(ERROR_PREFIX + "Decode Small Decimals: Need string longer than 2 characters (prefix + digits + postfix): " + str);
     }
 
     std::string digits = str.substr(1, str.size() - 2);
@@ -313,7 +313,7 @@ T small_decimals(const std::string &str, const char neg, const char pos) {
     }
     else if ((str.front() == pos) && (str.back() == neg)) {}
     else {
-        throw std::runtime_error("Mismatched prefix and postfix: " + str);
+        throw std::invalid_argument(ERROR_PREFIX + "Decode Small Decimals: Expected  '" + pos + "' and '" + neg + "'. Got: '" + str.front() + "' and '" + str.back() + "' from " + str);
     }
     s << "0." << digits;
 
@@ -327,7 +327,7 @@ template <typename T,
           typename Cond>
 T large_decimals(const std::string &str, const char neg, const char pos) {
     if (str.size() == 0) {
-        throw std::runtime_error("Empty string");
+        throw std::invalid_argument(ERROR_PREFIX + "Decode Small Decimals: Got empty string");
     }
 
     if (str.size() == 1) {
@@ -335,12 +335,12 @@ T large_decimals(const std::string &str, const char neg, const char pos) {
             return 0;
         }
         else {
-            throw std::runtime_error("Bad input: " + str);
+            throw std::invalid_argument(ERROR_PREFIX + "Decode Large Decimals: Cannot decode single character string that is not '0': " + str);
         }
     }
 
     if (str.size() == 2) {
-        throw std::runtime_error("Bad input: " + str);
+        throw std::length_error(ERROR_PREFIX + "Decode Large Decimals: Need string longer than 2 characters (prefix + digits + postfix): " + str);
     }
 
     int integer = 0;
@@ -374,7 +374,7 @@ template <typename T,
           typename Cond>
 T floating_point(const std::string &str, const char neg, const char pos) {
     if (str.size() == 0) {
-        throw std::runtime_error("Empty string");
+        throw std::invalid_argument(ERROR_PREFIX + "Decode Floating Point: Got empty string");
     }
 
     if (str.size() == 1) {
@@ -382,12 +382,12 @@ T floating_point(const std::string &str, const char neg, const char pos) {
             return 0;
         }
         else {
-            throw std::runtime_error("Bad input: " + str);
+            throw std::invalid_argument(ERROR_PREFIX + "Decode Floating Point: Cannot decode single character string that is not '0': " + str);
         }
     }
 
     if (str.size() == 2) {
-        throw std::runtime_error("Bad input: " + str);
+        throw std::length_error(ERROR_PREFIX + "Decode Floating Point: Need string longer than 2 characters (prefix + digits + postfix): " + str);
     }
 
     // get the sign of the mantissa
@@ -399,7 +399,7 @@ T floating_point(const std::string &str, const char neg, const char pos) {
         sign = pos;
     }
     else {
-        throw std::runtime_error("Mismatched prefix and postfix: " + str);
+        throw std::invalid_argument(ERROR_PREFIX + "Decode Floaing Point: Expected  '" + pos + "' and '" + neg + "'. Got: '" + str.front() + "' and '" + str.back() + "' from " + str);
     }
 
     int exp = 0;

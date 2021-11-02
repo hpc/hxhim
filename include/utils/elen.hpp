@@ -17,6 +17,7 @@
 // Intentionally set default precision too high for floating point values
 // Do not use std::numeric_limits<T>::digits10
 namespace elen {
+    const std::string ERROR_PREFIX = "elen: ";
     const char NEG_SYMBOL = '0' - 1;
     const char POS_SYMBOL = '9' + 1;
     static_assert(NEG_SYMBOL <= POS_SYMBOL, "Character used as negative sign is not less than the one used for positives");
