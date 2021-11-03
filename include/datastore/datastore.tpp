@@ -3,6 +3,27 @@
 
 #include "message/Messages.hpp"
 
+/**
+ * key_to_sp
+ * Splits a key into a subject key pair.
+ *
+ * @param key            the key
+ * @param subject        the subject of the triple
+ * @param predicate      the predicate of the triple
+ * @paral copy           whether the subject and predicate are copies or references to the key
+ * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
+ */
+template <typename Key_t>
+int key_to_sp(const Key_t &key,
+              Blob &subject,
+              Blob &predicate,
+              const bool copy) {
+    // cannot call string constructor because key might not be string
+    return key_to_sp(ReferenceBlob((void *) key.data(), key.size(), hxhim_data_t::HXHIM_DATA_BYTE),
+                     subject, predicate,
+                     copy);
+}
+
 template <typename Key_t, typename Value_t>
 void Datastore::Datastore::BGetOp_copy_response(Transform::Callbacks *callbacks,
                                                 const Key_t &key,
@@ -16,7 +37,7 @@ void Datastore::Datastore::BGetOp_copy_response(Transform::Callbacks *callbacks,
         // extract the encoded subject and predicate from the key
         Blob encoded_subject;
         Blob encoded_predicate;
-        key_to_sp(key.data(), key.size(), encoded_subject, encoded_predicate, false);
+        key_to_sp(key, encoded_subject, encoded_predicate, false);
         encoded_subject.set_type(req->subjects[i].data_type());
         encoded_predicate.set_type(req->predicates[i].data_type());
 

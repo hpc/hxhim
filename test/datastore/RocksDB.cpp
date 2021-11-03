@@ -76,12 +76,14 @@ TEST(RocksDB, BPut) {
 
     // read directly from RocksDB since setup() already did PUTs
     for(std::size_t i = 0; i < count; i++) {
-        std::string key;
-        EXPECT_EQ(sp_to_key(ReferenceBlob(subjects[i]), ReferenceBlob(predicates[i]), key), HXHIM_SUCCESS);
+        Blob key;
+        EXPECT_EQ(sp_to_key(ReferenceBlob(subjects[i]), ReferenceBlob(predicates[i]), &key), HXHIM_SUCCESS);
         EXPECT_NE(key.size(), 0);
 
         std::string value;
-        ::rocksdb::Status status = db->Get(::rocksdb::ReadOptions(), key, &value);
+        ::rocksdb::Status status = db->Get(::rocksdb::ReadOptions(),
+                                           ::rocksdb::Slice((char *) key.data(), key.size()),
+                                           &value);
         EXPECT_EQ(status.ok(), true);
         EXPECT_EQ(memcmp(objects[i].data(), value.c_str(), value.size()), 0);
     }
@@ -255,12 +257,14 @@ TEST(RocksDB, BDelete) {
     // check the datastore directly
     {
         for(std::size_t i = 0; i < count; i++) {
-            std::string key;
-            EXPECT_EQ(sp_to_key(ReferenceBlob(subjects[i]), ReferenceBlob(predicates[i]), key), HXHIM_SUCCESS);
+            Blob key;
+            EXPECT_EQ(sp_to_key(ReferenceBlob(subjects[i]), ReferenceBlob(predicates[i]), &key), HXHIM_SUCCESS);
             EXPECT_NE(key.size(), 0);
 
             std::string value;
-            ::rocksdb::Status status = db->Get(::rocksdb::ReadOptions(), key, &value);
+            ::rocksdb::Status status = db->Get(::rocksdb::ReadOptions(),
+                                               ::rocksdb::Slice((char *) key.data(), key.size()),
+                                               &value);
             EXPECT_EQ(status.ok(), false);
             EXPECT_EQ(memcmp(objects[i].data(), value.c_str(), value.size()), 0);
         }

@@ -53,12 +53,13 @@ TEST(InMemory, BPut) {
     EXPECT_EQ(db.size(), count);
 
     for(std::size_t i = 0; i < count; i++) {
-        std::string key;
-        EXPECT_EQ(sp_to_key(ReferenceBlob(subjects[i]), ReferenceBlob(predicates[i]), key), HXHIM_SUCCESS);
+        Blob key;
+        EXPECT_EQ(sp_to_key(ReferenceBlob(subjects[i]), ReferenceBlob(predicates[i]), &key), HXHIM_SUCCESS);
         EXPECT_EQ(key.size(),
                   ReferenceBlob(subjects[i]).pack_size(false) +
-                  ReferenceBlob(predicates[i]).pack_size(false));
-        EXPECT_EQ(db.find(key) != db.end(), true);
+                  ReferenceBlob(predicates[i]).pack_size(false) +
+                  3 * sizeof(uint8_t));
+        EXPECT_EQ(db.find((std::string) key) != db.end(), true);
     }
 
     destruct(ds);
@@ -203,10 +204,10 @@ TEST(InMemory, BDelete) {
     for(std::size_t i = 0; i < count; i++) {
         const Blob sub = ReferenceBlob(subjects[i]);
         const Blob pred = ReferenceBlob(predicates[i]);
-        std::string key;
-        EXPECT_EQ(sp_to_key(sub, pred, key), HXHIM_SUCCESS);
-        EXPECT_EQ(key.size(), sub.pack_size(false) + pred.pack_size(false));
-        EXPECT_EQ(db.find(key) == db.end(), true);
+        Blob key;
+        EXPECT_EQ(sp_to_key(sub, pred, &key), HXHIM_SUCCESS);
+        EXPECT_EQ(key.size(), sub.pack_size(false) + pred.pack_size(false) + 3 * sizeof(uint8_t));
+        EXPECT_EQ(db.find((std::string) key) == db.end(), true);
     }
 
     destruct(ds);

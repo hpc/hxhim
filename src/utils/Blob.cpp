@@ -23,10 +23,10 @@ Blob::Blob(const std::size_t len, const void *ptr, const hxhim_data_t type)
     memcpy(this->ptr, ptr, len);
 }
 
-Blob::Blob(const std::string &str)
+Blob::Blob(const std::string &str, const hxhim_data_t type)
     : ptr((char *) str.data()),
       len(str.size()),
-      type(hxhim_data_t::HXHIM_DATA_BYTE),
+      type(type),
       clean(false)
 {}
 

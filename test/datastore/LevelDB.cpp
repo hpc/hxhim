@@ -76,12 +76,14 @@ TEST(LevelDB, BPut) {
 
     // read directly from leveldb since setup() already did PUTs
     for(std::size_t i = 0; i < count; i++) {
-        std::string key;
-        EXPECT_EQ(sp_to_key(ReferenceBlob(subjects[i]), ReferenceBlob(predicates[i]), key), HXHIM_SUCCESS);
+        Blob key;
+        EXPECT_EQ(sp_to_key(ReferenceBlob(subjects[i]), ReferenceBlob(predicates[i]), &key), HXHIM_SUCCESS);
         EXPECT_NE(key.size(), 0);
 
         std::string value;
-        ::leveldb::Status status = db->Get(::leveldb::ReadOptions(), key, &value);
+        ::leveldb::Status status = db->Get(::leveldb::ReadOptions(),
+                                           ::leveldb::Slice((char *) key.data(), key.size()),
+                                           &value);
         EXPECT_EQ(status.ok(), true);
         EXPECT_EQ(memcmp(objects[i].data(), value.c_str(), value.size()), 0);
     }
@@ -240,8 +242,8 @@ TEST(LevelDB, BDelete) {
         // include the non-existant subject-predicate pair
         Message::Request::BGet req(count + 1);
         for(std::size_t i = 0; i < count + 1; i++) {
-            req.subjects[i]     = ReferenceBlob(subjects[i]);
-            req.predicates[i]   = ReferenceBlob(predicates[i]);
+            req.subjects[i]   = ReferenceBlob(subjects[i]);
+            req.predicates[i] = ReferenceBlob(predicates[i]);
             req.count++;
         }
 
@@ -258,12 +260,14 @@ TEST(LevelDB, BDelete) {
     // check the datastore directly
     {
         for(std::size_t i = 0; i < count; i++) {
-            std::string key;
-            EXPECT_EQ(sp_to_key(ReferenceBlob(subjects[i]), ReferenceBlob(predicates[i]), key), HXHIM_SUCCESS);
+            Blob key;
+            EXPECT_EQ(sp_to_key(ReferenceBlob(subjects[i]), ReferenceBlob(predicates[i]), &key), HXHIM_SUCCESS);
             EXPECT_NE(key.size(), 0);
 
             std::string value;
-            ::leveldb::Status status = db->Get(::leveldb::ReadOptions(), key, &value);
+            ::leveldb::Status status = db->Get(::leveldb::ReadOptions(),
+                                               ::leveldb::Slice((char *) key.data(), key.size()),
+                                               &value);
             EXPECT_EQ(status.ok(), false);
             EXPECT_EQ(memcmp(objects[i].data(), value.c_str(), value.size()), 0);
         }

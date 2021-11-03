@@ -92,12 +92,13 @@ Message::Response::BPut *Datastore::LevelDB::BPutImpl(Message::Request::BPut *re
             (encode(callbacks, req->predicates[i], &predicate, &predicate_len) == DATASTORE_SUCCESS) &&
             (encode(callbacks, req->objects[i],    &object,    &object_len)    == DATASTORE_SUCCESS)) {
             // the current key address and length
-            std::string key;
+            Blob key;
             sp_to_key(ReferenceBlob(subject,   subject_len,   req->subjects[i].data_type()),
                       ReferenceBlob(predicate, predicate_len, req->predicates[i].data_type()),
-                      key);
+                      &key);
 
-            batch.Put(::leveldb::Slice(key.c_str(), key.size()), ::leveldb::Slice((char *) object, object_len));
+            batch.Put(::leveldb::Slice((char *) key.data(), key.size()),
+                      ::leveldb::Slice((char *) object, object_len));
 
             event.size += key.size() + object_len;
             status = DATASTORE_UNSET;
@@ -161,19 +162,21 @@ Message::Response::BGet *Datastore::LevelDB::BGetImpl(Message::Request::BGet *re
         if ((encode(callbacks, req->subjects[i],   &subject,   &subject_len)   == DATASTORE_SUCCESS) &&
             (encode(callbacks, req->predicates[i], &predicate, &predicate_len) == DATASTORE_SUCCESS)) {
             // create the key from the subject and predicate
-            std::string key;
+            Blob key;
             sp_to_key(ReferenceBlob(subject,   subject_len,   req->subjects[i].data_type()),
                       ReferenceBlob(predicate, predicate_len, req->predicates[i].data_type()),
-                      key);
+                      &key);
 
             std::string value;
-            ::leveldb::Status s = db->Get(::leveldb::ReadOptions(), key, &value);
+            ::leveldb::Status s = db->Get(::leveldb::ReadOptions(),
+                                          ::leveldb::Slice((char *) key.data(), key.size()),
+                                          &value);
 
             if (s.ok()) {
                 mlog(LEVELDB_INFO, "Rank %d LevelDB GET success", rank);
 
                 // decode the object
-                if (decode(callbacks, ReferenceBlob((void *) value.data(), value.size(), req->object_types[i]),
+                if (decode(callbacks, Blob(value, req->object_types[i]),
                            &object, &object_len) == DATASTORE_SUCCESS) {
                     event.size += res->objects[i].size();
                     status = DATASTORE_SUCCESS;
@@ -233,7 +236,7 @@ Message::Response::BGetOp *Datastore::LevelDB::BGetOpImpl(Message::Request::BGet
         std::size_t subject_len = 0;
         void *predicate = nullptr;
         std::size_t predicate_len = 0;
-        std::string key;
+        Blob key;
         if ((req->ops[i] == hxhim_getop_t::HXHIM_GETOP_EQ)   ||
             (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_NEXT) ||
             (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_PREV)) {
@@ -241,7 +244,7 @@ Message::Response::BGetOp *Datastore::LevelDB::BGetOpImpl(Message::Request::BGet
                 (encode(callbacks, req->predicates[i], &predicate, &predicate_len) == DATASTORE_SUCCESS)) {
                 if (sp_to_key(ReferenceBlob(subject,   subject_len,   req->subjects[i].data_type()),
                               ReferenceBlob(predicate, predicate_len, req->predicates[i].data_type()),
-                              key) != HXHIM_SUCCESS) {
+                              &key) != HXHIM_SUCCESS) {
                     res->statuses[i] = DATASTORE_ERROR;
                 }
             }
@@ -252,18 +255,20 @@ Message::Response::BGetOp *Datastore::LevelDB::BGetOpImpl(Message::Request::BGet
 
         if (res->statuses[i] == DATASTORE_UNSET) {
             if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_EQ) {
-                it->Seek(key);
+                it->Seek(::leveldb::Slice((char *) key.data(), key.size()));
 
                 if (it->Valid()) {
                     // only 1 response, so j == 0 (num_recs is ignored)
-                    this->template BGetOp_copy_response(callbacks, it->key(), it->value(), req, res, i, 0, event);
+                    this->template BGetOp_copy_response(callbacks,
+                                                        it->key(), it->value(),
+                                                        req, res, i, 0, event);
                 }
                 else {
                     res->statuses[i] = DATASTORE_ERROR;
                 }
             }
             else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_NEXT) {
-                it->Seek(key);
+                it->Seek(::leveldb::Slice((char *) key.data(), key.size()));
 
                 if (it->Valid()) {
                     // first result returned is (subject, predicate)
@@ -278,7 +283,7 @@ Message::Response::BGetOp *Datastore::LevelDB::BGetOpImpl(Message::Request::BGet
                 }
             }
             else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_PREV) {
-                it->Seek(key);
+                it->Seek(::leveldb::Slice((char *) key.data(), key.size()));
 
                 if (it->Valid()) {
                     // first result returned is (subject, predicate)
@@ -378,11 +383,11 @@ Message::Response::BDelete *Datastore::LevelDB::BDeleteImpl(Message::Request::BD
         if ((encode(callbacks, req->subjects[i],   &subject,   &subject_len)   == DATASTORE_SUCCESS) &&
             (encode(callbacks, req->predicates[i], &predicate, &predicate_len) == DATASTORE_SUCCESS)) {
             // create the key from the subject and predicate
-            std::string key;
+            Blob key;
             sp_to_key(ReferenceBlob(subject,   subject_len,   req->subjects[i].data_type()),
                       ReferenceBlob(predicate, predicate_len, req->predicates[i].data_type()),
-                      key);
-            batch.Delete(key);
+                      &key);
+            batch.Delete(::leveldb::Slice((char *) key.data(), key.size()));
             event.size += key.size();
         }
 
@@ -421,10 +426,8 @@ int Datastore::LevelDB::WriteHistogramsImpl() {
 
     std::deque<void *> ptrs;
     for(decltype(hists)::value_type hist : hists) {
-        std::string key;
-        sp_to_key(Blob(HISTOGRAM_SUBJECT),
-                  Blob(hist.first),
-                  key);
+        Blob key;
+        sp_to_key(Blob(HISTOGRAM_SUBJECT), Blob(hist.first), &key);
 
         void *serial_hist = nullptr;
         std::size_t serial_hist_len = 0;
@@ -432,7 +435,7 @@ int Datastore::LevelDB::WriteHistogramsImpl() {
         hist.second->pack(&serial_hist, &serial_hist_len);
         ptrs.push_back(serial_hist);
 
-        batch.Put(::leveldb::Slice(key.c_str(), key.size()),
+        batch.Put(::leveldb::Slice((char *) key.data(), key.size()),
                   ::leveldb::Slice((char *) serial_hist, serial_hist_len));
     }
 
@@ -459,14 +462,14 @@ std::size_t Datastore::LevelDB::ReadHistogramsImpl(const HistNames_t &names) {
 
     for(std::string const &name : names) {
         // Create the key from the fixed subject and the histogram name
-        std::string key;
-        sp_to_key(ReferenceBlob((char *) HISTOGRAM_SUBJECT.data(), HISTOGRAM_SUBJECT.size(), hxhim_data_t::HXHIM_DATA_BYTE),
-                  ReferenceBlob((char *) name.data(), name.size(), hxhim_data_t::HXHIM_DATA_BYTE),
-                  key);
+        Blob key;
+        sp_to_key(Blob(HISTOGRAM_SUBJECT), Blob(name), &key);
 
         // Search for the histogram
         std::string serial_hist;
-        ::leveldb::Status status = db->Get(::leveldb::ReadOptions(), key, &serial_hist);
+        ::leveldb::Status status = db->Get(::leveldb::ReadOptions(),
+                                           ::leveldb::Slice((char *) key.data(), key.size()),
+                                           &serial_hist);
 
         if (status.ok()) {
             std::shared_ptr<::Histogram::Histogram> new_hist(construct<::Histogram::Histogram>(),

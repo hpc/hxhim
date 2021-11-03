@@ -65,11 +65,11 @@ Message::Response::BPut *Datastore::InMemory::BPutImpl(Message::Request::BPut *r
             (encode(callbacks, req->predicates[i], &predicate, &predicate_len) == DATASTORE_SUCCESS) &&
             (encode(callbacks, req->objects[i],    &object,    &object_len)    == DATASTORE_SUCCESS)) {
             // the current key address and length
-            std::string key;
+            Blob key;
             if (sp_to_key(ReferenceBlob(subject,   subject_len,   req->subjects[i].data_type()),
                           ReferenceBlob(predicate, predicate_len, req->predicates[i].data_type()),
-                          key) == HXHIM_SUCCESS) {
-                db[key] = std::string((char *) object, object_len);
+                          &key) == HXHIM_SUCCESS) {
+                db[(std::string) key] = std::string((char *) object, object_len);
 
                 event.size += key.size() + object_len;
                 status = DATASTORE_SUCCESS;
@@ -123,11 +123,11 @@ Message::Response::BGet *Datastore::InMemory::BGetImpl(Message::Request::BGet *r
         if ((encode(callbacks, req->subjects[i],   &subject,   &subject_len)   == DATASTORE_SUCCESS) &&
             (encode(callbacks, req->predicates[i], &predicate, &predicate_len) == DATASTORE_SUCCESS)) {
             // create the key from the subject and predicate
-            std::string key;
+            Blob key;
             if (sp_to_key(ReferenceBlob(subject,   subject_len,   req->subjects[i].data_type()),
                           ReferenceBlob(predicate, predicate_len, req->predicates[i].data_type()),
-                          key) == HXHIM_SUCCESS) {
-                decltype(db)::const_iterator it = db.find(key);
+                          &key) == HXHIM_SUCCESS) {
+                decltype(db)::const_iterator it = db.find((std::string) key);
                 if (it != db.end()) {
                     // decode the object
                     if (decode(callbacks, ReferenceBlob((void *) it->second.data(), it->second.size(), req->object_types[i]),
@@ -191,7 +191,7 @@ Message::Response::BGetOp *Datastore::InMemory::BGetOpImpl(Message::Request::BGe
         std::size_t subject_len = 0;
         void *predicate = nullptr;
         std::size_t predicate_len = 0;
-        std::string key;
+        Blob key;
         if ((req->ops[i] == hxhim_getop_t::HXHIM_GETOP_EQ)   ||
             (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_NEXT) ||
             (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_PREV)) {
@@ -199,7 +199,7 @@ Message::Response::BGetOp *Datastore::InMemory::BGetOpImpl(Message::Request::BGe
                 (encode(callbacks, req->predicates[i], &predicate, &predicate_len) == DATASTORE_SUCCESS)) {
                 if (sp_to_key(ReferenceBlob(subject,   subject_len,   req->subjects[i].data_type()),
                               ReferenceBlob(predicate, predicate_len, req->predicates[i].data_type()),
-                              key) != HXHIM_SUCCESS) {
+                              &key) != HXHIM_SUCCESS) {
                     res->statuses[i] = DATASTORE_ERROR;
                 }
             }
@@ -210,7 +210,7 @@ Message::Response::BGetOp *Datastore::InMemory::BGetOpImpl(Message::Request::BGe
 
         if (res->statuses[i] == DATASTORE_UNSET) {
             if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_EQ) {
-                it = db.find(key);
+                it = db.find((std::string) key);
 
                 if (it != db.end()) {
                     // only 1 response, so j == 0 (num_recs is ignored)
@@ -221,7 +221,7 @@ Message::Response::BGetOp *Datastore::InMemory::BGetOpImpl(Message::Request::BGe
                 }
             }
             else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_NEXT) {
-                it = db.find(key);
+                it = db.find((std::string) key);
 
                 if (it != db.end()) {
                     // first result returned is (subject, predicate)
@@ -236,7 +236,7 @@ Message::Response::BGetOp *Datastore::InMemory::BGetOpImpl(Message::Request::BGe
                 }
             }
             else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_PREV) {
-                it = db.find(key);
+                it = db.find((std::string) key);
 
                 if (it != db.end()) {
                     // first result returned is (subject, predicate)
@@ -339,12 +339,12 @@ Message::Response::BDelete *Datastore::InMemory::BDeleteImpl(Message::Request::B
         if ((encode(callbacks, req->subjects[i],   &subject,   &subject_len)   == DATASTORE_SUCCESS) &&
             (encode(callbacks, req->predicates[i], &predicate, &predicate_len) == DATASTORE_SUCCESS)) {
             // create the key from the subject and predicate
-            std::string key;
+            Blob key;
             sp_to_key(ReferenceBlob(subject,   subject_len,   req->subjects[i].data_type()),
                       ReferenceBlob(predicate, predicate_len, req->predicates[i].data_type()),
-                      key);
+                      &key);
 
-            decltype(db)::const_iterator it = db.find(key);
+            decltype(db)::const_iterator it = db.find((std::string) key);
             if (it != db.end()) {
                 db.erase(it);
                 status = DATASTORE_SUCCESS;
@@ -385,10 +385,8 @@ Message::Response::BDelete *Datastore::InMemory::BDeleteImpl(Message::Request::B
 int Datastore::InMemory::WriteHistogramsImpl() {
     std::deque<void *> ptrs;
     for(decltype(hists)::value_type hist : hists) {
-        std::string key;
-        sp_to_key(ReferenceBlob((char *) HISTOGRAM_SUBJECT.data(), HISTOGRAM_SUBJECT.size(), hxhim_data_t::HXHIM_DATA_BYTE),
-                  ReferenceBlob((char *) hist.first.data(), hist.first.size(), hxhim_data_t::HXHIM_DATA_BYTE),
-                  key);
+        Blob key;
+        sp_to_key(Blob(HISTOGRAM_SUBJECT), Blob(hist.first), &key);
 
         void *serial_hist = nullptr;
         std::size_t serial_hist_len = 0;
@@ -419,13 +417,11 @@ std::size_t Datastore::InMemory::ReadHistogramsImpl(const HistNames_t &names) {
 
     for(std::string const &name : names) {
         // Create the key from the fixed subject and the histogram name
-        std::string key;
-        sp_to_key(ReferenceBlob((char *) HISTOGRAM_SUBJECT.data(), HISTOGRAM_SUBJECT.size(), hxhim_data_t::HXHIM_DATA_BYTE),
-                  ReferenceBlob((char *) name.data(), name.size(), hxhim_data_t::HXHIM_DATA_BYTE),
-                  key);
+        Blob key;
+        sp_to_key(Blob(HISTOGRAM_SUBJECT), Blob(name), &key);
 
         // Search for the histogram
-        decltype(db)::const_iterator it = db.find(key);
+        decltype(db)::const_iterator it = db.find((std::string) key);
         if (it != db.end()) {
             std::shared_ptr<::Histogram::Histogram> new_hist(construct<::Histogram::Histogram>(),
                                                              ::Histogram::deleter);

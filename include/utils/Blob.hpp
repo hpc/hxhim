@@ -34,7 +34,8 @@ class Blob {
              const hxhim_data_t type = hxhim_data_t::HXHIM_DATA_INVALID);
 
         // reference to a string
-        Blob(const std::string &str);
+        Blob(const std::string &str,
+             const hxhim_data_t type = hxhim_data_t::HXHIM_DATA_BYTE);
 
         // creates a reference to rhs
         Blob(Blob &rhs);

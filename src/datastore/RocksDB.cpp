@@ -40,10 +40,11 @@ bool Datastore::RocksDB::OpenImpl(const std::string &new_name) {
     if (!status.ok()) {
         return false;
     }
+    mlog(ROCKSDB_INFO, "Opened rocksdb with name: %s", name.c_str());
     #if PRINT_TIMESTAMPS
     ::Stats::print_event(std::cerr, rank, "rocksdb_open", ::Stats::global_epoch, rocksdb_open);
     #endif
-    mlog(ROCKSDB_INFO, "Opened rocksdb with name: %s", name.c_str());
+
     return status.ok();
 }
 
@@ -68,7 +69,7 @@ const std::string &Datastore::RocksDB::Name() const {
  * @return pointer to a list of results
  */
 Message::Response::BPut *Datastore::RocksDB::BPutImpl(Message::Request::BPut *req) {
-    mlog(ROCKSDB_INFO, "Rocksdb BPut");
+    mlog(ROCKSDB_INFO, "RocksDB BPut");
 
     Datastore::Datastore::Stats::Event event;
     event.time.start = ::Stats::now();
@@ -91,16 +92,19 @@ Message::Response::BPut *Datastore::RocksDB::BPutImpl(Message::Request::BPut *re
             (encode(callbacks, req->predicates[i], &predicate, &predicate_len) == DATASTORE_SUCCESS) &&
             (encode(callbacks, req->objects[i],    &object,    &object_len)    == DATASTORE_SUCCESS)) {
             // the current key address and length
-            std::string key;
+            Blob key;
             sp_to_key(ReferenceBlob(subject,   subject_len,   req->subjects[i].data_type()),
                       ReferenceBlob(predicate, predicate_len, req->predicates[i].data_type()),
-                      key);
+                      &key);
 
-            batch.Put(::rocksdb::Slice(key.c_str(), key.size()), ::rocksdb::Slice((char *) object, object_len));
+            batch.Put(::rocksdb::Slice((char *) key.data(), key.size()),
+                      ::rocksdb::Slice((char *) object, object_len));
 
             event.size += key.size() + object_len;
             status = DATASTORE_UNSET;
         }
+
+        res->statuses[i] = status;
 
         if (subject != req->subjects[i].data()) {
             dealloc(subject);
@@ -111,34 +115,21 @@ Message::Response::BPut *Datastore::RocksDB::BPutImpl(Message::Request::BPut *re
         if (object != req->objects[i].data()) {
             dealloc(object);
         }
-
-        res->add(ReferenceBlob(req->orig.subjects[i], req->subjects[i].size(), req->subjects[i].data_type()),
-                 ReferenceBlob(req->orig.predicates[i], req->predicates[i].size(), req->predicates[i].data_type()),
-                 status);
     }
 
     ::rocksdb::Status status = db->Write(::rocksdb::WriteOptions(), &batch);
+    const int res_status = status.ok()?DATASTORE_SUCCESS:DATASTORE_ERROR;
 
-    if (status.ok()) {
-        // successful writes only update statuses that were unset
-        for(std::size_t i = 0; i < req->count; i++) {
-            if (res->statuses[i] == DATASTORE_UNSET) {
-                res->statuses[i] = DATASTORE_SUCCESS;
-            }
-        }
-        mlog(ROCKSDB_INFO, "Rocksdb write success");
-    }
-    else {
-        for(std::size_t i = 0; i < req->count; i++) {
-            res->statuses[i] = DATASTORE_ERROR;
-        }
-        mlog(ROCKSDB_INFO, "Rocksdb write error");
+    for(std::size_t i = 0; i < req->count; i++) {
+        res->add(ReferenceBlob(req->orig.subjects[i], req->subjects[i].size(), req->subjects[i].data_type()),
+                 ReferenceBlob(req->orig.predicates[i], req->predicates[i].size(), req->predicates[i].data_type()),
+                 res_status);
     }
 
     event.time.end = ::Stats::now();
     stats.puts.emplace_back(event);
 
-    mlog(ROCKSDB_INFO, "Rocksdb BPut Completed");
+    mlog(ROCKSDB_INFO, "RocksDB BPut Completed");
     return res;
 }
 
@@ -150,7 +141,7 @@ Message::Response::BPut *Datastore::RocksDB::BPutImpl(Message::Request::BPut *re
  * @return pointer to a list of results
  */
 Message::Response::BGet *Datastore::RocksDB::BGetImpl(Message::Request::BGet *req) {
-    mlog(ROCKSDB_INFO, "Rank %d Rocksdb GET processing %zu item in %ps", rank, req->count, req);
+    mlog(ROCKSDB_INFO, "Rank %d RocksDB GET processing %zu item in %ps", rank, req->count, req);
 
     Datastore::Datastore::Stats::Event event;
     event.time.start = ::Stats::now();
@@ -166,31 +157,35 @@ Message::Response::BGet *Datastore::RocksDB::BGetImpl(Message::Request::BGet *re
         std::size_t predicate_len = 0;
         void *object = nullptr;
         std::size_t object_len = 0;
+
         int status = DATASTORE_ERROR; // only successful decoding sets the status to DATASTORE_SUCCESS
         if ((encode(callbacks, req->subjects[i],   &subject,   &subject_len)   == DATASTORE_SUCCESS) &&
             (encode(callbacks, req->predicates[i], &predicate, &predicate_len) == DATASTORE_SUCCESS)) {
             // create the key from the subject and predicate
-            std::string key;
+            Blob key;
             sp_to_key(ReferenceBlob(subject,   subject_len,   req->subjects[i].data_type()),
                       ReferenceBlob(predicate, predicate_len, req->predicates[i].data_type()),
-                      key);
+                      &key);
 
             std::string value;
-            ::rocksdb::Status s = db->Get(::rocksdb::ReadOptions(), key, &value);
+            ::rocksdb::Status s = db->Get(::rocksdb::ReadOptions(),
+                                          ::rocksdb::Slice((char *) key.data(), key.size()),
+                                          &value);
 
             if (s.ok()) {
-                mlog(ROCKSDB_INFO, "Rank %d Rocksdb GET success", rank);
+                mlog(ROCKSDB_INFO, "Rank %d RocksDB GET success", rank);
 
                 // decode the object
                 if (decode(callbacks, ReferenceBlob((void *) value.data(), value.size(), req->object_types[i]),
                            &object, &object_len) == DATASTORE_SUCCESS) {
                     event.size += res->objects[i].size();
                     status = DATASTORE_SUCCESS;
-                    mlog(ROCKSDB_INFO, "Rank %d Rocksdb GET decode success", rank);
+                    mlog(ROCKSDB_INFO, "Rank %d RocksDB GET decode success", rank);
                 }
             }
         }
 
+        // object will be owned by the result packet
         res->add(ReferenceBlob(req->orig.subjects[i], req->subjects[i].size(), req->subjects[i].data_type()),
                  ReferenceBlob(req->orig.predicates[i], req->predicates[i].size(), req->predicates[i].data_type()),
                  RealBlob(object, object_len, req->object_types[i]),
@@ -207,7 +202,7 @@ Message::Response::BGet *Datastore::RocksDB::BGetImpl(Message::Request::BGet *re
     event.time.end = ::Stats::now();
     stats.gets.emplace_back(event);
 
-    mlog(ROCKSDB_INFO, "Rank %d Rocksdb GET done processing %p", rank, req);
+    mlog(ROCKSDB_INFO, "Rank %d RocksDB GET done processing %p", rank, req);
     return res;
 }
 
@@ -241,7 +236,7 @@ Message::Response::BGetOp *Datastore::RocksDB::BGetOpImpl(Message::Request::BGet
         std::size_t subject_len = 0;
         void *predicate = nullptr;
         std::size_t predicate_len = 0;
-        std::string key;
+        Blob key;
         if ((req->ops[i] == hxhim_getop_t::HXHIM_GETOP_EQ)   ||
             (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_NEXT) ||
             (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_PREV)) {
@@ -249,7 +244,7 @@ Message::Response::BGetOp *Datastore::RocksDB::BGetOpImpl(Message::Request::BGet
                 (encode(callbacks, req->predicates[i], &predicate, &predicate_len) == DATASTORE_SUCCESS)) {
                 if (sp_to_key(ReferenceBlob(subject,   subject_len,   req->subjects[i].data_type()),
                               ReferenceBlob(predicate, predicate_len, req->predicates[i].data_type()),
-                              key) != HXHIM_SUCCESS) {
+                              &key) != HXHIM_SUCCESS) {
                     res->statuses[i] = DATASTORE_ERROR;
                 }
             }
@@ -260,18 +255,20 @@ Message::Response::BGetOp *Datastore::RocksDB::BGetOpImpl(Message::Request::BGet
 
         if (res->statuses[i] == DATASTORE_UNSET) {
             if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_EQ) {
-                it->Seek(key);
+                it->Seek(::rocksdb::Slice((char *) key.data(), key.size()));
 
                 if (it->Valid()) {
                     // only 1 response, so j == 0 (num_recs is ignored)
-                    this->template BGetOp_copy_response(callbacks, it->key(), it->value(), req, res, i, 0, event);
+                    this->template BGetOp_copy_response(callbacks,
+                                                        it->key(), it->value(),
+                                                        req, res, i, 0, event);
                 }
                 else {
                     res->statuses[i] = DATASTORE_ERROR;
                 }
             }
             else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_NEXT) {
-                it->Seek(key);
+                it->Seek(::rocksdb::Slice((char *) key.data(), key.size()));
 
                 if (it->Valid()) {
                     // first result returned is (subject, predicate)
@@ -286,7 +283,7 @@ Message::Response::BGetOp *Datastore::RocksDB::BGetOpImpl(Message::Request::BGet
                 }
             }
             else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_PREV) {
-                it->Seek(key);
+                it->Seek(::rocksdb::Slice((char *) key.data(), key.size()));
 
                 if (it->Valid()) {
                     // first result returned is (subject, predicate)
@@ -348,6 +345,8 @@ Message::Response::BGetOp *Datastore::RocksDB::BGetOpImpl(Message::Request::BGet
             BGetOp_error_response(res, i, req->subjects[i], req->predicates[i], event);
         }
 
+        res->update_size(i);
+
         event.count = res->num_recs[i];
         event.time.end = ::Stats::now();
         stats.gets.emplace_back(event);
@@ -384,18 +383,17 @@ Message::Response::BDelete *Datastore::RocksDB::BDeleteImpl(Message::Request::BD
         if ((encode(callbacks, req->subjects[i],   &subject,   &subject_len)   == DATASTORE_SUCCESS) &&
             (encode(callbacks, req->predicates[i], &predicate, &predicate_len) == DATASTORE_SUCCESS)) {
             // create the key from the subject and predicate
-            std::string key;
+            Blob key;
             sp_to_key(ReferenceBlob(subject,   subject_len,   req->subjects[i].data_type()),
                       ReferenceBlob(predicate, predicate_len, req->predicates[i].data_type()),
-                      key);
-            batch.Delete(key);
+                      &key);
+            batch.Delete(::rocksdb::Slice((char *) key.data(), key.size()));
             event.size += key.size();
         }
 
         if (subject != req->subjects[i].data()) {
             dealloc(subject);
         }
-
         if (predicate != req->predicates[i].data()) {
             dealloc(predicate);
         }
@@ -428,10 +426,8 @@ int Datastore::RocksDB::WriteHistogramsImpl() {
 
     std::deque<void *> ptrs;
     for(decltype(hists)::value_type hist : hists) {
-        std::string key;
-        sp_to_key(ReferenceBlob((char *) HISTOGRAM_SUBJECT.data(), HISTOGRAM_SUBJECT.size(), hxhim_data_t::HXHIM_DATA_BYTE),
-                  ReferenceBlob((char *) hist.first.data(), hist.first.size(), hxhim_data_t::HXHIM_DATA_BYTE),
-                  key);
+        Blob key;
+        sp_to_key(Blob(HISTOGRAM_SUBJECT), Blob(hist.first), &key);
 
         void *serial_hist = nullptr;
         std::size_t serial_hist_len = 0;
@@ -439,7 +435,7 @@ int Datastore::RocksDB::WriteHistogramsImpl() {
         hist.second->pack(&serial_hist, &serial_hist_len);
         ptrs.push_back(serial_hist);
 
-        batch.Put(::rocksdb::Slice(key.c_str(), key.size()),
+        batch.Put(::rocksdb::Slice((char *) key.data(), key.size()),
                   ::rocksdb::Slice((char *) serial_hist, serial_hist_len));
     }
 
@@ -466,14 +462,14 @@ std::size_t Datastore::RocksDB::ReadHistogramsImpl(const HistNames_t &names) {
 
     for(std::string const &name : names) {
         // Create the key from the fixed subject and the histogram name
-        std::string key;
-        sp_to_key(ReferenceBlob((char *) HISTOGRAM_SUBJECT.data(), HISTOGRAM_SUBJECT.size(), hxhim_data_t::HXHIM_DATA_BYTE),
-                  ReferenceBlob((char *) name.data(), name.size(), hxhim_data_t::HXHIM_DATA_BYTE),
-                  key);
+        Blob key;
+        sp_to_key(Blob(HISTOGRAM_SUBJECT), Blob(name), &key);
 
         // Search for the histogram
         std::string serial_hist;
-        ::rocksdb::Status status = db->Get(::rocksdb::ReadOptions(), key, &serial_hist);
+        ::rocksdb::Status status = db->Get(::rocksdb::ReadOptions(),
+                                           ::rocksdb::Slice((char *) key.data(), key.size()),
+                                           &serial_hist);
 
         if (status.ok()) {
             std::shared_ptr<::Histogram::Histogram> new_hist(construct<::Histogram::Histogram>(),
