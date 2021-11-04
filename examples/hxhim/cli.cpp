@@ -7,7 +7,7 @@
 
 #include "hxhim/hxhim.h"
 #include "print_results.h"
-#include "utils/Blob.hpp"
+#include "utils/Blob.hpp" // private header
 #include "utils/memory.hpp"
 
 enum HXHIM_OP {

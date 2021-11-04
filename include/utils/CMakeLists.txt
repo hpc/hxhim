@@ -5,7 +5,6 @@ test_big_endian(SYSTEM_BIG_ENDIAN)
 target_compile_definitions(hxhim PRIVATE SYSTEM_BIG_ENDIAN=${SYSTEM_BIG_ENDIAN})
 
 set(INSTALLED_HEADERS
-  Blob.hpp
   Configuration.hpp
   Histogram.h
   Histogram.hpp
@@ -13,10 +12,7 @@ set(INSTALLED_HEADERS
   elen.h
   elen.hpp
   elen.tpp
-  macros.h
-  macros.hpp
   memory.hpp
-  mkdir_p.hpp
   mlog2.h
   mlogfacs2.h
   type_traits.hpp
@@ -24,7 +20,10 @@ set(INSTALLED_HEADERS
 )
 
 set(NOT_INSTALLED_HEADERS
+  Blob.hpp
   little_endian.hpp
+  macros.hpp
+  mkdir_p.hpp
 )
 
 foreach(HEADER ${INSTALLED_HEADERS} ${NOT_INSTALLED_HEADERS})

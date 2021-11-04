@@ -10,7 +10,13 @@ extern "C"
 #include <stddef.h>
 #endif
 
-#include "utils/macros.h"
+/**
+ * Enum and String generation adapted from
+ * https://stackoverflow.com/a/10966395
+ * by Terrence M
+ */
+#define GENERATE_ENUM(prefix, name) prefix##_##name,
+#define GENERATE_STR(prefix, name)  #prefix "_" #name,
 
 /* not 0 to force return value checks to use this macro */
 #define HXHIM_SUCCESS                 3
@@ -39,6 +45,7 @@ typedef size_t hxhim_put_permutation_t;
 #define HXHIM_PUT_ALL  ( HXHIM_PUT_SPO | HXHIM_PUT_SOP | \
                          HXHIM_PUT_PSO | HXHIM_PUT_POS | \
                          HXHIM_PUT_OSP | HXHIM_PUT_OPS )
+
 
 /** Convenience array for accessing the permutations */
 extern const hxhim_put_permutation_t HXHIM_PUT_PERMUTATIONS[];

@@ -18,9 +18,10 @@ target_link_libraries(hx-c++ hxhim.a ${EXEC_LDFLAGS})
 add_executable(puts puts.c spo_gen timestamps)
 target_link_libraries(puts hxhim.a ${EXEC_LDFLAGS} stdc++)
 
-add_executable(hxhim-cli cli.cpp print_results)
-target_link_libraries(hxhim-cli hxhim.a ${EXEC_LDFLAGS})
-set_target_properties(hxhim-cli PROPERTIES OUTPUT_NAME cli)
+add_executable(cli cli.cpp print_results)
+target_sources(cli PRIVATE ${CMAKE_SOURCE_DIR}/include/utils/Blob.hpp)
+target_link_libraries(cli hxhim.a ${EXEC_LDFLAGS})
+set_target_properties(cli PROPERTIES OUTPUT_NAME cli)
 
 add_executable(lowest lowest.c print_results)
 target_link_libraries(lowest hxhim.a ${EXEC_LDFLAGS} stdc++)

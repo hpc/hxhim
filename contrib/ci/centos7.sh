@@ -13,6 +13,11 @@ case "${mpi}" in
         ;;
 esac
 
+if [[ "${mpi}" == "mpich" ]]
+then
+    mpi="mpich-3.2"
+fi
+
 yum install -y centos-release-scl epel-release
 
 yum install -y           \

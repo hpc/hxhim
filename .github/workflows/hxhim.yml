@@ -17,8 +17,8 @@ jobs:
     strategy:
       matrix:
         container: ["ubuntu:18.04", "ubuntu:20.04", "ubuntu:21.04", "centos:7", "centos:8"]
-        async_puts: ["On", "Off"]
         mpi: ["openmpi", "mpich"]
+        async_puts: ["On", "Off"]
 
     env:
       BUILD_NAME: "build"
@@ -38,6 +38,7 @@ jobs:
       run: |
         contrib/ci/ubuntu.sh ${{matrix.mpi}}
         contrib/ci/ga-set-env.sh "CC=$(which gcc-11)" "CXX=$(which g++-11)" >> "${{env.HXHIM_ENV}}"
+        dpkg -L "lib${{matrix.mpi}}-dev" | grep ".*\.so"
 
     - name: Get CentOS 7 Packages
       if: matrix.container == 'centos:7'
@@ -50,11 +51,12 @@ jobs:
       run: |
         source contrib/ci/centos8.sh ${{matrix.mpi}}
         contrib/ci/ga-set-env.sh "CC=$(which gcc)" "CXX=$(which g++)" >> "${{env.HXHIM_ENV}}"
+        rpm -ql "${{matrix.mpi}}-devel" | grep ".*\.so"
 
     - name: Build Dependencies
       run: |
         source "${{env.HXHIM_ENV}}"
-        source contrib/hxhim_dependencies.sh --OFI --NO_ROCKSDB --NO_JEMALLOC "${HOME}" "${BUILD_NAME}" "${SWHOME}" "$(nproc --all)" CC="${CC}" CXX="${CXX}"
+        source contrib/hxhim_dependencies.sh --OFI --NO_ROCKSDB --NO_JEMALLOC "${HOME}" "${BUILD_NAME}" "${SWHOME}" CC="${CC}" CXX="${CXX}"
         contrib/ci/ga-set-env.sh >> "${{env.HXHIM_ENV}}"
 
     - name: Configure CMake
@@ -62,13 +64,14 @@ jobs:
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
       run: |
         source "${{env.HXHIM_ENV}}"
+        cmake --version
         cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DDBBENCH=On
 
     - name: Build
       # Build your program with the given configuration
       run: |
         source "${{env.HXHIM_ENV}}"
-        cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --parallel "$(nproc --all)"
+        cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --parallel
 
     - name: Test
       run: |
@@ -84,3 +87,18 @@ jobs:
       run: |
         cd ${{github.workspace}}/build
         make install
+
+    - name: Test Install
+      if: startsWith(matrix.mpi, 'openmpi') && startsWith(matrix.container, 'centos:')
+      run: |
+        source "${{env.HXHIM_ENV}}"
+        export HXHIM_PREFIX="$(cmake -LA -N ${{github.workspace}}/build | grep CMAKE_INSTALL_PREFIX:PATH | awk -F '=' '{ printf $2 }')"
+        export LD_LIBRARY_PATH="${HXHIM_PREFIX}/lib:${LD_LIBRARY_PATH}"
+        export PKG_CONFIG_PATH="${HXHIM_PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH}"
+        pkg-config --cflags hxhim
+        pkg-config --libs hxhim
+        ${CC} -c $(pkg-config --cflags --libs hxhim) -Iinclude examples/hxhim/print_results.c -o print_results.o
+        ${CXX} $(pkg-config --cflags --libs hxhim) -Iinclude examples/hxhim/cli.cpp print_results.o -o cli
+        echo | ./cli
+        ${CC} $(pkg-config --cflags --libs hxhim) examples/hxhim/{puts.c,print_results.c,timestamps.c,spo_gen.c} -o puts
+        ./puts 100000 1
