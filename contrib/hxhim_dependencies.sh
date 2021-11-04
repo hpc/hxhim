@@ -551,7 +551,7 @@ function rocksdb() {
 }
 
 function jemalloc() {
-    if ! check_library "jemalloc"
+    if check_library "jemalloc"
     then
         return 0;
     fi
