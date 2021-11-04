@@ -6,7 +6,7 @@
 #include <mpi.h>
 
 #include "datastore/LevelDB.hpp"
-#include "hxhim/triplestore.hpp"
+#include "datastore/triplestore.hpp"
 #include "rm_r.hpp"
 #include "triples.hpp"
 #include "utils/memory.hpp"
@@ -58,9 +58,9 @@ static LevelDBTest *setup() {
     Message::Request::BPut req(count);
 
     for(std::size_t i = 0; i < count; i++) {
-        req.add(ReferenceBlob(subjects[i]),
-                ReferenceBlob(predicates[i]),
-                ReferenceBlob(objects[i]));
+        req.add(Blob(subjects[i]),
+                Blob(predicates[i]),
+                Blob(objects[i]));
     }
 
     destruct(ds->operate(&req));
@@ -77,7 +77,7 @@ TEST(LevelDB, BPut) {
     // read directly from leveldb since setup() already did PUTs
     for(std::size_t i = 0; i < count; i++) {
         Blob key;
-        EXPECT_EQ(sp_to_key(ReferenceBlob(subjects[i]), ReferenceBlob(predicates[i]), &key), HXHIM_SUCCESS);
+        EXPECT_EQ(sp_to_key(Blob(subjects[i]), Blob(predicates[i]), &key), HXHIM_SUCCESS);
         EXPECT_NE(key.size(), 0);
 
         std::string value;
@@ -85,7 +85,7 @@ TEST(LevelDB, BPut) {
                                            ::leveldb::Slice((char *) key.data(), key.size()),
                                            &value);
         EXPECT_EQ(status.ok(), true);
-        EXPECT_EQ(memcmp(objects[i].data(), value.c_str(), value.size()), 0);
+        EXPECT_EQ(memcmp(objects[i].data(), value.c_str(), value.size() - sizeof(hxhim_data_t)), 0);
     }
 
     // make sure datastore only has count items
@@ -109,9 +109,9 @@ TEST(LevelDB, BGet) {
     // include the non-existant subject-predicate pair
     Message::Request::BGet req(count + 1);
     for(std::size_t i = 0; i < count + 1; i++) {
-        req.add(ReferenceBlob(subjects[i]),
-                ReferenceBlob(predicates[i]),
-                ReferenceBlob(objects[i]).data_type());
+        req.add(Blob(subjects[i]),
+                Blob(predicates[i]),
+                Blob(objects[i]).data_type());
     }
 
     Message::Response::BGet *res = ds->operate(&req);
@@ -140,8 +140,8 @@ TEST(LevelDB, BGetOp) {
 
     for(int op = HXHIM_GETOP_EQ; op < HXHIM_GETOP_INVALID; op++) {
         Message::Request::BGetOp req(1);
-        req.add(ReferenceBlob(subjects[0]),
-                ReferenceBlob(predicates[0]),
+        req.add(Blob(subjects[0]),
+                Blob(predicates[0]),
                 hxhim_data_t::HXHIM_DATA_BYTE,
                 1,
                 static_cast<hxhim_getop_t>(op));
@@ -220,8 +220,8 @@ TEST(LevelDB, BDelete) {
         // include the non-existant subject-predicate pair
         Message::Request::BDelete req(count + 1);
         for(std::size_t i = 0; i < count + 1; i++) {
-            req.add(ReferenceBlob(subjects[i]),
-                    ReferenceBlob(predicates[i]));
+            req.add(Blob(subjects[i]),
+                    Blob(predicates[i]));
         }
 
         Message::Response::BDelete *res = ds->operate(&req);
@@ -242,8 +242,8 @@ TEST(LevelDB, BDelete) {
         // include the non-existant subject-predicate pair
         Message::Request::BGet req(count + 1);
         for(std::size_t i = 0; i < count + 1; i++) {
-            req.subjects[i]   = ReferenceBlob(subjects[i]);
-            req.predicates[i] = ReferenceBlob(predicates[i]);
+            req.subjects[i]   = Blob(subjects[i]);
+            req.predicates[i] = Blob(predicates[i]);
             req.count++;
         }
 
@@ -261,7 +261,7 @@ TEST(LevelDB, BDelete) {
     {
         for(std::size_t i = 0; i < count; i++) {
             Blob key;
-            EXPECT_EQ(sp_to_key(ReferenceBlob(subjects[i]), ReferenceBlob(predicates[i]), &key), HXHIM_SUCCESS);
+            EXPECT_EQ(sp_to_key(Blob(subjects[i]), Blob(predicates[i]), &key), HXHIM_SUCCESS);
             EXPECT_NE(key.size(), 0);
 
             std::string value;

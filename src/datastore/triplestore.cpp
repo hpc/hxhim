@@ -1,7 +1,7 @@
 #include <cstring>
 
 #include "hxhim/constants.h"
-#include "hxhim/triplestore.hpp"
+#include "datastore/triplestore.hpp"
 #include "utils/little_endian.hpp"
 #include "utils/memory.hpp"
 

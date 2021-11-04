@@ -25,7 +25,6 @@ set(HXHIM_HEADERS
   single_type.h
   single_type.hpp
   struct.h
-  triplestore.hpp
 )
 
 foreach(HEADER ${HXHIM_HEADERS})

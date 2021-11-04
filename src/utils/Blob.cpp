@@ -24,10 +24,7 @@ Blob::Blob(const std::size_t len, const void *ptr, const hxhim_data_t type)
 }
 
 Blob::Blob(const std::string &str, const hxhim_data_t type)
-    : ptr((char *) str.data()),
-      len(str.size()),
-      type(type),
-      clean(false)
+    : Blob((char *) str.data(), str.size(), type)
 {}
 
 Blob::Blob(Blob &rhs)
@@ -122,13 +119,13 @@ char *Blob::pack(char *&dst, const bool include_type) const {
     little_endian::encode(dst, len);
     dst += sizeof(len);
 
+    memcpy(dst, ptr, len);
+    dst += len;
+
     if (include_type) {
         little_endian::encode(dst, type);
         dst += sizeof(type);
     }
-
-    memcpy(dst, ptr, len);
-    dst += len;
 
     return dst;
 }
@@ -141,9 +138,9 @@ std::size_t Blob::pack_size(const std::size_t len, const bool include_type) {
     return len + sizeof(len) + (include_type?sizeof(type):0);
 }
 
-// read from a blob of memory and create a deep copy
+// read from a blob of memory
 // (length is not known)
-char *Blob::unpack(char *&src, const bool include_type) {
+char *Blob::unpack(char *&src, const bool include_type, const bool copy) {
     if (!src) {
         throw std::runtime_error("unable to unpack blob");
     }
@@ -151,16 +148,19 @@ char *Blob::unpack(char *&src, const bool include_type) {
     little_endian::decode(len, src);
     src += sizeof(len);
 
+    if ((clean = copy)) {
+        ptr = alloc(len);
+        memcpy(ptr, src, len);
+    }
+    else {
+        ptr = src;
+    }
+    src += len;
+
     if (include_type) {
         little_endian::decode(type, src);
         src += sizeof(type);
     }
-
-    ptr = alloc(len);
-    memcpy(ptr, src, len);
-    src += len;
-
-    clean = true;
 
     return src;
 }

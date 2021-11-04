@@ -7,6 +7,6 @@
  * by Terrence M
  */
 #define GENERATE_ENUM(prefix, name) prefix##_##name,
-#define GENERATE_STR(prefix, name)  #prefix "-" #name,
+#define GENERATE_STR(prefix, name)  #prefix "_" #name,
 
 #endif

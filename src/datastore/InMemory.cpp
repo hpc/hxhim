@@ -2,8 +2,8 @@
 #include <sstream>
 
 #include "datastore/InMemory.hpp"
+#include "datastore/triplestore.hpp"
 #include "hxhim/private/hxhim.hpp"
-#include "hxhim/triplestore.hpp"
 #include "utils/Blob.hpp"
 #include "utils/memory.hpp"
 
@@ -69,9 +69,10 @@ Message::Response::BPut *Datastore::InMemory::BPutImpl(Message::Request::BPut *r
             if (sp_to_key(ReferenceBlob(subject,   subject_len,   req->subjects[i].data_type()),
                           ReferenceBlob(predicate, predicate_len, req->predicates[i].data_type()),
                           &key) == HXHIM_SUCCESS) {
-                db[(std::string) key] = std::string((char *) object, object_len);
+                Blob value = append_type(object, object_len, req->objects[i].data_type());
+                db[(std::string) key] = (std::string) value;
 
-                event.size += key.size() + object_len;
+                event.size += key.size() + value.size();
                 status = DATASTORE_SUCCESS;
             }
         }
@@ -118,6 +119,7 @@ Message::Response::BGet *Datastore::InMemory::BGetImpl(Message::Request::BGet *r
         std::size_t predicate_len = 0;
         void *object = nullptr;
         std::size_t object_len = 0;
+        hxhim_data_t object_type = req->object_types[i];
 
         int status = DATASTORE_ERROR; // only successful decoding sets the status to DATASTORE_SUCCESS
         if ((encode(callbacks, req->subjects[i],   &subject,   &subject_len)   == DATASTORE_SUCCESS) &&
@@ -129,8 +131,16 @@ Message::Response::BGet *Datastore::InMemory::BGetImpl(Message::Request::BGet *r
                           &key) == HXHIM_SUCCESS) {
                 decltype(db)::const_iterator it = db.find((std::string) key);
                 if (it != db.end()) {
+                    std::size_t value_len = it->second.size();
+                    object_type = remove_type((void *) it->second.data(), value_len);
+                    if (object_type != req->object_types[i]) {
+                        mlog(DATASTORE_WARN, "GET extracted object data type (%s) does not match provided data type (%s). Using extracted type.",
+                             HXHIM_DATA_STR[object_type],
+                             HXHIM_DATA_STR[req->object_types[i]]);
+                    }
+
                     // decode the object
-                    if (decode(callbacks, ReferenceBlob((void *) it->second.data(), it->second.size(), req->object_types[i]),
+                    if (decode(callbacks, ReferenceBlob((void *) it->second.data(), value_len, object_type),
                                &object, &object_len) == DATASTORE_SUCCESS) {
                         event.size += res->objects[i].size();
                         status = DATASTORE_SUCCESS;
@@ -143,7 +153,7 @@ Message::Response::BGet *Datastore::InMemory::BGetImpl(Message::Request::BGet *r
 
         res->add(ReferenceBlob(req->orig.subjects[i], req->subjects[i].size(), req->subjects[i].data_type()),
                  ReferenceBlob(req->orig.predicates[i], req->predicates[i].size(), req->predicates[i].data_type()),
-                 RealBlob(object, object_len, req->object_types[i]),
+                 RealBlob(object, object_len, object_type),
                  status);
 
         if (subject != req->subjects[i].data()) {

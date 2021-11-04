@@ -16,7 +16,7 @@ static int test_hash_local(hxhim_t *hx, void *, const size_t, void *, const size
 bool fill_options(hxhim_options_t *opts) {
     return ((hxhim_options_init(opts)                                        == HXHIM_SUCCESS) &&
             (hxhim_options_set_mpi_bootstrap(opts, MPI_COMM_WORLD)           == HXHIM_SUCCESS) &&
-            (hxhim_options_set_debug_level(opts, MLOG_ERR)                   == HXHIM_SUCCESS) &&
+            (hxhim_options_set_debug_level(opts, MLOG_WARN)                  == HXHIM_SUCCESS) &&
             (hxhim_options_set_client_ratio(opts, 1)                         == HXHIM_SUCCESS) &&
             (hxhim_options_set_server_ratio(opts, 1)                         == HXHIM_SUCCESS) &&
             (hxhim_options_set_datastore_in_memory(opts)                     == HXHIM_SUCCESS) &&

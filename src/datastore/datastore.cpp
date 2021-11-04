@@ -3,7 +3,7 @@
 #include <sstream>
 
 #include "datastore/datastore.hpp"
-#include "hxhim/triplestore.hpp"
+#include "datastore/triplestore.hpp"
 #include "utils/Blob.hpp"
 #include "utils/macros.hpp"
 #include "utils/mlog2.h"
@@ -382,6 +382,7 @@ int Datastore::Datastore::encode(Transform::Callbacks *callbacks,
         return DATASTORE_ERROR;
     }
 
+    // not found - just copy
     if (!it->second.first) {
         *dst_size = src.size();
         *dst = alloc(*dst_size);
@@ -400,6 +401,7 @@ int Datastore::Datastore::decode(Transform::Callbacks *callbacks,
         return DATASTORE_ERROR;
     }
 
+    // not found - just copy
     if (!it->second.first) {
         *dst_size = src.size();
         *dst = alloc(*dst_size);
@@ -415,6 +417,29 @@ Datastore::Datastore::Stats::Event::Event()
       count(0),
       size(0)
 {}
+
+Blob Datastore::Datastore::append_type(void *ptr, std::size_t size, hxhim_data_t type) {
+    std::size_t new_size = size + sizeof(type);
+    void *out = alloc(new_size);
+    char *curr = (char *) out;
+
+    memcpy(curr, ptr, size);
+    curr += size;
+
+    memcpy(curr, &type, sizeof(type));
+
+    return std::move(RealBlob(out, new_size, hxhim_data_t::HXHIM_DATA_BYTE));
+}
+
+hxhim_data_t Datastore::Datastore::remove_type(void *ptr, std::size_t &size) {
+    hxhim_data_t type;
+    char *curr = (char *) ptr;
+    size -= sizeof(type);
+    curr += size;
+    type = * (hxhim_data_t *) curr;
+
+    return type;
+}
 
 void Datastore::Datastore::BGetOp_error_response(Message::Response::BGetOp *res,
                                                  const std::size_t i,

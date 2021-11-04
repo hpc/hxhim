@@ -12,7 +12,6 @@ set(HXHIM_SRC
   init.cpp
   options.cpp
   private.cpp
-  triplestore.cpp
 )
 
 foreach(FILE ${HXHIM_SRC})

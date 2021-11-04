@@ -3,7 +3,7 @@
 #include <gtest/gtest.h>
 
 #include "datastore/InMemory.hpp"
-#include "hxhim/triplestore.hpp"
+#include "datastore/triplestore.hpp"
 #include "triples.hpp"
 #include "utils/memory.hpp"
 
@@ -35,9 +35,9 @@ static InMemoryTest *setup() {
 
     Message::Request::BPut req(count);
     for(std::size_t i = 0; i < count; i++) {
-        req.add(ReferenceBlob(subjects[i]),
-                ReferenceBlob(predicates[i]),
-                ReferenceBlob(objects[i]));
+        req.add(Blob(subjects[i]),
+                Blob(predicates[i]),
+                Blob(objects[i]));
     }
 
     destruct(ds->operate(&req));
@@ -54,10 +54,10 @@ TEST(InMemory, BPut) {
 
     for(std::size_t i = 0; i < count; i++) {
         Blob key;
-        EXPECT_EQ(sp_to_key(ReferenceBlob(subjects[i]), ReferenceBlob(predicates[i]), &key), HXHIM_SUCCESS);
+        EXPECT_EQ(sp_to_key(Blob(subjects[i]), Blob(predicates[i]), &key), HXHIM_SUCCESS);
         EXPECT_EQ(key.size(),
-                  ReferenceBlob(subjects[i]).pack_size(false) +
-                  ReferenceBlob(predicates[i]).pack_size(false) +
+                  Blob(subjects[i]).pack_size(false) +
+                  Blob(predicates[i]).pack_size(false) +
                   3 * sizeof(uint8_t));
         EXPECT_EQ(db.find((std::string) key) != db.end(), true);
     }
@@ -72,8 +72,8 @@ TEST(InMemory, BGet) {
     // include the non-existant subject-predicate pair
     Message::Request::BGet req(count + 1);
     for(std::size_t i = 0; i < count + 1; i++) {
-        req.add(ReferenceBlob(subjects[i]),
-                ReferenceBlob(predicates[i]),
+        req.add(Blob(subjects[i]),
+                Blob(predicates[i]),
                 hxhim_data_t::HXHIM_DATA_BYTE);
     }
 
@@ -83,7 +83,7 @@ TEST(InMemory, BGet) {
     for(std::size_t i = 0; i < count; i++) {
         EXPECT_EQ(res->statuses[i], DATASTORE_SUCCESS);
         ASSERT_NE(res->objects[i].data(), nullptr);
-        EXPECT_EQ(res->objects[i].size(), ReferenceBlob(objects[i]).size());
+        EXPECT_EQ(res->objects[i].size(), Blob(objects[i]).size());
         EXPECT_EQ(std::memcmp(objects[i].data(),
                               res->objects[i].data(),
                               res->objects[i].size()),
@@ -104,8 +104,8 @@ TEST(InMemory, BGetOp) {
     for(int op = HXHIM_GETOP_EQ; op < HXHIM_GETOP_INVALID; op++) {
         Message::Request::BGetOp req(1);
 
-        req.add(ReferenceBlob(subjects[0]),
-                ReferenceBlob(predicates[0]),
+        req.add(Blob(subjects[0]),
+                Blob(predicates[0]),
                 hxhim_data_t::HXHIM_DATA_BYTE,
                 1,
                 static_cast<hxhim_getop_t>(op));
@@ -183,8 +183,8 @@ TEST(InMemory, BDelete) {
     // include the non-existant subject-predicate pair
     Message::Request::BDelete req(count + 1);
     for(std::size_t i = 0; i < count + 1; i++) {
-        req.add(ReferenceBlob(subjects[i]),
-                ReferenceBlob(predicates[i]));
+        req.add(Blob(subjects[i]),
+                Blob(predicates[i]));
     }
 
     Message::Response::BDelete *res = ds->operate(&req);
@@ -202,8 +202,8 @@ TEST(InMemory, BDelete) {
 
     // get directly from internal data
     for(std::size_t i = 0; i < count; i++) {
-        const Blob sub = ReferenceBlob(subjects[i]);
-        const Blob pred = ReferenceBlob(predicates[i]);
+        const Blob sub = Blob(subjects[i]);
+        const Blob pred = Blob(predicates[i]);
         Blob key;
         EXPECT_EQ(sp_to_key(sub, pred, &key), HXHIM_SUCCESS);
         EXPECT_EQ(key.size(), sub.pack_size(false) + pred.pack_size(false) + 3 * sizeof(uint8_t));

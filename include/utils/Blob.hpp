@@ -33,6 +33,12 @@ class Blob {
         Blob(const std::size_t len, const void *ptr,
              const hxhim_data_t type = hxhim_data_t::HXHIM_DATA_INVALID);
 
+        // reference to an object with data() and size() memebers
+        template <typename T>
+        Blob(const T &obj, const hxhim_data_t type)
+            : Blob((void *) obj.data(), obj.size(), type, false)
+        {}
+
         // reference to a string
         Blob(const std::string &str,
              const hxhim_data_t type = hxhim_data_t::HXHIM_DATA_BYTE);
@@ -68,7 +74,7 @@ class Blob {
         char *pack(char *&dst, const bool include_type) const;
         std::size_t pack_size(const bool include_type) const;
         static std::size_t pack_size(const std::size_t len, const bool include_type);
-        char *unpack(char *&src, const bool include_type);    // sets clean to true
+        char *unpack(char *&src, const bool include_type, const bool copy = true);
 
         // pack the ptr address and length
         char *pack_ref(char *&dst, const bool include_type) const;

@@ -1,28 +1,10 @@
 #ifndef DATASTORE_TPP
 #define DATASTORE_TPP
 
+#include "datastore/triplestore.hpp"
 #include "message/Messages.hpp"
-
-/**
- * key_to_sp
- * Splits a key into a subject key pair.
- *
- * @param key            the key
- * @param subject        the subject of the triple
- * @param predicate      the predicate of the triple
- * @paral copy           whether the subject and predicate are copies or references to the key
- * @return HXHIM_SUCCESS, or HXHIM_ERROR on error
- */
-template <typename Key_t>
-int key_to_sp(const Key_t &key,
-              Blob &subject,
-              Blob &predicate,
-              const bool copy) {
-    // cannot call string constructor because key might not be string
-    return key_to_sp(ReferenceBlob((void *) key.data(), key.size(), hxhim_data_t::HXHIM_DATA_BYTE),
-                     subject, predicate,
-                     copy);
-}
+#include "utils/mlog2.h"
+#include "utils/mlogfacs2.h"
 
 template <typename Key_t, typename Value_t>
 void Datastore::Datastore::BGetOp_copy_response(Transform::Callbacks *callbacks,
@@ -35,11 +17,32 @@ void Datastore::Datastore::BGetOp_copy_response(Transform::Callbacks *callbacks,
                                                 Datastore::Datastore::Stats::Event &event) {
     if (res->statuses[i] == DATASTORE_UNSET) {
         // extract the encoded subject and predicate from the key
+        // cannot call string constructor because key might not be string
         Blob encoded_subject;
         Blob encoded_predicate;
-        key_to_sp(key, encoded_subject, encoded_predicate, false);
-        encoded_subject.set_type(req->subjects[i].data_type());
-        encoded_predicate.set_type(req->predicates[i].data_type());
+        key_to_sp(Blob(key, hxhim_data_t::HXHIM_DATA_BYTE),
+                  encoded_subject, encoded_predicate, false);
+
+        if (encoded_subject.data_type() != req->subjects[i].data_type()) {
+            mlog(DATASTORE_WARN, "GETOP Decoded subject data type (%s) does not match provided data type (%s). Using decoded type.",
+                 HXHIM_DATA_STR[encoded_subject.data_type()],
+                 HXHIM_DATA_STR[req->subjects[i].data_type()]);
+        }
+
+        if (encoded_predicate.data_type() != req->predicates[i].data_type()) {
+            mlog(DATASTORE_WARN, "GETOP Decoded predicate data type (%s) does not match provided data type (%s).  Using decoded type.",
+                 HXHIM_DATA_STR[encoded_predicate.data_type()],
+                 HXHIM_DATA_STR[req->predicates[i].data_type()]);
+        }
+
+        std::size_t value_len = value.size();
+        hxhim_data_t value_type = remove_type((char *) value.data(), value_len);
+        Blob encoded_object = ReferenceBlob((char *) value.data(), value_len, value_type);
+        if (encoded_object.data_type() != req->object_types[i]) {
+            mlog(DATASTORE_WARN, "GETOP Decoded object data type (%s) does not match provided data type (%s). Using decoded type.",
+                 HXHIM_DATA_STR[encoded_object.data_type()],
+                 HXHIM_DATA_STR[req->object_types[i]]);
+        }
 
         void *subject = nullptr;
         std::size_t subject_len = 0;
@@ -51,11 +54,10 @@ void Datastore::Datastore::BGetOp_copy_response(Transform::Callbacks *callbacks,
         // decode the subject and predicate
         if ((decode(callbacks, encoded_subject,   &subject,   &subject_len)   == DATASTORE_SUCCESS) &&
             (decode(callbacks, encoded_predicate, &predicate, &predicate_len) == DATASTORE_SUCCESS) &&
-            (decode(callbacks, ReferenceBlob((void *) value.data(), value.size(), req->object_types[i]),
-                    &object, &object_len)                                     == DATASTORE_SUCCESS)) {
-            res->subjects[i][j]   = std::move(RealBlob(subject,   subject_len,   req->subjects[i].data_type()));
-            res->predicates[i][j] = std::move(RealBlob(predicate, predicate_len, req->predicates[i].data_type()));
-            res->objects[i][j]    = std::move(RealBlob(object,    object_len,    req->object_types[i]));
+            (decode(callbacks, encoded_object,    &object, &object_len)       == DATASTORE_SUCCESS)) {
+            res->subjects[i][j]   = std::move(RealBlob(subject,   subject_len,   encoded_subject.data_type()));
+            res->predicates[i][j] = std::move(RealBlob(predicate, predicate_len, encoded_predicate.data_type()));
+            res->objects[i][j]    = std::move(RealBlob(object,    object_len,    encoded_object.data_type()));
             res->num_recs[i]++;
             event.size += key.size() + value.size();
         }

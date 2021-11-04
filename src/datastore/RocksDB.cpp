@@ -4,8 +4,8 @@
 #include "rocksdb/write_batch.h"
 
 #include "datastore/RocksDB.hpp"
+#include "datastore/triplestore.hpp"
 #include "hxhim/accessors.hpp"
-#include "hxhim/triplestore.hpp"
 #include "utils/Blob.hpp"
 #include "utils/memory.hpp"
 #include "utils/mlog2.h"
@@ -87,7 +87,7 @@ Message::Response::BPut *Datastore::RocksDB::BPutImpl(Message::Request::BPut *re
         void *object = nullptr;
         std::size_t object_len = 0;
 
-        int status = DATASTORE_ERROR; // successful batching will set toe DATASTORE_UNSET
+        int status = DATASTORE_ERROR; // successful batching will set to DATASTORE_UNSET
         if ((encode(callbacks, req->subjects[i],   &subject,   &subject_len)   == DATASTORE_SUCCESS) &&
             (encode(callbacks, req->predicates[i], &predicate, &predicate_len) == DATASTORE_SUCCESS) &&
             (encode(callbacks, req->objects[i],    &object,    &object_len)    == DATASTORE_SUCCESS)) {
@@ -97,10 +97,12 @@ Message::Response::BPut *Datastore::RocksDB::BPutImpl(Message::Request::BPut *re
                       ReferenceBlob(predicate, predicate_len, req->predicates[i].data_type()),
                       &key);
 
-            batch.Put(::rocksdb::Slice((char *) key.data(), key.size()),
-                      ::rocksdb::Slice((char *) object, object_len));
+            Blob value = append_type(object, object_len, req->objects[i].data_type());
 
-            event.size += key.size() + object_len;
+            batch.Put(::rocksdb::Slice((char *) key.data(), key.size()),
+                      ::rocksdb::Slice((char *) value.data(), value.size()));
+
+            event.size += key.size() + value.size();
             status = DATASTORE_UNSET;
         }
 
@@ -157,6 +159,7 @@ Message::Response::BGet *Datastore::RocksDB::BGetImpl(Message::Request::BGet *re
         std::size_t predicate_len = 0;
         void *object = nullptr;
         std::size_t object_len = 0;
+        hxhim_data_t object_type = req->object_types[i];
 
         int status = DATASTORE_ERROR; // only successful decoding sets the status to DATASTORE_SUCCESS
         if ((encode(callbacks, req->subjects[i],   &subject,   &subject_len)   == DATASTORE_SUCCESS) &&
@@ -175,8 +178,16 @@ Message::Response::BGet *Datastore::RocksDB::BGetImpl(Message::Request::BGet *re
             if (s.ok()) {
                 mlog(ROCKSDB_INFO, "Rank %d RocksDB GET success", rank);
 
+                std::size_t value_len = value.size();
+                object_type = remove_type((void *) value.data(), value_len);
+                if (object_type != req->object_types[i]) {
+                    mlog(DATASTORE_WARN, "GET extracted object data type (%s) does not match provided data type (%s). Using extracted type.",
+                         HXHIM_DATA_STR[object_type],
+                         HXHIM_DATA_STR[req->object_types[i]]);
+                }
+
                 // decode the object
-                if (decode(callbacks, ReferenceBlob((void *) value.data(), value.size(), req->object_types[i]),
+                if (decode(callbacks, Blob((void *) value.data(), value_len, object_type),
                            &object, &object_len) == DATASTORE_SUCCESS) {
                     event.size += res->objects[i].size();
                     status = DATASTORE_SUCCESS;
@@ -188,7 +199,7 @@ Message::Response::BGet *Datastore::RocksDB::BGetImpl(Message::Request::BGet *re
         // object will be owned by the result packet
         res->add(ReferenceBlob(req->orig.subjects[i], req->subjects[i].size(), req->subjects[i].data_type()),
                  ReferenceBlob(req->orig.predicates[i], req->predicates[i].size(), req->predicates[i].data_type()),
-                 RealBlob(object, object_len, req->object_types[i]),
+                 RealBlob(object, object_len, object_type),
                  status);
 
         if (subject != req->subjects[i].data()) {

@@ -9,13 +9,13 @@ set(HXHIM_TEST_FILES
   PutGetOp.cpp
   RangeServer.cpp
   Results.cpp
+  TypeMismatch.cpp
   accessors.cpp
   background_put.cpp
   enqueue.cpp
   generic_options.cpp
   generic_options.hpp
   transport.cpp
-  triplestore.cpp
 )
 
 foreach(FILE ${HXHIM_TEST_FILES})

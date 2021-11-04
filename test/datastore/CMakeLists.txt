@@ -7,7 +7,7 @@ set(DS_TEST_SRC
   rm_r.cpp
   rm_r.hpp
   triples.hpp
-  triples.cpp
+  triplestore.cpp
 )
 
 if (LEVELDB_FOUND AND ENABLE_LEVELDB)

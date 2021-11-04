@@ -6,7 +6,7 @@
 #include <mpi.h>
 
 #include "datastore/RocksDB.hpp"
-#include "hxhim/triplestore.hpp"
+#include "datastore/triplestore.hpp"
 #include "rm_r.hpp"
 #include "triples.hpp"
 #include "utils/memory.hpp"
@@ -58,9 +58,9 @@ static RocksDBTest *setup() {
     Message::Request::BPut req(count);
 
     for(std::size_t i = 0; i < count; i++) {
-        req.add(ReferenceBlob(subjects[i]),
-                ReferenceBlob(predicates[i]),
-                ReferenceBlob(objects[i]));
+        req.add(Blob(subjects[i]),
+                Blob(predicates[i]),
+                Blob(objects[i]));
     }
 
     destruct(ds->operate(&req));
@@ -74,10 +74,10 @@ TEST(RocksDB, BPut) {
 
     ::rocksdb::DB *db = ds->data();
 
-    // read directly from RocksDB since setup() already did PUTs
+    // read directly from rocksdb since setup() already did PUTs
     for(std::size_t i = 0; i < count; i++) {
         Blob key;
-        EXPECT_EQ(sp_to_key(ReferenceBlob(subjects[i]), ReferenceBlob(predicates[i]), &key), HXHIM_SUCCESS);
+        EXPECT_EQ(sp_to_key(Blob(subjects[i]), Blob(predicates[i]), &key), HXHIM_SUCCESS);
         EXPECT_NE(key.size(), 0);
 
         std::string value;
@@ -85,7 +85,7 @@ TEST(RocksDB, BPut) {
                                            ::rocksdb::Slice((char *) key.data(), key.size()),
                                            &value);
         EXPECT_EQ(status.ok(), true);
-        EXPECT_EQ(memcmp(objects[i].data(), value.c_str(), value.size()), 0);
+        EXPECT_EQ(memcmp(objects[i].data(), value.c_str(), value.size() - sizeof(hxhim_data_t)), 0);
     }
 
     // make sure datastore only has count items
@@ -109,21 +109,24 @@ TEST(RocksDB, BGet) {
     // include the non-existant subject-predicate pair
     Message::Request::BGet req(count + 1);
     for(std::size_t i = 0; i < count + 1; i++) {
-        req.add(ReferenceBlob(subjects[i]),
-                ReferenceBlob(predicates[i]),
-                ReferenceBlob(objects[i]).data_type());
+        req.add(Blob(subjects[i]),
+                Blob(predicates[i]),
+                Blob(objects[i]).data_type());
     }
 
     Message::Response::BGet *res = ds->operate(&req);
     ASSERT_NE(res, nullptr);
     EXPECT_EQ(res->count, count + 1);
+
+    // first count results should be good
     for(std::size_t i = 0; i < count; i++) {
         EXPECT_EQ(res->statuses[i], DATASTORE_SUCCESS);
         ASSERT_NE(res->objects[i].data(), nullptr);
-        EXPECT_EQ(res->objects[i].size(), ReferenceBlob(objects[i]).size());
+        EXPECT_EQ(res->objects[i].size(), objects[i].size());
         EXPECT_EQ(std::memcmp(objects[i].data(), res->objects[i].data(), res->objects[i].size()), 0);
     }
 
+    // final result should be bad
     EXPECT_EQ(res->statuses[count], DATASTORE_ERROR);
     EXPECT_EQ(res->objects[count].data(), nullptr);
 
@@ -137,8 +140,8 @@ TEST(RocksDB, BGetOp) {
 
     for(int op = HXHIM_GETOP_EQ; op < HXHIM_GETOP_INVALID; op++) {
         Message::Request::BGetOp req(1);
-        req.add(ReferenceBlob(subjects[0]),
-                ReferenceBlob(predicates[0]),
+        req.add(Blob(subjects[0]),
+                Blob(predicates[0]),
                 hxhim_data_t::HXHIM_DATA_BYTE,
                 1,
                 static_cast<hxhim_getop_t>(op));
@@ -217,8 +220,8 @@ TEST(RocksDB, BDelete) {
         // include the non-existant subject-predicate pair
         Message::Request::BDelete req(count + 1);
         for(std::size_t i = 0; i < count + 1; i++) {
-            req.add(ReferenceBlob(subjects[i]),
-                    ReferenceBlob(predicates[i]));
+            req.add(Blob(subjects[i]),
+                    Blob(predicates[i]));
         }
 
         Message::Response::BDelete *res = ds->operate(&req);
@@ -239,8 +242,8 @@ TEST(RocksDB, BDelete) {
         // include the non-existant subject-predicate pair
         Message::Request::BGet req(count + 1);
         for(std::size_t i = 0; i < count + 1; i++) {
-            req.subjects[i]     = ReferenceBlob(subjects[i]);
-            req.predicates[i]   = ReferenceBlob(predicates[i]);
+            req.subjects[i]   = Blob(subjects[i]);
+            req.predicates[i] = Blob(predicates[i]);
             req.count++;
         }
 
@@ -258,7 +261,7 @@ TEST(RocksDB, BDelete) {
     {
         for(std::size_t i = 0; i < count; i++) {
             Blob key;
-            EXPECT_EQ(sp_to_key(ReferenceBlob(subjects[i]), ReferenceBlob(predicates[i]), &key), HXHIM_SUCCESS);
+            EXPECT_EQ(sp_to_key(Blob(subjects[i]), Blob(predicates[i]), &key), HXHIM_SUCCESS);
             EXPECT_NE(key.size(), 0);
 
             std::string value;

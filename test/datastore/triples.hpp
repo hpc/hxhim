@@ -13,6 +13,4 @@ const std::string objects[]    = {"object0",  "object1", "object2"};
 // insert the first 2 SPOs, but query all 3
 const std::size_t count = (sizeof(objects) / sizeof(objects[0])) - 1;
 
-Blob ReferenceBlob(const std::string &str, const hxhim_data_t type = hxhim_data_t::HXHIM_DATA_BYTE);
-
 #endif

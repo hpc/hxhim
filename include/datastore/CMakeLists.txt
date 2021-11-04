@@ -5,6 +5,7 @@ set(INSTALLED_HEADERS
   transform.h
   transform.hpp
   transform.tpp
+  triplestore.hpp
 )
 
 set(NOT_INSTALLED_HEADERS
