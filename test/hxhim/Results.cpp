@@ -2,30 +2,55 @@
 
 #include "datastore/constants.hpp"
 #include "hxhim/Results.hpp"
+#include "hxhim/private/Results.hpp"
 #include "utils/Blob.hpp"
 #include "utils/memory.hpp"
 
+struct TestResults : public hxhim::Results {
+    decltype(it)::value_type Curr() const {
+        if (it == results.end()) {
+            return nullptr;
+        }
+        return *it;
+    }
+};
+
 TEST(Results, PUT_GET_DEL) {
-    hxhim::Results results;
+    TestResults results;
 
     // nothing works yet since there is no data
-    EXPECT_EQ(results.GoToHead(), nullptr);
-    EXPECT_EQ(results.GoToNext(), nullptr);
+    results.GoToHead();
+    EXPECT_EQ(results.ValidIterator(), false);
+    results.GoToNext();
     EXPECT_EQ(results.ValidIterator(), false);
 
     // add some data
-    hxhim::Results::Result *put   = results.Add(construct<hxhim::Results::Put>   (nullptr, -1, DATASTORE_SUCCESS));
-    hxhim::Results::Result *get   = results.Add(construct<hxhim::Results::Get>   (nullptr, -1, DATASTORE_SUCCESS));
-    hxhim::Results::Result *getop = results.Add(construct<hxhim::Results::GetOp> (nullptr, -1, DATASTORE_SUCCESS));
-    hxhim::Results::Result *del   = results.Add(construct<hxhim::Results::Delete>(nullptr, -1, DATASTORE_SUCCESS));
+    hxhim::Result::Result *put   = construct<hxhim::Result::Put>   (nullptr, -1, DATASTORE_SUCCESS);
+    hxhim::Result::Result *get   = construct<hxhim::Result::Get>   (nullptr, -1, DATASTORE_SUCCESS);
+    hxhim::Result::Result *getop = construct<hxhim::Result::GetOp> (nullptr, -1, DATASTORE_SUCCESS);
+    hxhim::Result::Result *del   = construct<hxhim::Result::Delete>(nullptr, -1, DATASTORE_SUCCESS);
 
-    EXPECT_EQ(results.ValidIterator(), false);  // still not valid because current result has not been set yet
-    EXPECT_EQ(results.GoToHead(), put);
-    EXPECT_EQ(results.ValidIterator(), true);   // valid now because current result is pointing to the head of the list
-    EXPECT_EQ(results.GoToNext(), get);
-    EXPECT_EQ(results.GoToNext(), getop);
-    EXPECT_EQ(results.GoToNext(), del);
-    EXPECT_EQ(results.GoToNext(), nullptr);
+    results.Add(put);
+    results.Add(get);
+    results.Add(getop);
+    results.Add(del);
+
+    results.GoToHead();
+    EXPECT_EQ(results.ValidIterator(), true);
+
+    EXPECT_EQ(results.Curr(), put);
+    results.GoToNext();
+
+    EXPECT_EQ(results.Curr(), get);
+    results.GoToNext();
+
+    EXPECT_EQ(results.Curr(), getop);
+    results.GoToNext();
+
+    EXPECT_EQ(results.Curr(), del);
+    results.GoToNext();
+
+    EXPECT_EQ(results.Curr(), nullptr);
     EXPECT_EQ(results.ValidIterator(), false);
 }
 
@@ -51,11 +76,11 @@ TEST(Results, Loop) {
         // add some data
         const std::size_t puts = 10;
         for(std::size_t i = 0; i < puts; i++) {
-            results.Add(construct<hxhim::Results::Put>(nullptr, -1, DATASTORE_SUCCESS));
+            results.Add(construct<hxhim::Result::Put>(nullptr, -1, DATASTORE_SUCCESS));
         }
 
         const std::size_t size = results.Size();
-        EXPECT_EQ(size, 10U);
+        EXPECT_EQ(size, puts);
 
         // check the data
         std::size_t count = 0;
@@ -66,80 +91,109 @@ TEST(Results, Loop) {
             count++;
         }
 
-        EXPECT_EQ(count, size);
+        EXPECT_EQ(count, puts);
     }
 }
 
 TEST(Results, Append_Empty) {
-    hxhim::Results results;
+    TestResults results;
 
     // add some data
-    hxhim::Results::Result *put   = results.Add(construct<hxhim::Results::Put>   (nullptr, -1, DATASTORE_SUCCESS));
-    hxhim::Results::Result *get   = results.Add(construct<hxhim::Results::Get>   (nullptr, -1, DATASTORE_SUCCESS));
-    hxhim::Results::Result *getop = results.Add(construct<hxhim::Results::GetOp> (nullptr, -1, DATASTORE_SUCCESS));
-    hxhim::Results::Result *del   = results.Add(construct<hxhim::Results::Delete>(nullptr, -1, DATASTORE_SUCCESS));
+    hxhim::Result::Result *put   = construct<hxhim::Result::Put>   (nullptr, -1, DATASTORE_SUCCESS);
+    hxhim::Result::Result *get   = construct<hxhim::Result::Get>   (nullptr, -1, DATASTORE_SUCCESS);
+    hxhim::Result::Result *getop = construct<hxhim::Result::GetOp> (nullptr, -1, DATASTORE_SUCCESS);
+    hxhim::Result::Result *del   = construct<hxhim::Result::Delete>(nullptr, -1, DATASTORE_SUCCESS);
+
+    results.Add(put);
+    results.Add(get);
+    results.Add(getop);
+    results.Add(del);
 
     // append empty set of results
-    hxhim::Results empty;
+    TestResults empty;
     results.Append(&empty);
 
-    EXPECT_EQ(results.GoToHead(), put);     // first result is PUT
-    EXPECT_EQ(results.GoToNext(), get);     // next result is GET
-    EXPECT_EQ(results.GoToNext(), getop);   // next result is GETOP
-    EXPECT_EQ(results.GoToNext(), del);     // next result is DEL
-    EXPECT_EQ(results.GoToNext(), nullptr); // next result does not exist
+    results.GoToHead();
+    EXPECT_EQ(results.ValidIterator(), true);
+
+    EXPECT_EQ(results.Curr(), put);
+    results.GoToNext();
+
+    EXPECT_EQ(results.Curr(), get);
+    results.GoToNext();
+
+    EXPECT_EQ(results.Curr(), getop);
+    results.GoToNext();
+
+    EXPECT_EQ(results.Curr(), del);
+    results.GoToNext();
+
+    EXPECT_EQ(results.Curr(), nullptr);
     EXPECT_EQ(results.ValidIterator(), false);
 }
 
 TEST(Results, Empty_Append) {
-    hxhim::Results results;
+    TestResults results;
 
-    // add some data to the non-empty results
-    hxhim::Results::Result *put   = results.Add(construct<hxhim::Results::Put>   (nullptr, -1, DATASTORE_SUCCESS));
-    hxhim::Results::Result *get   = results.Add(construct<hxhim::Results::Get>   (nullptr, -1, DATASTORE_SUCCESS));
-    hxhim::Results::Result *getop = results.Add(construct<hxhim::Results::GetOp> (nullptr, -1, DATASTORE_SUCCESS));
-    hxhim::Results::Result *del   = results.Add(construct<hxhim::Results::Delete>(nullptr, -1, DATASTORE_SUCCESS));
+    // add some data
+    hxhim::Result::Result *put   = construct<hxhim::Result::Put>   (nullptr, -1, DATASTORE_SUCCESS);
+    hxhim::Result::Result *get   = construct<hxhim::Result::Get>   (nullptr, -1, DATASTORE_SUCCESS);
+    hxhim::Result::Result *getop = construct<hxhim::Result::GetOp> (nullptr, -1, DATASTORE_SUCCESS);
+    hxhim::Result::Result *del   = construct<hxhim::Result::Delete>(nullptr, -1, DATASTORE_SUCCESS);
 
-    // empty append set of results
-    hxhim::Results empty;
+    results.Add(put);
+    results.Add(get);
+    results.Add(getop);
+    results.Add(del);
+
+    // append empty set of results
+    TestResults empty;
     empty.Append(&results);
 
-    EXPECT_EQ(empty.GoToHead(), put);     // first result is PUT
-    EXPECT_EQ(empty.GoToNext(), get);     // next result is GET
-    EXPECT_EQ(empty.GoToNext(), getop);   // next result is GETOP
-    EXPECT_EQ(empty.GoToNext(), del);     // next result is DEL
-    EXPECT_EQ(empty.GoToNext(), nullptr); // next result does not exist
-    EXPECT_EQ(empty.ValidIterator(), false);
+    empty.GoToHead();
+    EXPECT_EQ(empty.ValidIterator(), true);
 
-    // appending moves the contents of the result list
-    EXPECT_EQ(results.GoToHead(), nullptr);
+    EXPECT_EQ(empty.Curr(), put);
+    empty.GoToNext();
+
+    EXPECT_EQ(empty.Curr(), get);
+    empty.GoToNext();
+
+    EXPECT_EQ(empty.Curr(), getop);
+    empty.GoToNext();
+
+    EXPECT_EQ(empty.Curr(), del);
+    empty.GoToNext();
+
+    EXPECT_EQ(empty.Curr(), nullptr);
+    EXPECT_EQ(empty.ValidIterator(), false);
 }
 
 TEST(Results, Accessors) {
-    hxhim::Results results;
+    TestResults results;
 
     // add some data to the non-empty results
-    hxhim::Results::Result *rput = results.Add(construct<hxhim::Results::Put>(nullptr, -1, DATASTORE_SUCCESS));
-    hxhim::Results::Put *put = static_cast<hxhim::Results::Put *>(rput);
+    hxhim::Result::Put *put = construct<hxhim::Result::Put>(nullptr, -1, DATASTORE_SUCCESS);
     put->subject     = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_POINTER);
     put->predicate   = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_POINTER);
+    results.Add(put);
 
-    hxhim::Results::Result *rget = results.Add(construct<hxhim::Results::Get>(nullptr, -1, DATASTORE_SUCCESS));
-    hxhim::Results::Get *get = static_cast<hxhim::Results::Get *>(rget);
+    hxhim::Result::Get *get = construct<hxhim::Result::Get>(nullptr, -1, DATASTORE_SUCCESS);
     get->subject     = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_POINTER);
     get->predicate   = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_POINTER);
     get->object      = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_BYTE);
+    results.Add(get);
 
-    hxhim::Results::Result *rgetop = results.Add(construct<hxhim::Results::GetOp>(nullptr, -1, DATASTORE_SUCCESS));
-    hxhim::Results::GetOp *getop = static_cast<hxhim::Results::GetOp *>(rgetop);
+    hxhim::Result::GetOp *getop = construct<hxhim::Result::GetOp>(nullptr, -1, DATASTORE_SUCCESS);
     getop->subject   = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_POINTER);
     getop->predicate = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_POINTER);
     getop->object    = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_POINTER);
+    results.Add(getop);
 
-    hxhim::Results::Result *rdel = results.Add(construct<hxhim::Results::Delete>(nullptr, -1, DATASTORE_SUCCESS));
-    hxhim::Results::Delete *del = static_cast<hxhim::Results::Delete *>(rdel);
+    hxhim::Result::Delete *del = construct<hxhim::Result::Delete>(nullptr, -1, DATASTORE_SUCCESS);
     del->subject     = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_POINTER);
     del->predicate   = RealBlob(alloc(1), 1, hxhim_data_t::HXHIM_DATA_POINTER);
+    results.Add(del);
 
     // all Results will attempt to get these variables
     hxhim_op_t op;
@@ -155,8 +209,9 @@ TEST(Results, Accessors) {
     hxhim_data_t object_type;
 
     // PUT
-    EXPECT_EQ(results.GoToHead(), put);
+    results.GoToHead();
     EXPECT_EQ(results.ValidIterator(), true);
+    EXPECT_EQ(results.Curr(), put);
     {
         EXPECT_EQ(results.Op(&op), HXHIM_SUCCESS);
         EXPECT_EQ(op, hxhim_op_t::HXHIM_PUT);
@@ -174,8 +229,9 @@ TEST(Results, Accessors) {
     }
 
     // GET
-    EXPECT_EQ(results.GoToNext(), get);
+    results.GoToNext();
     EXPECT_EQ(results.ValidIterator(), true);
+    EXPECT_EQ(results.Curr(), get);
     {
         EXPECT_EQ(results.Op(&op), HXHIM_SUCCESS);
         EXPECT_EQ(op, hxhim_op_t::HXHIM_GET);
@@ -194,8 +250,9 @@ TEST(Results, Accessors) {
     }
 
     // GETOP
-    EXPECT_EQ(results.GoToNext(), getop);
+    results.GoToNext();
     EXPECT_EQ(results.ValidIterator(), true);
+    EXPECT_EQ(results.Curr(), getop);
     {
         EXPECT_EQ(results.Op(&op), HXHIM_SUCCESS);
         EXPECT_EQ(op, hxhim_op_t::HXHIM_GETOP);
@@ -214,8 +271,9 @@ TEST(Results, Accessors) {
     }
 
     // DEL
-    EXPECT_EQ(results.GoToNext(), del);
+    results.GoToNext();
     EXPECT_EQ(results.ValidIterator(), true);
+    EXPECT_EQ(results.Curr(), del);
     {
         EXPECT_EQ(results.Op(&op), HXHIM_SUCCESS);
         EXPECT_EQ(op, hxhim_op_t::HXHIM_DELETE);
@@ -232,8 +290,9 @@ TEST(Results, Accessors) {
         EXPECT_EQ(results.Object(&object, &object_len, &object_type), HXHIM_ERROR);
     }
 
-    EXPECT_EQ(results.GoToNext(), nullptr);
+    results.GoToNext();
     EXPECT_EQ(results.ValidIterator(), false);
+    EXPECT_EQ(results.Curr(), nullptr);
     {
         EXPECT_EQ(results.Op(&op), HXHIM_ERROR);
         EXPECT_EQ(op, hxhim_op_t::HXHIM_DELETE);

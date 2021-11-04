@@ -45,7 +45,7 @@ hxhim::Results *hxhim::Sync(hxhim_t *hx) {
         // clear out local datastore
         // if there is no local datastore, treat as success
         const int synced = hx->p->range_server.datastore->Sync(hx->p->histograms.write);
-        hxhim::Results::Sync *sync = hxhim::Result::init(hx, synced);
+        hxhim::Result::Sync *sync = hxhim::Result::init(hx, synced);
 
         sync->timestamps.send = std::move(send);
         sync->timestamps.transport = transport;

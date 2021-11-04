@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <memory>
 
 #include "hxhim/Results.h"
@@ -67,89 +68,23 @@ namespace hxhim {
         (results)->ValidIterator();             \
         (results)->GoToNext())
 
+namespace Result {
+    struct Result;
+
+    // timestamps for a single operation
+    // epoch can be obtained with hxhim::GetEpoch
+    struct Timestamps {
+        Timestamps();
+        ~Timestamps();
+
+        ::Stats::Chronostamp *alloc;
+        struct ::Stats::Send send;
+        struct ::Stats::SendRecv transport;
+        struct ::Stats::Recv recv;
+    };
+}
+
 class Results {
-    public:
-        struct Result {
-            Result(hxhim_t *hx, const enum hxhim_op_t op,
-                   const int range_server, const int ds_status);
-            virtual ~Result();
-
-            hxhim_t *hx;
-            enum hxhim_op_t op;
-
-            int range_server;
-            int status;
-
-            // timestamps for a single operation
-            // epoch can be obtained with hxhim::GetEpoch
-            struct Timestamps {
-                Timestamps();
-                ~Timestamps();
-
-                ::Stats::Chronostamp *alloc;
-                struct ::Stats::Send send;
-                struct ::Stats::SendRecv transport;
-                struct ::Stats::Recv recv;
-            };
-
-            Timestamps timestamps;
-
-            struct Result *next;
-        };
-
-        struct SubjectPredicate : public Result {
-            SubjectPredicate(hxhim_t *hx, const enum hxhim_op_t type,
-                             const int range_server, const int status);
-            virtual ~SubjectPredicate();
-
-            Blob subject;
-            Blob predicate;
-        };
-
-        /** @description Convenience struct for PUT results */
-        struct Put final : public SubjectPredicate {
-            Put(hxhim_t *hx, const int range_server, const int status);
-        };
-
-    private:
-        /** @description Base structure for GET results */
-        template <enum hxhim_op_t gettype>
-        struct GetBase final : public SubjectPredicate {
-            GetBase(hxhim_t *hx, const int range_server, const int status)
-                : SubjectPredicate(hx, gettype, range_server, status),
-                  object(),
-                  next(nullptr)
-            {}
-
-            Blob object;
-
-            struct GetBase<gettype> *next;
-        };
-
-    public:
-        /** @description Convenience struct for GET results */
-        typedef GetBase<hxhim_op_t::HXHIM_GET> Get;
-
-        /** @description Convenience struct for GETOP results */
-        typedef GetBase<hxhim_op_t::HXHIM_GETOP> GetOp;
-
-        /** @description Convenience struct for DEL results */
-        struct Delete final : public SubjectPredicate {
-            Delete(hxhim_t *hx, const int range_server, const int status);
-        };
-
-        /** @description Convenience struct for SYNC results */
-        struct Sync final : public Result {
-            Sync(hxhim_t *hx, const int range_server, const int status);
-        };
-
-        /** @description Convenience struct for DEL results */
-        struct Hist final : public Result {
-            Hist(hxhim_t *hx, const int range_server, const int status);
-
-            std::shared_ptr<::Histogram::Histogram> histogram;
-        };
-
     public:
         Results();
         ~Results();
@@ -158,13 +93,12 @@ class Results {
 
         // Appends a single new node to the list
         // timestamps are not updated
-        Result *Add(Result *response);
-
-        // Update duration separately
-        uint64_t UpdateDuration(const uint64_t ns);
+        // iterator can be invalidated
+        void Add(Result::Result *response);
 
         // Moves and appends another set of results; the list being appended is emptied out
         // timestamps are updated
+        // iterator can be invalidated
         void Append(Results *other);
 
         // Accessors for the entire list of results
@@ -172,14 +106,9 @@ class Results {
 
         // Control the "curr" pointer
         bool ValidIterator() const;
-        Result *GoToHead();
-        Result *GoToNext();
+        void GoToHead();
+        void GoToNext();
 
-    private:
-        Result *Curr() const;
-        void push_back(Result *response);
-
-    public:
         // Accessors for individual results
         // pointers are only valid if the Result they came from are still valid
         int Op(enum hxhim_op_t *op) const;
@@ -194,12 +123,9 @@ class Results {
         int Histogram(::Histogram::Histogram **hist) const;
         int Timestamps(struct Result::Timestamps **timestamps) const;
 
-    private:
-        // list of results
-        Result *head;
-        Result *tail;
-        Result *curr;
-        std::size_t count;
+    protected:
+        std::deque <Result::Result *> results;
+        decltype(results)::const_iterator it;
 };
 
 }
