@@ -65,8 +65,10 @@ int main(int argc, char *argv[]) {
     uint64_t bput_flush_time = 0;
 
     enum hxhim_data_t *sub_pred_types = (enum hxhim_data_t *) calloc(count, sizeof(enum hxhim_data_t));
+    hxhim_put_permutation_t *perms = malloc(sizeof(hxhim_put_permutation_t) * count);
     for(size_t i = 0; i < count; i++) {
         sub_pred_types[i] = HXHIM_DATA_BYTE;
+        perms[i] = HXHIM_PUT_SPO;
     }
 
     // do PUTs
@@ -82,10 +84,6 @@ int main(int argc, char *argv[]) {
             != count) {
             printf("Could not generate triples\n");
             return 1;
-        }
-        hxhim_put_permutation_t *perms = malloc(sizeof(hxhim_put_permutation_t) * count);
-        for(size_t i = 0; i < count; i++) {
-            perms[i] = HXHIM_PUT_SPO;
         }
 
         timestamp_end(gen);
@@ -124,7 +122,6 @@ int main(int argc, char *argv[]) {
                 sec(&BPUT_start, &destroy_end));
 
         timestamp_start(clean);
-        free(perms);
         spo_clean(count,
                   &subjects,   &subject_lens,
                   &predicates, &predicate_lens,
@@ -134,6 +131,7 @@ int main(int argc, char *argv[]) {
 
     barrier;
 
+    free(perms);
     free(sub_pred_types);
 
     const size_t total_count = count * times;
