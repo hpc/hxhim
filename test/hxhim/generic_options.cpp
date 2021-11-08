@@ -27,6 +27,7 @@ bool fill_options(hxhim_options_t *opts) {
             #endif
             (hxhim_options_set_hash_function(opts, "Test_Hash_Local", test_hash_local, nullptr)
                                                                              == HXHIM_SUCCESS) &&
+            (hxhim_options_set_start_async_puts_at(opts, 0)                  == HXHIM_SUCCESS) &&
             (hxhim_options_set_maximum_ops_per_request(opts, 1)              == HXHIM_SUCCESS) &&
             (hxhim_options_set_maximum_size_per_request(opts, 1)             == HXHIM_SUCCESS) &&
             (hxhim_options_set_histogram_first_n(opts, 10)                   == HXHIM_SUCCESS) &&

@@ -3,6 +3,7 @@
 #include "generic_options.hpp"
 #include "hxhim/hxhim.hpp"
 #include "hxhim/private/hxhim.hpp"
+#include "hxhim/private/options.hpp"
 
 typedef uint64_t Subject_t;
 typedef uint64_t Predicate_t;
@@ -16,8 +17,14 @@ TEST(hxhim, background_put) {
     hxhim_options_t opts;
     ASSERT_EQ(fill_options(&opts), true);
 
+    EXPECT_EQ(opts.p->async_puts.enabled, 0);
+    EXPECT_EQ(opts.p->async_puts.start_at, 0);
+
     // automatically flush after 1 item has been PUT
     ASSERT_EQ(hxhim_options_set_start_async_puts_at(&opts, 1), HXHIM_SUCCESS);
+
+    EXPECT_EQ(opts.p->async_puts.enabled, 1);
+    EXPECT_EQ(opts.p->async_puts.start_at, 1);
 
     hxhim_t hx;
     ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);

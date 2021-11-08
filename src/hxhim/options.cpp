@@ -462,7 +462,7 @@ int hxhim_options_set_start_async_puts_at(hxhim_options_t *opts, const std::size
         return HXHIM_ERROR;
     }
 
-    opts->p->async_puts.enabled = true;
+    opts->p->async_puts.enabled = !!count;
     opts->p->async_puts.start_at = count;
 
     return HXHIM_SUCCESS;
