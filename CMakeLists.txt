@@ -208,11 +208,6 @@ add_subdirectory(config)
 add_subdirectory(contrib)
 
 #
-# Add demo executable
-#
-add_subdirectory(demo)
-
-#
 # Add unit test executable
 #
 enable_testing()
