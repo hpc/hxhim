@@ -7,6 +7,10 @@
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
+const char *HXHIM_OPEN_ERROR_STR[] = {
+    HXHIM_OPEN_ERROR_GEN(HXHIM_OPEN_ERROR_PREFIX, GENERATE_STR)
+};
+
 const hxhim_put_permutation_t HXHIM_PUT_PERMUTATIONS[] = {
     HXHIM_PUT_SPO,
     HXHIM_PUT_SOP,

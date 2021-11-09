@@ -25,13 +25,22 @@ extern "C"
 #define HXHIM_ERROR                   4
 
 /** hxhim::Open Errors */
-#define HXHIM_OPEN_ERROR_BOOTSTRAP    5
-#define HXHIM_OPEN_ERROR_SET_RUNNING  6 /** should never be seen */
-#define HXHIM_OPEN_ERROR_HASH         7
-#define HXHIM_OPEN_ERROR_DATASTORE    8
-#define HXHIM_OPEN_ERROR_TRANSPORT    9
-#define HXHIM_OPEN_ERROR_QUEUES      10
-#define HXHIM_OPEN_ERROR_ASYNC_PUT   11
+#define HXHIM_OPEN_ERROR_GEN(PREFIX, GEN)       \
+    GEN(PREFIX, BOOTSTRAP)                      \
+    GEN(PREFIX, SET_RUNNING)                    \
+    GEN(PREFIX, HASH)                           \
+    GEN(PREFIX, DATASTORE)                      \
+    GEN(PREFIX, TRANSPORT)                      \
+    GEN(PREFIX, QUEUES)                         \
+    GEN(PREFIX, ASYNC_PUT)
+
+#define HXHIM_OPEN_ERROR_PREFIX HXHIM_OPEN_ERROR
+
+enum hxhim_open_t {
+    HXHIM_OPEN_ERROR_GEN(HXHIM_OPEN_ERROR_PREFIX, GENERATE_ENUM)
+};
+
+extern const char *HXHIM_OPEN_ERROR_STR[];
 
 /** Different ways a SPO triple can be PUT into HXHIM per PUT */
 typedef size_t hxhim_put_permutation_t;
