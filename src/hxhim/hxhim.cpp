@@ -3,7 +3,7 @@
 #include "hxhim/private/accessors.hpp"
 #include "hxhim/private/hxhim.hpp"
 #include "hxhim/private/options.hpp"
-#include "hxhim/RangeServer.hpp"
+#include "hxhim/Datastore.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
@@ -255,7 +255,7 @@ int hxhimClose(hxhim_t *hx) {
  * @param args the extra args that are used in the hash function
  * @return A list of results
  */
-hxhim::Results *hxhim::ChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t func, void *args) {
+hxhim::Results *hxhim::ChangeHash(hxhim_t *hx, const std::string &name, hxhim_hash_t func, void *args) {
     if (!hxhim::valid(hx)) {
         return nullptr;
     }
@@ -268,14 +268,15 @@ hxhim::Results *hxhim::ChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t fu
     hx->p->hash.func = func;
     hx->p->hash.args = args;
 
-    if (hx->p->range_server.datastore) {
+    for(std::size_t i = 0; i < hx->p->range_server.datastores.ds.size(); i++) {
         // change datastores
         std::stringstream s;
-        s << name << "-" << RangeServer::get_id(hx->p->bootstrap.rank,
+        s << name << "-" << Datastore::get_id(hx->p->bootstrap.rank,
                                                 hx->p->bootstrap.size,
                                                 hx->p->range_server.client_ratio,
-                                                hx->p->range_server.server_ratio);
-        hx->p->range_server.datastore->Open(s.str());
+                                                hx->p->range_server.server_ratio,
+                                                i);
+        hx->p->range_server.datastores.ds[i]->Open(s.str());
     }
 
     MPI_Barrier(hx->p->bootstrap.comm);
@@ -302,10 +303,10 @@ hxhim_results_t *hxhimChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t fun
 }
 
 /**
- * ChangeHash
- * Close the current datastore and open a new one with the same hash function.
+ * ChangeDatastore
+ * Close the current datastore and open new ones.
  * This is a collective function, but allows for each rank to select its own
- * new datastore name.
+ * new datastore names.
  *
  * @param hx                 the HXHIM session
  * @param name               the name of the new datastore
@@ -314,7 +315,7 @@ hxhim_results_t *hxhimChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t fun
  * @param create_missing     whether or not to create histograms that were not found
  * @return A list of results from before the datastores were changed
  */
-hxhim::Results *hxhim::ChangeDatastore(hxhim_t *hx, const char *name,
+hxhim::Results *hxhim::ChangeDatastore(hxhim_t *hx, const std::string &name_prefix,
                                        const bool write_histograms, const bool read_histograms,
                                        const bool create_missing) {
     if (!hxhim::valid(hx)) {
@@ -325,17 +326,19 @@ hxhim::Results *hxhim::ChangeDatastore(hxhim_t *hx, const char *name,
 
     MPI_Barrier(hx->p->bootstrap.comm);
 
-    hx->p->range_server.datastore->Change(std::string(name),
-                                          write_histograms,
-                                          read_histograms?&hx->p->histograms.names:nullptr);
+    decltype(hx->p->range_server.datastores.ds) &datastores = hx->p->range_server.datastores.ds;
+    for(std::size_t i = 0; i < datastores.size(); i++) {
+        datastores[i]->Change(name_prefix,
+                              write_histograms,
+                              read_histograms?&hx->p->histograms.names:nullptr);
+        if (create_missing) {
+            const ::Datastore::Datastore::Histograms *hists = nullptr;
+            datastores[i]->GetHistograms(&hists);
 
-    if (create_missing) {
-        const Datastore::Datastore::Histograms *hists = nullptr;
-        hx->p->range_server.datastore->GetHistograms(&hists);
-
-        for(std::string const &hist_name : hx->p->histograms.names) {
-            if (hists->find(hist_name) == hists->end()){
-                hx->p->range_server.datastore->AddHistogram(hist_name, hx->p->histograms.config);
+            for(std::string const &hist_name : hx->p->histograms.names) {
+                if (hists->find(hist_name) == hists->end()){
+                    datastores[i]->AddHistogram(hist_name, hx->p->histograms.config);
+                }
             }
         }
     }
@@ -347,9 +350,9 @@ hxhim::Results *hxhim::ChangeDatastore(hxhim_t *hx, const char *name,
 
 /**
  * ChangeHash
- * Close the current datastore and open a new one with the same hash function.
+ * Close the current datastore and open new ones.
  * This is a collective function, but allows for each rank to select its own
- * new datastore name.
+ * new datastore names.
  *
  * @param hx                 the HXHIM session
  * @param name               the name of the new datastore
@@ -361,107 +364,109 @@ hxhim::Results *hxhim::ChangeDatastore(hxhim_t *hx, const char *name,
 hxhim_results_t *hxhimChangeDatastore(hxhim_t *hx, const char *name,
                                       const int write_histograms, const int read_histograms,
                                       const int create_missing) {
-    return hxhim_results_init(hx, hxhim::ChangeDatastore(hx, name, write_histograms, read_histograms, create_missing));
+    return hxhim_results_init(hx, hxhim::ChangeDatastore(hx, name,
+                                                         write_histograms, read_histograms,
+                                                         create_missing));
 }
 
-/**
- * GetStats
- * Collective operation
- * Each desired pointer should be preallocated with space for md->size values
- *
- * @param hx             the HXHIM session
- * @param dst_rank       the rank that is collecting the data
- * @param put_times      the array of put times from each rank
- * @param num_puts       the array of number of puts from each rank
- * @param get_times      the array of get times from each rank
- * @param num_gets       the array of number of gets from each rank
- * @return HXHIM_SUCCESS or HXHIM_ERROR
- */
-int hxhim::GetStats(hxhim_t *hx, const int dst_rank,
-                    uint64_t    *put_times,
-                    std::size_t *num_puts,
-                    uint64_t    *get_times,
-                    std::size_t *num_gets) {
-    if (!hxhim::valid(hx)) {
-        return HXHIM_ERROR;
-    }
+// /**
+//  * GetStats
+//  * Collective operation
+//  * Each desired pointer should be preallocated with space for md->size values
+//  *
+//  * @param hx             the HXHIM session
+//  * @param dst_rank       the rank that is collecting the data
+//  * @param put_times      the array of put times from each rank
+//  * @param num_puts       the array of number of puts from each rank
+//  * @param get_times      the array of get times from each rank
+//  * @param num_gets       the array of number of gets from each rank
+//  * @return HXHIM_SUCCESS or HXHIM_ERROR
+//  */
+// int hxhim::GetStats(hxhim_t *hx, const int dst_rank,
+//                     uint64_t    *put_times,
+//                     std::size_t *num_puts,
+//                     uint64_t    *get_times,
+//                     std::size_t *num_gets) {
+//     if (!hxhim::valid(hx)) {
+//         return HXHIM_ERROR;
+//     }
 
-    const static std::size_t size_size = sizeof(std::size_t);
+//     const static std::size_t size_size = sizeof(std::size_t);
 
-    // collect from all datastores first
-    uint64_t    local_put_times = 0;
-    std::size_t local_num_puts  = 0;
-    uint64_t    local_get_times = 0;
-    std::size_t local_num_gets  = 0;
+//     // collect from all datastores first
+//     uint64_t    local_put_times = 0;
+//     std::size_t local_num_puts  = 0;
+//     uint64_t    local_get_times = 0;
+//     std::size_t local_num_gets  = 0;
 
-    if (hx->p->range_server.datastore->GetStats(&local_put_times,
-                                                &local_num_puts,
-                                                &local_get_times,
-                                                &local_num_gets) != DATASTORE_SUCCESS) {
-        return HXHIM_ERROR;
-    }
+//     if (hx->p->range_server.datastore->GetStats(&local_put_times,
+//                                                 &local_num_puts,
+//                                                 &local_get_times,
+//                                                 &local_num_gets) != DATASTORE_SUCCESS) {
+//         return HXHIM_ERROR;
+//     }
 
-    // send to destination rank
-    MPI_Comm comm = hx->p->bootstrap.comm;
-    MPI_Barrier(comm);
+//     // send to destination rank
+//     MPI_Comm comm = hx->p->bootstrap.comm;
+//     MPI_Barrier(comm);
 
-    if (put_times) {
-        if (MPI_Gather(&local_put_times, 1, MPI_UINT64_T,
-                              put_times, 1, MPI_UINT64_T, dst_rank, comm) != MPI_SUCCESS) {
-            return HXHIM_ERROR;
-        }
-    }
+//     if (put_times) {
+//         if (MPI_Gather(&local_put_times, 1, MPI_UINT64_T,
+//                               put_times, 1, MPI_UINT64_T, dst_rank, comm) != MPI_SUCCESS) {
+//             return HXHIM_ERROR;
+//         }
+//     }
 
-    if (num_puts) {
-        if (MPI_Gather(&local_num_puts, size_size, MPI_CHAR,
-                              num_puts, size_size, MPI_CHAR, dst_rank, comm) != MPI_SUCCESS) {
-            return HXHIM_ERROR;
-        }
-    }
+//     if (num_puts) {
+//         if (MPI_Gather(&local_num_puts, size_size, MPI_CHAR,
+//                               num_puts, size_size, MPI_CHAR, dst_rank, comm) != MPI_SUCCESS) {
+//             return HXHIM_ERROR;
+//         }
+//     }
 
-    if (get_times) {
-        if (MPI_Gather(&local_get_times, 1, MPI_UINT64_T,
-                              get_times, 1, MPI_UINT64_T, dst_rank, comm) != MPI_SUCCESS) {
-            return HXHIM_ERROR;
-        }
-    }
+//     if (get_times) {
+//         if (MPI_Gather(&local_get_times, 1, MPI_UINT64_T,
+//                               get_times, 1, MPI_UINT64_T, dst_rank, comm) != MPI_SUCCESS) {
+//             return HXHIM_ERROR;
+//         }
+//     }
 
-    if (num_gets) {
-        if (MPI_Gather(&local_num_gets, size_size, MPI_CHAR,
-                              num_gets, size_size, MPI_CHAR, dst_rank, comm) != MPI_SUCCESS) {
-            return HXHIM_ERROR;
-        }
-    }
+//     if (num_gets) {
+//         if (MPI_Gather(&local_num_gets, size_size, MPI_CHAR,
+//                               num_gets, size_size, MPI_CHAR, dst_rank, comm) != MPI_SUCCESS) {
+//             return HXHIM_ERROR;
+//         }
+//     }
 
-    MPI_Barrier(comm);
+//     MPI_Barrier(comm);
 
-    return HXHIM_SUCCESS;
-}
+//     return HXHIM_SUCCESS;
+// }
 
-/**
- * hxhimGetStats
- * Collective operation
- * Each desired pointer should be preallocated with space for md->size values
- *
- * @param hx             the HXHIM session
- * @param dst_rank       the rank that is collecting the data
- * @param put_times      the array of put times from each rank
- * @param num_puts       the array of number of puts from each rank
- * @param get_times      the array of get times from each rank
- * @param num_gets       the array of number of gets from each rank
- * @return HXHIM_SUCCESS or HXHIM_ERROR
- */
-int hxhimGetStats(hxhim_t *hx, const int dst_rank,
-                  uint64_t    *put_times,
-                  std::size_t *num_puts,
-                  uint64_t    *get_times,
-                  std::size_t *num_gets) {
-    return hxhim::GetStats(hx, dst_rank,
-                           put_times,
-                           num_puts,
-                           get_times,
-                           num_gets);
-}
+// /**
+//  * hxhimGetStats
+//  * Collective operation
+//  * Each desired pointer should be preallocated with space for md->size values
+//  *
+//  * @param hx             the HXHIM session
+//  * @param dst_rank       the rank that is collecting the data
+//  * @param put_times      the array of put times from each rank
+//  * @param num_puts       the array of number of puts from each rank
+//  * @param get_times      the array of get times from each rank
+//  * @param num_gets       the array of number of gets from each rank
+//  * @return HXHIM_SUCCESS or HXHIM_ERROR
+//  */
+// int hxhimGetStats(hxhim_t *hx, const int dst_rank,
+//                   uint64_t    *put_times,
+//                   std::size_t *num_puts,
+//                   uint64_t    *get_times,
+//                   std::size_t *num_gets) {
+//     return hxhim::GetStats(hx, dst_rank,
+//                            put_times,
+//                            num_puts,
+//                            get_times,
+//                            num_gets);
+// }
 
 // /**
 //  * GetFilled

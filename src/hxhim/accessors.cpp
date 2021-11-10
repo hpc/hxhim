@@ -1,3 +1,4 @@
+#include "hxhim/RangeServer.hpp"
 #include "hxhim/accessors.hpp"
 #include "hxhim/private/accessors.hpp"
 #include "hxhim/private/hxhim.hpp"
@@ -227,6 +228,115 @@ int hxhimGetRangeServerClientToServerRatio(hxhim_t *hx, std::size_t *client, std
 }
 
 /**
+ * nocheck::GetDatastoreCount
+ * Gets the total number of datastores in this HXHIM instance
+ *
+ * @param hx              the HXHIM instance
+ * @param count           the total number of datastores
+ * @return HXHIM_SUCCESS
+ */
+int hxhim::nocheck::GetDatastoreCount(hxhim_t *hx, std::size_t *count) {
+    if (count) {
+        *count = hx->p->range_server.datastores.total;
+    }
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * GetDatastoreCount
+ * Gets the total number of datastores in this HXHIM instance
+ *
+ * @param hx              the HXHIM instance
+ * @param count           the total number of datastores
+ * @return HXHIM_SUCCESS or HXHIM_ERROR on error
+ */
+int hxhim::GetDatastoreCount(hxhim_t *hx, std::size_t *count) {
+    if (!valid(hx)) {
+        return HXHIM_ERROR;
+    }
+
+    return hxhim::nocheck::GetDatastoreCount(hx, count);
+}
+
+/**
+ * hxhimGetDatastoreCount
+ * Gets the total number of datastores in this HXHIM instance
+ *
+ * @param hx              the HXHIM instance
+ * @param count           the total number of datastores
+ * @return HXHIM_SUCCESS or HXHIM_ERROR on error
+ */
+int hxhimGetDatastoreCount(hxhim_t *hx, size_t *count) {
+    return hxhim::GetDatastoreCount(hx, count);
+}
+
+/**
+ * GetDatastoreLocation
+ * Gets the rank and offset of a datastore
+ *
+ * @param hx              the HXHIM instance
+ * @param id              the logical datastore ID
+ * @param rank            the rank the datastore is on
+ * @param offset          the offset within the rank
+ * @return HXHIM_SUCCESS or HXHIM_ERROR on error
+ */
+int hxhim::nocheck::GetDatastoreLocation(hxhim_t *hx, const int id, int *rank, int *offset) {
+    if ((id < 0) ||
+        ((std::size_t ) id >= hx->p->range_server.datastores.total)) {
+        return HXHIM_ERROR;
+    }
+
+    if (rank) {
+        *rank = RangeServer::get_rank(id,
+                                      hx->p->range_server.client_ratio,
+                                      hx->p->range_server.server_ratio,
+                                      hx->p->range_server.datastores.per_server);
+        if (*rank < 0) {
+            return HXHIM_ERROR;
+        }
+    }
+
+    if (offset) {
+        *offset = id % hx->p->range_server.datastores.per_server;
+    }
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * GetDatastoreLocation
+ * Gets the rank and offset of a datastore
+ *
+ * @param hx              the HXHIM instance
+ * @param id              the logical datastore ID
+ * @param rank            the rank the datastore is on
+ * @param offset          the offset within the rank
+ * @return HXHIM_SUCCESS or HXHIM_ERROR on error
+ */
+int hxhim::GetDatastoreLocation(hxhim_t *hx, const int id, int *rank, int *offset) {
+    if (!valid(hx)) {
+        return HXHIM_ERROR;
+    }
+
+    return hxhim::nocheck::GetDatastoreLocation(hx, id, rank, offset);
+}
+
+/**
+ * hxhimGetDatastoreLocation
+ * Gets the rank and offset of a datastore
+ *
+ * @param hx              the HXHIM instance
+ * @param id              the logical datastore ID
+ * @param rank            the rank the datastore is on
+ * @param offset          the offset within the rank
+ * @return HXHIM_SUCCESS or HXHIM_ERROR on error
+ */
+int hxhimGetDatastoreLocation(hxhim_t *hx, const int id, int *rank, int *offset) {
+    return hxhim::GetDatastoreLocation(hx, id, rank, offset);
+}
+
+/**
  * GetPrintBufferContents
  * Moves the contents of the private print buffer to the
  * provided ostream and clears out the private buffer
@@ -302,60 +412,6 @@ int hxhim::GetHash(hxhim_t *hx, const char **name, hxhim_hash_t *func, void **ar
  */
 int hxhimGetHash(hxhim_t *hx, const char **name, hxhim_hash_t *func, void **args) {
     return hxhim::GetHash(hx, name, func, args);
-}
-
-/**
- * GetDatastorePrefix
- * Get the prefix for the datastore instance
- * that was found by the configuration parser
- *
- * @param hx          the HXHIM instance
- * @param prefix      a pointer to the prefix
- * @param prefix_len  a pointer to the prefix length
- * @return HXHIM_SUCCESS or HXHIM_ERROR on error
- */
-int hxhim::nocheck::GetDatastorePrefix(hxhim_t *hx, const char **prefix, std::size_t *prefix_len) {
-    if (prefix) {
-        *prefix = hx->p->range_server.prefix.data();
-    }
-
-    if (prefix_len) {
-        *prefix_len = hx->p->range_server.prefix.size();
-    }
-
-    return HXHIM_SUCCESS;
-}
-
-/**
- * GetDatastorePrefix
- * Get the prefix for the datastore instance
- * that was found by the configuration parser
- *
- * @param hx          the HXHIM instance
- * @param prefix      a pointer to the prefix
- * @param prefix_len  a pointer to the prefix length
- * @return HXHIM_SUCCESS or HXHIM_ERROR on error
- */
-int hxhim::GetDatastorePrefix(hxhim_t *hx, const char **prefix, std::size_t *prefix_len) {
-    if (!valid(hx) || !hx->p->running) {
-        return HXHIM_ERROR;
-    }
-
-    return hxhim::nocheck::GetDatastorePrefix(hx, prefix, prefix_len);
-}
-
-/**
- * hxhimGetDatastorePrefix
- * Get the prefix for the datastore instance
- * that was found by the configuration parser
- *
- * @param hx          the HXHIM instance
- * @param prefix      a pointer to the prefix
- * @param prefix_len  a pointer to the prefix length
- * @return HXHIM_SUCCESS or HXHIM_ERROR on error
- */
-int hxhimGetDatastorePrefix(hxhim_t *hx, const char **prefix, size_t *prefix_len) {
-    return hxhim::GetDatastorePrefix(hx, prefix, prefix_len);
 }
 
 /**

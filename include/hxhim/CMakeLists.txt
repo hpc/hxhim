@@ -5,6 +5,7 @@
 cmake_minimum_required (VERSION 3.6.3)
 
 set(HXHIM_HEADERS
+  Datastore.hpp
   RangeServer.hpp
   Results.h
   Results.hpp

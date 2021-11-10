@@ -6,7 +6,6 @@
 #define TRANSPORT_HPP
 
 #include <unordered_map>
-#include <map>
 
 #include "message/Messages.hpp"
 #include "transport/constants.hpp"

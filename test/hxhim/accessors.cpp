@@ -28,9 +28,11 @@ TEST(GetRangeServerCount, equal) {
 TEST(GetRangeServerCount, more_clients) {
     /**
      * Client : Server = 5 : 3
-     * MPI Rank: |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |
-     * Client:   |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |
-     * RS/DS:    |  0  |  1  |  2  |     |     |  3  |  4  |  5  |     |
+     * Datastores per server: 3
+     * MPI Rank: |   0   |   1   |   2   |  3  |  4  |    5    |    6     |    7     |  8  |
+     * Client:   |   0   |   1   |   2   |  3  |  4  |    5    |    6     |    7     |  8  |
+     * RS:       |   0   |   1   |   2   |     |     |    3    |    4     |    5     |     |
+     : DS:       | 0,1,2 | 3,4,5 | 6,7,8 |     |     | 9,10,11 | 12,13,14 | 15,16,17 |     |
      */
 
     const std::size_t CLIENT_RATIO = 5;
@@ -58,9 +60,11 @@ TEST(GetRangeServerCount, more_clients) {
 TEST(GetRangeServerCount, more_servers) {
     /**
      * Client : Server = 3 : 5
-     * MPI Rank: |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |
-     * Client:   |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |
-     * RS/DS:    |  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |  8  |
+     * Datastores per server: 3
+     * MPI Rank: |   0   |   1   |   2   |    3    |    4     |    5     |    6     |    7     |    8     |
+     * Client:   |   0   |   1   |   2   |    3    |    4     |    5     |    6     |    7     |    8     |
+     * RS:       |   0   |   1   |   2   |    3    |    4     |    5     |    6     |    7     |    8     |
+     * DS:       | 0,1,2 | 3,4,5 | 6,7,8 | 9,10,11 | 12,13,14 | 15,16,17 | 18,19,20 | 21,22,23 | 24,25,26 |
      */
 
     const std::size_t CLIENT_RATIO = 3;

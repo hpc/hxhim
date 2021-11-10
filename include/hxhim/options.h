@@ -30,17 +30,17 @@ int hxhim_options_set_mpi_bootstrap(hxhim_options_t *opts, MPI_Comm comm);
 int hxhim_options_set_debug_level(hxhim_options_t *opts, const int level);
 int hxhim_options_set_client_ratio(hxhim_options_t *opts, const size_t ratio);
 int hxhim_options_set_server_ratio(hxhim_options_t *opts, const size_t ratio);
+int hxhim_options_set_datastores_per_server(hxhim_options_t *opts, const size_t datastores_per_server);
 int hxhim_options_set_open_init_datastore(hxhim_options_t *opts, const int init);
 int hxhim_options_datastore_histograms(hxhim_options_t *opts, const int read, const int write);
+int hxhim_options_set_datastore_name(hxhim_options_t *opts, const char *prefix, const char *basename, const char *postfix);
 int hxhim_options_set_datastore_in_memory(hxhim_options_t *opts);
 #if HXHIM_HAVE_LEVELDB
 int hxhim_options_set_datastore_leveldb(hxhim_options_t *opts,
-                                        const char *prefix, const char *postfix,
                                         const int create_if_missing);
 #endif
 #if HXHIM_HAVE_ROCKSDB
 int hxhim_options_set_datastore_rocksdb(hxhim_options_t *opts,
-                                        const char *prefix, const char *postfix,
                                         const int create_if_missing);
 #endif
 int hxhim_options_set_hash_name(hxhim_options_t *opts, const char *name);

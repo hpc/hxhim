@@ -85,7 +85,7 @@ typedef struct hxhim_private {
         hxhim::Queues<Message::Request::BDelete>    deletes;
         hxhim::Queues<Message::Request::BHistogram> histograms;
 
-        std::vector<int> rs_to_rank;
+        std::vector<int> ds_to_rank;
     } queues;
 
     // asynchronous BPUT data
@@ -118,16 +118,21 @@ typedef struct hxhim_private {
 
     // Range Server
     struct {
+        int id;                            // > 0 if this is a range server; else -1
         std::size_t client_ratio;          // client portion of client:server ratio
         std::size_t server_ratio;          // server portion of client:server ratio
         std::size_t total_range_servers;   // total number of range servers across all ranks
 
-        // local datastore (max 1 per server)
-        // f(rank) = datastore ID
-        Datastore::Datastore *datastore = nullptr;
+        struct {
+            std::string prefix;            // prefix path of datastore
+            std::string basename;          // prefix of each datastore name
+            std::string postfix;           // string to append to each datastore name
+            std::size_t per_server;        // number of datastores per range server
+            std::size_t total;             // total number of datastores across all ranks
 
-        std::string prefix;                // datastore prefix set by the configuration file/variables
-        std::string postfix;               // datastore postfix set by the configuration file/variables
+            // f(datastore ID) = (rank, offset)
+            std::vector<Datastore::Datastore *> ds;
+        } datastores;
     } range_server;
 
     hxhim::Stats::Global stats;

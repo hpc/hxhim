@@ -39,20 +39,20 @@ int hxhim_hash(hxhim_t *hx,
                void *predicate, const size_t predicate_len);
 
 /** @description Simple, predefined hashes */
-int hxhim_hash_RankZero(hxhim_t *hx,
-                        void *subject, const size_t subject_len,
-                        void *predicate, const size_t predicate_len,
-                        void *args);
+int hxhim_hash_DatastoreZero(hxhim_t *hx,
+                             void *subject, const size_t subject_len,
+                             void *predicate, const size_t predicate_len,
+                             void *args);
 
-int hxhim_hash_RankModRangeServers(hxhim_t *hx,
-                                   void *subject, const size_t subject_len,
-                                   void *predicate, const size_t predicate_len,
-                                   void *args);
+int hxhim_hash_RankModDatastores(hxhim_t *hx,
+                                 void *subject, const size_t subject_len,
+                                 void *predicate, const size_t predicate_len,
+                                 void *args);
 
-int hxhim_hash_SumModRangeServers(hxhim_t *hx,
-                                  void *subject, const size_t subject_len,
-                                  void *predicate, const size_t predicate_len,
-                                  void *args);
+int hxhim_hash_SumModDatastores(hxhim_t *hx,
+                                void *subject, const size_t subject_len,
+                                void *predicate, const size_t predicate_len,
+                                void *args);
 
 int hxhim_hash_uthash_BER(hxhim_t *hx,
                           void *subject, const size_t subject_len,

@@ -1,7 +1,8 @@
 #include "message/Request.hpp"
 
 Message::Request::Request::Request(const enum hxhim_op_t type)
-    : Message(Direction::REQUEST, type, 0)
+    : Message(Direction::REQUEST, type, 0),
+      dst_rank(-1)
 {}
 
 Message::Request::Request::~Request() {}

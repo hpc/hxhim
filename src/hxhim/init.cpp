@@ -2,6 +2,7 @@
 
 #include "datastore/datastore.hpp"
 #include "datastore/transform.hpp"
+#include "hxhim/Datastore.hpp"
 #include "hxhim/RangeServer.hpp"
 #include "hxhim/private/hxhim.hpp"
 #include "hxhim/private/options.hpp"
@@ -62,19 +63,21 @@ int hxhim::init::queues(hxhim_t *hx, hxhim_options_t *opts) {
         #if ASYNC_PUTS
         std::lock_guard<std::mutex> lock(hx->p->queues.puts.mutex);
         #endif
-        hx->p->queues.puts.queue.resize(hx->p->range_server.total_range_servers);
+        hx->p->queues.puts.queue.resize(hx->p->range_server.datastores.total);
         hx->p->queues.puts.count = 0;
     }
-    hx->p->queues.gets.resize      (hx->p->range_server.total_range_servers);
-    hx->p->queues.getops.resize    (hx->p->range_server.total_range_servers);
-    hx->p->queues.deletes.resize   (hx->p->range_server.total_range_servers);
-    hx->p->queues.histograms.resize(hx->p->range_server.total_range_servers);
-    hx->p->queues.rs_to_rank.resize(hx->p->range_server.total_range_servers);
+    hx->p->queues.gets.resize      (hx->p->range_server.datastores.total);
+    hx->p->queues.getops.resize    (hx->p->range_server.datastores.total);
+    hx->p->queues.deletes.resize   (hx->p->range_server.datastores.total);
+    hx->p->queues.histograms.resize(hx->p->range_server.datastores.total);
+    hx->p->queues.ds_to_rank.resize(hx->p->range_server.datastores.total);
 
-    for(std::size_t i = 0; i < hx->p->range_server.total_range_servers; i++) {
-        hx->p->queues.rs_to_rank[i] = hxhim::RangeServer::get_rank(i, hx->p->bootstrap.size,
-                                                                   hx->p->range_server.client_ratio,
-                                                                   hx->p->range_server.server_ratio);
+    // amortize cost of computing rank from datastore
+    for(std::size_t i = 0; i < hx->p->range_server.datastores.total; i++) {
+        hx->p->queues.ds_to_rank[i] = hxhim::Datastore::get_rank(i, hx->p->bootstrap.size,
+                                                                 hx->p->range_server.client_ratio,
+                                                                 hx->p->range_server.server_ratio,
+                                                                 hx->p->range_server.datastores.per_server);
     }
 
 
@@ -84,9 +87,8 @@ int hxhim::init::queues(hxhim_t *hx, hxhim_options_t *opts) {
 
 namespace hxhim {
 namespace init {
-
-Datastore::Transform::Callbacks *transform(hxhim_options_t *opts) {
-    Datastore::Transform::Callbacks *callbacks = Datastore::Transform::default_callbacks();
+static ::Datastore::Transform::Callbacks *transform(hxhim_options_t *opts) {
+    ::Datastore::Transform::Callbacks *callbacks = ::Datastore::Transform::default_callbacks();
 
     // move in values from opts
     callbacks->numeric_extra = opts->p->transform.numeric_extra;
@@ -101,13 +103,12 @@ Datastore::Transform::Callbacks *transform(hxhim_options_t *opts) {
 
     return callbacks;
 }
-
 }
 }
 
 /**
  * datastore
- * Sets up and starts the datastore
+ * Sets up and starts the datastores
  *
  * @param hx   the HXHIM instance
  * @param opts the HXHIM options
@@ -117,50 +118,75 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
     mlog(HXHIM_CLIENT_INFO, "Starting Datastore Initialization");
     // there must be at least 1 client, server, and datastore
     if (!opts->p->client_ratio ||
-        !opts->p->server_ratio) {
+        !opts->p->server_ratio ||
+        !opts->p->datastores.per_server) {
         return HXHIM_ERROR;
     }
 
-    hx->p->range_server.client_ratio = opts->p->client_ratio;
-    hx->p->range_server.server_ratio = opts->p->server_ratio;
+    decltype(hx->p->range_server) *rs = &hx->p->range_server;
+
+    rs->client_ratio = opts->p->client_ratio;
+    rs->server_ratio = opts->p->server_ratio;
+    rs->datastores.prefix = opts->p->datastores.prefix;
+    rs->datastores.basename = opts->p->datastores.basename;
+    rs->datastores.postfix = opts->p->datastores.postfix;
+    rs->datastores.per_server = opts->p->datastores.per_server;
 
     hx->p->histograms.names = std::move(opts->p->histograms.names);
     hx->p->histograms.config = opts->p->histograms.config;
 
-    // create datastore if this rank is a server
-    const int rs_id = hxhim::RangeServer::get_id(hx->p->bootstrap.rank, hx->p->bootstrap.size,
-                                                 hx->p->range_server.client_ratio,
-                                                 hx->p->range_server.server_ratio);
-    if (rs_id > -1) {
-        // and if the datastore should be created
-        if (Datastore::Init(hx,
-                            rs_id,
-                            opts->p->datastore,
-                            init::transform(opts),
-                            opts->p->histograms.config,
-                            nullptr,
-                            opts->p->open_init_datastore,
-                            opts->p->histograms.read,
-                            opts->p->histograms.write) != DATASTORE_SUCCESS) {
-            return HXHIM_ERROR;
-        }
-    }
-
     // calculate how many range servers there are
-    if (hx->p->range_server.client_ratio <= hx->p->range_server.server_ratio) {
+    if (rs->client_ratio <= rs->server_ratio) {
         // all ranks are servers
-        hx->p->range_server.total_range_servers = hx->p->bootstrap.size;
+        rs->total_range_servers = hx->p->bootstrap.size;
     }
     else {
         // client > server
 
-        // whole "buckets" get server_ratio servers per bucket
-        const std::size_t whole_buckets = hx->p->bootstrap.size / hx->p->range_server.client_ratio;
-        hx->p->range_server.total_range_servers = whole_buckets * hx->p->range_server.server_ratio;
+        // whole "blocks" get server_ratio servers per block
+        const std::size_t whole_blocks = hx->p->bootstrap.size / rs->client_ratio;
+        rs->total_range_servers = rs->server_ratio * whole_blocks;
 
         // there can be at most server_ratio servers
-        const std::size_t remaining_ranks = hx->p->bootstrap.size % hx->p->range_server.client_ratio;
-        hx->p->range_server.total_range_servers += std::min(remaining_ranks, hx->p->range_server.server_ratio);
+        const std::size_t remaining_ranks = hx->p->bootstrap.size % rs->client_ratio;
+        rs->total_range_servers += std::min(remaining_ranks, rs->server_ratio);
+    }
+
+    // each range server has the same number of datastores
+    rs->datastores.total = rs->total_range_servers * rs->datastores.per_server;
+
+    // get this rank's range server id, if it is a range server
+    rs->id = hxhim::RangeServer::get_id(hx->p->bootstrap.rank, hx->p->bootstrap.size,
+                                        rs->client_ratio,
+                                        rs->server_ratio);
+    if (rs->id < 0) {
+        return HXHIM_SUCCESS;
+    }
+
+    // clear out old datastores
+    destroy::datastore(hx);
+
+    // set up new datastores
+    int ds_id = hxhim::Datastore::get_id(hx->p->bootstrap.rank, 0, hx->p->bootstrap.size,
+                                         rs->client_ratio,
+                                         rs->server_ratio,
+                                         rs->datastores.per_server);
+
+    rs->datastores.ds.resize(rs->datastores.per_server, nullptr);
+    for(::Datastore::Datastore *&ds : hx->p->range_server.datastores.ds) {
+        ds = ::Datastore::Init(hx,
+                               ds_id++,
+                               opts->p->datastores.config,
+                               init::transform(opts),
+                               opts->p->histograms.config,
+                               nullptr,
+                               opts->p->datastores.open_init,
+                               opts->p->histograms.read,
+                               opts->p->histograms.write);
+
+        if (!ds) {
+            return HXHIM_ERROR;
+        }
     }
 
     mlog(HXHIM_CLIENT_INFO, "Completed Datastore Initialization");
@@ -188,23 +214,26 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
 
     // ignore configuration hash - everything goes into here
     hx->p->hash.name = "local";
-    hx->p->hash.func = hxhim_hash_RankZero;
+    hx->p->hash.func = hxhim_hash_DatastoreZero;
     hx->p->hash.args = nullptr;
 
-    if (Datastore::Init(hx, 0,
-                        opts->p->datastore,
-                        init::transform(opts),
-                        opts->p->histograms.config,
-                        &name,
-                        opts->p->open_init_datastore,
-                        opts->p->histograms.read,
-                        opts->p->histograms.write) != DATASTORE_SUCCESS) {
+    ::Datastore::Datastore *ds = ::Datastore::Init(hx, 0,
+                                               opts->p->datastores.config,
+                                               init::transform(opts),
+                                               opts->p->histograms.config,
+                                               &name,
+                                               opts->p->datastores.open_init,
+                                               opts->p->histograms.read,
+                                               opts->p->histograms.write);
+    if (!ds) {
         return HXHIM_ERROR;
     }
 
+    hx->p->range_server.id = 0;
+    hx->p->range_server.datastores.ds.push_back(ds);
     hx->p->range_server.total_range_servers = 1;
 
-    return hx->p->range_server.datastore?HXHIM_SUCCESS:HXHIM_ERROR;
+    return HXHIM_SUCCESS;
 }
 
 /**
@@ -293,10 +322,6 @@ int hxhim::init::async_puts(hxhim_t *hx, hxhim_options_t *opts) {
 
         // Set up queued PUT results list
         hx->p->async_puts.results = nullptr;
-
-        // // force the thread to loop once after starting
-        // // might not be needed
-        // hx->p->queues.puts.flushed = true;
 
         // Start the background thread
         hx->p->async_puts.thread = std::thread(async_put_thread, hx);

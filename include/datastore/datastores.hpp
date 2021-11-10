@@ -17,7 +17,13 @@
 
 namespace Datastore {
 
-int Init(hxhim_t *hx,
+std::string generate_name(const std::string &prefix,
+                          const std::string &basename,
+                          const std::size_t id,
+                          const std::string &postfix,
+                          const char path_sep = '/');
+
+Datastore *Init(hxhim_t *hx,
          const int id,
          Config *config,
          Transform::Callbacks *callbacks,

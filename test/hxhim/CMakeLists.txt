@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.6.3)
 
 set(HXHIM_TEST_FILES
   BadGet.cpp
-  GetStats.cpp
+  Datastore.cpp
   Histogram.cpp
   OpenClose.cpp
   PutGet.cpp

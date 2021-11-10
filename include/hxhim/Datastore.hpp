@@ -1,5 +1,5 @@
-#ifndef RANGE_SERVER_HPP
-#define RANGE_SERVER_HPP
+#ifndef HXHIM_DATASTORE_HPP
+#define HXHIM_DATASTORE_HPP
 
 #include <cstddef>
 
@@ -8,61 +8,54 @@
 namespace hxhim {
 
 /** This namespace contains utility functions, not data structures */
-namespace RangeServer {
+namespace Datastore {
 
 /**
- * Range servers are controlled by the CLIENT_RATIO and SERVER_RATIO
- * configuration keys. max(CLIENT_RATIO, SERVER_RATIO) defines a "block"
- * of MPI ranks, where the first C ranks are clients and the first S
- * ranks are servers. This is true even when there are not enough MPI
- * ranks to complete a "block". CLIENT_RATIO < SERVER_RATIO is treated
- * as CLIENT_RATIO == SERVER_RATIO, since MPI ranks are not prevented
- * from client operations.
+ * Each range server can have multiple datastores connected to it.
  *
  * e.g.
  *     Client : Server = 5 : 3
+ *     Datastores per server: 3
  *     Block:    |                   0                        |                     1                     |
  *     MPI Rank: |   0   |   1   |   2   |    3    |    4     |    5     |    6     |    7     |    8     |
  *     Client:   |   0   |   1   |   2   |    3    |    4     |    5     |    6     |    7     |    8     |
  *     RS:       |   0   |   1   |   2   |         |          |    3     |    4     |    5     |          |
+ *     DS:       | 0,1,2 | 3,4,5 | 6,7,8 |         |          | 9,10,11  | 12,13,14 | 15,16,17 |          |
  *
  *     Client : Server = 3 : 5
+ *     Datastores per server: 3
  *     Block:    |                   0                        |                     1                     |
  *     MPI Rank: |   0   |   1   |   2   |    3    |    4     |    5     |    6     |    7     |    8     |
  *     Client:   |   0   |   1   |   2   |    3    |    4     |    5     |    6     |    7     |    8     |
  *     RS:       |   0   |   1   |   2   |    3    |    4     |    5     |    6     |    7     |    8     |
+ *     DS:       | 0,1,2 | 3,4,5 | 6,7,8 | 9,10,11 | 12,13,14 | 15,16,17 | 18,19,20 | 21,22,23 | 24,25,26 |
  */
 
 // These functions assume an infinite MPI world size
-int is_range_server(const int rank,
-                    const std::size_t client_ratio,
-                    const std::size_t server_ratio);
-
 int get_rank(const int id,
              const std::size_t client_ratio,
-             const std::size_t server_ratio);
+             const std::size_t server_ratio,
+             const std::size_t datastores_per_server);
 
 int get_id(const int rank,
+           const std::size_t offset,
            const std::size_t client_ratio,
-           const std::size_t server_ratio);
+           const std::size_t server_ratio,
+           const std::size_t datastores_per_server);
 
 // These functions require a known finite MPI world size
-int is_range_server(const int rank,
-                    const int size,
-                    const std::size_t client_ratio,
-                    const std::size_t server_ratio);
-
 int get_rank(const int id,
              const int size,
              const std::size_t client_ratio,
-             const std::size_t server_ratio);
+             const std::size_t server_ratio,
+             const std::size_t datastores_per_server);
 
 int get_id(const int rank,
+           const std::size_t offset,
            const int size,
            const std::size_t client_ratio,
-           const std::size_t server_ratio);
-
-int is_range_server(hxhim_t *hx);
+           const std::size_t server_ratio,
+           const std::size_t datastores_per_server);
 
 }
 }

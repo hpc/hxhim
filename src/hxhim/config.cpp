@@ -1,3 +1,4 @@
+#include <iostream>
 #include <sstream>
 #include <vector>
 
@@ -92,74 +93,62 @@ bool parse_map_value(hxhim_options_t *opts, const Config::Config &config, const 
  * @return a boolean indicating whether or not an error was encountered
  */
 static bool parse_datastore(hxhim_options_t *opts, const Config::Config &config) {
+    // required
     Datastore::Type datastore;
-
-    int ret = Config::get_from_map(config, hxhim::config::DATASTORE_TYPE, hxhim::config::DATASTORES, datastore);
-
-    if (ret == Config::NOT_FOUND) {
+    if ((Config::get_from_map(config,
+                              hxhim::config::DATASTORE_TYPE,
+                              hxhim::config::DATASTORES,
+                              datastore) != Config::FOUND) ||
+        (Config::get_value(config,
+                           hxhim::config::DATASTORE_PREFIX,
+                           opts->p->datastores.prefix) != Config::FOUND) ||
+        (Config::get_value(config,
+                           hxhim::config::DATASTORE_BASENAME,
+                           opts->p->datastores.basename) != Config::FOUND)) {
         return false;
     }
 
-    if (ret == Config::ERROR) {
-        return false;
-    }
+    // optional
+    Config::get_value(config,
+                      hxhim::config::DATASTORE_POSTFIX,
+                      opts->p->datastores.postfix);
 
-    if (ret == Config::FOUND) {
-        switch (datastore) {
-            case Datastore::IN_MEMORY:
-                return (hxhim_options_set_datastore_in_memory(opts) == HXHIM_SUCCESS);
-            #if HXHIM_HAVE_LEVELDB
-            case Datastore::LEVELDB:
-                {
-                    // get the leveldb datastore prefix
-                    Config::Config_it prefix = config.find(hxhim::config::LEVELDB_PREFIX);
-                    if (prefix == config.end()) {
-                        return false;
-                    }
+    // datastore specific configuration
+    switch (datastore) {
+        case Datastore::IN_MEMORY:
+            return (hxhim_options_set_datastore_in_memory(opts) == HXHIM_SUCCESS);
 
-                    // get the leveldb datastore postfix (optional)
-                    Config::Config_it postfix = config.find(hxhim::config::LEVELDB_POSTFIX);
-
-                    bool create_if_missing = true; // default to true; do not error if not found
-                    if (Config::get_value(config, hxhim::config::LEVELDB_CREATE_IF_MISSING, create_if_missing) == Config::ERROR) {
-                        return false;
-                    }
-
-                    return (hxhim_options_set_datastore_leveldb(opts,
-                                                                prefix->second.c_str(),
-                                                                (postfix != config.end())?postfix->second.c_str():"",
-                                                                create_if_missing) == HXHIM_SUCCESS);
+        #if HXHIM_HAVE_LEVELDB
+        case Datastore::LEVELDB:
+            {
+                bool create_if_missing = true; // default to true; do not error if not found
+                if (Config::get_value(config, hxhim::config::LEVELDB_CREATE_IF_MISSING,
+                    create_if_missing) == Config::ERROR) {
+                    return false;
                 }
-                break;
-            #endif
-            #if HXHIM_HAVE_ROCKSDB
-            case Datastore::ROCKSDB:
-                {
-                    // get the rocksdb datastore prefix
-                    Config::Config_it prefix = config.find(hxhim::config::ROCKSDB_PREFIX);
-                    if (prefix == config.end()) {
-                        return false;
-                    }
 
-                    // get the rocksdb datastore postfix
-                    Config::Config_it postfix = config.find(hxhim::config::ROCKSDB_POSTFIX);
+                return (hxhim_options_set_datastore_leveldb(opts,
+                                                            create_if_missing) == HXHIM_SUCCESS);
+            }
+        #endif
 
-                    bool create_if_missing = true; // default to true; do not error if not found
-                    if (Config::get_value(config, hxhim::config::ROCKSDB_CREATE_IF_MISSING, create_if_missing) == Config::ERROR) {
-                        return false;
-                    }
-
-                    return (hxhim_options_set_datastore_rocksdb(opts,
-                                                                prefix->second.c_str(),
-                                                                (postfix != config.end())?postfix->second.c_str():"",
-                                                                create_if_missing) == HXHIM_SUCCESS);
+        #if HXHIM_HAVE_ROCKSDB
+        case Datastore::ROCKSDB:
+            {
+                bool create_if_missing = true; // default to true; do not error if not found
+                if (Config::get_value(config, hxhim::config::ROCKSDB_CREATE_IF_MISSING,
+                                      create_if_missing) == Config::ERROR) {
+                    return false;
                 }
-                break;
-            #endif
-            // should never get here
-            default:
-                return false;
-        }
+
+                return (hxhim_options_set_datastore_rocksdb(opts,
+                                                            create_if_missing) == HXHIM_SUCCESS);
+            }
+        #endif
+
+        // should never get here
+        default:
+            return false;
     }
 
     // should never get here
@@ -181,8 +170,8 @@ static bool parse_transport(hxhim_options_t *opts, const Config::Config &config)
         switch (transport_type) {
             case Transport::TRANSPORT_NULL:
                 {
-                    return ((hxhim_options_set_transport_null(opts)                     == HXHIM_SUCCESS) &&
-                            (hxhim_options_set_hash_name(opts, "RANK_MOD_RANGESERVERS") == HXHIM_SUCCESS));
+                    return ((hxhim_options_set_transport_null(opts)                   == HXHIM_SUCCESS) &&
+                            (hxhim_options_set_hash_name(opts, "RANK_MOD_DATASTORES") == HXHIM_SUCCESS));
                 }
                 break;
             case Transport::TRANSPORT_MPI:
@@ -345,6 +334,7 @@ static int fill_options(hxhim_options_t *opts, const Config::Config &config) {
         parse_map_value(opts, config, DEBUG_LEVEL, DEBUG_LEVELS, hxhim_options_set_debug_level)                 &&
         parse_value(opts, config, CLIENT_RATIO,                  hxhim_options_set_client_ratio)                &&
         parse_value(opts, config, SERVER_RATIO,                  hxhim_options_set_server_ratio)                &&
+        parse_value(opts, config, DATASTORES_PER_SERVER,         hxhim_options_set_datastores_per_server)       &&
         parse_datastore(opts, config)                                                                           &&
         parse_transport(opts, config)                                                                           &&
         parse_endpointgroup(opts, config)                                                                       &&

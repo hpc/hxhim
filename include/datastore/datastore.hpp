@@ -1,5 +1,5 @@
-#ifndef HXHIM_DATASTORE_HPP
-#define HXHIM_DATASTORE_HPP
+#ifndef HXHIM_DATASTORE_BASE
+#define HXHIM_DATASTORE_BASE
 
 #include <list>
 #include <map>

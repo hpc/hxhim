@@ -1,6 +1,7 @@
 #include <algorithm>
 
 #include "hxhim/RangeServer.hpp"
+#include "hxhim/private/hxhim.hpp"
 
 /**
  * is_range_server
@@ -62,7 +63,7 @@ int hxhim::RangeServer::get_rank(const int id,
         return -1;
     }
 
-    // all ranks are clients, so ids match ranks
+    // all ranks are servers, so ids match ranks
     if (server_ratio >= client_ratio) {
         return id;
     }
@@ -145,4 +146,8 @@ int hxhim::RangeServer::get_id(const int rank,
     }
 
     return hxhim::RangeServer::get_id(rank, client_ratio, server_ratio);
+}
+
+int hxhim::RangeServer::is_range_server(hxhim_t *hx) {
+    return (hx->p->range_server.id > -1);
 }

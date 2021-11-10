@@ -29,7 +29,7 @@ template <typename Request_t,
           typename = enable_if_t <is_child_of <Message::Request::Request,   Request_t>::value  &&
                                   is_child_of <Message::Response::Response, Response_t>::value> >
 hxhim::Results *process(hxhim_t *hx,
-                        hxhim::Queues<Request_t> &queues) {
+                        hxhim::Queues <Request_t> &queues) {
     #if PRINT_TIMESTAMPS
     ::Stats::Chronopoint process_start = ::Stats::now();
     #endif
@@ -46,35 +46,38 @@ hxhim::Results *process(hxhim_t *hx,
         #endif
 
         // extract the first packet for each target range server
-        Request_t *local = nullptr;
-        Transport::ReqList<Request_t> remote;
-        for(std::size_t rs = 0; rs < queues.size(); rs++) {
-            if (queues[rs].size()) {
-                Request_t *req = queues[rs].front();
-                queues[rs].pop_front();
-
-                // set req src and dst because they were not set in impl
-                req->src = hx->p->bootstrap.rank;
-                req->dst = hx->p->queues.rs_to_rank[rs];
-
-                if (req->src == req->dst) {
-                    local = req;
-                }
-                else {
-                    remote[req->dst] = req;
-                }
-
-                #if PRINT_TIMESTAMPS
-                ::Stats::Chronopoint collect_stats_start = ::Stats::now();
-                #endif
-                hx->p->stats.used[req->op].push_back(req->filled());
-                hx->p->stats.outgoing[req->op][req->dst]++;
-                #if PRINT_TIMESTAMPS
-                ::Stats::Chronopoint collect_stats_end = ::Stats::now();
-                ::Stats::print_event(hx->p->print_buffer, rank, "collect_stats",
-                                     ::Stats::global_epoch, collect_stats_start, collect_stats_end);
-                #endif
+        std::list <Request_t *> local;
+        Transport::ReqList <Request_t> remote;
+        for(std::size_t ds = 0; ds < queues.size(); ds++) {
+            if (!queues[ds].size()) {
+                continue;
             }
+
+            Request_t *req = queues[ds].front();
+            queues[ds].pop_front();
+
+            // set because they were not set in impl
+            req->src = hx->p->bootstrap.rank;
+            req->dst = ds;
+            req->dst_rank = hx->p->queues.ds_to_rank[req->dst];
+
+            if (req->src == req->dst_rank) {
+                local.push_back(req);
+            }
+            else {
+                remote[req->dst_rank] = req;
+            }
+
+            #if PRINT_TIMESTAMPS
+            ::Stats::Chronopoint collect_stats_start = ::Stats::now();
+            #endif
+            hx->p->stats.used[req->op].push_back(req->filled());
+            hx->p->stats.outgoing[req->op][req->dst]++;
+            #if PRINT_TIMESTAMPS
+            ::Stats::Chronopoint collect_stats_end = ::Stats::now();
+            ::Stats::print_event(hx->p->print_buffer, rank, "collect_stats",
+                ::Stats::global_epoch, collect_stats_start, collect_stats_end);
+            #endif
         }
 
         #if PRINT_TIMESTAMPS
@@ -121,38 +124,40 @@ hxhim::Results *process(hxhim_t *hx,
         }
 
         // process local data
-        if (local) {
-            #if PRINT_TIMESTAMPS
-            ::Stats::Chronopoint local_start = ::Stats::now();
-            #endif
+        if (local.size()) {
+            for(Request_t *req: local) {
+                #if PRINT_TIMESTAMPS
+                ::Stats::Chronopoint local_start = ::Stats::now();
+                #endif
 
-            // send to local range server
-            Response_t *response = Transport::local::range_server<Response_t, Request_t>(hx, local);
+                // send to local range server
+                Response_t *response = Transport::local::range_server<Response_t, Request_t>(hx, req);
 
-            #if PRINT_TIMESTAMPS
-            ::Stats::Chronopoint local_end = ::Stats::now();
-            ::Stats::print_event(hx->p->print_buffer, rank, "local",
+                #if PRINT_TIMESTAMPS
+                ::Stats::Chronopoint local_end = ::Stats::now();
+                ::Stats::print_event(hx->p->print_buffer, rank, "local",
                                  ::Stats::global_epoch, local_start, local_end);
-            ::Stats::Chronopoint serialize_start = ::Stats::now();
-            #endif
+                ::Stats::Chronopoint serialize_start = ::Stats::now();
+                #endif
 
-            // serialize results
-            hxhim::Result::AddAll(hx, res, response);
+                // serialize results
+                hxhim::Result::AddAll(hx, res, response);
 
-            #if PRINT_TIMESTAMPS
-            ::Stats::Chronopoint serialize_end = ::Stats::now();
-            ::Stats::print_event(hx->p->print_buffer, rank, "serialize",
-                                 ::Stats::global_epoch, serialize_start, serialize_end);
-            ::Stats::Chronopoint destruct_start = ::Stats::now();
-            #endif
+                #if PRINT_TIMESTAMPS
+                ::Stats::Chronopoint serialize_end = ::Stats::now();
+                ::Stats::print_event(hx->p->print_buffer, rank, "serialize",
+                                     ::Stats::global_epoch, serialize_start, serialize_end);
+                ::Stats::Chronopoint destruct_start = ::Stats::now();
+                #endif
 
-            destruct(local);
+                destruct(req);
 
-            #if PRINT_TIMESTAMPS
-            ::Stats::Chronopoint destruct_end = ::Stats::now();
-            ::Stats::print_event(hx->p->print_buffer, rank, "destruct",
-                                 ::Stats::global_epoch, destruct_start, destruct_end);
-            #endif
+                #if PRINT_TIMESTAMPS
+                ::Stats::Chronopoint destruct_end = ::Stats::now();
+                ::Stats::print_event(hx->p->print_buffer, rank, "destruct",
+                                     ::Stats::global_epoch, destruct_start, destruct_end);
+                #endif
+            }
         }
     }
 

@@ -113,6 +113,28 @@ int hxhim_options_set_server_ratio(hxhim_options_t *opts, const size_t ratio) {
 }
 
 /**
+ * hxhim_options_set_datastores_per_server
+ * Sets how many datastores to open per range server
+ *
+ * @param opts                    the set of options to be modified
+ * @param datastores_per_server   the number of datastores per server to open
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim_options_set_datastores_per_server(hxhim_options_t *opts, const size_t datastores_per_server) {
+    if (!hxhim::valid(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    if (!datastores_per_server) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->datastores.per_server = datastores_per_server;
+
+    return HXHIM_SUCCESS;
+}
+
+/**
  * hxhim_options_set_open_init_datastore
  * Sets whether or not initialization should open datastores after setting up their wrappers.
  *
@@ -125,7 +147,7 @@ int hxhim_options_set_open_init_datastore(hxhim_options_t *opts, const int init)
         return HXHIM_ERROR;
     }
 
-    opts->p->open_init_datastore = init;
+    opts->p->datastores.open_init = !!init;
 
     return HXHIM_SUCCESS;
 }
@@ -163,9 +185,9 @@ static int hxhim_options_set_datastore(hxhim_options_t *opts, Datastore::Config 
         return HXHIM_ERROR;
     }
 
-    destruct(opts->p->datastore);
+    destruct(opts->p->datastores.config);
 
-    opts->p->datastore = config;
+    opts->p->datastores.config = config;
 
     return HXHIM_SUCCESS;
 }
@@ -177,6 +199,18 @@ static int hxhim_options_set_datastore(hxhim_options_t *opts, Datastore::Config 
  */
 static Datastore::Config *hxhim_options_create_in_memory_config() {
     return construct<Datastore::InMemory::Config>();
+}
+
+int hxhim_options_set_datastore_name(hxhim_options_t *opts, const char *prefix, const char *basename, const char *postfix) {
+    if (!hxhim::valid(opts)) {
+        return HXHIM_ERROR;
+    }
+
+    opts->p->datastores.prefix = prefix;
+    opts->p->datastores.basename = basename;
+    opts->p->datastores.postfix = postfix;
+
+    return HXHIM_SUCCESS;
 }
 
 /**
@@ -203,13 +237,11 @@ int hxhim_options_set_datastore_in_memory(hxhim_options_t *opts) {
  * Sets up the values needed for a leveldb datastore
  *
  * @param opts                the set of options to be modified
- * @param prefix              the path prefix for each datastore
- * @param postfix             any extra string to add to the back of the datastore name
  * @param create_if_missing   whether or not to create the datastore if it does not already exist
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_options_set_datastore_leveldb(hxhim_options_t *opts, const char *prefix, const char *postfix, const int create_if_missing) {
-    Datastore::LevelDB::Config *config = construct<Datastore::LevelDB::Config>(prefix, postfix, create_if_missing);
+int hxhim_options_set_datastore_leveldb(hxhim_options_t *opts, const int create_if_missing) {
+    Datastore::LevelDB::Config *config = construct<Datastore::LevelDB::Config>(create_if_missing);
     if (hxhim_options_set_datastore(opts, config) != HXHIM_SUCCESS) {
         destruct(config);
         return HXHIM_ERROR;
@@ -230,8 +262,8 @@ int hxhim_options_set_datastore_leveldb(hxhim_options_t *opts, const char *prefi
  * @param create_if_missing   whether or not to create the datastore if it does not already exist
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_options_set_datastore_rocksdb(hxhim_options_t *opts, const char *prefix, const char *postfix, const int create_if_missing) {
-    Datastore::RocksDB::Config *config = construct<Datastore::RocksDB::Config>(prefix, postfix, create_if_missing);
+int hxhim_options_set_datastore_rocksdb(hxhim_options_t *opts, const int create_if_missing) {
+    Datastore::RocksDB::Config *config = construct<Datastore::RocksDB::Config>(create_if_missing);
     if (hxhim_options_set_datastore(opts, config) != HXHIM_SUCCESS) {
         destruct(config);
         return HXHIM_ERROR;

@@ -38,20 +38,20 @@ const std::string DEBUG_LEVEL                  = "DEBUG_LEVEL";                 
 
 const std::string CLIENT_RATIO                 = "CLIENT_RATIO";                  // positive integer
 const std::string SERVER_RATIO                 = "SERVER_RATIO";                  // positive integer
+const std::string DATASTORES_PER_SERVER        = "DATASTORES_PER_SERVER";         // positive integer
 
 const std::string DATASTORE_TYPE               = "DATASTORE";                     // See DATASTORE_TYPES
+const std::string DATASTORE_PREFIX             = "DATASTORE_PREFIX";              // path
+const std::string DATASTORE_BASENAME           = "DATASTORE_BASENAME";            // filename
+const std::string DATASTORE_POSTFIX            = "DATASTORE_POSTFIX";             // filename
 
 #if HXHIM_HAVE_LEVELDB
 /** LevelDB Datastore Options */
-const std::string LEVELDB_PREFIX               = "LEVELDB_PREFIX";                // string
-const std::string LEVELDB_POSTFIX              = "LEVELDB_POSTFIX";               // string
 const std::string LEVELDB_CREATE_IF_MISSING    = "LEVELDB_CREATE_IF_MISSING";     // boolean
 #endif
 
 #if HXHIM_HAVE_ROCKSDB
 /** RocksDB Datastore Options */
-const std::string ROCKSDB_PREFIX               = "ROCKSDB_PREFIX";                // string
-const std::string ROCKSDB_POSTFIX              = "ROCKSDB_POSTFIX";               // string
 const std::string ROCKSDB_CREATE_IF_MISSING    = "ROCKSDB_CREATE_IF_MISSING";     // boolean
 #endif
 
@@ -123,15 +123,15 @@ const std::unordered_map<std::string, Datastore::Type> DATASTORES = {
  * Set of predefined hash functions
  */
 const std::unordered_map<std::string, hxhim_hash_t> HASHES = {
-    std::make_pair("RANK_0",                   hxhim_hash_RankZero),
-    std::make_pair("RANK_MOD_RANGESERVERS",    hxhim_hash_RankModRangeServers),
-    std::make_pair("SUM_MOD_RANGESERVERS",     hxhim_hash_SumModRangeServers),
-    std::make_pair("UTHASH_BER",               hxhim_hash_uthash_BER),
-    std::make_pair("UTHASH_SAX",               hxhim_hash_uthash_SAX),
-    std::make_pair("UTHASH_FNV",               hxhim_hash_uthash_FNV),
-    std::make_pair("UTHASH_OAT",               hxhim_hash_uthash_OAT),
-    std::make_pair("UTHASH_JEN",               hxhim_hash_uthash_JEN),
-    std::make_pair("UTHASH_SFH",               hxhim_hash_uthash_SFH),
+    std::make_pair("DATASTORE_0",         hxhim_hash_DatastoreZero),
+    std::make_pair("RANK_MOD_DATASTORES", hxhim_hash_RankModDatastores),
+    std::make_pair("SUM_MOD_DATASTORES",  hxhim_hash_SumModDatastores),
+    std::make_pair("UTHASH_BER",          hxhim_hash_uthash_BER),
+    std::make_pair("UTHASH_SAX",          hxhim_hash_uthash_SAX),
+    std::make_pair("UTHASH_FNV",          hxhim_hash_uthash_FNV),
+    std::make_pair("UTHASH_OAT",          hxhim_hash_uthash_OAT),
+    std::make_pair("UTHASH_JEN",          hxhim_hash_uthash_JEN),
+    std::make_pair("UTHASH_SFH",          hxhim_hash_uthash_SFH),
 };
 
 /**
@@ -178,24 +178,23 @@ const Config::Config DEFAULT_CONFIG = {
     std::make_pair(DEBUG_LEVEL,                   "CRITICAL"),
     std::make_pair(CLIENT_RATIO,                  "2"),
     std::make_pair(SERVER_RATIO,                  "1"),
+    std::make_pair(DATASTORES_PER_SERVER,         "1"),
+    std::make_pair(DATASTORE_PREFIX,              "."),
+    std::make_pair(DATASTORE_BASENAME,            "hxhim"),
+    std::make_pair(DATASTORE_POSTFIX,             ""),
 #if HXHIM_HAVE_LEVELDB
     std::make_pair(DATASTORE_TYPE,                "LEVELDB"),
-    std::make_pair(LEVELDB_PREFIX,                "."),
-    std::make_pair(LEVELDB_POSTFIX,               ""),
     std::make_pair(LEVELDB_CREATE_IF_MISSING,     "true"),
 #elif HXHIM_HAVE_ROCKSDB
     std::make_pair(DATASTORE_TYPE,                "ROCKSDB"),
-    std::make_pair(ROCKSDB_PREFIX,                "."),
-    std::make_pair(ROCKSDB_POSTFIX,               ""),
     std::make_pair(ROCKSDB_CREATE_IF_MISSING,     "true"),
 #else
     std::make_pair(DATASTORE_TYPE,                "IN_MEMORY"),
 #endif
     std::make_pair(TRANSPORT,                     "NULL"),
-    std::make_pair(HASH,                          "MY_RANK"),
+    std::make_pair(HASH,                          "RANK_MOD_DATASTORES"),
     std::make_pair(TRANSPORT_ENDPOINT_GROUP,      "ALL"),
-    // Set START_ASYNC_PUTS_AT to enable asynchronous PUTs
-    std::make_pair(START_ASYNC_PUTS_AT,           "256"),
+    std::make_pair(START_ASYNC_PUTS_AT,           "0"),
     std::make_pair(MAXIMUM_OPS_PER_REQUEST,       "128"),
     std::make_pair(MAXIMUM_SIZE_PER_REQUEST,      "1048576"),
     std::make_pair(HISTOGRAM_FIRST_N,             "10"),

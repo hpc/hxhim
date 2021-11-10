@@ -25,10 +25,6 @@ typedef struct hxhim_options_private {
 
     int debug_level;
 
-    // client:server
-    std::size_t client_ratio;
-    std::size_t server_ratio;
-
     struct {
         std::size_t ops;                       // the maximum number of operations that can be requested in one packet
         std::size_t size;                      // the maximum nuber of bytes to send per request
@@ -45,13 +41,25 @@ typedef struct hxhim_options_private {
         void *args;
     } hash;
 
+    // client:server
+    std::size_t client_ratio;
+    std::size_t server_ratio;
+
     Transport::Options *transport;
     std::set<int> endpointgroup;
 
-    // whether or not the datastore objects should open the underlying datastore.
-    // not set in configuration file, but can be modified in code
-    bool open_init_datastore = true;
-    Datastore::Config *datastore;              // configuration options for the selected datastore
+    struct {
+        std::string prefix;
+        std::string basename;
+        std::string postfix;
+
+        std::size_t per_server = 1;
+
+        // whether or not the datastore objects should open the underlying datastore.
+        // not set in configuration file, but can be modified in code
+        bool open_init = true;
+        Datastore::Config *config;              // configuration options for the selected datastore
+    } datastores;
 
     Datastore::Transform::Callbacks transform; // callbacks for transforming user data into datastore-suitable data
     struct {

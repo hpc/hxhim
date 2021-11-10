@@ -10,17 +10,11 @@ namespace Datastore {
 class LevelDB : public Datastore {
     public:
         struct Config : ::Datastore::Config {
-            Config(const std::string &prefix,
-                   const std::string &postfix,
-                   const bool create_if_missing)
+            Config(const bool create_if_missing)
                 : ::Datastore::Config(::Datastore::LEVELDB),
-                  prefix(prefix),
-                  postfix(postfix),
                   create_if_missing(create_if_missing)
             {}
 
-            const std::string prefix;
-            const std::string postfix;
             const bool create_if_missing;
         };
 

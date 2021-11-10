@@ -1,5 +1,5 @@
-#ifndef HXHIM_RANGE_SERVER_HPP
-#define HXHIM_RANGE_SERVER_HPP
+#ifndef HXHIM_LOCAL_RANGE_SERVER_HPP
+#define HXHIM_LOCAL_RANGE_SERVER_HPP
 
 #include "datastore/datastore.hpp"
 #include "hxhim/constants.h"
@@ -50,7 +50,8 @@ Response_t *range_server(hxhim_t *hx, Request_t *req) {
     // send to each datastore
     res->timestamps.transport.send_start = ::Stats::now();
 
-    Response_t *response = hx->p->range_server.datastore->operate(req);
+    decltype(hx->p->range_server.datastores) &datastores = hx->p->range_server.datastores;
+    Response_t *response = datastores.ds[req->dst % datastores.per_server]->operate(req);
 
     // if there were responses, copy them into the output variable
     if (response) {

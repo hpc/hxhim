@@ -108,7 +108,7 @@ inline Recv_t *process_request(Send_t *req,
     // }
 
     // figure out where to send the message
-    REF(endpoints)::const_iterator dst_it = endpoints.find(req->dst);
+    REF(endpoints)::const_iterator dst_it = endpoints.find(req->dst_rank);
     if (dst_it == endpoints.end()) {
         mlog(THALLIUM_WARN, "Could not find endpoint for destination rank %d", req->dst);
         return nullptr;

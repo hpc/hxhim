@@ -34,10 +34,10 @@ Results *Flush(hxhim_t *hx);
 Results *Sync(hxhim_t *hx);
 
 /** @description Function that opens new datastores */
-Results *ChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t func, void *args);
+Results *ChangeHash(hxhim_t *hx, const std::string &name, hxhim_hash_t func, void *args);
 
 /** @description Function for changing the datastore without changing the hash */
-Results *ChangeDatastore(hxhim_t *hx, const char *name,
+Results *ChangeDatastore(hxhim_t *hx, const std::string &name,
                          const bool write_histograms, const bool read_histograms,
                          const bool create_missing);
 
@@ -90,11 +90,11 @@ int BDelete(hxhim_t *hx,
             const std::size_t count);
 
 /** @description Utility Functions */
-int GetStats(hxhim_t *hx, const int dst_rank,
-             uint64_t    *put_times,
-             std::size_t *num_puts,
-             uint64_t    *get_times,
-             std::size_t *num_gets);
+// int GetStats(hxhim_t *hx, const int dst_rank,
+//              uint64_t    *put_times,
+//              std::size_t *num_puts,
+//              uint64_t    *get_times,
+//              std::size_t *num_gets);
 
 int Histogram(hxhim_t *hx,
               int rs_id,

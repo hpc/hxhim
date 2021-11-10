@@ -33,8 +33,8 @@ struct Message {
 
     Direction direction;
     enum hxhim_op_t op;
-    int src;
-    int dst;
+    int src;  // request: rank;  response: ds_id
+    int dst;  // request: ds_id; response: rank
     std::size_t max_count;
     std::size_t count;
     std::size_t serialized_size;

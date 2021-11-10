@@ -15,6 +15,8 @@ struct Request : Message {
     virtual void alloc(const std::size_t max);
     virtual std::size_t add(const std::size_t ds, const bool increment_count);
     virtual int cleanup();
+
+    int dst_rank; // dst is a datastore ID - translate it to a rank here
 };
 
 }

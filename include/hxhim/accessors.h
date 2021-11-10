@@ -19,9 +19,10 @@ int hxhimGetEpoch(hxhim_t *hx, struct timespec *epoch);
 int hxhimGetMPI(hxhim_t *hx, MPI_Comm *comm, int *rank, int *size);
 int hxhimGetRangeServerCount(hxhim_t *hx, size_t *count);
 int hxhimGetRangeServerClientToServerRatio(hxhim_t *hx, size_t *client, size_t *server);
+int hxhimGetDatastoreCount(hxhim_t *hx, size_t *count);
+int hxhimGetDatastoreLocation(hxhim_t *hx, const int id, int *rank, int *offset);
 
 int hxhimGetHash(hxhim_t *hx, const char **name, hxhim_hash_t *func, void **args);
-int hxhimGetDatastorePrefix(hxhim_t *hx, const char **prefix, size_t *prefix_len);
 int hxhimHaveHistogram(hxhim_t *hx, const char *name, const size_t name_len, int *exists);
 
 #ifdef __cplusplus
