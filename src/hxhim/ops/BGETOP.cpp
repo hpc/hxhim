@@ -23,7 +23,7 @@ int hxhim::BGetOp(hxhim_t *hx,
                   enum hxhim_data_t *object_types,
                   std::size_t *num_records, enum hxhim_getop_t *ops,
                   const std::size_t count) {
-    if (!valid(hx)    || !hx->p->running ||
+    if (!started(hx)  ||
         !subjects     || !subject_lens   || !subject_types   ||
         !predicates   || !predicate_lens || !predicate_types ||
         !object_types ||

@@ -16,10 +16,10 @@
 #include "hxhim/Results.hpp"
 #include "hxhim/constants.h"
 #include "hxhim/hash.h"
-#include "hxhim/options.h"
 #include "hxhim/private/Stats.hpp"
 #include "hxhim/struct.h"
 #include "message/Messages.hpp"
+#include "transport/Options.hpp"
 #include "transport/transport.hpp"
 #include "utils/type_traits.hpp"
 
@@ -56,6 +56,8 @@ typedef struct hxhim_private {
     ~hxhim_private();
 
     Stats::Chronopoint epoch;
+
+    int debug_level;
 
     struct {
         MPI_Comm comm;
@@ -107,7 +109,11 @@ typedef struct hxhim_private {
     } hash;
 
     // Transport variables
-    Transport::Transport *transport;
+    struct {
+        Transport::Options *config;
+        std::set<int> endpointgroup;
+        Transport::Transport *transport;
+    } transport;
 
     struct {
         Datastore::HistNames_t names;      // all ranks have the list of histogram names
@@ -130,6 +136,12 @@ typedef struct hxhim_private {
             std::size_t per_server;        // number of datastores per range server
             std::size_t total;             // total number of datastores across all ranks
 
+            // whether or not the datastore objects should open the underlying datastore.
+            // not set in configuration file, but can be modified in code
+            bool open_init = true;
+            Datastore::Config *config;
+            Datastore::Transform::Callbacks transform; // callbacks for transforming user data into datastore-suitable data
+
             // f(datastore ID) = (rank, offset)
             std::vector<Datastore::Datastore *> ds;
         } datastores;
@@ -137,23 +149,21 @@ typedef struct hxhim_private {
 
     hxhim::Stats::Global stats;
     std::stringstream print_buffer;
-
 } hxhim_private_t;
 
 namespace hxhim {
 
-bool valid(hxhim_t *hx);
-bool valid(hxhim_t *hx, hxhim_options_t *opts);
+bool started(hxhim_t *hx);
 
 namespace init {
-int bootstrap    (hxhim_t *hx, hxhim_options_t *opts);
-int running      (hxhim_t *hx, hxhim_options_t *opts);
-int hash         (hxhim_t *hx, hxhim_options_t *opts);
-int datastore    (hxhim_t *hx, hxhim_options_t *opts);
-int one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::string &name);
-int transport    (hxhim_t *hx, hxhim_options_t *opts);
-int queues       (hxhim_t *hx, hxhim_options_t *opts);
-int async_puts   (hxhim_t *hx, hxhim_options_t *opts);
+int bootstrap    (hxhim_t *hx);
+int running      (hxhim_t *hx);
+int hash         (hxhim_t *hx);
+int datastore    (hxhim_t *hx);
+int one_datastore(hxhim_t *hx, const std::string &name);
+int transport    (hxhim_t *hx);
+int queues       (hxhim_t *hx);
+int async_puts   (hxhim_t *hx);
 }
 
 namespace destroy {

@@ -10,29 +10,26 @@
 
 const std::string TEST_HIST_NAME = "Test Histogram Name";
 
-const char *SUBJECTS[]    = {"SUBJECT0",   "SUBJECT1"};
-const char *PREDICATES[]  = {"PREDICATE0", "PREDICATE1"};
-const char *OBJECTS[]     = {"OBJECT0",    "OBJECT1"};
+const char *SUBJECTS[]   = {"SUBJECT0",   "SUBJECT1"};
+const char *PREDICATES[] = {"PREDICATE0", "PREDICATE1"};
+const char *OBJECTS[]    = {"OBJECT0",    "OBJECT1"};
 
 const hxhim_data_t TYPE = hxhim_data_t::HXHIM_DATA_BYTE;
 
 void enqueue_put(bool async_puts) {
-    hxhim_options_t opts;
-    ASSERT_EQ(fill_options(&opts), true);
-    ASSERT_EQ(hxhim_options_set_maximum_ops_per_request(&opts, 1), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_maximum_size_per_request(&opts, 0), HXHIM_SUCCESS);
+    hxhim_t hx;
+    ASSERT_EQ(hxhim::Init(&hx, MPI_COMM_WORLD), HXHIM_SUCCESS);
+    ASSERT_EQ(fill_options(&hx), true);
+    ASSERT_EQ(hxhim_set_maximum_ops_per_request(&hx, 1), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim_set_maximum_size_per_request(&hx, 0), HXHIM_SUCCESS);
     if (async_puts) {
-        ASSERT_EQ(hxhim_options_set_start_async_puts_at(&opts, 3), HXHIM_SUCCESS); // don't clear PUT queues
+        ASSERT_EQ(hxhim_set_start_async_puts_at(&hx, 3), HXHIM_SUCCESS); // don't clear PUT queues
     }
 
-    hxhim_t hx;
-    ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim::Open(&hx), HXHIM_SUCCESS);
 
-    int rank = -1;
-    int size = -1;
-    EXPECT_EQ(hxhim::GetMPI(&hx, nullptr, &rank, &size), HXHIM_SUCCESS);
-    EXPECT_GT(rank, -1);
-    EXPECT_GT(size, -1);
+    const int rank = hx.p->bootstrap.rank;
+    const int size = hx.p->bootstrap.size;
 
     hxhim::Queues<Message::Request::BPut> &puts = hx.p->queues.puts.queue;
     EXPECT_EQ(puts.size(), (std::size_t) size);
@@ -91,7 +88,6 @@ void enqueue_put(bool async_puts) {
     }
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
-    EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }
 
 TEST(Enqueue, PUT) {
@@ -100,11 +96,11 @@ TEST(Enqueue, PUT) {
 }
 
 TEST(Enqueue, GET) {
-    hxhim_options_t opts;
-    ASSERT_EQ(fill_options(&opts), true);
-
     hxhim_t hx;
-    ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim::Init(&hx, MPI_COMM_WORLD), HXHIM_SUCCESS);
+    ASSERT_EQ(fill_options(&hx), true);
+
+    ASSERT_EQ(hxhim::Open(&hx), HXHIM_SUCCESS);
 
     int rank = -1;
     int size = -1;
@@ -164,15 +160,14 @@ TEST(Enqueue, GET) {
     }
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
-    EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }
 
 TEST(Enqueue, GETOP) {
-    hxhim_options_t opts;
-    ASSERT_EQ(fill_options(&opts), true);
-
     hxhim_t hx;
-    ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim::Init(&hx, MPI_COMM_WORLD), HXHIM_SUCCESS);
+    ASSERT_EQ(fill_options(&hx), true);
+
+    ASSERT_EQ(hxhim::Open(&hx), HXHIM_SUCCESS);
 
     int rank = -1;
     int size = -1;
@@ -248,15 +243,14 @@ TEST(Enqueue, GETOP) {
     getops[rank].clear();
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
-    EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }
 
 TEST(Enqueue, DELETE) {
-    hxhim_options_t opts;
-    ASSERT_EQ(fill_options(&opts), true);
-
     hxhim_t hx;
-    ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim::Init(&hx, MPI_COMM_WORLD), HXHIM_SUCCESS);
+    ASSERT_EQ(fill_options(&hx), true);
+
+    ASSERT_EQ(hxhim::Open(&hx), HXHIM_SUCCESS);
 
     int rank = -1;
     int size = -1;
@@ -311,16 +305,15 @@ TEST(Enqueue, DELETE) {
     }
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
-    EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }
 
 TEST(Enqueue, HISTOGRAM) {
-    hxhim_options_t opts;
-    ASSERT_EQ(fill_options(&opts), true);
-    ASSERT_EQ(hxhim_options_add_histogram_track_predicate(&opts, TEST_HIST_NAME), HXHIM_SUCCESS);
-
     hxhim_t hx;
-    ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim::Init(&hx, MPI_COMM_WORLD), HXHIM_SUCCESS);
+    ASSERT_EQ(fill_options(&hx), true);
+    ASSERT_EQ(hxhim_add_histogram_track_predicate(&hx, TEST_HIST_NAME), HXHIM_SUCCESS);
+
+    ASSERT_EQ(hxhim::Open(&hx), HXHIM_SUCCESS);
 
     int rank = -1;
     int size = -1;
@@ -363,5 +356,4 @@ TEST(Enqueue, HISTOGRAM) {
     }
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
-    EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }

@@ -5,7 +5,6 @@
 #include <unordered_map>
 
 #include "datastore/constants.hpp"
-#include "hxhim/config.h"
 #include "hxhim/constants.h"
 #include "hxhim/hash.h"
 #include "hxhim/options.h"
@@ -206,8 +205,6 @@ const Config::Config DEFAULT_CONFIG = {
     std::make_pair(ELEN_ENCODE_FLOAT_PRECISION,   std::to_string(elen::encode::FLOAT_PRECISION)),
     std::make_pair(ELEN_ENCODE_DOUBLE_PRECISION,  std::to_string(elen::encode::DOUBLE_PRECISION)),
 };
-
-int default_reader(hxhim_options_t *opts, MPI_Comm comm);
 
 }
 }

@@ -21,9 +21,9 @@ int hxhim::GetOp(hxhim_t *hx,
                  void *predicate, std::size_t predicate_len, enum hxhim_data_t predicate_type,
                  enum hxhim_data_t object_type,
                  std::size_t num_records, enum hxhim_getop_t op) {
-    if (!valid(hx) || !hx->p->running ||
-        !subject   || !subject_len    ||
-        !predicate || !predicate_len)  {
+    if (!started(hx) ||
+        !subject     || !subject_len    ||
+        !predicate   || !predicate_len)  {
         return HXHIM_ERROR;
     }
 

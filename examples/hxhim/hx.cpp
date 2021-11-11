@@ -98,22 +98,22 @@ int main(int argc, char *argv[]) {
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
     // read the config
-    hxhim_options_t opts;
-    if (hxhim_config_default_reader(&opts, MPI_COMM_WORLD) != HXHIM_SUCCESS) {
+    hxhim_t hx;
+    if (hxhim::Init(&hx, MPI_COMM_WORLD) != HXHIM_SUCCESS) {
         if (rank == 0) {
             std::cerr << "Failed to read configuration" << std::endl;
         }
+        hxhim::Close(&hx);
         MPI_Finalize();
         return 1;
     }
 
     // start hxhim
-    hxhim_t hx;
-    if (hxhim::Open(&hx, &opts) != HXHIM_SUCCESS) {
+    if (hxhim::Open(&hx) != HXHIM_SUCCESS) {
         if (rank == 0) {
             std::cerr << "Failed to initialize hxhim" << std::endl;
         }
-        hxhim_options_destroy(&opts);
+        hxhim::Close(&hx);
         MPI_Finalize();
         return 1;
     }
@@ -236,7 +236,6 @@ int main(int argc, char *argv[]) {
     MPI_Barrier(MPI_COMM_WORLD);
 
     hxhim::Close(&hx);
-    hxhim_options_destroy(&opts);
 
     MPI_Finalize();
 

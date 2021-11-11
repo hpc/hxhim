@@ -54,26 +54,25 @@ int main(int argc, char *argv[]) {
     srand(time(NULL));
 
     // read the config
-    hxhim_options_t opts;
-    if (hxhim_config_default_reader(&opts, MPI_COMM_WORLD) != HXHIM_SUCCESS) {
+    hxhim_t hx;
+    if (hxhimInit(&hx, MPI_COMM_WORLD) != HXHIM_SUCCESS) {
         if (rank == 0) {
             fprintf(stderr, "Failed to read configuration\n");
         }
+        hxhimClose(&hx);
         MPI_Finalize();
         return 1;
     }
 
     // start hxhim
-    hxhim_t hx;
-    if (hxhimOpen(&hx, &opts) != HXHIM_SUCCESS) {
+    if (hxhimOpen(&hx) != HXHIM_SUCCESS) {
         if (rank == 0) {
             fprintf(stderr, "Failed to initialize hxhim\n");
         }
-        hxhim_options_destroy(&opts);
+        hxhimClose(&hx);
         MPI_Finalize();
         return 1;
     }
-    hxhim_options_destroy(&opts);
 
     Cell_t *lowest = NULL;
     Cell_t *highest = NULL;
@@ -82,7 +81,6 @@ int main(int argc, char *argv[]) {
     const size_t total = num_x * num_y;
     Cell_t *cells = (Cell_t *) calloc(total, sizeof(Cell_t));
 
-    size_t id = 0;
     for(size_t x = 0; x < num_x; x++) {
         for(size_t y = 0; y < num_y; y++) {
             Cell_t *c = &cells[x * num_x + y];

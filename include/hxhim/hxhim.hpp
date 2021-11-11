@@ -1,6 +1,8 @@
 #ifndef HXHIM_HPP
 #define HXHIM_HPP
 
+#include <mpi.h>
+
 #include "hxhim/Results.hpp"
 #include "hxhim/accessors.hpp"
 #include "hxhim/config.hpp"
@@ -14,9 +16,12 @@
 
 namespace hxhim {
 
+/** @description allocate an HXHIM struct */
+int Init(hxhim_t *hx, MPI_Comm comm);
+
 /** @description Starts an HXHIM instance */
-int Open(hxhim_t *hx, hxhim_options_t *opts);
-int OpenOne(hxhim_t *hx, hxhim_options_t *opts, const std::string &db_path);
+int Open(hxhim_t *hx);
+int OpenOne(hxhim_t *hx, const std::string &db_path);
 
 /** @description Stops an HXHIM instance */
 int Close(hxhim_t *hx);

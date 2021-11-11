@@ -11,7 +11,6 @@ set(HXHIM_HEADERS
   Results.hpp
   accessors.h
   accessors.hpp
-  config.h
   config.hpp
   constants.h
   double.h

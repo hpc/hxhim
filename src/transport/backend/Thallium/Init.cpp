@@ -2,7 +2,6 @@
 
 #include "hxhim/private/accessors.hpp"
 #include "hxhim/private/hxhim.hpp"
-#include "hxhim/private/options.hpp"
 #include "hxhim/RangeServer.hpp"
 #include "transport/backend/Thallium/Thallium.hpp"
 #include "utils/Stats.hpp"

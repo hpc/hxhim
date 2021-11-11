@@ -93,7 +93,7 @@ hxhim::Results *process(hxhim_t *hx,
             #endif
 
             // send down transport layer
-            Response_t *response = hx->p->transport->communicate(remote);
+            Response_t *response = hx->p->transport.transport->communicate(remote);
 
             #if PRINT_TIMESTAMPS
             ::Stats::Chronopoint remote_end = ::Stats::now();
@@ -125,7 +125,7 @@ hxhim::Results *process(hxhim_t *hx,
 
         // process local data
         if (local.size()) {
-            for(Request_t *req: local) {
+            for(Request_t *req : local) {
                 #if PRINT_TIMESTAMPS
                 ::Stats::Chronopoint local_start = ::Stats::now();
                 #endif

@@ -743,16 +743,15 @@ class Benchmark {
   void Open() {
     assert(hx == nullptr);
 
-    // read the config
-    hxhim_options_t opts;
-    hxhim_config_default_reader(&opts, MPI_COMM_WORLD);
-
     hx = new hxhim_t();
-    if (hxhimOpen(hx, &opts) != HXHIM_SUCCESS) {
+
+    // read the config
+    hxhimInit(hx, MPI_COMM_WORLD);
+
+    if (hxhimOpen(hx) != HXHIM_SUCCESS) {
         fprintf(stderr, "Failed to initialize hxhim\n");
         exit(1);
     }
-    hxhim_options_destroy(&opts);
 
     // assert(db_ == nullptr);
     // Options options;

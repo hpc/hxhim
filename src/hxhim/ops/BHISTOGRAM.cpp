@@ -14,9 +14,9 @@ int hxhim::BHistogram(hxhim_t *hx,
                       int *rs_ids,
                       const char **names, const std::size_t *name_lens,
                       const std::size_t count) {
-    if (!valid(hx) || !hx->p->running ||
-        !rs_ids    ||
-        !names     || !name_lens)      {
+    if (!started(hx) ||
+        !rs_ids      ||
+        !names       || !name_lens) {
         return HXHIM_ERROR;
     }
 

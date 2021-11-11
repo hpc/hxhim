@@ -214,7 +214,7 @@ int hxhim::GetImpl(hxhim_t *hx,
     mlog(HXHIM_CLIENT_DBG, "GET Start");
 
     Message::Request::BGet *get = get_packet(hx, gets,
-                                               subject, predicate);
+                                             subject, predicate);
     if (!get) {
         return HXHIM_ERROR;
     }
@@ -252,7 +252,7 @@ int hxhim::GetOpImpl(hxhim_t *hx,
     mlog(HXHIM_CLIENT_DBG, "GETOP Start");
 
     Message::Request::BGetOp *getop = get_packet(hx, getops,
-                                                   subject, predicate);
+                                                 subject, predicate);
     if (!getop) {
         return HXHIM_ERROR;
     }
@@ -284,7 +284,7 @@ int hxhim::DeleteImpl(hxhim_t *hx,
     mlog(HXHIM_CLIENT_DBG, "DELETE Start");
 
     Message::Request::BDelete *del = get_packet(hx, dels,
-                                                  subject, predicate);
+                                                subject, predicate);
     if (!del) {
         return HXHIM_ERROR;
     }

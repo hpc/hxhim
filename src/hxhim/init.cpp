@@ -1,11 +1,10 @@
 #include <cmath>
 
-#include "datastore/datastore.hpp"
+#include "datastore/datastores.hpp"
 #include "datastore/transform.hpp"
 #include "hxhim/Datastore.hpp"
 #include "hxhim/RangeServer.hpp"
 #include "hxhim/private/hxhim.hpp"
-#include "hxhim/private/options.hpp"
 #include "hxhim/private/process.hpp"
 #include "transport/transports.hpp"
 
@@ -14,14 +13,13 @@
  * Sets up the MPI bootstrapping information
  *
  * @param hx   the HXHIM instance
- * @param opts the HXHIM options
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int hxhim::init::bootstrap(hxhim_t *hx, hxhim_options_t *opts) {
+int hxhim::init::bootstrap(hxhim_t *hx) {
     mlog(HXHIM_CLIENT_INFO, "Starting MPI Bootstrap Initialization");
-    if (((hx->p->bootstrap.comm = opts->p->comm)                      == MPI_COMM_NULL) ||
-        (MPI_Comm_rank(hx->p->bootstrap.comm, &hx->p->bootstrap.rank) != MPI_SUCCESS)   ||
-        (MPI_Comm_size(hx->p->bootstrap.comm, &hx->p->bootstrap.size) != MPI_SUCCESS))   {
+    if ((hx->p->bootstrap.comm == MPI_COMM_NULL)                                      ||
+        (MPI_Comm_rank(hx->p->bootstrap.comm, &hx->p->bootstrap.rank) != MPI_SUCCESS) ||
+        (MPI_Comm_size(hx->p->bootstrap.comm, &hx->p->bootstrap.size) != MPI_SUCCESS)) {
         mlog(HXHIM_CLIENT_ERR, "Failed MPI Bootstrap Initialization");
         return HXHIM_ERROR;
     }
@@ -36,10 +34,9 @@ int hxhim::init::bootstrap(hxhim_t *hx, hxhim_options_t *opts) {
  * Sets the state to running
  *
  * @param hx   the HXHIM instance
- * @param opts the HXHIM options
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int hxhim::init::running(hxhim_t *hx, hxhim_options_t *) {
+int hxhim::init::running(hxhim_t *hx) {
     hx->p->running = true;
     return HXHIM_SUCCESS;
 }
@@ -51,13 +48,10 @@ int hxhim::init::running(hxhim_t *hx, hxhim_options_t *) {
  * all ranks must be known by this point
  *
  * @param hx   the HXHIM instance
- * @param opts the HXHIM options
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int hxhim::init::queues(hxhim_t *hx, hxhim_options_t *opts) {
+int hxhim::init::queues(hxhim_t *hx) {
     mlog(HXHIM_CLIENT_INFO, "Starting Memory Initialization");
-    hx->p->queues.max_per_request.ops = opts->p->max_per_request.ops;
-    hx->p->queues.max_per_request.size = opts->p->max_per_request.size;
 
     {
         #if ASYNC_PUTS
@@ -87,17 +81,17 @@ int hxhim::init::queues(hxhim_t *hx, hxhim_options_t *opts) {
 
 namespace hxhim {
 namespace init {
-static ::Datastore::Transform::Callbacks *transform(hxhim_options_t *opts) {
+static ::Datastore::Transform::Callbacks *transform(hxhim_t *hx) {
+    decltype(hx->p->range_server.datastores.transform) &transform = hx->p->range_server.datastores.transform;
     ::Datastore::Transform::Callbacks *callbacks = ::Datastore::Transform::default_callbacks();
 
-    // move in values from opts
-    callbacks->numeric_extra = opts->p->transform.numeric_extra;
+    callbacks->numeric_extra = transform.numeric_extra;
 
     // overwrite existing callbacks with those set in opts
-    for(decltype(opts->p->transform.encode)::value_type const &callback : opts->p->transform.encode) {
+    for(decltype(transform.encode)::value_type const &callback : transform.encode) {
         callbacks->encode.emplace(callback);
     }
-    for(decltype(opts->p->transform.decode)::value_type const &callback : opts->p->transform.decode) {
+    for(decltype(transform.decode)::value_type const &callback : transform.decode) {
         callbacks->decode.emplace(callback);
     }
 
@@ -111,29 +105,18 @@ static ::Datastore::Transform::Callbacks *transform(hxhim_options_t *opts) {
  * Sets up and starts the datastores
  *
  * @param hx   the HXHIM instance
- * @param opts the HXHIM options
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
+int hxhim::init::datastore(hxhim_t *hx) {
     mlog(HXHIM_CLIENT_INFO, "Starting Datastore Initialization");
     // there must be at least 1 client, server, and datastore
-    if (!opts->p->client_ratio ||
-        !opts->p->server_ratio ||
-        !opts->p->datastores.per_server) {
+    if (!hx->p->range_server.client_ratio ||
+        !hx->p->range_server.server_ratio ||
+        !hx->p->range_server.datastores.per_server) {
         return HXHIM_ERROR;
     }
 
     decltype(hx->p->range_server) *rs = &hx->p->range_server;
-
-    rs->client_ratio = opts->p->client_ratio;
-    rs->server_ratio = opts->p->server_ratio;
-    rs->datastores.prefix = opts->p->datastores.prefix;
-    rs->datastores.basename = opts->p->datastores.basename;
-    rs->datastores.postfix = opts->p->datastores.postfix;
-    rs->datastores.per_server = opts->p->datastores.per_server;
-
-    hx->p->histograms.names = std::move(opts->p->histograms.names);
-    hx->p->histograms.config = opts->p->histograms.config;
 
     // calculate how many range servers there are
     if (rs->client_ratio <= rs->server_ratio) {
@@ -163,9 +146,6 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
         return HXHIM_SUCCESS;
     }
 
-    // clear out old datastores
-    destroy::datastore(hx);
-
     // set up new datastores
     int ds_id = hxhim::Datastore::get_id(hx->p->bootstrap.rank, 0, hx->p->bootstrap.size,
                                          rs->client_ratio,
@@ -176,13 +156,13 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
     for(::Datastore::Datastore *&ds : hx->p->range_server.datastores.ds) {
         ds = ::Datastore::Init(hx,
                                ds_id++,
-                               opts->p->datastores.config,
-                               init::transform(opts),
-                               opts->p->histograms.config,
+                               hx->p->range_server.datastores.config,
+                               init::transform(hx),
+                               hx->p->histograms.config,
                                nullptr,
-                               opts->p->datastores.open_init,
-                               opts->p->histograms.read,
-                               opts->p->histograms.write);
+                               hx->p->range_server.datastores.open_init,
+                               hx->p->histograms.read,
+                               hx->p->histograms.write);
 
         if (!ds) {
             return HXHIM_ERROR;
@@ -198,19 +178,17 @@ int hxhim::init::datastore(hxhim_t *hx, hxhim_options_t *opts) {
  * Sets up and starts one datastore instance
  *
  * @param hx   the HXHIM instance
- * @param opts the HXHIM options
  * @param name the name of the datastore, not including the prefix
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::string &name) {
+int hxhim::init::one_datastore(hxhim_t *hx, const std::string &name) {
     if (destroy::datastore(hx) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
 
+    // ignore previous values
     hx->p->range_server.client_ratio = 1;
     hx->p->range_server.server_ratio = 1;
-
-    hx->p->histograms.names = std::move(opts->p->histograms.names);
 
     // ignore configuration hash - everything goes into here
     hx->p->hash.name = "local";
@@ -218,13 +196,13 @@ int hxhim::init::one_datastore(hxhim_t *hx, hxhim_options_t *opts, const std::st
     hx->p->hash.args = nullptr;
 
     ::Datastore::Datastore *ds = ::Datastore::Init(hx, 0,
-                                               opts->p->datastores.config,
-                                               init::transform(opts),
-                                               opts->p->histograms.config,
-                                               &name,
-                                               opts->p->datastores.open_init,
-                                               opts->p->histograms.read,
-                                               opts->p->histograms.write);
+                                                   hx->p->range_server.datastores.config,
+                                                   init::transform(hx),
+                                                   hx->p->histograms.config,
+                                                   &name,
+                                                   hx->p->range_server.datastores.open_init,
+                                                   hx->p->histograms.read,
+                                                   hx->p->histograms.write);
     if (!ds) {
         return HXHIM_ERROR;
     }
@@ -307,19 +285,14 @@ static void async_put_thread(hxhim_t *hx) {
  * Starts up the background thread that does asynchronous PUTs.
  *
  * @param hx   the HXHIM instance
- * @param opts the HXHIM options
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int hxhim::init::async_puts(hxhim_t *hx, hxhim_options_t *opts) {
-    if (init::running(hx, opts) != HXHIM_SUCCESS) {
+int hxhim::init::async_puts(hxhim_t *hx) {
+    if (init::running(hx) != HXHIM_SUCCESS) {
         return HXHIM_ERROR;
     }
 
-    if ((hx->p->async_puts.enabled = opts->p->async_puts.enabled)) {
-
-        // Set number of bulk puts to queue up before sending
-        hx->p->async_puts.max_queued = opts->p->async_puts.start_at;
-
+    if (hx->p->async_puts.enabled) {
         // Set up queued PUT results list
         hx->p->async_puts.results = nullptr;
 
@@ -336,16 +309,10 @@ int hxhim::init::async_puts(hxhim_t *hx, hxhim_options_t *opts) {
  * Sets up the hash algorithm and extra arguments
  *
  * @param hx             the HXHIM instance
- * @param opts           the HXHIM options
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int hxhim::init::hash(hxhim_t *hx, hxhim_options_t *opts) {
+int hxhim::init::hash(hxhim_t *) {
     mlog(HXHIM_CLIENT_INFO, "Starting Hash Initalization");
-
-    hx->p->hash.name = opts->p->hash.name;
-    hx->p->hash.func = opts->p->hash.func;
-    hx->p->hash.args = opts->p->hash.args;
-
     mlog(HXHIM_CLIENT_INFO, "Completed Hash Initalization");
     return HXHIM_SUCCESS;
 }
@@ -355,29 +322,26 @@ int hxhim::init::hash(hxhim_t *hx, hxhim_options_t *opts) {
  * Starts up the transport layer
  *
  * @param hx   the HXHIM instance
- * @param opts the HXHIM options
  * @return HXHIM_SUCCESS on success or HXHIM_ERROR
  */
-int hxhim::init::transport(hxhim_t *hx, hxhim_options_t *opts) {
+int hxhim::init::transport(hxhim_t *hx) {
     mlog(HXHIM_CLIENT_INFO, "Starting Transport Initialization");
 
-    if (!opts->p->client_ratio) {
+    if (!hx->p->range_server.client_ratio) {
         mlog(HXHIM_CLIENT_ERR, "Client ratio must be at least 1");
         return HXHIM_ERROR;
     }
 
-    if (!opts->p->server_ratio) {
+    if (!hx->p->range_server.server_ratio) {
         mlog(HXHIM_SERVER_ERR, "Server ratio must be at least 1");
         return HXHIM_ERROR;
     }
 
-    destroy::transport(hx);
-
     const int ret = Transport::init(hx,
-                                    opts->p->client_ratio,
-                                    opts->p->server_ratio,
-                                    opts->p->endpointgroup,
-                                    opts->p->transport);
+                                    hx->p->range_server.client_ratio,
+                                    hx->p->range_server.server_ratio,
+                                    hx->p->transport.endpointgroup,
+                                    hx->p->transport.config);
 
     mlog(HXHIM_CLIENT_INFO, "Completed Transport Initialization");
     return (ret == TRANSPORT_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;

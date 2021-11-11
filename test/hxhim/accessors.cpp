@@ -6,13 +6,13 @@
 #include "hxhim/hxhim.hpp"
 
 TEST(GetRangeServerCount, equal) {
-    hxhim_options_t opts;
-    ASSERT_EQ(fill_options(&opts), true);
-    EXPECT_EQ(hxhim_options_set_client_ratio(&opts, 1), HXHIM_SUCCESS);
-    EXPECT_EQ(hxhim_options_set_server_ratio(&opts, 1), HXHIM_SUCCESS);
-
     hxhim_t hx;
-    ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim::Init(&hx, MPI_COMM_WORLD), HXHIM_SUCCESS);
+    ASSERT_EQ(fill_options(&hx), true);
+    EXPECT_EQ(hxhim_set_client_ratio(&hx, 1), HXHIM_SUCCESS);
+    EXPECT_EQ(hxhim_set_server_ratio(&hx, 1), HXHIM_SUCCESS);
+
+    ASSERT_EQ(hxhim::Open(&hx), HXHIM_SUCCESS);
 
     int size = -1;
     EXPECT_EQ(hxhim::GetMPI(&hx, nullptr, nullptr, &size), HXHIM_SUCCESS);
@@ -22,7 +22,6 @@ TEST(GetRangeServerCount, equal) {
     EXPECT_EQ(count, size);
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
-    EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }
 
 TEST(GetRangeServerCount, more_clients) {
@@ -38,13 +37,13 @@ TEST(GetRangeServerCount, more_clients) {
     const std::size_t CLIENT_RATIO = 5;
     const std::size_t SERVER_RATIO = 3;
 
-    hxhim_options_t opts;
-    ASSERT_EQ(fill_options(&opts), true);
-    EXPECT_EQ(hxhim_options_set_client_ratio(&opts, CLIENT_RATIO), HXHIM_SUCCESS);
-    EXPECT_EQ(hxhim_options_set_server_ratio(&opts, SERVER_RATIO), HXHIM_SUCCESS);
-
     hxhim_t hx;
-    ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim::Init(&hx, MPI_COMM_WORLD), HXHIM_SUCCESS);
+    ASSERT_EQ(fill_options(&hx), true);
+    EXPECT_EQ(hxhim_set_client_ratio(&hx, CLIENT_RATIO), HXHIM_SUCCESS);
+    EXPECT_EQ(hxhim_set_server_ratio(&hx, SERVER_RATIO), HXHIM_SUCCESS);
+
+    ASSERT_EQ(hxhim::Open(&hx), HXHIM_SUCCESS);
 
     int size = -1;
     EXPECT_EQ(hxhim::GetMPI(&hx, nullptr, nullptr, &size), HXHIM_SUCCESS);
@@ -54,7 +53,6 @@ TEST(GetRangeServerCount, more_clients) {
     EXPECT_EQ(count, ((size / CLIENT_RATIO) * SERVER_RATIO + std::min(size % CLIENT_RATIO, SERVER_RATIO)));
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
-    EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }
 
 TEST(GetRangeServerCount, more_servers) {
@@ -70,13 +68,13 @@ TEST(GetRangeServerCount, more_servers) {
     const std::size_t CLIENT_RATIO = 3;
     const std::size_t SERVER_RATIO = 5;
 
-    hxhim_options_t opts;
-    ASSERT_EQ(fill_options(&opts), true);
-    EXPECT_EQ(hxhim_options_set_client_ratio(&opts, CLIENT_RATIO), HXHIM_SUCCESS);
-    EXPECT_EQ(hxhim_options_set_server_ratio(&opts, SERVER_RATIO), HXHIM_SUCCESS);
-
     hxhim_t hx;
-    ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim::Init(&hx, MPI_COMM_WORLD), HXHIM_SUCCESS);
+    ASSERT_EQ(fill_options(&hx), true);
+    EXPECT_EQ(hxhim_set_client_ratio(&hx, CLIENT_RATIO), HXHIM_SUCCESS);
+    EXPECT_EQ(hxhim_set_server_ratio(&hx, SERVER_RATIO), HXHIM_SUCCESS);
+
+    ASSERT_EQ(hxhim::Open(&hx), HXHIM_SUCCESS);
 
     int size = -1;
     EXPECT_EQ(hxhim::GetMPI(&hx, nullptr, nullptr, &size), HXHIM_SUCCESS);
@@ -86,5 +84,4 @@ TEST(GetRangeServerCount, more_servers) {
     EXPECT_EQ(count, size);
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
-    EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }

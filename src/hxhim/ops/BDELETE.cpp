@@ -19,9 +19,9 @@ int hxhim::BDelete(hxhim_t *hx,
                    void **subjects, std::size_t *subject_lens, enum hxhim_data_t *subject_types,
                    void **predicates, std::size_t *predicate_lens, enum hxhim_data_t *predicate_types,
                    const std::size_t count) {
-    if (!valid(hx)  || !hx->p->running ||
-        !subjects   || !subject_lens   || !subject_types   ||
-        !predicates || !predicate_lens || !predicate_types) {
+    if (!started(hx) ||
+        !subjects    || !subject_lens   || !subject_types   ||
+        !predicates  || !predicate_lens || !predicate_types) {
         return HXHIM_ERROR;
     }
 

@@ -19,11 +19,10 @@ TEST(hxhim, PutGet) {
         const Predicate_t PREDICATE = (((Predicate_t) rand()) << 32) | rand();
         const Object_t    OBJECT    = (((Object_t) SUBJECT) * ((Object_t) SUBJECT)) / (((Object_t) PREDICATE) * ((Object_t) PREDICATE));
 
-        hxhim_options_t opts;
-        ASSERT_EQ(fill_options(&opts), true);
-
         hxhim_t hx;
-        ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
+        ASSERT_EQ(hxhim::Init(&hx, MPI_COMM_WORLD), HXHIM_SUCCESS);
+        ASSERT_EQ(fill_options(&hx), true);
+        ASSERT_EQ(hxhim::Open(&hx), HXHIM_SUCCESS);
 
         // Add triple for putting
         EXPECT_EQ(hxhim::PutDouble(&hx,
@@ -109,6 +108,5 @@ TEST(hxhim, PutGet) {
         hxhim::Results::Destroy(get_results);
 
         EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
-        EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
     }
 }

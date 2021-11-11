@@ -49,26 +49,25 @@ int main(int argc, char *argv[]) {
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
     // read the config
-    hxhim_options_t opts;
-    if (hxhim_config_default_reader(&opts, MPI_COMM_WORLD) != HXHIM_SUCCESS) {
+    hxhim_t hx;
+    if (hxhimInit(&hx, MPI_COMM_WORLD) != HXHIM_SUCCESS) {
         if (rank == 0) {
             fprintf(stderr, "Failed to read configuration\n");
         }
+        hxhimClose(&hx);
         MPI_Finalize();
         return 1;
     }
 
     // start hxhim
-    hxhim_t hx;
-    if (hxhimOpen(&hx, &opts) != HXHIM_SUCCESS) {
+    if (hxhimOpen(&hx) != HXHIM_SUCCESS) {
         if (rank == 0) {
             fprintf(stderr, "Failed to initialize hxhim\n");
         }
-        hxhim_options_destroy(&opts);
+        hxhimClose(&hx);
         MPI_Finalize();
         return 1;
     }
-    hxhim_options_destroy(&opts);
 
     struct timespec epoch;
     hxhimGetEpoch(&hx, &epoch);

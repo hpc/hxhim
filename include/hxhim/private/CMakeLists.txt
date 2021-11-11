@@ -5,7 +5,6 @@ set(PRIVATE_HEADERS
   Stats.hpp
   accessors.hpp
   hxhim.hpp
-  options.hpp
   process.hpp
 )
 

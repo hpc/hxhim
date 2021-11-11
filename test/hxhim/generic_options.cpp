@@ -13,24 +13,23 @@ static int test_hash_local(hxhim_t *hx, void *, const size_t, void *, const size
     return rank;
 }
 
-bool fill_options(hxhim_options_t *opts) {
-    return ((hxhim_options_init(opts)                                        == HXHIM_SUCCESS) &&
-            (hxhim_options_set_mpi_bootstrap(opts, MPI_COMM_WORLD)           == HXHIM_SUCCESS) &&
-            (hxhim_options_set_debug_level(opts, MLOG_WARN)                  == HXHIM_SUCCESS) &&
-            (hxhim_options_set_client_ratio(opts, 1)                         == HXHIM_SUCCESS) &&
-            (hxhim_options_set_server_ratio(opts, 1)                         == HXHIM_SUCCESS) &&
-            (hxhim_options_set_datastore_in_memory(opts)                     == HXHIM_SUCCESS) &&
+bool fill_options(hxhim_t *hx) {
+    return ((hxhim_set_debug_level(hx, MLOG_WARN)                  == HXHIM_SUCCESS) &&
+            (hxhim_set_client_ratio(hx, 1)                         == HXHIM_SUCCESS) &&
+            (hxhim_set_server_ratio(hx, 1)                         == HXHIM_SUCCESS) &&
+            (hxhim_set_datastores_per_server(hx, 1)                == HXHIM_SUCCESS) &&
+            (hxhim_set_datastore_in_memory(hx)                     == HXHIM_SUCCESS) &&
             #ifdef HXHIM_HAVE_THALLIUM
-            (hxhim_options_set_transport_thallium(opts, "ofi+tcp")           == HXHIM_SUCCESS) &&
+            (hxhim_set_transport_thallium(hx, "ofi+tcp")           == HXHIM_SUCCESS) &&
             #else
-            (hxhim_options_set_transport_mpi(opts, 1)                        == HXHIM_SUCCESS) &&
+            (hxhim_set_transport_mpi(hx, 1)                        == HXHIM_SUCCESS) &&
             #endif
-            (hxhim_options_set_hash_function(opts, "Test_Hash_Local", test_hash_local, nullptr)
-                                                                             == HXHIM_SUCCESS) &&
-            (hxhim_options_set_start_async_puts_at(opts, 0)                  == HXHIM_SUCCESS) &&
-            (hxhim_options_set_maximum_ops_per_request(opts, 1)              == HXHIM_SUCCESS) &&
-            (hxhim_options_set_maximum_size_per_request(opts, 1)             == HXHIM_SUCCESS) &&
-            (hxhim_options_set_histogram_first_n(opts, 10)                   == HXHIM_SUCCESS) &&
-            (hxhim_options_set_histogram_bucket_gen_name(opts, "10_BUCKETS") == HXHIM_SUCCESS) &&
+            (hxhim_set_hash_function(hx, "Test_Hash_Local", test_hash_local, nullptr)
+                                                                   == HXHIM_SUCCESS) &&
+            (hxhim_set_start_async_puts_at(hx, 0)                  == HXHIM_SUCCESS) &&
+            (hxhim_set_maximum_ops_per_request(hx, 1)              == HXHIM_SUCCESS) &&
+            (hxhim_set_maximum_size_per_request(hx, 1)             == HXHIM_SUCCESS) &&
+            (hxhim_set_histogram_first_n(hx, 10)                   == HXHIM_SUCCESS) &&
+            (hxhim_set_histogram_bucket_gen_name(hx, "10_BUCKETS") == HXHIM_SUCCESS) &&
             true);
 }

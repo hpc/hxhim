@@ -22,10 +22,10 @@ int hxhim::Put(hxhim_t *hx,
                void *object, std::size_t object_len, enum hxhim_data_t object_type,
                const hxhim_put_permutation_t permutations) {
     mlog(HXHIM_CLIENT_DBG, "%s %s:%d", __FILE__, __func__, __LINE__);
-    if (!valid(hx) || !hx->p->running ||
-        !subject   || !subject_len    ||
-        !predicate || !predicate_len  ||
-        !object    || !object_len)     {
+    if (!started(hx) ||
+        !subject     || !subject_len    ||
+        !predicate   || !predicate_len  ||
+        !object      || !object_len)     {
         return HXHIM_ERROR;
     }
 

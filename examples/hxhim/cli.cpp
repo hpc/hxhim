@@ -5,7 +5,7 @@
 #include <map>
 #include <sstream>
 
-#include "hxhim/hxhim.h"
+#include "hxhim/hxhim.hpp"
 #include "print_results.h"
 #include "utils/Blob.hpp" // private header
 #include "utils/memory.hpp"
@@ -193,9 +193,8 @@ struct UserInput {
 using UserInputs = std::list<UserInput>;
 
 // A quick and dirty cleanup function
-void cleanup(hxhim_t *hx, hxhim_options_t *opts) {
-    hxhimClose(hx);
-    hxhim_options_destroy(opts);
+void cleanup(hxhim_t *hx) {
+    hxhim::Close(hx);
     MPI_Finalize();
 }
 
@@ -407,32 +406,31 @@ int main(int argc, char *argv[]) {
     }
 
     // read the config
-    hxhim_options_t opts;
-    if (hxhim_config_default_reader(&opts, MPI_COMM_WORLD) != HXHIM_SUCCESS) {
+    hxhim_t hx;
+    if (hxhimInit(&hx, MPI_COMM_WORLD) != HXHIM_SUCCESS) {
         if (rank == 0) {
             std::cout << "Error: Failed to read configuration" << std::endl;
         }
-        MPI_Finalize();
+        cleanup(&hx);
         return 1;
     }
 
     // initialize hxhim context
-    hxhim_t hx;
     if (ds) {
-        if (hxhimOpenOne(&hx, &opts, ds, strlen(ds)) != HXHIM_SUCCESS) {
+        if (hxhimOpenOne(&hx, ds, strlen(ds)) != HXHIM_SUCCESS) {
             if (rank == 0) {
                 std::cerr << "Failed to initialize hxhim" << std::endl;
             }
-            cleanup(&hx, &opts);
+            cleanup(&hx);
             return 1;
         }
     }
     else {
-        if (hxhimOpen(&hx, &opts) != HXHIM_SUCCESS) {
+        if (hxhimOpen(&hx) != HXHIM_SUCCESS) {
             if (rank == 0) {
                 std::cerr << "Failed to initialize hxhim" << std::endl;
             }
-            cleanup(&hx, &opts);
+            cleanup(&hx);
             return 1;
         }
     }
@@ -447,7 +445,7 @@ int main(int argc, char *argv[]) {
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    cleanup(&hx, &opts);
+    cleanup(&hx);
 
     return 0;
 }

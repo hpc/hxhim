@@ -3,7 +3,6 @@
 #include "generic_options.hpp"
 #include "hxhim/hxhim.hpp"
 #include "hxhim/private/hxhim.hpp"
-#include "hxhim/private/options.hpp"
 
 typedef uint64_t Subject_t;
 typedef uint64_t Predicate_t;
@@ -14,20 +13,20 @@ TEST(hxhim, background_put) {
     const Predicate_t PREDICATE = (((Predicate_t) rand()) << 32) | rand();
     const Object_t    OBJECT    = (((Object_t) SUBJECT) * ((Object_t) SUBJECT)) / (((Object_t) PREDICATE) * ((Object_t) PREDICATE));
 
-    hxhim_options_t opts;
-    ASSERT_EQ(fill_options(&opts), true);
+    hxhim_t hx;
+    ASSERT_EQ(hxhim::Init(&hx, MPI_COMM_WORLD), HXHIM_SUCCESS);
+    ASSERT_EQ(fill_options(&hx), true);
 
-    EXPECT_EQ(opts.p->async_puts.enabled, 0);
-    EXPECT_EQ(opts.p->async_puts.start_at, 0);
+    EXPECT_EQ(hx.p->async_puts.enabled, 0);
+    EXPECT_EQ(hx.p->async_puts.max_queued, 0);
 
     // automatically flush after 1 item has been PUT
-    ASSERT_EQ(hxhim_options_set_start_async_puts_at(&opts, 1), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim_set_start_async_puts_at(&hx, 1), HXHIM_SUCCESS);
 
-    EXPECT_EQ(opts.p->async_puts.enabled, 1);
-    EXPECT_EQ(opts.p->async_puts.start_at, 1);
+    EXPECT_EQ(hx.p->async_puts.enabled, 1);
+    EXPECT_EQ(hx.p->async_puts.max_queued, 1);
 
-    hxhim_t hx;
-    ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim::Open(&hx), HXHIM_SUCCESS);
 
     // PUT triple
     EXPECT_EQ(hxhim::Put(&hx,
@@ -70,5 +69,4 @@ TEST(hxhim, background_put) {
     hxhim::Results::Destroy(put_results);
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
-    EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }

@@ -20,9 +20,9 @@ int hxhim::Get(hxhim_t *hx,
                void *subject, std::size_t subject_len, enum hxhim_data_t subject_type,
                void *predicate, std::size_t predicate_len, enum hxhim_data_t predicate_type,
                enum hxhim_data_t object_type) {
-    if (!valid(hx) || !hx->p->running ||
-        !subject   || !subject_len    ||
-        !predicate || !predicate_len) {
+    if (!started(hx) ||
+        !subject     || !subject_len   ||
+        !predicate   || !predicate_len) {
         return HXHIM_ERROR;
     }
 

@@ -7,9 +7,10 @@
 
 #include <stddef.h>
 
+#include <mpi.h>
+
 #include "hxhim/Results.h"
 #include "hxhim/accessors.h"
-#include "hxhim/config.h"
 #include "hxhim/constants.h"
 #include "hxhim/double.h"
 #include "hxhim/float.h"
@@ -22,9 +23,12 @@ extern "C"
 {
 #endif
 
+/** @description allocate an HXHIM struct */
+int hxhimInit(hxhim_t *hx, MPI_Comm comm);
+
 /** @description Starts an HXHIM instance */
-int hxhimOpen(hxhim_t *hx, hxhim_options_t *opts);
-int hxhimOpenOne(hxhim_t *hx, hxhim_options_t *opts, const char *db_path, const size_t db_path_len);
+int hxhimOpen(hxhim_t *hx);
+int hxhimOpenOne(hxhim_t *hx, const char *db_path, const size_t db_path_len);
 
 /** @description Stops an HXHIM instance */
 int hxhimClose(hxhim_t *hx);
@@ -41,10 +45,11 @@ hxhim_results_t *hxhimFlush(hxhim_t *hx);
 hxhim_results_t *hxhimSync(hxhim_t *hx);
 
 /** @description Function that opens new datastores */
-hxhim_results_t *hxhimChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t func, void *args);
+hxhim_results_t *hxhimChangeHash(hxhim_t *hx, const char *name, const size_t name_len,
+                                 hxhim_hash_t func, void *args);
 
 /** @description Function for changing the datastore without changing the hash */
-hxhim_results_t *hxhimChangeDatastore(hxhim_t *hx, const char *name,
+hxhim_results_t *hxhimChangeDatastore(hxhim_t *hx, const char *name, const size_t name_len,
                                       const int write_histograms, const int read_histograms,
                                       const int create_missing);
 

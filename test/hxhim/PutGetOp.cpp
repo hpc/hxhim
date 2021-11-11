@@ -27,13 +27,14 @@ static const std::vector<Triple> TRIPLES = [](const std::size_t count) {
 }(COUNT);
 
 static int init(hxhim_t *hx) {
-    hxhim_options_t opts;
-    if (!fill_options(&opts)) {
-        hxhim_options_destroy(&opts);
+    hxhim::Init(hx, MPI_COMM_WORLD);
+    if (!fill_options(hx)) {
+        hxhim::Close(hx);
         return HXHIM_ERROR;
     }
 
-    if (hxhim::Open(hx, &opts) != HXHIM_SUCCESS) {
+    if (hxhim::Open(hx) != HXHIM_SUCCESS) {
+        hxhim::Close(hx);
         return HXHIM_ERROR;
     }
 
@@ -50,12 +51,8 @@ static int init(hxhim_t *hx) {
         }
     }
 
-    if (hxhim_options_destroy(&opts) != HXHIM_SUCCESS) {
-        rc = HXHIM_ERROR;
-    }
-
     if (rc != HXHIM_SUCCESS) {
-        hxhimClose(hx);
+        hxhim::Close(hx);
     }
 
     return rc;

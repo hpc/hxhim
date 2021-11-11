@@ -12,7 +12,7 @@
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 hxhim::Results *hxhim::Sync(hxhim_t *hx) {
-    if (!hxhim::valid(hx)) {
+    if (!hxhim::started(hx)) {
         return nullptr;
     }
 
@@ -24,7 +24,7 @@ hxhim::Results *hxhim::Sync(hxhim_t *hx) {
     decltype(hx->p->range_server) *rs = &hx->p->range_server;
     if (rs->id > -1) {
         // clear out local datastores
-        for(decltype(rs->datastores.ds)::value_type &ds: rs->datastores.ds) {
+        for(decltype(rs->datastores.ds)::value_type &ds : rs->datastores.ds) {
             ::Stats::Send send;
             send.hash.start        = ::Stats::now();
             send.hash.end          = ::Stats::now();

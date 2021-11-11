@@ -11,8 +11,8 @@
  */
 int hxhim::Histogram(hxhim_t *hx, int rs_id,
                      const char *name, const std::size_t len) {
-    if (!valid(hx)  || !hx->p->running                           ||
-        (rs_id < 0) ||
+    if (!started(hx) ||
+        (rs_id < 0)  ||
         (rs_id >= (int) hx->p->range_server.total_range_servers)) {
         return HXHIM_ERROR;
     }

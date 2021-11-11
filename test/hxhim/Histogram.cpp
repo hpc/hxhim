@@ -41,18 +41,18 @@ HistogramBucketGenerator_t test_buckets = [](const double *, const size_t,
 };
 
 TEST(hxhim, Histogram) {
-    hxhim_options_t opts;
-    ASSERT_EQ(fill_options(&opts), true);
-    ASSERT_EQ(hxhim_options_set_hash_function(&opts, "test hash", test_hash, nullptr), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_histogram_first_n(&opts, 0), HXHIM_SUCCESS);
-    ASSERT_EQ(hxhim_options_set_histogram_bucket_gen_function(&opts, test_buckets, nullptr), HXHIM_SUCCESS);
+    hxhim_t hx;
+    ASSERT_EQ(hxhim::Init(&hx, MPI_COMM_WORLD), HXHIM_SUCCESS);
+    ASSERT_EQ(fill_options(&hx), true);
+    ASSERT_EQ(hxhim_set_hash_function(&hx, "test hash", test_hash, nullptr), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim_set_histogram_first_n(&hx, 0), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim_set_histogram_bucket_gen_function(&hx, test_buckets, nullptr), HXHIM_SUCCESS);
 
     for(std::string const &name : HIST_NAMES) {
-        ASSERT_EQ(hxhim_options_add_histogram_track_predicate(&opts, name),  HXHIM_SUCCESS);
+        ASSERT_EQ(hxhim_add_histogram_track_predicate(&hx, name),  HXHIM_SUCCESS);
     }
 
-    hxhim_t hx;
-    ASSERT_EQ(hxhim::Open(&hx, &opts), HXHIM_SUCCESS);
+    ASSERT_EQ(hxhim::Open(&hx), HXHIM_SUCCESS);
 
     int rank = -1;
     int size = -1;
@@ -162,5 +162,4 @@ TEST(hxhim, Histogram) {
     }
 
     EXPECT_EQ(hxhim::Close(&hx), HXHIM_SUCCESS);
-    EXPECT_EQ(hxhim_options_destroy(&opts), HXHIM_SUCCESS);
 }

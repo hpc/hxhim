@@ -21,9 +21,9 @@ int hxhim::BGet(hxhim_t *hx,
                 void **predicates, std::size_t *predicate_lens, enum hxhim_data_t *predicate_types,
                 hxhim_data_t *object_types,
                 const std::size_t count) {
-    if (!valid(hx)  || !hx->p->running ||
-        !subjects   || !subject_lens   || !subject_types   ||
-        !predicates || !predicate_lens || !predicate_types ||
+    if (!started(hx) ||
+        !subjects    || !subject_lens   || !subject_types   ||
+        !predicates  || !predicate_lens || !predicate_types ||
         !object_types) {
         return HXHIM_ERROR;
     }

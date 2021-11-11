@@ -73,13 +73,14 @@ void Transport::Thallium::RangeServer::process(const thallium::request &req, con
         mlog(THALLIUM_WARN, "Could not unpack request");
         return;
     }
+    dealloc(req_buf);
 
     mlog(THALLIUM_DBG, "Rank %d RangeServer Unpacked %zu bytes of %s request", rank, req_len, HXHIM_OP_STR[request->op]);
 
     // process the request
     mlog(THALLIUM_DBG, "Rank %d Sending %s to Local RangeServer", rank, HXHIM_OP_STR[request->op]);
     Message::Response::Response *response = local::range_server(hx, request);
-    dealloc(request);
+    destruct(request);
 
     mlog(THALLIUM_DBG, "Rank %d Local RangeServer responded with %s response", rank, HXHIM_OP_STR[response->op]);
 
@@ -88,7 +89,7 @@ void Transport::Thallium::RangeServer::process(const thallium::request &req, con
     void *res_buf = nullptr;
     Message::Packer::pack(response, &res_buf, &res_len);     // do not check for error
     mlog(THALLIUM_DBG, "Rank %d RangeServer Responding with %zu byte %s response", rank, res_len, HXHIM_OP_STR[response->op]);
-    dealloc(response);
+    destruct(response);
 
     mlog(THALLIUM_DBG, "Rank %d RangeServer Packed response into %zu byte buffer", rank, res_len);
 

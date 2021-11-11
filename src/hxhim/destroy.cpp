@@ -1,6 +1,5 @@
-#include "datastore/datastore.hpp"
+#include "datastore/datastores.hpp"
 #include "hxhim/private/hxhim.hpp"
-#include "hxhim/private/options.hpp"
 #include "transport/transports.hpp"
 
 /**
@@ -27,6 +26,27 @@ int hxhim::destroy::bootstrap(hxhim_t *hx) {
  */
 int hxhim::destroy::running(hxhim_t *hx) {
     hx->p->running = false;
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * async_put
+ * Stops the background thread and cleans up the variables used by it
+ *
+ * @param hx   the HXHIM instance
+ * @return HXHIM_SUCCESS on success or HXHIM_ERROR
+ */
+int hxhim::destroy::async_puts(hxhim_t *hx) {
+    if (hx->p->async_puts.enabled) {
+        wait_for_background_puts(hx, true);
+
+        hx->p->async_puts.thread.join();
+    }
+
+    // release unproceesed results from asynchronous PUTs
+    destruct(hx->p->async_puts.results);
+    hx->p->async_puts.results = nullptr;
+
     return HXHIM_SUCCESS;
 }
 
@@ -74,27 +94,6 @@ int hxhim::destroy::queues(hxhim_t *hx) {
  */
 int hxhim::destroy::datastore(hxhim_t *hx) {
     return (Datastore::destroy(hx) == DATASTORE_SUCCESS)?HXHIM_SUCCESS:HXHIM_ERROR;
-}
-
-/**
- * async_put
- * Stops the background thread and cleans up the variables used by it
- *
- * @param hx   the HXHIM instance
- * @return HXHIM_SUCCESS on success or HXHIM_ERROR
- */
-int hxhim::destroy::async_puts(hxhim_t *hx) {
-    if (hx->p->async_puts.enabled) {
-        wait_for_background_puts(hx, true);
-
-        hx->p->async_puts.thread.join();
-    }
-
-    // release unproceesed results from asynchronous PUTs
-    destruct(hx->p->async_puts.results);
-    hx->p->async_puts.results = nullptr;
-
-    return HXHIM_SUCCESS;
 }
 
 /**

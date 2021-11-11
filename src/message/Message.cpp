@@ -13,7 +13,9 @@ Message::Message::Message(const Direction dir, const enum hxhim_op_t op, const s
       timestamps()
 {}
 
-Message::Message::~Message() {}
+Message::Message::~Message() {
+    cleanup();
+}
 
 std::size_t Message::Message::add(const std::size_t ds, const bool increment_count ) {
     if (increment_count) {

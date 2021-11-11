@@ -1,18 +1,19 @@
 #include "hxhim/private/Results.hpp"
 #include "hxhim/private/hxhim.hpp"
-#include "hxhim/private/options.hpp"
 #include "hxhim/private/process.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
 
 hxhim_private::hxhim_private()
     : epoch(::Stats::init()),
+      debug_level(MLOG_DBG3),
       bootstrap(),
       running(false),
       queues(),
       async_puts(),
       hash(),
-      transport(nullptr),
+      transport({nullptr, {}, nullptr}),
+      histograms(),
       range_server(),
       stats(),
       print_buffer()
@@ -87,29 +88,9 @@ void hxhim::serial_puts(hxhim_t *hx) {
     }
 }
 
-/**
- * valid
- * Checks if hx is valid
- *
- * @param hx   the HXHIM instance
- * @param true if ready, else false
- */
-bool hxhim::valid(hxhim_t *hx) {
-    return hx && hx->p;
+bool hxhim::started(hxhim_t *hx) {
+    return hx && hx->p && hx->p->running;
 }
-
-/**
- * valid
- * Checks if hx and opts are ready to be used
- *
- * @param hx   the HXHIM instance
- * @param opts the HXHIM options
- * @param true if ready, else false
- */
-bool hxhim::valid(hxhim_t *hx, hxhim_options_t *opts) {
-    return valid(hx) && valid(opts);
-}
-
 
 std::ostream &hxhim::print_stats(hxhim_t *hx,
                                  std::ostream &stream,

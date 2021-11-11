@@ -12,7 +12,7 @@ int hxhim::BPutSingleType(hxhim_t *hx,
                           const std::size_t count) {
     mlog(HXHIM_CLIENT_DBG, "Started %zu PUTs of type %d", count, object_type);
 
-    if (!valid(hx)  ||
+    if (!started(hx)||
         !subjects   || !subject_lens   ||
         !predicates || !predicate_lens ||
         !objects    || !object_lens    ||
@@ -66,9 +66,9 @@ int hxhim::BGetSingleType(hxhim_t *hx,
                           const std::size_t count) {
     mlog(HXHIM_CLIENT_DBG, "Started %zu GETs of type %d", count, object_type);
 
-    if (!valid(hx)  ||
-        !subjects   || !subject_lens   ||
-        !predicates || !predicate_lens) {
+    if (!started(hx) ||
+        !subjects    || !subject_lens   ||
+        !predicates  || !predicate_lens) {
         return HXHIM_ERROR;
     }
 
@@ -110,7 +110,7 @@ int hxhim::BGetOpSingleType(hxhim_t *hx,
                             const std::size_t count) {
     mlog(HXHIM_CLIENT_DBG, "Started %zu GETs of type %d", count, object_type);
 
-    if (!valid(hx)   ||
+    if (!started(hx) ||
         !subjects    || !subject_lens   ||
         !predicates  || !predicate_lens ||
         !num_records || ops)             {

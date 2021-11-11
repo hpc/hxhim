@@ -137,12 +137,18 @@ Datastore::Init(hxhim_t *hx,
 }
 
 int Datastore::destroy(hxhim_t *hx) {
-    for(Datastore *&ds : hx->p->range_server.datastores.ds) {
-        if (ds) {
-            ds->Close(hx->p->histograms.write);
-            delete ds;
-            ds = nullptr;
+    if (hx && hx->p) {
+        for(Datastore *&ds : hx->p->range_server.datastores.ds) {
+            if (ds) {
+                ds->Close(hx->p->histograms.write);
+                delete ds;
+                ds = nullptr;
+            }
         }
+
+        destruct(hx->p->range_server.datastores.config);
+        hx->p->range_server.datastores.config = nullptr;
     }
+
     return DATASTORE_SUCCESS;
 }

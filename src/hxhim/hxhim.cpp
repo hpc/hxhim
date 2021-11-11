@@ -2,7 +2,6 @@
 #include "hxhim/private/Results.hpp"
 #include "hxhim/private/accessors.hpp"
 #include "hxhim/private/hxhim.hpp"
-#include "hxhim/private/options.hpp"
 #include "hxhim/Datastore.hpp"
 #include "utils/mlog2.h"
 #include "utils/mlogfacs2.h"
@@ -34,6 +33,57 @@ const char *HXHIM_DATA_STR[] = {
     HXHIM_DATA_GEN(HXHIM_DATA_PREFIX, GENERATE_STR)
 };
 
+namespace hxhim {
+namespace config {
+
+extern int default_reader(hxhim_t *hx, MPI_Comm comm);
+
+}
+}
+
+/**
+ * Init
+ * Initializes pointer to an HXHIM structure
+ * Configuration settings are read, so that
+ * users always have a valid struct to start with
+ *
+ * @param hx    the structure to initialize
+ * @param comm  the MPI communicator to use
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhim::Init(hxhim_t *hx, MPI_Comm comm) {
+    if (!hx) {
+        return HXHIM_ERROR;
+    }
+
+    // ignore existing hx->p
+    hx->p = construct<hxhim_private_t>();
+    if (!hx->p) {
+        return HXHIM_ERROR;
+    }
+
+    if (config::default_reader(hx, comm) != HXHIM_SUCCESS) {
+        Close(hx);
+        return HXHIM_ERROR;
+    }
+
+    return HXHIM_SUCCESS;
+}
+
+/**
+ * Init
+ * Initializes pointer to an HXHIM structure
+ * Configuration settings are read, so that
+ * users always have a valid struct to start with
+ *
+ * @param hx    the structure to initialize
+ * @param comm  the MPI communicator to use
+ * @return HXHIM_SUCCESS or HXHIM_ERROR
+ */
+int hxhimInit(hxhim_t *hx, MPI_Comm comm) {
+    return hxhim::Init(hx, comm);
+}
+
 /**
  * Open
  * Start a HXHIM session
@@ -42,8 +92,9 @@ const char *HXHIM_DATA_STR[] = {
  * @param opts the HXHIM options to use
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
-    if (!hx || !valid(opts)) {
+int hxhim::Open(hxhim_t *hx) {
+    /** don't restart already running instances */
+    if (started(hx)) {
         return HXHIM_ERROR;
     }
 
@@ -55,42 +106,40 @@ int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
     #endif
 
     //Open mlog - stolen from plfs
-    mlog_open((char *) "hxhim", 0, opts->p->debug_level, opts->p->debug_level, nullptr, 0, MLOG_LOGPID, 0);
+    mlog_open((char *) "hxhim", 0, hx->p->debug_level, hx->p->debug_level, nullptr, 0, MLOG_LOGPID, 0);
 
     mlog(HXHIM_CLIENT_INFO, "Initializing HXHIM");
 
-    hx->p = new hxhim_private_t();
-
-    if (init::bootstrap(hx, opts) != HXHIM_SUCCESS) {
+    if (init::bootstrap(hx) != HXHIM_SUCCESS) {
         rc = HXHIM_OPEN_ERROR_BOOTSTRAP;
         goto error;
     }
 
-    if (init::running  (hx, opts) != HXHIM_SUCCESS) {
+    if (init::running  (hx) != HXHIM_SUCCESS) {
         rc = HXHIM_OPEN_ERROR_SET_RUNNING;
         goto error;
     }
-    if (init::hash     (hx, opts) != HXHIM_SUCCESS) {
+    if (init::hash     (hx) != HXHIM_SUCCESS) {
         rc = HXHIM_OPEN_ERROR_HASH;
         goto error;
     }
 
-    if (init::datastore(hx, opts) != HXHIM_SUCCESS) {
+    if (init::datastore(hx) != HXHIM_SUCCESS) {
         rc = HXHIM_OPEN_ERROR_DATASTORE;
         goto error;
     }
 
-    if (init::transport(hx, opts) != HXHIM_SUCCESS) {
+    if (init::transport(hx) != HXHIM_SUCCESS) {
         rc = HXHIM_OPEN_ERROR_TRANSPORT;
         goto error;
     }
 
-    if (init::queues   (hx, opts) != HXHIM_SUCCESS) {
+    if (init::queues   (hx) != HXHIM_SUCCESS) {
         rc = HXHIM_OPEN_ERROR_QUEUES;
         goto error;
     }
 
-    if (init::async_puts(hx, opts) != HXHIM_SUCCESS) {
+    if (init::async_puts(hx) != HXHIM_SUCCESS) {
         rc = HXHIM_OPEN_ERROR_ASYNC_PUT;
         goto error;
     }
@@ -117,13 +166,11 @@ int hxhim::Open(hxhim_t *hx, hxhim_options_t *opts) {
  * hxhimOpen
  * Start a HXHIM session
  *
- * @param hx             the HXHIM session
- * @param bootstrap_comm the MPI communicator used to boostrap MDHIM
- * @param filename       the name of the file to open (for now, it is only the mdhim configuration)
+ * @param hx     the HXHIM session
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhimOpen(hxhim_t *hx, hxhim_options_t *opts) {
-    return hxhim::Open(hx, opts);
+int hxhimOpen(hxhim_t *hx) {
+    return hxhim::Open(hx);
 }
 
 /**
@@ -132,26 +179,23 @@ int hxhimOpen(hxhim_t *hx, hxhim_options_t *opts) {
  * This can only be called when the world size is 1.
  *
  * @param hx       the HXHIM session
- * @param opts     the HXHIM options to use
  * @param db_path  the full path + name of the datastore to open
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim::OpenOne(hxhim_t *hx, hxhim_options_t *opts, const std::string &db_path) {
-    if (!hx || !valid(opts)) {
+int hxhim::OpenOne(hxhim_t *hx, const std::string &db_path) {
+    if (started(hx)) {
         return HXHIM_ERROR;
     }
 
     //Open mlog - stolen from plfs
-    mlog_open((char *) "hxhim", 0, opts->p->debug_level, opts->p->debug_level, nullptr, 0, MLOG_LOGPID, 0);
+    mlog_open((char *) "hxhim", 0, hx->p->debug_level, hx->p->debug_level, nullptr, 0, MLOG_LOGPID, 0);
 
-    hx->p = new hxhim_private_t();
-
-    if ((init::bootstrap     (hx, opts)          != HXHIM_SUCCESS) ||
-        (hx->p->bootstrap.size                   != 1)             ||    // Only allow for 1 rank
-        (init::running       (hx, opts)          != HXHIM_SUCCESS) ||
-        (init::one_datastore (hx, opts, db_path) != HXHIM_SUCCESS) ||
-        (init::queues        (hx, opts)          != HXHIM_SUCCESS) ||
-        (init::async_puts    (hx, opts)          != HXHIM_SUCCESS)) {
+    if ((init::bootstrap     (hx)          != HXHIM_SUCCESS) ||
+        (hx->p->bootstrap.size             != 1)             ||    // Only allow for 1 rank
+        (init::running       (hx)          != HXHIM_SUCCESS) ||
+        (init::one_datastore (hx, db_path) != HXHIM_SUCCESS) ||
+        (init::queues        (hx)          != HXHIM_SUCCESS) ||
+        (init::async_puts    (hx)          != HXHIM_SUCCESS)) {
         MPI_Barrier(hx->p->bootstrap.comm);
         Close(hx);
         mlog(HXHIM_CLIENT_ERR, "Failed to initialize HXHIM");
@@ -168,23 +212,23 @@ int hxhim::OpenOne(hxhim_t *hx, hxhim_options_t *opts, const std::string &db_pat
  * Starts a HXHIM session with only 1 backend datastore
  *
  * @param hx       the HXHIM session
- * @param opts     the HXHIM options to use
  * @param db_path  the name of the datastore to pass
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhimOpenOne(hxhim_t *hx, hxhim_options_t *opts, const char *db_path, const size_t db_path_len) {
-    return hxhim::OpenOne(hx, opts, std::string(db_path, db_path_len));
+int hxhimOpenOne(hxhim_t *hx, const char *db_path, const size_t db_path_len) {
+    return hxhim::OpenOne(hx, std::string(db_path, db_path_len));
 }
 
 /**
  * Close
- * Terminates a HXHIM session
+ * Terminates a HXHIM session and cleans up
+ * the data allocated within the struct
  *
- * @param hx the HXHIM session
+ * @param hx   the HXHIM session
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim::Close(hxhim_t *hx) {
-    if (!valid(hx)) {
+    if (!hx || !hx->p) {
         mlog(HXHIM_CLIENT_ERR, "Bad HXHIM instance");
         return HXHIM_ERROR;
     }
@@ -206,9 +250,9 @@ int hxhim::Close(hxhim_t *hx) {
     // make sure all ranks are ready to stop
     MPI_Barrier(comm);
 
-    destroy::hash(hx);
-    destroy::queues(hx);     // clear queued work
     destroy::async_puts(hx); // complete existing processing and prevent new processing
+    destroy::hash(hx);       // prevent new work from hashing properly
+    destroy::queues(hx);     // clear queued work
     destroy::transport(hx);  // prevent work from getting into transport
     destroy::datastore(hx);
 
@@ -222,7 +266,7 @@ int hxhim::Close(hxhim_t *hx) {
     destroy::bootstrap(hx);
 
     // clean up pointer to private data
-    delete hx->p;
+    destruct(hx->p);
     hx->p = nullptr;
 
     mlog(HXHIM_CLIENT_INFO, "Rank %d HXHIM has been shutdown", rank);
@@ -234,7 +278,7 @@ int hxhim::Close(hxhim_t *hx) {
  * hxhimClose
  * Terminates a HXHIM session
  *
- * @param hx the HXHIM session
+ * @param hx   the HXHIM session
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhimClose(hxhim_t *hx) {
@@ -256,7 +300,7 @@ int hxhimClose(hxhim_t *hx) {
  * @return A list of results
  */
 hxhim::Results *hxhim::ChangeHash(hxhim_t *hx, const std::string &name, hxhim_hash_t func, void *args) {
-    if (!hxhim::valid(hx)) {
+    if (!hxhim::started(hx)) {
         return nullptr;
     }
 
@@ -292,14 +336,16 @@ hxhim::Results *hxhim::ChangeHash(hxhim_t *hx, const std::string &name, hxhim_ha
  *     - Previously queued operations are flushed
  *     - The datastores are synced before the hash is switched.
  *
- * @param hx   the HXHIM session
- * @param name the name of the new hash function
- * @param func the new hash function
- * @param args the extra args that are used in the hash function
+ * @param hx        the HXHIM session
+ * @param name      the name of the new hash function
+ * @param name_len  the name length
+ * @param func      the new hash function
+ * @param args      the extra args that are used in the hash function
  * @return A list of results
  */
-hxhim_results_t *hxhimChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t func, void *args) {
-    return hxhim_results_init(hx, hxhim::ChangeHash(hx, name, func, args));
+hxhim_results_t *hxhimChangeHash(hxhim_t *hx, const char *name, const std::size_t name_len,
+                                 hxhim_hash_t func, void *args) {
+    return hxhim_results_init(hx, hxhim::ChangeHash(hx, std::string(name, name_len), func, args));
 }
 
 /**
@@ -318,7 +364,7 @@ hxhim_results_t *hxhimChangeHash(hxhim_t *hx, const char *name, hxhim_hash_t fun
 hxhim::Results *hxhim::ChangeDatastore(hxhim_t *hx, const std::string &name_prefix,
                                        const bool write_histograms, const bool read_histograms,
                                        const bool create_missing) {
-    if (!hxhim::valid(hx)) {
+    if (!hxhim::started(hx)) {
         return nullptr;
     }
 
@@ -356,15 +402,16 @@ hxhim::Results *hxhim::ChangeDatastore(hxhim_t *hx, const std::string &name_pref
  *
  * @param hx                 the HXHIM session
  * @param name               the name of the new datastore
+ * @param name_len           the name length
  * @param write_histograms   whether or not to write the old datastore's histograms
  * @param read_histograms    whether or not to try to find and read the new datastore's histograms
  * @param create_missing     whether or not to create histograms that were not found
  * @return A list of results from before the datastores were changed
  */
-hxhim_results_t *hxhimChangeDatastore(hxhim_t *hx, const char *name,
+hxhim_results_t *hxhimChangeDatastore(hxhim_t *hx, const char *name, const std::size_t name_len,
                                       const int write_histograms, const int read_histograms,
                                       const int create_missing) {
-    return hxhim_results_init(hx, hxhim::ChangeDatastore(hx, name,
+    return hxhim_results_init(hx, hxhim::ChangeDatastore(hx, std::string(name, name_len),
                                                          write_histograms, read_histograms,
                                                          create_missing));
 }

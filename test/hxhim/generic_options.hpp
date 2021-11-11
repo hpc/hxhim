@@ -3,6 +3,6 @@
 
 #include "hxhim/options.hpp"
 
-bool fill_options(hxhim_options_t *opts);
+bool fill_options(hxhim_t *hx);
 
 #endif
