@@ -20,6 +20,7 @@ yum install -y            \
     automake              \
     bzip2                 \
     cmake                 \
+    fileutils             \
     flex                  \
     gcc-toolset-10        \
     git                   \
@@ -30,6 +31,7 @@ yum install -y            \
     python3-pip           \
     snappy-devel          \
     wget                  \
+    which
 
 source /opt/rh/gcc-toolset-10/enable
 
