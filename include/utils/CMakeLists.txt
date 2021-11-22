@@ -12,6 +12,7 @@ set(INSTALLED_HEADERS
   elen.h
   elen.hpp
   elen.tpp
+  macros.hpp
   memory.hpp
   mlog2.h
   mlogfacs2.h
@@ -22,7 +23,6 @@ set(INSTALLED_HEADERS
 set(NOT_INSTALLED_HEADERS
   Blob.hpp
   little_endian.hpp
-  macros.hpp
   mkdir_p.hpp
 )
 
