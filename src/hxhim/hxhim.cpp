@@ -1,3 +1,4 @@
+#include "datastore/datastores.hpp"
 #include "hxhim/hxhim.hpp"
 #include "hxhim/private/Results.hpp"
 #include "hxhim/private/accessors.hpp"
@@ -316,10 +317,10 @@ hxhim::Results *hxhim::ChangeHash(hxhim_t *hx, const std::string &name, hxhim_ha
         // change datastores
         std::stringstream s;
         s << name << "-" << Datastore::get_id(hx->p->bootstrap.rank,
-                                                hx->p->bootstrap.size,
-                                                hx->p->range_server.client_ratio,
-                                                hx->p->range_server.server_ratio,
-                                                i);
+                                              hx->p->bootstrap.size,
+                                              hx->p->range_server.client_ratio,
+                                              hx->p->range_server.server_ratio,
+                                              i);
         hx->p->range_server.datastores.ds[i]->Open(s.str());
     }
 
@@ -349,41 +350,53 @@ hxhim_results_t *hxhimChangeHash(hxhim_t *hx, const char *name, const std::size_
 }
 
 /**
- * ChangeDatastore
- * Close the current datastore and open new ones.
+ * ChangeDatastoreName
+ * Close the current datastores and open new ones (same type).
  * This is a collective function, but allows for each rank to select its own
  * new datastore names.
  *
  * @param hx                 the HXHIM session
- * @param name               the name of the new datastore
+ * @param basename           the basename of the new datastore
  * @param write_histograms   whether or not to write the old datastore's histograms
  * @param read_histograms    whether or not to try to find and read the new datastore's histograms
  * @param create_missing     whether or not to create histograms that were not found
  * @return A list of results from before the datastores were changed
  */
-hxhim::Results *hxhim::ChangeDatastore(hxhim_t *hx, const std::string &name_prefix,
-                                       const bool write_histograms, const bool read_histograms,
-                                       const bool create_missing) {
+hxhim::Results *hxhim::ChangeDatastoreName(hxhim_t *hx, const std::string &basename,
+                                           const bool write_histograms, const bool read_histograms,
+                                           const bool create_missing) {
     if (!hxhim::started(hx)) {
         return nullptr;
     }
 
+    // clear out queues
     hxhim::Results *res = hxhim::Sync(hx);
 
+    // all ranks stop
     MPI_Barrier(hx->p->bootstrap.comm);
 
-    decltype(hx->p->range_server.datastores.ds) &datastores = hx->p->range_server.datastores.ds;
-    for(std::size_t i = 0; i < datastores.size(); i++) {
-        datastores[i]->Change(name_prefix,
-                              write_histograms,
-                              read_histograms?&hx->p->histograms.names:nullptr);
+    decltype(hx->p->range_server.datastores) *rs_ds = &hx->p->range_server.datastores;
+    rs_ds->basename = basename;
+
+    for(REF(rs_ds->ds)::value_type &ds : rs_ds->ds) {
+        // generate path with updated name
+        // ID is maintained
+        const std::string new_path = ::Datastore::generate_name(rs_ds->prefix,
+                                                                rs_ds->basename,
+                                                                ds->ID(),
+                                                                rs_ds->postfix);
+
+        ds->Change(new_path,
+                   write_histograms,
+                   read_histograms?&hx->p->histograms.names:nullptr);
+
         if (create_missing) {
             const ::Datastore::Datastore::Histograms *hists = nullptr;
-            datastores[i]->GetHistograms(&hists);
+            ds->GetHistograms(&hists);
 
             for(std::string const &hist_name : hx->p->histograms.names) {
                 if (hists->find(hist_name) == hists->end()){
-                    datastores[i]->AddHistogram(hist_name, hx->p->histograms.config);
+                    ds->AddHistogram(hist_name, hx->p->histograms.config);
                 }
             }
         }
@@ -395,23 +408,24 @@ hxhim::Results *hxhim::ChangeDatastore(hxhim_t *hx, const std::string &name_pref
 }
 
 /**
- * ChangeHash
- * Close the current datastore and open new ones.
+ * ChangeDatastoreName
+ * Close the current datastore and open new ones (same type).
  * This is a collective function, but allows for each rank to select its own
  * new datastore names.
  *
  * @param hx                 the HXHIM session
- * @param name               the name of the new datastore
- * @param name_len           the name length
+ * @param basename           the name of the new datastore
+ * @param basename_len       the name length
  * @param write_histograms   whether or not to write the old datastore's histograms
  * @param read_histograms    whether or not to try to find and read the new datastore's histograms
  * @param create_missing     whether or not to create histograms that were not found
  * @return A list of results from before the datastores were changed
  */
-hxhim_results_t *hxhimChangeDatastore(hxhim_t *hx, const char *name, const std::size_t name_len,
-                                      const int write_histograms, const int read_histograms,
-                                      const int create_missing) {
-    return hxhim_results_init(hx, hxhim::ChangeDatastore(hx, std::string(name, name_len),
+hxhim_results_t *hxhimChangeDatastoreName(hxhim_t *hx, const char *basename, const std::size_t basename_len,
+                                          const int write_histograms, const int read_histograms,
+                                          const int create_missing) {
+    return hxhim_results_init(hx,
+                              hxhim::ChangeDatastoreName(hx, std::string(basename, basename_len),
                                                          write_histograms, read_histograms,
                                                          create_missing));
 }
