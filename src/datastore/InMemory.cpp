@@ -295,6 +295,80 @@ Message::Response::BGetOp *Datastore::InMemory::BGetOpImpl(Message::Request::BGe
                     res->statuses[i] = DATASTORE_ERROR;
                 }
             }
+            else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_LOWEST) {
+                /* does not include the type or length information */
+                const size_t prefix_len = subject_len + predicate_len;
+
+                const std::string key_str = (std::string) key;
+                const std::string prefix = key_str.substr(0, prefix_len);
+                it = db.find(prefix);
+
+                /* exact match not found */
+                if (it == db.end()) {
+                    /* find the first value after the prefix */
+                    it = db.upper_bound(prefix);
+                }
+
+                if (it != db.end()) {
+                    for(std::size_t j = 0;
+                        (j < req->num_recs[i]) &&
+                            (it != db.end()) &&
+                        (memcmp(key.data(), it->first.data(), prefix_len) == 0);
+                        j++) {
+                        this->template BGetOp_copy_response(callbacks, it->first, it->second, req, res, i, j, event);
+                        it++;
+                    }
+                }
+                else {
+                    res->statuses[i] = DATASTORE_ERROR;
+                }
+            }
+            else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_HIGHEST) {
+                /* does not include the type or length information */
+                const size_t prefix_len = subject_len + predicate_len;
+
+                const std::string key_str = (std::string) key;
+                const std::string prefix = key_str.substr(0, prefix_len);
+                it = db.find(prefix);
+
+                /* exact match not found */
+                if (it == db.end()) {
+                    /* find the first value after the prefix */
+                    it = db.upper_bound(prefix);
+                }
+
+                /* search until the next prefix is reached */
+                while (it != db.end()) {
+                    if (memcmp(key.data(), it->first.data(), prefix_len) < 0) {
+                        break;
+                    }
+
+                    it++;
+                }
+
+                if (it == db.end()) {
+                    it = db.rbegin().base();
+                }
+                else {
+                    /* go back to last matching prefix */
+                    it--;
+                }
+
+                if (it != db.end()) {
+                    /* walk backwards to get values */
+                    for(std::size_t j = 0;
+                        (j < req->num_recs[i]) &&
+                        (it != db.rend().base()) &&
+                        (memcmp(key.data(), it->first.data(), prefix_len) == 0);
+                        j++) {
+                        this->template BGetOp_copy_response(callbacks, it->first, it->second, req, res, i, j, event);
+                        it--;
+                    }
+                }
+                else {
+                    res->statuses[i] = DATASTORE_ERROR;
+                }
+            }
             else {
                 res->statuses[i] = DATASTORE_ERROR;
             }

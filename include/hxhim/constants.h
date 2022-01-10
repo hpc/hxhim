@@ -90,14 +90,16 @@ extern const char *HXHIM_OP_STR[];
  *
  * HXHIM_GETOP_*
  */
-#define HXHIM_GETOP_GEN(PREFIX, GEN)                                \
-    GEN(PREFIX, EQ)      /** num_recs is ignored */                 \
-    GEN(PREFIX, NEXT)                                               \
-    GEN(PREFIX, PREV)                                               \
-    GEN(PREFIX, FIRST)   /** subject-predicate pair is ignored */   \
-    GEN(PREFIX, LAST)    /** subject-predicate pair is ignored */   \
-    /* GEN(PREFIX, PRIMARY_EQ) */                                   \
-    GEN(PREFIX, INVALID)                                            \
+#define HXHIM_GETOP_GEN(PREFIX, GEN)                                          \
+    GEN(PREFIX, EQ)      /** num_recs is ignored */                           \
+    GEN(PREFIX, NEXT)    /** exact match */                                   \
+    GEN(PREFIX, PREV)    /** exact match */                                   \
+    GEN(PREFIX, FIRST)   /** subject-predicate pair is ignored */             \
+    GEN(PREFIX, LAST)    /** subject-predicate pair is ignored */             \
+    GEN(PREFIX, LOWEST)  /** match by prefix (subject len + predicate len) */ \
+    GEN(PREFIX, HIGHEST) /** match by prefix (subject len + predicate len) */ \
+    /* GEN(PREFIX, PRIMARY_EQ) */                                             \
+    GEN(PREFIX, INVALID)                                                      \
 
 #define HXHIM_GETOP_PREFIX HXHIM_GETOP
 

@@ -336,6 +336,66 @@ Message::Response::BGetOp *Datastore::RocksDB::BGetOpImpl(Message::Request::BGet
                     res->statuses[i] = DATASTORE_ERROR;
                 }
             }
+            else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_LOWEST) {
+                /* does not include the type or length information */
+                const size_t prefix_len = subject_len + predicate_len;
+
+                it->Seek(::rocksdb::Slice((char *) key.data(), prefix_len));
+
+                if (it->Valid()) {
+                    for(std::size_t j = 0;
+                        (j < req->num_recs[i]) &&
+                        it->Valid() &&
+                        (memcmp(key.data(), it->key().data(), prefix_len) == 0);
+                        j++) {
+                        this->template BGetOp_copy_response(callbacks, it->key(), it->value(), req, res, i, j, event);
+                        it->Next();
+                    }
+                }
+                else {
+                    res->statuses[i] = DATASTORE_ERROR;
+                }
+            }
+            else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_HIGHEST) {
+                /* does not include the type or length information */
+                const size_t prefix_len = subject_len + predicate_len;
+
+                /* find the prefix */
+                it->Seek(::rocksdb::Slice((char *) key.data(), prefix_len));
+
+                /* search until the next prefix is reached */
+                while (it->Valid()) {
+                    ::rocksdb::Slice curr = it->key();
+                    if (memcmp(key.data(), curr.data(), prefix_len) < 0) {
+                        break;
+                    }
+
+                    it->Next();
+                }
+
+                if (!it->Valid()) {
+                    it->SeekToLast();
+                }
+                else {
+                    /* go back to last matching prefix */
+                    it->Prev();
+                }
+
+                if (it->Valid()) {
+                    /* walk backwards to get values */
+                    for(std::size_t j = 0;
+                        (j < req->num_recs[i]) &&
+                        it->Valid() &&
+                        (memcmp(key.data(), it->key().data(), prefix_len) == 0);
+                        j++) {
+                        this->template BGetOp_copy_response(callbacks, it->key(), it->value(), req, res, i, j, event);
+                        it->Prev();
+                    }
+                }
+                else {
+                    res->statuses[i] = DATASTORE_ERROR;
+                }
+            }
             else {
                 res->statuses[i] = DATASTORE_ERROR;
             }
