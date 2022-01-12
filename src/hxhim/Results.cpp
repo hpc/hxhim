@@ -195,7 +195,9 @@ hxhim::Result::GetOp *hxhim::Result::init(hxhim_t *hx, Message::Response::BGetOp
     }
 
     // drop last item (empty)
-    prev->next = nullptr;
+    if (prev) {
+        prev->next = nullptr;
+    }
     destruct(curr);
 
     return top;

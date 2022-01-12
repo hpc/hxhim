@@ -65,6 +65,10 @@ int hxhimGet(hxhim_t *hx,
              void *predicate, size_t predicate_len, enum hxhim_data_t predicate_type,
              enum hxhim_data_t object_type);
 
+/*
+ * if searching for key with prefix, NULL + len 0 may be passed into predicate.
+ * The predicate_type must still be correct.
+ */
 int hxhimGetOp(hxhim_t *hx,
                void *subject, size_t subject_len, enum hxhim_data_t subject_type,
                void *predicate, size_t predicate_len, enum hxhim_data_t predicate_type,

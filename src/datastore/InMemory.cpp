@@ -202,19 +202,25 @@ Message::Response::BGetOp *Datastore::InMemory::BGetOpImpl(Message::Request::BGe
         void *predicate = nullptr;
         std::size_t predicate_len = 0;
         Blob key;
-        if ((req->ops[i] == hxhim_getop_t::HXHIM_GETOP_EQ)   ||
-            (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_NEXT) ||
-            (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_PREV)) {
-            if ((encode(callbacks, req->subjects[i],   &subject,   &subject_len)   == DATASTORE_SUCCESS) &&
-                (encode(callbacks, req->predicates[i], &predicate, &predicate_len) == DATASTORE_SUCCESS)) {
+        if ((req->ops[i] == hxhim_getop_t::HXHIM_GETOP_EQ)      ||
+            (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_NEXT)    ||
+            (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_PREV)    ||
+            (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_LOWEST)  ||
+            (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_HIGHEST)) {
+            if (encode(callbacks, req->subjects[i], &subject, &subject_len) != DATASTORE_SUCCESS) {
+                res->statuses[i] = DATASTORE_ERROR;
+            }
+
+            // failure doesn't matter
+            encode(callbacks, req->predicates[i], &predicate, &predicate_len);
+
+            // combine encoded subject snd encoded predicates into a key
+            if (res->statuses[i] == DATASTORE_UNSET) {
                 if (sp_to_key(ReferenceBlob(subject,   subject_len,   req->subjects[i].data_type()),
                               ReferenceBlob(predicate, predicate_len, req->predicates[i].data_type()),
                               &key) != HXHIM_SUCCESS) {
                     res->statuses[i] = DATASTORE_ERROR;
                 }
-            }
-            else {
-                res->statuses[i] = DATASTORE_ERROR;
             }
         }
 
@@ -296,18 +302,30 @@ Message::Response::BGetOp *Datastore::InMemory::BGetOpImpl(Message::Request::BGe
                 }
             }
             else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_LOWEST) {
-                /* does not include the type or length information */
+                // does not include the type or length information
                 const size_t prefix_len = subject_len + predicate_len;
-
                 const std::string key_str = (std::string) key;
                 const std::string prefix = key_str.substr(0, prefix_len);
-                it = db.find(prefix);
+                std::string seek(prefix.data(), prefix_len + 2);
 
-                /* exact match not found */
-                if (it == db.end()) {
-                    /* find the first value after the prefix */
-                    it = db.upper_bound(prefix);
+                const hxhim_data_t pred_type = req->predicates[i].data_type();
+                if ((predicate_len == 0) &&
+                    ((pred_type == HXHIM_DATA_INT32)   ||
+                     (pred_type == HXHIM_DATA_INT64)   ||
+                     (pred_type == HXHIM_DATA_UINT32)  ||
+                     (pred_type == HXHIM_DATA_UINT64)  ||
+                     (pred_type == HXHIM_DATA_FLOAT)   ||
+                     (pred_type == HXHIM_DATA_DOUBLE))) {
+                    // find first numerical value with the given prefix
+                    seek[prefix_len] = callbacks->numeric_extra.neg;
+                    seek[prefix_len + 1] = '\x00';
                 }
+                else {
+                    seek[prefix_len] = '\x00';
+                    seek.resize(prefix_len + 1);
+                }
+
+                it = db.lower_bound(seek);
 
                 if (it != db.end()) {
                     for(std::size_t j = 0;
@@ -324,38 +342,39 @@ Message::Response::BGetOp *Datastore::InMemory::BGetOpImpl(Message::Request::BGe
                 }
             }
             else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_HIGHEST) {
-                /* does not include the type or length information */
+                // does not include the type or length information
                 const size_t prefix_len = subject_len + predicate_len;
-
                 const std::string key_str = (std::string) key;
                 const std::string prefix = key_str.substr(0, prefix_len);
-                it = db.find(prefix);
+                std::string seek(prefix.data(), prefix_len + 2);
 
-                /* exact match not found */
-                if (it == db.end()) {
-                    /* find the first value after the prefix */
-                    it = db.upper_bound(prefix);
-                }
-
-                /* search until the next prefix is reached */
-                while (it != db.end()) {
-                    if (memcmp(key.data(), it->first.data(), prefix_len) < 0) {
-                        break;
-                    }
-
-                    it++;
-                }
-
-                if (it == db.end()) {
-                    it = db.rbegin().base();
+                const hxhim_data_t pred_type = req->predicates[i].data_type();
+                if ((predicate_len == 0) &&
+                    ((pred_type == HXHIM_DATA_INT32)   ||
+                     (pred_type == HXHIM_DATA_INT64)   ||
+                     (pred_type == HXHIM_DATA_UINT32)  ||
+                     (pred_type == HXHIM_DATA_UINT64)  ||
+                     (pred_type == HXHIM_DATA_FLOAT)   ||
+                     (pred_type == HXHIM_DATA_DOUBLE))) {
+                    // find last numerical value with the given prefix
+                    seek[prefix_len] = callbacks->numeric_extra.pos;
+                    seek[prefix_len + 1] = '\xff';
                 }
                 else {
-                    /* go back to last matching prefix */
+                    seek[prefix_len] = '\xff';
+                    seek.resize(prefix_len + 1);;
+                }
+
+                // find first key larger than the prefix
+                it = db.upper_bound(seek);
+
+                // go back one since the seek value is guaranteed to be past the last value found
+                if (it != db.end()) {
                     it--;
                 }
 
                 if (it != db.end()) {
-                    /* walk backwards to get values */
+                    // walk backwards to get values
                     for(std::size_t j = 0;
                         (j < req->num_recs[i]) &&
                         (it != db.rend().base()) &&

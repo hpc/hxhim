@@ -14,12 +14,12 @@
 const double MIN_DOUBLE = -100;
 const double MAX_DOUBLE = 100;
 
-const char NAME_FMT[]   = "Cell-(%d, %zu, %zu)";
-const char TEMP_FMT[]   = "Temp-(%d, %zu, %zu)";
+const char   NAME_FMT[] = "Cell-(%d, %zu, %zu)";
+const char   TEMP[]     = "Temp";
+const size_t TEMP_LEN   = sizeof(TEMP) - 1;
 
 typedef struct Cell {
     char name[BUF_SIZE];
-    char predicate[BUF_SIZE];
     double temp;
 } Cell_t;
 
@@ -64,6 +64,16 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    // change the hash function
+    if (hxhim_set_hash_name(&hx, "DATASTORE_0") != HXHIM_SUCCESS) {
+        if (rank == 0) {
+            fprintf(stderr, "Failed to set custom hash\n");
+        }
+        hxhimClose(&hx);
+        MPI_Finalize();
+        return 1;
+    }
+
     // start hxhim
     if (hxhimOpen(&hx) != HXHIM_SUCCESS) {
         if (rank == 0) {
@@ -74,9 +84,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    Cell_t *lowest = NULL;
-    Cell_t *highest = NULL;
-
     // generate some data
     const size_t total = num_x * num_y;
     Cell_t *cells = (Cell_t *) calloc(total, sizeof(Cell_t));
@@ -86,34 +93,13 @@ int main(int argc, char *argv[]) {
             Cell_t *c = &cells[x * num_x + y];
 
             snprintf(c->name,      BUF_SIZE, NAME_FMT, rank, x, y);
-            snprintf(c->predicate, BUF_SIZE, TEMP_FMT, rank, x, y);
             c->temp = MIN_DOUBLE + (MAX_DOUBLE - MIN_DOUBLE) * ((double) rand()) / ((double) RAND_MAX);
-
-            // keep track of the lowest temperature
-            if (lowest) {
-                if (c->temp < lowest->temp) {
-                    lowest = c;
-                }
-            }
-            else {
-                lowest = c;
-            }
-
-            // keep track of the highest temperature
-            if (highest) {
-                if (c->temp > highest->temp) {
-                    highest = c;
-                }
-            }
-            else {
-                highest = c;
-            }
 
             hxhimPut(&hx,
                      c->name, strlen(c->name), HXHIM_DATA_BYTE,
-                     c->predicate, strlen(c->predicate), HXHIM_DATA_BYTE,
+                     (void *) TEMP, TEMP_LEN, HXHIM_DATA_BYTE,
                      &c->temp, sizeof(c->temp), HXHIM_DATA_DOUBLE,
-                     HXHIM_PUT_OPS);
+                     HXHIM_PUT_ALL);
         }
     }
 
@@ -129,9 +115,9 @@ int main(int argc, char *argv[]) {
         printf("lowest %zu\n", num_lowest);
         printf("--------------------------------------------\n");
         hxhimGetOp(&hx,
-                   &lowest->temp, sizeof(lowest->temp), HXHIM_DATA_DOUBLE,
-                   lowest->predicate, strlen(lowest->predicate), HXHIM_DATA_BYTE,
-                   HXHIM_DATA_BYTE, num_lowest, HXHIM_GETOP_NEXT);
+                   (void *) TEMP, TEMP_LEN, HXHIM_DATA_BYTE,
+                   NULL, 0, HXHIM_DATA_DOUBLE,
+                   HXHIM_DATA_BYTE, num_lowest, HXHIM_GETOP_LOWEST);
         hxhim_results_t *get_lowest = hxhimFlush(&hx);
         print_results(&hx, 0, get_lowest);
         hxhim_results_destroy(get_lowest);
@@ -140,10 +126,11 @@ int main(int argc, char *argv[]) {
         printf("--------------------------------------------\n");
         printf("highest %zu\n", num_highest);
         printf("--------------------------------------------\n");
+
         hxhimGetOp(&hx,
-                   &highest->temp, sizeof(highest->temp), HXHIM_DATA_DOUBLE,
-                   highest->predicate, strlen(highest->predicate), HXHIM_DATA_BYTE,
-                   HXHIM_DATA_BYTE, num_highest, HXHIM_GETOP_PREV);
+                   (void *) TEMP, TEMP_LEN, HXHIM_DATA_BYTE,
+                   NULL, 0, HXHIM_DATA_DOUBLE,
+                   HXHIM_DATA_BYTE, num_highest, HXHIM_GETOP_HIGHEST);
         hxhim_results_t *get_highest = hxhimFlush(&hx);
         print_results(&hx, 0, get_highest);
         hxhim_results_destroy(get_highest);
