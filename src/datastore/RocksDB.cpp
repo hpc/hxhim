@@ -410,6 +410,9 @@ Message::Response::BGetOp *Datastore::RocksDB::BGetOpImpl(Message::Request::BGet
                 if (it->Valid()) {
                     it->Prev();
                 }
+                else {
+                    it->SeekToLast();
+                }
 
                 if (it->Valid()) {
                     // walk backwards to get values

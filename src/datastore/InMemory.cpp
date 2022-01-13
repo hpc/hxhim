@@ -372,6 +372,9 @@ Message::Response::BGetOp *Datastore::InMemory::BGetOpImpl(Message::Request::BGe
                 if (it != db.end()) {
                     it--;
                 }
+                else {
+                    it = db.rbegin().base();
+                }
 
                 if (it != db.end()) {
                     // walk backwards to get values
