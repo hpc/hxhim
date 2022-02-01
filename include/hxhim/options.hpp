@@ -6,7 +6,7 @@
 #include "hxhim/options.h"
 
 #if HXHIM_HAVE_THALLIUM
-int hxhim_set_transport_thallium(hxhim_t *hx, const std::string &module);
+int hxhim_set_transport_thallium(hxhim_t *hx, const std::string &module, const int thread_count = -1);
 #endif
 
 int hxhim_set_histogram_bucket_gen_name(hxhim_t *hx, const std::string &method);

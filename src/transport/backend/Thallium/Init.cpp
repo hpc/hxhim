@@ -32,7 +32,8 @@ Transport::Transport *Transport::Thallium::init(hxhim_t *hx,
 
     mlog(THALLIUM_INFO, "Rank %d Starting Thallium Initialization", rank);
 
-    mlog(THALLIUM_INFO, "Rank %d Configuring Thallium with %s", rank, opts->module.c_str());
+    mlog(THALLIUM_INFO, "Rank %d Configuring Thallium with %s running %d threads",
+         rank, opts->module.c_str(), opts->thread_count);
 
     #if PRINT_TIMESTAMPS
     ::Stats::Chronostamp thallium_engine;
@@ -40,7 +41,8 @@ Transport::Transport *Transport::Thallium::init(hxhim_t *hx,
     #endif
 
     // create the engine (only 1 instance per process)
-    thallium::engine *engine = construct<thallium::engine>(opts->module, THALLIUM_SERVER_MODE, true, -1);
+    thallium::engine *engine = construct<thallium::engine>(opts->module, THALLIUM_SERVER_MODE,
+                                                           true, opts->thread_count);
 
     #if PRINT_TIMESTAMPS
     thallium_engine.end = ::Stats::now();

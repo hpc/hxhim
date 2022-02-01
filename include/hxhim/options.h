@@ -43,7 +43,7 @@ int hxhim_set_transform_function(hxhim_t *hx, const enum hxhim_data_t type,
 int hxhim_set_transport_null(hxhim_t *hx);
 int hxhim_set_transport_mpi(hxhim_t *hx, const size_t listeners);
 #if HXHIM_HAVE_THALLIUM
-int hxhim_set_transport_thallium(hxhim_t *hx, const char *module);
+int hxhim_set_transport_thallium(hxhim_t *hx, const char *module, const int thread_count);
 #endif
 int hxhim_add_endpoint_to_group(hxhim_t *hx, const int id);
 int hxhim_clear_endpoint_group(hxhim_t *hx);

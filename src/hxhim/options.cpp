@@ -391,8 +391,8 @@ int hxhim_set_transport_mpi(hxhim_t *hx, const size_t listeners) {
  * @param module   the name of the thallium module to use
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_set_transport_thallium(hxhim_t *hx, const std::string &module) {
-    Transport::Options *config = construct<Transport::Thallium::Options>(module);
+int hxhim_set_transport_thallium(hxhim_t *hx, const std::string &module, const int thread_count) {
+    Transport::Options *config = construct<Transport::Thallium::Options>(module, thread_count);
     if (hxhim_set_transport(hx, config) != HXHIM_SUCCESS) {
         destruct(config);
         return HXHIM_ERROR;
@@ -409,8 +409,8 @@ int hxhim_set_transport_thallium(hxhim_t *hx, const std::string &module) {
  * @param module   the name of the thallium module to use
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
-int hxhim_set_transport_thallium(hxhim_t *hx, const char *module) {
-    return hxhim_set_transport_thallium(hx, std::string(module));
+int hxhim_set_transport_thallium(hxhim_t *hx, const char *module, const int thread_count) {
+    return hxhim_set_transport_thallium(hx, std::string(module), thread_count);
 }
 #endif
 

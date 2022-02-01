@@ -64,6 +64,7 @@ const std::string MPI_LISTENERS                = "NUM_LISTENERS";               
 #if HXHIM_HAVE_THALLIUM
 /** Thallium Options */
 const std::string THALLIUM_MODULE              = "THALLIUM_MODULE";               // See mercury documentation
+const std::string THALLIUM_THREAD_COUNT        = "THALLIUM_THREAD_COUNT";         // -1 or greater integer (optional)
 #endif
 
 const std::string TRANSPORT_ENDPOINT_GROUP     = "ENDPOINT_GROUP";                // list of ranks or "ALL"

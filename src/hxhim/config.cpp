@@ -192,7 +192,21 @@ static bool parse_transport(hxhim_t *hx, const Config::Config &config) {
                         return false;
                     }
 
-                    return ((hxhim_set_transport_thallium(hx, thallium_module->second) == HXHIM_SUCCESS) &&
+                    int thread_count = -1;
+
+                    /* thread count will default to -1, so ignore errors */
+                    Config::Config_it thallium_thread_count = config.find(hxhim::config::THALLIUM_THREAD_COUNT);
+                    if (thallium_thread_count != config.end()) {
+                        std::stringstream(thallium_thread_count->second) >> thread_count;
+                    }
+
+                    if (thread_count < -1) {
+                        thread_count = -1;
+                    }
+
+                    return ((hxhim_set_transport_thallium(hx,
+                                                          thallium_module->second,
+                                                          thread_count) == HXHIM_SUCCESS) &&
                             parse_hash(hx, config));
                 }
                 break;

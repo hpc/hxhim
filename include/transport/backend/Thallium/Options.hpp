@@ -10,12 +10,14 @@ namespace Transport {
 namespace Thallium {
 
 struct Options : ::Transport::Options {
-    Options(const std::string &module)
+    Options(const std::string &module, const int thread_count)
         : ::Transport::Options(TRANSPORT_THALLIUM),
-          module(module)
+          module(module),
+          thread_count(thread_count)
     {}
 
     const std::string module;
+    const int thread_count;
 };
 
 }
