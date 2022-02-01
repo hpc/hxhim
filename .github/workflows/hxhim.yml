@@ -16,7 +16,7 @@ jobs:
 
     strategy:
       matrix:
-        container: ["ubuntu:18.04", "ubuntu:20.04", "ubuntu:21.04", "centos:7", "centos:8"]
+        container: ["ubuntu:18.04", "ubuntu:20.04", "ubuntu:21.04", "centos:7"]
         mpi: ["openmpi", "mpich"]
         async_puts: ["On", "Off"]
 
@@ -45,13 +45,6 @@ jobs:
       run: |
         source contrib/ci/centos7.sh ${{matrix.mpi}}
         contrib/ci/ga-set-env.sh "CC=$(which gcc)" "CXX=$(which g++)" >> "${{env.HXHIM_ENV}}"
-
-    - name: Get CentOS 8 Packages
-      if: matrix.container == 'centos:8'
-      run: |
-        source contrib/ci/centos8.sh ${{matrix.mpi}}
-        contrib/ci/ga-set-env.sh "CC=$(which gcc)" "CXX=$(which g++)" >> "${{env.HXHIM_ENV}}"
-        rpm -ql "${{matrix.mpi}}-devel" | grep ".*\.so"
 
     - name: Build Dependencies
       run: |
