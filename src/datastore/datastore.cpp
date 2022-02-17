@@ -441,6 +441,32 @@ hxhim_data_t Datastore::Datastore::remove_type(const void *ptr, std::size_t &siz
     return type;
 }
 
+std::string Datastore::Datastore::BGetOp_get_seek(const Blob &key,
+                                                  std::size_t prefix_len,
+                                                  std::size_t predicate_len,
+                                                  hxhim_data_t predicate_type) {
+    // does not include the type or length information
+    std::string seek((char *) key.data(), prefix_len + 2);    // last 2 chars will be overwritten
+
+    if ((predicate_len == 0) &&
+        ((predicate_type == HXHIM_DATA_INT32)   ||
+         (predicate_type == HXHIM_DATA_INT64)   ||
+         (predicate_type == HXHIM_DATA_UINT32)  ||
+         (predicate_type == HXHIM_DATA_UINT64)  ||
+         (predicate_type == HXHIM_DATA_FLOAT)   ||
+         (predicate_type == HXHIM_DATA_DOUBLE))) {
+        // find first numerical value with the given prefix
+        seek[prefix_len] = callbacks->numeric_extra.neg;
+        seek[prefix_len + 1] = '\x00';
+    }
+    else {
+        seek[prefix_len] = '\x00';
+        seek.resize(prefix_len + 1);
+    }
+
+    return seek;
+}
+
 void Datastore::Datastore::BGetOp_error_response(Message::Response::BGetOp *res,
                                                  const std::size_t i,
                                                  Blob &subject, Blob &predicate,

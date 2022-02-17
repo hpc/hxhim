@@ -155,6 +155,11 @@ class Datastore {
                                          const std::size_t j,
                                          Datastore::Datastore::Stats::Event &event);
 
+        std::string BGetOp_get_seek(const Blob &key,
+                                    std::size_t prefix_len,
+                                    std::size_t predicate_len,
+                                    hxhim_data_t predicate_type);
+
         void BGetOp_error_response(Message::Response::BGetOp *res,
                                    const std::size_t i,
                                    Blob &subject, Blob &predicate,

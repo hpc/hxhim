@@ -343,27 +343,10 @@ Message::Response::BGetOp *Datastore::RocksDB::BGetOpImpl(Message::Request::BGet
                 }
             }
             else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_LOWEST) {
-                // does not include the type or length information
-                const size_t prefix_len = subject_len + predicate_len;
+                const std::size_t prefix_len = subject_len + predicate_len;
+                const std::string seek = BGetOp_get_seek(key, prefix_len, predicate_len,
+                                                         req->predicates[i].data_type());
                 ::rocksdb::Slice prefix((char *) key.data(), prefix_len); // need prefix for starts_with()
-                std::string seek((char *) key.data(), prefix_len + 2);    // last 2 chars will be overwritten
-
-                const hxhim_data_t pred_type = req->predicates[i].data_type();
-                if ((predicate_len == 0) &&
-                    ((pred_type == HXHIM_DATA_INT32)   ||
-                     (pred_type == HXHIM_DATA_INT64)   ||
-                     (pred_type == HXHIM_DATA_UINT32)  ||
-                     (pred_type == HXHIM_DATA_UINT64)  ||
-                     (pred_type == HXHIM_DATA_FLOAT)   ||
-                     (pred_type == HXHIM_DATA_DOUBLE))) {
-                    // find first numerical value with the given prefix
-                    seek[prefix_len] = callbacks->numeric_extra.neg;
-                    seek[prefix_len + 1] = '\x00';
-                }
-                else {
-                    seek[prefix_len] = '\x00';
-                    seek.resize(prefix_len + 1);
-                }
 
                 it->Seek(seek);
 
@@ -382,27 +365,10 @@ Message::Response::BGetOp *Datastore::RocksDB::BGetOpImpl(Message::Request::BGet
                 }
             }
             else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_HIGHEST) {
-                // does not include the type or length information
-                const size_t prefix_len = subject_len + predicate_len;
+                const std::size_t prefix_len = subject_len + predicate_len;
+                const std::string seek = BGetOp_get_seek(key, prefix_len, predicate_len,
+                                                         req->predicates[i].data_type());
                 ::rocksdb::Slice prefix((char *) key.data(), prefix_len); // need prefix for starts_with()
-                std::string seek((char *) key.data(), prefix_len + 2);    // last 2 chars will be overwritten
-
-                const hxhim_data_t pred_type = req->predicates[i].data_type();
-                if ((predicate_len == 0) &&
-                    ((pred_type == HXHIM_DATA_INT32)   ||
-                     (pred_type == HXHIM_DATA_INT64)   ||
-                     (pred_type == HXHIM_DATA_UINT32)  ||
-                     (pred_type == HXHIM_DATA_UINT64)  ||
-                     (pred_type == HXHIM_DATA_FLOAT)   ||
-                     (pred_type == HXHIM_DATA_DOUBLE))) {
-                    // find last numerical value with the given prefix
-                    seek[prefix_len] = callbacks->numeric_extra.pos;
-                    seek[prefix_len + 1] = '\xff';
-                }
-                else {
-                    seek[prefix_len] = '\xff';
-                    seek.resize(prefix_len + 1);;
-                }
 
                 it->Seek(::rocksdb::Slice(seek.data(), seek.size()));
 
