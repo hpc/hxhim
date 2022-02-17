@@ -20,7 +20,7 @@ void Datastore::Datastore::BGetOp_copy_response(Transform::Callbacks *callbacks,
         // cannot call string constructor because key might not be string
         Blob encoded_subject;
         Blob encoded_predicate;
-        key_to_sp(Blob(key, hxhim_data_t::HXHIM_DATA_BYTE),
+        key_to_sp(ReferenceBlob((void *) key.data(), key.size(), hxhim_data_t::HXHIM_DATA_BYTE),
                   encoded_subject, encoded_predicate, false);
 
         if (encoded_subject.data_type() != req->subjects[i].data_type()) {

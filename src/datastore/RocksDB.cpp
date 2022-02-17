@@ -345,8 +345,8 @@ Message::Response::BGetOp *Datastore::RocksDB::BGetOpImpl(Message::Request::BGet
             else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_LOWEST) {
                 // does not include the type or length information
                 const size_t prefix_len = subject_len + predicate_len;
-                ::rocksdb::Slice prefix((char *) key.data(), prefix_len);
-                std::string seek(prefix.data(), prefix_len + 2);
+                ::rocksdb::Slice prefix((char *) key.data(), prefix_len); // need prefix for starts_with()
+                std::string seek((char *) key.data(), prefix_len + 2);    // last 2 chars will be overwritten
 
                 const hxhim_data_t pred_type = req->predicates[i].data_type();
                 if ((predicate_len == 0) &&
@@ -384,8 +384,8 @@ Message::Response::BGetOp *Datastore::RocksDB::BGetOpImpl(Message::Request::BGet
             else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_HIGHEST) {
                 // does not include the type or length information
                 const size_t prefix_len = subject_len + predicate_len;
-                ::rocksdb::Slice prefix((char *) key.data(), prefix_len);
-                std::string seek(prefix.data(), prefix_len + 2);
+                ::rocksdb::Slice prefix((char *) key.data(), prefix_len); // need prefix for starts_with()
+                std::string seek((char *) key.data(), prefix_len + 2);    // last 2 chars will be overwritten
 
                 const hxhim_data_t pred_type = req->predicates[i].data_type();
                 if ((predicate_len == 0) &&

@@ -304,9 +304,7 @@ Message::Response::BGetOp *Datastore::InMemory::BGetOpImpl(Message::Request::BGe
             else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_LOWEST) {
                 // does not include the type or length information
                 const size_t prefix_len = subject_len + predicate_len;
-                const std::string key_str = (std::string) key;
-                const std::string prefix = key_str.substr(0, prefix_len);
-                std::string seek(prefix.data(), prefix_len + 2);
+                std::string seek((char *) key.data(), prefix_len + 2);
 
                 const hxhim_data_t pred_type = req->predicates[i].data_type();
                 if ((predicate_len == 0) &&
@@ -330,7 +328,7 @@ Message::Response::BGetOp *Datastore::InMemory::BGetOpImpl(Message::Request::BGe
                 if (it != db.end()) {
                     for(std::size_t j = 0;
                         (j < req->num_recs[i]) &&
-                            (it != db.end()) &&
+                        (it != db.end()) &&
                         (memcmp(key.data(), it->first.data(), prefix_len) == 0);
                         j++) {
                         this->template BGetOp_copy_response(callbacks, it->first, it->second, req, res, i, j, event);
@@ -344,9 +342,7 @@ Message::Response::BGetOp *Datastore::InMemory::BGetOpImpl(Message::Request::BGe
             else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_HIGHEST) {
                 // does not include the type or length information
                 const size_t prefix_len = subject_len + predicate_len;
-                const std::string key_str = (std::string) key;
-                const std::string prefix = key_str.substr(0, prefix_len);
-                std::string seek(prefix.data(), prefix_len + 2);
+                std::string seek((char *) key.data(), prefix_len + 2);
 
                 const hxhim_data_t pred_type = req->predicates[i].data_type();
                 if ((predicate_len == 0) &&

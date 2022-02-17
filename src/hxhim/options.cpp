@@ -13,7 +13,7 @@
 /**
  * hxhim_set_mpi_bootstrap
  *
- * @param hx    the set of options to be modified
+ * @param hx    the hxhim instance being built
  * @param comm  the MPI communicator HXHIM will use to bootstrap
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
@@ -28,7 +28,7 @@ int hxhim_set_mpi_bootstrap(hxhim_t *hx, MPI_Comm comm) {
 /**
  * hxhim_set_debug_level
  *
- * @param hx     the set of options to be modified
+ * @param hx     the hxhim instance being built
  * @param level  the mlog level
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
@@ -45,7 +45,7 @@ int hxhim_set_debug_level(hxhim_t *hx, const int level) {
 /**
  * hxhim_set_client_ratio
  *
- * @param hx     the set of options to be modified
+ * @param hx     the hxhim instance being built
  * @param count  the ratio of clients
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
@@ -66,7 +66,7 @@ int hxhim_set_client_ratio(hxhim_t *hx, const size_t ratio) {
 /**
  * hxhim_set_server_ratio
  *
- * @param hx     the set of options to be modified
+ * @param hx     the hxhim instance being built
  * @param ratio  the ratio of servers
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
@@ -88,7 +88,7 @@ int hxhim_set_server_ratio(hxhim_t *hx, const size_t ratio) {
  * hxhim_set_datastores_per_server
  * Sets how many datastores to open per range server
  *
- * @param hx                      the set of options to be modified
+ * @param hx                      the hxhim instance being built
  * @param datastores_per_server   the number of datastores per server to open
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
@@ -129,7 +129,9 @@ int hxhim_set_open_init_datastore(hxhim_t *hx, const int init) {
  * Set whether or not to read histograms when opening datastores
  * and whether or not to write histograms when closing datastores.
  *
- * @param read_histograms whether or not to try to read existing histograms from the datastore when opening
+ * @param hx     the hxhim instance being built
+ * @param read   whether or not to try to read existing histograms from the datastore when opening
+ * @param write  whether or not to write historograms when closing datastores
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_datastore_histograms(hxhim_t *hx, const int read, const int write) {
@@ -148,7 +150,7 @@ int hxhim_datastore_histograms(hxhim_t *hx, const int read, const int write) {
  * Sets the values needed to set up the datastore
  * This function moves ownership of the config function from the caller to hx
  *
- * @param hx       the set of options to be modified
+ * @param hx       the hxhim instance being built
  * @param config   configuration data needed to initialize the datastore
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
@@ -189,7 +191,7 @@ int hxhim_set_datastore_name(hxhim_t *hx, const char *prefix, const char *basena
  * hxhim_set_datastore_in_memory
  * Sets up the values needed for a in_memory datastore
  *
- * @param hx    the set of options to be modified
+ * @param hx    the hxhim instance being built
  * @param path  the name prefix for each datastore
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
@@ -208,7 +210,7 @@ int hxhim_set_datastore_in_memory(hxhim_t *hx) {
  * hxhim_set_datastore_leveldb
  * Sets up the values needed for a leveldb datastore
  *
- * @param hx                  the set of options to be modified
+ * @param hx                  the hxhim instance being built
  * @param create_if_missing   whether or not to create the datastore if it does not already exist
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
@@ -228,9 +230,7 @@ int hxhim_set_datastore_leveldb(hxhim_t *hx, const int create_if_missing) {
  * hxhim_set_datastore_rocksdb
  * Sets up the values needed for a rocksdb datastore
  *
- * @param hx                  the set of options to be modified
- * @param prefix              the path prefix for each datastore
- * @param postfix             any extra string to add to the back of the datastore name
+ * @param hx                  the hxhim instance being built
  * @param create_if_missing   whether or not to create the datastore if it does not already exist
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
@@ -251,7 +251,7 @@ int hxhim_set_datastore_rocksdb(hxhim_t *hx, const int create_if_missing) {
  * This function takes the hash name instead of a function because
  * the extra arguments cannot always be determined before HXHIM starts (?).
  *
- * @param hx     the set of options to be modified
+ * @param hx     the hxhim instance being built
  * @param hash   the name of the hash function
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
@@ -279,7 +279,7 @@ int hxhim_set_hash_name(hxhim_t *hx, const char *name) {
  * This function takes the hash name instead of a function because
  * the extra arguments cannot always be determined before HXHIM starts (?).
  *
- * @param hx     the set of options to be modified
+ * @param hx     the hxhim instance being built
  * @param hash   the function to use as the hash function
  * @param args   the exta arguments to pass into the hash function
  * @return HXHIM_SUCCESS or HXHIM_ERROR
@@ -331,7 +331,7 @@ int hxhim_set_transform_function(hxhim_t *hx, const enum hxhim_data_t type,
  * Sets the values needed to set up the Transport
  * This function moves ownership of the config function from the caller to hx
  *
- * @param hx       the set of options to be modified
+ * @param hx       the hxhim instance being built
  * @param config   configuration data needed to initialize the Transport
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
@@ -351,7 +351,7 @@ static int hxhim_set_transport(hxhim_t *hx, Transport::Options *config) {
  * hxhim_set_transport_null
  * Sets the values needed to set up a null Transport
  *
- * @param hx  the set of options to be modified
+ * @param hx    the hxhim instance being built
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_set_transport_null(hxhim_t *hx) {
@@ -368,7 +368,7 @@ int hxhim_set_transport_null(hxhim_t *hx) {
  * hxhim_set_transport_mpi
  * Sets the values needed to set up a mpi Transport
  *
- * @param hx           the set of options to be modified
+ * @param hx           the hxhim instance being built
  * @param listeners    the number of listeners
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
@@ -387,7 +387,7 @@ int hxhim_set_transport_mpi(hxhim_t *hx, const size_t listeners) {
  * hxhim_set_transport_thallium
  * Sets the values needed to set up a thallium Transport
  *
- * @param hx       the set of options to be modified
+ * @param hx       the hxhim instance being built
  * @param module   the name of the thallium module to use
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
@@ -405,7 +405,7 @@ int hxhim_set_transport_thallium(hxhim_t *hx, const std::string &module, const i
  * hxhim_set_transport_thallium
  * Sets the values needed to set up a thallium Transport
  *
- * @param hx       the set of options to be modified
+ * @param hx       the hxhim instance being built
  * @param module   the name of the thallium module to use
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
@@ -418,7 +418,7 @@ int hxhim_set_transport_thallium(hxhim_t *hx, const char *module, const int thre
  * hxhim_add_endpoint_to_group
  * Adds an endpoint to the endpoint group
  *
- * @param hx   the set of options to be modified
+ * @param hx   the hxhim instance being built
  * @param id   the unique id to add
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
@@ -440,7 +440,7 @@ int hxhim_add_endpoint_to_group(hxhim_t *hx, const int id) {
  * hxhim_clear_endpoint_group
  * Removes all endpoints in the endpoint group
  *
- * @param hx   the set of options to be modified
+ * @param hx    the hxhim instance being built
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
 int hxhim_clear_endpoint_group(hxhim_t *hx) {
@@ -457,7 +457,7 @@ int hxhim_clear_endpoint_group(hxhim_t *hx) {
  * hxhim_set_start_async_puts_at
  * Set the number of bulk PUTs to queue up before flushing in the background thread
  *
- * @param hx     the set of options to be modified
+ * @param hx     the hxhim instance being built
  * @param count  the number of PUTs
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
@@ -476,7 +476,7 @@ int hxhim_set_start_async_puts_at(hxhim_t *hx, const std::size_t count) {
  * hxhim_set_maximum_ops_per_request
  * Set the maximum number of operations a bulk request can hold
  *
- * @param hx     the set of options to be modified
+ * @param hx     the hxhim instance being built
  * @param count  the number of PUTs
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
@@ -494,7 +494,7 @@ int hxhim_set_maximum_ops_per_request(hxhim_t *hx, const std::size_t count) {
  * hxhim_set_maximum_size_per_request
  * Set the maximum number of bytes a bulk requst can be
  *
- * @param hx     the set of options to be modified
+ * @param hx     the hxhim instance being built
  * @param count  the number of PUTs
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
@@ -512,7 +512,7 @@ int hxhim_set_maximum_size_per_request(hxhim_t *hx, const std::size_t size) {
  * hxhim_set_histogram_first_n
  * Set the number of datapoints to use to generate the histogram buckets
  *
- * @param hx     the set of options to be modified
+ * @param hx     the hxhim instance being built
  * @param count  the number of datapoints
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
@@ -532,7 +532,7 @@ int hxhim_set_histogram_first_n(hxhim_t *hx, const std::size_t count) {
  * This function only allows for predefined functions
  * because the function signature uses C++ objects
  *
- * @param hx      the set of options to be modified
+ * @param hx      the hxhim instance being built
  * @param method  the name of the method
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
@@ -563,7 +563,7 @@ int hxhim_set_histogram_bucket_gen_name(hxhim_t *hx, const char *method) {
  * This function only allows for predefined functions
  * because the function signature uses C++ objects
  *
- * @param hx      the set of options to be modified
+ * @param hx      the hxhim instance being built
  * @param method  the name of the method
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */
@@ -578,7 +578,7 @@ int hxhim_set_histogram_bucket_gen_name(hxhim_t *hx, const std::string &method) 
  * that match the histogram bucket generator function
  * signature to be used.
  *
- * @param hx    the set of options to be modified
+ * @param hx    the hxhim instance being built
  * @param gen   the custom function for generating buckets
  * @param args  arguments the custom function will use at runtime
  * @return HXHIM_SUCCESS or HXHIM_ERROR
@@ -601,7 +601,7 @@ int hxhim_set_histogram_bucket_gen_function(hxhim_t *hx, HistogramBucketGenerato
 /**
  * hxhim_add_histogram_track_predicate
  *
- * @param hx         the set of options to be modified
+ * @param hx         the hxhim instance being built
  * @param name       the name of the predicate to track
  * @param name_len   length of name argument
  * @return HXHIM_SUCCESS or HXHIM_ERROR
@@ -613,7 +613,7 @@ int hxhim_add_histogram_track_predicate(hxhim_t *hx, const char *name, const siz
 /**
  * hxhim_add_histogram_track_predicate
  *
- * @param hx      the set of options to be modified
+ * @param hx      the hxhim instance being built
  * @param name    the name of the predicate to track
  * @return HXHIM_SUCCESS or HXHIM_ERROR
  */

@@ -28,11 +28,11 @@ int hxhim_set_datastore_name(hxhim_t *hx, const char *prefix, const char *basena
 int hxhim_set_datastore_in_memory(hxhim_t *hx);
 #if HXHIM_HAVE_LEVELDB
 int hxhim_set_datastore_leveldb(hxhim_t *hx,
-                                        const int create_if_missing);
+                                const int create_if_missing);
 #endif
 #if HXHIM_HAVE_ROCKSDB
 int hxhim_set_datastore_rocksdb(hxhim_t *hx,
-                                        const int create_if_missing);
+                                const int create_if_missing);
 #endif
 int hxhim_set_hash_name(hxhim_t *hx, const char *name);
 int hxhim_set_hash_function(hxhim_t *hx, const char *name, hxhim_hash_t func, void *args);

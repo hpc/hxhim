@@ -115,7 +115,7 @@ class Datastore {
 
         // only used for objects
         static Blob append_type(void *ptr, std::size_t size, hxhim_data_t type);
-        static hxhim_data_t remove_type(void *ptr, std::size_t &size);
+        static hxhim_data_t remove_type(const void *ptr, std::size_t &size);
 
     protected:
         int rank;      // MPI rank of HXHIM instance

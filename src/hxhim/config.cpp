@@ -15,7 +15,7 @@
  * This function template is a helper function
  * for parsing and setting simple values
  *
- * @param hx        the options struct being built
+ * @param hx          the hxhim instance being built
  * @param config      the configuration
  * @param key         the key within the configuration to look for
  * @param set_option  the function to do the setting of the option
@@ -25,7 +25,7 @@ template <typename T, typename = enable_if_t <!std::is_reference<T>::value> >
 bool parse_value(hxhim_t *hx, const Config::Config &config, const std::string &key, int (*set_option)(hxhim_t *, const T)) {
     T value = {};
     const int ret = Config::get_value(config, key, value);
-    if ((ret == Config::ERROR)                                                 ||
+    if ((ret == Config::ERROR)                                               ||
         ((ret == Config::FOUND) && (set_option(hx, value) != HXHIM_SUCCESS))) {
         return false;
     }
@@ -38,7 +38,7 @@ bool parse_value(hxhim_t *hx, const Config::Config &config, const std::string &k
  * This function template is a helper function for
  * parsing and setting char * configuration values
  *
- * @param hx        the options struct being built
+ * @param hx          the hxhim instance being built
  * @param config      the configuration
  * @param key         the key within the configuration to look for
  * @param set_option  the function to do the setting of the option
@@ -47,7 +47,7 @@ bool parse_value(hxhim_t *hx, const Config::Config &config, const std::string &k
 static bool parse_value(hxhim_t *hx, const Config::Config &config, const std::string &key, int (*set_option)(hxhim_t *, const char *)) {
     std::string value;
     const int ret = Config::get_value(config, key, value);
-    if ((ret == Config::ERROR)                                                         ||
+    if ((ret == Config::ERROR)                                                       ||
         ((ret == Config::FOUND) && (set_option(hx, value.c_str()) != HXHIM_SUCCESS))) {
         return false;
     }
@@ -60,7 +60,7 @@ static bool parse_value(hxhim_t *hx, const Config::Config &config, const std::st
  * This function template is a helper function
  * for parsing and setting values that are mapped
  *
- * @param hx        the options struct being built
+ * @param hx          the hxhim instance being built
  * @param config      the configuration
  * @param key         the key within the configuration to look for
  * @param map         the map to search the key for
@@ -71,7 +71,7 @@ template <typename T, typename = enable_if_t <!std::is_reference<T>::value> >
 bool parse_map_value(hxhim_t *hx, const Config::Config &config, const std::string &key, const std::unordered_map<std::string, T> &map, int (*set_option)(hxhim_t *, const T)) {
     T value = {};
     const int ret = Config::get_from_map(config, key, map, value);
-    if ((ret == Config::ERROR)                                                 ||
+    if ((ret == Config::ERROR)                                               ||
         ((ret == Config::FOUND) && (set_option(hx, value) != HXHIM_SUCCESS))) {
         return false;
     }
@@ -87,8 +87,8 @@ bool parse_map_value(hxhim_t *hx, const Config::Config &config, const std::strin
  *
  * This was done to clean up the fill_options function.
  *
- * @param hx the options to fill
- * @param config the configuration to use
+ * @param hx       the hxhim instance being built
+ * @param config   the configuration to use
  * @return a boolean indicating whether or not an error was encountered
  */
 static bool parse_datastore(hxhim_t *hx, const Config::Config &config) {
@@ -127,7 +127,7 @@ static bool parse_datastore(hxhim_t *hx, const Config::Config &config) {
                 }
 
                 return (hxhim_set_datastore_leveldb(hx,
-                                                            create_if_missing) == HXHIM_SUCCESS);
+                                                    create_if_missing) == HXHIM_SUCCESS);
             }
         #endif
 
@@ -141,7 +141,7 @@ static bool parse_datastore(hxhim_t *hx, const Config::Config &config) {
                 }
 
                 return (hxhim_set_datastore_rocksdb(hx,
-                                                            create_if_missing) == HXHIM_SUCCESS);
+                                                    create_if_missing) == HXHIM_SUCCESS);
             }
         #endif
 
@@ -331,8 +331,8 @@ static bool parse_histogram(hxhim_t *hx, const Config::Config &config) {
  * set of configuration variables is complete.
  * New values will overwrite old values.
  *
- * @param hx the options to fill
- * @param the configuration to use
+ * @param hx      the hxhim instance being built
+ * @param config  the configuration to use
  * @param HXHIM_SUCCESS or HXHIM_ERROR on error
  */
 static int fill_options(hxhim_t *hx, const Config::Config &config) {
@@ -372,8 +372,8 @@ static int fill_options(hxhim_t *hx, const Config::Config &config) {
  *
  * hx should be cleaned up by the calling function.
  *
- * @param hx     the options to fill
- * @param sequence the configuration reader that has been set up
+ * @param hx         the hxhim instance being built
+ * @param sequence   the configuration reader that has been set up
  * @return whether or not hx was successfully filled
  */
 int process_config_and_fill_options(hxhim_t *hx, Config::Sequence &sequence) {
@@ -396,7 +396,7 @@ int process_config_and_fill_options(hxhim_t *hx, Config::Sequence &sequence) {
  * of how custom configuration readers should
  * be implmented.
  *
- * @param hx the options to fill
+ * @param hx   the hxhim instance being built
  * @return HXHIM_SUCCESS, or HXHIM_ERROR if filling in the default configuration failed
  */
 namespace hxhim {

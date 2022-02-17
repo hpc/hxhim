@@ -431,7 +431,7 @@ Blob Datastore::Datastore::append_type(void *ptr, std::size_t size, hxhim_data_t
     return std::move(RealBlob(out, new_size, hxhim_data_t::HXHIM_DATA_BYTE));
 }
 
-hxhim_data_t Datastore::Datastore::remove_type(void *ptr, std::size_t &size) {
+hxhim_data_t Datastore::Datastore::remove_type(const void *ptr, std::size_t &size) {
     hxhim_data_t type;
     char *curr = (char *) ptr;
     size -= sizeof(type);
