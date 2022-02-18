@@ -232,43 +232,13 @@ Message::Response::BGetOp *Datastore::RocksDB::BGetOpImpl(Message::Request::BGet
         Datastore::Datastore::Stats::Event event;
         event.time.start = ::Stats::now();
 
-        // prepare response
-        // does not modify serialized size
-        // set status early so failures during copy will change the status
-        // all responses for this Op share a status
-        res->add(alloc_array<Blob>(req->num_recs[i]),
-                 alloc_array<Blob>(req->num_recs[i]),
-                 alloc_array<Blob>(req->num_recs[i]),
-                 0,
-                 DATASTORE_UNSET);
-
-        // encode the subject and predicate and get the key
         void *subject = nullptr;
         std::size_t subject_len = 0;
         void *predicate = nullptr;
         std::size_t predicate_len = 0;
         Blob key;
-        if ((req->ops[i] == hxhim_getop_t::HXHIM_GETOP_EQ)      ||
-            (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_NEXT)    ||
-            (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_PREV)    ||
-            (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_LOWEST)  ||
-            (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_HIGHEST)) {
-            if (encode(callbacks, req->subjects[i], &subject, &subject_len) != DATASTORE_SUCCESS) {
-                res->statuses[i] = DATASTORE_ERROR;
-            }
 
-            // failure doesn't matter
-            encode(callbacks, req->predicates[i], &predicate, &predicate_len);
-
-            // combine encoded subject snd encoded predicates into a key
-            if (res->statuses[i] == DATASTORE_UNSET) {
-                if (sp_to_key(ReferenceBlob(subject,   subject_len,   req->subjects[i].data_type()),
-                              ReferenceBlob(predicate, predicate_len, req->predicates[i].data_type()),
-                              &key) != HXHIM_SUCCESS) {
-                    res->statuses[i] = DATASTORE_ERROR;
-                }
-            }
-        }
+        BGetOp_loop_init(req, res, i, subject, subject_len, predicate, predicate_len, key);
 
         if (res->statuses[i] == DATASTORE_UNSET) {
             if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_EQ) {

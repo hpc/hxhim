@@ -145,6 +145,18 @@ class Datastore {
     protected:
         Stats stats;
 
+        void BGetOp_loop_init(Message::Request::BGetOp *req,
+                              Message::Response::BGetOp *res,
+                              const std::size_t i,
+                              void *&subject, std::size_t &subject_len,
+                              void *&predicate, std::size_t &predicate_len,
+                              Blob &key);
+
+        std::string BGetOp_get_seek(const Blob &key,
+                                    std::size_t prefix_len,
+                                    std::size_t predicate_len,
+                                    hxhim_data_t predicate_type);
+
         template <typename Key_t, typename Value_t>
         static void BGetOp_copy_response(Transform::Callbacks *callbacks,
                                          const Key_t &key,
@@ -154,11 +166,6 @@ class Datastore {
                                          const std::size_t i,
                                          const std::size_t j,
                                          Datastore::Datastore::Stats::Event &event);
-
-        std::string BGetOp_get_seek(const Blob &key,
-                                    std::size_t prefix_len,
-                                    std::size_t predicate_len,
-                                    hxhim_data_t predicate_type);
 
         void BGetOp_error_response(Message::Response::BGetOp *res,
                                    const std::size_t i,

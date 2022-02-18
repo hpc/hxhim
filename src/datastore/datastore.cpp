@@ -441,6 +441,50 @@ hxhim_data_t Datastore::Datastore::remove_type(const void *ptr, std::size_t &siz
     return type;
 }
 
+void Datastore::Datastore::BGetOp_loop_init(Message::Request::BGetOp *req,
+                                            Message::Response::BGetOp *res,
+                                            const std::size_t i,
+                                            void *&subject, std::size_t &subject_len,
+                                            void *&predicate, std::size_t &predicate_len,
+                                            Blob &key) {
+    // prepare response
+    // does not modify serialized size
+    // set status early so failures during copy will change the status
+    // all responses for this Op share a status
+    res->add(alloc_array<Blob>(req->num_recs[i]),
+             alloc_array<Blob>(req->num_recs[i]),
+             alloc_array<Blob>(req->num_recs[i]),
+             0,
+             DATASTORE_UNSET);
+
+    // encode the subject and predicate and get the key
+    subject = nullptr;
+    subject_len = 0;
+    predicate = nullptr;
+    predicate_len = 0;
+    if ((req->ops[i] == hxhim_getop_t::HXHIM_GETOP_EQ)      ||
+        (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_NEXT)    ||
+        (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_PREV)    ||
+        (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_LOWEST)  ||
+        (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_HIGHEST)) {
+        if (encode(callbacks, req->subjects[i], &subject, &subject_len) != DATASTORE_SUCCESS) {
+            res->statuses[i] = DATASTORE_ERROR;
+        }
+
+        // failure doesn't matter
+        encode(callbacks, req->predicates[i], &predicate, &predicate_len);
+
+        // combine encoded subject snd encoded predicates into a key
+        if (res->statuses[i] == DATASTORE_UNSET) {
+            if (sp_to_key(ReferenceBlob(subject,   subject_len,   req->subjects[i].data_type()),
+                          ReferenceBlob(predicate, predicate_len, req->predicates[i].data_type()),
+                          &key) != HXHIM_SUCCESS) {
+                res->statuses[i] = DATASTORE_ERROR;
+            }
+        }
+    }
+}
+
 std::string Datastore::Datastore::BGetOp_get_seek(const Blob &key,
                                                   std::size_t prefix_len,
                                                   std::size_t predicate_len,
