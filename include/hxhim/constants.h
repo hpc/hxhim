@@ -88,18 +88,30 @@ extern const char *HXHIM_OP_STR[];
  * List of operations that can be done
  * with a GetOp or BGetOP
  *
+ * The operations that use the subject and predicate do prefix
+ * searches on key[0, subject len + predicate len)
+ *
+ * NEXT and LOWEST do the same thing
+ *     - find the first value with the prefix and iterate forwards
+ *
+ * PREV and HIGHEST are different
+ *     - PREV finds the first key with the prefix and
+ *       iterate backwards
+ *     - HIGHEST finds the first key with the prefix
+ *       after the given one and iterates backwards
+ *
  * HXHIM_GETOP_*
  */
-#define HXHIM_GETOP_GEN(PREFIX, GEN)                                          \
-    GEN(PREFIX, EQ)      /** num_recs is ignored */                           \
-    GEN(PREFIX, NEXT)    /** exact match */                                   \
-    GEN(PREFIX, PREV)    /** exact match */                                   \
-    GEN(PREFIX, FIRST)   /** subject-predicate pair is ignored */             \
-    GEN(PREFIX, LAST)    /** subject-predicate pair is ignored */             \
-    GEN(PREFIX, LOWEST)  /** match by prefix (subject len + predicate len) */ \
-    GEN(PREFIX, HIGHEST) /** match by prefix (subject len + predicate len) */ \
-    /* GEN(PREFIX, PRIMARY_EQ) */                                             \
-    GEN(PREFIX, INVALID)                                                      \
+#define HXHIM_GETOP_GEN(PREFIX, GEN)                                      \
+    GEN(PREFIX, EQ)      /** num_recs is ignored */                       \
+    GEN(PREFIX, NEXT)    /** iterate forwards  */                         \
+    GEN(PREFIX, PREV)    /** iterate backwards */                         \
+    GEN(PREFIX, FIRST)   /** subject-predicate pair is ignored */         \
+    GEN(PREFIX, LAST)    /** subject-predicate pair is ignored */         \
+    GEN(PREFIX, LOWEST)  /** iterate forwards */                          \
+    GEN(PREFIX, HIGHEST) /** go to end of prefix and iterate backwards */ \
+    /* GEN(PREFIX, PRIMARY_EQ) */                                         \
+    GEN(PREFIX, INVALID)                                                  \
 
 #define HXHIM_GETOP_PREFIX HXHIM_GETOP
 

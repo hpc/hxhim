@@ -1,5 +1,4 @@
 #include <deque>
-#include <sstream>
 
 #include "rocksdb/write_batch.h"
 
@@ -237,12 +236,13 @@ Message::Response::BGetOp *Datastore::RocksDB::BGetOpImpl(Message::Request::BGet
         void *predicate = nullptr;
         std::size_t predicate_len = 0;
         Blob key;
+        std::size_t prefix_len = 0;
 
-        BGetOp_loop_init(req, res, i, subject, subject_len, predicate, predicate_len, key);
+        BGetOp_loop_init(req, res, i, subject, subject_len, predicate, predicate_len, key, prefix_len);
 
         if (res->statuses[i] == DATASTORE_UNSET) {
             if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_EQ) {
-                it->Seek(::rocksdb::Slice((char *) key.data(), key.size()));
+                it->Seek(::rocksdb::Slice((char *) key.data(), prefix_len));
 
                 if (it->Valid()) {
                     // only 1 response, so j == 0 (num_recs is ignored)
@@ -255,7 +255,7 @@ Message::Response::BGetOp *Datastore::RocksDB::BGetOpImpl(Message::Request::BGet
                 }
             }
             else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_NEXT) {
-                it->Seek(::rocksdb::Slice((char *) key.data(), key.size()));
+                it->Seek(::rocksdb::Slice((char *) key.data(), prefix_len));
 
                 if (it->Valid()) {
                     // first result returned is (subject, predicate)
@@ -270,7 +270,7 @@ Message::Response::BGetOp *Datastore::RocksDB::BGetOpImpl(Message::Request::BGet
                 }
             }
             else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_PREV) {
-                it->Seek(::rocksdb::Slice((char *) key.data(), key.size()));
+                it->Seek(::rocksdb::Slice((char *) key.data(), prefix_len));
 
                 if (it->Valid()) {
                     // first result returned is (subject, predicate)
@@ -313,7 +313,6 @@ Message::Response::BGetOp *Datastore::RocksDB::BGetOpImpl(Message::Request::BGet
                 }
             }
             else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_LOWEST) {
-                const std::size_t prefix_len = subject_len + predicate_len;
                 const std::string seek = BGetOp_get_seek(key, prefix_len, predicate_len,
                                                          req->predicates[i].data_type());
                 ::rocksdb::Slice prefix((char *) key.data(), prefix_len); // need prefix for starts_with()
@@ -335,7 +334,6 @@ Message::Response::BGetOp *Datastore::RocksDB::BGetOpImpl(Message::Request::BGet
                 }
             }
             else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_HIGHEST) {
-                const std::size_t prefix_len = subject_len + predicate_len;
                 const std::string seek = BGetOp_get_seek(key, prefix_len, predicate_len,
                                                          req->predicates[i].data_type());
                 ::rocksdb::Slice prefix((char *) key.data(), prefix_len); // need prefix for starts_with()

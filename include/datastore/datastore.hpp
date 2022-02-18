@@ -150,7 +150,7 @@ class Datastore {
                               const std::size_t i,
                               void *&subject, std::size_t &subject_len,
                               void *&predicate, std::size_t &predicate_len,
-                              Blob &key);
+                              Blob &key, std::size_t &prefix_len);
 
         std::string BGetOp_get_seek(const Blob &key,
                                     std::size_t prefix_len,

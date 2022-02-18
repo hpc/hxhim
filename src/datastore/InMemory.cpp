@@ -191,12 +191,13 @@ Message::Response::BGetOp *Datastore::InMemory::BGetOpImpl(Message::Request::BGe
         void *predicate = nullptr;
         std::size_t predicate_len = 0;
         Blob key;
+        std::size_t prefix_len = 0;
 
-        BGetOp_loop_init(req, res, i, subject, subject_len, predicate, predicate_len, key);
+        BGetOp_loop_init(req, res, i, subject, subject_len, predicate, predicate_len, key, prefix_len);
 
         if (res->statuses[i] == DATASTORE_UNSET) {
             if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_EQ) {
-                it = db.find((std::string) key);
+                it = db.lower_bound(std::string((const char *) key.data(), prefix_len));
 
                 if (it != db.end()) {
                     // only 1 response, so j == 0 (num_recs is ignored)
@@ -207,7 +208,7 @@ Message::Response::BGetOp *Datastore::InMemory::BGetOpImpl(Message::Request::BGe
                 }
             }
             else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_NEXT) {
-                it = db.find((std::string) key);
+                it = db.lower_bound(std::string((const char *) key.data(), prefix_len));
 
                 if (it != db.end()) {
                     // first result returned is (subject, predicate)
@@ -222,7 +223,7 @@ Message::Response::BGetOp *Datastore::InMemory::BGetOpImpl(Message::Request::BGe
                 }
             }
             else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_PREV) {
-                it = db.find((std::string) key);
+                it = db.lower_bound(std::string((const char *) key.data(), prefix_len));
 
                 if (it != db.end()) {
                     // first result returned is (subject, predicate)
@@ -272,7 +273,6 @@ Message::Response::BGetOp *Datastore::InMemory::BGetOpImpl(Message::Request::BGe
                 }
             }
             else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_LOWEST) {
-                const std::size_t prefix_len = subject_len + predicate_len;
                 const std::string seek = BGetOp_get_seek(key, prefix_len, predicate_len,
                                                          req->predicates[i].data_type());
 
@@ -293,7 +293,6 @@ Message::Response::BGetOp *Datastore::InMemory::BGetOpImpl(Message::Request::BGe
                 }
             }
             else if (req->ops[i] == hxhim_getop_t::HXHIM_GETOP_HIGHEST) {
-                const std::size_t prefix_len = subject_len + predicate_len;
                 const std::string seek = BGetOp_get_seek(key, prefix_len, predicate_len,
                                                          req->predicates[i].data_type());
 
