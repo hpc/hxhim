@@ -1,5 +1,4 @@
 #include <sstream>
-#include <vector>
 
 #include <gtest/gtest.h>
 
@@ -107,4 +106,21 @@ TEST(ConfigEnvironmentVar, usage) {
     // val should be stored in var, not env_var
     EXPECT_EQ(cve.process(config), true);
     EXPECT_EQ(config.at(var), val);
+}
+
+// defined in src/utils/Configuration.cpp
+bool parse_kv_stream(Config::Config &config, std::istream &stream);
+
+TEST(Config, parse_kv_stream) {
+    Config::Config config;
+
+    // value with space in the middle and trailing whitespace
+    std::stringstream s1("KEY1   VALUE1  VALUE2    ");
+    EXPECT_EQ(parse_kv_stream(config, s1), true);
+    EXPECT_EQ(config.at("KEY1"), "VALUE1  VALUE2");
+
+    // key with no value
+    std::stringstream s2("KEY2    ");
+    EXPECT_EQ(parse_kv_stream(config, s2), true);
+    EXPECT_EQ(config.at("KEY2"), "");
 }

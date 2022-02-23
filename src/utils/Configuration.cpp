@@ -53,33 +53,44 @@ void Config::Sequence::process(Config &config) const {
 
 /**
  * parse_kv_stream
- * Generic key-value stream parser
+ * Generic key-value stream line parser
+ * The first word is the key.
+ * The value is everything after the key, with leading and trailing whitespace removed
  *
  * @param config the configuration to fill
  * @param stream the input stream
  * @return how many items were read; 0 is considered a failure even if the file was opened properly
  */
-static bool parse_kv_stream(Config::Config &config, std::istream& stream) {
+bool parse_kv_stream(Config::Config &config, std::istream &stream) {
     // parsing should not cross line boundaries
     std::string line;
     size_t count = 0;
     while (std::getline(stream, line)) {
-        std::string key, value;
-        if (std::stringstream(line) >> key >> value) {
+        std::string key;
+        std::stringstream s(line);
+        if (s >> key) {
             // check for comments
             if (key[0] == '#') {
                 continue;
             }
 
-            // remove trailing whitespace
-            std::string::size_type i = value.size();
-            if (value.size()) {
-                while (std::isspace(value[i - 1])) {
-                    i--;
-                }
+            // read everything after first word
+            std::string value;
+            std::getline(s, value);
+
+            // remove leading whitespace
+            std::size_t lhs = 0;
+            while ((lhs < value.size()) && std::isspace(value[lhs])) {
+                lhs++;
             }
 
-            config[key] = value.substr(0, i);
+            // remove trailing whitespace
+            std::string::size_type rhs = value.size();
+            while (rhs && std::isspace(value[rhs - 1])) {
+                rhs--;
+            }
+
+            config[key] = value.substr(lhs, rhs - lhs);
             count++;
         }
     }
