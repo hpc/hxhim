@@ -1,4 +1,5 @@
 #include <sstream>
+#include <unordered_map>
 
 #include <gtest/gtest.h>
 
@@ -123,4 +124,77 @@ TEST(Config, parse_kv_stream) {
     std::stringstream s2("KEY2    ");
     EXPECT_EQ(parse_kv_stream(config, s2), true);
     EXPECT_EQ(config.at("KEY2"), "");
+}
+
+TEST(Config, get_value_str) {
+    const Config::Config config = {
+        {"KEY1", "VALUE1"},
+        {"KEY2", " \t\n\v\f\r"},
+    };
+
+    std::string value;
+
+    EXPECT_EQ(Config::get_value(config, "KEY1", value), Config::FOUND);
+    EXPECT_EQ(value, "VALUE1");
+
+    EXPECT_EQ(Config::get_value(config, "KEY2", value), Config::FOUND);
+    EXPECT_EQ(value, " \t\n\v\f\r"); // whitespace should not be removed
+
+    EXPECT_EQ(Config::get_value(config, "KEY3", value), Config::NOT_FOUND);
+}
+
+TEST(Config, get_value_int) {
+    const Config::Config config = {
+        {"KEY1", "1"},
+        {"KEY2", ""},
+    };
+
+    int value;
+
+    EXPECT_EQ(Config::get_value(config, "KEY1", value), Config::FOUND);
+    EXPECT_EQ(value, 1);
+
+    EXPECT_EQ(Config::get_value(config, "KEY2", value), Config::ERROR);
+
+    EXPECT_EQ(Config::get_value(config, "KEY3", value), Config::NOT_FOUND);
+}
+
+TEST(Config, get_value_bool) {
+    const Config::Config config = {
+        {"KEY1", "true"},
+        {"KEY2", "false"},
+        {"KEY3", ""},
+    };
+
+    bool value = false;
+
+    EXPECT_EQ(Config::get_value(config, "KEY1", value), Config::FOUND);
+    EXPECT_EQ(value, true);
+
+    EXPECT_EQ(Config::get_value(config, "KEY2", value), Config::FOUND);
+    EXPECT_EQ(value, false);
+
+    EXPECT_EQ(Config::get_value(config, "KEY3", value), Config::ERROR);
+
+    EXPECT_EQ(Config::get_value(config, "KEY4", value), Config::NOT_FOUND);
+}
+
+TEST(Config, get_from_map) {
+    const std::unordered_map<std::string, std::string> keywords = {
+        {"KEYWORD1", "VALUE1"},
+    };
+
+    const Config::Config config = {
+        {"KEY1", "KEYWORD1"},
+        {"KEY2", "KEYWORD2"},
+    };
+
+    std::string value;
+
+    EXPECT_EQ(Config::get_from_map(config, "KEY1", keywords, value), Config::FOUND);
+    EXPECT_EQ(value, "VALUE1");
+
+    EXPECT_EQ(Config::get_from_map(config, "KEY2", keywords, value), Config::ERROR);
+
+    EXPECT_EQ(Config::get_from_map(config, "KEY3", keywords, value), Config::NOT_FOUND);
 }

@@ -144,6 +144,26 @@ bool Config::EnvironmentVar::process(Config &config) const {
 }
 
 /**
+ * get_value <std::string> overload
+ * Helper function for reading strings from the configuration
+ * String configuration values might have whitespace, so don't parse them
+ *
+ * @param config     the configuration
+ * @param config_key the entry in the configuraion to read
+ * @param str        the value of the configuration
+ * @return Config::FOUND if the configuration key was found, or Config::ERROR if the configuration key was not found
+ */
+int Config::get_value(const Config &config, const std::string &config_key, std::string &str) {
+    Config_it in_config = config.find(config_key);
+    if (in_config != config.end()) {
+        str = in_config->second;
+        return FOUND;
+    }
+
+    return NOT_FOUND;
+}
+
+/**
  * get_value <bool> overload
  * Helper function for reading booleans from the configuration
  *

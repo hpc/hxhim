@@ -131,6 +131,18 @@ class EnvironmentVar : public Reader {
 };
 
 /**
+ * get_value <std::string> overload
+ * Helper function for reading strings from the configuration
+ * String configuration values might have whitespace, so don't parse them
+ *
+ * @param config     the configuration
+ * @param config_key the entry in the configuraion to read
+ * @param str        the value of the configuration
+ * @return Config::FOUND if the configuration key was found, or Config::ERROR if the configuration key was not found
+ */
+int get_value(const Config &config, const std::string &config_key, std::string &str);
+
+/**
  * get_value
  * Helper function for reading numeric values from the configuration
  *
